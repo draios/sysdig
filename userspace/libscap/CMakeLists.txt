@@ -9,5 +9,5 @@ add_library(scap STATIC
 	scap_event.c 
 	scap_procs.c 
 	scap_userlist.c 
-	${PROJECT_SOURCE_DIR}/driver/event_table.c
-	${PROJECT_SOURCE_DIR}/driver/syscall_info_table.c)
+	../../driver/event_table.c
+	../../driver/syscall_info_table.c)

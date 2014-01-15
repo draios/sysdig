@@ -1,5 +1,5 @@
-include_directories(${PROJECT_SOURCE_DIR}/common)
-include_directories(${PROJECT_SOURCE_DIR}/userspace/libscap)
+include_directories(../../common)
+include_directories(../libscap)
 
 add_library(sinsp STATIC
 	event.cpp
