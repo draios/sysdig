@@ -1,0 +1,42 @@
+#!/bin/bash
+set -ex 
+
+SCRIPT=$(readlink -f $0)
+TOP=$(dirname $SCRIPT)
+
+if [ -z "$WORKDIR" ]; then
+	WORKDIR=$TOP
+fi
+
+DEPENDENCIES=$WORKDIR/dependencies
+
+if [ ! -d "$DEPENDENCIES" ]; then
+	mkdir -p $DEPENDENCIES
+fi
+
+CMAKE_DIR=$DEPENDENCIES/cmake-2.8.11.2
+if [ ! -d "$CMAKE_DIR" ]; then
+	cd $DEPENDENCIES
+	wget https://s3.amazonaws.com/draios-dependencies/cmake-2.8.11.2.tar.gz
+	tar -xzf cmake-2.8.11.2.tar.gz
+	cd $CMAKE_DIR
+	patch -p1 < $TOP/patches/0001-Make-deb-package-options-configurable-per-component.patch
+	./bootstrap
+	make
+fi
+
+if [ -z "$BUILD_NUMBER" ]; then
+	BUILD_NUMBER="1"
+fi
+
+BUILD_DIR=$WORKDIR/build
+if [ ! -d "$BUILD_DIR" ]; then
+	mkdir $BUILD_DIR
+	mkdir $BUILD_DIR/debug
+	mkdir $BUILD_DIR/release
+fi
+
+cd $BUILD_DIR/debug
+$CMAKE_DIR/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DSYSDIG_DEPENDENCIES_DIR=$DEPENDENCIES -DSYSDIG_BUILD_NUMBER=$BUILD_NUMBER $TOP
+cd $BUILD_DIR/release
+$CMAKE_DIR/bin/cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_DEPENDENCIES_DIR=$DEPENDENCIES -DSYSDIG_BUILD_NUMBER=$BUILD_NUMBER $TOP
