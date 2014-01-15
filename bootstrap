@@ -1,0 +1,21 @@
+#!/bin/bash
+set -ex 
+
+SCRIPT=$(readlink -f $0)
+TOP=$(dirname $SCRIPT)
+
+if [ -z "$WORKDIR" ]; then
+	WORKDIR=$TOP
+fi
+
+BUILD_DIR=$WORKDIR/build
+if [ ! -d "$BUILD_DIR" ]; then
+	mkdir $BUILD_DIR
+	mkdir $BUILD_DIR/debug
+	mkdir $BUILD_DIR/release
+fi
+
+cd $BUILD_DIR/debug
+cmake -DCMAKE_BUILD_TYPE=Debug $TOP
+cd $BUILD_DIR/release
+cmake -DCMAKE_BUILD_TYPE=Release $TOP
