@@ -1,0 +1,33 @@
+LIBRARY scap
+
+EXPORTS
+		scap_open_live
+		scap_open_offline
+		scap_close
+		scap_get_os_platform
+		scap_get_ndevs
+		scap_getlasterr
+		scap_next
+		scap_event_getlen
+		scap_event_get_ts
+		scap_dump_open
+		scap_dump_close
+		scap_dump
+		scap_event_get_num
+		scap_get_proc_table
+		scap_event_getinfo
+		scap_stop_capture
+		scap_get_ifaddr_list
+		scap_get_stats
+		scap_get_event_info_table
+		scap_get_syscall_info_table
+		scap_proc_get
+		scap_proc_free
+		scap_start_capture
+		scap_get_machine_info
+		scap_stop_dropping_mode
+		scap_start_dropping_mode
+		scap_get_user_list
+		scap_free_userlist
+		scap_set_snaplen
+

@@ -1,0 +1,63 @@
+#pragma once
+
+#define LOOPBACK_ADDR 0x0100007f
+
+#ifndef VISIBILITY_PRIVATE
+#define VISIBILITY_PRIVATE private:
+#endif
+
+//
+// network interface info ipv4
+//
+class SINSP_PUBLIC sinsp_ipv4_ifinfo
+{
+public:
+	sinsp_ipv4_ifinfo() {};
+
+	sinsp_ipv4_ifinfo(uint32_t addr, uint32_t netmask, uint32_t bcast, const char* name);
+
+	string to_string();
+
+	uint32_t m_addr;
+	uint32_t m_netmask;
+	uint32_t m_bcast;
+
+
+	string m_name;
+private:
+	void convert_to_string(char * dest, const uint32_t addr);
+};
+
+//
+// network interface info ipv6
+//
+class SINSP_PUBLIC sinsp_ipv6_ifinfo
+{
+public:
+	sinsp_ipv6_ifinfo() {};
+
+	char m_addr[SCAP_IPV6_ADDR_LEN];
+	char m_netmask[SCAP_IPV6_ADDR_LEN];
+	char m_bcast[SCAP_IPV6_ADDR_LEN];
+
+	string m_name;
+};
+
+class SINSP_PUBLIC sinsp_network_interfaces
+{
+public:
+	void import_interfaces(scap_addrlist* paddrlist);
+	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
+	void update_fd(sinsp_fdinfo_t *fd);
+	bool is_ipv4addr_local(uint32_t addr);
+	vector<sinsp_ipv4_ifinfo>* get_ipv4_list();
+	vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
+
+VISIBILITY_PRIVATE
+	uint32_t infer_ipv4_address(uint32_t destination_address);
+	void import_ipv4_ifaddr_list(uint32_t count, scap_ifinfo_ipv4* plist);
+	void import_ipv6_ifaddr_list(uint32_t count, scap_ifinfo_ipv6* plist);
+	vector<sinsp_ipv4_ifinfo> m_ipv4_interfaces;
+	vector<sinsp_ipv6_ifinfo> m_ipv6_interfaces;
+
+};
