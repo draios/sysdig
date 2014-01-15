@@ -1,7 +1,7 @@
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS} ${SYSDIG_FEATURE_FLAGS}")
 else()
-	set(KBUILD_FLAGS")
+	set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
 endif()
 
 add_custom_target(driver ALL
