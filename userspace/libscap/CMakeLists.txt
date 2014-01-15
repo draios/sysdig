@@ -6,7 +6,6 @@ add_library(scap STATIC
 	scap_fds.c 
 	scap_iflist.c 
 	scap_savefile.c 
-	scap_event.c 
 	scap_procs.c 
 	scap_userlist.c 
 	../../driver/event_table.c
