@@ -117,9 +117,9 @@ chisel::chisel(sinsp* inspector, string filename)
 
 chisel::~chisel()
 {
-	for(chiselinfo* ch : m_subchisels) 
+	for(vector<chiselinfo*>::iterator it = m_subchisels.begin(); it != m_subchisels.end(); ++it)
 	{
-		delete ch;
+		delete *it;
 	}
 }
 

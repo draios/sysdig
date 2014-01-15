@@ -508,7 +508,7 @@ void* sinsp_threadinfo::get_private_state(uint32_t id)
 	if(id >= m_private_state.size())
 	{
 		ASSERT(false);
-		throw sinsp_exception("invalid thread state ID" + to_string(id));
+		throw sinsp_exception("invalid thread state ID" + to_string((long long) id));
 	}
 
 	return m_private_state[id];

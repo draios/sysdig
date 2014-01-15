@@ -142,7 +142,7 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 		throw sinsp_exception("'>=' not supported for numeric filters");
 	default:
 		ASSERT(false);
-		throw sinsp_exception("invalid filter oprator " + std::to_string(op));
+		throw sinsp_exception("invalid filter operator " + std::to_string((long long) op));
 		return false;
 	}
 }
@@ -421,7 +421,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string(finfo->m_type));
+			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
 	}
 }
 
@@ -497,7 +497,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 			break;
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string(m_field->m_type));
+			throw sinsp_exception("wrong event type " + to_string((long long) m_field->m_type));
 	}
 }
 
@@ -890,7 +890,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 	if(chk == NULL)
 	{
 		throw sinsp_exception("filter error: unrecognized operand " + 
-			operand1 + " at pos " + to_string(startpos));
+			operand1 + " at pos " + to_string((long long) startpos));
 	}
 
 	ppm_cmp_operator co = next_comparison_operator();
@@ -946,7 +946,7 @@ void sinsp_filter::compile(string fltstr)
 
 			if(m_state != ST_EXPRESSION_DONE)
 			{
-				throw sinsp_exception("filter error: unexpected end of filter at position " + to_string(m_scanpos));
+				throw sinsp_exception("filter error: unexpected end of filter at position " + to_string((long long) m_scanpos));
 			}
 
 			//
@@ -974,7 +974,7 @@ void sinsp_filter::compile(string fltstr)
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string(m_scanpos));
+				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
 			}
 
 			if(m_state != ST_EXPRESSION_DONE)
@@ -992,7 +992,7 @@ void sinsp_filter::compile(string fltstr)
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string(m_scanpos));
+				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
 			}
 
 			if(m_state != ST_EXPRESSION_DONE)
@@ -1010,7 +1010,7 @@ void sinsp_filter::compile(string fltstr)
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string(m_scanpos));
+				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
 			}
 
 			if(m_state != ST_EXPRESSION_DONE && m_state != ST_NEED_EXPRESSION)
