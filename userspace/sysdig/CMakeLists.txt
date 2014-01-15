@@ -12,4 +12,4 @@ target_link_libraries(sysdig
 	sinsp) 
 
 install(TARGETS sysdig 
-	DESTINATION ${SYSDIG_BIN_PREFIX}/bin)
+	DESTINATION bin)
