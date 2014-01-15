@@ -3118,4 +3118,3 @@ static int32_t f_sched_drop(struct event_filler_arguments* args)
 
 	return add_sentinel(args);
 }
-
