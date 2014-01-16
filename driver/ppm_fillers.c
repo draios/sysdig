@@ -653,13 +653,13 @@ static int32_t f_proc_startupdate(struct event_filler_arguments* args)
 		if(unlikely(!mm))
 		{
 			args->str_storage[0] = 0;
-			printk(KERN_INFO "PPM: f_proc_startupdate drop, mm=NULL\n");
+			printk(KERN_INFO "sysdig-probe: f_proc_startupdate drop, mm=NULL\n");
 			return PPM_FAILURE_BUG;
 		}
 		if(unlikely(!mm->arg_end))
 		{
 			args->str_storage[0] = 0;
-			printk(KERN_INFO "PPM: f_proc_startupdate drop, mm->arg_end=NULL\n");
+			printk(KERN_INFO "sysdig-probe: f_proc_startupdate drop, mm->arg_end=NULL\n");
 			return PPM_FAILURE_BUG;
 		}
 

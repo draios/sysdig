@@ -142,7 +142,7 @@ inline int32_t val_to_ring(struct event_filler_arguments* args, uint64_t val, ui
 
 	if(unlikely(args->curarg >= args->nargs))
 	{
-		printk(KERN_INFO "PPM: %u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
+		printk(KERN_INFO "sysdig-probe: %u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
 		       smp_processor_id(),
 		       args->nevents,
 		       (uint32_t)args->event_type,
@@ -347,7 +347,7 @@ inline int32_t val_to_ring(struct event_filler_arguments* args, uint64_t val, ui
 		break;
 	default:
 		ASSERT(0);
-		printk(KERN_INFO "PPM: val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
+		printk(KERN_INFO "sysdig-probe: val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
 		       (int)g_event_info[args->event_type].params[args->curarg].type,
 		       (uint32_t)args->event_type,
 		       g_event_info[args->event_type].name);

@@ -151,7 +151,7 @@ scap_t* scap_open_live(char *error)
 		//
 		// Open the device
 		//
-		sprintf(dev, "/dev/ppm%d", j);
+		sprintf(dev, "/dev/sysdig%d", j);
 
 		if((handle->m_devs[j].m_fd = open(dev, O_RDWR | O_SYNC)) < 0)
 		{
