@@ -211,11 +211,11 @@ captureinfo do_inspect(sinsp* inspector,
 		//
 		// If there are chisels to run, run them
 		//
-		if(chisels->size() != 0)
+		if(!chisels->empty())
 		{
-			for(chisel* ch : *chisels) 
+			for(vector<chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
 			{
-				ch->run(ev);
+				(*it)->run(ev);
 			}
 		}
 		else
@@ -522,9 +522,9 @@ exit:
 	//
 	// Free the chisels
 	//
-	for(chisel* ch : chisels) 
+	for(vector<chisel*>::iterator it = chisels.begin(); it != chisels.end(); ++it)
 	{
-		delete ch;
+		delete *it;
 	}
 
 	if(inspector)
