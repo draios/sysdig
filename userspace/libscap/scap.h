@@ -5,12 +5,17 @@ extern "C" {
 #endif
 
 /*!
-	\mainpage libscap exported interface documentation
+	\mainpage libscap documentation
 	
 	\section Introduction
 
-	This document describes the data structures and the functions exported by the CACE Technologies afdxcap library.
-	It includes the following sections:
+	libscap is the low-level sysdig component that exports the following functionality:
+	- live capture control (start/stop/pause...)
+	- trace file management
+	- event retrieval
+	- extraction of system state from /proc
+	
+	This manual includes the following sections:
 	- \ref scap_defs
 	- \ref scap_functs
 */
