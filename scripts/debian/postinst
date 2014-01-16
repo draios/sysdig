@@ -1,12 +1,8 @@
 #!/bin/sh
 set -e
 
-if [ -x "/etc/init.d/dragent" ]; then
-        update-rc.d dragent defaults >/dev/null
-fi
-
-DKMS_PACKAGE_NAME="draios"
-DKMS_VERSION="0.1.1"
+DKMS_PACKAGE_NAME="sysdig"
+DKMS_VERSION=""
 
 postinst_found=0
 
@@ -28,11 +24,3 @@ case "$1" in
 		fi
 	;;
 esac
-
-if [ -x "/etc/init.d/dragent" ]; then
-        if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
-                invoke-rc.d dragent start || exit $?
-        else
-                /etc/init.d/dragent start || exit $?
-        fi
-fi
