@@ -1,6 +1,23 @@
-////////////////////////////////////////////////////////////////////////////
-// Public definitions for the scap library
-////////////////////////////////////////////////////////////////////////////
+/*!
+	\mainpage libsinsp documentation
+	
+	\section Introduction
+
+	libsinsp is a system inspection library written in C++ and implementing high level
+	functionlity like:
+	- live capture control (start/stop/pause...)
+	- event capture from file or the live OS
+	- OS state reconstruction. By parsing /proc and inspecting the live event stream,
+	libsinsp is capable of mirroring the OS process state and putting context around
+	key OS primitives like process IDs and file descriptors. That way, these primitives
+	can be treated like programs, files, connections and users.
+	- parsing of OS events and conversion of events into human-readable strings
+	- event filtering
+	
+	This manual includes the following sections:
+	- \ref sinsp_public
+*/
+
 #pragma once
 #ifdef _WIN32
 #pragma warning(disable: 4251)
@@ -52,6 +69,21 @@ class sinsp_analyzer;
 class sinsp_filter;
 
 //
+// Filter check information
+//
+class filter_check_info
+{
+public:
+	string m_name;
+	int32_t m_nfiedls;
+	const filtercheck_field_info* m_fields;
+};
+
+/** @defgroup sinsp_public Public class interface
+ *  @{
+ */
+
+//
 // Exception class
 //
 struct sinsp_exception : std::exception
@@ -77,20 +109,10 @@ struct sinsp_exception : std::exception
 	string m_error_str;
 };
 
-//
-// Filter check information
-//
-class filter_check_info
-{
-public:
-	string m_name;
-	int32_t m_nfiedls;
-	const filtercheck_field_info* m_fields;
-};
-
-//
-// The root system inspection class
-//
+//!  A test class. 
+/*!
+  A more elaborate class description.
+*/
 class SINSP_PUBLIC sinsp
 {
 public:
@@ -100,6 +122,10 @@ public:
 	typedef class sinsp_connection sinsp_connection;
 
 	
+    //! A constructor.
+    /*!
+      A more elaborate description of the constructor.
+    */
 	sinsp();
 	~sinsp();
 	//
@@ -289,3 +315,5 @@ VISIBILITY_PRIVATE
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
+
+/*@}*/

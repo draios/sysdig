@@ -38,8 +38,9 @@ static void usage()
 "Usage: sysdig [options] [-p <output_format>] [filter]\n\n"
 "Options:\n"
 " -a, --abstime      Show absolute event timestamps\n"
-" -c <num>, --count=<num>\n"
-"                    Stop capturing after <num> events\n"
+" -c <chiselname> <chiselargs>, --chisel  <chiselname> <chiselargs>\n"
+"                    run the specified chisel. If the chisel require arguments,\n"
+"                    they must be specified in the command line after the name.\n"
 " -d, --displayflt   Make the given filter a dsiplay one\n"
 "                    Setting this option causes the events to be filtered\n" 
 "                    after being parsed by the state system. Events are\n"
@@ -49,6 +50,8 @@ static void usage()
 " -j, --json         Emit output as json\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting\n"
+" -n <num>, --numevents=<num>\n"
+"                    Stop capturing after <num> events\n"
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
 "                    See the examples section below for more info.\n"
@@ -208,11 +211,11 @@ captureinfo do_inspect(sinsp* inspector,
 		//
 		// If there are chisels to run, run them
 		//
-		if(!chisels->empty())
+		if(chisels->size() != 0)
 		{
-			for(vector<chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
+			for(chisel* ch : *chisels) 
 			{
-				(*it)->run(ev);
+				ch->run(ev);
 			}
 		}
 		else
@@ -519,9 +522,9 @@ exit:
 	//
 	// Free the chisels
 	//
-	for(vector<chisel*>::iterator it = chisels.begin(); it != chisels.end(); ++it)
+	for(chisel* ch : chisels) 
 	{
-		delete *it;
+		delete ch;
 	}
 
 	if(inspector)
