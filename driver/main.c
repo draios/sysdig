@@ -24,7 +24,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Draios");
 
-#define PPM_DEVICE_NAME "ppm"
+#define PPM_DEVICE_NAME "sysdig"
 
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,35))
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2)
@@ -107,7 +107,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	if(atomic_cmpxchg(&ring->state, CS_STOPPED, CS_STARTED) != CS_STOPPED)
 	{
-		printk(KERN_INFO "PPM: invalid operation: attempting to open device %d multiple times\n", ring_no);
+		printk(KERN_INFO "sysdig-probe: invalid operation: attempting to open device %d multiple times\n", ring_no);
 		return -EBUSY;
 	}
 
@@ -134,7 +134,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	{
 //		struct task_struct *task;
 
-		printk(KERN_INFO "PPM: starting capture\n");
+		printk(KERN_INFO "sysdig-probe: starting capture\n");
 
 		/*
 				//
@@ -152,7 +152,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		ret = TRACEPOINT_PROBE_REGISTER("sys_exit", (void *) syscall_exit_probe);
 		if(ret)
 		{
-			printk(KERN_ERR "PPM: can't create the sys_exit tracepoint\n");
+			printk(KERN_ERR "sysdig-probe: can't create the sys_exit tracepoint\n");
 			return ret;
 		}
 
@@ -162,7 +162,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
 			                            (void *) syscall_exit_probe);
 
-			printk(KERN_ERR "PPM: can't create the sys_enter tracepoint\n");
+			printk(KERN_ERR "sysdig-probe: can't create the sys_enter tracepoint\n");
 
 			return ret;
 		}
@@ -175,7 +175,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			TRACEPOINT_PROBE_UNREGISTER("sys_enter",
 			                            (void *) syscall_enter_probe);
 
-			printk(KERN_ERR "PPM: can't create the sched_process_exit tracepoint\n");
+			printk(KERN_ERR "sysdig-probe: can't create the sched_process_exit tracepoint\n");
 
 			return ret;
 		}
@@ -191,7 +191,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			TRACEPOINT_PROBE_UNREGISTER("sched_process_exit",
 			                            (void *) syscall_procexit_probe);
 
-			printk(KERN_ERR "PPM: can't create the sched_switch tracepoint\n");
+			printk(KERN_ERR "sysdig-probe: can't create the sched_switch tracepoint\n");
 
 			return ret;
 		}	
@@ -212,11 +212,11 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 	if(atomic_xchg(&ring->state, CS_STOPPED) == CS_STOPPED)
 	{
-		printk(KERN_INFO "PPM: attempting to close unopened device %d\n", ring_no);
+		printk(KERN_INFO "sysdig-probe: attempting to close unopened device %d\n", ring_no);
 		return -EBUSY;
 	}
 
-	printk(KERN_INFO "PPM: closing ring %d, evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+	printk(KERN_INFO "sysdig-probe: closing ring %d, evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 	       ring_no,
 	       ring->info->n_evts,
 	       ring->info->n_drops_buffer,
@@ -229,7 +229,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	//
 	if(atomic_dec_return(&g_open_count) == 0)
 	{
-		printk(KERN_INFO "PPM: stopping capture\n");
+		printk(KERN_INFO "sysdig-probe: stopping capture\n");
 
 		TRACEPOINT_PROBE_UNREGISTER("sys_exit",
 		                            (void *) syscall_exit_probe);
@@ -259,7 +259,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		atomic_set(&(ring->state), CS_INACTIVE);
 
-		printk(KERN_INFO "PPM: PPM_IOCTL_DISABLE_CAPTURE for ring %d\n", ring_no);
+		printk(KERN_INFO "sysdig-probe: PPM_IOCTL_DISABLE_CAPTURE for ring %d\n", ring_no);
 
 		return 0;
 	}
@@ -270,14 +270,14 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		atomic_set(&ring->state, CS_STARTED);
 
-		printk(KERN_INFO "PPM: PPM_IOCTL_ENABLE_CAPTURE for ring %d\n", ring_no);
+		printk(KERN_INFO "sysdig-probe: PPM_IOCTL_ENABLE_CAPTURE for ring %d\n", ring_no);
 
 		return 0;
 	}
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
 		g_dropping_mode = 0;
-		printk(KERN_INFO "PPM: PPM_IOCTL_DISABLE_DROPPING_MODE\n");
+		printk(KERN_INFO "sysdig-probe: PPM_IOCTL_DISABLE_DROPPING_MODE\n");
 		g_sampling_interval = 1000000000;
 		g_sampling_ratio = 1;
 		return 0;
@@ -287,7 +287,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		uint32_t new_sampling_ratio;
 
 		g_dropping_mode = 1;
-		printk(KERN_INFO "PPM: PPM_IOCTL_ENABLE_DROPPING_MODE\n");
+		printk(KERN_INFO "sysdig-probe: PPM_IOCTL_ENABLE_DROPPING_MODE\n");
 
 		new_sampling_ratio = (uint32_t)arg;
 
@@ -298,32 +298,32 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			new_sampling_ratio != 16 &&
 			new_sampling_ratio != 32)
 		{
-			printk(KERN_INFO "PPM: invalid sampling ratio %u\n", new_sampling_ratio);
+			printk(KERN_INFO "sysdig-probe: invalid sampling ratio %u\n", new_sampling_ratio);
 			return -EINVAL;
 		}
 
 		g_sampling_interval = 1000000000 / new_sampling_ratio;
 		g_sampling_ratio = new_sampling_ratio;
 
-		printk(KERN_INFO "PPM: new sampling ratio: %d\n", new_sampling_ratio);
+		printk(KERN_INFO "sysdig-probe: new sampling ratio: %d\n", new_sampling_ratio);
 		return 0;
 	}
 	case PPM_IOCTL_SET_SNAPLEN:
 	{
 		uint32_t new_snaplen;
 
-		printk(KERN_INFO "PPM: PPM_IOCTL_SET_SNAPLEN\n");
+		printk(KERN_INFO "sysdig-probe: PPM_IOCTL_SET_SNAPLEN\n");
 		new_snaplen = (uint32_t)arg;
 
 		if(new_snaplen > RW_MAX_SNAPLEN)
 		{
-			printk(KERN_INFO "PPM: invalid snaplen %u\n", new_snaplen);
+			printk(KERN_INFO "sysdig-probe: invalid snaplen %u\n", new_snaplen);
 			return -EINVAL;
 		}
 
 		g_snaplen = new_snaplen;
 
-		printk(KERN_INFO "PPM: new snaplen: %d\n", g_snaplen);
+		printk(KERN_INFO "sysdig-probe: new snaplen: %d\n", g_snaplen);
 		return 0;
 	}
 	default:
@@ -346,7 +346,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context* ring;
 
-		printk(KERN_INFO "PPM: mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
+		printk(KERN_INFO "sysdig-probe: mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
 		       ring_no,
 		       useraddr,
 		       length,
@@ -357,7 +357,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		//
 		if(RING_BUF_SIZE < 2 * PAGE_SIZE)
 		{
-			printk(KERN_INFO "PPM: Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
+			printk(KERN_INFO "sysdig-probe: Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
 			       (long)RING_BUF_SIZE,
 			       (long)PAGE_SIZE);
 			return -EIO;
@@ -365,7 +365,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 		if(RING_BUF_SIZE / PAGE_SIZE * PAGE_SIZE != RING_BUF_SIZE)
 		{
-			printk(KERN_INFO "PPM: Ring buffer size is not a multiple of the page size\n");
+			printk(KERN_INFO "sysdig-probe: Ring buffer size is not a multiple of the page size\n");
 			return -EIO;
 		}
 
@@ -380,7 +380,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			// When the size requested by the user is smaller than a page, we assume
 			// she's mapping the ring info structure
 			//
-			printk(KERN_INFO "PPM: mapping the ring info\n");
+			printk(KERN_INFO "sysdig-probe: mapping the ring info\n");
 
 			vmalloc_area_ptr = (char*)ring->info;
 			orig_vmalloc_area_ptr = vmalloc_area_ptr;
@@ -393,7 +393,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			                          PAGE_SIZE,
 			                          PAGE_SHARED)) < 0)
 			{
-				printk(KERN_INFO "PPM: remap_pfn_range failed (1)\n");
+				printk(KERN_INFO "sysdig-probe: remap_pfn_range failed (1)\n");
 				return ret;
 			}
 
@@ -407,7 +407,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			// When the size requested by the user equals the ring buffer size, we map the full
 			// buffer
 			//
-			printk(KERN_INFO "PPM: mapping the data buffer\n");
+			printk(KERN_INFO "sysdig-probe: mapping the data buffer\n");
 
 			vmalloc_area_ptr = (char*)ring->buffer;
 			orig_vmalloc_area_ptr = vmalloc_area_ptr;
@@ -417,7 +417,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			//
 			if(vma->vm_flags & (VM_WRITE | VM_EXEC))
 			{
-				printk(KERN_INFO "PPM: invalid mmap flags 0x%lx\n", vma->vm_flags);
+				printk(KERN_INFO "sysdig-probe: invalid mmap flags 0x%lx\n", vma->vm_flags);
 				return -EIO;
 			}
 
@@ -432,7 +432,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 				if((ret = remap_pfn_range(vma, useraddr, pfn, PAGE_SIZE, PAGE_SHARED)) < 0)
 				{
-					printk(KERN_INFO "PPM: remap_pfn_range failed (1)\n");
+					printk(KERN_INFO "sysdig-probe: remap_pfn_range failed (1)\n");
 					return ret;
 				}
 
@@ -454,7 +454,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 				if((ret = remap_pfn_range(vma, useraddr, pfn, PAGE_SIZE, PAGE_SHARED)) < 0)
 				{
-					printk(KERN_INFO "PPM: remap_pfn_range failed (1)\n");
+					printk(KERN_INFO "sysdig-probe: remap_pfn_range failed (1)\n");
 					return ret;
 				}
 
@@ -467,12 +467,12 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		}
 		else
 		{
-			printk(KERN_INFO "PPM: Invalid mmap size %ld\n", length);
+			printk(KERN_INFO "sysdig-probe: Invalid mmap size %ld\n", length);
 			return -EIO;
 		}
 	}
 
-	printk(KERN_INFO "PPM: invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
+	printk(KERN_INFO "sysdig-probe: invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
 	return -EIO;
 }
 
@@ -787,7 +787,7 @@ static void record_event(enum ppm_event_type event_type,
 			}
 			else
 			{
-				printk(KERN_INFO "PPM: corrupted filler for event type %d (added %u args, should have added %u)\n",
+				printk(KERN_INFO "sysdig-probe: corrupted filler for event type %d (added %u args, should have added %u)\n",
 				       event_type,
 				       args.curarg,
 				       args.nargs);
@@ -839,7 +839,7 @@ static void record_event(enum ppm_event_type event_type,
 		else if(cbres == PPM_FAILURE_INVALID_USER_MEMORY)
 		{
 #ifdef _DEBUG
-			printk(KERN_INFO "PPM: Invalid read from user for event %d\n", event_type);
+			printk(KERN_INFO "sysdig-probe: Invalid read from user for event %d\n", event_type);
 #endif
 			ring_info->n_drops_pf++;
 		}
@@ -856,7 +856,7 @@ static void record_event(enum ppm_event_type event_type,
 #ifdef _DEBUG
 	if(ts.tv_sec > ring->last_print_time.tv_sec + 1)
 	{
-		printk(KERN_INFO "PPM: CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+		printk(KERN_INFO "sysdig-probe: CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 		       smp_processor_id(),
 		       (usedspace * 100) / RING_BUF_SIZE,
 		       ring_info->n_evts,
@@ -988,7 +988,7 @@ static struct ppm_ring_buffer_context* alloc_ring_buffer(struct ppm_ring_buffer_
 	*ring = vmalloc(sizeof(struct ppm_ring_buffer_context));
 	if(*ring == NULL)
 	{
-		printk(KERN_ERR "PPM: Error allocating ring memory\n");
+		printk(KERN_ERR "sysdig-probe: Error allocating ring memory\n");
 		return NULL;
 	}
 
@@ -998,7 +998,7 @@ static struct ppm_ring_buffer_context* alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->str_storage = (char *) __get_free_page(GFP_USER);
 	if(!(*ring)->str_storage)
 	{
-		printk(KERN_ERR "PPM: Error allocating the string storage\n");
+		printk(KERN_ERR "sysdig-probe: Error allocating the string storage\n");
 		vfree(*ring);
 		return NULL;
 	}
@@ -1011,7 +1011,7 @@ static struct ppm_ring_buffer_context* alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
 	if((*ring)->buffer == NULL)
 	{
-		printk(KERN_ERR "PPM: Error allocating ring memory\n");
+		printk(KERN_ERR "sysdig-probe: Error allocating ring memory\n");
 		free_page((unsigned long)(*ring)->str_storage);
 		vfree(*ring);
 		return NULL;
@@ -1028,7 +1028,7 @@ static struct ppm_ring_buffer_context* alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->info = vmalloc(sizeof(struct ppm_ring_buffer_info));
 	if((*ring)->info == NULL)
 	{
-		printk(KERN_ERR "PPM: Error allocating ring memory\n");
+		printk(KERN_ERR "sysdig-probe: Error allocating ring memory\n");
 		vfree((void*)(*ring)->buffer);
 		free_page((unsigned long)(*ring)->str_storage);
 		vfree(*ring);
@@ -1055,7 +1055,7 @@ static struct ppm_ring_buffer_context* alloc_ring_buffer(struct ppm_ring_buffer_
 	atomic_set(&(*ring)->preempt_count, 0);
 	getnstimeofday(&(*ring)->last_print_time);
 
-	printk(KERN_INFO "PPM: CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
+	printk(KERN_INFO "sysdig-probe: CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
 
 	return *ring;
 }
@@ -1104,7 +1104,7 @@ int init_module(void)
 	int n_created_devices = 0;
 	struct device *device = NULL;
 
-	printk(KERN_INFO "PPM: driver loading\n");
+	printk(KERN_INFO "sysdig-probe: driver loading\n");
 
 	//
 	// Initialize the ring buffers array
@@ -1118,12 +1118,12 @@ int init_module(void)
 
 	for_each_online_cpu(cpu)
 	{
-		printk(KERN_INFO "PPM: initializing ring buffer for CPU %u\n", cpu);
+		printk(KERN_INFO "sysdig-probe: initializing ring buffer for CPU %u\n", cpu);
 
 		alloc_ring_buffer(&per_cpu(g_ring_buffers, cpu));
 		if(per_cpu(g_ring_buffers, cpu) == NULL)
 		{
-			printk(KERN_ERR "PPM: can't initialize the ring buffer for CPU %u\n", cpu);
+			printk(KERN_ERR "sysdig-probe: can't initialize the ring buffer for CPU %u\n", cpu);
 			ret = -ENOMEM;
 			goto init_module_err;
 		}
@@ -1135,7 +1135,7 @@ int init_module(void)
 	acrret = alloc_chrdev_region(&dev, 0, num_cpus, PPM_DEVICE_NAME);
 	if(acrret < 0)
 	{
-		printk(KERN_ERR "PPM: could not allocate major number for %s\n", PPM_DEVICE_NAME);
+		printk(KERN_ERR "sysdig-probe: could not allocate major number for %s\n", PPM_DEVICE_NAME);
 		ret = -ENOMEM;
 		goto init_module_err;
 	}
@@ -1143,7 +1143,7 @@ int init_module(void)
 	g_ppm_class = class_create(THIS_MODULE, PPM_DEVICE_NAME);
 	if(IS_ERR(g_ppm_class))
 	{
-		printk(KERN_ERR "PPM: can't allocate device class\n");
+		printk(KERN_ERR "sysdig-probe: can't allocate device class\n");
 		ret = -EFAULT;
 		goto init_module_err;
 	}
@@ -1155,7 +1155,7 @@ int init_module(void)
 	{
 		ret = -ENOMEM;
 		goto init_module_err;
-		printk(KERN_ERR "PPM: can't allocate devices\n");
+		printk(KERN_ERR "sysdig-probe: can't allocate devices\n");
 	}
 
 	//
@@ -1168,7 +1168,7 @@ int init_module(void)
 
 		if(cdev_add(&g_ppm_devs[j].cdev, g_ppm_devs[j].dev, 1) < 0)
 		{
-			printk(KERN_ERR "PPM: could not allocate chrdev for %s\n", PPM_DEVICE_NAME);
+			printk(KERN_ERR "sysdig-probe: could not allocate chrdev for %s\n", PPM_DEVICE_NAME);
 			ret = -EFAULT;
 			goto init_module_err;
 		}
@@ -1181,7 +1181,7 @@ int init_module(void)
 
 		if(IS_ERR(device))
 		{
-			printk(KERN_ERR "PPM: error creating the device for  %s\n", PPM_DEVICE_NAME);
+			printk(KERN_ERR "sysdig-probe: error creating the device for  %s\n", PPM_DEVICE_NAME);
 			cdev_del(&g_ppm_devs[j].cdev);
 			ret = -EFAULT;
 			goto init_module_err;
@@ -1241,7 +1241,7 @@ void cleanup_module(void)
 	int j;
 	int cpu;
 
-	printk(KERN_INFO "PPM: driver unloading\n");
+	printk(KERN_INFO "sysdig-probe: driver unloading\n");
 
 	// remove_proc_entry(PPM_DEVICE_NAME, NULL);
 
