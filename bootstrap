@@ -15,7 +15,11 @@ if [ ! -d "$BUILD_DIR" ]; then
 	mkdir $BUILD_DIR/release
 fi
 
+if [ -z "$BUILD_NUMBER" ]; then
+	BUILD_NUMBER="1"
+fi
+
 cd $BUILD_DIR/debug
-cmake -DCMAKE_BUILD_TYPE=Debug $TOP
+cmake -DCMAKE_BUILD_TYPE=Debug -DSYSDIG_BUILD_NUMBER=$BUILD_NUMBER $TOP
 cd $BUILD_DIR/release
-cmake -DCMAKE_BUILD_TYPE=Release $TOP
+cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_BUILD_NUMBER=$BUILD_NUMBER $TOP
