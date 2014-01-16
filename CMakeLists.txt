@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
 
-set(SYSDIG_VERSION "0.1.1")
+set(SYSDIG_VERSION "0.1.${SYSDIG_BUILD_NUMBER}")
 set(SYSDIG_SRC_PREFIX "/usr/src/sysdig-${SYSDIG_VERSION}")
 
 add_subdirectory(driver)
