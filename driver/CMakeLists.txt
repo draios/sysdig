@@ -26,5 +26,4 @@ install(FILES
 	ppm_types.h
 	syscall_info_table.c
 	syscall_table.c
-	DESTINATION ${SYSDIG_SRC_PREFIX}/
-	COMPONENT agent)
+	DESTINATION ${SYSDIG_SRC_PREFIX}/)
