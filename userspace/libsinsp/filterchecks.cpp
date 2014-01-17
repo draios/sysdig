@@ -290,7 +290,7 @@ bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 		m_tinfo = evt->get_thread_info();
 		if(m_tinfo == NULL)
 		{
-			return NULL;
+			return false;
 		}
 
 		m_fdinfo = evt->get_fd_info();
@@ -314,7 +314,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 {
 	if(!extract_fd(evt))
 	{
-		return NULL;
+		return false;
 	}
 
 	//
