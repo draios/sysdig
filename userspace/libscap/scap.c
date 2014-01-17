@@ -796,16 +796,9 @@ int32_t scap_start_capture(scap_t* handle)
 #endif // _WIN32
 }
 
+#if !defined (_WIN32) && !defined(__APPLE__)
 static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t sampling_ratio)
 {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
-	return SCAP_FAILURE;
-#else
-
 	//	
 	// Not supported for files
 	//
@@ -827,8 +820,8 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 	}
 
 	return SCAP_SUCCESS;
-#endif // _WIN32	
 }
+#endif
 
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {

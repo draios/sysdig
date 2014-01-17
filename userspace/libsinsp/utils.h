@@ -61,7 +61,7 @@ struct g_invalidchar
 {
     bool operator()(char c) const 
 	{
-		if(c < -1 || c > 255)
+		if(c < -1)
 		{
 			return true;
 		}
