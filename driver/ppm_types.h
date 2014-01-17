@@ -7,7 +7,10 @@
 #define inline __inline
 #endif // __cplusplus
 #define snprintf _snprintf
-#else // _WIN32
+#elif defined(__APPLE__) // _WIN32
+#include <inttypes.h>
+#include <stdbool.h>
+#else
 #ifndef __KERNEL__
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>

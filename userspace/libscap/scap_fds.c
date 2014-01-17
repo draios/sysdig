@@ -6,7 +6,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "uthash.h"
-#ifndef _WIN32
+#ifdef _WIN32
+#include <Ws2tcpip.h>
+#elif defined(__APPLE__)
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#else
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <unistd.h>
@@ -22,8 +28,6 @@
 //#include <linux/sock_diag.h>
 //#include <linux/unix_diag.h>
 #include <errno.h>
-#else
-#include <Ws2tcpip.h>
 #endif
 
 
@@ -517,7 +521,7 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	return SCAP_SUCCESS;
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__) 
 
 int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {

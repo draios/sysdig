@@ -12,7 +12,7 @@
 
 #include "scap-int.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 int32_t scap_proc_fill_cwd(char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
@@ -449,7 +449,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 //
 // Delete a process entry
 //
-inline void scap_proc_delete(scap_t* handle, scap_threadinfo* proc)
+void scap_proc_delete(scap_t* handle, scap_threadinfo* proc)
 {
 	//
 	// First, free the fd table for this process descriptor
@@ -483,7 +483,7 @@ void scap_proc_free_table(scap_t* handle)
 
 struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid)
 {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 	return NULL;
 #else
 	struct scap_threadinfo* tinfo = NULL;
