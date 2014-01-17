@@ -86,7 +86,7 @@ void scap_proc_free_table(scap_t* handle);
 void scap_proc_print_info(scap_threadinfo* pi);
 void scap_proc_print_table(scap_t* handle);
 // Free all the state related to a process and delete it from the fd table
-inline void scap_proc_delete(scap_t* handle, scap_threadinfo* proc);
+void scap_proc_delete(scap_t* handle, scap_threadinfo* proc);
 // Internal helper function to output the fd table of a process
 void scap_fd_print_table(scap_threadinfo* pi);
 // Internal helper function to output an fd table

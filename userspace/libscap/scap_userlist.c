@@ -2,7 +2,7 @@
 #include "scap.h"
 #include "scap-int.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 #include <sys/types.h>
 
 #include <pwd.h>

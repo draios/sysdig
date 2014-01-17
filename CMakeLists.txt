@@ -14,7 +14,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
 set(SYSDIG_VERSION "0.1.${SYSDIG_BUILD_NUMBER}")
 set(SYSDIG_SRC_PREFIX "/usr/src/sysdig-${SYSDIG_VERSION}")
 
-add_subdirectory(driver)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	add_subdirectory(driver)
+endif()
+
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
