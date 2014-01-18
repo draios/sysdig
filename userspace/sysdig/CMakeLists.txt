@@ -13,3 +13,6 @@ target_link_libraries(sysdig
 
 install(TARGETS sysdig 
 	DESTINATION bin)
+
+install(DIRECTORY chisels
+	DESTINATION share/sysdig)
