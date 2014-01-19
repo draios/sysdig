@@ -15,7 +15,8 @@
 	- event filtering
 	
 	This manual includes the following sections:
-	- \ref sinsp_public
+	- \ref inspector
+	- \ref event
 */
 
 #pragma once
@@ -79,10 +80,6 @@ public:
 	const filtercheck_field_info* m_fields;
 };
 
-/** @defgroup sinsp_public Public class interface
- *  @{
- */
-
 //
 // Exception class
 //
@@ -109,10 +106,9 @@ struct sinsp_exception : std::exception
 	string m_error_str;
 };
 
-//!  A test class. 
-/*!
-  A more elaborate class description.
-*/
+/** @defgroup inspector System inspector class
+ *  @{
+ */
 class SINSP_PUBLIC sinsp
 {
 public:
