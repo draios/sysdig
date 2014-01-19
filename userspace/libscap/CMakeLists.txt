@@ -10,3 +10,8 @@ add_library(scap STATIC
 	scap_userlist.c 
 	../../driver/event_table.c
 	../../driver/syscall_info_table.c)
+
+if (WIN32)
+	target_link_libraries(scap
+		Ws2_32.lib)
+endif()
