@@ -37,6 +37,9 @@ public:
 	const struct ppm_syscall_desc* m_syscall_info_table;
 };
 
+/** @defgroup event Event manipulation
+ *  @{
+ */
 ///////////////////////////////////////////////////////////////////////////////
 // Event parameter wrapper class
 ///////////////////////////////////////////////////////////////////////////////
@@ -153,3 +156,5 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_dumper;
 };
+
+/*@}*/
