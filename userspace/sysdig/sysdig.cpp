@@ -153,6 +153,96 @@ static void list_fields()
 	}
 }
 
+static void list_chisels(vector<chisel_desc>* chlist)
+{
+	uint32_t j, l, m;
+
+	for(j = 0; j < chlist->size(); j++)
+	{
+		chisel_desc* cd = &(chlist->at(j));
+
+		printf("%s", cd->m_name.c_str());
+		uint32_t namelen = cd->m_name.size();
+
+		ASSERT(namelen < DESCRIPTION_TEXT_START);
+
+		for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
+		{
+			printf(" ");
+		}
+				
+		string desc = cd->m_description + ".";
+		size_t desclen = desc.size();
+
+		for(l = 0; l < desclen; l++)
+		{
+			if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+			{
+				printf("\n");
+
+				for(m = 0; m < DESCRIPTION_TEXT_START; m++)
+				{
+					printf(" ");
+				}
+			}
+
+			printf("%c", desc[l]);
+		}
+
+		printf("\n");
+
+		for(l = 0; l < DESCRIPTION_TEXT_START; l++)
+		{
+			printf(" ");
+		}
+
+		string astr;
+
+		if(cd->m_args.size() != 0)
+		{
+			astr +=	"Args: ";
+
+			for(l = 0; l < cd->m_args.size(); l++)
+			{
+				astr += cd->m_args[l].m_name;
+				if(l != cd->m_args.size() - 1)
+				{
+					astr +=	", ";
+				}
+			}
+
+			astr +=	".";
+		}
+		else
+		{
+			astr +=	"No args.";
+		}
+
+		size_t astrlen = astr.size();
+
+		for(l = 0; l < astrlen; l++)
+		{
+			if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+			{
+				printf("\n");
+
+				for(m = 0; m < DESCRIPTION_TEXT_START; m++)
+				{
+					printf(" ");
+				}
+			}
+
+			printf("%c", astr[l]);
+		}
+
+		printf("\n");
+	}
+}
+
+static void print_chisel_info(chisel_desc* chlist)
+{
+}
+
 //
 // Event processing loop
 //
@@ -274,11 +364,15 @@ int main(int argc, char **argv)
 	int long_index = 0;
 	vector<chisel*> chisels;
 	int32_t n_filterargs = 0;
+	int cflag = 0;
+	string cname;
 
     static struct option long_options[] = 
 	{
         {"abstimes", no_argument, 0, 'a' },
         {"chisel", required_argument, 0, 'c' },
+        {"chisel-list", no_argument, &cflag, 1 },
+        {"chisel-info", required_argument, &cflag, 2 },
         {"displayflt", no_argument, 0, 'd' },
         {"help", no_argument, 0, 'h' },
         {"json", no_argument, 0, 'j' },
@@ -308,8 +402,62 @@ int main(int argc, char **argv)
 		case 'a':
 			absolute_times = true;
 			break;
+		case 0:
+			if(cflag != 1 && cflag != 2)
+			{
+				break;
+			}
+
+			if(cflag == 2)
+			{
+				cname = optarg;
+			}
 		case 'c':
 			{
+				if(cflag == 0)
+				{
+					string ostr(optarg);
+
+					if(ostr.size() >= 1)
+					{
+						if(ostr == "l")
+						{
+							cflag = 1;
+						}
+						else if(ostr[0] == 'i')
+						{
+							cflag = 2;
+							cname = ostr.substr(1,  string::npos);
+						}
+					}
+				}
+
+				if(cflag == 1)
+				{
+					vector<chisel_desc> chlist;
+					chisel::get_chisel_list(&chlist);
+					list_chisels(&chlist);
+					delete inspector;
+					return EXIT_SUCCESS;
+				}
+				if(cflag == 2)
+				{
+					vector<chisel_desc> chlist;
+					chisel::get_chisel_list(&chlist);
+
+					for(uint32_t j = 0; j < chlist.size(); j++)
+					{
+						if(chlist[j].m_name == cname)
+						{
+							print_chisel_info(&chlist[j]);
+							delete inspector;
+							return EXIT_SUCCESS;
+						}
+					}
+
+					throw sinsp_exception("chisel " + cname + " not found");
+				}
+
 				try
 				{
 					chisel* ch = new chisel(inspector, optarg);
