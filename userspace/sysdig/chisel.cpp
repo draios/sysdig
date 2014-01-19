@@ -4,10 +4,24 @@
 #include <functional> 
 #include <cctype>
 #include <locale>
+#ifndef _WIN32
+#include <limits.h>
+#include <stdlib.h>
+#endif
+#include <tinydir.h>
 
 #include <sinsp.h>
 #include "sysdig.h"
 #include "chisel.h"
+
+const chiseldir_info chisel_dirs[] =
+{
+	{false, ""}, // file as is
+	{false, "./"},
+	{false, "./chisels/"},
+	{true, ""},
+	{true, "~/chisels/"},
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
@@ -106,6 +120,8 @@ chiselinfo::~chiselinfo()
 	}
 }
 
+vector<string> m_chisel_paths;
+
 ///////////////////////////////////////////////////////////////////////////////
 // chisel implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -123,43 +139,137 @@ chisel::~chisel()
 	}
 }
 
+void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
+{
+	uint32_t j;
+
+	for(j = 0; j < sizeof(chisel_dirs) / sizeof(chisel_dirs[0]); j++)
+	{
+		if(string(chisel_dirs[j].m_dir) == "")
+		{
+			continue;
+		}
+
+		tinydir_dir dir;
+		tinydir_open(&dir, chisel_dirs[j].m_dir);
+
+		while(dir.has_next)
+		{
+			tinydir_file file;
+			tinydir_readfile(&dir, &file);
+
+			string fname(file.name);
+
+			if(fname.find(".sc") != string::npos)
+			{
+				chisel ch(NULL, fname);
+
+				chisel_desc cd;
+				cd.m_name = fname.substr(0, fname.rfind('.'));
+				cd.m_description = ch.m_description;
+
+				const Json::Value args = ch.m_root["info"]["arguments"];
+				for(uint32_t k = 0; k < args.size(); k++)
+				{
+					cd.m_args.push_back(chiselarg_desc(args[k]["name"].asString(), 
+						args[k]["type"].asString(), 
+						args[k]["description"].asString()));
+				}
+
+				chisel_descs->push_back(cd);
+			}
+
+			tinydir_next(&dir);
+		}
+
+		tinydir_close(&dir);
+	}
+}
+
+//
+// If the function succeeds, is is initialized to point to the file.
+// Otherwise, the return value is "false".
+//
+bool chisel::openfile(string filename, OUT ifstream* is)
+{
+	uint32_t j;
+
+	for(j = 0; j < sizeof(chisel_dirs) / sizeof(chisel_dirs[0]); j++)
+	{
+		if(chisel_dirs[j].m_need_to_resolve)
+		{
+#ifndef _WIN32
+			char resolved_path[PATH_MAX];
+
+			if(realpath((string(chisel_dirs[j].m_dir) + filename).c_str(), resolved_path) != NULL)
+			{
+				string rfilename(resolved_path);
+
+				is->open(rfilename);
+				if(is->is_open())
+				{
+					return true;
+				}
+			}
+#endif
+		}
+		else
+		{
+			is->open(string(chisel_dirs[j].m_dir) + filename);
+			if(is->is_open())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void chisel::load(string cmdstr)
 {
 	m_filename = cmdstr;
 	trim(cmdstr);
 
-	ifstream is(m_filename);
+	ifstream is;
 
-	if(is.is_open())
+	//
+	// Try to open the file as is
+	//
+	if(!openfile(m_filename, &is))
 	{
 		//
-		// Bring the file into a string
+		// Try to add the .cs extension
 		//
-		string docstr((istreambuf_iterator<char>(is)),
-			istreambuf_iterator<char>());
-
-		//
-		// Parse the json
-		//
-		Json::Reader reader;
-		bool parsingSuccessful = reader.parse(docstr, m_root);
-		if(!parsingSuccessful)
+		if(!openfile(m_filename + ".cs", &is))
 		{
-			throw sinsp_exception("Failed to parse chisel " + m_filename + ":" + 
-				reader.getFormattedErrorMessages());
+			throw sinsp_exception("can't open file " + m_filename);
 		}
+	}
 
-		//
-		// Extract the info
-		//
-		m_description = m_root["info"]["description"].asString();
-		
-		is.close();
-	}
-	else
+	//
+	// Bring the file into a string
+	//
+	string docstr((istreambuf_iterator<char>(is)),
+		istreambuf_iterator<char>());
+
+	//
+	// Parse the json
+	//
+	Json::Reader reader;
+	bool parsingSuccessful = reader.parse(docstr, m_root);
+	if(!parsingSuccessful)
 	{
-		throw sinsp_exception("can't open file " + m_filename);
+		throw sinsp_exception("Failed to parse chisel " + m_filename + ":" + 
+			reader.getFormattedErrorMessages());
 	}
+
+	//
+	// Extract the info
+	//
+	m_description = m_root["info"]["description"].asString();
+		
+	is.close();
 }
 
 uint32_t chisel::get_n_args()
