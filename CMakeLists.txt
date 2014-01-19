@@ -2,19 +2,40 @@ cmake_minimum_required(VERSION 2.6)
 
 project(sysdig) 
 
-set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
+if(NOT WIN32)
 
-set(CMAKE_C_FLAGS "-Wall -ggdb")
-set(CMAKE_CXX_FLAGS "-Wall -ggdb --std=c++0x")
-set(CMAKE_C_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
-set(CMAKE_CXX_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
-set(CMAKE_C_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
+	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
 
-set(SYSDIG_SRC_PREFIX "/usr/src/sysdig-${SYSDIG_VERSION}")
+	set(CMAKE_C_FLAGS "-Wall -ggdb")
+	set(CMAKE_CXX_FLAGS "-Wall -ggdb --std=c++0x")
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	add_subdirectory(driver)
+	set(CMAKE_C_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
+	set(CMAKE_CXX_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
+
+	set(CMAKE_C_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
+	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
+
+	set(SYSDIG_SRC_PREFIX "/usr/src/sysdig-${SYSDIG_VERSION}")
+
+	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+		add_subdirectory(driver)
+	endif()
+
+else()
+
+	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc")
+	set(SYSDIG_FLAGS_WIN_DEBUG "/MTd")
+	set(SYSDIG_FLAGS_WIN_RELEASE "/MT")
+
+	set(CMAKE_C_FLAGS "${SYSDIG_FLAGS_WIN}")
+	set(CMAKE_CXX_FLAGS "${SYSDIG_FLAGS_WIN}")
+
+	set(CMAKE_C_FLAGS_DEBUG "${SYSDIG_FLAGS_WIN_DEBUG}")
+	set(CMAKE_CXX_FLAGS_DEBUG "${SYSDIG_FLAGS_WIN_DEBUG}")
+
+	set(CMAKE_C_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
+	set(CMAKE_CXX_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
+
 endif()
 
 add_subdirectory(userspace/sysdig)

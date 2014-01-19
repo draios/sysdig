@@ -3,13 +3,31 @@ include_directories(${PROJECT_SOURCE_DIR}/userspace/libscap)
 include_directories(${PROJECT_SOURCE_DIR}/userspace/libsinsp)
 include_directories(.)
 
-add_executable(sysdig
-	chisel.cpp
-	jsoncpp.cpp
-	sysdig.cpp)
+if(NOT WIN32)
+
+	set(SOURCE_FILES
+		chisel.cpp
+		jsoncpp.cpp
+		sysdig.cpp)
+
+else()
+
+	set(SOURCE_FILES
+		chisel.cpp
+		jsoncpp.cpp
+		sysdig.cpp
+		win32/getopt.c)
+
+endif()
+
+add_executable(sysdig ${SOURCE_FILES})
 
 target_link_libraries(sysdig
-	sinsp) 
+	sinsp)
+
+if(WIN32)
+	target_link_libraries(sysdig odbc32.lib odbccp32.lib)
+endif()
 
 install(TARGETS sysdig 
 	DESTINATION bin)
