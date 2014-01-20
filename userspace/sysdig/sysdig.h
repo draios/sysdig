@@ -1,9 +1,11 @@
 #pragma once
 
+#include "config.h"
+
 //
 // The default output format
 //
-#define CHISELS_INSTALLATION_DIR "/usr/share/sysdig/chisels"
+#define CHISELS_INSTALLATION_DIR SYSDIG_INSTALLATION_DIR "/share/sysdig/chisels"
 
 //
 // The default output format
