@@ -23,6 +23,10 @@
 #define CHAR_FD_INOTIFY			'i'
 #define CHAR_FD_TIMERFD			't'
 
+/** @defgroup state State management 
+ * A collection of classes to query process and FD state.
+ *  @{
+ */
 ///////////////////////////////////////////////////////////////////////////////
 // fd info
 ///////////////////////////////////////////////////////////////////////////////
@@ -170,31 +174,11 @@ private:
 	friend class sinsp_analyzer_fd_listener;
 };
 
-//
-// fd operation
-//
-class sinsp_fdop
-{
-public:
-	sinsp_fdop()
-	{
-	}
-
-	sinsp_fdop(int64_t fd, uint16_t type)
-	{
-		m_fd = fd;
-		m_type = type;
-	}
-
-	int64_t m_fd;
-	uint16_t m_type;
-};
+/*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
 // fd info table
 ///////////////////////////////////////////////////////////////////////////////
-//typedef fdtable_t::iterator fdtable_iterator_t;
-
 class sinsp_fdtable
 {
 public:

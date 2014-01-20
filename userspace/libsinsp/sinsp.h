@@ -17,6 +17,9 @@
 	This manual includes the following sections:
 	- \ref inspector
 	- \ref event
+	- \ref filter
+	- \ref state
+	- \ref misc
 */
 
 #pragma once
@@ -106,130 +109,241 @@ struct sinsp_exception : std::exception
 	string m_error_str;
 };
 
-/** @defgroup inspector System inspector class
- *  @{
- */
+/** @defgroup inspector System inspector
+ @{
+*/
+
+/*!
+  \brief System inspector class.
+  This is the library entry point class. The functionality it exports includes:
+  - live capture control (start/stop/pause...)
+  - trace file management
+  - event retrieval
+  - setting capture filters
+*/
 class SINSP_PUBLIC sinsp
 {
 public:
-	typedef class sinsp_ipv4_connection_manager sinsp_ipv4_connection_manager;
-	typedef class sinsp_unix_connection_manager sinsp_unix_connection_manager;
-	typedef class sinsp_pipe_connection_manager sinsp_pipe_connection_manager;
-	typedef class sinsp_connection sinsp_connection;
-
-	
-    //! A constructor.
-    /*!
-      A more elaborate description of the constructor.
-    */
 	sinsp();
 	~sinsp();
-	//
-	// Start a live capture
-	//
+
+	/*!
+	  \brief Start a live event capture.
+
+	  \param timeout_ms the optional read timeout, i.e. the time after which a 
+	  call to \ref next() returns even if no events are available.
+
+	  @throws a sinsp_exception containing the error string is thrown in case 
+	   of failure.
+	*/
 	void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 
-	//
-	// Open a capture file
-	//
+	/*!
+	  \brief Start an event capture from a trace file.
+
+	  \param filename the trace file name.
+
+	  @throws a sinsp_exception containing the error string is thrown in case 
+	   of failure.
+	*/
 	void open(string filename);
 
-	//
-	// Close capture file and release all
-	// resources
-	//
+	/*!
+	  \brief Ends a capture and release all resources.
+	*/
 	void close();
 
-	//
-	// Get the next event
-	//
+	/*!
+	  \brief Get the next event from the open capture source
+
+	  \param evt a \ref sinsp_evt pointer that will be initialized to point to 
+	  the next available event.
+
+	  \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain 
+	   valid data. SCAP_TIMEOUT in case the read timeout expired and no event is 
+	   available. SCAP_EOF when the end of an offline capture is reached.
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to 
+	   obtain the cause of the error. 
+
+	  \note: the returned event can be considered valid only until the next
+	   call to \ref next()
+	*/
 	int32_t next(OUT sinsp_evt** evt);
 
-	//
-	// Get the number of captured events
-	//
+	/*!
+	  \brief Get the number of events that have been captured and processed
+	   since the call to \ref open()
+
+	  \return the number of captured events. 
+	*/
 	uint64_t get_num_events();
 
-	//
-	// Stop event capture
-	//
+	/*!
+	  \brief Set the capture snaplen, i.e. the maximum size an event 
+	  parameter can reach before the driver starts truncating it.
+
+	  \param snaplen the snaplen for this capture instance, in bytes.
+
+	  \note This function can only be called for live captures.
+	  \note By default, the driver captures the first 80 bytes of the 
+	  buffers coming from events like read, write, send, recv, etc. 
+	  If you're not interested in payloads, smaller values will save 
+	  capture buffer space and make capture files smaller.
+	  Conversely, big values should be used with care because they can 
+	  easily generate huge capture files.
+
+	  @throws a sinsp_exception containing the error string is thrown in case 
+	   of failure.
+	*/
 	void set_snaplen(uint32_t snaplen);
 
-	//
-	// Stop event capture
-	//
+	/*!
+	  \brief temporarily pauses event capture.
+
+	  \note This function can only be called for live captures.
+	*/
 	void stop_capture();
 
-	//
-	// Start event capture
-	//
+	/*!
+	  \brief Restarts an event capture that had been paused with 
+	   \ref stop_capture().
+
+	  \note This function can only be called for live captures.
+	*/
 	void start_capture();
-	
-	//
-	// Drop mode control
-	//
-	void stop_dropping_mode();
-	void start_dropping_mode(uint32_t sampling_ratio);
-	
+		
 #ifdef HAS_FILTERING
-	//
-	// Set the capture filter. Only in debug mode for the moment.
-	//
+	/*!
+	  \brief Compiles and installs the given capture filter.
+
+	  \param filter the filter string. Refer to the filtering language
+	   section in the sysdig website for information about the filtering
+	   syntax.
+
+	  @throws a sinsp_exception containing the error string is thrown in case 
+	   the filter is invalid.
+	*/
 	void set_filter(string filter);
 #endif
 
-	//
-	// Get the last error
-	//
-	string getlasterr()
-	{
-		return m_lasterr;
-	}
+	/*!
+	  \brief This method can be used to specify a function to collect the library
+	   log messages.
 
-	//
-	// Set the target for the log strings
-	//
+	  \param cb the target function that will receive the log messages.
+	*/
 	void set_log_callback(sinsp_logger_callback cb);
 
-	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
+	/*!
+	  \brief Start writing the captured events to file.
 
-	//
-	// Automatic event dump support
-	//
+	  \param dump_filename the destination trace file.
+
+	  \note only the events that pass the capture filter set with \ref set_filter()
+	   will be saved to disk.
+	  \note this simplified dump interface allows only one dump per capture.
+	   For more flexibility, refer to the \ref sinsp_dumper class, that can
+	   also be combined with \ref sinsp_filter to filter what will go into
+	   the file.
+
+	  @throws a sinsp_exception containing the error string is thrown in case 
+	   of failure.
+	*/
 	void autodump_start(const string dump_filename);
+
+	/*!
+	  \brief Stops an event dump that was started with \ref autodump_start().
+
+	  @throws a sinsp_exception containing the error string is thrown in case 
+	   of failure.
+	*/
 	void autodump_stop();
 
-	//
-	// Populate the given vector with the full list of filter check fields
-	//
+	/*!
+	  \brief Populate the given vector with the full list of filter check fields
+	   that this version of the library supports.
+	*/
 	static void get_filtercheck_fields_info(vector<const filter_check_info*>* list);
 
 	bool has_metrics();
 
-	//
-	// Get information about the physical machine generating the events
-	//
+	/*!
+	  \brief Get information about the physical machine generating the events.
+
+	  \note this call works with file captures as well, because the machine
+	   info is stored in the trace files. In that case, the returned 
+	   machine info is the one of the machine where the capture happened.
+	*/
 	const scap_machine_info* get_machine_info();
 
-	//
-	// Return a thread's information given its tid
-	//
-	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found);
+	/*!
+	  \brief Look up a thread given its tid and return its information.
+
+	  \param tid the ID of the thread. In case of multi-thread processes,
+	   this corresponds to the PID.
+
+	  \return the \ref sinsp_threadinfo object containing full thread information
+	   and state.
+
+	  \note if you are interested in a process' information, just give this 
+	  function with the PID of the process.
+
+	  @throws a sinsp_exception containing the error string is thrown in case 
+	   of failure.
+	*/
 	sinsp_threadinfo* get_thread(int64_t tid);
 
+	/*!
+	  \brief Look up a thread given its tid and return its information,
+	   and optionally go dig into proc if the thread is not in the thread table.
+
+	  \param tid the ID of the thread. In case of multi-thread processes,
+	   this corresponds to the PID.
+	  \param query_os_if_not_found if true, the library will search for this
+	   thread's information in proc, use the result to create a new thread
+	   entry, and return the new entry.
+
+	  \return the \ref sinsp_threadinfo object containing full thread information
+	   and state.
+
+	  \note if you are interested in a process' information, just give this 
+	  function with the PID of the process.
+
+	  @throws a sinsp_exception containing the error string is thrown in case 
+	   of failure.
+	*/
+	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found);
+
+	/*!
+	  \brief Return the table with all the machine users.
+
+	  \return a hash table with the user ID (UID) as the key and the user
+	   information as the data.
+
+	  \note this call works with file captures as well, because the user
+	   table is stored in the trace files. In that case, the returned 
+	   user list is the one of the machine where the capture happened.
+	*/
 	const unordered_map<uint32_t, scap_userinfo*>* get_userlist();
+
+	/*!
+	  \brief Return the table with all the machine user groups.
+
+	  \return a hash table with the group ID (GID) as the key and the group
+	   information as the data.
+
+	  \note this call works with file captures as well, because the group
+	   table is stored in the trace files. In that case, the returned 
+	   user table is the one of the machine where the capture happened.
+	*/
 	const unordered_map<uint32_t, scap_groupinfo*>* get_grouplist();
 
-	//
-	// Allocates private state in the thread info class.
-	// Returns the ID to use when retrieving the memory area.
-	// Will fail if called after the capture starts.
-	//
-	uint32_t reserve_thread_memory(uint32_t size);
+	/*!
+	  \brief Fill the given structure with statistics about the currently
+	   open capture.
 
-	//
-	// Fill the given structure with live capture statistics
-	//
+	  \note this call won't work on file captures.
+	*/
 	void get_capture_stats(scap_stats* stats);
 
 
@@ -240,6 +354,27 @@ public:
 #ifdef HAS_ANALYZER
 	sinsp_analyzer* m_analyzer;
 #endif
+
+	/*!
+	  \brief get last library error.
+	*/
+	string getlasterr()
+	{
+		return m_lasterr;
+	}
+
+	//
+	// Misc internal stuff 
+	//
+	void stop_dropping_mode();
+	void start_dropping_mode(uint32_t sampling_ratio);
+	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
+	//
+	// Allocates private state in the thread info class.
+	// Returns the ID to use when retrieving the memory area.
+	// Will fail if called after the capture starts.
+	//
+	uint32_t reserve_thread_memory(uint32_t size);
 
 VISIBILITY_PRIVATE
 

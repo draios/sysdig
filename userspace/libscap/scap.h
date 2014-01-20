@@ -595,12 +595,13 @@ const struct ppm_syscall_desc* scap_get_syscall_info_table();
 const scap_machine_info* scap_get_machine_info(scap_t* handle);
 
 /*!
-  \brief Set the capture snaplen, i.e. the maximum size an event buffer argument can 
+  \brief Set the capture snaplen, i.e. the maximum size an event parameter can 
   reach before the driver starts truncating it.
 
   \param handle Handle to the capture instance.
-  \param handle Maximum data buffer size.
+  \param snaplen the snaplen for this capture instance, in bytes.
 
+  \note This function can only be called for live captures.
   \note By default, the driver captures the first 80 bytes of the buffers coming from
   events like read, write, send, recv, etc. 
   If you're not interested in payloads, smaller values will save capture buffer space and
