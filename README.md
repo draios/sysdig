@@ -15,6 +15,12 @@ make
 make install
 ```
 
+To manually specify the installation directory, use the CMAKE_INSTALL_PREFIX variable:
+
+```
+cmake -DCMAKE_INSTALL_PREFIX=/my/prefix ..
+```
+
 #### Windows
 
 **Requirements**
