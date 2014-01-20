@@ -14,6 +14,11 @@ enum boolop
 	BO_ANDNOT = 5,
 };
 
+/** @defgroup filter Filtering
+ * Filtering infrastructure.
+ *  @{
+ */
+
 ///////////////////////////////////////////////////////////////////////////////
 // The filter class
 // This is the main class that compiles and runs filters
@@ -60,5 +65,7 @@ private:
 
 	friend class sinsp_evt_formatter;
 };
+
+/*@}*/
 
 #endif // HAS_FILTERING

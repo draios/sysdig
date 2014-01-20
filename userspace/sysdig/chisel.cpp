@@ -17,6 +17,7 @@
 const chiseldir_info chisel_dirs[] =
 {
 	{false, ""}, // file as is
+	{false, CHISELS_INSTALLATION_DIR},
 	{false, "./"},
 	{false, "./chisels/"},
 	{true, ""},

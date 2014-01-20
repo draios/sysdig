@@ -18,6 +18,10 @@ typedef struct erase_fd_params
 	uint64_t m_ts;
 }erase_fd_params;
 
+/** @defgroup state State management 
+ *  @{
+ */
+
 ///////////////////////////////////////////////////////////////////////////////
 // thread info entry
 ///////////////////////////////////////////////////////////////////////////////
@@ -119,6 +123,8 @@ VISIBILITY_PRIVATE
 	friend class sinsp_transaction_table;
 	friend class thread_analyzer_info;
 };
+
+/*@}*/
 
 typedef unordered_map<int64_t, sinsp_threadinfo> threadinfo_map_t;
 typedef threadinfo_map_t::iterator threadinfo_map_iterator_t;

@@ -2,6 +2,10 @@
 
 class sinsp_filter_check;
 
+/** @defgroup event Event manipulation
+ *  @{
+ */
+
 class SINSP_PUBLIC sinsp_evt_formatter
 {
 public:
@@ -18,3 +22,5 @@ private:
 	sinsp* m_inspector;
 	bool m_require_all_values;
 };
+
+/*@}*/

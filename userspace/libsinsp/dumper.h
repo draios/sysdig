@@ -3,6 +3,11 @@
 class sinsp;
 class sinsp_evt;
 
+/** @defgroup misc Misc
+ * Classes to perform miscellneous functionality
+ *  @{
+ */
+
 class SINSP_PUBLIC sinsp_dumper
 {
 public:
@@ -16,3 +21,4 @@ private:
 	scap_dumper_t* m_dumper;
 };
 
+/*@}*/
