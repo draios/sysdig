@@ -34,3 +34,6 @@ install(TARGETS sysdig
 
 install(DIRECTORY chisels
 	DESTINATION share/sysdig)
+
+file(COPY chisels
+	DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
