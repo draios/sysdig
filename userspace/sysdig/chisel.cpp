@@ -160,24 +160,35 @@ void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			tinydir_readfile(&dir, &file);
 
 			string fname(file.name);
+			string fpath(file.path);
 
 			if(fname.find(".sc") != string::npos)
 			{
-				chisel ch(NULL, fname);
-
-				chisel_desc cd;
-				cd.m_name = fname.substr(0, fname.rfind('.'));
-				cd.m_description = ch.m_description;
-
-				const Json::Value args = ch.m_root["info"]["arguments"];
-				for(uint32_t k = 0; k < args.size(); k++)
+				try
 				{
-					cd.m_args.push_back(chiselarg_desc(args[k]["name"].asString(), 
-						args[k]["type"].asString(), 
-						args[k]["description"].asString()));
-				}
+					chisel ch(NULL, fpath);
 
-				chisel_descs->push_back(cd);
+					chisel_desc cd;
+					cd.m_name = fname.substr(0, fname.rfind('.'));
+					cd.m_description = ch.m_description;
+
+					const Json::Value args = ch.m_root["info"]["arguments"];
+					for(uint32_t k = 0; k < args.size(); k++)
+					{
+						cd.m_args.push_back(chiselarg_desc(args[k]["name"].asString(), 
+							args[k]["type"].asString(), 
+							args[k]["description"].asString()));
+					}
+
+					chisel_descs->push_back(cd);
+				}
+				catch(...)
+				{
+					//
+					// If there was an error opening the chisel, skip to the next one
+					//
+					continue;
+				}
 			}
 
 			tinydir_next(&dir);
