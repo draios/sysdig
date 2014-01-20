@@ -41,6 +41,9 @@ static void usage()
 " -c <chiselname> <chiselargs>, --chisel  <chiselname> <chiselargs>\n"
 "                    run the specified chisel. If the chisel require arguments,\n"
 "                    they must be specified in the command line after the name.\n"
+" -cl, --list-chisels\n"
+"                    lists the available chisels. Looks for chisels in .,\n" 
+"                    ./chisels, ~/chisels and /usr/share/sysdig/chisels.\n"
 " -d, --displayflt   Make the given filter a dsiplay one\n"
 "                    Setting this option causes the events to be filtered\n" 
 "                    after being parsed by the state system. Events are\n"
@@ -371,7 +374,7 @@ int main(int argc, char **argv)
 	{
         {"abstimes", no_argument, 0, 'a' },
         {"chisel", required_argument, 0, 'c' },
-        {"chisel-list", no_argument, &cflag, 1 },
+        {"list-chisels", no_argument, &cflag, 1 },
         {"chisel-info", required_argument, &cflag, 2 },
         {"displayflt", no_argument, 0, 'd' },
         {"help", no_argument, 0, 'h' },
