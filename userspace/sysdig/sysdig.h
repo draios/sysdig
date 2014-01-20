@@ -1,5 +1,7 @@
 #pragma once
 
+#include "config.h"
+
 //
 // The default output format
 //
