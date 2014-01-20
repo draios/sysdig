@@ -35,6 +35,7 @@ static void signal_callback(int signal)
 static void usage()
 {
     printf(
+"sysdig version " SYSDIG_VERSION "\n"
 "Usage: sysdig [options] [-p <output_format>] [filter]\n\n"
 "Options:\n"
 " -a, --abstime      Show absolute event timestamps\n"
