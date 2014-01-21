@@ -216,15 +216,15 @@ public:
 	*/
 	void get_category(OUT sinsp_evt::category* cat);
 
-	void set_iosize(uint32_t size);
-	uint32_t get_iosize();
-	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
-	const char* get_param_value_str(const char* name, OUT const char** resolved_str);
-
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
 #endif
+
+	void set_iosize(uint32_t size);
+	uint32_t get_iosize();
+	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
+	const char* get_param_value_str(const char* name, OUT const char** resolved_str);
 
 	void init();
 	void init(uint8_t* evdata, uint16_t cpuid);
