@@ -302,15 +302,6 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		else
 		{
 			throw sinsp_exception(scap_getlasterr(m_h));
-/*
-#ifdef HAS_ANALYZER
-			if(m_analyzer)
-			{
-				m_analyzer->process_event(NULL, sinsp_analyzer::DF_NONE);
-			}
-			return SCAP_EOF;
-#endif
-*/
 		}
 
 		return res;
