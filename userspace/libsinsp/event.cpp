@@ -874,6 +874,13 @@ string sinsp_evt::get_param_value_str(string &name, bool resolved)
 	return string("");
 }
 
+string sinsp_evt::get_param_value_str(const char *name, bool resolved)
+{
+	// TODO fix this !!
+	string s_name = string(name);
+	return get_param_value_str(s_name, resolved);
+}
+
 string sinsp_evt::get_param_value_str(uint32_t i, bool resolved)
 {
 	const char *param_value_str;
