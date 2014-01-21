@@ -349,7 +349,8 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		snprintf(error, SCAP_LASTERR_SIZE, "error opening the %s directory", procdirname);
 		return SCAP_NOTFOUND;
 	}
-	if (-1 == parenttid)
+
+	if(-1 == parenttid)
 	{
 		if(SCAP_FAILURE == scap_fd_read_sockets(handle, &sockets))
 		{
@@ -375,6 +376,9 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		//
 		tid = atoi(dir_entry_p->d_name);
 
+		//
+		// Skip the main thread entry
+		//
 		if(parenttid != -1 && tid == parenttid)
 		{
 			continue;
