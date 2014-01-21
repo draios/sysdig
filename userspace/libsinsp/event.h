@@ -232,6 +232,7 @@ private:
 	void init(uint8_t* evdata, uint16_t cpuid);
 	void load_params();
 	string get_param_value_str(uint32_t id, bool resolved);
+	string get_param_value_str(const char *name, bool resolved);
 
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
