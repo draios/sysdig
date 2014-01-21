@@ -378,6 +378,11 @@ public:
 
 VISIBILITY_PRIVATE
 
+// Doxygen doesn't understand VISIBILITY_PRIVATE
+#ifdef _DOXYGEN
+private:
+#endif
+
 	void init();
 	void import_thread_table();
 	void import_ifaddr_list();

@@ -766,7 +766,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_LATENCY:
 		m_u64val = 0;
 
-		if(evt->is_exit())
+		if(evt->get_direction() == SCAP_ED_OUT)
 		{
 			if(evt->m_tinfo != NULL)
 			{

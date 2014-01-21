@@ -84,11 +84,6 @@ uint16_t sinsp_evt::get_type()
 	return m_pevt->type;
 }
 
-bool sinsp_evt::is_exit()
-{
-	return PPME_IS_EXIT(m_pevt->type);
-}
-
 ppm_event_flags sinsp_evt::get_flags()
 {
 	return m_info->flags;
@@ -877,13 +872,6 @@ string sinsp_evt::get_param_value_str(string &name, bool resolved)
 	}
 
 	return string("");
-}
-
-string sinsp_evt::get_param_value_str(const char *name, bool resolved)
-{
-	// TODO fix this !!
-	string s_name = string(name);
-	return get_param_value_str(s_name, resolved);
 }
 
 string sinsp_evt::get_param_value_str(uint32_t i, bool resolved)

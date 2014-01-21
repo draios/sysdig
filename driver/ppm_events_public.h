@@ -201,6 +201,9 @@
 #define PPME_IS_EXIT(x) (x & PPME_DIRECTION_FLAG)
 #define PPME_MAKE_ENTER(x) (x & (~1))
 
+/** @defgroup etypes Event Types
+ *  @{
+ */
 enum ppm_event_type
 {
 	PPME_GENERIC_E = 0,
@@ -355,6 +358,7 @@ enum ppm_event_type
 	PPME_DROP_X = 149,	// For internal use
 	PPM_EVENT_MAX = 150,
 };
+/*@}*/
 
 //
 // System-independent syscall codes

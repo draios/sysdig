@@ -107,7 +107,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = ../sinsp.h ../event.h ../eventformatter.h ../dumper.h ../filter.h ../threadinfo.h ../fdinfo.h
+INPUT                  = ../sinsp.h ../event.h ../eventformatter.h ../dumper.h ../filter.h ../threadinfo.h ../fdinfo.h ../../../driver/ppm_events_public.h
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = 
 RECURSIVE              = NO
@@ -270,7 +270,7 @@ EXPAND_ONLY_PREDEF     = NO
 SEARCH_INCLUDES        = YES
 INCLUDE_PATH           = 
 INCLUDE_FILE_PATTERNS  = 
-PREDEFINED             = HAS_FILTERING
+PREDEFINED             = HAS_FILTERING _DOXYGEN
 EXPAND_AS_DEFINED      = 
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
