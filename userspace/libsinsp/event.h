@@ -221,8 +221,6 @@ public:
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 	const char* get_param_value_str(const char* name, OUT const char** resolved_str);
 
-VISIBILITY_PRIVATE
-
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
@@ -232,7 +230,9 @@ private:
 	void init(uint8_t* evdata, uint16_t cpuid);
 	void load_params();
 	string get_param_value_str(uint32_t id, bool resolved);
-	string get_param_value_str(const char *name, bool resolved);
+	string get_param_value_str(const char* name, bool resolved = true);
+
+VISIBILITY_PRIVATE
 
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
