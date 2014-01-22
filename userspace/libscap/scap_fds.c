@@ -31,6 +31,7 @@
 #include <errno.h>
 #endif
 
+#define SOCKET_SCAN_BUFFER_SIZE 1024 * 1024
 
 int32_t scap_fd_print_ipv6_socket_info(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
 {
@@ -729,102 +730,171 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, char *dir, int l4proto, scap_fdinfo **sockets)
 {
 	FILE *f;
-	char line[1024];
-	int first_line = false;
-	char *delimiters = " \t";
-	char *token;
-	uint64_t ino;
-	uint64_t ladr;
-	uint64_t lport;
-	uint64_t radr;
-	uint64_t rport;
-	uint64_t state;
-	char *ep;
 	int32_t uth_status = SCAP_SUCCESS;
+	char* scan_buf;
+	char* scan_pos;
+	char* tmp_pos;
+	uint32_t rsize;
+	char* end;
+	char tc;
+	uint32_t j;
+
+	scan_buf = (char*)malloc(SOCKET_SCAN_BUFFER_SIZE);
+	if(scan_buf == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scan_buf allocation error");
+		return SCAP_FAILURE;		
+	}
 
 	f = fopen(dir, "r");
 	if(NULL == f)
 	{
 		ASSERT(false);
+		free(scan_buf);
 		return SCAP_FAILURE;
 	}
-	while(NULL != fgets(line, sizeof(line), f))
+	
+	while((rsize = fread(scan_buf, 1, SOCKET_SCAN_BUFFER_SIZE, f))  != 0)
 	{
-		// skip the first line ... contains field names
-		if(!first_line)
-		{
-			first_line = true;
-			continue;
-		}
+		char* scan_end = scan_buf + rsize;
+		scan_pos = scan_buf;
 
-		//
-		// parse the fields
-		//
-		// 1. sl
-		token = strtok(line, delimiters);
-		// 2.   local_address
-		token = strtok(NULL, delimiters);
-		ladr = strtoul(token, &ep, 16);
-		lport = strtoul(ep + 1, NULL, 16);
-		// 3. rem_address
-		token = strtok(NULL, delimiters);
-		radr = strtoul(token, &ep, 16);
-		rport = strtoul(ep + 1, NULL, 16);
-		// 4. st
-		token = strtok(NULL, delimiters);
-		state = strtoul(token, &ep, 16);
-		
-		if(state == TCP_TIME_WAIT)
+		while(scan_pos <= scan_end)
 		{
+			scan_pos = memchr(scan_pos, '\n', scan_end - scan_pos);
+
+			if(scan_pos == NULL)
+			{
+				break;
+			}
+
+			scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+			
 			//
-			// Not interested in TIME_WAIT and can fill
-			// the table pretty quickly
+			// Skip the sl field
 			//
-			continue;
-		}
+			scan_pos = memchr(scan_pos, ':', scan_end - scan_pos);
+			if(scan_pos == NULL)
+			{
+				free(fdinfo);
+				break;
+			}
 
-		// 5. tx_queue:rx_queue
-		token = strtok(NULL, delimiters);
-		// 7. tr:tm->when
-		token = strtok(NULL, delimiters);
-		// 9. retrnsmt
-		token = strtok(NULL, delimiters);
-		// 10. uid
-		token = strtok(NULL, delimiters);
-		// 11. timeout
-		token = strtok(NULL, delimiters);
-		// 12. inode
-		token = strtok(NULL, delimiters);
-		sscanf(token, "%"PRIu64, &ino);
+			scan_pos += 2;
+			if(scan_pos + 80 >= scan_end)
+			{
+				free(fdinfo);
+				break;
+			}
 
-		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
-		fdinfo->ino = ino;
+			//
+			// Scan the local address
+			//
+			tc = *(scan_pos + 8);
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv4info.sip = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
 
-		if(0 == radr)
-		{
-			fdinfo->type = SCAP_FD_IPV4_SERVSOCK;
-			fdinfo->info.ipv4serverinfo.l4proto = l4proto;
-			fdinfo->info.ipv4serverinfo.ip = ladr;
-			fdinfo->info.ipv4serverinfo.port = lport;
-		}
-		else
-		{
-			fdinfo->type = SCAP_FD_IPV4_SOCK;
-			fdinfo->info.ipv4info.l4proto = l4proto;
-			fdinfo->info.ipv4info.sip = ladr;
-			fdinfo->info.ipv4info.dip = radr;
-			fdinfo->info.ipv4info.sport = lport;
-			fdinfo->info.ipv4info.dport = rport;
-		}
-		HASH_ADD_INT64((*sockets), ino, fdinfo);
-		if(uth_status != SCAP_SUCCESS)
-		{
-			uth_status = SCAP_FAILURE;
-			// TODO: set some error message
-			break;
+			scan_pos += 9;
+			tc = *(scan_pos + 4);
+			ASSERT(tc == ' ');
+			*(scan_pos + 4) = 0;
+			fdinfo->info.ipv4info.sport = (uint16_t)strtoul(scan_pos, &end, 16);
+			*(scan_pos + 4) = tc;
+
+			//
+			// Scan the remote address
+			//
+			scan_pos += 5;
+
+			tc = *(scan_pos + 8);
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv4info.dip = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 9;
+			tc = *(scan_pos + 4);
+			ASSERT(tc == ' ');
+			*(scan_pos + 4) = 0;
+			fdinfo->info.ipv4info.dport = (uint16_t)strtoul(scan_pos, &end, 16);
+			*(scan_pos + 4) = tc;
+
+			//
+			// Skip to parsing the inode
+			//
+			scan_pos += 4;
+
+			for(j = 0; j < 6; j++)
+			{
+				scan_pos++;
+
+				scan_pos = memchr(scan_pos, ' ', scan_end - scan_pos);
+				if(scan_pos == NULL)
+				{
+					break;
+				}
+
+				while(*scan_pos == ' ' && scan_pos < scan_end)
+				{
+					scan_pos++;
+				}
+
+				if(scan_pos >= scan_end)
+				{
+					break;
+				}
+			}
+
+			if(j < 6)
+			{
+				free(fdinfo);
+				break;
+			}
+
+			tmp_pos = scan_pos;
+			scan_pos = memchr(scan_pos, ' ', scan_end - scan_pos);
+			if(scan_pos == NULL || scan_pos >= scan_end)
+			{
+				free(fdinfo);
+				break;
+			}
+
+			tc = *(scan_pos);
+
+			fdinfo->ino = (uint64_t)strtoull(tmp_pos, &end, 10);
+
+			*(scan_pos) = tc;
+
+			//
+			// Add to the table
+			//
+			if(fdinfo->info.ipv4info.dip == 0)
+			{
+				fdinfo->type = SCAP_FD_IPV4_SERVSOCK;
+				fdinfo->info.ipv4serverinfo.l4proto = l4proto;
+				fdinfo->info.ipv4serverinfo.port = fdinfo->info.ipv4info.sport;
+				fdinfo->info.ipv4serverinfo.ip = fdinfo->info.ipv4info.sip;
+			}
+			else
+			{
+				fdinfo->type = SCAP_FD_IPV4_SOCK;
+				fdinfo->info.ipv4info.l4proto = l4proto;
+			}
+
+			HASH_ADD_INT64((*sockets), ino, fdinfo);
+
+			if(uth_status != SCAP_SUCCESS)
+			{
+				uth_status = SCAP_FAILURE;
+				// TODO: set some error message
+				break;
+			}
+
+			scan_pos++;			
 		}
 	}
 	fclose(f);
+	free(scan_buf);
 	return uth_status;
 }
 
@@ -832,8 +902,6 @@ int32_t scap_fd_is_ipv6_server_socket(uint32_t ip6_addr[4])
 {
 	return 0 == ip6_addr[0] && 0 == ip6_addr[1] && 0 == ip6_addr[2] && 0 == ip6_addr[3];
 }
-
-#define SOCKET_SCAN_BUFFER_SIZE 1024 * 1024
 
 int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4proto, scap_fdinfo **sockets)
 {
@@ -880,18 +948,19 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 			scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
 			
 			//
-			// parse the fields
+			// Skip the sl field
 			//
-
 			scan_pos = memchr(scan_pos, ':', scan_end - scan_pos);
 			if(scan_pos == NULL)
 			{
+				free(fdinfo);
 				break;
 			}
 
 			scan_pos += 2;
 			if(scan_pos + 80 >= scan_end)
 			{
+				free(fdinfo);
 				break;
 			}
 
@@ -993,6 +1062,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 
 			if(j < 6)
 			{
+				free(fdinfo);
 				break;
 			}
 
@@ -1000,14 +1070,13 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 			scan_pos = memchr(scan_pos, ' ', scan_end - scan_pos);
 			if(scan_pos == NULL || scan_pos >= scan_end)
 			{
+				free(fdinfo);
 				break;
 			}
 
 			tc = *(scan_pos);
 
 			fdinfo->ino = (uint64_t)strtoull(tmp_pos, &end, 10);
-
-//printf("**%d\n", (int)fdinfo->ino);
 
 			*(scan_pos) = tc;
 
