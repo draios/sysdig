@@ -975,7 +975,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 				scan_pos++;
 
 				scan_pos = memchr(scan_pos, ' ', scan_end - scan_pos);
-				if(scan_pos == NULL || scan_pos >= scan_end)
+				if(scan_pos == NULL)
 				{
 					break;
 				}
@@ -989,6 +989,11 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 				{
 					break;
 				}
+			}
+
+			if(j < 6)
+			{
+				break;
 			}
 
 			tmp_pos = scan_pos;
