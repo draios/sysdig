@@ -893,6 +893,7 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 			scan_pos++;			
 		}
 	}
+
 	fclose(f);
 	free(scan_buf);
 	return uth_status;
