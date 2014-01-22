@@ -839,18 +839,12 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 {
 	FILE *f;
 	int32_t uth_status = SCAP_SUCCESS;
-	uint32_t sl;
-	uint32_t state;
-	uint32_t tx_queue;
-	uint32_t rx_queue;
-	uint32_t tr;
-	uint64_t tm_when;
-	uint32_t retry_stament;
-	uint32_t uid;
-	uint32_t timeout;
 	char* scan_buf;
 	char* scan_pos;
 	uint32_t rsize;
+	char* end;
+	char tc;
+	uint32_t j;
 
 	scan_buf = (char*)malloc(SOCKET_SCAN_BUFFER_SIZE);
 	if(scan_buf == NULL)
@@ -887,6 +881,113 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 			//
 			// parse the fields
 			//
+
+			scan_pos = memchr(scan_pos, ':', scan_end - scan_pos);
+			if(scan_pos == NULL)
+			{
+				break;
+			}
+
+			scan_pos += 2;
+			if(scan_pos + 80 >= scan_end)
+			{
+				break;
+			}
+
+			//
+			// Scan the first address
+			//
+			tc = *(scan_pos + 8);
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv6info.sip[0] = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 8;
+			tc = *(scan_pos + 8);
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv6info.sip[1] = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 8;
+			tc = *(scan_pos + 8);
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv6info.sip[2] = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 8;
+			tc = *(scan_pos + 8);
+			ASSERT(tc == ':');
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv6info.sip[3] = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 9;
+			tc = *(scan_pos + 4);
+			ASSERT(tc == ' ');
+			*(scan_pos + 4) = 0;
+			fdinfo->info.ipv6info.sport = (uint16_t)strtoul(scan_pos, &end, 16);
+			*(scan_pos + 4) = tc;
+
+			//
+			// Scan the second address
+			//
+			scan_pos += 5;
+
+			tc = *(scan_pos + 8);
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv6info.sip[0] = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 8;
+			tc = *(scan_pos + 8);
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv6info.sip[1] = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 8;
+			tc = *(scan_pos + 8);
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv6info.sip[2] = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 8;
+			tc = *(scan_pos + 8);
+			ASSERT(tc == ':');
+			*(scan_pos + 8) = 0;
+			fdinfo->info.ipv6info.sip[3] = strtoul(scan_pos, &end, 16);
+			*(scan_pos + 8) = tc;
+
+			scan_pos += 9;
+			tc = *(scan_pos + 4);
+			ASSERT(tc == ' ');
+			*(scan_pos + 4) = 0;
+			fdinfo->info.ipv6info.sport = (uint16_t)strtoul(scan_pos, &end, 16);
+			*(scan_pos + 4) = tc;
+
+			//
+			//
+			//
+			scan_pos += 4;
+
+			for(j = 0; j < 6; j++)
+			{
+				scan_pos++;
+
+				scan_pos = memchr(scan_pos, ' ', scan_end - scan_pos);
+				if(scan_pos == NULL || scan_pos >= scan_end)
+				{
+					break;
+				}
+
+				while(*scan_pos == ' ' && scan_pos < scan_end)
+				{
+					scan_pos++;
+				}
+			}
+
+			fdinfo->ino = (uint64_t)strtoull(scan_pos, &end, 10);
+
+/*			
 			int scres = sscanf(scan_pos, "%4d: %08X%08X%08X%08X:%04hX %08X%08X%08X%08X:%04hX "
 			   "%02X %08X:%08X %02X:%08"SCNx64" %08X %5d %8d %"SCNu64,
 			   &sl,
@@ -910,7 +1011,6 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 			   &timeout,
 			   &fdinfo->ino);
 
-printf("%p\n", scan_pos);
 			if(scres == 20)
 			{
 				if(scap_fd_is_ipv6_server_socket(fdinfo->info.ipv6info.dip))
@@ -938,7 +1038,7 @@ printf("%p\n", scan_pos);
 					break;
 				}
 			}
-
+*/
 			scan_pos++;			
 		}
 	}
