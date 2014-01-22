@@ -833,11 +833,11 @@ int32_t scap_fd_is_ipv6_server_socket(uint32_t ip6_addr[4])
 	return 0 == ip6_addr[0] && 0 == ip6_addr[1] && 0 == ip6_addr[2] && 0 == ip6_addr[3];
 }
 
+#define SOCKET_SCAN_BUFFER_SIZE 1024 * 1024
+
 int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4proto, scap_fdinfo **sockets)
 {
 	FILE *f;
-	char line[1024];
-	int first_line = false;
 	int32_t uth_status = SCAP_SUCCESS;
 	uint32_t sl;
 	uint32_t state;
@@ -848,72 +848,104 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 	uint32_t retry_stament;
 	uint32_t uid;
 	uint32_t timeout;
+	char* scan_buf;
+	char* scan_pos;
+	uint32_t rsize;
+
+	scan_buf = (char*)malloc(SOCKET_SCAN_BUFFER_SIZE);
+	if(scan_buf == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scan_buf allocation error");
+		return SCAP_FAILURE;		
+	}
+
 	f = fopen(dir, "r");
+
 	if(NULL == f)
 	{
 		ASSERT(false);
+		free(scan_buf);
 		return SCAP_FAILURE;
 	}
-	while(NULL != fgets(line, sizeof(line), f))
-	{
-		// skip the first line ... contains field names
-		if(!first_line)
-		{
-			first_line = true;
-			continue;
-		}
-		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
-		//
-		// parse the fields
-		//
-		sscanf(line,"%4d: %08X%08X%08X%08X:%04hX %08X%08X%08X%08X:%04hX "
-		   "%02X %08X:%08X %02X:%08"SCNx64" %08X %5d %8d %"SCNu64,
-		   &sl,
-		   &fdinfo->info.ipv6info.sip[0],
-		   &fdinfo->info.ipv6info.sip[1],
-		   &fdinfo->info.ipv6info.sip[2],
-		   &fdinfo->info.ipv6info.sip[3],
-		   &fdinfo->info.ipv6info.sport,
-		   &fdinfo->info.ipv6info.dip[0],
-		   &fdinfo->info.ipv6info.dip[1],
-		   &fdinfo->info.ipv6info.dip[2],
-		   &fdinfo->info.ipv6info.dip[3],
-		   &fdinfo->info.ipv6info.dport,
-		   &state,
-		   &tx_queue,
-		   &rx_queue,
-		   &tr,
-		   &tm_when,
-		   &retry_stament,
-		   &uid,
-		   &timeout,
-		   &fdinfo->ino
-		   );
 
-		if(scap_fd_is_ipv6_server_socket(fdinfo->info.ipv6info.dip))
+	while((rsize = fread(scan_buf, 1, SOCKET_SCAN_BUFFER_SIZE, f))  != 0)
+	{
+		char* scan_end = scan_buf + rsize;
+		scan_pos = scan_buf;
+
+		while(scan_pos <= scan_end)
 		{
-			fdinfo->type = SCAP_FD_IPV6_SERVSOCK;
-			fdinfo->info.ipv6serverinfo.l4proto = l4proto;
-			fdinfo->info.ipv6serverinfo.port = fdinfo->info.ipv6info.sport;
-			fdinfo->info.ipv6serverinfo.ip[0] = fdinfo->info.ipv6info.sip[0];
-			fdinfo->info.ipv6serverinfo.ip[1] = fdinfo->info.ipv6info.sip[1];
-			fdinfo->info.ipv6serverinfo.ip[2] = fdinfo->info.ipv6info.sip[2];
-			fdinfo->info.ipv6serverinfo.ip[3] = fdinfo->info.ipv6info.sip[3];
-		}
-		else
-		{
-			fdinfo->type = SCAP_FD_IPV6_SOCK;
-			fdinfo->info.ipv6info.l4proto = l4proto;
-		}
-		HASH_ADD_INT64((*sockets), ino, fdinfo);
-		if(uth_status != SCAP_SUCCESS)
-		{
-			uth_status = SCAP_FAILURE;
-			// TODO: set some error message
-			break;
+			scan_pos = memchr(scan_pos, '\n', scan_end - scan_pos);
+
+			if(scan_pos == NULL)
+			{
+				break;
+			}
+
+			scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+			
+			//
+			// parse the fields
+			//
+			int scres = sscanf(scan_pos, "%4d: %08X%08X%08X%08X:%04hX %08X%08X%08X%08X:%04hX "
+			   "%02X %08X:%08X %02X:%08"SCNx64" %08X %5d %8d %"SCNu64,
+			   &sl,
+			   &fdinfo->info.ipv6info.sip[0],
+			   &fdinfo->info.ipv6info.sip[1],
+			   &fdinfo->info.ipv6info.sip[2],
+			   &fdinfo->info.ipv6info.sip[3],
+			   &fdinfo->info.ipv6info.sport,
+			   &fdinfo->info.ipv6info.dip[0],
+			   &fdinfo->info.ipv6info.dip[1],
+			   &fdinfo->info.ipv6info.dip[2],
+			   &fdinfo->info.ipv6info.dip[3],
+			   &fdinfo->info.ipv6info.dport,
+			   &state,
+			   &tx_queue,
+			   &rx_queue,
+			   &tr,
+			   &tm_when,
+			   &retry_stament,
+			   &uid,
+			   &timeout,
+			   &fdinfo->ino);
+
+printf("%p\n", scan_pos);
+			if(scres == 20)
+			{
+				if(scap_fd_is_ipv6_server_socket(fdinfo->info.ipv6info.dip))
+				{
+					fdinfo->type = SCAP_FD_IPV6_SERVSOCK;
+					fdinfo->info.ipv6serverinfo.l4proto = l4proto;
+					fdinfo->info.ipv6serverinfo.port = fdinfo->info.ipv6info.sport;
+					fdinfo->info.ipv6serverinfo.ip[0] = fdinfo->info.ipv6info.sip[0];
+					fdinfo->info.ipv6serverinfo.ip[1] = fdinfo->info.ipv6info.sip[1];
+					fdinfo->info.ipv6serverinfo.ip[2] = fdinfo->info.ipv6info.sip[2];
+					fdinfo->info.ipv6serverinfo.ip[3] = fdinfo->info.ipv6info.sip[3];
+				}
+				else
+				{
+					fdinfo->type = SCAP_FD_IPV6_SOCK;
+					fdinfo->info.ipv6info.l4proto = l4proto;
+				}
+
+				HASH_ADD_INT64((*sockets), ino, fdinfo);
+
+				if(uth_status != SCAP_SUCCESS)
+				{
+					uth_status = SCAP_FAILURE;
+					// TODO: set some error message
+					break;
+				}
+			}
+
+			scan_pos++;			
 		}
 	}
+
 	fclose(f);
+	free(scan_buf);
+
 	return uth_status;
 }
 
