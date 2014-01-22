@@ -841,6 +841,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 	int32_t uth_status = SCAP_SUCCESS;
 	char* scan_buf;
 	char* scan_pos;
+	char* tmp_pos;
 	uint32_t rsize;
 	char* end;
 	char tc;
@@ -983,14 +984,27 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 				{
 					scan_pos++;
 				}
-				
+
 				if(scan_pos >= scan_end)
 				{
 					break;
 				}
 			}
 
-			fdinfo->ino = (uint64_t)strtoull(scan_pos, &end, 10);
+			tmp_pos = scan_pos;
+			scan_pos = memchr(scan_pos, ' ', scan_end - scan_pos);
+			if(scan_pos == NULL || scan_pos >= scan_end)
+			{
+				break;
+			}
+
+			tc = *(scan_pos);
+
+			fdinfo->ino = (uint64_t)strtoull(tmp_pos, &end, 10);
+
+//printf("**%d\n", (int)fdinfo->ino);
+
+			*(scan_pos) = tc;
 
 			//
 			// Add to the table
