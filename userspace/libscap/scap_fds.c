@@ -983,6 +983,11 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 				{
 					scan_pos++;
 				}
+				
+				if(scan_pos >= scan_end)
+				{
+					break;
+				}
 			}
 
 			fdinfo->ino = (uint64_t)strtoull(scan_pos, &end, 10);
