@@ -33,8 +33,6 @@ sinsp_parser::~sinsp_parser()
 {
 }
 
-int pippo = 0;
-
 ///////////////////////////////////////////////////////////////////////////////
 // PROCESSING ENTRY POINT
 ///////////////////////////////////////////////////////////////////////////////
@@ -99,11 +97,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PRLIMIT_E:
 	case PPME_SOCKET_SENDTO_E:
 	case PPME_SOCKET_SENDMSG_E:
-pippo++;
-if(pippo % 10000 == 0)
-{
-	fprintf(stderr, "***%d\n", pippo);
-}
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_READ_X:
@@ -120,11 +113,6 @@ if(pippo % 10000 == 0)
 	case PPME_SYSCALL_PWRITE_X:
 	case PPME_SYSCALL_PREADV_X:
 	case PPME_SYSCALL_PWRITEV_X:
-pippo++;
-if(pippo % 10000 == 0)
-{
-	fprintf(stderr, "***%d\n", pippo);
-}
 		parse_rw_exit(evt);
 		break;
 	case PPME_SYSCALL_OPEN_X:

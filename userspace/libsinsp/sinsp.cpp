@@ -19,6 +19,8 @@
 #endif
 //#include "drfilterParser.h"
 
+extern sinsp_evttables g_infotables;
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -652,4 +654,9 @@ sinsp_stats sinsp::get_stats()
 void sinsp::set_log_callback(sinsp_logger_callback cb)
 {
 	g_logger.add_callback_log(cb);
+}
+
+sinsp_evttables* sinsp::get_event_info_tables()
+{
+	return &g_infotables;
 }

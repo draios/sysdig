@@ -63,6 +63,8 @@ static void usage()
 "                    Useful when dumping to disk.\n"
 " -r <readfile>, --read=<readfile>\n"
 "                    Read the events from <readfile>.\n"
+" -S, --summary      print the event summary (i.e. the list of the top events)\n"
+"                    when the capture ends.\n"
 " -s <len>, --snaplen=<len>\n"
 "                    Capture the first <len> bytes of each I/O buffer.\n"
 "                    By default, the first 80 bytes are captured. Use this\n"
@@ -247,6 +249,54 @@ static void print_chisel_info(chisel_desc* chlist)
 {
 }
 
+void print_summary_table(sinsp* inspector, 
+						 vector<summary_table_entry>* summary_table, 
+						 uint32_t nentries)
+{
+	sinsp_evttables* einfo = inspector->get_event_info_tables();
+
+	cout << "----------------------\n";
+	string tstr = string("Event");
+	tstr.resize(16, ' ');
+	tstr += "#Calls\n";
+	cout << tstr;
+	cout << "----------------------\n";
+
+	sort(summary_table->begin(), summary_table->end(), 
+		summary_table_entry_rsort_comparer());
+
+	for(uint32_t j = 0; j < nentries; j++)
+	{
+		summary_table_entry* e = &summary_table->at(j);
+
+		if(e->m_ncalls == 0)
+		{
+			break;
+		}
+
+		if(e->m_is_unsupported_syscall)
+		{
+			tstr = einfo->m_syscall_info_table[e->m_id / 2].name;
+			tstr.resize(16, ' ');
+
+			printf("%s%s%" PRIu64 "\n", 
+				(PPME_IS_ENTER(e->m_id))? "> ": "< ",
+				tstr.c_str(), 
+				e->m_ncalls);
+		}
+		else
+		{
+			tstr = einfo->m_event_info[e->m_id].name;
+			tstr.resize(16, ' ');
+
+			printf("%s%s%" PRIu64 "\n", 
+				(PPME_IS_ENTER(e->m_id))? "> ": "< ",
+				tstr.c_str(), 
+				e->m_ncalls);
+		}
+	}
+}
+
 //
 // Event processing loop
 //
@@ -256,7 +306,8 @@ captureinfo do_inspect(sinsp* inspector,
 					   bool absolute_times,
 					   string format,
 					   sinsp_filter* display_filter,
-					   vector<chisel*>* chisels)
+					   vector<chisel*>* chisels,
+					   vector<summary_table_entry>* summary_table)
 {
 	captureinfo retval;
 	int32_t res;
@@ -315,6 +366,31 @@ captureinfo do_inspect(sinsp* inspector,
 		else
 		{		
 			//
+			// If we're supposed to summarize, increase the count for this event
+			//
+			if(summary_table != NULL)
+			{
+				uint16_t etype = ev->get_type();
+				
+				if(etype == PPME_GENERIC_E)
+				{
+					sinsp_evt_param *parinfo = ev->get_param(0);
+					uint16_t id = *(int16_t *)parinfo->m_val;
+					((*summary_table)[PPM_EVENT_MAX + id * 2]).m_ncalls++;
+				}
+				else if(etype == PPME_GENERIC_X)
+				{
+					sinsp_evt_param *parinfo = ev->get_param(0);
+					uint16_t id = *(int16_t *)parinfo->m_val;
+					((*summary_table)[PPM_EVENT_MAX + id * 2 + 1]).m_ncalls++;
+				}
+				else
+				{
+					((*summary_table)[etype]).m_ncalls++;
+				}
+			}
+
+			//
 			// When the quiet flag is specified, we don't do any kind of processing other
 			// than counting the events.
 			//
@@ -351,6 +427,7 @@ captureinfo do_inspect(sinsp* inspector,
 int main(int argc, char **argv)
 {
 	int res = EXIT_SUCCESS;
+	sinsp* inspector = NULL;
 	string infile;
 	string outfile;
 	int op;
@@ -370,6 +447,8 @@ int main(int argc, char **argv)
 	int32_t n_filterargs = 0;
 	int cflag = 0;
 	string cname;
+	vector<summary_table_entry>* summary_table = NULL;
+
 
     static struct option long_options[] = 
 	{
@@ -386,6 +465,7 @@ int main(int argc, char **argv)
         {"quiet", no_argument, 0, 'q' },
         {"readfile", required_argument, 0, 'r' },
         {"snaplen", required_argument, 0, 's' },
+        {"summary", no_argument, 0, 'S' },
         {"verbose", no_argument, 0, 'v' },
         {"writefile", required_argument, 0, 'w' },
         {0, 0, 0, 0}
@@ -394,76 +474,76 @@ int main(int argc, char **argv)
 //	output_format = "*%evt.num)%evt.reltime.s.%evt.reltime.ns %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
 	output_format = DEFAULT_OUTPUT_STR;
 
-	sinsp* inspector = new sinsp();
-
-	//
-	// Parse the args
-	//
-	while((op = getopt_long(argc, argv, "ac:dhjln:p:qr:s:vw:", long_options, &long_index)) != -1)
+	try
 	{
-		switch(op)
+		inspector = new sinsp();
+
+		//
+		// Parse the args
+		//
+		while((op = getopt_long(argc, argv, "ac:dhjln:p:qr:Ss:vw:", long_options, &long_index)) != -1)
 		{
-		case 'a':
-			absolute_times = true;
-			break;
-		case 0:
-			if(cflag != 1 && cflag != 2)
+			switch(op)
 			{
+			case 'a':
+				absolute_times = true;
 				break;
-			}
-
-			if(cflag == 2)
-			{
-				cname = optarg;
-			}
-		case 'c':
-			{
-				if(cflag == 0)
+			case 0:
+				if(cflag != 1 && cflag != 2)
 				{
-					string ostr(optarg);
-
-					if(ostr.size() >= 1)
-					{
-						if(ostr == "l")
-						{
-							cflag = 1;
-						}
-						else if(ostr[0] == 'i')
-						{
-							cflag = 2;
-							cname = ostr.substr(1,  string::npos);
-						}
-					}
+					break;
 				}
 
-				if(cflag == 1)
-				{
-					vector<chisel_desc> chlist;
-					chisel::get_chisel_list(&chlist);
-					list_chisels(&chlist);
-					delete inspector;
-					return EXIT_SUCCESS;
-				}
 				if(cflag == 2)
 				{
-					vector<chisel_desc> chlist;
-					chisel::get_chisel_list(&chlist);
-
-					for(uint32_t j = 0; j < chlist.size(); j++)
+					cname = optarg;
+				}
+			case 'c':
+				{
+					if(cflag == 0)
 					{
-						if(chlist[j].m_name == cname)
+						string ostr(optarg);
+
+						if(ostr.size() >= 1)
 						{
-							print_chisel_info(&chlist[j]);
-							delete inspector;
-							return EXIT_SUCCESS;
+							if(ostr == "l")
+							{
+								cflag = 1;
+							}
+							else if(ostr[0] == 'i')
+							{
+								cflag = 2;
+								cname = ostr.substr(1,  string::npos);
+							}
 						}
 					}
 
-					throw sinsp_exception("chisel " + cname + " not found");
-				}
+					if(cflag == 1)
+					{
+						vector<chisel_desc> chlist;
+						chisel::get_chisel_list(&chlist);
+						list_chisels(&chlist);
+						delete inspector;
+						return EXIT_SUCCESS;
+					}
+					if(cflag == 2)
+					{
+						vector<chisel_desc> chlist;
+						chisel::get_chisel_list(&chlist);
 
-				try
-				{
+						for(uint32_t j = 0; j < chlist.size(); j++)
+						{
+							if(chlist[j].m_name == cname)
+							{
+								print_chisel_info(&chlist[j]);
+								delete inspector;
+								return EXIT_SUCCESS;
+							}
+						}
+
+						throw sinsp_exception("chisel " + cname + " not found");
+					}
+
 					chisel* ch = new chisel(inspector, optarg);
 					uint32_t nargs = ch->get_n_args();
 					vector<string> args;
@@ -478,135 +558,138 @@ int main(int argc, char **argv)
 
 					chisels.push_back(ch);
 				}
-				catch(sinsp_exception e)
+				break;
+			case 'd':
+				is_filter_display = true;
+				break;
+			case 'j':
+				emitjson = true;
 				{
-					cerr << e.what() << endl;
+					ASSERT(false);
+					throw sinsp_exception("json option not yet implemented");
+				}
+				break;
+			case 'h':
+				usage();
+				delete inspector;
+				return EXIT_SUCCESS;
+			case 'l':
+				list_fields();
+				delete inspector;
+				return EXIT_SUCCESS;
+			case 'n':
+				cnt = atoi(optarg);
+				if(cnt <= 0)
+				{
+					throw sinsp_exception(string("invalid packet count") + optarg);
 					res = EXIT_FAILURE;
 					goto exit;
 				}
-			}
-			break;
-		case 'd':
-			is_filter_display = true;
-			break;
-		case 'j':
-			emitjson = true;
-			{
-				ASSERT(false);
-				fprintf(stderr, "json option not yet implemented\n");
-				res = EXIT_FAILURE;
-				goto exit;
-			}
-			break;
-		case 'h':
-			usage();
-			delete inspector;
-			return EXIT_SUCCESS;
-		case 'l':
-			list_fields();
-			delete inspector;
-			return EXIT_SUCCESS;
-		case 'n':
-			cnt = atoi(optarg);
-			if(cnt <= 0)
-			{
-				fprintf(stderr, "invalid packet count %s\n", optarg);
-				res = EXIT_FAILURE;
-				goto exit;
-			}
-			break;
-		case 'p':
-			if(string(optarg) == "p")
-			{
-				//
-				// -pp shows the default output format, useful if the user wants to tweak it.
-				//
-				printf("%s\n", output_format.c_str());
-				res = EXIT_FAILURE;
-				goto exit;
-			}
-			else
-			{
-				output_format = optarg;
-			}
+				break;
+			case 'p':
+				if(string(optarg) == "p")
+				{
+					//
+					// -pp shows the default output format, useful if the user wants to tweak it.
+					//
+					printf("%s\n", output_format.c_str());
+					delete inspector;
+					return EXIT_SUCCESS;
+				}
+				else
+				{
+					output_format = optarg;
+				}
 
-			break;
-		case 'r':
-			infile = optarg;
-			break;
-		case 's':
-			snaplen = atoi(optarg);
-			break;
-		case 'q':
-			quiet = true;
-			break;
-		case 'v':
-			verbose = true;
-			break;
-		case 'w':
-			outfile = optarg;
-//				quiet = true;
-			break;
-		default:
-			break;
-		}
-	}
+				break;
+			case 'r':
+				infile = optarg;
+				break;
+			case 'S':
+				summary_table = new vector<summary_table_entry>;
 
-	//
-	// the filter is specified at the end of the command line
-	//
-	if(optind + n_filterargs < argc)
-	{
-#ifdef HAS_FILTERING
-		string filter;
+				for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
+				{
+					summary_table->push_back(summary_table_entry(j, false)); 
+				}
 
-		for(int32_t j = optind + n_filterargs; j < argc; j++)
-		{
-			filter += argv[j];
-			if(j < argc)
-			{
-				filter += " ";
+				for(uint32_t j = 0; j < PPM_SC_MAX * 2; j++)
+				{
+					summary_table->push_back(summary_table_entry(j, true));
+				}
+
+				break;
+			case 's':
+				snaplen = atoi(optarg);
+				break;
+			case 'q':
+				quiet = true;
+				break;
+			case 'v':
+				verbose = true;
+				break;
+			case 'w':
+				outfile = optarg;
+	//				quiet = true;
+				break;
+			default:
+				break;
 			}
 		}
 
-		try
+		//
+		// the filter is specified at the end of the command line
+		//
+		if(optind + n_filterargs < argc)
 		{
-			if(is_filter_display)
+	#ifdef HAS_FILTERING
+			string filter;
+
+			for(int32_t j = optind + n_filterargs; j < argc; j++)
 			{
-				display_filter = new sinsp_filter(inspector, filter);
+				filter += argv[j];
+				if(j < argc)
+				{
+					filter += " ";
+				}
 			}
-			else
+
+			try
 			{
-				inspector->set_filter(filter);
+				if(is_filter_display)
+				{
+					display_filter = new sinsp_filter(inspector, filter);
+				}
+				else
+				{
+					inspector->set_filter(filter);
+				}
 			}
-		}
-		catch(sinsp_exception e)
-		{
-			cerr << e.what() << endl;
+			catch(sinsp_exception e)
+			{
+				cerr << e.what() << endl;
+				res = EXIT_FAILURE;
+			}
+	#else
+			fprintf(stderr, "filtering not compiled.\n");
 			res = EXIT_FAILURE;
+			goto exit;
+	#endif
 		}
-#else
-		fprintf(stderr, "filtering not compiled.\n");
-		res = EXIT_FAILURE;
-		goto exit;
-#endif
-	}
 
-	//
-	// Set the CRTL+C signal
-	//
-	if(signal(SIGINT, signal_callback) == SIG_ERR)
-	{
-		fprintf(stderr, "An error occurred while setting a signal handler.\n");
-		res = EXIT_FAILURE;
-		goto exit;
-	}
+		//
+		// Set the CRTL+C signal
+		//
+		if(signal(SIGINT, signal_callback) == SIG_ERR)
+		{
+			fprintf(stderr, "An error occurred while setting a signal handler.\n");
+			res = EXIT_FAILURE;
+			goto exit;
+		}
 
-	//
-	// Launch the inspeciotn
-	//
-	try
-	{
+		//
+		// Launch the inspeciotn
+		//
 		if(infile != "")
 		{
 			inspector->open(infile);
@@ -636,20 +719,21 @@ int main(int argc, char **argv)
 			absolute_times,
 			output_format,
 			display_filter,
-			&chisels);
+			&chisels,
+			summary_table);
 
 		duration = ((double)clock()) / CLOCKS_PER_SEC - duration;
 
 		scap_stats cstats;
 		inspector->get_capture_stats(&cstats);
 
-		fprintf(stderr, "Events:%" PRIu64 "\nDrops:%" PRIu64 "\n",
+		fprintf(stderr, "Driver Events:%" PRIu64 "\nDriver Drops:%" PRIu64 "\n",
 			cstats.n_evts,
 			cstats.n_drops);
 
 		if(verbose)
 		{
-			fprintf(stderr, "Elapsed time: %.3lf, Events after filter: %" PRIu64 ", %.2lf eps\n",
+			fprintf(stderr, "Elapsed time: %.3lf, Captured Events: %" PRIu64 ", %.2lf eps\n",
 				duration,
 				cinfo.m_nevts,
 				(double)cinfo.m_nevts / duration);
@@ -670,6 +754,14 @@ int main(int argc, char **argv)
 #endif
 
 exit:
+
+	//
+	// If there's a summary table, sort and print it
+	//
+	if(summary_table != NULL)
+	{
+		print_summary_table(inspector, summary_table, 100);
+	}
 
 	//
 	// Free the chisels

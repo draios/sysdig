@@ -40,7 +40,6 @@ using namespace std;
 // ASSERT implementation
 //
 #ifdef _DEBUG
-/*
 #ifdef ASSERT_TO_LOG
 #define ASSERT(X) \
 	if(!(X)) \
@@ -51,8 +50,6 @@ using namespace std;
 #else
 #define ASSERT(X) assert(X)
 #endif // ASSERT_TO_LOG
-*/
-#define ASSERT(X)
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG
