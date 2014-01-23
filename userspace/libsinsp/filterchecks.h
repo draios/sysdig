@@ -110,7 +110,7 @@ public:
 	sinsp_filter_check_list();
 	~sinsp_filter_check_list();
 	void get_all_fields(vector<const filter_check_info*>* list);
-	sinsp_filter_check* new_filter_check_from_fldname(string name, sinsp* inspector);
+	sinsp_filter_check* new_filter_check_from_fldname(string name, sinsp* inspector, bool do_exact_check);
 
 private:
 	vector<sinsp_filter_check*> m_check_list;

@@ -52,19 +52,33 @@ void sinsp_filter_check_list::get_all_fields(OUT vector<const filter_check_info*
 	}
 }
 
-sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(string name, sinsp* inspector)
+sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(string name, 
+																		   sinsp* inspector,
+																		   bool do_exact_check)
 {
 	uint32_t j;
 
 	for(j = 0; j < m_check_list.size(); j++)
 	{
-		if(m_check_list[j]->parse_field_name(name.c_str()) != -1)
+		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str());
+
+		if(fldnamelen != -1)
 		{
+			if(do_exact_check)
+			{
+				if(name.size() != fldnamelen)
+				{
+					goto field_not_found;
+				}
+			}
+
 			sinsp_filter_check* newchk = m_check_list[j]->allocate_new();
 			newchk->set_inspector(inspector);
 			return newchk;
 		}
 	}
+
+field_not_found:
 
 	//
 	// If you are implementing a new filter check and this point is reached,
@@ -885,11 +899,11 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 {
 	uint32_t startpos = m_scanpos;
 	string operand1 = next_operand(true);
-	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(operand1, m_inspector);
+	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(operand1, m_inspector, true);
 
 	if(chk == NULL)
 	{
-		throw sinsp_exception("filter error: unrecognized operand " + 
+		throw sinsp_exception("filter error: unrecognized field " + 
 			operand1 + " at pos " + to_string((long long) startpos));
 	}
 

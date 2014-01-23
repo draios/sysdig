@@ -57,7 +57,10 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 				m_tokens.push_back(new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start)));
 			}
 
-			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1), m_inspector);
+			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1), 
+				m_inspector, 
+				false);
+
 			if(chk == NULL)
 			{
 				throw sinsp_exception("invalid formatting token " + string(cfmt + j + 1));
