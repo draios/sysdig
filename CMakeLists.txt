@@ -40,6 +40,8 @@ endif()
 
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
+add_subdirectory(userspace/libscap/examples/01-open)
+add_subdirectory(userspace/libscap/examples/02-validatebuffer)
 add_subdirectory(userspace/libsinsp)
 
 set(CPACK_PACKAGE_NAME "sysdig")
