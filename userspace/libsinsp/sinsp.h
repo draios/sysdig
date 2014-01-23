@@ -356,6 +356,14 @@ public:
 #endif
 
 	/*!
+	  \brief Return the event and system call information tables.
+
+	  This function exports the tables containing the information about the
+	  events supported by the capture infrastructure and the available system calls.
+	*/
+	sinsp_evttables* get_event_info_tables();
+
+	/*!
 	  \brief get last library error.
 	*/
 	string getlasterr()

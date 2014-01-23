@@ -187,10 +187,11 @@ void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 					//
 					// If there was an error opening the chisel, skip to the next one
 					//
-					continue;
+					goto next_file;
 				}
 			}
 
+next_file:
 			tinydir_next(&dir);
 		}
 
