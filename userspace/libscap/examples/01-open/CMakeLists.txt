@@ -6,7 +6,3 @@ add_executable(scap-open
 
 target_link_libraries(scap-open
 	scap)
-
-install(TARGETS scap-open
-	DESTINATION ${DRAIOS_BIN_PREFIX}/bin
-	COMPONENT tests)

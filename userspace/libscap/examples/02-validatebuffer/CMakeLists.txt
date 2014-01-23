@@ -6,7 +6,3 @@ add_executable(scap-validatebuffer
 
 target_link_libraries(scap-validatebuffer
 	scap)
-
-install(TARGETS scap-validatebuffer
-	DESTINATION ${DRAIOS_BIN_PREFIX}/bin
-	COMPONENT tests)
