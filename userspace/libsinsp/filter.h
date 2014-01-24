@@ -19,19 +19,34 @@ enum boolop
  *  @{
  */
 
-///////////////////////////////////////////////////////////////////////////////
-// The filter class
-// This is the main class that compiles and runs filters
-///////////////////////////////////////////////////////////////////////////////
+/*!
+  \brief This is the class that compiles and runs sysdig-type filters.
+*/
 class SINSP_PUBLIC sinsp_filter
 {
 public:
+	/*!
+	  \brief Constructs the filter.
+
+	  \param inspector Pointer to the inspector instance that will generate the 
+	   events to be filtered.
+	  \param fmt The printf-like format to use. The accepted format is the same
+	   as the one of the sysdig '-p' command line flag, so refer to the sysdig 
+	   manual for details.
+
+	 \note Throws a sinsp_exception if the filter syntax is not valid.
+	*/
 	sinsp_filter(sinsp* inspector, string fltstr);
+
 	~sinsp_filter();
+
+	/*!
+	  \brief Applies the filter to the given event.
+
+	  \param evt Pointer that needs to be filtered.
+	  \return true if the event is accepted by the filter, false if it's rejected. 
+	*/
 	bool run(sinsp_evt *evt);
-	static bool isblank(char c);
-	static bool is_special_char(char c);
-	static bool is_bracket(char c);
 
 private:
 	enum state
@@ -50,6 +65,10 @@ private:
 	void pop_expression();
 
 	void compile(string fltstr);
+
+	static bool isblank(char c);
+	static bool is_special_char(char c);
+	static bool is_bracket(char c);
 
 	sinsp* m_inspector;
 

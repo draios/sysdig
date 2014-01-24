@@ -69,18 +69,6 @@ template<> void sinsp_fdinfo_t::add_filename(const char* directory, uint32_t dir
 	m_name = fullpath;
 }
 
-template<> void sinsp_fdinfo_t::print_on(FILE* f)
-{
-	if(is_unix_socket())
-	{
-		fprintf(f,"%" PRIx64 "->%" PRIx64 " %d %s\n",m_info.m_unixinfo.m_fields.m_source,m_info.m_unixinfo.m_fields.m_dest,m_flags,m_name.c_str()); 
-	}
-	else if(is_ipv4_socket())
-	{
-		fprintf(f,"%s\n",m_name.c_str());
-	}
-}
-
 template<> void sinsp_fdinfo_t::set_role_by_guessing(bool incoming)
 {
 	if(!(m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)))
@@ -244,18 +232,6 @@ void sinsp_fdtable::clear()
 size_t sinsp_fdtable::size()
 {
 	return m_table.size();
-}
-
-void sinsp_fdtable::print_on(FILE* f)
-{
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
-
-	for(fdit = m_table.begin(); fdit != m_table.end(); fdit++)
-	{
-		fprintf(f,"\tfd %" PRIu64 " = ",fdit->first);
-		fdit->second.print_on(f);
-		fprintf(f,"\n");
-	}
 }
 
 void sinsp_fdtable::reset_cache()
