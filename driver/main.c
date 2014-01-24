@@ -296,7 +296,9 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			new_sampling_ratio != 4 &&
 			new_sampling_ratio != 8 &&
 			new_sampling_ratio != 16 &&
-			new_sampling_ratio != 32)
+			new_sampling_ratio != 32 &&
+			new_sampling_ratio != 64 &&
+			new_sampling_ratio != 128)
 		{
 			printk(KERN_INFO "sysdig-probe: invalid sampling ratio %u\n", new_sampling_ratio);
 			return -EINVAL;
