@@ -471,20 +471,6 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 	}
 }
 
-void sinsp_threadinfo::print_on(FILE* f)
-{
-	sinsp_threadinfo* pi = get_main_thread();
-	fprintf(f,"tid:%" PRIu64 " pid:%" PRIu64 " ", m_tid, m_pid);
-	if(NULL == pi)
-	{
-		return;
-	}
-	sinsp_fdtable* fdtable = get_fd_table();
-	fprintf(f,"%" PRIu64 " ", (uint64_t)fdtable->size());
-	fdtable->print_on(f);
-	fprintf(f,"\n");
-}
-
 void sinsp_threadinfo::allocate_private_state()
 {
 	uint32_t j = 0;

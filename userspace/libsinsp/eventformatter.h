@@ -6,14 +6,34 @@ class sinsp_filter_check;
  *  @{
  */
 
+/*!
+  \brief Event to string converter class.
+  This class can be used to format an event into a string, based on an arbitrary
+  format.
+*/
 class SINSP_PUBLIC sinsp_evt_formatter
 {
 public:
+	/*!
+	  \brief Constructs a formatter.
+
+	  \param inspector Pointer to the inspector instance that will generate the 
+	   events to be formatter.
+	  \param fmt The printf-like format to use. The accepted format is the same
+	   as the one of the sysdig '-p' command line flag, so refer to the sysdig 
+	   manual for details. 
+	*/
 	sinsp_evt_formatter(sinsp* inspector, const string& fmt);
-	//
-	// Fills res with the string rendering of the event.
-	// Returns true if the string should be shown (based on the initial *).
-	//
+
+	/*!
+	  \brief Fills res with the string rendering of the event.
+
+	  \param evt Pointer to the event to be converted into string.
+	  \param res Pointer to the string that will be filled with the result. 
+
+	  \return true if the string should be shown (based on the initial *), 
+	   false otherwise.
+	*/
 	bool tostring(sinsp_evt* evt, OUT string* res);
 
 private:

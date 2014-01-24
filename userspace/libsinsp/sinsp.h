@@ -456,6 +456,7 @@ private:
 	friend class sinsp_fdtable;
 	friend class sinsp_thread_manager;
 	friend class sinsp_dumper;
+	friend class sinsp_analyzer_fd_listener;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

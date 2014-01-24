@@ -27,29 +27,19 @@
  * A collection of classes to query process and FD state.
  *  @{
  */
-///////////////////////////////////////////////////////////////////////////////
-// fd info
-///////////////////////////////////////////////////////////////////////////////
-template<class T>
+
+/*!
+  \brief File Descriptor information class.
+  This class contains the full state for a FD, and a bunch of functions to
+  manipulate FDs and retrieve FD information.
+
+  \note As a library user, you won't need to construct thread objects. Rather,
+   you get them by calling \ref sinsp_evt::get_fd_info or 
+   \ref sinsp_threadinfo::get_fd.
+*/template<class T>
 class SINSP_PUBLIC sinsp_fdinfo
 {
 public:
-	//
-	// fd flags
-	//
-	enum flags
-	{
-		FLAGS_NONE = 0,
-		FLAGS_FROM_PROC = (1 << 0),		// Set if this FD is arriving from proc
-		FLAGS_TRANSACTION = (1 << 1),
-		FLAGS_ROLE_CLIENT = (1 << 2),
-		FLAGS_ROLE_SERVER = (1 << 3),
-		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
-		FLAGS_CLOSE_CANCELED = (1 << 5),
-		// Pipe-specific flags
-		FLAGS_IS_SOCKET_PIPE = (1 << 6),
-	};
-
 	sinsp_fdinfo();
 	string* tostring();
 	char get_typechar();
@@ -103,6 +93,26 @@ public:
 	{
 		return m_type == SCAP_FD_FIFO;
 	}
+
+VISIBILITY_PRIVATE
+
+	/*!
+	  \brief FD flags.
+	*/
+	enum flags
+	{
+		FLAGS_NONE = 0,
+		FLAGS_FROM_PROC = (1 << 0),
+		FLAGS_TRANSACTION = (1 << 1),
+		FLAGS_ROLE_CLIENT = (1 << 2),
+		FLAGS_ROLE_SERVER = (1 << 3),
+		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
+		FLAGS_CLOSE_CANCELED = (1 << 5),
+		// Pipe-specific flags
+		FLAGS_IS_SOCKET_PIPE = (1 << 6),
+	};
+
+	void add_filename(const char* directory, uint32_t directorylen, const char* filename, uint32_t filenamelen);
 
 	bool is_role_server()
 	{
@@ -161,17 +171,14 @@ public:
 		return !is_role_client() && !is_role_server();
 	}
 
-	void print_on(FILE* f);
-
-private:
-	void add_filename(const char* directory, uint32_t directorylen, const char* filename, uint32_t filenamelen);
-
 	T m_usrstate;
 
 	friend class sinsp_parser;
+	friend class sinsp_threadinfo;
 	friend class sinsp_analyzer;
 	friend class thread_analyzer_info;
 	friend class sinsp_analyzer_fd_listener;
+	friend class sinsp_fdtable;
 };
 
 /*@}*/
@@ -191,8 +198,6 @@ public:
 	void clear();
 	size_t size();
 	void reset_cache();
-
-	void print_on(FILE* f);
 
 	sinsp* m_inspector;
 	unordered_map<int64_t, sinsp_fdinfo_t> m_table;
