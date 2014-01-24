@@ -60,13 +60,13 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(strin
 
 	for(j = 0; j < m_check_list.size(); j++)
 	{
-		uint32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str());
+		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str());
 
 		if(fldnamelen != -1)
 		{
 			if(do_exact_check)
 			{
-				if(name.size() != fldnamelen)
+				if((int32_t)name.size() != fldnamelen)
 				{
 					goto field_not_found;
 				}
