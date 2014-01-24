@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <assert.h>
+#include <algorithm>
 
 #include <sinsp.h>
 #include "sysdig.h"
