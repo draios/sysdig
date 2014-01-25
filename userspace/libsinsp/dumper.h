@@ -3,7 +3,7 @@
 class sinsp;
 class sinsp_evt;
 
-/** @defgroup misc Misc
+/** @defgroup dump Dumping events to disk 
  * Classes to perform miscellneous functionality
  *  @{
  */
