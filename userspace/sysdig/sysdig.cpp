@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
 #define __STDC_FORMAT_MACROS
 #include <stdio.h>
 #include <iostream>
