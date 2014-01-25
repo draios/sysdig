@@ -17,9 +17,9 @@
 	This manual includes the following sections:
 	- \ref inspector
 	- \ref event
+	- \ref dump
 	- \ref filter
 	- \ref state
-	- \ref misc
 */
 
 #pragma once

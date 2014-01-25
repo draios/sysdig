@@ -6,11 +6,6 @@
 #define CANCELED_FD_NUMBER std::numeric_limits<int64_t>::max()
 #endif
 
-/** @defgroup state State management 
- * A collection of classes to query process and FD state.
- *  @{
- */
-
 // fd type characters
 #define CHAR_FD_FILE			'f'
 #define CHAR_FD_IPV4_SOCK		'4'
@@ -27,6 +22,11 @@
 #define CHAR_FD_EVENTPOLL		'l'
 #define CHAR_FD_INOTIFY			'i'
 #define CHAR_FD_TIMERFD			't'
+
+/** @defgroup state State management 
+ * A collection of classes to query process and FD state.
+ *  @{
+ */
 
 /*!
   \brief File Descriptor information class.

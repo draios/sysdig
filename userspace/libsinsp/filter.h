@@ -14,7 +14,7 @@ enum boolop
 	BO_ANDNOT = 5,
 };
 
-/** @defgroup filter Filtering
+/** @defgroup filter Filtering events
  * Filtering infrastructure.
  *  @{
  */
