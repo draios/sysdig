@@ -6,6 +6,11 @@
 #define CANCELED_FD_NUMBER std::numeric_limits<int64_t>::max()
 #endif
 
+/** @defgroup state State management 
+ * A collection of classes to query process and FD state.
+ *  @{
+ */
+
 // fd type characters
 #define CHAR_FD_FILE			'f'
 #define CHAR_FD_IPV4_SOCK		'4'
@@ -23,11 +28,6 @@
 #define CHAR_FD_INOTIFY			'i'
 #define CHAR_FD_TIMERFD			't'
 
-/** @defgroup state State management 
- * A collection of classes to query process and FD state.
- *  @{
- */
-
 /*!
   \brief File Descriptor information class.
   This class contains the full state for a FD, and a bunch of functions to
@@ -42,59 +42,97 @@ class SINSP_PUBLIC sinsp_fdinfo
 public:
 	sinsp_fdinfo();
 	string* tostring();
+
+	/*!
+	  \brief Return a single ASCII character that identifies the FD type.
+
+	  Refer to the CHAR_FD_* defines in this fdinfo.h.
+	*/
 	char get_typechar();
 
-	scap_fd_type m_type;
-	uint64_t m_create_time;
-	uint32_t m_openflags;
-	uint32_t m_flags;
-	uint64_t m_ino;
-	union
-	{
-		ipv4tuple m_ipv4info;
-		ipv6tuple m_ipv6info;
-		struct
-		{
-		  uint32_t m_ip;
-		  uint16_t m_port;
-		  uint8_t m_l4proto;
-		} m_ipv4serverinfo;
-		struct
-		{
-			uint32_t m_ip[4];
-			uint16_t m_port;
-			uint8_t m_l4proto;
-		} m_ipv6serverinfo;
-		unix_tuple m_unixinfo;
-	}m_info;
-	string m_name;
-
+	/*!
+	  \brief Returns true if this is a unix socket.
+	*/
 	bool is_unix_socket()
 	{
 		return m_type == SCAP_FD_UNIX_SOCK;
 	}
 
-	bool is_udp_socket()
-	{
-		return m_type == SCAP_FD_IPV4_SOCK && m_info.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP;
-	}
-
-	bool is_tcp_socket()
-	{
-		return m_type == SCAP_FD_IPV4_SOCK && m_info.m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP;
-	}
-
+	/*!
+	  \brief Returns true if this is an IPv4 socket.
+	*/
 	bool is_ipv4_socket()
 	{
 		return m_type == SCAP_FD_IPV4_SOCK;
 	}
 
+	/*!
+	  \brief Returns true if this is an IPv4 socket.
+	*/
+	bool is_ipv6_socket()
+	{
+		return m_type == SCAP_FD_IPV6_SOCK;
+	}
+
+	/*!
+	  \brief Returns true if this is a UDP socket.
+	*/
+	bool is_udp_socket()
+	{
+		return m_type == SCAP_FD_IPV4_SOCK && m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP;
+	}
+
+	/*!
+	  \brief Returns true if this is a unix TCP.
+	*/
+	bool is_tcp_socket()
+	{
+		return m_type == SCAP_FD_IPV4_SOCK && m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP;
+	}
+
+	/*!
+	  \brief Returns true if this is a pipe.
+	*/
 	bool is_pipe()
 	{
 		return m_type == SCAP_FD_FIFO;
 	}
 
+	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
+	uint64_t m_create_time; ///< The fd creation time, in nanoseconds from epoch.
+	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
+	
+	/*!
+	  \brief Socket-specific state.
+	  This is uninitialized for non-socket FDs.
+	*/
+	union
+	{
+		ipv4tuple m_ipv4info; ///< The tuple if this an IPv4 socket.
+		ipv6tuple m_ipv6info; ///< The tuple if this an IPv6 socket.
+		struct
+		{
+		  uint32_t m_ip;
+		  uint16_t m_port;
+		  uint8_t m_l4proto;
+		} m_ipv4serverinfo;  ///< Information about an IPv4 server socket.
+		struct
+		{
+			uint32_t m_ip[4];
+			uint16_t m_port;
+			uint8_t m_l4proto;
+		} m_ipv6serverinfo; ///< Information about an IPv6 server socket.
+		unix_tuple m_unixinfo; ///< The tuple if this a unix socket.
+	}m_sockinfo;
+
+	string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
+
 VISIBILITY_PRIVATE
+
+// Doxygen doesn't understand VISIBILITY_PRIVATE
+#ifdef _DOXYGEN
+private:
+#endif
 
 	/*!
 	  \brief FD flags.
@@ -172,6 +210,8 @@ VISIBILITY_PRIVATE
 	}
 
 	T m_usrstate;
+	uint32_t m_flags;
+	uint64_t m_ino;
 
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;
