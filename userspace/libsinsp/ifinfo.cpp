@@ -69,7 +69,7 @@ uint32_t sinsp_network_interfaces::infer_ipv4_address(uint32_t destination_addre
 
 void sinsp_network_interfaces::update_fd(sinsp_fdinfo_t *fd)
 {
-	ipv4tuple *pipv4info = &(fd->m_info.m_ipv4info);
+	ipv4tuple *pipv4info = &(fd->m_sockinfo.m_ipv4info);
 
 	//
 	// only handle ipv4 udp sockets
