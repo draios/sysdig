@@ -10,21 +10,24 @@ typedef class sinsp_threadinfo sinsp_threadinfo;
 ///////////////////////////////////////////////////////////////////////////////
 // Event arguments
 ///////////////////////////////////////////////////////////////////////////////
-typedef enum event_property_flags
+typedef enum filtercheck_field_flags
 {
 	EPF_NONE = 0,
-	EPF_FILTER_ONLY, // this property can only be used as a filter
-	EPF_PRINT_ONLY, // this property can only be used in the tostring() call
-	EPF_REQUIRES_ARGUMENT, // this property includes an argument, under the form 'property.argument'
-}event_property_flags;
+	EPF_FILTER_ONLY, ///< this field can only be used as a filter.
+	EPF_PRINT_ONLY, ///< this field can only be printed.
+	EPF_REQUIRES_ARGUMENT, ///< this field includes an argument, under the form 'property.argument'.
+}filtercheck_field_flags;
 
+/*!
+  \brief Information about a filter/formatting field.
+*/
 typedef struct filtercheck_field_info
 {
-	ppm_param_type m_type;
-	event_property_flags m_flags;
-	ppm_print_format m_print_format;
-	char m_name[64];
-	char m_description[1024];
+	ppm_param_type m_type; ///< Field type.
+	filtercheck_field_flags m_flags;  ///< Field flags.
+	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as decimal or hex. 
+	char m_name[64];  ///< Field name.
+	char m_description[1024];  ///< Field description.
 }filtercheck_field_info;
 
 /** @defgroup event Event manipulation

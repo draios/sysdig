@@ -758,20 +758,29 @@ typedef enum ppm_print_format
 	PF_10_PADDED_DEC = 3, // decimal padded to 10 digits, useful to print the fractional part of a ns timestamp 
 }ppm_print_format;
 
+/*!
+  \brief Event parameter information.
+*/
 struct ppm_param_info
 {
-	char name[PPM_MAX_NAME_LEN];
-	ppm_param_type type;
-	ppm_print_format fmt;
+	char name[PPM_MAX_NAME_LEN];  ///< Paramter name, e.g. 'size'.
+	ppm_param_type type; ///< Paramter type, e.g. 'uint16', 'string'...
+	ppm_print_format fmt; ///< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. 
 };
 
+/*!
+  \brief Event information.
+  This structure contains the full description of an event type (e.g. 'open') that
+   is supported by the sysdig infrastructure.
+*/
 struct ppm_event_info
 {
-	char name[PPM_MAX_NAME_LEN];
-	ppm_event_category category;
-	ppm_event_flags flags;
-	uint32_t nparams;
-	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS];	// XXX this 16 limit comes out of my ass. Determine something that makes sense or use a dynamic array.
+	char name[PPM_MAX_NAME_LEN]; ///< Name.
+	ppm_event_category category; ///< Event category, e.g. 'file', 'net', etc.
+	ppm_event_flags flags; ///< flags for this event.
+	uint32_t nparams; ///< Number of parameter in the params array.
+	// XXX this 16 limit comes out of my ass. Determine something that makes sense or use a dynamic array.
+	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; ///< parameters descriptions.
 };
 
 #if defined _MSC_VER
@@ -803,13 +812,14 @@ struct ppm_evt_hdr
 #define PPM_IOCTL_ENABLE_DROPPING_MODE _IO(PPM_IOCTL_MAGIC, 3)
 #define PPM_IOCTL_SET_SNAPLEN _IO(PPM_IOCTL_MAGIC, 4)
 
-//
-// System call description struct
-//
+
+/*!
+  \brief System call description struct.
+*/
 struct ppm_syscall_desc
 {
-	ppm_event_category category;
-	char* name;
+	ppm_event_category category; ///< System call category.
+	char* name; ///< System call name, e.g. 'open'.
 };
 
 #endif /* EVENTS_PUBLIC_H_ */

@@ -72,20 +72,20 @@ class sinsp_parser;
 class sinsp_analyzer;
 class sinsp_filter;
 
-//
-// Filter check information
-//
+/*!
+  \brief Information about a group of filter/formatting fields.
+*/
 class filter_check_info
 {
 public:
-	string m_name;
-	int32_t m_nfiedls;
-	const filtercheck_field_info* m_fields;
+	string m_name; ///< Field class name.
+	int32_t m_nfiedls; ///< Number of fields in this field group.
+	const filtercheck_field_info* m_fields; ///< Array containing m_nfiedls field descriptions. 
 };
 
-//
-// Exception class
-//
+/*!
+  \brief sinsp library exception.
+*/
 struct sinsp_exception : std::exception
 {
 	sinsp_exception()
@@ -109,7 +109,7 @@ struct sinsp_exception : std::exception
 	string m_error_str;
 };
 
-/** @defgroup inspector System inspector
+/** @defgroup inspector Main library
  @{
 */
 
