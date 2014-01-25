@@ -34,5 +34,5 @@ Open a _Developer Command Prompt_ and run the following commands:
 mkdir build
 cd build
 cmake -G "Visual Studio 12" ..
-msbuild sysdig.sln > build.log
+msbuild sysdig.sln
 ````
