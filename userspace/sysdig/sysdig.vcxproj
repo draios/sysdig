@@ -81,13 +81,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="chisel.cpp" />
-    <ClCompile Include="jsoncpp.cpp" />
     <ClCompile Include="sysdig.cpp" />
     <ClCompile Include="win32\getopt.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="chisel.h" />
     <ClInclude Include="sysdig.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

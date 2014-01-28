@@ -54,6 +54,7 @@ using namespace std;
 #include "dumper.h"
 #include "stats.h"
 #include "ifinfo.h"
+#include "chisel.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -108,6 +109,11 @@ struct sinsp_exception : std::exception
 
 	string m_error_str;
 };
+
+/*!
+  \brief The deafult way an event is converted to string by the library
+*/
+#define DEFAULT_OUTPUT_STR "*%evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 
 /** @defgroup inspector Main library
  @{

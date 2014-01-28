@@ -8,11 +8,6 @@
 #define CHISELS_INSTALLATION_DIR SYSDIG_INSTALLATION_DIR "/share/sysdig/chisels"
 
 //
-// The default output format
-//
-#define DEFAULT_OUTPUT_STR "*%evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
-
-//
 // ASSERT implementation
 //
 #ifdef _DEBUG

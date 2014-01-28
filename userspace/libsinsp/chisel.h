@@ -1,7 +1,19 @@
 #pragma once
 
-#include <json/json.h>
+#ifdef HAS_CHISELS
 
+namespace Json {
+	class Value;
+}
+
+/** @defgroup filter Filtering events
+ * Filtering infrastructure.
+ *  @{
+ */
+
+/*!
+  \brief This is the class that compiles and runs sysdig-type filters.
+*/
 typedef struct chiseldir_info
 {
 	bool m_need_to_resolve;
@@ -43,7 +55,7 @@ public:
 	sinsp_dumper* m_dumper;
 };
 
-class chisel
+class SINSP_PUBLIC chisel
 {
 public:
 	chisel(sinsp* inspector, string filename);
@@ -59,8 +71,13 @@ private:
 
 	sinsp* m_inspector;
 	string m_description;
-	Json::Value m_root;
+	Json::Value* m_root;
 	vector<chiselinfo*> m_subchisels;
 	vector<string> m_argvals;
 	string m_filename;
 };
+
+/*@}*/
+
+#endif // HAS_CHISELS
+

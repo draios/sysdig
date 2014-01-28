@@ -43,6 +43,12 @@
     <ClCompile Include="dumper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="chisel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="third-party\jsoncpp\jsoncpp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="event.h">
@@ -106,6 +112,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dumper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="chisel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

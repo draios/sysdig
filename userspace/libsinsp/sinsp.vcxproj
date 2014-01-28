@@ -54,7 +54,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../common;../libscap</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>third-party/jsoncpp;../../common;../libscap;../../../LuaJIT/src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -63,7 +63,7 @@
       <ImportLibrary>$(ProjectDir)\..\Debug\$(TargetName).lib</ImportLibrary>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;%(AdditionalDependencies);../Debug/scap.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../LuaJIT/src/lua51.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;%(AdditionalDependencies);../Debug/scap.lib</AdditionalDependencies>
       <OutputFile>$(ProjectDir)\..\Debug\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
@@ -73,7 +73,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>../../common;../libscap</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>third-party/jsoncpp;../../common;../libscap;../../../LuaJIT/src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -84,11 +84,12 @@
       <ImportLibrary>$(ProjectDir)\..\Release\$(TargetName).lib</ImportLibrary>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;../Release/scap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../../../LuaJIT/src/lua51.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;../Release/scap.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(ProjectDir)\..\Release\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="chisel.cpp" />
     <ClCompile Include="dumper.cpp" />
     <ClCompile Include="event.cpp" />
     <ClCompile Include="eventformatter.cpp" />
@@ -101,6 +102,7 @@
     <ClCompile Include="sinsp.cpp" />
     <ClCompile Include="parsers.cpp" />
     <ClCompile Include="stats.cpp" />
+    <ClCompile Include="third-party\jsoncpp\jsoncpp.cpp" />
     <ClCompile Include="threadinfo.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
@@ -108,6 +110,7 @@
     <ClInclude Include="..\..\driver\ppm_events_public.h" />
     <ClInclude Include="..\..\driver\ppm_ringbuffer.h" />
     <ClInclude Include="..\..\driver\ppm_types.h" />
+    <ClInclude Include="chisel.h" />
     <ClInclude Include="dumper.h" />
     <ClInclude Include="event.h" />
     <ClInclude Include="eventformatter.h" />

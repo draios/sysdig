@@ -1,3 +1,10 @@
+/*
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
+*/
 #include <iostream>
 #include <fstream>
 #include <algorithm> 
@@ -8,11 +15,14 @@
 #include <limits.h>
 #include <stdlib.h>
 #endif
-#include <tinydir.h>
+#include <third-party/tinydir.h>
+#include <json/json.h>
 
-#include <sinsp.h>
-#include "sysdig.h"
+#include "sinsp.h"
+#include "sinsp_int.h"
 #include "chisel.h"
+
+#ifdef HAS_CHISELS
 
 const chiseldir_info chisel_dirs[] =
 {
@@ -23,6 +33,19 @@ const chiseldir_info chisel_dirs[] =
 	{true, ""},
 	{true, "~/chisels/"},
 };
+
+/*
+    lua_State *L = lua_open();
+ 
+    luaL_openlibs(L);
+ 
+    if(luaL_dofile(L,"c.lua"))
+	{
+		string err = lua_tostring(L, -1);
+	}
+ 
+    lua_close(L);
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
@@ -130,6 +153,7 @@ chisel::chisel(sinsp* inspector, string filename)
 {
 	m_inspector = inspector;
 	load(filename);
+	m_root = NULL;
 }
 
 chisel::~chisel()
@@ -137,6 +161,11 @@ chisel::~chisel()
 	for(vector<chiselinfo*>::iterator it = m_subchisels.begin(); it != m_subchisels.end(); ++it)
 	{
 		delete *it;
+	}
+
+	if(m_root != NULL)
+	{
+		delete m_root;
 	}
 }
 
@@ -172,7 +201,7 @@ void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 					cd.m_name = fname.substr(0, fname.rfind('.'));
 					cd.m_description = ch.m_description;
 
-					const Json::Value args = ch.m_root["info"]["arguments"];
+					const Json::Value args = (*ch.m_root)["info"]["arguments"];
 					for(uint32_t k = 0; k < args.size(); k++)
 					{
 						cd.m_args.push_back(chiselarg_desc(args[k]["name"].asString(), 
@@ -269,8 +298,15 @@ void chisel::load(string cmdstr)
 	//
 	// Parse the json
 	//
+	if(m_root != NULL)
+	{
+		delete m_root;
+	}
+
+	m_root = new Json::Value();
+
 	Json::Reader reader;
-	bool parsingSuccessful = reader.parse(docstr, m_root);
+	bool parsingSuccessful = reader.parse(docstr, (*m_root));
 	if(!parsingSuccessful)
 	{
 		throw sinsp_exception("Failed to parse chisel " + m_filename + ":" + 
@@ -280,20 +316,20 @@ void chisel::load(string cmdstr)
 	//
 	// Extract the info
 	//
-	m_description = m_root["info"]["description"].asString();
+	m_description = (*m_root)["info"]["description"].asString();
 		
 	is.close();
 }
 
 uint32_t chisel::get_n_args()
 {
-	return m_root["info"]["arguments"].size();
+	return (*m_root)["info"]["arguments"].size();
 }
 
 void chisel::set_args(vector<string>* argvals)
 {
 	uint32_t j, k;
-	const Json::Value args = m_root["info"]["arguments"];
+	const Json::Value args = (*m_root)["info"]["arguments"];
 
 	m_argvals = *argvals;
 
@@ -308,7 +344,7 @@ void chisel::set_args(vector<string>* argvals)
 	//
 	// Apply the arguments
 	//
-	const Json::Value clst = m_root["chisels"];
+	const Json::Value clst = (*m_root)["chisels"];
 		
 	for(j = 0; j < clst.size(); j++)
 	{
@@ -358,3 +394,5 @@ void chisel::run(sinsp_evt* evt)
 		}
 	}
 }
+
+#endif HAS_CHISELS
