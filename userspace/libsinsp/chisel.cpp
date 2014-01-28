@@ -24,16 +24,6 @@ extern "C" {
 
 #ifdef HAS_CHISELS
 
-const chiseldir_info chisel_dirs[] =
-{
-	{false, ""}, // file as is
-	{false, CHISELS_INSTALLATION_DIR},
-	{false, "./"},
-	{false, "./chisels/"},
-	{true, ""},
-	{true, "~/chisels/"},
-};
-
 /*
     lua_State *L = lua_open();
  
@@ -46,6 +36,8 @@ const chiseldir_info chisel_dirs[] =
  
     lua_close(L);
 */
+
+extern vector<chiseldir_info>* g_chisel_dirs;
 
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
@@ -173,15 +165,15 @@ void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 {
 	uint32_t j;
 
-	for(j = 0; j < sizeof(chisel_dirs) / sizeof(chisel_dirs[0]); j++)
+	for(j = 0; j < g_chisel_dirs->size(); j++)
 	{
-		if(string(chisel_dirs[j].m_dir) == "")
+		if(string(g_chisel_dirs->at(j).m_dir) == "")
 		{
 			continue;
 		}
 
 		tinydir_dir dir;
-		tinydir_open(&dir, chisel_dirs[j].m_dir);
+		tinydir_open(&dir, g_chisel_dirs->at(j).m_dir);
 
 		while(dir.has_next)
 		{
@@ -236,14 +228,14 @@ bool chisel::openfile(string filename, OUT ifstream* is)
 {
 	uint32_t j;
 
-	for(j = 0; j < sizeof(chisel_dirs) / sizeof(chisel_dirs[0]); j++)
+	for(j = 0; j < g_chisel_dirs->size(); j++)
 	{
-		if(chisel_dirs[j].m_need_to_resolve)
+		if(g_chisel_dirs->at(j).m_need_to_resolve)
 		{
 #ifndef _WIN32
 			char resolved_path[PATH_MAX];
 
-			if(realpath((string(chisel_dirs[j].m_dir) + filename).c_str(), resolved_path) != NULL)
+			if(realpath((string(g_chisel_dirs->at(j).m_dir) + filename).c_str(), resolved_path) != NULL)
 			{
 				string rfilename(resolved_path);
 
@@ -257,7 +249,7 @@ bool chisel::openfile(string filename, OUT ifstream* is)
 		}
 		else
 		{
-			is->open(string(chisel_dirs[j].m_dir) + filename);
+			is->open(string(g_chisel_dirs->at(j).m_dir) + filename);
 			if(is->is_open())
 			{
 				return true;
