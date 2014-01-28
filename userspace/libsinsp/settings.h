@@ -48,6 +48,17 @@
 #define DEFAULT_INACTIVE_THREAD_SCAN_TIME 600
 
 //
+// Enables LUA chisel scripts support
+//
+#define HAS_CHISELS
+
+//
+// Where chisels are installed
+//
+#define SYSDIG_INSTALLATION_DIR "c:\\"
+#define CHISELS_INSTALLATION_DIR SYSDIG_INSTALLATION_DIR "/share/sysdig/chisels"
+
+//
 // FD class customized with the storage we need
 //
 #ifdef HAS_ANALYZER
