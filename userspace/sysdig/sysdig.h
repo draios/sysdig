@@ -3,11 +3,6 @@
 #include "config.h"
 
 //
-// The default output format
-//
-#define CHISELS_INSTALLATION_DIR SYSDIG_INSTALLATION_DIR "/share/sysdig/chisels"
-
-//
 // ASSERT implementation
 //
 #ifdef _DEBUG

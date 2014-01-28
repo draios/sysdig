@@ -5,20 +5,12 @@ include_directories(${PROJECT_BINARY_DIR}/userspace/sysdig)
 include_directories(.)
 
 if(NOT WIN32)
-
 	set(SOURCE_FILES
-		chisel.cpp
-		jsoncpp.cpp
 		sysdig.cpp)
-
 else()
-
 	set(SOURCE_FILES
-		chisel.cpp
-		jsoncpp.cpp
 		sysdig.cpp
 		win32/getopt.c)
-
 endif()
 
 add_executable(sysdig ${SOURCE_FILES})
