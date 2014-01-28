@@ -144,8 +144,8 @@ vector<string> m_chisel_paths;
 chisel::chisel(sinsp* inspector, string filename)
 {
 	m_inspector = inspector;
-	load(filename);
 	m_root = NULL;
+	load(filename);
 }
 
 chisel::~chisel()
