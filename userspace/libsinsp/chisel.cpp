@@ -395,4 +395,4 @@ void chisel::run(sinsp_evt* evt)
 	}
 }
 
-#endif HAS_CHISELS
+#endif // HAS_CHISELS

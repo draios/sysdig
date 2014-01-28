@@ -2,6 +2,7 @@
 
 #ifdef HAS_CHISELS
 
+class sinsp_evt_formatter;
 namespace Json {
 	class Value;
 }
