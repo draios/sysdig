@@ -20,6 +20,7 @@
 //#include "drfilterParser.h"
 
 extern sinsp_evttables g_infotables;
+extern vector<chiseldir_info>* g_chisel_dirs;
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
@@ -659,4 +660,14 @@ void sinsp::set_log_callback(sinsp_logger_callback cb)
 sinsp_evttables* sinsp::get_event_info_tables()
 {
 	return &g_infotables;
+}
+
+void sinsp::add_chisel_dir(string dirname)
+{
+	chiseldir_info ncdi;
+
+	strcpy(ncdi.m_dir, dirname.c_str());
+	ncdi.m_need_to_resolve = false;
+
+	g_chisel_dirs->push_back(ncdi);
 }

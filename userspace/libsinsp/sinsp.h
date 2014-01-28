@@ -377,6 +377,13 @@ public:
 		return m_lasterr;
 	}
 
+	/*!
+	  \brief Add a new directory containing chisels.
+
+	  \note This function is not reentrant.
+	*/
+	void add_chisel_dir(string dirname);
+
 	//
 	// Misc internal stuff 
 	//

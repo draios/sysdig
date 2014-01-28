@@ -9,6 +9,16 @@
 #include "filter.h"
 #include "filterchecks.h"
 
+const chiseldir_info g_chisel_dirs_array[] =
+{
+	{false, ""}, // file as is
+	{false, CHISELS_INSTALLATION_DIR},
+	{false, "./"},
+	{false, "./chisels/"},
+	{true, ""},
+	{true, "~/chisels/"},
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_initializer implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -22,6 +32,7 @@ sinsp_initializer g_initializer;
 #ifdef HAS_FILTERING
 sinsp_filter_check_list g_filterlist;
 #endif
+vector<chiseldir_info>* g_chisel_dirs = NULL;
 
 //
 // loading time initializations
@@ -40,6 +51,17 @@ sinsp_initializer::sinsp_initializer()
 	g_logger.set_severity(sinsp_logger::SEV_DEBUG);
 
 	//
+	// Init the chisel directory list
+	//
+	g_chisel_dirs = NULL;
+	g_chisel_dirs = new vector<chiseldir_info>();
+
+	for(uint32_t j = 0; j < sizeof(g_chisel_dirs_array) / sizeof(g_chisel_dirs_array[0]); j++)
+	{
+		g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
+	}
+
+	//
 	// Sockets initialization on windows
 	//
 #ifdef _WIN32
@@ -47,6 +69,14 @@ sinsp_initializer::sinsp_initializer()
 	WORD version = MAKEWORD( 2, 0 );
 	WSAStartup( version, &wsaData );
 #endif
+}
+
+sinsp_initializer::~sinsp_initializer()
+{
+	if(g_chisel_dirs)
+	{
+		delete g_chisel_dirs;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
