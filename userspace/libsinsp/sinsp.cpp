@@ -50,6 +50,8 @@ sinsp::sinsp() :
 	m_fds_to_remove = new vector<int64_t>;
 	m_machine_info = NULL;
 	m_isdropping = false;
+	m_n_proc_lookups = 0;
+	m_max_n_proc_lookups = 0;
 }
 
 sinsp::~sinsp()
@@ -469,7 +471,14 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 	if(sinsp_proc == NULL && query_os_if_not_found)
 	{
 		sinsp_threadinfo newpi(this);
-		scap_threadinfo* scap_proc = scap_proc_get(m_h, tid);
+		scap_threadinfo* scap_proc = NULL;
+		m_n_proc_lookups++;
+
+		if(m_max_n_proc_lookups != 0 &&
+			(m_n_proc_lookups > m_max_n_proc_lookups))
+		{
+			scap_proc = scap_proc_get(m_h, tid);
+		}
 
 		if(scap_proc)
 		{
