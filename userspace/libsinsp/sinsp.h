@@ -443,6 +443,8 @@ private:
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats m_stats;
 #endif
+	uint32_t m_n_proc_lookups;
+	uint32_t m_max_n_proc_lookups;
 
 	//
 	// Some thread table limits

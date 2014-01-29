@@ -1,10 +1,3 @@
-/*
-extern "C" {
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-}
-*/
 #include <iostream>
 #include <fstream>
 #include <algorithm> 
@@ -24,18 +17,15 @@ extern "C" {
 
 #ifdef HAS_CHISELS
 
-/*
-    lua_State *L = lua_open();
- 
-    luaL_openlibs(L);
- 
-    if(luaL_dofile(L,"c.lua"))
-	{
-		string err = lua_tostring(L, -1);
-	}
- 
-    lua_close(L);
-*/
+#undef HAS_LUA_CHISELS
+
+#ifdef HAS_LUA_CHISELS
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
+#endif
 
 extern vector<chiseldir_info>* g_chisel_dirs;
 
@@ -161,6 +151,67 @@ chisel::~chisel()
 	}
 }
 
+#ifdef HAS_LUA_CHISELS
+void parse_lua_chisel_arg(lua_State *ls, OUT chisel_desc* cd)
+{
+	lua_pushnil(ls);
+	string name;
+	string type;
+	string desc;
+
+	while(lua_next(ls, -2) != 0)
+	{
+		if(lua_isstring(ls, -1))
+		{
+			if(string(lua_tostring(ls, -2)) == "name")
+			{
+				name = lua_tostring(ls, -1);
+			}
+			else if(string(lua_tostring(ls, -2)) == "argtype")
+			{
+				type = lua_tostring(ls, -1);
+			}
+			else if(string(lua_tostring(ls, -2)) == "description")
+			{
+				desc = lua_tostring(ls, -1);
+			}
+		}
+		else
+		{
+			throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a string");
+		}
+
+		lua_pop(ls, 1);
+	}
+
+	cd->m_args.push_back(chiselarg_desc(name, type, desc));
+}
+
+void parse_lua_chisel_args(lua_State *ls, OUT chisel_desc* cd)
+{
+	lua_pushnil(ls);
+
+	while(lua_next(ls, -2) != 0)
+	{
+		if(lua_isstring(ls, -1))
+		{
+			printf("%s = %s\n", lua_tostring(ls, -2), lua_tostring(ls, -1));
+			cd->m_description = lua_tostring(ls, -1);
+		}
+		else if(lua_istable(ls, -1))
+		{
+			parse_lua_chisel_arg(ls, cd);
+		}
+		else
+		{
+			throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a string");
+		}
+
+		lua_pop(ls, 1);
+	}
+}
+#endif
+
 void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 {
 	uint32_t j;
@@ -211,6 +262,52 @@ void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 					goto next_file;
 				}
 			}
+
+#ifdef HAS_LUA_CHISELS
+			if(fname.find(".lua") != string::npos)
+			{
+				chisel_desc cd;
+				cd.m_name = fname.substr(0, fname.rfind('.'));
+
+				lua_State* ls = lua_open();
+ 
+				luaL_openlibs(ls);
+ 
+				if(luaL_loadfile(ls, fpath.c_str()) || lua_pcall(ls, 0, 0, 0)) 
+				{
+					fprintf(stderr, "error: %s", lua_tostring(ls, -1));
+					goto next_lua_file;
+				}
+
+				//
+				// Extract the description
+				//
+				lua_getglobal(ls, "description");
+				if(!lua_isstring(ls, -1)) 
+				{
+					goto next_lua_file;
+				}				
+
+				cd.m_description = lua_tostring(ls, -1);
+
+				//
+				// Extract the args
+				//
+				lua_getglobal(ls, "args");
+
+				try
+				{
+					parse_lua_chisel_args(ls, &cd);
+				}
+				catch(...)
+				{
+					goto next_lua_file;
+				}
+
+next_lua_file:
+				lua_close(ls);
+			}
+#endif
 
 next_file:
 			tinydir_next(&dir);
@@ -273,11 +370,14 @@ void chisel::load(string cmdstr)
 	if(!openfile(m_filename, &is))
 	{
 		//
-		// Try to add the .cs extension
+		// Try to add the .sc extension
 		//
-		if(!openfile(m_filename + ".cs", &is))
+		if(!openfile(m_filename + ".sc", &is))
 		{
-			throw sinsp_exception("can't open file " + m_filename);
+			if(!openfile(m_filename + ".lua", &is))
+			{
+				throw sinsp_exception("can't open file " + m_filename);
+			}
 		}
 	}
 
@@ -288,7 +388,7 @@ void chisel::load(string cmdstr)
 		istreambuf_iterator<char>());
 
 	//
-	// Parse the json
+	// Try to parse as json
 	//
 	if(m_root != NULL)
 	{
@@ -299,17 +399,37 @@ void chisel::load(string cmdstr)
 
 	Json::Reader reader;
 	bool parsingSuccessful = reader.parse(docstr, (*m_root));
-	if(!parsingSuccessful)
+	if(parsingSuccessful)
 	{
-		throw sinsp_exception("Failed to parse chisel " + m_filename + ":" + 
-			reader.getFormattedErrorMessages());
+		//
+		// Extract the info
+		//
+		m_description = (*m_root)["info"]["description"].asString();
+	}
+	else
+	{
+#ifdef HAS_LUA_CHISELS
+//		string str(static_cast<stringstream const&>(stringstream() << is.rdbuf()).str());
+std::string s( (std::istreambuf_iterator<char>( is )),
+               (std::istreambuf_iterator<char>()) );
+
+		std::istreambuf_iterator<char> eos;
+		std::string scriptstr(std::istreambuf_iterator<char>(is), eos);
+
+		lua_State* ls = lua_open();
+ 
+		luaL_openlibs(ls);
+
+		if(luaL_loadstring(ls, scriptstr.c_str()) || lua_pcall(ls, 0, 0, 0)) 
+		{
+			throw sinsp_exception("Failed to load chisel " + 
+				m_filename + ":" + lua_tostring(ls, -1));
+		}
+
+		lua_close(ls);
+#endif
 	}
 
-	//
-	// Extract the info
-	//
-	m_description = (*m_root)["info"]["description"].asString();
-		
 	is.close();
 }
 
@@ -388,3 +508,37 @@ void chisel::run(sinsp_evt* evt)
 }
 
 #endif // HAS_CHISELS
+
+/*
+				if(luaL_loadfile(ls, fpath.c_str()) || lua_pcall(ls, 0, 0, 0)) 
+				{
+					printf("error: %s", lua_tostring(ls, -1));
+					goto next_file;
+				}
+
+				lua_getglobal(ls, "get_info");
+				if(!lua_isfunction(ls, -1))
+				{
+					lua_pop(ls, 1);
+					goto next_file;
+				}
+
+				//
+				// call get_info
+				//
+				if(lua_pcall(ls, 2, 1, 0) != 0) 
+				{
+					printf("error running function `f': %s\n", lua_tostring(ls, -1));
+					goto next_file;
+				}
+
+				if(!lua_isstring(ls, -1)) 
+				{
+					goto next_file;
+				}
+
+				const char* s = lua_tostring(ls, -1);
+				lua_pop(ls, 1);
+
+				lua_close(ls);
+*/
