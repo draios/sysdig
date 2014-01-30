@@ -474,8 +474,8 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 		scap_threadinfo* scap_proc = NULL;
 		m_n_proc_lookups++;
 
-		if(m_max_n_proc_lookups != 0 &&
-			(m_n_proc_lookups > m_max_n_proc_lookups))
+		if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
+			(m_n_proc_lookups > m_max_n_proc_lookups)))
 		{
 			scap_proc = scap_proc_get(m_h, tid);
 		}
