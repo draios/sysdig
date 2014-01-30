@@ -7,6 +7,8 @@ namespace Json {
 	class Value;
 }
 
+typedef struct lua_State lua_State;
+
 /** @defgroup filter Filtering events
  * Filtering infrastructure.
  *  @{
@@ -76,6 +78,8 @@ private:
 	vector<chiselinfo*> m_subchisels;
 	vector<string> m_argvals;
 	string m_filename;
+	lua_State* m_ls;
+	chisel_desc m_lua_script_info;
 };
 
 /*@}*/
