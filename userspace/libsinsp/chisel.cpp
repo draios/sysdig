@@ -30,6 +30,63 @@ extern "C" {
 extern vector<chiseldir_info>* g_chisel_dirs;
 
 ///////////////////////////////////////////////////////////////////////////////
+// For LUA debugging
+///////////////////////////////////////////////////////////////////////////////
+#ifdef HAS_LUA_CHISELS
+static void lua_stackdump(lua_State *L) 
+{
+    int i;
+    int top = lua_gettop(L);
+    for (i = 1; i <= top; i++) {  /* repeat for each level */
+    int t = lua_type(L, i);
+    switch (t) {
+    
+        case LUA_TSTRING:  /* strings */
+        printf("`%s'", lua_tostring(L, i));
+        break;
+    
+        case LUA_TBOOLEAN:  /* booleans */
+        printf(lua_toboolean(L, i) ? "true" : "false");
+        break;
+    
+        case LUA_TNUMBER:  /* numbers */
+        printf("%g", lua_tonumber(L, i));
+        break;
+    
+        default:  /* other values */
+        printf("%s", lua_typename(L, t));
+        break;
+    
+    }
+    printf("  ");  /* put a separator */
+    }
+    printf("\n");  /* end the listing */
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+// LUA callbacks
+///////////////////////////////////////////////////////////////////////////////
+#ifdef HAS_LUA_CHISELS
+static int get_evtnum(lua_State *ls) 
+{
+	lua_getglobal(ls, "sievt");
+	sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	int i = lua_tointeger(ls, 1); 
+	lua_pushinteger(ls, evt->get_num());
+	return 1;
+}
+
+const static struct luaL_reg ll_evt [] = 
+{
+	{"get_ts", &get_evtnum},
+	{NULL,NULL}
+};
+#endif // HAS_LUA_CHISELS
+
+///////////////////////////////////////////////////////////////////////////////
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -136,6 +193,7 @@ chisel::chisel(sinsp* inspector, string filename)
 	m_inspector = inspector;
 	m_root = NULL;
 	m_ls = NULL;
+	m_lua_has_handle_evt = false;
 
 	load(filename);
 }
@@ -282,6 +340,11 @@ void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
  
 				luaL_openlibs(ls);
  
+				//
+				// Load our own lua libs
+				//
+				luaL_openlib(ls, "evt", ll_evt, 0);
+
 				if(luaL_loadfile(ls, fpath.c_str()) || lua_pcall(ls, 0, 0, 0)) 
 				{
 					fprintf(stderr, "error: %s", lua_tostring(ls, -1));
@@ -436,6 +499,14 @@ void chisel::load(string cmdstr)
  
 		luaL_openlibs(m_ls);
 
+		//
+		// Load our own lua libs
+		//
+		luaL_openlib(m_ls, "evt", ll_evt, 0);
+
+		//
+		// Load the script
+		//
 		if(luaL_loadstring(m_ls, scriptstr.c_str()) || lua_pcall(m_ls, 0, 0, 0)) 
 		{
 			throw sinsp_exception("Failed to load chisel " + 
@@ -456,6 +527,15 @@ void chisel::load(string cmdstr)
 			throw e;
 		}
 
+		//
+		// Check if the script has an handle_event
+		//
+		lua_getglobal(m_ls, "handle_event");
+		if(lua_isfunction(m_ls, -1))
+		{
+			m_lua_has_handle_evt = true;
+			lua_pop(m_ls, 1);
+		}
 #endif
 	}
 
@@ -574,29 +654,59 @@ void chisel::run(sinsp_evt* evt)
 	uint32_t j;
 	string line;
 
-	for(j = 0; j < m_subchisels.size(); j++)
+	if(!m_ls)
 	{
-		//
-		// Output the line
-		//
-		if(m_subchisels[j]->m_filter != NULL)
+		for(j = 0; j < m_subchisels.size(); j++)
 		{
-			if(!m_subchisels[j]->m_filter->run(evt))
+			//
+			// Output the line
+			//
+			if(m_subchisels[j]->m_filter != NULL)
 			{
-				continue;
+				if(!m_subchisels[j]->m_filter->run(evt))
+				{
+					continue;
+				}
+			}
+
+			if(m_subchisels[j]->m_formatter->tostring(evt, &line))
+			{
+				cout << line << endl;
 			}
 		}
-
-		if(m_subchisels[j]->m_formatter->tostring(evt, &line))
+	}
+	else
+	{
+#ifdef HAS_LUA_CHISELS
+		if(m_lua_has_handle_evt)
 		{
-			cout << line << endl;
+			//
+			// call get_info()
+			//
+			if(m_lua_is_first_evt)
+			{
+				lua_pushlightuserdata(m_ls, evt);
+				lua_setglobal(m_ls, "sievt");
+				m_lua_is_first_evt = false;
+			}
+
+			lua_getglobal(m_ls, "handle_event");
+			
+			if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+			{
+				throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
+			}
+	
+			lua_pop(m_ls, 1);
 		}
+#endif
 	}
 }
 
 #endif // HAS_CHISELS
 
 /*
+lua_stackdump(m_ls);
 				if(luaL_loadfile(ls, fpath.c_str()) || lua_pcall(ls, 0, 0, 0)) 
 				{
 					printf("error: %s", lua_tostring(ls, -1));

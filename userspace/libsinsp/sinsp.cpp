@@ -177,7 +177,7 @@ void sinsp::import_thread_table()
 {
 	scap_threadinfo *pi;
 	scap_threadinfo *tpi;
-	sinsp_threadinfo newpi(this);
+	sinsp_threadinfo newti(this);
 
 	scap_threadinfo *table = scap_get_proc_table(m_h);
 
@@ -186,8 +186,8 @@ void sinsp::import_thread_table()
 	//
 	HASH_ITER(hh, table, pi, tpi)
 	{
-		newpi.init(pi);
-		m_thread_manager->add_thread(newpi, true);
+		newti.init(pi);
+		m_thread_manager->add_thread(newti, true);
 	}
 
 	//
@@ -470,7 +470,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 
 	if(sinsp_proc == NULL && query_os_if_not_found)
 	{
-		sinsp_threadinfo newpi(this);
+		sinsp_threadinfo newti(this);
 		scap_threadinfo* scap_proc = NULL;
 		m_n_proc_lookups++;
 
@@ -487,7 +487,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 
 		if(scap_proc)
 		{
-			newpi.init(scap_proc);
+			newti.init(scap_proc);
 			scap_proc_free(m_h, scap_proc);
 		}
 		else
@@ -495,16 +495,16 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 			//
 			// Add a fake entry to avoid a continuous lookup
 			//
-			newpi.m_tid = tid;
-			newpi.m_pid = tid;
-			newpi.m_ptid = -1;
-			newpi.m_comm = "<NA>";
-			newpi.m_exe = "<NA>";
-			newpi.m_uid = 0xffffffff;
-			newpi.m_gid = 0xffffffff;
+			newti.m_tid = tid;
+			newti.m_pid = tid;
+			newti.m_ptid = -1;
+			newti.m_comm = "<NA>";
+			newti.m_exe = "<NA>";
+			newti.m_uid = 0xffffffff;
+			newti.m_gid = 0xffffffff;
 		}
 
-		m_thread_manager->add_thread(newpi);
+		m_thread_manager->add_thread(newti);
 		sinsp_proc = m_thread_manager->get_thread(tid);
 	}
 

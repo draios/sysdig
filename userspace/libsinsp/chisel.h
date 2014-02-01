@@ -80,6 +80,8 @@ private:
 	string m_filename;
 	lua_State* m_ls;
 	chisel_desc m_lua_script_info;
+	bool m_lua_has_handle_evt;
+	bool m_lua_is_first_evt;
 };
 
 /*@}*/
