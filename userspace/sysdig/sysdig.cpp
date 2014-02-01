@@ -550,6 +550,11 @@ int main(int argc, char **argv)
 
 					for(uint32_t j = 0; j < nargs; j++)
 					{
+						if(optind + j >= (uint32_t)argc)
+						{
+							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string(nargs) + " expected.");
+						}
+
 						args.push_back(argv[optind + j]);
 						n_filterargs++;
 					}
@@ -630,7 +635,6 @@ int main(int argc, char **argv)
 				break;
 			case 'w':
 				outfile = optarg;
-	//				quiet = true;
 				break;
 			default:
 				break;
@@ -638,7 +642,7 @@ int main(int argc, char **argv)
 		}
 
 		//
-		// the filter is specified at the end of the command line
+		// the filter is at the end of the command line
 		//
 		if(optind + n_filterargs < argc)
 		{

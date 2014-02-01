@@ -14,6 +14,8 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "chisel.h"
+#include "filter.h"
+#include "filterchecks.h"
 
 #ifdef HAS_CHISELS
 
@@ -28,6 +30,7 @@ extern "C" {
 #endif
 
 extern vector<chiseldir_info>* g_chisel_dirs;
+extern sinsp_filter_check_list g_filterlist;
 
 ///////////////////////////////////////////////////////////////////////////////
 // For LUA debugging
@@ -68,20 +71,168 @@ static void lua_stackdump(lua_State *L)
 // LUA callbacks
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_LUA_CHISELS
-static int get_evtnum(lua_State *ls) 
+class lua_cbacks
 {
-	lua_getglobal(ls, "sievt");
-	sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
-	lua_pop(ls, 1);
+public:
+	static uint32_t rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+	{
+		ASSERT(rawval != NULL);
+		ASSERT(finfo != NULL);
 
-	int i = lua_tointeger(ls, 1); 
-	lua_pushinteger(ls, evt->get_num());
-	return 1;
-}
+		switch(finfo->m_type)
+		{
+			case PT_INT8:
+				lua_pushnumber(ls, *(int8_t*)rawval);
+				return 1;
+			case PT_INT16:
+				lua_pushnumber(ls, *(int16_t*)rawval);
+				return 1;
+			case PT_INT32:
+				lua_pushnumber(ls, *(int32_t*)rawval);
+				return 1;
+			case PT_INT64:
+				lua_pushnumber(ls, (double)*(int64_t*)rawval);
+				return 1;
+			case PT_L4PROTO: // This can be resolved in the future
+			case PT_UINT8:
+				lua_pushnumber(ls, *(uint8_t*)rawval);
+				return 1;
+			case PT_PORT: // This can be resolved in the future
+			case PT_UINT16:
+				lua_pushnumber(ls, *(uint16_t*)rawval);
+				return 1;
+			case PT_UINT32:
+				lua_pushnumber(ls, *(uint32_t*)rawval);
+				return 1;
+			case PT_UINT64:
+			case PT_RELTIME:
+			case PT_ABSTIME:
+				lua_pushnumber(ls, (double)*(uint64_t*)rawval);
+				return 1;
+			case PT_CHARBUF:
+				lua_pushstring(ls, (char*)rawval);
+				return 1;
+			case PT_BYTEBUF:
+				if(rawval[len] == 0)
+				{
+					lua_pushstring(ls, (char*)rawval);
+					return 1;
+				}
+				else
+				{
+					lua_getglobal(ls, "sichisel");
+					chisel* ch = (chisel*)lua_touserdata(ls, -1);
+					lua_pop(ls, 1);
 
-const static struct luaL_reg ll_evt [] = 
+					memcpy(ch->m_lua_fld_storage, rawval, len);
+					ch->m_lua_fld_storage[len] = 0;
+					lua_pushstring(ls, (char*)ch->m_lua_fld_storage);
+					return 1;
+				}
+			case PT_SOCKADDR:
+				ASSERT(false);
+				return NULL;
+			case PT_SOCKFAMILY:
+				ASSERT(false);
+				return NULL;
+			case PT_BOOL:
+				lua_pushboolean(ls, (*(uint32_t*)rawval != 0));
+				return 1;
+			case PT_IPV4ADDR:
+				{
+					lua_getglobal(ls, "sichisel");
+					chisel* ch = (chisel*)lua_touserdata(ls, -1);
+					lua_pop(ls, 1);
+
+					snprintf(ch->m_lua_fld_storage,
+								sizeof(ch->m_lua_fld_storage),
+								"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+								rawval[0],
+								rawval[1],
+								rawval[2],
+								rawval[3]);
+
+					lua_pushstring(ls, ch->m_lua_fld_storage);
+					return 1;
+				}
+			default:
+				ASSERT(false);
+				throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
+		}
+	}
+
+	static int get_ts(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sievt");
+		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		int i = lua_tointeger(ls, 1);
+
+		uint64_t ts = evt->get_ts();
+
+		lua_pushinteger(ls, (uint32_t)(ts / 1000000000));
+		lua_pushinteger(ls, (uint32_t)(ts % 1000000000));
+		return 2;
+	}
+
+	static int request_field(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		chisel* ch = (chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		sinsp* inspector = ch->m_inspector;
+
+		const char* fld = lua_tostring(ls, 1); 
+
+		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(fld,
+			inspector, 
+			false);
+
+		if(chk == NULL)
+		{
+			throw sinsp_exception("chisel requesting nonexistent field " + string(fld));
+		}
+
+		chk->parse_field_name(fld);
+
+		lua_pushlightuserdata(ls, chk);
+
+		ch->m_allocated_fltchecks.push_back(chk);
+
+		return 1;
+	}
+
+	static int get_field_val(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sievt");
+		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		sinsp_filter_check* chk = (sinsp_filter_check*)lua_topointer(ls, 1); 
+
+		uint32_t vlen;
+		uint8_t* rawval = chk->extract(evt, &vlen);
+
+		if(rawval != NULL)
+		{
+			return rawval_to_lua_stack(ls, rawval, chk->get_field_info(), vlen);
+		}
+		else
+		{
+			lua_pushnil(ls);
+			return 1;
+		}
+	}
+};
+
+const static struct luaL_reg ll_sysdig [] = 
 {
-	{"get_ts", &get_evtnum},
+	{"request_field", &lua_cbacks::request_field},
+	{"get_field_val", &lua_cbacks::get_field_val},
+	{"get_ts", &lua_cbacks::get_ts},
 	{NULL,NULL}
 };
 #endif // HAS_LUA_CHISELS
@@ -194,6 +345,7 @@ chisel::chisel(sinsp* inspector, string filename)
 	m_root = NULL;
 	m_ls = NULL;
 	m_lua_has_handle_evt = false;
+	m_lua_is_first_evt = true;
 
 	load(filename);
 }
@@ -214,6 +366,11 @@ chisel::~chisel()
 	if(m_ls)
 	{
 		lua_close(m_ls);
+	}
+
+	for(uint32_t j = 0; j < m_allocated_fltchecks.size(); j++)
+	{
+		delete m_allocated_fltchecks[j];
 	}
 #endif
 }
@@ -343,7 +500,7 @@ void chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				//
 				// Load our own lua libs
 				//
-				luaL_openlib(ls, "evt", ll_evt, 0);
+				luaL_openlib(ls, "sysdig", ll_sysdig, 0);
 
 				if(luaL_loadfile(ls, fpath.c_str()) || lua_pcall(ls, 0, 0, 0)) 
 				{
@@ -502,7 +659,7 @@ void chisel::load(string cmdstr)
 		//
 		// Load our own lua libs
 		//
-		luaL_openlib(m_ls, "evt", ll_evt, 0);
+		luaL_openlib(m_ls, "sysdig", ll_sysdig, 0);
 
 		//
 		// Load the script
@@ -512,6 +669,12 @@ void chisel::load(string cmdstr)
 			throw sinsp_exception("Failed to load chisel " + 
 				m_filename + ":" + lua_tostring(m_ls, -1));
 		}
+
+		//
+		// Set the context globals
+		//
+		lua_pushlightuserdata(m_ls, this);
+		lua_setglobal(m_ls, "sichisel");
 
 		//
 		// Extract the args
@@ -551,7 +714,9 @@ uint32_t chisel::get_n_args()
 	else
 	{
 #ifdef HAS_LUA_CHISELS
-		m_lua_script_info.m_args.size();
+		return m_lua_script_info.m_args.size();
+#else
+		return 0;
 #endif
 	}
 }
@@ -645,6 +810,16 @@ void chisel::set_args(vector<string>* argvals)
 			const char* s = lua_tostring(m_ls, -1);
 			lua_pop(m_ls, 1);
 		}
+
+		//
+		// Done with the arguments, call init()
+		//
+		lua_getglobal(m_ls, "init");
+			
+		if(lua_pcall(m_ls, 0, 0, 0) != 0) 
+		{
+			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
+		}	
 #endif
 	}
 }

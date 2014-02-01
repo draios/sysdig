@@ -416,7 +416,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			ASSERT(false);
 			return NULL;
 		case PT_BOOL:
-			if(*(uint32_t*)rawval == 0)
+			if(*(uint32_t*)rawval != 0)
 			{
 				return (char*)"true";
 			}
