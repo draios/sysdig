@@ -2,6 +2,7 @@
 
 #ifdef HAS_CHISELS
 
+class sinsp_filter_check;
 class sinsp_evt_formatter;
 namespace Json {
 	class Value;
@@ -82,6 +83,10 @@ private:
 	chisel_desc m_lua_script_info;
 	bool m_lua_has_handle_evt;
 	bool m_lua_is_first_evt;
+	vector<sinsp_filter_check*> m_allocated_fltchecks;
+	char m_lua_fld_storage[1024];
+
+	friend class lua_cbacks;
 };
 
 /*@}*/

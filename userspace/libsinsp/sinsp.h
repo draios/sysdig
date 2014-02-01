@@ -113,7 +113,7 @@ struct sinsp_exception : std::exception
 /*!
   \brief The deafult way an event is converted to string by the library
 */
-#define DEFAULT_OUTPUT_STR "*%evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
+#define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 
 /** @defgroup inspector Main library
  @{
