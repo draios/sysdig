@@ -306,7 +306,7 @@ captureinfo do_inspect(sinsp* inspector,
 					   bool absolute_times,
 					   string format,
 					   sinsp_filter* display_filter,
-					   vector<chisel*>* chisels,
+					   vector<sinsp_chisel*>* chisels,
 					   vector<summary_table_entry>* summary_table)
 {
 	captureinfo retval;
@@ -336,6 +336,11 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 		else if(res == SCAP_EOF)
 		{
+			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
+			{
+				(*it)->on_capture_end();
+			}
+
 			break;
 		}
 		else if(res != SCAP_SUCCESS)
@@ -358,7 +363,7 @@ captureinfo do_inspect(sinsp* inspector,
 		//
 		if(!chisels->empty())
 		{
-			for(vector<chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
+			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
 			{
 				(*it)->run(ev);
 			}
@@ -443,7 +448,7 @@ int main(int argc, char **argv)
 	string output_format;
 	uint32_t snaplen = 0;
 	int long_index = 0;
-	vector<chisel*> chisels;
+	vector<sinsp_chisel*> chisels;
 	int32_t n_filterargs = 0;
 	int cflag = 0;
 	string cname;
@@ -521,7 +526,7 @@ int main(int argc, char **argv)
 					if(cflag == 1)
 					{
 						vector<chisel_desc> chlist;
-						chisel::get_chisel_list(&chlist);
+						sinsp_chisel::get_chisel_list(&chlist);
 						list_chisels(&chlist);
 						delete inspector;
 						return EXIT_SUCCESS;
@@ -529,7 +534,7 @@ int main(int argc, char **argv)
 					if(cflag == 2)
 					{
 						vector<chisel_desc> chlist;
-						chisel::get_chisel_list(&chlist);
+						sinsp_chisel::get_chisel_list(&chlist);
 
 						for(uint32_t j = 0; j < chlist.size(); j++)
 						{
@@ -544,7 +549,7 @@ int main(int argc, char **argv)
 						throw sinsp_exception("chisel " + cname + " not found");
 					}
 
-					chisel* ch = new chisel(inspector, optarg);
+					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
 					uint32_t nargs = ch->get_n_args();
 					vector<string> args;
 
@@ -552,7 +557,7 @@ int main(int argc, char **argv)
 					{
 						if(optind + j >= (uint32_t)argc)
 						{
-							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string(nargs) + " expected.");
+							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((int)nargs) + " expected.");
 						}
 
 						args.push_back(argv[optind + j]);
@@ -731,12 +736,12 @@ int main(int argc, char **argv)
 		scap_stats cstats;
 		inspector->get_capture_stats(&cstats);
 
-		fprintf(stderr, "Driver Events:%" PRIu64 "\nDriver Drops:%" PRIu64 "\n",
-			cstats.n_evts,
-			cstats.n_drops);
-
 		if(verbose)
 		{
+			fprintf(stderr, "Driver Events:%" PRIu64 "\nDriver Drops:%" PRIu64 "\n",
+				cstats.n_evts,
+				cstats.n_drops);
+
 			fprintf(stderr, "Elapsed time: %.3lf, Captured Events: %" PRIu64 ", %.2lf eps\n",
 				duration,
 				cinfo.m_nevts,
@@ -753,10 +758,6 @@ int main(int argc, char **argv)
 		res = EXIT_FAILURE;
 	}
 
-#ifdef _WIN32
-	_CrtDumpMemoryLeaks();
-#endif
-
 exit:
 
 	//
@@ -770,7 +771,7 @@ exit:
 	//
 	// Free the chisels
 	//
-	for(vector<chisel*>::iterator it = chisels.begin(); it != chisels.end(); ++it)
+	for(vector<sinsp_chisel*>::iterator it = chisels.begin(); it != chisels.end(); ++it)
 	{
 		delete *it;
 	}
@@ -784,6 +785,10 @@ exit:
 	{
 		delete display_filter;
 	}
+
+#ifdef _WIN32
+	_CrtDumpMemoryLeaks();
+#endif
 
 	return res;
 }

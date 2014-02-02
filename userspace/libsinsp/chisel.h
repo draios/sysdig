@@ -51,24 +51,30 @@ public:
 class chiselinfo
 {
 public:
-	chiselinfo();
-	void init(sinsp* inspector, string filterstr, string formatterstr); 
+	chiselinfo(sinsp* inspector);
+	void init(string filterstr, string formatterstr); 
+	void set_filter(string filterstr);
+	void set_formatter(string formatterstr);
 	~chiselinfo();
 	sinsp_filter* m_filter;
 	sinsp_evt_formatter* m_formatter;
 	sinsp_dumper* m_dumper;
+
+private:
+	sinsp* m_inspector;
 };
 
-class SINSP_PUBLIC chisel
+class SINSP_PUBLIC sinsp_chisel
 {
 public:
-	chisel(sinsp* inspector, string filename);
-	~chisel();
+	sinsp_chisel(sinsp* inspector, string filename);
+	~sinsp_chisel();
 	static void get_chisel_list(vector<chisel_desc>* chisel_descs);
 	void load(string cmdstr);
 	uint32_t get_n_args();
 	void set_args(vector<string>* argvals);
 	void run(sinsp_evt* evt);
+	void on_capture_end();
 
 private:
 	bool openfile(string filename, OUT ifstream* is);
@@ -85,6 +91,7 @@ private:
 	bool m_lua_is_first_evt;
 	vector<sinsp_filter_check*> m_allocated_fltchecks;
 	char m_lua_fld_storage[1024];
+	chiselinfo* m_lua_cinfo;
 
 	friend class lua_cbacks;
 };
