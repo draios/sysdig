@@ -279,25 +279,28 @@ public:
 		TYPE_RELTS_NS = 8,
 		TYPE_LATENCY = 9,
 		TYPE_DIR = 10,
-		TYPE_NAME = 11,
+		TYPE_TYPE = 11,
 		TYPE_CPU = 12,
 		TYPE_ARGS = 13,
 		TYPE_ARGSTR = 14,
 		TYPE_ARGRAW = 15,
 		TYPE_RESSTR = 16,
 		TYPE_RESRAW = 17,
+		TYPE_ISIO = 18,
 	};
 
 	sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
 	void parse_filter_value(const char* str);
+	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 	char* tostring(sinsp_evt* evt);
 
 	uint64_t m_first_ts;
 	uint64_t m_u64val;
+	uint32_t m_u32val;
 	string m_strstorage;
 	string m_argname;
 	int32_t m_argid;

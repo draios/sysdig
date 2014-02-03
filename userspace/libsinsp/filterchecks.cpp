@@ -555,6 +555,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_NONE, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'arg.fd'."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as an error code string (e.g. 'ENOENT')."},
 	{PT_INT64, EPF_NONE, PF_DEC, "evt.rawres", "event return value, as a number (e.g. -2). Useful for range comparisons."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io", "'true' for events that read on write to FDs, like read(), send, recvfrom(), etc."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -658,6 +659,18 @@ void sinsp_filter_check_event::parse_filter_value(const char* str)
 	else
 	{
 		return sinsp_filter_check::parse_filter_value(str);
+	}
+}
+
+const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
+{
+	if(m_field_id == TYPE_ARGRAW)
+	{
+		return &m_customfield;
+	}
+	else
+	{
+		return &m_info.m_fields[m_field_id];
 	}
 }
 
@@ -788,7 +801,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			return (uint8_t*)"<";
 		}
-	case TYPE_NAME:
+	case TYPE_TYPE:
 		{
 			uint8_t* evname;
 
@@ -958,6 +971,20 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 		break;
+	case TYPE_ISIO:
+		{
+			ppm_event_flags eflags = evt->get_flags();
+			if(eflags & (EF_READS_FROM_FD | EF_WRITES_TO_FD))
+			{
+				m_u32val = 1;
+			}
+			else
+			{
+				m_u32val = 0;
+			}
+		}
+
+		return (uint8_t*)&m_u32val;
 	default:
 		ASSERT(false);
 		return NULL;
