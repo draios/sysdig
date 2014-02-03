@@ -939,7 +939,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		sdir.length(),
 		name,
 		namelen);
-	fdi.m_create_time = evt->get_ts();
 
 	//
 	// Add the fd to the table.
@@ -957,7 +956,6 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 	//
 	// Populate the new fdi
 	//
-	fdi.m_create_time = evt->get_ts();
 	memset(&(fdi.m_sockinfo.m_ipv4info), 0, sizeof(fdi.m_sockinfo.m_ipv4info));
 	fdi.m_type = SCAP_FD_UNKNOWN;
 	fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UNKNOWN;
@@ -1323,7 +1321,6 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	}
 
 	fdi.m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
-	fdi.m_create_time = evt->get_ts();
 	fdi.m_flags = 0;
 
 	if(m_fd_listener)
@@ -2002,26 +1999,11 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 		}
 
 		//
-		// Temporarily change the creation time of the old FD, so that the new one
-		// goes in the table with the right time
-		//
-		uint64_t ttime = evt->m_fdinfo->m_create_time;
-		evt->m_fdinfo->m_create_time = evt->get_ts();
-
-		//
 		// Add the new fd to the table.
 		// NOTE: dup2 and dup3 accept an existing FD and in that case they close it.
 		//       For us it's ok to just overwrite it.
 		//
 		evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
-
-		//
-		// Restore the original time in the old fd
-		//
-		if(retval != evt->m_tinfo->m_lastevent_fd)
-		{
-			evt->m_fdinfo->m_create_time = ttime;
-		}
 	}
 }
 
@@ -2049,7 +2031,6 @@ void sinsp_parser::parse_signalfd_exit(sinsp_evt *evt)
 		//
 		fdi.m_type = SCAP_FD_SIGNALFD;
 		fdi.m_name = "";
-		fdi.m_create_time = evt->get_ts();
 
 		//
 		// Add the fd to the table.
@@ -2082,7 +2063,6 @@ void sinsp_parser::parse_timerfd_create_exit(sinsp_evt *evt)
 		//
 		fdi.m_type = SCAP_FD_TIMERFD;
 		fdi.m_name = "";
-		fdi.m_create_time = evt->get_ts();
 
 		//
 		// Add the fd to the table.
@@ -2115,7 +2095,6 @@ void sinsp_parser::parse_inotify_init_exit(sinsp_evt *evt)
 		//
 		fdi.m_type = SCAP_FD_INOTIFY;
 		fdi.m_name = "";
-		fdi.m_create_time = evt->get_ts();
 
 		//
 		// Add the fd to the table.
