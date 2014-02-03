@@ -31,6 +31,7 @@ extern "C" {
 
 extern vector<chiseldir_info>* g_chisel_dirs;
 extern sinsp_filter_check_list g_filterlist;
+extern sinsp_evttables g_infotables;
 
 ///////////////////////////////////////////////////////////////////////////////
 // For LUA debugging
@@ -93,6 +94,7 @@ public:
 				lua_pushnumber(ls, *(int32_t*)rawval);
 				return 1;
 			case PT_INT64:
+			case PT_ERRNO:
 				lua_pushnumber(ls, (double)*(int64_t*)rawval);
 				return 1;
 			case PT_L4PROTO: // This can be resolved in the future
@@ -184,6 +186,33 @@ public:
 		lua_pushinteger(ls, (uint32_t)(ts / 1000000000));
 		lua_pushinteger(ls, (uint32_t)(ts % 1000000000));
 		return 2;
+	}
+
+	static int get_type(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sievt");
+		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		const char* evname;
+		uint16_t etype = evt->get_type();
+
+		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+		{
+			sinsp_evt_param *parinfo = evt->get_param(0);
+			ASSERT(parinfo->m_len == sizeof(uint16_t));
+			uint16_t evid = *(uint16_t *)parinfo->m_val;
+
+			evname = g_infotables.m_syscall_info_table[evid].name;
+		}
+		else
+		{
+			evname = evt->get_name();
+		}
+
+		lua_pushstring(ls, evname);
+
+		return 1;
 	}
 
 	static int request_field(lua_State *ls) 
@@ -285,6 +314,7 @@ const static struct luaL_reg ll_evt [] =
 	{"field", &lua_cbacks::field},
 	{"get_num", &lua_cbacks::get_num},
 	{"get_ts", &lua_cbacks::get_ts},
+	{"get_type", &lua_cbacks::get_type},
 	{NULL,NULL}
 };
 #endif // HAS_LUA_CHISELS
@@ -918,7 +948,7 @@ void sinsp_chisel::set_args(vector<string>* argvals)
 		// Done with the arguments, call init()
 		//
 		lua_getglobal(m_ls, "init");
-			
+
 		if(lua_pcall(m_ls, 0, 1, 0) != 0) 
 		{
 			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
