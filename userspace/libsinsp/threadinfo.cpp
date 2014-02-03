@@ -78,9 +78,6 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc()
 {
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
 
-	//
-	// Second pass: fix the sockets so that they are ordered by client->server
-	//
 	for(it = m_fdtable.m_table.begin(); it != m_fdtable.m_table.end(); it++)
 	{
 		if(it->second.m_type == SCAP_FD_IPV4_SOCK)

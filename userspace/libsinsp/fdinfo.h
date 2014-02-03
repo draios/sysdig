@@ -99,7 +99,6 @@ public:
 	}
 
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
-	uint64_t m_create_time; ///< The fd creation time, in nanoseconds from epoch.
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
 	
 	/*!
@@ -164,7 +163,7 @@ private:
 
 	bool is_role_none()
 	{
-		return m_flags == FLAGS_NONE;
+		return (m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
 	}
 
 	bool is_transaction()
