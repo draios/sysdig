@@ -515,11 +515,11 @@ int main(int argc, char **argv)
 							{
 								cflag = 1;
 							}
-							else if(ostr[0] == 'i')
-							{
-								cflag = 2;
-								cname = ostr.substr(1,  string::npos);
-							}
+							//else if(ostr[0] == 'i')
+							//{
+							//	cflag = 2;
+							//	cname = ostr.substr(1,  string::npos);
+							//}
 						}
 					}
 
