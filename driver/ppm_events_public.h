@@ -698,7 +698,8 @@ typedef enum ppm_event_flags
 	EF_DESTROYS_FD = (1 << 1),
 	EF_USES_FD = (1 << 2),
 	EF_READS_FROM_FD = (1 << 3),
-	EF_DOESNT_RETURN_ERROR = (1 << 4),
+	EF_WRITES_TO_FD = (1 << 4),
+	EF_DOESNT_RETURN_ERROR = (1 << 5),
 }ppm_event_flags;
 
 //
