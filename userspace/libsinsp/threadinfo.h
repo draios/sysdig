@@ -75,6 +75,11 @@ public:
 	*/
 	sinsp_fdinfo_t* get_fd(int64_t fd);
 
+	/*!
+	  \brief Return true if this thread is bound to the given server port.
+	*/
+	bool is_bound_to_port(uint16_t number);
+
 	void* get_private_state(uint32_t id);
 
 	//

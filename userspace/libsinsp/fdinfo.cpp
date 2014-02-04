@@ -69,24 +69,6 @@ template<> void sinsp_fdinfo_t::add_filename(const char* directory, uint32_t dir
 	m_name = fullpath;
 }
 
-template<> void sinsp_fdinfo_t::set_role_by_guessing(bool incoming)
-{
-	if(!(m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)))
-	{
-		//
-		// We just assume that a server usually starts with a read and a client with a write
-		//
-		if(incoming)
-		{
-			set_role_server();
-		}
-		else
-		{
-			set_role_client();
-		}
-	}
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdtable implementation
 ///////////////////////////////////////////////////////////////////////////////

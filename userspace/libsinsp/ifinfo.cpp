@@ -93,7 +93,7 @@ void sinsp_network_interfaces::update_fd(sinsp_fdinfo_t *fd)
 	}
 }
 
-bool sinsp_network_interfaces::is_ipv4addr_local(uint32_t addr)
+bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr)
 {
 	vector<sinsp_ipv4_ifinfo>::iterator it;
 
@@ -111,6 +111,22 @@ bool sinsp_network_interfaces::is_ipv4addr_local(uint32_t addr)
 	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++)
 	{
 		if((it->m_addr & it->m_netmask) == (addr & it->m_netmask))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr)
+{
+	vector<sinsp_ipv4_ifinfo>::iterator it;
+
+	// try to find an interface for the same subnet
+	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++)
+	{
+		if(it->m_addr == addr)
 		{
 			return true;
 		}

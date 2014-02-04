@@ -186,8 +186,6 @@ private:
 		m_flags |= FLAGS_ROLE_CLIENT;
 	}
 
-	void set_role_by_guessing(bool incoming);
-
 	void reset_flags()
 	{
 		m_flags = FLAGS_NONE;

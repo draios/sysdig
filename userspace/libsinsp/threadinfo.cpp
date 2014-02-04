@@ -375,6 +375,34 @@ sinsp_fdinfo_t *sinsp_threadinfo::get_fd(int64_t fd)
 	return NULL;
 }
 
+bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
+{
+	unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
+
+	sinsp_fdtable* fdt = get_fd_table();
+
+	for(it = fdt->m_table.begin(); 
+		it != fdt->m_table.end(); ++it)
+	{
+		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
+		{
+			if(it->second.m_sockinfo.m_ipv4info.m_fields.m_dport == number)
+			{
+				return true;
+			}
+		}
+		else if(it->second.m_type == SCAP_FD_IPV4_SERVSOCK)
+		{
+			if(it->second.m_sockinfo.m_ipv4serverinfo.m_port == number)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void sinsp_threadinfo::store_event(sinsp_evt *evt)
 {
 	uint32_t elen;
