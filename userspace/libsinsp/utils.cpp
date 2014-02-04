@@ -12,7 +12,7 @@
 const chiseldir_info g_chisel_dirs_array[] =
 {
 	{false, ""}, // file as is
-	{false, CHISELS_INSTALLATION_DIR},
+	{false, "c:/share/sysdig/chisels"},
 	{false, "./"},
 	{false, "./chisels/"},
 	{true, ""},
