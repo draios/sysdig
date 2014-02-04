@@ -483,6 +483,8 @@ int main(int argc, char **argv)
 	{
 		inspector = new sinsp();
 
+		inspector->add_chisel_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR);
+
 		//
 		// Parse the args
 		//
