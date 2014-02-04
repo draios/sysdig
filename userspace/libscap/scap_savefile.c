@@ -510,7 +510,7 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, FILE *f, const char *fname
 	if(handle->m_file == NULL)
 	{
 		scap_proc_free_table(handle);
-		if(scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, handle->m_lasterr) != SCAP_SUCCESS)
+		if(scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
 		{
 			return NULL;
 		}

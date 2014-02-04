@@ -132,7 +132,7 @@ scap_t* scap_open_live(char *error)
 	// Create the process list
 	//
 	error[0] = '\0';
-	if((res = scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, error)) != SCAP_SUCCESS)
+	if((res = scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, error, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list");
