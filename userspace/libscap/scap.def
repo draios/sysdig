@@ -12,6 +12,7 @@ EXPORTS
 		scap_event_get_ts
 		scap_dump_open
 		scap_dump_close
+		scap_dump_ftell
 		scap_dump
 		scap_event_get_num
 		scap_get_proc_table
