@@ -46,3 +46,13 @@ void sinsp_dumper::dump(sinsp_evt* evt)
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 	}
 }
+
+uint64_t sinsp_dumper::written_bytes()
+{
+	if(m_dumper == NULL)
+	{
+		throw sinsp_exception("dumper not opened yet");
+	}
+
+	return scap_dump_ftell(m_dumper);	
+}
