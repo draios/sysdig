@@ -330,7 +330,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 //
 // Scan a directory containing multiple processes under /proc
 //
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** procinfo, char *error)
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** procinfo, char *error, bool scan_sockets)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
@@ -352,10 +352,13 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 
 	if(-1 == parenttid)
 	{
-		if(SCAP_FAILURE == scap_fd_read_sockets(handle, &sockets))
+		if(scan_sockets)
 		{
-			closedir(dir_p);
-			return SCAP_FAILURE;
+			if(SCAP_FAILURE == scap_fd_read_sockets(handle, &sockets))
+			{
+				closedir(dir_p);
+				return SCAP_FAILURE;
+			}
 		}
 	}
 
@@ -428,7 +431,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		// See if this process includes tasks that need to be added
 		//
 		snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-		if(scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error) == SCAP_FAILURE)
+		if(scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error, scan_sockets) == SCAP_FAILURE)
 		{
 			res = SCAP_FAILURE;
 			break;
@@ -485,14 +488,14 @@ void scap_proc_free_table(scap_t* handle)
 	}
 }
 
-struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid)
+struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
 {
 #if defined(_WIN32) || defined(__APPLE__)
 	return NULL;
 #else
 	struct scap_threadinfo* tinfo = NULL;
 
-	if(scap_proc_scan_proc_dir(handle, "/proc", -1, tid, &tinfo, handle->m_lasterr) != SCAP_SUCCESS)
+	if(scap_proc_scan_proc_dir(handle, "/proc", -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		return NULL;
 	}

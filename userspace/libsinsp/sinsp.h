@@ -445,6 +445,7 @@ private:
 #endif
 	uint32_t m_n_proc_lookups;
 	uint32_t m_max_n_proc_lookups;
+	uint32_t m_max_n_proc_socket_lookups;
 
 	//
 	// Some thread table limits

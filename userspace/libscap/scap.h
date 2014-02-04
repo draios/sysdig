@@ -633,7 +633,7 @@ uint32_t scap_event_get_sentinel_begin(scap_evt* e);
 
 // Get the information about a process.
 // The returned pointer must be freed via scap_proc_free by the caller.
-struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid);
+struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets);
 
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 

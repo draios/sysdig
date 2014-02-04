@@ -52,6 +52,7 @@ sinsp::sinsp() :
 	m_isdropping = false;
 	m_n_proc_lookups = 0;
 	m_max_n_proc_lookups = 0;
+	m_max_n_proc_socket_lookups = 3;
 }
 
 sinsp::~sinsp()
@@ -474,6 +475,11 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 		scap_threadinfo* scap_proc = NULL;
 		m_n_proc_lookups++;
 
+		if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
+		{
+			g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number");
+		}
+
 		if(m_n_proc_lookups == m_max_n_proc_lookups)
 		{
 			g_logger.format(sinsp_logger::SEV_INFO, "Reached max processs lookup number");
@@ -482,7 +488,15 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 		if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
 			(m_n_proc_lookups <= m_max_n_proc_lookups)))
 		{
-			scap_proc = scap_proc_get(m_h, tid);
+			bool scan_sockets = true;
+
+			if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
+				(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
+			{
+				scan_sockets = false;
+			}
+
+			scap_proc = scap_proc_get(m_h, tid, scan_sockets);
 		}
 
 		if(scap_proc)
