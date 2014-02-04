@@ -199,6 +199,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "ERESTART_RESTARTBLOCK";
 	case SE_EADDRINUSE:
 		return "EADDRINUSE";
+	case SE_EPROTOTYPE:
+		return "EPROTOTYPE";
 	default:
 		ASSERT(false);
 		return "";
@@ -423,6 +425,9 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 	}
 }
 
+//
+// Return false if path2 is an absolute path
+//
 bool sinsp_utils::concatenate_paths(char* target, 
 									uint32_t targetlen, 
 									const char* path1, 
@@ -430,14 +435,6 @@ bool sinsp_utils::concatenate_paths(char* target,
 									const char* path2, 
 									uint32_t len2)
 {
-/*
-	char strp[] = "/root/git/";
-	char str[] = "/";
-//	memcpy(target, strp, sizeof(strp));
-//	copy_and_sanitize_path(target + sizeof(strp) - 1, target, str);
-	copy_and_sanitize_path(target, target, str);
-*/
-
 	if(targetlen < (len1 + len2 + 1))
 	{
 		ASSERT(false);

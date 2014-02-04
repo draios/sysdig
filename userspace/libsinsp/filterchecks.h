@@ -177,15 +177,16 @@ public:
 	{
 		TYPE_FDNUM = 0,
 		TYPE_FDTYPE = 1,
-		TYPE_FDNAME = 2,
-		TYPE_IP = 3,
-		TYPE_CLIENTIP = 4,
-		TYPE_SERVERIP = 5,
-		TYPE_PORT = 6,
-		TYPE_CLIENTPORT = 7,
-		TYPE_SERVERPORT = 8,
-		TYPE_L4PROTO = 9,
-		TYPE_SOCKFAMILY = 10,
+		TYPE_FDTYPECHAR = 2,
+		TYPE_FDNAME = 3,
+		TYPE_IP = 4,
+		TYPE_CLIENTIP = 5,
+		TYPE_SERVERIP = 6,
+		TYPE_PORT = 7,
+		TYPE_CLIENTPORT = 8,
+		TYPE_SERVERPORT = 9,
+		TYPE_L4PROTO = 10,
+		TYPE_SOCKFAMILY = 11,
 	};
 
 	enum fd_type
@@ -218,6 +219,7 @@ public:
 	sinsp_fdinfo_t* m_fdinfo;
 	fd_type m_fd_type;
 	string m_tstr;
+	uint8_t m_tcstr[2];
 
 private:
 	bool extract_fd(sinsp_evt *evt);
