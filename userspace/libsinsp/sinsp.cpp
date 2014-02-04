@@ -52,7 +52,7 @@ sinsp::sinsp() :
 	m_isdropping = false;
 	m_n_proc_lookups = 0;
 	m_max_n_proc_lookups = 0;
-	m_max_n_proc_socket_lookups = 3;
+	m_max_n_proc_socket_lookups = 0;
 }
 
 sinsp::~sinsp()
