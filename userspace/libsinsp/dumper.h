@@ -35,6 +35,13 @@ public:
 	void open(const string& filename);
 
 	/*!
+	  \brief Return the current size of a tracefile.
+
+	  \return The current size of the dump file. 
+	*/
+	uint64_t written_bytes();
+
+	/*!
 	  \brief Writes an event to the file.
 
 	  \param evt Pointer to the event to dump.
