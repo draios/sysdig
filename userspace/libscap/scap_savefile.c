@@ -599,6 +599,14 @@ void scap_dump_close(scap_dumper_t *d)
 }
 
 //
+// Return the current size of a tracefile
+//
+uint64_t scap_dump_ftell(scap_dumper_t *d)
+{
+	return (uint64_t)ftell((FILE *)d);
+}
+
+//
 // Write an event to a dump file
 //
 int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid)

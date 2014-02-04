@@ -436,7 +436,7 @@ const struct ppm_event_info* scap_event_getinfo(scap_evt* e);
 
   \param handle Handle to the capture instance.
   \param fname The name of the tracefile.
-			
+
   \return Dump handle that can be used to identify this specific dump instance. 
 */
 scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname);
@@ -447,6 +447,14 @@ scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname);
   \param d The dump handle, returned by \ref scap_dump_open
 */
 void scap_dump_close(scap_dumper_t *d);
+
+/*!
+  \brief Return the current size of a tracefile.
+
+  \param d The dump handle, returned by \ref scap_dump_open
+  \return The current size of the dump file pointed by d. 
+*/
+uint64_t scap_dump_ftell(scap_dumper_t *d);
 
 /*!
   \brief Write an event to a trace file 
