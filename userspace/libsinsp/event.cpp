@@ -278,6 +278,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	uint32_t j;
 	ASSERT(id < m_info->nparams);
 
+if(m_evtnum == 69)
+{
+	int a = 0;
+}
+
 	//
 	// Make sure the params are actually loaded
 	//
@@ -360,9 +365,18 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				string sanitized_str = fdinfo->m_name;
 				sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
 
-				snprintf(m_resolved_paramstr_storage,
-				         sizeof(m_resolved_paramstr_storage),
-				         "%c%s", tch, sanitized_str.c_str());
+				if(sanitized_str.length() == 0)
+				{
+					snprintf(m_resolved_paramstr_storage,
+							 sizeof(m_resolved_paramstr_storage),
+							 "<%c>", tch);
+				}
+				else
+				{
+					snprintf(m_resolved_paramstr_storage,
+							 sizeof(m_resolved_paramstr_storage),
+							 "%s", sanitized_str.c_str());
+				}
 			}
 		}
 		else
@@ -476,7 +490,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				param->m_val, 
 				param->m_len))
 			{
-				*resolved_str = m_paramstr_storage;
+				m_resolved_paramstr_storage[0] = 0;
 			}
 		}
 		else
@@ -766,7 +780,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				}
 				else
 				{
-//	                ASSERT(false);
 					tch = '?';
 				}
 
