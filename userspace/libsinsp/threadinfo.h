@@ -80,6 +80,11 @@ public:
 	*/
 	bool is_bound_to_port(uint16_t number);
 
+	/*!
+	  \brief Return true if this thread has a client socket open on the given port.
+	*/
+	bool uses_client_port(uint16_t number);
+
 	void* get_private_state(uint32_t id);
 
 	//
