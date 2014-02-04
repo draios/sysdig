@@ -557,7 +557,7 @@ int main(int argc, char **argv)
 					{
 						if(optind + j >= (uint32_t)argc)
 						{
-							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((int)nargs) + " expected.");
+							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
 						}
 
 						args.push_back(argv[optind + j]);
