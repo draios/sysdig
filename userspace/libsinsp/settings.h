@@ -53,10 +53,9 @@
 #define HAS_CHISELS
 
 //
-// Where chisels are installed
+// Relative path to chisels
 //
-#define SYSDIG_INSTALLATION_DIR "c:\\"
-#define CHISELS_INSTALLATION_DIR SYSDIG_INSTALLATION_DIR "/share/sysdig/chisels"
+#define CHISELS_INSTALLATION_DIR "/share/sysdig/chisels"
 
 //
 // FD class customized with the storage we need
