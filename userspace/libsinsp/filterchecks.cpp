@@ -857,11 +857,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					return NULL;
 				}
 
-				argstr = evt->get_param_as_str(m_argid, &resolved_argstr);
+				argstr = evt->get_param_as_str(m_argid, &resolved_argstr, sinsp_evt::PF_SIMPLE);
 			}
 			else
 			{
-				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr);
+				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, sinsp_evt::PF_SIMPLE);
 			}
 
 			if(resolved_argstr != NULL && resolved_argstr[0] != 0)

@@ -354,6 +354,12 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			{
 				char tch = fdinfo->get_typechar();
 
+				char typestr[2] =
+				{
+					(fmt == PF_SIMPLE)?(char)0:tch,
+					0
+				};
+
 				//
 				// Make sure we remove invalid characters from the resolved name
 				//
@@ -362,8 +368,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 				snprintf(m_resolved_paramstr_storage,
 					sizeof(m_resolved_paramstr_storage),
-					"%c%s", tch, sanitized_str.c_str());
-/*
+					"<%s>%s", typestr, sanitized_str.c_str());
+
+/* XXX
 				if(sanitized_str.length() == 0)
 				{
 					snprintf(m_resolved_paramstr_storage,
@@ -910,13 +917,13 @@ string sinsp_evt::get_param_value_str(uint32_t i, bool resolved)
 	}
 }
 
-const char* sinsp_evt::get_param_value_str(const char* name, OUT const char** resolved_str)
+const char* sinsp_evt::get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt)
 {
 	for(uint32_t i = 0; i < get_num_params(); i++)
 	{
 		if(strcmp(name, get_param_name(i)) == 0)
 		{
-			return get_param_as_str(i, resolved_str);
+			return get_param_as_str(i, resolved_str, fmt);
 		}
 	}
 

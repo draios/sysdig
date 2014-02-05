@@ -201,6 +201,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "EADDRINUSE";
 	case SE_EPROTOTYPE:
 		return "EPROTOTYPE";
+	case SE_EALREADY:
+		return "EALREADY";
 	default:
 		ASSERT(false);
 		return "";
