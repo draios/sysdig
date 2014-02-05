@@ -9,6 +9,7 @@ if(NOT WIN32)
 		sysdig.cpp)
 else()
 	set(SOURCE_FILES
+		fields_info.cpp
 		sysdig.cpp
 		win32/getopt.c)
 endif()

@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="fields_info.cpp" />
     <ClCompile Include="sysdig.cpp" />
     <ClCompile Include="win32\getopt.c" />
   </ItemGroup>
