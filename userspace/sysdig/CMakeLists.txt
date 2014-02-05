@@ -6,6 +6,7 @@ include_directories(.)
 
 if(NOT WIN32)
 	set(SOURCE_FILES
+		fields_info.cpp
 		sysdig.cpp)
 else()
 	set(SOURCE_FILES
