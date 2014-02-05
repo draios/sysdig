@@ -52,3 +52,14 @@ struct summary_table_entry_rsort_comparer
 		return first.m_ncalls > second.m_ncalls;
 	}
 };
+
+//
+// Printer functions
+//
+void list_fields();
+const char* param_type_to_string(ppm_param_type pt);
+void list_events(sinsp* inspector);
+void list_chisels(vector<chisel_desc>* chlist);
+
+
+

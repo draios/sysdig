@@ -54,6 +54,7 @@ static void usage()
 " -j, --json         Emit output as json\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting\n"
+" -L, --list-events  List the events that the engine supports\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " -p <output_format>, --print=<output_format>\n"
@@ -100,153 +101,6 @@ static void usage()
 " Print the name of the files opened by cat\n"
 "   $ ./sysdig -p\"%%evt.arg.name\" proc.name=cat and evt.type=open\n\n"
     );
-}
-
-//
-// Prints information about program fields
-//
-#define DESCRIPTION_TEXT_START 16
-#define CONSOLE_LINE_LEN 79
-
-static void list_fields()
-{
-	uint32_t j, l, m;
-	int32_t k;
-
-	vector<const filter_check_info*> fc_plugins;
-	sinsp::get_filtercheck_fields_info(&fc_plugins);
-
-	for(j = 0; j < fc_plugins.size(); j++)
-	{
-		const filter_check_info* fci = fc_plugins[j];
-
-		printf("\n----------------------\n");
-		printf("Field Class: %s\n\n", fci->m_name.c_str());
-
-		for(k = 0; k < fci->m_nfiedls; k++)
-		{
-			const filtercheck_field_info* fld = &fci->m_fields[k];
-
-			printf("%s", fld->m_name);
-			uint32_t namelen = strlen(fld->m_name);
-
-			ASSERT(namelen < DESCRIPTION_TEXT_START);
-
-			for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
-			{
-				printf(" ");
-			}
-				
-			size_t desclen = strlen(fld->m_description);
-
-			for(l = 0; l < desclen; l++)
-			{
-				if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
-				{
-					printf("\n");
-
-					for(m = 0; m < DESCRIPTION_TEXT_START; m++)
-					{
-						printf(" ");
-					}
-				}
-
-				printf("%c", fld->m_description[l]);
-			}
-
-			printf("\n");
-		}
-	}
-}
-
-static void list_chisels(vector<chisel_desc>* chlist)
-{
-	uint32_t j, l, m;
-
-	for(j = 0; j < chlist->size(); j++)
-	{
-		chisel_desc* cd = &(chlist->at(j));
-
-		printf("%s", cd->m_name.c_str());
-		uint32_t namelen = cd->m_name.size();
-
-		ASSERT(namelen < DESCRIPTION_TEXT_START);
-
-		for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
-		{
-			printf(" ");
-		}
-				
-		string desc = cd->m_description + ".";
-		size_t desclen = desc.size();
-
-		for(l = 0; l < desclen; l++)
-		{
-			if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
-			{
-				printf("\n");
-
-				for(m = 0; m < DESCRIPTION_TEXT_START; m++)
-				{
-					printf(" ");
-				}
-			}
-
-			printf("%c", desc[l]);
-		}
-
-		printf("\n");
-
-		for(l = 0; l < DESCRIPTION_TEXT_START; l++)
-		{
-			printf(" ");
-		}
-
-		string astr;
-
-		if(cd->m_args.size() != 0)
-		{
-			astr +=	"Args: ";
-
-			for(l = 0; l < cd->m_args.size(); l++)
-			{
-				astr += cd->m_args[l].m_name;
-				if(l != cd->m_args.size() - 1)
-				{
-					astr +=	", ";
-				}
-			}
-
-			astr +=	".";
-		}
-		else
-		{
-			astr +=	"No args.";
-		}
-
-		size_t astrlen = astr.size();
-
-		for(l = 0; l < astrlen; l++)
-		{
-			if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
-			{
-				printf("\n");
-
-				for(m = 0; m < DESCRIPTION_TEXT_START; m++)
-				{
-					printf(" ");
-				}
-			}
-
-			printf("%c", astr[l]);
-		}
-
-		printf("\n");
-	}
-}
-
-static void print_chisel_info(chisel_desc* chlist)
-{
 }
 
 void print_summary_table(sinsp* inspector, 
@@ -465,6 +319,7 @@ int main(int argc, char **argv)
         {"help", no_argument, 0, 'h' },
         {"json", no_argument, 0, 'j' },
         {"list", no_argument, 0, 'l' },
+        {"list-events", no_argument, 0, 'L' },
         {"numevents", required_argument, 0, 'n' },
         {"print", required_argument, 0, 'p' },
         {"quiet", no_argument, 0, 'q' },
@@ -488,7 +343,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "ac:dhjln:p:qr:Ss:vw:", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:vw:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -542,7 +397,7 @@ int main(int argc, char **argv)
 						{
 							if(chlist[j].m_name == cname)
 							{
-								print_chisel_info(&chlist[j]);
+								//print_chisel_info(&chlist[j]);
 								delete inspector;
 								return EXIT_SUCCESS;
 							}
@@ -587,6 +442,10 @@ int main(int argc, char **argv)
 				return EXIT_SUCCESS;
 			case 'l':
 				list_fields();
+				delete inspector;
+				return EXIT_SUCCESS;
+			case 'L':
+				list_events(inspector);
 				delete inspector;
 				return EXIT_SUCCESS;
 			case 'n':
