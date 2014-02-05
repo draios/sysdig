@@ -1,12 +1,13 @@
 -- Chisel description
 description = "lists every command that a specific user launches interactively (e.g. from bash) and every directory the user visits";
+category = "Security";
 
 -- Chisel argument list
 args = 
 {
 	{
 		name = "username", 
-		description = "lists every command that a specific user launches interactively (e.g. from bash) and every directory the user visits", 
+		description = "", 
 		argtype = "string"
 	},
 }

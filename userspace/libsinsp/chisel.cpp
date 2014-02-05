@@ -19,7 +19,7 @@
 
 #ifdef HAS_CHISELS
 
-#define HAS_LUA_CHISELS
+#undef HAS_LUA_CHISELS
 
 #ifdef HAS_LUA_CHISELS
 extern "C" {
@@ -299,6 +299,23 @@ public:
 
 		return 0;
 	}
+
+	static int set_timeout_ns(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		uint64_t timeout = lua_tonumber(ls, 1);
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		ch->m_lua_cinfo->set_callback_timeout(timeout);
+
+		return 0;
+	}
 };
 
 const static struct luaL_reg ll_sysdig [] = 
@@ -306,6 +323,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"request_field", &lua_cbacks::request_field},
 	{"set_filter", &lua_cbacks::set_filter},
 	{"set_event_formatter", &lua_cbacks::set_event_formatter},
+	{"set_timeout_ns", &lua_cbacks::set_timeout_ns},
 	{NULL,NULL}
 };
 
@@ -386,6 +404,7 @@ chiselinfo::chiselinfo(sinsp* inspector)
 	m_formatter = NULL;
 	m_dumper = NULL;
 	m_inspector = inspector;
+	m_callback_timeout = 0;
 }
 
 chiselinfo::~chiselinfo()
@@ -444,7 +463,10 @@ void chiselinfo::set_formatter(string formatterstr)
 	}
 }
 
-vector<string> m_chisel_paths;
+void chiselinfo::set_callback_timeout(uint64_t timeout)
+{
+	m_callback_timeout = timeout;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // chisel implementation
@@ -1023,6 +1045,24 @@ void sinsp_chisel::run(sinsp_evt* evt)
 				lua_pushlightuserdata(m_ls, evt);
 				lua_setglobal(m_ls, "sievt");
 				m_lua_is_first_evt = false;
+			}
+
+			if(m_lua_cinfo->m_callback_timeout != 0)
+			{
+				lua_getglobal(m_ls, "on_timeout");
+			
+				if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+				{
+					throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
+				}
+	
+				int oeres = lua_toboolean(m_ls, -1);
+				lua_pop(m_ls, 1);
+
+				if(oeres == false)
+				{
+					return;
+				}
 			}
 
 			lua_getglobal(m_ls, "on_event");
