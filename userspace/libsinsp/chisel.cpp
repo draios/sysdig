@@ -19,7 +19,7 @@
 
 #ifdef HAS_CHISELS
 
-#undef HAS_LUA_CHISELS
+#define HAS_LUA_CHISELS
 
 #ifdef HAS_LUA_CHISELS
 extern "C" {
@@ -574,7 +574,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			string fname(file.name);
 			string fpath(file.path);
 
-			if(fname.find(".sc") != string::npos)
+			if(fname.find(".sc") == fname.size() - 3)
 			{
 				try
 				{
@@ -604,7 +604,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			}
 
 #ifdef HAS_LUA_CHISELS
-			if(fname.find(".lua") != string::npos)
+			if(fname.find(".lua") == fname.size() - 4)
 			{
 				chisel_desc cd;
 				cd.m_name = fname.substr(0, fname.rfind('.'));
