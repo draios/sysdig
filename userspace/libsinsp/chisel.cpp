@@ -404,7 +404,10 @@ chiselinfo::chiselinfo(sinsp* inspector)
 	m_formatter = NULL;
 	m_dumper = NULL;
 	m_inspector = inspector;
+
+#ifdef HAS_LUA_CHISELS
 	m_callback_timeout = 0;
+#endif
 }
 
 chiselinfo::~chiselinfo()
@@ -463,10 +466,12 @@ void chiselinfo::set_formatter(string formatterstr)
 	}
 }
 
+#ifdef HAS_LUA_CHISELS
 void chiselinfo::set_callback_timeout(uint64_t timeout)
 {
 	m_callback_timeout = timeout;
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // chisel implementation
