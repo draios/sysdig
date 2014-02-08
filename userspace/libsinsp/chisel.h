@@ -55,10 +55,12 @@ public:
 	void init(string filterstr, string formatterstr); 
 	void set_filter(string filterstr);
 	void set_formatter(string formatterstr);
+	void set_callback_interval(uint64_t interval);
 	~chiselinfo();
 	sinsp_filter* m_filter;
 	sinsp_evt_formatter* m_formatter;
 	sinsp_dumper* m_dumper;
+	uint64_t m_callback_interval;
 
 private:
 	sinsp* m_inspector;
@@ -69,6 +71,7 @@ class SINSP_PUBLIC sinsp_chisel
 public:
 	sinsp_chisel(sinsp* inspector, string filename);
 	~sinsp_chisel();
+	static void add_lua_package_path(lua_State* ls, const char* path);
 	static void get_chisel_list(vector<chisel_desc>* chisel_descs);
 	void load(string cmdstr);
 	uint32_t get_n_args();
@@ -89,6 +92,7 @@ private:
 	chisel_desc m_lua_script_info;
 	bool m_lua_has_handle_evt;
 	bool m_lua_is_first_evt;
+	uint64_t m_lua_last_interval_sample_time;
 	vector<sinsp_filter_check*> m_allocated_fltchecks;
 	char m_lua_fld_storage[1024];
 	chiselinfo* m_lua_cinfo;

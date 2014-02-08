@@ -86,6 +86,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	ASSERT(evt);
 
+	if(!extract_fd(evt))
+	{
+		return false;
+	}
+
 	//
 	// TYPE_FDNUM doesn't need fdinfo
 	//
@@ -185,6 +190,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 {
+	if(!extract_fd(evt))
+	{
+		return false;
+	}
+
 	if(m_fdinfo != NULL)
 	{
 		scap_fd_type evt_type = m_fdinfo->m_type;
@@ -226,6 +236,11 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 
 bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 {
+	if(!extract_fd(evt))
+	{
+		return false;
+	}
+
 	if(m_fdinfo != NULL)
 	{
 		scap_fd_type evt_type = m_fdinfo->m_type;
@@ -317,11 +332,6 @@ bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 
 bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 {
-	if(!extract_fd(evt))
-	{
-		return false;
-	}
-
 	//
 	// A couple of fields are filter only and therefore get a special treatment
 	//
@@ -354,11 +364,6 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 char* sinsp_filter_check_fd::tostring(sinsp_evt* evt)
 {
 	uint32_t len;
-
-	if(!extract_fd(evt))
-	{
-		return NULL;
-	}
 
 	uint8_t* rawval = extract(evt, &len);
 
@@ -544,6 +549,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 {
 	{PT_UINT64, EPF_NONE, PF_DEC, "evt.num", "event number."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time", "event timestamp as a time string."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.s", "event timestamp as a time string."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime", "event timestamp as a time string that inclused the date."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime", "absolute event timestamp, i.e. nanoseconds from epoch."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime.s", "integer part of the event timestamp (e.g. seconds since epoch)."},
@@ -560,7 +566,9 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_NONE, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'arg.fd'."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as an error code string (e.g. 'ENOENT')."},
 	{PT_INT64, EPF_NONE, PF_DEC, "evt.rawres", "event return value, as a number (e.g. -2). Useful for range comparisons."},
-	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io", "'true' for events that read on write to FDs, like read(), send, recvfrom(), etc."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io", "'true' for events that read or write to FDs, like read(), send, recvfrom(), etc."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_read", "'true' for events that read from FDs, like read(), recv(), recvfrom(), etc."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -707,7 +715,7 @@ int32_t sinsp_filter_check_event::gmt2local(time_t t)
 	return (dt);
 }
 
-void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool full)
+void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
 {
 	struct tm *tm;
 	time_t Time;
@@ -718,7 +726,7 @@ void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool f
 	int32_t bufsize = 0;
 	char buf[256];
 
-	if(full) 
+	if(date) 
 	{
 		Time = (sec + thiszone) - s;
 		tm = gmtime (&Time);
@@ -733,8 +741,16 @@ void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool f
 		}
 	}
 
-	sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
-			s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
+	if(ns)
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
+				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
+	}
+	else
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d",
+				s / 3600, (s % 3600) / 60, s % 60);
+	}
 
 	*res = buf;
 }
@@ -744,10 +760,13 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	switch(m_field_id)
 	{
 	case TYPE_TIME:
-		ts_to_string(evt->get_ts(), &m_strstorage, false);
+		ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+		return (uint8_t*)m_strstorage.c_str();
+	case TYPE_TIME_S:
+		ts_to_string(evt->get_ts(), &m_strstorage, false, false);
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_DATETIME:
-		ts_to_string(evt->get_ts(), &m_strstorage, true);
+		ts_to_string(evt->get_ts(), &m_strstorage, true, true);
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_RAWTS:
 		return (uint8_t*)&evt->m_pevt->ts;
@@ -980,6 +999,32 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			ppm_event_flags eflags = evt->get_flags();
 			if(eflags & (EF_READS_FROM_FD | EF_WRITES_TO_FD))
+			{
+				m_u32val = 1;
+			}
+			else
+			{
+				m_u32val = 0;
+			}
+		}
+
+		return (uint8_t*)&m_u32val;
+	case TYPE_ISIO_READ:
+		{
+			ppm_event_flags eflags = evt->get_flags();
+			if(eflags & EF_READS_FROM_FD)
+			{
+				m_u32val = 1;
+			}
+			else
+			{
+				m_u32val = 0;
+			}
+		}
+	case TYPE_ISIO_WRITE:
+		{
+			ppm_event_flags eflags = evt->get_flags();
+			if(eflags & EF_WRITES_TO_FD)
 			{
 				m_u32val = 1;
 			}

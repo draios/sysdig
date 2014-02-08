@@ -250,7 +250,16 @@ public:
 		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
 
-		sinsp_filter_check* chk = (sinsp_filter_check*)lua_topointer(ls, 1); 
+		sinsp_filter_check* chk = (sinsp_filter_check*)lua_topointer(ls, 1);
+		if(chk == NULL)
+		{
+			//
+			// This happens if the lua code is calling field() without invoking 
+			// sysdig.request_field() before. 
+			//
+			lua_pushnil(ls);
+			return 1;
+		}
 
 		uint32_t vlen;
 		uint8_t* rawval = chk->extract(evt, &vlen);
@@ -300,19 +309,36 @@ public:
 		return 0;
 	}
 
-	static int set_timeout_ns(lua_State *ls) 
+	static int set_interval_ns(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
 
 		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
 
-		uint64_t timeout = lua_tonumber(ls, 1);
+		uint64_t interval = (uint64_t)lua_tonumber(ls, 1);
 
 		ASSERT(ch);
 		ASSERT(ch->m_lua_cinfo);
 
-		ch->m_lua_cinfo->set_callback_timeout(timeout);
+		ch->m_lua_cinfo->set_callback_interval(interval);
+
+		return 0;
+	}
+
+	static int set_interval_s(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		uint64_t interval = (uint64_t)lua_tonumber(ls, 1);
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		ch->m_lua_cinfo->set_callback_interval(interval * 1000000000);
 
 		return 0;
 	}
@@ -323,7 +349,8 @@ const static struct luaL_reg ll_sysdig [] =
 	{"request_field", &lua_cbacks::request_field},
 	{"set_filter", &lua_cbacks::set_filter},
 	{"set_event_formatter", &lua_cbacks::set_event_formatter},
-	{"set_timeout_ns", &lua_cbacks::set_timeout_ns},
+	{"set_interval_ns", &lua_cbacks::set_interval_ns},
+	{"set_interval_s", &lua_cbacks::set_interval_s},
 	{NULL,NULL}
 };
 
@@ -406,7 +433,7 @@ chiselinfo::chiselinfo(sinsp* inspector)
 	m_inspector = inspector;
 
 #ifdef HAS_LUA_CHISELS
-	m_callback_timeout = 0;
+	m_callback_interval = 0;
 #endif
 }
 
@@ -467,9 +494,9 @@ void chiselinfo::set_formatter(string formatterstr)
 }
 
 #ifdef HAS_LUA_CHISELS
-void chiselinfo::set_callback_timeout(uint64_t timeout)
+void chiselinfo::set_callback_interval(uint64_t interval)
 {
-	m_callback_timeout = timeout;
+	m_callback_interval = interval;
 }
 #endif
 
@@ -484,6 +511,7 @@ sinsp_chisel::sinsp_chisel(sinsp* inspector, string filename)
 	m_lua_has_handle_evt = false;
 	m_lua_is_first_evt = true;
 	m_lua_cinfo = NULL;
+	m_lua_last_interval_sample_time = 0;
 
 	load(filename);
 }
@@ -577,6 +605,21 @@ void parse_lua_chisel_args(lua_State *ls, OUT chisel_desc* cd)
 		lua_pop(ls, 1);
 	}
 }
+
+void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
+{
+    lua_getglobal(ls, "package");
+    lua_getfield(ls, -1, "path"); 
+
+    string cur_path = lua_tostring(ls, -1 );
+	cur_path += ';';
+    cur_path.append(path);
+    lua_pop(ls, 1);
+
+    lua_pushstring(ls, cur_path.c_str());
+    lua_setfield(ls, -2, "path");
+    lua_pop(ls, 1);
+}
 #endif
 
 void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
@@ -647,11 +690,20 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				luaL_openlib(ls, "evt", ll_evt, 0);
 
 				//
+				// Add our chisel paths to package.path
+				//
+				for(uint32_t k  = 0; k < g_chisel_dirs->size(); k++)
+				{
+					string path(g_chisel_dirs->at(k).m_dir);
+					path += "?.lua";
+					add_lua_package_path(ls, path.c_str());
+				}
+
+				//
 				// Load the script
 				//
 				if(luaL_loadfile(ls, fpath.c_str()) || lua_pcall(ls, 0, 0, 0)) 
 				{
-					fprintf(stderr, "error: %s", lua_tostring(ls, -1));
 					goto next_lua_file;
 				}
 
@@ -809,6 +861,16 @@ void sinsp_chisel::load(string cmdstr)
 		//
 		luaL_openlib(m_ls, "sysdig", ll_sysdig, 0);
 		luaL_openlib(m_ls, "evt", ll_evt, 0);
+
+		//
+		// Add our chisel paths to package.path
+		//
+		for(uint32_t j = 0; j < g_chisel_dirs->size(); j++)
+		{
+			string path(g_chisel_dirs->at(j).m_dir);
+			path += "?.lua";
+			add_lua_package_path(m_ls, path.c_str());
+		}
 
 		//
 		// Load the script
@@ -1050,23 +1112,36 @@ void sinsp_chisel::run(sinsp_evt* evt)
 				lua_pushlightuserdata(m_ls, evt);
 				lua_setglobal(m_ls, "sievt");
 				m_lua_is_first_evt = false;
+				uint64_t ts = evt->get_ts();
+				if(m_lua_cinfo->m_callback_interval != 0)
+				{
+					m_lua_last_interval_sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
+				}
 			}
 
-			if(m_lua_cinfo->m_callback_timeout != 0)
+			if(m_lua_cinfo->m_callback_interval != 0)
 			{
-				lua_getglobal(m_ls, "on_timeout");
-			
-				if(lua_pcall(m_ls, 0, 1, 0) != 0) 
-				{
-					throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
-				}
-	
-				int oeres = lua_toboolean(m_ls, -1);
-				lua_pop(m_ls, 1);
+				uint64_t ts = evt->get_ts();
+				uint64_t sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
 
-				if(oeres == false)
+				if(sample_time != m_lua_last_interval_sample_time)
 				{
-					return;
+					lua_getglobal(m_ls, "on_interval");
+			
+					if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+					{
+						throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
+					}
+	
+					int oeres = lua_toboolean(m_ls, -1);
+					lua_pop(m_ls, 1);
+
+					if(oeres == false)
+					{
+						throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
+					}
+	
+					m_lua_last_interval_sample_time = sample_time;
 				}
 			}
 
