@@ -40,12 +40,12 @@
 //
 // The time after an inactive thread is removed.
 //
-#define DEFAULT_THREAD_TIMEOUT_SEC 1800
+#define DEFAULT_THREAD_TIMEOUT_S 1800
 
 //
 // How often the thread table is sacnned for inactive threads
 //
-#define DEFAULT_INACTIVE_THREAD_SCAN_TIME 600
+#define DEFAULT_INACTIVE_THREAD_SCAN_TIME_S 600
 
 //
 // Enables LUA chisel scripts support
