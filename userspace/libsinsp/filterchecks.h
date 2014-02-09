@@ -187,6 +187,7 @@ public:
 		TYPE_SERVERPORT = 9,
 		TYPE_L4PROTO = 10,
 		TYPE_SOCKFAMILY = 11,
+		TYPE_IS_SERVER = 12,
 	};
 
 	enum fd_type
@@ -220,6 +221,7 @@ public:
 	fd_type m_fd_type;
 	string m_tstr;
 	uint8_t m_tcstr[2];
+	uint32_t m_tbool;
 
 private:
 	bool extract_fd(sinsp_evt *evt);

@@ -28,6 +28,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.sport", "for TCP/UDP FDs, server port."},
 	{PT_UINT8, EPF_NONE, PF_DEC, "fd.l4proto", "the IP protocol number."},
 	{PT_SOCKFAMILY, EPF_NONE, PF_DEC, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_server", "'true' if the process owning this FD is the server endpoint in the connection."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -181,6 +182,13 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 		}
+	case TYPE_IS_SERVER:
+		{
+			m_tbool = 
+				m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+			return (uint8_t*)&m_tbool;
+		}
+		break;
 	default:
 		ASSERT(false);
 	}

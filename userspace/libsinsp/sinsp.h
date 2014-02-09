@@ -384,6 +384,13 @@ public:
 	*/
 	void add_chisel_dir(string dirname);
 
+	/*!
+	  \brief Get the list of machine network interfaces.
+
+	  \return Pointer to the iterface list manager.
+	*/
+	sinsp_network_interfaces* get_ifaddr_list();
+
 	//
 	// Misc internal stuff 
 	//

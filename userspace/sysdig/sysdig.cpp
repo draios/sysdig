@@ -539,6 +539,7 @@ int main(int argc, char **argv)
 			{
 				cerr << e.what() << endl;
 				res = EXIT_FAILURE;
+				goto exit;
 			}
 	#else
 			fprintf(stderr, "filtering not compiled.\n");

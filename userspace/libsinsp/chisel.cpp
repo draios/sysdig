@@ -878,7 +878,7 @@ void sinsp_chisel::load(string cmdstr)
 		if(luaL_loadstring(m_ls, scriptstr.c_str()) || lua_pcall(m_ls, 0, 0, 0)) 
 		{
 			throw sinsp_exception("Failed to load chisel " + 
-				m_filename + ":" + lua_tostring(m_ls, -1));
+				m_filename + ": " + lua_tostring(m_ls, -1));
 		}
 
 		//
@@ -896,6 +896,11 @@ void sinsp_chisel::load(string cmdstr)
 		// Extract the args
 		//
 		lua_getglobal(m_ls, "args");
+		if(!lua_istable(m_ls, -1))
+		{
+			throw sinsp_exception("Failed to load chisel " + 
+				m_filename + ": args table missing");
+		}
 
 		try
 		{
