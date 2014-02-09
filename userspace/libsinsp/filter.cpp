@@ -677,9 +677,6 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_filter::sinsp_filter(sinsp* inspector, string fltstr)
 {
-//fltstr = "tid!=-1";
-//fltstr = "comm = pv";
-
 	m_inspector = inspector;
 	m_scanpos = -1;
 	m_scansize = 0;

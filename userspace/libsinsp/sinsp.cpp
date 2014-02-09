@@ -214,6 +214,11 @@ void sinsp::import_ifaddr_list()
 	m_network_interfaces->import_interfaces(scap_get_ifaddr_list(m_h));
 }
 
+sinsp_network_interfaces* sinsp::get_ifaddr_list()
+{
+	return m_network_interfaces;
+}
+
 void sinsp::import_user_list()
 {
 	uint32_t j;
