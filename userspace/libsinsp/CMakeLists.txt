@@ -2,6 +2,8 @@ include_directories(./)
 include_directories(../../common)
 include_directories(../libscap)
 include_directories(third-party/jsoncpp)
+include_directories(third-party/jsoncpp)
+include_directories(${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src)
 
 add_library(sinsp STATIC
 	chisel.cpp
@@ -22,4 +24,6 @@ add_library(sinsp STATIC
 	utils.cpp)
 
 target_link_libraries(sinsp 
-	scap)
+	scap
+	${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/libluajit.a
+	dl)

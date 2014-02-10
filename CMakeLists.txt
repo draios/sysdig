@@ -21,6 +21,14 @@ if(NOT WIN32)
 		add_subdirectory(driver)
 	endif()
 
+	include(ExternalProject)
+	ExternalProject_Add(luajit
+		SOURCE_DIR ${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2
+		CONFIGURE_COMMAND ""
+		BUILD_COMMAND make
+		BUILD_IN_SOURCE 1
+		INSTALL_COMMAND "")
+
 else()
 
 	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3")
