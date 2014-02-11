@@ -54,7 +54,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>third-party/jsoncpp;../../common;../libscap;../../../LuaJIT/src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>third-party/jsoncpp;../../common;../libscap;../../../draios_win32_deps/LuaJIT/src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -63,7 +63,7 @@
       <ImportLibrary>$(ProjectDir)\..\Debug\$(TargetName).lib</ImportLibrary>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalDependencies>../../../LuaJIT/src/lua51.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;%(AdditionalDependencies);../Debug/scap.lib</AdditionalDependencies>
+      <AdditionalDependencies>../../../draios_win32_deps/LuaJIT/src/lua51.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;%(AdditionalDependencies);../Debug/scap.lib</AdditionalDependencies>
       <OutputFile>$(ProjectDir)\..\Debug\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
@@ -73,7 +73,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>third-party/jsoncpp;../../common;../libscap;../../../LuaJIT/src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>third-party/jsoncpp;../../common;../libscap;../../../draios_win32_deps/LuaJIT/src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -84,7 +84,7 @@
       <ImportLibrary>$(ProjectDir)\..\Release\$(TargetName).lib</ImportLibrary>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalDependencies>../../../LuaJIT/src/lua51.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;../Release/scap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../../../draios_win32_deps/LuaJIT/src/lua51.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;../Release/scap.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(ProjectDir)\..\Release\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
