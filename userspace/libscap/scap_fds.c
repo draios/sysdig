@@ -612,13 +612,17 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 	scap_fdinfo *tfdi;
 	uint64_t ino;
 
-	ASSERT(NULL != sockets);
+	if(sockets == NULL)
+	{
+		return SCAP_SUCCESS;
+	}
 
 	r = readlink(fname, link_name, 1024);
 	if (r <= 0)
 	{
 		return SCAP_SUCCESS;
 	}
+
 	link_name[r] = '\0';
 
 	strncpy(fdi->info.fname, link_name, SCAP_MAX_PATH_SIZE);

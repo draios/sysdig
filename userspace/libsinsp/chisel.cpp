@@ -19,7 +19,7 @@
 
 #ifdef HAS_CHISELS
 
-#undef HAS_LUA_CHISELS
+#define HAS_LUA_CHISELS
 
 #ifdef HAS_LUA_CHISELS
 extern "C" {
@@ -135,10 +135,10 @@ public:
 				}
 			case PT_SOCKADDR:
 				ASSERT(false);
-				return NULL;
+				return 0;
 			case PT_SOCKFAMILY:
 				ASSERT(false);
-				return NULL;
+				return 0;
 			case PT_BOOL:
 				lua_pushboolean(ls, (*(uint32_t*)rawval != 0));
 				return 1;
