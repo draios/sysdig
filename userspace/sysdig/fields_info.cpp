@@ -173,7 +173,7 @@ void list_events(sinsp* inspector)
 			continue;
 		}
 
-		printf("%c %s<", dir, ei.name);
+		printf("%c %s(", dir, ei.name);
 		uint32_t namelen = strlen(ei.name);
 
 		ASSERT(namelen < DESCRIPTION_TEXT_START);
@@ -189,7 +189,7 @@ void list_events(sinsp* inspector)
 				ei.params[k].name);
 		}
 				
-		printf(">\n");
+		printf(")\n");
 	}
 }
 
