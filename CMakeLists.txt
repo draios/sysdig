@@ -48,7 +48,7 @@ endif()
 
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
-if(NOT WIN32)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
    add_subdirectory(userspace/libscap/examples/01-open)
    add_subdirectory(userspace/libscap/examples/02-validatebuffer)
 endif()
