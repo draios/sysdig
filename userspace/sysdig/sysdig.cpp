@@ -79,7 +79,7 @@ static void usage()
 "with the following format:\n\n"
 "%%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.args\n\n"
 "where:\n"
-" evt.time is the event timestamo\n"
+" evt.time is the event timestamp\n"
 " evt.cpu is the CPU number where the event was captured\n"
 " proc.name is the name of the process that generated the event\n"
 " thread.tid id the TID that generated the event, which corresponds to the\n" 
@@ -501,6 +501,7 @@ int main(int argc, char **argv)
 				break;
 			case 'w':
 				outfile = optarg;
+				quiet = true;
 				break;
 			default:
 				break;
