@@ -1,5 +1,5 @@
 -- Chisel description
-description = "Shows the top processes in terms of total (in+out) bytes to disk, once per second";
+description = "Shows the top processes in terms of total (in+out) bytes to disk, once per second.";
 short_description = "top processes by total disk bytes";
 category = "IO";
 

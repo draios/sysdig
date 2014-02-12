@@ -1602,14 +1602,15 @@ void sinsp_parser::set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
 }
 
 
-void sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
+// Return false if the update didn't happen (for example because the tuple is NULL
+bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 {
 	uint8_t* packed_data = (uint8_t*)parinfo->m_val;
 	uint8_t family = *packed_data;
 
 	if(parinfo->m_len == 0)
 	{
-		return;
+		return false;
 	}
 
 	if(family == PPM_AF_INET)
@@ -1640,7 +1641,7 @@ void sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 
 		if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)))
 		{
-			return;
+			return true;
 		}
 
 		evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
@@ -1659,6 +1660,8 @@ void sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 		//
 		m_inspector->m_network_interfaces->update_fd(evt->m_fdinfo);
 	}
+
+	return true;
 }
 
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
@@ -1711,11 +1714,13 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				// datagram one or because some event was lost),
 				// add it here.
 				//
-				update_fd(evt, evt->get_param(tupleparam));
-				const char *parstr;
-				if(evt->m_fdinfo->m_name.length() == 0)
+				if(update_fd(evt, evt->get_param(tupleparam)))
 				{
-					evt->m_fdinfo->m_name = evt->get_param_as_str(2, &parstr, sinsp_evt::PF_SIMPLE);
+					const char *parstr;
+					if(evt->m_fdinfo->m_name.length() == 0)
+					{
+						evt->m_fdinfo->m_name = evt->get_param_as_str(2, &parstr, sinsp_evt::PF_SIMPLE);
+					}
 				}
 			}
 
@@ -1734,7 +1739,6 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			datalen = parinfo->m_len;
 			data = parinfo->m_val;
 
-//			handle_read(evt, tid, evt->m_tinfo->m_lastevent_fd, data, (uint32_t)retval, datalen);
 			if(m_fd_listener)
 			{
 				m_fd_listener->on_read(evt, tid, evt->m_tinfo->m_lastevent_fd, data, (uint32_t)retval, datalen);
@@ -1764,8 +1768,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				}
 
 				const char *parstr;
-				update_fd(evt, enter_evt->get_param(tupleparam));
-				evt->m_fdinfo->m_name = enter_evt->get_param_as_str(2, &parstr, sinsp_evt::PF_SIMPLE);
+				if(update_fd(evt, enter_evt->get_param(tupleparam)))
+				{
+					evt->m_fdinfo->m_name = enter_evt->get_param_as_str(2, &parstr, sinsp_evt::PF_SIMPLE);
+				}
 			}
 
 			//
