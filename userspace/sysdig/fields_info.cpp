@@ -211,7 +211,7 @@ void list_chisels(vector<chisel_desc>* chlist)
 			printf(" ");
 		}
 				
-		string desc = cd->m_description + ".";
+		string desc = cd->m_description;
 		size_t desclen = desc.size();
 
 		for(l = 0; l < desclen; l++)

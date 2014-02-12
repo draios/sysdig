@@ -1,6 +1,6 @@
 -- Chisel description
 description = "counts the total bytes read from and written to any type of FD (disk, socket, pipe...) and prints the result every second.";
-short_description = "sum of I/O bytes";
+short_description = "sum of all I/O bytes";
 category = "IO";
 
 -- Chisel argument list

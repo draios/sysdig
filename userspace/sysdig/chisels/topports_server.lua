@@ -1,5 +1,5 @@
 -- Chisel description
-description = "Shows the top TCP/UDP server ports in terms of total (in+out) bandwidth, once per second";
+description = "Shows the top TCP/UDP server ports in terms of total (in+out) bandwidth, once per second.";
 short_description = "top server ports by total bytes";
 category = "net";
 
