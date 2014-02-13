@@ -538,17 +538,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		else if(param->m_val[0] == AF_UNIX)
 		{
-			//
-			// typestr contains the type character that goes
-			// at the beginning of the string if PF_NORMAL or
-			// PF_JSON is specified
-			//
-			char typestr[2] =
-			{
-				(fmt == PF_SIMPLE)?(char)0:(char)CHAR_FD_UNIX_SOCK,
-				0
-			};
-
 			ASSERT(param->m_len > 1);
 
 			//
@@ -559,29 +548,16 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			snprintf(m_paramstr_storage,
 				sizeof(m_paramstr_storage), 
-				"%s %s",
-				typestr,
+				"%s",
 				sanitized_str.c_str());
 		}
 		else if(param->m_val[0] == PPM_AF_INET)
 		{
 			if(param->m_len == 1 + 4 + 2)
 			{
-				//
-				// typestr contains the type character that goes
-				// at the beginning of the string if PF_NORMAL or
-				// PF_JSON is specified
-				//
-				char typestr[2] =
-				{
-					(fmt == PF_SIMPLE)?(char)0:(char)CHAR_FD_IPV4_SOCK,
-					0
-				};
-
 				snprintf(m_paramstr_storage,
 				         sizeof(m_paramstr_storage),
-				         "%s%u.%u.%u.%u:%u",
-				         typestr,
+				         "%u.%u.%u.%u:%u",
 				         (unsigned int)(uint8_t)param->m_val[1],
 				         (unsigned int)(uint8_t)param->m_val[2],
 				         (unsigned int)(uint8_t)param->m_val[3],
@@ -617,21 +593,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(param->m_len == 1 + 4 + 2 + 4 + 2)
 			{
-				//
-				// typestr contains the type character that goes
-				// at the beginning of the string if PF_NORMAL or
-				// PF_JSON is specified
-				//
-				char typestr[2] =
-				{
-					(fmt == PF_SIMPLE)?(char)0:(char)CHAR_FD_IPV4_SOCK,
-					0
-				};
-
 				snprintf(m_paramstr_storage,
 				         sizeof(m_paramstr_storage),
-				         "%s%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-				         typestr,
+				         "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
 				         (unsigned int)(uint8_t)param->m_val[1],
 				         (unsigned int)(uint8_t)param->m_val[2],
 				         (unsigned int)(uint8_t)param->m_val[3],
@@ -662,21 +626,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 				{
-					//
-					// typestr contains the type character that goes
-					// at the beginning of the string if PF_NORMAL or
-					// PF_JSON is specified
-					//
-					char typestr[2] =
-					{
-						(fmt == PF_SIMPLE)?(char)0:(char)CHAR_FD_IPV4_SOCK,
-						0
-					};
-
 					snprintf(m_paramstr_storage,
 							 sizeof(m_paramstr_storage),
-							 "%s%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-							 typestr,
+							 "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
 							 (unsigned int)sip[0],
 							 (unsigned int)sip[1],
 							 (unsigned int)sip[2],
@@ -696,21 +648,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) && 
 						inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
 					{
-						//
-						// typestr contains the type character that goes
-						// at the beginning of the string if PF_NORMAL or
-						// PF_JSON is specified
-						//
-						char typestr[2] =
-						{
-							(fmt == PF_SIMPLE)?(char)0:(char)CHAR_FD_IPV6_SOCK,
-							0
-						};
-
 						snprintf(m_paramstr_storage,
 								 sizeof(m_paramstr_storage),
-								 "%s%s:%u->%s:%u",
-								 typestr,
+								 "%s:%u->%s:%u",
 								 srcstr,
 								 (unsigned int)*(uint16_t*)(param->m_val + 17),
 								 dststr,
@@ -727,17 +667,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		else if(param->m_val[0] == AF_UNIX)
 		{
-			//
-			// typestr contains the type character that goes
-			// at the beginning of the string if PF_NORMAL or
-			// PF_JSON is specified
-			//
-			char typestr[2] =
-			{
-				(fmt == PF_SIMPLE)?(char)0:(char)CHAR_FD_UNIX_SOCK,
-				0
-			};
-
 			ASSERT(param->m_len > 17);
 
 			//
@@ -748,8 +677,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			snprintf(m_paramstr_storage,
 				sizeof(m_paramstr_storage), 
-				"%s%" PRIx64 "->%" PRIx64 " %s", 
-				typestr,
+				"%" PRIx64 "->%" PRIx64 " %s", 
 				*(uint64_t*)(param->m_val + 1),
 				*(uint64_t*)(param->m_val + 9),
 				sanitized_str.c_str());

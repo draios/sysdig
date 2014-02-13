@@ -89,7 +89,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 	if(!extract_fd(evt))
 	{
-		return false;
+		return NULL;
 	}
 
 	//

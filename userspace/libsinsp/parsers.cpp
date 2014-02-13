@@ -1717,10 +1717,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				if(update_fd(evt, evt->get_param(tupleparam)))
 				{
 					const char *parstr;
-					if(evt->m_fdinfo->m_name.length() == 0)
-					{
-						evt->m_fdinfo->m_name = evt->get_param_as_str(2, &parstr, sinsp_evt::PF_SIMPLE);
-					}
+					evt->m_fdinfo->m_name = evt->get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
 				}
 			}
 
@@ -1767,10 +1764,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					return;
 				}
 
-				const char *parstr;
 				if(update_fd(evt, enter_evt->get_param(tupleparam)))
 				{
-					evt->m_fdinfo->m_name = enter_evt->get_param_as_str(2, &parstr, sinsp_evt::PF_SIMPLE);
+					const char *parstr;
+					evt->m_fdinfo->m_name = enter_evt->get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
 				}
 			}
 
