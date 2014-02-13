@@ -332,7 +332,8 @@ int main(int argc, char **argv)
     };
 
 //	output_format = "*%evt.num)%evt.reltime.s.%evt.reltime.ns %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
-	output_format = DEFAULT_OUTPUT_STR;
+	output_format = "*%evt.num)%evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
+//	output_format = DEFAULT_OUTPUT_STR;
 
 	try
 	{
