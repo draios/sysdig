@@ -1219,6 +1219,14 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 #endif
 	}
 
+	//
+	// Mark this fd as a client
+	//
+	evt->m_fdinfo->set_role_client();
+
+	//
+	// If there's a listener callback, invoke it
+	//
 	if(m_fd_listener)
 	{
 		m_fd_listener->on_connect(evt, packed_data);
@@ -1326,6 +1334,12 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	{
 		m_fd_listener->on_accept(evt, fd, packed_data, &fdi);
 	}
+
+
+	//
+	// Mark this fd as a server
+	//
+	fdi.set_role_server();
 
 	//
 	// Add the entry to the table
