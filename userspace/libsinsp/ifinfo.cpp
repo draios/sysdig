@@ -74,7 +74,7 @@ void sinsp_network_interfaces::update_fd(sinsp_fdinfo_t *fd)
 	//
 	// only handle ipv4 udp sockets
 	//
-	if(fd->m_type != SCAP_FD_IPV4_SOCK || pipv4info->m_fields.m_l4proto != SCAP_L4_UDP)
+	if(fd->m_type != SCAP_FD_IPV4_SOCK)
 	{
 		return;
 	}

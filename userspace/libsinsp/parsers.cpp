@@ -137,9 +137,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PIPE_X:
 		parse_pipe_exit(evt); 
 		break;
-	case PPME_SOCKET_SOCKETPAIR_X:
-		parse_socketpair_exit(evt);
-		break;
 	case PPME_SOCKET_SOCKET_X:
 		parse_socket_exit(evt);
 		break;
@@ -192,6 +189,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_PRLIMIT_X:
 		parse_prlimit_exit(evt);
+		break;
+	case PPME_SOCKET_SOCKETPAIR_X:
+		parse_socketpair_exit(evt);
 		break;
 	default:
 		break;
@@ -1000,7 +1000,6 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 		{
 			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_ICMP;
 		}
-
 	}
 	else
 	{
@@ -1094,7 +1093,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	}
 
 	//
-	// Upfate the name of this socket
+	// Update the name of this socket
 	//
 	evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 }
@@ -1579,26 +1578,74 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 	}
 }
 
-void sinsp_parser::set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
+bool sinsp_parser::set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
 {
-	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip = *(uint32_t *)(packed_data + 1);
-	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport = *(uint16_t *)(packed_data + 5);
-	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = *(uint32_t *)(packed_data + 7);
-	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = *(uint16_t *)(packed_data + 11);
+	uint32_t tsip, tdip;
+	uint16_t tsport, tdport;
+
+	tsip = *(uint32_t *)(packed_data + 1);
+	tsport = *(uint16_t *)(packed_data + 5);
+	tdip = *(uint32_t *)(packed_data + 7);
+	tdport = *(uint16_t *)(packed_data + 11);
+
+	if((tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
+		tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
+		tdip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip &&
+		tdport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport) ||
+		(tdip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
+		tdport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
+		tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip &&
+		tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport)
+		)
+	{
+		return false;
+	}
+
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip = tsip;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport = tsport;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = tdip;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tdport;
+
+	return true;
 }
 
-void sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
+bool sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
 {
-	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip = *(uint32_t *)(packed_data + 13);
-	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport = *(uint16_t *)(packed_data + 17);
-	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = *(uint32_t *)(packed_data + 31);
-	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = *(uint16_t *)(packed_data + 35);
+	uint32_t tsip, tdip;
+	uint16_t tsport, tdport;
+
+	tsip = *(uint32_t *)(packed_data + 13);
+	tsport = *(uint16_t *)(packed_data + 17);
+	tdip = *(uint32_t *)(packed_data + 31);
+	tdport = *(uint16_t *)(packed_data + 35);
+
+	if((tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
+		tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
+		tdip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip &&
+		tdport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport) ||
+		(tdip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
+		tdport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
+		tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip &&
+		tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport)
+		)
+	{
+		return false;
+	}
+
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip = tsip;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport = tsport;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = tdip;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tdport;
+
+	return true;
 }
 
-void sinsp_parser::set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
+bool sinsp_parser::set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
 {
 	fdinfo->m_sockinfo.m_unixinfo.m_fields.m_source = *(uint64_t *)(packed_data + 1);
 	fdinfo->m_sockinfo.m_unixinfo.m_fields.m_dest = *(uint64_t *)(packed_data + 9);
+
+	return true;
 }
 
 
@@ -1607,6 +1654,7 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 {
 	uint8_t* packed_data = (uint8_t*)parinfo->m_val;
 	uint8_t family = *packed_data;
+	bool res;
 
 	if(parinfo->m_len == 0)
 	{
@@ -1616,19 +1664,10 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	if(family == PPM_AF_INET)
 	{
 		evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
-		set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data);
-		
-		//
-		// If we reach this point, we can safely assume this connection is UDP, 
-		// because TCP would fail if the address is changed in the middle of a 
-		// connection
-		//
-		evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
-
-		//
-		// If this is an incomplete tuple, patch it using interface info
-		//
-		m_inspector->m_network_interfaces->update_fd(evt->m_fdinfo);
+		if(set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data) == false)
+		{
+			return false;
+		}
 	}
 	else if(family == PPM_AF_INET6)
 	{
@@ -1641,27 +1680,46 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 
 		if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)))
 		{
-			return true;
+			return false;
 		}
 
 		evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
 
-		set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
-
-		//
-		// If we reach this point, we can safely assume this connection is UDP, 
-		// because TCP would fail if the address is changed in the middle of a 
-		// connection
-		//
-		evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
-
-		//
-		// If this is an incomplete tuple, patch it using interface info
-		//
-		m_inspector->m_network_interfaces->update_fd(evt->m_fdinfo);
+		if(set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data) == false)
+		{
+			return false;
+		}
 	}
 
+	//
+	// If we reach this point and the protocol is not set yet, we assume this 
+	// connection is UDP, because TCP would fail if the address is changed in 
+	// the middle of a connection.
+	//
+	if(evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UNKNOWN)
+	{
+		evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
+	}
+
+	//
+	// If this is an incomplete tuple, patch it using interface info
+	//
+	m_inspector->m_network_interfaces->update_fd(evt->m_fdinfo);
+
 	return true;
+}
+
+void sinsp_parser::swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo)
+{
+	uint32_t tip;
+	uint16_t tport;
+
+	tip = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
+	tport = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = tip;
+	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 }
 
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
@@ -1717,7 +1775,34 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				if(update_fd(evt, evt->get_param(tupleparam)))
 				{
 					const char *parstr;
-					evt->m_fdinfo->m_name = evt->get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+
+					scap_fd_type etype = evt->m_fdinfo->m_type;
+
+					if(etype == SCAP_FD_IPV4_SOCK)
+					{
+						if(evt->m_fdinfo->is_role_none())
+						{
+								evt->m_fdinfo->set_role_by_guessing(m_inspector,
+									evt->m_tinfo,
+									evt->m_fdinfo,
+									true);
+						}
+
+						if(evt->m_fdinfo->is_role_client())
+						{
+							swap_ipv4_addresses(evt->m_fdinfo);
+						}
+
+						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo, 
+							etype, evt->m_paramstr_storage, 
+							sizeof(evt->m_paramstr_storage));
+
+						evt->m_fdinfo->m_name = evt->m_paramstr_storage;
+					}
+					else
+					{
+						evt->m_fdinfo->m_name = evt->get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+					}
 				}
 			}
 
@@ -1767,7 +1852,34 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				if(update_fd(evt, enter_evt->get_param(tupleparam)))
 				{
 					const char *parstr;
-					evt->m_fdinfo->m_name = enter_evt->get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+
+					scap_fd_type etype = evt->m_fdinfo->m_type;
+
+					if(etype == SCAP_FD_IPV4_SOCK)
+					{
+						if(evt->m_fdinfo->is_role_none())
+						{
+								evt->m_fdinfo->set_role_by_guessing(m_inspector,
+									evt->m_tinfo,
+									evt->m_fdinfo,
+									false);
+						}
+
+						if(evt->m_fdinfo->is_role_server())
+						{
+							swap_ipv4_addresses(evt->m_fdinfo);
+						}
+
+						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo, 
+							etype, evt->m_paramstr_storage, 
+							sizeof(evt->m_paramstr_storage));
+
+						evt->m_fdinfo->m_name = evt->m_paramstr_storage;
+					}
+					else
+					{
+						evt->m_fdinfo->m_name = evt->get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+					}
 				}
 			}
 

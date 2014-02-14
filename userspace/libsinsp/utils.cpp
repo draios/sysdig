@@ -284,6 +284,140 @@ const char* sinsp_utils::signal_to_str(uint8_t code)
 	}
 }
 
+bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size)
+{
+	if(stype == SCAP_FD_IPV4_SOCK)
+	{
+		uint8_t* sb = (uint8_t*)&sinfo->m_ipv4info.m_fields.m_sip;
+		uint8_t* db = (uint8_t*)&sinfo->m_ipv4info.m_fields.m_dip;
+
+		if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP ||
+			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
+		{
+			snprintf(targetbuf,
+				targetbuf_size,
+				"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
+				(unsigned int)(uint8_t)sb[0],
+				(unsigned int)(uint8_t)sb[1],
+				(unsigned int)(uint8_t)sb[2],
+				(unsigned int)(uint8_t)sb[3],
+				(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
+				(unsigned int)(uint8_t)db[0],
+				(unsigned int)(uint8_t)db[1],
+				(unsigned int)(uint8_t)db[2],
+				(unsigned int)(uint8_t)db[3],
+				(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+		}
+		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP)
+		{
+			snprintf(targetbuf,
+				targetbuf_size,
+				"%u.%u.%u.%u->%u.%u.%u.%u",
+				(unsigned int)(uint8_t)sb[0],
+				(unsigned int)(uint8_t)sb[1],
+				(unsigned int)(uint8_t)sb[2],
+				(unsigned int)(uint8_t)sb[3],
+				(unsigned int)(uint8_t)db[0],
+				(unsigned int)(uint8_t)db[1],
+				(unsigned int)(uint8_t)db[2],
+				(unsigned int)(uint8_t)db[3]);
+		}
+		else
+		{
+			snprintf(targetbuf,
+				targetbuf_size,
+				"<unknown>");
+		}
+	}
+	else if(stype == SCAP_FD_IPV6_SOCK)
+	{
+		uint8_t* sip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_sip;
+		uint8_t* dip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_dip;
+		uint8_t* sip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_sip)) + 12;
+		uint8_t* dip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_dip)) + 12;
+
+		if(sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_TCP ||
+			sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_UDP)
+		{
+			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
+			{
+				snprintf(targetbuf,
+							targetbuf_size,
+							"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
+							(unsigned int)sip[0],
+							(unsigned int)sip[1],
+							(unsigned int)sip[2],
+							(unsigned int)sip[3],
+							(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
+							(unsigned int)dip[0],
+							(unsigned int)dip[1],
+							(unsigned int)dip[2],
+							(unsigned int)dip[3],
+							(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+				return true;
+			}
+			else
+			{
+				char srcstr[INET6_ADDRSTRLEN];
+				char dststr[INET6_ADDRSTRLEN];
+				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) && 
+					inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
+				{
+					snprintf(targetbuf,
+								targetbuf_size,
+								"%s:%u->%s:%u",
+								srcstr,
+								(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
+								dststr,
+								(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+					return true;
+				}
+			}
+		}
+		else if(sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_ICMP)
+		{
+			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
+			{
+				snprintf(targetbuf,
+					targetbuf_size,
+					"%u.%u.%u.%u->%u.%u.%u.%u",
+					(unsigned int)sip[0],
+					(unsigned int)sip[1],
+					(unsigned int)sip[2],
+					(unsigned int)sip[3],
+					(unsigned int)dip[0],
+					(unsigned int)dip[1],
+					(unsigned int)dip[2],
+					(unsigned int)dip[3]);
+
+				return true;
+			}
+			else
+			{
+				char srcstr[INET6_ADDRSTRLEN];
+				char dststr[INET6_ADDRSTRLEN];
+				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) && 
+					inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
+				{
+					snprintf(targetbuf,
+						targetbuf_size,
+						"%s->%s",
+						srcstr,
+						dststr);
+
+					return true;
+				}
+			}
+		}
+		else
+		{
+			snprintf(targetbuf,
+				targetbuf_size,
+				"<unknown>");
+		}
+	}
+}
+
 //
 // Helper function to move a directory up in a path string
 //
