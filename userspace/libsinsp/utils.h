@@ -32,6 +32,11 @@ public:
 	static const char* signal_to_str(uint8_t code);
 
 	//
+	//
+	//
+	static bool sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size);
+
+	//
 	// Concatenate two paths and puts the result in "target".
 	// If path2 is relative, the concatenation happens and the result is true.
 	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.

@@ -28,6 +28,25 @@
  *  @{
  */
 
+typedef union _sinsp_sockinfo
+{
+	ipv4tuple m_ipv4info; ///< The tuple if this an IPv4 socket.
+	ipv6tuple m_ipv6info; ///< The tuple if this an IPv6 socket.
+	struct
+	{
+		uint32_t m_ip;
+		uint16_t m_port;
+		uint8_t m_l4proto;
+	} m_ipv4serverinfo;  ///< Information about an IPv4 server socket.
+	struct
+	{
+		uint32_t m_ip[4];
+		uint16_t m_port;
+		uint8_t m_l4proto;
+	} m_ipv6serverinfo; ///< Information about an IPv6 server socket.
+	unix_tuple m_unixinfo; ///< The tuple if this a unix socket.
+}sinsp_sockinfo;
+
 /*!
   \brief File Descriptor information class.
   This class contains the full state for a FD, and a bunch of functions to
@@ -105,24 +124,7 @@ public:
 	  \brief Socket-specific state.
 	  This is uninitialized for non-socket FDs.
 	*/
-	union
-	{
-		ipv4tuple m_ipv4info; ///< The tuple if this an IPv4 socket.
-		ipv6tuple m_ipv6info; ///< The tuple if this an IPv6 socket.
-		struct
-		{
-		  uint32_t m_ip;
-		  uint16_t m_port;
-		  uint8_t m_l4proto;
-		} m_ipv4serverinfo;  ///< Information about an IPv4 server socket.
-		struct
-		{
-			uint32_t m_ip[4];
-			uint16_t m_port;
-			uint8_t m_l4proto;
-		} m_ipv6serverinfo; ///< Information about an IPv6 server socket.
-		unix_tuple m_unixinfo; ///< The tuple if this a unix socket.
-	}m_sockinfo;
+	sinsp_sockinfo m_sockinfo;
 
 	string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
 
@@ -185,6 +187,11 @@ private:
 	{
 		m_flags |= FLAGS_ROLE_CLIENT;
 	}
+
+	bool set_role_by_guessing(sinsp* inspector, 
+		sinsp_threadinfo* ptinfo, 
+		sinsp_fdinfo_t* pfdinfo,
+		bool incoming);
 
 	void reset_flags()
 	{
