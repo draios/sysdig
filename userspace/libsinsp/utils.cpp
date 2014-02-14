@@ -416,6 +416,8 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				"<unknown>");
 		}
 	}
+
+	return true;
 }
 
 //
