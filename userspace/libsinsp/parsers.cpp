@@ -1775,9 +1775,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				{
 					const char *parstr;
 
-					scap_fd_type etype = evt->m_fdinfo->m_type;
+					scap_fd_type fdtype = evt->m_fdinfo->m_type;
 
-					if(etype == SCAP_FD_IPV4_SOCK)
+					if(fdtype == SCAP_FD_IPV4_SOCK)
 					{
 						if(evt->m_fdinfo->is_role_none())
 						{
@@ -1793,7 +1793,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 						}
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo, 
-							etype, evt->m_paramstr_storage, 
+							fdtype, evt->m_paramstr_storage, 
 							sizeof(evt->m_paramstr_storage));
 
 						evt->m_fdinfo->m_name = evt->m_paramstr_storage;
@@ -1852,9 +1852,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				{
 					const char *parstr;
 
-					scap_fd_type etype = evt->m_fdinfo->m_type;
+					scap_fd_type fdtype = evt->m_fdinfo->m_type;
 
-					if(etype == SCAP_FD_IPV4_SOCK)
+					if(fdtype == SCAP_FD_IPV4_SOCK)
 					{
 						if(evt->m_fdinfo->is_role_none())
 						{
@@ -1870,14 +1870,14 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 						}
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo, 
-							etype, evt->m_paramstr_storage, 
+							fdtype, evt->m_paramstr_storage, 
 							sizeof(evt->m_paramstr_storage));
 
 						evt->m_fdinfo->m_name = evt->m_paramstr_storage;
 					}
 					else
 					{
-						evt->m_fdinfo->m_name = evt->get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
+						evt->m_fdinfo->m_name = enter_evt->get_param_as_str(tupleparam, &parstr, sinsp_evt::PF_SIMPLE);
 					}
 				}
 			}
