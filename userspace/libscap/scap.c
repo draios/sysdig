@@ -891,7 +891,6 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 	if(handle->m_file)
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "dropping mode not supported on offline captures");
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 

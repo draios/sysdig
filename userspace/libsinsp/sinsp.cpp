@@ -549,7 +549,14 @@ void sinsp::set_snaplen(uint32_t snaplen)
 {
 	if(scap_set_snaplen(m_h, snaplen) != SCAP_SUCCESS)
 	{
-		throw sinsp_exception(scap_getlasterr(m_h));
+		//
+		// We know that setting the snaplen on a file doesn't do anything and
+		// we're ok with it.
+		//
+		if(m_islive)
+		{
+			throw sinsp_exception(scap_getlasterr(m_h));
+		}
 	}	
 }
 
