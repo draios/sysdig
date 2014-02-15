@@ -1028,6 +1028,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				m_u32val = 0;
 			}
+
+			return (uint8_t*)&m_u32val;
 		}
 	case TYPE_ISIO_WRITE:
 		{
@@ -1040,9 +1042,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				m_u32val = 0;
 			}
-		}
 
-		return (uint8_t*)&m_u32val;
+			return (uint8_t*)&m_u32val;
+		}
 	default:
 		ASSERT(false);
 		return NULL;
