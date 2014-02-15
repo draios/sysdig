@@ -572,6 +572,11 @@ int main(int argc, char **argv)
 			inspector->open("");
 		}
 
+		for(uint32_t j = 0; j < chisels.size(); j++)
+		{
+			chisels[j]->on_init();
+		}
+
 //inspector->start_dropping_mode(32);
 
 		if(snaplen != 0)
