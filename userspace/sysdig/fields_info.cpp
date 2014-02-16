@@ -160,7 +160,7 @@ const char* param_type_to_string(ppm_param_type pt)
 	case PT_IPV4ADDR:
 		return "IPV4ADDR";
 		break;
-	case PT_DYNAMIC:
+	case PT_DYN:
 		return "DYNAMIC";
 		break;
 	default:
