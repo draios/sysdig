@@ -24,6 +24,13 @@ add_library(sinsp STATIC
 	utils.cpp)
 
 target_link_libraries(sinsp 
-	scap
-	${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/libluajit.a
-	dl)
+	scap)
+
+if(NOT WIN32)
+	target_link_libraries(sinsp
+		${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/libluajit.a
+		dl)
+else()
+	target_link_libraries(sinsp
+		${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/lua51.lib)
+endif()
