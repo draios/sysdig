@@ -44,6 +44,14 @@ else()
 	set(CMAKE_C_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 	set(CMAKE_CXX_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 
+	include(ExternalProject)
+	ExternalProject_Add(luajit
+		SOURCE_DIR ${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2
+		CONFIGURE_COMMAND ""
+		BUILD_COMMAND msvcbuild.bat
+		BINARY_DIR ${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src
+		INSTALL_COMMAND "")
+
 endif()
 
 add_subdirectory(userspace/sysdig)
