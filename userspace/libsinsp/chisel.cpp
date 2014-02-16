@@ -1114,6 +1114,53 @@ void sinsp_chisel::run(sinsp_evt* evt)
 	{
 #ifdef HAS_LUA_CHISELS
 		//
+		// If this is the first event, put the event pointer on the stack.
+		// We assume that the event pointer will never change.
+		//
+		if(m_lua_is_first_evt)
+		{
+			lua_pushlightuserdata(m_ls, evt);
+			lua_setglobal(m_ls, "sievt");
+
+			uint64_t ts = evt->get_ts();
+			if(m_lua_cinfo->m_callback_interval != 0)
+			{
+				m_lua_last_interval_sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
+			}
+
+			m_lua_is_first_evt = false;
+		}
+
+		//
+		// If there is a callback, see if it's time to call it
+		//
+		if(m_lua_cinfo->m_callback_interval != 0)
+		{
+			uint64_t ts = evt->get_ts();
+			uint64_t sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
+
+			if(sample_time != m_lua_last_interval_sample_time)
+			{
+				lua_getglobal(m_ls, "on_interval");
+			
+				if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+				{
+					throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
+				}
+	
+				int oeres = lua_toboolean(m_ls, -1);
+				lua_pop(m_ls, 1);
+
+				if(oeres == false)
+				{
+					throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
+				}
+	
+				m_lua_last_interval_sample_time = sample_time;
+			}
+		}
+
+		//
 		// If there is a filter, run it
 		//
 		if(m_lua_cinfo->m_filter != NULL)
@@ -1129,48 +1176,6 @@ void sinsp_chisel::run(sinsp_evt* evt)
 		//
 		if(m_lua_has_handle_evt)
 		{
-			//
-			// If this is the first event, put the event pointer on the stack.
-			// We assume that the event pointer will never change.
-			//
-			if(m_lua_is_first_evt)
-			{
-				lua_pushlightuserdata(m_ls, evt);
-				lua_setglobal(m_ls, "sievt");
-				m_lua_is_first_evt = false;
-				uint64_t ts = evt->get_ts();
-				if(m_lua_cinfo->m_callback_interval != 0)
-				{
-					m_lua_last_interval_sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
-				}
-			}
-
-			if(m_lua_cinfo->m_callback_interval != 0)
-			{
-				uint64_t ts = evt->get_ts();
-				uint64_t sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
-
-				if(sample_time != m_lua_last_interval_sample_time)
-				{
-					lua_getglobal(m_ls, "on_interval");
-			
-					if(lua_pcall(m_ls, 0, 1, 0) != 0) 
-					{
-						throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
-					}
-	
-					int oeres = lua_toboolean(m_ls, -1);
-					lua_pop(m_ls, 1);
-
-					if(oeres == false)
-					{
-						throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
-					}
-	
-					m_lua_last_interval_sample_time = sample_time;
-				}
-			}
-
 			lua_getglobal(m_ls, "on_event");
 			
 			if(lua_pcall(m_ls, 0, 1, 0) != 0) 
