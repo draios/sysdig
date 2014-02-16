@@ -14,14 +14,14 @@ args =
 }
 
 -- Argument notification callback
-function set_arg(name, val)
+function on_set_arg(name, val)
 	addr = val
 
 	return true
 end
 
 -- Initialization callback
-function init()
+function on_init()
 	-- Request the fileds that we need
 	fdata = sysdig.request_field("evt.arg.data")
 	fisread = sysdig.request_field("evt.is_io_read")

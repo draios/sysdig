@@ -6,7 +6,7 @@ category = "IO";
 args = {}
 
 -- Initialization callback
-function init()
+function on_init()
 	-- Request the fileds that we need
 	fbuf = sysdig.request_field("evt.rawarg.data")
 

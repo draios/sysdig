@@ -7,7 +7,7 @@ category = "Security";
 args = {}
 
 -- Initialization callback
-function init()
+function on_init()
 	-- Request the fileds that we need
 	fetype = sysdig.request_field("evt.type")
 	fexe = sysdig.request_field("proc.exe")

@@ -15,7 +15,7 @@ ports = {}
 port_procs = {}
 
 -- Initialization callback
-function init()
+function on_init()
 	-- Request the fields we need
 	fbytes = sysdig.request_field("evt.rawarg.res")
 	ffpnum = sysdig.request_field("fd.sport")

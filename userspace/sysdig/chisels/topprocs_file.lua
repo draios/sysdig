@@ -14,7 +14,7 @@ require "common"
 procs = {}
 
 -- Initialization callback
-function init()
+function on_init()
 	-- Request the fields we need
 	fbytes = sysdig.request_field("evt.rawarg.res")
 	ftime = sysdig.request_field("evt.time.s")

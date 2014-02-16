@@ -13,7 +13,7 @@ totin = 0
 totout = 0
 
 -- Initialization callback
-function init()
+function on_init()
 	-- Request the fields
 	fbytes = sysdig.request_field("evt.rawarg.res")
 	ftime = sysdig.request_field("evt.time.s")
