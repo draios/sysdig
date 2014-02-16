@@ -56,7 +56,7 @@ struct summary_table_entry_rsort_comparer
 //
 // Printer functions
 //
-void list_fields();
+void list_fields(bool verbose);
 const char* param_type_to_string(ppm_param_type pt);
 void list_events(sinsp* inspector);
 void list_chisels(vector<chisel_desc>* chlist);

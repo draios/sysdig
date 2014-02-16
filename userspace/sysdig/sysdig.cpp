@@ -53,7 +53,8 @@ static void usage()
 " -h, --help         Print this page\n"
 " -j, --json         Emit output as json\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
-"                    formatting\n"
+"                    formatting. Use -lv to get additional information for each\n"
+"                    field.\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
@@ -296,6 +297,7 @@ int main(int argc, char **argv)
 	bool absolute_times = false;
 	bool is_filter_display = false;
 	bool verbose = false;
+	bool list_flds = false;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
 	captureinfo cinfo;
@@ -442,9 +444,8 @@ int main(int argc, char **argv)
 				delete inspector;
 				return EXIT_SUCCESS;
 			case 'l':
-				list_fields();
-				delete inspector;
-				return EXIT_SUCCESS;
+				list_flds = true;
+				break;
 			case 'L':
 				list_events(inspector);
 				delete inspector;
@@ -507,6 +508,28 @@ int main(int argc, char **argv)
 			default:
 				break;
 			}
+		}
+
+		//
+		// If -l was specified, print the fields and exit
+		//
+		if(list_flds)
+		{
+			if(verbose)
+			{
+				//
+				// -ll shows the fields verbosely, i.e. with more information
+				// like the type
+				//
+				list_fields(true);
+			}
+			else
+			{
+				list_fields(false);
+			}
+
+			res = EXIT_SUCCESS;
+			goto exit;
 		}
 
 		//

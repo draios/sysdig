@@ -13,7 +13,7 @@
 #define DESCRIPTION_TEXT_START 16
 #define CONSOLE_LINE_LEN 79
 
-void list_fields()
+void list_fields(bool verbose)
 {
 	uint32_t j, l, m;
 	int32_t k;
@@ -42,7 +42,18 @@ void list_fields()
 				printf(" ");
 			}
 				
-			size_t desclen = strlen(fld->m_description);
+			string desc;
+
+			if(verbose)
+			{
+				desc = string(fld->m_description) + " Type:" + param_type_to_string(fld->m_type) + ".";
+			}
+			else
+			{
+				desc = string(fld->m_description);
+			}
+
+			size_t desclen = desc.size();
 
 			for(l = 0; l < desclen; l++)
 			{
@@ -56,7 +67,7 @@ void list_fields()
 					}
 				}
 
-				printf("%c", fld->m_description[l]);
+				printf("%c", desc[l]);
 			}
 
 			printf("\n");
@@ -148,6 +159,9 @@ const char* param_type_to_string(ppm_param_type pt)
 		break;
 	case PT_IPV4ADDR:
 		return "IPV4ADDR";
+		break;
+	case PT_DYNAMIC:
+		return "DYNAMIC";
 		break;
 	default:
 		ASSERT(false);
