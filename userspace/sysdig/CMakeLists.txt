@@ -38,12 +38,17 @@ else()
 	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			"${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/lua51.dll"
-			$<TARGET_FILE_DIR:sysdig>)
+			"${PROJECT_BINARY_DIR}/$(Configuration)/lua51.dll")
 
 	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_directory
 			"${PROJECT_SOURCE_DIR}/userspace/sysdig/chisels"
-			$<TARGET_FILE_DIR:sysdig>/chisels)
+			"${PROJECT_BINARY_DIR}/$(Configuration)/chisels")
+
+	add_custom_command(TARGET sysdig POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			$<TARGET_FILE:sysdig>
+			"${PROJECT_BINARY_DIR}/$(Configuration)/sysdig.exe")
 
 endif()
 
