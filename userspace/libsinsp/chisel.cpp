@@ -1023,7 +1023,7 @@ void sinsp_chisel::set_args(vector<string>* argvals)
 		//
 		for(k = 0; k < m_lua_script_info.m_args.size(); k++)
 		{
-			lua_getglobal(m_ls, "set_arg");
+			lua_getglobal(m_ls, "on_set_arg");
 			if(!lua_isfunction(m_ls, -1))
 			{
 				lua_pop(m_ls, 1);
@@ -1064,7 +1064,7 @@ void sinsp_chisel::on_init()
 	//
 	// Done with the arguments, call init()
 	//
-	lua_getglobal(m_ls, "init");
+	lua_getglobal(m_ls, "on_init");
 
 	if(lua_pcall(m_ls, 0, 1, 0) != 0) 
 	{
