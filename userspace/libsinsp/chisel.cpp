@@ -1068,7 +1068,11 @@ void sinsp_chisel::on_init()
 
 	if(lua_pcall(m_ls, 0, 1, 0) != 0) 
 	{
-		throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
+		//
+		// No on_init. 
+		// That's ok. Just return.
+		//
+		return;
 	}
 
 	if(!lua_isboolean(m_ls, -1)) 
