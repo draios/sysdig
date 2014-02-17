@@ -188,7 +188,7 @@ private:
 		m_flags |= FLAGS_ROLE_CLIENT;
 	}
 
-	bool set_role_by_guessing(sinsp* inspector, 
+	bool set_net_role_by_guessing(sinsp* inspector, 
 		sinsp_threadinfo* ptinfo, 
 		sinsp_fdinfo_t* pfdinfo,
 		bool incoming);

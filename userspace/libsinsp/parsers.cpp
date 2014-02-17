@@ -1795,7 +1795,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					{
 						if(evt->m_fdinfo->is_role_none())
 						{
-								evt->m_fdinfo->set_role_by_guessing(m_inspector,
+								evt->m_fdinfo->set_net_role_by_guessing(m_inspector,
 									evt->m_tinfo,
 									evt->m_fdinfo,
 									true);
@@ -1872,7 +1872,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					{
 						if(evt->m_fdinfo->is_role_none())
 						{
-								evt->m_fdinfo->set_role_by_guessing(m_inspector,
+								evt->m_fdinfo->set_net_role_by_guessing(m_inspector,
 									evt->m_tinfo,
 									evt->m_fdinfo,
 									false);

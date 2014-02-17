@@ -68,7 +68,7 @@ template<> void sinsp_fdinfo_t::add_filename(const char* directory, uint32_t dir
 	m_name = fullpath;
 }
 
-template<> bool sinsp_fdinfo_t::set_role_by_guessing(sinsp* inspector,
+template<> bool sinsp_fdinfo_t::set_net_role_by_guessing(sinsp* inspector,
 										  sinsp_threadinfo* ptinfo, 
 										  sinsp_fdinfo_t* pfdinfo,
 										  bool incoming)
