@@ -180,6 +180,17 @@ captureinfo do_inspect(sinsp* inspector,
 	{
 		if(retval.m_nevts == cnt || ctrl_c_pressed)
 		{
+			//
+			// End of capture, either because the user stopped it, or because
+			// we reached the event count specified with -n.
+			// Notify the chisels that we're exiting.
+			//
+			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); 
+				it != chisels->end(); ++it)
+			{
+				(*it)->on_capture_end();
+			}
+
 			break;
 		}
 
@@ -191,6 +202,10 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 		else if(res == SCAP_EOF)
 		{
+			//
+			// Reached the end of a trace file.
+			// Notify the chisels that we're exiting.
+			//
 			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
 			{
 				(*it)->on_capture_end();
@@ -200,6 +215,15 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 		else if(res != SCAP_SUCCESS)
 		{
+			//
+			// Event read error.
+			// Notify the chisels that we're exiting, and then die with an error.
+			//
+			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
+			{
+				(*it)->on_capture_end();
+			}
+
 			cerr << "res = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
