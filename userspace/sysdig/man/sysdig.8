@@ -1,0 +1,313 @@
+.TH "" "" "" "" ""
+.SS NAME
+.PP
+sysdig \- the definitive system and process troubleshooting tool
+.SS SYNOPSIS
+.PP
+\f[B]sysdig\f[] [\f[I]option\f[]]...
+[\f[I]filter\f[]]
+.SS DESCRIPTION
+.PP
+sysdig is a tool for system troubleshooting, analysis and exploration.
+It can be used to capture, filter and decode system calls and other OS
+events.
+.PD 0
+.P
+.PD
+sysdig can be both used to inspect live systems, or to generate trace
+files that can be analyzed at a later stage.
+.PP
+Sysdig includes a powerul filtering language, has customizable output,
+and can be extended through Lua scripts, called chisels.
+.PP
+\f[B]Output format\f[]
+.PP
+By default, sysdig prints the information for each captured event on a
+single line, with the following format:
+.PP
+\f[C]<evt.time>\ <evt.cpu>\ <proc.name>\ <thread.tid>\ <evt.dir>\ <evt.type>\ <evt.args>\f[]
+.PP
+where:
+.PD 0
+.P
+.PD
+evt.time is the event timestamp
+.PD 0
+.P
+.PD
+evt.cpu is the CPU number where the event was captured
+.PD 0
+.P
+.PD
+proc.name is the name of the process that generated the event
+.PD 0
+.P
+.PD
+thread.tid id the TID that generated the event, which corresponds to the
+.PD 0
+.P
+.PD
+PID for single thread processes
+.PD 0
+.P
+.PD
+evt.dir is the event direction, > for enter events and < for exit events
+.PD 0
+.P
+.PD
+evt.type is the name of the event, e.g.
+\[aq]open\[aq] or \[aq]read\[aq]
+.PD 0
+.P
+.PD
+evt.args is the list of event arguments.
+.PP
+The output format can be customized with the \-p switch, using any of
+the fields listed by \[aq]sysdig \-l\[aq].
+.PP
+\f[B]Filtering\f[]
+.PP
+sysdig filters are specified at the end of the command line.
+The simplest filter is a simple field\-value check:
+.RS
+.PP
+$ sysdig proc.name=cat
+.RE
+.PP
+The list of available fields can be obtained with \[aq]sysdig \-l\[aq].
+.PD 0
+.P
+.PD
+Checks can use one of these comparison operators: \f[I]=\f[],
+\f[I]!=\f[], \f[I]<\f[], \f[I]<=\f[], \f[I]>\f[], \f[I]>=\f[] and
+\f[I]contains\f[].
+e.g.
+.RS
+.PP
+$ sysdig fd.name contains /etc
+.RE
+.PP
+Multiple checks can be combined through brakets and the following
+boolean operators: \f[I]and\f[], \f[I]or\f[], \f[I]not\f[].
+e.g.
+.RS
+.PP
+$ sysdig "not(fd.name contains /proc or fd.name contains /dev)"
+.RE
+.PP
+\f[B]Chisels\f[]
+.PD 0
+.P
+.PD
+Sysdig\[aq]s chisels are little scripts that analyze the sysdig event
+stream to perform useful actions.
+.PD 0
+.P
+.PD
+To get the list of available chisels, type
+.RS
+.PP
+$ sysdig \-cl
+.RE
+.PP
+For each chisel, you get the description and the list of arguments it
+expects.
+.PD 0
+.P
+.PD
+To run one of the chisels, you use the \-c flag, e.g.:
+.RS
+.PP
+$ sysdig \-c topfiles
+.RE
+.PP
+If a chisel needs arguments, you specify them after the chisel name:
+.RS
+.PP
+$ sysdig \-c spy_ip 192.168.1.157
+.RE
+.PP
+Chiesls can be combined with filters:
+.RS
+.PP
+$ sysdig \-c topfiles "not fd.name contains /dev"
+.RE
+.SS OPTIONS
+.PP
+\f[B]\-a\f[], \f[B]\-\-abstime\f[]
+.PD 0
+.P
+.PD
+Show absolute event timestamps
+.PP
+\f[B]\-c\f[] \f[I]chiselname\f[] \f[I]chiselargs\f[],
+\f[B]\-\-chisel\f[]=\f[I]chiselname\f[] \f[I]chiselargs\f[]
+.PD 0
+.P
+.PD
+run the specified chisel.
+If the chisel require arguments, they must be specified in the command
+line after the name.
+.PP
+\f[B]\-cl\f[], \f[B]\-\-list\-chisels\f[]
+.PD 0
+.P
+.PD
+lists the available chisels.
+Looks for chisels in ., ./chisels, ~/chisels and
+/usr/share/sysdig/chisels.
+.PP
+\f[B]\-dv\f[], \f[B]\-\-displayflt\f[]
+.PD 0
+.P
+.PD
+Make the given filter a dsiplay one Setting this option causes the
+events to be filtered after being parsed by the state system.
+Events are normally filtered before being analyzed, which is more
+efficient, but can cause state (e.g.
+FD names) to be lost
+.PP
+\f[B]\-h\f[], \f[B]\-\-help\f[]
+.PD 0
+.P
+.PD
+Print this page
+.PP
+\f[B]\-j\f[], \f[B]\-\-json\f[]
+.PD 0
+.P
+.PD
+Emit output as json
+.PP
+\f[B]\-l\f[], \f[B]\-\-list\f[]
+.PD 0
+.P
+.PD
+List the fields that can be used for filtering and output formatting.
+Use \-lv to get additional information for each field.
+.PP
+\f[B]\-L\f[], \f[B]\-\-list\-events\f[]
+.PD 0
+.P
+.PD
+List the events that the engine supports
+.PP
+\f[B]\-n\f[] \f[I]num\f[], \f[B]\-\-numevents\f[]=\f[I]num\f[]
+.PD 0
+.P
+.PD
+Stop capturing after events
+.PP
+\f[B]\-p\f[] \f[I]output\f[]format_,
+\f[B]\-\-print\f[]=\f[I]output\f[]format_
+.PD 0
+.P
+.PD
+Specify the format to be used when printing the events.
+See the examples section below for more info.
+.PP
+\f[B]\-q\f[], \f[B]\-\-quiet\f[]
+.PD 0
+.P
+.PD
+Don\[aq]t print events on the screen.
+Useful when dumping to disk.
+.PP
+\f[B]\-r\f[] \f[I]readfile\f[], \f[B]\-\-read\f[]=\f[I]readfile\f[]
+.PD 0
+.P
+.PD
+Read the events from .
+.PP
+\f[B]\-S\f[], \f[B]\-\-summary\f[]
+.PD 0
+.P
+.PD
+print the event summary (i.e.
+the list of the top events) when the capture ends.
+.PP
+\f[B]\-s\f[] \f[I]len\f[], \f[B]\-\-snaplen\f[]=\f[I]len\f[]
+.PD 0
+.P
+.PD
+Capture the first bytes of each I/O buffer.
+By default, the first 80 bytes are captured.
+Use this option with caution, it can generate huge trace files.
+.PP
+\f[B]\-v\f[], \f[B]\-\-verbose\f[]
+.PD 0
+.P
+.PD
+Verbose output
+.PP
+\f[B]\-w\f[] \f[I]writefile\f[], \f[B]\-\-write\f[]=\f[I]writefile\f[]
+.PD 0
+.P
+.PD
+Write the captured events to \f[I]writefile\f[].
+.SS EXAMPLES
+.PP
+Capture all the events from the live system and print them to screen
+.RS
+.PP
+$ sysdig
+.RE
+.PP
+Capture all the events from the live system and save them to disk
+.RS
+.PP
+$ sysdig \-qw dumpfile.scap
+.RE
+.PP
+Read events from a file and print them to screen
+.RS
+.PP
+$ sysdig \-r dumpfile.scap
+.RE
+.PP
+Print all the open system calls invoked by cat
+.RS
+.PP
+$ sysdig proc.name=cat and evt.type=open
+.RE
+.PP
+Print the name of the files opened by cat
+.RS
+.PP
+$ ./sysdig \-p"%evt.arg.name" proc.name=cat and evt.type=open
+.RE
+.PP
+List the available chisels
+.RS
+.PP
+$ ./sysdig \-cl
+.RE
+.PP
+Run the spy_ip chisel for the 192.168.1.157 IP address:
+.RS
+.PP
+$ sysdig \-c spy_ip 192.168.1.157
+.RE
+.SS FILES
+.PP
+\f[I]/opt/sysdig/chisels\f[]
+.PD 0
+.P
+.PD
+The global chisels directory.
+.PP
+\f[I]~/.chisels\f[]
+.PD 0
+.P
+.PD
+The personal chisels directory.
+.SS BUGS
+.PP
+Bugs?
+.SS AUTHOR
+.PP
+Draios inc.
+<info@draios.com>
+.SS SEE ALSO
+.PP
+\f[B]strace\f[](8), \f[B]tcpdump\f[](8), \f[B]lsof\f[](8)
