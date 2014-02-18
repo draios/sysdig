@@ -7,6 +7,11 @@ A system exploration and troubleshooting tool
 
 #### Linux and OSX:
 
+**Requirements**
+* GCC/G++ > 4.4 (Linux) or Clang (for OSX)
+* Linux kernel headers
+* CMake > 2.8
+
 ```
 mkdir build
 cd build
