@@ -23,14 +23,13 @@ By default, sysdig prints the information for each captured event on a single li
 ```<evt.time> <evt.cpu> <proc.name> <thread.tid> <evt.dir> <evt.type> <evt.args>```
 
 where:
- evt.time is the event timestamp
- evt.cpu is the CPU number where the event was captured
- proc.name is the name of the process that generated the event
- thread.tid id the TID that generated the event, which corresponds to the
-   PID for single thread processes
- evt.dir is the event direction, > for enter events and < for exit events
- evt.type is the name of the event, e.g. 'open' or 'read'
- evt.args is the list of event arguments.
+* evt.time is the event timestamp
+* evt.cpu is the CPU number where the event was captured
+* proc.name is the name of the process that generated the event
+* thread.tid id the TID that generated the event, which corresponds to the PID for single thread processes
+* evt.dir is the event direction, > for enter events and < for exit events
+* evt.type is the name of the event, e.g. 'open' or 'read'
+* evt.args is the list of event arguments.
 
 The output format can be customized with the -p switch, using any of the fields listed by 'sysdig -l'.
 
@@ -73,8 +72,8 @@ OPTIONS
 **-cl**, **--list-chisels**  
   lists the available chisels. Looks for chisels in ., ./chisels, ~/chisels and /usr/share/sysdig/chisels.
   
-**-dv**, **--displayflt**  
-  Make the given filter a dsiplay one Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost
+**-d**, **--displayflt**  
+  Make the given filter a display one Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost
   
 **-h**, **--help**  
   Print this page

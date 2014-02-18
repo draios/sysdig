@@ -39,7 +39,7 @@ sinsp_parser::~sinsp_parser()
 void sinsp_parser::process_event(sinsp_evt *evt)
 {
 	uint16_t etype = evt->get_type();
-
+BRK(25634);
 	//
 	// Cleanup the event-related state
 	//
@@ -652,7 +652,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	if(!(tinfo.m_flags & PPM_CL_CLONE_THREAD))
 	{
-		tinfo.m_fdtable = ptinfo->m_fdtable;
+		tinfo.m_fdtable = *(ptinfo->get_fd_table());
 
 		//
 		// It's important to reset the cache of the child thread, to prevent it from
@@ -900,6 +900,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		else
 		{
 			evt->m_fdinfo = evt->m_tinfo->get_fd(dirfd);
+
 			if(evt->m_fdinfo == NULL)
 			{
 				ASSERT(false);
