@@ -70,6 +70,7 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments* args);
 static int32_t f_sched_switch_e(struct event_filler_arguments* args);
 #endif
 static int32_t f_sched_drop(struct event_filler_arguments* args);
+static int32_t f_sched_fcntl_e(struct event_filler_arguments* args);
 
 //
 // Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -224,6 +225,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] =
 #endif	
 	[PPME_DROP_E] = {f_sched_drop},
 	[PPME_DROP_X] = {f_sched_drop},
+	[PPME_FCNTL_E] = {f_sched_fcntl_e},
+	[PPME_FCNTL_X] = {f_sys_single_x},
 };
 
 extern uint32_t g_sampling_ratio;
@@ -3111,6 +3114,92 @@ static int32_t f_sched_drop(struct event_filler_arguments* args)
 	// next
 	//
 	res = val_to_ring(args, g_sampling_ratio, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	return add_sentinel(args);
+}
+
+static inline uint8_t fcntl_cmd_to_scap(unsigned long cmd)
+{
+	switch(cmd)
+	{
+		case F_DUPFD:
+			return PPM_FCNTL_F_DUPFD;
+		case F_GETFD:      
+			return PPM_FCNTL_F_GETFD;
+		case F_SETFD:      
+			return PPM_FCNTL_F_SETFD;
+		case F_GETFL:      
+			return PPM_FCNTL_F_GETFL;
+		case F_SETFL:      
+			return PPM_FCNTL_F_SETFL;
+		case F_GETLK:
+			return PPM_FCNTL_F_GETLK;
+		case F_SETLK:      
+			return PPM_FCNTL_F_SETLK;
+		case F_SETLKW:      
+			return PPM_FCNTL_F_SETLKW;
+		case F_SETOWN:
+			return PPM_FCNTL_F_SETOWN;
+		case F_GETOWN:     
+			return PPM_FCNTL_F_GETOWN;
+		case F_SETSIG:
+			return PPM_FCNTL_F_SETSIG;
+		case F_GETSIG:
+			return PPM_FCNTL_F_GETSIG;
+		case F_GETLK64:
+			return PPM_FCNTL_F_GETLK64;
+		case F_SETLK64:    
+			return PPM_FCNTL_F_SETLK64;
+		case F_SETLKW64:    
+			return PPM_FCNTL_F_SETLKW64;
+		case F_SETOWN_EX:
+			return PPM_FCNTL_F_SETOWN_EX;
+		case F_GETOWN_EX:  
+			return PPM_FCNTL_F_GETOWN_EX;
+		case F_SETLEASE:
+			return PPM_FCNTL_F_SETLEASE;
+		case F_GETLEASE:     
+			return PPM_FCNTL_F_GETLEASE;
+		case F_CANCELLK:     
+			return PPM_FCNTL_F_CANCELLK;
+		case F_DUPFD_CLOEXEC:
+			return PPM_FCNTL_F_DUPFD_CLOEXEC;
+		case F_NOTIFY:
+			return PPM_FCNTL_F_NOTIFY;
+		case F_SETPIPE_SZ:
+			return PPM_FCNTL_F_SETPIPE_SZ;
+		case F_GETPIPE_SZ:
+			return PPM_FCNTL_F_GETPIPE_SZ;
+		default:
+			ASSERT(false);
+			return PPM_FCNTL_UNKNOWN;
+	}
+}
+
+static int32_t f_sched_fcntl_e(struct event_filler_arguments* args)
+{
+	unsigned long val;
+	int32_t res;
+
+	//
+	// fd
+	//
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	//
+	// cmd
+	//
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
