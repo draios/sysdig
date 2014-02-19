@@ -3170,10 +3170,14 @@ static inline uint8_t fcntl_cmd_to_scap(unsigned long cmd)
 			return PPM_FCNTL_F_DUPFD_CLOEXEC;
 		case F_NOTIFY:
 			return PPM_FCNTL_F_NOTIFY;
+#ifdef F_SETPIPE_SZ
 		case F_SETPIPE_SZ:
 			return PPM_FCNTL_F_SETPIPE_SZ;
+#endif
+#ifdef F_GETPIPE_SZ
 		case F_GETPIPE_SZ:
 			return PPM_FCNTL_F_GETPIPE_SZ;
+#endif
 		default:
 			ASSERT(false);
 			return PPM_FCNTL_UNKNOWN;
