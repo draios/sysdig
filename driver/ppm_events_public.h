@@ -172,6 +172,35 @@
 #define PPM_RLIMIT_RTTIME 15 // timeout for RT tasks in us
 #define PPM_RLIMIT_UNKNOWN 255 // CPU time in sec
 
+//
+// fcntl commands
+//
+#define PPM_FCNTL_UNKNOWN 0
+#define PPM_FCNTL_F_DUPFD 1
+#define PPM_FCNTL_F_GETFD 2
+#define PPM_FCNTL_F_SETFD 3
+#define PPM_FCNTL_F_GETFL 4
+#define PPM_FCNTL_F_SETFL 5
+#define PPM_FCNTL_F_GETLK 6
+#define PPM_FCNTL_F_SETLK 8
+#define PPM_FCNTL_F_SETLKW 9
+#define PPM_FCNTL_F_SETOWN 10
+#define PPM_FCNTL_F_GETOWN 12
+#define PPM_FCNTL_F_SETSIG 13
+#define PPM_FCNTL_F_GETSIG 15
+#define PPM_FCNTL_F_GETLK64 17
+#define PPM_FCNTL_F_SETLK64 18
+#define PPM_FCNTL_F_SETLKW64 19
+#define PPM_FCNTL_F_SETOWN_EX 21
+#define PPM_FCNTL_F_GETOWN_EX 22
+#define PPM_FCNTL_F_SETLEASE 23
+#define PPM_FCNTL_F_GETLEASE 24
+#define PPM_FCNTL_F_CANCELLK 25
+#define PPM_FCNTL_F_DUPFD_CLOEXEC 26
+#define PPM_FCNTL_F_NOTIFY 27
+#define PPM_FCNTL_F_SETPIPE_SZ 28
+#define PPM_FCNTL_F_GETPIPE_SZ 29
+
 /*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
@@ -356,7 +385,9 @@ enum ppm_event_type
 	PPME_SCHEDSWITCH_X = 147,	// This should never be called
 	PPME_DROP_E = 148,  // For internal use
 	PPME_DROP_X = 149,	// For internal use
-	PPM_EVENT_MAX = 150,
+	PPME_FCNTL_E = 150,  // For internal use
+	PPME_FCNTL_X = 151,	// For internal use	
+	PPM_EVENT_MAX = 152,
 };
 /*@}*/
 
