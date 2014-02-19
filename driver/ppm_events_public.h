@@ -385,8 +385,8 @@ enum ppm_event_type
 	PPME_SCHEDSWITCH_X = 147,	// This should never be called
 	PPME_DROP_E = 148,  // For internal use
 	PPME_DROP_X = 149,	// For internal use
-	PPME_FCNTL_E = 150,  // For internal use
-	PPME_FCNTL_X = 151,	// For internal use	
+	PPME_SYSCALL_FCNTL_E = 150,  // For internal use
+	PPME_SYSCALL_FCNTL_X = 151,	// For internal use	
 	PPM_EVENT_MAX = 152,
 };
 /*@}*/
