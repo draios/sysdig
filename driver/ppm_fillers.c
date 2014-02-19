@@ -225,8 +225,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] =
 #endif	
 	[PPME_DROP_E] = {f_sched_drop},
 	[PPME_DROP_X] = {f_sched_drop},
-	[PPME_FCNTL_E] = {f_sched_fcntl_e},
-	[PPME_FCNTL_X] = {f_sys_single_x},
+	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
+	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
 };
 
 extern uint32_t g_sampling_ratio;

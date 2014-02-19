@@ -80,9 +80,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] =
 #ifdef __NR_ugetrlimit	
 	[__NR_ugetrlimit] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_GETRLIMIT_E, PPME_SYSCALL_GETRLIMIT_X},
 #endif
-	[__NR_fcntl] =			{UF_USED | UF_NEVER_DROP, PPME_FCNTL_E, PPME_FCNTL_X},
+	[__NR_fcntl] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCNTL_E, PPME_SYSCALL_FCNTL_X},
 #ifdef __NR_fcntl64 
-	[__NR_fcntl64] =		{UF_USED | UF_NEVER_DROP, PPME_FCNTL_E, PPME_FCNTL_X},
+	[__NR_fcntl64] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCNTL_E, PPME_SYSCALL_FCNTL_X},
 #endif
 //	[__NR_ppoll] = 			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 //	[__NR_old_select] = 	{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
