@@ -18,6 +18,10 @@
 #include "sinsp_errno.h"
 #include "filter.h"
 #include "filterchecks.h"
+#ifdef HAS_ANALYZER
+#include "analyzer_int.h"
+#include "analyzer_thread.h"
+#endif
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
 #endif
@@ -39,7 +43,7 @@ sinsp_parser::~sinsp_parser()
 void sinsp_parser::process_event(sinsp_evt *evt)
 {
 	uint16_t etype = evt->get_type();
-BRK(25634);
+
 	//
 	// Cleanup the event-related state
 	//
@@ -768,7 +772,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	//  scap_fd_free_table(handle, tinfo);
 
 	//
-	// Clean the flags for this thread, making sure to propagate the inverted flag
+	// Clear the flags for this thread, making sure to propagate the inverted flag
 	//
 	bool inverted = ((evt->m_tinfo->m_flags & PPM_CL_CLONE_INVERTED) != 0);
 	evt->m_tinfo->m_flags = 0;
@@ -796,12 +800,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			m_inspector->m_thread_manager->increment_program_childcount(evt->m_tinfo);
 		}
 	}
-/*
-	//
-	// Clean the FD table
-	//
-	evt->m_tinfo->get_fd_table()->clear();
-*/
+
+#ifdef HAS_ANALYZER
+	evt->m_tinfo->m_ainfo->clear_role_flags();
+#endif
 	return;
 }
 
