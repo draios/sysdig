@@ -160,6 +160,12 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CLOSE_X:
 		parse_close_exit(evt);
 		break;
+	case PPME_SYSCALL_FCNTL_E:
+		parse_fcntl_enter(evt);
+		break;
+	case PPME_SYSCALL_FCNTL_X:
+		parse_fcntl_exit(evt);
+		break;
 	case PPME_SYSCALL_EVENTFD_X :
 		parse_eventfd_exit(evt);
 		break;
@@ -472,7 +478,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	//
 	if(enter_evt->get_type() != (exit_evt->get_type() - 1))
 	{
-		ASSERT(false);
+		//ASSERT(false);
 		exit_evt->m_tinfo->set_lastevent_data_validity(false);
 #ifdef GATHER_INTERNAL_STATS
 		m_inspector->m_stats.m_n_retrieve_drops++;
@@ -2381,3 +2387,59 @@ void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
 	*(uint64_t*)evt->m_tinfo->m_lastevent_data = evt->get_ts();
 }
 
+void sinsp_parser::parse_fcntl_enter(sinsp_evt *evt)
+{
+	if(!evt->m_tinfo)
+	{
+		return;
+	}
+
+	sinsp_evt_param *parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(int8_t));
+	uint8_t cmd = *(int8_t *)parinfo->m_val;
+
+	if(cmd == PPM_FCNTL_F_DUPFD || cmd == PPM_FCNTL_F_DUPFD_CLOEXEC)
+	{
+		store_event(evt);
+	}
+}
+
+void sinsp_parser::parse_fcntl_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	//
+	// If this is not a F_DUPFD or F_DUPFD_CLOEXEC command, ignore it
+	//
+	if(!retrieve_enter_event(enter_evt, evt))
+	{
+		return;
+	}
+
+	//
+	// Check if the syscall was successful
+	//
+	if(retval >= 0)
+	{
+		if(evt->m_fdinfo == NULL)
+		{
+			return;
+		}
+
+		//
+		// Add the new fd to the table.
+		// NOTE: dup2 and dup3 accept an existing FD and in that case they close it.
+		//       For us it's ok to just overwrite it.
+		//
+		evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
+	}
+}
