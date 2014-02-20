@@ -3203,7 +3203,7 @@ static int32_t f_sched_fcntl_e(struct event_filler_arguments* args)
 	// cmd
 	//
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, val, 0, false);
+	res = val_to_ring(args, fcntl_cmd_to_scap(val), 0, false);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
