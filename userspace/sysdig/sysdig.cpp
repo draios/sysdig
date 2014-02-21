@@ -610,21 +610,67 @@ int main(int argc, char **argv)
 		//
 		// Launch the inspeciotn
 		//
+		bool open_success = true;
+
 		if(infile != "")
 		{
-			inspector->open(infile);
+			//
+			// We have a file to open
+			//
+			inspector->open(infile);				
 		}
 		else
 		{
-			inspector->open("");
+			//
+			// No file to open, this is a live capture
+			//
+			try
+			{
+				inspector->open("");
+			}
+			catch(sinsp_exception e)
+			{
+				open_success = false;
+			}
+
+			//
+			// Starting the live capture failed, try to load the driver with
+			// modprobe.
+			//
+			if(!open_success)
+			{
+				open_success = true;
+
+				try
+				{
+					system("modprobe sysdig-probe > /dev/null 2> /dev/null");
+
+					inspector->open("");
+				}
+				catch(sinsp_exception e)
+				{
+					open_success = false;
+				}			
+			}
+
+			//
+			// No luck with modprobe either.
+			// Maybe this is a version of sysdig that was compiled from the 
+			// sources, so let's make one last attempt with insmod and the
+			// path to the driver directory.
+			//
+			if(!open_success)
+			{
+				system("insmod ../../driver/sysdig-probe.ko > /dev/null 2> /dev/null");
+				
+				inspector->open("");
+			}
 		}
 
 		for(uint32_t j = 0; j < chisels.size(); j++)
 		{
 			chisels[j]->on_init();
 		}
-
-//inspector->start_dropping_mode(32);
 
 		if(snaplen != 0)
 		{

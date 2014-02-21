@@ -159,7 +159,7 @@ scap_t* scap_open_live(char *error)
 		if((handle->m_devs[j].m_fd = open(dev, O_RDWR | O_SYNC)) < 0)
 		{
 			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s", dev);
+			snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the sysdig-probe module is loaded.", dev);
 			return NULL;
 		}
 
