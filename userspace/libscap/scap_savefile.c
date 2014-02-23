@@ -956,7 +956,7 @@ int32_t scap_read_iflist(scap_t *handle, FILE *f, uint32_t block_length)
 		{
 			ifcnt4++;
 		}
-		else if(iftype == SCAP_FD_IPV6_SOCK || iftype == SCAP_II_IPV6_NOLINKSPEED)
+		else if(iftype == SCAP_II_IPV6 || iftype == SCAP_II_IPV6_NOLINKSPEED)
 		{
 			ifcnt6++;
 		}
