@@ -157,6 +157,14 @@ uint32_t scap_event_compute_len(scap_evt* e);
 		return SCAP_FAILURE;\
 	}
 
+//
+// Useful stuff
+//
+#ifndef MIN
+#define MIN(X,Y) ((X) < (Y)? (X):(Y))
+#define MAX(X,Y) ((X) > (Y)? (X):(Y))
+#endif
+
 #ifdef __cplusplus
 }
 #endif

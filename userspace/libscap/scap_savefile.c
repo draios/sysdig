@@ -925,36 +925,39 @@ int32_t scap_read_iflist(scap_t *handle, FILE *f, uint32_t block_length)
 		iftype = *(uint16_t *)pif;
 		ifnamlen = *(uint16_t *)(pif + 2);
 
-		if(iftype == SCAP_FD_IPV4_SOCK)
+		if(iftype == SCAP_II_IPV4)
 		{
 			entrysize = sizeof(scap_ifinfo_ipv4) + ifnamlen - SCAP_MAX_PATH_SIZE;
-
-			if(toread < entrysize)
-			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
-				res = SCAP_FAILURE;
-				goto scap_read_iflist_error;
-			}
-
-			pif += entrysize;
-			totreadsize += entrysize;
-
-			ifcnt4++;
 		}
-		else if(iftype == SCAP_FD_IPV6_SOCK)
+		else if(iftype == SCAP_II_IPV6)
 		{
 			entrysize = sizeof(scap_ifinfo_ipv6) + ifnamlen - SCAP_MAX_PATH_SIZE;
+		}
+		else if(iftype == SCAP_II_IPV4_NOLINKSPEED)
+		{
+			entrysize = sizeof(scap_ifinfo_ipv4_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+		}
+		else if(iftype == SCAP_II_IPV6_NOLINKSPEED)
+		{
+			entrysize = sizeof(scap_ifinfo_ipv6_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+		}
 
-			if(toread < entrysize)
-			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
-				res = SCAP_FAILURE;
-				goto scap_read_iflist_error;
-			}
+		if(toread < entrysize)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+			res = SCAP_FAILURE;
+			goto scap_read_iflist_error;
+		}
 
-			pif += entrysize;
-			totreadsize += entrysize;
+		pif += entrysize;
+		totreadsize += entrysize;
 
+		if(iftype == SCAP_II_IPV4 || iftype == SCAP_II_IPV4_NOLINKSPEED)
+		{
+			ifcnt4++;
+		}
+		else if(iftype == SCAP_FD_IPV6_SOCK || iftype == SCAP_II_IPV6_NOLINKSPEED)
+		{
 			ifcnt6++;
 		}
 		else
@@ -1043,7 +1046,7 @@ int32_t scap_read_iflist(scap_t *handle, FILE *f, uint32_t block_length)
 			goto scap_read_iflist_error;
 		}
 
-		if(iftype == SCAP_FD_IPV4_SOCK)
+		if(iftype == SCAP_II_IPV4)
 		{
 			entrysize = sizeof(scap_ifinfo_ipv4) + ifnamlen - SCAP_MAX_PATH_SIZE;
 
@@ -1065,7 +1068,41 @@ int32_t scap_read_iflist(scap_t *handle, FILE *f, uint32_t block_length)
 
 			ifcnt4++;
 		}
-		else if(iftype == SCAP_FD_IPV6_SOCK)
+		else if(iftype == SCAP_II_IPV4_NOLINKSPEED)
+		{
+			scap_ifinfo_ipv4_nolinkspeed* src;
+			scap_ifinfo_ipv4* dst;
+
+			entrysize = sizeof(scap_ifinfo_ipv4_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+
+			if(toread < entrysize)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+				res = SCAP_FAILURE;
+				goto scap_read_iflist_error;
+			}
+
+			// Copy the entry
+			src = (scap_ifinfo_ipv4_nolinkspeed*)pif;
+			dst = handle->m_addrlist->v4list + ifcnt4;
+
+			dst->type = src->type;
+			dst->ifnamelen = src->ifnamelen;
+			dst->addr = src->addr;
+			dst->netmask = src->netmask;
+			dst->bcast = src->bcast;
+			dst->linkspeed = 0;
+			memcpy(dst->ifname, src->ifname, MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1));
+
+			// Make sure the name string is NULL-terminated
+			*((char *)(dst->ifname + MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1))) = 0;
+
+			pif += entrysize;
+			totreadsize += entrysize;
+
+			ifcnt4++;
+		}
+		else if(iftype == SCAP_II_IPV6)
 		{
 			entrysize = sizeof(scap_ifinfo_ipv6) + ifnamlen - SCAP_MAX_PATH_SIZE;
 
@@ -1081,6 +1118,39 @@ int32_t scap_read_iflist(scap_t *handle, FILE *f, uint32_t block_length)
 
 			// Make sure the name string is NULL-terminated
 			*((char *)(handle->m_addrlist->v6list + ifcnt6) + entrysize) = 0;
+
+			pif += entrysize;
+			totreadsize += entrysize;
+
+			ifcnt6++;
+		}
+		else if(iftype == SCAP_II_IPV6_NOLINKSPEED)
+		{
+			scap_ifinfo_ipv6_nolinkspeed* src;
+			scap_ifinfo_ipv6* dst;
+			entrysize = sizeof(scap_ifinfo_ipv6_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+
+			if(toread < entrysize)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+				res = SCAP_FAILURE;
+				goto scap_read_iflist_error;
+			}
+
+			// Copy the entry
+			src = (scap_ifinfo_ipv6_nolinkspeed*)pif;
+			dst = handle->m_addrlist->v6list + ifcnt6;
+
+			dst->type = src->type;
+			dst->ifnamelen = src->ifnamelen;
+			memcpy(dst->addr, src->addr, SCAP_IPV6_ADDR_LEN);
+			memcpy(dst->netmask, src->netmask, SCAP_IPV6_ADDR_LEN);
+			memcpy(dst->bcast, src->bcast, SCAP_IPV6_ADDR_LEN);
+			dst->linkspeed = 0;
+			memcpy(dst->ifname, src->ifname, MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1));
+
+			// Make sure the name string is NULL-terminated
+			*((char *)(dst->ifname + MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1))) = 0;
 
 			pif += entrysize;
 			totreadsize += entrysize;
