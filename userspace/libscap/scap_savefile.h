@@ -39,31 +39,49 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 // MACHINE INFO BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define MI_BLOCK_TYPE	0x8002ABCD	// XXX we'll need to get an official block number for this
+#define MI_BLOCK_TYPE		0x201
+#define MI_BLOCK_TYPE_INT	0x8002ABCD	// This is the unofficial number used before the
+										// library release. We'll keep him for a while for
+										// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // PROCESS LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define PL_BLOCK_TYPE	0x8000ABCD	// XXX we'll need to get an official block number for this
+#define PL_BLOCK_TYPE		0x202
+#define PL_BLOCK_TYPE_INT	0x8000ABCD	// This is the unofficial number used before the
+										// library release. We'll keep him for a while for
+										// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // FD LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define FDL_BLOCK_TYPE	0x8001ABCD	// XXX we'll need to get an official block number for this
+#define FDL_BLOCK_TYPE		0x203
+#define FDL_BLOCK_TYPE_INT	0x8001ABCD	// This is the unofficial number used before the
+										// library release. We'll keep him for a while for
+										// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // EVENT BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define EV_BLOCK_TYPE	0x8010ABCD	// XXX we'll need to get an official block number for this
+#define EV_BLOCK_TYPE		0x204
+#define EV_BLOCK_TYPE_INT	0x8010ABCD	// This is the unofficial number used before the
+										// library release. We'll keep him for a while for
+										// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // INTERFACE LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define IL_BLOCK_TYPE	0x8011ABCD	// XXX we'll need to get an official block number for this
+#define IL_BLOCK_TYPE		0x205
+#define IL_BLOCK_TYPE_INT	0x8011ABCD	// This is the unofficial number used before the
+										// library release. We'll keep him for a while for
+										// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // USER LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define UL_BLOCK_TYPE	0x8012ABCD	// XXX we'll need to get an official block number for this
+#define UL_BLOCK_TYPE		0x206
+#define UL_BLOCK_TYPE_INT	0x8012ABCD	// This is the unofficial number used before the
+										// library release. We'll keep him for a while for
+										// backward compatibility
 
 #pragma pack(pop)

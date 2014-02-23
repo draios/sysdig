@@ -1444,24 +1444,28 @@ int32_t scap_read_init(scap_t *handle, FILE *f)
 		switch(bh.block_type)
 		{
 		case MI_BLOCK_TYPE:
+		case MI_BLOCK_TYPE_INT:
 			if(scap_read_machine_info(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
 			break;
 		case PL_BLOCK_TYPE:
+		case PL_BLOCK_TYPE_INT:
 			if(scap_read_proclist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
 			break;
 		case FDL_BLOCK_TYPE:
+		case FDL_BLOCK_TYPE_INT:
 			if(scap_read_fdlist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
 			break;
 		case EV_BLOCK_TYPE:
+		case EV_BLOCK_TYPE_INT:
 			//
 			// We're done with the metadata headers. Rewind the file position so we are aligned to start reading the events.
 			//
@@ -1476,12 +1480,14 @@ int32_t scap_read_init(scap_t *handle, FILE *f)
 				return SCAP_FAILURE;
 			}
 		case IL_BLOCK_TYPE:
+		case IL_BLOCK_TYPE_INT:
 			if(scap_read_iflist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
 			break;
 		case UL_BLOCK_TYPE:
+		case UL_BLOCK_TYPE_INT:
 			if(scap_read_userlist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
@@ -1552,7 +1558,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		}
 	}
 
-	if(bh.block_type != EV_BLOCK_TYPE)
+	if(bh.block_type != EV_BLOCK_TYPE && bh.block_type != EV_BLOCK_TYPE_INT)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
 		return SCAP_FAILURE;
