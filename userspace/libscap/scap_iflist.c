@@ -125,7 +125,7 @@ int32_t scap_create_iflist(scap_t* handle)
 
 		if(tempIfAddr->ifa_addr->sa_family == AF_INET)
 		{
-			handle->m_addrlist->v4list[ifcnt4].type = SCAP_FD_IPV4_SOCK;
+			handle->m_addrlist->v4list[ifcnt4].type = SCAP_II_IPV4;
 
 			tempAddrPtr = &((struct sockaddr_in *)tempIfAddr->ifa_addr)->sin_addr;
 			handle->m_addrlist->v4list[ifcnt4].addr = *(uint32_t*)tempAddrPtr;
@@ -158,7 +158,7 @@ int32_t scap_create_iflist(scap_t* handle)
 		}
 		else if(tempIfAddr->ifa_addr->sa_family == AF_INET6)
 		{
-			handle->m_addrlist->v6list[ifcnt6].type = SCAP_FD_IPV6_SOCK;
+			handle->m_addrlist->v6list[ifcnt6].type = SCAP_II_IPV6;
 
 			tempAddrPtr = &((struct sockaddr_in6 *)tempIfAddr->ifa_addr)->sin6_addr;
 
