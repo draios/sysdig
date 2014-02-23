@@ -151,6 +151,8 @@ int32_t scap_create_iflist(scap_t* handle)
 			strncpy(handle->m_addrlist->v4list[ifcnt4].ifname, tempIfAddr->ifa_name, SCAP_MAX_PATH_SIZE);
 			handle->m_addrlist->v4list[ifcnt4].ifnamelen = strlen(tempIfAddr->ifa_name);
 
+			handle->m_addrlist->v4list[ifcnt4].linkspeed = 0;
+
 			handle->m_addrlist->totlen += (sizeof(scap_ifinfo_ipv4) + handle->m_addrlist->v4list[ifcnt4].ifnamelen - SCAP_MAX_PATH_SIZE);
 			ifcnt4++;
 		}
@@ -186,6 +188,8 @@ int32_t scap_create_iflist(scap_t* handle)
 
 			strncpy(handle->m_addrlist->v6list[ifcnt6].ifname, tempIfAddr->ifa_name, SCAP_MAX_PATH_SIZE);
 			handle->m_addrlist->v6list[ifcnt6].ifnamelen = strlen(tempIfAddr->ifa_name);
+
+			handle->m_addrlist->v6list[ifcnt6].linkspeed = 0;
 
 			handle->m_addrlist->totlen += (sizeof(scap_ifinfo_ipv6) + handle->m_addrlist->v6list[ifcnt6].ifnamelen - SCAP_MAX_PATH_SIZE);
 			ifcnt6++;

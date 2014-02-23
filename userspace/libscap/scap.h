@@ -209,6 +209,18 @@ typedef struct _scap_machine_info
 #define SCAP_IPV6_ADDR_LEN 16
 
 /*!
+  \brief Interface address type
+*/
+typedef enum scap_ifinfo_type
+{
+	SCAP_II_UNKNOWN = 0,
+	SCAP_II_IPV4 = 1,
+	SCAP_II_IPV6 = 2,
+	SCAP_II_IPV4_NOLINKSPEED = 3,
+	SCAP_II_IPV6_NOLINKSPEED = 4,
+}scap_ifinfo_type;
+
+/*!
   \brief IPv4 interface address information
 */
 typedef struct scap_ifinfo_ipv4
@@ -218,8 +230,22 @@ typedef struct scap_ifinfo_ipv4
 	uint32_t addr; ///< Interface address
 	uint32_t netmask; ///< Interface netmask
 	uint32_t bcast; ///< Interface broadcast address
+	uint64_t linkspeed; ///< Interface link speed
 	char ifname[SCAP_MAX_PATH_SIZE]; ///< interface name (e.g. "eth0")
 }scap_ifinfo_ipv4;
+
+/*!
+  \brief For backword compatibility only
+*/
+typedef struct scap_ifinfo_ipv4_nolinkspeed
+{
+	uint16_t type;
+	uint16_t ifnamelen;
+	uint32_t addr;
+	uint32_t netmask;
+	uint32_t bcast;
+	char ifname[SCAP_MAX_PATH_SIZE];
+}scap_ifinfo_ipv4_nolinkspeed;
 
 /*!
   \brief IPv6 interface address information
@@ -231,8 +257,23 @@ typedef struct scap_ifinfo_ipv6
 	char addr[SCAP_IPV6_ADDR_LEN]; ///< Interface address
 	char netmask[SCAP_IPV6_ADDR_LEN]; ///< Interface netmask
 	char bcast[SCAP_IPV6_ADDR_LEN]; ///< Interface broadcast address
+	uint64_t linkspeed; ///< Interface link speed
 	char ifname[SCAP_MAX_PATH_SIZE]; ///< interface name (e.g. "eth0")
 }scap_ifinfo_ipv6;
+
+/*!
+  \brief For backword compatibility only
+*/
+typedef struct scap_ifinfo_ipv6_nolinkspeed
+{
+	uint16_t type;
+	uint16_t ifnamelen;
+	char addr[SCAP_IPV6_ADDR_LEN];
+	char netmask[SCAP_IPV6_ADDR_LEN];
+	char bcast[SCAP_IPV6_ADDR_LEN];
+	char ifname[SCAP_MAX_PATH_SIZE];
+}scap_ifinfo_ipv6_nolinkspeed;
+
 #pragma pack(pop)
 
 /*!
