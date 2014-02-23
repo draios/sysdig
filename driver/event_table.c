@@ -154,6 +154,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] =
 	/* PPME_SCHEDSWITCH_X */{"NA2", EC_SCHEDULER, EF_UNUSED, 0},
 	/* PPME_DROP_E */{"drop", EC_INTERNAL, EF_NONE, 1, {{"ratio", PT_UINT32, PF_DEC}}},
 	/* PPME_DROP_X */{"drop", EC_INTERNAL, EF_NONE, 1, {{"ratio", PT_UINT32, PF_DEC}}},
-	/* PPME_SYSCALL_FCNTL_E */{"fcntl", EC_IO_OTHER, (ppm_event_flags)(EF_CREATES_FD | EF_USES_FD), 2, {{"fd", PT_FD, PF_DEC}, {"cmd", PT_UINT8, PF_DEC}}},
-	/* PPME_SYSCALL_FCNTL_X */{"fcntl", EC_IO_OTHER, (ppm_event_flags)(EF_CREATES_FD | EF_USES_FD), 1, {{"res", PT_FD, PF_DEC}}},
+	/* PPME_SYSCALL_FCNTL_E */{"fcntl", EC_IO_OTHER, EF_USES_FD, 2, {{"fd", PT_FD, PF_DEC}, {"cmd", PT_UINT8, PF_DEC}}},
+	/* PPME_SYSCALL_FCNTL_X */{"fcntl", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_FD, PF_DEC}}},
 };
