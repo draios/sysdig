@@ -83,7 +83,9 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 		{
 			if(last_nontoken_str_start != j)
 			{
-				m_tokens.push_back(new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start)));
+				rawstring_check* newtkn = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
+				m_tokens.push_back(newtkn);
+				m_chks_to_free.push_back(newtkn);
 			}
 
 			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1), 
