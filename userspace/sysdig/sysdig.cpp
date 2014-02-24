@@ -32,7 +32,7 @@ static void signal_callback(int signal)
 	ctrl_c_pressed = true;
 }
 
-void replace_in_place(string& str, string& substr_to_replace, string& new_substr) 
+void replace_in_place(string& str, string substr_to_replace, string new_substr) 
 {
 	size_t index = 0;
 	uint32_t nsize = substr_to_replace.size();
@@ -515,7 +515,7 @@ int main(int argc, char **argv)
 					//
 					// -pp shows the default output format, useful if the user wants to tweak it.
 					//
-					replace_in_place(output_format, string("<TIME>"), timefmt); 
+					replace_in_place(output_format, "<TIME>", timefmt);
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return EXIT_SUCCESS;
@@ -659,7 +659,7 @@ int main(int argc, char **argv)
 		//
 		// Insert the 
 		//
-		replace_in_place(output_format, string("<TIME>"), timefmt); 
+		replace_in_place(output_format, "<TIME>", timefmt); 
 
 		//
 		// Launch the capture
