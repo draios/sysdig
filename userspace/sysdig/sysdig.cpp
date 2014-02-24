@@ -24,9 +24,28 @@ bool ctrl_c_pressed = false;
 
 static void usage();
 
+//
+// Helper functions
+//
 static void signal_callback(int signal)
 {
 	ctrl_c_pressed = true;
+}
+
+void replace_in_place(string& str, string& substr_to_replace, string& new_substr) 
+{
+	size_t index = 0;
+	uint32_t nsize = substr_to_replace.size();
+
+	while (true) 
+	{
+		 index = str.find(substr_to_replace, index);
+		 if (index == string::npos) break;
+
+		 str.replace(index, nsize, new_substr);
+
+		 index += nsize;
+	}
 }
 
 //
@@ -71,6 +90,11 @@ static void usage()
 "                    Capture the first <len> bytes of each I/O buffer.\n"
 "                    By default, the first 80 bytes are captured. Use this\n"
 "                    option with caution, it can generate huge trace files.\n"
+" -t <timetype>, --timetype=<timetype>\n"
+"                    Change the way event time is diplayed. Accepted values are\n"
+"                    h for human-readable string, a for abosulte timestamp from\n" 
+"                    epoch, r for relative time from the beginning of the\n" 
+"                    capture, and d for delta between event enter and exit.\n" 
 " -v, --verbose      Verbose output\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
@@ -333,6 +357,7 @@ int main(int argc, char **argv)
 	int cflag = 0;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
+	string timefmt = "%evt.time";
 
 
     static struct option long_options[] = 
@@ -352,13 +377,14 @@ int main(int argc, char **argv)
         {"readfile", required_argument, 0, 'r' },
         {"snaplen", required_argument, 0, 's' },
         {"summary", no_argument, 0, 'S' },
+        {"timetype", required_argument, 0, 't' },
         {"verbose", no_argument, 0, 'v' },
         {"writefile", required_argument, 0, 'w' },
         {0, 0, 0, 0}
     };
 
 //	output_format = "*%evt.num)%evt.reltime.s.%evt.reltime.ns %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
-	output_format = "*%evt.num)%evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
+	output_format = "*%evt.num)<TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
 //	output_format = DEFAULT_OUTPUT_STR;
 
 	try
@@ -370,7 +396,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:vw:", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:t:vw:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -489,6 +515,7 @@ int main(int argc, char **argv)
 					//
 					// -pp shows the default output format, useful if the user wants to tweak it.
 					//
+					replace_in_place(output_format, string("<TIME>"), timefmt); 
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return EXIT_SUCCESS;
@@ -498,6 +525,9 @@ int main(int argc, char **argv)
 					output_format = optarg;
 				}
 
+				break;
+			case 'q':
+				quiet = true;
 				break;
 			case 'r':
 				infile = optarg;
@@ -519,8 +549,27 @@ int main(int argc, char **argv)
 			case 's':
 				snaplen = atoi(optarg);
 				break;
-			case 'q':
-				quiet = true;
+			case 't':
+				{
+					string tms(optarg);
+
+					if(tms == "h")
+					{
+						timefmt = "%evt.time";
+					}
+					else if(tms == "a")
+					{
+						timefmt = "%evt.rawtime.s.%evt.rawtime.ns";
+					}
+					else if(tms == "r")
+					{
+						timefmt = "%evt.reltime.s.%evt.reltime.ns";
+					}
+					else if(tms == "d")
+					{
+						timefmt = "%evt.latency.s.%evt.latency.ns";
+					}
+				}
 				break;
 			case 'v':
 				verbose = true;
@@ -608,7 +657,12 @@ int main(int argc, char **argv)
 		}
 
 		//
-		// Launch the inspeciotn
+		// Insert the 
+		//
+		replace_in_place(output_format, string("<TIME>"), timefmt); 
+
+		//
+		// Launch the capture
 		//
 		bool open_success = true;
 
