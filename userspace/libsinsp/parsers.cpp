@@ -1315,14 +1315,14 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	}
 
 	packed_data = (uint8_t*)parinfo->m_val;
-
+BRK(61396);
 	//
 	// Populate the fd info class
 	//
 	if(*packed_data == PPM_AF_INET)
 	{
-		fdi.m_type = SCAP_FD_IPV4_SOCK;
 		set_ipv4_addresses_and_ports(&fdi, packed_data);
+		fdi.m_type = SCAP_FD_IPV4_SOCK;
 		fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 	}
 	else if(*packed_data == PPM_AF_INET6)
@@ -1336,9 +1336,8 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 
 		if(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip))
 		{
-			fdi.m_type = SCAP_FD_IPV4_SOCK;
-
 			set_ipv4_mapped_ipv6_addresses_and_ports(&fdi, packed_data);
+			fdi.m_type = SCAP_FD_IPV4_SOCK;
 			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 		}
 	}
@@ -1661,17 +1660,20 @@ bool sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdin
 	tdip = *(uint32_t *)(packed_data + 31);
 	tdport = *(uint16_t *)(packed_data + 35);
 
-	if((tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
-		tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
-		tdip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip &&
-		tdport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport) ||
-		(tdip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
-		tdport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
-		tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip &&
-		tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport)
-		)
+	if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
 	{
-		return false;
+		if((tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
+			tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
+			tdip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip &&
+			tdport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport) ||
+			(tdip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip &&
+			tdport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport &&
+			tsip == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip &&
+			tsport == fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport)
+			)
+		{
+			return false;
+		}
 	}
 
 	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip = tsip;
