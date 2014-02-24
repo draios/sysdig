@@ -427,7 +427,7 @@ void replace_in_place(string &s, const string &search, const string &replace)
 void replace_in_place(string& str, string& substr_to_replace, string& new_substr) 
 {
 	size_t index = 0;
-	uint32_t nsize = new_substr.size();
+	uint32_t nsize = substr_to_replace.size();
 
 	while (true) 
 	{
