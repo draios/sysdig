@@ -35,6 +35,16 @@ sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
 	set_format(fmt);
 }
 
+sinsp_evt_formatter::~sinsp_evt_formatter()
+{
+	uint32_t j;
+
+	for(j = 0; j < m_chks_to_free.size(); j++)
+	{
+		delete m_chks_to_free[j];
+	}
+}
+
 void sinsp_evt_formatter::set_format(const string& fmt)
 {
 	uint32_t j;
@@ -84,6 +94,8 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 			{
 				throw sinsp_exception("invalid formatting token " + string(cfmt + j + 1));
 			}
+
+			m_chks_to_free.push_back(chk);
 
 			j += chk->parse_field_name(cfmt + j + 1);
 			ASSERT(j <= lfmt.length());

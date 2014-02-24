@@ -44,6 +44,8 @@ public:
 	*/
 	sinsp_evt_formatter(sinsp* inspector, const string& fmt);
 
+	~sinsp_evt_formatter();
+
 	/*!
 	  \brief Fills res with the string rendering of the event.
 
@@ -60,6 +62,7 @@ private:
 	vector<sinsp_filter_check*> m_tokens;
 	sinsp* m_inspector;
 	bool m_require_all_values;
+	vector<sinsp_filter_check*> m_chks_to_free;
 };
 
 /*@}*/
