@@ -960,10 +960,17 @@ int32_t scap_read_iflist(scap_t *handle, FILE *f, uint32_t block_length)
 		{
 			entrysize = sizeof(scap_ifinfo_ipv6_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
 		}
+		else
+		{
+			ASSERT(false);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+			res = SCAP_FAILURE;
+			goto scap_read_iflist_error;
+		}
 
 		if(toread < entrysize)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(2)");
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
