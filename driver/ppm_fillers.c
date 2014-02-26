@@ -692,7 +692,11 @@ static int32_t f_proc_startupdate(struct event_filler_arguments* args)
 			args_len = PAGE_SIZE;
 		}
 
-		memcpy(args->str_storage, (void*)mm->arg_start, args_len);
+		if(unlikely(ppm_copy_from_user(args->str_storage, (const void*) mm->arg_start, args_len)))
+		{
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+		}
+
 		args->str_storage[args_len - 1] = 0;
 
 		exe_len = strnlen(args->str_storage, args_len);
