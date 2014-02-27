@@ -112,6 +112,7 @@ protected:
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
 	uint32_t m_field_id;
+	uint32_t m_th_state_id;
 
 private:
 	void set_inspector(sinsp* inspector);

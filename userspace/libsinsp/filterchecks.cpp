@@ -669,7 +669,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str)
 
 		return extract_arg("evt.arg", val, NULL);
 	}
-	if(string(val, 0, sizeof("evt.rawarg") - 1) == "evt.rawarg")
+	else if(string(val, 0, sizeof("evt.rawarg") - 1) == "evt.rawarg")
 	{
 		m_field_id = TYPE_ARGRAW;
 		m_customfield = m_info.m_fields[m_field_id];
@@ -679,6 +679,16 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str)
 		m_customfield.m_type = m_arginfo->type;
 
 		return res;
+	}
+	else if(string(val, 0, sizeof("evt.latency") - 1) == "evt.latency" ||
+		string(val, 0, sizeof("evt.latency.s") - 1) == "evt.latency.s" ||
+		string(val, 0, sizeof("evt.latency.ns") - 1) == "evt.latency.ns")
+	{
+		//
+		// These fields need to store the previuos event type in the thread state
+		//
+		m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint16_t));
+		return sinsp_filter_check::parse_field_name(str);
 	}
 	else
 	{
@@ -830,51 +840,65 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_u64val = (evt->get_ts() - m_first_ts) % ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_LATENCY:
-		m_u64val = 0;
-
-		if(evt->get_direction() == SCAP_ED_OUT)
 		{
+			m_u64val = 0;
+
+			if(evt->get_direction() == SCAP_ED_IN)
+			{
+				if(evt->m_tinfo != NULL)
+				{
+					uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
+					*pt = evt->get_type();
+				}
+
+				return (uint8_t*)&m_u64val;
+			}
+
 			if(evt->m_tinfo != NULL)
 			{
-				if(evt->m_tinfo->m_prevevent_ts != 0)
+				uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
+				if(evt->get_type() == *pt + 1)
 				{
-					m_u64val = evt->get_ts() - evt->m_tinfo->m_prevevent_ts;
-					ASSERT(m_u64val > 0);
+					m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts);
 				}
 			}
-		}
 
-		return (uint8_t*)&m_u64val;
+			return (uint8_t*)&m_u64val;
+		}
 	case TYPE_LATENCY_S:
-		m_u64val = 0;
-
-		if(evt->get_direction() == SCAP_ED_OUT)
-		{
-			if(evt->m_tinfo != NULL)
-			{
-				if(evt->m_tinfo->m_prevevent_ts != 0)
-				{
-					m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts) / 1000000000;
-				}
-			}
-		}
-
-		return (uint8_t*)&m_u64val;
 	case TYPE_LATENCY_NS:
-		m_u64val = 0;
-
-		if(evt->get_direction() == SCAP_ED_OUT)
 		{
+			m_u64val = 0;
+
+			if(evt->get_direction() == SCAP_ED_IN)
+			{
+				if(evt->m_tinfo != NULL)
+				{
+					uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
+					*pt = evt->get_type();
+				}
+
+				return (uint8_t*)&m_u64val;
+			}
+
 			if(evt->m_tinfo != NULL)
 			{
-				if(evt->m_tinfo->m_prevevent_ts != 0)
+				uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
+				if(evt->get_type() == *pt + 1)
 				{
-					m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts) % 1000000000;
+					if(m_field_id == TYPE_LATENCY_S)
+					{
+						m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts) / 1000000000;
+					}
+					else
+					{
+						m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts) % 1000000000;
+					}
 				}
 			}
-		}
 
-		return (uint8_t*)&m_u64val;
+			return (uint8_t*)&m_u64val;
+		}
 	case TYPE_DIR:
 		if(PPME_IS_ENTER(evt->get_type()))
 		{
