@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <iostream>
 #include <assert.h>
+#include <algorithm> 
 
 #include <sinsp.h>
 #include "sysdig.h"
@@ -256,7 +257,7 @@ void list_chisels(vector<chisel_desc>* chlist)
 		{
 			printf(" ");
 		}
-				
+
 		string desc = cd->m_description;
 		size_t desclen = desc.size();
 
