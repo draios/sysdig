@@ -79,6 +79,8 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(strin
 
 	for(j = 0; j < m_check_list.size(); j++)
 	{
+		m_check_list[j]->m_inspector = inspector;
+
 		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str());
 
 		if(fldnamelen != -1)

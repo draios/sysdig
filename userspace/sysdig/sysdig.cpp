@@ -202,10 +202,10 @@ captureinfo do_inspect(sinsp* inspector,
 					   uint64_t cnt, 
 					   bool quiet, 
 					   bool absolute_times,
-					   string format,
 					   sinsp_filter* display_filter,
 					   vector<sinsp_chisel*>* chisels,
-					   vector<summary_table_entry>* summary_table)
+					   vector<summary_table_entry>* summary_table,
+					   sinsp_evt_formatter* formatter)
 {
 	captureinfo retval;
 	int32_t res;
@@ -214,7 +214,6 @@ captureinfo do_inspect(sinsp* inspector,
 	uint64_t deltats = 0;
 	uint64_t firstts = 0;
 	string line;
-	sinsp_evt_formatter formatter(inspector, format);
 
 	//
 	// Loop through the events
@@ -337,7 +336,7 @@ captureinfo do_inspect(sinsp* inspector,
 				}
 			}
 
-			if(formatter.tostring(ev, &line))
+			if(formatter->tostring(ev, &line))
 			{
 				cout << line << endl;
 			}
@@ -676,9 +675,22 @@ int main(int argc, char **argv)
 		}
 
 		//
-		// Insert the 
+		// Insert the right time format based on the -t flag
 		//
 		replace_in_place(output_format, "<TIME>", timefmt); 
+
+		//
+		// Create the event formatter
+		//
+		sinsp_evt_formatter formatter(inspector, output_format);
+
+		//
+		// Initialize the chisels
+		//
+		for(uint32_t j = 0; j < chisels.size(); j++)
+		{
+			chisels[j]->on_init();
+		}
 
 		//
 		// Launch the capture
@@ -740,11 +752,6 @@ int main(int argc, char **argv)
 			}
 		}
 
-		for(uint32_t j = 0; j < chisels.size(); j++)
-		{
-			chisels[j]->on_init();
-		}
-
 		if(snaplen != 0)
 		{
 			inspector->set_snaplen(snaplen);
@@ -761,10 +768,10 @@ int main(int argc, char **argv)
 			cnt, 
 			quiet, 
 			absolute_times,
-			output_format,
 			display_filter,
 			&chisels,
-			summary_table);
+			summary_table,
+			&formatter);
 
 		duration = ((double)clock()) / CLOCKS_PER_SEC - duration;
 

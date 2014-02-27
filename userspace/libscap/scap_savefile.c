@@ -1266,7 +1266,7 @@ int32_t scap_read_userlist(scap_t *handle, FILE *f, uint32_t block_length)
 			scap_userinfo* puser;
 
 			handle->m_userlist->nusers++;
-			handle->m_userlist->users = realloc(handle->m_userlist->users, handle->m_userlist->nusers * sizeof(scap_userinfo));
+			handle->m_userlist->users = (scap_userinfo*)realloc(handle->m_userlist->users, handle->m_userlist->nusers * sizeof(scap_userinfo));
 			if(handle->m_userlist->users == NULL)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_userlist(1)");
@@ -1362,7 +1362,7 @@ int32_t scap_read_userlist(scap_t *handle, FILE *f, uint32_t block_length)
 			scap_groupinfo* pgroup;
 
 			handle->m_userlist->ngroups++;
-			handle->m_userlist->groups = realloc(handle->m_userlist->groups, handle->m_userlist->ngroups * sizeof(scap_groupinfo));
+			handle->m_userlist->groups = (scap_groupinfo*)realloc(handle->m_userlist->groups, handle->m_userlist->ngroups * sizeof(scap_groupinfo));
 			if(handle->m_userlist->groups == NULL)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_userlist(2)");
