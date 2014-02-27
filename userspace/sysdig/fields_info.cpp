@@ -223,10 +223,26 @@ void list_events(sinsp* inspector)
 	}
 }
 
+struct summary_chisel_comparer
+{
+    bool operator() (const chisel_desc& first, const chisel_desc& second) const 
+	{
+		return first.m_name < second.m_name;
+	}
+};
+
 void list_chisels(vector<chisel_desc>* chlist)
 {
 	uint32_t j, l, m;
 
+	//
+	// Sort the list by name
+	//
+	sort(chlist->begin(), chlist->end(), summary_chisel_comparer());
+
+	//
+	// Print the list to the screen
+	//
 	for(j = 0; j < chlist->size(); j++)
 	{
 		chisel_desc* cd = &(chlist->at(j));
