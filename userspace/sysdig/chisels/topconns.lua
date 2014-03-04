@@ -17,16 +17,16 @@ connection_procs = {}
 -- Initialization callback
 function on_init()
 	-- Request the fields we need
-	fbytes = sysdig.request_field("evt.rawarg.res")
-	ffname = sysdig.request_field("fd.name")
-	ftime = sysdig.request_field("evt.time.s")
-	fpname = sysdig.request_field("proc.name")
+	fbytes = chisel.request_field("evt.rawarg.res")
+	ffname = chisel.request_field("fd.name")
+	ftime = chisel.request_field("evt.time.s")
+	fpname = chisel.request_field("proc.name")
 
 	-- set the filter
-	sysdig.set_filter("evt.is_io=true and (fd.type=ipv4 or fd.type=ipv6)")
+	chisel.set_filter("evt.is_io=true and (fd.type=ipv4 or fd.type=ipv6)")
 	
 	-- set a 1s callback
-	sysdig.set_interval_s(1)
+	chisel.set_interval_s(1)
 	
 	return true
 end

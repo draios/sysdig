@@ -286,7 +286,10 @@ captureinfo do_inspect(sinsp* inspector,
 		{
 			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
 			{
-				(*it)->run(ev);
+				if((*it)->run(ev) == false)
+				{
+					continue;
+				}
 			}
 		}
 		else

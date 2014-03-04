@@ -8,10 +8,10 @@ args = {}
 -- Initialization callback
 function on_init()
 	-- Request the fileds that we need
-	fbuf = sysdig.request_field("evt.rawarg.data")
+	fbuf = chisel.request_field("evt.rawarg.data")
 
 	-- set the filter
-	sysdig.set_filter("fd.num=2 and evt.is_io=true")
+	chisel.set_filter("fd.num=2 and evt.is_io=true")
 	
 	return true
 end

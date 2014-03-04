@@ -23,14 +23,14 @@ end
 -- Initialization callback
 function on_init()
 	-- Request the fileds that we need
-	fdata = sysdig.request_field("evt.arg.data")
-	fisread = sysdig.request_field("evt.is_io_read")
+	fdata = chisel.request_field("evt.arg.data")
+	fisread = chisel.request_field("evt.is_io_read")
 
 	-- increase the snaplen so we capture more of the conversation 
 	sysdig.set_snaplen(1000)
 
 	-- set the filter
-	sysdig.set_filter("evt.is_io=true and fd.type=ipv4 and fd.ip=" .. addr)
+	chisel.set_filter("evt.is_io=true and fd.type=ipv4 and fd.ip=" .. addr)
 	
 	return true
 end

@@ -584,7 +584,9 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 	{
 		return SCAP_SUCCESS;
 	}
+
 	link_name[r] = '\0';
+
 	if(SCAP_FD_UNSUPPORTED == fdi->type)
 	{
 		// try to classify by link name
