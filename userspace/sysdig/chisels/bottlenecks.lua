@@ -15,13 +15,13 @@ last_lines = {}
 -- Initialization callback
 function on_init()
 	-- Request the fields
-	fevnum = sysdig.request_field("evt.num")
-	fevtime = sysdig.request_field("evt.time")
-	fevtype = sysdig.request_field("evt.type")
-	fevtargs = sysdig.request_field("evt.args")
-	flatency = sysdig.request_field("evt.latency")
-	fprname = sysdig.request_field("proc.name")
-	ftid = sysdig.request_field("thread.tid")
+	fevnum = chisel.request_field("evt.num")
+	fevtime = chisel.request_field("evt.time")
+	fevtype = chisel.request_field("evt.type")
+	fevtargs = chisel.request_field("evt.args")
+	flatency = chisel.request_field("evt.latency")
+	fprname = chisel.request_field("proc.name")
+	ftid = chisel.request_field("thread.tid")
 	
 	return true
 end

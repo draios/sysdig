@@ -16,15 +16,15 @@ files = {}
 -- Initialization callback
 function on_init()
 	-- Request the fields
-	fbytes = sysdig.request_field("evt.rawarg.res")
-	ffname = sysdig.request_field("fd.name")
-	ftime = sysdig.request_field("evt.time.s")
+	fbytes = chisel.request_field("evt.rawarg.res")
+	ffname = chisel.request_field("fd.name")
+	ftime = chisel.request_field("evt.time.s")
 
 	-- set the filter
-	sysdig.set_filter("evt.is_io=true and fd.type=file")
+	chisel.set_filter("evt.is_io=true and fd.type=file")
 	
 	-- set a 1s callback
-	sysdig.set_interval_s(1)
+	chisel.set_interval_s(1)
 	
 	return true
 end
@@ -35,7 +35,7 @@ function on_event()
 
 	if bytes ~= nil and bytes > 0 then
 		fname = evt.field(ffname)
-		
+
 		if fname ~= nil then
 			entryval = files[fname]
 			

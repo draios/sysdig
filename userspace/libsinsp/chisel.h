@@ -95,7 +95,7 @@ public:
 	void load(string cmdstr);
 	uint32_t get_n_args();
 	void set_args(vector<string>* argvals);
-	void run(sinsp_evt* evt);
+	bool run(sinsp_evt* evt);
 	void on_init();
 	void on_capture_end();
 

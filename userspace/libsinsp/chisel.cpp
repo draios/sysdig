@@ -294,6 +294,23 @@ public:
 		}
 	}
 
+	static int set_global_filter(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		const char* filter = lua_tostring(ls, 1); 
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		ch->m_inspector->set_filter(filter);
+
+		return 0;
+	}
+
 	static int set_filter(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
@@ -382,9 +399,15 @@ public:
 
 const static struct luaL_reg ll_sysdig [] = 
 {
+	{"set_filter", &lua_cbacks::set_global_filter},
+	{"set_snaplen", &lua_cbacks::set_snaplen},
+	{NULL,NULL}
+};
+
+const static struct luaL_reg ll_chisel [] = 
+{
 	{"request_field", &lua_cbacks::request_field},
 	{"set_filter", &lua_cbacks::set_filter},
-	{"set_snaplen", &lua_cbacks::set_snaplen},
 	{"set_event_formatter", &lua_cbacks::set_event_formatter},
 	{"set_interval_ns", &lua_cbacks::set_interval_ns},
 	{"set_interval_s", &lua_cbacks::set_interval_s},
@@ -724,6 +747,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				// Load our own lua libs
 				//
 				luaL_openlib(ls, "sysdig", ll_sysdig, 0);
+				luaL_openlib(ls, "chisel", ll_chisel, 0);
 				luaL_openlib(ls, "evt", ll_evt, 0);
 
 				//
@@ -897,6 +921,7 @@ void sinsp_chisel::load(string cmdstr)
 		// Load our own lua libs
 		//
 		luaL_openlib(m_ls, "sysdig", ll_sysdig, 0);
+		luaL_openlib(m_ls, "chisel", ll_chisel, 0);
 		luaL_openlib(m_ls, "evt", ll_evt, 0);
 
 		//
@@ -1107,7 +1132,7 @@ void sinsp_chisel::on_init()
 	lua_pop(m_ls, 1);
 }
 
-void sinsp_chisel::run(sinsp_evt* evt)
+bool sinsp_chisel::run(sinsp_evt* evt)
 {
 	uint32_t j;
 	string line;
@@ -1132,6 +1157,8 @@ void sinsp_chisel::run(sinsp_evt* evt)
 				cout << line << endl;
 			}
 		}
+
+		return true;
 	}
 	else
 	{
@@ -1190,7 +1217,7 @@ void sinsp_chisel::run(sinsp_evt* evt)
 		{
 			if(!m_lua_cinfo->m_filter->run(evt))
 			{
-				return;
+				return false;
 			}
 		}
 
@@ -1211,7 +1238,7 @@ void sinsp_chisel::run(sinsp_evt* evt)
 
 			if(oeres == false)
 			{
-				return;
+				return false;
 			}
 		}
 
@@ -1225,6 +1252,8 @@ void sinsp_chisel::run(sinsp_evt* evt)
 				cout << line << endl;
 			}
 		}
+
+		return true;
 #endif
 	}
 }

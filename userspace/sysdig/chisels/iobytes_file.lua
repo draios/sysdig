@@ -15,14 +15,14 @@ totout = 0
 -- Initialization callback
 function on_init()
 	-- Request the fields
-	fbytes = sysdig.request_field("evt.rawarg.res")
-	ftime = sysdig.request_field("evt.time.s")
-	fisread = sysdig.request_field("evt.is_io_read")
+	fbytes = chisel.request_field("evt.rawarg.res")
+	ftime = chisel.request_field("evt.time.s")
+	fisread = chisel.request_field("evt.is_io_read")
 
 	-- set the filter
-	sysdig.set_filter("evt.is_io=true and fd.type=file")
+	chisel.set_filter("evt.is_io=true and fd.type=file")
 	
-	sysdig.set_timeout_s(1)
+	chisel.set_interval_s(1)
 	
 	return true
 end
@@ -45,7 +45,7 @@ function on_event()
 	return true
 end
 
-function on_timeout()
+function on_interval()
 	etime = evt.field(ftime)
 	print(etime .. " in:" .. totin .. " out:" .. totout .. " tot:" .. tot)
 	tot = 0
