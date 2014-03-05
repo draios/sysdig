@@ -602,6 +602,24 @@ static inline uint8_t socket_family_to_scap(uint8_t family)
 	}
 }
 
+/*
+static struct socket *ppm_sockfd_lookup_light(int fd, int *err, int *fput_needed)
+{
+	struct file *file;
+	struct socket *sock;
+
+	*err = -EBADF;
+	file = fget_light(fd, fput_needed);
+	if (file) {
+		sock = sock_from_file(file, err);
+		if (sock)
+			return sock;
+		fput_light(file, *fput_needed);
+	}
+	return NULL;
+}
+*/
+
 ///////////////////////////////////////////////////////////////////////////////
 // Convert a sockaddr into our address representation and copy it to 
 // targetbuf 
