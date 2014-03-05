@@ -484,6 +484,7 @@ static int32_t f_sys_read_x(struct event_filler_arguments* args)
 	int32_t res;
 	int64_t retval;
 	unsigned long bufsize;
+	unsigned int snaplen;
 
 	//
 	// res
@@ -517,7 +518,37 @@ static int32_t f_sys_read_x(struct event_filler_arguments* args)
 		bufsize = retval;
 	}
 
-	res = val_to_ring(args, val, min(bufsize, (unsigned long)g_snaplen), true);
+	//
+	// Determine the snaplen by checking the fd type.
+	// (note: not implemeted yet)
+	//
+	snaplen = g_snaplen;	
+#if 0
+	{
+		int fd;
+		int err, fput_needed;
+		struct socket *sock;
+
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
+		if(sock)
+		{
+			snaplen = g_snaplen;
+			fput_light(sock->file, fput_needed);
+		}
+		else
+		{
+			snaplen = RW_SNAPLEN;
+		}
+	}
+#endif
+
+	//
+	// Copy the buffer
+	//
+	res = val_to_ring(args, val, min(bufsize, (unsigned long)snaplen), true);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -532,6 +563,7 @@ static int32_t f_sys_write_x(struct event_filler_arguments* args)
 	int32_t res;
 	int64_t retval;
 	unsigned long bufsize;
+	unsigned int snaplen;
 
 	//
 	// res
@@ -549,8 +581,38 @@ static int32_t f_sys_write_x(struct event_filler_arguments* args)
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	bufsize = val;
 
+	//
+	// Determine the snaplen by checking the fd type.
+	// (note: not implemeted yet)
+	//
+	snaplen = g_snaplen;	
+#if 0
+	{
+		int fd;
+		int err, fput_needed;
+		struct socket *sock;
+	
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
+		if(sock)
+		{
+			snaplen = g_snaplen;
+			fput_light(sock->file, fput_needed);
+		}
+		else
+		{
+			snaplen = RW_SNAPLEN;
+		}
+	}
+#endif
+
+	//
+	// Copy the buffer
+	//
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, val, min(bufsize, (unsigned long)g_snaplen), true);
+	res = val_to_ring(args, val, min(bufsize, (unsigned long)snaplen), true);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -2608,6 +2670,7 @@ static int32_t f_sys_writev_e(struct event_filler_arguments* args)
 	int32_t res;
 	const struct iovec* iov;
 	unsigned long iovcnt;
+	unsigned int snaplen;
 
 	//
 	// fd
@@ -2626,7 +2689,37 @@ static int32_t f_sys_writev_e(struct event_filler_arguments* args)
 	iov = (const struct iovec*)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
+	//
+	// Determine the snaplen by checking the fd type.
+	// (note: not implemeted yet)
+	//
+	snaplen = g_snaplen;
+#if 0
+	{
+		int fd;
+		int err, fput_needed;
+		struct socket *sock;
+	
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
+		if(sock)
+		{
+			snaplen = g_snaplen;
+			fput_light(sock->file, fput_needed);
+		}
+		else
+		{
+			snaplen = RW_SNAPLEN;
+		}
+	}
+#endif
+
+	//
+	// Copy the buffer
+	//
+	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_SIZE);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -2642,6 +2735,7 @@ static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments* args)
 	int64_t retval;
 	const struct iovec* iov;
 	unsigned long iovcnt;
+	unsigned int snaplen;
 
 	//
 	// res
@@ -2660,7 +2754,37 @@ static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments* args)
 	iov = (const struct iovec*)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_DATA);
+	//
+	// Determine the snaplen by checking the fd type.
+	// (note: not implemeted yet)
+	//
+	snaplen = g_snaplen;
+#if 0
+	{
+		int fd;
+		int err, fput_needed;
+		struct socket *sock;
+	
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
+		if(sock)
+		{
+			snaplen = g_snaplen;
+			fput_light(sock->file, fput_needed);
+		}
+		else
+		{
+			snaplen = RW_SNAPLEN;
+		}
+	}
+#endif
+
+	//
+	// Copy the buffer
+	//
+	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_DATA);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -2751,6 +2875,7 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments* args)
 #endif
 	const struct iovec* iov;
 	unsigned long iovcnt;
+	unsigned int snaplen;
 
 	//
 	// fd
@@ -2769,7 +2894,37 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments* args)
 	iov = (const struct iovec*)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
+	//
+	// Determine the snaplen by checking the fd type.
+	// (note: not implemeted yet)
+	//
+	snaplen = g_snaplen;
+#if 0
+	{
+		int fd;
+		int err, fput_needed;
+		struct socket *sock;
+	
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
+		if(sock)
+		{
+			snaplen = g_snaplen;
+			fput_light(sock->file, fput_needed);
+		}
+		else
+		{
+			snaplen = RW_SNAPLEN;
+		}
+	}
+#endif
+
+	//
+	// Copy the buffer
+	//
+	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_SIZE);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -3114,6 +3269,7 @@ static int32_t f_sched_switch_e(struct event_filler_arguments* args)
 	{
 		return res;
 	}
+
 /*
 	//
 	// steal
@@ -3127,6 +3283,66 @@ static int32_t f_sched_switch_e(struct event_filler_arguments* args)
 */
 	return add_sentinel(args);
 }
+
+#if 0
+static int32_t f_sched_switchex_e(struct event_filler_arguments* args)
+{
+	int32_t res;
+
+	if(args->sched_prev == NULL || args->sched_next == NULL)
+	{
+		ASSERT(false);
+		return -1;
+	}
+
+	//
+	// next
+	//
+	res = val_to_ring(args, args->sched_next->pid, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	//
+	// pgft_maj
+	//
+	res = val_to_ring(args, args->sched_prev->maj_flt, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	//
+	// pgft_min
+	//
+	res = val_to_ring(args, args->sched_prev->min_flt, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	//
+	// next_pgft_maj
+	//
+	res = val_to_ring(args, args->sched_next->maj_flt, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	//
+	// next_pgft_min
+	//
+	res = val_to_ring(args, args->sched_next->min_flt, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	return add_sentinel(args);
+}
+#endif // 0
 #endif // CAPTURE_CONTEXT_SWITCHES
 
 static int32_t f_sched_drop(struct event_filler_arguments* args)
