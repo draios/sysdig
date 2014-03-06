@@ -147,8 +147,11 @@ public:
 					sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 					lua_pop(ls, 1);
 
-					memcpy(ch->m_lua_fld_storage, rawval, len);
-					ch->m_lua_fld_storage[len] = 0;
+					uint32_t max_len = len < sizeof(ch->m_lua_fld_storage) ?
+						len : sizeof(ch->m_lua_fld_storage) - 1;
+
+					memcpy(ch->m_lua_fld_storage, rawval, max_len);
+					ch->m_lua_fld_storage[max_len] = 0;
 					lua_pushstring(ls, (char*)ch->m_lua_fld_storage);
 					return 1;
 				}
