@@ -475,6 +475,11 @@ private:
 	uint32_t m_max_n_proc_socket_lookups;
 
 	//
+	// Saved snaplen
+	//
+	uint32_t m_snaplen;
+
+	//
 	// Some thread table limits
 	//
 	uint32_t m_max_thread_table_size;

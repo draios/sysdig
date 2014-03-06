@@ -72,6 +72,7 @@ sinsp::sinsp() :
 	m_n_proc_lookups = 0;
 	m_max_n_proc_lookups = 0;
 	m_max_n_proc_socket_lookups = 0;
+	m_snaplen = DEFAULT_SNAPLEN;
 }
 
 sinsp::~sinsp()
@@ -304,6 +305,14 @@ void sinsp::init()
 		m_analyzer->on_capture_start();
 	}
 #endif
+
+	//
+	// If m_snaplen was modified, we set snaplen now
+	//
+	if (m_snaplen != DEFAULT_SNAPLEN)
+	{
+		set_snaplen(m_snaplen);
+	}
 }
 
 bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
@@ -566,6 +575,16 @@ void sinsp::remove_thread(int64_t tid)
 
 void sinsp::set_snaplen(uint32_t snaplen)
 {
+	//
+	// If set_snaplen is called before opening of the inspector,
+	// we register the value to be set after its initialization.
+	//
+	if (m_h == NULL)
+	{
+		m_snaplen = snaplen;
+		return;
+	}
+
 	if(scap_set_snaplen(m_h, snaplen) != SCAP_SUCCESS)
 	{
 		//
