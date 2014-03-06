@@ -77,6 +77,11 @@
 #define CHISELS_INSTALLATION_DIR "/share/sysdig/chisels"
 
 //
+// Default snaplen
+//
+#define DEFAULT_SNAPLEN 80
+
+//
 // FD class customized with the storage we need
 //
 #ifdef HAS_ANALYZER
