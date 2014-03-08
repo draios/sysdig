@@ -73,7 +73,8 @@ void sinsp_filter_check_list::get_all_fields(OUT vector<const filter_check_info*
 
 sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(string name, 
 																		   sinsp* inspector,
-																		   bool do_exact_check)
+																		   bool do_exact_check,
+																		   buffer_render_type render_type)
 {
 	uint32_t j;
 
@@ -95,6 +96,7 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(strin
 
 			sinsp_filter_check* newchk = m_check_list[j]->allocate_new();
 			newchk->set_inspector(inspector);
+			newchk->set_render_type(render_type);
 			return newchk;
 		}
 	}
@@ -242,6 +244,10 @@ sinsp_filter_check::sinsp_filter_check()
 void sinsp_filter_check::set_inspector(sinsp* inspector)
 {
 	m_inspector = inspector;
+}
+
+void sinsp_filter_check::set_render_type(buffer_render_type render_type)
+{
 }
 
 char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)

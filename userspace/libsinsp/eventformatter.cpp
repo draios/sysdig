@@ -29,9 +29,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_FILTERING
 extern sinsp_filter_check_list g_filterlist;
 
-sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
+sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt, buffer_render_type render_type)
 {
 	m_inspector = inspector;
+	m_render_type = render_type;
 	set_format(fmt);
 }
 
@@ -90,7 +91,8 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 
 			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1), 
 				m_inspector, 
-				false);
+				false,
+				m_render_type);
 
 			if(chk == NULL)
 			{
