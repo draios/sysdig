@@ -117,8 +117,9 @@ static void usage()
 " -v, --verbose      Verbose output\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
-" -x                 Print buffers in hex\n"
-" -X                 Print buffers in hex and ASCII\n"
+" -x, --hex-format   Print buffers in hex\n"
+" -X, --hex-ascii-format\n"
+"                    Print buffers in hex and ASCII\n"
 "\n"
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
@@ -369,6 +370,7 @@ int main(int argc, char **argv)
 	bool is_filter_display = false;
 	bool verbose = false;
 	bool list_flds = false;
+	buffer_render_type buffer_render = BUFFER_NORMAL;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
 	captureinfo cinfo;
@@ -421,7 +423,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:t:vw:", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -604,16 +606,10 @@ int main(int argc, char **argv)
 				quiet = true;
 				break;
 			case 'x':
-				{
-					ASSERT(false);
-					throw sinsp_exception("hex option not yet implemented");
-				}
+				buffer_render = BUFFER_HEX;
 				break;
 			case 'X':
-				{
-					ASSERT(false);
-					throw sinsp_exception("hex-ascii option not yet implemented");
-				}
+				buffer_render = BUFFER_HEXASCII;
 				break;
 			default:
 				break;
@@ -701,7 +697,7 @@ int main(int argc, char **argv)
 		//
 		// Create the event formatter
 		//
-		sinsp_evt_formatter formatter(inspector, output_format);
+		sinsp_evt_formatter formatter(inspector, output_format, buffer_render);
 
 		//
 		// Initialize the chisels

@@ -115,6 +115,7 @@ protected:
 	uint32_t m_th_state_id;
 
 private:
+	virtual void set_render_type(buffer_render_type render_type);
 	void set_inspector(sinsp* inspector);
 
 friend class sinsp_filter_check_list;
@@ -130,7 +131,7 @@ public:
 	sinsp_filter_check_list();
 	~sinsp_filter_check_list();
 	void get_all_fields(vector<const filter_check_info*>* list);
-	sinsp_filter_check* new_filter_check_from_fldname(string name, sinsp* inspector, bool do_exact_check);
+	sinsp_filter_check* new_filter_check_from_fldname(string name, sinsp* inspector, bool do_exact_check, buffer_render_type render_type = BUFFER_NORMAL);
 
 private:
 	vector<sinsp_filter_check*> m_check_list;
@@ -333,6 +334,7 @@ public:
 	string m_strstorage;
 	string m_argname;
 	int32_t m_argid;
+	buffer_render_type m_render_type;
 	const ppm_param_info* m_arginfo;
 	//
 	// Note: this copy of the field is used by some fields, like TYPE_ARGS and 
@@ -344,6 +346,7 @@ private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
+	void set_render_type(buffer_render_type render_type);
 };
 
 //
