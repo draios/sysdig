@@ -719,6 +719,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	tinfo.m_gid = *(int32_t *)parinfo->m_val;
 
 	//
+	// Initilaize the thread clone time
+	//
+	tinfo.m_clone_ts = evt->get_ts();
+
+	//
 	// Add the new thread to the table
 	//
 	m_inspector->add_thread(tinfo);

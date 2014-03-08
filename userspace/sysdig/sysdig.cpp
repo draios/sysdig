@@ -380,7 +380,6 @@ int main(int argc, char **argv)
 	vector<summary_table_entry>* summary_table = NULL;
 	string timefmt = "%evt.time";
 
-
     static struct option long_options[] = 
 	{
         {"abstimes", no_argument, 0, 'a' },

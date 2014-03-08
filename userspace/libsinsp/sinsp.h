@@ -441,6 +441,7 @@ private:
 
 	scap_t* m_h;
 	bool m_islive;
+	string m_filename;
 	sinsp_evt m_evt;
 	string m_lasterr;
 	int64_t m_tid_to_remove;
@@ -499,6 +500,7 @@ private:
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
+	friend class sinsp_analyzer_parsers;
 	friend class sinsp_evt;
 	friend class sinsp_threadinfo;
 	friend class sinsp_fdtable;
