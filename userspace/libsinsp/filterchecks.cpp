@@ -445,7 +445,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str)
 		//
 		// 'arg' is handled in a custom way
 		//
-		throw sinsp_exception("filter error: thread.args filter not implemented yet");
+		throw sinsp_exception("filter error: proc.arg filter not implemented yet");
 	}
 	else
 	{
@@ -479,10 +479,16 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			m_tstr.clear();
 
-			vector<string>::iterator it;
-			for(it = tinfo->m_args.begin(); it != tinfo->m_args.end(); it++)
+			uint32_t j;
+			uint32_t nargs = tinfo->m_args.size();
+
+			for(j = 0; j < nargs; j++)
 			{
-				m_tstr += *it;
+				m_tstr += tinfo->m_args[j];
+				if(j < nargs -1)
+				{
+					m_tstr += ' ';
+				}
 			}
 
 			return (uint8_t*)m_tstr.c_str();

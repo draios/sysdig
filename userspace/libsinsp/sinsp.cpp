@@ -135,6 +135,8 @@ void sinsp::open(string filename)
 		throw sinsp_exception(error);
 	}
 
+	m_filename = filename;
+
 	init();
 }
 
