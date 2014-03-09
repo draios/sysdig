@@ -373,6 +373,7 @@ int main(int argc, char **argv)
 	bool is_filter_display = false;
 	bool verbose = false;
 	bool list_flds = false;
+	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_SIMPLE;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
 	captureinfo cinfo;
@@ -607,16 +608,10 @@ int main(int argc, char **argv)
 				quiet = true;
 				break;
 			case 'x':
-				{
-					ASSERT(false);
-					throw sinsp_exception("hex option not yet implemented");
-				}
+				event_buffer_format = sinsp_evt::PF_HEX;
 				break;
 			case 'X':
-				{
-					ASSERT(false);
-					throw sinsp_exception("hex-ascii option not yet implemented");
-				}
+				event_buffer_format = sinsp_evt::PF_HEXASCII;
 				break;
 			default:
 				break;
@@ -625,7 +620,7 @@ int main(int argc, char **argv)
 
 		g_filterlist.add_filter_check(new sinsp_filter_check_fd());
 		g_filterlist.add_filter_check(new sinsp_filter_check_thread());
-		g_filterlist.add_filter_check(new sinsp_filter_check_event());
+		g_filterlist.add_filter_check(new sinsp_filter_check_event(event_buffer_format));
 		g_filterlist.add_filter_check(new sinsp_filter_check_user());
 		g_filterlist.add_filter_check(new sinsp_filter_check_group());
 

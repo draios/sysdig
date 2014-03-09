@@ -201,7 +201,82 @@ const struct ppm_param_info* sinsp_evt::get_param_info(uint32_t id)
 	return &(m_info->params[id]);
 }
 
-uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen)
+uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+{
+	uint32_t j;
+	uint32_t k;
+	uint32_t l = 0;
+	uint32_t num_chunks;
+	uint32_t row_len;
+	char row[128];
+	char *ptr;
+
+	for(j = 0; j < srclen; j += 8 * sizeof(uint16_t))
+	{
+		k = 0;
+		k += sprintf(row + k, "\n\t0x%.4x:", j);
+
+		ptr = &src[j];
+		num_chunks = 0;
+		while(num_chunks < 8 && ptr < src + srclen)
+		{
+			uint16_t* chunk = (uint16_t*)ptr;
+			if(ptr == src + srclen - 1)
+			{
+				k += sprintf(row + k, "   %.2x", *((uint8_t*)chunk));
+			}
+			else
+			{
+				k += sprintf(row + k, " %.4x", *chunk);
+			}
+
+			num_chunks++;
+			ptr += sizeof(uint16_t);
+		}
+
+		if(fmt == sinsp_evt::PF_HEXASCII)
+		{
+			// Fill the row with spaces to align it to other rows
+			while(num_chunks < 8)
+			{
+				memset(row + k, ' ', 5);
+
+				k += 5;
+				num_chunks++;
+			}
+
+			row[k++] = ' ';
+			row[k++] = ' ';
+
+			for(ptr = &src[j];
+				ptr < src + j + 8 * sizeof(uint16_t) && ptr < src + srclen;
+				ptr++, k++)
+			{
+				if(isprint((int)(uint8_t)*ptr))
+				{
+					row[k] = *ptr;
+				}
+				else
+				{
+					row[k] = '.';
+				}
+			}
+		}
+		row[k] = 0;
+
+		row_len = strlen(row);
+		if(l + row_len >= dstlen)
+		{
+			break;
+		}
+		strcpy(dst + l, row);
+		l += row_len;
+	}
+
+	return l;
+}
+
+uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t j;
 	uint32_t k = 0;
@@ -218,39 +293,46 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 		return 0;
 	}
 
-	for(j = 0; j < srclen; j++)
+	if(fmt == sinsp_evt::PF_HEX || fmt == sinsp_evt::PF_HEXASCII)
 	{
-		//
-		// Make sure there's enough space in the target buffer.
-		// Note that we reserve two bytes, because some characters are expanded
-		// when copied.
-		//
-		if(k >= dstlen - 1)
+		k = binary_buffer_to_hex_string(dst, src, dstlen, srclen, fmt);
+	}
+	else
+	{
+		for(j = 0; j < srclen; j++)
 		{
-			dst[k - 1] = 0;
-			return k - 1;
-		}
-
-		if(isprint((int)(uint8_t)src[j]))
-		{
-			switch(src[j])
+			//
+			// Make sure there's enough space in the target buffer.
+			// Note that we reserve two bytes, because some characters are expanded
+			// when copied.
+			//
+			if(k >= dstlen - 1)
 			{
-			case '"':
-			case '\\':
-				dst[k++] = '\\';
-				break;
-			default:
-				break;
+				dst[k - 1] = 0;
+				return k - 1;
 			}
 
-			dst[k] = src[j];
-		}
-		else
-		{
-			dst[k] = '.';
-		}
+			if(isprint((int)(uint8_t)src[j]))
+			{
+				switch(src[j])
+				{
+				case '"':
+				case '\\':
+					dst[k++] = '\\';
+					break;
+				default:
+					break;
+				}
 
-		k++;
+				dst[k] = src[j];
+			}
+			else
+			{
+				dst[k] = '.';
+			}
+
+			k++;
+		}
 	}
 
 	dst[k] = 0;
@@ -527,7 +609,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	break;
 	case PT_BYTEBUF:
 	{
-		uint32_t cres;
 		/* This would include quotes around the outpur string
 		            m_paramstr_storage[0] = '"';
 		            cres = binary_buffer_to_string(m_paramstr_storage + 1,
@@ -538,12 +619,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		            m_paramstr_storage[cres + 1] = '"';
 		            m_paramstr_storage[cres + 2] = 0;
 		*/
-		cres = binary_buffer_to_string(m_paramstr_storage,
-		                               param->m_val,
-		                               sizeof(m_paramstr_storage) - 1,
-		                               param->m_len);
-
-		m_paramstr_storage[cres + 1] = 0;
+		binary_buffer_to_string(m_paramstr_storage,
+	                               param->m_val,
+	                               sizeof(m_paramstr_storage) - 1,
+	                               param->m_len,
+	                               fmt);
 	}
 	break;
 	case PT_SOCKADDR:
