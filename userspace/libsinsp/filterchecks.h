@@ -108,7 +108,7 @@ protected:
 	void string_to_rawval(const char* str, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
-	uint8_t m_val_storage[1024];
+	vector<uint8_t> m_val_storage;
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
 	uint32_t m_field_id;

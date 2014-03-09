@@ -229,7 +229,8 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter_check::sinsp_filter_check()
+sinsp_filter_check::sinsp_filter_check() :
+	m_val_storage(256)
 {
 	m_boolop = BO_NONE;
 	m_cmpop = CO_NONE;
@@ -426,9 +427,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			}
 			else
 			{
-				memcpy(m_val_storage, rawval, len);
+				ASSERT(len < 1024 * 1024);
+
+				if(len >= m_val_storage.size())
+				{
+					m_val_storage.resize(len + 1);
+				}
+
+				memcpy(&m_val_storage[0], rawval, len);
 				m_val_storage[len] = 0;
-				return (char*)m_val_storage;
+				return (char*)&m_val_storage[0];
 			}
 		case PT_SOCKADDR:
 			ASSERT(false);
@@ -465,58 +473,58 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 	switch(ptype)
 	{
 		case PT_INT8:
-			*(int8_t*)m_val_storage = sinsp_numparser::parsed8(str);
+			*(int8_t*)(&m_val_storage[0]) = sinsp_numparser::parsed8(str);
 			break;
 		case PT_INT16:
-			*(int16_t*)m_val_storage = sinsp_numparser::parsed16(str);
+			*(int16_t*)(&m_val_storage[0]) = sinsp_numparser::parsed16(str);
 			break;
 		case PT_INT32:
-			*(int32_t*)m_val_storage = sinsp_numparser::parsed32(str);
+			*(int32_t*)(&m_val_storage[0]) = sinsp_numparser::parsed32(str);
 			break;
 		case PT_INT64:
 		case PT_ERRNO:
-			*(int64_t*)m_val_storage = sinsp_numparser::parsed64(str);
+			*(int64_t*)(&m_val_storage[0]) = sinsp_numparser::parsed64(str);
 			break;
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
-			*(uint8_t*)m_val_storage = sinsp_numparser::parseu8(str);
+			*(uint8_t*)(&m_val_storage[0]) = sinsp_numparser::parseu8(str);
 			break;
 		case PT_PORT: // This can be resolved in the future
 		case PT_UINT16:
-			*(uint16_t*)m_val_storage = sinsp_numparser::parseu16(str);
+			*(uint16_t*)(&m_val_storage[0]) = sinsp_numparser::parseu16(str);
 			break;
 		case PT_UINT32:
-			*(uint32_t*)m_val_storage = sinsp_numparser::parseu32(str);
+			*(uint32_t*)(&m_val_storage[0]) = sinsp_numparser::parseu32(str);
 			break;
 		case PT_UINT64:
-			*(uint64_t*)m_val_storage = sinsp_numparser::parseu64(str);
+			*(uint64_t*)(&m_val_storage[0]) = sinsp_numparser::parseu64(str);
 			break;
 		case PT_RELTIME:
 		case PT_ABSTIME:
-			*(uint64_t*)m_val_storage = sinsp_numparser::parseu64(str);
+			*(uint64_t*)(&m_val_storage[0]) = sinsp_numparser::parseu64(str);
 			break;
 		case PT_CHARBUF:
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
 			{
 				uint32_t len = strlen(str);
-				if(len >= sizeof(m_val_storage) - 1)
+				if(len >= m_val_storage.size())
 				{
 					throw sinsp_exception("filter parameter too long:" + string(str));
 				}
 
-				memcpy(m_val_storage, str, len);
+				memcpy((&m_val_storage[0]), str, len);
 				m_val_storage[len] = 0;
 			}
 			break;
 		case PT_BOOL:
 			if(string(str) == "true")
 			{
-				*(uint32_t*)m_val_storage = 1;
+				*(uint32_t*)(&m_val_storage[0]) = 1;
 			}
 			else if(string(str) == "false")
 			{
-				*(uint32_t*)m_val_storage = 0;
+				*(uint32_t*)(&m_val_storage[0]) = 0;
 			}
 			else
 			{
@@ -525,7 +533,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 
 			break;
 		case PT_IPV4ADDR:
-			if(inet_pton(AF_INET, str, m_val_storage) != 1)
+			if(inet_pton(AF_INET, str, (&m_val_storage[0])) != 1)
 			{
 				throw sinsp_exception("unrecognized IP address " + string(str));
 			}
@@ -603,7 +611,7 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 	return flt_compare(m_cmpop, 
 		m_info.m_fields[m_field_id].m_type, 
 		extracted_val, 
-		&m_val_storage);
+		&m_val_storage[0]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
