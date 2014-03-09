@@ -726,11 +726,6 @@ const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
 	}
 }
 
-void sinsp_filter_check_event::set_render_type(buffer_render_type render_type)
-{
-	m_render_type = render_type;
-}
-
 int32_t sinsp_filter_check_event::gmt2local(time_t t)
 {
 	register int dt, dir;

@@ -19,13 +19,6 @@
 
 #pragma once
 
-enum buffer_render_type
-{
-	BUFFER_NORMAL = 0,
-	BUFFER_HEX = 1,
-	BUFFER_HEXASCII = 2
-};
-
 class sinsp_filter_check;
 
 /** @defgroup event Event manipulation
@@ -48,9 +41,8 @@ public:
 	  \param fmt The printf-like format to use. The accepted format is the same
 	   as the one of the sysdig '-p' command line flag, so refer to the sysdig 
 	   manual for details. 
-	  \param render_type How binary buffers are rendered. 
 	*/
-	sinsp_evt_formatter(sinsp* inspector, const string& fmt, buffer_render_type render_type = BUFFER_NORMAL);
+	sinsp_evt_formatter(sinsp* inspector, const string& fmt);
 
 	~sinsp_evt_formatter();
 
@@ -71,7 +63,6 @@ private:
 	sinsp* m_inspector;
 	bool m_require_all_values;
 	vector<sinsp_filter_check*> m_chks_to_free;
-	buffer_render_type m_render_type;
 };
 
 /*@}*/
