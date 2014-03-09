@@ -10,6 +10,9 @@ function on_init()
 	-- Request the fileds that we need
 	fbuf = chisel.request_field("evt.rawarg.data")
 
+	-- increase the snaplen so we capture more of the conversation 
+	sysdig.set_snaplen(2000)
+
 	-- set the filter
 	chisel.set_filter("fd.num=0 and evt.is_io=true")
 	

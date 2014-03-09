@@ -23,9 +23,6 @@ function on_init()
 	-- set the filter
 	chisel.set_filter("evt.is_io=true and fd.type=file")
 	
-	-- set a 1s callback
-	chisel.set_interval_s(1)
-	
 	return true
 end
 
@@ -51,11 +48,10 @@ function on_event()
 end
 
 -- Interval callback, emits the ourput
-function on_interval()
+function on_capture_end()
 	etime = evt.field(ftime)
 	sorted_files = pairs_top_by_val(files, TOP_NUMBER, function(t,a,b) return t[b] < t[a] end)
 
-	print("--" .. etime .. "------------------------------------------")
 	for k,v in sorted_files do
 		print(extend_string(format_bytes(v), 10) .. k)
 	end
