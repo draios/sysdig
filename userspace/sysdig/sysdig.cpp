@@ -117,8 +117,6 @@ static void usage()
 " -v, --verbose      Verbose output\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
-" -x                 Print buffers in hex\n"
-" -X                 Print buffers in hex and ASCII\n"
 "\n"
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
@@ -403,8 +401,6 @@ int main(int argc, char **argv)
         {"timetype", required_argument, 0, 't' },
         {"verbose", no_argument, 0, 'v' },
         {"writefile", required_argument, 0, 'w' },
-        {"hex", no_argument, 0, 'x'},
-        {"hex-ascii", no_argument, 0, 'X'},
         {0, 0, 0, 0}
     };
 
@@ -602,18 +598,6 @@ int main(int argc, char **argv)
 			case 'w':
 				outfile = optarg;
 				quiet = true;
-				break;
-			case 'x':
-				{
-					ASSERT(false);
-					throw sinsp_exception("hex option not yet implemented");
-				}
-				break;
-			case 'X':
-				{
-					ASSERT(false);
-					throw sinsp_exception("hex-ascii option not yet implemented");
-				}
 				break;
 			default:
 				break;
