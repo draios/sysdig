@@ -129,6 +129,7 @@ class sinsp_filter_check_list
 public:
 	sinsp_filter_check_list();
 	~sinsp_filter_check_list();
+	void add_filter_check(sinsp_filter_check* filter_check);
 	void get_all_fields(vector<const filter_check_info*>* list);
 	sinsp_filter_check* new_filter_check_from_fldname(string name, sinsp* inspector, bool do_exact_check);
 
@@ -318,7 +319,7 @@ public:
 		TYPE_ISIO_WRITE = 23,
 	};
 
-	sinsp_filter_check_event();
+	sinsp_filter_check_event(sinsp_evt::param_fmt buffer_format = sinsp_evt::PF_SIMPLE);
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
 	void parse_filter_value(const char* str);
@@ -333,6 +334,7 @@ public:
 	string m_strstorage;
 	string m_argname;
 	int32_t m_argid;
+	sinsp_evt::param_fmt m_buffer_format;
 	const ppm_param_info* m_arginfo;
 	//
 	// Note: this copy of the field is used by some fields, like TYPE_ARGS and 

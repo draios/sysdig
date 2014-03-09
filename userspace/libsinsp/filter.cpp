@@ -41,14 +41,6 @@ extern sinsp_filter_check_list g_filterlist;
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_filter_check_list::sinsp_filter_check_list()
 {
-	//////////////////////////////////////////////////////////////////////////////
-	// ADD NEW FILTER CHECK CLASSES HERE
-	//////////////////////////////////////////////////////////////////////////////
-	m_check_list.push_back(new sinsp_filter_check_fd());
-	m_check_list.push_back(new sinsp_filter_check_thread());
-	m_check_list.push_back(new sinsp_filter_check_event());
-	m_check_list.push_back(new sinsp_filter_check_user());
-	m_check_list.push_back(new sinsp_filter_check_group());
 }
 
 sinsp_filter_check_list::~sinsp_filter_check_list()
@@ -59,6 +51,11 @@ sinsp_filter_check_list::~sinsp_filter_check_list()
 	{
 		delete m_check_list[j];
 	}
+}
+
+void sinsp_filter_check_list::add_filter_check(sinsp_filter_check* filter_check)
+{
+	m_check_list.push_back(filter_check);
 }
 
 void sinsp_filter_check_list::get_all_fields(OUT vector<const filter_check_info*>* list)
@@ -103,8 +100,7 @@ field_not_found:
 
 	//
 	// If you are implementing a new filter check and this point is reached,
-	// it's very likely that you've forgotten to add your filter to the list in 
-	// the constructor
+	// it's very likely that you've forgotten to add your filter to the list
 	//
 	ASSERT(false);
 	return NULL;
