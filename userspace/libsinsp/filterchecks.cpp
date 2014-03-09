@@ -806,63 +806,24 @@ void sinsp_filter_check_event::format_output(const char* src, uint16_t src_len, 
 	if(m_render_type == BUFFER_HEX || m_render_type == BUFFER_HEXASCII)
 	{
 		uint32_t j = 0;
-		uint32_t k;
 		uint32_t num_chunks;
-		const char *ptr;
 		char buf[128];
 
 		(*dst).clear();
 		for(j = 0; j < src_len; j += 8 * sizeof(uint16_t))
 		{
-			k = 0;
-			k += sprintf(buf + k, "\n\t0x%.4x:", j);
+			sprintf(buf, "\n\t0x%.4x:", j);
+			*dst += buf;
 
-			ptr = &src[j];
 			num_chunks = 0;
-			while(num_chunks < 8 && ptr < src + src_len)
+			while(num_chunks < 8 && j + num_chunks * sizeof(uint16_t) < src_len)
 			{
-				uint16_t *chunk = (uint16_t*)ptr;
-				if(ptr == &src[src_len - 1])
-				{
-					k += sprintf(buf + k, "   %.2x", *((uint8_t *)chunk));
-				}
-				else
-				{
-					k += sprintf(buf + k, " %.4x", *chunk);
-				}
+				uint16_t *chunk = (uint16_t*)&src[j + num_chunks * sizeof(uint16_t)];
+				sprintf(buf, " %.4x", *chunk);
+				*dst += buf;
 
 				num_chunks++;
-				ptr += sizeof(uint16_t);
 			}
-
-			if(m_render_type == BUFFER_HEXASCII)
-			{
-				// Fill the row with spaces to align it to other rows
-				while(num_chunks < 8)
-				{
-					k += sprintf(buf + k, " %4c", ' ');
-					num_chunks++;
-				}
-
-				k += sprintf(buf + k, "  ");
-
-				for(ptr = &src[j];
-					ptr < &src[j + 8 * sizeof(uint16_t)] && ptr < src + src_len;
-					ptr++, k++)
-				{
-					if(isprint(*ptr))
-					{
-						buf[k] = *ptr;
-					}
-					else
-					{
-						buf[k] = '.';
-					}
-				}
-				buf[k++] = '\0';
-			}
-
-			*dst += buf;
 		}
 		*dst += "\n";
 	}
