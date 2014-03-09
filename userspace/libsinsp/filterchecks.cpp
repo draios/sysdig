@@ -799,40 +799,6 @@ void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool d
 	*res = buf;
 }
 
-void sinsp_filter_check_event::format_output(const char* src, uint16_t src_len, OUT string* dst)
-{
-	ASSERT(src != NULL);
-
-	if(m_render_type == BUFFER_HEX || m_render_type == BUFFER_HEXASCII)
-	{
-		uint32_t j = 0;
-		uint32_t num_chunks;
-		char buf[128];
-
-		(*dst).clear();
-		for(j = 0; j < src_len; j += 8 * sizeof(uint16_t))
-		{
-			sprintf(buf, "\n\t0x%.4x:", j);
-			*dst += buf;
-
-			num_chunks = 0;
-			while(num_chunks < 8 && j + num_chunks * sizeof(uint16_t) < src_len)
-			{
-				uint16_t *chunk = (uint16_t*)&src[j + num_chunks * sizeof(uint16_t)];
-				sprintf(buf, " %.4x", *chunk);
-				*dst += buf;
-
-				num_chunks++;
-			}
-		}
-		*dst += "\n";
-	}
-	else
-	{
-		*dst = src;
-	}
-}
-
 uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	switch(m_field_id)
@@ -988,57 +954,31 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	case TYPE_ARGSTR:
 		{
-			const char* resolved_argstr = NULL;
-			const char* argstr = NULL;
-			const char* ptr;
-			const sinsp_evt_param* evt_param = NULL;
+			const char* resolved_argstr;
+			const char* argstr;
 
-			bool is_argid_present = m_argid != -1;
-			bool is_buffer_render_type_normal = m_render_type == BUFFER_NORMAL;
-
-			if(!is_argid_present && is_buffer_render_type_normal)
-			{
-				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, sinsp_evt::PF_SIMPLE);
-			}
-			else if(!is_argid_present)
-			{
-				evt_param = evt->get_param_value_raw(m_argname.c_str());
-			}
-			else
+			if(m_argid != -1)
 			{
 				if(m_argid >= (int32_t)evt->m_info->nparams)
 				{
 					return NULL;
 				}
 
-				if(is_buffer_render_type_normal)
-				{
-					argstr = evt->get_param_as_str(m_argid, &resolved_argstr, sinsp_evt::PF_SIMPLE);
-				}
-				else
-				{
-					evt_param = evt->get_param(m_argid);
-				}
-			}
-
-			ptr = resolved_argstr != NULL && resolved_argstr[0] != 0 ?
-				resolved_argstr :
-				argstr;
-
-			if(evt_param != NULL)
-			{
-				format_output(evt_param->m_val, evt_param->m_len, &m_strstorage);
-			}
-			else if(evt_param == NULL && ptr != NULL)
-			{
-				format_output(ptr, strlen(ptr), &m_strstorage);
+				argstr = evt->get_param_as_str(m_argid, &resolved_argstr, sinsp_evt::PF_SIMPLE);
 			}
 			else
 			{
-				return NULL;
+				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, sinsp_evt::PF_SIMPLE);
 			}
 
-			return (uint8_t*)m_strstorage.c_str();
+			if(resolved_argstr != NULL && resolved_argstr[0] != 0)
+			{
+				return (uint8_t*)resolved_argstr;
+			}
+			else
+			{
+				return (uint8_t*)argstr;
+			}
 		}
 		break;
 	case TYPE_ARGS:
