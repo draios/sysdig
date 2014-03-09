@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sinsp.h>
 #include "sysdig.h"
 #include "chisel.h"
+#include "filterchecks.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -38,6 +39,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <getopt.h>
 #endif
+
+extern sinsp_filter_check_list g_filterlist;
 
 bool ctrl_c_pressed = false;
 
@@ -117,6 +120,9 @@ static void usage()
 " -v, --verbose      Verbose output\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
+" -x, --hex-format   Print buffers in hex\n"
+" -X, --hex-ascii-format\n"
+"                    Print buffers in hex and ASCII\n"
 "\n"
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
@@ -400,6 +406,8 @@ int main(int argc, char **argv)
         {"timetype", required_argument, 0, 't' },
         {"verbose", no_argument, 0, 'v' },
         {"writefile", required_argument, 0, 'w' },
+        {"hex", no_argument, 0, 'x'},
+        {"hex-ascii", no_argument, 0, 'X'},
         {0, 0, 0, 0}
     };
 
@@ -416,7 +424,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:t:vw:", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -598,10 +606,28 @@ int main(int argc, char **argv)
 				outfile = optarg;
 				quiet = true;
 				break;
+			case 'x':
+				{
+					ASSERT(false);
+					throw sinsp_exception("hex option not yet implemented");
+				}
+				break;
+			case 'X':
+				{
+					ASSERT(false);
+					throw sinsp_exception("hex-ascii option not yet implemented");
+				}
+				break;
 			default:
 				break;
 			}
 		}
+
+		g_filterlist.add_filter_check(new sinsp_filter_check_fd());
+		g_filterlist.add_filter_check(new sinsp_filter_check_thread());
+		g_filterlist.add_filter_check(new sinsp_filter_check_event());
+		g_filterlist.add_filter_check(new sinsp_filter_check_user());
+		g_filterlist.add_filter_check(new sinsp_filter_check_group());
 
 		//
 		// If -l was specified, print the fields and exit

@@ -606,9 +606,10 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
 };
 
-sinsp_filter_check_event::sinsp_filter_check_event()
+sinsp_filter_check_event::sinsp_filter_check_event(sinsp_evt::param_fmt buffer_format)
 {
 	m_first_ts = 0;
+	m_buffer_format = buffer_format;
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
@@ -616,7 +617,7 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 
 sinsp_filter_check* sinsp_filter_check_event::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_event();
+	return (sinsp_filter_check*) new sinsp_filter_check_event(m_buffer_format);
 }
 
 int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
