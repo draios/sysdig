@@ -97,6 +97,8 @@ public:
 		PF_NORMAL,	///< Normal screen output
 		PF_JSON,	///< Json formatting
 		PF_SIMPLE,	///< Reduced output, e.g. not type character for FDs
+		PF_HEX,		///< Hexadecimal output
+		PF_HEXASCII,///< Hexadecimal + ASCII output
 	};
 
 	/*!
