@@ -41,6 +41,9 @@ extern sinsp_filter_check_list g_filterlist;
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_filter_check_list::sinsp_filter_check_list()
 {
+	//////////////////////////////////////////////////////////////////////////////
+	// ADD NEW FILTER CHECK CLASSES HERE
+	//////////////////////////////////////////////////////////////////////////////	
 	add_filter_check(new sinsp_filter_check_fd());
 	add_filter_check(new sinsp_filter_check_thread());
 	add_filter_check(new sinsp_filter_check_event());
@@ -105,7 +108,8 @@ field_not_found:
 
 	//
 	// If you are implementing a new filter check and this point is reached,
-	// it's very likely that you've forgotten to add your filter to the list
+	// it's very likely that you've forgotten to add your filter to the list in
+	// the constructor
 	//
 	ASSERT(false);
 	return NULL;
