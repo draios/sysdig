@@ -524,7 +524,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)param->m_val, false);
 			if(atinfo != NULL)
 			{
-				string& tcomm = atinfo->get_comm();
+				string& tcomm = atinfo->m_comm;
 
 				//
 				// Make sure the string will fit
