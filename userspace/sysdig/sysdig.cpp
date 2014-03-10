@@ -30,7 +30,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sinsp.h>
 #include "sysdig.h"
 #include "chisel.h"
-#include "filterchecks.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -39,8 +38,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <getopt.h>
 #endif
-
-extern sinsp_filter_check_list g_filterlist;
 
 bool ctrl_c_pressed = false;
 
