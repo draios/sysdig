@@ -606,10 +606,9 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
 };
 
-sinsp_filter_check_event::sinsp_filter_check_event(sinsp_evt::param_fmt buffer_format)
+sinsp_filter_check_event::sinsp_filter_check_event()
 {
 	m_first_ts = 0;
-	m_buffer_format = buffer_format;
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
@@ -617,7 +616,7 @@ sinsp_filter_check_event::sinsp_filter_check_event(sinsp_evt::param_fmt buffer_f
 
 sinsp_filter_check* sinsp_filter_check_event::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_event(m_buffer_format);
+	return (sinsp_filter_check*) new sinsp_filter_check_event();
 }
 
 int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
@@ -959,6 +958,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			const char* resolved_argstr;
 			const char* argstr;
 
+			ASSERT(m_inspector != NULL);
+
 			if(m_argid != -1)
 			{
 				if(m_argid >= (int32_t)evt->m_info->nparams)
@@ -966,11 +967,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					return NULL;
 				}
 
-				argstr = evt->get_param_as_str(m_argid, &resolved_argstr, m_buffer_format);
+				argstr = evt->get_param_as_str(m_argid, &resolved_argstr, m_inspector->get_buffer_format());
 			}
 			else
 			{
-				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, m_buffer_format);
+				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, m_inspector->get_buffer_format());
 			}
 
 			if(resolved_argstr != NULL && resolved_argstr[0] != 0)
@@ -1000,7 +1001,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			for(uint32_t j = 0; j < nargs; j++)
 			{
-				argstr = evt->get_param_as_str(j, &resolved_argstr);
+				ASSERT(m_inspector != NULL);
+
+				argstr = evt->get_param_as_str(j, &resolved_argstr, m_inspector->get_buffer_format());
 
 				if(resolved_argstr[0] == 0)
 				{

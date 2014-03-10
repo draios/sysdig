@@ -411,6 +411,18 @@ public:
 	*/
 	sinsp_network_interfaces* get_ifaddr_list();
 
+	/*!
+	  \brief Set the format used to render event data 
+	   buffer arguments.
+	*/
+	void set_buffer_format(sinsp_evt::param_fmt format);
+
+	/*!
+	  \brief Get the format used to render event data 
+	   buffer arguments.
+	*/
+	sinsp_evt::param_fmt get_buffer_format();
+
 	//
 	// Misc internal stuff 
 	//
@@ -486,6 +498,11 @@ private:
 	uint32_t m_max_thread_table_size;
 	uint64_t m_thread_timeout_ns;
 	uint64_t m_inactive_thread_scan_time_ns;
+
+	//
+	// How to render the data buffers
+	//
+	sinsp_evt::param_fmt m_buffer_format;
 
 	//
 	// User and group tables

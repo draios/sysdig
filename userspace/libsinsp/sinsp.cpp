@@ -73,6 +73,7 @@ sinsp::sinsp() :
 	m_max_n_proc_lookups = 0;
 	m_max_n_proc_socket_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
+	m_buffer_format = sinsp_evt::PF_NORMAL;
 }
 
 sinsp::~sinsp()
@@ -750,4 +751,14 @@ void sinsp::add_chisel_dir(string dirname)
 	ncdi.m_need_to_resolve = false;
 
 	g_chisel_dirs->push_back(ncdi);
+}
+
+void sinsp::set_buffer_format(sinsp_evt::param_fmt format)
+{
+	m_buffer_format = format;
+}
+
+sinsp_evt::param_fmt sinsp::get_buffer_format()
+{
+	return m_buffer_format;
 }
