@@ -202,6 +202,7 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_PID:
 	case PT_ERRNO:
 		return flt_compare_int64(op, *(int64_t*)operand1, *(int64_t*)operand2);
+	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
 		return flt_compare_uint64(op, (uint64_t)*(int8_t*)operand1, (uint64_t)*(int8_t*)operand2);
@@ -210,6 +211,7 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_SYSCALLID:
 		return flt_compare_uint64(op, (uint64_t)*(int16_t*)operand1, (uint64_t)*(int16_t*)operand2);
 	case PT_UINT32:
+	case PT_FLAGS32:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
 		return flt_compare_uint64(op, (uint64_t)*(int32_t*)operand1, (uint64_t)*(int32_t*)operand2);
@@ -491,6 +493,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 			*(int64_t*)(&m_val_storage[0]) = sinsp_numparser::parsed64(str);
 			break;
 		case PT_L4PROTO: // This can be resolved in the future
+		case PT_FLAGS8:
 		case PT_UINT8:
 			*(uint8_t*)(&m_val_storage[0]) = sinsp_numparser::parseu8(str);
 			break;
@@ -498,6 +501,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 		case PT_UINT16:
 			*(uint16_t*)(&m_val_storage[0]) = sinsp_numparser::parseu16(str);
 			break;
+		case PT_FLAGS32:
 		case PT_UINT32:
 			*(uint32_t*)(&m_val_storage[0]) = sinsp_numparser::parseu32(str);
 			break;
