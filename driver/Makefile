@@ -1,6 +1,6 @@
 sysdig-probe-y += main.o ppm_events.o ppm_fillers.o event_table.o syscall_table.o syscall_info_table.o
 obj-m += sysdig-probe.o
-ccflags-y := 
+ccflags-y := -D_DEBUG 
 TOP := $(shell pwd)
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(TOP) modules
