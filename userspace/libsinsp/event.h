@@ -270,10 +270,8 @@ VISIBILITY_PRIVATE
 	//       currently there's no case in which more than one single event is 
 	//       needed by the library users. We'll optmize this when we'll have the 
 	//       need.
-	char m_paramstr_storage[1024];
-	char m_resolved_paramstr_storage[1024];
-	char m_getproperty_storage[1024];
-	char m_getpropertystr_storage[32]; // This should be used for number only
+	vector<char> m_paramstr_storage;
+	vector<char> m_resolved_paramstr_storage;
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
@@ -290,6 +288,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_filter_check_event;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
+	friend class sinsp_analyzer_parsers;
 };
 
 /*@}*/

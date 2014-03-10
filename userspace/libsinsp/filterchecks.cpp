@@ -230,16 +230,16 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 		{
 			if(m_cmpop == CO_EQ)
 			{
-				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, &m_val_storage) ||
-					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, &m_val_storage))
+				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, &m_val_storage[0]) ||
+					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, &m_val_storage[0]))
 				{
 					return true;
 				}
 			}
 			else if(m_cmpop == CO_NE)
 			{
-				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, &m_val_storage) &&
-					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, &m_val_storage))
+				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, &m_val_storage[0]) &&
+					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, &m_val_storage[0]))
 				{
 					return true;
 				}
@@ -251,7 +251,7 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 		}
 		else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 		{
-			if(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip == *(uint32_t*)m_val_storage)
+			if(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip == *(uint32_t*)&m_val_storage[0])
 			{
 				return true;
 			}
@@ -276,16 +276,16 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 		{
 			if(m_cmpop == CO_EQ)
 			{
-				if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport == *(uint16_t*)m_val_storage ||
-					m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport == *(uint16_t*)m_val_storage)
+				if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport == *(uint16_t*)&m_val_storage[0] ||
+					m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport == *(uint16_t*)&m_val_storage[0])
 				{
 					return true;
 				}
 			}
 			else if(m_cmpop == CO_NE)
 			{
-				if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport != *(uint16_t*)m_val_storage &&
-					m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport != *(uint16_t*)m_val_storage)
+				if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport != *(uint16_t*)&m_val_storage[0] &&
+					m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport != *(uint16_t*)&m_val_storage[0])
 				{
 					return true;
 				}
@@ -297,22 +297,22 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 		}
 		else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 		{
-			if(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port == *(uint16_t*)m_val_storage)
+			if(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port == *(uint16_t*)&m_val_storage[0])
 			{
 				return true;
 			}
 		}
 		else if(evt_type == SCAP_FD_IPV6_SOCK)
 		{
-			if(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport == *(uint16_t*)m_val_storage ||
-				m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport == *(uint16_t*)m_val_storage)
+			if(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport == *(uint16_t*)&m_val_storage[0] ||
+				m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport == *(uint16_t*)&m_val_storage[0])
 			{
 				return true;
 			}
 		}
 		else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
 		{
-			if(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port == *(uint16_t*)m_val_storage)
+			if(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port == *(uint16_t*)&m_val_storage[0])
 			{
 				return true;
 			}
@@ -385,7 +385,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	return flt_compare(m_cmpop, 
 		m_info.m_fields[m_field_id].m_type, 
 		extracted_val, 
-		&m_val_storage);
+		&m_val_storage[0]);
 }
 
 char* sinsp_filter_check_fd::tostring(sinsp_evt* evt)
@@ -445,7 +445,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str)
 		//
 		// 'arg' is handled in a custom way
 		//
-		throw sinsp_exception("filter error: thread.args filter not implemented yet");
+		throw sinsp_exception("filter error: proc.arg filter not implemented yet");
 	}
 	else
 	{
@@ -479,10 +479,16 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			m_tstr.clear();
 
-			vector<string>::iterator it;
-			for(it = tinfo->m_args.begin(); it != tinfo->m_args.end(); it++)
+			uint32_t j;
+			uint32_t nargs = tinfo->m_args.size();
+
+			for(j = 0; j < nargs; j++)
 			{
-				m_tstr += *it;
+				m_tstr += tinfo->m_args[j];
+				if(j < nargs -1)
+				{
+					m_tstr += ' ';
+				}
 			}
 
 			return (uint8_t*)m_tstr.c_str();
@@ -953,6 +959,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			const char* resolved_argstr;
 			const char* argstr;
 
+			ASSERT(m_inspector != NULL);
+
 			if(m_argid != -1)
 			{
 				if(m_argid >= (int32_t)evt->m_info->nparams)
@@ -960,11 +968,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					return NULL;
 				}
 
-				argstr = evt->get_param_as_str(m_argid, &resolved_argstr, m_buffer_format);
+				argstr = evt->get_param_as_str(m_argid, &resolved_argstr, m_inspector->get_buffer_format());
 			}
 			else
 			{
-				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, m_buffer_format);
+				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, m_inspector->get_buffer_format());
 			}
 
 			if(resolved_argstr != NULL && resolved_argstr[0] != 0)
@@ -994,7 +1002,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			for(uint32_t j = 0; j < nargs; j++)
 			{
-				argstr = evt->get_param_as_str(j, &resolved_argstr);
+				ASSERT(m_inspector != NULL);
+
+				argstr = evt->get_param_as_str(j, &resolved_argstr, m_inspector->get_buffer_format());
 
 				if(resolved_argstr[0] == 0)
 				{
@@ -1166,7 +1176,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 		return flt_compare(m_cmpop, 
 			m_arginfo->type, 
 			extracted_val, 
-			&m_val_storage);
+			&m_val_storage[0]);
 	}
 	else
 	{

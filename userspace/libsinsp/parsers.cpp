@@ -80,7 +80,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 
 		if((eflags & (EF_CREATES_FD | EF_DESTROYS_FD)) || 
 			etype == PPME_SOCKET_CONNECT_E || etype == PPME_SOCKET_CONNECT_X || 
-			etype == PPME_CLONE_X || etype == PPME_SYSCALL_EXECVE_X)
+			etype == PPME_CLONE_X || etype == PPME_SYSCALL_EXECVE_X || etype == PPME_SYSCALL_DUP_X
+			 || etype == PPME_SYSCALL_FCNTL_E|| etype == PPME_SYSCALL_FCNTL_X)
 		{
 			do_filter_later = true;
 		}
@@ -717,6 +718,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(10);
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_gid = *(int32_t *)parinfo->m_val;
+
+	//
+	// Initilaize the thread clone time
+	//
+	tinfo.m_clone_ts = evt->get_ts();
 
 	//
 	// Add the new thread to the table
@@ -1840,10 +1846,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 						}
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo, 
-							fdtype, evt->m_paramstr_storage, 
-							sizeof(evt->m_paramstr_storage));
+							fdtype, &evt->m_paramstr_storage[0], 
+							evt->m_paramstr_storage.size());
 
-						evt->m_fdinfo->m_name = evt->m_paramstr_storage;
+						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}
 					else
 					{
@@ -1917,10 +1923,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 						}
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo, 
-							fdtype, evt->m_paramstr_storage, 
-							sizeof(evt->m_paramstr_storage));
+							fdtype, &evt->m_paramstr_storage[0], 
+							evt->m_paramstr_storage.size());
 
-						evt->m_fdinfo->m_name = evt->m_paramstr_storage;
+						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}
 					else
 					{
