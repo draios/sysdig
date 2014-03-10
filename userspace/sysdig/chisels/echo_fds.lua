@@ -13,6 +13,7 @@ function on_init()
 	fbuf = chisel.request_field("evt.rawarg.data")
 	fisread = chisel.request_field("evt.is_io_read")
 	fres = chisel.request_field("evt.rawarg.res")
+	fname = chisel.request_field("fd.name")
 
 	-- increase the snaplen so we capture more of the conversation 
 	sysdig.set_snaplen(2000)
@@ -28,15 +29,16 @@ function on_event()
 	buf = evt.field(fbuf)
 	isread = evt.field(fisread)
 	res = evt.field(fres)
+	name = evt.field(fname)
 
 	if res <= 0 then
 		return true
 	end
 	
 	if isread then
-		print("------ Read " .. format_bytes(res))
+		print("------ Read " .. format_bytes(res) .. " from " .. name)
 	else
-		print("------ Write " .. format_bytes(res))
+		print("------ Write " .. format_bytes(res) .. " to " .. name)
 	end
 	
 	if buf ~= nil then
