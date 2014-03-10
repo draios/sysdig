@@ -78,10 +78,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	{
 		ppm_event_flags eflags = evt->get_flags();
 
-		if((eflags & (EF_CREATES_FD | EF_DESTROYS_FD)) || 
-			etype == PPME_SOCKET_CONNECT_E || etype == PPME_SOCKET_CONNECT_X || 
-			etype == PPME_CLONE_X || etype == PPME_SYSCALL_EXECVE_X || etype == PPME_SYSCALL_DUP_X
-			 || etype == PPME_SYSCALL_FCNTL_E|| etype == PPME_SYSCALL_FCNTL_X)
+		if(eflags & EF_MODIFIES_STATE)
 		{
 			do_filter_later = true;
 		}
