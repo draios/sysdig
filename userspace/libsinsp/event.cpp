@@ -932,6 +932,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 						((double)val) / 1000000000);
 		}
 		break;
+	case PT_FLAGS8:
+	case PT_FLAGS32:
+		{
+			uint32_t val = *(uint32_t *)param->m_val;
+			snprintf(&m_paramstr_storage[0],
+				     m_paramstr_storage.size(),
+				     "%" PRIu32, val);
+			break;
+		}
 	case PT_ABSTIME:
 		//
 		// XXX not implemented yet

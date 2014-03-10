@@ -803,6 +803,8 @@ typedef enum ppm_param_type
 	PT_BOOL = 25, // A boolean value, 4 bytes.
 	PT_IPV4ADDR = 26, // A 4 byte raw IPv4 address.
 	PT_DYN = 27, // Type can vary depending on the context. Used for filter fields like evt.rawarg.
+	PT_FLAGS8 = 28, // this is an UINT8, but will be interpreted as 8 bit flags.
+	PT_FLAGS32 = 29, // this is an UINT32, but will be interpreted as 32 bit flags.
 }ppm_param_type;
 
 typedef enum ppm_print_format

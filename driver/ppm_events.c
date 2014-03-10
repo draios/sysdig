@@ -261,6 +261,7 @@ inline int32_t val_to_ring(struct event_filler_arguments* args, uint64_t val, ui
 		}
 
 		break;
+	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
 		if(likely(args->arg_data_size >= sizeof(uint8_t)))
@@ -287,6 +288,7 @@ inline int32_t val_to_ring(struct event_filler_arguments* args, uint64_t val, ui
 		}
 
 		break;
+	case PT_FLAGS32:
 	case PT_UINT32:
 		if(likely(args->arg_data_size >= sizeof(uint32_t)))
 		{
