@@ -373,7 +373,7 @@ int main(int argc, char **argv)
 	bool is_filter_display = false;
 	bool verbose = false;
 	bool list_flds = false;
-	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_SIMPLE;
+	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
 	captureinfo cinfo;
@@ -618,11 +618,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		g_filterlist.add_filter_check(new sinsp_filter_check_fd());
-		g_filterlist.add_filter_check(new sinsp_filter_check_thread());
-		g_filterlist.add_filter_check(new sinsp_filter_check_event(event_buffer_format));
-		g_filterlist.add_filter_check(new sinsp_filter_check_user());
-		g_filterlist.add_filter_check(new sinsp_filter_check_group());
+		inspector->set_buffer_format(event_buffer_format);
 
 		//
 		// If -l was specified, print the fields and exit
