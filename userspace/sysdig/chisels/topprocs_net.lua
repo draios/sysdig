@@ -22,10 +22,7 @@ function on_init()
 
 	-- set the filter
 	chisel.set_filter("evt.is_io=true and (fd.type=ipv4 or fd.type=ipv6)")
-	
-	-- set a 1s callback
-	chisel.set_interval_s(1)
-	
+		
 	return true
 end
 
@@ -55,7 +52,6 @@ function on_interval()
 	etime = evt.field(ftime)
 	sorted_procs = pairs_top_by_val(procs, TOP_NUMBER, function(t,a,b) return t[b] < t[a] end)
 
-	print("--" .. etime .. "------------------------------------------")
 	for k,v in sorted_procs do
 		print(extend_string(format_bytes(v), 10) .. k)
 	end

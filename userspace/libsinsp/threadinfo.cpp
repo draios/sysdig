@@ -59,6 +59,7 @@ void sinsp_threadinfo::init()
 	m_lastevent_ts = 0;
 	m_prevevent_ts = 0;
 	m_lastaccess_ts = 0;
+	m_clone_ts = 0;
 	m_lastevent_category.m_category = EC_UNKNOWN;
 	m_flags = PPM_CL_NAME_CHANGED;
 	m_nchilds = 0;
@@ -337,6 +338,11 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 	return m_main_thread;
 }
 
+sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
+{
+	return m_inspector->get_thread(m_ptid, false);
+}
+
 sinsp_fdtable* sinsp_threadinfo::get_fd_table()
 {
 	sinsp_threadinfo* root;
@@ -373,7 +379,7 @@ void sinsp_threadinfo::remove_fd(int64_t fd)
 	get_fd_table()->erase(fd);
 }
 
-sinsp_fdinfo_t *sinsp_threadinfo::get_fd(int64_t fd)
+sinsp_fdinfo_t* sinsp_threadinfo::get_fd(int64_t fd)
 {
 	if(fd < 0)
 	{

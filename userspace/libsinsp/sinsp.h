@@ -411,6 +411,18 @@ public:
 	*/
 	sinsp_network_interfaces* get_ifaddr_list();
 
+	/*!
+	  \brief Set the format used to render event data 
+	   buffer arguments.
+	*/
+	void set_buffer_format(sinsp_evt::param_fmt format);
+
+	/*!
+	  \brief Get the format used to render event data 
+	   buffer arguments.
+	*/
+	sinsp_evt::param_fmt get_buffer_format();
+
 	//
 	// Misc internal stuff 
 	//
@@ -441,6 +453,7 @@ private:
 
 	scap_t* m_h;
 	bool m_islive;
+	string m_filename;
 	sinsp_evt m_evt;
 	string m_lasterr;
 	int64_t m_tid_to_remove;
@@ -487,6 +500,11 @@ private:
 	uint64_t m_inactive_thread_scan_time_ns;
 
 	//
+	// How to render the data buffers
+	//
+	sinsp_evt::param_fmt m_buffer_format;
+
+	//
 	// User and group tables
 	//
 	unordered_map<uint32_t, scap_userinfo*> m_userlist;
@@ -499,6 +517,7 @@ private:
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
+	friend class sinsp_analyzer_parsers;
 	friend class sinsp_evt;
 	friend class sinsp_threadinfo;
 	friend class sinsp_fdtable;
