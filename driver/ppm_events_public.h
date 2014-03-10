@@ -816,6 +816,15 @@ typedef enum ppm_print_format
 }ppm_print_format;
 
 /*!
+  \brief Name-value pair, used to store flags information.
+*/
+struct ppm_name_value
+{
+	const char *name;
+	uint32_t value;
+};
+
+/*!
   \brief Event parameter information.
 */
 struct ppm_param_info
@@ -823,6 +832,7 @@ struct ppm_param_info
 	char name[PPM_MAX_NAME_LEN];  ///< Paramter name, e.g. 'size'.
 	ppm_param_type type; ///< Paramter type, e.g. 'uint16', 'string'...
 	ppm_print_format fmt; ///< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. 
+	const struct ppm_name_value *symbols; ///< If this is a flags parameter, it points to an array of ppm_name_value, terminated with {0, 0}
 };
 
 /*!
@@ -878,5 +888,10 @@ struct ppm_syscall_desc
 	ppm_event_category category; ///< System call category.
 	char* name; ///< System call name, e.g. 'open'.
 };
+
+extern const struct ppm_name_value file_flags[];
+extern const struct ppm_name_value clone_flags[];
+extern const struct ppm_name_value poll_flags[];
+extern const struct ppm_name_value openat_flags[];
 
 #endif /* EVENTS_PUBLIC_H_ */

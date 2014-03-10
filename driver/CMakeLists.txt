@@ -17,6 +17,7 @@ install(FILES
 	Makefile
 	dkms.conf
 	event_table.c
+	flags_table.c
 	main.c
 	ppm.h
 	ppm_events.c

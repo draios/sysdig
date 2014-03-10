@@ -939,6 +939,34 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
+
+			const struct ppm_name_value *flags = m_info->params[id].symbols;
+			const char *separator = "";
+			uint32_t j = 0;
+
+			while(flags != NULL && flags->name != NULL)
+			{
+				if((val & flags->value) == flags->value)
+				{
+					if(m_resolved_paramstr_storage.size() < j + strlen(separator) + strlen(flags->name))
+					{
+						m_resolved_paramstr_storage.resize(m_resolved_paramstr_storage.size() * 2);
+					}
+
+					j += snprintf(&m_resolved_paramstr_storage[j],
+								  m_resolved_paramstr_storage.size(),
+							 	  "%s%s",
+							 	  separator,
+							 	  flags->name);
+
+					separator = "|";
+					// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
+					val &= ~flags->value;
+				}
+
+				flags++;
+			}
+
 			break;
 		}
 	case PT_ABSTIME:
