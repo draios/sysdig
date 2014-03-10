@@ -117,6 +117,7 @@ public:
 				lua_pushnumber(ls, (double)*(int64_t*)rawval);
 				return 1;
 			case PT_L4PROTO: // This can be resolved in the future
+			case PT_FLAGS8:
 			case PT_UINT8:
 				lua_pushnumber(ls, *(uint8_t*)rawval);
 				return 1;
@@ -124,6 +125,7 @@ public:
 			case PT_UINT16:
 				lua_pushnumber(ls, *(uint16_t*)rawval);
 				return 1;
+			case PT_FLAGS32:
 			case PT_UINT32:
 				lua_pushnumber(ls, *(uint32_t*)rawval);
 				return 1;
