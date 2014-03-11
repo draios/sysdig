@@ -275,6 +275,7 @@ inline int32_t val_to_ring(struct event_filler_arguments* args, uint64_t val, ui
 		}
 
 		break;
+	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
 		if(likely(args->arg_data_size >= sizeof(uint16_t)))

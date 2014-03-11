@@ -933,20 +933,22 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	case PT_FLAGS8:
+	case PT_FLAGS16:
 	case PT_FLAGS32:
 		{
-			uint32_t val = *(uint32_t *)param->m_val;
+			uint32_t val = *(uint32_t *)param->m_val & (((uint64_t)1 << param->m_len * 8) - 1);
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
 
 			const struct ppm_name_value *flags = m_info->params[id].symbols;
 			const char *separator = "";
+			uint32_t initial_val = val;
 			uint32_t j = 0;
 
-			while(flags != NULL && flags->name != NULL)
+			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
 			{
-				if((val & flags->value) == flags->value)
+				if((val & flags->value) == flags->value && val != 0)
 				{
 					if(m_resolved_paramstr_storage.size() < j + strlen(separator) + strlen(flags->name))
 					{
@@ -965,6 +967,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				}
 
 				flags++;
+			}
+
+			if(flags != NULL && flags->name != NULL)
+			{
+				j += snprintf(&m_resolved_paramstr_storage[j],
+							  m_resolved_paramstr_storage.size(),
+							  "%s%s",
+							  separator,
+							  flags->name);
 			}
 
 			break;

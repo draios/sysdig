@@ -122,6 +122,7 @@ public:
 				lua_pushnumber(ls, *(uint8_t*)rawval);
 				return 1;
 			case PT_PORT: // This can be resolved in the future
+			case PT_FLAGS16:
 			case PT_UINT16:
 				lua_pushnumber(ls, *(uint16_t*)rawval);
 				return 1;
