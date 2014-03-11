@@ -6,6 +6,7 @@ category = "IO";
 args = {}
 
 require "common"
+require "ansicolors"
 
 -- Initialization callback
 function on_init()
@@ -20,6 +21,7 @@ function on_init()
 	
 	-- set the filter
 	chisel.set_filter("evt.is_io=true and evt.dir=<")
+	chisel.set_event_formatter("%evt.arg.data")
 	
 	return true
 end
@@ -31,19 +33,25 @@ function on_event()
 	res = evt.field(fres)
 	name = evt.field(fname)
 
+	if name == nil then
+		name = "<NA>"
+	end
+
 	if res <= 0 then
 		return true
 	end
 	
 	if isread then
-		print("------ Read " .. format_bytes(res) .. " from " .. name)
+		infostr = string.format("%s------ Read %s from %s", ansicolors.red, format_bytes(res), name)
 	else
-		print("------ Write " .. format_bytes(res) .. " to " .. name)
+		infostr = string.format("%s------ Write %s to %s", ansicolors.blue, format_bytes(res), name)
 	end
 	
-	if buf ~= nil then
-		print(buf)
-	end
-	
+	print(infostr)
+
 	return true
+end
+
+function on_capture_end()
+	print(ansicolors.reset)
 end
