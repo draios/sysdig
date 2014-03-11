@@ -43,7 +43,7 @@ function pairs_top_by_val(t, num, order)
 	local i = 0
 	return function()
 		i = i + 1
-		if i < num and keys[i] then
+		if (num == 0 or i <= num) and keys[i] then
 			return keys[i], t[keys[i]]
 		end
 	end
