@@ -49,7 +49,6 @@ end
 
 -- Interval callback, emits the ourput
 function on_interval()
-	etime = evt.field(ftime)
 	sorted_procs = pairs_top_by_val(procs, TOP_NUMBER, function(t,a,b) return t[b] < t[a] end)
 
 	for k,v in sorted_procs do
