@@ -206,6 +206,7 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_UINT8:
 	case PT_SIGTYPE:
 		return flt_compare_uint64(op, (uint64_t)*(int8_t*)operand1, (uint64_t)*(int8_t*)operand2);
+	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_PORT:
 	case PT_SYSCALLID:
@@ -498,6 +499,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 			*(uint8_t*)(&m_val_storage[0]) = sinsp_numparser::parseu8(str);
 			break;
 		case PT_PORT: // This can be resolved in the future
+		case PT_FLAGS16:
 		case PT_UINT16:
 			*(uint16_t*)(&m_val_storage[0]) = sinsp_numparser::parseu16(str);
 			break;
