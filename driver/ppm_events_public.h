@@ -804,7 +804,8 @@ typedef enum ppm_param_type
 	PT_IPV4ADDR = 26, // A 4 byte raw IPv4 address.
 	PT_DYN = 27, // Type can vary depending on the context. Used for filter fields like evt.rawarg.
 	PT_FLAGS8 = 28, // this is an UINT8, but will be interpreted as 8 bit flags.
-	PT_FLAGS32 = 29, // this is an UINT32, but will be interpreted as 32 bit flags.
+	PT_FLAGS16 = 29, // this is an UINT16, but will be interpreted as 16 bit flags.
+	PT_FLAGS32 = 30, // this is an UINT32, but will be interpreted as 32 bit flags.
 }ppm_param_type;
 
 typedef enum ppm_print_format
@@ -889,9 +890,15 @@ struct ppm_syscall_desc
 	char* name; ///< System call name, e.g. 'open'.
 };
 
+extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
 extern const struct ppm_name_value clone_flags[];
+extern const struct ppm_name_value futex_operations[];
+extern const struct ppm_name_value lseek_whence[];
 extern const struct ppm_name_value poll_flags[];
+extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value openat_flags[];
+extern const struct ppm_name_value rlimit_resources[];
+extern const struct ppm_name_value fcntl_commands[];
 
 #endif /* EVENTS_PUBLIC_H_ */
