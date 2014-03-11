@@ -54,6 +54,10 @@ else()
 
 endif()
 
+if(APPLE)
+	set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
+endif()
+
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
