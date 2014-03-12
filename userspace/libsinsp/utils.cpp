@@ -102,9 +102,16 @@ sinsp_initializer::sinsp_initializer()
 
 			if(realpath_ex(g_chisel_dirs_array[j].m_dir, resolved_path) != NULL)
 			{
+				string resolved_path_str(resolved_path);
+
+				if(resolved_path_str[resolved_path_str.size() -1] != '/')
+				{
+					resolved_path_str += "/";
+				}
+
 				chiseldir_info cdi;
 				cdi.m_need_to_resolve = false;
-				sprintf(cdi.m_dir, "%s", resolved_path);
+				sprintf(cdi.m_dir, "%s", resolved_path_str.c_str());
 				g_chisel_dirs->push_back(cdi);
 			}
 #else
