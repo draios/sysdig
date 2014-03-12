@@ -266,7 +266,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 		row[k] = 0;
 
 		row_len = strlen(row);
-		if(l + row_len >= dstlen)
+		if(l + row_len >= dstlen - 1)
 		{
 			break;
 		}
@@ -274,6 +274,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 		l += row_len;
 	}
 
+	dst[l++] = '\n';
 	return l;
 }
 
