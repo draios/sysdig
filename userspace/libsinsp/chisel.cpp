@@ -820,30 +820,10 @@ bool sinsp_chisel::openfile(string filename, OUT ifstream* is)
 
 	for(j = 0; j < g_chisel_dirs->size(); j++)
 	{
-		if(g_chisel_dirs->at(j).m_need_to_resolve)
+		is->open(string(g_chisel_dirs->at(j).m_dir) + filename);
+		if(is->is_open())
 		{
-#ifndef _WIN32
-			char resolved_path[PATH_MAX];
-
-			if(realpath((string(g_chisel_dirs->at(j).m_dir) + filename).c_str(), resolved_path) != NULL)
-			{
-				string rfilename(resolved_path);
-
-				is->open(rfilename);
-				if(is->is_open())
-				{
-					return true;
-				}
-			}
-#endif
-		}
-		else
-		{
-			is->open(string(g_chisel_dirs->at(j).m_dir) + filename);
-			if(is->is_open())
-			{
-				return true;
-			}
+			return true;
 		}
 	}
 
