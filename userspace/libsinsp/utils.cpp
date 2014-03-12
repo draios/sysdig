@@ -19,6 +19,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef _WIN32
 #include <unistd.h>
+#include <limits.h>
+#include <stdlib.h>
 #endif
 
 #include "sinsp.h"
@@ -31,12 +33,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 const chiseldir_info g_chisel_dirs_array[] =
 {
 	{false, ""}, // file as is
-	{false, "c:/sysdig/chisels"},
+	{false, "c:/sysdig/chisels/"},
 	{false, "./"},
 	{false, "./chisels/"},
 	{true, ""},
 	{true, "~/chisels/"},
-	{false, CHISELS_INSTALLATION_DIR},
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,7 +79,26 @@ sinsp_initializer::sinsp_initializer()
 
 	for(uint32_t j = 0; j < sizeof(g_chisel_dirs_array) / sizeof(g_chisel_dirs_array[0]); j++)
 	{
-		g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
+		if(g_chisel_dirs_array[j].m_need_to_resolve)
+		{
+#ifndef _WIN32
+			if(realpath(g_chisel_dirs_array[j].m_dir, resolved_path) != NULL)
+			{
+				string rfilename(resolved_path);
+
+				chiseldir_info cdi;
+				cdi.m_need_to_resolve = false;
+				sprintf(cdi.m_dir, "%s", resolved_path);
+				g_chisel_dirs->push_back(cdi);
+			}
+#else
+			g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
+#endif
+		}
+		else
+		{
+			g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
+		}
 	}
 
 	//
