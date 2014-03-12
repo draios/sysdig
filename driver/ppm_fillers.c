@@ -359,19 +359,17 @@ static inline uint32_t open_flags_to_scap(unsigned long flags)
 {
 	uint32_t res = 0;
 
-	if(flags & O_RDONLY)
+	switch(flags & (O_RDONLY | O_WRONLY | O_RDWR))
 	{
-		res |= PPM_O_RDONLY;
-	}
-
-	if(flags & O_WRONLY)
-	{
-		res |= PPM_O_WRONLY;
-	}
-
-	if(flags & O_RDWR)
-	{
-		res |= PPM_O_RDWR;
+		case O_WRONLY:
+			res |= PPM_O_WRONLY;
+			break;
+		case O_RDWR:
+			res |= PPM_O_RDWR;
+			break;
+		default:
+			res |= PPM_O_RDONLY;
+			break;
 	}
 
 	if(flags & O_CREAT)
