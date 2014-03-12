@@ -33,12 +33,28 @@
 const chiseldir_info g_chisel_dirs_array[] =
 {
 	{false, ""}, // file as is
+#ifdef _WIN32
 	{false, "c:/sysdig/chisels/"},
+#endif
 	{false, "./"},
 	{false, "./chisels/"},
-	{true, ""},
 	{true, "~/chisels/"},
 };
+
+char* realpath_ex(const char *path, char *buff) 
+{
+    char *home;
+
+    if(*path=='~' && (home = getenv("HOME"))) 
+    {
+        char s[PATH_MAX];
+        return realpath(strcat(strcpy(s, home), path+1), buff);
+    } 
+    else 
+    {
+        return realpath(path, buff);
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_initializer implementation
@@ -82,10 +98,10 @@ sinsp_initializer::sinsp_initializer()
 		if(g_chisel_dirs_array[j].m_need_to_resolve)
 		{
 #ifndef _WIN32
-			if(realpath(g_chisel_dirs_array[j].m_dir, resolved_path) != NULL)
-			{
-				string rfilename(resolved_path);
+			char resolved_path[PATH_MAX];
 
+			if(realpath_ex(g_chisel_dirs_array[j].m_dir, resolved_path) != NULL)
+			{
 				chiseldir_info cdi;
 				cdi.m_need_to_resolve = false;
 				sprintf(cdi.m_dir, "%s", resolved_path);
