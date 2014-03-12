@@ -31,11 +31,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 const chiseldir_info g_chisel_dirs_array[] =
 {
 	{false, ""}, // file as is
-	{false, "c:/share/sysdig/chisels"},
+	{false, "c:/sysdig/chisels"},
 	{false, "./"},
 	{false, "./chisels/"},
 	{true, ""},
 	{true, "~/chisels/"},
+	{false, CHISELS_INSTALLATION_DIR},
 };
 
 ///////////////////////////////////////////////////////////////////////////////
