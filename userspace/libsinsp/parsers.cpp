@@ -1712,6 +1712,15 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 
 	if(family == PPM_AF_INET)
 	{
+		if(evt->m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK)
+		{
+			//
+			// If this was previously a server socket, propagate the L4 protocol
+			//
+			evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto = 
+				evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto;
+		}
+
 		evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
 		if(set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data) == false)
 		{
@@ -1813,7 +1822,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				tupleparam = 3;
 			}
 
-			if(tupleparam != -1 && (evt->m_fdinfo->m_name.length() == 0 || evt->m_fdinfo->is_udp_socket()))
+			if(tupleparam != -1 && (evt->m_fdinfo->m_name.length() == 0 || !evt->m_fdinfo->is_tcp_socket()))
 			{
 				//
 				// recvfrom contains tuple info.

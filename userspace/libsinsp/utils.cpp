@@ -41,6 +41,7 @@ const chiseldir_info g_chisel_dirs_array[] =
 	{true, "~/chisels/"},
 };
 
+#ifndef _WIN32
 char* realpath_ex(const char *path, char *buff) 
 {
     char *home;
@@ -55,6 +56,7 @@ char* realpath_ex(const char *path, char *buff)
         return realpath(path, buff);
     }
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_initializer implementation
@@ -371,7 +373,8 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				(unsigned int)(uint8_t)db[3],
 				(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
 		}
-		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP)
+		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP ||
+			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW)
 		{
 			snprintf(targetbuf,
 				targetbuf_size,
