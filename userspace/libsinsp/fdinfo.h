@@ -51,18 +51,8 @@ typedef union _sinsp_sockinfo
 {
 	ipv4tuple m_ipv4info; ///< The tuple if this an IPv4 socket.
 	ipv6tuple m_ipv6info; ///< The tuple if this an IPv6 socket.
-	struct
-	{
-		uint32_t m_ip;
-		uint16_t m_port;
-		uint8_t m_l4proto;
-	} m_ipv4serverinfo;  ///< Information about an IPv4 server socket.
-	struct
-	{
-		uint32_t m_ip[4];
-		uint16_t m_port;
-		uint8_t m_l4proto;
-	} m_ipv6serverinfo; ///< Information about an IPv6 server socket.
+	ipv4serverinfo m_ipv4serverinfo;  ///< Information about an IPv4 server socket.
+	ipv6serverinfo m_ipv6serverinfo; ///< Information about an IPv6 server socket.
 	unix_tuple m_unixinfo; ///< The tuple if this a unix socket.
 }sinsp_sockinfo;
 
