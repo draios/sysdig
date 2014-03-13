@@ -19,6 +19,8 @@
 
 #ifndef _WIN32
 #include <unistd.h>
+#include <limits.h>
+#include <stdlib.h>
 #endif
 
 #include "sinsp.h"
@@ -31,12 +33,28 @@
 const chiseldir_info g_chisel_dirs_array[] =
 {
 	{false, ""}, // file as is
-	{false, "c:/share/sysdig/chisels"},
+#ifdef _WIN32
+	{false, "c:/sysdig/chisels/"},
+#endif
 	{false, "./"},
 	{false, "./chisels/"},
-	{true, ""},
 	{true, "~/chisels/"},
 };
+
+char* realpath_ex(const char *path, char *buff) 
+{
+    char *home;
+
+    if(*path=='~' && (home = getenv("HOME"))) 
+    {
+        char s[PATH_MAX];
+        return realpath(strcat(strcpy(s, home), path+1), buff);
+    } 
+    else 
+    {
+        return realpath(path, buff);
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_initializer implementation
@@ -77,7 +95,33 @@ sinsp_initializer::sinsp_initializer()
 
 	for(uint32_t j = 0; j < sizeof(g_chisel_dirs_array) / sizeof(g_chisel_dirs_array[0]); j++)
 	{
-		g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
+		if(g_chisel_dirs_array[j].m_need_to_resolve)
+		{
+#ifndef _WIN32
+			char resolved_path[PATH_MAX];
+
+			if(realpath_ex(g_chisel_dirs_array[j].m_dir, resolved_path) != NULL)
+			{
+				string resolved_path_str(resolved_path);
+
+				if(resolved_path_str[resolved_path_str.size() -1] != '/')
+				{
+					resolved_path_str += "/";
+				}
+
+				chiseldir_info cdi;
+				cdi.m_need_to_resolve = false;
+				sprintf(cdi.m_dir, "%s", resolved_path_str.c_str());
+				g_chisel_dirs->push_back(cdi);
+			}
+#else
+			g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
+#endif
+		}
+		else
+		{
+			g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
+		}
 	}
 
 	//
