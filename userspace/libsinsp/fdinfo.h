@@ -232,6 +232,7 @@ private:
 	friend class thread_analyzer_info;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_fdtable;
+	friend class sinsp_filter_check_fd;
 };
 
 /*@}*/

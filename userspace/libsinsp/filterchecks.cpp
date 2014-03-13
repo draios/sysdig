@@ -141,6 +141,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			scap_fd_type evt_type = m_fdinfo->m_type;
 
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
 				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
@@ -151,6 +156,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_SERVERIP:
 		{
 			scap_fd_type evt_type = m_fdinfo->m_type;
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
@@ -167,6 +177,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			scap_fd_type evt_type = m_fdinfo->m_type;
 
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
 				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
@@ -182,6 +197,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
+				if(m_fdinfo->is_role_none())
+				{
+					return NULL;
+				}
+
 				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
 			}
 			else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
@@ -190,6 +210,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
+				if(m_fdinfo->is_role_none())
+				{
+					return NULL;
+				}
+
 				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
 			}
 			else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
