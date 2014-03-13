@@ -746,13 +746,13 @@ typedef enum ppm_event_category
 typedef enum ppm_event_flags
 {
 	EF_NONE = 0,
-	EF_CREATES_FD = (1 << 0),
-	EF_DESTROYS_FD = (1 << 1),
-	EF_USES_FD = (1 << 2),
-	EF_READS_FROM_FD = (1 << 3),
-	EF_WRITES_TO_FD = (1 << 4),
-	EF_DOESNT_RETURN_ERROR = (1 << 5),
-	EF_UNUSED = (1 << 6),
+	EF_CREATES_FD = (1 << 0), // This event creates an FD (e.g. open)
+	EF_DESTROYS_FD = (1 << 1), // This event destroys an FD (e.g. close)
+	EF_USES_FD = (1 << 2), // This event operates on an FD.
+	EF_READS_FROM_FD = (1 << 3), // This event reads data from an FD.
+	EF_WRITES_TO_FD = (1 << 4), // This event writes data to an FD.
+	EF_MODIFIES_STATE = (1 << 5), // This event causes the machine state to change and should not be dropped by the filtering engine.
+	EF_UNUSED = (1 << 6), // This event is no
 }ppm_event_flags;
 
 //

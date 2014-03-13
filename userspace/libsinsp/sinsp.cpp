@@ -745,6 +745,11 @@ sinsp_evttables* sinsp::get_event_info_tables()
 
 void sinsp::add_chisel_dir(string dirname)
 {
+	if(dirname[dirname.size() -1] != '/')
+	{
+		dirname += "/";
+	}
+
 	chiseldir_info ncdi;
 
 	strcpy(ncdi.m_dir, dirname.c_str());

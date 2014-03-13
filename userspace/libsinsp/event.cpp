@@ -266,7 +266,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 		row[k] = 0;
 
 		row_len = strlen(row);
-		if(l + row_len >= dstlen)
+		if(l + row_len >= dstlen - 1)
 		{
 			break;
 		}
@@ -274,6 +274,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 		l += row_len;
 	}
 
+	dst[l++] = '\n';
 	return l;
 }
 
@@ -965,10 +966,10 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
 					val &= ~flags->value;
 				}
-				
+
 				flags++;
 			}
-			
+
 			if(flags != NULL && flags->name != NULL)
 			{
 				j += snprintf(&m_resolved_paramstr_storage[j],
