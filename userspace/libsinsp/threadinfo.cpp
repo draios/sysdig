@@ -155,10 +155,6 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 		}
 	}
 
-if(m_comm == "ping")
-{
-	int a = 0;
-}
 	m_exe = pi->exe;
 	set_args(pi->args, pi->args_len);
 	set_cwd(pi->cwd, strlen(pi->cwd));
