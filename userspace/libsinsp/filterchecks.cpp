@@ -45,7 +45,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_PORT, EPF_FILTER_ONLY, PF_DEC, "fd.port", "matches the port (client or server) of the fd."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.cport", "for TCP/UDP FDs, the client port."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.sport", "for TCP/UDP FDs, server port."},
-	{PT_UINT8, EPF_NONE, PF_DEC, "fd.l4proto", "the IP protocol number."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.l4proto", "the IP protocol of a socket. Can be 'tcp', 'udp', 'icmp' or 'raw'."},
 	{PT_SOCKFAMILY, EPF_NONE, PF_DEC, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_server", "'true' if the process owning this FD is the server endpoint in the connection."},
 };
@@ -225,6 +225,31 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				return NULL;
 			}
+		}
+	case TYPE_L4PROTO:
+		{
+			scap_l4_proto l4p = m_fdinfo->get_l4proto();
+
+			switch(l4p)
+			{
+			case SCAP_L4_TCP:
+				m_tstr = "tcp";
+				break;
+			case SCAP_L4_UDP:
+				m_tstr = "udp";
+				break;
+			case SCAP_L4_ICMP:
+				m_tstr = "icmp";
+				break;
+			case SCAP_L4_RAW:
+				m_tstr = "raw";
+				break;
+			default:
+				m_tstr = "<NA>";
+				break;
+			}
+
+			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_IS_SERVER:
 		{
