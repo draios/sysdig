@@ -126,6 +126,11 @@ public:
 		return m_type == SCAP_FD_FIFO;
 	}
 
+	/*!
+	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
+	*/
+	scap_l4_proto get_l4proto();
+
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
 	

@@ -469,10 +469,38 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			if(fdinfo)
 			{
 				char tch = fdinfo->get_typechar();
+				char ipprotoch = 0;
+				
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+					fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
+					fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK ||
+					fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
+				{
+					scap_l4_proto l4p = fdinfo->get_l4proto();
 
-				char typestr[2] =
+					switch(l4p)
+					{
+					case SCAP_L4_TCP:
+						ipprotoch = 't';
+						break;
+					case SCAP_L4_UDP:
+						ipprotoch = 'u';
+						break;
+					case SCAP_L4_ICMP:
+						ipprotoch = 'i';
+						break;
+					case SCAP_L4_RAW:
+						ipprotoch = 'r';
+						break;
+					default:
+						break;
+					}
+				}
+
+				char typestr[3] =
 				{
 					(fmt == PF_SIMPLE)?(char)0:tch,
+					ipprotoch,
 					0
 				};
 
