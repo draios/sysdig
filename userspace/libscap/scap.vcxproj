@@ -90,6 +90,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\driver\event_table.c" />
+    <ClCompile Include="..\..\driver\flags_table.c" />
     <ClCompile Include="..\..\driver\syscall_info_table.c" />
     <ClCompile Include="scap.c" />
     <ClCompile Include="scap_event.c" />

@@ -189,6 +189,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 			newfdi.m_sockinfo.m_ipv4serverinfo.m_ip = fdi->info.ipv4serverinfo.ip;
 			newfdi.m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
 			newfdi.m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
+			newfdi.m_name = ipv4serveraddr_to_string(&newfdi.m_sockinfo.m_ipv4serverinfo);
 			
 			//
 			// We keep note of all the host bound server ports.
@@ -228,7 +229,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 			copy_ipv6_address(newfdi.m_sockinfo.m_ipv6serverinfo.m_ip, fdi->info.ipv6serverinfo.ip);
 			newfdi.m_sockinfo.m_ipv6serverinfo.m_port = fdi->info.ipv6serverinfo.port;
 			newfdi.m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi->info.ipv6serverinfo.l4proto;
-			//newfdi.m_name = newfi.m_sockinfo.m_ipv6serverinfo.to_string();
+			newfdi.m_name = ipv6serveraddr_to_string(&newfdi.m_sockinfo.m_ipv6serverinfo);
 
 			//
 			// We keep note of all the host bound server ports.

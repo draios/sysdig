@@ -118,6 +118,8 @@ string sinsp_gethostname();
 ///////////////////////////////////////////////////////////////////////////////
 string ipv4tuple_to_string(ipv4tuple* tuple);
 string ipv6tuple_to_string(_ipv6tuple* tuple);
+string ipv4serveraddr_to_string(ipv4serverinfo* addr);
+string ipv6serveraddr_to_string(ipv6serverinfo* addr);
 
 ///////////////////////////////////////////////////////////////////////////////
 // String split
