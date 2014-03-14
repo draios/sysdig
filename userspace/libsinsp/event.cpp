@@ -154,6 +154,19 @@ sinsp_fdinfo_t* sinsp_evt::get_fd_info()
 	return m_fdinfo;
 }
 
+uint64_t sinsp_evt::get_fd_num()
+{
+	if(m_fdinfo)
+	{
+		return m_tinfo->m_lastevent_fd;
+	}
+	else
+	{
+		return sinsp_evt::INVALID_FD_NUM;
+	}
+}
+
+
 uint32_t sinsp_evt::get_num_params()
 {
 	if(!m_params_loaded)
