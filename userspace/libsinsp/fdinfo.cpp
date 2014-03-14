@@ -162,7 +162,7 @@ wildass_guess:
 	return true;
 }
 
-scap_l4_proto sinsp_fdinfo_t::get_l4proto()
+template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 {
 	scap_fd_type evt_type = m_type;
 
