@@ -114,6 +114,11 @@ public:
 		SC_IPC = 5,
 	};
 
+	enum fd_number_type
+	{
+		INVALID_FD_NUM = -100000
+	};
+
 	/*!
 	  \brief Information regarding an event category, enriched with fd state.
 	*/
@@ -187,6 +192,13 @@ public:
 	  \note For events that are not I/O related, get_fd_info() returns NULL. 
 	*/
 	sinsp_fdinfo_t* get_fd_info();
+
+	/*!
+	  \brief Return the number of the FD associated with this event.
+
+	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM. 
+	*/
+	uint64_t get_fd_num();
 
 	/*!
 	  \brief Return the number of parameters that this event has.
