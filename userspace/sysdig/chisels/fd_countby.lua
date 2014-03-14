@@ -47,7 +47,7 @@ function on_event()
 	fdnum = evt.field(ffdnum)
 	fdname = evt.field(ffdname)
 
-	if key ~= nil and fdnum ~= nil and fdnum > 0 and fdname ~= nil then
+	if key ~= nil and fdnum ~= nil and fdnum > 0 and fdname ~= nil and fdname ~= "" then
 		entryval = grtable[key]
 		fdkey = tostring(fdnum) .. fdname
 
