@@ -56,6 +56,26 @@ typedef union _ipv6tuple
 } ipv6tuple;
 
 /*!
+	\brief An IPv4 server address. 
+*/
+typedef struct ipv4serverinfo
+{
+	uint32_t m_ip; ///< address
+	uint16_t m_port; ///< port
+	uint8_t m_l4proto; ///< IP protocol
+} ipv4serverinfo;
+
+/*!
+	\brief An IPv6 server address. 
+*/
+typedef struct ipv6serverinfo
+{
+	uint32_t m_ip[4];  ///< address
+	uint16_t m_port;  ///< port
+	uint8_t m_l4proto;  ///< IP protocol
+} ipv6serverinfo;
+
+/*!
 	\brief A unix socket tuple. 
 */
 typedef union _unix_tuple

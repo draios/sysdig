@@ -51,18 +51,8 @@ typedef union _sinsp_sockinfo
 {
 	ipv4tuple m_ipv4info; ///< The tuple if this an IPv4 socket.
 	ipv6tuple m_ipv6info; ///< The tuple if this an IPv6 socket.
-	struct
-	{
-		uint32_t m_ip;
-		uint16_t m_port;
-		uint8_t m_l4proto;
-	} m_ipv4serverinfo;  ///< Information about an IPv4 server socket.
-	struct
-	{
-		uint32_t m_ip[4];
-		uint16_t m_port;
-		uint8_t m_l4proto;
-	} m_ipv6serverinfo; ///< Information about an IPv6 server socket.
+	ipv4serverinfo m_ipv4serverinfo;  ///< Information about an IPv4 server socket.
+	ipv6serverinfo m_ipv6serverinfo; ///< Information about an IPv6 server socket.
 	unix_tuple m_unixinfo; ///< The tuple if this a unix socket.
 }sinsp_sockinfo;
 
@@ -135,6 +125,11 @@ public:
 	{
 		return m_type == SCAP_FD_FIFO;
 	}
+
+	/*!
+	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
+	*/
+	scap_l4_proto get_l4proto();
 
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
@@ -242,6 +237,7 @@ private:
 	friend class thread_analyzer_info;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_fdtable;
+	friend class sinsp_filter_check_fd;
 };
 
 /*@}*/

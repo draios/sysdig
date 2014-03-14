@@ -162,6 +162,42 @@ wildass_guess:
 	return true;
 }
 
+template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
+{
+	scap_fd_type evt_type = m_type;
+
+	if(evt_type == SCAP_FD_IPV4_SOCK)
+	{
+		if(is_role_none())
+		{
+			return SCAP_L4_NA;
+		}
+
+		return (scap_l4_proto)(m_sockinfo.m_ipv4info.m_fields.m_l4proto);
+	}
+	else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
+	{
+		return (scap_l4_proto)(m_sockinfo.m_ipv4serverinfo.m_l4proto);
+	}
+	else if(evt_type == SCAP_FD_IPV6_SOCK)
+	{
+		if(is_role_none())
+		{
+			return SCAP_L4_NA;
+		}
+
+		return (scap_l4_proto)(m_sockinfo.m_ipv6info.m_fields.m_l4proto);
+	}
+	else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
+	{
+		return (scap_l4_proto)(m_sockinfo.m_ipv6serverinfo.m_l4proto);
+	}
+	else
+	{
+		return SCAP_L4_NA;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdtable implementation
 ///////////////////////////////////////////////////////////////////////////////

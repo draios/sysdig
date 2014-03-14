@@ -41,6 +41,7 @@ const chiseldir_info g_chisel_dirs_array[] =
 	{true, "~/chisels/"},
 };
 
+#ifndef _WIN32
 char* realpath_ex(const char *path, char *buff) 
 {
     char *home;
@@ -55,6 +56,7 @@ char* realpath_ex(const char *path, char *buff)
         return realpath(path, buff);
     }
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_initializer implementation
@@ -371,7 +373,8 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				(unsigned int)(uint8_t)db[3],
 				(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
 		}
-		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP)
+		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP ||
+			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW)
 		{
 			snprintf(targetbuf,
 				targetbuf_size,
@@ -780,8 +783,7 @@ string sinsp_gethostname()
 string ipv4tuple_to_string(ipv4tuple* tuple)
 {
 	char buf[50];
-	sprintf(
-		buf, 
+	sprintf(buf, 
 		"%d.%d.%d.%d:%d->%d.%d.%d.%d:%d", 
 		(tuple->m_fields.m_sip & 0xFF),
 		((tuple->m_fields.m_sip & 0xFF00) >> 8),
@@ -801,19 +803,53 @@ string ipv6tuple_to_string(_ipv6tuple* tuple)
 	char source_address[100];
 	char destination_address[100];
 	char buf[200];
+
 	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip, source_address, 100))
 	{
 		return string();
 	}
+
 	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip, destination_address, 100))
 	{
 		return string();
 	}
+	
 	snprintf(buf,200,"%s:%u->%s:%u",
 		source_address,
 		tuple->m_fields.m_sport,
 		destination_address,
 		tuple->m_fields.m_dport);
+	
+	return string(buf);
+}
+
+string ipv4serveraddr_to_string(ipv4serverinfo* addr)
+{
+	char buf[50];
+	sprintf(buf, 
+		"%d.%d.%d.%d:%d", 
+		(addr->m_ip & 0xFF),
+		((addr->m_ip & 0xFF00) >> 8),
+		((addr->m_ip & 0xFF0000) >> 16),
+		((addr->m_ip & 0xFF000000) >> 24),
+		addr->m_port);
+	return string(buf);
+}
+
+string ipv6serveraddr_to_string(ipv6serverinfo* addr)
+{
+	char address[100];
+	char buf[200];
+
+	if(NULL == inet_ntop(AF_INET6, addr->m_ip, address, 100))
+	{
+		return string();
+	}
+
+	snprintf(buf,200,"%s:%u",
+		address,
+		addr->m_port);
+	
 	return string(buf);
 }
 
