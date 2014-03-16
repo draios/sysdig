@@ -974,7 +974,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//
 	// Add the fd to the table.
 	//
-	evt->m_tinfo->add_fd(fd, &fdi);
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 }
 
 //
@@ -1055,7 +1055,7 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 	//
 	// Add the fd to the table.
 	//
-	evt->m_tinfo->add_fd(fd, &fdi);
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 }
 
 void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
@@ -1374,7 +1374,8 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	//
 	// Add the entry to the table
 	//
-	evt->m_tinfo->add_fd(fd, &fdi);
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+	ASSERT(evt->m_fdinfo != NULL);
 }
 
 void sinsp_parser::parse_close_enter(sinsp_evt *evt)
@@ -1527,7 +1528,7 @@ void sinsp_parser::add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t in
 	//
 	// Add the fd to the table.
 	//
-	evt->m_tinfo->add_fd(fd, &fdi);
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 }
 
 void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt)
@@ -1570,7 +1571,7 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt)
 	fdi.m_type = SCAP_FD_UNIX_SOCK;
 	fdi.m_sockinfo.m_unixinfo.m_fields.m_source = source_address;
 	fdi.m_sockinfo.m_unixinfo.m_fields.m_dest = peer_address;
-	evt->m_tinfo->add_fd(fd1, &fdi);
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd1, &fdi);
 	evt->m_tinfo->add_fd(fd2, &fdi);
 }
 
@@ -1992,7 +1993,7 @@ void sinsp_parser::parse_eventfd_exit(sinsp_evt *evt)
 	//
 	// Add the fd to the table.
 	//
-	evt->m_tinfo->add_fd(fd, &fdi);
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 }
 
 void sinsp_parser::parse_chdir_exit(sinsp_evt *evt)
@@ -2176,7 +2177,7 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 		// NOTE: dup2 and dup3 accept an existing FD and in that case they close it.
 		//       For us it's ok to just overwrite it.
 		//
-		evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
 	}
 }
 
@@ -2208,7 +2209,7 @@ void sinsp_parser::parse_signalfd_exit(sinsp_evt *evt)
 		//
 		// Add the fd to the table.
 		//
-		evt->m_tinfo->add_fd(retval, &fdi);
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, &fdi);
 	}
 }
 
@@ -2240,7 +2241,7 @@ void sinsp_parser::parse_timerfd_create_exit(sinsp_evt *evt)
 		//
 		// Add the fd to the table.
 		//
-		evt->m_tinfo->add_fd(retval, &fdi);
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, &fdi);
 	}
 }
 
@@ -2272,7 +2273,7 @@ void sinsp_parser::parse_inotify_init_exit(sinsp_evt *evt)
 		//
 		// Add the fd to the table.
 		//
-		evt->m_tinfo->add_fd(retval, &fdi);
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, &fdi);
 	}
 }
 
@@ -2476,6 +2477,6 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt *evt)
 		// NOTE: dup2 and dup3 accept an existing FD and in that case they close it.
 		//       For us it's ok to just overwrite it.
 		//
-		evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
 	}
 }

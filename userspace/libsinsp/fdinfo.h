@@ -251,7 +251,7 @@ public:
 	sinsp_fdtable(sinsp* inspector);
 	sinsp_fdinfo_t* find(int64_t fd);
 	// If the key is already present, overwrite the existing value and return false.
-	void add(int64_t fd, sinsp_fdinfo_t* fdinfo);
+	sinsp_fdinfo_t* add(int64_t fd, sinsp_fdinfo_t* fdinfo);
 	// If the key is present, returns true, otherwise returns false.
 	void erase(int64_t fd);
 	void clear();

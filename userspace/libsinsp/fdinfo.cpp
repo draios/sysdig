@@ -245,19 +245,20 @@ sinsp_fdinfo_t* sinsp_fdtable::find(int64_t fd)
 	}
 }
 
-void sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
+sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 {
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit = m_table.find(fd);
+	pair<unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res;
+
+	insert_res = m_table.insert(std::make_pair(fd,*fdinfo));
 
 	//
 	// Look for the FD in the table
 	//
-	if(fdit == m_table.end())
+	if(insert_res.second == true)
 	{
 		//
 		// No entry in the table, this is the normal case
 		//
-		m_table[fd] = *fdinfo;
 		m_last_accessed_fd = -1;
 #ifdef GATHER_INTERNAL_STATS
 		m_inspector->m_stats.m_n_added_fds++;
@@ -268,7 +269,7 @@ void sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// the fd is already in the table.
 		//
-		if(fdit->second.m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS)
+		if(insert_res.first->second.m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS)
 		{
 			//
 			// Sometimes an FD-creating syscall can be called on an FD that is being closed (i.e
@@ -279,7 +280,7 @@ void sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 			fdinfo->m_flags &= ~sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS;
 			fdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED;
 			
-			m_table[CANCELED_FD_NUMBER] = fdit->second;
+			m_table[CANCELED_FD_NUMBER] = insert_res.first->second;
 		}
 		else
 		{
@@ -299,8 +300,10 @@ void sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// Replace the fd as a struct copy
 		//
-		fdit->second = *fdinfo;
+		insert_res.first->second = *fdinfo;
 	}
+
+	return &(insert_res.first->second);
 }
 
 void sinsp_fdtable::erase(int64_t fd)
