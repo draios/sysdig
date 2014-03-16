@@ -156,7 +156,7 @@ VISIBILITY_PRIVATE
 	void init();
 	void init(const scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
-	void add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
+	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
 	void remove_fd(int64_t fd);
 	sinsp_fdtable* get_fd_table();
 	void set_cwd(const char *cwd, uint32_t cwdlen);

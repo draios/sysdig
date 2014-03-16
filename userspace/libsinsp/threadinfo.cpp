@@ -365,14 +365,16 @@ sinsp_fdtable* sinsp_threadinfo::get_fd_table()
 	return &(root->m_fdtable);
 }
 
-void sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
+sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
 {
-	get_fd_table()->add(fd, fdinfo);
+	sinsp_fdinfo_t* res = get_fd_table()->add(fd, fdinfo);
 
 	//
 	// Update the last event fd. It's needed by the filtering engine
 	//
 	m_lastevent_fd = fd;
+
+	return res;
 }
 
 void sinsp_threadinfo::remove_fd(int64_t fd)
