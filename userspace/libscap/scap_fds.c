@@ -656,7 +656,6 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 		return scap_add_fd_to_proc_table(handle, tinfo, fdi);
 	}
 
-
 	//
 	// Lookup ino in the list of sockets
 	//
