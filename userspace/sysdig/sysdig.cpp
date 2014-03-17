@@ -88,6 +88,8 @@ static void usage()
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost\n"
+" -e, --print-eol    Print end of lines instead of dots on the screen when\n"
+"                    rendering buffers with \\r and \\n characters.\n"
 " -h, --help         Print this page\n"
 " -j, --json         Emit output as json\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
@@ -391,6 +393,7 @@ int main(int argc, char **argv)
         {"list-chisels", no_argument, &cflag, 1 },
         {"chisel-info", required_argument, &cflag, 2 },
         {"displayflt", no_argument, 0, 'd' },
+        {"print-eol", no_argument, 0, 'e' },
         {"help", no_argument, 0, 'h' },
         {"json", no_argument, 0, 'j' },
         {"list", no_argument, 0, 'l' },
@@ -404,8 +407,8 @@ int main(int argc, char **argv)
         {"timetype", required_argument, 0, 't' },
         {"verbose", no_argument, 0, 'v' },
         {"writefile", required_argument, 0, 'w' },
-        {"hex", no_argument, 0, 'x'},
-        {"hex-ascii", no_argument, 0, 'X'},
+        {"print-hex", no_argument, 0, 'x'},
+        {"print-hex-ascii", no_argument, 0, 'X'},
         {0, 0, 0, 0}
     };
 
@@ -422,7 +425,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "ac:dehjlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -507,6 +510,16 @@ int main(int argc, char **argv)
 				break;
 			case 'd':
 				is_filter_display = true;
+				break;
+			case 'e':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return EXIT_SUCCESS;
+				}
+
+				event_buffer_format = sinsp_evt::PF_EOLS;
 				break;
 			case 'j':
 				emitjson = true;
@@ -605,9 +618,23 @@ int main(int argc, char **argv)
 				quiet = true;
 				break;
 			case 'x':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return EXIT_SUCCESS;
+				}
+
 				event_buffer_format = sinsp_evt::PF_HEX;
 				break;
 			case 'X':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return EXIT_SUCCESS;
+				}
+
 				event_buffer_format = sinsp_evt::PF_HEXASCII;
 				break;
 			default:

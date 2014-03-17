@@ -314,6 +314,11 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 	}
 	else
 	{
+		if(fmt == sinsp_evt::PF_EOLS)
+		{
+			dst[k++] = '\n';
+		}
+
 		for(j = 0; j < srclen; j++)
 		{
 			//
@@ -340,6 +345,35 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 				}
 
 				dst[k] = src[j];
+			}
+			else if(src[j] == '\r')
+			{
+				if(fmt == sinsp_evt::PF_EOLS)
+				{
+					dst[k] = '\n';
+				}
+				else
+				{
+					dst[k] = '.';
+				}
+			}
+			else if(src[j] == '\n')
+			{
+				if(fmt == sinsp_evt::PF_EOLS)
+				{
+					if(j > 0 && src[j - 1] != '\r')
+					{
+						dst[k] = src[j];
+					}
+					else
+					{
+						continue;
+					}
+				}
+				else
+				{
+					dst[k] = '.';
+				}
 			}
 			else
 			{
