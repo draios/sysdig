@@ -291,9 +291,105 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 	return l;
 }
 
-uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+uint32_t binary_buffer_to_asciionly_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t j;
+	uint32_t k = 0;
+
+	dst[k++] = '\n';
+
+	for(j = 0; j < srclen; j++)
+	{
+		//
+		// Make sure there's enough space in the target buffer.
+		// Note that we reserve two bytes, because some characters are expanded
+		// when copied.
+		//
+		if(k >= dstlen - 1)
+		{
+			dst[k - 1] = 0;
+			return k - 1;
+		}
+
+		if(isprint((int)(uint8_t)src[j]))
+		{
+			switch(src[j])
+			{
+			case '"':
+			case '\\':
+				dst[k++] = '\\';
+				break;
+			default:
+				break;
+			}
+
+			dst[k] = src[j];
+			k++;
+		}
+		else if(src[j] == '\r')
+		{
+			dst[k] = '\n';
+			k++;
+		}
+		else if(src[j] == '\n')
+		{
+			if(j > 0 && src[j - 1] != '\r')
+			{
+				dst[k] = src[j];
+				k++;
+			}
+		}
+
+	}
+
+	return k;
+}
+
+uint32_t binary_buffer_to_string_dots(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+{
+	uint32_t j;
+	uint32_t k = 0;
+
+	for(j = 0; j < srclen; j++)
+	{
+		//
+		// Make sure there's enough space in the target buffer.
+		// Note that we reserve two bytes, because some characters are expanded
+		// when copied.
+		//
+		if(k >= dstlen - 1)
+		{
+			dst[k - 1] = 0;
+			return k - 1;
+		}
+
+		if(isprint((int)(uint8_t)src[j]))
+		{
+			switch(src[j])
+			{
+			case '"':
+			case '\\':
+				dst[k++] = '\\';
+				break;
+			default:
+				break;
+			}
+
+			dst[k] = src[j];
+		}
+		else
+		{
+			dst[k] = '.';
+		}
+
+		k++;
+	}
+
+	return k;
+}
+
+uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+{
 	uint32_t k = 0;
 
 	if(dstlen == 0)
@@ -312,76 +408,13 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 	{
 		k = binary_buffer_to_hex_string(dst, src, dstlen, srclen, fmt);
 	}
+	else if(fmt == sinsp_evt::PF_EOLS)
+	{
+		k = binary_buffer_to_asciionly_string(dst, src, dstlen, srclen, fmt);
+	}
 	else
 	{
-		if(fmt == sinsp_evt::PF_EOLS)
-		{
-			dst[k++] = '\n';
-		}
-
-		for(j = 0; j < srclen; j++)
-		{
-			//
-			// Make sure there's enough space in the target buffer.
-			// Note that we reserve two bytes, because some characters are expanded
-			// when copied.
-			//
-			if(k >= dstlen - 1)
-			{
-				dst[k - 1] = 0;
-				return k - 1;
-			}
-
-			if(isprint((int)(uint8_t)src[j]))
-			{
-				switch(src[j])
-				{
-				case '"':
-				case '\\':
-					dst[k++] = '\\';
-					break;
-				default:
-					break;
-				}
-
-				dst[k] = src[j];
-			}
-			else if(src[j] == '\r')
-			{
-				if(fmt == sinsp_evt::PF_EOLS)
-				{
-					dst[k] = '\n';
-				}
-				else
-				{
-					dst[k] = '.';
-				}
-			}
-			else if(src[j] == '\n')
-			{
-				if(fmt == sinsp_evt::PF_EOLS)
-				{
-					if(j > 0 && src[j - 1] != '\r')
-					{
-						dst[k] = src[j];
-					}
-					else
-					{
-						continue;
-					}
-				}
-				else
-				{
-					dst[k] = '.';
-				}
-			}
-			else
-			{
-				dst[k] = '.';
-			}
-
-			k++;
-		}
+		k = binary_buffer_to_string_dots(dst, src, dstlen, srclen, fmt);
 	}
 
 	dst[k] = 0;
