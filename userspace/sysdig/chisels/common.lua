@@ -35,8 +35,24 @@ end
 convert a nanosecond time interval into a s.ns representation.
 E.g. 1100000000 becomes 1.1s
 ]]--
+ONE_S_IN_NS=1000000000
+ONE_MS_IN_NS=1000000
+ONE_US_IN_NS=1000
+
 function format_time_interval(val)
-	return string.format("%u.%03us", val / 1000000000, (val % 1000000000) / 1000000)
+	if val >= (ONE_S_IN_NS) then
+		return string.format("%u.%02us", val / ONE_S_IN_NS, (val % ONE_S_IN_NS) / 10000000)
+	elseif val >= (ONE_S_IN_NS / 100) then
+		return string.format("%ums", val / (ONE_S_IN_NS / 1000))
+	elseif val >= (ONE_S_IN_NS / 1000) then
+		return string.format("%u.%02ums", val / (ONE_S_IN_NS / 1000), (val % ONE_MS_IN_NS) / 10000)
+	elseif val >= (ONE_S_IN_NS / 100000) then
+		return string.format("%uus", val / (ONE_S_IN_NS / 1000000))
+	elseif val >= (ONE_S_IN_NS / 1000000) then
+		return string.format("%u.%02uus", val / (ONE_S_IN_NS / 1000000), (val % ONE_US_IN_NS) / 10)
+	else
+		return string.format("%uns", val)
+	end
 end
 
 --[[ 
