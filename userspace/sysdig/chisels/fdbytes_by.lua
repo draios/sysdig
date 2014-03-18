@@ -1,6 +1,6 @@
 -- Chisel description
-description = "Gropus all the active FDs based on the given filter field, and returns the fd count for each key. For example, it can be used to list the number of connections per process or per IP endpoint.";
-short_description = "FDs group by";
+description = "Gropus FD activity based on the given filter field, and returns the key that generated the most input+output bytes. For example, this script can be used to list the processes or TCP ports that generated most traffic.";
+short_description = "FD bytes group by";
 category = "IO";
 
 -- Chisel argument list
@@ -37,6 +37,10 @@ function on_init()
 	fkey = chisel.request_field(key_fld)
 	ffdnum = chisel.request_field("fd.num")
 	ffdname = chisel.request_field("fd.name")
+	fbytes = chisel.request_field("evt.rawarg.res")
+	
+	-- set the filter
+	chisel.set_filter("evt.is_io=true and fd.type=file")
 	
 	return true
 end
@@ -46,22 +50,16 @@ function on_event()
 	key = evt.field(fkey)
 	fdnum = evt.field(ffdnum)
 	fdname = evt.field(ffdname)
+	bytes = evt.field(fbytes)
 
-	if key ~= nil and fdnum ~= nil and fdnum > 0 and fdname ~= nil and fdname ~= "" then
+	if key ~= nil and fdnum ~= nil and bytes ~= nil and bytes > 0 and fdnum > 0 and fdname ~= nil and fdname ~= "" then
 		entryval = grtable[key]
 		fdkey = tostring(fdnum) .. fdname
 
 		if entryval == nil then
-			grtable[key] = {}
-			grtable[key][fdkey] = 1
-			grtable[key]["c"] = 1
+			grtable[key] = bytes
 		else
-			fdentry = grtable[key][fdkey]
-			
-			if fdentry == nil then
-				grtable[key][fdkey] = 1
-				grtable[key]["c"] = grtable[key]["c"] + 1
-			end
+			grtable[key] = grtable[key] + bytes
 		end
 	end
 
@@ -70,12 +68,12 @@ end
 
 -- Interval callback, emits the ourput
 function on_capture_end()
-	sorted_grtable = pairs_top_by_val(grtable, TOP_NUMBER, function(t,a,b) return t[b]["c"] < t[a]["c"] end)
+	sorted_grtable = pairs_top_by_val(grtable, TOP_NUMBER, function(t,a,b) return t[b] < t[a] end)
 	
 	etime = evt.field(ftime)
 
 	for k,v in sorted_grtable do
-		print(k, v["c"])
+		print(k, format_bytes(v))
 	end
 	
 	return true
