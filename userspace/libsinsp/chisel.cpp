@@ -61,31 +61,32 @@ static void lua_stackdump(lua_State *L)
 	int i;
 	int top = lua_gettop(L);
 	for (i = 1; i <= top; i++) 
-	{  /* repeat for each level */
+	{
 		int t = lua_type(L, i);
 		switch (t) 
 		{
 
-		case LUA_TSTRING:  /* strings */
+		case LUA_TSTRING:  // strings
 			printf("`%s'", lua_tostring(L, i));
 			break;
 
-		case LUA_TBOOLEAN:  /* booleans */
+		case LUA_TBOOLEAN:  // booleans
 			printf(lua_toboolean(L, i) ? "true" : "false");
 			break;
 
-		case LUA_TNUMBER:  /* numbers */
+		case LUA_TNUMBER:  // numbers
 			printf("%g", lua_tonumber(L, i));
 			break;
 
-		default:  /* other values */
+		default:  // other values
 			printf("%s", lua_typename(L, t));
 			break;
-
 		}
-		printf("  ");  /* put a separator */
+
+		printf("  ");  // put a separator
 	}
-	printf("\n");  /* end the listing */
+
+	printf("\n");  // end the listing
 }
 #endif
 
@@ -401,6 +402,41 @@ public:
 
 		return 0;
 	}
+
+	static int exec(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		const char* chname = lua_tostring(ls, 1);
+		if(chname == NULL)
+		{
+			throw sinsp_exception("invalid exec field name in chisel " + ch->m_filename);
+		}
+
+		ch->m_new_chisel_to_exec = chname;
+
+		ch->m_argvals.clear();
+		uint32_t stackpos = 2;
+
+		while(true)
+		{
+			const char* argval = lua_tostring(ls, stackpos++);
+			if(argval == NULL)
+			{
+				break;
+			}
+
+			ch->m_argvals.push_back(argval);
+		}
+
+		return 0;
+	}
 };
 
 const static struct luaL_reg ll_sysdig [] = 
@@ -417,6 +453,7 @@ const static struct luaL_reg ll_chisel [] =
 	{"set_event_formatter", &lua_cbacks::set_event_formatter},
 	{"set_interval_ns", &lua_cbacks::set_interval_ns},
 	{"set_interval_s", &lua_cbacks::set_interval_s},
+	{"exec", &lua_cbacks::exec},
 	{NULL,NULL}
 };
 
@@ -594,21 +631,31 @@ sinsp_chisel::~sinsp_chisel()
 		delete m_root;
 	}
 
+	free_lua_chisel();
+}
+
+void sinsp_chisel::free_lua_chisel()
+{
 #ifdef HAS_LUA_CHISELS
 	if(m_ls)
 	{
 		lua_close(m_ls);
+		m_ls = NULL;
 	}
 
 	for(uint32_t j = 0; j < m_allocated_fltchecks.size(); j++)
 	{
 		delete m_allocated_fltchecks[j];
 	}
+	m_allocated_fltchecks.clear();
 
 	if(m_lua_cinfo != NULL)
 	{
 		delete m_lua_cinfo; 
+		m_lua_cinfo = NULL;
 	}
+
+	m_lua_script_info.reset();
 #endif
 }
 
@@ -786,6 +833,20 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				cd.m_description = lua_tostring(ls, -1);
 
 				//
+				// Extract the hidden flag and skip the chisel if it's set
+				//
+				lua_getglobal(ls, "hidden");
+				if(lua_isboolean(ls, -1)) 
+				{
+					int sares = lua_toboolean(ls, -1);
+
+					if(sares)
+					{
+						goto next_lua_file;
+					}
+				}				
+
+				//
 				// Extract the args
 				//
 				lua_getglobal(ls, "args");
@@ -835,7 +896,7 @@ bool sinsp_chisel::openfile(string filename, OUT ifstream* is)
 
 void sinsp_chisel::load(string cmdstr)
 {
-	m_filename = cmdstr;
+ 	m_filename = cmdstr;
 	trim(cmdstr);
 
 	ifstream is;
@@ -1105,17 +1166,36 @@ void sinsp_chisel::on_init()
 		return;
 	}
 
-	if(!lua_isboolean(m_ls, -1)) 
+	if(m_new_chisel_to_exec == "")
 	{
-		throw sinsp_exception(m_filename + " chisel error: wrong init() return value.");
-	}
+		if(!lua_isboolean(m_ls, -1)) 
+		{
+			throw sinsp_exception(m_filename + " chisel error: wrong init() return value.");
+		}
 
-	if(!lua_toboolean(m_ls, -1))
-	{
-		throw sinsp_exception("init() for chisel " + m_filename + " failed.");
+		if(!lua_toboolean(m_ls, -1))
+		{
+			throw sinsp_exception("init() for chisel " + m_filename + " failed.");
+		}
 	}
 
 	lua_pop(m_ls, 1);
+
+	//
+	// If the chisel called chisel.exec(), free this chisel and load the new one
+	//
+	if(m_new_chisel_to_exec != "")
+	{
+		free_lua_chisel();
+		load(m_new_chisel_to_exec);
+		m_new_chisel_to_exec = "";
+
+		vector<string> args = m_argvals;
+		m_argvals.clear();
+		set_args(&args);
+
+		on_init();
+	}
 }
 
 bool sinsp_chisel::run(sinsp_evt* evt)

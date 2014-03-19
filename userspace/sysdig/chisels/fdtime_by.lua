@@ -1,7 +1,7 @@
 -- Chisel description
-description = "Gropus FD activity based on the given filter field, and returns the keys where most time was spent. For example, this script can be used to list the processes or files that caused the biggest I/O latency.";
-short_description = "FD time group by";
-category = "IO";
+description = "Gropus FD activity based on the given filter field, and returns the keys where most time was spent. For example, this script can be used to list the processes or files that caused the biggest I/O latency."
+short_description = "FD time group by"
+category = "IO"
 
 -- Chisel argument list
 args = 
@@ -40,7 +40,7 @@ function on_init()
 	flatency = chisel.request_field("evt.latency")
 	
 	-- set the filter
-	chisel.set_filter("evt.is_io=true and fd.type=file")
+	chisel.set_filter("evt.is_io=true")
 	
 	return true
 end

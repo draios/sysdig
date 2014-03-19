@@ -1,7 +1,7 @@
 -- Chisel description
-description = "Gropus all the active FDs based on the given filter field, and returns the fd count for each key. For example, it can be used to list the number of connections per process or per IP endpoint.";
-short_description = "FDs group by";
-category = "IO";
+description = "Gropus all the active FDs based on the given filter field, and returns the fd count for each key. For example, it can be used to list the number of connections per process or per IP endpoint."
+short_description = "FDs group by"
+category = "IO"
 
 -- Chisel argument list
 args = 
