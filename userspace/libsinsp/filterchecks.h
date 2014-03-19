@@ -317,6 +317,7 @@ public:
 		TYPE_ISIO = 21,
 		TYPE_ISIO_READ = 22,
 		TYPE_ISIO_WRITE = 23,
+		TYPE_ISWAIT = 24,
 	};
 
 	sinsp_filter_check_event();

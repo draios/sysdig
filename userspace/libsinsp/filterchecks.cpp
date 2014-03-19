@@ -654,6 +654,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io", "'true' for events that read or write to FDs, like read(), send, recvfrom(), etc."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_read", "'true' for events that read from FDs, like read(), recv(), recvfrom(), etc."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_wait", "'true' for events that make the thread wait, e.g. sleep(), select(), poll()."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -1180,6 +1181,20 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return (uint8_t*)&m_u32val;
 		}
+	case TYPE_ISWAIT:
+		{
+			ppm_event_flags eflags = evt->get_flags();
+			if(eflags & (EF_WAITS))
+			{
+				m_u32val = 1;
+			}
+			else
+			{
+				m_u32val = 0;
+			}
+		}
+
+		return (uint8_t*)&m_u32val;
 	default:
 		ASSERT(false);
 		return NULL;
