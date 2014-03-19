@@ -1,5 +1,5 @@
 -- Chisel description
-description = "Shows the top files in terms of disk usage, once per second.";
+description = "Shows the top files in terms of disk usage.";
 short_description = "top files by total bytes";
 category = "IO";
 

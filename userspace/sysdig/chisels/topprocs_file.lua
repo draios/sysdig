@@ -1,5 +1,5 @@
 -- Chisel description
-description = "Shows the top processes in terms of total (in+out) bytes to disk, once per second."
+description = "Shows the top processes in terms of total (in+out) bytes to disk."
 short_description = "top processes by total disk bytes"
 category = "IO"
 
@@ -7,7 +7,7 @@ category = "IO"
 args = {}
 
 -- The number of items to show
-TOP_NUMBER = 100
+TOP_NUMBER = 10
 
 -- Argument notification callback
 function on_set_arg(name, val)
