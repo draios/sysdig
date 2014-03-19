@@ -61,6 +61,13 @@ public:
 class chisel_desc
 {
 public:
+	void reset()
+	{
+		m_name = "";
+		m_description = "";
+		m_args.clear();
+	}
+
 	string m_name;
 	string m_description;
 	vector<chiselarg_desc> m_args;
@@ -101,6 +108,7 @@ public:
 
 private:
 	bool openfile(string filename, OUT ifstream* is);
+	void free_lua_chisel();
 
 	sinsp* m_inspector;
 	string m_description;
@@ -116,6 +124,7 @@ private:
 	vector<sinsp_filter_check*> m_allocated_fltchecks;
 	char m_lua_fld_storage[1024];
 	chiselinfo* m_lua_cinfo;
+	string m_new_chisel_to_exec;
 
 	friend class lua_cbacks;
 };
