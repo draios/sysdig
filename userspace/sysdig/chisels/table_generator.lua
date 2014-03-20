@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Gropus FD activity based on the given filter field, and returns the key that generated the most input+output bytes."
+description = "Given two filter fields, a key and a value, this chisel creates and renders to the screen a table."
 short_description = "FD bytes group by"
 category = "IO"
 hidden = true
@@ -44,6 +44,11 @@ args =
 		description = "maximum number of elements to display", 
 		argtype = "string"
 	},
+	{
+		name = "result_rendering", 
+		description = "how to render the values in the result. Can be 'bytes', 'time' or 'none'.", 
+		argtype = "string"
+	},
 }
 
 require "common"
@@ -53,6 +58,7 @@ grtable = {}
 key_fld = ""
 value_fld = ""
 filter = ""
+result_rendering = "none"
 
 -- Argument notification callback
 function on_set_arg(name, val)
@@ -68,6 +74,9 @@ function on_set_arg(name, val)
 	elseif name == "top_number" then
 		top_number = tonumber(val)
 		return true
+	elseif name == "result_rendering" then
+		result_rendering = val
+		return true
 	end
 
 	return false
@@ -78,8 +87,6 @@ function on_init()
 	-- Request the fields we need
 	fkey = chisel.request_field(key_fld)
 	fvalue = chisel.request_field(value_fld)
-	ffdnum = chisel.request_field("fd.num")
-	ffdname = chisel.request_field("fd.name")
 	
 	-- set the filter
 	if filter == "" then
@@ -94,18 +101,15 @@ end
 -- Event parsing callback
 function on_event()
 	key = evt.field(fkey)
-	fdnum = evt.field(ffdnum)
-	fdname = evt.field(ffdname)
-	bytes = evt.field(fvalue)
+	value = evt.field(fvalue)
 
-	if key ~= nil and fdnum ~= nil and bytes ~= nil and bytes > 0 and fdnum > 0 and fdname ~= nil and fdname ~= "" then
+	if key ~= nil and value ~= nil and value > 0 then
 		entryval = grtable[key]
-		fdkey = tostring(fdnum) .. fdname
 
 		if entryval == nil then
-			grtable[key] = bytes
+			grtable[key] = value
 		else
-			grtable[key] = grtable[key] + bytes
+			grtable[key] = grtable[key] + value
 		end
 	end
 
@@ -117,9 +121,15 @@ function on_capture_end()
 	sorted_grtable = pairs_top_by_val(grtable, top_number, function(t,a,b) return t[b] < t[a] end)
 	
 	etime = evt.field(ftime)
-
+	
 	for k,v in sorted_grtable do
-		print(k, format_bytes(v))
+		if result_rendering == "none" then
+			print(extend_string(v, 10) .. k)
+		elseif result_rendering == "bytes" then
+			print(extend_string(format_bytes(v), 10) .. k)
+		elseif result_rendering == "time" then
+			print(extend_string(format_time_interval(v), 10) .. k)
+		end
 	end
 	
 	return true

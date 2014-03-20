@@ -16,9 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Gropus FD activity based on the given filter field, and returns the key that generated the most input+output bytes. For example, this script can be used to list the processes or TCP ports that generated most traffic."
-short_description = "FD bytes group by"
-category = "IO"
+description = "Shows the top processes in terms of system call errors."
+short_description = "top processes by number of errors"
+category = "errors"
 
 -- Chisel argument list
 args = {}
@@ -32,9 +32,9 @@ end
 function on_init()
 	chisel.exec("table_generator", 
 		"proc.name", 
-		"evt.rawarg.res",
-		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
+		"evt.count",
+		"evt.failed=true", 
 		"100",
-		"bytes")
+		"none")
 	return true
 end

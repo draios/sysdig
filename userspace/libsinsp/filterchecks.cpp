@@ -651,10 +651,12 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_DYN, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'arg.fd'."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as an error code string (e.g. 'ENOENT')."},
 	{PT_INT64, EPF_NONE, PF_DEC, "evt.rawres", "event return value, as a number (e.g. -2). Useful for range comparisons."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.failed", "'true' for events that returned an error status."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io", "'true' for events that read or write to FDs, like read(), send, recvfrom(), etc."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_read", "'true' for events that read from FDs, like read(), recv(), recvfrom(), etc."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_wait", "'true' for events that make the thread wait, e.g. sleep(), select(), poll()."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -1139,6 +1141,36 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 		break;
+	case TYPE_FAILED:
+		{
+			m_u32val = 0;
+			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+
+			if(pi != NULL)
+			{
+				ASSERT(pi->m_len == sizeof(int64_t));
+				if(*(int64_t*)pi->m_val < 0)
+				{
+					m_u32val = 1;
+				}
+			}
+			else if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			{
+				pi = evt->get_param_value_raw("fd");
+
+				if(pi != NULL)
+				{
+					ASSERT(pi->m_len == sizeof(int64_t));
+					if(*(int64_t*)pi->m_val < 0)
+					{
+						m_u32val = 1;
+					}
+				}
+			}
+
+			return (uint8_t*)&m_u32val;
+		}
+		break;
 	case TYPE_ISIO:
 		{
 			ppm_event_flags eflags = evt->get_flags();
@@ -1194,6 +1226,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 
+		return (uint8_t*)&m_u32val;
+	case TYPE_COUNT:
+		m_u32val = 1;
 		return (uint8_t*)&m_u32val;
 	default:
 		ASSERT(false);

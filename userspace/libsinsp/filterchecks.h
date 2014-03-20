@@ -314,10 +314,12 @@ public:
 		TYPE_ARGRAW = 18,
 		TYPE_RESSTR = 19,
 		TYPE_RESRAW = 20,
-		TYPE_ISIO = 21,
-		TYPE_ISIO_READ = 22,
-		TYPE_ISIO_WRITE = 23,
-		TYPE_ISWAIT = 24,
+		TYPE_FAILED = 21,
+		TYPE_ISIO = 22,
+		TYPE_ISIO_READ = 23,
+		TYPE_ISIO_WRITE = 24,
+		TYPE_ISWAIT = 25,
+		TYPE_COUNT = 26,
 	};
 
 	sinsp_filter_check_event();
