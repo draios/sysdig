@@ -46,6 +46,10 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("fdbytes_by_internal", key_fld, "", "" .. TOP_NUMBER)
+	chisel.exec("fdbytes_by_internal",
+		key_fld, 
+		"evt.rawarg.res",
+		"evt.is_io=true", 
+		"" .. TOP_NUMBER)
 	return true
 end

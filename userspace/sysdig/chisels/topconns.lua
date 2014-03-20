@@ -33,6 +33,10 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("fdbytes_by_internal", "fd.name", "fd.type=ipv4 or fd.type=ipv6", "" .. TOP_NUMBER)
+	chisel.exec("fdbytes_by_internal", 
+		"fd.name", 
+		"evt.rawarg.res",
+		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
+		"" .. TOP_NUMBER)
 	return true
 end
