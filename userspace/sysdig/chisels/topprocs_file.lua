@@ -33,6 +33,10 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("fdbytes_by_internal", "proc.name", "fd.type=file", "" .. TOP_NUMBER)
+	chisel.exec("fdbytes_by_internal", 
+		"proc.name", 
+		"evt.rawarg.res",
+		"fd.type=file and evt.is_io=true", 
+		"" .. TOP_NUMBER)
 	return true
 end

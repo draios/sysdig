@@ -30,6 +30,11 @@ args =
 		argtype = "string"
 	},
 	{
+		name = "value", 
+		description = "the value to count for every key", 
+		argtype = "string"
+	},
+	{
 		name = "filter", 
 		description = "the filter to apply", 
 		argtype = "string"
@@ -46,12 +51,16 @@ require "common"
 top_number = 0
 grtable = {}
 key_fld = ""
+value_fld = ""
 filter = ""
 
 -- Argument notification callback
 function on_set_arg(name, val)
 	if name == "key" then
 		key_fld = val
+		return true
+	elseif name == "value" then
+		value_fld = val
 		return true
 	elseif name == "filter" then
 		filter = val
@@ -68,15 +77,15 @@ end
 function on_init()
 	-- Request the fields we need
 	fkey = chisel.request_field(key_fld)
+	fvalue = chisel.request_field(value_fld)
 	ffdnum = chisel.request_field("fd.num")
 	ffdname = chisel.request_field("fd.name")
-	fbytes = chisel.request_field("evt.rawarg.res")
 	
 	-- set the filter
 	if filter == "" then
 		chisel.set_filter("evt.is_io=true")
 	else
-		chisel.set_filter("(" .. filter .. ") and evt.is_io=true")
+		chisel.set_filter(filter)
 	end
 	
 	return true
@@ -87,7 +96,7 @@ function on_event()
 	key = evt.field(fkey)
 	fdnum = evt.field(ffdnum)
 	fdname = evt.field(ffdname)
-	bytes = evt.field(fbytes)
+	bytes = evt.field(fvalue)
 
 	if key ~= nil and fdnum ~= nil and bytes ~= nil and bytes > 0 and fdnum > 0 and fdname ~= nil and fdname ~= "" then
 		entryval = grtable[key]
