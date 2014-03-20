@@ -30,10 +30,11 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("fdbytes_by_internal", 
+	chisel.exec("table_generator", 
 		"proc.name", 
 		"evt.rawarg.res",
 		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
-		"100")
+		"100",
+		"bytes")
 	return true
 end

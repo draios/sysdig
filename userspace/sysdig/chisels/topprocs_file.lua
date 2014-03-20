@@ -33,10 +33,11 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("fdbytes_by_internal", 
+	chisel.exec("table_generator", 
 		"proc.name", 
 		"evt.rawarg.res",
 		"fd.type=file and evt.is_io=true", 
-		"" .. TOP_NUMBER)
+		"" .. TOP_NUMBER,
+		"bytes")
 	return true
 end

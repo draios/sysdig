@@ -33,10 +33,11 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("fdbytes_by_internal", 
+	chisel.exec("table_generator", 
 		"fd.sport", 
 		"evt.rawarg.res",
 		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
-		"" .. TOP_NUMBER)
+		"" .. TOP_NUMBER,
+		"bytes")
 	return true
 end
