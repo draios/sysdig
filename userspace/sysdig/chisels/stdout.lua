@@ -1,3 +1,20 @@
+--[[
+
+ 
+This program is free software: you can redistribute it and/or modify
+
+
+
+
+This program is distributed in the hope that it will be useful,
+
+
+
+
+
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--]]
+
 -- Chisel description
 description = "print the standard output of any process on screen. Combine this script with a filter to limit the output to a specific process or pid.";
 short_description = "print stdout";

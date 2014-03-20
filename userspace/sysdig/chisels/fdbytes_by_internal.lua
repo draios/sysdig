@@ -1,3 +1,20 @@
+--[[
+
+ 
+This program is free software: you can redistribute it and/or modify
+
+
+
+
+This program is distributed in the hope that it will be useful,
+
+
+
+
+
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--]]
+
 -- Chisel description
 description = "Gropus FD activity based on the given filter field, and returns the key that generated the most input+output bytes."
 short_description = "FD bytes group by"
