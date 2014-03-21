@@ -318,7 +318,7 @@ uint32_t binary_buffer_to_asciionly_string(char *dst, char *src, uint32_t dstlen
 		if(k >= dstlen - 1)
 		{
 			dst[k - 1] = 0;
-			return k - 1;
+			return dstlen;
 		}
 
 		if(isprint((int)(uint8_t)src[j]))
@@ -370,7 +370,7 @@ uint32_t binary_buffer_to_string_dots(char *dst, char *src, uint32_t dstlen, uin
 		if(k >= dstlen - 1)
 		{
 			dst[k - 1] = 0;
-			return k - 1;
+			return dstlen;
 		}
 
 		if(isprint((int)(uint8_t)src[j]))
@@ -766,6 +766,10 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		            m_paramstr_storage[cres + 1] = '"';
 		            m_paramstr_storage[cres + 2] = 0;
 		*/
+if(m_evtnum == 98543)
+{
+	int a = 0;
+}
 		while(true)
 		{
 			uint32_t blen = binary_buffer_to_string(&m_paramstr_storage[0],
