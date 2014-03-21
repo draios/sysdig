@@ -766,10 +766,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		            m_paramstr_storage[cres + 1] = '"';
 		            m_paramstr_storage[cres + 2] = 0;
 		*/
-if(m_evtnum == 98543)
-{
-	int a = 0;
-}
 		while(true)
 		{
 			uint32_t blen = binary_buffer_to_string(&m_paramstr_storage[0],
