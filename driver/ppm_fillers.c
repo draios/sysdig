@@ -520,7 +520,7 @@ static int32_t f_sys_read_x(struct event_filler_arguments* args)
 	// Determine the snaplen by checking the fd type.
 	// (note: not implemeted yet)
 	//
-	snaplen = g_snaplen;	
+	snaplen = g_snaplen;
 #if 0
 	{
 		int fd;
