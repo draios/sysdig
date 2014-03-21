@@ -224,6 +224,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 	uint32_t row_len;
 	char row[128];
 	char *ptr;
+	bool truncated = false;
 
 	for(j = 0; j < srclen; j += 8 * sizeof(uint16_t))
 	{
@@ -281,6 +282,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 		row_len = strlen(row);
 		if(l + row_len >= dstlen - 1)
 		{
+			truncated = true;
 			break;
 		}
 		strcpy(dst + l, row);
@@ -288,7 +290,15 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 	}
 
 	dst[l++] = '\n';
-	return l;
+
+	if(truncated)
+	{
+		return dstlen;
+	}
+	else
+	{
+		return l;
+	}
 }
 
 uint32_t binary_buffer_to_asciionly_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
@@ -756,16 +766,24 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		            m_paramstr_storage[cres + 1] = '"';
 		            m_paramstr_storage[cres + 2] = 0;
 		*/
-		if(binary_buffer_to_string(&m_paramstr_storage[0],
-			param->m_val,
-			m_paramstr_storage.size() - 1,
-			param->m_len,
-			fmt) == m_paramstr_storage.size())
+		while(true)
 		{
-			//
-			// The buffer didn't fit, expand it for future use
-			//
-			m_paramstr_storage.resize(m_paramstr_storage.size() * 2);
+			uint32_t blen = binary_buffer_to_string(&m_paramstr_storage[0],
+				param->m_val,
+				m_paramstr_storage.size() - 1,
+				param->m_len,
+				fmt);
+
+			if(blen >= m_paramstr_storage.size() - 1)
+			{
+				//
+				// The buffer didn't fit, expand it and try again
+				//
+				m_paramstr_storage.resize(m_paramstr_storage.size() * 2);
+				continue;
+			}
+
+			break;
 		}
 	}
 	break;
