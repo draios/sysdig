@@ -32,9 +32,9 @@ end
 function on_init()
 	chisel.exec("table_generator", 
 		"proc.name",
-		"name"
+		"Process"
 		"evt.rawarg.res",
-		"bytes",
+		"Bytes",
 		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
 		"100",
 		"bytes")

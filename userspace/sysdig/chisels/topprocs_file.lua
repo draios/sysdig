@@ -35,9 +35,9 @@ end
 function on_init()
 	chisel.exec("table_generator", 
 		"proc.name",
-		"name",
+		"Process",
 		"evt.rawarg.res",
-		"bytes",
+		"Bytes",
 		"fd.type=file and evt.is_io=true", 
 		"" .. TOP_NUMBER,
 		"bytes")
