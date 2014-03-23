@@ -108,12 +108,21 @@ OPTIONS
 **-t** _timetype_, **--timetype**=_timetype_  
   Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for abosulte timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.
   
+**-T**, **--print-text**  
+  Print only the text portion of data buffers, and echo EOLS. This is useful to only display human-readable data.
+  
 **-v**, **--verbose**  
-  Verbose output
+  Verbose output.
   
 **-w** _writefile_, **--write**=_writefile_  
   Write the captured events to _writefile_.
 
+**-x**, **--print-hex**  
+  Print data buffers in hex.
+  
+**-X**, **--print-hex-ascii**  
+  Print data buffers in hex and ASCII.
+  
 EXAMPLES
 --------
 Capture all the events from the live system and print them to screen
