@@ -116,12 +116,12 @@ static void usage()
 "                    capture, and d for delta between event enter and exit.\n" 
 " -T, --print-text   Print only the text portion of data buffers, and echo\n" 
 "                    EOLS. This is useful to only display human-readable data.\n"
-" -v, --verbose      Verbose output\n"
+" -v, --verbose      Verbose output.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
-" -x, --hex-format   Print buffers in hex\n"
-" -X, --hex-ascii-format\n"
-"                    Print buffers in hex and ASCII\n"
+" -x, --print-hex   Print data buffers in hex.\n"
+" -X, --print-hex-ascii\n"
+"                    Print data buffers in hex and ASCII.\n"
 "\n"
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
@@ -807,6 +807,14 @@ int main(int argc, char **argv)
 
 		duration = ((double)clock()) / CLOCKS_PER_SEC;
 			
+		//
+		// Notify the chisels that the capture is starting
+		//
+		for(uint32_t j = 0; j < chisels.size(); j++)
+		{
+			chisels[j]->on_capture_start();
+		}
+
 		cinfo = do_inspect(inspector, 
 			cnt, 
 			quiet, 

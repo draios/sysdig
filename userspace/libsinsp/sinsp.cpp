@@ -767,3 +767,8 @@ sinsp_evt::param_fmt sinsp::get_buffer_format()
 {
 	return m_buffer_format;
 }
+
+bool sinsp::is_live()
+{
+	return m_islive;
+}
