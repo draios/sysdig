@@ -31,8 +31,10 @@ end
 -- Initialization callback
 function on_init()
 	chisel.exec("table_generator", 
-		"proc.name", 
+		"proc.name",
+		"name"
 		"evt.rawarg.res",
+		"bytes",
 		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
 		"100",
 		"bytes")

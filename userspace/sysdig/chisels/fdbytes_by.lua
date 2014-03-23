@@ -47,8 +47,10 @@ end
 -- Initialization callback
 function on_init()
 	chisel.exec("table_generator",
-		key_fld, 
+		key_fld,
+		"filename",
 		"evt.rawarg.res",
+		"bytes",
 		"evt.is_io=true", 
 		"" .. TOP_NUMBER,
 		"bytes")

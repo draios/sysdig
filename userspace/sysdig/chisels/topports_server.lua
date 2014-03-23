@@ -34,8 +34,10 @@ end
 -- Initialization callback
 function on_init()
 	chisel.exec("table_generator", 
-		"fd.sport", 
+		"fd.sport",
+		"server port",
 		"evt.rawarg.res",
+		"bytes",
 		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
 		"" .. TOP_NUMBER,
 		"bytes")

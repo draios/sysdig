@@ -34,8 +34,10 @@ end
 -- Initialization callback
 function on_init()
 	chisel.exec("table_generator", 
-		"fd.name", 
+		"fd.name",
+		"filename",
 		"evt.count",
+		"# errors",
 		"fd.type=file and evt.failed=true", 
 		"100",
 		"none")

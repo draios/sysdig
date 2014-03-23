@@ -31,8 +31,10 @@ end
 -- Initialization callback
 function on_init()
 	chisel.exec("table_generator", 
-		"proc.name", 
+		"proc.name",
+		"name",
 		"evt.count",
+		"# errors",
 		"evt.failed=true", 
 		"100",
 		"none")
