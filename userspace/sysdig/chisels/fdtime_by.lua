@@ -48,7 +48,9 @@ end
 function on_init()
 	chisel.exec("table_generator",
 		key_fld, 
+		key_fld,
 		"evt.latency",
+		"time",
 		"evt.is_io=true", 
 		"time")
 		"" .. TOP_NUMBER,

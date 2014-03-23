@@ -34,8 +34,10 @@ end
 -- Initialization callback
 function on_init()
 	chisel.exec("table_generator", 
-		"fd.name", 
+		"fd.name",
+		"filename",
 		"evt.latency",
+		"time",
 		"fd.type=file and evt.is_io=true", 
 		"" .. TOP_NUMBER,
 		"time")
