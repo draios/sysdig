@@ -352,6 +352,22 @@ public:
 		return 0;
 	}
 
+	static int is_live(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		const uint32_t snaplen = lua_tointeger(ls, 1); 
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		lua_pushboolean(ls, ch->m_inspector->is_live());
+		return 1;
+	}
+
 	static int set_event_formatter(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
@@ -443,6 +459,7 @@ const static struct luaL_reg ll_sysdig [] =
 {
 	{"set_filter", &lua_cbacks::set_global_filter},
 	{"set_snaplen", &lua_cbacks::set_snaplen},
+	{"is_live", &lua_cbacks::is_live},
 	{NULL,NULL}
 };
 
@@ -1322,6 +1339,33 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 		return true;
 #endif
 	}
+}
+
+void sinsp_chisel::on_capture_start()
+{
+#ifdef HAS_LUA_CHISELS
+	lua_getglobal(m_ls, "on_capture_start");
+			
+	if(lua_isfunction(m_ls, -1))
+	{
+		if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+		{
+			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
+		}
+
+		if(!lua_isboolean(m_ls, -1)) 
+		{
+			throw sinsp_exception(m_filename + " chisel error: wrong on_capture_start() return value. Boolean expected.");
+		}
+
+		if(!lua_toboolean(m_ls, -1))
+		{
+			throw sinsp_exception("init() for chisel " + m_filename + " failed.");
+		}
+
+		lua_pop(m_ls, 1);
+	}
+#endif // HAS_LUA_CHISELS
 }
 
 void sinsp_chisel::on_capture_end()

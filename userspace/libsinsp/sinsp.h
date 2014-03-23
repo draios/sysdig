@@ -423,6 +423,11 @@ public:
 	*/
 	sinsp_evt::param_fmt get_buffer_format();
 
+	/*!
+	  \brief Returns true if the current capture is live.
+	*/
+	bool is_live();
+
 	//
 	// Misc internal stuff 
 	//
