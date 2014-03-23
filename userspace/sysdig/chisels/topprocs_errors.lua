@@ -32,9 +32,9 @@ end
 function on_init()
 	chisel.exec("table_generator", 
 		"proc.name",
-		"name",
+		"Process",
 		"evt.count",
-		"# errors",
+		"#Errors",
 		"evt.failed=true", 
 		"100",
 		"none")

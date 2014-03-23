@@ -50,7 +50,7 @@ function on_init()
 		key_fld, 
 		key_fld,
 		"evt.latency",
-		"time",
+		"Time",
 		"evt.is_io=true", 
 		"time")
 		"" .. TOP_NUMBER,
