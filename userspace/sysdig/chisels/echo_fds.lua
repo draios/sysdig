@@ -23,7 +23,7 @@ category = "IO";
 args = {}
 
 require "common"
-require "ansicolors"
+terminal = require "ansiterminal"
 
 -- Initialization callback
 function on_init()
@@ -59,9 +59,9 @@ function on_event()
 	end
 	
 	if isread then
-		infostr = string.format("%s------ Read %s from %s", ansicolors.red, format_bytes(res), name)
+		infostr = string.format("%s------ Read %s from %s", terminal.red, format_bytes(res), name)
 	else
-		infostr = string.format("%s------ Write %s to %s", ansicolors.blue, format_bytes(res), name)
+		infostr = string.format("%s------ Write %s to %s", terminal.blue, format_bytes(res), name)
 	end
 	
 	print(infostr)
@@ -70,5 +70,5 @@ function on_event()
 end
 
 function on_capture_end()
-	print(ansicolors.reset)
+	print(terminal.resetcolor)
 end
