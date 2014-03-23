@@ -1227,7 +1227,14 @@ static int32_t f_sys_accept_x(struct event_filler_arguments* args)
 	}
 	else
 	{
-		val = (unsigned long)sock->sk->sk_ack_backlog * 100 / sock->sk->sk_max_ack_backlog;
+		if(sock->sk->sk_max_ack_backlog == 0)
+		{
+			val = 0;
+		}
+		else
+		{
+			val = (unsigned long)sock->sk->sk_ack_backlog * 100 / sock->sk->sk_max_ack_backlog;
+		}
 		sockfd_put(sock);
 	}
 
