@@ -359,8 +359,6 @@ public:
 		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
 
-		const uint32_t snaplen = lua_tointeger(ls, 1); 
-
 		ASSERT(ch);
 		ASSERT(ch->m_lua_cinfo);
 
