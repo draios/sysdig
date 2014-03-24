@@ -740,7 +740,7 @@ void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
     lua_getfield(ls, -1, "path"); 
 
     string cur_path = lua_tostring(ls, -1 );
-	cur_path += ';';
+  	cur_path += ';';
     cur_path.append(path);
     lua_pop(ls, 1);
 
@@ -750,6 +750,11 @@ void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 }
 #endif
 
+//
+// 1. Iterates through the chisel files on disk (.sc and .lua)
+// 2. Opens them and extracts the fields (name, description, etc)
+// 3. Adds them to the chisel_descs vector.
+//
 void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 {
 	uint32_t j;
@@ -785,9 +790,11 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 					const Json::Value args = (*ch.m_root)["info"]["arguments"];
 					for(uint32_t k = 0; k < args.size(); k++)
 					{
-						cd.m_args.push_back(chiselarg_desc(args[k]["name"].asString(), 
+						cd.m_args.push_back(chiselarg_desc(
+              args[k]["name"].asString(), 
 							args[k]["type"].asString(), 
-							args[k]["description"].asString()));
+							args[k]["description"].asString()
+            ));
 					}
 
 					chisel_descs->push_back(cd);
@@ -848,6 +855,26 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				cd.m_description = lua_tostring(ls, -1);
 
 				//
+				// Extract the short description
+				//
+				lua_getglobal(ls, "short_description");
+				if(!lua_isstring(ls, -1)) 
+				{
+					goto next_lua_file;
+				}				
+ 		    cd.m_shortdesc = lua_tostring(ls, -1);
+
+        // 
+        // Extract the category
+				//
+			  cd.m_category = "";
+				lua_getglobal(ls, "category");
+				if(lua_isstring(ls, -1)) 
+				{
+				  cd.m_category = lua_tostring(ls, -1);
+				}				
+
+        //
 				// Extract the hidden flag and skip the chisel if it's set
 				//
 				lua_getglobal(ls, "hidden");
