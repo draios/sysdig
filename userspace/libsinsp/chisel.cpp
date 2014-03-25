@@ -241,6 +241,18 @@ public:
 		return 1;
 	}
 
+	static int get_cpuid(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sievt");
+		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		uint32_t cpuid = evt->get_cpuid();
+
+		lua_pushinteger(ls, cpuid);
+		return 2;
+	}
+
 	static int request_field(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
@@ -383,10 +395,10 @@ public:
 		lua_pushnumber(ls, minfo->num_cpus);
 		lua_settable(ls, -3);
 		lua_pushstring(ls, "memory_size_bytes");
-		lua_pushnumber(ls, minfo->memory_size_bytes);
+		lua_pushnumber(ls, (double)minfo->memory_size_bytes);
 		lua_settable(ls, -3);
 		lua_pushstring(ls, "max_pid");
-		lua_pushnumber(ls, minfo->max_pid);
+		lua_pushnumber(ls, (double)minfo->max_pid);
 		lua_settable(ls, -3);
 		lua_pushstring(ls, "hostname");
 		lua_pushstring(ls, minfo->hostname);
@@ -508,6 +520,7 @@ const static struct luaL_reg ll_evt [] =
 	{"get_num", &lua_cbacks::get_num},
 	{"get_ts", &lua_cbacks::get_ts},
 	{"get_type", &lua_cbacks::get_type},
+	{"get_cpuid", &lua_cbacks::get_cpuid},
 	{NULL,NULL}
 };
 #endif // HAS_LUA_CHISELS
@@ -660,6 +673,7 @@ sinsp_chisel::sinsp_chisel(sinsp* inspector, string filename)
 	m_lua_is_first_evt = true;
 	m_lua_cinfo = NULL;
 	m_lua_last_interval_sample_time = 0;
+	m_lua_last_interval_ts = 0;
 
 	load(filename);
 }
@@ -1302,9 +1316,19 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 
 			if(sample_time != m_lua_last_interval_sample_time)
 			{
+				int64_t delta = 0;
+
+				if(m_lua_last_interval_ts != 0)
+				{
+					delta = ts - m_lua_last_interval_ts;
+					ASSERT(delta > 0);
+				}
+
 				lua_getglobal(m_ls, "on_interval");
 			
-				if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+				lua_pushnumber(m_ls, (double)delta); 
+
+				if(lua_pcall(m_ls, 1, 1, 0) != 0) 
 				{
 					throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
 				}
@@ -1318,6 +1342,7 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 				}
 	
 				m_lua_last_interval_sample_time = sample_time;
+				m_lua_last_interval_ts = ts;
 			}
 		}
 
@@ -1400,10 +1425,16 @@ void sinsp_chisel::on_capture_end()
 {
 #ifdef HAS_LUA_CHISELS
 	lua_getglobal(m_ls, "on_capture_end");
-			
+
 	if(lua_isfunction(m_ls, -1))
 	{
-		if(lua_pcall(m_ls, 0, 0, 0) != 0) 
+		uint64_t ts = m_inspector->m_firstevent_ts;
+		uint64_t te = m_inspector->m_lastevent_ts;
+		int64_t delta = te - ts;
+
+		lua_pushnumber(m_ls, (double)delta); 
+
+		if(lua_pcall(m_ls, 1, 0, 0) != 0) 
 		{
 			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
 		}

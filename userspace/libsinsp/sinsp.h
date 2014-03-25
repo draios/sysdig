@@ -294,7 +294,7 @@ public:
 	bool has_metrics();
 
 	/*!
-	  \brief Get information about the physical machine generating the events.
+	  \brief Return information about the machine generating the events.
 
 	  \note this call works with file captures as well, because the machine
 	   info is stored in the trace files. In that case, the returned 
@@ -529,6 +529,7 @@ private:
 	friend class sinsp_thread_manager;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
+	friend class sinsp_chisel;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

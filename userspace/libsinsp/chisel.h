@@ -122,6 +122,7 @@ private:
 	bool m_lua_has_handle_evt;
 	bool m_lua_is_first_evt;
 	uint64_t m_lua_last_interval_sample_time;
+	uint64_t m_lua_last_interval_ts;
 	vector<sinsp_filter_check*> m_allocated_fltchecks;
 	char m_lua_fld_storage[1024];
 	chiselinfo* m_lua_cinfo;

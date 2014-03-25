@@ -62,7 +62,7 @@ function on_event()
 	return true
 end
 
-function on_interval()
+function on_interval(delta)
 	etime = evt.field(ftime)
 	print(etime .. " in:" .. totin .. " out:" .. totout .. " tot:" .. tot)
 	tot = 0

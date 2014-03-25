@@ -56,7 +56,7 @@ args =
 	},
 	{
 		name = "result_rendering", 
-		description = "how to render the values in the result. Can be 'bytes', 'time' or 'none'.", 
+		description = "how to render the values in the result. Can be 'bytes', 'time', 'timepct', or 'none'.", 
 		argtype = "string"
 	},
 }
@@ -146,7 +146,7 @@ function on_event()
 	return true
 end
 
-function on_interval()
+function on_interval(delta)
 	sorted_grtable = pairs_top_by_val(grtable, top_number, function(t,a,b) return t[b] < t[a] end)
 	
 	etime = evt.field(ftime)
@@ -163,6 +163,9 @@ function on_interval()
 			print(extend_string(format_bytes(v), 10) .. k)
 		elseif result_rendering == "time" then
 			print(extend_string(format_time_interval(v), 10) .. k)
+		elseif result_rendering == "timepct" then
+			pctstr = string.format("%.2f%%", v / delta * 100)
+			print(extend_string(pctstr, 10) .. k)	
 		end
 	end
 
@@ -172,7 +175,7 @@ function on_interval()
 	return true
 end
 
-function on_capture_end()
+function on_capture_end(delta)
 	if islive then
 		terminal.clearscreen()
 		terminal.goto(0 ,0)
@@ -194,6 +197,9 @@ function on_capture_end()
 			print(extend_string(format_bytes(v), 10) .. k)
 		elseif result_rendering == "time" then
 			print(extend_string(format_time_interval(v), 10) .. k)
+		elseif result_rendering == "timepct" then
+			pctstr = string.format("%.2f%%", v / delta * 100)
+			print(extend_string(pctstr, 10) .. k)	
 		end
 	end
 	
