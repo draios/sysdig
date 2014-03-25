@@ -35,9 +35,7 @@ value_fld = "thread.exectime"
 value_desc = "CPU%"
 result_rendering = "timepct"
 islive = false
-lastts_s = 0
-lastts_ns = 0
-reminder = 0
+cpustates = {}
 
 function on_init()
 	-- Request the fields we need
@@ -58,23 +56,31 @@ function on_capture_start()
 		terminal.hidecursor()
 	end
 
+	ncpus = sysdig.get_machine_info().num_cpus
+
+	for j = 1, ncpus do
+		cpustates[j] = {0, 0, 0, ""}
+	end
+
 	return true
 end
 
 function on_event()
 	key = evt.field(fkey)
 	value = evt.field(fvalue)
+	cpuid = evt.get_cpuid() + 1
 
 	if key ~= nil and value ~= nil and value > 0 then
 		if grtable[key] == nil then
-			grtable[key] = value - reminder
+			grtable[key] = value - cpustates[cpuid][3]
 		else
-			grtable[key] = grtable[key] + value - reminder
+			grtable[key] = grtable[key] + value - cpustates[cpuid][3]
 		end
 		
-		reminder = 0
+		cpustates[cpuid][3] = 0
 		
-		lastts_s, lastts_ns = evt.get_ts()
+		cpustates[cpuid][1], cpustates[cpuid][2] = evt.get_ts()
+		cpustates[cpuid][4] = key
 	end
 
 	return true
@@ -84,17 +90,23 @@ function on_interval(ts_s, ts_ns, delta)
 	terminal.clearscreen()
 	terminal.goto(0, 0)
 	
-	if lastts_s ~= 0 then
-		reminder = 1000000000 - lastts_ns
+	for cpuid = 1, ncpus do
+		if cpustates[cpuid][1] ~= 0 then
+			cpustates[cpuid][3] = 1000000000 - cpustates[cpuid][2]
 
-		if grtable[key] == nil then
-			grtable[key] = value
-		else
-			grtable[key] = grtable[key] + reminder
+			key = cpustates[cpuid][4]
+
+			if key ~= nil and value ~= nil and value > 0 then
+				if grtable[key] == nil then
+					grtable[key] = cpustates[cpuid][3]
+				else
+					grtable[key] = grtable[key] + cpustates[cpuid][3]
+				end
+			end
 		end
 	end
 	
-	print_sorted_table(grtable, 1000000, result_rendering)
+	print_sorted_table(grtable, 1000000000, result_rendering)
 	
 	-- Clear the table
 	grtable = {}
