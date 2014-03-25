@@ -146,28 +146,11 @@ function on_event()
 	return true
 end
 
-function on_interval(delta)
-	sorted_grtable = pairs_top_by_val(grtable, top_number, function(t,a,b) return t[b] < t[a] end)
-	
-	etime = evt.field(ftime)
-	
+function on_interval(ts_s, ts_ns, delta)
 	terminal.clearscreen()
 	terminal.goto(0, 0)
-	print(extend_string(value_desc, 10) .. key_desc)
-	print("------------------------------")
-
-	for k,v in sorted_grtable do
-		if result_rendering == "none" then
-			print(extend_string(v, 10) .. k)
-		elseif result_rendering == "bytes" then
-			print(extend_string(format_bytes(v), 10) .. k)
-		elseif result_rendering == "time" then
-			print(extend_string(format_time_interval(v), 10) .. k)
-		elseif result_rendering == "timepct" then
-			pctstr = string.format("%.2f%%", v / delta * 100)
-			print(extend_string(pctstr, 10) .. k)	
-		end
-	end
+	
+	print_sorted_table(grtable, delta, result_rendering)
 
 	-- Clear the table
 	grtable = {}
@@ -175,33 +158,15 @@ function on_interval(delta)
 	return true
 end
 
-function on_capture_end(delta)
+function on_capture_end(ts_s, ts_ns, delta)
 	if islive then
 		terminal.clearscreen()
 		terminal.goto(0 ,0)
 		terminal.showcursor()
 		return true
 	end
-
-	sorted_grtable = pairs_top_by_val(grtable, top_number, function(t,a,b) return t[b] < t[a] end)
 	
-	etime = evt.field(ftime)
-	
-	print(extend_string(value_desc, 10) .. key_desc)
-	print("------------------------------")
-	
-	for k,v in sorted_grtable do
-		if result_rendering == "none" then
-			print(extend_string(v, 10) .. k)
-		elseif result_rendering == "bytes" then
-			print(extend_string(format_bytes(v), 10) .. k)
-		elseif result_rendering == "time" then
-			print(extend_string(format_time_interval(v), 10) .. k)
-		elseif result_rendering == "timepct" then
-			pctstr = string.format("%.2f%%", v / delta * 100)
-			print(extend_string(pctstr, 10) .. k)	
-		end
-	end
+	print_sorted_table(grtable, delta, result_rendering)
 	
 	return true
 end

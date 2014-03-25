@@ -89,3 +89,32 @@ function pairs_top_by_val(t, num, order)
 		end
 	end
 end
+
+--[[ 
+Pick a key-value table and render it to the console in sorted top format
+]]--
+function print_sorted_table(stable, timedelta, result_rendering)
+	sorted_grtable = pairs_top_by_val(stable, top_number, function(t,a,b) return t[b] < t[a] end)
+
+	etime = evt.field(ftime)
+	print(extend_string(value_desc, 10) .. key_desc)
+	print("------------------------------")
+	
+	for k,v in sorted_grtable do
+		if result_rendering == "none" then
+			print(extend_string(v, 10) .. k)
+		elseif result_rendering == "bytes" then
+			print(extend_string(format_bytes(v), 10) .. k)
+		elseif result_rendering == "time" then
+			print(extend_string(format_time_interval(v), 10) .. k)
+		elseif result_rendering == "timepct" then
+			if timedelta ~= 0 then
+				pctstr = string.format("%.2f%%", v / timedelta * 100)
+			else
+				pctstr = "0.00%"
+			end
+
+			print(extend_string(pctstr, 10) .. k)	
+		end
+	end
+end

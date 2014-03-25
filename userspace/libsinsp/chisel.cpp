@@ -1326,9 +1326,11 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 
 				lua_getglobal(m_ls, "on_interval");
 			
+				lua_pushnumber(m_ls, (double)(ts / 1000000000)); 
+				lua_pushnumber(m_ls, (double)(ts % 1000000000)); 
 				lua_pushnumber(m_ls, (double)delta); 
 
-				if(lua_pcall(m_ls, 1, 1, 0) != 0) 
+				if(lua_pcall(m_ls, 3, 1, 0) != 0) 
 				{
 					throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
 				}
@@ -1432,9 +1434,11 @@ void sinsp_chisel::on_capture_end()
 		uint64_t te = m_inspector->m_lastevent_ts;
 		int64_t delta = te - ts;
 
-		lua_pushnumber(m_ls, (double)delta); 
+		lua_pushnumber(m_ls, (double)(te / 1000000000)); 
+		lua_pushnumber(m_ls, (double)(te % 1000000000)); 
+		lua_pushnumber(m_ls, (double)delta);
 
-		if(lua_pcall(m_ls, 1, 0, 0) != 0) 
+		if(lua_pcall(m_ls, 3, 0, 0) != 0) 
 		{
 			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
 		}
