@@ -250,7 +250,7 @@ public:
 		uint32_t cpuid = evt->get_cpuid();
 
 		lua_pushinteger(ls, cpuid);
-		return 2;
+		return 1;
 	}
 
 	static int request_field(lua_State *ls) 
