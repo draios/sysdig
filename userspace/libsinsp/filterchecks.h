@@ -262,13 +262,14 @@ public:
 		TYPE_ARGS = 3,
 		TYPE_CWD = 4,
 		TYPE_NCHILDS = 5,
-		TYPE_TID = 6,
-		TYPE_ISMAINTHREAD = 7,
-		TYPE_PARENTNAME = 8,
-		IOBYTES = 9,
-		TOTIOBYTES = 10,
-		LATENCY = 11,
-		TOTLATENCY = 12,
+		TYPE_PARENTNAME = 6,
+		TYPE_TID = 7,
+		TYPE_ISMAINTHREAD = 8,
+		TYPE_EXECTIME = 9,
+		IOBYTES = 10,
+		TOTIOBYTES = 11,
+		LATENCY = 12,
+		TOTLATENCY = 13,
 	};
 
 	sinsp_filter_check_thread();
@@ -283,6 +284,7 @@ public:
 	uint32_t m_tbool;
 	string m_tstr;
 	uint64_t m_u64val;
+	vector<uint64_t> m_last_proc_switch_times;
 };
 
 //
