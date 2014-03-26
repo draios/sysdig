@@ -517,10 +517,13 @@ int main(int argc, char **argv)
 				is_filter_display = true;
 				break;
 			case 'j':
-				emitjson = true;
 				{
-					ASSERT(false);
-					throw sinsp_exception("json option not yet implemented");
+					emitjson = true;
+					if (emitjson)
+					{
+						ASSERT(false);
+						throw sinsp_exception("json option not yet implemented");
+					}
 				}
 				break;
 			case 'h':
