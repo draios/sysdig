@@ -276,24 +276,21 @@ void print_chisel_info(chisel_desc* cd)
 
 	printf("\n");
 
+	astr +=	"\nArgs:\n";
+
 	if(cd->m_args.size() != 0)
 	{
-		astr +=	"Args: ";
 
 		for(l = 0; l < cd->m_args.size(); l++)
 		{
-			astr += cd->m_args[l].m_name;
-			if(l != cd->m_args.size() - 1)
-			{
-				astr +=	", ";
-			}
+			astr += "[" + cd->m_args[l].m_type + "] " + cd->m_args[l].m_name + " - ";
+			astr +=	cd->m_args[l].m_description + "\n";
 		}
 
-		astr +=	".";
 	}
 	else
 	{
-		astr +=	"No args.";
+		astr +=	"(None)";
 	}
 
 	size_t astrlen = astr.size();
