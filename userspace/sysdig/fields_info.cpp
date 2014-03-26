@@ -299,7 +299,7 @@ void print_chisel_info(chisel_desc* cd)
 	{
 		if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
 		{
-		printf("\n%"PRINTF_WRAP(DESCRIPTION_TEXT_START)"s", "");
+			printf("\n%" PRINTF_WRAP(DESCRIPTION_TEXT_START) "s", "");
 		}
 
 		printf("%c", astr[l]);
@@ -351,7 +351,7 @@ void list_chisels(vector<chisel_desc>* chlist)
 		{
 			if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
 			{
-				printf("\n%"PRINTF_WRAP(DESCRIPTION_TEXT_START)"s", "");
+				printf("\n%" PRINTF_WRAP(DESCRIPTION_TEXT_START) "s", "");
 			}
 
 			printf("%c", desc[l]);
