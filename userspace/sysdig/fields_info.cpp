@@ -250,7 +250,8 @@ void print_chisel_info(chisel_desc* cd)
 	// First we create a single list composed of
 	// just this chisel and then run the short_description
 	// over it in order to get those fields for free.
-	std::vector<chisel_desc> chlist { cd[0] };
+	std::vector<chisel_desc> chlist;
+	chlist.push_back(cd[0]);
 
 	list_chisels(&chlist);
 
