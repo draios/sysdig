@@ -240,10 +240,76 @@ struct summary_chisel_comparer
     bool operator() (const chisel_desc& first, const chisel_desc& second) const 
 	{
 		return (first.m_category == second.m_category) 
-      ? first.m_name < second.m_name 
-      : first.m_category < second.m_category;
+		? first.m_name < second.m_name 
+		: first.m_category < second.m_category;
 	}
 };
+
+void print_chisel_info(chisel_desc* cd)
+{
+	// First we create a single list composed of
+	// just this chisel and then run the short_description
+	// over it in order to get those fields for free.
+	std::vector<chisel_desc> chlist { cd[0] };
+
+	list_chisels(&chlist);
+
+	// Now we have to do the real work
+	printf("\n");
+
+	uint32_t l;
+	string astr;
+
+	string desc = cd->m_description;
+	size_t desclen = desc.size();
+
+	for(l = 0; l < desclen; l++)
+	{
+		if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+		{
+			printf("\n");
+		}
+
+		printf("%c", desc[l]);
+	}
+
+	printf("\n");
+
+	if(cd->m_args.size() != 0)
+	{
+		astr +=	"Args: ";
+
+		for(l = 0; l < cd->m_args.size(); l++)
+		{
+			astr += cd->m_args[l].m_name;
+			if(l != cd->m_args.size() - 1)
+			{
+				astr +=	", ";
+			}
+		}
+
+		astr +=	".";
+	}
+	else
+	{
+		astr +=	"No args.";
+	}
+
+	size_t astrlen = astr.size();
+
+	for(l = 0; l < astrlen; l++)
+	{
+		if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+		{
+		printf("\n%"PRINTF_WRAP(DESCRIPTION_TEXT_START)"s", "");
+		}
+
+		printf("%c", astr[l]);
+	}
+
+	// just for good meaure
+	printf("\n");
+}
 
 void list_chisels(vector<chisel_desc>* chlist)
 {
@@ -253,7 +319,7 @@ void list_chisels(vector<chisel_desc>* chlist)
 	// Sort the list by name
 	//
 	sort(chlist->begin(), chlist->end(), summary_chisel_comparer());
-  string last_category;
+	string last_category;
 
 	//
 	// Print the list to the screen
@@ -264,11 +330,11 @@ void list_chisels(vector<chisel_desc>* chlist)
 
 		string category = cd->m_category;
 
-    if(category != last_category) {
-		  printf("\n----------------------\n");
-      printf("Category: %s\n", category.c_str());
-      last_category = category;
-    }
+		if(category != last_category) {
+			printf("\n----------------------\n");
+			printf("Category: %s\n", category.c_str());
+			last_category = category;
+		}
 
 		printf("%s", cd->m_name.c_str());
 		uint32_t namelen = cd->m_name.size();
@@ -293,43 +359,6 @@ void list_chisels(vector<chisel_desc>* chlist)
 			printf("%c", desc[l]);
 		}
 
-/*
-		printf("\n%"PRINTF_WRAP(DESCRIPTION_TEXT_START)"s", "");
-
-		string astr;
-
-		if(cd->m_args.size() != 0)
-		{
-			astr +=	"Args: ";
-
-			for(l = 0; l < cd->m_args.size(); l++)
-			{
-				astr += cd->m_args[l].m_name;
-				if(l != cd->m_args.size() - 1)
-				{
-					astr +=	", ";
-				}
-			}
-
-			astr +=	".";
-		}
-		else
-		{
-			astr +=	"No args.";
-		}
-
-		size_t astrlen = astr.size();
-
-		for(l = 0; l < astrlen; l++)
-		{
-			if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
-			{
-		    printf("\n%"PRINTF_WRAP(DESCRIPTION_TEXT_START)"s", "");
-			}
-
-			printf("%c", astr[l]);
-		}
-*/
 		printf("\n");
 	}
 }

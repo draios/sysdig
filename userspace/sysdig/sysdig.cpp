@@ -89,6 +89,9 @@ static void usage()
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost\n"
 " -h, --help         Print this page\n"
+" -i <chiselname>, --chisel-info <chiselname>\n"
+"					 Get's a longer description and the arguments associated with\n"
+"					 a chisel found in the -cl option list.\n"
 " -j, --json         Emit output as json\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -386,31 +389,31 @@ int main(int argc, char **argv)
 	vector<summary_table_entry>* summary_table = NULL;
 	string timefmt = "%evt.time";
 
-    static struct option long_options[] = 
+	static struct option long_options[] = 
 	{
-        {"abstimes", no_argument, 0, 'a' },
-        {"chisel", required_argument, 0, 'c' },
-        {"list-chisels", no_argument, &cflag, 1 },
-        {"chisel-info", required_argument, &cflag, 2 },
-        {"displayflt", no_argument, 0, 'd' },
-        {"help", no_argument, 0, 'h' },
-        {"json", no_argument, 0, 'j' },
-        {"list", no_argument, 0, 'l' },
-        {"list-events", no_argument, 0, 'L' },
-        {"numevents", required_argument, 0, 'n' },
-        {"print", required_argument, 0, 'p' },
-        {"quiet", no_argument, 0, 'q' },
-        {"readfile", required_argument, 0, 'r' },
-        {"snaplen", required_argument, 0, 's' },
-        {"summary", no_argument, 0, 'S' },
-        {"print-text", no_argument, 0, 'T' },
-        {"timetype", required_argument, 0, 't' },
-        {"verbose", no_argument, 0, 'v' },
-        {"writefile", required_argument, 0, 'w' },
-        {"print-hex", no_argument, 0, 'x'},
-        {"print-hex-ascii", no_argument, 0, 'X'},
-        {0, 0, 0, 0}
-    };
+		{"abstimes", no_argument, 0, 'a' },
+		{"chisel", required_argument, 0, 'c' },
+		{"list-chisels", no_argument, &cflag, 1 },
+		{"displayflt", no_argument, 0, 'd' },
+		{"help", no_argument, 0, 'h' },
+		{"chisel-info", required_argument, 0, 'i' },
+		{"json", no_argument, 0, 'j' },
+		{"list", no_argument, 0, 'l' },
+		{"list-events", no_argument, 0, 'L' },
+		{"numevents", required_argument, 0, 'n' },
+		{"print", required_argument, 0, 'p' },
+		{"quiet", no_argument, 0, 'q' },
+		{"readfile", required_argument, 0, 'r' },
+		{"snaplen", required_argument, 0, 's' },
+		{"summary", no_argument, 0, 'S' },
+		{"print-text", no_argument, 0, 'T' },
+		{"timetype", required_argument, 0, 't' },
+		{"verbose", no_argument, 0, 'v' },
+		{"writefile", required_argument, 0, 'w' },
+		{"print-hex", no_argument, 0, 'x'},
+		{"print-hex-ascii", no_argument, 0, 'X'},
+		{0, 0, 0, 0}
+	};
 
 //	output_format = "*%evt.num)%evt.reltime.s.%evt.reltime.ns %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
 	output_format = "*%evt.num)<TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
@@ -425,7 +428,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "ac:dhjlLn:p:qr:Ss:Tt:vw:xX", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "ac:dhi:jlLn:p:qr:Ss:Tt:vw:xX", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -454,11 +457,6 @@ int main(int argc, char **argv)
 							{
 								cflag = 1;
 							}
-							//else if(ostr[0] == 'i')
-							//{
-							//	cflag = 2;
-							//	cname = ostr.substr(1,  string::npos);
-							//}
 						}
 					}
 
@@ -469,23 +467,6 @@ int main(int argc, char **argv)
 						list_chisels(&chlist);
 						delete inspector;
 						return EXIT_SUCCESS;
-					}
-					if(cflag == 2)
-					{
-						vector<chisel_desc> chlist;
-						sinsp_chisel::get_chisel_list(&chlist);
-
-						for(uint32_t j = 0; j < chlist.size(); j++)
-						{
-							if(chlist[j].m_name == cname)
-							{
-								//print_chisel_info(&chlist[j]);
-								delete inspector;
-								return EXIT_SUCCESS;
-							}
-						}
-
-						throw sinsp_exception("chisel " + cname + " not found");
 					}
 
 					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
@@ -508,6 +489,30 @@ int main(int argc, char **argv)
 					chisels.push_back(ch);
 				}
 				break;
+
+			// --chisel-info and -i
+			case 'i':
+				{
+					cname = optarg;
+
+					vector<chisel_desc> chlist;
+
+					sinsp_chisel::get_chisel_list(&chlist);
+
+					for(uint32_t j = 0; j < chlist.size(); j++)
+					{
+						if(chlist[j].m_name == cname)
+						{
+							print_chisel_info(&chlist[j]);
+							delete inspector;
+							return EXIT_SUCCESS;
+						}
+					}
+
+					throw sinsp_exception("chisel " + cname + " not found - use -cl to list them.");
+				}	
+				break;
+
 			case 'd':
 				is_filter_display = true;
 				break;
