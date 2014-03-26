@@ -513,15 +513,15 @@ string& trim(string &s)
 
 void replace_in_place(string &s, const string &search, const string &replace)
 {
-    for(size_t pos = 0; ; pos += replace.length()) 
+	for(size_t pos = 0; ; pos += replace.length()) 
 	{
-        // Locate the substring to replace
-        pos = s.find(search, pos);
-        if(pos == string::npos ) break;
-        // Replace by erasing and inserting
-        s.erase(pos, search.length());
-        s.insert(pos, replace );
-    }
+		// Locate the substring to replace
+		pos = s.find(search, pos);
+		if(pos == string::npos ) break;
+		// Replace by erasing and inserting
+		s.erase(pos, search.length());
+		s.insert(pos, replace );
+	}
 }
 
 void replace_in_place(string& str, string& substr_to_replace, string& new_substr) 
@@ -736,17 +736,17 @@ void parse_lua_chisel_args(lua_State *ls, OUT chisel_desc* cd)
 
 void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 {
-    lua_getglobal(ls, "package");
-    lua_getfield(ls, -1, "path"); 
+	lua_getglobal(ls, "package");
+	lua_getfield(ls, -1, "path"); 
 
-    string cur_path = lua_tostring(ls, -1 );
-  	cur_path += ';';
-    cur_path.append(path);
-    lua_pop(ls, 1);
+	string cur_path = lua_tostring(ls, -1 );
+	cur_path += ';';
+	cur_path.append(path);
+	lua_pop(ls, 1);
 
-    lua_pushstring(ls, cur_path.c_str());
-    lua_setfield(ls, -2, "path");
-    lua_pop(ls, 1);
+	lua_pushstring(ls, cur_path.c_str());
+	lua_setfield(ls, -2, "path");
+	lua_pop(ls, 1);
 }
 #endif
 
@@ -791,10 +791,10 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 					for(uint32_t k = 0; k < args.size(); k++)
 					{
 						cd.m_args.push_back(chiselarg_desc(
-              args[k]["name"].asString(), 
+			  				args[k]["name"].asString(), 
 							args[k]["type"].asString(), 
 							args[k]["description"].asString()
-            ));
+						));
 					}
 
 					chisel_descs->push_back(cd);
@@ -862,19 +862,19 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				{
 					goto next_lua_file;
 				}				
- 		    cd.m_shortdesc = lua_tostring(ls, -1);
+				cd.m_shortdesc = lua_tostring(ls, -1);
 
-        // 
-        // Extract the category
+				// 
+				// Extract the category
 				//
-			  cd.m_category = "";
+			  	cd.m_category = "";
 				lua_getglobal(ls, "category");
 				if(lua_isstring(ls, -1)) 
 				{
 				  cd.m_category = lua_tostring(ls, -1);
 				}				
 
-        //
+				//
 				// Extract the hidden flag and skip the chisel if it's set
 				//
 				lua_getglobal(ls, "hidden");
@@ -938,7 +938,7 @@ bool sinsp_chisel::openfile(string filename, OUT ifstream* is)
 
 void sinsp_chisel::load(string cmdstr)
 {
- 	m_filename = cmdstr;
+	m_filename = cmdstr;
 	trim(cmdstr);
 
 	ifstream is;

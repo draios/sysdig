@@ -65,15 +65,15 @@ public:
 	{
 		m_name = "";
 		m_description = "";
-    m_category = "";
-    m_shortdesc = "";
+		m_category = "";
+		m_shortdesc = "";
 		m_args.clear();
 	}
 
 	string m_name;
 	string m_description;
-  string m_category;
-  string m_shortdesc;
+	string m_category;
+	string m_shortdesc;
 	vector<chiselarg_desc> m_args;
 };
 
