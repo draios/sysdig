@@ -64,11 +64,11 @@ static int ppm_open(struct inode *inode, struct file *filp);
 static int ppm_release(struct inode *inode, struct file *filp);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
-static void record_event(enum ppm_event_type event_type, 
-	struct pt_regs *regs, 
+static void record_event(enum ppm_event_type event_type,
+	struct pt_regs *regs,
 	long id,
 	int never_drop,
-	struct task_struct *sched_prev, 
+	struct task_struct *sched_prev,
 	struct task_struct *sched_next);
 
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id);
@@ -86,8 +86,7 @@ static struct ppm_device* g_ppm_devs;
 static struct class *g_ppm_class = NULL;
 static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
-static struct file_operations g_ppm_fops =
-{
+static struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
 	.mmap = ppm_mmap,
@@ -124,8 +123,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	ring = per_cpu(g_ring_buffers, ring_no);
 
-	if(atomic_cmpxchg(&ring->state, CS_STOPPED, CS_STARTED) != CS_STOPPED)
-	{
+	if (atomic_cmpxchg(&ring->state, CS_STOPPED, CS_STARTED) != CS_STOPPED) {
 		printk(KERN_INFO "sysdig-probe: invalid operation: attempting to open device %d multiple times\n", ring_no);
 		return -EBUSY;
 	}
@@ -149,8 +147,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	//
 	// The last open device starts the collection
 	//
-	if(atomic_inc_return(&g_open_count) == g_ppm_numdevs)
-	{
+	if (atomic_inc_return(&g_open_count) == g_ppm_numdevs) {
 //		struct task_struct *task;
 
 		printk(KERN_INFO "sysdig-probe: starting capture\n");
@@ -159,8 +156,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 				//
 				// Before enabling the tracepoints, we add the current list of running processes as events in buffer 0
 				//
-				for_each_process(task)
-				{
+				for_each_process(task) {
 					printk("%s [%d]\n",task->comm , task->pid);
 				}
 		*/
@@ -169,15 +165,13 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		// Enable the tracepoints
 		//
 		ret = TRACEPOINT_PROBE_REGISTER("sys_exit", (void *) syscall_exit_probe);
-		if(ret)
-		{
+		if (ret) {
 			printk(KERN_ERR "sysdig-probe: can't create the sys_exit tracepoint\n");
 			return ret;
 		}
 
 		ret = TRACEPOINT_PROBE_REGISTER("sys_enter", (void *) syscall_enter_probe);
-		if(ret)
-		{
+		if (ret) {
 			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
 			                            (void *) syscall_exit_probe);
 
@@ -187,8 +181,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		}
 
 		ret = TRACEPOINT_PROBE_REGISTER("sched_process_exit", (void *) syscall_procexit_probe);
-		if(ret)
-		{
+		if (ret) {
 			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
 			                            (void *) syscall_exit_probe);
 			TRACEPOINT_PROBE_UNREGISTER("sys_enter",
@@ -201,8 +194,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
 		ret = TRACEPOINT_PROBE_REGISTER("sched_switch", (void *) sched_switch_probe);
-		if(ret)
-		{
+		if (ret) {
 			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
 			                            (void *) syscall_exit_probe);
 			TRACEPOINT_PROBE_UNREGISTER("sys_enter",
@@ -213,7 +205,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			printk(KERN_ERR "sysdig-probe: can't create the sched_switch tracepoint\n");
 
 			return ret;
-		}	
+		}
 #endif
 	}
 
@@ -229,8 +221,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 	ring = per_cpu(g_ring_buffers, ring_no);
 
-	if(atomic_xchg(&ring->state, CS_STOPPED) == CS_STOPPED)
-	{
+	if (atomic_xchg(&ring->state, CS_STOPPED) == CS_STOPPED) {
 		printk(KERN_INFO "sysdig-probe: attempting to close unopened device %d\n", ring_no);
 		return -EBUSY;
 	}
@@ -246,8 +237,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	//
 	// The last closed device stops event collection
 	//
-	if(atomic_dec_return(&g_open_count) == 0)
-	{
+	if (atomic_dec_return(&g_open_count) == 0) {
 		printk(KERN_INFO "sysdig-probe: stopping capture\n");
 
 		TRACEPOINT_PROBE_UNREGISTER("sys_exit",
@@ -269,8 +259,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	switch (cmd)
-	{
+	switch (cmd) {
 	case PPM_IOCTL_DISABLE_CAPTURE:
 	{
 		int ring_no = iminor(filp->f_dentry->d_inode);
@@ -310,15 +299,14 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		new_sampling_ratio = (uint32_t)arg;
 
-		if(new_sampling_ratio != 1 &&
+		if (new_sampling_ratio != 1 &&
 			new_sampling_ratio != 2 &&
 			new_sampling_ratio != 4 &&
 			new_sampling_ratio != 8 &&
 			new_sampling_ratio != 16 &&
 			new_sampling_ratio != 32 &&
 			new_sampling_ratio != 64 &&
-			new_sampling_ratio != 128)
-		{
+			new_sampling_ratio != 128) {
 			printk(KERN_INFO "sysdig-probe: invalid sampling ratio %u\n", new_sampling_ratio);
 			return -EINVAL;
 		}
@@ -336,8 +324,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		printk(KERN_INFO "sysdig-probe: PPM_IOCTL_SET_SNAPLEN\n");
 		new_snaplen = (uint32_t)arg;
 
-		if(new_snaplen > RW_MAX_SNAPLEN)
-		{
+		if (new_snaplen > RW_MAX_SNAPLEN) {
 			printk(KERN_INFO "sysdig-probe: invalid snaplen %u\n", new_snaplen);
 			return -EINVAL;
 		}
@@ -356,8 +343,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	trace_enter();
 
-	if(vma->vm_pgoff == 0)
-	{
+	if (vma->vm_pgoff == 0) {
 		int ret;
 		long length = vma->vm_end - vma->vm_start;
 		unsigned long useraddr = vma->vm_start;
@@ -376,16 +362,14 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		//
 		// Enforce ring buffer size
 		//
-		if(RING_BUF_SIZE < 2 * PAGE_SIZE)
-		{
+		if (RING_BUF_SIZE < 2 * PAGE_SIZE) {
 			printk(KERN_INFO "sysdig-probe: Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
 			       (long)RING_BUF_SIZE,
 			       (long)PAGE_SIZE);
 			return -EIO;
 		}
 
-		if(RING_BUF_SIZE / PAGE_SIZE * PAGE_SIZE != RING_BUF_SIZE)
-		{
+		if (RING_BUF_SIZE / PAGE_SIZE * PAGE_SIZE != RING_BUF_SIZE) {
 			printk(KERN_INFO "sysdig-probe: Ring buffer size is not a multiple of the page size\n");
 			return -EIO;
 		}
@@ -395,8 +379,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		//
 		ring = per_cpu(g_ring_buffers, ring_no);
 
-		if(length <= PAGE_SIZE)
-		{
+		if (length <= PAGE_SIZE) {
 			//
 			// When the size requested by the user is smaller than a page, we assume
 			// she's mapping the ring info structure
@@ -408,20 +391,18 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 			pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
-			if((ret = remap_pfn_range(vma,
+			if ((ret = remap_pfn_range(vma,
 			                          useraddr,
 			                          pfn,
 			                          PAGE_SIZE,
-			                          PAGE_SHARED)) < 0)
-			{
+			                          PAGE_SHARED)) < 0) {
 				printk(KERN_INFO "sysdig-probe: remap_pfn_range failed (1)\n");
 				return ret;
 			}
 
 			return 0;
 		}
-		else if(length == RING_BUF_SIZE * 2)
-		{
+		else if (length == RING_BUF_SIZE * 2) {
 			long mlength;
 
 			//
@@ -436,8 +417,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			//
 			// Validate that the buffer access is read only
 			//
-			if(vma->vm_flags & (VM_WRITE | VM_EXEC))
-			{
+			if (vma->vm_flags & (VM_WRITE | VM_EXEC)) {
 				printk(KERN_INFO "sysdig-probe: invalid mmap flags 0x%lx\n", vma->vm_flags);
 				return -EIO;
 			}
@@ -447,12 +427,10 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			//
 			mlength = length / 2;
 
-			while(mlength > 0)
-			{
+			while (mlength > 0) {
 				pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
-				if((ret = remap_pfn_range(vma, useraddr, pfn, PAGE_SIZE, PAGE_SHARED)) < 0)
-				{
+				if ((ret = remap_pfn_range(vma, useraddr, pfn, PAGE_SIZE, PAGE_SHARED)) < 0) {
 					printk(KERN_INFO "sysdig-probe: remap_pfn_range failed (1)\n");
 					return ret;
 				}
@@ -469,12 +447,10 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			vmalloc_area_ptr = orig_vmalloc_area_ptr;
 			mlength = length / 2;
 
-			while(mlength > 0)
-			{
+			while (mlength > 0) {
 				pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
-				if((ret = remap_pfn_range(vma, useraddr, pfn, PAGE_SIZE, PAGE_SHARED)) < 0)
-				{
+				if ((ret = remap_pfn_range(vma, useraddr, pfn, PAGE_SIZE, PAGE_SHARED)) < 0) {
 					printk(KERN_INFO "sysdig-probe: remap_pfn_range failed (1)\n");
 					return ret;
 				}
@@ -519,7 +495,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments* fille
 	socketcall_id = args[0];
 	scargs = (unsigned long __user*)args[1];
 
-	if(unlikely(socketcall_id < SYS_SOCKET || 
+	if (unlikely(socketcall_id < SYS_SOCKET || 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0)
 		socketcall_id > SYS_SENDMMSG))
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
@@ -527,17 +503,12 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments* fille
 #else
 		socketcall_id > SYS_ACCEPT4))
 #endif
-	{
 		return PPME_GENERIC_E;
-	}
 	
-	if(unlikely(ppm_copy_from_user(filler_args->socketcall_args, scargs, nas[socketcall_id])))
-	{
+	if (unlikely(ppm_copy_from_user(filler_args->socketcall_args, scargs, nas[socketcall_id])))
 		return PPME_GENERIC_E;
-	}	
 
-	switch(socketcall_id)
-	{
+	switch(socketcall_id) {
 	case SYS_SOCKET:
 		return PPME_SOCKET_SOCKET_E;
 	case SYS_BIND:
@@ -591,41 +562,33 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments* fille
 
 static inline int drop_event(enum ppm_event_type event_type, int never_drop, struct timespec* ts)
 {
-	if(never_drop)
-	{
+	if (never_drop)
 		return 0;
-	}
 
-	if(g_dropping_mode)
-	{
-		if(ts->tv_nsec >= g_sampling_interval)
-		{
-			if(g_is_dropping == 0)
-			{
+	if (g_dropping_mode) {
+		if (ts->tv_nsec >= g_sampling_interval) {
+			if (g_is_dropping == 0) {
 				g_is_dropping = 1;
 				record_event(PPME_DROP_E, NULL, -1, 1, NULL, NULL);
 			}
 
 			return 1;
-		}
-		else
-		{
-			if(g_is_dropping == 1)
-			{
+		} else {
+			if (g_is_dropping == 1) {
 				g_is_dropping = 0;
 				record_event(PPME_DROP_X, NULL, -1, 1, NULL, NULL);
-			}			
+			}
 		}
 	}
 
 	return 0;
 }
 
-static void record_event(enum ppm_event_type event_type, 
-	struct pt_regs *regs, 
+static void record_event(enum ppm_event_type event_type,
+	struct pt_regs *regs,
 	long id,
 	int never_drop,
-	struct task_struct *sched_prev, 
+	struct task_struct *sched_prev,
 	struct task_struct *sched_next)
 {
 	size_t event_size;
@@ -642,13 +605,11 @@ static void record_event(enum ppm_event_type event_type,
 	struct timespec ts;
 
 	trace_enter();
-	
+
 	getnstimeofday(&ts);
 
-	if(drop_event(event_type, never_drop, &ts))
-	{
+	if (drop_event(event_type, never_drop, &ts))
 		return;
-	}
 
 	ring = get_cpu_var(g_ring_buffers);
 	ring_info = ring->info;
@@ -657,8 +618,7 @@ static void record_event(enum ppm_event_type event_type,
 	// FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
 	//
 	ring_info->n_evts++;
-	if(sched_prev != NULL)
-	{
+	if (sched_prev != NULL) {
 		ASSERT(sched_prev != NULL);
 		ASSERT(sched_next != NULL);
 		ASSERT(regs == NULL);
@@ -668,8 +628,7 @@ static void record_event(enum ppm_event_type event_type,
 	//
 	// Preemption gate
 	//
-	if(unlikely(atomic_inc_return(&ring->preempt_count) != 1))
-	{
+	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
 		atomic_dec(&ring->preempt_count);
 		put_cpu_var(g_ring_buffers);
 		ring_info->n_preemptions++;
@@ -677,8 +636,7 @@ static void record_event(enum ppm_event_type event_type,
 		return;
 	}
 
-	if(unlikely(atomic_read(&ring->state) == CS_INACTIVE))
-	{
+	if (unlikely(atomic_read(&ring->state) == CS_INACTIVE)) {
 		atomic_dec(&ring->preempt_count);
 		put_cpu_var(g_ring_buffers);
 		return;
@@ -690,14 +648,10 @@ static void record_event(enum ppm_event_type event_type,
 	head = ring_info->head;
 	ttail = ring_info->tail;
 
-	if(ttail > head)
-	{
+	if (ttail > head)
 		freespace = ttail - head - 1;
-	}
 	else
-	{
 		freespace = RING_BUF_SIZE + ttail - head -1;
-	}
 
 	usedspace = RING_BUF_SIZE - freespace - 1;
 
@@ -717,19 +671,14 @@ static void record_event(enum ppm_event_type event_type,
 	// second argument contains a pointer to the arguments of the original
 	// call. I guess this was done to reduce the number of syscalls...
 	//
-	if(regs && id == __NR_socketcall)
-	{
+	if (regs && id == __NR_socketcall) {
 		enum ppm_event_type tet;
 		tet = parse_socketcall(&args, regs);
 
-		if(event_type == PPME_GENERIC_E)
-		{
+		if (event_type == PPME_GENERIC_E)
 			event_type = tet;
-		}
 		else
-		{
 			event_type = tet + 1;
-		}
 	}
 #endif
 
@@ -745,8 +694,7 @@ static void record_event(enum ppm_event_type event_type,
 	// Make sure we have enough space for the event header.
 	// We need at least space for the header plus 16 bit per parameter for the lengths.
 	//
-	if(likely(freespace >= sizeof(struct ppm_evt_hdr) + args.arg_data_offset))
-	{
+	if (likely(freespace >= sizeof(struct ppm_evt_hdr) + args.arg_data_offset)) {
 		//
 		// Populate the header
 		//
@@ -780,34 +728,27 @@ static void record_event(enum ppm_event_type event_type,
 		//
 		// Fire the filler callback
 		//
-		if(g_ppm_events[event_type].filler_callback == PPM_AUTOFILL)
-		{
+		if (g_ppm_events[event_type].filler_callback == PPM_AUTOFILL) {
 			//
 			// This event is automatically filled. Hand it to f_sys_autofill.
 			//
 			cbres = f_sys_autofill(&args, &g_ppm_events[event_type]);
-		}
-		else
-		{
+		} else {
 			//
 			// There's a callback function for this event
 			//
 			cbres = g_ppm_events[event_type].filler_callback(&args);
 		}
 
-		if(likely(cbres == PPM_SUCCESS))
-		{
+		if (likely(cbres == PPM_SUCCESS)) {
 			//
 			// Validate that the filler added the right number of parameters
 			//
-			if(likely(args.curarg == args.nargs))
-			{
+			if (likely(args.curarg == args.nargs)) {
 				event_size = sizeof(struct ppm_evt_hdr) + args.arg_data_offset;
 				hdr->len = event_size;
 				drop = 0;
-			}
-			else
-			{
+			} else {
 				printk(KERN_INFO "sysdig-probe: corrupted filler for event type %d (added %u args, should have added %u)\n",
 				       event_type,
 				       args.curarg,
@@ -817,20 +758,17 @@ static void record_event(enum ppm_event_type event_type,
 		}
 	}
 
-	if(likely(!drop))
-	{
+	if (likely(!drop)) {
 		next = head + event_size;
 
-		if(unlikely(next >= RING_BUF_SIZE))
-		{
+		if (unlikely(next >= RING_BUF_SIZE)) {
 			//
 			// If something has been written in the cushion space at the end of
 			// the buffer, copy it to the beginning and wrap the head around.
 			// Note, we don't check that the copy fits because we assume that
 			// filler_callback failed if the space was not enough.
 			//
-			if(next > RING_BUF_SIZE)
-			{
+			if (next > RING_BUF_SIZE) {
 				memcpy(ring->buffer,
 		                ring->buffer + RING_BUF_SIZE,
 		                next - RING_BUF_SIZE);
@@ -849,34 +787,26 @@ static void record_event(enum ppm_event_type event_type,
 		ring_info->head = next;
 
 		++ring->nevents;
-	}
-	else
-	{
-		if(cbres == PPM_SUCCESS)
-		{
+	} else {
+		if (cbres == PPM_SUCCESS) {
 			ASSERT(freespace < sizeof(struct ppm_evt_hdr) + args.arg_data_offset);
 			ring_info->n_drops_buffer++;
 		}
-		else if(cbres == PPM_FAILURE_INVALID_USER_MEMORY)
-		{
+		else if (cbres == PPM_FAILURE_INVALID_USER_MEMORY) {
 #ifdef _DEBUG
 			printk(KERN_INFO "sysdig-probe: Invalid read from user for event %d\n", event_type);
 #endif
 			ring_info->n_drops_pf++;
 		}
-		else if(cbres == PPM_FAILURE_BUFFER_FULL)
-		{
-			ring_info->n_drops_buffer++;			
-		}
-		else
-		{
+		else if (cbres == PPM_FAILURE_BUFFER_FULL) {
+			ring_info->n_drops_buffer++;
+		} else {
 			ASSERT(false);
 		}
 	}
 
 #ifdef _DEBUG
-	if(ts.tv_sec > ring->last_print_time.tv_sec + 1)
-	{
+	if (ts.tv_sec > ring->last_print_time.tv_sec + 1) {
 		printk(KERN_INFO "sysdig-probe: CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 		       smp_processor_id(),
 		       (usedspace * 100) / RING_BUF_SIZE,
@@ -905,24 +835,17 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	// kernel flag), we skip its events.
 	// XXX Decide what to do about this.
 	//
-	if(unlikely(test_tsk_thread_flag(current, TIF_IA32)))
-	{
-		return;		
-	}
+	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
+		return;
 
-	if(likely(id >= 0 && id < SYSCALL_TABLE_SIZE))
-	{
+	if (likely(id >= 0 && id < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[id].flags & UF_USED;
 		int never_drop = g_syscall_table[id].flags & UF_NEVER_DROP;
 
-		if(used)
-		{
+		if (used)
 			record_event(g_syscall_table[id].enter_event_type, regs, id, never_drop, NULL, NULL);
-		}
 		else
-		{
 			record_event(PPME_GENERIC_E, regs, id, false, NULL, NULL);
-		}
 	}
 }
 
@@ -937,26 +860,19 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	// kernel flag), we skip its events.
 	// XXX Decide what to do about this.
 	//
-	if(unlikely(test_tsk_thread_flag(current, TIF_IA32)))
-	{
-		return;		
-	}
+	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
+		return;
 
 	id = syscall_get_nr(current, regs);
 
-	if(likely(id >= 0 && id < SYSCALL_TABLE_SIZE))
-	{
+	if (likely(id >= 0 && id < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[id].flags & UF_USED;
 		int never_drop = g_syscall_table[id].flags & UF_NEVER_DROP;
 
-		if(used)
-		{
+		if (used)
 			record_event(g_syscall_table[id].exit_event_type, regs, id, never_drop, NULL, NULL);
-		}
 		else
-		{
 			record_event(PPME_GENERIC_X, regs, id, false, NULL, NULL);
-		}
 	}
 }
 
@@ -967,14 +883,13 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	trace_enter();
 
-	if(unlikely(current->flags & PF_KTHREAD))
-	{
+	if (unlikely(current->flags & PF_KTHREAD)) {
 		//
 		// We are not interested in kernel threads
 		//
 		return;
 	}
-	
+
 	record_event(PPME_PROCEXIT_E, NULL, -1, 1, NULL, NULL);
 }
 
@@ -989,8 +904,8 @@ TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, st
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next)
 #endif
 {
-	record_event(PPME_SCHEDSWITCH_E, 
-		NULL, 
+	record_event(PPME_SCHEDSWITCH_E,
+		NULL,
 		-1,
 		0,
 		prev,
@@ -1007,8 +922,7 @@ static struct ppm_ring_buffer_context* alloc_ring_buffer(struct ppm_ring_buffer_
 	// Allocate the ring descriptor
 	//
 	*ring = vmalloc(sizeof(struct ppm_ring_buffer_context));
-	if(*ring == NULL)
-	{
+	if (*ring == NULL) {
 		printk(KERN_ERR "sysdig-probe: Error allocating ring memory\n");
 		return NULL;
 	}
@@ -1017,8 +931,7 @@ static struct ppm_ring_buffer_context* alloc_ring_buffer(struct ppm_ring_buffer_
 	// Allocate the string storage in the ring descriptor
 	//
 	(*ring)->str_storage = (char *) __get_free_page(GFP_USER);
-	if(!(*ring)->str_storage)
-	{
+	if (!(*ring)->str_storage) {
 		printk(KERN_ERR "sysdig-probe: Error allocating the string storage\n");
 		vfree(*ring);
 		return NULL;
@@ -1030,25 +943,21 @@ static struct ppm_ring_buffer_context* alloc_ring_buffer(struct ppm_ring_buffer_
 	// the event data generation functions, so that they always operate on a contiguous buffer.
 	//
 	(*ring)->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
-	if((*ring)->buffer == NULL)
-	{
+	if ((*ring)->buffer == NULL) {
 		printk(KERN_ERR "sysdig-probe: Error allocating ring memory\n");
 		free_page((unsigned long)(*ring)->str_storage);
 		vfree(*ring);
 		return NULL;
 	}
 
-	for(j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
-	{
+	for (j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
 		(*ring)->buffer[j] = 0;
-	}
 
 	//
 	// Allocate the buffer info structure
 	//
 	(*ring)->info = vmalloc(sizeof(struct ppm_ring_buffer_info));
-	if((*ring)->info == NULL)
-	{
+	if ((*ring)->info == NULL) {
 		printk(KERN_ERR "sysdig-probe: Error allocating ring memory\n");
 		vfree((void*)(*ring)->buffer);
 		free_page((unsigned long)(*ring)->str_storage);
@@ -1131,19 +1040,16 @@ int init_module(void)
 	// Initialize the ring buffers array
 	//
 	num_cpus = 0;
-	for_each_online_cpu(cpu)
-	{
+	for_each_online_cpu(cpu) {
 		per_cpu(g_ring_buffers, cpu) = NULL;
 		++num_cpus;
 	}
 
-	for_each_online_cpu(cpu)
-	{
+	for_each_online_cpu(cpu) {
 		printk(KERN_INFO "sysdig-probe: initializing ring buffer for CPU %u\n", cpu);
 
 		alloc_ring_buffer(&per_cpu(g_ring_buffers, cpu));
-		if(per_cpu(g_ring_buffers, cpu) == NULL)
-		{
+		if (per_cpu(g_ring_buffers, cpu) == NULL) {
 			printk(KERN_ERR "sysdig-probe: can't initialize the ring buffer for CPU %u\n", cpu);
 			ret = -ENOMEM;
 			goto init_module_err;
@@ -1154,16 +1060,14 @@ int init_module(void)
 	// Initialize the user I/O
 	//
 	acrret = alloc_chrdev_region(&dev, 0, num_cpus, PPM_DEVICE_NAME);
-	if(acrret < 0)
-	{
+	if (acrret < 0) {
 		printk(KERN_ERR "sysdig-probe: could not allocate major number for %s\n", PPM_DEVICE_NAME);
 		ret = -ENOMEM;
 		goto init_module_err;
 	}
 
 	g_ppm_class = class_create(THIS_MODULE, PPM_DEVICE_NAME);
-	if(IS_ERR(g_ppm_class))
-	{
+	if (IS_ERR(g_ppm_class)) {
 		printk(KERN_ERR "sysdig-probe: can't allocate device class\n");
 		ret = -EFAULT;
 		goto init_module_err;
@@ -1172,8 +1076,7 @@ int init_module(void)
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
 	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof (struct ppm_device), GFP_KERNEL);
-	if(!g_ppm_devs)
-	{
+	if (!g_ppm_devs) {
 		ret = -ENOMEM;
 		goto init_module_err;
 		printk(KERN_ERR "sysdig-probe: can't allocate devices\n");
@@ -1182,13 +1085,11 @@ int init_module(void)
 	//
 	// We create a unique user level device for each of the ring buffers
 	//
-	for(j = 0; j < g_ppm_numdevs; ++j)
-	{
+	for (j = 0; j < g_ppm_numdevs; ++j) {
 		cdev_init(&g_ppm_devs[j].cdev, &g_ppm_fops);
 		g_ppm_devs[j].dev = MKDEV(g_ppm_major, j);
 
-		if(cdev_add(&g_ppm_devs[j].cdev, g_ppm_devs[j].dev, 1) < 0)
-		{
+		if (cdev_add(&g_ppm_devs[j].cdev, g_ppm_devs[j].dev, 1) < 0) {
 			printk(KERN_ERR "sysdig-probe: could not allocate chrdev for %s\n", PPM_DEVICE_NAME);
 			ret = -EFAULT;
 			goto init_module_err;
@@ -1200,8 +1101,7 @@ int init_module(void)
 		                       PPM_DEVICE_NAME "%d",
 		                       j);
 
-		if(IS_ERR(device))
-		{
+		if (IS_ERR(device)) {
 			printk(KERN_ERR "sysdig-probe: error creating the device for  %s\n", PPM_DEVICE_NAME);
 			cdev_del(&g_ppm_devs[j].cdev);
 			ret = -EFAULT;
@@ -1219,40 +1119,29 @@ int init_module(void)
 	//
 	atomic_set(&g_open_count, 0);
 	g_dropping_mode = 0;
-	
+
 	return 0;
 
 init_module_err:
 	for_each_online_cpu(cpu)
-	{
-		if(per_cpu(g_ring_buffers, cpu) != NULL)
-		{
+		if (per_cpu(g_ring_buffers, cpu) != NULL)
 			free_ring_buffer(per_cpu(g_ring_buffers, cpu));
-		}
-	}
 
 	// remove_proc_entry(PPM_DEVICE_NAME, NULL);
 
-	for(j = 0; j < n_created_devices; ++j)
-	{
+	for (j = 0; j < n_created_devices; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
-	if(g_ppm_class)
-	{
+	if (g_ppm_class)
 		class_destroy(g_ppm_class);
-	}
 
-	if(acrret == 0)
-	{
+	if (acrret == 0)
 		unregister_chrdev_region(dev, g_ppm_numdevs);
-	}
 
-	if(g_ppm_devs)
-	{
+	if (g_ppm_devs)
 		kfree(g_ppm_devs);
-	}
 
 	return ret;
 }
@@ -1267,20 +1156,15 @@ void cleanup_module(void)
 	// remove_proc_entry(PPM_DEVICE_NAME, NULL);
 
 	for_each_online_cpu(cpu)
-	{
 		free_ring_buffer(per_cpu(g_ring_buffers, cpu));
-	}
 
-	for(j = 0; j < g_ppm_numdevs; ++j)
-	{
+	for (j = 0; j < g_ppm_numdevs; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
-	if(g_ppm_class)
-	{
+	if (g_ppm_class)
 		class_destroy(g_ppm_class);
-	}
 
 	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs);
 
