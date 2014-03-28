@@ -330,6 +330,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	{
 		if(res == SCAP_TIMEOUT)
 		{
+			*evt = NULL;
 			return res;
 		}
 		else if(res == SCAP_EOF)
@@ -427,6 +428,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 
 	if(sd && !m_isdropping)
 	{
+		*evt = NULL;
 		return SCAP_TIMEOUT;
 	}
 #else
@@ -436,6 +438,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 	if(m_evt.m_filtered_out)
 	{
+		*evt = &m_evt;
 		return SCAP_TIMEOUT;
 	}
 #endif

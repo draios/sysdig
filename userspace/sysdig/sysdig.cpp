@@ -248,6 +248,17 @@ captureinfo do_inspect(sinsp* inspector,
 
 		if(res == SCAP_TIMEOUT)
 		{
+			if(ev != NULL && ev->is_filtered_out())
+			{
+				//
+				// The event has been dropped by the filtering system.
+				// Give the chisels a chance to run their timeout logic.
+				//
+				for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
+				{
+					(*it)->do_timeout(ev);
+				}
+			}
 			continue;
 		}
 		else if(res == SCAP_EOF)

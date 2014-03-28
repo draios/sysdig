@@ -106,11 +106,9 @@ function on_init()
 	-- Request the fields we need
 	fkey = chisel.request_field(key_fld)
 	fvalue = chisel.request_field(value_fld)
-	
+
 	-- set the filter
-	if filter == "" then
-		chisel.set_filter("evt.is_io=true")
-	else
+	if filter ~= "" then
 		chisel.set_filter(filter)
 	end
 	
