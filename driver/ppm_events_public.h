@@ -823,8 +823,8 @@ struct ppm_name_value {
 */
 struct ppm_param_info {
 	char name[PPM_MAX_NAME_LEN];  /**< Paramter name, e.g. 'size'. */
-	ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
-	ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
+	enum ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
+	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
 	const struct ppm_name_value *symbols; /**< If this is a flags parameter, it points to an array of ppm_name_value, terminated with {0, 0} */
 };
 
@@ -835,8 +835,8 @@ struct ppm_param_info {
 */
 struct ppm_event_info {
 	char name[PPM_MAX_NAME_LEN]; /**< Name. */
-	ppm_event_category category; /**< Event category, e.g. 'file', 'net', etc. */
-	ppm_event_flags flags; /**< flags for this event. */
+	enum ppm_event_category category; /**< Event category, e.g. 'file', 'net', etc. */
+	enum ppm_event_flags flags; /**< flags for this event. */
 	uint32_t nparams; /**< Number of parameter in the params array. */
 	/* XXX this 16 limit comes out of my ass. Determine something that makes sense or use a dynamic array. */
 	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
@@ -875,7 +875,7 @@ struct ppm_evt_hdr {
   \brief System call description struct.
 */
 struct ppm_syscall_desc {
-	ppm_event_category category; /**< System call category. */
+	enum ppm_event_category category; /**< System call category. */
 	char *name; /**< System call name, e.g. 'open'. */
 };
 

@@ -281,7 +281,7 @@ static int32_t f_sys_generic(struct event_filler_arguments* args)
 		//
 		if(likely(args->syscall_id < SYSCALL_TABLE_SIZE))
 		{
-			ppm_syscall_code sc_code = g_syscall_code_routing_table[args->syscall_id];
+			enum ppm_syscall_code sc_code = g_syscall_code_routing_table[args->syscall_id];
 
 			//
 			// ID

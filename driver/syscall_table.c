@@ -1,6 +1,6 @@
 /*
 
- 
+
 
 
 
@@ -35,131 +35,125 @@
 #include "ppm_events.h"
 #include "ppm.h"
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-// SYSCALL TABLE
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] =
-{
-	[__NR_open] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPEN_E, PPME_SYSCALL_OPEN_X},
-	[__NR_creat] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CREAT_E, PPME_SYSCALL_CREAT_X},
-	[__NR_close] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X},
-	[__NR_brk] = 			{UF_USED, PPME_SYSCALL_BRK_E, PPME_SYSCALL_BRK_X},
-	[__NR_read] = 			{UF_USED, PPME_SYSCALL_READ_E, PPME_SYSCALL_READ_X},
-	[__NR_write] = 			{UF_USED, PPME_SYSCALL_WRITE_E, PPME_SYSCALL_WRITE_X},
-	[__NR_execve] = 		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EXECVE_E, PPME_SYSCALL_EXECVE_X},
-	[__NR_clone] = 			{UF_USED | UF_NEVER_DROP, PPME_CLONE_E, PPME_CLONE_X},
-	[__NR_pipe] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X},
-	[__NR_pipe2] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X},
-	[__NR_eventfd] = 		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X},
-	[__NR_eventfd2] = 		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X},
-	[__NR_futex] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FUTEX_E, PPME_SYSCALL_FUTEX_X},
-	[__NR_stat] = 			{UF_USED, PPME_SYSCALL_STAT_E, PPME_SYSCALL_STAT_X},
-	[__NR_lstat] = 			{UF_USED, PPME_SYSCALL_LSTAT_E, PPME_SYSCALL_LSTAT_X},
-	[__NR_fstat] = 			{UF_USED, PPME_SYSCALL_FSTAT_E, PPME_SYSCALL_FSTAT_X},
-	[__NR_epoll_wait] = 	{UF_USED, PPME_SYSCALL_EPOLLWAIT_E, PPME_SYSCALL_EPOLLWAIT_X},
-	[__NR_poll] = 			{UF_USED, PPME_SYSCALL_POLL_E, PPME_SYSCALL_POLL_X},
-	[__NR_select] = 		{UF_USED, PPME_SYSCALL_SELECT_E, PPME_SYSCALL_SELECT_X},
-	[__NR_lseek] = 			{UF_USED, PPME_SYSCALL_LSEEK_E, PPME_SYSCALL_LSEEK_X},
-	[__NR_ioctl] = 			{UF_USED, PPME_SYSCALL_IOCTL_E, PPME_SYSCALL_IOCTL_X},
-	[__NR_getcwd] = 		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_GETCWD_E, PPME_SYSCALL_GETCWD_X},
-	[__NR_chdir] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
-	[__NR_fchdir] = 		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},
-	[__NR_mkdir] = 			{UF_USED, PPME_SYSCALL_MKDIR_E, PPME_SYSCALL_MKDIR_X},
-	[__NR_rmdir] = 			{UF_USED, PPME_SYSCALL_RMDIR_E, PPME_SYSCALL_RMDIR_X},
-	[__NR_openat] = 		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X},
-	[__NR_link] = 			{UF_USED, PPME_SYSCALL_LINK_E, PPME_SYSCALL_LINK_X},
-	[__NR_linkat] = 		{UF_USED, PPME_SYSCALL_LINKAT_E, PPME_SYSCALL_LINKAT_X},
-	[__NR_unlink] = 		{UF_USED, PPME_SYSCALL_UNLINK_E, PPME_SYSCALL_UNLINK_X},
-	[__NR_unlinkat] = 		{UF_USED, PPME_SYSCALL_UNLINKAT_E, PPME_SYSCALL_UNLINKAT_X},
-	[__NR_pread64] = 		{UF_USED, PPME_SYSCALL_PREAD_E, PPME_SYSCALL_PREAD_X},
-	[__NR_pwrite64] = 		{UF_USED, PPME_SYSCALL_PWRITE_E, PPME_SYSCALL_PWRITE_X},
-	[__NR_readv] = 			{UF_USED, PPME_SYSCALL_READV_E, PPME_SYSCALL_READV_X},
-	[__NR_writev] = 		{UF_USED, PPME_SYSCALL_WRITEV_E, PPME_SYSCALL_WRITEV_X},
-	[__NR_preadv] = 		{UF_USED, PPME_SYSCALL_PREADV_E, PPME_SYSCALL_PREADV_X},
-	[__NR_pwritev] = 		{UF_USED, PPME_SYSCALL_PWRITEV_E, PPME_SYSCALL_PWRITEV_X},
-	[__NR_dup] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_DUP_E, PPME_SYSCALL_DUP_X},
-	[__NR_dup2] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_DUP_E, PPME_SYSCALL_DUP_X},
-	[__NR_dup3] = 			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_DUP_E, PPME_SYSCALL_DUP_X},
-	[__NR_signalfd] = 		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SIGNALFD_E, PPME_SYSCALL_SIGNALFD_X},
-	[__NR_signalfd4] = 		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SIGNALFD_E, PPME_SYSCALL_SIGNALFD_X},
-	[__NR_kill] = 			{UF_USED, PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X},
-	[__NR_tkill] =	 		{UF_USED, PPME_SYSCALL_TKILL_E, PPME_SYSCALL_TKILL_X},
-	[__NR_tgkill] = 		{UF_USED, PPME_SYSCALL_TGKILL_E, PPME_SYSCALL_TGKILL_X},
-	[__NR_nanosleep] = 		{UF_USED, PPME_SYSCALL_NANOSLEEP_E, PPME_SYSCALL_NANOSLEEP_X},
+/*
+ * SYSCALL TABLE
+ */
+const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
+	[__NR_open] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPEN_E, PPME_SYSCALL_OPEN_X},
+	[__NR_creat] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CREAT_E, PPME_SYSCALL_CREAT_X},
+	[__NR_close] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X},
+	[__NR_brk] =			{UF_USED, PPME_SYSCALL_BRK_E, PPME_SYSCALL_BRK_X},
+	[__NR_read] =			{UF_USED, PPME_SYSCALL_READ_E, PPME_SYSCALL_READ_X},
+	[__NR_write] =			{UF_USED, PPME_SYSCALL_WRITE_E, PPME_SYSCALL_WRITE_X},
+	[__NR_execve] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EXECVE_E, PPME_SYSCALL_EXECVE_X},
+	[__NR_clone] =			{UF_USED | UF_NEVER_DROP, PPME_CLONE_E, PPME_CLONE_X},
+	[__NR_pipe] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X},
+	[__NR_pipe2] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X},
+	[__NR_eventfd] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X},
+	[__NR_eventfd2] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X},
+	[__NR_futex] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FUTEX_E, PPME_SYSCALL_FUTEX_X},
+	[__NR_stat] =			{UF_USED, PPME_SYSCALL_STAT_E, PPME_SYSCALL_STAT_X},
+	[__NR_lstat] =			{UF_USED, PPME_SYSCALL_LSTAT_E, PPME_SYSCALL_LSTAT_X},
+	[__NR_fstat] =			{UF_USED, PPME_SYSCALL_FSTAT_E, PPME_SYSCALL_FSTAT_X},
+	[__NR_epoll_wait] =	{UF_USED, PPME_SYSCALL_EPOLLWAIT_E, PPME_SYSCALL_EPOLLWAIT_X},
+	[__NR_poll] =			{UF_USED, PPME_SYSCALL_POLL_E, PPME_SYSCALL_POLL_X},
+	[__NR_select] =		{UF_USED, PPME_SYSCALL_SELECT_E, PPME_SYSCALL_SELECT_X},
+	[__NR_lseek] =			{UF_USED, PPME_SYSCALL_LSEEK_E, PPME_SYSCALL_LSEEK_X},
+	[__NR_ioctl] =			{UF_USED, PPME_SYSCALL_IOCTL_E, PPME_SYSCALL_IOCTL_X},
+	[__NR_getcwd] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_GETCWD_E, PPME_SYSCALL_GETCWD_X},
+	[__NR_chdir] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
+	[__NR_fchdir] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},
+	[__NR_mkdir] =			{UF_USED, PPME_SYSCALL_MKDIR_E, PPME_SYSCALL_MKDIR_X},
+	[__NR_rmdir] =			{UF_USED, PPME_SYSCALL_RMDIR_E, PPME_SYSCALL_RMDIR_X},
+	[__NR_openat] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X},
+	[__NR_link] =			{UF_USED, PPME_SYSCALL_LINK_E, PPME_SYSCALL_LINK_X},
+	[__NR_linkat] =		{UF_USED, PPME_SYSCALL_LINKAT_E, PPME_SYSCALL_LINKAT_X},
+	[__NR_unlink] =		{UF_USED, PPME_SYSCALL_UNLINK_E, PPME_SYSCALL_UNLINK_X},
+	[__NR_unlinkat] =		{UF_USED, PPME_SYSCALL_UNLINKAT_E, PPME_SYSCALL_UNLINKAT_X},
+	[__NR_pread64] =		{UF_USED, PPME_SYSCALL_PREAD_E, PPME_SYSCALL_PREAD_X},
+	[__NR_pwrite64] =		{UF_USED, PPME_SYSCALL_PWRITE_E, PPME_SYSCALL_PWRITE_X},
+	[__NR_readv] =			{UF_USED, PPME_SYSCALL_READV_E, PPME_SYSCALL_READV_X},
+	[__NR_writev] =		{UF_USED, PPME_SYSCALL_WRITEV_E, PPME_SYSCALL_WRITEV_X},
+	[__NR_preadv] =		{UF_USED, PPME_SYSCALL_PREADV_E, PPME_SYSCALL_PREADV_X},
+	[__NR_pwritev] =		{UF_USED, PPME_SYSCALL_PWRITEV_E, PPME_SYSCALL_PWRITEV_X},
+	[__NR_dup] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_DUP_E, PPME_SYSCALL_DUP_X},
+	[__NR_dup2] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_DUP_E, PPME_SYSCALL_DUP_X},
+	[__NR_dup3] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_DUP_E, PPME_SYSCALL_DUP_X},
+	[__NR_signalfd] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SIGNALFD_E, PPME_SYSCALL_SIGNALFD_X},
+	[__NR_signalfd4] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SIGNALFD_E, PPME_SYSCALL_SIGNALFD_X},
+	[__NR_kill] =			{UF_USED, PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X},
+	[__NR_tkill] =			{UF_USED, PPME_SYSCALL_TKILL_E, PPME_SYSCALL_TKILL_X},
+	[__NR_tgkill] =		{UF_USED, PPME_SYSCALL_TGKILL_E, PPME_SYSCALL_TGKILL_X},
+	[__NR_nanosleep] =		{UF_USED, PPME_SYSCALL_NANOSLEEP_E, PPME_SYSCALL_NANOSLEEP_X},
 	[__NR_timerfd_create] =	{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_TIMERFD_CREATE_E, PPME_SYSCALL_TIMERFD_CREATE_X},
 	[__NR_inotify_init] =	{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT_E, PPME_SYSCALL_INOTIFY_INIT_X},
 	[__NR_inotify_init1] =	{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT_E, PPME_SYSCALL_INOTIFY_INIT_X},
 	[__NR_getrlimit] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_GETRLIMIT_E, PPME_SYSCALL_GETRLIMIT_X},
 	[__NR_setrlimit] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SETRLIMIT_E, PPME_SYSCALL_SETRLIMIT_X},
-#ifdef __NR_prlimit64 
+#ifdef __NR_prlimit64
 	[__NR_prlimit64] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PRLIMIT_E, PPME_SYSCALL_PRLIMIT_X},
 #endif
-#ifdef __NR_ugetrlimit	
+#ifdef __NR_ugetrlimit
 	[__NR_ugetrlimit] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_GETRLIMIT_E, PPME_SYSCALL_GETRLIMIT_X},
 #endif
 	[__NR_fcntl] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCNTL_E, PPME_SYSCALL_FCNTL_X},
-#ifdef __NR_fcntl64 
+#ifdef __NR_fcntl64
 	[__NR_fcntl64] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCNTL_E, PPME_SYSCALL_FCNTL_X},
 #endif
-//	[__NR_ppoll] = 			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-//	[__NR_old_select] = 	{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_pselect6] = 		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+/* [__NR_ppoll] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X}, */
+/* [__NR_old_select] =	{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X}, */
+	[__NR_pselect6] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_epoll_create] =	{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_epoll_ctl] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_uselib] = 		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_uselib] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_sched_setparam] = {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_sched_getparam] = {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_fork] = 			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_syslog] = 		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_chmod] = 			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_lchown] = 		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_utime] = 			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_mount] = 			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_umount2] = 		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_setuid] = 		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_getuid] = 		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_ptrace] = 		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_alarm] = 			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_pause] = 			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_fork] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_syslog] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_chmod] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_lchown] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_utime] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_mount] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_umount2] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_setuid] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_getuid] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_ptrace] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_alarm] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_pause] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 #ifdef __x86_64__
-	[__NR_socket] = 		{UF_USED, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
-	[__NR_bind] = 			{UF_USED, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
-	[__NR_connect] = 		{UF_USED, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
-	[__NR_listen] = 		{UF_USED, PPME_SOCKET_LISTEN_E, PPME_SOCKET_LISTEN_X},
-	[__NR_accept] = 		{UF_USED, PPME_SOCKET_ACCEPT_E, PPME_SOCKET_ACCEPT_X},
-	[__NR_getsockname] = 	{UF_USED, PPME_SOCKET_GETSOCKNAME_E, PPME_SOCKET_GETSOCKNAME_X},
-	[__NR_getpeername] = 	{UF_USED, PPME_SOCKET_GETPEERNAME_E, PPME_SOCKET_GETPEERNAME_X},
-	[__NR_socketpair] = 	{UF_USED | UF_NEVER_DROP, PPME_SOCKET_SOCKETPAIR_E, PPME_SOCKET_SOCKETPAIR_X},
-	[__NR_sendto] = 		{UF_USED, PPME_SOCKET_SENDTO_E, PPME_SOCKET_SENDTO_X},
-	[__NR_recvfrom] = 		{UF_USED, PPME_SOCKET_RECVFROM_E, PPME_SOCKET_RECVFROM_X},
-	[__NR_shutdown] = 		{UF_USED, PPME_SOCKET_SHUTDOWN_E, PPME_SOCKET_SHUTDOWN_X},
-	[__NR_setsockopt] = 	{UF_USED, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X},
-	[__NR_getsockopt] = 	{UF_USED, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X},
-	[__NR_sendmsg] = 		{UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X},
+	[__NR_socket] =		{UF_USED, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
+	[__NR_bind] =			{UF_USED, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
+	[__NR_connect] =		{UF_USED, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
+	[__NR_listen] =		{UF_USED, PPME_SOCKET_LISTEN_E, PPME_SOCKET_LISTEN_X},
+	[__NR_accept] =		{UF_USED, PPME_SOCKET_ACCEPT_E, PPME_SOCKET_ACCEPT_X},
+	[__NR_getsockname] =	{UF_USED, PPME_SOCKET_GETSOCKNAME_E, PPME_SOCKET_GETSOCKNAME_X},
+	[__NR_getpeername] =	{UF_USED, PPME_SOCKET_GETPEERNAME_E, PPME_SOCKET_GETPEERNAME_X},
+	[__NR_socketpair] =	{UF_USED | UF_NEVER_DROP, PPME_SOCKET_SOCKETPAIR_E, PPME_SOCKET_SOCKETPAIR_X},
+	[__NR_sendto] =		{UF_USED, PPME_SOCKET_SENDTO_E, PPME_SOCKET_SENDTO_X},
+	[__NR_recvfrom] =		{UF_USED, PPME_SOCKET_RECVFROM_E, PPME_SOCKET_RECVFROM_X},
+	[__NR_shutdown] =		{UF_USED, PPME_SOCKET_SHUTDOWN_E, PPME_SOCKET_SHUTDOWN_X},
+	[__NR_setsockopt] =	{UF_USED, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X},
+	[__NR_getsockopt] =	{UF_USED, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X},
+	[__NR_sendmsg] =		{UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X},
 #ifdef __NR_sendmmsg
-	[__NR_sendmmsg] = 		{UF_USED, PPME_SOCKET_SENDMMSG_E, PPME_SOCKET_SENDMMSG_X},
+	[__NR_sendmmsg] =		{UF_USED, PPME_SOCKET_SENDMMSG_E, PPME_SOCKET_SENDMMSG_X},
 #endif
-	[__NR_recvmsg] = 		{UF_USED, PPME_SOCKET_RECVMSG_E, PPME_SOCKET_RECVMSG_X},
+	[__NR_recvmsg] =		{UF_USED, PPME_SOCKET_RECVMSG_E, PPME_SOCKET_RECVMSG_X},
 #ifdef __NR_recvmmsg
-	[__NR_recvmmsg] = 		{UF_USED, PPME_SOCKET_RECVMMSG_E, PPME_SOCKET_RECVMMSG_X},
+	[__NR_recvmmsg] =		{UF_USED, PPME_SOCKET_RECVMMSG_E, PPME_SOCKET_RECVMMSG_X},
 #endif
-	[__NR_accept4] = 		{UF_USED, PPME_SOCKET_ACCEPT4_E, PPME_SOCKET_ACCEPT4_X},
-#else // __x86_64__
-	[__NR_stat64] = 		{UF_USED, PPME_SYSCALL_STAT64_E, PPME_SYSCALL_STAT64_X},
-	[__NR_fstat64] = 		{UF_USED, PPME_SYSCALL_FSTAT64_E, PPME_SYSCALL_FSTAT64_X},
-	[__NR__llseek] = 		{UF_USED, PPME_SYSCALL_LLSEEK_E, PPME_SYSCALL_LLSEEK_X}
-#endif // __x86_64__
+	[__NR_accept4] =		{UF_USED, PPME_SOCKET_ACCEPT4_E, PPME_SOCKET_ACCEPT4_X},
+#else /* __x86_64__ */
+	[__NR_stat64] =		{UF_USED, PPME_SYSCALL_STAT64_E, PPME_SYSCALL_STAT64_X},
+	[__NR_fstat64] =		{UF_USED, PPME_SYSCALL_FSTAT64_E, PPME_SYSCALL_FSTAT64_X},
+	[__NR__llseek] =		{UF_USED, PPME_SYSCALL_LLSEEK_E, PPME_SYSCALL_LLSEEK_X}
+#endif /* __x86_64__ */
 };
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-// SYSCALL ROUTING TABLE
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
-{
+/*
+ * SYSCALL ROUTING TABLE
+ */
+const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_restart_syscall] = PPM_SC_RESTART_SYSCALL,
 	[__NR_exit] = PPM_SC_EXIT,
 	[__NR_read] = PPM_SC_READ,
@@ -173,14 +167,14 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_time] = PPM_SC_TIME,
 	[__NR_mknod] = PPM_SC_MKNOD,
 	[__NR_chmod] = PPM_SC_CHMOD,
-//	[__NR_lchown16] = PPM_SC_NR_LCHOWN16,
+/* [__NR_lchown16] = PPM_SC_NR_LCHOWN16, */
 	[__NR_stat] = PPM_SC_STAT,
 	[__NR_lseek] = PPM_SC_LSEEK,
 	[__NR_getpid] = PPM_SC_GETPID,
 	[__NR_mount] = PPM_SC_MOUNT,
-//	[__NR_oldumount] = PPM_SC_NR_OLDUMOUNT,
-//	[__NR_setuid16] = PPM_SC_NR_SETUID16,
-//	[__NR_getuid16] = PPM_SC_NR_GETUID16,
+/* [__NR_oldumount] = PPM_SC_NR_OLDUMOUNT, */
+/* [__NR_setuid16] = PPM_SC_NR_SETUID16, */
+/* [__NR_getuid16] = PPM_SC_NR_GETUID16, */
 	[__NR_ptrace] = PPM_SC_PTRACE,
 	[__NR_alarm] = PPM_SC_ALARM,
 	[__NR_fstat] = PPM_SC_FSTAT,
@@ -196,10 +190,10 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_pipe] = PPM_SC_PIPE,
 	[__NR_times] = PPM_SC_TIMES,
 	[__NR_brk] = PPM_SC_BRK,
-//	[__NR_setgid16] = PPM_SC_NR_SETGID16,
-//	[__NR_getgid16] = PPM_SC_NR_GETGID16,
-//	[__NR_geteuid16] = PPM_SC_NR_GETEUID16,
-//	[__NR_getegid16] = PPM_SC_NR_GETEGID16,
+/* [__NR_setgid16] = PPM_SC_NR_SETGID16, */
+/* [__NR_getgid16] = PPM_SC_NR_GETGID16, */
+/* [__NR_geteuid16] = PPM_SC_NR_GETEUID16, */
+/* [__NR_getegid16] = PPM_SC_NR_GETEGID16, */
 	[__NR_acct] = PPM_SC_ACCT,
 	[__NR_ioctl] = PPM_SC_IOCTL,
 	[__NR_fcntl] = PPM_SC_FCNTL,
@@ -213,27 +207,27 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_setsid] = PPM_SC_SETSID,
 	[__NR_sethostname] = PPM_SC_SETHOSTNAME,
 	[__NR_setrlimit] = PPM_SC_SETRLIMIT,
-//	[__NR_old_getrlimit] = PPM_SC_NR_OLD_GETRLIMIT,
+/* [__NR_old_getrlimit] = PPM_SC_NR_OLD_GETRLIMIT, */
 	[__NR_getrusage] = PPM_SC_GETRUSAGE,
 	[__NR_gettimeofday] = PPM_SC_GETTIMEOFDAY,
 	[__NR_settimeofday] = PPM_SC_SETTIMEOFDAY,
-//	[__NR_getgroups16] = PPM_SC_NR_GETGROUPS16,
-//	[__NR_setgroups16] = PPM_SC_NR_SETGROUPS16,
-//	[__NR_old_select] = PPM_SC_NR_OLD_SELECT,
+/* [__NR_getgroups16] = PPM_SC_NR_GETGROUPS16, */
+/* [__NR_setgroups16] = PPM_SC_NR_SETGROUPS16, */
+/* [__NR_old_select] = PPM_SC_NR_OLD_SELECT, */
 	[__NR_symlink] = PPM_SC_SYMLINK,
 	[__NR_lstat] = PPM_SC_LSTAT,
 	[__NR_readlink] = PPM_SC_READLINK,
 	[__NR_uselib] = PPM_SC_USELIB,
 	[__NR_swapon] = PPM_SC_SWAPON,
 	[__NR_reboot] = PPM_SC_REBOOT,
-//	[__NR_old_readdir] = PPM_SC_NR_OLD_READDIR,
-//	[__NR_old_mmap] = PPM_SC_NR_OLD_MMAP,
+/* [__NR_old_readdir] = PPM_SC_NR_OLD_READDIR, */
+/* [__NR_old_mmap] = PPM_SC_NR_OLD_MMAP, */
 	[__NR_mmap] = PPM_SC_MMAP,
 	[__NR_munmap] = PPM_SC_MUNMAP,
 	[__NR_truncate] = PPM_SC_TRUNCATE,
 	[__NR_ftruncate] = PPM_SC_FTRUNCATE,
 	[__NR_fchmod] = PPM_SC_FCHMOD,
-//	[__NR_fchown16] = PPM_SC_NR_FCHOWN16,
+/* [__NR_fchown16] = PPM_SC_NR_FCHOWN16, */
 	[__NR_getpriority] = PPM_SC_GETPRIORITY,
 	[__NR_setpriority] = PPM_SC_SETPRIORITY,
 	[__NR_statfs] = PPM_SC_STATFS,
@@ -241,9 +235,9 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_syslog] = PPM_SC_SYSLOG,
 	[__NR_setitimer] = PPM_SC_SETITIMER,
 	[__NR_getitimer] = PPM_SC_GETITIMER,
-//	[__NR_newstat] = PPM_SC_NR_NEWSTAT,
-//	[__NR_newlstat] = PPM_SC_NR_NEWLSTAT,
-//	[__NR_newfstat] = PPM_SC_NR_NEWFSTAT,
+/* [__NR_newstat] = PPM_SC_NR_NEWSTAT, */
+/* [__NR_newlstat] = PPM_SC_NR_NEWLSTAT, */
+/* [__NR_newfstat] = PPM_SC_NR_NEWFSTAT, */
 	[__NR_uname] = PPM_SC_UNAME,
 	[__NR_vhangup] = PPM_SC_VHANGUP,
 	[__NR_wait4] = PPM_SC_WAIT4,
@@ -251,7 +245,7 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_sysinfo] = PPM_SC_SYSINFO,
 	[__NR_fsync] = PPM_SC_FSYNC,
 	[__NR_setdomainname] = PPM_SC_SETDOMAINNAME,
-//	[__NR_newuname] = PPM_SC_NR_NEWUNAME,
+/* [__NR_newuname] = PPM_SC_NR_NEWUNAME, */
 	[__NR_adjtimex] = PPM_SC_ADJTIMEX,
 	[__NR_mprotect] = PPM_SC_MPROTECT,
 	[__NR_init_module] = PPM_SC_INIT_MODULE,
@@ -261,9 +255,9 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_fchdir] = PPM_SC_FCHDIR,
 	[__NR_sysfs] = PPM_SC_SYSFS,
 	[__NR_personality] = PPM_SC_PERSONALITY,
-//	[__NR_setfsuid16] = PPM_SC_NR_SETFSUID16,
-//	[__NR_setfsgid16] = PPM_SC_NR_SETFSGID16,
-//	[__NR_llseek] = PPM_SC_NR_LLSEEK,
+/* [__NR_setfsuid16] = PPM_SC_NR_SETFSUID16, */
+/* [__NR_setfsgid16] = PPM_SC_NR_SETFSGID16, */
+/* [__NR_llseek] = PPM_SC_NR_LLSEEK, */
 	[__NR_getdents] = PPM_SC_GETDENTS,
 	[__NR_select] = PPM_SC_SELECT,
 	[__NR_flock] = PPM_SC_FLOCK,
@@ -272,7 +266,7 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_writev] = PPM_SC_WRITEV,
 	[__NR_getsid] = PPM_SC_GETSID,
 	[__NR_fdatasync] = PPM_SC_FDATASYNC,
-//	[__NR_sysctl] = PPM_SC_NR_SYSCTL,
+/* [__NR_sysctl] = PPM_SC_NR_SYSCTL, */
 	[__NR_mlock] = PPM_SC_MLOCK,
 	[__NR_munlock] = PPM_SC_MUNLOCK,
 	[__NR_mlockall] = PPM_SC_MLOCKALL,
@@ -287,11 +281,11 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_sched_rr_get_interval] = PPM_SC_SCHED_RR_GET_INTERVAL,
 	[__NR_nanosleep] = PPM_SC_NANOSLEEP,
 	[__NR_mremap] = PPM_SC_MREMAP,
-//	[__NR_setresuid16] = PPM_SC_NR_SETRESUID16,
-//	[__NR_getresuid16] = PPM_SC_NR_GETRESUID16,
+/* [__NR_setresuid16] = PPM_SC_NR_SETRESUID16, */
+/* [__NR_getresuid16] = PPM_SC_NR_GETRESUID16, */
 	[__NR_poll] = PPM_SC_POLL,
-//	[__NR_setresgid16] = PPM_SC_NR_SETRESGID16,
-//	[__NR_getresgid16] = PPM_SC_NR_GETRESGID16,
+/* [__NR_setresgid16] = PPM_SC_NR_SETRESGID16, */
+/* [__NR_getresgid16] = PPM_SC_NR_GETRESGID16, */
 	[__NR_prctl] = PPM_SC_PRCTL,
 	[__NR_rt_sigaction] = PPM_SC_RT_SIGACTION,
 	[__NR_rt_sigprocmask] = PPM_SC_RT_SIGPROCMASK,
@@ -299,13 +293,13 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_rt_sigtimedwait] = PPM_SC_RT_SIGTIMEDWAIT,
 	[__NR_rt_sigqueueinfo] = PPM_SC_RT_SIGQUEUEINFO,
 	[__NR_rt_sigsuspend] = PPM_SC_RT_SIGSUSPEND,
-//	[__NR_chown16] = PPM_SC_NR_CHOWN16,
+/* [__NR_chown16] = PPM_SC_NR_CHOWN16, */
 	[__NR_getcwd] = PPM_SC_GETCWD,
 	[__NR_capget] = PPM_SC_CAPGET,
 	[__NR_capset] = PPM_SC_CAPSET,
 	[__NR_sendfile] = PPM_SC_SENDFILE,
 	[__NR_getrlimit] = PPM_SC_GETRLIMIT,
-//	[__NR_mmap_pgoff] = PPM_SC_NR_MMAP_PGOFF,
+/* [__NR_mmap_pgoff] = PPM_SC_NR_MMAP_PGOFF, */
 	[__NR_lchown] = PPM_SC_LCHOWN,
 	[__NR_getuid] = PPM_SC_GETUID,
 	[__NR_getgid] = PPM_SC_GETGID,
@@ -330,7 +324,7 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_madvise] = PPM_SC_MADVISE,
 	[__NR_gettid] = PPM_SC_GETTID,
 	[__NR_setxattr] = PPM_SC_SETXATTR,
-	[__NR_lsetxattr] = PPM_SC_LSETXATTR, 
+	[__NR_lsetxattr] = PPM_SC_LSETXATTR,
 	[__NR_fsetxattr] = PPM_SC_FSETXATTR,
 	[__NR_getxattr] = PPM_SC_GETXATTR,
 	[__NR_lgetxattr] = PPM_SC_LGETXATTR,
@@ -442,20 +436,20 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 #endif
 	[__NR_getdents64] =  PPM_SC_GETDENTS64,
 #ifdef __x86_64__
-	//
-	// Non-multiplexed socket family
-	//
+	/*
+	 * Non-multiplexed socket family
+	 */
 	[__NR_socket] =  PPM_SC_SOCKET,
-	[__NR_bind] =  	PPM_SC_BIND,
+	[__NR_bind] =	PPM_SC_BIND,
 	[__NR_connect] =  PPM_SC_CONNECT,
 	[__NR_listen] =  PPM_SC_LISTEN,
 	[__NR_accept] =  PPM_SC_ACCEPT,
 	[__NR_getsockname] = PPM_SC_GETSOCKNAME,
 	[__NR_getpeername] = PPM_SC_GETPEERNAME,
 	[__NR_socketpair] = PPM_SC_SOCKETPAIR,
-//	[__NR_send] =  	PPM_SC_NR_SEND,
+/* [__NR_send] =	PPM_SC_NR_SEND, */
 	[__NR_sendto] =  PPM_SC_SENDTO,
-//	[__NR_recv] =  	PPM_SC_NR_RECV,
+/* [__NR_recv] =	PPM_SC_NR_RECV, */
 	[__NR_recvfrom] =  PPM_SC_RECVFROM,
 	[__NR_shutdown] =  PPM_SC_SHUTDOWN,
 	[__NR_setsockopt] = PPM_SC_SETSOCKOPT,
@@ -469,9 +463,9 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_recvmmsg] =  PPM_SC_RECVMMSG,
 #endif
 	[__NR_accept4] =  PPM_SC_ACCEPT4,
-	//
-	// Non-multiplexed IPC family
-	//
+	/*
+	 * Non-multiplexed IPC family
+	 */
 	[__NR_semop] =  PPM_SC_SEMOP,
 	[__NR_semget] =  PPM_SC_SEMGET,
 	[__NR_semctl] =  PPM_SC_SEMCTL,
@@ -479,11 +473,11 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_msgrcv] =  PPM_SC_MSGRCV,
 	[__NR_msgget] =  PPM_SC_MSGGET,
 	[__NR_msgctl] =  PPM_SC_MSGCTL,
-//	[__NR_shmatcall] =  PPM_SC_NR_SHMATCALL,
+/* [__NR_shmatcall] =  PPM_SC_NR_SHMATCALL, */
 	[__NR_shmdt] =  PPM_SC_SHMDT,
 	[__NR_shmget] =  PPM_SC_SHMGET,
 	[__NR_shmctl] =  PPM_SC_SHMCTL,
-//	[__NR_fcntl64] =  PPM_SC_NR_FCNTL64,
+/* [__NR_fcntl64] =  PPM_SC_NR_FCNTL64, */
 #else
 	[__NR_statfs64] = PPM_SC_STATFS64,
 	[__NR_fstatfs64] = PPM_SC_FSTATFS64,
@@ -502,8 +496,8 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR__newselect] = PPM_SC__NEWSELECT,
 	[__NR_sgetmask] = PPM_SC_SGETMASK,
 	[__NR_ssetmask] = PPM_SC_SSETMASK,
-//	[__NR_setreuid16] = PPM_SC_NR_SETREUID16,
-//	[__NR_setregid16] = PPM_SC_NR_SETREGID16,
+/* [__NR_setreuid16] = PPM_SC_NR_SETREUID16, */
+/* [__NR_setregid16] = PPM_SC_NR_SETREGID16, */
 	[__NR_sigpending] = PPM_SC_SIGPENDING,
 	[__NR_olduname] = PPM_SC_OLDUNAME,
 	[__NR_umount] = PPM_SC_UMOUNT,
@@ -514,5 +508,5 @@ const ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] =
 	[__NR_waitpid] = PPM_SC_WAITPID,
 	[__NR_pread64] = PPM_SC_PREAD64,
 	[__NR_pwrite64] = PPM_SC_PWRITE64,
-#endif // __x86_64__
+#endif /* __x86_64__ */
 };
