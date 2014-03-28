@@ -38,7 +38,7 @@ function on_init()
 		"System Call",
 		"evt.count",
 		"# Calls",
-		"", 
+		"evt.dir = <", 
 		"" .. TOP_NUMBER,
 		"none")
 	return true
