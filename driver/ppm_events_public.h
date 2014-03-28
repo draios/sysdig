@@ -1,6 +1,6 @@
 /*
 
- 
+
 
 
 
@@ -22,16 +22,16 @@
 
 #include "ppm_types.h"
 
-//
-// Limits
-//
-#define PPM_MAX_EVENT_PARAMS 16	// Max number of parameters an event can have
-#define PPM_MAX_PATH_SIZE 256	// Max size that an event parameter can have in the circular buffer, in bytes
+/*
+ * Limits
+ */
+#define PPM_MAX_EVENT_PARAMS 16	/* Max number of parameters an event can have */
+#define PPM_MAX_PATH_SIZE 256	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
 
-//
-// Socket families
-//
+/*
+ * Socket families
+ */
 #define PPM_AF_UNSPEC       0
 #define PPM_AF_UNIX         1       /* Unix domain sockets          */
 #define PPM_AF_LOCAL        1       /* POSIX name for PPM_AF_UNIX   */
@@ -73,15 +73,15 @@
 #define PPM_AF_ALG          38      /* Algorithm sockets            */
 #define PPM_AF_NFC          39      /* NFC sockets                  */
 
-//
-// File flags
-//
-#define PPM_O_NONE 	0
-#define PPM_O_RDONLY	(1 << 0)	// Open for reading only
-#define PPM_O_WRONLY	(1 << 1)	// Open for writing only
-#define PPM_O_RDWR	(PPM_O_RDONLY | PPM_O_WRONLY)	// Open for reading and writing
-#define PPM_O_CREAT	(1 << 2)	// Create a new file if it doesn't exist.
-#define PPM_O_APPEND (1 << 3)	// If set, the file offset shall be set to the end of the file prior to each write.
+/*
+ * File flags
+ */
+#define PPM_O_NONE	0
+#define PPM_O_RDONLY	(1 << 0)	/* Open for reading only */
+#define PPM_O_WRONLY	(1 << 1)	/* Open for writing only */
+#define PPM_O_RDWR	(PPM_O_RDONLY | PPM_O_WRONLY)	/* Open for reading and writing */
+#define PPM_O_CREAT	(1 << 2)	/* Create a new file if it doesn't exist. */
+#define PPM_O_APPEND (1 << 3)	/* If set, the file offset shall be set to the end of the file prior to each write. */
 #define PPM_O_DSYNC	(1 << 4)
 #define PPM_O_EXCL	(1 << 5)
 #define PPM_O_NONBLOCK	(1 << 6)
@@ -91,9 +91,9 @@
 #define PPM_O_DIRECTORY (1 << 10)
 #define PPM_O_LARGEFILE (1 << 11)
 
-//
-// Clone flags
-//
+/*
+ * Clone flags
+ */
 #define PPM_CL_NONE 0
 #define PPM_CL_CLONE_FILES (1 << 0)
 #define PPM_CL_CLONE_FS (1 << 1)
@@ -111,15 +111,15 @@
 #define PPM_CL_CLONE_THREAD (1 << 13)
 #define PPM_CL_CLONE_UNTRACED (1 << 14)
 #define PPM_CL_CLONE_VM (1 << 15)
-#define PPM_CL_CLONE_INVERTED (1 << 16)	// libsinsp-specific flag. It's set if clone() returned in 
-										// the child process before than in the parent process. 
-#define PPM_CL_NAME_CHANGED (1 << 17)	// libsinsp-specific flag. Set when the thread name changes
-										// (for example because execve was called)
-#define PPM_CL_CLOSED (1 << 18)			// thread has been closed.
+#define PPM_CL_CLONE_INVERTED (1 << 16)	/* libsinsp-specific flag. It's set if clone() returned in */
+										/* the child process before than in the parent process. */
+#define PPM_CL_NAME_CHANGED (1 << 17)	/* libsinsp-specific flag. Set when the thread name changes */
+										/* (for example because execve was called) */
+#define PPM_CL_CLOSED (1 << 18)			/* thread has been closed. */
 
-//
-// Futex Operations
-//
+/*
+ * Futex Operations
+ */
 #define PPM_FU_FUTEX_WAIT 0
 #define PPM_FU_FUTEX_WAKE 1
 #define PPM_FU_FUTEX_FD 2
@@ -136,16 +136,16 @@
 #define PPM_FU_FUTEX_PRIVATE_FLAG	128
 #define PPM_FU_FUTEX_CLOCK_REALTIME 256
 
-//
-// lseek() and llseek() whence
-//
+/*
+ * lseek() and llseek() whence
+ */
 #define PPM_SEEK_SET 0
 #define PPM_SEEK_CUR 1
 #define PPM_SEEK_END 2
 
-//
-// poll() flags
-//
+/*
+ * poll() flags
+ */
 #define PPM_POLLIN (1 << 0)
 #define PPM_POLLPRI (1 << 1)
 #define PPM_POLLOUT (1 << 2)
@@ -158,42 +158,42 @@
 #define PPM_POLLWRNORM (1 << 9)
 #define PPM_POLLWRBAND (1 << 10)
 
-//
-// shutdown() how
-//
+/*
+ * shutdown() how
+ */
 #define PPM_SHUT_RD 0
 #define PPM_SHUT_WR 1
 #define PPM_SHUT_RDWR 2
 
-//
-// openat() flags
-//
+/*
+ * openat() flags
+ */
 #define PPM_AT_FDCWD -100
 
-//
-// rlimit resources
-//
-#define PPM_RLIMIT_CPU 0 // CPU time in sec
-#define PPM_RLIMIT_FSIZE 1 // Maximum filesize
-#define PPM_RLIMIT_DATA 2 // max data size
-#define PPM_RLIMIT_STACK 3 // max stack size
-#define PPM_RLIMIT_CORE 4 // max core file size
-#define PPM_RLIMIT_RSS 5 // max resident set size
-#define PPM_RLIMIT_NPROC 6 // max number of processes
-#define PPM_RLIMIT_NOFILE 7 // max number of open files
-#define PPM_RLIMIT_MEMLOCK 8 // max locked-in-memory address space
-#define PPM_RLIMIT_AS 9 // address space limit
-#define PPM_RLIMIT_LOCKS 10  // maximum file locks held
-#define PPM_RLIMIT_SIGPENDING 11 // max number of pending signals
-#define PPM_RLIMIT_MSGQUEUE 12 // maximum bytes in POSIX mqueues
-#define PPM_RLIMIT_NICE 13 // max nice prio allowed to raise to 0-39 for nice level 19 .. -20
-#define PPM_RLIMIT_RTPRIO 14 // maximum realtime priority
-#define PPM_RLIMIT_RTTIME 15 // timeout for RT tasks in us
-#define PPM_RLIMIT_UNKNOWN 255 // CPU time in sec
+/*
+ * rlimit resources
+ */
+#define PPM_RLIMIT_CPU 0 /* CPU time in sec */
+#define PPM_RLIMIT_FSIZE 1 /* Maximum filesize */
+#define PPM_RLIMIT_DATA 2 /* max data size */
+#define PPM_RLIMIT_STACK 3 /* max stack size */
+#define PPM_RLIMIT_CORE 4 /* max core file size */
+#define PPM_RLIMIT_RSS 5 /* max resident set size */
+#define PPM_RLIMIT_NPROC 6 /* max number of processes */
+#define PPM_RLIMIT_NOFILE 7 /* max number of open files */
+#define PPM_RLIMIT_MEMLOCK 8 /* max locked-in-memory address space */
+#define PPM_RLIMIT_AS 9 /* address space limit */
+#define PPM_RLIMIT_LOCKS 10  /* maximum file locks held */
+#define PPM_RLIMIT_SIGPENDING 11 /* max number of pending signals */
+#define PPM_RLIMIT_MSGQUEUE 12 /* maximum bytes in POSIX mqueues */
+#define PPM_RLIMIT_NICE 13 /* max nice prio allowed to raise to 0-39 for nice level 19 .. -20 */
+#define PPM_RLIMIT_RTPRIO 14 /* maximum realtime priority */
+#define PPM_RLIMIT_RTTIME 15 /* timeout for RT tasks in us */
+#define PPM_RLIMIT_UNKNOWN 255 /* CPU time in sec */
 
-//
-// fcntl commands
-//
+/*
+ * fcntl commands
+ */
 #define PPM_FCNTL_UNKNOWN 0
 #define PPM_FCNTL_F_DUPFD 1
 #define PPM_FCNTL_F_GETFD 2
@@ -238,12 +238,12 @@
 #endif
 
 
-//
-// The list of event types
-// Enter events have even numbers while exit events have odd numbers.
-// NOTE: there can't be gaps in the numbering, because these numbers correspond
-//       to the entries in the g_event_info table
-//
+/*
+ * The list of event types
+ * Enter events have even numbers while exit events have odd numbers.
+ * NOTE: there can't be gaps in the numbering, because these numbers correspond
+ * to the entries in the g_event_info table
+ */
 #define PPME_DIRECTION_FLAG 1
 #define PPME_IS_ENTER(x) ((x & PPME_DIRECTION_FLAG) == 0)
 #define PPME_IS_EXIT(x) (x & PPME_DIRECTION_FLAG)
@@ -252,8 +252,7 @@
 /** @defgroup etypes Event Types
  *  @{
  */
-enum ppm_event_type
-{
+enum ppm_event_type {
 	PPME_GENERIC_E = 0,
 	PPME_GENERIC_X = 1,
 	PPME_SYSCALL_OPEN_E = 2,
@@ -271,7 +270,7 @@ enum ppm_event_type
 	PPME_CLONE_E = 14,
 	PPME_CLONE_X = 15,
 	PPME_PROCEXIT_E = 16,
-	PPME_PROCEXIT_X = 17,	// This should never be called
+	PPME_PROCEXIT_X = 17,	/* This should never be called */
 	PPME_SOCKET_SOCKET_E = 18,
 	PPME_SOCKET_SOCKET_X = 19,
 	PPME_SOCKET_BIND_E = 20,
@@ -401,22 +400,21 @@ enum ppm_event_type
 	PPME_SYSCALL_PRLIMIT_E = 144,
 	PPME_SYSCALL_PRLIMIT_X = 145,
 	PPME_SCHEDSWITCH_E = 146,
-	PPME_SCHEDSWITCH_X = 147,	// This should never be called
-	PPME_DROP_E = 148,  // For internal use
-	PPME_DROP_X = 149,	// For internal use
-	PPME_SYSCALL_FCNTL_E = 150,  // For internal use
-	PPME_SYSCALL_FCNTL_X = 151,	// For internal use	
+	PPME_SCHEDSWITCH_X = 147,	/* This should never be called */
+	PPME_DROP_E = 148,  /* For internal use */
+	PPME_DROP_X = 149,	/* For internal use */
+	PPME_SYSCALL_FCNTL_E = 150,  /* For internal use */
+	PPME_SYSCALL_FCNTL_X = 151,	/* For internal use */
 	PPME_SCHEDSWITCHEX_E = 152,
-	PPME_SCHEDSWITCHEX_X = 153,	// This should never be called
+	PPME_SCHEDSWITCHEX_X = 153,	/* This should never be called */
 	PPM_EVENT_MAX = 154,
 };
 /*@}*/
 
-//
-// System-independent syscall codes
-//
-typedef enum ppm_syscall_code
-{
+/*
+ * System-independent syscall codes
+ */
+enum ppm_syscall_code {
 	PPM_SC_UNKNOWN = 0,
 	PPM_SC_RESTART_SYSCALL = 1,
 	PPM_SC_EXIT = 2,
@@ -714,53 +712,50 @@ typedef enum ppm_syscall_code
 	PPM_SC_PREAD64 = 294,
 	PPM_SC_PWRITE64 = 295,
 	PPM_SC_MAX = 296,
-}ppm_syscall_code;
+};
 
-//
-// Event information enums
-//
-typedef enum ppm_event_category
-{
-	EC_UNKNOWN = 0,	// Unknown
-	EC_OTHER = 1,	// No specific category
-	EC_FILE = 2,	// File operation (open, close...) or file I/O
-	EC_NET = 3,		// Network operation (socket, bind...) or network I/O
-	EC_IPC = 4,		// IPC operation (pipe, futex...) or IPC I/O (e.g. on a pipe) 
-	EC_MEMORY = 5,	// Memory-related operation (e.g. brk)
-	EC_PROCESS = 6,	// Process-related operation (fork, clone...)
-	EC_SLEEP = 7,	// Plain sleep
-	EC_SYSTEM = 8,	// System-related operations (e.g. reboot)
-	EC_SIGNAL = 9,	// Signal-related operations (e.g. signal)
-	EC_USER = 10,	// User-related operations (e.g. getuid)
-	EC_TIME = 11,	// Time-related syscalls (e.g. gettimeofday)
-	EC_PROCESSING = 12,	// User level processing. Never used for system calls
-	EC_IO_BASE = 32,// used for masking
-	EC_IO_READ = 32,// General I/O read (can be file, socket, IPC...)
-	EC_IO_WRITE = 33,// General I/O write (can be file, socket, IPC...)
-	EC_IO_OTHER = 34,// General I/O that is neither read not write (can be file, socket, IPC...)
-	EC_WAIT = 64,	// General wait (can be file, socket, IPC...)
-	EC_SCHEDULER = 128,	// General wait (can be file, socket, IPC...)
-	EC_INTERNAL = 256,	// Internal event that shouldn't be shown to the user
-}ppm_event_category;
+/*
+ * Event information enums
+ */
+enum ppm_event_category {
+	EC_UNKNOWN = 0,	/* Unknown */
+	EC_OTHER = 1,	/* No specific category */
+	EC_FILE = 2,	/* File operation (open, close...) or file I/O */
+	EC_NET = 3,		/* Network operation (socket, bind...) or network I/O */
+	EC_IPC = 4,		/* IPC operation (pipe, futex...) or IPC I/O (e.g. on a pipe) */
+	EC_MEMORY = 5,	/* Memory-related operation (e.g. brk) */
+	EC_PROCESS = 6,	/* Process-related operation (fork, clone...) */
+	EC_SLEEP = 7,	/* Plain sleep */
+	EC_SYSTEM = 8,	/* System-related operations (e.g. reboot) */
+	EC_SIGNAL = 9,	/* Signal-related operations (e.g. signal) */
+	EC_USER = 10,	/* User-related operations (e.g. getuid) */
+	EC_TIME = 11,	/* Time-related syscalls (e.g. gettimeofday) */
+	EC_PROCESSING = 12,	/* User level processing. Never used for system calls */
+	EC_IO_BASE = 32,/* used for masking */
+	EC_IO_READ = 32,/* General I/O read (can be file, socket, IPC...) */
+	EC_IO_WRITE = 33,/* General I/O write (can be file, socket, IPC...) */
+	EC_IO_OTHER = 34,/* General I/O that is neither read not write (can be file, socket, IPC...) */
+	EC_WAIT = 64,	/* General wait (can be file, socket, IPC...) */
+	EC_SCHEDULER = 128,	/* General wait (can be file, socket, IPC...) */
+	EC_INTERNAL = 256,	/* Internal event that shouldn't be shown to the user */
+};
 
-typedef enum ppm_event_flags
-{
+enum ppm_event_flags {
 	EF_NONE = 0,
-	EF_CREATES_FD = (1 << 0), // This event creates an FD (e.g. open)
-	EF_DESTROYS_FD = (1 << 1), // This event destroys an FD (e.g. close)
-	EF_USES_FD = (1 << 2), // This event operates on an FD.
-	EF_READS_FROM_FD = (1 << 3), // This event reads data from an FD.
-	EF_WRITES_TO_FD = (1 << 4), // This event writes data to an FD.
-	EF_MODIFIES_STATE = (1 << 5), // This event causes the machine state to change and should not be dropped by the filtering engine.
-	EF_UNUSED = (1 << 6), // This event is no
-	EF_WAITS = (1 << 7), // This event reads data from an FD.
-}ppm_event_flags;
+	EF_CREATES_FD = (1 << 0), /* This event creates an FD (e.g. open) */
+	EF_DESTROYS_FD = (1 << 1), /* This event destroys an FD (e.g. close) */
+	EF_USES_FD = (1 << 2), /* This event operates on an FD. */
+	EF_READS_FROM_FD = (1 << 3), /* This event reads data from an FD. */
+	EF_WRITES_TO_FD = (1 << 4), /* This event writes data to an FD. */
+	EF_MODIFIES_STATE = (1 << 5), /* This event causes the machine state to change and should not be dropped by the filtering engine. */
+	EF_UNUSED = (1 << 6), /* This event is no */
+	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
+};
 
-//
-// Operators to compare events
-//
-enum ppm_cmp_operator
-{
+/*
+ * Operators to compare events
+ */
+enum ppm_cmp_operator {
 	CO_NONE = 0,
 	CO_EQ = 1,
 	CO_NE = 2,
@@ -771,11 +766,10 @@ enum ppm_cmp_operator
 	CO_CONTAINS = 7,
 };
 
-//
-// types of event parameters
-//
-typedef enum ppm_param_type
-{
+/*
+ * types of event parameters
+ */
+enum ppm_param_type {
 	PT_NONE = 0,
 	PT_INT8 = 1,
 	PT_INT16 = 2,
@@ -785,43 +779,41 @@ typedef enum ppm_param_type
 	PT_UINT16 = 6,
 	PT_UINT32 = 7,
 	PT_UINT64 = 8,
-	PT_CHARBUF = 9,	// A printable buffer of bytes, NULL terminated
-	PT_BYTEBUF = 10, // A raw buffer of bytes not suitable for printing
-	PT_ERRNO = 11,	// this is an INT64, but will be interpreted as an error code
-	PT_SOCKADDR = 12, // A sockaddr structure, 1byte family + data
-	PT_SOCKTUPLE = 13, // A sockaddr tuple,1byte family + 12byte data + 12byte data
-	PT_FD = 14, // An fd, 64bit
-	PT_PID = 15, // A pid/tid, 64bit
-	PT_FDLIST = 16, // A list of fds, 16bit count + count * (64bit fd + 16bit flags)
-	PT_FSPATH = 17,	// A string containing a relative or absolute file system path, null terminated
-	PT_SYSCALLID = 18, // A 16bit system call ID. Can be used as a key for the g_syscall_info_table table.
-	PT_SIGTYPE = 19, // An 8bit signal number
-	PT_RELTIME = 20, // A relative time. Seconds * 10^9  + nanoseconds. 64bit.
-	PT_ABSTIME = 21, // An absolute time interval. Seconds from epoch * 10^9  + nanoseconds. 64bit.
-	PT_PORT = 22, // A TCP/UDP prt. 2 bytes.
-	PT_L4PROTO = 23, // A 1 byte IP protocol type.
-	PT_SOCKFAMILY = 24, // A 1 byte socket family.
-	PT_BOOL = 25, // A boolean value, 4 bytes.
-	PT_IPV4ADDR = 26, // A 4 byte raw IPv4 address.
-	PT_DYN = 27, // Type can vary depending on the context. Used for filter fields like evt.rawarg.
-	PT_FLAGS8 = 28, // this is an UINT8, but will be interpreted as 8 bit flags.
-	PT_FLAGS16 = 29, // this is an UINT16, but will be interpreted as 16 bit flags.
-	PT_FLAGS32 = 30, // this is an UINT32, but will be interpreted as 32 bit flags.
-}ppm_param_type;
+	PT_CHARBUF = 9,	/* A printable buffer of bytes, NULL terminated */
+	PT_BYTEBUF = 10, /* A raw buffer of bytes not suitable for printing */
+	PT_ERRNO = 11,	/* this is an INT64, but will be interpreted as an error code */
+	PT_SOCKADDR = 12, /* A sockaddr structure, 1byte family + data */
+	PT_SOCKTUPLE = 13, /* A sockaddr tuple,1byte family + 12byte data + 12byte data */
+	PT_FD = 14, /* An fd, 64bit */
+	PT_PID = 15, /* A pid/tid, 64bit */
+	PT_FDLIST = 16, /* A list of fds, 16bit count + count * (64bit fd + 16bit flags) */
+	PT_FSPATH = 17,	/* A string containing a relative or absolute file system path, null terminated */
+	PT_SYSCALLID = 18, /* A 16bit system call ID. Can be used as a key for the g_syscall_info_table table. */
+	PT_SIGTYPE = 19, /* An 8bit signal number */
+	PT_RELTIME = 20, /* A relative time. Seconds * 10^9  + nanoseconds. 64bit. */
+	PT_ABSTIME = 21, /* An absolute time interval. Seconds from epoch * 10^9  + nanoseconds. 64bit. */
+	PT_PORT = 22, /* A TCP/UDP prt. 2 bytes. */
+	PT_L4PROTO = 23, /* A 1 byte IP protocol type. */
+	PT_SOCKFAMILY = 24, /* A 1 byte socket family. */
+	PT_BOOL = 25, /* A boolean value, 4 bytes. */
+	PT_IPV4ADDR = 26, /* A 4 byte raw IPv4 address. */
+	PT_DYN = 27, /* Type can vary depending on the context. Used for filter fields like evt.rawarg. */
+	PT_FLAGS8 = 28, /* this is an UINT8, but will be interpreted as 8 bit flags. */
+	PT_FLAGS16 = 29, /* this is an UINT16, but will be interpreted as 16 bit flags. */
+	PT_FLAGS32 = 30, /* this is an UINT32, but will be interpreted as 32 bit flags. */
+};
 
-typedef enum ppm_print_format
-{
+enum ppm_print_format {
 	PF_NA = 0,
-	PF_DEC = 1,	// decimal
-	PF_HEX = 2,	// hexadecima
-	PF_10_PADDED_DEC = 3, // decimal padded to 10 digits, useful to print the fractional part of a ns timestamp 
-}ppm_print_format;
+	PF_DEC = 1,	/* decimal */
+	PF_HEX = 2,	/* hexadecima */
+	PF_10_PADDED_DEC = 3, /* decimal padded to 10 digits, useful to print the fractional part of a ns timestamp */
+};
 
 /*!
   \brief Name-value pair, used to store flags information.
 */
-struct ppm_name_value
-{
+struct ppm_name_value {
 	const char *name;
 	uint32_t value;
 };
@@ -829,12 +821,11 @@ struct ppm_name_value
 /*!
   \brief Event parameter information.
 */
-struct ppm_param_info
-{
-	char name[PPM_MAX_NAME_LEN];  ///< Paramter name, e.g. 'size'.
-	ppm_param_type type; ///< Paramter type, e.g. 'uint16', 'string'...
-	ppm_print_format fmt; ///< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. 
-	const struct ppm_name_value *symbols; ///< If this is a flags parameter, it points to an array of ppm_name_value, terminated with {0, 0}
+struct ppm_param_info {
+	char name[PPM_MAX_NAME_LEN];  /**< Paramter name, e.g. 'size'. */
+	ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
+	ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
+	const struct ppm_name_value *symbols; /**< If this is a flags parameter, it points to an array of ppm_name_value, terminated with {0, 0} */
 };
 
 /*!
@@ -842,14 +833,13 @@ struct ppm_param_info
   This structure contains the full description of an event type (e.g. 'open') that
    is supported by the sysdig infrastructure.
 */
-struct ppm_event_info
-{
-	char name[PPM_MAX_NAME_LEN]; ///< Name.
-	ppm_event_category category; ///< Event category, e.g. 'file', 'net', etc.
-	ppm_event_flags flags; ///< flags for this event.
-	uint32_t nparams; ///< Number of parameter in the params array.
-	// XXX this 16 limit comes out of my ass. Determine something that makes sense or use a dynamic array.
-	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; ///< parameters descriptions.
+struct ppm_event_info {
+	char name[PPM_MAX_NAME_LEN]; /**< Name. */
+	ppm_event_category category; /**< Event category, e.g. 'file', 'net', etc. */
+	ppm_event_flags flags; /**< flags for this event. */
+	uint32_t nparams; /**< Number of parameter in the params array. */
+	/* XXX this 16 limit comes out of my ass. Determine something that makes sense or use a dynamic array. */
+	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
 };
 
 #if defined _MSC_VER
@@ -858,22 +848,21 @@ struct ppm_event_info
 #else
 #pragma pack(push, 1)
 #endif
-struct ppm_evt_hdr
-{
+struct ppm_evt_hdr {
 #ifdef PPM_ENABLE_SENTINEL
 	uint32_t sentinel_begin;
 #endif
-	uint64_t ts; // timestamp, in nanoseconds from epoch
-	uint64_t tid; // the tid of the thread that generated this event
-	uint32_t len; // the event len, including the header
-	uint16_t type; // the event type
-//	uint16_t cpuid; // the cpu that generated the event
+	uint64_t ts; /* timestamp, in nanoseconds from epoch */
+	uint64_t tid; /* the tid of the thread that generated this event */
+	uint32_t len; /* the event len, including the header */
+	uint16_t type; /* the event type */
+/* uint16_t cpuid; the cpu that generated the event */
 };
 #pragma pack(pop)
 
-//
-// IOCTL codes
-//
+/*
+ * IOCTL codes
+ */
 #define PPM_IOCTL_MAGIC	's'
 #define PPM_IOCTL_DISABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 0)
 #define PPM_IOCTL_ENABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 1)
@@ -885,10 +874,9 @@ struct ppm_evt_hdr
 /*!
   \brief System call description struct.
 */
-struct ppm_syscall_desc
-{
-	ppm_event_category category; ///< System call category.
-	char* name; ///< System call name, e.g. 'open'.
+struct ppm_syscall_desc {
+	ppm_event_category category; /**< System call category. */
+	char *name; /**< System call name, e.g. 'open'. */
 };
 
 extern const struct ppm_name_value socket_families[];
