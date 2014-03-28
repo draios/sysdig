@@ -1,6 +1,6 @@
 /*
 
- 
+
 
 
 
@@ -19,13 +19,10 @@
 
 #include "ppm_events_public.h"
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-// SYSCALL INFO TABLE
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
-{
+/*
+ * SYSCALL INFO TABLE
+ */
+const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*dummy*/ { EC_OTHER, "<unknown>" },
 	/*PPM_SC_RESTART_SYSCALL*/ { EC_SYSTEM, "restart_syscall" },
 	/*PPM_SC_EXIT*/ { EC_PROCESS, "exit" },
@@ -47,10 +44,10 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_PTRACE*/ { EC_OTHER, "ptrace" },
 	/*PPM_SC_ALARM*/ { EC_TIME, "alarm" },
 	/*PPM_SC_FSTAT*/ { EC_FILE, "fstat" },
-	/*PPM_SC_PAUSE*/ { EC_WAIT, "pause" },	// WAIT UNTIL A SIGNAL ARRIVES
+	/*PPM_SC_PAUSE*/ { EC_WAIT, "pause" },	/* WAIT UNTIL A SIGNAL ARRIVES */
 	/*PPM_SC_UTIME*/ { EC_TIME, "utime" },
-	/*PPM_SC_ACCESS*/ { EC_FILE, "access" },	// checks whether the calling process can access the file pathname
-	/*PPM_SC_SYNC*/ { EC_IO_OTHER, "sync" },	// causes all buffered modifications to file metadata and data to be written to the underlying file systems.
+	/*PPM_SC_ACCESS*/ { EC_FILE, "access" },	/* checks whether the calling process can access the file pathname */
+	/*PPM_SC_SYNC*/ { EC_IO_OTHER, "sync" },	/* causes all buffered modifications to file metadata and data to be written to the underlying file systems. */
 	/*PPM_SC_KILL*/ { EC_IPC, "kill" },
 	/*PPM_SC_RENAME*/ { EC_FILE, "rename" },
 	/*PPM_SC_MKDIR*/ { EC_FILE, "mkdir" },
@@ -63,64 +60,64 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_IOCTL*/ { EC_IO_OTHER, "ioctl" },
 	/*PPM_SC_FCNTL*/ { EC_WAIT, "fcntl" },
 	/*PPM_SC_SETPGID*/ { EC_PROCESS, "setpgid" },
-	/*PPM_SC_UMASK*/ { EC_PROCESS, "umask" },	// sets the calling process's file mode creation mask
-	/*PPM_SC_CHROOT*/ { EC_IPC, "chroot" }, //  changes the root directory of the calling process to that specified in path. This directory will be used for pathnames beginning with /. The root directory is inherited by all children of the calling process.
-	/*PPM_SC_USTAT*/ { EC_FILE, "ustat" }, // returns information about a mounted file system.
+	/*PPM_SC_UMASK*/ { EC_PROCESS, "umask" },	/* sets the calling process's file mode creation mask */
+	/*PPM_SC_CHROOT*/ { EC_IPC, "chroot" }, /* changes the root directory of the calling process to that specified in path. This directory will be used for pathnames beginning with /. The root directory is inherited by all children of the calling process. */
+	/*PPM_SC_USTAT*/ { EC_FILE, "ustat" }, /* returns information about a mounted file system. */
 	/*PPM_SC_DUP2*/ { EC_IO_OTHER, "dup2" },
 	/*PPM_SC_GETPPID*/ { EC_PROCESS, "getppid" },
 	/*PPM_SC_GETPGRP*/ { EC_PROCESS, "getpgrp" },
-	/*PPM_SC_SETSID*/ { EC_PROCESS, "setsid" }, // creates a session and sets the process group ID
+	/*PPM_SC_SETSID*/ { EC_PROCESS, "setsid" }, /* creates a session and sets the process group ID */
 	/*PPM_SC_SETHOSTNAME*/ { EC_SYSTEM, "sethostname" },
-	/*PPM_SC_SETRLIMIT*/ { EC_PROCESS, "setrlimit" }, // get/set resource (CPU, FDs, memory...) limits
-	/*PPM_SC_GETRUSAGE*/ { EC_PROCESS, "getrusage" }, // returns resource usage measures for who
+	/*PPM_SC_SETRLIMIT*/ { EC_PROCESS, "setrlimit" }, /* get/set resource (CPU, FDs, memory...) limits */
+	/*PPM_SC_GETRUSAGE*/ { EC_PROCESS, "getrusage" }, /* returns resource usage measures for who */
 	/*PPM_SC_GETTIMEOFDAY*/ { EC_TIME, "gettimeofday" },
 	/*PPM_SC_SETTIMEOFDAY*/ { EC_TIME, "settimeofday" },
 	/*PPM_SC_SYMLINK*/ { EC_FILE, "symlink" },
 	/*PPM_SC_LSTAT*/ { EC_FILE, "lstat" },
 	/*PPM_SC_READLINK*/ { EC_FILE, "readlink" },
-	/*PPM_SC_USELIB*/ { EC_PROCESS, "uselib" }, // load shared library
-	/*PPM_SC_SWAPON*/ { EC_PROCESS, "swapon" }, // start/stop swapping to file/device
+	/*PPM_SC_USELIB*/ { EC_PROCESS, "uselib" }, /* load shared library */
+	/*PPM_SC_SWAPON*/ { EC_PROCESS, "swapon" }, /* start/stop swapping to file/device */
 	/*PPM_SC_REBOOT*/ { EC_SYSTEM, "reboot" },
 	/*PPM_SC_MMAP*/ { EC_FILE, "mmap" },
 	/*PPM_SC_MUNMAP*/ { EC_FILE, "munmap" },
-	/*PPM_SC_TRUNCATE*/ { EC_FILE, "truncate" }, // truncate a file to a specified length
-	/*PPM_SC_FTRUNCATE*/ { EC_FILE, "ftruncate" }, // truncate a file to a specified length
+	/*PPM_SC_TRUNCATE*/ { EC_FILE, "truncate" }, /* truncate a file to a specified length */
+	/*PPM_SC_FTRUNCATE*/ { EC_FILE, "ftruncate" }, /* truncate a file to a specified length */
 	/*PPM_SC_FCHMOD*/ { EC_FILE, "fchmod" },
-	/*PPM_SC_GETPRIORITY*/ { EC_PROCESS, "getpriority" }, // get/set program scheduling priority
-	/*PPM_SC_SETPRIORITY*/ { EC_PROCESS, "setpriority" }, // get/set program scheduling priority
-	/*PPM_SC_STATFS*/ { EC_FILE, "statfs" }, // returns information about a mounted file system
-	/*PPM_SC_FSTATFS*/ { EC_FILE, "fstatfs" }, // returns information about a mounted file system
-	/*PPM_SC_SYSLOG*/ { EC_SYSTEM, "syslog" }, // read and/or clear kernel message ring buffer; set console_loglevel
+	/*PPM_SC_GETPRIORITY*/ { EC_PROCESS, "getpriority" }, /* get/set program scheduling priority */
+	/*PPM_SC_SETPRIORITY*/ { EC_PROCESS, "setpriority" }, /* get/set program scheduling priority */
+	/*PPM_SC_STATFS*/ { EC_FILE, "statfs" }, /* returns information about a mounted file system */
+	/*PPM_SC_FSTATFS*/ { EC_FILE, "fstatfs" }, /* returns information about a mounted file system */
+	/*PPM_SC_SYSLOG*/ { EC_SYSTEM, "syslog" }, /* read and/or clear kernel message ring buffer; set console_loglevel */
 	/*PPM_SC_SETITIMER*/ { EC_TIME, "setitimer" },
 	/*PPM_SC_GETITIMER*/ { EC_TIME, "getitimer" },
-	/*PPM_SC_UNAME*/ { EC_SYSTEM, "uname" }, //get name and information about current kernel
-	/*PPM_SC_VHANGUP*/ { EC_OTHER , "vhangup" }, // simulates a hangup on the current terminal. This call arranges for other users to have a "clean" terminal at login time.
-	/*PPM_SC_WAIT4*/ { EC_WAIT, "wait4" }, // OBSOLETE
-	/*PPM_SC_SWAPOFF*/ { EC_SYSTEM, "swapoff" }, // start/stop swapping to file/device
-	/*PPM_SC_SYSINFO*/ { EC_SYSTEM, "sysinfo" }, // returns information on overall system statistics
-	/*PPM_SC_FSYNC*/ { EC_IO_OTHER, "fsync" },	// sync file content
+	/*PPM_SC_UNAME*/ { EC_SYSTEM, "uname" }, /* get name and information about current kernel */
+	/*PPM_SC_VHANGUP*/ { EC_OTHER , "vhangup" }, /* simulates a hangup on the current terminal. This call arranges for other users to have a "clean" terminal at login time. */
+	/*PPM_SC_WAIT4*/ { EC_WAIT, "wait4" }, /* OBSOLETE */
+	/*PPM_SC_SWAPOFF*/ { EC_SYSTEM, "swapoff" }, /* start/stop swapping to file/device */
+	/*PPM_SC_SYSINFO*/ { EC_SYSTEM, "sysinfo" }, /* returns information on overall system statistics */
+	/*PPM_SC_FSYNC*/ { EC_IO_OTHER, "fsync" },	/* sync file content */
 	/*PPM_SC_SETDOMAINNAME*/ { EC_SYSTEM, "setdomainname" },
-	/*PPM_SC_ADJTIMEX*/ { EC_SYSTEM, "adjtimex" }, // tune kernel clock
-	/*PPM_SC_MPROTECT*/ { EC_MEMORY, "mprotect" }, // set protection on a region of memory
-	/*PPM_SC_INIT_MODULE*/ { EC_SYSTEM, "init_module" }, // load a kernel module
+	/*PPM_SC_ADJTIMEX*/ { EC_SYSTEM, "adjtimex" }, /* tune kernel clock */
+	/*PPM_SC_MPROTECT*/ { EC_MEMORY, "mprotect" }, /* set protection on a region of memory */
+	/*PPM_SC_INIT_MODULE*/ { EC_SYSTEM, "init_module" }, /* load a kernel module */
 	/*PPM_SC_DELETE_MODULE*/ { EC_SYSTEM, "delete_module" },
 	/*PPM_SC_QUOTACTL*/ { EC_SYSTEM, "quotactl" },
 	/*PPM_SC_GETPGID*/ { EC_PROCESS, "getpgid" },
 	/*PPM_SC_FCHDIR*/ { EC_FILE, "fchdir" },
-	/*PPM_SC_SYSFS*/ { EC_SYSTEM, "sysfs" }, // get file system type information
-	/*PPM_SC_PERSONALITY*/ { EC_PROCESS, "personality" }, // set the process execution domain
-	/*PPM_SC_GETDENTS*/ { EC_FILE, "getdents" }, // get directory entries
+	/*PPM_SC_SYSFS*/ { EC_SYSTEM, "sysfs" }, /* get file system type information */
+	/*PPM_SC_PERSONALITY*/ { EC_PROCESS, "personality" }, /* set the process execution domain */
+	/*PPM_SC_GETDENTS*/ { EC_FILE, "getdents" }, /* get directory entries */
 	/*PPM_SC_SELECT*/ { EC_WAIT, "select" },
-	/*PPM_SC_FLOCK*/ { EC_FILE, "flock" }, // apply or remove an advisory lock on an open file
-	/*PPM_SC_MSYNC*/ { EC_IO_OTHER, "msync" }, // synchronize a file with a memory map
+	/*PPM_SC_FLOCK*/ { EC_FILE, "flock" }, /* apply or remove an advisory lock on an open file */
+	/*PPM_SC_MSYNC*/ { EC_IO_OTHER, "msync" }, /* synchronize a file with a memory map */
 	/*PPM_SC_READV*/ { EC_IO_READ, "readv" },
 	/*PPM_SC_WRITEV*/ { EC_IO_WRITE, "writev" },
-	/*PPM_SC_GETSID*/ { EC_PROCESS, "getsid" }, // returns the session ID of the calling process
-	/*PPM_SC_FDATASYNC*/ { EC_IO_OTHER, "fdatasync" }, // synchronize a file's in-core state with storage device
-	/*PPM_SC_MLOCK*/ { EC_MEMORY, "mlock" }, // mlock() and mlockall() respectively lock part or all of the calling process's virtual address space into RAM
-	/*PPM_SC_MUNLOCK*/ { EC_MEMORY, "munlock" }, // mlock() and mlockall() respectively lock part or all of the calling process's virtual address space into RAM
-	/*PPM_SC_MLOCKALL*/ { EC_MEMORY, "mlockall" }, // mlock() and mlockall() respectively lock part or all of the calling process's virtual address space into RAM
-	/*PPM_SC_MUNLOCKALL*/ { EC_MEMORY, "munlockall" }, // mlock() and mlockall() respectively lock part or all of the calling process's virtual address space into RAM
+	/*PPM_SC_GETSID*/ { EC_PROCESS, "getsid" }, /* returns the session ID of the calling process */
+	/*PPM_SC_FDATASYNC*/ { EC_IO_OTHER, "fdatasync" }, /* synchronize a file's in-core state with storage device */
+	/*PPM_SC_MLOCK*/ { EC_MEMORY, "mlock" }, /* mlock() and mlockall() respectively lock part or all of the calling process's virtual address space into RAM */
+	/*PPM_SC_MUNLOCK*/ { EC_MEMORY, "munlock" }, /* mlock() and mlockall() respectively lock part or all of the calling process's virtual address space into RAM */
+	/*PPM_SC_MLOCKALL*/ { EC_MEMORY, "mlockall" }, /* mlock() and mlockall() respectively lock part or all of the calling process's virtual address space into RAM */
+	/*PPM_SC_MUNLOCKALL*/ { EC_MEMORY, "munlockall" }, /* mlock() and mlockall() respectively lock part or all of the calling process's virtual address space into RAM */
 	/*PPM_SC_SCHED_SETPARAM*/ { EC_PROCESS, "sched_setparam" },
 	/*PPM_SC_SCHED_GETPARAM*/ { EC_PROCESS, "sched_getparam" },
 	/*PPM_SC_SCHED_SETSCHEDULER*/ { EC_PROCESS, "sched_setscheduler" },
@@ -132,7 +129,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_NANOSLEEP*/ { EC_SLEEP, "nanosleep" },
 	/*PPM_SC_MREMAP*/ { EC_FILE, "mremap" },
 	/*PPM_SC_POLL*/ { EC_WAIT, "poll" },
-	/*PPM_SC_PRCTL*/ { EC_PROCESS, "prctl" }, // operations on a process
+	/*PPM_SC_PRCTL*/ { EC_PROCESS, "prctl" }, /* operations on a process */
 	/*PPM_SC_RT_SIGACTION*/ { EC_SIGNAL, "rt_sigaction" },
 	/*PPM_SC_RT_SIGPROCMASK*/ { EC_SIGNAL, "rt_sigprocmask" },
 	/*PPM_SC_RT_SIGPENDING*/ { EC_SIGNAL, "rt_sigpending" },
@@ -140,9 +137,9 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_RT_SIGQUEUEINFO*/ { EC_SIGNAL, "rt_sigqueueinfo" },
 	/*PPM_SC_RT_SIGSUSPEND*/ { EC_SIGNAL, "rt_sigsuspend" },
 	/*PPM_SC_GETCWD*/ { EC_FILE, "getcwd" },
-	/*PPM_SC_CAPGET*/ { EC_PROCESS, "capget" }, // set/get capabilities of thread(s)
-	/*PPM_SC_CAPSET*/ { EC_PROCESS, "capset" }, // set/get capabilities of thread(s)
-	/*PPM_SC_SENDFILE*/ { EC_FILE, "sendfile" }, // transfer data between file descriptors
+	/*PPM_SC_CAPGET*/ { EC_PROCESS, "capget" }, /* set/get capabilities of thread(s) */
+	/*PPM_SC_CAPSET*/ { EC_PROCESS, "capset" }, /* set/get capabilities of thread(s) */
+	/*PPM_SC_SENDFILE*/ { EC_FILE, "sendfile" }, /* transfer data between file descriptors */
 	/*PPM_SC_GETRLIMIT*/ { EC_PROCESS, "getrlimit" },
 	/*PPM_SC_LCHOWN*/ { EC_FILE, "lchown" },
 	/*PPM_SC_GETUID*/ { EC_USER, "getuid" },
@@ -151,8 +148,8 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_GETEGID*/ { EC_USER, "getegid" },
 	/*PPM_SC_SETREUID*/ { EC_USER, "setreuid" },
 	/*PPM_SC_SETREGID*/ { EC_USER, "setregid" },
-	/*PPM_SC_GETGROUPS*/ { EC_USER, "getgroups" }, // returns the supplementary group IDs of the calling process
-	/*PPM_SC_SETGROUPS*/ { EC_USER, "setgroups" }, // returns the supplementary group IDs of the calling process
+	/*PPM_SC_GETGROUPS*/ { EC_USER, "getgroups" }, /* returns the supplementary group IDs of the calling process */
+	/*PPM_SC_SETGROUPS*/ { EC_USER, "setgroups" }, /* returns the supplementary group IDs of the calling process */
 	/*PPM_SC_FCHOWN*/ { EC_FILE, "fchown" },
 	/*PPM_SC_SETRESUID*/ { EC_USER, "setresuid" },
 	/*PPM_SC_GETRESUID*/ { EC_USER, "getresuid" },
@@ -164,11 +161,11 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_SETFSUID*/ { EC_USER, "setfsuid" },
 	/*PPM_SC_SETFSGID*/ { EC_USER, "setfsgid" },
 	/*PPM_SC_PIVOT_ROOT*/ { EC_PROCESS, "pivot_root" },
-	/*PPM_SC_MINCORE*/ { EC_MEMORY, "mincore" }, // determine whether pages are resident in memory
-	/*PPM_SC_MADVISE*/ { EC_MEMORY, "madvise" }, // give advice about use of memory
-	/*PPM_SC_GETTID*/ { EC_PROCESS, "gettid" },	// returns the caller's thread ID (TID)
-	/*PPM_SC_SETXATTR*/ { EC_FILE, "setxattr" }, // set inode attribute
-	/*PPM_SC_LSETXATTR*/ { EC_FILE, "lsetxattr" }, 
+	/*PPM_SC_MINCORE*/ { EC_MEMORY, "mincore" }, /* determine whether pages are resident in memory */
+	/*PPM_SC_MADVISE*/ { EC_MEMORY, "madvise" }, /* give advice about use of memory */
+	/*PPM_SC_GETTID*/ { EC_PROCESS, "gettid" },	/* returns the caller's thread ID (TID) */
+	/*PPM_SC_SETXATTR*/ { EC_FILE, "setxattr" }, /* set inode attribute */
+	/*PPM_SC_LSETXATTR*/ { EC_FILE, "lsetxattr" },
 	/*PPM_SC_FSETXATTR*/ { EC_FILE, "fsetxattr" },
 	/*PPM_SC_GETXATTR*/ { EC_FILE, "getxattr" },
 	/*PPM_SC_LGETXATTR*/ { EC_FILE, "lgetxattr" },
@@ -179,13 +176,13 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_REMOVEXATTR*/ { EC_FILE, "removexattr" },
 	/*PPM_SC_LREMOVEXATTR*/ { EC_FILE, "lremovexattr" },
 	/*PPM_SC_FREMOVEXATTR*/ { EC_FILE, "fremovexattr" },
-	/*PPM_SC_TKILL*/ { EC_SIGNAL, "tkill" }, // send a signal to a thread
+	/*PPM_SC_TKILL*/ { EC_SIGNAL, "tkill" }, /* send a signal to a thread */
 	/*PPM_SC_FUTEX*/ { EC_IPC, "futex" },
 	/*PPM_SC_SCHED_SETAFFINITY*/ { EC_PROCESS, "sched_setaffinity" },
 	/*PPM_SC_SCHED_GETAFFINITY*/ { EC_PROCESS, "sched_getaffinity" },
 	/*PPM_SC_SET_THREAD_AREA*/ { EC_PROCESS, "set_thread_area" },
 	/*PPM_SC_GET_THREAD_AREA*/ { EC_PROCESS, "get_thread_area" },
-	/*PPM_SC_IO_SETUP*/ { EC_IO_OTHER, "io_setup" }, // create an asynchronous I/O context (for libaio)
+	/*PPM_SC_IO_SETUP*/ { EC_IO_OTHER, "io_setup" }, /* create an asynchronous I/O context (for libaio) */
 	/*PPM_SC_IO_DESTROY*/ { EC_IO_OTHER, "io_destroy" },
 	/*PPM_SC_IO_GETEVENTS*/ { EC_IO_OTHER, "io_getevents" },
 	/*PPM_SC_IO_SUBMIT*/ { EC_IO_OTHER, "io_submit" },
@@ -194,8 +191,8 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_EPOLL_CREATE*/ { EC_WAIT, "epoll_create" },
 	/*PPM_SC_EPOLL_CTL*/ { EC_WAIT, "epoll_ctl" },
 	/*PPM_SC_EPOLL_WAIT*/ { EC_WAIT, "epoll_wait" },
-	/*PPM_SC_REMAP_FILE_PAGES*/ { EC_FILE, "remap_file_pages" }, // create a nonlinear file mapping
-	/*PPM_SC_SET_TID_ADDRESS*/ { EC_PROCESS, "set_tid_address" }, // set pointer to thread ID
+	/*PPM_SC_REMAP_FILE_PAGES*/ { EC_FILE, "remap_file_pages" }, /* create a nonlinear file mapping */
+	/*PPM_SC_SET_TID_ADDRESS*/ { EC_PROCESS, "set_tid_address" }, /* set pointer to thread ID */
 	/*PPM_SC_TIMER_CREATE*/ { EC_TIME, "timer_create" },
 	/*PPM_SC_TIMER_SETTIME*/ { EC_TIME, "timer_settime" },
 	/*PPM_SC_TIMER_GETTIME*/ { EC_TIME, "timer_gettime" },
@@ -206,21 +203,21 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_CLOCK_GETRES*/ { EC_TIME, "clock_getres" },
 	/*PPM_SC_CLOCK_NANOSLEEP*/ { EC_SLEEP, "clock_nanosleep" },
 	/*PPM_SC_TGKILL*/ { EC_SIGNAL, "tgkill" },
-	/*PPM_SC_UTIMES*/ { EC_FILE, "utimes" }, // change file last access and modification times
-	/*PPM_SC_MQ_OPEN*/ { EC_IPC, "mq_open" }, // Message queues. See http://linux.die.net/man/7/mq_overview.
+	/*PPM_SC_UTIMES*/ { EC_FILE, "utimes" }, /* change file last access and modification times */
+	/*PPM_SC_MQ_OPEN*/ { EC_IPC, "mq_open" }, /* Message queues. See http://linux.die.net/man/7/mq_overview. */
 	/*PPM_SC_MQ_UNLINK*/ { EC_IPC, "mq_unlink" },
 	/*PPM_SC_MQ_TIMEDSEND*/ { EC_IPC, "mq_timedsend" },
 	/*PPM_SC_MQ_TIMEDRECEIVE*/ { EC_IPC, "mq_timedreceive" },
 	/*PPM_SC_MQ_NOTIFY*/ { EC_IPC, "mq_notify" },
 	/*PPM_SC_MQ_GETSETATTR*/ { EC_IPC, "mq_getsetattr" },
-	/*PPM_SC_KEXEC_LOAD*/ { EC_SYSTEM, "kexec_load" }, // load a new kernel for later execution
+	/*PPM_SC_KEXEC_LOAD*/ { EC_SYSTEM, "kexec_load" }, /* load a new kernel for later execution */
 	/*PPM_SC_WAITID*/ { EC_WAIT, "waitid" },
-	/*PPM_SC_ADD_KEY*/ { EC_SYSTEM, "add_key" }, // add a key to the kernel's key management facility
+	/*PPM_SC_ADD_KEY*/ { EC_SYSTEM, "add_key" }, /* add a key to the kernel's key management facility */
 	/*PPM_SC_REQUEST_KEY*/ { EC_SYSTEM, "request_key" },
 	/*PPM_SC_KEYCTL*/ { EC_SYSTEM, "keyctl" },
-	/*PPM_SC_IOPRIO_SET*/ { EC_PROCESS, "ioprio_set" }, // get/set I/O scheduling class and priority
-	/*PPM_SC_IOPRIO_GET*/ { EC_PROCESS, "ioprio_get" }, // get/set I/O scheduling class and priority
-	/*PPM_SC_INOTIFY_INIT*/ { EC_IPC, "inotify_init" }, // initialize an inotify event queue instance. See http://en.wikipedia.org/wiki/Inotify.
+	/*PPM_SC_IOPRIO_SET*/ { EC_PROCESS, "ioprio_set" }, /* get/set I/O scheduling class and priority */
+	/*PPM_SC_IOPRIO_GET*/ { EC_PROCESS, "ioprio_get" }, /* get/set I/O scheduling class and priority */
+	/*PPM_SC_INOTIFY_INIT*/ { EC_IPC, "inotify_init" }, /* initialize an inotify event queue instance. See http://en.wikipedia.org/wiki/Inotify. */
 	/*PPM_SC_INOTIFY_ADD_WATCH*/ { EC_IPC, "inotify_add_watch" },
 	/*PPM_SC_INOTIFY_RM_WATCH*/ { EC_IPC, "inotify_rm_watch" },
 	/*PPM_SC_OPENAT*/ { EC_FILE, "openat" },
@@ -237,23 +234,23 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_FACCESSAT*/ { EC_FILE, "faccessat" },
 	/*PPM_SC_PSELECT6*/ { EC_WAIT, "pselect6" },
 	/*PPM_SC_PPOLL*/ { EC_WAIT, "ppoll" },
-	/*PPM_SC_UNSHARE*/ { EC_PROCESS, "unshare" }, // disassociate parts of the process execution context
-	/*PPM_SC_SET_ROBUST_LIST*/ { EC_PROCESS, "set_robust_list" }, // get/set list of robust futexes
-	/*PPM_SC_GET_ROBUST_LIST*/ { EC_PROCESS, "get_robust_list" }, // get/set list of robust futexes
-	/*PPM_SC_SPLICE*/ { EC_IPC, "splice" }, // transfers up to len bytes of data from the file descriptor fd_in to the file descriptor fd_out, where one of the descriptors must refer to a pipe.
-	/*PPM_SC_TEE*/ { EC_IPC, "tee" }, // tee() duplicates up to len bytes of data from the pipe referred to by the file descriptor fd_in to the pipe referred to by the file descriptor fd_out. It does not consume the data that is duplicated from fd_in.
-	/*PPM_SC_VMSPLICE*/ { EC_IPC, "vmsplice" }, // splice user pages into a pipe
-	/*PPM_SC_GETCPU*/ { EC_PROCESS, "getcpu" }, // determine CPU and NUMA node on which the calling thread is running
+	/*PPM_SC_UNSHARE*/ { EC_PROCESS, "unshare" }, /* disassociate parts of the process execution context */
+	/*PPM_SC_SET_ROBUST_LIST*/ { EC_PROCESS, "set_robust_list" }, /* get/set list of robust futexes */
+	/*PPM_SC_GET_ROBUST_LIST*/ { EC_PROCESS, "get_robust_list" }, /* get/set list of robust futexes */
+	/*PPM_SC_SPLICE*/ { EC_IPC, "splice" }, /* transfers up to len bytes of data from the file descriptor fd_in to the file descriptor fd_out, where one of the descriptors must refer to a pipe. */
+	/*PPM_SC_TEE*/ { EC_IPC, "tee" }, /* tee() duplicates up to len bytes of data from the pipe referred to by the file descriptor fd_in to the pipe referred to by the file descriptor fd_out. It does not consume the data that is duplicated from fd_in. */
+	/*PPM_SC_VMSPLICE*/ { EC_IPC, "vmsplice" }, /* splice user pages into a pipe */
+	/*PPM_SC_GETCPU*/ { EC_PROCESS, "getcpu" }, /* determine CPU and NUMA node on which the calling thread is running */
 	/*PPM_SC_EPOLL_PWAIT*/ { EC_WAIT, "epoll_pwait" },
-	/*PPM_SC_UTIMENSAT*/ { EC_FILE, "utimensat" }, // change file timestamps with nanosecond precision
-	/*PPM_SC_SIGNALFD*/ { EC_SIGNAL, "signalfd" }, // create a pollable file descriptor for accepting signals
-	/*PPM_SC_TIMERFD_CREATE*/ { EC_TIME, "timerfd_create" }, // // create and operate on a timer that delivers timer expiration notifications via a file descriptor
-	/*PPM_SC_EVENTFD*/ { EC_IPC, "eventfd" }, // create a file descriptor for event notification
-	/*PPM_SC_TIMERFD_SETTIME*/ { EC_TIME, "timerfd_settime" }, // create and operate on a timer that delivers timer expiration notifications via a file descriptor
-	/*PPM_SC_TIMERFD_GETTIME*/ { EC_TIME, "timerfd_gettime" }, // create and operate on a timer that delivers timer expiration notifications via a file descriptor
-	/*PPM_SC_SIGNALFD4*/ { EC_SIGNAL, "signalfd4" }, // create a pollable file descriptor for accepting signals
-	/*PPM_SC_EVENTFD2*/ { EC_IPC, "eventfd2" }, // create a file descriptor for event notification
-	/*PPM_SC_EPOLL_CREATE1*/ { EC_WAIT, "epoll_create1" }, // variant of epoll_create
+	/*PPM_SC_UTIMENSAT*/ { EC_FILE, "utimensat" }, /* change file timestamps with nanosecond precision */
+	/*PPM_SC_SIGNALFD*/ { EC_SIGNAL, "signalfd" }, /* create a pollable file descriptor for accepting signals */
+	/*PPM_SC_TIMERFD_CREATE*/ { EC_TIME, "timerfd_create" }, /* // create and operate on a timer that delivers timer expiration notifications via a file descriptor */
+	/*PPM_SC_EVENTFD*/ { EC_IPC, "eventfd" }, /* create a file descriptor for event notification */
+	/*PPM_SC_TIMERFD_SETTIME*/ { EC_TIME, "timerfd_settime" }, /* create and operate on a timer that delivers timer expiration notifications via a file descriptor */
+	/*PPM_SC_TIMERFD_GETTIME*/ { EC_TIME, "timerfd_gettime" }, /* create and operate on a timer that delivers timer expiration notifications via a file descriptor */
+	/*PPM_SC_SIGNALFD4*/ { EC_SIGNAL, "signalfd4" }, /* create a pollable file descriptor for accepting signals */
+	/*PPM_SC_EVENTFD2*/ { EC_IPC, "eventfd2" }, /* create a file descriptor for event notification */
+	/*PPM_SC_EPOLL_CREATE1*/ { EC_WAIT, "epoll_create1" }, /* variant of epoll_create */
 	/*PPM_SC_DUP3*/ { EC_IO_OTHER, "dup3" },
 	/*PPM_SC_PIPE2*/ { EC_IPC, "pipe2" },
 	/*PPM_SC_INOTIFY_INIT1*/ { EC_IPC, "inotify_init1" },
@@ -265,13 +262,13 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_PRLIMIT64*/ { EC_PROCESS, "prlimit64" },
 	/*PPM_SC_CLOCK_ADJTIME*/ { EC_OTHER, "clock_adjtime" },
 	/*PPM_SC_SYNCFS*/ { EC_FILE, "syncfs" },
-	/*PPM_SC_SETNS*/ { EC_PROCESS, "setns" }, // reassociate thread with a namespace
+	/*PPM_SC_SETNS*/ { EC_PROCESS, "setns" }, /* reassociate thread with a namespace */
 	/*PPM_SC_GETDENTS64*/  { EC_IPC, "getdents64" },
-	//
-	// Non-multiplexed socket family
-	//
+	/*  */
+	/* Non-multiplexed socket family */
+	/*  */
 	/*PPM_SC_SOCKET*/  { EC_NET, "socket" },
-	/*PPM_SC_BIND*/  	{ EC_NET, "bind" },
+	/*PPM_SC_BIND*/	{ EC_NET, "bind" },
 	/*PPM_SC_CONNECT*/  { EC_NET, "connect" },
 	/*PPM_SC_LISTEN*/  { EC_NET, "listen" },
 	/*PPM_SC_ACCEPT*/  { EC_NET, "accept" },
@@ -288,9 +285,9 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_RECVMSG*/  { EC_NET, "recvmsg" },
 	/*PPM_SC_RECVMMSG*/  { EC_NET, "recvmmsg" },
 	/*PPM_SC_ACCEPT4*/  { EC_NET, "accept4" },
-	//
-	// Non-multiplexed IPC family
-	//
+	/*
+	 * Non-multiplexed IPC family
+	 */
 	/*PPM_SC_SEMOP*/  { EC_IPC, "semop" },
 	/*PPM_SC_SEMGET*/  { EC_IPC, "semget" },
 	/*PPM_SC_SEMCTL*/  { EC_IPC, "semctl" },
@@ -306,8 +303,8 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_FSTATAT64*/ { EC_FILE, "fstatat64" },
 	/*PPM_SC_SENDFILE64*/ { EC_FILE, "sendfile64" },
 	/*PPM_SC_UGETRLIMIT*/ { EC_PROCESS, "ugetrlimit" },
-	/*PPM_SC_BDFLUSH*/ { EC_OTHER, "bdflush" },	// deprecated
-	/*PPM_SC_SIGPROCMASK*/ { EC_SIGNAL, "sigprocmask" }, // examine and change blocked signals
+	/*PPM_SC_BDFLUSH*/ { EC_OTHER, "bdflush" },	/* deprecated */
+	/*PPM_SC_SIGPROCMASK*/ { EC_SIGNAL, "sigprocmask" }, /* examine and change blocked signals */
 	/*PPM_SC_IPC*/ { EC_IPC, "ipc" },
 	/*PPM_SC_SOCKETCALL*/ { EC_NET, "socketcall" },
 	/*PPM_SC_STAT64*/ { EC_FILE, "stat64" },
@@ -316,13 +313,13 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] =
 	/*PPM_SC_FCNTL64*/ { EC_FILE, "fcntl64" },
 	/*PPM_SC_MMAP2*/ { EC_FILE, "mmap2" },
 	/*PPM_SC__NEWSELECT*/ { EC_WAIT, "newselect" },
-	/*PPM_SC_SGETMASK*/ { EC_SIGNAL, "sgetmask" }, //  manipulation of signal mask (obsolete)
-	/*PPM_SC_SSETMASK*/ { EC_SIGNAL, "ssetmask" }, // manipulation of signal mask (obsolete)
-	/*PPM_SC_SIGPENDING*/ { EC_SIGNAL, "sigpending" }, // examine pending signals
+	/*PPM_SC_SGETMASK*/ { EC_SIGNAL, "sgetmask" }, /* manipulation of signal mask (obsolete) */
+	/*PPM_SC_SSETMASK*/ { EC_SIGNAL, "ssetmask" }, /* manipulation of signal mask (obsolete) */
+	/*PPM_SC_SIGPENDING*/ { EC_SIGNAL, "sigpending" }, /* examine pending signals */
 	/*PPM_SC_OLDUNAME*/ { EC_SYSTEM, "olduname" },
 	/*PPM_SC_UMOUNT*/ { EC_FILE, "umount" },
 	/*PPM_SC_SIGNAL*/ { EC_SIGNAL, "signal" },
-	/*PPM_SC_NICE*/ { EC_PROCESS, "nice" }, // change process priority
+	/*PPM_SC_NICE*/ { EC_PROCESS, "nice" }, /* change process priority */
 	/*PPM_SC_STIME*/ { EC_TIME, "stime" },
 	/*PPM_SC__LLSEEK*/	{ EC_FILE, "llseek" },
 	/*PPM_SC_WAITPID*/ { EC_WAIT, "waitpid" },
