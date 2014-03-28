@@ -35,7 +35,7 @@ function on_init()
 	fisread = chisel.request_field("evt.is_io_read")
 
 	-- set the filter
-	chisel.set_filter("evt.is_io=true and fd.type=net")
+	chisel.set_filter("evt.is_io=true and (fd.type=ipv4 or fd.type=ipv6)")
 	
 	chisel.set_interval_s(1)
 	
