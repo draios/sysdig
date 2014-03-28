@@ -197,6 +197,11 @@ public:
 		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
 
+		if(evt == NULL)
+		{
+			throw sinsp_exception("invalid call to evt.get_num()");
+		}
+
 		lua_pushnumber(ls, (double)evt->get_num());
 		return 1;
 	}
@@ -206,6 +211,11 @@ public:
 		lua_getglobal(ls, "sievt");
 		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
+
+		if(evt == NULL)
+		{
+			throw sinsp_exception("invalid call to evt.get_num()");
+		}
 
 		uint64_t ts = evt->get_ts();
 
@@ -219,6 +229,11 @@ public:
 		lua_getglobal(ls, "sievt");
 		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
+
+		if(evt == NULL)
+		{
+			throw sinsp_exception("invalid call to evt.get_num()");
+		}
 
 		const char* evname;
 		uint16_t etype = evt->get_type();
@@ -246,6 +261,11 @@ public:
 		lua_getglobal(ls, "sievt");
 		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
+
+		if(evt == NULL)
+		{
+			throw sinsp_exception("invalid call to evt.get_num()");
+		}
 
 		uint32_t cpuid = evt->get_cpuid();
 
@@ -287,6 +307,11 @@ public:
 		lua_getglobal(ls, "sievt");
 		sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
+
+		if(evt == NULL)
+		{
+			throw sinsp_exception("invalid call to evt.get_num()");
+		}
 
 		sinsp_filter_check* chk = (sinsp_filter_check*)lua_topointer(ls, 1);
 		if(chk == NULL)
