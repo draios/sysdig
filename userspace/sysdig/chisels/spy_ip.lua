@@ -30,6 +30,8 @@ args =
 	},
 }
 
+terminal = require "ansiterminal"
+
 -- Argument notification callback
 function on_set_arg(name, val)
 	addr = val
@@ -65,15 +67,20 @@ function on_event()
 		isread = evt.field(fisread)	
 		
 		if isread and direction ~= DIR_READ then
-			print("\nREAD---------------------------------------\n")
+			infostr = string.format("\n%sREAD---------------------------------------\n", terminal.red)
 			direction = DIR_READ
 		elseif not isread and direction ~= DIR_WRITE then
-			print("\nWRITE--------------------------------------\n")
+			infostr = string.format("\n%sWRITE---------------------------------------\n", terminal.red)
 			direction = DIR_WRITE
 		end
 
+		print(infostr)
 		print(data)
 	end
 
 	return true
+end
+
+function on_capture_end()
+	print(terminal.reset)
 end

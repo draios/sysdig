@@ -70,5 +70,5 @@ function on_event()
 end
 
 function on_capture_end()
-	print(terminal.resetcolor)
+	print(terminal.reset)
 end
