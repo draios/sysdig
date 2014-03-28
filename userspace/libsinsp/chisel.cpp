@@ -214,7 +214,7 @@ public:
 
 		if(evt == NULL)
 		{
-			throw sinsp_exception("invalid call to evt.get_num()");
+			throw sinsp_exception("invalid call to evt.get_ts()");
 		}
 
 		uint64_t ts = evt->get_ts();
@@ -232,7 +232,7 @@ public:
 
 		if(evt == NULL)
 		{
-			throw sinsp_exception("invalid call to evt.get_num()");
+			throw sinsp_exception("invalid call to evt.get_type()");
 		}
 
 		const char* evname;
@@ -264,7 +264,7 @@ public:
 
 		if(evt == NULL)
 		{
-			throw sinsp_exception("invalid call to evt.get_num()");
+			throw sinsp_exception("invalid call to evt.get_cpuid()");
 		}
 
 		uint32_t cpuid = evt->get_cpuid();
@@ -310,7 +310,7 @@ public:
 
 		if(evt == NULL)
 		{
-			throw sinsp_exception("invalid call to evt.get_num()");
+			throw sinsp_exception("invalid call to evt.field()");
 		}
 
 		sinsp_filter_check* chk = (sinsp_filter_check*)lua_topointer(ls, 1);
@@ -1359,46 +1359,9 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 		}
 
 		//
-		// If there is a callback, see if it's time to call it
+		// If there is a timeout callback, see if it's time to call it
 		//
-		if(m_lua_cinfo->m_callback_interval != 0)
-		{
-			uint64_t ts = evt->get_ts();
-			uint64_t sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
-
-			if(sample_time != m_lua_last_interval_sample_time)
-			{
-				int64_t delta = 0;
-
-				if(m_lua_last_interval_ts != 0)
-				{
-					delta = ts - m_lua_last_interval_ts;
-					ASSERT(delta > 0);
-				}
-
-				lua_getglobal(m_ls, "on_interval");
-			
-				lua_pushnumber(m_ls, (double)(ts / 1000000000)); 
-				lua_pushnumber(m_ls, (double)(ts % 1000000000)); 
-				lua_pushnumber(m_ls, (double)delta); 
-
-				if(lua_pcall(m_ls, 3, 1, 0) != 0) 
-				{
-					throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
-				}
-	
-				int oeres = lua_toboolean(m_ls, -1);
-				lua_pop(m_ls, 1);
-
-				if(oeres == false)
-				{
-					throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
-				}
-	
-				m_lua_last_interval_sample_time = sample_time;
-				m_lua_last_interval_ts = ts;
-			}
-		}
+		do_timeout(evt);
 
 		//
 		// If there is a filter, run it
@@ -1445,6 +1408,48 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 
 		return true;
 #endif
+	}
+}
+
+void sinsp_chisel::do_timeout(sinsp_evt* evt)
+{
+	if(m_lua_cinfo->m_callback_interval != 0)
+	{
+		uint64_t ts = evt->get_ts();
+		uint64_t sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
+
+		if(sample_time != m_lua_last_interval_sample_time)
+		{
+			int64_t delta = 0;
+
+			if(m_lua_last_interval_ts != 0)
+			{
+				delta = ts - m_lua_last_interval_ts;
+				ASSERT(delta > 0);
+			}
+
+			lua_getglobal(m_ls, "on_interval");
+			
+			lua_pushnumber(m_ls, (double)(ts / 1000000000)); 
+			lua_pushnumber(m_ls, (double)(ts % 1000000000)); 
+			lua_pushnumber(m_ls, (double)delta); 
+
+			if(lua_pcall(m_ls, 3, 1, 0) != 0) 
+			{
+				throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
+			}
+	
+			int oeres = lua_toboolean(m_ls, -1);
+			lua_pop(m_ls, 1);
+
+			if(oeres == false)
+			{
+				throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
+			}
+	
+			m_lua_last_interval_sample_time = sample_time;
+			m_lua_last_interval_ts = ts;
+		}
 	}
 }
 

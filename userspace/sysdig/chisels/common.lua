@@ -96,7 +96,6 @@ Pick a key-value table and render it to the console in sorted top format
 function print_sorted_table(stable, timedelta, result_rendering)
 	sorted_grtable = pairs_top_by_val(stable, top_number, function(t,a,b) return t[b] < t[a] end)
 
-	etime = evt.field(ftime)
 	print(extend_string(value_desc, 10) .. key_desc)
 	print("------------------------------")
 	

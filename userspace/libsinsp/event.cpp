@@ -1300,3 +1300,8 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 		}
 	}
 }
+
+bool sinsp_evt::is_filtered_out()
+{
+	return m_filtered_out;
+}

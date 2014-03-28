@@ -253,6 +253,13 @@ public:
 	*/
 	void get_category(OUT sinsp_evt::category* cat);
 
+#ifdef HAS_FILTERING
+	/*!
+	  \brief Return true if the event has been rejected by the filtering system.
+	*/
+	bool is_filtered_out();
+#endif
+
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:

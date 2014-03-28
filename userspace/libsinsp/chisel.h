@@ -107,6 +107,7 @@ public:
 	uint32_t get_n_args();
 	void set_args(vector<string>* argvals);
 	bool run(sinsp_evt* evt);
+	void do_timeout(sinsp_evt* evt);
 	void on_init();
 	void on_capture_start();
 	void on_capture_end();
