@@ -1,6 +1,6 @@
 /*
 
- 
+
 
 
 
@@ -19,8 +19,7 @@
 
 #include "ppm_events_public.h"
 
-const struct ppm_name_value socket_families[] =
-{
+const struct ppm_name_value socket_families[] = {
 	{"AF_NFC", 39},
 	{"AF_ALG", 38},
 	{"AF_CAIF", 37},
@@ -64,8 +63,7 @@ const struct ppm_name_value socket_families[] =
 	{0, 0},
 };
 
-const struct ppm_name_value file_flags[] =
-{
+const struct ppm_name_value file_flags[] = {
 	{"O_LARGEFILE", (1 << 11)},
 	{"O_DIRECTORY", (1 << 10)},
 	{"O_DIRECT", (1 << 9)},
@@ -83,8 +81,7 @@ const struct ppm_name_value file_flags[] =
 	{0, 0},
 };
 
-const struct ppm_name_value clone_flags[] =
-{
+const struct ppm_name_value clone_flags[] = {
 	{"CLONE_FILES", (1 << 0)},
 	{"CLONE_FS", (1 << 1)},
 	{"CLONE_IO", (1 << 2)},
@@ -107,8 +104,7 @@ const struct ppm_name_value clone_flags[] =
 	{0, 0},
 };
 
-const struct ppm_name_value futex_operations[] =
-{
+const struct ppm_name_value futex_operations[] = {
 	{"FUTEX_CLOCK_REALTIME", 256},
 	{"FUTEX_PRIVATE_FLAG", 128},
 	{"FUTEX_CMP_REQUEUE_PI", 12},
@@ -127,8 +123,7 @@ const struct ppm_name_value futex_operations[] =
 	{0, 0},
 };
 
-const struct ppm_name_value poll_flags[] =
-{
+const struct ppm_name_value poll_flags[] = {
 	{"POLLIN", (1 << 0)},
 	{"POLLPRI", (1 << 1)},
 	{"POLLOUT", (1 << 2)},
@@ -143,30 +138,26 @@ const struct ppm_name_value poll_flags[] =
 	{0, 0},
 };
 
-const struct ppm_name_value lseek_whence[] =
-{
+const struct ppm_name_value lseek_whence[] = {
 	{"SEEK_END", 2},
 	{"SEEK_CUR", 1},
 	{"SEEK_SET", 0},
 	{0, 0},
 };
 
-const struct ppm_name_value shutdown_how[] =
-{
+const struct ppm_name_value shutdown_how[] = {
 	{"SHUT_RDWR", 2},
 	{"SHUT_WR", 1},
 	{"SHUT_RD", 0},
 	{0, 0},
 };
 
-const struct ppm_name_value openat_flags[] =
-{
+const struct ppm_name_value openat_flags[] = {
 	{"AT_FDCWD", -100},
 	{0, 0},
 };
 
-const struct ppm_name_value rlimit_resources[] =
-{
+const struct ppm_name_value rlimit_resources[] = {
 	{"RLIMIT_UNKNOWN", 255},
 	{"RLIMIT_RTTIME", 15},
 	{"RLIMIT_RTPRIO", 14},
@@ -187,8 +178,7 @@ const struct ppm_name_value rlimit_resources[] =
 	{0, 0},
 };
 
-const struct ppm_name_value fcntl_commands[] =
-{
+const struct ppm_name_value fcntl_commands[] = {
 	{"F_GETPIPE_SZ", 29},
 	{"F_SETPIPE_SZ", 28},
 	{"F_NOTIFY", 27},
