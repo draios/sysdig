@@ -20,8 +20,8 @@ TOP_NUMBER = 30
 
 -- Chisel description
 description = "Show the top " .. TOP_NUMBER .. " system calls in terms of time spent in each call. You can use filters to restrict this to a specific process, thread or file."
-short_description = "top system calls by time"
-category = "performance"
+short_description = "Top system calls by time"
+category = "Performance"
 
 -- Chisel argument list
 args = {}

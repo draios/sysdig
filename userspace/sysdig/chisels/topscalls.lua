@@ -20,8 +20,8 @@ TOP_NUMBER = 30
 
 -- Chisel description
 description = "Show the top " .. TOP_NUMBER .. " system calls in terms of number of calls. You can use filters to restrict this to a specific process, thread or file."
-short_description = "top system calls by number"
-category = "performance"
+short_description = "Top system calls by number of calls"
+category = "Performance"
 
 -- Chisel argument list
 args = {}
@@ -38,7 +38,7 @@ function on_init()
 		"System Call",
 		"evt.count",
 		"# Calls",
-		"evt.dir = <", 
+		"", 
 		"" .. TOP_NUMBER,
 		"none")
 	return true

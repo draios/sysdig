@@ -90,7 +90,7 @@ static void usage()
 "                    efficient, but can cause state (e.g. FD names) to be lost\n"
 " -h, --help         Print this page\n"
 " -i <chiselname>, --chisel-info <chiselname>\n"
-"                    Get's a longer description and the arguments associated with\n"
+"                    Get a longer description and the arguments associated with\n"
 "                    a chisel found in the -cl option list.\n"
 " -j, --json         Emit output as json\n"
 " -l, --list         List the fields that can be used for filtering and output\n"

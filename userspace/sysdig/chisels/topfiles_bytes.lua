@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "Shows the top files in terms of disk usage."
-short_description = "top files by total bytes"
-category = "IO"
+short_description = "Top files by R+W bytes"
+category = "I/O"
 
 -- Chisel argument list
 args = {}

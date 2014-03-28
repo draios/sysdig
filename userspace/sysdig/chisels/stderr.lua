@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "print the standard error of any process on screen. Combine this script with a filter to limit the output to a specific process or pid.";
-short_description = "print stderr";
-category = "IO";
+short_description = "Print stderr of processes";
+category = "I/O";
 
 args = {}
 

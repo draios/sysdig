@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Chisel description
 description = "Given two filter fields, a key and a value, this chisel creates and renders to the screen a table."
 short_description = "Top processes by CPU usage"
-category = "CPU"
+category = "CPU Usage"
 
 -- Chisel argument list
 args = {}

@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "counts the total bytes read from and written to any type of FD (disk, socket, pipe...) and prints the result every second.";
-short_description = "sum of all I/O bytes";
-category = "IO";
+short_description = "Sum of I/O bytes on any type of FD";
+category = "I/O";
 
 -- Chisel argument list
 args = 

@@ -328,9 +328,17 @@ void list_chisels(vector<chisel_desc>* chlist)
 
 		string category = cd->m_category;
 
-		if(category != last_category) {
-			printf("\n----------------------\n");
-			printf("Category: %s\n", category.c_str());
+		if(category != last_category) 
+		{
+			string fullcatstr = "Category: " + category;
+
+			printf("\n%s\n", fullcatstr.c_str());
+			for(l = 0; l < fullcatstr.size(); l++)
+			{
+				putchar('-');
+			}
+
+			printf("\n");
 			last_category = category;
 		}
 
@@ -359,4 +367,6 @@ void list_chisels(vector<chisel_desc>* chlist)
 
 		printf("\n");
 	}
+
+	printf("\nUse the -i flag to get detailed information about a specific chisel\n");
 }

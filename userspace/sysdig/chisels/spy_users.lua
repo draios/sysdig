@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "lists every command that users launches interactively (e.g. from bash) and every directory users visit";
-short_description = "display user activity";
+description = "lists every command that users launch interactively (e.g. from bash) and every directory users visit";
+short_description = "Display interactive user activity";
 category = "Security";
 
 -- Chisel argument list
@@ -33,7 +33,7 @@ function on_init()
 	fuser = chisel.request_field("user.name")
 
 	-- set the filter
-	chisel.set_filter("(evt.type=execve and proc.name!=bash and proc.parentname=bash) or (evt.type=chdir and evt.dir=< and proc.name=bash)")
+	chisel.set_filter("(evt.type=execve and proc.name!=bash and proc.parentname contains sh) or (evt.type=chdir and evt.dir=< and proc.name contains sh)")
 	
 	return true
 end

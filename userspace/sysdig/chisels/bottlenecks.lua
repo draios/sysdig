@@ -20,8 +20,8 @@ HOW_MANY = 10
 
 -- Chisel description
 description = "Lists the " .. HOW_MANY .. " system calls that took the longest to return during the capture interval.";
-short_description = "system call bottlenecks";
-category = "performance";
+short_description = "Slowest system calls";
+category = "Performance";
 
 -- Chisel argument list
 args = {}

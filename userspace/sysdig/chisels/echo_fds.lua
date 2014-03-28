@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "print the data read and written for any FD. Combine this script with a filter to restrict what it shows.";
-short_description = "echo FDs";
-category = "IO";
+short_description = "Print the data read and written by processes.";
+category = "I/O";
 
 args = {}
 

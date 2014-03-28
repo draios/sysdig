@@ -81,6 +81,9 @@ OPTIONS
 **-j**, **--json**         
   Emit output as json
   
+**-i _chiselname_**, **--chisel-info _chiselname_**  
+  Get a longer description and the arguments associated with a chisel found in the -cl option list.
+
 **-l**, **--list**  
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
   

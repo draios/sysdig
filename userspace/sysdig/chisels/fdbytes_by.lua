@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "Gropus FD activity based on the given filter field, and returns the key that generated the most input+output bytes. For example, this script can be used to list the processes or TCP ports that generated most traffic."
-short_description = "FD bytes group by"
-category = "IO"
+short_description = "I/O bytes, aggregated by an arbitrary filter field"
+category = "I/O"
 
 -- Chisel argument list
 args = 

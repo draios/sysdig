@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "Shows the top processes in terms of total (in+out) bytes to disk."
-short_description = "top processes by total disk bytes"
-category = "IO"
+short_description = "Top processes by R+W disk bytes"
+category = "I/O"
 
 -- Chisel argument list
 args = {}

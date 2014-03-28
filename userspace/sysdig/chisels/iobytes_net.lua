@@ -17,13 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "counts the total bytes read from and written to the network, and prints the result every second";
-short_description = "sum of network I/O bytes";
-category = "net";
+short_description = "Show total network I/O bytes";
+category = "Net";
 
 -- Chisel argument list
-args = 
-{
-}
+args = {}
 
 tot = 0
 totin = 0
