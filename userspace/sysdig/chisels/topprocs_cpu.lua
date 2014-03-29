@@ -40,6 +40,8 @@ function on_init()
 	-- Request the fields we need
 	fkey = chisel.request_field(key_fld)
 	fvalue = chisel.request_field(value_fld)
+	fnext = chisel.request_field("evt.arg.next")
+	fnextraw = chisel.request_field("evt.rawarg.next")
 	
 	chisel.set_filter("evt.type=switch")
 	
@@ -70,17 +72,27 @@ function on_event()
 	cpuid = evt.get_cpuid() + 1
 
 	if key ~= nil and value ~= nil and value > 0 then
+		thissec = value - cpustates[cpuid][3]
+		if thissec < 0 then
+			thissec = 0
+		end
+
 		if grtable[key] == nil then
-			grtable[key] = value - cpustates[cpuid][3]
+			grtable[key] = thissec
 		else
-			grtable[key] = grtable[key] + value - cpustates[cpuid][3]
+			grtable[key] = grtable[key] + thissec
 		end
 		
-		cpustates[cpuid][3] = 0
-		
 		cpustates[cpuid][1], cpustates[cpuid][2] = evt.get_ts()
-		cpustates[cpuid][4] = key
 	end
+
+	if evt.field(fnext) ~= "" .. evt.field(fnextraw) then
+		cpustates[cpuid][4] = evt.field(fnext)
+	else
+		cpustates[cpuid][4] = nil
+	end
+
+	cpustates[cpuid][3] = 0
 
 	return true
 end
