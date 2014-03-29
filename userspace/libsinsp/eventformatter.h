@@ -1,22 +1,3 @@
-/*
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #pragma once
 
 class sinsp_filter_check;

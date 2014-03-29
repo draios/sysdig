@@ -1,22 +1,3 @@
-/*
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #define SE_NSIG           64
 #define SE_SIGHUP           1
 #define SE_SIGINT           2

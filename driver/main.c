@@ -1,22 +1,3 @@
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #include <asm/atomic.h>
 #include <linux/cdev.h>
 #include <linux/module.h>

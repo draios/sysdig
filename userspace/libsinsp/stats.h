@@ -1,22 +1,3 @@
-/*
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #pragma once
 
 #include "internal_metrics.h"

@@ -1,22 +1,3 @@
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #include "ppm_events_public.h"
 
 const struct ppm_name_value socket_families[] = {

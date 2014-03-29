@@ -1,22 +1,3 @@
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #include "ppm_events_public.h"
 
 /*

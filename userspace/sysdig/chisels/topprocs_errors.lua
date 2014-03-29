@@ -1,20 +1,3 @@
---[[
-
- 
-This program is free software: you can redistribute it and/or modify
-
-
-
-
-This program is distributed in the hope that it will be useful,
-
-
-
-
-
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
---]]
-
 -- Chisel description
 description = "Shows the top processes in terms of system call errors."
 short_description = "top processes by number of errors"

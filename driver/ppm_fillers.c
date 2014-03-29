@@ -1,22 +1,3 @@
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #include <linux/compat.h>
 #include <linux/cdev.h>
 #include <asm/syscall.h>

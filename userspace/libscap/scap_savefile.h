@@ -1,22 +1,3 @@
-/*
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 // Force struct alignment
 #if defined _MSC_VER
 #pragma pack(push)

@@ -1,20 +1,3 @@
---[[
-
- 
-This program is free software: you can redistribute it and/or modify
-
-
-
-
-This program is distributed in the hope that it will be useful,
-
-
-
-
-
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
---]]
-
 -- Chisel description
 description = "print the data read and written for any FD. Combine this script with a filter to restrict what it shows.";
 short_description = "Print the data read and written by processes.";

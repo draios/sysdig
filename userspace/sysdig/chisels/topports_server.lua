@@ -1,20 +1,3 @@
---[[
-
- 
-This program is free software: you can redistribute it and/or modify
-
-
-
-
-This program is distributed in the hope that it will be useful,
-
-
-
-
-
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
---]]
-
 -- Chisel description
 description = "Shows the top TCP/UDP server ports in terms of total (in+out) bandwidth.";
 short_description = "Top TCP/UDP server ports by R+W bytes";

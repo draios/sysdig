@@ -1,22 +1,3 @@
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #include "ppm_events_public.h"
 
 const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {

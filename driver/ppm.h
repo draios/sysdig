@@ -1,23 +1,4 @@
 /*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
-/*
  * Driver output definitions
  */
 

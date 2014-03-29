@@ -1,22 +1,3 @@
-/*
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #ifndef _WIN32
 #include <unistd.h>
 #include <limits.h>

@@ -1,22 +1,3 @@
-/*
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #include <stdio.h>
 #include "scap.h"
 #include "scap-int.h"

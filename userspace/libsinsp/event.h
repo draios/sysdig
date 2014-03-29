@@ -1,22 +1,3 @@
-/*
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
 #pragma once
 
 #ifndef VISIBILITY_PRIVATE
