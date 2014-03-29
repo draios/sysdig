@@ -416,7 +416,11 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	return handle->m_ndevs;
 }
 
+#ifndef _WIN32
 inline void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
+#else
+void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
+#endif
 {
 	*phead = bufinfo->head;
 	*ptail = bufinfo->tail;
@@ -563,7 +567,11 @@ bool check_scap_next_wait(scap_t* handle)
 
 #endif // _WIN32
 
+#ifndef _WIN32
 static inline int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+#else
+static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+#endif
 {
 #if defined(_WIN32) || defined(__APPLE__)
 	//

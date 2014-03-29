@@ -33,7 +33,11 @@
 // WRITE FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+#ifndef _WIN32
 static inline uint32_t scap_normalize_block_len(uint32_t blocklen)
+#else
+static uint32_t scap_normalize_block_len(uint32_t blocklen)
+#endif
 {
 	return ((blocklen + 3) >> 2) << 2;
 }
