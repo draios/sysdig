@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "Shows the top TCP/UDP server ports in terms of total (in+out) bandwidth.";
-short_description = "top TCP/UDP server ports by total bytes";
+short_description = "Top TCP/UDP server ports by R+W bytes";
 category = "Net";
 
 -- Chisel argument list
