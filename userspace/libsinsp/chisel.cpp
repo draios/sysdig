@@ -115,6 +115,7 @@ public:
 				return 1;
 			case PT_INT64:
 			case PT_ERRNO:
+			case PT_PID:
 				lua_pushnumber(ls, (double)*(int64_t*)rawval);
 				return 1;
 			case PT_L4PROTO: // This can be resolved in the future
