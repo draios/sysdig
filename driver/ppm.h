@@ -123,3 +123,4 @@ extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const struct ppm_syscall_desc g_syscall_info_table[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
+extern uint32_t g_sampling_ratio;

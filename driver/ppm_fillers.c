@@ -95,8 +95,7 @@ static int32_t f_sched_fcntl_e(struct event_filler_arguments *args);
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
  * However, separating this information in a different struct is not ideal and we should find a better way.
  */
-const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] =
-{
+const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_GENERIC_E] = {f_sys_generic},
 	[PPME_GENERIC_X] = {f_sys_generic},
 	[PPME_SYSCALL_OPEN_E] = {f_sys_empty},
@@ -248,9 +247,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] =
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
 };
 
-extern uint32_t g_sampling_ratio;
-
-/* 
+/*
  * do-nothing implementation of compat_ptr for systems that are not compiled
  * with CONFIG_COMPAT.
  */
@@ -265,51 +262,41 @@ static int32_t f_sys_generic(struct event_filler_arguments *args)
 	int32_t res;
 
 #ifndef __x86_64__
-	if (unlikely(args->syscall_id == __NR_socketcall))
-	{
+	if (unlikely(args->syscall_id == __NR_socketcall)) {
 		/*
 		 * All the socket calls should be implemented
 		 */
 		ASSERT(false);
 		return PPM_FAILURE_BUG;
-	}
-	else
-	{
+	} else {
 #endif /* __x86_64__ */
 		/*
 		 * name
 		 */
-		if (likely(args->syscall_id < SYSCALL_TABLE_SIZE))
-		{
+		if (likely(args->syscall_id < SYSCALL_TABLE_SIZE)) {
 			enum ppm_syscall_code sc_code = g_syscall_code_routing_table[args->syscall_id];
 
 			/*
 			 * ID
 			 */
 			res = val_to_ring(args, sc_code, 0, false);
-			if (unlikely(res != PPM_SUCCESS))
-			{
+			if (unlikely(res != PPM_SUCCESS)) {
 				return res;
 			}
 
-			if (args->event_type == PPME_GENERIC_E)
-			{
+			if (args->event_type == PPME_GENERIC_E) {
 				/*
 				 * nativeID
 				 */
 				res = val_to_ring(args, args->syscall_id, 0, false);
-				if (unlikely(res != PPM_SUCCESS))
-				{
+				if (unlikely(res != PPM_SUCCESS)) {
 					return res;
 				}
 			}
-		}
-		else
-		{
+		} else {
 			ASSERT(false);
 			res = val_to_ring(args, (unsigned long)"<out of bound>", 0, false);
-			if (unlikely(res != PPM_SUCCESS))
-			{
+			if (unlikely(res != PPM_SUCCESS)) {
 				return res;
 			}
 		}
@@ -332,8 +319,7 @@ static int32_t f_sys_single(struct event_filler_arguments *args)
 
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -347,8 +333,7 @@ static int32_t f_sys_single_x(struct event_filler_arguments *args)
 
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -359,68 +344,57 @@ static inline uint32_t open_flags_to_scap(unsigned long flags)
 {
 	uint32_t res = 0;
 
-	switch (flags & (O_RDONLY | O_WRONLY | O_RDWR))
-	{
-		case O_WRONLY:
-			res |= PPM_O_WRONLY;
-			break;
-		case O_RDWR:
-			res |= PPM_O_RDWR;
-			break;
-		default:
-			res |= PPM_O_RDONLY;
-			break;
+	switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
+	case O_WRONLY:
+		res |= PPM_O_WRONLY;
+		break;
+	case O_RDWR:
+		res |= PPM_O_RDWR;
+		break;
+	default:
+		res |= PPM_O_RDONLY;
+		break;
 	}
 
-	if (flags & O_CREAT)
-	{
+	if (flags & O_CREAT) {
 		res |= PPM_O_CREAT;
 	}
 
-	if (flags & O_APPEND)
-	{
+	if (flags & O_APPEND) {
 		res |= PPM_O_APPEND;
 	}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-	if (flags & O_DSYNC)
-	{
+	if (flags & O_DSYNC) {
 		res |= PPM_O_DSYNC;
 	}
 #endif
 
-	if (flags & O_EXCL)
-	{
+	if (flags & O_EXCL) {
 		res |= PPM_O_EXCL;
 	}
 
-	if (flags & O_NONBLOCK)
-	{
+	if (flags & O_NONBLOCK) {
 		res |= PPM_O_NONBLOCK;
 	}
 
-	if (flags & O_SYNC)
-	{
+	if (flags & O_SYNC) {
 		res |= PPM_O_SYNC;
 	}
 
-	if (flags & O_TRUNC)
-	{
+	if (flags & O_TRUNC) {
 		res |= PPM_O_TRUNC;
 	}
 
-	if (flags & O_DIRECT)
-	{
+	if (flags & O_DIRECT) {
 		res |= PPM_O_DIRECT;
 	}
 
-	if (flags & O_DIRECTORY)
-	{
+	if (flags & O_DIRECTORY) {
 		res |= PPM_O_DIRECTORY;
 	}
 
-	if (flags & O_LARGEFILE)
-	{
+	if (flags & O_LARGEFILE) {
 		res |= PPM_O_LARGEFILE;
 	}
 
@@ -435,8 +409,7 @@ static int32_t f_sys_open_x(struct event_filler_arguments *args)
 
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -445,8 +418,7 @@ static int32_t f_sys_open_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -456,21 +428,19 @@ static int32_t f_sys_open_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, open_flags_to_scap(val), 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
-	/* 
+	/*
 	 * Mode
 	 * XXX: at this time, mode decoding is not supported. We nonetheless return a value (zero)
 	 * so the format of the event is ready for when we'll export the mode in the future.
-	 * 
-	 * syscall_get_arguments(current, args->regs, 2, 1, &val); 
+	 *
+	 * syscall_get_arguments(current, args->regs, 2, 1, &val);
 	 */
 	res = val_to_ring(args, 0, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -490,27 +460,23 @@ static int32_t f_sys_read_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	/*
 	 * data
 	 */
-	if (retval < 0)
-	{
+	if (retval < 0) {
 		/*
 		 * The operation failed, return an empty buffer
 		 */
 		val = 0;
 		bufsize = 0;
-	}
-	else
-	{
+	} else {
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 
-		/* 
+		/*
 		 * The return value can be lower than the value provided by the user,
 		 * and we take that into account.
 		 */
@@ -532,13 +498,10 @@ static int32_t f_sys_read_x(struct event_filler_arguments *args)
 		fd = (int)val;
 
 		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock)
-		{
+		if (sock) {
 			snaplen = g_snaplen;
 			fput_light(sock->file, fput_needed);
-		}
-		else
-		{
+		} else {
 			snaplen = RW_SNAPLEN;
 		}
 	}
@@ -547,9 +510,8 @@ static int32_t f_sys_read_x(struct event_filler_arguments *args)
 	/*
 	 * Copy the buffer
 	 */
-	res = val_to_ring(args, val, min(bufsize, (unsigned long)snaplen), true);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	res = val_to_ring(args, val, min_t(unsigned long, bufsize, (unsigned long)snaplen), true);
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -569,8 +531,7 @@ static int32_t f_sys_write_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -595,13 +556,10 @@ static int32_t f_sys_write_x(struct event_filler_arguments *args)
 		fd = (int)val;
 
 		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock)
-		{
+		if (sock) {
 			snaplen = g_snaplen;
 			fput_light(sock->file, fput_needed);
-		}
-		else
-		{
+		} else {
 			snaplen = RW_SNAPLEN;
 		}
 	}
@@ -611,9 +569,8 @@ static int32_t f_sys_write_x(struct event_filler_arguments *args)
 	 * Copy the buffer
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, val, min(bufsize, (unsigned long)snaplen), true);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	res = val_to_ring(args, val, min_t(unsigned long, bufsize, (unsigned long)snaplen), true);
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -624,83 +581,67 @@ static inline uint32_t clone_flags_to_scap(unsigned long flags)
 {
 	uint32_t res = 0;
 
-	if (flags & CLONE_FILES)
-	{
+	if (flags & CLONE_FILES) {
 		res |= PPM_CL_CLONE_FILES;
 	}
 
-	if (flags & CLONE_FS)
-	{
+	if (flags & CLONE_FS) {
 		res |= PPM_CL_CLONE_FS;
 	}
 
-	if (flags & CLONE_IO)
-	{
+	if (flags & CLONE_IO) {
 		res |= PPM_CL_CLONE_IO;
 	}
 
-	if (flags & CLONE_NEWIPC)
-	{
+	if (flags & CLONE_NEWIPC) {
 		res |= PPM_CL_CLONE_NEWIPC;
 	}
 
-	if (flags & CLONE_NEWNET)
-	{
+	if (flags & CLONE_NEWNET) {
 		res |= PPM_CL_CLONE_NEWNET;
 	}
 
-	if (flags & CLONE_NEWNS)
-	{
+	if (flags & CLONE_NEWNS) {
 		res |= PPM_CL_CLONE_NEWNS;
 	}
 
-	if (flags & CLONE_NEWPID)
-	{
+	if (flags & CLONE_NEWPID) {
 		res |= PPM_CL_CLONE_NEWPID;
 	}
 
-	if (flags & CLONE_NEWUTS)
-	{
+	if (flags & CLONE_NEWUTS) {
 		res |= PPM_CL_CLONE_NEWUTS;
 	}
 
-	if (flags & CLONE_PARENT_SETTID)
-	{
+	if (flags & CLONE_PARENT_SETTID) {
 		res |= PPM_CL_CLONE_PARENT_SETTID;
 	}
 
-	if (flags & CLONE_PARENT)
-	{
+	if (flags & CLONE_PARENT) {
 		res |= PPM_CL_CLONE_PARENT;
 	}
 
-	if (flags & CLONE_PTRACE)
-	{
+	if (flags & CLONE_PTRACE) {
 		res |= PPM_CL_CLONE_PTRACE;
 	}
 
-	if (flags & CLONE_SIGHAND)
-	{
+	if (flags & CLONE_SIGHAND) {
 		res |= PPM_CL_CLONE_SIGHAND;
 	}
 
-	if (flags & CLONE_SYSVSEM)
-	{
+	if (flags & CLONE_SYSVSEM) {
 		res |= PPM_CL_CLONE_SYSVSEM;
 	}
 
-	if (flags & CLONE_THREAD)
-	{
+	if (flags & CLONE_THREAD) {
 		res |= PPM_CL_CLONE_THREAD;
 	}
 
-	if (flags & CLONE_UNTRACED)
-	{
+	if (flags & CLONE_UNTRACED) {
 		res |= PPM_CL_CLONE_UNTRACED;
 	}
 
-	if (flags & CLONE_VM)
-	{
+	if (flags & CLONE_VM) {
 		res |= PPM_CL_CLONE_VM;
 	}
 
@@ -726,48 +667,40 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
-	if (likely(retval >= 0))
-	{
-		if (unlikely(!mm))
-		{
+	if (likely(retval >= 0)) {
+		if (unlikely(!mm)) {
 			args->str_storage[0] = 0;
-			printk(KERN_INFO "sysdig-probe: f_proc_startupdate drop, mm=NULL\n");
+			pr_info("sysdig-probe: f_proc_startupdate drop, mm=NULL\n");
 			return PPM_FAILURE_BUG;
 		}
-		if (unlikely(!mm->arg_end))
-		{
+
+		if (unlikely(!mm->arg_end)) {
 			args->str_storage[0] = 0;
-			printk(KERN_INFO "sysdig-probe: f_proc_startupdate drop, mm->arg_end=NULL\n");
+			pr_info("sysdig-probe: f_proc_startupdate drop, mm->arg_end=NULL\n");
 			return PPM_FAILURE_BUG;
 		}
 
 		args_len = mm->arg_end - mm->arg_start;
 
-		if (args_len > PAGE_SIZE)
-		{
+		if (args_len > PAGE_SIZE) {
 			args_len = PAGE_SIZE;
 		}
 
-		if (unlikely(ppm_copy_from_user(args->str_storage, (const void *) mm->arg_start, args_len)))
-		{
+		if (unlikely(ppm_copy_from_user(args->str_storage, (const void *) mm->arg_start, args_len))) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 
 		args->str_storage[args_len - 1] = 0;
 
 		exe_len = strnlen(args->str_storage, args_len);
-		if (exe_len < args_len)
-		{
+		if (exe_len < args_len) {
 			++exe_len;
 		}
-	}
-	else
-	{
+	} else {
 		/*
 		 * The call failed. Return empty strings for exe and args
 		 */
@@ -779,8 +712,7 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	 * exe
 	 */
 	res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -788,8 +720,7 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	 * Args
 	 */
 	res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -797,8 +728,7 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	 * tid
 	 */
 	res = val_to_ring(args, (int64_t)current->pid, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -806,26 +736,21 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	 * pid
 	 */
 	res = val_to_ring(args, (int64_t)current->tgid, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	/*
 	 * ptid
 	 */
-	if (current->real_parent)
-	{
+	if (current->real_parent) {
 		ptid = current->parent->pid;
-	}
-	else
-	{
+	} else {
 		ptid = 0;
 	}
 
 	res = val_to_ring(args, (int64_t)ptid, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -833,14 +758,12 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	 * cwd
 	 */
 	spwd = npm_getcwd(args->str_storage, STR_STORAGE_SIZE - 1);
-	if (spwd == NULL)
-	{
+	if (spwd == NULL) {
 		spwd = "";
 	}
 
 	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -848,23 +771,20 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	 * fdlimit
 	 */
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false);
-	if (res != PPM_SUCCESS)
-	{
+	if (res != PPM_SUCCESS) {
 		return res;
 	}
 
 	/*
 	 * clone-only parameters
 	 */
-	if (args->event_type == PPME_CLONE_X)
-	{
+	if (args->event_type == PPME_CLONE_X) {
 		/*
 		 * flags
 		 */
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		res = val_to_ring(args, (uint64_t)clone_flags_to_scap(val), 0, false);
-		if (unlikely(res != PPM_SUCCESS))
-		{
+		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
 
@@ -873,8 +793,7 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 		 */
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		res = val_to_ring(args, (uint64_t)current->cred->euid, 0, false);
-		if (unlikely(res != PPM_SUCCESS))
-		{
+		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
 
@@ -883,8 +802,7 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 		 */
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		res = val_to_ring(args, (uint64_t)current->cred->egid, 0, false);
-		if (unlikely(res != PPM_SUCCESS))
-		{
+		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
 	}
@@ -928,14 +846,12 @@ static int32_t f_sys_socket_bind_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[2];
 #endif
 
-	if (usrsockaddr != NULL && val != 0)
-	{
+	if (usrsockaddr != NULL && val != 0) {
 		/*
 		 * Copy the address
 		 */
 		err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-		if (likely(err >= 0))
-		{
+		if (likely(err >= 0)) {
 			/*
 			 * Convert the fd into socket endpoint information
 			 */
@@ -953,8 +869,7 @@ static int32_t f_sys_socket_bind_x(struct event_filler_arguments *args)
 			    (uint64_t)(unsigned long)targetbuf,
 			    size,
 			    false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -991,8 +906,7 @@ static int32_t f_sys_connect_x(struct event_filler_arguments *args)
 	fd = (int)args->socketcall_args[0];
 #endif
 
-	if (fd >= 0)
-	{
+	if (fd >= 0) {
 		/*
 		 * Get the address
 		 */
@@ -1012,14 +926,12 @@ static int32_t f_sys_connect_x(struct event_filler_arguments *args)
 		val = args->socketcall_args[2];
 #endif
 
-		if (usrsockaddr != NULL && val != 0)
-		{
+		if (usrsockaddr != NULL && val != 0) {
 			/*
 			 * Copy the address
 			 */
 			err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-			if (likely(err >= 0))
-			{
+			if (likely(err >= 0)) {
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
@@ -1041,8 +953,7 @@ static int32_t f_sys_connect_x(struct event_filler_arguments *args)
 			    (uint64_t)(unsigned long)targetbuf,
 			    size,
 			    false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1065,16 +976,14 @@ static int32_t f_sys_socketpair_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	/*
 	 * If the call was succesful, copy the FDs
 	 */
-	if (likely(retval >= 0))
-	{
+	if (likely(retval >= 0)) {
 		/*
 		 * fds
 		 */
@@ -1083,60 +992,49 @@ static int32_t f_sys_socketpair_x(struct event_filler_arguments *args)
 #else
 		val = args->socketcall_args[3];
 #endif
-		if (unlikely(ppm_copy_from_user(fds, (const void *)val, sizeof(fds))))
-		{
+		if (unlikely(ppm_copy_from_user(fds, (const void *)val, sizeof(fds)))) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 
 		res = val_to_ring(args, fds[0], 0, false);
-		if (unlikely(res != PPM_SUCCESS))
-		{
+		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
 
 		res = val_to_ring(args, fds[1], 0, false);
-		if (unlikely(res != PPM_SUCCESS))
-		{
+		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
 
 		/* get socket source and peer address */
 		sock = sockfd_lookup(fds[0], &err);
-		if (likely(sock != NULL))
-		{
+		if (likely(sock != NULL)) {
 			us = unix_sk(sock->sk);
 			speer = us->peer;
 			res = val_to_ring(args, (unsigned long)us, 0, false);
-			if (unlikely(res != PPM_SUCCESS))
-			{
+			if (unlikely(res != PPM_SUCCESS)) {
 				sockfd_put(sock);
 				return res;
 			}
+
 			res = val_to_ring(args, (unsigned long)speer, 0, false);
-			if (unlikely(res != PPM_SUCCESS))
-			{
+			if (unlikely(res != PPM_SUCCESS)) {
 				sockfd_put(sock);
 				return res;
 			}
 
 			sockfd_put(sock);
-		}
-		else
-		{
+		} else {
 			return err;
 		}
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false);
-		if (unlikely(res != PPM_SUCCESS))
-		{
+		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
 
 		res = val_to_ring(args, 0, 0, false);
-		if (unlikely(res != PPM_SUCCESS))
-		{
+		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
 	}
@@ -1154,8 +1052,7 @@ static int32_t f_sys_accept4_e(struct event_filler_arguments *args)
 	 */
 	/* res = val_to_ring(args, args->socketcall_args[3]); */
 	res = val_to_ring(args, 0, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1178,8 +1075,7 @@ static int32_t f_sys_accept_x(struct event_filler_arguments *args)
 	 */
 	fd = syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, (int64_t)fd, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1201,8 +1097,7 @@ static int32_t f_sys_accept_x(struct event_filler_arguments *args)
 			    (uint64_t)(unsigned long)targetbuf,
 			    size,
 			    false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1216,31 +1111,23 @@ static int32_t f_sys_accept_x(struct event_filler_arguments *args)
 #endif
 	sock = sockfd_lookup(srvskfd, &err);
 
-	if (unlikely(!sock || !(sock->sk)))
-	{
+	if (unlikely(!sock || !(sock->sk))) {
 		val = 0;
 
-		if (sock)
-		{
+		if (sock) {
 			sockfd_put(sock);
 		}
-	}
-	else
-	{
-		if (sock->sk->sk_max_ack_backlog == 0)
-		{
+	} else {
+		if (sock->sk->sk_max_ack_backlog == 0) {
 			val = 0;
-		}
-		else
-		{
+		} else {
 			val = (unsigned long)sock->sk->sk_ack_backlog * 100 / sock->sk->sk_max_ack_backlog;
 		}
 		sockfd_put(sock);
 	}
 
 	res = val_to_ring(args, val, 0, false);
-	if (res != PPM_SUCCESS)
-	{
+	if (res != PPM_SUCCESS) {
 		return res;
 	}
 
@@ -1262,8 +1149,7 @@ static int32_t f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	val = args->socketcall_args[0];
 #endif
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1278,8 +1164,7 @@ static int32_t f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	size = args->socketcall_args[2];
 #endif
 	res = val_to_ring(args, size, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1293,12 +1178,9 @@ static int32_t f_sys_send_e(struct event_filler_arguments *args)
 
 	res = f_sys_send_e_common(args, &fd);
 
-	if (likely(res == PPM_SUCCESS))
-	{
+	if (likely(res == PPM_SUCCESS)) {
 		return add_sentinel(args);
-	}
-	else
-	{
+	} else {
 		return res;
 	}
 }
@@ -1320,8 +1202,7 @@ static int32_t f_sys_sendto_e(struct event_filler_arguments *args)
 	 * Push the common params to the ring
 	 */
 	res = f_sys_send_e_common(args, &fd);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1344,14 +1225,12 @@ static int32_t f_sys_sendto_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[5];
 #endif
 
-	if (usrsockaddr != NULL && val != 0)
-	{
+	if (usrsockaddr != NULL && val != 0) {
 		/*
 		 * Copy the address
 		 */
 		err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-		if (likely(err >= 0))
-		{
+		if (likely(err >= 0)) {
 			/*
 			 * Convert the fd into socket endpoint information
 			 */
@@ -1372,8 +1251,7 @@ static int32_t f_sys_sendto_e(struct event_filler_arguments *args)
 			    (uint64_t)(unsigned long)targetbuf,
 			    size,
 			    false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1392,40 +1270,35 @@ static int32_t f_sys_send_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	/*
 	 * data
 	 */
-	if (retval < 0)
-	{
+	if (retval < 0) {
 		/*
 		 * The operation failed, return an empty buffer
 		 */
 		val = 0;
 		bufsize = 0;
-	}
-	else
-	{
+	} else {
 #ifdef __x86_64__
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 		val = args->socketcall_args[1];
 #endif
 
-		/* 
+		/*
 		 * The return value can be lower than the value provided by the user,
 		 * and we take that into account.
 		 */
 		bufsize = retval;
 	}
 
-	res = val_to_ring(args, val, min(bufsize, (unsigned long)g_snaplen), true);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	res = val_to_ring(args, val, min_t(unsigned long, bufsize, (unsigned long)g_snaplen), true);
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1446,8 +1319,7 @@ static int32_t f_sys_recv_e_common(struct event_filler_arguments *args)
 	val = args->socketcall_args[0];
 #endif
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1460,8 +1332,7 @@ static int32_t f_sys_recv_e_common(struct event_filler_arguments *args)
 	val = args->socketcall_args[2];
 #endif
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1474,12 +1345,9 @@ static int32_t f_sys_recv_e(struct event_filler_arguments *args)
 
 	res = f_sys_recv_e_common(args);
 
-	if (likely(res == PPM_SUCCESS))
-	{
+	if (likely(res == PPM_SUCCESS)) {
 		return add_sentinel(args);
-	}
-	else
-	{
+	} else {
 		return res;
 	}
 }
@@ -1489,12 +1357,9 @@ static int32_t f_sys_recvfrom_e(struct event_filler_arguments *args)
 	int32_t res;
 
 	res = f_sys_recv_e_common(args);
-	if (likely(res == PPM_SUCCESS))
-	{
+	if (likely(res == PPM_SUCCESS)) {
 		return add_sentinel(args);
-	}
-	else
-	{
+	} else {
 		return res;
 	}
 }
@@ -1510,40 +1375,35 @@ static int32_t f_sys_recv_x_common(struct event_filler_arguments *args, int64_t 
 	 */
 	*retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, *retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	/*
 	 * data
 	 */
-	if (*retval < 0)
-	{
+	if (*retval < 0) {
 		/*
 		 * The operation failed, return an empty buffer
 		 */
 		val = 0;
 		bufsize = 0;
-	}
-	else
-	{
+	} else {
 #ifdef __x86_64__
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 		val = args->socketcall_args[1];
 #endif
 
-		/* 
+		/*
 		 * The return value can be lower than the value provided by the user,
 		 * and we take that into account.
 		 */
 		bufsize = *retval;
 	}
 
-	res = val_to_ring(args, val, min(bufsize, (unsigned long)g_snaplen), true);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	res = val_to_ring(args, val, min_t(unsigned long, bufsize, (unsigned long)g_snaplen), true);
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1557,12 +1417,9 @@ static int32_t f_sys_recv_x(struct event_filler_arguments *args)
 
 	res = f_sys_recv_x_common(args, &retval);
 
-	if (likely(res == PPM_SUCCESS))
-	{
+	if (likely(res == PPM_SUCCESS)) {
 		return add_sentinel(args);
-	}
-	else
-	{
+	} else {
 		return res;
 	}
 }
@@ -1584,13 +1441,11 @@ static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args)
 	 * Push the common params to the ring
 	 */
 	res = f_sys_recv_x_common(args, &retval);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
-	if (retval >= 0)
-	{
+	if (retval >= 0) {
 		/*
 		 * Get the fd
 		 */
@@ -1619,10 +1474,8 @@ static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args)
 #else
 		val = args->socketcall_args[5];
 #endif
-		if (usrsockaddr != NULL && val != 0)
-		{
-			if (unlikely(ppm_copy_from_user(&addrlen, (const void *)val, sizeof(addrlen))))
-			{
+		if (usrsockaddr != NULL && val != 0) {
+			if (unlikely(ppm_copy_from_user(&addrlen, (const void *)val, sizeof(addrlen)))) {
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 			}
 
@@ -1630,8 +1483,7 @@ static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args)
 			 * Copy the address
 			 */
 			err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
-			if (likely(err >= 0))
-			{
+			if (likely(err >= 0)) {
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
@@ -1653,8 +1505,7 @@ static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args)
 			    (uint64_t)(unsigned long)targetbuf,
 			    size,
 			    false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1686,8 +1537,7 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 #endif
 	fd = val;
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1700,8 +1550,7 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr))))
-	{
+	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
@@ -1712,8 +1561,7 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 	iovcnt = mh.msg_iovlen;
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1723,14 +1571,12 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 	usrsockaddr = (struct sockaddr __user *)mh.msg_name;
 	addrlen = mh.msg_namelen;
 
-	if (usrsockaddr != NULL && addrlen != 0)
-	{
+	if (usrsockaddr != NULL && addrlen != 0) {
 		/*
 		 * Copy the address
 		 */
 		err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
-		if (likely(err >= 0))
-		{
+		if (likely(err >= 0)) {
 			/*
 			 * Convert the fd into socket endpoint information
 			 */
@@ -1749,8 +1595,7 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 			    (uint64_t)(unsigned long)targetbuf,
 			    size,
 			    false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1771,8 +1616,7 @@ static int32_t f_sys_sendmsg_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1785,8 +1629,7 @@ static int32_t f_sys_sendmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr))))
-	{
+	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
@@ -1797,8 +1640,7 @@ static int32_t f_sys_sendmsg_x(struct event_filler_arguments *args)
 	iovcnt = mh.msg_iovlen;
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_DATA);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1819,8 +1661,7 @@ static int32_t f_sys_recvmsg_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[0];
 #endif
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1848,8 +1689,7 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1862,8 +1702,7 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr))))
-	{
+	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
@@ -1874,16 +1713,14 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 	iovcnt = mh.msg_iovlen;
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	/*
 	 * tuple
 	 */
-	if (retval >= 0)
-	{
+	if (retval >= 0) {
 		/*
 		 * Get the fd
 		 */
@@ -1900,14 +1737,12 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 		usrsockaddr = (struct sockaddr __user *)mh.msg_name;
 		addrlen = mh.msg_namelen;
 
-		if (usrsockaddr != NULL && addrlen != 0)
-		{
+		if (usrsockaddr != NULL && addrlen != 0) {
 			/*
 			 * Copy the address
 			 */
 			err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
-			if (likely(err >= 0))
-			{
+			if (likely(err >= 0)) {
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
@@ -1927,8 +1762,7 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 			    (uint64_t)(unsigned long)targetbuf,
 			    size,
 			    false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1949,8 +1783,7 @@ static int32_t f_sys_pipe_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -1959,33 +1792,29 @@ static int32_t f_sys_pipe_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	if (unlikely(ppm_copy_from_user(fds, (const void *)val, sizeof(fds))))
-	{
+	if (unlikely(ppm_copy_from_user(fds, (const void *)val, sizeof(fds)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
 	res = val_to_ring(args, fds[0], 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	res = val_to_ring(args, fds[1], 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	file = fget(fds[0]);
 	val = 0;
-	if (likely(file != NULL))
-	{
+	if (likely(file != NULL)) {
 		val = file->f_dentry->d_inode->i_ino;
 		fput(file);
 	}
+
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2002,8 +1831,7 @@ static int32_t f_sys_eventfd_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2014,8 +1842,7 @@ static int32_t f_sys_eventfd_e(struct event_filler_arguments *args)
 	/* syscall_get_arguments(current, args->regs, 1, 1, &val); */
 	val = 0;
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2024,20 +1851,13 @@ static int32_t f_sys_eventfd_e(struct event_filler_arguments *args)
 
 static inline uint16_t shutdown_how_to_scap(unsigned long how)
 {
-	if (how == SHUT_RD)
-	{
+	if (how == SHUT_RD) {
 		return PPM_SHUT_RD;
-	}
-	else if (how == SHUT_WR)
-	{
+	} else if (how == SHUT_WR) {
 		return SHUT_WR;
-	}
-	else if (how == SHUT_RDWR)
-	{
+	} else if (how == SHUT_RDWR) {
 		return SHUT_RDWR;
-	}
-	else
-	{
+	} else {
 		ASSERT(false);
 		return (uint16_t)how;
 	}
@@ -2057,8 +1877,7 @@ static int32_t f_sys_shutdown_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[0];
 #endif
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2071,8 +1890,7 @@ static int32_t f_sys_shutdown_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 	res = val_to_ring(args, (unsigned long)shutdown_how_to_scap(val), 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2084,66 +1902,39 @@ static inline uint16_t futex_op_to_scap(unsigned long op)
 	uint16_t res = 0;
 	unsigned long flt_op = op & 127;
 
-	if (flt_op == FUTEX_WAIT)
-	{
+	if (flt_op == FUTEX_WAIT) {
 		res = PPM_FU_FUTEX_WAIT;
-	}
-	else if (flt_op == FUTEX_WAKE)
-	{
+	} else if (flt_op == FUTEX_WAKE) {
 		res = PPM_FU_FUTEX_WAKE;
-	}
-	else if (flt_op == FUTEX_FD)
-	{
+	} else if (flt_op == FUTEX_FD) {
 		res = PPM_FU_FUTEX_FD;
-	}
-	else if (flt_op == FUTEX_REQUEUE)
-	{
+	} else if (flt_op == FUTEX_REQUEUE) {
 		res = PPM_FU_FUTEX_REQUEUE;
-	}
-	else if (flt_op == FUTEX_CMP_REQUEUE)
-	{
+	} else if (flt_op == FUTEX_CMP_REQUEUE) {
 		res = PPM_FU_FUTEX_CMP_REQUEUE;
-	}
-	else if (flt_op == FUTEX_WAKE_OP)
-	{
+	} else if (flt_op == FUTEX_WAKE_OP) {
 		res = PPM_FU_FUTEX_WAKE_OP;
-	}
-	else if (flt_op == FUTEX_LOCK_PI)
-	{
+	} else if (flt_op == FUTEX_LOCK_PI) {
 		res = PPM_FU_FUTEX_LOCK_PI;
-	}
-	else if (flt_op == FUTEX_UNLOCK_PI)
-	{
+	} else if (flt_op == FUTEX_UNLOCK_PI) {
 		res = PPM_FU_FUTEX_UNLOCK_PI;
-	}
-	else if (flt_op == FUTEX_TRYLOCK_PI)
-	{
+	} else if (flt_op == FUTEX_TRYLOCK_PI) {
 		res = PPM_FU_FUTEX_TRYLOCK_PI;
-	}
-	else if (flt_op == FUTEX_WAIT_BITSET)
-	{
+	} else if (flt_op == FUTEX_WAIT_BITSET) {
 		res = PPM_FU_FUTEX_WAIT_BITSET;
-	}
-	else if (flt_op == FUTEX_WAKE_BITSET)
-	{
+	} else if (flt_op == FUTEX_WAKE_BITSET) {
 		res = PPM_FU_FUTEX_WAKE_BITSET;
-	}
-	else if (flt_op == FUTEX_WAIT_REQUEUE_PI)
-	{
+	} else if (flt_op == FUTEX_WAIT_REQUEUE_PI) {
 		res = PPM_FU_FUTEX_WAIT_REQUEUE_PI;
-	}
-	else if (flt_op == FUTEX_CMP_REQUEUE_PI)
-	{
+	} else if (flt_op == FUTEX_CMP_REQUEUE_PI) {
 		res = PPM_FU_FUTEX_CMP_REQUEUE_PI;
 	}
 
-	if (op & FUTEX_PRIVATE_FLAG)
-	{
+	if (op & FUTEX_PRIVATE_FLAG) {
 		res |= PPM_FU_FUTEX_PRIVATE_FLAG;
 	}
 
-	if (op & FUTEX_CLOCK_REALTIME)
-	{
+	if (op & FUTEX_CLOCK_REALTIME) {
 		res |= PPM_FU_FUTEX_CLOCK_REALTIME;
 	}
 
@@ -2160,8 +1951,7 @@ static int32_t f_sys_futex_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2170,8 +1960,7 @@ static int32_t f_sys_futex_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, (unsigned long)futex_op_to_scap(val), 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2180,8 +1969,7 @@ static int32_t f_sys_futex_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2192,16 +1980,11 @@ static inline uint64_t lseek_whence_to_scap(unsigned long whence)
 {
 	uint64_t res = 0;
 
-	if (whence == SEEK_SET)
-	{
+	if (whence == SEEK_SET) {
 		res = PPM_SEEK_SET;
-	}
-	else if (whence == SEEK_CUR)
-	{
+	} else if (whence == SEEK_CUR) {
 		res = PPM_SEEK_CUR;
-	}
-	else if (whence == SEEK_END)
-	{
+	} else if (whence == SEEK_END) {
 		res = PPM_SEEK_END;
 	}
 
@@ -2218,8 +2001,7 @@ static int32_t f_sys_lseek_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2228,8 +2010,7 @@ static int32_t f_sys_lseek_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2238,8 +2019,7 @@ static int32_t f_sys_lseek_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, lseek_whence_to_scap(val), 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2259,8 +2039,7 @@ static int32_t f_sys_llseek_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2272,8 +2051,7 @@ static int32_t f_sys_llseek_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &ol);
 	offset = (((uint64_t)oh) << 32) + ((uint64_t)ol);
 	res = val_to_ring(args, offset, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2282,8 +2060,7 @@ static int32_t f_sys_llseek_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 4, 1, &val);
 	res = val_to_ring(args, lseek_whence_to_scap(val), 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2295,58 +2072,47 @@ static inline uint16_t poll_events_to_scap(short revents)
 {
 	uint16_t res = 0;
 
-	if (revents & POLLIN)
-	{
+	if (revents & POLLIN) {
 		res |= PPM_POLLIN;
 	}
 
-	if (revents & PPM_POLLPRI)
-	{
+	if (revents & PPM_POLLPRI) {
 		res |= PPM_POLLPRI;
 	}
 
-	if (revents & POLLOUT)
-	{
+	if (revents & POLLOUT) {
 		res |= PPM_POLLOUT;
 	}
 
-	if (revents & POLLRDHUP)
-	{
+	if (revents & POLLRDHUP) {
 		res |= PPM_POLLRDHUP;
 	}
 
-	if (revents & POLLERR)
-	{
+	if (revents & POLLERR) {
 		res |= PPM_POLLERR;
 	}
 
-	if (revents & POLLHUP)
-	{
+	if (revents & POLLHUP) {
 		res |= PPM_POLLHUP;
 	}
 
-	if (revents & POLLNVAL)
-	{
+	if (revents & POLLNVAL) {
 		res |= PPM_POLLNVAL;
 	}
 
-	if (revents & POLLRDNORM)
-	{
+	if (revents & POLLRDNORM) {
 		res |= PPM_POLLRDNORM;
 	}
 
-	if (revents & POLLRDBAND)
-	{
+	if (revents & POLLRDBAND) {
 		res |= PPM_POLLRDBAND;
 	}
 
-	if (revents & POLLWRNORM)
-	{
+	if (revents & POLLWRNORM) {
 		res |= PPM_POLLWRNORM;
 	}
 
-	if (revents & POLLWRBAND)
-	{
+	if (revents & POLLWRBAND) {
 		res |= PPM_POLLWRBAND;
 	}
 
@@ -2366,8 +2132,8 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 
 	/*
 	 * fds
-	 * 
-	 * Get the number of fds 
+	 *
+	 * Get the number of fds
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &nfds);
 
@@ -2375,8 +2141,7 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 	 * Check if we have enough space to store both the fd list
 	 * from user space and the temporary buffer to serialize to the ring
 	 */
-	if (unlikely(sizeof(struct pollfd) * nfds + 2 + 10 * nfds > STR_STORAGE_SIZE))
-	{
+	if (unlikely(sizeof(struct pollfd) * nfds + 2 + 10 * nfds > STR_STORAGE_SIZE)) {
 		return PPM_FAILURE_BUFFER_FULL;
 	}
 
@@ -2384,8 +2149,7 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
 	fds = (struct pollfd *)args->str_storage;
-	if (unlikely(ppm_copy_from_user(fds, (const void *)val, nfds * sizeof(struct pollfd))))
-	{
+	if (unlikely(ppm_copy_from_user(fds, (const void *)val, nfds * sizeof(struct pollfd)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
@@ -2394,20 +2158,15 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 	fds_count = 0;
 
 	/* Copy each fd into the temporary buffer */
-	for (j = 0; j < nfds; j++)
-	{
-		if (enter_event)
-		{
+	for (j = 0; j < nfds; j++) {
+		if (enter_event) {
 			flags = poll_events_to_scap(fds[j].events);
-		}
-		else
-		{
+		} else {
 			/*
 			 * If it's an exit event, we copy only the fds that
 			 * returned something
 			 */
-			if (!fds[j].revents)
-			{
+			if (!fds[j].revents) {
 				continue;
 			}
 
@@ -2431,8 +2190,7 @@ static int32_t f_sys_poll_e(struct event_filler_arguments *args)
 	int32_t res;
 
 	res = poll_parse_fds(args, true);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2441,8 +2199,7 @@ static int32_t f_sys_poll_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2459,14 +2216,12 @@ static int32_t f_sys_poll_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	res = poll_parse_fds(args, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2483,14 +2238,12 @@ static int32_t f_sys_openat_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	if (val == AT_FDCWD)
-	{
+	if (val == AT_FDCWD) {
 		val = PPM_AT_FDCWD;
 	}
 
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2499,19 +2252,17 @@ static int32_t f_sys_openat_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
-	/* 
+	/*
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, open_flags_to_scap(val), 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2519,12 +2270,11 @@ static int32_t f_sys_openat_e(struct event_filler_arguments *args)
 	 * Mode
 	 * XXX: at this time, mode decoding is not supported. We nonetheless return a value (zero)
 	 * so the format of the event is ready for when we'll export the mode in the future.
-	 * 
-	 * syscall_get_arguments(current, args->regs, 3, 1, &val); 
+	 *
+	 * syscall_get_arguments(current, args->regs, 3, 1, &val);
 	 */
 	res = val_to_ring(args, 0, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2546,8 +2296,7 @@ static int32_t f_sys_pread64_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2556,8 +2305,7 @@ static int32_t f_sys_pread64_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &size);
 	res = val_to_ring(args, size, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2570,8 +2318,7 @@ static int32_t f_sys_pread64_e(struct event_filler_arguments *args)
 	pos64 = merge_64(pos1, pos0);
 
 	res = val_to_ring(args, pos64, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2595,8 +2342,7 @@ static int32_t f_sys_pwrite64_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2605,8 +2351,7 @@ static int32_t f_sys_pwrite64_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &size);
 	res = val_to_ring(args, size, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2618,8 +2363,7 @@ static int32_t f_sys_pwrite64_e(struct event_filler_arguments *args)
 #ifdef __x86_64__
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 #else
@@ -2628,8 +2372,7 @@ static int32_t f_sys_pwrite64_e(struct event_filler_arguments *args)
 	pos64 = merge_64(pos1, pos0);
 
 	res = val_to_ring(args, pos64, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 #endif
@@ -2650,8 +2393,7 @@ static int32_t f_sys_readv_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2663,8 +2405,7 @@ static int32_t f_sys_readv_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2684,8 +2425,7 @@ static int32_t f_sys_writev_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2711,13 +2451,10 @@ static int32_t f_sys_writev_e(struct event_filler_arguments *args)
 		fd = (int)val;
 
 		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock)
-		{
+		if (sock) {
 			snaplen = g_snaplen;
 			fput_light(sock->file, fput_needed);
-		}
-		else
-		{
+		} else {
 			snaplen = RW_SNAPLEN;
 		}
 	}
@@ -2727,8 +2464,7 @@ static int32_t f_sys_writev_e(struct event_filler_arguments *args)
 	 * Copy the buffer
 	 */
 	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_SIZE);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2749,8 +2485,7 @@ static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2776,13 +2511,10 @@ static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 		fd = (int)val;
 
 		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock)
-		{
+		if (sock) {
 			snaplen = g_snaplen;
 			fput_light(sock->file, fput_needed);
-		}
-		else
-		{
+		} else {
 			snaplen = RW_SNAPLEN;
 		}
 	}
@@ -2792,8 +2524,7 @@ static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	 * Copy the buffer
 	 */
 	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_DATA);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2814,8 +2545,7 @@ static int32_t f_sys_preadv_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2828,8 +2558,7 @@ static int32_t f_sys_preadv_e(struct event_filler_arguments *args)
 	pos64 = merge_64(pos1, pos0);
 
 	res = val_to_ring(args, pos64, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2850,8 +2579,7 @@ static int32_t f_sys_preadv_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2863,8 +2591,7 @@ static int32_t f_sys_preadv_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2889,8 +2616,7 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2916,13 +2642,10 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
 		fd = (int)val;
 
 		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock)
-		{
+		if (sock) {
 			snaplen = g_snaplen;
 			fput_light(sock->file, fput_needed);
-		}
-		else
-		{
+		} else {
 			snaplen = RW_SNAPLEN;
 		}
 	}
@@ -2932,8 +2655,7 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
 	 * Copy the buffer
 	 */
 	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_SIZE);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -2945,8 +2667,7 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
 #ifdef __x86_64__
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 #else
@@ -2955,8 +2676,7 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
 	pos64 = merge_64(pos1, pos0);
 
 	res = val_to_ring(args, pos64, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 #endif
@@ -2983,16 +2703,14 @@ static int32_t f_sys_nanosleep_e(struct event_filler_arguments *args)
 			(void *)val,
 			sizeof(struct timespec));
 
-	if (unlikely(cfulen != 0))
-	{
+	if (unlikely(cfulen != 0)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
 	longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
 
 	res = val_to_ring(args, longtime, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3001,43 +2719,42 @@ static int32_t f_sys_nanosleep_e(struct event_filler_arguments *args)
 
 static inline uint8_t rlimit_resource_to_scap(unsigned long rresource)
 {
-	switch (rresource)
-	{
-		case RLIMIT_CPU:
-			return PPM_RLIMIT_CPU;
-		case RLIMIT_FSIZE:
-			return PPM_RLIMIT_FSIZE;
-		case RLIMIT_DATA:
-			return PPM_RLIMIT_DATA;
-		case RLIMIT_STACK:
-			return PPM_RLIMIT_STACK;
-		case RLIMIT_CORE:
-			return PPM_RLIMIT_CORE;
-		case RLIMIT_RSS:
-			return PPM_RLIMIT_RSS;
-		case RLIMIT_NPROC:
-			return PPM_RLIMIT_NPROC;
-		case RLIMIT_NOFILE:
-			return PPM_RLIMIT_NOFILE;
-		case RLIMIT_MEMLOCK:
-			return PPM_RLIMIT_MEMLOCK;
-		case RLIMIT_AS:
-			return PPM_RLIMIT_AS;
-		case RLIMIT_LOCKS:
-			return PPM_RLIMIT_LOCKS;
-		case RLIMIT_SIGPENDING:
-			return PPM_RLIMIT_SIGPENDING;
-		case RLIMIT_MSGQUEUE:
-			return PPM_RLIMIT_MSGQUEUE;
-		case RLIMIT_NICE:
-			return PPM_RLIMIT_NICE;
-		case RLIMIT_RTPRIO:
-			return PPM_RLIMIT_RTPRIO;
-		case RLIMIT_RTTIME:
-			return PPM_RLIMIT_RTTIME;
-		default:
-			ASSERT(false);
-			return PPM_RLIMIT_UNKNOWN;
+	switch (rresource) {
+	case RLIMIT_CPU:
+		return PPM_RLIMIT_CPU;
+	case RLIMIT_FSIZE:
+		return PPM_RLIMIT_FSIZE;
+	case RLIMIT_DATA:
+		return PPM_RLIMIT_DATA;
+	case RLIMIT_STACK:
+		return PPM_RLIMIT_STACK;
+	case RLIMIT_CORE:
+		return PPM_RLIMIT_CORE;
+	case RLIMIT_RSS:
+		return PPM_RLIMIT_RSS;
+	case RLIMIT_NPROC:
+		return PPM_RLIMIT_NPROC;
+	case RLIMIT_NOFILE:
+		return PPM_RLIMIT_NOFILE;
+	case RLIMIT_MEMLOCK:
+		return PPM_RLIMIT_MEMLOCK;
+	case RLIMIT_AS:
+		return PPM_RLIMIT_AS;
+	case RLIMIT_LOCKS:
+		return PPM_RLIMIT_LOCKS;
+	case RLIMIT_SIGPENDING:
+		return PPM_RLIMIT_SIGPENDING;
+	case RLIMIT_MSGQUEUE:
+		return PPM_RLIMIT_MSGQUEUE;
+	case RLIMIT_NICE:
+		return PPM_RLIMIT_NICE;
+	case RLIMIT_RTPRIO:
+		return PPM_RLIMIT_RTPRIO;
+	case RLIMIT_RTTIME:
+		return PPM_RLIMIT_RTTIME;
+	default:
+		ASSERT(false);
+		return PPM_RLIMIT_UNKNOWN;
 	}
 }
 
@@ -3055,8 +2772,7 @@ static int32_t f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 	ppm_resource = rlimit_resource_to_scap(val);
 
 	res = val_to_ring(args, (uint64_t)ppm_resource, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3077,28 +2793,23 @@ static int32_t f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if (retval >= 0 || args->event_type == PPME_SYSCALL_SETRLIMIT_X)
-	{
+	if (retval >= 0 || args->event_type == PPME_SYSCALL_SETRLIMIT_X) {
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 
-		if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit))))
-		{
+		if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit)))) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 
 		cur = rl.rlim_cur;
 		max = rl.rlim_max;
-	}
-	else
-	{
+	} else {
 		cur = -1;
 		max = -1;
 	}
@@ -3107,8 +2818,7 @@ static int32_t f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 	 * cur
 	 */
 	res = val_to_ring(args, cur, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3116,8 +2826,7 @@ static int32_t f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 	 * max
 	 */
 	res = val_to_ring(args, max, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3136,8 +2845,7 @@ static int32_t f_sys_prlimit_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3149,8 +2857,7 @@ static int32_t f_sys_prlimit_e(struct event_filler_arguments *args)
 	ppm_resource = rlimit_resource_to_scap(val);
 
 	res = val_to_ring(args, (uint64_t)ppm_resource, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3173,44 +2880,34 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if (retval >= 0)
-	{
+	if (retval >= 0) {
 		syscall_get_arguments(current, args->regs, 2, 1, &val);
 
-		if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit))))
-		{
+		if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit)))) {
 			newcur = -1;
 			newmax = -1;
-		}
-		else
-		{
+		} else {
 			newcur = rl.rlim_cur;
 			newmax = rl.rlim_max;
 		}
-	}
-	else
-	{
+	} else {
 		newcur = -1;
 		newmax = -1;
 	}
 
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 
-	if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit))))
-	{
+	if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit)))) {
 		oldcur = -1;
 		oldmax = -1;
-	}
-	else
-	{
+	} else {
 		oldcur = rl.rlim_cur;
 		oldmax = rl.rlim_max;
 	}
@@ -3219,8 +2916,7 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
 	 * newcur
 	 */
 	res = val_to_ring(args, newcur, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3228,8 +2924,7 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
 	 * newmax
 	 */
 	res = val_to_ring(args, newmax, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3237,8 +2932,7 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
 	 * oldcur
 	 */
 	res = val_to_ring(args, oldcur, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3246,8 +2940,7 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
 	 * oldmax
 	 */
 	res = val_to_ring(args, oldmax, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3262,8 +2955,7 @@ static int32_t f_sched_switch_e(struct event_filler_arguments *args)
 	int32_t res;
 /* uint64_t steal; */
 
-	if (args->sched_prev == NULL || args->sched_next == NULL)
-	{
+	if (args->sched_prev == NULL || args->sched_next == NULL) {
 		ASSERT(false);
 		return -1;
 	}
@@ -3272,8 +2964,7 @@ static int32_t f_sched_switch_e(struct event_filler_arguments *args)
 	 * next
 	 */
 	res = val_to_ring(args, args->sched_next->pid, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3296,8 +2987,7 @@ static int32_t f_sched_switchex_e(struct event_filler_arguments *args)
 {
 	int32_t res;
 
-	if (args->sched_prev == NULL || args->sched_next == NULL)
-	{
+	if (args->sched_prev == NULL || args->sched_next == NULL) {
 		ASSERT(false);
 		return -1;
 	}
@@ -3306,8 +2996,7 @@ static int32_t f_sched_switchex_e(struct event_filler_arguments *args)
 	/* next */
 	/*  */
 	res = val_to_ring(args, args->sched_next->pid, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3315,8 +3004,7 @@ static int32_t f_sched_switchex_e(struct event_filler_arguments *args)
 	/* pgft_maj */
 	/*  */
 	res = val_to_ring(args, args->sched_prev->maj_flt, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3324,8 +3012,7 @@ static int32_t f_sched_switchex_e(struct event_filler_arguments *args)
 	/* pgft_min */
 	/*  */
 	res = val_to_ring(args, args->sched_prev->min_flt, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3333,8 +3020,7 @@ static int32_t f_sched_switchex_e(struct event_filler_arguments *args)
 	/* next_pgft_maj */
 	/*  */
 	res = val_to_ring(args, args->sched_next->maj_flt, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3342,8 +3028,7 @@ static int32_t f_sched_switchex_e(struct event_filler_arguments *args)
 	/* next_pgft_min */
 	/*  */
 	res = val_to_ring(args, args->sched_next->min_flt, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3360,8 +3045,7 @@ static int32_t f_sched_drop(struct event_filler_arguments *args)
 	 * next
 	 */
 	res = val_to_ring(args, g_sampling_ratio, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3370,63 +3054,62 @@ static int32_t f_sched_drop(struct event_filler_arguments *args)
 
 static inline uint8_t fcntl_cmd_to_scap(unsigned long cmd)
 {
-	switch (cmd)
-	{
-		case F_DUPFD:
-			return PPM_FCNTL_F_DUPFD;
-		case F_GETFD:
-			return PPM_FCNTL_F_GETFD;
-		case F_SETFD:
-			return PPM_FCNTL_F_SETFD;
-		case F_GETFL:
-			return PPM_FCNTL_F_GETFL;
-		case F_SETFL:
-			return PPM_FCNTL_F_SETFL;
-		case F_GETLK:
-			return PPM_FCNTL_F_GETLK;
-		case F_SETLK:
-			return PPM_FCNTL_F_SETLK;
-		case F_SETLKW:
-			return PPM_FCNTL_F_SETLKW;
-		case F_SETOWN:
-			return PPM_FCNTL_F_SETOWN;
-		case F_GETOWN:
-			return PPM_FCNTL_F_GETOWN;
-		case F_SETSIG:
-			return PPM_FCNTL_F_SETSIG;
-		case F_GETSIG:
-			return PPM_FCNTL_F_GETSIG;
-		case F_GETLK64:
-			return PPM_FCNTL_F_GETLK64;
-		case F_SETLK64:
-			return PPM_FCNTL_F_SETLK64;
-		case F_SETLKW64:
-			return PPM_FCNTL_F_SETLKW64;
-		case F_SETOWN_EX:
-			return PPM_FCNTL_F_SETOWN_EX;
-		case F_GETOWN_EX:
-			return PPM_FCNTL_F_GETOWN_EX;
-		case F_SETLEASE:
-			return PPM_FCNTL_F_SETLEASE;
-		case F_GETLEASE:
-			return PPM_FCNTL_F_GETLEASE;
-		case F_CANCELLK:
-			return PPM_FCNTL_F_CANCELLK;
-		case F_DUPFD_CLOEXEC:
-			return PPM_FCNTL_F_DUPFD_CLOEXEC;
-		case F_NOTIFY:
-			return PPM_FCNTL_F_NOTIFY;
+	switch (cmd) {
+	case F_DUPFD:
+		return PPM_FCNTL_F_DUPFD;
+	case F_GETFD:
+		return PPM_FCNTL_F_GETFD;
+	case F_SETFD:
+		return PPM_FCNTL_F_SETFD;
+	case F_GETFL:
+		return PPM_FCNTL_F_GETFL;
+	case F_SETFL:
+		return PPM_FCNTL_F_SETFL;
+	case F_GETLK:
+		return PPM_FCNTL_F_GETLK;
+	case F_SETLK:
+		return PPM_FCNTL_F_SETLK;
+	case F_SETLKW:
+		return PPM_FCNTL_F_SETLKW;
+	case F_SETOWN:
+		return PPM_FCNTL_F_SETOWN;
+	case F_GETOWN:
+		return PPM_FCNTL_F_GETOWN;
+	case F_SETSIG:
+		return PPM_FCNTL_F_SETSIG;
+	case F_GETSIG:
+		return PPM_FCNTL_F_GETSIG;
+	case F_GETLK64:
+		return PPM_FCNTL_F_GETLK64;
+	case F_SETLK64:
+		return PPM_FCNTL_F_SETLK64;
+	case F_SETLKW64:
+		return PPM_FCNTL_F_SETLKW64;
+	case F_SETOWN_EX:
+		return PPM_FCNTL_F_SETOWN_EX;
+	case F_GETOWN_EX:
+		return PPM_FCNTL_F_GETOWN_EX;
+	case F_SETLEASE:
+		return PPM_FCNTL_F_SETLEASE;
+	case F_GETLEASE:
+		return PPM_FCNTL_F_GETLEASE;
+	case F_CANCELLK:
+		return PPM_FCNTL_F_CANCELLK;
+	case F_DUPFD_CLOEXEC:
+		return PPM_FCNTL_F_DUPFD_CLOEXEC;
+	case F_NOTIFY:
+		return PPM_FCNTL_F_NOTIFY;
 #ifdef F_SETPIPE_SZ
-		case F_SETPIPE_SZ:
-			return PPM_FCNTL_F_SETPIPE_SZ;
+	case F_SETPIPE_SZ:
+		return PPM_FCNTL_F_SETPIPE_SZ;
 #endif
 #ifdef F_GETPIPE_SZ
-		case F_GETPIPE_SZ:
-			return PPM_FCNTL_F_GETPIPE_SZ;
+	case F_GETPIPE_SZ:
+		return PPM_FCNTL_F_GETPIPE_SZ;
 #endif
-		default:
-			ASSERT(false);
-			return PPM_FCNTL_UNKNOWN;
+	default:
+		ASSERT(false);
+		return PPM_FCNTL_UNKNOWN;
 	}
 }
 
@@ -3440,8 +3123,7 @@ static int32_t f_sched_fcntl_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
@@ -3450,8 +3132,7 @@ static int32_t f_sched_fcntl_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, fcntl_cmd_to_scap(val), 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 
