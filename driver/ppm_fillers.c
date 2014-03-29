@@ -760,6 +760,15 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	 * clone-only parameters
 	 */
 	if (args->event_type == PPME_CLONE_X) {
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+		uint64_t euid = from_kuid_munged(current_user_ns(), current_euid());
+		uint64_t egid = from_kgid_munged(current_user_ns(), current_egid());
+#else
+		uint64_t euid = current_euid();
+		uint64_t egid = current_egid();
+#endif
+
 		/*
 		 * flags
 		 */
@@ -773,7 +782,7 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 		 * uid
 		 */
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		res = val_to_ring(args, (uint64_t)current->cred->euid, 0, false);
+		res = val_to_ring(args, euid, 0, false);
 		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
@@ -782,7 +791,7 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 		 * gid
 		 */
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		res = val_to_ring(args, (uint64_t)current->cred->egid, 0, false);
+		res = val_to_ring(args, egid, 0, false);
 		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
