@@ -320,6 +320,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(int32_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_INT64:
+		case PT_PID:
 			if(finfo->m_print_format == PF_DEC)
 			{
 				prfmt = (char*)"%" PRId64;
@@ -334,8 +335,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			}
 			else
 			{
-				ASSERT(false);
-				return NULL;
+				prfmt = (char*)"%" PRId64;
 			}
 
 			snprintf(m_getpropertystr_storage,
