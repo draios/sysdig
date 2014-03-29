@@ -21,7 +21,7 @@ function on_init()
 		"System Call",
 		"evt.count",
 		"# Calls",
-		"", 
+		"evt.type!=switch",
 		"" .. TOP_NUMBER,
 		"none")
 	return true
