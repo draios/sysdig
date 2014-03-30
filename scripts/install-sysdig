@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+# Installer for Sysdig
+# www.draios.com
+#
+# (c) 2013-2014 Draios Inc.
+#
+
+set -e
+
+function install_rpm {
+	if ! hash curl > /dev/null 2>&1; then
+		echo "* Installing curl"
+		yum -q -y install curl
+	fi
+
+	if ! yum -q list dkms > /dev/null 2>&1; then
+		echo "* Installing EPEL repository (for DKMS)"
+		rpm --quiet -i http://mirror.us.leaseweb.net/epel/6/i386/epel-release-6-8.noarch.rpm
+	fi
+
+	echo "* Installing Draios public key"
+	rpm --quiet --import http://download.draios.com/DRAIOS-GPG-KEY.public
+	echo "* Installing Draios repository"
+	curl -s -o /etc/yum.repos.d/draios.repo http://download.draios.com/_REPOSITORY_NAME_/rpm/draios.repo
+	echo "* Installing kernel headers"
+	yum -q -y install kernel-devel-$(uname -r) || kernel_warning
+	echo "* Installing Sysdig"
+	yum -q -y install sysdig
+}
+
+function install_deb {
+	export DEBIAN_FRONTEND=noninteractive
+
+	if ! hash curl > /dev/null 2>&1; then
+		echo "* Installing curl"
+		apt-get -qq -y install curl
+	fi
+
+	echo "* Installing Draios public key"
+	curl -s http://download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
+	echo "* Installing Draios repository"
+	curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/_REPOSITORY_NAME_/deb/draios.list
+	apt-get -qq update
+	echo "* Installing kernel headers"
+	apt-get -qq -y install linux-headers-$(uname -r) || kernel_warning
+	echo "* Installing Sysdig"
+	apt-get -qq -y install sysdig
+}
+
+function unsupported {
+    echo "Unsupported operating system. Please consider contacting support@draios.com or trying the manual installation."
+    exit 1	
+}
+
+function kernel_warning {
+    echo "Unable to find kernel development files for the current kernel version" $(uname -r)
+    echo "This usually means that your system is not up-to-date or you installed a custom kernel version."
+    echo "The installation will continue but you'll need to install these yourself in order to use sysdig."
+    echo "Contact support@draios.com if you need further assistance."
+}
+
+if [ $(id -u) != 0 ]; then
+    echo "Installer must be run as root (or with sudo)."
+    exit 1
+fi
+
+echo "* Detecting operating system"
+
+ARCH=$(uname -m)
+if [[ ! $ARCH = *86 ]] && [ ! $ARCH = "x86_64" ]; then
+	unsupported
+fi
+
+if [ -f /etc/debian_version ]; then
+	if [ -f /etc/lsb-release ]; then
+		. /etc/lsb-release
+		DISTRO=$DISTRIB_ID
+		VERSION=$DISTRIB_RELEASE
+	else
+		DISTRO="Debian"
+		VERSION=$(cat /etc/debian_version | cut -d'.' -f1)
+	fi
+
+	if [ $DISTRO = "Ubuntu" ]; then
+		VERSION=$(echo $VERSION | cut -d'.' -f1)
+		if [ $VERSION -ge 10 ]; then
+		    install_deb
+		else
+			unsupported
+		fi
+	elif [ $DISTRO = "Debian" ]; then
+		if [ $VERSION -ge 6 ]; then
+		    install_deb
+		else
+			unsupported
+		fi
+	else
+		unsupported
+	fi
+
+elif [ -f /etc/system-release-cpe ]; then
+	DISTRO=$(cat /etc/system-release-cpe | cut -d':' -f3)
+	VERSION=$(cat /etc/system-release-cpe | cut -d':' -f5)
+
+	if [ $DISTRO = "centos" ] || [ $DISTRO = "redhat" ]; then
+		if echo $VERSION | grep -q ^6; then
+			install_rpm
+		else
+			unsupported
+		fi
+	elif [ $DISTRO = "amazon" ]; then
+	    install_rpm
+	elif [ $DISTRO = "fedoraproject" ]; then
+		if [ $VERSION -ge 18 ]; then
+		    install_rpm
+		else
+			unsupported
+		fi
+	else
+		unsupported
+	fi
+else
+	unsupported
+fi
