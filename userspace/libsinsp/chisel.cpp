@@ -37,7 +37,7 @@ extern sinsp_evttables g_infotables;
 // For LUA debugging
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_LUA_CHISELS
-static void lua_stackdump(lua_State *L) 
+void lua_stackdump(lua_State *L) 
 {
 	int i;
 	int top = lua_gettop(L);
