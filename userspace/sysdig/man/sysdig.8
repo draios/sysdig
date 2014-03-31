@@ -66,6 +66,32 @@ evt.args is the list of event arguments.
 The output format can be customized with the \-p switch, using any of
 the fields listed by \[aq]sysdig \-l\[aq].
 .PP
+\f[B]Trace Files\f[]
+.PP
+A trace file can be created using the \-w flag:
+.RS
+.PP
+$ sysdig \-w trace.scap
+.RE
+.PP
+The \-s flag can be used to specify how many bytes of each data buffer
+should be saved to disk.
+And filters can be
+.PD 0
+.P
+.PD
+used to save only certain events to disk:
+.RS
+.PP
+$ sysdig \-s 2000 \-w trace.scap proc.name=cat
+.RE
+.PP
+Trace files can be read this way:
+.RS
+.PP
+$ sysdig \-r trace.scap
+.RE
+.PP
 \f[B]Filtering\f[]
 .PP
 sysdig filters are specified at the end of the command line.
@@ -119,7 +145,7 @@ expects.
 To run one of the chisels, you use the \-c flag, e.g.:
 .RS
 .PP
-$ sysdig \-c topfiles
+$ sysdig \-c topfiles_bytes
 .RE
 .PP
 If a chisel needs arguments, you specify them after the chisel name:
@@ -131,9 +157,16 @@ $ sysdig \-c spy_ip 192.168.1.157
 Chiesls can be combined with filters:
 .RS
 .PP
-$ sysdig \-c topfiles "not fd.name contains /dev"
+$ sysdig \-c topfiles_bytes "not fd.name contains /dev"
 .RE
 .SS OPTIONS
+.PP
+\f[B]\-A\f[], \f[B]\-\-print\-ascii\f[]
+.PD 0
+.P
+.PD
+Only print the text portion of data buffers, and echo end\-of\-lines.
+This is useful to only display human\-readable data.
 .PP
 \f[B]\-a\f[], \f[B]\-\-abstime\f[]
 .PD 0
@@ -158,11 +191,11 @@ lists the available chisels.
 Looks for chisels in ., ./chisels, ~/chisels and
 /usr/share/sysdig/chisels.
 .PP
-\f[B]\-dv\f[], \f[B]\-\-displayflt\f[]
+\f[B]\-d\f[], \f[B]\-\-displayflt\f[]
 .PD 0
 .P
 .PD
-Make the given filter a dsiplay one Setting this option causes the
+Make the given filter a display one Setting this option causes the
 events to be filtered after being parsed by the state system.
 Events are normally filtered before being analyzed, which is more
 efficient, but can cause state (e.g.
@@ -179,6 +212,14 @@ Print this page
 .P
 .PD
 Emit output as json
+.PP
+\f[B]\-i \f[I]chiselname\f[]\f[], \f[B]\-\-chisel\-info
+\f[I]chiselname\f[]\f[]
+.PD 0
+.P
+.PD
+Get a longer description and the arguments associated with a chisel
+found in the \-cl option list.
 .PP
 \f[B]\-l\f[], \f[B]\-\-list\f[]
 .PD 0
@@ -235,17 +276,39 @@ Capture the first bytes of each I/O buffer.
 By default, the first 80 bytes are captured.
 Use this option with caution, it can generate huge trace files.
 .PP
+\f[B]\-t\f[] \f[I]timetype\f[], \f[B]\-\-timetype\f[]=\f[I]timetype\f[]
+.PD 0
+.P
+.PD
+Change the way event time is diplayed.
+Accepted values are \f[B]h\f[] for human\-readable string, \f[B]a\f[]
+for abosulte timestamp from epoch, \f[B]r\f[] for relative time from the
+beginning of the capture, and \f[B]d\f[] for delta between event enter
+and exit.
+.PP
 \f[B]\-v\f[], \f[B]\-\-verbose\f[]
 .PD 0
 .P
 .PD
-Verbose output
+Verbose output.
 .PP
 \f[B]\-w\f[] \f[I]writefile\f[], \f[B]\-\-write\f[]=\f[I]writefile\f[]
 .PD 0
 .P
 .PD
 Write the captured events to \f[I]writefile\f[].
+.PP
+\f[B]\-x\f[], \f[B]\-\-print\-hex\f[]
+.PD 0
+.P
+.PD
+Print data buffers in hex.
+.PP
+\f[B]\-X\f[], \f[B]\-\-print\-hex\-ascii\f[]
+.PD 0
+.P
+.PD
+Print data buffers in hex and ASCII.
 .SS EXAMPLES
 .PP
 Capture all the events from the live system and print them to screen
