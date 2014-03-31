@@ -1,7 +1,7 @@
 #ifndef EVENTS_PUBLIC_H_
 #define EVENTS_PUBLIC_H_
 
-#include "ppm_types.h"
+#include <linux/types.h>
 
 /*
  * Limits

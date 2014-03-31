@@ -317,22 +317,6 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, ui
 	return PPM_SUCCESS;
 }
 
-inline int32_t add_sentinel(struct event_filler_arguments *args)
-{
-#ifdef PPM_ENABLE_SENTINEL
-	if (likely(args->arg_data_size >= sizeof(uint32_t))) {
-		*(uint32_t *)(args->buffer + args->arg_data_offset) = args->sentinel;
-		args->arg_data_offset += 4;
-		args->arg_data_size -= 4;
-		return PPM_SUCCESS;
-	} else {
-		return PPM_FAILURE_BUFFER_FULL;
-	}
-#else
-	return PPM_SUCCESS;
-#endif
-}
-
 /*
  * Get the current working directory for the current process.
  * Returns the pointer to the string, which is NOT going to be at the beginning

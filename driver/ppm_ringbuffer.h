@@ -1,7 +1,7 @@
 #ifndef PPM_H_
 #define PPM_H_
 
-#include "ppm_types.h"
+#include <linux/types.h>
 
 static const uint32_t RING_BUF_SIZE = 1024 * 1024;
 static const uint32_t MIN_USERSPACE_READ_SIZE = 128 * 1024;
