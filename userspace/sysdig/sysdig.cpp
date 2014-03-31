@@ -57,6 +57,9 @@ static void usage()
 "sysdig version " SYSDIG_VERSION "\n"
 "Usage: sysdig [options] [-p <output_format>] [filter]\n\n"
 "Options:\n"
+" -A, --print-ascii  Only print the text portion of data buffers, and echo\n" 
+"                    end-of-lines. This is useful to only display human-readable\n"
+"                    data.\n"
 " -a, --abstime      Show absolute event timestamps\n"
 " -c <chiselname> <chiselargs>, --chisel  <chiselname> <chiselargs>\n"
 "                    run the specified chisel. If the chisel require arguments,\n"
@@ -98,8 +101,6 @@ static void usage()
 "                    h for human-readable string, a for abosulte timestamp from\n" 
 "                    epoch, r for relative time from the beginning of the\n" 
 "                    capture, and d for delta between event enter and exit.\n" 
-" -T, --print-text   Print only the text portion of data buffers, and echo\n" 
-"                    EOLS. This is useful to only display human-readable data.\n"
 " -v, --verbose      Verbose output.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
@@ -383,6 +384,7 @@ int main(int argc, char **argv)
 
 	static struct option long_options[] = 
 	{
+		{"print-ascii", no_argument, 0, 'A' },
 		{"abstimes", no_argument, 0, 'a' },
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, &cflag, 1 },
@@ -398,7 +400,6 @@ int main(int argc, char **argv)
 		{"readfile", required_argument, 0, 'r' },
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
-		{"print-text", no_argument, 0, 'T' },
 		{"timetype", required_argument, 0, 't' },
 		{"verbose", no_argument, 0, 'v' },
 		{"writefile", required_argument, 0, 'w' },
@@ -407,7 +408,6 @@ int main(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
-//	output_format = "*%evt.num)%evt.reltime.s.%evt.reltime.ns %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
 	output_format = "*%evt.num)<TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args";
 //	output_format = DEFAULT_OUTPUT_STR;
 
@@ -420,10 +420,20 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "ac:dhi:jlLn:p:qr:Ss:Tt:vw:xX", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "Aac:dhi:jlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
+			case 'A':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return EXIT_SUCCESS;
+				}
+
+				event_buffer_format = sinsp_evt::PF_EOLS;
+				break;
 			case 'a':
 				absolute_times = true;
 				break;
@@ -577,16 +587,6 @@ int main(int argc, char **argv)
 				break;
 			case 's':
 				snaplen = atoi(optarg);
-				break;
-			case 'T':
-				if(event_buffer_format != sinsp_evt::PF_NORMAL)
-				{
-					fprintf(stderr, "you cannot specify more than one output format\n");
-					delete inspector;
-					return EXIT_SUCCESS;
-				}
-
-				event_buffer_format = sinsp_evt::PF_EOLS;
 				break;
 			case 't':
 				{

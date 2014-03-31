@@ -33,6 +33,19 @@ where:
 
 The output format can be customized with the -p switch, using any of the fields listed by 'sysdig -l'.
 
+**Trace Files**  
+
+A trace file can be created using the -w flag:
+> $ sysdig -w trace.scap
+
+The -s flag can be used to specify how many bytes of each data buffer should be saved to disk. And filters can be
+used to save only certain events to disk: 
+> $ sysdig -s 2000 -w trace.scap proc.name=cat
+
+Trace files can be read this way: 
+> $ sysdig -r trace.scap
+
+
 **Filtering**  
 
 sysdig filters are specified at the end of the command line. The simplest filter is a simple field-value check:
@@ -52,17 +65,20 @@ To get the list of available chisels, type
 
 For each chisel, you get the description and the list of arguments it expects. 
 To run one of the chisels, you use the -c flag, e.g.:
-> $ sysdig -c topfiles
+> $ sysdig -c topfiles_bytes
 
 If a chisel needs arguments, you specify them after the chisel name:
 > $ sysdig -c spy_ip 192.168.1.157
 
 Chiesls can be combined with filters:
-> $ sysdig -c topfiles "not fd.name contains /dev"
+> $ sysdig -c topfiles_bytes "not fd.name contains /dev"
 
 OPTIONS
 -------
 
+**-A**, **--print-ascii**  
+  Only print the text portion of data buffers, and echo end-of-lines. This is useful to only display human-readable data.
+  
 **-a**, **--abstime**  
   Show absolute event timestamps
   
@@ -110,10 +126,7 @@ OPTIONS
 
 **-t** _timetype_, **--timetype**=_timetype_  
   Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for abosulte timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.
-  
-**-T**, **--print-text**  
-  Print only the text portion of data buffers, and echo EOLS. This is useful to only display human-readable data.
-  
+   
 **-v**, **--verbose**  
   Verbose output.
   
