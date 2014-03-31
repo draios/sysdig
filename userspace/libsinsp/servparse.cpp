@@ -49,42 +49,35 @@ struct servent {
 	char *s_proto;    /*%< protocol to use */
 };
 
-static char SERVDB[] = SYSDIG_SHARE_DIR "/services";
+#if defined SINSP_PUBLIC
+	static char SERVDB[] = SYSDIG_SHARE_DIR "/services";
+	static char SERVDBUSER[] = SYSDIG_SHARE_DIR "/services-user";
+#else
+	static char SERVDB[] = "services";
+	static char SERVDBUSER[] = "services-user";
+#endif
+static char SERVDBOS[] = "/etc/services";
+
 static FILE *servf = NULL;
 static char line[BUFSIZ+1];
 static struct servent serv;
 static char *serv_aliases[MAXALIASES];
-int _serv_stayopen, _loaded = 0;
+int _loaded = 0;
 
 unordered_map<string,int> byName;
 unordered_map<int,string> byPortTCP;
 unordered_map<int,string> byPortUDP;
 
-void setservent(int f)
+void useFile(char* fname)
 {
-	if (servf == NULL)
-	{
-		servf = fopen(SERVDB, "r" );
-		if(!servf) 
-		{
-			throw sinsp_exception(string(SERVDB) + " can't be opened.");
-		}
-	}
-	else
-	{
-		rewind(servf);
-	}
-	_serv_stayopen |= f;
-}
-
-void endservent()
-{
-	if (servf) 
+	if (servf != NULL) 
 	{
 		fclose(servf);
-		servf = NULL;
 	}
-	_serv_stayopen = 0;
+
+	// We handle an invalid file by testing the size
+	// of the table.
+	servf = fopen(fname, "r" );
 }
 
 struct servent * getservent()
@@ -92,18 +85,16 @@ struct servent * getservent()
 	char *p;
 	register char *cp, **q;
 
-	if (servf == NULL && (servf = fopen(SERVDB, "r" )) == NULL)
+	if(servf == NULL)
 	{
-		if(!servf) 
-    	{
-			throw sinsp_exception(string(SERVDB) + " can't be opened.");
-		}
 		return (NULL);
 	}
 
 again:
 	if ((p = fgets(line, BUFSIZ, servf)) == NULL)
 	{
+		fclose(servf);
+		servf = NULL;
 		return (NULL);
 	}
 
@@ -196,7 +187,18 @@ void loadFile()
 {
 	if (!_loaded)
 	{
+		// Use the OS as the first line of defense.
+		useFile(SERVDBOS);
 		while(insert(getservent()));
+
+		// The sysdig provided one can overwrite the OS values
+		useFile(SERVDB);
+		while(insert(getservent()));
+
+		// And finally, the user provided one can overwrite anything.
+		useFile(SERVDBUSER);
+		while(insert(getservent()));
+
 		_loaded = 1;
 	}
 }
@@ -218,7 +220,15 @@ int service::findByName(string name)
 
 	if (ix == 0)
 	{
-		throw sinsp_exception(string(name) + " can't be translated to a port using " + string(SERVDB) + ". Manually add it and try again.");
+		throw sinsp_exception(
+			"'" + string(name) + "' can't be translated to a port using any of the following services(5) files:\n\n" + 
+			"  * " + string(SERVDB) + "\n" +
+			"  * " + string(SERVDBUSER) + "\n" +
+			"  * " + string(SERVDBOS) + "\n" +
+			"\n" +
+			"You can manually add the '" + string(name) + "' service to a file named " + string(SERVDBUSER) + "\n" +
+			"Use the syntax of " + string(SERVDB) + " as a guide and try again.\n\n" +
+			"Note: The entries in " +  string(SERVDBUSER) + " will be preserved on subsequent upgrades.");
 	}
 
 	return ix;
