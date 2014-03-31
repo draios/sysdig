@@ -89,9 +89,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\driver\event_table.c" />
-    <ClCompile Include="..\..\driver\flags_table.c" />
-    <ClCompile Include="..\..\driver\syscall_info_table.c" />
+    <ClCompile Include="event_table.c" />
+    <ClCompile Include="flags_table.c" />
     <ClCompile Include="scap.c" />
     <ClCompile Include="scap_event.c" />
     <ClCompile Include="scap_fds.c" />
@@ -99,6 +98,7 @@
     <ClCompile Include="scap_procs.c" />
     <ClCompile Include="scap_savefile.c" />
     <ClCompile Include="scap_userlist.c" />
+    <ClCompile Include="syscall_info_table.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\driver\ppm_events_public.h" />
