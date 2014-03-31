@@ -165,7 +165,7 @@ Run the spy_ip chisel for the 192.168.1.157 IP address:
 FILES
 -----
 
-*/opt/sysdig/chisels*  
+*/usr/share/sysdig/chisels*  
   The global chisels directory.
 
 *~/.chisels*  
