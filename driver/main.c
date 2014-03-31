@@ -31,8 +31,8 @@ MODULE_AUTHOR("Draios");
     #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2)
     #define TRACEPOINT_PROBE(probe, args...) static void probe(args)
 #else
-    #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, 0)
-    #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, 0)
+    #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, NULL)
+    #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, NULL)
     #define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
 #endif
 
