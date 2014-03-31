@@ -11,9 +11,9 @@
 #include <unistd.h>
 #endif // _WIN32
 
-#include "../../driver/ppm_ringbuffer.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "../../driver/ppm_ringbuffer.h"
 #include "parsers.h"
 #include "sinsp_errno.h"
 #include "filter.h"
