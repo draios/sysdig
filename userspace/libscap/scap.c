@@ -9,8 +9,8 @@
 #include <poll.h>
 #endif // _WIN32
 
-#include "../../driver/ppm_ringbuffer.h"
 #include "scap.h"
+#include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
 #include "scap-int.h"
 

@@ -32,8 +32,8 @@ extern "C" {
 // Core types
 //
 #include "uthash.h"
+#include "../common/sysdig_types.h"
 #include "../../driver/ppm_events_public.h"
-#include "../../driver/ppm_types.h"
 
 //
 // Return types

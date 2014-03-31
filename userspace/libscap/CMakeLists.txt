@@ -8,9 +8,9 @@ add_library(scap STATIC
 	scap_savefile.c 
 	scap_procs.c 
 	scap_userlist.c 
-	../../driver/flags_table.c
-	../../driver/event_table.c
-	../../driver/syscall_info_table.c)
+	flags_table.c
+	event_table.c
+	syscall_info_table.c)
 
 if (WIN32)
 	target_link_libraries(scap
