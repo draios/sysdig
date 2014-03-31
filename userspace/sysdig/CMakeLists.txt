@@ -25,6 +25,9 @@ if(NOT WIN32)
 	install(TARGETS sysdig 
 		DESTINATION bin)
 
+	install(FILES man/sysdig.8
+		DESTINATION share/man/man8)
+
 	install(DIRECTORY chisels
 		DESTINATION share/sysdig)
 
