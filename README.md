@@ -4,7 +4,7 @@ sysdig
 ===
 
 Welcome to **sysdig** - an open source system-level exploration and troubleshooting tool. If this is your first time hearing about sysdig, we recommend you start with the website  
-http://www.sysdig.org
+www.sysdig.org
 
 You can find documentation and manuals for the tool and its APIs on the wiki:
 https://github.com/draios/sysdig/wiki
