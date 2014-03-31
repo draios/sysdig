@@ -1,7 +1,9 @@
 #ifndef PPM_H_
 #define PPM_H_
 
+#ifdef __KERNEL__
 #include <linux/types.h>
+#endif
 
 static const uint32_t RING_BUF_SIZE = 1024 * 1024;
 static const uint32_t MIN_USERSPACE_READ_SIZE = 128 * 1024;
