@@ -55,6 +55,7 @@ using namespace std;
 #include "stats.h"
 #include "ifinfo.h"
 #include "chisel.h"
+#include "servparse.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:

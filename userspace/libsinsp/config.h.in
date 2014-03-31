@@ -1,0 +1,3 @@
+#pragma once
+
+#define SYSDIG_SHARE_DIR "${CMAKE_INSTALL_PREFIX}/share/sysdig"
