@@ -75,11 +75,26 @@ extern const struct ppm_event_entry g_ppm_events[];
  */
 int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo);
 int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, uint16_t val_len, bool fromuser);
-inline int32_t add_sentinel(struct event_filler_arguments *args);
 char *npm_getcwd(char *buf, unsigned long bufsize);
 uint16_t pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, uint16_t targetbufsize);
 uint16_t fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, uint16_t targetbufsize);
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
 int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec *iovsrc, unsigned long iovcnt, int64_t retval, int flags);
+
+static inline int32_t add_sentinel(struct event_filler_arguments *args)
+{
+#ifdef PPM_ENABLE_SENTINEL
+	if (likely(args->arg_data_size >= sizeof(uint32_t))) {
+		*(uint32_t *)(args->buffer + args->arg_data_offset) = args->sentinel;
+		args->arg_data_offset += 4;
+		args->arg_data_size -= 4;
+		return PPM_SUCCESS;
+	} else {
+		return PPM_FAILURE_BUFFER_FULL;
+	}
+#else
+	return PPM_SUCCESS;
+#endif
+}
 
 #endif /* EVENTS_H_ */
