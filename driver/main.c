@@ -36,6 +36,26 @@ MODULE_AUTHOR("Draios");
     #define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
 #endif
 
+struct ppm_device {
+	dev_t dev;
+	struct cdev cdev;
+	wait_queue_head_t read_queue;
+};
+
+/*
+ * The ring descriptor.
+ * We have one of these for each CPU.
+ */
+struct ppm_ring_buffer_context {
+	atomic_t state;
+	struct ppm_ring_buffer_info *info;
+	char *buffer;
+	struct timespec last_print_time;
+	uint32_t nevents;
+	atomic_t preempt_count;
+	char *str_storage;	/* String storage. Size is one page. */
+};
+
 /*
  * FORWARD DECLARATIONS
  */

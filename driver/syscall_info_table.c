@@ -1,4 +1,5 @@
 #include "ppm_events_public.h"
+#include "ppm.h"
 
 /*
  * SYSCALL INFO TABLE

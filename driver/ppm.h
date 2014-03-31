@@ -67,27 +67,7 @@ struct syscall_evt_pair {
 	enum ppm_event_type exit_event_type;
 };
 
-struct ppm_device {
-	dev_t dev;
-	struct cdev cdev;
-	wait_queue_head_t read_queue;
-};
-
 #define STR_STORAGE_SIZE PAGE_SIZE
-
-/*
- * The ring descriptor.
- * We have one of these for each CPU.
- */
-struct ppm_ring_buffer_context {
-	atomic_t state;
-	struct ppm_ring_buffer_info *info;
-	char *buffer;
-	struct timespec last_print_time;
-	uint32_t nevents;
-	atomic_t preempt_count;
-	char *str_storage;	/* String storage. Size is one page. */
-};
 
 /*
  * Global functions
