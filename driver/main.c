@@ -97,11 +97,11 @@ static const struct file_operations g_ppm_fops = {
  * GLOBALS
  */
 
-DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
+static DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
 static atomic_t g_open_count;
 uint32_t g_snaplen = RW_SNAPLEN;
 uint32_t g_sampling_ratio = 1;
-uint32_t g_sampling_interval = 0;
+static uint32_t g_sampling_interval = 0;
 static int g_is_dropping;
 static int g_dropping_mode;
 
