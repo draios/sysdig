@@ -25,6 +25,5 @@ install(FILES
 	ppm_events_public.h
 	ppm_fillers.c
 	ppm_ringbuffer.h
-	syscall_info_table.c
 	syscall_table.c
 	DESTINATION "src/sysdig-${SYSDIG_VERSION}")
