@@ -956,7 +956,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			if(evt->m_tinfo != NULL)
 			{
 				uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
-				if(evt->get_type() == *pt + 1)
+				if(evt->m_tinfo->m_prevevent_ts && evt->get_type() == *pt + 1)
 				{
 					m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts);
 				}
@@ -983,7 +983,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			if(evt->m_tinfo != NULL)
 			{
 				uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
-				if(evt->get_type() == *pt + 1)
+				if(evt->m_tinfo->m_prevevent_ts && evt->get_type() == *pt + 1)
 				{
 					if(m_field_id == TYPE_LATENCY_S)
 					{
