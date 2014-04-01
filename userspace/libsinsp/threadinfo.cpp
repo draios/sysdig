@@ -557,6 +557,7 @@ void sinsp_threadinfo::allocate_private_state()
 		for(j = 0; j < sizes->size(); j++)
 		{
 			void* newbuf = malloc(sizes->at(j));
+			memset(newbuf, 0, sizes->at(j));
 			m_private_state.push_back(newbuf);
 		}
 	}
