@@ -45,10 +45,10 @@ bool should_drop(sinsp_evt *evt);
 #endif
 
 sinsp_parser::sinsp_parser(sinsp *inspector) :
-	m_tmp_evt(m_inspector)
+	m_inspector(inspector),
+	m_tmp_evt(m_inspector),
+	m_fd_listener(NULL)
 {
-	m_inspector = inspector;
-	m_fd_listener = NULL;
 }
 
 sinsp_parser::~sinsp_parser()
