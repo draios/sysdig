@@ -15,8 +15,6 @@ if(NOT WIN32)
 	set(CMAKE_C_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
 	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
 
-	set(SYSDIG_SRC_PREFIX "/usr/src/sysdig-${SYSDIG_VERSION}")
-
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		add_subdirectory(driver)
 	endif()
