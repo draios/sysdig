@@ -145,7 +145,7 @@ static void usage()
 " Capture all the events from the live system and print them to screen\n"
 "   $ sysdig\n\n"
 " Capture all the events from the live system and save them to disk\n"
-"   $ sysdig -qw dumpfile.scap\n\n"
+"   $ sysdig -w dumpfile.scap\n\n"
 " Read events from a file and print them to screen\n"
 "   $ sysdig -r dumpfile.scap\n\n"
 " Print all the open system calls invoked by cat\n"

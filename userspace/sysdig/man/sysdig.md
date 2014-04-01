@@ -20,9 +20,10 @@ Sysdig includes a powerul filtering language, has customizable output, and can b
 
 By default, sysdig prints the information for each captured event on a single line, with the following format:
 
-```<evt.time> <evt.cpu> <proc.name> <thread.tid> <evt.dir> <evt.type> <evt.args>```
+```<evt.num> <evt.time> <evt.cpu> <proc.name> <thread.tid> <evt.dir> <evt.type> <evt.args>```
 
 where:
+* evt.num is the incremental event number
 * evt.time is the event timestamp
 * evt.cpu is the CPU number where the event was captured
 * proc.name is the name of the process that generated the event
@@ -35,36 +36,38 @@ The output format can be customized with the -p switch, using any of the fields 
 
 **Trace Files**  
 
-A trace file can be created using the -w flag:
+A trace file can be created using the -w switch:
 > $ sysdig -w trace.scap
 
-The -s flag can be used to specify how many bytes of each data buffer should be saved to disk. And filters can be
+The -s switch can be used to specify how many bytes of each data buffer should be saved to disk. And filters can be
 used to save only certain events to disk: 
 > $ sysdig -s 2000 -w trace.scap proc.name=cat
 
-Trace files can be read this way: 
+Trace files can be read this using the -r switch: 
 > $ sysdig -r trace.scap
 
 
 **Filtering**  
 
-sysdig filters are specified at the end of the command line. The simplest filter is a simple field-value check:
+sysdig filters are specified at the end of the command line. The simplest filter is a basic field-value check:
 > $ sysdig proc.name=cat
 
 The list of available fields can be obtained with 'sysdig -l'.
-Checks can use one of these comparison operators: _=_, _!=_, _<_, _<=_, _>_, _>=_ and _contains_. e.g.
+Filter expressions can use one of these comparison operators: _=_, _!=_, _<_, _<=_, _>_, _>=_ and _contains_. e.g.
 > $ sysdig fd.name contains /etc
 
 Multiple checks can be combined through brakets and the following boolean operators: _and_, _or_, _not_. e.g.
-> $ sysdig "not(fd.name contains /proc or fd.name contains /dev)"
+> $ sysdig "not (fd.name contains /proc or fd.name contains /dev)"
 
 **Chisels**  
 Sysdig's chisels are little scripts that analyze the sysdig event stream to perform useful actions.
 To get the list of available chisels, type
 > $ sysdig -cl  
 
-For each chisel, you get the description and the list of arguments it expects. 
-To run one of the chisels, you use the -c flag, e.g.:
+To get details about a specific chisel, type
+> $ sysdig -ispy_ip  
+
+To run one of the chisels, you use the -c flag, e.g.
 > $ sysdig -c topfiles_bytes
 
 If a chisel needs arguments, you specify them after the chisel name:
@@ -145,7 +148,7 @@ Capture all the events from the live system and print them to screen
 > $ sysdig
 
 Capture all the events from the live system and save them to disk
-> $ sysdig -qw dumpfile.scap
+> $ sysdig -w dumpfile.scap
 
 Read events from a file and print them to screen
 > $ sysdig -r dumpfile.scap
@@ -159,7 +162,7 @@ Print the name of the files opened by cat
 List the available chisels
 > $ ./sysdig -cl
 
-Run the spy_ip chisel for the 192.168.1.157 IP address:
+Use the spy_ip chisel to look at the data exchanged with 192.168.1.157:
 > $ sysdig -c spy_ip 192.168.1.157
 
 FILES
