@@ -815,7 +815,7 @@ int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
  * Parses the list of buffers of a xreadv or xwritev call, and pushes the size
  * (and optionally the data) to the ring.
  */
-int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec *iovsrc, unsigned long iovcnt, int64_t retval, int flags)
+int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags)
 {
 	int32_t res;
 	const struct iovec *iov;
@@ -831,7 +831,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 		return PPM_FAILURE_BUFFER_FULL;
 	}
 
-	if (unlikely(ppm_copy_from_user(targetbuf, (const void *)iovsrc, copylen))) {
+	if (unlikely(ppm_copy_from_user(targetbuf, iovsrc, copylen))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 

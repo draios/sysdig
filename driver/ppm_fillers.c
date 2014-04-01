@@ -671,7 +671,7 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 			args_len = PAGE_SIZE;
 		}
 
-		if (unlikely(ppm_copy_from_user(args->str_storage, (const void *) mm->arg_start, args_len))) {
+		if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len))) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 
@@ -982,7 +982,7 @@ static int32_t f_sys_socketpair_x(struct event_filler_arguments *args)
 #else
 		val = args->socketcall_args[3];
 #endif
-		if (unlikely(ppm_copy_from_user(fds, (const void *)val, sizeof(fds)))) {
+		if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, sizeof(fds)))) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 
@@ -1465,7 +1465,7 @@ static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args)
 		val = args->socketcall_args[5];
 #endif
 		if (usrsockaddr != NULL && val != 0) {
-			if (unlikely(ppm_copy_from_user(&addrlen, (const void *)val, sizeof(addrlen)))) {
+			if (unlikely(ppm_copy_from_user(&addrlen, (const void __user *)val, sizeof(addrlen)))) {
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 			}
 
@@ -1508,7 +1508,7 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 	unsigned long val;
 	struct msghdr mh;
 	char *targetbuf = args->str_storage;
-	const struct iovec *iov;
+	const struct iovec __user *iov;
 	unsigned long iovcnt;
 	int fd;
 	uint16_t size = 0;
@@ -1540,14 +1540,14 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr)))) {
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
 	/*
 	 * size
 	 */
-	iov = mh.msg_iov;
+	iov = (const struct iovec __user *)mh.msg_iov;
 	iovcnt = mh.msg_iovlen;
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
@@ -1597,7 +1597,7 @@ static int32_t f_sys_sendmsg_x(struct event_filler_arguments *args)
 	int32_t res;
 	unsigned long val;
 	int64_t retval;
-	const struct iovec *iov;
+	const struct iovec __user *iov;
 	unsigned long iovcnt;
 	struct msghdr mh;
 
@@ -1619,14 +1619,14 @@ static int32_t f_sys_sendmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr)))) {
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
 	/*
 	 * data
 	 */
-	iov = mh.msg_iov;
+	iov = (const struct iovec __user *)mh.msg_iov;
 	iovcnt = mh.msg_iovlen;
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_DATA);
@@ -1663,7 +1663,7 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 	int32_t res;
 	unsigned long val;
 	int64_t retval;
-	const struct iovec *iov;
+	const struct iovec __user *iov;
 	unsigned long iovcnt;
 	struct msghdr mh;
 	char *targetbuf = args->str_storage;
@@ -1692,14 +1692,14 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void *)val, sizeof(struct msghdr)))) {
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
 	/*
 	 * data and size
 	 */
-	iov = mh.msg_iov;
+	iov = (const struct iovec __user *)mh.msg_iov;
 	iovcnt = mh.msg_iovlen;
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
@@ -1782,7 +1782,7 @@ static int32_t f_sys_pipe_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	if (unlikely(ppm_copy_from_user(fds, (const void *)val, sizeof(fds)))) {
+	if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, sizeof(fds)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
@@ -2139,7 +2139,7 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
 	fds = (struct pollfd *)args->str_storage;
-	if (unlikely(ppm_copy_from_user(fds, (const void *)val, nfds * sizeof(struct pollfd)))) {
+	if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, nfds * sizeof(struct pollfd)))) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
@@ -2375,7 +2375,7 @@ static int32_t f_sys_readv_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int64_t retval;
 	int32_t res;
-	const struct iovec *iov;
+	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
 	/*
@@ -2391,7 +2391,7 @@ static int32_t f_sys_readv_x(struct event_filler_arguments *args)
 	 * data and size
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec *)val;
+	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
@@ -2406,7 +2406,7 @@ static int32_t f_sys_writev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int32_t res;
-	const struct iovec *iov;
+	const struct iovec __user *iov;
 	unsigned long iovcnt;
 	unsigned int snaplen;
 
@@ -2423,7 +2423,7 @@ static int32_t f_sys_writev_e(struct event_filler_arguments *args)
 	 * size
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec *)val;
+	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	/*
@@ -2466,7 +2466,7 @@ static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int32_t res;
 	int64_t retval;
-	const struct iovec *iov;
+	const struct iovec __user *iov;
 	unsigned long iovcnt;
 	unsigned int snaplen;
 
@@ -2483,7 +2483,7 @@ static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	 * data and size
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec *)val;
+	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	/*
@@ -2561,7 +2561,7 @@ static int32_t f_sys_preadv_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int64_t retval;
 	int32_t res;
-	const struct iovec *iov;
+	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
 	/*
@@ -2577,7 +2577,7 @@ static int32_t f_sys_preadv_x(struct event_filler_arguments *args)
 	 * data and size
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec *)val;
+	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
@@ -2597,7 +2597,7 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
 	unsigned long pos1;
 	uint64_t pos64;
 #endif
-	const struct iovec *iov;
+	const struct iovec __user *iov;
 	unsigned long iovcnt;
 	unsigned int snaplen;
 
@@ -2614,7 +2614,7 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
 	 * size
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec *)val;
+	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	/*
@@ -2689,9 +2689,7 @@ static int32_t f_sys_nanosleep_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	cfulen = (int32_t)ppm_copy_from_user(targetbuf,
-			(void *)val,
-			sizeof(struct timespec));
+	cfulen = (int32_t)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
 
 	if (unlikely(cfulen != 0)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -2793,7 +2791,7 @@ static int32_t f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 	if (retval >= 0 || args->event_type == PPME_SYSCALL_SETRLIMIT_X) {
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 
-		if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit)))) {
+		if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 
@@ -2880,7 +2878,7 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
 	if (retval >= 0) {
 		syscall_get_arguments(current, args->regs, 2, 1, &val);
 
-		if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit)))) {
+		if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
 			newcur = -1;
 			newmax = -1;
 		} else {
@@ -2894,7 +2892,7 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
 
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 
-	if (unlikely(ppm_copy_from_user(&rl, (const void *)val, sizeof(struct rlimit)))) {
+	if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
 		oldcur = -1;
 		oldmax = -1;
 	} else {

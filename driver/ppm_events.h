@@ -79,7 +79,7 @@ char *npm_getcwd(char *buf, unsigned long bufsize);
 uint16_t pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, uint16_t targetbufsize);
 uint16_t fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, uint16_t targetbufsize);
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
-int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec *iovsrc, unsigned long iovcnt, int64_t retval, int flags);
+int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags);
 
 static inline int32_t add_sentinel(struct event_filler_arguments *args)
 {
