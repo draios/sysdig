@@ -25,7 +25,7 @@
 #define compat_ptr(X) X
 #endif
 
-void memory_dump(char *p, size_t size)
+static void memory_dump(char *p, size_t size)
 {
 	unsigned int j;
 

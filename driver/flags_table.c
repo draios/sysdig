@@ -41,7 +41,7 @@ const struct ppm_name_value socket_families[] = {
 	{"AF_LOCAL", 1},
 	{"AF_UNIX", 1},
 	{"AF_UNSPEC", 0},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value file_flags[] = {
@@ -59,7 +59,7 @@ const struct ppm_name_value file_flags[] = {
 	{"O_WRONLY", (1 << 1)},
 	{"O_RDONLY", (1 << 0)},
 	{"O_NONE", 0},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value clone_flags[] = {
@@ -82,7 +82,7 @@ const struct ppm_name_value clone_flags[] = {
 	{"CLONE_INVERTED", (1 << 16)},
 	{"NAME_CHANGED", (1 << 17)},
 	{"CLOSED", (1 << 18)},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value futex_operations[] = {
@@ -101,7 +101,7 @@ const struct ppm_name_value futex_operations[] = {
 	{"FUTEX_FD", 2},
 	{"FUTEX_WAKE", 1},
 	{"FUTEX_WAIT", 0},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value poll_flags[] = {
@@ -116,26 +116,26 @@ const struct ppm_name_value poll_flags[] = {
 	{"POLLRDBAND", (1 << 8)},
 	{"POLLWRNORM", (1 << 9)},
 	{"POLLWRBAND", (1 << 10)},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value lseek_whence[] = {
 	{"SEEK_END", 2},
 	{"SEEK_CUR", 1},
 	{"SEEK_SET", 0},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value shutdown_how[] = {
 	{"SHUT_RDWR", 2},
 	{"SHUT_WR", 1},
 	{"SHUT_RD", 0},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value openat_flags[] = {
 	{"AT_FDCWD", -100},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value rlimit_resources[] = {
@@ -156,7 +156,7 @@ const struct ppm_name_value rlimit_resources[] = {
 	{"RLIMIT_DATA", 2},
 	{"RLIMIT_FSIZE", 1},
 	{"RLIMIT_CPU", 0},
-	{0, 0},
+	{ },
 };
 
 const struct ppm_name_value fcntl_commands[] = {
@@ -185,5 +185,5 @@ const struct ppm_name_value fcntl_commands[] = {
 	{"F_GETFD", 2},
 	{"F_DUPFD", 1},
 	{"UNKNOWN", 0},
-	{0, 0},
+	{ },
 };

@@ -31,8 +31,8 @@ MODULE_AUTHOR("Draios");
     #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2)
     #define TRACEPOINT_PROBE(probe, args...) static void probe(args)
 #else
-    #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, 0)
-    #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, 0)
+    #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, NULL)
+    #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, NULL)
     #define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
 #endif
 
@@ -97,11 +97,11 @@ static const struct file_operations g_ppm_fops = {
  * GLOBALS
  */
 
-DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
+static DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
 static atomic_t g_open_count;
 uint32_t g_snaplen = RW_SNAPLEN;
 uint32_t g_sampling_ratio = 1;
-uint32_t g_sampling_interval = 0;
+static uint32_t g_sampling_interval = 0;
 static int g_is_dropping;
 static int g_dropping_mode;
 
