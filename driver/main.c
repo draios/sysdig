@@ -119,7 +119,7 @@ static DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
 static atomic_t g_open_count;
 uint32_t g_snaplen = RW_SNAPLEN;
 uint32_t g_sampling_ratio = 1;
-static uint32_t g_sampling_interval = 0;
+static uint32_t g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
 
@@ -404,11 +404,9 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 			pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
-			if ((ret = remap_pfn_range(vma,
-						  useraddr,
-						  pfn,
-						  PAGE_SIZE,
-						  PAGE_SHARED)) < 0) {
+			ret = remap_pfn_range(vma, useraddr, pfn,
+					      PAGE_SIZE, PAGE_SHARED);
+			if (ret < 0) {
 				pr_info("sysdig-probe: remap_pfn_range failed (1)\n");
 				return ret;
 			}
@@ -442,7 +440,9 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			while (mlength > 0) {
 				pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
-				if ((ret = remap_pfn_range(vma, useraddr, pfn, PAGE_SIZE, PAGE_SHARED)) < 0) {
+				ret = remap_pfn_range(vma, useraddr, pfn,
+						      PAGE_SIZE, PAGE_SHARED);
+				if (ret < 0) {
 					pr_info("sysdig-probe: remap_pfn_range failed (1)\n");
 					return ret;
 				}
@@ -462,7 +462,9 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			while (mlength > 0) {
 				pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
-				if ((ret = remap_pfn_range(vma, useraddr, pfn, PAGE_SIZE, PAGE_SHARED)) < 0) {
+				ret = remap_pfn_range(vma, useraddr, pfn,
+						      PAGE_SIZE, PAGE_SHARED);
+				if (ret < 0) {
 					pr_info("sysdig-probe: remap_pfn_range failed (1)\n");
 					return ret;
 				}
@@ -937,7 +939,7 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	/*
 	 * Allocate the string storage in the ring descriptor
 	 */
-	(*ring)->str_storage = (char *) __get_free_page(GFP_USER);
+	(*ring)->str_storage = (char *)__get_free_page(GFP_USER);
 	if (!(*ring)->str_storage) {
 		pr_err("sysdig-probe: Error allocating the string storage\n");
 		vfree(*ring);
