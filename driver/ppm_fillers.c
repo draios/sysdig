@@ -44,6 +44,7 @@ static int32_t f_sys_read_x(struct event_filler_arguments *args);
 static int32_t f_sys_write_x(struct event_filler_arguments *args);
 static int32_t f_proc_startupdate(struct event_filler_arguments *args);
 static int32_t f_sys_socketpair_x(struct event_filler_arguments *args);
+static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args);
 static int32_t f_sys_connect_x(struct event_filler_arguments *args);
 static int32_t f_sys_accept4_e(struct event_filler_arguments *args);
 static int32_t f_sys_accept_x(struct event_filler_arguments *args);
@@ -118,6 +119,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
 	[PPME_SOCKET_SOCKETPAIR_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKETPAIR_X] = {f_sys_socketpair_x},
+	[PPME_SOCKET_GETSOCKOPT_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2}}},
+	[PPME_SOCKET_GETSOCKOPT_X] = {f_sys_getsockopt_x},
 	[PPME_SOCKET_BIND_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0} } },
 	[PPME_SOCKET_BIND_X] = {f_sys_socket_bind_x},
 	[PPME_SOCKET_CONNECT_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0} } },
@@ -1045,6 +1048,57 @@ static int32_t f_sys_socketpair_x(struct event_filler_arguments *args)
 		if (unlikely(res != PPM_SUCCESS)) {
 			return res;
 		}
+	}
+
+	return add_sentinel(args);
+}
+
+static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
+{
+	unsigned long val;
+	int64_t retval;
+	int32_t res;
+	int optlen = 0;
+	void *optval = NULL;
+	void *address;
+
+	//
+	// retval
+	//
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	if(retval >= 0)
+	{
+		//
+		// optval
+		//
+		syscall_get_arguments(current, args->regs, 3, 1, &val);
+		address = (void *)val;
+
+		//
+		// optlen
+		//
+		syscall_get_arguments(current, args->regs, 4, 1, &val);
+		if(address != NULL && val != 0)
+		{
+			if(unlikely(ppm_copy_from_user(&optlen, (const void *)val, sizeof(optlen))))
+			{
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+			}
+
+			optval = address;
+		}
+	}
+
+	res = val_to_ring(args, (uint64_t)optval, min((unsigned long)optlen, (unsigned long)g_snaplen), true);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
 	}
 
 	return add_sentinel(args);
