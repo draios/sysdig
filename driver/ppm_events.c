@@ -136,10 +136,10 @@ strncpy_end:
  * - val_len is ignored for everything other than PT_BYTEBUF.
  * - fromuser is ignored for numeric types
  */
-inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, uint16_t val_len, bool fromuser)
+inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser)
 {
 	int32_t len = -1;
-	uint16_t *psize = (uint16_t *)(args->buffer + args->curarg * sizeof(uint16_t));
+	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
 
 	if (unlikely(args->curarg >= args->nargs)) {
 		pr_info("sysdig-probe: %u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
@@ -238,9 +238,9 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, ui
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
-		if (likely(args->arg_data_size >= sizeof(uint16_t))) {
-			*(uint16_t *)(args->buffer + args->arg_data_offset) = (uint16_t)val;
-			len = sizeof(uint16_t);
+		if (likely(args->arg_data_size >= sizeof(u16))) {
+			*(u16 *)(args->buffer + args->arg_data_offset) = (u16)val;
+			len = sizeof(u16);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -318,7 +318,7 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, ui
 	ASSERT(len <= 65535);
 	ASSERT(len <= args->arg_data_size);
 
-	*psize = (uint16_t)len;
+	*psize = (u16)len;
 	args->curarg++;
 	args->arg_data_offset += len;
 	args->arg_data_size -= len;
@@ -472,18 +472,18 @@ static struct socket *ppm_sockfd_lookup_light(int fd, int *err, int *fput_needed
  * Convert a sockaddr into our address representation and copy it to
  * targetbuf
  */
-uint16_t pack_addr(struct sockaddr *usrsockaddr,
+u16 pack_addr(struct sockaddr *usrsockaddr,
 	int ulen,
 	char *targetbuf,
-	uint16_t targetbufsize)
+	u16 targetbufsize)
 {
 	uint32_t ip;
-	uint16_t port;
+	u16 port;
 	sa_family_t family = usrsockaddr->sa_family;
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
 	struct sockaddr_un *usrsockaddr_un;
-	uint16_t size;
+	u16 size;
 	char *dest;
 
 	switch (family) {
@@ -506,7 +506,7 @@ uint16_t pack_addr(struct sockaddr *usrsockaddr,
 
 		*targetbuf = socket_family_to_scap(family);
 		*(uint32_t *)(targetbuf + 1) = ip;
-		*(uint16_t *)(targetbuf + 5) = port;
+		*(u16 *)(targetbuf + 5) = port;
 
 		break;
 	case AF_INET6:
@@ -529,7 +529,7 @@ uint16_t pack_addr(struct sockaddr *usrsockaddr,
 		memcpy(targetbuf + 1,
 			usrsockaddr_in6->sin6_addr.s6_addr,
 			16);
-		*(uint16_t *)(targetbuf + 17) = port;
+		*(u16 *)(targetbuf + 17) = port;
 
 		break;
 	case AF_UNIX:
@@ -574,13 +574,13 @@ uint16_t pack_addr(struct sockaddr *usrsockaddr,
  * Convert a connection tuple into our tuple representation and copy it to
  * targetbuf
  */
-uint16_t fd_to_socktuple(int fd,
+u16 fd_to_socktuple(int fd,
 	struct sockaddr *usrsockaddr,
 	int ulen,
 	bool use_userdata,
 	bool is_inbound,
 	char *targetbuf,
-	uint16_t targetbufsize)
+	u16 targetbufsize)
 {
 	struct socket *sock;
 	int err = 0;
@@ -592,12 +592,12 @@ uint16_t fd_to_socktuple(int fd,
 	uint32_t dip;
 	u8 *sip6;
 	u8 *dip6;
-	uint16_t sport;
-	uint16_t dport;
+	u16 sport;
+	u16 dport;
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
 	struct sockaddr_un *usrsockaddr_un;
-	uint16_t size;
+	u16 size;
 	char *dest;
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
@@ -672,9 +672,9 @@ uint16_t fd_to_socktuple(int fd,
 
 		*targetbuf = socket_family_to_scap(family);
 		*(uint32_t *)(targetbuf + 1) = sip;
-		*(uint16_t *)(targetbuf + 5) = sport;
+		*(u16 *)(targetbuf + 5) = sport;
 		*(uint32_t *)(targetbuf + 7) = dip;
-		*(uint16_t *)(targetbuf + 11) = dport;
+		*(u16 *)(targetbuf + 11) = dport;
 
 		break;
 	case AF_INET6:
@@ -721,11 +721,11 @@ uint16_t fd_to_socktuple(int fd,
 		memcpy(targetbuf + 1,
 			sip6,
 			16);
-		*(uint16_t *)(targetbuf + 17) = sport;
+		*(u16 *)(targetbuf + 17) = sport;
 		memcpy(targetbuf + 19,
 			dip6,
 			16);
-		*(uint16_t *)(targetbuf + 35) = dport;
+		*(u16 *)(targetbuf + 35) = dport;
 
 		break;
 	case AF_UNIX:

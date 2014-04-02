@@ -699,7 +699,7 @@ static void record_event(enum ppm_event_type event_type,
 	 * Determine how many arguments this event has
 	 */
 	args.nargs = g_event_info[event_type].nparams;
-	args.arg_data_offset = args.nargs * sizeof(uint16_t);
+	args.arg_data_offset = args.nargs * sizeof(u16);
 
 	/*
 	 * Make sure we have enough space for the event header.

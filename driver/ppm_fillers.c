@@ -823,7 +823,7 @@ static int32_t f_sys_socket_bind_x(struct event_filler_arguments *args)
 	int32_t res;
 	int64_t retval;
 	int err = 0;
-	uint16_t size = 0;
+	u16 size = 0;
 	struct sockaddr __user *usrsockaddr;
 	unsigned long val;
 	struct sockaddr_storage address;
@@ -891,7 +891,7 @@ static int32_t f_sys_connect_x(struct event_filler_arguments *args)
 	int err = 0;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
-	uint16_t size = 0;
+	u16 size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
 	unsigned long val;
@@ -1072,7 +1072,7 @@ static int32_t f_sys_accept_x(struct event_filler_arguments *args)
 	int32_t res;
 	int fd;
 	char *targetbuf = args->str_storage;
-	uint16_t size = 0;
+	u16 size = 0;
 	unsigned long val;
 	unsigned long srvskfd;
 	int err = 0;
@@ -1197,7 +1197,7 @@ static int32_t f_sys_sendto_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int32_t res;
-	uint16_t size = 0;
+	u16 size = 0;
 	char *targetbuf = args->str_storage;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
@@ -1436,7 +1436,7 @@ static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int32_t res;
-	uint16_t size = 0;
+	u16 size = 0;
 	int64_t retval;
 	char *targetbuf = args->str_storage;
 	int fd;
@@ -1529,7 +1529,7 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 	int fd;
-	uint16_t size = 0;
+	u16 size = 0;
 	int addrlen;
 	int err = 0;
 	struct sockaddr __user *usrsockaddr;
@@ -1688,7 +1688,7 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 	int fd;
 	struct sockaddr __user *usrsockaddr;
 	struct sockaddr_storage address;
-	uint16_t size = 0;
+	u16 size = 0;
 	int addrlen;
 	int err = 0;
 
@@ -1857,7 +1857,7 @@ static int32_t f_sys_eventfd_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint16_t shutdown_how_to_scap(unsigned long how)
+static inline u16 shutdown_how_to_scap(unsigned long how)
 {
 	if (how == SHUT_RD) {
 		return PPM_SHUT_RD;
@@ -1867,7 +1867,7 @@ static inline uint16_t shutdown_how_to_scap(unsigned long how)
 		return SHUT_RDWR;
 	} else {
 		ASSERT(false);
-		return (uint16_t)how;
+		return (u16)how;
 	}
 }
 
@@ -1905,9 +1905,9 @@ static int32_t f_sys_shutdown_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint16_t futex_op_to_scap(unsigned long op)
+static inline u16 futex_op_to_scap(unsigned long op)
 {
-	uint16_t res = 0;
+	u16 res = 0;
 	unsigned long flt_op = op & 127;
 
 	if (flt_op == FUTEX_WAIT) {
@@ -2076,9 +2076,9 @@ static int32_t f_sys_llseek_e(struct event_filler_arguments *args)
 }
 
 /* XXX this is very basic for the moment, we'll need to improve it */
-static inline uint16_t poll_events_to_scap(short revents)
+static inline u16 poll_events_to_scap(short revents)
 {
-	uint16_t res = 0;
+	u16 res = 0;
 
 	if (revents & POLLIN) {
 		res |= PPM_POLLIN;
@@ -2136,7 +2136,7 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 	unsigned long fds_count;
 	uint32_t j;
 	uint32_t pos;
-	uint16_t flags;
+	u16 flags;
 
 	/*
 	 * fds
@@ -2187,7 +2187,7 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 		++fds_count;
 	}
 
-	*(uint16_t *)(targetbuf) = (uint16_t)fds_count;
+	*(u16 *)(targetbuf) = (u16)fds_count;
 
 	return val_to_ring(args, (uint64_t)(unsigned long)targetbuf, pos, false);
 }
