@@ -74,7 +74,7 @@ enum autofill_paramtype {
 
 struct ppm_event_entry {
 	filler_callback filler_callback;
-	uint16_t n_autofill_args;
+	u16 n_autofill_args;
 	enum autofill_paramtype paramtype;
 	struct ppm_autofill_arg autofill_args[PPM_MAX_AUTOFILL_ARGS];
 };
@@ -92,10 +92,10 @@ extern const struct ppm_event_entry g_ppm_events[];
  * Functions
  */
 int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo);
-int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, uint16_t val_len, bool fromuser);
+int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser);
 char *npm_getcwd(char *buf, unsigned long bufsize);
-uint16_t pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, uint16_t targetbufsize);
-uint16_t fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, uint16_t targetbufsize);
+u16 pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, u16 targetbufsize);
+u16 fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, u16 targetbufsize);
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
 int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags);
 
