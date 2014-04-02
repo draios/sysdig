@@ -75,6 +75,46 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_AF_NFC          39      /* NFC sockets                  */
 
 /*
+ * Sockopt levels
+ */
+#define PPM_SOL_IP          0
+#define PPM_SOL_SOCKET 		1
+#define PPM_SOL_ICMP     	2
+#define PPM_SOL_TCP         3
+#define PPM_SOL_UDP         4
+#define PPM_SOL_IPV6        5
+#define PPM_SOL_ICMPV6      6
+#define PPM_SOL_SCTP        7
+#define PPM_SOL_UDPLITE     8
+#define PPM_SOL_RAW         9
+#define PPM_SOL_IPX         10
+#define PPM_SOL_AX25        11
+#define PPM_SOL_ATALK       12
+#define PPM_SOL_NETROM      13
+#define PPM_SOL_ROSE        14
+#define PPM_SOL_DECNET      15
+#define PPM_SOL_X25         16
+#define PPM_SOL_PACKET      17
+#define PPM_SOL_ATM         18
+#define PPM_SOL_AAL         19
+#define PPM_SOL_IRDA        20
+#define PPM_SOL_NETBEUI     21
+#define PPM_SOL_LLC         22
+#define PPM_SOL_DCCP        23
+#define PPM_SOL_NETLINK     24
+#define PPM_SOL_TIPC        25
+#define PPM_SOL_RXRPC       26
+#define PPM_SOL_PPPOL2TP    27
+#define PPM_SOL_BLUETOOTH   28
+#define PPM_SOL_PNPIPE      29
+#define PPM_SOL_RDS         30
+#define PPM_SOL_IUCV        31
+#define PPM_SOL_CAIF        32
+#define PPM_SOL_ALG         33
+#define PPM_SOL_NFC         34
+#define PPM_SOL_UNKNOWN		35
+
+/*
  * File flags
  */
 #define PPM_O_NONE	0
@@ -890,5 +930,6 @@ extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value openat_flags[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
+extern const struct ppm_name_value sockopt_levels[];
 
 #endif /* EVENTS_PUBLIC_H_ */

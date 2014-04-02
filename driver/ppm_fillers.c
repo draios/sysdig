@@ -122,7 +122,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_SOCKETPAIR_X] = {f_sys_socketpair_x},
 	[PPME_SOCKET_SETSOCKOPT_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2}}},
 	[PPME_SOCKET_SETSOCKOPT_X] = {f_sys_setsockopt_x},
-	[PPME_SOCKET_GETSOCKOPT_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2}}},
+	[PPME_SOCKET_GETSOCKOPT_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0}}},
 	[PPME_SOCKET_GETSOCKOPT_X] = {f_sys_getsockopt_x},
 	[PPME_SOCKET_BIND_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0} } },
 	[PPME_SOCKET_BIND_X] = {f_sys_socket_bind_x},
@@ -1108,6 +1108,46 @@ static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
 	return PPM_SUCCESS;
 }
 
+static uint8_t sockopt_default_optname_to_scap(unsigned long val)
+{
+	return (uint8_t)val;
+}
+
+static uint8_t sockopt_socket_optname_to_scap(unsigned long val)
+{
+	switch(val)
+	{
+		default:
+			// XXX: not yet implemented.
+			return 0;
+			break;
+	}
+}
+
+static inline uint8_t sockopt_level_to_scap(unsigned long val,
+											uint8_t (**parse_opt)(unsigned long))
+{
+	switch(val)
+	{
+		case SOL_SOCKET:
+			*parse_opt = sockopt_socket_optname_to_scap;
+			return PPM_SOL_SOCKET;
+		default:
+			*parse_opt = sockopt_default_optname_to_scap;
+			return PPM_SOL_UNKNOWN;
+	}
+}
+
+static inline uint16_t sockopt_optval_parse(uint8_t level,
+											uint8_t optname,
+											void *optval,
+											int optlen,
+											char *targetbuf,
+											uint16_t targetbuf_size)
+{
+	return 0;
+}
+
 static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args)
 {
 	int32_t res;
@@ -1132,28 +1172,73 @@ static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args)
 static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
 {
 	unsigned long val;
-	int32_t res;
+	unsigned long tmplen;
+	char* targetbuf = args->str_storage;
 	int optlen = 0;
 	void *optval = NULL;
 	void *address;
+	int32_t res;
+	uint16_t size = 0;
+	uint8_t level;
+	uint8_t optname;
+	uint8_t (*sockopt_optname_to_scap)(unsigned long) = NULL;
 
-	res = f_sys_sockopt_x_common(args, &address, &val);
+	//
+	// push the common params to the ring
+	//
+	res = f_sys_sockopt_x_common(args, &address, &tmplen);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	if(address != NULL && val != 0)
+	//
+	// level
+	//
+#ifdef __x86_64__
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+#else
+	val = args->socketcall_args[1];
+#endif
+	level = sockopt_level_to_scap(val, &sockopt_optname_to_scap);
+	res = val_to_ring(args, level, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
 	{
-		if(unlikely(ppm_copy_from_user(&optlen, (const void *)val, sizeof(optlen))))
+		return res;
+	}
+
+	//
+	// optname
+	//
+#ifdef __x86_64__
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+#else
+	val = args->socketcall_args[2];
+#endif
+	optname = sockopt_optname_to_scap(val);
+	res = val_to_ring(args, (uint64_t)optname, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	if(address != NULL && tmplen != 0)
+	{
+		if(unlikely(ppm_copy_from_user(&optlen, (const void *)tmplen, sizeof(optlen))))
 		{
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 
 		optval = address;
+		size = sockopt_optval_parse(level,
+									optname,
+									optval,
+									optlen,
+									targetbuf,
+									STR_STORAGE_SIZE);
 	}
 
-	res = val_to_ring(args, (uint64_t)optval, min((unsigned long)optlen, (unsigned long)g_snaplen), true);
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
