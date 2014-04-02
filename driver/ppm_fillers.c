@@ -1121,8 +1121,10 @@ static uint32_t sockopt_socket_optname_to_scap(unsigned long val)
 			return PPM_SO_DEBUG;
 		case SO_REUSEADDR:
 			return PPM_SO_REUSEADDR;
+#ifdef SO_REUSEPORT
 		case SO_REUSEPORT:
 			return PPM_SO_REUSEPORT;
+#endif
 		case SO_TYPE:
 			return PPM_SO_TYPE;
 		case SO_PROTOCOL:
@@ -1220,7 +1222,7 @@ static inline uint8_t sockopt_level_to_scap(unsigned long val,
 }
 
 static inline uint16_t sockopt_optval_parse(uint32_t optname,
-											void *optval,
+											const void __user *optval,
 											int optlen,
 											char *targetbuf,
 											uint16_t targetbuf_size)
@@ -1242,7 +1244,7 @@ static inline uint16_t sockopt_optval_parse(uint32_t optname,
 	{
 		case PT_SOCKFAMILY:
 			len = ppm_copy_from_user(&val,
-						(const void __user *)(unsigned long)optval,
+						optval,
 						sizeof(uint8_t));
 
 			if (unlikely(len != 0))
@@ -1253,7 +1255,7 @@ static inline uint16_t sockopt_optval_parse(uint32_t optname,
 			break;
 		case PT_CHARBUF:
 			min_len = min((uint32_t)targetbuf_size - 1, (uint32_t)optlen);
-			len = ppm_strncpy_from_user(targetbuf + 1, (const char __user *)optval, min_len);
+			len = ppm_strncpy_from_user(targetbuf + 1, optval, min_len);
 
 			if (unlikely(len != 0))
 				return 0;
@@ -1265,7 +1267,7 @@ static inline uint16_t sockopt_optval_parse(uint32_t optname,
 			min_len = min(((uint32_t)targetbuf_size - 1 - 4), (uint32_t)optlen);
 			*(uint32_t *)(targetbuf + 1) = min_len;
 
-			len = ppm_copy_from_user(targetbuf + 1 + sizeof(uint32_t), (const void __user *)optval, min_len);
+			len = ppm_copy_from_user(targetbuf + 1 + sizeof(uint32_t), optval, min_len);
 
 			if (unlikely(len != 0))
 				return 0;
@@ -1291,7 +1293,7 @@ static inline uint16_t sockopt_optval_parse(uint32_t optname,
 
 	if (fromuser) {
 		len = ppm_copy_from_user(targetbuf + 1,
-					(const void __user *)(unsigned long)optval,
+					optval,
 					dim);
 
 		if (unlikely(len != 0))
