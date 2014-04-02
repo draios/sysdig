@@ -75,6 +75,176 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_AF_NFC          39      /* NFC sockets                  */
 
 /*
+ * Sockopt levels
+ */
+#define PPM_SOL_IP          0
+#define PPM_SOL_SOCKET 		1
+#define PPM_SOL_ICMP     	2
+#define PPM_SOL_TCP         3
+#define PPM_SOL_UDP         4
+#define PPM_SOL_IPV6        5
+#define PPM_SOL_ICMPV6      6
+#define PPM_SOL_SCTP        7
+#define PPM_SOL_UDPLITE     8
+#define PPM_SOL_RAW         9
+#define PPM_SOL_IPX         10
+#define PPM_SOL_AX25        11
+#define PPM_SOL_ATALK       12
+#define PPM_SOL_NETROM      13
+#define PPM_SOL_ROSE        14
+#define PPM_SOL_DECNET      15
+#define PPM_SOL_X25         16
+#define PPM_SOL_PACKET      17
+#define PPM_SOL_ATM         18
+#define PPM_SOL_AAL         19
+#define PPM_SOL_IRDA        20
+#define PPM_SOL_NETBEUI     21
+#define PPM_SOL_LLC         22
+#define PPM_SOL_DCCP        23
+#define PPM_SOL_NETLINK     24
+#define PPM_SOL_TIPC        25
+#define PPM_SOL_RXRPC       26
+#define PPM_SOL_PPPOL2TP    27
+#define PPM_SOL_BLUETOOTH   28
+#define PPM_SOL_PNPIPE      29
+#define PPM_SOL_RDS         30
+#define PPM_SOL_IUCV        31
+#define PPM_SOL_CAIF        32
+#define PPM_SOL_ALG         33
+#define PPM_SOL_NFC         34
+#define PPM_SOL_UNKNOWN		35
+#define PPM_SOL_MAXLEVEL	PPM_SOL_UNKNOWN
+
+/*
+ * Unkwown SOL_* option
+ */
+#define PPM_SO_UNKNOWN 		0
+
+/*
+ * SOL_SOCKET sockopt
+ */
+#define PPM_SO_DEBUG                           1
+#define PPM_SO_REUSEADDR                       2
+#define PPM_SO_TYPE                            3
+#define PPM_SO_ERROR                           4
+#define PPM_SO_DONTROUTE                       5
+#define PPM_SO_BROADCAST                       6
+#define PPM_SO_SNDBUF                          7
+#define PPM_SO_RCVBUF                          8
+#define PPM_SO_SNDBUFFORCE                     9
+#define PPM_SO_RCVBUFFORCE                    10
+#define PPM_SO_KEEPALIVE                      11
+#define PPM_SO_OOBINLINE                      12
+#define PPM_SO_NO_CHECK                       13
+#define PPM_SO_PRIORITY                       14
+#define PPM_SO_LINGER                         15
+#define PPM_SO_BSDCOMPAT                      16
+#define PPM_SO_REUSEPORT                      17
+#define PPM_SO_PASSCRED                       18
+#define PPM_SO_PEERCRED                       19
+#define PPM_SO_RCVLOWAT                       20
+#define PPM_SO_SNDLOWAT                       21
+#define PPM_SO_RCVTIMEO                       22
+#define PPM_SO_SNDTIMEO                       23
+#define PPM_SO_SECURITY_AUTHENTICATION        24
+#define PPM_SO_SECURITY_ENCRYPTION_TRANSPORT  25
+#define PPM_SO_SECURITY_ENCRYPTION_NETWORK    26
+#define PPM_SO_BINDTODEVICE                   27
+#define PPM_SO_ATTACH_FILTER                  28
+#define PPM_SO_DETACH_FILTER                  29
+#define PPM_SO_PEERNAME                       30
+#define PPM_SO_TIMESTAMP                      31
+#define PPM_SO_ACCEPTCONN                     32
+#define PPM_SO_PEERSEC                        33
+#define PPM_SO_PASSSEC                        34
+#define PPM_SO_TIMESTAMPNS                    35
+#define PPM_SO_MARK                           36
+#define PPM_SO_TIMESTAMPING                   37
+#define PPM_SO_PROTOCOL                       38
+#define PPM_SO_DOMAIN                         39
+#define PPM_SO_RXQ_OVFL                       40
+#define PPM_SO_WIFI_STATUS                    41
+#define PPM_SO_PEEK_OFF                       42
+#define PPM_SO_NOFCS                          43
+#define PPM_SO_LOCK_FILTER                    44
+#define PPM_SO_SELECT_ERR_QUEUE               45
+#define PPM_SO_BUSY_POLL                      46
+#define PPM_SO_MAX_PACING_RATE                47
+
+/*
+ * SOL_IP sockopt
+ */
+#define PPM_IP_TOS                            48
+#define PPM_IP_TTL                            49
+#define PPM_IP_HDRINCL                        50
+#define PPM_IP_OPTIONS                        51
+#define PPM_IP_ROUTER_ALERT                   52
+#define PPM_IP_RECVOPTS                       53
+#define PPM_IP_RETOPTS                        54
+#define PPM_IP_PKTINFO                        55
+#define PPM_IP_PKTOPTIONS                     56
+#define PPM_IP_MTU_DISCOVER                   57
+#define PPM_IP_RECVERR                        58
+#define PPM_IP_RECVTTL                        59
+#define PPM_IP_RECVTOS                        60
+#define PPM_IP_MTU                            61
+#define PPM_IP_FREEBIND                       62
+#define PPM_IP_IPSEC_POLICY                   63
+#define PPM_IP_XFRM_POLICY                    64
+#define PPM_IP_PASSSEC                        65
+#define PPM_IP_TRANSPARENT                    66
+#define PPM_IP_ORIGDSTADDR                    67
+#define PPM_IP_MINTTL                         68
+#define PPM_IP_NODEFRAG                       69
+#define PPM_IP_MULTICAST_IF                   70
+#define PPM_IP_MULTICAST_TTL                  71
+#define PPM_IP_MULTICAST_LOOP                 72
+#define PPM_IP_ADD_MEMBERSHIP                 73
+#define PPM_IP_DROP_MEMBERSHIP                74
+#define PPM_IP_UNBLOCK_SOURCE                 75
+#define PPM_IP_BLOCK_SOURCE                   76
+#define PPM_IP_ADD_SOURCE_MEMBERSHIP          77
+#define PPM_IP_DROP_SOURCE_MEMBERSHIP         78
+#define PPM_IP_MSFILTER                       79
+#define PPM_MCAST_JOIN_GROUP                  80
+#define PPM_MCAST_BLOCK_SOURCE                81
+#define PPM_MCAST_UNBLOCK_SOURCE              82
+#define PPM_MCAST_LEAVE_GROUP                 83
+#define PPM_MCAST_JOIN_SOURCE_GROUP           84
+#define PPM_MCAST_LEAVE_SOURCE_GROUP          85
+#define PPM_MCAST_MSFILTER                    86
+#define PPM_IP_MULTICAST_ALL                  87
+#define PPM_IP_UNICAST_IF                     88
+
+/*
+ * SOL_TCP sockopt
+ */
+#define PPM_TCP_NODELAY                       89
+#define PPM_TCP_MAXSEG                        90
+#define PPM_TCP_CORK                          91
+#define PPM_TCP_KEEPIDLE                      92
+#define PPM_TCP_KEEPINTVL                     93
+#define PPM_TCP_KEEPCNT                       94
+#define PPM_TCP_SYNCNT                        95
+#define PPM_TCP_LINGER2                       96
+#define PPM_TCP_DEFER_ACCEPT                  97
+#define PPM_TCP_WINDOW_CLAMP                  98
+#define PPM_TCP_INFO                          99
+#define PPM_TCP_QUICKACK                     100
+#define PPM_TCP_CONGESTION                   101
+#define PPM_TCP_MD5SIG                       102
+#define PPM_TCP_THIN_LINEAR_TIMEOUTS         103
+#define PPM_TCP_THIN_DUPACK                  104
+#define PPM_TCP_USER_TIMEOUT                 105
+#define PPM_TCP_REPAIR                       106
+#define PPM_TCP_REPAIR_QUEUE                 107
+#define PPM_TCP_QUEUE_SEQ                    108
+#define PPM_TCP_REPAIR_OPTIONS               109
+#define PPM_TCP_FASTOPEN                     110
+#define PPM_TCP_TIMESTAMP                    111
+#define PPM_TCP_NOTSENT_LOWAT                112
+
+/*
  * File flags
  */
 #define PPM_O_NONE	0
@@ -890,5 +1060,7 @@ extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value openat_flags[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
+extern const struct ppm_name_value sockopt_levels[];
+extern const struct ppm_name_value sockopt_optnames[];
 
 #endif /* EVENTS_PUBLIC_H_ */

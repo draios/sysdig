@@ -204,6 +204,7 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, ui
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
+	case PT_DYN:
 		if (likely(val != 0)) {
 			if (unlikely(val_len >= args->arg_data_size)) {
 				return PPM_FAILURE_BUFFER_FULL;
@@ -361,102 +362,6 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 	path_put(&pwd);
 
 	return res;
-}
-
-static inline uint8_t socket_family_to_scap(uint8_t family)
-{
-	if (family == AF_INET) {
-		return PPM_AF_INET;
-	} else if (family == AF_INET6) {
-		return PPM_AF_INET6;
-	} else if (family == AF_UNIX) {
-		return PPM_AF_UNIX;
-	} else if (family == AF_NETLINK) {
-		return PPM_AF_NETLINK;
-	} else if (family == AF_PACKET) {
-		return PPM_AF_PACKET;
-	} else if (family == AF_UNSPEC) {
-		return PPM_AF_UNSPEC;
-	} else if (family == AF_AX25) {
-		return PPM_AF_AX25;
-	} else if (family == AF_IPX) {
-		return PPM_AF_IPX;
-	} else if (family == AF_APPLETALK) {
-		return PPM_AF_APPLETALK;
-	} else if (family == AF_NETROM) {
-		return PPM_AF_NETROM;
-	} else if (family == AF_BRIDGE) {
-		return PPM_AF_BRIDGE;
-	} else if (family == AF_ATMPVC) {
-		return PPM_AF_ATMPVC;
-	} else if (family == AF_X25) {
-		return PPM_AF_X25;
-	} else if (family == AF_ROSE) {
-		return PPM_AF_ROSE;
-	} else if (family == AF_DECnet) {
-		return PPM_AF_DECnet;
-	} else if (family == AF_NETBEUI) {
-		return PPM_AF_NETBEUI;
-	} else if (family == AF_SECURITY) {
-		return PPM_AF_SECURITY;
-	} else if (family == AF_KEY) {
-		return PPM_AF_KEY;
-	} else if (family == AF_ROUTE) {
-		return PPM_AF_ROUTE;
-	} else if (family == AF_ASH) {
-		return PPM_AF_ASH;
-	} else if (family == AF_ECONET) {
-		return PPM_AF_ECONET;
-	} else if (family == AF_ATMSVC) {
-		return PPM_AF_ATMSVC;
-	} else if (family == AF_RDS) {
-		return PPM_AF_RDS;
-	} else if (family == AF_SNA) {
-		return PPM_AF_SNA;
-	} else if (family == AF_IRDA) {
-		return PPM_AF_IRDA;
-	} else if (family == AF_PPPOX) {
-		return PPM_AF_PPPOX;
-	} else if (family == AF_WANPIPE) {
-		return PPM_AF_WANPIPE;
-	} else if (family == AF_LLC) {
-		return PPM_AF_LLC;
-	} else if (family == AF_CAN) {
-		return PPM_AF_CAN;
-	} else if (family == AF_TIPC) {
-		return PPM_AF_TIPC;
-	} else if (family == AF_BLUETOOTH) {
-		return PPM_AF_BLUETOOTH;
-	} else if (family == AF_IUCV) {
-		return PPM_AF_IUCV;
-	} else if (family == AF_RXRPC) {
-		return PPM_AF_RXRPC;
-	} else if (family == AF_ISDN) {
-		return PPM_AF_ISDN;
-	} else if (family == AF_PHONET) {
-		return PPM_AF_PHONET;
-	} else if (family == AF_IEEE802154) {
-		return PPM_AF_IEEE802154;
-	}
-#ifdef AF_CAIF
-	else if (family == AF_CAIF) {
-		return PPM_AF_CAIF;
-	}
-#endif
-#ifdef AF_ALG
-	else if (family == AF_ALG) {
-		return PPM_AF_ALG;
-	}
-#endif
-#ifdef AF_NFC
-	else if (family == AF_NFC) {
-		return PPM_AF_NFC;
-	}
-#endif
-	else {
-		ASSERT(false);
-		return PPM_AF_UNSPEC;
-	}
 }
 
 /*
@@ -971,3 +876,34 @@ int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_eve
 
 	return add_sentinel(args);
 }
+
+const enum ppm_param_type sockopt_optnames_info[] = {
+	[PPM_SO_UNKNOWN] = PT_BYTEBUF,
+	[PPM_SO_DEBUG] = PT_BOOL,
+	[PPM_SO_DONTROUTE] = PT_BOOL,
+	[PPM_SO_BROADCAST] = PT_BOOL,
+	[PPM_SO_SNDBUF] = PT_INT32,
+	[PPM_SO_RCVBUF] = PT_INT32,
+	[PPM_SO_REUSEADDR] = PT_BOOL,
+	[PPM_SO_REUSEPORT] = PT_BOOL,
+	[PPM_SO_KEEPALIVE] = PT_BOOL,
+	[PPM_SO_TYPE] = PT_UINT32,
+	[PPM_SO_PROTOCOL] = PT_UINT32,
+	[PPM_SO_DOMAIN] = PT_SOCKFAMILY,
+	[PPM_SO_ERROR] = PT_INT32,
+	[PPM_IP_PKTINFO] = PT_BOOL,
+	[PPM_IP_RECVTTL] = PT_BOOL,
+	[PPM_IP_RECVTOS] = PT_BOOL,
+	[PPM_IP_RECVOPTS] = PT_BOOL,
+	[PPM_IP_RETOPTS] = PT_BOOL,
+	[PPM_IP_TTL] = PT_INT32,
+	[PPM_IP_NODEFRAG] = PT_BOOL,
+	[PPM_IP_MTU_DISCOVER] = PT_UINT32,
+	[PPM_TCP_CONGESTION] = PT_CHARBUF,
+	[PPM_TCP_MAXSEG] = PT_UINT32,
+	[PPM_TCP_NODELAY] = PT_BOOL,
+	[PPM_TCP_THIN_LINEAR_TIMEOUTS] = PT_BOOL,
+	[PPM_TCP_THIN_DUPACK] = PT_BOOL,
+	[PPM_TCP_CORK] = PT_BOOL,
+	[PPM_TCP_KEEPIDLE] = PT_UINT32,
+};

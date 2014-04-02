@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PPM_H_
-#define PPM_H_
+#ifndef PPM_RINGBUFFER_H_
+#define PPM_RINGBUFFER_H_
 
 #ifdef __KERNEL__
 #include <linux/types.h>
@@ -39,4 +39,4 @@ struct ppm_ring_buffer_info {
 	volatile uint64_t n_context_switches;	/* Number of received context switch events. */
 };
 
-#endif /* PPM_H_ */
+#endif /* PPM_RINGBUFFER_H_ */

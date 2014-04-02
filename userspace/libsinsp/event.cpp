@@ -430,6 +430,81 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 	return k;
 }
 
+uint32_t dynamic_buffer_to_string(char *dst,
+									char *src,
+									uint32_t dstlen,
+									uint32_t srclen,
+									char *resolved,
+									uint32_t resolved_len,
+									sinsp_evt::param_fmt fmt)
+{
+	uint32_t uint_val;
+	uint32_t j = 0;
+	int32_t int_val;
+	char *payload = &src[1];
+
+	switch(src[0])
+	{
+		case PT_SOCKFAMILY:
+			{
+				uint_val = *(uint8_t*)payload;
+				j = snprintf(dst, dstlen, "%" PRIu32, uint_val);
+
+				const struct ppm_name_value *flags = socket_families;
+				while(flags != NULL && flags->name != NULL && flags->value != uint_val)
+				{
+					flags++;
+				}
+
+				if(flags != NULL && flags->name != NULL)
+				{
+					strncpy(resolved, flags->name, resolved_len);
+				}
+			}
+			break;
+		case PT_CHARBUF:
+			strncpy(dst, (char*)payload, dstlen);
+			j = srclen - 1;
+			break;
+		case PT_BYTEBUF:
+			{
+				uint32_t len = *(uint32_t *)payload;
+				payload += sizeof(uint32_t);
+
+				j = binary_buffer_to_string(dst,
+						payload,
+						dstlen,
+						len,
+						fmt);
+
+			}
+			break;
+		case PT_UINT32:
+			uint_val = *(uint32_t*)payload;
+			j = snprintf(dst, dstlen, "%" PRIu32, uint_val);
+			break;
+		case PT_INT32:
+			int_val = *(int32_t*)payload;
+			j = snprintf(dst, dstlen, "%" PRId32, int_val);
+			break;
+		case PT_BOOL:
+			if((uint32_t)src[1] != 0)
+			{
+				j = snprintf(dst, dstlen, "true");
+			}
+			else
+			{
+				j = snprintf(dst, dstlen, "false");
+			}
+			break;
+		default:
+			dst[j++] = '\0';
+			break;
+	}
+
+	return j;
+}
+
 uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 {
 	volatile char* tmp = (volatile char *)dest;
@@ -546,7 +621,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			{
 				char tch = fdinfo->get_typechar();
 				char ipprotoch = 0;
-				
+
 				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
 					fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
 					fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK ||
@@ -739,9 +814,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
 				m_resolved_paramstr_storage.size(),
-				(char*)cwd.c_str(), 
-				cwd.length(), 
-				param->m_val, 
+				(char*)cwd.c_str(),
+				cwd.length(),
+				param->m_val,
 				param->m_len))
 			{
 				m_resolved_paramstr_storage[0] = 0;
@@ -806,7 +881,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
             sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
 
 			snprintf(&m_paramstr_storage[0],
-				m_paramstr_storage.size(), 
+				m_paramstr_storage.size(),
 				"%s",
 				sanitized_str.c_str());
 		}
@@ -847,7 +922,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			break;
 		}
-		
+
 		if(param->m_val[0] == PPM_AF_INET)
 		{
 			if(param->m_len == 1 + 4 + 2 + 4 + 2)
@@ -904,7 +979,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				{
 					char srcstr[INET6_ADDRSTRLEN];
 					char dststr[INET6_ADDRSTRLEN];
-					if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) && 
+					if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
 						inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
 					{
 						snprintf(&m_paramstr_storage[0],
@@ -935,8 +1010,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
             sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
 
 			snprintf(&m_paramstr_storage[0],
-				m_paramstr_storage.size(), 
-				"%" PRIx64 "->%" PRIx64 " %s", 
+				m_paramstr_storage.size(),
+				"%" PRIx64 "->%" PRIx64 " %s",
 				*(uint64_t*)(param->m_val + 1),
 				*(uint64_t*)(param->m_val + 9),
 				sanitized_str.c_str());
@@ -1054,7 +1129,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			snprintf(&m_resolved_paramstr_storage[0],
 						m_resolved_paramstr_storage.size(),
-						"%lgs", 
+						"%lgs",
 						((double)val) / 1000000000);
 		}
 		break;
@@ -1106,6 +1181,24 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			break;
 		}
+	case PT_DYN:
+		if(param->m_len == 0)
+		{
+			snprintf(&m_paramstr_storage[0],
+			         m_paramstr_storage.size(),
+			         "NULL");
+
+			break;
+		}
+
+		dynamic_buffer_to_string(&m_paramstr_storage[0],
+			param->m_val,
+			m_paramstr_storage.size() - 1,
+			param->m_len,
+			&m_resolved_paramstr_storage[0],
+			m_resolved_paramstr_storage.size(),
+			fmt);
+		break;
 	case PT_ABSTIME:
 		//
 		// XXX not implemented yet
@@ -1220,7 +1313,7 @@ void sinsp_evt::load_params()
 
 void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 {
-	if(get_type() == PPME_GENERIC_E || 
+	if(get_type() == PPME_GENERIC_E ||
 		get_type() == PPME_GENERIC_X)
 	{
 		//
