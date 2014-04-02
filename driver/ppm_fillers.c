@@ -1073,13 +1073,10 @@ static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
 	//
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
-	if(retval >= 0)
-	{
+	if (retval >= 0) {
 		//
 		// optval
 		//
@@ -1098,8 +1095,7 @@ static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
 #else
 		val = args->socketcall_args[4];
 #endif
-		if(address != NULL && val != 0)
-		{
+		if (address != NULL && val != 0) {
 			*optval = address;
 			*optlen = val;
 		}
@@ -1115,109 +1111,105 @@ static uint32_t sockopt_default_optname_to_scap(unsigned long val)
 
 static uint32_t sockopt_socket_optname_to_scap(unsigned long val)
 {
-	switch(val)
-	{
-		case SO_DEBUG:
-			return PPM_SO_DEBUG;
-		case SO_REUSEADDR:
-			return PPM_SO_REUSEADDR;
+	switch(val) {
+	case SO_DEBUG:
+		return PPM_SO_DEBUG;
+	case SO_REUSEADDR:
+		return PPM_SO_REUSEADDR;
 #ifdef SO_REUSEPORT
-		case SO_REUSEPORT:
-			return PPM_SO_REUSEPORT;
+	case SO_REUSEPORT:
+		return PPM_SO_REUSEPORT;
 #endif
-		case SO_TYPE:
-			return PPM_SO_TYPE;
-		case SO_PROTOCOL:
-			return PPM_SO_PROTOCOL;
-		case SO_DOMAIN:
-			return PPM_SO_DOMAIN;
-		case SO_ERROR:
-			return PPM_SO_ERROR;
-		case SO_DONTROUTE:
-			return PPM_SO_DONTROUTE;
-		case SO_BROADCAST:
-			return PPM_SO_BROADCAST;
-		case SO_KEEPALIVE:
-			return PPM_SO_KEEPALIVE;
-		case SO_SNDBUF:
-			return PPM_SO_SNDBUF;
-		case SO_RCVBUF:
-			return PPM_SO_RCVBUF;
-		default:
-			return PPM_SO_UNKNOWN;
- 			break;
+	case SO_TYPE:
+		return PPM_SO_TYPE;
+	case SO_PROTOCOL:
+		return PPM_SO_PROTOCOL;
+	case SO_DOMAIN:
+		return PPM_SO_DOMAIN;
+	case SO_ERROR:
+		return PPM_SO_ERROR;
+	case SO_DONTROUTE:
+		return PPM_SO_DONTROUTE;
+	case SO_BROADCAST:
+		return PPM_SO_BROADCAST;
+	case SO_KEEPALIVE:
+		return PPM_SO_KEEPALIVE;
+	case SO_SNDBUF:
+		return PPM_SO_SNDBUF;
+	case SO_RCVBUF:
+		return PPM_SO_RCVBUF;
+	default:
+		return PPM_SO_UNKNOWN;
+		break;
 	}
 }
 
 static uint32_t sockopt_ip_optname_to_scap(unsigned long val)
 {
-	switch(val)
-	{
-		case IP_PKTINFO:
-			return PPM_IP_PKTINFO;
-		case IP_RECVTTL:
-			return PPM_IP_RECVTTL;
-		case IP_RECVTOS:
-			return PPM_IP_RECVTOS;
-		case IP_RECVOPTS:
-			return PPM_IP_RECVOPTS;
-		case IP_RETOPTS:
-			return PPM_IP_RETOPTS;
-		case IP_TOS:
-			return PPM_IP_TOS;
-		case IP_TTL:
-			return PPM_IP_TTL;
-		case IP_NODEFRAG:
-			return PPM_IP_NODEFRAG;
-		case IP_MTU_DISCOVER:
-			return PPM_IP_MTU_DISCOVER;
-		default:
-			return PPM_SO_UNKNOWN;
-			break;
+	switch(val) {
+	case IP_PKTINFO:
+		return PPM_IP_PKTINFO;
+	case IP_RECVTTL:
+		return PPM_IP_RECVTTL;
+	case IP_RECVTOS:
+		return PPM_IP_RECVTOS;
+	case IP_RECVOPTS:
+		return PPM_IP_RECVOPTS;
+	case IP_RETOPTS:
+		return PPM_IP_RETOPTS;
+	case IP_TOS:
+		return PPM_IP_TOS;
+	case IP_TTL:
+		return PPM_IP_TTL;
+	case IP_NODEFRAG:
+		return PPM_IP_NODEFRAG;
+	case IP_MTU_DISCOVER:
+		return PPM_IP_MTU_DISCOVER;
+	default:
+		return PPM_SO_UNKNOWN;
+		break;
 	}
 }
 
 static uint32_t sockopt_tcp_optname_to_scap(unsigned long val)
 {
-	switch(val)
-	{
-		case TCP_CONGESTION:
-			return PPM_TCP_CONGESTION;
-		case TCP_MAXSEG:
-			return PPM_TCP_MAXSEG;
-		case TCP_NODELAY:
-			return PPM_TCP_NODELAY;
-		case TCP_THIN_LINEAR_TIMEOUTS:
-			return PPM_TCP_THIN_LINEAR_TIMEOUTS;
-		case TCP_THIN_DUPACK:
-			return PPM_TCP_THIN_DUPACK;
-		case TCP_CORK:
-			return PPM_TCP_CORK;
-		case TCP_KEEPIDLE:
-			return PPM_TCP_KEEPIDLE;
-		default:
-			return PPM_SO_UNKNOWN;
-			break;
+	switch(val) {
+	case TCP_CONGESTION:
+		return PPM_TCP_CONGESTION;
+	case TCP_MAXSEG:
+		return PPM_TCP_MAXSEG;
+	case TCP_NODELAY:
+		return PPM_TCP_NODELAY;
+	case TCP_THIN_LINEAR_TIMEOUTS:
+		return PPM_TCP_THIN_LINEAR_TIMEOUTS;
+	case TCP_THIN_DUPACK:
+		return PPM_TCP_THIN_DUPACK;
+	case TCP_CORK:
+		return PPM_TCP_CORK;
+	case TCP_KEEPIDLE:
+		return PPM_TCP_KEEPIDLE;
+	default:
+		return PPM_SO_UNKNOWN;
+		break;
 	}
 }
 
 static inline uint8_t sockopt_level_to_scap(unsigned long val,
 											uint32_t (**parse_opt)(unsigned long))
 {
-	switch(val)
-	{
-		case SOL_IP:
-			*parse_opt = sockopt_ip_optname_to_scap;
-			return PPM_SOL_IP;
-		case SOL_SOCKET:
-			*parse_opt = sockopt_socket_optname_to_scap;
-			return PPM_SOL_SOCKET;
-		case SOL_TCP:
-			*parse_opt = sockopt_tcp_optname_to_scap;
-			return PPM_SOL_TCP;
-		default:
-			*parse_opt = sockopt_default_optname_to_scap;
-			return PPM_SOL_UNKNOWN;
+	switch(val) {
+	case SOL_IP:
+		*parse_opt = sockopt_ip_optname_to_scap;
+		return PPM_SOL_IP;
+	case SOL_SOCKET:
+		*parse_opt = sockopt_socket_optname_to_scap;
+		return PPM_SOL_SOCKET;
+	case SOL_TCP:
+		*parse_opt = sockopt_tcp_optname_to_scap;
+		return PPM_SOL_TCP;
+	default:
+		*parse_opt = sockopt_default_optname_to_scap;
+		return PPM_SOL_UNKNOWN;
 	}
 }
 
@@ -1234,61 +1226,59 @@ static inline uint16_t sockopt_optval_parse(uint32_t optname,
 	unsigned long len, dim;
 	bool fromuser = false;
 
-	if(optval_info == PT_NONE)
-	{
+	if (optval_info == PT_NONE)	{
 		return 0;
 	}
 
 	*(targetbuf) = optval_info;
-	switch(optval_info)
-	{
-		case PT_SOCKFAMILY:
-			len = ppm_copy_from_user(&val,
-						optval,
-						sizeof(uint8_t));
+	switch(optval_info) {
+	case PT_SOCKFAMILY:
+		len = ppm_copy_from_user(&val,
+					optval,
+					sizeof(uint8_t));
 
-			if (unlikely(len != 0))
-				return 0;
+		if (unlikely(len != 0))
+			return 0;
 
-			*(uint8_t *)(targetbuf + 1) = socket_family_to_scap(val);
-			size = 1 + sizeof(uint8_t);
-			break;
-		case PT_CHARBUF:
-			min_len = min((uint32_t)targetbuf_size - 1, (uint32_t)optlen);
-			len = ppm_strncpy_from_user(targetbuf + 1, optval, min_len);
+		*(uint8_t *)(targetbuf + 1) = socket_family_to_scap(val);
+		size = 1 + sizeof(uint8_t);
+		break;
+	case PT_CHARBUF:
+		min_len = min((uint32_t)targetbuf_size - 1, (uint32_t)optlen);
+		len = ppm_strncpy_from_user(targetbuf + 1, optval, min_len);
 
-			if (unlikely(len != 0))
-				return 0;
+		if (unlikely(len != 0))
+			return 0;
 
-			*(targetbuf + 1 + len) = '\0';
-			size = 1 + len;
-			break;
-		case PT_BYTEBUF:
-			min_len = min(((uint32_t)targetbuf_size - 1 - 4), (uint32_t)optlen);
-			*(uint32_t *)(targetbuf + 1) = min_len;
+		*(targetbuf + 1 + len) = '\0';
+		size = 1 + len;
+		break;
+	case PT_BYTEBUF:
+		min_len = min(((uint32_t)targetbuf_size - 1 - 4), (uint32_t)optlen);
+		*(uint32_t *)(targetbuf + 1) = min_len;
 
-			len = ppm_copy_from_user(targetbuf + 1 + sizeof(uint32_t), optval, min_len);
+		len = ppm_copy_from_user(targetbuf + 1 + sizeof(uint32_t), optval, min_len);
 
-			if (unlikely(len != 0))
-				return 0;
+		if (unlikely(len != 0))
+			return 0;
 
-			size = 1 + sizeof(uint32_t) + len;
-			break;
-		case PT_INT32:
-			fromuser = true;
-			dim = sizeof(int32_t);
-			break;
-		case PT_UINT32:
-			fromuser = true;
-			dim = sizeof(uint32_t);
-			break;
-		case PT_BOOL:
-			fromuser = true;
-			dim = sizeof(uint8_t);
-			break;
-		default:
-			size = 0;
-			break;
+		size = 1 + sizeof(uint32_t) + len;
+		break;
+	case PT_INT32:
+		fromuser = true;
+		dim = sizeof(int32_t);
+		break;
+	case PT_UINT32:
+		fromuser = true;
+		dim = sizeof(uint32_t);
+		break;
+	case PT_BOOL:
+		fromuser = true;
+		dim = sizeof(uint8_t);
+		break;
+	default:
+		size = 0;
+		break;
 	}
 
 	if (fromuser) {
@@ -1321,10 +1311,8 @@ static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args)
 	// push the common params to the ring
 	//
 	res = f_sys_sockopt_x_common(args, &address, &optlen);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
 	//
 	// level
@@ -1336,10 +1324,8 @@ static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args)
 #endif
 	level = sockopt_level_to_scap(val, &sockopt_optname_to_scap);
 	res = val_to_ring(args, level, 0, true);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
 	//
 	// optname
@@ -1351,25 +1337,19 @@ static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args)
 #endif
 	optname = sockopt_optname_to_scap(val);
 	res = val_to_ring(args, (uint64_t)optname, 0, true);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
-	if(address != NULL && optlen != 0)
-	{
+	if (address != NULL && optlen != 0)
 		size = sockopt_optval_parse(optname,
 									address,
 									(int)optlen,
 									targetbuf,
 									STR_STORAGE_SIZE);
-	}
 
 	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
 	return add_sentinel(args);
 }
@@ -1391,10 +1371,8 @@ static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
 	// push the common params to the ring
 	//
 	res = f_sys_sockopt_x_common(args, &address, &tmplen);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
 	//
 	// level
@@ -1406,10 +1384,8 @@ static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
 #endif
 	level = sockopt_level_to_scap(val, &sockopt_optname_to_scap);
 	res = val_to_ring(args, level, 0, false);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
 	//
 	// optname
@@ -1421,17 +1397,12 @@ static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
 #endif
 	optname = sockopt_optname_to_scap(val);
 	res = val_to_ring(args, (uint64_t)optname, 0, false);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
-	if(address != NULL && tmplen != 0)
-	{
-		if(unlikely(ppm_copy_from_user(&optlen, (const void __user *)tmplen, sizeof(optlen))))
-		{
+	if (address != NULL && tmplen != 0) {
+		if (unlikely(ppm_copy_from_user(&optlen, (const void __user *)tmplen, sizeof(optlen))))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
-		}
 
 		size = sockopt_optval_parse(optname,
 									address,
@@ -1441,10 +1412,8 @@ static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
 	}
 
 	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false);
-	if(unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
 
 	return add_sentinel(args);
 }

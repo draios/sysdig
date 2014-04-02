@@ -877,8 +877,7 @@ int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_eve
 	return add_sentinel(args);
 }
 
-const enum ppm_param_type sockopt_optnames_info[] =
-{
+const enum ppm_param_type sockopt_optnames_info[] = {
 	[PPM_SO_UNKNOWN] = PT_BYTEBUF,
 	[PPM_SO_DEBUG] = PT_BOOL,
 	[PPM_SO_DONTROUTE] = PT_BOOL,
