@@ -47,17 +47,8 @@ static void memory_dump(char *p, size_t size)
 {
 	unsigned int j;
 
-	for (j = 0; j < size; j += 8) {
-		pr_info("%.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x\n",
-		       (u8)p[j],
-		       (u8)p[j + 1],
-		       (u8)p[j + 2],
-		       (u8)p[j + 3],
-		       (u8)p[j + 4],
-		       (u8)p[j + 5],
-		       (u8)p[j + 6],
-		       (u8)p[j + 7]);
-	}
+	for (j = 0; j < size; j += 8)
+		pr_info("%*ph\n", 8, &p[j]);
 }
 
 /*
