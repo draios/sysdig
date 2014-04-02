@@ -1053,14 +1053,16 @@ static int32_t f_sys_socketpair_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
+static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
+										void **optval,
+										unsigned long *optlen)
 {
 	unsigned long val;
 	int64_t retval;
 	int32_t res;
-	int optlen = 0;
-	void *optval = NULL;
-	void *address;
+
+	*optval = NULL;
+	*optlen = 0;
 
 	//
 	// retval
@@ -1078,21 +1080,40 @@ static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
 		// optval
 		//
 		syscall_get_arguments(current, args->regs, 3, 1, &val);
-		address = (void *)val;
+		*optval = (void *)val;
 
 		//
 		// optlen
 		//
 		syscall_get_arguments(current, args->regs, 4, 1, &val);
-		if(address != NULL && val != 0)
-		{
-			if(unlikely(ppm_copy_from_user(&optlen, (const void *)val, sizeof(optlen))))
-			{
-				return PPM_FAILURE_INVALID_USER_MEMORY;
-			}
+		*optlen = val;
+	}
 
-			optval = address;
+	return PPM_SUCCESS;
+}
+
+static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
+{
+	unsigned long val;
+	int32_t res;
+	int optlen = 0;
+	void *optval = NULL;
+	void *address;
+
+	res = f_sys_sockopt_x_common(args, &address, &val);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	if(address != NULL && val != 0)
+	{
+		if(unlikely(ppm_copy_from_user(&optlen, (const void *)val, sizeof(optlen))))
+		{
+			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
+
+		optval = address;
 	}
 
 	res = val_to_ring(args, (uint64_t)optval, min((unsigned long)optlen, (unsigned long)g_snaplen), true);
