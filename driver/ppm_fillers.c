@@ -120,7 +120,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
 	[PPME_SOCKET_SOCKETPAIR_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKETPAIR_X] = {f_sys_socketpair_x},
-	[PPME_SOCKET_SETSOCKOPT_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2}}},
+	[PPME_SOCKET_SETSOCKOPT_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0}}},
 	[PPME_SOCKET_SETSOCKOPT_X] = {f_sys_setsockopt_x},
 	[PPME_SOCKET_GETSOCKOPT_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0}}},
 	[PPME_SOCKET_GETSOCKOPT_X] = {f_sys_getsockopt_x},
@@ -1298,7 +1298,6 @@ static inline uint16_t sockopt_optval_parse(uint32_t optname,
 			return 0;
 
 		size = 1 + dim;
-
 	}
 
 	return size;
@@ -1306,17 +1305,65 @@ static inline uint16_t sockopt_optval_parse(uint32_t optname,
 
 static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args)
 {
+	unsigned long val;
+	unsigned long optlen = 0;
+	char* targetbuf = args->str_storage;
+	void *address = NULL;
 	int32_t res;
-	unsigned long optlen;
-	void *optval;
+	uint16_t size = 0;
+	uint8_t level;
+	uint32_t optname;
+	uint32_t (*sockopt_optname_to_scap)(unsigned long) = NULL;
 
-	res = f_sys_sockopt_x_common(args, &optval, &optlen);
+	//
+	// push the common params to the ring
+	//
+	res = f_sys_sockopt_x_common(args, &address, &optlen);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	res = val_to_ring(args, (uint64_t)optval, min((unsigned long)optlen, (unsigned long)g_snaplen), true);
+	//
+	// level
+	//
+#ifdef __x86_64__
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+#else
+	val = args->socketcall_args[1];
+#endif
+	level = sockopt_level_to_scap(val, &sockopt_optname_to_scap);
+	res = val_to_ring(args, level, 0, true);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	//
+	// optname
+	//
+#ifdef __x86_64__
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+#else
+	val = args->socketcall_args[2];
+#endif
+	optname = sockopt_optname_to_scap(val);
+	res = val_to_ring(args, (uint64_t)optname, 0, true);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	if(address != NULL && optlen != 0)
+	{
+		size = sockopt_optval_parse(optname,
+									address,
+									(int)optlen,
+									targetbuf,
+									STR_STORAGE_SIZE);
+	}
+
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
