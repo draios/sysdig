@@ -2723,7 +2723,7 @@ static int32_t f_sys_nanosleep_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint8_t rlimit_resource_to_scap(unsigned long rresource)
+static inline u8 rlimit_resource_to_scap(unsigned long rresource)
 {
 	switch (rresource) {
 	case RLIMIT_CPU:
@@ -2766,7 +2766,7 @@ static inline uint8_t rlimit_resource_to_scap(unsigned long rresource)
 
 static int32_t f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 {
-	uint8_t ppm_resource;
+	u8 ppm_resource;
 	unsigned long val;
 	int32_t res;
 
@@ -2841,7 +2841,7 @@ static int32_t f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 
 static int32_t f_sys_prlimit_e(struct event_filler_arguments *args)
 {
-	uint8_t ppm_resource;
+	u8 ppm_resource;
 	unsigned long val;
 	int32_t res;
 
@@ -3058,7 +3058,7 @@ static int32_t f_sched_drop(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint8_t fcntl_cmd_to_scap(unsigned long cmd)
+static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 {
 	switch (cmd) {
 	case F_DUPFD:

@@ -49,14 +49,14 @@ static void memory_dump(char *p, size_t size)
 
 	for (j = 0; j < size; j += 8) {
 		pr_info("%.2x %.2x %.2x %.2x %.2x %.2x %.2x %.2x\n",
-		       (uint8_t)p[j],
-		       (uint8_t)p[j + 1],
-		       (uint8_t)p[j + 2],
-		       (uint8_t)p[j + 3],
-		       (uint8_t)p[j + 4],
-		       (uint8_t)p[j + 5],
-		       (uint8_t)p[j + 6],
-		       (uint8_t)p[j + 7]);
+		       (u8)p[j],
+		       (u8)p[j + 1],
+		       (u8)p[j + 2],
+		       (u8)p[j + 3],
+		       (u8)p[j + 4],
+		       (u8)p[j + 5],
+		       (u8)p[j + 6],
+		       (u8)p[j + 7]);
 	}
 }
 
@@ -236,9 +236,9 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, ui
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		if (likely(args->arg_data_size >= sizeof(uint8_t)))	{
-			*(uint8_t *)(args->buffer + args->arg_data_offset) = (uint8_t)val;
-			len = sizeof(uint8_t);
+		if (likely(args->arg_data_size >= sizeof(u8)))	{
+			*(u8 *)(args->buffer + args->arg_data_offset) = (u8)val;
+			len = sizeof(u8);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -363,7 +363,7 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 	return res;
 }
 
-static inline uint8_t socket_family_to_scap(uint8_t family)
+static inline u8 socket_family_to_scap(u8 family)
 {
 	if (family == AF_INET) {
 		return PPM_AF_INET;
@@ -599,8 +599,8 @@ uint16_t fd_to_socktuple(int fd,
 	struct sock *speer;
 	uint32_t sip;
 	uint32_t dip;
-	uint8_t *sip6;
-	uint8_t *dip6;
+	u8 *sip6;
+	u8 *dip6;
 	uint16_t sport;
 	uint16_t dport;
 	struct sockaddr_in *usrsockaddr_in;
