@@ -1083,13 +1083,21 @@ static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
 		//
 		// optval
 		//
+#ifdef __x86_64__
 		syscall_get_arguments(current, args->regs, 3, 1, &val);
+#else
+		val = args->socketcall_args[3];
+#endif
 		address = (void *)val;
 
 		//
 		// optlen
 		//
+#ifdef __x86_64__
 		syscall_get_arguments(current, args->regs, 4, 1, &val);
+#else
+		val = args->socketcall_args[4];
+#endif
 		if(address != NULL && val != 0)
 		{
 			*optval = address;
