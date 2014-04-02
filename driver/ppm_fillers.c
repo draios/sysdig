@@ -44,6 +44,7 @@ static int32_t f_sys_read_x(struct event_filler_arguments *args);
 static int32_t f_sys_write_x(struct event_filler_arguments *args);
 static int32_t f_proc_startupdate(struct event_filler_arguments *args);
 static int32_t f_sys_socketpair_x(struct event_filler_arguments *args);
+static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args);
 static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args);
 static int32_t f_sys_connect_x(struct event_filler_arguments *args);
 static int32_t f_sys_accept4_e(struct event_filler_arguments *args);
@@ -119,6 +120,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
 	[PPME_SOCKET_SOCKETPAIR_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKETPAIR_X] = {f_sys_socketpair_x},
+	[PPME_SOCKET_SETSOCKOPT_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2}}},
+	[PPME_SOCKET_SETSOCKOPT_X] = {f_sys_setsockopt_x},
 	[PPME_SOCKET_GETSOCKOPT_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2}}},
 	[PPME_SOCKET_GETSOCKOPT_X] = {f_sys_getsockopt_x},
 	[PPME_SOCKET_BIND_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0} } },
@@ -1060,6 +1063,7 @@ static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
 	unsigned long val;
 	int64_t retval;
 	int32_t res;
+	void *address;
 
 	*optval = NULL;
 	*optlen = 0;
@@ -1080,16 +1084,41 @@ static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
 		// optval
 		//
 		syscall_get_arguments(current, args->regs, 3, 1, &val);
-		*optval = (void *)val;
+		address = (void *)val;
 
 		//
 		// optlen
 		//
 		syscall_get_arguments(current, args->regs, 4, 1, &val);
-		*optlen = val;
+		if(address != NULL && val != 0)
+		{
+			*optval = address;
+			*optlen = val;
+		}
 	}
 
 	return PPM_SUCCESS;
+}
+
+static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args)
+{
+	int32_t res;
+	unsigned long optlen;
+	void *optval;
+
+	res = f_sys_sockopt_x_common(args, &optval, &optlen);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	res = val_to_ring(args, (uint64_t)optval, min((unsigned long)optlen, (unsigned long)g_snaplen), true);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	return add_sentinel(args);
 }
 
 static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
