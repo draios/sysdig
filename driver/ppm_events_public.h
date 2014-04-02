@@ -113,6 +113,63 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_SOL_ALG         33
 #define PPM_SOL_NFC         34
 #define PPM_SOL_UNKNOWN		35
+#define PPM_SOL_MAXLEVEL	PPM_SOL_UNKNOWN
+
+/*
+ * Unkwown SOL_* option
+ */
+#define PPM_SO_UNKNOWN 		0
+
+/*
+ * SOL_SOCKET sockopt
+ */
+#define PPM_SO_DEBUG                           1
+#define PPM_SO_REUSEADDR                       2
+#define PPM_SO_TYPE                            3
+#define PPM_SO_ERROR                           4
+#define PPM_SO_DONTROUTE                       5
+#define PPM_SO_BROADCAST                       6
+#define PPM_SO_SNDBUF                          7
+#define PPM_SO_RCVBUF                          8
+#define PPM_SO_SNDBUFFORCE                     9
+#define PPM_SO_RCVBUFFORCE                    10
+#define PPM_SO_KEEPALIVE                      11
+#define PPM_SO_OOBINLINE                      12
+#define PPM_SO_NO_CHECK                       13
+#define PPM_SO_PRIORITY                       14
+#define PPM_SO_LINGER                         15
+#define PPM_SO_BSDCOMPAT                      16
+#define PPM_SO_REUSEPORT                      17
+#define PPM_SO_PASSCRED                       18
+#define PPM_SO_PEERCRED                       19
+#define PPM_SO_RCVLOWAT                       20
+#define PPM_SO_SNDLOWAT                       21
+#define PPM_SO_RCVTIMEO                       22
+#define PPM_SO_SNDTIMEO                       23
+#define PPM_SO_SECURITY_AUTHENTICATION        24
+#define PPM_SO_SECURITY_ENCRYPTION_TRANSPORT  25
+#define PPM_SO_SECURITY_ENCRYPTION_NETWORK    26
+#define PPM_SO_BINDTODEVICE                   27
+#define PPM_SO_ATTACH_FILTER                  28
+#define PPM_SO_DETACH_FILTER                  29
+#define PPM_SO_PEERNAME                       30
+#define PPM_SO_TIMESTAMP                      31
+#define PPM_SO_ACCEPTCONN                     32
+#define PPM_SO_PEERSEC                        33
+#define PPM_SO_PASSSEC                        34
+#define PPM_SO_TIMESTAMPNS                    35
+#define PPM_SO_MARK                           36
+#define PPM_SO_TIMESTAMPING                   37
+#define PPM_SO_PROTOCOL                       38
+#define PPM_SO_DOMAIN                         39
+#define PPM_SO_RXQ_OVFL                       40
+#define PPM_SO_WIFI_STATUS                    41
+#define PPM_SO_PEEK_OFF                       42
+#define PPM_SO_NOFCS                          43
+#define PPM_SO_LOCK_FILTER                    44
+#define PPM_SO_SELECT_ERR_QUEUE               45
+#define PPM_SO_BUSY_POLL                      46
+#define PPM_SO_MAX_PACING_RATE                47
 
 /*
  * File flags
@@ -931,5 +988,6 @@ extern const struct ppm_name_value openat_flags[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
 extern const struct ppm_name_value sockopt_levels[];
+extern const struct ppm_name_value sockopt_optnames[];
 
 #endif /* EVENTS_PUBLIC_H_ */

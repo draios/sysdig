@@ -67,7 +67,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SOCKET_SETSOCKOPT_E */{"setsockopt", EC_NET, (enum ppm_event_flags)(EF_USES_FD | EF_MODIFIES_STATE), 3, {{"fd", PT_FD, PF_DEC}, {"level", PT_UINT16, PF_DEC}, {"optname", PT_UINT32, PF_DEC}}},
 	/* PPME_SOCKET_SETSOCKOPT_X */{"setsockopt", EC_NET, (enum ppm_event_flags)(EF_USES_FD | EF_MODIFIES_STATE), 2, {{"res", PT_ERRNO, PF_DEC}, {"optval", PT_BYTEBUF, PF_NA}}},
 	/* PPME_SOCKET_GETSOCKOPT_E */{"getsockopt", EC_NET, EF_NONE, 1, {{"fd", PT_FD, PF_DEC}}},
-	/* PPME_SOCKET_GETSOCKOPT_X */{"getsockopt", EC_NET, EF_USES_FD, 4, {{"res", PT_ERRNO, PF_DEC}, {"level", PT_FLAGS16, PF_DEC, sockopt_levels}, {"optname", PT_UINT32, PF_DEC}, {"optval", PT_BYTEBUF, PF_NA}}},
+	/* PPME_SOCKET_GETSOCKOPT_X */{"getsockopt", EC_NET, EF_USES_FD, 4, {{"res", PT_ERRNO, PF_DEC}, {"level", PT_FLAGS16, PF_DEC, sockopt_levels}, {"optname", PT_FLAGS32, PF_DEC, sockopt_optnames}, {"optval", PT_DYN, PF_NA}}},
 	/* PPME_SOCKET_SENDMSG_E */{"sendmsg", EC_IO_WRITE, (enum ppm_event_flags)(EF_USES_FD | EF_WRITES_TO_FD), 3, {{"fd", PT_FD, PF_DEC}, {"size", PT_UINT32, PF_DEC}, {"tuple", PT_SOCKTUPLE, PF_NA} } },
 	/* PPME_SOCKET_SENDMSG_X */{"sendmsg", EC_IO_WRITE, (enum ppm_event_flags)(EF_USES_FD | EF_WRITES_TO_FD), 2, {{"res", PT_ERRNO, PF_DEC}, {"data", PT_BYTEBUF, PF_NA} } },
 	/* PPME_SOCKET_SENDMMSG_E */{"sendmmsg", EC_IO_WRITE, EF_NONE, 0},

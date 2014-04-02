@@ -204,6 +204,7 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, ui
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
+	case PT_DYN:
 		if (likely(val != 0)) {
 			if (unlikely(val_len >= args->arg_data_size)) {
 				return PPM_FAILURE_BUFFER_FULL;
@@ -971,3 +972,10 @@ int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_eve
 
 	return add_sentinel(args);
 }
+
+const enum ppm_param_type sockopt_optnames_info[] =
+{
+	[PPM_SO_DEBUG] = PT_BOOL,
+	[PPM_SO_DONTROUTE] = PT_BOOL,
+	[PPM_SO_REUSEADDR] = PT_BOOL,
+};

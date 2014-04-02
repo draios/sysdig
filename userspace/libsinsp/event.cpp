@@ -430,6 +430,30 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 	return k;
 }
 
+uint32_t dynamic_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen)
+{
+	uint32_t j = 0;
+
+	switch(src[0])
+	{
+		case PT_BOOL:
+			if((uint32_t)src[1] != 0)
+			{
+				j = snprintf(dst, dstlen, "true");
+			}
+			else
+			{
+				j = snprintf(dst, dstlen, "false");
+			}
+			break;
+		default:
+			dst[j++] = '\0';
+			break;
+	}
+
+	return j;
+}
+
 uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 {
 	volatile char* tmp = (volatile char *)dest;
@@ -1106,6 +1130,21 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			break;
 		}
+	case PT_DYN:
+		if(param->m_len == 0)
+		{
+			snprintf(&m_paramstr_storage[0],
+			         m_paramstr_storage.size(),
+			         "NULL");
+
+			break;
+		}
+
+		dynamic_buffer_to_string(&m_paramstr_storage[0],
+			param->m_val,
+			m_paramstr_storage.size() - 1,
+			param->m_len);
+		break;
 	case PT_ABSTIME:
 		//
 		// XXX not implemented yet

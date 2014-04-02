@@ -1108,24 +1108,39 @@ static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
 	return PPM_SUCCESS;
 }
 
-static uint8_t sockopt_default_optname_to_scap(unsigned long val)
+static uint32_t sockopt_default_optname_to_scap(unsigned long val)
 {
 	return (uint8_t)val;
 }
 
-static uint8_t sockopt_socket_optname_to_scap(unsigned long val)
+static uint32_t sockopt_socket_optname_to_scap(unsigned long val)
 {
 	switch(val)
 	{
+		case SO_DEBUG:
+			return PPM_SO_DEBUG;
+		case SO_REUSEADDR:
+			return PPM_SO_REUSEADDR;
+		case SO_TYPE:
+			return PPM_SO_TYPE;
+		case SO_ERROR:
+			return PPM_SO_ERROR;
+		case SO_DONTROUTE:
+			return PPM_SO_DONTROUTE;
+		case SO_BROADCAST:
+			return PPM_SO_BROADCAST;
+		case SO_SNDBUF:
+			return PPM_SO_SNDBUF;
+		case SO_RCVBUF:
+			return PPM_SO_RCVBUF;
 		default:
-			// XXX: not yet implemented.
-			return 0;
-			break;
+			return PPM_SO_UNKNOWN;
+ 			break;
 	}
 }
 
 static inline uint8_t sockopt_level_to_scap(unsigned long val,
-											uint8_t (**parse_opt)(unsigned long))
+											uint32_t (**parse_opt)(unsigned long))
 {
 	switch(val)
 	{
@@ -1138,14 +1153,41 @@ static inline uint8_t sockopt_level_to_scap(unsigned long val,
 	}
 }
 
-static inline uint16_t sockopt_optval_parse(uint8_t level,
-											uint8_t optname,
+static inline uint16_t sockopt_optval_parse(uint32_t optname,
 											void *optval,
 											int optlen,
 											char *targetbuf,
 											uint16_t targetbuf_size)
 {
-	return 0;
+	enum ppm_param_type optval_info = sockopt_optnames_info[optname];
+	uint16_t size;
+	unsigned long len;
+
+	if(optval_info == PT_NONE)
+	{
+		return 0;
+	}
+
+	switch(optval_info)
+	{
+		case PT_BOOL:
+			*(targetbuf) = optval_info;
+			len = ppm_copy_from_user(targetbuf + 1,
+						(const void __user *)(unsigned long)optval,
+						sizeof(char));
+
+			if (unlikely(len != 0)) {
+				return 0;
+			}
+
+			size = 2;
+			break;
+		default:
+			size = 0;
+			break;
+	}
+
+	return size;
 }
 
 static int32_t f_sys_setsockopt_x(struct event_filler_arguments* args)
@@ -1175,13 +1217,12 @@ static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
 	unsigned long tmplen;
 	char* targetbuf = args->str_storage;
 	int optlen = 0;
-	void *optval = NULL;
-	void *address;
+	void *address = NULL;
 	int32_t res;
 	uint16_t size = 0;
 	uint8_t level;
-	uint8_t optname;
-	uint8_t (*sockopt_optname_to_scap)(unsigned long) = NULL;
+	uint32_t optname;
+	uint32_t (*sockopt_optname_to_scap)(unsigned long) = NULL;
 
 	//
 	// push the common params to the ring
@@ -1224,15 +1265,13 @@ static int32_t f_sys_getsockopt_x(struct event_filler_arguments* args)
 
 	if(address != NULL && tmplen != 0)
 	{
-		if(unlikely(ppm_copy_from_user(&optlen, (const void *)tmplen, sizeof(optlen))))
+		if(unlikely(ppm_copy_from_user(&optlen, (const void __user *)tmplen, sizeof(optlen))))
 		{
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 
-		optval = address;
-		size = sockopt_optval_parse(level,
-									optname,
-									optval,
+		size = sockopt_optval_parse(optname,
+									address,
 									optlen,
 									targetbuf,
 									STR_STORAGE_SIZE);
