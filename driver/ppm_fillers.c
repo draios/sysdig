@@ -1110,7 +1110,7 @@ static int32_t f_sys_sockopt_x_common(struct event_filler_arguments* args,
 
 static uint32_t sockopt_default_optname_to_scap(unsigned long val)
 {
-	return (uint8_t)val;
+	return PPM_SO_UNKNOWN;
 }
 
 static uint32_t sockopt_socket_optname_to_scap(unsigned long val)
@@ -1121,14 +1121,22 @@ static uint32_t sockopt_socket_optname_to_scap(unsigned long val)
 			return PPM_SO_DEBUG;
 		case SO_REUSEADDR:
 			return PPM_SO_REUSEADDR;
+		case SO_REUSEPORT:
+			return PPM_SO_REUSEPORT;
 		case SO_TYPE:
 			return PPM_SO_TYPE;
+		case SO_PROTOCOL:
+			return PPM_SO_PROTOCOL;
+		case SO_DOMAIN:
+			return PPM_SO_DOMAIN;
 		case SO_ERROR:
 			return PPM_SO_ERROR;
 		case SO_DONTROUTE:
 			return PPM_SO_DONTROUTE;
 		case SO_BROADCAST:
 			return PPM_SO_BROADCAST;
+		case SO_KEEPALIVE:
+			return PPM_SO_KEEPALIVE;
 		case SO_SNDBUF:
 			return PPM_SO_SNDBUF;
 		case SO_RCVBUF:
@@ -1139,14 +1147,72 @@ static uint32_t sockopt_socket_optname_to_scap(unsigned long val)
 	}
 }
 
+static uint32_t sockopt_ip_optname_to_scap(unsigned long val)
+{
+	switch(val)
+	{
+		case IP_PKTINFO:
+			return PPM_IP_PKTINFO;
+		case IP_RECVTTL:
+			return PPM_IP_RECVTTL;
+		case IP_RECVTOS:
+			return PPM_IP_RECVTOS;
+		case IP_RECVOPTS:
+			return PPM_IP_RECVOPTS;
+		case IP_RETOPTS:
+			return PPM_IP_RETOPTS;
+		case IP_TOS:
+			return PPM_IP_TOS;
+		case IP_TTL:
+			return PPM_IP_TTL;
+		case IP_NODEFRAG:
+			return PPM_IP_NODEFRAG;
+		case IP_MTU_DISCOVER:
+			return PPM_IP_MTU_DISCOVER;
+		default:
+			return PPM_SO_UNKNOWN;
+			break;
+	}
+}
+
+static uint32_t sockopt_tcp_optname_to_scap(unsigned long val)
+{
+	switch(val)
+	{
+		case TCP_CONGESTION:
+			return PPM_TCP_CONGESTION;
+		case TCP_MAXSEG:
+			return PPM_TCP_MAXSEG;
+		case TCP_NODELAY:
+			return PPM_TCP_NODELAY;
+		case TCP_THIN_LINEAR_TIMEOUTS:
+			return PPM_TCP_THIN_LINEAR_TIMEOUTS;
+		case TCP_THIN_DUPACK:
+			return PPM_TCP_THIN_DUPACK;
+		case TCP_CORK:
+			return PPM_TCP_CORK;
+		case TCP_KEEPIDLE:
+			return PPM_TCP_KEEPIDLE;
+		default:
+			return PPM_SO_UNKNOWN;
+			break;
+	}
+}
+
 static inline uint8_t sockopt_level_to_scap(unsigned long val,
 											uint32_t (**parse_opt)(unsigned long))
 {
 	switch(val)
 	{
+		case SOL_IP:
+			*parse_opt = sockopt_ip_optname_to_scap;
+			return PPM_SOL_IP;
 		case SOL_SOCKET:
 			*parse_opt = sockopt_socket_optname_to_scap;
 			return PPM_SOL_SOCKET;
+		case SOL_TCP:
+			*parse_opt = sockopt_tcp_optname_to_scap;
+			return PPM_SOL_TCP;
 		default:
 			*parse_opt = sockopt_default_optname_to_scap;
 			return PPM_SOL_UNKNOWN;
@@ -1160,31 +1226,79 @@ static inline uint16_t sockopt_optval_parse(uint32_t optname,
 											uint16_t targetbuf_size)
 {
 	enum ppm_param_type optval_info = sockopt_optnames_info[optname];
+	uint32_t min_len;
 	uint16_t size;
-	unsigned long len;
+	uint8_t val;
+	unsigned long len, dim;
+	bool fromuser = false;
 
 	if(optval_info == PT_NONE)
 	{
 		return 0;
 	}
 
+	*(targetbuf) = optval_info;
 	switch(optval_info)
 	{
-		case PT_BOOL:
-			*(targetbuf) = optval_info;
-			len = ppm_copy_from_user(targetbuf + 1,
+		case PT_SOCKFAMILY:
+			len = ppm_copy_from_user(&val,
 						(const void __user *)(unsigned long)optval,
-						sizeof(char));
+						sizeof(uint8_t));
 
-			if (unlikely(len != 0)) {
+			if (unlikely(len != 0))
 				return 0;
-			}
 
-			size = 2;
+			*(uint8_t *)(targetbuf + 1) = socket_family_to_scap(val);
+			size = 1 + sizeof(uint8_t);
+			break;
+		case PT_CHARBUF:
+			min_len = min((uint32_t)targetbuf_size - 1, (uint32_t)optlen);
+			len = ppm_strncpy_from_user(targetbuf + 1, (const char __user *)optval, min_len);
+
+			if (unlikely(len != 0))
+				return 0;
+
+			*(targetbuf + 1 + len) = '\0';
+			size = 1 + len;
+			break;
+		case PT_BYTEBUF:
+			min_len = min(((uint32_t)targetbuf_size - 1 - 4), (uint32_t)optlen);
+			*(uint32_t *)(targetbuf + 1) = min_len;
+
+			len = ppm_copy_from_user(targetbuf + 1 + sizeof(uint32_t), (const void __user *)optval, min_len);
+
+			if (unlikely(len != 0))
+				return 0;
+
+			size = 1 + sizeof(uint32_t) + len;
+			break;
+		case PT_INT32:
+			fromuser = true;
+			dim = sizeof(int32_t);
+			break;
+		case PT_UINT32:
+			fromuser = true;
+			dim = sizeof(uint32_t);
+			break;
+		case PT_BOOL:
+			fromuser = true;
+			dim = sizeof(uint8_t);
 			break;
 		default:
 			size = 0;
 			break;
+	}
+
+	if (fromuser) {
+		len = ppm_copy_from_user(targetbuf + 1,
+					(const void __user *)(unsigned long)optval,
+					dim);
+
+		if (unlikely(len != 0))
+			return 0;
+
+		size = 1 + dim;
+
 	}
 
 	return size;

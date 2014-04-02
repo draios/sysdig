@@ -172,6 +172,79 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_SO_MAX_PACING_RATE                47
 
 /*
+ * SOL_IP sockopt
+ */
+#define PPM_IP_TOS                            48
+#define PPM_IP_TTL                            49
+#define PPM_IP_HDRINCL                        50
+#define PPM_IP_OPTIONS                        51
+#define PPM_IP_ROUTER_ALERT                   52
+#define PPM_IP_RECVOPTS                       53
+#define PPM_IP_RETOPTS                        54
+#define PPM_IP_PKTINFO                        55
+#define PPM_IP_PKTOPTIONS                     56
+#define PPM_IP_MTU_DISCOVER                   57
+#define PPM_IP_RECVERR                        58
+#define PPM_IP_RECVTTL                        59
+#define PPM_IP_RECVTOS                        60
+#define PPM_IP_MTU                            61
+#define PPM_IP_FREEBIND                       62
+#define PPM_IP_IPSEC_POLICY                   63
+#define PPM_IP_XFRM_POLICY                    64
+#define PPM_IP_PASSSEC                        65
+#define PPM_IP_TRANSPARENT                    66
+#define PPM_IP_ORIGDSTADDR                    67
+#define PPM_IP_MINTTL                         68
+#define PPM_IP_NODEFRAG                       69
+#define PPM_IP_MULTICAST_IF                   70
+#define PPM_IP_MULTICAST_TTL                  71
+#define PPM_IP_MULTICAST_LOOP                 72
+#define PPM_IP_ADD_MEMBERSHIP                 73
+#define PPM_IP_DROP_MEMBERSHIP                74
+#define PPM_IP_UNBLOCK_SOURCE                 75
+#define PPM_IP_BLOCK_SOURCE                   76
+#define PPM_IP_ADD_SOURCE_MEMBERSHIP          77
+#define PPM_IP_DROP_SOURCE_MEMBERSHIP         78
+#define PPM_IP_MSFILTER                       79
+#define PPM_MCAST_JOIN_GROUP                  80
+#define PPM_MCAST_BLOCK_SOURCE                81
+#define PPM_MCAST_UNBLOCK_SOURCE              82
+#define PPM_MCAST_LEAVE_GROUP                 83
+#define PPM_MCAST_JOIN_SOURCE_GROUP           84
+#define PPM_MCAST_LEAVE_SOURCE_GROUP          85
+#define PPM_MCAST_MSFILTER                    86
+#define PPM_IP_MULTICAST_ALL                  87
+#define PPM_IP_UNICAST_IF                     88
+
+/*
+ * SOL_TCP sockopt
+ */
+#define PPM_TCP_NODELAY                       89
+#define PPM_TCP_MAXSEG                        90
+#define PPM_TCP_CORK                          91
+#define PPM_TCP_KEEPIDLE                      92
+#define PPM_TCP_KEEPINTVL                     93
+#define PPM_TCP_KEEPCNT                       94
+#define PPM_TCP_SYNCNT                        95
+#define PPM_TCP_LINGER2                       96
+#define PPM_TCP_DEFER_ACCEPT                  97
+#define PPM_TCP_WINDOW_CLAMP                  98
+#define PPM_TCP_INFO                          99
+#define PPM_TCP_QUICKACK                     100
+#define PPM_TCP_CONGESTION                   101
+#define PPM_TCP_MD5SIG                       102
+#define PPM_TCP_THIN_LINEAR_TIMEOUTS         103
+#define PPM_TCP_THIN_DUPACK                  104
+#define PPM_TCP_USER_TIMEOUT                 105
+#define PPM_TCP_REPAIR                       106
+#define PPM_TCP_REPAIR_QUEUE                 107
+#define PPM_TCP_QUEUE_SEQ                    108
+#define PPM_TCP_REPAIR_OPTIONS               109
+#define PPM_TCP_FASTOPEN                     110
+#define PPM_TCP_TIMESTAMP                    111
+#define PPM_TCP_NOTSENT_LOWAT                112
+
+/*
  * File flags
  */
 #define PPM_O_NONE	0
