@@ -113,7 +113,7 @@ elif [ -f /etc/system-release-cpe ]; then
 	DISTRO=$(cat /etc/system-release-cpe | cut -d':' -f3)
 	VERSION=$(cat /etc/system-release-cpe | cut -d':' -f5)
 
-	if [ $DISTRO = "centos" ] || [ $DISTRO = "redhat" ]; then
+	if [ $DISTRO = "oracle" ] || [ $DISTRO = "centos" ] || [ $DISTRO = "redhat" ]; then
 		if echo $VERSION | grep -q ^6; then
 			install_rpm
 		else
