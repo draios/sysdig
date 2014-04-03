@@ -736,6 +736,11 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 		const struct ppm_param_info* pi = 
 			sinsp_utils::find_longest_matching_evt_param(val.substr(fldname.size() + 1));
 
+		if(pi == NULL)
+		{
+			throw sinsp_exception("no parameter with this name: " + val);
+		}
+
 		m_argname = pi->name;
 		parsed_len = fldname.size() + strlen(pi->name) + 1;
 		m_argid = -1;
