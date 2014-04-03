@@ -267,6 +267,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "EPROTOTYPE";
 	case SE_EALREADY:
 		return "EALREADY";
+	case SE_ENOMEDIUM:
+		return "ENOMEDIUM";
 	default:
 		ASSERT(false);
 		return "";
