@@ -30,7 +30,7 @@ function install_rpm {
 	fi
 
 	echo "* Installing Draios public key"
-	rpm --quiet --import http://download.draios.com/DRAIOS-GPG-KEY.public
+	rpm --quiet --import https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public
 	echo "* Installing Draios repository"
 	curl -s -o /etc/yum.repos.d/draios.repo http://download.draios.com/_REPOSITORY_NAME_/rpm/draios.repo
 	echo "* Installing kernel headers"
@@ -48,7 +48,7 @@ function install_deb {
 	fi
 
 	echo "* Installing Draios public key"
-	curl -s http://download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
+	curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
 	echo "* Installing Draios repository"
 	curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/_REPOSITORY_NAME_/deb/draios.list
 	apt-get -qq update
