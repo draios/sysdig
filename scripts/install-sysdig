@@ -122,7 +122,7 @@ elif [ -f /etc/system-release-cpe ]; then
 	elif [ $DISTRO = "amazon" ]; then
 	    install_rpm
 	elif [ $DISTRO = "fedoraproject" ]; then
-		if [ $VERSION -ge 18 ]; then
+		if [ $VERSION -ge 13 ]; then
 		    install_rpm
 		else
 			unsupported
