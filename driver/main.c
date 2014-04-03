@@ -924,7 +924,6 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 
 static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_context **ring)
 {
-	unsigned int j;
 	trace_enter();
 
 	/*
@@ -951,16 +950,13 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	 * Note how we allocate 2 additional pages: they are used as additional overflow space for
 	 * the event data generation functions, so that they always operate on a contiguous buffer.
 	 */
-	(*ring)->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
+	(*ring)->buffer = vzalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
 	if ((*ring)->buffer == NULL) {
 		pr_err("sysdig-probe: Error allocating ring memory\n");
 		free_page((unsigned long)(*ring)->str_storage);
 		vfree(*ring);
 		return NULL;
 	}
-
-	for (j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
-		(*ring)->buffer[j] = 0;
 
 	/*
 	 * Allocate the buffer info structure
@@ -1004,7 +1000,7 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 	trace_enter();
 
 	vfree(ring->info);
-	vfree((void *)ring->buffer);
+	vfree(ring->buffer);
 	free_page((unsigned long)ring->str_storage);
 	vfree(ring);
 }
@@ -1084,7 +1080,7 @@ int init_module(void)
 
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
-	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
+	g_ppm_devs = kmalloc_array(g_ppm_numdevs, sizeof(struct ppm_device), GFP_KERNEL);
 	if (!g_ppm_devs) {
 		ret = -ENOMEM;
 		goto init_module_err;
