@@ -153,7 +153,7 @@ scap_t* scap_open_live(char *error)
 	if((res = scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, error, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list");
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
 		return NULL;
 	}
 
