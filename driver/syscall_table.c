@@ -37,7 +37,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * SYSCALL TABLE
  */
-const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
+struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_open] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPEN_E, PPME_SYSCALL_OPEN_X},
 	[__NR_creat] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CREAT_E, PPME_SYSCALL_CREAT_X},
 	[__NR_close] =			{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X},

@@ -98,7 +98,7 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
  */
 #define SYSCALL_TABLE_SIZE 512
 
-extern const struct syscall_evt_pair g_syscall_table[];
+extern struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 extern uint32_t g_sampling_ratio;

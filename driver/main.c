@@ -124,6 +124,23 @@ static int g_is_dropping;
 static int g_dropping_mode;
 
 /*
+ * find the syscall_evt_pair in 
+ */
+static struct syscall_evt_pair *find_syscall_by_name(char *name)
+{
+	int i;
+	for (i=0; i<SYSCALL_TABLE_SIZE; ++i) {
+		int event_index = g_syscall_table[i].enter_event_type;
+		const struct ppm_event_info *evt_info = &g_event_info[event_index];
+		
+		if(!strcmp(evt_info->name, name))
+			return &g_syscall_table[i];
+	}
+	
+	return NULL;
+}
+
+/*
  * user I/O functions
  */
 static int ppm_open(struct inode *inode, struct file *filp)
@@ -345,6 +362,29 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		g_snaplen = new_snaplen;
 
 		pr_info("sysdig-probe: new snaplen: %d\n", g_snaplen);
+		return 0;
+	}
+	case PPM_IOCTL_DISABLE_FILLER:
+	case PPM_IOCTL_ENABLE_FILLER:
+	{
+		char syscall_name[PPM_MAX_NAME_LEN];
+		struct syscall_evt_pair *selected_syscall;
+		int32_t len;
+
+		len = strncpy_from_user(syscall_name, (const char __user *)arg, PPM_MAX_NAME_LEN - 1);
+		if (len < 0)
+			return -EINVAL;
+		syscall_name[len] = '\0';
+
+		selected_syscall = find_syscall_by_name(syscall_name);
+		if (selected_syscall == NULL)
+			return -EINVAL;
+
+		if (cmd == PPM_IOCTL_DISABLE_FILLER)
+			selected_syscall->flags &= ~UF_USED;
+		else
+			selected_syscall->flags |= UF_USED;
+
 		return 0;
 	}
 	default:
