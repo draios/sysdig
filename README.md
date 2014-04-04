@@ -17,10 +17,15 @@ It then "packetizes" this information, so that you can save it into trace files 
 
 Sysdig is also packed with a set of scripts that make it easier to extract useful information and do troubleshooting.
 
-Documentation
+Documentation / Support
 ---
 Visit the wiki for full documentation on sysdig and its APIs:  
 https://github.com/draios/sysdig/wiki
 
+For support using sysdig, please contact the official mailing list:  
+https://groups.google.com/forum/#!forum/sysdig  
+
+
+---
 Sysdig is proudly supported by Draios, Inc.  
 www.draios.com
