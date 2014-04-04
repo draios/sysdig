@@ -22,5 +22,5 @@ Documentation
 Visit the wiki for full documentation on sysdig and its APIs:  
 https://github.com/draios/sysdig/wiki
 
-Sysdig is proudly supported by Draios, Inc. 
+Sysdig is proudly supported by Draios, Inc.  
 www.draios.com
