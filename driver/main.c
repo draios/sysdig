@@ -45,7 +45,7 @@ MODULE_AUTHOR("Draios");
 
 #define PPM_DEVICE_NAME "sysdig"
 
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2)
     #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2)
     #define TRACEPOINT_PROBE(probe, args...) static void probe(args)
