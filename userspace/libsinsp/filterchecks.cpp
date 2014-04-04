@@ -1338,7 +1338,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_user_fields[] =
 {
-	{PT_UINT64, EPF_NONE, PF_DEC, "user.id", "user ID."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "user.uid", "user ID."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.name", "user name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.homedir", "home directory of the user."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.shell", "user's shell."},
