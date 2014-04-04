@@ -1147,14 +1147,16 @@ int32_t scap_fd_read_sockets(scap_t *handle, scap_fdinfo **sockets)
 	if(SCAP_FAILURE == scap_fd_read_ipv4_sockets_from_proc_fs(handle, "/proc/net/tcp", SCAP_L4_TCP, sockets) ||
 	        SCAP_FAILURE == scap_fd_read_ipv4_sockets_from_proc_fs(handle, "/proc/net/udp", SCAP_L4_UDP, sockets) ||
 	        SCAP_FAILURE == scap_fd_read_ipv4_sockets_from_proc_fs(handle, "/proc/net/raw", SCAP_L4_RAW, sockets) ||
-			SCAP_FAILURE == scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/tcp6", SCAP_L4_TCP, sockets) ||
-	        SCAP_FAILURE == scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/udp6", SCAP_L4_UDP, sockets) ||
-	        SCAP_FAILURE == scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/raw6", SCAP_L4_RAW, sockets) ||
 	        SCAP_FAILURE == scap_fd_read_unix_sockets_from_proc_fs(handle, sockets))
 	{
 		scap_fd_free_table(handle, sockets);
 		return SCAP_FAILURE;
 	}
+
+	scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/tcp6", SCAP_L4_TCP, sockets);
+	scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/udp6", SCAP_L4_UDP, sockets);
+	scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/raw6", SCAP_L4_RAW, sockets);
+
 	return SCAP_SUCCESS;
 }
 
