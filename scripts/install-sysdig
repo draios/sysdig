@@ -107,6 +107,12 @@ if [ -f /etc/debian_version ]; then
 		else
 			unsupported
 		fi
+	elif [ $DISTRO = "LinuxMint" ]; then
+		if [ $VERSION -ge 9 ]; then
+		    install_deb
+		else
+			unsupported
+		fi
 	elif [ $DISTRO = "Debian" ]; then
 		if [ $VERSION -ge 6 ]; then
 		    install_deb
