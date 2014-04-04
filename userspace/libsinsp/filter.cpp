@@ -489,6 +489,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 			*(int32_t*)(&m_val_storage[0]) = sinsp_numparser::parsed32(str);
 			break;
 		case PT_INT64:
+		case PT_FD:
 		case PT_ERRNO:
 			*(int64_t*)(&m_val_storage[0]) = sinsp_numparser::parsed64(str);
 			break;
