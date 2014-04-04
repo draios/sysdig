@@ -715,9 +715,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		//
 		// Make sure the string will fit
 		//
-		if(param->m_len > m_resolved_paramstr_storage.size())
+		if(param->m_len > m_paramstr_storage.size())
 		{
-			m_resolved_paramstr_storage.resize(param->m_len);
+			m_paramstr_storage.resize(param->m_len);
 		}
 
 		snprintf(&m_paramstr_storage[0],
