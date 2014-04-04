@@ -34,7 +34,12 @@ function install_rpm {
 	echo "* Installing Draios repository"
 	curl -s -o /etc/yum.repos.d/draios.repo http://download.draios.com/_REPOSITORY_NAME_/rpm/draios.repo
 	echo "* Installing kernel headers"
-	yum -q -y install kernel-devel-$(uname -r) || kernel_warning
+	KERNEL_VERSION=$(uname -r)
+	if [[ $KERNEL_VERSION == *PAE* ]]; then
+		yum -q -y install kernel-PAE-devel-${KERNEL_VERSION%.PAE} || kernel_warning
+	else
+		yum -q -y install kernel-devel-$KERNEL_VERSION || kernel_warning
+	fi
 	echo "* Installing Sysdig"
 	yum -q -y install sysdig
 }
