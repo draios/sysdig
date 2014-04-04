@@ -770,14 +770,22 @@ int main(int argc, char **argv)
 			//
 			// No file to open, this is a live capture
 			//
+#if !defined(_WIN32) && !defined(__APPLE__)
 			try
 			{
 				inspector->open("");
 			}
-			catch(sinsp_exception e)
+			catch (sinsp_exception e)
 			{
 				open_success = false;
 			}
+#else
+			//
+			// Starting live capture
+			// If this fails on Windows and OSX, don't try with any driver
+			//
+			inspector->open("");
+#endif
 
 			//
 			// Starting the live capture failed, try to load the driver with
