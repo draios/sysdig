@@ -187,9 +187,11 @@ const struct ppm_name_value fcntl_commands[] = {
 	{"F_SETLEASE", 23},
 	{"F_GETOWN_EX", 22},
 	{"F_SETOWN_EX", 21},
+#ifndef CONFIG_64BIT
 	{"F_SETLKW64", 19},
 	{"F_SETLK64", 18},
 	{"F_GETLK64", 17},
+#endif
 	{"F_GETSIG", 15},
 	{"F_SETSIG", 13},
 	{"F_GETOWN", 12},

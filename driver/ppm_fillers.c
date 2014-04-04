@@ -3085,12 +3085,14 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 		return PPM_FCNTL_F_SETSIG;
 	case F_GETSIG:
 		return PPM_FCNTL_F_GETSIG;
+#ifndef CONFIG_64BIT
 	case F_GETLK64:
 		return PPM_FCNTL_F_GETLK64;
 	case F_SETLK64:
 		return PPM_FCNTL_F_SETLK64;
 	case F_SETLKW64:
 		return PPM_FCNTL_F_SETLKW64;
+#endif
 	case F_SETOWN_EX:
 		return PPM_FCNTL_F_SETOWN_EX;
 	case F_GETOWN_EX:
