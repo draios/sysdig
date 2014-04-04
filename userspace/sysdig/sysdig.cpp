@@ -775,7 +775,7 @@ int main(int argc, char **argv)
 			{
 				inspector->open("");
 			}
-			catch (sinsp_exception e)
+			catch(sinsp_exception e)
 			{
 				open_success = false;
 			}
