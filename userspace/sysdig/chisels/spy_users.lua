@@ -33,7 +33,7 @@ function on_init()
 	fuser = chisel.request_field("user.name")
 
 	-- set the filter
-	chisel.set_filter("(evt.type=execve and proc.name!=bash and proc.parentname contains sh) or (evt.type=chdir and evt.dir=< and proc.name contains sh)")
+	chisel.set_filter("(evt.type=execve and not proc.name contains sh and proc.parentname contains sh) or (evt.type=chdir and evt.dir=< and proc.name contains sh)")
 	
 	return true
 end
