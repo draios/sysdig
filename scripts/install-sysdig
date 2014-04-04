@@ -64,7 +64,9 @@ function install_deb {
 }
 
 function unsupported {
-    echo "Unsupported operating system. Please consider contacting support@draios.com or trying the manual installation."
+    echo 'Unsupported operating system. Please consider writing to the mailing list at'
+    echo ' write to the mailing list at https://groups.google.com/forum/#!forum/sysdig'
+    echo 'or trying the manual installation.'
     exit 1	
 }
 
