@@ -93,12 +93,13 @@ public:
 	*/
 	enum param_fmt
 	{
-		PF_NORMAL,	///< Normal screen output
-		PF_JSON,	///< Json formatting
-		PF_SIMPLE,	///< Reduced output, e.g. not type character for FDs
-		PF_HEX,		///< Hexadecimal output
-		PF_HEXASCII,///< Hexadecimal + ASCII output
-		PF_EOLS,	///< Normal + end of lines
+		PF_NORMAL =   (1 << 0),	///< Normal screen output
+		PF_JSON =     (1 << 1),	///< Json formatting
+		PF_SIMPLE =   (1 << 2),	///< Reduced output, e.g. not type character for FDs
+		PF_HEX =      (1 << 3),	///< Hexadecimal output
+		PF_HEXASCII = (1 << 4),	///< Hexadecimal + ASCII output
+		PF_EOLS =     (1 << 5),	///< Normal + end of lines
+		PF_ASIS =     (1 << 6),	///< Data as is, e.g. no filter on binary buffers
 	};
 
 	/*!

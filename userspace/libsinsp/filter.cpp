@@ -612,7 +612,19 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
 	uint32_t len;
-	uint8_t* extracted_val = extract(evt, &len);
+	uint8_t* extracted_val;
+
+	//
+	// Modify event buffer format, so to extract all data as is
+	// and then restore the right format.
+	//
+	m_inspector->set_buffer_format((sinsp_evt::param_fmt)
+		(m_inspector->get_buffer_format() | sinsp_evt::PF_ASIS));
+
+	extracted_val = extract(evt, &len);
+
+	m_inspector->set_buffer_format((sinsp_evt::param_fmt)
+		(m_inspector->get_buffer_format() & ~sinsp_evt::PF_ASIS));
 
 	if(extracted_val == NULL)
 	{
@@ -802,7 +814,17 @@ char sinsp_filter::next()
 
 string sinsp_filter::next_operand(bool expecting_first_operand)
 {
+	string res;
 	int32_t start;
+	int32_t nums[2];
+	uint32_t num_pos;
+	enum ppm_escape_state
+	{
+		ES_NORMAL,
+		ES_SLASH,
+		ES_NUMBER,
+		ES_ERROR,
+	} escape_state;
 
 	//
 	// Skip spaces
@@ -816,11 +838,12 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 	// Mark the beginning of the word
 	//
 	start = m_scanpos;
+	escape_state = ES_NORMAL;
+	num_pos = 0;
 
-	for(; m_scanpos < m_scansize; m_scanpos++)
+	while(m_scanpos < m_scansize && escape_state != ES_ERROR)
 	{
 		char curchar = m_fltstr[m_scanpos];
-		
 		bool is_end_of_word;
 
 		if(expecting_first_operand)
@@ -834,11 +857,16 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 
 		if(is_end_of_word)
 		{
+			if(escape_state != ES_NORMAL)
+			{
+				escape_state = ES_ERROR;
+				break;
+			}
+
 			//
 			// End of word
 			//
 			ASSERT(m_scanpos > start);
-			string res = m_fltstr.substr(start, m_scanpos - start);
 
 			if(curchar == '(' || curchar == ')')
 			{
@@ -847,12 +875,74 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 
 			return res;
 		}
+
+		switch(escape_state)
+		{
+		case ES_NORMAL:
+			if(curchar == '\\' && !expecting_first_operand)
+			{
+				escape_state = ES_SLASH;
+			}
+			else
+			{
+				res += curchar;
+			}
+			break;
+		case ES_SLASH:
+			if(curchar == '\\')
+			{
+				escape_state = ES_NORMAL;
+				res += curchar;
+			}
+			else if(curchar == 'x')
+			{
+				escape_state = ES_NUMBER;
+			}
+			else
+			{
+				escape_state = ES_ERROR;
+			}
+			break;
+		case ES_NUMBER:
+			if(isdigit((int)curchar))
+			{
+				nums[num_pos++] = curchar - '0';
+			}
+			else if((curchar >= 'a' && curchar <= 'f') || (curchar >= 'A' && curchar <= 'F'))
+			{
+				nums[num_pos++] = tolower((int)curchar) - 'a' + 10;
+			}
+			else
+			{
+				escape_state = ES_ERROR;
+			}
+
+			if(num_pos == 2 && escape_state != ES_ERROR)
+			{
+				res += (char)(nums[0] * 16 + nums[1]);
+
+				num_pos = 0;
+				escape_state = ES_NORMAL;
+			}
+			break;
+		default:
+			ASSERT(false);
+			escape_state = ES_ERROR;
+			break;
+		}
+
+		m_scanpos++;
+	}
+
+	if(escape_state == ES_ERROR)
+	{
+		throw sinsp_exception("filter error: unrecognized escape sequence at " + m_fltstr.substr(start, m_scanpos));
 	}
 
 	//
 	// End of filter
 	//
-	return m_fltstr.substr(start, m_scansize - 1);
+	return res;
 }
 
 bool sinsp_filter::compare_no_consume(string str)
