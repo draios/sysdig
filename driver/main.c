@@ -25,6 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/proc_fs.h>
 #include <linux/sched.h>
 #include <linux/version.h>
+#include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
@@ -839,6 +840,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	trace_enter();
 
+#ifdef CONFIG_X86_64
 	/*
 	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
 	 * kernel flag), we skip its events.
@@ -846,6 +848,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	 */
 	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
 		return;
+#endif
 
 	if (likely(id >= 0 && id < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[id].flags & UF_USED;
@@ -864,6 +867,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	trace_enter();
 
+#ifdef CONFIG_X86_64
 	/*
      * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
 	 * kernel flag), we skip its events.
@@ -871,6 +875,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 */
 	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
 		return;
+#endif
 
 	id = syscall_get_nr(current, regs);
 
