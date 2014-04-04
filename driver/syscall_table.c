@@ -56,7 +56,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_fstat] =			{UF_USED, PPME_SYSCALL_FSTAT_E, PPME_SYSCALL_FSTAT_X},
 	[__NR_epoll_wait] =	{UF_USED, PPME_SYSCALL_EPOLLWAIT_E, PPME_SYSCALL_EPOLLWAIT_X},
 	[__NR_poll] =			{UF_USED, PPME_SYSCALL_POLL_E, PPME_SYSCALL_POLL_X},
+#ifdef __NR_select
 	[__NR_select] =		{UF_USED, PPME_SYSCALL_SELECT_E, PPME_SYSCALL_SELECT_X},
+#endif
 	[__NR_lseek] =			{UF_USED, PPME_SYSCALL_LSEEK_E, PPME_SYSCALL_LSEEK_X},
 	[__NR_ioctl] =			{UF_USED, PPME_SYSCALL_IOCTL_E, PPME_SYSCALL_IOCTL_X},
 	[__NR_getcwd] =		{UF_USED | UF_NEVER_DROP, PPME_SYSCALL_GETCWD_E, PPME_SYSCALL_GETCWD_X},
@@ -258,7 +260,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 /* [__NR_setfsgid16] = PPM_SC_NR_SETFSGID16, */
 /* [__NR_llseek] = PPM_SC_NR_LLSEEK, */
 	[__NR_getdents] = PPM_SC_GETDENTS,
+#ifdef __NR_select
 	[__NR_select] = PPM_SC_SELECT,
+#endif
 	[__NR_flock] = PPM_SC_FLOCK,
 	[__NR_msync] = PPM_SC_MSYNC,
 	[__NR_readv] = PPM_SC_READV,
@@ -338,8 +342,12 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_futex] = PPM_SC_FUTEX,
 	[__NR_sched_setaffinity] = PPM_SC_SCHED_SETAFFINITY,
 	[__NR_sched_getaffinity] = PPM_SC_SCHED_GETAFFINITY,
+#ifdef __NR_set_thread_area
 	[__NR_set_thread_area] = PPM_SC_SET_THREAD_AREA,
+#endif
+#ifdef __NR_get_thread_area
 	[__NR_get_thread_area] = PPM_SC_GET_THREAD_AREA,
+#endif
 	[__NR_io_setup] = PPM_SC_IO_SETUP,
 	[__NR_io_destroy] = PPM_SC_IO_DESTROY,
 	[__NR_io_getevents] = PPM_SC_IO_GETEVENTS,
