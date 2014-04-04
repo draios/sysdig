@@ -878,13 +878,13 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 		switch(escape_state)
 		{
 		case ES_NORMAL:
-			if(curchar != '\\')
+			if(curchar == '\\' && !expecting_first_operand)
 			{
-				res += curchar;
+				escape_state = ES_SLASH;
 			}
 			else
 			{
-				escape_state = ES_SLASH;
+				res += curchar;
 			}
 			break;
 		case ES_SLASH:
