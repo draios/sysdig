@@ -208,9 +208,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_FCNTL_F_GETOWN 12
 #define PPM_FCNTL_F_SETSIG 13
 #define PPM_FCNTL_F_GETSIG 15
+#ifndef CONFIG_64BIT
 #define PPM_FCNTL_F_GETLK64 17
 #define PPM_FCNTL_F_SETLK64 18
 #define PPM_FCNTL_F_SETLKW64 19
+#endif
 #define PPM_FCNTL_F_SETOWN_EX 21
 #define PPM_FCNTL_F_GETOWN_EX 22
 #define PPM_FCNTL_F_SETLEASE 23
