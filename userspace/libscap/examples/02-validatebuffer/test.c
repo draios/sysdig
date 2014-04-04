@@ -86,7 +86,7 @@ int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, O
 
 		if(event_size < sizeof(struct ppm_evt_hdr) + g_event_info[hdr->type].nparams * sizeof(uint16_t))
 		{
-			fprintf(stderr, "Error: event size too short %zu, cnt %u, offset %x\n",
+			fprintf(stderr, "Error: event size too short %u, cnt %u, offset %x\n",
 			        event_size,
 			        (*cur_event == -1)?0:*cur_event,
 			        offset);
