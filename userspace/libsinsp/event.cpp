@@ -248,7 +248,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 			ptr += sizeof(uint16_t);
 		}
 
-		if(fmt == sinsp_evt::PF_HEXASCII)
+		if(fmt & sinsp_evt::PF_HEXASCII)
 		{
 			// Fill the row with spaces to align it to other rows
 			while(num_chunks < 8)
@@ -413,11 +413,21 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 		return 0;
 	}
 
-	if(fmt == sinsp_evt::PF_HEX || fmt == sinsp_evt::PF_HEXASCII)
+	if(fmt & sinsp_evt::PF_ASIS)
+	{
+		if(dstlen >= srclen)
+		{
+			memcpy(dst, src, srclen);
+		}
+
+		return srclen;
+	}
+
+	if(fmt & sinsp_evt::PF_HEX || fmt & sinsp_evt::PF_HEXASCII)
 	{
 		k = binary_buffer_to_hex_string(dst, src, dstlen, srclen, fmt);
 	}
-	else if(fmt == sinsp_evt::PF_EOLS)
+	else if(fmt & sinsp_evt::PF_EOLS)
 	{
 		k = binary_buffer_to_asciionly_string(dst, src, dstlen, srclen, fmt);
 	}
@@ -575,7 +585,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 				char typestr[3] =
 				{
-					(fmt == PF_SIMPLE)?(char)0:tch,
+					(fmt & PF_SIMPLE)?(char)0:tch,
 					ipprotoch,
 					0
 				};
