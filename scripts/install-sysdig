@@ -72,7 +72,8 @@ function kernel_warning {
     echo "Unable to find kernel development files for the current kernel version" $(uname -r)
     echo "This usually means that your system is not up-to-date or you installed a custom kernel version."
     echo "The installation will continue but you'll need to install these yourself in order to use sysdig."
-    echo "Contact support@draios.com if you need further assistance."
+    echo 'Please write to the mailing list at https://groups.google.com/forum/#!forum/sysdig'
+    echo "if you need further assistance."
 }
 
 if [ $(id -u) != 0 ]; then
