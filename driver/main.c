@@ -134,8 +134,6 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	struct ppm_ring_buffer_context *ring;
 	int ring_no = iminor(filp->f_dentry->d_inode);
 
-	trace_enter();
-
 	ring = per_cpu(g_ring_buffers, ring_no);
 
 	if (atomic_cmpxchg(&ring->state, CS_STOPPED, CS_STARTED) != CS_STOPPED) {
@@ -220,8 +218,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 {
 	struct ppm_ring_buffer_context *ring;
 	int ring_no = iminor(filp->f_dentry->d_inode);
-
-	trace_enter();
 
 	ring = per_cpu(g_ring_buffers, ring_no);
 
@@ -345,8 +341,6 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	trace_enter();
-
 	if (vma->vm_pgoff == 0) {
 		int ret;
 		long length = vma->vm_end - vma->vm_start;
@@ -606,8 +600,6 @@ static void record_event(enum ppm_event_type event_type,
 	int32_t cbres = PPM_SUCCESS;
 	struct timespec ts;
 
-	trace_enter();
-
 	getnstimeofday(&ts);
 
 	if (drop_event(event_type, never_drop, &ts))
@@ -828,8 +820,6 @@ static void record_event(enum ppm_event_type event_type,
 
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
-	trace_enter();
-
 #ifdef CONFIG_X86_64
 	/*
 	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
@@ -854,8 +844,6 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 {
 	int id;
-
-	trace_enter();
 
 #ifdef CONFIG_X86_64
 	/*
@@ -885,8 +873,6 @@ int __access_remote_vm(struct task_struct *t, struct mm_struct *mm, unsigned lon
 
 TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
-	trace_enter();
-
 	if (unlikely(current->flags & PF_KTHREAD)) {
 		/*
 		 * We are not interested in kernel threads
@@ -920,7 +906,6 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_context **ring)
 {
 	unsigned int j;
-	trace_enter();
 
 	/*
 	 * Allocate the ring descriptor
@@ -996,8 +981,6 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 {
-	trace_enter();
-
 	vfree(ring->info);
 	vfree((void *)ring->buffer);
 	free_page((unsigned long)ring->str_storage);
@@ -1008,8 +991,6 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 /* { */
 /* int len = 0; */
 /* int j; */
-
-/* trace_enter(); */
 
 /* for(j = 0; j < NR_syscalls; ++j) */
 /* { */

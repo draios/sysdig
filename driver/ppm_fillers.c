@@ -659,8 +659,6 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	int ptid;
 	char *spwd;
 
-	trace_enter();
-
 	/*
 	 * Make sure the operation was successful
 	 */

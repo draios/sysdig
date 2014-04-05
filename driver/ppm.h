@@ -44,12 +44,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
  */
 #if (OUTPUT_LEVEL >= OUTPUT_VERBOSE)
 #define dbgprint(a) pr_info(a "\n")
-#define trace_enter() pr_info("> %s\n", __func__)
 #define trace_exit() pr_info("< %s\n", __func__)
 #else
 #define dbgprint(a)
 #define trace_exit()
-#define trace_enter()
 #endif
 
 /*
