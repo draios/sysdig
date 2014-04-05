@@ -76,7 +76,7 @@ public:
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field lenght because the filtering engine can calculate it.
 	//
-	virtual void parse_filter_value(const char* str);
+	virtual void parse_filter_value(const char* str, uint32_t len);
 
 	//
 	// Return the info about the field that this instance contains 
@@ -162,7 +162,7 @@ public:
 		return 0;
 	}
 
-	void parse_filter_value(const char* str)
+	void parse_filter_value(const char* str, uint32_t len)
 	{
 		ASSERT(false);
 	}
@@ -327,7 +327,7 @@ public:
 	sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
-	void parse_filter_value(const char* str);
+	void parse_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
@@ -404,7 +404,7 @@ public:
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
 	int32_t parse_field_name(const char* str);
-	void parse_filter_value(const char* str);
+	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 	// XXX this is overkill and wasted for most of the fields.

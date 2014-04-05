@@ -795,7 +795,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str)
 	}
 }
 
-void sinsp_filter_check_event::parse_filter_value(const char* str)
+void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 {
 	string val(str);
 
@@ -809,7 +809,7 @@ void sinsp_filter_check_event::parse_filter_value(const char* str)
 	}
 	else
 	{
-		return sinsp_filter_check::parse_filter_value(str);
+		return sinsp_filter_check::parse_filter_value(str, len);
 	}
 }
 
@@ -1508,7 +1508,7 @@ int32_t rawstring_check::parse_field_name(const char* str)
 	return -1;
 }
 
-void rawstring_check::parse_filter_value(const char* str)
+void rawstring_check::parse_filter_value(const char* str, uint32_t len)
 {
 	ASSERT(false);
 }

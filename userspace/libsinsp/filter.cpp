@@ -599,7 +599,7 @@ int32_t sinsp_filter_check::parse_field_name(const char* str)
 	return max_fldlen;
 }
 
-void sinsp_filter_check::parse_filter_value(const char* str)
+void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len)
 {
 	string_to_rawval(str, m_field->m_type);
 }
@@ -1043,7 +1043,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
 	chk->parse_field_name((char *)&operand1[0]);
-	chk->parse_filter_value((char *)&operand2[0]);
+	chk->parse_filter_value((char *)&operand2[0], operand2.size() - 1);
 
 	parent_expr->add_check(chk);
 }
