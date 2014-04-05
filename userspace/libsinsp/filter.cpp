@@ -172,13 +172,13 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 	case CO_CONTAINS:
 		return (strstr(operand1, operand2) != NULL);
 	case CO_LT:
-		throw sinsp_exception("'<' not supported for numeric filters");
+		throw sinsp_exception("'<' not supported for string filters");
 	case CO_LE:
-		throw sinsp_exception("'<=' not supported for numeric filters");
+		throw sinsp_exception("'<=' not supported for string filters");
 	case CO_GT:
-		throw sinsp_exception("'>' not supported for numeric filters");
+		throw sinsp_exception("'>' not supported for string filters");
 	case CO_GE:
-		throw sinsp_exception("'>=' not supported for numeric filters");
+		throw sinsp_exception("'>=' not supported for string filters");
 	default:
 		ASSERT(false);
 		throw sinsp_exception("invalid filter operator " + std::to_string((long long) op));
