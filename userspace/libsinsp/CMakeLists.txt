@@ -3,7 +3,7 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories(third-party/jsoncpp)
 include_directories(third-party/jsoncpp)
-include_directories(${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src)
+include_directories(${LUAJIT_INCLUDE})
 
 add_library(sinsp STATIC
 	chisel.cpp
@@ -30,9 +30,9 @@ if(NOT WIN32)
 	add_dependencies(sinsp luajit)
 	
 	target_link_libraries(sinsp
-		${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/libluajit.a
+		${LUAJIT_LIB}
 		dl)
 else()
 	target_link_libraries(sinsp
-		${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/lua51.lib)
+		${LUAJIT_LIB})
 endif()
