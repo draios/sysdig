@@ -121,7 +121,8 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ptrace - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_alarm - SYSCALL_TABLE_ID0] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_pause - SYSCALL_TABLE_ID0] =			{UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-#ifdef __x86_64__
+
+#ifndef __NR_socketcall
 	[__NR_socket - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
 	[__NR_bind - SYSCALL_TABLE_ID0] =			{UF_USED, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
 	[__NR_connect - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
@@ -136,6 +137,10 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_setsockopt - SYSCALL_TABLE_ID0] =	{UF_USED, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X},
 	[__NR_getsockopt - SYSCALL_TABLE_ID0] =	{UF_USED, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X},
 	[__NR_sendmsg - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X},
+	[__NR_accept4 - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SOCKET_ACCEPT4_E, PPME_SOCKET_ACCEPT4_X},
+#endif
+
+#ifdef __x86_64__
 #ifdef __NR_sendmmsg
 	[__NR_sendmmsg - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SOCKET_SENDMMSG_E, PPME_SOCKET_SENDMMSG_X},
 #endif
@@ -143,7 +148,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_recvmmsg
 	[__NR_recvmmsg - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SOCKET_RECVMMSG_E, PPME_SOCKET_RECVMMSG_X},
 #endif
-	[__NR_accept4 - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SOCKET_ACCEPT4_E, PPME_SOCKET_ACCEPT4_X},
+
 #else /* __x86_64__ */
 	[__NR_stat64 - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SYSCALL_STAT64_E, PPME_SYSCALL_STAT64_X},
 	[__NR_fstat64 - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SYSCALL_FSTAT64_E, PPME_SYSCALL_FSTAT64_X},
@@ -442,7 +447,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_setns - SYSCALL_TABLE_ID0] = PPM_SC_SETNS,
 #endif
 	[__NR_getdents64 - SYSCALL_TABLE_ID0] =  PPM_SC_GETDENTS64,
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	/*
 	 * Non-multiplexed socket family
 	 */
@@ -462,14 +467,20 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_setsockopt - SYSCALL_TABLE_ID0] = PPM_SC_SETSOCKOPT,
 	[__NR_getsockopt - SYSCALL_TABLE_ID0] = PPM_SC_GETSOCKOPT,
 	[__NR_sendmsg - SYSCALL_TABLE_ID0] =  PPM_SC_SENDMSG,
+	[__NR_recvmsg - SYSCALL_TABLE_ID0] =  PPM_SC_RECVMSG,
+	[__NR_accept4 - SYSCALL_TABLE_ID0] =  PPM_SC_ACCEPT4,
+#else
+	[__NR_socketcall - SYSCALL_TABLE_ID0] = PPM_SC_SOCKETCALL,
+#endif
+
+
+#ifdef __x86_64__
 #ifdef __NR_sendmmsg
 	[__NR_sendmmsg - SYSCALL_TABLE_ID0] =  PPM_SC_SENDMMSG,
 #endif
-	[__NR_recvmsg - SYSCALL_TABLE_ID0] =  PPM_SC_RECVMSG,
 #ifdef __NR_recvmmsg
 	[__NR_recvmmsg - SYSCALL_TABLE_ID0] =  PPM_SC_RECVMMSG,
 #endif
-	[__NR_accept4 - SYSCALL_TABLE_ID0] =  PPM_SC_ACCEPT4,
 	/*
 	 * Non-multiplexed IPC family
 	 */
@@ -494,25 +505,35 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_bdflush - SYSCALL_TABLE_ID0] = PPM_SC_BDFLUSH,
 	[__NR_sigprocmask - SYSCALL_TABLE_ID0] = PPM_SC_SIGPROCMASK,
 	[__NR_ipc - SYSCALL_TABLE_ID0] = PPM_SC_IPC,
-	[__NR_socketcall - SYSCALL_TABLE_ID0] = PPM_SC_SOCKETCALL,
 	[__NR_stat64 - SYSCALL_TABLE_ID0] = PPM_SC_STAT64,
 	[__NR_lstat64 - SYSCALL_TABLE_ID0] = PPM_SC_LSTAT64,
 	[__NR_fstat64 - SYSCALL_TABLE_ID0] = PPM_SC_FSTAT64,
 	[__NR_fcntl64 - SYSCALL_TABLE_ID0] = PPM_SC_FCNTL64,
 	[__NR_mmap2 - SYSCALL_TABLE_ID0] = PPM_SC_MMAP2,
 	[__NR__newselect - SYSCALL_TABLE_ID0] = PPM_SC__NEWSELECT,
+#ifdef __NR_sgetmask
 	[__NR_sgetmask - SYSCALL_TABLE_ID0] = PPM_SC_SGETMASK,
+#endif
+#ifdef __NR_ssetmask
 	[__NR_ssetmask - SYSCALL_TABLE_ID0] = PPM_SC_SSETMASK,
+#endif
+
 /* [__NR_setreuid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_SETREUID16, */
 /* [__NR_setregid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_SETREGID16, */
 	[__NR_sigpending - SYSCALL_TABLE_ID0] = PPM_SC_SIGPENDING,
+#ifdef __NR_olduname
 	[__NR_olduname - SYSCALL_TABLE_ID0] = PPM_SC_OLDUNAME,
+#endif
 	[__NR_umount - SYSCALL_TABLE_ID0] = PPM_SC_UMOUNT,
+#ifdef __NR_signal
 	[__NR_signal - SYSCALL_TABLE_ID0] = PPM_SC_SIGNAL,
+#endif
 	[__NR_nice - SYSCALL_TABLE_ID0] = PPM_SC_NICE,
 	[__NR_stime - SYSCALL_TABLE_ID0] = PPM_SC_STIME,
 	[__NR__llseek - SYSCALL_TABLE_ID0] =	PPM_SC__LLSEEK,
+#ifdef __NR_waitpid
 	[__NR_waitpid - SYSCALL_TABLE_ID0] = PPM_SC_WAITPID,
+#endif
 	[__NR_pread64 - SYSCALL_TABLE_ID0] = PPM_SC_PREAD64,
 	[__NR_pwrite64 - SYSCALL_TABLE_ID0] = PPM_SC_PWRITE64,
 #endif /* __x86_64__ */

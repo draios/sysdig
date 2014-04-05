@@ -483,7 +483,7 @@ static const unsigned char nas[21] = {
 };
 #undef AL
 
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 static enum ppm_event_type parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
 {
 	unsigned long __user args[2];
@@ -557,7 +557,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 		return PPME_GENERIC_E;
 	}
 }
-#endif /* __x86_64__ */
+#endif /* __NR_socketcall */
 
 static inline int drop_event(enum ppm_event_type event_type, int never_drop, struct timespec *ts)
 {
@@ -657,7 +657,7 @@ static void record_event(enum ppm_event_type event_type,
 	ASSERT(ttail <= RING_BUF_SIZE);
 	ASSERT(head <= RING_BUF_SIZE);
 
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 	/*
 	 * If this is a socketcall system call, determine the correct event type
 	 * by parsing the arguments and patch event_type accordingly

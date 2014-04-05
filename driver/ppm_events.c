@@ -922,7 +922,7 @@ int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_e
 
 	for (j = 0; j < evinfo->n_autofill_args; j++) {
 		if (evinfo->autofill_args[j].id >= 0) {
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 			/*
 			 * Regular argument
 			 */

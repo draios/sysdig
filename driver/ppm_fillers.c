@@ -262,7 +262,7 @@ static int f_sys_generic(struct event_filler_arguments *args)
 {
 	int res;
 
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 	if (unlikely(args->syscall_id == __NR_socketcall)) {
 		/*
 		 * All the socket calls should be implemented
@@ -270,7 +270,7 @@ static int f_sys_generic(struct event_filler_arguments *args)
 		ASSERT(false);
 		return PPM_FAILURE_BUG;
 	} else {
-#endif /* __x86_64__ */
+#endif /* __NR_socketcall */
 		/*
 		 * name
 		 */
@@ -301,7 +301,7 @@ static int f_sys_generic(struct event_filler_arguments *args)
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		}
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 	}
 #endif
 
@@ -785,7 +785,7 @@ static int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -795,7 +795,7 @@ static int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	/*
 	 * Get the address len
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 #else
 	val = args->socketcall_args[2];
@@ -853,7 +853,7 @@ static int f_sys_connect_x(struct event_filler_arguments *args)
 	 * Note that, even if we are in the exit callback, the arguments are still
 	 * in the stack, and therefore we can consume them.
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	fd = (int)val;
 #else
@@ -864,7 +864,7 @@ static int f_sys_connect_x(struct event_filler_arguments *args)
 		/*
 		 * Get the address
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 		val = args->socketcall_args[1];
@@ -874,7 +874,7 @@ static int f_sys_connect_x(struct event_filler_arguments *args)
 		/*
 		 * Get the address len
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 2, 1, &val);
 #else
 		val = args->socketcall_args[2];
@@ -939,7 +939,7 @@ static int f_sys_socketpair_x(struct event_filler_arguments *args)
 		/*
 		 * fds
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 3, 1, &val);
 #else
 		val = args->socketcall_args[3];
@@ -1048,7 +1048,7 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 	/*
 	 * queuepct
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &srvskfd);
 #else
 	srvskfd = args->socketcall_args[0];
@@ -1084,7 +1084,7 @@ static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1098,7 +1098,7 @@ static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	/*
 	 * size
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 2, 1, &size);
 #else
 	size = args->socketcall_args[2];
@@ -1146,7 +1146,7 @@ static int f_sys_sendto_e(struct event_filler_arguments *args)
 	/*
 	 * Get the address
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 4, 1, &val);
 #else
 	val = args->socketcall_args[4];
@@ -1156,7 +1156,7 @@ static int f_sys_sendto_e(struct event_filler_arguments *args)
 	/*
 	 * Get the address len
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 5, 1, &val);
 #else
 	val = args->socketcall_args[5];
@@ -1219,7 +1219,7 @@ static int f_sys_send_x(struct event_filler_arguments *args)
 		val = 0;
 		bufsize = 0;
 	} else {
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 		val = args->socketcall_args[1];
@@ -1247,7 +1247,7 @@ static int f_sys_recv_e_common(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1259,7 +1259,7 @@ static int f_sys_recv_e_common(struct event_filler_arguments *args)
 	/*
 	 * size
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 #else
 	val = args->socketcall_args[2];
@@ -1318,7 +1318,7 @@ static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *ret
 		val = 0;
 		bufsize = 0;
 	} else {
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 		val = args->socketcall_args[1];
@@ -1375,7 +1375,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		/*
 		 * Get the fd
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		fd = (int)val;
 #else
@@ -1385,7 +1385,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		/*
 		 * Get the address
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 4, 1, &val);
 #else
 		val = args->socketcall_args[4];
@@ -1395,7 +1395,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		/*
 		 * Get the address len
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 5, 1, &val);
 #else
 		val = args->socketcall_args[5];
@@ -1454,7 +1454,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1467,7 +1467,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -1542,7 +1542,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -1572,7 +1572,7 @@ static int f_sys_recvmsg_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1611,7 +1611,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -1637,7 +1637,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 		/*
 		 * Get the fd
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		fd = (int)val;
 #else
@@ -1776,7 +1776,7 @@ static int f_sys_shutdown_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1788,7 +1788,7 @@ static int f_sys_shutdown_e(struct event_filler_arguments *args)
 	/*
 	 * how
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];

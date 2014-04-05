@@ -19,6 +19,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef EVENTS_H_
 #define EVENTS_H_
 
+// To know about __NR_socketcall
+#include <asm/unistd.h>
+
 /*
  * Various crap that a callback might need
  */
@@ -39,7 +42,7 @@ struct event_filler_arguments {
 	struct task_struct *sched_prev; /* for context switch events, the task that is being schduled out */
 	struct task_struct *sched_next; /* for context switch events, the task that is being schduled in */
 	char *str_storage; /* String storage. Size is one page. */
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 	unsigned long socketcall_args[6];
 #endif
 };
