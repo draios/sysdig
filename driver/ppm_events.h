@@ -58,7 +58,7 @@ struct event_filler_arguments {
 #define PPM_FAILURE_INVALID_USER_MEMORY -2
 #define PPM_FAILURE_BUG -3
 
-typedef int32_t (*filler_callback) (struct event_filler_arguments *args);
+typedef int (*filler_callback) (struct event_filler_arguments *args);
 
 struct ppm_autofill_arg {
 #define AF_ID_RETVAL -1
@@ -99,7 +99,7 @@ u16 fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_use
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
 int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags);
 
-static inline int32_t add_sentinel(struct event_filler_arguments *args)
+static inline int add_sentinel(struct event_filler_arguments *args)
 {
 #ifdef PPM_ENABLE_SENTINEL
 	if (likely(args->arg_data_size >= sizeof(u32))) {

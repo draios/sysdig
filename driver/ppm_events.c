@@ -136,9 +136,9 @@ strncpy_end:
  * - val_len is ignored for everything other than PT_BYTEBUF.
  * - fromuser is ignored for numeric types
  */
-inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser)
+inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser)
 {
-	int32_t len = -1;
+	int len = -1;
 	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
 
 	if (unlikely(args->curarg >= args->nargs)) {
@@ -200,7 +200,7 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 				return PPM_FAILURE_BUFFER_FULL;
 			} else {
 				if (fromuser) {
-					len = (int32_t)ppm_copy_from_user(args->buffer + args->arg_data_offset,
+					len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
 							(const void __user *)(unsigned long)val,
 							val_len);
 
@@ -899,9 +899,9 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
  * filler function.
  * The arguments to extract are be specified in g_ppm_events.
  */
-int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo)
+int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 	u32 j;
 	int64_t retval;

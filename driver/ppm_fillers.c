@@ -35,60 +35,60 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events.h"
 #include "ppm.h"
 
-static int32_t f_sys_generic(struct event_filler_arguments *args);	/* generic syscall event filler that includes the system call number */
-static int32_t f_sys_empty(struct event_filler_arguments *args);		/* empty filler */
-static int32_t f_sys_single(struct event_filler_arguments *args);		/* generic enter filler that copies a single argument syscall into a single parameter event */
-static int32_t f_sys_single_x(struct event_filler_arguments *args);		/* generic exit filler that captures an integer */
-static int32_t f_sys_open_x(struct event_filler_arguments *args);
-static int32_t f_sys_read_x(struct event_filler_arguments *args);
-static int32_t f_sys_write_x(struct event_filler_arguments *args);
-static int32_t f_proc_startupdate(struct event_filler_arguments *args);
-static int32_t f_sys_socketpair_x(struct event_filler_arguments *args);
-static int32_t f_sys_connect_x(struct event_filler_arguments *args);
-static int32_t f_sys_accept4_e(struct event_filler_arguments *args);
-static int32_t f_sys_accept_x(struct event_filler_arguments *args);
-static int32_t f_sys_send_e(struct event_filler_arguments *args);
-static int32_t f_sys_send_x(struct event_filler_arguments *args);
-static int32_t f_sys_sendto_e(struct event_filler_arguments *args);
-static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args);
-static int32_t f_sys_sendmsg_x(struct event_filler_arguments *args);
-static int32_t f_sys_recv_e(struct event_filler_arguments *args);
-static int32_t f_sys_recv_x(struct event_filler_arguments *args);
-static int32_t f_sys_recvfrom_e(struct event_filler_arguments *args);
-static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args);
-static int32_t f_sys_recvmsg_e(struct event_filler_arguments *args);
-static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args);
-static int32_t f_sys_shutdown_e(struct event_filler_arguments *args);
-static int32_t f_sys_pipe_x(struct event_filler_arguments *args);
-static int32_t f_sys_eventfd_e(struct event_filler_arguments *args);
-static int32_t f_sys_futex_e(struct event_filler_arguments *args);
-static int32_t f_sys_lseek_e(struct event_filler_arguments *args);
-static int32_t f_sys_llseek_e(struct event_filler_arguments *args);
-static int32_t f_sys_socket_bind_x(struct event_filler_arguments *args);
-static int32_t f_sys_poll_e(struct event_filler_arguments *args);
-static int32_t f_sys_poll_x(struct event_filler_arguments *args);
-static int32_t f_sys_openat_e(struct event_filler_arguments *args);
+static int f_sys_generic(struct event_filler_arguments *args);	/* generic syscall event filler that includes the system call number */
+static int f_sys_empty(struct event_filler_arguments *args);		/* empty filler */
+static int f_sys_single(struct event_filler_arguments *args);		/* generic enter filler that copies a single argument syscall into a single parameter event */
+static int f_sys_single_x(struct event_filler_arguments *args);		/* generic exit filler that captures an integer */
+static int f_sys_open_x(struct event_filler_arguments *args);
+static int f_sys_read_x(struct event_filler_arguments *args);
+static int f_sys_write_x(struct event_filler_arguments *args);
+static int f_proc_startupdate(struct event_filler_arguments *args);
+static int f_sys_socketpair_x(struct event_filler_arguments *args);
+static int f_sys_connect_x(struct event_filler_arguments *args);
+static int f_sys_accept4_e(struct event_filler_arguments *args);
+static int f_sys_accept_x(struct event_filler_arguments *args);
+static int f_sys_send_e(struct event_filler_arguments *args);
+static int f_sys_send_x(struct event_filler_arguments *args);
+static int f_sys_sendto_e(struct event_filler_arguments *args);
+static int f_sys_sendmsg_e(struct event_filler_arguments *args);
+static int f_sys_sendmsg_x(struct event_filler_arguments *args);
+static int f_sys_recv_e(struct event_filler_arguments *args);
+static int f_sys_recv_x(struct event_filler_arguments *args);
+static int f_sys_recvfrom_e(struct event_filler_arguments *args);
+static int f_sys_recvfrom_x(struct event_filler_arguments *args);
+static int f_sys_recvmsg_e(struct event_filler_arguments *args);
+static int f_sys_recvmsg_x(struct event_filler_arguments *args);
+static int f_sys_shutdown_e(struct event_filler_arguments *args);
+static int f_sys_pipe_x(struct event_filler_arguments *args);
+static int f_sys_eventfd_e(struct event_filler_arguments *args);
+static int f_sys_futex_e(struct event_filler_arguments *args);
+static int f_sys_lseek_e(struct event_filler_arguments *args);
+static int f_sys_llseek_e(struct event_filler_arguments *args);
+static int f_sys_socket_bind_x(struct event_filler_arguments *args);
+static int f_sys_poll_e(struct event_filler_arguments *args);
+static int f_sys_poll_x(struct event_filler_arguments *args);
+static int f_sys_openat_e(struct event_filler_arguments *args);
 #ifndef __x86_64__
-static int32_t f_sys_pread64_e(struct event_filler_arguments *args);
-static int32_t f_sys_preadv_e(struct event_filler_arguments *args);
+static int f_sys_pread64_e(struct event_filler_arguments *args);
+static int f_sys_preadv_e(struct event_filler_arguments *args);
 #endif
-static int32_t f_sys_writev_e(struct event_filler_arguments *args);
-static int32_t f_sys_pwrite64_e(struct event_filler_arguments *args);
-static int32_t f_sys_readv_x(struct event_filler_arguments *args);
-static int32_t f_sys_writev_e(struct event_filler_arguments *args);
-static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments *args);
-static int32_t f_sys_preadv_x(struct event_filler_arguments *args);
-static int32_t f_sys_pwritev_e(struct event_filler_arguments *args);
-static int32_t f_sys_nanosleep_e(struct event_filler_arguments *args);
-static int32_t f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args);
-static int32_t f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args);
-static int32_t f_sys_prlimit_e(struct event_filler_arguments *args);
-static int32_t f_sys_prlimit_x(struct event_filler_arguments *args);
+static int f_sys_writev_e(struct event_filler_arguments *args);
+static int f_sys_pwrite64_e(struct event_filler_arguments *args);
+static int f_sys_readv_x(struct event_filler_arguments *args);
+static int f_sys_writev_e(struct event_filler_arguments *args);
+static int f_sys_writev_pwritev_x(struct event_filler_arguments *args);
+static int f_sys_preadv_x(struct event_filler_arguments *args);
+static int f_sys_pwritev_e(struct event_filler_arguments *args);
+static int f_sys_nanosleep_e(struct event_filler_arguments *args);
+static int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args);
+static int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args);
+static int f_sys_prlimit_e(struct event_filler_arguments *args);
+static int f_sys_prlimit_x(struct event_filler_arguments *args);
 #ifdef CAPTURE_CONTEXT_SWITCHES
-static int32_t f_sched_switch_e(struct event_filler_arguments *args);
+static int f_sched_switch_e(struct event_filler_arguments *args);
 #endif
-static int32_t f_sched_drop(struct event_filler_arguments *args);
-static int32_t f_sched_fcntl_e(struct event_filler_arguments *args);
+static int f_sched_drop(struct event_filler_arguments *args);
+static int f_sched_fcntl_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -256,9 +256,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL));
 
-static int32_t f_sys_generic(struct event_filler_arguments *args)
+static int f_sys_generic(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 
 #ifndef __x86_64__
 	if (unlikely(args->syscall_id == __NR_socketcall)) {
@@ -306,14 +306,14 @@ static int32_t f_sys_generic(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_empty(struct event_filler_arguments *args)
+static int f_sys_empty(struct event_filler_arguments *args)
 {
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_single(struct event_filler_arguments *args)
+static int f_sys_single(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
@@ -325,9 +325,9 @@ static int32_t f_sys_single(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_single_x(struct event_filler_arguments *args)
+static int f_sys_single_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	int64_t retval;
 
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -400,10 +400,10 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static int32_t f_sys_open_x(struct event_filler_arguments *args)
+static int f_sys_open_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	int64_t retval;
 
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -446,10 +446,10 @@ static int32_t f_sys_open_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_read_x(struct event_filler_arguments *args)
+static int f_sys_read_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	int64_t retval;
 	unsigned long bufsize;
 	unsigned int snaplen;
@@ -517,10 +517,10 @@ static int32_t f_sys_read_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_write_x(struct event_filler_arguments *args)
+static int f_sys_write_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	int64_t retval;
 	unsigned long bufsize;
 	unsigned int snaplen;
@@ -647,7 +647,7 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static int32_t f_proc_startupdate(struct event_filler_arguments *args)
+static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res = 0;
@@ -818,9 +818,9 @@ static int32_t f_proc_startupdate(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_socket_bind_x(struct event_filler_arguments *args)
+static int f_sys_socket_bind_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	int64_t retval;
 	int err = 0;
 	u16 size = 0;
@@ -884,9 +884,9 @@ static int32_t f_sys_socket_bind_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_connect_x(struct event_filler_arguments *args)
+static int f_sys_connect_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	int64_t retval;
 	int err = 0;
 	int fd;
@@ -968,9 +968,9 @@ static int32_t f_sys_connect_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_socketpair_x(struct event_filler_arguments *args)
+static int f_sys_socketpair_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	int64_t retval;
 	unsigned long val;
 	int fds[2];
@@ -1050,9 +1050,9 @@ static int32_t f_sys_socketpair_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_accept4_e(struct event_filler_arguments *args)
+static int f_sys_accept4_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 
 	/*
 	 * push the flags into the ring.
@@ -1067,9 +1067,9 @@ static int32_t f_sys_accept4_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_accept_x(struct event_filler_arguments *args)
+static int f_sys_accept_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	int fd;
 	char *targetbuf = args->str_storage;
 	u16 size = 0;
@@ -1142,9 +1142,9 @@ static int32_t f_sys_accept_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
+static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 {
-	int32_t res;
+	int res;
 	unsigned long size;
 	unsigned long val;
 
@@ -1179,9 +1179,9 @@ static int32_t f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	return PPM_SUCCESS;
 }
 
-static int32_t f_sys_send_e(struct event_filler_arguments *args)
+static int f_sys_send_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	int fd;
 
 	res = f_sys_send_e_common(args, &fd);
@@ -1193,10 +1193,10 @@ static int32_t f_sys_send_e(struct event_filler_arguments *args)
 	}
 }
 
-static int32_t f_sys_sendto_e(struct event_filler_arguments *args)
+static int f_sys_sendto_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	u16 size = 0;
 	char *targetbuf = args->str_storage;
 	int fd;
@@ -1266,10 +1266,10 @@ static int32_t f_sys_sendto_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_send_x(struct event_filler_arguments *args)
+static int f_sys_send_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	int64_t retval;
 	unsigned long bufsize;
 
@@ -1313,9 +1313,9 @@ static int32_t f_sys_send_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_recv_e_common(struct event_filler_arguments *args)
+static int f_sys_recv_e_common(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 
 	/*
@@ -1347,9 +1347,9 @@ static int32_t f_sys_recv_e_common(struct event_filler_arguments *args)
 	return PPM_SUCCESS;
 }
 
-static int32_t f_sys_recv_e(struct event_filler_arguments *args)
+static int f_sys_recv_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 
 	res = f_sys_recv_e_common(args);
 
@@ -1360,9 +1360,9 @@ static int32_t f_sys_recv_e(struct event_filler_arguments *args)
 	}
 }
 
-static int32_t f_sys_recvfrom_e(struct event_filler_arguments *args)
+static int f_sys_recvfrom_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 
 	res = f_sys_recv_e_common(args);
 	if (likely(res == PPM_SUCCESS)) {
@@ -1372,9 +1372,9 @@ static int32_t f_sys_recvfrom_e(struct event_filler_arguments *args)
 	}
 }
 
-static int32_t f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
+static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 	unsigned long bufsize;
 
@@ -1418,9 +1418,9 @@ static int32_t f_sys_recv_x_common(struct event_filler_arguments *args, int64_t 
 	return PPM_SUCCESS;
 }
 
-static int32_t f_sys_recv_x(struct event_filler_arguments *args)
+static int f_sys_recv_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	int64_t retval;
 
 	res = f_sys_recv_x_common(args, &retval);
@@ -1432,10 +1432,10 @@ static int32_t f_sys_recv_x(struct event_filler_arguments *args)
 	}
 }
 
-static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args)
+static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	u16 size = 0;
 	int64_t retval;
 	char *targetbuf = args->str_storage;
@@ -1520,9 +1520,9 @@ static int32_t f_sys_recvfrom_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
+static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 	struct msghdr mh;
 	char *targetbuf = args->str_storage;
@@ -1610,9 +1610,9 @@ static int32_t f_sys_sendmsg_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_sendmsg_x(struct event_filler_arguments *args)
+static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 	int64_t retval;
 	const struct iovec __user *iov;
@@ -1655,9 +1655,9 @@ static int32_t f_sys_sendmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_recvmsg_e(struct event_filler_arguments *args)
+static int f_sys_recvmsg_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 
 	/*
@@ -1676,9 +1676,9 @@ static int32_t f_sys_recvmsg_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
+static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 	int64_t retval;
 	const struct iovec __user *iov;
@@ -1778,9 +1778,9 @@ static int32_t f_sys_recvmsg_x(struct event_filler_arguments *args)
 }
 
 
-static int32_t f_sys_pipe_x(struct event_filler_arguments *args)
+static int f_sys_pipe_x(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	int64_t retval;
 	unsigned long val;
 	int fds[2];
@@ -1829,9 +1829,9 @@ static int32_t f_sys_pipe_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_eventfd_e(struct event_filler_arguments *args)
+static int f_sys_eventfd_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 
 	/*
@@ -1871,9 +1871,9 @@ static inline u16 shutdown_how_to_scap(unsigned long how)
 	}
 }
 
-static int32_t f_sys_shutdown_e(struct event_filler_arguments *args)
+static int f_sys_shutdown_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 
 	/*
@@ -1949,9 +1949,9 @@ static inline u16 futex_op_to_scap(unsigned long op)
 	return res;
 }
 
-static int32_t f_sys_futex_e(struct event_filler_arguments *args)
+static int f_sys_futex_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
 
 	/*
@@ -1999,10 +1999,10 @@ static inline uint64_t lseek_whence_to_scap(unsigned long whence)
 	return res;
 }
 
-static int32_t f_sys_lseek_e(struct event_filler_arguments *args)
+static int f_sys_lseek_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 
 	/*
 	 * fd
@@ -2034,10 +2034,10 @@ static int32_t f_sys_lseek_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_llseek_e(struct event_filler_arguments *args)
+static int f_sys_llseek_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	unsigned long oh;
 	unsigned long ol;
 	uint64_t offset;
@@ -2127,7 +2127,7 @@ static inline u16 poll_events_to_scap(short revents)
 	return res;
 }
 
-static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
+static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 {
 	struct pollfd *fds;
 	char *targetbuf;
@@ -2192,10 +2192,10 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 	return val_to_ring(args, (uint64_t)(unsigned long)targetbuf, pos, false);
 }
 
-static int32_t f_sys_poll_e(struct event_filler_arguments *args)
+static int f_sys_poll_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 
 	res = poll_parse_fds(args, true);
 	if (unlikely(res != PPM_SUCCESS)) {
@@ -2214,10 +2214,10 @@ static int32_t f_sys_poll_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_poll_x(struct event_filler_arguments *args)
+static int f_sys_poll_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
-	int32_t res;
+	int res;
 
 	/*
 	 * res
@@ -2236,10 +2236,10 @@ static int32_t f_sys_poll_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_openat_e(struct event_filler_arguments *args)
+static int f_sys_openat_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 
 	/*
 	 * dirfd
@@ -2290,11 +2290,11 @@ static int32_t f_sys_openat_e(struct event_filler_arguments *args)
 }
 
 #ifndef __x86_64__
-static int32_t f_sys_pread64_e(struct event_filler_arguments *args)
+static int f_sys_pread64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
-	int32_t res;
+	int res;
 	unsigned long pos0;
 	unsigned long pos1;
 	uint64_t pos64;
@@ -2334,11 +2334,11 @@ static int32_t f_sys_pread64_e(struct event_filler_arguments *args)
 }
 #endif /* __x86_64__ */
 
-static int32_t f_sys_pwrite64_e(struct event_filler_arguments *args)
+static int f_sys_pwrite64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
-	int32_t res;
+	int res;
 #ifndef __x86_64__
 	unsigned long pos0;
 	unsigned long pos1;
@@ -2388,11 +2388,11 @@ static int32_t f_sys_pwrite64_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_readv_x(struct event_filler_arguments *args)
+static int f_sys_readv_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int64_t retval;
-	int32_t res;
+	int res;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
@@ -2420,10 +2420,10 @@ static int32_t f_sys_readv_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_writev_e(struct event_filler_arguments *args)
+static int f_sys_writev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 	unsigned int snaplen;
@@ -2479,10 +2479,10 @@ static int32_t f_sys_writev_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments *args)
+static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	int64_t retval;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
@@ -2540,10 +2540,10 @@ static int32_t f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 }
 
 #ifndef __x86_64__
-static int32_t f_sys_preadv_e(struct event_filler_arguments *args)
+static int f_sys_preadv_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	unsigned long pos0;
 	unsigned long pos1;
 	uint64_t pos64;
@@ -2574,11 +2574,11 @@ static int32_t f_sys_preadv_e(struct event_filler_arguments *args)
 }
 #endif /* __x86_64__ */
 
-static int32_t f_sys_preadv_x(struct event_filler_arguments *args)
+static int f_sys_preadv_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int64_t retval;
-	int32_t res;
+	int res;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
@@ -2606,10 +2606,10 @@ static int32_t f_sys_preadv_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
+static int f_sys_pwritev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 #ifndef __x86_64__
 	unsigned long pos0;
 	unsigned long pos1;
@@ -2692,14 +2692,14 @@ static int32_t f_sys_pwritev_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_nanosleep_e(struct event_filler_arguments *args)
+static int f_sys_nanosleep_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 	uint64_t longtime;
 	unsigned long val;
 	char *targetbuf = args->str_storage;
 	struct timespec *tts = (struct timespec *)targetbuf;
-	int32_t cfulen;
+	int cfulen;
 
 	/*
 	 * interval
@@ -2707,7 +2707,7 @@ static int32_t f_sys_nanosleep_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	cfulen = (int32_t)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
+	cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
 
 	if (unlikely(cfulen != 0)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -2764,11 +2764,11 @@ static inline u8 rlimit_resource_to_scap(unsigned long rresource)
 	}
 }
 
-static int32_t f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
+static int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 {
 	u8 ppm_resource;
 	unsigned long val;
-	int32_t res;
+	int res;
 
 	/*
 	 * resource
@@ -2785,10 +2785,10 @@ static int32_t f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
+static int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	int64_t retval;
 	struct rlimit rl;
 	int64_t cur;
@@ -2839,11 +2839,11 @@ static int32_t f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_prlimit_e(struct event_filler_arguments *args)
+static int f_sys_prlimit_e(struct event_filler_arguments *args)
 {
 	u8 ppm_resource;
 	unsigned long val;
-	int32_t res;
+	int res;
 
 	/*
 	 * pid
@@ -2870,10 +2870,10 @@ static int32_t f_sys_prlimit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
+static int f_sys_prlimit_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 	int64_t retval;
 	struct rlimit rl;
 	int64_t newcur;
@@ -2956,9 +2956,9 @@ static int32_t f_sys_prlimit_x(struct event_filler_arguments *args)
 #ifdef CAPTURE_CONTEXT_SWITCHES
 #include <linux/kernel_stat.h>
 
-static int32_t f_sched_switch_e(struct event_filler_arguments *args)
+static int f_sched_switch_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 /* uint64_t steal; */
 
 	if (args->sched_prev == NULL || args->sched_next == NULL) {
@@ -2989,9 +2989,9 @@ static int32_t f_sched_switch_e(struct event_filler_arguments *args)
 }
 
 #if 0
-static int32_t f_sched_switchex_e(struct event_filler_arguments *args)
+static int f_sched_switchex_e(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 
 	if (args->sched_prev == NULL || args->sched_next == NULL) {
 		ASSERT(false);
@@ -3043,9 +3043,9 @@ static int32_t f_sched_switchex_e(struct event_filler_arguments *args)
 #endif /* 0 */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
-static int32_t f_sched_drop(struct event_filler_arguments *args)
+static int f_sched_drop(struct event_filler_arguments *args)
 {
-	int32_t res;
+	int res;
 
 	/*
 	 * next
@@ -3121,10 +3121,10 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	}
 }
 
-static int32_t f_sched_fcntl_e(struct event_filler_arguments *args)
+static int f_sched_fcntl_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t res;
+	int res;
 
 	/*
 	 * fd
