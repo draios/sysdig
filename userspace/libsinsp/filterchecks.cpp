@@ -1338,7 +1338,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_user_fields[] =
 {
-	{PT_UINT64, EPF_NONE, PF_DEC, "user.uid", "user ID."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "user.uid", "user ID."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.name", "user name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.homedir", "home directory of the user."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.shell", "user's shell."},
@@ -1368,11 +1368,10 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 	if(m_field_id != TYPE_UID)
 	{
-		unordered_map<uint32_t, scap_userinfo*>::iterator it;
+		unordered_map<uint32_t, scap_userinfo*>::const_iterator it;
 
 		ASSERT(m_inspector != NULL);
-		unordered_map<uint32_t, scap_userinfo*>* userlist = 
-			(unordered_map<uint32_t, scap_userinfo*>*)m_inspector->get_userlist();
+		const unordered_map<uint32_t, scap_userinfo*>* userlist = m_inspector->get_userlist();
 		ASSERT(userlist->size() != 0);
 
 		if(tinfo->m_uid == 0xffffffff)
