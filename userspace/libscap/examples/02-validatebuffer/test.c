@@ -99,7 +99,7 @@ int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, O
 		
 		if(sentinel_begin != sentinel_end)
 		{
-			fprintf(stderr, "Error: sentinel begin %d, sentinel end %d, evt_type %u, evt_size %u, cnt %u, offset %x, remaining %u\n",
+			fprintf(stderr, "Error: sentinel begin %d, sentinel end %d, evt_type %u, evt_size %zu, cnt %u, offset %x, remaining %u\n",
 			        sentinel_begin,
 			        sentinel_end,
 			        (uint32_t)hdr->type,
