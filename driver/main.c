@@ -36,11 +36,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tracepoint.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
-#if defined(__x86_64__)
-#include <asm/unistd_64.h>
-#else
-#include <asm/unistd_32.h>
-#endif
+
+#include <asm/unistd.h>
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
