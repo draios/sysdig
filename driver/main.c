@@ -162,18 +162,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 * The last open device starts the collection
 	 */
 	if (atomic_inc_return(&g_open_count) == g_ppm_numdevs) {
-		/* struct task_struct *task; */
-
 		pr_info("sysdig-probe: starting capture\n");
-
-		/*
-				//
-				// Before enabling the tracepoints, we add the current list of running processes as events in buffer 0
-				//
-				for_each_process(task) {
-					printk("%s [%d]\n",task->comm , task->pid);
-				}
-		*/
 
 		/*
 		 * Enable the tracepoints
