@@ -186,7 +186,32 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 	}
 }
 
-bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2)
+bool flt_compare_buffer(ppm_cmp_operator op, char* operand1, char* operand2, uint32_t op1_len, uint32_t op2_len)
+{
+	switch(op)
+	{
+	case CO_EQ:
+		return op1_len == op2_len && (memcmp(operand1, operand2, op1_len) == 0);
+	case CO_NE:
+		return op1_len != op2_len || (memcmp(operand1, operand2, op1_len) != 0);
+	case CO_CONTAINS:
+		return (memmem(operand1, op1_len, operand2, op2_len) != NULL);
+	case CO_LT:
+		throw sinsp_exception("'<' not supported for buffer filters");
+	case CO_LE:
+		throw sinsp_exception("'<=' not supported for buffer filters");
+	case CO_GT:
+		throw sinsp_exception("'>' not supported for buffer filters");
+	case CO_GE:
+		throw sinsp_exception("'>=' not supported for buffer filters");
+	default:
+		ASSERT(false);
+		throw sinsp_exception("invalid filter operator " + std::to_string((long long) op));
+		return false;
+	}
+}
+
+bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	switch(type)
 	{
@@ -222,7 +247,7 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_CHARBUF:
 		return flt_compare_string(op, (char*)operand1, (char*)operand2);
 	case PT_BYTEBUF:
-		throw sinsp_exception("bytebuf comparison not implemented yet");
+		return flt_compare_buffer(op, (char*)operand1, (char*)operand2, op1_len, op2_len);
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
@@ -622,9 +647,7 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
 	uint32_t len;
-	uint8_t* extracted_val;
-
-	extracted_val = extract(evt, &len);
+	uint8_t* extracted_val = extract(evt, &len);
 
 	if(extracted_val == NULL)
 	{
@@ -634,7 +657,9 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 	return flt_compare(m_cmpop, 
 		m_info.m_fields[m_field_id].m_type, 
 		extracted_val, 
-		&m_val_storage[0]);
+		&m_val_storage[0],
+		len,
+		m_val_storage_len);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

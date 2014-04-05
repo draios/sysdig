@@ -25,7 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	throw sinsp_exception("filter error: value too long: " + val); \
 }
 
-bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2);
+bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 
 class operand_info

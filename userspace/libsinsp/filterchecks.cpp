@@ -688,7 +688,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.arg", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'resarg.fd' or 'resarg[0]'."},
 	{PT_DYN, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'arg.fd'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
+	{PT_BYTEBUF, EPF_NONE, PF_NA, "evt.buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as an error code string (e.g. 'ENOENT')."},
 	{PT_INT64, EPF_NONE, PF_DEC, "evt.rawres", "event return value, as a number (e.g. -2). Useful for range comparisons."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.failed", "'true' for events that returned an error status."},
@@ -808,13 +808,10 @@ void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 		ASSERT(m_arginfo != NULL);
 		return sinsp_filter_check::string_to_rawval(str, len, m_arginfo->type);
 	}
-	else if(m_field_id == TYPE_BUFFER || 
-		(m_field_id == TYPE_ARGSTR && m_argid == -1 && m_argname.compare("data") == 0))
+	else
 	{
-		return sinsp_filter_check::string_to_rawval(str, len, PT_BYTEBUF);
+		return sinsp_filter_check::parse_filter_value(str, len);
 	}
-	
-	return sinsp_filter_check::parse_filter_value(str, len);
 }
 
 const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
