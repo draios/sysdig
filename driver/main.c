@@ -27,6 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
+#include <linux/tracepoint.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
 #if defined(__x86_64__)
