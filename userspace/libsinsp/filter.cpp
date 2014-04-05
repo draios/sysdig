@@ -22,7 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // to configure everything with crappy documentation and code that doesn't compile,
 // I decided that I agree with this http://mortoray.com/2012/07/20/why-i-dont-use-a-parser-generator/
 // and that I'm going with a manually written parser. The grammar is simple enough that it's not
-// going to take more time. On the other hand I will avoid a crappy dependency that breaks my 
+// going to take more time. On the other hand I will avoid a crappy dependency that breaks my
 // code at every new release, and I will have a cleaner and easier to understand code base.
 //
 
@@ -42,7 +42,7 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 {
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW FILTER CHECK CLASSES HERE
-	//////////////////////////////////////////////////////////////////////////////	
+	//////////////////////////////////////////////////////////////////////////////
 	add_filter_check(new sinsp_filter_check_fd());
 	add_filter_check(new sinsp_filter_check_thread());
 	add_filter_check(new sinsp_filter_check_event());
@@ -75,7 +75,7 @@ void sinsp_filter_check_list::get_all_fields(OUT vector<const filter_check_info*
 	}
 }
 
-sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(string name, 
+sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(string name,
 																		   sinsp* inspector,
 																		   bool do_exact_check)
 {
@@ -654,9 +654,9 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 		return false;
 	}
 
-	return flt_compare(m_cmpop, 
-		m_info.m_fields[m_field_id].m_type, 
-		extracted_val, 
+	return flt_compare(m_cmpop,
+		m_info.m_fields[m_field_id].m_type,
+		extracted_val,
 		&m_val_storage[0],
 		len,
 		m_val_storage_len);
@@ -701,7 +701,7 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 	uint32_t size = m_checks.size();
 	bool res = true;
 	bool chkres;
-	 
+
 	for(j = 0; j < size; j++)
 	{
 		sinsp_filter_check* chk = m_checks[j];
@@ -1058,7 +1058,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 
 	if(chk == NULL)
 	{
-		throw sinsp_exception("filter error: unrecognized field " + 
+		throw sinsp_exception("filter error: unrecognized field " +
 			str_operand1 + " at pos " + to_string((long long) startpos));
 	}
 
