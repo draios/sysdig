@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 project(sysdig) 
 
+if(NOT DEFINED SYSDIG_VERSION)
+	set(SYSDIG_VERSION "0.1.1-dev")
+endif()
+
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
