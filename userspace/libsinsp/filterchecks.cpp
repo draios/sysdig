@@ -897,6 +897,21 @@ void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool d
 	*res = buf;
 }
 
+uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
+{
+	const sinsp_evt_param* pi = evt->get_param_value_raw(argname);
+
+	if(pi != NULL)
+	{
+		*len = pi->m_len;
+		return (uint8_t*)pi->m_val;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
 uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	switch(m_field_id)
@@ -1036,19 +1051,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_CPU:
 		return (uint8_t*)&evt->m_cpuid;
 	case TYPE_ARGRAW:
-		{
-			const sinsp_evt_param* pi = evt->get_param_value_raw(m_arginfo->name);
-
-			if(pi != NULL)
-			{
-				*len = pi->m_len;
-				return (uint8_t*)pi->m_val;
-			}
-			else
-			{
-				return NULL;
-			}
-		}
+		return extract_argraw(evt, len, m_arginfo->name);
 		break;
 	case TYPE_ARGSTR:
 		{
@@ -1125,17 +1128,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(m_is_compare)
 			{
-				const sinsp_evt_param* pi = evt->get_param_value_raw("data");
-
-				if(pi != NULL)
-				{
-					*len = pi->m_len;
-					return (uint8_t*)pi->m_val;
-				}
-				else
-				{
-					return NULL;
-				}
+				return extract_argraw(evt, len, "data");
 			}
 
 			const char* resolved_argstr;
