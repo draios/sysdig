@@ -18,7 +18,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
-#include <asm/atomic.h>
+#include <linux/atomic.h>
 #include <linux/cdev.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
