@@ -238,6 +238,14 @@ public:
 	const sinsp_evt_param* get_param_value_raw(const char* name);
 
 	/*!
+	  \brief Get a hostname from a binary ipv4 string
+
+	  \param binary_adress The 32 bit binary address to use
+	  \param buf The hostname container, of size NI_MAXHOST
+ 	*/
+	char* get_binary_ipv4_as_host(void* binary_address, char* buf);
+
+	/*!
 	  \brief Get a parameter as a C++ string.
 
 	  \param name The parameter name.
