@@ -5,6 +5,8 @@ include_directories(third-party/jsoncpp)
 include_directories(third-party/jsoncpp)
 include_directories(${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src)
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 add_library(sinsp STATIC
 	chisel.cpp
 	event.cpp
@@ -14,6 +16,7 @@ add_library(sinsp STATIC
 	filter.cpp
 	filterchecks.cpp
 	ifinfo.cpp
+	servparse.cpp
 	internal_metrics.cpp
 	third-party/jsoncpp/jsoncpp.cpp
 	logger.cpp
@@ -32,7 +35,13 @@ if(NOT WIN32)
 	target_link_libraries(sinsp
 		${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/libluajit.a
 		dl)
+
+	install(FILES services
+		DESTINATION share/sysdig)
+
 else()
 	target_link_libraries(sinsp
 		${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/lua51.lib)
 endif()
+
+configure_file(config.h.in config.h)

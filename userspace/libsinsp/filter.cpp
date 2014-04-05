@@ -499,6 +499,8 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 			*(uint8_t*)(&m_val_storage[0]) = sinsp_numparser::parseu8(str);
 			break;
 		case PT_PORT: // This can be resolved in the future
+			*(uint16_t*)(&m_val_storage[0]) = service::toPort(str);
+			break;
 		case PT_FLAGS16:
 		case PT_UINT16:
 			*(uint16_t*)(&m_val_storage[0]) = sinsp_numparser::parseu16(str);
