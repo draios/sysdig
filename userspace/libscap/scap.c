@@ -25,6 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <errno.h>
 #endif // _WIN32
 
 #include "scap.h"
@@ -176,8 +177,16 @@ scap_t* scap_open_live(char *error)
 
 		if((handle->m_devs[j].m_fd = open(dev, O_RDWR | O_SYNC)) < 0)
 		{
+			if(errno == EBUSY)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "device %s is already open. You can't run multiple instances of sysdig.", dev);
+			}
+			else
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the sysdig-probe module is loaded.", dev);
+			}
+
 			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the sysdig-probe module is loaded.", dev);
 			return NULL;
 		}
 
