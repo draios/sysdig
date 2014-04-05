@@ -37,6 +37,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events.h"
 #include "ppm.h"
 
+// This is described in syscall(2). Some syscalls take 64-bit arguments. On
+// arches that have 64-bit registers, these arguments are shipped in a register.
+// On 32-bit arches, however, these are split between two consecutive registers,
+// with some alignment requirements. Some require an odd/even pair while some
+// others require even/odd. For now I assume they all do what x86_32 does, and
+// we can handle the rest when we port those.
+#define _64BIT_ARGS_SINGLE_REGISTER CONFIG_64BIT
+
 static int f_sys_generic(struct event_filler_arguments *args);	/* generic syscall event filler that includes the system call number */
 static int f_sys_empty(struct event_filler_arguments *args);		/* empty filler */
 static int f_sys_single(struct event_filler_arguments *args);		/* generic enter filler that copies a single argument syscall into a single parameter event */
@@ -70,7 +78,7 @@ static int f_sys_socket_bind_x(struct event_filler_arguments *args);
 static int f_sys_poll_e(struct event_filler_arguments *args);
 static int f_sys_poll_x(struct event_filler_arguments *args);
 static int f_sys_openat_e(struct event_filler_arguments *args);
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 static int f_sys_pread64_e(struct event_filler_arguments *args);
 static int f_sys_preadv_e(struct event_filler_arguments *args);
 #endif
@@ -196,7 +204,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNLINK_X] = {f_sys_single_x},
 	[PPME_SYSCALL_UNLINKAT_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
 	[PPME_SYSCALL_UNLINKAT_X] = {f_sys_single_x},
-#ifdef __x86_64__
+#ifdef _64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREAD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {2}, {3} } },
 #else
 	[PPME_SYSCALL_PREAD_E] = {f_sys_pread64_e},
@@ -208,7 +216,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_READV_X] = {f_sys_readv_x},
 	[PPME_SYSCALL_WRITEV_E] = {f_sys_writev_e},
 	[PPME_SYSCALL_WRITEV_X] = {f_sys_writev_pwritev_x},
-#ifdef __x86_64__
+#ifdef _64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREADV_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {3} } },
 #else
 	[PPME_SYSCALL_PREADV_E] = {f_sys_preadv_e},
@@ -2148,7 +2156,7 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 static int f_sys_pread64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -2188,14 +2196,14 @@ static int f_sys_pread64_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-#endif /* __x86_64__ */
+#endif /* _64BIT_ARGS_SINGLE_REGISTER */
 
 static int f_sys_pwrite64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
 	int res;
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 	unsigned long pos0;
 	unsigned long pos1;
 	uint64_t pos64;
@@ -2222,7 +2230,7 @@ static int f_sys_pwrite64_e(struct event_filler_arguments *args)
 	 * NOTE: this is a 64bit value, which means that on 32bit systems it uses two
 	 * separate registers that we need to merge.
 	 */
-#ifdef __x86_64__
+#ifdef _64BIT_ARGS_SINGLE_REGISTER
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
@@ -2385,7 +2393,7 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 static int f_sys_preadv_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -2416,7 +2424,7 @@ static int f_sys_preadv_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-#endif /* __x86_64__ */
+#endif /* _64BIT_ARGS_SINGLE_REGISTER */
 
 static int f_sys_preadv_x(struct event_filler_arguments *args)
 {
@@ -2452,7 +2460,7 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 	unsigned long pos0;
 	unsigned long pos1;
 	uint64_t pos64;
@@ -2512,7 +2520,7 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	 * NOTE: this is a 64bit value, which means that on 32bit systems it uses two
 	 * separate registers that we need to merge.
 	 */
-#ifdef __x86_64__
+#ifdef _64BIT_ARGS_SINGLE_REGISTER
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
