@@ -17,6 +17,14 @@ if(NOT WIN32)
 
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		add_subdirectory(driver)
+
+		execute_process(COMMAND uname -r OUTPUT_VARIABLE KERNEL_RELEASE OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+		add_custom_target(modules_install
+			${CMAKE_COMMAND} -E make_directory  "/lib/modules/${KERNEL_RELEASE}/extra"
+			COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_BINARY_DIR}/driver/sysdig-probe.ko" "/lib/modules/${KERNEL_RELEASE}/extra/"
+		)
+
 	endif()
 
 	include(ExternalProject)
@@ -26,6 +34,8 @@ if(NOT WIN32)
 		BUILD_COMMAND make
 		BUILD_IN_SOURCE 1
 		INSTALL_COMMAND "")
+
+
 
 else()
 
