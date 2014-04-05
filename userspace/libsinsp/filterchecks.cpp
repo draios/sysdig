@@ -805,12 +805,15 @@ void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 		// 'rawarg' is handled in a custom way
 		//
 		ASSERT(m_arginfo != NULL);
-		return sinsp_filter_check::string_to_rawval(str, m_arginfo->type);
+		return sinsp_filter_check::string_to_rawval(str, len, m_arginfo->type);
 	}
-	else
+	else if(m_field_id == TYPE_BUFFER || 
+		(m_field_id == TYPE_ARGSTR && m_argid == -1 && m_argname.compare("data") == 0))
 	{
-		return sinsp_filter_check::parse_filter_value(str, len);
+		return sinsp_filter_check::string_to_rawval(str, len, PT_BYTEBUF);
 	}
+	
+	return sinsp_filter_check::parse_filter_value(str, len);
 }
 
 const filtercheck_field_info* sinsp_filter_check_event::get_field_info()

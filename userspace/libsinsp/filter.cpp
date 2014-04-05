@@ -245,6 +245,7 @@ sinsp_filter_check::sinsp_filter_check() :
 	m_field = NULL;
 	m_info.m_fields = NULL;
 	m_info.m_nfiedls = -1;
+	m_val_storage_len = 0;
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -475,7 +476,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 	}
 }
 
-void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
+void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype)
 {
 	switch(ptype)
 	{
@@ -518,7 +519,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
 			{
-				uint32_t len = strlen(str);
+				len = strlen(str);
 				if(len >= m_val_storage.size())
 				{
 					throw sinsp_exception("filter parameter too long:" + string(str));
@@ -548,6 +549,15 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 			{
 				throw sinsp_exception("unrecognized IP address " + string(str));
 			}
+			break;
+		case PT_BYTEBUF:
+			if(len >= m_val_storage.size())
+			{
+				throw sinsp_exception("filter parameter too long:" + string(str));
+			}
+			
+			memcpy((&m_val_storage[0]), str, len);
+			m_val_storage_len = len;
 			break;
 		default:
 			ASSERT(false);
@@ -601,7 +611,7 @@ int32_t sinsp_filter_check::parse_field_name(const char* str)
 
 void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len)
 {
-	string_to_rawval(str, m_field->m_type);
+	string_to_rawval(str, len, m_field->m_type);
 }
 
 const filtercheck_field_info* sinsp_filter_check::get_field_info()

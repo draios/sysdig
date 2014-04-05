@@ -104,7 +104,7 @@ public:
 
 protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
-	void string_to_rawval(const char* str, ppm_param_type ptype);
+	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
 	vector<uint8_t> m_val_storage;
@@ -112,6 +112,7 @@ protected:
 	filter_check_info m_info;
 	uint32_t m_field_id;
 	uint32_t m_th_state_id;
+	uint32_t m_val_storage_len;
 
 private:
 	void set_inspector(sinsp* inspector);
