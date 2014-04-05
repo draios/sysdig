@@ -840,6 +840,7 @@ char sinsp_filter::next()
 vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 {
 	vector<char> res;
+	bool is_quoted = false;
 	int32_t start;
 	int32_t nums[2];
 	uint32_t num_pos;
@@ -860,6 +861,15 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	}
 
 	//
+	// If there are quotes, not stop on blank
+	//
+	if(m_fltstr[m_scanpos] == '"')
+	{
+		is_quoted = true;
+		m_scanpos++;
+	}
+
+	//
 	// Mark the beginning of the word
 	//
 	start = m_scanpos;
@@ -877,7 +887,8 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 		}
 		else
 		{
-			is_end_of_word = (isblank(curchar) || is_bracket(curchar));
+			is_end_of_word = (!is_quoted && (isblank(curchar) || is_bracket(curchar))) ||
+				(is_quoted && curchar == '"');
 		}
 
 		if(is_end_of_word)
