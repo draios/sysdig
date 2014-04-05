@@ -27,6 +27,8 @@ target_link_libraries(sinsp
 	scap)
 
 if(NOT WIN32)
+	add_dependencies(sinsp luajit)
+	
 	target_link_libraries(sinsp
 		${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/libluajit.a
 		dl)
