@@ -812,9 +812,9 @@ char sinsp_filter::next()
 	}
 }
 
-string sinsp_filter::next_operand(bool expecting_first_operand)
+vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 {
-	string res;
+	vector<char> res;
 	int32_t start;
 	int32_t nums[2];
 	uint32_t num_pos;
@@ -873,6 +873,7 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 				m_scanpos--;
 			}
 
+			res.push_back('\0');
 			return res;
 		}
 
@@ -885,14 +886,14 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 			}
 			else
 			{
-				res += curchar;
+				res.push_back(curchar);
 			}
 			break;
 		case ES_SLASH:
 			if(curchar == '\\')
 			{
 				escape_state = ES_NORMAL;
-				res += curchar;
+				res.push_back(curchar);
 			}
 			else if(curchar == 'x')
 			{
@@ -919,7 +920,7 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 
 			if(num_pos == 2 && escape_state != ES_ERROR)
 			{
-				res += (char)(nums[0] * 16 + nums[1]);
+				res.push_back((char)(nums[0] * 16 + nums[1]));
 
 				num_pos = 0;
 				escape_state = ES_NORMAL;
@@ -942,6 +943,7 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 	//
 	// End of filter
 	//
+	res.push_back('\0');
 	return res;
 }
 
@@ -1025,22 +1027,23 @@ ppm_cmp_operator sinsp_filter::next_comparison_operator()
 void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 {
 	uint32_t startpos = m_scanpos;
-	string operand1 = next_operand(true);
-	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(operand1, m_inspector, true);
+	vector<char> operand1 = next_operand(true);
+	string str_operand1 = string((char *)&operand1[0]);
+	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(str_operand1, m_inspector, true);
 
 	if(chk == NULL)
 	{
 		throw sinsp_exception("filter error: unrecognized field " + 
-			operand1 + " at pos " + to_string((long long) startpos));
+			str_operand1 + " at pos " + to_string((long long) startpos));
 	}
 
 	ppm_cmp_operator co = next_comparison_operator();
-	string operand2 = next_operand(false);
+	vector<char> operand2 = next_operand(false);
 
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
-	chk->parse_field_name(operand1.c_str());
-	chk->parse_filter_value(operand2.c_str());
+	chk->parse_field_name((char *)&operand1[0]);
+	chk->parse_filter_value((char *)&operand2[0]);
 
 	parent_expr->add_check(chk);
 }
