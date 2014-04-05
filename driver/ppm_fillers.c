@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
+
 #include <linux/compat.h>
 #include <linux/cdev.h>
 #include <asm/syscall.h>
@@ -671,13 +673,13 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (likely(retval >= 0)) {
 		if (unlikely(!mm)) {
 			args->str_storage[0] = 0;
-			pr_info("sysdig-probe: f_proc_startupdate drop, mm=NULL\n");
+			pr_info("f_proc_startupdate drop, mm=NULL\n");
 			return PPM_FAILURE_BUG;
 		}
 
 		if (unlikely(!mm->arg_end)) {
 			args->str_storage[0] = 0;
-			pr_info("sysdig-probe: f_proc_startupdate drop, mm->arg_end=NULL\n");
+			pr_info("f_proc_startupdate drop, mm->arg_end=NULL\n");
 			return PPM_FAILURE_BUG;
 		}
 
