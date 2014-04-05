@@ -17,35 +17,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*
- * Driver output definitions
- */
-
-/*
- * Driver Chattiness
- */
-#define OUTPUT_VERBOSE 4
-#define OUTPUT_INFO 2
-#define OUTPUT_ERRORS 1
-#define OUTPUT_NONE 0
-
-#define OUTPUT_LEVEL OUTPUT_INFO
-
-/*
  * Our Own ASSERT implementation, so we can easily switch among BUG_ON, WARN_ON and nothing
  */
 #ifdef _DEBUG
 #define ASSERT(expr) WARN_ON(!(expr))
 #else
 #define ASSERT(expr)
-#endif
-
-/*
- * Tracing and debug printing
- */
-#if (OUTPUT_LEVEL >= OUTPUT_VERBOSE)
-#define dbgprint(a) pr_info(a "\n")
-#else
-#define dbgprint(a)
 #endif
 
 /*
