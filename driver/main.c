@@ -71,7 +71,7 @@ struct ppm_ring_buffer_context {
 	struct ppm_ring_buffer_info *info;
 	char *buffer;
 	struct timespec last_print_time;
-	uint32_t nevents;
+	u32 nevents;
 	atomic_t preempt_count;
 	char *str_storage;	/* String storage. Size is one page. */
 };
@@ -119,9 +119,9 @@ static const struct file_operations g_ppm_fops = {
 
 static DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
 static atomic_t g_open_count;
-uint32_t g_snaplen = RW_SNAPLEN;
-uint32_t g_sampling_ratio = 1;
-static uint32_t g_sampling_interval;
+u32 g_snaplen = RW_SNAPLEN;
+u32 g_sampling_ratio = 1;
+static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
 
@@ -296,12 +296,12 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case PPM_IOCTL_ENABLE_DROPPING_MODE:
 	{
-		uint32_t new_sampling_ratio;
+		u32 new_sampling_ratio;
 
 		g_dropping_mode = 1;
 		pr_info("sysdig-probe: PPM_IOCTL_ENABLE_DROPPING_MODE\n");
 
-		new_sampling_ratio = (uint32_t)arg;
+		new_sampling_ratio = (u32)arg;
 
 		if (new_sampling_ratio != 1 &&
 			new_sampling_ratio != 2 &&
@@ -323,10 +323,10 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case PPM_IOCTL_SET_SNAPLEN:
 	{
-		uint32_t new_snaplen;
+		u32 new_snaplen;
 
 		pr_info("sysdig-probe: PPM_IOCTL_SET_SNAPLEN\n");
-		new_snaplen = (uint32_t)arg;
+		new_snaplen = (u32)arg;
 
 		if (new_snaplen > RW_MAX_SNAPLEN) {
 			pr_info("sysdig-probe: invalid snaplen %u\n", new_snaplen);
@@ -595,11 +595,11 @@ static void record_event(enum ppm_event_type event_type,
 {
 	size_t event_size;
 	int next;
-	uint32_t freespace;
-	uint32_t usedspace;
+	u32 freespace;
+	u32 usedspace;
 	struct event_filler_arguments args;
-	uint32_t ttail;
-	uint32_t head;
+	u32 ttail;
+	u32 head;
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_ring_buffer_info *ring_info;
 	int drop = 1;
@@ -716,7 +716,7 @@ static void record_event(enum ppm_event_type event_type,
 #ifdef PPM_ENABLE_SENTINEL
 		args.sentinel = ring->nevents;
 #endif
-		args.buffer_size = min(freespace, (uint32_t)(2 * PAGE_SIZE)) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
+		args.buffer_size = min(freespace, (u32)(2 * PAGE_SIZE)) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
 		args.event_type = event_type;
 		args.regs = regs;
 		args.sched_prev = sched_prev;

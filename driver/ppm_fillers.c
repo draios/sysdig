@@ -339,9 +339,9 @@ static int32_t f_sys_single_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint32_t open_flags_to_scap(unsigned long flags)
+static inline u32 open_flags_to_scap(unsigned long flags)
 {
-	uint32_t res = 0;
+	u32 res = 0;
 
 	switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
 	case O_WRONLY:
@@ -576,9 +576,9 @@ static int32_t f_sys_write_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint32_t clone_flags_to_scap(unsigned long flags)
+static inline u32 clone_flags_to_scap(unsigned long flags)
 {
-	uint32_t res = 0;
+	u32 res = 0;
 
 	if (flags & CLONE_FILES) {
 		res |= PPM_CL_CLONE_FILES;
@@ -2134,8 +2134,8 @@ static int32_t poll_parse_fds(struct event_filler_arguments *args, bool enter_ev
 	unsigned long val;
 	unsigned long nfds;
 	unsigned long fds_count;
-	uint32_t j;
-	uint32_t pos;
+	u32 j;
+	u32 pos;
 	u16 flags;
 
 	/*

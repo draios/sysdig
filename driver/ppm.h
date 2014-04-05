@@ -59,7 +59,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define RW_SNAPLEN 80
 #define RW_MAX_SNAPLEN (256 * 1024 * 1024)
 /* Make sure to use a power of two constant for this */
-extern uint32_t g_snaplen;
+extern u32 g_snaplen;
 
 /*
  * Global enums
@@ -101,4 +101,4 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
-extern uint32_t g_sampling_ratio;
+extern u32 g_sampling_ratio;

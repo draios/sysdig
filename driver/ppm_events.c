@@ -145,7 +145,7 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 		pr_info("sysdig-probe: %u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
 		       smp_processor_id(),
 		       args->nevents,
-		       (uint32_t)args->event_type,
+		       (u32)args->event_type,
 		       args->curarg,
 		       args->nargs,
 		       current->pid);
@@ -248,9 +248,9 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 		break;
 	case PT_FLAGS32:
 	case PT_UINT32:
-		if (likely(args->arg_data_size >= sizeof(uint32_t))) {
-			*(uint32_t *)(args->buffer + args->arg_data_offset) = (uint32_t)val;
-			len = sizeof(uint32_t);
+		if (likely(args->arg_data_size >= sizeof(u32))) {
+			*(u32 *)(args->buffer + args->arg_data_offset) = (u32)val;
+			len = sizeof(u32);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -310,7 +310,7 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 		ASSERT(0);
 		pr_info("sysdig-probe: val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
 		       (int)g_event_info[args->event_type].params[args->curarg].type,
-		       (uint32_t)args->event_type,
+		       (u32)args->event_type,
 		       g_event_info[args->event_type].name);
 		return PPM_FAILURE_BUG;
 	}
@@ -477,7 +477,7 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 	char *targetbuf,
 	u16 targetbufsize)
 {
-	uint32_t ip;
+	u32 ip;
 	u16 port;
 	sa_family_t family = usrsockaddr->sa_family;
 	struct sockaddr_in *usrsockaddr_in;
@@ -505,7 +505,7 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		size = 1 + 4 + 2; /* family + ip + port */
 
 		*targetbuf = socket_family_to_scap(family);
-		*(uint32_t *)(targetbuf + 1) = ip;
+		*(u32 *)(targetbuf + 1) = ip;
 		*(u16 *)(targetbuf + 5) = port;
 
 		break;
@@ -588,8 +588,8 @@ u16 fd_to_socktuple(int fd,
 	struct unix_sock *us;
 	char *us_name;
 	struct sock *speer;
-	uint32_t sip;
-	uint32_t dip;
+	u32 sip;
+	u32 dip;
 	u8 *sip6;
 	u8 *dip6;
 	u16 sport;
@@ -671,9 +671,9 @@ u16 fd_to_socktuple(int fd,
 		size = 1 + 4 + 4 + 2 + 2; /* family + sip + dip + sport + dport */
 
 		*targetbuf = socket_family_to_scap(family);
-		*(uint32_t *)(targetbuf + 1) = sip;
+		*(u32 *)(targetbuf + 1) = sip;
 		*(u16 *)(targetbuf + 5) = sport;
-		*(uint32_t *)(targetbuf + 7) = dip;
+		*(u32 *)(targetbuf + 7) = dip;
 		*(u16 *)(targetbuf + 11) = dport;
 
 		break;
@@ -828,8 +828,8 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 {
 	int32_t res;
 	const struct iovec *iov;
-	uint32_t copylen;
-	uint32_t j;
+	u32 copylen;
+	u32 j;
 	uint64_t size = 0;
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
@@ -903,7 +903,7 @@ int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_eve
 {
 	int32_t res;
 	unsigned long val;
-	uint32_t j;
+	u32 j;
 	int64_t retval;
 
 	ASSERT(evinfo->n_autofill_args <= PPM_MAX_AUTOFILL_ARGS);
