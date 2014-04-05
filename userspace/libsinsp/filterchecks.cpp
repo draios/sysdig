@@ -702,6 +702,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 sinsp_filter_check_event::sinsp_filter_check_event()
 {
 	m_first_ts = 0;
+	m_is_compare = false;
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
@@ -1122,6 +1123,21 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	case TYPE_BUFFER:
 		{
+			if(m_is_compare)
+			{
+				const sinsp_evt_param* pi = evt->get_param_value_raw("data");
+
+				if(pi != NULL)
+				{
+					*len = pi->m_len;
+					return (uint8_t*)pi->m_val;
+				}
+				else
+				{
+					return NULL;
+				}
+			}
+
 			const char* resolved_argstr;
 			const char* argstr;
 			argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
@@ -1313,6 +1329,9 @@ char* sinsp_filter_check_event::tostring(sinsp_evt* evt)
 
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 {
+	bool res;
+
+	m_is_compare = true;
 	if(m_field_id == TYPE_ARGRAW)
 	{
 		uint32_t len;
@@ -1325,15 +1344,18 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 
 		ASSERT(m_arginfo != NULL);
 
-		return flt_compare(m_cmpop, 
+		res = flt_compare(m_cmpop,
 			m_arginfo->type, 
 			extracted_val, 
 			&m_val_storage[0]);
 	}
 	else
 	{
-		return sinsp_filter_check::compare(evt);
+		res = sinsp_filter_check::compare(evt);
 	}
+	m_is_compare = false;
+
+	return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -624,17 +624,7 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 	uint32_t len;
 	uint8_t* extracted_val;
 
-	//
-	// Modify event buffer format, so to extract all data as is
-	// and then restore the right format.
-	//
-	m_inspector->set_buffer_format((sinsp_evt::param_fmt)
-		(m_inspector->get_buffer_format() | sinsp_evt::PF_ASIS));
-
 	extracted_val = extract(evt, &len);
-
-	m_inspector->set_buffer_format((sinsp_evt::param_fmt)
-		(m_inspector->get_buffer_format() & ~sinsp_evt::PF_ASIS));
 
 	if(extracted_val == NULL)
 	{
