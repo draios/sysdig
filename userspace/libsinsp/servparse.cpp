@@ -56,7 +56,13 @@ struct servent {
 	static char SERVDB[] = "services";
 	static char SERVDBUSER[] = "services-user";
 #endif
-static char SERVDBOS[] = "/etc/services";
+
+#ifdef _WIN32
+	// TODO: There is a better way of doing this, I'm sure
+	static char SERVDBOS[] = "\\windows\\system32\\drivers\\etc\\services";
+#else
+	static char SERVDBOS[] = "/etc/services";
+#endif
 
 static FILE *servf = NULL;
 static char line[BUFSIZ+1];
