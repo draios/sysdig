@@ -1002,7 +1002,7 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 
 /* for(j = 0; j < NR_syscalls; ++j) */
 /* { */
-/* #if defined(__x86_64__) */
+/* #if defined(CONFIG_X86_64) */
 /* len += snprintf(page + len, count - len, "%ld\t%ld\n", */
 /* atomic64_read(&g_syscall_count[j].count), */
 /* atomic64_read(&g_syscall_count[j].count) ? (atomic64_read(&g_syscall_count[j].tot_time_ns) / atomic64_read(&g_syscall_count[j].count)) : 0); */
