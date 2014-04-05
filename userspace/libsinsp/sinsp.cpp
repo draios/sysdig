@@ -56,6 +56,9 @@ sinsp::sinsp() :
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
 
+	// Turn off DNS resolution by default
+	m_usedns = false;
+
 #ifdef HAS_ANALYZER
 	m_analyzer = NULL;
 #endif
@@ -773,4 +776,15 @@ sinsp_evt::param_fmt sinsp::get_buffer_format()
 bool sinsp::is_live()
 {
 	return m_islive;
+}
+
+bool sinsp::use_dns()
+{
+	return this->m_usedns;
+}
+
+bool sinsp::use_dns(bool flag)
+{
+	this->m_usedns = flag;
+	return flag;
 }

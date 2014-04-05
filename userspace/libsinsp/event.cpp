@@ -21,6 +21,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
+
+// For Hostname resolutions
+#include <netdb.h>
+
 #endif
 
 #include "sinsp.h"
@@ -212,6 +216,23 @@ const struct ppm_param_info* sinsp_evt::get_param_info(uint32_t id)
 	ASSERT(id < m_info->nparams);
 
 	return &(m_info->params[id]);
+}
+
+char* sinsp_evt::get_binary_ipv4_as_host(void* binary_address, char* buf)
+{
+	struct sockaddr_in addr = {
+		AF_INET,
+		0,
+		*(struct in_addr*)binary_address
+	};
+
+	getnameinfo(
+		(struct sockaddr*)&addr, sizeof addr, 
+		buf, NI_MAXHOST,
+		0, 0, 0
+	);
+
+	return buf;
 }
 
 uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
@@ -814,14 +835,27 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(param->m_len == 1 + 4 + 2)
 			{
-				snprintf(&m_paramstr_storage[0],
-				         m_paramstr_storage.size(),
-				         "%u.%u.%u.%u:%u",
-				         (unsigned int)(uint8_t)param->m_val[1],
-				         (unsigned int)(uint8_t)param->m_val[2],
-				         (unsigned int)(uint8_t)param->m_val[3],
-				         (unsigned int)(uint8_t)param->m_val[4],
-				         (unsigned int)*(uint16_t*)(param->m_val+5));
+				if(m_inspector->use_dns() /*fmt == PF_DNS*/)
+				{
+					char source[NI_MAXHOST];
+
+					snprintf(&m_paramstr_storage[0],
+						 	 m_paramstr_storage.size(),
+							 "%s:%u",
+							 get_binary_ipv4_as_host(param->m_val + 1, source),
+							 (unsigned int)*(uint16_t*)(param->m_val+5));
+				}
+				else
+				{
+					snprintf(&m_paramstr_storage[0],
+							 m_paramstr_storage.size(),
+							 "%u.%u.%u.%u:%u",
+							 (unsigned int)(uint8_t)param->m_val[1],
+							 (unsigned int)(uint8_t)param->m_val[2],
+							 (unsigned int)(uint8_t)param->m_val[3],
+							 (unsigned int)(uint8_t)param->m_val[4],
+							 (unsigned int)*(uint16_t*)(param->m_val+5));
+				}
 			}
 			else
 			{
@@ -852,19 +886,35 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(param->m_len == 1 + 4 + 2 + 4 + 2)
 			{
-				snprintf(&m_paramstr_storage[0],
-				         m_paramstr_storage.size(),
-				         "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-				         (unsigned int)(uint8_t)param->m_val[1],
-				         (unsigned int)(uint8_t)param->m_val[2],
-				         (unsigned int)(uint8_t)param->m_val[3],
-				         (unsigned int)(uint8_t)param->m_val[4],
-				         (unsigned int)*(uint16_t*)(param->m_val+5),
-				         (unsigned int)(uint8_t)param->m_val[7],
-				         (unsigned int)(uint8_t)param->m_val[8],
-				         (unsigned int)(uint8_t)param->m_val[9],
-				         (unsigned int)(uint8_t)param->m_val[10],
-				         (unsigned int)*(uint16_t*)(param->m_val+11));
+				if(m_inspector->use_dns() /*fmt == PF_DNS*/)
+				{
+					char source[NI_MAXHOST], dest[NI_MAXHOST];
+
+					snprintf(&m_paramstr_storage[0],
+							 m_paramstr_storage.size(),
+							 "%s:%u->%s:%u",
+							 get_binary_ipv4_as_host(param->m_val + 1, source),
+							 (unsigned int)*(uint16_t*)(param->m_val + 5),
+							 get_binary_ipv4_as_host(param->m_val + 7, dest),
+							 (unsigned int)*(uint16_t*)(param->m_val+11));
+				} 
+				else 
+				{
+					snprintf(&m_paramstr_storage[0],
+							 m_paramstr_storage.size(),
+							 "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
+							 (unsigned int)(uint8_t)param->m_val[1],
+							 (unsigned int)(uint8_t)param->m_val[2],
+							 (unsigned int)(uint8_t)param->m_val[3],
+							 (unsigned int)(uint8_t)param->m_val[4],
+							 (unsigned int)*(uint16_t*)(param->m_val+5),
+							 (unsigned int)(uint8_t)param->m_val[7],
+							 (unsigned int)(uint8_t)param->m_val[8],
+							 (unsigned int)(uint8_t)param->m_val[9],
+							 (unsigned int)(uint8_t)param->m_val[10],
+							 (unsigned int)*(uint16_t*)(param->m_val+11));
+
+				}
 			}
 			else
 			{
