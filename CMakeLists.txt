@@ -16,6 +16,38 @@ endif()
 
 set (LUAJIT_SRC ${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2)
 
+option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ON)
+option(JSONCPP_PREFIX "Build with jsoncpp at the given path" "")
+
+if (JSONCPP_PREFIX AND USE_BUNDLED_JSONCPP)
+	message (FATAL_ERROR "You must set either JSONCPP_PREFIX or USE_BUNDLED_JSONCPP "
+			     "not both.")
+endif()
+
+set (JSONCPP_SRC ${PROJECT_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp)
+
+if (JSONCPP_PREFIX)
+	find_path (JSONCPP_INCLUDE json/json.h ${JSONCPP_PREFIX} NO_DEFAULT_PATH)
+	find_library (JSONCPP_LIB NAMES jsoncpp PATHS ${JSONCPP_PREFIX} NO_DEFAULT_PATH)
+	if (JSONCPP_INCLUDE AND JSONCPP_LIB)
+		message (STATUS "Found jsoncpp: include: ${JSONCPP_INCLUDE}, lib: ${JSONCPP_LIB}")
+	else()
+		message (FATAL_ERROR "Couldn't find jsoncpp in '${JSONCPP_PREFIX}'")
+	endif()
+elseif (NOT USE_BUNDLED_JSONCPP)
+	find_path (JSONCPP_INCLUDE json/json.h PATH_SUFFIXES jsoncpp)
+	find_library (JSONCPP_LIB NAMES jsoncpp)
+	if (JSONCPP_INCLUDE AND JSONCPP_LIB)
+		message (STATUS "Found jsoncpp: include: ${JSONCPP_INCLUDE}, lib: ${JSONCPP_LIB}")
+	else()
+		message (FATAL_ERROR "Couldn't find system jsoncpp")
+	endif()
+else()
+	set (JSONCPP_INCLUDE ${JSONCPP_SRC})
+	set (JSONCPP_LIB_SRC ${JSONCPP_SRC}/jsoncpp.cpp)
+	message (STATUS "Using bundled jsoncpp in '${JSONCPP_SRC}'")
+endif()
+
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")

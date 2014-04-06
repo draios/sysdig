@@ -1,8 +1,7 @@
 include_directories(./)
 include_directories(../../common)
 include_directories(../libscap)
-include_directories(third-party/jsoncpp)
-include_directories(third-party/jsoncpp)
+include_directories(${JSONCPP_INCLUDE})
 include_directories(${LUAJIT_INCLUDE})
 
 add_library(sinsp STATIC
@@ -15,7 +14,7 @@ add_library(sinsp STATIC
 	filterchecks.cpp
 	ifinfo.cpp
 	internal_metrics.cpp
-	third-party/jsoncpp/jsoncpp.cpp
+	${JSONCPP_LIB_SRC}
 	logger.cpp
 	parsers.cpp
 	threadinfo.cpp
@@ -24,7 +23,8 @@ add_library(sinsp STATIC
 	utils.cpp)
 
 target_link_libraries(sinsp 
-	scap)
+	scap
+	${JSONCPP_LIB})
 
 if(NOT WIN32)
 	add_dependencies(sinsp luajit)
