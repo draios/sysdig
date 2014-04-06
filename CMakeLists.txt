@@ -6,6 +6,16 @@ if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1-dev")
 endif()
 
+option(USE_BUNDLED_LUAJIT "Enable building of the bundled LuaJIT" ON)
+option(LUAJIT_PREFIX "Build with LuaJIT at the given path" "")
+
+if (LUAJIT_PREFIX AND USE_BUNDLED_LUAJIT)
+    message (FATAL_ERROR "You must set either LUAJIT_PREFIX or USE_BUNDLED_LUAJIT "
+                         "not both.")
+endif()
+
+set (LUAJIT_SRC ${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2)
+
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
@@ -23,13 +33,34 @@ if(NOT WIN32)
 		add_subdirectory(driver)
 	endif()
 
-	include(ExternalProject)
-	ExternalProject_Add(luajit
-		SOURCE_DIR ${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2
-		CONFIGURE_COMMAND ""
-		BUILD_COMMAND make
-		BUILD_IN_SOURCE 1
-		INSTALL_COMMAND "")
+	if (LUAJIT_PREFIX)
+		find_path (LUAJIT_INCLUDE luajit.h ${LUAJIT_PREFIX} NO_DEFAULT_PATH)
+		find_library (LUAJIT_LIB NAMES luajit luajit-5.1 PATHS ${LUAJIT_PREFIX} NO_DEFAULT_PATH)
+		if (LUAJIT_INCLUDE AND LUAJIT_LIB)
+			message (STATUS "Found LuaJIT: include: ${LUAJIT_INCLUDE}, lib: ${LUAJIT_LIB}")
+		else()
+			message (FATAL_ERROR "Couldn't find LuaJIT in '${LUAJIT_PREFIX}'")
+		endif()
+	elseif (NOT USE_BUNDLED_LUAJIT)
+		find_path (LUAJIT_INCLUDE luajit.h PATH_SUFFIXES luajit-2.0 luajit)
+		find_library (LUAJIT_LIB NAMES luajit luajit-5.1)
+		if (LUAJIT_INCLUDE AND LUAJIT_LIB)
+			message (STATUS "Found LuaJIT: include: ${LUAJIT_INCLUDE}, lib: ${LUAJIT_LIB}")
+		else()
+			message (FATAL_ERROR "Couldn't find system LuaJIT")
+		endif()
+	else()
+		set (LUAJIT_INCLUDE ${LUAJIT_SRC}/src)
+		set (LUAJIT_LIB ${LUAJIT_SRC}/src/libluajit.a)
+		message (STATUS "Using bundled LuaJIT in '${LUAJIT_SRC}'")
+		include(ExternalProject)
+		ExternalProject_Add(luajit
+			SOURCE_DIR ${LUAJIT_SRC}
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND make
+			BUILD_IN_SOURCE 1
+			INSTALL_COMMAND "")
+	endif()
 
 else()
 
@@ -46,12 +77,14 @@ else()
 	set(CMAKE_C_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 	set(CMAKE_CXX_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 
+	set (LUAJIT_INCLUDE ${LUAJIT_SRC}/src)
+	set (LUAJIT_LIB ${LUAJIT_SRC}/src/lua51.lib)
 	include(ExternalProject)
 	ExternalProject_Add(luajit
-		SOURCE_DIR ${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2
+		SOURCE_DIR ${LUAJIT_SRC}
 		CONFIGURE_COMMAND ""
 		BUILD_COMMAND msvcbuild.bat
-		BINARY_DIR ${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src
+		BINARY_DIR ${LUAJIT_INCLUDE}
 		INSTALL_COMMAND "")
 
 endif()
