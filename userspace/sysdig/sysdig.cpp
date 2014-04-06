@@ -119,6 +119,7 @@ static void usage()
 "                    h for human-readable string, a for abosulte timestamp from\n" 
 "                    epoch, r for relative time from the beginning of the\n" 
 "                    capture, and d for delta between event enter and exit.\n" 
+" -u, --url          Show ips as urls (host names)\n"
 " -v, --verbose      Verbose output.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
@@ -419,6 +420,7 @@ int main(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"timetype", required_argument, 0, 't' },
+		{"url", no_argument, 0, 'u' },
 		{"verbose", no_argument, 0, 'v' },
 		{"writefile", required_argument, 0, 'w' },
 		{"print-hex", no_argument, 0, 'x'},
@@ -438,7 +440,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "Aac:dhi:jlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "Aac:dhi:jlLn:p:qr:Ss:t:uvw:xX", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -627,6 +629,9 @@ int main(int argc, char **argv)
 						timefmt = "%evt.latency.s.%evt.latency.ns";
 					}
 				}
+				break;
+	  		case 'u':
+				inspector->use_dns(true);
 				break;
 			case 'v':
 				verbose = true;

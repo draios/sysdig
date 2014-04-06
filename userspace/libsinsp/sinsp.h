@@ -426,6 +426,8 @@ public:
 	  \brief Returns true if the current capture is live.
 	*/
 	bool is_live();
+	bool use_dns(bool flag);
+	bool use_dns();
 
 	//
 	// Misc internal stuff 
@@ -457,6 +459,7 @@ private:
 
 	scap_t* m_h;
 	bool m_islive;
+	bool m_usedns;
 	string m_filename;
 	sinsp_evt m_evt;
 	string m_lasterr;
