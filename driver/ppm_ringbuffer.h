@@ -23,15 +23,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/types.h>
 #endif
 
-static const u32 RING_BUF_SIZE = 1024 * 1024;
-static const u32 MIN_USERSPACE_READ_SIZE = 128 * 1024;
+static const __u32 RING_BUF_SIZE = 1024 * 1024;
+static const __u32 MIN_USERSPACE_READ_SIZE = 128 * 1024;
 
 /*
  * This gets mapped to user level, so we want to keep it as clean as possible
  */
 struct ppm_ring_buffer_info {
-	volatile u32 head;
-	volatile u32 tail;
+	volatile __u32 head;
+	volatile __u32 tail;
 	volatile uint64_t n_evts;				/* Total number of events that were received by the driver. */
 	volatile uint64_t n_drops_buffer;		/* Number of dropped events (buffer full). */
 	volatile uint64_t n_drops_pf;			/* Number of dropped events (page faults). */
