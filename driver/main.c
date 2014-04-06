@@ -18,7 +18,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
+#include <asm/atomic.h>
+#else
 #include <linux/atomic.h>
+#endif
 #include <linux/cdev.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
