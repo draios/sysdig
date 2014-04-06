@@ -105,6 +105,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	ASSERT(evt);
 
+BRK(543);
 	if(!extract_fd(evt))
 	{
 		return NULL;
@@ -120,7 +121,44 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 	if(m_fdinfo == NULL)
 	{
-		return NULL;
+		//
+		// Even is there's no fd, we still try to extract a name from exit events that create
+		// one. With these events, the fact that there's no FD means that the call failed,
+		// but even if that happened we still want to collect the name.
+		//
+		if(m_field_id == TYPE_FDNAME)
+		{
+			const char* resolved_argstr;
+			uint16_t etype = evt->get_type();
+
+			if(PPME_IS_ENTER(etype))
+			{
+				return NULL;
+			}
+
+			switch(evt->get_type())
+			{
+			case PPME_SYSCALL_OPEN_X:
+			case PPME_SOCKET_ACCEPT_X:
+			case PPME_SOCKET_ACCEPT4_X:
+			case PPME_SYSCALL_CREAT_X:
+			case PPME_SYSCALL_OPENAT_X:
+				m_tstr = evt->get_param_as_str(1, &resolved_argstr, 
+					m_inspector->get_buffer_format());
+				return (uint8_t*)m_tstr.c_str();
+			default:
+				//
+				// If 
+				//
+				ASSERT(false);
+				m_tstr = "";
+				return (uint8_t*)m_tstr.c_str();
+			}
+		}
+		else
+		{
+			return NULL;
+		}
 	}
 
 	switch(m_field_id)
