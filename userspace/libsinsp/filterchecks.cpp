@@ -146,10 +146,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_inspector->get_buffer_format());
 				return (uint8_t*)m_tstr.c_str();
 			default:
-				//
-				// If 
-				//
-				ASSERT(false);
 				m_tstr = "";
 				return (uint8_t*)m_tstr.c_str();
 			}
