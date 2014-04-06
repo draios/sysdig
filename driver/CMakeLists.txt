@@ -13,6 +13,10 @@ add_custom_target(driver ALL
 	COMMAND cp -f sysdig-probe.ko ${CMAKE_CURRENT_BINARY_DIR}
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_custom_target(install_driver
+	COMMAND make install
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 install(FILES
 	Makefile
 	dkms.conf
