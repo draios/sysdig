@@ -69,6 +69,15 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 /*
  * Global tables
  */
+
+#ifdef CONFIG_MIPS
+  #define SYSCALL_TABLE_ID0 __NR_Linux
+#elif defined CONFIG_ARM
+  #define SYSCALL_TABLE_ID0 __NR_SYSCALL_BASE
+#elif defined CONFIG_X86
+  #define SYSCALL_TABLE_ID0 0
+#endif
+
 #define SYSCALL_TABLE_SIZE 512
 
 extern const struct syscall_evt_pair g_syscall_table[];

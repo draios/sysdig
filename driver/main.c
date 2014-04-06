@@ -823,6 +823,8 @@ static void record_event(enum ppm_event_type event_type,
 
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
+	long table_index;
+
 #ifdef CONFIG_X86_64
 	/*
 	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
@@ -833,12 +835,13 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		return;
 #endif
 
-	if (likely(id >= 0 && id < SYSCALL_TABLE_SIZE)) {
-		int used = g_syscall_table[id].flags & UF_USED;
-		int never_drop = g_syscall_table[id].flags & UF_NEVER_DROP;
+	table_index = id - SYSCALL_TABLE_ID0;
+	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
+		int used = g_syscall_table[table_index].flags & UF_USED;
+		int never_drop = g_syscall_table[table_index].flags & UF_NEVER_DROP;
 
 		if (used)
-			record_event(g_syscall_table[id].enter_event_type, regs, id, never_drop, NULL, NULL);
+			record_event(g_syscall_table[table_index].enter_event_type, regs, id, never_drop, NULL, NULL);
 		else
 			record_event(PPME_GENERIC_E, regs, id, false, NULL, NULL);
 	}
@@ -847,6 +850,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 {
 	int id;
+	long table_index;
 
 #ifdef CONFIG_X86_64
 	/*
@@ -860,12 +864,13 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	id = syscall_get_nr(current, regs);
 
-	if (likely(id >= 0 && id < SYSCALL_TABLE_SIZE)) {
-		int used = g_syscall_table[id].flags & UF_USED;
-		int never_drop = g_syscall_table[id].flags & UF_NEVER_DROP;
+	table_index = id - SYSCALL_TABLE_ID0;
+	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
+		int used = g_syscall_table[table_index].flags & UF_USED;
+		int never_drop = g_syscall_table[table_index].flags & UF_NEVER_DROP;
 
 		if (used)
-			record_event(g_syscall_table[id].exit_event_type, regs, id, never_drop, NULL, NULL);
+			record_event(g_syscall_table[table_index].exit_event_type, regs, id, never_drop, NULL, NULL);
 		else
 			record_event(PPME_GENERIC_X, regs, id, false, NULL, NULL);
 	}
