@@ -261,36 +261,36 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
-		if (likely(args->arg_data_size >= sizeof(uint64_t))) {
-			*(uint64_t *)(args->buffer + args->arg_data_offset) = (uint64_t)val;
-			len = sizeof(uint64_t);
+		if (likely(args->arg_data_size >= sizeof(u64))) {
+			*(u64 *)(args->buffer + args->arg_data_offset) = (u64)val;
+			len = sizeof(u64);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT8:
-		if (likely(args->arg_data_size >= sizeof(int8_t))) {
-			*(int8_t *)(args->buffer + args->arg_data_offset) = (int8_t)(long)val;
-			len = sizeof(int8_t);
+		if (likely(args->arg_data_size >= sizeof(s8))) {
+			*(s8 *)(args->buffer + args->arg_data_offset) = (s8)(long)val;
+			len = sizeof(s8);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT16:
-		if (likely(args->arg_data_size >= sizeof(int16_t))) {
-			*(int16_t *)(args->buffer + args->arg_data_offset) = (int16_t)(long)val;
-			len = sizeof(int16_t);
+		if (likely(args->arg_data_size >= sizeof(s16))) {
+			*(s16 *)(args->buffer + args->arg_data_offset) = (s16)(long)val;
+			len = sizeof(s16);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT32:
-		if (likely(args->arg_data_size >= sizeof(int32_t))) {
-			*(int32_t *)(args->buffer + args->arg_data_offset) = (int32_t)(long)val;
-			len = sizeof(int32_t);
+		if (likely(args->arg_data_size >= sizeof(s32))) {
+			*(s32 *)(args->buffer + args->arg_data_offset) = (s32)(long)val;
+			len = sizeof(s32);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -300,9 +300,9 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
-		if (likely(args->arg_data_size >= sizeof(int64_t))) {
-			*(int64_t *)(args->buffer + args->arg_data_offset) = (int64_t)(long)val;
-			len = sizeof(int64_t);
+		if (likely(args->arg_data_size >= sizeof(s64))) {
+			*(s64 *)(args->buffer + args->arg_data_offset) = (s64)(long)val;
+			len = sizeof(s64);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
