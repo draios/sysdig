@@ -150,6 +150,54 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return (uint8_t*)m_tstr.c_str();
 			}
 		}
+		if(m_field_id == TYPE_FDTYPECHAR)
+		{
+			switch(PPME_MAKE_ENTER(evt->get_type()))
+			{
+			case PPME_SYSCALL_OPEN_E:
+			case PPME_SYSCALL_OPENAT_E:
+			case PPME_SYSCALL_CREAT_E:
+				m_tcstr[0] = CHAR_FD_FILE;
+				m_tcstr[1] = 0;
+				return m_tcstr;
+			case PPME_SOCKET_SOCKET_E:
+			case PPME_SOCKET_ACCEPT_E:
+			case PPME_SOCKET_ACCEPT4_E:
+				//
+				// Note, this is not accurate, because it always
+				// returns IPv4 even if this could be IPv6 or unix.
+				// For the moment, I assume it's better than nothing, and doing
+				// real event parsing here would be a pain. 
+				//
+				m_tcstr[0] = CHAR_FD_IPV4_SOCK;
+				m_tcstr[1] = 0;
+				return m_tcstr;
+			case PPME_SYSCALL_PIPE_E:
+				m_tcstr[0] = CHAR_FD_FIFO;
+				m_tcstr[1] = 0;
+				return m_tcstr;
+			case PPME_SYSCALL_EVENTFD_E:
+				m_tcstr[0] = CHAR_FD_EVENT;
+				m_tcstr[1] = 0;
+				return m_tcstr;
+			case PPME_SYSCALL_SIGNALFD_E:
+				m_tcstr[0] = CHAR_FD_SIGNAL;
+				m_tcstr[1] = 0;
+				return m_tcstr;
+			case PPME_SYSCALL_TIMERFD_CREATE_E:
+				m_tcstr[0] = CHAR_FD_TIMERFD;
+				m_tcstr[1] = 0;
+				return m_tcstr;
+			case PPME_SYSCALL_INOTIFY_INIT_E:
+				m_tcstr[0] = CHAR_FD_INOTIFY;
+				m_tcstr[1] = 0;
+				return m_tcstr;
+			default:
+				m_tcstr[0] = 'o';
+				m_tcstr[1] = 0;
+				return m_tcstr;
+			}
+		}
 		else
 		{
 			return NULL;
