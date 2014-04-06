@@ -175,7 +175,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 			}
 			else
 			{
-				str = "<NA>";
+				str = (char*)"<NA>";
 			}
 		}
 
