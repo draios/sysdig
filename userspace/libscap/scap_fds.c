@@ -706,6 +706,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		if(token == NULL)
 		{
 			ASSERT(false);
+			free(fdinfo);
 			continue;
 		}
 
@@ -717,6 +718,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		if(token == NULL)
 		{
 			ASSERT(false);
+			free(fdinfo);
 			continue;
 		}
 
@@ -725,6 +727,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		if(token == NULL)
 		{
 			ASSERT(false);
+			free(fdinfo);
 			continue;
 		}
 
@@ -733,6 +736,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		if(token == NULL)
 		{
 			ASSERT(false);
+			free(fdinfo);
 			continue;
 		}
 
@@ -741,6 +745,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		if(token == NULL)
 		{
 			ASSERT(false);
+			free(fdinfo);
 			continue;
 		}
 
@@ -749,6 +754,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		if(token == NULL)
 		{
 			ASSERT(false);
+			free(fdinfo);
 			continue;
 		}
 		
@@ -757,6 +763,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		if(token == NULL)
 		{
 			ASSERT(false);
+			free(fdinfo);
 			continue;
 		}
 
