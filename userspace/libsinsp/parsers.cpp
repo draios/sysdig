@@ -67,6 +67,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	reset(evt);
 
+#if !defined (_WIN32) && !defined(__APPLE__)
 	//
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
@@ -77,6 +78,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		evt->m_filtered_out = true;
 		return;
 	}
+#endif
 
 	//
 	// Filtering
