@@ -65,6 +65,12 @@ if(NOT WIN32)
 		add_subdirectory(driver)
 	endif()
 
+	if(CMAKE_SYSTEM_NAME MATCHES "SunOS")
+		set(CMD_MAKE gmake)
+	else()
+		set(CMD_MAKE make)
+	endif()
+
 	if (LUAJIT_PREFIX)
 		find_path (LUAJIT_INCLUDE luajit.h ${LUAJIT_PREFIX} NO_DEFAULT_PATH)
 		find_library (LUAJIT_LIB NAMES luajit luajit-5.1 PATHS ${LUAJIT_PREFIX} NO_DEFAULT_PATH)
@@ -89,7 +95,7 @@ if(NOT WIN32)
 		ExternalProject_Add(luajit
 			SOURCE_DIR ${LUAJIT_SRC}
 			CONFIGURE_COMMAND ""
-			BUILD_COMMAND make
+			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			INSTALL_COMMAND "")
 	endif()

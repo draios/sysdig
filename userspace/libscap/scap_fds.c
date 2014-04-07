@@ -41,12 +41,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <errno.h>
 #include <netinet/tcp.h>
+#if !defined __sun
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 //#include <linux/sock_diag.h>
 //#include <linux/unix_diag.h>
-#include <errno.h>
+#endif
 #endif
 
 #define SOCKET_SCAN_BUFFER_SIZE 1024 * 1024

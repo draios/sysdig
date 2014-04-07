@@ -34,7 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // Import/typedef in userspace the kernel types
 //
-#if !defined(_WIN32) && !defined(__APPLE__)
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined (__sun)
 #include <linux/types.h>
 #else 
 typedef uint64_t __u64;
