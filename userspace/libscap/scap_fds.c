@@ -1153,10 +1153,16 @@ int32_t scap_fd_read_sockets(scap_t *handle, scap_fdinfo **sockets)
 		return SCAP_FAILURE;
 	}
 
-	scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/tcp6", SCAP_L4_TCP, sockets);
-	scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/udp6", SCAP_L4_UDP, sockets);
-	scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/raw6", SCAP_L4_RAW, sockets);
-
+    /* We assume if there is /proc/net/tcp6 that ipv6 is avaiable */
+    if(0 == access("/proc/net/tcp6", R_OK)) {
+        if(SCAP_FAILURE == scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/tcp6", SCAP_L4_TCP, sockets) ||
+        	SCAP_FAILURE == scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/udp6", SCAP_L4_UDP, sockets) ||
+	        SCAP_FAILURE == scap_fd_read_ipv6_sockets_from_proc_fs(handle, "/proc/net/raw6", SCAP_L4_RAW, sockets))
+    	{
+	    	scap_fd_free_table(handle, sockets);
+		    return SCAP_FAILURE;
+    	}
+    }
 	return SCAP_SUCCESS;
 }
 
