@@ -138,13 +138,13 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
 	case PPME_SYSCALL_OPENAT_X:
-		parse_open_openat_creat_exit(evt); 
+		parse_open_openat_creat_exit(evt);
 		break;
 	case PPME_SYSCALL_SELECT_E:
 	case PPME_SYSCALL_POLL_E:
 	case PPME_SYSCALL_EPOLLWAIT_E:
-		parse_select_poll_epollwait_enter(evt); 
-		break;	
+		parse_select_poll_epollwait_enter(evt);
+		break;
 	case PPME_CLONE_X:
 		parse_clone_exit(evt);
 		break;
@@ -155,7 +155,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_thread_exit(evt);
 		break;
 	case PPME_SYSCALL_PIPE_X:
-		parse_pipe_exit(evt); 
+		parse_pipe_exit(evt);
 		break;
 	case PPME_SOCKET_SOCKET_X:
 		parse_socket_exit(evt);
@@ -224,7 +224,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 
 	//
-	// With some state-changing events like clone, execve and open, we do the 
+	// With some state-changing events like clone, execve and open, we do the
 	// filtering after having updated the state
 	//
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
@@ -353,7 +353,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		//
 		// Error detection logic
 		//
-		if(evt->m_info->nparams != 0 && 
+		if(evt->m_info->nparams != 0 &&
 			((evt->m_info->params[0].name[0] == 'r' && evt->m_info->params[0].name[1] == 'e' && evt->m_info->params[0].name[2] == 's') ||
 			(evt->m_info->params[0].name[0] == 'f' && evt->m_info->params[0].name[1] == 'd')))
 		{
@@ -404,7 +404,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 				erase_fd(&eparams);
 			}
 		}
-		
+
 		if(eflags & EF_CREATES_FD)
 		{
 			//
@@ -1184,7 +1184,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 		if(family == PPM_AF_INET6)
 		{
 			//
-			// For the moment, we only support IPv4-mapped IPv6 addresses 
+			// For the moment, we only support IPv4-mapped IPv6 addresses
 			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 			//
 			uint8_t* sip = packed_data + 1;
@@ -1217,7 +1217,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 		{
 			m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
 		}
-#endif 
+#endif
 
 		//
 		// Add the friendly name to the fd info
@@ -1330,7 +1330,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	else if(*packed_data == PPM_AF_INET6)
 	{
 		//
-		// We only support IPv4-mapped IPv6 addresses (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses) 
+		// We only support IPv4-mapped IPv6 addresses (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 		// for the moment
 		//
 		uint8_t* sip = packed_data + 1;
@@ -1403,9 +1403,9 @@ void sinsp_parser::erase_fd(erase_fd_params* params)
 	if(params->m_fdinfo == NULL)
 	{
 		//
-		// This happens when more than one close has been canceled at the same time for 
+		// This happens when more than one close has been canceled at the same time for
 		// this thread. Since we currently handle just one canceling at at time (we
-		// don't have a list of canceled closes, just a single entry), the second one 
+		// don't have a list of canceled closes, just a single entry), the second one
 		// will generate a failed FD lookup. We do nothing.
 		// NOTE: I do realize that this can cause a connection leak, I just assume that it's
 		//       rare enough that the delayed connection cleanup (when the timestamp expires)
@@ -1717,7 +1717,7 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 			//
 			// If this was previously a server socket, propagate the L4 protocol
 			//
-			evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto = 
+			evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto =
 				evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto;
 		}
 
@@ -1730,7 +1730,7 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	else if(family == PPM_AF_INET6)
 	{
 		//
-		// For the moment, we only support IPv4-mapped IPv6 addresses 
+		// For the moment, we only support IPv4-mapped IPv6 addresses
 		// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
 		//
 		uint8_t* sip = packed_data + 1;
@@ -1750,8 +1750,8 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	}
 
 	//
-	// If we reach this point and the protocol is not set yet, we assume this 
-	// connection is UDP, because TCP would fail if the address is changed in 
+	// If we reach this point and the protocol is not set yet, we assume this
+	// connection is UDP, because TCP would fail if the address is changed in
 	// the middle of a connection.
 	//
 	if(evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UNKNOWN)
@@ -1851,8 +1851,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 							swap_ipv4_addresses(evt->m_fdinfo);
 						}
 
-						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo, 
-							fdtype, &evt->m_paramstr_storage[0], 
+						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
+							fdtype, &evt->m_paramstr_storage[0],
 							evt->m_paramstr_storage.size());
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
@@ -1928,8 +1928,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 							swap_ipv4_addresses(evt->m_fdinfo);
 						}
 
-						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo, 
-							fdtype, &evt->m_paramstr_storage[0], 
+						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
+							fdtype, &evt->m_paramstr_storage[0],
 							evt->m_paramstr_storage.size());
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
@@ -2097,8 +2097,8 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 #ifdef _DEBUG
 				int target_res;
 				char target_name[1024];
-				target_res = readlink((chkstr + "/").c_str(), 
-					target_name, 
+				target_res = readlink((chkstr + "/").c_str(),
+					target_name,
 					sizeof(target_name) - 1);
 
 				if(target_res > 0)

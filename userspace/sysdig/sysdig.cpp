@@ -50,12 +50,12 @@ static void signal_callback(int signal)
 	ctrl_c_pressed = true;
 }
 
-void replace_in_place(string& str, string substr_to_replace, string new_substr) 
+void replace_in_place(string& str, string substr_to_replace, string new_substr)
 {
 	size_t index = 0;
 	uint32_t nsize = substr_to_replace.size();
 
-	while (true) 
+	while (true)
 	{
 		 index = str.find(substr_to_replace, index);
 		 if (index == string::npos) break;
@@ -75,7 +75,7 @@ static void usage()
 "sysdig version " SYSDIG_VERSION "\n"
 "Usage: sysdig [options] [-p <output_format>] [filter]\n\n"
 "Options:\n"
-" -A, --print-ascii  Only print the text portion of data buffers, and echo\n" 
+" -A, --print-ascii  Only print the text portion of data buffers, and echo\n"
 "                    end-of-lines. This is useful to only display human-readable\n"
 "                    data.\n"
 " -a, --abstime      Show absolute event timestamps\n"
@@ -83,10 +83,10 @@ static void usage()
 "                    run the specified chisel. If the chisel require arguments,\n"
 "                    they must be specified in the command line after the name.\n"
 " -cl, --list-chisels\n"
-"                    lists the available chisels. Looks for chisels in .,\n" 
+"                    lists the available chisels. Looks for chisels in .,\n"
 "                    ./chisels, ~/chisels and /usr/share/sysdig/chisels.\n"
 " -d, --displayflt   Make the given filter a display one\n"
-"                    Setting this option causes the events to be filtered\n" 
+"                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost\n"
@@ -116,9 +116,9 @@ static void usage()
 "                    option with caution, it can generate huge trace files.\n"
 " -t <timetype>, --timetype=<timetype>\n"
 "                    Change the way event time is diplayed. Accepted values are\n"
-"                    h for human-readable string, a for abosulte timestamp from\n" 
-"                    epoch, r for relative time from the beginning of the\n" 
-"                    capture, and d for delta between event enter and exit.\n" 
+"                    h for human-readable string, a for abosulte timestamp from\n"
+"                    epoch, r for relative time from the beginning of the\n"
+"                    capture, and d for delta between event enter and exit.\n"
 " -v, --verbose      Verbose output.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
@@ -134,9 +134,9 @@ static void usage()
 " evt.time is the event timestamp\n"
 " evt.cpu is the CPU number where the event was captured\n"
 " proc.name is the name of the process that generated the event\n"
-" thread.tid id the TID that generated the event, which corresponds to the\n" 
-"   PID for single thread processes\n" 
-" evt.dir is the event direction, > for enter events and < for exit events\n" 
+" thread.tid id the TID that generated the event, which corresponds to the\n"
+"   PID for single thread processes\n"
+" evt.dir is the event direction, > for enter events and < for exit events\n"
 " evt.type is the name of the event, e.g. 'open' or 'read'\n"
 " evt.args is the list of event arguments.\n\n"
 "The output format can be customized with the -p switch, using any of the\n"
@@ -155,8 +155,8 @@ static void usage()
     );
 }
 
-void print_summary_table(sinsp* inspector, 
-						 vector<summary_table_entry>* summary_table, 
+void print_summary_table(sinsp* inspector,
+						 vector<summary_table_entry>* summary_table,
 						 uint32_t nentries)
 {
 	sinsp_evttables* einfo = inspector->get_event_info_tables();
@@ -168,7 +168,7 @@ void print_summary_table(sinsp* inspector,
 	cout << tstr;
 	cout << "----------------------\n";
 
-	sort(summary_table->begin(), summary_table->end(), 
+	sort(summary_table->begin(), summary_table->end(),
 		summary_table_entry_rsort_comparer());
 
 	for(uint32_t j = 0; j < nentries; j++)
@@ -185,9 +185,9 @@ void print_summary_table(sinsp* inspector,
 			tstr = einfo->m_syscall_info_table[e->m_id / 2].name;
 			tstr.resize(16, ' ');
 
-			printf("%s%s%" PRIu64 "\n", 
+			printf("%s%s%" PRIu64 "\n",
 				(PPME_IS_ENTER(e->m_id))? "> ": "< ",
-				tstr.c_str(), 
+				tstr.c_str(),
 				e->m_ncalls);
 		}
 		else
@@ -195,9 +195,9 @@ void print_summary_table(sinsp* inspector,
 			tstr = einfo->m_event_info[e->m_id].name;
 			tstr.resize(16, ' ');
 
-			printf("%s%s%" PRIu64 "\n", 
+			printf("%s%s%" PRIu64 "\n",
 				(PPME_IS_ENTER(e->m_id))? "> ": "< ",
-				tstr.c_str(), 
+				tstr.c_str(),
 				e->m_ncalls);
 		}
 	}
@@ -206,9 +206,9 @@ void print_summary_table(sinsp* inspector,
 //
 // Event processing loop
 //
-captureinfo do_inspect(sinsp* inspector, 
-					   uint64_t cnt, 
-					   bool quiet, 
+captureinfo do_inspect(sinsp* inspector,
+					   uint64_t cnt,
+					   bool quiet,
 					   bool absolute_times,
 					   sinsp_filter* display_filter,
 					   vector<sinsp_chisel*>* chisels,
@@ -235,7 +235,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// we reached the event count specified with -n.
 			// Notify the chisels that we're exiting.
 			//
-			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); 
+			for(vector<sinsp_chisel*>::iterator it = chisels->begin();
 				it != chisels->end(); ++it)
 			{
 				(*it)->on_capture_end();
@@ -312,14 +312,14 @@ captureinfo do_inspect(sinsp* inspector,
 			}
 		}
 		else
-		{		
+		{
 			//
 			// If we're supposed to summarize, increase the count for this event
 			//
 			if(summary_table != NULL)
 			{
 				uint16_t etype = ev->get_type();
-				
+
 				if(etype == PPME_GENERIC_E)
 				{
 					sinsp_evt_param *parinfo = ev->get_param(0);
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
 	vector<summary_table_entry>* summary_table = NULL;
 	string timefmt = "%evt.time";
 
-	static struct option long_options[] = 
+	static struct option long_options[] =
 	{
 		{"print-ascii", no_argument, 0, 'A' },
 		{"abstimes", no_argument, 0, 'a' },
@@ -530,7 +530,7 @@ int main(int argc, char **argv)
 					}
 
 					throw sinsp_exception("chisel " + cname + " not found - use -cl to list them.");
-				}	
+				}
 				break;
 
 			case 'd':
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
 
 				for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
 				{
-					summary_table->push_back(summary_table_entry(j, false)); 
+					summary_table->push_back(summary_table_entry(j, false));
 				}
 
 				for(uint32_t j = 0; j < PPM_SC_MAX * 2; j++)
@@ -738,7 +738,7 @@ int main(int argc, char **argv)
 		//
 		// Insert the right time format based on the -t flag
 		//
-		replace_in_place(output_format, "<TIME>", timefmt); 
+		replace_in_place(output_format, "<TIME>", timefmt);
 
 		//
 		// Create the event formatter
@@ -763,7 +763,7 @@ int main(int argc, char **argv)
 			//
 			// We have a file to open
 			//
-			inspector->open(infile);				
+			inspector->open(infile);
 		}
 		else
 		{
@@ -804,19 +804,19 @@ int main(int argc, char **argv)
 				catch(sinsp_exception e)
 				{
 					open_success = false;
-				}			
+				}
 			}
 
 			//
 			// No luck with modprobe either.
-			// Maybe this is a version of sysdig that was compiled from the 
+			// Maybe this is a version of sysdig that was compiled from the
 			// sources, so let's make one last attempt with insmod and the
 			// path to the driver directory.
 			//
 			if(!open_success)
 			{
 				system("insmod ../../driver/sysdig-probe.ko > /dev/null 2> /dev/null");
-				
+
 				inspector->open("");
 			}
 		}
@@ -832,7 +832,7 @@ int main(int argc, char **argv)
 		}
 
 		duration = ((double)clock()) / CLOCKS_PER_SEC;
-			
+
 		//
 		// Notify the chisels that the capture is starting
 		//
@@ -841,9 +841,9 @@ int main(int argc, char **argv)
 			chisels[j]->on_capture_start();
 		}
 
-		cinfo = do_inspect(inspector, 
-			cnt, 
-			quiet, 
+		cinfo = do_inspect(inspector,
+			cnt,
+			quiet,
 			absolute_times,
 			display_filter,
 			&chisels,
