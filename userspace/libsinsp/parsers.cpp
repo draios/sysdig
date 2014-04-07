@@ -68,6 +68,16 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	reset(evt);
 
 	//
+	// Filter out event about sysdig itself
+	//
+	if(m_inspector->is_live() && evt->get_thread_info() != NULL &&
+		evt->get_thread_info()->m_pid == getpid())
+	{
+		evt->m_filtered_out = true;
+		return;
+	}
+
+	//
 	// Filtering
 	//
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
