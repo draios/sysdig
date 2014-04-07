@@ -427,6 +427,19 @@ public:
 	*/
 	bool is_live();
 
+	/*!
+	  \brief Set the debugging mode of the inspector.
+
+	  \param enable_debug when it is true and the current capture is live
+	  the inspector filters out events about sysdig itself.
+	*/
+	void set_debug_mode(bool enable_debug);
+
+	/*!
+	  \brief Returns true if the current capture is live and the debug mode is enabled.
+	*/
+	bool is_debug_enabled();
+
 	//
 	// Misc internal stuff
 	//
@@ -457,6 +470,7 @@ private:
 
 	scap_t* m_h;
 	bool m_islive;
+	bool m_isdebug_enabled;
 	string m_filename;
 	sinsp_evt m_evt;
 	string m_lasterr;

@@ -73,6 +73,7 @@ sinsp::sinsp() :
 	m_max_n_proc_socket_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
+	m_isdebug_enabled = false;
 }
 
 sinsp::~sinsp()
@@ -773,4 +774,14 @@ sinsp_evt::param_fmt sinsp::get_buffer_format()
 bool sinsp::is_live()
 {
 	return m_islive;
+}
+
+void sinsp::set_debug_mode(bool enable_debug)
+{
+	m_isdebug_enabled = enable_debug;
+}
+
+bool sinsp::is_debug_enabled()
+{
+	return m_islive && m_isdebug_enabled;
 }

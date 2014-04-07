@@ -90,6 +90,7 @@ static void usage()
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost\n"
+" -D, --debug        Capture events about sysdig itself\n"
 " -h, --help         Print this page\n"
 " -i <chiselname>, --chisel-info <chiselname>\n"
 "                    Get a longer description and the arguments associated with\n"
@@ -407,6 +408,7 @@ int main(int argc, char **argv)
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, &cflag, 1 },
 		{"displayflt", no_argument, 0, 'd' },
+		{"debug", no_argument, 0, 'D'},
 		{"help", no_argument, 0, 'h' },
 		{"chisel-info", required_argument, 0, 'i' },
 		{"json", no_argument, 0, 'j' },
@@ -438,7 +440,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "Aac:dhi:jlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "Aac:dDhi:jlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -509,7 +511,9 @@ int main(int argc, char **argv)
 					chisels.push_back(ch);
 				}
 				break;
-
+			case 'D':
+				inspector->set_debug_mode(true);
+				break;
 			// --chisel-info and -i
 			case 'i':
 				{
