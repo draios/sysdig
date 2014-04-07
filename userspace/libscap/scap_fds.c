@@ -703,29 +703,63 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		//
 		// 1. Num
 		token = strtok(line, delimiters);
-		ASSERT(NULL != token);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
 
-		fdinfo->info.unix_socket_info.source = strtoul(token,NULL,16);
+		fdinfo->info.unix_socket_info.source = strtoul(token, NULL, 16);
 		fdinfo->info.unix_socket_info.destination = 0;
+
 		// 2. RefCount
 		token = strtok(NULL, delimiters);
-		ASSERT(NULL != token);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
+
 		// 3. Protocol
 		token = strtok(NULL, delimiters);
-		ASSERT(NULL != token);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
+
 		// 4. Flags
 		token = strtok(NULL, delimiters);
-		ASSERT(NULL != token);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
+
 		// 5. Type
 		token = strtok(NULL, delimiters);
-		ASSERT(NULL != token);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
+
 		// 6. St
 		token = strtok(NULL, delimiters);
-		ASSERT(NULL != token);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
 		
 		// 7. Inode
 		token = strtok(NULL, delimiters);
-		ASSERT(NULL != token);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
+
 		sscanf(token, "%"PRIu64, &(fdinfo->ino));
 
 		// 8. Path
