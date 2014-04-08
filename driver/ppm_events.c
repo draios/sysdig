@@ -45,6 +45,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define compat_ptr(X) X
 #endif
 
+/*
+ * The kernel patched with grsecurity makes the default access_ok trigger a
+ * might_sleep(), so if present we use the one defined by them
+ */
+#ifdef access_ok_noprefault
+#define ppm_access_ok access_ok_noprefault
+#else
+#define ppm_access_ok access_ok
+#endif
+
 static void memory_dump(char *p, size_t size)
 {
 	unsigned int j;
@@ -67,7 +77,7 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
 
 	pagefault_disable();
 
-	if (likely(access_ok(VERIFY_READ, from, n))) {
+	if (likely(ppm_access_ok(VERIFY_READ, from, n))) {
 		res = __copy_from_user_inatomic(to, from, n);
 	}
 
@@ -100,7 +110,7 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 			bytes_to_read = n;
 		}
 
-		if (!access_ok(VERIFY_READ, from, n)) {
+		if (!ppm_access_ok(VERIFY_READ, from, n)) {
 			res = -1;
 			goto strncpy_end;
 		}
