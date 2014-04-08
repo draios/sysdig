@@ -73,13 +73,14 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
-	sinsp_threadinfo *evt_thread = evt->get_thread_info();
-	if(!m_inspector->is_debug_enabled() &&
-		evt_thread != NULL &&
-		evt_thread->m_pid == m_sysdig_pid)
+	if(m_inspector->is_live() && !m_inspector->is_debug_enabled())
 	{
-		evt->m_filtered_out = true;
-		return;
+		sinsp_threadinfo *evt_thread = evt->get_thread_info();
+		if(evt_thread != NULL && evt_thread->m_pid == m_sysdig_pid)
+		{
+			evt->m_filtered_out = true;
+			return;
+		}
 	}
 
 	//

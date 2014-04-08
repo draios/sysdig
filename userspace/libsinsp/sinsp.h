@@ -436,7 +436,7 @@ public:
 	void set_debug_mode(bool enable_debug);
 
 	/*!
-	  \brief Returns true if the current capture is live and the debug mode is enabled.
+	  \brief Returns true if the debug mode is enabled.
 	*/
 	bool is_debug_enabled();
 

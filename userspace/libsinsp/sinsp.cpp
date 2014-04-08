@@ -783,5 +783,5 @@ void sinsp::set_debug_mode(bool enable_debug)
 
 bool sinsp::is_debug_enabled()
 {
-	return m_islive && m_isdebug_enabled;
+	return m_isdebug_enabled;
 }
