@@ -25,7 +25,13 @@ https://github.com/draios/sysdig/wiki
 For support using sysdig, please contact the official mailing list:  
 https://groups.google.com/forum/#!forum/sysdig  
 
+Join the Community
+---
+* Contact the [official mailing list] (https://groups.google.com/forum/#!forum/sysdig) for support and to talk with other uses
+* Follow us on [Twitter] (https://twitter.com/sysdig) for the Chisel of the Week
+* This is our [blog] (http://draios.com/blog/). There are many like it, but this one is ours.
 
+Draios
 ---
 Sysdig is proudly supported by Draios, Inc.  
 www.draios.com
