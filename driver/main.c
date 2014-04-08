@@ -93,6 +93,10 @@ static void record_event(enum ppm_event_type event_type,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next);
 
+#ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
+ #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
+#endif
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id);
 TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret);
 TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p);
