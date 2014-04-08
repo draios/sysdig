@@ -1,4 +1,4 @@
-include_directories(${PROJECT_SOURCE_DIR}/common)
+include_directories("${PROJECT_SOURCE_DIR}/common")
 
 add_library(scap STATIC 
 	scap.c 

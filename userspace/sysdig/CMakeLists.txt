@@ -1,7 +1,7 @@
-include_directories(${PROJECT_SOURCE_DIR}/common)
-include_directories(${PROJECT_SOURCE_DIR}/userspace/libscap)
-include_directories(${PROJECT_SOURCE_DIR}/userspace/libsinsp)
-include_directories(${PROJECT_BINARY_DIR}/userspace/sysdig)
+include_directories("${PROJECT_SOURCE_DIR}/common")
+include_directories("${PROJECT_SOURCE_DIR}/userspace/libscap")
+include_directories("${PROJECT_SOURCE_DIR}/userspace/libsinsp")
+include_directories("${PROJECT_BINARY_DIR}/userspace/sysdig")
 include_directories(.)
 
 if(NOT WIN32)
@@ -32,24 +32,24 @@ if(NOT WIN32)
 		DESTINATION share/sysdig)
 
 	file(COPY chisels
-		DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+		DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 else()
 
 	target_link_libraries(sysdig odbc32.lib odbccp32.lib)
 
 	add_custom_command(TARGET sysdig POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 			"${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2/src/lua51.dll"
 			"${PROJECT_BINARY_DIR}/$(Configuration)/lua51.dll")
 
 	add_custom_command(TARGET sysdig POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_directory
+		COMMAND "${CMAKE_COMMAND}" -E copy_directory
 			"${PROJECT_SOURCE_DIR}/userspace/sysdig/chisels"
 			"${PROJECT_BINARY_DIR}/$(Configuration)/chisels")
 
 	add_custom_command(TARGET sysdig POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 			$<TARGET_FILE:sysdig>
 			"${PROJECT_BINARY_DIR}/$(Configuration)/sysdig.exe")
 
