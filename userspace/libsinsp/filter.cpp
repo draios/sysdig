@@ -845,10 +845,10 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	uint32_t num_pos;
 	enum ppm_escape_state
 	{
-		ES_NORMAL,
-		ES_SLASH,
-		ES_NUMBER,
-		ES_ERROR,
+		PES_NORMAL,
+		PES_SLASH,
+		PES_NUMBER,
+		PES_ERROR,
 	} escape_state;
 
 	//
@@ -863,10 +863,10 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	// Mark the beginning of the word
 	//
 	start = m_scanpos;
-	escape_state = ES_NORMAL;
+	escape_state = PES_NORMAL;
 	num_pos = 0;
 
-	while(m_scanpos < m_scansize && escape_state != ES_ERROR)
+	while(m_scanpos < m_scansize && escape_state != PES_ERROR)
 	{
 		char curchar = m_fltstr[m_scanpos];
 		bool is_end_of_word;
@@ -882,9 +882,9 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 
 		if(is_end_of_word)
 		{
-			if(escape_state != ES_NORMAL)
+			if(escape_state != PES_NORMAL)
 			{
-				escape_state = ES_ERROR;
+				escape_state = PES_ERROR;
 				break;
 			}
 
@@ -904,32 +904,32 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 
 		switch(escape_state)
 		{
-		case ES_NORMAL:
+		case PES_NORMAL:
 			if(curchar == '\\' && !expecting_first_operand)
 			{
-				escape_state = ES_SLASH;
+				escape_state = PES_SLASH;
 			}
 			else
 			{
 				res.push_back(curchar);
 			}
 			break;
-		case ES_SLASH:
+		case PES_SLASH:
 			if(curchar == '\\')
 			{
-				escape_state = ES_NORMAL;
+				escape_state = PES_NORMAL;
 				res.push_back(curchar);
 			}
 			else if(curchar == 'x')
 			{
-				escape_state = ES_NUMBER;
+				escape_state = PES_NUMBER;
 			}
 			else
 			{
-				escape_state = ES_ERROR;
+				escape_state = PES_ERROR;
 			}
 			break;
-		case ES_NUMBER:
+		case PES_NUMBER:
 			if(isdigit((int)curchar))
 			{
 				nums[num_pos++] = curchar - '0';
@@ -940,27 +940,27 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 			}
 			else
 			{
-				escape_state = ES_ERROR;
+				escape_state = PES_ERROR;
 			}
 
-			if(num_pos == 2 && escape_state != ES_ERROR)
+			if(num_pos == 2 && escape_state != PES_ERROR)
 			{
 				res.push_back((char)(nums[0] * 16 + nums[1]));
 
 				num_pos = 0;
-				escape_state = ES_NORMAL;
+				escape_state = PES_NORMAL;
 			}
 			break;
 		default:
 			ASSERT(false);
-			escape_state = ES_ERROR;
+			escape_state = PES_ERROR;
 			break;
 		}
 
 		m_scanpos++;
 	}
 
-	if(escape_state == ES_ERROR)
+	if(escape_state == PES_ERROR)
 	{
 		throw sinsp_exception("filter error: unrecognized escape sequence at " + m_fltstr.substr(start, m_scanpos));
 	}

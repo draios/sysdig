@@ -204,6 +204,8 @@ typedef struct scap_threadinfo
 #if defined _MSC_VER
 #pragma pack(push)
 #pragma pack(1)
+#elif defined __sun
+#pragma pack(1)
 #else
 #pragma pack(push, 1)
 #endif
@@ -292,7 +294,11 @@ typedef struct scap_ifinfo_ipv6_nolinkspeed
 	char ifname[SCAP_MAX_PATH_SIZE];
 }scap_ifinfo_ipv6_nolinkspeed;
 
+#if defined __sun
+#pragma pack()
+#else
 #pragma pack(pop)
+#endif
 
 /*!
   \brief List of the machine network interfaces

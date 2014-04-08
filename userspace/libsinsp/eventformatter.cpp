@@ -75,16 +75,56 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	const char* cfmt = lfmt.c_str();
 
 	m_tokens.clear();
+	uint32_t lfmtlen = lfmt.length();
 
-	for(j = 0; j < lfmt.length(); j++)
+	for(j = 0; j < lfmtlen; j++)
 	{
 		if(cfmt[j] == '%')
 		{
+			int toklen = 0;
+
 			if(last_nontoken_str_start != j)
 			{
 				rawstring_check* newtkn = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 				m_tokens.push_back(newtkn);
+				m_tokenlens.push_back(0);
 				m_chks_to_free.push_back(newtkn);
+			}
+
+			if(j == lfmtlen - 1)
+			{
+				throw sinsp_exception("invalid formatting syntax: formatting cannot end with a %");
+			}
+
+			//
+			// If the field specifier starts with a number, it means that we have a length modifier
+			//
+			if(isdigit(cfmt[j + 1]))
+			{
+				//
+				// Parse the token length
+				//
+				sscanf(cfmt+ j + 1, "%d", &toklen);
+
+				//
+				// Advance until the beginning of the field name
+				//
+				while(true)
+				{
+					if(j == lfmtlen - 1)
+					{
+						throw sinsp_exception("invalid formatting syntax: formatting cannot end with a number");
+					}
+					else if(isdigit(cfmt[j + 1]))
+					{
+						j++;
+						continue;
+					}
+					else
+					{
+						break;
+					}
+				}
 			}
 
 			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1), 
@@ -102,6 +142,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 			ASSERT(j <= lfmt.length());
 
 			m_tokens.push_back(chk);
+			m_tokenlens.push_back(toklen);
 
 			last_nontoken_str_start = j + 1;
 		}
@@ -110,23 +151,23 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	if(last_nontoken_str_start != j)
 	{
 		m_tokens.push_back(new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start)));
+		m_tokenlens.push_back(0);
 	}
 }
 
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
+	uint32_t j = 0;
 	vector<sinsp_filter_check*>::iterator it;
 	res->clear();
 
-	for(it = m_tokens.begin(); it != m_tokens.end(); ++it)
-	{
-		char* str = (*it)->tostring(evt);
+	ASSERT(m_tokenlens.size() == m_tokens.size());
 
-		if(str != NULL)
-		{
-			(*res) += str;
-		}
-		else
+	for(j = 0; j < m_tokens.size(); j++)
+	{
+		char* str = m_tokens[j]->tostring(evt);
+
+		if(str == NULL)
 		{
 			if(m_require_all_values)
 			{
@@ -134,8 +175,21 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 			}
 			else
 			{
-				(*res) += "<NA>";
+				str = (char*)"<NA>";
 			}
+		}
+
+		uint32_t tks = m_tokenlens[j];
+
+		if(tks != 0)
+		{
+			string sstr(str);
+			sstr.resize(tks, ' ');
+			(*res) += sstr;
+		}
+		else
+		{
+			(*res) += str;
 		}
 	}
 

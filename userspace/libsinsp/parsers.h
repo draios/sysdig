@@ -93,6 +93,8 @@ private:
 	//
 	sinsp* m_inspector;
 
+	pid_t m_sysdig_pid;
+
 	// Temporary storage to avoid memory allocation
 	sinsp_evt m_tmp_evt;
 	// The transaction table. Key pair is <tid, fd>.

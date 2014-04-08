@@ -65,9 +65,9 @@ function install_deb {
 
 function unsupported {
     echo 'Unsupported operating system. Please consider writing to the mailing list at'
-    echo ' write to the mailing list at https://groups.google.com/forum/#!forum/sysdig'
-    echo 'or trying the manual installation.'
-    exit 1	
+    echo 'https://groups.google.com/forum/#!forum/sysdig or trying the manual'
+    echo 'installation.'
+    exit 1
 }
 
 function kernel_warning {

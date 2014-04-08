@@ -18,7 +18,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 /*!
 	\mainpage libsinsp documentation
-	
+
 	\section Introduction
 
 	libsinsp is a system inspection library written in C++ and implementing high level
@@ -31,7 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	can be treated like programs, files, connections and users.
 	- parsing of OS events and conversion of events into human-readable strings
 	- event filtering
-	
+
 	This manual includes the following sections:
 	- \ref inspector
 	- \ref event
@@ -99,7 +99,7 @@ class filter_check_info
 public:
 	string m_name; ///< Field class name.
 	int32_t m_nfiedls; ///< Number of fields in this field group.
-	const filtercheck_field_info* m_fields; ///< Array containing m_nfiedls field descriptions. 
+	const filtercheck_field_info* m_fields; ///< Array containing m_nfiedls field descriptions.
 };
 
 /*!
@@ -111,7 +111,7 @@ struct sinsp_exception : std::exception
 	{
 	}
 
-	~sinsp_exception() throw() 
+	~sinsp_exception() throw()
 	{
 	}
 
@@ -121,7 +121,7 @@ struct sinsp_exception : std::exception
 	}
 
 	char const* what() const throw()
-	{ 
+	{
 		return m_error_str.c_str();
 	}
 
@@ -155,10 +155,10 @@ public:
 	/*!
 	  \brief Start a live event capture.
 
-	  \param timeout_ms the optional read timeout, i.e. the time after which a 
+	  \param timeout_ms the optional read timeout, i.e. the time after which a
 	  call to \ref next() returns even if no events are available.
 
-	  @throws a sinsp_exception containing the error string is thrown in case 
+	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
 	void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
@@ -168,7 +168,7 @@ public:
 
 	  \param filename the trace file name.
 
-	  @throws a sinsp_exception containing the error string is thrown in case 
+	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
 	void open(string filename);
@@ -181,14 +181,14 @@ public:
 	/*!
 	  \brief Get the next event from the open capture source
 
-	  \param evt a \ref sinsp_evt pointer that will be initialized to point to 
+	  \param evt a \ref sinsp_evt pointer that will be initialized to point to
 	  the next available event.
 
-	  \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain 
-	   valid data. SCAP_TIMEOUT in case the read timeout expired and no event is 
+	  \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain
+	   valid data. SCAP_TIMEOUT in case the read timeout expired and no event is
 	   available. SCAP_EOF when the end of an offline capture is reached.
-	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to 
-	   obtain the cause of the error. 
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
+	   obtain the cause of the error.
 
 	  \note: the returned event can be considered valid only until the next
 	   call to \ref next()
@@ -199,25 +199,25 @@ public:
 	  \brief Get the number of events that have been captured and processed
 	   since the call to \ref open()
 
-	  \return the number of captured events. 
+	  \return the number of captured events.
 	*/
 	uint64_t get_num_events();
 
 	/*!
-	  \brief Set the capture snaplen, i.e. the maximum size an event 
+	  \brief Set the capture snaplen, i.e. the maximum size an event
 	  parameter can reach before the driver starts truncating it.
 
 	  \param snaplen the snaplen for this capture instance, in bytes.
 
 	  \note This function can only be called for live captures.
-	  \note By default, the driver captures the first 80 bytes of the 
-	  buffers coming from events like read, write, send, recv, etc. 
-	  If you're not interested in payloads, smaller values will save 
+	  \note By default, the driver captures the first 80 bytes of the
+	  buffers coming from events like read, write, send, recv, etc.
+	  If you're not interested in payloads, smaller values will save
 	  capture buffer space and make capture files smaller.
-	  Conversely, big values should be used with care because they can 
+	  Conversely, big values should be used with care because they can
 	  easily generate huge capture files.
 
-	  @throws a sinsp_exception containing the error string is thrown in case 
+	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
 	void set_snaplen(uint32_t snaplen);
@@ -230,13 +230,13 @@ public:
 	void stop_capture();
 
 	/*!
-	  \brief Restarts an event capture that had been paused with 
+	  \brief Restarts an event capture that had been paused with
 	   \ref stop_capture().
 
 	  \note This function can only be called for live captures.
 	*/
 	void start_capture();
-		
+
 #ifdef HAS_FILTERING
 	/*!
 	  \brief Compiles and installs the given capture filter.
@@ -245,7 +245,7 @@ public:
 	   section in the sysdig website for information about the filtering
 	   syntax.
 
-	  @throws a sinsp_exception containing the error string is thrown in case 
+	  @throws a sinsp_exception containing the error string is thrown in case
 	   the filter is invalid.
 	*/
 	void set_filter(string filter);
@@ -271,7 +271,7 @@ public:
 	   also be combined with \ref sinsp_filter to filter what will go into
 	   the file.
 
-	  @throws a sinsp_exception containing the error string is thrown in case 
+	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
 	void autodump_start(const string dump_filename);
@@ -279,7 +279,7 @@ public:
 	/*!
 	  \brief Stops an event dump that was started with \ref autodump_start().
 
-	  @throws a sinsp_exception containing the error string is thrown in case 
+	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
 	void autodump_stop();
@@ -296,7 +296,7 @@ public:
 	  \brief Return information about the machine generating the events.
 
 	  \note this call works with file captures as well, because the machine
-	   info is stored in the trace files. In that case, the returned 
+	   info is stored in the trace files. In that case, the returned
 	   machine info is the one of the machine where the capture happened.
 	*/
 	const scap_machine_info* get_machine_info();
@@ -310,10 +310,10 @@ public:
 	  \return the \ref sinsp_threadinfo object containing full thread information
 	   and state.
 
-	  \note if you are interested in a process' information, just give this 
+	  \note if you are interested in a process' information, just give this
 	  function with the PID of the process.
 
-	  @throws a sinsp_exception containing the error string is thrown in case 
+	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
 	sinsp_threadinfo* get_thread(int64_t tid);
@@ -331,10 +331,10 @@ public:
 	  \return the \ref sinsp_threadinfo object containing full thread information
 	   and state.
 
-	  \note if you are interested in a process' information, just give this 
+	  \note if you are interested in a process' information, just give this
 	  function with the PID of the process.
 
-	  @throws a sinsp_exception containing the error string is thrown in case 
+	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
 	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found);
@@ -346,7 +346,7 @@ public:
 	   information as the data.
 
 	  \note this call works with file captures as well, because the user
-	   table is stored in the trace files. In that case, the returned 
+	   table is stored in the trace files. In that case, the returned
 	   user list is the one of the machine where the capture happened.
 	*/
 	const unordered_map<uint32_t, scap_userinfo*>* get_userlist();
@@ -358,7 +358,7 @@ public:
 	   information as the data.
 
 	  \note this call works with file captures as well, because the group
-	   table is stored in the trace files. In that case, the returned 
+	   table is stored in the trace files. In that case, the returned
 	   user table is the one of the machine where the capture happened.
 	*/
 	const unordered_map<uint32_t, scap_groupinfo*>* get_grouplist();
@@ -411,13 +411,13 @@ public:
 	sinsp_network_interfaces* get_ifaddr_list();
 
 	/*!
-	  \brief Set the format used to render event data 
+	  \brief Set the format used to render event data
 	   buffer arguments.
 	*/
 	void set_buffer_format(sinsp_evt::param_fmt format);
 
 	/*!
-	  \brief Get the format used to render event data 
+	  \brief Get the format used to render event data
 	   buffer arguments.
 	*/
 	sinsp_evt::param_fmt get_buffer_format();
@@ -427,8 +427,21 @@ public:
 	*/
 	bool is_live();
 
+	/*!
+	  \brief Set the debugging mode of the inspector.
+
+	  \param enable_debug when it is true and the current capture is live
+	  the inspector filters out events about sysdig itself.
+	*/
+	void set_debug_mode(bool enable_debug);
+
+	/*!
+	  \brief Returns true if the debug mode is enabled.
+	*/
+	bool is_debug_enabled();
+
 	//
-	// Misc internal stuff 
+	// Misc internal stuff
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
@@ -457,6 +470,7 @@ private:
 
 	scap_t* m_h;
 	bool m_islive;
+	bool m_isdebug_enabled;
 	string m_filename;
 	sinsp_evt m_evt;
 	string m_lasterr;

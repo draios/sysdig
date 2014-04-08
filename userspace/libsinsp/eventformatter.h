@@ -59,6 +59,7 @@ public:
 private:
 	void set_format(const string& fmt);
 	vector<sinsp_filter_check*> m_tokens;
+	vector<uint32_t> m_tokenlens;
 	sinsp* m_inspector;
 	bool m_require_all_values;
 	vector<sinsp_filter_check*> m_chks_to_free;

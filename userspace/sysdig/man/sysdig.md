@@ -94,6 +94,9 @@ OPTIONS
 **-d**, **--displayflt**  
   Make the given filter a display one Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost
   
+**-D**, **--debug**
+  Capture events about sysdig itself
+
 **-h**, **--help**  
   Print this page
   

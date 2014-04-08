@@ -17,20 +17,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*
- * Driver output definitions
- */
-
-/*
- * Driver Chattiness
- */
-#define OUTPUT_VERBOSE 4
-#define OUTPUT_INFO 2
-#define OUTPUT_ERRORS 1
-#define OUTPUT_NONE 0
-
-#define OUTPUT_LEVEL OUTPUT_INFO
-
-/*
  * Our Own ASSERT implementation, so we can easily switch among BUG_ON, WARN_ON and nothing
  */
 #ifdef _DEBUG
@@ -40,26 +26,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 /*
- * Tracing and debug printing
- */
-#if (OUTPUT_LEVEL >= OUTPUT_VERBOSE)
-#define dbgprint(a) pr_info(a "\n")
-#define trace_enter() pr_info("> %s\n", __func__)
-#define trace_exit() pr_info("< %s\n", __func__)
-#else
-#define dbgprint(a)
-#define trace_exit()
-#define trace_enter()
-#endif
-
-/*
  * Global defines
  */
 #define CAPTURE_CONTEXT_SWITCHES
 #define RW_SNAPLEN 80
 #define RW_MAX_SNAPLEN (256 * 1024 * 1024)
 /* Make sure to use a power of two constant for this */
-extern uint32_t g_snaplen;
+extern u32 g_snaplen;
 
 /*
  * Global enums
@@ -101,4 +74,4 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
-extern uint32_t g_sampling_ratio;
+extern u32 g_sampling_ratio;
