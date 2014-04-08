@@ -73,6 +73,7 @@ sinsp::sinsp() :
 	m_max_n_proc_socket_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
+	m_isdebug_enabled = false;
 }
 
 sinsp::~sinsp()
@@ -217,7 +218,7 @@ void sinsp::import_thread_table()
 	// Scan the list to create the proper parent/child dependencies
 	//
 	threadinfo_map_iterator_t it;
-	for(it = m_thread_manager->m_threadtable.begin(); 
+	for(it = m_thread_manager->m_threadtable.begin();
 		it != m_thread_manager->m_threadtable.end(); ++it)
 	{
 		m_thread_manager->increment_mainthread_childcount(&it->second);
@@ -248,12 +249,12 @@ void sinsp::import_user_list()
 
 	for(j = 0; j < ul->nusers; j++)
 	{
-		m_userlist[ul->users[j].uid] = &(ul->users[j]); 
+		m_userlist[ul->users[j].uid] = &(ul->users[j]);
 	}
 
 	for(j = 0; j < ul->ngroups; j++)
 	{
-		m_grouplist[ul->groups[j].gid] = &(ul->groups[j]); 
+		m_grouplist[ul->groups[j].gid] = &(ul->groups[j]);
 	}
 }
 
@@ -600,7 +601,7 @@ void sinsp::set_snaplen(uint32_t snaplen)
 		{
 			throw sinsp_exception(scap_getlasterr(m_h));
 		}
-	}	
+	}
 }
 
 void sinsp::stop_capture()
@@ -773,4 +774,14 @@ sinsp_evt::param_fmt sinsp::get_buffer_format()
 bool sinsp::is_live()
 {
 	return m_islive;
+}
+
+void sinsp::set_debug_mode(bool enable_debug)
+{
+	m_isdebug_enabled = enable_debug;
+}
+
+bool sinsp::is_debug_enabled()
+{
+	return m_isdebug_enabled;
 }
