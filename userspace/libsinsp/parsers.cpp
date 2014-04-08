@@ -49,6 +49,9 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_tmp_evt(m_inspector),
 	m_fd_listener(NULL)
 {
+#if !defined (_WIN32) && !defined(__APPLE__)
+	m_sysdig_pid = getpid();
+#endif
 }
 
 sinsp_parser::~sinsp_parser()
@@ -67,18 +70,17 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	reset(evt);
 
-#if !defined (_WIN32) && !defined(__APPLE__)
 	//
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
+	sinsp_threadinfo *evt_thread = evt->get_thread_info();
 	if(!m_inspector->is_debug_enabled() &&
-		evt->get_thread_info() != NULL &&
-		evt->get_thread_info()->m_pid == getpid())
+		evt_thread != NULL &&
+		evt_thread->m_pid == m_sysdig_pid)
 	{
 		evt->m_filtered_out = true;
 		return;
 	}
-#endif
 
 	//
 	// Filtering
