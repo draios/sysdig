@@ -415,7 +415,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			/*
 			 * Validate that the buffer access is read only
 			 */
-			if (vma->vm_flags & (VM_WRITE | VM_EXEC)) {
+			if (vma->vm_flags & VM_WRITE) {
 				pr_info("invalid mmap flags 0x%lx\n", vma->vm_flags);
 				return -EIO;
 			}
