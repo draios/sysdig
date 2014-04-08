@@ -20,6 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #if defined _MSC_VER
 #pragma pack(push)
 #pragma pack(1)
+#elif defined __sun
+#pragma pack(1)
 #else
 #pragma pack(push, 1)
 #endif
@@ -102,4 +104,8 @@ typedef struct _section_header_block
 										// library release. We'll keep him for a while for
 										// backward compatibility
 
+#if defined __sun
+#pragma pack()
+#else
 #pragma pack(pop)
+#endif
