@@ -1,3 +1,20 @@
+# Prior to doing anything, we make sure that we aren't trying to 
+# run cmake in-tree. (see Issue 71: https://github.com/draios/sysdig/issues/71)
+if(EXISTS CMakeLists.txt)
+	message( FATAL_ERROR 
+		"Looks like you are trying to run cmake from the base sysdig source directory.\n"
+		"** RUNNING CMAKE FROM THE BASE SYSDIG DIRECTORY WILL NOT WORK **\n"
+		"To Fix:\n"
+		" 1. Remove the CMakeCache.txt file in this directory. ex: rm CMakeCache.txt\n"
+		" 2. Create a build directory from here. ex: mkdir build\n"
+		" 3. cd into that directory. ex: cd build\n"
+		" 4. Run cmake from the build directory. ex: cmake ..\n"
+		" 5. Run make from the build directory. ex: make\n"
+		"Full paste-able example:\n"
+		"( rm -f CMakeCache.txt; mkdir build; cd build; cmake ..; make )\n"
+		"The following wiki page has more information on manually building sysdig: http://bit.ly/1oJ84UI")
+endif()
+
 cmake_minimum_required(VERSION 2.8)
 
 project(sysdig) 
