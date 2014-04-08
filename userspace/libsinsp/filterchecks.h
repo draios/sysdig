@@ -25,7 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	throw sinsp_exception("filter error: value too long: " + val); \
 }
 
-bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2);
+bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 
 class operand_info
@@ -76,7 +76,7 @@ public:
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field lenght because the filtering engine can calculate it.
 	//
-	virtual void parse_filter_value(const char* str);
+	virtual void parse_filter_value(const char* str, uint32_t len);
 
 	//
 	// Return the info about the field that this instance contains 
@@ -104,7 +104,7 @@ public:
 
 protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
-	void string_to_rawval(const char* str, ppm_param_type ptype);
+	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
 	vector<uint8_t> m_val_storage;
@@ -112,6 +112,7 @@ protected:
 	filter_check_info m_info;
 	uint32_t m_field_id;
 	uint32_t m_th_state_id;
+	uint32_t m_val_storage_len;
 
 private:
 	void set_inspector(sinsp* inspector);
@@ -162,7 +163,7 @@ public:
 		return 0;
 	}
 
-	void parse_filter_value(const char* str)
+	void parse_filter_value(const char* str, uint32_t len)
 	{
 		ASSERT(false);
 	}
@@ -327,7 +328,7 @@ public:
 	sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
-	void parse_filter_value(const char* str);
+	void parse_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
@@ -350,6 +351,7 @@ private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
+	bool m_is_compare;
 };
 
 //
@@ -404,7 +406,7 @@ public:
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
 	int32_t parse_field_name(const char* str);
-	void parse_filter_value(const char* str);
+	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 	// XXX this is overkill and wasted for most of the fields.

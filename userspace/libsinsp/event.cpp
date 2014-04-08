@@ -413,16 +413,6 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 		return 0;
 	}
 
-	if(fmt & sinsp_evt::PF_ASIS)
-	{
-		if(dstlen >= srclen)
-		{
-			memcpy(dst, src, srclen);
-		}
-
-		return srclen;
-	}
-
 	if(fmt & sinsp_evt::PF_HEX || fmt & sinsp_evt::PF_HEXASCII)
 	{
 		k = binary_buffer_to_hex_string(dst, src, dstlen, srclen, fmt);

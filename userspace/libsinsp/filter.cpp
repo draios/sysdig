@@ -172,13 +172,13 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 	case CO_CONTAINS:
 		return (strstr(operand1, operand2) != NULL);
 	case CO_LT:
-		throw sinsp_exception("'<' not supported for numeric filters");
+		throw sinsp_exception("'<' not supported for string filters");
 	case CO_LE:
-		throw sinsp_exception("'<=' not supported for numeric filters");
+		throw sinsp_exception("'<=' not supported for string filters");
 	case CO_GT:
-		throw sinsp_exception("'>' not supported for numeric filters");
+		throw sinsp_exception("'>' not supported for string filters");
 	case CO_GE:
-		throw sinsp_exception("'>=' not supported for numeric filters");
+		throw sinsp_exception("'>=' not supported for string filters");
 	default:
 		ASSERT(false);
 		throw sinsp_exception("invalid filter operator " + std::to_string((long long) op));
@@ -186,7 +186,32 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 	}
 }
 
-bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2)
+bool flt_compare_buffer(ppm_cmp_operator op, char* operand1, char* operand2, uint32_t op1_len, uint32_t op2_len)
+{
+	switch(op)
+	{
+	case CO_EQ:
+		return op1_len == op2_len && (memcmp(operand1, operand2, op1_len) == 0);
+	case CO_NE:
+		return op1_len != op2_len || (memcmp(operand1, operand2, op1_len) != 0);
+	case CO_CONTAINS:
+		return (memmem(operand1, op1_len, operand2, op2_len) != NULL);
+	case CO_LT:
+		throw sinsp_exception("'<' not supported for buffer filters");
+	case CO_LE:
+		throw sinsp_exception("'<=' not supported for buffer filters");
+	case CO_GT:
+		throw sinsp_exception("'>' not supported for buffer filters");
+	case CO_GE:
+		throw sinsp_exception("'>=' not supported for buffer filters");
+	default:
+		ASSERT(false);
+		throw sinsp_exception("invalid filter operator " + std::to_string((long long) op));
+		return false;
+	}
+}
+
+bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	switch(type)
 	{
@@ -222,7 +247,7 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_CHARBUF:
 		return flt_compare_string(op, (char*)operand1, (char*)operand2);
 	case PT_BYTEBUF:
-		throw sinsp_exception("bytebuf comparison not implemented yet");
+		return flt_compare_buffer(op, (char*)operand1, (char*)operand2, op1_len, op2_len);
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
@@ -245,6 +270,7 @@ sinsp_filter_check::sinsp_filter_check() :
 	m_field = NULL;
 	m_info.m_fields = NULL;
 	m_info.m_nfiedls = -1;
+	m_val_storage_len = 0;
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -475,7 +501,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 	}
 }
 
-void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
+void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype)
 {
 	switch(ptype)
 	{
@@ -518,7 +544,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
 			{
-				uint32_t len = strlen(str);
+				len = strlen(str);
 				if(len >= m_val_storage.size())
 				{
 					throw sinsp_exception("filter parameter too long:" + string(str));
@@ -548,6 +574,15 @@ void sinsp_filter_check::string_to_rawval(const char* str, ppm_param_type ptype)
 			{
 				throw sinsp_exception("unrecognized IP address " + string(str));
 			}
+			break;
+		case PT_BYTEBUF:
+			if(len >= m_val_storage.size())
+			{
+				throw sinsp_exception("filter parameter too long:" + string(str));
+			}
+			
+			memcpy((&m_val_storage[0]), str, len);
+			m_val_storage_len = len;
 			break;
 		default:
 			ASSERT(false);
@@ -599,9 +634,9 @@ int32_t sinsp_filter_check::parse_field_name(const char* str)
 	return max_fldlen;
 }
 
-void sinsp_filter_check::parse_filter_value(const char* str)
+void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len)
 {
-	string_to_rawval(str, m_field->m_type);
+	string_to_rawval(str, len, m_field->m_type);
 }
 
 const filtercheck_field_info* sinsp_filter_check::get_field_info()
@@ -612,19 +647,7 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
 	uint32_t len;
-	uint8_t* extracted_val;
-
-	//
-	// Modify event buffer format, so to extract all data as is
-	// and then restore the right format.
-	//
-	m_inspector->set_buffer_format((sinsp_evt::param_fmt)
-		(m_inspector->get_buffer_format() | sinsp_evt::PF_ASIS));
-
-	extracted_val = extract(evt, &len);
-
-	m_inspector->set_buffer_format((sinsp_evt::param_fmt)
-		(m_inspector->get_buffer_format() & ~sinsp_evt::PF_ASIS));
+	uint8_t* extracted_val = extract(evt, &len);
 
 	if(extracted_val == NULL)
 	{
@@ -634,7 +657,9 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 	return flt_compare(m_cmpop, 
 		m_info.m_fields[m_field_id].m_type, 
 		extracted_val, 
-		&m_val_storage[0]);
+		&m_val_storage[0],
+		len,
+		m_val_storage_len);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -812,9 +837,9 @@ char sinsp_filter::next()
 	}
 }
 
-string sinsp_filter::next_operand(bool expecting_first_operand)
+vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 {
-	string res;
+	vector<char> res;
 	int32_t start;
 	int32_t nums[2];
 	uint32_t num_pos;
@@ -873,6 +898,7 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 				m_scanpos--;
 			}
 
+			res.push_back('\0');
 			return res;
 		}
 
@@ -885,14 +911,14 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 			}
 			else
 			{
-				res += curchar;
+				res.push_back(curchar);
 			}
 			break;
 		case PES_SLASH:
 			if(curchar == '\\')
 			{
 				escape_state = PES_NORMAL;
-				res += curchar;
+				res.push_back(curchar);
 			}
 			else if(curchar == 'x')
 			{
@@ -919,7 +945,7 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 
 			if(num_pos == 2 && escape_state != PES_ERROR)
 			{
-				res += (char)(nums[0] * 16 + nums[1]);
+				res.push_back((char)(nums[0] * 16 + nums[1]));
 
 				num_pos = 0;
 				escape_state = PES_NORMAL;
@@ -942,6 +968,7 @@ string sinsp_filter::next_operand(bool expecting_first_operand)
 	//
 	// End of filter
 	//
+	res.push_back('\0');
 	return res;
 }
 
@@ -1025,22 +1052,23 @@ ppm_cmp_operator sinsp_filter::next_comparison_operator()
 void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 {
 	uint32_t startpos = m_scanpos;
-	string operand1 = next_operand(true);
-	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(operand1, m_inspector, true);
+	vector<char> operand1 = next_operand(true);
+	string str_operand1 = string((char *)&operand1[0]);
+	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(str_operand1, m_inspector, true);
 
 	if(chk == NULL)
 	{
 		throw sinsp_exception("filter error: unrecognized field " + 
-			operand1 + " at pos " + to_string((long long) startpos));
+			str_operand1 + " at pos " + to_string((long long) startpos));
 	}
 
 	ppm_cmp_operator co = next_comparison_operator();
-	string operand2 = next_operand(false);
+	vector<char> operand2 = next_operand(false);
 
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
-	chk->parse_field_name(operand1.c_str());
-	chk->parse_filter_value(operand2.c_str());
+	chk->parse_field_name((char *)&operand1[0]);
+	chk->parse_filter_value((char *)&operand2[0], operand2.size() - 1);
 
 	parent_expr->add_check(chk);
 }

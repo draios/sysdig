@@ -76,7 +76,7 @@ private:
 	char next();
 	bool compare_no_consume(string str);
 
-	string next_operand(bool expecting_first_operand);
+	vector<char> next_operand(bool expecting_first_operand);
 	ppm_cmp_operator next_comparison_operator();
 	void parse_check(sinsp_filter_expression* parent_expr, boolop op);
 	void push_expression(boolop op);

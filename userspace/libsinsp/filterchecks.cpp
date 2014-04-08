@@ -769,7 +769,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.arg", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'resarg.fd' or 'resarg[0]'."},
 	{PT_DYN, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'arg.fd'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
+	{PT_BYTEBUF, EPF_NONE, PF_NA, "evt.buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as an error code string (e.g. 'ENOENT')."},
 	{PT_INT64, EPF_NONE, PF_DEC, "evt.rawres", "event return value, as a number (e.g. -2). Useful for range comparisons."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.failed", "'true' for events that returned an error status."},
@@ -783,6 +783,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 sinsp_filter_check_event::sinsp_filter_check_event()
 {
 	m_first_ts = 0;
+	m_is_compare = false;
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
@@ -876,7 +877,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str)
 	}
 }
 
-void sinsp_filter_check_event::parse_filter_value(const char* str)
+void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 {
 	string val(str);
 
@@ -886,11 +887,11 @@ void sinsp_filter_check_event::parse_filter_value(const char* str)
 		// 'rawarg' is handled in a custom way
 		//
 		ASSERT(m_arginfo != NULL);
-		return sinsp_filter_check::string_to_rawval(str, m_arginfo->type);
+		return sinsp_filter_check::string_to_rawval(str, len, m_arginfo->type);
 	}
 	else
 	{
-		return sinsp_filter_check::parse_filter_value(str);
+		return sinsp_filter_check::parse_filter_value(str, len);
 	}
 }
 
@@ -972,6 +973,21 @@ void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool d
 	}
 
 	*res = buf;
+}
+
+uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
+{
+	const sinsp_evt_param* pi = evt->get_param_value_raw(argname);
+
+	if(pi != NULL)
+	{
+		*len = pi->m_len;
+		return (uint8_t*)pi->m_val;
+	}
+	else
+	{
+		return NULL;
+	}
 }
 
 uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
@@ -1113,19 +1129,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_CPU:
 		return (uint8_t*)&evt->m_cpuid;
 	case TYPE_ARGRAW:
-		{
-			const sinsp_evt_param* pi = evt->get_param_value_raw(m_arginfo->name);
-
-			if(pi != NULL)
-			{
-				*len = pi->m_len;
-				return (uint8_t*)pi->m_val;
-			}
-			else
-			{
-				return NULL;
-			}
-		}
+		return extract_argraw(evt, len, m_arginfo->name);
 		break;
 	case TYPE_ARGSTR:
 		{
@@ -1200,6 +1204,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	case TYPE_BUFFER:
 		{
+			if(m_is_compare)
+			{
+				return extract_argraw(evt, len, "data");
+			}
+
 			const char* resolved_argstr;
 			const char* argstr;
 			argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
@@ -1391,6 +1400,9 @@ char* sinsp_filter_check_event::tostring(sinsp_evt* evt)
 
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 {
+	bool res;
+
+	m_is_compare = true;
 	if(m_field_id == TYPE_ARGRAW)
 	{
 		uint32_t len;
@@ -1403,15 +1415,18 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 
 		ASSERT(m_arginfo != NULL);
 
-		return flt_compare(m_cmpop, 
+		res = flt_compare(m_cmpop,
 			m_arginfo->type, 
 			extracted_val, 
 			&m_val_storage[0]);
 	}
 	else
 	{
-		return sinsp_filter_check::compare(evt);
+		res = sinsp_filter_check::compare(evt);
 	}
+	m_is_compare = false;
+
+	return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1589,7 +1604,7 @@ int32_t rawstring_check::parse_field_name(const char* str)
 	return -1;
 }
 
-void rawstring_check::parse_filter_value(const char* str)
+void rawstring_check::parse_filter_value(const char* str, uint32_t len)
 {
 	ASSERT(false);
 }

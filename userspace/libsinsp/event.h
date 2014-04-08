@@ -99,7 +99,6 @@ public:
 		PF_HEX =      (1 << 3),	///< Hexadecimal output
 		PF_HEXASCII = (1 << 4),	///< Hexadecimal + ASCII output
 		PF_EOLS =     (1 << 5),	///< Normal + end of lines
-		PF_ASIS =     (1 << 6),	///< Data as is, e.g. no filter on binary buffers
 	};
 
 	/*!
