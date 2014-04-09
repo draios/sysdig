@@ -44,68 +44,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 bool should_drop(sinsp_evt *evt);
 #endif
 
-#ifndef _GNU_SOURCE
-//
-// Fallback implementation of memmem
-//
-void* memmem(char* haystack, int hlen, char* needle, int nlen)
-{
-	int i, j;
-
-	if(nlen > hlen)
-	{
-		return NULL;
-	}
-
-	switch(nlen)
-	{
-	case 0:
-		return haystack;
-	case 1:
-		return memchr(haystack, needle[0], hlen);
-	case 2:
-		for(i = 0; i < hlen - nlen + 1; i++)
-		{
-			if(*(uint16_t*)(haystack + i) == *(uint16_t*)needle)
-			{
-				return haystack + i;
-			}
-		}
-		break;
-	case 4:
-		for(i = 0; i < hlen - nlen + 1; i++)
-		{
-			if(*(uint32_t*)(haystack + i) == *(uint32_t*)needle)
-			{
-				return haystack + i;
-			}
-		}
-		break;
-	default:
-		for(i = 0; i < hlen - nlen + 1; i++)
-		{
-			if(haystack[i] == needle[j])
-			{
-				if(j == nlen - 1)
-				{
-					return haystack + i - j;
-				}
-				else
-				{
-					j++;
-				}
-			}
-			else
-			{
-				i -= j;
-				j = 0;
-			}
-		}
-	}
-	return NULL;
-}
-#endif
-
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
