@@ -27,7 +27,7 @@ terminal = require "ansiterminal"
 
 -- Initialization callback
 function on_init()
-	-- Request the fileds that we need
+	-- Request the fields that we need
 	fbuf = chisel.request_field("evt.rawarg.data")
 	fisread = chisel.request_field("evt.is_io_read")
 	fres = chisel.request_field("evt.rawarg.res")
