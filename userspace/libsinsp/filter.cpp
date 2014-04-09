@@ -195,7 +195,8 @@ bool flt_compare_buffer(ppm_cmp_operator op, char* operand1, char* operand2, uin
 	case CO_NE:
 		return op1_len != op2_len || (memcmp(operand1, operand2, op1_len) != 0);
 	case CO_CONTAINS:
-		return (memmem(operand1, op1_len, operand2, op2_len) != NULL);
+//		return (memmem(operand1, op1_len, operand2, op2_len) != NULL);
+		return false;
 	case CO_LT:
 		throw sinsp_exception("'<' not supported for buffer filters");
 	case CO_LE:

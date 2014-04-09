@@ -444,14 +444,13 @@ public:
 
 		sinsp_evt::param_fmt fmt = ch->m_inspector->get_buffer_format();
 
-		switch(fmt)
+		if(fmt & sinsp_evt::PF_JSON)
 		{
-		case sinsp_evt::PF_NORMAL:
-			lua_pushstring(ls, "normal");
-			break;
-		case sinsp_evt::PF_JSON:
 			lua_pushstring(ls, "json");
-			break;
+		}
+		else
+		{
+			lua_pushstring(ls, "normal");
 		}
 
 		return 1;
