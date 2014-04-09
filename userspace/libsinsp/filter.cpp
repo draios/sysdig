@@ -863,7 +863,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	//
 	// If there are quotes, not stop on blank
 	//
-	if(m_fltstr[m_scanpos] == '"')
+	if(m_scanpos < m_scansize && m_fltstr[m_scanpos] == '"')
 	{
 		is_quoted = true;
 		m_scanpos++;
@@ -974,6 +974,10 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	if(escape_state == PES_ERROR)
 	{
 		throw sinsp_exception("filter error: unrecognized escape sequence at " + m_fltstr.substr(start, m_scanpos));
+	}
+	else if(is_quoted)
+	{
+		throw sinsp_exception("filter error: unclosed quotes");
 	}
 
 	//
