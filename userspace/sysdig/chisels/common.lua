@@ -95,31 +95,36 @@ Pick a key-value table and render it to the console in sorted top format
 ]]--
 json = require ("dkjson")
 
-function print_sorted_table(stable, timedelta, result_rendering)
-	sorted_grtable = pairs_top_by_val(stable, top_number, function(t,a,b) return t[b] < t[a] end)
-
-	ofmt = sysdig.get_output_format()
+function print_sorted_table(stable, timedelta, viz_info)
+	local sorted_grtable = pairs_top_by_val(stable, viz_info.top_number, function(t,a,b) return t[b] < t[a] end)
 	
-	if ofmt == "json" then
-		local res = {}
+	if viz_info.output_format == "json" then
+		local jdata = {}
+		local j = 1
 		for k,v in sorted_grtable do
-			res[k] = v
+			jdata[j] = {k, v}
+			j = j + 1
 		end
-		
+			
+		local jinfo = {}
+		jinfo[1] = {name = viz_info.key_fld, desc = viz_info.key_desc, is_key = true}
+		jinfo[2] = {name = viz_info.value_fld, desc = viz_info.value_desc, is_key = false}
+		local res = {data = jdata, info = jinfo}
+			
 		local str = json.encode(res, { indent = true })
 		print(str)
 	else
-		print(extend_string(value_desc, 10) .. key_desc)
+		print(extend_string(viz_info.value_desc, 10) .. viz_info.key_desc)
 		print("------------------------------")
 		
 		for k,v in sorted_grtable do
-			if result_rendering == "none" then
+			if viz_info.result_rendering == "none" then
 				print(extend_string(v, 10) .. k)
-			elseif result_rendering == "bytes" then
+			elseif viz_info.result_rendering == "bytes" then
 				print(extend_string(format_bytes(v), 10) .. k)
-			elseif result_rendering == "time" then
+			elseif viz_info.result_rendering == "time" then
 				print(extend_string(format_time_interval(v), 10) .. k)
-			elseif result_rendering == "timepct" then
+			elseif viz_info.result_rendering == "timepct" then
 				if timedelta ~= 0 then
 					pctstr = string.format("%.2f%%", v / timedelta * 100)
 				else

@@ -64,38 +64,43 @@ args =
 require "common"
 terminal = require "ansiterminal"
 
-top_number = 0
 grtable = {}
-key_fld = ""
-key_desc = ""
-value_fld = ""
-value_desc = ""
 filter = ""
-result_rendering = "none"
 islive = false
+
+vizinfo = 
+{
+	key_fld = "",
+	key_desc = "",
+	value_fld = "",
+	value_desc = "",
+	result_rendering = "none",
+	top_number = 0,
+	output_format = "normal"
+}
 
 -- Argument notification callback
 function on_set_arg(name, val)
 	if name == "key" then
-		key_fld = val
+		vizinfo.key_fld = val
 		return true
 	elseif name == "keydesc" then
-		key_desc = val
+		vizinfo.key_desc = val
 		return true
 	elseif name == "value" then
-		value_fld = val
+		vizinfo.value_fld = val
 		return true
 	elseif name == "valuedesc" then
-		value_desc = val
+		vizinfo.value_desc = val
 		return true
 	elseif name == "filter" then
 		filter = val
 		return true
 	elseif name == "top_number" then
-		top_number = tonumber(val)
+		vizinfo.top_number = tonumber(val)
 		return true
 	elseif name == "result_rendering" then
-		result_rendering = val
+		vizinfo.result_rendering = val
 		return true
 	end
 
@@ -104,8 +109,8 @@ end
 
 function on_init()
 	-- Request the fields we need
-	fkey = chisel.request_field(key_fld)
-	fvalue = chisel.request_field(value_fld)
+	fkey = chisel.request_field(vizinfo.key_fld)
+	fvalue = chisel.request_field(vizinfo.value_fld)
 
 	-- set the filter
 	if filter ~= "" then
@@ -117,13 +122,14 @@ end
 
 function on_capture_start()
 	islive = sysdig.is_live()
+	vizinfo.output_format = sysdig.get_output_format()
 
 	if islive then
 		chisel.set_interval_s(1)
 		terminal.clearscreen()
 		terminal.hidecursor()
 	end
-
+	
 	return true
 end
 
@@ -144,11 +150,13 @@ function on_event()
 	return true
 end
 
-function on_interval(ts_s, ts_ns, delta)
-	terminal.clearscreen()
-	terminal.goto(0, 0)
+function on_interval(ts_s, ts_ns, delta)	
+	if ofmt ~= "json" then
+		terminal.clearscreen()
+		terminal.goto(0, 0)
+	end
 	
-	print_sorted_table(grtable, delta, result_rendering)
+	print_sorted_table(grtable, delta, vizinfo)
 
 	-- Clear the table
 	grtable = {}
@@ -164,7 +172,7 @@ function on_capture_end(ts_s, ts_ns, delta)
 		return true
 	end
 	
-	print_sorted_table(grtable, delta, result_rendering)
+	print_sorted_table(grtable, delta, vizinfo)
 	
 	return true
 end
