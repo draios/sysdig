@@ -24,7 +24,7 @@ args = {}
 
 -- Initialization callback
 function on_init()
-	-- Request the fileds that we need
+	-- Request the fields that we need
 	fbuf = chisel.request_field("evt.rawarg.data")
 
 	-- increase the snaplen so we capture more of the conversation 

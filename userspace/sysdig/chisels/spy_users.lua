@@ -25,7 +25,7 @@ args = {}
 
 -- Initialization callback
 function on_init()
-	-- Request the fileds that we need
+	-- Request the fields that we need
 	fetype = chisel.request_field("evt.type")
 	fexe = chisel.request_field("proc.exe")
 	fargs = chisel.request_field("proc.args")
