@@ -151,7 +151,7 @@ function on_event()
 end
 
 function on_interval(ts_s, ts_ns, delta)	
-	if ofmt ~= "json" then
+	if vizinfo.output_format -~= "json" then
 		terminal.clearscreen()
 		terminal.goto(0, 0)
 	end
