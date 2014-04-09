@@ -93,27 +93,41 @@ end
 --[[ 
 Pick a key-value table and render it to the console in sorted top format
 ]]--
+json = require ("dkjson")
+
 function print_sorted_table(stable, timedelta, result_rendering)
 	sorted_grtable = pairs_top_by_val(stable, top_number, function(t,a,b) return t[b] < t[a] end)
 
-	print(extend_string(value_desc, 10) .. key_desc)
-	print("------------------------------")
+	ofmt = sysdig.get_output_format()
 	
-	for k,v in sorted_grtable do
-		if result_rendering == "none" then
-			print(extend_string(v, 10) .. k)
-		elseif result_rendering == "bytes" then
-			print(extend_string(format_bytes(v), 10) .. k)
-		elseif result_rendering == "time" then
-			print(extend_string(format_time_interval(v), 10) .. k)
-		elseif result_rendering == "timepct" then
-			if timedelta ~= 0 then
-				pctstr = string.format("%.2f%%", v / timedelta * 100)
-			else
-				pctstr = "0.00%"
-			end
+	if ofmt == "json" then
+		local res = {}
+		for k,v in sorted_grtable do
+			res[k] = v
+		end
+		
+		local str = json.encode(res, { indent = true })
+		print(str)
+	else
+		print(extend_string(value_desc, 10) .. key_desc)
+		print("------------------------------")
+		
+		for k,v in sorted_grtable do
+			if result_rendering == "none" then
+				print(extend_string(v, 10) .. k)
+			elseif result_rendering == "bytes" then
+				print(extend_string(format_bytes(v), 10) .. k)
+			elseif result_rendering == "time" then
+				print(extend_string(format_time_interval(v), 10) .. k)
+			elseif result_rendering == "timepct" then
+				if timedelta ~= 0 then
+					pctstr = string.format("%.2f%%", v / timedelta * 100)
+				else
+					pctstr = "0.00%"
+				end
 
-			print(extend_string(pctstr, 10) .. k)	
+				print(extend_string(pctstr, 10) .. k)	
+			end
 		end
 	end
 end

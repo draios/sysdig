@@ -427,7 +427,6 @@ int main(int argc, char **argv)
 	string outfile;
 	int op;
 	uint64_t cnt = -1;
-	bool emitjson = false;
 	bool quiet = false;
 	bool absolute_times = false;
 	bool is_filter_display = false;
@@ -596,14 +595,17 @@ int main(int argc, char **argv)
 				is_filter_display = true;
 				break;
 			case 'j':
+				ASSERT(false);
+				throw sinsp_exception("json output not yet implemented");
+
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
-					emitjson = true;
-					if (emitjson)
-					{
-						ASSERT(false);
-						throw sinsp_exception("json option not yet implemented");
-					}
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return EXIT_SUCCESS;
 				}
+
+				event_buffer_format = sinsp_evt::PF_JSON;
 				break;
 			case 'h':
 				usage();

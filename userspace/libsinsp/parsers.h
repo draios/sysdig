@@ -93,7 +93,9 @@ private:
 	//
 	sinsp* m_inspector;
 
+#ifdef linux
 	pid_t m_sysdig_pid;
+#endif
 
 	// Temporary storage to avoid memory allocation
 	sinsp_evt m_tmp_evt;

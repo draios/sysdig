@@ -432,6 +432,31 @@ public:
 		return 1;
 	}
 
+	static int get_output_format(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		sinsp_evt::param_fmt fmt = ch->m_inspector->get_buffer_format();
+
+		switch(fmt)
+		{
+		case sinsp_evt::PF_NORMAL:
+			lua_pushstring(ls, "normal");
+			break;
+		case sinsp_evt::PF_JSON:
+			lua_pushstring(ls, "json");
+			break;
+		}
+
+		return 1;
+	}
+
 	static int set_event_formatter(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
@@ -525,6 +550,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"set_snaplen", &lua_cbacks::set_snaplen},
 	{"is_live", &lua_cbacks::is_live},
 	{"get_machine_info", &lua_cbacks::get_machine_info},
+	{"get_output_format", &lua_cbacks::get_output_format},
 	{NULL,NULL}
 };
 
