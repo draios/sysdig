@@ -93,7 +93,7 @@ private:
 	//
 	sinsp* m_inspector;
 
-#ifdef linux
+#if !defined (_WIN32) && !defined(__APPLE__)
 	pid_t m_sysdig_pid;
 #endif
 

@@ -73,7 +73,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
-#ifdef linux
+#if !defined (_WIN32) && !defined(__APPLE__)
 	if(m_inspector->is_live() && !m_inspector->is_debug_enabled())
 	{
 		sinsp_threadinfo *evt_thread = evt->get_thread_info();
