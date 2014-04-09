@@ -888,7 +888,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 		else
 		{
 			is_end_of_word = (!is_quoted && (isblank(curchar) || is_bracket(curchar))) ||
-				(is_quoted && curchar == '"');
+				(is_quoted && escape_state != PES_SLASH && curchar == '"');
 		}
 
 		if(is_end_of_word)
@@ -926,18 +926,19 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 			}
 			break;
 		case PES_SLASH:
-			if(curchar == '\\')
+			switch(curchar)
 			{
+			case '\\':
+			case '"':
 				escape_state = PES_NORMAL;
 				res.push_back(curchar);
-			}
-			else if(curchar == 'x')
-			{
+				break;
+			case 'x':
 				escape_state = PES_NUMBER;
-			}
-			else
-			{
+				break;
+			default:
 				escape_state = PES_ERROR;
+				break;
 			}
 			break;
 		case PES_NUMBER:
