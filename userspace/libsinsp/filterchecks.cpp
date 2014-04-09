@@ -539,11 +539,11 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 {
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.pid", "the id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exe", "the full name (including the path) of the executable generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "the name (excluding thr path) of the executable generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "the name (excluding the path) of the executable generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "the arguments passed on the command line when starting the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "the current working directory of the event."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads of that the process generating the event currently has."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.parentname", "the name (excluding thr path) of the parent of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.parentname", "the name (excluding the path) of the parent of the process generating the event."},
 	{PT_INT64, EPF_NONE, PF_DEC, "thread.tid", "the id of the thread generating the event."},
 	{PT_BOOL, EPF_NONE, PF_NA, "thread.ismain", "'true' if the thread generating the event is the main one in the process."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "thread.exectime", "Thread execution time. Exported only by switch events."},
