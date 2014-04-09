@@ -37,7 +37,7 @@ const chiseldir_info g_chisel_dirs_array[] =
 #endif
 	{false, "./"},
 	{false, "./chisels/"},
-	{true, "~/chisels/"},
+	{true, "~/.chisels/"},
 };
 
 #ifndef _WIN32

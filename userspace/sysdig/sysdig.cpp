@@ -84,7 +84,7 @@ static void usage()
 "                    they must be specified in the command line after the name.\n"
 " -cl, --list-chisels\n"
 "                    lists the available chisels. Looks for chisels in .,\n"
-"                    ./chisels, ~/chisels and /usr/share/sysdig/chisels.\n"
+"                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
