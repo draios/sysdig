@@ -19,38 +19,28 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _GNU_SOURCE
 #include <string.h>
 
-void *memmem(const void *haystack, size_t haystack_len,
-	const void *needle, size_t needle_len)
+void *memmem(const void *haystack, size_t haystacklen,
+	const void *needle, size_t needlelen)
 {
-	const char *begin = (const char *)haystack;
-	const char *last_possible = begin + haystack_len - needle_len;
-	const char *tail = (const char *)needle;
-	char point;
+	const unsigned char *ptr;
+	const unsigned char *end;
 
-	//
-	// The first occurrence of the empty string is deemed to occur at
-	// the beginning of the string.
-	//
-	if(needle_len == 0)
+	if(needlelen == 0)
 	{
-		return (void *)begin;
+		return (void *)haystack;
 	}
 
-	//
-	// Sanity check, otherwise the loop might search through the whole
-	// memory.
-	//
-	if(haystack_len < needle_len)
+	if(haystacklen < needlelen)
 	{
 		return NULL;
 	}
 
-	point = *tail++;
-	for(; begin <= last_possible; begin++)
+	end = (const unsigned char *)haystack + haystacklen - needlelen;
+	for(ptr = (const unsigned char *)haystack; ptr <= end; ptr++)
 	{
-		if(*begin == point && !memcmp(begin + 1, tail, needle_len - 1))
+		if(!memcmp(ptr, needle, needlelen))
 		{
-		        return (void *)begin;
+			return (void *)ptr;
 		}
 	}
 
