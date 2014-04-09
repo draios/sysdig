@@ -22,7 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // to configure everything with crappy documentation and code that doesn't compile,
 // I decided that I agree with this http://mortoray.com/2012/07/20/why-i-dont-use-a-parser-generator/
 // and that I'm going with a manually written parser. The grammar is simple enough that it's not
-// going to take more time. On the other hand I will avoid a crappy dependency that breaks my 
+// going to take more time. On the other hand I will avoid a crappy dependency that breaks my
 // code at every new release, and I will have a cleaner and easier to understand code base.
 //
 
@@ -42,7 +42,7 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 {
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW FILTER CHECK CLASSES HERE
-	//////////////////////////////////////////////////////////////////////////////	
+	//////////////////////////////////////////////////////////////////////////////
 	add_filter_check(new sinsp_filter_check_fd());
 	add_filter_check(new sinsp_filter_check_thread());
 	add_filter_check(new sinsp_filter_check_event());
@@ -75,7 +75,7 @@ void sinsp_filter_check_list::get_all_fields(OUT vector<const filter_check_info*
 	}
 }
 
-sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(string name, 
+sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(string name,
 																		   sinsp* inspector,
 																		   bool do_exact_check)
 {
@@ -654,9 +654,9 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 		return false;
 	}
 
-	return flt_compare(m_cmpop, 
-		m_info.m_fields[m_field_id].m_type, 
-		extracted_val, 
+	return flt_compare(m_cmpop,
+		m_info.m_fields[m_field_id].m_type,
+		extracted_val,
 		&m_val_storage[0],
 		len,
 		m_val_storage_len);
@@ -701,7 +701,7 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 	uint32_t size = m_checks.size();
 	bool res = true;
 	bool chkres;
-	 
+
 	for(j = 0; j < size; j++)
 	{
 		sinsp_filter_check* chk = m_checks[j];
@@ -840,6 +840,7 @@ char sinsp_filter::next()
 vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 {
 	vector<char> res;
+	bool is_quoted = false;
 	int32_t start;
 	int32_t nums[2];
 	uint32_t num_pos;
@@ -860,6 +861,15 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	}
 
 	//
+	// If there are quotes, not stop on blank
+	//
+	if(m_scanpos < m_scansize && m_fltstr[m_scanpos] == '"')
+	{
+		is_quoted = true;
+		m_scanpos++;
+	}
+
+	//
 	// Mark the beginning of the word
 	//
 	start = m_scanpos;
@@ -877,7 +887,8 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 		}
 		else
 		{
-			is_end_of_word = (isblank(curchar) || is_bracket(curchar));
+			is_end_of_word = (!is_quoted && (isblank(curchar) || is_bracket(curchar))) ||
+				(is_quoted && escape_state != PES_SLASH && curchar == '"');
 		}
 
 		if(is_end_of_word)
@@ -915,18 +926,19 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 			}
 			break;
 		case PES_SLASH:
-			if(curchar == '\\')
+			switch(curchar)
 			{
+			case '\\':
+			case '"':
 				escape_state = PES_NORMAL;
 				res.push_back(curchar);
-			}
-			else if(curchar == 'x')
-			{
+				break;
+			case 'x':
 				escape_state = PES_NUMBER;
-			}
-			else
-			{
+				break;
+			default:
 				escape_state = PES_ERROR;
+				break;
 			}
 			break;
 		case PES_NUMBER:
@@ -963,6 +975,10 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	if(escape_state == PES_ERROR)
 	{
 		throw sinsp_exception("filter error: unrecognized escape sequence at " + m_fltstr.substr(start, m_scanpos));
+	}
+	else if(is_quoted)
+	{
+		throw sinsp_exception("filter error: unclosed quotes");
 	}
 
 	//
@@ -1058,7 +1074,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 
 	if(chk == NULL)
 	{
-		throw sinsp_exception("filter error: unrecognized field " + 
+		throw sinsp_exception("filter error: unrecognized field " +
 			str_operand1 + " at pos " + to_string((long long) startpos));
 	}
 

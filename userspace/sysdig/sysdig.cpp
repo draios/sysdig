@@ -130,7 +130,7 @@ static void usage()
 " -v, --verbose      Verbose output.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
-" -x, --print-hex   Print data buffers in hex.\n"
+" -x, --print-hex    Print data buffers in hex.\n"
 " -X, --print-hex-ascii\n"
 "                    Print data buffers in hex and ASCII.\n"
 "\n"
