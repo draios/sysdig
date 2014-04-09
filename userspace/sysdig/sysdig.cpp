@@ -39,6 +39,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 bool ctrl_c_pressed = false;
+#ifdef HAS_CHISELS
+vector<sinsp_chisel*> g_chisels;
+#endif
 
 static void usage();
 
@@ -79,10 +82,12 @@ static void usage()
 "                    end-of-lines. This is useful to only display human-readable\n"
 "                    data.\n"
 " -a, --abstime      Show absolute event timestamps\n"
+#ifdef HAS_CHISELS
 " -c <chiselname> <chiselargs>, --chisel  <chiselname> <chiselargs>\n"
 "                    run the specified chisel. If the chisel require arguments,\n"
 "                    they must be specified in the command line after the name.\n"
 " -cl, --list-chisels\n"
+#endif
 "                    lists the available chisels. Looks for chisels in .,\n"
 "                    ./chisels, ~/chisels and /usr/share/sysdig/chisels.\n"
 " -d, --displayflt   Make the given filter a display one\n"
@@ -92,9 +97,11 @@ static void usage()
 "                    efficient, but can cause state (e.g. FD names) to be lost\n"
 " -D, --debug        Capture events about sysdig itself\n"
 " -h, --help         Print this page\n"
+#ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
 "                    Get a longer description and the arguments associated with\n"
 "                    a chisel found in the -cl option list.\n"
+#endif
 " -j, --json         Emit output as json\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -204,6 +211,60 @@ void print_summary_table(sinsp* inspector,
 	}
 }
 
+static void initialize_chisels()
+{
+#ifdef HAS_CHISELS
+	for(uint32_t j = 0; j < g_chisels.size(); j++)
+	{
+		g_chisels[j]->on_init();
+	}
+#endif
+}
+
+static void free_chisels()
+{
+#ifdef HAS_CHISELS
+	for(vector<sinsp_chisel*>::iterator it = g_chisels.begin();
+		it != g_chisels.end(); ++it)
+	{
+		delete *it;
+	}
+#endif
+}
+
+static void chisels_on_capture_start()
+{
+#ifdef HAS_CHISELS
+	for(uint32_t j = 0; j < g_chisels.size(); j++)
+	{
+		g_chisels[j]->on_capture_start();
+	}
+#endif
+}
+
+static void chisels_on_capture_end()
+{
+#ifdef HAS_CHISELS
+	for(vector<sinsp_chisel*>::iterator it = g_chisels.begin();
+		it != g_chisels.end(); ++it)
+	{
+		(*it)->on_capture_end();
+	}
+#endif
+}
+
+static void chisels_do_timeout(sinsp_evt* ev)
+{
+#ifdef HAS_CHISELS
+	for(vector<sinsp_chisel*>::iterator it = g_chisels.begin();
+		it != g_chisels.end(); ++it)
+	{
+		(*it)->do_timeout(ev);
+	}
+#endif
+}
+
+
 //
 // Event processing loop
 //
@@ -212,7 +273,6 @@ captureinfo do_inspect(sinsp* inspector,
 					   bool quiet,
 					   bool absolute_times,
 					   sinsp_filter* display_filter,
-					   vector<sinsp_chisel*>* chisels,
 					   vector<summary_table_entry>* summary_table,
 					   sinsp_evt_formatter* formatter)
 {
@@ -236,12 +296,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// we reached the event count specified with -n.
 			// Notify the chisels that we're exiting.
 			//
-			for(vector<sinsp_chisel*>::iterator it = chisels->begin();
-				it != chisels->end(); ++it)
-			{
-				(*it)->on_capture_end();
-			}
-
+			chisels_on_capture_end();
 			break;
 		}
 
@@ -255,10 +310,7 @@ captureinfo do_inspect(sinsp* inspector,
 				// The event has been dropped by the filtering system.
 				// Give the chisels a chance to run their timeout logic.
 				//
-				for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
-				{
-					(*it)->do_timeout(ev);
-				}
+				chisels_do_timeout(ev);
 			}
 			continue;
 		}
@@ -268,11 +320,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Reached the end of a trace file.
 			// Notify the chisels that we're exiting.
 			//
-			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
-			{
-				(*it)->on_capture_end();
-			}
-
+			chisels_on_capture_end();
 			break;
 		}
 		else if(res != SCAP_SUCCESS)
@@ -281,11 +329,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Event read error.
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
-			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
-			{
-				(*it)->on_capture_end();
-			}
-
+			chisels_on_capture_end();
 			cerr << "res = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
@@ -302,9 +346,10 @@ captureinfo do_inspect(sinsp* inspector,
 		//
 		// If there are chisels to run, run them
 		//
-		if(!chisels->empty())
+#ifdef HAS_CHISELS
+		if(!g_chisels.empty())
 		{
-			for(vector<sinsp_chisel*>::iterator it = chisels->begin(); it != chisels->end(); ++it)
+			for(vector<sinsp_chisel*>::iterator it = g_chisels.begin(); it != g_chisels.end(); ++it)
 			{
 				if((*it)->run(ev) == false)
 				{
@@ -313,6 +358,7 @@ captureinfo do_inspect(sinsp* inspector,
 			}
 		}
 		else
+#endif
 		{
 			//
 			// If we're supposed to summarize, increase the count for this event
@@ -394,7 +440,6 @@ int main(int argc, char **argv)
 	string output_format;
 	uint32_t snaplen = 0;
 	int long_index = 0;
-	vector<sinsp_chisel*> chisels;
 	int32_t n_filterargs = 0;
 	int cflag = 0;
 	string cname;
@@ -405,12 +450,16 @@ int main(int argc, char **argv)
 	{
 		{"print-ascii", no_argument, 0, 'A' },
 		{"abstimes", no_argument, 0, 'a' },
+#ifdef HAS_CHISELS
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, &cflag, 1 },
+#endif
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
 		{"help", no_argument, 0, 'h' },
+#ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
+#endif
 		{"json", no_argument, 0, 'j' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
@@ -435,7 +484,9 @@ int main(int argc, char **argv)
 	{
 		inspector = new sinsp();
 
+#ifdef HAS_CHISELS
 		inspector->add_chisel_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR);
+#endif
 
 		//
 		// Parse the args
@@ -467,6 +518,7 @@ int main(int argc, char **argv)
 				{
 					cname = optarg;
 				}
+#ifdef HAS_CHISELS
 			case 'c':
 				{
 					if(cflag == 0)
@@ -508,12 +560,14 @@ int main(int argc, char **argv)
 
 					ch->set_args(&args);
 
-					chisels.push_back(ch);
+					g_chisels.push_back(ch);
 				}
+#endif
 				break;
 			case 'D':
 				inspector->set_debug_mode(true);
 				break;
+#ifdef HAS_CHISELS
 			// --chisel-info and -i
 			case 'i':
 				{
@@ -536,6 +590,7 @@ int main(int argc, char **argv)
 					throw sinsp_exception("chisel " + cname + " not found - use -cl to list them.");
 				}
 				break;
+#endif
 
 			case 'd':
 				is_filter_display = true;
@@ -749,13 +804,7 @@ int main(int argc, char **argv)
 		//
 		sinsp_evt_formatter formatter(inspector, output_format);
 
-		//
-		// Initialize the chisels
-		//
-		for(uint32_t j = 0; j < chisels.size(); j++)
-		{
-			chisels[j]->on_init();
-		}
+		initialize_chisels();
 
 		//
 		// Launch the capture
@@ -840,17 +889,13 @@ int main(int argc, char **argv)
 		//
 		// Notify the chisels that the capture is starting
 		//
-		for(uint32_t j = 0; j < chisels.size(); j++)
-		{
-			chisels[j]->on_capture_start();
-		}
+		chisels_on_capture_start();
 
 		cinfo = do_inspect(inspector,
 			cnt,
 			quiet,
 			absolute_times,
 			display_filter,
-			&chisels,
 			summary_table,
 			&formatter);
 
@@ -891,13 +936,7 @@ exit:
 		print_summary_table(inspector, summary_table, 100);
 	}
 
-	//
-	// Free the chisels
-	//
-	for(vector<sinsp_chisel*>::iterator it = chisels.begin(); it != chisels.end(); ++it)
-	{
-		delete *it;
-	}
+	free_chisels();
 
 	if(inspector)
 	{

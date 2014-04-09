@@ -234,6 +234,7 @@ void list_events(sinsp* inspector)
 	}
 }
 
+#ifdef HAS_CHISELS
 struct summary_chisel_comparer
 {
     bool operator() (const chisel_desc& first, const chisel_desc& second) const 
@@ -369,3 +370,4 @@ void list_chisels(vector<chisel_desc>* chlist)
 
 	printf("\nUse the -i flag to get detailed information about a specific chisel\n");
 }
+#endif // HAS_CHISELS

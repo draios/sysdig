@@ -29,6 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 
+#ifdef HAS_CHISELS
 const chiseldir_info g_chisel_dirs_array[] =
 {
 	{false, ""}, // file as is
@@ -39,6 +40,7 @@ const chiseldir_info g_chisel_dirs_array[] =
 	{false, "./chisels/"},
 	{true, "~/chisels/"},
 };
+#endif
 
 #ifndef _WIN32
 char* realpath_ex(const char *path, char *buff) 
@@ -70,7 +72,9 @@ sinsp_initializer g_initializer;
 #ifdef HAS_FILTERING
 sinsp_filter_check_list g_filterlist;
 #endif
+#ifdef HAS_CHISELS
 vector<chiseldir_info>* g_chisel_dirs = NULL;
+#endif
 
 //
 // loading time initializations
@@ -88,6 +92,7 @@ sinsp_initializer::sinsp_initializer()
 	//
 	g_logger.set_severity(sinsp_logger::SEV_DEBUG);
 
+#ifdef HAS_CHISELS
 	//
 	// Init the chisel directory list
 	//
@@ -124,6 +129,7 @@ sinsp_initializer::sinsp_initializer()
 			g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
 		}
 	}
+#endif // HAS_CHISELS
 
 	//
 	// Sockets initialization on windows
@@ -137,10 +143,12 @@ sinsp_initializer::sinsp_initializer()
 
 sinsp_initializer::~sinsp_initializer()
 {
+#ifdef HAS_CHISELS
 	if(g_chisel_dirs)
 	{
 		delete g_chisel_dirs;
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -38,7 +38,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //#include "drfilterParser.h"
 
 extern sinsp_evttables g_infotables;
+#ifdef HAS_CHISELS
 extern vector<chiseldir_info>* g_chisel_dirs;
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
@@ -748,6 +750,7 @@ sinsp_evttables* sinsp::get_event_info_tables()
 
 void sinsp::add_chisel_dir(string dirname)
 {
+#ifdef HAS_CHISELS
 	if(dirname[dirname.size() -1] != '/')
 	{
 		dirname += "/";
@@ -759,6 +762,7 @@ void sinsp::add_chisel_dir(string dirname)
 	ncdi.m_need_to_resolve = false;
 
 	g_chisel_dirs->push_back(ncdi);
+#endif
 }
 
 void sinsp::set_buffer_format(sinsp_evt::param_fmt format)
