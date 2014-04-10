@@ -126,8 +126,10 @@ function on_capture_start()
 
 	if islive then
 		chisel.set_interval_s(1)
-		terminal.clearscreen()
-		terminal.hidecursor()
+		if vizinfo.output_format ~= "json" then
+			terminal.clearscreen()
+			terminal.hidecursor()
+		end
 	end
 	
 	return true
@@ -151,12 +153,12 @@ function on_event()
 end
 
 function on_interval(ts_s, ts_ns, delta)	
-	if ofmt ~= "json" then
+	if vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
 		terminal.goto(0, 0)
 	end
 	
-	print_sorted_table(grtable, ts_s, ts_ns, delta, vizinfo)
+	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 
 	-- Clear the table
 	grtable = {}
@@ -165,14 +167,14 @@ function on_interval(ts_s, ts_ns, delta)
 end
 
 function on_capture_end(ts_s, ts_ns, delta)
-	if islive then
+	if islive and vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
 		terminal.goto(0 ,0)
 		terminal.showcursor()
 		return true
 	end
 	
-	print_sorted_table(grtable, ts_s, ts_ns, delta, vizinfo)
+	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 	
 	return true
 end
