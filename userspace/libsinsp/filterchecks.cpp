@@ -656,6 +656,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "the arguments passed on the command line when starting the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "the current working directory of the event."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads of that the process generating the event currently has."},
+	{PT_INT64, EPF_NONE, PF_DEC, "proc.parentpid", "the pid of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.parentname", "the name (excluding the path) of the parent of the process generating the event."},
 	{PT_INT64, EPF_NONE, PF_DEC, "thread.tid", "the id of the thread generating the event."},
 	{PT_BOOL, EPF_NONE, PF_NA, "thread.ismain", "'true' if the thread generating the event is the main one in the process."},
@@ -781,6 +782,24 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			return (uint8_t*)&m_u64val;
+		}
+	case TYPE_PARENTPID:
+		if(tinfo->is_main_thread())
+		{
+			return (uint8_t*)&tinfo->m_ptid;
+		}
+		else
+		{
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
+
+			if(mt != NULL)
+			{
+				return (uint8_t*)&mt->m_ptid;
+			}
+			else
+			{
+				return NULL;
+			}
 		}
 	case TYPE_PARENTNAME:
 		{
