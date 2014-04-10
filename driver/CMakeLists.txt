@@ -8,7 +8,7 @@ add_custom_target(driver ALL
 	COMMAND sed -i 's/^PACKAGE_VERSION=.*/PACKAGE_VERSION="${SYSDIG_VERSION}"/g' dkms.conf
 	COMMAND sed -i 's/^DKMS_VERSION=.*/DKMS_VERSION="${SYSDIG_VERSION}"/g' ../scripts/debian/postinst
 	COMMAND sed -i 's/^DKMS_VERSION=.*/DKMS_VERSION="${SYSDIG_VERSION}"/g' ../scripts/debian/prerm
-	COMMAND sed -i 's/^ccflags-y := .*/ccflags-y := "${KBUILD_FLAGS}"/g' Makefile
+	COMMAND sed -i 's/^ccflags-y := .*/ccflags-y := ${KBUILD_FLAGS}/g' Makefile
 	COMMAND make
 	COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")

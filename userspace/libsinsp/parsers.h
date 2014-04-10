@@ -93,7 +93,9 @@ private:
 	//
 	sinsp* m_inspector;
 
+#if !defined (_WIN32) && !defined(__APPLE__)
 	int64_t m_sysdig_pid;
+#endif
 
 	// Temporary storage to avoid memory allocation
 	sinsp_evt m_tmp_evt;
