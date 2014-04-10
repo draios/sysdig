@@ -89,7 +89,7 @@ static void usage()
 " -cl, --list-chisels\n"
 #endif
 "                    lists the available chisels. Looks for chisels in .,\n"
-"                    ./chisels, ~/chisels and /usr/share/sysdig/chisels.\n"
+"                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
