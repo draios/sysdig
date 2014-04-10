@@ -33,6 +33,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 
+#ifndef _GNU_SOURCE
+//
+// Fallback implementation of memmem
+//
+void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen);
+#endif
+
 extern sinsp_filter_check_list g_filterlist;
 
 ///////////////////////////////////////////////////////////////////////////////

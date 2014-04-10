@@ -13,6 +13,7 @@ add_library(sinsp STATIC
 	filter.cpp
 	filterchecks.cpp
 	ifinfo.cpp
+	memmem.cpp
 	internal_metrics.cpp
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
