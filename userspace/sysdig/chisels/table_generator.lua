@@ -55,7 +55,7 @@ args =
 		argtype = "string"
 	},
 	{
-		name = "result_rendering", 
+		name = "value_units", 
 		description = "how to render the values in the result. Can be 'bytes', 'time', 'timepct', or 'none'.", 
 		argtype = "string"
 	},
@@ -74,7 +74,7 @@ vizinfo =
 	key_desc = "",
 	value_fld = "",
 	value_desc = "",
-	result_rendering = "none",
+	value_units = "none",
 	top_number = 0,
 	output_format = "normal"
 }
@@ -99,8 +99,8 @@ function on_set_arg(name, val)
 	elseif name == "top_number" then
 		vizinfo.top_number = tonumber(val)
 		return true
-	elseif name == "result_rendering" then
-		vizinfo.result_rendering = val
+	elseif name == "value_units" then
+		vizinfo.value_units = val
 		return true
 	end
 
@@ -151,12 +151,12 @@ function on_event()
 end
 
 function on_interval(ts_s, ts_ns, delta)	
-	if vizinfo.output_format -~= "json" then
+	if ofmt ~= "json" then
 		terminal.clearscreen()
 		terminal.goto(0, 0)
 	end
 	
-	print_sorted_table(grtable, delta, vizinfo)
+	print_sorted_table(grtable, ts_s, ts_ns, delta, vizinfo)
 
 	-- Clear the table
 	grtable = {}
@@ -172,7 +172,7 @@ function on_capture_end(ts_s, ts_ns, delta)
 		return true
 	end
 	
-	print_sorted_table(grtable, delta, vizinfo)
+	print_sorted_table(grtable, ts_s, ts_ns, delta, vizinfo)
 	
 	return true
 end

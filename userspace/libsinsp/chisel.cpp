@@ -389,6 +389,21 @@ public:
 		return 0;
 	}
 
+	static int make_ts(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		uint32_t op1 = lua_tointeger(ls, 1);
+		lua_pop(ls, 1);
+		uint32_t op2 = lua_tointeger(ls, 2);
+		lua_pop(ls, 1);
+
+		uint64_t sum = (uint64_t)op1 * ONE_SECOND_IN_NS + op2;
+
+		lua_pushstring(ls, to_string(sum).c_str());
+		return 1;
+	}
+
 	static int is_live(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
@@ -550,6 +565,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"is_live", &lua_cbacks::is_live},
 	{"get_machine_info", &lua_cbacks::get_machine_info},
 	{"get_output_format", &lua_cbacks::get_output_format},
+	{"make_ts", &lua_cbacks::make_ts},
 	{NULL,NULL}
 };
 
