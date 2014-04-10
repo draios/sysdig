@@ -400,7 +400,7 @@ public:
 
 		uint64_t sum = (uint64_t)op1 * ONE_SECOND_IN_NS + op2;
 
-		lua_pushstring(ls, to_string(sum).c_str());
+		lua_pushstring(ls, to_string((long long) sum).c_str());
 		return 1;
 	}
 
