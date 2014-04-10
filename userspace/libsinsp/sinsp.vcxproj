@@ -99,6 +99,7 @@
     <ClCompile Include="ifinfo.cpp" />
     <ClCompile Include="internal_metrics.cpp" />
     <ClCompile Include="logger.cpp" />
+    <ClCompile Include="memmem.cpp" />
     <ClCompile Include="sinsp.cpp" />
     <ClCompile Include="parsers.cpp" />
     <ClCompile Include="stats.cpp" />

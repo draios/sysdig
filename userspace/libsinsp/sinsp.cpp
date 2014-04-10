@@ -789,3 +789,8 @@ bool sinsp::is_debug_enabled()
 {
 	return m_isdebug_enabled;
 }
+
+sinsp_parser* sinsp::get_parser()
+{
+	return m_parser;
+}

@@ -117,7 +117,6 @@ field_not_found:
 	// it's very likely that you've forgotten to add your filter to the list in
 	// the constructor
 	//
-	ASSERT(false);
 	return NULL;
 }
 

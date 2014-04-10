@@ -35,13 +35,22 @@ public:
 	void process_event(sinsp_evt* evt);
 	void erase_fd(erase_fd_params* params);
 
+	//
+	// Get the enter event matching the last received event
+	//
+	bool retrieve_enter_event(sinsp_evt* enter_evt, sinsp_evt* exit_evt);
+
+	//
+	// Combine the openat arguments into a full file name
+	//
+	static void parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir);
+
 private:
 	//
 	// Helpers
 	//
 	bool reset(sinsp_evt *evt);
 	void store_event(sinsp_evt* evt);
-	bool retrieve_enter_event(sinsp_evt* enter_evt, sinsp_evt* exit_evt);
 
 	//
 	// Parsers

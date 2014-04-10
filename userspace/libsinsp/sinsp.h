@@ -453,6 +453,8 @@ public:
 	//
 	uint32_t reserve_thread_memory(uint32_t size);
 
+	sinsp_parser* get_parser();
+
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE

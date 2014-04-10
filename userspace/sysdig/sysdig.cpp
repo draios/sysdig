@@ -595,7 +595,7 @@ int main(int argc, char **argv)
 				is_filter_display = true;
 				break;
 			case 'j':
-				throw sinsp_exception("json output not yet implemented");
+//				throw sinsp_exception("json output not yet implemented");
 
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{

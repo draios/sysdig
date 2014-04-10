@@ -852,6 +852,48 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	return;
 }
 
+void sinsp_parser::parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir)
+{
+	bool is_absolute = (name[0] == '/');
+	string tdirstr;
+
+	if(is_absolute)
+	{
+		//
+		// The path is absoulte.
+		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
+		// and bsolute path, and openat succeeds.
+		//
+		*sdir = ".";
+	}
+	else if(dirfd == PPM_AT_FDCWD)
+	{
+		*sdir = evt->m_tinfo->get_cwd();
+	}
+	else
+	{
+		evt->m_fdinfo = evt->m_tinfo->get_fd(dirfd);
+
+		if(evt->m_fdinfo == NULL)
+		{
+			ASSERT(false);
+			*sdir = "<UNKNOWN>";
+		}
+		else
+		{
+			if(evt->m_fdinfo->m_name[evt->m_fdinfo->m_name.length()] == '/')
+			{
+				*sdir = evt->m_fdinfo->m_name;
+			}
+			else
+			{
+				tdirstr = evt->m_fdinfo->m_name + '/';
+				*sdir = tdirstr;
+			}
+		}
+	}
+}
+
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
@@ -863,7 +905,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	sinsp_fdinfo_t fdi;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	string sdir;
-	string tdirstr;
 
 	ASSERT(evt->m_tinfo);
 
@@ -929,43 +970,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
 
-		bool is_absolute = (name[0] == '/');
-
-		if(is_absolute)
-		{
-			//
-			// The path is absoulte.
-			// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
-			// and bsolute path, and openat succeeds.
-			//
-			sdir = ".";
-		}
-		else if(dirfd == PPM_AT_FDCWD)
-		{
-			sdir = evt->m_tinfo->get_cwd();
-		}
-		else
-		{
-			evt->m_fdinfo = evt->m_tinfo->get_fd(dirfd);
-
-			if(evt->m_fdinfo == NULL)
-			{
-				ASSERT(false);
-				sdir = "<UNKNOWN>";
-			}
-			else
-			{
-				if(evt->m_fdinfo->m_name[evt->m_fdinfo->m_name.length()] == '/')
-				{
-					sdir = evt->m_fdinfo->m_name;
-				}
-				else
-				{
-					tdirstr = evt->m_fdinfo->m_name + '/';
-					sdir = tdirstr;
-				}
-			}
-		}
+		parse_openat_dir(evt, name, dirfd, &sdir);
 	}
 	else
 	{

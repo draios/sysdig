@@ -200,15 +200,16 @@ public:
 		TYPE_FDTYPE = 1,
 		TYPE_FDTYPECHAR = 2,
 		TYPE_FDNAME = 3,
-		TYPE_IP = 4,
-		TYPE_CLIENTIP = 5,
-		TYPE_SERVERIP = 6,
-		TYPE_PORT = 7,
-		TYPE_CLIENTPORT = 8,
-		TYPE_SERVERPORT = 9,
-		TYPE_L4PROTO = 10,
-		TYPE_SOCKFAMILY = 11,
-		TYPE_IS_SERVER = 12,
+		TYPE_DIRECTORY = 4,
+		TYPE_IP = 5,
+		TYPE_CLIENTIP = 6,
+		TYPE_SERVERIP = 7,
+		TYPE_PORT = 8,
+		TYPE_CLIENTPORT = 9,
+		TYPE_SERVERPORT = 10,
+		TYPE_L4PROTO = 11,
+		TYPE_SOCKFAMILY = 12,
+		TYPE_IS_SERVER = 13,
 	};
 
 	enum fd_type
@@ -245,6 +246,8 @@ public:
 	uint32_t m_tbool;
 
 private:
+	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len);
+	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len);
 	bool extract_fd(sinsp_evt *evt);
 };
 
