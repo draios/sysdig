@@ -77,9 +77,8 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
 
 	pagefault_disable();
 
-	if (likely(ppm_access_ok(VERIFY_READ, from, n))) {
+	if (likely(ppm_access_ok(VERIFY_READ, from, n)))
 		res = __copy_from_user_inatomic(to, from, n);
-	}
 
 	pagefault_enable();
 
@@ -106,9 +105,8 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 		 * Read bytes_to_read bytes at a time, and look for the terminator. Should be fast
 		 * since the copy_from_user is optimized for the processor
 		 */
-		if (n < bytes_to_read) {
+		if (n < bytes_to_read)
 			bytes_to_read = n;
-		}
 
 		if (!ppm_access_ok(VERIFY_READ, from, n)) {
 			res = -1;
@@ -174,9 +172,8 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
 					(const char __user *)(unsigned long)val, args->arg_data_size);
 
-				if (unlikely(len < 0)) {
+				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
-				}
 			} else {
 				char *dest = strncpy(args->buffer + args->arg_data_offset,
 								(const char *)(unsigned long)val,
@@ -216,9 +213,8 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 							(const void __user *)(unsigned long)val,
 							val_len);
 
-					if (unlikely(len != 0)) {
+					if (unlikely(len != 0))
 						return PPM_FAILURE_INVALID_USER_MEMORY;
-					}
 
 					len = val_len;
 				} else {
@@ -554,11 +550,10 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		 * Put a 0 at the end of struct sockaddr_un because
 		 * the user might not have considered it in the length
 		 */
-		if (ulen == sizeof(struct sockaddr_storage)) {
+		if (ulen == sizeof(struct sockaddr_storage))
 			*(((char *)usrsockaddr_un) + ulen - 1) = 0;
-		} else {
+		else
 			*(((char *)usrsockaddr_un) + ulen) = 0;
-		}
 
 		/*
 		 * Pack the data into the target buffer
@@ -627,9 +622,8 @@ u16 fd_to_socktuple(int fd,
 		 * This usually happens if the call failed without being able to establish a connection,
 		 * i.e. if it didn't return something like SE_EINPROGRESS.
 		 */
-		if (sock) {
+		if (sock)
 			sockfd_put(sock);
-		}
 		return 0;
 	}
 
@@ -781,17 +775,15 @@ u16 fd_to_socktuple(int fd,
 			 * Put a 0 at the end of struct sockaddr_un because
 			 * the user might not have considered it in the length
 			 */
-			if (ulen == sizeof(struct sockaddr_storage)) {
+			if (ulen == sizeof(struct sockaddr_storage))
 				*(((char *)usrsockaddr_un) + ulen - 1) = 0;
-			} else {
+			else
 				*(((char *)usrsockaddr_un) + ulen) = 0;
-			}
 
-			if (is_inbound) {
+			if (is_inbound)
 				us_name = ((struct sockaddr_un *) &sock_address)->sun_path;
-			} else {
+			else
 				us_name = usrsockaddr_un->sun_path;
-			}
 		}
 
 		ASSERT(us_name);
@@ -817,17 +809,14 @@ u16 fd_to_socktuple(int fd,
 
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
 {
-	if (unlikely(ulen < 0 || ulen > sizeof(struct sockaddr_storage))) {
+	if (unlikely(ulen < 0 || ulen > sizeof(struct sockaddr_storage)))
 		return -EINVAL;
-	}
 
-	if (unlikely(ulen == 0)) {
+	if (unlikely(ulen == 0))
 		return 0;
-	}
 
-	if (unlikely(ppm_copy_from_user(kaddr, uaddr, ulen))) {
+	if (unlikely(ppm_copy_from_user(kaddr, uaddr, ulen)))
 		return -EFAULT;
-	}
 
 	return 0;
 }
@@ -848,13 +837,11 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 
 	copylen = iovcnt * sizeof(struct iovec);
 
-	if (unlikely(copylen >= STR_STORAGE_SIZE)) {
+	if (unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
-	}
 
-	if (unlikely(ppm_copy_from_user(targetbuf, iovsrc, copylen))) {
+	if (unlikely(ppm_copy_from_user(targetbuf, iovsrc, copylen)))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
-	}
 
 	iov = (const struct iovec *)targetbuf;
 
@@ -862,14 +849,12 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	 * Size
 	 */
 	if (flags & PRB_FLAG_PUSH_SIZE) {
-		for (j = 0; j < iovcnt; j++) {
+		for (j = 0; j < iovcnt; j++)
 			size += iov[j].iov_len;
-		}
 
 		res = val_to_ring(args, size, 0, false);
-		if (unlikely(res != PPM_SUCCESS)) {
+		if (unlikely(res != PPM_SUCCESS))
 			return res;
-		}
 	}
 
 	/*
@@ -886,14 +871,12 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 				(unsigned long)iov[0].iov_base,
 				min(bufsize, (unsigned long)g_snaplen),
 				true);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		} else {
 			res = val_to_ring(args, 0, 0, false);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		}
 	}
 
@@ -947,26 +930,23 @@ int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_e
 #endif
 
 			res = val_to_ring(args, val, 0, true);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		} else if (evinfo->autofill_args[j].id == AF_ID_RETVAL) {
 			/*
 			 * Return value
 			 */
 			retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 			res = val_to_ring(args, retval, 0, false);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		} else if (evinfo->autofill_args[j].id == AF_ID_USEDEFAULT) {
 			/*
 			 * Default Value
 			 */
 			res = val_to_ring(args, evinfo->autofill_args[j].default_val, 0, false);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		} else {
 			ASSERT(false);
 		}
