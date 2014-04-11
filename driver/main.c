@@ -1137,8 +1137,7 @@ init_module_err:
 	if (acrret == 0)
 		unregister_chrdev_region(dev, g_ppm_numdevs);
 
-	if (g_ppm_devs)
-		kfree(g_ppm_devs);
+	kfree(g_ppm_devs);
 
 	return ret;
 }
