@@ -36,11 +36,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tracepoint.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
-#if defined(__x86_64__)
-#include <asm/unistd_64.h>
-#else
-#include <asm/unistd_32.h>
-#endif
+
+#include <asm/unistd.h>
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -95,6 +92,10 @@ static void record_event(enum ppm_event_type event_type,
 	int never_drop,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next);
+
+#ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
+ #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
+#endif
 
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id);
 TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret);
@@ -418,7 +419,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			/*
 			 * Validate that the buffer access is read only
 			 */
-			if (vma->vm_flags & (VM_WRITE | VM_EXEC)) {
+			if (vma->vm_flags & VM_WRITE) {
 				pr_info("invalid mmap flags 0x%lx\n", vma->vm_flags);
 				return -EIO;
 			}
@@ -486,7 +487,7 @@ static const unsigned char nas[21] = {
 };
 #undef AL
 
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 static enum ppm_event_type parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
 {
 	unsigned long __user args[2];
@@ -560,7 +561,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 		return PPME_GENERIC_E;
 	}
 }
-#endif /* __x86_64__ */
+#endif /* __NR_socketcall */
 
 static inline int drop_event(enum ppm_event_type event_type, int never_drop, struct timespec *ts)
 {
@@ -660,7 +661,7 @@ static void record_event(enum ppm_event_type event_type,
 	ASSERT(ttail <= RING_BUF_SIZE);
 	ASSERT(head <= RING_BUF_SIZE);
 
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 	/*
 	 * If this is a socketcall system call, determine the correct event type
 	 * by parsing the arguments and patch event_type accordingly
@@ -826,6 +827,8 @@ static void record_event(enum ppm_event_type event_type,
 
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
+	long table_index;
+
 #ifdef CONFIG_X86_64
 	/*
 	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
@@ -836,12 +839,13 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		return;
 #endif
 
-	if (likely(id >= 0 && id < SYSCALL_TABLE_SIZE)) {
-		int used = g_syscall_table[id].flags & UF_USED;
-		int never_drop = g_syscall_table[id].flags & UF_NEVER_DROP;
+	table_index = id - SYSCALL_TABLE_ID0;
+	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
+		int used = g_syscall_table[table_index].flags & UF_USED;
+		int never_drop = g_syscall_table[table_index].flags & UF_NEVER_DROP;
 
 		if (used)
-			record_event(g_syscall_table[id].enter_event_type, regs, id, never_drop, NULL, NULL);
+			record_event(g_syscall_table[table_index].enter_event_type, regs, id, never_drop, NULL, NULL);
 		else
 			record_event(PPME_GENERIC_E, regs, id, false, NULL, NULL);
 	}
@@ -850,6 +854,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 {
 	int id;
+	long table_index;
 
 #ifdef CONFIG_X86_64
 	/*
@@ -863,12 +868,13 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	id = syscall_get_nr(current, regs);
 
-	if (likely(id >= 0 && id < SYSCALL_TABLE_SIZE)) {
-		int used = g_syscall_table[id].flags & UF_USED;
-		int never_drop = g_syscall_table[id].flags & UF_NEVER_DROP;
+	table_index = id - SYSCALL_TABLE_ID0;
+	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
+		int used = g_syscall_table[table_index].flags & UF_USED;
+		int never_drop = g_syscall_table[table_index].flags & UF_NEVER_DROP;
 
 		if (used)
-			record_event(g_syscall_table[id].exit_event_type, regs, id, never_drop, NULL, NULL);
+			record_event(g_syscall_table[table_index].exit_event_type, regs, id, never_drop, NULL, NULL);
 		else
 			record_event(PPME_GENERIC_X, regs, id, false, NULL, NULL);
 	}
@@ -1000,7 +1006,7 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 
 /* for(j = 0; j < NR_syscalls; ++j) */
 /* { */
-/* #if defined(__x86_64__) */
+/* #if defined(CONFIG_X86_64) */
 /* len += snprintf(page + len, count - len, "%ld\t%ld\n", */
 /* atomic64_read(&g_syscall_count[j].count), */
 /* atomic64_read(&g_syscall_count[j].count) ? (atomic64_read(&g_syscall_count[j].tot_time_ns) / atomic64_read(&g_syscall_count[j].count)) : 0); */

@@ -37,6 +37,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events.h"
 #include "ppm.h"
 
+// This is described in syscall(2). Some syscalls take 64-bit arguments. On
+// arches that have 64-bit registers, these arguments are shipped in a register.
+// On 32-bit arches, however, these are split between two consecutive registers,
+// with some alignment requirements. Some require an odd/even pair while some
+// others require even/odd. For now I assume they all do what x86_32 does, and
+// we can handle the rest when we port those.
+#define _64BIT_ARGS_SINGLE_REGISTER CONFIG_64BIT
+
 static int f_sys_generic(struct event_filler_arguments *args);	/* generic syscall event filler that includes the system call number */
 static int f_sys_empty(struct event_filler_arguments *args);		/* empty filler */
 static int f_sys_single(struct event_filler_arguments *args);		/* generic enter filler that copies a single argument syscall into a single parameter event */
@@ -70,7 +78,7 @@ static int f_sys_socket_bind_x(struct event_filler_arguments *args);
 static int f_sys_poll_e(struct event_filler_arguments *args);
 static int f_sys_poll_x(struct event_filler_arguments *args);
 static int f_sys_openat_e(struct event_filler_arguments *args);
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 static int f_sys_pread64_e(struct event_filler_arguments *args);
 static int f_sys_preadv_e(struct event_filler_arguments *args);
 #endif
@@ -196,7 +204,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNLINK_X] = {f_sys_single_x},
 	[PPME_SYSCALL_UNLINKAT_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
 	[PPME_SYSCALL_UNLINKAT_X] = {f_sys_single_x},
-#ifdef __x86_64__
+#ifdef _64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREAD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {2}, {3} } },
 #else
 	[PPME_SYSCALL_PREAD_E] = {f_sys_pread64_e},
@@ -208,7 +216,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_READV_X] = {f_sys_readv_x},
 	[PPME_SYSCALL_WRITEV_E] = {f_sys_writev_e},
 	[PPME_SYSCALL_WRITEV_X] = {f_sys_writev_pwritev_x},
-#ifdef __x86_64__
+#ifdef _64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREADV_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {3} } },
 #else
 	[PPME_SYSCALL_PREADV_E] = {f_sys_preadv_e},
@@ -262,7 +270,7 @@ static int f_sys_generic(struct event_filler_arguments *args)
 {
 	int res;
 
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 	if (unlikely(args->syscall_id == __NR_socketcall)) {
 		/*
 		 * All the socket calls should be implemented
@@ -270,12 +278,15 @@ static int f_sys_generic(struct event_filler_arguments *args)
 		ASSERT(false);
 		return PPM_FAILURE_BUG;
 	} else {
-#endif /* __x86_64__ */
+#endif /* __NR_socketcall */
 		/*
 		 * name
 		 */
-		if (likely(args->syscall_id < SYSCALL_TABLE_SIZE)) {
-			enum ppm_syscall_code sc_code = g_syscall_code_routing_table[args->syscall_id];
+		long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
+
+		if (likely(table_index >= 0 &&
+			   table_index <  SYSCALL_TABLE_SIZE)) {
+			enum ppm_syscall_code sc_code = g_syscall_code_routing_table[table_index];
 
 			/*
 			 * ID
@@ -298,7 +309,7 @@ static int f_sys_generic(struct event_filler_arguments *args)
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		}
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 	}
 #endif
 
@@ -782,7 +793,7 @@ static int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -792,7 +803,7 @@ static int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	/*
 	 * Get the address len
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 #else
 	val = args->socketcall_args[2];
@@ -850,7 +861,7 @@ static int f_sys_connect_x(struct event_filler_arguments *args)
 	 * Note that, even if we are in the exit callback, the arguments are still
 	 * in the stack, and therefore we can consume them.
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	fd = (int)val;
 #else
@@ -861,7 +872,7 @@ static int f_sys_connect_x(struct event_filler_arguments *args)
 		/*
 		 * Get the address
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 		val = args->socketcall_args[1];
@@ -871,7 +882,7 @@ static int f_sys_connect_x(struct event_filler_arguments *args)
 		/*
 		 * Get the address len
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 2, 1, &val);
 #else
 		val = args->socketcall_args[2];
@@ -936,7 +947,7 @@ static int f_sys_socketpair_x(struct event_filler_arguments *args)
 		/*
 		 * fds
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 3, 1, &val);
 #else
 		val = args->socketcall_args[3];
@@ -1045,7 +1056,7 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 	/*
 	 * queuepct
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &srvskfd);
 #else
 	srvskfd = args->socketcall_args[0];
@@ -1081,7 +1092,7 @@ static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1095,7 +1106,7 @@ static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	/*
 	 * size
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 2, 1, &size);
 #else
 	size = args->socketcall_args[2];
@@ -1143,7 +1154,7 @@ static int f_sys_sendto_e(struct event_filler_arguments *args)
 	/*
 	 * Get the address
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 4, 1, &val);
 #else
 	val = args->socketcall_args[4];
@@ -1153,7 +1164,7 @@ static int f_sys_sendto_e(struct event_filler_arguments *args)
 	/*
 	 * Get the address len
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 5, 1, &val);
 #else
 	val = args->socketcall_args[5];
@@ -1216,7 +1227,7 @@ static int f_sys_send_x(struct event_filler_arguments *args)
 		val = 0;
 		bufsize = 0;
 	} else {
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 		val = args->socketcall_args[1];
@@ -1244,7 +1255,7 @@ static int f_sys_recv_e_common(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1256,7 +1267,7 @@ static int f_sys_recv_e_common(struct event_filler_arguments *args)
 	/*
 	 * size
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 #else
 	val = args->socketcall_args[2];
@@ -1315,7 +1326,7 @@ static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *ret
 		val = 0;
 		bufsize = 0;
 	} else {
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 		val = args->socketcall_args[1];
@@ -1372,7 +1383,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		/*
 		 * Get the fd
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		fd = (int)val;
 #else
@@ -1382,7 +1393,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		/*
 		 * Get the address
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 4, 1, &val);
 #else
 		val = args->socketcall_args[4];
@@ -1392,7 +1403,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		/*
 		 * Get the address len
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 5, 1, &val);
 #else
 		val = args->socketcall_args[5];
@@ -1451,7 +1462,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1464,7 +1475,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -1539,7 +1550,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -1569,7 +1580,7 @@ static int f_sys_recvmsg_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1608,7 +1619,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -1634,7 +1645,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 		/*
 		 * Get the fd
 		 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		fd = (int)val;
 #else
@@ -1773,7 +1784,7 @@ static int f_sys_shutdown_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 #else
 	val = args->socketcall_args[0];
@@ -1785,7 +1796,7 @@ static int f_sys_shutdown_e(struct event_filler_arguments *args)
 	/*
 	 * how
 	 */
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #else
 	val = args->socketcall_args[1];
@@ -2145,7 +2156,7 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 static int f_sys_pread64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -2185,14 +2196,14 @@ static int f_sys_pread64_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-#endif /* __x86_64__ */
+#endif /* _64BIT_ARGS_SINGLE_REGISTER */
 
 static int f_sys_pwrite64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
 	int res;
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 	unsigned long pos0;
 	unsigned long pos1;
 	uint64_t pos64;
@@ -2219,7 +2230,7 @@ static int f_sys_pwrite64_e(struct event_filler_arguments *args)
 	 * NOTE: this is a 64bit value, which means that on 32bit systems it uses two
 	 * separate registers that we need to merge.
 	 */
-#ifdef __x86_64__
+#ifdef _64BIT_ARGS_SINGLE_REGISTER
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
@@ -2382,7 +2393,7 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 static int f_sys_preadv_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -2413,7 +2424,7 @@ static int f_sys_preadv_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-#endif /* __x86_64__ */
+#endif /* _64BIT_ARGS_SINGLE_REGISTER */
 
 static int f_sys_preadv_x(struct event_filler_arguments *args)
 {
@@ -2449,7 +2460,7 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-#ifndef __x86_64__
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
 	unsigned long pos0;
 	unsigned long pos1;
 	uint64_t pos64;
@@ -2509,7 +2520,7 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	 * NOTE: this is a 64bit value, which means that on 32bit systems it uses two
 	 * separate registers that we need to merge.
 	 */
-#ifdef __x86_64__
+#ifdef _64BIT_ARGS_SINGLE_REGISTER
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
