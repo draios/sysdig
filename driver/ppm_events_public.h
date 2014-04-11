@@ -19,7 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef EVENTS_PUBLIC_H_
 #define EVENTS_PUBLIC_H_
 
-#if defined (__sun)
+#if defined(__sun)
 #include <sys/ioccom.h>
 #endif
 
