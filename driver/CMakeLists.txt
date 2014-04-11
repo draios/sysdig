@@ -7,11 +7,18 @@ else()
 endif()
 
 add_custom_target(prepare ALL
-	COMMAND sed -i 's/^PACKAGE_VERSION=.*/PACKAGE_VERSION="${SYSDIG_VERSION}"/g' dkms.conf
 	COMMAND sed -i 's/^DKMS_VERSION=.*/DKMS_VERSION="${SYSDIG_VERSION}"/g' ../scripts/debian/postinst
 	COMMAND sed -i 's/^DKMS_VERSION=.*/DKMS_VERSION="${SYSDIG_VERSION}"/g' ../scripts/debian/prerm
-	COMMAND sed -i 's/^ccflags-y := .*/ccflags-y := ${KBUILD_FLAGS}/g' Makefile
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+
+configure_file(dkms.conf.in "${CMAKE_CURRENT_SOURCE_DIR}/dkms.conf")
+configure_file(Makefile.in "${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
+
+set(CLEAN_FILES
+	"${CMAKE_CURRENT_SOURCE_DIR}/dkms.conf"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}")
 
 # This if/else is needed because you currently cannot manipulate dependencies
 # of built-in targets like "all" in CMake:
