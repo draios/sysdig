@@ -1041,8 +1041,8 @@ const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
 
 int32_t sinsp_filter_check_event::gmt2local(time_t t)
 {
-	register int dt, dir;
-	register struct tm *gmt, *loc;
+	int dt, dir;
+	struct tm *gmt, *loc;
 	struct tm sgmt;
 
 	if(t == 0)
@@ -1064,7 +1064,7 @@ int32_t sinsp_filter_check_event::gmt2local(time_t t)
 
 	dt += dir * 24 * 60 * 60;
 
-	return (dt);
+	return dt;
 }
 
 void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
