@@ -5,10 +5,8 @@ Welcome to **sysdig** - an open source system-level exploration and troubleshoot
 
 Where to start?
 ---
-If this is your first time hearing about sysdig, we recommend you start with the website:  
-www.sysdig.org
-
-
+If this is your first time hearing about sysdig, we recommend you [start with the website] (http://www.sysdig.org).  
+  
 What does sysdig do and why should I use it?
 ---
 Sysdig captures system calls and other system level events using a linux kernel facility called tracepoints, which means much less overhead than strace.
@@ -19,11 +17,9 @@ Sysdig is also packed with a set of scripts that make it easier to extract usefu
 
 Documentation / Support
 ---
-Visit the wiki for full documentation on sysdig and its APIs:  
-https://github.com/draios/sysdig/wiki
+[Visit the wiki] (https://github.com/draios/sysdig/wiki) for full documentation on sysdig and its APIs:  
 
-For support using sysdig, please contact the official mailing list:  
-https://groups.google.com/forum/#!forum/sysdig  
+For support using sysdig, please contact [the official mailing list] (https://groups.google.com/forum/#!forum/sysdig):  
 
 Join the Community
 ---
@@ -33,5 +29,6 @@ Join the Community
 
 Draios
 ---
-Sysdig is proudly supported by Draios, Inc.  
-www.draios.com
+Sysdig is proudly supported by [Draios, Inc] (http://www.draios.com).  
+
+Like working on sysdig? [Draios is hiring] (http://www.draios.com/about+jobs).
