@@ -205,7 +205,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		{
 			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
 
-			uint32_t pos = m_tstr.rfind('/');
+			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
 			{
 				if(pos < m_tstr.size() - 1)
@@ -311,7 +311,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = m_fdinfo->m_name;
 			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
 
-			uint32_t pos = m_tstr.rfind('/');
+			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
 			{
 				if(pos < m_tstr.size() - 1)
