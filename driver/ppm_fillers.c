@@ -37,12 +37,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events.h"
 #include "ppm.h"
 
-// This is described in syscall(2). Some syscalls take 64-bit arguments. On
-// arches that have 64-bit registers, these arguments are shipped in a register.
-// On 32-bit arches, however, these are split between two consecutive registers,
-// with some alignment requirements. Some require an odd/even pair while some
-// others require even/odd. For now I assume they all do what x86_32 does, and
-// we can handle the rest when we port those.
+/* This is described in syscall(2). Some syscalls take 64-bit arguments. On
+ * arches that have 64-bit registers, these arguments are shipped in a register.
+ * On 32-bit arches, however, these are split between two consecutive registers,
+ * with some alignment requirements. Some require an odd/even pair while some
+ * others require even/odd. For now I assume they all do what x86_32 does, and
+ * we can handle the rest when we port those.
+ */
 #define _64BIT_ARGS_SINGLE_REGISTER CONFIG_64BIT
 
 static int f_sys_generic(struct event_filler_arguments *args);	/* generic syscall event filler that includes the system call number */

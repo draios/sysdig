@@ -19,7 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef EVENTS_H_
 #define EVENTS_H_
 
-// To know about __NR_socketcall
+/* To know about __NR_socketcall */
 #include <asm/unistd.h>
 
 /*
