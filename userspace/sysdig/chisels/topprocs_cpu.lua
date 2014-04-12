@@ -26,20 +26,26 @@ args = {}
 require "common"
 terminal = require "ansiterminal"
 
-top_number = 10
 grtable = {}
-key_fld = "proc.name"
-key_desc = "Process"
-value_fld = "thread.exectime"
-value_desc = "CPU%"
-result_rendering = "timepct"
 islive = false
 cpustates = {}
 
+vizinfo = 
+{
+	key_fld = "proc.name",
+	key_desc = "Process",
+	value_fld = "thread.exectime",
+	value_desc = "CPU%",
+	value_units = "timepct",
+	top_number = 10,
+	output_format = "normal"
+}
+
+
 function on_init()
 	-- Request the fields we need
-	fkey = chisel.request_field(key_fld)
-	fvalue = chisel.request_field(value_fld)
+	fkey = chisel.request_field(vizinfo.key_fld)
+	fvalue = chisel.request_field(vizinfo.value_fld)
 	fnext = chisel.request_field("evt.arg.next")
 	fnextraw = chisel.request_field("evt.rawarg.next")
 	
@@ -53,8 +59,10 @@ function on_capture_start()
 
 	if islive then
 		chisel.set_interval_s(1)
-		terminal.clearscreen()
-		terminal.hidecursor()
+		if vizinfo.output_format ~= "json" then
+			terminal.clearscreen()
+			terminal.hidecursor()
+		end
 	end
 
 	ncpus = sysdig.get_machine_info().num_cpus
@@ -98,8 +106,10 @@ function on_event()
 end
 
 function on_interval(ts_s, ts_ns, delta)
-	terminal.clearscreen()
-	terminal.goto(0, 0)
+	if vizinfo.output_format ~= "json" then
+		terminal.clearscreen()
+		terminal.goto(0, 0)
+	end
 	
 	for cpuid = 1, ncpus do
 		if cpustates[cpuid][1] ~= 0 then
@@ -117,7 +127,7 @@ function on_interval(ts_s, ts_ns, delta)
 		end
 	end
 	
-	print_sorted_table(grtable, 1000000000, result_rendering)
+	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 	
 	-- Clear the table
 	grtable = {}
@@ -126,14 +136,14 @@ function on_interval(ts_s, ts_ns, delta)
 end
 
 function on_capture_end(ts_s, ts_ns, delta)
-	if islive then
+	if islive and vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
 		terminal.goto(0 ,0)
 		terminal.showcursor()
 		return true
 	end
 	
-	print_sorted_table(grtable, delta, result_rendering)
+	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 	
 	return true
 end

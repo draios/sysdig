@@ -284,6 +284,11 @@ public:
 
 		const char* fld = lua_tostring(ls, 1); 
 
+		if(fld == NULL)
+		{
+			throw sinsp_exception("chisel requesting nil field");
+		}
+
 		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(fld,
 			inspector, 
 			false);
