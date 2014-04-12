@@ -11,3 +11,4 @@ lua*.lib
 lua*.exe
 dependencies/
 build/
+driver/Makefile
