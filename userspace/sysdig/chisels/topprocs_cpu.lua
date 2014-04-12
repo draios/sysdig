@@ -56,6 +56,7 @@ end
 
 function on_capture_start()
 	islive = sysdig.is_live()
+	vizinfo.output_format = sysdig.get_output_format()
 
 	if islive then
 		chisel.set_interval_s(1)
