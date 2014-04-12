@@ -1,9 +1,12 @@
 language: c
+install:
+    - sudo apt-get install rpm
 script:
     - mkdir build
     - cd build
     - cmake .. -DBUILD_DRIVER=OFF
     - make
+    - make package
 compiler:
     - gcc
     - clang
