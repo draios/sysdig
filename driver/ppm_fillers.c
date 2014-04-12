@@ -44,7 +44,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
  * others require even/odd. For now I assume they all do what x86_32 does, and
  * we can handle the rest when we port those.
  */
-#define _64BIT_ARGS_SINGLE_REGISTER CONFIG_64BIT
+#ifdef CONFIG_64BIT
+#define _64BIT_ARGS_SINGLE_REGISTER
+#endif
 
 static int f_sys_generic(struct event_filler_arguments *args);	/* generic syscall event filler that includes the system call number */
 static int f_sys_empty(struct event_filler_arguments *args);		/* empty filler */
