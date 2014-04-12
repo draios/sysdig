@@ -1,9 +1,19 @@
 language: c
+install:
+    - sudo apt-get install rpm libluajit-5.1-dev libjsoncpp-dev
 script:
     - mkdir build
     - cd build
     - cmake .. -DBUILD_DRIVER=OFF
     - make
+    - make package
+    - cd ..
+    - rm -rf build
+    - mkdir build
+    - cd build
+    - cmake .. -DBUILD_DRIVER=OFF -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF
+    - make
+    - make package
 compiler:
     - gcc
     - clang
