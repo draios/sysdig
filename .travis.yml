@@ -1,0 +1,9 @@
+language: c
+script:
+    - mkdir build
+    - cd build
+    - cmake .. -DBUILD_DRIVER=OFF
+    - make
+compiler:
+    - gcc
+    - clang
