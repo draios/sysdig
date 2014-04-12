@@ -6,18 +6,13 @@ else()
 	set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
 endif()
 
-add_custom_target(prepare ALL
-	COMMAND sed -i 's/^DKMS_VERSION=.*/DKMS_VERSION="${SYSDIG_VERSION}"/g' ../scripts/debian/postinst
-	COMMAND sed -i 's/^DKMS_VERSION=.*/DKMS_VERSION="${SYSDIG_VERSION}"/g' ../scripts/debian/prerm
-	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-
-
 configure_file(dkms.conf.in "${CMAKE_CURRENT_SOURCE_DIR}/dkms.conf")
 configure_file(Makefile.in "${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
 
 set(CLEAN_FILES
 	"${CMAKE_CURRENT_SOURCE_DIR}/dkms.conf"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
+
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}")
 
 # This if/else is needed because you currently cannot manipulate dependencies
@@ -27,13 +22,11 @@ if(BUILD_DRIVER)
 	add_custom_target(driver ALL
 		COMMAND make
 		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
-		DEPENDS prepare
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 else()
 	add_custom_target(driver
 		COMMAND make
 		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
-		DEPENDS prepare
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
