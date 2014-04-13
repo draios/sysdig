@@ -1,17 +1,25 @@
 language: c
+env:
+    - BUILD_TYPE=Debug
+    - BUILD_TYPE=Release
+before_install:
+    - sudo apt-get update
 install:
     - sudo apt-get install rpm libluajit-5.1-dev libjsoncpp-dev
+    - sudo apt-get install rpm libluajit-5.1-dev libjsoncpp-dev linux-headers-generic
+before_script:
+    - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
 script:
     - mkdir build
     - cd build
-    - cmake .. -DBUILD_DRIVER=OFF
+    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     - make
     - make package
     - cd ..
     - rm -rf build
     - mkdir build
     - cd build
-    - cmake .. -DBUILD_DRIVER=OFF -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF
+    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF
     - make
     - make package
 compiler:
