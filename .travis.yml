@@ -1,4 +1,7 @@
 language: c
+env:
+    - BUILD_TYPE=Debug
+    - BUILD_TYPE=Release
 before_install:
     - sudo apt-get update
 install:
@@ -9,14 +12,14 @@ before_script:
 script:
     - mkdir build
     - cd build
-    - cmake ..
+    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     - make
     - make package
     - cd ..
     - rm -rf build
     - mkdir build
     - cd build
-    - cmake .. -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF
+    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF
     - make
     - make package
 compiler:
