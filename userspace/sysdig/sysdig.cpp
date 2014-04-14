@@ -90,11 +90,11 @@ static void usage()
 #endif
 "                    lists the available chisels. Looks for chisels in .,\n"
 "                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
-" -d, --displayflt   Make the given filter a display one\n"
+" -d, --displayflt   Make the given filter a display one.\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
-"                    efficient, but can cause state (e.g. FD names) to be lost\n"
+"                    efficient, but can cause state (e.g. FD names) to be lost.\n"
 " -D, --debug        Capture events about sysdig itself\n"
 " -h, --help         Print this page\n"
 #ifdef HAS_CHISELS
@@ -394,19 +394,19 @@ captureinfo do_inspect(sinsp* inspector,
 				continue;
 			}
 
-			//
-			// Output the line
-			//
-			if(display_filter)
-			{
-				if(!display_filter->run(ev))
-				{
-					continue;
-				}
-			}
-
 			if(formatter->tostring(ev, &line))
 			{
+				//
+				// Output the line
+				//
+				if(display_filter)
+				{
+					if(!display_filter->run(ev))
+					{
+						continue;
+					}
+				}
+
 				cout << line << endl;
 			}
 		}

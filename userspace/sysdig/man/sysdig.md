@@ -92,7 +92,7 @@ OPTIONS
   lists the available chisels. Looks for chisels in ., ./chisels, ~/.chisels and /usr/share/sysdig/chisels.
   
 **-d**, **--displayflt**  
-  Make the given filter a display one Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost
+  Make the given filter a display one. Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost.
   
 **-D**, **--debug**
   Capture events about sysdig itself
