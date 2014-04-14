@@ -325,5 +325,8 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_WAITPID*/ { EC_WAIT, "waitpid" },
 	/*PPM_SC_PREAD64*/ { EC_FILE, "pread64" },
 	/*PPM_SC_PWRITE64*/ { EC_FILE, "pwrite64" },
-	/*PPM_SC_ARCH_PRCTL*/ { EC_PROCESS, "arch_prctl" }, /* operations on a process */
+	/*PPM_SC_ARCH_PRCTL*/ { EC_PROCESS, "arch_prctl" },
+	/*PPM_SC_SHMAT*/ { EC_IPC, "shmat" },
+	/*PPM_SC_SIGRETURN*/ { EC_SIGNAL, "sigreturn" }, /* return from signal handler and cleanup stack frame */
+	/*PPM_SC_FALLOCATE*/ { EC_IO_OTHER, "fallocate" }, /* manipulate file space */
 };

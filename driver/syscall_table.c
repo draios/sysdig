@@ -601,4 +601,13 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_pwrite64
 	[__NR_pwrite64 - SYSCALL_TABLE_ID0] = PPM_SC_PWRITE64,
 #endif
+#ifdef __NR_shmat
+	[__NR_shmat - SYSCALL_TABLE_ID0] = PPM_SC_SHMAT,
+#endif	
+#ifdef __NR_rt_sigreturn
+	[__NR_rt_sigreturn - SYSCALL_TABLE_ID0] = PPM_SC_SIGRETURN,
+#endif
+#ifdef __NR_fallocate
+	[__NR_fallocate - SYSCALL_TABLE_ID0] = PPM_SC_FALLOCATE,
+#endif
 };
