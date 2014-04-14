@@ -20,3 +20,12 @@ elseif (WIN32)
 	target_link_libraries(scap
 		Ws2_32.lib)
 endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
+
+    if (BUILD_LIBSCAP_EXAMPLES)
+        add_subdirectory(examples/01-open)
+        add_subdirectory(examples/02-validatebuffer)
+    endif()
+endif()
