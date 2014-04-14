@@ -42,8 +42,10 @@ args =
     },
 }
 
+require "common"
+
 function on_set_arg(name, val)
-    min_ms = tonumber(val)
+    treshold = tonumber(val) * 1000000
     return true
 end
 
@@ -60,18 +62,19 @@ function on_init()
     chisel.set_filter("evt.is_io=true and fd.type=file")
 
     print(string.format("%-23.23s %-12.12s %-8s %7s %s", "TIME",
-        "PROCESS", "TYPE", "LAT(ms)", "FILE"))
+        "PROCESS", "TYPE", "LAT", "FILE"))
+		
     return true
 end
 
 function on_event()
-    lat = evt.field(latency) / 1000000
+    lat = evt.field(latency)
     fn = evt.field(fname)
-    if evt.field(dir) == "<" and lat > min_ms then
+    if evt.field(dir) == "<" and lat > (treshold) then
         -- filter /dev files if needed
         if skip_dev == false or string.sub(fn, 0, 5) ~= "/dev/" then
-            print(string.format("%-23.23s %-12.12s %-8s %7d %s",
-                evt.field(datetime), evt.field(pname), evt.field(etype), lat, fn))
+            print(string.format("%-23.23s %-12.12s %-8s %7s %s",
+                evt.field(datetime), evt.field(pname), evt.field(etype), format_time_interval(lat), fn))
         end
     end
 
