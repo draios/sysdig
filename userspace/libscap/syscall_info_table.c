@@ -325,4 +325,5 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_WAITPID*/ { EC_WAIT, "waitpid" },
 	/*PPM_SC_PREAD64*/ { EC_FILE, "pread64" },
 	/*PPM_SC_PWRITE64*/ { EC_FILE, "pwrite64" },
+	/*PPM_SC_ARCH_PRCTL*/ { EC_PROCESS, "arch_prctl" }, /* operations on a process */
 };

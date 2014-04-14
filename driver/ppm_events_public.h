@@ -718,7 +718,8 @@ enum ppm_syscall_code {
 	PPM_SC_WAITPID = 293,
 	PPM_SC_PREAD64 = 294,
 	PPM_SC_PWRITE64 = 295,
-	PPM_SC_MAX = 296,
+	PPM_SC_ARCH_PRCTL = 296,
+	PPM_SC_MAX = 297,
 };
 
 /*
