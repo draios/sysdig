@@ -66,7 +66,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_INACTIVE_THREAD_SCAN_TIME_S 600
 
 //
-// Enables LUA chisel scripts support
+// Enables Lua chisel scripts support
 //
 #define HAS_CHISELS
 
