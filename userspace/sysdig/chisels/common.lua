@@ -23,7 +23,7 @@ This file contains a bunch of functions that are helpful in multiple scripts
 Extends a string to newlen with spaces
 ]]--
 function extend_string(s, newlen)
-	ccs = "                                                                                                        "
+	local ccs = "                                                                                                        "
 	s = s .. string.sub(ccs, 0, newlen - string.len(s))
 	return s
 end
@@ -58,15 +58,15 @@ ONE_US_IN_NS=1000
 
 function format_time_interval(val)
 	if val >= (ONE_S_IN_NS) then
-		return string.format("%u.%02us", val / ONE_S_IN_NS, (val % ONE_S_IN_NS) / 10000000)
+		return string.format("%u.%02us", math.floor(val / ONE_S_IN_NS), (val % ONE_S_IN_NS) / 10000000)
 	elseif val >= (ONE_S_IN_NS / 100) then
-		return string.format("%ums", val / (ONE_S_IN_NS / 1000))
+		return string.format("%ums", math.floor(val / (ONE_S_IN_NS / 1000)))
 	elseif val >= (ONE_S_IN_NS / 1000) then
-		return string.format("%u.%02ums", val / (ONE_S_IN_NS / 1000), (val % ONE_MS_IN_NS) / 10000)
+		return string.format("%u.%02ums", math.floor(val / (ONE_S_IN_NS / 1000)), (val % ONE_MS_IN_NS) / 10000)
 	elseif val >= (ONE_S_IN_NS / 100000) then
-		return string.format("%uus", val / (ONE_S_IN_NS / 1000000))
+		return string.format("%uus", math.floor(val / (ONE_S_IN_NS / 1000000)))
 	elseif val >= (ONE_S_IN_NS / 1000000) then
-		return string.format("%u.%02uus", val / (ONE_S_IN_NS / 1000000), (val % ONE_US_IN_NS) / 10)
+		return string.format("%u.%02uus", math.floor(val / (ONE_S_IN_NS / 1000000)), (val % ONE_US_IN_NS) / 10)
 	else
 		return string.format("%uns", val)
 	end
