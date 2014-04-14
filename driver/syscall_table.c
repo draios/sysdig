@@ -610,4 +610,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_fallocate
 	[__NR_fallocate - SYSCALL_TABLE_ID0] = PPM_SC_FALLOCATE,
 #endif
+#ifdef __NR_newfstatat
+	[__NR_newfstatat - SYSCALL_TABLE_ID0] = PPM_SC_NEWFSSTAT,
+#endif
 };
