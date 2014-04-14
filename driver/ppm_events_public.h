@@ -722,7 +722,7 @@ enum ppm_syscall_code {
 	PPM_SC_SHMAT = 297,
 	PPM_SC_SIGRETURN = 298,
 	PPM_SC_FALLOCATE = 299,
-	PPM_SC_MAX = 297,
+	PPM_SC_MAX = 300,
 };
 
 /*
