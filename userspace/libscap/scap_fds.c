@@ -43,7 +43,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <errno.h>
 #include <netinet/tcp.h>
-#if !defined __sun
+#if defined(__linux__)
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 //#include <linux/sock_diag.h>
