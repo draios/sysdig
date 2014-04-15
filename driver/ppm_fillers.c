@@ -2636,7 +2636,6 @@ static inline u8 rlimit_resource_to_scap(unsigned long rresource)
 	case RLIMIT_RTTIME:
 		return PPM_RLIMIT_RTTIME;
 	default:
-		ASSERT(false);
 		return PPM_RLIMIT_UNKNOWN;
 	}
 }
