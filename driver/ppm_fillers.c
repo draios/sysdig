@@ -2435,8 +2435,8 @@ static int f_sys_preadv_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
 #elif defined CONFIG_ARM && CONFIG_AEABI
-	syscall_get_arguments(current, args->regs, 4, 1, &pos0);
-	syscall_get_arguments(current, args->regs, 5, 1, &pos1);
+	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
+	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
 #else
  #error This architecture/abi not yet supported
 #endif
@@ -2555,8 +2555,8 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
  #elif defined CONFIG_ARM && CONFIG_AEABI
-	syscall_get_arguments(current, args->regs, 4, 1, &pos0);
-	syscall_get_arguments(current, args->regs, 5, 1, &pos1);
+	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
+	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
  #else
   #error This architecture/abi not yet supported
  #endif
