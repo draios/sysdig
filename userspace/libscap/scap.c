@@ -43,13 +43,7 @@ char* scap_getlasterr(scap_t* handle)
 
 scap_t* scap_open_live(char *error)
 {
-#ifdef _WIN32
-	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on windows");
-	return NULL;
-#elif defined(__APPLE__)
-	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
-	return NULL;
-#elif !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE)
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
 #else
@@ -251,7 +245,7 @@ scap_t* scap_open_live(char *error)
 	}
 
 	return handle;
-#endif // _WIN32
+#endif // HAS_CAPTURE
 }
 
 scap_t* scap_open_offline(char* fname, char *error)
@@ -751,13 +745,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 //
 int32_t scap_stop_capture(scap_t* handle)
 {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
-	return SCAP_FAILURE;
-#elif !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -793,7 +781,7 @@ int32_t scap_stop_capture(scap_t* handle)
 	handle->m_emptybuf_timeout_ms = 0;
 
 	return SCAP_SUCCESS;
-#endif // _WIN32
+#endif // HAS_CAPTURE
 }
 
 //
@@ -801,13 +789,7 @@ int32_t scap_stop_capture(scap_t* handle)
 //
 int32_t scap_start_capture(scap_t* handle)
 {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture non supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture non supported on OSX");
-	return SCAP_FAILURE;
-#elif !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -837,7 +819,7 @@ int32_t scap_start_capture(scap_t* handle)
 	}
 
 	return SCAP_SUCCESS;
-#endif // _WIN32
+#endif // HAS_CAPTURE
 }
 
 #if defined(HAS_CAPTURE)
@@ -869,13 +851,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
-	return SCAP_FAILURE;
-#elif !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -885,13 +861,7 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
-	return SCAP_FAILURE;
-#elif !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -944,13 +914,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 		return SCAP_FAILURE;
 	}
 
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
-	return SCAP_FAILURE;
-#elif !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
