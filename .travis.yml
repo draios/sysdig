@@ -5,7 +5,6 @@ env:
 before_install:
     - sudo apt-get update
 install:
-    - sudo apt-get install rpm libluajit-5.1-dev libjsoncpp-dev
     - sudo apt-get install rpm libluajit-5.1-dev libjsoncpp-dev linux-headers-generic
 before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
