@@ -49,7 +49,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_tmp_evt(m_inspector),
 	m_fd_listener(NULL)
 {
-#if defined(__linux__)
+#if defined(HAS_CAPTURE)
 	m_sysdig_pid = getpid();
 #endif
 }
@@ -73,7 +73,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
-#if defined(__linux__)
+#if defined(HAS_CAPTURE)
 	if(m_inspector->is_live() && !m_inspector->is_debug_enabled())
 	{
 		sinsp_threadinfo *evt_thread = evt->get_thread_info();
@@ -2116,7 +2116,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 				// following chdir(). If it does, it's almost sure there was an event drop.
 				// In that case, we use this value to update the thread cwd.
 				//
-#if defined(__linux__)
+#if defined(HAS_CAPTURE)
 #ifdef _DEBUG
 				int target_res;
 				char target_name[1024];

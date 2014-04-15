@@ -528,7 +528,7 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, FILE *f, const char *fname
 	// so we don't lose information about processes created in the interval
 	// between opening the handle and starting the dump
 	//
-#if defined(__linux__)
+#if defined(HAS_CAPTURE)
 	if(handle->m_file == NULL)
 	{
 		scap_proc_free_table(handle);

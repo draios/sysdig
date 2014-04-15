@@ -102,7 +102,7 @@ private:
 	//
 	sinsp* m_inspector;
 
-#if defined(__linux__)
+#if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
 #endif
 

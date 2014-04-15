@@ -824,7 +824,7 @@ int main(int argc, char **argv)
 			//
 			// No file to open, this is a live capture
 			//
-#if defined(__linux__)
+#if defined(HAS_CAPTURE)
 			try
 			{
 				inspector->open("");

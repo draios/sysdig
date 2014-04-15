@@ -543,7 +543,7 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	return SCAP_SUCCESS;
 }
 
-#if defined(__linux__)
+#if defined(HAS_CAPTURE)
 
 int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
@@ -1361,7 +1361,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 }
 
 
-#endif // __linux__
+#endif // HAS_CAPTURE
 
 //
 // Internal helper function to output the fd table of a process
