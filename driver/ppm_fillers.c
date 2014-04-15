@@ -2188,8 +2188,15 @@ static int f_sys_pread64_e(struct event_filler_arguments *args)
 	/*
 	 * pos
 	 */
+#if defined CONFIG_X86
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
+#elif defined CONFIG_ARM && CONFIG_AEABI
+	syscall_get_arguments(current, args->regs, 4, 1, &pos0);
+	syscall_get_arguments(current, args->regs, 5, 1, &pos1);
+#else
+ #error This architecture/abi not yet supported
+#endif
 
 	pos64 = merge_64(pos1, pos0);
 
@@ -2239,8 +2246,16 @@ static int f_sys_pwrite64_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 #else
+ #if defined CONFIG_X86
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
+ #elif defined CONFIG_ARM && CONFIG_AEABI
+	syscall_get_arguments(current, args->regs, 4, 1, &pos0);
+	syscall_get_arguments(current, args->regs, 5, 1, &pos1);
+ #else
+  #error This architecture/abi not yet supported
+ #endif
+
 	pos64 = merge_64(pos1, pos0);
 
 	res = val_to_ring(args, pos64, 0, false);
@@ -2416,8 +2431,15 @@ static int f_sys_preadv_e(struct event_filler_arguments *args)
 	/*
 	 * pos
 	 */
+#if defined CONFIG_X86
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
+#elif defined CONFIG_ARM && CONFIG_AEABI
+	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
+	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
+#else
+ #error This architecture/abi not yet supported
+#endif
 
 	pos64 = merge_64(pos1, pos0);
 
@@ -2529,8 +2551,16 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 #else
+ #if defined CONFIG_X86
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
+ #elif defined CONFIG_ARM && CONFIG_AEABI
+	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
+	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
+ #else
+  #error This architecture/abi not yet supported
+ #endif
+
 	pos64 = merge_64(pos1, pos0);
 
 	res = val_to_ring(args, pos64, 0, false);
