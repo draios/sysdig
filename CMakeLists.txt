@@ -23,6 +23,8 @@ if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1-dev")
 endif()
 
+add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
+
 option(USE_BUNDLED_LUAJIT "Enable building of the bundled LuaJIT" ON)
 option(LUAJIT_PREFIX "Build with LuaJIT at the given path" "")
 

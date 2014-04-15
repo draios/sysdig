@@ -50,7 +50,7 @@ scap_t* scap_open_live(char *error)
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
 	return NULL;
 #elif !defined(HAS_CAPTURE)
-	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on your platform");
+	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
 #else
 	uint32_t j;
@@ -758,7 +758,7 @@ int32_t scap_stop_capture(scap_t* handle)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
 	return SCAP_FAILURE;
 #elif !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on your platform");
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	uint32_t j;
@@ -808,7 +808,7 @@ int32_t scap_start_capture(scap_t* handle)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture non supported on OSX");
 	return SCAP_FAILURE;
 #elif !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on your platform");
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	uint32_t j;
@@ -876,7 +876,7 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
 	return SCAP_FAILURE;
 #elif !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on your platform");
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	return scap_set_dropping_mode(handle, PPM_IOCTL_DISABLE_DROPPING_MODE, 0);
@@ -892,7 +892,7 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
 	return SCAP_FAILURE;
 #elif !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on your platform");
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	return scap_set_dropping_mode(handle, PPM_IOCTL_ENABLE_DROPPING_MODE, sampling_ratio);
@@ -951,7 +951,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on OSX");
 	return SCAP_FAILURE;
 #elif !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on your platform");
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	//
