@@ -21,7 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "scap.h"
 #include "scap-int.h"
 
-#if !defined(_WIN32) && !defined(__APPLE__)
+#if defined(__linux__)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -225,7 +225,7 @@ int32_t scap_create_iflist(scap_t* handle)
 
 	return SCAP_SUCCESS;
 }
-#endif // _WIN32
+#endif // __linux__
 
 //
 // Free a previously allocated list of interfaces
