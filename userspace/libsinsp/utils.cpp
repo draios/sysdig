@@ -29,6 +29,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
 #ifdef HAS_CHISELS
 const chiseldir_info g_chisel_dirs_array[] =
 {
