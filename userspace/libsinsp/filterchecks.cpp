@@ -133,6 +133,22 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 
 			return true;
 		}
+	case PPME_SOCKET_CONNECT_X:
+		{
+			const char* argstr = evt->get_param_as_str(1, &resolved_argstr, 
+				m_inspector->get_buffer_format());
+			
+			if(resolved_argstr[0] != 0)
+			{
+				m_tstr = resolved_argstr;
+			}
+			else
+			{
+				m_tstr = argstr;
+			}
+
+			return true;
+		}
 	case PPME_SYSCALL_OPENAT_X:
 		{
 			//
@@ -293,21 +309,45 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_tinfo->m_lastevent_fd;
 	}
 
-	if(m_fdinfo == NULL)
-	{
-		return extract_from_null_fd(evt, len);
-	}
-
 	switch(m_field_id)
 	{
 	case TYPE_FDNAME:
+		if(m_fdinfo == NULL)
+		{
+			return extract_from_null_fd(evt, len);
+		}
+
+		if(evt->get_type() == PPME_SOCKET_CONNECT_X)
+		{
+			sinsp_evt_param *parinfo;
+
+			parinfo = evt->get_param(0);
+			ASSERT(parinfo->m_len == sizeof(uint64_t));
+			int64_t retval = *(int64_t*)parinfo->m_val;
+
+			if(retval < 0)
+			{
+				return extract_from_null_fd(evt, len);
+			}
+		}
+
 		m_tstr = m_fdinfo->m_name;
 		m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_FDTYPE:
+		if(m_fdinfo == NULL)
+		{
+			return NULL;
+		}
+
 		return extract_fdtype(m_fdinfo);
 	case TYPE_DIRECTORY:
 		{
+			if(m_fdinfo == NULL)
+			{
+				return extract_from_null_fd(evt, len);
+			}
+
 			m_tstr = m_fdinfo->m_name;
 			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
 
@@ -327,11 +367,21 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_FDTYPECHAR:
+		if(m_fdinfo == NULL)
+		{
+			return extract_from_null_fd(evt, len);
+		}
+
 		m_tcstr[0] = m_fdinfo->get_typechar();
 		m_tcstr[1] = 0;
 		return m_tcstr;
 	case TYPE_CLIENTIP:
 		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
 			scap_fd_type evt_type = m_fdinfo->m_type;
 
 			if(m_fdinfo->is_role_none())
@@ -348,6 +398,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	case TYPE_SERVERIP:
 		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
 			scap_fd_type evt_type = m_fdinfo->m_type;
 
 			if(m_fdinfo->is_role_none())
@@ -368,6 +423,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	case TYPE_CLIENTPORT:
 		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
 			scap_fd_type evt_type = m_fdinfo->m_type;
 
 			if(m_fdinfo->is_role_none())
@@ -386,6 +446,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_SERVERPORT:
 		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
 			scap_fd_type evt_type = m_fdinfo->m_type;
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
@@ -421,6 +486,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_L4PROTO:
 		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
 			scap_l4_proto l4p = m_fdinfo->get_l4proto();
 
 			switch(l4p)
@@ -446,6 +516,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_IS_SERVER:
 		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
 			m_tbool = 
 				m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
 			return (uint8_t*)&m_tbool;
