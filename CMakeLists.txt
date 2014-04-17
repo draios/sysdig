@@ -23,6 +23,8 @@ if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1-dev")
 endif()
 
+add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
+
 option(USE_BUNDLED_LUAJIT "Enable building of the bundled LuaJIT" ON)
 option(LUAJIT_PREFIX "Build with LuaJIT at the given path" "")
 
@@ -80,6 +82,7 @@ if(NOT WIN32)
 
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		add_subdirectory(driver)
+		add_definitions(-DHAS_CAPTURE)
 	endif()
 
 	if(CMAKE_SYSTEM_NAME MATCHES "SunOS")

@@ -30,7 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "scap-int.h"
 
-#if !defined(_WIN32) && !defined(__APPLE__)
+#if defined(HAS_CAPTURE)
 int32_t scap_proc_fill_cwd(char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
@@ -469,7 +469,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	return res;
 }
 
-#endif // _WIN32
+#endif // HAS_CAPTURE
 
 //
 // Delete a process entry
@@ -508,7 +508,7 @@ void scap_proc_free_table(scap_t* handle)
 
 struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
 {
-#if defined(_WIN32) || defined(__APPLE__)
+#if !defined(HAS_CAPTURE)
 	return NULL;
 #else
 	struct scap_threadinfo* tinfo = NULL;
@@ -519,7 +519,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	}
 
 	return tinfo;
-#endif // WIN32
+#endif // HAS_CAPTURE
 }
 
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
