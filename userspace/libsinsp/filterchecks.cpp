@@ -654,6 +654,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exe", "the full name (including the path) of the executable generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "the name (excluding the path) of the executable generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "the arguments passed on the command line when starting the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cmdline", "full process command line, i.e name + arguments."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "the current working directory of the event."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads of that the process generating the event currently has."},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.ppid", "the pid of the parent of the process generating the event."},
@@ -725,6 +726,24 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_ARGS:
 		{
 			m_tstr.clear();
+
+			uint32_t j;
+			uint32_t nargs = tinfo->m_args.size();
+
+			for(j = 0; j < nargs; j++)
+			{
+				m_tstr += tinfo->m_args[j];
+				if(j < nargs -1)
+				{
+					m_tstr += ' ';
+				}
+			}
+
+			return (uint8_t*)m_tstr.c_str();
+		}
+	case TYPE_CMDLINE:
+		{
+			m_tstr = tinfo->get_comm();
 
 			uint32_t j;
 			uint32_t nargs = tinfo->m_args.size();
@@ -908,6 +927,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io", "'true' for events that read or write to FDs, like read(), send, recvfrom(), etc."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_read", "'true' for events that read from FDs, like read(), recv(), recvfrom(), etc."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.io_dir", "'r' for events that read from FDs, like read(); 'w' for events that write to FDs, like write()."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_wait", "'true' for events that make the thread wait, e.g. sleep(), select(), poll()."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 };
@@ -1484,6 +1504,24 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			return (uint8_t*)&m_u32val;
+		}
+	case TYPE_IODIR:
+		{
+			ppm_event_flags eflags = evt->get_flags();
+			if(eflags & EF_WRITES_TO_FD)
+			{
+				m_strstorage = "w";
+			}
+			else if(eflags & EF_READS_FROM_FD)
+			{
+				m_strstorage = "r";
+			}
+			else
+			{
+				return NULL;
+			}
+
+			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_ISWAIT:
 		{

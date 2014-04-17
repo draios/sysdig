@@ -263,17 +263,18 @@ public:
 		TYPE_EXE = 1,
 		TYPE_NAME = 2,
 		TYPE_ARGS = 3,
-		TYPE_CWD = 4,
-		TYPE_NCHILDS = 5,
-		TYPE_PARENTPID = 6,
-		TYPE_PARENTNAME = 7,
-		TYPE_TID = 8,
-		TYPE_ISMAINTHREAD = 9,
-		TYPE_EXECTIME = 10,
-		IOBYTES = 11,
-		TOTIOBYTES = 12,
-		LATENCY = 13,
-		TOTLATENCY = 14,
+		TYPE_CMDLINE = 4,
+		TYPE_CWD = 5,
+		TYPE_NCHILDS = 6,
+		TYPE_PARENTPID = 7,
+		TYPE_PARENTNAME = 8,
+		TYPE_TID = 9,
+		TYPE_ISMAINTHREAD = 10,
+		TYPE_EXECTIME = 11,
+		IOBYTES = 12,
+		TOTIOBYTES = 13,
+		LATENCY = 14,
+		TOTLATENCY = 15,
 	};
 
 	sinsp_filter_check_thread();
@@ -325,8 +326,9 @@ public:
 		TYPE_ISIO = 23,
 		TYPE_ISIO_READ = 24,
 		TYPE_ISIO_WRITE = 25,
-		TYPE_ISWAIT = 26,
-		TYPE_COUNT = 27,
+		TYPE_IODIR = 26,
+		TYPE_ISWAIT = 27,
+		TYPE_COUNT = 28,
 	};
 
 	sinsp_filter_check_event();
