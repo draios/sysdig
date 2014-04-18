@@ -7,7 +7,7 @@ else()
 endif()
 
 configure_file(dkms.conf.in dkms.conf)
-configure_file(Makefile.in "${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
+configure_file(Makefile.in Makefile.dkms)
 
 set(CLEAN_FILES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
@@ -19,11 +19,13 @@ set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}"
 # http://public.kitware.com/Bug/view.php?id=8438
 if(BUILD_DRIVER)
 	add_custom_target(driver ALL
+		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
 		COMMAND make
 		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 else()
 	add_custom_target(driver
+		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
 		COMMAND make
 		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -34,8 +36,11 @@ add_custom_target(install_driver
 	DEPENDS driver
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
+	RENAME Makefile
+	DESTINATION "src/sysdig-${SYSDIG_VERSION}")
+
 install(FILES
-	Makefile
 	${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
 	event_table.c
 	flags_table.c
