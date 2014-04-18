@@ -19,9 +19,9 @@ Sysdig is also packed with a set of scripts that make it easier to extract usefu
 
 Documentation / Support
 ---
-[Visit the wiki] (https://github.com/draios/sysdig/wiki) for full documentation on sysdig and its APIs:  
+[Visit the wiki] (https://github.com/draios/sysdig/wiki) for full documentation on sysdig and its APIs.  
 
-For support using sysdig, please contact [the official mailing list] (https://groups.google.com/forum/#!forum/sysdig):  
+For support using sysdig, please contact [the official mailing list] (https://groups.google.com/forum/#!forum/sysdig).  
 
 Join the Community
 ---
