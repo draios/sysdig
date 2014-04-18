@@ -6,11 +6,10 @@ else()
 	set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
 endif()
 
-configure_file(dkms.conf.in "${CMAKE_CURRENT_SOURCE_DIR}/dkms.conf")
+configure_file(dkms.conf.in dkms.conf)
 configure_file(Makefile.in "${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
 
 set(CLEAN_FILES
-	"${CMAKE_CURRENT_SOURCE_DIR}/dkms.conf"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}")
@@ -37,7 +36,7 @@ add_custom_target(install_driver
 
 install(FILES
 	Makefile
-	dkms.conf
+	${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
 	event_table.c
 	flags_table.c
 	main.c
