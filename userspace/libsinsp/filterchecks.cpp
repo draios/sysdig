@@ -1644,11 +1644,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			ppm_event_flags eflags = evt->get_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
-				m_strstorage = "w";
+				m_strstorage = "write";
 			}
 			else if(eflags & EF_READS_FROM_FD)
 			{
-				m_strstorage = "r";
+				m_strstorage = "read";
 			}
 			else
 			{
