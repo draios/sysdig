@@ -39,6 +39,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.typechar", "type of FD as a single character. Can be 'f' for file, 4 for IPv4 socket, 6 for IPv6 socket, 'u' for unix socket, p for pipe, 'e' for eventfd, 's' for signalfd, 'l' for eventpoll, 'i' for inotify, 'o' for uknown."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.name", "FD full name. If the fd is a file, this field contains the full path. If the FD is a socket, this field contain the connection tuple."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.directory", "If the fd is a file, the directory that contains it."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.filename", "If the fd is a file, the filename without the path."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.ip", "matches the ip address (client or server) of the fd."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.cip", "client IP address."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.sip", "server IP address."},
@@ -241,6 +242,34 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return NULL;
 		}
 	}
+	case TYPE_FILENAME:
+	{
+		if(evt->get_type() != PPME_SYSCALL_OPEN_E && evt->get_type() != PPME_SYSCALL_OPENAT_E &&
+			evt->get_type() != PPME_SYSCALL_CREAT_E)
+		{
+			return NULL;
+		}
+ 
+		if(extract_fdname_from_creator(evt, len) == true)
+		{
+			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+
+			size_t pos = m_tstr.rfind('/');
+			if(pos != string::npos)
+			{
+				if(pos < m_tstr.size() - 1)
+				{
+					m_tstr = m_tstr.substr(pos + 1, string::npos);
+				}
+			}
+
+			return (uint8_t*)m_tstr.c_str();
+		}
+		else
+		{
+			return NULL;
+		}
+	}
 	case TYPE_FDTYPECHAR:
 		switch(PPME_MAKE_ENTER(evt->get_type()))
 		{
@@ -357,6 +386,36 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				if(pos < m_tstr.size() - 1)
 				{
 					m_tstr.resize(pos + 1);
+				}
+			}
+			else
+			{
+				m_tstr = "/";
+			}
+
+			return (uint8_t*)m_tstr.c_str();
+		}
+	case TYPE_FILENAME:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return extract_from_null_fd(evt, len);
+			}
+
+			if(m_fdinfo->m_type != SCAP_FD_FILE)
+			{
+				return NULL;
+			}
+
+			m_tstr = m_fdinfo->m_name;
+			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+
+			size_t pos = m_tstr.rfind('/');
+			if(pos != string::npos)
+			{
+				if(pos < m_tstr.size() - 1)
+				{
+					m_tstr = m_tstr.substr(pos + 1, string::npos);
 				}
 			}
 			else
