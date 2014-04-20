@@ -20,19 +20,19 @@ set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}"
 if(BUILD_DRIVER)
 	add_custom_target(driver ALL
 		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
-		COMMAND make
+		COMMAND $(MAKE)
 		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 else()
 	add_custom_target(driver
 		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
-		COMMAND make
+		COMMAND $(MAKE)
 		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 add_custom_target(install_driver
-	COMMAND make install
+	COMMAND $(MAKE) install
 	DEPENDS driver
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
