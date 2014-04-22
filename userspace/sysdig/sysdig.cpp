@@ -159,7 +159,7 @@ static void usage()
 " Print all the open system calls invoked by cat\n"
 "   $ sysdig proc.name=cat and evt.type=open\n\n"
 " Print the name of the files opened by cat\n"
-"   $ ./sysdig -p\"%%evt.arg.name\" proc.name=cat and evt.type=open\n\n"
+"   $ sysdig -p\"%%evt.arg.name\" proc.name=cat and evt.type=open\n\n"
     );
 }
 
