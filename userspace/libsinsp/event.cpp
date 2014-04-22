@@ -977,20 +977,21 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					tch = '?';
 				}
 
-				spos += snprintf(&m_paramstr_storage[0] + spos,
-								 m_paramstr_storage.size() - spos,
-								 "%" PRIu64 ":%c%x%c",
-								 fd,
-								 tch,
-								 (uint32_t) * (int16_t *)(param->m_val + pos + 8),
-								 (j < (uint32_t)(nfds - 1)) ? ' ' : '\0');
+				int r = snprintf(&m_paramstr_storage[0] + spos,
+						m_paramstr_storage.size() - spos,
+						"%" PRIu64 ":%c%x%c",
+						fd,
+						tch,
+						(uint32_t) * (int16_t *)(param->m_val + pos + 8),
+						(j < (uint32_t)(nfds - 1)) ? ' ' : '\0');
 
-				if(spos < 0)
+				if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
 				{
 					m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
 					break;
 				}
 
+				spos += r;
 				pos += 10;
 			}
 		}
