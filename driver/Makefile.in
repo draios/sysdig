@@ -6,10 +6,10 @@ KERNELDIR 		?= /lib/modules/$(shell uname -r)/build
 
 TOP := $(shell pwd)
 all:
-	make -C $(KERNELDIR) M=$(TOP) modules
+	$(MAKE) -C $(KERNELDIR) M=$(TOP) modules
  
 clean:
-	make -C $(KERNELDIR) M=$(TOP) clean
+	$(MAKE) -C $(KERNELDIR) M=$(TOP) clean
 
 install: all
-	make -C $(KERNELDIR) M=$(TOP) modules_install
+	$(MAKE) -C $(KERNELDIR) M=$(TOP) modules_install

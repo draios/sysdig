@@ -2443,7 +2443,7 @@ void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
 		return;
 	}
 
-	*(uint64_t*)evt->m_tinfo->m_lastevent_data = evt->get_ts();
+	*evt->m_tinfo->m_lastevent_data = evt->get_ts();
 }
 
 void sinsp_parser::parse_fcntl_enter(sinsp_evt *evt)
