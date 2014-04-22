@@ -44,7 +44,7 @@ static uint32_t scap_normalize_block_len(uint32_t blocklen)
 static int32_t scap_write_padding(FILE *f, uint32_t blocklen)
 {
 	int32_t val = 0;
-	int32_t bytestowrite = scap_normalize_block_len(blocklen) - blocklen;
+	uint32_t bytestowrite = scap_normalize_block_len(blocklen) - blocklen;
 
 	if(fwrite(&val, 1, bytestowrite, f) == bytestowrite)
 	{
@@ -399,7 +399,7 @@ int32_t scap_write_userlist(scap_t *handle, FILE *f)
 		homedirlen = strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
 		shelllen = strnlen(info->shell, SCAP_MAX_PATH_SIZE);
 
-		totlen += sizeof(type) + sizeof(info->uid) + sizeof(info->gid) + sizeof(uint16_t) + 
+		totlen += sizeof(type) + sizeof(info->uid) + sizeof(info->gid) + sizeof(uint16_t) +
 			namelen + sizeof(uint16_t) + homedirlen + sizeof(uint16_t) + shelllen;
 	}
 
