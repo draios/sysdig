@@ -440,6 +440,11 @@ public:
 	*/
 	bool is_debug_enabled();
 
+	/*!
+	  \brief XXX.
+	*/
+	double get_read_progress();
+
 	//
 	// Misc internal stuff
 	//
@@ -471,9 +476,11 @@ private:
 	void remove_thread(int64_t tid);
 
 	scap_t* m_h;
+	string m_filename;
+	FILE* m_hfile;
+	uint64_t m_filesize;
 	bool m_islive;
 	bool m_isdebug_enabled;
-	string m_filename;
 	sinsp_evt m_evt;
 	string m_lasterr;
 	int64_t m_tid_to_remove;

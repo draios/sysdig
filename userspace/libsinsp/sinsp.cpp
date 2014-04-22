@@ -76,6 +76,7 @@ sinsp::sinsp() :
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_isdebug_enabled = false;
+	m_filesize = 0;
 }
 
 sinsp::~sinsp()
@@ -139,6 +140,18 @@ void sinsp::open(string filename)
 	}
 
 	m_filename = filename;
+	m_hfile = scap_get_readfile_pointer(m_h);
+	if(m_hfile)
+	{
+		long curfilepos = ftell(m_hfile);
+		fseek(m_hfile, 0L, SEEK_END);
+		m_filesize = ftell(m_hfile);
+		fseek(m_hfile, curfilepos, SEEK_SET);
+	}
+	else
+	{
+		m_hfile = NULL;
+	}
 
 	init();
 }
@@ -793,4 +806,17 @@ bool sinsp::is_debug_enabled()
 sinsp_parser* sinsp::get_parser()
 {
 	return m_parser;
+}
+
+double sinsp::get_read_progress()
+{
+	if(m_hfile == NULL)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+
+	ASSERT(m_filesize != 0);
+
+	uint64_t fpos = ftell(m_hfile);
+	return (double)fpos * 100 / m_filesize;
 }

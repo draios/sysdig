@@ -103,12 +103,13 @@ static void usage()
 "                    a chisel found in the -cl option list.\n"
 #endif
 " -j, --json         Emit output as json\n"
+" -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
-" -L, --list-events  List the events that the engine supports\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
+" -P, --progress     Print progress on stderr while processing trace files\n"
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
 "                    See the examples section below for more info.\n"
@@ -272,6 +273,7 @@ captureinfo do_inspect(sinsp* inspector,
 					   uint64_t cnt,
 					   bool quiet,
 					   bool absolute_times,
+					   bool print_progress,
 					   sinsp_filter* display_filter,
 					   vector<summary_table_entry>* summary_table,
 					   sinsp_evt_formatter* formatter)
@@ -283,6 +285,7 @@ captureinfo do_inspect(sinsp* inspector,
 	uint64_t deltats = 0;
 	uint64_t firstts = 0;
 	string line;
+	double last_printed_progress_pct = 0;
 
 	//
 	// Loop through the events
@@ -321,6 +324,12 @@ captureinfo do_inspect(sinsp* inspector,
 			// Notify the chisels that we're exiting.
 			//
 			chisels_on_capture_end();
+
+			if(print_progress)
+			{
+				fprintf(stderr, "100.00\n");
+			}
+
 			break;
 		}
 		else if(res != SCAP_SUCCESS)
@@ -342,6 +351,20 @@ captureinfo do_inspect(sinsp* inspector,
 			firstts = ts;
 		}
 		deltats = ts - firstts;
+
+		if(print_progress)
+		{
+			if(ev->get_num() % 10000 == 0)
+			{
+				double progress_pct = inspector->get_read_progress();
+
+				if(progress_pct - last_printed_progress_pct > 0.1)
+				{
+					fprintf(stderr, "%.2lf\n", progress_pct);
+					last_printed_progress_pct = progress_pct;
+				}
+			}
+		}
 
 		//
 		// If there are chisels to run, run them
@@ -432,6 +455,7 @@ int main(int argc, char **argv)
 	bool is_filter_display = false;
 	bool verbose = false;
 	bool list_flds = false;
+	bool print_progress = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
@@ -463,6 +487,7 @@ int main(int argc, char **argv)
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"numevents", required_argument, 0, 'n' },
+		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
 		{"readfile", required_argument, 0, 'r' },
@@ -490,7 +515,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "Aac:dDhi:jlLn:p:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "Aac:dDhi:jlLn:Pp:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -625,6 +650,9 @@ int main(int argc, char **argv)
 					res = EXIT_FAILURE;
 					goto exit;
 				}
+				break;
+			case 'P':
+				print_progress = true;
 				break;
 			case 'p':
 				if(string(optarg) == "p")
@@ -825,6 +853,13 @@ int main(int argc, char **argv)
 			// No file to open, this is a live capture
 			//
 #if defined(HAS_CAPTURE)
+			if(print_progress)
+			{
+				fprintf(stderr, "the -P flag cannot be used with live captures.\n");
+				res = EXIT_FAILURE;
+				goto exit;
+			}
+
 			try
 			{
 				inspector->open("");
@@ -896,6 +931,7 @@ int main(int argc, char **argv)
 			cnt,
 			quiet,
 			absolute_times,
+			print_progress,
 			display_filter,
 			summary_table,
 			&formatter);

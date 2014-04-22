@@ -106,14 +106,17 @@ OPTIONS
 **-i _chiselname_**, **--chisel-info _chiselname_**  
   Get a longer description and the arguments associated with a chisel found in the -cl option list.
 
-**-l**, **--list**  
-  List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
-  
 **-L**, **--list-events**  
   List the events that the engine supports
   
+**-l**, **--list**  
+  List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
+    
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after <num> events
+
+** -P **, **--progress**  
+  Print progress on stderr while processing trace files.
   
 **-p** _output_format_, **--print**=_output_format_  
   Specify the format to be used when printing the events. See the examples section below for more info.

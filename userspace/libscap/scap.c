@@ -950,3 +950,13 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 #endif
 }
 
+FILE* scap_get_readfile_pointer(scap_t* handle)
+{
+	if(handle->m_file == NULL)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_readfile_pointer only works on trace files");
+		return NULL;
+	}
+
+	return handle->m_file;
+}
