@@ -301,7 +301,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_prctl - SYSCALL_TABLE_ID0] = PPM_SC_PRCTL,
 #ifdef __NR_arch_prctl
 	[__NR_arch_prctl - SYSCALL_TABLE_ID0] = PPM_SC_ARCH_PRCTL,
-#endif	
+#endif
 	[__NR_rt_sigaction - SYSCALL_TABLE_ID0] = PPM_SC_RT_SIGACTION,
 	[__NR_rt_sigprocmask - SYSCALL_TABLE_ID0] = PPM_SC_RT_SIGPROCMASK,
 	[__NR_rt_sigpending - SYSCALL_TABLE_ID0] = PPM_SC_RT_SIGPENDING,
@@ -605,7 +605,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_shmat
 	[__NR_shmat - SYSCALL_TABLE_ID0] = PPM_SC_SHMAT,
-#endif	
+#endif
 #ifdef __NR_rt_sigreturn
 	[__NR_rt_sigreturn - SYSCALL_TABLE_ID0] = PPM_SC_SIGRETURN,
 #endif
