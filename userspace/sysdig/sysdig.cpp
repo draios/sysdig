@@ -788,7 +788,7 @@ int main(int argc, char **argv)
 		//
 		if(optind + n_filterargs < argc)
 		{
-	#ifdef HAS_FILTERING
+#ifdef HAS_FILTERING
 			string filter;
 
 			for(int32_t j = optind + n_filterargs; j < argc; j++)
@@ -817,11 +817,11 @@ int main(int argc, char **argv)
 				res = EXIT_FAILURE;
 				goto exit;
 			}
-	#else
+#else
 			fprintf(stderr, "filtering not compiled.\n");
 			res = EXIT_FAILURE;
 			goto exit;
-	#endif
+#endif
 		}
 
 		//
@@ -872,7 +872,7 @@ int main(int argc, char **argv)
 				//
 				// No file to open, this is a live capture
 				//
-	#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE)
 				if(print_progress)
 				{
 					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
@@ -888,13 +888,13 @@ int main(int argc, char **argv)
 				{
 					open_success = false;
 				}
-	#else
+#else
 				//
 				// Starting live capture
 				// If this fails on Windows and OSX, don't try with any driver
 				//
 				inspector->open("");
-	#endif
+#endif
 
 				//
 				// Starting the live capture failed, try to load the driver with
