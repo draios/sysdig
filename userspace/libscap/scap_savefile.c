@@ -694,10 +694,10 @@ int32_t scap_read_proclist(scap_t *handle, FILE *f, uint32_t block_length)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
+	size_t padding_len;
 	struct scap_threadinfo tinfo;
 	uint16_t stlen;
 	uint32_t padding;
-	int32_t padding_len;
 	int32_t uth_status = SCAP_SUCCESS;
 	struct scap_threadinfo *ntinfo;
 
@@ -879,8 +879,12 @@ int32_t scap_read_proclist(scap_t *handle, FILE *f, uint32_t block_length)
 	//
 	// Read the padding bytes so we properly align to the end of the data
 	//
-	padding_len = ((int32_t)block_length - (int32_t)totreadsize);
-	ASSERT(padding_len >= 0);
+	if(totreadsize > block_length)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+	padding_len = block_length - totreadsize;
 
 	readsize = fread(&padding, 1, padding_len, f);
 	CHECK_READ_SIZE(readsize, padding_len);
@@ -1220,8 +1224,8 @@ int32_t scap_read_userlist(scap_t *handle, FILE *f, uint32_t block_length)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
+	size_t padding_len;
 	uint32_t padding;
-	int32_t padding_len;
 	uint8_t type;
 	uint16_t stlen;
 
@@ -1409,8 +1413,12 @@ int32_t scap_read_userlist(scap_t *handle, FILE *f, uint32_t block_length)
 	//
 	// Read the padding bytes so we properly align to the end of the data
 	//
-	padding_len = ((int32_t)block_length - (int32_t)totreadsize);
-	ASSERT(padding_len >= 0);
+	if(totreadsize > block_length)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+	padding_len = block_length - totreadsize;
 
 	readsize = fread(&padding, 1, padding_len, f);
 	CHECK_READ_SIZE(readsize, padding_len);
@@ -1425,6 +1433,7 @@ int32_t scap_read_fdlist(scap_t *handle, FILE *f, uint32_t block_length)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
+	size_t padding_len;
 	struct scap_threadinfo *tinfo;
 	scap_fdinfo fdi;
 	scap_fdinfo *nfdi;
@@ -1432,7 +1441,6 @@ int32_t scap_read_fdlist(scap_t *handle, FILE *f, uint32_t block_length)
 	uint64_t tid;
 	int32_t uth_status = SCAP_SUCCESS;
 	uint32_t padding;
-	int32_t padding_len;
 
 	//
 	// Read the tid
@@ -1488,8 +1496,12 @@ int32_t scap_read_fdlist(scap_t *handle, FILE *f, uint32_t block_length)
 	//
 	// Read the padding bytes so we properly align to the end of the data
 	//
-	padding_len = ((int32_t)block_length - (int32_t)totreadsize);
-	ASSERT(padding_len >= 0);
+	if(totreadsize > block_length)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+	padding_len = block_length - totreadsize;
 
 	readsize = fread(&padding, 1, padding_len, f);
 	CHECK_READ_SIZE(readsize, padding_len);
