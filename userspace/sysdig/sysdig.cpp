@@ -321,14 +321,18 @@ captureinfo do_inspect(sinsp* inspector,
 		{
 			//
 			// Reached the end of a trace file.
-			// Notify the chisels that we're exiting.
+			// If we are reporting prgress, this is 100%
 			//
-			chisels_on_capture_end();
-
 			if(print_progress)
 			{
 				fprintf(stderr, "100.00\n");
+				fflush(stderr);
 			}
+
+			//
+			// Notify the chisels that we're exiting.
+			//
+			chisels_on_capture_end();
 
 			break;
 		}
@@ -361,6 +365,7 @@ captureinfo do_inspect(sinsp* inspector,
 				if(progress_pct - last_printed_progress_pct > 0.1)
 				{
 					fprintf(stderr, "%.2lf\n", progress_pct);
+					fflush(stderr);
 					last_printed_progress_pct = progress_pct;
 				}
 			}
@@ -446,7 +451,7 @@ int main(int argc, char **argv)
 {
 	int res = EXIT_SUCCESS;
 	sinsp* inspector = NULL;
-	string infile;
+	vector<string> infiles;
 	string outfile;
 	int op;
 	uint64_t cnt = -1;
@@ -675,7 +680,7 @@ int main(int argc, char **argv)
 				quiet = true;
 				break;
 			case 'r':
-				infile = optarg;
+				infiles.push_back(optarg);
 				break;
 			case 'S':
 				summary_table = new vector<summary_table_entry>;
@@ -833,124 +838,133 @@ int main(int argc, char **argv)
 		//
 		sinsp_evt_formatter formatter(inspector, output_format);
 
-		initialize_chisels();
-
-		//
-		// Launch the capture
-		//
-		bool open_success = true;
-
-		if(infile != "")
+		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
-			//
-			// We have a file to open
-			//
-			inspector->open(infile);
-		}
-		else
-		{
-			//
-			// No file to open, this is a live capture
-			//
-#if defined(HAS_CAPTURE)
-			if(print_progress)
-			{
-				fprintf(stderr, "the -P flag cannot be used with live captures.\n");
-				res = EXIT_FAILURE;
-				goto exit;
-			}
-
-			try
-			{
-				inspector->open("");
-			}
-			catch(sinsp_exception e)
-			{
-				open_success = false;
-			}
-#else
-			//
-			// Starting live capture
-			// If this fails on Windows and OSX, don't try with any driver
-			//
-			inspector->open("");
-#endif
+			initialize_chisels();
 
 			//
-			// Starting the live capture failed, try to load the driver with
-			// modprobe.
+			// Launch the capture
 			//
-			if(!open_success)
+			bool open_success = true;
+
+			if(infiles.size() != 0)
 			{
-				open_success = true;
+				//
+				// We have a file to open
+				//
+				inspector->open(infiles[j]);
+			}
+			else
+			{
+				//
+				// No file to open, this is a live capture
+				//
+	#if defined(HAS_CAPTURE)
+				if(print_progress)
+				{
+					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
+					res = EXIT_FAILURE;
+					goto exit;
+				}
 
 				try
 				{
-					system("modprobe sysdig-probe > /dev/null 2> /dev/null");
-
 					inspector->open("");
 				}
 				catch(sinsp_exception e)
 				{
 					open_success = false;
 				}
-			}
-
-			//
-			// No luck with modprobe either.
-			// Maybe this is a version of sysdig that was compiled from the
-			// sources, so let's make one last attempt with insmod and the
-			// path to the driver directory.
-			//
-			if(!open_success)
-			{
-				system("insmod ../../driver/sysdig-probe.ko > /dev/null 2> /dev/null");
-
+	#else
+				//
+				// Starting live capture
+				// If this fails on Windows and OSX, don't try with any driver
+				//
 				inspector->open("");
+	#endif
+
+				//
+				// Starting the live capture failed, try to load the driver with
+				// modprobe.
+				//
+				if(!open_success)
+				{
+					open_success = true;
+
+					try
+					{
+						system("modprobe sysdig-probe > /dev/null 2> /dev/null");
+
+						inspector->open("");
+					}
+					catch(sinsp_exception e)
+					{
+						open_success = false;
+					}
+				}
+
+				//
+				// No luck with modprobe either.
+				// Maybe this is a version of sysdig that was compiled from the
+				// sources, so let's make one last attempt with insmod and the
+				// path to the driver directory.
+				//
+				if(!open_success)
+				{
+					system("insmod ../../driver/sysdig-probe.ko > /dev/null 2> /dev/null");
+
+					inspector->open("");
+				}
 			}
-		}
 
-		if(snaplen != 0)
-		{
-			inspector->set_snaplen(snaplen);
-		}
+			if(snaplen != 0)
+			{
+				inspector->set_snaplen(snaplen);
+			}
 
-		if(outfile != "")
-		{
-			inspector->autodump_start(outfile);
-		}
+			if(outfile != "")
+			{
+				inspector->autodump_start(outfile);
+			}
 
-		duration = ((double)clock()) / CLOCKS_PER_SEC;
+			duration = ((double)clock()) / CLOCKS_PER_SEC;
 
-		//
-		// Notify the chisels that the capture is starting
-		//
-		chisels_on_capture_start();
+			//
+			// Notify the chisels that the capture is starting
+			//
+			chisels_on_capture_start();
 
-		cinfo = do_inspect(inspector,
-			cnt,
-			quiet,
-			absolute_times,
-			print_progress,
-			display_filter,
-			summary_table,
-			&formatter);
+			cinfo = do_inspect(inspector,
+				cnt,
+				quiet,
+				absolute_times,
+				print_progress,
+				display_filter,
+				summary_table,
+				&formatter);
 
-		duration = ((double)clock()) / CLOCKS_PER_SEC - duration;
+			duration = ((double)clock()) / CLOCKS_PER_SEC - duration;
 
-		scap_stats cstats;
-		inspector->get_capture_stats(&cstats);
+			scap_stats cstats;
+			inspector->get_capture_stats(&cstats);
 
-		if(verbose)
-		{
-			fprintf(stderr, "Driver Events:%" PRIu64 "\nDriver Drops:%" PRIu64 "\n",
-				cstats.n_evts,
-				cstats.n_drops);
+			if(verbose)
+			{
+				fprintf(stderr, "Driver Events:%" PRIu64 "\nDriver Drops:%" PRIu64 "\n",
+					cstats.n_evts,
+					cstats.n_drops);
 
-			fprintf(stderr, "Elapsed time: %.3lf, Captured Events: %" PRIu64 ", %.2lf eps\n",
-				duration,
-				cinfo.m_nevts,
-				(double)cinfo.m_nevts / duration);
+				fprintf(stderr, "Elapsed time: %.3lf, Captured Events: %" PRIu64 ", %.2lf eps\n",
+					duration,
+					cinfo.m_nevts,
+					(double)cinfo.m_nevts / duration);
+			}
+
+			//
+			// Done. Close the capture.
+			//
+			inspector->close();
+
 		}
 	}
 	catch(sinsp_exception e)
