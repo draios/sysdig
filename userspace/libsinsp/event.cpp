@@ -1109,7 +1109,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
 
-			const struct ppm_name_value *flags = m_info->params[id].symbols;
+			const struct ppm_name_value *flags = (const struct ppm_name_value *)m_info->params[id].info;
 			const char *separator = "";
 			uint32_t initial_val = val;
 			uint32_t j = 0;

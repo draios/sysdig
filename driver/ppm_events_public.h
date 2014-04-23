@@ -837,7 +837,8 @@ struct ppm_param_info {
 	char name[PPM_MAX_NAME_LEN];  /**< Paramter name, e.g. 'size'. */
 	enum ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
-	const struct ppm_name_value *symbols; /**< If this is a flags parameter, it points to an array of ppm_name_value, terminated with {0, 0} */
+	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
+			       else if this is a dynamic parameter it points to an array of ppm_param_info */
 };
 
 /*!
