@@ -414,7 +414,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_FCNTL_X = 151,	/* For internal use */
 	PPME_SCHEDSWITCHEX_E = 152,
 	PPME_SCHEDSWITCHEX_X = 153,	/* This should never be called */
-	PPM_EVENT_MAX = 154,
+	PPME_SYSCALL_PTRACE_E = 154,
+	PPME_SYSCALL_PTRACE_X = 155,
+	PPM_EVENT_MAX = 156,
 };
 /*@}*/
 

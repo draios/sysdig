@@ -257,6 +257,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
+	[PPME_SYSCALL_PTRACE_E] = {f_sys_empty},
+	[PPME_SYSCALL_PTRACE_X] = {f_sys_empty},
 };
 
 /*
