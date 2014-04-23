@@ -611,7 +611,11 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 
 	if(fname[0] == '-' && fname[1] == '\0')
 	{
+#ifndef	_WIN32
 		fd = dup(STDOUT_FILENO);
+#else
+		fd = 1;
+#endif
 		if(fd != -1)
 		{
 			f = gzdopen(fd, mode);
@@ -625,10 +629,12 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 
 	if(f == NULL)
 	{
+#ifndef	_WIN32
 		if(fd != -1)
 		{
 			close(fd);
 		}
+#endif
 		
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s", fname);
 		return NULL;

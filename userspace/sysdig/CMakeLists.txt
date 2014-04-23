@@ -44,6 +44,11 @@ else()
 			"${PROJECT_BINARY_DIR}/$(Configuration)/lua51.dll")
 
 	add_custom_command(TARGET sysdig POST_BUILD
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+			"${ZLIB_INCLUDE}/zlib1.dll"
+			"${PROJECT_BINARY_DIR}/$(Configuration)/")
+
+	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_directory
 			"${PROJECT_SOURCE_DIR}/userspace/sysdig/chisels"
 			"${PROJECT_BINARY_DIR}/$(Configuration)/chisels")

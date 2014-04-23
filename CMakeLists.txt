@@ -19,6 +19,8 @@ cmake_minimum_required(VERSION 2.8.2)
 
 project(sysdig) 
 
+include(ExternalProject)
+
 if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1-dev")
 endif()
@@ -112,7 +114,6 @@ if(NOT WIN32)
 		set (LUAJIT_INCLUDE "${LUAJIT_SRC}/src")
 		set (LUAJIT_LIB "${LUAJIT_SRC}/src/libluajit.a")
 		message (STATUS "Using bundled LuaJIT in '${LUAJIT_SRC}'")
-		include(ExternalProject)
 		ExternalProject_Add(luajit
 			SOURCE_DIR "${LUAJIT_SRC}"
 			CONFIGURE_COMMAND ""
@@ -121,6 +122,8 @@ if(NOT WIN32)
 			INSTALL_COMMAND "")
 	endif()
 
+	set(ZLIB_INCLUDE "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
+	set(ZLIB_LIB "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib/libz.a")
 	ExternalProject_Add(zlib
 		URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
 		URL_MD5 "44d667c142d7cda120332623eab69f40"
@@ -128,9 +131,6 @@ if(NOT WIN32)
 		BUILD_COMMAND ${CMD_MAKE}
 		BUILD_IN_SOURCE 1
 		INSTALL_COMMAND "")
-
-	set(ZLIB_INCLUDE "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
-	set(ZLIB_LIB "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib/libz.a")
 
 else()
 
@@ -149,12 +149,21 @@ else()
 
 	set (LUAJIT_INCLUDE "${LUAJIT_SRC}/src")
 	set (LUAJIT_LIB "${LUAJIT_SRC}/src/lua51.lib")
-	include(ExternalProject)
 	ExternalProject_Add(luajit
 		SOURCE_DIR ${LUAJIT_SRC}
 		CONFIGURE_COMMAND ""
 		BUILD_COMMAND msvcbuild.bat
 		BINARY_DIR "${LUAJIT_INCLUDE}"
+		INSTALL_COMMAND "")
+
+	set(ZLIB_INCLUDE "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
+	set(ZLIB_LIB "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib/zdll.lib")
+	ExternalProject_Add(zlib
+		URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
+		URL_MD5 "44d667c142d7cda120332623eab69f40"
+		CONFIGURE_COMMAND ""
+		BUILD_COMMAND nmake -f win32/Makefile.msc
+		BINARY_DIR "${ZLIB_INCLUDE}"
 		INSTALL_COMMAND "")
 
 endif()
