@@ -167,8 +167,8 @@ int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	//
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
-		totlen +=
-		    sizeof(uint64_t) +	// tid
+		totlen += (uint32_t)
+		    (sizeof(uint64_t) +	// tid
 		    sizeof(uint64_t) +	// pid
 		    sizeof(uint64_t) +	// ptid
 		    2 + strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE) +
@@ -178,7 +178,7 @@ int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		    sizeof(uint64_t) +	// fdlimit
 		    sizeof(uint32_t) +	// uid
 		    sizeof(uint32_t) +	// gid
-		    sizeof(uint32_t);
+		    sizeof(uint32_t));
 	}
 
 	//
@@ -198,10 +198,10 @@ int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	//
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
-		commlen = strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
-		exelen = strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
+		commlen = (uint16_t)strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
+		exelen = (uint16_t)strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
 		argslen = tinfo->args_len;
-		cwdlen = strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
+		cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
 
 		if(gzwrite(f, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		        gzwrite(f, &(tinfo->pid), sizeof(uint64_t)) != sizeof(uint64_t) ||
@@ -395,9 +395,9 @@ int32_t scap_write_userlist(scap_t *handle, gzFile f)
 	{
 		scap_userinfo* info = &handle->m_userlist->users[j];
 
-		namelen = strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
-		homedirlen = strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
-		shelllen = strnlen(info->shell, SCAP_MAX_PATH_SIZE);
+		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
+		homedirlen = (uint16_t)strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
+		shelllen = (uint16_t)strnlen(info->shell, SCAP_MAX_PATH_SIZE);
 
 		totlen += sizeof(type) + sizeof(info->uid) + sizeof(info->gid) + sizeof(uint16_t) +
 			namelen + sizeof(uint16_t) + homedirlen + sizeof(uint16_t) + shelllen;
@@ -407,7 +407,7 @@ int32_t scap_write_userlist(scap_t *handle, gzFile f)
 	{
 		scap_groupinfo* info = &handle->m_userlist->groups[j];
 
-		namelen = strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
+		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
 
 		totlen += sizeof(type) + sizeof(info->gid) + sizeof(uint16_t) + namelen;
 	}
@@ -432,9 +432,9 @@ int32_t scap_write_userlist(scap_t *handle, gzFile f)
 	{
 		scap_userinfo* info = &handle->m_userlist->users[j];
 
-		namelen = strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
-		homedirlen = strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
-		shelllen = strnlen(info->shell, SCAP_MAX_PATH_SIZE);
+		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
+		homedirlen = (uint16_t)strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
+		shelllen = (uint16_t)strnlen(info->shell, SCAP_MAX_PATH_SIZE);
 
 		if(gzwrite(f, &(type), sizeof(type)) != sizeof(type) ||
 			gzwrite(f, &(info->uid), sizeof(info->uid)) != sizeof(info->uid) ||
@@ -459,7 +459,7 @@ int32_t scap_write_userlist(scap_t *handle, gzFile f)
 	{
 		scap_groupinfo* info = &handle->m_userlist->groups[j];
 
-		namelen = strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
+		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
 
 		if(gzwrite(f, &(type), sizeof(type)) != sizeof(type) ||
 			gzwrite(f, &(info->gid), sizeof(info->gid)) != sizeof(info->gid) ||
@@ -726,10 +726,10 @@ int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_length)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
+	size_t padding_len;
 	struct scap_threadinfo tinfo;
 	uint16_t stlen;
 	uint32_t padding;
-	int32_t padding_len;
 	int32_t uth_status = SCAP_SUCCESS;
 	struct scap_threadinfo *ntinfo;
 
@@ -911,8 +911,12 @@ int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_length)
 	//
 	// Read the padding bytes so we properly align to the end of the data
 	//
-	padding_len = ((int32_t)block_length - (int32_t)totreadsize);
-	ASSERT(padding_len >= 0);
+	if(totreadsize > block_length)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+	padding_len = block_length - totreadsize;
 
 	readsize = gzread(f, &padding, padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
@@ -1252,8 +1256,8 @@ int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_length)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
+	size_t padding_len;
 	uint32_t padding;
-	int32_t padding_len;
 	uint8_t type;
 	uint16_t stlen;
 
@@ -1441,8 +1445,12 @@ int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_length)
 	//
 	// Read the padding bytes so we properly align to the end of the data
 	//
-	padding_len = ((int32_t)block_length - (int32_t)totreadsize);
-	ASSERT(padding_len >= 0);
+	if(totreadsize > block_length)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+	padding_len = block_length - totreadsize;
 
 	readsize = gzread(f, &padding, padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
@@ -1457,6 +1465,7 @@ int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
+	size_t padding_len;
 	struct scap_threadinfo *tinfo;
 	scap_fdinfo fdi;
 	scap_fdinfo *nfdi;
@@ -1464,7 +1473,6 @@ int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 	uint64_t tid;
 	int32_t uth_status = SCAP_SUCCESS;
 	uint32_t padding;
-	int32_t padding_len;
 
 	//
 	// Read the tid
@@ -1520,8 +1528,12 @@ int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 	//
 	// Read the padding bytes so we properly align to the end of the data
 	//
-	padding_len = ((int32_t)block_length - (int32_t)totreadsize);
-	ASSERT(padding_len >= 0);
+	if(totreadsize > block_length)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+	padding_len = block_length - totreadsize;
 
 	readsize = gzread(f, &padding, padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
