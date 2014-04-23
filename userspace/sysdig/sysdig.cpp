@@ -134,6 +134,7 @@ static void usage()
 " -x, --print-hex    Print data buffers in hex.\n"
 " -X, --print-hex-ascii\n"
 "                    Print data buffers in hex and ASCII.\n"
+" -z, --compress     Used with -w, enables compression for tracefiles.\n"
 "\n"
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
@@ -456,6 +457,7 @@ int main(int argc, char **argv)
 	bool verbose = false;
 	bool list_flds = false;
 	bool print_progress = false;
+	bool compress = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
@@ -477,6 +479,7 @@ int main(int argc, char **argv)
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, &cflag, 1 },
 #endif
+		{"compress", no_argument, 0, 'z' },
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
 		{"help", no_argument, 0, 'h' },
@@ -515,7 +518,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "Aac:dDhi:jlLn:Pp:qr:Ss:t:vw:xX", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "Aac:dDhi:jlLn:Pp:qr:Ss:t:vw:xXz", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -743,6 +746,9 @@ int main(int argc, char **argv)
 
 				event_buffer_format = sinsp_evt::PF_HEXASCII;
 				break;
+			case 'z':
+				compress = true;
+				break;
 			default:
 				break;
 			}
@@ -917,7 +923,7 @@ int main(int argc, char **argv)
 
 		if(outfile != "")
 		{
-			inspector->autodump_start(outfile);
+			inspector->autodump_start(outfile, compress);
 		}
 
 		duration = ((double)clock()) / CLOCKS_PER_SEC;

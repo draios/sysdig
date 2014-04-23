@@ -286,7 +286,7 @@ scap_t* scap_open_offline(char* fname, char *error)
 	//
 	// Open the file
 	//
-	handle->m_file = fopen(fname, "rb");
+	handle->m_file = gzopen(fname, "rb");
 	if(handle->m_file == NULL)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", fname);
@@ -329,7 +329,7 @@ void scap_close(scap_t* handle)
 {
 	if(handle->m_file)
 	{
-		fclose(handle->m_file);
+		gzclose(handle->m_file);
 	}
 	else
 	{

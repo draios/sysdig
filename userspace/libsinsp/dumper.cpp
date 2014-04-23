@@ -35,14 +35,22 @@ sinsp_dumper::~sinsp_dumper()
 	}
 }
 
-void sinsp_dumper::open(const string& filename)
+void sinsp_dumper::open(const string& filename, bool compress)
 {
 	if(m_inspector->m_h == NULL)
 	{
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
-	m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str());
+	if(compress)
+	{
+		m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_GZIP);
+	}
+	else
+	{
+		m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE);
+	}
+
 	if(m_dumper == NULL)
 	{
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));

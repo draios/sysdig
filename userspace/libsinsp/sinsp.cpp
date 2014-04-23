@@ -184,14 +184,22 @@ void sinsp::close()
 #endif
 }
 
-void sinsp::autodump_start(const string dump_filename)
+void sinsp::autodump_start(const string& dump_filename, bool compress)
 {
 	if(NULL == m_h)
 	{
 		throw sinsp_exception("inspector not opened yet");
 	}
 
-	m_dumper = scap_dump_open(m_h, dump_filename.c_str());
+	if(compress)
+	{
+		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_GZIP);
+	}
+	else
+	{
+		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_NONE);
+	}
+
 	if(NULL == m_dumper)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));

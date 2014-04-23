@@ -374,6 +374,15 @@ typedef enum event_direction
 	SCAP_ED_OUT = 1
 }event_direction;
 
+/*!
+  \brief Indicates the compression type used when writing a tracefile
+*/
+typedef enum compression_mode
+{
+	SCAP_COMPRESSION_NONE = 0,
+	SCAP_COMPRESSION_GZIP = 1
+}compression_mode;
+
 typedef struct scap_dumper scap_dumper_t;
 /*@}*/
 
@@ -512,7 +521,7 @@ FILE* scap_get_readfile_pointer(scap_t* handle);
 
   \return Dump handle that can be used to identify this specific dump instance. 
 */
-scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname);
+scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress);
 
 /*!
   \brief Close a tracefile. 

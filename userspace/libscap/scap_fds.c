@@ -219,14 +219,14 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 //
 // Write the given fd info to disk
 //
-int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, FILE *f)
+int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, gzFile f)
 {
 
 	uint8_t type = (uint8_t)fdi->type;
 	uint16_t stlen;
-	if(fwrite(&(fdi->fd), sizeof(uint64_t), 1, f) != 1 ||
-	        fwrite(&(fdi->ino), sizeof(uint64_t), 1, f) != 1 ||
-	        fwrite(&(type), sizeof(uint8_t), 1, f) != 1)
+	if(gzwrite(f, &(fdi->fd), sizeof(uint64_t)) != sizeof(uint64_t) ||
+	        gzwrite(f, &(fdi->ino), sizeof(uint64_t)) != sizeof(uint64_t) ||
+	        gzwrite(f, &(type), sizeof(uint8_t)) != sizeof(uint8_t))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
 		return SCAP_FAILURE;
@@ -235,53 +235,53 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, FILE *f)
 	switch(fdi->type)
 	{
 	case SCAP_FD_IPV4_SOCK:
-		if(fwrite(&(fdi->info.ipv4info.sip), sizeof(uint32_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv4info.dip), sizeof(uint32_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv4info.sport), sizeof(uint16_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv4info.dport), sizeof(uint16_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv4info.l4proto), sizeof(uint8_t), 1, f) != 1)
+		if(gzwrite(f, &(fdi->info.ipv4info.sip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        gzwrite(f, &(fdi->info.ipv4info.dip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        gzwrite(f, &(fdi->info.ipv4info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, &(fdi->info.ipv4info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, &(fdi->info.ipv4info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi2)");
 			return SCAP_FAILURE;
 		}
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
-		if(fwrite(&(fdi->info.ipv4serverinfo.ip), sizeof(uint32_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv4serverinfo.port), sizeof(uint16_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv4serverinfo.l4proto), sizeof(uint8_t), 1, f) != 1)
+		if(gzwrite(f, &(fdi->info.ipv4serverinfo.ip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        gzwrite(f, &(fdi->info.ipv4serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, &(fdi->info.ipv4serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
 			return SCAP_FAILURE;
 		}
 		break;
 	case SCAP_FD_IPV6_SOCK:
-		if(fwrite((char*)fdi->info.ipv6info.sip, sizeof(uint32_t) * 4, 1, f) != 1 ||
-		        fwrite((char*)fdi->info.ipv6info.dip, sizeof(uint32_t) * 4, 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv6info.sport), sizeof(uint16_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv6info.dport), sizeof(uint16_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv6info.l4proto), sizeof(uint8_t), 1, f) != 1)
+		if(gzwrite(f, (char*)fdi->info.ipv6info.sip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
+		        gzwrite(f, (char*)fdi->info.ipv6info.dip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
+		        gzwrite(f, &(fdi->info.ipv6info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, &(fdi->info.ipv6info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, &(fdi->info.ipv6info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi7)");
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		if(fwrite(&(fdi->info.ipv6serverinfo.ip), sizeof(uint32_t) * 4, 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv6serverinfo.port), sizeof(uint16_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.ipv6serverinfo.l4proto), sizeof(uint8_t), 1, f) != 1)
+		if(gzwrite(f, &(fdi->info.ipv6serverinfo.ip), sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
+		        gzwrite(f, &(fdi->info.ipv6serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, &(fdi->info.ipv6serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi8)");
 		}
 		break;
 	case SCAP_FD_UNIX_SOCK:
-		if(fwrite(&(fdi->info.unix_socket_info.source), sizeof(uint64_t), 1, f) != 1 ||
-		        fwrite(&(fdi->info.unix_socket_info.destination), sizeof(uint64_t), 1, f) != 1)
+		if(gzwrite(f, &(fdi->info.unix_socket_info.source), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        gzwrite(f, &(fdi->info.unix_socket_info.destination), sizeof(uint64_t)) != sizeof(uint64_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
 			return SCAP_FAILURE;
 		}
 		stlen = strnlen(fdi->info.unix_socket_info.fname, SCAP_MAX_PATH_SIZE);
-		if(fwrite(&stlen,  sizeof(uint16_t), 1, f) != 1 ||
-		        (stlen > 0 && fwrite(fdi->info.unix_socket_info.fname, stlen, 1, f) != 1))
+		if(gzwrite(f, &stlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        (stlen > 0 && gzwrite(f, fdi->info.unix_socket_info.fname, stlen) != stlen))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi5)");
 			return SCAP_FAILURE;
@@ -297,8 +297,8 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, FILE *f)
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 		stlen = strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE);
-		if(fwrite(&stlen,  sizeof(uint16_t), 1, f) != 1 ||
-		        (stlen > 0 && fwrite(fdi->info.fname, stlen, 1, f) != 1))
+		if(gzwrite(f, &stlen,  sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        (stlen > 0 && gzwrite(f, fdi->info.fname, stlen) != stlen))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi6)");
 			return SCAP_FAILURE;
@@ -312,21 +312,21 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, FILE *f)
 	return SCAP_SUCCESS;
 }
 
-uint32_t scap_fd_read_prop_from_disk(scap_t *handle, OUT void *target, size_t expected_size, OUT size_t *nbytes, FILE *f)
+uint32_t scap_fd_read_prop_from_disk(scap_t *handle, OUT void *target, size_t expected_size, OUT size_t *nbytes, gzFile f)
 {
 	size_t readsize;
-	readsize = fread(target, 1, expected_size, f);
+	readsize = gzread(f, target, expected_size);
 	CHECK_READ_SIZE(readsize, expected_size);
 	(*nbytes) += readsize;
 	return SCAP_SUCCESS;
 }
 
-uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nbytes,FILE* f)
+uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nbytes, gzFile f)
 {
 	size_t readsize;
 	uint16_t stlen;
 
-	readsize = fread(&(stlen), 1, sizeof(uint16_t), f);
+	readsize = gzread(f, &(stlen), sizeof(uint16_t));
 	CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 	if(stlen >= SCAP_MAX_PATH_SIZE)
@@ -337,7 +337,7 @@ uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nb
 
 	(*nbytes) += readsize;
 
-	readsize = fread(fname, 1, stlen, f);
+	readsize = gzread(f, fname, stlen);
 	CHECK_READ_SIZE(readsize, stlen);
 
 	(*nbytes) += stlen;
@@ -351,7 +351,7 @@ uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nb
 // Populate the given fd by reading the info from disk
 // Returns the number of read bytes.
 //
-uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t *nbytes, FILE *f)
+uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t *nbytes, gzFile f)
 {
 	uint8_t type;
 	uint32_t res = SCAP_SUCCESS;
@@ -369,11 +369,11 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 	switch(fdi->type)
 	{
 	case SCAP_FD_IPV4_SOCK:
-		if(fread(&(fdi->info.ipv4info.sip), 1, sizeof(uint32_t), f) != sizeof(uint32_t) ||
-		        fread(&(fdi->info.ipv4info.dip), 1, sizeof(uint32_t), f) != sizeof(uint32_t) ||
-		        fread(&(fdi->info.ipv4info.sport), 1, sizeof(uint16_t), f) != sizeof(uint16_t) ||
-		        fread(&(fdi->info.ipv4info.dport), 1, sizeof(uint16_t), f) != sizeof(uint16_t) ||
-		        fread(&(fdi->info.ipv4info.l4proto), 1, sizeof(uint8_t), f) != sizeof(uint8_t))
+		if(gzread(f, &(fdi->info.ipv4info.sip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        gzread(f, &(fdi->info.ipv4info.dip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        gzread(f, &(fdi->info.ipv4info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzread(f, &(fdi->info.ipv4info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzread(f, &(fdi->info.ipv4info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (1)");
 			return SCAP_FAILURE;
@@ -383,9 +383,9 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
-		if(fread(&(fdi->info.ipv4serverinfo.ip), 1, sizeof(uint32_t), f) != sizeof(uint32_t) ||
-		        fread(&(fdi->info.ipv4serverinfo.port), 1, sizeof(uint16_t), f) != sizeof(uint16_t) ||
-		        fread(&(fdi->info.ipv4serverinfo.l4proto), 1, sizeof(uint8_t), f) != sizeof(uint8_t))
+		if(gzread(f, &(fdi->info.ipv4serverinfo.ip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        gzread(f, &(fdi->info.ipv4serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzread(f, &(fdi->info.ipv4serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (2)");
 			return SCAP_FAILURE;
@@ -394,11 +394,11 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		(*nbytes) += (sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t));
 		break;
 	case SCAP_FD_IPV6_SOCK:
-		if(fread((char*)fdi->info.ipv6info.sip, 1, sizeof(uint32_t) * 4, f) != sizeof(uint32_t) * 4 ||
-		        fread((char*)fdi->info.ipv6info.dip, 1, sizeof(uint32_t) * 4, f) != sizeof(uint32_t) * 4 ||
-		        fread(&(fdi->info.ipv6info.sport), 1, sizeof(uint16_t), f) != sizeof(uint16_t) ||
-		        fread(&(fdi->info.ipv6info.dport), 1, sizeof(uint16_t), f) != sizeof(uint16_t) ||
-		        fread(&(fdi->info.ipv6info.l4proto), 1, sizeof(uint8_t), f) != sizeof(uint8_t))
+		if(gzread(f, (char*)fdi->info.ipv6info.sip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
+		        gzread(f, (char*)fdi->info.ipv6info.dip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
+		        gzread(f, &(fdi->info.ipv6info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzread(f, &(fdi->info.ipv6info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzread(f, &(fdi->info.ipv6info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
 		}
@@ -409,9 +409,9 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 				sizeof(uint8_t)); // l4proto
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		if(fread((char*)fdi->info.ipv6serverinfo.ip, 1, sizeof(uint32_t) * 4, f) != sizeof(uint32_t) * 4||
-		        fread(&(fdi->info.ipv6serverinfo.port), 1, sizeof(uint16_t), f) != sizeof(uint16_t) ||
-		        fread(&(fdi->info.ipv6serverinfo.l4proto), 1, sizeof(uint8_t), f) != sizeof(uint8_t))
+		if(gzread(f, (char*)fdi->info.ipv6serverinfo.ip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4||
+		        gzread(f, &(fdi->info.ipv6serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzread(f, &(fdi->info.ipv6serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
 		}
@@ -420,15 +420,15 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 				sizeof(uint8_t)); // l4proto
 		break;
 	case SCAP_FD_UNIX_SOCK:
-		if(fread(&(fdi->info.unix_socket_info.source), 1, sizeof(uint64_t), f) != sizeof(uint64_t) ||
-		        fread(&(fdi->info.unix_socket_info.destination), 1, sizeof(uint64_t), f) != sizeof(uint64_t))
+		if(gzread(f, &(fdi->info.unix_socket_info.source), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        gzread(f, &(fdi->info.unix_socket_info.destination), sizeof(uint64_t)) != sizeof(uint64_t))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi5)");
 			return SCAP_FAILURE;
 		}
 
 		(*nbytes) += (sizeof(uint64_t) + sizeof(uint64_t));
-		res = scap_fd_read_fname_from_disk(handle, fdi->info.unix_socket_info.fname,nbytes,f);
+		res = scap_fd_read_fname_from_disk(handle, fdi->info.unix_socket_info.fname, nbytes, f);
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:

@@ -264,6 +264,8 @@ public:
 
 	  \param dump_filename the destination trace file.
 
+	  \param compress true to save the tracefile in a compressed format.
+
 	  \note only the events that pass the capture filter set with \ref set_filter()
 	   will be saved to disk.
 	  \note this simplified dump interface allows only one dump per capture.
@@ -274,7 +276,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	void autodump_start(const string dump_filename);
+	void autodump_start(const string& dump_filename, bool compress);
 
 	/*!
 	  \brief Stops an event dump that was started with \ref autodump_start().
