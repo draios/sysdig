@@ -840,8 +840,6 @@ int main(int argc, char **argv)
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
-			initialize_chisels();
-
 			//
 			// Launch the capture
 			//
@@ -849,6 +847,8 @@ int main(int argc, char **argv)
 
 			if(infiles.size() != 0)
 			{
+				initialize_chisels();
+
 				//
 				// We have a file to open
 				//
@@ -856,6 +856,13 @@ int main(int argc, char **argv)
 			}
 			else
 			{
+				if(j > 0)
+				{
+					break;
+				}
+
+				initialize_chisels();
+
 				//
 				// No file to open, this is a live capture
 				//
