@@ -167,8 +167,8 @@ int32_t scap_write_proclist(scap_t *handle, FILE *f)
 	//
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
-		totlen +=
-		    sizeof(uint64_t) +	// tid
+		totlen += (uint32_t)
+		    (sizeof(uint64_t) +	// tid
 		    sizeof(uint64_t) +	// pid
 		    sizeof(uint64_t) +	// ptid
 		    2 + strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE) +
@@ -178,7 +178,7 @@ int32_t scap_write_proclist(scap_t *handle, FILE *f)
 		    sizeof(uint64_t) +	// fdlimit
 		    sizeof(uint32_t) +	// uid
 		    sizeof(uint32_t) +	// gid
-		    sizeof(uint32_t);
+		    sizeof(uint32_t));
 	}
 
 	//
@@ -198,10 +198,10 @@ int32_t scap_write_proclist(scap_t *handle, FILE *f)
 	//
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
-		commlen = strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
-		exelen = strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
+		commlen = (uint16_t)strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
+		exelen = (uint16_t)strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
 		argslen = tinfo->args_len;
-		cwdlen = strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
+		cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
 
 		if(fwrite(&(tinfo->tid), sizeof(uint64_t), 1, f) != 1 ||
 		        fwrite(&(tinfo->pid), sizeof(uint64_t), 1, f) != 1 ||
@@ -395,9 +395,9 @@ int32_t scap_write_userlist(scap_t *handle, FILE *f)
 	{
 		scap_userinfo* info = &handle->m_userlist->users[j];
 
-		namelen = strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
-		homedirlen = strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
-		shelllen = strnlen(info->shell, SCAP_MAX_PATH_SIZE);
+		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
+		homedirlen = (uint16_t)strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
+		shelllen = (uint16_t)strnlen(info->shell, SCAP_MAX_PATH_SIZE);
 
 		totlen += sizeof(type) + sizeof(info->uid) + sizeof(info->gid) + sizeof(uint16_t) +
 			namelen + sizeof(uint16_t) + homedirlen + sizeof(uint16_t) + shelllen;
@@ -407,7 +407,7 @@ int32_t scap_write_userlist(scap_t *handle, FILE *f)
 	{
 		scap_groupinfo* info = &handle->m_userlist->groups[j];
 
-		namelen = strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
+		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
 
 		totlen += sizeof(type) + sizeof(info->gid) + sizeof(uint16_t) + namelen;
 	}
@@ -432,9 +432,9 @@ int32_t scap_write_userlist(scap_t *handle, FILE *f)
 	{
 		scap_userinfo* info = &handle->m_userlist->users[j];
 
-		namelen = strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
-		homedirlen = strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
-		shelllen = strnlen(info->shell, SCAP_MAX_PATH_SIZE);
+		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
+		homedirlen = (uint16_t)strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
+		shelllen = (uint16_t)strnlen(info->shell, SCAP_MAX_PATH_SIZE);
 
 		if(fwrite(&(type), sizeof(type), 1, f) != 1 ||
 			fwrite(&(info->uid), sizeof(info->uid), 1, f) != 1 ||
@@ -459,7 +459,7 @@ int32_t scap_write_userlist(scap_t *handle, FILE *f)
 	{
 		scap_groupinfo* info = &handle->m_userlist->groups[j];
 
-		namelen = strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
+		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
 
 		if(fwrite(&(type), sizeof(type), 1, f) != 1 ||
 			fwrite(&(info->gid), sizeof(info->gid), 1, f) != 1 ||
@@ -1597,7 +1597,7 @@ int32_t scap_read_init(scap_t *handle, FILE *f)
 			// Unknwon block type. Skip the block.
 			//
 			toread = bh.block_total_length - sizeof(block_header) - 4;
-			fseekres = fseek(f, toread, SEEK_CUR);
+			fseekres = fseek(f, (long)toread, SEEK_CUR);
 			if(fseekres != 0)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip block of type %x and size %u.",
