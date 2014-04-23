@@ -935,11 +935,6 @@ int main(int argc, char **argv)
 				inspector->set_snaplen(snaplen);
 			}
 
-			if(outfile != "")
-			{
-				inspector->autodump_start(outfile);
-			}
-
 			duration = ((double)clock()) / CLOCKS_PER_SEC;
 
 			if(outfile != "")
