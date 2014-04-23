@@ -591,32 +591,47 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 //
 scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mode compress)
 {
-	gzFile f;
+	gzFile f = NULL;
+	int fd = -1;
+	const char* mode;
+
+	switch(compress)
+	{
+	case SCAP_COMPRESSION_GZIP:
+		mode = "wb";
+		break;
+	case SCAP_COMPRESSION_NONE:
+		mode = "wbT";
+		break;
+	default:
+		ASSERT(false);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid compression mode");
+		return NULL;
+	}
 
 	if(fname[0] == '-' && fname[1] == '\0')
 	{
-		//f = stdout;
-		fname = "standard output";
+		fd = dup(STDOUT_FILENO);
+		if(fd != -1)
+		{
+			f = gzdopen(fd, mode);
+			fname = "standard output";
+		}
 	}
 	else
 	{
-		const char* mode;
-		if(compress == SCAP_COMPRESSION_GZIP)
-		{
-			mode = "wb";
-		}
-		else
-		{
-			mode = "wbT";
-		}
-
 		f = gzopen(fname, mode);
+	}
 
-		if(f == NULL)
+	if(f == NULL)
+	{
+		if(fd != -1)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s", fname);
-			return NULL;
+			close(fd);
 		}
+		
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s", fname);
+		return NULL;
 	}
 
 	return scap_setup_dump(handle, f, fname);
