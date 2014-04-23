@@ -248,7 +248,7 @@ scap_t* scap_open_live(char *error)
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_offline(char* fname, char *error)
+scap_t* scap_open_offline(const char* fname, char *error)
 {
 	scap_t* handle = NULL;
 

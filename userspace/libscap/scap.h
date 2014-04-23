@@ -426,7 +426,7 @@ scap_t* scap_open_live(char *error);
 			
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open_offline(char* fname, char *error);
+scap_t* scap_open_offline(const char* fname, char *error);
 
 /*!
   \brief Close a capture handle.
