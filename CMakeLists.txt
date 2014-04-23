@@ -121,6 +121,17 @@ if(NOT WIN32)
 			INSTALL_COMMAND "")
 	endif()
 
+	ExternalProject_Add(zlib
+		URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
+		URL_MD5 "44d667c142d7cda120332623eab69f40"
+		CONFIGURE_COMMAND "./configure"
+		BUILD_COMMAND ${CMD_MAKE}
+		BUILD_IN_SOURCE 1
+		INSTALL_COMMAND "")
+
+	set(ZLIB_INCLUDE "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
+	set(ZLIB_LIB "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib/libz.a")
+
 else()
 
 	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi")
