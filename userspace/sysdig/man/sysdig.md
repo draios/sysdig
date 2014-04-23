@@ -147,6 +147,9 @@ OPTIONS
   
 **-X**, **--print-hex-ascii**  
   Print data buffers in hex and ASCII.
+
+**-z**, **--compress**
+  Used with **-w**, enables compression for tracefiles.
   
 EXAMPLES
 --------

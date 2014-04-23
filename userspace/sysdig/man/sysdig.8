@@ -1,4 +1,4 @@
-.TH  "" "" 
+.TH "" "" "" "" ""
 .SS NAME
 .PP
 sysdig \- the definitive system and process troubleshooting tool
@@ -28,41 +28,45 @@ single line, with the following format:
 \f[C]<evt.num>\ <evt.time>\ <evt.cpu>\ <proc.name>\ <thread.tid>\ <evt.dir>\ <evt.type>\ <evt.args>\f[]
 .PP
 where:
+.IP \[bu] 2
+evt.num is the incremental event number
 .PD 0
 .P
 .PD
-* evt.num is the incremental event number
+.IP \[bu] 2
+evt.time is the event timestamp
 .PD 0
 .P
 .PD
-* evt.time is the event timestamp
+.IP \[bu] 2
+evt.cpu is the CPU number where the event was captured
 .PD 0
 .P
 .PD
-* evt.cpu is the CPU number where the event was captured
+.IP \[bu] 2
+proc.name is the name of the process that generated the event
 .PD 0
 .P
 .PD
-* proc.name is the name of the process that generated the event
+.IP \[bu] 2
+thread.tid id the TID that generated the event, which corresponds to the
+PID for single thread processes
 .PD 0
 .P
 .PD
-* thread.tid id the TID that generated the event, which corresponds to
-the PID for single thread processes
+.IP \[bu] 2
+evt.dir is the event direction, > for enter events and < for exit events
 .PD 0
 .P
 .PD
-* evt.dir is the event direction, > for enter events and < for exit
-events
-.PD 0
-.P
-.PD
-* evt.type is the name of the event, e.g.
+.IP \[bu] 2
+evt.type is the name of the event, e.g.
 \[aq]open\[aq] or \[aq]read\[aq]
 .PD 0
 .P
 .PD
-* evt.args is the list of event arguments.
+.IP \[bu] 2
+evt.args is the list of event arguments.
 .PP
 The output format can be customized with the \-p switch, using any of
 the fields listed by \[aq]sysdig \-l\[aq].
@@ -197,11 +201,12 @@ Looks for chisels in ., ./chisels, ~/.chisels and
 .PD 0
 .P
 .PD
-Make the given filter a display one Setting this option causes the
-events to be filtered after being parsed by the state system.
+Make the given filter a display one.
+Setting this option causes the events to be filtered after being parsed
+by the state system.
 Events are normally filtered before being analyzed, which is more
 efficient, but can cause state (e.g.
-FD names) to be lost
+FD names) to be lost.
 .PP
 \f[B]\-D\f[], \f[B]\-\-debug\f[]
 .PD 0
@@ -229,6 +234,12 @@ Emit output as json
 Get a longer description and the arguments associated with a chisel
 found in the \-cl option list.
 .PP
+\f[B]\-L\f[], \f[B]\-\-list\-events\f[]
+.PD 0
+.P
+.PD
+List the events that the engine supports
+.PP
 \f[B]\-l\f[], \f[B]\-\-list\f[]
 .PD 0
 .P
@@ -236,17 +247,17 @@ found in the \-cl option list.
 List the fields that can be used for filtering and output formatting.
 Use \-lv to get additional information for each field.
 .PP
-\f[B]\-L\f[], \f[B]\-\-list\-events\f[]
-.PD 0
-.P
-.PD
-List the events that the engine supports
-.PP
 \f[B]\-n\f[] \f[I]num\f[], \f[B]\-\-numevents\f[]=\f[I]num\f[]
 .PD 0
 .P
 .PD
 Stop capturing after events
+.PP
+** \-P \f[B], \f[]\-\-progress**
+.PD 0
+.P
+.PD
+Print progress on stderr while processing trace files.
 .PP
 \f[B]\-p\f[] \f[I]output\f[]format_,
 \f[B]\-\-print\f[]=\f[I]output\f[]format_
@@ -317,6 +328,12 @@ Print data buffers in hex.
 .P
 .PD
 Print data buffers in hex and ASCII.
+.PP
+\f[B]\-z\f[], \f[B]\-\-compress\f[]
+.PD 0
+.P
+.PD
+Used with \f[B]\-w\f[], enables compression for tracefiles.
 .SS EXAMPLES
 .PP
 Capture all the events from the live system and print them to screen
