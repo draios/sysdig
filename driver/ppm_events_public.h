@@ -227,6 +227,49 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_FCNTL_F_SETPIPE_SZ 28
 #define PPM_FCNTL_F_GETPIPE_SZ 29
 
+ /*
+ * ptrace requests
+ */
+#define PPM_PTRACE_UNKNOWN 0
+#define PPM_PTRACE_TRACEME 1
+#define PPM_PTRACE_PEEKTEXT 2
+#define PPM_PTRACE_PEEKDATA 3
+#define PPM_PTRACE_PEEKUSR 4
+#define PPM_PTRACE_POKETEXT 5
+#define PPM_PTRACE_POKEDATA 6
+#define PPM_PTRACE_POKEUSR 7
+#define PPM_PTRACE_CONT 8
+#define PPM_PTRACE_KILL 9
+#define PPM_PTRACE_SINGLESTEP 10
+#define PPM_PTRACE_ATTACH 11
+#define PPM_PTRACE_DETACH 12
+#define PPM_PTRACE_SYSCALL 13
+#define PPM_PTRACE_SETOPTIONS 14
+#define PPM_PTRACE_GETEVENTMSG 15
+#define PPM_PTRACE_GETSIGINFO 16
+#define PPM_PTRACE_SETSIGINFO 17
+#define PPM_PTRACE_GETREGSET 18
+#define PPM_PTRACE_SETREGSET 19
+#define PPM_PTRACE_SEIZE 20
+#define PPM_PTRACE_INTERRUPT 21
+#define PPM_PTRACE_LISTEN 22
+#define PPM_PTRACE_PEEKSIGINFO 23
+#define PPM_PTRACE_GETSIGMASK 24
+#define PPM_PTRACE_SETSIGMASK 25
+#define PPM_PTRACE_GETREGS 26
+#define PPM_PTRACE_SETREGS 27
+#define PPM_PTRACE_GETFPREGS 28
+#define PPM_PTRACE_SETFPREGS 29
+#define PPM_PTRACE_GETFPXREGS 30
+#define PPM_PTRACE_SETFPXREGS 31
+#define PPM_PTRACE_OLDSETOPTIONS 32
+#define PPM_PTRACE_GET_THREAD_AREA 33
+#define PPM_PTRACE_SET_THREAD_AREA 34
+#define PPM_PTRACE_ARCH_PRCTL 35
+#define PPM_PTRACE_SYSEMU 36
+#define PPM_PTRACE_SYSEMU_SINGLESTEP 37
+#define PPM_PTRACE_SINGLEBLOCK 38
+
 /*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
@@ -910,5 +953,6 @@ extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value openat_flags[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
+extern const struct ppm_name_value ptrace_requests[];
 
 #endif /* EVENTS_PUBLIC_H_ */

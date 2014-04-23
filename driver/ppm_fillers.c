@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/file.h>
 #include <linux/futex.h>
 #include <linux/fs_struct.h>
+#include <linux/ptrace.h>
 #include <linux/version.h>
 
 #include "ppm_ringbuffer.h"
@@ -102,6 +103,7 @@ static int f_sched_switch_e(struct event_filler_arguments *args);
 #endif
 static int f_sched_drop(struct event_filler_arguments *args);
 static int f_sched_fcntl_e(struct event_filler_arguments *args);
+static int f_sys_ptrace_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -257,7 +259,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_PTRACE_E] = {f_sys_empty},
+	[PPME_SYSCALL_PTRACE_E] = {f_sys_ptrace_e},
 	[PPME_SYSCALL_PTRACE_X] = {f_sys_empty},
 };
 
@@ -2993,6 +2995,120 @@ static int f_sched_fcntl_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, fcntl_cmd_to_scap(val), 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static inline uint16_t ptrace_requests_to_scap(unsigned long req)
+{
+	switch(req) {
+	case PTRACE_SINGLEBLOCK:
+		return PPM_PTRACE_SINGLEBLOCK;
+	case PTRACE_SYSEMU_SINGLESTEP:
+		return PPM_PTRACE_SYSEMU_SINGLESTEP;
+	case PTRACE_SYSEMU:
+		return PPM_PTRACE_SYSEMU;
+	case PTRACE_ARCH_PRCTL:
+		return PPM_PTRACE_ARCH_PRCTL;
+	case PTRACE_SET_THREAD_AREA:
+		return PPM_PTRACE_SET_THREAD_AREA;
+	case PTRACE_GET_THREAD_AREA:
+		return PPM_PTRACE_GET_THREAD_AREA;
+	case PTRACE_OLDSETOPTIONS:
+		return PPM_PTRACE_OLDSETOPTIONS;
+	case PTRACE_SETFPXREGS:
+		return PPM_PTRACE_SETFPXREGS;
+	case PTRACE_GETFPXREGS:
+		return PPM_PTRACE_GETFPXREGS;
+	case PTRACE_SETFPREGS:
+		return PPM_PTRACE_SETFPREGS;
+	case PTRACE_GETFPREGS:
+		return PPM_PTRACE_GETFPREGS;
+	case PTRACE_SETREGS:
+		return PPM_PTRACE_SETREGS;
+	case PTRACE_GETREGS:
+		return PPM_PTRACE_GETREGS;
+#ifdef PTRACE_SETSIGMASK
+	case PTRACE_SETSIGMASK:
+		return PPM_PTRACE_SETSIGMASK;
+#endif
+#ifdef PTRACE_GETSIGMASK
+	case PTRACE_GETSIGMASK:
+		return PPM_PTRACE_GETSIGMASK;
+#endif
+#ifdef PTRACE_PEEKSIGINFO
+	case PTRACE_PEEKSIGINFO:
+		return PPM_PTRACE_PEEKSIGINFO;
+#endif
+	case PTRACE_LISTEN:
+		return PPM_PTRACE_LISTEN;
+	case PTRACE_INTERRUPT:
+		return PPM_PTRACE_INTERRUPT;
+	case PTRACE_SEIZE:
+		return PPM_PTRACE_SEIZE;
+	case PTRACE_SETREGSET:
+		return PPM_PTRACE_SETREGSET;
+	case PTRACE_GETREGSET:
+		return PPM_PTRACE_GETREGSET;
+	case PTRACE_SETSIGINFO:
+		return PPM_PTRACE_SETSIGINFO;
+	case PTRACE_GETSIGINFO:
+		return PPM_PTRACE_GETSIGINFO;
+	case PTRACE_GETEVENTMSG:
+		return PPM_PTRACE_GETEVENTMSG;
+	case PTRACE_SETOPTIONS:
+		return PPM_PTRACE_SETOPTIONS;
+	case PTRACE_SYSCALL:
+		return PPM_PTRACE_SYSCALL;
+	case PTRACE_DETACH:
+		return PPM_PTRACE_DETACH;
+	case PTRACE_ATTACH:
+		return PPM_PTRACE_ATTACH;
+	case PTRACE_SINGLESTEP:
+		return PPM_PTRACE_SINGLESTEP;
+	case PTRACE_KILL:
+		return PPM_PTRACE_KILL;
+	case PTRACE_CONT:
+		return PPM_PTRACE_CONT;
+	case PTRACE_POKEUSR:
+		return PPM_PTRACE_POKEUSR;
+	case PTRACE_POKEDATA:
+		return PPM_PTRACE_POKEDATA;
+	case PTRACE_POKETEXT:
+		return PPM_PTRACE_POKETEXT;
+	case PTRACE_PEEKUSR:
+		return PPM_PTRACE_PEEKUSR;
+	case PTRACE_PEEKDATA:
+		return PPM_PTRACE_PEEKDATA;
+	case PTRACE_PEEKTEXT:
+		return PPM_PTRACE_PEEKTEXT;
+	case PTRACE_TRACEME:
+		return PPM_PTRACE_TRACEME;
+	default:
+		return PPM_PTRACE_UNKNOWN;
+	}
+}
+
+static int f_sys_ptrace_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * request
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, ptrace_requests_to_scap(val), 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * pid
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
