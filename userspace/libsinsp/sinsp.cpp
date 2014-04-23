@@ -76,7 +76,7 @@ sinsp::sinsp() :
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_isdebug_enabled = false;
-	m_filesize = 0;
+	m_filesize = -1;
 }
 
 sinsp::~sinsp()
@@ -132,25 +132,25 @@ void sinsp::open(string filename)
 
 	g_logger.log("starting offline capture");
 
-	m_h = scap_open_offline((char *)filename.c_str(), error);
+	m_h = scap_open_offline(filename.c_str(), error);
 
 	if(m_h == NULL)
 	{
 		throw sinsp_exception(error);
 	}
 
-	m_filename = filename;
-	m_hfile = scap_get_readfile_pointer(m_h);
-	if(m_hfile)
+	//
+	// gianluca: This might need to be replaced with
+	// a portable stat(), since I'm afraid that on S3
+	// (that we'll use in the backend) the seek will
+	// read the entire file anyway
+	//
+	FILE* fp = fopen(filename.c_str(), "rb");
+	if(fp)
 	{
-		long curfilepos = ftell(m_hfile);
-		fseek(m_hfile, 0L, SEEK_END);
-		m_filesize = ftell(m_hfile);
-		fseek(m_hfile, curfilepos, SEEK_SET);
-	}
-	else
-	{
-		m_hfile = NULL;
+		fseek(fp, 0L, SEEK_END);
+		m_filesize = ftell(fp);
+		fclose(fp);
 	}
 
 	init();
@@ -818,13 +818,19 @@ sinsp_parser* sinsp::get_parser()
 
 double sinsp::get_read_progress()
 {
-	if(m_hfile == NULL)
+	if(m_filesize == -1)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
 
 	ASSERT(m_filesize != 0);
 
-	uint64_t fpos = ftell(m_hfile);
+	int64_t fpos = scap_get_readfile_offset(m_h);
+
+	if(fpos == -1)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));		
+	}
+
 	return (double)fpos * 100 / m_filesize;
 }

@@ -478,9 +478,7 @@ private:
 	void remove_thread(int64_t tid);
 
 	scap_t* m_h;
-	string m_filename;
-	FILE* m_hfile;
-	uint64_t m_filesize;
+	int64_t m_filesize;
 	bool m_islive;
 	bool m_isdebug_enabled;
 	sinsp_evt m_evt;

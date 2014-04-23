@@ -506,12 +506,12 @@ uint64_t scap_event_get_num(scap_t* handle);
 const struct ppm_event_info* scap_event_getinfo(scap_evt* e);
 
 /*!
-  \brief Return the pointer to the file opened by scap_open_offline(), or NULL 
-  if this is a live capture.
+  \brief Return the current offset in the file opened by scap_open_offline(),
+  or -1 if this is a live capture.
 
   \param handle Handle to the capture instance.
 */
-FILE* scap_get_readfile_pointer(scap_t* handle);
+int64_t scap_get_readfile_offset(scap_t* handle);
 
 /*!
   \brief Open a tracefile for writing 
