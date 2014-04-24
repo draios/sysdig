@@ -177,5 +177,5 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SCHEDSWITCHEX_E */{"switch", EC_SCHEDULER, EF_NONE, 5, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT32, PF_DEC}, {"pgft_min", PT_UINT32, PF_DEC}, {"next_pgft_maj", PT_UINT32, PF_DEC}, {"next_pgft_min", PT_UINT32, PF_DEC} } },
 	/* PPME_SCHEDSWITCHEX_X */{"NA2", EC_SCHEDULER, EF_UNUSED, 0},
 	/* PPME_SYSCALL_PTRACE_E */{"ptrace", EC_PROCESS, EF_NONE, 2, {{"request", PT_FLAGS16, PF_DEC, ptrace_requests}, {"pid", PT_PID, PF_DEC} } },
-	/* PPME_SYSCALL_PTRACE_X */{"ptrace", EC_PROCESS, EF_NONE, 0},
+	/* PPME_SYSCALL_PTRACE_X */{"ptrace", EC_PROCESS, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_UINT64, PF_HEX}, {"data", PT_UINT64, PF_HEX} } },
 };

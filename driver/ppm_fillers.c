@@ -104,6 +104,7 @@ static int f_sched_switch_e(struct event_filler_arguments *args);
 static int f_sched_drop(struct event_filler_arguments *args);
 static int f_sched_fcntl_e(struct event_filler_arguments *args);
 static int f_sys_ptrace_e(struct event_filler_arguments *args);
+static int f_sys_ptrace_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -260,7 +261,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
 	[PPME_SYSCALL_PTRACE_E] = {f_sys_ptrace_e},
-	[PPME_SYSCALL_PTRACE_X] = {f_sys_empty},
+	[PPME_SYSCALL_PTRACE_X] = {f_sys_ptrace_x},
 };
 
 /*
@@ -3108,6 +3109,39 @@ static int f_sys_ptrace_e(struct event_filler_arguments *args)
 	 * pid
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_ptrace_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int64_t retval;
+	int res;
+
+	/*
+	 * res
+	 */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * addr
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * data
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
