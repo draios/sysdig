@@ -35,7 +35,7 @@ if (LUAJIT_PREFIX AND USE_BUNDLED_LUAJIT)
                          "not both.")
 endif()
 
-set (LUAJIT_SRC "${PROJECT_SOURCE_DIR}/third-party/LuaJIT-2.0.2")
+set(LUAJIT_SRC "${PROJECT_BINARY_DIR}/luajit-prefix/src/luajit/src")
 
 option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ON)
 option(JSONCPP_PREFIX "Build with jsoncpp at the given path" "")
@@ -111,11 +111,12 @@ if(NOT WIN32)
 			message (FATAL_ERROR "Couldn't find system LuaJIT")
 		endif()
 	else()
-		set (LUAJIT_INCLUDE "${LUAJIT_SRC}/src")
-		set (LUAJIT_LIB "${LUAJIT_SRC}/src/libluajit.a")
-		message (STATUS "Using bundled LuaJIT in '${LUAJIT_SRC}'")
+		set(LUAJIT_INCLUDE "${LUAJIT_SRC}")
+		set(LUAJIT_LIB "${LUAJIT_SRC}/libluajit.a")
+		message(STATUS "Using bundled LuaJIT in '${LUAJIT_SRC}'")
 		ExternalProject_Add(luajit
-			SOURCE_DIR "${LUAJIT_SRC}"
+			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
+			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
@@ -147,13 +148,14 @@ else()
 	set(CMAKE_C_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 	set(CMAKE_CXX_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 
-	set (LUAJIT_INCLUDE "${LUAJIT_SRC}/src")
-	set (LUAJIT_LIB "${LUAJIT_SRC}/src/lua51.lib")
+	set(LUAJIT_INCLUDE "${LUAJIT_SRC}")
+	set(LUAJIT_LIB "${LUAJIT_SRC}/lua51.lib")
 	ExternalProject_Add(luajit
-		SOURCE_DIR ${LUAJIT_SRC}
+		URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
+		URL_MD5 "f14e9104be513913810cd59c8c658dc0"
 		CONFIGURE_COMMAND ""
 		BUILD_COMMAND msvcbuild.bat
-		BINARY_DIR "${LUAJIT_INCLUDE}"
+		BINARY_DIR "${LUAJIT_SRC}"
 		INSTALL_COMMAND "")
 
 	set(ZLIB_INCLUDE "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
@@ -163,7 +165,7 @@ else()
 		URL_MD5 "44d667c142d7cda120332623eab69f40"
 		CONFIGURE_COMMAND ""
 		BUILD_COMMAND nmake -f win32/Makefile.msc
-		BINARY_DIR "${ZLIB_INCLUDE}"
+		BUILD_IN_SOURCE 1
 		INSTALL_COMMAND "")
 
 endif()
