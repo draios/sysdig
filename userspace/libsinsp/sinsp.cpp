@@ -180,6 +180,7 @@ void sinsp::close()
 	if(m_filter != NULL)
 	{
 		delete m_filter;
+		m_filter = NULL;
 	}
 #endif
 }
