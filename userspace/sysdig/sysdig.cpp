@@ -38,7 +38,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <getopt.h>
 #endif
 
-bool ctrl_c_pressed = false;
+static bool g_terminate = false;
 #ifdef HAS_CHISELS
 vector<sinsp_chisel*> g_chisels;
 #endif
@@ -50,7 +50,7 @@ static void usage();
 //
 static void signal_callback(int signal)
 {
-	ctrl_c_pressed = true;
+	g_terminate = true;
 }
 
 void replace_in_place(string& str, string substr_to_replace, string new_substr)
@@ -293,7 +293,7 @@ captureinfo do_inspect(sinsp* inspector,
 	//
 	while(1)
 	{
-		if(retval.m_nevts == cnt || ctrl_c_pressed)
+		if(retval.m_nevts == cnt || g_terminate)
 		{
 			//
 			// End of capture, either because the user stopped it, or because
@@ -824,12 +824,16 @@ int main(int argc, char **argv)
 #endif
 		}
 
-		//
-		// Set the CRTL+C signal
-		//
 		if(signal(SIGINT, signal_callback) == SIG_ERR)
 		{
-			fprintf(stderr, "An error occurred while setting a signal handler.\n");
+			fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
+			res = EXIT_FAILURE;
+			goto exit;
+		}
+
+		if(signal(SIGTERM, signal_callback) == SIG_ERR)
+		{
+			fprintf(stderr, "An error occurred while setting SIGTERM signal handler.\n");
 			res = EXIT_FAILURE;
 			goto exit;
 		}
