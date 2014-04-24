@@ -654,9 +654,14 @@ void scap_dump_close(scap_dumper_t *d)
 //
 // Return the current size of a tracefile
 //
-uint64_t scap_dump_ftell(scap_dumper_t *d)
+int64_t scap_dump_get_offset(scap_dumper_t *d)
 {
-	return (uint64_t)gztell((gzFile)d);
+	return gzoffset((gzFile)d);
+}
+
+void scap_dump_flush(scap_dumper_t *d)
+{
+	gzflush((gzFile)d, Z_FULL_FLUSH);
 }
 
 //

@@ -62,6 +62,11 @@ public:
 	uint64_t written_bytes();
 
 	/*!
+	  \brief Flush all pending output into the file.
+	*/
+	void flush();
+
+	/*!
 	  \brief Writes an event to the file.
 
 	  \param evt Pointer to the event to dump.
