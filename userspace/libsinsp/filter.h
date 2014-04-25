@@ -54,7 +54,7 @@ public:
 
 	 \note Throws a sinsp_exception if the filter syntax is not valid.
 	*/
-	sinsp_filter(sinsp* inspector, string fltstr);
+	sinsp_filter(sinsp* inspector, const string& fltstr);
 
 	~sinsp_filter();
 
@@ -74,7 +74,7 @@ private:
 	};
 
 	char next();
-	bool compare_no_consume(string str);
+	bool compare_no_consume(const string& str);
 
 	vector<char> next_operand(bool expecting_first_operand);
 	ppm_cmp_operator next_comparison_operator();
@@ -82,7 +82,7 @@ private:
 	void push_expression(boolop op);
 	void pop_expression();
 
-	void compile(string fltstr);
+	void compile(const string& fltstr);
 
 	static bool isblank(char c);
 	static bool is_special_char(char c);

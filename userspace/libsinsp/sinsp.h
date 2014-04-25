@@ -248,7 +248,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   the filter is invalid.
 	*/
-	void set_filter(string filter);
+	void set_filter(const string& filter);
 #endif
 
 	/*!

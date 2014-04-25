@@ -664,7 +664,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 }
 
 #ifdef HAS_FILTERING
-void sinsp::set_filter(string filter)
+void sinsp::set_filter(const string& filter)
 {
 	if(m_filter != NULL)
 	{

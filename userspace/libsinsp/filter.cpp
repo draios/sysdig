@@ -82,7 +82,7 @@ void sinsp_filter_check_list::get_all_fields(OUT vector<const filter_check_info*
 	}
 }
 
-sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(string name, 
+sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(const string& name, 
 																		   sinsp* inspector,
 																		   bool do_exact_check)
 {
@@ -758,7 +758,7 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter::sinsp_filter(sinsp* inspector, string fltstr)
+sinsp_filter::sinsp_filter(sinsp* inspector, const string& fltstr)
 {
 	m_inspector = inspector;
 	m_scanpos = -1;
@@ -978,7 +978,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	return res;
 }
 
-bool sinsp_filter::compare_no_consume(string str)
+bool sinsp_filter::compare_no_consume(const string& str)
 {
 	if(m_scanpos + (int32_t)str.size() >= m_scansize)
 	{
@@ -1099,7 +1099,7 @@ void sinsp_filter::pop_expression()
 	m_nest_level--;
 }
 
-void sinsp_filter::compile(string fltstr)
+void sinsp_filter::compile(const string& fltstr)
 {
 	m_fltstr = fltstr;
 	m_scansize = m_fltstr.size();
