@@ -42,6 +42,7 @@ const chiseldir_info g_chisel_dirs_array[] =
 #endif
 	{false, "./"},
 	{false, "./chisels/"},
+	{true, "#"},
 	{true, "~/.chisels/"},
 };
 #endif
@@ -49,17 +50,21 @@ const chiseldir_info g_chisel_dirs_array[] =
 #ifndef _WIN32
 char* realpath_ex(const char *path, char *buff) 
 {
-    char *home;
+    char *env_path;
 
-    if(*path=='~' && (home = getenv("HOME"))) 
+    if(*path=='#' && (env_path = getenv("SYSDIG_CHISEL_PATH")))
     {
         char s[PATH_MAX];
-        return realpath(strcat(strcpy(s, home), path+1), buff);
-    } 
-    else 
-    {
-        return realpath(path, buff);
+        return realpath(strcpy(s, env_path), buff);
     }
+
+    if(*path=='~' && (env_path = getenv("HOME")))
+    {
+        char s[PATH_MAX];
+        return realpath(strcat(strcpy(s, env_path), path+1), buff);
+    }
+
+    return realpath(path, buff);
 }
 #endif
 
@@ -109,7 +114,6 @@ sinsp_initializer::sinsp_initializer()
 		{
 #ifndef _WIN32
 			char resolved_path[PATH_MAX];
-
 			if(realpath_ex(g_chisel_dirs_array[j].m_dir, resolved_path) != NULL)
 			{
 				string resolved_path_str(resolved_path);
