@@ -22,7 +22,7 @@ script:
     - cd zlib-1.2.8
     - ./configure
     - make
-    - make install
+    - sudo make install
     - popd
     - mkdir build
     - cd build
