@@ -1,15 +1,16 @@
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${ZLIB_INCLUDE}")
 
-add_library(scap STATIC 
-	scap.c 
-	scap_event.c 
-	scap_fds.c 
-	scap_iflist.c 
-	scap_savefile.c 
-	scap_procs.c 
-	scap_userlist.c 
+add_library(scap STATIC
+	scap.c
+	scap_event.c
+	scap_fds.c
+	scap_iflist.c
+	scap_savefile.c
+	scap_procs.c
+	scap_userlist.c
 	flags_table.c
+	dynamic_params_table.c
 	event_table.c
 	syscall_info_table.c)
 

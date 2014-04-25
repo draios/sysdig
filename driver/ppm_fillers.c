@@ -3120,6 +3120,7 @@ static int f_sys_ptrace_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int64_t retval;
+	uint16_t request;
 	int res;
 
 	/*
@@ -3131,10 +3132,16 @@ static int f_sys_ptrace_x(struct event_filler_arguments *args)
 		return res;
 
 	/*
+	 * request
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	request = ptrace_requests_to_scap(val);
+
+	/*
 	 * addr
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	res = val_to_ring(args, val, 0, false);
+	res = val_to_ring(args, (uint64_t)&val, sizeof(unsigned long), false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

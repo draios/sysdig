@@ -200,6 +200,7 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 		}
 
 		break;
+	case PT_DYN:
 	case PT_BYTEBUF:
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:

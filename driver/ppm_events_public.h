@@ -271,6 +271,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_PTRACE_SINGLEBLOCK 38
 
 /*
+ * ptrace dynamic table indexes
+ */
+#define PPM_PTRACE_IDX_UINT64 0
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -954,5 +959,7 @@ extern const struct ppm_name_value openat_flags[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
 extern const struct ppm_name_value ptrace_requests[];
+
+extern const struct ppm_param_info ptrace_dynamic_param[];
 
 #endif /* EVENTS_PUBLIC_H_ */
