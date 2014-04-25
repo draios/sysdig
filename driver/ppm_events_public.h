@@ -274,6 +274,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
  * ptrace dynamic table indexes
  */
 #define PPM_PTRACE_IDX_UINT64 0
+#define PPM_PTRACE_IDX_SIGTYPE 1
 
 /*
  * SuS says limits have to be unsigned.
