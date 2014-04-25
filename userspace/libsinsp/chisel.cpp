@@ -842,6 +842,14 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 
 					chisel_desc cd;
 					cd.m_name = fname.substr(0, fname.rfind('.'));
+
+					for(uint32_t t = 0; t < chisel_descs->size(); t++)
+					{
+						if(cd.m_name.compare(chisel_descs->at(t).m_name) == 0)
+						{
+							goto next_file;
+						}
+					}
 					cd.m_description = ch.m_description;
 
 					const Json::Value args = (*ch.m_root)["info"]["arguments"];
@@ -870,6 +878,13 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			{
 				chisel_desc cd;
 				cd.m_name = fname.substr(0, fname.rfind('.'));
+				for(uint32_t t = 0; t < chisel_descs->size(); t++)
+				{
+					if(cd.m_name.compare(chisel_descs->at(t).m_name) == 0)
+					{
+						goto next_file;
+					}
+				}
 
 				lua_State* ls = lua_open();
  
