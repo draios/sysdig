@@ -3099,6 +3099,61 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	}
 }
 
+static inline int parse_ptrace_addr(struct event_filler_arguments *args, u16 request)
+{
+	unsigned long val;
+	uint64_t dst;
+	u8 idx;
+
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	switch(request) {
+	default:
+		idx = PPM_PTRACE_IDX_UINT64;
+		dst = (uint64_t)val;
+	}
+
+	return val_to_ring(args, dst, 0, false, idx);
+}
+
+static inline int parse_ptrace_data(struct event_filler_arguments *args, u16 request)
+{
+	unsigned long val;
+	unsigned long len;
+	uint64_t dst;
+	u8 idx;
+
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	switch(request) {
+	case PPM_PTRACE_PEEKTEXT:
+	case PPM_PTRACE_PEEKDATA:
+	case PPM_PTRACE_PEEKUSR:
+		idx = PPM_PTRACE_IDX_UINT64;
+		len = ppm_copy_from_user(&dst, (const void __user *)val, sizeof(long));
+		if (unlikely(len != 0))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		break;
+	case PPM_PTRACE_CONT:
+	case PPM_PTRACE_SINGLESTEP:
+	case PPM_PTRACE_DETACH:
+	case PPM_PTRACE_SYSCALL:
+		idx = PPM_PTRACE_IDX_SIGTYPE;
+		dst = (uint64_t)val;
+		break;
+	case PPM_PTRACE_ATTACH:
+	case PPM_PTRACE_TRACEME:
+	case PPM_PTRACE_POKETEXT:
+	case PPM_PTRACE_POKEDATA:
+	case PPM_PTRACE_POKEUSR:
+	default:
+		idx = PPM_PTRACE_IDX_UINT64;
+		dst = (uint64_t)val;
+		break;
+	}
+
+	return val_to_ring(args, dst, 0, false, idx);
+}
+
 static int f_sys_ptrace_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -3126,13 +3181,8 @@ static int f_sys_ptrace_e(struct event_filler_arguments *args)
 static int f_sys_ptrace_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	unsigned long len;
 	int64_t retval;
-	uint64_t addr = 0;
-	uint64_t data = 0;
 	u16 request;
-	u8 addr_idx;
-	u8 data_idx;
 	int res;
 
 	/*
@@ -3161,65 +3211,11 @@ static int f_sys_ptrace_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	request = ptrace_requests_to_scap(val);
 
-	/*
-	 * addr
-	 */
-	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	switch(request) {
-	case PPM_PTRACE_TRACEME:
-	case PPM_PTRACE_PEEKTEXT:
-	case PPM_PTRACE_PEEKDATA:
-	case PPM_PTRACE_PEEKUSR:
-	case PPM_PTRACE_POKETEXT:
-	case PPM_PTRACE_POKEDATA:
-	case PPM_PTRACE_POKEUSR:
-	case PPM_PTRACE_CONT:
-	case PPM_PTRACE_SINGLESTEP:
-	case PPM_PTRACE_ATTACH:
-	case PPM_PTRACE_DETACH:
-	case PPM_PTRACE_SYSCALL:
-	default:
-		addr_idx = PPM_PTRACE_IDX_UINT64;
-		addr = (uint64_t)val;
-	}
-
-	/*
-	 * data
-	 */
-	syscall_get_arguments(current, args->regs, 3, 1, &val);
-	switch(request) {
-	case PPM_PTRACE_PEEKTEXT:
-	case PPM_PTRACE_PEEKDATA:
-	case PPM_PTRACE_PEEKUSR:
-		data_idx = PPM_PTRACE_IDX_UINT64;
-		len = ppm_copy_from_user(&data, (const void __user *)val, sizeof(long));
-		if (unlikely(len != 0))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		break;
-	case PPM_PTRACE_CONT:
-	case PPM_PTRACE_SINGLESTEP:
-	case PPM_PTRACE_DETACH:
-	case PPM_PTRACE_SYSCALL:
-		data_idx = PPM_PTRACE_IDX_SIGTYPE;
-		data = (uint64_t)val;
-		break;
-	case PPM_PTRACE_ATTACH:
-	case PPM_PTRACE_TRACEME:
-	case PPM_PTRACE_POKETEXT:
-	case PPM_PTRACE_POKEDATA:
-	case PPM_PTRACE_POKEUSR:
-	default:
-		data_idx = PPM_PTRACE_IDX_UINT64;
-		data = (uint64_t)val;
-		break;
-	}
-
-	res = val_to_ring(args, addr, 0, false, addr_idx);
+	res = parse_ptrace_addr(args, request);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	res = val_to_ring(args, data, 0, false, data_idx);
+	res = parse_ptrace_data(args, request);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
