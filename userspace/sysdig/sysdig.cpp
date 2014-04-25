@@ -783,14 +783,14 @@ int main(int argc, char **argv)
 			goto exit;
 		}
 
+		string filter;
+
 		//
 		// the filter is at the end of the command line
 		//
 		if(optind + n_filterargs < argc)
 		{
 #ifdef HAS_FILTERING
-			string filter;
-
 			for(int32_t j = optind + n_filterargs; j < argc; j++)
 			{
 				filter += argv[j];
@@ -800,22 +800,9 @@ int main(int argc, char **argv)
 				}
 			}
 
-			try
+			if(is_filter_display)
 			{
-				if(is_filter_display)
-				{
-					display_filter = new sinsp_filter(inspector, filter);
-				}
-				else
-				{
-					inspector->set_filter(filter);
-				}
-			}
-			catch(sinsp_exception e)
-			{
-				cerr << e.what() << endl;
-				res = EXIT_FAILURE;
-				goto exit;
+				display_filter = new sinsp_filter(inspector, filter);
 			}
 #else
 			fprintf(stderr, "filtering not compiled.\n");
@@ -850,6 +837,13 @@ int main(int argc, char **argv)
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
+#ifdef HAS_FILTERING
+			if(filter.size() && !is_filter_display)
+			{
+				inspector->set_filter(filter);
+			}
+#endif
+
 			//
 			// Launch the capture
 			//
@@ -984,7 +978,7 @@ int main(int argc, char **argv)
 
 		}
 	}
-	catch(sinsp_exception e)
+	catch(sinsp_exception& e)
 	{
 		cerr << e.what() << endl;
 		res = EXIT_FAILURE;
