@@ -30,6 +30,25 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 extern sinsp_evttables g_infotables;
 
+#define CHOOSE_PRINT_FORMAT(resfmt, fmt, ustr, xstr) do { 	\
+	if(fmt == ppm_print_format::PF_DEC) 			\
+	{							\
+		resfmt = (char*)"%" ustr;			\
+	}							\
+	else if(fmt == ppm_print_format::PF_10_PADDED_DEC)	\
+	{							\
+		resfmt = (char*)"%09" ustr;			\
+	}							\
+	else if(fmt == ppm_print_format::PF_HEX)		\
+	{							\
+		resfmt = (char*)"%" xstr;			\
+	}							\
+	else							\
+	{							\
+		resfmt = (char*)"%" ustr;			\
+	}							\
+} while(0)
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_evt_param implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -467,6 +486,7 @@ uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 
 const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
+	char* prfmt;
 	uint32_t j;
 	ASSERT(id < m_info->nparams);
 
@@ -490,31 +510,44 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	sinsp_evt_param *param = &(m_params[id]);
 
+	//
+	// Get the parameter information
+	//
+	const ppm_param_info *param_info = get_param_info(id);
+
 	switch(m_info->params[id].type)
 	{
 	case PT_INT8:
 		ASSERT(param->m_len == sizeof(int8_t));
+		CHOOSE_PRINT_FORMAT(prfmt, param_info->fmt, PRId8, PRIX8);
+
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			"%" PRId8, *(int8_t *)param->m_val);
+			prfmt, *(int8_t *)param->m_val);
 		break;
 	case PT_INT16:
 		ASSERT(param->m_len == sizeof(int16_t));
+		CHOOSE_PRINT_FORMAT(prfmt, param_info->fmt, PRId16, PRIX16);
+
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			"%" PRId16, *(int16_t *)param->m_val);
+			prfmt, *(int16_t *)param->m_val);
 		break;
 	case PT_INT32:
 		ASSERT(param->m_len == sizeof(int32_t));
+		CHOOSE_PRINT_FORMAT(prfmt, param_info->fmt, PRId32, PRIX32);
+
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			"%" PRId32, *(int32_t *)param->m_val);
+			prfmt, *(int32_t *)param->m_val);
 		break;
 	case PT_INT64:
 		ASSERT(param->m_len == sizeof(int64_t));
+		CHOOSE_PRINT_FORMAT(prfmt, param_info->fmt, PRId64, PRIX64);
+
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			"%" PRId64, *(int64_t *)param->m_val);
+			prfmt, *(int64_t *)param->m_val);
 		break;
 	case PT_FD:
 		{
@@ -661,21 +694,27 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_UINT8:
 		ASSERT(param->m_len == sizeof(uint8_t));
+		CHOOSE_PRINT_FORMAT(prfmt, param_info->fmt, PRIu8, PRIX8);
+
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         "%" PRIu8, *(uint8_t *)param->m_val);
+		         prfmt, *(uint8_t *)param->m_val);
 		break;
 	case PT_UINT16:
 		ASSERT(param->m_len == sizeof(uint16_t));
+		CHOOSE_PRINT_FORMAT(prfmt, param_info->fmt, PRIu16, PRIX16);
+
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         "%" PRIu16, *(uint16_t *)param->m_val);
+		         prfmt, *(uint16_t *)param->m_val);
 		break;
 	case PT_UINT32:
 		ASSERT(param->m_len == sizeof(uint32_t));
+		CHOOSE_PRINT_FORMAT(prfmt, param_info->fmt, PRIu32, PRIX32);
+
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         "%" PRIu32, *(uint32_t *)param->m_val);
+		         prfmt, *(uint32_t *)param->m_val);
 		break;
 	case PT_ERRNO:
 	{
@@ -707,9 +746,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	break;
 	case PT_UINT64:
 		ASSERT(param->m_len == sizeof(uint64_t));
+		CHOOSE_PRINT_FORMAT(prfmt, param_info->fmt, PRIu64, PRIX64);
+
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         "%" PRIu64, *(int64_t *)param->m_val);
+		         prfmt, *(int64_t *)param->m_val);
 		break;
 	case PT_CHARBUF:
 		//
