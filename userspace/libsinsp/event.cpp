@@ -513,7 +513,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	// Get the parameter information
 	//
-	ppm_print_format param_fmt = get_param_info(id)->fmt;
+	ppm_print_format param_fmt = m_info->params[id].fmt;
 
 	switch(m_info->params[id].type)
 	{
