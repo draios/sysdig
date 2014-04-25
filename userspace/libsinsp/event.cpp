@@ -517,6 +517,17 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	// Get the parameter information
 	//
+	if(param_info->type == PT_DYN && param_info->info != NULL)
+	{
+		const struct ppm_param_info* dyn_params =
+			(const struct ppm_param_info*)param_info->info;
+
+		uint8_t dyn_idx = *(uint8_t*)payload;
+		payload += sizeof(uint8_t);
+
+		param_info = &dyn_params[dyn_idx];
+	}
+
 	ppm_print_format param_fmt = m_info->params[id].fmt;
 
 	switch(param_info->type)

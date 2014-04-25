@@ -147,7 +147,7 @@ strncpy_end:
  * - fromuser is ignored for numeric types
  * - dyn_idx is ignored for everything other than PT_DYN
  */
-inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, uint8_t dyn_idx)
+inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, u8 dyn_idx)
 {
 	const struct ppm_param_info* param_info;
 	int len = -1;
@@ -167,6 +167,23 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 	}
 
 	param_info = &(g_event_info[args->event_type].params[args->curarg]);
+	if (param_info->type == PT_DYN && param_info->info != NULL) {
+		const struct ppm_param_info *dyn_params =
+			(const struct ppm_param_info *)param_info->info;
+
+		param_info = &dyn_params[dyn_idx];
+		if (likely(args->arg_data_size >= sizeof(u8)))	{
+			*(u8 *)(args->buffer + args->arg_data_offset) = dyn_idx;
+			len = sizeof(u8);
+		} else {
+			return PPM_FAILURE_BUFFER_FULL;
+		}
+		args->arg_data_offset += len;
+		args->arg_data_size -= len;
+		*psize = (u16)len;
+	} else {
+		*psize = 0;
+	}
 
 	switch (param_info->type) {
 	case PT_CHARBUF:
@@ -204,7 +221,6 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 		}
 
 		break;
-	case PT_DYN:
 	case PT_BYTEBUF:
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
@@ -331,7 +347,7 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 	ASSERT(len <= 65535);
 	ASSERT(len <= args->arg_data_size);
 
-	*psize = (u16)len;
+	*psize += (u16)len;
 	args->curarg++;
 	args->arg_data_offset += len;
 	args->arg_data_size -= len;
