@@ -502,7 +502,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	// Reset the resolved string
 	//
-	*resolved_str = &m_resolved_paramstr_storage[0];
 	m_resolved_paramstr_storage[0] = 0;
 
 	//
@@ -1160,6 +1159,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		         "(n.a.)");
 		break;
 	}
+
+	*resolved_str = &m_resolved_paramstr_storage[0];
 
 	return &m_paramstr_storage[0];
 }
