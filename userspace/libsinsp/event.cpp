@@ -490,6 +490,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	const ppm_param_info* param_info;
 	char* payload;
 	uint32_t j;
+	uint16_t payload_len;
 	ASSERT(id < m_info->nparams);
 
 	//
@@ -512,6 +513,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	sinsp_evt_param *param = &(m_params[id]);
 	payload = param->m_val;
+	payload_len = param->m_len;
 	param_info = &(m_info->params[id]);
 
 	//
@@ -524,6 +526,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		uint8_t dyn_idx = *(uint8_t*)payload;
 		payload += sizeof(uint8_t);
+		payload_len -= sizeof(uint8_t);
 
 		param_info = &dyn_params[dyn_idx];
 	}
@@ -533,7 +536,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	switch(param_info->type)
 	{
 	case PT_INT8:
-		ASSERT(param->m_len == sizeof(int8_t));
+		ASSERT(payload_len == sizeof(int8_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId8, PRIX8);
 
 		snprintf(&m_paramstr_storage[0],
@@ -541,7 +544,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			prfmt, *(int8_t *)payload);
 		break;
 	case PT_INT16:
-		ASSERT(param->m_len == sizeof(int16_t));
+		ASSERT(payload_len == sizeof(int16_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId16, PRIX16);
 
 		snprintf(&m_paramstr_storage[0],
@@ -549,7 +552,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			prfmt, *(int16_t *)payload);
 		break;
 	case PT_INT32:
-		ASSERT(param->m_len == sizeof(int32_t));
+		ASSERT(payload_len == sizeof(int32_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId32, PRIX32);
 
 		snprintf(&m_paramstr_storage[0],
@@ -557,7 +560,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			prfmt, *(int32_t *)payload);
 		break;
 	case PT_INT64:
-		ASSERT(param->m_len == sizeof(int64_t));
+		ASSERT(payload_len == sizeof(int64_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId64, PRIX64);
 
 		snprintf(&m_paramstr_storage[0],
@@ -567,7 +570,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_FD:
 		{
 		int64_t fd;
-		ASSERT(param->m_len == sizeof(int64_t));
+		ASSERT(payload_len == sizeof(int64_t));
 
 		fd = *(int64_t*)payload;
 
@@ -680,7 +683,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	break;
 	case PT_PID:
 		{
-			ASSERT(param->m_len == sizeof(int64_t));
+			ASSERT(payload_len == sizeof(int64_t));
 
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
@@ -708,7 +711,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	case PT_UINT8:
-		ASSERT(param->m_len == sizeof(uint8_t));
+		ASSERT(payload_len == sizeof(uint8_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu8, PRIX8);
 
 		snprintf(&m_paramstr_storage[0],
@@ -716,7 +719,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		         prfmt, *(uint8_t *)payload);
 		break;
 	case PT_UINT16:
-		ASSERT(param->m_len == sizeof(uint16_t));
+		ASSERT(payload_len == sizeof(uint16_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu16, PRIX16);
 
 		snprintf(&m_paramstr_storage[0],
@@ -724,7 +727,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		         prfmt, *(uint16_t *)payload);
 		break;
 	case PT_UINT32:
-		ASSERT(param->m_len == sizeof(uint32_t));
+		ASSERT(payload_len == sizeof(uint32_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu32, PRIX32);
 
 		snprintf(&m_paramstr_storage[0],
@@ -733,7 +736,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_ERRNO:
 	{
-		ASSERT(param->m_len == sizeof(int64_t));
+		ASSERT(payload_len == sizeof(int64_t));
 
 		int64_t val = *(int64_t *)payload;
 
@@ -760,7 +763,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	}
 	break;
 	case PT_UINT64:
-		ASSERT(param->m_len == sizeof(uint64_t));
+		ASSERT(payload_len == sizeof(uint64_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu64, PRIX64);
 
 		snprintf(&m_paramstr_storage[0],
@@ -771,9 +774,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		//
 		// Make sure the string will fit
 		//
-		if(param->m_len > m_paramstr_storage.size())
+		if(payload_len > m_paramstr_storage.size())
 		{
-			m_paramstr_storage.resize(param->m_len);
+			m_paramstr_storage.resize(payload_len);
 		}
 
 		snprintf(&m_paramstr_storage[0],
@@ -784,7 +787,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	{
 		strcpy_sanitized(&m_paramstr_storage[0],
 			payload,
-			MIN(param->m_len, m_paramstr_storage.size()));
+			MIN(payload_len, m_paramstr_storage.size()));
 
 		sinsp_threadinfo* tinfo = get_thread_info();
 
@@ -798,7 +801,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				(char*)cwd.c_str(),
 				cwd.length(),
 				payload,
-				param->m_len))
+				payload_len))
 			{
 				m_resolved_paramstr_storage[0] = 0;
 			}
@@ -826,7 +829,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			uint32_t blen = binary_buffer_to_string(&m_paramstr_storage[0],
 				payload,
 				m_paramstr_storage.size() - 1,
-				param->m_len,
+				payload_len,
 				fmt);
 
 			if(blen >= m_paramstr_storage.size() - 1)
@@ -843,7 +846,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	}
 	break;
 	case PT_SOCKADDR:
-		if(param->m_len == 0)
+		if(payload_len == 0)
 		{
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
@@ -853,7 +856,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		else if(payload[0] == AF_UNIX)
 		{
-			ASSERT(param->m_len > 1);
+			ASSERT(payload_len > 1);
 
 			//
 			// Sanitize the file string.
@@ -868,7 +871,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		else if(payload[0] == PPM_AF_INET)
 		{
-			if(param->m_len == 1 + 4 + 2)
+			if(payload_len == 1 + 4 + 2)
 			{
 				snprintf(&m_paramstr_storage[0],
 				         m_paramstr_storage.size(),
@@ -895,7 +898,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	case PT_SOCKTUPLE:
-		if(param->m_len == 0)
+		if(payload_len == 0)
 		{
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
@@ -906,7 +909,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		if(payload[0] == PPM_AF_INET)
 		{
-			if(param->m_len == 1 + 4 + 2 + 4 + 2)
+			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
 				snprintf(&m_paramstr_storage[0],
 				         m_paramstr_storage.size(),
@@ -932,7 +935,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		else if(payload[0] == PPM_AF_INET6)
 		{
-			if(param->m_len == 1 + 16 + 2 + 16 + 2)
+			if(payload_len == 1 + 16 + 2 + 16 + 2)
 			{
 				uint8_t* sip6 = (uint8_t*)payload + 1;
 				uint8_t* dip6 = (uint8_t*)payload + 19;
@@ -982,7 +985,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		else if(payload[0] == AF_UNIX)
 		{
-			ASSERT(param->m_len > 17);
+			ASSERT(payload_len > 17);
 
 			//
 			// Sanitize the file string.
@@ -1081,7 +1084,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			const char* sigstr;
 
-			ASSERT(param->m_len == sizeof(uint8_t));
+			ASSERT(payload_len == sizeof(uint8_t));
 			uint8_t val = *(uint8_t *)payload;
 
 			sigstr = sinsp_utils::signal_to_str(val);
@@ -1102,7 +1105,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			string sigstr;
 
-			ASSERT(param->m_len == sizeof(uint64_t));
+			ASSERT(payload_len == sizeof(uint64_t));
 			uint64_t val = *(uint64_t *)payload;
 
 			snprintf(&m_paramstr_storage[0],
@@ -1119,7 +1122,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_FLAGS16:
 	case PT_FLAGS32:
 		{
-			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << param->m_len * 8) - 1);
+			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
