@@ -31,6 +31,7 @@ function on_init()
 	fargs = chisel.request_field("proc.args")
 	fdir = chisel.request_field("evt.arg.path")
 	fuser = chisel.request_field("user.name")
+	fdtime = chisel.request_field("evt.time.s")
 
 	-- set the filter
 	chisel.set_filter("(evt.type=execve and not proc.name contains sh and proc.pname contains sh) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)")
@@ -41,14 +42,16 @@ end
 -- Event parsing callback
 function on_event()
 	local user = evt.field(fuser)
+	local dtime = evt.field(fdtime)
+	
 	if user == nil then
 		user = "<NA>"
 	end
 	
 	if evt.field(fetype) == "chdir" then
-		print(user .. ")" .. "cd " .. evt.field(fdir))
+		print(dtime .. " " .. user .. ")" .. "cd " .. evt.field(fdir))
 	else
-		print(user .. ")" .. evt.field(fexe) .. " " .. evt.field(fargs))
+		print(dtime .. " " .. user .. ")" .. evt.field(fexe) .. " " .. evt.field(fargs))
 	end
 
 	return true
