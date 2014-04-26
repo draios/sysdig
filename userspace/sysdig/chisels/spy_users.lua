@@ -33,17 +33,22 @@ function on_init()
 	fuser = chisel.request_field("user.name")
 
 	-- set the filter
-	chisel.set_filter("(evt.type=execve and not proc.name contains sh and proc.pname contains sh) or (evt.type=chdir and evt.dir=< and proc.name contains sh)")
+	chisel.set_filter("(evt.type=execve and not proc.name contains sh and proc.pname contains sh) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)")
 	
 	return true
 end
 
 -- Event parsing callback
 function on_event()
+	local user = evt.field(fuser)
+	if user == nil then
+		user = "<NA>"
+	end
+	
 	if evt.field(fetype) == "chdir" then
-		print(evt.field(fuser) .. ")" .. "cd " .. evt.field(fdir))
+		print(user .. ")" .. "cd " .. evt.field(fdir))
 	else
-		print(evt.field(fuser) .. ")" .. evt.field(fexe) .. " " .. evt.field(fargs))
+		print(user .. ")" .. evt.field(fexe) .. " " .. evt.field(fargs))
 	end
 
 	return true
