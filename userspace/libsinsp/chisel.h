@@ -114,6 +114,8 @@ public:
 private:
 	bool openfile(string filename, OUT ifstream* is);
 	void free_lua_chisel();
+	static bool init_json_chisel(chisel_desc &cd, string const &path);
+	static bool init_lua_chisel(chisel_desc &cd, string const &path);
 
 	sinsp* m_inspector;
 	string m_description;

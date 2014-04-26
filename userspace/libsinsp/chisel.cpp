@@ -807,6 +807,129 @@ void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 }
 #endif
 
+// Initializes a JSON chisel
+bool sinsp_chisel::init_json_chisel(chisel_desc &cd, string const &fpath)
+{
+	try
+	{
+		sinsp_chisel ch(NULL, fpath);
+		cd.m_description = ch.m_description;
+
+		const Json::Value args = (*ch.m_root)["info"]["arguments"];
+		for(uint32_t k = 0; k < args.size(); k++)
+		{
+			cd.m_args.push_back(chiselarg_desc(
+				args[k]["name"].asString(),
+				args[k]["type"].asString(),
+				args[k]["description"].asString()
+			));
+		}
+		return true;
+	}
+	catch(...)
+	{
+		//
+		// If there was an error opening the chisel, skip to the next one
+		//
+		return false;
+	}
+}
+
+#ifdef HAS_LUA_CHISELS
+// Initializes a lua chisel
+bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
+{
+	lua_State* ls = lua_open();
+	luaL_openlibs(ls);
+
+	//
+	// Load our own lua libs
+	//
+	luaL_openlib(ls, "sysdig", ll_sysdig, 0);
+	luaL_openlib(ls, "chisel", ll_chisel, 0);
+	luaL_openlib(ls, "evt", ll_evt, 0);
+
+	//
+	// Add our chisel paths to package.path
+	//
+	for(auto dirinfo : *g_chisel_dirs)
+	{
+		string path(dirinfo.m_dir);
+		path += "?.lua";
+		add_lua_package_path(ls, path.c_str());
+	}
+
+	//
+	// Load the script
+	//
+	if(luaL_loadfile(ls, fpath.c_str()) || lua_pcall(ls, 0, 0, 0))
+	{
+		goto failure;
+	}
+
+	//
+	// Extract the description
+	//
+	lua_getglobal(ls, "description");
+	if(!lua_isstring(ls, -1))
+	{
+		goto failure;
+	}
+	cd.m_description = lua_tostring(ls, -1);
+
+	//
+	// Extract the short description
+	//
+	lua_getglobal(ls, "short_description");
+	if(!lua_isstring(ls, -1))
+	{
+		goto failure;
+	}
+	cd.m_shortdesc = lua_tostring(ls, -1);
+
+	//
+	// Extract the category
+	//
+	cd.m_category = "";
+	lua_getglobal(ls, "category");
+	if(lua_isstring(ls, -1))
+	{
+		cd.m_category = lua_tostring(ls, -1);
+	}
+
+	//
+	// Extract the hidden flag and skip the chisel if it's set
+	//
+	lua_getglobal(ls, "hidden");
+	if(lua_isboolean(ls, -1))
+	{
+		int sares = lua_toboolean(ls, -1);
+		if(sares)
+		{
+			goto failure;
+		}
+	}
+
+	//
+	// Extract the args
+	//
+	lua_getglobal(ls, "args");
+	try
+	{
+		parse_lua_chisel_args(ls, &cd);
+	}
+	catch(...)
+	{
+		goto failure;
+	}
+	return true;
+
+failure:
+	lua_close(ls);
+	return false;
+}
+#endif
+
 //
 // 1. Iterates through the chisel files on disk (.sc and .lua)
 // 2. Opens them and extracts the fields (name, description, etc)
@@ -814,18 +937,14 @@ void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 //
 void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 {
-	uint32_t j;
-
-	for(j = 0; j < g_chisel_dirs->size(); j++)
+	for(auto dirinfo : *g_chisel_dirs)
 	{
-		if(string(g_chisel_dirs->at(j).m_dir) == "")
+		if(string(dirinfo.m_dir).empty())
 		{
 			continue;
 		}
-
 		tinydir_dir dir;
-		tinydir_open(&dir, g_chisel_dirs->at(j).m_dir);
-
+		tinydir_open(&dir, dirinfo.m_dir);
 		while(dir.has_next)
 		{
 			tinydir_file file;
@@ -833,157 +952,51 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 
 			string fname(file.name);
 			string fpath(file.path);
+			string::size_type idx;
+			string ext, name;
+			chisel_desc cd;
+			bool add_to_vector;
 
-			if(fname.find(".sc") == fname.size() - 3)
+			idx = fname.rfind('.');
+			if(idx == std::string::npos)
 			{
-				try
+				goto next_file;
+			}
+
+			ext = fname.substr(idx+1);
+			if(ext.compare("sc") != 0 && ext.compare("lua") != 0)
+			{
+				goto next_file;
+			}
+
+			name = fname.substr(0, idx);
+			for(auto desc: *chisel_descs)
+			{
+				if(name.compare(desc.m_name) == 0)
 				{
-					sinsp_chisel ch(NULL, fpath);
-
-					chisel_desc cd;
-					cd.m_name = fname.substr(0, fname.rfind('.'));
-
-					for(uint32_t t = 0; t < chisel_descs->size(); t++)
-					{
-						if(cd.m_name.compare(chisel_descs->at(t).m_name) == 0)
-						{
-							goto next_file;
-						}
-					}
-					cd.m_description = ch.m_description;
-
-					const Json::Value args = (*ch.m_root)["info"]["arguments"];
-					for(uint32_t k = 0; k < args.size(); k++)
-					{
-						cd.m_args.push_back(chiselarg_desc(
-			  				args[k]["name"].asString(), 
-							args[k]["type"].asString(), 
-							args[k]["description"].asString()
-						));
-					}
-
-					chisel_descs->push_back(cd);
-				}
-				catch(...)
-				{
-					//
-					// If there was an error opening the chisel, skip to the next one
-					//
 					goto next_file;
 				}
 			}
-
-#ifdef HAS_LUA_CHISELS
-			if(fname.find(".lua") == fname.size() - 4)
+			cd.m_name = name;
+			
+			if(ext.compare("sc") == 0)
 			{
-				chisel_desc cd;
-				cd.m_name = fname.substr(0, fname.rfind('.'));
-				for(uint32_t t = 0; t < chisel_descs->size(); t++)
-				{
-					if(cd.m_name.compare(chisel_descs->at(t).m_name) == 0)
-					{
-						goto next_file;
-					}
-				}
-
-				lua_State* ls = lua_open();
- 
-				luaL_openlibs(ls);
- 
-				//
-				// Load our own lua libs
-				//
-				luaL_openlib(ls, "sysdig", ll_sysdig, 0);
-				luaL_openlib(ls, "chisel", ll_chisel, 0);
-				luaL_openlib(ls, "evt", ll_evt, 0);
-
-				//
-				// Add our chisel paths to package.path
-				//
-				for(uint32_t k  = 0; k < g_chisel_dirs->size(); k++)
-				{
-					string path(g_chisel_dirs->at(k).m_dir);
-					path += "?.lua";
-					add_lua_package_path(ls, path.c_str());
-				}
-
-				//
-				// Load the script
-				//
-				if(luaL_loadfile(ls, fpath.c_str()) || lua_pcall(ls, 0, 0, 0)) 
-				{
-					goto next_lua_file;
-				}
-
-				//
-				// Extract the description
-				//
-				lua_getglobal(ls, "description");
-				if(!lua_isstring(ls, -1)) 
-				{
-					goto next_lua_file;
-				}				
-
-				cd.m_description = lua_tostring(ls, -1);
-
-				//
-				// Extract the short description
-				//
-				lua_getglobal(ls, "short_description");
-				if(!lua_isstring(ls, -1)) 
-				{
-					goto next_lua_file;
-				}				
-				cd.m_shortdesc = lua_tostring(ls, -1);
-
-				// 
-				// Extract the category
-				//
-			  	cd.m_category = "";
-				lua_getglobal(ls, "category");
-				if(lua_isstring(ls, -1)) 
-				{
-				  cd.m_category = lua_tostring(ls, -1);
-				}				
-
-				//
-				// Extract the hidden flag and skip the chisel if it's set
-				//
-				lua_getglobal(ls, "hidden");
-				if(lua_isboolean(ls, -1)) 
-				{
-					int sares = lua_toboolean(ls, -1);
-
-					if(sares)
-					{
-						goto next_lua_file;
-					}
-				}				
-
-				//
-				// Extract the args
-				//
-				lua_getglobal(ls, "args");
-
-				try
-				{
-					parse_lua_chisel_args(ls, &cd);
-				}
-				catch(...)
-				{
-					goto next_lua_file;
-				}
-
+				add_to_vector = init_json_chisel(cd, fpath);
+			}
+#ifdef HAS_LUA_CHISELS
+			if(ext.compare("lua") == 0)
+			{
+				add_to_vector = init_lua_chisel(cd, fpath);
+			}
+			
+			if(add_to_vector)
+			{
 				chisel_descs->push_back(cd);
-next_lua_file:
-				lua_close(ls);
 			}
 #endif
-
 next_file:
 			tinydir_next(&dir);
 		}
-
 		tinydir_close(&dir);
 	}
 }
