@@ -988,6 +988,18 @@ failure:
 }
 #endif
 
+static tuple<bool, string, string> split_filename(string const &fname)
+{
+	string::size_type idx = fname.rfind('.');
+	if(idx == std::string::npos)
+	{
+		return make_tuple(false, "", "");
+	}
+	string name = fname.substr(0, idx);
+	string ext = fname.substr(idx+1);
+	return make_tuple(true, name, ext);
+}
+
 //
 // 1. Iterates through the chisel files on disk (.sc and .lua)
 // 2. Opens them and extracts the fields (name, description, etc)
@@ -1008,41 +1020,32 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			tinydir_file file;
 			tinydir_readfile(&dir, &file);
 
-			string fname(file.name);
 			string fpath(file.path);
-			string::size_type idx;
+			bool has_ext, add_to_vector;
 			string ext, name;
 			chisel_desc cd;
-			bool add_to_vector;
 
-			idx = fname.rfind('.');
-			if(idx == std::string::npos)
+			tie(has_ext, name, ext) = split_filename(string(file.name));
+			if(ext != "sc" &&  ext != "lua")
 			{
 				goto next_file;
 			}
 
-			ext = fname.substr(idx+1);
-			if(ext.compare("sc") != 0 && ext.compare("lua") != 0)
-			{
-				goto next_file;
-			}
-
-			name = fname.substr(0, idx);
 			for(auto desc: *chisel_descs)
 			{
-				if(name.compare(desc.m_name) == 0)
+				if(name == desc.m_name)
 				{
 					goto next_file;
 				}
 			}
 			cd.m_name = name;
 			
-			if(ext.compare("sc") == 0)
+			if(ext == "sc")
 			{
 				add_to_vector = init_json_chisel(cd, fpath);
 			}
 #ifdef HAS_LUA_CHISELS
-			if(ext.compare("lua") == 0)
+			if(ext == "lua")
 			{
 				add_to_vector = init_lua_chisel(cd, fpath);
 			}
