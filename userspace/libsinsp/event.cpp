@@ -774,8 +774,12 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		if(tinfo)
 		{
-			string fullpath;
 			string cwd = tinfo->get_cwd();
+
+			if(param->m_len + cwd.length() >= m_resolved_paramstr_storage.size())
+			{
+				m_resolved_paramstr_storage.resize(param->m_len + cwd.length() + 1, 0);
+			}
 
 			if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
 				m_resolved_paramstr_storage.size(),
