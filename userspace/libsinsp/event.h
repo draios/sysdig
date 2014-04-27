@@ -198,7 +198,7 @@ public:
 
 	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM. 
 	*/
-	uint64_t get_fd_num();
+	int64_t get_fd_num();
 
 	/*!
 	  \brief Return the number of parameters that this event has.
@@ -274,6 +274,7 @@ private:
 	void load_params();
 	string get_param_value_str(uint32_t id, bool resolved);
 	string get_param_value_str(const char* name, bool resolved = true);
+	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 
 VISIBILITY_PRIVATE
 

@@ -172,7 +172,7 @@ sinsp_fdinfo_t* sinsp_evt::get_fd_info()
 	return m_fdinfo;
 }
 
-uint64_t sinsp_evt::get_fd_num()
+int64_t sinsp_evt::get_fd_num()
 {
 	if(m_fdinfo)
 	{
@@ -484,6 +484,117 @@ uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 	return dstsize;
 }
 
+char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt)
+{
+	//
+	// Add the fd number
+	//
+	snprintf(&m_paramstr_storage[0],
+		        m_paramstr_storage.size(),
+		        "%" PRId64, fd);
+
+	sinsp_threadinfo* tinfo = get_thread_info();
+	if(tinfo == NULL)
+	{
+		//
+		// no thread. Definitely can't resolve the fd, just return the number
+		//
+		return &m_paramstr_storage[0];
+	}
+
+	if(fd >= 0)
+	{
+		sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
+		if(fdinfo)
+		{
+			char tch = fdinfo->get_typechar();
+			char ipprotoch = 0;
+
+			if(fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+				fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
+				fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK ||
+				fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
+			{
+				scap_l4_proto l4p = fdinfo->get_l4proto();
+
+				switch(l4p)
+				{
+				case SCAP_L4_TCP:
+					ipprotoch = 't';
+					break;
+				case SCAP_L4_UDP:
+					ipprotoch = 'u';
+					break;
+				case SCAP_L4_ICMP:
+					ipprotoch = 'i';
+					break;
+				case SCAP_L4_RAW:
+					ipprotoch = 'r';
+					break;
+				default:
+					break;
+				}
+			}
+
+			char typestr[3] =
+			{
+				(fmt & PF_SIMPLE)?(char)0:tch,
+				ipprotoch,
+				0
+			};
+
+			//
+			// Make sure we remove invalid characters from the resolved name
+			//
+			string sanitized_str = fdinfo->m_name;
+
+			sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+
+			//
+			// Make sure the string will fit
+			//
+			if(sanitized_str.size() >= m_resolved_paramstr_storage.size())
+			{
+				m_resolved_paramstr_storage.resize(sanitized_str.size() + 1);
+			}
+
+			snprintf(&m_resolved_paramstr_storage[0],
+				m_resolved_paramstr_storage.size(),
+				"<%s>%s", typestr, sanitized_str.c_str());
+
+/* XXX
+			if(sanitized_str.length() == 0)
+			{
+				snprintf(&m_resolved_paramstr_storage[0],
+							m_resolved_paramstr_storage.size(),
+							"<%c>", tch);
+			}
+			else
+			{
+				snprintf(&m_resolved_paramstr_storage[0],
+							m_resolved_paramstr_storage.size(),
+							"%s", sanitized_str.c_str());
+			}
+*/
+		}
+	}
+	else
+	{
+		//
+		// Resolve this as an errno
+		//
+		string errstr(sinsp_utils::errno_to_str((int32_t)fd));
+		if(errstr != "")
+		{
+			snprintf(&m_resolved_paramstr_storage[0],
+				        m_resolved_paramstr_storage.size(),
+				        "%s", errstr.c_str());
+		}
+	}
+
+	return &m_paramstr_storage[0];
+}
+
 const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
 	char* prfmt;
@@ -505,7 +616,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	// Reset the resolved string
 	//
-	*resolved_str = &m_resolved_paramstr_storage[0];
 	m_resolved_paramstr_storage[0] = 0;
 
 	//
@@ -569,118 +679,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_FD:
 		{
-		int64_t fd;
-		ASSERT(payload_len == sizeof(int64_t));
-
-		fd = *(int64_t*)payload;
-
-		//
-		// Add the fd number
-		//
-		snprintf(&m_paramstr_storage[0],
-		         m_paramstr_storage.size(),
-		         "%" PRId64, fd);
-
-		sinsp_threadinfo* tinfo = get_thread_info();
-		if(tinfo == NULL)
-		{
-			//
-			// no thread. Definitely can't resolve the fd, just return the number
-			//
+			ASSERT(param->m_len == sizeof(int64_t));
+			int64_t fd = *(int64_t*)param->m_val;
+			render_fd(fd, resolved_str, fmt);
 			break;
 		}
-
-		if(fd >= 0)
-		{
-			sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
-			if(fdinfo)
-			{
-				char tch = fdinfo->get_typechar();
-				char ipprotoch = 0;
-
-				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
-					fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
-					fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK ||
-					fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
-				{
-					scap_l4_proto l4p = fdinfo->get_l4proto();
-
-					switch(l4p)
-					{
-					case SCAP_L4_TCP:
-						ipprotoch = 't';
-						break;
-					case SCAP_L4_UDP:
-						ipprotoch = 'u';
-						break;
-					case SCAP_L4_ICMP:
-						ipprotoch = 'i';
-						break;
-					case SCAP_L4_RAW:
-						ipprotoch = 'r';
-						break;
-					default:
-						break;
-					}
-				}
-
-				char typestr[3] =
-				{
-					(fmt & PF_SIMPLE)?(char)0:tch,
-					ipprotoch,
-					0
-				};
-
-				//
-				// Make sure we remove invalid characters from the resolved name
-				//
-				string sanitized_str = fdinfo->m_name;
-
-				sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
-
-				//
-				// Make sure the string will fit
-				//
-				if(sanitized_str.size() >= m_resolved_paramstr_storage.size())
-				{
-					m_resolved_paramstr_storage.resize(sanitized_str.size() + 1);
-				}
-
-				snprintf(&m_resolved_paramstr_storage[0],
-					m_resolved_paramstr_storage.size(),
-					"<%s>%s", typestr, sanitized_str.c_str());
-
-/* XXX
-				if(sanitized_str.length() == 0)
-				{
-					snprintf(&m_resolved_paramstr_storage[0],
-							 m_resolved_paramstr_storage.size(),
-							 "<%c>", tch);
-				}
-				else
-				{
-					snprintf(&m_resolved_paramstr_storage[0],
-							 m_resolved_paramstr_storage.size(),
-							 "%s", sanitized_str.c_str());
-				}
-*/
-			}
-		}
-		else
-		{
-			//
-			// Resolve this as an errno
-			//
-			string errstr(sinsp_utils::errno_to_str((int32_t)fd));
-			if(errstr != "")
-			{
-				snprintf(&m_resolved_paramstr_storage[0],
-				         m_resolved_paramstr_storage.size(),
-				         "%s", errstr.c_str());
-			}
-		}
-	}
-	break;
 	case PT_PID:
 		{
 			ASSERT(payload_len == sizeof(int64_t));
@@ -793,8 +796,12 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		if(tinfo)
 		{
-			string fullpath;
 			string cwd = tinfo->get_cwd();
+
+			if(param->m_len + cwd.length() >= m_resolved_paramstr_storage.size())
+			{
+				m_resolved_paramstr_storage.resize(param->m_len + cwd.length() + 1, 0);
+			}
 
 			if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
 				m_resolved_paramstr_storage.size(),
@@ -1178,6 +1185,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		         "(n.a.)");
 		break;
 	}
+
+	*resolved_str = &m_resolved_paramstr_storage[0];
 
 	return &m_paramstr_storage[0];
 }
