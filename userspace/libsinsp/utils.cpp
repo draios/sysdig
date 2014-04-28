@@ -21,6 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <stdlib.h>
 #endif
+#include <algorithm> 
 #include <functional> 
 
 #include "sinsp.h"

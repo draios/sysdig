@@ -127,6 +127,7 @@ vector<string> sinsp_split(const string &s, char delim);
 string& ltrim(string &s);
 string& rtrim(string &s);
 string& trim(string &s);
+void replace_in_place(string &s, const string &search, const string &replace);
 void replace_in_place(string& str, string& substr_to_replace, string& new_substr);
 
 ///////////////////////////////////////////////////////////////////////////////
