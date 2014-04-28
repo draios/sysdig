@@ -29,6 +29,18 @@ function extend_string(s, newlen)
 end
 
 --[[ 
+Basic string split.
+]]--
+function split(s, delimiter)
+    local result = {}
+	
+    for match in (s..delimiter):gmatch("(.-)"..delimiter) do
+        table.insert(result, match)
+    end
+    return result
+end
+
+--[[ 
 convert a number into a byte representation.
 E.g. 1230 becomes 1.23K
 ]]--

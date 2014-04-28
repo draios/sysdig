@@ -24,7 +24,7 @@ hidden = true
 -- Chisel argument list
 args = 
 {
-	{
+sfd	{
 		name = "key", 
 		description = "the filter field used for grouping", 
 		argtype = "string"

@@ -770,9 +770,11 @@ sinsp_evttables* sinsp::get_event_info_tables()
 	return &g_infotables;
 }
 
-void sinsp::add_chisel_dir(string dirname)
+void sinsp::add_chisel_dir(string dirname, bool front_add)
 {
 #ifdef HAS_CHISELS
+	trim(dirname);
+
 	if(dirname[dirname.size() -1] != '/')
 	{
 		dirname += "/";
@@ -783,7 +785,14 @@ void sinsp::add_chisel_dir(string dirname)
 	strcpy(ncdi.m_dir, dirname.c_str());
 	ncdi.m_need_to_resolve = false;
 
-	g_chisel_dirs->push_back(ncdi);
+	if(front_add)
+	{
+		g_chisel_dirs->insert(g_chisel_dirs->begin(), ncdi);
+	}
+	else
+	{
+		g_chisel_dirs->push_back(ncdi);
+	}
 #endif
 }
 

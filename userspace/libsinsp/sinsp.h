@@ -91,6 +91,8 @@ class sinsp_parser;
 class sinsp_analyzer;
 class sinsp_filter;
 
+vector<string> sinsp_split(const string &s, char delim);
+
 /*!
   \brief Information about a group of filter/formatting fields.
 */
@@ -401,9 +403,12 @@ public:
 	/*!
 	  \brief Add a new directory containing chisels.
 
+	  \parame front_add if true, the chisel directory is added at the front of 
+	   the search list and therefore gets priority.  
+
 	  \note This function is not reentrant.
 	*/
-	void add_chisel_dir(string dirname);
+	void add_chisel_dir(string dirname, bool front_add);
 
 	/*!
 	  \brief Get the list of machine network interfaces.

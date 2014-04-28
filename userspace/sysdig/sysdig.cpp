@@ -213,6 +213,31 @@ void print_summary_table(sinsp* inspector,
 	}
 }
 
+#ifdef HAS_CHISELS
+static void add_chisel_dirs(sinsp* inspector)
+{
+	//
+	// Add the default chisel directory statically configured by the build system
+	//
+	inspector->add_chisel_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR, false);
+
+	//
+	// Add the directories configured in the SYSDIG_CHISEL_DIR environment variable
+	//
+	char* s_user_cdirs = getenv("SYSDIG_CHISEL_DIR");
+
+	if(s_user_cdirs != NULL)
+	{
+		vector<string> user_cdirs = sinsp_split(s_user_cdirs, ';');
+
+		for(uint32_t j = 0; j < user_cdirs.size(); j++)
+		{
+			inspector->add_chisel_dir(user_cdirs[j], true);
+		}
+	}
+}
+#endif
+
 static void initialize_chisels()
 {
 #ifdef HAS_CHISELS
@@ -265,7 +290,6 @@ static void chisels_do_timeout(sinsp_evt* ev)
 	}
 #endif
 }
-
 
 //
 // Event processing loop
@@ -517,7 +541,7 @@ int main(int argc, char **argv)
 		inspector = new sinsp();
 
 #ifdef HAS_CHISELS
-		inspector->add_chisel_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR);
+		add_chisel_dirs(inspector);
 #endif
 
 		//
