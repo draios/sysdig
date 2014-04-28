@@ -73,7 +73,7 @@ const struct ppm_name_value file_flags[] = {
 	{"O_DSYNC", PPM_O_DSYNC},
 	{"O_APPEND", PPM_O_APPEND},
 	{"O_CREAT", PPM_O_CREAT},
-	{"O_RDWR",PPM_O_RDWR},
+	{"O_RDWR", PPM_O_RDWR},
 	{"O_WRONLY", PPM_O_WRONLY},
 	{"O_RDONLY", PPM_O_RDONLY},
 	{"O_NONE", PPM_O_NONE},
