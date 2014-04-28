@@ -24,14 +24,14 @@ hidden = true
 -- Chisel argument list
 args = 
 {
-sfd	{
-		name = "key", 
-		description = "the filter field used for grouping", 
+	{
+		name = "keys", 
+		description = "comma-separated list of filter fields to use for grouping", 
 		argtype = "string"
 	},
 	{
-		name = "keydesc", 
-		description = "human readable description for the key", 
+		name = "keydescs", 
+		description = "comma separated list of human readable descriptions for the key", 
 		argtype = "string"
 	},
 	{
@@ -67,11 +67,12 @@ terminal = require "ansiterminal"
 grtable = {}
 filter = ""
 islive = false
+fkeys = {}
 
 vizinfo = 
 {
-	key_fld = "",
-	key_desc = "",
+	key_fld = {},
+	key_desc = {},
 	value_fld = "",
 	value_desc = "",
 	value_units = "none",
@@ -81,11 +82,11 @@ vizinfo =
 
 -- Argument notification callback
 function on_set_arg(name, val)
-	if name == "key" then
-		vizinfo.key_fld = val
+	if name == "keys" then
+		vizinfo.key_fld = split(val, ",")		
 		return true
-	elseif name == "keydesc" then
-		vizinfo.key_desc = val
+	elseif name == "keydescs" then
+		vizinfo.key_desc = split(val, ",")
 		return true
 	elseif name == "value" then
 		vizinfo.value_fld = val
@@ -108,8 +109,16 @@ function on_set_arg(name, val)
 end
 
 function on_init()
+	if #vizinfo.key_fld ~= #vizinfo.key_desc then
+		print("error: number of entries in keys different from number entries in keydescs")
+		return false
+	end
+
 	-- Request the fields we need
-	fkey = chisel.request_field(vizinfo.key_fld)
+	for i, name in ipairs(vizinfo.key_fld) do
+		fkeys[i] = chisel.request_field(name)
+	end
+
 	fvalue = chisel.request_field(vizinfo.value_fld)
 
 	-- set the filter
@@ -136,10 +145,25 @@ function on_capture_start()
 end
 
 function on_event()
-	key = evt.field(fkey)
+	local key = nil
+	local kv = nil
+	
+	for i, fld in ipairs(fkeys) do
+		kv = evt.field(fld)
+		if kv == nil then
+			return
+		end
+
+		if key == nil then
+			key = kv
+		else
+			key = key .. "\001\001" .. evt.field(fld)
+		end
+	end
+	
 	value = evt.field(fvalue)
 
-	if key ~= nil and value ~= nil and value > 0 then
+	if value ~= nil and value > 0 then
 		entryval = grtable[key]
 
 		if entryval == nil then

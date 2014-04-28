@@ -109,34 +109,58 @@ json = require ("dkjson")
 
 function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 	local sorted_grtable = pairs_top_by_val(stable, viz_info.top_number, function(t,a,b) return t[b] < t[a] end)
-		
+
 	if viz_info.output_format == "json" then
 		local jdata = {}
 		local j = 1
+		
 		for k,v in sorted_grtable do
-			jdata[j] = {k, v}
+			local vals = split(k, "\001\001")
+			vals[#vals + 1] = v
+			jdata[j] = vals
 			j = j + 1
 		end
 			
 		local jinfo = {}
-		jinfo[1] = {name = viz_info.key_fld, desc = viz_info.key_desc, is_key = true}
-		jinfo[2] = {name = viz_info.value_fld, desc = viz_info.value_desc, is_key = false}
+		
+		for i, keyname in ipairs(viz_info.key_fld) do
+			jinfo[i] = {name = keyname, desc = viz_info.key_desc[i], is_key = true}
+		end
+		jinfo[3] = {name = viz_info.value_fld, desc = viz_info.value_desc, is_key = false}
 
 		local res = {ts = sysdig.make_ts(ts_s, ts_ns), data = jdata, info = jinfo}
 			
 		local str = json.encode(res, { indent = true })
 		print(str)
 	else
-		print(extend_string(viz_info.value_desc, 10) .. viz_info.key_desc)
-		print("------------------------------")
+		local header = extend_string(viz_info.value_desc, 10)
 		
+		for i, fldname in ipairs(viz_info.key_desc) do
+			header = header .. extend_string(fldname, 10)
+		end
+		
+		print(header)
+		print("------------------------------")
+
 		for k,v in sorted_grtable do
+			local keystr = ""
+			
+			local singlekeys = split(k, "\001\001")
+
+			for i, singlekey in ipairs(singlekeys) do
+				if i < #singlekeys then
+					keystr = keystr .. extend_string(string.sub(singlekey, 0, 10), 10)
+				else
+					keystr = keystr .. singlekey
+				end
+			end
+			
 			if viz_info.value_units == "none" then
-				print(extend_string(v, 10) .. k)
+				print(extend_string(v, 10) .. keystr)
 			elseif viz_info.value_units == "bytes" then
-				print(extend_string(format_bytes(v), 10) .. k)
+				print(extend_string(format_bytes(v), 10) .. keystr)
 			elseif viz_info.value_units == "time" then
-				print(extend_string(format_time_interval(v), 10) .. k)
+				print(extend_string(format_time_interval(v), 10) .. keystr)
 			elseif viz_info.value_units == "timepct" then
 				if timedelta ~= 0 then
 					pctstr = string.format("%.2f%%", v / timedelta * 100)
@@ -144,7 +168,7 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 					pctstr = "0.00%"
 				end
 
-				print(extend_string(pctstr, 10) .. k)	
+				print(extend_string(pctstr, 10) .. keystr)	
 			end
 		end
 	end
