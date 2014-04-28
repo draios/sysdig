@@ -294,7 +294,7 @@ public:
 	vector<uint64_t> m_last_proc_switch_times;
 
 private:
-	uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt); 
+	uint64_t extract_exectime(sinsp_evt *evt); 
 };
 
 //
