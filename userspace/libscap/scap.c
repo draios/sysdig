@@ -421,6 +421,8 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	return handle->m_ndevs;
 }
 
+#if defined(HAS_CAPTURE)
+
 #ifndef _WIN32
 static inline void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
 #else
@@ -440,7 +442,6 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
-#if defined(HAS_CAPTURE)
 int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
 {
 	uint32_t thead;
