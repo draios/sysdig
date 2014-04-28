@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 description = "Trace file I/O slower than a threshold, or all file I/O";
 short_description = "Trace slow file I/O";
-category = "misc";
+category = "Performance";
 
 skip_dev = true		-- skip /dev/... files
 
