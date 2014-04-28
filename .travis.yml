@@ -2,8 +2,8 @@ language: c
 env:
     - BUILD_TYPE=Debug CC=clang
     - BUILD_TYPE=Release CC=clang
-    - BUILD_TYPE=Debug CC=gcc
-    - BUILD_TYPE=Release CC=gcc
+    - BUILD_TYPE=Debug CC=gcc CXX=g++
+    - BUILD_TYPE=Release CC=gcc CXX=g++
     - BUILD_TYPE=Debug CC=gcc-4.5 CXX=g++-4.5
     - BUILD_TYPE=Release CC=gcc-4.5 CXX=g++-4.5
 before_install:
