@@ -852,9 +852,10 @@ bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 	//
 	// Add our chisel paths to package.path
 	//
-	for(auto dirinfo : *g_chisel_dirs)
+	for(vector<chiseldir_info>::const_iterator it = g_chisel_dirs->begin();
+		it != g_chisel_dirs->end(); ++it)
 	{
-		string path(dirinfo.m_dir);
+		string path(it->m_dir);
 		path += "?.lua";
 		add_lua_package_path(ls, path.c_str());
 	}
@@ -949,14 +950,15 @@ static tuple<bool, string, string> split_filename(string const &fname)
 //
 void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 {
-	for(auto dirinfo : *g_chisel_dirs)
+	for(vector<chiseldir_info>::const_iterator it = g_chisel_dirs->begin();
+		it != g_chisel_dirs->end(); ++it)
 	{
-		if(string(dirinfo.m_dir).empty())
+		if(string(it->m_dir).empty())
 		{
 			continue;
 		}
 		tinydir_dir dir;
-		tinydir_open(&dir, dirinfo.m_dir);
+		tinydir_open(&dir, it->m_dir);
 		while(dir.has_next)
 		{
 			tinydir_file file;
@@ -973,9 +975,10 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				goto next_file;
 			}
 
-			for(auto desc: *chisel_descs)
+			for(vector<chisel_desc>::const_iterator it_desc = chisel_descs->begin();
+				it_desc != chisel_descs->end(); ++it)
 			{
-				if(name == desc.m_name)
+				if(name == it_desc->m_name)
 				{
 					goto next_file;
 				}
