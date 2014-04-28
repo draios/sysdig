@@ -586,7 +586,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	return SCAP_FAILURE;
 #else
 	uint32_t j;
-	uint64_t max_ts = 0xffffffffffffffff;
+	uint64_t max_ts = 0xffffffffffffffffLL;
 	uint64_t max_buf_size = 0;
 	scap_evt* pe = NULL;
 	bool waited = false;
