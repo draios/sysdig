@@ -2432,10 +2432,12 @@ static int f_sys_preadv_e(struct event_filler_arguments *args)
 	 * pos
 	 */
 
-        // Note that in preadv and pwritev have NO 64-bit arguments in the
-        // syscall (despite having one in the userspace API), so no alignment
-        // requirements apply here. For an overly-detailed discussion about
-        // this, see https://lwn.net/Articles/311630/
+	/*
+	 * Note that in preadv and pwritev have NO 64-bit arguments in the
+	 * syscall (despite having one in the userspace API), so no alignment
+	 * requirements apply here. For an overly-detailed discussion about
+	 * this, see https://lwn.net/Articles/311630/
+	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
 
@@ -2549,10 +2551,12 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 #else
-        // Note that in preadv and pwritev have NO 64-bit arguments in the
-        // syscall (despite having one in the userspace API), so no alignment
-        // requirements apply here. For an overly-detailed discussion about
-        // this, see https://lwn.net/Articles/311630/
+	/*
+	 * Note that in preadv and pwritev have NO 64-bit arguments in the
+	 * syscall (despite having one in the userspace API), so no alignment
+	 * requirements apply here. For an overly-detailed discussion about
+	 * this, see https://lwn.net/Articles/311630/
+	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
 
