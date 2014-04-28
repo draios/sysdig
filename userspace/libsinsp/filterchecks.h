@@ -272,17 +272,18 @@ public:
 		TYPE_TID = 9,
 		TYPE_ISMAINTHREAD = 10,
 		TYPE_EXECTIME = 11,
-		IOBYTES = 12,
-		TOTIOBYTES = 13,
-		LATENCY = 14,
-		TOTLATENCY = 15,
+		TYPE_TOTEXECTIME = 12,
+		TYPE_IOBYTES = 13,
+		TYPE_TOTIOBYTES = 14,
+		TYPE_LATENCY = 15,
+		TYPE_TOTLATENCY = 16,
 	};
 
 	sinsp_filter_check_thread();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
-
+	
 	// XXX this is overkill and wasted for most of the fields.
 	// It could be optimized by dynamically allocating the right amount
 	// of memory, but we don't care for the moment since we expect filters 
@@ -291,6 +292,9 @@ public:
 	string m_tstr;
 	uint64_t m_u64val;
 	vector<uint64_t> m_last_proc_switch_times;
+
+private:
+	uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt); 
 };
 
 //
