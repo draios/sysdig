@@ -157,6 +157,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
+	bool retval = true;
 	uint32_t j = 0;
 	vector<sinsp_filter_check*>::iterator it;
 	res->clear();
@@ -167,11 +168,17 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 	{
 		char* str = m_tokens[j]->tostring(evt);
 
+		if(retval == false)
+		{
+			continue;
+		}
+
 		if(str == NULL)
 		{
 			if(m_require_all_values)
 			{
-				return false;
+				retval = false;
+				continue;
 			}
 			else
 			{
@@ -193,7 +200,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 		}
 	}
 
-	return true;
+	return retval;
 }
 
 #else  // HAS_FILTERING
