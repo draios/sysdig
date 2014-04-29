@@ -18,8 +18,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <iostream>
 #include <fstream>
-#include <algorithm> 
-#include <functional> 
 #include <cctype>
 #include <locale>
 #ifndef _WIN32
@@ -931,16 +929,28 @@ failure:
 }
 #endif
 
-static tuple<bool, string, string> split_filename(string const &fname)
+struct filename
 {
+    bool valid;
+    string name;
+    string ext;
+};
+
+static filename split_filename(string const &fname)
+{
+	filename res;
 	string::size_type idx = fname.rfind('.');
 	if(idx == std::string::npos)
 	{
-		return make_tuple(false, "", "");
+		res.valid = false;
 	}
-	string name = fname.substr(0, idx);
-	string ext = fname.substr(idx+1);
-	return make_tuple(true, name, ext);
+	else
+	{
+		string name = fname.substr(0, idx);
+		string ext = fname.substr(idx+1);
+		res = { true, name, ext };
+	}
+	return res;
 }
 
 //
@@ -965,12 +975,11 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			tinydir_readfile(&dir, &file);
 
 			string fpath(file.path);
-			bool has_ext, add_to_vector;
-			string ext, name;
+			bool add_to_vector;
 			chisel_desc cd;
 
-			tie(has_ext, name, ext) = split_filename(string(file.name));
-			if(ext != "sc" &&  ext != "lua")
+			filename fn = split_filename(string(file.name));
+			if(fn.ext != "sc" && fn.ext != "lua")
 			{
 				goto next_file;
 			}
@@ -978,19 +987,19 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			for(vector<chisel_desc>::const_iterator it_desc = chisel_descs->begin();
 				it_desc != chisel_descs->end(); ++it)
 			{
-				if(name == it_desc->m_name)
+				if(fn.name == it_desc->m_name)
 				{
 					goto next_file;
 				}
 			}
-			cd.m_name = name;
+			cd.m_name = fn.name;
 			
-			if(ext == "sc")
+			if(fn.ext == "sc")
 			{
 				add_to_vector = init_json_chisel(cd, fpath);
 			}
 #ifdef HAS_LUA_CHISELS
-			if(ext == "lua")
+			if(fn.ext == "lua")
 			{
 				add_to_vector = init_lua_chisel(cd, fpath);
 			}
