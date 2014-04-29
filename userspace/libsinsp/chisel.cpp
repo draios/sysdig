@@ -18,8 +18,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <iostream>
 #include <fstream>
-#include <algorithm> 
-#include <functional> 
 #include <cctype>
 #include <locale>
 #ifndef _WIN32
