@@ -159,7 +159,6 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	Json::Value root;
-	Json::FastWriter writer;
 	const filtercheck_field_info* fi;
 
 	uint32_t j = 0;
@@ -213,7 +212,9 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 	{
+		Json::FastWriter writer;
 		(*res) = writer.write( root );
+		(*res) = (*res).substr(0, (*res).size() - 1);
 	}
 
 	return true;

@@ -3590,8 +3590,7 @@ FastWriter::write( const Value &root )
 {
    document_ = "";
    writeValue( root );
-   // Sysdig divergence ... we already provide newlines.
-   // document_ += "\n";
+   document_ += "\n";
    return document_;
 }
 
