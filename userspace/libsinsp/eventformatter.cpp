@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "third-party/jsoncpp/json/json.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
@@ -158,6 +159,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	bool retval = true;
+	const filtercheck_field_info* fi;
 	uint32_t j = 0;
 	vector<sinsp_filter_check*>::iterator it;
 	res->clear();
@@ -186,18 +188,36 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 			}
 		}
 
-		uint32_t tks = m_tokenlens[j];
+		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+		{
+			fi = m_tokens[j]->get_field_info();
 
-		if(tks != 0)
+			if(str && fi && fi->m_name) 
+			{
+				root[fi->m_name] = str;
+			} 
+
+		} 
+		else 
 		{
-			string sstr(str);
-			sstr.resize(tks, ' ');
-			(*res) += sstr;
+			uint32_t tks = m_tokenlens[j];
+
+			if(tks != 0)
+			{
+				string sstr(str);
+				sstr.resize(tks, ' ');
+				(*res) += sstr;
+			}
+			else
+			{
+				(*res) += str;
+			}
 		}
-		else
-		{
-			(*res) += str;
-		}
+	}
+
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	{
+		(*res) = writer.write( root );
 	}
 
 	return retval;
