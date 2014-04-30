@@ -63,3 +63,7 @@ function on_event()
 	
 	return true
 end
+
+function on_capture_end()
+	print(terminal.reset)
+end
