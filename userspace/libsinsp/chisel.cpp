@@ -985,7 +985,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			}
 
 			for(vector<chisel_desc>::const_iterator it_desc = chisel_descs->begin();
-				it_desc != chisel_descs->end(); ++it)
+				it_desc != chisel_descs->end(); ++it_desc)
 			{
 				if(fn.name == it_desc->m_name)
 				{
