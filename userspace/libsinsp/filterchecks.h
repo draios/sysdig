@@ -269,14 +269,15 @@ public:
 		TYPE_NCHILDS = 6,
 		TYPE_PARENTPID = 7,
 		TYPE_PARENTNAME = 8,
-		TYPE_TID = 9,
-		TYPE_ISMAINTHREAD = 10,
-		TYPE_EXECTIME = 11,
-		TYPE_TOTEXECTIME = 12,
-		TYPE_IOBYTES = 13,
-		TYPE_TOTIOBYTES = 14,
-		TYPE_LATENCY = 15,
-		TYPE_TOTLATENCY = 16,
+		TYPE_DURATION = 9,
+		TYPE_TID = 10,
+		TYPE_ISMAINTHREAD = 11,
+		TYPE_EXECTIME = 12,
+		TYPE_TOTEXECTIME = 13,
+		TYPE_IOBYTES = 14,
+		TYPE_TOTIOBYTES = 15,
+		TYPE_LATENCY = 16,
+		TYPE_TOTLATENCY = 17,
 	};
 
 	sinsp_filter_check_thread();
@@ -291,6 +292,7 @@ public:
 	uint32_t m_tbool;
 	string m_tstr;
 	uint64_t m_u64val;
+	int64_t m_s64val;
 	vector<uint64_t> m_last_proc_switch_times;
 
 private:
