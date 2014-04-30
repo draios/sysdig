@@ -975,7 +975,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			tinydir_readfile(&dir, &file);
 
 			string fpath(file.path);
-			bool add_to_vector;
+			bool add_to_vector = false;
 			chisel_desc cd;
 
 			filename fn = split_filename(string(file.name));
