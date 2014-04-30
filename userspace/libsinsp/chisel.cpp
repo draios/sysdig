@@ -946,9 +946,9 @@ static filename split_filename(string const &fname)
 	}
 	else
 	{
-		string name = fname.substr(0, idx);
-		string ext = fname.substr(idx+1);
-		res = { true, name, ext };
+		res.valid = true;
+		res.name = fname.substr(0, idx);
+		res.ext = fname.substr(idx+1);
 	}
 	return res;
 }
