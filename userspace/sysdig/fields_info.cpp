@@ -253,7 +253,7 @@ void print_chisel_info(chisel_desc* cd)
 	std::vector<chisel_desc> chlist;
 	chlist.push_back(cd[0]);
 
-	list_chisels(&chlist);
+	list_chisels(&chlist, false);
 
 	// Now we have to do the real work
 	printf("\n");
@@ -276,7 +276,7 @@ void print_chisel_info(chisel_desc* cd)
 
 	printf("\n");
 
-	astr +=	"\nArgs:\n";
+	astr +=	"\Args:\n";
 
 	if(cd->m_args.size() != 0)
 	{
@@ -309,7 +309,7 @@ void print_chisel_info(chisel_desc* cd)
 	printf("\n");
 }
 
-void list_chisels(vector<chisel_desc>* chlist)
+void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 {
 	uint32_t j, l;
 
@@ -368,6 +368,9 @@ void list_chisels(vector<chisel_desc>* chlist)
 		printf("\n");
 	}
 
-	printf("\nUse the -i flag to get detailed information about a specific chisel\n");
+	if(verbose)
+	{
+		printf("\nUse the -i flag to get detailed information about a specific chisel\n");
+	}
 }
 #endif // HAS_CHISELS

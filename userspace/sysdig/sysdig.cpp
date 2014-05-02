@@ -594,7 +594,7 @@ int main(int argc, char **argv)
 					{
 						vector<chisel_desc> chlist;
 						sinsp_chisel::get_chisel_list(&chlist);
-						list_chisels(&chlist);
+						list_chisels(&chlist, true);
 						delete inspector;
 						return EXIT_SUCCESS;
 					}
