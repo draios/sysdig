@@ -364,6 +364,7 @@ private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
+
 	bool m_is_compare;
 };
 

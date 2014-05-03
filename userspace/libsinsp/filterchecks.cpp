@@ -1229,6 +1229,22 @@ void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 		ASSERT(m_arginfo != NULL);
 		return sinsp_filter_check::string_to_rawval(str, len, m_arginfo->type);
 	}
+	else if(m_field_id == TYPE_TYPE)
+	{
+		sinsp_evttables* einfo = m_inspector->get_event_info_tables();
+		const struct ppm_event_info* etable = einfo->m_event_info;
+		string stype(str, len);
+
+		for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
+		{
+			if(stype == etable[j].name)
+			{
+				return sinsp_filter_check::parse_filter_value(str, len);
+			}
+		}
+
+		throw sinsp_exception("unknown event type " + stype);
+	}
 	else
 	{
 		return sinsp_filter_check::parse_filter_value(str, len);
