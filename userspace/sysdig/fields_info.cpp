@@ -276,7 +276,7 @@ void print_chisel_info(chisel_desc* cd)
 
 	printf("\n");
 
-	astr +=	"\Args:\n";
+	astr +=	"Args:\n";
 
 	if(cd->m_args.size() != 0)
 	{
