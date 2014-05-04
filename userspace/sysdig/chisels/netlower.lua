@@ -62,11 +62,11 @@ end
 
 -- Event callback
 function on_event()
-    lat = evt.field(latency) / 1000000
-    fn = evt.field(fname)
-    if evt.field(dir) == "<" and lat > min_ms then
-    	print(string.format("%-23.23s %-12.12s %-8s %-12d %s",
-    		evt.field(datetime), evt.field(pname), evt.field(etype), lat, fn))
-    end
-    return true
+	lat = evt.field(latency) / 1000000
+	fn = evt.field(fname)
+	if evt.field(dir) == "<" and lat > min_ms then
+		print(string.format("%-23.23s %-12.12s %-8s %-12d %s",
+			evt.field(datetime), evt.field(pname), evt.field(etype), lat, fn))
+	end
+	return true
 end
