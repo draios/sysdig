@@ -132,6 +132,32 @@ static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
 
+static struct tracepoint *tp_sys_enter;
+static struct tracepoint *tp_sys_exit;
+static struct tracepoint *tp_sched_process_exit;
+#ifdef CAPTURE_CONTEXT_SWITCHES
+static struct tracepoint *tp_sched_switch;
+#endif
+
+/* compat tracepoint functions */
+static int compat_register_trace(void *func, const char *probename, struct tracepoint *tp)
+{
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0))
+	return TRACEPOINT_PROBE_REGISTER(probename, func);
+#else
+	return tracepoint_probe_register(tp, func, NULL);
+#endif
+}
+
+static void compat_unregister_trace(void *func, const char *probename, struct tracepoint *tp)
+{
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0))
+	TRACEPOINT_PROBE_UNREGISTER(probename, func);
+#else
+	tracepoint_probe_unregister(tp, func, NULL);
+#endif
+}
+
 /*
  * user I/O functions
  */
@@ -173,52 +199,43 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		/*
 		 * Enable the tracepoints
 		 */
-		ret = TRACEPOINT_PROBE_REGISTER("sys_exit", (void *) syscall_exit_probe);
+		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 		if (ret) {
 			pr_err("can't create the sys_exit tracepoint\n");
 			return ret;
 		}
 
-		ret = TRACEPOINT_PROBE_REGISTER("sys_enter", (void *) syscall_enter_probe);
+		ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 		if (ret) {
-			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
-						    (void *) syscall_exit_probe);
-
 			pr_err("can't create the sys_enter tracepoint\n");
-
-			return ret;
+			goto err_sys_enter;
 		}
 
-		ret = TRACEPOINT_PROBE_REGISTER("sched_process_exit", (void *) syscall_procexit_probe);
+		ret = compat_register_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 		if (ret) {
-			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
-						    (void *) syscall_exit_probe);
-			TRACEPOINT_PROBE_UNREGISTER("sys_enter",
-						    (void *) syscall_enter_probe);
-
 			pr_err("can't create the sched_process_exit tracepoint\n");
-
-			return ret;
+			goto err_sched_procexit;
 		}
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-		ret = TRACEPOINT_PROBE_REGISTER("sched_switch", (void *) sched_switch_probe);
+		ret = compat_register_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 		if (ret) {
-			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
-						    (void *) syscall_exit_probe);
-			TRACEPOINT_PROBE_UNREGISTER("sys_enter",
-						    (void *) syscall_enter_probe);
-			TRACEPOINT_PROBE_UNREGISTER("sched_process_exit",
-						    (void *) syscall_procexit_probe);
-
 			pr_err("can't create the sched_switch tracepoint\n");
-
-			return ret;
+			goto err_sched_switch;
 		}
 #endif
 	}
 
 	return 0;
+
+err_sched_switch:
+	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
+err_sched_procexit:
+	compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+err_sys_enter:
+	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+
+	return ret;
 }
 
 static int ppm_release(struct inode *inode, struct file *filp)
@@ -247,19 +264,16 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	if (atomic_dec_return(&g_open_count) == 0) {
 		pr_info("stopping capture\n");
 
-		TRACEPOINT_PROBE_UNREGISTER("sys_exit",
-					    (void *) syscall_exit_probe);
+		compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+		compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+		compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 
-		TRACEPOINT_PROBE_UNREGISTER("sys_enter",
-					    (void *) syscall_enter_probe);
-
-		TRACEPOINT_PROBE_UNREGISTER("sched_process_exit",
-					    (void *) syscall_procexit_probe);
 #ifdef CAPTURE_CONTEXT_SWITCHES
-		TRACEPOINT_PROBE_UNREGISTER("sched_switch",
-					    (void *) sched_switch_probe);
+		compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 #endif
 	}
+
+	tracepoint_synchronize_unregister();
 
 	return 0;
 }
@@ -999,6 +1013,52 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 	vfree(ring);
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+static void visit_tracepoint(struct tracepoint *tp, void *priv)
+{
+	if (!strcmp(tp->name, "sys_enter"))
+		tp_sys_enter = tp;
+	else if (!strcmp(tp->name, "sys_exit"))
+		tp_sys_exit = tp;
+	else if (!strcmp(tp->name, "sched_process_exit"))
+		tp_sched_process_exit = tp;
+#ifdef CAPTURE_CONTEXT_SWITCHES
+	else if (!strcmp(tp->name, "sched_switch"))
+		tp_sched_switch = tp;
+#endif
+}
+
+static int get_tracepoint_handles(void)
+{
+	for_each_kernel_tracepoint(visit_tracepoint, NULL);
+
+	if (!tp_sys_enter) {
+		pr_err("failed to find sys_enter tracepoint\n");
+		return -ENOENT;
+	}
+	if (!tp_sys_exit) {
+		pr_err("failed to find sys_exit tracepoint\n");
+		return -ENOENT;
+	}
+	if (!tp_sched_process_exit) {
+		pr_err("failed to find sched_process_exit tracepoint\n");
+		return -ENOENT;
+	}
+#ifdef CAPTURE_CONTEXT_SWITCHES
+	if (!tp_sched_switch) {
+		pr_err("failed to find sched_switch tracepoint\n");
+		return -ENOENT;
+	}
+#endif
+
+	return 0;
+}
+#else
+static int get_tracepoint_handles(void)
+{
+	return 0;
+}
+#endif
 /* static int ppm_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data) */
 /* { */
 /* int len = 0; */
@@ -1020,7 +1080,7 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 /* return len; */
 /* } */
 
-int init_module(void)
+int sysdig_init(void)
 {
 	dev_t dev;
 	unsigned int cpu;
@@ -1032,6 +1092,10 @@ int init_module(void)
 	struct device *device = NULL;
 
 	pr_info("driver loading\n");
+
+	ret = get_tracepoint_handles();
+	if (ret < 0)
+		goto init_module_err;
 
 	/*
 	 * Initialize the ring buffers array
@@ -1142,7 +1206,7 @@ init_module_err:
 	return ret;
 }
 
-void cleanup_module(void)
+void sysdig_exit(void)
 {
 	int j;
 	int cpu;
@@ -1165,4 +1229,9 @@ void cleanup_module(void)
 	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs);
 
 	kfree(g_ppm_devs);
+
+	tracepoint_synchronize_unregister();
 }
+
+module_init(sysdig_init);
+module_exit(sysdig_exit);
