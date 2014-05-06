@@ -48,6 +48,7 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Draios");
 
 #define PPM_DEVICE_NAME "sysdig"
+#define PPE_DEVICE_NAME PPM_DEVICE_NAME "-events"
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2)
@@ -93,6 +94,11 @@ static void record_event(enum ppm_event_type event_type,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next);
 
+static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+
+static inline struct ppm_ring_buffer_context *get_ring_buffer(u32 *head, u32 *freespace);
+static inline void increment_ring_buffer(struct ppm_ring_buffer_context *ring, u32 head, size_t event_size);
+
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
 #endif
@@ -120,6 +126,12 @@ static const struct file_operations g_ppm_fops = {
 	.owner = THIS_MODULE,
 };
 
+/* Events file operations */
+static const struct file_operations g_ppe_fops = {
+	.write = ppe_write,
+	.owner = THIS_MODULE,
+};
+
 /*
  * GLOBALS
  */
@@ -131,6 +143,9 @@ u32 g_sampling_ratio = 1;
 static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
+
+struct cdev *g_ppe_cdev = NULL;
+struct device *g_ppe_dev = NULL;
 
 static struct tracepoint *tp_sys_enter;
 static struct tracepoint *tp_sys_exit;
@@ -489,6 +504,79 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	pr_info("invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
 	return -EIO;
+}
+
+static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+	struct ppm_ring_buffer_context *ring = NULL;
+	u32 head = 0;
+	u32 freespace = 0;
+	struct timespec ts;
+	struct event_filler_arguments args = { 0 };
+
+	getnstimeofday(&ts);
+
+	ring = get_ring_buffer(&head, &freespace);
+	if (ring == NULL) {
+		pr_err("Error getting ring buffer\n");
+		return -EFAULT;
+	}
+
+	args.nargs = 1;
+	args.arg_data_offset = args.nargs * sizeof(u16);
+
+	/*
+	 * Make sure we have enough space for the event header.
+	 * We need at least space for the header plus 16 bit per parameter for the lengths.
+	 */
+	if (likely(freespace >= sizeof(struct ppm_evt_hdr) + args.arg_data_offset)) {
+		int res;
+
+		/*
+		 * Populate the header
+		 */
+		struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)(ring->buffer + head);
+
+#ifdef PPM_ENABLE_SENTINEL
+		hdr->sentinel_begin = ring->nevents;
+#endif
+		hdr->ts = timespec_to_ns(&ts);
+		hdr->tid = current->pid;
+		hdr->type = PPME_USER_E;
+
+		/*
+		 * Populate the parameters for the filler callback
+		 */
+		args.buffer = ring->buffer + head + sizeof(struct ppm_evt_hdr);
+#ifdef PPM_ENABLE_SENTINEL
+		args.sentinel = ring->nevents;
+#endif
+		args.buffer_size = min(freespace, (u32)(2 * PAGE_SIZE)) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
+		args.event_type = PPME_USER_E;
+		args.syscall_id = -1;
+		args.curarg = 0;
+		args.arg_data_size = args.buffer_size - args.arg_data_offset;
+		args.nevents = ring->nevents;
+
+		res = val_to_ring(&args, (u64)buf, count, true);
+		if (likely(res == PPM_SUCCESS)) {
+			size_t event_size = 0;
+
+			add_sentinel(&args);
+
+			event_size = sizeof(struct ppm_evt_hdr) + args.arg_data_offset;
+			hdr->len = event_size;
+
+			increment_ring_buffer(ring, head, event_size);
+		} else {
+			pr_err("Unable to add event to ring buffer\n");
+		}
+	}
+
+	atomic_dec(&ring->preempt_count);
+	put_cpu_var(g_ring_buffers);
+
+	return count;
 }
 
 /* Argument list sizes for sys_socketcall */
@@ -1013,6 +1101,94 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 	vfree(ring);
 }
 
+static inline struct ppm_ring_buffer_context *get_ring_buffer(u32 *head, u32 *freespace)
+{
+	struct ppm_ring_buffer_context *ring = NULL;
+	struct ppm_ring_buffer_info *ring_info = NULL;
+	u32 ttail = 0;
+	u32 usedspace = 0;
+
+	*head = 0;
+	*freespace = 0;
+
+	ring = get_cpu_var(g_ring_buffers);
+	ring_info = ring->info;
+
+	ring_info->n_evts++;
+
+	/*
+	 * Preemption gate
+	 */
+	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
+		atomic_dec(&ring->preempt_count);
+		put_cpu_var(g_ring_buffers);
+		ring_info->n_preemptions++;
+		ASSERT(false);
+		return NULL;
+	}
+
+	if (unlikely(atomic_read(&ring->state) == CS_INACTIVE)) {
+		atomic_dec(&ring->preempt_count);
+		put_cpu_var(g_ring_buffers);
+		ASSERT(false);
+		return NULL;
+	}
+
+	/*
+	 * Calculate the space currently available in the buffer
+	 */
+	*head = ring_info->head;
+	ttail = ring_info->tail;
+
+	if (ttail > *head)
+		*freespace = ttail - *head - 1;
+	else
+		*freespace = RING_BUF_SIZE + ttail - *head - 1;
+
+	usedspace = RING_BUF_SIZE - *freespace - 1;
+
+	ASSERT(*freespace <= RING_BUF_SIZE);
+	ASSERT(usedspace <= RING_BUF_SIZE);
+	ASSERT(ttail <= RING_BUF_SIZE);
+	ASSERT(*head <= RING_BUF_SIZE);
+
+	return ring;
+}
+
+static inline void increment_ring_buffer(struct ppm_ring_buffer_context *ring, u32 head, size_t event_size)
+{
+	int next;
+
+	next = head + event_size;
+
+	if (unlikely(next >= RING_BUF_SIZE)) {
+		/*
+		 * If something has been written in the cushion space at the end of
+		 * the buffer, copy it to the beginning and wrap the head around.
+		 * Note, we don't check that the copy fits because we assume that
+		 * filler_callback failed if the space was not enough.
+		 */
+		if (next > RING_BUF_SIZE) {
+			memcpy(ring->buffer,
+			ring->buffer + RING_BUF_SIZE,
+			next - RING_BUF_SIZE);
+		}
+
+		next -= RING_BUF_SIZE;
+	}
+
+	/*
+	 * Make sure all the memory has been written in real memory before
+	 * we update the head and the user space process (on another CPU)
+	 * can access the buffer.
+	 */
+	smp_wmb();
+
+	ring->info->head = next;
+
+	++ring->nevents;
+}
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
 static void visit_tracepoint(struct tracepoint *tp, void *priv)
 {
@@ -1059,6 +1235,7 @@ static int get_tracepoint_handles(void)
 	return 0;
 }
 #endif
+
 /* static int ppm_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data) */
 /* { */
 /* int len = 0; */
@@ -1119,8 +1296,9 @@ int sysdig_init(void)
 
 	/*
 	 * Initialize the user I/O
+	 * ( + 1 for sysdig-events)
 	 */
-	acrret = alloc_chrdev_region(&dev, 0, num_cpus, PPM_DEVICE_NAME);
+	acrret = alloc_chrdev_region(&dev, 0, num_cpus + 1, PPM_DEVICE_NAME);
 	if (acrret < 0) {
 		pr_err("could not allocate major number for %s\n", PPM_DEVICE_NAME);
 		ret = -ENOMEM;
@@ -1175,6 +1353,32 @@ int sysdig_init(void)
 
 	/* create_proc_read_entry(PPM_DEVICE_NAME, 0, NULL, ppm_read_proc, NULL); */
 
+	g_ppe_cdev = cdev_alloc();
+	if (g_ppe_cdev == NULL) {
+		pr_err("error allocating the device %s\n", PPE_DEVICE_NAME);
+		ret = -ENOMEM;
+		goto init_module_err;
+	}
+
+	cdev_init(g_ppe_cdev, &g_ppe_fops);
+
+	if (cdev_add(g_ppe_cdev, MKDEV(g_ppm_major, g_ppm_numdevs), 1) < 0) {
+		pr_err("could not allocate chrdev for %s\n", PPE_DEVICE_NAME);
+		ret = -EFAULT;
+		goto init_module_err;
+	}
+
+	g_ppe_dev = device_create(g_ppm_class, NULL,
+			MKDEV(g_ppm_major, g_ppm_numdevs),
+			NULL, /* no additional data */
+			PPE_DEVICE_NAME);
+
+	if (IS_ERR(g_ppe_dev)) {
+		pr_err("error creating the device for  %s\n", PPE_DEVICE_NAME);
+		ret = -EFAULT;
+		goto init_module_err;
+	}
+
 	/*
 	 * All ok. Final initalizations.
 	 */
@@ -1189,6 +1393,14 @@ init_module_err:
 			free_ring_buffer(per_cpu(g_ring_buffers, cpu));
 
 	/* remove_proc_entry(PPM_DEVICE_NAME, NULL); */
+
+	if (g_ppe_dev != NULL) {
+		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
+	}
+
+	if (g_ppe_cdev != NULL) {
+		cdev_del(g_ppe_cdev);
+	}
 
 	for (j = 0; j < n_created_devices; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
@@ -1223,10 +1435,19 @@ void sysdig_exit(void)
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
+	if (g_ppe_dev != NULL) {
+		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
+	}
+
+	if (g_ppe_cdev != NULL) {
+		cdev_del(g_ppe_cdev);
+	}
+
 	if (g_ppm_class)
 		class_destroy(g_ppm_class);
 
-	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs);
+	/* + 1 for sysdig-events */
+	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs + 1);
 
 	kfree(g_ppm_devs);
 
