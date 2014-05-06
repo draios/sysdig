@@ -125,7 +125,7 @@ static void usage()
 "                    option with caution, it can generate huge trace files.\n"
 " -t <timetype>, --timetype=<timetype>\n"
 "                    Change the way event time is diplayed. Accepted values are\n"
-"                    h for human-readable string, a for abosulte timestamp from\n"
+"                    h for human-readable string, a for absolute timestamp from\n"
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, and d for delta between event enter and exit.\n"
 " -v, --verbose      Verbose output.\n"
