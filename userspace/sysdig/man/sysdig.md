@@ -65,7 +65,7 @@ To get the list of available chisels, type
 > $ sysdig -cl  
 
 To get details about a specific chisel, type
-> $ sysdig -ispy_ip  
+> $ sysdig -i spy_ip
 
 To run one of the chisels, you use the -c flag, e.g.
 > $ sysdig -c topfiles_bytes
