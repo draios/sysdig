@@ -37,13 +37,11 @@ function install_rpm {
 	KERNEL_VERSION=$(uname -r)
 	if [[ $KERNEL_VERSION == *PAE* ]]; then
 		yum -q -y install kernel-PAE-devel-${KERNEL_VERSION%.PAE} || kernel_warning
+	elif [[ $KERNEL_VERSION == *stab* ]]; then
+		# It's OpenVZ kernel and we should install another package
+		yum -q -y install vzkernel-devel-$KERNEL_VERSION || kernel_warning
 	else
-		if [[ $KERNEL_VERSION == *stab* ]]; then
-			# It's OpenVZ kernel and we should install another package
-			yum -q -y install vzkernel-devel-$KERNEL_VERSION || kernel_warning
-		else
-			yum -q -y install kernel-devel-$KERNEL_VERSION || kernel_warning
-		fi
+		yum -q -y install kernel-devel-$KERNEL_VERSION || kernel_warning
 	fi
 	echo "* Installing Sysdig"
 	yum -q -y install sysdig
