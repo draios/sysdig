@@ -33,7 +33,7 @@ cpustates = {}
 vizinfo = 
 {
 	key_fld = "proc.name",
-	key_desc = "Process",
+	key_desc = {"Process"},
 	value_fld = "thread.exectime",
 	value_desc = "CPU%",
 	value_units = "timepct",
