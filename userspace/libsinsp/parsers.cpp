@@ -76,8 +76,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #if defined(HAS_CAPTURE)
 	if(m_inspector->is_live() && !m_inspector->is_debug_enabled())
 	{
-		sinsp_threadinfo *evt_thread = evt->get_thread_info();
-		if(evt_thread != NULL && evt_thread->m_pid == m_sysdig_pid)
+		if(evt->get_tid() == m_sysdig_pid && etype != PPME_SCHEDSWITCH_E && 
+			m_sysdig_pid && etype != PPME_SCHEDSWITCHEX_E)
 		{
 			evt->m_filtered_out = true;
 			return;
@@ -285,7 +285,8 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	// Ignore scheduler events
 	//
-	if(etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X)
+	if((etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X) || 
+		etype == PPME_SCHEDSWITCHEX_E)
 	{
 		return false;
 	}
