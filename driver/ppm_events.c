@@ -347,7 +347,7 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 
 	ASSERT(bufsize >= PAGE_SIZE - 1);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36) || defined CONFIG_VE
 	get_fs_pwd(current->fs, &pwd);
 #else
 	read_lock(&current->fs->lock);
