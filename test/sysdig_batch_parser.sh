@@ -33,17 +33,16 @@ REFERENCEDIR=$6
 export SYSDIG_CHISEL_DIR
 
 rm -rf $DIRNAME || true
-mkdir $DIRNAME
+mkdir -p $DIRNAME
 
 for f in $TRACESDIR/*
 do
 	echo "Processing $f"
-	$SYSDIG -r $f "$ARGS" > $DIRNAME/$(basename $f).output
+	$SYSDIG -r $f $ARGS > $DIRNAME/$(basename $f).output
 done
 
 echo Data saved in $DIRNAME
 
-echo
 echo Comparing
 diff -r --brief $DIRNAME $REFERENCEDIR
 echo No change
