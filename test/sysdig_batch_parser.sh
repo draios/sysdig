@@ -44,6 +44,6 @@ done
 echo Data saved in $DIRNAME
 
 echo Comparing
-diff -r --brief $DIRNAME $REFERENCEDIR
+diff -r $DIRNAME $REFERENCEDIR
 echo No change
 rm -rf $DIRNAME
