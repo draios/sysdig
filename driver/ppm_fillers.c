@@ -521,42 +521,59 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	unsigned int snaplen;
 
 	/*
+	 * If the write event is directed to our sysdig-events device, we use a
+	 * bigger snaplen
+	 */
+	snaplen = g_snaplen;
+
+	{
+		struct file *file;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+		int fd;
+		struct fd f;
+
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		f = fdget(fd);
+
+		if (f.file && f.file->f_op) {
+			if (THIS_MODULE == f.file->f_op->owner) {
+				snaplen = RW_SNAPLEN_EVENT;
+			}
+			fdput(f);
+		}
+#else
+		int fd;
+		int fput_needed;
+
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		file = fget_light(fd, &fput_needed);
+		if (file && file->f_op) {
+			if (THIS_MODULE == file->f_op->owner) {
+				snaplen = RW_SNAPLEN_EVENT;
+			}
+			fput_light(file, fput_needed);
+		}
+#endif
+	}
+
+	/*
 	 * res
 	 */
-	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, retval, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+ 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+ 	res = val_to_ring(args, retval, 0, false);
+ 	if (unlikely(res != PPM_SUCCESS))
+ 		return res;	 	
 
 	/*
 	 * data
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	bufsize = val;
-
-	/*
-	 * Determine the snaplen by checking the fd type.
-	 * (note: not implemeted yet)
-	 */
-	snaplen = g_snaplen;
-#if 0
-	{
-		int fd;
-		int err, fput_needed;
-		struct socket *sock;
-
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-
-		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock) {
-			snaplen = g_snaplen;
-			fput_light(sock->file, fput_needed);
-		} else {
-			snaplen = RW_SNAPLEN;
-		}
-	}
-#endif
 
 	/*
 	 * Copy the buffer
