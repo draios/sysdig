@@ -49,9 +49,9 @@ function on_event()
 	end
 	
 	if evt.field(fetype) == "chdir" then
-		print(dtime .. " " .. user .. ")" .. "cd " .. evt.field(fdir))
+		print(dtime .. " " .. user .. ") " .. "cd " .. evt.field(fdir))
 	else
-		print(dtime .. " " .. user .. ")" .. evt.field(fexe) .. " " .. evt.field(fargs))
+		print(dtime .. " " .. user .. ") " .. evt.field(fexe) .. " " .. evt.field(fargs))
 	end
 
 	return true
