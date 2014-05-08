@@ -119,6 +119,8 @@ if [ -f /etc/debian_version ]; then
 	elif [ $DISTRO = "Debian" ]; then
 		if [ $VERSION -ge 6 ]; then
 		    install_deb
+		elif [[ $VERSION == *sid* ]]; then
+			install_deb
 		else
 			unsupported
 		fi
