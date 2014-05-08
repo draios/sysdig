@@ -1349,6 +1349,20 @@ void sinsp_chisel::on_init()
 	}
 }
 
+void sinsp_chisel::first_event_inits(sinsp_evt* evt)
+{
+	lua_pushlightuserdata(m_ls, evt);
+	lua_setglobal(m_ls, "sievt");
+
+	uint64_t ts = evt->get_ts();
+	if(m_lua_cinfo->m_callback_interval != 0)
+	{
+		m_lua_last_interval_sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
+	}
+
+	m_lua_is_first_evt = false;
+}
+
 bool sinsp_chisel::run(sinsp_evt* evt)
 {
 	uint32_t j;
@@ -1386,16 +1400,7 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 		//
 		if(m_lua_is_first_evt)
 		{
-			lua_pushlightuserdata(m_ls, evt);
-			lua_setglobal(m_ls, "sievt");
-
-			uint64_t ts = evt->get_ts();
-			if(m_lua_cinfo->m_callback_interval != 0)
-			{
-				m_lua_last_interval_sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
-			}
-
-			m_lua_is_first_evt = false;
+			first_event_inits(evt);
 		}
 
 		//
@@ -1453,6 +1458,11 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 
 void sinsp_chisel::do_timeout(sinsp_evt* evt)
 {
+	if(m_lua_is_first_evt)
+	{
+		first_event_inits(evt);
+	}
+
 	if(m_lua_cinfo->m_callback_interval != 0)
 	{
 		uint64_t ts = evt->get_ts();

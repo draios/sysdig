@@ -340,6 +340,7 @@ captureinfo do_inspect(sinsp* inspector,
 				//
 				chisels_do_timeout(ev);
 			}
+
 			continue;
 		}
 		else if(res == SCAP_EOF)

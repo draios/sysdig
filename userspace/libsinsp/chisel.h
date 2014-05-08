@@ -116,6 +116,7 @@ private:
 	void free_lua_chisel();
 	static bool init_json_chisel(chisel_desc &cd, string const &path);
 	static bool init_lua_chisel(chisel_desc &cd, string const &path);
+	void first_event_inits(sinsp_evt* evt);
 
 	sinsp* m_inspector;
 	string m_description;
