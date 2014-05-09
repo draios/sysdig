@@ -509,7 +509,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	unordered_map<int64_t, sinsp_threadinfo>::iterator it;
 	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent
 
-BRK(2507);
 	//
 	// Validate the return value and get the child tid
 	//
