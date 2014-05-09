@@ -1161,34 +1161,37 @@ void sinsp_chisel::set_args(string args)
 
 	trim(args);
 
-	for(j = 0; j < args.size(); j++)
+	if(args.size() != 0)
 	{
-		if(args[j] == ' ' && !inquotes)
+		for(j = 0; j < args.size(); j++)
 		{
-			m_argvals.push_back(args.substr(token_begin, j - quote_correction - token_begin));
-			token_begin = j + 1;
-			quote_correction = 0;
-		}
-		else if(args[j] == '\'' || args[j] == '`')
-		{
-			if(inquotes)
+			if(args[j] == ' ' && !inquotes)
 			{
-				quote_correction = 1;
-				inquotes = false;
-			}			
-			else {
-				token_begin++;
-				inquotes = true;
-			}			
+				m_argvals.push_back(args.substr(token_begin, j - quote_correction - token_begin));
+				token_begin = j + 1;
+				quote_correction = 0;
+			}
+			else if(args[j] == '\'' || args[j] == '`')
+			{
+				if(inquotes)
+				{
+					quote_correction = 1;
+					inquotes = false;
+				}			
+				else {
+					token_begin++;
+					inquotes = true;
+				}			
+			}
 		}
-	}
 	
-	if(inquotes)
-	{
-		throw sinsp_exception("corrupted parameters for chisel " + m_filename);
-	}
+		if(inquotes)
+		{
+			throw sinsp_exception("corrupted parameters for chisel " + m_filename);
+		}
 
-	m_argvals.push_back(args.substr(token_begin, j));
+		m_argvals.push_back(args.substr(token_begin, j));
+	}
 
 	//
 	// Validate the arguments
@@ -1196,13 +1199,13 @@ void sinsp_chisel::set_args(string args)
 	if(m_argvals.size() < n_required_args)
 	{
 		throw sinsp_exception("wrong number of parameters for chisel " + m_filename +
-			", " + to_string(n_required_args) + " required, " + to_string(m_argvals.size()) + "given");
+			", " + to_string(n_required_args) + " required, " + to_string(m_argvals.size()) + " given");
 	}
 	else if(m_argvals.size() > n_optional_args + n_required_args)
 	{
 		throw sinsp_exception("too many parameters for chisel " + m_filename +
 			", " + to_string(n_optional_args + n_required_args) + " required, " + 
-			to_string(m_argvals.size()) + "given");
+			to_string(m_argvals.size()) + " given");
 	}
 
 	//
