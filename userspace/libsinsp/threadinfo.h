@@ -113,7 +113,7 @@ public:
 	/*!
 	  \brief Return the ratio between open FDs and maximum available FDs for this thread.
 	*/
-	uint32_t get_fd_usage_pct();
+	uint64_t get_fd_usage_pct();
 
 	/*!
 	  \brief Return the number of open FDs for this thread.

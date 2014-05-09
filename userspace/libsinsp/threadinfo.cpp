@@ -573,7 +573,7 @@ void* sinsp_threadinfo::get_private_state(uint32_t id)
 	return m_private_state[id];
 }
 
-uint32_t sinsp_threadinfo::get_fd_usage_pct()
+uint64_t sinsp_threadinfo::get_fd_usage_pct()
 {
 	int64_t fdlimit = get_fd_limit();
 	if(fdlimit > 0)
