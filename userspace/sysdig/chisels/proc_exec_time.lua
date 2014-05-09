@@ -21,13 +21,30 @@ short_description = "Show process execution time";
 category = "Performance";
 
 -- Chisel argument list
-args = {}
+args =
+{
+    {
+        name = "disable_color",
+        description = "Set to 'disable_colors' if you want to disable color output",
+        argtype = "string",
+        optional = true
+    },
+}
 
 require "common"
 terminal = require "ansiterminal"
+terminal.enable_color(true)
 
 local THRESHOLD_YELLOW_NS = 3000000000
 local THRESHOLD_RED_NS = 10000000000
+
+-- Argument notification callback
+function on_set_arg(name, val)
+    if val == "disable_colors" then
+        terminal.enable_color(false)
+    end
+    return true
+end
 
 -- Initialization callback
 function on_init()
