@@ -1199,7 +1199,8 @@ void sinsp_chisel::set_args(string args)
 	if(m_argvals.size() < n_required_args)
 	{
 		throw sinsp_exception("wrong number of parameters for chisel " + m_filename +
-			", " + to_string((long long int)n_required_args) + " required, " + to_string(m_argvals.size()) + " given");
+			", " + to_string((long long int)n_required_args) + " required, " + 
+			to_string((long long int)m_argvals.size()) + " given");
 	}
 	else if(m_argvals.size() > n_optional_args + n_required_args)
 	{
