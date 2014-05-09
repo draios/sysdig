@@ -70,7 +70,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	reset(evt);
 
-BRK(2514);
 	//
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
