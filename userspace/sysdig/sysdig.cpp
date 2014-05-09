@@ -602,20 +602,20 @@ int main(int argc, char **argv)
 
 					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
 					uint32_t nargs = ch->get_n_args();
-					vector<string> args;
+					string args;
 
-					for(uint32_t j = 0; j < nargs; j++)
+					if(nargs != 0)
 					{
-						if(optind + j >= (uint32_t)argc)
+						if(optind >= (int32_t)argc)
 						{
 							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
 						}
 
-						args.push_back(argv[optind + j]);
+						args = argv[optind];
 						n_filterargs++;
 					}
 
-					ch->set_args(&args);
+					ch->set_args(args);
 
 					g_chisels.push_back(ch);
 				}

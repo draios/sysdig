@@ -678,7 +678,6 @@ void chiselinfo::set_callback_interval(uint64_t interval)
 sinsp_chisel::sinsp_chisel(sinsp* inspector, string filename)
 {
 	m_inspector = inspector;
-	m_root = NULL;
 	m_ls = NULL;
 	m_lua_has_handle_evt = false;
 	m_lua_is_first_evt = true;
@@ -691,16 +690,6 @@ sinsp_chisel::sinsp_chisel(sinsp* inspector, string filename)
 
 sinsp_chisel::~sinsp_chisel()
 {
-	for(vector<chiselinfo*>::iterator it = m_subchisels.begin(); it != m_subchisels.end(); ++it)
-	{
-		delete *it;
-	}
-
-	if(m_root != NULL)
-	{
-		delete m_root;
-	}
-
 	free_lua_chisel();
 }
 
@@ -736,6 +725,7 @@ void parse_lua_chisel_arg(lua_State *ls, OUT chisel_desc* cd)
 	string name;
 	string type;
 	string desc;
+	bool optional = false;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -754,6 +744,13 @@ void parse_lua_chisel_arg(lua_State *ls, OUT chisel_desc* cd)
 				desc = lua_tostring(ls, -1);
 			}
 		}
+		else if(lua_isboolean(ls, -1))
+		{
+			if(string(lua_tostring(ls, -2)) == "optional")
+			{
+				optional = (lua_toboolean(ls, -1) != 0);
+			}
+		}
 		else
 		{
 			throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a string");
@@ -762,7 +759,7 @@ void parse_lua_chisel_arg(lua_State *ls, OUT chisel_desc* cd)
 		lua_pop(ls, 1);
 	}
 
-	cd->m_args.push_back(chiselarg_desc(name, type, desc));
+	cd->m_args.push_back(chiselarg_desc(name, type, desc, optional));
 }
 
 void parse_lua_chisel_args(lua_State *ls, OUT chisel_desc* cd)
@@ -804,34 +801,6 @@ void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 	lua_pop(ls, 1);
 }
 #endif
-
-// Initializes a JSON chisel
-bool sinsp_chisel::init_json_chisel(chisel_desc &cd, string const &fpath)
-{
-	try
-	{
-		sinsp_chisel ch(NULL, fpath);
-		cd.m_description = ch.m_description;
-
-		const Json::Value args = (*ch.m_root)["info"]["arguments"];
-		for(uint32_t k = 0; k < args.size(); k++)
-		{
-			cd.m_args.push_back(chiselarg_desc(
-				args[k]["name"].asString(),
-				args[k]["type"].asString(),
-				args[k]["description"].asString()
-			));
-		}
-		return true;
-	}
-	catch(...)
-	{
-		//
-		// If there was an error opening the chisel, skip to the next one
-		//
-		return false;
-	}
-}
 
 #ifdef HAS_LUA_CHISELS
 // Initializes a lua chisel
@@ -994,10 +963,6 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			}
 			cd.m_name = fn.name;
 			
-			if(fn.ext == "sc")
-			{
-				add_to_vector = init_json_chisel(cd, fpath);
-			}
 #ifdef HAS_LUA_CHISELS
 			if(fn.ext == "lua")
 			{
@@ -1066,230 +1031,182 @@ void sinsp_chisel::load(string cmdstr)
 	string docstr((istreambuf_iterator<char>(is)),
 		istreambuf_iterator<char>());
 
-	//
-	// Try to parse as json
-	//
-	if(m_root != NULL)
-	{
-		delete m_root;
-	}
-
-	m_root = new Json::Value();
-
-	Json::Reader reader;
-	bool parsingSuccessful = reader.parse(docstr, (*m_root));
-	if(parsingSuccessful)
-	{
-		//
-		// Extract the info
-		//
-		m_description = (*m_root)["info"]["description"].asString();
-	}
-	else
-	{
 #ifdef HAS_LUA_CHISELS
-		//
-		// Rewind the stream
-		//
-		is.seekg(0);
+	//
+	// Rewind the stream
+	//
+	is.seekg(0);
 
-		//
-		// Load the file
-		//
-		std::istreambuf_iterator<char> eos;
-		std::string scriptstr(std::istreambuf_iterator<char>(is), eos);
+	//
+	// Load the file
+	//
+	std::istreambuf_iterator<char> eos;
+	std::string scriptstr(std::istreambuf_iterator<char>(is), eos);
 
-		//
-		// Open the script
-		//
-		m_ls = lua_open();
+	//
+	// Open the script
+	//
+	m_ls = lua_open();
  
-		luaL_openlibs(m_ls);
+	luaL_openlibs(m_ls);
 
-		//
-		// Load our own lua libs
-		//
-		luaL_openlib(m_ls, "sysdig", ll_sysdig, 0);
-		luaL_openlib(m_ls, "chisel", ll_chisel, 0);
-		luaL_openlib(m_ls, "evt", ll_evt, 0);
+	//
+	// Load our own lua libs
+	//
+	luaL_openlib(m_ls, "sysdig", ll_sysdig, 0);
+	luaL_openlib(m_ls, "chisel", ll_chisel, 0);
+	luaL_openlib(m_ls, "evt", ll_evt, 0);
 
-		//
-		// Add our chisel paths to package.path
-		//
-		for(uint32_t j = 0; j < g_chisel_dirs->size(); j++)
-		{
-			string path(g_chisel_dirs->at(j).m_dir);
-			path += "?.lua";
-			add_lua_package_path(m_ls, path.c_str());
-		}
-
-		//
-		// Load the script
-		//
-		if(luaL_loadstring(m_ls, scriptstr.c_str()) || lua_pcall(m_ls, 0, 0, 0)) 
-		{
-			throw sinsp_exception("Failed to load chisel " + 
-				m_filename + ": " + lua_tostring(m_ls, -1));
-		}
-
-		//
-		// Allocate the chisel context for the script
-		//
-		m_lua_cinfo = new chiselinfo(m_inspector);
-
-		//
-		// Set the context globals
-		//
-		lua_pushlightuserdata(m_ls, this);
-		lua_setglobal(m_ls, "sichisel");
-
-		//
-		// Extract the args
-		//
-		lua_getglobal(m_ls, "args");
-		if(!lua_istable(m_ls, -1))
-		{
-			throw sinsp_exception("Failed to load chisel " + 
-				m_filename + ": args table missing");
-		}
-
-		try
-		{
-			parse_lua_chisel_args(m_ls, &m_lua_script_info);
-		}
-		catch(sinsp_exception& e)
-		{
-			throw e;
-		}
-
-		//
-		// Check if the script has an on_event
-		//
-		lua_getglobal(m_ls, "on_event");
-		if(lua_isfunction(m_ls, -1))
-		{
-			m_lua_has_handle_evt = true;
-			lua_pop(m_ls, 1);
-		}
-#endif
+	//
+	// Add our chisel paths to package.path
+	//
+	for(uint32_t j = 0; j < g_chisel_dirs->size(); j++)
+	{
+		string path(g_chisel_dirs->at(j).m_dir);
+		path += "?.lua";
+		add_lua_package_path(m_ls, path.c_str());
 	}
+
+	//
+	// Load the script
+	//
+	if(luaL_loadstring(m_ls, scriptstr.c_str()) || lua_pcall(m_ls, 0, 0, 0)) 
+	{
+		throw sinsp_exception("Failed to load chisel " + 
+			m_filename + ": " + lua_tostring(m_ls, -1));
+	}
+
+	//
+	// Allocate the chisel context for the script
+	//
+	m_lua_cinfo = new chiselinfo(m_inspector);
+
+	//
+	// Set the context globals
+	//
+	lua_pushlightuserdata(m_ls, this);
+	lua_setglobal(m_ls, "sichisel");
+
+	//
+	// Extract the args
+	//
+	lua_getglobal(m_ls, "args");
+	if(!lua_istable(m_ls, -1))
+	{
+		throw sinsp_exception("Failed to load chisel " + 
+			m_filename + ": args table missing");
+	}
+
+	try
+	{
+		parse_lua_chisel_args(m_ls, &m_lua_script_info);
+	}
+	catch(sinsp_exception& e)
+	{
+		throw e;
+	}
+
+	//
+	// Check if the script has an on_event
+	//
+	lua_getglobal(m_ls, "on_event");
+	if(lua_isfunction(m_ls, -1))
+	{
+		m_lua_has_handle_evt = true;
+		lua_pop(m_ls, 1);
+	}
+#endif
 
 	is.close();
 }
 
 uint32_t sinsp_chisel::get_n_args()
 {
-	if(!m_ls)
-	{
-		return (*m_root)["info"]["arguments"].size();
-	}
-	else
-	{
+	ASSERT(m_ls);
+
 #ifdef HAS_LUA_CHISELS
-		return m_lua_script_info.m_args.size();
+	return m_lua_script_info.m_args.size();
 #else
-		return 0;
+	return 0;
 #endif
-	}
 }
 
-void sinsp_chisel::set_args(vector<string>* argvals)
+void sinsp_chisel::set_args(string args)
 {
-	uint32_t j, k;
-
-	m_argvals = *argvals;
-
-	if(!m_ls)
-	{
-		const Json::Value args = (*m_root)["info"]["arguments"];
-
-		//
-		// Validate the arguments
-		//
-		if(m_argvals.size() != args.size())
-		{
-			throw sinsp_exception("wrong number of parameters for chisel " + m_filename);
-		}
-
-		//
-		// Apply the arguments
-		//
-		const Json::Value clst = (*m_root)["chisels"];
-		
-		for(j = 0; j < clst.size(); j++)
-		{
-			string filter = clst[j]["filter"].asString();
-			for(k = 0; k < args.size(); k++)
-			{
-				replace_in_place(filter, 
-					string("$") + args[k]["name"].asString(), 
-					string(m_argvals[k]));
-			}
-
-			string formatter = clst[j]["format"].asString();
-			for(k = 0; k < args.size(); k++)
-			{
-				replace_in_place(formatter, 
-					string("$") + args[k]["name"].asString(), 
-					string(m_argvals[k]));
-			}
-
-			chiselinfo* ci = new chiselinfo(m_inspector);
-			ci->init(filter, formatter);
-			m_subchisels.push_back(ci);
-		}
-	}
-	else
-	{
 #ifdef HAS_LUA_CHISELS
-		//
-		// Validate the arguments
-		//
-		if(m_argvals.size() != m_lua_script_info.m_args.size())
+	uint32_t j;
+	uint32_t n_required_args = 0;
+	uint32_t n_optional_args = 0;
+
+	for(j = 0; j < m_lua_script_info.m_args.size(); j++)
+	{
+		if(m_lua_script_info.m_args[j].m_optional)
 		{
-			throw sinsp_exception("wrong number of parameters for chisel " + m_filename);
+			n_optional_args++;
 		}
-
-
-		//
-		// Push the arguments
-		//
-		for(k = 0; k < m_lua_script_info.m_args.size(); k++)
+		else
 		{
-			lua_getglobal(m_ls, "on_set_arg");
-			if(!lua_isfunction(m_ls, -1))
-			{
-				lua_pop(m_ls, 1);
-				throw sinsp_exception("chisel " + m_filename + " misses a set_arg() function.");
-			}
-
-			lua_pushstring(m_ls, m_lua_script_info.m_args[k].m_name.c_str()); 
-			lua_pushstring(m_ls, m_argvals[k].c_str());
-
-			//
-			// call get_info()
-			//
-			if(lua_pcall(m_ls, 2, 1, 0) != 0) 
-			{
-				throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
-			}
-
-			if(!lua_isboolean(m_ls, -1)) 
-			{
-				throw sinsp_exception(m_filename + " chisel error: wrong set_arg() return value.");
-			}
-
-			int sares = lua_toboolean(m_ls, -1);
-
-			if(!sares)
-			{
-				throw sinsp_exception("set_arg() for chisel " + m_filename + " failed.");
-			}
-
-			lua_pop(m_ls, 1);
+			n_required_args++;
 		}
-#endif
 	}
+
+	ASSERT(m_ls);
+
+	m_argvals = sinsp_split(args, ' ');
+
+	//
+	// Validate the arguments
+	//
+	if(m_argvals.size() < n_required_args)
+	{
+		throw sinsp_exception("wrong number of parameters for chisel " + m_filename +
+			", " + to_string(n_required_args) + " required, " + to_string(m_argvals.size()) + "given");
+	}
+	else if(m_argvals.size() > n_optional_args + n_required_args)
+	{
+		throw sinsp_exception("too many parameters for chisel " + m_filename +
+			", " + to_string(n_optional_args + n_required_args) + " required, " + 
+			to_string(m_argvals.size()) + "given");
+	}
+
+	//
+	// Push the arguments
+	//
+	for(j = 0; j < m_lua_script_info.m_args.size(); j++)
+	{
+		lua_getglobal(m_ls, "on_set_arg");
+		if(!lua_isfunction(m_ls, -1))
+		{
+			lua_pop(m_ls, 1);
+			throw sinsp_exception("chisel " + m_filename + " misses a set_arg() function.");
+		}
+
+		lua_pushstring(m_ls, m_lua_script_info.m_args[j].m_name.c_str()); 
+		lua_pushstring(m_ls, m_argvals[j].c_str());
+
+		//
+		// call get_info()
+		//
+		if(lua_pcall(m_ls, 2, 1, 0) != 0) 
+		{
+			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
+		}
+
+		if(!lua_isboolean(m_ls, -1)) 
+		{
+			throw sinsp_exception(m_filename + " chisel error: wrong set_arg() return value.");
+		}
+
+		int sares = lua_toboolean(m_ls, -1);
+
+		if(!sares)
+		{
+			throw sinsp_exception("set_arg() for chisel " + m_filename + " failed.");
+		}
+
+		lua_pop(m_ls, 1);
+	}
+#endif
 }
 
 void sinsp_chisel::on_init()
@@ -1341,9 +1258,19 @@ void sinsp_chisel::on_init()
 		load(m_new_chisel_to_exec);
 		m_new_chisel_to_exec = "";
 
-		vector<string> args = m_argvals;
+		string args;
+		for(uint32_t j = 0; j < m_argvals.size(); j++)
+		{
+			args += m_argvals[j];
+
+			if(j < m_argvals.size())
+			{
+				args += " ";
+			}
+		}
+
 		m_argvals.clear();
-		set_args(&args);
+		set_args(args);
 
 		on_init();
 	}
@@ -1365,95 +1292,70 @@ void sinsp_chisel::first_event_inits(sinsp_evt* evt)
 
 bool sinsp_chisel::run(sinsp_evt* evt)
 {
-	uint32_t j;
+#ifdef HAS_LUA_CHISELS
 	string line;
 
-	if(!m_ls)
+	ASSERT(m_ls);
+
+	//
+	// If this is the first event, put the event pointer on the stack.
+	// We assume that the event pointer will never change.
+	//
+	if(m_lua_is_first_evt)
 	{
-		for(j = 0; j < m_subchisels.size(); j++)
-		{
-			//
-			// Output the line
-			//
-			if(m_subchisels[j]->m_filter != NULL)
-			{
-				if(!m_subchisels[j]->m_filter->run(evt))
-				{
-					continue;
-				}
-			}
-
-			if(m_subchisels[j]->m_formatter->tostring(evt, &line))
-			{
-				cout << line << endl;
-			}
-		}
-
-		return true;
+		first_event_inits(evt);
 	}
-	else
+
+	//
+	// If there is a timeout callback, see if it's time to call it
+	//
+	do_timeout(evt);
+
+	//
+	// If there is a filter, run it
+	//
+	if(m_lua_cinfo->m_filter != NULL)
 	{
-#ifdef HAS_LUA_CHISELS
-		//
-		// If this is the first event, put the event pointer on the stack.
-		// We assume that the event pointer will never change.
-		//
-		if(m_lua_is_first_evt)
+		if(!m_lua_cinfo->m_filter->run(evt))
 		{
-			first_event_inits(evt);
+			return false;
 		}
+	}
 
-		//
-		// If there is a timeout callback, see if it's time to call it
-		//
-		do_timeout(evt);
-
-		//
-		// If there is a filter, run it
-		//
-		if(m_lua_cinfo->m_filter != NULL)
-		{
-			if(!m_lua_cinfo->m_filter->run(evt))
-			{
-				return false;
-			}
-		}
-
-		//
-		// If the script has the on_event callback, call it
-		//
-		if(m_lua_has_handle_evt)
-		{
-			lua_getglobal(m_ls, "on_event");
+	//
+	// If the script has the on_event callback, call it
+	//
+	if(m_lua_has_handle_evt)
+	{
+		lua_getglobal(m_ls, "on_event");
 			
-			if(lua_pcall(m_ls, 0, 1, 0) != 0) 
-			{
-				throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
-			}
-	
-			int oeres = lua_toboolean(m_ls, -1);
-			lua_pop(m_ls, 1);
-
-			if(oeres == false)
-			{
-				return false;
-			}
-		}
-
-		//
-		// If the script has a formatter, run it
-		//
-		if(m_lua_cinfo->m_formatter != NULL)
+		if(lua_pcall(m_ls, 0, 1, 0) != 0) 
 		{
-			if(m_lua_cinfo->m_formatter->tostring(evt, &line))
-			{
-				cout << line << endl;
-			}
+			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
 		}
+	
+		int oeres = lua_toboolean(m_ls, -1);
+		lua_pop(m_ls, 1);
 
-		return true;
-#endif
+		if(oeres == false)
+		{
+			return false;
+		}
 	}
+
+	//
+	// If the script has a formatter, run it
+	//
+	if(m_lua_cinfo->m_formatter != NULL)
+	{
+		if(m_lua_cinfo->m_formatter->tostring(evt, &line))
+		{
+			cout << line << endl;
+		}
+	}
+
+	return true;
+#endif
 }
 
 void sinsp_chisel::do_timeout(sinsp_evt* evt)
