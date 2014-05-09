@@ -26,13 +26,7 @@ args =
 	{
 		name = "key", 
 		description = "the filter field used for grouping", 
-		argtype = "string",
-	},
-	{
-		name = "eee", 
-		description = "the filter field used for grouping", 
-		argtype = "string",
-		optional = true
+		argtype = "string"
 	},
 }
 
