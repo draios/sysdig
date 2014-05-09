@@ -55,6 +55,7 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopprocs_net" $TRACEDIR $RES
 # Category: Performance
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cbottlenecks" $TRACEDIR $RESULTDIR/bottlenecks $BASELINEDIR/bottlenecks
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cfileslower 1000" $TRACEDIR $RESULTDIR/fileslower $BASELINEDIR/fileslower
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cnetlower 10" $TRACEDIR $RESULTDIR/netlower $BASELINEDIR/netlower
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cproc_exec_time" $TRACEDIR $RESULTDIR/proc_exec_time $BASELINEDIR/proc_exec_time
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cscallslower 1000" $TRACEDIR $RESULTDIR/scallslower $BASELINEDIR/scallslower
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopscalls" $TRACEDIR $RESULTDIR/topscalls $BASELINEDIR/topscalls
