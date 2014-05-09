@@ -110,6 +110,21 @@ public:
 
 	void* get_private_state(uint32_t id);
 
+	/*!
+	  \brief Return the ratio between open FDs and maximum available FDs for this thread.
+	*/
+	uint32_t get_fd_usage_pct();
+
+	/*!
+	  \brief Return the number of open FDs for this thread.
+	*/
+	uint64_t get_fd_opencount();
+
+	/*!
+	  \brief Return the maximum number of FDs this thread can open.
+	*/
+	uint64_t get_fd_limit();
+
 	//
 	// Core state
 	//
@@ -122,7 +137,6 @@ public:
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
-	uint32_t m_fd_usage_pct; ///< The ratio between open FDs and maximum available FDs for this thread
 	uint32_t m_uid; ///< user id
 	uint32_t m_gid; ///< group id
 	uint64_t m_nchilds; ///< When this is 0 the process can be deleted
