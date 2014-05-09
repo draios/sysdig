@@ -1152,7 +1152,43 @@ void sinsp_chisel::set_args(string args)
 
 	ASSERT(m_ls);
 
-	m_argvals = sinsp_split(args, ' ');
+	//
+	// Split the argument string into tokens
+	//
+	uint32_t token_begin = 0;
+	bool inquotes = false;
+	uint32_t quote_correction = 0;
+
+	trim(args);
+
+	for(j = 0; j < args.size(); j++)
+	{
+		if(args[j] == ' ' && !inquotes)
+		{
+			m_argvals.push_back(args.substr(token_begin, j - quote_correction - token_begin));
+			token_begin = j + 1;
+			quote_correction = 0;
+		}
+		else if(args[j] == '\'' || args[j] == '`')
+		{
+			if(inquotes)
+			{
+				quote_correction = 1;
+				inquotes = false;
+			}			
+			else {
+				token_begin++;
+				inquotes = true;
+			}			
+		}
+	}
+	
+	if(inquotes)
+	{
+		throw sinsp_exception("corrupted parameters for chisel " + m_filename);
+	}
+
+	m_argvals.push_back(args.substr(token_begin, j));
 
 	//
 	// Validate the arguments
@@ -1261,9 +1297,16 @@ void sinsp_chisel::on_init()
 		string args;
 		for(uint32_t j = 0; j < m_argvals.size(); j++)
 		{
-			args += m_argvals[j];
+			if(m_argvals[j].find(" ") == string::npos)
+			{
+				args += m_argvals[j];
+			}
+			else
+			{
+				args += string("'") + m_argvals[j] + "'";
+			}
 
-			if(j < m_argvals.size())
+			if(j < m_argvals.size() - 1)
 			{
 				args += " ";
 			}
