@@ -606,7 +606,7 @@ int main(int argc, char **argv)
 
 					if(nargs != 0)
 					{
-						if(optind >= (int32_t)argc)
+						if(optind > (int32_t)argc)
 						{
 							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
 						}
