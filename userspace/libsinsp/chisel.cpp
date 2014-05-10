@@ -1167,8 +1167,8 @@ void sinsp_chisel::set_args(string args)
 {
 #ifdef HAS_LUA_CHISELS
 	uint32_t j;
-	uint32_t n_required_args = get_n_optional_args();
-	uint32_t n_optional_args = get_n_required_args();
+	uint32_t n_required_args = get_n_required_args();
+	uint32_t n_optional_args = get_n_optional_args();
 
 	ASSERT(m_ls);
 
