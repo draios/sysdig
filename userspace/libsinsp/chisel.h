@@ -103,6 +103,8 @@ public:
 	static void get_chisel_list(vector<chisel_desc>* chisel_descs);
 	void load(string cmdstr);
 	uint32_t get_n_args();
+	uint32_t get_n_optional_args();
+	uint32_t get_n_required_args();
 	void set_args(string args);
 	bool run(sinsp_evt* evt);
 	void do_timeout(sinsp_evt* evt);

@@ -1131,24 +1131,44 @@ uint32_t sinsp_chisel::get_n_args()
 #endif
 }
 
-void sinsp_chisel::set_args(string args)
+uint32_t sinsp_chisel::get_n_optional_args()
 {
-#ifdef HAS_LUA_CHISELS
 	uint32_t j;
-	uint32_t n_required_args = 0;
-	uint32_t n_optional_args = 0;
+	uint32_t res = 0;
 
 	for(j = 0; j < m_lua_script_info.m_args.size(); j++)
 	{
 		if(m_lua_script_info.m_args[j].m_optional)
 		{
-			n_optional_args++;
-		}
-		else
-		{
-			n_required_args++;
+			res++;
 		}
 	}
+
+	return res;
+}
+
+uint32_t sinsp_chisel::get_n_required_args()
+{
+	uint32_t j;
+	uint32_t res = 0;
+
+	for(j = 0; j < m_lua_script_info.m_args.size(); j++)
+	{
+		if(!m_lua_script_info.m_args[j].m_optional)
+		{
+			res++;
+		}
+	}
+
+	return res;
+}
+
+void sinsp_chisel::set_args(string args)
+{
+#ifdef HAS_LUA_CHISELS
+	uint32_t j;
+	uint32_t n_required_args = get_n_optional_args();
+	uint32_t n_optional_args = get_n_required_args();
 
 	ASSERT(m_ls);
 

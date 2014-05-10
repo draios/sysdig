@@ -248,6 +248,74 @@ static void initialize_chisels()
 #endif
 }
 
+//
+// Parse the command line following a chisel to consume the chisel command line.
+// We use the following strategy:
+//  - if the chisel has no arguments, we don't consume anything
+//  - if the chisel has at least one required argument, we consume the next command line token
+//  - if the chisel has only optional arguments, we consume the next token, unless
+//    - there is no next token
+//    - the next token starts with a '-'
+//    - the rest of the command line contains a valid filter
+//
+static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, int argc, char **argv, int32_t* n_filterargs)
+{
+	uint32_t nargs = ch->get_n_args();
+	uint32_t nreqargs = ch->get_n_required_args();
+	string args;
+
+	if(nargs != 0)
+	{
+		if(optind > (int32_t)argc)
+		{
+			throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
+		}
+		else if(optind < (int32_t)argc)
+		{
+			args = argv[optind];
+
+			if(nreqargs != 0)
+			{
+				ch->set_args(args);
+				(*n_filterargs)++;
+			}
+			else
+			{
+				if(args[0] != '-')
+				{
+					string testflt;
+
+					for(int32_t j = optind; j < argc; j++)
+					{
+						testflt += argv[j];
+						if(j < argc - 1)
+						{
+							testflt += " ";
+						}
+					}
+
+					try
+					{
+						sinsp_filter df(inspector, testflt);
+					}
+					catch(...)
+					{
+						ch->set_args(args);
+						(*n_filterargs)++;
+					}
+				}
+			}
+		}
+		else
+		{
+			if(nreqargs != 0)
+			{
+				throw sinsp_exception("missing arguments for chisel " + string(optarg));
+			}
+		}
+	}
+}
+
 static void free_chisels()
 {
 #ifdef HAS_CHISELS
@@ -601,22 +669,7 @@ int main(int argc, char **argv)
 					}
 
 					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
-					uint32_t nargs = ch->get_n_args();
-					string args;
-
-					if(nargs != 0)
-					{
-						if(optind > (int32_t)argc)
-						{
-							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
-						}
-
-						args = argv[optind];
-						n_filterargs++;
-					}
-
-					ch->set_args(args);
-
+					parse_chisel_args(ch, inspector, optind, argc, argv, &n_filterargs);
 					g_chisels.push_back(ch);
 				}
 #endif
