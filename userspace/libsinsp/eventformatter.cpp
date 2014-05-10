@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "third-party/jsoncpp/json/json.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
@@ -32,6 +31,7 @@ extern sinsp_filter_check_list g_filterlist;
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
 {
 	m_inspector = inspector;
+	m_first = true;
 	set_format(fmt);
 }
 
@@ -156,9 +156,19 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	}
 }
 
+bool sinsp_evt_formatter::on_capture_end(OUT string* res)
+{
+	res->clear();
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	{
+		(*res) = ']';
+	}
+
+	return res->size() > 0;
+}
+
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
-	Json::Value root;
 	const filtercheck_field_info* fi;
 
 	uint32_t j = 0;
@@ -189,7 +199,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 			if(str && fi && fi->m_name) 
 			{
-				root[fi->m_name] = str;
+				m_root[fi->m_name] = str;
 			} 
 
 		} 
@@ -212,9 +222,21 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 	{
-		Json::FastWriter writer;
-		(*res) = writer.write( root );
-		(*res) = (*res).substr(0, (*res).size() - 1);
+		if(m_first) {
+			// Give it the opening stanza of a JSON array
+			(*res) = '[';
+		} else {
+			// Otherwise say this is another object in an
+			// existing JSON array
+			(*res) = ',';
+		}
+
+		(*res) += m_writer.write( m_root );
+		(*res) = res->substr(0, res->size() - 1);
+	}
+
+	if(m_first) {
+		m_first = false;
 	}
 
 	return true;

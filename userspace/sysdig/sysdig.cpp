@@ -325,6 +325,15 @@ captureinfo do_inspect(sinsp* inspector,
 			// Notify the chisels that we're exiting.
 			//
 			chisels_on_capture_end();
+
+			// Notify the formatter that we are at the 
+			// end of the capture in case it needs to 
+			// write any terminating characters
+			if(formatter->on_capture_end(&line))
+			{
+				cout << line << endl;
+			}
+
 			break;
 		}
 
