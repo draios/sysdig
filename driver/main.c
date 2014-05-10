@@ -96,9 +96,6 @@ static void record_event(enum ppm_event_type event_type,
 
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
 
-static inline struct ppm_ring_buffer_context *get_ring_buffer(u32 *head, u32 *freespace);
-static inline void increment_ring_buffer(struct ppm_ring_buffer_context *ring, u32 head, size_t event_size);
-
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
 #endif
@@ -508,74 +505,6 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
-	struct ppm_ring_buffer_context *ring = NULL;
-	u32 head = 0;
-	u32 freespace = 0;
-	struct timespec ts;
-	struct event_filler_arguments args = { 0 };
-
-	getnstimeofday(&ts);
-
-	ring = get_ring_buffer(&head, &freespace);
-	if (ring == NULL) {
-		pr_err("Error getting ring buffer\n");
-		return -EFAULT;
-	}
-
-	args.nargs = 1;
-	args.arg_data_offset = args.nargs * sizeof(u16);
-
-	/*
-	 * Make sure we have enough space for the event header.
-	 * We need at least space for the header plus 16 bit per parameter for the lengths.
-	 */
-	if (likely(freespace >= sizeof(struct ppm_evt_hdr) + args.arg_data_offset)) {
-		int res;
-
-		/*
-		 * Populate the header
-		 */
-		struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)(ring->buffer + head);
-
-#ifdef PPM_ENABLE_SENTINEL
-		hdr->sentinel_begin = ring->nevents;
-#endif
-		hdr->ts = timespec_to_ns(&ts);
-		hdr->tid = current->pid;
-		hdr->type = PPME_USER_E;
-
-		/*
-		 * Populate the parameters for the filler callback
-		 */
-		args.buffer = ring->buffer + head + sizeof(struct ppm_evt_hdr);
-#ifdef PPM_ENABLE_SENTINEL
-		args.sentinel = ring->nevents;
-#endif
-		args.buffer_size = min(freespace, (u32)(2 * PAGE_SIZE)) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
-		args.event_type = PPME_USER_E;
-		args.syscall_id = -1;
-		args.curarg = 0;
-		args.arg_data_size = args.buffer_size - args.arg_data_offset;
-		args.nevents = ring->nevents;
-
-		res = val_to_ring(&args, (u64)buf, count, true);
-		if (likely(res == PPM_SUCCESS)) {
-			size_t event_size = 0;
-
-			add_sentinel(&args);
-
-			event_size = sizeof(struct ppm_evt_hdr) + args.arg_data_offset;
-			hdr->len = event_size;
-
-			increment_ring_buffer(ring, head, event_size);
-		} else {
-			pr_err("Unable to add event to ring buffer\n");
-		}
-	}
-
-	atomic_dec(&ring->preempt_count);
-	put_cpu_var(g_ring_buffers);
-
 	return count;
 }
 
@@ -1099,94 +1028,6 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 	vfree((void *)ring->buffer);
 	free_page((unsigned long)ring->str_storage);
 	vfree(ring);
-}
-
-static inline struct ppm_ring_buffer_context *get_ring_buffer(u32 *head, u32 *freespace)
-{
-	struct ppm_ring_buffer_context *ring = NULL;
-	struct ppm_ring_buffer_info *ring_info = NULL;
-	u32 ttail = 0;
-	u32 usedspace = 0;
-
-	*head = 0;
-	*freespace = 0;
-
-	ring = get_cpu_var(g_ring_buffers);
-	ring_info = ring->info;
-
-	ring_info->n_evts++;
-
-	/*
-	 * Preemption gate
-	 */
-	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
-		atomic_dec(&ring->preempt_count);
-		put_cpu_var(g_ring_buffers);
-		ring_info->n_preemptions++;
-		ASSERT(false);
-		return NULL;
-	}
-
-	if (unlikely(atomic_read(&ring->state) == CS_INACTIVE)) {
-		atomic_dec(&ring->preempt_count);
-		put_cpu_var(g_ring_buffers);
-		ASSERT(false);
-		return NULL;
-	}
-
-	/*
-	 * Calculate the space currently available in the buffer
-	 */
-	*head = ring_info->head;
-	ttail = ring_info->tail;
-
-	if (ttail > *head)
-		*freespace = ttail - *head - 1;
-	else
-		*freespace = RING_BUF_SIZE + ttail - *head - 1;
-
-	usedspace = RING_BUF_SIZE - *freespace - 1;
-
-	ASSERT(*freespace <= RING_BUF_SIZE);
-	ASSERT(usedspace <= RING_BUF_SIZE);
-	ASSERT(ttail <= RING_BUF_SIZE);
-	ASSERT(*head <= RING_BUF_SIZE);
-
-	return ring;
-}
-
-static inline void increment_ring_buffer(struct ppm_ring_buffer_context *ring, u32 head, size_t event_size)
-{
-	int next;
-
-	next = head + event_size;
-
-	if (unlikely(next >= RING_BUF_SIZE)) {
-		/*
-		 * If something has been written in the cushion space at the end of
-		 * the buffer, copy it to the beginning and wrap the head around.
-		 * Note, we don't check that the copy fits because we assume that
-		 * filler_callback failed if the space was not enough.
-		 */
-		if (next > RING_BUF_SIZE) {
-			memcpy(ring->buffer,
-			ring->buffer + RING_BUF_SIZE,
-			next - RING_BUF_SIZE);
-		}
-
-		next -= RING_BUF_SIZE;
-	}
-
-	/*
-	 * Make sure all the memory has been written in real memory before
-	 * we update the head and the user space process (on another CPU)
-	 * can access the buffer.
-	 */
-	smp_wmb();
-
-	ring->info->head = next;
-
-	++ring->nevents;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
