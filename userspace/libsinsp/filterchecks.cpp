@@ -40,14 +40,14 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.name", "FD full name. If the fd is a file, this field contains the full path. If the FD is a socket, this field contain the connection tuple."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.directory", "If the fd is a file, the directory that contains it."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.filename", "If the fd is a file, the filename without the path."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.ip", "matches the ip address (client or server) of the fd."},
+	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.ip", "matches the ip address (client or server) of the fd."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.cip", "client IP address."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.sip", "server IP address."},
 	{PT_PORT, EPF_FILTER_ONLY, PF_DEC, "fd.port", "matches the port (client or server) of the fd."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.cport", "for TCP/UDP FDs, the client port."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.sport", "for TCP/UDP FDs, server port."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.l4proto", "the IP protocol of a socket. Can be 'tcp', 'udp', 'icmp' or 'raw'."},
-	{PT_SOCKFAMILY, EPF_NONE, PF_DEC, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_server", "'true' if the process owning this FD is the server endpoint in the connection."},
 };
 
@@ -585,6 +585,29 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return (uint8_t*)&m_tbool;
 		}
 		break;
+	case TYPE_SOCKFAMILY:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+			{
+				m_tstr = "ip";
+				return (uint8_t*)m_tstr.c_str();
+			}
+			else if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+			{
+				m_tstr = "unix";
+				return (uint8_t*)m_tstr.c_str();
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+		break;
 	default:
 		ASSERT(false);
 	}
@@ -793,7 +816,10 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads of that the process generating the event currently has."},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.ppid", "the pid of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "the name (excluding the path) of the parent of the process generating the event."},
-	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "Number of nanoseconds since the process started."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "number of nanoseconds since the process started."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "number of open FDs for the process"},
+	{PT_INT64, EPF_NONE, PF_DEC, "proc.fdlimit", "maximum number of FDs the process can open."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdusage", "the ratio between open FDs and maximum available FDs for the process."},
 	{PT_INT64, EPF_NONE, PF_DEC, "thread.tid", "the id of the thread generating the event."},
 	{PT_BOOL, EPF_NONE, PF_NA, "thread.ismain", "'true' if the thread generating the event is the main one in the process."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "thread.exectime", "CPU time spent by the last scheduled thread, in nanoseconds. Exported by switch events only."},
@@ -1077,6 +1103,15 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_TOTLATENCY:
 		m_u64val += tinfo->m_latency;
+		return (uint8_t*)&m_u64val;
+	case TYPE_FDOPENCOUNT:
+		m_u64val = tinfo->get_fd_opencount();
+		return (uint8_t*)&m_u64val;
+	case TYPE_FDLIMIT:
+		m_s64val = tinfo->get_fd_limit();
+		return (uint8_t*)&m_s64val;
+	case TYPE_FDUSAGE:
+		m_u64val = tinfo->get_fd_usage_pct();
 		return (uint8_t*)&m_u64val;
 	default:
 		ASSERT(false);

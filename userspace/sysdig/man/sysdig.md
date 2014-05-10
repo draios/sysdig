@@ -65,7 +65,7 @@ To get the list of available chisels, type
 > $ sysdig -cl  
 
 To get details about a specific chisel, type
-> $ sysdig -ispy_ip  
+> $ sysdig -i spy_ip
 
 To run one of the chisels, you use the -c flag, e.g.
 > $ sysdig -c topfiles_bytes
@@ -134,7 +134,7 @@ OPTIONS
   Capture the first <len> bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
 
 **-t** _timetype_, **--timetype**=_timetype_  
-  Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for abosulte timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.
+  Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.
    
 **-v**, **--verbose**  
   Verbose output.

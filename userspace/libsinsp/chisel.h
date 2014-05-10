@@ -22,9 +22,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 class sinsp_filter_check;
 class sinsp_evt_formatter;
-namespace Json {
-	class Value;
-}
 
 typedef struct lua_State lua_State;
 
@@ -45,16 +42,18 @@ typedef struct chiseldir_info
 class chiselarg_desc
 {
 public:
-	chiselarg_desc(string name, string type, string description)
+	chiselarg_desc(string name, string type, string description, bool optional)
 	{
 		m_name = name;
 		m_type = type;
 		m_description = description;
+		m_optional = optional;
 	}
 
 	string m_name;
 	string m_type;
 	string m_description;
+	bool m_optional;
 };
 
 class chisel_desc
@@ -104,7 +103,7 @@ public:
 	static void get_chisel_list(vector<chisel_desc>* chisel_descs);
 	void load(string cmdstr);
 	uint32_t get_n_args();
-	void set_args(vector<string>* argvals);
+	void set_args(string args);
 	bool run(sinsp_evt* evt);
 	void do_timeout(sinsp_evt* evt);
 	void on_init();
@@ -114,13 +113,11 @@ public:
 private:
 	bool openfile(string filename, OUT ifstream* is);
 	void free_lua_chisel();
-	static bool init_json_chisel(chisel_desc &cd, string const &path);
 	static bool init_lua_chisel(chisel_desc &cd, string const &path);
+	void first_event_inits(sinsp_evt* evt);
 
 	sinsp* m_inspector;
 	string m_description;
-	Json::Value* m_root;
-	vector<chiselinfo*> m_subchisels;
 	vector<string> m_argvals;
 	string m_filename;
 	lua_State* m_ls;

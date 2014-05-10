@@ -125,7 +125,7 @@ static void usage()
 "                    option with caution, it can generate huge trace files.\n"
 " -t <timetype>, --timetype=<timetype>\n"
 "                    Change the way event time is diplayed. Accepted values are\n"
-"                    h for human-readable string, a for abosulte timestamp from\n"
+"                    h for human-readable string, a for absolute timestamp from\n"
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, and d for delta between event enter and exit.\n"
 " -v, --verbose      Verbose output.\n"
@@ -340,6 +340,7 @@ captureinfo do_inspect(sinsp* inspector,
 				//
 				chisels_do_timeout(ev);
 			}
+
 			continue;
 		}
 		else if(res == SCAP_EOF)
@@ -601,20 +602,20 @@ int main(int argc, char **argv)
 
 					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
 					uint32_t nargs = ch->get_n_args();
-					vector<string> args;
+					string args;
 
-					for(uint32_t j = 0; j < nargs; j++)
+					if(nargs != 0)
 					{
-						if(optind + j >= (uint32_t)argc)
+						if(optind > (int32_t)argc)
 						{
 							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
 						}
 
-						args.push_back(argv[optind + j]);
+						args = argv[optind];
 						n_filterargs++;
 					}
 
-					ch->set_args(&args);
+					ch->set_args(args);
 
 					g_chisels.push_back(ch);
 				}

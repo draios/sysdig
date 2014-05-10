@@ -37,6 +37,9 @@ function install_rpm {
 	KERNEL_VERSION=$(uname -r)
 	if [[ $KERNEL_VERSION == *PAE* ]]; then
 		yum -q -y install kernel-PAE-devel-${KERNEL_VERSION%.PAE} || kernel_warning
+	elif [[ $KERNEL_VERSION == *stab* ]]; then
+		# It's OpenVZ kernel and we should install another package
+		yum -q -y install vzkernel-devel-$KERNEL_VERSION || kernel_warning
 	else
 		yum -q -y install kernel-devel-$KERNEL_VERSION || kernel_warning
 	fi
@@ -116,6 +119,8 @@ if [ -f /etc/debian_version ]; then
 	elif [ $DISTRO = "Debian" ]; then
 		if [ $VERSION -ge 6 ]; then
 		    install_deb
+		elif [[ $VERSION == *sid* ]]; then
+			install_deb
 		else
 			unsupported
 		fi

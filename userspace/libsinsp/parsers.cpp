@@ -70,14 +70,14 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	reset(evt);
 
-	//
+//
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
 #if defined(HAS_CAPTURE)
 	if(m_inspector->is_live() && !m_inspector->is_debug_enabled())
 	{
-		sinsp_threadinfo *evt_thread = evt->get_thread_info();
-		if(evt_thread != NULL && evt_thread->m_pid == m_sysdig_pid)
+		if(evt->get_tid() == m_sysdig_pid && etype != PPME_SCHEDSWITCH_E && 
+			m_sysdig_pid && etype != PPME_SCHEDSWITCHEX_E)
 		{
 			evt->m_filtered_out = true;
 			return;
@@ -285,7 +285,8 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	// Ignore scheduler events
 	//
-	if(etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X)
+	if((etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X) || 
+		etype == PPME_SCHEDSWITCHEX_E)
 	{
 		return false;
 	}
@@ -420,36 +421,6 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 				eparams.m_ts = evt->get_ts();
 
 				erase_fd(&eparams);
-			}
-		}
-
-		if(eflags & EF_CREATES_FD)
-		{
-			//
-			// Calculate (and if necessary update) the fd usage ratio
-			//
-			sinsp_evt_param *parinfo;
-			int64_t fd;
-
-			//
-			// In case of pipe or socketpair, just the first FD is good enough
-			//
-			uint32_t parnum = (etype == PPME_SYSCALL_PIPE_X || etype == PPME_SOCKET_SOCKETPAIR_X)? 1 : 0;
-
-			parinfo = evt->get_param(parnum);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			ASSERT(evt->get_param_info(parnum)->type == PT_FD);
-			fd = *(int64_t *)parinfo->m_val;
-
-			if(fd > 0 && evt->m_tinfo->m_fdlimit != -1)
-			{
-				int64_t m_fd_usage_pct = fd * 100 / evt->m_tinfo->m_fdlimit;
-				ASSERT(m_fd_usage_pct <= 100);
-
-				if(m_fd_usage_pct > evt->m_tinfo->m_fd_usage_pct)
-				{
-					evt->m_tinfo->m_fd_usage_pct = (uint32_t)m_fd_usage_pct;
-				}
 			}
 		}
 	}
@@ -2346,16 +2317,16 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 #ifdef _DEBUG
 			if(evt->get_type() == PPME_SYSCALL_GETRLIMIT_X)
 			{
-				if(evt->m_tinfo->m_fdlimit != -1)
+				if(evt->m_tinfo->get_main_thread()->m_fdlimit != -1)
 				{
-					ASSERT(curval == evt->m_tinfo->m_fdlimit);
+					ASSERT(curval == evt->m_tinfo->get_main_thread()->m_fdlimit);
 				}
 			}
 #endif
 
 			if(curval != -1)
 			{
-				evt->m_tinfo->m_fdlimit = curval;
+				evt->m_tinfo->get_main_thread()->m_fdlimit = curval;
 			}
 			else
 			{
@@ -2429,7 +2400,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 				//
 				// update the process fdlimit
 				//
-				ptinfo->m_fdlimit = newcur;
+				ptinfo->get_main_thread()->m_fdlimit = newcur;
 			}
 		}
 	}
