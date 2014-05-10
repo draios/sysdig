@@ -160,7 +160,14 @@ If a chisel needs arguments, you specify them after the chisel name:
 $ sysdig \-c spy_ip 192.168.1.157
 .RE
 .PP
-Chiesls can be combined with filters:
+If a chisel has more than one argument, specify them after the chisel name,
+enclosed in quotes:
+.RS
+.PP
+> $ sysdig -c chisel_name "arg1 arg2 arg3"
+.RE
+.PP
+Chisels can be combined with filters:
 .RS
 .PP
 $ sysdig \-c topfiles_bytes "not fd.name contains /dev"
