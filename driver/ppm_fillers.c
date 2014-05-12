@@ -547,18 +547,17 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 		}
 #else
 		int fd;
-		int fput_needed;
 
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		fd = (int)val;
 
-		file = fget_light(fd, &fput_needed);
+		file = fget(fd);
 		if (file && file->f_op) {
 			if (THIS_MODULE == file->f_op->owner) {
 				snaplen = RW_SNAPLEN_EVENT;
 			}
-			fput_light(file, fput_needed);
-		}
+			fput(file);
+		}		
 #endif
 	}
 
