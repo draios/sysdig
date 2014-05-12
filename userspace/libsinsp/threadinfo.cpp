@@ -63,6 +63,11 @@ void sinsp_threadinfo::init()
 	m_flags = PPM_CL_NAME_CHANGED;
 	m_nchilds = 0;
 	m_fdlimit = -1;
+	m_vmsize_kb = 0;
+	m_vmrss_kb = 0;
+	m_vmswap_kb = 0;
+	m_pfmajor = 0;
+	m_pfminor = 0;
 	m_main_thread = NULL;
 	m_main_program_thread = NULL;
 	m_lastevent_fd = 0;

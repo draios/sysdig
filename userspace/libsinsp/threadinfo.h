@@ -149,6 +149,11 @@ public:
 	uint64_t m_prevevent_ts; ///< timestamp of the event before the last for this thread.
 	uint64_t m_lastaccess_ts;  ///< The last time this thread was looked up. Used when cleaning up the table. 
 	uint64_t m_clone_ts;  ///< When the clone that started this process happened.
+	uint32_t m_vmsize_kb;
+	uint32_t m_vmrss_kb;
+	uint32_t m_vmswap_kb;
+	uint64_t m_pfmajor;
+	uint64_t m_pfminor;
 
 	thread_analyzer_info* m_ainfo;
 

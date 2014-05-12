@@ -99,6 +99,7 @@ static int f_sys_prlimit_e(struct event_filler_arguments *args);
 static int f_sys_prlimit_x(struct event_filler_arguments *args);
 #ifdef CAPTURE_CONTEXT_SWITCHES
 static int f_sched_switch_e(struct event_filler_arguments *args);
+static int f_sched_switchex_e(struct event_filler_arguments *args);
 #endif
 static int f_sched_drop(struct event_filler_arguments *args);
 static int f_sched_fcntl_e(struct event_filler_arguments *args);
@@ -252,6 +253,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PRLIMIT_X] = {f_sys_prlimit_x},
 #ifdef CAPTURE_CONTEXT_SWITCHES
 	[PPME_SCHEDSWITCH_E] = {f_sched_switch_e},
+	[PPME_SCHEDSWITCHEX_E] = {f_sched_switchex_e},
 #endif
 	[PPME_DROP_E] = {f_sched_drop},
 	[PPME_DROP_X] = {f_sched_drop},
@@ -2850,54 +2852,70 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
 static int f_sched_switchex_e(struct event_filler_arguments *args)
 {
 	int res;
+	long total_vm = 0;
+	long total_rss = 0;
+	long swap = 0;
+	struct mm_struct *mm = NULL;
 
 	if (args->sched_prev == NULL || args->sched_next == NULL) {
 		ASSERT(false);
 		return -1;
 	}
 
-	/*  */
-	/* next */
-	/*  */
+	/*
+	 * next
+	 */
 	res = val_to_ring(args, args->sched_next->pid, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*  */
-	/* pgft_maj */
-	/*  */
+	/*
+	 * pgft_maj
+	 */
 	res = val_to_ring(args, args->sched_prev->maj_flt, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*  */
-	/* pgft_min */
-	/*  */
+	/*
+	 * pgft_min
+	 */
 	res = val_to_ring(args, args->sched_prev->min_flt, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*  */
-	/* next_pgft_maj */
-	/*  */
-	res = val_to_ring(args, args->sched_next->maj_flt, 0, false);
+	mm = args->sched_prev->mm;
+	if(mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT-10);
+		total_rss = get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = get_mm_counter(mm, MM_SWAPENTS) << (PAGE_SHIFT-10);
+	}
+
+	/*
+	 * vm_size
+	 */
+	res = val_to_ring(args, total_vm, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*  */
-	/* next_pgft_min */
-	/*  */
-	res = val_to_ring(args, args->sched_next->min_flt, 0, false);
+	/*
+	 * vm_rss
+	 */
+	res = val_to_ring(args, total_rss, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_swap
+	 */
+	res = val_to_ring(args, swap, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	return add_sentinel(args);
 }
-#endif /* 0 */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
 static int f_sched_drop(struct event_filler_arguments *args)

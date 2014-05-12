@@ -820,6 +820,11 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "number of open FDs for the process"},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.fdlimit", "maximum number of FDs the process can open."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdusage", "the ratio between open FDs and maximum available FDs for the process."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmsize", "total virtual memory for the process (as kb)."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmrss", "resident non-swapped memory for the process (as kb)."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmswap", "swapped memory for the process (as kb)."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "thread.pfmajor", "number of major page faults since thread start."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "thread.pfminor", "number of minor page faults since thread start."},
 	{PT_INT64, EPF_NONE, PF_DEC, "thread.tid", "the id of the thread generating the event."},
 	{PT_BOOL, EPF_NONE, PF_NA, "thread.ismain", "'true' if the thread generating the event is the main one in the process."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "thread.exectime", "CPU time spent by the last scheduled thread, in nanoseconds. Exported by switch events only."},
@@ -1112,6 +1117,21 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_s64val;
 	case TYPE_FDUSAGE:
 		m_u64val = tinfo->get_fd_usage_pct();
+		return (uint8_t*)&m_u64val;
+	case TYPE_VMSIZE:
+		m_u64val = tinfo->m_vmsize_kb;
+		return (uint8_t*)&m_u64val;
+	case TYPE_VMRSS:
+		m_u64val = tinfo->m_vmrss_kb;
+		return (uint8_t*)&m_u64val;
+	case TYPE_VMSWAP:
+		m_u64val = tinfo->m_vmswap_kb;
+		return (uint8_t*)&m_u64val;
+	case TYPE_PFMAJOR:
+		m_u64val = tinfo->m_pfmajor;
+		return (uint8_t*)&m_u64val;
+	case TYPE_PFMINOR:
+		m_u64val = tinfo->m_pfminor;
 		return (uint8_t*)&m_u64val;
 	default:
 		ASSERT(false);

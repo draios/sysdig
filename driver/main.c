@@ -920,7 +920,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, st
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next)
 #endif
 {
-	record_event(PPME_SCHEDSWITCH_E,
+	record_event(PPME_SCHEDSWITCHEX_E,
 		NULL,
 		-1,
 		0,

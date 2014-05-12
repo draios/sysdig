@@ -237,6 +237,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SOCKET_SOCKETPAIR_X:
 		parse_socketpair_exit(evt);
 		break;
+	case PPME_SCHEDSWITCHEX_E:
+		parse_context_switch(evt);
+		break;
 	default:
 		break;
 	}
@@ -285,8 +288,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	// Ignore scheduler events
 	//
-	if((etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X) || 
-		etype == PPME_SCHEDSWITCHEX_E)
+	if(etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X)
 	{
 		return false;
 	}
@@ -2471,5 +2473,33 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt *evt)
 		//       For us it's ok to just overwrite it.
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
+	}
+}
+
+void sinsp_parser::parse_context_switch(sinsp_evt* evt)
+{
+	if(evt->m_tinfo)
+	{
+		sinsp_evt_param *parinfo;
+
+		parinfo = evt->get_param(1);
+		evt->m_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+
+		parinfo = evt->get_param(2);
+		evt->m_tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+
+		parinfo = evt->get_param(3);
+		evt->m_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+
+		parinfo = evt->get_param(4);
+		evt->m_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+
+		parinfo = evt->get_param(5);
+		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
 	}
 }
