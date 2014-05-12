@@ -171,6 +171,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	bool retval = true;
 	const filtercheck_field_info* fi;
+
 	uint32_t j = 0;
 	vector<sinsp_filter_check*>::iterator it;
 	res->clear();
