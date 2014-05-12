@@ -980,27 +980,7 @@ int main(int argc, char **argv)
 				{
 					open_success = true;
 
-					try
-					{
-						system("modprobe sysdig-probe > /dev/null 2> /dev/null");
-
-						inspector->open("");
-					}
-					catch(sinsp_exception e)
-					{
-						open_success = false;
-					}
-				}
-
-				//
-				// No luck with modprobe either.
-				// Maybe this is a version of sysdig that was compiled from the
-				// sources, so let's make one last attempt with insmod and the
-				// path to the driver directory.
-				//
-				if(!open_success)
-				{
-					system("insmod ../../driver/sysdig-probe.ko > /dev/null 2> /dev/null");
+					system("modprobe sysdig-probe > /dev/null 2> /dev/null");
 
 					inspector->open("");
 				}
