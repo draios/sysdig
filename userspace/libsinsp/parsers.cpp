@@ -298,10 +298,11 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 
 	//
-	// If we're exiting a clone, we don't look for /proc
+	// If we're exiting a clone or if we have a scheduler event
+	// (many kernel thread), we don't look for /proc
 	//
 	bool query_os;
-	if(etype == PPME_CLONE_X)
+	if(etype == PPME_CLONE_X || PPME_SCHEDSWITCHEX_E)
 	{
 		query_os = false;
 	}
@@ -311,6 +312,12 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	}
 
 	evt->m_tinfo = evt->get_thread_info(query_os);
+
+	if(etype == PPME_SCHEDSWITCHEX_E)
+	{
+		return false;
+	}
+
 	if(!evt->m_tinfo)
 	{
 		if(etype == PPME_CLONE_X)
