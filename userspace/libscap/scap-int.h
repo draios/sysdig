@@ -172,7 +172,6 @@ uint32_t scap_event_compute_len(scap_evt* e);
 			(int)read_size,\
 			__FILE__,\
 			__LINE__);\
-		ASSERT(false);\
 		return SCAP_FAILURE;\
 	}
 
