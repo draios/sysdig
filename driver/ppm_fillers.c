@@ -2890,7 +2890,9 @@ static int f_sched_switchex_e(struct event_filler_arguments *args)
 	if(mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
 		total_rss = get_mm_rss(mm) << (PAGE_SHIFT-10);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 		swap = get_mm_counter(mm, MM_SWAPENTS) << (PAGE_SHIFT-10);
+#endif
 	}
 
 	/*
