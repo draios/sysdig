@@ -352,6 +352,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		case PT_INT64:
 		case PT_PID:
+		case PT_ERRNO:
 			if(finfo->m_print_format == PF_DEC)
 			{
 				prfmt = (char*)"%" PRId64;

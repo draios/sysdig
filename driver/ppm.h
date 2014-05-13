@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
  */
 #define CAPTURE_CONTEXT_SWITCHES
 #define RW_SNAPLEN 80
+#define RW_SNAPLEN_EVENT 4096
 #define RW_MAX_SNAPLEN (256 * 1024 * 1024)
 /* Make sure to use a power of two constant for this */
 extern u32 g_snaplen;

@@ -64,7 +64,6 @@ sinsp::sinsp() :
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
-	m_firstevent_ts = 0;
 #endif
 
 	m_fds_to_remove = new vector<int64_t>;
@@ -98,6 +97,65 @@ sinsp::~sinsp()
 	{
 		delete m_thread_manager;
 		m_thread_manager = NULL;
+	}
+}
+
+void sinsp::init()
+{
+	//
+	// Retrieve machine information
+	//
+	m_machine_info = scap_get_machine_info(m_h);
+	if(m_machine_info != NULL)
+	{
+		m_num_cpus = m_machine_info->num_cpus;
+	}
+	else
+	{
+		ASSERT(false);
+		m_num_cpus = 0;
+	}
+
+	//
+	// Reset the thread manager
+	//
+	m_thread_manager->clear();
+
+	//
+	// Basic inits
+	//
+#ifdef GATHER_INTERNAL_STATS
+	m_stats.clear();
+#endif
+
+	m_tid_to_remove = -1;
+	m_lastevent_ts = 0;
+#ifdef HAS_FILTERING
+	m_firstevent_ts = 0;
+#endif
+	m_fds_to_remove->clear();
+	m_n_proc_lookups = 0;
+
+	import_ifaddr_list();
+	import_thread_table();
+	import_user_list();
+
+#ifdef HAS_ANALYZER
+	//
+	// Notify the analyzer that we're starting
+	//
+	if(m_analyzer)
+	{
+		m_analyzer->on_capture_start();
+	}
+#endif
+
+	//
+	// If m_snaplen was modified, we set snaplen now
+	//
+	if (m_snaplen != DEFAULT_SNAPLEN)
+	{
+		set_snaplen(m_snaplen);
 	}
 }
 
@@ -286,60 +344,6 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 {
 	ASSERT(m_network_interfaces);
 	m_network_interfaces->import_ipv4_interface(ifinfo);
-}
-
-void sinsp::init()
-{
-	//
-	// Retrieve machine information
-	//
-	m_machine_info = scap_get_machine_info(m_h);
-	if(m_machine_info != NULL)
-	{
-		m_num_cpus = m_machine_info->num_cpus;
-	}
-	else
-	{
-		ASSERT(false);
-		m_num_cpus = 0;
-	}
-
-	//
-	// Reset the thread manager
-	//
-	m_thread_manager->clear();
-
-	//
-	// Basic inits
-	//
-#ifdef GATHER_INTERNAL_STATS
-	m_stats.clear();
-#endif
-
-	m_tid_to_remove = -1;
-	m_lastevent_ts = 0;
-
-	import_ifaddr_list();
-	import_thread_table();
-	import_user_list();
-
-#ifdef HAS_ANALYZER
-	//
-	// Notify the analyzer that we're starting
-	//
-	if(m_analyzer)
-	{
-		m_analyzer->on_capture_start();
-	}
-#endif
-
-	//
-	// If m_snaplen was modified, we set snaplen now
-	//
-	if (m_snaplen != DEFAULT_SNAPLEN)
-	{
-		set_snaplen(m_snaplen);
-	}
 }
 
 bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
