@@ -302,7 +302,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	// (many kernel thread), we don't look for /proc
 	//
 	bool query_os;
-	if(etype == PPME_CLONE_X || PPME_SCHEDSWITCHEX_E)
+	if(etype == PPME_CLONE_X || etype == PPME_SCHEDSWITCHEX_E)
 	{
 		query_os = false;
 	}
