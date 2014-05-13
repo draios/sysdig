@@ -1077,7 +1077,11 @@ static int get_tracepoint_handles(void)
 }
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
 static char *ppm_devnode(struct device *dev, umode_t *mode)
+#else
+static char *ppm_devnode(struct device *dev, mode_t *mode)
+#endif
 {
 	if (mode)
 	{
