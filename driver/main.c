@@ -1077,6 +1077,20 @@ static int get_tracepoint_handles(void)
 }
 #endif
 
+static char *ppm_devnode(struct device *dev, umode_t *mode)
+{
+	if (mode)
+	{
+		*mode = 0400;
+
+		if (dev)
+			if (MINOR(dev->devt) == g_ppm_numdevs)
+				*mode = 0222;
+	}
+	
+	return NULL;
+}
+
 /* static int ppm_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data) */
 /* { */
 /* int len = 0; */
@@ -1152,6 +1166,8 @@ int sysdig_init(void)
 		ret = -EFAULT;
 		goto init_module_err;
 	}
+
+	g_ppm_class->devnode = ppm_devnode;
 
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
