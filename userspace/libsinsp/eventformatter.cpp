@@ -206,7 +206,11 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 			if(str && fi && fi->m_name) 
 			{
-				m_root[fi->m_name] = str;
+				if(fi->m_print_format == PF_DEC) {
+					m_root[fi->m_name] = atoll(str);
+				} else {
+					m_root[fi->m_name] = str;
+				}
 			} 
 
 		} 
