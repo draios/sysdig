@@ -530,8 +530,6 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	snaplen = g_snaplen;
 
 	{
-		struct file *file;
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 		int fd;
 		struct fd f;
@@ -549,6 +547,7 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 		}
 #else
 		int fd;
+		struct file *file;
 
 		syscall_get_arguments(current, args->regs, 0, 1, &val);
 		fd = (int)val;
