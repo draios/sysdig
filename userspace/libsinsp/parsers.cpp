@@ -966,7 +966,15 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//
 	// Populate the new fdi
 	//
-	fdi.m_type = SCAP_FD_FILE;
+	if(flags & PPM_O_DIRECTORY)
+	{
+		fdi.m_type = SCAP_FD_DIRECTORY;
+	}
+	else
+	{
+		fdi.m_type = SCAP_FD_FILE;		
+	}
+
 	fdi.m_openflags = flags;
 	fdi.add_filename(sdir.c_str(),
 		sdir.length(),

@@ -35,7 +35,7 @@ extern sinsp_evttables g_infotables;
 const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 {
 	{PT_INT64, EPF_NONE, PF_DEC, "fd.num", "the unique number identifying the file descriptor."},
-	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.type", "type of FD. Can be 'file', 'ipv4', 'ipv6', 'unix', 'pipe', 'event', 'signalfd', 'eventpoll', 'inotify' or 'signalfd'."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.type", "type of FD. Can be 'file', 'directory', ipv4', 'ipv6', 'unix', 'pipe', 'event', 'signalfd', 'eventpoll', 'inotify' or 'signalfd'."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.typechar", "type of FD as a single character. Can be 'f' for file, 4 for IPv4 socket, 6 for IPv6 socket, 'u' for unix socket, p for pipe, 'e' for eventfd, 's' for signalfd, 'l' for eventpoll, 'i' for inotify, 'o' for uknown."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.name", "FD full name. If the fd is a file, this field contains the full path. If the FD is a socket, this field contain the connection tuple."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.directory", "If the fd is a file, the directory that contains it."},
@@ -76,8 +76,9 @@ uint8_t* sinsp_filter_check_fd::extract_fdtype(sinsp_fdinfo_t* fdinfo)
 	switch(fdinfo->m_type)
 	{
 	case SCAP_FD_FILE:
-	case SCAP_FD_DIRECTORY:
 		return (uint8_t*)"file";
+	case SCAP_FD_DIRECTORY:
+		return (uint8_t*)"directory";
 	case SCAP_FD_IPV4_SOCK:
 	case SCAP_FD_IPV4_SERVSOCK:
 		return (uint8_t*)"ipv4";
@@ -380,17 +381,20 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = m_fdinfo->m_name;
 			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
 
-			size_t pos = m_tstr.rfind('/');
-			if(pos != string::npos)
+			if(m_fdinfo->is_file())
 			{
-				if(pos < m_tstr.size() - 1)
+				size_t pos = m_tstr.rfind('/');
+				if(pos != string::npos)
 				{
-					m_tstr.resize(pos + 1);
+					if(pos < m_tstr.size() - 1)
+					{
+						m_tstr.resize(pos + 1);
+					}
 				}
-			}
-			else
-			{
-				m_tstr = "/";
+				else
+				{
+					m_tstr = "/";
+				}
 			}
 
 			return (uint8_t*)m_tstr.c_str();
@@ -402,7 +406,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return extract_from_null_fd(evt, len);
 			}
 
-			if(m_fdinfo->m_type != SCAP_FD_FILE)
+			if(!m_fdinfo->is_file())
 			{
 				return NULL;
 			}
