@@ -152,11 +152,6 @@ const struct ppm_name_value shutdown_how[] = {
 	{0, 0},
 };
 
-const struct ppm_name_value openat_flags[] = {
-	{"AT_FDCWD", PPM_AT_FDCWD},
-	{0, 0},
-};
-
 const struct ppm_name_value rlimit_resources[] = {
 	{"RLIMIT_UNKNOWN", PPM_RLIMIT_UNKNOWN},
 	{"RLIMIT_RTTIME", PPM_RLIMIT_RTTIME},
