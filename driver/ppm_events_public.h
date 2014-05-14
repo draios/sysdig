@@ -904,7 +904,6 @@ extern const struct ppm_name_value futex_operations[];
 extern const struct ppm_name_value lseek_whence[];
 extern const struct ppm_name_value poll_flags[];
 extern const struct ppm_name_value shutdown_how[];
-extern const struct ppm_name_value openat_flags[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
 
