@@ -986,8 +986,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 	}
-	
-	if(m_fd_listener)
+
+	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
 	{
 		m_fd_listener->on_file_create(evt, fullpath);
 	}
