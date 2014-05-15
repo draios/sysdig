@@ -408,7 +408,13 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			{
 				return false;
 			}
-			else if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED)
+
+			if(evt->m_errorcode != 0 && m_fd_listener)
+			{
+				m_fd_listener->on_error(evt);
+			}
+			
+			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED)
 			{
 				//
 				// A close gets canceled when the same fd is created succesfully between
@@ -903,14 +909,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	fd = *(int64_t *)parinfo->m_val;
 
-	if(fd < 0)
-	{
-		//
-		// The syscall failed. Nothing to add to the table.
-		//
-		return;
-	}
-
 	//
 	// Parse the parameters, based on the event type
 	//
@@ -963,28 +961,36 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//ASSERT(parinfo->m_len == sizeof(uint32_t));
 	//mode = *(uint32_t*)parinfo->m_val;
 
-	//
-	// Populate the new fdi
-	//
-	if(flags & PPM_O_DIRECTORY)
-	{
-		fdi.m_type = SCAP_FD_DIRECTORY;
-	}
-	else
-	{
-		fdi.m_type = SCAP_FD_FILE;		
-	}
+	char fullpath[SCAP_MAX_PATH_SIZE];
+	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), sdir.length(), name, namelen);
 
-	fdi.m_openflags = flags;
-	fdi.add_filename(sdir.c_str(),
-		sdir.length(),
-		name,
-		namelen);
+	if(fd >= 0)
+	{
+		//
+		// Populate the new fdi
+		//
+		if(flags & PPM_O_DIRECTORY)
+		{
+			fdi.m_type = SCAP_FD_DIRECTORY;
+		}
+		else
+		{
+			fdi.m_type = SCAP_FD_FILE;		
+		}
 
-	//
-	// Add the fd to the table.
-	//
-	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+		fdi.m_openflags = flags;
+		fdi.add_filename(fullpath);
+
+		//
+		// Add the fd to the table.
+		//
+		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+	}
+	
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_file_create(evt, fullpath);
+	}
 }
 
 //

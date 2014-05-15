@@ -180,7 +180,7 @@ private:
 		FLAGS_IS_SOCKET_PIPE = (1 << 6),
 	};
 
-	void add_filename(const char* directory, uint32_t directorylen, const char* filename, uint32_t filenamelen);
+	void add_filename(const char* fullpath);
 
 	bool is_role_server()
 	{
