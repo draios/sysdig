@@ -244,7 +244,7 @@ public:
 	   before returning it. For example, and FD number will be converted into
 	   the correspondent file, TCP tuple, etc.
 	*/
-	string get_param_value_str(string& name, bool resolved = true);
+	string get_param_value_str(const string& name, bool resolved = true);
 
 	/*!
 	  \brief Return the event's category, based on the event type and the FD on
