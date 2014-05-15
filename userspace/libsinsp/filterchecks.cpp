@@ -378,6 +378,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return extract_from_null_fd(evt, len);
 			}
 
+			if(!(m_fdinfo->is_file() || m_fdinfo->is_directory()))
+			{
+				return NULL;
+			}
+
 			m_tstr = m_fdinfo->m_name;
 			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
 
