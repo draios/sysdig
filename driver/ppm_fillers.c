@@ -31,7 +31,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/futex.h>
 #include <linux/fs_struct.h>
 #include <linux/version.h>
-#include <linux/export.h>
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
