@@ -29,7 +29,7 @@ if [ ! -d "$BASELINEDIR" ]; then
 fi
 
 # Fields
-$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p\"*%fd.num %fd.type %fd.typechar %fd.name %fd.directory %fd.cip %fd.sip %fd.cport %fd.sport %fd.l4proto %fd.sockfamily %fd.is_server\"" $TRACEDIR $RESULTDIR/fd_fields $BASELINEDIR/fd_fields
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p\"*%fd.num %fd.type %fd.typechar %fd.name %fd.directory %fd.filename %fd.cip %fd.sip %fd.cport %fd.sport %fd.l4proto %fd.sockfamily %fd.is_server\"" $TRACEDIR $RESULTDIR/fd_fields $BASELINEDIR/fd_fields
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p%thread.exectime" $TRACEDIR $RESULTDIR/exetime $BASELINEDIR/exetime
 # Category: CPU Usage
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopprocs_cpu" $TRACEDIR $RESULTDIR/topprocs_cpu $BASELINEDIR/topprocs_cpu
