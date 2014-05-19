@@ -179,7 +179,7 @@ end
 function on_interval(ts_s, ts_ns, delta)	
 	if vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
-		terminal.goto(0, 0)
+		terminal.moveto(0, 0)
 	end
 	
 	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
@@ -193,7 +193,7 @@ end
 function on_capture_end(ts_s, ts_ns, delta)
 	if islive and vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
-		terminal.goto(0 ,0)
+		terminal.moveto(0 ,0)
 		terminal.showcursor()
 		return true
 	end

@@ -74,7 +74,7 @@ function ansiterminal.clearscreen()
     io.write(schar(27) .. '[' .. "2J")
 end
 
-function ansiterminal.goto(x, y)
+function ansiterminal.moveto(x, y)
     io.write(schar(27) .. '[' .. tostring(x) .. ";" .. tostring(y) .. 'H')
 end
 
