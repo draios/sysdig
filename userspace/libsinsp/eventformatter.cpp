@@ -199,22 +199,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 			if(fi && fi->m_name) 
 			{
-				if(str == NULL)
-				{
-					m_root[fi->m_name] = Json::Value::null;
-				}
-				else if(fi->m_type == PT_BOOL) 
-				{
-					m_root[fi->m_name] = (str[0] == 't');
-				} 
-				else if(fi->m_print_format == PF_DEC) 
-				{
-					m_root[fi->m_name] = atoll(str);
-				} 
-				else 
-				{
-					m_root[fi->m_name] = str;
-				}
+				m_root[fi->m_name] = m_tokens[j]->tojson(evt);
 			} 
 
 		} 
@@ -255,7 +240,8 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 		(*res) = res->substr(0, res->size() - 1);
 	}
 
-	if(m_first) {
+	if(m_first) 
+	{
 		m_first = false;
 	}
 

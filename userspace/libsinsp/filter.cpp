@@ -284,6 +284,154 @@ void sinsp_filter_check::set_inspector(sinsp* inspector)
 	m_inspector = inspector;
 }
 
+Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+{
+	ASSERT(rawval != NULL);
+	ASSERT(finfo != NULL);
+
+	switch(finfo->m_type)
+	{
+		case PT_INT8:
+			if(finfo->m_print_format == PF_DEC)
+			{
+				return *(int8_t *)rawval;
+			}
+			else if(finfo->m_print_format == PF_HEX)
+			{
+				return rawval_to_string(rawval, finfo, len);
+			}
+			else
+			{
+				ASSERT(false);
+				return Json::Value::null;
+			}
+
+		case PT_INT16:
+			if(finfo->m_print_format == PF_DEC)
+			{
+				return *(int16_t *)rawval;
+			}
+			else if(finfo->m_print_format == PF_HEX)
+			{
+				return rawval_to_string(rawval, finfo, len);
+			}
+			else
+			{
+				ASSERT(false);
+				return Json::Value::null;
+			}
+
+		case PT_INT32:
+			if(finfo->m_print_format == PF_DEC)
+			{
+				return *(int32_t *)rawval;
+			}
+			else if(finfo->m_print_format == PF_HEX)
+			{
+				return rawval_to_string(rawval, finfo, len);
+			}
+			else
+			{
+				ASSERT(false);
+				return Json::Value::null;
+			}
+
+		case PT_INT64:
+		case PT_PID:
+			if(finfo->m_print_format == PF_DEC)
+			{
+		 		return (Json::Value::Int64)*(int64_t *)rawval;
+			}
+			else 
+			{
+				return rawval_to_string(rawval, finfo, len);
+			}
+
+		case PT_L4PROTO: // This can be resolved in the future
+		case PT_UINT8:
+			if(finfo->m_print_format == PF_DEC)
+			{
+				return *(uint8_t *)rawval;
+			}
+			else if(finfo->m_print_format == PF_HEX)
+			{
+				return rawval_to_string(rawval, finfo, len);
+			}
+			else
+			{
+				ASSERT(false);
+				return Json::Value::null;
+			}
+
+		case PT_PORT: // This can be resolved in the future
+		case PT_UINT16:
+			if(finfo->m_print_format == PF_DEC)
+			{
+				return *(uint16_t *)rawval;
+			}
+			else if(finfo->m_print_format == PF_HEX)
+			{
+				return rawval_to_string(rawval, finfo, len);
+			}
+			else
+			{
+				ASSERT(false);
+				return Json::Value::null;
+			}
+
+		case PT_UINT32:
+			if(finfo->m_print_format == PF_DEC)
+			{
+				return *(uint32_t *)rawval;
+			}
+			else if(finfo->m_print_format == PF_HEX)
+			{
+				return rawval_to_string(rawval, finfo, len);
+			}
+			else
+			{
+				ASSERT(false);
+				return Json::Value::null;
+			}
+
+		case PT_UINT64:
+		case PT_RELTIME:
+		case PT_ABSTIME:
+			if(finfo->m_print_format == PF_DEC)
+			{
+				return (Json::Value::UInt64)*(uint64_t *)rawval;
+			}
+			else if(
+				finfo->m_print_format == PF_10_PADDED_DEC ||
+				finfo->m_print_format == PF_HEX)
+			{
+				return rawval_to_string(rawval, finfo, len);
+			}
+			else
+			{
+				ASSERT(false);
+				return Json::Value::null;
+			}
+
+		case PT_SOCKADDR:
+		case PT_SOCKFAMILY:
+			ASSERT(false);
+			return Json::Value::null;
+
+		case PT_BOOL:
+			return Json::Value((bool)(*(uint32_t*)rawval != 0));
+
+		case PT_CHARBUF:
+		case PT_BYTEBUF:
+		case PT_IPV4ADDR:
+			return rawval_to_string(rawval, finfo, len);
+
+		default:
+			ASSERT(false);
+			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
+	}
+}
+
 char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
 {
 	char* prfmt;
@@ -607,6 +755,18 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 	}
 
 	return rawval_to_string(rawval, m_field, len);
+}
+
+Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
+{
+	uint32_t len;
+	uint8_t* rawval = extract(evt, &len);
+
+	if(rawval == NULL)
+	{
+		return Json::Value::null;
+	}
+	return rawval_to_json(rawval, m_field, len);
 }
 
 int32_t sinsp_filter_check::parse_field_name(const char* str)

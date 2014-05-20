@@ -802,6 +802,20 @@ char* sinsp_filter_check_fd::tostring(sinsp_evt* evt)
 	return rawval_to_string(rawval, m_field, len);
 }
 
+Json::Value sinsp_filter_check_fd::tojson(sinsp_evt* evt)
+{
+	uint32_t len;
+
+	uint8_t* rawval = extract(evt, &len);
+
+	if(rawval == NULL)
+	{
+		return Json::Value::null;
+	}
+
+	return rawval_to_json(rawval, m_field, len);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_thread implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -1809,6 +1823,26 @@ char* sinsp_filter_check_event::tostring(sinsp_evt* evt)
 	else
 	{
 		return sinsp_filter_check::tostring(evt);
+	}
+}
+
+Json::Value sinsp_filter_check_event::tojson(sinsp_evt* evt)
+{
+	if(m_field_id == TYPE_ARGRAW)
+	{
+		uint32_t len;
+		uint8_t* rawval = extract(evt, &len);
+
+		if(rawval == NULL)
+		{
+			return Json::Value::null;
+		}
+
+		return rawval_to_json(rawval, &m_customfield, len);
+	}
+	else
+	{
+		return sinsp_filter_check::tojson(evt);
 	}
 }
 
