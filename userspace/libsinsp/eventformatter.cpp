@@ -187,28 +187,32 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 			continue;
 		}
 
-		if(str == NULL)
+		if(str == NULL && m_require_all_values)
 		{
-			if(m_require_all_values)
-			{
-				retval = false;
-				continue;
-			}
-			else
-			{
-				str = (char*)"<NA>";
-			}
+			retval = false;
+			continue;
 		}
 
 		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 		{
 			fi = m_tokens[j]->get_field_info();
 
-			if(str && fi && fi->m_name) 
+			if(fi && fi->m_name) 
 			{
-				if(fi->m_print_format == PF_DEC) {
+				if(str == NULL)
+				{
+					m_root[fi->m_name] = Json::Value::null;
+				}
+				else if(fi->m_type == PT_BOOL) 
+				{
+					m_root[fi->m_name] = (str[0] == 't');
+				} 
+				else if(fi->m_print_format == PF_DEC) 
+				{
 					m_root[fi->m_name] = atoll(str);
-				} else {
+				} 
+				else 
+				{
 					m_root[fi->m_name] = str;
 				}
 			} 
@@ -216,6 +220,11 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 		} 
 		else 
 		{
+			if(str == NULL)
+			{
+				str = (char*)"<NA>";
+			}
+
 			uint32_t tks = m_tokenlens[j];
 
 			if(tks != 0)
