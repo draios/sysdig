@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include "third-party/jsoncpp/json/json.h"
 
 class sinsp_filter_check;
 
@@ -56,6 +57,15 @@ public:
 	*/
 	bool tostring(sinsp_evt* evt, OUT string* res);
 
+	/*!
+	  \brief Fills res with end of capture string rendering of the event.
+	  \param res Pointer to the string that will be filled with the result. 
+
+	  \return true if there is a string to show (based on the format),
+	   false otherwise.
+	*/
+	bool on_capture_end(OUT string* res);
+
 private:
 	void set_format(const string& fmt);
 	vector<sinsp_filter_check*> m_tokens;
@@ -63,6 +73,11 @@ private:
 	sinsp* m_inspector;
 	bool m_require_all_values;
 	vector<sinsp_filter_check*> m_chks_to_free;
+
+	// Is this the first to_string call?
+	bool m_first;
+	Json::Value m_root;
+	Json::FastWriter m_writer;
 };
 
 /*@}*/

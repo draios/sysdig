@@ -31,6 +31,7 @@ extern sinsp_filter_check_list g_filterlist;
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
 {
 	m_inspector = inspector;
+	m_first = true;
 	set_format(fmt);
 }
 
@@ -155,9 +156,22 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	}
 }
 
+bool sinsp_evt_formatter::on_capture_end(OUT string* res)
+{
+	res->clear();
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	{
+		(*res) = ']';
+	}
+
+	return res->size() > 0;
+}
+
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	bool retval = true;
+	const filtercheck_field_info* fi;
+
 	uint32_t j = 0;
 	vector<sinsp_filter_check*>::iterator it;
 	res->clear();
@@ -166,38 +180,77 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 	for(j = 0; j < m_tokens.size(); j++)
 	{
-		char* str = m_tokens[j]->tostring(evt);
-
 		if(retval == false)
 		{
 			continue;
 		}
 
-		if(str == NULL)
+		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 		{
-			if(m_require_all_values)
+			Json::Value json_value = m_tokens[j]->tojson(evt);
+
+			if(json_value == Json::Value::null && m_require_all_values)
 			{
 				retval = false;
 				continue;
 			}
+
+			fi = m_tokens[j]->get_field_info();
+
+			if(fi && fi->m_name) 
+			{
+				m_root[fi->m_name] = m_tokens[j]->tojson(evt);
+			} 
+		} 
+		else 
+		{
+			char* str = m_tokens[j]->tostring(evt);
+
+			if(str == NULL) 
+			{
+				if (m_require_all_values)
+				{
+					retval = false;
+					continue;
+				}
+				else 
+				{
+					str = (char*)"<NA>";
+				}
+			}
+
+			uint32_t tks = m_tokenlens[j];
+
+			if(tks != 0)
+			{
+				string sstr(str);
+				sstr.resize(tks, ' ');
+				(*res) += sstr;
+			}
 			else
 			{
-				str = (char*)"<NA>";
+				(*res) += str;
 			}
 		}
+	}
 
-		uint32_t tks = m_tokenlens[j];
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	{
+		if(m_first) 
+		{
+			// Give it the opening stanza of a JSON array
+			(*res) = '[';
+			m_first = false;
+		} 
+		else 
+		{
+			// Otherwise say this is another object in an
+			// existing JSON array
+			(*res) = ",\n";
+		}
 
-		if(tks != 0)
-		{
-			string sstr(str);
-			sstr.resize(tks, ' ');
-			(*res) += sstr;
-		}
-		else
-		{
-			(*res) += str;
-		}
+		(*res) += m_writer.write( m_root );
+		(*res) = res->substr(0, res->size() - 1);
 	}
 
 	return retval;

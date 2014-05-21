@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include "third-party/jsoncpp/json/json.h"
 
 #ifdef HAS_FILTERING
 
@@ -89,6 +90,15 @@ public:
 	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len) = 0;
 
 	//
+	// Extract the field as json from the event (by default, fall
+	// back to the regular extract functionality)
+	//
+	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+	{
+		return Json::Value::null;
+	}
+
+	//
 	// Compare the field with the constant value obtained from parse_filter_value()
 	//
 	virtual bool compare(sinsp_evt *evt);
@@ -98,12 +108,19 @@ public:
 	//
 	virtual char* tostring(sinsp_evt* evt);
 
+	//
+	// Extract the value from the event and convert it into a Json value
+	// or object
+	//
+	virtual Json::Value tojson(sinsp_evt* evt);
+
 	sinsp* m_inspector;
 	boolop m_boolop;
 	ppm_cmp_operator m_cmpop;
 
 protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
+	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
@@ -238,6 +255,7 @@ public:
 	bool compare_port(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
 	char* tostring(sinsp_evt* evt);
+	Json::Value tojson(sinsp_evt* evt);
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
@@ -352,8 +370,10 @@ public:
 	void parse_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 	char* tostring(sinsp_evt* evt);
+	Json::Value tojson(sinsp_evt* evt);
 
 	uint64_t m_first_ts;
 	uint64_t m_u64val;

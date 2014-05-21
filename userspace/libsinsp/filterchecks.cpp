@@ -811,6 +811,20 @@ char* sinsp_filter_check_fd::tostring(sinsp_evt* evt)
 	return rawval_to_string(rawval, m_field, len);
 }
 
+Json::Value sinsp_filter_check_fd::tojson(sinsp_evt* evt)
+{
+	uint32_t len;
+
+	uint8_t* rawval = extract(evt, &len);
+
+	if(rawval == NULL)
+	{
+		return Json::Value::null;
+	}
+
+	return rawval_to_json(rawval, m_field, len);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_thread implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -1415,6 +1429,142 @@ uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 	}
 }
 
+Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+{
+	switch(m_field_id)
+	{
+	case TYPE_TIME:
+	case TYPE_TIME_S:
+	case TYPE_DATETIME:
+		return (Json::Value::Int64)evt->get_ts();
+
+	case TYPE_RAWTS:
+	case TYPE_RAWTS_S:
+	case TYPE_RAWTS_NS:
+	case TYPE_RELTS:
+	case TYPE_RELTS_S:
+	case TYPE_RELTS_NS:
+	case TYPE_LATENCY:
+	case TYPE_LATENCY_S:
+	case TYPE_LATENCY_NS:
+		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
+
+	case TYPE_ARGS:
+		{
+			if(evt->get_type() == PPME_GENERIC_E || evt->get_type() == PPME_GENERIC_X)
+			{
+				//
+				// Don't print the arguments for generic events: they have only internal use
+				//
+				return (uint8_t*)"";
+			}
+
+			const char* resolved_argstr = NULL;
+			uint32_t nargs = evt->get_num_params();
+			m_strstorage.clear();
+
+			Json::Value root;
+			Json::Value value;
+			for(uint32_t j = 0; j < nargs; j++)
+			{
+				ASSERT(m_inspector != NULL);
+
+				evt->get_param_as_str(j, &resolved_argstr, m_inspector->get_buffer_format());
+				value = evt->get_param_as_json(j, &resolved_argstr, m_inspector->get_buffer_format());
+
+				if(resolved_argstr[0] == 0)
+				{
+					root[evt->get_param_name(j)] = value;
+				}
+				else
+				{
+					Json::Value arr_value(Json::arrayValue);
+					arr_value[0] = value;
+					arr_value[1] = resolved_argstr;
+					root[evt->get_param_name(j)] = arr_value;
+				}
+			}
+
+			return root;
+		}
+		break;
+	case TYPE_RESRAW:
+		{
+			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+
+			if(pi != NULL)
+			{
+				*len = pi->m_len;
+				return (uint8_t*)pi->m_val;
+			}
+
+			if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			{
+				pi = evt->get_param_value_raw("fd");
+
+				if(pi != NULL)
+				{
+					*len = pi->m_len;
+					return (uint8_t*)pi->m_val;
+				}
+			}
+
+			return Json::Value::null;
+		}
+		break;
+	case TYPE_RESSTR:
+		{
+			const char* resolved_argstr;
+			const char* argstr;
+
+			argstr = evt->get_param_value_str("res", &resolved_argstr);
+
+			if(resolved_argstr != NULL && resolved_argstr[0] != 0)
+			{
+				return (uint8_t*)resolved_argstr;
+			}
+			else
+			{
+				if(argstr == NULL)
+				{
+					if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+					{
+						argstr = evt->get_param_value_str("fd", &resolved_argstr);
+
+						if(resolved_argstr != NULL && resolved_argstr[0] != 0)
+						{
+							return (uint8_t*)resolved_argstr;
+						}
+						else
+						{
+							return (uint8_t*)argstr;
+						}
+					}
+					else
+					{
+						return Json::Value::null;
+					}
+				}
+				else
+				{
+					return (uint8_t*)argstr;
+				}
+			}
+		}
+		break;
+
+	case TYPE_COUNT:
+		m_u32val = 1;
+		return m_u32val;
+
+	default:
+		ASSERT(false);
+		return Json::Value::null;
+	}
+
+	return Json::Value::null;
+}
+
 uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	switch(m_field_id)
@@ -1838,6 +1988,36 @@ char* sinsp_filter_check_event::tostring(sinsp_evt* evt)
 	else
 	{
 		return sinsp_filter_check::tostring(evt);
+	}
+}
+
+Json::Value sinsp_filter_check_event::tojson(sinsp_evt* evt)
+{
+	uint32_t len;
+	Json::Value jsonval = extract_as_js(evt, &len);
+
+	if(jsonval == Json::Value::null) 
+	{
+		if(m_field_id == TYPE_ARGRAW)
+		{
+			uint32_t len;
+			uint8_t* rawval = extract(evt, &len);
+
+			if(rawval == NULL)
+			{
+				return Json::Value::null;
+			}
+
+			return rawval_to_json(rawval, &m_customfield, len);
+		}
+		else
+		{
+			return sinsp_filter_check::tojson(evt);
+		}
+	} 
+	else 
+	{
+		return jsonval;
 	}
 }
 

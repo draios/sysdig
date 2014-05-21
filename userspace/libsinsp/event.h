@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include "third-party/jsoncpp/json/json.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -267,6 +268,8 @@ private:
 	void set_iosize(uint32_t size);
 	uint32_t get_iosize();
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
+	Json::Value get_param_as_json(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
+
 	const char* get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
 	void init();
@@ -275,6 +278,7 @@ private:
 	string get_param_value_str(uint32_t id, bool resolved);
 	string get_param_value_str(const char* name, bool resolved = true);
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
+	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 
 VISIBILITY_PRIVATE
 
