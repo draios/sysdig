@@ -1420,16 +1420,6 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_LATENCY_NS:
 		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
 
-	case TYPE_DIR:
-	case TYPE_TYPE:
-	case TYPE_NUMBER:
-	case TYPE_CPU:
-	case TYPE_ARGRAW:
-
-	case TYPE_ARGSTR:
-		return extract(evt, len);
-		break;
-
 	case TYPE_ARGS:
 		{
 			if(evt->get_type() == PPME_GENERIC_E || evt->get_type() == PPME_GENERIC_X)
@@ -1534,14 +1524,6 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 			}
 		}
 		break;
-	case TYPE_BUFFER:
-	case TYPE_FAILED:
-	case TYPE_ISIO:
-	case TYPE_ISIO_READ:
-	case TYPE_ISIO_WRITE:
-	case TYPE_IODIR:
-	case TYPE_ISWAIT:
-		return extract(evt, len);
 
 	case TYPE_COUNT:
 		m_u32val = 1;
@@ -1983,26 +1965,31 @@ char* sinsp_filter_check_event::tostring(sinsp_evt* evt)
 
 Json::Value sinsp_filter_check_event::tojson(sinsp_evt* evt)
 {
-	if(m_field_id == TYPE_ARGS)
-	{
-		uint32_t len;
-		return extract_as_js(evt, &len);
-	}
-	else if(m_field_id == TYPE_ARGRAW)
-	{
-		uint32_t len;
-		uint8_t* rawval = extract(evt, &len);
+	uint32_t len;
+	Json::Value jsonval = extract_as_js(evt, &len);
 
-		if(rawval == NULL)
+	if(jsonval == Json::Value::null) 
+	{
+		if(m_field_id == TYPE_ARGRAW)
 		{
-			return Json::Value::null;
-		}
+			uint32_t len;
+			uint8_t* rawval = extract(evt, &len);
 
-		return rawval_to_json(rawval, &m_customfield, len);
-	}
-	else
+			if(rawval == NULL)
+			{
+				return Json::Value::null;
+			}
+
+			return rawval_to_json(rawval, &m_customfield, len);
+		}
+		else
+		{
+			return sinsp_filter_check::tojson(evt);
+		}
+	} 
+	else 
 	{
-		return sinsp_filter_check::tojson(evt);
+		return jsonval;
 	}
 }
 

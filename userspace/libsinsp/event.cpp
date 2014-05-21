@@ -715,26 +715,10 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				         "%s", errstr.c_str());
 			}
 		} 
-		// Otherwise return the numeric.
-		else 
-		{
-			return (Json::Value::Int64)val;
-		}
+		ret = (Json::Value::Int64)val;
 	}
 	break;
-	case PT_CHARBUF:
-		//
-		// Make sure the string will fit
-		//
-		if(param->m_len > m_paramstr_storage.size())
-		{
-			m_paramstr_storage.resize(param->m_len);
-		}
 
-		snprintf(&m_paramstr_storage[0],
-		         m_paramstr_storage.size(),
-		         "%s", param->m_val);
-		break;
 	case PT_FD:
 		// We use the string extractor to get 
 		// the resolved path, but use our routine
@@ -743,6 +727,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		ret = (Json::Value::UInt64)*(int64_t *)param->m_val;
 		break;
 
+	case PT_CHARBUF:
 	case PT_FSPATH:
 	case PT_BYTEBUF:
 	case PT_SOCKADDR:
@@ -766,8 +751,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				//
 				// Let's do this right ... 
 				//
-				Json::Value source(Json::arrayValue);
-				Json::Value dest(Json::arrayValue);
+				Json::Value source;
+				Json::Value dest;
 
 				int ipv4_len = (3 + 1) * 4 + 1;
 				char ipv4_addr[ ipv4_len ];
@@ -783,7 +768,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				);
 
 				// we are of course, presuming a copy here.
-				source["addr"] = ipv4_addr;
+				source["addr"] = string(ipv4_addr);
 				source["port"] = *(uint16_t*)(param->m_val + 5);
 
 				snprintf(
@@ -796,7 +781,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				         (unsigned int)(uint8_t)param->m_val[10]
 				);
 
-				dest["addr"] = ipv4_addr;
+
+				dest["addr"] = string(ipv4_addr);
 				dest["port"] = *(uint16_t*)(param->m_val + 11);
 
 				ret["src"] = source;

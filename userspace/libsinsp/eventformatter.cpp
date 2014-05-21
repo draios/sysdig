@@ -236,6 +236,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 	{
+//		/*
 		if(m_first) {
 			// Give it the opening stanza of a JSON array
 			(*res) = '[';
@@ -244,7 +245,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 			// existing JSON array
 			(*res) = ',';
 		}
-
+//		*/
 		(*res) += m_writer.write( m_root );
 		(*res) = res->substr(0, res->size() - 1);
 	}

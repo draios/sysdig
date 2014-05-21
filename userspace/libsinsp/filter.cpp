@@ -760,13 +760,19 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 {
 	uint32_t len;
-	uint8_t* rawval = extract(evt, &len);
+	Json::Value jsonval = extract_as_js(evt, &len);
 
-	if(rawval == NULL)
+	if(jsonval == Json::Value::null) 
 	{
-		return Json::Value::null;
-	}
-	return rawval_to_json(rawval, m_field, len);
+		uint8_t* rawval = extract(evt, &len);
+		if(rawval == NULL)
+		{
+			return Json::Value::null;
+		}
+		return rawval_to_json(rawval, m_field, len);
+	} 
+	
+	return jsonval;
 }
 
 int32_t sinsp_filter_check::parse_field_name(const char* str)
