@@ -740,6 +740,11 @@ int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_length)
 
 	tinfo.fdlist = NULL;
 	tinfo.flags = 0;
+	tinfo.vmsize_kb = 0;
+	tinfo.vmrss_kb = 0;
+	tinfo.vmswap_kb = 0;
+	tinfo.pfmajor = 0;
+	tinfo.pfminor = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{

@@ -140,6 +140,11 @@ public:
 	uint32_t m_uid; ///< user id
 	uint32_t m_gid; ///< group id
 	uint64_t m_nchilds; ///< When this is 0 the process can be deleted
+	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
+	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
+	uint32_t m_vmswap_kb; ///< swapped memory (as kb).
+	uint64_t m_pfmajor; ///< number of major page faults since start.
+	uint64_t m_pfminor; ///< number of minor page faults since start.
 
 	//
 	// State for multi-event processing
@@ -149,11 +154,6 @@ public:
 	uint64_t m_prevevent_ts; ///< timestamp of the event before the last for this thread.
 	uint64_t m_lastaccess_ts; ///< The last time this thread was looked up. Used when cleaning up the table. 
 	uint64_t m_clone_ts; ///< When the clone that started this process happened.
-	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
-	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
-	uint32_t m_vmswap_kb; ///< swapped memory (as kb).
-	uint64_t m_pfmajor; ///< number of major page faults since start.
-	uint64_t m_pfminor; ///< number of minor page faults since start.
 
 	thread_analyzer_info* m_ainfo;
 

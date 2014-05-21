@@ -194,6 +194,11 @@ typedef struct scap_threadinfo
 	uint32_t flags; ///< the process flags.
 	uint32_t uid; ///< user id
 	uint32_t gid; ///< group id
+	uint32_t vmsize_kb; ///< total virtual memory (as kb)
+	uint32_t vmrss_kb; ///< resident non-swapped memory (as kb)
+	uint32_t vmswap_kb; ///< swapped memory (as kb)
+	uint64_t pfmajor; ///< number of major page faults since start
+	uint64_t pfminor; ///< number of minor page faults since start
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
