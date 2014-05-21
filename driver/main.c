@@ -48,6 +48,7 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Draios");
 
 #define PPM_DEVICE_NAME "sysdig"
+#define PPE_DEVICE_NAME PPM_DEVICE_NAME "-events"
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2)
@@ -93,6 +94,8 @@ static void record_event(enum ppm_event_type event_type,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next);
 
+static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
 #endif
@@ -120,6 +123,12 @@ static const struct file_operations g_ppm_fops = {
 	.owner = THIS_MODULE,
 };
 
+/* Events file operations */
+static const struct file_operations g_ppe_fops = {
+	.write = ppe_write,
+	.owner = THIS_MODULE,
+};
+
 /*
  * GLOBALS
  */
@@ -131,6 +140,9 @@ u32 g_sampling_ratio = 1;
 static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
+
+struct cdev *g_ppe_cdev = NULL;
+struct device *g_ppe_dev = NULL;
 
 static struct tracepoint *tp_sys_enter;
 static struct tracepoint *tp_sys_exit;
@@ -489,6 +501,11 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	pr_info("invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
 	return -EIO;
+}
+
+static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+	return count;
 }
 
 /* Argument list sizes for sys_socketcall */
@@ -920,7 +937,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, st
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next)
 #endif
 {
-	record_event(PPME_SCHEDSWITCH_E,
+	record_event(PPME_SCHEDSWITCHEX_E,
 		NULL,
 		-1,
 		0,
@@ -1059,6 +1076,25 @@ static int get_tracepoint_handles(void)
 	return 0;
 }
 #endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
+static char *ppm_devnode(struct device *dev, umode_t *mode)
+#else
+static char *ppm_devnode(struct device *dev, mode_t *mode)
+#endif
+{
+	if (mode)
+	{
+		*mode = 0400;
+
+		if (dev)
+			if (MINOR(dev->devt) == g_ppm_numdevs)
+				*mode = 0222;
+	}
+	
+	return NULL;
+}
+
 /* static int ppm_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data) */
 /* { */
 /* int len = 0; */
@@ -1119,8 +1155,9 @@ int sysdig_init(void)
 
 	/*
 	 * Initialize the user I/O
+	 * ( + 1 for sysdig-events)
 	 */
-	acrret = alloc_chrdev_region(&dev, 0, num_cpus, PPM_DEVICE_NAME);
+	acrret = alloc_chrdev_region(&dev, 0, num_cpus + 1, PPM_DEVICE_NAME);
 	if (acrret < 0) {
 		pr_err("could not allocate major number for %s\n", PPM_DEVICE_NAME);
 		ret = -ENOMEM;
@@ -1133,6 +1170,8 @@ int sysdig_init(void)
 		ret = -EFAULT;
 		goto init_module_err;
 	}
+
+	g_ppm_class->devnode = ppm_devnode;
 
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
@@ -1175,6 +1214,32 @@ int sysdig_init(void)
 
 	/* create_proc_read_entry(PPM_DEVICE_NAME, 0, NULL, ppm_read_proc, NULL); */
 
+	g_ppe_cdev = cdev_alloc();
+	if (g_ppe_cdev == NULL) {
+		pr_err("error allocating the device %s\n", PPE_DEVICE_NAME);
+		ret = -ENOMEM;
+		goto init_module_err;
+	}
+
+	cdev_init(g_ppe_cdev, &g_ppe_fops);
+
+	if (cdev_add(g_ppe_cdev, MKDEV(g_ppm_major, g_ppm_numdevs), 1) < 0) {
+		pr_err("could not allocate chrdev for %s\n", PPE_DEVICE_NAME);
+		ret = -EFAULT;
+		goto init_module_err;
+	}
+
+	g_ppe_dev = device_create(g_ppm_class, NULL,
+			MKDEV(g_ppm_major, g_ppm_numdevs),
+			NULL, /* no additional data */
+			PPE_DEVICE_NAME);
+
+	if (IS_ERR(g_ppe_dev)) {
+		pr_err("error creating the device for  %s\n", PPE_DEVICE_NAME);
+		ret = -EFAULT;
+		goto init_module_err;
+	}
+
 	/*
 	 * All ok. Final initalizations.
 	 */
@@ -1189,6 +1254,14 @@ init_module_err:
 			free_ring_buffer(per_cpu(g_ring_buffers, cpu));
 
 	/* remove_proc_entry(PPM_DEVICE_NAME, NULL); */
+
+	if (g_ppe_dev != NULL) {
+		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
+	}
+
+	if (g_ppe_cdev != NULL) {
+		cdev_del(g_ppe_cdev);
+	}
 
 	for (j = 0; j < n_created_devices; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
@@ -1223,10 +1296,19 @@ void sysdig_exit(void)
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
+	if (g_ppe_dev != NULL) {
+		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
+	}
+
+	if (g_ppe_cdev != NULL) {
+		cdev_del(g_ppe_cdev);
+	}
+
 	if (g_ppm_class)
 		class_destroy(g_ppm_class);
 
-	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs);
+	/* + 1 for sysdig-events */
+	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs + 1);
 
 	kfree(g_ppm_devs);
 

@@ -58,15 +58,23 @@ local function makecolor(name, value)
 	ansiterminal[name] = schar(27) .. '[' .. tostring(value) .. 'm'
 end
 
-for c, v in pairs(colors) do
-    makecolor(c, v)
+function ansiterminal.enable_color(enable_colors)
+    if enable_colors == true then
+        for c, v in pairs(colors) do
+            makecolor(c, v)
+        end
+    else
+        for name, v in pairs(colors) do
+            ansiterminal[name] = ""
+        end
+    end
 end
 
 function ansiterminal.clearscreen()
     io.write(schar(27) .. '[' .. "2J")
 end
 
-function ansiterminal.goto(x, y)
+function ansiterminal.moveto(x, y)
     io.write(schar(27) .. '[' .. tostring(x) .. ";" .. tostring(y) .. 'H')
 end
 

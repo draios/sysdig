@@ -237,6 +237,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SOCKET_SOCKETPAIR_X:
 		parse_socketpair_exit(evt);
 		break;
+	case PPME_SCHEDSWITCHEX_E:
+		parse_context_switch(evt);
+		break;
 	default:
 		break;
 	}
@@ -285,8 +288,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	// Ignore scheduler events
 	//
-	if((etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X) || 
-		etype == PPME_SCHEDSWITCHEX_E)
+	if(etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X)
 	{
 		return false;
 	}
@@ -296,10 +298,11 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 
 	//
-	// If we're exiting a clone, we don't look for /proc
+	// If we're exiting a clone or if we have a scheduler event
+	// (many kernel thread), we don't look for /proc
 	//
 	bool query_os;
-	if(etype == PPME_CLONE_X)
+	if(etype == PPME_CLONE_X || etype == PPME_SCHEDSWITCHEX_E)
 	{
 		query_os = false;
 	}
@@ -309,6 +312,12 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	}
 
 	evt->m_tinfo = evt->get_thread_info(query_os);
+
+	if(etype == PPME_SCHEDSWITCHEX_E)
+	{
+		return false;
+	}
+
 	if(!evt->m_tinfo)
 	{
 		if(etype == PPME_CLONE_X)
@@ -399,7 +408,13 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			{
 				return false;
 			}
-			else if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED)
+
+			if(evt->m_errorcode != 0 && m_fd_listener)
+			{
+				m_fd_listener->on_error(evt);
+			}
+			
+			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED)
 			{
 				//
 				// A close gets canceled when the same fd is created succesfully between
@@ -894,14 +909,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	fd = *(int64_t *)parinfo->m_val;
 
-	if(fd < 0)
-	{
-		//
-		// The syscall failed. Nothing to add to the table.
-		//
-		return;
-	}
-
 	//
 	// Parse the parameters, based on the event type
 	//
@@ -954,20 +961,36 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//ASSERT(parinfo->m_len == sizeof(uint32_t));
 	//mode = *(uint32_t*)parinfo->m_val;
 
-	//
-	// Populate the new fdi
-	//
-	fdi.m_type = SCAP_FD_FILE;
-	fdi.m_openflags = flags;
-	fdi.add_filename(sdir.c_str(),
-		sdir.length(),
-		name,
-		namelen);
+	char fullpath[SCAP_MAX_PATH_SIZE];
+	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), sdir.length(), name, namelen);
 
-	//
-	// Add the fd to the table.
-	//
-	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+	if(fd >= 0)
+	{
+		//
+		// Populate the new fdi
+		//
+		if(flags & PPM_O_DIRECTORY)
+		{
+			fdi.m_type = SCAP_FD_DIRECTORY;
+		}
+		else
+		{
+			fdi.m_type = SCAP_FD_FILE;		
+		}
+
+		fdi.m_openflags = flags;
+		fdi.add_filename(fullpath);
+
+		//
+		// Add the fd to the table.
+		//
+		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+	}
+
+	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
+	{
+		m_fd_listener->on_file_create(evt, fullpath);
+	}
 }
 
 //
@@ -2471,5 +2494,33 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt *evt)
 		//       For us it's ok to just overwrite it.
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
+	}
+}
+
+void sinsp_parser::parse_context_switch(sinsp_evt* evt)
+{
+	if(evt->m_tinfo)
+	{
+		sinsp_evt_param *parinfo;
+
+		parinfo = evt->get_param(1);
+		evt->m_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+
+		parinfo = evt->get_param(2);
+		evt->m_tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+
+		parinfo = evt->get_param(3);
+		evt->m_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+
+		parinfo = evt->get_param(4);
+		evt->m_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+
+		parinfo = evt->get_param(5);
+		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
 	}
 }

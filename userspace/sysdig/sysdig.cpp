@@ -359,6 +359,24 @@ static void chisels_do_timeout(sinsp_evt* ev)
 #endif
 }
 
+void handle_end_of_file(bool print_progress)
+{
+	//
+	// Reached the end of a trace file.
+	// If we are reporting prgress, this is 100%
+	//
+	if(print_progress)
+	{
+		fprintf(stderr, "100.00\n");
+		fflush(stderr);
+	}
+
+	//
+	// Notify the chisels that we're exiting.
+	//
+	chisels_on_capture_end();
+}
+
 //
 // Event processing loop
 //
@@ -422,21 +440,7 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 		else if(res == SCAP_EOF)
 		{
-			//
-			// Reached the end of a trace file.
-			// If we are reporting prgress, this is 100%
-			//
-			if(print_progress)
-			{
-				fprintf(stderr, "100.00\n");
-				fflush(stderr);
-			}
-
-			//
-			// Notify the chisels that we're exiting.
-			//
-			chisels_on_capture_end();
-
+			handle_end_of_file(print_progress);
 			break;
 		}
 		else if(res != SCAP_SUCCESS)
@@ -445,7 +449,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Event read error.
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
-			chisels_on_capture_end();
+			handle_end_of_file(print_progress);
 			cerr << "res = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
@@ -990,27 +994,7 @@ int main(int argc, char **argv)
 				{
 					open_success = true;
 
-					try
-					{
-						system("modprobe sysdig-probe > /dev/null 2> /dev/null");
-
-						inspector->open("");
-					}
-					catch(sinsp_exception e)
-					{
-						open_success = false;
-					}
-				}
-
-				//
-				// No luck with modprobe either.
-				// Maybe this is a version of sysdig that was compiled from the
-				// sources, so let's make one last attempt with insmod and the
-				// path to the driver directory.
-				//
-				if(!open_success)
-				{
-					system("insmod ../../driver/sysdig-probe.ko > /dev/null 2> /dev/null");
+					system("modprobe sysdig-probe > /dev/null 2> /dev/null");
 
 					inspector->open("");
 				}
@@ -1069,10 +1053,12 @@ int main(int argc, char **argv)
 	catch(sinsp_exception& e)
 	{
 		cerr << e.what() << endl;
+		handle_end_of_file(print_progress);
 		res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
+		handle_end_of_file(print_progress);
 		res = EXIT_FAILURE;
 	}
 

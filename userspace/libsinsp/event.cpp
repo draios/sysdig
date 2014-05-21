@@ -1691,7 +1691,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	return &m_paramstr_storage[0];
 }
 
-string sinsp_evt::get_param_value_str(string &name, bool resolved)
+string sinsp_evt::get_param_value_str(const string &name, bool resolved)
 {
 	for(uint32_t i = 0; i < get_num_params(); i++)
 	{

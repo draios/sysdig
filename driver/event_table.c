@@ -124,7 +124,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MKDIR_X */{"mkdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_RMDIR_E */{"rmdir", EC_FILE, EF_NONE, 1, {{"path", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_RMDIR_X */{"rmdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SYSCALL_OPENAT_E */{"openat", EC_FILE, (enum ppm_event_flags)(EF_CREATES_FD | EF_MODIFIES_STATE), 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, openat_flags}, {"mode", PT_UINT32, PF_HEX} } },
+	/* PPME_SYSCALL_OPENAT_E */{"openat", EC_FILE, (enum ppm_event_flags)(EF_CREATES_FD | EF_MODIFIES_STATE), 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_HEX} } },
 	/* PPME_SYSCALL_OPENAT_X */{"openat", EC_FILE, (enum ppm_event_flags)(EF_CREATES_FD | EF_MODIFIES_STATE), 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SYSCALL_LINK_E */{"link", EC_FILE, EF_NONE, 2, {{"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_LINK_X */{"link", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
@@ -174,6 +174,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_DROP_X */{"drop", EC_INTERNAL, EF_NONE, 1, {{"ratio", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_FCNTL_E */{"fcntl", EC_IO_OTHER, (enum ppm_event_flags)(EF_USES_FD | EF_MODIFIES_STATE), 2, {{"fd", PT_FD, PF_DEC}, {"cmd", PT_FLAGS8, PF_DEC, fcntl_commands} } },
 	/* PPME_SYSCALL_FCNTL_X */{"fcntl", EC_IO_OTHER, (enum ppm_event_flags)(EF_USES_FD | EF_MODIFIES_STATE), 1, {{"res", PT_FD, PF_DEC} } },
-	/* PPME_SCHEDSWITCHEX_E */{"switch", EC_SCHEDULER, EF_NONE, 5, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT32, PF_DEC}, {"pgft_min", PT_UINT32, PF_DEC}, {"next_pgft_maj", PT_UINT32, PF_DEC}, {"next_pgft_min", PT_UINT32, PF_DEC} } },
+	/* PPME_SCHEDSWITCHEX_E */{"switch", EC_SCHEDULER, EF_NONE, 6, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
 	/* PPME_SCHEDSWITCHEX_X */{"NA2", EC_SCHEDULER, EF_UNUSED, 0},
 };

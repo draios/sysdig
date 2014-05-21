@@ -28,16 +28,32 @@ args =
 		description = "the remote host IP address", 
 		argtype = "ipv4"
 	},
+
+        {
+                name = "disable_color",
+                description = "Set to 'disable_colors' if you want to disable color output",
+                argtype = "string",
+                optional = true
+        },
+
 }
 
 require "common"
 terminal = require "ansiterminal"
+terminal.enable_color(true)
 
 -- Argument notification callback
 function on_set_arg(name, val)
-	addr = val
-
-	return true
+    if name == "host_ip" then
+        addr = val
+        return true
+    elseif name == "disable_color" then
+        if val == "disable_colors" then
+            terminal.enable_color(false)
+        end
+        return true
+    end
+    return false
 end
 
 -- Initialization callback
