@@ -1558,7 +1558,6 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 		return m_u32val;
 
 	default:
-		ASSERT(false);
 		return Json::Value::null;
 	}
 
