@@ -2868,6 +2868,50 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+/*
+ * get_mm_counter was not inline and exported between 2.6.34 and 3.4.0
+ * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
+ * Hence the crap in these two functions
+ */
+unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
+{
+	long val = 0;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
+	val = get_mm_counter(mm, member);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
+	val = atomic_long_read(&mm->rss_stat.count[member]);
+
+	if (val < 0)
+		val = 0;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	val = get_mm_counter(mm, member);
+#endif
+
+	return val;
+}
+
+static unsigned long ppm_get_mm_swap(struct mm_struct *mm)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	return ppm_get_mm_counter(mm, MM_SWAPENTS);
+#endif
+	return 0;
+}
+
+static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
+	return get_mm_rss(mm);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
+	return ppm_get_mm_counter(mm, MM_FILEPAGES) +
+		ppm_get_mm_counter(mm, MM_ANONPAGES);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	return get_mm_rss(mm);
+#endif
+	return 0;
+}
+
 static int f_sched_switchex_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2905,10 +2949,8 @@ static int f_sched_switchex_e(struct event_filler_arguments *args)
 	mm = args->sched_prev->mm;
 	if(mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
-		total_rss = get_mm_rss(mm) << (PAGE_SHIFT-10);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-		swap = get_mm_counter(mm, MM_SWAPENTS) << (PAGE_SHIFT-10);
-#endif
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
 	}
 
 	/*
