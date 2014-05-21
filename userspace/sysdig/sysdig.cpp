@@ -538,7 +538,8 @@ captureinfo do_inspect(sinsp* inspector,
 					}
 				}
 
-				cout << line << endl;
+				cout << line;
+				cout.flush();
 			}
 		}
 	}

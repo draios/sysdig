@@ -236,23 +236,25 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 	{
-//		/*
-		if(m_first) {
+		if(m_first) 
+		{
 			// Give it the opening stanza of a JSON array
 			(*res) = '[';
-		} else {
+			m_first = false;
+		} 
+		else 
+		{
 			// Otherwise say this is another object in an
 			// existing JSON array
-			(*res) = ',';
+			(*res) = ",\n";
 		}
-//		*/
+
 		(*res) += m_writer.write( m_root );
 		(*res) = res->substr(0, res->size() - 1);
 	}
-
-	if(m_first) 
+	else
 	{
-		m_first = false;
+		(*res) += '\n';
 	}
 
 	return retval;
