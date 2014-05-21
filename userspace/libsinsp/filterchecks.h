@@ -90,6 +90,15 @@ public:
 	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len) = 0;
 
 	//
+	// Extract the field as json from the event (by default, fall
+	// back to the regular extract functionality)
+	//
+	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+	{
+		return extract(evt, len);
+	}
+
+	//
 	// Compare the field with the constant value obtained from parse_filter_value()
 	//
 	virtual bool compare(sinsp_evt *evt);
@@ -100,7 +109,7 @@ public:
 	virtual char* tostring(sinsp_evt* evt);
 
 	//
-	// Extract the value from the event and convert it into a JSON value
+	// Extract the value from the event and convert it into a Json value
 	// or object
 	//
 	virtual Json::Value tojson(sinsp_evt* evt);
@@ -356,6 +365,7 @@ public:
 	void parse_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 	char* tostring(sinsp_evt* evt);
 	Json::Value tojson(sinsp_evt* evt);

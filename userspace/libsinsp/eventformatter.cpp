@@ -180,34 +180,43 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 	for(j = 0; j < m_tokens.size(); j++)
 	{
-		char* str = m_tokens[j]->tostring(evt);
-
 		if(retval == false)
 		{
 			continue;
 		}
 
-		if(str == NULL && m_require_all_values)
-		{
-			retval = false;
-			continue;
-		}
-
 		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 		{
+			Json::Value json_value = m_tokens[j]->tojson(evt);
+
+			if(json_value == Json::Value::null && m_require_all_values)
+			{
+				retval = false;
+				continue;
+			}
+
 			fi = m_tokens[j]->get_field_info();
 
 			if(fi && fi->m_name) 
 			{
 				m_root[fi->m_name] = m_tokens[j]->tojson(evt);
 			} 
-
 		} 
 		else 
 		{
-			if(str == NULL)
+			char* str = m_tokens[j]->tostring(evt);
+
+			if(str == NULL) 
 			{
-				str = (char*)"<NA>";
+				if (m_require_all_values)
+				{
+					retval = false;
+					continue;
+				}
+				else 
+				{
+					str = (char*)"<NA>";
+				}
 			}
 
 			uint32_t tks = m_tokenlens[j];
