@@ -484,6 +484,82 @@ uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 	return dstsize;
 }
 
+int sinsp_evt::render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt)
+{
+	sinsp_threadinfo* tinfo = get_thread_info();
+	if(tinfo == NULL)
+	{
+		return 0;
+	}
+
+	if(fd >= 0)
+	{
+		sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
+		if(fdinfo)
+		{
+			char tch = fdinfo->get_typechar();
+			char ipprotoch = 0;
+
+			if(fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+				fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
+				fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK ||
+				fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
+			{
+				scap_l4_proto l4p = fdinfo->get_l4proto();
+
+				switch(l4p)
+				{
+				case SCAP_L4_TCP:
+					ipprotoch = 't';
+					break;
+				case SCAP_L4_UDP:
+					ipprotoch = 'u';
+					break;
+				case SCAP_L4_ICMP:
+					ipprotoch = 'i';
+					break;
+				case SCAP_L4_RAW:
+					ipprotoch = 'r';
+					break;
+				default:
+					break;
+				}
+			}
+
+			char typestr[3] =
+			{
+				(fmt & PF_SIMPLE)?(char)0:tch,
+				ipprotoch,
+				0
+			};
+
+			//
+			// Make sure we remove invalid characters from the resolved name
+			//
+			string sanitized_str = fdinfo->m_name;
+
+			sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+
+			(*ret)["type"] = typestr;
+			(*ret)["path"] = sanitized_str;
+		}
+	}
+	else
+	{
+		//
+		// Resolve this as an errno
+		//
+		string errstr(sinsp_utils::errno_to_str((int32_t)fd));
+		if(errstr != "")
+		{
+			(*ret)["error"] = errstr;
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
 char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
 	//
@@ -597,7 +673,6 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 
 Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
-	uint32_t j;
 	ASSERT(id < m_info->nparams);
 	Json::Value ret;
 
@@ -666,11 +741,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_PID:
 		{
 			ASSERT(param->m_len == sizeof(int64_t));
-
-			snprintf(&m_paramstr_storage[0],
-					 m_paramstr_storage.size(),
-					 "%" PRId64, *(int64_t *)param->m_val);
-
+			ret = (Json::Value::UInt64)*(int64_t *)param->m_val;
 
 			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)param->m_val, false);
 			if(atinfo != NULL)
@@ -720,12 +791,16 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	break;
 
 	case PT_FD:
-		// We use the string extractor to get 
-		// the resolved path, but use our routine
-		// to get the actual value to return
-		get_param_as_str(id, resolved_str, fmt);
-		ret = (Json::Value::UInt64)*(int64_t *)param->m_val;
-		break;
+		{
+			// We use the string extractor to get 
+			// the resolved path, but use our routine
+			// to get the actual value to return
+			ASSERT(param->m_len == sizeof(int64_t));
+			int64_t fd = *(int64_t*)param->m_val;
+			render_fd_json(&ret, fd, resolved_str, fmt);
+			ret["no"] = (Json::Value::UInt64)*(int64_t *)param->m_val;
+			break;
+		}
 
 	case PT_CHARBUF:
 	case PT_FSPATH:
@@ -737,10 +812,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_SOCKTUPLE:
 		if(param->m_len == 0)
 		{
-			snprintf(&m_paramstr_storage[0],
-			         m_paramstr_storage.size(),
-			         "NULL");
-
+			ret = Json::Value::null;
 			break;
 		}
 
@@ -791,9 +863,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			else
 			{
 				ASSERT(false);
-				snprintf(&m_paramstr_storage[0],
-				         m_paramstr_storage.size(),
-				         "INVALID IPv4");
+				ret = "INVALID IPv4";
 			}
 		}
 		else if(param->m_val[0] == PPM_AF_INET6)
@@ -871,6 +941,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		}
 		break;
 	case PT_FDLIST:
+		ret = get_param_as_str(id, resolved_str, fmt);
+		/*
 		{
 			sinsp_threadinfo* tinfo = get_thread_info();
 			if(!tinfo)
@@ -917,6 +989,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				pos += 10;
 			}
 		}
+		*/
 		break;
 	case PT_SYSCALLID:
 		{
@@ -924,18 +997,15 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			if(scid >= PPM_SC_MAX)
 			{
 				ASSERT(false);
-				snprintf(&m_paramstr_storage[0],
-						 m_paramstr_storage.size(),
+				snprintf(&m_resolved_paramstr_storage[0],
+						 m_resolved_paramstr_storage.size(),
 						 "<unknown syscall>");
 				break;
 			}
 
 			const struct ppm_syscall_desc* desc = &(g_infotables.m_syscall_info_table[scid]);
 
-			snprintf(&m_paramstr_storage[0],
-				m_paramstr_storage.size(),
-				"%" PRIu16,
-				scid);
+			ret = scid;
 
 			snprintf(&m_resolved_paramstr_storage[0],
 				m_resolved_paramstr_storage.size(),
@@ -951,10 +1021,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			uint8_t val = *(uint8_t *)param->m_val;
 
 			sigstr = sinsp_utils::signal_to_str(val);
-
-			snprintf(&m_paramstr_storage[0],
-					 m_paramstr_storage.size(),
-					 "%" PRIu8, val);
+			ret = val;
 
 			if(sigstr)
 			{
@@ -966,14 +1033,9 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		break;
 	case PT_RELTIME:
 		{
-			string sigstr;
-
 			ASSERT(param->m_len == sizeof(uint64_t));
 			uint64_t val = *(uint64_t *)param->m_val;
-
-			snprintf(&m_paramstr_storage[0],
-					 m_paramstr_storage.size(),
-					 "%" PRIu64, val);
+			ret = (Json::Value::Int64)val;
 
 			snprintf(&m_resolved_paramstr_storage[0],
 						m_resolved_paramstr_storage.size(),
@@ -986,31 +1048,18 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_FLAGS32:
 		{
 			uint32_t val = *(uint32_t *)param->m_val & (((uint64_t)1 << param->m_len * 8) - 1);
-			snprintf(&m_paramstr_storage[0],
-				     m_paramstr_storage.size(),
-				     "%" PRIu32, val);
+			ret["val"] = val;
+			ret["flags"] = Json::arrayValue;
 
 			const struct ppm_name_value *flags = m_info->params[id].symbols;
-			const char *separator = "";
 			uint32_t initial_val = val;
-			uint32_t j = 0;
 
 			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
 			{
 				if((val & flags->value) == flags->value && val != 0)
 				{
-					if(m_resolved_paramstr_storage.size() < j + strlen(separator) + strlen(flags->name))
-					{
-						m_resolved_paramstr_storage.resize(m_resolved_paramstr_storage.size() * 2);
-					}
+					ret["flags"].append(flags->name);
 
-					j += snprintf(&m_resolved_paramstr_storage[j],
-								  m_resolved_paramstr_storage.size(),
-							 	  "%s%s",
-							 	  separator,
-							 	  flags->name);
-
-					separator = "|";
 					// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
 					val &= ~flags->value;
 				}
@@ -1020,11 +1069,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 			if(flags != NULL && flags->name != NULL)
 			{
-				j += snprintf(&m_resolved_paramstr_storage[j],
-							  m_resolved_paramstr_storage.size(),
-							  "%s%s",
-							  separator,
-							  flags->name);
+				ret["flags"].append(flags->name);
 			}
 
 			break;

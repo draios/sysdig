@@ -1431,7 +1431,6 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 			}
 
 			const char* resolved_argstr = NULL;
-			const char* argstr = NULL;
 			uint32_t nargs = evt->get_num_params();
 			m_strstorage.clear();
 
@@ -1441,7 +1440,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 			{
 				ASSERT(m_inspector != NULL);
 
-				argstr = evt->get_param_as_str(j, &resolved_argstr, m_inspector->get_buffer_format());
+				evt->get_param_as_str(j, &resolved_argstr, m_inspector->get_buffer_format());
 				value = evt->get_param_as_json(j, &resolved_argstr, m_inspector->get_buffer_format());
 
 				if(resolved_argstr[0] == 0)
