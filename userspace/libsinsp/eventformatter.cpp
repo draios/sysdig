@@ -252,10 +252,6 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 		(*res) += m_writer.write( m_root );
 		(*res) = res->substr(0, res->size() - 1);
 	}
-	else
-	{
-		(*res) += '\n';
-	}
 
 	return retval;
 }

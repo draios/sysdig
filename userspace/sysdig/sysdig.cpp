@@ -543,7 +543,10 @@ captureinfo do_inspect(sinsp* inspector,
 				}
 
 				cout << line;
-				cout.flush();
+				if( inspector->get_buffer_format() != sinsp_evt::PF_JSON)
+				{
+					cout << endl;
+				}
 			}
 		}
 	}
