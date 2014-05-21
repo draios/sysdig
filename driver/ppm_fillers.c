@@ -2869,7 +2869,7 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 }
 
 /*
- * get_mm_counter was not inline and exported between 2.6.34 and 3.4.0
+ * get_mm_counter was not inline and exported between 3.0 and 3.4
  * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
  * Hence the crap in these two functions
  */
