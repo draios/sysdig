@@ -178,13 +178,18 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		    sizeof(uint64_t) +	// fdlimit
 		    sizeof(uint32_t) +	// uid
 		    sizeof(uint32_t) +	// gid
+		    sizeof(uint32_t) +  // vmsize_kb
+		    sizeof(uint32_t) +  // vmrss_kb
+		    sizeof(uint32_t) +  // vmswap_kb
+		    sizeof(uint64_t) +  // pfmajor
+		    sizeof(uint64_t) +  // pfminor
 		    sizeof(uint32_t));
 	}
 
 	//
 	// Create the block
 	//
-	bh.block_type = PL_BLOCK_TYPE;
+	bh.block_type = PL_BLOCK_TYPE_V2;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
@@ -217,75 +222,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		        gzwrite(f, &(tinfo->fdlimit), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		        gzwrite(f, &(tinfo->flags), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		        gzwrite(f, &(tinfo->uid), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		        gzwrite(f, &(tinfo->gid), sizeof(uint32_t)) != sizeof(uint32_t))
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
-			return SCAP_FAILURE;
-		}
-	}
-
-	//
-	// Blocks need to be 4-byte padded
-	//
-	if(scap_write_padding(f, totlen) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (3)");
-		return SCAP_FAILURE;
-	}
-
-	//
-	// Create the trailer
-	//
-	bt = bh.block_total_length;
-	if(gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (4)");
-		return SCAP_FAILURE;
-	}
-
-	return SCAP_SUCCESS;
-}
-
-static int32_t scap_write_proc_memory_list(scap_t *handle, gzFile f)
-{
-	block_header bh;
-	uint32_t bt;
-	uint32_t totlen = 0;
-	struct scap_threadinfo *tinfo;
-	struct scap_threadinfo *ttinfo;
-
-	//
-	// First pass pass of the table to calculate the length
-	//
-	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
-	{
-		totlen += (uint32_t)
-		    (sizeof(uint64_t) + // tid
-		    sizeof(uint32_t) + // vmsize_kb
-		    sizeof(uint32_t) + // vmrss_kb
-		    sizeof(uint32_t) + // vmswap_kb
-		    sizeof(uint64_t) + // pfmajor
-		    sizeof(uint64_t)); // pfminor
-	}
-
-	//
-	// Create the block
-	//
-	bh.block_type = PM_BLOCK_TYPE;
-	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
-
-	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (1)");
-		return SCAP_FAILURE;
-	}
-
-	//
-	// Second pass pass of the table to dump it
-	//
-	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
-	{
-		if(gzwrite(f, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        gzwrite(f, &(tinfo->gid), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		        gzwrite(f, &(tinfo->vmsize_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		        gzwrite(f, &(tinfo->vmrss_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		        gzwrite(f, &(tinfo->vmswap_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
@@ -645,14 +582,6 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 	}
 
 	//
-	// Write the process list
-	//
-	if(scap_write_proc_memory_list(handle, f) != SCAP_SUCCESS)
-	{
-		return NULL;
-	}
-
-	//
 	// Write the fd lists
 	//
 
@@ -808,7 +737,7 @@ static int32_t scap_read_machine_info(scap_t *handle, gzFile f, uint32_t block_l
 //
 // Parse a process list block
 //
-static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_length)
+static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_length, uint32_t block_type)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
@@ -974,6 +903,49 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		totreadsize += readsize;
 
+		if(block_type == PL_BLOCK_TYPE_V2 || block_type == PL_BLOCK_TYPE_V2_INT)
+		{
+			//
+			// vmsize_kb
+			//
+			readsize = gzread(f, &(tinfo.vmsize_kb), sizeof(uint32_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+
+			totreadsize += readsize;
+
+			//
+			// vmrss_kb
+			//
+			readsize = gzread(f, &(tinfo.vmrss_kb), sizeof(uint32_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+
+			totreadsize += readsize;
+
+			//
+			// vmswap_kb
+			//
+			readsize = gzread(f, &(tinfo.vmswap_kb), sizeof(uint32_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+
+			totreadsize += readsize;
+
+			//
+			// pfmajor
+			//
+			readsize = gzread(f, &(tinfo.pfmajor), sizeof(uint64_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+
+			totreadsize += readsize;
+
+			//
+			// pfminor
+			//
+			readsize = gzread(f, &(tinfo.pfminor), sizeof(uint64_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+
+			totreadsize += readsize;
+		}
+
 		//
 		// All parsed. Allocate the new entry and copy the temp one into into it.
 		//
@@ -997,93 +969,6 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
 			return SCAP_FAILURE;
 		}
-	}
-
-	//
-	// Read the padding bytes so we properly align to the end of the data
-	//
-	if(totreadsize > block_length)
-	{
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-	padding_len = block_length - totreadsize;
-
-	readsize = gzread(f, &padding, padding_len);
-	CHECK_READ_SIZE(readsize, padding_len);
-
-	return SCAP_SUCCESS;
-}
-
-static int32_t scap_read_memory_proc_list(scap_t *handle, gzFile f, uint32_t block_length)
-{
-	size_t readsize;
-	size_t totreadsize = 0;
-	size_t padding_len;
-	uint32_t padding;
-	struct scap_threadinfo *tinfo;
-	uint64_t tid;
-
-	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
-	{
-		//
-		// tid
-		//
-		readsize = gzread(f, &tid, sizeof(uint64_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
-
-		totreadsize += readsize;
-
-		//
-		// Identify the process descriptor
-		//
-		HASH_FIND_INT64(handle->m_proclist, &tid, tinfo);
-		if(tinfo == NULL)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted trace file. FD block references TID %"PRIu64", which doesn't exist.",
-			         tid);
-			return SCAP_FAILURE;
-		}
-
-		//
-		// vmsize_kb
-		//
-		readsize = gzread(f, &(tinfo->vmsize_kb), sizeof(uint32_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
-
-		totreadsize += readsize;
-
-		//
-		// vmrss_kb
-		//
-		readsize = gzread(f, &(tinfo->vmrss_kb), sizeof(uint32_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
-
-		totreadsize += readsize;
-
-		//
-		// vmswap_kb
-		//
-		readsize = gzread(f, &(tinfo->vmswap_kb), sizeof(uint32_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
-
-		totreadsize += readsize;
-
-		//
-		// pfmajor
-		//
-		readsize = gzread(f, &(tinfo->pfmajor), sizeof(uint64_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
-
-		totreadsize += readsize;
-
-		//
-		// pfminor
-		//
-		readsize = gzread(f, &(tinfo->pfminor), sizeof(uint64_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
-
-		totreadsize += readsize;
 	}
 
 	//
@@ -1771,9 +1656,11 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 				return SCAP_FAILURE;
 			}
 			break;
-		case PL_BLOCK_TYPE:
-		case PL_BLOCK_TYPE_INT:
-			if(scap_read_proclist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
+		case PL_BLOCK_TYPE_V1:
+		case PL_BLOCK_TYPE_V2:
+		case PL_BLOCK_TYPE_V1_INT:
+		case PL_BLOCK_TYPE_V2_INT:
+			if(scap_read_proclist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -1810,13 +1697,6 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case UL_BLOCK_TYPE:
 		case UL_BLOCK_TYPE_INT:
 			if(scap_read_userlist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
-			{
-				return SCAP_FAILURE;
-			}
-			break;
-		case PM_BLOCK_TYPE:
-		case PM_BLOCK_TYPE_INT:
-			if(scap_read_memory_proc_list(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
