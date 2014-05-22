@@ -104,6 +104,14 @@ typedef struct _section_header_block
 										// library release. We'll keep him for a while for
 										// backward compatibility
 
+///////////////////////////////////////////////////////////////////////////////
+// PROCESS MEMORY FIELDS LIST
+///////////////////////////////////////////////////////////////////////////////
+#define PM_BLOCK_TYPE		0x207
+#define PM_BLOCK_TYPE_INT	0x8013ABCD	// This is the unofficial number used before the
+										// library release. We'll keep him for a while for
+										// backward compatibility
+
 #if defined __sun
 #pragma pack()
 #else
