@@ -165,10 +165,12 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EPOLLWAIT_E:
 		parse_select_poll_epollwait_enter(evt);
 		break;
-	case PPME_CLONE_X:
+	case PPME_CLONE_11_X:
+	case PPME_CLONE_16_X:
 		parse_clone_exit(evt);
 		break;
-	case PPME_SYSCALL_EXECVE_X:
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -305,7 +307,8 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	// (many kernel thread), we don't look for /proc
 	//
 	bool query_os;
-	if(etype == PPME_CLONE_X ||
+	if(etype == PPME_CLONE_11_X ||
+		etype == PPME_CLONE_16_X ||
 		etype == PPME_SCHEDSWITCH_1_E ||
 		etype == PPME_SCHEDSWITCH_6_E)
 	{
@@ -326,7 +329,8 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 
 	if(!evt->m_tinfo)
 	{
-		if(etype == PPME_CLONE_X)
+		if(etype == PPME_CLONE_11_X ||
+			etype == PPME_CLONE_16_X)
 		{
 #ifdef GATHER_INTERNAL_STATS
 			m_inspector->m_thread_manager->m_failed_lookups->decrement();
@@ -567,7 +571,17 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 			// Get the flags, and check if this is a process or a new thread
 			//
-			parinfo = evt->get_param(8);
+			switch(evt->get_type())
+			{
+				case PPME_CLONE_11_X:
+					parinfo = evt->get_param(8);
+					break;
+				case PPME_CLONE_16_X:
+					parinfo = evt->get_param(13);
+					break;
+				default:
+					ASSERT(false);
+			}
 			ASSERT(parinfo->m_len == sizeof(int32_t));
 			uint32_t flags = *(int32_t *)parinfo->m_val;
 
@@ -665,7 +679,17 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	tinfo.m_pid = *(int64_t *)parinfo->m_val;
 
 	// Get the flags, and check if this is a thread or a new thread
-	parinfo = evt->get_param(8);
+	switch(evt->get_type())
+	{
+		case PPME_CLONE_11_X:
+			parinfo = evt->get_param(8);
+			break;
+		case PPME_CLONE_16_X:
+			parinfo = evt->get_param(13);
+			break;
+		default:
+			ASSERT(false);
+	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_flags = *(int32_t *)parinfo->m_val;
 
@@ -715,13 +739,61 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	tinfo.m_fdlimit = *(int64_t *)parinfo->m_val;
 
+	if(evt->get_type() == PPME_CLONE_16_X)
+	{
+		// Get the pgflt_maj
+		parinfo = evt->get_param(8);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		tinfo.m_pfmajor = *(uint64_t *)parinfo->m_val;
+
+		// Get the pgflt_min
+		parinfo = evt->get_param(9);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		tinfo.m_pfminor = *(uint64_t *)parinfo->m_val;
+
+		// Get the vm_size
+		parinfo = evt->get_param(10);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		tinfo.m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+
+		// Get the vm_rss
+		parinfo = evt->get_param(11);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		tinfo.m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+
+		// Get the vm_swap
+		parinfo = evt->get_param(12);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		tinfo.m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+	}
+
 	// Copy the uid
-	parinfo = evt->get_param(9);
+	switch(evt->get_type())
+	{
+		case PPME_CLONE_11_X:
+			parinfo = evt->get_param(9);
+			break;
+		case PPME_CLONE_16_X:
+			parinfo = evt->get_param(14);
+			break;
+		default:
+			ASSERT(false);
+	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_uid = *(int32_t *)parinfo->m_val;
 
 	// Copy the uid
-	parinfo = evt->get_param(10);
+	switch(evt->get_type())
+	{
+		case PPME_CLONE_11_X:
+			parinfo = evt->get_param(10);
+			break;
+		case PPME_CLONE_16_X:
+			parinfo = evt->get_param(15);
+			break;
+		default:
+			ASSERT(false);
+	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_gid = *(int32_t *)parinfo->m_val;
 
@@ -800,6 +872,34 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(7);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	evt->m_tinfo->m_fdlimit = *(int64_t *)parinfo->m_val;
+
+	if(evt->get_type() == PPME_SYSCALL_EXECVE_13_X)
+	{
+		// Get the pgflt_maj
+		parinfo = evt->get_param(8);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		evt->m_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
+
+		// Get the pgflt_min
+		parinfo = evt->get_param(9);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		evt->m_tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
+
+		// Get the vm_size
+		parinfo = evt->get_param(10);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		evt->m_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+
+		// Get the vm_rss
+		parinfo = evt->get_param(11);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		evt->m_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+
+		// Get the vm_swap
+		parinfo = evt->get_param(12);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+	}
 
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
