@@ -76,8 +76,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #if defined(HAS_CAPTURE)
 	if(m_inspector->is_live() && !m_inspector->is_debug_enabled())
 	{
-		if(evt->get_tid() == m_sysdig_pid && etype != PPME_SCHEDSWITCH_E && 
-			m_sysdig_pid && etype != PPME_SCHEDSWITCHEX_E)
+		if(evt->get_tid() == m_sysdig_pid && 
+			etype != PPME_SCHEDSWITCH_1_E && 
+			etype != PPME_SCHEDSWITCH_6_E &&
+			m_sysdig_pid)
 		{
 			evt->m_filtered_out = true;
 			return;
@@ -237,7 +239,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SOCKET_SOCKETPAIR_X:
 		parse_socketpair_exit(evt);
 		break;
-	case PPME_SCHEDSWITCHEX_E:
+	case PPME_SCHEDSWITCH_1_E:
+	case PPME_SCHEDSWITCH_6_E:
 		parse_context_switch(evt);
 		break;
 	default:
@@ -288,7 +291,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	// Ignore scheduler events
 	//
-	if(etype >= PPME_SCHEDSWITCH_E && etype <= PPME_DROP_X)
+	if(etype >= PPME_SCHEDSWITCH_1_E && etype <= PPME_DROP_X)
 	{
 		return false;
 	}
@@ -302,7 +305,9 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	// (many kernel thread), we don't look for /proc
 	//
 	bool query_os;
-	if(etype == PPME_CLONE_X || etype == PPME_SCHEDSWITCHEX_E)
+	if(etype == PPME_CLONE_X ||
+		etype == PPME_SCHEDSWITCH_1_E ||
+		etype == PPME_SCHEDSWITCH_6_E)
 	{
 		query_os = false;
 	}
@@ -313,7 +318,8 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 
 	evt->m_tinfo = evt->get_thread_info(query_os);
 
-	if(etype == PPME_SCHEDSWITCHEX_E)
+	if(etype == PPME_SCHEDSWITCH_1_E ||
+		etype == PPME_SCHEDSWITCH_6_E)
 	{
 		return false;
 	}

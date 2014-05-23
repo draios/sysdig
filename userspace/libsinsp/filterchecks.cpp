@@ -1003,7 +1003,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_u64val = 0;
 			uint16_t etype = evt->get_type();
 
-			if(etype == PPME_SCHEDSWITCH_E || etype == PPME_SCHEDSWITCHEX_X)
+			if(etype == PPME_SCHEDSWITCH_1_E || etype == PPME_SCHEDSWITCH_6_E)
 			{
 				m_u64val = extract_exectime(evt);
 			}
@@ -1015,7 +1015,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_u64val = 0;
 			uint16_t etype = evt->get_type();
 
-			if(etype == PPME_SCHEDSWITCH_E || etype == PPME_SCHEDSWITCHEX_X)
+			if(etype == PPME_SCHEDSWITCH_1_E || etype == PPME_SCHEDSWITCH_6_E)
 			{
 				m_u64val = extract_exectime(evt);
 			}

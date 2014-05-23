@@ -406,14 +406,14 @@ enum ppm_event_type {
 	PPME_SYSCALL_SETRLIMIT_X = 143,
 	PPME_SYSCALL_PRLIMIT_E = 144,
 	PPME_SYSCALL_PRLIMIT_X = 145,
-	PPME_SCHEDSWITCH_E = 146,
-	PPME_SCHEDSWITCH_X = 147,	/* This should never be called */
+	PPME_SCHEDSWITCH_1_E = 146,
+	PPME_SCHEDSWITCH_1_X = 147,	/* This should never be called */
 	PPME_DROP_E = 148,  /* For internal use */
 	PPME_DROP_X = 149,	/* For internal use */
 	PPME_SYSCALL_FCNTL_E = 150,  /* For internal use */
 	PPME_SYSCALL_FCNTL_X = 151,	/* For internal use */
-	PPME_SCHEDSWITCHEX_E = 152,
-	PPME_SCHEDSWITCHEX_X = 153,	/* This should never be called */
+	PPME_SCHEDSWITCH_6_E = 152,
+	PPME_SCHEDSWITCH_6_X = 153,	/* This should never be called */
 	PPM_EVENT_MAX = 154,
 };
 /*@}*/
