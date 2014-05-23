@@ -656,8 +656,6 @@ unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
 
 	if (val < 0)
 		val = 0;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	val = get_mm_counter(mm, member);
 #endif
 
 	return val;
@@ -678,7 +676,7 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
 	return ppm_get_mm_counter(mm, MM_FILEPAGES) +
 		ppm_get_mm_counter(mm, MM_ANONPAGES);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+#else
 	return get_mm_rss(mm);
 #endif
 	return 0;
