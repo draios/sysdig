@@ -1083,15 +1083,14 @@ static char *ppm_devnode(struct device *dev, umode_t *mode)
 static char *ppm_devnode(struct device *dev, mode_t *mode)
 #endif
 {
-	if (mode)
-	{
+	if (mode) {
 		*mode = 0400;
 
 		if (dev)
 			if (MINOR(dev->devt) == g_ppm_numdevs)
 				*mode = 0222;
 	}
-	
+
 	return NULL;
 }
 
@@ -1255,13 +1254,11 @@ init_module_err:
 
 	/* remove_proc_entry(PPM_DEVICE_NAME, NULL); */
 
-	if (g_ppe_dev != NULL) {
+	if (g_ppe_dev != NULL)
 		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
-	}
 
-	if (g_ppe_cdev != NULL) {
+	if (g_ppe_cdev != NULL)
 		cdev_del(g_ppe_cdev);
-	}
 
 	for (j = 0; j < n_created_devices; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
@@ -1296,13 +1293,11 @@ void sysdig_exit(void)
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
-	if (g_ppe_dev != NULL) {
+	if (g_ppe_dev != NULL)
 		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
-	}
 
-	if (g_ppe_cdev != NULL) {
+	if (g_ppe_cdev != NULL)
 		cdev_del(g_ppe_cdev);
-	}
 
 	if (g_ppm_class)
 		class_destroy(g_ppm_class);

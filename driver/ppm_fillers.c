@@ -538,9 +538,9 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 		f = fdget(fd);
 
 		if (f.file && f.file->f_op) {
-			if (THIS_MODULE == f.file->f_op->owner) {
+			if (THIS_MODULE == f.file->f_op->owner)
 				snaplen = RW_SNAPLEN_EVENT;
-			}
+
 			fdput(f);
 		}
 #else
@@ -552,21 +552,21 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 
 		file = fget(fd);
 		if (file && file->f_op) {
-			if (THIS_MODULE == file->f_op->owner) {
+			if (THIS_MODULE == file->f_op->owner)
 				snaplen = RW_SNAPLEN_EVENT;
-			}
+
 			fput(file);
-		}		
+		}
 #endif
 	}
 
 	/*
 	 * res
 	 */
- 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
- 	res = val_to_ring(args, retval, 0, false);
- 	if (unlikely(res != PPM_SUCCESS))
- 		return res;	 	
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	/*
 	 * data
@@ -813,7 +813,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if(mm) {
+	if (mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
 		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
@@ -2956,7 +2956,7 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 		return res;
 
 	mm = args->sched_prev->mm;
-	if(mm) {
+	if (mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
 		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
