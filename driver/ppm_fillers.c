@@ -99,7 +99,7 @@ static int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args);
 static int f_sys_prlimit_e(struct event_filler_arguments *args);
 static int f_sys_prlimit_x(struct event_filler_arguments *args);
 #ifdef CAPTURE_CONTEXT_SWITCHES
-static int f_sched_switchex_e(struct event_filler_arguments *args);
+static int f_sched_switch_e(struct event_filler_arguments *args);
 #endif
 static int f_sched_drop(struct event_filler_arguments *args);
 static int f_sched_fcntl_e(struct event_filler_arguments *args);
@@ -252,7 +252,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PRLIMIT_E] = {f_sys_prlimit_e},
 	[PPME_SYSCALL_PRLIMIT_X] = {f_sys_prlimit_x},
 #ifdef CAPTURE_CONTEXT_SWITCHES
-	[PPME_SCHEDSWITCH_6_E] = {f_sched_switchex_e},
+	[PPME_SCHEDSWITCH_6_E] = {f_sched_switch_e},
 #endif
 	[PPME_DROP_E] = {f_sched_drop},
 	[PPME_DROP_X] = {f_sched_drop},
@@ -2833,39 +2833,6 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-#include <linux/kernel_stat.h>
-
-static int f_sched_switch_e(struct event_filler_arguments *args)
-{
-	int res;
-/* uint64_t steal; */
-
-	if (args->sched_prev == NULL || args->sched_next == NULL) {
-		ASSERT(false);
-		return -1;
-	}
-
-	/*
-	 * next
-	 */
-	res = val_to_ring(args, args->sched_next->pid, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-/*
-	//
-	// steal
-	//
-	steal = cputime64_to_clock_t(kcpustat_this_cpu->cpustat[CPUTIME_STEAL]);
-	res = val_to_ring(args, steal, 0, false);
-	if(unlikely(res != PPM_SUCCESS))
-	{
-		return res;
-	}
-*/
-	return add_sentinel(args);
-}
-
 /*
  * get_mm_counter was not inline and exported between 3.0 and 3.4
  * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
@@ -2910,7 +2877,7 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 	return 0;
 }
 
-static int f_sched_switchex_e(struct event_filler_arguments *args)
+static int f_sched_switch_e(struct event_filler_arguments *args)
 {
 	int res;
 	long total_vm = 0;
@@ -2971,6 +2938,18 @@ static int f_sched_switchex_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, swap, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
+
+/*
+	//
+	// steal
+	//
+	steal = cputime64_to_clock_t(kcpustat_this_cpu->cpustat[CPUTIME_STEAL]);
+	res = val_to_ring(args, steal, 0, false);
+	if(unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+*/
 
 	return add_sentinel(args);
 }
