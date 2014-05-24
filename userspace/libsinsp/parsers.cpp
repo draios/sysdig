@@ -245,6 +245,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SCHEDSWITCH_6_E:
 		parse_context_switch(evt);
 		break;
+	case PPME_SYSCALL_BRK_4_X:
+		parse_brk_exit(evt);
 	default:
 		break;
 	}
@@ -2626,6 +2628,27 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 
 		parinfo = evt->get_param(5);
+		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+	}
+}
+
+void sinsp_parser::parse_brk_exit(sinsp_evt* evt)
+{
+	ASSERT(evt->m_tinfo);
+	if(evt->m_tinfo)
+	{
+		sinsp_evt_param *parinfo;
+
+		parinfo = evt->get_param(1);
+		evt->m_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+
+		parinfo = evt->get_param(2);
+		evt->m_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+
+		parinfo = evt->get_param(3);
 		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 	}

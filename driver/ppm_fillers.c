@@ -103,6 +103,7 @@ static int f_sched_switch_e(struct event_filler_arguments *args);
 #endif
 static int f_sched_drop(struct event_filler_arguments *args);
 static int f_sched_fcntl_e(struct event_filler_arguments *args);
+static int f_sys_brk_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -121,8 +122,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_READ_X] = {f_sys_read_x},
 	[PPME_SYSCALL_WRITE_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {2} } },
 	[PPME_SYSCALL_WRITE_X] = {f_sys_write_x},
-	[PPME_SYSCALL_BRK_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_BRK_X] = {f_sys_single_x},
 	[PPME_PROCEXIT_E] = {f_sys_empty},
 	[PPME_SOCKET_SOCKET_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
@@ -257,7 +256,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_EXECVE_13_E] = {f_sys_empty},
 	[PPME_SYSCALL_EXECVE_13_X] = {f_proc_startupdate},
 	[PPME_CLONE_16_E] = {f_sys_empty},
-	[PPME_CLONE_16_X] = {f_proc_startupdate}
+	[PPME_CLONE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
+	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_x}
 };
 
 /*
@@ -3092,6 +3093,50 @@ static int f_sched_fcntl_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, fcntl_cmd_to_scap(val), 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_brk_x(struct event_filler_arguments *args)
+{
+	int64_t retval;
+	int res = 0;
+	struct mm_struct *mm = current->mm;
+	long total_vm = 0;
+	long total_rss = 0;
+	long swap = 0;
+
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT-10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+	}
+
+	/*
+	 * vm_size
+	 */
+	res = val_to_ring(args, total_vm, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_rss
+	 */
+	res = val_to_ring(args, total_rss, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_swap
+	 */
+	res = val_to_ring(args, swap, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
