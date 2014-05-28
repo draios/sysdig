@@ -156,8 +156,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_fstat64 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_FSTAT64_E, PPME_SYSCALL_FSTAT64_X},
 #endif
 #ifdef __NR__llseek
-	[__NR__llseek - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_LLSEEK_E, PPME_SYSCALL_LLSEEK_X}
+	[__NR__llseek - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_LLSEEK_E, PPME_SYSCALL_LLSEEK_X},
 #endif
+	[__NR_munmap - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_MUNMAP_E, PPME_SYSCALL_MUNMAP_X}
 };
 
 /*
@@ -592,7 +593,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_stime - SYSCALL_TABLE_ID0] = PPM_SC_STIME,
 #endif
 #ifdef __NR__llseek
-	[__NR__llseek - SYSCALL_TABLE_ID0] =	PPM_SC__LLSEEK,
+	[__NR__llseek - SYSCALL_TABLE_ID0] = PPM_SC__LLSEEK,
 #endif
 #ifdef __NR_waitpid
 	[__NR_waitpid - SYSCALL_TABLE_ID0] = PPM_SC_WAITPID,

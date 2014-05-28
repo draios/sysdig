@@ -103,7 +103,7 @@ static int f_sched_switch_e(struct event_filler_arguments *args);
 #endif
 static int f_sched_drop(struct event_filler_arguments *args);
 static int f_sched_fcntl_e(struct event_filler_arguments *args);
-static int f_sys_brk_x(struct event_filler_arguments *args);
+static int f_sys_brk_munmap_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -258,7 +258,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_CLONE_16_E] = {f_sys_empty},
 	[PPME_CLONE_16_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_x}
+	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_x},
+	[PPME_SYSCALL_MUNMAP_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
+	[PPME_SYSCALL_MUNMAP_X] = {f_sys_brk_munmap_x}
 };
 
 /*
@@ -3099,7 +3101,7 @@ static int f_sched_fcntl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_brk_x(struct event_filler_arguments *args)
+static int f_sys_brk_munmap_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
 	int res = 0;
