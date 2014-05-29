@@ -32,6 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/fs_struct.h>
 #include <linux/version.h>
 #include <linux/module.h>
+#include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -103,7 +104,8 @@ static int f_sched_switch_e(struct event_filler_arguments *args);
 #endif
 static int f_sched_drop(struct event_filler_arguments *args);
 static int f_sched_fcntl_e(struct event_filler_arguments *args);
-static int f_sys_brk_munmap_x(struct event_filler_arguments *args);
+static int f_sys_mmap_e(struct event_filler_arguments *args);
+static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -258,9 +260,11 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_CLONE_16_E] = {f_sys_empty},
 	[PPME_CLONE_16_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_x},
+	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
+	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
+	[PPME_SYSCALL_MMAP_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MUNMAP_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_MUNMAP_X] = {f_sys_brk_munmap_x}
+	[PPME_SYSCALL_MUNMAP_X] = {f_sys_brk_munmap_mmap_x}
 };
 
 /*
@@ -3101,7 +3105,7 @@ static int f_sched_fcntl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_brk_munmap_x(struct event_filler_arguments *args)
+static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
 	int res = 0;
@@ -3139,6 +3143,148 @@ static int f_sys_brk_munmap_x(struct event_filler_arguments *args)
 	 * vm_swap
 	 */
 	res = val_to_ring(args, swap, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static u32 prot_flags_to_scap(int prot)
+{
+	u32 res = 0;
+
+	if (prot & PROT_READ)
+		res |= PPM_PROT_READ;
+
+	if (prot & PROT_WRITE)
+		res |= PPM_PROT_WRITE;
+
+	if (prot & PROT_EXEC)
+		res |= PPM_PROT_EXEC;
+
+	if (prot & PROT_SEM)
+		res |= PPM_PROT_SEM;
+
+	if (prot & PROT_GROWSDOWN)
+		res |= PPM_PROT_GROWSDOWN;
+
+	if (prot & PROT_GROWSUP)
+		res |= PPM_PROT_GROWSUP;
+
+#ifdef PROT_SAO
+	if (prot & PROT_SAO)
+		res |= PPM_PROT_SAO;
+#endif
+
+	return res;
+}
+
+static u32 mmap_flags_to_scap(int flags)
+{
+	u32 res = 0;
+
+	if (flags & MAP_SHARED)
+		res |= PPM_MAP_SHARED;
+
+	if (flags & MAP_PRIVATE)
+		res |= PPM_MAP_PRIVATE;
+
+	if (flags & MAP_FIXED)
+		res |= PPM_MAP_FIXED;
+
+	if (flags & MAP_ANONYMOUS)
+		res |= PPM_MAP_ANONYMOUS;
+
+	if (flags & MAP_32BIT)
+		res |= PPM_MAP_32BIT;
+
+#ifdef MAP_RENAME
+	if (flags & MAP_RENAME)
+		res |= PPM_MAP_RENAME;
+#endif
+
+	if (flags & MAP_NORESERVE)
+		res |= PPM_MAP_NORESERVE;
+
+	if (flags & MAP_POPULATE)
+		res |= PPM_MAP_POPULATE;
+
+	if (flags & MAP_NONBLOCK)
+		res |= PPM_MAP_NONBLOCK;
+
+	if (flags & MAP_GROWSDOWN)
+		res |= PPM_MAP_GROWSDOWN;
+
+	if (flags & MAP_DENYWRITE)
+		res |= PPM_MAP_DENYWRITE;
+
+	if (flags & MAP_EXECUTABLE)
+		res |= PPM_MAP_EXECUTABLE;
+
+#ifdef MAP_INHERIT
+	if (flags & MAP_INHERIT)
+		res |= PPM_MAP_INHERIT;
+#endif
+
+	if (flags & MAP_FILE)
+		res |= PPM_MAP_FILE;
+
+	if (flags & MAP_LOCKED)
+		res |= PPM_MAP_LOCKED;
+
+	return res;
+}
+
+static int f_sys_mmap_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * addr
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * length
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * prot
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, prot_flags_to_scap(val), 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * flags
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, mmap_flags_to_scap(val), 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * fd
+	 */
+	syscall_get_arguments(current, args->regs, 4, 1, &val);
+	res = val_to_ring(args, val, 0, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * offset
+	 */
+	syscall_get_arguments(current, args->regs, 5, 1, &val);
+	res = val_to_ring(args, val, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

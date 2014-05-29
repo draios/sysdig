@@ -228,6 +228,37 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_FCNTL_F_GETPIPE_SZ 29
 
 /*
+ * memory protection flags
+ */
+#define PPM_PROT_NONE		0
+#define PPM_PROT_READ		(1 << 0)
+#define PPM_PROT_WRITE		(1 << 1)
+#define PPM_PROT_EXEC		(1 << 2)
+#define PPM_PROT_SEM		(1 << 3)
+#define PPM_PROT_GROWSDOWN	(1 << 4)
+#define PPM_PROT_GROWSUP	(1 << 5)
+#define PPM_PROT_SAO		(1 << 6)
+
+/*
+ * mmap flags
+ */
+#define PPM_MAP_SHARED		(1 << 0)
+#define PPM_MAP_PRIVATE		(1 << 1)
+#define PPM_MAP_FIXED		(1 << 2)
+#define PPM_MAP_ANONYMOUS	(1 << 3)
+#define PPM_MAP_32BIT		(1 << 4)
+#define PPM_MAP_RENAME		(1 << 5)
+#define PPM_MAP_NORESERVE	(1 << 6)
+#define PPM_MAP_POPULATE	(1 << 7)
+#define PPM_MAP_NONBLOCK	(1 << 8)
+#define PPM_MAP_GROWSDOWN	(1 << 9)
+#define PPM_MAP_DENYWRITE	(1 << 10)
+#define PPM_MAP_EXECUTABLE	(1 << 11)
+#define PPM_MAP_INHERIT		(1 << 12)
+#define PPM_MAP_FILE		(1 << 13)
+#define PPM_MAP_LOCKED		(1 << 14)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -420,9 +451,11 @@ enum ppm_event_type {
 	PPME_CLONE_16_X = 157,
 	PPME_SYSCALL_BRK_4_E = 158,
 	PPME_SYSCALL_BRK_4_X = 159,
-	PPME_SYSCALL_MUNMAP_E = 160,
-	PPME_SYSCALL_MUNMAP_X = 161,
-	PPM_EVENT_MAX = 162
+	PPME_SYSCALL_MMAP_E = 160,
+	PPME_SYSCALL_MMAP_X = 161,
+	PPME_SYSCALL_MUNMAP_E = 162,
+	PPME_SYSCALL_MUNMAP_X = 163,
+	PPM_EVENT_MAX = 164
 };
 /*@}*/
 
@@ -914,5 +947,7 @@ extern const struct ppm_name_value poll_flags[];
 extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
+extern const struct ppm_name_value prot_flags[];
+extern const struct ppm_name_value mmap_flags[];
 
 #endif /* EVENTS_PUBLIC_H_ */

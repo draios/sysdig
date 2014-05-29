@@ -182,6 +182,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_CLONE_16_X */{"clone", EC_PROCESS, EF_MODIFIES_STATE, 16, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_BRK_4_E */{"brk", EC_MEMORY, EF_NONE, 1, {{"addr", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_BRK_4_X */{"brk", EC_MEMORY, EF_NONE, 4, {{"res", PT_UINT64, PF_HEX}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
+	/* PPME_SYSCALL_MMAP_E */{"mmap", EC_MEMORY, EF_NONE, 6, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC}, {"prot", PT_FLAGS32, PF_HEX, prot_flags}, {"flags", PT_FLAGS32, PF_HEX, mmap_flags}, {"fd", PT_FD, PF_DEC}, {"offset", PT_UINT64, PF_DEC} } },
+	/* PPME_SYSCALL_MMAP_X */{"mmap", EC_MEMORY, EF_NONE, 4, {{"res", PT_UINT64, PF_HEX}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_MUNMAP_E */{"munmap", EC_MEMORY, EF_NONE, 2, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC} } },
 	/* PPME_SYSCALL_MUNMAP_X */{"munmap", EC_MEMORY, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
 };
