@@ -830,7 +830,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		{
 			if(param->m_len == 1 + 4 + 2)
 			{
-				int ipv4_len = (3 + 1) * 4 + 1;
+				const int ipv4_len = (3 + 1) * 4 + 1;
 				char ipv4_addr[ ipv4_len ];
 
 				snprintf(
@@ -871,7 +871,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				Json::Value source;
 				Json::Value dest;
 
-				int ipv4_len = (3 + 1) * 4 + 1;
+				const int ipv4_len = (3 + 1) * 4 + 1;
 				char ipv4_addr[ ipv4_len ];
 
 				snprintf(
@@ -924,7 +924,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 					Json::Value source;
 					Json::Value dest;
 
-					int ipv4_len = (3 + 1) * 4 + 1;
+					const int ipv4_len = (3 + 1) * 4 + 1;
 					char ipv4_addr[ ipv4_len ];
 
 					snprintf(

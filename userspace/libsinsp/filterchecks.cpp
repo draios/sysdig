@@ -1488,69 +1488,10 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 			return root;
 		}
 		break;
-	case TYPE_RESRAW:
-		{
-			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
 
-			if(pi != NULL)
-			{
-				*len = pi->m_len;
-				return (uint8_t*)pi->m_val;
-			}
-
-			if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
-			{
-				pi = evt->get_param_value_raw("fd");
-
-				if(pi != NULL)
-				{
-					*len = pi->m_len;
-					return (uint8_t*)pi->m_val;
-				}
-			}
-
-			return Json::Value::null;
-		}
-		break;
 	case TYPE_RESSTR:
-		{
-			const char* resolved_argstr;
-			const char* argstr;
-
-			argstr = evt->get_param_value_str("res", &resolved_argstr);
-
-			if(resolved_argstr != NULL && resolved_argstr[0] != 0)
-			{
-				return (uint8_t*)resolved_argstr;
-			}
-			else
-			{
-				if(argstr == NULL)
-				{
-					if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
-					{
-						argstr = evt->get_param_value_str("fd", &resolved_argstr);
-
-						if(resolved_argstr != NULL && resolved_argstr[0] != 0)
-						{
-							return (uint8_t*)resolved_argstr;
-						}
-						else
-						{
-							return (uint8_t*)argstr;
-						}
-					}
-					else
-					{
-						return Json::Value::null;
-					}
-				}
-				else
-				{
-					return (uint8_t*)argstr;
-				}
-			}
-		}
+	case TYPE_RESRAW:
+		return Json::Value::null;
 		break;
 
 	case TYPE_COUNT:
