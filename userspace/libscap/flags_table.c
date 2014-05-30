@@ -60,7 +60,7 @@ const struct ppm_name_value socket_families[] = {
 	{"AF_LOCAL", PPM_AF_LOCAL},
 	{"AF_UNIX", PPM_AF_UNIX},
 	{"AF_UNSPEC", PPM_AF_UNSPEC},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value file_flags[] = {
@@ -78,7 +78,7 @@ const struct ppm_name_value file_flags[] = {
 	{"O_WRONLY", PPM_O_WRONLY},
 	{"O_RDONLY", PPM_O_RDONLY},
 	{"O_NONE", PPM_O_NONE},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value clone_flags[] = {
@@ -101,7 +101,7 @@ const struct ppm_name_value clone_flags[] = {
 	{"CLONE_INVERTED", PPM_CL_CLONE_INVERTED},
 	{"NAME_CHANGED", PPM_CL_NAME_CHANGED},
 	{"CLOSED", PPM_CL_CLOSED},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value futex_operations[] = {
@@ -120,7 +120,7 @@ const struct ppm_name_value futex_operations[] = {
 	{"FUTEX_FD", PPM_FU_FUTEX_FD},
 	{"FUTEX_WAKE", PPM_FU_FUTEX_WAKE},
 	{"FUTEX_WAIT", PPM_FU_FUTEX_WAIT},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value poll_flags[] = {
@@ -135,21 +135,21 @@ const struct ppm_name_value poll_flags[] = {
 	{"POLLRDBAND", PPM_POLLRDBAND},
 	{"POLLWRNORM", PPM_POLLWRNORM},
 	{"POLLWRBAND", PPM_POLLWRBAND},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value lseek_whence[] = {
 	{"SEEK_END", PPM_SEEK_END},
 	{"SEEK_CUR", PPM_SEEK_CUR},
 	{"SEEK_SET", PPM_SEEK_SET},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value shutdown_how[] = {
 	{"SHUT_RDWR", PPM_SHUT_RDWR},
 	{"SHUT_WR", PPM_SHUT_WR},
 	{"SHUT_RD", PPM_SHUT_RD},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value rlimit_resources[] = {
@@ -170,7 +170,7 @@ const struct ppm_name_value rlimit_resources[] = {
 	{"RLIMIT_DATA", PPM_RLIMIT_DATA},
 	{"RLIMIT_FSIZE", PPM_RLIMIT_FSIZE},
 	{"RLIMIT_CPU", PPM_RLIMIT_CPU},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value fcntl_commands[] = {
@@ -201,7 +201,7 @@ const struct ppm_name_value fcntl_commands[] = {
 	{"F_GETFD", PPM_FCNTL_F_GETFD},
 	{"F_DUPFD", PPM_FCNTL_F_DUPFD},
 	{"UNKNOWN", PPM_FCNTL_UNKNOWN},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value prot_flags[] = {
@@ -213,7 +213,7 @@ const struct ppm_name_value prot_flags[] = {
 	{"PROT_GROWSUP", PPM_PROT_GROWSUP},
 	{"PROT_SAO", PPM_PROT_SAO},
 	{"PROT_NONE", PPM_PROT_NONE},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value mmap_flags[] = {
@@ -232,5 +232,5 @@ const struct ppm_name_value mmap_flags[] = {
 	{"MAP_INHERIT", PPM_MAP_INHERIT},
 	{"MAP_FILE", PPM_MAP_FILE},
 	{"MAP_LOCKED", PPM_MAP_LOCKED},
-	{ },
+	{0, 0},
 };
