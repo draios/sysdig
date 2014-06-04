@@ -232,12 +232,12 @@ public:
 	uint32_t reserve(uint32_t size)
 	{
 		m_memory_sizes.push_back(size);
-		return m_memory_sizes.size() - 1;
+		return (uint32_t)m_memory_sizes.size() - 1;
 	}
 
 	uint32_t get_size()
 	{
-		return m_memory_sizes.size();
+		return (uint32_t)m_memory_sizes.size();
 	}
 
 private:
@@ -265,7 +265,7 @@ public:
 
 	uint32_t get_thread_count()
 	{
-		return m_threadtable.size();
+		return (uint32_t)m_threadtable.size();
 	}
 
 	void update_statistics();

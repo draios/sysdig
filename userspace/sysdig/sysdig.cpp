@@ -56,7 +56,7 @@ static void signal_callback(int signal)
 void replace_in_place(string& str, string substr_to_replace, string new_substr)
 {
 	size_t index = 0;
-	uint32_t nsize = substr_to_replace.size();
+	uint32_t nsize = (uint32_t)substr_to_replace.size();
 
 	while (true)
 	{

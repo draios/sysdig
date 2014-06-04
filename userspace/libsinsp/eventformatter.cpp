@@ -76,7 +76,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	const char* cfmt = lfmt.c_str();
 
 	m_tokens.clear();
-	uint32_t lfmtlen = lfmt.length();
+	uint32_t lfmtlen = (uint32_t)lfmt.length();
 
 	for(j = 0; j < lfmtlen; j++)
 	{

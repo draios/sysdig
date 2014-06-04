@@ -702,7 +702,7 @@ const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(string
 		{
 			const struct ppm_param_info* pi = &ei->params[k];
 			const char* an = pi->name;
-			uint32_t alen = strlen(an);
+			uint32_t alen = (uint32_t)strlen(an);
 			string subs = string(name, 0, alen);
 			
 			if(subs == an)
@@ -931,7 +931,7 @@ void replace_in_place(string &s, const string &search, const string &replace)
 void replace_in_place(string& str, string& substr_to_replace, string& new_substr) 
 {
 	size_t index = 0;
-	uint32_t nsize = substr_to_replace.size();
+	uint32_t nsize = (uint32_t)substr_to_replace.size();
 
 	while (true) 
 	{

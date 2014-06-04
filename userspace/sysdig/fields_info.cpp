@@ -54,7 +54,7 @@ void list_fields(bool verbose)
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
 			printf("%s", fld->m_name);
-			uint32_t namelen = strlen(fld->m_name);
+			uint32_t namelen = (uint32_t)strlen(fld->m_name);
 
 			ASSERT(namelen < DESCRIPTION_TEXT_START);
 
@@ -343,7 +343,7 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 		}
 
 		printf("%s", cd->m_name.c_str());
-		uint32_t namelen = cd->m_name.size();
+		uint32_t namelen = (uint32_t)cd->m_name.size();
 
 		ASSERT(namelen < (DESCRIPTION_TEXT_START - 2));
 

@@ -193,7 +193,7 @@ uint32_t sinsp_evt::get_num_params()
 		m_params_loaded = true;
 	}
 
-	return m_params.size();
+	return (uint32_t)m_params.size();
 }
 
 sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
@@ -297,7 +297,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 		}
 		row[k] = 0;
 
-		row_len = strlen(row);
+		row_len = (uint32_t)strlen(row);
 		if(l + row_len >= dstlen - 1)
 		{
 			truncated = true;
@@ -452,7 +452,7 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 {
 	volatile char* tmp = (volatile char *)dest;
-	size_t j = 0;
+	uint32_t j = 0;
 	g_invalidchar ic;
 
 	while(j < dstsize)
@@ -1290,7 +1290,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	{
 		strcpy_sanitized(&m_paramstr_storage[0],
 			param->m_val,
-			MIN(param->m_len, m_paramstr_storage.size()));
+			MIN(param->m_len, (uint32_t)m_paramstr_storage.size()));
 
 		sinsp_threadinfo* tinfo = get_thread_info();
 
@@ -1304,9 +1304,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 
 			if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
-				m_resolved_paramstr_storage.size(),
+				(uint32_t)m_resolved_paramstr_storage.size(),
 				(char*)cwd.c_str(),
-				cwd.length(),
+				(uint32_t)cwd.length(),
 				param->m_val,
 				param->m_len))
 			{
@@ -1335,7 +1335,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			uint32_t blen = binary_buffer_to_string(&m_paramstr_storage[0],
 				param->m_val,
-				m_paramstr_storage.size() - 1,
+				(uint32_t)m_paramstr_storage.size() - 1,
 				param->m_len,
 				fmt);
 

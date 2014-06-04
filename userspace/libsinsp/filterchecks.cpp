@@ -183,7 +183,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 
 			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, 
 				sdir.c_str(), 
-				sdir.length(), 
+				(uint32_t)sdir.length(), 
 				name, 
 				namelen);
 	
@@ -961,7 +961,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr.clear();
 
 			uint32_t j;
-			uint32_t nargs = tinfo->m_args.size();
+			uint32_t nargs = (uint32_t)tinfo->m_args.size();
 
 			for(j = 0; j < nargs; j++)
 			{
@@ -979,7 +979,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = tinfo->get_comm();
 
 			uint32_t j;
-			uint32_t nargs = tinfo->m_args.size();
+			uint32_t nargs = (uint32_t)tinfo->m_args.size();
 
 			for(j = 0; j < nargs; j++)
 			{
@@ -1226,7 +1226,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 			throw sinsp_exception("evt.arg fields must be expressed explicitly");
 		}
 
-		parsed_len = val.find(']');
+		parsed_len = (uint32_t)val.find(']');
 		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
 		m_argid = sinsp_numparser::parsed32(numstr);
 		parsed_len++;
@@ -1242,7 +1242,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 		}
 
 		m_argname = pi->name;
-		parsed_len = fldname.size() + strlen(pi->name) + 1;
+		parsed_len = (uint32_t)(fldname.size() + strlen(pi->name) + 1);
 		m_argid = -1;
 
 		if(parinfo != NULL)
@@ -2158,7 +2158,7 @@ sinsp_filter_check* rawstring_check::allocate_new()
 
 void rawstring_check::set_text(string text)
 {
-	m_text_len = text.size();
+	m_text_len = (uint32_t)text.size();
 	m_text = text;
 }
 

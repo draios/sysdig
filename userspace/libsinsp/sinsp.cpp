@@ -414,7 +414,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	// Deleayed removal of the fd, so that
 	// things like exit() or close() can be parsed.
 	//
-	uint32_t nfdr = m_fds_to_remove->size();
+	uint32_t nfdr = (uint32_t)m_fds_to_remove->size();
 
 	if(nfdr != 0)
 	{

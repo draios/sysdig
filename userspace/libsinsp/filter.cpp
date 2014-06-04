@@ -699,7 +699,7 @@ void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_par
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
 			{
-				len = strlen(str);
+				len = (uint32_t)strlen(str);
 				if(len >= m_val_storage.size())
 				{
 					throw sinsp_exception("filter parameter too long:" + string(str));
@@ -791,7 +791,7 @@ int32_t sinsp_filter_check::parse_field_name(const char* str)
 	for(j = 0; j < m_info.m_nfiedls; j++)
 	{
 		string fldname = m_info.m_fields[j].m_name;
-		int32_t fldlen = fldname.length();
+		int32_t fldlen = (uint32_t)fldname.length();
 
 		if(val.compare(0, fldlen, fldname) == 0)
 		{
@@ -871,7 +871,7 @@ void sinsp_filter_expression::parse(string expr)
 bool sinsp_filter_expression::compare(sinsp_evt *evt)
 {
 	uint32_t j;
-	uint32_t size = m_checks.size();
+	uint32_t size = (uint32_t)m_checks.size();
 	bool res = true;
 	bool chkres;
 
@@ -1257,7 +1257,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
 	chk->parse_field_name((char *)&operand1[0]);
-	chk->parse_filter_value((char *)&operand2[0], operand2.size() - 1);
+	chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
 	parent_expr->add_check(chk);
 }
@@ -1285,7 +1285,7 @@ void sinsp_filter::pop_expression()
 void sinsp_filter::compile(const string& fltstr)
 {
 	m_fltstr = fltstr;
-	m_scansize = m_fltstr.size();
+	m_scansize = (uint32_t)m_fltstr.size();
 
 	while(true)
 	{

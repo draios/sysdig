@@ -981,7 +981,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = gzread(f, &padding, padding_len);
+	readsize = (size_t)gzread(f, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
 
 	return SCAP_SUCCESS;
@@ -1515,7 +1515,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = gzread(f, &padding, padding_len);
+	readsize = gzread(f, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
 
 	return SCAP_SUCCESS;
@@ -1598,7 +1598,7 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = gzread(f, &padding, padding_len);
+	readsize = gzread(f, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
 
 	return SCAP_SUCCESS;
@@ -1706,7 +1706,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			// Unknwon block type. Skip the block.
 			//
 			toread = bh.block_total_length - sizeof(block_header) - 4;
-			fseekres = gzseek(f, toread, SEEK_CUR);
+			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip block of type %x and size %u.",

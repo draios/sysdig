@@ -1073,7 +1073,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//mode = *(uint32_t*)parinfo->m_val;
 
 	char fullpath[SCAP_MAX_PATH_SIZE];
-	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), sdir.length(), name, namelen);
+	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), name, namelen);
 
 	if(fd >= 0)
 	{
@@ -1981,7 +1981,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
 							fdtype, &evt->m_paramstr_storage[0],
-							evt->m_paramstr_storage.size());
+							(uint32_t)evt->m_paramstr_storage.size());
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}
@@ -2058,7 +2058,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
 							fdtype, &evt->m_paramstr_storage[0],
-							evt->m_paramstr_storage.size());
+							(uint32_t)evt->m_paramstr_storage.size());
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}
@@ -2175,7 +2175,7 @@ void sinsp_parser::parse_fchdir_exit(sinsp_evt *evt)
 
 		// Update the thread working directory
 		evt->m_tinfo->set_cwd((char *)evt->m_fdinfo->m_name.c_str(),
-		                 evt->m_fdinfo->m_name.size());
+		                 (uint32_t)evt->m_fdinfo->m_name.size());
 	}
 }
 

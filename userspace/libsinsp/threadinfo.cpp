@@ -160,7 +160,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 
 	m_exe = pi->exe;
 	set_args(pi->args, pi->args_len);
-	set_cwd(pi->cwd, strlen(pi->cwd));
+	set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
 	m_flags |= pi->flags;
 	m_fdtable.clear();
 	m_fdlimit = pi->fdlimit;
@@ -536,7 +536,7 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 		sinsp_utils::concatenate_paths(tpath, 
 			SCAP_MAX_PATH_SIZE, 
 			(char*)tinfo->m_cwd.c_str(), 
-			tinfo->m_cwd.size(), 
+			(uint32_t)tinfo->m_cwd.size(), 
 			cwd, 
 			cwdlen);
 

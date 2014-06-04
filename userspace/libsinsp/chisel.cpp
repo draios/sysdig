@@ -382,7 +382,7 @@ public:
 		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 		lua_pop(ls, 1);
 
-		const uint32_t snaplen = lua_tointeger(ls, 1); 
+		const uint32_t snaplen = (uint32_t)lua_tointeger(ls, 1); 
 
 		ASSERT(ch);
 		ASSERT(ch->m_lua_cinfo);
@@ -396,9 +396,9 @@ public:
 	{
 		lua_getglobal(ls, "sichisel");
 
-		uint32_t op1 = lua_tointeger(ls, 1);
+		uint32_t op1 = (uint32_t)lua_tointeger(ls, 1);
 		lua_pop(ls, 1);
-		uint32_t op2 = lua_tointeger(ls, 2);
+		uint32_t op2 = (uint32_t)lua_tointeger(ls, 2);
 		lua_pop(ls, 1);
 
 		uint64_t sum = (uint64_t)op1 * ONE_SECOND_IN_NS + op2;
@@ -1125,7 +1125,7 @@ uint32_t sinsp_chisel::get_n_args()
 	ASSERT(m_ls);
 
 #ifdef HAS_LUA_CHISELS
-	return m_lua_script_info.m_args.size();
+	return (uint32_t)m_lua_script_info.m_args.size();
 #else
 	return 0;
 #endif
