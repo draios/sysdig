@@ -1348,6 +1348,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				continue;
 			}
 
+			m_rawbuf_str_len = blen;
+
 			break;
 		}
 	}

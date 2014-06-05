@@ -290,10 +290,6 @@ VISIBILITY_PRIVATE
 	const struct ppm_event_info* m_info;
 	vector<sinsp_evt_param> m_params;
 
-	// Note: this is a lot of storage. We assume that it's not a bit deal since
-	//       currently there's no case in which more than one single event is 
-	//       needed by the library users. We'll optmize this when we'll have the 
-	//       need.
 	vector<char> m_paramstr_storage;
 	vector<char> m_resolved_paramstr_storage;
 
@@ -301,6 +297,7 @@ VISIBILITY_PRIVATE
 	sinsp_fdinfo_t* m_fdinfo;
 	uint32_t m_iosize;
 	int32_t m_errorcode;
+	int32_t m_rawbuf_str_len;
 #ifdef HAS_FILTERING
 	bool m_filtered_out;
 #endif

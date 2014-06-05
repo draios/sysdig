@@ -1727,10 +1727,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			const char* resolved_argstr;
 			const char* argstr;
 			argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+			*len = evt->m_rawbuf_str_len;
 
 			return (uint8_t*)argstr;
-
-			break;
 		}
 	case TYPE_RESRAW:
 		{
