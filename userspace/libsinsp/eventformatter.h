@@ -17,7 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
-#include "third-party/jsoncpp/json/json.h"
+#include <json/json.h>
 
 class sinsp_filter_check;
 
