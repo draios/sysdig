@@ -30,6 +30,7 @@ script:
     - make
     - sudo make install
     - popd
+    - rm -rf userspace/libsinsp/third-party/jsoncpp
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF -DZLIB_PREFIX=/usr/local
