@@ -1,3 +1,4 @@
+include_directories("${JSONCPP_INCLUDE}")
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libscap")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libsinsp")
