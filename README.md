@@ -1,6 +1,8 @@
 sysdig
 ======
 
+[](https://ga-beacon.appspot.com/UA-40398182-5/sysdig/readme)
+
 [![Build Status](https://travis-ci.org/draios/sysdig.png?branch=master)](https://travis-ci.org/draios/sysdig)
 
 Welcome to **sysdig** - an open source system-level exploration and troubleshooting tool. 
