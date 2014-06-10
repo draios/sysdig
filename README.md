@@ -1,7 +1,7 @@
+![](https://ga-beacon.appspot.com/UA-40398182-5/sysdig/README?pixel)
+
 sysdig
 ======
-
-[](https://ga-beacon.appspot.com/UA-40398182-5/sysdig/readme)
 
 [![Build Status](https://travis-ci.org/draios/sysdig.png?branch=master)](https://travis-ci.org/draios/sysdig)
 
