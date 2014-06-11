@@ -654,20 +654,24 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
  * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
  * Hence the crap in these two functions
  */
-unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0) && defined(SPLIT_RSS_COUNTING)
+unsigned long get_mm_counter(struct mm_struct *mm, int member)
 {
 	long val = 0;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
-	val = get_mm_counter(mm, member);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
 	val = atomic_long_read(&mm->rss_stat.count[member]);
 
 	if (val < 0)
-		val = 0;
+		return 0;
+
+	return (unsigned long)val;
+}
 #endif
 
-	return val;
+unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
+{
+	return get_mm_counter(mm, member);
 }
 
 static unsigned long ppm_get_mm_swap(struct mm_struct *mm)
