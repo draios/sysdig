@@ -660,7 +660,7 @@ unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 	val = get_mm_counter(mm, member);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	val = atomic_long_read(&mm->rss_stat.count[member]);
 
 	if (val < 0)
@@ -682,7 +682,7 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 	return get_mm_rss(mm);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	return ppm_get_mm_counter(mm, MM_FILEPAGES) +
 		ppm_get_mm_counter(mm, MM_ANONPAGES);
 #else
