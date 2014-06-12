@@ -611,6 +611,15 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 #if !defined(HAS_CAPTURE)
 	return NULL;
 #else
+
+	//
+	// No /proc parsing for offline captures
+	//
+	if(handle->m_file)
+	{
+		return NULL;
+	}
+
 	struct scap_threadinfo* tinfo = NULL;
 
 	if(scap_proc_scan_proc_dir(handle, "/proc", -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
