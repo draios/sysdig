@@ -18,7 +18,7 @@ script:
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-    - make
+    - make VERBOSE=1
     - make package
     - cd ..
     - rm -rf build
@@ -34,7 +34,7 @@ script:
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF -DZLIB_PREFIX=/usr/local
-    - make
+    - make VERBOSE=1
     - make package
     - cd ..
     - test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels
