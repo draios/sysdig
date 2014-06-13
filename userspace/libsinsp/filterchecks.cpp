@@ -839,6 +839,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads of that the process generating the event currently has."},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.ppid", "the pid of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "the name (excluding the path) of the parent of the process generating the event."},
+	{PT_INT64, EPF_NONE, PF_DEC, "proc.apid", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "the name (excluding the path) of one of the process ancestors. E.g. proc.aname[1] returns the parent name, proc.aname[2] returns the grandparent name, and so on. proc.aname[0] is the name of the current process."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "number of nanoseconds since the process started."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "number of open FDs for the process"},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.fdlimit", "maximum number of FDs the process can open."},
@@ -872,6 +874,28 @@ sinsp_filter_check* sinsp_filter_check_thread::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_thread();
 }
 
+int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+{
+	uint32_t parsed_len = 0;
+
+	//
+	// 'arg' and 'resarg' are handled in a custom way
+	//
+	if(val[fldname.size()] == '[')
+	{
+		parsed_len = (uint32_t)val.find(']');
+		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+		m_argid = sinsp_numparser::parsed32(numstr);
+		parsed_len++;
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len; 
+}
+
 int32_t sinsp_filter_check_thread::parse_field_name(const char* str)
 {
 	string val(str);
@@ -882,6 +906,20 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str)
 		// 'arg' is handled in a custom way
 		//
 		throw sinsp_exception("filter error: proc.arg filter not implemented yet");
+	}
+	else if(string(val, 0, sizeof("proc.apid") - 1) == "proc.apid")
+	{
+		m_field_id = TYPE_APID;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("proc.apid", val, NULL);
+	}
+	else if(string(val, 0, sizeof("proc.aname") - 1) == "proc.aname")
+	{
+		m_field_id = TYPE_ANAME;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("proc.aname", val, NULL);
 	}
 	else if(string(val, 0, sizeof("thread.totexectime") - 1) == "thread.totexectime")
 	{
@@ -1033,7 +1071,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 		}
-	case TYPE_PARENTPID:
+	case TYPE_PPID:
 		if(tinfo->is_main_thread())
 		{
 			return (uint8_t*)&tinfo->m_ptid;
@@ -1051,7 +1089,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 		}
-	case TYPE_PARENTNAME:
+	case TYPE_PNAME:
 		{
 			sinsp_threadinfo* ptinfo = 
 				m_inspector->get_thread(tinfo->m_ptid);
@@ -1065,6 +1103,67 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				return NULL;
 			}
+		}
+	case TYPE_APID:
+		{
+			sinsp_threadinfo* mt = NULL;
+
+			if(tinfo->is_main_thread())
+			{
+				mt = tinfo;
+			}
+			else
+			{
+				mt = tinfo->get_main_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			for(int32_t j = 0; j < m_argid; j++)
+			{
+				mt = mt->get_parent_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			return (uint8_t*)&mt->m_pid;
+		}
+	case TYPE_ANAME:
+		{
+			sinsp_threadinfo* mt = NULL;
+
+			if(tinfo->is_main_thread())
+			{
+				mt = tinfo;
+			}
+			else
+			{
+				mt = tinfo->get_main_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			for(int32_t j = 0; j < m_argid; j++)
+			{
+				mt = mt->get_parent_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			m_tstr = mt->get_comm();
+			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_DURATION:
 		if(tinfo->m_clone_ts != 0)
