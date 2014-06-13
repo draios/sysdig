@@ -141,6 +141,7 @@ static void usage()
 " line with the following format:\n\n"
 " %%evt.num %%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.args\n\n"
 "where:\n"
+" evt.num is the incremental event number\n"
 " evt.time is the event timestamp\n"
 " evt.cpu is the CPU number where the event was captured\n"
 " proc.name is the name of the process that generated the event\n"
