@@ -162,7 +162,8 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_mmap2
 	[__NR_mmap2 - SYSCALL_TABLE_ID0] =                    	{UF_USED, PPME_SYSCALL_MMAP2_E, PPME_SYSCALL_MMAP2_X},
 #endif
-	[__NR_munmap - SYSCALL_TABLE_ID0] =						{UF_USED, PPME_SYSCALL_MUNMAP_E, PPME_SYSCALL_MUNMAP_X}
+	[__NR_munmap - SYSCALL_TABLE_ID0] =						{UF_USED, PPME_SYSCALL_MUNMAP_E, PPME_SYSCALL_MUNMAP_X},
+	[__NR_splice - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_SPLICE_E, PPME_SYSCALL_SPLICE_X},
 };
 
 /*

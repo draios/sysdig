@@ -259,6 +259,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_MAP_LOCKED		(1 << 14)
 
 /*
+ * splice flags
+ */
+#define PPM_SPLICE_F_MOVE		(1 << 0)
+#define PPM_SPLICE_F_NONBLOCK	(1 << 1)
+#define PPM_SPLICE_F_MORE		(1 << 2)
+#define PPM_SPLICE_F_GIFT		(1 << 3)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -457,7 +465,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_MMAP2_X = 163,
 	PPME_SYSCALL_MUNMAP_E = 164,
 	PPME_SYSCALL_MUNMAP_X = 165,
-	PPM_EVENT_MAX = 166
+	PPME_SYSCALL_SPLICE_E = 166,
+	PPME_SYSCALL_SPLICE_X = 167,
+	PPM_EVENT_MAX = 168
 };
 /*@}*/
 
@@ -951,5 +961,6 @@ extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
 extern const struct ppm_name_value prot_flags[];
 extern const struct ppm_name_value mmap_flags[];
+extern const struct ppm_name_value splice_flags[];
 
 #endif /* EVENTS_PUBLIC_H_ */
