@@ -266,7 +266,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MMAP2_E] = {f_sys_mmap_e},
 	[PPME_SYSCALL_MMAP2_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MUNMAP_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_MUNMAP_X] = {f_sys_brk_munmap_mmap_x}
+	[PPME_SYSCALL_MUNMAP_X] = {f_sys_brk_munmap_mmap_x},
+	[PPME_SYSCALL_SPLICE_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {2}, {4}, {5}} },
+	[PPME_SYSCALL_SPLICE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} }
 };
 
 /*

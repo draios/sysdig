@@ -234,3 +234,11 @@ const struct ppm_name_value mmap_flags[] = {
 	{"MAP_LOCKED", PPM_MAP_LOCKED},
 	{0, 0},
 };
+
+const struct ppm_name_value splice_flags[] = {
+	{"SPLICE_F_MOVE", PPM_SPLICE_F_MOVE},
+	{"SPLICE_F_NONBLOCK", PPM_SPLICE_F_NONBLOCK},
+	{"SPLICE_F_MORE", PPM_SPLICE_F_MORE},
+	{"SPLICE_F_GIFT", PPM_SPLICE_F_GIFT},
+	{ },
+};
