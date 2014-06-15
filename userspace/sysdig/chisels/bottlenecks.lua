@@ -86,7 +86,7 @@ function on_event()
 			end
 		end
 		
-		if table.getn(slow_calls) > HOW_MANY then
+		if #slow_calls > HOW_MANY then
 			table.remove(slow_calls)
 		end	
 	end
@@ -94,9 +94,9 @@ function on_event()
 	return true
 end
 
--- Interval callback, emits the ourput
+-- Interval callback, emits the output
 function on_capture_end()
-	for j = 1, table.getn(slow_calls) do
+	for j = 1, #slow_calls do
 		print(slow_calls[j][2])
 		print(slow_calls[j][3])
 	end
