@@ -6,9 +6,10 @@ BASEDIR=$(dirname $SCRIPT)
 
 SYSDIG=$1
 CHISELS=$2
-TRACEDIR=/tmp/traces
-RESULTDIR=/tmp/results
-BASELINEDIR=/tmp/baseline
+TMPBASE=$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)
+TRACEDIR="${TMPBASE}/traces"
+RESULTDIR="${TMPBASE}/results"
+BASELINEDIR="${TMPBASE}/baseline"
 
 if [ ! -d "$TRACEDIR" ]; then
 	mkdir -p $TRACEDIR
@@ -27,6 +28,8 @@ if [ ! -d "$BASELINEDIR" ]; then
 	rm -rf baseline.zip
 	cd -
 fi
+
+echo "Executing sysdig tests in ${TMPBASE}"
 
 # Fields
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p\"*%fd.num %fd.type %fd.typechar %fd.name %fd.directory %fd.filename %fd.cip %fd.sip %fd.cport %fd.sport %fd.l4proto %fd.sockfamily %fd.is_server\"" $TRACEDIR $RESULTDIR/fd_fields $BASELINEDIR/fd_fields
@@ -67,3 +70,5 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopfiles_errors" $TRACEDIR $
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopprocs_errors" $TRACEDIR $RESULTDIR/topprocs_errors $BASELINEDIR/topprocs_errors
 # JSON
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-j -n 10000" $TRACEDIR $RESULTDIR/fd_fields_json $BASELINEDIR/fd_fields_json
+
+rm -rf "${TMPBASE}"

@@ -22,7 +22,7 @@ script:
     - make package
     - cd ..
     - rm -rf build
-    - pushd /tmp
+    - pushd $(mktemp -d --tmpdir sysdig.XXXXXXXXXX)
     - wget http://download.draios.com/dependencies/zlib-1.2.8.tar.gz
     - tar -xzf zlib-1.2.8.tar.gz
     - cd zlib-1.2.8
