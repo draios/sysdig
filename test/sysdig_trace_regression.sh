@@ -6,7 +6,7 @@ BASEDIR=$(dirname $SCRIPT)
 
 SYSDIG=$1
 CHISELS=$2
-TMPBASE=$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)
+TMPBASE=${3:-$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)}
 TRACEDIR="${TMPBASE}/traces"
 RESULTDIR="${TMPBASE}/results"
 BASELINEDIR="${TMPBASE}/baseline"
