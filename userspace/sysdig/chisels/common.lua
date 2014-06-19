@@ -20,10 +20,42 @@ This file contains a bunch of functions that are helpful in multiple scripts
 ]]--
 
 --[[ 
+Serialize the content of a table into a tring
+]]--
+function sr(val, name, skipnewlines, depth)
+    skipnewlines = skipnewlines or false
+    depth = depth or 0
+
+    local tmp = string.rep(" ", depth)
+
+    if name then tmp = tmp .. name .. " = " end
+
+    if type(val) == "table" then
+        tmp = tmp .. "{" .. (not skipnewlines and "\n" or "")
+
+        for k, v in pairs(val) do
+            tmp =  tmp .. sr(v, k, skipnewlines, depth + 1) .. "," .. (not skipnewlines and "\n" or "")
+        end
+
+        tmp = tmp .. string.rep(" ", depth) .. "}"
+    elseif type(val) == "number" then
+        tmp = tmp .. tostring(val)
+    elseif type(val) == "string" then
+        tmp = tmp .. string.format("%q", val)
+    elseif type(val) == "boolean" then
+        tmp = tmp .. (val and "true" or "false")
+    else
+        tmp = tmp .. "\"[inserializeable datatype:" .. type(val) .. "]\""
+    end
+
+    return tmp
+end
+
+--[[ 
 Extends a string to newlen with spaces
 ]]--
 function extend_string(s, newlen)
-	local ccs = "                                                                                                        "
+	local ccs = "                                                                                                                                                                       "
 	s = s .. string.sub(ccs, 0, newlen - string.len(s))
 	return s
 end
