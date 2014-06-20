@@ -240,5 +240,5 @@ const struct ppm_name_value splice_flags[] = {
 	{"SPLICE_F_NONBLOCK", PPM_SPLICE_F_NONBLOCK},
 	{"SPLICE_F_MORE", PPM_SPLICE_F_MORE},
 	{"SPLICE_F_GIFT", PPM_SPLICE_F_GIFT},
-	{ },
+	{0, 0},
 };
