@@ -66,9 +66,9 @@ end
 
 function on_capture_end()
 	if matching_comm_str then
-		print("Sessions containing " .. matching_comm_str .. ":")
+		print("Shells containing " .. matching_comm_str .. ":")
 	else
-		print("All sessions:")
+		print("All shells:")
 	end
 	
 	for k, v in pairs(sids) do

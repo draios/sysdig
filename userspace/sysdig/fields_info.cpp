@@ -29,7 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sysdig.h"
 #include "chisel.h"
 
-#define DESCRIPTION_TEXT_START 19
+#define DESCRIPTION_TEXT_START 20
 #define CONSOLE_LINE_LEN 79
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)

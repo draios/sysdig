@@ -1189,7 +1189,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				size_t len = mt->m_comm.size();
 
-				if(len >= 2 && mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
+				if(len > 2 && mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
 				{
 					res = &mt->m_pid;
 				}
