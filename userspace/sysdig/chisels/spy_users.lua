@@ -34,7 +34,7 @@ args =
 require "common"
 
 MAX_ANCESTOR_NAVIGATION = 16
-max_depth = 0
+max_depth = -1
 
 -- Argument notification callback
 function on_set_arg(name, val)
@@ -93,10 +93,6 @@ function on_event()
 	if user == nil then
 		user = "<NA>"
 	end
-
---print("   ***", evt.get_num())
---print("   ***", pid, evt.field(fapids[1]), evt.field(fapids[2]), evt.field(fapids[3]), evt.field(fapids[4]), evt.field(fapids[5]))
---print("   ***", pid, evt.field(fanames[1]), evt.field(fanames[2]), evt.field(fanames[3]), evt.field(fanames[4]), evt.field(fanames[5]))
 	
 	if not process_tree[ppid] then
 		-- No parent pid in the table yet.
@@ -111,7 +107,7 @@ function on_event()
 					-- no shell in the ancestor list, hide this command
 					break
 				end
-			elseif aname:sub(-2) == "sh" then
+			elseif string.len(aname) > 2 and aname:sub(-2) == "sh" then
 				apid = evt.field(fapids[j])
 				if process_tree[apid] then
 					process_tree[ppid] = {j - 1, apid}
@@ -131,7 +127,7 @@ function on_event()
 		process_tree[pid] = {1 + process_tree[ppid][1], process_tree[ppid][2]}
 	end
 
-	if max_depth ~= 0 then
+	if max_depth ~= -1 then
 		if process_tree[pid][1] > max_depth then
 			return true
 		end

@@ -1185,18 +1185,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
-			while(true)
+			for(; mt != NULL; mt = mt->get_parent_thread())
 			{
-				mt = mt->get_parent_thread();
-
-				if(mt == NULL)
-				{
-					break;
-				}
-
 				size_t len = mt->m_comm.size();
 
-				if(len > 2 && mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
+				if(len >= 2 && mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
 				{
 					res = &mt->m_pid;
 				}
