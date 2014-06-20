@@ -62,16 +62,17 @@ void list_fields(bool verbose)
 			{
 				printf(" ");
 			}
-				
-			string desc;
+
+			string desc(fld->m_description);
+
+			if(fld->m_flags & EPF_FILTER_ONLY)
+			{
+				desc = "(FILTER ONLY) " + desc;
+			}
 
 			if(verbose)
 			{
-				desc = string(fld->m_description) + " Type:" + param_type_to_string(fld->m_type) + ".";
-			}
-			else
-			{
-				desc = string(fld->m_description);
+				desc += string(" Type:") + param_type_to_string(fld->m_type) + ".";
 			}
 
 			size_t desclen = desc.size();
