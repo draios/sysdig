@@ -841,7 +841,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "the name (excluding the path) of the parent of the process generating the event."},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.apid", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "the name (excluding the path) of one of the process ancestors. E.g. proc.aname[1] returns the parent name, proc.aname[2] returns the grandparent name, and so on. proc.aname[0] is the name of the current process."},
-	{PT_INT64, EPF_NONE, PF_DEC, "proc.sessionid", "the pid of the oldest shell in the ancestor list of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
+	{PT_INT64, EPF_NONE, PF_DEC, "proc.loginshellid", "the pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "number of nanoseconds since the process started."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "number of open FDs for the process"},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.fdlimit", "maximum number of FDs the process can open."},
@@ -1166,7 +1166,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = mt->get_comm();
 			return (uint8_t*)m_tstr.c_str();
 		}
-	case TYPE_SESSIONID:
+	case TYPE_LOGINSHELLID:
 		{
 			sinsp_threadinfo* mt = NULL;
 			int64_t* res = NULL;
@@ -1196,7 +1196,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 				size_t len = mt->m_comm.size();
 
-				if(mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
+				if(len > 2 && mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
 				{
 					res = &mt->m_pid;
 				}
