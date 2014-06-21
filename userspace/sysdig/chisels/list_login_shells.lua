@@ -24,7 +24,13 @@ args =
 {
     {
         name = "command",
-        description = "If this parameter is specified, only the login shells that contain commands including the given string in their name or arguments will be listed",
+        description = "If this parameter is specified, only the login shells that contain commands including the given string in their name will be listed. * will match any command name.",
+        argtype = "string",
+		optional = true
+    },
+    {
+        name = "arguments",
+        description = "If this parameter is specified, only the login shells that contain commands including the given string in their arguments will be listed",
         argtype = "string",
 		optional = true
     },
@@ -34,13 +40,20 @@ require "common"
 sids = {}
 
 function on_set_arg(name, val)
-    matching_comm_str = val
+	if name == "command" then
+		if val ~= "*" then
+			matching_comm_str = val
+		end
+	elseif name == "arguments" then
+		matching_arg_str = val
+	end
     return true
 end
 
 function on_init()
 	fsid = chisel.request_field("proc.loginshellid")
 	fexe = chisel.request_field("evt.arg.exe")
+	fargs = chisel.request_field("evt.arg.args")
 	
 	chisel.set_filter("evt.type=execve")
 		
@@ -50,12 +63,15 @@ end
 function on_event()
 	sid = evt.field(fsid)
 	exe = evt.field(fexe)
+	args = evt.field(fargs)
 	
 	if sid and exe then
-		if matching_comm_str then
-			if string.find(exe, matching_comm_str) == nil then
-				return true
-			end
+		if matching_comm_str and string.find(exe, matching_comm_str) == nil then
+			return true
+		end
+		
+		if matching_arg_str and args and string.find(args, matching_arg_str) == nil then
+			return true
 		end
 		
 		sids[sid] = 1
@@ -75,3 +91,4 @@ function on_capture_end()
 		print(k)
 	end
 end
+
