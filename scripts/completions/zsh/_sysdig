@@ -1,0 +1,226 @@
+#compdef sysdig
+
+# This completion code is based on the cmdline interface as it exists in sysdig
+# 0.1.82
+
+# this must match fields_info.cpp
+local DESCRIPTION_TEXT_START=19
+
+# handles completion of filter fields
+function _filter () {
+    # I run 'sysdig -l' to get a list of available filter types, and build an
+    # _alternative command to generate the user choice
+
+    local in_field=0 fields
+    typeset -a fields
+
+    function closefield () {
+        if (($in_field)); then
+            in_field=0
+            fields[$#fields]+='"';
+        fi
+    }
+
+    _call_program chisel_info sysdig -l 2>/dev/null |
+        while IFS='' read -r line; do
+            if [[ $line =~ "^([a-zA-Z0-9_]+\.[a-zA-Z0-9_]+) +(.*?)$" ]]; then
+                # starting a new field
+                closefield
+                in_field=1
+                fields[$#fields+1]="$match[1]\\:\"$match[2]"
+            elif (($in_field)) && [[ $line =~ "^ {$DESCRIPTION_TEXT_START}(.*)" ]]; then
+                # field continuation
+                fields[$#fields]+=$match[1]
+            else
+                closefield
+            fi
+        done
+    closefield
+
+    local allfields="$fields[*]"
+    _alternative \
+        "fields:Fields:(($allfields))" \
+        "operators:Operators:(= != < <= > >= contains and or not)"
+}
+
+# handles completion for chisel names
+function _chisels () {
+    # I run 'sysdig -cl' to get a list of available chisels, and build an
+    # _alternative command to generate the user choice
+
+    local incategory=0 alts_types alts_chisels
+    typeset -a alts_types alts_chisels
+
+    function closetype() {
+        if [[ -n "$alts_types[$#alts_types]" ]] && (($#alts_chisels)); then
+            alts_types[$#alts_types]+=$alts_chisels[*]'))'
+        fi
+        alts_chisels=()
+        incategory=0
+    }
+
+    _call_program chisels sysdig -cl 2>/dev/null |
+        while IFS='' read -r line; do
+            if [[ $line =~ "^-+$" ]]; then
+                # skip lines such as
+                # -----------------
+                continue;
+            elif [[ -z "$line" ]]; then
+                # empty lines reset the category
+                closetype
+            elif [[ $line =~ "^Category: (.*)" ]]; then
+                # got a new category
+                closetype
+                incategory=1
+                local category=$match[1]
+                local index=$(($#alts_types+1))
+                alts_types[$index]="category_$index:$category:(("
+            elif (($incategory)) && [[ $line =~ "^([a-zA-Z0-9_-]+) *(.+?)" ]]; then
+                # got a chisel
+                local name=$match[1];
+                local descr=$match[2];
+                local index=$(($#alts_chisels+1))
+                alts_chisels[$index]+="${name}\\:\"$descr\""
+            fi
+        done
+    closetype
+
+    _alternative $alts_types[*]
+}
+
+# returns (in $$1) a description of a given argument of a given chisel
+function _get_chisel_arg () {
+    # I run 'sysdig -i <chisel>' to get a description of this chisel. I parse
+    # the argument list at the end of this description. This list looks like
+    # this
+    #
+    # Args:
+    # [int] arg1 - blah blah blah blah blah
+    # [int] arg2 - something blah blah blah blah blah blah blah b
+    #                     lah blah blah blah blah
+    #
+    # The odd line wrapping is a result of a sysdig bug (patch in review), so
+    # here I assume that this has been fixed
+
+    local outputvar=$1 chisel=$2 nth_want=$3
+    local in_arglist=0 in_argwant=0 nth_have=0
+
+    _call_program chisel_info sysdig -i $chisel 2>/dev/null |
+        while IFS='' read -r line; do
+            if (($in_arglist)); then
+
+                # I'm in the argument list
+
+                if (($in_argwant)); then
+                    if [[ $line =~ "^ {$DESCRIPTION_TEXT_START}(.*?)$" ]]; then
+
+                        # I'm in a continuation line for my argument I strip the
+                        # leading whitespace and append
+                        eval "$outputvar+=\$match[1]"
+                    else
+                        # Done reading my argument
+                        return
+                    fi
+                elif [[ $line =~ "^\[" ]] && ((++nth_have == $nth_want)); then
+
+                    # I'm in the argument I want!
+                    ((++in_argwant))
+                    eval "$outputvar=\$line";
+                fi
+            elif [[ $line =~ "^Args:" ]]; then
+                in_arglist=1
+                continue
+            fi
+        done
+}
+
+# If the cursor is in a chisel argument, returns (in $$1) the description of this
+# argument. Otherwise returns ''
+function _in_chiselarg () {
+    local outputvar=$1
+    local index=$words[(i)-c]
+    local chisel_index=$words[(i)--chisel]
+
+    if [[ $index -le $CURRENT ]]; then
+        # the -c index is valid
+        ;
+    elif [[ $chisel_index -le $CURRENT ]]; then
+        # the --chisel index is valid
+        index=$chisel_index;
+    else
+        # neither index is valid, so return false
+        return
+    fi
+
+    # There is a chisel argument somewhere on the commandline. I look to see if
+    # I'm currently typing into it, and return the description if so
+    local chisel=$words[$index+1]
+    local nth=$(($CURRENT-$index-1))
+
+    _get_chisel_arg $outputvar $chisel $nth
+}
+
+function _chiselarg () {
+
+    # the index of the -c/--chisel argument
+    local description=$1
+    _alternative "chiselarg:$description:"
+}
+
+
+
+
+local context state state_descr line
+typeset -A opt_args
+
+_arguments                                                                                                      \
+    '(-A --print-ascii)'{-A,--print-ascii}'[Only print the text portion of data buffers]'                       \
+    '(-a --abstime)'{-a,--abstime}'[Show absolute event timestamps]'                                            \
+    '(-cl --list-chisels)'{-cl,--list-chisels}'[lists the available chisels]'                                   \
+    '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
+    '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \
+    '(-h --help)'{-h,--help}'[Print this help]'                                                                 \
+    '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                             \
+    '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                          \
+    '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                              \
+    '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                              \
+    '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                   \
+    '(-q --quiet)'{-q,--quiet}'[Do not print events on the screen]'                                             \
+    '(-S --summary)'{-S,--summary}'[Print the event summary when the capture ends]'                             \
+    '(-v --verbose)'{-v,--verbose}'[Verbose output]'                                                            \
+    '(-x --print-hex)'{-x,--print-hex}'[Print data buffers in hex]'                                             \
+    '(-X --print-hex-ascii)'{-X,--print-hex-ascii}'[Print data buffers in hex and ASCII]'                       \
+    '(-z --compress)'{-z,--compress}'[Enables compression for stored tracefiles]'                               \
+    '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
+    '(-p --print)'{-p,--print=-}'[Specify the event format]:Event output format:'                               \
+    '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
+    '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
+    '(-s --snaplen)'{-s,--snaplen=-}'[Capture the first <len> bytes of each I/O buffer]:Buffer length (bytes):' \
+    '(-t --timetype)'{-t,--timetype=-}'[Change the way event time is displayed]:Time-reporting type:((          \
+       h\:"human-readable string"                                                                               \
+       a\:"absolute timestamp from epoch"                                                                       \
+       r\:"relative time from capture start"                                                                    \
+       d\:"delta between enter/exit"))'                                                                         \
+    '(-c --chisel)'{-c,--chisel}'[Run a given chisel]:Chisel:->chisel'                                          \
+    '(-i --chisel-info)'{-i,--chisel-info}'[Get a detailed chisel description]:Chisel:->chisel' \
+    '*:Filter or chisel argument:->filter_or_chiselarg' && return 0
+
+
+case $state in
+    (chisel)
+        _chisels
+        ;;
+    (filter_or_chiselarg)
+        local chiselarg
+        _in_chiselarg chiselarg
+        if [[ -n "$chiselarg" ]]; then
+            _chiselarg $chiselarg
+        else
+            _filter
+        fi
+        ;;
+esac
+
+# Local Variables:
+# mode:sh
+# End:
