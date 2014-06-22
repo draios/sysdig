@@ -107,7 +107,7 @@ function on_event()
 					-- no shell in the ancestor list, hide this command
 					break
 				end
-			elseif string.len(aname) > 2 and aname:sub(-2) == "sh" then
+			elseif string.len(aname) >= 2 and aname:sub(-2) == "sh" then
 				apid = evt.field(fapids[j])
 				if process_tree[apid] then
 					process_tree[ppid] = {j - 1, apid}
@@ -126,17 +126,23 @@ function on_event()
 	if not process_tree[pid] then
 		process_tree[pid] = {1 + process_tree[ppid][1], process_tree[ppid][2]}
 	end
-
-	if max_depth ~= -1 then
-		if process_tree[pid][1] > max_depth then
-			return true
-		end
-	end
 	
 	if ischdir then
-		print(extend_string("", 4 * (process_tree[pid][1] - icorr)) .. dtime .. " " .. user .. " " .. process_tree[pid][2] .. ") " .. "cd " .. evt.field(fdir))
+		if max_depth ~= -1 then
+			if process_tree[pid][1] - icorr > max_depth then
+				return true
+			end
+		end
+	
+		print(extend_string("", 4 * (process_tree[pid][1] - icorr)) .. process_tree[pid][2] .. " " .. dtime .. " " .. user .. ") " .. "cd " .. evt.field(fdir))
 	else
-		print(extend_string("", 4 * (process_tree[pid][1] - 1)) .. dtime .. " " .. user .. " " .. process_tree[pid][2] .. ") " .. evt.field(fexe) .. " " .. evt.field(fargs))
+		if max_depth ~= -1 then
+			if process_tree[pid][1] - 1 > max_depth then
+				return true
+			end
+		end
+		
+		print(extend_string("", 4 * (process_tree[pid][1] - 1)) .. process_tree[pid][2] .. " " .. dtime .. " " .. user .. ") " .. evt.field(fexe) .. " " .. evt.field(fargs))
 	end
 
 	return true
