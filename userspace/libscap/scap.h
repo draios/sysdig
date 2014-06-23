@@ -678,6 +678,39 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle);
 */
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
 
+/*!
+  \brief Clear the event mask: no events will be passed to sysdig
+
+  \param handle Handle to the capture instance.
+
+  \note This function can only be called for live captures.
+*/
+int32_t scap_clear_eventmask(scap_t* handle);
+
+/*!
+  \brief Set the event into the eventmask so that
+  sysdig-based apps can receive the event. Useful for offloading
+  operations such as evt.type=open
+
+  \param handle Handle to the capture instance.
+  \param event id (example PPME_SOCKET_BIND_X)
+  \note This function can only be called for live captures.
+*/
+int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id);
+
+
+/*!
+  \brief Unset the event into the eventmask so that
+  sysdig-based apps can no longer receive the event. It is 
+  the opposite of scap_set_eventmask
+
+  \param handle Handle to the capture instance.
+  \param event id (example PPME_SOCKET_BIND_X)
+  \note This function can only be called for live captures.
+*/
+int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
+
+
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////

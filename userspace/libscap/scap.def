@@ -31,4 +31,7 @@ EXPORTS
 		scap_get_user_list
 		scap_free_userlist
 		scap_set_snaplen
+		scap_clear_eventmask
+		scap_set_eventmask
+		scap_unset_eventmask
 
