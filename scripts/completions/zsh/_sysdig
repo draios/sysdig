@@ -1,7 +1,7 @@
 #compdef sysdig
 
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.82
+# 0.1.83
 
 # this must match fields_info.cpp
 local DESCRIPTION_TEXT_START=19
@@ -23,7 +23,7 @@ function _filter () {
 
     _call_program chisel_info sysdig -l 2>/dev/null |
         while IFS='' read -r line; do
-            if [[ $line =~ "^([a-zA-Z0-9_]+\.[a-zA-Z0-9_]+) +(.*?)$" ]]; then
+            if [[ $line =~ "^([a-zA-Z0-9_]+\.[a-zA-Z0-9_\.]+) +(.*?)$" ]]; then
                 # starting a new field
                 closefield
                 in_field=1
