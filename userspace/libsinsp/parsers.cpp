@@ -70,7 +70,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	reset(evt);
 
-//
+	//
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
 #if defined(HAS_CAPTURE)
