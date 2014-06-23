@@ -295,10 +295,13 @@ void print_chisel_info(chisel_desc* cd)
 	}
 
 	size_t astrlen = astr.size();
+	int linepos = 0;
 
-	for(l = 0; l < astrlen; l++)
+	for(l = 0; l < astrlen; l++, linepos++)
 	{
-		if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+		if(astr[l] == '\n')
+			linepos = -1;
+		else if(linepos % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && linepos != 0)
 		{
 			printf("\n%" PRINTF_WRAP(DESCRIPTION_TEXT_START) "s", "");
 		}
