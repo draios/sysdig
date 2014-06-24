@@ -1,5 +1,5 @@
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.82
+# 0.1.83
 
 complete -W                                     \
 '                                               \
