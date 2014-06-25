@@ -23,6 +23,10 @@ if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1-dev")
 endif()
 
+if(NOT DEFINED DIR_ETC)
+	set(DIR_ETC "${CMAKE_INSTALL_PREFIX}/etc")
+endif()
+
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
 if(NOT WIN32)
