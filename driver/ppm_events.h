@@ -19,27 +19,30 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef EVENTS_H_
 #define EVENTS_H_
 
+/* To know about __NR_socketcall */
+#include <asm/unistd.h>
+
 /*
  * Various crap that a callback might need
  */
 struct event_filler_arguments {
-	char *buffer;	/* the buffer that will be filled with the data */
-	uint32_t buffer_size;	/* the space in the ring buffer available for this event */
-	uint32_t syscall_id;	/* the system call ID */
+	char *buffer; /* the buffer that will be filled with the data */
+	u32 buffer_size; /* the space in the ring buffer available for this event */
+	u32 syscall_id; /* the system call ID */
 #ifdef PPM_ENABLE_SENTINEL
-	uint32_t sentinel;
+	u32 sentinel;
 #endif
-	uint32_t nevents;
-	uint32_t curarg;
-	uint32_t nargs;
-	uint32_t arg_data_offset;
-	uint32_t arg_data_size;
+	u32 nevents;
+	u32 curarg;
+	u32 nargs;
+	u32 arg_data_offset;
+	u32 arg_data_size;
 	enum ppm_event_type event_type;	/* the event type */
 	struct pt_regs *regs; /* the registers containing the call arguments */
 	struct task_struct *sched_prev; /* for context switch events, the task that is being schduled out */
 	struct task_struct *sched_next; /* for context switch events, the task that is being schduled in */
 	char *str_storage; /* String storage. Size is one page. */
-#ifndef __x86_64__
+#ifdef __NR_socketcall
 	unsigned long socketcall_args[6];
 #endif
 };
@@ -58,7 +61,7 @@ struct event_filler_arguments {
 #define PPM_FAILURE_INVALID_USER_MEMORY -2
 #define PPM_FAILURE_BUG -3
 
-typedef int32_t (*filler_callback) (struct event_filler_arguments *args);
+typedef int (*filler_callback) (struct event_filler_arguments *args);
 
 struct ppm_autofill_arg {
 #define AF_ID_RETVAL -1
@@ -99,11 +102,11 @@ u16 fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_use
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
 int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags);
 
-static inline int32_t add_sentinel(struct event_filler_arguments *args)
+static inline int add_sentinel(struct event_filler_arguments *args)
 {
 #ifdef PPM_ENABLE_SENTINEL
-	if (likely(args->arg_data_size >= sizeof(uint32_t))) {
-		*(uint32_t *)(args->buffer + args->arg_data_offset) = args->sentinel;
+	if (likely(args->arg_data_size >= sizeof(u32))) {
+		*(u32 *)(args->buffer + args->arg_data_offset) = args->sentinel;
 		args->arg_data_offset += 4;
 		args->arg_data_size -= 4;
 		return PPM_SUCCESS;

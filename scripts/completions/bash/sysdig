@@ -1,0 +1,58 @@
+  # This completion code is based on the cmdline interface as it exists in sysdig
+# 0.1.84
+
+complete -W                                     \
+'                                               \
+  -A                                            \
+  --print-ascii                                 \
+  -a                                            \
+  --abstime                                     \
+  -cl                                           \
+  --list-chisels                                \
+  -d                                            \
+  --displayflt                                  \
+  -D                                            \
+  --debug                                       \
+  -h                                            \
+  --help                                        \
+  -j                                            \
+  --json                                        \
+  -L                                            \
+  --list-events                                 \
+  -l                                            \
+  --list                                        \
+  -lv                                           \
+  -P                                            \
+  --progress                                    \
+  -q                                            \
+  --quiet                                       \
+  -S                                            \
+  --summary                                     \
+  -v                                            \
+  --verbose                                     \
+  -x                                            \
+  --print-hex                                   \
+  -X                                            \
+  --print-hex-ascii                             \
+  -z                                            \
+  --compress                                    \
+  -n                                            \
+  --numevents                                   \
+  -p                                            \
+  --print                                       \
+  -r                                            \
+  --read                                        \
+  -w                                            \
+  --write                                       \
+  -s                                            \
+  --snaplen                                     \
+  -t                                            \
+  --timetype                                    \
+  -c                                            \
+  --chisel                                      \
+  -i                                            \
+  --chisel-info' sysdig
+
+# Local Variables:
+# mode:sh
+# End:

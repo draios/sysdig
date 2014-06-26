@@ -31,6 +31,7 @@ extern sinsp_filter_check_list g_filterlist;
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
 {
 	m_inspector = inspector;
+	m_first = true;
 	set_format(fmt);
 }
 
@@ -75,16 +76,56 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	const char* cfmt = lfmt.c_str();
 
 	m_tokens.clear();
+	uint32_t lfmtlen = (uint32_t)lfmt.length();
 
-	for(j = 0; j < lfmt.length(); j++)
+	for(j = 0; j < lfmtlen; j++)
 	{
 		if(cfmt[j] == '%')
 		{
+			int toklen = 0;
+
 			if(last_nontoken_str_start != j)
 			{
 				rawstring_check* newtkn = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 				m_tokens.push_back(newtkn);
+				m_tokenlens.push_back(0);
 				m_chks_to_free.push_back(newtkn);
+			}
+
+			if(j == lfmtlen - 1)
+			{
+				throw sinsp_exception("invalid formatting syntax: formatting cannot end with a %");
+			}
+
+			//
+			// If the field specifier starts with a number, it means that we have a length modifier
+			//
+			if(isdigit(cfmt[j + 1]))
+			{
+				//
+				// Parse the token length
+				//
+				sscanf(cfmt+ j + 1, "%d", &toklen);
+
+				//
+				// Advance until the beginning of the field name
+				//
+				while(true)
+				{
+					if(j == lfmtlen - 1)
+					{
+						throw sinsp_exception("invalid formatting syntax: formatting cannot end with a number");
+					}
+					else if(isdigit(cfmt[j + 1]))
+					{
+						j++;
+						continue;
+					}
+					else
+					{
+						break;
+					}
+				}
 			}
 
 			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1), 
@@ -102,6 +143,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 			ASSERT(j <= lfmt.length());
 
 			m_tokens.push_back(chk);
+			m_tokenlens.push_back(toklen);
 
 			last_nontoken_str_start = j + 1;
 		}
@@ -110,36 +152,108 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	if(last_nontoken_str_start != j)
 	{
 		m_tokens.push_back(new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start)));
+		m_tokenlens.push_back(0);
 	}
+}
+
+bool sinsp_evt_formatter::on_capture_end(OUT string* res)
+{
+	res->clear();
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	{
+		(*res) = ']';
+	}
+
+	return res->size() > 0;
 }
 
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
+	bool retval = true;
+	const filtercheck_field_info* fi;
+
+	uint32_t j = 0;
 	vector<sinsp_filter_check*>::iterator it;
 	res->clear();
 
-	for(it = m_tokens.begin(); it != m_tokens.end(); ++it)
-	{
-		char* str = (*it)->tostring(evt);
+	ASSERT(m_tokenlens.size() == m_tokens.size());
 
-		if(str != NULL)
+	for(j = 0; j < m_tokens.size(); j++)
+	{
+		if(retval == false)
 		{
-			(*res) += str;
+			continue;
 		}
-		else
+
+		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 		{
-			if(m_require_all_values)
+			Json::Value json_value = m_tokens[j]->tojson(evt);
+
+			if(json_value == Json::Value::null && m_require_all_values)
 			{
-				return false;
+				retval = false;
+				continue;
+			}
+
+			fi = m_tokens[j]->get_field_info();
+
+			if(fi && fi->m_name) 
+			{
+				m_root[fi->m_name] = m_tokens[j]->tojson(evt);
+			} 
+		} 
+		else 
+		{
+			char* str = m_tokens[j]->tostring(evt);
+
+			if(str == NULL) 
+			{
+				if (m_require_all_values)
+				{
+					retval = false;
+					continue;
+				}
+				else 
+				{
+					str = (char*)"<NA>";
+				}
+			}
+
+			uint32_t tks = m_tokenlens[j];
+
+			if(tks != 0)
+			{
+				string sstr(str);
+				sstr.resize(tks, ' ');
+				(*res) += sstr;
 			}
 			else
 			{
-				(*res) += "<NA>";
+				(*res) += str;
 			}
 		}
 	}
 
-	return true;
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	{
+		if(m_first) 
+		{
+			// Give it the opening stanza of a JSON array
+			(*res) = '[';
+			m_first = false;
+		} 
+		else 
+		{
+			// Otherwise say this is another object in an
+			// existing JSON array
+			(*res) = ",\n";
+		}
+
+		(*res) += m_writer.write( m_root );
+		(*res) = res->substr(0, res->size() - 1);
+	}
+
+	return retval;
 }
 
 #else  // HAS_FILTERING

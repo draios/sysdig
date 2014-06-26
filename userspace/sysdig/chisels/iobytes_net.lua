@@ -62,6 +62,7 @@ end
 
 function on_interval(delta)
 	etime = evt.field(ftime)
+
 	print(etime .. " in:" .. totin .. " out:" .. totout .. " tot:" .. tot)
 	tot = 0
 	totin = 0

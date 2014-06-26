@@ -47,10 +47,12 @@ public:
 
 	  \param filename The name of the target file.
 
+	  \param compress true to save the tracefile in a compressed format.
+
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(const string& filename);
+	void open(const string& filename, bool compress);
 
 	/*!
 	  \brief Return the current size of a tracefile.
@@ -58,6 +60,11 @@ public:
 	  \return The current size of the dump file. 
 	*/
 	uint64_t written_bytes();
+
+	/*!
+	  \brief Flush all pending output into the file.
+	*/
+	void flush();
 
 	/*!
 	  \brief Writes an event to the file.

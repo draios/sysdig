@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include <json/json.h>
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -93,12 +94,12 @@ public:
 	*/
 	enum param_fmt
 	{
-		PF_NORMAL,	///< Normal screen output
-		PF_JSON,	///< Json formatting
-		PF_SIMPLE,	///< Reduced output, e.g. not type character for FDs
-		PF_HEX,		///< Hexadecimal output
-		PF_HEXASCII,///< Hexadecimal + ASCII output
-		PF_EOLS,	///< Normal + end of lines
+		PF_NORMAL =   (1 << 0),	///< Normal screen output
+		PF_JSON =     (1 << 1),	///< Json formatting
+		PF_SIMPLE =   (1 << 2),	///< Reduced output, e.g. not type character for FDs
+		PF_HEX =      (1 << 3),	///< Hexadecimal output
+		PF_HEXASCII = (1 << 4),	///< Hexadecimal + ASCII output
+		PF_EOLS =     (1 << 5),	///< Normal + end of lines
 	};
 
 	/*!
@@ -198,7 +199,7 @@ public:
 
 	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM. 
 	*/
-	uint64_t get_fd_num();
+	int64_t get_fd_num();
 
 	/*!
 	  \brief Return the number of parameters that this event has.
@@ -244,7 +245,7 @@ public:
 	   before returning it. For example, and FD number will be converted into
 	   the correspondent file, TCP tuple, etc.
 	*/
-	string get_param_value_str(string& name, bool resolved = true);
+	string get_param_value_str(const string& name, bool resolved = true);
 
 	/*!
 	  \brief Return the event's category, based on the event type and the FD on
@@ -267,6 +268,8 @@ private:
 	void set_iosize(uint32_t size);
 	uint32_t get_iosize();
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
+	Json::Value get_param_as_json(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
+
 	const char* get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
 	void init();
@@ -274,6 +277,8 @@ private:
 	void load_params();
 	string get_param_value_str(uint32_t id, bool resolved);
 	string get_param_value_str(const char* name, bool resolved = true);
+	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
+	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 
 VISIBILITY_PRIVATE
 
@@ -285,10 +290,6 @@ VISIBILITY_PRIVATE
 	const struct ppm_event_info* m_info;
 	vector<sinsp_evt_param> m_params;
 
-	// Note: this is a lot of storage. We assume that it's not a bit deal since
-	//       currently there's no case in which more than one single event is 
-	//       needed by the library users. We'll optmize this when we'll have the 
-	//       need.
 	vector<char> m_paramstr_storage;
 	vector<char> m_resolved_paramstr_storage;
 
@@ -296,6 +297,7 @@ VISIBILITY_PRIVATE
 	sinsp_fdinfo_t* m_fdinfo;
 	uint32_t m_iosize;
 	int32_t m_errorcode;
+	int32_t m_rawbuf_str_len;
 #ifdef HAS_FILTERING
 	bool m_filtered_out;
 #endif
@@ -305,6 +307,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_threadinfo;
 	friend class sinsp_analyzer;
 	friend class sinsp_filter_check_event;
+	friend class sinsp_filter_check_thread;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;

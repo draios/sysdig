@@ -33,6 +33,7 @@ extern "C" {
 #include <crtdbg.h>
 #endif
 #include <assert.h>
+#include <zlib.h>
 
 //
 // The time scap_next will wait when a buffer is empty
@@ -66,7 +67,7 @@ struct scap
 	scap_device* m_devs;
 	struct pollfd* m_pollfds;
 	uint32_t m_ndevs;
-	FILE* m_file;
+	gzFile m_file;
 	char* m_file_evt_buf;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 	scap_threadinfo* m_proclist;
@@ -122,16 +123,16 @@ int32_t scap_fd_info_to_string(scap_fdinfo* fdi, OUT char* str, uint32_t strlen)
 // Calculate the length on disk of an fd entry's info
 uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 // Write the given fd info to disk
-int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, FILE *f);
+int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, gzFile f);
 // Populate the given fd by reading the info from disk
-uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, FILE *f);
+uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, gzFile f);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdinfo* fdi);
 // Remove the given fd from the process table of the process pointed by pi
 void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // Parse the headers of a trace file and load the tables
-int32_t scap_read_init(scap_t* handle, FILE* f);
+int32_t scap_read_init(scap_t* handle, gzFile f);
 // Read an event from disk
 int32_t scap_next_offline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 // read the filedescriptors for a given process directory
@@ -171,7 +172,6 @@ uint32_t scap_event_compute_len(scap_evt* e);
 			(int)read_size,\
 			__FILE__,\
 			__LINE__);\
-		ASSERT(false);\
 		return SCAP_FAILURE;\
 	}
 

@@ -35,7 +35,7 @@ end
 function on_init()
 	chisel.exec("table_generator", 
 		"fd.name",
-		"Tilename",
+		"Filename",
 		"evt.latency",
 		"Time",
 		"fd.type=file and evt.is_io=true", 

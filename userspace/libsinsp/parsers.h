@@ -35,13 +35,22 @@ public:
 	void process_event(sinsp_evt* evt);
 	void erase_fd(erase_fd_params* params);
 
+	//
+	// Get the enter event matching the last received event
+	//
+	bool retrieve_enter_event(sinsp_evt* enter_evt, sinsp_evt* exit_evt);
+
+	//
+	// Combine the openat arguments into a full file name
+	//
+	static void parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir);
+
 private:
 	//
 	// Helpers
 	//
 	bool reset(sinsp_evt *evt);
 	void store_event(sinsp_evt* evt);
-	bool retrieve_enter_event(sinsp_evt* enter_evt, sinsp_evt* exit_evt);
 
 	//
 	// Parsers
@@ -75,6 +84,8 @@ private:
 	void parse_select_poll_epollwait_enter(sinsp_evt *evt);
 	void parse_fcntl_enter(sinsp_evt* evt);
 	void parse_fcntl_exit(sinsp_evt* evt);
+	void parse_context_switch(sinsp_evt* evt);
+	void parse_brk_munmap_mmap_exit(sinsp_evt* evt);
 
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
 	inline void add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t ino);
@@ -92,6 +103,10 @@ private:
 	// Pointers to inspector context
 	//
 	sinsp* m_inspector;
+
+#if defined(HAS_CAPTURE)
+	int64_t m_sysdig_pid;
+#endif
 
 	// Temporary storage to avoid memory allocation
 	sinsp_evt m_tmp_evt;

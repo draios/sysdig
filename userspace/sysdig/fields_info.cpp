@@ -29,7 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sysdig.h"
 #include "chisel.h"
 
-#define DESCRIPTION_TEXT_START 18
+#define DESCRIPTION_TEXT_START 20
 #define CONSOLE_LINE_LEN 79
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
@@ -54,7 +54,7 @@ void list_fields(bool verbose)
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
 			printf("%s", fld->m_name);
-			uint32_t namelen = strlen(fld->m_name);
+			uint32_t namelen = (uint32_t)strlen(fld->m_name);
 
 			ASSERT(namelen < DESCRIPTION_TEXT_START);
 
@@ -62,16 +62,17 @@ void list_fields(bool verbose)
 			{
 				printf(" ");
 			}
-				
-			string desc;
+
+			string desc(fld->m_description);
+
+			if(fld->m_flags & EPF_FILTER_ONLY)
+			{
+				desc = "(FILTER ONLY) " + desc;
+			}
 
 			if(verbose)
 			{
-				desc = string(fld->m_description) + " Type:" + param_type_to_string(fld->m_type) + ".";
-			}
-			else
-			{
-				desc = string(fld->m_description);
+				desc += string(" Type:") + param_type_to_string(fld->m_type) + ".";
 			}
 
 			size_t desclen = desc.size();
@@ -234,6 +235,7 @@ void list_events(sinsp* inspector)
 	}
 }
 
+#ifdef HAS_CHISELS
 struct summary_chisel_comparer
 {
     bool operator() (const chisel_desc& first, const chisel_desc& second) const 
@@ -252,7 +254,7 @@ void print_chisel_info(chisel_desc* cd)
 	std::vector<chisel_desc> chlist;
 	chlist.push_back(cd[0]);
 
-	list_chisels(&chlist);
+	list_chisels(&chlist, false);
 
 	// Now we have to do the real work
 	printf("\n");
@@ -275,7 +277,7 @@ void print_chisel_info(chisel_desc* cd)
 
 	printf("\n");
 
-	astr +=	"\nArgs:\n";
+	astr +=	"Args:\n";
 
 	if(cd->m_args.size() != 0)
 	{
@@ -293,10 +295,13 @@ void print_chisel_info(chisel_desc* cd)
 	}
 
 	size_t astrlen = astr.size();
+	int linepos = 0;
 
-	for(l = 0; l < astrlen; l++)
+	for(l = 0; l < astrlen; l++, linepos++)
 	{
-		if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+		if(astr[l] == '\n')
+			linepos = -1;
+		else if(linepos % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && linepos != 0)
 		{
 			printf("\n%" PRINTF_WRAP(DESCRIPTION_TEXT_START) "s", "");
 		}
@@ -308,7 +313,7 @@ void print_chisel_info(chisel_desc* cd)
 	printf("\n");
 }
 
-void list_chisels(vector<chisel_desc>* chlist)
+void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 {
 	uint32_t j, l;
 
@@ -342,7 +347,7 @@ void list_chisels(vector<chisel_desc>* chlist)
 		}
 
 		printf("%s", cd->m_name.c_str());
-		uint32_t namelen = cd->m_name.size();
+		uint32_t namelen = (uint32_t)cd->m_name.size();
 
 		ASSERT(namelen < (DESCRIPTION_TEXT_START - 2));
 
@@ -367,5 +372,9 @@ void list_chisels(vector<chisel_desc>* chlist)
 		printf("\n");
 	}
 
-	printf("\nUse the -i flag to get detailed information about a specific chisel\n");
+	if(verbose)
+	{
+		printf("\nUse the -i flag to get detailed information about a specific chisel\n");
+	}
 }
+#endif // HAS_CHISELS

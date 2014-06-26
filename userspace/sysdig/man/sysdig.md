@@ -65,7 +65,7 @@ To get the list of available chisels, type
 > $ sysdig -cl  
 
 To get details about a specific chisel, type
-> $ sysdig -ispy_ip  
+> $ sysdig -i spy_ip
 
 To run one of the chisels, you use the -c flag, e.g.
 > $ sysdig -c topfiles_bytes
@@ -73,7 +73,11 @@ To run one of the chisels, you use the -c flag, e.g.
 If a chisel needs arguments, you specify them after the chisel name:
 > $ sysdig -c spy_ip 192.168.1.157
 
-Chiesls can be combined with filters:
+If a chisel has more than one argument, specify them after the chisel name,
+enclosed in quotes:
+> $ sysdig -c chisel_name "arg1 arg2 arg3"
+
+Chisels can be combined with filters:
 > $ sysdig -c topfiles_bytes "not fd.name contains /dev"
 
 OPTIONS
@@ -89,11 +93,14 @@ OPTIONS
   run the specified chisel. If the chisel require arguments, they must be specified in the command line after the name.
   
 **-cl**, **--list-chisels**  
-  lists the available chisels. Looks for chisels in ., ./chisels, ~/chisels and /usr/share/sysdig/chisels.
+  lists the available chisels. Looks for chisels in ., ./chisels, ~/.chisels and /usr/share/sysdig/chisels.
   
 **-d**, **--displayflt**  
-  Make the given filter a display one Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost
+  Make the given filter a display one. Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost.
   
+**-D**, **--debug**
+  Capture events about sysdig itself
+
 **-h**, **--help**  
   Print this page
   
@@ -103,14 +110,17 @@ OPTIONS
 **-i _chiselname_**, **--chisel-info _chiselname_**  
   Get a longer description and the arguments associated with a chisel found in the -cl option list.
 
-**-l**, **--list**  
-  List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
-  
 **-L**, **--list-events**  
   List the events that the engine supports
   
+**-l**, **--list**  
+  List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
+    
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after <num> events
+
+** -P **, **--progress**  
+  Print progress on stderr while processing trace files.
   
 **-p** _output_format_, **--print**=_output_format_  
   Specify the format to be used when printing the events. See the examples section below for more info.
@@ -128,7 +138,7 @@ OPTIONS
   Capture the first <len> bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
 
 **-t** _timetype_, **--timetype**=_timetype_  
-  Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for abosulte timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.
+  Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.
    
 **-v**, **--verbose**  
   Verbose output.
@@ -141,6 +151,9 @@ OPTIONS
   
 **-X**, **--print-hex-ascii**  
   Print data buffers in hex and ASCII.
+
+**-z**, **--compress**
+  Used with **-w**, enables compression for tracefiles.
   
 EXAMPLES
 --------

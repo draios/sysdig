@@ -1,4 +1,4 @@
-.TH SYSDIG 8
+.TH "" "" "" "" ""
 .SS NAME
 .PP
 sysdig \- the definitive system and process troubleshooting tool
@@ -145,7 +145,7 @@ $ sysdig \-cl
 To get details about a specific chisel, type
 .RS
 .PP
-$ sysdig \-ispy_ip
+$ sysdig \-i spy_ip
 .RE
 .PP
 To run one of the chisels, you use the \-c flag, e.g.
@@ -160,7 +160,14 @@ If a chisel needs arguments, you specify them after the chisel name:
 $ sysdig \-c spy_ip 192.168.1.157
 .RE
 .PP
-Chiesls can be combined with filters:
+If a chisel has more than one argument, specify them after the chisel name,
+enclosed in quotes:
+.RS
+.PP
+> $ sysdig -c chisel_name "arg1 arg2 arg3"
+.RE
+.PP
+Chisels can be combined with filters:
 .RS
 .PP
 $ sysdig \-c topfiles_bytes "not fd.name contains /dev"
@@ -194,18 +201,25 @@ line after the name.
 .P
 .PD
 lists the available chisels.
-Looks for chisels in ., ./chisels, ~/chisels and
+Looks for chisels in ., ./chisels, ~/.chisels and
 /usr/share/sysdig/chisels.
 .PP
 \f[B]\-d\f[], \f[B]\-\-displayflt\f[]
 .PD 0
 .P
 .PD
-Make the given filter a display one Setting this option causes the
-events to be filtered after being parsed by the state system.
+Make the given filter a display one.
+Setting this option causes the events to be filtered after being parsed
+by the state system.
 Events are normally filtered before being analyzed, which is more
 efficient, but can cause state (e.g.
-FD names) to be lost
+FD names) to be lost.
+.PP
+\f[B]\-D\f[], \f[B]\-\-debug\f[]
+.PD 0
+.P
+.PD
+Capture events about sysdig itself
 .PP
 \f[B]\-h\f[], \f[B]\-\-help\f[]
 .PD 0
@@ -227,6 +241,12 @@ Emit output as json
 Get a longer description and the arguments associated with a chisel
 found in the \-cl option list.
 .PP
+\f[B]\-L\f[], \f[B]\-\-list\-events\f[]
+.PD 0
+.P
+.PD
+List the events that the engine supports
+.PP
 \f[B]\-l\f[], \f[B]\-\-list\f[]
 .PD 0
 .P
@@ -234,17 +254,17 @@ found in the \-cl option list.
 List the fields that can be used for filtering and output formatting.
 Use \-lv to get additional information for each field.
 .PP
-\f[B]\-L\f[], \f[B]\-\-list\-events\f[]
-.PD 0
-.P
-.PD
-List the events that the engine supports
-.PP
 \f[B]\-n\f[] \f[I]num\f[], \f[B]\-\-numevents\f[]=\f[I]num\f[]
 .PD 0
 .P
 .PD
 Stop capturing after events
+.PP
+** \-P \f[B], \f[]\-\-progress**
+.PD 0
+.P
+.PD
+Print progress on stderr while processing trace files.
 .PP
 \f[B]\-p\f[] \f[I]output\f[]format_,
 \f[B]\-\-print\f[]=\f[I]output\f[]format_
@@ -288,7 +308,7 @@ Use this option with caution, it can generate huge trace files.
 .PD
 Change the way event time is diplayed.
 Accepted values are \f[B]h\f[] for human\-readable string, \f[B]a\f[]
-for abosulte timestamp from epoch, \f[B]r\f[] for relative time from the
+for absolute timestamp from epoch, \f[B]r\f[] for relative time from the
 beginning of the capture, and \f[B]d\f[] for delta between event enter
 and exit.
 .PP
@@ -315,6 +335,12 @@ Print data buffers in hex.
 .P
 .PD
 Print data buffers in hex and ASCII.
+.PP
+\f[B]\-z\f[], \f[B]\-\-compress\f[]
+.PD 0
+.P
+.PD
+Used with \f[B]\-w\f[], enables compression for tracefiles.
 .SS EXAMPLES
 .PP
 Capture all the events from the live system and print them to screen

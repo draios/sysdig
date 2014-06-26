@@ -5,9 +5,5 @@
 *.order
 *.mod
 *.mod.c
-lua*.dll
-lua*.exp
-lua*.lib
-lua*.exe
-dependencies/
 build/
+driver/Makefile

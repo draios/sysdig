@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include <json/json.h>
 
 #ifdef HAS_FILTERING
 
@@ -25,7 +26,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	throw sinsp_exception("filter error: value too long: " + val); \
 }
 
-bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2);
+bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 
 class operand_info
@@ -76,7 +77,7 @@ public:
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field lenght because the filtering engine can calculate it.
 	//
-	virtual void parse_filter_value(const char* str);
+	virtual void parse_filter_value(const char* str, uint32_t len);
 
 	//
 	// Return the info about the field that this instance contains 
@@ -89,6 +90,15 @@ public:
 	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len) = 0;
 
 	//
+	// Extract the field as json from the event (by default, fall
+	// back to the regular extract functionality)
+	//
+	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+	{
+		return Json::Value::null;
+	}
+
+	//
 	// Compare the field with the constant value obtained from parse_filter_value()
 	//
 	virtual bool compare(sinsp_evt *evt);
@@ -98,13 +108,23 @@ public:
 	//
 	virtual char* tostring(sinsp_evt* evt);
 
+	//
+	// Extract the value from the event and convert it into a Json value
+	// or object
+	//
+	virtual Json::Value tojson(sinsp_evt* evt);
+
 	sinsp* m_inspector;
 	boolop m_boolop;
 	ppm_cmp_operator m_cmpop;
 
 protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
-	void string_to_rawval(const char* str, ppm_param_type ptype);
+	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
+	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
+	int32_t extract_arg(string fldname, string val, 
+		OUT const struct ppm_param_info** parinfo,
+		OUT int32_t* argid, OUT string* argname);
 
 	char m_getpropertystr_storage[1024];
 	vector<uint8_t> m_val_storage;
@@ -112,6 +132,7 @@ protected:
 	filter_check_info m_info;
 	uint32_t m_field_id;
 	uint32_t m_th_state_id;
+	uint32_t m_val_storage_len;
 
 private:
 	void set_inspector(sinsp* inspector);
@@ -130,7 +151,7 @@ public:
 	~sinsp_filter_check_list();
 	void add_filter_check(sinsp_filter_check* filter_check);
 	void get_all_fields(vector<const filter_check_info*>* list);
-	sinsp_filter_check* new_filter_check_from_fldname(string name, sinsp* inspector, bool do_exact_check);
+	sinsp_filter_check* new_filter_check_from_fldname(const string& name, sinsp* inspector, bool do_exact_check);
 
 private:
 	vector<sinsp_filter_check*> m_check_list;
@@ -162,7 +183,7 @@ public:
 		return 0;
 	}
 
-	void parse_filter_value(const char* str)
+	void parse_filter_value(const char* str, uint32_t len)
 	{
 		ASSERT(false);
 	}
@@ -199,15 +220,17 @@ public:
 		TYPE_FDTYPE = 1,
 		TYPE_FDTYPECHAR = 2,
 		TYPE_FDNAME = 3,
-		TYPE_IP = 4,
-		TYPE_CLIENTIP = 5,
-		TYPE_SERVERIP = 6,
-		TYPE_PORT = 7,
-		TYPE_CLIENTPORT = 8,
-		TYPE_SERVERPORT = 9,
-		TYPE_L4PROTO = 10,
-		TYPE_SOCKFAMILY = 11,
-		TYPE_IS_SERVER = 12,
+		TYPE_DIRECTORY = 4,
+		TYPE_FILENAME = 5,
+		TYPE_IP = 6,
+		TYPE_CLIENTIP = 7,
+		TYPE_SERVERIP = 8,
+		TYPE_PORT = 9,
+		TYPE_CLIENTPORT = 10,
+		TYPE_SERVERPORT = 11,
+		TYPE_L4PROTO = 12,
+		TYPE_SOCKFAMILY = 13,
+		TYPE_IS_SERVER = 14,
 	};
 
 	enum fd_type
@@ -235,6 +258,7 @@ public:
 	bool compare_port(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
 	char* tostring(sinsp_evt* evt);
+	Json::Value tojson(sinsp_evt* evt);
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
@@ -244,6 +268,8 @@ public:
 	uint32_t m_tbool;
 
 private:
+	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len);
+	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len);
 	bool extract_fd(sinsp_evt *evt);
 };
 
@@ -259,30 +285,47 @@ public:
 		TYPE_EXE = 1,
 		TYPE_NAME = 2,
 		TYPE_ARGS = 3,
-		TYPE_CWD = 4,
-		TYPE_NCHILDS = 5,
-		TYPE_PARENTNAME = 6,
-		TYPE_TID = 7,
-		TYPE_ISMAINTHREAD = 8,
-		TYPE_EXECTIME = 9,
-		IOBYTES = 10,
-		TOTIOBYTES = 11,
-		LATENCY = 12,
-		TOTLATENCY = 13,
+		TYPE_CMDLINE = 4,
+		TYPE_CWD = 5,
+		TYPE_NCHILDS = 6,
+		TYPE_PPID = 7,
+		TYPE_PNAME = 8,
+		TYPE_APID = 9,
+		TYPE_ANAME = 10,
+		TYPE_LOGINSHELLID = 11,
+		TYPE_DURATION = 12,
+		TYPE_FDOPENCOUNT = 13,
+		TYPE_FDLIMIT = 14,
+		TYPE_FDUSAGE = 15,
+		TYPE_VMSIZE = 16,
+		TYPE_VMRSS = 17,
+		TYPE_VMSWAP = 18,
+		TYPE_PFMAJOR = 19,
+		TYPE_PFMINOR = 20,
+		TYPE_TID = 21,
+		TYPE_ISMAINTHREAD = 22,
+		TYPE_EXECTIME = 23,
+		TYPE_TOTEXECTIME = 24,
+		TYPE_IOBYTES = 25,
+		TYPE_TOTIOBYTES = 26,
+		TYPE_LATENCY = 27,
+		TYPE_TOTLATENCY = 28,
 	};
 
 	sinsp_filter_check_thread();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	
+private:
+	uint64_t extract_exectime(sinsp_evt *evt);
+	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 
-	// XXX this is overkill and wasted for most of the fields.
-	// It could be optimized by dynamically allocating the right amount
-	// of memory, but we don't care for the moment since we expect filters 
-	// to be pretty small.
+	int32_t m_argid;
 	uint32_t m_tbool;
 	string m_tstr;
 	uint64_t m_u64val;
+	int64_t m_s64val;
 	vector<uint64_t> m_last_proc_switch_times;
 };
 
@@ -320,18 +363,21 @@ public:
 		TYPE_ISIO = 23,
 		TYPE_ISIO_READ = 24,
 		TYPE_ISIO_WRITE = 25,
-		TYPE_ISWAIT = 26,
-		TYPE_COUNT = 27,
+		TYPE_IODIR = 26,
+		TYPE_ISWAIT = 27,
+		TYPE_COUNT = 28,
 	};
 
 	sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
-	void parse_filter_value(const char* str);
+	void parse_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 	char* tostring(sinsp_evt* evt);
+	Json::Value tojson(sinsp_evt* evt);
 
 	uint64_t m_first_ts;
 	uint64_t m_u64val;
@@ -350,6 +396,8 @@ private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
+
+	bool m_is_compare;
 };
 
 //
@@ -404,7 +452,7 @@ public:
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
 	int32_t parse_field_name(const char* str);
-	void parse_filter_value(const char* str);
+	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 	// XXX this is overkill and wasted for most of the fields.

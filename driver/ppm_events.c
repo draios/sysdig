@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
+
 #include <linux/compat.h>
 #include <linux/cdev.h>
 #include <asm/syscall.h>
@@ -43,6 +45,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define compat_ptr(X) X
 #endif
 
+/*
+ * The kernel patched with grsecurity makes the default access_ok trigger a
+ * might_sleep(), so if present we use the one defined by them
+ */
+#ifdef access_ok_noprefault
+#define ppm_access_ok access_ok_noprefault
+#else
+#define ppm_access_ok access_ok
+#endif
+
 static void memory_dump(char *p, size_t size)
 {
 	unsigned int j;
@@ -65,9 +77,8 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
 
 	pagefault_disable();
 
-	if (likely(access_ok(VERIFY_READ, from, n))) {
+	if (likely(ppm_access_ok(VERIFY_READ, from, n)))
 		res = __copy_from_user_inatomic(to, from, n);
-	}
 
 	pagefault_enable();
 
@@ -94,11 +105,10 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 		 * Read bytes_to_read bytes at a time, and look for the terminator. Should be fast
 		 * since the copy_from_user is optimized for the processor
 		 */
-		if (n < bytes_to_read) {
+		if (n < bytes_to_read)
 			bytes_to_read = n;
-		}
 
-		if (!access_ok(VERIFY_READ, from, n)) {
+		if (!ppm_access_ok(VERIFY_READ, from, n)) {
 			res = -1;
 			goto strncpy_end;
 		}
@@ -136,16 +146,16 @@ strncpy_end:
  * - val_len is ignored for everything other than PT_BYTEBUF.
  * - fromuser is ignored for numeric types
  */
-inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser)
+inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser)
 {
-	int32_t len = -1;
+	int len = -1;
 	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
 
 	if (unlikely(args->curarg >= args->nargs)) {
-		pr_info("sysdig-probe: %u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
+		pr_info("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
 		       smp_processor_id(),
 		       args->nevents,
-		       (uint32_t)args->event_type,
+		       (u32)args->event_type,
 		       args->curarg,
 		       args->nargs,
 		       current->pid);
@@ -162,9 +172,8 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
 					(const char __user *)(unsigned long)val, args->arg_data_size);
 
-				if (unlikely(len < 0)) {
+				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
-				}
 			} else {
 				char *dest = strncpy(args->buffer + args->arg_data_offset,
 								(const char *)(unsigned long)val,
@@ -200,13 +209,12 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 				return PPM_FAILURE_BUFFER_FULL;
 			} else {
 				if (fromuser) {
-					len = (int32_t)ppm_copy_from_user(args->buffer + args->arg_data_offset,
+					len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
 							(const void __user *)(unsigned long)val,
 							val_len);
 
-					if (unlikely(len != 0)) {
+					if (unlikely(len != 0))
 						return PPM_FAILURE_INVALID_USER_MEMORY;
-					}
 
 					len = val_len;
 				} else {
@@ -248,9 +256,9 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 		break;
 	case PT_FLAGS32:
 	case PT_UINT32:
-		if (likely(args->arg_data_size >= sizeof(uint32_t))) {
-			*(uint32_t *)(args->buffer + args->arg_data_offset) = (uint32_t)val;
-			len = sizeof(uint32_t);
+		if (likely(args->arg_data_size >= sizeof(u32))) {
+			*(u32 *)(args->buffer + args->arg_data_offset) = (u32)val;
+			len = sizeof(u32);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -259,36 +267,36 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
-		if (likely(args->arg_data_size >= sizeof(uint64_t))) {
-			*(uint64_t *)(args->buffer + args->arg_data_offset) = (uint64_t)val;
-			len = sizeof(uint64_t);
+		if (likely(args->arg_data_size >= sizeof(u64))) {
+			*(u64 *)(args->buffer + args->arg_data_offset) = (u64)val;
+			len = sizeof(u64);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT8:
-		if (likely(args->arg_data_size >= sizeof(int8_t))) {
-			*(int8_t *)(args->buffer + args->arg_data_offset) = (int8_t)(long)val;
-			len = sizeof(int8_t);
+		if (likely(args->arg_data_size >= sizeof(s8))) {
+			*(s8 *)(args->buffer + args->arg_data_offset) = (s8)(long)val;
+			len = sizeof(s8);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT16:
-		if (likely(args->arg_data_size >= sizeof(int16_t))) {
-			*(int16_t *)(args->buffer + args->arg_data_offset) = (int16_t)(long)val;
-			len = sizeof(int16_t);
+		if (likely(args->arg_data_size >= sizeof(s16))) {
+			*(s16 *)(args->buffer + args->arg_data_offset) = (s16)(long)val;
+			len = sizeof(s16);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT32:
-		if (likely(args->arg_data_size >= sizeof(int32_t))) {
-			*(int32_t *)(args->buffer + args->arg_data_offset) = (int32_t)(long)val;
-			len = sizeof(int32_t);
+		if (likely(args->arg_data_size >= sizeof(s32))) {
+			*(s32 *)(args->buffer + args->arg_data_offset) = (s32)(long)val;
+			len = sizeof(s32);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -298,9 +306,9 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
-		if (likely(args->arg_data_size >= sizeof(int64_t))) {
-			*(int64_t *)(args->buffer + args->arg_data_offset) = (int64_t)(long)val;
-			len = sizeof(int64_t);
+		if (likely(args->arg_data_size >= sizeof(s64))) {
+			*(s64 *)(args->buffer + args->arg_data_offset) = (s64)(long)val;
+			len = sizeof(s64);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -308,9 +316,9 @@ inline int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u1
 		break;
 	default:
 		ASSERT(0);
-		pr_info("sysdig-probe: val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
+		pr_info("val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
 		       (int)g_event_info[args->event_type].params[args->curarg].type,
-		       (uint32_t)args->event_type,
+		       (u32)args->event_type,
 		       g_event_info[args->event_type].name);
 		return PPM_FAILURE_BUG;
 	}
@@ -339,7 +347,7 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 
 	ASSERT(bufsize >= PAGE_SIZE - 1);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36) || defined CONFIG_VE
 	get_fs_pwd(current->fs, &pwd);
 #else
 	read_lock(&current->fs->lock);
@@ -477,7 +485,7 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 	char *targetbuf,
 	u16 targetbufsize)
 {
-	uint32_t ip;
+	u32 ip;
 	u16 port;
 	sa_family_t family = usrsockaddr->sa_family;
 	struct sockaddr_in *usrsockaddr_in;
@@ -505,7 +513,7 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		size = 1 + 4 + 2; /* family + ip + port */
 
 		*targetbuf = socket_family_to_scap(family);
-		*(uint32_t *)(targetbuf + 1) = ip;
+		*(u32 *)(targetbuf + 1) = ip;
 		*(u16 *)(targetbuf + 5) = port;
 
 		break;
@@ -542,11 +550,10 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		 * Put a 0 at the end of struct sockaddr_un because
 		 * the user might not have considered it in the length
 		 */
-		if (ulen == sizeof(struct sockaddr_storage)) {
+		if (ulen == sizeof(struct sockaddr_storage))
 			*(((char *)usrsockaddr_un) + ulen - 1) = 0;
-		} else {
+		else
 			*(((char *)usrsockaddr_un) + ulen) = 0;
-		}
 
 		/*
 		 * Pack the data into the target buffer
@@ -588,8 +595,8 @@ u16 fd_to_socktuple(int fd,
 	struct unix_sock *us;
 	char *us_name;
 	struct sock *speer;
-	uint32_t sip;
-	uint32_t dip;
+	u32 sip;
+	u32 dip;
 	u8 *sip6;
 	u8 *dip6;
 	u16 sport;
@@ -615,9 +622,8 @@ u16 fd_to_socktuple(int fd,
 		 * This usually happens if the call failed without being able to establish a connection,
 		 * i.e. if it didn't return something like SE_EINPROGRESS.
 		 */
-		if (sock) {
+		if (sock)
 			sockfd_put(sock);
-		}
 		return 0;
 	}
 
@@ -671,9 +677,9 @@ u16 fd_to_socktuple(int fd,
 		size = 1 + 4 + 4 + 2 + 2; /* family + sip + dip + sport + dport */
 
 		*targetbuf = socket_family_to_scap(family);
-		*(uint32_t *)(targetbuf + 1) = sip;
+		*(u32 *)(targetbuf + 1) = sip;
 		*(u16 *)(targetbuf + 5) = sport;
-		*(uint32_t *)(targetbuf + 7) = dip;
+		*(u32 *)(targetbuf + 7) = dip;
 		*(u16 *)(targetbuf + 11) = dport;
 
 		break;
@@ -769,17 +775,15 @@ u16 fd_to_socktuple(int fd,
 			 * Put a 0 at the end of struct sockaddr_un because
 			 * the user might not have considered it in the length
 			 */
-			if (ulen == sizeof(struct sockaddr_storage)) {
+			if (ulen == sizeof(struct sockaddr_storage))
 				*(((char *)usrsockaddr_un) + ulen - 1) = 0;
-			} else {
+			else
 				*(((char *)usrsockaddr_un) + ulen) = 0;
-			}
 
-			if (is_inbound) {
+			if (is_inbound)
 				us_name = ((struct sockaddr_un *) &sock_address)->sun_path;
-			} else {
+			else
 				us_name = usrsockaddr_un->sun_path;
-			}
 		}
 
 		ASSERT(us_name);
@@ -805,17 +809,14 @@ u16 fd_to_socktuple(int fd,
 
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
 {
-	if (unlikely(ulen < 0 || ulen > sizeof(struct sockaddr_storage))) {
+	if (unlikely(ulen < 0 || ulen > sizeof(struct sockaddr_storage)))
 		return -EINVAL;
-	}
 
-	if (unlikely(ulen == 0)) {
+	if (unlikely(ulen == 0))
 		return 0;
-	}
 
-	if (unlikely(ppm_copy_from_user(kaddr, uaddr, ulen))) {
+	if (unlikely(ppm_copy_from_user(kaddr, uaddr, ulen)))
 		return -EFAULT;
-	}
 
 	return 0;
 }
@@ -828,21 +829,19 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 {
 	int32_t res;
 	const struct iovec *iov;
-	uint32_t copylen;
-	uint32_t j;
+	u32 copylen;
+	u32 j;
 	uint64_t size = 0;
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
 
 	copylen = iovcnt * sizeof(struct iovec);
 
-	if (unlikely(copylen >= STR_STORAGE_SIZE)) {
+	if (unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
-	}
 
-	if (unlikely(ppm_copy_from_user(targetbuf, iovsrc, copylen))) {
+	if (unlikely(ppm_copy_from_user(targetbuf, iovsrc, copylen)))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
-	}
 
 	iov = (const struct iovec *)targetbuf;
 
@@ -850,14 +849,12 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	 * Size
 	 */
 	if (flags & PRB_FLAG_PUSH_SIZE) {
-		for (j = 0; j < iovcnt; j++) {
+		for (j = 0; j < iovcnt; j++)
 			size += iov[j].iov_len;
-		}
 
 		res = val_to_ring(args, size, 0, false);
-		if (unlikely(res != PPM_SUCCESS)) {
+		if (unlikely(res != PPM_SUCCESS))
 			return res;
-		}
 	}
 
 	/*
@@ -874,14 +871,12 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 				(unsigned long)iov[0].iov_base,
 				min(bufsize, (unsigned long)g_snaplen),
 				true);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		} else {
 			res = val_to_ring(args, 0, 0, false);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		}
 	}
 
@@ -899,18 +894,18 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
  * filler function.
  * The arguments to extract are be specified in g_ppm_events.
  */
-int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo)
+int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo)
 {
-	int32_t res;
+	int res;
 	unsigned long val;
-	uint32_t j;
+	u32 j;
 	int64_t retval;
 
 	ASSERT(evinfo->n_autofill_args <= PPM_MAX_AUTOFILL_ARGS);
 
 	for (j = 0; j < evinfo->n_autofill_args; j++) {
 		if (evinfo->autofill_args[j].id >= 0) {
-#ifdef __x86_64__
+#ifndef __NR_socketcall
 			/*
 			 * Regular argument
 			 */
@@ -935,26 +930,23 @@ int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_eve
 #endif
 
 			res = val_to_ring(args, val, 0, true);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		} else if (evinfo->autofill_args[j].id == AF_ID_RETVAL) {
 			/*
 			 * Return value
 			 */
 			retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 			res = val_to_ring(args, retval, 0, false);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		} else if (evinfo->autofill_args[j].id == AF_ID_USEDEFAULT) {
 			/*
 			 * Default Value
 			 */
 			res = val_to_ring(args, evinfo->autofill_args[j].default_val, 0, false);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if (unlikely(res != PPM_SUCCESS))
 				return res;
-			}
 		} else {
 			ASSERT(false);
 		}

@@ -25,13 +25,13 @@ hidden = true
 args = 
 {
 	{
-		name = "key", 
-		description = "the filter field used for grouping", 
+		name = "keys", 
+		description = "comma-separated list of filter fields to use for grouping", 
 		argtype = "string"
 	},
 	{
-		name = "keydesc", 
-		description = "human readable description for the key", 
+		name = "keydescs", 
+		description = "comma separated list of human readable descriptions for the key", 
 		argtype = "string"
 	},
 	{
@@ -55,7 +55,7 @@ args =
 		argtype = "string"
 	},
 	{
-		name = "result_rendering", 
+		name = "value_units", 
 		description = "how to render the values in the result. Can be 'bytes', 'time', 'timepct', or 'none'.", 
 		argtype = "string"
 	},
@@ -64,38 +64,44 @@ args =
 require "common"
 terminal = require "ansiterminal"
 
-top_number = 0
 grtable = {}
-key_fld = ""
-key_desc = ""
-value_fld = ""
-value_desc = ""
 filter = ""
-result_rendering = "none"
 islive = false
+fkeys = {}
+
+vizinfo = 
+{
+	key_fld = {},
+	key_desc = {},
+	value_fld = "",
+	value_desc = "",
+	value_units = "none",
+	top_number = 0,
+	output_format = "normal"
+}
 
 -- Argument notification callback
 function on_set_arg(name, val)
-	if name == "key" then
-		key_fld = val
+	if name == "keys" then
+		vizinfo.key_fld = split(val, ",")		
 		return true
-	elseif name == "keydesc" then
-		key_desc = val
+	elseif name == "keydescs" then
+		vizinfo.key_desc = split(val, ",")
 		return true
 	elseif name == "value" then
-		value_fld = val
+		vizinfo.value_fld = val
 		return true
 	elseif name == "valuedesc" then
-		value_desc = val
+		vizinfo.value_desc = val
 		return true
 	elseif name == "filter" then
 		filter = val
 		return true
 	elseif name == "top_number" then
-		top_number = tonumber(val)
+		vizinfo.top_number = tonumber(val)
 		return true
-	elseif name == "result_rendering" then
-		result_rendering = val
+	elseif name == "value_units" then
+		vizinfo.value_units = val
 		return true
 	end
 
@@ -103,9 +109,17 @@ function on_set_arg(name, val)
 end
 
 function on_init()
+	if #vizinfo.key_fld ~= #vizinfo.key_desc then
+		print("error: number of entries in keys different from number entries in keydescs")
+		return false
+	end
+
 	-- Request the fields we need
-	fkey = chisel.request_field(key_fld)
-	fvalue = chisel.request_field(value_fld)
+	for i, name in ipairs(vizinfo.key_fld) do
+		fkeys[i] = chisel.request_field(name)
+	end
+
+	fvalue = chisel.request_field(vizinfo.value_fld)
 
 	-- set the filter
 	if filter ~= "" then
@@ -117,21 +131,39 @@ end
 
 function on_capture_start()
 	islive = sysdig.is_live()
+	vizinfo.output_format = sysdig.get_output_format()
 
 	if islive then
 		chisel.set_interval_s(1)
-		terminal.clearscreen()
-		terminal.hidecursor()
+		if vizinfo.output_format ~= "json" then
+			terminal.clearscreen()
+			terminal.hidecursor()
+		end
 	end
-
+	
 	return true
 end
 
 function on_event()
-	key = evt.field(fkey)
+	local key = nil
+	local kv = nil
+	
+	for i, fld in ipairs(fkeys) do
+		kv = evt.field(fld)
+		if kv == nil then
+			return
+		end
+
+		if key == nil then
+			key = kv
+		else
+			key = key .. "\001\001" .. evt.field(fld)
+		end
+	end
+	
 	value = evt.field(fvalue)
 
-	if key ~= nil and value ~= nil and value > 0 then
+	if value ~= nil and value > 0 then
 		entryval = grtable[key]
 
 		if entryval == nil then
@@ -144,11 +176,13 @@ function on_event()
 	return true
 end
 
-function on_interval(ts_s, ts_ns, delta)
-	terminal.clearscreen()
-	terminal.goto(0, 0)
+function on_interval(ts_s, ts_ns, delta)	
+	if vizinfo.output_format ~= "json" then
+		terminal.clearscreen()
+		terminal.moveto(0, 0)
+	end
 	
-	print_sorted_table(grtable, delta, result_rendering)
+	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 
 	-- Clear the table
 	grtable = {}
@@ -157,14 +191,14 @@ function on_interval(ts_s, ts_ns, delta)
 end
 
 function on_capture_end(ts_s, ts_ns, delta)
-	if islive then
+	if islive and vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
-		terminal.goto(0 ,0)
+		terminal.moveto(0 ,0)
 		terminal.showcursor()
 		return true
 	end
 	
-	print_sorted_table(grtable, delta, result_rendering)
+	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 	
 	return true
 end

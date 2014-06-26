@@ -20,6 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #if defined _MSC_VER
 #pragma pack(push)
 #pragma pack(1)
+#elif defined __sun
+#pragma pack(1)
 #else
 #pragma pack(push, 1)
 #endif
@@ -57,49 +59,58 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 // MACHINE INFO BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define MI_BLOCK_TYPE		0x201
-#define MI_BLOCK_TYPE_INT	0x8002ABCD	// This is the unofficial number used before the
-										// library release. We'll keep him for a while for
-										// backward compatibility
+#define MI_BLOCK_TYPE			0x201
+#define MI_BLOCK_TYPE_INT		0x8002ABCD	// This is the unofficial number used before the
+											// library release. We'll keep him for a while for
+											// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // PROCESS LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define PL_BLOCK_TYPE		0x202
-#define PL_BLOCK_TYPE_INT	0x8000ABCD	// This is the unofficial number used before the
-										// library release. We'll keep him for a while for
-										// backward compatibility
+#define PL_BLOCK_TYPE_V1		0x202
+#define PL_BLOCK_TYPE_V1_INT	0x8000ABCD	// This is the unofficial number used before the
+											// library release. We'll keep him for a while for
+											// backward compatibility
+
+#define PL_BLOCK_TYPE_V2		0x207
+#define PL_BLOCK_TYPE_V2_INT	0x8013ABCD	// This is the unofficial number used before the
+											// library release. We'll keep him for a while for
+											// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // FD LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define FDL_BLOCK_TYPE		0x203
-#define FDL_BLOCK_TYPE_INT	0x8001ABCD	// This is the unofficial number used before the
-										// library release. We'll keep him for a while for
-										// backward compatibility
+#define FDL_BLOCK_TYPE			0x203
+#define FDL_BLOCK_TYPE_INT		0x8001ABCD	// This is the unofficial number used before the
+											// library release. We'll keep him for a while for
+											// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // EVENT BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define EV_BLOCK_TYPE		0x204
-#define EV_BLOCK_TYPE_INT	0x8010ABCD	// This is the unofficial number used before the
-										// library release. We'll keep him for a while for
-										// backward compatibility
+#define EV_BLOCK_TYPE			0x204
+#define EV_BLOCK_TYPE_INT		0x8010ABCD	// This is the unofficial number used before the
+											// library release. We'll keep him for a while for
+											// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // INTERFACE LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define IL_BLOCK_TYPE		0x205
-#define IL_BLOCK_TYPE_INT	0x8011ABCD	// This is the unofficial number used before the
-										// library release. We'll keep him for a while for
-										// backward compatibility
+#define IL_BLOCK_TYPE			0x205
+#define IL_BLOCK_TYPE_INT		0x8011ABCD	// This is the unofficial number used before the
+											// library release. We'll keep him for a while for
+											// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
 // USER LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
-#define UL_BLOCK_TYPE		0x206
-#define UL_BLOCK_TYPE_INT	0x8012ABCD	// This is the unofficial number used before the
-										// library release. We'll keep him for a while for
-										// backward compatibility
+#define UL_BLOCK_TYPE			0x206
+#define UL_BLOCK_TYPE_INT		0x8012ABCD	// This is the unofficial number used before the
+											// library release. We'll keep him for a while for
+											// backward compatibility
 
+#if defined __sun
+#pragma pack()
+#else
 #pragma pack(pop)
+#endif

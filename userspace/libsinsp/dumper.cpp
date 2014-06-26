@@ -35,14 +35,22 @@ sinsp_dumper::~sinsp_dumper()
 	}
 }
 
-void sinsp_dumper::open(const string& filename)
+void sinsp_dumper::open(const string& filename, bool compress)
 {
 	if(m_inspector->m_h == NULL)
 	{
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
-	m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str());
+	if(compress)
+	{
+		m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_GZIP);
+	}
+	else
+	{
+		m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE);
+	}
+
 	if(m_dumper == NULL)
 	{
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
@@ -72,5 +80,21 @@ uint64_t sinsp_dumper::written_bytes()
 		throw sinsp_exception("dumper not opened yet");
 	}
 
-	return scap_dump_ftell(m_dumper);	
+	int64_t written_bytes = scap_dump_get_offset(m_dumper);
+	if(written_bytes == -1)
+	{
+		throw sinsp_exception("error getting offset");		
+	}
+
+	return written_bytes;
+}
+
+void sinsp_dumper::flush()
+{
+	if(m_dumper == NULL)
+	{
+		throw sinsp_exception("dumper not opened yet");
+	}
+
+	scap_dump_flush(m_dumper);
 }

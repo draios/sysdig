@@ -1,9 +1,0 @@
-/libluajit.a
-/libluajit.so
-/lj_bcdef.h
-/lj_ffdef.h
-/lj_folddef.h
-/lj_libdef.h
-/lj_recdef.h
-/lj_vm.s
-/luajit

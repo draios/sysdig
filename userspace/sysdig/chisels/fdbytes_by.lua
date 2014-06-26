@@ -31,7 +31,7 @@ args =
 }
 
 -- The number of items to show
-TOP_NUMBER = 0
+TOP_NUMBER = 30
 key_fld = ""
 
 -- Argument notification callback
@@ -51,7 +51,7 @@ function on_init()
 		key_fld,
 		"evt.rawarg.res",
 		"Bytes",
-		"evt.is_io=true", 
+		"evt.is_io=true and evt.failed=false", 
 		"" .. TOP_NUMBER,
 		"bytes")
 	return true

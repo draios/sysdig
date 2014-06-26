@@ -194,6 +194,11 @@ typedef struct scap_threadinfo
 	uint32_t flags; ///< the process flags.
 	uint32_t uid; ///< user id
 	uint32_t gid; ///< group id
+	uint32_t vmsize_kb; ///< total virtual memory (as kb)
+	uint32_t vmrss_kb; ///< resident non-swapped memory (as kb)
+	uint32_t vmswap_kb; ///< swapped memory (as kb)
+	uint64_t pfmajor; ///< number of major page faults since start
+	uint64_t pfminor; ///< number of minor page faults since start
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
@@ -203,6 +208,8 @@ typedef struct scap_threadinfo
 //
 #if defined _MSC_VER
 #pragma pack(push)
+#pragma pack(1)
+#elif defined __sun
 #pragma pack(1)
 #else
 #pragma pack(push, 1)
@@ -292,7 +299,11 @@ typedef struct scap_ifinfo_ipv6_nolinkspeed
 	char ifname[SCAP_MAX_PATH_SIZE];
 }scap_ifinfo_ipv6_nolinkspeed;
 
+#if defined __sun
+#pragma pack()
+#else
 #pragma pack(pop)
+#endif
 
 /*!
   \brief List of the machine network interfaces
@@ -368,6 +379,15 @@ typedef enum event_direction
 	SCAP_ED_OUT = 1
 }event_direction;
 
+/*!
+  \brief Indicates the compression type used when writing a tracefile
+*/
+typedef enum compression_mode
+{
+	SCAP_COMPRESSION_NONE = 0,
+	SCAP_COMPRESSION_GZIP = 1
+}compression_mode;
+
 typedef struct scap_dumper scap_dumper_t;
 /*@}*/
 
@@ -411,7 +431,7 @@ scap_t* scap_open_live(char *error);
 			
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open_offline(char* fname, char *error);
+scap_t* scap_open_offline(const char* fname, char *error);
 
 /*!
   \brief Close a capture handle.
@@ -491,6 +511,14 @@ uint64_t scap_event_get_num(scap_t* handle);
 const struct ppm_event_info* scap_event_getinfo(scap_evt* e);
 
 /*!
+  \brief Return the current offset in the file opened by scap_open_offline(),
+  or -1 if this is a live capture.
+
+  \param handle Handle to the capture instance.
+*/
+int64_t scap_get_readfile_offset(scap_t* handle);
+
+/*!
   \brief Open a tracefile for writing 
 
   \param handle Handle to the capture instance.
@@ -498,7 +526,7 @@ const struct ppm_event_info* scap_event_getinfo(scap_evt* e);
 
   \return Dump handle that can be used to identify this specific dump instance. 
 */
-scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname);
+scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress);
 
 /*!
   \brief Close a tracefile. 
@@ -513,7 +541,14 @@ void scap_dump_close(scap_dumper_t *d);
   \param d The dump handle, returned by \ref scap_dump_open
   \return The current size of the dump file pointed by d. 
 */
-uint64_t scap_dump_ftell(scap_dumper_t *d);
+int64_t scap_dump_get_offset(scap_dumper_t *d);
+
+/*!
+  \brief Flush all pending output into the file. 
+
+  \param d The dump handle, returned by \ref scap_dump_open
+*/
+void scap_dump_flush(scap_dumper_t *d);
 
 /*!
   \brief Write an event to a trace file 
