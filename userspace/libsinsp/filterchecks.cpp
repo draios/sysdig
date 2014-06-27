@@ -839,8 +839,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads of that the process generating the event currently has."},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.ppid", "the pid of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "the name (excluding the path) of the parent of the process generating the event."},
-	{PT_INT64, EPF_NONE, PF_DEC, "proc.apid", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "the name (excluding the path) of one of the process ancestors. E.g. proc.aname[1] returns the parent name, proc.aname[2] returns the grandparent name, and so on. proc.aname[0] is the name of the current process."},
+	{PT_INT64, EPF_NONE, PF_DEC, "proc.apid", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process. proc.apid without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.apid=1234."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "the name (excluding the path) of one of the process ancestors. E.g. proc.aname[1] returns the parent name, proc.aname[2] returns the grandparent name, and so on. proc.aname[0] is the name of the current process. proc.aname without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.aname=bash."},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.loginshellid", "the pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "number of nanoseconds since the process started."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "number of open FDs for the process"},
@@ -913,14 +913,44 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str)
 		m_field_id = TYPE_APID;
 		m_field = &m_info.m_fields[m_field_id];
 
-		return extract_arg("proc.apid", val, NULL);
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.apid", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.apid")
+			{
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
 	}
 	else if(string(val, 0, sizeof("proc.aname") - 1) == "proc.aname")
 	{
 		m_field_id = TYPE_ANAME;
 		m_field = &m_info.m_fields[m_field_id];
 
-		return extract_arg("proc.aname", val, NULL);
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.aname", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.aname")
+			{
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
 	}
 	else if(string(val, 0, sizeof("thread.totexectime") - 1) == "thread.totexectime")
 	{
@@ -1123,6 +1153,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
+			//
+			// Search for a specific ancestors
+			//
 			for(int32_t j = 0; j < m_argid; j++)
 			{
 				mt = mt->get_parent_thread();
@@ -1291,6 +1324,126 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		ASSERT(false);
 		return NULL;
 	}
+}
+
+bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
+{
+	bool res;
+	uint32_t j;
+
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+	if(tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	sinsp_threadinfo* mt = NULL;
+
+	if(tinfo->is_main_thread())
+	{
+		mt = tinfo;
+	}
+	else
+	{
+		mt = tinfo->get_main_thread();
+
+		if(mt == NULL)
+		{
+			return NULL;
+		}
+	}
+
+	//
+	// No id specified, search in all of the ancestors
+	//
+	for(j = 0; mt != NULL; mt = mt->get_parent_thread(), j++)
+	{
+		if(j > 0)
+		{
+			res = flt_compare(m_cmpop,
+				PT_PID, 
+				&mt->m_pid, 
+				&m_val_storage[0]);
+
+			if(res == true)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
+{
+	bool res;
+	uint32_t j;
+
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+	if(tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	sinsp_threadinfo* mt = NULL;
+
+	if(tinfo->is_main_thread())
+	{
+		mt = tinfo;
+	}
+	else
+	{
+		mt = tinfo->get_main_thread();
+
+		if(mt == NULL)
+		{
+			return NULL;
+		}
+	}
+
+	//
+	// No id specified, search in all of the ancestors
+	//
+	for(j = 0; mt != NULL; mt = mt->get_parent_thread(), j++)
+	{
+		if(j > 0)
+		{
+			res = flt_compare(m_cmpop,
+				PT_CHARBUF, 
+				(void*)mt->m_comm.c_str(), 
+				&m_val_storage[0]);
+
+			if(res == true)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
+{
+	if(m_field_id == TYPE_APID)
+	{
+		if(m_argid == -1)
+		{
+			return compare_full_apid(evt);
+		}
+	}
+	else if(m_field_id == TYPE_ANAME)
+	{
+		if(m_argid == -1)
+		{
+			return compare_full_aname(evt);
+		}
+	}
+
+	return sinsp_filter_check::compare(evt);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2096,6 +2249,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 	bool res;
 
 	m_is_compare = true;
+
 	if(m_field_id == TYPE_ARGRAW)
 	{
 		uint32_t len;
@@ -2117,6 +2271,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 	{
 		res = sinsp_filter_check::compare(evt);
 	}
+
 	m_is_compare = false;
 
 	return res;

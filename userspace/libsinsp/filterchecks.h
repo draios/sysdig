@@ -316,10 +316,13 @@ public:
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
-	
+	bool compare(sinsp_evt *evt);
+
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	inline bool compare_full_apid(sinsp_evt *evt);
+	bool compare_full_aname(sinsp_evt *evt);
 
 	int32_t m_argid;
 	uint32_t m_tbool;
