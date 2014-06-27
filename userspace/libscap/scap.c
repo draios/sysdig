@@ -964,14 +964,14 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 
 static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
 {
-  //
-  // Not supported on files
-  //
-  if(handle->m_file)
-    {
-      snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "manipulating eventmasks not supported on offline captures");
-      return SCAP_FAILURE;
-    }
+	//
+	// Not supported on files
+	//
+	if(handle->m_file)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "manipulating eventmasks not supported on offline captures");
+		return SCAP_FAILURE;
+	}
 
 #ifdef _WIN32
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
@@ -980,49 +980,49 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
 	return SCAP_FAILURE;
 #else
-  //
-  // Tell the driver to change the snaplen
-  //
+	//
+	// Tell the driver to change the snaplen
+	//
 
-  switch(op) {
-  case PPM_IOCTL_MASK_ZERO_EVENTS:
-  case PPM_IOCTL_MASK_SET_EVENT:
-  case PPM_IOCTL_MASK_UNSET_EVENT:
-    break;
-	  
-  default:
-    snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
-    ASSERT(false);
-    return SCAP_FAILURE;
-    break;
-  }
+	switch(op) {
+	case PPM_IOCTL_MASK_ZERO_EVENTS:
+	case PPM_IOCTL_MASK_SET_EVENT:
+	case PPM_IOCTL_MASK_UNSET_EVENT:
+		break;
 
-  if(ioctl(handle->m_devs[0].m_fd, op, event_id))
-    {
-      snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) failed", __FUNCTION__, op);
-      ASSERT(false);
-      return SCAP_FAILURE;
-    }
-	
-  {
-    uint32_t j;
+	default:
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
+		ASSERT(false);
+		return SCAP_FAILURE;
+		break;
+	}
 
-    //
-    // Force a flush of the read buffers, so we don't capture events with the old snaplen
-    //
-    for(j = 0; j < handle->m_ndevs; j++)
-      {
-	scap_readbuf(handle,
-		     j,
-		     false,
-		     &handle->m_devs[j].m_sn_next_event,
-		     &handle->m_devs[j].m_sn_len);
+	if(ioctl(handle->m_devs[0].m_fd, op, event_id))
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) failed", __FUNCTION__, op);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
 
-	handle->m_devs[j].m_sn_len = 0;
-      }
-  }
+	{
+		uint32_t j;
 
-  return SCAP_SUCCESS;
+		//
+		// Force a flush of the read buffers, so we don't capture events with the old snaplen
+		//
+		for(j = 0; j < handle->m_ndevs; j++)
+		{
+			scap_readbuf(handle,
+				j,
+				false,
+				&handle->m_devs[j].m_sn_next_event,
+				&handle->m_devs[j].m_sn_len);
+
+			handle->m_devs[j].m_sn_len = 0;
+		}
+	}
+
+	return SCAP_SUCCESS;
 #endif
 }
 
@@ -1035,7 +1035,7 @@ int32_t scap_clear_eventmask(scap_t* handle) {
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
 	return SCAP_FAILURE;
 #else
-  return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_ZERO_EVENTS, 0));
+	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_ZERO_EVENTS, 0));
 #endif
 }
 
@@ -1047,7 +1047,7 @@ int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
 	return SCAP_FAILURE;
 #else
-  return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_SET_EVENT, event_id));
+	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_SET_EVENT, event_id));
 #endif
 }
 
@@ -1059,7 +1059,7 @@ int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
 	return SCAP_FAILURE;
 #else
-  return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_UNSET_EVENT, event_id));
+	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_UNSET_EVENT, event_id));
 #endif
 }
 
