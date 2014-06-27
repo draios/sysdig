@@ -111,6 +111,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)) */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
+DECLARE_BITMAP(g_events_mask, PPM_EVENT_MAX);
 static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
@@ -191,6 +192,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	g_sampling_ratio = 1;
 	g_sampling_interval = 0;
 	g_is_dropping = 0;
+	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
 	ring->info->head = 0;
 	ring->info->tail = 0;
 	ring->nevents = 0;
@@ -367,6 +369,49 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		pr_info("new snaplen: %d\n", g_snaplen);
 		return 0;
 	}
+
+	case PPM_IOCTL_MASK_ZERO_EVENTS:
+	  {
+	    pr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
+
+	    bitmap_zero(g_events_mask, PPM_EVENT_MAX);
+
+	    /* Used for dropping events so they must stay on */
+	    set_bit(PPME_DROP_E, g_events_mask);
+	    set_bit(PPME_DROP_X, g_events_mask);
+	    return(0);
+	  }
+
+	case PPM_IOCTL_MASK_SET_EVENT:
+	  {
+	    u32 syscall_to_set = (u32)arg;
+
+	    pr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
+
+	    if(syscall_to_set > PPM_EVENT_MAX) {
+	      pr_info("invalid syscall %u\n", syscall_to_set);
+	      return -EINVAL;	      
+	    }
+
+	    set_bit(syscall_to_set, g_events_mask);
+	    return(0);
+	  }
+
+	case PPM_IOCTL_MASK_UNSET_EVENT:
+	  {
+	    u32 syscall_to_unset = (u32)arg;
+
+	    pr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
+
+	    if(syscall_to_unset > NR_syscalls) {
+	      pr_info("invalid syscall %u\n", syscall_to_unset);
+	      return -EINVAL;	      
+	    }
+
+	    clear_bit(syscall_to_unset, g_events_mask);
+	    return(0);
+	  }
+
 	default:
 		return -ENOTTY;
 	}
@@ -639,6 +684,11 @@ static void record_event(enum ppm_event_type event_type,
 	struct timespec ts;
 
 	getnstimeofday(&ts);
+
+	if(!test_bit(event_type, g_events_mask)) {
+	  drop_event(event_type, 0, &ts);
+	  return;
+	}
 
 	if (drop_event(event_type, never_drop, &ts))
 		return;
