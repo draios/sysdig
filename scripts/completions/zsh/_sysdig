@@ -4,7 +4,7 @@
 # 0.1.84
 
 # this must match fields_info.cpp
-local DESCRIPTION_TEXT_START=19
+local DESCRIPTION_TEXT_START=20
 
 # handles completion of filter fields
 function _filter () {
