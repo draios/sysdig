@@ -686,7 +686,6 @@ static void record_event(enum ppm_event_type event_type,
 	getnstimeofday(&ts);
 
 	if(!test_bit(event_type, g_events_mask)) {
-	  drop_event(event_type, 0, &ts);
 	  return;
 	}
 
