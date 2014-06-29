@@ -46,7 +46,6 @@ used to save only certain events to disk:
 Trace files can be read this using the -r switch: 
 > $ sysdig -r trace.scap
 
-
 **Filtering**  
 
 sysdig filters are specified at the end of the command line. The simplest filter is a basic field-value check:
@@ -157,6 +156,7 @@ OPTIONS
   
 EXAMPLES
 --------
+
 Capture all the events from the live system and print them to screen
 > $ sysdig
 
