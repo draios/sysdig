@@ -107,7 +107,7 @@ OPTIONS
 **-j**, **--json**         
   Emit output as json
   
-**-i _chiselname_**, **--chisel-info _chiselname_**  
+**-i _chiselname_**, **--chisel-info=**_chiselname_  
   Get a longer description and the arguments associated with a chisel found in the -cl option list.
 
 **-L**, **--list-events**  
@@ -117,25 +117,25 @@ OPTIONS
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
     
 **-n** _num_, **--numevents**=_num_  
-  Stop capturing after <num> events
+  Stop capturing after _num_ events
 
-** -P **, **--progress**  
+**-P**, **--progress**  
   Print progress on stderr while processing trace files.
   
-**-p** _output_format_, **--print**=_output_format_  
+**-p** _outputformat_, **--print**=_outputformat_  
   Specify the format to be used when printing the events. See the examples section below for more info.
   
 **-q**, **--quiet**  
   Don't print events on the screen. Useful when dumping to disk.
   
 **-r** _readfile_, **--read**=_readfile_  
-  Read the events from <readfile>.
+  Read the events from _readfile_.
   
 **-S**, **--summary**  
   print the event summary (i.e. the list of the top events) when the capture ends.
   
 **-s** _len_, **--snaplen**=_len_  
-  Capture the first <len> bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
+  Capture the first _len_ bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
 
 **-t** _timetype_, **--timetype**=_timetype_  
   Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.

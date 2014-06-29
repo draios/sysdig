@@ -233,8 +233,8 @@ Print this page
 .PD
 Emit output as json
 .PP
-\f[B]\-i \f[I]chiselname\f[]\f[], \f[B]\-\-chisel\-info
-\f[I]chiselname\f[]\f[]
+\f[B]\-i \f[I]chiselname\f[]\f[],
+\f[B]\-\-chisel\-info=\f[]\f[I]chiselname\f[]
 .PD 0
 .P
 .PD
@@ -258,16 +258,16 @@ Use \-lv to get additional information for each field.
 .PD 0
 .P
 .PD
-Stop capturing after events
+Stop capturing after \f[I]num\f[] events
 .PP
-** \-P \f[B], \f[]\-\-progress**
+\f[B]\-P\f[], \f[B]\-\-progress\f[]
 .PD 0
 .P
 .PD
 Print progress on stderr while processing trace files.
 .PP
-\f[B]\-p\f[] \f[I]output\f[]format_,
-\f[B]\-\-print\f[]=\f[I]output\f[]format_
+\f[B]\-p\f[] \f[I]outputformat\f[],
+\f[B]\-\-print\f[]=\f[I]outputformat\f[]
 .PD 0
 .P
 .PD
@@ -285,7 +285,7 @@ Useful when dumping to disk.
 .PD 0
 .P
 .PD
-Read the events from .
+Read the events from \f[I]readfile\f[].
 .PP
 \f[B]\-S\f[], \f[B]\-\-summary\f[]
 .PD 0
@@ -298,7 +298,7 @@ the list of the top events) when the capture ends.
 .PD 0
 .P
 .PD
-Capture the first bytes of each I/O buffer.
+Capture the first \f[I]len\f[] bytes of each I/O buffer.
 By default, the first 80 bytes are captured.
 Use this option with caution, it can generate huge trace files.
 .PP
