@@ -25,48 +25,48 @@ and can be extended through Lua scripts, called chisels.
 By default, sysdig prints the information for each captured event on a
 single line, with the following format:
 .PP
-\f[C]<evt.num>\ <evt.time>\ <evt.cpu>\ <proc.name>\ <thread.tid>\ <evt.dir>\ <evt.type>\ <evt.args>\f[]
+\f[C]<e.num>\ <e.time>\ <e.cpu>\ <p.name>\ <t.tid>\ <e.dir>\ <e.type>\ <e.args>\f[]
 .PP
 where:
 .IP \[bu] 2
-evt.num is the incremental event number
+e.num is the incremental event number
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-evt.time is the event timestamp
+e.time is the event timestamp
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-evt.cpu is the CPU number where the event was captured
+e.cpu is the CPU number where the event was captured
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-proc.name is the name of the process that generated the event
+p.name is the name of the process that generated the event
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-thread.tid id the TID that generated the event, which corresponds to the
-PID for single thread processes
+t.tid id the TID that generated the event, which corresponds to the PID
+for single thread processes
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-evt.dir is the event direction, > for enter events and < for exit events
+e.dir is the event direction, > for enter events and < for exit events
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-evt.type is the name of the event, e.g.
+e.type is the name of the event, e.g.
 \[aq]open\[aq] or \[aq]read\[aq]
 .PD 0
 .P
 .PD
 .IP \[bu] 2
-evt.args is the list of event arguments.
+e.args is the list of event arguments.
 .PP
 The output format can be customized with the \-p switch, using any of
 the fields listed by \[aq]sysdig \-l\[aq].

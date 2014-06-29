@@ -20,17 +20,17 @@ sysdig includes a powerul filtering language, has customizable output, and can b
 
 By default, sysdig prints the information for each captured event on a single line, with the following format:
 
-```<evt.num> <evt.time> <evt.cpu> <proc.name> <thread.tid> <evt.dir> <evt.type> <evt.args>```
+```<e.num> <e.time> <e.cpu> <p.name> <t.tid> <e.dir> <e.type> <e.args>```
 
 where:
-* evt.num is the incremental event number
-* evt.time is the event timestamp
-* evt.cpu is the CPU number where the event was captured
-* proc.name is the name of the process that generated the event
-* thread.tid id the TID that generated the event, which corresponds to the PID for single thread processes
-* evt.dir is the event direction, > for enter events and < for exit events
-* evt.type is the name of the event, e.g. 'open' or 'read'
-* evt.args is the list of event arguments.
+* e.num is the incremental event number
+* e.time is the event timestamp
+* e.cpu is the CPU number where the event was captured
+* p.name is the name of the process that generated the event
+* t.tid id the TID that generated the event, which corresponds to the PID for single thread processes
+* e.dir is the event direction, > for enter events and < for exit events
+* e.type is the name of the event, e.g. 'open' or 'read'
+* e.args is the list of event arguments.
 
 The output format can be customized with the -p switch, using any of the fields listed by 'sysdig -l'.
 
