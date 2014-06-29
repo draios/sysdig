@@ -17,7 +17,7 @@ events.
 sysdig can be both used to inspect live systems, or to generate trace
 files that can be analyzed at a later stage.
 .PP
-Sysdig includes a powerul filtering language, has customizable output,
+sysdig includes a powerul filtering language, has customizable output,
 and can be extended through Lua scripts, called chisels.
 .PP
 \f[B]Output format\f[]
@@ -128,10 +128,8 @@ $ sysdig "not (fd.name contains /proc or fd.name contains /dev)"
 .RE
 .PP
 \f[B]Chisels\f[]
-.PD 0
-.P
-.PD
-Sysdig\[aq]s chisels are little scripts that analyze the sysdig event
+.PP
+sysdig\[aq]s chisels are little scripts that analyze the sysdig event
 stream to perform useful actions.
 .PD 0
 .P

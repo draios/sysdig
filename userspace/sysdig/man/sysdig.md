@@ -14,7 +14,7 @@ DESCRIPTION
 sysdig is a tool for system troubleshooting, analysis and exploration. It can be used to capture, filter and decode system calls and other OS events. 
 sysdig can be both used to inspect live systems, or to generate trace files that can be analyzed at a later stage.
 
-Sysdig includes a powerul filtering language, has customizable output, and can be extended through Lua scripts, called chisels.
+sysdig includes a powerul filtering language, has customizable output, and can be extended through Lua scripts, called chisels.
 
 **Output format**
 
@@ -60,7 +60,8 @@ Multiple checks can be combined through brakets and the following boolean operat
 > $ sysdig "not (fd.name contains /proc or fd.name contains /dev)"
 
 **Chisels**  
-Sysdig's chisels are little scripts that analyze the sysdig event stream to perform useful actions.
+
+sysdig's chisels are little scripts that analyze the sysdig event stream to perform useful actions.
 To get the list of available chisels, type
 > $ sysdig -cl  
 
