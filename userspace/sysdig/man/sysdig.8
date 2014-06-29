@@ -370,13 +370,13 @@ $ sysdig proc.name=cat and evt.type=open
 Print the name of the files opened by cat
 .RS
 .PP
-$ ./sysdig \-p"%evt.arg.name" proc.name=cat and evt.type=open
+$ sysdig \-p"%evt.arg.name" proc.name=cat and evt.type=open
 .RE
 .PP
 List the available chisels
 .RS
 .PP
-$ ./sysdig \-cl
+$ sysdig \-cl
 .RE
 .PP
 Use the spy_ip chisel to look at the data exchanged with 192.168.1.157:

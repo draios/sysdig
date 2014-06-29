@@ -170,10 +170,10 @@ Print all the open system calls invoked by cat
 > $ sysdig proc.name=cat and evt.type=open
 
 Print the name of the files opened by cat
-> $ ./sysdig -p"%evt.arg.name" proc.name=cat and evt.type=open
+> $ sysdig -p"%evt.arg.name" proc.name=cat and evt.type=open
 
 List the available chisels
-> $ ./sysdig -cl
+> $ sysdig -cl
 
 Use the spy_ip chisel to look at the data exchanged with 192.168.1.157:
 > $ sysdig -c spy_ip 192.168.1.157
