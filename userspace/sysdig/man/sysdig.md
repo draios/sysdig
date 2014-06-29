@@ -190,7 +190,7 @@ FILES
 BUGS
 ----
 
-Bugs?
+* sysdig and its chisels are designed to be used with LuaJIT in Lua 5.1 mode. While it is possible to use sysdig with LuaJIT in Lua 5.2 mode or regular Lua, some chisels may not work as expected.
 
 AUTHOR
 ------
