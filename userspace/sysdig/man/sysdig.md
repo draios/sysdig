@@ -46,7 +46,6 @@ used to save only certain events to disk:
 Trace files can be read this using the -r switch: 
 > $ sysdig -r trace.scap
 
-
 **Filtering**  
 
 sysdig filters are specified at the end of the command line. The simplest filter is a basic field-value check:
@@ -74,8 +73,7 @@ To run one of the chisels, you use the -c flag, e.g.
 If a chisel needs arguments, you specify them after the chisel name:
 > $ sysdig -c spy_ip 192.168.1.157
 
-If a chisel has more than one argument, specify them after the chisel name,
-enclosed in quotes:
+If a chisel has more than one argument, specify them after the chisel name, enclosed in quotes:
 > $ sysdig -c chisel_name "arg1 arg2 arg3"
 
 Chisels can be combined with filters:
@@ -158,6 +156,7 @@ OPTIONS
   
 EXAMPLES
 --------
+
 Capture all the events from the live system and print them to screen
 > $ sysdig
 
