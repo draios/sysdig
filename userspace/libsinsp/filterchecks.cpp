@@ -1045,7 +1045,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_CMDLINE:
 		{
-			m_tstr = tinfo->get_comm();
+			m_tstr = tinfo->get_comm() + " ";
 
 			uint32_t j;
 			uint32_t nargs = (uint32_t)tinfo->m_args.size();
