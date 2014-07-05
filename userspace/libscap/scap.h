@@ -551,6 +551,19 @@ int64_t scap_dump_get_offset(scap_dumper_t *d);
 void scap_dump_flush(scap_dumper_t *d);
 
 /*!
+  \brief Tell how many bytes would be written (a dry run of scap_dump)
+
+  \param e pointer to an event returned by \ref scap_next.
+  \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
+  \param bytes The number of bytes to write
+
+  \return SCAP_SUCCESS if the call is succesful.
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
+   the cause of the error. 
+*/
+int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t* bytes);
+
+/*!
   \brief Write an event to a trace file 
 
   \param handle Handle to the capture instance.

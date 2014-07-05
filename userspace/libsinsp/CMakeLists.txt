@@ -6,6 +6,7 @@ include_directories("${LUAJIT_INCLUDE}")
 
 add_library(sinsp STATIC
 	chisel.cpp
+	cyclewriter.cpp
 	event.cpp
 	eventformatter.cpp
 	dumper.cpp

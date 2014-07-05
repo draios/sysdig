@@ -1,8 +1,8 @@
-#include<string>
-#include<stdlib.h>
-#include<stddef.h>
-#include<time.h>
-#include<stdio.h>
+#include <string>
+#include <stdlib.h>
+#include <stddef.h>
+#include <time.h>
+#include <stdio.h>
 
 using namespace std;
 

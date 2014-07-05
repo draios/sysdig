@@ -90,7 +90,8 @@ static void usage()
 "                    lists the available chisels. Looks for chisels in .,\n"
 "                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
 #endif
-" -C <file_size>     Before writing a raw packet, check whether the file is\n"
+" -C <file_size>, --file-size=<file_size>\n"
+"                    Before writing a raw packet, check whether the file is\n"
 "                    currently larger than file_size and, if so, close the\n"
 "                    current file and open a new one. Savefiles will have the\n"
 "                    name specified with the -w flag, with a number after it,\n"
@@ -102,7 +103,8 @@ static void usage()
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
 " -D, --debug        Capture events about sysdig itself\n"
-" -G <num_seconds>   Rotates the dump file specified with the -w option every\n"
+" -G <num_seconds>, --seconds=<num_seconds>\n"
+"                    Rotates the dump file specified with the -w option every\n"
 "                    num_seconds seconds. Savefiles will have the name specified\n"
 "                    by -w which should include a time format as defined by strftime(3).\n"
 "                    If no time format is specified, each new file will overwrite the\n"
@@ -145,12 +147,12 @@ static void usage()
 " -v, --verbose      Verbose output.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
-" -W <num>           Used in conjunction with the -C option, this will limit the\n"
-"                    number of files created to the specified number, and begin\n"
-"                    overwriting files from the beginning, thus creating a 'rotating'\n"
-"                    buffer. In addition, it will name the files with enough leading\n"
-"                    0s to support the maximum number of files, allowing them to sort\n"
-"                    correctly.\n"
+" -W <num>, --limit <num>\n"
+"                    Used in conjunction with the -C option, this will limit the number\n"
+"                    of files created to the specified number, and begin overwriting files\n"
+"                    from the beginning, thus creating a 'rotating' buffer. In addition, it\n"
+"                    will name the files with enough leading 0s to support the maximum number\n"
+"                    of files, allowing them to sort correctly.\n"
 "\n"
 "                    Used in conjunction with the -G option, this will limit the number\n"
 "                    of rotated dump files that get created, exiting with status 0 when\n"
@@ -611,6 +613,12 @@ int main(int argc, char **argv)
 	vector<summary_table_entry>* summary_table = NULL;
 	string timefmt = "%evt.time";
 
+	// These variables are for the cycle_writer engine
+	int duration_seconds = 0;	
+	int rollover_mb = 0;
+	int file_limit = 0;
+	bool do_cycle = false;
+
 	static struct option long_options[] =
 	{
 		{"print-ascii", no_argument, 0, 'A' },
@@ -622,10 +630,12 @@ int main(int argc, char **argv)
 		{"compress", no_argument, 0, 'z' },
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
+		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
+		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
@@ -639,6 +649,7 @@ int main(int argc, char **argv)
 		{"timetype", required_argument, 0, 't' },
 		{"verbose", no_argument, 0, 'v' },
 		{"writefile", required_argument, 0, 'w' },
+		{"limit", required_argument, 0, 'W' },
 		{"print-hex", no_argument, 0, 'x'},
 		{"print-hex-ascii", no_argument, 0, 'X'},
 		{0, 0, 0, 0}
@@ -658,7 +669,7 @@ int main(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "Aac:dDhi:jlLn:Pp:qr:Ss:t:vw:xXz", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "Aac:C:dDG:hi:jlLn:Pp:qr:Ss:t:vW:w:xXz", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -716,9 +727,36 @@ int main(int argc, char **argv)
 				}
 #endif
 				break;
+
+			// File-size
+			case 'C':
+				rollover_mb = atoi(optarg);
+				if(rollover_mb <= 0)
+				{
+					throw sinsp_exception(string("invalid file size") + optarg);
+					res = EXIT_FAILURE;
+					goto exit;
+				}
+
+				// -C always implicates a cycle
+				do_cycle = true;
+				break;
+
 			case 'D':
 				inspector->set_debug_mode(true);
 				break;
+
+			// Number of seconds between roll-over
+			case 'G':
+				duration_seconds = atoi(optarg);
+				if(duration_seconds <= 0)
+				{
+					throw sinsp_exception(string("invalid duration") + optarg);
+					res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
+
 #ifdef HAS_CHISELS
 			// --chisel-info and -i
 			case 'i':
@@ -851,6 +889,18 @@ int main(int argc, char **argv)
 				outfile = optarg;
 				quiet = true;
 				break;
+
+			// Number of capture files to cycle through
+			case 'W':
+				file_limit = atoi(optarg);
+				if(file_limit <= 0)
+				{
+					throw sinsp_exception(string("invalid file limit") + optarg);
+					res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
+
 			case 'x':
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
@@ -1037,7 +1087,9 @@ int main(int argc, char **argv)
 
 			if(outfile != "")
 			{
-				inspector->autodump_start(outfile, compress);
+
+				inspector->setup_cycle_writer(outfile, rollover_mb, duration_seconds, file_limit, do_cycle, compress);
+				inspector->autodump_next_file();
 			}
 
 			//

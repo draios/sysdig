@@ -34,6 +34,11 @@ bool cycle_writer::setup(string base_file_name, int rollover_mb, int duration_se
 	m_file_limit = file_limit;
 	m_do_cycle = do_cycle;
 
+	//
+	// Seed the filename with an initial
+	// value.
+	//
+	consider(0);
 	return true;
 }
 
