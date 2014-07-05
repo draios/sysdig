@@ -1034,9 +1034,10 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	}
 
 	//
-	// If there are quotes, not stop on blank
+	// If there are quotes, don't stop on blank
 	//
-	if(m_scanpos < m_scansize && m_fltstr[m_scanpos] == '"')
+	if(m_scanpos < m_scansize && 
+		(m_fltstr[m_scanpos] == '"' || m_fltstr[m_scanpos] == '\''))
 	{
 		is_quoted = true;
 		m_scanpos++;
@@ -1061,7 +1062,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 		else
 		{
 			is_end_of_word = (!is_quoted && (isblank(curchar) || is_bracket(curchar))) ||
-				(is_quoted && escape_state != PES_SLASH && curchar == '"');
+				(is_quoted && escape_state != PES_SLASH && (curchar == '"' || curchar == '\''));
 		}
 
 		if(is_end_of_word)

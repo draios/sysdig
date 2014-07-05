@@ -750,7 +750,7 @@ int main(int argc, char **argv)
 				cnt = atoi(optarg);
 				if(cnt <= 0)
 				{
-					throw sinsp_exception(string("invalid packet count") + optarg);
+					throw sinsp_exception(string("invalid packet count ") + optarg);
 					res = EXIT_FAILURE;
 					goto exit;
 				}
