@@ -164,6 +164,10 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 		return PPM_FAILURE_BUG;
 	}
 
+	if (unlikely(args->arg_data_size == 0)) {
+		return PPM_FAILURE_BUFFER_FULL;
+	}
+
 	switch (g_event_info[args->event_type].params[args->curarg].type) {
 	case PT_CHARBUF:
 	case PT_FSPATH:
@@ -175,12 +179,10 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 			} else {
-				char *dest = strncpy(args->buffer + args->arg_data_offset,
+				len = strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(unsigned long)val,
 								args->arg_data_size);
-
-				dest[args->arg_data_size - 1] = 0;
-				len = strlen(dest) + 1;
+				++len;
 			}
 
 			/*
@@ -191,12 +193,10 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 			/*
 			 * Handle NULL pointers
 			 */
-			char *dest = strncpy(args->buffer + args->arg_data_offset,
+			len = strlcpy(args->buffer + args->arg_data_offset,
 			       "(NULL)",
 			       args->arg_data_size);
-
-			dest[args->arg_data_size - 1] = 0;
-			len = strlen(dest) + 1;
+			++len;
 		}
 
 		break;
