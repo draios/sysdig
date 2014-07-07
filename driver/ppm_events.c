@@ -357,6 +357,10 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 #endif
 
 	res = d_path(&pwd, buf, bufsize);
+
+	if (IS_ERR(res))
+		res = NULL;
+
 	path_put(&pwd);
 
 	return res;
