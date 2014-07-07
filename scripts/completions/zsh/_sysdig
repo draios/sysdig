@@ -8,39 +8,57 @@ local DESCRIPTION_TEXT_START=20
 
 # handles completion of filter fields
 function _filter () {
-    # I run 'sysdig -l' to get a list of available filter types, and build an
-    # _alternative command to generate the user choice
+    # I run 'sysdig -l' to get a list of available filter types to generate the
+    # user choice
 
     local in_field=0 fields
     typeset -a fields
-
-    function closefield () {
-        if (($in_field)); then
-            in_field=0
-            fields[$#fields]+='"';
-        fi
-    }
 
     _call_program chisel_info sysdig -l 2>/dev/null |
         while IFS='' read -r line; do
             if [[ $line =~ "^([a-zA-Z0-9_]+\.[a-zA-Z0-9_\.]+) +(.*?)$" ]]; then
                 # starting a new field
-                closefield
                 in_field=1
-                fields[$#fields+1]="$match[1]\\:\"$match[2]"
+                fields[$#fields+1]="$match[1]:$match[2]"
             elif (($in_field)) && [[ $line =~ "^ {$DESCRIPTION_TEXT_START}(.*)" ]]; then
                 # field continuation
                 fields[$#fields]+=$match[1]
             else
-                closefield
+                in_field=0
             fi
         done
-    closefield
 
-    local allfields="$fields[*]"
-    _alternative \
-        "fields:Fields:(($allfields))" \
-        "operators:Operators:(= != < <= > >= contains and or not)"
+
+    # Here I use _describe instead of _alternative because _alternative insists
+    # on closing the quote when completing, so if you have
+    #
+    # $ sysdig -p '%fd.si
+    #
+    # and you press TAB, you'll get
+    #
+    # $ sysdig -p '%fd.sip'
+    #
+    # Note the trailing ', which I don't want and which _describe doesn't give
+    # me. I should be using _describe and not _alternative everywhere else too,
+    # but it doesn't seem worth the effort to convert everything
+    if [[ -z $1 ]]; then
+        # full filter expansion
+        local ops
+        ops=("=" "!=" "<" "<=" ">" ">=" "contains" "and" "or" "not")
+        _describe -t fields 'Fields' fields
+        _describe -t operators 'Operators' ops
+    elif [[ $1 == "format" ]]; then
+        # expanding format specifiers
+        local allfields_withpercent;
+        allfields_withpercent=("%"${^fields})
+
+        # skip all leading characters that can't be in a field name. This lets
+        # me specify multiple fields in the string or do things like
+        # "%fd.cip,%fd.cport"
+        compset -P "*[^a-zA-Z0-9_%\.]"
+
+        _describe -t format_fields 'Format fields' allfields_withpercent
+    fi
 }
 
 # handles completion for chisel names
@@ -192,7 +210,7 @@ _arguments                                                                      
     '(-X --print-hex-ascii)'{-X,--print-hex-ascii}'[Print data buffers in hex and ASCII]'                       \
     '(-z --compress)'{-z,--compress}'[Enables compression for stored tracefiles]'                               \
     '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
-    '(-p --print)'{-p,--print=-}'[Specify the event format]:Event output format:'                               \
+    '(-p --print)'{-p,--print=-}'[Specify the event format]:Event output format:->format'                       \
     '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
     '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
     '(-s --snaplen)'{-s,--snaplen=-}'[Capture the first <len> bytes of each I/O buffer]:Buffer length (bytes):' \
@@ -209,6 +227,9 @@ _arguments                                                                      
 case $state in
     (chisel)
         _chisels
+        ;;
+    (format)
+        _filter format
         ;;
     (filter_or_chiselarg)
         local chiselarg
