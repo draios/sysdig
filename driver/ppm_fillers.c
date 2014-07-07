@@ -797,6 +797,8 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (spwd == NULL)
 		spwd = "";
 
+	args->str_storage[STR_STORAGE_SIZE - 1] = '\0';
+
 	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
