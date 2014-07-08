@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "cyclewriter.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
@@ -57,6 +58,7 @@ sinsp::sinsp() :
 	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
+	m_cycle_writer = new cycle_writer();
 
 #ifdef HAS_ANALYZER
 	m_analyzer = NULL;
@@ -265,6 +267,12 @@ void sinsp::autodump_start(const string& dump_filename, bool compress)
 	}
 }
 
+void sinsp::autodump_next_file()
+{
+	autodump_stop();
+	autodump_start(m_cycle_writer->get_current_file_name(), m_compress);
+}
+
 void sinsp::autodump_stop()
 {
 	if(NULL == m_h)
@@ -354,6 +362,10 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	// Get the event from libscap
 	//
 	int32_t res = scap_next(m_h, &(m_evt.m_pevt), &(m_evt.m_cpuid));
+
+	// The number of bytes to consider in the dumper
+	int32_t bytes_to_write;
+
 	if(res != SCAP_SUCCESS)
 	{
 		if(res == SCAP_TIMEOUT)
@@ -476,6 +488,31 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	if(NULL != m_dumper)
 	{
+		
+		res = scap_number_of_bytes_to_write(m_evt.m_pevt, m_evt.m_cpuid, &bytes_to_write);
+		if(SCAP_SUCCESS != res)
+		{
+			throw sinsp_exception(scap_getlasterr(m_h));
+		}
+		else 
+		{
+			switch(m_cycle_writer->consider(bytes_to_write))
+			{
+				case cycle_writer::NEWFILE:
+					autodump_next_file();
+					break;
+
+				case cycle_writer::DOQUIT:
+					stop_capture();
+					return SCAP_EOF;
+					break;
+
+				case cycle_writer::SAMEFILE:
+					// do nothing.
+					break;
+			}
+		} 
+
 		res = scap_dump(m_h, m_dumper, m_evt.m_pevt, m_evt.m_cpuid);
 		if(SCAP_SUCCESS != res)
 		{
@@ -830,6 +867,13 @@ bool sinsp::is_debug_enabled()
 sinsp_parser* sinsp::get_parser()
 {
 	return m_parser;
+}
+
+bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress) 
+{
+	m_compress = compress;
+
+	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, do_cycle);
 }
 
 double sinsp::get_read_progress()

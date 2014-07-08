@@ -90,6 +90,7 @@ class sinsp_partial_transaction;
 class sinsp_parser;
 class sinsp_analyzer;
 class sinsp_filter;
+class cycle_writer;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -279,6 +280,11 @@ public:
 	   of failure.
 	*/
 	void autodump_start(const string& dump_filename, bool compress);
+ 
+ 	/*!
+	  \brief Cycles the file pointer to a new capture file
+	*/
+	void autodump_next_file();
 
 	/*!
 	  \brief Stops an event dump that was started with \ref autodump_start().
@@ -467,6 +473,8 @@ public:
 
 	sinsp_parser* get_parser();
 
+	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress);
+
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -486,6 +494,7 @@ private:
 	int64_t m_filesize;
 	bool m_islive;
 	bool m_isdebug_enabled;
+	bool m_compress;
 	sinsp_evt m_evt;
 	string m_lasterr;
 	int64_t m_tid_to_remove;
@@ -541,6 +550,11 @@ private:
 	//
 	unordered_map<uint32_t, scap_userinfo*> m_userlist;
 	unordered_map<uint32_t, scap_groupinfo*> m_grouplist;
+
+	//
+	// The cycle-writer for files
+	//
+	cycle_writer* m_cycle_writer;
 
 	//
 	// Some dropping infrastructure

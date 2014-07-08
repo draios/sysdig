@@ -674,6 +674,14 @@ void scap_dump_flush(scap_dumper_t *d)
 	gzflush((gzFile)d, Z_FULL_FLUSH);
 }
 
+// Tell me how many bytes we will have written if we did.
+int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t *bytes)
+{
+	*bytes = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + e->len + 4);
+
+	return SCAP_SUCCESS;
+}
+
 //
 // Write an event to a dump file
 //
@@ -701,7 +709,7 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid)
 	}
 
 	//
-	// Enalbe this to make sure that everything is saved to disk during the tests
+	// Enable this to make sure that everything is saved to disk during the tests
 	//
 #if 0
 	fflush(f);
