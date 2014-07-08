@@ -91,12 +91,13 @@ static void usage()
 "                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
 #endif
 " -C <file_size>, --file-size=<file_size>\n"
-"                    Before writing a raw packet, check whether the file is\n"
+"                    Before writing an event, check whether the file is\n"
 "                    currently larger than file_size and, if so, close the\n"
 "                    current file and open a new one. Savefiles will have the\n"
 "                    name specified with the -w flag, with a number after it,\n"
 "                    starting at 0 and continuing upward. The units of file_size\n"
-"                    are millions of bytes (10^6, not 2^20)\n"
+"                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
+"                    determine how many files will be saved to disk.\n"
 " -d, --displayflt   Make the given filter a display one.\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -813,7 +814,7 @@ int main(int argc, char **argv)
 				cnt = atoi(optarg);
 				if(cnt <= 0)
 				{
-					throw sinsp_exception(string("invalid packet count ") + optarg);
+					throw sinsp_exception(string("invalid event count ") + optarg);
 					res = EXIT_FAILURE;
 					goto exit;
 				}
