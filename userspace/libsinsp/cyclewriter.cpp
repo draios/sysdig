@@ -1,3 +1,5 @@
+#include "sinsp.h"
+#include "sinsp_int.h"
 #include "cyclewriter.h"
 
 cycle_writer::cycle_writer() :
