@@ -13,8 +13,6 @@ add_library(scap STATIC
 	event_table.c
 	syscall_info_table.c)
 
-SET(CMAKE_C_FLAGS "-fPIC")
-
 add_dependencies(scap zlib)
 
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
