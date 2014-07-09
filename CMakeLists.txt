@@ -27,6 +27,10 @@ if(NOT DEFINED DIR_ETC)
 	set(DIR_ETC "${CMAKE_INSTALL_PREFIX}/etc")
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+	SET(CMAKE_BUILD_TYPE Release)
+endif()
+
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
 if(NOT WIN32)
