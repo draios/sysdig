@@ -1,7 +1,7 @@
 #compdef sysdig
 
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.84
+# 0.1.85
 
 # this must match fields_info.cpp
 local DESCRIPTION_TEXT_START=20
@@ -29,8 +29,8 @@ function _filter () {
         done
 
 
-    # Here I use _describe instead of _alternative because _alternative insists
-    # on closing the quote when completing, so if you have
+    # Here I use _describe -S '' to omit the closing quote when completing.
+    # Otherwise if you have
     #
     # $ sysdig -p '%fd.si
     #
@@ -38,9 +38,7 @@ function _filter () {
     #
     # $ sysdig -p '%fd.sip'
     #
-    # Note the trailing ', which I don't want and which _describe doesn't give
-    # me. I should be using _describe and not _alternative everywhere else too,
-    # but it doesn't seem worth the effort to convert everything
+    # Note the trailing ', which I don't want
     if [[ -z $1 ]]; then
         # full filter expansion
         local ops
@@ -57,7 +55,7 @@ function _filter () {
         # "%fd.cip,%fd.cport"
         compset -P "*[^a-zA-Z0-9_%\.]"
 
-        _describe -t format_fields 'Format fields' allfields_withpercent
+        _describe -t format_fields 'Format fields' allfields_withpercent -S ''
     fi
 }
 
@@ -219,6 +217,9 @@ _arguments                                                                      
        a\:"absolute timestamp from epoch"                                                                       \
        r\:"relative time from capture start"                                                                    \
        d\:"delta between enter/exit"))'                                                                         \
+    '(-C --file-size)'{-C,--file-size=-}'[Chunk captures to files of given size]:Maximum chunk file size:'      \
+    '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'  \
+    '(-W --limit)'{-W,--limit}'[Limit split captures (-C or -G) to a given number of files]:Maximum number of files' \
     '(-c --chisel)'{-c,--chisel}'[Run a given chisel]:Chisel:->chisel'                                          \
     '(-i --chisel-info)'{-i,--chisel-info}'[Get a detailed chisel description]:Chisel:->chisel' \
     '*:Filter or chisel argument:->filter_or_chiselarg' && return 0

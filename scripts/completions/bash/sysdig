@@ -1,5 +1,5 @@
-  # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.84
+# This completion code is based on the cmdline interface as it exists in sysdig
+# 0.1.85
 
 complete -W                                     \
 '                                               \
@@ -48,6 +48,12 @@ complete -W                                     \
   --snaplen                                     \
   -t                                            \
   --timetype                                    \
+  -C                                            \
+  --file-size                                   \
+  -G                                            \
+  --seconds                                     \
+  -W                                            \
+  --limit                                       \
   -c                                            \
   --chisel                                      \
   -i                                            \
