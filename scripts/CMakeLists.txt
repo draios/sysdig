@@ -6,3 +6,6 @@ install(FILES completions/bash/sysdig
 
 install(FILES completions/zsh/_sysdig
 	DESTINATION share/zsh/vendor-completions)
+
+install(FILES completions/zsh/_sysdig
+	DESTINATION share/zsh/site-functions)
