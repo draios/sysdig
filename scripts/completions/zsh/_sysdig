@@ -1,7 +1,7 @@
 #compdef sysdig
 
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.84
+# 0.1.85
 
 # this must match fields_info.cpp
 local DESCRIPTION_TEXT_START=20
@@ -217,6 +217,9 @@ _arguments                                                                      
        a\:"absolute timestamp from epoch"                                                                       \
        r\:"relative time from capture start"                                                                    \
        d\:"delta between enter/exit"))'                                                                         \
+    '(-C --file-size)'{-C,--file-size=-}'[Chunk captures to files of given size]:Maximum chunk file size:'      \
+    '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'  \
+    '(-W --limit)'{-W,--limit}'[Limit split captures (-C or -G) to a given number of files]:Maximum number of files' \
     '(-c --chisel)'{-c,--chisel}'[Run a given chisel]:Chisel:->chisel'                                          \
     '(-i --chisel-info)'{-i,--chisel-info}'[Get a detailed chisel description]:Chisel:->chisel' \
     '*:Filter or chisel argument:->filter_or_chiselarg' && return 0
