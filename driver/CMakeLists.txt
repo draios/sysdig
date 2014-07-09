@@ -45,6 +45,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
 
 install(FILES
 	${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
+	dynamic_params_table.c
 	event_table.c
 	flags_table.c
 	main.c

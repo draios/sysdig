@@ -674,6 +674,9 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
 	ASSERT(id < m_info->nparams);
+	const ppm_param_info* param_info;
+	char* payload;
+	uint16_t payload_len;
 	Json::Value ret;
 
 	//
@@ -694,56 +697,74 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	// Get the parameter
 	//
 	sinsp_evt_param *param = &(m_params[id]);
+	payload = param->m_val;
+	payload_len = param->m_len;
+	param_info = &(m_info->params[id]);
 
 	//
-	switch(m_info->params[id].type)
+	// Get the parameter information
+	//
+	if(param_info->type == PT_DYN && param_info->info != NULL)
+	{
+		const struct ppm_param_info* dyn_params =
+			(const struct ppm_param_info*)param_info->info;
+
+		uint8_t dyn_idx = *(uint8_t*)payload;
+		payload += sizeof(uint8_t);
+		payload_len -= sizeof(uint8_t);
+
+		param_info = &dyn_params[dyn_idx];
+	}
+
+	//
+	switch(param_info->type)
 	{
 	case PT_INT8:
-		ASSERT(param->m_len == sizeof(int8_t));
-		ret = *(int8_t *)param->m_val;
+		ASSERT(payload_len == sizeof(int8_t));
+		ret = *(int8_t *)payload;
 		break;
 
 	case PT_INT16:
-		ASSERT(param->m_len == sizeof(int16_t));
-		ret = *(int16_t *)param->m_val;
+		ASSERT(payload_len == sizeof(int16_t));
+		ret = *(int16_t *)payload;
 		break;
 
 	case PT_INT32:
-		ASSERT(param->m_len == sizeof(int32_t));
-		ret = *(int32_t *)param->m_val;
+		ASSERT(payload_len == sizeof(int32_t));
+		ret = *(int32_t *)payload;
 		break;
 
 	case PT_INT64:
-		ASSERT(param->m_len == sizeof(int64_t));
-		ret = (Json::Value::Int64)*(int64_t *)param->m_val;
+		ASSERT(payload_len == sizeof(int64_t));
+		ret = (Json::Value::Int64)*(int64_t *)payload;
 		break;
 
 	case PT_UINT8:
-		ASSERT(param->m_len == sizeof(uint8_t));
-		ret = *(uint8_t *)param->m_val;
+		ASSERT(payload_len == sizeof(uint8_t));
+		ret = *(uint8_t *)payload;
 		break;
 
 	case PT_UINT16:
-		ASSERT(param->m_len == sizeof(uint16_t));
-		ret = *(uint16_t *)param->m_val;
+		ASSERT(payload_len == sizeof(uint16_t));
+		ret = *(uint16_t *)payload;
 		break;
 
 	case PT_UINT32:
-		ASSERT(param->m_len == sizeof(uint32_t));
-		ret = *(uint32_t *)param->m_val;
+		ASSERT(payload_len == sizeof(uint32_t));
+		ret = *(uint32_t *)payload;
 		break;
 
 	case PT_UINT64:
-		ASSERT(param->m_len == sizeof(uint64_t));
-		ret = (Json::Value::UInt64)*(int64_t *)param->m_val;
+		ASSERT(payload_len == sizeof(uint64_t));
+		ret = (Json::Value::UInt64)*(int64_t *)payload;
 		break;
 
 	case PT_PID:
 		{
-			ASSERT(param->m_len == sizeof(int64_t));
-			ret = (Json::Value::UInt64)*(int64_t *)param->m_val;
+			ASSERT(payload_len == sizeof(int64_t));
+			ret = (Json::Value::UInt64)*(int64_t *)payload;
 
-			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)param->m_val, false);
+			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)payload, false);
 			if(atinfo != NULL)
 			{
 				string& tcomm = atinfo->m_comm;
@@ -766,9 +787,9 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 	case PT_ERRNO:
 	{
-		ASSERT(param->m_len == sizeof(int64_t));
+		ASSERT(payload_len == sizeof(int64_t));
 
-		int64_t val = *(int64_t *)param->m_val;
+		int64_t val = *(int64_t *)payload;
 
 		//
 		// Resolve this as an errno
@@ -795,10 +816,10 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			// We use the string extractor to get 
 			// the resolved path, but use our routine
 			// to get the actual value to return
-			ASSERT(param->m_len == sizeof(int64_t));
-			int64_t fd = *(int64_t*)param->m_val;
+			ASSERT(payload_len == sizeof(int64_t));
+			int64_t fd = *(int64_t*)payload;
 			render_fd_json(&ret, fd, resolved_str, fmt);
-			ret["num"] = (Json::Value::UInt64)*(int64_t *)param->m_val;
+			ret["num"] = (Json::Value::UInt64)*(int64_t *)payload;
 			break;
 		}
 
@@ -809,26 +830,26 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		break;
 
 	case PT_SOCKADDR:
-		if(param->m_len == 0)
+		if(payload_len == 0)
 		{
 			ret = Json::Value::null;
 			break;
 		}
-		else if(param->m_val[0] == AF_UNIX)
+		else if(payload[0] == AF_UNIX)
 		{
-			ASSERT(param->m_len > 1);
+			ASSERT(payload_len > 1);
 
 			//
 			// Sanitize the file string.
 			//
-            string sanitized_str = param->m_val + 1;
+            string sanitized_str = payload + 1;
             sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
 
 			ret = sanitized_str;
 		}
-		else if(param->m_val[0] == PPM_AF_INET)
+		else if(payload[0] == PPM_AF_INET)
 		{
-			if(param->m_len == 1 + 4 + 2)
+			if(payload_len == 1 + 4 + 2)
 			{
 				const int ipv4_len = (3 + 1) * 4 + 1;
 				char ipv4_addr[ ipv4_len ];
@@ -837,13 +858,13 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 					ipv4_addr,
 					ipv4_len,
 						"%u.%u.%u.%u",
-						(unsigned int)(uint8_t)param->m_val[1],
-						(unsigned int)(uint8_t)param->m_val[2],
-						(unsigned int)(uint8_t)param->m_val[3],
-						(unsigned int)(uint8_t)param->m_val[4]
+						(unsigned int)(uint8_t)payload[1],
+						(unsigned int)(uint8_t)payload[2],
+						(unsigned int)(uint8_t)payload[3],
+						(unsigned int)(uint8_t)payload[4]
 				);
 				ret["addr"] = string(ipv4_addr);
-				ret["port"] = *(uint16_t*)(param->m_val + 5);
+				ret["port"] = *(uint16_t*)(payload + 5);
 			}
 			else
 			{
@@ -853,20 +874,20 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		}
 		else
 		{
-			ret["family"] = (int)param->m_val[0];
+			ret["family"] = (int)payload[0];
 		}
 		break;
 
 	case PT_SOCKTUPLE:
-		if(param->m_len == 0)
+		if(payload_len == 0)
 		{
 			ret = Json::Value::null;
 			break;
 		}
 
-		if(param->m_val[0] == PPM_AF_INET)
+		if(payload[0] == PPM_AF_INET)
 		{
-			if(param->m_len == 1 + 4 + 2 + 4 + 2)
+			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
 				Json::Value source;
 				Json::Value dest;
@@ -878,28 +899,28 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 					ipv4_addr,
 					ipv4_len,
 						"%u.%u.%u.%u",
-						(unsigned int)(uint8_t)param->m_val[1],
-						(unsigned int)(uint8_t)param->m_val[2],
-						(unsigned int)(uint8_t)param->m_val[3],
-						(unsigned int)(uint8_t)param->m_val[4]
+						(unsigned int)(uint8_t)payload[1],
+						(unsigned int)(uint8_t)payload[2],
+						(unsigned int)(uint8_t)payload[3],
+						(unsigned int)(uint8_t)payload[4]
 				);
 
 				source["addr"] = string(ipv4_addr);
-				source["port"] = *(uint16_t*)(param->m_val + 5);
+				source["port"] = *(uint16_t*)(payload + 5);
 
 				snprintf(
 					ipv4_addr,
 					ipv4_len,
 				         "%u.%u.%u.%u",
-				         (unsigned int)(uint8_t)param->m_val[7],
-				         (unsigned int)(uint8_t)param->m_val[8],
-				         (unsigned int)(uint8_t)param->m_val[9],
-				         (unsigned int)(uint8_t)param->m_val[10]
+				         (unsigned int)(uint8_t)payload[7],
+				         (unsigned int)(uint8_t)payload[8],
+				         (unsigned int)(uint8_t)payload[9],
+				         (unsigned int)(uint8_t)payload[10]
 				);
 
 
 				dest["addr"] = string(ipv4_addr);
-				dest["port"] = *(uint16_t*)(param->m_val + 11);
+				dest["port"] = *(uint16_t*)(payload + 11);
 
 				ret["src"] = source;
 				ret["dst"] = dest;
@@ -910,14 +931,14 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				ret = "INVALID IPv4";
 			}
 		}
-		else if(param->m_val[0] == PPM_AF_INET6)
+		else if(payload[0] == PPM_AF_INET6)
 		{
-			if(param->m_len == 1 + 16 + 2 + 16 + 2)
+			if(payload_len == 1 + 16 + 2 + 16 + 2)
 			{
-				uint8_t* sip6 = (uint8_t*)param->m_val + 1;
-				uint8_t* dip6 = (uint8_t*)param->m_val + 19;
-				uint8_t* sip = (uint8_t*)param->m_val + 13;
-				uint8_t* dip = (uint8_t*)param->m_val + 31;
+				uint8_t* sip6 = (uint8_t*)payload + 1;
+				uint8_t* dip6 = (uint8_t*)payload + 19;
+				uint8_t* sip = (uint8_t*)payload + 13;
+				uint8_t* dip = (uint8_t*)payload + 31;
 
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 				{
@@ -938,7 +959,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 					);
 
 					source["addr"] = string(ipv4_addr);
-					source["port"] = (unsigned int)*(uint16_t*)(param->m_val + 17);
+					source["port"] = (unsigned int)*(uint16_t*)(payload + 17);
 
 					snprintf(
 						ipv4_addr,
@@ -951,7 +972,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				 	);
 
 					dest["addr"] = string(ipv4_addr);
-					dest["port"] = (unsigned int)*(uint16_t*)(param->m_val + 35);
+					dest["port"] = (unsigned int)*(uint16_t*)(payload + 35);
 
 					ret["src"] = source;
 					ret["dst"] = dest;
@@ -970,10 +991,10 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 						Json::Value dest;
 
 						source["addr"] = srcstr;
-						source["port"] = (unsigned int)*(uint16_t*)(param->m_val + 17);
+						source["port"] = (unsigned int)*(uint16_t*)(payload + 17);
 
 						dest["addr"] = dststr;
-						dest["port"] = (unsigned int)*(uint16_t*)(param->m_val + 35);
+						dest["port"] = (unsigned int)*(uint16_t*)(payload + 35);
 
 						ret["src"] = source;
 						ret["dst"] = dest;
@@ -986,26 +1007,26 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			ret = "INVALID IPv6";
 
 		}
-		else if(param->m_val[0] == AF_UNIX)
+		else if(payload[0] == AF_UNIX)
 		{
-			ASSERT(param->m_len > 17);
+			ASSERT(payload_len > 17);
 
 			//
 			// Sanitize the file string.
 			//
-            string sanitized_str = param->m_val + 17;
+            string sanitized_str = payload + 17;
             sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
 
 			snprintf(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),
 				"%" PRIx64 "->%" PRIx64 " %s",
-				*(uint64_t*)(param->m_val + 1),
-				*(uint64_t*)(param->m_val + 9),
+				*(uint64_t*)(payload + 1),
+				*(uint64_t*)(payload + 9),
 				sanitized_str.c_str());
 		}
 		else
 		{
-			ret["family"] = (int)param->m_val[0];
+			ret["family"] = (int)payload[0];
 		}
 		break;
 	case PT_FDLIST:
@@ -1014,7 +1035,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 	case PT_SYSCALLID:
 		{
-			uint16_t scid = *(uint16_t *)param->m_val;
+			uint16_t scid = *(uint16_t *)payload;
 			if(scid >= PPM_SC_MAX)
 			{
 				ASSERT(false);
@@ -1038,8 +1059,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		{
 			const char* sigstr;
 
-			ASSERT(param->m_len == sizeof(uint8_t));
-			uint8_t val = *(uint8_t *)param->m_val;
+			ASSERT(payload_len == sizeof(uint8_t));
+			uint8_t val = *(uint8_t *)payload;
 
 			sigstr = sinsp_utils::signal_to_str(val);
 			ret = val;
@@ -1054,8 +1075,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		break;
 	case PT_RELTIME:
 		{
-			ASSERT(param->m_len == sizeof(uint64_t));
-			uint64_t val = *(uint64_t *)param->m_val;
+			ASSERT(payload_len == sizeof(uint64_t));
+			uint64_t val = *(uint64_t *)payload;
 			ret = (Json::Value::Int64)val;
 
 			snprintf(&m_resolved_paramstr_storage[0],
@@ -1068,11 +1089,11 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_FLAGS16:
 	case PT_FLAGS32:
 		{
-			uint32_t val = *(uint32_t *)param->m_val & (((uint64_t)1 << param->m_len * 8) - 1);
+			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
 			ret["val"] = val;
 			ret["flags"] = Json::arrayValue;
 
-			const struct ppm_name_value *flags = m_info->params[id].symbols;
+			const struct ppm_name_value *flags = (const struct ppm_name_value *)m_info->params[id].info;
 			uint32_t initial_val = val;
 
 			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
@@ -1116,7 +1137,10 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
 	char* prfmt;
+	const ppm_param_info* param_info;
+	char* payload;
 	uint32_t j;
+	uint16_t payload_len;
 	ASSERT(id < m_info->nparams);
 
 	//
@@ -1137,63 +1161,78 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	// Get the parameter
 	//
 	sinsp_evt_param *param = &(m_params[id]);
+	payload = param->m_val;
+	payload_len = param->m_len;
+	param_info = &(m_info->params[id]);
 
 	//
 	// Get the parameter information
 	//
+	if(param_info->type == PT_DYN && param_info->info != NULL)
+	{
+		const struct ppm_param_info* dyn_params =
+			(const struct ppm_param_info*)param_info->info;
+
+		uint8_t dyn_idx = *(uint8_t*)payload;
+		payload += sizeof(uint8_t);
+		payload_len -= sizeof(uint8_t);
+
+		param_info = &dyn_params[dyn_idx];
+	}
+
 	ppm_print_format param_fmt = m_info->params[id].fmt;
 
-	switch(m_info->params[id].type)
+	switch(param_info->type)
 	{
 	case PT_INT8:
-		ASSERT(param->m_len == sizeof(int8_t));
+		ASSERT(payload_len == sizeof(int8_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId8, PRIX8);
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			prfmt, *(int8_t *)param->m_val);
+			prfmt, *(int8_t *)payload);
 		break;
 	case PT_INT16:
-		ASSERT(param->m_len == sizeof(int16_t));
+		ASSERT(payload_len == sizeof(int16_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId16, PRIX16);
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			prfmt, *(int16_t *)param->m_val);
+			prfmt, *(int16_t *)payload);
 		break;
 	case PT_INT32:
-		ASSERT(param->m_len == sizeof(int32_t));
+		ASSERT(payload_len == sizeof(int32_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId32, PRIX32);
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			prfmt, *(int32_t *)param->m_val);
+			prfmt, *(int32_t *)payload);
 		break;
 	case PT_INT64:
-		ASSERT(param->m_len == sizeof(int64_t));
+		ASSERT(payload_len == sizeof(int64_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId64, PRIX64);
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			prfmt, *(int64_t *)param->m_val);
+			prfmt, *(int64_t *)payload);
 		break;
 	case PT_FD:
 		{
-			ASSERT(param->m_len == sizeof(int64_t));
-			int64_t fd = *(int64_t*)param->m_val;
+			ASSERT(payload_len == sizeof(int64_t));
+			int64_t fd = *(int64_t*)payload;
 			render_fd(fd, resolved_str, fmt);
 			break;
 		}
 	case PT_PID:
 		{
-			ASSERT(param->m_len == sizeof(int64_t));
+			ASSERT(payload_len == sizeof(int64_t));
 
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
-					 "%" PRId64, *(int64_t *)param->m_val);
+					 "%" PRId64, *(int64_t *)payload);
 
 
-			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)param->m_val, false);
+			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)payload, false);
 			if(atinfo != NULL)
 			{
 				string& tcomm = atinfo->m_comm;
@@ -1214,34 +1253,34 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	case PT_UINT8:
-		ASSERT(param->m_len == sizeof(uint8_t));
+		ASSERT(payload_len == sizeof(uint8_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu8, PRIX8);
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         prfmt, *(uint8_t *)param->m_val);
+		         prfmt, *(uint8_t *)payload);
 		break;
 	case PT_UINT16:
-		ASSERT(param->m_len == sizeof(uint16_t));
+		ASSERT(payload_len == sizeof(uint16_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu16, PRIX16);
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         prfmt, *(uint16_t *)param->m_val);
+		         prfmt, *(uint16_t *)payload);
 		break;
 	case PT_UINT32:
-		ASSERT(param->m_len == sizeof(uint32_t));
+		ASSERT(payload_len == sizeof(uint32_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu32, PRIX32);
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         prfmt, *(uint32_t *)param->m_val);
+		         prfmt, *(uint32_t *)payload);
 		break;
 	case PT_ERRNO:
 	{
-		ASSERT(param->m_len == sizeof(int64_t));
+		ASSERT(payload_len == sizeof(int64_t));
 
-		int64_t val = *(int64_t *)param->m_val;
+		int64_t val = *(int64_t *)payload;
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
@@ -1266,31 +1305,31 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	}
 	break;
 	case PT_UINT64:
-		ASSERT(param->m_len == sizeof(uint64_t));
+		ASSERT(payload_len == sizeof(uint64_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu64, PRIX64);
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         prfmt, *(int64_t *)param->m_val);
+		         prfmt, *(int64_t *)payload);
 		break;
 	case PT_CHARBUF:
 		//
 		// Make sure the string will fit
 		//
-		if(param->m_len > m_paramstr_storage.size())
+		if(payload_len > m_paramstr_storage.size())
 		{
-			m_paramstr_storage.resize(param->m_len);
+			m_paramstr_storage.resize(payload_len);
 		}
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         "%s", param->m_val);
+		         "%s", payload);
 		break;
 	case PT_FSPATH:
 	{
 		strcpy_sanitized(&m_paramstr_storage[0],
-			param->m_val,
-			MIN(param->m_len, (uint32_t)m_paramstr_storage.size()));
+			payload,
+			MIN(payload_len, (uint32_t)m_paramstr_storage.size()));
 
 		sinsp_threadinfo* tinfo = get_thread_info();
 
@@ -1298,17 +1337,17 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			string cwd = tinfo->get_cwd();
 
-			if(param->m_len + cwd.length() >= m_resolved_paramstr_storage.size())
+			if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
 			{
-				m_resolved_paramstr_storage.resize(param->m_len + cwd.length() + 1, 0);
+				m_resolved_paramstr_storage.resize(payload_len + cwd.length() + 1, 0);
 			}
 
 			if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
 				(uint32_t)m_resolved_paramstr_storage.size(),
 				(char*)cwd.c_str(),
 				(uint32_t)cwd.length(),
-				param->m_val,
-				param->m_len))
+				payload,
+				payload_len))
 			{
 				m_resolved_paramstr_storage[0] = 0;
 			}
@@ -1334,9 +1373,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		while(true)
 		{
 			uint32_t blen = binary_buffer_to_string(&m_paramstr_storage[0],
-				param->m_val,
+				payload,
 				(uint32_t)m_paramstr_storage.size() - 1,
-				param->m_len,
+				payload_len,
 				fmt);
 
 			if(blen >= m_paramstr_storage.size() - 1)
@@ -1355,7 +1394,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	}
 	break;
 	case PT_SOCKADDR:
-		if(param->m_len == 0)
+		if(payload_len == 0)
 		{
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
@@ -1363,14 +1402,14 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			break;
 		}
-		else if(param->m_val[0] == AF_UNIX)
+		else if(payload[0] == AF_UNIX)
 		{
-			ASSERT(param->m_len > 1);
+			ASSERT(payload_len > 1);
 
 			//
 			// Sanitize the file string.
 			//
-            string sanitized_str = param->m_val + 1;
+            string sanitized_str = payload + 1;
             sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
 
 			snprintf(&m_paramstr_storage[0],
@@ -1378,18 +1417,18 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				"%s",
 				sanitized_str.c_str());
 		}
-		else if(param->m_val[0] == PPM_AF_INET)
+		else if(payload[0] == PPM_AF_INET)
 		{
-			if(param->m_len == 1 + 4 + 2)
+			if(payload_len == 1 + 4 + 2)
 			{
 				snprintf(&m_paramstr_storage[0],
 				         m_paramstr_storage.size(),
 				         "%u.%u.%u.%u:%u",
-				         (unsigned int)(uint8_t)param->m_val[1],
-				         (unsigned int)(uint8_t)param->m_val[2],
-				         (unsigned int)(uint8_t)param->m_val[3],
-				         (unsigned int)(uint8_t)param->m_val[4],
-				         (unsigned int)*(uint16_t*)(param->m_val+5));
+				         (unsigned int)(uint8_t)payload[1],
+				         (unsigned int)(uint8_t)payload[2],
+				         (unsigned int)(uint8_t)payload[3],
+				         (unsigned int)(uint8_t)payload[4],
+				         (unsigned int)*(uint16_t*)(payload+5));
 			}
 			else
 			{
@@ -1403,11 +1442,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
-			         "family %d", (int)param->m_val[0]);
+			         "family %d", (int)payload[0]);
 		}
 		break;
 	case PT_SOCKTUPLE:
-		if(param->m_len == 0)
+		if(payload_len == 0)
 		{
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
@@ -1416,23 +1455,23 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			break;
 		}
 
-		if(param->m_val[0] == PPM_AF_INET)
+		if(payload[0] == PPM_AF_INET)
 		{
-			if(param->m_len == 1 + 4 + 2 + 4 + 2)
+			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
 				snprintf(&m_paramstr_storage[0],
 				         m_paramstr_storage.size(),
 				         "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-				         (unsigned int)(uint8_t)param->m_val[1],
-				         (unsigned int)(uint8_t)param->m_val[2],
-				         (unsigned int)(uint8_t)param->m_val[3],
-				         (unsigned int)(uint8_t)param->m_val[4],
-				         (unsigned int)*(uint16_t*)(param->m_val+5),
-				         (unsigned int)(uint8_t)param->m_val[7],
-				         (unsigned int)(uint8_t)param->m_val[8],
-				         (unsigned int)(uint8_t)param->m_val[9],
-				         (unsigned int)(uint8_t)param->m_val[10],
-				         (unsigned int)*(uint16_t*)(param->m_val+11));
+				         (unsigned int)(uint8_t)payload[1],
+				         (unsigned int)(uint8_t)payload[2],
+				         (unsigned int)(uint8_t)payload[3],
+				         (unsigned int)(uint8_t)payload[4],
+				         (unsigned int)*(uint16_t*)(payload+5),
+				         (unsigned int)(uint8_t)payload[7],
+				         (unsigned int)(uint8_t)payload[8],
+				         (unsigned int)(uint8_t)payload[9],
+				         (unsigned int)(uint8_t)payload[10],
+				         (unsigned int)*(uint16_t*)(payload+11));
 			}
 			else
 			{
@@ -1442,14 +1481,14 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				         "INVALID IPv4");
 			}
 		}
-		else if(param->m_val[0] == PPM_AF_INET6)
+		else if(payload[0] == PPM_AF_INET6)
 		{
-			if(param->m_len == 1 + 16 + 2 + 16 + 2)
+			if(payload_len == 1 + 16 + 2 + 16 + 2)
 			{
-				uint8_t* sip6 = (uint8_t*)param->m_val + 1;
-				uint8_t* dip6 = (uint8_t*)param->m_val + 19;
-				uint8_t* sip = (uint8_t*)param->m_val + 13;
-				uint8_t* dip = (uint8_t*)param->m_val + 31;
+				uint8_t* sip6 = (uint8_t*)payload + 1;
+				uint8_t* dip6 = (uint8_t*)payload + 19;
+				uint8_t* sip = (uint8_t*)payload + 13;
+				uint8_t* dip = (uint8_t*)payload + 31;
 
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 				{
@@ -1460,12 +1499,12 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 							 (unsigned int)sip[1],
 							 (unsigned int)sip[2],
 							 (unsigned int)sip[3],
-							 (unsigned int)*(uint16_t*)(param->m_val + 17),
+							 (unsigned int)*(uint16_t*)(payload + 17),
 							 (unsigned int)dip[0],
 							 (unsigned int)dip[1],
 							 (unsigned int)dip[2],
 							 (unsigned int)dip[3],
-							 (unsigned int)*(uint16_t*)(param->m_val + 35));
+							 (unsigned int)*(uint16_t*)(payload + 35));
 					break;
 				}
 				else
@@ -1479,9 +1518,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 								 m_paramstr_storage.size(),
 								 "%s:%u->%s:%u",
 								 srcstr,
-								 (unsigned int)*(uint16_t*)(param->m_val + 17),
+								 (unsigned int)*(uint16_t*)(payload + 17),
 								 dststr,
-								 (unsigned int)*(uint16_t*)(param->m_val + 35));
+								 (unsigned int)*(uint16_t*)(payload + 35));
 						break;
 					}
 				}
@@ -1492,28 +1531,28 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				        m_paramstr_storage.size(),
 				        "INVALID IPv6");
 		}
-		else if(param->m_val[0] == AF_UNIX)
+		else if(payload[0] == AF_UNIX)
 		{
-			ASSERT(param->m_len > 17);
+			ASSERT(payload_len > 17);
 
 			//
 			// Sanitize the file string.
 			//
-            string sanitized_str = param->m_val + 17;
+            string sanitized_str = payload + 17;
             sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
 
 			snprintf(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),
 				"%" PRIx64 "->%" PRIx64 " %s",
-				*(uint64_t*)(param->m_val + 1),
-				*(uint64_t*)(param->m_val + 9),
+				*(uint64_t*)(payload + 1),
+				*(uint64_t*)(payload + 9),
 				sanitized_str.c_str());
 		}
 		else
 		{
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
-			         "family %d", (int)param->m_val[0]);
+			         "family %d", (int)payload[0]);
 		}
 		break;
 	case PT_FDLIST:
@@ -1524,7 +1563,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				break;
 			}
 
-			uint16_t nfds = *(uint16_t *)param->m_val;
+			uint16_t nfds = *(uint16_t *)payload;
 			uint32_t pos = 2;
 			uint32_t spos = 0;
 
@@ -1533,7 +1572,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			for(j = 0; j < nfds; j++)
 			{
 				char tch;
-				int64_t fd = *(int64_t *)(param->m_val + pos);
+				int64_t fd = *(int64_t *)(payload + pos);
 
 				sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
 				if(fdinfo)
@@ -1550,7 +1589,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 						"%" PRIu64 ":%c%x%c",
 						fd,
 						tch,
-						(uint32_t) * (int16_t *)(param->m_val + pos + 8),
+						(uint32_t) * (int16_t *)(payload + pos + 8),
 						(j < (uint32_t)(nfds - 1)) ? ' ' : '\0');
 
 				if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
@@ -1566,7 +1605,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_SYSCALLID:
 		{
-			uint16_t scid  = *(uint16_t *)param->m_val;
+			uint16_t scid  = *(uint16_t *)payload;
 			if(scid >= PPM_SC_MAX)
 			{
 				ASSERT(false);
@@ -1593,8 +1632,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			const char* sigstr;
 
-			ASSERT(param->m_len == sizeof(uint8_t));
-			uint8_t val = *(uint8_t *)param->m_val;
+			ASSERT(payload_len == sizeof(uint8_t));
+			uint8_t val = *(uint8_t *)payload;
 
 			sigstr = sinsp_utils::signal_to_str(val);
 
@@ -1614,8 +1653,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			string sigstr;
 
-			ASSERT(param->m_len == sizeof(uint64_t));
-			uint64_t val = *(uint64_t *)param->m_val;
+			ASSERT(payload_len == sizeof(uint64_t));
+			uint64_t val = *(uint64_t *)payload;
 
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
@@ -1631,12 +1670,12 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_FLAGS16:
 	case PT_FLAGS32:
 		{
-			uint32_t val = *(uint32_t *)param->m_val & (((uint64_t)1 << param->m_len * 8) - 1);
+			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
 
-			const struct ppm_name_value *flags = m_info->params[id].symbols;
+			const struct ppm_name_value *flags = (const struct ppm_name_value *)m_info->params[id].info;
 			const char *separator = "";
 			uint32_t initial_val = val;
 			uint32_t j = 0;

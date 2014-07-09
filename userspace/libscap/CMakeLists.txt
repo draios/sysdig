@@ -10,6 +10,7 @@ add_library(scap STATIC
 	scap_procs.c 
 	scap_userlist.c 
 	flags_table.c
+	dynamic_params_table.c
 	event_table.c
 	syscall_info_table.c)
 

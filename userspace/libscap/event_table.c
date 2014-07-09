@@ -189,5 +189,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MUNMAP_E */{"munmap", EC_MEMORY, EF_NONE, 2, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC} } },
 	/* PPME_SYSCALL_MUNMAP_X */{"munmap", EC_MEMORY, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_SPLICE_E */{"splice", EC_IO_OTHER, EF_USES_FD, 4, {{"fd_in", PT_FD, PF_DEC}, {"fd_out", PT_FD, PF_DEC}, {"size", PT_UINT64, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, splice_flags} } },
-	/* PPME_SYSCALL_SPLICE_X */{"splice", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC}} }
+	/* PPME_SYSCALL_SPLICE_X */{"splice", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC}} },
+	/* PPME_SYSCALL_PTRACE_E */{"ptrace", EC_PROCESS, EF_NONE, 2, {{"request", PT_FLAGS16, PF_DEC, ptrace_requests}, {"pid", PT_PID, PF_DEC} } },
+	/* PPME_SYSCALL_PTRACE_X */{"ptrace", EC_PROCESS, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_DYN, PF_HEX, ptrace_dynamic_param}, {"data", PT_DYN, PF_HEX, ptrace_dynamic_param} } },
 };

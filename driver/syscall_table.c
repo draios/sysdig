@@ -118,7 +118,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_umount2 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_setuid - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_getuid - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_ptrace - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
+	[__NR_ptrace - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_PTRACE_E, PPME_SYSCALL_PTRACE_X},
 	[__NR_alarm - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_pause - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 
