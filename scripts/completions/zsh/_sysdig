@@ -29,8 +29,8 @@ function _filter () {
         done
 
 
-    # Here I use _describe instead of _alternative because _alternative insists
-    # on closing the quote when completing, so if you have
+    # Here I use _describe -S '' to omit the closing quote when completing.
+    # Otherwise if you have
     #
     # $ sysdig -p '%fd.si
     #
@@ -38,9 +38,7 @@ function _filter () {
     #
     # $ sysdig -p '%fd.sip'
     #
-    # Note the trailing ', which I don't want and which _describe doesn't give
-    # me. I should be using _describe and not _alternative everywhere else too,
-    # but it doesn't seem worth the effort to convert everything
+    # Note the trailing ', which I don't want
     if [[ -z $1 ]]; then
         # full filter expansion
         local ops
@@ -57,7 +55,7 @@ function _filter () {
         # "%fd.cip,%fd.cport"
         compset -P "*[^a-zA-Z0-9_%\.]"
 
-        _describe -t format_fields 'Format fields' allfields_withpercent
+        _describe -t format_fields 'Format fields' allfields_withpercent -S ''
     fi
 }
 
