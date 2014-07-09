@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Shows the top files in terms of I/O errros."
+description = "Shows the top files in terms of I/O errors."
 short_description = "top files by number of errors"
 category = "errors"
 
