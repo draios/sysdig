@@ -23,6 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _WIN32
 #include <limits.h>
 #include <stdlib.h>
+#include <unistd.h>
 #endif
 #include <third-party/tinydir.h>
 #include <json/json.h>
