@@ -126,6 +126,22 @@ public:
 	}
 
 	/*!
+	  \brief Returns true if this is a file.
+	*/
+	bool is_file()
+	{
+		return m_type == SCAP_FD_FILE;
+	}
+
+	/*!
+	  \brief Returns true if this is a directory.
+	*/
+	bool is_directory()
+	{
+		return m_type == SCAP_FD_DIRECTORY;
+	}
+
+	/*!
 	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
 	*/
 	scap_l4_proto get_l4proto();
@@ -164,7 +180,7 @@ private:
 		FLAGS_IS_SOCKET_PIPE = (1 << 6),
 	};
 
-	void add_filename(const char* directory, uint32_t directorylen, const char* filename, uint32_t filenamelen);
+	void add_filename(const char* fullpath);
 
 	bool is_role_server()
 	{

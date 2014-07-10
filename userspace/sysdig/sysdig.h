@@ -80,7 +80,7 @@ void list_events(sinsp* inspector);
 
 #ifdef HAS_CHISELS
 void print_chisel_info(chisel_desc* cd);
-void list_chisels(vector<chisel_desc>* chlist);
+void list_chisels(vector<chisel_desc>* chlist, bool verbose);
 #endif
 
 

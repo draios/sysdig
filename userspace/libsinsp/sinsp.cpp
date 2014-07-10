@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "cyclewriter.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
@@ -57,6 +58,7 @@ sinsp::sinsp() :
 	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
+	m_cycle_writer = new cycle_writer();
 
 #ifdef HAS_ANALYZER
 	m_analyzer = NULL;
@@ -64,7 +66,6 @@ sinsp::sinsp() :
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
-	m_firstevent_ts = 0;
 #endif
 
 	m_fds_to_remove = new vector<int64_t>;
@@ -98,6 +99,65 @@ sinsp::~sinsp()
 	{
 		delete m_thread_manager;
 		m_thread_manager = NULL;
+	}
+}
+
+void sinsp::init()
+{
+	//
+	// Retrieve machine information
+	//
+	m_machine_info = scap_get_machine_info(m_h);
+	if(m_machine_info != NULL)
+	{
+		m_num_cpus = m_machine_info->num_cpus;
+	}
+	else
+	{
+		ASSERT(false);
+		m_num_cpus = 0;
+	}
+
+	//
+	// Reset the thread manager
+	//
+	m_thread_manager->clear();
+
+	//
+	// Basic inits
+	//
+#ifdef GATHER_INTERNAL_STATS
+	m_stats.clear();
+#endif
+
+	m_tid_to_remove = -1;
+	m_lastevent_ts = 0;
+#ifdef HAS_FILTERING
+	m_firstevent_ts = 0;
+#endif
+	m_fds_to_remove->clear();
+	m_n_proc_lookups = 0;
+
+	import_ifaddr_list();
+	import_thread_table();
+	import_user_list();
+
+#ifdef HAS_ANALYZER
+	//
+	// Notify the analyzer that we're starting
+	//
+	if(m_analyzer)
+	{
+		m_analyzer->on_capture_start();
+	}
+#endif
+
+	//
+	// If m_snaplen was modified, we set snaplen now
+	//
+	if (m_snaplen != DEFAULT_SNAPLEN)
+	{
+		set_snaplen(m_snaplen);
 	}
 }
 
@@ -207,6 +267,12 @@ void sinsp::autodump_start(const string& dump_filename, bool compress)
 	}
 }
 
+void sinsp::autodump_next_file()
+{
+	autodump_stop();
+	autodump_start(m_cycle_writer->get_current_file_name(), m_compress);
+}
+
 void sinsp::autodump_stop()
 {
 	if(NULL == m_h)
@@ -288,60 +354,6 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 	m_network_interfaces->import_ipv4_interface(ifinfo);
 }
 
-void sinsp::init()
-{
-	//
-	// Retrieve machine information
-	//
-	m_machine_info = scap_get_machine_info(m_h);
-	if(m_machine_info != NULL)
-	{
-		m_num_cpus = m_machine_info->num_cpus;
-	}
-	else
-	{
-		ASSERT(false);
-		m_num_cpus = 0;
-	}
-
-	//
-	// Reset the thread manager
-	//
-	m_thread_manager->clear();
-
-	//
-	// Basic inits
-	//
-#ifdef GATHER_INTERNAL_STATS
-	m_stats.clear();
-#endif
-
-	m_tid_to_remove = -1;
-	m_lastevent_ts = 0;
-
-	import_ifaddr_list();
-	import_thread_table();
-	import_user_list();
-
-#ifdef HAS_ANALYZER
-	//
-	// Notify the analyzer that we're starting
-	//
-	if(m_analyzer)
-	{
-		m_analyzer->on_capture_start();
-	}
-#endif
-
-	//
-	// If m_snaplen was modified, we set snaplen now
-	//
-	if (m_snaplen != DEFAULT_SNAPLEN)
-	{
-		set_snaplen(m_snaplen);
-	}
-}
-
 bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
 
 int32_t sinsp::next(OUT sinsp_evt **evt)
@@ -350,6 +362,10 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	// Get the event from libscap
 	//
 	int32_t res = scap_next(m_h, &(m_evt.m_pevt), &(m_evt.m_cpuid));
+
+	// The number of bytes to consider in the dumper
+	int32_t bytes_to_write;
+
 	if(res != SCAP_SUCCESS)
 	{
 		if(res == SCAP_TIMEOUT)
@@ -410,7 +426,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	// Deleayed removal of the fd, so that
 	// things like exit() or close() can be parsed.
 	//
-	uint32_t nfdr = m_fds_to_remove->size();
+	uint32_t nfdr = (uint32_t)m_fds_to_remove->size();
 
 	if(nfdr != 0)
 	{
@@ -472,6 +488,31 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	if(NULL != m_dumper)
 	{
+		
+		res = scap_number_of_bytes_to_write(m_evt.m_pevt, m_evt.m_cpuid, &bytes_to_write);
+		if(SCAP_SUCCESS != res)
+		{
+			throw sinsp_exception(scap_getlasterr(m_h));
+		}
+		else 
+		{
+			switch(m_cycle_writer->consider(bytes_to_write))
+			{
+				case cycle_writer::NEWFILE:
+					autodump_next_file();
+					break;
+
+				case cycle_writer::DOQUIT:
+					stop_capture();
+					return SCAP_EOF;
+					break;
+
+				case cycle_writer::SAMEFILE:
+					// do nothing.
+					break;
+			}
+		} 
+
 		res = scap_dump(m_h, m_dumper, m_evt.m_pevt, m_evt.m_cpuid);
 		if(SCAP_SUCCESS != res)
 		{
@@ -510,7 +551,9 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	// Update the last event time for this thread
 	//
-	if(m_evt.m_tinfo)
+	if(m_evt.m_tinfo && 
+		m_evt.get_type() != PPME_SCHEDSWITCH_1_E &&
+		m_evt.get_type() != PPME_SCHEDSWITCH_6_E)
 	{
 		m_evt.m_tinfo->m_prevevent_ts = m_evt.m_tinfo->m_lastevent_ts;
 		m_evt.m_tinfo->m_lastevent_ts = m_lastevent_ts;
@@ -770,9 +813,11 @@ sinsp_evttables* sinsp::get_event_info_tables()
 	return &g_infotables;
 }
 
-void sinsp::add_chisel_dir(string dirname)
+void sinsp::add_chisel_dir(string dirname, bool front_add)
 {
 #ifdef HAS_CHISELS
+	trim(dirname);
+
 	if(dirname[dirname.size() -1] != '/')
 	{
 		dirname += "/";
@@ -783,7 +828,14 @@ void sinsp::add_chisel_dir(string dirname)
 	strcpy(ncdi.m_dir, dirname.c_str());
 	ncdi.m_need_to_resolve = false;
 
-	g_chisel_dirs->push_back(ncdi);
+	if(front_add)
+	{
+		g_chisel_dirs->insert(g_chisel_dirs->begin(), ncdi);
+	}
+	else
+	{
+		g_chisel_dirs->push_back(ncdi);
+	}
 #endif
 }
 
@@ -815,6 +867,13 @@ bool sinsp::is_debug_enabled()
 sinsp_parser* sinsp::get_parser()
 {
 	return m_parser;
+}
+
+bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress) 
+{
+	m_compress = compress;
+
+	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, do_cycle);
 }
 
 double sinsp::get_read_progress()

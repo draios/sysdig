@@ -21,6 +21,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <stdlib.h>
 #endif
+#include <algorithm> 
+#include <functional> 
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -700,7 +702,7 @@ const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(string
 		{
 			const struct ppm_param_info* pi = &ei->params[k];
 			const char* an = pi->name;
-			uint32_t alen = strlen(an);
+			uint32_t alen = (uint32_t)strlen(an);
 			string subs = string(name, 0, alen);
 			
 			if(subs == an)
@@ -868,8 +870,11 @@ string ipv6serveraddr_to_string(ipv6serverinfo* addr)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// String split
+// String helpers
 ///////////////////////////////////////////////////////////////////////////////
+//
+// String split
+//
 vector<string> sinsp_split(const string &s, char delim)
 {
     vector<string> res;
@@ -882,6 +887,61 @@ vector<string> sinsp_split(const string &s, char delim)
     }
 
 	return res;
+}
+
+//
+// trim from start
+//
+string& ltrim(string &s) 
+{
+	s.erase(s.begin(), find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
+	return s;
+}
+
+//
+// trim from end
+//
+string& rtrim(string &s) 
+{
+	s.erase(find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+	return s;
+}
+
+//
+// trim from both ends
+//
+string& trim(string &s) 
+{
+	return ltrim(rtrim(s));
+}
+
+void replace_in_place(string &s, const string &search, const string &replace)
+{
+	for(size_t pos = 0; ; pos += replace.length()) 
+	{
+		// Locate the substring to replace
+		pos = s.find(search, pos);
+		if(pos == string::npos ) break;
+		// Replace by erasing and inserting
+		s.erase(pos, search.length());
+		s.insert(pos, replace );
+	}
+}
+
+void replace_in_place(string& str, string& substr_to_replace, string& new_substr) 
+{
+	size_t index = 0;
+	uint32_t nsize = (uint32_t)substr_to_replace.size();
+
+	while (true) 
+	{
+		 index = str.find(substr_to_replace, index);
+		 if (index == string::npos) break;
+
+		 str.replace(index, nsize, new_substr);
+
+		 index += nsize;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

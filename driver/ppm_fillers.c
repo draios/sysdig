@@ -32,6 +32,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/fs_struct.h>
 #include <linux/ptrace.h>
 #include <linux/version.h>
+#include <linux/module.h>
+#include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -105,6 +107,8 @@ static int f_sched_drop(struct event_filler_arguments *args);
 static int f_sched_fcntl_e(struct event_filler_arguments *args);
 static int f_sys_ptrace_e(struct event_filler_arguments *args);
 static int f_sys_ptrace_x(struct event_filler_arguments *args);
+static int f_sys_mmap_e(struct event_filler_arguments *args);
+static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -123,12 +127,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_READ_X] = {f_sys_read_x},
 	[PPME_SYSCALL_WRITE_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {2} } },
 	[PPME_SYSCALL_WRITE_X] = {f_sys_write_x},
-	[PPME_SYSCALL_BRK_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_BRK_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_X] = {f_proc_startupdate},
-	[PPME_CLONE_E] = {f_sys_empty},
-	[PPME_CLONE_X] = {f_proc_startupdate},
 	[PPME_PROCEXIT_E] = {f_sys_empty},
 	[PPME_SOCKET_SOCKET_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
@@ -254,12 +252,26 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PRLIMIT_E] = {f_sys_prlimit_e},
 	[PPME_SYSCALL_PRLIMIT_X] = {f_sys_prlimit_x},
 #ifdef CAPTURE_CONTEXT_SWITCHES
-	[PPME_SCHEDSWITCH_E] = {f_sched_switch_e},
+	[PPME_SCHEDSWITCH_6_E] = {f_sched_switch_e},
 #endif
 	[PPME_DROP_E] = {f_sched_drop},
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
+	[PPME_SYSCALL_EXECVE_13_E] = {f_sys_empty},
+	[PPME_SYSCALL_EXECVE_13_X] = {f_proc_startupdate},
+	[PPME_CLONE_16_E] = {f_sys_empty},
+	[PPME_CLONE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
+	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
+	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
+	[PPME_SYSCALL_MMAP_X] = {f_sys_brk_munmap_mmap_x},
+	[PPME_SYSCALL_MMAP2_E] = {f_sys_mmap_e},
+	[PPME_SYSCALL_MMAP2_X] = {f_sys_brk_munmap_mmap_x},
+	[PPME_SYSCALL_MUNMAP_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
+	[PPME_SYSCALL_MUNMAP_X] = {f_sys_brk_munmap_mmap_x},
+	[PPME_SYSCALL_SPLICE_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {2}, {4}, {5}} },
+	[PPME_SYSCALL_SPLICE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} },
 	[PPME_SYSCALL_PTRACE_E] = {f_sys_ptrace_e},
 	[PPME_SYSCALL_PTRACE_X] = {f_sys_ptrace_x},
 };
@@ -526,6 +538,45 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	unsigned int snaplen;
 
 	/*
+	 * If the write event is directed to our sysdig-events device, we use a
+	 * bigger snaplen
+	 */
+	snaplen = g_snaplen;
+
+	{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+		int fd;
+		struct fd f;
+
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		f = fdget(fd);
+
+		if (f.file && f.file->f_op) {
+			if (THIS_MODULE == f.file->f_op->owner)
+				snaplen = RW_SNAPLEN_EVENT;
+
+			fdput(f);
+		}
+#else
+		int fd;
+		struct file *file;
+
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		file = fget(fd);
+		if (file && file->f_op) {
+			if (THIS_MODULE == file->f_op->owner)
+				snaplen = RW_SNAPLEN_EVENT;
+
+			fput(file);
+		}
+#endif
+	}
+
+	/*
 	 * res
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -538,30 +589,6 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	bufsize = val;
-
-	/*
-	 * Determine the snaplen by checking the fd type.
-	 * (note: not implemeted yet)
-	 */
-	snaplen = g_snaplen;
-#if 0
-	{
-		int fd;
-		int err, fput_needed;
-		struct socket *sock;
-
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-
-		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock) {
-			snaplen = g_snaplen;
-			fput_light(sock->file, fput_needed);
-		} else {
-			snaplen = RW_SNAPLEN;
-		}
-	}
-#endif
 
 	/*
 	 * Copy the buffer
@@ -629,6 +656,48 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+/*
+ * get_mm_counter was not inline and exported between 3.0 and 3.4
+ * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
+ * Hence the crap in these two functions
+ */
+unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
+{
+	long val = 0;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
+	val = get_mm_counter(mm, member);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	val = atomic_long_read(&mm->rss_stat.count[member]);
+
+	if (val < 0)
+		val = 0;
+#endif
+
+	return val;
+}
+
+static unsigned long ppm_get_mm_swap(struct mm_struct *mm)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	return ppm_get_mm_counter(mm, MM_SWAPENTS);
+#endif
+	return 0;
+}
+
+static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
+	return get_mm_rss(mm);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	return ppm_get_mm_counter(mm, MM_FILEPAGES) +
+		ppm_get_mm_counter(mm, MM_ANONPAGES);
+#else
+	return get_mm_rss(mm);
+#endif
+	return 0;
+}
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -640,6 +709,9 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	const char *argstr;
 	int ptid;
 	char *spwd;
+	long total_vm = 0;
+	long total_rss = 0;
+	long swap = 0;
 
 	/*
 	 * Make sure the operation was successful
@@ -730,6 +802,8 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (spwd == NULL)
 		spwd = "";
 
+	args->str_storage[STR_STORAGE_SIZE - 1] = '\0';
+
 	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -742,9 +816,50 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	/*
+	 * pgft_maj
+	 */
+	res = val_to_ring(args, current->maj_flt, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * pgft_min
+	 */
+	res = val_to_ring(args, current->min_flt, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT-10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+	}
+
+	/*
+	 * vm_size
+	 */
+	res = val_to_ring(args, total_vm, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_rss
+	 */
+	res = val_to_ring(args, total_rss, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_swap
+	 */
+	res = val_to_ring(args, swap, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
 	 * clone-only parameters
 	 */
-	if (args->event_type == PPME_CLONE_X) {
+	if (args->event_type == PPME_CLONE_16_X) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		uint64_t euid = from_kuid_munged(current_user_ns(), current_euid());
 		uint64_t egid = from_kgid_munged(current_user_ns(), current_egid());
@@ -2444,10 +2559,12 @@ static int f_sys_preadv_e(struct event_filler_arguments *args)
 	 * pos
 	 */
 
-        // Note that in preadv and pwritev have NO 64-bit arguments in the
-        // syscall (despite having one in the userspace API), so no alignment
-        // requirements apply here. For an overly-detailed discussion about
-        // this, see https://lwn.net/Articles/311630/
+	/*
+	 * Note that in preadv and pwritev have NO 64-bit arguments in the
+	 * syscall (despite having one in the userspace API), so no alignment
+	 * requirements apply here. For an overly-detailed discussion about
+	 * this, see https://lwn.net/Articles/311630/
+	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
 
@@ -2561,10 +2678,12 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 #else
-        // Note that in preadv and pwritev have NO 64-bit arguments in the
-        // syscall (despite having one in the userspace API), so no alignment
-        // requirements apply here. For an overly-detailed discussion about
-        // this, see https://lwn.net/Articles/311630/
+	/*
+	 * Note that in preadv and pwritev have NO 64-bit arguments in the
+	 * syscall (despite having one in the userspace API), so no alignment
+	 * requirements apply here. For an overly-detailed discussion about
+	 * this, see https://lwn.net/Articles/311630/
+	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments(current, args->regs, 4, 1, &pos1);
 
@@ -2825,12 +2944,13 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-#include <linux/kernel_stat.h>
-
 static int f_sched_switch_e(struct event_filler_arguments *args)
 {
 	int res;
-/* uint64_t steal; */
+	long total_vm = 0;
+	long total_rss = 0;
+	long swap = 0;
+	struct mm_struct *mm = NULL;
 
 	if (args->sched_prev == NULL || args->sched_next == NULL) {
 		ASSERT(false);
@@ -2841,6 +2961,48 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	 * next
 	 */
 	res = val_to_ring(args, args->sched_next->pid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * pgft_maj
+	 */
+	res = val_to_ring(args, args->sched_prev->maj_flt, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * pgft_min
+	 */
+	res = val_to_ring(args, args->sched_prev->min_flt, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	mm = args->sched_prev->mm;
+	if (mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT-10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+	}
+
+	/*
+	 * vm_size
+	 */
+	res = val_to_ring(args, total_vm, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_rss
+	 */
+	res = val_to_ring(args, total_rss, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_swap
+	 */
+	res = val_to_ring(args, swap, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2855,57 +3017,9 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 		return res;
 	}
 */
-	return add_sentinel(args);
-}
-
-#if 0
-static int f_sched_switchex_e(struct event_filler_arguments *args)
-{
-	int res;
-
-	if (args->sched_prev == NULL || args->sched_next == NULL) {
-		ASSERT(false);
-		return -1;
-	}
-
-	/*  */
-	/* next */
-	/*  */
-	res = val_to_ring(args, args->sched_next->pid, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*  */
-	/* pgft_maj */
-	/*  */
-	res = val_to_ring(args, args->sched_prev->maj_flt, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*  */
-	/* pgft_min */
-	/*  */
-	res = val_to_ring(args, args->sched_prev->min_flt, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*  */
-	/* next_pgft_maj */
-	/*  */
-	res = val_to_ring(args, args->sched_next->maj_flt, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*  */
-	/* next_pgft_min */
-	/*  */
-	res = val_to_ring(args, args->sched_next->min_flt, 0, false);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
 	return add_sentinel(args);
 }
-#endif /* 0 */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
 static int f_sched_drop(struct event_filler_arguments *args)
@@ -3011,7 +3125,7 @@ static int f_sched_fcntl_e(struct event_filler_arguments *args)
 
 static inline u16 ptrace_requests_to_scap(unsigned long req)
 {
-	switch(req) {
+	switch (req) {
 	case PTRACE_SINGLEBLOCK:
 		return PPM_PTRACE_SINGLEBLOCK;
 	case PTRACE_SYSEMU_SINGLESTEP:
@@ -3106,7 +3220,7 @@ static inline int parse_ptrace_addr(struct event_filler_arguments *args, u16 req
 	u8 idx;
 
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	switch(request) {
+	switch (request) {
 	default:
 		idx = PPM_PTRACE_IDX_UINT64;
 		dst = (uint64_t)val;
@@ -3123,7 +3237,7 @@ static inline int parse_ptrace_data(struct event_filler_arguments *args, u16 req
 	u8 idx;
 
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
-	switch(request) {
+	switch (request) {
 	case PPM_PTRACE_PEEKTEXT:
 	case PPM_PTRACE_PEEKDATA:
 	case PPM_PTRACE_PEEKUSR:
@@ -3216,6 +3330,192 @@ static int f_sys_ptrace_x(struct event_filler_arguments *args)
 		return res;
 
 	res = parse_ptrace_data(args, request);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
+{
+	int64_t retval;
+	int res = 0;
+	struct mm_struct *mm = current->mm;
+	long total_vm = 0;
+	long total_rss = 0;
+	long swap = 0;
+
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT-10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+	}
+
+	/*
+	 * vm_size
+	 */
+	res = val_to_ring(args, total_vm, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_rss
+	 */
+	res = val_to_ring(args, total_rss, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * vm_swap
+	 */
+	res = val_to_ring(args, swap, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static u32 prot_flags_to_scap(int prot)
+{
+	u32 res = 0;
+
+	if (prot & PROT_READ)
+		res |= PPM_PROT_READ;
+
+	if (prot & PROT_WRITE)
+		res |= PPM_PROT_WRITE;
+
+	if (prot & PROT_EXEC)
+		res |= PPM_PROT_EXEC;
+
+	if (prot & PROT_SEM)
+		res |= PPM_PROT_SEM;
+
+	if (prot & PROT_GROWSDOWN)
+		res |= PPM_PROT_GROWSDOWN;
+
+	if (prot & PROT_GROWSUP)
+		res |= PPM_PROT_GROWSUP;
+
+#ifdef PROT_SAO
+	if (prot & PROT_SAO)
+		res |= PPM_PROT_SAO;
+#endif
+
+	return res;
+}
+
+static u32 mmap_flags_to_scap(int flags)
+{
+	u32 res = 0;
+
+	if (flags & MAP_SHARED)
+		res |= PPM_MAP_SHARED;
+
+	if (flags & MAP_PRIVATE)
+		res |= PPM_MAP_PRIVATE;
+
+	if (flags & MAP_FIXED)
+		res |= PPM_MAP_FIXED;
+
+	if (flags & MAP_ANONYMOUS)
+		res |= PPM_MAP_ANONYMOUS;
+
+	if (flags & MAP_32BIT)
+		res |= PPM_MAP_32BIT;
+
+#ifdef MAP_RENAME
+	if (flags & MAP_RENAME)
+		res |= PPM_MAP_RENAME;
+#endif
+
+	if (flags & MAP_NORESERVE)
+		res |= PPM_MAP_NORESERVE;
+
+	if (flags & MAP_POPULATE)
+		res |= PPM_MAP_POPULATE;
+
+	if (flags & MAP_NONBLOCK)
+		res |= PPM_MAP_NONBLOCK;
+
+	if (flags & MAP_GROWSDOWN)
+		res |= PPM_MAP_GROWSDOWN;
+
+	if (flags & MAP_DENYWRITE)
+		res |= PPM_MAP_DENYWRITE;
+
+	if (flags & MAP_EXECUTABLE)
+		res |= PPM_MAP_EXECUTABLE;
+
+#ifdef MAP_INHERIT
+	if (flags & MAP_INHERIT)
+		res |= PPM_MAP_INHERIT;
+#endif
+
+	if (flags & MAP_FILE)
+		res |= PPM_MAP_FILE;
+
+	if (flags & MAP_LOCKED)
+		res |= PPM_MAP_LOCKED;
+
+	return res;
+}
+
+static int f_sys_mmap_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * addr
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * length
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * prot
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * flags
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, mmap_flags_to_scap(val), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * fd
+	 */
+	syscall_get_arguments(current, args->regs, 4, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * offset/pgoffset
+	 */
+	syscall_get_arguments(current, args->regs, 5, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

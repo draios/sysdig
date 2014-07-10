@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "shows the network payloads exchanged using a given IP port number. You can combine this chisel with the -x, -X or -T sysdig command line switches to customize the screen output";
+description = "shows the network payloads exchanged using a given IP port number. You can combine this chisel with the -x, -X or -A sysdig command line switches to customize the screen output";
 short_description = "Show the data exchanged using the given IP port number";
 category = "Net";
 
@@ -24,20 +24,34 @@ category = "Net";
 args = 
 {
 	{
-		name = "host_ip", 
+		name = "host_port",
 		description = "the remote host IP port number", 
 		argtype = "int"
 	},
+        {
+               name = "disable_color",
+               description = "Set to 'disable_colors' if you want to disable color output",
+               argtype = "string",
+               optional = true
+        },
 }
 
 require "common"
 terminal = require "ansiterminal"
+terminal.enable_color(true)
 
 -- Argument notification callback
 function on_set_arg(name, val)
-	port = val
-
-	return true
+    if name == "host_port" then
+        port = val
+        return true
+    elseif name == "disable_color" then
+        if val == "disable_colors" then
+            terminal.enable_color(false)
+        end
+        return true
+    end
+    return false
 end
 
 -- Initialization callback

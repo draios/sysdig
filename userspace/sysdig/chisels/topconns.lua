@@ -34,8 +34,8 @@ end
 -- Initialization callback
 function on_init()
 	chisel.exec("table_generator", 
-		"fd.name",
-		"Tuple",
+		"fd.l4proto,fd.name",
+		"Proto,Connection",
 		"evt.rawarg.res",
 		"Bytes",
 		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 

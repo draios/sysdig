@@ -17,7 +17,7 @@ events.
 sysdig can be both used to inspect live systems, or to generate trace
 files that can be analyzed at a later stage.
 .PP
-Sysdig includes a powerul filtering language, has customizable output,
+sysdig includes a powerul filtering language, has customizable output,
 and can be extended through Lua scripts, called chisels.
 .PP
 \f[B]Output format\f[]
@@ -128,10 +128,8 @@ $ sysdig "not (fd.name contains /proc or fd.name contains /dev)"
 .RE
 .PP
 \f[B]Chisels\f[]
-.PD 0
-.P
-.PD
-Sysdig\[aq]s chisels are little scripts that analyze the sysdig event
+.PP
+sysdig\[aq]s chisels are little scripts that analyze the sysdig event
 stream to perform useful actions.
 .PD 0
 .P
@@ -145,7 +143,7 @@ $ sysdig \-cl
 To get details about a specific chisel, type
 .RS
 .PP
-$ sysdig \-ispy_ip
+$ sysdig \-i spy_ip
 .RE
 .PP
 To run one of the chisels, you use the \-c flag, e.g.
@@ -160,7 +158,14 @@ If a chisel needs arguments, you specify them after the chisel name:
 $ sysdig \-c spy_ip 192.168.1.157
 .RE
 .PP
-Chiesls can be combined with filters:
+If a chisel has more than one argument, specify them after the chisel
+name, enclosed in quotes:
+.RS
+.PP
+$ sysdig \-c chisel_name "arg1 arg2 arg3"
+.RE
+.PP
+Chisels can be combined with filters:
 .RS
 .PP
 $ sysdig \-c topfiles_bytes "not fd.name contains /dev"
@@ -226,8 +231,8 @@ Print this page
 .PD
 Emit output as json
 .PP
-\f[B]\-i \f[I]chiselname\f[]\f[], \f[B]\-\-chisel\-info
-\f[I]chiselname\f[]\f[]
+\f[B]\-i \f[I]chiselname\f[]\f[],
+\f[B]\-\-chisel\-info=\f[]\f[I]chiselname\f[]
 .PD 0
 .P
 .PD
@@ -251,16 +256,16 @@ Use \-lv to get additional information for each field.
 .PD 0
 .P
 .PD
-Stop capturing after events
+Stop capturing after \f[I]num\f[] events
 .PP
-** \-P \f[B], \f[]\-\-progress**
+\f[B]\-P\f[], \f[B]\-\-progress\f[]
 .PD 0
 .P
 .PD
 Print progress on stderr while processing trace files.
 .PP
-\f[B]\-p\f[] \f[I]output\f[]format_,
-\f[B]\-\-print\f[]=\f[I]output\f[]format_
+\f[B]\-p\f[] \f[I]outputformat\f[],
+\f[B]\-\-print\f[]=\f[I]outputformat\f[]
 .PD 0
 .P
 .PD
@@ -278,7 +283,7 @@ Useful when dumping to disk.
 .PD 0
 .P
 .PD
-Read the events from .
+Read the events from \f[I]readfile\f[].
 .PP
 \f[B]\-S\f[], \f[B]\-\-summary\f[]
 .PD 0
@@ -291,7 +296,7 @@ the list of the top events) when the capture ends.
 .PD 0
 .P
 .PD
-Capture the first bytes of each I/O buffer.
+Capture the first \f[I]len\f[] bytes of each I/O buffer.
 By default, the first 80 bytes are captured.
 Use this option with caution, it can generate huge trace files.
 .PP
@@ -301,7 +306,7 @@ Use this option with caution, it can generate huge trace files.
 .PD
 Change the way event time is diplayed.
 Accepted values are \f[B]h\f[] for human\-readable string, \f[B]a\f[]
-for abosulte timestamp from epoch, \f[B]r\f[] for relative time from the
+for absolute timestamp from epoch, \f[B]r\f[] for relative time from the
 beginning of the capture, and \f[B]d\f[] for delta between event enter
 and exit.
 .PP
@@ -363,13 +368,13 @@ $ sysdig proc.name=cat and evt.type=open
 Print the name of the files opened by cat
 .RS
 .PP
-$ ./sysdig \-p"%evt.arg.name" proc.name=cat and evt.type=open
+$ sysdig \-p"%evt.arg.name" proc.name=cat and evt.type=open
 .RE
 .PP
 List the available chisels
 .RS
 .PP
-$ ./sysdig \-cl
+$ sysdig \-cl
 .RE
 .PP
 Use the spy_ip chisel to look at the data exchanged with 192.168.1.157:
@@ -391,8 +396,11 @@ The global chisels directory.
 .PD
 The personal chisels directory.
 .SS BUGS
-.PP
-Bugs?
+.IP \[bu] 2
+sysdig and its chisels are designed to be used with LuaJIT in Lua 5.1
+mode.
+While it is possible to use sysdig with LuaJIT in Lua 5.2 mode or
+regular Lua, some chisels may not work as expected.
 .SS AUTHOR
 .PP
 Draios inc.

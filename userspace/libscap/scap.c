@@ -421,6 +421,8 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	return handle->m_ndevs;
 }
 
+#if defined(HAS_CAPTURE)
+
 #ifndef _WIN32
 static inline void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
 #else
@@ -440,7 +442,6 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
-#if defined(HAS_CAPTURE)
 int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
 {
 	uint32_t thead;
@@ -586,7 +587,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	return SCAP_FAILURE;
 #else
 	uint32_t j;
-	uint64_t max_ts = 0xffffffffffffffff;
+	uint64_t max_ts = 0xffffffffffffffffLL;
 	uint64_t max_buf_size = 0;
 	scap_evt* pe = NULL;
 	bool waited = false;
@@ -960,3 +961,105 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 
 	return gzoffset(handle->m_file);
 }
+
+static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_file)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "manipulating eventmasks not supported on offline captures");
+		return SCAP_FAILURE;
+	}
+
+#ifdef _WIN32
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
+	return SCAP_FAILURE;
+#elif defined(__APPLE__)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+	return SCAP_FAILURE;
+#else
+	//
+	// Tell the driver to change the snaplen
+	//
+
+	switch(op) {
+	case PPM_IOCTL_MASK_ZERO_EVENTS:
+	case PPM_IOCTL_MASK_SET_EVENT:
+	case PPM_IOCTL_MASK_UNSET_EVENT:
+		break;
+
+	default:
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
+		ASSERT(false);
+		return SCAP_FAILURE;
+		break;
+	}
+
+	if(ioctl(handle->m_devs[0].m_fd, op, event_id))
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) failed", __FUNCTION__, op);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	{
+		uint32_t j;
+
+		//
+		// Force a flush of the read buffers, so we don't capture events with the old snaplen
+		//
+		for(j = 0; j < handle->m_ndevs; j++)
+		{
+			scap_readbuf(handle,
+				j,
+				false,
+				&handle->m_devs[j].m_sn_next_event,
+				&handle->m_devs[j].m_sn_len);
+
+			handle->m_devs[j].m_sn_len = 0;
+		}
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
+
+int32_t scap_clear_eventmask(scap_t* handle) {
+#ifdef _WIN32
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
+	return SCAP_FAILURE;
+#elif defined(__APPLE__)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+	return SCAP_FAILURE;
+#else
+	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_ZERO_EVENTS, 0));
+#endif
+}
+
+int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
+#ifdef _WIN32
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
+	return SCAP_FAILURE;
+#elif defined(__APPLE__)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+	return SCAP_FAILURE;
+#else
+	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_SET_EVENT, event_id));
+#endif
+}
+
+int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
+#ifdef _WIN32
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
+	return SCAP_FAILURE;
+#elif defined(__APPLE__)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+	return SCAP_FAILURE;
+#else
+	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_UNSET_EVENT, event_id));
+#endif
+}
+

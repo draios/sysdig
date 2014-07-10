@@ -63,7 +63,11 @@ void sinsp_threadinfo::init()
 	m_flags = PPM_CL_NAME_CHANGED;
 	m_nchilds = 0;
 	m_fdlimit = -1;
-	m_fd_usage_pct = 0;
+	m_vmsize_kb = 0;
+	m_vmrss_kb = 0;
+	m_vmswap_kb = 0;
+	m_pfmajor = 0;
+	m_pfminor = 0;
 	m_main_thread = NULL;
 	m_main_program_thread = NULL;
 	m_lastevent_fd = 0;
@@ -156,12 +160,17 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 
 	m_exe = pi->exe;
 	set_args(pi->args, pi->args_len);
-	set_cwd(pi->cwd, strlen(pi->cwd));
+	set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
 	m_flags |= pi->flags;
 	m_fdtable.clear();
 	m_fdlimit = pi->fdlimit;
 	m_uid = pi->uid;
 	m_gid = pi->gid;
+	m_vmsize_kb = pi->vmsize_kb;
+	m_vmrss_kb = pi->vmrss_kb;
+	m_vmswap_kb = pi->vmswap_kb;
+	m_pfmajor = pi->pfmajor;
+	m_pfminor = pi->pfminor;
 
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
 	{
@@ -527,7 +536,7 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 		sinsp_utils::concatenate_paths(tpath, 
 			SCAP_MAX_PATH_SIZE, 
 			(char*)tinfo->m_cwd.c_str(), 
-			tinfo->m_cwd.size(), 
+			(uint32_t)tinfo->m_cwd.size(), 
 			cwd, 
 			cwdlen);
 
@@ -574,6 +583,37 @@ void* sinsp_threadinfo::get_private_state(uint32_t id)
 	return m_private_state[id];
 }
 
+uint64_t sinsp_threadinfo::get_fd_usage_pct()
+{
+	int64_t fdlimit = get_fd_limit();
+	if(fdlimit > 0)
+	{
+		uint64_t fd_opencount = get_fd_opencount();
+		ASSERT(fd_opencount <= (uint64_t) fdlimit);
+		if(fd_opencount <= (uint64_t) fdlimit)
+		{
+			return (fd_opencount * 100) / fdlimit;
+		}
+		else
+		{
+			return 100;
+		}
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+uint64_t sinsp_threadinfo::get_fd_opencount()
+{
+	return get_main_thread()->m_fdtable.size();
+}
+
+uint64_t sinsp_threadinfo::get_fd_limit()
+{
+	return get_main_thread()->m_fdlimit;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation

@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include <json/json.h>
 
 #ifdef HAS_FILTERING
 
@@ -89,6 +90,15 @@ public:
 	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len) = 0;
 
 	//
+	// Extract the field as json from the event (by default, fall
+	// back to the regular extract functionality)
+	//
+	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+	{
+		return Json::Value::null;
+	}
+
+	//
 	// Compare the field with the constant value obtained from parse_filter_value()
 	//
 	virtual bool compare(sinsp_evt *evt);
@@ -98,13 +108,23 @@ public:
 	//
 	virtual char* tostring(sinsp_evt* evt);
 
+	//
+	// Extract the value from the event and convert it into a Json value
+	// or object
+	//
+	virtual Json::Value tojson(sinsp_evt* evt);
+
 	sinsp* m_inspector;
 	boolop m_boolop;
 	ppm_cmp_operator m_cmpop;
 
 protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
+	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
+	int32_t extract_arg(string fldname, string val, 
+		OUT const struct ppm_param_info** parinfo,
+		OUT int32_t* argid, OUT string* argname);
 
 	char m_getpropertystr_storage[1024];
 	vector<uint8_t> m_val_storage;
@@ -238,6 +258,7 @@ public:
 	bool compare_port(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
 	char* tostring(sinsp_evt* evt);
+	Json::Value tojson(sinsp_evt* evt);
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
@@ -267,29 +288,47 @@ public:
 		TYPE_CMDLINE = 4,
 		TYPE_CWD = 5,
 		TYPE_NCHILDS = 6,
-		TYPE_PARENTPID = 7,
-		TYPE_PARENTNAME = 8,
-		TYPE_TID = 9,
-		TYPE_ISMAINTHREAD = 10,
-		TYPE_EXECTIME = 11,
-		IOBYTES = 12,
-		TOTIOBYTES = 13,
-		LATENCY = 14,
-		TOTLATENCY = 15,
+		TYPE_PPID = 7,
+		TYPE_PNAME = 8,
+		TYPE_APID = 9,
+		TYPE_ANAME = 10,
+		TYPE_LOGINSHELLID = 11,
+		TYPE_DURATION = 12,
+		TYPE_FDOPENCOUNT = 13,
+		TYPE_FDLIMIT = 14,
+		TYPE_FDUSAGE = 15,
+		TYPE_VMSIZE = 16,
+		TYPE_VMRSS = 17,
+		TYPE_VMSWAP = 18,
+		TYPE_PFMAJOR = 19,
+		TYPE_PFMINOR = 20,
+		TYPE_TID = 21,
+		TYPE_ISMAINTHREAD = 22,
+		TYPE_EXECTIME = 23,
+		TYPE_TOTEXECTIME = 24,
+		TYPE_IOBYTES = 25,
+		TYPE_TOTIOBYTES = 26,
+		TYPE_LATENCY = 27,
+		TYPE_TOTLATENCY = 28,
 	};
 
 	sinsp_filter_check_thread();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	bool compare(sinsp_evt *evt);
 
-	// XXX this is overkill and wasted for most of the fields.
-	// It could be optimized by dynamically allocating the right amount
-	// of memory, but we don't care for the moment since we expect filters 
-	// to be pretty small.
+private:
+	uint64_t extract_exectime(sinsp_evt *evt);
+	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	inline bool compare_full_apid(sinsp_evt *evt);
+	bool compare_full_aname(sinsp_evt *evt);
+
+	int32_t m_argid;
 	uint32_t m_tbool;
 	string m_tstr;
 	uint64_t m_u64val;
+	int64_t m_s64val;
 	vector<uint64_t> m_last_proc_switch_times;
 };
 
@@ -338,8 +377,10 @@ public:
 	void parse_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 	char* tostring(sinsp_evt* evt);
+	Json::Value tojson(sinsp_evt* evt);
 
 	uint64_t m_first_ts;
 	uint64_t m_u64val;
@@ -358,6 +399,7 @@ private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
+
 	bool m_is_compare;
 };
 

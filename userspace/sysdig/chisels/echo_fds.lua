@@ -20,10 +20,27 @@ description = "print the data read and written for any FD. Combine this script w
 short_description = "Print the data read and written by processes.";
 category = "I/O";
 
-args = {}
+args =
+{
+    {
+        name = "disable_color",
+        description = "Set to 'disable_colors' if you want to disable color output",
+        argtype = "string",
+        optional = true
+    },
+}
 
 require "common"
 terminal = require "ansiterminal"
+terminal.enable_color(true)
+
+-- Argument notification callback
+function on_set_arg(name, val)
+    if val == "disable_colors" then
+        terminal.enable_color(false)
+    end
+    return true
+end
 
 -- Initialization callback
 function on_init()

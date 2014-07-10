@@ -48,6 +48,7 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Draios");
 
 #define PPM_DEVICE_NAME "sysdig"
+#define PPE_DEVICE_NAME PPM_DEVICE_NAME "-events"
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2)
@@ -93,6 +94,8 @@ static void record_event(enum ppm_event_type event_type,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next);
 
+static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
 #endif
@@ -108,6 +111,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)) */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
+DECLARE_BITMAP(g_events_mask, PPM_EVENT_MAX);
 static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
@@ -117,6 +121,12 @@ static const struct file_operations g_ppm_fops = {
 	.release = ppm_release,
 	.mmap = ppm_mmap,
 	.unlocked_ioctl = ppm_ioctl,
+	.owner = THIS_MODULE,
+};
+
+/* Events file operations */
+static const struct file_operations g_ppe_fops = {
+	.write = ppe_write,
 	.owner = THIS_MODULE,
 };
 
@@ -131,6 +141,35 @@ u32 g_sampling_ratio = 1;
 static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
+
+struct cdev *g_ppe_cdev = NULL;
+struct device *g_ppe_dev = NULL;
+
+static struct tracepoint *tp_sys_enter;
+static struct tracepoint *tp_sys_exit;
+static struct tracepoint *tp_sched_process_exit;
+#ifdef CAPTURE_CONTEXT_SWITCHES
+static struct tracepoint *tp_sched_switch;
+#endif
+
+/* compat tracepoint functions */
+static int compat_register_trace(void *func, const char *probename, struct tracepoint *tp)
+{
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0))
+	return TRACEPOINT_PROBE_REGISTER(probename, func);
+#else
+	return tracepoint_probe_register(tp, func, NULL);
+#endif
+}
+
+static void compat_unregister_trace(void *func, const char *probename, struct tracepoint *tp)
+{
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0))
+	TRACEPOINT_PROBE_UNREGISTER(probename, func);
+#else
+	tracepoint_probe_unregister(tp, func, NULL);
+#endif
+}
 
 /*
  * user I/O functions
@@ -153,6 +192,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	g_sampling_ratio = 1;
 	g_sampling_interval = 0;
 	g_is_dropping = 0;
+	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
 	ring->info->head = 0;
 	ring->info->tail = 0;
 	ring->nevents = 0;
@@ -173,52 +213,43 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		/*
 		 * Enable the tracepoints
 		 */
-		ret = TRACEPOINT_PROBE_REGISTER("sys_exit", (void *) syscall_exit_probe);
+		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 		if (ret) {
 			pr_err("can't create the sys_exit tracepoint\n");
 			return ret;
 		}
 
-		ret = TRACEPOINT_PROBE_REGISTER("sys_enter", (void *) syscall_enter_probe);
+		ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 		if (ret) {
-			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
-						    (void *) syscall_exit_probe);
-
 			pr_err("can't create the sys_enter tracepoint\n");
-
-			return ret;
+			goto err_sys_enter;
 		}
 
-		ret = TRACEPOINT_PROBE_REGISTER("sched_process_exit", (void *) syscall_procexit_probe);
+		ret = compat_register_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 		if (ret) {
-			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
-						    (void *) syscall_exit_probe);
-			TRACEPOINT_PROBE_UNREGISTER("sys_enter",
-						    (void *) syscall_enter_probe);
-
 			pr_err("can't create the sched_process_exit tracepoint\n");
-
-			return ret;
+			goto err_sched_procexit;
 		}
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-		ret = TRACEPOINT_PROBE_REGISTER("sched_switch", (void *) sched_switch_probe);
+		ret = compat_register_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 		if (ret) {
-			TRACEPOINT_PROBE_UNREGISTER("sys_exit",
-						    (void *) syscall_exit_probe);
-			TRACEPOINT_PROBE_UNREGISTER("sys_enter",
-						    (void *) syscall_enter_probe);
-			TRACEPOINT_PROBE_UNREGISTER("sched_process_exit",
-						    (void *) syscall_procexit_probe);
-
 			pr_err("can't create the sched_switch tracepoint\n");
-
-			return ret;
+			goto err_sched_switch;
 		}
 #endif
 	}
 
 	return 0;
+
+err_sched_switch:
+	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
+err_sched_procexit:
+	compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+err_sys_enter:
+	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+
+	return ret;
 }
 
 static int ppm_release(struct inode *inode, struct file *filp)
@@ -247,19 +278,16 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	if (atomic_dec_return(&g_open_count) == 0) {
 		pr_info("stopping capture\n");
 
-		TRACEPOINT_PROBE_UNREGISTER("sys_exit",
-					    (void *) syscall_exit_probe);
+		compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+		compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+		compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 
-		TRACEPOINT_PROBE_UNREGISTER("sys_enter",
-					    (void *) syscall_enter_probe);
-
-		TRACEPOINT_PROBE_UNREGISTER("sched_process_exit",
-					    (void *) syscall_procexit_probe);
 #ifdef CAPTURE_CONTEXT_SWITCHES
-		TRACEPOINT_PROBE_UNREGISTER("sched_switch",
-					    (void *) sched_switch_probe);
+		compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 #endif
 	}
+
+	tracepoint_synchronize_unregister();
 
 	return 0;
 }
@@ -341,6 +369,49 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		pr_info("new snaplen: %d\n", g_snaplen);
 		return 0;
 	}
+
+	case PPM_IOCTL_MASK_ZERO_EVENTS:
+	  {
+	    pr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
+
+	    bitmap_zero(g_events_mask, PPM_EVENT_MAX);
+
+	    /* Used for dropping events so they must stay on */
+	    set_bit(PPME_DROP_E, g_events_mask);
+	    set_bit(PPME_DROP_X, g_events_mask);
+	    return(0);
+	  }
+
+	case PPM_IOCTL_MASK_SET_EVENT:
+	  {
+	    u32 syscall_to_set = (u32)arg;
+
+	    pr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
+
+	    if(syscall_to_set > PPM_EVENT_MAX) {
+	      pr_info("invalid syscall %u\n", syscall_to_set);
+	      return -EINVAL;	      
+	    }
+
+	    set_bit(syscall_to_set, g_events_mask);
+	    return(0);
+	  }
+
+	case PPM_IOCTL_MASK_UNSET_EVENT:
+	  {
+	    u32 syscall_to_unset = (u32)arg;
+
+	    pr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
+
+	    if(syscall_to_unset > NR_syscalls) {
+	      pr_info("invalid syscall %u\n", syscall_to_unset);
+	      return -EINVAL;	      
+	    }
+
+	    clear_bit(syscall_to_unset, g_events_mask);
+	    return(0);
+	  }
+
 	default:
 		return -ENOTTY;
 	}
@@ -477,6 +548,11 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 	return -EIO;
 }
 
+static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+	return count;
+}
+
 /* Argument list sizes for sys_socketcall */
 #define AL(x) ((x) * sizeof(unsigned long))
 static const unsigned char nas[21] = {
@@ -608,6 +684,10 @@ static void record_event(enum ppm_event_type event_type,
 	struct timespec ts;
 
 	getnstimeofday(&ts);
+
+	if(!test_bit(event_type, g_events_mask)) {
+	  return;
+	}
 
 	if (drop_event(event_type, never_drop, &ts))
 		return;
@@ -906,7 +986,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, st
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next)
 #endif
 {
-	record_event(PPME_SCHEDSWITCH_E,
+	record_event(PPME_SCHEDSWITCH_6_E,
 		NULL,
 		-1,
 		0,
@@ -999,6 +1079,70 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 	vfree(ring);
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+static void visit_tracepoint(struct tracepoint *tp, void *priv)
+{
+	if (!strcmp(tp->name, "sys_enter"))
+		tp_sys_enter = tp;
+	else if (!strcmp(tp->name, "sys_exit"))
+		tp_sys_exit = tp;
+	else if (!strcmp(tp->name, "sched_process_exit"))
+		tp_sched_process_exit = tp;
+#ifdef CAPTURE_CONTEXT_SWITCHES
+	else if (!strcmp(tp->name, "sched_switch"))
+		tp_sched_switch = tp;
+#endif
+}
+
+static int get_tracepoint_handles(void)
+{
+	for_each_kernel_tracepoint(visit_tracepoint, NULL);
+
+	if (!tp_sys_enter) {
+		pr_err("failed to find sys_enter tracepoint\n");
+		return -ENOENT;
+	}
+	if (!tp_sys_exit) {
+		pr_err("failed to find sys_exit tracepoint\n");
+		return -ENOENT;
+	}
+	if (!tp_sched_process_exit) {
+		pr_err("failed to find sched_process_exit tracepoint\n");
+		return -ENOENT;
+	}
+#ifdef CAPTURE_CONTEXT_SWITCHES
+	if (!tp_sched_switch) {
+		pr_err("failed to find sched_switch tracepoint\n");
+		return -ENOENT;
+	}
+#endif
+
+	return 0;
+}
+#else
+static int get_tracepoint_handles(void)
+{
+	return 0;
+}
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
+static char *ppm_devnode(struct device *dev, umode_t *mode)
+#else
+static char *ppm_devnode(struct device *dev, mode_t *mode)
+#endif
+{
+	if (mode) {
+		*mode = 0400;
+
+		if (dev)
+			if (MINOR(dev->devt) == g_ppm_numdevs)
+				*mode = 0222;
+	}
+
+	return NULL;
+}
+
 /* static int ppm_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data) */
 /* { */
 /* int len = 0; */
@@ -1020,7 +1164,7 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 /* return len; */
 /* } */
 
-int init_module(void)
+int sysdig_init(void)
 {
 	dev_t dev;
 	unsigned int cpu;
@@ -1032,6 +1176,10 @@ int init_module(void)
 	struct device *device = NULL;
 
 	pr_info("driver loading\n");
+
+	ret = get_tracepoint_handles();
+	if (ret < 0)
+		goto init_module_err;
 
 	/*
 	 * Initialize the ring buffers array
@@ -1055,8 +1203,9 @@ int init_module(void)
 
 	/*
 	 * Initialize the user I/O
+	 * ( + 1 for sysdig-events)
 	 */
-	acrret = alloc_chrdev_region(&dev, 0, num_cpus, PPM_DEVICE_NAME);
+	acrret = alloc_chrdev_region(&dev, 0, num_cpus + 1, PPM_DEVICE_NAME);
 	if (acrret < 0) {
 		pr_err("could not allocate major number for %s\n", PPM_DEVICE_NAME);
 		ret = -ENOMEM;
@@ -1069,6 +1218,8 @@ int init_module(void)
 		ret = -EFAULT;
 		goto init_module_err;
 	}
+
+	g_ppm_class->devnode = ppm_devnode;
 
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
@@ -1111,6 +1262,32 @@ int init_module(void)
 
 	/* create_proc_read_entry(PPM_DEVICE_NAME, 0, NULL, ppm_read_proc, NULL); */
 
+	g_ppe_cdev = cdev_alloc();
+	if (g_ppe_cdev == NULL) {
+		pr_err("error allocating the device %s\n", PPE_DEVICE_NAME);
+		ret = -ENOMEM;
+		goto init_module_err;
+	}
+
+	cdev_init(g_ppe_cdev, &g_ppe_fops);
+
+	if (cdev_add(g_ppe_cdev, MKDEV(g_ppm_major, g_ppm_numdevs), 1) < 0) {
+		pr_err("could not allocate chrdev for %s\n", PPE_DEVICE_NAME);
+		ret = -EFAULT;
+		goto init_module_err;
+	}
+
+	g_ppe_dev = device_create(g_ppm_class, NULL,
+			MKDEV(g_ppm_major, g_ppm_numdevs),
+			NULL, /* no additional data */
+			PPE_DEVICE_NAME);
+
+	if (IS_ERR(g_ppe_dev)) {
+		pr_err("error creating the device for  %s\n", PPE_DEVICE_NAME);
+		ret = -EFAULT;
+		goto init_module_err;
+	}
+
 	/*
 	 * All ok. Final initalizations.
 	 */
@@ -1125,6 +1302,12 @@ init_module_err:
 			free_ring_buffer(per_cpu(g_ring_buffers, cpu));
 
 	/* remove_proc_entry(PPM_DEVICE_NAME, NULL); */
+
+	if (g_ppe_dev != NULL)
+		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
+
+	if (g_ppe_cdev != NULL)
+		cdev_del(g_ppe_cdev);
 
 	for (j = 0; j < n_created_devices; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
@@ -1142,7 +1325,7 @@ init_module_err:
 	return ret;
 }
 
-void cleanup_module(void)
+void sysdig_exit(void)
 {
 	int j;
 	int cpu;
@@ -1159,10 +1342,22 @@ void cleanup_module(void)
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
+	if (g_ppe_dev != NULL)
+		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
+
+	if (g_ppe_cdev != NULL)
+		cdev_del(g_ppe_cdev);
+
 	if (g_ppm_class)
 		class_destroy(g_ppm_class);
 
-	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs);
+	/* + 1 for sysdig-events */
+	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs + 1);
 
 	kfree(g_ppm_devs);
+
+	tracepoint_synchronize_unregister();
 }
+
+module_init(sysdig_init);
+module_exit(sysdig_exit);

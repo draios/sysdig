@@ -194,6 +194,11 @@ typedef struct scap_threadinfo
 	uint32_t flags; ///< the process flags.
 	uint32_t uid; ///< user id
 	uint32_t gid; ///< group id
+	uint32_t vmsize_kb; ///< total virtual memory (as kb)
+	uint32_t vmrss_kb; ///< resident non-swapped memory (as kb)
+	uint32_t vmswap_kb; ///< swapped memory (as kb)
+	uint64_t pfmajor; ///< number of major page faults since start
+	uint64_t pfminor; ///< number of minor page faults since start
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
@@ -546,6 +551,19 @@ int64_t scap_dump_get_offset(scap_dumper_t *d);
 void scap_dump_flush(scap_dumper_t *d);
 
 /*!
+  \brief Tell how many bytes would be written (a dry run of scap_dump)
+
+  \param e pointer to an event returned by \ref scap_next.
+  \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
+  \param bytes The number of bytes to write
+
+  \return SCAP_SUCCESS if the call is succesful.
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
+   the cause of the error. 
+*/
+int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t* bytes);
+
+/*!
   \brief Write an event to a trace file 
 
   \param handle Handle to the capture instance.
@@ -707,6 +725,39 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle);
   capture files.
 */
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
+
+/*!
+  \brief Clear the event mask: no events will be passed to sysdig
+
+  \param handle Handle to the capture instance.
+
+  \note This function can only be called for live captures.
+*/
+int32_t scap_clear_eventmask(scap_t* handle);
+
+/*!
+  \brief Set the event into the eventmask so that
+  sysdig-based apps can receive the event. Useful for offloading
+  operations such as evt.type=open
+
+  \param handle Handle to the capture instance.
+  \param event id (example PPME_SOCKET_BIND_X)
+  \note This function can only be called for live captures.
+*/
+int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id);
+
+
+/*!
+  \brief Unset the event into the eventmask so that
+  sysdig-based apps can no longer receive the event. It is 
+  the opposite of scap_set_eventmask
+
+  \param handle Handle to the capture instance.
+  \param event id (example PPME_SOCKET_BIND_X)
+  \note This function can only be called for live captures.
+*/
+int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
+
 
 /*@}*/
 

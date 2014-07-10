@@ -77,12 +77,8 @@ template<> char sinsp_fdinfo_t::get_typechar()
 	}
 }
 
-template<> void sinsp_fdinfo_t::add_filename(const char* directory, uint32_t directorylen, const char* filename, uint32_t filenamelen)
+template<> void sinsp_fdinfo_t::add_filename(const char* fullpath)
 {
-	char fullpath[SCAP_MAX_PATH_SIZE];
-
-	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, directory, directorylen, filename, filenamelen);
-	
 	m_name = fullpath;
 }
 

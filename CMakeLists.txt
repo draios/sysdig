@@ -23,6 +23,14 @@ if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1-dev")
 endif()
 
+if(NOT DEFINED DIR_ETC)
+	set(DIR_ETC "${CMAKE_INSTALL_PREFIX}/etc")
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+	SET(CMAKE_BUILD_TYPE Release)
+endif()
+
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
 if(NOT WIN32)
@@ -98,7 +106,14 @@ elseif(NOT USE_BUNDLED_LUAJIT)
 	if(LUAJIT_INCLUDE AND LUAJIT_LIB)
 		message(STATUS "Found LuaJIT: include: ${LUAJIT_INCLUDE}, lib: ${LUAJIT_LIB}")
 	else()
-		message(FATAL_ERROR "Couldn't find system LuaJIT")
+		# alternatively try stock Lua
+		find_package(Lua51)
+		set(LUAJIT_LIB ${LUA_LIBRARY})
+		set(LUAJIT_INCLUDE ${LUA_INCLUDE_DIR})
+
+		if(NOT ${LUA51_FOUND})
+			message(FATAL_ERROR "Couldn't find system LuaJIT or Lua")
+		endif()
 	endif()
 else()
 	set(LUAJIT_SRC "${PROJECT_BINARY_DIR}/luajit-prefix/src/luajit/src")

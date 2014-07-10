@@ -56,7 +56,7 @@ static void signal_callback(int signal)
 void replace_in_place(string& str, string substr_to_replace, string new_substr)
 {
 	size_t index = 0;
-	uint32_t nsize = substr_to_replace.size();
+	uint32_t nsize = (uint32_t)substr_to_replace.size();
 
 	while (true)
 	{
@@ -87,15 +87,32 @@ static void usage()
 "                    run the specified chisel. If the chisel require arguments,\n"
 "                    they must be specified in the command line after the name.\n"
 " -cl, --list-chisels\n"
-#endif
 "                    lists the available chisels. Looks for chisels in .,\n"
 "                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
+#endif
+" -C <file_size>, --file-size=<file_size>\n"
+"                    Before writing an event, check whether the file is\n"
+"                    currently larger than file_size and, if so, close the\n"
+"                    current file and open a new one. Savefiles will have the\n"
+"                    name specified with the -w flag, with a number after it,\n"
+"                    starting at 0 and continuing upward. The units of file_size\n"
+"                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
+"                    determine how many files will be saved to disk.\n"
 " -d, --displayflt   Make the given filter a display one.\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
 " -D, --debug        Capture events about sysdig itself\n"
+" -G <num_seconds>, --seconds=<num_seconds>\n"
+"                    Rotates the dump file specified with the -w option every\n"
+"                    num_seconds seconds. Savefiles will have the name specified\n"
+"                    by -w which should include a time format as defined by strftime(3).\n"
+"                    If no time format is specified, each new file will overwrite the\n"
+"                    previous.\n"
+"\n"
+"                    If used in conjunction with the -C option, filenames will take\n"
+"                    the form of `file<count>'.\n"
 " -h, --help         Print this page\n"
 #ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
@@ -125,12 +142,23 @@ static void usage()
 "                    option with caution, it can generate huge trace files.\n"
 " -t <timetype>, --timetype=<timetype>\n"
 "                    Change the way event time is diplayed. Accepted values are\n"
-"                    h for human-readable string, a for abosulte timestamp from\n"
+"                    h for human-readable string, a for absolute timestamp from\n"
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, and d for delta between event enter and exit.\n"
 " -v, --verbose      Verbose output.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
+" -W <num>, --limit <num>\n"
+"                    Used in conjunction with the -C option, this will limit the number\n"
+"                    of files created to the specified number, and begin overwriting files\n"
+"                    from the beginning, thus creating a 'rotating' buffer. In addition, it\n"
+"                    will name the files with enough leading 0s to support the maximum number\n"
+"                    of files, allowing them to sort correctly.\n"
+"\n"
+"                    Used in conjunction with the -G option, this will limit the number\n"
+"                    of rotated dump files that get created, exiting with status 0 when\n"
+"                    reaching the limit. If used with -C as well, the behavior will result\n"
+"                    in cyclical files per timeslice.\n"
 " -x, --print-hex    Print data buffers in hex.\n"
 " -X, --print-hex-ascii\n"
 "                    Print data buffers in hex and ASCII.\n"
@@ -139,8 +167,9 @@ static void usage()
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
 " line with the following format:\n\n"
-"<evt.time> %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.args\n\n"
+" %%evt.num %%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.args\n\n"
 "where:\n"
+" evt.num is the incremental event number\n"
 " evt.time is the event timestamp\n"
 " evt.cpu is the CPU number where the event was captured\n"
 " proc.name is the name of the process that generated the event\n"
@@ -213,6 +242,31 @@ void print_summary_table(sinsp* inspector,
 	}
 }
 
+#ifdef HAS_CHISELS
+static void add_chisel_dirs(sinsp* inspector)
+{
+	//
+	// Add the default chisel directory statically configured by the build system
+	//
+	inspector->add_chisel_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR, false);
+
+	//
+	// Add the directories configured in the SYSDIG_CHISEL_DIR environment variable
+	//
+	char* s_user_cdirs = getenv("SYSDIG_CHISEL_DIR");
+
+	if(s_user_cdirs != NULL)
+	{
+		vector<string> user_cdirs = sinsp_split(s_user_cdirs, ';');
+
+		for(uint32_t j = 0; j < user_cdirs.size(); j++)
+		{
+			inspector->add_chisel_dir(user_cdirs[j], true);
+		}
+	}
+}
+#endif
+
 static void initialize_chisels()
 {
 #ifdef HAS_CHISELS
@@ -221,6 +275,74 @@ static void initialize_chisels()
 		g_chisels[j]->on_init();
 	}
 #endif
+}
+
+//
+// Parse the command line following a chisel to consume the chisel command line.
+// We use the following strategy:
+//  - if the chisel has no arguments, we don't consume anything
+//  - if the chisel has at least one required argument, we consume the next command line token
+//  - if the chisel has only optional arguments, we consume the next token, unless
+//    - there is no next token
+//    - the next token starts with a '-'
+//    - the rest of the command line contains a valid filter
+//
+static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, int argc, char **argv, int32_t* n_filterargs)
+{
+	uint32_t nargs = ch->get_n_args();
+	uint32_t nreqargs = ch->get_n_required_args();
+	string args;
+
+	if(nargs != 0)
+	{
+		if(optind > (int32_t)argc)
+		{
+			throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
+		}
+		else if(optind < (int32_t)argc)
+		{
+			args = argv[optind];
+
+			if(nreqargs != 0)
+			{
+				ch->set_args(args);
+				(*n_filterargs)++;
+			}
+			else
+			{
+				if(args[0] != '-')
+				{
+					string testflt;
+
+					for(int32_t j = optind; j < argc; j++)
+					{
+						testflt += argv[j];
+						if(j < argc - 1)
+						{
+							testflt += " ";
+						}
+					}
+
+					try
+					{
+						sinsp_filter df(inspector, testflt);
+					}
+					catch(...)
+					{
+						ch->set_args(args);
+						(*n_filterargs)++;
+					}
+				}
+			}
+		}
+		else
+		{
+			if(nreqargs != 0)
+			{
+				throw sinsp_exception("missing arguments for chisel " + string(optarg));
+			}
+		}
+	}
 }
 
 static void free_chisels()
@@ -266,6 +388,23 @@ static void chisels_do_timeout(sinsp_evt* ev)
 #endif
 }
 
+void handle_end_of_file(bool print_progress)
+{
+	//
+	// Reached the end of a trace file.
+	// If we are reporting prgress, this is 100%
+	//
+	if(print_progress)
+	{
+		fprintf(stderr, "100.00\n");
+		fflush(stderr);
+	}
+
+	//
+	// Notify the chisels that we're exiting.
+	//
+	chisels_on_capture_end();
+}
 
 //
 // Event processing loop
@@ -301,6 +440,15 @@ captureinfo do_inspect(sinsp* inspector,
 			// Notify the chisels that we're exiting.
 			//
 			chisels_on_capture_end();
+
+			// Notify the formatter that we are at the 
+			// end of the capture in case it needs to 
+			// write any terminating characters
+			if(formatter->on_capture_end(&line))
+			{
+				cout << line << endl;
+			}
+
 			break;
 		}
 
@@ -316,25 +464,12 @@ captureinfo do_inspect(sinsp* inspector,
 				//
 				chisels_do_timeout(ev);
 			}
+
 			continue;
 		}
 		else if(res == SCAP_EOF)
 		{
-			//
-			// Reached the end of a trace file.
-			// If we are reporting prgress, this is 100%
-			//
-			if(print_progress)
-			{
-				fprintf(stderr, "100.00\n");
-				fflush(stderr);
-			}
-
-			//
-			// Notify the chisels that we're exiting.
-			//
-			chisels_on_capture_end();
-
+			handle_end_of_file(print_progress);
 			break;
 		}
 		else if(res != SCAP_SUCCESS)
@@ -343,7 +478,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Event read error.
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
-			chisels_on_capture_end();
+			handle_end_of_file(print_progress);
 			cerr << "res = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
@@ -436,7 +571,11 @@ captureinfo do_inspect(sinsp* inspector,
 					}
 				}
 
-				cout << line << endl;
+				cout << line;
+				if( inspector->get_buffer_format() != sinsp_evt::PF_JSON)
+				{
+					cout << endl;
+				}
 			}
 		}
 	}
@@ -476,6 +615,12 @@ int main(int argc, char **argv)
 	vector<summary_table_entry>* summary_table = NULL;
 	string timefmt = "%evt.time";
 
+	// These variables are for the cycle_writer engine
+	int duration_seconds = 0;	
+	int rollover_mb = 0;
+	int file_limit = 0;
+	bool do_cycle = false;
+
 	static struct option long_options[] =
 	{
 		{"print-ascii", no_argument, 0, 'A' },
@@ -487,10 +632,12 @@ int main(int argc, char **argv)
 		{"compress", no_argument, 0, 'z' },
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
+		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
+		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
@@ -504,6 +651,7 @@ int main(int argc, char **argv)
 		{"timetype", required_argument, 0, 't' },
 		{"verbose", no_argument, 0, 'v' },
 		{"writefile", required_argument, 0, 'w' },
+		{"limit", required_argument, 0, 'W' },
 		{"print-hex", no_argument, 0, 'x'},
 		{"print-hex-ascii", no_argument, 0, 'X'},
 		{0, 0, 0, 0}
@@ -517,13 +665,13 @@ int main(int argc, char **argv)
 		inspector = new sinsp();
 
 #ifdef HAS_CHISELS
-		inspector->add_chisel_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR);
+		add_chisel_dirs(inspector);
 #endif
 
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv, "Aac:dDhi:jlLn:Pp:qr:Ss:t:vw:xXz", long_options, &long_index)) != -1)
+		while((op = getopt_long(argc, argv, "Aac:C:dDG:hi:jlLn:Pp:qr:Ss:t:vW:w:xXz", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -570,35 +718,47 @@ int main(int argc, char **argv)
 					{
 						vector<chisel_desc> chlist;
 						sinsp_chisel::get_chisel_list(&chlist);
-						list_chisels(&chlist);
+						list_chisels(&chlist, true);
 						delete inspector;
 						return EXIT_SUCCESS;
 					}
 
 					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
-					uint32_t nargs = ch->get_n_args();
-					vector<string> args;
-
-					for(uint32_t j = 0; j < nargs; j++)
-					{
-						if(optind + j >= (uint32_t)argc)
-						{
-							throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
-						}
-
-						args.push_back(argv[optind + j]);
-						n_filterargs++;
-					}
-
-					ch->set_args(&args);
-
+					parse_chisel_args(ch, inspector, optind, argc, argv, &n_filterargs);
 					g_chisels.push_back(ch);
 				}
 #endif
 				break;
+
+			// File-size
+			case 'C':
+				rollover_mb = atoi(optarg);
+				if(rollover_mb <= 0)
+				{
+					throw sinsp_exception(string("invalid file size") + optarg);
+					res = EXIT_FAILURE;
+					goto exit;
+				}
+
+				// -C always implicates a cycle
+				do_cycle = true;
+				break;
+
 			case 'D':
 				inspector->set_debug_mode(true);
 				break;
+
+			// Number of seconds between roll-over
+			case 'G':
+				duration_seconds = atoi(optarg);
+				if(duration_seconds <= 0)
+				{
+					throw sinsp_exception(string("invalid duration") + optarg);
+					res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
+
 #ifdef HAS_CHISELS
 			// --chisel-info and -i
 			case 'i':
@@ -654,7 +814,7 @@ int main(int argc, char **argv)
 				cnt = atoi(optarg);
 				if(cnt <= 0)
 				{
-					throw sinsp_exception(string("invalid packet count") + optarg);
+					throw sinsp_exception(string("invalid event count ") + optarg);
 					res = EXIT_FAILURE;
 					goto exit;
 				}
@@ -731,6 +891,18 @@ int main(int argc, char **argv)
 				outfile = optarg;
 				quiet = true;
 				break;
+
+			// Number of capture files to cycle through
+			case 'W':
+				file_limit = atoi(optarg);
+				if(file_limit <= 0)
+				{
+					throw sinsp_exception(string("invalid file limit") + optarg);
+					res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
+
 			case 'x':
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
@@ -902,27 +1074,7 @@ int main(int argc, char **argv)
 				{
 					open_success = true;
 
-					try
-					{
-						system("modprobe sysdig-probe > /dev/null 2> /dev/null");
-
-						inspector->open("");
-					}
-					catch(sinsp_exception e)
-					{
-						open_success = false;
-					}
-				}
-
-				//
-				// No luck with modprobe either.
-				// Maybe this is a version of sysdig that was compiled from the
-				// sources, so let's make one last attempt with insmod and the
-				// path to the driver directory.
-				//
-				if(!open_success)
-				{
-					system("insmod ../../driver/sysdig-probe.ko > /dev/null 2> /dev/null");
+					system("modprobe sysdig-probe > /dev/null 2> /dev/null");
 
 					inspector->open("");
 				}
@@ -937,7 +1089,9 @@ int main(int argc, char **argv)
 
 			if(outfile != "")
 			{
-				inspector->autodump_start(outfile, compress);
+
+				inspector->setup_cycle_writer(outfile, rollover_mb, duration_seconds, file_limit, do_cycle, compress);
+				inspector->autodump_next_file();
 			}
 
 			//
@@ -981,10 +1135,12 @@ int main(int argc, char **argv)
 	catch(sinsp_exception& e)
 	{
 		cerr << e.what() << endl;
+		handle_end_of_file(print_progress);
 		res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
+		handle_end_of_file(print_progress);
 		res = EXIT_FAILURE;
 	}
 

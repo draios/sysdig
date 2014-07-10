@@ -14,7 +14,7 @@ DESCRIPTION
 sysdig is a tool for system troubleshooting, analysis and exploration. It can be used to capture, filter and decode system calls and other OS events. 
 sysdig can be both used to inspect live systems, or to generate trace files that can be analyzed at a later stage.
 
-Sysdig includes a powerul filtering language, has customizable output, and can be extended through Lua scripts, called chisels.
+sysdig includes a powerul filtering language, has customizable output, and can be extended through Lua scripts, called chisels.
 
 **Output format**
 
@@ -46,7 +46,6 @@ used to save only certain events to disk:
 Trace files can be read this using the -r switch: 
 > $ sysdig -r trace.scap
 
-
 **Filtering**  
 
 sysdig filters are specified at the end of the command line. The simplest filter is a basic field-value check:
@@ -60,12 +59,13 @@ Multiple checks can be combined through brakets and the following boolean operat
 > $ sysdig "not (fd.name contains /proc or fd.name contains /dev)"
 
 **Chisels**  
-Sysdig's chisels are little scripts that analyze the sysdig event stream to perform useful actions.
+
+sysdig's chisels are little scripts that analyze the sysdig event stream to perform useful actions.
 To get the list of available chisels, type
 > $ sysdig -cl  
 
 To get details about a specific chisel, type
-> $ sysdig -ispy_ip  
+> $ sysdig -i spy_ip
 
 To run one of the chisels, you use the -c flag, e.g.
 > $ sysdig -c topfiles_bytes
@@ -73,7 +73,10 @@ To run one of the chisels, you use the -c flag, e.g.
 If a chisel needs arguments, you specify them after the chisel name:
 > $ sysdig -c spy_ip 192.168.1.157
 
-Chiesls can be combined with filters:
+If a chisel has more than one argument, specify them after the chisel name, enclosed in quotes:
+> $ sysdig -c chisel_name "arg1 arg2 arg3"
+
+Chisels can be combined with filters:
 > $ sysdig -c topfiles_bytes "not fd.name contains /dev"
 
 OPTIONS
@@ -103,7 +106,7 @@ OPTIONS
 **-j**, **--json**         
   Emit output as json
   
-**-i _chiselname_**, **--chisel-info _chiselname_**  
+**-i _chiselname_**, **--chisel-info=**_chiselname_  
   Get a longer description and the arguments associated with a chisel found in the -cl option list.
 
 **-L**, **--list-events**  
@@ -113,28 +116,28 @@ OPTIONS
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
     
 **-n** _num_, **--numevents**=_num_  
-  Stop capturing after <num> events
+  Stop capturing after _num_ events
 
-** -P **, **--progress**  
+**-P**, **--progress**  
   Print progress on stderr while processing trace files.
   
-**-p** _output_format_, **--print**=_output_format_  
+**-p** _outputformat_, **--print**=_outputformat_  
   Specify the format to be used when printing the events. See the examples section below for more info.
   
 **-q**, **--quiet**  
   Don't print events on the screen. Useful when dumping to disk.
   
 **-r** _readfile_, **--read**=_readfile_  
-  Read the events from <readfile>.
+  Read the events from _readfile_.
   
 **-S**, **--summary**  
   print the event summary (i.e. the list of the top events) when the capture ends.
   
 **-s** _len_, **--snaplen**=_len_  
-  Capture the first <len> bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
+  Capture the first _len_ bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
 
 **-t** _timetype_, **--timetype**=_timetype_  
-  Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for abosulte timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.
+  Change the way event time is diplayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the beginning of the capture, and **d** for delta between event enter and exit.
    
 **-v**, **--verbose**  
   Verbose output.
@@ -153,6 +156,7 @@ OPTIONS
   
 EXAMPLES
 --------
+
 Capture all the events from the live system and print them to screen
 > $ sysdig
 
@@ -166,10 +170,10 @@ Print all the open system calls invoked by cat
 > $ sysdig proc.name=cat and evt.type=open
 
 Print the name of the files opened by cat
-> $ ./sysdig -p"%evt.arg.name" proc.name=cat and evt.type=open
+> $ sysdig -p"%evt.arg.name" proc.name=cat and evt.type=open
 
 List the available chisels
-> $ ./sysdig -cl
+> $ sysdig -cl
 
 Use the spy_ip chisel to look at the data exchanged with 192.168.1.157:
 > $ sysdig -c spy_ip 192.168.1.157
@@ -186,7 +190,7 @@ FILES
 BUGS
 ----
 
-Bugs?
+* sysdig and its chisels are designed to be used with LuaJIT in Lua 5.1 mode. While it is possible to use sysdig with LuaJIT in Lua 5.2 mode or regular Lua, some chisels may not work as expected.
 
 AUTHOR
 ------

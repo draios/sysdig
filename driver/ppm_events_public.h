@@ -277,6 +277,45 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_PTRACE_IDX_SIGTYPE 1
 
 /*
+ * memory protection flags
+ */
+#define PPM_PROT_NONE		0
+#define PPM_PROT_READ		(1 << 0)
+#define PPM_PROT_WRITE		(1 << 1)
+#define PPM_PROT_EXEC		(1 << 2)
+#define PPM_PROT_SEM		(1 << 3)
+#define PPM_PROT_GROWSDOWN	(1 << 4)
+#define PPM_PROT_GROWSUP	(1 << 5)
+#define PPM_PROT_SAO		(1 << 6)
+
+/*
+ * mmap flags
+ */
+#define PPM_MAP_SHARED		(1 << 0)
+#define PPM_MAP_PRIVATE		(1 << 1)
+#define PPM_MAP_FIXED		(1 << 2)
+#define PPM_MAP_ANONYMOUS	(1 << 3)
+#define PPM_MAP_32BIT		(1 << 4)
+#define PPM_MAP_RENAME		(1 << 5)
+#define PPM_MAP_NORESERVE	(1 << 6)
+#define PPM_MAP_POPULATE	(1 << 7)
+#define PPM_MAP_NONBLOCK	(1 << 8)
+#define PPM_MAP_GROWSDOWN	(1 << 9)
+#define PPM_MAP_DENYWRITE	(1 << 10)
+#define PPM_MAP_EXECUTABLE	(1 << 11)
+#define PPM_MAP_INHERIT		(1 << 12)
+#define PPM_MAP_FILE		(1 << 13)
+#define PPM_MAP_LOCKED		(1 << 14)
+
+/*
+ * splice flags
+ */
+#define PPM_SPLICE_F_MOVE		(1 << 0)
+#define PPM_SPLICE_F_NONBLOCK	(1 << 1)
+#define PPM_SPLICE_F_MORE		(1 << 2)
+#define PPM_SPLICE_F_GIFT		(1 << 3)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -319,12 +358,12 @@ enum ppm_event_type {
 	PPME_SYSCALL_READ_X = 7,
 	PPME_SYSCALL_WRITE_E = 8,
 	PPME_SYSCALL_WRITE_X = 9,
-	PPME_SYSCALL_BRK_E = 10,
-	PPME_SYSCALL_BRK_X = 11,
-	PPME_SYSCALL_EXECVE_E = 12,
-	PPME_SYSCALL_EXECVE_X = 13,
-	PPME_CLONE_E = 14,
-	PPME_CLONE_X = 15,
+	PPME_SYSCALL_BRK_1_E = 10,
+	PPME_SYSCALL_BRK_1_X = 11,
+	PPME_SYSCALL_EXECVE_8_E = 12,
+	PPME_SYSCALL_EXECVE_8_X = 13,
+	PPME_CLONE_11_E = 14,
+	PPME_CLONE_11_X = 15,
 	PPME_PROCEXIT_E = 16,
 	PPME_PROCEXIT_X = 17,	/* This should never be called */
 	PPME_SOCKET_SOCKET_E = 18,
@@ -455,17 +494,31 @@ enum ppm_event_type {
 	PPME_SYSCALL_SETRLIMIT_X = 143,
 	PPME_SYSCALL_PRLIMIT_E = 144,
 	PPME_SYSCALL_PRLIMIT_X = 145,
-	PPME_SCHEDSWITCH_E = 146,
-	PPME_SCHEDSWITCH_X = 147,	/* This should never be called */
+	PPME_SCHEDSWITCH_1_E = 146,
+	PPME_SCHEDSWITCH_1_X = 147,	/* This should never be called */
 	PPME_DROP_E = 148,  /* For internal use */
 	PPME_DROP_X = 149,	/* For internal use */
 	PPME_SYSCALL_FCNTL_E = 150,  /* For internal use */
 	PPME_SYSCALL_FCNTL_X = 151,	/* For internal use */
-	PPME_SCHEDSWITCHEX_E = 152,
-	PPME_SCHEDSWITCHEX_X = 153,	/* This should never be called */
-	PPME_SYSCALL_PTRACE_E = 154,
-	PPME_SYSCALL_PTRACE_X = 155,
-	PPM_EVENT_MAX = 156,
+	PPME_SCHEDSWITCH_6_E = 152,
+	PPME_SCHEDSWITCH_6_X = 153,	/* This should never be called */
+	PPME_SYSCALL_EXECVE_13_E = 154,
+	PPME_SYSCALL_EXECVE_13_X = 155,
+	PPME_CLONE_16_E = 156,
+	PPME_CLONE_16_X = 157,
+	PPME_SYSCALL_BRK_4_E = 158,
+	PPME_SYSCALL_BRK_4_X = 159,
+	PPME_SYSCALL_MMAP_E = 160,
+	PPME_SYSCALL_MMAP_X = 161,
+	PPME_SYSCALL_MMAP2_E = 162,
+	PPME_SYSCALL_MMAP2_X = 163,
+	PPME_SYSCALL_MUNMAP_E = 164,
+	PPME_SYSCALL_MUNMAP_X = 165,
+	PPME_SYSCALL_SPLICE_E = 166,
+	PPME_SYSCALL_SPLICE_X = 167,
+	PPME_SYSCALL_PTRACE_E = 168,
+	PPME_SYSCALL_PTRACE_X = 169,
+	PPM_EVENT_MAX = 170
 };
 /*@}*/
 
@@ -939,6 +992,9 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_DISABLE_DROPPING_MODE _IO(PPM_IOCTL_MAGIC, 2)
 #define PPM_IOCTL_ENABLE_DROPPING_MODE _IO(PPM_IOCTL_MAGIC, 3)
 #define PPM_IOCTL_SET_SNAPLEN _IO(PPM_IOCTL_MAGIC, 4)
+#define PPM_IOCTL_MASK_ZERO_EVENTS _IO(PPM_IOCTL_MAGIC, 5)
+#define PPM_IOCTL_MASK_SET_EVENT   _IO(PPM_IOCTL_MAGIC, 6)
+#define PPM_IOCTL_MASK_UNSET_EVENT _IO(PPM_IOCTL_MAGIC, 7)
 
 
 /*!
@@ -956,10 +1012,12 @@ extern const struct ppm_name_value futex_operations[];
 extern const struct ppm_name_value lseek_whence[];
 extern const struct ppm_name_value poll_flags[];
 extern const struct ppm_name_value shutdown_how[];
-extern const struct ppm_name_value openat_flags[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
 extern const struct ppm_name_value ptrace_requests[];
+extern const struct ppm_name_value prot_flags[];
+extern const struct ppm_name_value mmap_flags[];
+extern const struct ppm_name_value splice_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 

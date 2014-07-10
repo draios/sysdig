@@ -33,7 +33,7 @@ cpustates = {}
 vizinfo = 
 {
 	key_fld = "proc.name",
-	key_desc = "Process",
+	key_desc = {"Process"},
 	value_fld = "thread.exectime",
 	value_desc = "CPU%",
 	value_units = "timepct",
@@ -109,7 +109,7 @@ end
 function on_interval(ts_s, ts_ns, delta)
 	if vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
-		terminal.goto(0, 0)
+		terminal.moveto(0, 0)
 	end
 	
 	for cpuid = 1, ncpus do
@@ -139,7 +139,7 @@ end
 function on_capture_end(ts_s, ts_ns, delta)
 	if islive and vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
-		terminal.goto(0 ,0)
+		terminal.moveto(0 ,0)
 		terminal.showcursor()
 		return true
 	end

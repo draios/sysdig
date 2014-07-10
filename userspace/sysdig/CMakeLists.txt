@@ -1,3 +1,4 @@
+include_directories("${JSONCPP_INCLUDE}")
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libscap")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libsinsp")
@@ -22,11 +23,10 @@ target_link_libraries(sysdig
 
 if(NOT WIN32)
 
+	add_subdirectory(man)
+
 	install(TARGETS sysdig 
 		DESTINATION bin)
-
-	install(FILES man/sysdig.8
-		DESTINATION share/man/man8)
 
 	install(DIRECTORY chisels
 		DESTINATION share/sysdig)

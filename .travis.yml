@@ -1,22 +1,30 @@
 language: c
 env:
-    - BUILD_TYPE=Debug
-    - BUILD_TYPE=Release
+    - BUILD_TYPE=Debug NEW_CC=clang NEW_CXX=clang++
+    - BUILD_TYPE=Release NEW_CC=clang NEW_CXX=clang++
+    - BUILD_TYPE=Debug NEW_CC=gcc NEW_CXX=g++
+    - BUILD_TYPE=Release NEW_CC=gcc NEW_CXX=g++
+    - BUILD_TYPE=Debug NEW_CC=gcc-4.5 NEW_CXX=g++-4.5
+    - BUILD_TYPE=Release NEW_CC=gcc-4.5 NEW_CXX=g++-4.5
+    - BUILD_TYPE=Debug NEW_CC=gcc-4.4 NEW_CXX=g++-4.4
+    - BUILD_TYPE=Release NEW_CC=gcc-4.4 NEW_CXX=g++-4.4
 before_install:
     - sudo apt-get update
 install:
-    - sudo apt-get install rpm libluajit-5.1-dev libjsoncpp-dev linux-headers-generic
+    - sudo apt-get install rpm libluajit-5.1-dev libjsoncpp-dev linux-headers-generic gcc-4.5 g++-4.5 gcc-4.4 g++-4.4
 before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
 script:
+    - export CC=$NEW_CC
+    - export CXX=$NEW_CXX
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-    - make
+    - make VERBOSE=1
     - make package
     - cd ..
     - rm -rf build
-    - pushd /tmp
+    - pushd $(mktemp -d --tmpdir sysdig.XXXXXXXXXX)
     - wget http://download.draios.com/dependencies/zlib-1.2.8.tar.gz
     - tar -xzf zlib-1.2.8.tar.gz
     - cd zlib-1.2.8
@@ -24,11 +32,11 @@ script:
     - make
     - sudo make install
     - popd
+    - rm -rf userspace/libsinsp/third-party/jsoncpp
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF -DZLIB_PREFIX=/usr/local
-    - make
+    - make VERBOSE=1
     - make package
-compiler:
-    - gcc
-    - clang
+    - cd ..
+    - test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels

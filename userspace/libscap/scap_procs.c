@@ -52,13 +52,25 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	uint32_t nfound = 0;
-	uint32_t tmp;
+	int64_t tmp;
 	uint32_t uid;
 	uint64_t ppid;
-	char line[128];
+	uint32_t vmsize_kb;
+	uint32_t vmrss_kb;
+	uint32_t vmswap_kb;
+	uint64_t pfmajor;
+	uint64_t pfminor;
+	char line[512];
+	char tmpc;
+	char* s;
 
 	tinfo->uid = (uint32_t)-1;
 	tinfo->ptid = (uint32_t)-1LL;
+	tinfo->vmsize_kb = 0;
+	tinfo->vmrss_kb = 0;
+	tinfo->vmswap_kb = 0;
+	tinfo->pfmajor = 0;
+	tinfo->pfminor = 0;
 
 	snprintf(filename, sizeof(filename), "%sstatus", procdirname);
 
@@ -75,7 +87,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 		{
 			nfound++;
 
-			if(sscanf(line, "Uid: %" PRIu32 " %" PRIu32, &tmp, &uid) == 2)
+			if(sscanf(line, "Uid: %" PRIu64 " %" PRIu32, &tmp, &uid) == 2)
 			{
 				tinfo->uid = uid;
 			}
@@ -88,7 +100,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 		{
 			nfound++;
 
-			if(sscanf(line, "Gid: %" PRIu32 " %" PRIu32, &tmp, &uid) == 2)
+			if(sscanf(line, "Gid: %" PRIu64 " %" PRIu32, &tmp, &uid) == 2)
 			{
 				tinfo->gid = uid;
 			}
@@ -110,14 +122,102 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 				ASSERT(false);
 			}
 		}
+		else if(strstr(line, "VmSize:") == line)
+		{
+			nfound++;
 
-		if(nfound == 3)
+			if(sscanf(line, "VmSize: %" PRIu32, &vmsize_kb) == 1)
+			{
+				tinfo->vmsize_kb = vmsize_kb;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
+		else if(strstr(line, "VmRSS:") == line)
+		{
+			nfound++;
+
+			if(sscanf(line, "VmRSS: %" PRIu32, &vmrss_kb) == 1)
+			{
+				tinfo->vmrss_kb = vmrss_kb;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
+		else if(strstr(line, "VmSwap:") == line)
+		{
+			nfound++;
+
+			if(sscanf(line, "VmSwap: %" PRIu32, &vmswap_kb) == 1)
+			{
+				tinfo->vmswap_kb = vmswap_kb;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
+
+		if(nfound == 6)
 		{
 			break;
 		}
 	}
 
-	ASSERT(nfound == 3);
+	ASSERT(nfound == 6 || nfound == 5);
+
+	fclose(f);
+
+	snprintf(filename, sizeof(filename), "%sstat", procdirname);
+
+	f = fopen(filename, "r");
+	if(f == NULL)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	if(fgets(line, sizeof(line), f) == NULL)
+	{
+		ASSERT(false);
+		fclose(f);
+		return SCAP_FAILURE;
+	}
+
+	s = strrchr(line, ')');
+	if(s == NULL)
+	{
+		ASSERT(false);
+		fclose(f);
+		return SCAP_FAILURE;		
+	}
+
+	//
+	// Extract the line content
+	//
+	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
+		&tmpc,
+		&tmp,
+		&tmp,
+		&tmp,
+		&tmp,
+		&tmp,
+		&tmp,
+		&pfminor,
+		&tmp,
+		&pfmajor) != 10)
+	{
+		ASSERT(false);
+		fclose(f);
+		return SCAP_FAILURE;
+	}
+
+	tinfo->pfmajor = pfmajor;
+	tinfo->pfminor = pfminor;
 
 	fclose(f);
 	return SCAP_SUCCESS;
@@ -511,6 +611,15 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 #if !defined(HAS_CAPTURE)
 	return NULL;
 #else
+
+	//
+	// No /proc parsing for offline captures
+	//
+	if(handle->m_file)
+	{
+		return NULL;
+	}
+
 	struct scap_threadinfo* tinfo = NULL;
 
 	if(scap_proc_scan_proc_dir(handle, "/proc", -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)

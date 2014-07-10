@@ -121,9 +121,14 @@ string ipv4serveraddr_to_string(ipv4serverinfo* addr);
 string ipv6serveraddr_to_string(ipv6serverinfo* addr);
 
 ///////////////////////////////////////////////////////////////////////////////
-// String split
+// String helpers
 ///////////////////////////////////////////////////////////////////////////////
 vector<string> sinsp_split(const string &s, char delim);
+string& ltrim(string &s);
+string& rtrim(string &s);
+string& trim(string &s);
+void replace_in_place(string &s, const string &search, const string &replace);
+void replace_in_place(string& str, string& substr_to_replace, string& new_substr);
 
 ///////////////////////////////////////////////////////////////////////////////
 // number parser
