@@ -1014,8 +1014,7 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->str_storage = (char *)__get_free_page(GFP_USER);
 	if (!(*ring)->str_storage) {
 		pr_err("Error allocating the string storage\n");
-		vfree(*ring);
-		return NULL;
+		goto err_str_storage;
 	}
 
 	/*
@@ -1026,9 +1025,7 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
 	if ((*ring)->buffer == NULL) {
 		pr_err("Error allocating ring memory\n");
-		free_page((unsigned long)(*ring)->str_storage);
-		vfree(*ring);
-		return NULL;
+		goto err_buffer;
 	}
 
 	for (j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
@@ -1040,10 +1037,7 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->info = vmalloc(sizeof(struct ppm_ring_buffer_info));
 	if ((*ring)->info == NULL) {
 		pr_err("Error allocating ring memory\n");
-		vfree((void *)(*ring)->buffer);
-		free_page((unsigned long)(*ring)->str_storage);
-		vfree(*ring);
-		return NULL;
+		goto err_ring_info;
 	}
 
 /* for(j = 0; j < (RING_BUF_SIZE / PAGE_SIZE + 1); j += PAGE_SIZE) */
@@ -1069,6 +1063,15 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	pr_info("CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
 
 	return *ring;
+
+err_ring_info:
+	vfree((void *)(*ring)->buffer);
+err_buffer:
+	free_page((unsigned long)(*ring)->str_storage);
+err_str_storage:
+	vfree(*ring);
+
+	return NULL;
 }
 
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
