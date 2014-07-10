@@ -421,6 +421,18 @@ public:
 		return 1;
 	}
 
+	static int is_tty(lua_State *ls) 
+	{
+#ifdef _WIN32
+		int use_color = false;
+#else
+		int use_color = isatty(1);
+#endif
+
+		lua_pushboolean(ls, use_color);
+		return 1;
+	}
+
 	static int get_machine_info(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
@@ -566,6 +578,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"set_filter", &lua_cbacks::set_global_filter},
 	{"set_snaplen", &lua_cbacks::set_snaplen},
 	{"is_live", &lua_cbacks::is_live},
+	{"is_tty", &lua_cbacks::is_tty},
 	{"get_machine_info", &lua_cbacks::get_machine_info},
 	{"get_output_format", &lua_cbacks::get_output_format},
 	{"make_ts", &lua_cbacks::make_ts},
