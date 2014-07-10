@@ -1,13 +1,13 @@
 language: c
 env:
-    - BUILD_TYPE=Debug CC=clang
-    - BUILD_TYPE=Release CC=clang
-    - BUILD_TYPE=Debug CC=gcc CXX=g++
-    - BUILD_TYPE=Release CC=gcc CXX=g++
-    - BUILD_TYPE=Debug CC=gcc-4.5 CXX=g++-4.5
-    - BUILD_TYPE=Release CC=gcc-4.5 CXX=g++-4.5
-    - BUILD_TYPE=Debug CC=gcc-4.4 CXX=g++-4.4
-    - BUILD_TYPE=Release CC=gcc-4.4 CXX=g++-4.4
+    - BUILD_TYPE=Debug NEW_CC=clang NEW_CXX=clang++
+    - BUILD_TYPE=Release NEW_CC=clang NEW_CXX=clang++
+    - BUILD_TYPE=Debug NEW_CC=gcc NEW_CXX=g++
+    - BUILD_TYPE=Release NEW_CC=gcc NEW_CXX=g++
+    - BUILD_TYPE=Debug NEW_CC=gcc-4.5 NEW_CXX=g++-4.5
+    - BUILD_TYPE=Release NEW_CC=gcc-4.5 NEW_CXX=g++-4.5
+    - BUILD_TYPE=Debug NEW_CC=gcc-4.4 NEW_CXX=g++-4.4
+    - BUILD_TYPE=Release NEW_CC=gcc-4.4 NEW_CXX=g++-4.4
 before_install:
     - sudo apt-get update
 install:
@@ -15,6 +15,8 @@ install:
 before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
 script:
+    - export CC=$NEW_CC
+    - export CXX=$NEW_CXX
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
