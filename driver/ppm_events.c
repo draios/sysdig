@@ -172,8 +172,14 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 
 	param_info = &(g_event_info[args->event_type].params[args->curarg]);
 	if (param_info->type == PT_DYN && param_info->info != NULL) {
-		const struct ppm_param_info *dyn_params =
-			(const struct ppm_param_info *)param_info->info;
+		const struct ppm_param_info *dyn_params;
+
+		if (unlikely(dyn_idx >= param_info->ninfo)) {
+			ASSERT(0);
+			return PPM_FAILURE_BUG;
+		}
+
+		dyn_params = (const struct ppm_param_info *)param_info->info;
 
 		param_info = &dyn_params[dyn_idx];
 		if (likely(args->arg_data_size >= sizeof(u8)))	{

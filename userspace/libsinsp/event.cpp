@@ -704,16 +704,19 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	//
 	// Get the parameter information
 	//
-	if(param_info->type == PT_DYN && param_info->info != NULL)
+	if(param_info->type == PT_DYN && param_info->info != NULL && payload_len != 0)
 	{
-		const struct ppm_param_info* dyn_params =
-			(const struct ppm_param_info*)param_info->info;
-
 		uint8_t dyn_idx = *(uint8_t*)payload;
-		payload += sizeof(uint8_t);
-		payload_len -= sizeof(uint8_t);
 
-		param_info = &dyn_params[dyn_idx];
+		if(dyn_idx < param_info->ninfo) {
+			const struct ppm_param_info* dyn_params =
+				(const struct ppm_param_info*)param_info->info;
+
+			payload += sizeof(uint8_t);
+			payload_len -= sizeof(uint8_t);
+
+			param_info = &dyn_params[dyn_idx];
+		}
 	}
 
 	switch(param_info->type)
@@ -1120,6 +1123,12 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		// XXX not implemented yet
 		//
 		ASSERT(false);
+	case PT_DYN:
+		ASSERT(false);
+		snprintf(&m_paramstr_storage[0],
+		         m_paramstr_storage.size(),
+		         "INVALID DYNAMIC PARAMETER");
+		break;
 	default:
 		ASSERT(false);
 		snprintf(&m_paramstr_storage[0],
@@ -1167,16 +1176,19 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	// Get the parameter information
 	//
-	if(param_info->type == PT_DYN && param_info->info != NULL)
+	if(param_info->type == PT_DYN && param_info->info != NULL && payload_len != 0)
 	{
-		const struct ppm_param_info* dyn_params =
-			(const struct ppm_param_info*)param_info->info;
-
 		uint8_t dyn_idx = *(uint8_t*)payload;
-		payload += sizeof(uint8_t);
-		payload_len -= sizeof(uint8_t);
 
-		param_info = &dyn_params[dyn_idx];
+		if(dyn_idx < param_info->ninfo) {
+			const struct ppm_param_info* dyn_params =
+				(const struct ppm_param_info*)param_info->info;
+
+			payload += sizeof(uint8_t);
+			payload_len -= sizeof(uint8_t);
+
+			param_info = &dyn_params[dyn_idx];
+		}
 	}
 
 	ppm_print_format param_fmt = m_info->params[id].fmt;
@@ -1718,6 +1730,12 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		// XXX not implemented yet
 		//
 		ASSERT(false);
+	case PT_DYN:
+		ASSERT(false);
+		snprintf(&m_paramstr_storage[0],
+		         m_paramstr_storage.size(),
+		         "INVALID DYNAMIC PARAMETER");
+		break;
 	default:
 		ASSERT(false);
 		snprintf(&m_paramstr_storage[0],
