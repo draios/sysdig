@@ -48,7 +48,7 @@ function _filter () {
     elif [[ $1 == "format" ]]; then
         # expanding format specifiers
         local allfields_withpercent;
-        allfields_withpercent=("%"${^fields})
+        allfields_withpercent=("%"${^fields:#*FILTER ONLY*})
 
         # skip all leading characters that can't be in a field name. This lets
         # me specify multiple fields in the string or do things like
