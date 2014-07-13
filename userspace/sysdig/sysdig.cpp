@@ -576,6 +576,10 @@ captureinfo do_inspect(sinsp* inspector,
 				{
 					cout << endl;
 				}
+				else
+				{
+					cout << flush;
+				}
 			}
 		}
 	}
