@@ -1659,6 +1659,18 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 	while(true)
 	{
 		readsize = gzread(f, &bh, sizeof(bh));
+
+		//
+		// If we don't find the event block header,
+		// it means there is no event in the file.
+		//
+		if (readsize == 0 && !found_ev && found_mi && found_pl &&
+			found_il && found_fdl && found_ul)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "no events in file");
+			return SCAP_FAILURE;
+		}
+
 		CHECK_READ_SIZE(readsize, sizeof(bh));
 
 		switch(bh.block_type)
