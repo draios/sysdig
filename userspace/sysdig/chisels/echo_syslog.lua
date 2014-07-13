@@ -165,9 +165,9 @@ function on_event()
 			color = terminal.red
 		end
 
-		infostr = string.format("%s%s %s %s %s[%d] %s", color, etime, facility, severity, pname, ppid, message)
+		infostr = string.format("%s%s.%s %s[%d] %s", color, facility, severity, pname, ppid, message)
 	else
-		infostr = string.format("%s %s %s %s[%d] %s", etime, facility, severity, pname, ppid, message)
+		infostr = string.format("%s.%s %s[%d] %s", facility, severity, pname, ppid, message)
 	end
 	
 	print(infostr)

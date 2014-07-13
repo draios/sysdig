@@ -91,6 +91,7 @@ class sinsp_parser;
 class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
+class sinsp_protodecoder;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -454,6 +455,11 @@ public:
 	bool is_debug_enabled();
 
 	/*!
+	  \brief Lets a filter plugin request a protocol decoder.
+	*/
+	void require_protodecoder(string decoder_name);
+
+	/*!
 	  \brief XXX.
 	*/
 	double get_read_progress();
@@ -571,6 +577,7 @@ private:
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
+	friend class sinsp_protodecoder;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

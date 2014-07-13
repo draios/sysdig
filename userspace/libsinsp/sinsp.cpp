@@ -36,7 +36,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "analyzer_int.h"
 #include "analyzer.h"
 #endif
-//#include "drfilterParser.h"
 
 extern sinsp_evttables g_infotables;
 #ifdef HAS_CHISELS
@@ -862,6 +861,11 @@ void sinsp::set_debug_mode(bool enable_debug)
 bool sinsp::is_debug_enabled()
 {
 	return m_isdebug_enabled;
+}
+
+void sinsp::require_protodecoder(string decoder_name)
+{
+	m_parser->require_protodecoder(decoder_name);
 }
 
 sinsp_parser* sinsp::get_parser()

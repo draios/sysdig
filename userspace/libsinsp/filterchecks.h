@@ -466,4 +466,29 @@ public:
 	uint32_t m_text_len;
 };
 
+//
+// syslog checks
+//
+/*
+class sinsp_filter_check_syslog : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_FACILITY_STR = 0,
+		TYPE_FACILITY,
+		TYPE_SEVERITY_STR,
+		TYPE_SEVERITY,
+		TYPE_MESSAGE,
+	};
+
+	sinsp_filter_check_syslog();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+	uint32_t m_gid;
+	string m_name;
+};
+*/
 #endif // HAS_FILTERING

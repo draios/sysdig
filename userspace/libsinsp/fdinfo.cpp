@@ -193,6 +193,24 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 	}
 }
 
+void sinsp_fdinfo_t::register_event_callback(sinsp_fdinfo_t::callback_type etype, sinsp_protodecoder* dec)
+{
+	switch(etype)
+	{
+	case sinsp_fdinfo_t::CT_READ:
+		m_read_callbacks.push_back(dec);
+		break;
+	case sinsp_fdinfo_t::CT_WRITE:
+		m_write_callbacks.push_back(dec);
+		break;
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdtable implementation
 ///////////////////////////////////////////////////////////////////////////////

@@ -26,6 +26,12 @@ class sinsp_fd_listener;
 class sinsp_parser
 {
 public:
+	enum callback_type
+	{
+		CT_OPEN,
+		CT_CONNECT
+	};
+
 	sinsp_parser(sinsp* inspector);
 	~sinsp_parser();
 
@@ -44,6 +50,18 @@ public:
 	// Combine the openat arguments into a full file name
 	//
 	static void parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir);
+
+	//
+	// Protocol decoder infrastructure methods
+	//
+	sinsp_protodecoder* require_protodecoder(string decoder_name);
+	void register_event_callback(sinsp_parser::callback_type etype, sinsp_protodecoder* dec);
+
+	//
+	// Protocol decoders callback lists
+	//
+	vector<sinsp_protodecoder*> m_open_callbacks;
+	vector<sinsp_protodecoder*> m_connect_callbacks;
 
 private:
 	//
@@ -108,13 +126,19 @@ private:
 	int64_t m_sysdig_pid;
 #endif
 
+	//
 	// Temporary storage to avoid memory allocation
+	//
 	sinsp_evt m_tmp_evt;
-	// The transaction table. Key pair is <tid, fd>.
-//	unordered_map<pair<int64_t, int64_t>, sinsp_transactinfo> m_transactable;
 
 	sinsp_fd_listener* m_fd_listener;
 
+	//
+	// The protocol decoders allocated by this parser
+	//
+	vector<sinsp_protodecoder*> m_protodecoders;
+
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_fd_listener;
+	friend class sinsp_protodecoder;
 };

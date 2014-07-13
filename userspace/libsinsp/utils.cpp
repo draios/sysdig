@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_signal.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "protodecoder.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -78,6 +79,7 @@ sinsp_initializer g_initializer;
 #ifdef HAS_FILTERING
 sinsp_filter_check_list g_filterlist;
 #endif
+sinsp_protodecoder_list g_decoderlist;
 #ifdef HAS_CHISELS
 vector<chiseldir_info>* g_chisel_dirs = NULL;
 #endif
