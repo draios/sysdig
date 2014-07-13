@@ -973,11 +973,8 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 		return SCAP_FAILURE;
 	}
 
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	//
@@ -1028,11 +1025,8 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 
 
 int32_t scap_clear_eventmask(scap_t* handle) {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_ZERO_EVENTS, 0));
@@ -1040,11 +1034,8 @@ int32_t scap_clear_eventmask(scap_t* handle) {
 }
 
 int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_SET_EVENT, event_id));
@@ -1052,11 +1043,8 @@ int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
 }
 
 int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_UNSET_EVENT, event_id));
