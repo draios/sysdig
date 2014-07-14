@@ -193,7 +193,7 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 	}
 }
 
-void sinsp_fdinfo_t::register_event_callback(sinsp_fdinfo_t::callback_type etype, sinsp_protodecoder* dec)
+template<> void sinsp_fdinfo_t::register_event_callback(sinsp_fdinfo_t::callback_type etype, sinsp_protodecoder* dec)
 {
 	switch(etype)
 	{
