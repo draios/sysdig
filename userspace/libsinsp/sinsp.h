@@ -80,6 +80,17 @@ using namespace std;
 
 #define ONE_SECOND_IN_NS 1000000000LL
 
+//
+// Protocol decoder callback type
+//
+typedef enum sinsp_pd_callback_type
+{
+	CT_OPEN,
+	CT_CONNECT,
+	CT_READ,
+	CT_WRITE
+}sinsp_pd_callback_type;
+
 #include "tuples.h"
 #include "fdinfo.h"
 #include "threadinfo.h"

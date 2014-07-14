@@ -59,7 +59,7 @@ public:
 	//
 	// Called by the engine after an event has been received and parsed.
 	//
-	virtual void on_event(sinsp_evt* evt, sinsp_parser::callback_type etype) = 0;
+	virtual void on_event(sinsp_evt* evt, sinsp_pd_callback_type etype) = 0;
 	
 	//
 	// These have custom implementations for performance reasons
@@ -71,7 +71,7 @@ protected:
 	//
 	// Interface for the plugins
 	//
-	void register_event_callback(sinsp_parser::callback_type etype);
+	void register_event_callback(sinsp_pd_callback_type etype);
 	void register_read_callback(sinsp_fdinfo_t* fdinfo);
 	void register_write_callback(sinsp_fdinfo_t* fdinfo);
 
@@ -113,7 +113,7 @@ public:
 	sinsp_protodecoder* allocate_new();
 	void init();
 	void on_fd_from_proc(sinsp_fdinfo_t* fdinfo);
-	void on_event(sinsp_evt* evt, sinsp_parser::callback_type etype);
+	void on_event(sinsp_evt* evt, sinsp_pd_callback_type etype);
 	void on_write(sinsp_evt* evt, char *data, uint32_t len);
 
 private:

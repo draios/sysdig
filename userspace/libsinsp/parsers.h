@@ -26,12 +26,6 @@ class sinsp_fd_listener;
 class sinsp_parser
 {
 public:
-	enum callback_type
-	{
-		CT_OPEN,
-		CT_CONNECT
-	};
-
 	sinsp_parser(sinsp* inspector);
 	~sinsp_parser();
 
@@ -55,7 +49,7 @@ public:
 	// Protocol decoder infrastructure methods
 	//
 	sinsp_protodecoder* require_protodecoder(string decoder_name);
-	void register_event_callback(sinsp_parser::callback_type etype, sinsp_protodecoder* dec);
+	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
 
 	//
 	// Protocol decoders callback lists

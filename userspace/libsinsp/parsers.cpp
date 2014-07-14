@@ -560,14 +560,14 @@ sinsp_protodecoder* sinsp_parser::require_protodecoder(string decoder_name)
 	return nd;
 }
 
-void sinsp_parser::register_event_callback(sinsp_parser::callback_type etype, sinsp_protodecoder* dec)
+void sinsp_parser::register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
 {
 	switch(etype)
 	{
-	case sinsp_parser::CT_OPEN:
+	case CT_OPEN:
 		m_open_callbacks.push_back(dec);
 		break;
-	case sinsp_parser::CT_CONNECT:
+	case CT_CONNECT:
 		m_connect_callbacks.push_back(dec);
 		break;
 	default:
@@ -1154,7 +1154,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		vector<sinsp_protodecoder*>::iterator it;
 		for(it = m_open_callbacks.begin(); it != m_open_callbacks.end(); ++it)
 		{
-			(*it)->on_event(evt, sinsp_parser::CT_OPEN);
+			(*it)->on_event(evt, CT_OPEN);
 		}
 	}
 
@@ -1448,7 +1448,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	vector<sinsp_protodecoder*>::iterator it;
 	for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
 	{
-		(*it)->on_event(evt, sinsp_parser::CT_CONNECT);
+		(*it)->on_event(evt, CT_CONNECT);
 	}
 
 	//

@@ -48,7 +48,7 @@ void sinsp_protodecoder::on_write(sinsp_evt* evt, char *data, uint32_t len)
 	ASSERT(false);
 }
 
-void sinsp_protodecoder::register_event_callback(sinsp_parser::callback_type etype)
+void sinsp_protodecoder::register_event_callback(sinsp_pd_callback_type etype)
 {
 	ASSERT(m_inspector != NULL);
 
@@ -59,14 +59,14 @@ void sinsp_protodecoder::register_read_callback(sinsp_fdinfo_t* fdinfo)
 {
 	ASSERT(m_inspector != NULL);
 
-	fdinfo->register_event_callback(sinsp_fdinfo_t::CT_READ, this);
+	fdinfo->register_event_callback(CT_READ, this);
 }
 
 void sinsp_protodecoder::register_write_callback(sinsp_fdinfo_t* fdinfo)
 {
 	ASSERT(m_inspector != NULL);
 
-	fdinfo->register_event_callback(sinsp_fdinfo_t::CT_WRITE, this);
+	fdinfo->register_event_callback(CT_WRITE, this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -130,8 +130,8 @@ sinsp_protodecoder* sinsp_decoder_syslog::allocate_new()
 
 void sinsp_decoder_syslog::init()
 {
-	register_event_callback(sinsp_parser::CT_OPEN);
-	register_event_callback(sinsp_parser::CT_CONNECT);
+	register_event_callback(CT_OPEN);
+	register_event_callback(CT_CONNECT);
 }
 
 void sinsp_decoder_syslog::on_fd_from_proc(sinsp_fdinfo_t* fdinfo)
@@ -144,10 +144,10 @@ void sinsp_decoder_syslog::on_fd_from_proc(sinsp_fdinfo_t* fdinfo)
 	}
 }
 
-void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_parser::callback_type etype)
+void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype)
 {
-	if(etype == sinsp_parser::CT_OPEN ||
-		etype == sinsp_parser::CT_CONNECT)
+	if(etype == CT_OPEN ||
+		etype == CT_CONNECT)
 	{
 		sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
 
