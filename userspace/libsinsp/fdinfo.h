@@ -157,7 +157,7 @@ public:
 	/*!
 	  \brief Used by protocol decoders to register callbacks related to this FD.
 	*/
-	void register_event_callback(sinsp_fdinfo_t::callback_type etype, sinsp_protodecoder* dec);
+	void register_event_callback(callback_type etype, sinsp_protodecoder* dec);
 
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
