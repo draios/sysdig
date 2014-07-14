@@ -257,8 +257,6 @@ public:
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
-	char* tostring(sinsp_evt* evt);
-	Json::Value tojson(sinsp_evt* evt);
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
@@ -379,8 +377,6 @@ public:
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
-	char* tostring(sinsp_evt* evt);
-	Json::Value tojson(sinsp_evt* evt);
 
 	uint64_t m_first_ts;
 	uint64_t m_u64val;

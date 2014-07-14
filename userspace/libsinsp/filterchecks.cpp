@@ -797,34 +797,6 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 		&m_val_storage[0]);
 }
 
-char* sinsp_filter_check_fd::tostring(sinsp_evt* evt)
-{
-	uint32_t len;
-
-	uint8_t* rawval = extract(evt, &len);
-
-	if(rawval == NULL)
-	{
-		return NULL;
-	}
-
-	return rawval_to_string(rawval, m_field, len);
-}
-
-Json::Value sinsp_filter_check_fd::tojson(sinsp_evt* evt)
-{
-	uint32_t len;
-
-	uint8_t* rawval = extract(evt, &len);
-
-	if(rawval == NULL)
-	{
-		return Json::Value::null;
-	}
-
-	return rawval_to_json(rawval, m_field, len);
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_thread implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -1561,6 +1533,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str)
 	{
 		m_field_id = TYPE_ARGRAW;
 		m_customfield = m_info.m_fields[m_field_id];
+		m_field = &m_customfield;
 
 		int32_t res = extract_arg("evt.rawarg", val, &m_arginfo);
 
@@ -2192,56 +2165,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 
 	return NULL;
-}
-
-char* sinsp_filter_check_event::tostring(sinsp_evt* evt)
-{
-	if(m_field_id == TYPE_ARGRAW)
-	{
-		uint32_t len;
-		uint8_t* rawval = extract(evt, &len);
-
-		if(rawval == NULL)
-		{
-			return NULL;
-		}
-
-		return rawval_to_string(rawval, &m_customfield, len);
-	}
-	else
-	{
-		return sinsp_filter_check::tostring(evt);
-	}
-}
-
-Json::Value sinsp_filter_check_event::tojson(sinsp_evt* evt)
-{
-	uint32_t len;
-	Json::Value jsonval = extract_as_js(evt, &len);
-
-	if(jsonval == Json::Value::null) 
-	{
-		if(m_field_id == TYPE_ARGRAW)
-		{
-			uint32_t len;
-			uint8_t* rawval = extract(evt, &len);
-
-			if(rawval == NULL)
-			{
-				return Json::Value::null;
-			}
-
-			return rawval_to_json(rawval, &m_customfield, len);
-		}
-		else
-		{
-			return sinsp_filter_check::tojson(evt);
-		}
-	} 
-	else 
-	{
-		return jsonval;
-	}
 }
 
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
