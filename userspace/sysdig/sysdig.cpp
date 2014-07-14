@@ -388,8 +388,18 @@ static void chisels_do_timeout(sinsp_evt* ev)
 #endif
 }
 
-void handle_end_of_file(bool print_progress)
+void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NULL)
 {
+	string line;
+
+	// Notify the formatter that we are at the
+	// end of the capture in case it needs to
+	// write any terminating characters
+	if(formatter != NULL && formatter->on_capture_end(&line))
+	{
+		cout << line << endl;
+	}
+
 	//
 	// Reached the end of a trace file.
 	// If we are reporting prgress, this is 100%
@@ -437,18 +447,8 @@ captureinfo do_inspect(sinsp* inspector,
 			//
 			// End of capture, either because the user stopped it, or because
 			// we reached the event count specified with -n.
-			// Notify the chisels that we're exiting.
 			//
-			chisels_on_capture_end();
-
-			// Notify the formatter that we are at the 
-			// end of the capture in case it needs to 
-			// write any terminating characters
-			if(formatter->on_capture_end(&line))
-			{
-				cout << line << endl;
-			}
-
+			handle_end_of_file(print_progress, formatter);
 			break;
 		}
 
@@ -469,7 +469,7 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 		else if(res == SCAP_EOF)
 		{
-			handle_end_of_file(print_progress);
+			handle_end_of_file(print_progress, formatter);
 			break;
 		}
 		else if(res != SCAP_SUCCESS)
@@ -478,7 +478,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Event read error.
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
-			handle_end_of_file(print_progress);
+			handle_end_of_file(print_progress, formatter);
 			cerr << "res = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
@@ -575,6 +575,10 @@ captureinfo do_inspect(sinsp* inspector,
 				if( inspector->get_buffer_format() != sinsp_evt::PF_JSON)
 				{
 					cout << endl;
+				}
+				else
+				{
+					cout << flush;
 				}
 			}
 		}
