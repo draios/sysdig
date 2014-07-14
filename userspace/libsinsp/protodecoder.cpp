@@ -77,7 +77,7 @@ sinsp_protodecoder_list::sinsp_protodecoder_list()
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW DECODER CLASSES HERE
 	//////////////////////////////////////////////////////////////////////////////
-	add_protodecoder(new sinsp_decoder_syslog());
+//	add_protodecoder(new sinsp_decoder_syslog());
 }
 
 sinsp_protodecoder_list::~sinsp_protodecoder_list()
@@ -118,6 +118,7 @@ sinsp_protodecoder* sinsp_protodecoder_list::new_protodecoder_from_name(const st
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_decoder_syslog implementation
 ///////////////////////////////////////////////////////////////////////////////
+/*
 sinsp_decoder_syslog::sinsp_decoder_syslog()
 {
 	m_name = "syslog";
@@ -166,3 +167,4 @@ void sinsp_decoder_syslog::on_write(sinsp_evt* evt, char *data, uint32_t len)
 {
 	int a = 0;
 }
+*/

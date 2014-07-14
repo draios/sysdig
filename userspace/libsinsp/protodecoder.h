@@ -106,6 +106,7 @@ private:
 // NOTE: these should be moved to a separate file but, since we have only one
 //       for the moment, we keep it here
 ///////////////////////////////////////////////////////////////////////////////
+/*
 class sinsp_decoder_syslog : public sinsp_protodecoder
 {
 public:
@@ -118,3 +119,4 @@ public:
 
 private:
 };
+*/
