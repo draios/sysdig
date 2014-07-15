@@ -2467,7 +2467,6 @@ uint8_t* rawstring_check::extract(sinsp_evt *evt, OUT uint32_t* len)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_syslog implementation
 ///////////////////////////////////////////////////////////////////////////////
-/*
 const filtercheck_field_info sinsp_filter_check_syslog_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syslog.facility.str", "facility as a string."},
@@ -2520,5 +2519,5 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 	return NULL;
 }
-*/
+
 #endif // HAS_FILTERING

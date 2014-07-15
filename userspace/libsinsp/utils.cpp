@@ -1100,3 +1100,51 @@ bool sinsp_numparser::tryparsed64(const string& str, int64_t* res)
 
 	return true;
 }
+
+bool sinsp_numparser::tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res)
+{
+	const char* p = str;
+	const char* end = str + strlen;
+
+	*res = 0;
+
+	while(p < end)
+	{
+		if(*p >= '0' && *p <= '9')
+		{
+			*res = (*res) * 10 + (*p - '0');
+		}
+		else
+		{
+			return false;
+		}
+
+		p++;
+	}
+
+	return true;
+}
+
+bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res)
+{
+	const char* p = str;
+	const char* end = str + strlen;
+
+	*res = 0;
+
+	while(p < end)
+	{
+		if(*p >= '0' && *p <= '9')
+		{
+			*res = (*res) * 10 + (*p - '0');
+		}
+		else
+		{
+			return false;
+		}
+
+		p++;
+	}
+
+	return true;
+}

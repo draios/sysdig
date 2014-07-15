@@ -106,7 +106,6 @@ private:
 // NOTE: these should be moved to a separate file but, since we have only one
 //       for the moment, we keep it here
 ///////////////////////////////////////////////////////////////////////////////
-/*
 class sinsp_decoder_syslog : public sinsp_protodecoder
 {
 public:
@@ -118,5 +117,9 @@ public:
 	void on_write(sinsp_evt* evt, char *data, uint32_t len);
 
 private:
+	void decode_pri(char* pristr, uint32_t pristrlen);
+
+	int32_t m_priority;
+	uint32_t m_facility;
+	uint32_t m_severity;
 };
-*/

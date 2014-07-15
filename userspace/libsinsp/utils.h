@@ -149,4 +149,7 @@ public:
 	static bool tryparsed32(const string& str, int32_t* res);
 	static bool tryparseu64(const string& str, uint64_t* res);
 	static bool tryparsed64(const string& str, int64_t* res);
+
+	static bool tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res);
+	static bool tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res);
 };

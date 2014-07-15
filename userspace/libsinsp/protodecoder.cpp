@@ -112,13 +112,12 @@ sinsp_protodecoder* sinsp_protodecoder_list::new_protodecoder_from_name(const st
 		}
 	}
 
-	return NULL;
+	throw sinsp_exception("unknown protocol decoder " + name);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_decoder_syslog implementation
 ///////////////////////////////////////////////////////////////////////////////
-/*
 sinsp_decoder_syslog::sinsp_decoder_syslog()
 {
 	m_name = "syslog";
@@ -165,6 +164,32 @@ void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype
 
 void sinsp_decoder_syslog::on_write(sinsp_evt* evt, char *data, uint32_t len)
 {
-	int a = 0;
+	char pri[16];
+	char* tc = data + 1;
+	char* te = data + len;
+	uint32_t j = 0;
+
+	while(tc < te && *tc != '>' && *tc != '0')
+	{
+		pri[j++] = *tc;
+		tc++;
+	}
+
+	pri[j] = 0;
+
+	decode_pri(pri, j);
 }
-*/
+
+void sinsp_decoder_syslog::decode_pri(char* pristr, uint32_t pristrlen)
+{
+	bool res = sinsp_numparser::tryparsed32_fast(pristr, pristrlen, &m_priority);
+
+	if(!res)
+	{
+		m_priority = -1;
+		return;
+	}
+
+	m_severity = m_priority & 0x07;
+	m_facility = m_priority >> 3;
+}

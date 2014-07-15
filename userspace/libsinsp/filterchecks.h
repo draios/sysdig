@@ -469,7 +469,6 @@ public:
 //
 // syslog checks
 //
-/*
 class sinsp_filter_check_syslog : public sinsp_filter_check
 {
 public:
@@ -490,5 +489,4 @@ public:
 	uint32_t m_gid;
 	string m_name;
 };
-*/
 #endif // HAS_FILTERING
