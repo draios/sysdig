@@ -93,7 +93,7 @@ public:
 	// Extract the field as json from the event (by default, fall
 	// back to the regular extract functionality)
 	//
-	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+	virtual Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
 	{
 		return Json::Value::null;
 	}
