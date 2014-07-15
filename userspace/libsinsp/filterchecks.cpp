@@ -26,6 +26,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_FILTERING
 #include "filter.h"
 #include "filterchecks.h"
+#include "protodecoder.h"
 
 extern sinsp_evttables g_infotables;
 
@@ -2470,9 +2471,9 @@ uint8_t* rawstring_check::extract(sinsp_evt *evt, OUT uint32_t* len)
 const filtercheck_field_info sinsp_filter_check_syslog_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syslog.facility.str", "facility as a string."},
-	{PT_UINT64, EPF_NONE, PF_DEC, "syslog.facility", "facility as a number (0-23)."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "syslog.facility", "facility as a number (0-23)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syslog.severity.str", "severity as a string."},
-	{PT_UINT64, EPF_NONE, PF_DEC, "syslog.severity", "severity as a number (0-7)."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "syslog.severity", "severity as a number (0-7)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syslog.message", "message sent to syslog."},
 };
 
@@ -2481,6 +2482,7 @@ sinsp_filter_check_syslog::sinsp_filter_check_syslog()
 	m_info.m_name = "syslog";
 	m_info.m_fields = sinsp_filter_check_syslog_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_syslog_fields) / sizeof(sinsp_filter_check_syslog_fields[0]);
+	m_decoder = NULL;
 }
 
 sinsp_filter_check* sinsp_filter_check_syslog::allocate_new()
@@ -2493,7 +2495,7 @@ int32_t sinsp_filter_check_syslog::parse_field_name(const char* str)
 	int32_t res = sinsp_filter_check::parse_field_name(str);
 	if(res != -1)
 	{
-		m_inspector->require_protodecoder("syslog");
+		m_decoder = (sinsp_decoder_syslog*)m_inspector->require_protodecoder("syslog");
 	}
 
 	return res;
@@ -2503,21 +2505,24 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
-	if(tinfo == NULL)
+	ASSERT(m_decoder != NULL);
+	if(!m_decoder->is_data_valid())
 	{
 		return NULL;
 	}
 
 	switch(m_field_id)
 	{
-	case TYPE_FACILITY_STR:
-		return (uint8_t*)&tinfo->m_gid;
+	case TYPE_FACILITY:
+		return (uint8_t*)&m_decoder->m_facility;
+	case TYPE_SEVERITY:
+		return (uint8_t*)&m_decoder->m_severity;
+	case TYPE_MESSAGE:
+		return (uint8_t*)m_decoder->m_msg.c_str();
 	default:
-//		ASSERT(false);
-		break;
+		ASSERT(false);
+		return NULL;
 	}
-
-	return NULL;
 }
 
 #endif // HAS_FILTERING

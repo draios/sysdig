@@ -32,6 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "cyclewriter.h"
+#include "protodecoder.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
@@ -357,6 +358,20 @@ bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
 
 int32_t sinsp::next(OUT sinsp_evt **evt)
 {
+	//
+	// Reset previous event's decoders if required
+	//
+	if(m_decoders_reset_list.size() != 0)
+	{
+		vector<sinsp_protodecoder*>::iterator it;
+		for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
+		{
+			(*it)->on_reset(&m_evt);
+		}
+
+		m_decoders_reset_list.clear();
+	}
+
 	//
 	// Get the event from libscap
 	//
@@ -863,9 +878,14 @@ bool sinsp::is_debug_enabled()
 	return m_isdebug_enabled;
 }
 
-void sinsp::require_protodecoder(string decoder_name)
+sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)
 {
-	m_parser->require_protodecoder(decoder_name);
+	return m_parser->require_protodecoder(decoder_name);
+}
+
+void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)
+{
+	m_decoders_reset_list.push_back(dec);
 }
 
 sinsp_parser* sinsp::get_parser()

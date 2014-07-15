@@ -467,8 +467,17 @@ public:
 
 	/*!
 	  \brief Lets a filter plugin request a protocol decoder.
+
+	  \param the name of the required decoder
 	*/
-	void require_protodecoder(string decoder_name);
+	sinsp_protodecoder* require_protodecoder(string decoder_name);
+
+	/*!
+	  \brief Lets a filter plugin request a protocol decoder.
+
+	  \param the name of the required decoder
+	*/
+	void protodecoder_register_reset(sinsp_protodecoder* dec);
 
 	/*!
 	  \brief XXX.
@@ -577,6 +586,11 @@ private:
 	// Some dropping infrastructure
 	//
 	bool m_isdropping;
+
+	//
+	// Protocol decoding state
+	//
+	vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

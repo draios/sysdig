@@ -48,6 +48,11 @@ void sinsp_protodecoder::on_write(sinsp_evt* evt, char *data, uint32_t len)
 	ASSERT(false);
 }
 
+void sinsp_protodecoder::on_reset(sinsp_evt* evt)
+{
+	ASSERT(false);
+}
+
 void sinsp_protodecoder::register_event_callback(sinsp_pd_callback_type etype)
 {
 	ASSERT(m_inspector != NULL);
@@ -121,6 +126,7 @@ sinsp_protodecoder* sinsp_protodecoder_list::new_protodecoder_from_name(const st
 sinsp_decoder_syslog::sinsp_decoder_syslog()
 {
 	m_name = "syslog";
+	m_priority = -1;
 }
 
 sinsp_protodecoder* sinsp_decoder_syslog::allocate_new()
@@ -169,7 +175,7 @@ void sinsp_decoder_syslog::on_write(sinsp_evt* evt, char *data, uint32_t len)
 	char* te = data + len;
 	uint32_t j = 0;
 
-	while(tc < te && *tc != '>' && *tc != '0')
+	while(tc < te && *tc != '>' && *tc != '\0')
 	{
 		pri[j++] = *tc;
 		tc++;
@@ -177,10 +183,20 @@ void sinsp_decoder_syslog::on_write(sinsp_evt* evt, char *data, uint32_t len)
 
 	pri[j] = 0;
 
-	decode_pri(pri, j);
+	decode_message(data, len, pri, j);
 }
 
-void sinsp_decoder_syslog::decode_pri(char* pristr, uint32_t pristrlen)
+void sinsp_decoder_syslog::on_reset(sinsp_evt* evt)
+{
+	m_priority = -1;
+}
+
+bool sinsp_decoder_syslog::is_data_valid()
+{
+	return (m_priority != -1);
+}
+
+void sinsp_decoder_syslog::decode_message(char *data, uint32_t len, char* pristr, uint32_t pristrlen)
 {
 	bool res = sinsp_numparser::tryparsed32_fast(pristr, pristrlen, &m_priority);
 
@@ -192,4 +208,8 @@ void sinsp_decoder_syslog::decode_pri(char* pristr, uint32_t pristrlen)
 
 	m_severity = m_priority & 0x07;
 	m_facility = m_priority >> 3;
+
+	m_msg.assign(data + pristrlen + 2, len - pristrlen - 2);
+
+	m_inspector->protodecoder_register_reset(this);
 }

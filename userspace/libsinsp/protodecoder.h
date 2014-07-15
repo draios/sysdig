@@ -66,6 +66,7 @@ public:
 	//
 	virtual void on_read(sinsp_evt* evt, char *data, uint32_t len);
 	virtual void on_write(sinsp_evt* evt, char *data, uint32_t len);
+	virtual void on_reset(sinsp_evt* evt);
 
 protected:
 	//
@@ -76,11 +77,10 @@ protected:
 	void register_write_callback(sinsp_fdinfo_t* fdinfo);
 
 	string m_name;
+	sinsp* m_inspector;
 
 private:
 	void set_inspector(sinsp* inspector);
-
-	sinsp* m_inspector;
 
 friend class sinsp_protodecoder_list;
 };
@@ -115,11 +115,15 @@ public:
 	void on_fd_from_proc(sinsp_fdinfo_t* fdinfo);
 	void on_event(sinsp_evt* evt, sinsp_pd_callback_type etype);
 	void on_write(sinsp_evt* evt, char *data, uint32_t len);
+	void on_reset(sinsp_evt* evt);
 
-private:
-	void decode_pri(char* pristr, uint32_t pristrlen);
+	bool is_data_valid();
 
 	int32_t m_priority;
 	uint32_t m_facility;
 	uint32_t m_severity;
+	string m_msg;
+
+private:
+	void decode_message(char *data, uint32_t len, char* pristr, uint32_t pristrlen);
 };

@@ -277,11 +277,6 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 			break;
 		}
 
-		if(do_add)
-		{
-			m_fdtable.add(fdi->fd, &newfdi);
-		}
-
 		//
 		// Call the protocol decoder callbacks associated to notify them about this FD
 		//
@@ -292,6 +287,14 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 			it != m_inspector->m_parser->m_open_callbacks.end(); ++it)
 		{
 			(*it)->on_fd_from_proc(&newfdi);
+		}
+
+		//
+		// Add the FD to the table
+		//
+		if(do_add)
+		{
+			m_fdtable.add(fdi->fd, &newfdi);
 		}
 	}
 }

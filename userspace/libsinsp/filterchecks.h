@@ -469,6 +469,8 @@ public:
 //
 // syslog checks
 //
+class sinsp_decoder_syslog;
+
 class sinsp_filter_check_syslog : public sinsp_filter_check
 {
 public:
@@ -486,6 +488,7 @@ public:
 	int32_t parse_field_name(const char* str);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
+	sinsp_decoder_syslog* m_decoder;
 	uint32_t m_gid;
 	string m_name;
 };
