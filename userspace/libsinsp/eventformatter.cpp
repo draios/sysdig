@@ -159,7 +159,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 bool sinsp_evt_formatter::on_capture_end(OUT string* res)
 {
 	res->clear();
-	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON && !m_first)
 	{
 		(*res) = ']';
 	}
