@@ -119,6 +119,9 @@ public:
 
 	bool is_data_valid();
 
+	const char* get_severity_str();
+	const char* get_facility_str();
+
 	int32_t m_priority;
 	uint32_t m_facility;
 	uint32_t m_severity;

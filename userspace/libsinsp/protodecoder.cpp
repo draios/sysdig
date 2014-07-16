@@ -123,6 +123,39 @@ sinsp_protodecoder* sinsp_protodecoder_list::new_protodecoder_from_name(const st
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_decoder_syslog implementation
 ///////////////////////////////////////////////////////////////////////////////
+const char* syslog_severity_strings[] =
+{
+	"emerg", "alert", "crit", "err", "warn", "notice", "info", "debug"
+};
+
+const char* syslog_facility_strings[] =
+{
+	"kern", 
+	"user", 
+	"mail", 
+	"daemon", 
+	"auth", 
+	"syslog", 
+	"lpr", 
+	"news", 
+	"uucp", 
+	"clock", 
+	"authpriv", 
+	"ftp", 
+	"ntp", 
+	"logaudit", 
+	"logalert", 
+	"cron",
+	"local0",
+	"local1",
+	"local2",
+	"local3",
+	"local4",
+	"local5",
+	"local6",
+	"local7"
+};
+
 sinsp_decoder_syslog::sinsp_decoder_syslog()
 {
 	m_name = "syslog";
@@ -194,6 +227,30 @@ void sinsp_decoder_syslog::on_reset(sinsp_evt* evt)
 bool sinsp_decoder_syslog::is_data_valid()
 {
 	return (m_priority != -1);
+}
+
+const char* sinsp_decoder_syslog::get_severity_str()
+{
+	if(m_severity >= sizeof(syslog_severity_strings) / sizeof(syslog_severity_strings[0]))
+	{
+		return "<NA>";
+	}
+	else
+	{
+		return syslog_severity_strings[m_severity];
+	}
+}
+
+const char* sinsp_decoder_syslog::get_facility_str()
+{
+	if(m_facility >= sizeof(syslog_severity_strings) / sizeof(syslog_severity_strings[0]))
+	{
+		return "<NA>";
+	}
+	else
+	{
+		return syslog_severity_strings[m_facility];
+	}
 }
 
 void sinsp_decoder_syslog::decode_message(char *data, uint32_t len, char* pristr, uint32_t pristrlen)

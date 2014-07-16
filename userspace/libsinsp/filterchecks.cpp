@@ -2515,8 +2515,12 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 	case TYPE_FACILITY:
 		return (uint8_t*)&m_decoder->m_facility;
+	case TYPE_FACILITY_STR:
+		return (uint8_t*)m_decoder->get_facility_str();
 	case TYPE_SEVERITY:
 		return (uint8_t*)&m_decoder->m_severity;
+	case TYPE_SEVERITY_STR:
+		return (uint8_t*)m_decoder->get_severity_str();
 	case TYPE_MESSAGE:
 		return (uint8_t*)m_decoder->m_msg.c_str();
 	default:
