@@ -372,7 +372,7 @@ sinsp_fdtable* sinsp_threadinfo::get_fd_table()
 {
 	sinsp_threadinfo* root;
 
-	if(!(m_flags & PPM_CL_CLONE_FILES))
+	if(!(m_flags & PPM_CLONE_FILES))
 	{
 		root = this;
 	}
@@ -517,7 +517,7 @@ void sinsp_threadinfo::set_lastevent_data_validity(bool isvalid)
 
 sinsp_threadinfo* sinsp_threadinfo::get_cwd_root()
 {
-	if(!(m_flags & PPM_CL_CLONE_FS))
+	if(!(m_flags & PPM_CLONE_FS))
 	{
 		return this;
 	}
@@ -705,7 +705,7 @@ sinsp_threadinfo* sinsp_thread_manager::get_thread(int64_t tid)
 
 void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* threadinfo)
 {
-	if(threadinfo->m_flags & PPM_CL_CLONE_THREAD)
+	if(threadinfo->m_flags & PPM_CLONE_THREAD)
 	{
 		//
 		// Increment the refcount of the main thread so it won't
@@ -825,7 +825,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it)
 		// Decrement the refcount of the main thread/program because
 		// this reference is gone
 		//
-		if(it->second.m_flags & PPM_CL_CLONE_THREAD)
+		if(it->second.m_flags & PPM_CLONE_THREAD)
 		{
 			ASSERT(it->second.m_pid != it->second.m_tid);
 			sinsp_threadinfo* main_thread = m_inspector->get_thread(it->second.m_pid, false);

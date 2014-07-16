@@ -41,7 +41,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_open - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPEN_E, PPME_SYSCALL_OPEN_X},
 	[__NR_creat - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CREAT_E, PPME_SYSCALL_CREAT_X},
 	[__NR_close - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X},
-	[__NR_brk - SYSCALL_TABLE_ID0] =                        {UF_USED, PPME_SYSCALL_BRK_4_E, PPME_SYSCALL_BRK_4_X},
 	[__NR_read - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_READ_E, PPME_SYSCALL_READ_X},
 	[__NR_write - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_WRITE_E, PPME_SYSCALL_WRITE_X},
 	[__NR_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EXECVE_13_E, PPME_SYSCALL_EXECVE_13_X},
@@ -158,12 +157,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR__llseek
 	[__NR__llseek - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_LLSEEK_E, PPME_SYSCALL_LLSEEK_X},
 #endif
-	[__NR_mmap - SYSCALL_TABLE_ID0] =                    	{UF_USED, PPME_SYSCALL_MMAP_E, PPME_SYSCALL_MMAP_X},
-#ifdef __NR_mmap2
-	[__NR_mmap2 - SYSCALL_TABLE_ID0] =                    	{UF_USED, PPME_SYSCALL_MMAP2_E, PPME_SYSCALL_MMAP2_X},
-#endif
-	[__NR_munmap - SYSCALL_TABLE_ID0] =						{UF_USED, PPME_SYSCALL_MUNMAP_E, PPME_SYSCALL_MUNMAP_X},
-	[__NR_splice - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_SPLICE_E, PPME_SYSCALL_SPLICE_X},
+#include "syscall_table.inc"
 };
 
 /*

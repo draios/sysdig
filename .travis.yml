@@ -11,7 +11,7 @@ env:
 before_install:
     - sudo apt-get update
 install:
-    - sudo apt-get install rpm libluajit-5.1-dev libjsoncpp-dev linux-headers-generic gcc-4.5 g++-4.5 gcc-4.4 g++-4.4
+    - sudo apt-get install rpm lua5.1 libluajit-5.1-dev libjsoncpp-dev linux-headers-generic gcc-4.5 g++-4.5 gcc-4.4 g++-4.4
 before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
 script:

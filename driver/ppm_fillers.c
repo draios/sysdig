@@ -259,16 +259,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_EXECVE_13_X] = {f_proc_startupdate},
 	[PPME_CLONE_16_E] = {f_sys_empty},
 	[PPME_CLONE_16_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
-	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
-	[PPME_SYSCALL_MMAP_X] = {f_sys_brk_munmap_mmap_x},
-	[PPME_SYSCALL_MMAP2_E] = {f_sys_mmap_e},
-	[PPME_SYSCALL_MMAP2_X] = {f_sys_brk_munmap_mmap_x},
-	[PPME_SYSCALL_MUNMAP_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_MUNMAP_X] = {f_sys_brk_munmap_mmap_x},
-	[PPME_SYSCALL_SPLICE_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {2}, {4}, {5}} },
-	[PPME_SYSCALL_SPLICE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} }
+	#include "ppm_events.inc"
 };
 
 /*
@@ -601,52 +592,52 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	u32 res = 0;
 
 	if (flags & CLONE_FILES)
-		res |= PPM_CL_CLONE_FILES;
+		res |= PPM_CLONE_FILES;
 
 	if (flags & CLONE_FS)
-		res |= PPM_CL_CLONE_FS;
+		res |= PPM_CLONE_FS;
 
 	if (flags & CLONE_IO)
-		res |= PPM_CL_CLONE_IO;
+		res |= PPM_CLONE_IO;
 
 	if (flags & CLONE_NEWIPC)
-		res |= PPM_CL_CLONE_NEWIPC;
+		res |= PPM_CLONE_NEWIPC;
 
 	if (flags & CLONE_NEWNET)
-		res |= PPM_CL_CLONE_NEWNET;
+		res |= PPM_CLONE_NEWNET;
 
 	if (flags & CLONE_NEWNS)
-		res |= PPM_CL_CLONE_NEWNS;
+		res |= PPM_CLONE_NEWNS;
 
 	if (flags & CLONE_NEWPID)
-		res |= PPM_CL_CLONE_NEWPID;
+		res |= PPM_CLONE_NEWPID;
 
 	if (flags & CLONE_NEWUTS)
-		res |= PPM_CL_CLONE_NEWUTS;
+		res |= PPM_CLONE_NEWUTS;
 
 	if (flags & CLONE_PARENT_SETTID)
-		res |= PPM_CL_CLONE_PARENT_SETTID;
+		res |= PPM_CLONE_PARENT_SETTID;
 
 	if (flags & CLONE_PARENT)
-		res |= PPM_CL_CLONE_PARENT;
+		res |= PPM_CLONE_PARENT;
 
 	if (flags & CLONE_PTRACE)
-		res |= PPM_CL_CLONE_PTRACE;
+		res |= PPM_CLONE_PTRACE;
 
 	if (flags & CLONE_SIGHAND)
-		res |= PPM_CL_CLONE_SIGHAND;
+		res |= PPM_CLONE_SIGHAND;
 
 	if (flags & CLONE_SYSVSEM)
-		res |= PPM_CL_CLONE_SYSVSEM;
+		res |= PPM_CLONE_SYSVSEM;
 
 	if (flags & CLONE_THREAD)
-		res |= PPM_CL_CLONE_THREAD;
+		res |= PPM_CLONE_THREAD;
 
 	if (flags & CLONE_UNTRACED)
-		res |= PPM_CL_CLONE_UNTRACED;
+		res |= PPM_CLONE_UNTRACED;
 
 	if (flags & CLONE_VM)
-		res |= PPM_CL_CLONE_VM;
+		res |= PPM_CLONE_VM;
 
 	return res;
 }

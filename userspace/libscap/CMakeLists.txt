@@ -1,5 +1,6 @@
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${ZLIB_INCLUDE}")
+include_directories("${CMAKE_BINARY_DIR}/generated")
 
 add_library(scap STATIC
 	scap.c 
@@ -13,7 +14,7 @@ add_library(scap STATIC
 	event_table.c
 	syscall_info_table.c)
 
-add_dependencies(scap zlib)
+add_dependencies(scap zlib generate_event_files)
 
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap

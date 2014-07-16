@@ -316,7 +316,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	}
 	else
 	{
-		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+		tinfo->flags = PPM_CLONE_THREAD | PPM_CLONE_FILES;
 	}
 
 	snprintf(tinfo->exe, SCAP_MAX_PATH_SIZE, "%s", target_name);

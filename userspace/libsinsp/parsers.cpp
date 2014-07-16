@@ -641,7 +641,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			ASSERT(parinfo->m_len == sizeof(int32_t));
 			uint32_t flags = *(int32_t *)parinfo->m_val;
 
-			if(flags & PPM_CL_CLONE_THREAD)
+			if(flags & PPM_CLONE_THREAD)
 			{
 				//
 				// This is a thread, the parent tid is the pid
@@ -696,7 +696,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Otherwise, we assume that the entry is there because we missed the exit event
 		// for a previous thread and we replace the info structure.
 		//
-		if(child->m_flags & PPM_CL_CLONE_INVERTED)
+		if(child->m_flags & PPM_CLONE_INVERTED)
 		{
 			return;
 		}
@@ -750,11 +750,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	tinfo.m_flags = *(int32_t *)parinfo->m_val;
 
 	//
-	// If clone()'s PPM_CL_CLONE_THREAD is not set it means that a new
+	// If clone()'s PPM_CLONE_THREAD is not set it means that a new
 	// thread was created. In that case, we set the pid to the one of the CHILD thread that
 	// is going to be created.
 	//
-	if(!(tinfo.m_flags & PPM_CL_CLONE_THREAD))
+	if(!(tinfo.m_flags & PPM_CLONE_THREAD))
 	{
 		tinfo.m_pid = childtid;
 	}
@@ -763,10 +763,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Copy the fd list
 	// XXX this is a gross oversimplification that will need to be fixed.
 	// What we do is: if the child is NOT a thread, we copy all the parent fds.
-	// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
-	// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
+	// The right thing to do is looking at PPM_CLONE_FILES, but there are
+	// syscalls like open and pipe2 that can override PPM_CLONE_FILES with the O_CLOEXEC flag
 	//
-	if(!(tinfo.m_flags & PPM_CL_CLONE_THREAD))
+	if(!(tinfo.m_flags & PPM_CLONE_THREAD))
 	{
 		tinfo.m_fdtable = *(ptinfo->get_fd_table());
 
@@ -776,14 +776,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		tinfo.m_fdtable.reset_cache();
 	}
-	//if((tinfo.m_flags & (PPM_CL_CLONE_FILES)))
+	//if((tinfo.m_flags & (PPM_CLONE_FILES)))
 	//{
 	//    tinfo.m_fdtable = ptinfo.m_fdtable;
 	//}
 
 	if(is_inverted_clone)
 	{
-		tinfo.m_flags |= PPM_CL_CLONE_INVERTED;
+		tinfo.m_flags |= PPM_CLONE_INVERTED;
 	}
 
 	// Copy the working directory
@@ -967,11 +967,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	//
 	// Clear the flags for this thread, making sure to propagate the inverted flag
 	//
-	bool inverted = ((evt->m_tinfo->m_flags & PPM_CL_CLONE_INVERTED) != 0);
+	bool inverted = ((evt->m_tinfo->m_flags & PPM_CLONE_INVERTED) != 0);
 	evt->m_tinfo->m_flags = 0;
 	if(inverted)
 	{
-		evt->m_tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
+		evt->m_tinfo->m_flags |= PPM_CLONE_INVERTED;
 	}
 
 	//

@@ -79,50 +79,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_AF_NFC          39      /* NFC sockets                  */
 
 /*
- * File flags
- */
-#define PPM_O_NONE	0
-#define PPM_O_RDONLY	(1 << 0)	/* Open for reading only */
-#define PPM_O_WRONLY	(1 << 1)	/* Open for writing only */
-#define PPM_O_RDWR	(PPM_O_RDONLY | PPM_O_WRONLY)	/* Open for reading and writing */
-#define PPM_O_CREAT	(1 << 2)	/* Create a new file if it doesn't exist. */
-#define PPM_O_APPEND (1 << 3)	/* If set, the file offset shall be set to the end of the file prior to each write. */
-#define PPM_O_DSYNC	(1 << 4)
-#define PPM_O_EXCL	(1 << 5)
-#define PPM_O_NONBLOCK	(1 << 6)
-#define PPM_O_SYNC	(1 << 7)
-#define PPM_O_TRUNC	(1 << 8)
-#define PPM_O_DIRECT (1 << 9)
-#define PPM_O_DIRECTORY (1 << 10)
-#define PPM_O_LARGEFILE (1 << 11)
-
-/*
- * Clone flags
- */
-#define PPM_CL_NONE 0
-#define PPM_CL_CLONE_FILES (1 << 0)
-#define PPM_CL_CLONE_FS (1 << 1)
-#define PPM_CL_CLONE_IO (1 << 2)
-#define PPM_CL_CLONE_NEWIPC (1 << 3)
-#define PPM_CL_CLONE_NEWNET (1 << 4)
-#define PPM_CL_CLONE_NEWNS (1 << 5)
-#define PPM_CL_CLONE_NEWPID (1 << 6)
-#define PPM_CL_CLONE_NEWUTS (1 << 7)
-#define PPM_CL_CLONE_PARENT (1 << 8)
-#define PPM_CL_CLONE_PARENT_SETTID (1 << 9)
-#define PPM_CL_CLONE_PTRACE (1 << 10)
-#define PPM_CL_CLONE_SIGHAND (1 << 11)
-#define PPM_CL_CLONE_SYSVSEM (1 << 12)
-#define PPM_CL_CLONE_THREAD (1 << 13)
-#define PPM_CL_CLONE_UNTRACED (1 << 14)
-#define PPM_CL_CLONE_VM (1 << 15)
-#define PPM_CL_CLONE_INVERTED (1 << 16)	/* libsinsp-specific flag. It's set if clone() returned in */
-										/* the child process before than in the parent process. */
-#define PPM_CL_NAME_CHANGED (1 << 17)	/* libsinsp-specific flag. Set when the thread name changes */
-										/* (for example because execve was called) */
-#define PPM_CL_CLOSED (1 << 18)			/* thread has been closed. */
-
-/*
  * Futex Operations
  */
 #define PPM_FU_FUTEX_WAIT 0
@@ -147,21 +103,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_SEEK_SET 0
 #define PPM_SEEK_CUR 1
 #define PPM_SEEK_END 2
-
-/*
- * poll() flags
- */
-#define PPM_POLLIN (1 << 0)
-#define PPM_POLLPRI (1 << 1)
-#define PPM_POLLOUT (1 << 2)
-#define PPM_POLLRDHUP (1 << 3)
-#define PPM_POLLERR (1 << 4)
-#define PPM_POLLHUP (1 << 5)
-#define PPM_POLLNVAL (1 << 6)
-#define PPM_POLLRDNORM (1 << 7)
-#define PPM_POLLRDBAND (1 << 8)
-#define PPM_POLLWRNORM (1 << 9)
-#define PPM_POLLWRBAND (1 << 10)
 
 /*
  * shutdown() how
@@ -226,45 +167,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_FCNTL_F_NOTIFY 27
 #define PPM_FCNTL_F_SETPIPE_SZ 28
 #define PPM_FCNTL_F_GETPIPE_SZ 29
-
-/*
- * memory protection flags
- */
-#define PPM_PROT_NONE		0
-#define PPM_PROT_READ		(1 << 0)
-#define PPM_PROT_WRITE		(1 << 1)
-#define PPM_PROT_EXEC		(1 << 2)
-#define PPM_PROT_SEM		(1 << 3)
-#define PPM_PROT_GROWSDOWN	(1 << 4)
-#define PPM_PROT_GROWSUP	(1 << 5)
-#define PPM_PROT_SAO		(1 << 6)
-
-/*
- * mmap flags
- */
-#define PPM_MAP_SHARED		(1 << 0)
-#define PPM_MAP_PRIVATE		(1 << 1)
-#define PPM_MAP_FIXED		(1 << 2)
-#define PPM_MAP_ANONYMOUS	(1 << 3)
-#define PPM_MAP_32BIT		(1 << 4)
-#define PPM_MAP_RENAME		(1 << 5)
-#define PPM_MAP_NORESERVE	(1 << 6)
-#define PPM_MAP_POPULATE	(1 << 7)
-#define PPM_MAP_NONBLOCK	(1 << 8)
-#define PPM_MAP_GROWSDOWN	(1 << 9)
-#define PPM_MAP_DENYWRITE	(1 << 10)
-#define PPM_MAP_EXECUTABLE	(1 << 11)
-#define PPM_MAP_INHERIT		(1 << 12)
-#define PPM_MAP_FILE		(1 << 13)
-#define PPM_MAP_LOCKED		(1 << 14)
-
-/*
- * splice flags
- */
-#define PPM_SPLICE_F_MOVE		(1 << 0)
-#define PPM_SPLICE_F_NONBLOCK	(1 << 1)
-#define PPM_SPLICE_F_MORE		(1 << 2)
-#define PPM_SPLICE_F_GIFT		(1 << 3)
 
 /*
  * SuS says limits have to be unsigned.
@@ -457,17 +359,8 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_13_X = 155,
 	PPME_CLONE_16_E = 156,
 	PPME_CLONE_16_X = 157,
-	PPME_SYSCALL_BRK_4_E = 158,
-	PPME_SYSCALL_BRK_4_X = 159,
-	PPME_SYSCALL_MMAP_E = 160,
-	PPME_SYSCALL_MMAP_X = 161,
-	PPME_SYSCALL_MMAP2_E = 162,
-	PPME_SYSCALL_MMAP2_X = 163,
-	PPME_SYSCALL_MUNMAP_E = 164,
-	PPME_SYSCALL_MUNMAP_X = 165,
-	PPME_SYSCALL_SPLICE_E = 166,
-	PPME_SYSCALL_SPLICE_X = 167,
-	PPM_EVENT_MAX = 168
+	PPM_FIRST_GENERATED_EVENT = 158,
+	#include "event_type.inc"
 };
 /*@}*/
 
@@ -954,16 +847,15 @@ struct ppm_syscall_desc {
 };
 
 extern const struct ppm_name_value socket_families[];
-extern const struct ppm_name_value file_flags[];
-extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];
 extern const struct ppm_name_value lseek_whence[];
-extern const struct ppm_name_value poll_flags[];
 extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
-extern const struct ppm_name_value prot_flags[];
-extern const struct ppm_name_value mmap_flags[];
-extern const struct ppm_name_value splice_flags[];
+
+#include "flags.h"
+
+/* FIXME */
+#define PPM_O_RDWR (PPM_O_RDONLY | PPM_O_WRONLY)
 
 #endif /* EVENTS_PUBLIC_H_ */
