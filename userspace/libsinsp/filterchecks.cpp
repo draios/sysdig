@@ -2426,8 +2426,6 @@ int32_t sinsp_filter_check_syslog::parse_field_name(const char* str)
 
 uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
-	sinsp_threadinfo* tinfo = evt->get_thread_info();
-
 	ASSERT(m_decoder != NULL);
 	if(!m_decoder->is_data_valid())
 	{
