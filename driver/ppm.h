@@ -38,12 +38,6 @@ extern u32 g_snaplen;
 /*
  * Global enums
  */
-enum ppm_capture_state {
-	CS_STOPPED = 0,		/* Not capturing. Either uninitialized or closed. */
-	CS_STARTED = 1,		/* Capturing. */
-	CS_INACTIVE = 2,	/* Not Capturing but active, returning the packets in the buffer to the user. */
-};
-
 enum syscall_flags {
 	UF_NONE = 0,
 	UF_USED = (1 << 0),
