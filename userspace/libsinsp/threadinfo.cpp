@@ -730,13 +730,13 @@ void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* thread
 	{
 		sinsp_threadinfo* parent_thread = m_inspector->get_thread(threadinfo->m_ptid, false);
 
-		if(parent_thread->m_tid == threadinfo->m_tid)
-		{
-			return;
-		}
-
 		if(parent_thread)
 		{
+			if(parent_thread->m_tid == threadinfo->m_tid)
+			{
+				return;
+			}
+			
 			if((parent_thread->m_comm == threadinfo->m_comm) &&
 				(parent_thread->m_exe == threadinfo->m_exe))
 			{
