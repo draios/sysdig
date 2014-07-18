@@ -94,17 +94,6 @@ scap_t* scap_open_live(char *error)
 		return NULL;
 	}
 
-	//
-	// Allocate the array of poll fds.
-	//
-	handle->m_pollfds = (struct pollfd*)malloc(ndevs * sizeof(struct pollfd));
-	if(!handle->m_pollfds)
-	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
-		return NULL;
-	}
-
 	for(j = 0; j < ndevs; j++)
 	{
 		handle->m_devs[j].m_buffer = (char*)MAP_FAILED;
@@ -188,12 +177,6 @@ scap_t* scap_open_live(char *error)
 		}
 
 		//
-		// Init the polling fd for the device
-		//
-		handle->m_pollfds[j].fd = handle->m_devs[j].m_fd;
-		handle->m_pollfds[j].events = POLLIN;
-
-		//
 		// Map the ring buffer
 		//
 		handle->m_devs[j].m_buffer = (char*)mmap(0,
@@ -268,7 +251,6 @@ scap_t* scap_open_offline(const char* fname, char *error)
 	handle->m_devs = NULL;
 	handle->m_ndevs = 0;
 	handle->m_proclist = NULL;
-	handle->m_pollfds = NULL;
 	handle->m_evtcnt = 0;
 	handle->m_file = NULL;
 	handle->m_addrlist = NULL;
@@ -357,11 +339,6 @@ void scap_close(scap_t* handle)
 		if(handle->m_devs != NULL)
 		{
 			free(handle->m_devs);
-		}
-
-		if(handle->m_pollfds != NULL)
-		{
-			free(handle->m_pollfds);
 		}
 #endif // HAS_CAPTURE
 	}

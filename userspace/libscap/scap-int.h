@@ -65,7 +65,6 @@ typedef struct scap_device
 struct scap
 {
 	scap_device* m_devs;
-	struct pollfd* m_pollfds;
 	uint32_t m_ndevs;
 	gzFile m_file;
 	char* m_file_evt_buf;
