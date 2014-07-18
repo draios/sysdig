@@ -48,16 +48,19 @@ complete -W                                     \
   --snaplen                                     \
   -t                                            \
   --timetype                                    \
-  -C                                            \
-  --file-size                                   \
-  -G                                            \
-  --seconds                                     \
-  -W                                            \
-  --limit                                       \
   -c                                            \
   --chisel                                      \
   -i                                            \
   --chisel-info' sysdig
+
+  # Sysdig 0.1.85 had these options too, but they were problematic, so I'm
+  # removing them until they can be fixed
+  # -C
+  # --file-size
+  # -G
+  # --seconds
+  # -W
+  # --limit
 
 # Local Variables:
 # mode:sh
