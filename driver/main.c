@@ -401,46 +401,46 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 
 	case PPM_IOCTL_MASK_ZERO_EVENTS:
-	  {
-	    pr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
+	{
+		pr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
 
-	    bitmap_zero(g_events_mask, PPM_EVENT_MAX);
+		bitmap_zero(g_events_mask, PPM_EVENT_MAX);
 
-	    /* Used for dropping events so they must stay on */
-	    set_bit(PPME_DROP_E, g_events_mask);
-	    set_bit(PPME_DROP_X, g_events_mask);
-	    return(0);
-	  }
+		/* Used for dropping events so they must stay on */
+		set_bit(PPME_DROP_E, g_events_mask);
+		set_bit(PPME_DROP_X, g_events_mask);
+		return 0;
+	}
 
 	case PPM_IOCTL_MASK_SET_EVENT:
-	  {
-	    u32 syscall_to_set = (u32)arg;
+	{
+		u32 syscall_to_set = (u32)arg;
 
-	    pr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
+		pr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
 
-	    if(syscall_to_set > PPM_EVENT_MAX) {
-	      pr_info("invalid syscall %u\n", syscall_to_set);
-	      return -EINVAL;	      
-	    }
+		if (syscall_to_set > PPM_EVENT_MAX) {
+			pr_info("invalid syscall %u\n", syscall_to_set);
+			return -EINVAL;
+		}
 
-	    set_bit(syscall_to_set, g_events_mask);
-	    return(0);
-	  }
+		set_bit(syscall_to_set, g_events_mask);
+		return 0;
+	}
 
 	case PPM_IOCTL_MASK_UNSET_EVENT:
-	  {
-	    u32 syscall_to_unset = (u32)arg;
+	{
+		u32 syscall_to_unset = (u32)arg;
 
-	    pr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
+		pr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
 
-	    if(syscall_to_unset > NR_syscalls) {
-	      pr_info("invalid syscall %u\n", syscall_to_unset);
-	      return -EINVAL;	      
-	    }
+		if (syscall_to_unset > NR_syscalls) {
+			pr_info("invalid syscall %u\n", syscall_to_unset);
+			return -EINVAL;
+		}
 
-	    clear_bit(syscall_to_unset, g_events_mask);
-	    return(0);
-	  }
+		clear_bit(syscall_to_unset, g_events_mask);
+		return 0;
+	}
 
 	default:
 		return -ENOTTY;
@@ -715,9 +715,8 @@ static void record_event(enum ppm_event_type event_type,
 
 	getnstimeofday(&ts);
 
-	if(!test_bit(event_type, g_events_mask)) {
-	  return;
-	}
+	if (!test_bit(event_type, g_events_mask))
+		return;
 
 	if (drop_event(event_type, never_drop, &ts))
 		return;
@@ -784,6 +783,7 @@ static void record_event(enum ppm_event_type event_type,
 	 */
 	if (regs && id == __NR_socketcall) {
 		enum ppm_event_type tet;
+
 		tet = parse_socketcall(&args, regs);
 
 		if (event_type == PPME_GENERIC_E)
