@@ -195,11 +195,11 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	/*
 	 * ring->preempt_count is not reset to 0 on purpose, to prevent a race condition:
-     * if the same device is quickly closed and then reopened, record_event() might still be executing 
-     * (with ring->preempt_count to 1) while ppm_open() resets ring->preempt_count to 0. 
-     * When record_event() will exit, it will decrease 
-     * ring->preempt_count which will become < 0, leading to the complete loss of all the events for that CPU.
-     */
+	 * if the same device is quickly closed and then reopened, record_event() might still be executing 
+	 * (with ring->preempt_count to 1) while ppm_open() resets ring->preempt_count to 0. 
+	 * When record_event() will exit, it will decrease 
+	 * ring->preempt_count which will become < 0, leading to the complete loss of all the events for that CPU.
+	 */
 	g_dropping_mode = 0;
 	g_snaplen = RW_SNAPLEN;
 	g_sampling_ratio = 1;
