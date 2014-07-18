@@ -502,7 +502,6 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	if(NULL != m_dumper)
 	{
-		
 		res = scap_number_of_bytes_to_write(m_evt.m_pevt, m_evt.m_cpuid, &bytes_to_write);
 		if(SCAP_SUCCESS != res)
 		{

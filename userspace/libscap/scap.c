@@ -932,7 +932,7 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 {
 	if(handle->m_file == NULL)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_readfile_pointer only works on trace files");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_readfile_offset only works on trace files");
 		return -1;
 	}
 
