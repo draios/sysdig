@@ -1070,11 +1070,6 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 		goto err_ring_info;
 	}
 
-/* for(j = 0; j < (RING_BUF_SIZE / PAGE_SIZE + 1); j += PAGE_SIZE) */
-/* { */
-/* SetPageReserved(vmalloc_to_page(ring) + j); */
-/* } */
-
 	/*
 	 * Initialize the buffer info structure
 	 */
@@ -1176,27 +1171,6 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 
 	return NULL;
 }
-
-/* static int ppm_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data) */
-/* { */
-/* int len = 0; */
-/* int j; */
-
-/* for(j = 0; j < NR_syscalls; ++j) */
-/* { */
-/* #if defined(CONFIG_X86_64) */
-/* len += snprintf(page + len, count - len, "%ld\t%ld\n", */
-/* atomic64_read(&g_syscall_count[j].count), */
-/* atomic64_read(&g_syscall_count[j].count) ? (atomic64_read(&g_syscall_count[j].tot_time_ns) / atomic64_read(&g_syscall_count[j].count)) : 0); */
-/* #else */
-/* len += snprintf(page + len, count - len, "%lld\n", */
-/* atomic64_read(&g_syscall_count[j].count)); */
-/* #endif */
-/* } */
-
-/* *eof = 1; */
-/* return len; */
-/* } */
 
 int sysdig_init(void)
 {
