@@ -71,8 +71,8 @@ struct ppm_device {
  * We have one of these for each CPU.
  */
 struct ppm_ring_buffer_context {
-	atomic_t open_count;
-	atomic_t capture_enabled;
+	bool open;
+	bool capture_enabled;
 	struct ppm_ring_buffer_info *info;
 	char *buffer;
 	struct timespec last_print_time;
@@ -136,12 +136,14 @@ static const struct file_operations g_ppe_fops = {
  */
 
 static DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
-static atomic_t g_open_count;
+static DEFINE_MUTEX(g_open_mutex);
+static u32 g_open_count;
 u32 g_snaplen = RW_SNAPLEN;
 u32 g_sampling_ratio = 1;
 static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
+static bool g_tracepoint_registered;
 
 struct cdev *g_ppe_cdev = NULL;
 struct device *g_ppe_dev = NULL;
@@ -152,9 +154,6 @@ static struct tracepoint *tp_sched_process_exit;
 #ifdef CAPTURE_CONTEXT_SWITCHES
 static struct tracepoint *tp_sched_switch;
 #endif
-
-static atomic_t g_tracepoint_registered;
-static DEFINE_MUTEX(g_tracepoint_registered_mutex);
 
 /* compat tracepoint functions */
 static int compat_register_trace(void *func, const char *probename, struct tracepoint *tp)
@@ -184,11 +183,14 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	struct ppm_ring_buffer_context *ring;
 	int ring_no = iminor(filp->f_dentry->d_inode);
 
+	mutex_lock(&g_open_mutex);
+
 	ring = per_cpu(g_ring_buffers, ring_no);
 
-	if (atomic_cmpxchg(&ring->open_count, 0, 1) != 0) {
+	if (ring->open) {
 		pr_info("invalid operation: attempting to open device %d multiple times\n", ring_no);
-		return -EBUSY;
+		ret = -EBUSY;
+		goto cleanup_open;
 	}
 
 	pr_info("opening ring %d\n", ring_no);
@@ -214,16 +216,11 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;
-	atomic_set(&ring->capture_enabled, 1);
+	ring->capture_enabled = true;
 	getnstimeofday(&ring->last_print_time);
+	ring->open = true;
 
-	/*
-	 * Check, inside a critical region, if we still need
-	 * to register tracepoints
-	 */
-	mutex_lock(&g_tracepoint_registered_mutex);
-
-	if (atomic_read(&g_tracepoint_registered) == 0) {
+	if (!g_tracepoint_registered) {
 		pr_info("starting capture\n");
 		/*
 		 * Enable the tracepoints
@@ -253,13 +250,13 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_sched_switch;
 		}
 #endif
-		atomic_set(&g_tracepoint_registered, 1);
+		g_tracepoint_registered = true;
 	}
 
-	mutex_unlock(&g_tracepoint_registered_mutex);
-	atomic_inc(&g_open_count);
-
-	return 0;
+	++g_open_count;
+	ret = 0;
+	
+	goto cleanup_open;
 
 err_sched_switch:
 	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
@@ -268,25 +265,30 @@ err_sched_procexit:
 err_sys_enter:
 	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 err_sys_exit:
-	mutex_unlock(&g_tracepoint_registered_mutex);
-	atomic_set(&ring->open_count, 0);
+	ring->open = false;
+cleanup_open:
+	mutex_unlock(&g_open_mutex);
 
 	return ret;
 }
 
 static int ppm_release(struct inode *inode, struct file *filp)
 {
+	int ret;
 	struct ppm_ring_buffer_context *ring;
 	int ring_no = iminor(filp->f_dentry->d_inode);
 
+	mutex_lock(&g_open_mutex);
+
 	ring = per_cpu(g_ring_buffers, ring_no);
 
-	if (atomic_read(&ring->open_count) == 0) {
+	if (!ring->open) {
 		pr_info("attempting to close unopened device %d\n", ring_no);
-		return -EBUSY;
+		ret = -EBUSY;
+		goto cleanup_release;
 	}
 
-	atomic_set(&ring->capture_enabled, 0);
+	ring->capture_enabled = false;
 
 	pr_info("closing ring %d, evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 	       ring_no,
@@ -299,14 +301,9 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	/*
 	 * The last closed device stops event collection
 	 */
-	if (atomic_dec_return(&g_open_count) == 0) {
-		/*
-		 * Check, inside a critical region, if we still need
-		 * to register tracepoints
-		 */
-		mutex_lock(&g_tracepoint_registered_mutex);
-
-		if (atomic_read(&g_tracepoint_registered) == 1) {
+	--g_open_count;
+	if (g_open_count == 0) {
+		if (g_tracepoint_registered) {
 			pr_info("stopping capture\n");
 
 			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
@@ -317,15 +314,19 @@ static int ppm_release(struct inode *inode, struct file *filp)
 			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 #endif
 			tracepoint_synchronize_unregister();
-			atomic_set(&g_tracepoint_registered, 0);
+			g_tracepoint_registered = false;
+		} else {
+			ASSERT(false);
 		}
-
-		mutex_unlock(&g_tracepoint_registered_mutex);
 	}
 
-	atomic_set(&ring->open_count, 0);
+	ring->open = false;
+	ret = 0;
 
-	return 0;
+cleanup_release:
+	mutex_unlock(&g_open_mutex);
+
+	return ret;
 }
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
@@ -336,7 +337,9 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
-		atomic_set(&ring->capture_enabled, 0);
+		mutex_lock(&g_open_mutex);
+		ring->capture_enabled = false;
+		mutex_unlock(&g_open_mutex);
 
 		pr_info("PPM_IOCTL_DISABLE_CAPTURE for ring %d\n", ring_no);
 
@@ -347,7 +350,9 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
-		atomic_set(&ring->capture_enabled, 1);
+		mutex_lock(&g_open_mutex);
+		ring->capture_enabled = true;
+		mutex_unlock(&g_open_mutex);
 
 		pr_info("PPM_IOCTL_ENABLE_CAPTURE for ring %d\n", ring_no);
 
@@ -727,12 +732,17 @@ static void record_event(enum ppm_event_type event_type,
 	if (drop_event(event_type, never_drop, &ts))
 		return;
 
-	ring = get_cpu_var(g_ring_buffers);
-	ring_info = ring->info;
-
 	/*
 	 * FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
 	 */
+	ring = get_cpu_var(g_ring_buffers);
+	ring_info = ring->info;
+
+	if (!ring->capture_enabled) {
+		put_cpu_var(g_ring_buffers);
+		return;
+	}
+
 	ring_info->n_evts++;
 	if (sched_prev != NULL) {
 		ASSERT(sched_prev != NULL);
@@ -749,12 +759,6 @@ static void record_event(enum ppm_event_type event_type,
 		put_cpu_var(g_ring_buffers);
 		ring_info->n_preemptions++;
 		ASSERT(false);
-		return;
-	}
-
-	if (unlikely(atomic_read(&ring->capture_enabled) == 0)) {
-		atomic_dec(&ring->preempt_count);
-		put_cpu_var(g_ring_buffers);
 		return;
 	}
 
@@ -1079,8 +1083,8 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	/*
 	 * Initialize the buffer info structure
 	 */
-	atomic_set(&(*ring)->open_count, 0);
-	atomic_set(&(*ring)->capture_enabled, 0);
+	(*ring)->open = false;
+	(*ring)->capture_enabled = false;
 	(*ring)->info->head = 0;
 	(*ring)->info->tail = 0;
 	(*ring)->nevents = 0;
@@ -1305,8 +1309,8 @@ int sysdig_init(void)
 	/*
 	 * All ok. Final initalizations.
 	 */
-	atomic_set(&g_open_count, 0);
-	atomic_set(&g_tracepoint_registered, 0);
+	g_open_count = 0;
+	g_tracepoint_registered = false;
 	g_dropping_mode = 0;
 
 	return 0;
