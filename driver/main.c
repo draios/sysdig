@@ -34,6 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
+#include <linux/cpu.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
 
@@ -186,6 +187,10 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	mutex_lock(&g_open_mutex);
 
 	ring = per_cpu(g_ring_buffers, ring_no);
+	if (!ring) {
+		ret = -ENODEV;
+		goto cleanup_open;
+	}
 
 	if (ring->open) {
 		pr_info("invalid operation: attempting to open device %d multiple times\n", ring_no);
@@ -281,6 +286,10 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	mutex_lock(&g_open_mutex);
 
 	ring = per_cpu(g_ring_buffers, ring_no);
+	if (!ring) {
+		ret = -ENODEV;
+		goto cleanup_release;
+	}
 
 	if (!ring->open) {
 		pr_info("attempting to close unopened device %d\n", ring_no);
@@ -337,6 +346,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
+		if (!ring)
+			return -ENODEV;
 		mutex_lock(&g_open_mutex);
 		ring->capture_enabled = false;
 		mutex_unlock(&g_open_mutex);
@@ -350,6 +361,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
+		if (!ring)
+			return -ENODEV;
 		mutex_lock(&g_open_mutex);
 		ring->capture_enabled = true;
 		mutex_unlock(&g_open_mutex);
@@ -495,6 +508,8 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		 * Retrieve the ring structure for this CPU
 		 */
 		ring = per_cpu(g_ring_buffers, ring_no);
+		if (!ring)
+			return -ENODEV;
 
 		if (length <= PAGE_SIZE) {
 			/*
@@ -1110,10 +1125,66 @@ err_str_storage:
 	return NULL;
 }
 
+static int cpu_callback(struct notifier_block *self, unsigned long action,
+			void *hcpu)
+{
+	long cpu = (long)hcpu;
+	struct ppm_ring_buffer_context *ring;
+
+	/*
+	 * We only care about new cpus being added for now, if they go away, no
+	 * worries, we just keep the memory allocated, as hopefully they will
+	 * come back someday...
+	 */
+	switch (action) {
+	case CPU_UP_PREPARE:
+	case CPU_UP_PREPARE_FROZEN:
+		ring = per_cpu(g_ring_buffers, cpu);
+		if (!ring) {
+			pr_info("initializing ring buffer for CPU %lu\n", cpu);
+			alloc_ring_buffer(&per_cpu(g_ring_buffers, cpu));
+			if (per_cpu(g_ring_buffers, cpu) == NULL)
+				pr_err("can't initialize the ring buffer for CPU %lu\n",
+					cpu);
+		}
+	}
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block cpu_notifier = {
+	.notifier_call = &cpu_callback,
+	.next = NULL,
+};
+
+static int alloc_ring_buffers(void)
+{
+	unsigned int cpu;
+
+	/*
+	 * Before we initialize anything, set up our callback in case we get a
+	 * hotplug even while we are initializing the cpu structures
+	 */
+	register_cpu_notifier(&cpu_notifier);
+
+	for_each_online_cpu(cpu) {
+		pr_info("initializing ring buffer for CPU %u\n", cpu);
+
+		alloc_ring_buffer(&per_cpu(g_ring_buffers, cpu));
+		if (per_cpu(g_ring_buffers, cpu) == NULL) {
+			pr_err("can't initialize the ring buffer for CPU %u\n",
+				cpu);
+			return -ENOMEM;
+		}
+	}
+	return 0;
+}
+
 static void free_ring_buffers(void)
 {
 	struct ppm_ring_buffer_context *ring;
 	unsigned int cpu;
+
+	unregister_cpu_notifier(&cpu_notifier);
 
 	for_each_possible_cpu(cpu) {
 		ring = per_cpu(g_ring_buffers, cpu);
@@ -1212,21 +1283,14 @@ int sysdig_init(void)
 	 * Initialize the ring buffers array
 	 */
 	num_cpus = 0;
-	for_each_online_cpu(cpu) {
+	for_each_possible_cpu(cpu) {
 		per_cpu(g_ring_buffers, cpu) = NULL;
 		++num_cpus;
 	}
 
-	for_each_online_cpu(cpu) {
-		pr_info("initializing ring buffer for CPU %u\n", cpu);
-
-		alloc_ring_buffer(&per_cpu(g_ring_buffers, cpu));
-		if (per_cpu(g_ring_buffers, cpu) == NULL) {
-			pr_err("can't initialize the ring buffer for CPU %u\n", cpu);
-			ret = -ENOMEM;
-			goto init_module_err;
-		}
-	}
+	ret = alloc_ring_buffers();
+	if (ret)
+		goto init_module_err;
 
 	/*
 	 * Initialize the user I/O
