@@ -1110,12 +1110,21 @@ err_str_storage:
 	return NULL;
 }
 
-static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
+static void free_ring_buffers(void)
 {
-	vfree(ring->info);
-	vfree((void *)ring->buffer);
-	free_page((unsigned long)ring->str_storage);
-	vfree(ring);
+	struct ppm_ring_buffer_context *ring;
+	unsigned int cpu;
+
+	for_each_possible_cpu(cpu) {
+		ring = per_cpu(g_ring_buffers, cpu);
+		if (ring) {
+			vfree(ring->info);
+			vfree((void *)ring->buffer);
+			free_page((unsigned long)ring->str_storage);
+			vfree(ring);
+			per_cpu(g_ring_buffers, cpu) = NULL;
+		}
+	}
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
@@ -1316,9 +1325,7 @@ int sysdig_init(void)
 	return 0;
 
 init_module_err:
-	for_each_online_cpu(cpu)
-		if (per_cpu(g_ring_buffers, cpu) != NULL)
-			free_ring_buffer(per_cpu(g_ring_buffers, cpu));
+	free_ring_buffers();
 
 	/* remove_proc_entry(PPM_DEVICE_NAME, NULL); */
 
@@ -1347,14 +1354,12 @@ init_module_err:
 void sysdig_exit(void)
 {
 	int j;
-	int cpu;
 
 	pr_info("driver unloading\n");
 
 	/* remove_proc_entry(PPM_DEVICE_NAME, NULL); */
 
-	for_each_online_cpu(cpu)
-		free_ring_buffer(per_cpu(g_ring_buffers, cpu));
+	free_ring_buffers();
 
 	for (j = 0; j < g_ppm_numdevs; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
