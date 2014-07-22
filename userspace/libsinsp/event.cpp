@@ -1272,6 +1272,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
 		         prfmt, *(int64_t *)param->m_val);
+
 		break;
 	case PT_CHARBUF:
 		//

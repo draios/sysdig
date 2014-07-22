@@ -153,6 +153,11 @@ public:
 	*/
 	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
 
+	/*!
+	  \brief Used by protocol decoders to unregister callbacks related to this FD.
+	*/
+	void unregister_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
+
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
 	

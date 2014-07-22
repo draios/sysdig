@@ -76,6 +76,9 @@ protected:
 	void register_read_callback(sinsp_fdinfo_t* fdinfo);
 	void register_write_callback(sinsp_fdinfo_t* fdinfo);
 
+	void unregister_read_callback(sinsp_fdinfo_t* fdinfo);
+	void unregister_write_callback(sinsp_fdinfo_t* fdinfo);
+
 	string m_name;
 	sinsp* m_inspector;
 

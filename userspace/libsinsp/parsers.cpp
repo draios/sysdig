@@ -1945,6 +1945,28 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 			return false;
 		}
 	}
+	else if(family == PPM_AF_UNIX)
+	{
+		evt->m_fdinfo->m_type = SCAP_FD_UNIX_SOCK;
+		if(set_unix_info(evt->m_fdinfo, packed_data) == false)
+		{
+			return false;
+		}
+
+		evt->m_fdinfo->m_name = ((char*)packed_data) + 17;
+
+		//
+		// Call the protocol decoder callbacks to notify the decoders that this FD
+		// changed.
+		//
+		vector<sinsp_protodecoder*>::iterator it;
+		for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
+		{
+			(*it)->on_event(evt, CT_TUPLE_CHANGE);
+		}
+
+		return true;
+	}
 
 	//
 	// If we reach this point and the protocol is not set yet, we assume this
@@ -1960,6 +1982,16 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	// If this is an incomplete tuple, patch it using interface info
 	//
 	m_inspector->m_network_interfaces->update_fd(evt->m_fdinfo);
+
+	//
+	// Call the protocol decoder callbacks to notify the decoders that this FD
+	// changed.
+	//
+	vector<sinsp_protodecoder*>::iterator it;
+	for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
+	{
+		(*it)->on_event(evt, CT_TUPLE_CHANGE);
+	}
 
 	return true;
 }
@@ -2106,8 +2138,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				tupleparam = 2;
 			}
 
-//			if(tupleparam != -1 && (evt->m_fdinfo->m_name.length() == 0  || evt->m_fdinfo->is_udp_socket() || evt->m_fdinfo->is_unix_socket()))
-			if(tupleparam != -1 && (evt->m_fdinfo->m_name.length() == 0  || evt->m_fdinfo->is_udp_socket()))
+			if(tupleparam != -1 && (evt->m_fdinfo->m_name.length() == 0 || !evt->m_fdinfo->is_tcp_socket()))
 			{
 				//
 				// sendto contains tuple info in the enter event.

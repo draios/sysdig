@@ -74,6 +74,20 @@ void sinsp_protodecoder::register_write_callback(sinsp_fdinfo_t* fdinfo)
 	fdinfo->register_event_callback(CT_WRITE, this);
 }
 
+void sinsp_protodecoder::unregister_read_callback(sinsp_fdinfo_t* fdinfo)
+{
+	ASSERT(m_inspector != NULL);
+
+	fdinfo->unregister_event_callback(CT_READ, this);
+}
+
+void sinsp_protodecoder::unregister_write_callback(sinsp_fdinfo_t* fdinfo)
+{
+	ASSERT(m_inspector != NULL);
+
+	fdinfo->unregister_event_callback(CT_WRITE, this);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_protodecoder_list implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -82,7 +96,7 @@ sinsp_protodecoder_list::sinsp_protodecoder_list()
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW DECODER CLASSES HERE
 	//////////////////////////////////////////////////////////////////////////////
-//	add_protodecoder(new sinsp_decoder_syslog());
+	add_protodecoder(new sinsp_decoder_syslog());
 }
 
 sinsp_protodecoder_list::~sinsp_protodecoder_list()
@@ -195,6 +209,19 @@ void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype
 			register_write_callback(fdinfo);
 		}
 	}
+	else if(etype == CT_TUPLE_CHANGE)
+	{
+		sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+
+		if(fdinfo->m_name.find("/dev/log") != string::npos)
+		{
+			register_write_callback(fdinfo);
+		}
+		else
+		{
+			unregister_write_callback(fdinfo);
+		}
+	}
 	else
 	{
 		ASSERT(false);
@@ -243,13 +270,13 @@ const char* sinsp_decoder_syslog::get_severity_str()
 
 const char* sinsp_decoder_syslog::get_facility_str()
 {
-	if(m_facility >= sizeof(syslog_severity_strings) / sizeof(syslog_severity_strings[0]))
+	if(m_facility >= sizeof(syslog_facility_strings) / sizeof(syslog_facility_strings[0]))
 	{
 		return "<NA>";
 	}
 	else
 	{
-		return syslog_severity_strings[m_facility];
+		return syslog_facility_strings[m_facility];
 	}
 }
 

@@ -367,6 +367,7 @@ public:
 		TYPE_IODIR = 26,
 		TYPE_ISWAIT = 27,
 		TYPE_COUNT = 28,
+		TYPE_AROUND = 29,
 	};
 
 	sinsp_filter_check_event();
@@ -380,6 +381,7 @@ public:
 
 	uint64_t m_first_ts;
 	uint64_t m_u64val;
+	uint64_t m_tsdelta;
 	uint32_t m_u32val;
 	string m_strstorage;
 	string m_argname;
