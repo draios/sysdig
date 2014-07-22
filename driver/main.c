@@ -155,6 +155,18 @@ static struct tracepoint *tp_sched_process_exit;
 static struct tracepoint *tp_sched_switch;
 #endif
 
+#ifdef _DEBUG
+static bool verbose = 1;
+#else
+static bool verbose = 0;
+#endif
+
+#define vpr_info(fmt, ...)					\
+do {								\
+	if (verbose)						\
+		pr_info(fmt, ##__VA_ARGS__);			\
+} while (0)
+
 /* compat tracepoint functions */
 static int compat_register_trace(void *func, const char *probename, struct tracepoint *tp)
 {
@@ -188,12 +200,12 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	ring = per_cpu(g_ring_buffers, ring_no);
 
 	if (ring->open) {
-		pr_info("invalid operation: attempting to open device %d multiple times\n", ring_no);
+		pr_err("invalid operation: attempting to open device %d multiple times\n", ring_no);
 		ret = -EBUSY;
 		goto cleanup_open;
 	}
 
-	pr_info("opening ring %d\n", ring_no);
+	vpr_info("opening ring %d\n", ring_no);
 
 	/*
 	 * ring->preempt_count is not reset to 0 on purpose, to prevent a race condition:
@@ -221,7 +233,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	ring->open = true;
 
 	if (!g_tracepoint_registered) {
-		pr_info("starting capture\n");
+		vpr_info("starting capture\n");
 		/*
 		 * Enable the tracepoints
 		 */
@@ -283,14 +295,14 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	ring = per_cpu(g_ring_buffers, ring_no);
 
 	if (!ring->open) {
-		pr_info("attempting to close unopened device %d\n", ring_no);
+		pr_err("attempting to close unopened device %d\n", ring_no);
 		ret = -EBUSY;
 		goto cleanup_release;
 	}
 
 	ring->capture_enabled = false;
 
-	pr_info("closing ring %d, evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+	vpr_info("closing ring %d, evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 	       ring_no,
 	       ring->info->n_evts,
 	       ring->info->n_drops_buffer,
@@ -304,7 +316,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	--g_open_count;
 	if (g_open_count == 0) {
 		if (g_tracepoint_registered) {
-			pr_info("stopping capture\n");
+			vpr_info("stopping capture\n");
 
 			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
@@ -341,7 +353,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ring->capture_enabled = false;
 		mutex_unlock(&g_open_mutex);
 
-		pr_info("PPM_IOCTL_DISABLE_CAPTURE for ring %d\n", ring_no);
+		vpr_info("PPM_IOCTL_DISABLE_CAPTURE for ring %d\n", ring_no);
 
 		return 0;
 	}
@@ -354,14 +366,14 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ring->capture_enabled = true;
 		mutex_unlock(&g_open_mutex);
 
-		pr_info("PPM_IOCTL_ENABLE_CAPTURE for ring %d\n", ring_no);
+		vpr_info("PPM_IOCTL_ENABLE_CAPTURE for ring %d\n", ring_no);
 
 		return 0;
 	}
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
 		g_dropping_mode = 0;
-		pr_info("PPM_IOCTL_DISABLE_DROPPING_MODE\n");
+		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE\n");
 		g_sampling_interval = 1000000000;
 		g_sampling_ratio = 1;
 		return 0;
@@ -371,7 +383,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		u32 new_sampling_ratio;
 
 		g_dropping_mode = 1;
-		pr_info("PPM_IOCTL_ENABLE_DROPPING_MODE\n");
+		vpr_info("PPM_IOCTL_ENABLE_DROPPING_MODE\n");
 
 		new_sampling_ratio = (u32)arg;
 
@@ -383,37 +395,37 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			new_sampling_ratio != 32 &&
 			new_sampling_ratio != 64 &&
 			new_sampling_ratio != 128) {
-			pr_info("invalid sampling ratio %u\n", new_sampling_ratio);
+			pr_err("invalid sampling ratio %u\n", new_sampling_ratio);
 			return -EINVAL;
 		}
 
 		g_sampling_interval = 1000000000 / new_sampling_ratio;
 		g_sampling_ratio = new_sampling_ratio;
 
-		pr_info("new sampling ratio: %d\n", new_sampling_ratio);
+		vpr_info("new sampling ratio: %d\n", new_sampling_ratio);
 		return 0;
 	}
 	case PPM_IOCTL_SET_SNAPLEN:
 	{
 		u32 new_snaplen;
 
-		pr_info("PPM_IOCTL_SET_SNAPLEN\n");
+		vpr_info("PPM_IOCTL_SET_SNAPLEN\n");
 		new_snaplen = (u32)arg;
 
 		if (new_snaplen > RW_MAX_SNAPLEN) {
-			pr_info("invalid snaplen %u\n", new_snaplen);
+			pr_err("invalid snaplen %u\n", new_snaplen);
 			return -EINVAL;
 		}
 
 		g_snaplen = new_snaplen;
 
-		pr_info("new snaplen: %d\n", g_snaplen);
+		vpr_info("new snaplen: %d\n", g_snaplen);
 		return 0;
 	}
 
 	case PPM_IOCTL_MASK_ZERO_EVENTS:
 	{
-		pr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
+		vpr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
 
 		bitmap_zero(g_events_mask, PPM_EVENT_MAX);
 
@@ -427,10 +439,10 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 		u32 syscall_to_set = (u32)arg;
 
-		pr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
+		vpr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
 
 		if (syscall_to_set > PPM_EVENT_MAX) {
-			pr_info("invalid syscall %u\n", syscall_to_set);
+			pr_err("invalid syscall %u\n", syscall_to_set);
 			return -EINVAL;
 		}
 
@@ -442,10 +454,10 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 		u32 syscall_to_unset = (u32)arg;
 
-		pr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
+		vpr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
 
 		if (syscall_to_unset > NR_syscalls) {
-			pr_info("invalid syscall %u\n", syscall_to_unset);
+			pr_err("invalid syscall %u\n", syscall_to_unset);
 			return -EINVAL;
 		}
 
@@ -470,7 +482,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring;
 
-		pr_info("mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
+		vpr_info("mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
 		       ring_no,
 		       useraddr,
 		       length,
@@ -480,14 +492,14 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		 * Enforce ring buffer size
 		 */
 		if (RING_BUF_SIZE < 2 * PAGE_SIZE) {
-			pr_info("Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
+			pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
 			       (long)RING_BUF_SIZE,
 			       (long)PAGE_SIZE);
 			return -EIO;
 		}
 
 		if (RING_BUF_SIZE / PAGE_SIZE * PAGE_SIZE != RING_BUF_SIZE) {
-			pr_info("Ring buffer size is not a multiple of the page size\n");
+			pr_err("Ring buffer size is not a multiple of the page size\n");
 			return -EIO;
 		}
 
@@ -501,7 +513,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			 * When the size requested by the user is smaller than a page, we assume
 			 * she's mapping the ring info structure
 			 */
-			pr_info("mapping the ring info\n");
+			vpr_info("mapping the ring info\n");
 
 			vmalloc_area_ptr = (char *)ring->info;
 			orig_vmalloc_area_ptr = vmalloc_area_ptr;
@@ -511,7 +523,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			ret = remap_pfn_range(vma, useraddr, pfn,
 					      PAGE_SIZE, PAGE_SHARED);
 			if (ret < 0) {
-				pr_info("remap_pfn_range failed (1)\n");
+				pr_err("remap_pfn_range failed (1)\n");
 				return ret;
 			}
 
@@ -523,7 +535,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			 * When the size requested by the user equals the ring buffer size, we map the full
 			 * buffer
 			 */
-			pr_info("mapping the data buffer\n");
+			vpr_info("mapping the data buffer\n");
 
 			vmalloc_area_ptr = (char *)ring->buffer;
 			orig_vmalloc_area_ptr = vmalloc_area_ptr;
@@ -532,7 +544,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			 * Validate that the buffer access is read only
 			 */
 			if (vma->vm_flags & VM_WRITE) {
-				pr_info("invalid mmap flags 0x%lx\n", vma->vm_flags);
+				pr_err("invalid mmap flags 0x%lx\n", vma->vm_flags);
 				return -EIO;
 			}
 
@@ -547,7 +559,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 				ret = remap_pfn_range(vma, useraddr, pfn,
 						      PAGE_SIZE, PAGE_SHARED);
 				if (ret < 0) {
-					pr_info("remap_pfn_range failed (1)\n");
+					pr_err("remap_pfn_range failed (1)\n");
 					return ret;
 				}
 
@@ -569,7 +581,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 				ret = remap_pfn_range(vma, useraddr, pfn,
 						      PAGE_SIZE, PAGE_SHARED);
 				if (ret < 0) {
-					pr_info("remap_pfn_range failed (1)\n");
+					pr_err("remap_pfn_range failed (1)\n");
 					return ret;
 				}
 
@@ -580,12 +592,12 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 			return 0;
 		} else {
-			pr_info("Invalid mmap size %ld\n", length);
+			pr_err("Invalid mmap size %ld\n", length);
 			return -EIO;
 		}
 	}
 
-	pr_info("invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
+	pr_err("invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
 	return -EIO;
 }
 
@@ -870,7 +882,7 @@ static void record_event(enum ppm_event_type event_type,
 				hdr->len = event_size;
 				drop = 0;
 			} else {
-				pr_info("corrupted filler for event type %d (added %u args, should have added %u)\n",
+				pr_err("corrupted filler for event type %d (added %u args, should have added %u)\n",
 				       event_type,
 				       args.curarg,
 				       args.nargs);
@@ -914,7 +926,7 @@ static void record_event(enum ppm_event_type event_type,
 			ring_info->n_drops_buffer++;
 		} else if (cbres == PPM_FAILURE_INVALID_USER_MEMORY) {
 #ifdef _DEBUG
-			pr_info("Invalid read from user for event %d\n", event_type);
+			pr_err("Invalid read from user for event %d\n", event_type);
 #endif
 			ring_info->n_drops_pf++;
 		} else if (cbres == PPM_FAILURE_BUFFER_FULL) {
@@ -926,7 +938,7 @@ static void record_event(enum ppm_event_type event_type,
 
 #ifdef _DEBUG
 	if (ts.tv_sec > ring->last_print_time.tv_sec + 1) {
-		pr_info("CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+		vpr_info("CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 		       smp_processor_id(),
 		       (usedspace * 100) / RING_BUF_SIZE,
 		       ring_info->n_evts,
@@ -1380,3 +1392,4 @@ void sysdig_exit(void)
 
 module_init(sysdig_init);
 module_exit(sysdig_exit);
+module_param(verbose, bool, 0);
