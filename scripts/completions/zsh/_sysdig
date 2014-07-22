@@ -191,7 +191,6 @@ typeset -A opt_args
 
 _arguments                                                                                                      \
     '(-A --print-ascii)'{-A,--print-ascii}'[Only print the text portion of data buffers]'                       \
-    '(-a --abstime)'{-a,--abstime}'[Show absolute event timestamps]'                                            \
     '(-cl --list-chisels)'{-cl,--list-chisels}'[lists the available chisels]'                                   \
     '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
     '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \

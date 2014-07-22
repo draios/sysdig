@@ -88,7 +88,6 @@ static void usage()
 " -A, --print-ascii  Only print the text portion of data buffers, and echo\n"
 "                    end-of-lines. This is useful to only display human-readable\n"
 "                    data.\n"
-" -a, --abstime      Show absolute event timestamps\n"
 #ifdef HAS_CHISELS
 " -c <chiselname> <chiselargs>, --chisel  <chiselname> <chiselargs>\n"
 "                    run the specified chisel. If the chisel require arguments,\n"
@@ -435,7 +434,6 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 captureinfo do_inspect(sinsp* inspector,
 					   uint64_t cnt,
 					   bool quiet,
-					   bool absolute_times,
 					   bool print_progress,
 					   sinsp_filter* display_filter,
 					   vector<summary_table_entry>* summary_table,
@@ -613,7 +611,6 @@ int main(int argc, char **argv)
 	int op;
 	uint64_t cnt = -1;
 	bool quiet = false;
-	bool absolute_times = false;
 	bool is_filter_display = false;
 	bool verbose = false;
 	bool list_flds = false;
@@ -641,7 +638,6 @@ int main(int argc, char **argv)
 	static struct option long_options[] =
 	{
 		{"print-ascii", no_argument, 0, 'A' },
-		{"abstimes", no_argument, 0, 'a' },
 #ifdef HAS_CHISELS
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, &cflag, 1 },
@@ -695,7 +691,7 @@ int main(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-                                        "Aac:"
+                                        "Ac:"
 #ifndef DISABLE_CGW
                                         "C:"
 #endif
@@ -720,9 +716,6 @@ int main(int argc, char **argv)
 				}
 
 				event_buffer_format = sinsp_evt::PF_EOLS;
-				break;
-			case 'a':
-				absolute_times = true;
 				break;
 			case 0:
 				if(cflag != 1 && cflag != 2)
@@ -1144,7 +1137,6 @@ int main(int argc, char **argv)
 			cinfo = do_inspect(inspector,
 				cnt,
 				quiet,
-				absolute_times,
 				print_progress,
 				display_filter,
 				summary_table,
