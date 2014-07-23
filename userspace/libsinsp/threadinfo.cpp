@@ -836,8 +836,14 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it)
 			sinsp_threadinfo* main_thread = m_inspector->get_thread(it->second.m_pid, false);
 			if(main_thread)
 			{
-				ASSERT(main_thread->m_nchilds);
-				--main_thread->m_nchilds;
+				if(main_thread->m_nchilds > 0)
+				{
+					--main_thread->m_nchilds;
+				}
+				else
+				{
+					ASSERT(false);
+				}
 			}
 			else
 			{
