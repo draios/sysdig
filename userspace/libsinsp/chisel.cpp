@@ -1247,7 +1247,7 @@ void sinsp_chisel::set_args(string args)
 	//
 	// Push the arguments
 	//
-	for(j = 0; j < m_lua_script_info.m_args.size(); j++)
+	for(j = 0; j < m_argvals.size(); j++)
 	{
 		lua_getglobal(m_ls, "on_set_arg");
 		if(!lua_isfunction(m_ls, -1))

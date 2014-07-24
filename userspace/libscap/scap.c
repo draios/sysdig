@@ -94,17 +94,6 @@ scap_t* scap_open_live(char *error)
 		return NULL;
 	}
 
-	//
-	// Allocate the array of poll fds.
-	//
-	handle->m_pollfds = (struct pollfd*)malloc(ndevs * sizeof(struct pollfd));
-	if(!handle->m_pollfds)
-	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
-		return NULL;
-	}
-
 	for(j = 0; j < ndevs; j++)
 	{
 		handle->m_devs[j].m_buffer = (char*)MAP_FAILED;
@@ -188,12 +177,6 @@ scap_t* scap_open_live(char *error)
 		}
 
 		//
-		// Init the polling fd for the device
-		//
-		handle->m_pollfds[j].fd = handle->m_devs[j].m_fd;
-		handle->m_pollfds[j].events = POLLIN;
-
-		//
 		// Map the ring buffer
 		//
 		handle->m_devs[j].m_buffer = (char*)mmap(0,
@@ -268,7 +251,6 @@ scap_t* scap_open_offline(const char* fname, char *error)
 	handle->m_devs = NULL;
 	handle->m_ndevs = 0;
 	handle->m_proclist = NULL;
-	handle->m_pollfds = NULL;
 	handle->m_evtcnt = 0;
 	handle->m_file = NULL;
 	handle->m_addrlist = NULL;
@@ -357,11 +339,6 @@ void scap_close(scap_t* handle)
 		if(handle->m_devs != NULL)
 		{
 			free(handle->m_devs);
-		}
-
-		if(handle->m_pollfds != NULL)
-		{
-			free(handle->m_pollfds);
 		}
 #endif // HAS_CAPTURE
 	}
@@ -955,7 +932,7 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 {
 	if(handle->m_file == NULL)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_readfile_pointer only works on trace files");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_readfile_offset only works on trace files");
 		return -1;
 	}
 
@@ -973,11 +950,8 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 		return SCAP_FAILURE;
 	}
 
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	//
@@ -1028,11 +1002,8 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 
 
 int32_t scap_clear_eventmask(scap_t* handle) {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_ZERO_EVENTS, 0));
@@ -1040,11 +1011,8 @@ int32_t scap_clear_eventmask(scap_t* handle) {
 }
 
 int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_SET_EVENT, event_id));
@@ -1052,11 +1020,8 @@ int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
 }
 
 int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
-#ifdef _WIN32
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on windows");
-	return SCAP_FAILURE;
-#elif defined(__APPLE__)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on OSX");
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
 	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_UNSET_EVENT, event_id));

@@ -19,6 +19,7 @@ add_library(sinsp STATIC
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
 	parsers.cpp
+	protodecoder.cpp
 	threadinfo.cpp
 	sinsp.cpp
 	stats.cpp

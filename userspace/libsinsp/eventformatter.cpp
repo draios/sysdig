@@ -159,7 +159,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 bool sinsp_evt_formatter::on_capture_end(OUT string* res)
 {
 	res->clear();
-	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON && !m_first)
 	{
 		(*res) = ']';
 	}
@@ -180,14 +180,14 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 	for(j = 0; j < m_tokens.size(); j++)
 	{
-		if(retval == false)
-		{
-			continue;
-		}
-
 		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
 		{
 			Json::Value json_value = m_tokens[j]->tojson(evt);
+
+			if(retval == false)
+			{
+				continue;
+			}
 
 			if(json_value == Json::Value::null && m_require_all_values)
 			{
@@ -206,9 +206,14 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 		{
 			char* str = m_tokens[j]->tostring(evt);
 
+			if(retval == false)
+			{
+				continue;
+			}
+
 			if(str == NULL) 
 			{
-				if (m_require_all_values)
+				if(m_require_all_values)
 				{
 					retval = false;
 					continue;

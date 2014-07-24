@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_signal.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "protodecoder.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -78,6 +79,7 @@ sinsp_initializer g_initializer;
 #ifdef HAS_FILTERING
 sinsp_filter_check_list g_filterlist;
 #endif
+sinsp_protodecoder_list g_decoderlist;
 #ifdef HAS_CHISELS
 vector<chiseldir_info>* g_chisel_dirs = NULL;
 #endif
@@ -284,7 +286,7 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 	case SE_ENOMEDIUM:
 		return "ENOMEDIUM";
 	default:
-		ASSERT(false);
+//		ASSERT(false);
 		return "";
 	}
 }
@@ -1094,6 +1096,54 @@ bool sinsp_numparser::tryparsed64(const string& str, int64_t* res)
 	if(std::sscanf(str.c_str(), "%" PRId64 "%c", res, &temp) != 1)
 	{
 		return false;
+	}
+
+	return true;
+}
+
+bool sinsp_numparser::tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res)
+{
+	const char* p = str;
+	const char* end = str + strlen;
+
+	*res = 0;
+
+	while(p < end)
+	{
+		if(*p >= '0' && *p <= '9')
+		{
+			*res = (*res) * 10 + (*p - '0');
+		}
+		else
+		{
+			return false;
+		}
+
+		p++;
+	}
+
+	return true;
+}
+
+bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res)
+{
+	const char* p = str;
+	const char* end = str + strlen;
+
+	*res = 0;
+
+	while(p < end)
+	{
+		if(*p >= '0' && *p <= '9')
+		{
+			*res = (*res) * 10 + (*p - '0');
+		}
+		else
+		{
+			return false;
+		}
+
+		p++;
 	}
 
 	return true;

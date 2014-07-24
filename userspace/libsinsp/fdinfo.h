@@ -24,6 +24,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define CANCELED_FD_NUMBER std::numeric_limits<int64_t>::max()
 #endif
 
+class sinsp_protodecoder;
+
 // fd type characters
 #define CHAR_FD_FILE			'f'
 #define CHAR_FD_IPV4_SOCK		'4'
@@ -146,6 +148,16 @@ public:
 	*/
 	scap_l4_proto get_l4proto();
 
+	/*!
+	  \brief Used by protocol decoders to register callbacks related to this FD.
+	*/
+	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
+
+	/*!
+	  \brief Used by protocol decoders to unregister callbacks related to this FD.
+	*/
+	void unregister_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
+
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
 	
@@ -245,6 +257,9 @@ private:
 	T m_usrstate;
 	uint32_t m_flags;
 	uint64_t m_ino;
+
+	vector<sinsp_protodecoder*> m_write_callbacks;
+	vector<sinsp_protodecoder*> m_read_callbacks;
 
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;

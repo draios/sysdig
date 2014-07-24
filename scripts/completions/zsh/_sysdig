@@ -48,7 +48,7 @@ function _filter () {
     elif [[ $1 == "format" ]]; then
         # expanding format specifiers
         local allfields_withpercent;
-        allfields_withpercent=("%"${^fields})
+        allfields_withpercent=("%"${^fields:#*FILTER ONLY*})
 
         # skip all leading characters that can't be in a field name. This lets
         # me specify multiple fields in the string or do things like
@@ -191,7 +191,6 @@ typeset -A opt_args
 
 _arguments                                                                                                      \
     '(-A --print-ascii)'{-A,--print-ascii}'[Only print the text portion of data buffers]'                       \
-    '(-a --abstime)'{-a,--abstime}'[Show absolute event timestamps]'                                            \
     '(-cl --list-chisels)'{-cl,--list-chisels}'[lists the available chisels]'                                   \
     '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
     '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \
@@ -217,12 +216,15 @@ _arguments                                                                      
        a\:"absolute timestamp from epoch"                                                                       \
        r\:"relative time from capture start"                                                                    \
        d\:"delta between enter/exit"))'                                                                         \
-    '(-C --file-size)'{-C,--file-size=-}'[Chunk captures to files of given size]:Maximum chunk file size:'      \
-    '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'  \
-    '(-W --limit)'{-W,--limit}'[Limit split captures (-C or -G) to a given number of files]:Maximum number of files' \
     '(-c --chisel)'{-c,--chisel}'[Run a given chisel]:Chisel:->chisel'                                          \
     '(-i --chisel-info)'{-i,--chisel-info}'[Get a detailed chisel description]:Chisel:->chisel' \
     '*:Filter or chisel argument:->filter_or_chiselarg' && return 0
+
+    # Sysdig 0.1.85 had these options too, but they were problematic, so I'm
+    # removing them until they can be fixed
+    # '(-C --file-size)'{-C,--file-size=-}'[Chunk captures to files of given size]:Maximum chunk file size:'
+    # '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'
+    # '(-W --limit)'{-W,--limit}'[Limit split captures (-C or -G) to a given number of files]:Maximum number of files'
 
 
 case $state in

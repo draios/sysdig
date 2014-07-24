@@ -36,6 +36,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_errno.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "protodecoder.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer_thread.h"
@@ -43,6 +44,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
 #endif
+
+extern sinsp_protodecoder_list g_decoderlist;
 
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
@@ -56,6 +59,12 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 sinsp_parser::~sinsp_parser()
 {
+	for(uint32_t j = 0; j < m_protodecoders.size(); j++)
+	{
+		delete m_protodecoders[j];
+	}
+
+	m_protodecoders.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -525,6 +534,48 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	m_inspector->m_stats.m_n_retrieved_evts++;
 #endif
 	return true;
+}
+
+sinsp_protodecoder* sinsp_parser::require_protodecoder(string decoder_name)
+{
+	//
+	// Make sure this decoder has not been allocated yet
+	//
+	vector<sinsp_protodecoder*>::iterator it;
+	for(it = m_protodecoders.begin(); it != m_protodecoders.end(); ++it)
+	{
+		if((*it)->get_name() == decoder_name)
+		{
+			return (*it);
+		}
+	}
+
+	sinsp_protodecoder* nd = g_decoderlist.new_protodecoder_from_name(decoder_name,
+		m_inspector);
+
+	nd->init();
+
+	m_protodecoders.push_back(nd);
+
+	return nd;
+}
+
+void sinsp_parser::register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
+{
+	switch(etype)
+	{
+	case CT_OPEN:
+		m_open_callbacks.push_back(dec);
+		break;
+	case CT_CONNECT:
+		m_connect_callbacks.push_back(dec);
+		break;
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1096,6 +1147,15 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		// Add the fd to the table.
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+
+		//
+		// Call the protocol decoder callbacks associated to this event
+		//
+		vector<sinsp_protodecoder*>::iterator it;
+		for(it = m_open_callbacks.begin(); it != m_open_callbacks.end(); ++it)
+		{
+			(*it)->on_event(evt, CT_OPEN);
+		}
 	}
 
 	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
@@ -1381,6 +1441,15 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	// Mark this fd as a client
 	//
 	evt->m_fdinfo->set_role_client();
+
+	//
+	// Call the protocol decoder callbacks associated to this event
+	//
+	vector<sinsp_protodecoder*>::iterator it;
+	for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
+	{
+		(*it)->on_event(evt, CT_CONNECT);
+	}
 
 	//
 	// If there's a listener callback, invoke it
@@ -1876,6 +1945,28 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 			return false;
 		}
 	}
+	else if(family == PPM_AF_UNIX)
+	{
+		evt->m_fdinfo->m_type = SCAP_FD_UNIX_SOCK;
+		if(set_unix_info(evt->m_fdinfo, packed_data) == false)
+		{
+			return false;
+		}
+
+		evt->m_fdinfo->m_name = ((char*)packed_data) + 17;
+
+		//
+		// Call the protocol decoder callbacks to notify the decoders that this FD
+		// changed.
+		//
+		vector<sinsp_protodecoder*>::iterator it;
+		for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
+		{
+			(*it)->on_event(evt, CT_TUPLE_CHANGE);
+		}
+
+		return true;
+	}
 
 	//
 	// If we reach this point and the protocol is not set yet, we assume this
@@ -1891,6 +1982,16 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	// If this is an incomplete tuple, patch it using interface info
 	//
 	m_inspector->m_network_interfaces->update_fd(evt->m_fdinfo);
+
+	//
+	// Call the protocol decoder callbacks to notify the decoders that this FD
+	// changed.
+	//
+	vector<sinsp_protodecoder*>::iterator it;
+	for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
+	{
+		(*it)->on_event(evt, CT_TUPLE_CHANGE);
+	}
 
 	return true;
 }
@@ -2007,9 +2108,23 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			datalen = parinfo->m_len;
 			data = parinfo->m_val;
 
+			//
+			// If there's an fd listener, call it now
+			//
 			if(m_fd_listener)
 			{
 				m_fd_listener->on_read(evt, tid, evt->m_tinfo->m_lastevent_fd, data, (uint32_t)retval, datalen);
+			}
+
+			//
+			// Call the protocol decoder callbacks associated to this event
+			//
+			vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_read_callbacks);
+
+			vector<sinsp_protodecoder*>::iterator it;
+			for(it = cbacks->begin(); it != cbacks->end(); ++it)
+			{
+				(*it)->on_read(evt, data, datalen);
 			}
 		}
 		else
@@ -2023,7 +2138,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				tupleparam = 2;
 			}
 
-			if(tupleparam != -1 && (evt->m_fdinfo->m_name.length() == 0  || evt->m_fdinfo->is_udp_socket()))
+			if(tupleparam != -1 && (evt->m_fdinfo->m_name.length() == 0 || !evt->m_fdinfo->is_tcp_socket()))
 			{
 				//
 				// sendto contains tuple info in the enter event.
@@ -2076,9 +2191,23 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			datalen = parinfo->m_len;
 			data = parinfo->m_val;
 
+			//
+			// If there's an fd listener, call it now
+			//
 			if(m_fd_listener)
 			{
 				m_fd_listener->on_write(evt, tid, evt->m_tinfo->m_lastevent_fd, data, (uint32_t)retval, datalen);
+			}
+
+			//
+			// Call the protocol decoder callbacks associated to this event
+			//
+			vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_write_callbacks);
+
+			vector<sinsp_protodecoder*>::iterator it;
+			for(it = cbacks->begin(); it != cbacks->end(); ++it)
+			{
+				(*it)->on_write(evt, data, datalen);
 			}
 		}
 	}

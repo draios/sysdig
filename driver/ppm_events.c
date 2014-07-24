@@ -154,7 +154,7 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
 
 	if (unlikely(args->curarg >= args->nargs)) {
-		pr_info("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
+		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
 		       smp_processor_id(),
 		       args->nevents,
 		       (u32)args->event_type,
@@ -343,7 +343,7 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 		break;
 	default:
 		ASSERT(0);
-		pr_info("val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
+		pr_err("val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
 		       (int)g_event_info[args->event_type].params[args->curarg].type,
 		       (u32)args->event_type,
 		       g_event_info[args->event_type].name);

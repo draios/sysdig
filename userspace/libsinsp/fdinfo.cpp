@@ -193,6 +193,60 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 	}
 }
 
+template<> void sinsp_fdinfo_t::register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
+{
+	switch(etype)
+	{
+	case CT_READ:
+		m_read_callbacks.push_back(dec);
+		break;
+	case CT_WRITE:
+		m_write_callbacks.push_back(dec);
+		break;
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return;
+}
+
+template<> void sinsp_fdinfo_t::unregister_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
+{
+	vector<sinsp_protodecoder*>::iterator it;
+
+	switch(etype)
+	{
+	case CT_READ:
+		for(it = m_read_callbacks.begin(); it != m_read_callbacks.end(); ++it)
+		{
+			if(*it == dec)
+			{
+				m_read_callbacks.erase(it);
+				return;
+			}
+		}
+
+		break;
+	case CT_WRITE:
+		for(it = m_write_callbacks.begin(); it != m_write_callbacks.end(); ++it)
+		{
+			if(*it == dec)
+			{
+				m_write_callbacks.erase(it);
+				return;
+			}
+		}
+
+		break;
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdtable implementation
 ///////////////////////////////////////////////////////////////////////////////

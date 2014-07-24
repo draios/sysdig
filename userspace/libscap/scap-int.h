@@ -26,14 +26,25 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-
 #ifdef _WIN32
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
 #endif
 #include <assert.h>
+#ifdef USE_ZLIB
 #include <zlib.h>
+#else
+#define	gzFile FILE*
+#define gzflush(X, Y) fflush(X)
+#define gzopen fopen
+#define	gzdopen(fd, mode) stdout
+#define gzclose fclose
+#define gzoffset ftell
+#define gzwrite(F, B, S) fwrite(B, 1, S, F)
+#define gzread(F, B, S) fread(B, 1, S, F)
+#define gzseek fseek
+#endif
 
 //
 // The time scap_next will wait when a buffer is empty
@@ -65,9 +76,12 @@ typedef struct scap_device
 struct scap
 {
 	scap_device* m_devs;
-	struct pollfd* m_pollfds;
 	uint32_t m_ndevs;
+#ifdef USE_ZLIB
 	gzFile m_file;
+#else
+	FILE* m_file;
+#endif
 	char* m_file_evt_buf;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 	scap_threadinfo* m_proclist;
@@ -126,13 +140,13 @@ uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, gzFile f);
 // Populate the given fd by reading the info from disk
 uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, gzFile f);
+// Parse the headers of a trace file and load the tables
+int32_t scap_read_init(scap_t* handle, gzFile f);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdinfo* fdi);
 // Remove the given fd from the process table of the process pointed by pi
 void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
-// Parse the headers of a trace file and load the tables
-int32_t scap_read_init(scap_t* handle, gzFile f);
 // Read an event from disk
 int32_t scap_next_offline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 // read the filedescriptors for a given process directory

@@ -36,4 +36,5 @@ EXPORTS
 		scap_clear_eventmask
 		scap_set_eventmask
 		scap_unset_eventmask
-
+		scap_number_of_bytes_to_write
+		

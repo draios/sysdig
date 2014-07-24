@@ -32,11 +32,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "cyclewriter.h"
+#include "protodecoder.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
 #endif
-//#include "drfilterParser.h"
 
 extern sinsp_evttables g_infotables;
 #ifdef HAS_CHISELS
@@ -359,6 +359,20 @@ bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
 int32_t sinsp::next(OUT sinsp_evt **evt)
 {
 	//
+	// Reset previous event's decoders if required
+	//
+	if(m_decoders_reset_list.size() != 0)
+	{
+		vector<sinsp_protodecoder*>::iterator it;
+		for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
+		{
+			(*it)->on_reset(&m_evt);
+		}
+
+		m_decoders_reset_list.clear();
+	}
+
+	//
 	// Get the event from libscap
 	//
 	int32_t res = scap_next(m_h, &(m_evt.m_pevt), &(m_evt.m_cpuid));
@@ -488,7 +502,6 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	if(NULL != m_dumper)
 	{
-		
 		res = scap_number_of_bytes_to_write(m_evt.m_pevt, m_evt.m_cpuid, &bytes_to_write);
 		if(SCAP_SUCCESS != res)
 		{
@@ -862,6 +875,16 @@ void sinsp::set_debug_mode(bool enable_debug)
 bool sinsp::is_debug_enabled()
 {
 	return m_isdebug_enabled;
+}
+
+sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)
+{
+	return m_parser->require_protodecoder(decoder_name);
+}
+
+void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)
+{
+	m_decoders_reset_list.push_back(dec);
 }
 
 sinsp_parser* sinsp::get_parser()

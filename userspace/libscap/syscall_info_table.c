@@ -330,4 +330,6 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_SIGRETURN*/ { EC_SIGNAL, "sigreturn" }, /* return from signal handler and cleanup stack frame */
 	/*PPM_SC_FALLOCATE*/ { EC_IO_OTHER, "fallocate" }, /* manipulate file space */
 	/*PPM_SC_NEWFSSTAT*/ { EC_IO_OTHER, "newfstatat" },
+	/*PPM_SC_PROCESS_VM_READV*/ { EC_IO_OTHER, "process_vm_readv" },
+	/*PPM_SC_PROCESS_VM_WRITEV*/ { EC_IO_OTHER, "process_vm_writev" }
 };

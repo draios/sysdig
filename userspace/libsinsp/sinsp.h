@@ -80,6 +80,18 @@ using namespace std;
 
 #define ONE_SECOND_IN_NS 1000000000LL
 
+//
+// Protocol decoder callback type
+//
+typedef enum sinsp_pd_callback_type
+{
+	CT_OPEN,
+	CT_CONNECT,
+	CT_READ,
+	CT_WRITE,
+	CT_TUPLE_CHANGE,
+}sinsp_pd_callback_type;
+
 #include "tuples.h"
 #include "fdinfo.h"
 #include "threadinfo.h"
@@ -91,6 +103,7 @@ class sinsp_parser;
 class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
+class sinsp_protodecoder;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -454,6 +467,20 @@ public:
 	bool is_debug_enabled();
 
 	/*!
+	  \brief Lets a filter plugin request a protocol decoder.
+
+	  \param the name of the required decoder
+	*/
+	sinsp_protodecoder* require_protodecoder(string decoder_name);
+
+	/*!
+	  \brief Lets a filter plugin request a protocol decoder.
+
+	  \param the name of the required decoder
+	*/
+	void protodecoder_register_reset(sinsp_protodecoder* dec);
+
+	/*!
 	  \brief XXX.
 	*/
 	double get_read_progress();
@@ -561,6 +588,11 @@ private:
 	//
 	bool m_isdropping;
 
+	//
+	// Protocol decoding state
+	//
+	vector<sinsp_protodecoder*> m_decoders_reset_list;
+
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_parsers;
@@ -571,6 +603,7 @@ private:
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
+	friend class sinsp_protodecoder;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

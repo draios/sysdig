@@ -84,10 +84,7 @@ OPTIONS
 
 **-A**, **--print-ascii**  
   Only print the text portion of data buffers, and echo end-of-lines. This is useful to only display human-readable data.
-  
-**-a**, **--abstime**  
-  Show absolute event timestamps
-  
+    
 **-c** _chiselname_ _chiselargs_, **--chisel**=_chiselname_ _chiselargs_  
   run the specified chisel. If the chisel require arguments, they must be specified in the command line after the name.
   

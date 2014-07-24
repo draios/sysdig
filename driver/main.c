@@ -71,7 +71,8 @@ struct ppm_device {
  * We have one of these for each CPU.
  */
 struct ppm_ring_buffer_context {
-	atomic_t state;
+	bool open;
+	bool capture_enabled;
 	struct ppm_ring_buffer_info *info;
 	char *buffer;
 	struct timespec last_print_time;
@@ -135,12 +136,14 @@ static const struct file_operations g_ppe_fops = {
  */
 
 static DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
-static atomic_t g_open_count;
+static DEFINE_MUTEX(g_open_mutex);
+static u32 g_open_count;
 u32 g_snaplen = RW_SNAPLEN;
 u32 g_sampling_ratio = 1;
 static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
+static bool g_tracepoint_registered;
 
 struct cdev *g_ppe_cdev = NULL;
 struct device *g_ppe_dev = NULL;
@@ -151,6 +154,18 @@ static struct tracepoint *tp_sched_process_exit;
 #ifdef CAPTURE_CONTEXT_SWITCHES
 static struct tracepoint *tp_sched_switch;
 #endif
+
+#ifdef _DEBUG
+static bool verbose = 1;
+#else
+static bool verbose = 0;
+#endif
+
+#define vpr_info(fmt, ...)					\
+do {								\
+	if (verbose)						\
+		pr_info(fmt, ##__VA_ARGS__);			\
+} while (0)
 
 /* compat tracepoint functions */
 static int compat_register_trace(void *func, const char *probename, struct tracepoint *tp)
@@ -180,13 +195,25 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	struct ppm_ring_buffer_context *ring;
 	int ring_no = iminor(filp->f_dentry->d_inode);
 
+	mutex_lock(&g_open_mutex);
+
 	ring = per_cpu(g_ring_buffers, ring_no);
 
-	if (atomic_cmpxchg(&ring->state, CS_STOPPED, CS_STARTED) != CS_STOPPED) {
-		pr_info("invalid operation: attempting to open device %d multiple times\n", ring_no);
-		return -EBUSY;
+	if (ring->open) {
+		pr_err("invalid operation: attempting to open device %d multiple times\n", ring_no);
+		ret = -EBUSY;
+		goto cleanup_open;
 	}
 
+	vpr_info("opening ring %d\n", ring_no);
+
+	/*
+	 * ring->preempt_count is not reset to 0 on purpose, to prevent a race condition:
+	 * if the same device is quickly closed and then reopened, record_event() might still be executing 
+	 * (with ring->preempt_count to 1) while ppm_open() resets ring->preempt_count to 0. 
+	 * When record_event() will exit, it will decrease 
+	 * ring->preempt_count which will become < 0, leading to the complete loss of all the events for that CPU.
+	 */
 	g_dropping_mode = 0;
 	g_snaplen = RW_SNAPLEN;
 	g_sampling_ratio = 1;
@@ -201,22 +228,19 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;
-	atomic_set(&ring->preempt_count, 0);
+	ring->capture_enabled = true;
 	getnstimeofday(&ring->last_print_time);
+	ring->open = true;
 
-	/*
-	 * The last open device starts the collection
-	 */
-	if (atomic_inc_return(&g_open_count) == g_ppm_numdevs) {
-		pr_info("starting capture\n");
-
+	if (!g_tracepoint_registered) {
+		vpr_info("starting capture\n");
 		/*
 		 * Enable the tracepoints
 		 */
 		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 		if (ret) {
 			pr_err("can't create the sys_exit tracepoint\n");
-			return ret;
+			goto err_sys_exit;
 		}
 
 		ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
@@ -238,9 +262,13 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_sched_switch;
 		}
 #endif
+		g_tracepoint_registered = true;
 	}
 
-	return 0;
+	++g_open_count;
+	ret = 0;
+	
+	goto cleanup_open;
 
 err_sched_switch:
 	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
@@ -248,23 +276,33 @@ err_sched_procexit:
 	compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 err_sys_enter:
 	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+err_sys_exit:
+	ring->open = false;
+cleanup_open:
+	mutex_unlock(&g_open_mutex);
 
 	return ret;
 }
 
 static int ppm_release(struct inode *inode, struct file *filp)
 {
+	int ret;
 	struct ppm_ring_buffer_context *ring;
 	int ring_no = iminor(filp->f_dentry->d_inode);
 
+	mutex_lock(&g_open_mutex);
+
 	ring = per_cpu(g_ring_buffers, ring_no);
 
-	if (atomic_xchg(&ring->state, CS_STOPPED) == CS_STOPPED) {
-		pr_info("attempting to close unopened device %d\n", ring_no);
-		return -EBUSY;
+	if (!ring->open) {
+		pr_err("attempting to close unopened device %d\n", ring_no);
+		ret = -EBUSY;
+		goto cleanup_release;
 	}
 
-	pr_info("closing ring %d, evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+	ring->capture_enabled = false;
+
+	vpr_info("closing ring %d, evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 	       ring_no,
 	       ring->info->n_evts,
 	       ring->info->n_drops_buffer,
@@ -275,21 +313,32 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	/*
 	 * The last closed device stops event collection
 	 */
-	if (atomic_dec_return(&g_open_count) == 0) {
-		pr_info("stopping capture\n");
+	--g_open_count;
+	if (g_open_count == 0) {
+		if (g_tracepoint_registered) {
+			vpr_info("stopping capture\n");
 
-		compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
-		compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
-		compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
+			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+			compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-		compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 #endif
+			tracepoint_synchronize_unregister();
+			g_tracepoint_registered = false;
+		} else {
+			ASSERT(false);
+		}
 	}
 
-	tracepoint_synchronize_unregister();
+	ring->open = false;
+	ret = 0;
 
-	return 0;
+cleanup_release:
+	mutex_unlock(&g_open_mutex);
+
+	return ret;
 }
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
@@ -300,9 +349,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
-		atomic_set(&(ring->state), CS_INACTIVE);
+		mutex_lock(&g_open_mutex);
+		ring->capture_enabled = false;
+		mutex_unlock(&g_open_mutex);
 
-		pr_info("PPM_IOCTL_DISABLE_CAPTURE for ring %d\n", ring_no);
+		vpr_info("PPM_IOCTL_DISABLE_CAPTURE for ring %d\n", ring_no);
 
 		return 0;
 	}
@@ -311,16 +362,18 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
-		atomic_set(&ring->state, CS_STARTED);
+		mutex_lock(&g_open_mutex);
+		ring->capture_enabled = true;
+		mutex_unlock(&g_open_mutex);
 
-		pr_info("PPM_IOCTL_ENABLE_CAPTURE for ring %d\n", ring_no);
+		vpr_info("PPM_IOCTL_ENABLE_CAPTURE for ring %d\n", ring_no);
 
 		return 0;
 	}
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
 		g_dropping_mode = 0;
-		pr_info("PPM_IOCTL_DISABLE_DROPPING_MODE\n");
+		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE\n");
 		g_sampling_interval = 1000000000;
 		g_sampling_ratio = 1;
 		return 0;
@@ -330,7 +383,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		u32 new_sampling_ratio;
 
 		g_dropping_mode = 1;
-		pr_info("PPM_IOCTL_ENABLE_DROPPING_MODE\n");
+		vpr_info("PPM_IOCTL_ENABLE_DROPPING_MODE\n");
 
 		new_sampling_ratio = (u32)arg;
 
@@ -342,75 +395,75 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			new_sampling_ratio != 32 &&
 			new_sampling_ratio != 64 &&
 			new_sampling_ratio != 128) {
-			pr_info("invalid sampling ratio %u\n", new_sampling_ratio);
+			pr_err("invalid sampling ratio %u\n", new_sampling_ratio);
 			return -EINVAL;
 		}
 
 		g_sampling_interval = 1000000000 / new_sampling_ratio;
 		g_sampling_ratio = new_sampling_ratio;
 
-		pr_info("new sampling ratio: %d\n", new_sampling_ratio);
+		vpr_info("new sampling ratio: %d\n", new_sampling_ratio);
 		return 0;
 	}
 	case PPM_IOCTL_SET_SNAPLEN:
 	{
 		u32 new_snaplen;
 
-		pr_info("PPM_IOCTL_SET_SNAPLEN\n");
+		vpr_info("PPM_IOCTL_SET_SNAPLEN\n");
 		new_snaplen = (u32)arg;
 
 		if (new_snaplen > RW_MAX_SNAPLEN) {
-			pr_info("invalid snaplen %u\n", new_snaplen);
+			pr_err("invalid snaplen %u\n", new_snaplen);
 			return -EINVAL;
 		}
 
 		g_snaplen = new_snaplen;
 
-		pr_info("new snaplen: %d\n", g_snaplen);
+		vpr_info("new snaplen: %d\n", g_snaplen);
 		return 0;
 	}
 
 	case PPM_IOCTL_MASK_ZERO_EVENTS:
-	  {
-	    pr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
+	{
+		vpr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
 
-	    bitmap_zero(g_events_mask, PPM_EVENT_MAX);
+		bitmap_zero(g_events_mask, PPM_EVENT_MAX);
 
-	    /* Used for dropping events so they must stay on */
-	    set_bit(PPME_DROP_E, g_events_mask);
-	    set_bit(PPME_DROP_X, g_events_mask);
-	    return(0);
-	  }
+		/* Used for dropping events so they must stay on */
+		set_bit(PPME_DROP_E, g_events_mask);
+		set_bit(PPME_DROP_X, g_events_mask);
+		return 0;
+	}
 
 	case PPM_IOCTL_MASK_SET_EVENT:
-	  {
-	    u32 syscall_to_set = (u32)arg;
+	{
+		u32 syscall_to_set = (u32)arg;
 
-	    pr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
+		vpr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
 
-	    if(syscall_to_set > PPM_EVENT_MAX) {
-	      pr_info("invalid syscall %u\n", syscall_to_set);
-	      return -EINVAL;	      
-	    }
+		if (syscall_to_set > PPM_EVENT_MAX) {
+			pr_err("invalid syscall %u\n", syscall_to_set);
+			return -EINVAL;
+		}
 
-	    set_bit(syscall_to_set, g_events_mask);
-	    return(0);
-	  }
+		set_bit(syscall_to_set, g_events_mask);
+		return 0;
+	}
 
 	case PPM_IOCTL_MASK_UNSET_EVENT:
-	  {
-	    u32 syscall_to_unset = (u32)arg;
+	{
+		u32 syscall_to_unset = (u32)arg;
 
-	    pr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
+		vpr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
 
-	    if(syscall_to_unset > NR_syscalls) {
-	      pr_info("invalid syscall %u\n", syscall_to_unset);
-	      return -EINVAL;	      
-	    }
+		if (syscall_to_unset > NR_syscalls) {
+			pr_err("invalid syscall %u\n", syscall_to_unset);
+			return -EINVAL;
+		}
 
-	    clear_bit(syscall_to_unset, g_events_mask);
-	    return(0);
-	  }
+		clear_bit(syscall_to_unset, g_events_mask);
+		return 0;
+	}
 
 	default:
 		return -ENOTTY;
@@ -429,7 +482,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring;
 
-		pr_info("mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
+		vpr_info("mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
 		       ring_no,
 		       useraddr,
 		       length,
@@ -439,14 +492,14 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		 * Enforce ring buffer size
 		 */
 		if (RING_BUF_SIZE < 2 * PAGE_SIZE) {
-			pr_info("Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
+			pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
 			       (long)RING_BUF_SIZE,
 			       (long)PAGE_SIZE);
 			return -EIO;
 		}
 
 		if (RING_BUF_SIZE / PAGE_SIZE * PAGE_SIZE != RING_BUF_SIZE) {
-			pr_info("Ring buffer size is not a multiple of the page size\n");
+			pr_err("Ring buffer size is not a multiple of the page size\n");
 			return -EIO;
 		}
 
@@ -460,7 +513,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			 * When the size requested by the user is smaller than a page, we assume
 			 * she's mapping the ring info structure
 			 */
-			pr_info("mapping the ring info\n");
+			vpr_info("mapping the ring info\n");
 
 			vmalloc_area_ptr = (char *)ring->info;
 			orig_vmalloc_area_ptr = vmalloc_area_ptr;
@@ -470,7 +523,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			ret = remap_pfn_range(vma, useraddr, pfn,
 					      PAGE_SIZE, PAGE_SHARED);
 			if (ret < 0) {
-				pr_info("remap_pfn_range failed (1)\n");
+				pr_err("remap_pfn_range failed (1)\n");
 				return ret;
 			}
 
@@ -482,7 +535,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			 * When the size requested by the user equals the ring buffer size, we map the full
 			 * buffer
 			 */
-			pr_info("mapping the data buffer\n");
+			vpr_info("mapping the data buffer\n");
 
 			vmalloc_area_ptr = (char *)ring->buffer;
 			orig_vmalloc_area_ptr = vmalloc_area_ptr;
@@ -491,7 +544,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			 * Validate that the buffer access is read only
 			 */
 			if (vma->vm_flags & VM_WRITE) {
-				pr_info("invalid mmap flags 0x%lx\n", vma->vm_flags);
+				pr_err("invalid mmap flags 0x%lx\n", vma->vm_flags);
 				return -EIO;
 			}
 
@@ -506,7 +559,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 				ret = remap_pfn_range(vma, useraddr, pfn,
 						      PAGE_SIZE, PAGE_SHARED);
 				if (ret < 0) {
-					pr_info("remap_pfn_range failed (1)\n");
+					pr_err("remap_pfn_range failed (1)\n");
 					return ret;
 				}
 
@@ -528,7 +581,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 				ret = remap_pfn_range(vma, useraddr, pfn,
 						      PAGE_SIZE, PAGE_SHARED);
 				if (ret < 0) {
-					pr_info("remap_pfn_range failed (1)\n");
+					pr_err("remap_pfn_range failed (1)\n");
 					return ret;
 				}
 
@@ -539,12 +592,12 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 			return 0;
 		} else {
-			pr_info("Invalid mmap size %ld\n", length);
+			pr_err("Invalid mmap size %ld\n", length);
 			return -EIO;
 		}
 	}
 
-	pr_info("invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
+	pr_err("invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
 	return -EIO;
 }
 
@@ -685,19 +738,23 @@ static void record_event(enum ppm_event_type event_type,
 
 	getnstimeofday(&ts);
 
-	if(!test_bit(event_type, g_events_mask)) {
-	  return;
-	}
+	if (!test_bit(event_type, g_events_mask))
+		return;
 
 	if (drop_event(event_type, never_drop, &ts))
 		return;
 
-	ring = get_cpu_var(g_ring_buffers);
-	ring_info = ring->info;
-
 	/*
 	 * FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
 	 */
+	ring = get_cpu_var(g_ring_buffers);
+	ring_info = ring->info;
+
+	if (!ring->capture_enabled) {
+		put_cpu_var(g_ring_buffers);
+		return;
+	}
+
 	ring_info->n_evts++;
 	if (sched_prev != NULL) {
 		ASSERT(sched_prev != NULL);
@@ -714,12 +771,6 @@ static void record_event(enum ppm_event_type event_type,
 		put_cpu_var(g_ring_buffers);
 		ring_info->n_preemptions++;
 		ASSERT(false);
-		return;
-	}
-
-	if (unlikely(atomic_read(&ring->state) == CS_INACTIVE)) {
-		atomic_dec(&ring->preempt_count);
-		put_cpu_var(g_ring_buffers);
 		return;
 	}
 
@@ -754,6 +805,7 @@ static void record_event(enum ppm_event_type event_type,
 	 */
 	if (regs && id == __NR_socketcall) {
 		enum ppm_event_type tet;
+
 		tet = parse_socketcall(&args, regs);
 
 		if (event_type == PPME_GENERIC_E)
@@ -830,7 +882,7 @@ static void record_event(enum ppm_event_type event_type,
 				hdr->len = event_size;
 				drop = 0;
 			} else {
-				pr_info("corrupted filler for event type %d (added %u args, should have added %u)\n",
+				pr_err("corrupted filler for event type %d (added %u args, should have added %u)\n",
 				       event_type,
 				       args.curarg,
 				       args.nargs);
@@ -874,7 +926,7 @@ static void record_event(enum ppm_event_type event_type,
 			ring_info->n_drops_buffer++;
 		} else if (cbres == PPM_FAILURE_INVALID_USER_MEMORY) {
 #ifdef _DEBUG
-			pr_info("Invalid read from user for event %d\n", event_type);
+			pr_err("Invalid read from user for event %d\n", event_type);
 #endif
 			ring_info->n_drops_pf++;
 		} else if (cbres == PPM_FAILURE_BUFFER_FULL) {
@@ -886,7 +938,7 @@ static void record_event(enum ppm_event_type event_type,
 
 #ifdef _DEBUG
 	if (ts.tv_sec > ring->last_print_time.tv_sec + 1) {
-		pr_info("CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+		vpr_info("CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 		       smp_processor_id(),
 		       (usedspace * 100) / RING_BUF_SIZE,
 		       ring_info->n_evts,
@@ -1014,8 +1066,7 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->str_storage = (char *)__get_free_page(GFP_USER);
 	if (!(*ring)->str_storage) {
 		pr_err("Error allocating the string storage\n");
-		vfree(*ring);
-		return NULL;
+		goto err_str_storage;
 	}
 
 	/*
@@ -1026,9 +1077,7 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
 	if ((*ring)->buffer == NULL) {
 		pr_err("Error allocating ring memory\n");
-		free_page((unsigned long)(*ring)->str_storage);
-		vfree(*ring);
-		return NULL;
+		goto err_buffer;
 	}
 
 	for (j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
@@ -1040,21 +1089,14 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	(*ring)->info = vmalloc(sizeof(struct ppm_ring_buffer_info));
 	if ((*ring)->info == NULL) {
 		pr_err("Error allocating ring memory\n");
-		vfree((void *)(*ring)->buffer);
-		free_page((unsigned long)(*ring)->str_storage);
-		vfree(*ring);
-		return NULL;
+		goto err_ring_info;
 	}
-
-/* for(j = 0; j < (RING_BUF_SIZE / PAGE_SIZE + 1); j += PAGE_SIZE) */
-/* { */
-/* SetPageReserved(vmalloc_to_page(ring) + j); */
-/* } */
 
 	/*
 	 * Initialize the buffer info structure
 	 */
-	atomic_set(&(*ring)->state, CS_STOPPED);
+	(*ring)->open = false;
+	(*ring)->capture_enabled = false;
 	(*ring)->info->head = 0;
 	(*ring)->info->tail = 0;
 	(*ring)->nevents = 0;
@@ -1069,6 +1111,15 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	pr_info("CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
 
 	return *ring;
+
+err_ring_info:
+	vfree((void *)(*ring)->buffer);
+err_buffer:
+	free_page((unsigned long)(*ring)->str_storage);
+err_str_storage:
+	vfree(*ring);
+
+	return NULL;
 }
 
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
@@ -1142,27 +1193,6 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 
 	return NULL;
 }
-
-/* static int ppm_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data) */
-/* { */
-/* int len = 0; */
-/* int j; */
-
-/* for(j = 0; j < NR_syscalls; ++j) */
-/* { */
-/* #if defined(CONFIG_X86_64) */
-/* len += snprintf(page + len, count - len, "%ld\t%ld\n", */
-/* atomic64_read(&g_syscall_count[j].count), */
-/* atomic64_read(&g_syscall_count[j].count) ? (atomic64_read(&g_syscall_count[j].tot_time_ns) / atomic64_read(&g_syscall_count[j].count)) : 0); */
-/* #else */
-/* len += snprintf(page + len, count - len, "%lld\n", */
-/* atomic64_read(&g_syscall_count[j].count)); */
-/* #endif */
-/* } */
-
-/* *eof = 1; */
-/* return len; */
-/* } */
 
 int sysdig_init(void)
 {
@@ -1291,7 +1321,8 @@ int sysdig_init(void)
 	/*
 	 * All ok. Final initalizations.
 	 */
-	atomic_set(&g_open_count, 0);
+	g_open_count = 0;
+	g_tracepoint_registered = false;
 	g_dropping_mode = 0;
 
 	return 0;
@@ -1361,3 +1392,4 @@ void sysdig_exit(void)
 
 module_init(sysdig_init);
 module_exit(sysdig_exit);
+module_param(verbose, bool, 0);

@@ -23,6 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "protodecoder.h"
 
 static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 {
@@ -276,6 +277,21 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 			break;
 		}
 
+		//
+		// Call the protocol decoder callbacks associated to notify them about this FD
+		//
+		ASSERT(m_inspector != NULL);
+		vector<sinsp_protodecoder*>::iterator it;
+
+		for(it = m_inspector->m_parser->m_open_callbacks.begin(); 
+			it != m_inspector->m_parser->m_open_callbacks.end(); ++it)
+		{
+			(*it)->on_fd_from_proc(&newfdi);
+		}
+
+		//
+		// Add the FD to the table
+		//
 		if(do_add)
 		{
 			m_fdtable.add(fdi->fd, &newfdi);
@@ -716,6 +732,11 @@ void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* thread
 
 		if(parent_thread)
 		{
+			if(parent_thread->m_tid == threadinfo->m_tid)
+			{
+				return;
+			}
+			
 			if((parent_thread->m_comm == threadinfo->m_comm) &&
 				(parent_thread->m_exe == threadinfo->m_exe))
 			{
@@ -815,8 +836,14 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it)
 			sinsp_threadinfo* main_thread = m_inspector->get_thread(it->second.m_pid, false);
 			if(main_thread)
 			{
-				ASSERT(main_thread->m_nchilds);
-				--main_thread->m_nchilds;
+				if(main_thread->m_nchilds > 0)
+				{
+					--main_thread->m_nchilds;
+				}
+				else
+				{
+					ASSERT(false);
+				}
 			}
 			else
 			{

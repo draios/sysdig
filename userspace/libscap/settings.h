@@ -3,3 +3,5 @@
 // in the fd tables. It's useful to debug close() leaks
 //
 #define INCLUDE_UNKNOWN_SOCKET_FDS
+
+#define USE_ZLIB
