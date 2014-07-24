@@ -3132,8 +3132,10 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 		return PPM_PTRACE_SYSEMU_SINGLESTEP;
 	case PTRACE_SYSEMU:
 		return PPM_PTRACE_SYSEMU;
+#ifdef PTRACE_ARCH_PRCTL
 	case PTRACE_ARCH_PRCTL:
 		return PPM_PTRACE_ARCH_PRCTL;
+#endif
 	case PTRACE_SET_THREAD_AREA:
 		return PPM_PTRACE_SET_THREAD_AREA;
 	case PTRACE_GET_THREAD_AREA:
