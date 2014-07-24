@@ -145,9 +145,11 @@ strncpy_end:
  * NOTES:
  * - val_len is ignored for everything other than PT_BYTEBUF.
  * - fromuser is ignored for numeric types
+ * - dyn_idx is ignored for everything other than PT_DYN
  */
-inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser)
+inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, u8 dyn_idx)
 {
+	const struct ppm_param_info* param_info;
 	int len = -1;
 	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
 
@@ -168,7 +170,32 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 		return PPM_FAILURE_BUFFER_FULL;
 	}
 
-	switch (g_event_info[args->event_type].params[args->curarg].type) {
+	param_info = &(g_event_info[args->event_type].params[args->curarg]);
+	if (param_info->type == PT_DYN && param_info->info != NULL) {
+		const struct ppm_param_info *dyn_params;
+
+		if (unlikely(dyn_idx >= param_info->ninfo)) {
+			ASSERT(0);
+			return PPM_FAILURE_BUG;
+		}
+
+		dyn_params = (const struct ppm_param_info *)param_info->info;
+
+		param_info = &dyn_params[dyn_idx];
+		if (likely(args->arg_data_size >= sizeof(u8)))	{
+			*(u8 *)(args->buffer + args->arg_data_offset) = dyn_idx;
+			len = sizeof(u8);
+		} else {
+			return PPM_FAILURE_BUFFER_FULL;
+		}
+		args->arg_data_offset += len;
+		args->arg_data_size -= len;
+		*psize = (u16)len;
+	} else {
+		*psize = 0;
+	}
+
+	switch (param_info->type) {
 	case PT_CHARBUF:
 	case PT_FSPATH:
 		if (likely(val != 0)) {
@@ -326,7 +353,7 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 	ASSERT(len <= 65535);
 	ASSERT(len <= args->arg_data_size);
 
-	*psize = (u16)len;
+	*psize += (u16)len;
 	args->curarg++;
 	args->arg_data_offset += len;
 	args->arg_data_size -= len;
@@ -856,7 +883,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 		for (j = 0; j < iovcnt; j++)
 			size += iov[j].iov_len;
 
-		res = val_to_ring(args, size, 0, false);
+		res = val_to_ring(args, size, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
@@ -874,11 +901,12 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			res = val_to_ring(args,
 				(unsigned long)iov[0].iov_base,
 				min(bufsize, (unsigned long)g_snaplen),
-				true);
+				true,
+				0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		} else {
-			res = val_to_ring(args, 0, 0, false);
+			res = val_to_ring(args, 0, 0, false, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		}
@@ -933,7 +961,7 @@ int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_e
 			}
 #endif
 
-			res = val_to_ring(args, val, 0, true);
+			res = val_to_ring(args, val, 0, true, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		} else if (evinfo->autofill_args[j].id == AF_ID_RETVAL) {
@@ -941,14 +969,14 @@ int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_e
 			 * Return value
 			 */
 			retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
-			res = val_to_ring(args, retval, 0, false);
+			res = val_to_ring(args, retval, 0, false, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		} else if (evinfo->autofill_args[j].id == AF_ID_USEDEFAULT) {
 			/*
 			 * Default Value
 			 */
-			res = val_to_ring(args, evinfo->autofill_args[j].default_val, 0, false);
+			res = val_to_ring(args, evinfo->autofill_args[j].default_val, 0, false, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		} else {

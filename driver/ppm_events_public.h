@@ -227,6 +227,57 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_FCNTL_F_SETPIPE_SZ 28
 #define PPM_FCNTL_F_GETPIPE_SZ 29
 
+ /*
+ * ptrace requests
+ */
+#define PPM_PTRACE_UNKNOWN 0
+#define PPM_PTRACE_TRACEME 1
+#define PPM_PTRACE_PEEKTEXT 2
+#define PPM_PTRACE_PEEKDATA 3
+#define PPM_PTRACE_PEEKUSR 4
+#define PPM_PTRACE_POKETEXT 5
+#define PPM_PTRACE_POKEDATA 6
+#define PPM_PTRACE_POKEUSR 7
+#define PPM_PTRACE_CONT 8
+#define PPM_PTRACE_KILL 9
+#define PPM_PTRACE_SINGLESTEP 10
+#define PPM_PTRACE_ATTACH 11
+#define PPM_PTRACE_DETACH 12
+#define PPM_PTRACE_SYSCALL 13
+#define PPM_PTRACE_SETOPTIONS 14
+#define PPM_PTRACE_GETEVENTMSG 15
+#define PPM_PTRACE_GETSIGINFO 16
+#define PPM_PTRACE_SETSIGINFO 17
+#define PPM_PTRACE_GETREGSET 18
+#define PPM_PTRACE_SETREGSET 19
+#define PPM_PTRACE_SEIZE 20
+#define PPM_PTRACE_INTERRUPT 21
+#define PPM_PTRACE_LISTEN 22
+#define PPM_PTRACE_PEEKSIGINFO 23
+#define PPM_PTRACE_GETSIGMASK 24
+#define PPM_PTRACE_SETSIGMASK 25
+#define PPM_PTRACE_GETREGS 26
+#define PPM_PTRACE_SETREGS 27
+#define PPM_PTRACE_GETFPREGS 28
+#define PPM_PTRACE_SETFPREGS 29
+#define PPM_PTRACE_GETFPXREGS 30
+#define PPM_PTRACE_SETFPXREGS 31
+#define PPM_PTRACE_OLDSETOPTIONS 32
+#define PPM_PTRACE_GET_THREAD_AREA 33
+#define PPM_PTRACE_SET_THREAD_AREA 34
+#define PPM_PTRACE_ARCH_PRCTL 35
+#define PPM_PTRACE_SYSEMU 36
+#define PPM_PTRACE_SYSEMU_SINGLESTEP 37
+#define PPM_PTRACE_SINGLEBLOCK 38
+
+/*
+ * ptrace dynamic table indexes
+ */
+#define PPM_PTRACE_IDX_UINT64 0
+#define PPM_PTRACE_IDX_SIGTYPE 1
+
+#define PPM_PTRACE_IDX_MAX 2
+
 /*
  * memory protection flags
  */
@@ -467,7 +518,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_MUNMAP_X = 165,
 	PPME_SYSCALL_SPLICE_E = 166,
 	PPME_SYSCALL_SPLICE_X = 167,
-	PPM_EVENT_MAX = 168
+	PPME_SYSCALL_PTRACE_E = 168,
+	PPME_SYSCALL_PTRACE_X = 169,
+	PPM_EVENT_MAX = 170
 };
 /*@}*/
 
@@ -892,7 +945,9 @@ struct ppm_param_info {
 	char name[PPM_MAX_NAME_LEN];  /**< Paramter name, e.g. 'size'. */
 	enum ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
-	const struct ppm_name_value *symbols; /**< If this is a flags parameter, it points to an array of ppm_name_value, terminated with {0, 0} */
+	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
+			       else if this is a dynamic parameter it points to an array of ppm_param_info */
+	uint8_t ninfo; /**< Number of entry in the info array. */
 };
 
 /*!
@@ -964,8 +1019,11 @@ extern const struct ppm_name_value poll_flags[];
 extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
+extern const struct ppm_name_value ptrace_requests[];
 extern const struct ppm_name_value prot_flags[];
 extern const struct ppm_name_value mmap_flags[];
 extern const struct ppm_name_value splice_flags[];
+
+extern const struct ppm_param_info ptrace_dynamic_param[];
 
 #endif /* EVENTS_PUBLIC_H_ */

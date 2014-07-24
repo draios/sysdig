@@ -95,7 +95,7 @@ extern const struct ppm_event_entry g_ppm_events[];
  * Functions
  */
 int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo);
-int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser);
+int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, uint8_t dyn_idx);
 char *npm_getcwd(char *buf, unsigned long bufsize);
 u16 pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, u16 targetbufsize);
 u16 fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, u16 targetbufsize);
