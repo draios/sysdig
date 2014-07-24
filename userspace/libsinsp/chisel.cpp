@@ -393,6 +393,23 @@ public:
 		return 0;
 	}
 
+	static int set_fatfile_dump_mode(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		int mode = lua_toboolean(ls, 1); 
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		ch->m_inspector->set_fatfile_dump_mode(mode != 0);
+
+		return 0;
+	}
+
 	static int make_ts(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
@@ -578,6 +595,7 @@ const static struct luaL_reg ll_sysdig [] =
 {
 	{"set_filter", &lua_cbacks::set_global_filter},
 	{"set_snaplen", &lua_cbacks::set_snaplen},
+	{"set_fatfile_dump_mode", &lua_cbacks::set_fatfile_dump_mode},
 	{"is_live", &lua_cbacks::is_live},
 	{"is_tty", &lua_cbacks::is_tty},
 	{"get_machine_info", &lua_cbacks::get_machine_info},
