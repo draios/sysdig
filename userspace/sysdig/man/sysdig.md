@@ -97,6 +97,9 @@ OPTIONS
 **-D**, **--debug**
   Capture events about sysdig itself
 
+**-F**, **--fatfile**
+  Enable fatfile mode. When writing in fatfile mode, the output file will contain events that will be invisible when reading the file, but that are necessary to fully reconstruct the state. Fatfile mode is useful when saving events to disk with an aggressive filter. The filter could drop events that would the state to be updated (e.g. clone() or open()). With fatfile mode, those events are still saved to file, but 'hidden' so that they won't appear when reading the file. Be aware that using this flag might generate substantially bigger traces files.
+
 **-h**, **--help**  
   Print this page
   

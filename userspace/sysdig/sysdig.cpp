@@ -106,12 +106,23 @@ static void usage()
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
 #endif
-" -d, --displayflt   Make the given filter a display one.\n"
+" -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
 " -D, --debug        Capture events about sysdig itself\n"
+" -F, --fatfile	     Enable fatfile mode\n"
+"                    when writing in fatfile mode, the output file will contain\n"
+"                    events that will be invisible when reading the file, but\n"
+"                    that are necessary to fully reconstruct the state.\n"
+"                    Fatfile mode is useful when saving events to disk with an\n"
+"                    aggressive filter. The filter could drop events that would\n"
+"                    the state to be updated (e.g. clone() or open()). With\n"
+"                    fatfile mode, those events are still saved to file, but\n"
+"                    'hidden' so that they won't appear when reading the file.\n"
+"                    Be aware that using this flag might generate substantially\n"
+"                    bigger traces files.\n"
 #ifndef DISABLE_CGW
 " -G <num_seconds>, --seconds=<num_seconds>\n"
 "                    Rotates the dump file specified with the -w option every\n"
@@ -140,7 +151,7 @@ static void usage()
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
 "                    See the examples section below for more info.\n"
-" -q, --quiet        Don't print events on the screen.\n"
+" -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
 " -r <readfile>, --read=<readfile>\n"
 "                    Read the events from <readfile>.\n"
@@ -645,6 +656,7 @@ int main(int argc, char **argv)
 		{"compress", no_argument, 0, 'z' },
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
+		{"fatfile", no_argument, 0, 'F'},
 #ifndef DISABLE_CGW
 		{"seconds", required_argument, 0, 'G' },
 #endif
@@ -695,7 +707,7 @@ int main(int argc, char **argv)
 #ifndef DISABLE_CGW
                                         "C:"
 #endif
-                                        "dD"
+                                        "dDF"
 #ifndef DISABLE_CGW
                                         "G:"
 #endif
@@ -778,7 +790,9 @@ int main(int argc, char **argv)
 			case 'D':
 				inspector->set_debug_mode(true);
 				break;
-
+			case 'F':
+				inspector->set_fatfile_dump_mode(true);
+				break;
 #ifndef DISABLE_CGW
 			// Number of seconds between roll-over
 			case 'G':
@@ -1124,7 +1138,6 @@ int main(int argc, char **argv)
 
 			if(outfile != "")
 			{
-
 				inspector->setup_cycle_writer(outfile, rollover_mb, duration_seconds, file_limit, do_cycle, compress);
 				inspector->autodump_next_file();
 			}

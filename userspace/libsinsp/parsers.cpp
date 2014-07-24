@@ -73,6 +73,7 @@ sinsp_parser::~sinsp_parser()
 void sinsp_parser::process_event(sinsp_evt *evt)
 {
 	uint16_t etype = evt->get_type();
+	bool is_live = m_inspector->is_live();
 
 	//
 	// Cleanup the event-related state
@@ -83,7 +84,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	// When debug mode is not enabled, filter out events about sysdig itself
 	//
 #if defined(HAS_CAPTURE)
-	if(m_inspector->is_live() && !m_inspector->is_debug_enabled())
+	if(is_live && !m_inspector->is_debug_enabled())
 	{
 		if(evt->get_tid() == m_sysdig_pid && 
 			etype != PPME_SCHEDSWITCH_1_E && 
@@ -281,6 +282,19 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		evt->m_filtered_out = false;
 	}
 #endif
+
+	//
+	// Offline captures can prodice events with the SCAP_DF_STATE_ONLY. They are
+	// supposed to go through the engine, but they must be filtered out before 
+	// reaching the user.
+	//
+	if(!is_live)
+	{
+		if(evt->get_dump_flags() & SCAP_DF_STATE_ONLY)
+		{
+			evt->m_filtered_out = true;
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

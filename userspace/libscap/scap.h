@@ -388,6 +388,16 @@ typedef enum compression_mode
 	SCAP_COMPRESSION_GZIP = 1
 }compression_mode;
 
+/*!
+  \brief Flags for scap_dump
+*/
+typedef enum scap_dump_flags
+{
+	SCAP_DF_NONE = 0,
+	SCAP_DF_STATE_ONLY = 1	///< The event should be used for state update but it should 
+							///< not be shown to the user
+}scap_dump_flags;
+
 typedef struct scap_dumper scap_dumper_t;
 /*@}*/
 
@@ -511,6 +521,15 @@ uint64_t scap_event_get_num(scap_t* handle);
 const struct ppm_event_info* scap_event_getinfo(scap_evt* e);
 
 /*!
+  \brief Return the dump flags for the last event received from this handle
+
+  \param handle Handle to the capture instance.
+			
+  \return The flags if the capture is offline, 0 if the capture is live. 
+*/
+uint32_t scap_event_get_dump_flags(scap_t* handle);
+
+/*!
   \brief Return the current offset in the file opened by scap_open_offline(),
   or -1 if this is a live capture.
 
@@ -570,12 +589,13 @@ int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t* byte
   \param d The dump handle, returned by \ref scap_dump_open
   \param e pointer to an event returned by \ref scap_next.
   \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
-			
+  \param flags The event flags. 0 means no flags.
+
   \return SCAP_SUCCESS if the call is succesful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
    the cause of the error. 
 */
-int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt* e, uint16_t cpuid);
+int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt* e, uint16_t cpuid, uint32_t flags);
 
 /*!
   \brief Get the process list for the given capture instance

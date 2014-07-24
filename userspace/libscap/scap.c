@@ -75,6 +75,7 @@ scap_t* scap_open_live(char *error)
 	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
 	handle->m_emptybuf_timeout_ms = BUFFER_EMPTY_WAIT_TIME_MS;
+	handle->m_last_evt_dump_flags = 0;
 
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
@@ -256,6 +257,7 @@ scap_t* scap_open_offline(const char* fname, char *error)
 	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
+	handle->m_last_evt_dump_flags = 0;
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -1000,7 +1002,6 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 #endif
 }
 
-
 int32_t scap_clear_eventmask(scap_t* handle) {
 #if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
@@ -1028,3 +1029,7 @@ int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
 #endif
 }
 
+uint32_t scap_event_get_dump_flags(scap_t* handle)
+{
+	return handle->m_last_evt_dump_flags;
+}

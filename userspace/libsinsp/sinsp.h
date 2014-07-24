@@ -462,6 +462,15 @@ public:
 	void set_debug_mode(bool enable_debug);
 
 	/*!
+	  \brief Set the fatfile mode when writing events to file.
+
+	  \note fatfile mode involves saving "hidden" events in the trace file 
+	   that make it possible to preserve full state even when filters that
+	   would drop state packets are used during the capture.
+	*/
+	void set_fatfile_dump_mode(bool enable_fatfile);
+
+	/*!
 	  \brief Returns true if the debug mode is enabled.
 	*/
 	bool is_debug_enabled();
@@ -521,6 +530,7 @@ private:
 	int64_t m_filesize;
 	bool m_islive;
 	bool m_isdebug_enabled;
+	bool m_isfatfile_enabled;
 	bool m_compress;
 	sinsp_evt m_evt;
 	string m_lasterr;
@@ -582,6 +592,7 @@ private:
 	// The cycle-writer for files
 	//
 	cycle_writer* m_cycle_writer;
+	bool m_write_cycling;
 
 	//
 	// Some dropping infrastructure

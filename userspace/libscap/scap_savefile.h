@@ -109,6 +109,11 @@ typedef struct _section_header_block
 											// library release. We'll keep him for a while for
 											// backward compatibility
 
+///////////////////////////////////////////////////////////////////////////////
+// EVENT BLOCK WITH FLAGS
+///////////////////////////////////////////////////////////////////////////////
+#define EVF_BLOCK_TYPE	0x208
+
 #if defined __sun
 #pragma pack()
 #else

@@ -132,6 +132,11 @@ uint64_t sinsp_evt::get_ts()
 	return m_pevt->ts;
 }
 
+uint32_t sinsp_evt::get_dump_flags()
+{
+	return scap_event_get_dump_flags(m_inspector->m_h);
+}
+
 const char *sinsp_evt::get_name()
 {
 	return m_info->name;
@@ -1932,3 +1937,35 @@ bool sinsp_evt::is_filtered_out()
 {
 	return m_filtered_out;
 }
+
+#ifdef HAS_FILTERING
+scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
+{
+	scap_dump_flags dflags = SCAP_DF_NONE;
+	*should_drop = false;
+
+	if(m_filtered_out)
+	{
+		if(m_inspector->m_isfatfile_enabled)
+		{
+			ppm_event_flags eflags = get_flags();
+
+			if(eflags & EF_MODIFIES_STATE)
+			{
+				dflags = SCAP_DF_STATE_ONLY;
+			}
+			else
+			{
+				*should_drop = true;
+				return dflags;
+			}
+		}
+		else
+		{
+			*should_drop = true;
+		}
+	}
+
+	return dflags;
+}
+#endif

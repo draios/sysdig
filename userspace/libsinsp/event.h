@@ -167,7 +167,6 @@ public:
 	*/
 	uint64_t get_ts();
 
-
 	/*!
 	  \brief Return the event name string, e.g. 'open' or 'socket'.
 	*/
@@ -258,6 +257,7 @@ public:
 	  \brief Return true if the event has been rejected by the filtering system.
 	*/
 	bool is_filtered_out();
+	scap_dump_flags get_dump_flags(OUT bool* should_drop);
 #endif
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -279,6 +279,7 @@ private:
 	string get_param_value_str(const char* name, bool resolved = true);
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
+	uint32_t get_dump_flags();
 
 VISIBILITY_PRIVATE
 

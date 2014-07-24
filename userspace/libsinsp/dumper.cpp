@@ -65,7 +65,7 @@ void sinsp_dumper::dump(sinsp_evt* evt)
 	}
 
 	int32_t res = scap_dump(m_inspector->m_h, 
-		m_dumper, evt->m_pevt, evt->m_cpuid);
+		m_dumper, evt->m_pevt, evt->m_cpuid, 0);
 
 	if(res != SCAP_SUCCESS)
 	{

@@ -59,6 +59,7 @@ sinsp::sinsp() :
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = new cycle_writer();
+	m_write_cycling = false;
 
 #ifdef HAS_ANALYZER
 	m_analyzer = NULL;
@@ -77,6 +78,7 @@ sinsp::sinsp() :
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_isdebug_enabled = false;
+	m_isfatfile_enabled = false;
 	m_filesize = -1;
 }
 
@@ -489,6 +491,57 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	m_parser->process_event(&m_evt);
 #endif
 
+	//
+	// If needed, dump the event to file
+	//
+	if(NULL != m_dumper)
+	{
+#if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
+		scap_dump_flags dflags;
+		
+		bool do_drop;
+		dflags = m_evt.get_dump_flags(&do_drop);
+		if(do_drop)
+		{
+			*evt = &m_evt;
+			return SCAP_TIMEOUT;
+		}
+#endif
+
+		if(m_write_cycling)
+		{
+			res = scap_number_of_bytes_to_write(m_evt.m_pevt, m_evt.m_cpuid, &bytes_to_write);
+			if(SCAP_SUCCESS != res)
+			{
+				throw sinsp_exception(scap_getlasterr(m_h));
+			}
+			else 
+			{
+				switch(m_cycle_writer->consider(bytes_to_write))
+				{
+					case cycle_writer::NEWFILE:
+						autodump_next_file();
+						break;
+
+					case cycle_writer::DOQUIT:
+						stop_capture();
+						return SCAP_EOF;
+						break;
+
+					case cycle_writer::SAMEFILE:
+						// do nothing.
+						break;
+				}
+			}
+		}
+
+		res = scap_dump(m_h, m_dumper, m_evt.m_pevt, m_evt.m_cpuid, dflags);
+		if(SCAP_SUCCESS != res)
+		{
+			throw sinsp_exception(scap_getlasterr(m_h));
+		}
+	}
+
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 	if(m_evt.m_filtered_out)
 	{
@@ -496,42 +549,6 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		return SCAP_TIMEOUT;
 	}
 #endif
-
-	//
-	// If needed, dump the event to file
-	//
-	if(NULL != m_dumper)
-	{
-		res = scap_number_of_bytes_to_write(m_evt.m_pevt, m_evt.m_cpuid, &bytes_to_write);
-		if(SCAP_SUCCESS != res)
-		{
-			throw sinsp_exception(scap_getlasterr(m_h));
-		}
-		else 
-		{
-			switch(m_cycle_writer->consider(bytes_to_write))
-			{
-				case cycle_writer::NEWFILE:
-					autodump_next_file();
-					break;
-
-				case cycle_writer::DOQUIT:
-					stop_capture();
-					return SCAP_EOF;
-					break;
-
-				case cycle_writer::SAMEFILE:
-					// do nothing.
-					break;
-			}
-		} 
-
-		res = scap_dump(m_h, m_dumper, m_evt.m_pevt, m_evt.m_cpuid);
-		if(SCAP_SUCCESS != res)
-		{
-			throw sinsp_exception(scap_getlasterr(m_h));
-		}
-	}
 
 	//
 	// Run the analysis engine
@@ -872,6 +889,11 @@ void sinsp::set_debug_mode(bool enable_debug)
 	m_isdebug_enabled = enable_debug;
 }
 
+void sinsp::set_fatfile_dump_mode(bool enable_fatfile)
+{
+	m_isfatfile_enabled = enable_fatfile;
+}
+
 bool sinsp::is_debug_enabled()
 {
 	return m_isdebug_enabled;
@@ -895,6 +917,11 @@ sinsp_parser* sinsp::get_parser()
 bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress) 
 {
 	m_compress = compress;
+
+	if(rollover_mb != 0 || duration_seconds != 0 || file_limit != 0 || do_cycle == true)
+	{
+		m_write_cycling = true;
+	}
 
 	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, do_cycle);
 }

@@ -674,7 +674,9 @@ void scap_dump_flush(scap_dumper_t *d)
 	gzflush((gzFile)d, Z_FULL_FLUSH);
 }
 
+//
 // Tell me how many bytes we will have written if we did.
+//
 int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t *bytes)
 {
 	*bytes = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + e->len + 4);
@@ -685,27 +687,50 @@ int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t *byte
 //
 // Write an event to a dump file
 //
-int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid)
+int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid, uint32_t flags)
 {
 	block_header bh;
 	uint32_t bt;
 	gzFile f = (gzFile)d;
 
-	//
-	// Write the section header
-	//
-	bh.block_type = EV_BLOCK_TYPE;
-	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + e->len + 4);
-	bt = bh.block_total_length;
-
-	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh) ||
-	        gzwrite(f, &cpuid, sizeof(cpuid)) != sizeof(cpuid) ||
-	        gzwrite(f, e, e->len) != e->len ||
-	        scap_write_padding(f, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
-	        gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+	if(flags == 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
-		return SCAP_FAILURE;
+		//
+		// Write the section header
+		//
+		bh.block_type = EV_BLOCK_TYPE;
+		bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + e->len + 4);
+		bt = bh.block_total_length;
+
+		if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh) ||
+				gzwrite(f, &cpuid, sizeof(cpuid)) != sizeof(cpuid) ||
+				gzwrite(f, e, e->len) != e->len ||
+				scap_write_padding(f, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
+				gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
+			return SCAP_FAILURE;
+		}
+	}
+	else
+	{
+		//
+		// Write the section header
+		//
+		bh.block_type = EVF_BLOCK_TYPE;
+		bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + sizeof(flags) + e->len + 4);
+		bt = bh.block_total_length;
+
+		if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh) ||
+				gzwrite(f, &cpuid, sizeof(cpuid)) != sizeof(cpuid) ||
+				gzwrite(f, &flags, sizeof(flags)) != sizeof(flags) ||
+				gzwrite(f, e, e->len) != e->len ||
+				scap_write_padding(f, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
+				gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
+			return SCAP_FAILURE;
+		}
 	}
 
 	//
@@ -1706,6 +1731,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			break;
 		case EV_BLOCK_TYPE:
 		case EV_BLOCK_TYPE_INT:
+		case EVF_BLOCK_TYPE:
 			found_ev = 1;
 
 			//
@@ -1844,7 +1870,9 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		}
 	}
 
-	if(bh.block_type != EV_BLOCK_TYPE && bh.block_type != EV_BLOCK_TYPE_INT)
+	if(bh.block_type != EV_BLOCK_TYPE && 
+		bh.block_type != EV_BLOCK_TYPE_INT &&
+		bh.block_type != EVF_BLOCK_TYPE)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
 		return SCAP_FAILURE;
@@ -1863,7 +1891,21 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	readsize = gzread(f, handle->m_file_evt_buf, readlen);
 	CHECK_READ_SIZE(readsize, readlen);
 
+	//
+	// EVF_BLOCK_TYPE has 32 bits of flags
+	//
 	*pcpuid = *(uint16_t *)handle->m_file_evt_buf;
-	*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t));
+
+	if(bh.block_type == EVF_BLOCK_TYPE)
+	{
+		handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_file_evt_buf + sizeof(uint16_t));
+		*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
+	}
+	else
+	{
+		handle->m_last_evt_dump_flags = 0;
+		*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t));
+	}
+
 	return SCAP_SUCCESS;
 }

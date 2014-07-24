@@ -83,6 +83,7 @@ struct scap
 	FILE* m_file;
 #endif
 	char* m_file_evt_buf;
+	uint32_t m_last_evt_dump_flags;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 	scap_threadinfo* m_proclist;
 	scap_threadinfo m_fake_kernel_proc;
