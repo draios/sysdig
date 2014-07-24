@@ -43,11 +43,17 @@ function _filter () {
         # full filter expansion
         local ops
         ops=("=" "!=" "<" "<=" ">" ">=" "contains" "and" "or" "not")
+
+        # Remove the FILTER-ONLY string, since we don't need to indicate that to
+        # the user here
+        fields=(${fields/"(FILTER ONLY) "/}) # 
         _describe -t fields 'Fields' fields
         _describe -t operators 'Operators' ops
     elif [[ $1 == "format" ]]; then
         # expanding format specifiers
         local allfields_withpercent;
+
+        # add a leading '%', and remove all FILTER-ONLY fields
         allfields_withpercent=("%"${^fields:#*FILTER ONLY*})
 
         # skip all leading characters that can't be in a field name. This lets
