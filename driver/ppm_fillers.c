@@ -3164,12 +3164,18 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_PEEKSIGINFO:
 		return PPM_PTRACE_PEEKSIGINFO;
 #endif
+#ifdef PTRACE_LISTEN
 	case PTRACE_LISTEN:
 		return PPM_PTRACE_LISTEN;
+#endif
+#ifdef PTRACE_INTERRUPT
 	case PTRACE_INTERRUPT:
 		return PPM_PTRACE_INTERRUPT;
+#endif
+#ifdef PTRACE_SEIZE
 	case PTRACE_SEIZE:
 		return PPM_PTRACE_SEIZE;
+#endif
 	case PTRACE_SETREGSET:
 		return PPM_PTRACE_SETREGSET;
 	case PTRACE_GETREGSET:
