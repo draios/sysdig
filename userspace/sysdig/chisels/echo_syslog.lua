@@ -72,7 +72,7 @@ function on_init()
 	sysdig.set_snaplen(1000)
 	
 	-- set the filter
-	chisel.set_filter("evt.is_io_write=true and evt.dir=< and fd.name contains /dev/log")
+	chisel.set_filter("fd.name contains /dev/log and evt.is_io_write=true and evt.dir=< and evt.failed=false")
 	
 	is_tty = sysdig.is_tty()
 	
@@ -131,7 +131,6 @@ function on_capture_end()
 			args = args .. "(evt.around[" .. ts_to_str(v[1], v[2]) .. "]=" .. dump_range_ms .. " and thread.tid=" .. v[3] .. ")"
 		end		
 
-print(args)		
 		sysdig.run_sysdig(args)
 	end
 end
