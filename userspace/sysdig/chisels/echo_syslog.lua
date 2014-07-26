@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "Print every message written to syslog by any process. You can combine this chisel with filters like 'proc.name=foo' (to restrict the output to a specific process), or 'syslog.message contains foo' (to show only messages including a specific string). You can also write the events generated around each log entry to file by using the dump_file_name and dump_range_ms arguments.";
-short_description = "Print every message written to syslog.";
+short_description = "Print every message written to syslog. Optionally, export the events around each syslog message to file.";
 category = "Misc";
 		   
 -- Argument list
@@ -60,7 +60,7 @@ function on_set_arg(name, val)
 end
 
 -- Initialization callback
-function on_init()
+function on_init()	
 	-- Request the fields that we need
 	ffac = chisel.request_field("syslog.facility.str")
 	fsev = chisel.request_field("syslog.severity.str")
@@ -75,6 +75,17 @@ function on_init()
 	chisel.set_filter("fd.name contains /dev/log and evt.is_io_write=true and evt.dir=< and evt.failed=false")
 	
 	is_tty = sysdig.is_tty()
+	
+	return true
+end
+
+function on_capture_start()
+	if is_dumping then
+		if sysdig.is_live() then
+			print("exporting events around syslog messages not supported on live captures")
+			return false
+		end
+	end
 	
 	return true
 end
