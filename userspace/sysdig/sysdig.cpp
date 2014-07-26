@@ -376,6 +376,8 @@ static void free_chisels()
 	{
 		delete *it;
 	}
+
+	g_chisels.clear();
 #endif
 }
 
@@ -611,11 +613,11 @@ captureinfo do_inspect(sinsp* inspector,
 }
 
 //
-// MAIN
+// ARGUMENT PARSING AND PROGRAM SETUP
 //
-int main(int argc, char **argv)
+sysdig_init_res sysdig_init(int argc, char **argv)
 {
-	int res = EXIT_SUCCESS;
+	sysdig_init_res res;
 	sinsp* inspector = NULL;
 	vector<string> infiles;
 	string outfile;
@@ -724,7 +726,7 @@ int main(int argc, char **argv)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
 					delete inspector;
-					return EXIT_SUCCESS;
+					return sysdig_init_res(EXIT_SUCCESS);
 				}
 
 				event_buffer_format = sinsp_evt::PF_EOLS;
@@ -761,7 +763,7 @@ int main(int argc, char **argv)
 						sinsp_chisel::get_chisel_list(&chlist);
 						list_chisels(&chlist, true);
 						delete inspector;
-						return EXIT_SUCCESS;
+						return sysdig_init_res(EXIT_SUCCESS);
 					}
 
 					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
@@ -778,7 +780,7 @@ int main(int argc, char **argv)
 				if(rollover_mb <= 0)
 				{
 					throw sinsp_exception(string("invalid file size") + optarg);
-					res = EXIT_FAILURE;
+					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
 
@@ -800,7 +802,7 @@ int main(int argc, char **argv)
 				if(duration_seconds <= 0)
 				{
 					throw sinsp_exception(string("invalid duration") + optarg);
-					res = EXIT_FAILURE;
+					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
 				break;
@@ -822,7 +824,7 @@ int main(int argc, char **argv)
 						{
 							print_chisel_info(&chlist[j]);
 							delete inspector;
-							return EXIT_SUCCESS;
+							return sysdig_init_res(EXIT_SUCCESS);
 						}
 					}
 
@@ -841,7 +843,7 @@ int main(int argc, char **argv)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
 					delete inspector;
-					return EXIT_SUCCESS;
+					return sysdig_init_res(EXIT_SUCCESS);
 				}
 
 				event_buffer_format = sinsp_evt::PF_JSON;
@@ -849,20 +851,20 @@ int main(int argc, char **argv)
 			case 'h':
 				usage();
 				delete inspector;
-				return EXIT_SUCCESS;
+				return sysdig_init_res(EXIT_SUCCESS);
 			case 'l':
 				list_flds = true;
 				break;
 			case 'L':
 				list_events(inspector);
 				delete inspector;
-				return EXIT_SUCCESS;
+				return sysdig_init_res(EXIT_SUCCESS);
 			case 'n':
 				cnt = atoi(optarg);
 				if(cnt <= 0)
 				{
 					throw sinsp_exception(string("invalid event count ") + optarg);
-					res = EXIT_FAILURE;
+					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
 				break;
@@ -878,7 +880,7 @@ int main(int argc, char **argv)
 					replace_in_place(output_format, "<TIME>", timefmt);
 					printf("%s\n", output_format.c_str());
 					delete inspector;
-					return EXIT_SUCCESS;
+					return sysdig_init_res(EXIT_SUCCESS);
 				}
 				else
 				{
@@ -946,7 +948,7 @@ int main(int argc, char **argv)
 				if(file_limit <= 0)
 				{
 					throw sinsp_exception(string("invalid file limit") + optarg);
-					res = EXIT_FAILURE;
+					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
 				break;
@@ -957,7 +959,7 @@ int main(int argc, char **argv)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
 					delete inspector;
-					return EXIT_SUCCESS;
+					return sysdig_init_res(EXIT_SUCCESS);
 				}
 
 				event_buffer_format = sinsp_evt::PF_HEX;
@@ -967,7 +969,7 @@ int main(int argc, char **argv)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
 					delete inspector;
-					return EXIT_SUCCESS;
+					return sysdig_init_res(EXIT_SUCCESS);
 				}
 
 				event_buffer_format = sinsp_evt::PF_HEXASCII;
@@ -1000,7 +1002,7 @@ int main(int argc, char **argv)
 				list_fields(false);
 			}
 
-			res = EXIT_SUCCESS;
+			res.m_res = EXIT_SUCCESS;
 			goto exit;
 		}
 
@@ -1027,7 +1029,7 @@ int main(int argc, char **argv)
 			}
 #else
 			fprintf(stderr, "filtering not compiled.\n");
-			res = EXIT_FAILURE;
+			res.m_res = EXIT_FAILURE;
 			goto exit;
 #endif
 		}
@@ -1035,14 +1037,14 @@ int main(int argc, char **argv)
 		if(signal(SIGINT, signal_callback) == SIG_ERR)
 		{
 			fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
-			res = EXIT_FAILURE;
+			res.m_res = EXIT_FAILURE;
 			goto exit;
 		}
 
 		if(signal(SIGTERM, signal_callback) == SIG_ERR)
 		{
 			fprintf(stderr, "An error occurred while setting SIGTERM signal handler.\n");
-			res = EXIT_FAILURE;
+			res.m_res = EXIT_FAILURE;
 			goto exit;
 		}
 
@@ -1095,7 +1097,7 @@ int main(int argc, char **argv)
 				if(print_progress)
 				{
 					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
-					res = EXIT_FAILURE;
+					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
 
@@ -1183,15 +1185,27 @@ int main(int argc, char **argv)
 	{
 		cerr << e.what() << endl;
 		handle_end_of_file(print_progress);
-		res = EXIT_FAILURE;
+		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
 		handle_end_of_file(print_progress);
-		res = EXIT_FAILURE;
+		res.m_res = EXIT_FAILURE;
 	}
 
 exit:
+	//
+	// If any of the chisels is requesting another run,
+	//
+	for(vector<sinsp_chisel*>::iterator it = g_chisels.begin();
+		it != g_chisels.end(); ++it)
+	{
+		string na;
+		if((*it)->get_nextrun_args(&na))
+		{
+			res.m_next_run_args = sinsp_split(na, ' ');
+		}
+	}
 
 	//
 	// If there's a summary table, sort and print it
@@ -1201,6 +1215,9 @@ exit:
 		print_summary_table(inspector, summary_table, 100);
 	}
 
+	//
+	// Free all the stuff that was allocated
+	//
 	free_chisels();
 
 	if(inspector)
@@ -1213,9 +1230,42 @@ exit:
 		delete display_filter;
 	}
 
+	return res;
+}
+
+//
+// MAIN
+//
+int main(int argc, char **argv)
+{
+	sysdig_init_res res;
+
+	res = sysdig_init(argc, argv);
+
+	//
+	// Check if a second run has been requested
+	//
+	if(res.m_next_run_args.size() != 0)
+	{
+		optind = 1;
+		opterr = 1;
+		optopt = '?';
+
+		int newargc = (int)res.m_next_run_args.size() + 1;
+		vector<char*> newargv;
+
+		newargv.push_back(argv[0]);
+
+		for(int32_t j = 1; j < newargc; j++)
+		{
+			newargv.push_back((char*)res.m_next_run_args[j - 1].c_str());
+		}
+
+		res = sysdig_init(newargc, &(newargv[0]));
+	}
 #ifdef _WIN32
 	_CrtDumpMemoryLeaks();
 #endif
 
-	return res;
+	return res.m_res;
 }

@@ -192,6 +192,8 @@ void sinsp::open(string filename)
 		return;
 	}
 
+	m_input_filename = filename;
+
 	g_logger.log("starting offline capture");
 
 	m_h = scap_open_offline(filename.c_str(), error);

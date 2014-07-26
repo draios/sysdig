@@ -425,6 +425,24 @@ public:
 		return 1;
 	}
 
+	static int run_sysdig(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		const char* args = lua_tostring(ls, 1); 
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		ch->m_lua_cinfo->m_has_nextrun_args = true;
+		ch->m_lua_cinfo->m_nextrun_args = args;
+
+		return 0;
+	}
+
 	static int is_live(lua_State *ls) 
 	{
 		lua_getglobal(ls, "sichisel");
@@ -499,6 +517,28 @@ public:
 		else
 		{
 			lua_pushstring(ls, "normal");
+		}
+
+		return 1;
+	}
+
+	static int get_evtsource_name(lua_State *ls) 
+	{
+		lua_getglobal(ls, "sichisel");
+
+		sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+
+		ASSERT(ch);
+		ASSERT(ch->m_lua_cinfo);
+
+		if(ch->m_inspector->is_live())
+		{
+			lua_pushstring(ls, "");
+		}
+		else
+		{
+			lua_pushstring(ls, ch->m_inspector->get_input_filename().c_str());
 		}
 
 		return 1;
@@ -600,7 +640,9 @@ const static struct luaL_reg ll_sysdig [] =
 	{"is_tty", &lua_cbacks::is_tty},
 	{"get_machine_info", &lua_cbacks::get_machine_info},
 	{"get_output_format", &lua_cbacks::get_output_format},
+	{"get_evtsource_name", &lua_cbacks::get_evtsource_name},
 	{"make_ts", &lua_cbacks::make_ts},
+	{"run_sysdig", &lua_cbacks::run_sysdig},
 	{NULL,NULL}
 };
 
@@ -635,6 +677,7 @@ chiselinfo::chiselinfo(sinsp* inspector)
 	m_formatter = NULL;
 	m_dumper = NULL;
 	m_inspector = inspector;
+	m_has_nextrun_args = false;
 
 #ifdef HAS_LUA_CHISELS
 	m_callback_interval = 0;
@@ -1555,6 +1598,14 @@ void sinsp_chisel::on_capture_end()
 		lua_pop(m_ls, 1);
 	}
 #endif // HAS_LUA_CHISELS
+}
+
+bool sinsp_chisel::get_nextrun_args(OUT string* args)
+{
+	ASSERT(m_lua_cinfo != NULL);
+
+	*args = m_lua_cinfo->m_nextrun_args;
+	return m_lua_cinfo->m_has_nextrun_args;
 }
 
 #endif // HAS_CHISELS

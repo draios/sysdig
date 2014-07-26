@@ -32,6 +32,26 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // Capture results
 //
+class sysdig_init_res
+{
+public:
+	sysdig_init_res()
+	{
+		m_res = EXIT_SUCCESS;
+	}
+
+	sysdig_init_res(int res)
+	{
+		m_res = res;
+	}
+
+	int m_res;
+	vector<string> m_next_run_args;
+};
+
+//
+// Capture results
+//
 class captureinfo
 {
 public:

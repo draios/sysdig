@@ -135,6 +135,13 @@ function pairs_top_by_val(t, num, order)
 end
 
 --[[ 
+Timestamp <-> string conversion
+]]--
+function ts_to_str(tshi, tslo)
+	return string.format("%u%.9u", tshi, tslo)
+end
+
+--[[ 
 Pick a key-value table and render it to the console in sorted top format
 ]]--
 json = require ("dkjson")

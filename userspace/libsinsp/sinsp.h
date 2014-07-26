@@ -490,6 +490,15 @@ public:
 	void protodecoder_register_reset(sinsp_protodecoder* dec);
 
 	/*!
+	  \brief If this is an offline capture, return the name of the file that is
+	   being read, otherwise return an empty string.
+	*/
+	string get_input_filename()
+	{
+		return m_input_filename;
+	}
+
+	/*!
 	  \brief XXX.
 	*/
 	double get_read_progress();
@@ -529,6 +538,7 @@ private:
 	scap_t* m_h;
 	int64_t m_filesize;
 	bool m_islive;
+	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
 	bool m_compress;

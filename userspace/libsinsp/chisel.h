@@ -89,6 +89,8 @@ public:
 	sinsp_evt_formatter* m_formatter;
 	sinsp_dumper* m_dumper;
 	uint64_t m_callback_interval;
+	bool m_has_nextrun_args;
+	string m_nextrun_args;
 
 private:
 	sinsp* m_inspector;
@@ -111,6 +113,7 @@ public:
 	void on_init();
 	void on_capture_start();
 	void on_capture_end();
+	bool get_nextrun_args(OUT string* args);
 
 private:
 	bool openfile(string filename, OUT ifstream* is);
