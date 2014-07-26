@@ -40,15 +40,16 @@ args =
 require "common"
 terminal = require "ansiterminal"
 terminal.enable_color(true)
-local is_dumping = false
+local do_dump = false
 local dump_file_name = nil
 local dump_range_ms = "1000"
-entrylist = {}
+local entrylist = {}
+local capturing = false
 
 -- Argument notification callback
 function on_set_arg(name, val)
     if name == "dump_file_name" then
-		is_dumping = true
+		do_dump = true
         dump_file_name = val
         return true
     elseif name == "dump_range_ms" then
@@ -80,13 +81,15 @@ function on_init()
 end
 
 function on_capture_start()
-	if is_dumping then
+	if do_dump then
 		if sysdig.is_live() then
-			print("exporting events around syslog messages not supported on live captures")
+			print("events export not supported on live captures")
 			return false
 		end
 	end
 	
+	capturing = true
+
 	return true
 end
 
@@ -115,7 +118,7 @@ function on_event()
 	
 	print(infostr)
 	
-	if is_dumping then
+	if do_dump then
 		local hi, low = evt.get_ts()
 		local tid = evt.field(ftid)
 		table.insert(entrylist, {hi, low, tid})
@@ -129,19 +132,21 @@ function on_capture_end()
 		print(terminal.reset)
 	end
 
-	if is_dumping then
-		local sn = sysdig.get_evtsource_name()
+	if do_dump then
+		if capturing then
+			local sn = sysdig.get_evtsource_name()
 
-		local args = "-F -r" .. sn .. " -w" .. dump_file_name .. " "
-		
-		for i, v in ipairs(entrylist) do
-			if i ~= 1 then
-				args = args .. " or "
-			end
+			local args = "-F -r" .. sn .. " -w" .. dump_file_name .. " "
 			
-			args = args .. "(evt.around[" .. ts_to_str(v[1], v[2]) .. "]=" .. dump_range_ms .. " and thread.tid=" .. v[3] .. ")"
-		end		
+			for i, v in ipairs(entrylist) do
+				if i ~= 1 then
+					args = args .. " or "
+				end
+				
+				args = args .. "(evt.around[" .. ts_to_str(v[1], v[2]) .. "]=" .. dump_range_ms .. " and thread.tid=" .. v[3] .. ")"
+			end		
 
-		sysdig.run_sysdig(args)
+			sysdig.run_sysdig(args)
+		end
 	end
 end
