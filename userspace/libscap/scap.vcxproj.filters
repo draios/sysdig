@@ -45,6 +45,9 @@
     <ClCompile Include="syscall_info_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dynamic_params_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scap-int.h">

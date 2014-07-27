@@ -104,6 +104,11 @@ sinsp::~sinsp()
 	}
 }
 
+void sinsp::add_protodecoders()
+{
+	m_parser->add_protodecoder("syslog");
+}
+
 void sinsp::init()
 {
 	//
@@ -119,6 +124,11 @@ void sinsp::init()
 		ASSERT(false);
 		m_num_cpus = 0;
 	}
+
+	//
+	// Attach the protocol decoders
+	//
+	add_protodecoders();
 
 	//
 	// Reset the thread manager
@@ -903,7 +913,7 @@ bool sinsp::is_debug_enabled()
 
 sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)
 {
-	return m_parser->require_protodecoder(decoder_name);
+	return m_parser->add_protodecoder(decoder_name);
 }
 
 void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)

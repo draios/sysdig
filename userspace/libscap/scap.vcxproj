@@ -89,6 +89,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dynamic_params_table.c" />
     <ClCompile Include="event_table.c" />
     <ClCompile Include="flags_table.c" />
     <ClCompile Include="scap.c" />

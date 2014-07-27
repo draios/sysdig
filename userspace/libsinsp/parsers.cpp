@@ -550,10 +550,10 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	return true;
 }
 
-sinsp_protodecoder* sinsp_parser::require_protodecoder(string decoder_name)
+sinsp_protodecoder* sinsp_parser::add_protodecoder(string decoder_name)
 {
 	//
-	// Make sure this decoder has not been allocated yet
+	// Make sure this decoder is not present yet
 	//
 	vector<sinsp_protodecoder*>::iterator it;
 	for(it = m_protodecoders.begin(); it != m_protodecoders.end(); ++it)
@@ -1910,7 +1910,7 @@ bool sinsp_parser::set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
 }
 
 
-// Return false if the update didn't happen (for example because the tuple is NULL
+// Return false if the update didn't happen (for example because the tuple is NULL)
 bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 {
 	uint8_t* packed_data = (uint8_t*)parinfo->m_val;

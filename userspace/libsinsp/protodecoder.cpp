@@ -228,14 +228,16 @@ void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype
 	}
 }
 
+#define PRI_BUF_SIZE 16
+
 void sinsp_decoder_syslog::on_write(sinsp_evt* evt, char *data, uint32_t len)
 {
-	char pri[16];
+	char pri[PRI_BUF_SIZE];
 	char* tc = data + 1;
 	char* te = data + len;
 	uint32_t j = 0;
 
-	while(tc < te && *tc != '>' && *tc != '\0')
+	while(tc < te && *tc != '>' && *tc != '\0' && j < PRI_BUF_SIZE - 1)
 	{
 		pri[j++] = *tc;
 		tc++;
@@ -296,4 +298,12 @@ void sinsp_decoder_syslog::decode_message(char *data, uint32_t len, char* pristr
 	m_msg.assign(data + pristrlen + 2, len - pristrlen - 2);
 
 	m_inspector->protodecoder_register_reset(this);
+}
+
+bool sinsp_decoder_syslog::get_info_line(char** res)
+{
+	m_infostr = string("syslog sev=") + get_severity_str() + " msg=" + m_msg;
+
+	*res = (char*)m_infostr.c_str();
+	return (m_priority != -1);
 }

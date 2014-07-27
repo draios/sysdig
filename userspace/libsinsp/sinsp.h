@@ -531,6 +531,7 @@ private:
 	void import_thread_table();
 	void import_ifaddr_list();
 	void import_user_list();
+	void add_protodecoders();
 
 	void add_thread(const sinsp_threadinfo& ptinfo);
 	void remove_thread(int64_t tid);

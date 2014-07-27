@@ -1443,6 +1443,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.arg", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'resarg.fd' or 'resarg[0]'."},
 	{PT_DYN, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'arg.fd'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.info", "for most events, this field returns the same value as evt.args. However, for some events (like writes to /dev/log) it provides higher level information coming from decoding the arguments."},
 	{PT_BYTEBUF, EPF_NONE, PF_NA, "evt.buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as an error code string (e.g. 'ENOENT')."},
 	{PT_INT64, EPF_NONE, PF_DEC, "evt.rawres", "event return value, as a number (e.g. -2). Useful for range comparisons."},
@@ -1739,8 +1740,10 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_RELTS_NS:
 	case TYPE_LATENCY:
 	case TYPE_LATENCY_S:
+	case TYPE_INFO:
 	case TYPE_LATENCY_NS:
 		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
+
 
 	case TYPE_ARGS:
 		{
@@ -1970,6 +1973,29 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 		break;
+	case TYPE_INFO:
+		{
+			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+
+			if(fdinfo != NULL)
+			{
+				char* il;
+				vector<sinsp_protodecoder*>* cbacks = &(fdinfo->m_write_callbacks);
+
+				vector<sinsp_protodecoder*>::iterator it;
+				for(it = cbacks->begin(); it != cbacks->end(); ++it)
+				{
+					if((*it)->get_info_line(&il))
+					{
+						return (uint8_t*)il;
+					}
+				}
+			}
+		}
+		//
+		// NOTE: this falls through to TYPE_ARGSTR, and that's what we want!
+		//       Please don't add anything here!
+		//
 	case TYPE_ARGS:
 		{
 			if(evt->get_type() == PPME_GENERIC_E || evt->get_type() == PPME_GENERIC_X)

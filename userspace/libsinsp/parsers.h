@@ -48,7 +48,7 @@ public:
 	//
 	// Protocol decoder infrastructure methods
 	//
-	sinsp_protodecoder* require_protodecoder(string decoder_name);
+	sinsp_protodecoder* add_protodecoder(string decoder_name);
 	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
 
 	//
