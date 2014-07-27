@@ -97,6 +97,7 @@ const static struct luaL_reg ll_sysdig [] =
 {
 	{"set_filter", &lua_cbacks::set_global_filter},
 	{"set_snaplen", &lua_cbacks::set_snaplen},
+	{"set_output_format", &lua_cbacks::set_output_format},
 	{"set_fatfile_dump_mode", &lua_cbacks::set_fatfile_dump_mode},
 	{"is_live", &lua_cbacks::is_live},
 	{"is_tty", &lua_cbacks::is_tty},

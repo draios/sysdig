@@ -837,8 +837,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				is_filter_display = true;
 				break;
 			case 'j':
-//				throw sinsp_exception("json output not yet implemented");
-
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");

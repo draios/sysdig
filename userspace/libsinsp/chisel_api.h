@@ -34,6 +34,7 @@ public:
 	static int set_global_filter(lua_State *ls);
 	static int set_filter(lua_State *ls);
 	static int set_snaplen(lua_State *ls);
+	static int set_output_format(lua_State *ls);
 	static int set_fatfile_dump_mode(lua_State *ls);
 	static int make_ts(lua_State *ls);
 	static int run_sysdig(lua_State *ls);

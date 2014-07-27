@@ -146,7 +146,9 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 			}
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
+			string err = "wrong event type " + to_string((long long) finfo->m_type);
+			fprintf(stderr, "%s\n", err.c_str());
+			throw sinsp_exception("chisel error");
 	}
 }
 
@@ -158,7 +160,9 @@ int lua_cbacks::get_num(lua_State *ls)
 
 	if(evt == NULL)
 	{
-		throw sinsp_exception("invalid call to evt.get_num()");
+		string err = "invalid call to evt.get_num()";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
 	}
 
 	lua_pushnumber(ls, (double)evt->get_num());
@@ -173,7 +177,9 @@ int lua_cbacks::get_ts(lua_State *ls)
 
 	if(evt == NULL)
 	{
-		throw sinsp_exception("invalid call to evt.get_ts()");
+		string err = "invalid call to evt.get_ts()";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
 	}
 
 	uint64_t ts = evt->get_ts();
@@ -191,7 +197,9 @@ int lua_cbacks::get_type(lua_State *ls)
 
 	if(evt == NULL)
 	{
-		throw sinsp_exception("invalid call to evt.get_type()");
+		string err = "invalid call to evt.get_type()";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
 	}
 
 	const char* evname;
@@ -223,7 +231,9 @@ int lua_cbacks::get_cpuid(lua_State *ls)
 
 	if(evt == NULL)
 	{
-		throw sinsp_exception("invalid call to evt.get_cpuid()");
+		string err = "invalid call to evt.get_cpuid()";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
 	}
 
 	uint32_t cpuid = evt->get_cpuid();
@@ -245,7 +255,9 @@ int lua_cbacks::request_field(lua_State *ls)
 
 	if(fld == NULL)
 	{
-		throw sinsp_exception("chisel requesting nil field");
+		string err = "chisel requesting nil field";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
 	}
 
 	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(fld,
@@ -254,7 +266,9 @@ int lua_cbacks::request_field(lua_State *ls)
 
 	if(chk == NULL)
 	{
-		throw sinsp_exception("chisel requesting nonexistent field " + string(fld));
+		string err = "chisel requesting nonexistent field " + string(fld);
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
 	}
 
 	chk->parse_field_name(fld);
@@ -274,7 +288,9 @@ int lua_cbacks::field(lua_State *ls)
 
 	if(evt == NULL)
 	{
-		throw sinsp_exception("invalid call to evt.field()");
+		string err = "invalid call to evt.field()";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
 	}
 
 	sinsp_filter_check* chk = (sinsp_filter_check*)lua_topointer(ls, 1);
@@ -349,6 +365,61 @@ int lua_cbacks::set_snaplen(lua_State *ls)
 	ASSERT(ch->m_lua_cinfo);
 
 	ch->m_inspector->set_snaplen(snaplen);
+
+	return 0;
+}
+
+int lua_cbacks::set_output_format(lua_State *ls) 
+{
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	ASSERT(ch);
+	ASSERT(ch->m_lua_cinfo);
+
+	if(ch->m_inspector->get_buffer_format() != sinsp_evt::PF_NORMAL)
+	{
+		//
+		// This means that the user has forced the format on the command line.
+		// We give that priority and we do nothing.
+		//
+		return 0;
+	}
+
+	const char* fmt = lua_tostring(ls, 1); 
+
+	if(string(fmt) == "normal")
+	{
+		ch->m_inspector->set_buffer_format(sinsp_evt::PF_NORMAL);
+	}
+	else if(string(fmt) == "json")
+	{
+		ch->m_inspector->set_buffer_format(sinsp_evt::PF_JSON);
+	}
+	else if(string(fmt) == "simple")
+	{
+		ch->m_inspector->set_buffer_format(sinsp_evt::PF_SIMPLE);
+	}
+	else if(string(fmt) == "hex")
+	{
+		ch->m_inspector->set_buffer_format(sinsp_evt::PF_HEX);
+	}
+	else if(string(fmt) == "hexascii")
+	{
+		ch->m_inspector->set_buffer_format(sinsp_evt::PF_HEXASCII);
+	}
+	else if(string(fmt) == "ascii")
+	{
+		ch->m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
+	}
+	else
+	{
+		string err = "invalid set_output_format value in chisel " + ch->m_filename;
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
 
 	return 0;
 }
@@ -568,7 +639,9 @@ int lua_cbacks::exec(lua_State *ls)
 	const char* chname = lua_tostring(ls, 1);
 	if(chname == NULL)
 	{
-		throw sinsp_exception("invalid exec field name in chisel " + ch->m_filename);
+		string err = "invalid exec field name in chisel " + ch->m_filename;
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
 	}
 
 	ch->m_new_chisel_to_exec = chname;
