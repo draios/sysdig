@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Chisel description
 description = "Print every message written to syslog by any process. You can combine this chisel with filters like 'proc.name=foo' (to restrict the output to a specific process), or 'syslog.message contains foo' (to show only messages including a specific string). You can also write the events generated around each log entry to file by using the dump_file_name and dump_range_ms arguments.";
 short_description = "Print every message written to syslog. Optionally, export the events around each syslog message to file.";
-category = "Misc";
+category = "Logs";
 		   
 -- Argument list
 args = 
@@ -146,6 +146,7 @@ function on_capture_end()
 				args = args .. "(evt.around[" .. ts_to_str(v[1], v[2]) .. "]=" .. dump_range_ms .. " and thread.tid=" .. v[3] .. ")"
 			end		
 
+			print("\nSaving events around " .. #entrylist .. " syslog entries to " .. dump_file_name)
 			sysdig.run_sysdig(args)
 		end
 	end

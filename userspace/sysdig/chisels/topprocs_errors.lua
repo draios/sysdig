@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Chisel description
 description = "Shows the top processes in terms of system call errors."
 short_description = "top processes by number of errors"
-category = "errors"
+category = "Errors"
 
 -- Chisel argument list
 args = {}

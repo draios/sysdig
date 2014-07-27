@@ -28,14 +28,12 @@ args =
 		description = "the remote host IP address", 
 		argtype = "ipv4"
 	},
-
-        {
-                name = "disable_color",
-                description = "Set to 'disable_colors' if you want to disable color output",
-                argtype = "string",
-                optional = true
-        },
-
+	{
+		name = "disable_color",
+		description = "Set to 'disable_colors' if you want to disable color output",
+		argtype = "string",
+		optional = true
+	},
 }
 
 require "common"
