@@ -1742,53 +1742,6 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_LATENCY_S:
 	case TYPE_LATENCY_NS:
 		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
-
-	case TYPE_INFO:
-	case TYPE_ARGS:
-		{
-			if(evt->get_type() == PPME_GENERIC_E || evt->get_type() == PPME_GENERIC_X)
-			{
-				//
-				// Don't print the arguments for generic events: they have only internal use
-				//
-				return (uint8_t*)"";
-			}
-
-			const char* resolved_argstr = NULL;
-			uint32_t nargs = evt->get_num_params();
-			m_strstorage.clear();
-
-			Json::Value root;
-			Json::Value value;
-			for(uint32_t j = 0; j < nargs; j++)
-			{
-				ASSERT(m_inspector != NULL);
-
-				evt->get_param_as_str(j, &resolved_argstr, m_inspector->get_buffer_format());
-				value = evt->get_param_as_json(j, &resolved_argstr, m_inspector->get_buffer_format());
-
-				if(resolved_argstr[0] == 0)
-				{
-					root[evt->get_param_name(j)] = value;
-				}
-				else
-				{
-					Json::Value arr_value(Json::arrayValue);
-					arr_value[0] = value;
-					arr_value[1] = resolved_argstr;
-					root[evt->get_param_name(j)] = arr_value;
-				}
-			}
-
-			return root;
-		}
-		break;
-
-	case TYPE_RESSTR:
-	case TYPE_RESRAW:
-		return Json::Value::null;
-		break;
-
 	case TYPE_COUNT:
 		m_u32val = 1;
 		return m_u32val;
