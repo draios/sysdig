@@ -330,7 +330,16 @@ int lua_cbacks::set_global_filter(lua_State *ls)
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
 
-	ch->m_inspector->set_filter(filter);
+	try
+	{
+		ch->m_inspector->set_filter(filter);
+	}
+	catch(sinsp_exception& e)
+	{
+		string err = "invalid filter in chisel " + ch->m_filename + ": " + e.what();
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
 
 	return 0;
 }
@@ -347,7 +356,16 @@ int lua_cbacks::set_filter(lua_State *ls)
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
 
-	ch->m_lua_cinfo->set_filter(filter);
+	try
+	{
+		ch->m_lua_cinfo->set_filter(filter);
+	}
+	catch(sinsp_exception& e)
+	{
+		string err = "invalid filter in chisel " + ch->m_filename + ": " + e.what();
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
 
 	return 0;
 }

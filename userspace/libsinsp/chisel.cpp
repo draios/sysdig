@@ -829,8 +829,9 @@ void sinsp_chisel::on_init()
 		//
 		// Exception running init
 		//
-		const char* err = lua_tostring(m_ls, -1);
-		throw sinsp_exception(m_filename + " chisel error: " + err);
+		const char* lerr = lua_tostring(m_ls, -1);
+		string err = m_filename + ": error in init(): " + lerr;
+		throw sinsp_exception(err);
 	}
 
 	if(m_new_chisel_to_exec == "")
