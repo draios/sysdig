@@ -1740,11 +1740,10 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_RELTS_NS:
 	case TYPE_LATENCY:
 	case TYPE_LATENCY_S:
-	case TYPE_INFO:
 	case TYPE_LATENCY_NS:
 		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
 
-
+	case TYPE_INFO:
 	case TYPE_ARGS:
 		{
 			if(evt->get_type() == PPME_GENERIC_E || evt->get_type() == PPME_GENERIC_X)
