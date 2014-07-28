@@ -518,6 +518,23 @@ int lua_cbacks::is_tty(lua_State *ls)
 	return 1;
 }
 
+int lua_cbacks::get_filter(lua_State *ls) 
+{
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	ASSERT(ch);
+	ASSERT(ch->m_inspector);
+
+	string flts = ch->m_inspector->get_filter();
+
+	lua_pushstring(ls, flts.c_str());
+
+	return 1;
+}
+
 int lua_cbacks::get_machine_info(lua_State *ls) 
 {
 	lua_getglobal(ls, "sichisel");

@@ -40,6 +40,7 @@ public:
 	static int run_sysdig(lua_State *ls);
 	static int is_live(lua_State *ls);
 	static int is_tty(lua_State *ls);
+	static int get_filter(lua_State *ls);
 	static int get_machine_info(lua_State *ls);
 	static int get_output_format(lua_State *ls);
 	static int get_evtsource_name(lua_State *ls);

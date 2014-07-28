@@ -758,7 +758,14 @@ void sinsp::set_filter(const string& filter)
 	}
 
 	m_filter = new sinsp_filter(this, filter);
+	m_filterstring = filter;
 }
+
+const string sinsp::get_filter()
+{
+	return m_filterstring;
+}
+
 #endif
 
 const scap_machine_info* sinsp::get_machine_info()
