@@ -130,25 +130,30 @@ function on_event()
 	-- Render the message to screen
 	for i, msg in ipairs(msgs) do
 		if #msg ~= 0 then
+			local infostr
+
+			if verbose then
+				infostr = pname .. " " .. fdname .. " "
+			else
+				infostr = ""
+			end
+
 			if is_tty then
 				local color = terminal.green
-				
-				if sevcode == 4 then
+				local ls = string.lower(msg)
+
+				if ls.find(ls, "warn") ~= nil then
 					color = terminal.yellow
-				elseif sevcode < 4 then
+				elseif ls.find(msg, "err") then
 					color = terminal.red
 				end
 
-				infostr = string.format("%s%s", color, msg)
+				infostr = string.format("%s%s%s", color, infostr, msg)
 			else
-				infostr = string.format("%s", msg)
+				infostr = string.format("%s%s", infostr, msg)
 			end
-			
-			if verbose then
-				print(pname .. " " .. fdname .. " " .. infostr)
-			else
-				print(infostr)
-			end
+
+			print(infostr)
 		end
 	end
 	
@@ -180,7 +185,7 @@ function on_capture_end()
 				args = args .. "(evt.around[" .. ts_to_str(v[1], v[2]) .. "]=" .. dump_range_ms .. " and thread.tid=" .. v[3] .. ")"
 			end		
 
-print("***" .. args)			
+			print("Writing events for " .. #entrylist .. " log entries")
 			sysdig.run_sysdig(args)
 		end
 	end
