@@ -146,7 +146,7 @@ function on_capture_end()
 				args = args .. "(evt.around[" .. ts_to_str(v[1], v[2]) .. "]=" .. dump_range_ms .. " and thread.tid=" .. v[3] .. ")"
 			end		
 
-			print("\nSaving events around " .. #entrylist .. " syslog entries to " .. dump_file_name)
+			print("Writing events for " .. #entrylist .. " log entries")
 			sysdig.run_sysdig(args)
 		end
 	end
