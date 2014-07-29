@@ -270,6 +270,7 @@ private:
 	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len);
 	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len);
 	bool extract_fd(sinsp_evt *evt);
+	uint8_t* get_fdname(sinsp_evt *evt, OUT uint32_t* len);
 };
 
 //

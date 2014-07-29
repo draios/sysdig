@@ -324,6 +324,32 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 }
 
+uint8_t* sinsp_filter_check_fd::get_fdname(sinsp_evt *evt, OUT uint32_t* len)
+{
+	if(m_fdinfo == NULL)
+	{
+		return extract_from_null_fd(evt, len);
+	}
+
+	if(evt->get_type() == PPME_SOCKET_CONNECT_X)
+	{
+		sinsp_evt_param *parinfo;
+
+		parinfo = evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		int64_t retval = *(int64_t*)parinfo->m_val;
+
+		if(retval < 0)
+		{
+			return extract_from_null_fd(evt, len);
+		}
+	}
+
+	m_tstr = m_fdinfo->m_name;
+	m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+	return (uint8_t*)m_tstr.c_str();
+}
+
 uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	ASSERT(evt);
@@ -344,28 +370,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 	switch(m_field_id)
 	{
 	case TYPE_FDNAME:
-		if(m_fdinfo == NULL)
-		{
-			return extract_from_null_fd(evt, len);
-		}
-
-		if(evt->get_type() == PPME_SOCKET_CONNECT_X)
-		{
-			sinsp_evt_param *parinfo;
-
-			parinfo = evt->get_param(0);
-			ASSERT(parinfo->m_len == sizeof(uint64_t));
-			int64_t retval = *(int64_t*)parinfo->m_val;
-
-			if(retval < 0)
-			{
-				return extract_from_null_fd(evt, len);
-			}
-		}
-
-		m_tstr = m_fdinfo->m_name;
-		m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
-		return (uint8_t*)m_tstr.c_str();
+		return get_fdname(evt, len);
 	case TYPE_FDTYPE:
 		if(m_fdinfo == NULL)
 		{
@@ -622,18 +627,13 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_IS_SYSLOG:
 		{
 			m_tbool = 0;
+			uint8_t* fdname = get_fdname(evt, len);
 
-			ppm_event_flags eflags = evt->get_flags();
-			if(eflags & EF_WRITES_TO_FD)
+			if(fdname)
 			{
-				sinsp_fdinfo_t* fdinfo = m_fdinfo;
-
-				if(fdinfo != NULL)
+				if(strstr((char*)fdname, "/dev/log") != NULL)
 				{
-					if(fdinfo->m_name.find("/dev/log") != string::npos)
-					{
-						m_tbool = 1;
-					}
+					m_tbool = 1;
 				}
 			}
 
