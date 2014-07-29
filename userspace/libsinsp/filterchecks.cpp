@@ -50,7 +50,6 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.l4proto", "the IP protocol of a socket. Can be 'tcp', 'udp', 'icmp' or 'raw'."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_server", "'true' if the process owning this FD is the server endpoint in the connection."},
-	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_syslog", "'true' for events that are writes to /dev/log."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -324,32 +323,6 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 }
 
-uint8_t* sinsp_filter_check_fd::get_fdname(sinsp_evt *evt, OUT uint32_t* len)
-{
-	if(m_fdinfo == NULL)
-	{
-		return extract_from_null_fd(evt, len);
-	}
-
-	if(evt->get_type() == PPME_SOCKET_CONNECT_X)
-	{
-		sinsp_evt_param *parinfo;
-
-		parinfo = evt->get_param(0);
-		ASSERT(parinfo->m_len == sizeof(uint64_t));
-		int64_t retval = *(int64_t*)parinfo->m_val;
-
-		if(retval < 0)
-		{
-			return extract_from_null_fd(evt, len);
-		}
-	}
-
-	m_tstr = m_fdinfo->m_name;
-	m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
-	return (uint8_t*)m_tstr.c_str();
-}
-
 uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	ASSERT(evt);
@@ -370,7 +343,28 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 	switch(m_field_id)
 	{
 	case TYPE_FDNAME:
-		return get_fdname(evt, len);
+		if(m_fdinfo == NULL)
+		{
+			return extract_from_null_fd(evt, len);
+		}
+
+		if(evt->get_type() == PPME_SOCKET_CONNECT_X)
+		{
+			sinsp_evt_param *parinfo;
+
+			parinfo = evt->get_param(0);
+			ASSERT(parinfo->m_len == sizeof(uint64_t));
+			int64_t retval = *(int64_t*)parinfo->m_val;
+
+			if(retval < 0)
+			{
+				return extract_from_null_fd(evt, len);
+			}
+		}
+
+		m_tstr = m_fdinfo->m_name;
+		m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+		return (uint8_t*)m_tstr.c_str();
 	case TYPE_FDTYPE:
 		if(m_fdinfo == NULL)
 		{
@@ -624,21 +618,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 		break;
-	case TYPE_IS_SYSLOG:
-		{
-			m_tbool = 0;
-			uint8_t* fdname = get_fdname(evt, len);
-
-			if(fdname)
-			{
-				if(strstr((char*)fdname, "/dev/log") != NULL)
-				{
-					m_tbool = 1;
-				}
-			}
-
-			return (uint8_t*)&m_tbool;
-		}
 	default:
 		ASSERT(false);
 	}
@@ -1474,6 +1453,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.io_dir", "'r' for events that read from FDs, like read(); 'w' for events that write to FDs, like write()."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_wait", "'true' for events that make the thread wait, e.g. sleep(), select(), poll()."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_syslog", "'true' for events that are writes to /dev/log."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
 };
@@ -2191,6 +2171,26 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		return (uint8_t*)&m_u32val;
+	case TYPE_ISSYSLOG:
+		{
+			m_u32val = 0;
+
+			ppm_event_flags eflags = evt->get_flags();
+			if(eflags & EF_WRITES_TO_FD)
+			{
+				sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+
+				if(fdinfo != NULL)
+				{
+					if(fdinfo->m_name.find("/dev/log") != string::npos)
+					{
+						m_u32val = 1;
+					}
+				}
+			}
+
+			return (uint8_t*)&m_u32val;
+		}
 	case TYPE_COUNT:
 		m_u32val = 1;
 		return (uint8_t*)&m_u32val;

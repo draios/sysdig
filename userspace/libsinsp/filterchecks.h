@@ -231,7 +231,6 @@ public:
 		TYPE_L4PROTO = 12,
 		TYPE_SOCKFAMILY = 13,
 		TYPE_IS_SERVER = 14,
-		TYPE_IS_SYSLOG = 15,
 	};
 
 	enum fd_type
@@ -270,7 +269,6 @@ private:
 	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len);
 	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len);
 	bool extract_fd(sinsp_evt *evt);
-	uint8_t* get_fdname(sinsp_evt *evt, OUT uint32_t* len);
 };
 
 //
@@ -369,8 +367,9 @@ public:
 		TYPE_ISIO_WRITE = 26,
 		TYPE_IODIR = 27,
 		TYPE_ISWAIT = 28,
-		TYPE_COUNT = 29,
-		TYPE_AROUND = 30,
+		TYPE_ISSYSLOG = 29,
+		TYPE_COUNT = 30,
+		TYPE_AROUND = 31,
 	};
 
 	sinsp_filter_check_event();
