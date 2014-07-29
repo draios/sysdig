@@ -50,6 +50,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.l4proto", "the IP protocol of a socket. Can be 'tcp', 'udp', 'icmp' or 'raw'."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_server", "'true' if the process owning this FD is the server endpoint in the connection."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_syslog", "'true' for events that are writes to /dev/log."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -618,6 +619,26 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 		break;
+	case TYPE_IS_SYSLOG:
+		{
+			m_tbool = 0;
+
+			ppm_event_flags eflags = evt->get_flags();
+			if(eflags & EF_WRITES_TO_FD)
+			{
+				sinsp_fdinfo_t* fdinfo = m_fdinfo;
+
+				if(fdinfo != NULL)
+				{
+					if(fdinfo->m_name.find("/dev/log") != string::npos)
+					{
+						m_tbool = 1;
+					}
+				}
+			}
+
+			return (uint8_t*)&m_tbool;
+		}
 	default:
 		ASSERT(false);
 	}

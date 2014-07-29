@@ -231,6 +231,7 @@ public:
 		TYPE_L4PROTO = 12,
 		TYPE_SOCKFAMILY = 13,
 		TYPE_IS_SERVER = 14,
+		TYPE_IS_SYSLOG = 15,
 	};
 
 	enum fd_type
