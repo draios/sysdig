@@ -68,6 +68,7 @@ function on_init()
 	fsevcode = chisel.request_field("syslog.severity")
 	fmsg = chisel.request_field("syslog.message")
 	ftid = chisel.request_field("thread.tid")
+	fpname = chisel.request_field("proc.name")
 
 	-- increase the snaplen so we capture more of the conversation 
 	sysdig.set_snaplen(1000)
@@ -100,6 +101,8 @@ function on_event()
 	local sev = evt.field(fsev)
 	local msg = evt.field(fmsg)
 	local sevcode = evt.field(fsevcode)
+	local tid = evt.field(ftid)
+	local pname = evt.field(fpname)
 	
 	-- Render the message to screen
 	if is_tty then
@@ -111,16 +114,15 @@ function on_event()
 			color = terminal.red
 		end
 
-		infostr = string.format("%s%s.%s %s", color, fac, sev, msg)
+		infostr = string.format("%s%s.%s %s[%u] %s", color, fac, sev, pname, tid, msg)
 	else
-		infostr = string.format("%s.%s %s", fac, sev, msg)
+		infostr = string.format("%s.%s %s[%u] %s", fac, sev, pname, tid, msg)
 	end
 	
 	print(infostr)
 	
 	if do_dump then
 		local hi, low = evt.get_ts()
-		local tid = evt.field(ftid)
 		table.insert(entrylist, {hi, low, tid})
 	end
 			

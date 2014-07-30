@@ -4,4 +4,4 @@
 //
 #define INCLUDE_UNKNOWN_SOCKET_FDS
 
-#define USE_ZLIB
+#undef USE_ZLIB
