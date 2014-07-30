@@ -13,11 +13,13 @@ If this is your first time hearing about sysdig, we recommend you [start with th
   
 What does sysdig do and why should I use it?
 ---
-Sysdig captures system calls and other system level events using a linux kernel facility called tracepoints, which means much less overhead than tools such as strace.
+Sysdig captures system calls and other system level events using a linux kernel facility called tracepoints, providing a rich set of real-time, system-level information.
 
-It then "packetizes" this information, so that you can save it into trace files and filter it, a bit like you would do with tcpdump. This makes it very flexible to explore what processes are doing.
+Sysdig "packetizes" this information, so that you can do things like save it into trace files and easily filter it, a bit like you would do with tcpdump. This makes it very flexible to explore what processes are doing.
 
 Sysdig is also packed with a set of scripts called Chisels that make it easier to extract useful information and do troubleshooting.
+
+Sysdig is designed from the ground up for minimal overhead and is production ready.
 
 Documentation / Support
 ---
