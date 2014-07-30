@@ -27,12 +27,6 @@ category = "Logs";
 args = 
 {
 	{
-		name = "verbose", 
-		description = "if this argument is set to true, each line will start with the name of of the process and the tarhet log file.", 
-		argtype = "bool",
-		optional = true
-	},
-	{
 		name = "dump_file_name", 
 		description = "the name of the file where the chisel will write the events related to each syslog entry.", 
 		argtype = "srting",
@@ -45,6 +39,7 @@ args =
 		optional = true
 	},
 }
+
 -- Imports and globals
 require "common"
 terminal = require "ansiterminal"
@@ -55,17 +50,11 @@ local dump_range_ms = "1000"
 local entrylist = {}
 local capturing = false
 local lastfd = ""
-local verbose = false
+local verbose = true
 
 -- Argument notification callback
 function on_set_arg(name, val)
-    if name == "verbose" then
-        if val == "true" then
-			verbose = true
-		end
-		
-        return true
-    elseif name == "dump_file_name" then
+    if name == "dump_file_name" then
 		do_dump = true
         dump_file_name = val
         return true
