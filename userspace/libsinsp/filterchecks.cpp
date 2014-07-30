@@ -2447,7 +2447,7 @@ const filtercheck_field_info sinsp_filter_check_syslog_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syslog.facility.str", "facility as a string."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "syslog.facility", "facility as a number (0-23)."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "syslog.severity.str", "severity as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "syslog.severity.str", "severity as a string. Can have one of these values: emerg, alert, crit, err, warn, notice, info, debug"},
 	{PT_UINT32, EPF_NONE, PF_DEC, "syslog.severity", "severity as a number (0-7)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syslog.message", "message sent to syslog."},
 };
