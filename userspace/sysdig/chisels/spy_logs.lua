@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Edit this to change which files are watched by this chisel
-FILE_FILTER = "fd.name contains .log or fd.name contains _log"
+FILE_FILTER = "(fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)"
 
 -- Chisel description
 description = "This chisel intercepts all the writes to files containing '.log' or '_log' in their name, and pretty prints them. You can combine this chisel with filters like 'proc.name=foo' (to restrict the output to a specific process), or 'evt.buffer contains foo' (to show only messages including a specific string). You can also write the events generated around each log entry to file by using the dump_file_name and dump_range_ms arguments.";
