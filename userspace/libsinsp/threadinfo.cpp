@@ -714,6 +714,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 		// be deleted (if it calls pthread_exit()) until we are done
 		//
 		ASSERT(threadinfo->m_pid != threadinfo->m_tid);
+
 		sinsp_threadinfo* main_thread = m_inspector->get_thread(threadinfo->m_pid, false);
 		if(main_thread)
 		{
@@ -726,7 +727,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
-void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* threadinfo)
+void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* threadinfo/*, uint32_t level*/)
 {
 	if(threadinfo->is_main_thread())
 	{
@@ -765,6 +766,7 @@ void sinsp_thread_manager::decrement_program_childcount(sinsp_threadinfo* thread
 			{
 				--prog_thread->m_nchilds;
 				decrement_program_childcount(prog_thread, level + 1);
+				threadinfo->m_main_program_thread = NULL;
 			}
 			else
 			{
@@ -927,7 +929,7 @@ void sinsp_thread_manager::remove_inactive_threads()
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				m_threadtable.erase(it++);
+				remove_thread(it++);
 			}
 			else
 			{
