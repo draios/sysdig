@@ -727,7 +727,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
-void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* threadinfo/*, uint32_t level*/)
+void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level)
 {
 	if(threadinfo->is_main_thread())
 	{
@@ -735,7 +735,7 @@ void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* thread
 
 		if(parent_thread)
 		{
-			if(parent_thread->m_tid == threadinfo->m_tid)
+			if(parent_thread->m_tid == threadinfo->m_tid || level > 32)
 			{
 				return;
 			}
@@ -745,7 +745,7 @@ void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* thread
 			{
 				threadinfo->m_progid = parent_thread->m_tid;
 				++parent_thread->m_nchilds;
-				increment_program_childcount(parent_thread);
+				increment_program_childcount(parent_thread, level + 1);
 			}
 		}
 	}
@@ -797,7 +797,7 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	if(!from_scap_proctable)
 	{
 		increment_mainthread_childcount(&threadinfo);
-		increment_program_childcount(&threadinfo);
+		increment_program_childcount(&threadinfo, 0);
 	}
 
 	sinsp_threadinfo& newentry = (m_threadtable[threadinfo.m_tid] = threadinfo);

@@ -279,7 +279,7 @@ public:
 
 private:
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
-	void increment_program_childcount(sinsp_threadinfo* threadinfo/*, uint32_t level*/);
+	void increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level);
 	// Don't set level, it's for internal use
 	void decrement_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level = 0);
 

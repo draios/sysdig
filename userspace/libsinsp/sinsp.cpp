@@ -326,7 +326,7 @@ void sinsp::import_thread_table()
 		it != m_thread_manager->m_threadtable.end(); ++it)
 	{
 		m_thread_manager->increment_mainthread_childcount(&it->second);
-		m_thread_manager->increment_program_childcount(&it->second);
+		m_thread_manager->increment_program_childcount(&it->second, 0);
 	}
 
 	//
