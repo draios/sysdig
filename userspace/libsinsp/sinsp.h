@@ -542,7 +542,7 @@ private:
 	void add_protodecoders();
 
 	void add_thread(const sinsp_threadinfo& ptinfo);
-	void remove_thread(int64_t tid);
+	void remove_thread(int64_t tid, bool force);
 
 	scap_t* m_h;
 	int64_t m_filesize;

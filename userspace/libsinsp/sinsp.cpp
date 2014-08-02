@@ -321,7 +321,7 @@ void sinsp::import_thread_table()
 	//
 	// Scan the list to create the proper parent/child dependencies
 	//
-	m_thread_manager->update_childcounts();
+	m_thread_manager->create_child_dependencies();
 
 	//
 	// Scan the list to fix the direction of the sockets
@@ -434,7 +434,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	if(m_tid_to_remove != -1)
 	{
-		remove_thread(m_tid_to_remove);
+		remove_thread(m_tid_to_remove, false);
 		m_tid_to_remove = -1;
 	}
 
@@ -677,9 +677,9 @@ void sinsp::add_thread(const sinsp_threadinfo& ptinfo)
 	m_thread_manager->add_thread((sinsp_threadinfo&)ptinfo);
 }
 
-void sinsp::remove_thread(int64_t tid)
+void sinsp::remove_thread(int64_t tid, bool force)
 {
-	m_thread_manager->remove_thread(tid);
+	m_thread_manager->remove_thread(tid, force);
 }
 
 void sinsp::set_snaplen(uint32_t snaplen)

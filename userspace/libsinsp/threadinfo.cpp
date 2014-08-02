@@ -814,13 +814,15 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	}
 }
 
-void sinsp_thread_manager::remove_thread(int64_t tid)
+void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 {
-	remove_thread(m_threadtable.find(tid));
+	remove_thread(m_threadtable.find(tid), force);
 }
 
-void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it)
+void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool force)
 {
+	uint64_t nchilds;
+
 	if(it == m_threadtable.end())
 	{
 		//
@@ -834,7 +836,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it)
 #endif
 		return;
 	}
-	else if(it->second.m_nchilds == 0)
+	else if((nchilds = it->second.m_nchilds) == 0 || force)
 	{
 		//
 		// Decrement the refcount of the main thread/program because
@@ -905,6 +907,17 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it)
 #endif
 
 		m_threadtable.erase(it);
+
+		//
+		// If the thread has a nonzero refcount, it means that we are forcing the removal
+		// of a main process or program that some childs refer to.
+		// We need to recalculate the child relationships, or the table will become 
+		// corrupted.
+		//
+		if(nchilds != 0)
+		{
+			recreate_child_dependencies();
+		}
 	}
 }
 
@@ -934,7 +947,7 @@ void sinsp_thread_manager::remove_inactive_threads()
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				remove_thread(it++);
+				remove_thread(it++, false);
 			}
 			else
 			{
@@ -954,7 +967,20 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc()
 	}
 }
 
-void sinsp_thread_manager::update_childcounts()
+void sinsp_thread_manager::reset_child_dependencies()
+{
+	threadinfo_map_iterator_t it;
+
+	for(it = m_threadtable.begin();
+		it != m_threadtable.end(); ++it)
+	{
+		it->second.m_nchilds = 0;
+		it->second.m_main_program_thread = NULL;
+		it->second.m_progid = -1LL;
+	}
+}
+
+void sinsp_thread_manager::create_child_dependencies()
 {
 	threadinfo_map_iterator_t it;
 
@@ -966,15 +992,10 @@ void sinsp_thread_manager::update_childcounts()
 	}
 }
 
-void sinsp_thread_manager::reset_childcounts()
+void sinsp_thread_manager::recreate_child_dependencies()
 {
-	threadinfo_map_iterator_t it;
-
-	for(it = m_threadtable.begin();
-		it != m_threadtable.end(); ++it)
-	{
-		it->second.m_nchilds = 0;
-	}
+	reset_child_dependencies();
+	create_child_dependencies();
 }
 
 void sinsp_thread_manager::update_statistics()

@@ -258,12 +258,13 @@ public:
 	void set_listener(sinsp_threadtable_listener* listener);
 	sinsp_threadinfo* get_thread(int64_t tid);
 	void add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable=false);
-	void remove_thread(int64_t tid);
-	void remove_thread(threadinfo_map_iterator_t it);
+	void remove_thread(int64_t tid, bool force);
+	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void remove_inactive_threads();
 	void fix_sockets_coming_from_proc();
-	void update_childcounts();
-	void reset_childcounts();
+	void reset_child_dependencies();
+	void create_child_dependencies();
+	void recreate_child_dependencies();
 
 	uint32_t get_thread_count()
 	{

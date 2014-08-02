@@ -717,7 +717,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		else
 		{
 			ASSERT(false);
-			m_inspector->remove_thread(childtid);
+			m_inspector->remove_thread(childtid, true);
 		}
 	}
 
