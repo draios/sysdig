@@ -321,13 +321,7 @@ void sinsp::import_thread_table()
 	//
 	// Scan the list to create the proper parent/child dependencies
 	//
-	threadinfo_map_iterator_t it;
-	for(it = m_thread_manager->m_threadtable.begin();
-		it != m_thread_manager->m_threadtable.end(); ++it)
-	{
-		m_thread_manager->increment_mainthread_childcount(&it->second);
-		m_thread_manager->increment_program_childcount(&it->second, 0);
-	}
+	m_thread_manager->update_childcounts();
 
 	//
 	// Scan the list to fix the direction of the sockets

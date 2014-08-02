@@ -727,7 +727,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
-void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level)
+void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level, uint32_t notclosed_level)
 {
 	if(threadinfo->is_main_thread())
 	{
@@ -735,7 +735,7 @@ void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* thread
 
 		if(parent_thread)
 		{
-			if(parent_thread->m_tid == threadinfo->m_tid || level > 32)
+			if(parent_thread->m_tid == threadinfo->m_tid || level > 64)
 			{
 				return;
 			}
@@ -745,7 +745,13 @@ void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* thread
 			{
 				threadinfo->m_progid = parent_thread->m_tid;
 				++parent_thread->m_nchilds;
-				increment_program_childcount(parent_thread, level + 1);
+
+				if(!(threadinfo->m_flags & PPM_CL_CLOSED))
+				{
+					notclosed_level++;
+				}
+
+				increment_program_childcount(parent_thread, level + 1, notclosed_level);
 			}
 		}
 	}
@@ -797,7 +803,7 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	if(!from_scap_proctable)
 	{
 		increment_mainthread_childcount(&threadinfo);
-		increment_program_childcount(&threadinfo, 0);
+		increment_program_childcount(&threadinfo, 0, 0);
 	}
 
 	sinsp_threadinfo& newentry = (m_threadtable[threadinfo.m_tid] = threadinfo);
@@ -916,9 +922,8 @@ void sinsp_thread_manager::remove_inactive_threads()
 
 		for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end();)
 		{
-			if(it->second.m_nchilds == 0 &&
-				m_inspector->m_lastevent_ts > 
-				it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns)
+			if((it->second.m_flags & PPM_CL_CLOSED) || 
+				(m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns))
 			{
 				//
 				// Reset the cache
@@ -949,6 +954,28 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc()
 	}
 }
 
+void sinsp_thread_manager::update_childcounts()
+{
+	threadinfo_map_iterator_t it;
+
+	for(it = m_threadtable.begin();
+		it != m_threadtable.end(); ++it)
+	{
+		increment_mainthread_childcount(&it->second);
+		increment_program_childcount(&it->second, 0, 0);
+	}
+}
+
+void sinsp_thread_manager::reset_childcounts()
+{
+	threadinfo_map_iterator_t it;
+
+	for(it = m_threadtable.begin();
+		it != m_threadtable.end(); ++it)
+	{
+		it->second.m_nchilds = 0;
+	}
+}
 
 void sinsp_thread_manager::update_statistics()
 {

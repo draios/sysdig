@@ -262,6 +262,8 @@ public:
 	void remove_thread(threadinfo_map_iterator_t it);
 	void remove_inactive_threads();
 	void fix_sockets_coming_from_proc();
+	void update_childcounts();
+	void reset_childcounts();
 
 	uint32_t get_thread_count()
 	{
@@ -279,7 +281,7 @@ public:
 
 private:
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
-	void increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level);
+	void increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level, uint32_t notclosed_level);
 	// Don't set level, it's for internal use
 	void decrement_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level = 0);
 
