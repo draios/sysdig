@@ -351,7 +351,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			//
 			// Yes, this is a child thread. Find the process root thread.
 			//
-			sinsp_threadinfo *ptinfo = m_inspector->get_thread(m_pid, true);
+			sinsp_threadinfo *ptinfo = m_inspector->get_thread(m_pid, true, true);
 			if(NULL == ptinfo)
 			{
 				ASSERT(false);
@@ -367,7 +367,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
 {
-	return m_inspector->get_thread(m_ptid, false);
+	return m_inspector->get_thread(m_ptid, false, true);
 }
 
 sinsp_fdtable* sinsp_threadinfo::get_fd_table()
@@ -664,7 +664,7 @@ void sinsp_thread_manager::set_listener(sinsp_threadtable_listener* listener)
 	m_listener = listener;
 }
 
-sinsp_threadinfo* sinsp_thread_manager::get_thread(int64_t tid)
+sinsp_threadinfo* sinsp_thread_manager::get_thread(int64_t tid, bool lookup_only)
 {
 	threadinfo_map_iterator_t it;
 
@@ -690,9 +690,12 @@ sinsp_threadinfo* sinsp_thread_manager::get_thread(int64_t tid)
 #ifdef GATHER_INTERNAL_STATS
 		m_non_cached_lookups->increment();
 #endif
-		m_last_tid = tid;
-		m_last_tinfo = &(it->second);
-		m_last_tinfo->m_lastaccess_ts = m_inspector->m_lastevent_ts;
+		if(!lookup_only)
+		{
+			m_last_tid = tid;
+			m_last_tinfo = &(it->second);
+			m_last_tinfo->m_lastaccess_ts = m_inspector->m_lastevent_ts;
+		}
 		return &(it->second);
 	}
 	else
@@ -714,7 +717,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 		//
 		ASSERT(threadinfo->m_pid != threadinfo->m_tid);
 
-		sinsp_threadinfo* main_thread = m_inspector->get_thread(threadinfo->m_pid, false);
+		sinsp_threadinfo* main_thread = m_inspector->get_thread(threadinfo->m_pid, false, true);
 		if(main_thread)
 		{
 			++main_thread->m_nchilds;
@@ -730,7 +733,7 @@ void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* thread
 {
 	if(threadinfo->is_main_thread())
 	{
-		sinsp_threadinfo* parent_thread = m_inspector->get_thread(threadinfo->m_ptid, false);
+		sinsp_threadinfo* parent_thread = m_inspector->get_thread(threadinfo->m_ptid, false, true);
 
 		if(parent_thread)
 		{
@@ -763,7 +766,7 @@ void sinsp_thread_manager::decrement_program_childcount(sinsp_threadinfo* thread
 	{
 		ASSERT(threadinfo->m_pid != threadinfo->m_progid);
 
-		sinsp_threadinfo* prog_thread = m_inspector->get_thread(threadinfo->m_progid, false);
+		sinsp_threadinfo* prog_thread = m_inspector->get_thread(threadinfo->m_progid, false, true);
 
 		if(prog_thread)
 		{
@@ -844,7 +847,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		if(it->second.m_flags & PPM_CL_CLONE_THREAD)
 		{
 			ASSERT(it->second.m_pid != it->second.m_tid);
-			sinsp_threadinfo* main_thread = m_inspector->get_thread(it->second.m_pid, false);
+			sinsp_threadinfo* main_thread = m_inspector->get_thread(it->second.m_pid, false, true);
 			if(main_thread)
 			{
 				if(main_thread->m_nchilds > 0)
@@ -931,10 +934,15 @@ void sinsp_thread_manager::remove_inactive_threads()
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
-
+	
+		//
+		// Go through the table and remove dead entries.
+		//
 		for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end();)
 		{
-			if((it->second.m_flags & PPM_CL_CLOSED) || 
+			bool closed = (it->second.m_flags & PPM_CL_CLOSED) != 0;
+
+			if(closed || 
 				(m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns))
 			{
 				//
@@ -946,13 +954,19 @@ void sinsp_thread_manager::remove_inactive_threads()
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				remove_thread(it++, false);
+				remove_thread(it++, closed);
 			}
 			else
 			{
 				++it;
 			}
 		}
+
+		//
+		// Rebalance the thread table dependency tree, so we free up threads that
+		// exited but that are stuck because of reference counting.
+		//
+		recreate_child_dependencies();
 	}
 }
 
@@ -971,6 +985,7 @@ void sinsp_thread_manager::reset_child_dependencies()
 	threadinfo_map_iterator_t it;
 
 	m_last_tinfo = NULL;
+	m_last_tid = 0;
 
 	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
@@ -980,7 +995,7 @@ void sinsp_thread_manager::reset_child_dependencies()
 		sinsp_fdtable* fdt = it->second.get_fd_table();
 		if(fdt != NULL)
 		{
-			fdt->m_last_accessed_fd = -1;
+			fdt->m_last_accessed_fd = -1LL;
 		}
 	}
 }

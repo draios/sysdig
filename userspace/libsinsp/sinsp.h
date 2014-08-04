@@ -368,7 +368,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found);
+	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only);
 
 	/*!
 	  \brief Return the table with all the machine users.

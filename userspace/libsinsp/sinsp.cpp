@@ -452,7 +452,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 
 	if(nfdr != 0)
 	{
-		sinsp_threadinfo* ptinfo = get_thread(m_tid_of_fd_to_remove, true);
+		sinsp_threadinfo* ptinfo = get_thread(m_tid_of_fd_to_remove, true, true);
 		if(!ptinfo)
 		{
 			ASSERT(false);
@@ -607,9 +607,9 @@ uint64_t sinsp::get_num_events()
 	return scap_event_get_num(m_h);
 }
 
-sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
+sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only)
 {
-	sinsp_threadinfo* sinsp_proc = m_thread_manager->get_thread(tid);
+	sinsp_threadinfo* sinsp_proc = m_thread_manager->get_thread(tid, lookup_only);
 
 	if(sinsp_proc == NULL && query_os_if_not_found)
 	{
@@ -661,7 +661,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 		}
 
 		m_thread_manager->add_thread(newti);
-		sinsp_proc = m_thread_manager->get_thread(tid);
+		sinsp_proc = m_thread_manager->get_thread(tid, lookup_only);
 	}
 
 	return sinsp_proc;
@@ -669,7 +669,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found)
 
 sinsp_threadinfo* sinsp::get_thread(int64_t tid)
 {
-	return get_thread(tid, false);
+	return get_thread(tid, false, true);
 }
 
 void sinsp::add_thread(const sinsp_threadinfo& ptinfo)

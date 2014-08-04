@@ -687,7 +687,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	// Lookup the thread that called clone() so we can copy its information
 	//
-	sinsp_threadinfo* ptinfo = m_inspector->get_thread(tid, true);
+	sinsp_threadinfo* ptinfo = m_inspector->get_thread(tid, true, true);
 	if(NULL == ptinfo)
 	{
 		//
@@ -701,7 +701,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	// See if the child is already there
 	//
-	sinsp_threadinfo* child = m_inspector->get_thread(childtid, false);
+	sinsp_threadinfo* child = m_inspector->get_thread(childtid, false, true);
 	if(NULL != child)
 	{
 		//
@@ -2667,7 +2667,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 				tid = *(int64_t *)parinfo->m_val;
 				ASSERT(parinfo->m_len == sizeof(int64_t));
 
-				sinsp_threadinfo* ptinfo = m_inspector->get_thread(tid, true);
+				sinsp_threadinfo* ptinfo = m_inspector->get_thread(tid, true, true);
 				if(ptinfo == NULL)
 				{
 					ASSERT(false);

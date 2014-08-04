@@ -169,7 +169,7 @@ sinsp_threadinfo* sinsp_evt::get_thread_info(bool query_os_if_not_found)
 		return m_tinfo;
 	}
 
-	return m_inspector->get_thread(m_pevt->tid, query_os_if_not_found);
+	return m_inspector->get_thread(m_pevt->tid, query_os_if_not_found, false);
 }
 
 sinsp_fdinfo_t* sinsp_evt::get_fd_info()
@@ -771,7 +771,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			ASSERT(payload_len == sizeof(int64_t));
 			ret = (Json::Value::UInt64)*(int64_t *)payload;
 
-			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)payload, false);
+			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)payload, false, true);
 			if(atinfo != NULL)
 			{
 				string& tcomm = atinfo->m_comm;
@@ -1248,7 +1248,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					 "%" PRId64, *(int64_t *)payload);
 
 
-			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)payload, false);
+			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)payload, false, true);
 			if(atinfo != NULL)
 			{
 				string& tcomm = atinfo->m_comm;

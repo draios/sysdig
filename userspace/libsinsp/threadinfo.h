@@ -257,7 +257,13 @@ public:
 	void clear();
 
 	void set_listener(sinsp_threadtable_listener* listener);
-	sinsp_threadinfo* get_thread(int64_t tid);
+	//
+	// Note: lookup_only should be used when the query for the thread is made
+	//       not as a consequence of an event for that thread arriving, but for
+	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
+	//       and m_last_tinfo is not set.
+	//
+	sinsp_threadinfo* get_thread(int64_t tid, bool lookup_only);
 	void add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable=false);
 	void remove_thread(int64_t tid, bool force);
 	void remove_thread(threadinfo_map_iterator_t it, bool force);

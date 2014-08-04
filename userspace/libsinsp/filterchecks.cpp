@@ -1063,7 +1063,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_PNAME:
 		{
 			sinsp_threadinfo* ptinfo = 
-				m_inspector->get_thread(tinfo->m_ptid);
+				m_inspector->get_thread(tinfo->m_ptid, false, true);
 
 			if(ptinfo != NULL)
 			{
