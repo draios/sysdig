@@ -435,8 +435,7 @@ bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
 
 	sinsp_fdtable* fdt = get_fd_table();
 
-	for(it = fdt->m_table.begin(); 
-		it != fdt->m_table.end(); ++it)
+	for(it = fdt->m_table.begin(); it != fdt->m_table.end(); ++it)
 	{
 		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
 		{
@@ -960,8 +959,8 @@ void sinsp_thread_manager::remove_inactive_threads()
 void sinsp_thread_manager::fix_sockets_coming_from_proc()
 {
 	threadinfo_map_iterator_t it;
-	for(it = m_threadtable.begin(); 
-		it != m_threadtable.end(); ++it)
+
+	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		it->second.fix_sockets_coming_from_proc();
 	}
@@ -971,8 +970,7 @@ void sinsp_thread_manager::reset_child_dependencies()
 {
 	threadinfo_map_iterator_t it;
 
-	for(it = m_threadtable.begin();
-		it != m_threadtable.end(); ++it)
+	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		it->second.m_nchilds = 0;
 		it->second.m_main_program_thread = NULL;
@@ -984,8 +982,7 @@ void sinsp_thread_manager::create_child_dependencies()
 {
 	threadinfo_map_iterator_t it;
 
-	for(it = m_threadtable.begin();
-		it != m_threadtable.end(); ++it)
+	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		increment_mainthread_childcount(&it->second);
 		increment_program_childcount(&it->second, 0, 0);

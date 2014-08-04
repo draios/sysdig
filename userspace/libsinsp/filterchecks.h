@@ -253,7 +253,6 @@ public:
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
-	uint8_t* extract_fdtype(sinsp_fdinfo_t* fdinfo);
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);

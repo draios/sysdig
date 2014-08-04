@@ -72,39 +72,6 @@ int32_t sinsp_filter_check_fd::parse_field_name(const char* str)
 	return sinsp_filter_check::parse_field_name(str);
 }
 
-uint8_t* sinsp_filter_check_fd::extract_fdtype(sinsp_fdinfo_t* fdinfo)
-{
-	switch(fdinfo->m_type)
-	{
-	case SCAP_FD_FILE:
-		return (uint8_t*)"file";
-	case SCAP_FD_DIRECTORY:
-		return (uint8_t*)"directory";
-	case SCAP_FD_IPV4_SOCK:
-	case SCAP_FD_IPV4_SERVSOCK:
-		return (uint8_t*)"ipv4";
-	case SCAP_FD_IPV6_SOCK:
-	case SCAP_FD_IPV6_SERVSOCK:
-		return (uint8_t*)"ipv6";
-	case SCAP_FD_UNIX_SOCK:
-		return (uint8_t*)"unix";
-	case SCAP_FD_FIFO:
-		return (uint8_t*)"pipe";
-	case SCAP_FD_EVENT:
-		return (uint8_t*)"event";
-	case SCAP_FD_SIGNALFD:
-		return (uint8_t*)"signalfd";
-	case SCAP_FD_EVENTPOLL:
-		return (uint8_t*)"eventpoll";
-	case SCAP_FD_INOTIFY:
-		return (uint8_t*)"inotify";
-	case SCAP_FD_TIMERFD:
-		return (uint8_t*)"timerfd";
-	default:
-		return NULL;
-	}
-}
-
 bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len)
 {
 	const char* resolved_argstr;
@@ -371,7 +338,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return NULL;
 		}
 
-		return extract_fdtype(m_fdinfo);
+		return (uint8_t*)m_fdinfo->get_typestring();
 	case TYPE_DIRECTORY:
 		{
 			if(m_fdinfo == NULL)

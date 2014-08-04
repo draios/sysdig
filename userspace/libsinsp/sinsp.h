@@ -635,6 +635,7 @@ private:
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
 	friend class sinsp_protodecoder;
+	friend class lua_cbacks;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

@@ -77,6 +77,46 @@ template<> char sinsp_fdinfo_t::get_typechar()
 	}
 }
 
+char* sinsp_fdinfo_t::get_typestring()
+{
+	switch(m_type)
+	{
+	case SCAP_FD_FILE:
+		return "file";
+	case SCAP_FD_DIRECTORY:
+		return "directory";
+	case SCAP_FD_IPV4_SOCK:
+	case SCAP_FD_IPV4_SERVSOCK:
+		return "ipv4";
+	case SCAP_FD_IPV6_SOCK:
+	case SCAP_FD_IPV6_SERVSOCK:
+		return "ipv6";
+	case SCAP_FD_UNIX_SOCK:
+		return "unix";
+	case SCAP_FD_FIFO:
+		return "pipe";
+	case SCAP_FD_EVENT:
+		return "event";
+	case SCAP_FD_SIGNALFD:
+		return "signalfd";
+	case SCAP_FD_EVENTPOLL:
+		return "eventpoll";
+	case SCAP_FD_INOTIFY:
+		return "inotify";
+	case SCAP_FD_TIMERFD:
+		return "timerfd";
+	default:
+		return "<NA>";
+	}
+}
+
+string sinsp_fdinfo_t::tostring_clean()
+{
+	string m_tstr = m_name;
+	m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+	return m_tstr;
+}
+
 template<> void sinsp_fdinfo_t::add_filename(const char* fullpath)
 {
 	m_name = fullpath;

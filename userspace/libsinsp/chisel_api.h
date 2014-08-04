@@ -42,6 +42,7 @@ public:
 	static int is_tty(lua_State *ls);
 	static int get_filter(lua_State *ls);
 	static int get_machine_info(lua_State *ls);
+	static int get_thread_table(lua_State *ls);
 	static int get_output_format(lua_State *ls);
 	static int get_evtsource_name(lua_State *ls);
 	static int set_event_formatter(lua_State *ls);
