@@ -648,7 +648,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 		lua_pushnumber(ls, (uint32_t)it->second.m_pfminor);
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "clone_ts");
-		lua_pushstring(ls, to_string(it->second.m_clone_ts).c_str());
+		lua_pushstring(ls, to_string((long long int)it->second.m_clone_ts).c_str());
 		lua_settable(ls, -3);
 
 		//
