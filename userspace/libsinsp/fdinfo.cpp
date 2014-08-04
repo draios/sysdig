@@ -19,6 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _WIN32
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <algorithm>
 #endif
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -77,40 +78,40 @@ template<> char sinsp_fdinfo_t::get_typechar()
 	}
 }
 
-char* sinsp_fdinfo_t::get_typestring()
+template<> char* sinsp_fdinfo_t::get_typestring()
 {
 	switch(m_type)
 	{
 	case SCAP_FD_FILE:
-		return "file";
+		return (char*)"file";
 	case SCAP_FD_DIRECTORY:
-		return "directory";
+		return (char*)"directory";
 	case SCAP_FD_IPV4_SOCK:
 	case SCAP_FD_IPV4_SERVSOCK:
-		return "ipv4";
+		return (char*)"ipv4";
 	case SCAP_FD_IPV6_SOCK:
 	case SCAP_FD_IPV6_SERVSOCK:
-		return "ipv6";
+		return (char*)"ipv6";
 	case SCAP_FD_UNIX_SOCK:
-		return "unix";
+		return (char*)"unix";
 	case SCAP_FD_FIFO:
-		return "pipe";
+		return (char*)"pipe";
 	case SCAP_FD_EVENT:
-		return "event";
+		return (char*)"event";
 	case SCAP_FD_SIGNALFD:
-		return "signalfd";
+		return (char*)"signalfd";
 	case SCAP_FD_EVENTPOLL:
-		return "eventpoll";
+		return (char*)"eventpoll";
 	case SCAP_FD_INOTIFY:
-		return "inotify";
+		return (char*)"inotify";
 	case SCAP_FD_TIMERFD:
-		return "timerfd";
+		return (char*)"timerfd";
 	default:
-		return "<NA>";
+		return (char*)"<NA>";
 	}
 }
 
-string sinsp_fdinfo_t::tostring_clean()
+template<> string sinsp_fdinfo_t::tostring_clean()
 {
 	string m_tstr = m_name;
 	m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
