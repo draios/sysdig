@@ -58,7 +58,7 @@ sinsp::sinsp() :
 	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
-	m_cycle_writer = new cycle_writer();
+	m_cycle_writer = NULL;
 	m_write_cycling = false;
 
 #ifdef HAS_ANALYZER
@@ -102,6 +102,12 @@ sinsp::~sinsp()
 		delete m_thread_manager;
 		m_thread_manager = NULL;
 	}
+
+	if(m_cycle_writer)
+	{
+		delete m_cycle_writer;
+		m_cycle_writer = NULL;
+	}
 }
 
 void sinsp::add_protodecoders()
@@ -134,6 +140,11 @@ void sinsp::init()
 	// Reset the thread manager
 	//
 	m_thread_manager->clear();
+
+	//
+	// Allocate the cycle writer
+	//
+	m_cycle_writer = new cycle_writer();
 
 	//
 	// Basic inits
