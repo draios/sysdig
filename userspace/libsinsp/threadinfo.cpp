@@ -717,7 +717,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 		//
 		ASSERT(threadinfo->m_pid != threadinfo->m_tid);
 
-		sinsp_threadinfo* main_thread = m_inspector->get_thread(threadinfo->m_pid, false, true);
+		sinsp_threadinfo* main_thread = m_inspector->get_thread(threadinfo->m_pid, true, true);
 		if(main_thread)
 		{
 			++main_thread->m_nchilds;
@@ -934,7 +934,7 @@ void sinsp_thread_manager::remove_inactive_threads()
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
-	
+
 		//
 		// Go through the table and remove dead entries.
 		//
