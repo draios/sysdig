@@ -602,6 +602,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	int64_t childtid;
 	unordered_map<int64_t, sinsp_threadinfo>::iterator it;
 	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent
+	bool tid_collision = false;
 
 	//
 	// Validate the return value and get the child tid
@@ -718,6 +719,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		{
 			ASSERT(false);
 			m_inspector->remove_thread(childtid, true);
+			tid_collision = true;
 		}
 	}
 
@@ -876,6 +878,17 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Add the new thread to the table
 	//
 	m_inspector->add_thread(tinfo);
+
+	//
+	// If we had to erase a previous entry for this tid and rebalance the table,
+	// make sure we reinitialize the tinfo pointer for this event, as the thread
+	// generating it might have gone away.
+	//
+	if(tid_collision)
+	{
+		evt->m_tinfo = NULL;
+		evt->m_tinfo = evt->get_thread_info();
+	}
 
 	return;
 }

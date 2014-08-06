@@ -733,7 +733,7 @@ void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* thread
 {
 	if(threadinfo->is_main_thread())
 	{
-		sinsp_threadinfo* parent_thread = m_inspector->get_thread(threadinfo->m_ptid, false, true);
+		sinsp_threadinfo* parent_thread = m_inspector->get_thread(threadinfo->m_ptid, false, false);
 
 		if(parent_thread)
 		{
