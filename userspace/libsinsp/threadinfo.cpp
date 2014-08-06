@@ -172,6 +172,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	m_vmswap_kb = pi->vmswap_kb;
 	m_pfmajor = pi->pfmajor;
 	m_pfminor = pi->pfminor;
+	m_nchilds = 0;
 
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
 	{
