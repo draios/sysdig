@@ -1,5 +1,5 @@
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.85
+# 0.1.87
 
 complete -W                                     \
 '                                               \
@@ -11,6 +11,8 @@ complete -W                                     \
   --displayflt                                  \
   -D                                            \
   --debug                                       \
+  -F                                            \
+  --fatfile                                     \
   -h                                            \
   --help                                        \
   -j                                            \

@@ -1,7 +1,7 @@
 #compdef sysdig
 
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.85
+# 0.1.87
 
 # this must match fields_info.cpp
 local DESCRIPTION_TEXT_START=20
@@ -194,6 +194,7 @@ _arguments                                                                      
     '(-cl --list-chisels)'{-cl,--list-chisels}'[lists the available chisels]'                                   \
     '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
     '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \
+    '(-F --fatfile)'{-F,--fatfile}'[Enable fatfile mode]'                                                       \
     '(-h --help)'{-h,--help}'[Print this help]'                                                                 \
     '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                             \
     '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                          \
