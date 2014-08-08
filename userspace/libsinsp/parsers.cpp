@@ -603,6 +603,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	unordered_map<int64_t, sinsp_threadinfo>::iterator it;
 	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent
 	bool tid_collision = false;
+	bool valid_parent = true;
 
 	//
 	// Validate the return value and get the child tid
@@ -699,6 +700,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		return;
 	}
 
+	if(ptinfo->m_comm == "<NA>" && ptinfo->m_uid == 0xffffffff)
+	{
+		valid_parent = false;
+	}
+
 	//
 	// See if the child is already there
 	//
@@ -736,14 +742,57 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	tinfo.m_tid = childtid;
 	tinfo.m_ptid = tid;
 
-	// Copy the command name from the parent
-	tinfo.m_comm = ptinfo->m_comm;
+	if(valid_parent)
+	{
+		// Copy the command name from the parent
+		tinfo.m_comm = ptinfo->m_comm;
 
-	// Copy the full executable name from the parent
-	tinfo.m_exe = ptinfo->m_exe;
+		// Copy the full executable name from the parent
+		tinfo.m_exe = ptinfo->m_exe;
 
-	// Copy the command arguments from the parent
-	tinfo.m_args = ptinfo->m_args;
+		// Copy the command arguments from the parent
+		tinfo.m_args = ptinfo->m_args;
+	}
+	else
+	{
+		//
+		// Parent is an invalid thread, which is strange since it's performing 
+		// a clone. We try to remove and look it up in proc.
+		//
+		m_inspector->remove_thread(tid, true);
+		tid_collision = true;
+
+		ptinfo = m_inspector->get_thread(tid, 
+			true, true);
+
+		if(ptinfo->m_comm != "<NA>" && ptinfo->m_uid != 0xffffffff)
+		{
+			//
+			// Parent found in proc, use its data
+			//
+			tinfo.m_comm = ptinfo->m_comm;
+			tinfo.m_exe = ptinfo->m_exe;
+			tinfo.m_args = ptinfo->m_args;
+		}
+		else
+		{
+			//
+			// Parent not found in proc, use the event data
+			//
+			parinfo = evt->get_param(1);
+			tinfo.m_comm = (char*)parinfo->m_val;
+			tinfo.m_exe = tinfo.m_comm;
+			parinfo = evt->get_param(2);
+			tinfo.set_args(parinfo->m_val, parinfo->m_len);
+
+			//
+			// Also, propagate the same values to the parent
+			//
+			ptinfo->m_comm = tinfo.m_comm;
+			ptinfo->m_exe = tinfo.m_exe;
+			ptinfo->set_args(parinfo->m_val, parinfo->m_len);
+		}
+	}
 
 	// Copy the pid
 	parinfo = evt->get_param(4);
