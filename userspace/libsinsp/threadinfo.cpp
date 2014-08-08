@@ -994,11 +994,12 @@ void sinsp_thread_manager::reset_child_dependencies()
 	{
 		it->second.m_nchilds = 0;
 		it->second.m_main_program_thread = NULL;
+		it->second.m_main_thread = NULL;
 		it->second.m_progid = -1LL;
 		sinsp_fdtable* fdt = it->second.get_fd_table();
 		if(fdt != NULL)
 		{
-			fdt->m_last_accessed_fd = -1LL;
+			fdt->reset_cache();
 		}
 	}
 }
