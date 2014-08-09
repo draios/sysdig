@@ -917,7 +917,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		// We need to recalculate the child relationships, or the table will become 
 		// corrupted.
 		//
-		if(nchilds != 0)
+//		if(nchilds != 0)
 		{
 			recreate_child_dependencies();
 		}

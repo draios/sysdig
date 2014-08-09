@@ -624,32 +624,36 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 
 	if(sinsp_proc == NULL && query_os_if_not_found)
 	{
-		sinsp_threadinfo newti(this);
 		scap_threadinfo* scap_proc = NULL;
-		m_n_proc_lookups++;
+		sinsp_threadinfo newti(this);
 
-		if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
+		if(m_thread_manager->m_threadtable.size() < m_max_thread_table_size)
 		{
-			g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number");
-		}
+			m_n_proc_lookups++;
 
-		if(m_n_proc_lookups == m_max_n_proc_lookups)
-		{
-			g_logger.format(sinsp_logger::SEV_INFO, "Reached max processs lookup number");
-		}
-
-		if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
-			(m_n_proc_lookups <= m_max_n_proc_lookups)))
-		{
-			bool scan_sockets = true;
-
-			if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
-				(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
+			if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
 			{
-				scan_sockets = false;
+				g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number");
 			}
 
-			scap_proc = scap_proc_get(m_h, tid, scan_sockets);
+			if(m_n_proc_lookups == m_max_n_proc_lookups)
+			{
+				g_logger.format(sinsp_logger::SEV_INFO, "Reached max processs lookup number");
+			}
+
+			if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
+				(m_n_proc_lookups <= m_max_n_proc_lookups)))
+			{
+				bool scan_sockets = true;
+
+				if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
+					(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
+				{
+					scan_sockets = false;
+				}
+
+				scap_proc = scap_proc_get(m_h, tid, scan_sockets);
+			}
 		}
 
 		if(scap_proc)
@@ -690,7 +694,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 		//
 		// Done. Add the new thread to the list.
 		//
-		m_thread_manager->add_thread(newti);
+		m_thread_manager->add_thread(newti, false);
 		sinsp_proc = m_thread_manager->get_thread(tid, lookup_only);
 	}
 
@@ -704,7 +708,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid)
 
 void sinsp::add_thread(const sinsp_threadinfo& ptinfo)
 {
-	m_thread_manager->add_thread((sinsp_threadinfo&)ptinfo);
+	m_thread_manager->add_thread((sinsp_threadinfo&)ptinfo, false);
 }
 
 void sinsp::remove_thread(int64_t tid, bool force)
