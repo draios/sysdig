@@ -917,15 +917,17 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		// We need to recalculate the child relationships, or the table will become 
 		// corrupted.
 		//
-//		if(nchilds != 0)
+		if(nchilds != 0)
 		{
 			recreate_child_dependencies();
 		}
 	}
 }
 
-void sinsp_thread_manager::remove_inactive_threads()
+bool sinsp_thread_manager::remove_inactive_threads()
 {
+	bool res = false;
+
 	if(m_last_flush_time_ns == 0)
 	{
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
@@ -934,6 +936,8 @@ void sinsp_thread_manager::remove_inactive_threads()
 	if(m_inspector->m_lastevent_ts > 
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
+		res = true;
+
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
 		g_logger.format(sinsp_logger::SEV_INFO, "Flusing thread table");
@@ -971,6 +975,8 @@ void sinsp_thread_manager::remove_inactive_threads()
 		//
 		recreate_child_dependencies();
 	}
+
+	return res;
 }
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc()
