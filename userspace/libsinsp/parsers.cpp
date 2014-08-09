@@ -765,6 +765,15 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ptinfo = m_inspector->get_thread(tid, 
 			true, true);
 
+		if(ptinfo == NULL)
+		{
+			//
+			// This can happen if the thread table has reached max capacity
+			//
+			ASSERT(false);
+			return;
+		}
+
 		if(ptinfo->m_comm != "<NA>" && ptinfo->m_uid != 0xffffffff)
 		{
 			//
@@ -935,8 +944,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	if(tid_collision)
 	{
-		evt->m_tinfo = NULL;
-		evt->m_tinfo = evt->get_thread_info();
+		reset(evt);
+		g_logger.format(sinsp_logger::SEV_INFO, 
+			"tid collision for %" PRIu64 "(%s)", 
+			tinfo.m_tid, tinfo.m_comm.c_str());
 	}
 
 	return;
