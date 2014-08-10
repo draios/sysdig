@@ -664,12 +664,16 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 				tevt.m_tinfo = &(it->second);
 				tevt.m_fdinfo = &(fdit->second);
 				tscapevt.tid = it->first;
+				int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
+				tevt.m_tinfo->m_lastevent_fd = fdit->first;
 
 				if(filter->run(&tevt))
 				{
 					match = true;
 					break;
 				}
+
+				tevt.m_tinfo->m_lastevent_fd = tlefd;
 			}
 
 			if(!match)
@@ -791,6 +795,8 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 			tevt.m_tinfo = &(it->second);
 			tevt.m_fdinfo = &(fdit->second);
 			tscapevt.tid = it->first;
+			int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
+			tevt.m_tinfo->m_lastevent_fd = fdit->first;
 
 			if(filter != NULL)
 			{
@@ -799,6 +805,8 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 					continue;
 				}
 			}
+
+			tevt.m_tinfo->m_lastevent_fd = tlefd;
 
 			lua_newtable(ls);
 			lua_pushliteral(ls, "name");
