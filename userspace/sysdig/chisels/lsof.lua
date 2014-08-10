@@ -58,7 +58,8 @@ function on_capture_start()
 end
 
 -- Event parsing callback
-function on_event()		
+function on_event()
+	sysdig.end_capture()
 	return false
 end
 
