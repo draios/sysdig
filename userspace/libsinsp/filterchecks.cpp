@@ -60,6 +60,7 @@ sinsp_filter_check_fd::sinsp_filter_check_fd()
 	m_info.m_name = "fd";
 	m_info.m_fields = sinsp_filter_check_fd_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_fd_fields) / sizeof(sinsp_filter_check_fd_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 }
 
 sinsp_filter_check* sinsp_filter_check_fd::allocate_new()
@@ -806,6 +807,7 @@ sinsp_filter_check_thread::sinsp_filter_check_thread()
 	m_info.m_name = "process";
 	m_info.m_fields = sinsp_filter_check_thread_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_thread_fields) / sizeof(sinsp_filter_check_thread_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 
 	m_u64val = 0;
 }
@@ -2236,6 +2238,7 @@ sinsp_filter_check_user::sinsp_filter_check_user()
 	m_info.m_name = "user";
 	m_info.m_fields = sinsp_filter_check_user_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_user_fields) / sizeof(sinsp_filter_check_user_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 }
 
 sinsp_filter_check* sinsp_filter_check_user::allocate_new()
@@ -2309,6 +2312,7 @@ sinsp_filter_check_group::sinsp_filter_check_group()
 	m_info.m_name = "group";
 	m_info.m_fields = sinsp_filter_check_group_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_group_fields) / sizeof(sinsp_filter_check_group_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 }
 
 sinsp_filter_check* sinsp_filter_check_group::allocate_new()

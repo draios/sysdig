@@ -113,9 +113,21 @@ vector<string> sinsp_split(const string &s, char delim);
 class filter_check_info
 {
 public:
+	enum flags
+	{
+		FL_NONE =   0,
+		FL_WORKS_ON_THREAD_TABLE = (1 << 0),	///< This filter check class supports filtering incomplete events that contain only valid thread info and FD info.
+	};
+
+	filter_check_info()
+	{
+		m_flags = 0;
+	}
+
 	string m_name; ///< Field class name.
 	int32_t m_nfiedls; ///< Number of fields in this field group.
 	const filtercheck_field_info* m_fields; ///< Array containing m_nfiedls field descriptions.
+	uint32_t m_flags;
 };
 
 /*!

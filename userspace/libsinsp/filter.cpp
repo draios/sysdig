@@ -926,9 +926,10 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter::sinsp_filter(sinsp* inspector, const string& fltstr)
+sinsp_filter::sinsp_filter(sinsp* inspector, const string& fltstr, bool ttable_only)
 {
 	m_inspector = inspector;
+	m_ttable_only = ttable_only;
 	m_scanpos = -1;
 	m_scansize = 0;
 	m_state = ST_NEED_EXPRESSION;
@@ -1251,6 +1252,14 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 	{
 		throw sinsp_exception("filter error: unrecognized field " +
 			str_operand1 + " at pos " + to_string((long long) startpos));
+	}
+
+	if(m_ttable_only)
+	{
+		if(!(chk->get_filelds()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
+		{
+			throw sinsp_exception("the given filter is not supported for thread table filtering");
+		}
 	}
 
 	ppm_cmp_operator co = next_comparison_operator();

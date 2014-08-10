@@ -603,7 +603,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 
 		try
 		{
-			filter = new sinsp_filter(ch->m_inspector, filterstr);
+			filter = new sinsp_filter(ch->m_inspector, filterstr, true);
 		}
 		catch(sinsp_exception& e)
 		{
@@ -632,10 +632,6 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 
 	for(it = threadtable->begin(); it != threadtable->end(); ++it)
 	{
-if(it->second.m_comm == "colord")
-{
-	int a = 0;
-}
 		//
 		// Check if there's at least an fd that matches the filter.
 		// If not, skip this thread

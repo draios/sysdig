@@ -48,13 +48,12 @@ public:
 
 	  \param inspector Pointer to the inspector instance that will generate the 
 	   events to be filtered.
-	  \param fmt The printf-like format to use. The accepted format is the same
-	   as the one of the sysdig '-p' command line flag, so refer to the sysdig 
-	   manual for details.
+	  \param fltstr the filter string to compile.
+	  \param ttable_only for internal use only.
 
 	 \note Throws a sinsp_exception if the filter syntax is not valid.
 	*/
-	sinsp_filter(sinsp* inspector, const string& fltstr);
+	sinsp_filter(sinsp* inspector, const string& fltstr, bool ttable_only=false);
 
 	~sinsp_filter();
 
@@ -89,6 +88,7 @@ private:
 	static bool is_bracket(char c);
 
 	sinsp* m_inspector;
+	bool m_ttable_only;
 
 	string m_fltstr;
 	int32_t m_scanpos;

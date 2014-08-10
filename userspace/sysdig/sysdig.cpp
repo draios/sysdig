@@ -349,6 +349,7 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 					if(nargs == 1 && ch->get_lua_script_info()->m_args[0].m_type == "filter")
 					{
 						ch->set_args(args);
+						(*n_filterargs)++;
 					}
 					else
 					{
@@ -445,7 +446,13 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 	//
 	// Notify the chisels that we're exiting.
 	//
-	chisels_on_capture_end();
+	try
+	{
+		chisels_on_capture_end();
+	}
+	catch(...)
+	{
+	}
 }
 
 //
