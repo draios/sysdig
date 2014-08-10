@@ -577,7 +577,13 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	threadinfo_map_iterator_t it;
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	uint32_t j;
+	sinsp_filter* filter = NULL;
+	sinsp_evt tevt;
+	scap_evt tscapevt;
 
+	//
+	// Get the chisel state
+	//
 	lua_getglobal(ls, "sichisel");
 
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
@@ -587,6 +593,37 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	ASSERT(ch->m_lua_cinfo);
 	ASSERT(ch->m_inspector);
 
+	//
+	// If the caller specified a filter, compile it
+	//
+	if(lua_isstring(ls, 1)) 
+	{
+		string filterstr = lua_tostring(ls, 1);
+		lua_pop(ls, 1);
+
+		try
+		{
+			filter = new sinsp_filter(ch->m_inspector, filterstr);
+		}
+		catch(sinsp_exception& e)
+		{
+			string err = "invalid filter argument for get_thread_table in chisel " + ch->m_filename + ": " + e.what();
+			fprintf(stderr, "%s\n", err.c_str());
+			throw sinsp_exception("chisel error");
+		}
+
+		tscapevt.ts = 0;
+		tscapevt.type = PPME_SYSCALL_READ_X;
+		tscapevt.len = 0;
+
+		tevt.m_inspector = ch->m_inspector;
+		tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
+		tevt.m_pevt = NULL;
+		tevt.m_cpuid = 0;
+		tevt.m_evtnum = 0;
+		tevt.m_pevt = &tscapevt;
+	}
+
 	threadinfo_map_t* threadtable  = ch->m_inspector->m_thread_manager->get_threads();
 
 	ASSERT(threadtable != NULL);
@@ -595,6 +632,39 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 
 	for(it = threadtable->begin(); it != threadtable->end(); ++it)
 	{
+if(it->second.m_comm == "colord")
+{
+	int a = 0;
+}
+		//
+		// Check if there's at least an fd that matches the filter.
+		// If not, skip this thread
+		//
+		sinsp_fdtable* fdtable = it->second.get_fd_table();
+
+		if(filter != NULL)
+		{
+			bool match = false;
+
+			for(fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
+			{
+				tevt.m_tinfo = &(it->second);
+				tevt.m_fdinfo = &(fdit->second);
+				tscapevt.tid = it->first;
+
+				if(filter->run(&tevt))
+				{
+					match = true;
+					break;
+				}
+			}
+
+			if(!match)
+			{
+				continue;
+			}
+		}
+
 		//
 		// Set the thread properties
 		//
@@ -702,10 +772,21 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 		// Create and populate the FD table
 		//
 		lua_pushstring(ls, "fdtable");
-		sinsp_fdtable* fdtable = it->second.get_fd_table();
 		lua_newtable(ls);
 		for(fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
 		{
+			tevt.m_tinfo = &(it->second);
+			tevt.m_fdinfo = &(fdit->second);
+			tscapevt.tid = it->first;
+
+			if(filter != NULL)
+			{
+				if(filter->run(&tevt) == false)
+				{
+					continue;
+				}
+			}
+
 			lua_newtable(ls);
 			lua_pushliteral(ls, "name");
 			lua_pushstring(ls, fdit->second.tostring_clean().c_str());
@@ -722,6 +803,11 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 		// Set the key for this entry
 		//
 		lua_rawseti(ls,-2, (uint32_t)it->first);
+	}
+
+	if(filter)
+	{
+		delete filter;
 	}
 
 	return 1;

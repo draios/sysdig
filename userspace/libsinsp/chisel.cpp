@@ -750,7 +750,7 @@ void sinsp_chisel::set_args(string args)
 			throw sinsp_exception("corrupted parameters for chisel " + m_filename);
 		}
 
-		m_argvals.push_back(args.substr(token_begin, j));
+		m_argvals.push_back(args.substr(token_begin, j - quote_correction - token_begin));
 	}
 
 	//

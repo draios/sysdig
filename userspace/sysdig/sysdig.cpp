@@ -346,14 +346,21 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 						}
 					}
 
-					try
-					{
-						sinsp_filter df(inspector, testflt);
-					}
-					catch(...)
+					if(nargs == 1 && ch->get_lua_script_info()->m_args[0].m_type == "filter")
 					{
 						ch->set_args(args);
-						(*n_filterargs)++;
+					}
+					else
+					{
+						try
+						{
+							sinsp_filter df(inspector, testflt);
+						}
+						catch(...)
+						{
+							ch->set_args(args);
+							(*n_filterargs)++;
+						}
 					}
 				}
 			}

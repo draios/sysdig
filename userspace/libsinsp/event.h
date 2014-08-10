@@ -312,6 +312,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;
+	friend class lua_cbacks;
 };
 
 /*@}*/

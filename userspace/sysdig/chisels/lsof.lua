@@ -16,27 +16,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel prints the open file descriptors for every process in the system, with an output that is very similar to the one of lsof";
+description = "This chisel prints the open file descriptirs for every process in the system, with an output that is very similar to the one of lsof";
 short_description = "List the open file descriptors.";
 category = "System State";
 		   
 -- Argument list
-args = {}
+args = 
+{
+	{
+		name = "filter",
+		description = "a sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.name contains /etc'.", 
+		argtype = "filter",
+		optional = true
+	}
+}
 
 -- Imports and globals
 require "common"
 local dctable = {}
 local capturing = false
+local filter = nil
 
 -- Argument notification callback
 function on_set_arg(name, val)
-    if name == "dump_file_name" then
-		do_dump = true
-        dump_file_name = val
-        return true
-    end
+	if name == "filter" then
+		filter = val
+		return true
+	end
 
-    return false
+	return false
 end
 
 -- Initialization callback
@@ -59,7 +67,7 @@ function on_capture_end()
 		return
 	end
 	
-	local ttable = sysdig.get_thread_table()
+	local ttable = sysdig.get_thread_table(filter)
 
 	print(extend_string("COMMAND", 20) ..
 		extend_string("PID", 8) ..

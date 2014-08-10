@@ -114,6 +114,10 @@ public:
 	void on_capture_start();
 	void on_capture_end();
 	bool get_nextrun_args(OUT string* args);
+	chisel_desc* get_lua_script_info()
+	{
+		return &m_lua_script_info;
+	}
 
 private:
 	bool openfile(string filename, OUT ifstream* is);
