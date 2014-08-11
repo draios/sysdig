@@ -48,9 +48,10 @@ if(NOT WIN32)
 
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		add_subdirectory(driver)
-		add_subdirectory(scripts)
 		add_definitions(-DHAS_CAPTURE)
 	endif()
+
+	add_subdirectory(scripts)
 
 	if(CMAKE_SYSTEM_NAME MATCHES "SunOS")
 		set(CMD_MAKE gmake)
