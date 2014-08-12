@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel prints the open file descriptors for every process in the system, with an output that is very similar to the one of lsof";
-short_description = "List the open file descriptors.";
+description = "This chisel prints the open file descriptors for every process in the system, with an output that is similar to the one of lsof";
+short_description = "List (and optionally filter) the open file descriptors.";
 category = "System State";
 		   
 -- Argument list
@@ -30,6 +30,15 @@ args =
 		optional = true
 	}
 }
+
+function on_set_arg(name, val)
+	if name == "filter" then
+		filter = val
+		return true
+	end
+
+	return false
+end
 
 -- Imports and globals
 require "common"

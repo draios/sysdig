@@ -55,9 +55,13 @@ end
 Extends a string to newlen with spaces
 ]]--
 function extend_string(s, newlen)
-	local ccs = "                                                                                                                                                                       "
-	s = s .. string.sub(ccs, 0, newlen - string.len(s))
-	return s
+	if #s < newlen then
+		local ccs = "                                                                                                                                                                       "
+		s = s .. string.sub(ccs, 0, newlen - #s)
+		return s
+	else
+		return (string.sub(s, 0, newlen - 1) .. " ")
+	end
 end
 
 --[[ 
@@ -121,6 +125,7 @@ extract the top num entries from the table t, after sorting them based on the en
 ]]--
 function pairs_top_by_val(t, num, order)
 	local keys = {}
+
 	for k in pairs(t) do keys[#keys+1] = k end
 
 	table.sort(keys, function(a,b) return order(t, a, b) end)
