@@ -723,7 +723,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		}
 		else
 		{
-			ASSERT(false);
+			ASSERT(evt->get_num() > 10000);
 			m_inspector->remove_thread(childtid, true);
 			tid_collision = true;
 		}
