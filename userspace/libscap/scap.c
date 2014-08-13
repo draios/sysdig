@@ -67,15 +67,8 @@ scap_t* scap_open_live(char *error)
 	//
 	// Preliminary initializations
 	//
-	handle->m_ndevs = 0;
-	handle->m_proclist = NULL;
-	handle->m_file = NULL;
-	handle->m_file_evt_buf = NULL;
-	handle->m_evtcnt = 0;
-	handle->m_addrlist = NULL;
-	handle->m_userlist = NULL;
+	memset(handle, sizeof(scap_t), 0);
 	handle->m_emptybuf_timeout_ms = BUFFER_EMPTY_WAIT_TIME_MS;
-	handle->m_last_evt_dump_flags = 0;
 
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
