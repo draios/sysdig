@@ -84,15 +84,21 @@ function on_capture_end(ts_s, ts_ns, delta)
 	print(extend_string("TID", 8) ..
 		extend_string("PID", 8) ..
 		extend_string("USER", 12) ..
+		extend_string("VIRT", 11) ..
+		extend_string("RES", 11) ..
+		extend_string("FDLIMIT", 10) ..
 		extend_string("CMD", 20))
 
-	for tid, proc in sorted_ttable do
+	for tid, proc in pairs(ttable) do
 		local fdtable = proc.fdtable
 		
 		print(
 			extend_string(tostring(tid), 8) ..
 			extend_string(tostring(proc.pid), 8) ..
 			extend_string(proc.username, 12) ..
+			extend_string(format_bytes(proc.vmsize_kb * 1024), 11) ..
+			extend_string(format_bytes(proc.vmrss_kb * 1024), 11) ..
+			extend_string(tostring(proc.fdlimit), 10) ..
 			proc.comm
 			)
 	end
