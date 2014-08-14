@@ -67,7 +67,7 @@ scap_t* scap_open_live(char *error)
 	//
 	// Preliminary initializations
 	//
-	memset(handle, sizeof(scap_t), 0);
+	memset(handle, 0, sizeof(scap_t));
 	handle->m_emptybuf_timeout_ms = BUFFER_EMPTY_WAIT_TIME_MS;
 
 	//

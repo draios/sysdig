@@ -291,7 +291,8 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (1)");
 		return SCAP_FAILURE;
 	}
-	memset(tinfo, sizeof(scap_threadinfo), 0);
+
+	memset(tinfo, 0, sizeof(scap_threadinfo));
 
 	tinfo->tid = tid;
 	if(parenttid != -1)
