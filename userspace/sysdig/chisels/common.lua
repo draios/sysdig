@@ -200,7 +200,7 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 			end
 			
 			if viz_info.value_units == "none" then
-				print(extend_string(v, 10) .. keystr)
+				print(extend_string(tostring(v), 10) .. keystr)
 			elseif viz_info.value_units == "bytes" then
 				print(extend_string(format_bytes(v), 10) .. keystr)
 			elseif viz_info.value_units == "time" then
