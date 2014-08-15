@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel prints the open file descriptors for every process in the system, with an output that is similar to the one of lsof";
-short_description = "List (and optionally filter) the open file descriptors.";
+description = "This chisel lists the running processes, with an output that is similar to the one of ps.";
+short_description = "List (and optionally filter) the machine processes.";
 category = "System State";
 		   
 -- Argument list
@@ -25,7 +25,7 @@ args =
 {
 	{
 		name = "filter",
-		description = "a sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.name contains /etc'.", 
+		description = "a sysdig-like filter expression that allows restricting the FD list. For example 'fd.name contains /etc' shows all the processes that have files open under /etc.", 
 		argtype = "filter",
 		optional = true
 	}
@@ -72,32 +72,34 @@ function on_event()
 	return false
 end
 
-function on_capture_end()
+function on_capture_end(ts_s, ts_ns, delta)
 	if not capturing then
 		return
 	end
 	
 	local ttable = sysdig.get_thread_table(filter)
 
-	print(extend_string("COMMAND", 20) ..
+	local sorted_ttable = pairs_top_by_val(ttable, 0, function(t,a,b) return a < b end)
+	
+	print(extend_string("TID", 8) ..
 		extend_string("PID", 8) ..
-		extend_string("TID", 8) ..
-		extend_string("USER", 8) ..
-		extend_string("FD", 8) ..
-		extend_string("TYPE", 12) ..
-		"NAME")
+		extend_string("USER", 12) ..
+		extend_string("VIRT", 11) ..
+		extend_string("RES", 11) ..
+		extend_string("FDLIMIT", 10) ..
+		extend_string("CMD", 20))
 
 	for tid, proc in pairs(ttable) do
 		local fdtable = proc.fdtable
-
-		for fd, fdinfo in pairs(fdtable) do
-			print(extend_string(proc.comm, 20) ..
-				extend_string(tostring(proc.pid), 8) ..
-				extend_string(tostring(tid), 8) ..
-				extend_string(proc.username, 8) ..
-				extend_string(tostring(fd), 8) ..
-				extend_string(tostring(fdinfo.type), 12) ..
-				tostring(fdinfo.name))
-		end
+		
+		print(
+			extend_string(tostring(tid), 8) ..
+			extend_string(tostring(proc.pid), 8) ..
+			extend_string(proc.username, 12) ..
+			extend_string(format_bytes(proc.vmsize_kb * 1024), 11) ..
+			extend_string(format_bytes(proc.vmrss_kb * 1024), 11) ..
+			extend_string(tostring(proc.fdlimit), 10) ..
+			proc.comm
+			)
 	end
 end

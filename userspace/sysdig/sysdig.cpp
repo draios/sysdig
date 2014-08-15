@@ -1193,6 +1193,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 		}
 	}
+	catch(sinsp_capture_interrupt_exception&)
+	{
+		handle_end_of_file(print_progress);
+	}
 	catch(sinsp_exception& e)
 	{
 		cerr << e.what() << endl;

@@ -810,7 +810,9 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	}
 
 	sinsp_threadinfo& newentry = (m_threadtable[threadinfo.m_tid] = threadinfo);
+
 	newentry.allocate_private_state();
+
 	if(m_listener)
 	{
 		m_listener->on_thread_created(&newentry);

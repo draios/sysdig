@@ -419,13 +419,12 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 
-			scap_fd_type evt_type = m_fdinfo->m_type;
-
 			if(m_fdinfo->is_role_none())
 			{
 				return NULL;
 			}
 
+			scap_fd_type evt_type = m_fdinfo->m_type;
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
 				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);

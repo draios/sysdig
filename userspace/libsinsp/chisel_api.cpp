@@ -493,6 +493,23 @@ int lua_cbacks::run_sysdig(lua_State *ls)
 	return 0;
 }
 
+int lua_cbacks::end_capture(lua_State *ls) 
+{
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	const char* args = lua_tostring(ls, 1); 
+
+	ASSERT(ch);
+	ASSERT(ch->m_lua_cinfo);
+
+	ch->m_lua_cinfo->m_end_capture = true;
+
+	return 0;
+}
+
 int lua_cbacks::is_live(lua_State *ls) 
 {
 	lua_getglobal(ls, "sichisel");
@@ -580,6 +597,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	sinsp_filter* filter = NULL;
 	sinsp_evt tevt;
 	scap_evt tscapevt;
+	char ipbuf[128];
 
 	//
 	// Get the chisel state
@@ -647,12 +665,16 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 				tevt.m_tinfo = &(it->second);
 				tevt.m_fdinfo = &(fdit->second);
 				tscapevt.tid = it->first;
+				int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
+				tevt.m_tinfo->m_lastevent_fd = fdit->first;
 
 				if(filter->run(&tevt))
 				{
 					match = true;
 					break;
 				}
+
+				tevt.m_tinfo->m_lastevent_fd = tlefd;
 			}
 
 			if(!match)
@@ -774,6 +796,8 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 			tevt.m_tinfo = &(it->second);
 			tevt.m_fdinfo = &(fdit->second);
 			tscapevt.tid = it->first;
+			int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
+			tevt.m_tinfo->m_lastevent_fd = fdit->first;
 
 			if(filter != NULL)
 			{
@@ -783,6 +807,8 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 				}
 			}
 
+			tevt.m_tinfo->m_lastevent_fd = tlefd;
+
 			lua_newtable(ls);
 			lua_pushliteral(ls, "name");
 			lua_pushstring(ls, fdit->second.tostring_clean().c_str());
@@ -790,6 +816,115 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 			lua_pushliteral(ls, "type");
 			lua_pushstring(ls, fdit->second.get_typestring());
 			lua_settable(ls, -3);
+
+			scap_fd_type evt_type = fdit->second.m_type;
+			if(evt_type == SCAP_FD_IPV4_SOCK || evt_type == SCAP_FD_IPV4_SERVSOCK)
+			{
+				uint8_t* pip4;
+
+				if(evt_type == SCAP_FD_IPV4_SOCK)
+				{
+					// cip
+					pip4 = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4info.m_fields.m_sip);
+					snprintf(ipbuf,
+						sizeof(ipbuf),
+						"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+						pip4[0],
+						pip4[1],
+						pip4[2],
+						pip4[3]);
+
+					lua_pushliteral(ls, "cip");
+					lua_pushstring(ls, ipbuf);
+					lua_settable(ls, -3);
+
+					// sip
+					pip4 = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4info.m_fields.m_dip);
+					snprintf(ipbuf,
+						sizeof(ipbuf),
+						"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+						pip4[0],
+						pip4[1],
+						pip4[2],
+						pip4[3]);
+
+					lua_pushliteral(ls, "sip");
+					lua_pushstring(ls, ipbuf);
+					lua_settable(ls, -3);
+
+					// cport
+					lua_pushliteral(ls, "cport");
+					lua_pushnumber(ls, fdit->second.m_sockinfo.m_ipv4info.m_fields.m_sport);
+					lua_settable(ls, -3);
+
+					// sport
+					lua_pushliteral(ls, "sport");
+					lua_pushnumber(ls, fdit->second.m_sockinfo.m_ipv4info.m_fields.m_dport);
+					lua_settable(ls, -3);
+
+					// is_server
+					lua_pushliteral(ls, "is_server");
+					lua_pushboolean(ls, fdit->second.is_role_server());
+					lua_settable(ls, -3);
+				}
+				else
+				{
+					// sip
+					pip4 = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4serverinfo.m_ip);
+					snprintf(ipbuf,
+						sizeof(ipbuf),
+						"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+						pip4[0],
+						pip4[1],
+						pip4[2],
+						pip4[3]);
+
+					lua_pushliteral(ls, "sip");
+					lua_pushstring(ls, ipbuf);
+					lua_settable(ls, -3);
+
+					// sport
+					lua_pushliteral(ls, "sport");
+					lua_pushnumber(ls, fdit->second.m_sockinfo.m_ipv4serverinfo.m_port);
+					lua_settable(ls, -3);
+
+					// is_server
+					lua_pushliteral(ls, "is_server");
+					lua_pushboolean(ls, 1);
+					lua_settable(ls, -3);
+				}
+
+				// l4proto
+				const char* l4ps;
+				scap_l4_proto l4p = fdit->second.get_l4proto();
+
+				switch(l4p)
+				{
+				case SCAP_L4_TCP:
+					l4ps = "tcp";
+					break;
+				case SCAP_L4_UDP:
+					l4ps = "udp";
+					break;
+				case SCAP_L4_ICMP:
+					l4ps = "icmp";
+					break;
+				case SCAP_L4_RAW:
+					l4ps = "raw";
+					break;
+				default:
+					l4ps = "<NA>";
+					break;
+				}
+
+				// l4proto
+				lua_pushliteral(ls, "l4proto");
+				lua_pushstring(ls, l4ps);
+				lua_settable(ls, -3);
+			}
+
+			// is_server
+			string l4proto;
 
 			lua_rawseti(ls,-2, (uint32_t)fdit->first);
 		}

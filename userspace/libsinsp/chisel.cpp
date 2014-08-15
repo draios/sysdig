@@ -108,6 +108,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"get_evtsource_name", &lua_cbacks::get_evtsource_name},
 	{"make_ts", &lua_cbacks::make_ts},
 	{"run_sysdig", &lua_cbacks::run_sysdig},
+	{"end_capture", &lua_cbacks::end_capture},
 	{NULL,NULL}
 };
 
@@ -143,6 +144,7 @@ chiselinfo::chiselinfo(sinsp* inspector)
 	m_dumper = NULL;
 	m_inspector = inspector;
 	m_has_nextrun_args = false;
+	m_end_capture = false;
 
 #ifdef HAS_LUA_CHISELS
 	m_callback_interval = 0;
@@ -945,6 +947,11 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 	
 		int oeres = lua_toboolean(m_ls, -1);
 		lua_pop(m_ls, 1);
+
+		if(m_lua_cinfo->m_end_capture == true)
+		{
+			throw sinsp_capture_interrupt_exception();
+		}
 
 		if(oeres == false)
 		{

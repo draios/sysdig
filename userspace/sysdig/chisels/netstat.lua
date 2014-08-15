@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel prints the open file descriptors for every process in the system, with an output that is similar to the one of lsof";
-short_description = "List (and optionally filter) the open file descriptors.";
+description = "Print the system network connections, with an output that is similar to the one of netstat";
+short_description = "List (and optionally filter) network connections.";
 category = "System State";
 		   
 -- Argument list
@@ -25,7 +25,7 @@ args =
 {
 	{
 		name = "filter",
-		description = "a sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.name contains /etc'.", 
+		description = "a sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.port=80'.", 
 		argtype = "filter",
 		optional = true
 	}
@@ -44,12 +44,12 @@ end
 require "common"
 local dctable = {}
 local capturing = false
-local filter = nil
+local filter = "(fd.type=ipv4)"
 
 -- Argument notification callback
 function on_set_arg(name, val)
 	if name == "filter" then
-		filter = val
+		filter = filter .. "and (" .. val .. ")"
 		return true
 	end
 
@@ -79,25 +79,32 @@ function on_capture_end()
 	
 	local ttable = sysdig.get_thread_table(filter)
 
-	print(extend_string("COMMAND", 20) ..
-		extend_string("PID", 8) ..
-		extend_string("TID", 8) ..
-		extend_string("USER", 8) ..
-		extend_string("FD", 8) ..
-		extend_string("TYPE", 12) ..
-		"NAME")
+	print(extend_string("Proto", 6) ..
+		extend_string("Server Address", 25) ..
+		extend_string("Client Address", 25) ..
+		extend_string("State", 15) ..
+		"TID/PID/Program Name")
 
 	for tid, proc in pairs(ttable) do
 		local fdtable = proc.fdtable
-
+		
 		for fd, fdinfo in pairs(fdtable) do
-			print(extend_string(proc.comm, 20) ..
-				extend_string(tostring(proc.pid), 8) ..
-				extend_string(tostring(tid), 8) ..
-				extend_string(proc.username, 8) ..
-				extend_string(tostring(fd), 8) ..
-				extend_string(tostring(fdinfo.type), 12) ..
-				tostring(fdinfo.name))
+			local cip = fdinfo.cip
+			local cport = fdinfo.cport
+			local state = "ESTABLISHED"
+
+			if cip == nil then
+				cip = "0.0.0.0"
+				cport = "*"
+				state = "LISTEN"
+			end
+
+			print(extend_string(fdinfo.l4proto, 6) ..
+				extend_string(fdinfo.sip .. ":" .. fdinfo.sport, 25) ..
+				extend_string(cip .. ":" .. cport, 25) ..
+				extend_string(state, 15) ..
+				tid .. "/" .. proc.pid .. "/" .. proc.comm
+				)
 		end
 	end
 end

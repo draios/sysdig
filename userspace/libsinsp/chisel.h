@@ -91,6 +91,7 @@ public:
 	uint64_t m_callback_interval;
 	bool m_has_nextrun_args;
 	string m_nextrun_args;
+	bool m_end_capture;
 
 private:
 	sinsp* m_inspector;
