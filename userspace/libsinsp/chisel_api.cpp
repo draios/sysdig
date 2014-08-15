@@ -500,8 +500,6 @@ int lua_cbacks::end_capture(lua_State *ls)
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
-	const char* args = lua_tostring(ls, 1); 
-
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
 
