@@ -79,6 +79,8 @@ function on_capture_end()
 	
 	local ttable = sysdig.get_thread_table(filter)
 
+	local sorted_ttable = pairs_top_by_val(ttable, 0, function(t,a,b) return a < b end)
+	
 	print(extend_string("COMMAND", 20) ..
 		extend_string("PID", 8) ..
 		extend_string("TID", 8) ..
@@ -87,7 +89,7 @@ function on_capture_end()
 		extend_string("TYPE", 12) ..
 		"NAME")
 
-	for tid, proc in pairs(ttable) do
+	for tid, proc in sorted_ttable do
 		local fdtable = proc.fdtable
 
 		for fd, fdinfo in pairs(fdtable) do
