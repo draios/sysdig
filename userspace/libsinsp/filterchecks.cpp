@@ -647,52 +647,77 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 
 	if(m_fdinfo != NULL)
 	{
+		uint16_t* sport;
+		uint16_t* dport;
 		scap_fd_type evt_type = m_fdinfo->m_type;
 
 		if(evt_type == SCAP_FD_IPV4_SOCK)
 		{
-			if(m_cmpop == CO_EQ)
-			{
-				if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport == *(uint16_t*)&m_val_storage[0] ||
-					m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport == *(uint16_t*)&m_val_storage[0])
-				{
-					return true;
-				}
-			}
-			else if(m_cmpop == CO_NE)
-			{
-				if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport != *(uint16_t*)&m_val_storage[0] &&
-					m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport != *(uint16_t*)&m_val_storage[0])
-				{
-					return true;
-				}
-			}
-			else
-			{
-				throw sinsp_exception("filter error: IP filter only supports '=' and '!=' operators");
-			}
+			sport = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+			dport = &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
 		}
 		else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 		{
-			if(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port == *(uint16_t*)&m_val_storage[0])
-			{
-				return true;
-			}
+			sport = &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
+			dport = &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
 		}
 		else if(evt_type == SCAP_FD_IPV6_SOCK)
 		{
-			if(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport == *(uint16_t*)&m_val_storage[0] ||
-				m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport == *(uint16_t*)&m_val_storage[0])
-			{
-				return true;
-			}
+			sport = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport;
+			dport = &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport;
 		}
 		else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
 		{
-			if(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port == *(uint16_t*)&m_val_storage[0])
+			sport = &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
+			dport = &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
+		}
+
+		switch(m_cmpop)
+		{
+		case CO_EQ:
+			if(*sport == *(uint16_t*)&m_val_storage[0] ||
+				*dport == *(uint16_t*)&m_val_storage[0])
 			{
 				return true;
 			}
+			break;
+		case CO_NE:
+			if(*sport != *(uint16_t*)&m_val_storage[0] &&
+				*dport != *(uint16_t*)&m_val_storage[0])
+			{
+				return true;
+			}
+			break;
+		case CO_LT:
+			if(*sport < *(uint16_t*)&m_val_storage[0] ||
+				*dport < *(uint16_t*)&m_val_storage[0])
+			{
+				return true;
+			}
+			break;
+		case CO_LE:
+			if(*sport <= *(uint16_t*)&m_val_storage[0] ||
+				*dport <= *(uint16_t*)&m_val_storage[0])
+			{
+				return true;
+			}
+			break;
+		case CO_GT:
+			if(*sport > *(uint16_t*)&m_val_storage[0] ||
+				*dport > *(uint16_t*)&m_val_storage[0])
+			{
+				return true;
+			}
+			break;
+		case CO_GE:
+			if(*sport >= *(uint16_t*)&m_val_storage[0] ||
+				*dport >= *(uint16_t*)&m_val_storage[0])
+			{
+				return true;
+			}
+			break;
+		default:
+			throw sinsp_exception("filter error: IP filter only supports '=' and '!=' operators");
 		}
 	}
 
