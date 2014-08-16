@@ -60,7 +60,11 @@ function extend_string(s, newlen)
 		s = s .. string.sub(ccs, 0, newlen - #s)
 		return s
 	else
-		return (string.sub(s, 0, newlen - 1) .. " ")
+		if newlen > 0 then
+			return (string.sub(s, 0, newlen - 1) .. " ")
+		else
+			return ""
+		end
 	end
 end
 

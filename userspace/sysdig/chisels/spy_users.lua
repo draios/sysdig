@@ -133,7 +133,7 @@ function on_event()
 				return true
 			end
 		end
-	
+
 		print(extend_string("", 4 * (process_tree[pid][1] - icorr)) .. process_tree[pid][2] .. " " .. dtime .. " " .. user .. ") " .. "cd " .. evt.field(fdir))
 	else
 		if max_depth ~= -1 then
