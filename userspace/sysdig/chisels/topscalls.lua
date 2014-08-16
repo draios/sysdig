@@ -35,7 +35,7 @@ end
 function on_init()
 	chisel.exec("table_generator", 
 		"evt.type",
-		"System Call",
+		"Syscall",
 		"evt.count",
 		"# Calls",
 		"evt.type!=switch",

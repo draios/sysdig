@@ -35,7 +35,7 @@ end
 function on_init()
 	chisel.exec("table_generator", 
 		"fd.sport",
-		"Server Port",
+		"Srv Port",
 		"evt.rawarg.res",
 		"Bytes",
 		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
