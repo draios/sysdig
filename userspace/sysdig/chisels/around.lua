@@ -26,7 +26,7 @@ args =
 	{
 		name = "dump_file_name", 
 		description = "the name of the file where the chisel will write the events related to each syslog entry.", 
-		argtype = "srting",
+		argtype = "string",
 		optional = false
 	},
 	{
