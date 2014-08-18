@@ -734,7 +734,7 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 			}
 			break;
 		default:
-			throw sinsp_exception("filter error: IP filter only supports '=' and '!=' operators");
+			throw sinsp_exception("filter error: unsupported port comparison operator");
 		}
 	}
 
