@@ -684,6 +684,10 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 			sport = &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
 			dport = &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
 		}
+		else
+		{
+			return false;
+		}
 
 		switch(m_cmpop)
 		{
