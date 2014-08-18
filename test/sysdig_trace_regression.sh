@@ -1,5 +1,5 @@
 #!/bin/bash
-set -exu
+set -eu
 
 SCRIPT=$(readlink -f $0)
 BASEDIR=$(dirname $SCRIPT)
