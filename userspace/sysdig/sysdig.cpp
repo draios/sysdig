@@ -167,6 +167,7 @@ static void usage()
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, and d for delta between event enter and exit.\n"
 " -v, --verbose      Verbose output.\n"
+" --version          Print version number.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
 #ifndef DISABLE_CGW
@@ -695,6 +696,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"summary", no_argument, 0, 'S' },
 		{"timetype", required_argument, 0, 't' },
 		{"verbose", no_argument, 0, 'v' },
+		{"version", no_argument, 0, 0 },
 		{"writefile", required_argument, 0, 'w' },
 #ifndef DISABLE_CGW
 		{"limit", required_argument, 0, 'W' },
@@ -991,6 +993,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			default:
 				break;
+			}
+
+			if(string(long_options[long_index].name) == "version")
+			{
+				printf("sysdig version %s\n", SYSDIG_VERSION);
+				delete inspector;
+				return sysdig_init_res(EXIT_SUCCESS);
 			}
 		}
 

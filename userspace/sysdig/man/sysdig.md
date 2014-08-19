@@ -142,6 +142,9 @@ OPTIONS
 **-v**, **--verbose**  
   Verbose output.
   
+**--version**  
+  Print version number.
+  
 **-w** _writefile_, **--write**=_writefile_  
   Write the captured events to _writefile_.
 
