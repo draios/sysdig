@@ -1447,6 +1447,9 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency", "delta between an exit event and the correspondent enter event."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency.s", "integer part of the event latency delta."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.latency.ns", "fractional part of the event latency delta."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
+	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
 	{PT_CHARBUF, EPF_PRINT_ONLY, PF_NA, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "For system call events, this is the name of the system call (e.g. 'open')."},
 	{PT_INT16, EPF_NONE, PF_DEC, "evt.cpu", "number of the CPU where this event happened."},
@@ -1475,6 +1478,7 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfiedls = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
+	m_u64val = 0;
 }
 
 sinsp_filter_check* sinsp_filter_check_event::allocate_new()
@@ -1752,6 +1756,9 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_LATENCY:
 	case TYPE_LATENCY_S:
 	case TYPE_LATENCY_NS:
+	case TYPE_DELTA:
+	case TYPE_DELTA_S:
+	case TYPE_DELTA_NS:
 		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
 	case TYPE_COUNT:
 		m_u32val = 1;
@@ -1868,6 +1875,37 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			return (uint8_t*)&m_u64val;
+		}
+	case TYPE_DELTA:
+	case TYPE_DELTA_S:
+	case TYPE_DELTA_NS:
+		{
+			if(m_u64val == 0)
+			{
+				m_u64val = evt->get_ts();
+				m_tsdelta = 0;
+			}
+			else
+			{
+				uint64_t tts = evt->get_ts();
+				
+				if(m_field_id == TYPE_DELTA)
+				{
+					m_tsdelta = tts - m_u64val;
+				}
+				else if(m_field_id == TYPE_DELTA_S)
+				{
+					m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
+				}
+				else if(m_field_id == TYPE_DELTA_NS)
+				{
+					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
+				}
+
+				m_u64val = tts;
+			}
+
+			return (uint8_t*)&m_tsdelta;
 		}
 	case TYPE_DIR:
 		if(PPME_IS_ENTER(evt->get_type()))

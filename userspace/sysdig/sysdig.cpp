@@ -165,7 +165,8 @@ static void usage()
 "                    Change the way event time is diplayed. Accepted values are\n"
 "                    h for human-readable string, a for absolute timestamp from\n"
 "                    epoch, r for relative time from the beginning of the\n"
-"                    capture, and d for delta between event enter and exit.\n"
+"                    capture, d for delta between event enter and exit, and\n"
+"                    D for delta from the previous event.\n"
 " -v, --verbose      Verbose output.\n"
 " --version          Print version number.\n"
 " -w <writefile>, --write=<writefile>\n"
@@ -945,6 +946,16 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					{
 						timefmt = "%evt.latency.s.%evt.latency.ns";
 					}
+					else if(tms == "D")
+					{
+						timefmt = "%evt.deltatime.s.%evt.deltatime.ns";
+					}
+					else
+					{
+						fprintf(stderr, "invalid modifier for flag -t\n");
+						delete inspector;
+						return sysdig_init_res(EXIT_FAILURE);
+					}
 				}
 				break;
 			case 'v':
@@ -973,7 +984,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
 					delete inspector;
-					return sysdig_init_res(EXIT_SUCCESS);
+					return sysdig_init_res(EXIT_FAILURE);
 				}
 
 				event_buffer_format = sinsp_evt::PF_HEX;
@@ -983,7 +994,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
 					delete inspector;
-					return sysdig_init_res(EXIT_SUCCESS);
+					return sysdig_init_res(EXIT_FAILURE);
 				}
 
 				event_buffer_format = sinsp_evt::PF_HEXASCII;
