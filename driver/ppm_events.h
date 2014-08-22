@@ -45,6 +45,8 @@ struct event_filler_arguments {
 #ifdef __NR_socketcall
 	unsigned long socketcall_args[6];
 #endif
+	int fd; /* Passed by some of the fillers to val_to_ring to compute the snaplen dynamically */
+	bool enforce_snaplen;
 };
 
 /*

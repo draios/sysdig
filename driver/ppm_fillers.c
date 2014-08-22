@@ -466,7 +466,12 @@ static int f_sys_read_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	unsigned long bufsize;
-	unsigned int snaplen;
+
+	/*
+	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	args->fd = (int)val;
 
 	/*
 	 * res
@@ -496,33 +501,10 @@ static int f_sys_read_x(struct event_filler_arguments *args)
 	}
 
 	/*
-	 * Determine the snaplen by checking the fd type.
-	 * (note: not implemeted yet)
-	 */
-	snaplen = g_snaplen;
-#if 0
-	{
-		int fd;
-		int err, fput_needed;
-		struct socket *sock;
-
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-
-		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock) {
-			snaplen = g_snaplen;
-			fput_light(sock->file, fput_needed);
-		} else {
-			snaplen = RW_SNAPLEN;
-		}
-	}
-#endif
-
-	/*
 	 * Copy the buffer
 	 */
-	res = val_to_ring(args, val, min_t(unsigned long, bufsize, (unsigned long)snaplen), true, 0);
+	args->enforce_snaplen = true;
+	res = val_to_ring(args, val, bufsize, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -535,46 +517,12 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	unsigned long bufsize;
-	unsigned int snaplen;
 
 	/*
-	 * If the write event is directed to our sysdig-events device, we use a
-	 * bigger snaplen
+	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 	 */
-	snaplen = g_snaplen;
-
-	{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-		int fd;
-		struct fd f;
-
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-
-		f = fdget(fd);
-
-		if (f.file && f.file->f_op) {
-			if (THIS_MODULE == f.file->f_op->owner)
-				snaplen = RW_SNAPLEN_EVENT;
-
-			fdput(f);
-		}
-#else
-		int fd;
-		struct file *file;
-
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-
-		file = fget(fd);
-		if (file && file->f_op) {
-			if (THIS_MODULE == file->f_op->owner)
-				snaplen = RW_SNAPLEN_EVENT;
-
-			fput(file);
-		}
-#endif
-	}
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	args->fd = (int)val;
 
 	/*
 	 * res
@@ -594,7 +542,8 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	 * Copy the buffer
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, val, min_t(unsigned long, bufsize, (unsigned long)snaplen), true, 0);
+	args->enforce_snaplen = true;
+	res = val_to_ring(args, val, bufsize, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -1337,6 +1286,12 @@ static int f_sys_send_x(struct event_filler_arguments *args)
 	unsigned long bufsize;
 
 	/*
+	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	args->fd = (int)val;
+
+	/*
 	 * res
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -1367,7 +1322,8 @@ static int f_sys_send_x(struct event_filler_arguments *args)
 		bufsize = retval;
 	}
 
-	res = val_to_ring(args, val, min_t(unsigned long, bufsize, (unsigned long)g_snaplen), true, 0);
+	args->enforce_snaplen = true;
+	res = val_to_ring(args, val, bufsize, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -1436,6 +1392,12 @@ static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *ret
 	unsigned long bufsize;
 
 	/*
+	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	args->fd = (int)val;
+
+	/*
 	 * res
 	 */
 	*retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -1466,7 +1428,8 @@ static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *ret
 		bufsize = *retval;
 	}
 
-	res = val_to_ring(args, val, min_t(unsigned long, bufsize, (unsigned long)g_snaplen), true, 0);
+	args->enforce_snaplen = true;
+	res = val_to_ring(args, val, bufsize, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2429,7 +2392,6 @@ static int f_sys_writev_e(struct event_filler_arguments *args)
 	int res;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
-	unsigned int snaplen;
 
 	/*
 	 * fd
@@ -2447,33 +2409,9 @@ static int f_sys_writev_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	/*
-	 * Determine the snaplen by checking the fd type.
-	 * (note: not implemeted yet)
-	 */
-	snaplen = g_snaplen;
-#if 0
-	{
-		int fd;
-		int err, fput_needed;
-		struct socket *sock;
-
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-
-		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock) {
-			snaplen = g_snaplen;
-			fput_light(sock->file, fput_needed);
-		} else {
-			snaplen = RW_SNAPLEN;
-		}
-	}
-#endif
-
-	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_SIZE);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2487,7 +2425,6 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	int64_t retval;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
-	unsigned int snaplen;
 
 	/*
 	 * res
@@ -2505,33 +2442,9 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	/*
-	 * Determine the snaplen by checking the fd type.
-	 * (note: not implemeted yet)
-	 */
-	snaplen = g_snaplen;
-#if 0
-	{
-		int fd;
-		int err, fput_needed;
-		struct socket *sock;
-
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-
-		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock) {
-			snaplen = g_snaplen;
-			fput_light(sock->file, fput_needed);
-		} else {
-			snaplen = RW_SNAPLEN;
-		}
-	}
-#endif
-
-	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_DATA);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_DATA);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2619,7 +2532,6 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 #endif
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
-	unsigned int snaplen;
 
 	/*
 	 * fd
@@ -2637,33 +2549,9 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	/*
-	 * Determine the snaplen by checking the fd type.
-	 * (note: not implemeted yet)
-	 */
-	snaplen = g_snaplen;
-#if 0
-	{
-		int fd;
-		int err, fput_needed;
-		struct socket *sock;
-
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-
-		sock = ppm_sockfd_lookup_light(fd, &err, &fput_needed);
-		if (sock) {
-			snaplen = g_snaplen;
-			fput_light(sock->file, fput_needed);
-		} else {
-			snaplen = RW_SNAPLEN;
-		}
-	}
-#endif
-
-	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, snaplen, PRB_FLAG_PUSH_SIZE);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

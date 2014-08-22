@@ -141,13 +141,41 @@ strncpy_end:
 	return res;
 }
 
+inline uint32_t get_snaplen_from_fd(struct event_filler_arguments *args, uint32_t lookahead_size)
+{
+	uint32_t res = g_snaplen;
+
+	if (args->event_type == PPME_SYSCALL_WRITE_X) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+		struct fd f = fdget(args->fd);
+
+		if (f.file && f.file->f_op) {
+			if (THIS_MODULE == f.file->f_op->owner)
+				res = RW_SNAPLEN_EVENT;
+
+			fdput(f);
+		}
+#else
+		struct file* file = fget(args->fd);
+		if (file && file->f_op) {
+			if (THIS_MODULE == file->f_op->owner)
+				res = RW_SNAPLEN_EVENT;
+
+			fput(file);
+		}
+#endif
+	}
+
+	return res;
+}
+
 /*
  * NOTES:
  * - val_len is ignored for everything other than PT_BYTEBUF.
  * - fromuser is ignored for numeric types
  * - dyn_idx is ignored for everything other than PT_DYN
  */
-inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, u8 dyn_idx)
+int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, u8 dyn_idx)
 {
 	const struct ppm_param_info* param_info;
 	int len = -1;
@@ -228,6 +256,66 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 
 		break;
 	case PT_BYTEBUF:
+		if (likely(val != 0)) {
+			if (unlikely(val_len >= args->arg_data_size)) {
+				return PPM_FAILURE_BUFFER_FULL;
+			} else {
+				if (fromuser) {
+					/*
+					 * Copy the lookahead portion of the buffer that we will use DPI-based 
+					 * snaplen calculation
+					 */
+					uint32_t dpi_lookahead_size = DPI_LOOKAHED_SIZE;
+
+					if (dpi_lookahead_size > val_len) {
+						dpi_lookahead_size = val_len;
+					}
+
+					len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
+							(const void __user *)(unsigned long)val,
+							dpi_lookahead_size);
+
+					if (unlikely(len != 0))
+						return PPM_FAILURE_INVALID_USER_MEMORY;
+
+					/*
+					 * Calculate the snaplen
+					 */
+					if (likely(args->enforce_snaplen)) {
+						uint32_t sl = g_snaplen;
+
+						sl = get_snaplen_from_fd(args, dpi_lookahead_size);
+
+						if (val_len > sl) {
+							val_len = sl;
+						}			
+					}
+
+					if (val_len > dpi_lookahead_size) {
+						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
+								(const void __user *)(unsigned long)val + dpi_lookahead_size,
+								val_len - dpi_lookahead_size);
+
+						if (unlikely(len != 0))
+							return PPM_FAILURE_INVALID_USER_MEMORY;
+					}
+
+					len = val_len;
+				} else {
+					memcpy(args->buffer + args->arg_data_offset,
+						(void *)(unsigned long)val, val_len);
+
+					len = val_len;
+				}
+			}
+		} else {
+			/*
+			 * Handle NULL pointers
+			 */
+			len = 0;
+		}
+
+		break;
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
@@ -865,6 +953,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	uint64_t size = 0;
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
+	unsigned long val;
 
 	copylen = iovcnt * sizeof(struct iovec);
 
@@ -892,15 +981,21 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	 * data
 	 * NOTE: for the moment, we limit our data copy to the first buffer.
 	 * We assume that in the vast majority of the cases g_snaplen is much smaller
-	 * than iov[0].iov_len, and therefore we don't bother complicvating the code.
+	 * than iov[0].iov_len, and therefore we don't bother complicating the code.
 	 */
 	if (flags & PRB_FLAG_PUSH_DATA) {
 		if (retval > 0 && iovcnt > 0) {
+			/*
+			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
+			 */
+			syscall_get_arguments(current, args->regs, 0, 1, &val);
+			args->fd = (int)val;
+
 			bufsize = min_t(int64_t, retval, (int64_t)iov[0].iov_len);
 
 			res = val_to_ring(args,
 				(unsigned long)iov[0].iov_base,
-				min(bufsize, (unsigned long)g_snaplen),
+				bufsize,
 				true,
 				0);
 			if (unlikely(res != PPM_SUCCESS))

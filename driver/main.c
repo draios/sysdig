@@ -857,6 +857,7 @@ static void record_event(enum ppm_event_type event_type,
 		args.arg_data_size = args.buffer_size - args.arg_data_offset;
 		args.nevents = ring->nevents;
 		args.str_storage = ring->str_storage;
+		args.enforce_snaplen = false;
 
 		/*
 		 * Fire the filler callback
