@@ -140,6 +140,7 @@ static DEFINE_MUTEX(g_open_mutex);
 static u32 g_open_count;
 u32 g_snaplen = RW_SNAPLEN;
 u32 g_sampling_ratio = 1;
+bool g_do_dynamic_snaplen = false;
 static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
@@ -422,7 +423,6 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		vpr_info("new snaplen: %d\n", g_snaplen);
 		return 0;
 	}
-
 	case PPM_IOCTL_MASK_ZERO_EVENTS:
 	{
 		vpr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
@@ -434,7 +434,6 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		set_bit(PPME_DROP_X, g_events_mask);
 		return 0;
 	}
-
 	case PPM_IOCTL_MASK_SET_EVENT:
 	{
 		u32 syscall_to_set = (u32)arg;
@@ -449,7 +448,6 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		set_bit(syscall_to_set, g_events_mask);
 		return 0;
 	}
-
 	case PPM_IOCTL_MASK_UNSET_EVENT:
 	{
 		u32 syscall_to_unset = (u32)arg;
@@ -463,6 +461,14 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		clear_bit(syscall_to_unset, g_events_mask);
 		return 0;
+	}
+	case PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN:
+	{
+		g_do_dynamic_snaplen = false;
+	}
+	case PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN:
+	{
+		g_do_dynamic_snaplen = true;
 	}
 
 	default:
@@ -1315,6 +1321,15 @@ int sysdig_init(void)
 
 	if (IS_ERR(g_ppe_dev)) {
 		pr_err("error creating the device for  %s\n", PPE_DEVICE_NAME);
+		ret = -EFAULT;
+		goto init_module_err;
+	}
+
+	/*
+	 * Snaplen lookahead initialization
+	 */
+	if (dpi_lookahead_init() != PPM_SUCCESS) {
+		pr_err("initializing lookahead-based snaplen  %s\n", PPE_DEVICE_NAME);
 		ret = -EFAULT;
 		goto init_module_err;
 	}

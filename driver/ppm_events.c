@@ -31,6 +31,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/fs_struct.h>
 #include <linux/uaccess.h>
 #include <linux/version.h>
+#include <linux/module.h>
+#include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -62,6 +64,21 @@ static void memory_dump(char *p, size_t size)
 	for (j = 0; j < size; j += 8)
 		pr_info("%*ph\n", 8, &p[j]);
 }
+
+/*
+ * Globals
+ */
+u32 g_http_options_intval;
+u32 g_http_get_intval;
+u32 g_http_head_intval;
+u32 g_http_post_intval;
+u32 g_http_put_intval;
+u32 g_http_delete_intval;
+u32 g_http_trace_intval;
+u32 g_http_connect_intval;
+u32 g_http_resp_intval;
+
+extern bool g_do_dynamic_snaplen;
 
 /*
  * What this function does is basically a special memcpy
@@ -141,32 +158,74 @@ strncpy_end:
 	return res;
 }
 
-inline uint32_t get_snaplen_from_fd(struct event_filler_arguments *args, uint32_t lookahead_size)
+int32_t dpi_lookahead_init(void)
 {
-	uint32_t res = g_snaplen;
+	g_http_options_intval = (*(u32*)HTTP_OPTIONS_STR);
+	g_http_get_intval = (*(u32*)HTTP_GET_STR);
+	g_http_head_intval = (*(u32*)HTTP_HEAD_STR);
+	g_http_post_intval = (*(u32*)HTTP_POST_STR);
+	g_http_put_intval = (*(u32*)HTTP_PUT_STR);
+	g_http_delete_intval = (*(u32*)HTTP_DELETE_STR);
+	g_http_trace_intval = (*(u32*)HTTP_TRACE_STR);
+	g_http_connect_intval = (*(u32*)HTTP_CONNECT_STR);
+	g_http_resp_intval = (*(u32*)HTTP_CONNECT_STR);
+
+	return PPM_SUCCESS;
+}
+
+inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_size)
+{
+	u32 res = g_snaplen;
+	char* buf;
 
 	if (args->event_type == PPME_SYSCALL_WRITE_X) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 		struct fd f = fdget(args->fd);
 
 		if (f.file && f.file->f_op) {
-			if (THIS_MODULE == f.file->f_op->owner)
+			if (THIS_MODULE == f.file->f_op->owner) {
 				res = RW_SNAPLEN_EVENT;
+				fdput(f);
+				return res;
+			}
 
 			fdput(f);
 		}
 #else
 		struct file* file = fget(args->fd);
 		if (file && file->f_op) {
-			if (THIS_MODULE == file->f_op->owner)
+			if (THIS_MODULE == file->f_op->owner) {
 				res = RW_SNAPLEN_EVENT;
+				fput(file);
+				return res;
+			}
 
 			fput(file);
 		}
 #endif
 	}
 
-	return res;
+	if (!g_do_dynamic_snaplen) {
+		return res;
+	}
+
+	buf = args->buffer + args->arg_data_offset;
+
+	if (lookahead_size >= 5) {
+		if (*(u32*)buf == g_http_get_intval ||
+		        *(u32*)buf == g_http_post_intval ||
+		        *(u32*)buf == g_http_put_intval ||
+		        *(u32*)buf == g_http_delete_intval ||
+		        *(u32*)buf == g_http_trace_intval ||
+		        *(u32*)buf == g_http_connect_intval ||
+		        *(u32*)buf == g_http_options_intval ||
+		        ((*(u32*)buf == g_http_resp_intval) && (buf[4] == '/')))
+		{
+			return 2000;
+		}
+	}
+
+	return DPI_LOOKAHED_SIZE;
 }
 
 /*
@@ -265,7 +324,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 					 * Copy the lookahead portion of the buffer that we will use DPI-based 
 					 * snaplen calculation
 					 */
-					uint32_t dpi_lookahead_size = DPI_LOOKAHED_SIZE;
+					u32 dpi_lookahead_size = DPI_LOOKAHED_SIZE;
 
 					if (dpi_lookahead_size > val_len) {
 						dpi_lookahead_size = val_len;
@@ -279,25 +338,30 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 						return PPM_FAILURE_INVALID_USER_MEMORY;
 
 					/*
-					 * Calculate the snaplen
+					 * Check if there's more to copy
 					 */
-					if (likely(args->enforce_snaplen)) {
-						uint32_t sl = g_snaplen;
+					if (dpi_lookahead_size != val_len) {
+						/*
+						 * Calculate the snaplen
+						 */
+						if (likely(args->enforce_snaplen)) {
+							u32 sl = g_snaplen;
 
-						sl = get_snaplen_from_fd(args, dpi_lookahead_size);
+							sl = compute_snaplen(args, dpi_lookahead_size);
 
-						if (val_len > sl) {
-							val_len = sl;
-						}			
-					}
+							if (val_len > sl) {
+								val_len = sl;
+							}			
+						}
 
-					if (val_len > dpi_lookahead_size) {
-						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
-								(const void __user *)(unsigned long)val + dpi_lookahead_size,
-								val_len - dpi_lookahead_size);
+						if (val_len > dpi_lookahead_size) {
+							len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
+									(const void __user *)(unsigned long)val + dpi_lookahead_size,
+									val_len - dpi_lookahead_size);
 
-						if (unlikely(len != 0))
-							return PPM_FAILURE_INVALID_USER_MEMORY;
+							if (unlikely(len != 0))
+								return PPM_FAILURE_INVALID_USER_MEMORY;
+						}
 					}
 
 					len = val_len;

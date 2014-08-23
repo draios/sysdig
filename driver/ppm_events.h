@@ -94,10 +94,24 @@ extern const struct ppm_event_entry g_ppm_events[];
 #define PRB_FLAG_PUSH_ALL	(PRB_FLAG_PUSH_SIZE | PRB_FLAG_PUSH_DATA)
 
 /*
+ * HTTP markers
+ */
+#define HTTP_GET_STR "GET "
+#define HTTP_OPTIONS_STR "OPTI"
+#define HTTP_HEAD_STR "HEAD"
+#define HTTP_POST_STR "POST"
+#define HTTP_PUT_STR "PUT "
+#define HTTP_DELETE_STR "DELE"
+#define HTTP_TRACE_STR "TRAC"
+#define HTTP_CONNECT_STR "CONN"
+#define HTTP_RESP_STR "HTTP"
+
+/*
  * Functions
  */
+int32_t dpi_lookahead_init(void);
 int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo);
-int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, uint8_t dyn_idx);
+int32_t val_to_ring(struct event_filler_arguments *args, u64 val, u16 val_len, bool fromuser, u8 dyn_idx);
 char *npm_getcwd(char *buf, unsigned long bufsize);
 u16 pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, u16 targetbufsize);
 u16 fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, u16 targetbufsize);
