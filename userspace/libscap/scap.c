@@ -1026,3 +1026,63 @@ uint32_t scap_event_get_dump_flags(scap_t* handle)
 {
 	return handle->m_last_evt_dump_flags;
 }
+
+int32_t scap_enable_dynamic_snaplen(scap_t* handle)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_file)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on offline captures");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	//
+	// Tell the driver to change the snaplen
+	//
+	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_enable_dynamic_snaplen failed");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
+int32_t scap_disable_dynamic_snaplen(scap_t* handle)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_file)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on offline captures");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	//
+	// Tell the driver to change the snaplen
+	//
+	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_enable_dynamic_snaplen failed");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
