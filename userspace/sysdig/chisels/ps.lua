@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel lists the running processes, with an output that is similar to the one of ps.";
+description = "List the running processes, with an output that is similar to the one of ps.";
 short_description = "List (and optionally filter) the machine processes.";
 category = "System State";
 		   
