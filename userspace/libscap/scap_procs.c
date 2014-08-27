@@ -275,9 +275,27 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	if(target_res <= 0)
 	{
 		//
-		// This is normal and happens with kernel threads, which we aren't interested in
+		// No exe. This either
+		//  - a kernel thread (if there is no cmdline). In that case we skip it.
+		//  - a process that has been containerized or has some weird thing going on. In that case
+		//    we accept it.
 		//
-		return SCAP_SUCCESS;
+		snprintf(filename, sizeof(filename), "%sexe", dir_name);
+		f = fopen(filename, "r");
+		if(f == NULL)
+		{
+			return SCAP_SUCCESS;
+		}
+
+		if(fgets(line, SCAP_MAX_PATH_SIZE, f) == NULL)
+		{
+			fclose(f);
+			return SCAP_SUCCESS;
+		}
+		else
+		{
+			fclose(f);
+		}
 	}
 
 	target_name[target_res] = 0;
@@ -508,7 +526,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		}
 
 		//
-		// if tid_to_scan is set we assume this is a runtime lookup so no
+		// if tid_to_scan is set we assume is a runtime lookup so no
 		// need to use the table
 		//
 		if(tid_to_scan == -1)
@@ -542,6 +560,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 				// the main thread already terminated and
 				// the various proc files were not readable
 				//
+				// ASSERT(*procinfo);
 				break;
 			}
 		}
