@@ -508,7 +508,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		}
 
 		//
-		// if tid_to_scan is set we assume is a runtime lookup so no
+		// if tid_to_scan is set we assume this is a runtime lookup so no
 		// need to use the table
 		//
 		if(tid_to_scan == -1)
@@ -542,7 +542,6 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 				// the main thread already terminated and
 				// the various proc files were not readable
 				//
-				// ASSERT(*procinfo);
 				break;
 			}
 		}
