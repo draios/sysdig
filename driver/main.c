@@ -465,10 +465,12 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN:
 	{
 		g_do_dynamic_snaplen = false;
+		return 0;
 	}
 	case PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN:
 	{
 		g_do_dynamic_snaplen = true;
+		return 0;
 	}
 
 	default:
