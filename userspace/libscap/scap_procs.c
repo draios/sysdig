@@ -280,7 +280,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		//  - a process that has been containerized or has some weird thing going on. In that case
 		//    we accept it.
 		//
-		snprintf(filename, sizeof(filename), "%sexe", dir_name);
+		snprintf(filename, sizeof(filename), "%scmdline", dir_name);
 		f = fopen(filename, "r");
 		if(f == NULL)
 		{
