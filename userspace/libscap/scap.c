@@ -537,12 +537,10 @@ bool check_scap_next_wait(scap_t* handle)
 
 		if(read_size > 20000)
 		{
-			return false;
 			handle->m_n_consecutive_waits = 0;
+			return false;
 		}
 	}
-
-	handle->m_n_consecutive_waits++;
 
 	if(handle->m_n_consecutive_waits >= MAX_N_CONSECUTIVE_WAITS)
 	{
@@ -592,6 +590,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 				{
 					usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
 					waited = true;
+					handle->m_n_consecutive_waits++;
 				}
 			}
 
