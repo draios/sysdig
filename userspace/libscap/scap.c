@@ -218,6 +218,7 @@ scap_t* scap_open_live(char *error)
 		//
 		handle->m_devs[j].m_lastreadsize = 0;
 		handle->m_devs[j].m_sn_len = 0;
+		handle->m_n_consecutive_waits = 0;
 		scap_stop_dropping_mode(handle);
 	}
 
@@ -534,13 +535,24 @@ bool check_scap_next_wait(scap_t* handle)
 
 		get_buf_pointers(handle->m_devs[j].m_bufinfo, &thead, &ttail, &read_size);
 
-		if(read_size > 2000)
+		if(read_size > 20000)
 		{
 			return false;
+			handle->m_n_consecutive_waits = 0;
 		}
 	}
 
-	return true;
+	handle->m_n_consecutive_waits++;
+
+	if(handle->m_n_consecutive_waits >= MAX_N_CONSECUTIVE_WAITS)
+	{
+		handle->m_n_consecutive_waits = 0;
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 #endif // HAS_CAPTURE
