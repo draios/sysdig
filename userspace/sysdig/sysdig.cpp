@@ -162,7 +162,7 @@ static void usage()
 "                    By default, the first 80 bytes are captured. Use this\n"
 "                    option with caution, it can generate huge trace files.\n"
 " -t <timetype>, --timetype=<timetype>\n"
-"                    Change the way event time is diplayed. Accepted values are\n"
+"                    Change the way event time is displayed. Accepted values are\n"
 "                    h for human-readable string, a for absolute timestamp from\n"
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, d for delta between event enter and exit, and\n"
