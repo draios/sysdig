@@ -47,9 +47,10 @@ extern "C" {
 #endif
 
 //
-// The time scap_next will wait when a buffer is empty
+// Read buffer timeout constants
 //
 #define BUFFER_EMPTY_WAIT_TIME_MS 30
+#define MAX_N_CONSECUTIVE_WAITS 4
 
 //
 // Process flags
@@ -92,6 +93,7 @@ struct scap
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
+	uint32_t m_n_consecutive_waits;
 };
 
 //

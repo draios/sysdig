@@ -117,7 +117,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			{
 				if(evt->m_tinfo != NULL)
 				{
-					evt->m_tinfo->m_lastevent_type = PPM_SC_MAX;
+					if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E))
+					{
+						evt->m_tinfo->m_lastevent_type = PPM_SC_MAX;
+					}
 				}
 
 				evt->m_filtered_out = true;
@@ -321,7 +324,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	// Ignore scheduler events
 	//
-	if(etype >= PPME_SCHEDSWITCH_1_E && etype <= PPME_DROP_X)
+	if(eflags & EF_SKIPPARSERESET)
 	{
 		return false;
 	}
@@ -337,7 +340,6 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	bool query_os;
 	if(etype == PPME_CLONE_11_X ||
 		etype == PPME_CLONE_16_X ||
-		etype == PPME_SCHEDSWITCH_1_E ||
 		etype == PPME_SCHEDSWITCH_6_E)
 	{
 		query_os = false;
@@ -349,8 +351,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 
 	evt->m_tinfo = evt->get_thread_info(query_os);
 
-	if(etype == PPME_SCHEDSWITCH_1_E ||
-		etype == PPME_SCHEDSWITCH_6_E)
+	if(etype == PPME_SCHEDSWITCH_6_E)
 	{
 		return false;
 	}
