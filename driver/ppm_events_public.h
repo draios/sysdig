@@ -868,8 +868,9 @@ enum ppm_event_flags {
 	EF_READS_FROM_FD = (1 << 3), /* This event reads data from an FD. */
 	EF_WRITES_TO_FD = (1 << 4), /* This event writes data to an FD. */
 	EF_MODIFIES_STATE = (1 << 5), /* This event causes the machine state to change and should not be dropped by the filtering engine. */
-	EF_UNUSED = (1 << 6), /* This event is no */
+	EF_UNUSED = (1 << 6), /* This event is not used */
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
+	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
 };
 
 /*
