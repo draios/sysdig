@@ -877,7 +877,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		//
 		if(it->second.m_pid == it->second.m_tid)
 		{
-			unordered_map<int64_t, sinsp_fdinfo_t> fdtable = it->second.get_fd_table()->m_table;
+			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(it->second.get_fd_table()->m_table);
 			unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 
 			erase_fd_params eparams;
@@ -886,7 +886,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 			eparams.m_tinfo = &(it->second);
 			eparams.m_ts = m_inspector->m_lastevent_ts;
 
-			for(fdit = fdtable.begin(); fdit != fdtable.end(); ++fdit)
+			for(fdit = fdtable->begin(); fdit != fdtable->end(); ++fdit)
 			{
 				eparams.m_fd = fdit->first;
 
