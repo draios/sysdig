@@ -168,7 +168,7 @@ int32_t dpi_lookahead_init(void)
 	g_http_delete_intval = (*(u32*)HTTP_DELETE_STR);
 	g_http_trace_intval = (*(u32*)HTTP_TRACE_STR);
 	g_http_connect_intval = (*(u32*)HTTP_CONNECT_STR);
-	g_http_resp_intval = (*(u32*)HTTP_CONNECT_STR);
+	g_http_resp_intval = (*(u32*)HTTP_RESP_STR);
 
 	return PPM_SUCCESS;
 }
@@ -1055,8 +1055,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 			args->fd = (int)val;
 
-			bufsize = min_t(int64_t, retval, (int64_t)iov[0].iov_len);
-
+			bufsize = (int64_t)iov[0].iov_len;
 			res = val_to_ring(args,
 				(unsigned long)iov[0].iov_base,
 				bufsize,
