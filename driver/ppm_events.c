@@ -209,7 +209,9 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 				len = strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(unsigned long)val,
 								args->arg_data_size);
-				++len;
+
+				if (++len > args->arg_data_size)
+					len = args->arg_data_size;
 			}
 
 			/*
@@ -223,7 +225,9 @@ inline int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 va
 			len = strlcpy(args->buffer + args->arg_data_offset,
 			       "(NULL)",
 			       args->arg_data_size);
-			++len;
+
+			if (++len > args->arg_data_size)
+				len = args->arg_data_size;
 		}
 
 		break;
