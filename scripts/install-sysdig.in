@@ -56,18 +56,18 @@ function install_deb {
 
 	if ! hash curl > /dev/null 2>&1; then
 		echo "* Installing curl"
-		apt-get -qq -y install curl
+		apt-get -qq -y install curl < /dev/null
 	fi
 
 	echo "* Installing Draios public key"
 	curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
 	echo "* Installing Draios repository"
 	curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/_REPOSITORY_NAME_/deb/draios.list
-	apt-get -qq update
+	apt-get -qq update < /dev/null
 	echo "* Installing kernel headers"
-	apt-get -qq -y install linux-headers-$(uname -r) || kernel_warning
+	apt-get -qq -y install linux-headers-$(uname -r) < /dev/null || kernel_warning
 	echo "* Installing Sysdig"
-	apt-get -qq -y install sysdig
+	apt-get -qq -y install sysdig < /dev/null
 }
 
 function unsupported {
