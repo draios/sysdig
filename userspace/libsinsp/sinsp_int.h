@@ -77,7 +77,7 @@ using namespace std;
 //
 #ifdef _WIN32
 #define SINSP_PUBLIC __declspec(dllexport)
-#define BRK(X) {if(evt->get_num() == X)__debugbreak();}
+#define BRK(X) {if(evt != NULL && evt->get_num() == X)__debugbreak();}
 #else
 #define SINSP_PUBLIC
 #define BRK(X)
