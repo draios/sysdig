@@ -3126,26 +3126,39 @@ static int f_sched_fcntl_e(struct event_filler_arguments *args)
 static inline u16 ptrace_requests_to_scap(unsigned long req)
 {
 	switch (req) {
+#ifdef PTRACE_SINGLEBLOCK
 	case PTRACE_SINGLEBLOCK:
 		return PPM_PTRACE_SINGLEBLOCK;
+#endif
+#ifdef PTRACE_SYSEMU_SINGLESTEP
 	case PTRACE_SYSEMU_SINGLESTEP:
 		return PPM_PTRACE_SYSEMU_SINGLESTEP;
+#endif
+
+#ifdef PTRACE_SYSEMU
 	case PTRACE_SYSEMU:
 		return PPM_PTRACE_SYSEMU;
+#endif
 #ifdef PTRACE_ARCH_PRCTL
 	case PTRACE_ARCH_PRCTL:
 		return PPM_PTRACE_ARCH_PRCTL;
 #endif
+#ifdef PTRACE_SET_THREAD_AREA
 	case PTRACE_SET_THREAD_AREA:
 		return PPM_PTRACE_SET_THREAD_AREA;
+#endif
 	case PTRACE_GET_THREAD_AREA:
 		return PPM_PTRACE_GET_THREAD_AREA;
 	case PTRACE_OLDSETOPTIONS:
 		return PPM_PTRACE_OLDSETOPTIONS;
+#ifdef PTRACE_SETFPXREGS
 	case PTRACE_SETFPXREGS:
 		return PPM_PTRACE_SETFPXREGS;
+#endif
+#ifdef PTRACE_GETFPXREGS
 	case PTRACE_GETFPXREGS:
 		return PPM_PTRACE_GETFPXREGS;
+#endif
 	case PTRACE_SETFPREGS:
 		return PPM_PTRACE_SETFPREGS;
 	case PTRACE_GETFPREGS:
@@ -3438,8 +3451,10 @@ static u32 mmap_flags_to_scap(int flags)
 	if (flags & MAP_ANONYMOUS)
 		res |= PPM_MAP_ANONYMOUS;
 
+#ifdef MAP_32BIT
 	if (flags & MAP_32BIT)
 		res |= PPM_MAP_32BIT;
+#endif
 
 #ifdef MAP_RENAME
 	if (flags & MAP_RENAME)
