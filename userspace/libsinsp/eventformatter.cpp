@@ -159,7 +159,12 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 bool sinsp_evt_formatter::on_capture_end(OUT string* res)
 {
 	res->clear();
-	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON && !m_first)
+	if(!m_first &&
+		(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
+		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
+		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
+		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
+		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64))
 	{
 		(*res) = ']';
 	}
@@ -180,7 +185,11 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 	for(j = 0; j < m_tokens.size(); j++)
 	{
-		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
+		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
+		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
+		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
+		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
 		{
 			Json::Value json_value = m_tokens[j]->tojson(evt);
 
@@ -239,7 +248,11 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 		}
 	}
 
-	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON) 
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
+	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
+	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
+	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
+	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
 	{
 		if(m_first) 
 		{
