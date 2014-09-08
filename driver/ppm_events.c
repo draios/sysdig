@@ -320,61 +320,63 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		break;
 	case PT_BYTEBUF:
 		if (likely(val != 0)) {
-			if (unlikely(val_len >= args->arg_data_size)) {
-				return PPM_FAILURE_BUFFER_FULL;
-			} else {
-				if (fromuser) {
-					/*
-					 * Copy the lookahead portion of the buffer that we will use DPI-based 
-					 * snaplen calculation
-					 */
-					u32 dpi_lookahead_size = DPI_LOOKAHED_SIZE;
+			if (fromuser) {
+				/*
+				 * Copy the lookahead portion of the buffer that we will use DPI-based 
+				 * snaplen calculation
+				 */
+				u32 dpi_lookahead_size = DPI_LOOKAHED_SIZE;
 
-					if (dpi_lookahead_size > val_len) {
-						dpi_lookahead_size = val_len;
-					}
-
-					len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
-							(const void __user *)(unsigned long)val,
-							dpi_lookahead_size);
-
-					if (unlikely(len != 0))
-						return PPM_FAILURE_INVALID_USER_MEMORY;
-
-					/*
-					 * Check if there's more to copy
-					 */
-					if (dpi_lookahead_size != val_len) {
-						/*
-						 * Calculate the snaplen
-						 */
-						if (likely(args->enforce_snaplen)) {
-							u32 sl = g_snaplen;
-
-							sl = compute_snaplen(args, dpi_lookahead_size);
-
-							if (val_len > sl) {
-								val_len = sl;
-							}			
-						}
-
-						if (val_len > dpi_lookahead_size) {
-							len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
-									(const void __user *)(unsigned long)val + dpi_lookahead_size,
-									val_len - dpi_lookahead_size);
-
-							if (unlikely(len != 0))
-								return PPM_FAILURE_INVALID_USER_MEMORY;
-						}
-					}
-
-					len = val_len;
-				} else {
-					memcpy(args->buffer + args->arg_data_offset,
-						(void *)(unsigned long)val, val_len);
-
-					len = val_len;
+				if (dpi_lookahead_size > val_len) {
+					dpi_lookahead_size = val_len;
 				}
+
+				if (unlikely(dpi_lookahead_size >= args->arg_data_size))
+					return PPM_FAILURE_BUFFER_FULL;
+
+				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
+						(const void __user *)(unsigned long)val,
+						dpi_lookahead_size);
+
+				if (unlikely(len != 0))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+				/*
+				 * Check if there's more to copy
+				 */
+				if (dpi_lookahead_size != val_len) {
+					/*
+					 * Calculate the snaplen
+					 */
+					if (likely(args->enforce_snaplen)) {
+						u32 sl = g_snaplen;
+
+						sl = compute_snaplen(args, dpi_lookahead_size);
+
+						if (val_len > sl) {
+							val_len = sl;
+						}			
+					}
+
+					if (unlikely((val_len - dpi_lookahead_size) >= args->arg_data_size))
+						return PPM_FAILURE_BUFFER_FULL;
+
+					if (val_len > dpi_lookahead_size) {
+						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
+								(const void __user *)(unsigned long)val + dpi_lookahead_size,
+								val_len - dpi_lookahead_size);
+
+						if (unlikely(len != 0))
+							return PPM_FAILURE_INVALID_USER_MEMORY;
+					}
+				}
+
+				len = val_len;
+			} else {
+				memcpy(args->buffer + args->arg_data_offset,
+					(void *)(unsigned long)val, val_len);
+
+				len = val_len;
 			}
 		} else {
 			/*
