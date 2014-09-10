@@ -617,7 +617,7 @@ captureinfo do_inspect(sinsp* inspector,
 				}
 
 				cout << line;
-				if( !json)
+				if(!json)
 				{
 					cout << endl;
 				}

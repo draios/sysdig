@@ -272,7 +272,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 			ptr += sizeof(uint16_t);
 		}
 
-		if(fmt & sinsp_evt::PF_HEXASCII)
+		if((fmt & sinsp_evt::PF_HEXASCII) || (fmt & sinsp_evt::PF_JSONHEXASCII))
 		{
 			// Fill the row with spaces to align it to other rows
 			while(num_chunks < 8)
@@ -435,7 +435,7 @@ uint32_t binary_buffer_to_base64_string(char *dst, char *src, uint32_t dstlen, u
 		'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
 		'w', 'x', 'y', 'z', '0', '1', '2', '3',
 		'4', '5', '6', '7', '8', '9', '+', '/'};
-	static int mod_table[] = {0, 2, 1};
+	static uint32_t mod_table[] = {0, 2, 1};
 
 	uint32_t j,k;
 
