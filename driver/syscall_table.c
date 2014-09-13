@@ -60,7 +60,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_select - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_SELECT_E, PPME_SYSCALL_SELECT_X},
 #endif
 	[__NR_lseek - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_LSEEK_E, PPME_SYSCALL_LSEEK_X},
-	[__NR_ioctl - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_IOCTL_E, PPME_SYSCALL_IOCTL_X},
+	[__NR_ioctl - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_IOCTL_3_E, PPME_SYSCALL_IOCTL_3_X},
 	[__NR_getcwd - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_GETCWD_E, PPME_SYSCALL_GETCWD_X},
 	[__NR_chdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
 	[__NR_fchdir - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},

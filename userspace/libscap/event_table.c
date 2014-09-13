@@ -110,8 +110,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_LSEEK_X */{"lseek", EC_FILE, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_LLSEEK_E */{"llseek", EC_FILE, EF_USES_FD, 3, {{"fd", PT_FD, PF_DEC}, {"offset", PT_UINT64, PF_DEC}, {"whence", PT_FLAGS8, PF_DEC, lseek_whence} } },
 	/* PPME_SYSCALL_LLSEEK_X */{"llseek", EC_FILE, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SYSCALL_IOCTL_E */{"ioctl", EC_IO_OTHER, EF_USES_FD, 2, {{"fd", PT_FD, PF_DEC}, {"request", PT_UINT64, PF_HEX} } },
-	/* PPME_SYSCALL_IOCTL_X */{"ioctl", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_IOCTL_2_E */{"ioctl", EC_IO_OTHER, EF_USES_FD, 2, {{"fd", PT_FD, PF_DEC}, {"request", PT_UINT64, PF_HEX} } },
+	/* PPME_SYSCALL_IOCTL_2_X */{"ioctl", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_GETCWD_E */{"getcwd", EC_FILE, EF_NONE, 0},
 	/* Note: path is PT_CHARBUF and not PT_FSPATH because we assume it's abosulte and will never need resolution */
 	/* PPME_SYSCALL_GETCWD_X */{"getcwd", EC_FILE, EF_NONE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_CHARBUF, PF_NA} } },
@@ -192,4 +192,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SPLICE_X */{"splice", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_PTRACE_E */{"ptrace", EC_PROCESS, EF_NONE, 2, {{"request", PT_FLAGS16, PF_DEC, ptrace_requests}, {"pid", PT_PID, PF_DEC} } },
 	/* PPME_SYSCALL_PTRACE_X */{"ptrace", EC_PROCESS, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_DYN, PF_HEX, ptrace_dynamic_param, PPM_PTRACE_IDX_MAX}, {"data", PT_DYN, PF_HEX, ptrace_dynamic_param, PPM_PTRACE_IDX_MAX} } },
+	/* PPME_SYSCALL_IOCTL_3_E */{"ioctl", EC_IO_OTHER, EF_USES_FD, 3, {{"fd", PT_FD, PF_DEC}, {"request", PT_UINT64, PF_HEX}, {"argument", PT_UINT64, PF_HEX} } },
+	/* PPME_SYSCALL_IOCTL_3_X */{"ioctl", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 };
