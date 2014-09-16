@@ -828,18 +828,26 @@ u16 fd_to_socktuple(int fd,
 	case AF_INET:
 		if (!use_userdata) {
 			err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
-			ASSERT(err == 0);
-
-			if (is_inbound) {
-				sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
-				sport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
-				dip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
-				dport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
-			} else {
-				sip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
-				sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
-				dip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
-				dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
+			if(err == 0)
+			{
+				if (is_inbound) {
+					sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
+					sport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
+					dip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
+					dport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
+				} else {
+					sip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
+					sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
+					dip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
+					dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
+				}
+			}
+			else
+			{
+				sip = 0;
+				sport = 0;
+				dip = 0;
+				dport = 0;				
 			}
 		} else {
 			/*
