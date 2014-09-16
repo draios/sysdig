@@ -344,7 +344,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 				/*
 				 * Check if there's more to copy
 				 */
-				if (dpi_lookahead_size != val_len) {
+				if (likely((dpi_lookahead_size != val_len))) {
 					/*
 					 * Calculate the snaplen
 					 */
@@ -358,7 +358,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 						}			
 					}
 
-					if (unlikely((val_len - dpi_lookahead_size) >= args->arg_data_size))
+					if (unlikely((val_len) >= args->arg_data_size))
 						return PPM_FAILURE_BUFFER_FULL;
 
 					if (val_len > dpi_lookahead_size) {
@@ -373,6 +373,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 
 				len = val_len;
 			} else {
+				if (unlikely(val_len >= args->arg_data_size))
+					return PPM_FAILURE_BUFFER_FULL;
+
 				memcpy(args->buffer + args->arg_data_offset,
 					(void *)(unsigned long)val, val_len);
 
