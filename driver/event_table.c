@@ -194,4 +194,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_PTRACE_X */{"ptrace", EC_PROCESS, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_DYN, PF_HEX, ptrace_dynamic_param, PPM_PTRACE_IDX_MAX}, {"data", PT_DYN, PF_HEX, ptrace_dynamic_param, PPM_PTRACE_IDX_MAX} } },
 	/* PPME_SYSCALL_IOCTL_3_E */{"ioctl", EC_IO_OTHER, EF_USES_FD, 3, {{"fd", PT_FD, PF_DEC}, {"request", PT_UINT64, PF_HEX}, {"argument", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_IOCTL_3_X */{"ioctl", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_RENAME_E */{"rename", EC_FILE, EF_NONE, 2, {{"oldpath", PT_CHARBUF, PF_NA}, {"newpath", PT_CHARBUF, PF_NA} } },
+	/* PPME_SYSCALL_RENAME_X */{"rename", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_RENAMEAT_E */{"renameat", EC_FILE, EF_NONE, 4, {{"olddirfd", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdirfd", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA} } }, // NOTE: EC_FILE EC_IO_READ (mkdir, mkdirat, linkat, unlinkat)
+	/* PPME_SYSCALL_RENAMEAT_X */{"renameat", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 };

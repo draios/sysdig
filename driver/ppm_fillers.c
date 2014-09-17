@@ -109,6 +109,8 @@ static int f_sys_ptrace_e(struct event_filler_arguments *args);
 static int f_sys_ptrace_x(struct event_filler_arguments *args);
 static int f_sys_mmap_e(struct event_filler_arguments *args);
 static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args);
+static int f_sys_rename_e(struct event_filler_arguments *args);
+static int f_sys_renameat_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -274,6 +276,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SPLICE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_PTRACE_E] = {f_sys_ptrace_e},
 	[PPME_SYSCALL_PTRACE_X] = {f_sys_ptrace_x},
+	[PPME_SYSCALL_RENAME_E] = {f_sys_rename_e},
+	[PPME_SYSCALL_RENAME_X] = {f_sys_single_x},
+	[PPME_SYSCALL_RENAMEAT_E] = {f_sys_renameat_e},
+	[PPME_SYSCALL_RENAMEAT_E] = {f_sys_single_x},
 };
 
 /*
@@ -3543,6 +3549,78 @@ static int f_sys_mmap_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 5, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_rename_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * oldpath
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * newpath
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_renameat_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * olddirfd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+
+	if (val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * oldpath
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * newdirfd
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+
+	if (val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * newpath
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

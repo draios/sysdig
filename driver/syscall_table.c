@@ -170,6 +170,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_process_vm_writev
 	[__NR_process_vm_writev - SYSCALL_TABLE_ID0] =           {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 #endif
+
+	[__NR_rename - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_RENAME_E, PPME_SYSCALL_RENAME_X},
+	[__NR_renameat - SYSCALL_TABLE_ID0] =                   {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_RENAMEAT_E, PPME_SYSCALL_RENAMEAT_X},
 };
 
 /*
