@@ -5,6 +5,8 @@ complete -W                                     \
 '                                               \
   -A                                            \
   --print-ascii                                 \
+  -b                                            \
+  --print-base64                                \
   -cl                                           \
   --list-chisels                                \
   -d                                            \

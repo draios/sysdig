@@ -94,12 +94,17 @@ public:
 	*/
 	enum param_fmt
 	{
-		PF_NORMAL =   (1 << 0),	///< Normal screen output
-		PF_JSON =     (1 << 1),	///< Json formatting
-		PF_SIMPLE =   (1 << 2),	///< Reduced output, e.g. not type character for FDs
-		PF_HEX =      (1 << 3),	///< Hexadecimal output
-		PF_HEXASCII = (1 << 4),	///< Hexadecimal + ASCII output
-		PF_EOLS =     (1 << 5),	///< Normal + end of lines
+		PF_NORMAL =         (1 << 0),	///< Normal screen output
+		PF_JSON =           (1 << 1),	///< Json formatting with data in normal screen format
+		PF_SIMPLE =         (1 << 2),	///< Reduced output, e.g. not type character for FDs
+		PF_HEX =            (1 << 3),	///< Hexadecimal output
+		PF_HEXASCII =       (1 << 4),	///< Hexadecimal + ASCII output
+		PF_EOLS =           (1 << 5),	///< Normal + end of lines
+		PF_BASE64 =         (1 << 6),	///< Base64 output
+		PF_JSONEOLS =       (1 << 7),	///< Json formatting with data in hexadecimal format
+		PF_JSONHEX =        (1 << 8),	///< Json formatting with data in hexadecimal format
+		PF_JSONHEXASCII =   (1 << 9),	///< Json formatting with data in hexadecimal + ASCII format
+		PF_JSONBASE64 =     (1 << 10),	///< Json formatting with data in base64 format
 	};
 
 	/*!
