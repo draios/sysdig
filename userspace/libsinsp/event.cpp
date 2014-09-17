@@ -258,14 +258,15 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 		num_chunks = 0;
 		while(num_chunks < 8 && ptr < src + srclen)
 		{
-			uint16_t* chunk = (uint16_t*)ptr;
+			uint16_t chunk = htons(*(uint16_t*)ptr);
+
 			if(ptr == src + srclen - 1)
 			{
-				k += sprintf(row + k, "   %.2x", *((uint8_t*)chunk));
+				k += sprintf(row + k, " %.2x", *(((uint8_t*)&chunk) + 1));
 			}
 			else
 			{
-				k += sprintf(row + k, " %.4x", *chunk);
+				k += sprintf(row + k, " %.4x", chunk);
 			}
 
 			num_chunks++;
