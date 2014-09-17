@@ -84,6 +84,9 @@ OPTIONS
 
 **-A**, **--print-ascii**  
   Only print the text portion of data buffers, and echo end-of-lines. This is useful to only display human-readable data.
+
+**-b**, **--print-base64**
+  Print data buffers in base64. This is useful for encoding binary data that needs to be used over media designed to handle textual data (i.e., terminal or json).
     
 **-c** _chiselname_ _chiselargs_, **--chisel**=_chiselname_ _chiselargs_  
   run the specified chisel. If the chisel require arguments, they must be specified in the command line after the name.
@@ -104,7 +107,7 @@ OPTIONS
   Print this page
   
 **-j**, **--json**         
-  Emit output as json
+  Emit output as json, data buffer encoding will depend from the print format selected.
   
 **-i _chiselname_**, **--chisel-info=**_chiselname_  
   Get a longer description and the arguments associated with a chisel found in the -cl option list.

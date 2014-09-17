@@ -272,7 +272,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 			ptr += sizeof(uint16_t);
 		}
 
-		if(fmt & sinsp_evt::PF_HEXASCII)
+		if((fmt & sinsp_evt::PF_HEXASCII) || (fmt & sinsp_evt::PF_JSONHEXASCII))
 		{
 			// Fill the row with spaces to align it to other rows
 			while(num_chunks < 8)
@@ -421,6 +421,67 @@ uint32_t binary_buffer_to_string_dots(char *dst, char *src, uint32_t dstlen, uin
 	return k;
 }
 
+uint32_t binary_buffer_to_base64_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+{
+	//
+	// base64 encoder, source:
+	// http://stackoverflow.com/questions/342409/how-do-i-base64-encode-decode-in-c
+	//
+	static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+		'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+		'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+		'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+		'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+		'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+		'w', 'x', 'y', 'z', '0', '1', '2', '3',
+		'4', '5', '6', '7', '8', '9', '+', '/'};
+	static uint32_t mod_table[] = {0, 2, 1};
+
+	uint32_t j,k;
+
+	dstlen = 4 * ((srclen + 2) / 3);
+
+	for (j = 0, k = 0; j < srclen;) {
+
+		uint32_t octet_a = j < srclen ? (unsigned char)src[j++] : 0;
+		uint32_t octet_b = j < srclen ? (unsigned char)src[j++] : 0;
+		uint32_t octet_c = j < srclen ? (unsigned char)src[j++] : 0;
+
+		uint32_t triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
+
+		dst[k++] = encoding_table[(triple >> 3 * 6) & 0x3F];
+		dst[k++] = encoding_table[(triple >> 2 * 6) & 0x3F];
+		dst[k++] = encoding_table[(triple >> 1 * 6) & 0x3F];
+		dst[k++] = encoding_table[(triple >> 0 * 6) & 0x3F];
+	}
+
+	for (j = 0; j < mod_table[srclen % 3]; j++)
+		dst[dstlen - 1 - j] = '=';
+
+	return dstlen;
+}
+
+uint32_t binary_buffer_to_json_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+{
+	uint32_t k = 0;
+	switch(fmt)
+	{
+		case sinsp_evt::PF_JSONHEX:
+		case sinsp_evt::PF_JSONHEXASCII:
+			k = binary_buffer_to_hex_string(dst, src, dstlen, srclen, fmt);
+			break;
+		case sinsp_evt::PF_JSONEOLS:
+			k =  binary_buffer_to_asciionly_string(dst, src, dstlen, srclen, fmt);
+			break;
+		case sinsp_evt::PF_JSONBASE64:
+			k = binary_buffer_to_base64_string(dst, src, dstlen, srclen, fmt);
+			break;
+		default:
+			k = binary_buffer_to_string_dots(dst, src, dstlen, srclen, fmt);
+	}
+	return k;
+}
+
 uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t k = 0;
@@ -440,6 +501,16 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 	if(fmt & sinsp_evt::PF_HEX || fmt & sinsp_evt::PF_HEXASCII)
 	{
 		k = binary_buffer_to_hex_string(dst, src, dstlen, srclen, fmt);
+	}
+	else if(fmt & sinsp_evt::PF_BASE64)
+	{
+		k = binary_buffer_to_base64_string(dst, src, dstlen, srclen, fmt);
+	}
+	else if(fmt & sinsp_evt::PF_JSON  || fmt & sinsp_evt::PF_JSONHEX
+			|| fmt & sinsp_evt::PF_JSONEOLS || fmt & sinsp_evt::PF_JSONHEXASCII
+            || fmt & sinsp_evt::PF_JSONBASE64)
+	{
+		k = binary_buffer_to_json_string(dst, src, dstlen, srclen, fmt);
 	}
 	else if(fmt & sinsp_evt::PF_EOLS)
 	{
