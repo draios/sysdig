@@ -155,6 +155,22 @@ public:
 		return m_type == SCAP_FD_DIRECTORY;
 	}
 
+	uint16_t get_serverport()
+	{
+		if(m_type == SCAP_FD_IPV4_SOCK)
+		{
+			return m_sockinfo.m_ipv4info.m_fields.m_dport;
+		}
+		else if(m_type == SCAP_FD_IPV4_SOCK)
+		{
+			return m_sockinfo.m_ipv6info.m_fields.m_dport;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+
 	/*!
 	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
 	*/
