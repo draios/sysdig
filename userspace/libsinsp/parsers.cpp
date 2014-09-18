@@ -1755,8 +1755,6 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt)
 			eparams.m_fdinfo = evt->m_fdinfo;
 		}
 
-		//m_inspector->push_fdop(tid, evt->m_fdinfo, sinsp_fdop(fd, evt->get_type()));
-
 		//
 		// Remove the fd from the different tables
 		//
