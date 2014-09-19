@@ -186,6 +186,30 @@ public:
 	*/
 	void unregister_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
 
+	/*!
+	  \brief Return true if this FD is a socket server
+	*/
+	inline bool is_role_server()
+	{
+		return (m_flags & FLAGS_ROLE_SERVER) == FLAGS_ROLE_SERVER;
+	}
+
+	/*!
+	  \brief Return true if this FD is a socket client
+	*/
+	inline bool is_role_client()
+	{
+		return (m_flags & FLAGS_ROLE_CLIENT) == FLAGS_ROLE_CLIENT;
+	}
+
+	/*!
+	  \brief Return true if this FD is neither a client nor a server
+	*/
+	inline bool is_role_none()
+	{
+		return (m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
+	}
+
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
 	
@@ -222,37 +246,22 @@ private:
 
 	void add_filename(const char* fullpath);
 
-	bool is_role_server()
-	{
-		return (m_flags & FLAGS_ROLE_SERVER) == FLAGS_ROLE_SERVER;
-	}
-
-	bool is_role_client()
-	{
-		return (m_flags & FLAGS_ROLE_CLIENT) == FLAGS_ROLE_CLIENT;
-	}
-
-	bool is_role_none()
-	{
-		return (m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
-	}
-
-	bool is_transaction()
+	inline bool is_transaction()
 	{
 		return (m_flags & FLAGS_TRANSACTION) == FLAGS_TRANSACTION; 
 	}
 
-	void set_is_transaction()
+	inline void set_is_transaction()
 	{
 		m_flags |= FLAGS_TRANSACTION;
 	}
 
-	void set_role_server()
+	inline void set_role_server()
 	{
 		m_flags |= FLAGS_ROLE_SERVER;
 	}
 
-	void set_role_client()
+	inline void set_role_client()
 	{
 		m_flags |= FLAGS_ROLE_CLIENT;
 	}
@@ -262,22 +271,22 @@ private:
 		sinsp_fdinfo_t* pfdinfo,
 		bool incoming);
 
-	void reset_flags()
+	inline void reset_flags()
 	{
 		m_flags = FLAGS_NONE;
 	}
 
-	void set_socketpipe()
+	inline void set_socketpipe()
 	{
 		m_flags |= FLAGS_IS_SOCKET_PIPE;
 	}
 
-	bool is_socketpipe()
+	inline bool is_socketpipe()
 	{
 		return (m_flags & FLAGS_IS_SOCKET_PIPE) == FLAGS_IS_SOCKET_PIPE; 
 	}
 
-	bool has_no_role()
+	inline bool has_no_role()
 	{
 		return !is_role_client() && !is_role_server();
 	}
@@ -298,6 +307,7 @@ private:
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_event;
 	friend class lua_cbacks;
+	friend class sinsp_proto_detector;
 };
 
 /*@}*/
