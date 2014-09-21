@@ -150,7 +150,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PRLIMIT_E:
 	case PPME_SOCKET_SENDTO_E:
 	case PPME_SOCKET_SENDMSG_E:
-	case PPME_SYSCALL_RENAME_E:
 	case PPME_SYSCALL_RENAMEAT_E:
 		store_event(evt);
 		break;
@@ -265,9 +264,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_MMAP2_X:
 	case PPME_SYSCALL_MUNMAP_X:
 		parse_brk_munmap_mmap_exit(evt);
-	case PPME_SYSCALL_RENAME_X:
 	case PPME_SYSCALL_RENAMEAT_X:
-		parse_rename_renameat_exit(evt);
+		parse_renameat_exit(evt);
 		break;
 	default:
 		break;
@@ -2880,7 +2878,7 @@ void sinsp_parser::parse_brk_munmap_mmap_exit(sinsp_evt* evt)
 	}
 }
 
-void sinsp_parser::parse_rename_renameat_exit(sinsp_evt* evt)
+void sinsp_parser::parse_renameat_exit(sinsp_evt* evt)
 {
 	sinsp_evt_param *parinfo;
 	sinsp_evt *enter_evt = &m_tmp_evt;
@@ -2901,48 +2899,24 @@ void sinsp_parser::parse_rename_renameat_exit(sinsp_evt* evt)
 		return;
 	}
 
-	//
-	// Parse the parameters, based on the event type
-	//
-	if(evt->get_type() == PPME_SYSCALL_RENAME_X)
-	{
-		parinfo = enter_evt->get_param(0);
-		oldpath = parinfo->m_val;
-		oldpathlen = parinfo->m_len;
+	parinfo = enter_evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	int64_t olddirfd = *(int64_t *)parinfo->m_val;
 
-		parinfo = enter_evt->get_param(1);
-		newpath = parinfo->m_val;
-		newpathlen = parinfo->m_len;
+	parinfo = enter_evt->get_param(1);
+	oldpath = parinfo->m_val;
+	oldpathlen = parinfo->m_len;
 
-		solddir = evt->m_tinfo->get_cwd();
-		snewdir = evt->m_tinfo->get_cwd();
-	}
-	else if(evt->get_type() == PPME_SYSCALL_RENAMEAT_X)
-	{
-		parinfo = enter_evt->get_param(0);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		int64_t olddirfd = *(int64_t *)parinfo->m_val;
+	parinfo = enter_evt->get_param(2);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	int64_t newdirfd = *(int64_t *)parinfo->m_val;
 
-		parinfo = enter_evt->get_param(1);
-		oldpath = parinfo->m_val;
-		oldpathlen = parinfo->m_len;
+	parinfo = enter_evt->get_param(3);
+	newpath = parinfo->m_val;
+	newpathlen = parinfo->m_len;
 
-		parinfo = enter_evt->get_param(2);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		int64_t newdirfd = *(int64_t *)parinfo->m_val;
-
-		parinfo = enter_evt->get_param(3);
-		newpath = parinfo->m_val;
-		newpathlen = parinfo->m_len;
-
-		parse_openat_dir(evt, oldpath, olddirfd, &solddir);
-		parse_openat_dir(evt, newpath, newdirfd, &snewdir);
-	}
-	else
-	{
-		ASSERT(false);
-		return;
-	}
+	parse_openat_dir(evt, oldpath, olddirfd, &solddir);
+	parse_openat_dir(evt, newpath, newdirfd, &snewdir);
 
 	char fulloldpath[SCAP_MAX_PATH_SIZE];
 	char fullnewpath[SCAP_MAX_PATH_SIZE];

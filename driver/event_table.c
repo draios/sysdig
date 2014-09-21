@@ -196,6 +196,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_IOCTL_3_X */{"ioctl", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_RENAME_E */{"rename", EC_FILE, EF_NONE, 0 },
 	/* PPME_SYSCALL_RENAME_X */{"rename", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
-	/* PPME_SYSCALL_RENAMEAT_E */{"renameat", EC_FILE, EF_NONE, 4, {{"olddirfd", PT_FD, PF_DEC}, {"oldpath", PT_FSPATH, PF_NA}, {"newdirfd", PT_FD, PF_DEC}, {"newpath", PT_FSPATH, PF_NA} } },
-	/* PPME_SYSCALL_RENAMEAT_X */{"renameat", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_RENAMEAT_E */{"renameat", EC_FILE, EF_NONE, 0, { } },
+	/* PPME_SYSCALL_RENAMEAT_X */{"renameat", EC_FILE, EF_NONE, 5, {{"res", PT_ERRNO, PF_DEC}, {"olddirfd", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdirfd", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA} } },
 };

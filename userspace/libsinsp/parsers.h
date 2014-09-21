@@ -98,7 +98,7 @@ private:
 	void parse_fcntl_exit(sinsp_evt* evt);
 	void parse_context_switch(sinsp_evt* evt);
 	void parse_brk_munmap_mmap_exit(sinsp_evt* evt);
-	void parse_rename_renameat_exit(sinsp_evt* evt);
+	void parse_renameat_exit(sinsp_evt* evt);
 
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
 	inline void add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t ino);
