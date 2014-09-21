@@ -109,7 +109,6 @@ static int f_sys_ptrace_e(struct event_filler_arguments *args);
 static int f_sys_ptrace_x(struct event_filler_arguments *args);
 static int f_sys_mmap_e(struct event_filler_arguments *args);
 static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args);
-static int f_sys_rename_e(struct event_filler_arguments *args);
 static int f_sys_renameat_e(struct event_filler_arguments *args);
 
 /*
@@ -276,8 +275,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SPLICE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_PTRACE_E] = {f_sys_ptrace_e},
 	[PPME_SYSCALL_PTRACE_X] = {f_sys_ptrace_x},
-	[PPME_SYSCALL_RENAME_E] = {f_sys_rename_e},
-	[PPME_SYSCALL_RENAME_X] = {f_sys_single_x},
+	//[PPME_SYSCALL_RENAME_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } }, //{f_sys_empty},
+	//[PPME_SYSCALL_RENAME_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } }, //{PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
+	[PPME_SYSCALL_RENAME_E] = {f_sys_empty},
+	[PPME_SYSCALL_RENAME_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 	[PPME_SYSCALL_RENAMEAT_E] = {f_sys_renameat_e},
 	[PPME_SYSCALL_RENAMEAT_E] = {f_sys_single_x},
 };
@@ -3549,30 +3550,6 @@ static int f_sys_mmap_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 5, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	return add_sentinel(args);
-}
-
-static int f_sys_rename_e(struct event_filler_arguments *args)
-{
-	unsigned long val;
-	int res;
-
-	/*
-	 * oldpath
-	 */
-	syscall_get_arguments(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * newpath
-	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
