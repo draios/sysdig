@@ -293,6 +293,7 @@ private:
 	void increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level, uint32_t notclosed_level);
 	// Don't set level, it's for internal use
 	void decrement_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level = 0);
+	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
