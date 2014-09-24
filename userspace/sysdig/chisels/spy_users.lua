@@ -39,7 +39,7 @@ max_depth = -1
 -- Argument notification callback
 function on_set_arg(name, val)
     if name == "max_depth" then
-        max_depth = tonumber(val)
+        max_depth = parse_numeric_input(val, name)
         return true
     end
 
