@@ -944,6 +944,9 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		switch(block_type)
 		{
+		case PL_BLOCK_TYPE_V1:
+		case PL_BLOCK_TYPE_V1_INT:
+			break;
 		case PL_BLOCK_TYPE_V2:
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3:
