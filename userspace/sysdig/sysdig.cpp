@@ -659,7 +659,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int long_index = 0;
 	int32_t n_filterargs = 0;
 	int cflag = 0;
-	int jflag = 0;
+	bool jflag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
 	string timefmt = "%evt.time";
@@ -874,7 +874,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				// set the json flag to 1 for now, the data format will depend from the print format parameters
 				//
-				jflag = 1;
+				jflag = true;
 				break;
 			case 'h':
 				usage();
@@ -1030,7 +1030,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// If -j was specified the event_buffer_format must be rewritten to account for it
 		//
-		if (jflag)
+		if(jflag)
 		{
 			switch (event_buffer_format)
 			{

@@ -425,7 +425,7 @@ uint32_t binary_buffer_to_string_dots(char *dst, char *src, uint32_t dstlen, uin
 uint32_t binary_buffer_to_base64_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	//
-	// base64 encoder, source:
+	// base64 encoder, malloc-free version of:
 	// http://stackoverflow.com/questions/342409/how-do-i-base64-encode-decode-in-c
 	//
 	static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -438,9 +438,16 @@ uint32_t binary_buffer_to_base64_string(char *dst, char *src, uint32_t dstlen, u
 		'4', '5', '6', '7', '8', '9', '+', '/'};
 	static uint32_t mod_table[] = {0, 2, 1};
 
-	uint32_t j,k;
+	uint32_t j,k, enc_dstlen;
 
-	dstlen = 4 * ((srclen + 2) / 3);
+	enc_dstlen = 4 * ((srclen + 2) / 3);
+	//
+	// Make sure there's enough space in the target buffer.
+	//
+	if(enc_dstlen >= dstlen - 1)
+	{
+		return dstlen;
+	}
 
 	for (j = 0, k = 0; j < srclen;) {
 
@@ -457,9 +464,9 @@ uint32_t binary_buffer_to_base64_string(char *dst, char *src, uint32_t dstlen, u
 	}
 
 	for (j = 0; j < mod_table[srclen % 3]; j++)
-		dst[dstlen - 1 - j] = '=';
+		dst[enc_dstlen - 1 - j] = '=';
 
-	return dstlen;
+	return enc_dstlen;
 }
 
 uint32_t binary_buffer_to_json_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)

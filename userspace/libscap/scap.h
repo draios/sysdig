@@ -91,6 +91,7 @@ typedef struct evt_param_info
 }evt_param_info;
 
 #define SCAP_MAX_PATH_SIZE 1024
+#define SCAP_MAX_ENV_SIZE 4096
 
 /*!
   \brief File Descriptor type
@@ -189,6 +190,8 @@ typedef struct scap_threadinfo
 	char exe[SCAP_MAX_PATH_SIZE]; ///< Full command name (e.g. "/bin/top")
 	char args[SCAP_MAX_PATH_SIZE]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
+	char env[SCAP_MAX_ENV_SIZE]; ///< Environment
+	uint16_t env_len; ///< Environment length
 	char cwd[SCAP_MAX_PATH_SIZE]; ///< The current working directory
 	int64_t fdlimit; ///< The maximum number of files this thread is allowed to open
 	uint32_t flags; ///< the process flags.

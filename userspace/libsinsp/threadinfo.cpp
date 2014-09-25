@@ -161,6 +161,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 
 	m_exe = pi->exe;
 	set_args(pi->args, pi->args_len);
+	set_env(pi->env, pi->env_len);
 	set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
 	m_flags |= pi->flags;
 	m_fdtable.clear();
@@ -321,6 +322,18 @@ void sinsp_threadinfo::set_args(const char* args, size_t len)
 	{
 		m_args.push_back(args + offset);
 		offset += m_args.back().length() + 1;
+	}
+}
+
+void sinsp_threadinfo::set_env(const char* env, size_t len)
+{
+	m_env.clear();
+
+	size_t offset = 0;
+	while(offset < len)
+	{
+		m_env.push_back(env + offset);
+		offset += m_env.back().length() + 1;
 	}
 }
 
