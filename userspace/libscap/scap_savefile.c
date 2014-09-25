@@ -160,6 +160,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	uint16_t commlen;
 	uint16_t exelen;
 	uint16_t argslen;
+	uint16_t envlen;
 	uint16_t cwdlen;
 
 	//
@@ -183,13 +184,14 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		    sizeof(uint32_t) +  // vmswap_kb
 		    sizeof(uint64_t) +  // pfmajor
 		    sizeof(uint64_t) +  // pfminor
+		    2 + tinfo->env_len +
 		    sizeof(uint32_t));
 	}
 
 	//
 	// Create the block
 	//
-	bh.block_type = PL_BLOCK_TYPE_V2;
+	bh.block_type = PL_BLOCK_TYPE_V3;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
@@ -206,6 +208,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		commlen = (uint16_t)strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
 		exelen = (uint16_t)strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
 		argslen = tinfo->args_len;
+		envlen = tinfo->env_len;
 		cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
 
 		if(gzwrite(f, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
@@ -227,7 +230,9 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		        gzwrite(f, &(tinfo->vmrss_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		        gzwrite(f, &(tinfo->vmswap_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		        gzwrite(f, &(tinfo->pfmajor), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &(tinfo->pfminor), sizeof(uint64_t)) != sizeof(uint64_t))
+		        gzwrite(f, &(tinfo->pfminor), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        gzwrite(f, &envlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, tinfo->env, envlen) != envlen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 			return SCAP_FAILURE;
@@ -788,6 +793,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.vmswap_kb = 0;
 	tinfo.pfmajor = 0;
 	tinfo.pfminor = 0;
+	tinfo.env_len = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
@@ -936,8 +942,12 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		totreadsize += readsize;
 
-		if(block_type == PL_BLOCK_TYPE_V2 || block_type == PL_BLOCK_TYPE_V2_INT)
+		switch(block_type)
 		{
+		case PL_BLOCK_TYPE_V2:
+		case PL_BLOCK_TYPE_V2_INT:
+		case PL_BLOCK_TYPE_V3:
+		case PL_BLOCK_TYPE_V3_INT:
 			//
 			// vmsize_kb
 			//
@@ -977,6 +987,38 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 			totreadsize += readsize;
+
+			if(block_type == PL_BLOCK_TYPE_V3 ||
+				block_type == PL_BLOCK_TYPE_V3_INT)
+			{
+				//
+				// args
+				//
+				readsize = gzread(f, &(stlen), sizeof(uint16_t));
+				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+
+				if(stlen >= SCAP_MAX_ENV_SIZE)
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid envlen %d", stlen);
+					return SCAP_FAILURE;
+				}
+
+				totreadsize += readsize;
+
+				readsize = gzread(f, tinfo.env, stlen);
+				CHECK_READ_SIZE(readsize, stlen);
+
+				// the string is not null-terminated on file
+				tinfo.env[stlen] = 0;
+				tinfo.env_len = stlen;
+
+				totreadsize += readsize;
+			}
+			break;
+		default:
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
+			ASSERT(false);
+			return SCAP_FAILURE;
 		}
 
 		//
@@ -1711,8 +1753,10 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			break;
 		case PL_BLOCK_TYPE_V1:
 		case PL_BLOCK_TYPE_V2:
+		case PL_BLOCK_TYPE_V3:
 		case PL_BLOCK_TYPE_V1_INT:
 		case PL_BLOCK_TYPE_V2_INT:
+		case PL_BLOCK_TYPE_V3_INT:
 			found_pl = 1;
 
 			if(scap_read_proclist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)

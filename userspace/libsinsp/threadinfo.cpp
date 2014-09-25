@@ -161,6 +161,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 
 	m_exe = pi->exe;
 	set_args(pi->args, pi->args_len);
+	set_environment(pi->env, pi->env_len);
 	set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
 	m_flags |= pi->flags;
 	m_fdtable.clear();
