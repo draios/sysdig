@@ -179,6 +179,14 @@ $ sysdig \-c topfiles_bytes "not fd.name contains /dev"
 Only print the text portion of data buffers, and echo end\-of\-lines.
 This is useful to only display human\-readable data.
 .PP
+\f[B]\-b\f[], \f[B]\-\-print\-base64\f[]
+.PD 0
+.P
+.PD
+Print data buffers in base64.
+This is useful for encoding binary data that needs to be used over media
+designed to handle textual data (i.e., terminal or json).
+.PP
 \f[B]\-c\f[] \f[I]chiselname\f[] \f[I]chiselargs\f[],
 \f[B]\-\-chisel\f[]=\f[I]chiselname\f[] \f[I]chiselargs\f[]
 .PD 0
@@ -240,7 +248,8 @@ Print this page
 .PD 0
 .P
 .PD
-Emit output as json
+Emit output as json, data buffer encoding will depend from the print
+format selected.
 .PP
 \f[B]\-i \f[I]chiselname\f[]\f[],
 \f[B]\-\-chisel\-info=\f[]\f[I]chiselname\f[]
