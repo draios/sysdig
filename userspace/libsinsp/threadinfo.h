@@ -135,6 +135,7 @@ public:
 	string m_comm; ///< Command name (e.g. "top")
 	string m_exe; ///< Full command name (e.g. "/bin/top")
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
+	vector<string> m_environment; ///< Environment variables
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid; ///< user id
@@ -180,6 +181,7 @@ VISIBILITY_PRIVATE
 	void set_cwd(const char *cwd, uint32_t cwdlen);
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
+	void set_environment(const char* environment, size_t len);
 	void store_event(sinsp_evt *evt);
 	bool is_lastevent_data_valid();
 	void set_lastevent_data_validity(bool isvalid);

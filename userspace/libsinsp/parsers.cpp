@@ -184,6 +184,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -1017,7 +1018,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	evt->m_tinfo->m_fdlimit = *(int64_t *)parinfo->m_val;
 
-	if(evt->get_type() == PPME_SYSCALL_EXECVE_13_X)
+	if(evt->get_type() == PPME_SYSCALL_EXECVE_13_X ||
+		evt->get_type() == PPME_SYSCALL_EXECVE_14_X)
 	{
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
@@ -1043,6 +1045,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(12);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+
+		if(evt->get_type() == PPME_SYSCALL_EXECVE_14_X)
+		{
+			// Get the environment
+			parinfo = evt->get_param(13);
+			evt->m_tinfo->set_environment(parinfo->m_val, parinfo->m_len);
+		}
 	}
 
 	//

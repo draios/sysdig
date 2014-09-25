@@ -816,6 +816,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exe", "the full name (including the path) of the executable generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "the name (excluding the path) of the executable generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "the arguments passed on the command line when starting the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.env", "the environment variables of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cmdline", "full process command line, i.e name + arguments."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "the current working directory of the event."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads of that the process generating the event currently has."},
@@ -1018,6 +1019,24 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			for(j = 0; j < nargs; j++)
 			{
 				m_tstr += tinfo->m_args[j];
+				if(j < nargs -1)
+				{
+					m_tstr += ' ';
+				}
+			}
+
+			return (uint8_t*)m_tstr.c_str();
+		}
+	case TYPE_ENV:
+		{
+			m_tstr.clear();
+
+			uint32_t j;
+			uint32_t nargs = (uint32_t)tinfo->m_environment.size();
+
+			for(j = 0; j < nargs; j++)
+			{
+				m_tstr += tinfo->m_environment[j];
 				if(j < nargs -1)
 				{
 					m_tstr += ' ';

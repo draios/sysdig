@@ -324,6 +324,18 @@ void sinsp_threadinfo::set_args(const char* args, size_t len)
 	}
 }
 
+void sinsp_threadinfo::set_environment(const char* environment, size_t len)
+{
+	m_environment.clear();
+
+	size_t offset = 0;
+	while(offset < len)
+	{
+		m_environment.push_back(environment + offset);
+		offset += m_environment.back().length() + 1;
+	}
+}
+
 bool sinsp_threadinfo::is_main_thread()
 {
 	return m_tid == m_pid;
