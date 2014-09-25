@@ -29,32 +29,44 @@ function on_init()
 	-- Request the fields that we need
 	fpname = chisel.request_field("proc.pname")
 	fppid = chisel.request_field("proc.ppid")
-	fenv = chisel.request_field("proc.env")
+	fpid = chisel.request_field("proc.pid")
+	fenv = chisel.request_field("evt.arg.environment")
 	fetime = chisel.request_field("evt.time")
 
 	-- set the filter
 	chisel.set_filter("proc.name=bash or proc.name=sh and evt.type=execve")
 	
 	print(extend_string("TIME", 22) ..
-		extend_string("PROCNAME", 25) ..
-		"PID")
+		extend_string("PROCNAME", 22) ..
+		extend_string("PID", 8) ..
+		"FUNCTION")
 
 	return true
 end
 
 -- Event parsing callback
 function on_event()
-	env = evt.field(fenv)
-	pname = evt.field(fpname)
-	etime = evt.field(fetime)
-	ppid = evt.field(fppid)
+	local env = evt.field(fenv)
+	local pname = evt.field(fpname)
+	local etime = evt.field(fetime)
+	local ppid = evt.field(fppid)
 	
 	if env ~= nil then
-	
 		if string.find(env, "%(%) ?{.+}.+") then
-			print(extend_string(etime, 22) ..
-				extend_string(pname, 25) ..
-				ppid)
+			local pid = evt.field(fpid)
+			local env_list = sysdig.get_thread_table(filter)[pid].env
+			
+			for i, v in ipairs(env_list) do
+				if string.find(v, "%(%) ?{.+}.+") then
+					local command = string.sub(string.match(v, "}.+"), 2)
+
+					print(extend_string(etime, 22) ..
+						extend_string(pname, 22) ..
+						extend_string(tostring(ppid), 8) ..
+						command)
+					break
+				end
+			end
 		end
 	end
 	

@@ -785,6 +785,21 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 		lua_settable(ls,-3);
 
 		//
+		// Create the environment variables sub-table
+		//
+		lua_pushstring(ls, "env");
+
+		vector<string>* env = &(it->second.m_env);
+		lua_newtable(ls);
+		for(j = 0; j < env->size(); j++)
+		{
+			lua_pushinteger(ls, j + 1);
+			lua_pushstring(ls, env->at(j).c_str());
+			lua_settable(ls, -3);
+		}
+		lua_settable(ls,-3);
+
+		//
 		// Create and populate the FD table
 		//
 		lua_pushstring(ls, "fdtable");
