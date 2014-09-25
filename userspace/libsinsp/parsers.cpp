@@ -1050,7 +1050,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		{
 			// Get the environment
 			parinfo = evt->get_param(13);
-			evt->m_tinfo->set_environment(parinfo->m_val, parinfo->m_len);
+			evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
 		}
 	}
 
