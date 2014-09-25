@@ -58,7 +58,7 @@ function on_event()
 			
 			for i, v in ipairs(env_list) do
 				if string.find(v, "%(%) ?{.+}.+") then
-					local command = string.sub(string.match(v, "}.+"), 2)
+					local command = string.match(v, "%(%).+")
 
 					print(extend_string(etime, 22) ..
 						extend_string(pname, 22) ..
