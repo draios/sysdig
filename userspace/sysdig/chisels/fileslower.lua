@@ -42,8 +42,10 @@ args =
     },
 }
 
+require "common"
+
 function on_set_arg(name, val)
-    min_ms = tonumber(val)
+    min_ms = parse_numeric_input(val, name)
     return true
 end
 

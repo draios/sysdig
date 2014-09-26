@@ -221,3 +221,18 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 		end
 	end
 end
+
+--[[
+Try to convert user input to a number using tonumber(). If tonumber() returns
+'nil', print an error message to the user and exit, otherwise return
+tonumber(value).
+]]--
+function parse_numeric_input(value, name)
+    val = tonumber(value)
+    if val == nil then
+        print(string.format("Input %s must be a number.", name))
+        require ("os")
+        os.exit()
+    end
+    return val
+end
