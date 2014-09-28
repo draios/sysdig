@@ -274,6 +274,14 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SPLICE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_PTRACE_E] = {f_sys_ptrace_e},
 	[PPME_SYSCALL_PTRACE_X] = {f_sys_ptrace_x},
+	[PPME_SYSCALL_RENAME_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
+	[PPME_SYSCALL_RENAME_X] = {f_sys_single_x},
+	[PPME_SYSCALL_RENAMEAT_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {1}, {2}, {3} } },
+	[PPME_SYSCALL_RENAMEAT_X] = {f_sys_single_x},
+	[PPME_SYSCALL_SYMLINK_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
+	[PPME_SYSCALL_SYMLINK_X] = {f_sys_single_x},
+	[PPME_SYSCALL_SYMLINKAT_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
+	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_single_x},
 };
 
 /*
