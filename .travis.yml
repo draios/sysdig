@@ -4,10 +4,6 @@ env:
     - BUILD_TYPE=Release NEW_CC=clang NEW_CXX=clang++
     - BUILD_TYPE=Debug NEW_CC=gcc NEW_CXX=g++
     - BUILD_TYPE=Release NEW_CC=gcc NEW_CXX=g++
-    - BUILD_TYPE=Debug NEW_CC=gcc-4.5 NEW_CXX=g++-4.5
-    - BUILD_TYPE=Release NEW_CC=gcc-4.5 NEW_CXX=g++-4.5
-    - BUILD_TYPE=Debug NEW_CC=gcc-4.4 NEW_CXX=g++-4.4
-    - BUILD_TYPE=Release NEW_CC=gcc-4.4 NEW_CXX=g++-4.4
 before_install:
     - sudo apt-get update
 install:
