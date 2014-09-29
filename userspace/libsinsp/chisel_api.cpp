@@ -694,9 +694,6 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 		lua_pushliteral(ls, "ptid");
 		lua_pushnumber(ls, (uint32_t)it->second.m_ptid);
 		lua_settable(ls, -3);
-		lua_pushliteral(ls, "progid");
-		lua_pushnumber(ls, (uint32_t)it->second.m_progid);
-		lua_settable(ls, -3);
 		lua_pushliteral(ls, "comm");
 		lua_pushstring(ls, it->second.m_comm.c_str());
 		lua_settable(ls, -3);

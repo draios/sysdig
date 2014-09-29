@@ -131,7 +131,6 @@ public:
 	int64_t m_tid;  ///< The id of this thread
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
-	int64_t m_progid; ///< Main program id. If this process is part of a logical group of processes (e.g. it's one of the apache processes), the tid of the process that is the head of this group.
 	string m_comm; ///< Command name (e.g. "top")
 	string m_exe; ///< Full command name (e.g. "/bin/top")
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
@@ -186,6 +185,7 @@ VISIBILITY_PRIVATE
 	bool is_lastevent_data_valid();
 	void set_lastevent_data_validity(bool isvalid);
 	void allocate_private_state();
+	void compute_program_hash();
 
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations
@@ -198,13 +198,13 @@ VISIBILITY_PRIVATE
 	sinsp_fdtable m_fdtable; // The fd table of this thread
 	string m_cwd; // current working directory
 	sinsp_threadinfo* m_main_thread;
-	sinsp_threadinfo* m_main_program_thread;
 	uint8_t m_lastevent_data[SP_EVT_BUF_SIZE]; // Used by some event parsers to store the last enter event
 	vector<void*> m_private_state;
 
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
+	size_t m_program_hash;
 
 	friend class sinsp;
 	friend class sinsp_parser;
@@ -292,9 +292,6 @@ public:
 
 private:
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
-	void increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level, uint32_t notclosed_level);
-	// Don't set level, it's for internal use
-	void decrement_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level = 0);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
 
 	sinsp* m_inspector;

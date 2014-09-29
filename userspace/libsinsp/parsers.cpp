@@ -1077,19 +1077,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	evt->m_tinfo->m_flags |= PPM_CL_NAME_CHANGED;
 
 	//
-	// execve potentially breaks the program chain, and so we need to reflect it in our parents program count.
+	// Recompute the program hash
 	//
-	if((prev_comm != evt->m_tinfo->m_comm) || (prev_exe != evt->m_tinfo->m_exe))
-	{
-		if(evt->m_tinfo->m_progid != -1LL)
-		{
-			m_inspector->m_thread_manager->decrement_program_childcount(evt->m_tinfo);
-		}
-		else
-		{
-			m_inspector->m_thread_manager->increment_program_childcount(evt->m_tinfo, 0, 0);
-		}
-	}
+	evt->m_tinfo->compute_program_hash();
 
 #ifdef HAS_ANALYZER
 	evt->m_tinfo->m_ainfo->clear_role_flags();

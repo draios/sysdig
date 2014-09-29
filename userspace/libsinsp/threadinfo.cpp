@@ -53,7 +53,6 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp *inspector) :
 void sinsp_threadinfo::init()
 {
 	m_pid = (uint64_t) - 1LL;
-	m_progid = -1LL;
 	set_lastevent_data_validity(false);
 	m_lastevent_type = -1;
 	m_lastevent_ts = 0;
@@ -70,13 +69,13 @@ void sinsp_threadinfo::init()
 	m_pfmajor = 0;
 	m_pfminor = 0;
 	m_main_thread = NULL;
-	m_main_program_thread = NULL;
 	m_lastevent_fd = 0;
 #ifdef HAS_FILTERING
 	m_last_latency_entertime = 0;
 	m_latency = 0;
 #endif
 	m_ainfo = NULL;
+	m_program_hash = 0;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -130,6 +129,18 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc()
 			}
 		}
 	}
+}
+
+void sinsp_threadinfo::compute_program_hash()
+{
+	string phs = m_exe;
+
+	for(string arg : m_args)
+	{
+		phs += arg;
+	}
+
+	m_program_hash = std::hash<std::string>()(phs);
 }
 
 void sinsp_threadinfo::init(const scap_threadinfo* pi)
@@ -743,67 +754,6 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
-void sinsp_thread_manager::increment_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level, uint32_t notclosed_level)
-{
-	if(threadinfo->is_main_thread())
-	{
-		sinsp_threadinfo* parent_thread = m_inspector->get_thread(threadinfo->m_ptid, false, false);
-
-		if(parent_thread)
-		{
-			if(parent_thread->m_tid == threadinfo->m_tid || level > 64)
-			{
-				return;
-			}
-			
-			if((parent_thread->m_comm == threadinfo->m_comm) &&
-				(parent_thread->m_exe == threadinfo->m_exe))
-			{
-				threadinfo->m_progid = parent_thread->m_tid;
-				++parent_thread->m_nchilds;
-
-				if(!(threadinfo->m_flags & PPM_CL_CLOSED))
-				{
-					notclosed_level++;
-				}
-
-				increment_program_childcount(parent_thread, level + 1, notclosed_level);
-			}
-		}
-	}
-}
-
-// Don't set level, it's for internal use
-void sinsp_thread_manager::decrement_program_childcount(sinsp_threadinfo* threadinfo, uint32_t level)
-{
-	if(threadinfo->is_main_thread())
-	{
-		ASSERT(threadinfo->m_pid != threadinfo->m_progid);
-
-		sinsp_threadinfo* prog_thread = m_inspector->get_thread(threadinfo->m_progid, false, true);
-
-		if(prog_thread)
-		{
-			if(prog_thread->m_nchilds > 0)
-			{
-				--prog_thread->m_nchilds;
-				decrement_program_childcount(prog_thread, level + 1);
-				threadinfo->m_main_program_thread = NULL;
-			}
-			else
-			{
-				ASSERT(false);
-			}
-		}
-
-		if(level == 0)
-		{
-			threadinfo->m_progid = -1LL;
-			threadinfo->m_main_program_thread = NULL;
-		}
-	}
-}
-
 void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
@@ -819,8 +769,9 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	if(!from_scap_proctable)
 	{
 		increment_mainthread_childcount(&threadinfo);
-		increment_program_childcount(&threadinfo, 0, 0);
 	}
+
+	threadinfo.compute_program_hash();
 
 	sinsp_threadinfo& newentry = (m_threadtable[threadinfo.m_tid] = threadinfo);
 
@@ -879,10 +830,6 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 			{
 				ASSERT(false);
 			}
-		}
-		else if(it->second.m_progid != -1LL)
-		{
-			decrement_program_childcount(&it->second);
 		}
 
 		//
@@ -1006,9 +953,7 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc()
 
 void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
 {
-	it->second.m_main_program_thread = NULL;
 	it->second.m_main_thread = NULL;
-	it->second.m_progid = -1LL;
 	sinsp_fdtable* fdt = it->second.get_fd_table();
 	if(fdt != NULL)
 	{
@@ -1047,7 +992,6 @@ void sinsp_thread_manager::create_child_dependencies()
 	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		increment_mainthread_childcount(&it->second);
-		increment_program_childcount(&it->second, 0, 0);
 	}
 }
 
