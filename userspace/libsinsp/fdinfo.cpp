@@ -339,7 +339,13 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 {
 	pair<unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res;
 
-	insert_res = m_table.emplace(fd, *fdinfo);
+	//
+	// NOTE: emplace would be more efficinent and avoid the multiple contrcutions
+	// required by make_pair, but it's not supported by some gcc versions, so
+	// we use insert for the moment.
+	//
+	insert_res = m_table.insert(std::make_pair(fd, *fdinfo));
+	//insert_res = m_table.emplace(fd, *fdinfo);
 
 	//
 	// Look for the FD in the table
