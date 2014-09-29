@@ -225,7 +225,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_si
 		}
 	}
 
-	return DPI_LOOKAHED_SIZE;
+	return res;
 }
 
 /*
