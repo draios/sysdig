@@ -1198,7 +1198,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					open_success = true;
 
-					system("modprobe sysdig-probe > /dev/null 2> /dev/null");
+					if(system("modprobe sysdig-probe > /dev/null 2> /dev/null"))
+					{
+						fprintf(stderr, "Unable to load the driver\n");						
+					}
 
 					inspector->open("");
 				}
