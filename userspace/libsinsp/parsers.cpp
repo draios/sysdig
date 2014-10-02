@@ -2514,9 +2514,26 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 		}
 
 		//
+		// If the old FD is in the table, remove it properly
+		//
+		sinsp_fdinfo_t* oldfdinfo = evt->m_tinfo->get_fd(retval);
+
+		if(oldfdinfo != NULL)
+		{
+			erase_fd_params eparams;
+
+			eparams.m_fd = retval;
+			eparams.m_fdinfo = oldfdinfo;
+			eparams.m_remove_from_table = true;
+			eparams.m_inspector = m_inspector;
+			eparams.m_tinfo = evt->m_tinfo;
+			eparams.m_ts = evt->get_ts();
+
+			erase_fd(&eparams);
+		}
+
+		//
 		// Add the new fd to the table.
-		// NOTE: dup2 and dup3 accept an existing FD and in that case they close it.
-		//       For us it's ok to just overwrite it.
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
 	}
