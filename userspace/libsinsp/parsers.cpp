@@ -2524,7 +2524,7 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 
 			eparams.m_fd = retval;
 			eparams.m_fdinfo = oldfdinfo;
-			eparams.m_remove_from_table = true;
+			eparams.m_remove_from_table = false;
 			eparams.m_inspector = m_inspector;
 			eparams.m_tinfo = evt->m_tinfo;
 			eparams.m_ts = evt->get_ts();
