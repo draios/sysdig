@@ -52,12 +52,12 @@ function on_event()
 	local ppid = evt.field(fppid)
 	
 	if env ~= nil then
-		if string.find(env, "%(%) ?{.+}.+") then
+		if string.find(env, "%(%) ?{.+") then
 			local pid = evt.field(fpid)
 			local env_list = sysdig.get_thread_table(filter)[pid].env
 			
 			for i, v in ipairs(env_list) do
-				if string.find(v, "%(%) ?{.+}.+") then
+				if string.find(v, "%(%) ?{.+") then
 					local command = string.match(v, "%(%).+")
 
 					print(extend_string(etime, 22) ..
