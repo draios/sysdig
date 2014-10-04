@@ -77,6 +77,11 @@ typedef struct _section_header_block
 											// library release. We'll keep him for a while for
 											// backward compatibility
 
+#define PL_BLOCK_TYPE_V3		0x209
+#define PL_BLOCK_TYPE_V3_INT	0x8014ABCD	// This is the unofficial number used before the
+											// library release. We'll keep him for a while for
+											// backward compatibility
+
 ///////////////////////////////////////////////////////////////////////////////
 // FD LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////

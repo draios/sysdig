@@ -88,6 +88,9 @@ static void usage()
 " -A, --print-ascii  Only print the text portion of data buffers, and echo\n"
 "                    end-of-lines. This is useful to only display human-readable\n"
 "                    data.\n"
+" -b, --print-base64 Print data buffers in base64. This is useful for encoding\n"
+"                    binary data that needs to be used over media designed to\n"
+"                    handle textual data (i.e., terminal or json).\n"
 #ifdef HAS_CHISELS
 " -c <chiselname> <chiselargs>, --chisel  <chiselname> <chiselargs>\n"
 "                    run the specified chisel. If the chisel require arguments,\n"
@@ -140,7 +143,8 @@ static void usage()
 "                    Get a longer description and the arguments associated with\n"
 "                    a chisel found in the -cl option list.\n"
 #endif
-" -j, --json         Emit output as json\n"
+" -j, --json         Emit output as json, data buffer encoding will depend from the\n"
+"                    print format selected.\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -463,6 +467,7 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 captureinfo do_inspect(sinsp* inspector,
 					   uint64_t cnt,
 					   bool quiet,
+					   bool json,
 					   bool print_progress,
 					   sinsp_filter* display_filter,
 					   vector<summary_table_entry>* summary_table,
@@ -612,7 +617,7 @@ captureinfo do_inspect(sinsp* inspector,
 				}
 
 				cout << line;
-				if( inspector->get_buffer_format() != sinsp_evt::PF_JSON)
+				if(!json)
 				{
 					cout << endl;
 				}
@@ -654,6 +659,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int long_index = 0;
 	int32_t n_filterargs = 0;
 	int cflag = 0;
+	bool jflag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
 	string timefmt = "%evt.time";
@@ -667,6 +673,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	static struct option long_options[] =
 	{
 		{"print-ascii", no_argument, 0, 'A' },
+		{"print-base64", no_argument, 0, 'b' },
 #ifdef HAS_CHISELS
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, &cflag, 1 },
@@ -722,7 +729,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-                                        "Ac:"
+                                        "Abc:"
 #ifndef DISABLE_CGW
                                         "C:"
 #endif
@@ -747,6 +754,16 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 
 				event_buffer_format = sinsp_evt::PF_EOLS;
+				break;
+			case 'b':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return sysdig_init_res(EXIT_SUCCESS);
+				}
+
+				event_buffer_format = sinsp_evt::PF_BASE64;
 				break;
 			case 0:
 				if(cflag != 1 && cflag != 2)
@@ -854,14 +871,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				is_filter_display = true;
 				break;
 			case 'j':
-				if(event_buffer_format != sinsp_evt::PF_NORMAL)
-				{
-					fprintf(stderr, "you cannot specify more than one output format\n");
-					delete inspector;
-					return sysdig_init_res(EXIT_SUCCESS);
-				}
-
-				event_buffer_format = sinsp_evt::PF_JSON;
+				//
+				// set the json flag to 1 for now, the data format will depend from the print format parameters
+				//
+				jflag = true;
 				break;
 			case 'h':
 				usage();
@@ -1011,6 +1024,34 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				printf("sysdig version %s\n", SYSDIG_VERSION);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			}
+		}
+
+		//
+		// If -j was specified the event_buffer_format must be rewritten to account for it
+		//
+		if(jflag)
+		{
+			switch (event_buffer_format)
+			{
+				case sinsp_evt::PF_NORMAL:
+					event_buffer_format = sinsp_evt::PF_JSON;
+					break;
+				case sinsp_evt::PF_EOLS:
+					event_buffer_format = sinsp_evt::PF_JSONEOLS;
+					break;
+				case sinsp_evt::PF_HEX:
+					event_buffer_format = sinsp_evt::PF_JSONHEX;
+					break;
+				case sinsp_evt::PF_HEXASCII:
+					event_buffer_format = sinsp_evt::PF_JSONHEXASCII;
+					break;
+				case sinsp_evt::PF_BASE64:
+					event_buffer_format = sinsp_evt::PF_JSONBASE64;
+					break;
+				default:
+					// do nothing
+					break;
 			}
 		}
 
@@ -1184,6 +1225,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			cinfo = do_inspect(inspector,
 				cnt,
 				quiet,
+				jflag,
 				print_progress,
 				display_filter,
 				summary_table,

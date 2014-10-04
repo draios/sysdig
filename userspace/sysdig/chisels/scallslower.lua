@@ -36,9 +36,11 @@ args =
     },
 }
 
+require "common"
+
 -- Argument notification callback
 function on_set_arg(name, val)
-    min_msec = tonumber(val)
+    min_msec = parse_numeric_input(val, name)
     return true
 end
 

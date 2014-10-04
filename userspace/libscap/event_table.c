@@ -194,6 +194,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_PTRACE_X */{"ptrace", EC_PROCESS, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_DYN, PF_HEX, ptrace_dynamic_param, PPM_PTRACE_IDX_MAX}, {"data", PT_DYN, PF_HEX, ptrace_dynamic_param, PPM_PTRACE_IDX_MAX} } },
 	/* PPME_SYSCALL_IOCTL_3_E */{"ioctl", EC_IO_OTHER, EF_USES_FD, 3, {{"fd", PT_FD, PF_DEC}, {"request", PT_UINT64, PF_HEX}, {"argument", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_IOCTL_3_X */{"ioctl", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_EXECVE_14_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 0},
+	/* PPME_SYSCALL_EXECVE_14_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 14, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"env", PT_BYTEBUF, PF_NA} } },
 	/* PPME_SYSCALL_RENAME_E */{"rename", EC_FILE, EF_NONE, 0 },
 	/* PPME_SYSCALL_RENAME_X */{"rename", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_RENAMEAT_E */{"renameat", EC_FILE, EF_NONE, 0, { } },

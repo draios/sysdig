@@ -404,6 +404,35 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	}
 
 	//
+	// Gather the environment
+	//
+	snprintf(filename, sizeof(filename), "%senviron", dir_name);
+
+	f = fopen(filename, "r");
+	if(f == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't open %s", filename);
+		free(tinfo);
+		return SCAP_FAILURE;
+	}
+	else
+	{
+		filesize = fread(line, 1, sizeof(line), f);
+		line[filesize - 1] = 0;
+
+		tinfo->env_len = filesize;
+		if(tinfo->env_len > SCAP_MAX_ENV_SIZE)
+		{
+			tinfo->env_len = SCAP_MAX_ENV_SIZE;
+		}
+
+		memcpy(tinfo->env, line, tinfo->env_len);
+		tinfo->env[SCAP_MAX_ENV_SIZE - 1] = 0;
+
+		fclose(f);
+	}
+
+	//
 	// set the current working directory of the process
 	//
 	if(SCAP_FAILURE == scap_proc_fill_cwd(dir_name, tinfo))

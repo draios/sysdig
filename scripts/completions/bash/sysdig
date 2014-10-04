@@ -1,10 +1,12 @@
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.87
+# 0.1.89
 
 complete -W                                     \
 '                                               \
   -A                                            \
   --print-ascii                                 \
+  -b                                            \
+  --print-base64                                \
   -cl                                           \
   --list-chisels                                \
   -d                                            \
