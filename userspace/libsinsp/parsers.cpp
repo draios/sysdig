@@ -150,7 +150,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PRLIMIT_E:
 	case PPME_SOCKET_SENDTO_E:
 	case PPME_SOCKET_SENDMSG_E:
-	case PPME_SYSCALL_RENAMEAT_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_READ_X:
@@ -266,8 +265,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_MUNMAP_X:
 		parse_brk_munmap_mmap_exit(evt);
 		break;
-	case PPME_SYSCALL_RENAMEAT_X:
-		parse_renameat_exit(evt);
+	case PPME_SYSCALL_OPENAT_2_X:
+		parse_openat_2_exit(evt);
 		break;
 	default:
 		break;
@@ -2888,49 +2887,77 @@ void sinsp_parser::parse_brk_munmap_mmap_exit(sinsp_evt* evt)
 	}
 }
 
-void sinsp_parser::parse_renameat_exit(sinsp_evt* evt)
+void sinsp_parser::parse_openat_2_exit(sinsp_evt* evt)
 {
 	sinsp_evt_param *parinfo;
-	sinsp_evt *enter_evt = &m_tmp_evt;
-	char *oldpath;
-	uint32_t oldpathlen;
-	char *newpath;
-	uint32_t newpathlen;
-	string solddir;
-	string snewdir;
+	int64_t fd;
+	char *name;
+	uint32_t namelen;
+	uint32_t flags;
+	//  uint32_t mode;
+	sinsp_fdinfo_t fdi;
+	string sdir;
 
 	ASSERT(evt->m_tinfo);
 
 	//
-	// Load the enter event so we can access its arguments
+	// Check the return value
 	//
-	if(!retrieve_enter_event(enter_evt, evt))
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	fd = *(int64_t *)parinfo->m_val;
+
+	parinfo = evt->get_param(2);
+	name = parinfo->m_val;
+	namelen = parinfo->m_len;
+
+	parinfo = evt->get_param(3);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	flags = *(uint32_t *)parinfo->m_val;
+
+	parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+	parse_openat_dir(evt, name, dirfd, &sdir);
+
+	char fullpath[SCAP_MAX_PATH_SIZE];
+	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), name, namelen);
+
+	if (fd >= 0)
 	{
-		return;
+		//
+		// Populate the new fdi
+		//
+		if(flags & PPM_O_DIRECTORY)
+		{
+			fdi.m_type = SCAP_FD_DIRECTORY;
+		}
+		else
+		{
+			fdi.m_type = SCAP_FD_FILE;
+		}
+
+		fdi.m_openflags = flags;
+		fdi.add_filename(fullpath);
+
+		//
+		// Add the fd to the table.
+		//
+		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+
+		//
+		// Call the protocol decoder callbacks associated to this event
+		//
+		vector<sinsp_protodecoder*>::iterator it;
+		for(it = m_open_callbacks.begin(); it != m_open_callbacks.end(); ++it)
+		{
+			(*it)->on_event(evt, CT_OPEN);
+		}
 	}
 
-	parinfo = enter_evt->get_param(0);
-	ASSERT(parinfo->m_len == sizeof(int64_t));
-	int64_t olddirfd = *(int64_t *)parinfo->m_val;
-
-	parinfo = enter_evt->get_param(1);
-	oldpath = parinfo->m_val;
-	oldpathlen = parinfo->m_len;
-
-	parinfo = enter_evt->get_param(2);
-	ASSERT(parinfo->m_len == sizeof(int64_t));
-	int64_t newdirfd = *(int64_t *)parinfo->m_val;
-
-	parinfo = enter_evt->get_param(3);
-	newpath = parinfo->m_val;
-	newpathlen = parinfo->m_len;
-
-	parse_openat_dir(evt, oldpath, olddirfd, &solddir);
-	parse_openat_dir(evt, newpath, newdirfd, &snewdir);
-
-	char fulloldpath[SCAP_MAX_PATH_SIZE];
-	char fullnewpath[SCAP_MAX_PATH_SIZE];
-	sinsp_utils::concatenate_paths(fulloldpath, SCAP_MAX_PATH_SIZE, solddir.c_str(), (uint32_t)solddir.length(), oldpath, oldpathlen);
-	sinsp_utils::concatenate_paths(fullnewpath, SCAP_MAX_PATH_SIZE, snewdir.c_str(), (uint32_t)snewdir.length(), newpath, newpathlen);
-	// FIXME: now what to do with fulloldpath and fullnewpath?
+	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
+	{
+		m_fd_listener->on_file_create(evt, fullpath);
+	}
 }
