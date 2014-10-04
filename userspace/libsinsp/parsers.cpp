@@ -265,6 +265,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_MMAP2_X:
 	case PPME_SYSCALL_MUNMAP_X:
 		parse_brk_munmap_mmap_exit(evt);
+		break;
 	case PPME_SYSCALL_RENAMEAT_X:
 		parse_renameat_exit(evt);
 		break;
