@@ -1488,7 +1488,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_syslog", "'true' for events that are writes to /dev/log."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
-	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculate for (linkat|symlinkat|unlinkat|openat|renameat)."},
+	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during (linkat|symlinkat|unlinkat|openat|renameat) syscalls. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
