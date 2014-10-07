@@ -760,6 +760,8 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	m_added_threads->increment();
 #endif
 
+	m_last_tinfo = NULL;
+
 	if(m_threadtable.size() >= m_inspector->m_max_thread_table_size)
 	{
 		m_n_drops++;
@@ -954,6 +956,7 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc()
 void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
 {
 	it->second.m_main_thread = NULL;
+
 	sinsp_fdtable* fdt = it->second.get_fd_table();
 	if(fdt != NULL)
 	{

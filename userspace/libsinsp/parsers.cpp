@@ -327,6 +327,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	if(eflags & EF_SKIPPARSERESET)
 	{
+		evt->m_tinfo = NULL;
 		return false;
 	}
 
