@@ -1615,13 +1615,20 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str)
 		m_field_id = TYPE_ABSPATH;
 		m_field = &m_info.m_fields[m_field_id];
 
-		if (val == "evt.abspath") {
+		if (val == "evt.abspath")
+		{
 			m_argid = 0;
-		} else if (val == "evt.abspath.src") {
+		}
+		else if (val == "evt.abspath.src")
+		{
 			m_argid = 1;
-		} else if (val == "evt.abspath.dst") {
+		}
+		else if (val == "evt.abspath.dst")
+		{
 			m_argid = 2;
-		} else {
+		}
+		else
+		{
 			throw sinsp_exception("wrong syntax for evt.abspath");
 		}
 
@@ -1796,36 +1803,47 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	uint16_t etype = evt->get_type();
 
 	const char *dirfdarg = NULL, *patharg = NULL;
-	if (etype == PPME_SYSCALL_RENAMEAT_X) {
-		if (m_argid == 1) {
+	if (etype == PPME_SYSCALL_RENAMEAT_X)
+	{
+		if (m_argid == 1)
+		{
 			dirfdarg = "olddirfd";
 			patharg = "oldpath";
-		} else if (m_argid == 2) {
+		}
+		else if (m_argid == 2)
+		{
 			dirfdarg = "newdirfd";
 			patharg = "newpath";
 		}
-	} else if (etype == PPME_SYSCALL_SYMLINKAT_X) {
+	}
+	else if (etype == PPME_SYSCALL_SYMLINKAT_X)
+	{
 		dirfdarg = "linkdirfd";
 		patharg = "linkpath";
 	}
 
-	if (!dirfdarg || !patharg) {
+	if (!dirfdarg || !patharg)
+	{
 		return 0;
 	}
 
 	int dirfdargidx = -1, pathargidx = -1, idx = 0;
-	while (((dirfdargidx < 0) || (pathargidx < 0)) && (idx < (int) evt->get_num_params())) {
+	while (((dirfdargidx < 0) || (pathargidx < 0)) && (idx < (int) evt->get_num_params()))
+	{
 		const char *name = evt->get_param_name(idx);
-		if ((dirfdargidx < 0) && (strcmp(name, dirfdarg) == 0)) {
+		if ((dirfdargidx < 0) && (strcmp(name, dirfdarg) == 0))
+		{
 			dirfdargidx = idx;
 		}
-		if ((pathargidx < 0) && (strcmp(name, patharg) == 0)) {
+		if ((pathargidx < 0) && (strcmp(name, patharg) == 0))
+		{
 			pathargidx = idx;
 		}
 		idx++;
 	}
 
-	if ((dirfdargidx < 0) || (pathargidx < 0)) {
+	if ((dirfdargidx < 0) || (pathargidx < 0))
+	{
 		return 0;
 	}
 
