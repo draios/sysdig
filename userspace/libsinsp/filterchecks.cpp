@@ -1632,7 +1632,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str)
 			throw sinsp_exception("wrong syntax for evt.abspath");
 		}
 
-		return val.size() + 1;
+		return (int32_t)val.size() + 1;
 	}
 	else
 	{
@@ -1798,7 +1798,10 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	uint32_t pathlen;
 	string spath;
 
-	ASSERT(evt->m_tinfo);
+	if(evt->m_tinfo == NULL)
+	{
+		return NULL;
+	}
 
 	uint16_t etype = evt->get_type();
 
