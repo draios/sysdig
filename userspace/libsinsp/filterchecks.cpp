@@ -1844,6 +1844,29 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		dirfdarg = "dirfd";
 		patharg = "name";
 	}
+	else if (etype == PPME_SYSCALL_OPENAT_2_X)
+	{
+		dirfdarg = "dirfd";
+		patharg = "name";
+	}
+	else if (etype == PPME_SYSCALL_LINK_2_X)
+	{
+		if (m_argid == 1)
+		{
+			dirfdarg = "olddir";
+			patharg = "oldpath";
+		}
+		else if (m_argid == 2)
+		{
+			dirfdarg = "newdir";
+			patharg = "newpath";
+		}
+	}
+	else if (etype == PPME_SYSCALL_UNLINKAT_2_X)
+	{
+		dirfdarg = "dirfd";
+		patharg = "name";
+	}
 
 	if (!dirfdarg || !patharg)
 	{

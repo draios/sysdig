@@ -265,6 +265,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_MUNMAP_X:
 		parse_brk_munmap_mmap_exit(evt);
 		break;
+	case PPME_SYSCALL_OPENAT_2_X:
+		parse_openat_2_exit(evt);
+		break;
 	default:
 		break;
 	}
@@ -2881,5 +2884,80 @@ void sinsp_parser::parse_brk_munmap_mmap_exit(sinsp_evt* evt)
 		parinfo = evt->get_param(3);
 		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
+	}
+}
+
+void sinsp_parser::parse_openat_2_exit(sinsp_evt* evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t fd;
+	char *name;
+	uint32_t namelen;
+	uint32_t flags;
+	//  uint32_t mode;
+	sinsp_fdinfo_t fdi;
+	string sdir;
+
+	ASSERT(evt->m_tinfo);
+
+	//
+	// Check the return value
+	//
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	fd = *(int64_t *)parinfo->m_val;
+
+	parinfo = evt->get_param(2);
+	name = parinfo->m_val;
+	namelen = parinfo->m_len;
+
+	parinfo = evt->get_param(3);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	flags = *(uint32_t *)parinfo->m_val;
+
+	parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+	parse_openat_dir(evt, name, dirfd, &sdir);
+
+	char fullpath[SCAP_MAX_PATH_SIZE];
+	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), name, namelen);
+
+	if (fd >= 0)
+	{
+		//
+		// Populate the new fdi
+		//
+		if(flags & PPM_O_DIRECTORY)
+		{
+			fdi.m_type = SCAP_FD_DIRECTORY;
+		}
+		else
+		{
+			fdi.m_type = SCAP_FD_FILE;
+		}
+
+		fdi.m_openflags = flags;
+		fdi.add_filename(fullpath);
+
+		//
+		// Add the fd to the table.
+		//
+		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+
+		//
+		// Call the protocol decoder callbacks associated to this event
+		//
+		vector<sinsp_protodecoder*>::iterator it;
+		for(it = m_open_callbacks.begin(); it != m_open_callbacks.end(); ++it)
+		{
+			(*it)->on_event(evt, CT_OPEN);
+		}
+	}
+
+	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
+	{
+		m_fd_listener->on_file_create(evt, fullpath);
 	}
 }
