@@ -26,8 +26,10 @@ function install_rpm {
 
 	if ! yum -q list dkms > /dev/null 2>&1; then
 		echo "* Installing EPEL repository (for DKMS)"
-		if [ $VERSION -eq 7 ]; then
-			rpm --quiet -i http://mirrors.kernel.org/fedora-epel/beta/7/x86_64/epel-release-7-1.noarch.rpm
+		if [ $VERSION -eq 7 ] && [ $DISTRO = "centos" ]; then
+			rpm --quiet -i http://mirrors.kernel.org/centos/7/extras/x86_64/Packages/epel-release-7-2.noarch.rpm
+		elif [ $VERSION -eq 7 ]; then
+			rpm --quiet -i http://mirrors.kernel.org/fedora-epel/7/x86_64/e/epel-release-7-2.noarch.rpm
 		else
 			rpm --quiet -i http://mirrors.kernel.org/fedora-epel/6/i386/epel-release-6-8.noarch.rpm
 		fi

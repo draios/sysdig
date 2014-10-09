@@ -1488,6 +1488,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_syslog", "'true' for events that are writes to /dev/log."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
+	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during syscalls like renameat and symlinkat. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -1608,6 +1609,30 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str)
 		//
 		m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint16_t));
 		return sinsp_filter_check::parse_field_name(str);
+	}
+	else if(string(val, 0, sizeof("evt.abspath") - 1) == "evt.abspath")
+	{
+		m_field_id = TYPE_ABSPATH;
+		m_field = &m_info.m_fields[m_field_id];
+
+		if (val == "evt.abspath")
+		{
+			m_argid = 0;
+		}
+		else if (val == "evt.abspath.src")
+		{
+			m_argid = 1;
+		}
+		else if (val == "evt.abspath.dst")
+		{
+			m_argid = 2;
+		}
+		else
+		{
+			throw sinsp_exception("wrong syntax for evt.abspath");
+		}
+
+		return (int32_t)val.size() + 1;
 	}
 	else
 	{
@@ -1764,6 +1789,142 @@ uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 	{
 		return NULL;
 	}
+}
+
+uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t *len)
+{
+	sinsp_evt_param *parinfo;
+	char *path;
+	uint32_t pathlen;
+	string spath;
+
+	if(evt->m_tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	uint16_t etype = evt->get_type();
+
+	const char *dirfdarg = NULL, *patharg = NULL;
+	if (etype == PPME_SYSCALL_RENAMEAT_X)
+	{
+		if (m_argid == 1)
+		{
+			dirfdarg = "olddirfd";
+			patharg = "oldpath";
+		}
+		else if (m_argid == 2)
+		{
+			dirfdarg = "newdirfd";
+			patharg = "newpath";
+		}
+	}
+	else if (etype == PPME_SYSCALL_SYMLINKAT_X)
+	{
+		dirfdarg = "linkdirfd";
+		patharg = "linkpath";
+	}
+	else if (etype == PPME_SYSCALL_OPENAT_E)
+	{
+		dirfdarg = "dirfd";
+		patharg = "name";
+	}
+	else if (etype == PPME_SYSCALL_LINKAT_E)
+	{
+		if (m_argid == 1)
+		{
+			dirfdarg = "olddir";
+			patharg = "oldpath";
+		}
+		else if (m_argid == 2)
+		{
+			dirfdarg = "newdir";
+			patharg = "newpath";
+		}
+	}
+	else if (etype == PPME_SYSCALL_UNLINKAT_E)
+	{
+		dirfdarg = "dirfd";
+		patharg = "name";
+	}
+
+	if (!dirfdarg || !patharg)
+	{
+		return 0;
+	}
+
+	int dirfdargidx = -1, pathargidx = -1, idx = 0;
+	while (((dirfdargidx < 0) || (pathargidx < 0)) && (idx < (int) evt->get_num_params()))
+	{
+		const char *name = evt->get_param_name(idx);
+		if ((dirfdargidx < 0) && (strcmp(name, dirfdarg) == 0))
+		{
+			dirfdargidx = idx;
+		}
+		if ((pathargidx < 0) && (strcmp(name, patharg) == 0))
+		{
+			pathargidx = idx;
+		}
+		idx++;
+	}
+
+	if ((dirfdargidx < 0) || (pathargidx < 0))
+	{
+		return 0;
+	}
+
+	parinfo = evt->get_param(dirfdargidx);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+	parinfo = evt->get_param(pathargidx);
+	path = parinfo->m_val;
+	pathlen = parinfo->m_len;
+
+	string sdir;
+
+	bool is_absolute = (path[0] == '/');
+	if(is_absolute)
+	{
+		//
+		// The path is absoulte.
+		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
+		// and bsolute path, and openat succeeds.
+		//
+		sdir = ".";
+	}
+	else if(dirfd == PPM_AT_FDCWD)
+	{
+		sdir = evt->m_tinfo->get_cwd();
+	}
+	else
+	{
+		evt->m_fdinfo = evt->m_tinfo->get_fd(dirfd);
+
+		if(evt->m_fdinfo == NULL)
+		{
+			ASSERT(false);
+			sdir = "<UNKNOWN>/";
+		}
+		else
+		{
+			if(evt->m_fdinfo->m_name[evt->m_fdinfo->m_name.length()] == '/')
+			{
+				sdir = evt->m_fdinfo->m_name;
+			}
+			else
+			{
+				sdir = evt->m_fdinfo->m_name + '/';
+			}
+		}
+	}
+
+	char fullname[SCAP_MAX_PATH_SIZE];
+	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), path, pathlen);
+
+	m_strstorage = fullname;
+
+	return (uint8_t*)m_strstorage.c_str();
 }
 
 Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
@@ -2270,6 +2431,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_COUNT:
 		m_u32val = 1;
 		return (uint8_t*)&m_u32val;
+	case TYPE_ABSPATH:
+		return extract_abspath(evt, len);
 	default:
 		ASSERT(false);
 		return NULL;
