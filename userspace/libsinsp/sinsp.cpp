@@ -885,6 +885,11 @@ void sinsp::set_log_callback(sinsp_logger_callback cb)
 	g_logger.add_callback_log(cb);
 }
 
+void set_min_log_severity(sinsp_logger::severity sev)
+{
+	g_logger.set_severity(sev);
+}
+
 sinsp_evttables* sinsp::get_event_info_tables()
 {
 	return &g_infotables;

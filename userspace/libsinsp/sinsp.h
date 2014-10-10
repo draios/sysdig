@@ -303,6 +303,12 @@ public:
 	void set_log_callback(sinsp_logger_callback cb);
 
 	/*!
+	  \brief Specify the minimum severity of the messages that go into the logs
+	   emitted by the library.
+	*/
+	void set_min_log_severity(sinsp_logger::severity sev);
+
+	/*!
 	  \brief Start writing the captured events to file.
 
 	  \param dump_filename the destination trace file.
