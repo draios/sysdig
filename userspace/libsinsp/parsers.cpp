@@ -89,6 +89,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		if(evt->get_tid() == m_sysdig_pid && 
 			etype != PPME_SCHEDSWITCH_1_E && 
 			etype != PPME_SCHEDSWITCH_6_E &&
+			etype != PPME_DROP_E &&
+			etype != PPME_DROP_X &&
 			m_sysdig_pid)
 		{
 			evt->m_filtered_out = true;

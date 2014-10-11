@@ -88,7 +88,7 @@ static int ppm_open(struct inode *inode, struct file *filp);
 static int ppm_release(struct inode *inode, struct file *filp);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
-static void record_event(enum ppm_event_type event_type,
+static int record_event(enum ppm_event_type event_type,
 	struct pt_regs *regs,
 	long id,
 	int never_drop,
@@ -145,6 +145,8 @@ static u32 g_sampling_interval;
 static int g_is_dropping;
 static int g_dropping_mode;
 static bool g_tracepoint_registered;
+static volatile int g_need_to_insert_drop_e = 0;
+static volatile int g_need_to_insert_drop_x = 0;
 
 struct cdev *g_ppe_cdev = NULL;
 struct device *g_ppe_dev = NULL;
@@ -700,6 +702,30 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 }
 #endif /* __NR_socketcall */
 
+static inline void record_drop_e(void){
+	if (record_event(PPME_DROP_E, NULL, -1, 1, NULL, NULL) == 0) {
+		g_need_to_insert_drop_e = 1;
+	} else {
+		if (g_need_to_insert_drop_e == 1) {
+			pr_err("drop enter event delayed insert\n");
+		}
+
+		g_need_to_insert_drop_e = 0;
+	}
+}
+
+static inline void record_drop_x(void){
+	if (record_event(PPME_DROP_X, NULL, -1, 1, NULL, NULL) == 0) {
+		g_need_to_insert_drop_x = 1;
+	} else {
+		if (g_need_to_insert_drop_x == 1) {
+			pr_err("drop exit event delayed insert\n");
+		}
+
+		g_need_to_insert_drop_x = 0;
+	}
+}
+
 static inline int drop_event(enum ppm_event_type event_type, int never_drop, struct timespec *ts)
 {
 	if (never_drop)
@@ -709,14 +735,14 @@ static inline int drop_event(enum ppm_event_type event_type, int never_drop, str
 		if (ts->tv_nsec >= g_sampling_interval) {
 			if (g_is_dropping == 0) {
 				g_is_dropping = 1;
-				record_event(PPME_DROP_E, NULL, -1, 1, NULL, NULL);
+					record_drop_e();
 			}
 
 			return 1;
 		} else {
 			if (g_is_dropping == 1) {
 				g_is_dropping = 0;
-				record_event(PPME_DROP_X, NULL, -1, 1, NULL, NULL);
+					record_drop_x();
 			}
 		}
 	}
@@ -724,13 +750,17 @@ static inline int drop_event(enum ppm_event_type event_type, int never_drop, str
 	return 0;
 }
 
-static void record_event(enum ppm_event_type event_type,
+/*
+ * Returns 0 if the event is dropped
+ */
+static int record_event(enum ppm_event_type event_type,
 	struct pt_regs *regs,
 	long id,
 	int never_drop,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next)
 {
+	int res = 0;
 	size_t event_size;
 	int next;
 	u32 freespace;
@@ -747,10 +777,18 @@ static void record_event(enum ppm_event_type event_type,
 	getnstimeofday(&ts);
 
 	if (!test_bit(event_type, g_events_mask))
-		return;
+		return res;
 
-	if (drop_event(event_type, never_drop, &ts))
-		return;
+	if (event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
+		if (g_need_to_insert_drop_e == 1) {
+			record_drop_e();
+		} else if(g_need_to_insert_drop_x == 1) {
+			record_drop_x();
+		}
+
+		if (drop_event(event_type, never_drop, &ts))
+			return res;
+	}
 
 	/*
 	 * FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
@@ -760,7 +798,7 @@ static void record_event(enum ppm_event_type event_type,
 
 	if (!ring->capture_enabled) {
 		put_cpu_var(g_ring_buffers);
-		return;
+		return res;
 	}
 
 	ring_info->n_evts++;
@@ -779,7 +817,7 @@ static void record_event(enum ppm_event_type event_type,
 		put_cpu_var(g_ring_buffers);
 		ring_info->n_preemptions++;
 		ASSERT(false);
-		return;
+		return res;
 	}
 
 	/*
@@ -882,11 +920,14 @@ static void record_event(enum ppm_event_type event_type,
 			cbres = g_ppm_events[event_type].filler_callback(&args);
 		}
 
-		if (likely(cbres == PPM_SUCCESS)) {
+		if (likely(cbres == PPM_SUCCESS)) {			
 			/*
 			 * Validate that the filler added the right number of parameters
 			 */
 			if (likely(args.curarg == args.nargs)) {
+				/*
+				 * The event was successfully insterted in the buffer
+				 */
 				event_size = sizeof(struct ppm_evt_hdr) + args.arg_data_offset;
 				hdr->len = event_size;
 				drop = 0;
@@ -901,6 +942,8 @@ static void record_event(enum ppm_event_type event_type,
 	}
 
 	if (likely(!drop)) {
+		res = 1;
+
 		next = head + event_size;
 
 		if (unlikely(next >= RING_BUF_SIZE)) {
@@ -963,7 +1006,7 @@ static void record_event(enum ppm_event_type event_type,
 	atomic_dec(&ring->preempt_count);
 	put_cpu_var(g_ring_buffers);
 
-	return;
+	return res;
 }
 
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
