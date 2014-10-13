@@ -759,9 +759,12 @@ void sinsp::start_capture()
 
 void sinsp::stop_dropping_mode()
 {
-	if(scap_stop_dropping_mode(m_h) != SCAP_SUCCESS)
+	if(m_islive)
 	{
-		throw sinsp_exception(scap_getlasterr(m_h));
+		if(scap_stop_dropping_mode(m_h) != SCAP_SUCCESS)
+		{
+				throw sinsp_exception(scap_getlasterr(m_h));
+		}
 	}
 }
 
