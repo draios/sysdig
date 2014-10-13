@@ -32,6 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/uaccess.h>
 #include <linux/version.h>
 #include <linux/module.h>
+#include <linux/kernel.h>
 #include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
@@ -1031,10 +1032,12 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	const struct iovec *iov;
 	u32 copylen;
 	u32 j;
-	uint64_t size = 0;
+	u64 size = 0;
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
 	unsigned long val;
+	u32 notcopied_len;
+	u32 tocopy_len;
 
 	copylen = iovcnt * sizeof(struct iovec);
 
@@ -1060,9 +1063,6 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 
 	/*
 	 * data
-	 * NOTE: for the moment, we limit our data copy to the first buffer.
-	 * We assume that in the vast majority of the cases g_snaplen is much smaller
-	 * than iov[0].iov_len, and therefore we don't bother complicating the code.
 	 */
 	if (flags & PRB_FLAG_PUSH_DATA) {
 		if (retval > 0 && iovcnt > 0) {
@@ -1072,11 +1072,40 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 			args->fd = (int)val;
 
-			bufsize = (int64_t)iov[0].iov_len;
+			/*
+			 * Merge the buffers
+			 */
+			bufsize = 0;
+
+			for (j = 0; j < iovcnt; j++) {
+				tocopy_len = min(iov[j].iov_len, STR_STORAGE_SIZE - bufsize - 1);
+
+				notcopied_len = (int)ppm_copy_from_user(args->str_storage + bufsize,
+						iov[j].iov_base,
+						tocopy_len);
+
+				if (unlikely(notcopied_len != 0)) {
+					/*
+					 * This means we had a page fault. Skip this event.
+					 */
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				}
+
+				bufsize += tocopy_len;
+
+				if (tocopy_len != iov[j].iov_len) {
+					/*
+					 * No space left in the args->str_storage buffer.
+					 * Copy must stop here.
+					 */
+					break;
+				}
+			}
+
 			res = val_to_ring(args,
-				(unsigned long)iov[0].iov_base,
+				(unsigned long)args->str_storage,
 				bufsize,
-				true,
+				false,
 				0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
