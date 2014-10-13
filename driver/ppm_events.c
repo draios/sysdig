@@ -1035,6 +1035,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	u64 size = 0;
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
+	u32 targetbuflen = STR_STORAGE_SIZE;
 	unsigned long val;
 	u32 notcopied_len;
 	u32 tocopy_len;
@@ -1044,10 +1045,13 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	if (unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
 
-	if (unlikely(ppm_copy_from_user(targetbuf, iovsrc, copylen)))
+	if (unlikely(ppm_copy_from_user(args->str_storage, iovsrc, copylen)))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
-	iov = (const struct iovec *)targetbuf;
+	iov = (const struct iovec *)(args->str_storage);
+
+	targetbuf += copylen;
+	targetbuflen -= copylen;
 
 	/*
 	 * Size
@@ -1078,9 +1082,9 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			bufsize = 0;
 
 			for (j = 0; j < iovcnt; j++) {
-				tocopy_len = min(iov[j].iov_len, STR_STORAGE_SIZE - bufsize - 1);
+				tocopy_len = min(iov[j].iov_len, targetbuflen - bufsize - 1);
 
-				notcopied_len = (int)ppm_copy_from_user(args->str_storage + bufsize,
+				notcopied_len = (int)ppm_copy_from_user(targetbuf + bufsize,
 						iov[j].iov_base,
 						tocopy_len);
 
@@ -1102,8 +1106,10 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 				}
 			}
 
+			args->enforce_snaplen = true;
+
 			res = val_to_ring(args,
-				(unsigned long)args->str_storage,
+				(unsigned long)targetbuf,
 				bufsize,
 				false,
 				0);
