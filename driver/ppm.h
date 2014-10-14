@@ -44,6 +44,7 @@ enum syscall_flags {
 	UF_NONE = 0,
 	UF_USED = (1 << 0),
 	UF_NEVER_DROP = (1 << 1),
+	UF_ALWAYS_DROP = (1 << 2),
 };
 
 /*

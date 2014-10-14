@@ -91,7 +91,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event(enum ppm_event_type event_type,
 	struct pt_regs *regs,
 	long id,
-	int never_drop,
+	enum syscall_flags drop_flags,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next);
 
@@ -726,12 +726,19 @@ static inline void record_drop_x(void){
 	}
 }
 
-static inline int drop_event(enum ppm_event_type event_type, int never_drop, struct timespec *ts)
+static inline int drop_event(enum ppm_event_type event_type, enum syscall_flags drop_flags, struct timespec *ts)
 {
-	if (never_drop)
+	if (drop_flags & UF_NEVER_DROP) {
+		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
 		return 0;
+	}
 
 	if (g_dropping_mode) {
+		if (drop_flags & UF_ALWAYS_DROP) {
+			ASSERT((drop_flags & UF_NEVER_DROP) == 0);
+			return 1;
+		}
+	
 		if (ts->tv_nsec >= g_sampling_interval) {
 			if (g_is_dropping == 0) {
 				g_is_dropping = 1;
@@ -756,7 +763,7 @@ static inline int drop_event(enum ppm_event_type event_type, int never_drop, str
 static int record_event(enum ppm_event_type event_type,
 	struct pt_regs *regs,
 	long id,
-	int never_drop,
+	enum syscall_flags drop_flags,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next)
 {
@@ -786,7 +793,7 @@ static int record_event(enum ppm_event_type event_type,
 			record_drop_x();
 		}
 
-		if (drop_event(event_type, never_drop, &ts))
+		if (drop_event(event_type, drop_flags, &ts))
 			return res;
 	}
 
@@ -1026,10 +1033,10 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[table_index].flags & UF_USED;
-		int never_drop = g_syscall_table[table_index].flags & UF_NEVER_DROP;
+		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
 
 		if (used)
-			record_event(g_syscall_table[table_index].enter_event_type, regs, id, never_drop, NULL, NULL);
+			record_event(g_syscall_table[table_index].enter_event_type, regs, id, drop_flags, NULL, NULL);
 		else
 			record_event(PPME_GENERIC_E, regs, id, false, NULL, NULL);
 	}
@@ -1055,10 +1062,10 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[table_index].flags & UF_USED;
-		int never_drop = g_syscall_table[table_index].flags & UF_NEVER_DROP;
+		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
 
 		if (used)
-			record_event(g_syscall_table[table_index].exit_event_type, regs, id, never_drop, NULL, NULL);
+			record_event(g_syscall_table[table_index].exit_event_type, regs, id, drop_flags, NULL, NULL);
 		else
 			record_event(PPME_GENERIC_X, regs, id, false, NULL, NULL);
 	}
