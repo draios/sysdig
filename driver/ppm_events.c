@@ -178,6 +178,14 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_si
 {
 	u32 res = g_snaplen;
 	char* buf;
+	int err;
+	struct socket *sock;
+	sa_family_t family;
+	struct sockaddr_storage sock_address;
+	struct sockaddr_storage peer_address;
+	int sock_address_len;
+	int peer_address_len;
+	u16 sport, dport;
 
 	if (args->event_type == PPME_SYSCALL_WRITE_X) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
@@ -212,18 +220,56 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_si
 
 	buf = args->buffer + args->arg_data_offset;
 
-	if (lookahead_size >= 5) {
-		if (*(u32*)buf == g_http_get_intval ||
-		        *(u32*)buf == g_http_post_intval ||
-		        *(u32*)buf == g_http_put_intval ||
-		        *(u32*)buf == g_http_delete_intval ||
-		        *(u32*)buf == g_http_trace_intval ||
-		        *(u32*)buf == g_http_connect_intval ||
-		        *(u32*)buf == g_http_options_intval ||
-		        ((*(u32*)buf == g_http_resp_intval) && (buf[4] == '/')))
-		{
-			return 2000;
+	sock = sockfd_lookup(args->fd, &err);
+
+	if (sock) {
+
+		if (sock->sk) {
+			err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
+
+			if (err == 0) {
+				err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+
+				if (err == 0) {
+					family = sock->sk->sk_family;
+
+					if (family == AF_INET) {
+						sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
+						dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
+					} else if (family == AF_INET6) {
+						sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
+						dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
+					} else {
+						sport = 0;
+						dport = 0;						
+					}
+
+					if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
+						if (lookahead_size >= 5) {
+							if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
+								return 2000;
+							}
+						}
+					} else {
+						if (lookahead_size >= 5) {
+							if (*(u32*)buf == g_http_get_intval ||
+							        *(u32*)buf == g_http_post_intval ||
+							        *(u32*)buf == g_http_put_intval ||
+							        *(u32*)buf == g_http_delete_intval ||
+							        *(u32*)buf == g_http_trace_intval ||
+							        *(u32*)buf == g_http_connect_intval ||
+							        *(u32*)buf == g_http_options_intval ||
+							        ((*(u32*)buf == g_http_resp_intval) && (buf[4] == '/')))
+							{
+								return 2000;
+							}
+						}
+					}
+				}
+			}
 		}
+
+		sockfd_put(sock);
 	}
 
 	return res;

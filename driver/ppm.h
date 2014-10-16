@@ -82,3 +82,5 @@ extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 extern u32 g_sampling_ratio;
+
+#define PPM_PORT_MYSQL 3306
