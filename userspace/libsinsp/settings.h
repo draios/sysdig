@@ -56,6 +56,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define MAX_THREAD_TABLE_SIZE 65536
 
 //
+// Max size that the FD table of a process can reach
+//
+#define MAX_FD_TABLE_SIZE 2048
+
+//
 // The time after an inactive thread is removed.
 //
 #define DEFAULT_THREAD_TIMEOUT_S 1800

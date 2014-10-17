@@ -1662,7 +1662,6 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	// Add the entry to the table
 	//
 	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
-	ASSERT(evt->m_fdinfo != NULL);
 }
 
 void sinsp_parser::parse_close_enter(sinsp_evt *evt)
