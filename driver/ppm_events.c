@@ -249,6 +249,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_si
 					if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
 						if (lookahead_size >= 5) {
 							if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
+								sockfd_put(sock);
 								return 2000;
 							}
 						}
@@ -263,6 +264,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_si
 							        *(u32*)buf == g_http_options_intval ||
 							        ((*(u32*)buf == g_http_resp_intval) && (buf[4] == '/')))
 							{
+								sockfd_put(sock);
 								return 2000;
 							}
 						}
