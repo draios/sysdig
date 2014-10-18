@@ -633,12 +633,12 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 
 			if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
 			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number");
+				g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64, tid);
 			}
 
 			if(m_n_proc_lookups == m_max_n_proc_lookups)
 			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Reached max processs lookup number");
+				g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number");
 			}
 
 			if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&

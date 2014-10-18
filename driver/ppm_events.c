@@ -187,6 +187,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_si
 	int peer_address_len;
 	u16 sport, dport;
 
+/*
 	if (args->event_type == PPME_SYSCALL_WRITE_X) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 		struct fd f = fdget(args->fd);
@@ -213,7 +214,8 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_si
 		}
 #endif
 	}
-
+*/
+	
 	if (!g_do_dynamic_snaplen) {
 		return res;
 	}
