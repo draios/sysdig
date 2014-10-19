@@ -883,6 +883,7 @@ enum ppm_event_flags {
 	EF_UNUSED = (1 << 6), /* This event is not used */
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
 	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
+	EF_OLD_VERSION = (1 << 9) /* This event is kept for backward compatibility */
 };
 
 /*

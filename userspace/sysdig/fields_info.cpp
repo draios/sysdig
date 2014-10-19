@@ -231,7 +231,14 @@ void list_events(sinsp* inspector)
 				ei.params[k].name);
 		}
 				
-		printf(")\n");
+		if(ei.flags & EF_OLD_VERSION)
+		{
+		    printf(") Old Version\n");
+		}
+		else
+		{
+		    printf(")\n");
+		}
 	}
 }
 
