@@ -213,7 +213,7 @@ void list_events(sinsp* inspector)
 		const struct ppm_event_info ei = etable[j];
 		char dir = (PPME_IS_ENTER(j))? '>' : '<';
 
-		if(ei.flags & EF_UNUSED)
+		if((ei.flags & EF_UNUSED) || (ei.flags & EF_OLD_VERSION))
 		{
 			continue;
 		}
@@ -231,14 +231,7 @@ void list_events(sinsp* inspector)
 				ei.params[k].name);
 		}
 				
-		if(ei.flags & EF_OLD_VERSION)
-		{
-		    printf(") Old Version\n");
-		}
-		else
-		{
-		    printf(")\n");
-		}
+		printf(")\n");
 	}
 }
 
