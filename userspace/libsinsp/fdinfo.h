@@ -276,6 +276,11 @@ public:
 
 	string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
 
+	inline bool has_decoder_callbacks()
+	{
+		return (m_callbaks != NULL);
+	}
+
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE

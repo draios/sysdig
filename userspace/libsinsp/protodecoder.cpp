@@ -219,7 +219,10 @@ void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype
 		}
 		else
 		{
-			unregister_write_callback(fdinfo);
+			if(fdinfo->has_decoder_callbacks())
+			{
+				unregister_write_callback(fdinfo);
+			}
 		}
 	}
 	else
