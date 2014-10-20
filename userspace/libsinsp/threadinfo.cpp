@@ -195,8 +195,6 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 		newfdi.m_type = fdi->type;
 		newfdi.m_flags = sinsp_fdinfo_t::FLAGS_FROM_PROC;
 		newfdi.m_ino = fdi->ino;
-		newfdi.m_write_callbacks.clear();
-		newfdi.m_read_callbacks.clear();
 
 		switch(newfdi.m_type)
 		{

@@ -2167,13 +2167,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
-			if(fdinfo != NULL)
+			if(fdinfo != NULL && fdinfo->m_callbaks != NULL)
 			{
 				char* il;
-				vector<sinsp_protodecoder*>* cbacks = &(fdinfo->m_write_callbacks);
+				vector<sinsp_protodecoder*>* cbacks = &(fdinfo->m_callbaks->m_write_callbacks);
 
-				vector<sinsp_protodecoder*>::iterator it;
-				for(it = cbacks->begin(); it != cbacks->end(); ++it)
+				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
 				{
 					if((*it)->get_info_line(&il))
 					{

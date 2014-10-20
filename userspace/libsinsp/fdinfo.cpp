@@ -31,6 +31,8 @@ template<> sinsp_fdinfo_t::sinsp_fdinfo()
 {
 	m_type = SCAP_FD_UNINITIALIZED;
 	m_flags = FLAGS_NONE;
+	m_callbaks = NULL;
+	m_usrstate = NULL;
 }
 
 template<> string* sinsp_fdinfo_t::tostring()
@@ -236,13 +238,18 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 
 template<> void sinsp_fdinfo_t::register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
 {
+	if(this->m_callbaks == NULL)
+	{
+		m_callbaks = new fd_callbacks_info();
+	}
+
 	switch(etype)
 	{
 	case CT_READ:
-		m_read_callbacks.push_back(dec);
+		m_callbaks->m_read_callbacks.push_back(dec);
 		break;
 	case CT_WRITE:
-		m_write_callbacks.push_back(dec);
+		m_callbaks->m_write_callbacks.push_back(dec);
 		break;
 	default:
 		ASSERT(false);
@@ -256,25 +263,31 @@ template<> void sinsp_fdinfo_t::unregister_event_callback(sinsp_pd_callback_type
 {
 	vector<sinsp_protodecoder*>::iterator it;
 
+	if(m_callbaks == NULL)
+	{
+		ASSERT(false);
+		return;
+	}
+
 	switch(etype)
 	{
 	case CT_READ:
-		for(it = m_read_callbacks.begin(); it != m_read_callbacks.end(); ++it)
+		for(it = m_callbaks->m_read_callbacks.begin(); it != m_callbaks->m_read_callbacks.end(); ++it)
 		{
 			if(*it == dec)
 			{
-				m_read_callbacks.erase(it);
+				m_callbaks->m_read_callbacks.erase(it);
 				return;
 			}
 		}
 
 		break;
 	case CT_WRITE:
-		for(it = m_write_callbacks.begin(); it != m_write_callbacks.end(); ++it)
+		for(it = m_callbaks->m_write_callbacks.begin(); it != m_callbaks->m_write_callbacks.end(); ++it)
 		{
 			if(*it == dec)
 			{
-				m_write_callbacks.erase(it);
+				m_callbaks->m_write_callbacks.erase(it);
 				return;
 			}
 		}
@@ -401,7 +414,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// Replace the fd as a struct copy
 		//
-		insert_res.first->second = *fdinfo;
+		insert_res.first->second.copy(*fdinfo);
 	}
 
 	return &(insert_res.first->second);

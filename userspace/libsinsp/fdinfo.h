@@ -57,6 +57,13 @@ typedef union _sinsp_sockinfo
 	unix_tuple m_unixinfo; ///< The tuple if this a unix socket.
 }sinsp_sockinfo;
 
+class fd_callbacks_info
+{
+public:
+	vector<sinsp_protodecoder*> m_write_callbacks;
+	vector<sinsp_protodecoder*> m_read_callbacks;
+};
+
 /*!
   \brief File Descriptor information class.
   This class contains the full state for a FD, and a bunch of functions to
@@ -70,7 +77,55 @@ class SINSP_PUBLIC sinsp_fdinfo
 {
 public:
 	sinsp_fdinfo();
+	sinsp_fdinfo (const sinsp_fdinfo &other) 
+	{
+		copy(other);
+	}
+
+	~sinsp_fdinfo()
+	{
+		if(m_callbaks != NULL)
+		{
+			delete m_callbaks;
+		}
+
+		if(m_usrstate)
+		{
+			delete m_usrstate;
+		}
+	}
+
 	string* tostring();
+
+	inline void copy(const sinsp_fdinfo &other)
+	{
+		m_type = other.m_type;
+		m_openflags = other.m_openflags;	
+		m_sockinfo = other.m_sockinfo;
+		m_name = other.m_name;
+		m_flags = other.m_flags;
+		m_ino = other.m_ino;
+		
+		if(other.m_callbaks != NULL)
+		{
+			m_callbaks = new fd_callbacks_info();
+			*m_callbaks = *other.m_callbaks;
+		}
+		else
+		{
+			m_callbaks = NULL;
+		}
+
+		if(other.m_usrstate != NULL)
+		{
+			m_usrstate = new T();
+			*m_usrstate = *other.m_usrstate;
+		}
+		else
+		{
+			m_usrstate = NULL;
+		}
+	}
 
 	/*!
 	  \brief Return a single ASCII character that identifies the FD type.
@@ -235,7 +290,7 @@ private:
 	{
 		FLAGS_NONE = 0,
 		FLAGS_FROM_PROC = (1 << 0),
-		FLAGS_TRANSACTION = (1 << 1),
+		//FLAGS_TRANSACTION = (1 << 1),
 		FLAGS_ROLE_CLIENT = (1 << 2),
 		FLAGS_ROLE_SERVER = (1 << 3),
 		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
@@ -248,12 +303,7 @@ private:
 
 	inline bool is_transaction()
 	{
-		return (m_flags & FLAGS_TRANSACTION) == FLAGS_TRANSACTION; 
-	}
-
-	inline void set_is_transaction()
-	{
-		m_flags |= FLAGS_TRANSACTION;
+		return (m_usrstate != NULL); 
 	}
 
 	inline void set_role_server()
@@ -291,12 +341,11 @@ private:
 		return !is_role_client() && !is_role_server();
 	}
 
-	T m_usrstate;
+	T* m_usrstate;
 	uint32_t m_flags;
 	uint64_t m_ino;
 
-	vector<sinsp_protodecoder*> m_write_callbacks;
-	vector<sinsp_protodecoder*> m_read_callbacks;
+	fd_callbacks_info* m_callbaks;
 
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;
