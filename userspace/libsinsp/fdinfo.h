@@ -118,8 +118,7 @@ public:
 
 		if(other.m_usrstate != NULL)
 		{
-			m_usrstate = new T();
-			*m_usrstate = *other.m_usrstate;
+			m_usrstate = new T(*other.m_usrstate);
 		}
 		else
 		{
