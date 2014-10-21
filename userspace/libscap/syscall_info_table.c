@@ -331,5 +331,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_FALLOCATE*/ { EC_IO_OTHER, "fallocate" }, /* manipulate file space */
 	/*PPM_SC_NEWFSSTAT*/ { EC_IO_OTHER, "newfstatat" },
 	/*PPM_SC_PROCESS_VM_READV*/ { EC_IO_OTHER, "process_vm_readv" },
-	/*PPM_SC_PROCESS_VM_WRITEV*/ { EC_IO_OTHER, "process_vm_writev" }
+	/*PPM_SC_PROCESS_VM_WRITEV*/ { EC_IO_OTHER, "process_vm_writev" },
+	/*PPM_SC_FORK*/ { EC_IO_OTHER, "fork" },
+	/*PPM_SC_VFORK*/ { EC_IO_OTHER, "vfork" },
 };
