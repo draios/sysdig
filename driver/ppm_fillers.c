@@ -322,10 +322,6 @@ static int f_sys_generic(struct event_filler_arguments *args)
 			   table_index <  SYSCALL_TABLE_SIZE)) {
 			enum ppm_syscall_code sc_code = g_syscall_code_routing_table[table_index];
 
-if(sc_code == 0)
-{
-	pr_err("!**%d %d\n", (int)table_index, SYSCALL_TABLE_ID0);
-}
 			/*
 			 * ID
 			 */
