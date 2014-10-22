@@ -180,8 +180,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EPOLLWAIT_E:
 		parse_select_poll_epollwait_enter(evt);
 		break;
-	case PPME_CLONE_11_X:
-	case PPME_CLONE_16_X:
+	case PPME_SYSCALL_CLONE_11_X:
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
 		parse_clone_exit(evt);
 		break;
 	case PPME_SYSCALL_EXECVE_8_X:
@@ -343,8 +345,8 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	// (many kernel thread), we don't look for /proc
 	//
 	bool query_os;
-	if(etype == PPME_CLONE_11_X ||
-		etype == PPME_CLONE_16_X ||
+	if(etype == PPME_SYSCALL_CLONE_11_X ||
+		etype == PPME_SYSCALL_CLONE_16_X ||
 		etype == PPME_SCHEDSWITCH_6_E)
 	{
 		query_os = false;
@@ -363,8 +365,8 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 
 	if(!evt->m_tinfo)
 	{
-		if(etype == PPME_CLONE_11_X ||
-			etype == PPME_CLONE_16_X)
+		if(etype == PPME_SYSCALL_CLONE_11_X ||
+			etype == PPME_SYSCALL_CLONE_16_X)
 		{
 #ifdef GATHER_INTERNAL_STATS
 			m_inspector->m_thread_manager->m_failed_lookups->decrement();
@@ -651,10 +653,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 			switch(evt->get_type())
 			{
-				case PPME_CLONE_11_X:
+				case PPME_SYSCALL_CLONE_11_X:
 					parinfo = evt->get_param(8);
 					break;
-				case PPME_CLONE_16_X:
+				case PPME_SYSCALL_CLONE_16_X:
 					parinfo = evt->get_param(13);
 					break;
 				default:
@@ -817,10 +819,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Get the flags, and check if this is a thread or a new thread
 	switch(evt->get_type())
 	{
-		case PPME_CLONE_11_X:
+		case PPME_SYSCALL_CLONE_11_X:
 			parinfo = evt->get_param(8);
 			break;
-		case PPME_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_16_X:
 			parinfo = evt->get_param(13);
 			break;
 		default:
@@ -875,7 +877,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	tinfo.m_fdlimit = *(int64_t *)parinfo->m_val;
 
-	if(evt->get_type() == PPME_CLONE_16_X)
+	if(evt->get_type() == PPME_SYSCALL_CLONE_16_X)
 	{
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
@@ -906,10 +908,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Copy the uid
 	switch(evt->get_type())
 	{
-		case PPME_CLONE_11_X:
+		case PPME_SYSCALL_CLONE_11_X:
 			parinfo = evt->get_param(9);
 			break;
-		case PPME_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_16_X:
 			parinfo = evt->get_param(14);
 			break;
 		default:
@@ -921,10 +923,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Copy the uid
 	switch(evt->get_type())
 	{
-		case PPME_CLONE_11_X:
+		case PPME_SYSCALL_CLONE_11_X:
 			parinfo = evt->get_param(10);
 			break;
-		case PPME_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_16_X:
 			parinfo = evt->get_param(15);
 			break;
 		default:

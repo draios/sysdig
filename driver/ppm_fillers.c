@@ -262,8 +262,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
 	[PPME_SYSCALL_EXECVE_14_E] = {f_sys_empty},
 	[PPME_SYSCALL_EXECVE_14_X] = {f_proc_startupdate},
-	[PPME_CLONE_16_E] = {f_sys_empty},
-	[PPME_CLONE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_CLONE_16_E] = {f_sys_empty},
+	[PPME_SYSCALL_CLONE_16_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
@@ -284,6 +284,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SYMLINK_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
 	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
+	[PPME_SYSCALL_FORK_E] = {f_sys_empty},
+	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_VFORK_E] = {f_sys_empty},
+	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
 };
 
 /*
@@ -318,6 +322,10 @@ static int f_sys_generic(struct event_filler_arguments *args)
 			   table_index <  SYSCALL_TABLE_SIZE)) {
 			enum ppm_syscall_code sc_code = g_syscall_code_routing_table[table_index];
 
+if(sc_code == 0)
+{
+	pr_err("!**%d %d\n", (int)table_index, SYSCALL_TABLE_ID0);
+}
 			/*
 			 * ID
 			 */
@@ -813,7 +821,9 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (args->event_type == PPME_CLONE_16_X) {
+	if (args->event_type == PPME_SYSCALL_CLONE_16_X || 
+		args->event_type == PPME_SYSCALL_FORK_X ||
+		args->event_type == PPME_SYSCALL_VFORK_X) {
 		/*
 		 * clone-only parameters
 		 */
