@@ -316,7 +316,6 @@ void sinsp::import_thread_table()
 {
 	scap_threadinfo *pi;
 	scap_threadinfo *tpi;
-	sinsp_threadinfo newti(this);
 
 	scap_threadinfo *table = scap_get_proc_table(m_h);
 
@@ -325,6 +324,7 @@ void sinsp::import_thread_table()
 	//
 	HASH_ITER(hh, table, pi, tpi)
 	{
+		sinsp_threadinfo newti(this);
 		newti.init(pi);
 		m_thread_manager->add_thread(newti, true);
 	}
