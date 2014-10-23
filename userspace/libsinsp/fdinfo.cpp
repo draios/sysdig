@@ -352,11 +352,6 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 {
 	pair<unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res;
 
-	if(m_table.size() >= MAX_FD_TABLE_SIZE)
-	{
-		return NULL;
-	}
-
 	//
 	// NOTE: emplace would be more efficinent and avoid the multiple contrcutions
 	// required by make_pair, but it's not supported by some gcc versions, so
