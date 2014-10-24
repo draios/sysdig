@@ -871,7 +871,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		readsize = gzread(f, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
-		if(stlen >= SCAP_MAX_PATH_SIZE)
+		if(stlen >= SCAP_MAX_ARGS_SIZE)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid argslen %d", stlen);
 			return SCAP_FAILURE;
@@ -995,7 +995,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				block_type == PL_BLOCK_TYPE_V3_INT)
 			{
 				//
-				// args
+				// env
 				//
 				readsize = gzread(f, &(stlen), sizeof(uint16_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint16_t));

@@ -257,7 +257,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	char target_name[256];
 	int target_res;
 	char filename[252];
-	char line[SCAP_MAX_PATH_SIZE];
+	char line[SCAP_MAX_ARGS_SIZE];
 	struct scap_threadinfo* tinfo;
 	int32_t uth_status = SCAP_SUCCESS;
 	FILE* f;
@@ -355,7 +355,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	}
 	else
 	{
-		if(fgets(line, SCAP_MAX_PATH_SIZE, f) == NULL)
+		if(fgets(line, SCAP_MAX_ARGS_SIZE, f) == NULL)
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "can't read from %s", filename);
 			fclose(f);
@@ -363,7 +363,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 			return SCAP_FAILURE;
 		}
 
-		line[SCAP_MAX_PATH_SIZE - 1] = 0;
+		line[SCAP_MAX_ARGS_SIZE - 1] = 0;
 		sscanf(line, "Name:%s", tinfo->comm);
 		fclose(f);
 	}
@@ -392,13 +392,13 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		}
 
 		tinfo->args_len = filesize - exe_len;
-		if(tinfo->args_len > SCAP_MAX_PATH_SIZE)
+		if(tinfo->args_len > SCAP_MAX_ARGS_SIZE)
 		{
-			tinfo->args_len = SCAP_MAX_PATH_SIZE;
+			tinfo->args_len = SCAP_MAX_ARGS_SIZE;
 		}
 
 		memcpy(tinfo->args, line + exe_len, tinfo->args_len);
-		tinfo->args[SCAP_MAX_PATH_SIZE - 1] = 0;
+		tinfo->args[SCAP_MAX_ARGS_SIZE - 1] = 0;
 
 		fclose(f);
 	}
