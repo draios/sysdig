@@ -463,7 +463,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	}
 
 	//
-	// if tid_to_scan is set we assume is a runtime lookup so no
+	// if tid_to_scan is set we assume this is a runtime lookup so no
 	// need to use the table
 	//
 	if(tid_to_scan == -1)

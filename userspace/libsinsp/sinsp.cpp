@@ -330,6 +330,11 @@ void sinsp::import_thread_table()
 	}
 
 	//
+	// We won't need the scap process list any more, so we can free it
+	//
+	scap_proc_free_table(m_h);
+
+	//
 	// Scan the list to create the proper parent/child dependencies
 	//
 	m_thread_manager->create_child_dependencies();
