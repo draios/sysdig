@@ -3,6 +3,7 @@ LIBRARY scap
 EXPORTS
 		scap_open_live
 		scap_open_offline
+		scap_open
 		scap_close
 		scap_get_os_platform
 		scap_get_ndevs

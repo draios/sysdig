@@ -1025,27 +1025,34 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		}
 
 		//
-		// All parsed. Allocate the new entry and copy the temp one into into it.
+		// All parsed. Add the entry to the table, or fire the notification callback
 		//
-		ntinfo = (scap_threadinfo *)malloc(sizeof(scap_threadinfo));
-		if(ntinfo == NULL)
+		if(handle->m_proc_callback == NULL)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
-			return SCAP_FAILURE;
+			//
+			// All parsed. Allocate the new entry and copy the temp one into into it.
+			//
+			ntinfo = (scap_threadinfo *)malloc(sizeof(scap_threadinfo));
+			if(ntinfo == NULL)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
+				return SCAP_FAILURE;
+			}
+
+			// Structure copy
+			*ntinfo = tinfo;
+
+			HASH_ADD_INT64(handle->m_proclist, tid, ntinfo);
+			if(uth_status != SCAP_SUCCESS)
+			{
+				free(ntinfo);
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
+				return SCAP_FAILURE;
+			}
 		}
-
-		// Structure copy
-		*ntinfo = tinfo;
-
-		//
-		// All parsed. Add the entry to the table
-		//
-		HASH_ADD_INT64(handle->m_proclist, tid, ntinfo);
-		if(uth_status != SCAP_SUCCESS)
+		else
 		{
-			free(ntinfo);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
-			return SCAP_FAILURE;
+			handle->m_proc_callback(handle->m_proc_callback_context, tinfo.tid, &tinfo, NULL, handle);
 		}
 	}
 
@@ -1622,15 +1629,22 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 	CHECK_READ_SIZE(readsize, sizeof(tid));
 	totreadsize += readsize;
 
-	//
-	// Identify the process descriptor
-	//
-	HASH_FIND_INT64(handle->m_proclist, &tid, tinfo);
-	if(tinfo == NULL)
+	if(handle->m_proc_callback == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted trace file. FD block references TID %"PRIu64", which doesn't exist.",
-		         tid);
-		return SCAP_FAILURE;
+		//
+		// Identify the process descriptor
+		//
+		HASH_FIND_INT64(handle->m_proclist, &tid, tinfo);
+		if(tinfo == NULL)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted trace file. FD block references TID %"PRIu64", which doesn't exist.",
+					 tid);
+			return SCAP_FAILURE;
+		}
+	}
+	else
+	{
+		tinfo = NULL;
 	}
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
@@ -1642,27 +1656,38 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 		totreadsize += readsize;
 
 		//
-		// Parsed successfully. Allocate the new entry and copy the temp one into into it.
+		// Add the entry to the table, or fire the notification callback
 		//
-		nfdi = (scap_fdinfo *)malloc(sizeof(scap_fdinfo));
-		if(nfdi == NULL)
+		if(handle->m_proc_callback == NULL)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
-			return SCAP_FAILURE;
+			//
+			// Parsed successfully. Allocate the new entry and copy the temp one into into it.
+			//
+			nfdi = (scap_fdinfo *)malloc(sizeof(scap_fdinfo));
+			if(nfdi == NULL)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
+				return SCAP_FAILURE;
+			}
+
+			// Structure copy
+			*nfdi = fdi;
+
+			ASSERT(tinfo != NULL);
+
+			HASH_ADD_INT64(tinfo->fdlist, fd, nfdi);
+			if(uth_status != SCAP_SUCCESS)
+			{
+				free(nfdi);
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
+				return SCAP_FAILURE;
+			}
 		}
-
-		// Structure copy
-		*nfdi = fdi;
-
-		//
-		// Add the entry to the table
-		//
-		HASH_ADD_INT64(tinfo->fdlist, fd, nfdi);
-		if(uth_status != SCAP_SUCCESS)
+		else
 		{
-			free(nfdi);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
-			return SCAP_FAILURE;
+			ASSERT(tinfo == NULL);
+
+			handle->m_proc_callback(handle->m_proc_callback_context, tid, NULL, &fdi, handle);
 		}
 	}
 

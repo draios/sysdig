@@ -41,7 +41,9 @@ char* scap_getlasterr(scap_t* handle)
 	return handle->m_lasterr;
 }
 
-scap_t* scap_open_live(char *error)
+scap_t* scap_open_live_int(char *error, 
+						   proc_entry_callback proc_callback,
+						   void* proc_callback_context)
 {
 #if !defined(HAS_CAPTURE)
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
@@ -99,6 +101,8 @@ scap_t* scap_open_live(char *error)
 	//
 	// Extract machine information
 	//
+	handle->m_proc_callback = proc_callback;
+	handle->m_proc_callback_context = proc_callback_context;
 	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
@@ -226,7 +230,10 @@ scap_t* scap_open_live(char *error)
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_offline(const char* fname, char *error)
+scap_t* scap_open_offline_int(const char* fname, 
+							  char *error,
+							  proc_entry_callback proc_callback, 
+							  void* proc_callback_context)
 {
 	scap_t* handle = NULL;
 
@@ -243,6 +250,8 @@ scap_t* scap_open_offline(const char* fname, char *error)
 	//
 	// Preliminary initializations
 	//
+	handle->m_proc_callback = proc_callback;
+	handle->m_proc_callback_context = proc_callback_context;
 	handle->m_devs = NULL;
 	handle->m_ndevs = 0;
 	handle->m_proclist = NULL;
@@ -292,9 +301,31 @@ scap_t* scap_open_offline(const char* fname, char *error)
 	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
 	handle->m_fake_kernel_proc.args[0] = 0;
 
-//scap_proc_print_table(handle);
-
 	return handle;
+}
+
+scap_t* scap_open_offline(const char* fname, char *error)
+{
+	return scap_open_offline_int(fname, error, NULL, NULL);
+}
+
+scap_t* scap_open_live(char *error)
+{
+	return scap_open_live_int(error, NULL, NULL);
+}
+
+scap_t* scap_open(scap_open_args args, char *error)
+{
+	if(args.fname != NULL)
+	{
+		return scap_open_offline_int(args.fname, error, 
+			args.proc_callback, args.proc_callback_context);
+	}
+	else
+	{
+		return scap_open_live_int(error, args.proc_callback, 
+			args.proc_callback_context);
+	}
 }
 
 int32_t scap_set_empty_buffer_timeout_ms(scap_t* handle, uint32_t timeout_ms)

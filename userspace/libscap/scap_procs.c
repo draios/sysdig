@@ -263,6 +263,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	FILE* f;
 	size_t filesize;
 	size_t exe_len;
+	bool free_tinfo = false;
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -469,13 +470,21 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	if(tid_to_scan == -1)
 	{
 		//
-		// Done. Add the entry to the process table
+		// Done. Add the entry to the process table, or fire the notification callback
 		//
-		HASH_ADD_INT64(handle->m_proclist, tid, tinfo);
-		if(uth_status != SCAP_SUCCESS)
+		if(handle->m_proc_callback == NULL)
 		{
-			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
-			return SCAP_FAILURE;
+			HASH_ADD_INT64(handle->m_proclist, tid, tinfo);
+			if(uth_status != SCAP_SUCCESS)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
+				return SCAP_FAILURE;
+			}
+		}
+		else
+		{
+			handle->m_proc_callback(handle->m_proc_callback_context, tinfo->tid, tinfo, NULL, handle);
+			free_tinfo = true;
 		}
 	}
 	else
@@ -489,6 +498,11 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	if(-1 == parenttid)
 	{
 		return scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets, error);
+	}
+
+	if(free_tinfo)
+	{
+		free(tinfo);
 	}
 
 	return SCAP_SUCCESS;

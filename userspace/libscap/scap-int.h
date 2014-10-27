@@ -94,6 +94,8 @@ struct scap
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
 	uint32_t m_n_consecutive_waits;
+	proc_entry_callback m_proc_callback;
+	void* m_proc_callback_context;
 };
 
 //

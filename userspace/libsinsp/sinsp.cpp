@@ -43,6 +43,9 @@ extern sinsp_evttables g_infotables;
 extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 
+void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
+							scap_fdinfo* fdinfo, scap_t* newhandle); 
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -137,11 +140,6 @@ void sinsp::init()
 	add_protodecoders();
 
 	//
-	// Reset the thread manager
-	//
-	m_thread_manager->clear();
-
-	//
 	// Allocate the cycle writer
 	//
 	m_cycle_writer = new cycle_writer();
@@ -161,9 +159,19 @@ void sinsp::init()
 	m_fds_to_remove->clear();
 	m_n_proc_lookups = 0;
 
+//	import_thread_table();
 	import_ifaddr_list();
-	import_thread_table();
 	import_user_list();
+
+	//
+	// Scan the list to create the proper parent/child dependencies
+	//
+	m_thread_manager->create_child_dependencies();
+
+	//
+	// Scan the list to fix the direction of the sockets
+	//
+	m_thread_manager->fix_sockets_coming_from_proc();
 
 #ifdef HAS_ANALYZER
 	//
@@ -191,7 +199,21 @@ void sinsp::open(uint32_t timeout_ms)
 	g_logger.log("starting live capture");
 
 	m_islive = true;
-	m_h = scap_open_live(error);
+
+	//
+	// Reset the thread manager
+	//
+	m_thread_manager->clear();
+
+	//
+	// Start the capture
+	//
+	scap_open_args oargs;
+	oargs.fname = NULL;
+	oargs.proc_callback = ::on_new_entry_from_proc;
+	oargs.proc_callback_context = this;
+
+	m_h = scap_open(oargs, error);
 
 	if(m_h == NULL)
 	{
@@ -217,7 +239,20 @@ void sinsp::open(string filename)
 
 	g_logger.log("starting offline capture");
 
-	m_h = scap_open_offline(filename.c_str(), error);
+	//
+	// Reset the thread manager
+	//
+	m_thread_manager->clear();
+
+	//
+	// Start the capture
+	//
+	scap_open_args oargs;
+	oargs.fname = filename.c_str();
+	oargs.proc_callback = ::on_new_entry_from_proc;
+	oargs.proc_callback_context = this;
+
+	m_h = scap_open(oargs, error);
 
 	if(m_h == NULL)
 	{
@@ -312,37 +347,61 @@ void sinsp::autodump_stop()
 	}
 }
 
-void sinsp::import_thread_table()
+void sinsp::on_new_entry_from_proc(void* context, 
+								   int64_t tid, 
+								   scap_threadinfo* tinfo, 
+								   scap_fdinfo* fdinfo,
+								   scap_t* newhandle)
 {
-	scap_threadinfo *pi;
-	scap_threadinfo *tpi;
-
-	scap_threadinfo *table = scap_get_proc_table(m_h);
-
 	//
-	// Scan the scap table and add the threads to our list
+	// Retrieve machine information if we don't have it yet
 	//
-	HASH_ITER(hh, table, pi, tpi)
+	if(m_machine_info == NULL)
 	{
-		sinsp_threadinfo newti(this);
-		newti.init(pi);
-		m_thread_manager->add_thread(newti, true);
+		m_machine_info = scap_get_machine_info(newhandle);
+		if(m_machine_info != NULL)
+		{
+			m_num_cpus = m_machine_info->num_cpus;
+		}
+		else
+		{
+			ASSERT(false);
+			m_num_cpus = 0;
+		}
 	}
 
 	//
-	// We won't need the scap process list any more, so we can free it
+	// Add the thread or FD
 	//
-	scap_proc_free_table(m_h);
+	if(fdinfo == NULL)
+	{
+		sinsp_threadinfo newti(this);
+		newti.init(tinfo);
 
-	//
-	// Scan the list to create the proper parent/child dependencies
-	//
-	m_thread_manager->create_child_dependencies();
+		m_thread_manager->add_thread(newti, true);
+	}
+	else
+	{
+		sinsp_threadinfo* sinsp_tinfo = m_thread_manager->get_thread(tid, true);
 
-	//
-	// Scan the list to fix the direction of the sockets
-	//
-	m_thread_manager->fix_sockets_coming_from_proc();
+		if(sinsp_tinfo == NULL)
+		{
+			ASSERT(false);
+			return;
+		}
+
+		sinsp_tinfo->add_fd(fdinfo);
+	}
+}
+
+void on_new_entry_from_proc(void* context, 
+							int64_t tid, 
+							scap_threadinfo* tinfo, 
+							scap_fdinfo* fdinfo,
+							scap_t* newhandle)
+{
+	sinsp* _this = (sinsp*)context;
+	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo, newhandle);
 }
 
 void sinsp::import_ifaddr_list()

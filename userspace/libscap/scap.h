@@ -47,6 +47,12 @@ extern "C" {
  */
 
 //
+// Forward declarations
+//
+typedef struct scap scap_t;
+typedef struct ppm_evt_hdr scap_evt;
+
+//
 // Core types
 //
 #include "uthash.h"
@@ -205,6 +211,23 @@ typedef struct scap_threadinfo
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
+
+typedef void (*proc_entry_callback)(void* context,
+									int64_t tid,
+									scap_threadinfo* tinfo, 
+									scap_fdinfo* fdinfo,
+									scap_t* newhandle);  
+
+/*!
+  \brief Arguments for scap_open
+*/
+typedef struct scap_open_args
+{
+	const char* fname; ///< The name of the file to open. NULL for live captures.
+	proc_entry_callback proc_callback; ///< Callback to be invoked for each thread/fd that is extracted from /proc, or NULL if no callback is needed.
+	void* proc_callback_context; ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.
+}scap_open_args;
+
 
 //
 // The follwing stuff is byte aligned because we save it to disk.
@@ -411,12 +434,6 @@ typedef struct scap_dumper scap_dumper_t;
 #define IN
 #define OUT
 
-//
-// Forward declarations
-//
-typedef struct scap scap_t;
-typedef struct ppm_evt_hdr scap_evt;
-
 ///////////////////////////////////////////////////////////////////////////////
 // API functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -445,6 +462,17 @@ scap_t* scap_open_live(char *error);
   \return The capture instance handle in case of success. NULL in case of failure.
 */
 scap_t* scap_open_offline(const char* fname, char *error);
+
+/*!
+  \brief Advanced function to start a capture.
+
+  \param args a \ref scap_open_args structure containing the open paraneters.
+  \param error Pointer to a buffer that will contain the error string in case the
+    function fails. The buffer must have size SCAP_LASTERR_SIZE.
+			
+  \return The capture instance handle in case of success. NULL in case of failure.
+*/
+scap_t* scap_open(scap_open_args args, char *error);
 
 /*!
   \brief Close a capture handle.
