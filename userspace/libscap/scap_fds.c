@@ -582,7 +582,6 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 {
 	char link_name[1024];
 	ssize_t r;
-	int32_t res;
 
 	r = readlink(fname, link_name, 1024);
 	if (r <= 0)
@@ -1277,7 +1276,6 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	struct stat sb;
 	uint64_t fd;
 	scap_fdinfo *fdi = NULL;
-
 	snprintf(fd_dir_name, 1024, "%sfd", procdir);
 	dir_p = opendir(fd_dir_name);
 	if(dir_p == NULL)
@@ -1336,8 +1334,11 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			if(fdi->type == SCAP_FD_UNKNOWN)
 			{
 				// we can land here if we've got a netlink socket
-				scap_fd_free_fdinfo(&fdi);
-			}
+				if(handle->m_proc_callback == NULL)
+				{
+					scap_fd_free_fdinfo(&fdi);
+				}
+			} 
 			break;
 		default:
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNSUPPORTED);
@@ -1348,10 +1349,6 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			fdi->ino = sb.st_ino;
 			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, error);
 			break;
-		}
-		if(NULL != fdi)
-		{
-			ASSERT(SCAP_FD_UNKNOWN != fdi->type);
 		}
 		if(SCAP_SUCCESS != res)
 		{
