@@ -1,5 +1,5 @@
 --[[
-netlower.lua - trace the syscalls slower than a given threshold.
+netlower.lua - trace network I/O slower than a given threshold.
 
 USAGE: sysdig -c netlower min_ms
    eg, 
