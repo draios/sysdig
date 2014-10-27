@@ -189,7 +189,11 @@ void sinsp_decoder_syslog::init()
 
 void sinsp_decoder_syslog::on_fd_from_proc(sinsp_fdinfo_t* fdinfo)
 {
-	ASSERT(fdinfo != NULL);
+	if(fdinfo == NULL)
+	{
+		ASSERT(false);
+		return ;
+	}
 
 	if(fdinfo->m_name.find("/dev/log") != string::npos)
 	{
@@ -203,6 +207,10 @@ void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype
 		etype == CT_CONNECT)
 	{
 		sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+		if(fdinfo == NULL)
+		{
+			return ;
+		}
 
 		if(fdinfo->m_name.find("/dev/log") != string::npos)
 		{
@@ -212,6 +220,10 @@ void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype
 	else if(etype == CT_TUPLE_CHANGE)
 	{
 		sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+		if(fdinfo == NULL)
+		{
+			return ;
+		}
 
 		if(fdinfo->m_name.find("/dev/log") != string::npos)
 		{

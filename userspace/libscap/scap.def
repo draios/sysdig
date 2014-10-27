@@ -40,3 +40,4 @@ EXPORTS
 		scap_event_get_dump_flags
 		scap_enable_dynamic_snaplen
 		scap_disable_dynamic_snaplen
+		scap_proc_free_table
