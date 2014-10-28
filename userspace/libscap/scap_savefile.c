@@ -546,10 +546,20 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 #if defined(HAS_CAPTURE)
 	if(handle->m_file == NULL)
 	{
+		proc_entry_callback tcb = handle->m_proc_callback;
+		handle->m_proc_callback = NULL;
+
 		scap_proc_free_table(handle);
 		if(scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
 		{
+			handle->m_proc_callback = tcb;
 			return NULL;
+		}
+
+		handle->m_proc_callback = tcb;
+		if(handle->m_proc_callback != NULL)
+		{
+			scap_proc_free_table(handle);
 		}
 	}
 #endif
