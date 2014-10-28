@@ -557,10 +557,6 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 		}
 
 		handle->m_proc_callback = tcb;
-		if(handle->m_proc_callback != NULL)
-		{
-			scap_proc_free_table(handle);
-		}
 	}
 #endif
 
@@ -603,6 +599,14 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 	if(scap_write_fdlist(handle, f) != SCAP_SUCCESS)
 	{
 		return NULL;
+	}
+
+	//
+	// If the user doesn't need the thread table, free it
+	//
+	if(handle->m_proc_callback != NULL)
+	{
+		scap_proc_free_table(handle);
 	}
 
 	//
