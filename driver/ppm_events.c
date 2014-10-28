@@ -251,6 +251,9 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, u32 lookahead_si
 							if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
 								sockfd_put(sock);
 								return 2000;
+							} else if (buf[2] == 0 && buf[3] == 0){
+								sockfd_put(sock);
+								return 2000;
 							}
 						}
 					} else {
