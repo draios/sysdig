@@ -159,7 +159,11 @@ void sinsp::init()
 	m_fds_to_remove->clear();
 	m_n_proc_lookups = 0;
 
-//	import_thread_table();
+	if(m_islive == false)
+	{
+		import_thread_table();
+	}
+
 	import_ifaddr_list();
 	import_user_list();
 
@@ -249,8 +253,8 @@ void sinsp::open(string filename)
 	//
 	scap_open_args oargs;
 	oargs.fname = filename.c_str();
-	oargs.proc_callback = ::on_new_entry_from_proc;
-	oargs.proc_callback_context = this;
+	oargs.proc_callback = NULL;
+	oargs.proc_callback_context = NULL;
 
 	m_h = scap_open(oargs, error);
 
@@ -402,6 +406,24 @@ void on_new_entry_from_proc(void* context,
 {
 	sinsp* _this = (sinsp*)context;
 	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo, newhandle);
+}
+
+void sinsp::import_thread_table()
+{
+	scap_threadinfo *pi;
+	scap_threadinfo *tpi;
+	sinsp_threadinfo newti(this);
+
+	scap_threadinfo *table = scap_get_proc_table(m_h);
+
+	//
+	// Scan the scap table and add the threads to our list
+	//
+	HASH_ITER(hh, table, pi, tpi)
+	{
+		newti.init(pi);
+		m_thread_manager->add_thread(newti, true);
+	}
 }
 
 void sinsp::import_ifaddr_list()
