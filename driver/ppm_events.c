@@ -412,8 +412,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 						}			
 					}
 
-					if (unlikely((val_len) >= args->arg_data_size))
-						return PPM_FAILURE_BUFFER_FULL;
+					if (unlikely((val_len) >= args->arg_data_size)) {
+						val_len = args->arg_data_size;
+					}
 
 					if (val_len > dpi_lookahead_size) {
 						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
