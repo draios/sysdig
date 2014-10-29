@@ -257,7 +257,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	char target_name[256];
 	int target_res;
 	char filename[252];
-	char line[SCAP_MAX_PATH_SIZE];
+	char line[SCAP_MAX_ENV_SIZE];
 	struct scap_threadinfo* tinfo;
 	int32_t uth_status = SCAP_SUCCESS;
 	FILE* f;
@@ -287,6 +287,8 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		{
 			return SCAP_SUCCESS;
 		}
+
+		ASSERT(sizeof(line) >= SCAP_MAX_PATH_SIZE);
 
 		if(fgets(line, SCAP_MAX_PATH_SIZE, f) == NULL)
 		{
@@ -356,6 +358,8 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	}
 	else
 	{
+		ASSERT(sizeof(line) >= SCAP_MAX_PATH_SIZE);
+
 		if(fgets(line, SCAP_MAX_PATH_SIZE, f) == NULL)
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "can't read from %s", filename);
@@ -383,7 +387,9 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	}
 	else
 	{
-		filesize = fread(line, 1, sizeof(line), f);
+		ASSERT(sizeof(line) >= SCAP_MAX_PATH_SIZE);
+
+		filesize = fread(line, 1, SCAP_MAX_PATH_SIZE, f);
 		line[filesize - 1] = 0;
 
 		exe_len = strlen(line);
@@ -418,7 +424,9 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	}
 	else
 	{
-		filesize = fread(line, 1, sizeof(line), f);
+		ASSERT(sizeof(line) >= SCAP_MAX_ENV_SIZE);
+
+		filesize = fread(line, 1, SCAP_MAX_ENV_SIZE, f);
 		line[filesize - 1] = 0;
 
 		tinfo->env_len = filesize;
