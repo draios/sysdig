@@ -357,6 +357,8 @@ void sinsp::on_new_entry_from_proc(void* context,
 								   scap_fdinfo* fdinfo,
 								   scap_t* newhandle)
 {
+	ASSERT(tinfo != NULL);
+
 	//
 	// Retrieve machine information if we don't have it yet
 	//
@@ -390,8 +392,17 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		if(sinsp_tinfo == NULL)
 		{
-			ASSERT(false);
-			return;
+			sinsp_threadinfo newti(this);
+			newti.init(tinfo);
+
+			m_thread_manager->add_thread(newti, true);
+
+			sinsp_tinfo = m_thread_manager->get_thread(tid, true);
+			if(sinsp_tinfo == NULL)
+			{
+				ASSERT(false);
+				return;
+			}
 		}
 
 		sinsp_tinfo->add_fd(fdinfo);
