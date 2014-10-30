@@ -97,6 +97,7 @@ typedef struct evt_param_info
 }evt_param_info;
 
 #define SCAP_MAX_PATH_SIZE 1024
+#define SCAP_MAX_ARGS_SIZE 4096
 #define SCAP_MAX_ENV_SIZE 4096
 
 /*!
@@ -194,7 +195,7 @@ typedef struct scap_threadinfo
 	uint64_t ptid; ///< The id of the thread that created this thread.
 	char comm[SCAP_MAX_PATH_SIZE]; ///< Command name (e.g. "top")
 	char exe[SCAP_MAX_PATH_SIZE]; ///< Full command name (e.g. "/bin/top")
-	char args[SCAP_MAX_PATH_SIZE]; ///< Command line arguments (e.g. "-d1")
+	char args[SCAP_MAX_ARGS_SIZE]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
 	char env[SCAP_MAX_ENV_SIZE]; ///< Environment
 	uint16_t env_len; ///< Environment length
