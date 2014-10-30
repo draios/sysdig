@@ -1,7 +1,7 @@
 #compdef sysdig
 
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.89
+# 0.1.90
 
 # this must match fields_info.cpp
 local DESCRIPTION_TEXT_START=20
