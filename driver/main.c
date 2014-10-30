@@ -772,6 +772,7 @@ static int record_event(enum ppm_event_type event_type,
 	int next;
 	u32 freespace;
 	u32 usedspace;
+	u32 delta_from_end;
 	struct event_filler_arguments args;
 	u32 ttail;
 	u32 head;
@@ -839,11 +840,14 @@ static int record_event(enum ppm_event_type event_type,
 		freespace = RING_BUF_SIZE + ttail - head - 1;
 
 	usedspace = RING_BUF_SIZE - freespace - 1;
+	delta_from_end = RING_BUF_SIZE + (2 * PAGE_SIZE) - head - 1;
 
 	ASSERT(freespace <= RING_BUF_SIZE);
 	ASSERT(usedspace <= RING_BUF_SIZE);
 	ASSERT(ttail <= RING_BUF_SIZE);
 	ASSERT(head <= RING_BUF_SIZE);
+	ASSERT(delta_from_end < RING_BUF_SIZE + (2 * PAGE_SIZE));
+	ASSERT(delta_from_end > (2 * PAGE_SIZE) - 1);
 
 #ifdef __NR_socketcall
 	/*
@@ -900,7 +904,7 @@ static int record_event(enum ppm_event_type event_type,
 #ifdef PPM_ENABLE_SENTINEL
 		args.sentinel = ring->nevents;
 #endif
-		args.buffer_size = min(freespace, (u32)(2 * PAGE_SIZE)) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
+		args.buffer_size = min(freespace, delta_from_end) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
 		args.event_type = event_type;
 		args.regs = regs;
 		args.sched_prev = sched_prev;
