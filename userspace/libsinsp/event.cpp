@@ -1943,8 +1943,15 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 		ASSERT(parinfo->m_len == sizeof(uint16_t));
 		uint16_t id = *(uint16_t *)parinfo->m_val;
 
-		cat->m_category = g_infotables.m_syscall_info_table[id].category;
-		cat->m_subcategory = sinsp_evt::SC_NONE;
+		if(id < PPM_SC_MAX)
+		{
+			cat->m_category = g_infotables.m_syscall_info_table[id].category;
+			cat->m_subcategory = sinsp_evt::SC_NONE;
+		}
+		else
+		{
+			ASSERT(false);
+		}
 	}
 	else
 	{
