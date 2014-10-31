@@ -141,7 +141,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr)
 {
 	vector<sinsp_ipv4_ifinfo>::iterator it;
 
-	// try to find an interface for the same subnet
+	// try to find an interface that has the given IP as address
 	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++)
 	{
 		if(it->m_addr == addr)
