@@ -210,4 +210,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_VFORK_X */{"vfork", EC_PROCESS, EF_MODIFIES_STATE, 16, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_VMSPLICE_E */{"vmsplice", EC_IO_WRITE, EF_USES_FD | EF_WRITES_TO_FD, 2, {{"fd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, splice_flags} } },
 	/* PPME_SYSCALL_VMSPLICE_X */{"vmsplice", EC_IO_WRITE, EF_USES_FD | EF_WRITES_TO_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_TEE_E */{"tee", EC_IO_OTHER, EF_USES_FD, 4, {{"fd_in", PT_FD, PF_DEC}, {"fd_out", PT_FD, PF_DEC}, {"size", PT_UINT64, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, splice_flags} } },
+	/* PPME_SYSCALL_TEE_X */{"tee", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 };
