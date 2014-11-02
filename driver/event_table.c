@@ -212,4 +212,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_VMSPLICE_X */{"vmsplice", EC_IO_WRITE, EF_USES_FD | EF_WRITES_TO_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_TEE_E */{"tee", EC_IO_OTHER, EF_USES_FD, 4, {{"fd_in", PT_FD, PF_DEC}, {"fd_out", PT_FD, PF_DEC}, {"size", PT_UINT64, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, splice_flags} } },
 	/* PPME_SYSCALL_TEE_X */{"tee", EC_IO_OTHER, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_SENDFILE_E */{"sendfile", EC_IO_WRITE, EF_USES_FD | EF_WRITES_TO_FD, 3, {{"fd_out", PT_FD, PF_DEC}, {"fd_in", PT_FD, PF_DEC}, {"count", PT_UINT64, PF_DEC} } },
+	/* PPME_SYSCALL_SENDFILE_X */{"sendfile", EC_IO_WRITE, EF_USES_FD | EF_WRITES_TO_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 };
