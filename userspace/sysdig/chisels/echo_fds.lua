@@ -49,6 +49,7 @@ function on_init()
 	fisread = chisel.request_field("evt.is_io_read")
 	fres = chisel.request_field("evt.rawarg.res")
 	fname = chisel.request_field("fd.name")
+	fpname = chisel.request_field("proc.name")
 
 	-- increase the snaplen so we capture more of the conversation 
 	sysdig.set_snaplen(2000)
@@ -66,6 +67,7 @@ function on_event()
 	isread = evt.field(fisread)
 	res = evt.field(fres)
 	name = evt.field(fname)
+	pname = evt.field(fpname)
 
 	if name == nil then
 		name = "<NA>"
@@ -76,9 +78,9 @@ function on_event()
 	end
 	
 	if isread then
-		infostr = string.format("%s------ Read %s from %s", terminal.red, format_bytes(res), name)
+		infostr = string.format("%s------ Read %s from %s (%s)", terminal.red, format_bytes(res), name, pname)
 	else
-		infostr = string.format("%s------ Write %s to %s", terminal.blue, format_bytes(res), name)
+		infostr = string.format("%s------ Write %s to %s (%s)", terminal.blue, format_bytes(res), name, pname)
 	end
 	
 	print(infostr)
