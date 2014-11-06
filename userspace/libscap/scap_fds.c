@@ -629,16 +629,24 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 	return scap_add_fd_to_proc_table(handle, tinfo, fdi);
 }
 
-int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, scap_fdinfo *sockets, char *error)
+int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, scap_fdinfo **sockets, char *error)
 {
 	char link_name[1024];
 	ssize_t r;
 	scap_fdinfo *tfdi;
 	uint64_t ino;
 
-	if(sockets == NULL)
+	if(*sockets == (void*)-1)
 	{
 		return SCAP_SUCCESS;
+	}
+	else if(*sockets == NULL)
+	{
+		if(scap_fd_read_sockets(handle, sockets) == SCAP_FAILURE)
+		{
+			*sockets = (void*)-1;
+			return SCAP_FAILURE;
+		}
 	}
 
 	r = readlink(fname, link_name, 1024);
@@ -662,7 +670,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 	//
 	// Lookup ino in the list of sockets
 	//
-	HASH_FIND_INT64(sockets, &ino, tfdi);
+	HASH_FIND_INT64(*sockets, &ino, tfdi);
 	if(tfdi != NULL)
 	{
 		memcpy(&(fdi->info), &(tfdi->info), sizeof(fdi->info));
@@ -1266,7 +1274,7 @@ char * decode_st_mode(struct stat* sb)
 //
 // Scan the directory containing the fd's of a proc /proc/x/fd
 //
-int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinfo, scap_fdinfo *sockets, char *error)
+int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinfo, scap_fdinfo **sockets, char *error)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;

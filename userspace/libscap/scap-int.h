@@ -155,7 +155,7 @@ void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // Read an event from disk
 int32_t scap_next_offline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 // read the filedescriptors for a given process directory
-int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, scap_fdinfo * sockets, char *error);
+int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, scap_fdinfo ** sockets, char *error);
 // read tcp or udp sockets from the proc filesystem
 int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, char * dir, int l4proto, scap_fdinfo ** sockets);
 // read all sockets and add them to the socket table hashed by their ino

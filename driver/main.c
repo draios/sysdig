@@ -703,7 +703,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 #endif /* __NR_socketcall */
 
 static inline void record_drop_e(void){
-	if (record_event(PPME_DROP_E, NULL, -1, 1, NULL, NULL) == 0) {
+	if (record_event(PPME_DROP_E, NULL, -1, UF_NEVER_DROP, NULL, NULL) == 0) {
 		g_need_to_insert_drop_e = 1;
 	} else {
 		if (g_need_to_insert_drop_e == 1) {
@@ -715,7 +715,7 @@ static inline void record_drop_e(void){
 }
 
 static inline void record_drop_x(void){
-	if (record_event(PPME_DROP_X, NULL, -1, 1, NULL, NULL) == 0) {
+	if (record_event(PPME_DROP_X, NULL, -1, UF_NEVER_DROP, NULL, NULL) == 0) {
 		g_need_to_insert_drop_x = 1;
 	} else {
 		if (g_need_to_insert_drop_x == 1) {
@@ -1042,7 +1042,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		if (used)
 			record_event(g_syscall_table[table_index].enter_event_type, regs, id, drop_flags, NULL, NULL);
 		else
-			record_event(PPME_GENERIC_E, regs, id, false, NULL, NULL);
+			record_event(PPME_GENERIC_E, regs, id, UF_ALWAYS_DROP, NULL, NULL);
 	}
 }
 
@@ -1071,7 +1071,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		if (used)
 			record_event(g_syscall_table[table_index].exit_event_type, regs, id, drop_flags, NULL, NULL);
 		else
-			record_event(PPME_GENERIC_X, regs, id, false, NULL, NULL);
+			record_event(PPME_GENERIC_X, regs, id, UF_ALWAYS_DROP, NULL, NULL);
 	}
 }
 
@@ -1087,7 +1087,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 		return;
 	}
 
-	record_event(PPME_PROCEXIT_E, NULL, -1, 1, NULL, NULL);
+	record_event(PPME_PROCEXIT_E, NULL, -1, UF_NEVER_DROP, NULL, NULL);
 }
 
 #include <linux/ip.h>
@@ -1104,7 +1104,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 	record_event(PPME_SCHEDSWITCH_6_E,
 		NULL,
 		-1,
-		0,
+		UF_USED,
 		prev,
 		next);
 }
