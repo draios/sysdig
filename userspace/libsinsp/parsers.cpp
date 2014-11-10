@@ -192,6 +192,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
+	case PPME_PROCEXIT_1_E:
 		parse_thread_exit(evt);
 		break;
 	case PPME_SYSCALL_PIPE_X:

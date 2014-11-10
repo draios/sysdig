@@ -111,6 +111,7 @@ static int f_sys_mmap_e(struct event_filler_arguments *args);
 static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args);
 static int f_sys_renameat_x(struct event_filler_arguments *args);
 static int f_sys_symlinkat_x(struct event_filler_arguments *args);
+static int f_sys_procexit_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -129,7 +130,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_READ_X] = {f_sys_read_x},
 	[PPME_SYSCALL_WRITE_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {2} } },
 	[PPME_SYSCALL_WRITE_X] = {f_sys_write_x},
-	[PPME_PROCEXIT_E] = {f_sys_empty},
+	[PPME_PROCEXIT_1_E] = {f_sys_procexit_e},
 	[PPME_SOCKET_SOCKET_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
 	[PPME_SOCKET_SOCKETPAIR_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
@@ -3575,6 +3576,25 @@ static int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_procexit_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	if (args->sched_prev == NULL) {
+		ASSERT(false);
+		return -1;
+	}
+
+	/*
+	 * status
+	 */
+	res = val_to_ring(args, args->sched_prev->exit_code, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
