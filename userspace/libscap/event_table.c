@@ -198,7 +198,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EXECVE_14_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 14, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"env", PT_BYTEBUF, PF_NA} } },
 	/* PPME_SYSCALL_RENAME_E */{"rename", EC_FILE, EF_NONE, 0 },
 	/* PPME_SYSCALL_RENAME_X */{"rename", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
-	/* PPME_SYSCALL_RENAMEAT_E */{"renameat", EC_FILE, EF_NONE, 0 },
+	/* PPME_SYSCALL_RENAMEAT_E */{"renameat", EC_FILE, EF_NONE, 0, { } },
 	/* PPME_SYSCALL_RENAMEAT_X */{"renameat", EC_FILE, EF_NONE, 5, {{"res", PT_ERRNO, PF_DEC}, {"olddirfd", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdirfd", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA} } },
 	/* PPME_SYSCALL_SYMLINK_E */{"symlink", EC_FILE, EF_NONE, 0 },
 	/* PPME_SYSCALL_SYMLINK_X */{"symlink", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"target", PT_CHARBUF, PF_NA}, {"linkpath", PT_FSPATH, PF_NA} } },
@@ -208,4 +208,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_FORK_X */{"fork", EC_PROCESS, EF_MODIFIES_STATE, 16, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_VFORK_E */{"vfork", EC_PROCESS, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_VFORK_X */{"vfork", EC_PROCESS, EF_MODIFIES_STATE, 16, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
+	/* PPME_PROCEXIT_1_E */{"procexit", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"status", PT_ERRNO, PF_DEC} } },
+	/* PPME_NA1 */{"NA1", EC_PROCESS, EF_UNUSED, 0},
 };

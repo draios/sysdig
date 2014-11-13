@@ -1087,7 +1087,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 		return;
 	}
 
-	record_event(PPME_PROCEXIT_E, NULL, -1, UF_NEVER_DROP, NULL, NULL);
+	record_event(PPME_PROCEXIT_1_E, NULL, -1, UF_NEVER_DROP, p, p);
 }
 
 #include <linux/ip.h>
