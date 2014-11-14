@@ -79,7 +79,7 @@ public:
 	sinsp_fdinfo();
 	sinsp_fdinfo (const sinsp_fdinfo &other) 
 	{
-		copy(other);
+		copy(other, false);
 	}
 
 	~sinsp_fdinfo()
@@ -97,7 +97,7 @@ public:
 
 	string* tostring();
 
-	inline void copy(const sinsp_fdinfo &other)
+	inline void copy(const sinsp_fdinfo &other, bool free_state)
 	{
 		m_type = other.m_type;
 		m_openflags = other.m_openflags;	
@@ -106,6 +106,19 @@ public:
 		m_flags = other.m_flags;
 		m_ino = other.m_ino;
 		
+		if(free_state)
+		{
+			if(m_callbaks != NULL)
+			{
+				delete m_callbaks;
+			}
+
+			if(m_usrstate != NULL)
+			{
+				delete m_usrstate;
+			}
+		}
+
 		if(other.m_callbaks != NULL)
 		{
 			m_callbaks = new fd_callbacks_info();
