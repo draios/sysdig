@@ -38,13 +38,37 @@ function on_event()
     return true
 end
 
+-- http://stackoverflow.com/questions/15706270/sort-a-table-in-lua?answertab=votes#tab-top
+function spairs(t, order)
+    -- collect the keys
+    local keys = {}
+    for k in pairs(t) do keys[#keys+1] = k end
+
+    -- if order function given, sort by it by passing the table and keys a, b,
+    -- otherwise just sort the keys
+    if order then
+        table.sort(keys, function(a,b) return order(t, a, b) end)
+    else
+        table.sort(keys)
+    end
+
+    -- return the iterator function
+    local i = 0
+    return function()
+        i = i + 1
+        if keys[i] then
+            return keys[i], t[keys[i]]
+        end
+    end
+end
+
 -- Interval callback, emits the output
 function on_capture_end()
     terminal.clearscreen()
     terminal.moveto(0 ,0)
     terminal.showcursor()
 
-    for k, v in pairs(record_for) do
+    for k, v in spairs(record_for, function(t,a,b) return t[b] < t[a] end) do
         line = string.format("%5d   %-10s", v, k)
         print(line)
     end
