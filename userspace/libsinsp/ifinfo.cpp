@@ -200,6 +200,11 @@ void sinsp_network_interfaces::import_interfaces(scap_addrlist* paddrlist)
 	}
 }
 
+void sinsp_network_interfaces::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
+{
+	m_ipv4_interfaces.push_back(ifinfo);
+}
+
 vector<sinsp_ipv4_ifinfo>* sinsp_network_interfaces::get_ipv4_list()
 {
 	return &m_ipv4_interfaces;

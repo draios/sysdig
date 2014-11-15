@@ -554,6 +554,7 @@ public:
 	sinsp_parser* get_parser();
 
 	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress);
+	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 
 VISIBILITY_PRIVATE
 
