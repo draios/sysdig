@@ -71,6 +71,10 @@ function on_capture_end()
     terminal.moveto(0 ,0)
     terminal.showcursor()
 
+    header = string.format("%5s  %-10s", "Counts", "System Calls")
+    print(header)
+    print("------------------------------")
+
     local temp_counter = 0
     for k, v in spairs(record_for, function(t,a,b) return t[b] < t[a] end) do
         line = string.format("%5d   %-10s", v, k)
