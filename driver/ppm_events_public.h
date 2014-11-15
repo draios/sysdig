@@ -538,7 +538,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_VFORK_X = 185,
 	PPME_PROCEXIT_1_E = 186,
 	PPME_PROCEXIT_1_X = 187,	/* This should never be called */
-	PPM_EVENT_MAX = 188
+	PPME_SYSCALL_SENDFILE_E = 188,
+	PPME_SYSCALL_SENDFILE_X = 189,	/* This should never be called */
+	PPM_EVENT_MAX = 190
 };
 /*@}*/
 

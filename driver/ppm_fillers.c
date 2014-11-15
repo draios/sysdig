@@ -112,6 +112,8 @@ static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args);
 static int f_sys_renameat_x(struct event_filler_arguments *args);
 static int f_sys_symlinkat_x(struct event_filler_arguments *args);
 static int f_sys_procexit_e(struct event_filler_arguments *args);
+static int f_sys_sendfile_e(struct event_filler_arguments *args);
+static int f_sys_sendfile_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -289,6 +291,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_VFORK_E] = {f_sys_empty},
 	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
+	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 };
 
 /*
@@ -3600,3 +3604,87 @@ static int f_sys_procexit_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+static int f_sys_sendfile_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	off_t offset;
+
+	/*
+	 * out_fd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * in_fd
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * offset
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+
+	if (val != 0) {
+		if (unlikely(ppm_copy_from_user(&offset, (void*)val, sizeof(off_t))))
+			val = 0;
+		else
+			val = offset;
+	}
+
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * size
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_sendfile_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+	off_t offset;
+
+	/*
+	 * res
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * offset
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+
+	if (val != 0) {
+		if (unlikely(ppm_copy_from_user(&offset, (void*)val, sizeof(off_t))))
+			val = 0;
+		else
+			val = offset;
+	}
+
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+

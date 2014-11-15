@@ -210,4 +210,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_VFORK_X */{"vfork", EC_PROCESS, EF_MODIFIES_STATE, 16, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
 	/* PPME_PROCEXIT_1_E */{"procexit", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"status", PT_ERRNO, PF_DEC} } },
 	/* PPME_NA1 */{"NA1", EC_PROCESS, EF_UNUSED, 0},
+	/* PPME_SYSCALL_SENDFILE_E */{"sendfile", EC_IO_OTHER, EF_USES_FD, 4, {{"out_fd", PT_FD, PF_DEC}, {"in_fd", PT_FD, PF_DEC}, {"offset", PT_UINT64, PF_DEC}, {"size", PT_UINT64, PF_DEC} } },
+	/* PPME_SYSCALL_SENDFILE_X */{"sendfile", EC_IO_OTHER, EF_USES_FD, 2, {{"res", PT_ERRNO, PF_DEC}, {"offset", PT_UINT64, PF_DEC} } },
 };
