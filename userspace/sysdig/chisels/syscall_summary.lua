@@ -1,5 +1,8 @@
+-- The number of items to show
+TOP_NUMBER = 10
+
 -- Chisel description
-description = "Show summary of counts of system calls. You can use filters to restrict this to a specific process, thread or file."
+description = "Show summary of the " .. TOP_NUMBER .. " highest system calls counts. You can use filters to restrict this to a specific process, thread or file."
 short_description = "Summary of counts of system calls"
 category = "Performance"
 
@@ -68,9 +71,15 @@ function on_capture_end()
     terminal.moveto(0 ,0)
     terminal.showcursor()
 
+    local temp_counter = 0
     for k, v in spairs(record_for, function(t,a,b) return t[b] < t[a] end) do
         line = string.format("%5d   %-10s", v, k)
-        print(line)
+	print(line)
+
+        temp_counter = temp_counter + 1
+        if temp_counter == TOP_NUMBER then
+	    break
+        end
     end
     return true
 end
