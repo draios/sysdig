@@ -152,6 +152,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PRLIMIT_E:
 	case PPME_SOCKET_SENDTO_E:
 	case PPME_SOCKET_SENDMSG_E:
+	case PPME_SYSCALL_SENDFILE_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_READ_X:
@@ -169,6 +170,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PREADV_X:
 	case PPME_SYSCALL_PWRITEV_X:
 		parse_rw_exit(evt);
+		break;
+	case PPME_SYSCALL_SENDFILE_X:
+		parse_sendfile_exit(evt);
 		break;
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
@@ -2218,7 +2222,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			if(m_fd_listener)
 			{
-				m_fd_listener->on_read(evt, tid, evt->m_tinfo->m_lastevent_fd, data, (uint32_t)retval, datalen);
+				m_fd_listener->on_read(evt, tid, evt->m_tinfo->m_lastevent_fd, evt->m_fdinfo, 
+					data, (uint32_t)retval, datalen);
 			}
 
 			//
@@ -2303,7 +2308,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			if(m_fd_listener)
 			{
-				m_fd_listener->on_write(evt, tid, evt->m_tinfo->m_lastevent_fd, data, (uint32_t)retval, datalen);
+				m_fd_listener->on_write(evt, tid, evt->m_tinfo->m_lastevent_fd, evt->m_fdinfo,
+					data, (uint32_t)retval, datalen);
 			}
 
 			//
@@ -2318,6 +2324,53 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					(*it)->on_write(evt, data, datalen);
 				}
 			}
+		}
+	}
+}
+
+void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+
+	if(!evt->m_fdinfo)
+	{
+		return;
+	}
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	retval = *(int64_t *)parinfo->m_val;
+
+	//
+	// If the operation was successful, validate that the fd exists
+	//
+	if(retval >= 0)
+	{
+		sinsp_evt *enter_evt = &m_tmp_evt;
+		int64_t fdin, fdout;
+
+		if(!retrieve_enter_event(enter_evt, evt))
+		{
+			return;
+		}
+
+		//
+		// Extract the in FD
+		//
+		parinfo = enter_evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		fdin = *(int64_t *)parinfo->m_val;
+
+		//
+		// If there's an fd listener, call it now
+		//
+		if(m_fd_listener)
+		{
+			m_fd_listener->on_sendfile(evt, fdin, retval);
 		}
 	}
 }

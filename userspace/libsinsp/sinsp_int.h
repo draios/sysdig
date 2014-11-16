@@ -121,8 +121,9 @@ public:
 	virtual ~sinsp_fd_listener()
 	{
 	}
-	virtual void on_read(sinsp_evt *evt, int64_t tid, int64_t fd, char *data, uint32_t original_len, uint32_t len) = 0;
-	virtual void on_write(sinsp_evt *evt, int64_t tid, int64_t fd, char *data, uint32_t original_len, uint32_t len) = 0;
+	virtual void on_read(sinsp_evt *evt, int64_t tid, int64_t fd, sinsp_fdinfo_t* fdinfo, char *data, uint32_t original_len, uint32_t len) = 0;
+	virtual void on_write(sinsp_evt *evt, int64_t tid, int64_t fd, sinsp_fdinfo_t* fdinfo, char *data, uint32_t original_len, uint32_t len) = 0;
+	virtual void on_sendfile(sinsp_evt *evt, int64_t fdin, uint32_t len) = 0;
 	virtual void on_connect(sinsp_evt *evt, uint8_t* packed_data) = 0;
 	virtual void on_accept(sinsp_evt *evt, int64_t newfd, uint8_t* packed_data, sinsp_fdinfo_t* new_fdinfo) = 0;
 	virtual void on_file_create(sinsp_evt* evt, const string& fullpath) = 0;
