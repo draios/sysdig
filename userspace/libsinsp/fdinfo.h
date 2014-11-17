@@ -89,7 +89,7 @@ public:
 			delete m_callbaks;
 		}
 
-		if(m_usrstate)
+		if(m_usrstate != NULL)
 		{
 			delete m_usrstate;
 		}
