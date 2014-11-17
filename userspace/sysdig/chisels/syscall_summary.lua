@@ -37,6 +37,8 @@ end
 function on_init()
     fevtype = chisel.request_field("evt.type")
     fcount = chisel.request_field("evt.count")
+
+    chisel.set_filter("evt.dir=>")
     return true
 end
 
