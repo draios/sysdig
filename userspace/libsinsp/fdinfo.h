@@ -95,6 +95,12 @@ public:
 		}
 	}
 
+	sinsp_fdinfo& operator=(const sinsp_fdinfo& other)
+	{
+		copy(other, true);
+		return *this;
+	}
+
 	string* tostring();
 
 	inline void copy(const sinsp_fdinfo &other, bool free_state)

@@ -403,7 +403,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 			// choice. We include an assertion to catch the situation.
 			//
 			// XXX Can't have this enabled until the FD_CLOEXEC flag is supported
-//					ASSERT(false);
+			//ASSERT(false);
 		}
 
 		//
