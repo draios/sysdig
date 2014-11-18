@@ -212,4 +212,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_NA1 */{"NA1", EC_PROCESS, EF_UNUSED, 0},
 	/* PPME_SYSCALL_SENDFILE_E */{"sendfile", EC_IO_OTHER, EF_USES_FD, 4, {{"out_fd", PT_FD, PF_DEC}, {"in_fd", PT_FD, PF_DEC}, {"offset", PT_UINT64, PF_DEC}, {"size", PT_UINT64, PF_DEC} } },
 	/* PPME_SYSCALL_SENDFILE_X */{"sendfile", EC_IO_OTHER, EF_USES_FD, 2, {{"res", PT_ERRNO, PF_DEC}, {"offset", PT_UINT64, PF_DEC} } },
+	/* PPME_SYSCALL_QUOTACTL_E */{"quotactl", EC_USER, EF_NONE, 3, {{"cmd", PT_FLAGS8, PF_DEC, quotactl_cmds }, {"id", PT_UINT32, PF_DEC}, {"quota_fmt", PT_FLAGS8, PF_HEX, quotactl_quota_fmts } } },
+	/* PPME_SYSCALL_QUOTACTL_X */{"quotactl", EC_USER, EF_NONE, 14, {{"res", PT_ERRNO, PF_DEC}, {"special", PT_CHARBUF, PF_NA }, {"quotafilepath", PT_FSPATH, PF_NA}, {"dqb_bhardlimit", PT_UINT64, PF_DEC }, {"dqb_bsoftlimit", PT_UINT64, PF_DEC }, {"dqb_curspace", PT_UINT64, PF_DEC }, {"dqb_ihardlimit", PT_UINT64, PF_DEC }, {"dqb_curspace", PT_UINT64, PF_DEC }, {"dqb_isoftlimit", PT_UINT64, PF_DEC }, {"dqb_btime", PT_RELTIME, PF_DEC }, {"dqb_itime", PT_RELTIME, PF_DEC }, {"dqi_bgrace", PT_RELTIME, PF_DEC }, {"dqi_igrace", PT_RELTIME, PF_DEC }, {"dqi_flags", PT_FLAGS8, PF_DEC, quotactl_dqi_flags } } }
 };

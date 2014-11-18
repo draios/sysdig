@@ -318,6 +318,43 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_SPLICE_F_GIFT		(1 << 3)
 
 /*
+ * quotactl cmds
+ */
+#define PPM_Q_SYNC			(1 << 0)
+#define PPM_Q_QUOTAON		(1 << 1)
+#define PPM_Q_QUOTAOFF		(1 << 2)
+#define PPM_Q_GETFMT		(1 << 3)
+#define PPM_Q_GETINFO		(1 << 4)
+#define PPM_Q_SETINFO		(1 << 5)
+#define PPM_Q_GETQUOTA		(1 << 6)
+#define PPM_Q_SETQUOTA		(1 << 7)
+#define PPM_Q_XQUOTAON		(1 << 8)
+#define PPM_Q_XQUOTAOFF		(1 << 9)
+#define PPM_Q_XGETQUOTA		(1 << 10)
+#define PPM_Q_XSETQLIM		(1 << 11)
+#define PPM_Q_XGETQSTAT		(1 << 12)
+#define PPM_Q_XQUOTARM		(1 << 13)
+#define PPM_Q_XQUOTASYNC	(1 << 14)
+#define PPM_Q_XGETQSTATV	(1 << 15)
+#define PPM_USRQUOTA		(1 << 16)
+#define PPM_GRPQUOTA		(1 << 17)
+#define PPM_XQM_USRQUOTA	(1 << 18)
+#define PPM_XQM_GRPQUOTA	(1 << 19)
+#define PPM_XQM_PRJQUOTA	(1 << 20)
+
+/*
+ * quotactl dqi_flags
+ */
+#define PPM_V1_DQF_RSQUASH	(1 << 0)
+
+/*
+ * quotactl quotafmts
+ */
+#define PPM_QFMT_VFS_OLD	(1 << 0)
+#define PPM_QFMT_VFS_V0		(1 << 1)
+#define PPM_QFMT_VFS_V1		(1 << 2)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -540,7 +577,9 @@ enum ppm_event_type {
 	PPME_PROCEXIT_1_X = 187,	/* This should never be called */
 	PPME_SYSCALL_SENDFILE_E = 188,
 	PPME_SYSCALL_SENDFILE_X = 189,	/* This should never be called */
-	PPM_EVENT_MAX = 190
+    PPME_SYSCALL_QUOTACTL_E = 190,
+    PPME_SYSCALL_QUOTACTL_X = 191,
+    PPM_EVENT_MAX = 192
 };
 /*@}*/
 
@@ -1048,6 +1087,9 @@ extern const struct ppm_name_value ptrace_requests[];
 extern const struct ppm_name_value prot_flags[];
 extern const struct ppm_name_value mmap_flags[];
 extern const struct ppm_name_value splice_flags[];
+extern const struct ppm_name_value quotactl_cmds[];
+extern const struct ppm_name_value quotactl_dqi_flags[];
+extern const struct ppm_name_value quotactl_quota_fmts[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 
