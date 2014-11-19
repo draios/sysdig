@@ -320,27 +320,29 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * quotactl cmds
  */
-#define PPM_Q_SYNC			(1 << 0)
-#define PPM_Q_QUOTAON		(1 << 1)
-#define PPM_Q_QUOTAOFF		(1 << 2)
-#define PPM_Q_GETFMT		(1 << 3)
-#define PPM_Q_GETINFO		(1 << 4)
-#define PPM_Q_SETINFO		(1 << 5)
-#define PPM_Q_GETQUOTA		(1 << 6)
-#define PPM_Q_SETQUOTA		(1 << 7)
-#define PPM_Q_XQUOTAON		(1 << 8)
-#define PPM_Q_XQUOTAOFF		(1 << 9)
-#define PPM_Q_XGETQUOTA		(1 << 10)
-#define PPM_Q_XSETQLIM		(1 << 11)
-#define PPM_Q_XGETQSTAT		(1 << 12)
-#define PPM_Q_XQUOTARM		(1 << 13)
-#define PPM_Q_XQUOTASYNC	(1 << 14)
-#define PPM_Q_XGETQSTATV	(1 << 15)
-#define PPM_USRQUOTA		(1 << 16)
-#define PPM_GRPQUOTA		(1 << 17)
-#define PPM_XQM_USRQUOTA	(1 << 18)
-#define PPM_XQM_GRPQUOTA	(1 << 19)
-#define PPM_XQM_PRJQUOTA	(1 << 20)
+#define PPM_Q_SYNC			0
+#define PPM_Q_QUOTAON		1
+#define PPM_Q_QUOTAOFF		2
+#define PPM_Q_GETFMT		3
+#define PPM_Q_GETINFO		4
+#define PPM_Q_SETINFO		5
+#define PPM_Q_GETQUOTA		6
+#define PPM_Q_SETQUOTA		7
+#define PPM_Q_XQUOTAON		8
+#define PPM_Q_XQUOTAOFF		9
+#define PPM_Q_XGETQUOTA		10
+#define PPM_Q_XSETQLIM		11
+#define PPM_Q_XGETQSTAT		12
+#define PPM_Q_XQUOTARM		13
+#define PPM_Q_XQUOTASYNC	14
+#define PPM_Q_XGETQSTATV	15
+
+// quotactl types
+#define PPM_USRQUOTA		0
+#define PPM_GRPQUOTA		1
+#define PPM_XQM_USRQUOTA	2
+#define PPM_XQM_GRPQUOTA	3
+#define PPM_XQM_PRJQUOTA	4
 
 /*
  * quotactl dqi_flags
@@ -1089,6 +1091,7 @@ extern const struct ppm_name_value prot_flags[];
 extern const struct ppm_name_value mmap_flags[];
 extern const struct ppm_name_value splice_flags[];
 extern const struct ppm_name_value quotactl_cmds[];
+extern const struct ppm_name_value quotactl_types[];
 extern const struct ppm_name_value quotactl_dqi_flags[];
 extern const struct ppm_name_value quotactl_quota_fmts[];
 

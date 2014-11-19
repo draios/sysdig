@@ -3694,88 +3694,18 @@ static int f_sys_sendfile_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint8_t quotactl_cmd_to_scap(unsigned long cmd)
+static inline uint8_t quotactl_type_to_scap(unsigned long cmd, bool is_xfs)
 {
-	uint8_t res = 0;
-	bool is_xfs = false;
-
-	switch(cmd >> SUBCMDSHIFT)
-	{
-	case Q_SYNC:
-		res |= PPM_Q_SYNC;
-		break;
-	case Q_QUOTAON:
-		res |= PPM_Q_QUOTAON;
-		break;
-	case Q_QUOTAOFF:
-		res |= PPM_Q_QUOTAOFF;
-		break;
-	case Q_GETFMT:
-		res |= PPM_Q_GETFMT;
-		break;
-	case Q_GETINFO:
-		res |= PPM_Q_GETINFO;
-		break;
-	case Q_SETINFO:
-		res |= PPM_Q_SETINFO;
-		break;
-	case Q_GETQUOTA:
-		res |= PPM_Q_GETQUOTA;
-		break;
-	case Q_SETQUOTA:
-		res |= PPM_Q_SETQUOTA;
-		break;
-
-	// XFS specific
-	case Q_XQUOTAON:
-		res |= PPM_Q_XQUOTAON;
-		is_xfs = true;
-		break;
-	case Q_XQUOTAOFF:
-		res |= PPM_Q_XQUOTAOFF;
-		is_xfs = true;
-		break;
-	case Q_XGETQUOTA:
-		res |= PPM_Q_XGETQUOTA;
-		is_xfs = true;
-		break;
-	case Q_XSETQLIM:
-		res |= PPM_Q_XSETQLIM;
-		is_xfs = true;
-		break;
-	case Q_XGETQSTAT:
-		res |= PPM_Q_XGETQSTAT;
-		is_xfs = true;
-		break;
-	case Q_XQUOTARM:
-		res |= PPM_Q_XQUOTARM;
-		is_xfs = true;
-		break;
-	case Q_XQUOTASYNC:
-		res |= PPM_Q_XQUOTASYNC;
-		is_xfs = true;
-		break;
-	case Q_XGETQSTATV:
-		res |= PPM_Q_XGETQSTATV;
-		is_xfs = true;
-		break;
-
-	}
-
-	// first check is is usr or group quota (XFS has also prj quota)
 	if(is_xfs)
 	{
 		switch(cmd & SUBCMDMASK)
 		{
-		case USRQUOTA:
-			res |= PPM_XQM_USRQUOTA;
-			break;
-		case GRPQUOTA:
-			res |= PPM_XQM_GRPQUOTA;
-			break;
+		case XQM_USRQUOTA:
+			return PPM_XQM_USRQUOTA;
+		case XQM_GRPQUOTA:
+			return PPM_XQM_GRPQUOTA;
 		case XQM_PRJQUOTA:
-			res |= PPM_XQM_PRJQUOTA;
-			break;
+			return PPM_XQM_PRJQUOTA;
 		}
 	}
 	else
@@ -3783,14 +3713,91 @@ static inline uint8_t quotactl_cmd_to_scap(unsigned long cmd)
 		switch(cmd & SUBCMDMASK)
 		{
 		case USRQUOTA:
-			res |= PPM_USRQUOTA;
-			break;
+			return PPM_USRQUOTA;
 		case GRPQUOTA:
-			res |= PPM_GRPQUOTA;
-			break;
+			return PPM_GRPQUOTA;
 		}
 	}
+	return 0;
+}
+
+static inline uint8_t quotactl_cmd_to_scap(unsigned long cmd)
+{
+	uint8_t res;
+
+	switch(cmd >> SUBCMDSHIFT)
+	{
+	case Q_SYNC:
+		res = PPM_Q_SYNC;
+		break;
+	case Q_QUOTAON:
+		res = PPM_Q_QUOTAON;
+		break;
+	case Q_QUOTAOFF:
+		res = PPM_Q_QUOTAOFF;
+		break;
+	case Q_GETFMT:
+		res = PPM_Q_GETFMT;
+		break;
+	case Q_GETINFO:
+		res = PPM_Q_GETINFO;
+		break;
+	case Q_SETINFO:
+		res = PPM_Q_SETINFO;
+		break;
+	case Q_GETQUOTA:
+		res = PPM_Q_GETQUOTA;
+		break;
+	case Q_SETQUOTA:
+		res = PPM_Q_SETQUOTA;
+		break;
+
+	// XFS specific
+	case Q_XQUOTAON:
+		res = PPM_Q_XQUOTAON;
+		break;
+	case Q_XQUOTAOFF:
+		res = PPM_Q_XQUOTAOFF;
+		break;
+	case Q_XGETQUOTA:
+		res = PPM_Q_XGETQUOTA;
+		break;
+	case Q_XSETQLIM:
+		res = PPM_Q_XSETQLIM;
+		break;
+	case Q_XGETQSTAT:
+		res = PPM_Q_XGETQSTAT;
+		break;
+	case Q_XQUOTARM:
+		res = PPM_Q_XQUOTARM;
+		break;
+	case Q_XQUOTASYNC:
+		res = PPM_Q_XQUOTASYNC;
+		break;
+	case Q_XGETQSTATV:
+		res = PPM_Q_XGETQSTATV;
+		break;
+
+	}
 	return res;
+}
+
+static bool quotactl_cmd_is_xfs(uint8_t ppm_cmd)
+{
+	switch(ppm_cmd)
+	{
+	case PPM_Q_XQUOTAON:
+	case PPM_Q_XQUOTAOFF:
+	case PPM_Q_XGETQUOTA:
+	case PPM_Q_XSETQLIM:
+	case PPM_Q_XGETQSTAT:
+	case PPM_Q_XQUOTARM:
+	case PPM_Q_XQUOTASYNC:
+	case PPM_Q_XGETQSTATV:
+		return true;
+	default:
+		return false;
+	}
 }
 
 static inline uint8_t quotactl_fmt_to_scap(unsigned long fmt)
@@ -3814,9 +3821,9 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 	int res;
 	uint32_t id;
 	uint8_t quota_fmt;
+	uint8_t cmd;
 
 	// extract cmd
-	uint8_t cmd;
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	cmd = quotactl_cmd_to_scap(val);
 	res = val_to_ring(args, cmd, 0, false, 0);
@@ -3825,10 +3832,20 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 		return res;
 	}
 
+	// extract type
+	res = val_to_ring(args, quotactl_type_to_scap(val, quotactl_cmd_is_xfs(cmd)), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
 	// extract id
 	id = 0;
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	if (cmd & (PPM_Q_GETQUOTA | PPM_Q_SETQUOTA | PPM_Q_XGETQUOTA | PPM_Q_XSETQLIM ))
+	if ( (cmd == PPM_Q_GETQUOTA) ||
+		 (cmd == PPM_Q_SETQUOTA) ||
+		 (cmd == PPM_Q_XGETQUOTA) ||
+		 (cmd == PPM_Q_XSETQLIM))
 	{
 		// in this case id represent an userid or groupid so add it
 		id = val;
@@ -3841,7 +3858,7 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 
 	// extract quota_fmt from id
 	quota_fmt=PPM_QFMT_NONE;
-	if(cmd & PPM_Q_QUOTAON)
+	if(cmd == PPM_Q_QUOTAON)
 	{
 		quota_fmt=quotactl_fmt_to_scap(val);
 	}
@@ -3855,6 +3872,179 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 
 static int f_sys_quotactl_x(struct event_filler_arguments *args)
 {
+	unsigned long val, len;
+	int res;
+	int64_t retval;
+	uint8_t cmd;
+	struct if_dqblk dqblk;
+	struct if_dqinfo dqinfo;
+
+	// extract cmd
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	cmd = quotactl_cmd_to_scap(val);
+
+	// return value
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	// Add special
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	// get addr
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+
+	// get quotafilepath only for QUOTAON
+	if(cmd == PPM_Q_QUOTAON)
+	{
+		res = val_to_ring(args, val, 0, true, 0);
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+	}
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	// dqblk fields if present
+	dqblk.dqb_valid = 0;
+	if( (cmd == PPM_Q_GETQUOTA) ||
+		(cmd == PPM_Q_SETQUOTA))
+	{
+		len = ppm_copy_from_user(&dqblk, (void*)val, sizeof(struct if_dqblk));
+		if (unlikely(len != 0))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+	if (dqblk.dqb_valid & QIF_BLIMITS)
+	{
+		res = val_to_ring(args, dqblk.dqb_bhardlimit, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+		res = val_to_ring(args, dqblk.dqb_bsoftlimit, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
+	if (dqblk.dqb_valid & QIF_SPACE)
+	{
+		res = val_to_ring(args, dqblk.dqb_curspace, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
+	if (dqblk.dqb_valid & QIF_ILIMITS)
+	{
+		res = val_to_ring(args, dqblk.dqb_ihardlimit, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+		res = val_to_ring(args, dqblk.dqb_isoftlimit, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
+	if (dqblk.dqb_valid & QIF_BTIME)
+	{
+		res = val_to_ring(args, dqblk.dqb_btime, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
+	if (dqblk.dqb_valid & QIF_ITIME)
+	{
+		res = val_to_ring(args, dqblk.dqb_itime, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
+	// dqinfo fields if present
+	// dqblk fields if present
+	dqinfo.dqi_valid = 0;
+	if( (cmd == PPM_Q_GETINFO) ||
+		(cmd == PPM_Q_SETINFO))
+	{
+		len = ppm_copy_from_user(&dqinfo, (void*)val, sizeof(struct if_dqinfo));
+		if (unlikely(len != 0))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+
+	if (dqinfo.dqi_valid & IIF_BGRACE)
+	{
+		res = val_to_ring(args, dqinfo.dqi_bgrace, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
+	if (dqinfo.dqi_valid & IIF_IGRACE)
+	{
+		res = val_to_ring(args, dqinfo.dqi_igrace, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
+	if (dqinfo.dqi_valid & IIF_FLAGS)
+	{
+		res = val_to_ring(args, dqinfo.dqi_flags, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
 
 	return add_sentinel(args);
 }

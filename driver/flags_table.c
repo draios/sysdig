@@ -307,6 +307,10 @@ const struct ppm_name_value quotactl_cmds[] = {
 	{"Q_XQUOTARM", PPM_Q_XQUOTARM},
 	{"Q_XQUOTASYNC", PPM_Q_XQUOTASYNC},
 	{"Q_XGETQSTATV", PPM_Q_XGETQSTATV},
+	{ },
+};
+
+const struct ppm_name_value quotactl_types[] = {
 	{"USRQUOTA", PPM_USRQUOTA},
 	{"GRPQUOTA", PPM_GRPQUOTA},
 	{"XQM_USRQUOTA", PPM_XQM_USRQUOTA},
