@@ -695,12 +695,11 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 
 bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm)
 {
+#if !defined(HAS_CAPTURE)
+	return false;
+#else
 	char charbuf[SCAP_MAX_PATH_SIZE];
 	FILE* f;
-
-#if !defined(HAS_CAPTURE)
-	return NULL;
-#else
 
 	//
 	// No /proc parsing for offline captures
