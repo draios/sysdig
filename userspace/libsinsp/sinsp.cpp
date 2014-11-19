@@ -549,7 +549,10 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	// Run the periodic connection and thread table cleanup
 	//
-	m_thread_manager->remove_inactive_threads();
+	if(m_islive)
+	{
+		m_thread_manager->remove_inactive_threads();
+	}
 #endif // HAS_ANALYZER
 
 	//
