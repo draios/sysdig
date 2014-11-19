@@ -922,7 +922,9 @@ bool sinsp_thread_manager::remove_inactive_threads()
 			bool closed = (it->second.m_flags & PPM_CL_CLOSED) != 0;
 
 			if(closed || 
-				(m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns))
+				((m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
+					!scap_is_thread_alive(m_inspector->m_h, it->second.m_pid, it->first, it->second.m_comm.c_str()))
+					)
 			{
 				//
 				// Reset the cache

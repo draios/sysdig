@@ -835,6 +835,10 @@ uint32_t scap_event_get_sentinel_begin(scap_evt* e);
 // The returned pointer must be freed via scap_proc_free by the caller.
 struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets);
 
+// Check if the given thread exists in ;proc
+bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm);
+
+
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);

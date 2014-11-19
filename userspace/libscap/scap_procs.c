@@ -693,6 +693,44 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 #endif // HAS_CAPTURE
 }
 
+bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm)
+{
+	char charbuf[SCAP_MAX_PATH_SIZE];
+	FILE* f;
+
+#if !defined(HAS_CAPTURE)
+	return NULL;
+#else
+
+	//
+	// No /proc parsing for offline captures
+	//
+	if(handle->m_file)
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	snprintf(charbuf, sizeof(charbuf), "/proc/%" PRId64 "/task/%" PRId64 "/comm", pid, tid);
+
+	f = fopen(charbuf, "r");
+
+	if(f != NULL)
+	{
+		if(fgets(charbuf, sizeof(charbuf), f) != NULL)
+		{
+			if(strncmp(charbuf, comm, strlen(comm)) == 0)
+			{
+				return true;
+			}
+		}
+
+	}
+
+	return false;
+#endif // HAS_CAPTURE
+}
+
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
 {
 	scap_fd_free_proc_fd_table(handle, proc);
