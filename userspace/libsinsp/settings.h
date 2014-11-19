@@ -68,7 +68,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // How often the thread table is sacnned for inactive threads
 //
-#define DEFAULT_INACTIVE_THREAD_SCAN_TIME_S 600
+#define DEFAULT_INACTIVE_THREAD_SCAN_TIME_S 1200
 
 //
 // Enables Lua chisel scripts support

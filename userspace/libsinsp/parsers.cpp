@@ -2351,7 +2351,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt)
 	if(retval >= 0)
 	{
 		sinsp_evt *enter_evt = &m_tmp_evt;
-		int64_t fdin, fdout;
+		int64_t fdin;
 
 		if(!retrieve_enter_event(enter_evt, evt))
 		{
@@ -2370,7 +2370,7 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt)
 		//
 		if(m_fd_listener)
 		{
-			m_fd_listener->on_sendfile(evt, fdin, retval);
+			m_fd_listener->on_sendfile(evt, fdin, (uint32_t)retval);
 		}
 	}
 }
