@@ -33,6 +33,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/module.h>
+#include <linux/quota.h>
+#include <linux/dqblk_xfs.h> // quotactl support for XFS
 #include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
@@ -114,6 +116,8 @@ static int f_sys_symlinkat_x(struct event_filler_arguments *args);
 static int f_sys_procexit_e(struct event_filler_arguments *args);
 static int f_sys_sendfile_e(struct event_filler_arguments *args);
 static int f_sys_sendfile_x(struct event_filler_arguments *args);
+static int f_sys_quotactl_e(struct event_filler_arguments *args);
+static int f_sys_quotactl_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -293,6 +297,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
+	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
+	[PPME_SYSCALL_QUOTACTL_X] = {f_sys_quotactl_x},
 };
 
 /*
@@ -3684,6 +3690,171 @@ static int f_sys_sendfile_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
+
+	return add_sentinel(args);
+}
+
+static inline uint8_t quotactl_cmd_to_scap(unsigned long cmd)
+{
+	uint8_t res = 0;
+	bool is_xfs = false;
+
+	switch(cmd >> SUBCMDSHIFT)
+	{
+	case Q_SYNC:
+		res |= PPM_Q_SYNC;
+		break;
+	case Q_QUOTAON:
+		res |= PPM_Q_QUOTAON;
+		break;
+	case Q_QUOTAOFF:
+		res |= PPM_Q_QUOTAOFF;
+		break;
+	case Q_GETFMT:
+		res |= PPM_Q_GETFMT;
+		break;
+	case Q_GETINFO:
+		res |= PPM_Q_GETINFO;
+		break;
+	case Q_SETINFO:
+		res |= PPM_Q_SETINFO;
+		break;
+	case Q_GETQUOTA:
+		res |= PPM_Q_GETQUOTA;
+		break;
+	case Q_SETQUOTA:
+		res |= PPM_Q_SETQUOTA;
+		break;
+
+	// XFS specific
+	case Q_XQUOTAON:
+		res |= PPM_Q_XQUOTAON;
+		is_xfs = true;
+		break;
+	case Q_XQUOTAOFF:
+		res |= PPM_Q_XQUOTAOFF;
+		is_xfs = true;
+		break;
+	case Q_XGETQUOTA:
+		res |= PPM_Q_XGETQUOTA;
+		is_xfs = true;
+		break;
+	case Q_XSETQLIM:
+		res |= PPM_Q_XSETQLIM;
+		is_xfs = true;
+		break;
+	case Q_XGETQSTAT:
+		res |= PPM_Q_XGETQSTAT;
+		is_xfs = true;
+		break;
+	case Q_XQUOTARM:
+		res |= PPM_Q_XQUOTARM;
+		is_xfs = true;
+		break;
+	case Q_XQUOTASYNC:
+		res |= PPM_Q_XQUOTASYNC;
+		is_xfs = true;
+		break;
+	case Q_XGETQSTATV:
+		res |= PPM_Q_XGETQSTATV;
+		is_xfs = true;
+		break;
+
+	}
+
+	// first check is is usr or group quota (XFS has also prj quota)
+	if(is_xfs)
+	{
+		switch(cmd & SUBCMDMASK)
+		{
+		case USRQUOTA:
+			res |= PPM_XQM_USRQUOTA;
+			break;
+		case GRPQUOTA:
+			res |= PPM_XQM_GRPQUOTA;
+			break;
+		case XQM_PRJQUOTA:
+			res |= PPM_XQM_PRJQUOTA;
+			break;
+		}
+	}
+	else
+	{
+		switch(cmd & SUBCMDMASK)
+		{
+		case USRQUOTA:
+			res |= PPM_USRQUOTA;
+			break;
+		case GRPQUOTA:
+			res |= PPM_GRPQUOTA;
+			break;
+		}
+	}
+	return res;
+}
+
+static inline uint8_t quotactl_fmt_to_scap(unsigned long fmt)
+{
+	switch(fmt)
+	{
+	case QFMT_VFS_OLD:
+		return PPM_QFMT_VFS_OLD;
+	case QFMT_VFS_V0:
+		return PPM_QFMT_VFS_V0;
+	case QFMT_VFS_V1:
+		return PPM_QFMT_VFS_V1;
+	default:
+		return PPM_QFMT_NONE;
+	}
+}
+
+static int f_sys_quotactl_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	uint32_t id;
+	uint8_t quota_fmt;
+
+	// extract cmd
+	uint8_t cmd;
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	cmd = quotactl_cmd_to_scap(val);
+	res = val_to_ring(args, cmd, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	// extract id
+	id = 0;
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	if (cmd & (PPM_Q_GETQUOTA | PPM_Q_SETQUOTA | PPM_Q_XGETQUOTA | PPM_Q_XSETQLIM ))
+	{
+		// in this case id represent an userid or groupid so add it
+		id = val;
+	}
+	res = val_to_ring(args, id, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	// extract quota_fmt from id
+	quota_fmt=PPM_QFMT_NONE;
+	if(cmd & PPM_Q_QUOTAON)
+	{
+		quota_fmt=quotactl_fmt_to_scap(val);
+	}
+	res = val_to_ring(args, quota_fmt, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+	return add_sentinel(args);
+}
+
+static int f_sys_quotactl_x(struct event_filler_arguments *args)
+{
 
 	return add_sentinel(args);
 }

@@ -353,6 +353,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_QFMT_VFS_OLD	(1 << 0)
 #define PPM_QFMT_VFS_V0		(1 << 1)
 #define PPM_QFMT_VFS_V1		(1 << 2)
+#define PPM_QFMT_NONE		(1 << 3)
 
 /*
  * SuS says limits have to be unsigned.
