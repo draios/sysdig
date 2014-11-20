@@ -37,8 +37,10 @@ end
 function on_init()
     fevtype = chisel.request_field("evt.type")
     fcount = chisel.request_field("evt.count")
+    ferror = chisel.request_field("evt.failed")
+    flatency = chisel.request_field("evt.latency")
 
-    chisel.set_filter("evt.dir=>")
+    chisel.set_filter("evt.dir=<")
     return true
 end
 
@@ -46,16 +48,38 @@ end
 function on_event()
     evtype = evt.field(fevtype)
     count = evt.field(fcount)
+    error = evt.field(ferror)
+    latency = evt.field(flatency)
 
     if evtype == "switch" then
         return true
     end
 
     if record_for[evtype] == nil then
-        record_for[evtype] = count
-    else
-        record_for[evtype] = record_for[evtype] + 1
+        record_for[evtype] = {["count"] = 0, ["error"] = 0}
     end
+
+    if record_for[evtype]["count"] == nil then
+        record_for[evtype]["count"] = count
+    else
+        record_for[evtype]["count"] = record_for[evtype]["count"] + 1
+    end
+
+    if error == true then
+        if record_for[evtype]["error"] == nil then
+            record_for[evtype]["error"] = 1
+        else
+            record_for[evtype]["error"] = record_for[evtype]["error"] + 1
+        end
+    end
+
+    if record_for[evtype]["latency"] == nil then
+        record_for[evtype]["latency"] = latency
+    else
+        record_for[evtype]["latency"] = record_for[evtype]["latency"] + latency
+    end
+
+
     return true
 end
 
@@ -89,14 +113,16 @@ function on_capture_end()
     terminal.moveto(0 ,0)
     terminal.showcursor()
 
-    header = string.format("%5s  %-10s", "Counts", "System Calls")
+    header = string.format("%5s   %5s  %5s   %-10s", "Latency(ms)", "Counts", "Errors", "System Calls")
     print(header)
-    print("------------------------------")
+    print("----------------------------------------------")
 
     local temp_counter = 0
-    for k, v in spairs(record_for, function(t,a,b) return t[b] < t[a] end) do
-        line = string.format("%5d   %-10s", v, k)
-	print(line)
+
+    for x, y in spairs(record_for, function(t, a, b) return t[b].error < t[a].error end) do
+       line = string.format("%7.2f %11d %7d    %-20s",
+           y.latency/1000, y.count, y.error, x)
+       print(line)
 
         temp_counter = temp_counter + 1
         if temp_counter == TOP_NUMBER then
