@@ -103,11 +103,33 @@ void sinsp_network_interfaces::update_fd(sinsp_fdinfo_t *fd)
 	}
 	if(0 == pipv4info->m_fields.m_sip)
 	{
-		pipv4info->m_fields.m_sip = infer_ipv4_address(pipv4info->m_fields.m_dip);
+		uint32_t newaddr;
+		newaddr = infer_ipv4_address(pipv4info->m_fields.m_dip);
+
+		if(newaddr == pipv4info->m_fields.m_dip)
+		{
+			if(pipv4info->m_fields.m_sport == pipv4info->m_fields.m_dport)
+			{
+				return;
+			}
+		}
+
+		pipv4info->m_fields.m_sip = newaddr;
 	}
 	else
 	{
-		pipv4info->m_fields.m_dip = infer_ipv4_address(pipv4info->m_fields.m_sip);
+		uint32_t newaddr;
+		newaddr = infer_ipv4_address(pipv4info->m_fields.m_sip);
+
+		if(newaddr == pipv4info->m_fields.m_sip)
+		{
+			if(pipv4info->m_fields.m_sport == pipv4info->m_fields.m_dport)
+			{
+				return;
+			}
+		}
+
+		pipv4info->m_fields.m_dip = newaddr;
 	}
 }
 

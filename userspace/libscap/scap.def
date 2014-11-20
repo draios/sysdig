@@ -42,3 +42,4 @@ EXPORTS
 		scap_enable_dynamic_snaplen
 		scap_disable_dynamic_snaplen
 		scap_proc_free_table
+		scap_is_thread_alive
