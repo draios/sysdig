@@ -3705,9 +3705,9 @@ static inline uint8_t quotactl_type_to_scap(unsigned long cmd)
 	return 0;
 }
 
-static inline uint8_t quotactl_cmd_to_scap(unsigned long cmd)
+static inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 {
-	uint8_t res;
+	uint16_t res;
 	switch(cmd >> SUBCMDSHIFT)
 	{
 	case Q_SYNC:
@@ -3783,7 +3783,7 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 	int res;
 	uint32_t id;
 	uint8_t quota_fmt;
-	uint8_t cmd;
+	uint16_t cmd;
 
 	// extract cmd
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
@@ -3837,10 +3837,11 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	unsigned long val, len;
 	int res;
 	int64_t retval;
-	uint8_t cmd;
+	uint16_t cmd;
 	struct if_dqblk dqblk;
 	struct if_dqinfo dqinfo;
 	uint32_t quota_fmt_out;
+	char empty_string[] = "";
 
 	// extract cmd
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
@@ -3868,7 +3869,7 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	}
 	else
 	{
-		res = val_to_ring(args, 0, 0, false, 0);
+		res = val_to_ring(args, (unsigned long)empty_string, 0, false, 0);
 	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;

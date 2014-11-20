@@ -320,32 +320,32 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * quotactl cmds
  */
-#define PPM_Q_QUOTAON		1
-#define PPM_Q_QUOTAOFF		2
-#define PPM_Q_GETFMT		3
-#define PPM_Q_GETINFO		4
-#define PPM_Q_SETINFO		5
-#define PPM_Q_GETQUOTA		6
-#define PPM_Q_SETQUOTA		7
-#define PPM_Q_SYNC			8
-#define PPM_Q_XQUOTAON		9
-#define PPM_Q_XQUOTAOFF		10
-#define PPM_Q_XGETQUOTA		11
-#define PPM_Q_XSETQLIM		12
-#define PPM_Q_XGETQSTAT		13
-#define PPM_Q_XQUOTARM		14
-#define PPM_Q_XQUOTASYNC	15
-#define PPM_Q_XGETQSTATV	16
+#define PPM_Q_QUOTAON		(1 << 0)
+#define PPM_Q_QUOTAOFF		(1 << 1)
+#define PPM_Q_GETFMT		(1 << 2)
+#define PPM_Q_GETINFO		(1 << 3)
+#define PPM_Q_SETINFO		(1 << 4)
+#define PPM_Q_GETQUOTA		(1 << 5)
+#define PPM_Q_SETQUOTA		(1 << 6)
+#define PPM_Q_SYNC			(1 << 7)
+#define PPM_Q_XQUOTAON		(1 << 8)
+#define PPM_Q_XQUOTAOFF		(1 << 9)
+#define PPM_Q_XGETQUOTA		(1 << 10)
+#define PPM_Q_XSETQLIM		(1 << 11)
+#define PPM_Q_XGETQSTAT		(1 << 12)
+#define PPM_Q_XQUOTARM		(1 << 13)
+#define PPM_Q_XQUOTASYNC	(1 << 14)
+#define PPM_Q_XGETQSTATV	(1 << 15)
 
 // quotactl types
-#define PPM_USRQUOTA		1
-#define PPM_GRPQUOTA		2
+#define PPM_USRQUOTA		(1 << 0)
+#define PPM_GRPQUOTA		(1 << 1)
 
 /*
  * quotactl dqi_flags
  */
-#define PPM_DQF_NONE		1
-#define PPM_V1_DQF_RSQUASH	2
+#define PPM_DQF_NONE		(1 << 0)
+#define PPM_V1_DQF_RSQUASH	(1 << 1)
 
 /*
  * quotactl quotafmts
