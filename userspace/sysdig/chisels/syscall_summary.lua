@@ -38,7 +38,6 @@ function on_init()
     fevtype = chisel.request_field("evt.type")
     fcount = chisel.request_field("evt.count")
     ferror = chisel.request_field("evt.failed")
-    flatency = chisel.request_field("evt.latency")
 
     chisel.set_filter("evt.dir=<")
     return true
@@ -49,7 +48,6 @@ function on_event()
     evtype = evt.field(fevtype)
     count = evt.field(fcount)
     error = evt.field(ferror)
-    latency = evt.field(flatency)
 
     if evtype == "switch" then
         return true
@@ -72,13 +70,6 @@ function on_event()
             record_for[evtype]["error"] = record_for[evtype]["error"] + 1
         end
     end
-
-    if record_for[evtype]["latency"] == nil then
-        record_for[evtype]["latency"] = latency
-    else
-        record_for[evtype]["latency"] = record_for[evtype]["latency"] + latency
-    end
-
 
     return true
 end
@@ -113,15 +104,14 @@ function on_capture_end()
     terminal.moveto(0 ,0)
     terminal.showcursor()
 
-    header = string.format("%5s   %5s  %5s   %-10s", "Latency(ms)", "Counts", "Errors", "System Calls")
+    header = string.format("%5s  %5s   %-10s", "Counts", "Errors", "System Calls")
     print(header)
     print("----------------------------------------------")
 
     local temp_counter = 0
 
     for x, y in spairs(record_for, function(t, a, b) return t[b].error < t[a].error end) do
-       line = string.format("%7.2f %11d %7d    %-20s",
-           y.latency/1000, y.count, y.error, x)
+       line = string.format("%5d  %5d     %-10s", y.count, y.error, x)
        print(line)
 
         temp_counter = temp_counter + 1
