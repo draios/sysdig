@@ -34,7 +34,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
-#include <linux/dqblk_xfs.h> // quotactl support for XFS
 #include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
@@ -3694,29 +3693,14 @@ static int f_sys_sendfile_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint8_t quotactl_type_to_scap(unsigned long cmd, bool is_xfs)
+static inline uint8_t quotactl_type_to_scap(unsigned long cmd)
 {
-	if(is_xfs)
+	switch(cmd & SUBCMDMASK)
 	{
-		switch(cmd & SUBCMDMASK)
-		{
-		case XQM_USRQUOTA:
-			return PPM_XQM_USRQUOTA;
-		case XQM_GRPQUOTA:
-			return PPM_XQM_GRPQUOTA;
-		case XQM_PRJQUOTA:
-			return PPM_XQM_PRJQUOTA;
-		}
-	}
-	else
-	{
-		switch(cmd & SUBCMDMASK)
-		{
-		case USRQUOTA:
-			return PPM_USRQUOTA;
-		case GRPQUOTA:
-			return PPM_GRPQUOTA;
-		}
+	case USRQUOTA:
+		return PPM_USRQUOTA;
+	case GRPQUOTA:
+		return PPM_GRPQUOTA;
 	}
 	return 0;
 }
@@ -3724,7 +3708,6 @@ static inline uint8_t quotactl_type_to_scap(unsigned long cmd, bool is_xfs)
 static inline uint8_t quotactl_cmd_to_scap(unsigned long cmd)
 {
 	uint8_t res;
-
 	switch(cmd >> SUBCMDSHIFT)
 	{
 	case Q_SYNC:
@@ -3751,7 +3734,6 @@ static inline uint8_t quotactl_cmd_to_scap(unsigned long cmd)
 	case Q_SETQUOTA:
 		res = PPM_Q_SETQUOTA;
 		break;
-
 	// XFS specific
 	case Q_XQUOTAON:
 		res = PPM_Q_XQUOTAON;
@@ -3774,30 +3756,10 @@ static inline uint8_t quotactl_cmd_to_scap(unsigned long cmd)
 	case Q_XQUOTASYNC:
 		res = PPM_Q_XQUOTASYNC;
 		break;
-	case Q_XGETQSTATV:
-		res = PPM_Q_XGETQSTATV;
-		break;
-
+	default:
+		res = 0;
 	}
 	return res;
-}
-
-static bool quotactl_cmd_is_xfs(uint8_t ppm_cmd)
-{
-	switch(ppm_cmd)
-	{
-	case PPM_Q_XQUOTAON:
-	case PPM_Q_XQUOTAOFF:
-	case PPM_Q_XGETQUOTA:
-	case PPM_Q_XSETQLIM:
-	case PPM_Q_XGETQSTAT:
-	case PPM_Q_XQUOTARM:
-	case PPM_Q_XQUOTASYNC:
-	case PPM_Q_XGETQSTATV:
-		return true;
-	default:
-		return false;
-	}
 }
 
 static inline uint8_t quotactl_fmt_to_scap(unsigned long fmt)
@@ -3833,7 +3795,7 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 	}
 
 	// extract type
-	res = val_to_ring(args, quotactl_type_to_scap(val, quotactl_cmd_is_xfs(cmd)), 0, false, 0);
+	res = val_to_ring(args, quotactl_type_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -3878,6 +3840,7 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	uint8_t cmd;
 	struct if_dqblk dqblk;
 	struct if_dqinfo dqinfo;
+	uint32_t quota_fmt_out;
 
 	// extract cmd
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
@@ -4045,6 +4008,18 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
+
+	quota_fmt_out=PPM_QFMT_NONE;
+	if( cmd == PPM_Q_GETFMT)
+	{
+		len = ppm_copy_from_user(&quota_fmt_out, (void*)val, sizeof(uint32_t));
+		if (unlikely(len != 0))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+		quota_fmt_out=quotactl_fmt_to_scap(quota_fmt_out);
+	}
+	res = val_to_ring(args, quota_fmt_out, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	return add_sentinel(args);
 }

@@ -286,12 +286,12 @@ const struct ppm_name_value splice_flags[] = {
 };
 
 const struct ppm_name_value quotactl_dqi_flags[] = {
+	{"DQF_NONE", PPM_DQF_NONE},
 	{"V1_DQF_RSQUASH", PPM_V1_DQF_RSQUASH},
 	{ }
 };
 
 const struct ppm_name_value quotactl_cmds[] = {
-	{"Q_SYNC", PPM_Q_SYNC},
 	{"Q_QUOTAON", PPM_Q_QUOTAON},
 	{"Q_QUOTAOFF", PPM_Q_QUOTAOFF},
 	{"Q_GETFMT", PPM_Q_GETFMT},
@@ -299,6 +299,7 @@ const struct ppm_name_value quotactl_cmds[] = {
 	{"Q_SETINFO", PPM_Q_SETINFO},
 	{"Q_GETQUOTA", PPM_Q_GETQUOTA},
 	{"Q_SETQUOTA", PPM_Q_SETQUOTA},
+	{"Q_SYNC", PPM_Q_SYNC},
 	{"Q_XQUOTAON", PPM_Q_XQUOTAON},
 	{"Q_XQUOTAOFF", PPM_Q_XQUOTAOFF},
 	{"Q_XGETQUOTA", PPM_Q_XGETQUOTA},
@@ -306,23 +307,19 @@ const struct ppm_name_value quotactl_cmds[] = {
 	{"Q_XGETQSTAT", PPM_Q_XGETQSTAT},
 	{"Q_XQUOTARM", PPM_Q_XQUOTARM},
 	{"Q_XQUOTASYNC", PPM_Q_XQUOTASYNC},
-	{"Q_XGETQSTATV", PPM_Q_XGETQSTATV},
 	{ },
 };
 
 const struct ppm_name_value quotactl_types[] = {
 	{"USRQUOTA", PPM_USRQUOTA},
 	{"GRPQUOTA", PPM_GRPQUOTA},
-	{"XQM_USRQUOTA", PPM_XQM_USRQUOTA},
-	{"XQM_GRPQUOTA", PPM_XQM_GRPQUOTA},
-	{"XQM_PRJQUOTA", PPM_XQM_PRJQUOTA},
 	{ },
 };
 
 const struct ppm_name_value quotactl_quota_fmts[] = {
+	{"QFMT_NONE", PPM_QFMT_NONE},
 	{"QFMT_VFS_OLD", PPM_QFMT_VFS_OLD},
 	{"QFMT_VFS_V0", PPM_QFMT_VFS_V0},
 	{"QFMT_VFS_V1", PPM_QFMT_VFS_V1},
-	{"QFMT_NONE", PPM_QFMT_NONE},
 	{ }
 };
