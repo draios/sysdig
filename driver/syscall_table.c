@@ -180,6 +180,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_sendfile64
 	[__NR_sendfile64 - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SYSCALL_SENDFILE_E, PPME_SYSCALL_SENDFILE_X},
 #endif	
+#ifdef __NR_quotactl
+	[__NR_quotactl - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_QUOTACTL_E, PPME_SYSCALL_QUOTACTL_X},
+#endif
 };
 
 /*
@@ -648,5 +651,8 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_vfork
 	[__NR_vfork - SYSCALL_TABLE_ID0] = PPM_SC_VFORK,
+#endif
+#ifdef __NR_quotactl
+	[__NR_quotactl - SYSCALL_TABLE_ID0] = PPM_SC_QUOTACTL,
 #endif
 };
