@@ -318,7 +318,7 @@ const struct ppm_name_value quotactl_types[] = {
 };
 
 const struct ppm_name_value quotactl_quota_fmts[] = {
-	{"QFMT_NONE", PPM_QFMT_NONE},
+	{"QFMT_NOT_USED", PPM_QFMT_NOT_USED},
 	{"QFMT_VFS_OLD", PPM_QFMT_VFS_OLD},
 	{"QFMT_VFS_V0", PPM_QFMT_VFS_V0},
 	{"QFMT_VFS_V1", PPM_QFMT_VFS_V1},

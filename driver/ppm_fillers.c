@@ -3773,7 +3773,7 @@ static inline uint8_t quotactl_fmt_to_scap(unsigned long fmt)
 	case QFMT_VFS_V1:
 		return PPM_QFMT_VFS_V1;
 	default:
-		return PPM_QFMT_NONE;
+		return PPM_QFMT_NOT_USED;
 	}
 }
 
@@ -3819,7 +3819,7 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 	}
 
 	// extract quota_fmt from id
-	quota_fmt=PPM_QFMT_NONE;
+	quota_fmt=PPM_QFMT_NOT_USED;
 	if(cmd == PPM_Q_QUOTAON)
 	{
 		quota_fmt=quotactl_fmt_to_scap(val);
@@ -3961,7 +3961,6 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	}
 
 	// dqinfo fields if present
-	// dqblk fields if present
 	dqinfo.dqi_valid = 0;
 	if( (cmd == PPM_Q_GETINFO) ||
 		(cmd == PPM_Q_SETINFO))
@@ -4010,7 +4009,7 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 			return res;
 	}
 
-	quota_fmt_out=PPM_QFMT_NONE;
+	quota_fmt_out=PPM_QFMT_NOT_USED;
 	if( cmd == PPM_Q_GETFMT)
 	{
 		len = ppm_copy_from_user(&quota_fmt_out, (void*)val, sizeof(uint32_t));
