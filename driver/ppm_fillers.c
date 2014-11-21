@@ -117,6 +117,7 @@ static int f_sys_sendfile_e(struct event_filler_arguments *args);
 static int f_sys_sendfile_x(struct event_filler_arguments *args);
 static int f_sys_quotactl_e(struct event_filler_arguments *args);
 static int f_sys_quotactl_x(struct event_filler_arguments *args);
+static int f_sys_sysdigevent_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -298,6 +299,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
 	[PPME_SYSCALL_QUOTACTL_X] = {f_sys_quotactl_x},
+	[PPME_SYSDIGEVENT_E] = {f_sys_sysdigevent_e},
 };
 
 /*
@@ -4008,3 +4010,23 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static int f_sys_sysdigevent_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	/*
+	 * event_type
+	 */
+	res = val_to_ring(args, (unsigned long)args->sched_prev, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * event_data
+	 */
+	res = val_to_ring(args, (unsigned long)args->sched_next, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
