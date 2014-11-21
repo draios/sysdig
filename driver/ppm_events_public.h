@@ -337,7 +337,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_Q_XQUOTASYNC	(1 << 14)
 #define PPM_Q_XGETQSTATV	(1 << 15)
 
-// quotactl types
+/*
+ * quotactl types
+ */
 #define PPM_USRQUOTA		(1 << 0)
 #define PPM_GRPQUOTA		(1 << 1)
 
@@ -578,9 +580,9 @@ enum ppm_event_type {
 	PPME_PROCEXIT_1_X = 187,	/* This should never be called */
 	PPME_SYSCALL_SENDFILE_E = 188,
 	PPME_SYSCALL_SENDFILE_X = 189,	/* This should never be called */
-    PPME_SYSCALL_QUOTACTL_E = 190,
-    PPME_SYSCALL_QUOTACTL_X = 191,
-    PPM_EVENT_MAX = 192
+	PPME_SYSCALL_QUOTACTL_E = 190,
+	PPME_SYSCALL_QUOTACTL_X = 191,
+	PPM_EVENT_MAX = 192
 };
 /*@}*/
 

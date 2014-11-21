@@ -827,7 +827,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (args->event_type == PPME_SYSCALL_CLONE_16_X || 
+	if (args->event_type == PPME_SYSCALL_CLONE_16_X ||
 		args->event_type == PPME_SYSCALL_FORK_X ||
 		args->event_type == PPME_SYSCALL_VFORK_X) {
 		/*
@@ -845,7 +845,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		 * flags
 		 */
 		if (args->event_type == PPME_SYSCALL_CLONE_16_X) {
-			syscall_get_arguments(current, args->regs, 0, 1, &val);			
+			syscall_get_arguments(current, args->regs, 0, 1, &val);
 		} else {
 			val = 0;
 		}
@@ -3638,7 +3638,7 @@ static int f_sys_sendfile_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 
 	if (val != 0) {
-		if (unlikely(ppm_copy_from_user(&offset, (void*)val, sizeof(off_t))))
+		if (unlikely(ppm_copy_from_user(&offset, (void *)val, sizeof(off_t))))
 			val = 0;
 		else
 			val = offset;
@@ -3680,7 +3680,7 @@ static int f_sys_sendfile_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 
 	if (val != 0) {
-		if (unlikely(ppm_copy_from_user(&offset, (void*)val, sizeof(off_t))))
+		if (unlikely(ppm_copy_from_user(&offset, (void *)val, sizeof(off_t))))
 			val = 0;
 		else
 			val = offset;
@@ -3695,8 +3695,7 @@ static int f_sys_sendfile_x(struct event_filler_arguments *args)
 
 static inline uint8_t quotactl_type_to_scap(unsigned long cmd)
 {
-	switch(cmd & SUBCMDMASK)
-	{
+	switch (cmd & SUBCMDMASK) {
 	case USRQUOTA:
 		return PPM_USRQUOTA;
 	case GRPQUOTA:
@@ -3708,8 +3707,8 @@ static inline uint8_t quotactl_type_to_scap(unsigned long cmd)
 static inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 {
 	uint16_t res;
-	switch(cmd >> SUBCMDSHIFT)
-	{
+
+	switch (cmd >> SUBCMDSHIFT) {
 	case Q_SYNC:
 		res = PPM_Q_SYNC;
 		break;
@@ -3734,7 +3733,9 @@ static inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 	case Q_SETQUOTA:
 		res = PPM_Q_SETQUOTA;
 		break;
-	// XFS specific
+	/*
+	 *  XFS specific
+	 */
 	case Q_XQUOTAON:
 		res = PPM_Q_XQUOTAON;
 		break;
@@ -3764,8 +3765,7 @@ static inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 
 static inline uint8_t quotactl_fmt_to_scap(unsigned long fmt)
 {
-	switch(fmt)
-	{
+	switch (fmt) {
 	case QFMT_VFS_OLD:
 		return PPM_QFMT_VFS_OLD;
 	case QFMT_VFS_V0:
@@ -3785,48 +3785,49 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 	uint8_t quota_fmt;
 	uint16_t cmd;
 
-	// extract cmd
+	/*
+	 * extract cmd
+	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	cmd = quotactl_cmd_to_scap(val);
 	res = val_to_ring(args, cmd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
-	{
 		return res;
-	}
 
-	// extract type
+	/*
+	 * extract type
+	 */
 	res = val_to_ring(args, quotactl_type_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
-	{
 		return res;
-	}
 
-	// extract id
+	/*
+	 *  extract id
+	 */
 	id = 0;
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	if ( (cmd == PPM_Q_GETQUOTA) ||
+	if ((cmd == PPM_Q_GETQUOTA) ||
 		 (cmd == PPM_Q_SETQUOTA) ||
 		 (cmd == PPM_Q_XGETQUOTA) ||
-		 (cmd == PPM_Q_XSETQLIM))
-	{
-		// in this case id represent an userid or groupid so add it
+		 (cmd == PPM_Q_XSETQLIM)) {
+		/*
+		 * in this case id represent an userid or groupid so add it
+		 */
 		id = val;
 	}
 	res = val_to_ring(args, id, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
-	{
 		return res;
-	}
 
-	// extract quota_fmt from id
-	quota_fmt=PPM_QFMT_NOT_USED;
-	if(cmd == PPM_Q_QUOTAON)
-	{
-		quota_fmt=quotactl_fmt_to_scap(val);
+	/*
+	 * extract quota_fmt from id
+	 */
+	quota_fmt = PPM_QFMT_NOT_USED;
+	if (cmd == PPM_Q_QUOTAON) {
+		quota_fmt = quotactl_fmt_to_scap(val);
 	}
 	res = val_to_ring(args, quota_fmt, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-	{
+	if (unlikely(res != PPM_SUCCESS)) {
 		return res;
 	}
 	return add_sentinel(args);
@@ -3841,59 +3842,64 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	struct if_dqblk dqblk;
 	struct if_dqinfo dqinfo;
 	uint32_t quota_fmt_out;
+
 	char empty_string[] = "";
 
-	// extract cmd
+	/*
+	 * extract cmd
+	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	cmd = quotactl_cmd_to_scap(val);
 
-	// return value
+	/*
+	 * return value
+	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	// Add special
+	/*
+	 * Add special
+	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	// get addr
+	/*
+	 * get addr
+	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 
-	// get quotafilepath only for QUOTAON
-	if(cmd == PPM_Q_QUOTAON)
-	{
+	/*
+	 * get quotafilepath only for QUOTAON
+	 */
+	if (cmd == PPM_Q_QUOTAON) {
 		res = val_to_ring(args, val, 0, true, 0);
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, (unsigned long)empty_string, 0, false, 0);
 	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	// dqblk fields if present
+	/*
+	 * dqblk fields if present
+	 */
 	dqblk.dqb_valid = 0;
-	if( (cmd == PPM_Q_GETQUOTA) ||
-		(cmd == PPM_Q_SETQUOTA))
-	{
-		len = ppm_copy_from_user(&dqblk, (void*)val, sizeof(struct if_dqblk));
+	if ((cmd == PPM_Q_GETQUOTA) || (cmd == PPM_Q_SETQUOTA)) {
+		len = ppm_copy_from_user(&dqblk, (void *)val, sizeof(struct if_dqblk));
 		if (unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
-	if (dqblk.dqb_valid & QIF_BLIMITS)
-	{
+	if (dqblk.dqb_valid & QIF_BLIMITS) {
 		res = val_to_ring(args, dqblk.dqb_bhardlimit, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 		res = val_to_ring(args, dqblk.dqb_bsoftlimit, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
@@ -3902,30 +3908,24 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 			return res;
 	}
 
-	if (dqblk.dqb_valid & QIF_SPACE)
-	{
+	if (dqblk.dqb_valid & QIF_SPACE) {
 		res = val_to_ring(args, dqblk.dqb_curspace, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
 
-	if (dqblk.dqb_valid & QIF_ILIMITS)
-	{
+	if (dqblk.dqb_valid & QIF_ILIMITS) {
 		res = val_to_ring(args, dqblk.dqb_ihardlimit, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 		res = val_to_ring(args, dqblk.dqb_isoftlimit, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
@@ -3934,88 +3934,72 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 			return res;
 	}
 
-	if (dqblk.dqb_valid & QIF_BTIME)
-	{
+	if (dqblk.dqb_valid & QIF_BTIME) {
 		res = val_to_ring(args, dqblk.dqb_btime, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
 
-	if (dqblk.dqb_valid & QIF_ITIME)
-	{
+	if (dqblk.dqb_valid & QIF_ITIME) {
 		res = val_to_ring(args, dqblk.dqb_itime, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
 
-	// dqinfo fields if present
+	/*
+	 * dqinfo fields if present
+	 */
 	dqinfo.dqi_valid = 0;
-	if( (cmd == PPM_Q_GETINFO) ||
-		(cmd == PPM_Q_SETINFO))
-	{
-		len = ppm_copy_from_user(&dqinfo, (void*)val, sizeof(struct if_dqinfo));
+	if ((cmd == PPM_Q_GETINFO) || (cmd == PPM_Q_SETINFO)) {
+		len = ppm_copy_from_user(&dqinfo, (void *)val, sizeof(struct if_dqinfo));
 		if (unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
-	if (dqinfo.dqi_valid & IIF_BGRACE)
-	{
+	if (dqinfo.dqi_valid & IIF_BGRACE) {
 		res = val_to_ring(args, dqinfo.dqi_bgrace, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
 
-	if (dqinfo.dqi_valid & IIF_IGRACE)
-	{
+	if (dqinfo.dqi_valid & IIF_IGRACE) {
 		res = val_to_ring(args, dqinfo.dqi_igrace, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
 
-	if (dqinfo.dqi_valid & IIF_FLAGS)
-	{
+	if (dqinfo.dqi_valid & IIF_FLAGS) {
 		res = val_to_ring(args, dqinfo.dqi_flags, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
 
-	quota_fmt_out=PPM_QFMT_NOT_USED;
-	if( cmd == PPM_Q_GETFMT)
-	{
-		len = ppm_copy_from_user(&quota_fmt_out, (void*)val, sizeof(uint32_t));
+	quota_fmt_out = PPM_QFMT_NOT_USED;
+	if (cmd == PPM_Q_GETFMT) {
+		len = ppm_copy_from_user(&quota_fmt_out, (void *)val, sizeof(uint32_t));
 		if (unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
-		quota_fmt_out=quotactl_fmt_to_scap(quota_fmt_out);
+		quota_fmt_out = quotactl_fmt_to_scap(quota_fmt_out);
 	}
 	res = val_to_ring(args, quota_fmt_out, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
