@@ -43,7 +43,8 @@ char* scap_getlasterr(scap_t* handle)
 
 scap_t* scap_open_live_int(char *error, 
 						   proc_entry_callback proc_callback,
-						   void* proc_callback_context)
+						   void* proc_callback_context,
+						   bool import_users)
 {
 #if !defined(HAS_CAPTURE)
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
@@ -124,11 +125,18 @@ scap_t* scap_open_live_int(char *error,
 	//
 	// Create the user list
 	//
-	if(scap_create_userlist(handle) != SCAP_SUCCESS)
+	if(import_users)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
-		return NULL;
+		if(scap_create_userlist(handle) != SCAP_SUCCESS)
+		{
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
+			return NULL;
+		}
+	}
+	else
+	{
+		handle->m_userlist = NULL;		
 	}
 
 	//
@@ -233,7 +241,8 @@ scap_t* scap_open_live_int(char *error,
 scap_t* scap_open_offline_int(const char* fname, 
 							  char *error,
 							  proc_entry_callback proc_callback, 
-							  void* proc_callback_context)
+							  void* proc_callback_context,
+							  bool import_users)
 {
 	scap_t* handle = NULL;
 
@@ -291,6 +300,15 @@ scap_t* scap_open_offline_int(const char* fname,
 		return NULL;
 	}
 
+	if(!import_users)
+	{
+		if(handle->m_userlist != NULL)
+		{
+			scap_free_userlist(handle->m_userlist);
+			handle->m_userlist = NULL;
+		}
+	}
+
 	//
 	// Add the fake process for kernel threads
 	//
@@ -306,12 +324,12 @@ scap_t* scap_open_offline_int(const char* fname,
 
 scap_t* scap_open_offline(const char* fname, char *error)
 {
-	return scap_open_offline_int(fname, error, NULL, NULL);
+	return scap_open_offline_int(fname, error, NULL, NULL, true);
 }
 
 scap_t* scap_open_live(char *error)
 {
-	return scap_open_live_int(error, NULL, NULL);
+	return scap_open_live_int(error, NULL, NULL, true);
 }
 
 scap_t* scap_open(scap_open_args args, char *error)
@@ -319,12 +337,14 @@ scap_t* scap_open(scap_open_args args, char *error)
 	if(args.fname != NULL)
 	{
 		return scap_open_offline_int(args.fname, error, 
-			args.proc_callback, args.proc_callback_context);
+			args.proc_callback, args.proc_callback_context,
+			args.import_users);
 	}
 	else
 	{
 		return scap_open_live_int(error, args.proc_callback, 
-			args.proc_callback_context);
+			args.proc_callback_context,
+			args.import_users);
 	}
 }
 

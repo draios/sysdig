@@ -83,6 +83,7 @@ sinsp::sinsp() :
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_filesize = -1;
+	m_import_users = true;
 }
 
 sinsp::~sinsp()
@@ -165,6 +166,7 @@ void sinsp::init()
 	}
 
 	import_ifaddr_list();
+
 	import_user_list();
 
 	//
@@ -196,6 +198,11 @@ void sinsp::init()
 	}
 }
 
+void sinsp::set_import_users(bool import_users)
+{
+	m_import_users = import_users;
+}
+
 void sinsp::open(uint32_t timeout_ms)
 {
 	char error[SCAP_LASTERR_SIZE];
@@ -216,6 +223,7 @@ void sinsp::open(uint32_t timeout_ms)
 	oargs.fname = NULL;
 	oargs.proc_callback = ::on_new_entry_from_proc;
 	oargs.proc_callback_context = this;
+	oargs.import_users = m_import_users;
 
 	m_h = scap_open(oargs, error);
 
@@ -453,14 +461,17 @@ void sinsp::import_user_list()
 	uint32_t j;
 	scap_userlist* ul = scap_get_user_list(m_h);
 
-	for(j = 0; j < ul->nusers; j++)
+	if(ul)
 	{
-		m_userlist[ul->users[j].uid] = &(ul->users[j]);
-	}
+		for(j = 0; j < ul->nusers; j++)
+		{
+			m_userlist[ul->users[j].uid] = &(ul->users[j]);
+		}
 
-	for(j = 0; j < ul->ngroups; j++)
-	{
-		m_grouplist[ul->groups[j].gid] = &(ul->groups[j]);
+		for(j = 0; j < ul->ngroups; j++)
+		{
+			m_grouplist[ul->groups[j].gid] = &(ul->groups[j]);
+		}
 	}
 }
 

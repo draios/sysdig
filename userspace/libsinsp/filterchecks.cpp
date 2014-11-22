@@ -2531,7 +2531,6 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 		ASSERT(m_inspector != NULL);
 		const unordered_map<uint32_t, scap_userinfo*>* userlist = m_inspector->get_userlist();
-		ASSERT(userlist->size() != 0);
 
 		if(tinfo->m_uid == 0xffffffff)
 		{
@@ -2541,7 +2540,6 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len)
 		it = userlist->find(tinfo->m_uid);
 		if(it == userlist->end())
 		{
-			ASSERT(false);
 			return NULL;
 		}
 

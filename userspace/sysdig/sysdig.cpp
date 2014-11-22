@@ -171,6 +171,13 @@ static void usage()
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, d for delta between event enter and exit, and\n"
 "                    D for delta from the previous event.\n"
+" -u, --nouser       Don't crate the user/group tables by querying the OS when\n"
+"                    sysdig starts. This also means that no user or group info\n"
+"                    will be written to the tracefile by the -w flag.\n"
+"                    The user/group tables are necessary to use filter fields\n"
+"                    like user.name or group.name. However, creating them can\n"
+"                    increase sysdig's startup time. Moreover, they contain\n"
+"                    information that could be privacy sensitive.\n"
 " -v, --verbose      Verbose output.\n"
 " --version          Print version number.\n"
 " -w <writefile>, --write=<writefile>\n"
@@ -703,6 +710,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"timetype", required_argument, 0, 't' },
+		{"nouser", no_argument, 0, 'u' },
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{"writefile", required_argument, 0, 'w' },
@@ -737,7 +745,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifndef DISABLE_CGW
                                         "G:"
 #endif
-                                        "hi:jlLn:Pp:qr:Ss:t:v"
+                                        "hi:jlLn:Pp:qr:Ss:t:uv"
 #ifndef DISABLE_CGW
                                         "W:"
 #endif
@@ -970,6 +978,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_FAILURE);
 					}
 				}
+				break;
+			case 'u':
+				inspector->set_import_users(false);
 				break;
 			case 'v':
 				verbose = true;
