@@ -431,12 +431,20 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		ASSERT(sizeof(line) >= SCAP_MAX_ENV_SIZE);
 
 		filesize = fread(line, 1, SCAP_MAX_ENV_SIZE, f);
-		line[filesize - 1] = 0;
 
-		tinfo->env_len = filesize;
+		if(filesize > 0)
+		{
+			line[filesize - 1] = 0;
 
-		memcpy(tinfo->env, line, tinfo->env_len);
-		tinfo->env[SCAP_MAX_ENV_SIZE - 1] = 0;
+			tinfo->env_len = filesize;
+
+			memcpy(tinfo->env, line, tinfo->env_len);
+			tinfo->env[SCAP_MAX_ENV_SIZE - 1] = 0;
+		}
+		else
+		{
+			tinfo->env[0] = 0;
+		}
 
 		fclose(f);
 	}
