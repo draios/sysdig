@@ -22,6 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/socket.h>
 #include <algorithm>
 #endif
+#include <limits>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -1824,14 +1825,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_UID:
 	{
 		uint32_t val = *(uint32_t *)payload;
-		if (val < UINT32_MAX)
+		if (val < std::numeric_limits<uint32_t>::max())
 		{
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "%d", val);
-			if (m_inspector->get_userlist()->find(val) != m_inspector->get_userlist()->end())
+			auto find_it = m_inspector->get_userlist()->find(val);
+			if (find_it != m_inspector->get_userlist()->end())
 			{
-				scap_userinfo* user_info = m_inspector->get_userlist()->at(val);
+				scap_userinfo* user_info = find_it->second;
 				strcpy_sanitized(&m_resolved_paramstr_storage[0], user_info->name,
 								m_resolved_paramstr_storage.size());
 			}
@@ -1854,14 +1856,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_GID:
 	{
 		uint32_t val = *(uint32_t *)payload;
-		if (val < UINT32_MAX)
+		if (val < std::numeric_limits<uint32_t>::max())
 		{
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "%d", val);
-			if (m_inspector->get_grouplist()->find(val) != m_inspector->get_grouplist()->end())
+			auto find_it = m_inspector->get_grouplist()->find(val);
+			if (find_it != m_inspector->get_grouplist()->end())
 			{
-				scap_groupinfo* group_info = m_inspector->get_grouplist()->at(val);
+				scap_groupinfo* group_info = find_it->second;
 				strcpy_sanitized(&m_resolved_paramstr_storage[0], group_info->name,
 								m_resolved_paramstr_storage.size());
 			}

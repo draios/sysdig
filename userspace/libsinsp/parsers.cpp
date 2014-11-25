@@ -19,6 +19,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <limits>
+
 #ifdef _WIN32
 #include <winsock2.h>
 #else
@@ -273,6 +275,12 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_MMAP2_X:
 	case PPME_SYSCALL_MUNMAP_X:
 		parse_brk_munmap_mmap_exit(evt);
+		break;
+	case PPME_SYSCALL_SETRESUID_X:
+		parse_setresuid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETRESGID_X:
+		parse_setresgid_exit(evt);
 		break;
 	default:
 		break;
@@ -2962,5 +2970,63 @@ void sinsp_parser::parse_brk_munmap_mmap_exit(sinsp_evt* evt)
 		parinfo = evt->get_param(3);
 		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
+	}
+}
+
+void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0)
+	{
+		if(retrieve_enter_event(enter_evt, evt))
+		{
+			parinfo = enter_evt->get_param(1);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			uint32_t new_euid = *(uint32_t *)parinfo->m_val;
+
+			if(new_euid < std::numeric_limits<uint32_t>::max())
+			{
+				evt->get_thread_info()->m_uid = new_euid;
+			}
+		}
+	}
+}
+
+void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0)
+	{
+		if(retrieve_enter_event(enter_evt, evt))
+		{
+			parinfo = enter_evt->get_param(1);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			uint32_t new_euid = *(uint32_t *)parinfo->m_val;
+
+			if(new_euid < std::numeric_limits<uint32_t>::max())
+			{
+				evt->get_thread_info()->m_gid = new_euid;
+			}
+		}
 	}
 }
