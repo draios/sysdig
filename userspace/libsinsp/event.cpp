@@ -1203,6 +1203,21 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 			break;
 		}
+	case PT_UID:
+	case PT_GID:
+	{
+		ASSERT(payload_len == sizeof(uint32_t));
+		uint32_t val = *(uint32_t *)payload;
+		if(val < std::numeric_limits<uint32_t>::max())
+		{
+			ret = val;
+		}
+		else
+		{
+			ret = -1;
+		}
+		break;
+	}
 	case PT_ABSTIME:
 		//
 		// XXX not implemented yet
@@ -1839,8 +1854,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 			else
 			{
-				strcpy_sanitized(&m_resolved_paramstr_storage[0], "<NA>",
-						m_resolved_paramstr_storage.size());
+				snprintf(&m_resolved_paramstr_storage[0],
+						m_resolved_paramstr_storage.size(),
+						"<NA>");
 			}
 		}
 		else
@@ -1848,8 +1864,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "-1");
-			strcpy_sanitized(&m_resolved_paramstr_storage[0], "<NONE>",
-					m_resolved_paramstr_storage.size());
+			snprintf(&m_resolved_paramstr_storage[0],
+					m_resolved_paramstr_storage.size(),
+					"<NONE>");
 		}
 		break;
 	}
@@ -1870,8 +1887,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 			else
 			{
-				strcpy_sanitized(&m_resolved_paramstr_storage[0], "<NA>",
-						m_resolved_paramstr_storage.size());
+				snprintf(&m_resolved_paramstr_storage[0],
+						m_resolved_paramstr_storage.size(),
+						"<NA>");
 			}
 		}
 		else
@@ -1879,8 +1897,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "-1");
-			strcpy_sanitized(&m_resolved_paramstr_storage[0], "<NONE>",
-					m_resolved_paramstr_storage.size());
+			snprintf(&m_resolved_paramstr_storage[0],
+					m_resolved_paramstr_storage.size(),
+					"<NONE>");
 		}
 		break;
 	}
