@@ -221,6 +221,19 @@ FD names) to be lost.
 .PD
 Capture events about sysdig itself
 .PP
+\f[B]\-E\f[], \f[B]\-\-exclude\-users\f[]
+.PD 0
+.P
+.PD
+Don\[aq]t crate the user/group tables by querying the OS when sysdig
+starts.
+This also means that no user or group info will be written to the
+tracefile by the \-w flag.
+The user/group tables are necessary to use filter fields like user.name
+or group.name.
+However, creating them can increase sysdig\[aq]s startup time.
+Moreover, they contain information that could be privacy sensitive.
+.PP
 \f[B]\-F\f[], \f[B]\-\-fatfile\f[]
 .PD 0
 .P
@@ -329,19 +342,6 @@ Accepted values are \f[B]h\f[] for human\-readable string, \f[B]a\f[]
 for absolute timestamp from epoch, \f[B]r\f[] for relative time from the
 beginning of the capture, \f[B]d\f[] for delta between event enter and
 exit, and \f[B]D\f[] for delta from the previous event.
-.PP
-\f[B]\-u\f[], \f[B]\-\-nouser\f[]
-.PD 0
-.P
-.PD
-Don\[aq]t crate the user/group tables by querying the OS when sysdig
-starts.
-This also means that no user or group info will be written to the
-tracefile by the \-w flag.
-The user/group tables are necessary to use filter fields like user.name
-or group.name.
-However, creating them can increase sysdig\[aq]s startup time.
-Moreover, they contain information that could be privacy sensitive.
 .PP
 \f[B]\-v\f[], \f[B]\-\-verbose\f[]
 .PD 0

@@ -100,6 +100,9 @@ OPTIONS
 **-D**, **--debug**
   Capture events about sysdig itself
 
+**-E**, **--exclude-users**  
+  Don't crate the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.  
+
 **-F**, **--fatfile**
   Enable fatfile mode. When writing in fatfile mode, the output file will contain events that will be invisible when reading the file, but that are necessary to fully reconstruct the state. Fatfile mode is useful when saving events to disk with an aggressive filter. The filter could drop events that would the state to be updated (e.g. clone() or open()). With fatfile mode, those events are still saved to file, but 'hidden' so that they won't appear when reading the file. Be aware that using this flag might generate substantially bigger traces files.
 
@@ -141,10 +144,7 @@ OPTIONS
 
 **-t** _timetype_, **--timetype**=_timetype_  
   Change the way event time is displayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the beginning of the capture, **d** for delta between event enter and exit, and **D** for delta from the previous event.
-   
-**-u**, **--nouser**  
-  Don't crate the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.  
-  
+     
 **-v**, **--verbose**  
   Verbose output.
   
