@@ -582,7 +582,11 @@ enum ppm_event_type {
 	PPME_SYSCALL_SENDFILE_X = 189,	/* This should never be called */
 	PPME_SYSCALL_QUOTACTL_E = 190,
 	PPME_SYSCALL_QUOTACTL_X = 191,
-	PPM_EVENT_MAX = 192
+	PPME_SYSCALL_SETRESUID_E = 192,
+	PPME_SYSCALL_SETRESUID_X = 193,
+	PPME_SYSCALL_SETRESGID_E = 194,
+	PPME_SYSCALL_SETRESGID_X = 195,
+	PPM_EVENT_MAX = 196
 };
 /*@}*/
 
@@ -987,6 +991,8 @@ enum ppm_param_type {
 	PT_FLAGS8 = 28, /* this is an UINT8, but will be interpreted as 8 bit flags. */
 	PT_FLAGS16 = 29, /* this is an UINT16, but will be interpreted as 16 bit flags. */
 	PT_FLAGS32 = 30, /* this is an UINT32, but will be interpreted as 32 bit flags. */
+	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value */
+	PT_GID = 32 /* this is an UINT32, MAX_UINT32 will be interpreted as no value */
 };
 
 enum ppm_print_format {

@@ -298,6 +298,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
 	[PPME_SYSCALL_QUOTACTL_X] = {f_sys_quotactl_x},
+	[PPME_SYSCALL_SETRESUID_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
+	[PPME_SYSCALL_SETRESUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} },
+	[PPME_SYSCALL_SETRESGID_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
+	[PPME_SYSCALL_SETRESGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} },
 };
 
 /*
