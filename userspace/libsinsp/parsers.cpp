@@ -2986,18 +2986,15 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
-	if(retval >= 0)
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
 	{
-		if(retrieve_enter_event(enter_evt, evt))
-		{
-			parinfo = enter_evt->get_param(1);
-			ASSERT(parinfo->m_len == sizeof(uint32_t));
-			uint32_t new_euid = *(uint32_t *)parinfo->m_val;
+		parinfo = enter_evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t new_euid = *(uint32_t *)parinfo->m_val;
 
-			if(new_euid < std::numeric_limits<uint32_t>::max())
-			{
-				evt->get_thread_info()->m_uid = new_euid;
-			}
+		if(new_euid < std::numeric_limits<uint32_t>::max())
+		{
+			evt->get_thread_info()->m_uid = new_euid;
 		}
 	}
 }
@@ -3015,18 +3012,15 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
-	if(retval >= 0)
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
 	{
-		if(retrieve_enter_event(enter_evt, evt))
-		{
-			parinfo = enter_evt->get_param(1);
-			ASSERT(parinfo->m_len == sizeof(uint32_t));
-			uint32_t new_euid = *(uint32_t *)parinfo->m_val;
+		parinfo = enter_evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
 
-			if(new_euid < std::numeric_limits<uint32_t>::max())
-			{
-				evt->get_thread_info()->m_gid = new_euid;
-			}
+		if(new_egid < std::numeric_limits<uint32_t>::max())
+		{
+			evt->get_thread_info()->m_gid = new_egid;
 		}
 	}
 }
