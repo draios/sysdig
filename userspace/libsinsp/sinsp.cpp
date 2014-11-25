@@ -263,6 +263,7 @@ void sinsp::open(string filename)
 	oargs.fname = filename.c_str();
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
+	oargs.import_users = m_import_users;
 
 	m_h = scap_open(oargs, error);
 
