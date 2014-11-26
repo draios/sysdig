@@ -1391,10 +1391,16 @@ void sinsp_filter::compile(const string& fltstr)
 
 			break;
 		default:
-			parse_check(m_curexpr, m_last_boolop);
+			if (m_state == ST_NEED_EXPRESSION)
+			{
+				parse_check(m_curexpr, m_last_boolop);
 
-			m_state = ST_EXPRESSION_DONE;
-
+				m_state = ST_EXPRESSION_DONE;
+			}
+			else
+			{
+				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
+			}
 			break;
 		}
 	}
