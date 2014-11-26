@@ -16,12 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <limits>
-
 #ifdef _WIN32
+#define NOMINMAX
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
@@ -30,6 +26,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif // _DEBUG
 #include <unistd.h>
 #endif // _WIN32
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <limits>
 
 #include "sinsp.h"
 #include "sinsp_int.h"

@@ -21,7 +21,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
+#else
+#define NOMINMAX
 #endif
+
 #include <limits>
 
 #include "sinsp.h"
@@ -1208,7 +1211,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	{
 		ASSERT(payload_len == sizeof(uint32_t));
 		uint32_t val = *(uint32_t *)payload;
-		if(val < std::numeric_limits<uint32_t>::max())
+		if(val < std::numeric_limits<uint32_t>::max() )
 		{
 			ret = val;
 		}

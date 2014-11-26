@@ -20,6 +20,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "../../driver/ppm_events_public.h"
 
 const struct ppm_param_info ptrace_dynamic_param[PPM_PTRACE_IDX_MAX] = {
-	[PPM_PTRACE_IDX_UINT64] = {{0}, PT_UINT64, PF_HEX},
-	[PPM_PTRACE_IDX_SIGTYPE] = {{0}, PT_SIGTYPE, PF_DEC},
+	{{0}, PT_UINT64, PF_HEX},
+	{{0}, PT_SIGTYPE, PF_DEC},
 };
