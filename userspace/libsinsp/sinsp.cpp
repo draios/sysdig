@@ -83,6 +83,7 @@ sinsp::sinsp() :
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_filesize = -1;
+	m_import_users = true;
 }
 
 sinsp::~sinsp()
@@ -165,6 +166,7 @@ void sinsp::init()
 	}
 
 	import_ifaddr_list();
+
 	import_user_list();
 
 	//
@@ -196,6 +198,11 @@ void sinsp::init()
 	}
 }
 
+void sinsp::set_import_users(bool import_users)
+{
+	m_import_users = import_users;
+}
+
 void sinsp::open(uint32_t timeout_ms)
 {
 	char error[SCAP_LASTERR_SIZE];
@@ -216,6 +223,7 @@ void sinsp::open(uint32_t timeout_ms)
 	oargs.fname = NULL;
 	oargs.proc_callback = ::on_new_entry_from_proc;
 	oargs.proc_callback_context = this;
+	oargs.import_users = m_import_users;
 
 	m_h = scap_open(oargs, error);
 
@@ -255,6 +263,7 @@ void sinsp::open(string filename)
 	oargs.fname = filename.c_str();
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
+	oargs.import_users = m_import_users;
 
 	m_h = scap_open(oargs, error);
 
@@ -453,14 +462,17 @@ void sinsp::import_user_list()
 	uint32_t j;
 	scap_userlist* ul = scap_get_user_list(m_h);
 
-	for(j = 0; j < ul->nusers; j++)
+	if(ul)
 	{
-		m_userlist[ul->users[j].uid] = &(ul->users[j]);
-	}
+		for(j = 0; j < ul->nusers; j++)
+		{
+			m_userlist[ul->users[j].uid] = &(ul->users[j]);
+		}
 
-	for(j = 0; j < ul->ngroups; j++)
-	{
-		m_grouplist[ul->groups[j].gid] = &(ul->groups[j]);
+		for(j = 0; j < ul->ngroups; j++)
+		{
+			m_grouplist[ul->groups[j].gid] = &(ul->groups[j]);
+		}
 	}
 }
 
@@ -861,6 +873,8 @@ void sinsp::stop_dropping_mode()
 {
 	if(m_islive)
 	{
+		g_logger.format(sinsp_logger::SEV_ERROR, "stopping drop mode");
+
 		if(scap_stop_dropping_mode(m_h) != SCAP_SUCCESS)
 		{
 				throw sinsp_exception(scap_getlasterr(m_h));
@@ -872,6 +886,8 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 {
 	if(m_islive)
 	{
+		g_logger.format(sinsp_logger::SEV_ERROR, "setting drop mode to %" PRIu32, sampling_ratio);
+
 		if(scap_start_dropping_mode(m_h, sampling_ratio) != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(scap_getlasterr(m_h));

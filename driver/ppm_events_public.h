@@ -586,7 +586,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_SETRESUID_X = 193,
 	PPME_SYSCALL_SETRESGID_E = 194,
 	PPME_SYSCALL_SETRESGID_X = 195,
-	PPM_EVENT_MAX = 196
+	PPME_SYSDIGEVENT_E = 196,
+	PPME_SYSDIGEVENT_X = 197, /* This should never be called */
+	PPM_EVENT_MAX = 198
 };
 /*@}*/
 
@@ -1102,5 +1104,15 @@ extern const struct ppm_name_value quotactl_dqi_flags[];
 extern const struct ppm_name_value quotactl_quota_fmts[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
+
+/*
+ * Driver event notification ID
+ */
+enum ppm_driver_event_id {
+	DEI_NONE = 0,
+	DEI_DISABLE_DROPPING = 1,
+	DEI_ENABLE_DROPPING = 2,
+};
+
 
 #endif /* EVENTS_PUBLIC_H_ */

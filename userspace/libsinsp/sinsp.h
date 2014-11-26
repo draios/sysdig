@@ -258,6 +258,24 @@ public:
 	void set_snaplen(uint32_t snaplen);
 
 	/*!
+	  \brief Determine if this inspector is going to load user tables on
+	  startup.
+
+	  \param import_users if true, no user tables will be created for 
+	  this capture. This also means that no user or group info will be 
+	  written to the tracefile by the -w flag. The user/group tables are 
+	  necessary to use filter fields like user.name or group.name. However, 
+	  creating them can increase sysdig's startup time. Moreover, they contain
+	  information that could be privacy sensitive.
+
+	  \note default behavior is import_users=true.
+
+	  @throws a sinsp_exception containing the error string is thrown in case
+	   of failure.
+	*/
+	void set_import_users(bool import_users);
+
+	/*!
 	  \brief temporarily pauses event capture.
 
 	  \note This function can only be called for live captures.
@@ -633,6 +651,7 @@ private:
 	//
 	// User and group tables
 	//
+	bool m_import_users;
 	unordered_map<uint32_t, scap_userinfo*> m_userlist;
 	unordered_map<uint32_t, scap_groupinfo*> m_grouplist;
 

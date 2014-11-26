@@ -379,6 +379,12 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE\n");
 		g_sampling_interval = 1000000000;
 		g_sampling_ratio = 1;
+	
+		/*
+		 * Push an event into the ring buffer so that the user can know that dropping
+		 * mode has been disabled
+		 */
+		record_event(PPME_SYSDIGEVENT_E, NULL, -1, UF_NEVER_DROP, (void*)DEI_DISABLE_DROPPING, (void*)0);
 		return 0;
 	}
 	case PPM_IOCTL_ENABLE_DROPPING_MODE:
