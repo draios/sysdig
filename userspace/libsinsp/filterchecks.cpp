@@ -1066,6 +1066,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_CWD:
 		m_tstr = tinfo->get_cwd();
 		return (uint8_t*)m_tstr.c_str();
+	case TYPE_NCHILDS:
+		return (uint8_t*)&tinfo->m_nchilds;
 	case TYPE_ISMAINTHREAD:
 		m_tbool = (uint32_t)tinfo->is_main_thread();
 		return (uint8_t*)&m_tbool;
