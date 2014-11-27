@@ -817,10 +817,12 @@ static int record_event(enum ppm_event_type event_type,
 
 	ring_info->n_evts++;
 	if (sched_prev != NULL) {
-		ASSERT(sched_prev != NULL);
-		ASSERT(sched_next != NULL);
-		ASSERT(regs == NULL);
-		ring_info->n_context_switches++;
+		if(event_type != PPME_SYSDIGEVENT_E) {
+			ASSERT(sched_prev != NULL);
+			ASSERT(sched_next != NULL);
+			ASSERT(regs == NULL);
+			ring_info->n_context_switches++;
+		}
 	}
 
 	/*
@@ -854,7 +856,6 @@ static int record_event(enum ppm_event_type event_type,
 	ASSERT(head <= RING_BUF_SIZE);
 	ASSERT(delta_from_end < RING_BUF_SIZE + (2 * PAGE_SIZE));
 	ASSERT(delta_from_end > (2 * PAGE_SIZE) - 1);
-
 #ifdef __NR_socketcall
 	/*
 	 * If this is a socketcall system call, determine the correct event type
