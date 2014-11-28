@@ -30,7 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 extern sinsp_evttables g_infotables;
 
-#define SET_NUMERIC_FORMAT(resfmt, fmt, ustr, xstr) do {        \
+#define SET_NUMERIC_FORMAT(resfmt, fmt, ustr, xstr, ostr) do {  \
 	if(fmt == ppm_print_format::PF_DEC)                     \
 	{                                                       \
 		resfmt = (char*)"%" ustr;                       \
@@ -42,6 +42,10 @@ extern sinsp_evttables g_infotables;
 	else if(fmt == ppm_print_format::PF_HEX)                \
 	{                                                       \
 		resfmt = (char*)"%" xstr;                       \
+	}                                                       \
+	else if(fmt == ppm_print_format::PF_OCT)                \
+	{                                                       \
+		resfmt = (char*)"%" ostr;                       \
 	}                                                       \
 	else                                                    \
 	{                                                       \
@@ -1281,7 +1285,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	{
 	case PT_INT8:
 		ASSERT(payload_len == sizeof(int8_t));
-		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId8, PRIX8);
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId8, PRIX8, PRIo8);
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
@@ -1289,7 +1293,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_INT16:
 		ASSERT(payload_len == sizeof(int16_t));
-		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId16, PRIX16);
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId16, PRIX16, PRIo16);
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
@@ -1297,7 +1301,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_INT32:
 		ASSERT(payload_len == sizeof(int32_t));
-		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId32, PRIX32);
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId32, PRIX32, PRIo32);
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
@@ -1305,7 +1309,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_INT64:
 		ASSERT(payload_len == sizeof(int64_t));
-		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId64, PRIX64);
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRId64, PRIX64, PRIo64);
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
@@ -1349,7 +1353,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_UINT8:
 		ASSERT(payload_len == sizeof(uint8_t));
-		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu8, PRIX8);
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu8, PRIX8, PRIo8);
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
@@ -1357,7 +1361,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_UINT16:
 		ASSERT(payload_len == sizeof(uint16_t));
-		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu16, PRIX16);
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu16, PRIX16, PRIo16);
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
@@ -1365,7 +1369,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_UINT32:
 		ASSERT(payload_len == sizeof(uint32_t));
-		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu32, PRIX32);
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu32, PRIX32, PRIo32);
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
@@ -1401,7 +1405,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	break;
 	case PT_UINT64:
 		ASSERT(payload_len == sizeof(uint64_t));
-		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu64, PRIX64);
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu64, PRIX64, PRIo64);
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
@@ -1820,6 +1824,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
 		         "INVALID DYNAMIC PARAMETER");
+		break;
+	case PT_MODE:
+		ASSERT(payload_len == 2);
+		// mode_t is an unsigned short (UINT16)
+		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIu16, PRIX16, PRIo16);
+
+		snprintf(&m_paramstr_storage[0],
+		         m_paramstr_storage.size(),
+		         prfmt, *(mode_t *)payload);
 		break;
 	default:
 		ASSERT(false);

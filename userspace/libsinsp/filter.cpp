@@ -451,6 +451,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			{
 				prfmt = (char*)"%" PRIX8;
 			}
+			else if(finfo->m_print_format == PF_OCT)
+			{
+				prfmt = (char*)"%" PRIo8;
+			}
 			else
 			{
 				ASSERT(false);
@@ -470,6 +474,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			{
 				prfmt = (char*)"%" PRIX16;
 			}
+			else if(finfo->m_print_format == PF_OCT)
+			{
+				prfmt = (char*)"%" PRIo16;
+			}
 			else
 			{
 				ASSERT(false);
@@ -488,6 +496,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			else if(finfo->m_print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX32;
+			}
+			else if(finfo->m_print_format == PF_OCT)
+			{
+				prfmt = (char*)"%" PRIo32;
 			}
 			else
 			{
@@ -514,6 +526,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			{
 				prfmt = (char*)"%" PRIX64;
 			}
+			else if(finfo->m_print_format == PF_OCT)
+			{
+				prfmt = (char*)"%" PRIo64;
+			}
 			else
 			{
 				prfmt = (char*)"%" PRId64;
@@ -532,6 +548,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			else if(finfo->m_print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIu8;
+			}
+			else if(finfo->m_print_format == PF_OCT)
+			{
+				prfmt = (char*)"%" PRIo8;
 			}
 			else
 			{
@@ -553,6 +573,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			{
 				prfmt = (char*)"%" PRIu16;
 			}
+			else if(finfo->m_print_format == PF_OCT)
+			{
+				prfmt = (char*)"%" PRIo16;
+			}
 			else
 			{
 				ASSERT(false);
@@ -571,6 +595,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			else if(finfo->m_print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIu32;
+			}
+			else if(finfo->m_print_format == PF_OCT)
+			{
+				prfmt = (char*)"%" PRIo32;
 			}
 			else
 			{
@@ -596,6 +624,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			else if(finfo->m_print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX64;
+			}
+			else if(finfo->m_print_format == PF_OCT)
+			{
+				prfmt = (char*)"%" PRIo64;
 			}
 			else
 			{
@@ -739,6 +771,9 @@ void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_par
 
 			memcpy((&m_val_storage[0]), str, len);
 			m_val_storage_len = len;
+			break;
+		case PT_MODE:
+			*(mode_t*)(&m_val_storage[0]) = sinsp_numparser::parseu16(str);
 			break;
 		default:
 			ASSERT(false);

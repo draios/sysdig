@@ -324,3 +324,8 @@ const struct ppm_name_value quotactl_quota_fmts[] = {
 	{"QFMT_VFS_V1", PPM_QFMT_VFS_V1},
 	{0, 0},
 };
+
+const struct ppm_name_value fchmodat_flags[] = {
+        {"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_NOFOLLOW},
+        { },
+};

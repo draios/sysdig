@@ -358,6 +358,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_QFMT_VFS_V1		(1 << 3)
 
 /*
+ * fchmodat flags
+ */
+#define PPM_AT_NONE		(1 << 0)
+#define PPM_AT_SYMLINK_NOFOLLOW		(1 << 8)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -582,9 +588,15 @@ enum ppm_event_type {
 	PPME_SYSCALL_SENDFILE_X = 189,	/* This should never be called */
 	PPME_SYSCALL_QUOTACTL_E = 190,
 	PPME_SYSCALL_QUOTACTL_X = 191,
-	PPME_SYSDIGEVENT_E = 192,
-	PPME_SYSDIGEVENT_X = 193, /* This should never be called */
-	PPM_EVENT_MAX = 194
+	PPME_SYSCALL_CHMOD_E = 192,
+	PPME_SYSCALL_CHMOD_X = 193,
+	PPME_SYSCALL_FCHMOD_E = 194,
+	PPME_SYSCALL_FCHMOD_X = 195,
+	PPME_SYSCALL_FCHMODAT_E = 196,
+	PPME_SYSCALL_FCHMODAT_X = 197,
+	PPME_SYSDIGEVENT_E = 198,
+	PPME_SYSDIGEVENT_X = 199, /* This should never be called */
+	PPM_EVENT_MAX = 200
 };
 /*@}*/
 
@@ -989,6 +1001,7 @@ enum ppm_param_type {
 	PT_FLAGS8 = 28, /* this is an UINT8, but will be interpreted as 8 bit flags. */
 	PT_FLAGS16 = 29, /* this is an UINT16, but will be interpreted as 16 bit flags. */
 	PT_FLAGS32 = 30, /* this is an UINT32, but will be interpreted as 32 bit flags. */
+	PT_MODE = 31, /* mode_t, this is an unsigned short (UINT16), but will be interpreted as 16 bit mode. */
 };
 
 enum ppm_print_format {
@@ -996,6 +1009,7 @@ enum ppm_print_format {
 	PF_DEC = 1,	/* decimal */
 	PF_HEX = 2,	/* hexadecima */
 	PF_10_PADDED_DEC = 3, /* decimal padded to 10 digits, useful to print the fractional part of a ns timestamp */
+	PF_OCT = 4,     /* octal */
 };
 
 /*!
@@ -1096,6 +1110,7 @@ extern const struct ppm_name_value quotactl_cmds[];
 extern const struct ppm_name_value quotactl_types[];
 extern const struct ppm_name_value quotactl_dqi_flags[];
 extern const struct ppm_name_value quotactl_quota_fmts[];
+extern const struct ppm_name_value fchmodat_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 

@@ -214,6 +214,12 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SENDFILE_X */{"sendfile", EC_IO_OTHER, EF_USES_FD, 2, {{"res", PT_ERRNO, PF_DEC}, {"offset", PT_UINT64, PF_DEC} } },
 	/* PPME_SYSCALL_QUOTACTL_E */{"quotactl", EC_USER, EF_NONE, 4, {{"cmd", PT_FLAGS16, PF_DEC, quotactl_cmds }, {"type", PT_FLAGS8, PF_DEC, quotactl_types}, {"id", PT_UINT32, PF_DEC}, {"quota_fmt", PT_FLAGS8, PF_HEX, quotactl_quota_fmts } } },
 	/* PPME_SYSCALL_QUOTACTL_X */{"quotactl", EC_USER, EF_NONE, 14, {{"res", PT_ERRNO, PF_DEC}, {"special", PT_CHARBUF, PF_NA }, {"quotafilepath", PT_CHARBUF, PF_NA}, {"dqb_bhardlimit", PT_UINT64, PF_DEC }, {"dqb_bsoftlimit", PT_UINT64, PF_DEC }, {"dqb_curspace", PT_UINT64, PF_DEC }, {"dqb_ihardlimit", PT_UINT64, PF_DEC }, {"dqb_isoftlimit", PT_UINT64, PF_DEC }, {"dqb_btime", PT_RELTIME, PF_DEC }, {"dqb_itime", PT_RELTIME, PF_DEC }, {"dqi_bgrace", PT_RELTIME, PF_DEC }, {"dqi_igrace", PT_RELTIME, PF_DEC }, {"dqi_flags", PT_FLAGS8, PF_DEC, quotactl_dqi_flags }, {"quota_fmt_out", PT_FLAGS8, PF_HEX, quotactl_quota_fmts } } },
+	/* PPME_SYSCALL_CHMOD_E */{"chmod", EC_FILE, EF_MODIFIES_STATE, 2, {{"path", PT_FSPATH, PF_NA}, {"mode", PT_MODE, PF_OCT} } },
+	/* PPME_SYSCALL_CHMOD_X */{"chmod", EC_FILE, EF_MODIFIES_STATE, 3, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"mode", PT_MODE, PF_OCT} } },
+	/* PPME_SYSCALL_FCHMOD_E */{"fchmod", EC_FILE, (enum ppm_event_flags)(EF_USES_FD | EF_MODIFIES_STATE), 2, {{"fd", PT_FD, PF_DEC}, {"mode", PT_MODE, PF_OCT} } },
+	/* PPME_SYSCALL_FCHMOD_X */{"fchmod", EC_FILE, (enum ppm_event_flags)(EF_USES_FD | EF_MODIFIES_STATE), 3, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"mode", PT_MODE, PF_OCT} } },
+	/* PPME_SYSCALL_FCHMODAT_E */{"fchmodat", EC_FILE, EF_MODIFIES_STATE, 4, {{"dirfd", PT_FD, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"mode", PT_MODE, PF_OCT}, {"flags", PT_FLAGS32, PF_HEX, fchmodat_flags} } },
+	/* PPME_SYSCALL_FCHMODAT_X */{"fchmodat", EC_FILE, EF_MODIFIES_STATE, 5, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"mode", PT_MODE, PF_OCT}, {"flags", PT_FLAGS32, PF_HEX, fchmodat_flags} } },
 	/* PPME_SYSDIGEVENT_E */{"sysdigevent", EC_INTERNAL, EF_SKIPPARSERESET, 2, {{"event_type", PT_UINT32, PF_DEC}, {"event_data", PT_UINT64, PF_DEC} } },
 	/* PPME_NA1 */{"NA1", EC_INTERNAL, EF_UNUSED, 0},
 };

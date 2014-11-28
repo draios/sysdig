@@ -117,6 +117,12 @@ static int f_sys_sendfile_e(struct event_filler_arguments *args);
 static int f_sys_sendfile_x(struct event_filler_arguments *args);
 static int f_sys_quotactl_e(struct event_filler_arguments *args);
 static int f_sys_quotactl_x(struct event_filler_arguments *args);
+static int f_sys_chmod_e(struct event_filler_arguments *args);
+static int f_sys_chmod_x(struct event_filler_arguments *args);
+static int f_sys_fchmod_e(struct event_filler_arguments *args);
+static int f_sys_fchmod_x(struct event_filler_arguments *args);
+static int f_sys_fchmodat_e(struct event_filler_arguments *args);
+static int f_sys_fchmodat_x(struct event_filler_arguments *args);
 static int f_sys_sysdigevent_e(struct event_filler_arguments *args);
 
 /*
@@ -299,6 +305,12 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
 	[PPME_SYSCALL_QUOTACTL_X] = {f_sys_quotactl_x},
+	[PPME_SYSCALL_CHMOD_E] = {f_sys_chmod_e},
+	[PPME_SYSCALL_CHMOD_X] = {f_sys_chmod_x},
+	[PPME_SYSCALL_FCHMOD_E] = {f_sys_fchmod_e},
+	[PPME_SYSCALL_FCHMOD_X] = {f_sys_fchmod_x},
+	[PPME_SYSCALL_FCHMODAT_E] = {f_sys_fchmodat_e},
+	[PPME_SYSCALL_FCHMODAT_X] = {f_sys_fchmodat_x},
 	[PPME_SYSDIGEVENT_E] = {f_sys_sysdigevent_e},
 };
 
@@ -4006,6 +4018,220 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, quota_fmt_out, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_chmod_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * path
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	 
+	return add_sentinel(args);
+}
+
+static int f_sys_chmod_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * path
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_fchmod_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * fd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_fchmod_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * fd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static inline u32 fchmodat_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	if (flags & AT_SYMLINK_NOFOLLOW)
+		res |= PPM_AT_SYMLINK_NOFOLLOW;
+
+	return res;
+}
+
+static int f_sys_fchmodat_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * dirfd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+
+	if (val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * path
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Flags
+         * Note that we convert them into the ppm portable representation before pushing them to the ring
+         */
+        syscall_get_arguments(current, args->regs, 3, 1, &val);
+        res = val_to_ring(args, fchmodat_flags_to_scap(val), 0, false, 0);
+        if (unlikely(res != PPM_SUCCESS))
+                return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_fchmodat_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+
+	if (val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * path
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Flags
+         * Note that we convert them into the ppm portable representation before pushing them to the ring
+         */
+        syscall_get_arguments(current, args->regs, 3, 1, &val);
+        res = val_to_ring(args, fchmodat_flags_to_scap(val), 0, false, 0);
+        if (unlikely(res != PPM_SUCCESS))
+                return res;
 
 	return add_sentinel(args);
 }

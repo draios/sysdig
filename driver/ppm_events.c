@@ -489,6 +489,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		}
 
 		break;
+	case PT_MODE:
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
