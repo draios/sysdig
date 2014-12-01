@@ -189,6 +189,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setresgid
 	[__NR_setresgid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESGID_E, PPME_SYSCALL_SETRESGID_X },
 #endif
+#ifdef __NR_setuid
+	[__NR_setuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETUID_E, PPME_SYSCALL_SETUID_X },
+#endif
+#ifdef __NR_setgid
+	[__NR_setgid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETGID_E, PPME_SYSCALL_SETGID_X },
+#endif
 };
 
 /*
@@ -666,5 +672,11 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_setresgid
 	[__NR_setresgid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESGID,
+#endif
+#ifdef __NR_setuid
+	[__NR_setuid - SYSCALL_TABLE_ID0] = PPM_SC_SETUID,
+#endif
+#ifdef __NR_setgid
+	[__NR_setgid - SYSCALL_TABLE_ID0] = PPM_SC_SETGID,
 #endif
 };

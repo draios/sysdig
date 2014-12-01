@@ -220,4 +220,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SETRESGID_X */ {"setresgid", EC_USER, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}}},
 	/* PPME_SYSDIGEVENT_E */{"sysdigevent", EC_INTERNAL, EF_SKIPPARSERESET, 2, {{"event_type", PT_UINT32, PF_DEC}, {"event_data", PT_UINT64, PF_DEC} } },
 	/* PPME_NA1 */{"NA1", EC_INTERNAL, EF_UNUSED, 0},
+	/* PPME_SYSCALL_SETUID_E */ {"setuid", EC_USER, EF_MODIFIES_STATE, 1, {{"uid", PT_UID, PF_DEC}}},
+	/* PPME_SYSCALL_SETUID_X */ {"setuid", EC_USER, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}}},
+	/* PPME_SYSCALL_SETGID_E */ {"setgid", EC_USER, EF_MODIFIES_STATE, 1, {{"gid", PT_GID, PF_DEC}}},
+	/* PPME_SYSCALL_SETGID_X */ {"setgid", EC_USER, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}}},
 };

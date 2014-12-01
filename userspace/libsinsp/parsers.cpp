@@ -284,6 +284,11 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETRESGID_X:
 		parse_setresgid_exit(evt);
 		break;
+	case PPME_SYSCALL_SETUID_X:
+		parse_setuid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETGID_X:
+		parse_setgid_exit(evt);
 	default:
 		break;
 	}
@@ -3024,5 +3029,49 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
 		{
 			evt->get_thread_info()->m_gid = new_egid;
 		}
+	}
+}
+
+void sinsp_parser::parse_setuid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	{
+		parinfo = enter_evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t new_euid = *(uint32_t *)parinfo->m_val;
+		evt->get_thread_info()->m_uid = new_euid;
+	}
+}
+
+void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	{
+		parinfo = enter_evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
+		evt->get_thread_info()->m_gid = new_egid;
 	}
 }
