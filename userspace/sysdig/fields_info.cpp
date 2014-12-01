@@ -267,7 +267,7 @@ void print_chisel_info(chisel_desc* cd)
 
 	for(l = 0; l < desclen; l++)
 	{
-		if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+		if(l % CONSOLE_LINE_LEN == 0 && l != 0)
 		{
 			printf("\n");
 		}
