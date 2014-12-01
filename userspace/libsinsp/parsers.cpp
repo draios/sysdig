@@ -157,6 +157,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SOCKET_SENDTO_E:
 	case PPME_SOCKET_SENDMSG_E:
 	case PPME_SYSCALL_SENDFILE_E:
+	case PPME_SYSCALL_SETRESUID_E:
+	case PPME_SYSCALL_SETRESGID_E:
+	case PPME_SYSCALL_SETUID_E:
+	case PPME_SYSCALL_SETGID_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_READ_X:
@@ -289,6 +293,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_SETGID_X:
 		parse_setgid_exit(evt);
+		break;
 	default:
 		break;
 	}
