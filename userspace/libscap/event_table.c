@@ -223,5 +223,13 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SETUID_E */ {"setuid", EC_USER, EF_MODIFIES_STATE, 1, {{"uid", PT_UID, PF_DEC}}},
 	/* PPME_SYSCALL_SETUID_X */ {"setuid", EC_USER, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}}},
 	/* PPME_SYSCALL_SETGID_E */ {"setgid", EC_USER, EF_MODIFIES_STATE, 1, {{"gid", PT_GID, PF_DEC}}},
-	/* PPME_SYSCALL_SETGID_X */ {"setgid", EC_USER, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}}}
+	/* PPME_SYSCALL_SETGID_X */ {"setgid", EC_USER, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}}},
+	/* PPME_SYSCALL_GETUID_E */ {"getuid", EC_USER, EF_NONE, 0},
+	/* PPME_SYSCALL_GETUID_X */ {"getuid", EC_USER, EF_NONE, 1, {{"uid", PT_UID, PF_DEC}}},
+	/* PPME_SYSCALL_GETEUID_E */ {"geteuid", EC_USER, EF_NONE, 0 },
+	/* PPME_SYSCALL_GETEUID_X */ {"geteuid", EC_USER, EF_NONE, 1, {{"euid", PT_UID, PF_DEC}}},
+	/* PPME_SYSCALL_GETGID_E */ {"getgid", EC_USER, EF_NONE, 0},
+	/* PPME_SYSCALL_GETGID_X */ {"getgid", EC_USER, EF_NONE, 1, {{"gid", PT_GID, PF_DEC}}},
+	/* PPME_SYSCALL_GETEGID_E */ {"getegid", EC_USER, EF_NONE, 0 },
+	/* PPME_SYSCALL_GETEGID_X */ {"getegid", EC_USER, EF_NONE, 1, {{"egid", PT_GID, PF_DEC}}}
 };
