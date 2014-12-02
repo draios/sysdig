@@ -661,10 +661,12 @@ private:
 	cycle_writer* m_cycle_writer;
 	bool m_write_cycling;
 
+#ifdef SIMULATE_DROP_MODE
 	//
 	// Some dropping infrastructure
 	//
 	bool m_isdropping;
+#endif
 
 	//
 	// Protocol decoding state

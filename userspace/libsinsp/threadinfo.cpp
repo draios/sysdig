@@ -912,7 +912,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
-		g_logger.format(sinsp_logger::SEV_INFO, "Flusing thread table");
+		g_logger.format(sinsp_logger::SEV_INFO, "Flushing thread table");
 
 		//
 		// Go through the table and remove dead entries.
