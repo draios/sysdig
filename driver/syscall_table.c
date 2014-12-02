@@ -183,6 +183,30 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_quotactl
 	[__NR_quotactl - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_QUOTACTL_E, PPME_SYSCALL_QUOTACTL_X},
 #endif
+#ifdef __NR_setresuid
+	[__NR_setresuid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESUID_E, PPME_SYSCALL_SETRESUID_X },
+#endif
+#ifdef __NR_setresgid
+	[__NR_setresgid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESGID_E, PPME_SYSCALL_SETRESGID_X },
+#endif
+#ifdef __NR_setuid
+	[__NR_setuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETUID_E, PPME_SYSCALL_SETUID_X },
+#endif
+#ifdef __NR_setgid
+	[__NR_setgid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETGID_E, PPME_SYSCALL_SETGID_X },
+#endif
+#ifdef __NR_getuid
+	[__NR_getuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETUID_E, PPME_SYSCALL_GETUID_X },
+#endif
+#ifdef __NR_geteuid
+	[__NR_geteuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETEUID_E, PPME_SYSCALL_GETEUID_X },
+#endif
+#ifdef __NR_getgid
+	[__NR_getgid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETGID_E, PPME_SYSCALL_GETGID_X },
+#endif
+#ifdef __NR_getegid
+	[__NR_getegid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETEGID_E, PPME_SYSCALL_GETEGID_X },
+#endif
 };
 
 /*
@@ -654,5 +678,29 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_quotactl
 	[__NR_quotactl - SYSCALL_TABLE_ID0] = PPM_SC_QUOTACTL,
+#endif
+#ifdef __NR_setresuid
+	[__NR_setresuid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESUID,
+#endif
+#ifdef __NR_setresgid
+	[__NR_setresgid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESGID,
+#endif
+#ifdef __NR_setuid
+	[__NR_setuid - SYSCALL_TABLE_ID0] = PPM_SC_SETUID,
+#endif
+#ifdef __NR_setgid
+	[__NR_setgid - SYSCALL_TABLE_ID0] = PPM_SC_SETGID,
+#endif
+#ifdef __NR_getuid
+	[__NR_getuid - SYSCALL_TABLE_ID0] = PPM_SC_GETUID,
+#endif
+#ifdef __NR_geteuid
+	[__NR_geteuid - SYSCALL_TABLE_ID0] = PPM_SC_GETEUID,
+#endif
+#ifdef __NR_getgid
+	[__NR_getgid - SYSCALL_TABLE_ID0] = PPM_SC_GETGID,
+#endif
+#ifdef __NR_getegid
+	[__NR_getegid - SYSCALL_TABLE_ID0] = PPM_SC_GETEGID,
 #endif
 };

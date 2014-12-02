@@ -16,10 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
 #ifdef _WIN32
+#define NOMINMAX
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
@@ -28,6 +26,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif // _DEBUG
 #include <unistd.h>
 #endif // _WIN32
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <limits>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -154,6 +157,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SOCKET_SENDTO_E:
 	case PPME_SOCKET_SENDMSG_E:
 	case PPME_SYSCALL_SENDFILE_E:
+	case PPME_SYSCALL_SETRESUID_E:
+	case PPME_SYSCALL_SETRESGID_E:
+	case PPME_SYSCALL_SETUID_E:
+	case PPME_SYSCALL_SETGID_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_READ_X:
@@ -274,6 +281,18 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_MMAP2_X:
 	case PPME_SYSCALL_MUNMAP_X:
 		parse_brk_munmap_mmap_exit(evt);
+		break;
+	case PPME_SYSCALL_SETRESUID_X:
+		parse_setresuid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETRESGID_X:
+		parse_setresgid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETUID_X:
+		parse_setuid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETGID_X:
+		parse_setgid_exit(evt);
 		break;
 	default:
 		break;
@@ -2963,5 +2982,101 @@ void sinsp_parser::parse_brk_munmap_mmap_exit(sinsp_evt* evt)
 		parinfo = evt->get_param(3);
 		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
+	}
+}
+
+void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	{
+		parinfo = enter_evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t new_euid = *(uint32_t *)parinfo->m_val;
+
+		if(new_euid < std::numeric_limits<uint32_t>::max())
+		{
+			evt->get_thread_info()->m_uid = new_euid;
+		}
+	}
+}
+
+void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	{
+		parinfo = enter_evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
+
+		if(new_egid < std::numeric_limits<uint32_t>::max())
+		{
+			evt->get_thread_info()->m_gid = new_egid;
+		}
+	}
+}
+
+void sinsp_parser::parse_setuid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	{
+		parinfo = enter_evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t new_euid = *(uint32_t *)parinfo->m_val;
+		evt->get_thread_info()->m_uid = new_euid;
+	}
+}
+
+void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_evt *enter_evt = &m_tmp_evt;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	{
+		parinfo = enter_evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
+		evt->get_thread_info()->m_gid = new_egid;
 	}
 }

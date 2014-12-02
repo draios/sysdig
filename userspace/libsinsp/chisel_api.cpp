@@ -89,6 +89,8 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 			return 1;
 		case PT_FLAGS32:
 		case PT_UINT32:
+		case PT_UID:
+		case PT_GID:
 			lua_pushnumber(ls, *(uint32_t*)rawval);
 			return 1;
 		case PT_UINT64:
