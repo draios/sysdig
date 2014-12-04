@@ -253,6 +253,16 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char*buf, u32 lo
 								return 2000;
 							}
 						}
+					} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
+						if (lookahead_size >= 1)
+						{
+							if ( ( buf[0] == 'Q' && buf[1] == 0 ) ||
+								   buf[0] == 'P' && buf[1] == 0 )
+							{
+								sockfd_put(sock);
+								return 2000;
+							}
+						}
 					} else {
 						if (lookahead_size >= 5) {
 							if (*(u32*)buf == g_http_get_intval ||
