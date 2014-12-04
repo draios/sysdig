@@ -902,6 +902,18 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_flags |= PPM_CL_CLONE_INVERTED;
 	}
 
+	// Copy the command name
+	// XXX We should retrieve the full executable name from the arguments that execve receives in the kernel,
+	// but for the moment we don't do it, so we just copy the command name into the exe string
+	parinfo = evt->get_param(1);
+	string tmps = parinfo->m_val;
+	if(tmps != ptinfo->m_comm)
+	{
+		tmps = tmps.substr(tmps.rfind("/") + 1);
+		tinfo.m_comm = tmps;
+		tinfo.m_exe = parinfo->m_val;
+	}
+
 	// Copy the working directory
 	parinfo = evt->get_param(6);
 	tinfo.set_cwd(parinfo->m_val, parinfo->m_len);
@@ -1029,9 +1041,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		//ASSERT(false);
 		return;
 	}
-
-	string prev_comm(evt->m_tinfo->m_comm);
-	string prev_exe(evt->m_tinfo->m_exe);
 
 	// Get the command name
 	parinfo = evt->get_param(1);
