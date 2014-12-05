@@ -425,10 +425,12 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 
 				len = val_len;
 			} else {
-				u32 sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
+				if (likely(args->enforce_snaplen)) {
+					u32 sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
 
-				if (val_len > sl) {
-					val_len = sl;
+					if (val_len > sl) {
+						val_len = sl;
+					}
 				}
 
 				if (unlikely(val_len >= args->arg_data_size))
