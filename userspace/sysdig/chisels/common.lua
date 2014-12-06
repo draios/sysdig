@@ -85,10 +85,10 @@ convert a number into a byte representation.
 E.g. 1230 becomes 1.23K
 ]]--
 function format_bytes(val)
-	if val > (1024 * 1024 * 1024) then
-		return string.format("%.2fP", val / (1024 * 1024 * 1024))
-	elseif val > (1024 * 1024 * 1024) then
-		return string.format("%.2fT", val / (1024 * 1024 * 1024))
+	if val > (1024 * 1024 * 1024 * 1024 * 1024) then
+		return string.format("%.2fP", val / (1024 * 1024 * 1024 * 1024 * 1024))
+	elseif val > (1024 * 1024 * 1024 * 1024) then
+		return string.format("%.2fT", val / (1024 * 1024 * 1024 * 1024))
 	elseif val > (1024 * 1024 * 1024) then
 		return string.format("%.2fG", val / (1024 * 1024 * 1024))
 	elseif val > (1024 * 1024) then
