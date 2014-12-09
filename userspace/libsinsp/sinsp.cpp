@@ -74,7 +74,9 @@ sinsp::sinsp() :
 
 	m_fds_to_remove = new vector<int64_t>;
 	m_machine_info = NULL;
+#ifdef SIMULATE_DROP_MODE
 	m_isdropping = false;
+#endif
 	m_n_proc_lookups = 0;
 	m_max_n_proc_lookups = 0;
 	m_max_n_proc_socket_lookups = 0;
@@ -877,7 +879,7 @@ void sinsp::stop_dropping_mode()
 
 		if(scap_stop_dropping_mode(m_h) != SCAP_SUCCESS)
 		{
-				throw sinsp_exception(scap_getlasterr(m_h));
+			throw sinsp_exception(scap_getlasterr(m_h));
 		}
 	}
 }

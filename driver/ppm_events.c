@@ -515,6 +515,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		break;
 	case PT_FLAGS32:
 	case PT_UINT32:
+	case PT_UID:
+	case PT_GID:
 		if (likely(args->arg_data_size >= sizeof(u32))) {
 			*(u32 *)(args->buffer + args->arg_data_offset) = (u32)val;
 			len = sizeof(u32);

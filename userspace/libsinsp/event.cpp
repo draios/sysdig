@@ -21,7 +21,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
+#else
+#define NOMINMAX
 #endif
+
+#include <limits>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -1202,6 +1206,21 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 			break;
 		}
+	case PT_UID:
+	case PT_GID:
+	{
+		ASSERT(payload_len == sizeof(uint32_t));
+		uint32_t val = *(uint32_t *)payload;
+		if(val < std::numeric_limits<uint32_t>::max() )
+		{
+			ret = val;
+		}
+		else
+		{
+			ret = -1;
+		}
+		break;
+	}
 	case PT_ABSTIME:
 		//
 		// XXX not implemented yet
@@ -1821,6 +1840,72 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		         m_paramstr_storage.size(),
 		         "INVALID DYNAMIC PARAMETER");
 		break;
+	case PT_UID:
+	{
+		uint32_t val = *(uint32_t *)payload;
+		if (val < std::numeric_limits<uint32_t>::max())
+		{
+			snprintf(&m_paramstr_storage[0],
+					 m_paramstr_storage.size(),
+					 "%d", val);
+			auto find_it = m_inspector->get_userlist()->find(val);
+			if (find_it != m_inspector->get_userlist()->end())
+			{
+				scap_userinfo* user_info = find_it->second;
+				strcpy_sanitized(&m_resolved_paramstr_storage[0], user_info->name,
+								m_resolved_paramstr_storage.size());
+			}
+			else
+			{
+				snprintf(&m_resolved_paramstr_storage[0],
+						m_resolved_paramstr_storage.size(),
+						"<NA>");
+			}
+		}
+		else
+		{
+			snprintf(&m_paramstr_storage[0],
+					 m_paramstr_storage.size(),
+					 "-1");
+			snprintf(&m_resolved_paramstr_storage[0],
+					m_resolved_paramstr_storage.size(),
+					"<NONE>");
+		}
+		break;
+	}
+	case PT_GID:
+	{
+		uint32_t val = *(uint32_t *)payload;
+		if (val < std::numeric_limits<uint32_t>::max())
+		{
+			snprintf(&m_paramstr_storage[0],
+					 m_paramstr_storage.size(),
+					 "%d", val);
+			auto find_it = m_inspector->get_grouplist()->find(val);
+			if (find_it != m_inspector->get_grouplist()->end())
+			{
+				scap_groupinfo* group_info = find_it->second;
+				strcpy_sanitized(&m_resolved_paramstr_storage[0], group_info->name,
+								m_resolved_paramstr_storage.size());
+			}
+			else
+			{
+				snprintf(&m_resolved_paramstr_storage[0],
+						m_resolved_paramstr_storage.size(),
+						"<NA>");
+			}
+		}
+		else
+		{
+			snprintf(&m_paramstr_storage[0],
+					 m_paramstr_storage.size(),
+					 "-1");
+			snprintf(&m_resolved_paramstr_storage[0],
+					m_resolved_paramstr_storage.size(),
+					"<NONE>");
+		}
+		break;
+	}
 	default:
 		ASSERT(false);
 		snprintf(&m_paramstr_storage[0],
