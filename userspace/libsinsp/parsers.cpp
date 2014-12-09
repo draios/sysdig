@@ -767,7 +767,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		}
 		else
 		{
-			ASSERT(evt->get_num() < 10000);
 			m_inspector->remove_thread(childtid, true);
 			tid_collision = true;
 		}
@@ -994,6 +993,15 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_gid = *(int32_t *)parinfo->m_val;
+
+	// Set cgroups
+	switch(etype)
+	{
+		case PPME_SYSCALL_CLONE_17_X:
+			parinfo = evt->get_param(16);
+			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
+			break;
+	}
 
 	//
 	// Initilaize the thread clone time
