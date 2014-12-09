@@ -254,10 +254,13 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char*buf, u32 lo
 							}
 						}
 					} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
-						if (lookahead_size >= 1)
+						if (lookahead_size >= 2)
 						{
-							if ( ( buf[0] == 'Q' && buf[1] == 0 ) ||
-								   buf[0] == 'P' && buf[1] == 0 )
+							if ( ( buf[0] == 'Q' && buf[1] == 0 ) || // SimpleQuery command
+								( buf[0] == 'P' && buf[1] == 0 ) || // Prepare statement commmand
+								 ( buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || // startup command
+								 ( buf[0] == 'E' && buf[1] == 0 ) // error or execute command
+							)
 							{
 								sockfd_put(sock);
 								return 2000;
