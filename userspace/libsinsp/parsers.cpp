@@ -194,6 +194,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_CLONE_17_X:
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
 		parse_clone_exit(evt);
@@ -372,6 +373,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	bool query_os;
 	if(etype == PPME_SYSCALL_CLONE_11_X ||
 		etype == PPME_SYSCALL_CLONE_16_X ||
+		etype == PPME_SYSCALL_CLONE_17_X ||
 		etype == PPME_SYSCALL_FORK_X ||
 		etype == PPME_SYSCALL_VFORK_X ||
 		etype == PPME_SCHEDSWITCH_6_E)
@@ -394,6 +396,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	{
 		if(etype == PPME_SYSCALL_CLONE_11_X ||
 			etype == PPME_SYSCALL_CLONE_16_X ||
+			etype == PPME_SYSCALL_CLONE_17_X ||
 			etype == PPME_SYSCALL_FORK_X ||
 			etype == PPME_SYSCALL_VFORK_X)
 		{
@@ -687,6 +690,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 					parinfo = evt->get_param(8);
 					break;
 				case PPME_SYSCALL_CLONE_16_X:
+				case PPME_SYSCALL_CLONE_17_X:
 				case PPME_SYSCALL_FORK_X:
 				case PPME_SYSCALL_VFORK_X:
 					parinfo = evt->get_param(13);
@@ -855,6 +859,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(8);
 			break;
 		case PPME_SYSCALL_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_17_X:
 		case PPME_SYSCALL_FORK_X:
 		case PPME_SYSCALL_VFORK_X:
 			parinfo = evt->get_param(13);
@@ -923,7 +928,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	tinfo.m_fdlimit = *(int64_t *)parinfo->m_val;
 
-	if(etype == PPME_SYSCALL_CLONE_16_X || etype == PPME_SYSCALL_FORK_X || etype == PPME_SYSCALL_VFORK_X)
+	if(etype == PPME_SYSCALL_CLONE_16_X ||
+		etype == PPME_SYSCALL_CLONE_17_X || 
+		etype == PPME_SYSCALL_FORK_X || 
+		etype == PPME_SYSCALL_VFORK_X)
 	{
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
@@ -958,6 +966,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(9);
 			break;
 		case PPME_SYSCALL_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_17_X:
 		case PPME_SYSCALL_FORK_X:
 		case PPME_SYSCALL_VFORK_X:
 			parinfo = evt->get_param(14);
@@ -975,6 +984,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(10);
 			break;
 		case PPME_SYSCALL_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_17_X:
 		case PPME_SYSCALL_FORK_X:
 		case PPME_SYSCALL_VFORK_X:
 			parinfo = evt->get_param(15);

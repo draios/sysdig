@@ -269,8 +269,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
 	[PPME_SYSCALL_EXECVE_14_E] = {f_sys_empty},
 	[PPME_SYSCALL_EXECVE_14_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_CLONE_16_E] = {f_sys_empty},
-	[PPME_SYSCALL_CLONE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_CLONE_17_E] = {f_sys_empty},
+	[PPME_SYSCALL_CLONE_17_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
@@ -292,7 +292,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
 	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
 	[PPME_SYSCALL_FORK_E] = {f_sys_empty},
-	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_FORK_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_VFORK_E] = {f_sys_empty},
 	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
@@ -845,7 +845,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (args->event_type == PPME_SYSCALL_CLONE_16_X ||
+	if (args->event_type == PPME_SYSCALL_CLONE_17_X ||
 		args->event_type == PPME_SYSCALL_FORK_X ||
 		args->event_type == PPME_SYSCALL_VFORK_X) {
 		/*
@@ -858,11 +858,14 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		uint64_t euid = current_euid();
 		uint64_t egid = current_egid();
 #endif
+		int j = 0;
+		int available = STR_STORAGE_SIZE;
+		char* p = args->str_storage;
 
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_16_X) {
+		if (args->event_type == PPME_SYSCALL_CLONE_17_X) {
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 		} else {
 			val = 0;
@@ -884,6 +887,73 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		res = val_to_ring(args, egid, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+		if (args->event_type == PPME_SYSCALL_CLONE_17_X) {
+			/*
+			 * cgroups
+			 */
+			rcu_read_lock();
+			for (j = 0; j < CGROUP_SUBSYS_COUNT; ++j) {
+				char *path;
+				int sslen;
+				int pathlen;
+				struct cgroup_subsys *ss;
+
+				struct cgroup_subsys_state *css = task_css(current, j);
+				if (!css) {
+					ASSERT(false);
+					continue;
+				}
+
+				ss = css->ss;
+				if (!ss) {
+					ASSERT(false);
+					continue;
+				}
+
+				if (!ss->name) {
+					ASSERT(false);
+					continue;
+				}
+
+				sslen = strlen(ss->name);
+				if (sslen > available)
+					break;
+
+				memcpy(p, ss->name, sslen);
+				p += sslen;
+				available -= sslen;
+
+				if (available < 1)
+					break;
+
+				*p++ = '=';
+				--available;
+
+				path = cgroup_path(css->cgroup, p, available);
+				if (!path) {
+					ASSERT(false);
+					path = "NULL";
+				}
+
+				pathlen = strlen(path);
+				memmove(p, path, pathlen);
+				p += pathlen;
+				available -= pathlen;
+
+				if (available < 1)
+					break;
+
+				*p++ = 0;
+				--available;
+			}
+			rcu_read_unlock();
+			args->str_storage[STR_STORAGE_SIZE - available] = 0;
+
+			res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+		}
 	} else if (args->event_type == PPME_SYSCALL_EXECVE_14_X) {
 		/*
 		 * execve-only parameters
