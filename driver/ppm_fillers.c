@@ -894,7 +894,11 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			 */
  			args->str_storage[0] = 0;
 			rcu_read_lock();
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 			for (j = 0; j < CGROUP_SUBSYS_COUNT; ++j) {
+#else
+			for (j = 0; j < CGROUP_BUILTIN_SUBSYS_COUNT; ++j) {
+#endif
 				char *path;
 				int pathlen;
 

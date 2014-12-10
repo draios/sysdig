@@ -1404,7 +1404,12 @@ int sysdig_init(void)
 	g_tracepoint_registered = false;
 	g_dropping_mode = 0;
 
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
 	pr_info("cgroup_subsystems: %d\n", CGROUP_SUBSYS_COUNT);
+#else
+	pr_info("cgroup_subsystems: %d\n", CGROUP_BUILTIN_SUBSYS_COUNT);
+#endif
 
 	return 0;
 
