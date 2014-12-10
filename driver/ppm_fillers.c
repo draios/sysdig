@@ -899,7 +899,11 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 				int pathlen;
 				struct cgroup_subsys *ss;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
 				struct cgroup_subsys_state *css = task_css(current, j);
+#else
+				struct cgroup_subsys_state *css = task_subsys_state(current, j);
+#endif
 				if (!css) {
 					continue;
 				}
