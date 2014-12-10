@@ -901,7 +901,6 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 
 				struct cgroup_subsys_state *css = task_css(current, j);
 				if (!css) {
-					ASSERT(false);
 					continue;
 				}
 
@@ -938,7 +937,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 				}
 #else
 				res = cgroup_path(css->cgroup, p, available);
-				if (retval < 0) {
+				if (res < 0) {
 					ASSERT(false);
 					path = "NA";
 				} else {
