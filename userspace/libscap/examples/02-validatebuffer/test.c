@@ -34,11 +34,15 @@ size_t g_get_event_size(enum ppm_event_type event_type, uint16_t* lens)
 	int32_t res = 0;
 
 	for(j = 0; j < g_event_info[event_type].nparams; j++)
-	{
+	{	
 		res += lens[j];
 	}
 
+#ifdef PPM_ENABLE_SENTINEL
 	return res + j * sizeof(uint16_t) + sizeof(struct ppm_evt_hdr) + sizeof(uint32_t);
+#else
+	return res + j * sizeof(uint16_t) + sizeof(struct ppm_evt_hdr);
+#endif
 }
 
 int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, OUT uint32_t* nevents)
@@ -65,7 +69,8 @@ int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, O
 
 		hdr = (struct ppm_evt_hdr*)(copy_buffer + offset);
 
-		if(buf_len < sizeof(struct ppm_evt_hdr) + g_event_info[hdr->type].nparams * sizeof(uint16_t))
+		uint16_t type = hdr->type;
+		if(buf_len < sizeof(struct ppm_evt_hdr) + g_event_info[type].nparams * sizeof(uint16_t))
 		{
 			fprintf(stderr, "Error: event not on buffer boundary, offset %x, data to read %d\n",
 			        offset,
@@ -242,11 +247,21 @@ int main()
 
 		if(nloops == 1000)
 		{
-			printf("bps:%" PRIu64 " totbytes:%" PRIu64 " - evts/s:%" PRIu64 " totevs:%" PRIu64 "\n",
+			scap_stats stats;
+
+			if(scap_get_stats(h, &stats) != SCAP_SUCCESS)
+			{
+				fprintf(stderr, "%s\n", scap_getlasterr(h));
+				scap_close(h);
+				return -1;				
+			}
+
+			printf("bps:%" PRIu64 " totbytes:%" PRIu64 " - evts/s:%" PRIu64 " totevs:%" PRIu64 " drops:%" PRIu64 "\n",
 			       totbytes - oldtotbytes,
 			       totbytes,
 			       totevents - oldtotevents,
-			       totevents);
+			       totevents,
+			       stats.n_drops);
 
 			oldtotbytes = totbytes;
 			oldtotevents = totevents;

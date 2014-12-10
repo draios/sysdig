@@ -84,6 +84,7 @@ sinsp::sinsp() :
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
+	m_max_evt_output_len = 0;
 	m_filesize = -1;
 	m_import_users = true;
 }
@@ -1065,6 +1066,11 @@ void sinsp::set_debug_mode(bool enable_debug)
 void sinsp::set_fatfile_dump_mode(bool enable_fatfile)
 {
 	m_isfatfile_enabled = enable_fatfile;
+}
+
+void sinsp::set_max_evt_output_len(uint32_t len)
+{
+	m_max_evt_output_len = len;
 }
 
 bool sinsp::is_debug_enabled()

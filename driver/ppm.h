@@ -84,3 +84,4 @@ extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 extern u32 g_sampling_ratio;
 
 #define PPM_PORT_MYSQL 3306
+#define PPM_PORT_POSTGRES 5432
