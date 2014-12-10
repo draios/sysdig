@@ -182,7 +182,7 @@ static void usage()
 " -v, --verbose      Verbose output.\n"
 "                    This flag will cause the full content of text and binary\n"
 "                    buffers to be printed on screen, instead of being truncated\n"
-"                    to 32 characters. Note that data buffers length is still\n"
+"                    to 40 characters. Note that data buffers length is still\n"
 "                    limited by the snaplen (refer to the -s flag documentation)\n"
 "                    -v will also make sysdig print some summary information at\n"
 "                    the end of the capture.\n"
