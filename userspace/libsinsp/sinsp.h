@@ -522,6 +522,14 @@ public:
 	void set_fatfile_dump_mode(bool enable_fatfile);
 
 	/*!
+	  \brief sets the max length of event argument strings. 
+	  \param len Max length after which an avent argument string is truncated.
+	   0 means no limit. Use this to reduce verbosity when printing event info
+	   on screen.
+	*/
+	void set_max_evt_output_len(uint32_t len);
+
+	/*!
 	  \brief Returns true if the debug mode is enabled.
 	*/
 	bool is_debug_enabled();
@@ -596,6 +604,7 @@ private:
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
+	uint32_t m_max_evt_output_len;
 	bool m_compress;
 	sinsp_evt m_evt;
 	string m_lasterr;

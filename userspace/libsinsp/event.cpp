@@ -1502,7 +1502,18 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				continue;
 			}
 
-			m_rawbuf_str_len = blen;
+			ASSERT(m_inspector != NULL);
+			if(m_inspector->m_max_evt_output_len != 0)
+			{
+				uint32_t real_len = MIN(blen, m_inspector->m_max_evt_output_len);
+
+				m_rawbuf_str_len = real_len;
+				m_paramstr_storage[real_len] = 0;
+			}
+			else
+			{
+				m_rawbuf_str_len = blen;
+			}
 
 			break;
 		}

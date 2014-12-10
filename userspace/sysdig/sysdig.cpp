@@ -180,6 +180,12 @@ static void usage()
 "                    capture, d for delta between event enter and exit, and\n"
 "                    D for delta from the previous event.\n"
 " -v, --verbose      Verbose output.\n"
+"                    This flag will cause the full content of text and binary\n"
+"                    buffers to be printed on screen, instead of being truncated\n"
+"                    to 32 characters. Note that data buffers length is still\n"
+"                    limited by the snaplen (refer to the -s flag documentation)\n"
+"                    -v will also make sysdig print some summary information at\n"
+"                    the end of the capture.\n"
 " --version          Print version number.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
@@ -1142,6 +1148,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// Create the event formatter
 		//
 		sinsp_evt_formatter formatter(inspector, output_format);
+
+		//
+		// Set output buffers len
+		//
+		if(!verbose)
+		{
+			inspector->set_max_evt_output_len(40);
+		}
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
