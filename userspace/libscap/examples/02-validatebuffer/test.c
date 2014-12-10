@@ -34,7 +34,7 @@ size_t g_get_event_size(enum ppm_event_type event_type, uint16_t* lens)
 	int32_t res = 0;
 
 	for(j = 0; j < g_event_info[event_type].nparams; j++)
-	{
+	{	
 		res += lens[j];
 	}
 
@@ -243,15 +243,25 @@ int main()
 		// XXX this should check the buffer sizes and sleep only if they are all below a certain
 		// threshold.
 		//
-		usleep(100000);
+		usleep(1000);
 
 		if(nloops == 1000)
 		{
-			printf("bps:%" PRIu64 " totbytes:%" PRIu64 " - evts/s:%" PRIu64 " totevs:%" PRIu64 "\n",
+			scap_stats stats;
+
+			if(scap_get_stats(h, &stats) != SCAP_SUCCESS)
+			{
+				fprintf(stderr, "%s\n", scap_getlasterr(h));
+				scap_close(h);
+				return -1;				
+			}
+
+			printf("bps:%" PRIu64 " totbytes:%" PRIu64 " - evts/s:%" PRIu64 " totevs:%" PRIu64 " drops:%" PRIu64 "\n",
 			       totbytes - oldtotbytes,
 			       totbytes,
 			       totevents - oldtotevents,
-			       totevents);
+			       totevents,
+			       stats.n_drops);
 
 			oldtotbytes = totbytes;
 			oldtotevents = totevents;
