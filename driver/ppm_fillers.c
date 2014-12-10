@@ -930,11 +930,21 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 				*p++ = '=';
 				--available;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 				path = cgroup_path(css->cgroup, p, available);
 				if (!path) {
 					ASSERT(false);
-					path = "NULL";
+					path = "NA";
 				}
+#else
+				res = cgroup_path(css->cgroup, p, available);
+				if (retval < 0) {
+					ASSERT(false);
+					path = "NA";
+				} else {
+					path = p;
+				}
+#endif
 
 				pathlen = strlen(path);
 				memmove(p, path, pathlen);
