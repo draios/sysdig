@@ -892,12 +892,11 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			/*
 			 * cgroups
 			 */
+ 			args->str_storage[0] = 0;
 			rcu_read_lock();
 			for (j = 0; j < CGROUP_SUBSYS_COUNT; ++j) {
 				char *path;
-				int sslen;
 				int pathlen;
-				struct cgroup_subsys *ss;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
 				struct cgroup_subsys_state *css = task_css(current, j);
@@ -905,33 +904,14 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 				struct cgroup_subsys_state *css = task_subsys_state(current, j);
 #endif
 				if (!css) {
-					continue;
-				}
-
-				ss = css->ss;
-				if (!ss) {
 					ASSERT(false);
 					continue;
 				}
 
-				if (!ss->name) {
+				if (!css->cgroup) {
 					ASSERT(false);
 					continue;
 				}
-
-				sslen = strlen(ss->name);
-				if (sslen > available)
-					break;
-
-				memcpy(p, ss->name, sslen);
-				p += sslen;
-				available -= sslen;
-
-				if (available < 1)
-					break;
-
-				*p++ = '=';
-				--available;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 				path = cgroup_path(css->cgroup, p, available);
@@ -950,18 +930,16 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 #endif
 
 				pathlen = strlen(path);
+				if (pathlen + 1 > available) {
+					break;
+				}
+
 				memmove(p, path, pathlen);
 				p += pathlen;
-				available -= pathlen;
-
-				if (available < 1)
-					break;
-
 				*p++ = 0;
-				--available;
+				available -= pathlen + 1;
 			}
 			rcu_read_unlock();
-			args->str_storage[STR_STORAGE_SIZE - available] = 0;
 
 			res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
 			if (unlikely(res != PPM_SUCCESS))

@@ -1404,6 +1404,8 @@ int sysdig_init(void)
 	g_tracepoint_registered = false;
 	g_dropping_mode = 0;
 
+	pr_info("cgroup_subsystems: %d\n", CGROUP_SUBSYS_COUNT);
+
 	return 0;
 
 init_module_err:
