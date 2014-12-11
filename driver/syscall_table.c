@@ -117,8 +117,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_utime - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_mount - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_umount2 - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_setuid - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_getuid - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_ptrace - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_PTRACE_E, PPME_SYSCALL_PTRACE_X},
 	[__NR_alarm - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_pause - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
@@ -192,11 +190,17 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setuid
 	[__NR_setuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETUID_E, PPME_SYSCALL_SETUID_X },
 #endif
+#ifdef __NR_setuid32
+	[__NR_setuid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETUID_E, PPME_SYSCALL_SETUID_X },
+#endif
 #ifdef __NR_setgid
 	[__NR_setgid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETGID_E, PPME_SYSCALL_SETGID_X },
 #endif
 #ifdef __NR_getuid
 	[__NR_getuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETUID_E, PPME_SYSCALL_GETUID_X },
+#endif
+#ifdef __NR_getuid32
+	[__NR_getuid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETUID_E, PPME_SYSCALL_GETUID_X },
 #endif
 #ifdef __NR_geteuid
 	[__NR_geteuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETEUID_E, PPME_SYSCALL_GETEUID_X },
@@ -688,11 +692,17 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setuid
 	[__NR_setuid - SYSCALL_TABLE_ID0] = PPM_SC_SETUID,
 #endif
+#ifdef __NR_setuid32
+	[__NR_setuid32 - SYSCALL_TABLE_ID0] = PPM_SC_SETUID32,
+#endif
 #ifdef __NR_setgid
 	[__NR_setgid - SYSCALL_TABLE_ID0] = PPM_SC_SETGID,
 #endif
 #ifdef __NR_getuid
 	[__NR_getuid - SYSCALL_TABLE_ID0] = PPM_SC_GETUID,
+#endif
+#ifdef __NR_getuid32
+	[__NR_getuid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETUID32,
 #endif
 #ifdef __NR_geteuid
 	[__NR_geteuid - SYSCALL_TABLE_ID0] = PPM_SC_GETEUID,

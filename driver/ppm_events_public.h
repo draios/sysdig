@@ -913,7 +913,9 @@ enum ppm_syscall_code {
 	PPM_SC_PROCESS_VM_WRITEV = 302,
 	PPM_SC_FORK = 303,
 	PPM_SC_VFORK = 304,
-	PPM_SC_MAX = 305,
+	PPM_SC_SETUID32 = 305,
+	PPM_SC_GETUID32 = 306,
+	PPM_SC_MAX = 307,
 };
 
 /*
