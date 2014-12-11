@@ -68,6 +68,8 @@ void sinsp_threadinfo::init()
 	m_vmswap_kb = 0;
 	m_pfmajor = 0;
 	m_pfminor = 0;
+	m_vtid = -1;
+	m_vpid = -1;
 	m_main_thread = NULL;
 	m_lastevent_fd = 0;
 #ifdef HAS_FILTERING

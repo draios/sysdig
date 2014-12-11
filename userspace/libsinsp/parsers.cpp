@@ -994,10 +994,17 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_gid = *(int32_t *)parinfo->m_val;
 
-	// Set cgroups
 	switch(etype)
 	{
 		case PPME_SYSCALL_CLONE_19_X:
+			parinfo = evt->get_param(16);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			tinfo.m_vtid = *(int64_t *)parinfo->m_val;
+
+			parinfo = evt->get_param(17);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			tinfo.m_vpid = *(int64_t *)parinfo->m_val;
+
 			parinfo = evt->get_param(18);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
 			break;
