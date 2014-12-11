@@ -358,8 +358,30 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 	size_t offset = 0;
 	while(offset < len)
 	{
-		m_cgroups.push_back(cgroups + offset);
-		offset += m_cgroups.back().length() + 1;
+		string s(cgroups + offset);
+		m_cgroups.push_back(s);
+		offset += s.length() + 1;
+
+		if(m_container.empty())
+		{
+			size_t pos;
+			pos = s.find("/docker/");
+			if(pos != string::npos)
+			{
+				if(s.length() - pos - sizeof("/docker/") + 1 == 64)
+				{
+					m_container = s.substr(pos + sizeof("/docker/") - 1, 12);
+					continue;
+				}
+			}
+
+			pos = s.find("/lxc/");
+			if(pos != string::npos)
+			{
+				m_container = s.substr(pos + sizeof("/lxc/") - 1);
+				continue;
+			}
+		}
 	}
 }
 

@@ -998,7 +998,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	switch(etype)
 	{
 		case PPME_SYSCALL_CLONE_19_X:
-			parinfo = evt->get_param(16);
+			parinfo = evt->get_param(18);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
 			break;
 	}
