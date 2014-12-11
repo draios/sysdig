@@ -48,28 +48,6 @@ const struct ppm_syscall_desc* scap_get_syscall_info_table()
 	return g_syscall_info_table;
 }
 
-uint32_t scap_event_compute_len(scap_evt* e)
-{
-	uint32_t j;
-	uint32_t res = 0;
-	uint16_t* lens = (uint16_t*)((char*)e + sizeof(struct ppm_evt_hdr));
-
-	ASSERT(e->type < PPM_EVENT_MAX);
-
-	for(j = 0; j < g_event_info[e->type].nparams; j++)
-	{
-		res += lens[j];
-	}
-
-	res += g_event_info[e->type].nparams * sizeof(uint16_t) + sizeof(struct ppm_evt_hdr);
-
-#ifdef PPM_ENABLE_SENTINEL
-	res += sizeof(uint32_t);
-#endif
-
-	return res;
-}
-
 uint32_t scap_event_getlen(scap_evt* e)
 {
 	return e->len;

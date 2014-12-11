@@ -77,6 +77,7 @@ scap_t* scap_open_live_int(char *error,
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
+//	ndevs = 1;
 
 	//
 	// Allocate the device descriptors.
@@ -466,6 +467,8 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
+int pippo = 0;
+int pippo1 = 0;
 int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
 {
 	uint32_t thead;
@@ -485,7 +488,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** b
 	// I use this instead of asm(mfence) because it should be portable even on the weirdest
 	// CPUs
 	//
-	__sync_synchronize();
+//	__sync_synchronize();
 
 	if(ttail < RING_BUF_SIZE)
 	{
@@ -497,68 +500,27 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** b
 	}
 
 	//
-	// Does the user want to block?
+	// Read the pointers.
 	//
-	if(blocking)
+/*
+	get_buf_pointers(handle->m_devs[cpuid].m_bufinfo,
+	                 &thead,
+	                 &ttail,
+	                 &read_size);
+*/
+
+	struct ppm_ring_buffer_info* bufinfo = handle->m_devs[cpuid].m_bufinfo;
+	thead = bufinfo->head;
+	ttail = bufinfo->tail;
+
+	if(ttail > thead)
 	{
-		//
-		// If we are asked to operate in blocking mode, keep waiting until at least
-		// MIN_USERSPACE_READ_SIZE bytes are in the buffer.
-		//
-		while(true)
-		{
-			get_buf_pointers(handle->m_devs[cpuid].m_bufinfo,
-			                 &thead,
-			                 &ttail,
-			                 &read_size);
-
-			if(read_size >= MIN_USERSPACE_READ_SIZE)
-			{
-				break;
-			}
-
-			usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
-		}
+		read_size = RING_BUF_SIZE - ttail + thead;
 	}
 	else
 	{
-		//
-		// If we are not asked to block, read the pointers and keep going.
-		//
-		get_buf_pointers(handle->m_devs[cpuid].m_bufinfo,
-		                 &thead,
-		                 &ttail,
-		                 &read_size);
+		read_size = thead - ttail;
 	}
-
-	//
-	// logic check
-	// XXX should probably be an assertion, but for the moment we want to print some meaningful info and
-	// stop the processing.
-	//
-	if((handle->m_devs[cpuid].m_bufinfo->tail + read_size) % RING_BUF_SIZE != thead)
-	{
-		snprintf(handle->m_lasterr,
-		         SCAP_LASTERR_SIZE,
-		         "buffer corruption. H=%u, T=%u, R=%u, S=%u (%u)",
-		         thead,
-		         handle->m_devs[cpuid].m_bufinfo->tail,
-		         read_size,
-		         RING_BUF_SIZE,
-		         (handle->m_devs[cpuid].m_bufinfo->tail + read_size) % RING_BUF_SIZE);
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-#if 0
-	printf("%u)H:%u T:%u Used:%u Free:%u Size=%u\n",
-	       cpuid,
-	       thead,
-	       ttail,
-	       read_size,
-	       (uint32_t)(RING_BUF_SIZE - read_size - 1),
-	       (uint32_t)RING_BUF_SIZE);
-#endif
 
 	//
 	// Remember read_size so we can update the tail at the next call
@@ -639,7 +601,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 			{
 				if(check_scap_next_wait(handle) && !waited)
 				{
-					usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
+					usleep(BUFFER_EMPTY_WAIT_TIME_MS * 10000);
 					waited = true;
 					handle->m_n_consecutive_waits++;
 				}
@@ -653,6 +615,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 			                           false,
 			                           &handle->m_devs[j].m_sn_next_event,
 			                           &handle->m_devs[j].m_sn_len);
+if(++pippo1 % 1000 == 0) printf("!!! %d %d\n", pippo1, (int)j);
 
 			if(res != SCAP_SUCCESS)
 			{
@@ -674,10 +637,6 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 			// We want to consume the event with the lowest timestamp
 			//
 			pe = (scap_evt*)handle->m_devs[j].m_sn_next_event;
-
-#ifdef _DEBUG
-			ASSERT(pe->len == scap_event_compute_len(pe));
-#endif
 
 			if(pe->ts < max_ts)
 			{
