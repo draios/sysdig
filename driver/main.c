@@ -34,6 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
+#include <linux/cgroup.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
 
