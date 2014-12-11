@@ -690,6 +690,44 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
+static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
+{
+	char *start;
+	struct dentry *dentry = rcu_dereference(cgrp->dentry);
+
+	if (!dentry) {
+		/*
+		 * Inactive subsystems have no dentry for their root
+		 * cgroup
+		 */
+		strcpy(buf, "/");
+		return 0;
+	}
+
+	start = buf + buflen;
+
+	*--start = '\0';
+	for (;;) {
+		int len = dentry->d_name.len;
+		if ((start -= len) < buf)
+			return -ENAMETOOLONG;
+		memcpy(start, cgrp->dentry->d_name.name, len);
+		cgrp = cgrp->parent;
+		if (!cgrp)
+			break;
+		dentry = rcu_dereference(cgrp->dentry);
+		if (!cgrp->parent)
+			continue;
+		if (--start < buf)
+			return -ENAMETOOLONG;
+		*start = '/';
+	}
+	memmove(buf, start, buf + buflen - start);
+	return 0;
+}
+#endif
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -932,8 +970,16 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 					ASSERT(false);
 					path = "NA";
 				}
-#else
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 				res = cgroup_path(css->cgroup, p, available);
+				if (res < 0) {
+					ASSERT(false);
+					path = "NA";
+				} else {
+					path = p;
+				}
+#else
+				res = ppm_cgroup_path(css->cgroup, p, available);
 				if (res < 0) {
 					ASSERT(false);
 					path = "NA";
