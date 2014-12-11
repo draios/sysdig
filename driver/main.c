@@ -1275,6 +1275,7 @@ int sysdig_init(void)
 	int j;
 	int n_created_devices = 0;
 	struct device *device = NULL;
+	int subsys_count;
 
 	pr_info("driver loading\n");
 
@@ -1405,12 +1406,19 @@ int sysdig_init(void)
 	g_tracepoint_registered = false;
 	g_dropping_mode = 0;
 
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
-	pr_info("cgroup_subsystems: %d\n", CGROUP_SUBSYS_COUNT);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+	subsys_count = CGROUP_SUBSYS_COUNT;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
+	subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+	subsys_count = CGROUP_SUBSYS_COUNT;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
 #else
-	pr_info("cgroup_subsystems: %d\n", CGROUP_BUILTIN_SUBSYS_COUNT);
+	subsys_count = CGROUP_SUBSYS_COUNT;
 #endif
+
+	pr_info("cgroup_subsystems: %d\n", subsys_count);
 
 	return 0;
 

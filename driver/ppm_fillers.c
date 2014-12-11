@@ -893,13 +893,21 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			/*
 			 * cgroups
 			 */
+			int subsys_count;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+			subsys_count = CGROUP_SUBSYS_COUNT;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
+			subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+			subsys_count = CGROUP_SUBSYS_COUNT;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+			subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
+#else
+			subsys_count = CGROUP_SUBSYS_COUNT;
+#endif
  			args->str_storage[0] = 0;
 			rcu_read_lock();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
-			for (j = 0; j < CGROUP_SUBSYS_COUNT; ++j) {
-#else
-			for (j = 0; j < CGROUP_BUILTIN_SUBSYS_COUNT; ++j) {
-#endif
+			for (j = 0; j < subsys_count; ++j) {
 				char *path;
 				int pathlen;
 
