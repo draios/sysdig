@@ -729,8 +729,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
-	output_format = "*%evt.num <TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
-//	output_format = DEFAULT_OUTPUT_STR;
+	output_format = "*%evt.num <TIME> %evt.cpu %thread.container (%thread.vtid) %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
 
 	try
 	{
