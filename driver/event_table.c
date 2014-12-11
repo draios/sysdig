@@ -232,6 +232,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_GETGID_X */ {"getgid", EC_USER, EF_NONE, 1, {{"gid", PT_GID, PF_DEC}}},
 	/* PPME_SYSCALL_GETEGID_E */ {"getegid", EC_USER, EF_NONE, 0 },
 	/* PPME_SYSCALL_GETEGID_X */ {"getegid", EC_USER, EF_NONE, 1, {{"egid", PT_GID, PF_DEC}}},
-	/* PPME_CLONE_17_E */{"clone", EC_PROCESS, EF_MODIFIES_STATE, 0},
-	/* PPME_CLONE_17_X */{"clone", EC_PROCESS, EF_MODIFIES_STATE, 17, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC}, {"cgroups", PT_BYTEBUF, PF_NA} } },
+	/* PPME_CLONE_19_E */{"clone", EC_PROCESS, EF_MODIFIES_STATE, 0},
+	/* PPME_CLONE_19_X */{"clone", EC_PROCESS, EF_MODIFIES_STATE, 19, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC}, {"vtid", PT_PID, PF_DEC}, {"vpid", PT_PID, PF_DEC}, {"cgroups", PT_BYTEBUF, PF_NA} } },
 };

@@ -270,8 +270,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
 	[PPME_SYSCALL_EXECVE_14_E] = {f_sys_empty},
 	[PPME_SYSCALL_EXECVE_14_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_CLONE_17_E] = {f_sys_empty},
-	[PPME_SYSCALL_CLONE_17_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_CLONE_19_E] = {f_sys_empty},
+	[PPME_SYSCALL_CLONE_19_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
@@ -884,7 +884,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (args->event_type == PPME_SYSCALL_CLONE_17_X ||
+	if (args->event_type == PPME_SYSCALL_CLONE_19_X ||
 		args->event_type == PPME_SYSCALL_FORK_X ||
 		args->event_type == PPME_SYSCALL_VFORK_X) {
 		/*
@@ -904,7 +904,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_17_X) {
+		if (args->event_type == PPME_SYSCALL_CLONE_19_X) {
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 		} else {
 			val = 0;
@@ -927,11 +927,26 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-		if (args->event_type == PPME_SYSCALL_CLONE_17_X) {
+		if (args->event_type == PPME_SYSCALL_CLONE_19_X) {
+			int subsys_count;
+			
+			/*
+			 * vtid
+			 */
+			res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+
+			/*
+			 * vpid
+			 */
+			res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+
 			/*
 			 * cgroups
 			 */
-			int subsys_count;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 			subsys_count = CGROUP_SUBSYS_COUNT;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
