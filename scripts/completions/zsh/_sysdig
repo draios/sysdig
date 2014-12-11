@@ -75,7 +75,13 @@ function _chisels () {
 
     function closetype() {
         if [[ -n "$alts_types[$#alts_types]" ]] && (($#alts_chisels)); then
-            alts_types[$#alts_types]+=$alts_chisels[*]'))'
+
+            # append the trailing "
+            local descriptions_for_type
+            typeset -a descriptions_for_type
+            descriptions_for_type=(${^alts_chisels}\")
+
+            alts_types[$#alts_types]+=$descriptions_for_type[*]'))'
         fi
         alts_chisels=()
         incategory=0
@@ -102,7 +108,12 @@ function _chisels () {
                 local name=$match[1];
                 local descr=$match[2];
                 local index=$(($#alts_chisels+1))
-                alts_chisels[$index]+="${name}\\:\"$descr\""
+                alts_chisels[$index]+="${name}\\:\"$descr" # leave out closing " to
+                # allow line
+                # continuations
+            elif (($incategory)) && [[ $line =~ "^ {$DESCRIPTION_TEXT_START}(.*)" ]]; then
+                # field continuation
+                alts_chisels[$#alts_chisels]+=$match[1]
             fi
         done
     closetype
