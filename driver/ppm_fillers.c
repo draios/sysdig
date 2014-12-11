@@ -34,6 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
+#include <linux/cgroup.h>
 #include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
