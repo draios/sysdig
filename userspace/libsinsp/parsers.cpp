@@ -644,6 +644,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent
 	bool tid_collision = false;
 	bool valid_parent = true;
+	bool in_container = false;
+	int64_t vtid = tid;
 	uint16_t etype = evt->get_type();
 
 	//
@@ -660,7 +662,25 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		return;
 	}
-	else if(childtid == 0)
+	
+	//
+	// Get the vtid to check if the clone is within a container
+	//
+	switch(etype)
+	{
+		case PPME_SYSCALL_CLONE_19_X:
+			parinfo = evt->get_param(16);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			vtid = *(int64_t *)parinfo->m_val;
+			break;
+	}
+
+	if(tid != vtid)
+	{
+		in_container = true;
+	}
+
+	if(childtid == 0)
 	{
 		//
 		// clone() returns 0 in the child.
@@ -673,7 +693,12 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// This happens if
 			//  - clone() returns in the child before than in the parent.
 			//  - we dropped the clone exit event in the parent.
+			//  - clone was executed in a container
 			// In both cases, we create the thread entry here
+			//
+			// XXX: inverted_clone flag should be useless for containers
+			// since just the child's clone is allowed to create a thread
+			//
 			is_inverted_clone = true;
 
 			//
@@ -725,6 +750,18 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 		}
 		else
+		{
+			return;
+		}
+	}
+	else
+	{
+		//
+		// We are in the father. If the father is running in a container,
+		// don't create the child process but wait until we see child, because
+		// the father just sees the internal tid of the child
+		//
+		if(in_container)
 		{
 			return;
 		}
@@ -994,17 +1031,42 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_gid = *(int32_t *)parinfo->m_val;
 
+	//
+	// If we're in a container, vtid and vpid are
+	// initialized to the values coming from the event,
+	// otherwise they are just set to tid and pid. We can't
+	// use the event in that case because in a non-container
+	// case also the clone exit from the father can create a
+	// child process, and it doesn't have the right vtid and vpid
+	// values
+	//
+	if(in_container)
+	{
+		switch(etype)
+		{
+			case PPME_SYSCALL_CLONE_19_X:
+				parinfo = evt->get_param(16);
+				ASSERT(parinfo->m_len == sizeof(int64_t));
+				tinfo.m_vtid = *(int64_t *)parinfo->m_val;
+
+				parinfo = evt->get_param(17);
+				ASSERT(parinfo->m_len == sizeof(int64_t));
+				tinfo.m_vpid = *(int64_t *)parinfo->m_val;
+				break;
+		}		
+	}
+	else
+	{
+		tinfo.m_vtid = tinfo.m_tid;
+		tinfo.m_vpid = tinfo.m_vpid;
+	}
+
+	//
+	// Set cgroups and heuristically detect container id
+	//
 	switch(etype)
 	{
 		case PPME_SYSCALL_CLONE_19_X:
-			parinfo = evt->get_param(16);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			tinfo.m_vtid = *(int64_t *)parinfo->m_val;
-
-			parinfo = evt->get_param(17);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			tinfo.m_vpid = *(int64_t *)parinfo->m_val;
-
 			parinfo = evt->get_param(18);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
 			break;
