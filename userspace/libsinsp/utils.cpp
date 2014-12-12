@@ -43,7 +43,6 @@ const chiseldir_info g_chisel_dirs_array[] =
 #ifdef _WIN32
 	{false, "c:/sysdig/chisels/"},
 #endif
-	{false, "./"},
 	{false, "./chisels/"},
 	{true, "~/.chisels/"},
 };

@@ -119,6 +119,7 @@ static int f_sys_sendfile_x(struct event_filler_arguments *args);
 static int f_sys_quotactl_e(struct event_filler_arguments *args);
 static int f_sys_quotactl_x(struct event_filler_arguments *args);
 static int f_sys_sysdigevent_e(struct event_filler_arguments *args);
+static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -301,22 +302,26 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
 	[PPME_SYSCALL_QUOTACTL_X] = {f_sys_quotactl_x},
 	[PPME_SYSCALL_SETRESUID_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_SETRESUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} },
+	[PPME_SYSCALL_SETRESUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_SETRESGID_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_SETRESGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} },
+	[PPME_SYSCALL_SETRESGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSDIGEVENT_E] = {f_sys_sysdigevent_e},
-	[PPME_SYSCALL_SETUID_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
-	[PPME_SYSCALL_SETUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
-	[PPME_SYSCALL_SETGID_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
-	[PPME_SYSCALL_SETGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_SETUID_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
+	[PPME_SYSCALL_SETUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_SETGID_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
+	[PPME_SYSCALL_SETGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_GETUID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_GETUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_GETEUID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETEUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_GETEUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_GETGID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_GETGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_GETEGID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETEGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_GETEGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_GETRESUID_E] = {f_sys_empty},
+	[PPME_SYSCALL_GETRESUID_X] = {f_sys_getresuid_and_gid_x},
+	[PPME_SYSCALL_GETRESGID_E] = {f_sys_empty},
+	[PPME_SYSCALL_GETRESGID_X] = {f_sys_getresuid_and_gid_x},
 };
 
 /*
@@ -4176,6 +4181,60 @@ static int f_sys_sysdigevent_e(struct event_filler_arguments *args)
 	 * event_data
 	 */
 	res = val_to_ring(args, (unsigned long)args->sched_next, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
+{
+	int res;
+	unsigned long val, len;
+	uint32_t uid;
+	int16_t retval;
+
+	/*
+	 * return value
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * ruid
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	len = ppm_copy_from_user(&uid, (void *)val, sizeof(uint32_t));
+	if (unlikely(len != 0))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = val_to_ring(args, uid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * euid
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	len = ppm_copy_from_user(&uid, (void *)val, sizeof(uint32_t));
+	if (unlikely(len != 0))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = val_to_ring(args, uid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * suid
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	len = ppm_copy_from_user(&uid, (void *)val, sizeof(uint32_t));
+	if (unlikely(len != 0))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = val_to_ring(args, uid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

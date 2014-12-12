@@ -3,7 +3,7 @@
 sysdig
 ======
 
-[![Build Status](https://travis-ci.org/draios/sysdig.png?branch=master)](https://travis-ci.org/draios/sysdig)
+[![Build Status](https://travis-ci.org/draios/sysdig.png?branch=dev)](https://travis-ci.org/draios/sysdig)
 
 Welcome to **sysdig** - an open source system-level exploration and troubleshooting tool. 
 
@@ -32,6 +32,7 @@ Join the Community
 * Contact the [official mailing list] (https://groups.google.com/forum/#!forum/sysdig) for support and to talk with other users
 * Follow us on [Twitter] (https://twitter.com/sysdig) for the Chisel of the Week
 * This is our [blog] (http://sysdigcloud.com/blog/). There are many like it, but this one is ours.
+* Join our IRC channel `#sysdig` on [Freenode](http://webchat.freenode.net/?channels=sysdig)
 
 Sysdig Cloud
 ---
