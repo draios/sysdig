@@ -3,7 +3,7 @@
 sysdig
 ======
 
-[![Build Status](https://travis-ci.org/draios/sysdig.png?branch=master)](https://travis-ci.org/draios/sysdig)
+[![Build Status](https://travis-ci.org/draios/sysdig.png?branch=dev)](https://travis-ci.org/draios/sysdig)
 
 Welcome to **sysdig** - an open source system-level exploration and troubleshooting tool. 
 
