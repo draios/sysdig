@@ -312,6 +312,9 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	m_pfmajor = pi->pfmajor;
 	m_pfminor = pi->pfminor;
 	m_nchilds = 0;
+	m_vtid = pi->vtid;
+	m_vpid = pi->vpid;
+	set_cgroups(pi->cgroups, pi->cgroups_len);
 
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
 	{

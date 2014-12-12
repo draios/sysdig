@@ -99,6 +99,7 @@ typedef struct evt_param_info
 #define SCAP_MAX_PATH_SIZE 1024
 #define SCAP_MAX_ARGS_SIZE 4096
 #define SCAP_MAX_ENV_SIZE 4096
+#define SCAP_MAX_CGROUPS_SIZE 4096
 
 /*!
   \brief File Descriptor type
@@ -209,6 +210,10 @@ typedef struct scap_threadinfo
 	uint32_t vmswap_kb; ///< swapped memory (as kb)
 	uint64_t pfmajor; ///< number of major page faults since start
 	uint64_t pfminor; ///< number of minor page faults since start
+	int64_t vtid;
+	int64_t vpid;
+	char cgroups[SCAP_MAX_CGROUPS_SIZE];
+	uint16_t cgroups_len;
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;

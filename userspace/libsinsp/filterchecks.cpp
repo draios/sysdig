@@ -1335,6 +1335,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			uint32_t j;
 			uint32_t nargs = tinfo->m_cgroups.size();
 
+			if(nargs == 0)
+			{
+				return NULL;
+			}
+			
 			for(j = 0; j < nargs; j++)
 			{
 				m_tstr += tinfo->m_cgroups[j];

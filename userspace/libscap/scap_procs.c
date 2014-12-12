@@ -248,6 +248,76 @@ int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo)
 }
 #endif
 
+int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname)
+{
+	char filename[SCAP_MAX_PATH_SIZE];
+	char line[SCAP_MAX_CGROUPS_SIZE];
+
+	tinfo->cgroups_len = 0;
+	snprintf(filename, sizeof(filename), "%scgroup", procdirname);
+
+	FILE* f = fopen(filename, "r");
+	if(f == NULL)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	while(fgets(line, sizeof(line), f) != NULL)
+	{
+		char* token;
+
+		// id
+		token = strtok(line, ":");
+		if(token == NULL)
+		{
+			ASSERT(false);
+			fclose(f);
+			return SCAP_FAILURE;
+		}
+
+		// subsys
+		token = strtok(NULL, ":");
+		if(token == NULL)
+		{
+			ASSERT(false);
+			fclose(f);
+			return SCAP_FAILURE;
+		}
+
+		// transient cgroup
+		if(strncmp(token, "name=", sizeof("name=") - 1) == 0)
+		{
+			continue;
+		}
+
+		// cgroup
+		token = strtok(NULL, ":");
+		if(token == NULL)
+		{
+			ASSERT(false);
+			fclose(f);
+			return SCAP_FAILURE;
+		}
+
+		// remove the \n
+		token[strlen(token) - 1] = 0;
+
+		if(strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len)
+		{
+			ASSERT(false);
+			fclose(f);
+			return SCAP_FAILURE;			
+		}
+
+		strncpy(tinfo->cgroups + tinfo->cgroups_len, token, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len);
+		tinfo->cgroups_len += strlen(token) + 1;
+	}
+
+	fclose(f);
+	return SCAP_SUCCESS;
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -478,6 +548,16 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		free(tinfo);
 		return SCAP_FAILURE;
 	}
+
+	if(scap_proc_fill_cgroups(tinfo, dir_name) == SCAP_FAILURE)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill cgroups for %" PRIu64, tinfo->tid);
+		free(tinfo);
+		return SCAP_FAILURE;	
+	}
+
+	tinfo->vtid = -1;
+	tinfo->vpid = -1;
 
 	//
 	// if tid_to_scan is set we assume this is a runtime lookup so no
