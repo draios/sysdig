@@ -232,7 +232,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;
-	ring->capture_enabled = true;
+	ring->capture_enabled = false;
 	getnstimeofday(&ring->last_print_time);
 	ring->open = true;
 

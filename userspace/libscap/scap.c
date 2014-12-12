@@ -234,6 +234,11 @@ scap_t* scap_open_live_int(char *error,
 		return NULL;
 	}
 
+	//
+	// Now that sysdig has done all its /proc parsing, start the capture
+	//
+	scap_start_capture(handle);
+
 	return handle;
 #endif // HAS_CAPTURE
 }
