@@ -370,6 +370,10 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 		if(m_container.empty())
 		{
 			size_t pos;
+
+			//
+			// Plain docker
+			//
 			pos = s.find("/docker/");
 			if(pos != string::npos)
 			{
@@ -380,6 +384,24 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 				}
 			}
 
+			//
+			// Docker sliced with systemd on EL7
+			//
+			pos = s.find("docker-");
+			if(pos != string::npos)
+			{
+				size_t pos2 = s.find(".scope");
+				if(pos2 != string::npos &&
+					pos2 - pos - sizeof("docker-") + 1 == 64)
+				{
+					m_container = s.substr(pos + sizeof("docker-") - 1, 12);
+					continue;					
+				}
+			}
+
+			//
+			// Plain LXC
+			//
 			pos = s.find("/lxc/");
 			if(pos != string::npos)
 			{
