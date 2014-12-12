@@ -32,6 +32,7 @@ Join the Community
 * Contact the [official mailing list] (https://groups.google.com/forum/#!forum/sysdig) for support and to talk with other users
 * Follow us on [Twitter] (https://twitter.com/sysdig) for the Chisel of the Week
 * This is our [blog] (http://sysdigcloud.com/blog/). There are many like it, but this one is ours.
+* Join IRC channel `#sysdig` on [Freenode](http://webchat.freenode.net/?channels=sysdig)
 
 Sysdig Cloud
 ---
