@@ -184,8 +184,14 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setresuid
 	[__NR_setresuid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESUID_E, PPME_SYSCALL_SETRESUID_X },
 #endif
+#ifdef __NR_setresuid32
+	[__NR_setresuid32 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESUID_E, PPME_SYSCALL_SETRESUID_X },
+#endif
 #ifdef __NR_setresgid
 	[__NR_setresgid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESGID_E, PPME_SYSCALL_SETRESGID_X },
+#endif
+#ifdef __NR_setresgid32
+	[__NR_setresgid32 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESGID_E, PPME_SYSCALL_SETRESGID_X },
 #endif
 #ifdef __NR_setuid
 	[__NR_setuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETUID_E, PPME_SYSCALL_SETUID_X },
@@ -222,6 +228,18 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_getegid32
 	[__NR_getegid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETEGID_E, PPME_SYSCALL_GETEGID_X },
+#endif
+#ifdef __NR_getresuid
+	[__NR_getresuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESUID_E, PPME_SYSCALL_GETRESUID_X },
+#endif
+#ifdef __NR_getresuid32
+	[__NR_getresuid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESUID_E, PPME_SYSCALL_GETRESUID_X },
+#endif
+#ifdef __NR_getresgid
+	[__NR_getresgid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESGID_E, PPME_SYSCALL_GETRESGID_X },
+#endif
+#ifdef __NR_getresgid32
+	[__NR_getresgid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESGID_E, PPME_SYSCALL_GETRESGID_X },
 #endif
 };
 
@@ -698,8 +716,14 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setresuid
 	[__NR_setresuid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESUID,
 #endif
+#ifdef __NR_setresuid32
+	[__NR_setresuid32 - SYSCALL_TABLE_ID0] = PPM_SC_SETRESUID,
+#endif
 #ifdef __NR_setresgid
 	[__NR_setresgid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESGID,
+#endif
+#ifdef __NR_setresgid32
+	[__NR_setresgid32 - SYSCALL_TABLE_ID0] = PPM_SC_SETRESGID,
 #endif
 #ifdef __NR_setuid
 	[__NR_setuid - SYSCALL_TABLE_ID0] = PPM_SC_SETUID,
@@ -736,5 +760,17 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_getegid32
 	[__NR_getegid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETEGID,
+#endif
+#ifdef __NR_getresuid
+	[__NR_getresuid - SYSCALL_TABLE_ID0] = PPM_SC_GETRESUID,
+#endif
+#ifdef __NR_getresuid32
+	[__NR_getresuid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETRESUID32,
+#endif
+#ifdef __NR_getresgid
+	[__NR_getresgid - SYSCALL_TABLE_ID0] = PPM_SC_GETRESGID,
+#endif
+#ifdef __NR_getresgid32
+	[__NR_getresgid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETRESGID32,
 #endif
 };
