@@ -139,17 +139,6 @@ scap_t* scap_open_live_int(char *error,
 		handle->m_userlist = NULL;		
 	}
 
-	//
-	// Create the process list
-	//
-	error[0] = '\0';
-	if((res = scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, error, true)) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
-		return NULL;
-	}
-
 	handle->m_fake_kernel_proc.tid = -1;
 	handle->m_fake_kernel_proc.pid = -1;
 	handle->m_fake_kernel_proc.flags = 0;
@@ -232,6 +221,17 @@ scap_t* scap_open_live_int(char *error,
 		handle->m_devs[j].m_sn_len = 0;
 		handle->m_n_consecutive_waits = 0;
 		scap_stop_dropping_mode(handle);
+	}
+
+	//
+	// Create the process list
+	//
+	error[0] = '\0';
+	if((res = scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, error, true)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
+		return NULL;
 	}
 
 	return handle;

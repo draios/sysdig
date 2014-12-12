@@ -481,7 +481,41 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		g_do_dynamic_snaplen = true;
 		return 0;
 	}
+	case PPM_IOCTL_GET_VTID:
+	case PPM_IOCTL_GET_VPID:
+	{
+		pid_t vid;
+		struct pid *pid;
+		struct task_struct *task;
+		struct pid_namespace *ns;
 
+		rcu_read_lock();
+		pid = find_vpid(arg);
+		if(!pid) {
+			rcu_read_unlock();
+			return -EINVAL;
+		}
+
+		task = pid_task(pid, PIDTYPE_PID);
+		if (!task) {
+			rcu_read_unlock();
+			return -EINVAL;
+		}
+
+		ns = ns_of_pid(pid);
+		if(!pid) {
+			rcu_read_unlock();
+			return -EINVAL;
+		}
+
+		if(cmd == PPM_IOCTL_GET_VTID)
+			vid = task_pid_nr_ns(task, ns);
+		else
+			vid = task_pid_nr_ns(task, ns);
+
+		rcu_read_unlock();
+		return vid;
+	}
 	default:
 		return -ENOTTY;
 	}

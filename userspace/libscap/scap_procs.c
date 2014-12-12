@@ -24,10 +24,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <dirent.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
+#include <sys/ioctl.h>
 #endif
 
 #include "scap.h"
-
+#include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
 
 #if defined(HAS_CAPTURE)
@@ -227,7 +228,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 // use prlimit to extract the RLIMIT_NOFILE for the tid. On systems where prlimit
 // is not supported, just return -1
 //
-int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo)
+static int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo)
 #ifdef SYS_prlimit64
 {
 	struct rlimit rl;
@@ -248,7 +249,7 @@ int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo)
 }
 #endif
 
-int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname)
+static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_CGROUPS_SIZE];
@@ -316,6 +317,56 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 
 	fclose(f);
 	return SCAP_SUCCESS;
+}
+
+static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
+{
+	if(handle->m_file)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*vtid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
+
+	if(*vtid == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
+static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
+{
+	if(handle->m_file)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*vpid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
+
+	if(*vpid == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
 }
 
 //
@@ -556,8 +607,15 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		return SCAP_FAILURE;	
 	}
 
-	tinfo->vtid = -1;
-	tinfo->vpid = -1;
+	if(scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
+	{
+		tinfo->vtid = -1;
+	}
+
+	if(scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
+	{
+		tinfo->vpid = -1;
+	}
 
 	//
 	// if tid_to_scan is set we assume this is a runtime lookup so no
