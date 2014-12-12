@@ -17,8 +17,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <stdio.h>
-
+#include <signal.h>
 #include <scap.h>
+
+uint64_t g_nevts = 0;
+
+static void signal_callback(int signal)
+{
+	printf("events captured: %" PRIu64 "\n", g_nevts);
+	exit(0);
+}
 
 int main(int argc, char** argv)
 {
@@ -26,6 +34,12 @@ int main(int argc, char** argv)
 	int32_t res;
 	scap_evt* ev;
 	uint16_t cpuid;
+
+	if(signal(SIGINT, signal_callback) == SIG_ERR)
+	{
+		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
+		return -1;
+	}
 
 	scap_t* h = scap_open_live(error);
 	if(h == NULL)
@@ -43,6 +57,11 @@ int main(int argc, char** argv)
 			fprintf(stderr, "%s\n", scap_getlasterr(h));
 			scap_close(h);
 			return -1;
+		}
+
+		if(res != SCAP_TIMEOUT)
+		{
+			g_nevts++;
 		}
 	}
 

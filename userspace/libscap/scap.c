@@ -77,7 +77,6 @@ scap_t* scap_open_live_int(char *error,
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
-//	ndevs = 1;
 
 	//
 	// Allocate the device descriptors.
@@ -467,8 +466,6 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
-int pippo = 0;
-int pippo1 = 0;
 int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
 {
 	uint32_t thead;
@@ -488,7 +485,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** b
 	// I use this instead of asm(mfence) because it should be portable even on the weirdest
 	// CPUs
 	//
-//	__sync_synchronize();
+	__sync_synchronize();
 
 	if(ttail < RING_BUF_SIZE)
 	{
@@ -502,25 +499,10 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** b
 	//
 	// Read the pointers.
 	//
-/*
 	get_buf_pointers(handle->m_devs[cpuid].m_bufinfo,
 	                 &thead,
 	                 &ttail,
 	                 &read_size);
-*/
-
-	struct ppm_ring_buffer_info* bufinfo = handle->m_devs[cpuid].m_bufinfo;
-	thead = bufinfo->head;
-	ttail = bufinfo->tail;
-
-	if(ttail > thead)
-	{
-		read_size = RING_BUF_SIZE - ttail + thead;
-	}
-	else
-	{
-		read_size = thead - ttail;
-	}
 
 	//
 	// Remember read_size so we can update the tail at the next call
@@ -539,20 +521,26 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** b
 bool check_scap_next_wait(scap_t* handle)
 {
 	uint32_t j;
+	bool res = true;
 
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
 		uint32_t thead;
 		uint32_t ttail;
-		uint32_t read_size;
+		scap_device* dev = &(handle->m_devs[j]);
 
-		get_buf_pointers(handle->m_devs[j].m_bufinfo, &thead, &ttail, &read_size);
+		get_buf_pointers(dev->m_bufinfo, &thead, &ttail, &dev->m_read_size);
 
-		if(read_size > 20000)
+		if(dev->m_read_size > 20000)
 		{
 			handle->m_n_consecutive_waits = 0;
-			return false;
+			res = false;
 		}
+	}
+
+	if(res == false)
+	{
+		return false;
 	}
 
 	if(handle->m_n_consecutive_waits >= MAX_N_CONSECUTIVE_WAITS)
@@ -586,12 +574,16 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	uint64_t max_buf_size = 0;
 	scap_evt* pe = NULL;
 	bool waited = false;
+	bool checked_wait = false;
+	uint32_t ndevs = handle->m_ndevs;
 
 	*pcpuid = 65535;
 
-	for(j = 0; j < handle->m_ndevs; j++)
+	for(j = 0; j < ndevs; j++)
 	{
-		if(handle->m_devs[j].m_sn_len == 0)
+		scap_device* dev = &(handle->m_devs[j]);
+
+		if(dev->m_sn_len == 0)
 		{
 			//
 			// The buffer for this CPU is fully consumed.
@@ -599,48 +591,59 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 			//
 			if(handle->m_emptybuf_timeout_ms != 0)
 			{
-				if(check_scap_next_wait(handle) && !waited)
+				if(!checked_wait)
 				{
-					usleep(BUFFER_EMPTY_WAIT_TIME_MS * 10000);
-					waited = true;
-					handle->m_n_consecutive_waits++;
+					if(check_scap_next_wait(handle) && !waited)
+					{
+						usleep(BUFFER_EMPTY_WAIT_TIME_MS * 10000);
+						waited = true;
+						handle->m_n_consecutive_waits++;
+					}
 				}
+
+				checked_wait = true;
 			}
 
 			//
 			// read another buffer
 			//
-			int32_t res = scap_readbuf(handle,
-			                           j,
-			                           false,
-			                           &handle->m_devs[j].m_sn_next_event,
-			                           &handle->m_devs[j].m_sn_len);
-if(++pippo1 % 1000 == 0) printf("!!! %d %d\n", pippo1, (int)j);
-
-			if(res != SCAP_SUCCESS)
+			if(dev->m_read_size != 0)
 			{
-				return res;
+				int32_t res = scap_readbuf(handle,
+				                           j,
+				                           false,
+				                           &dev->m_sn_next_event,
+				                           &dev->m_sn_len);
+
+				if(res != SCAP_SUCCESS)
+				{
+					return res;
+				}
+			}
+			else
+			{
+				dev->m_sn_len = 0;
 			}
 		}
 
 		//
-		// Make sure that we have data
+		// Make sure that we have data from this ring
 		//
-		if(handle->m_devs[j].m_sn_len != 0)
+		if(dev->m_sn_len != 0)
 		{
-			if(handle->m_devs[j].m_sn_len > max_buf_size)
+			if(dev->m_sn_len > max_buf_size)
 			{
-				max_buf_size = handle->m_devs[j].m_sn_len;
+				max_buf_size = dev->m_sn_len;
 			}
 
 			//
 			// We want to consume the event with the lowest timestamp
 			//
-			pe = (scap_evt*)handle->m_devs[j].m_sn_next_event;
+			pe = (scap_evt*)dev->m_sn_next_event;
 
 			if(pe->ts < max_ts)
 			{
-				if(pe->len > handle->m_devs[j].m_sn_len)
+				if(pe->len > dev->m_sn_len)
 				{
 					snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_next buffer corruption");
 

@@ -68,7 +68,7 @@ typedef struct scap_device
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
-//	uint64_t m_sn_next_ts; // timestamp
+	uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
 }scap_device;
 
 //
