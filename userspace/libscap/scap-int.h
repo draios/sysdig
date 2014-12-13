@@ -89,7 +89,6 @@ struct scap
 	scap_threadinfo* m_proclist;
 	scap_threadinfo m_fake_kernel_proc;
 	uint64_t m_evtcnt;
-	uint32_t m_emptybuf_timeout_ms;
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;

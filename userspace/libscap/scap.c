@@ -71,7 +71,6 @@ scap_t* scap_open_live_int(char *error,
 	// Preliminary initializations
 	//
 	memset(handle, 0, sizeof(scap_t));
-	handle->m_emptybuf_timeout_ms = BUFFER_EMPTY_WAIT_TIME_MS;
 
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
@@ -348,12 +347,6 @@ scap_t* scap_open(scap_open_args args, char *error)
 	}
 }
 
-int32_t scap_set_empty_buffer_timeout_ms(scap_t* handle, uint32_t timeout_ms)
-{
-	handle->m_emptybuf_timeout_ms = timeout_ms;
-	return SCAP_SUCCESS;
-}
-
 void scap_close(scap_t* handle)
 {
 	if(handle->m_file)
@@ -554,6 +547,47 @@ bool check_scap_next_wait(scap_t* handle)
 	}
 }
 
+int32_t refill_read_buffers(scap_t* handle, bool wait)
+{
+	uint32_t j;
+	uint32_t ndevs = handle->m_ndevs;
+
+	if(wait)
+	{
+		if(check_scap_next_wait(handle))
+		{
+			usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
+			handle->m_n_consecutive_waits++;
+		}
+	}
+
+	//
+	// Refill our data for each of the devices
+	//
+	for(j = 0; j < ndevs; j++)
+	{
+		scap_device* dev = &(handle->m_devs[j]);
+
+		int32_t res = scap_readbuf(handle,
+		                           j,
+		                           false,
+		                           &dev->m_sn_next_event,
+		                           &dev->m_sn_len);
+
+		if(res != SCAP_SUCCESS)
+		{
+			return res;
+		}
+	}
+
+	//
+	// Note: we might return a spurious timeout here in case the previous loop extracted valid data to parse.
+	//       It's ok, since this is rare and the caller will just call us again after receiving a 
+	//       SCAP_TIMEOUT.
+	//
+	return SCAP_TIMEOUT;
+}
+
 #endif // HAS_CAPTURE
 
 #ifndef _WIN32
@@ -573,8 +607,6 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	uint64_t max_ts = 0xffffffffffffffffLL;
 	uint64_t max_buf_size = 0;
 	scap_evt* pe = NULL;
-	bool waited = false;
-	bool checked_wait = false;
 	uint32_t ndevs = handle->m_ndevs;
 
 	*pcpuid = 65535;
@@ -585,45 +617,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 
 		if(dev->m_sn_len == 0)
 		{
-			//
-			// The buffer for this CPU is fully consumed.
-			// This is a good time to check if we should wait
-			//
-			if(handle->m_emptybuf_timeout_ms != 0)
-			{
-				if(!checked_wait)
-				{
-					if(check_scap_next_wait(handle) && !waited)
-					{
-						usleep(BUFFER_EMPTY_WAIT_TIME_MS * 10000);
-						waited = true;
-						handle->m_n_consecutive_waits++;
-					}
-				}
-
-				checked_wait = true;
-			}
-
-			//
-			// read another buffer
-			//
-			if(dev->m_read_size != 0)
-			{
-				int32_t res = scap_readbuf(handle,
-				                           j,
-				                           false,
-				                           &dev->m_sn_next_event,
-				                           &dev->m_sn_len);
-
-				if(res != SCAP_SUCCESS)
-				{
-					return res;
-				}
-			}
-			else
-			{
-				dev->m_sn_len = 0;
-			}
+			continue;
 		}
 
 		//
@@ -672,16 +666,15 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 		ASSERT(handle->m_devs[*pcpuid].m_sn_len >= (*pevent)->len);
 		handle->m_devs[*pcpuid].m_sn_len -= (*pevent)->len;
 		handle->m_devs[*pcpuid].m_sn_next_event += (*pevent)->len;
-
 		return SCAP_SUCCESS;
 	}
 	else
 	{
 		//
-		// This happens only when all the buffers are empty, which should be very rare.
-		// The caller want't receive an event, but shouldn't treat this as an error and should just retry.
+		// All the buffers have been consumed. Check if there's enough data to keep going or
+		// if we should wait.
 		//
-		return SCAP_TIMEOUT;
+		return refill_read_buffers(handle, true);
 	}
 #endif
 }
@@ -770,12 +763,6 @@ int32_t scap_stop_capture(scap_t* handle)
 			return SCAP_FAILURE;
 		}
 	}
-
-	//
-	// Since no new data is going to be produced, we disable read waits so that the remaining data
-	// can be consumd without slowdowns
-	//
-	handle->m_emptybuf_timeout_ms = 0;
 
 	return SCAP_SUCCESS;
 #endif // HAS_CAPTURE
