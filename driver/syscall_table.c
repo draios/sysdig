@@ -165,6 +165,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 	[__NR_munmap - SYSCALL_TABLE_ID0] =						{UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MUNMAP_E, PPME_SYSCALL_MUNMAP_X},
 	[__NR_splice - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_SPLICE_E, PPME_SYSCALL_SPLICE_X},
+	[__NR_vmsplice - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_VMSPLICE_E, PPME_SYSCALL_VMSPLICE_X},
+	[__NR_tee - SYSCALL_TABLE_ID0] =                        {UF_USED, PPME_SYSCALL_TEE_E, PPME_SYSCALL_TEE_X},
+	[__NR_sendfile - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_SENDFILE_E, PPME_SYSCALL_SENDFILE_X},
+#ifdef __NR_sendfile64
+	[__NR_sendfile64 - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SYSCALL_SENDFILE_E, PPME_SYSCALL_SENDFILE_X},
+#endif
 #ifdef __NR_process_vm_readv
 	[__NR_process_vm_readv - SYSCALL_TABLE_ID0] =           {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 #endif
