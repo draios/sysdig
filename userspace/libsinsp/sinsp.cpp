@@ -538,7 +538,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	// Store a couple of values that we'll need later inside the event.
 	//
-	m_evt.m_evtnum = get_num_events();
+	m_evt.m_evtnum = scap_event_get_num(m_h);
 	m_lastevent_ts = m_evt.get_ts();
 #ifdef HAS_FILTERING
 	if(m_firstevent_ts == 0)
@@ -1122,4 +1122,69 @@ double sinsp::get_read_progress()
 	}
 
 	return (double)fpos * 100 / m_filesize;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Note: this is defined here so we can inline it in sinso::next
+///////////////////////////////////////////////////////////////////////////////
+bool sinsp_thread_manager::remove_inactive_threads()
+{
+	bool res = false;
+
+	if(m_last_flush_time_ns == 0)
+	{
+		//
+		// Set the first table scan for 30 seconds in, so that we can spot bugs in the logic without having
+		// to wait for tens of minutes
+		//
+		m_last_flush_time_ns = 
+			(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
+	}
+
+	if(m_inspector->m_lastevent_ts > 
+		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
+	{
+		res = true;
+
+		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
+
+		g_logger.format(sinsp_logger::SEV_INFO, "Flushing thread table");
+
+		//
+		// Go through the table and remove dead entries.
+		//
+		for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end();)
+		{
+			bool closed = (it->second.m_flags & PPM_CL_CLOSED) != 0;
+
+			if(closed || 
+				((m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
+					!scap_is_thread_alive(m_inspector->m_h, it->second.m_pid, it->first, it->second.m_comm.c_str()))
+					)
+			{
+				//
+				// Reset the cache
+				//
+				m_last_tid = 0;
+				m_last_tinfo = NULL;
+
+#ifdef GATHER_INTERNAL_STATS
+				m_removed_threads->increment();
+#endif
+				remove_thread(it++, closed);
+			}
+			else
+			{
+				++it;
+			}
+		}
+
+		//
+		// Rebalance the thread table dependency tree, so we free up threads that
+		// exited but that are stuck because of reference counting.
+		//
+		recreate_child_dependencies();
+	}
+
+	return res;
 }

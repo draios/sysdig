@@ -53,7 +53,7 @@ uint32_t scap_event_getlen(scap_evt* e)
 	return e->len;
 }
 
-uint64_t scap_event_get_num(scap_t* handle)
+inline uint64_t scap_event_get_num(scap_t* handle)
 {
 	return handle->m_evtcnt;
 }

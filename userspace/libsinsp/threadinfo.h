@@ -271,7 +271,8 @@ public:
 	void remove_thread(int64_t tid, bool force);
 	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	// Returns true if the table is actually scanned
-	bool remove_inactive_threads();
+	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
+	inline bool remove_inactive_threads();
 	void fix_sockets_coming_from_proc();
 	void reset_child_dependencies();
 	void create_child_dependencies();
