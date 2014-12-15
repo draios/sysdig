@@ -293,10 +293,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SYMLINK_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
 	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
-	[PPME_SYSCALL_FORK_E] = {f_sys_empty},
-	[PPME_SYSCALL_FORK_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_VFORK_E] = {f_sys_empty},
-	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_FORK_19_E] = {f_sys_empty},
+	[PPME_SYSCALL_FORK_19_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_VFORK_19_E] = {f_sys_empty},
+	[PPME_SYSCALL_VFORK_19_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
@@ -890,8 +890,8 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (args->event_type == PPME_SYSCALL_CLONE_19_X ||
-		args->event_type == PPME_SYSCALL_FORK_X ||
-		args->event_type == PPME_SYSCALL_VFORK_X) {
+		args->event_type == PPME_SYSCALL_FORK_19_X ||
+		args->event_type == PPME_SYSCALL_VFORK_19_X) {
 		/*
 		 * clone-only parameters
 		 */
@@ -905,6 +905,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		int j = 0;
 		int available = STR_STORAGE_SIZE;
 		char* p = args->str_storage;
+		int subsys_count;
 
 		/*
 		 * flags
@@ -931,99 +932,95 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		res = val_to_ring(args, egid, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+		
+		/*
+		 * vtid
+		 */
+		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 
-		if (args->event_type == PPME_SYSCALL_CLONE_19_X) {
-			int subsys_count;
-			
-			/*
-			 * vtid
-			 */
-			res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+		/*
+		 * vpid
+		 */
+		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 
-			/*
-			 * vpid
-			 */
-			res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-
-			/*
-			 * cgroups
-			 */
+		/*
+		 * cgroups
+		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-			subsys_count = CGROUP_SUBSYS_COUNT;
+		subsys_count = CGROUP_SUBSYS_COUNT;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
-			subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
+		subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
-			subsys_count = CGROUP_SUBSYS_COUNT;
+		subsys_count = CGROUP_SUBSYS_COUNT;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-			subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
+		subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
 #else
-			subsys_count = CGROUP_SUBSYS_COUNT;
+		subsys_count = CGROUP_SUBSYS_COUNT;
 #endif
- 			args->str_storage[0] = 0;
-			rcu_read_lock();
-			for (j = 0; j < subsys_count; ++j) {
-				char *path;
-				int pathlen;
+			args->str_storage[0] = 0;
+		rcu_read_lock();
+		for (j = 0; j < subsys_count; ++j) {
+			char *path;
+			int pathlen;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
-				struct cgroup_subsys_state *css = task_css(current, j);
+			struct cgroup_subsys_state *css = task_css(current, j);
 #else
-				struct cgroup_subsys_state *css = task_subsys_state(current, j);
+			struct cgroup_subsys_state *css = task_subsys_state(current, j);
 #endif
-				if (!css) {
-					ASSERT(false);
-					continue;
-				}
+			if (!css) {
+				ASSERT(false);
+				continue;
+			}
 
-				if (!css->cgroup) {
-					ASSERT(false);
-					continue;
-				}
+			if (!css->cgroup) {
+				ASSERT(false);
+				continue;
+			}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
-				path = cgroup_path(css->cgroup, p, available);
-				if (!path) {
-					ASSERT(false);
-					path = "NA";
-				}
+			path = cgroup_path(css->cgroup, p, available);
+			if (!path) {
+				ASSERT(false);
+				path = "NA";
+			}
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-				res = cgroup_path(css->cgroup, p, available);
-				if (res < 0) {
-					ASSERT(false);
-					path = "NA";
-				} else {
-					path = p;
-				}
+			res = cgroup_path(css->cgroup, p, available);
+			if (res < 0) {
+				ASSERT(false);
+				path = "NA";
+			} else {
+				path = p;
+			}
 #else
-				res = ppm_cgroup_path(css->cgroup, p, available);
-				if (res < 0) {
-					ASSERT(false);
-					path = "NA";
-				} else {
-					path = p;
-				}
+			res = ppm_cgroup_path(css->cgroup, p, available);
+			if (res < 0) {
+				ASSERT(false);
+				path = "NA";
+			} else {
+				path = p;
+			}
 #endif
 
-				pathlen = strlen(path);
-				if (pathlen + 1 > available) {
-					break;
-				}
-
-				memmove(p, path, pathlen);
-				p += pathlen;
-				*p++ = 0;
-				available -= pathlen + 1;
+			pathlen = strlen(path);
+			if (pathlen + 1 > available) {
+				break;
 			}
-			rcu_read_unlock();
 
-			res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+			memmove(p, path, pathlen);
+			p += pathlen;
+			*p++ = 0;
+			available -= pathlen + 1;
 		}
+		rcu_read_unlock();
+
+		res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 	} else if (args->event_type == PPME_SYSCALL_EXECVE_14_X) {
 		/*
 		 * execve-only parameters
