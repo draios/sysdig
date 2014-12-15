@@ -85,3 +85,5 @@ extern u32 g_sampling_ratio;
 
 #define PPM_PORT_MYSQL 3306
 #define PPM_PORT_POSTGRES 5432
+#define PPM_START_PORT_MONGODB 27000
+#define PPM_END_PORT_MONGODB 27018
