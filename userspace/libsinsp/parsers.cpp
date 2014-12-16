@@ -75,8 +75,8 @@ sinsp_parser::~sinsp_parser()
 ///////////////////////////////////////////////////////////////////////////////
 void sinsp_parser::process_event(sinsp_evt *evt)
 {
-	uint16_t etype = evt->get_type();
-	bool is_live = m_inspector->is_live();
+	uint16_t etype = evt->m_pevt->type;
+	bool is_live = m_inspector->m_islive;
 
 	//
 	// Cleanup the event-related state
@@ -383,7 +383,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		query_os = true;
 	}
 
-	evt->m_tinfo = evt->get_thread_info(query_os);
+	evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, query_os, false);
 
 	if(etype == PPME_SCHEDSWITCH_6_E)
 	{
@@ -434,22 +434,24 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	}
 	else
 	{
+		sinsp_threadinfo* tinfo = evt->m_tinfo;
+
 		//
 		// event latency
 		//
-		if(evt->m_tinfo->m_last_latency_entertime != 0)
+		if(tinfo->m_last_latency_entertime != 0)
 		{
-			evt->m_tinfo->m_latency = evt->get_ts() - evt->m_tinfo->m_last_latency_entertime;
-			ASSERT((int64_t)evt->m_tinfo->m_latency >= 0);
+			tinfo->m_latency = evt->get_ts() - tinfo->m_last_latency_entertime;
+			ASSERT((int64_t)tinfo->m_latency >= 0);
 		}
 
-		if(etype == evt->m_tinfo->m_lastevent_type + 1)
+		if(etype == tinfo->m_lastevent_type + 1)
 		{
-			evt->m_tinfo->set_lastevent_data_validity(true);
+			tinfo->set_lastevent_data_validity(true);
 		}
 		else
 		{
-			evt->m_tinfo->set_lastevent_data_validity(false);
+			tinfo->set_lastevent_data_validity(false);
 			return false;
 		}
 
@@ -477,7 +479,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		//
 		if(eflags & EF_USES_FD)
 		{
-			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+			evt->m_fdinfo = tinfo->get_fd(tinfo->m_lastevent_fd);
 
 			if(evt->m_fdinfo == NULL)
 			{
@@ -500,14 +502,14 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 
 				evt->m_fdinfo->m_flags &= ~sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED;
 				eparams.m_fd = CANCELED_FD_NUMBER;
-				eparams.m_fdinfo = evt->m_tinfo->get_fd(CANCELED_FD_NUMBER);
+				eparams.m_fdinfo = tinfo->get_fd(CANCELED_FD_NUMBER);
 
 				//
 				// Remove the fd from the different tables
 				//
 				eparams.m_remove_from_table = true;
 				eparams.m_inspector = m_inspector;
-				eparams.m_tinfo = evt->m_tinfo;
+				eparams.m_tinfo = tinfo;
 				eparams.m_ts = evt->get_ts();
 
 				erase_fd(&eparams);

@@ -400,7 +400,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 	}
 	else
 	{
-		sinsp_threadinfo* sinsp_tinfo = m_thread_manager->get_thread(tid, true);
+		sinsp_threadinfo* sinsp_tinfo = find_thread(tid, true);
 
 		if(sinsp_tinfo == NULL)
 		{
@@ -409,7 +409,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 			m_thread_manager->add_thread(newti, true);
 
-			sinsp_tinfo = m_thread_manager->get_thread(tid, true);
+			sinsp_tinfo = find_thread(tid, true);
 			if(sinsp_tinfo == NULL)
 			{
 				ASSERT(false);
@@ -733,9 +733,52 @@ uint64_t sinsp::get_num_events()
 	return scap_event_get_num(m_h);
 }
 
+sinsp_threadinfo* sinsp::find_thread(int64_t tid, bool lookup_only)
+{
+	threadinfo_map_iterator_t it;
+
+	//
+	// Try looking up in our simple cache
+	//
+	if(m_thread_manager->m_last_tinfo && tid == m_thread_manager->m_last_tid)
+	{
+#ifdef GATHER_INTERNAL_STATS
+		m_thread_manager->m_cached_lookups->increment();
+#endif
+		m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+		return m_thread_manager->m_last_tinfo;
+	}
+
+	//
+	// Caching failed, do a real lookup
+	//
+	it = m_thread_manager->m_threadtable.find(tid);
+	
+	if(it != m_thread_manager->m_threadtable.end())
+	{
+#ifdef GATHER_INTERNAL_STATS
+		m_thread_manager->m_non_cached_lookups->increment();
+#endif
+		if(!lookup_only)
+		{
+			m_thread_manager->m_last_tid = tid;
+			m_thread_manager->m_last_tinfo = &(it->second);
+			m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+		}
+		return &(it->second);
+	}
+	else
+	{
+#ifdef GATHER_INTERNAL_STATS
+		m_thread_manager->m_failed_lookups->increment();
+#endif
+		return NULL;
+	}
+}
+
 sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only)
 {
-	sinsp_threadinfo* sinsp_proc = m_thread_manager->get_thread(tid, lookup_only);
+	sinsp_threadinfo* sinsp_proc = find_thread(tid, lookup_only);
 
 	if(sinsp_proc == NULL && query_os_if_not_found)
 	{
@@ -810,7 +853,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 		// Done. Add the new thread to the list.
 		//
 		m_thread_manager->add_thread(newti, false);
-		sinsp_proc = m_thread_manager->get_thread(tid, lookup_only);
+		sinsp_proc = find_thread(tid, lookup_only);
 	}
 
 	return sinsp_proc;
@@ -1071,11 +1114,6 @@ void sinsp::set_fatfile_dump_mode(bool enable_fatfile)
 void sinsp::set_max_evt_output_len(uint32_t len)
 {
 	m_max_evt_output_len = len;
-}
-
-bool sinsp::is_debug_enabled()
-{
-	return m_isdebug_enabled;
 }
 
 sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)

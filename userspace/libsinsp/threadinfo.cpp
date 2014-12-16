@@ -532,18 +532,6 @@ bool sinsp_threadinfo::is_lastevent_data_valid()
 	return (m_lastevent_cpuid != (uint16_t) - 1);
 }
 
-void sinsp_threadinfo::set_lastevent_data_validity(bool isvalid)
-{
-	if(isvalid)
-	{
-		m_lastevent_cpuid = (uint16_t)1;
-	}
-	else
-	{
-		m_lastevent_cpuid = (uint16_t) - 1;
-	}
-}
-
 sinsp_threadinfo* sinsp_threadinfo::get_cwd_root()
 {
 	if(!(m_flags & PPM_CL_CLONE_FS))
@@ -690,49 +678,6 @@ void sinsp_thread_manager::clear()
 void sinsp_thread_manager::set_listener(sinsp_threadtable_listener* listener)
 {
 	m_listener = listener;
-}
-
-sinsp_threadinfo* sinsp_thread_manager::get_thread(int64_t tid, bool lookup_only)
-{
-	threadinfo_map_iterator_t it;
-
-	//
-	// Try looking up in our simple cache
-	//
-	if(m_last_tinfo && tid == m_last_tid)
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_cached_lookups->increment();
-#endif
-		m_last_tinfo->m_lastaccess_ts = m_inspector->m_lastevent_ts;
-		return m_last_tinfo;
-	}
-
-	//
-	// Caching failed, do a real lookup
-	//
-	it = m_threadtable.find(tid);
-	
-	if(it != m_threadtable.end())
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_non_cached_lookups->increment();
-#endif
-		if(!lookup_only)
-		{
-			m_last_tid = tid;
-			m_last_tinfo = &(it->second);
-			m_last_tinfo->m_lastaccess_ts = m_inspector->m_lastevent_ts;
-		}
-		return &(it->second);
-	}
-	else
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_failed_lookups->increment();
-#endif
-		return NULL;
-	}
 }
 
 void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* threadinfo)

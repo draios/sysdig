@@ -532,7 +532,10 @@ public:
 	/*!
 	  \brief Returns true if the debug mode is enabled.
 	*/
-	bool is_debug_enabled();
+	inline bool is_debug_enabled()
+	{
+		return m_isdebug_enabled;		
+	}
 
 	/*!
 	  \brief Lets a filter plugin request a protocol decoder.
@@ -597,6 +600,13 @@ private:
 
 	void add_thread(const sinsp_threadinfo& ptinfo);
 	void remove_thread(int64_t tid, bool force);
+	//
+	// Note: lookup_only should be used when the query for the thread is made
+	//       not as a consequence of an event for that thread arriving, but for
+	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
+	//       and m_last_tinfo is not set.
+	//
+	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only);
 
 	scap_t* m_h;
 	int64_t m_filesize;

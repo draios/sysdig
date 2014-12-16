@@ -184,7 +184,17 @@ VISIBILITY_PRIVATE
 	void set_env(const char* env, size_t len);
 	void store_event(sinsp_evt *evt);
 	bool is_lastevent_data_valid();
-	void set_lastevent_data_validity(bool isvalid);
+	inline void set_lastevent_data_validity(bool isvalid)
+	{
+		if(isvalid)
+		{
+			m_lastevent_cpuid = (uint16_t)1;
+		}
+		else
+		{
+			m_lastevent_cpuid = (uint16_t) - 1;
+		}		
+	}
 	void allocate_private_state();
 	void compute_program_hash();
 
@@ -260,13 +270,6 @@ public:
 	void clear();
 
 	void set_listener(sinsp_threadtable_listener* listener);
-	//
-	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but for
-	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
-	//       and m_last_tinfo is not set.
-	//
-	sinsp_threadinfo* get_thread(int64_t tid, bool lookup_only);
 	void add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
 	void remove_thread(threadinfo_map_iterator_t it, bool force);
