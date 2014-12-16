@@ -490,7 +490,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		struct pid_namespace *ns;
 
 		rcu_read_lock();
-		pid = find_vpid(arg);
+		pid = find_pid_ns(arg, &init_pid_ns);
 		if(!pid) {
 			rcu_read_unlock();
 			return -EINVAL;
