@@ -1154,7 +1154,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		if(!verbose)
 		{
-			inspector->set_max_evt_output_len(40);
+			inspector->set_max_evt_output_len(80);
 		}
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)

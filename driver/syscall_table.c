@@ -117,8 +117,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_utime - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_mount - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_umount2 - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_setuid - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
-	[__NR_getuid - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_ptrace - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_PTRACE_E, PPME_SYSCALL_PTRACE_X},
 	[__NR_alarm - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_pause - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
@@ -186,26 +184,62 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setresuid
 	[__NR_setresuid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESUID_E, PPME_SYSCALL_SETRESUID_X },
 #endif
+#ifdef __NR_setresuid32
+	[__NR_setresuid32 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESUID_E, PPME_SYSCALL_SETRESUID_X },
+#endif
 #ifdef __NR_setresgid
 	[__NR_setresgid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESGID_E, PPME_SYSCALL_SETRESGID_X },
+#endif
+#ifdef __NR_setresgid32
+	[__NR_setresgid32 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETRESGID_E, PPME_SYSCALL_SETRESGID_X },
 #endif
 #ifdef __NR_setuid
 	[__NR_setuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETUID_E, PPME_SYSCALL_SETUID_X },
 #endif
+#ifdef __NR_setuid32
+	[__NR_setuid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETUID_E, PPME_SYSCALL_SETUID_X },
+#endif
 #ifdef __NR_setgid
 	[__NR_setgid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETGID_E, PPME_SYSCALL_SETGID_X },
+#endif
+#ifdef __NR_setgid32
+	[__NR_setgid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_SETGID_E, PPME_SYSCALL_SETGID_X },
 #endif
 #ifdef __NR_getuid
 	[__NR_getuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETUID_E, PPME_SYSCALL_GETUID_X },
 #endif
+#ifdef __NR_getuid32
+	[__NR_getuid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETUID_E, PPME_SYSCALL_GETUID_X },
+#endif
 #ifdef __NR_geteuid
 	[__NR_geteuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETEUID_E, PPME_SYSCALL_GETEUID_X },
+#endif
+#ifdef __NR_geteuid32
+	[__NR_geteuid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETEUID_E, PPME_SYSCALL_GETEUID_X },
 #endif
 #ifdef __NR_getgid
 	[__NR_getgid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETGID_E, PPME_SYSCALL_GETGID_X },
 #endif
+#ifdef __NR_getgid32
+	[__NR_getgid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETGID_E, PPME_SYSCALL_GETGID_X },
+#endif
 #ifdef __NR_getegid
 	[__NR_getegid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETEGID_E, PPME_SYSCALL_GETEGID_X },
+#endif
+#ifdef __NR_getegid32
+	[__NR_getegid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETEGID_E, PPME_SYSCALL_GETEGID_X },
+#endif
+#ifdef __NR_getresuid
+	[__NR_getresuid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESUID_E, PPME_SYSCALL_GETRESUID_X },
+#endif
+#ifdef __NR_getresuid32
+	[__NR_getresuid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESUID_E, PPME_SYSCALL_GETRESUID_X },
+#endif
+#ifdef __NR_getresgid
+	[__NR_getresgid - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESGID_E, PPME_SYSCALL_GETRESGID_X },
+#endif
+#ifdef __NR_getresgid32
+	[__NR_getresgid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESGID_E, PPME_SYSCALL_GETRESGID_X },
 #endif
 };
 
@@ -682,25 +716,61 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setresuid
 	[__NR_setresuid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESUID,
 #endif
+#ifdef __NR_setresuid32
+	[__NR_setresuid32 - SYSCALL_TABLE_ID0] = PPM_SC_SETRESUID,
+#endif
 #ifdef __NR_setresgid
 	[__NR_setresgid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESGID,
+#endif
+#ifdef __NR_setresgid32
+	[__NR_setresgid32 - SYSCALL_TABLE_ID0] = PPM_SC_SETRESGID,
 #endif
 #ifdef __NR_setuid
 	[__NR_setuid - SYSCALL_TABLE_ID0] = PPM_SC_SETUID,
 #endif
+#ifdef __NR_setuid32
+	[__NR_setuid32 - SYSCALL_TABLE_ID0] = PPM_SC_SETUID32,
+#endif
 #ifdef __NR_setgid
 	[__NR_setgid - SYSCALL_TABLE_ID0] = PPM_SC_SETGID,
+#endif
+#ifdef __NR_setgid32
+	[__NR_setgid32 - SYSCALL_TABLE_ID0] = PPM_SC_SETGID32,
 #endif
 #ifdef __NR_getuid
 	[__NR_getuid - SYSCALL_TABLE_ID0] = PPM_SC_GETUID,
 #endif
+#ifdef __NR_getuid32
+	[__NR_getuid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETUID32,
+#endif
 #ifdef __NR_geteuid
 	[__NR_geteuid - SYSCALL_TABLE_ID0] = PPM_SC_GETEUID,
+#endif
+#ifdef __NR_geteuid32
+	[__NR_geteuid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETEUID,
 #endif
 #ifdef __NR_getgid
 	[__NR_getgid - SYSCALL_TABLE_ID0] = PPM_SC_GETGID,
 #endif
+#ifdef __NR_getgid32
+	[__NR_getgid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETGID,
+#endif
 #ifdef __NR_getegid
 	[__NR_getegid - SYSCALL_TABLE_ID0] = PPM_SC_GETEGID,
+#endif
+#ifdef __NR_getegid32
+	[__NR_getegid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETEGID,
+#endif
+#ifdef __NR_getresuid
+	[__NR_getresuid - SYSCALL_TABLE_ID0] = PPM_SC_GETRESUID,
+#endif
+#ifdef __NR_getresuid32
+	[__NR_getresuid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETRESUID32,
+#endif
+#ifdef __NR_getresgid
+	[__NR_getresgid - SYSCALL_TABLE_ID0] = PPM_SC_GETRESGID,
+#endif
+#ifdef __NR_getresgid32
+	[__NR_getresgid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETRESGID32,
 #endif
 };
