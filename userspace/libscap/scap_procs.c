@@ -843,8 +843,9 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	}
 
 	struct scap_threadinfo* tinfo = NULL;
-
-	if(scap_proc_scan_proc_dir(handle, "/proc", -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+	if(scap_proc_scan_proc_dir(handle, filename, -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		return NULL;
 	}
@@ -870,7 +871,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 		return false;
 	}
 
-	snprintf(charbuf, sizeof(charbuf), "/proc/%" PRId64 "/task/%" PRId64 "/comm", pid, tid);
+	snprintf(charbuf, sizeof(charbuf), "%s/proc/%" PRId64 "/task/%" PRId64 "/comm", scap_get_host_root(), pid, tid);
 
 	f = fopen(charbuf, "r");
 

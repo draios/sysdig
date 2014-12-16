@@ -817,6 +817,14 @@ int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id);
 int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
 
 
+/*!
+  \brief Get the root directory of the system. This usually changes
+  if sysdig runs in a container, so that all the information for the
+  host can be correctly extracted.
+*/
+const char* scap_get_host_root();
+
+
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////

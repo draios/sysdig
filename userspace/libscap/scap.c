@@ -51,7 +51,7 @@ scap_t* scap_open_live_int(char *error,
 	return NULL;
 #else
 	uint32_t j;
-	char dev[255];
+	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
 	int len;
 	uint32_t ndevs;
@@ -154,17 +154,17 @@ scap_t* scap_open_live_int(char *error,
 		//
 		// Open the device
 		//
-		sprintf(dev, "/dev/sysdig%d", j);
+		sprintf(filename, "%s/dev/sysdig%d", scap_get_host_root(), j);
 
-		if((handle->m_devs[j].m_fd = open(dev, O_RDWR | O_SYNC)) < 0)
+		if((handle->m_devs[j].m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
 		{
 			if(errno == EBUSY)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "device %s is already open. You can't run multiple instances of sysdig.", dev);
+				snprintf(error, SCAP_LASTERR_SIZE, "device %s is already open. You can't run multiple instances of sysdig.", filename);
 			}
 			else
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the sysdig-probe module is loaded.", dev);
+				snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the sysdig-probe module is loaded.", filename);
 			}
 
 			scap_close(handle);
@@ -188,7 +188,7 @@ scap_t* scap_open_live_int(char *error,
 
 			scap_close(handle);
 
-			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", dev);
+			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
 			return NULL;
 		}
 
@@ -210,7 +210,7 @@ scap_t* scap_open_live_int(char *error,
 
 			scap_close(handle);
 
-			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", dev);
+			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", filename);
 			return NULL;
 		}
 
@@ -227,7 +227,8 @@ scap_t* scap_open_live_int(char *error,
 	// Create the process list
 	//
 	error[0] = '\0';
-	if((res = scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, error, true)) != SCAP_SUCCESS)
+	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+	if((res = scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, error, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
@@ -1152,4 +1153,15 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 
 	return SCAP_SUCCESS;
 #endif
+}
+
+const char* scap_get_host_root()
+{
+	char* p = getenv("SYSDIG_HOST_ROOT");
+	if(!p)
+	{
+		p = "";
+	}
+
+	return p;
 }

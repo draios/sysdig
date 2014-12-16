@@ -555,7 +555,9 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 		handle->m_proc_callback = NULL;
 
 		scap_proc_free_table(handle);
-		if(scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
+		char filename[SCAP_MAX_PATH_SIZE];
+		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+		if(scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
 		{
 			handle->m_proc_callback = tcb;
 			return NULL;
