@@ -267,6 +267,8 @@ static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char*
 	while(fgets(line, sizeof(line), f) != NULL)
 	{
 		char* token;
+		char* subsys_list;
+		char* cgroup;
 
 		// id
 		token = strtok(line, ":");
@@ -278,8 +280,8 @@ static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char*
 		}
 
 		// subsys
-		token = strtok(NULL, ":");
-		if(token == NULL)
+		subsys_list = strtok(NULL, ":");
+		if(subsys_list == NULL)
 		{
 			ASSERT(false);
 			fclose(f);
@@ -293,8 +295,8 @@ static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char*
 		}
 
 		// cgroup
-		token = strtok(NULL, ":");
-		if(token == NULL)
+		cgroup = strtok(NULL, ":");
+		if(cgroup == NULL)
 		{
 			ASSERT(false);
 			fclose(f);
@@ -302,17 +304,21 @@ static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char*
 		}
 
 		// remove the \n
-		token[strlen(token) - 1] = 0;
+		cgroup[strlen(cgroup) - 1] = 0;
 
-		if(strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len)
+		while((token = strtok(subsys_list, ",")) != NULL)
 		{
-			ASSERT(false);
-			fclose(f);
-			return SCAP_FAILURE;			
-		}
+			subsys_list = NULL;
+			if(strlen(cgroup) + 1 + strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len)
+			{
+				ASSERT(false);
+				fclose(f);
+				return SCAP_SUCCESS;			
+			}
 
-		strncpy(tinfo->cgroups + tinfo->cgroups_len, token, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len);
-		tinfo->cgroups_len += strlen(token) + 1;
+			snprintf(tinfo->cgroups + tinfo->cgroups_len, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len, "%s=%s", token, cgroup);
+			tinfo->cgroups_len += strlen(cgroup) + 1 + strlen(token) + 1;			
+		}
 	}
 
 	fclose(f);

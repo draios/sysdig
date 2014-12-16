@@ -733,6 +733,87 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 }
 #endif
 
+static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int* available)
+{
+	int pathlen;
+	int subsys_len;
+	char *path;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
+	struct cgroup_subsys_state *css = task_css(current, subsys_id);
+#else
+	struct cgroup_subsys_state *css = task_subsys_state(current, subsys_id);
+#endif
+	if (!css) {
+		ASSERT(false);
+		return 1;
+	}
+
+	if (!css->cgroup) {
+		ASSERT(false);
+		return 1;
+	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+	path = cgroup_path(css->cgroup, buf, *available);
+	if (!path) {
+		ASSERT(false);
+		path = "NA";
+	}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	res = cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = p;
+	}
+#else
+	res = ppm_cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = p;
+	}
+#endif
+
+	pathlen = strlen(path);
+	subsys_len = strlen(subsys_name);
+	if (subsys_len + 1 + pathlen + 1 > *available) {
+		return 1;
+	}
+
+	memcpy(buf, subsys_name, subsys_len);
+	buf += subsys_len;
+	*buf++ = '=';
+	memmove(buf, path, pathlen);
+	buf += pathlen;
+	*buf++ = 0;
+	*available -= (subsys_len + 1 + pathlen + 1);
+	return 0;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _cgrp_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) 	\
+	goto cgroups_error;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
+#define IS_SUBSYS_ENABLED(option) IS_BUILTIN(option)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+#define IS_SUBSYS_ENABLED(option) IS_ENABLED(option)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#else
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#endif
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -902,10 +983,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		uint64_t euid = current_euid();
 		uint64_t egid = current_egid();
 #endif
-		int j = 0;
 		int available = STR_STORAGE_SIZE;
-		char* p = args->str_storage;
-		int subsys_count;
 
 		/*
 		 * flags
@@ -950,72 +1028,10 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		/*
 		 * cgroups
 		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-		subsys_count = CGROUP_SUBSYS_COUNT;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
-		subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
-		subsys_count = CGROUP_SUBSYS_COUNT;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-		subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
-#else
-		subsys_count = CGROUP_SUBSYS_COUNT;
-#endif
-			args->str_storage[0] = 0;
+		args->str_storage[0] = 0;
 		rcu_read_lock();
-		for (j = 0; j < subsys_count; ++j) {
-			char *path;
-			int pathlen;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
-			struct cgroup_subsys_state *css = task_css(current, j);
-#else
-			struct cgroup_subsys_state *css = task_subsys_state(current, j);
-#endif
-			if (!css) {
-				ASSERT(false);
-				continue;
-			}
-
-			if (!css->cgroup) {
-				ASSERT(false);
-				continue;
-			}
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
-			path = cgroup_path(css->cgroup, p, available);
-			if (!path) {
-				ASSERT(false);
-				path = "NA";
-			}
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-			res = cgroup_path(css->cgroup, p, available);
-			if (res < 0) {
-				ASSERT(false);
-				path = "NA";
-			} else {
-				path = p;
-			}
-#else
-			res = ppm_cgroup_path(css->cgroup, p, available);
-			if (res < 0) {
-				ASSERT(false);
-				path = "NA";
-			} else {
-				path = p;
-			}
-#endif
-
-			pathlen = strlen(path);
-			if (pathlen + 1 > available) {
-				break;
-			}
-
-			memmove(p, path, pathlen);
-			p += pathlen;
-			*p++ = 0;
-			available -= pathlen + 1;
-		}
+#include <linux/cgroup_subsys.h>
+cgroups_error:
 		rcu_read_unlock();
 
 		res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);

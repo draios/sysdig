@@ -363,9 +363,18 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 	size_t offset = 0;
 	while(offset < len)
 	{
-		string s(cgroups + offset);
-		m_cgroups.push_back(s);
-		offset += s.length() + 1;
+		const char* str = cgroups + offset;
+		const char* sep = strchr(str, '=');
+		if(sep == NULL)
+		{
+			ASSERT(false);
+			return;
+		}
+
+		string subsys(str, sep - str);
+		string cgroup(sep + 1);
+		m_cgroups.push_back(pair<string, string>(cgroup, subsys));
+		offset += subsys.length() + 1 + cgroup.length() + 1;
 
 		if(m_container.empty())
 		{
@@ -374,12 +383,12 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 			//
 			// Plain docker
 			//
-			pos = s.find("/docker/");
+			pos = cgroup.find("/docker/");
 			if(pos != string::npos)
 			{
-				if(s.length() - pos - sizeof("/docker/") + 1 == 64)
+				if(cgroup.length() - pos - sizeof("/docker/") + 1 == 64)
 				{
-					m_container = s.substr(pos + sizeof("/docker/") - 1, 12);
+					m_container = cgroup.substr(pos + sizeof("/docker/") - 1, 12);
 					continue;
 				}
 			}
@@ -387,14 +396,14 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 			//
 			// Docker sliced with systemd on EL7
 			//
-			pos = s.find("docker-");
+			pos = cgroup.find("docker-");
 			if(pos != string::npos)
 			{
-				size_t pos2 = s.find(".scope");
+				size_t pos2 = cgroup.find(".scope");
 				if(pos2 != string::npos &&
 					pos2 - pos - sizeof("docker-") + 1 == 64)
 				{
-					m_container = s.substr(pos + sizeof("docker-") - 1, 12);
+					m_container = cgroup.substr(pos + sizeof("docker-") - 1, 12);
 					continue;					
 				}
 			}
@@ -402,10 +411,10 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 			//
 			// Plain LXC
 			//
-			pos = s.find("/lxc/");
+			pos = cgroup.find("/lxc/");
 			if(pos != string::npos)
 			{
-				m_container = s.substr(pos + sizeof("/lxc/") - 1);
+				m_container = cgroup.substr(pos + sizeof("/lxc/") - 1);
 				continue;
 			}
 		}

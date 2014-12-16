@@ -1342,7 +1342,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			
 			for(j = 0; j < nargs; j++)
 			{
-				m_tstr += tinfo->m_cgroups[j];
+				m_tstr += tinfo->m_cgroups[j].first;
+				m_tstr += "=";
+				m_tstr += tinfo->m_cgroups[j].second;				
 				if(j < nargs - 1)
 				{
 					m_tstr += ' ';

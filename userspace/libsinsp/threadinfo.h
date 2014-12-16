@@ -135,7 +135,7 @@ public:
 	string m_exe; ///< Full command name (e.g. "/bin/top")
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
 	vector<string> m_env; ///< Environment variables
-	vector<string> m_cgroups; ///< subsystem-cgroup pairs
+	vector<pair<string, string>> m_cgroups; ///< subsystem-cgroup pairs
 	string m_container; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
