@@ -1941,6 +1941,7 @@ static inline u16 shutdown_how_to_scap(unsigned long how)
 		return SHUT_WR;
 	} else if (how == SHUT_RDWR) {
 		return SHUT_RDWR;
+	}
 
 	ASSERT(false);
 	return (u16)how;
