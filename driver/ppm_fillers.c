@@ -331,7 +331,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 #define compat_ptr(X) X
 #endif
 
-#define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL));
+#define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
 static int f_sys_generic(struct event_filler_arguments *args)
 {
@@ -344,41 +344,38 @@ static int f_sys_generic(struct event_filler_arguments *args)
 		 */
 		ASSERT(false);
 		return PPM_FAILURE_BUG;
-	} else {
+	}
 #endif /* __NR_socketcall */
+	/*
+	 * name
+	 */
+	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
+
+	if (likely(table_index >= 0 &&
+		   table_index <  SYSCALL_TABLE_SIZE)) {
+		enum ppm_syscall_code sc_code = g_syscall_code_routing_table[table_index];
+
 		/*
-		 * name
+		 * ID
 		 */
-		long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
+		res = val_to_ring(args, sc_code, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 
-		if (likely(table_index >= 0 &&
-			   table_index <  SYSCALL_TABLE_SIZE)) {
-			enum ppm_syscall_code sc_code = g_syscall_code_routing_table[table_index];
-
+		if (args->event_type == PPME_GENERIC_E) {
 			/*
-			 * ID
+			 * nativeID
 			 */
-			res = val_to_ring(args, sc_code, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-
-			if (args->event_type == PPME_GENERIC_E) {
-				/*
-				 * nativeID
-				 */
-				res = val_to_ring(args, args->syscall_id, 0, false, 0);
-				if (unlikely(res != PPM_SUCCESS))
-					return res;
-			}
-		} else {
-			ASSERT(false);
-			res = val_to_ring(args, (unsigned long)"<out of bound>", 0, false, 0);
+			res = val_to_ring(args, args->syscall_id, 0, false, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		}
-#ifdef __NR_socketcall
+	} else {
+		ASSERT(false);
+		res = val_to_ring(args, (unsigned long)"<out of bound>", 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 	}
-#endif
 
 	return add_sentinel(args);
 }
@@ -867,11 +864,11 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_16_X) {
+		if (args->event_type == PPME_SYSCALL_CLONE_16_X)
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
-		} else {
+		else
 			val = 0;
-		}
+
 		res = val_to_ring(args, (uint64_t)clone_flags_to_scap(val), 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
@@ -1944,10 +1941,9 @@ static inline u16 shutdown_how_to_scap(unsigned long how)
 		return SHUT_WR;
 	} else if (how == SHUT_RDWR) {
 		return SHUT_RDWR;
-	} else {
-		ASSERT(false);
-		return (u16)how;
-	}
+
+	ASSERT(false);
+	return (u16)how;
 }
 
 static int f_sys_shutdown_e(struct event_filler_arguments *args)
@@ -3846,13 +3842,13 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 	 * extract quota_fmt from id
 	 */
 	quota_fmt = PPM_QFMT_NOT_USED;
-	if (cmd == PPM_Q_QUOTAON) {
+	if (cmd == PPM_Q_QUOTAON)
 		quota_fmt = quotactl_fmt_to_scap(val);
-	}
+
 	res = val_to_ring(args, quota_fmt, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS)) {
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
-	}
+
 	return add_sentinel(args);
 }
 
@@ -3898,11 +3894,11 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	/*
 	 * get quotafilepath only for QUOTAON
 	 */
-	if (cmd == PPM_Q_QUOTAON) {
+	if (cmd == PPM_Q_QUOTAON)
 		res = val_to_ring(args, val, 0, true, 0);
-	} else {
+	else
 		res = val_to_ring(args, (unsigned long)empty_string, 0, false, 0);
-	}
+
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
