@@ -212,9 +212,9 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	/*
 	 * ring->preempt_count is not reset to 0 on purpose, to prevent a race condition:
-	 * if the same device is quickly closed and then reopened, record_event() might still be executing 
-	 * (with ring->preempt_count to 1) while ppm_open() resets ring->preempt_count to 0. 
-	 * When record_event() will exit, it will decrease 
+	 * if the same device is quickly closed and then reopened, record_event() might still be executing
+	 * (with ring->preempt_count to 1) while ppm_open() resets ring->preempt_count to 0.
+	 * When record_event() will exit, it will decrease
 	 * ring->preempt_count which will become < 0, leading to the complete loss of all the events for that CPU.
 	 */
 	g_dropping_mode = 0;
@@ -270,7 +270,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	++g_open_count;
 	ret = 0;
-	
+
 	goto cleanup_open;
 
 err_sched_switch:
@@ -379,12 +379,12 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE\n");
 		g_sampling_interval = 1000000000;
 		g_sampling_ratio = 1;
-	
+
 		/*
 		 * Push an event into the ring buffer so that the user can know that dropping
 		 * mode has been disabled
 		 */
-		record_event(PPME_SYSDIGEVENT_E, NULL, -1, UF_NEVER_DROP, (void*)DEI_DISABLE_DROPPING, (void*)0);
+		record_event(PPME_SYSDIGEVENT_E, NULL, -1, UF_NEVER_DROP, (void *)DEI_DISABLE_DROPPING, (void *)0);
 		return 0;
 	}
 	case PPM_IOCTL_ENABLE_DROPPING_MODE:
@@ -607,10 +607,10 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			}
 
 			return 0;
-		} else {
-			pr_err("Invalid mmap size %ld\n", length);
-			return -EIO;
 		}
+
+		pr_err("Invalid mmap size %ld\n", length);
+		return -EIO;
 	}
 
 	pr_err("invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
@@ -708,25 +708,25 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 }
 #endif /* __NR_socketcall */
 
-static inline void record_drop_e(void){
+static inline void record_drop_e(void)
+{
 	if (record_event(PPME_DROP_E, NULL, -1, UF_NEVER_DROP, NULL, NULL) == 0) {
 		g_need_to_insert_drop_e = 1;
 	} else {
-		if (g_need_to_insert_drop_e == 1) {
+		if (g_need_to_insert_drop_e == 1)
 			pr_err("drop enter event delayed insert\n");
-		}
 
 		g_need_to_insert_drop_e = 0;
 	}
 }
 
-static inline void record_drop_x(void){
+static inline void record_drop_x(void)
+{
 	if (record_event(PPME_DROP_X, NULL, -1, UF_NEVER_DROP, NULL, NULL) == 0) {
 		g_need_to_insert_drop_x = 1;
 	} else {
-		if (g_need_to_insert_drop_x == 1) {
+		if (g_need_to_insert_drop_x == 1)
 			pr_err("drop exit event delayed insert\n");
-		}
 
 		g_need_to_insert_drop_x = 0;
 	}
@@ -744,7 +744,7 @@ static inline int drop_event(enum ppm_event_type event_type, enum syscall_flags 
 			ASSERT((drop_flags & UF_NEVER_DROP) == 0);
 			return 1;
 		}
-	
+
 		if (ts->tv_nsec >= g_sampling_interval) {
 			if (g_is_dropping == 0) {
 				g_is_dropping = 1;
@@ -752,11 +752,11 @@ static inline int drop_event(enum ppm_event_type event_type, enum syscall_flags 
 			}
 
 			return 1;
-		} else {
-			if (g_is_dropping == 1) {
-				g_is_dropping = 0;
-					record_drop_x();
-			}
+		}
+
+		if (g_is_dropping == 1) {
+			g_is_dropping = 0;
+				record_drop_x();
 		}
 	}
 
@@ -794,11 +794,10 @@ static int record_event(enum ppm_event_type event_type,
 		return res;
 
 	if (event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
-		if (g_need_to_insert_drop_e == 1) {
+		if (g_need_to_insert_drop_e == 1)
 			record_drop_e();
-		} else if(g_need_to_insert_drop_x == 1) {
+		else if (g_need_to_insert_drop_x == 1)
 			record_drop_x();
-		}
 
 		if (drop_event(event_type, drop_flags, &ts))
 			return res;
@@ -817,7 +816,7 @@ static int record_event(enum ppm_event_type event_type,
 
 	ring_info->n_evts++;
 	if (sched_prev != NULL) {
-		if(event_type != PPME_SYSDIGEVENT_E) {
+		if (event_type != PPME_SYSDIGEVENT_E) {
 			ASSERT(sched_prev != NULL);
 			ASSERT(sched_next != NULL);
 			ASSERT(regs == NULL);
@@ -938,7 +937,7 @@ static int record_event(enum ppm_event_type event_type,
 			cbres = g_ppm_events[event_type].filler_callback(&args);
 		}
 
-		if (likely(cbres == PPM_SUCCESS)) {			
+		if (likely(cbres == PPM_SUCCESS)) {
 			/*
 			 * Validate that the filler added the right number of parameters
 			 */
