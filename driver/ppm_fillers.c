@@ -3790,8 +3790,10 @@ static inline uint8_t quotactl_fmt_to_scap(unsigned long fmt)
 		return PPM_QFMT_VFS_OLD;
 	case QFMT_VFS_V0:
 		return PPM_QFMT_VFS_V0;
+#ifdef QFMT_VFS_V1
 	case QFMT_VFS_V1:
 		return PPM_QFMT_VFS_V1;
+#endif
 	default:
 		return PPM_QFMT_NOT_USED;
 	}
