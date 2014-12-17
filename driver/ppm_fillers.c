@@ -336,6 +336,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 static int f_sys_generic(struct event_filler_arguments *args)
 {
 	int res;
+	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
 
 #ifdef __NR_socketcall
 	if (unlikely(args->syscall_id == __NR_socketcall)) {
@@ -349,8 +350,6 @@ static int f_sys_generic(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
-
 	if (likely(table_index >= 0 &&
 		   table_index <  SYSCALL_TABLE_SIZE)) {
 		enum ppm_syscall_code sc_code = g_syscall_code_routing_table[table_index];
