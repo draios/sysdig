@@ -897,6 +897,8 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			 */
 			env_len = mm->env_end - mm->env_start;
 
+			pr_info("mm %p env_start %lu env_end %lu env_len %lu\n", mm, mm->env_start, mm->env_end, env_len);
+
 			if (env_len > PAGE_SIZE)
 				env_len = PAGE_SIZE;
 
