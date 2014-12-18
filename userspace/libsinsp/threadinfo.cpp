@@ -142,6 +142,8 @@ void sinsp_threadinfo::compute_program_hash()
 		phs += arg;
 	}
 
+	phs += m_container;
+
 	m_program_hash = std::hash<std::string>()(phs);
 }
 
