@@ -13,6 +13,8 @@ complete -W                                     \
   --displayflt                                  \
   -D                                            \
   --debug                                       \
+  -E                                            \
+  --exclude-users                               \
   -F                                            \
   --fatfile                                     \
   -h                                            \

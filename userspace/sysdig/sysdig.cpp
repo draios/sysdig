@@ -116,7 +116,7 @@ static void usage()
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
 " -D, --debug        Capture events about sysdig itself\n"
 " -E, --exclude-users\n"
-"                    Don't crate the user/group tables by querying the OS when\n"
+"                    Don't create the user/group tables by querying the OS when\n"
 "                    sysdig starts. This also means that no user or group info\n"
 "                    will be written to the tracefile by the -w flag.\n"
 "                    The user/group tables are necessary to use filter fields\n"
