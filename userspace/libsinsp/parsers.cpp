@@ -1704,7 +1704,6 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 		m_fd_listener->on_accept(evt, fd, packed_data, &fdi);
 	}
 
-
 	//
 	// Mark this fd as a server
 	//

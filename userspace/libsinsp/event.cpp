@@ -1968,8 +1968,8 @@ const sinsp_evt_param* sinsp_evt::get_param_value_raw(const char* name)
 
 void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 {
-	if(get_type() == PPME_GENERIC_E ||
-		get_type() == PPME_GENERIC_X)
+	if(m_pevt->type == PPME_GENERIC_E ||
+		m_pevt->type == PPME_GENERIC_X)
 	{
 		//
 		// This event is a syscall that doesn't have a filler yet.

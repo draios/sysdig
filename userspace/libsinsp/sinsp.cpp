@@ -1162,6 +1162,11 @@ double sinsp::get_read_progress()
 	return (double)fpos * 100 / m_filesize;
 }
 
+bool sinsp::remove_inactive_threads()
+{
+	return m_thread_manager->remove_inactive_threads();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next
 ///////////////////////////////////////////////////////////////////////////////
