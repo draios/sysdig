@@ -729,7 +729,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
-	output_format = "*%evt.num <TIME> %evt.cpu %thread.container (%thread.vtid) %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
+	output_format = "*%evt.num <TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
 
 	try
 	{
@@ -926,6 +926,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
+				}
+				else if(string(optarg) == "c" || string(optarg) == "container")
+				{
+					output_format = "*%evt.num <TIME> %evt.cpu %thread.container %proc.name (%thread.tid->%thread.vtid) %evt.dir %evt.type %evt.info";
 				}
 				else
 				{
