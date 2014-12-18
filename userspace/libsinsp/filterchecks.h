@@ -305,13 +305,12 @@ public:
 		TYPE_EXECTIME = 24,
 		TYPE_TOTEXECTIME = 25,
 		TYPE_CGROUPS = 26,
-		TYPE_CONTAINER = 27,
-		TYPE_VTID = 28,
-		TYPE_VPID = 29,
-		TYPE_IOBYTES = 30,
-		TYPE_TOTIOBYTES = 31,
-		TYPE_LATENCY = 32,
-		TYPE_TOTLATENCY = 33,
+		TYPE_VTID = 27,
+		TYPE_VPID = 28,
+		TYPE_IOBYTES = 29,
+		TYPE_TOTIOBYTES = 30,
+		TYPE_LATENCY = 31,
+		TYPE_TOTLATENCY = 32,
 	};
 
 	sinsp_filter_check_thread();
@@ -501,4 +500,21 @@ public:
 	uint32_t m_gid;
 	string m_name;
 };
+
+class sinsp_filter_check_container : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_CONTAINER_ID
+	};
+
+	sinsp_filter_check_container();
+	sinsp_filter_check* allocate_new();
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	string m_tstr;
+};
+
 #endif // HAS_FILTERING
