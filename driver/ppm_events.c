@@ -79,8 +79,6 @@ u32 g_http_trace_intval;
 u32 g_http_connect_intval;
 u32 g_http_resp_intval;
 
-extern bool g_do_dynamic_snaplen;
-
 /*
  * What this function does is basically a special memcpy
  * so that, if the page fault handler detects the address is invalid,
@@ -161,20 +159,20 @@ strncpy_end:
 
 int32_t dpi_lookahead_init(void)
 {
-	g_http_options_intval = (*(u32*)HTTP_OPTIONS_STR);
-	g_http_get_intval = (*(u32*)HTTP_GET_STR);
-	g_http_head_intval = (*(u32*)HTTP_HEAD_STR);
-	g_http_post_intval = (*(u32*)HTTP_POST_STR);
-	g_http_put_intval = (*(u32*)HTTP_PUT_STR);
-	g_http_delete_intval = (*(u32*)HTTP_DELETE_STR);
-	g_http_trace_intval = (*(u32*)HTTP_TRACE_STR);
-	g_http_connect_intval = (*(u32*)HTTP_CONNECT_STR);
-	g_http_resp_intval = (*(u32*)HTTP_RESP_STR);
+	g_http_options_intval = (*(u32 *)HTTP_OPTIONS_STR);
+	g_http_get_intval = (*(u32 *)HTTP_GET_STR);
+	g_http_head_intval = (*(u32 *)HTTP_HEAD_STR);
+	g_http_post_intval = (*(u32 *)HTTP_POST_STR);
+	g_http_put_intval = (*(u32 *)HTTP_PUT_STR);
+	g_http_delete_intval = (*(u32 *)HTTP_DELETE_STR);
+	g_http_trace_intval = (*(u32 *)HTTP_TRACE_STR);
+	g_http_connect_intval = (*(u32 *)HTTP_CONNECT_STR);
+	g_http_resp_intval = (*(u32 *)HTTP_RESP_STR);
 
 	return PPM_SUCCESS;
 }
 
-inline u32 compute_snaplen(struct event_filler_arguments *args, char*buf, u32 lookahead_size)
+inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 lookahead_size)
 {
 	u32 res = g_snaplen;
 	int err;
@@ -214,10 +212,9 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char*buf, u32 lo
 #endif
 	}
 */
-	
-	if (!g_do_dynamic_snaplen) {
+
+	if (!g_do_dynamic_snaplen)
 		return res;
-	}
 
 	sock = sockfd_lookup(args->fd, &err);
 
@@ -240,7 +237,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char*buf, u32 lo
 						dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
 					} else {
 						sport = 0;
-						dport = 0;						
+						dport = 0;
 					}
 
 					if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
@@ -248,35 +245,33 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char*buf, u32 lo
 							if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
 								sockfd_put(sock);
 								return 2000;
-							} else if (buf[2] == 0 && buf[3] == 0){
+							} else if (buf[2] == 0 && buf[3] == 0) {
 								sockfd_put(sock);
 								return 2000;
 							}
 						}
 					} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
-						if (lookahead_size >= 2)
-						{
-							if ( ( buf[0] == 'Q' && buf[1] == 0 ) || // SimpleQuery command
-								( buf[0] == 'P' && buf[1] == 0 ) || // Prepare statement commmand
-								 ( buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || // startup command
-								 ( buf[0] == 'E' && buf[1] == 0 ) // error or execute command
-							)
-							{
+						if (lookahead_size >= 2) {
+							if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
+								(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement commmand */
+								 (buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
+								 (buf[0] == 'E' && buf[1] == 0) /* error or execute command */
+							) {
 								sockfd_put(sock);
 								return 2000;
 							}
 						}
 					} else {
 						if (lookahead_size >= 5) {
-							if (*(u32*)buf == g_http_get_intval ||
-							        *(u32*)buf == g_http_post_intval ||
-							        *(u32*)buf == g_http_put_intval ||
-							        *(u32*)buf == g_http_delete_intval ||
-							        *(u32*)buf == g_http_trace_intval ||
-							        *(u32*)buf == g_http_connect_intval ||
-							        *(u32*)buf == g_http_options_intval ||
-							        ((*(u32*)buf == g_http_resp_intval) && (buf[4] == '/')))
-							{
+							if (*(u32 *)buf == g_http_get_intval ||
+								*(u32 *)buf == g_http_post_intval ||
+								*(u32 *)buf == g_http_put_intval ||
+								*(u32 *)buf == g_http_delete_intval ||
+								*(u32 *)buf == g_http_trace_intval ||
+								*(u32 *)buf == g_http_connect_intval ||
+								*(u32 *)buf == g_http_options_intval ||
+								((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
+							) {
 								sockfd_put(sock);
 								return 2000;
 							}
@@ -300,7 +295,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char*buf, u32 lo
  */
 int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, u8 dyn_idx)
 {
-	const struct ppm_param_info* param_info;
+	const struct ppm_param_info *param_info;
 	int len = -1;
 	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
 
@@ -317,9 +312,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		return PPM_FAILURE_BUG;
 	}
 
-	if (unlikely(args->arg_data_size == 0)) {
+	if (unlikely(args->arg_data_size == 0))
 		return PPM_FAILURE_BUFFER_FULL;
-	}
 
 	param_info = &(g_event_info[args->event_type].params[args->curarg]);
 	if (param_info->type == PT_DYN && param_info->info != NULL) {
@@ -386,14 +380,13 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		if (likely(val != 0)) {
 			if (fromuser) {
 				/*
-				 * Copy the lookahead portion of the buffer that we will use DPI-based 
+				 * Copy the lookahead portion of the buffer that we will use DPI-based
 				 * snaplen calculation
 				 */
 				u32 dpi_lookahead_size = DPI_LOOKAHED_SIZE;
 
-				if (dpi_lookahead_size > val_len) {
+				if (dpi_lookahead_size > val_len)
 					dpi_lookahead_size = val_len;
-				}
 
 				if (unlikely(dpi_lookahead_size >= args->arg_data_size))
 					return PPM_FAILURE_BUFFER_FULL;
@@ -417,14 +410,12 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 
 						sl = compute_snaplen(args, args->buffer + args->arg_data_offset, dpi_lookahead_size);
 
-						if (val_len > sl) {
+						if (val_len > sl)
 							val_len = sl;
-						}			
 					}
 
-					if (unlikely((val_len) >= args->arg_data_size)) {
+					if (unlikely((val_len) >= args->arg_data_size))
 						val_len = args->arg_data_size;
-					}
 
 					if (val_len > dpi_lookahead_size) {
 						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
@@ -441,9 +432,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 				if (likely(args->enforce_snaplen)) {
 					u32 sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
 
-					if (val_len > sl) {
+					if (val_len > sl)
 						val_len = sl;
-					}
 				}
 
 				if (unlikely(val_len >= args->arg_data_size))
@@ -466,24 +456,23 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 		if (likely(val != 0)) {
-			if (unlikely(val_len >= args->arg_data_size)) {
+			if (unlikely(val_len >= args->arg_data_size))
 				return PPM_FAILURE_BUFFER_FULL;
+
+			if (fromuser) {
+				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
+						(const void __user *)(unsigned long)val,
+						val_len);
+
+				if (unlikely(len != 0))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+				len = val_len;
 			} else {
-				if (fromuser) {
-					len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
-							(const void __user *)(unsigned long)val,
-							val_len);
+				memcpy(args->buffer + args->arg_data_offset,
+					(void *)(unsigned long)val, val_len);
 
-					if (unlikely(len != 0))
-						return PPM_FAILURE_INVALID_USER_MEMORY;
-
-					len = val_len;
-				} else {
-					memcpy(args->buffer + args->arg_data_offset,
-						(void *)(unsigned long)val, val_len);
-
-					len = val_len;
-				}
+				len = val_len;
 			}
 		} else {
 			/*
@@ -906,8 +895,7 @@ u16 fd_to_socktuple(int fd,
 	case AF_INET:
 		if (!use_userdata) {
 			err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
-			if(err == 0)
-			{
+			if (err == 0) {
 				if (is_inbound) {
 					sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
 					sport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
@@ -919,13 +907,11 @@ u16 fd_to_socktuple(int fd,
 					dip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
 					dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
 				}
-			}
-			else
-			{
+			} else {
 				sip = 0;
 				sport = 0;
 				dip = 0;
-				dport = 0;				
+				dport = 0;
 			}
 		} else {
 			/*
