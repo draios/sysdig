@@ -607,6 +607,8 @@ private:
 	//       and m_last_tinfo is not set.
 	//
 	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only);
+	// this is here for testing purposes only
+	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
 
 	scap_t* m_h;

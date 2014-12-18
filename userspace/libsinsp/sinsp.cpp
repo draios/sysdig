@@ -776,6 +776,11 @@ sinsp_threadinfo* sinsp::find_thread(int64_t tid, bool lookup_only)
 	}
 }
 
+sinsp_threadinfo* sinsp::find_thread_test(int64_t tid, bool lookup_only)
+{
+	return find_thread(tid, lookup_only);
+}
+
 sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only)
 {
 	sinsp_threadinfo* sinsp_proc = find_thread(tid, lookup_only);
