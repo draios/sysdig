@@ -142,7 +142,7 @@ void sinsp_threadinfo::compute_program_hash()
 		phs += arg;
 	}
 
-	phs += m_container;
+	phs += m_container.m_id;
 
 	m_program_hash = std::hash<std::string>()(phs);
 }
@@ -317,7 +317,12 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
 	set_cgroups(pi->cgroups, pi->cgroups_len);
-
+	ASSERT(m_inspector);
+	if(m_inspector)
+	{
+		m_inspector->m_container_manager.get_container_from_cgroups(m_cgroups, &m_container);
+	}
+	
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
 	{
 		add_fd(fdi);
@@ -375,51 +380,8 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 
 		string subsys(str, sep - str);
 		string cgroup(sep + 1);
-		m_cgroups.push_back(pair<string, string>(cgroup, subsys));
+		m_cgroups.push_back(std::make_pair(subsys, cgroup));
 		offset += subsys.length() + 1 + cgroup.length() + 1;
-
-		if(m_container.empty())
-		{
-			size_t pos;
-
-			//
-			// Plain docker
-			//
-			pos = cgroup.find("/docker/");
-			if(pos != string::npos)
-			{
-				if(cgroup.length() - pos - sizeof("/docker/") + 1 == 64)
-				{
-					m_container = cgroup.substr(pos + sizeof("/docker/") - 1, 12);
-					continue;
-				}
-			}
-
-			//
-			// Docker sliced with systemd on EL7
-			//
-			pos = cgroup.find("docker-");
-			if(pos != string::npos)
-			{
-				size_t pos2 = cgroup.find(".scope");
-				if(pos2 != string::npos &&
-					pos2 - pos - sizeof("docker-") + 1 == 64)
-				{
-					m_container = cgroup.substr(pos + sizeof("docker-") - 1, 12);
-					continue;					
-				}
-			}
-
-			//
-			// Plain LXC
-			//
-			pos = cgroup.find("/lxc/");
-			if(pos != string::npos)
-			{
-				m_container = cgroup.substr(pos + sizeof("/lxc/") - 1);
-				continue;
-			}
-		}
 	}
 }
 
@@ -1020,6 +982,8 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		// exited but that are stuck because of reference counting.
 		//
 		recreate_child_dependencies();
+
+		g_logger.format(sinsp_logger::SEV_INFO, "Flushing container table");
 	}
 
 	return res;

@@ -624,6 +624,8 @@ private:
 
 	sinsp_thread_manager* m_thread_manager;
 
+	sinsp_container_manager m_container_manager;
+
 #ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
@@ -651,6 +653,12 @@ private:
 	uint32_t m_max_thread_table_size;
 	uint64_t m_thread_timeout_ns;
 	uint64_t m_inactive_thread_scan_time_ns;
+
+	//
+	// Container limits
+	//
+	uint64_t m_container_timeout_ns;
+	uint64_t m_inactive_container_scan_time_ns;
 
 	//
 	// How to render the data buffers

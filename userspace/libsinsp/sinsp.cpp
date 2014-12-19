@@ -61,6 +61,8 @@ sinsp::sinsp() :
 	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
+	m_container_timeout_ns = DEFAULT_CONTAINER_TIMEOUT_S * ONE_SECOND_IN_NS;
+	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
 
@@ -567,6 +569,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	if(m_islive)
 	{
 		m_thread_manager->remove_inactive_threads();
+		m_container_manager.remove_inactive_containers();
 	}
 #endif // HAS_ANALYZER
 

@@ -22,9 +22,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define VISIBILITY_PRIVATE private:
 #endif
 
+#include "container.h"
+
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
+class sinsp_container_info;
 
 typedef struct erase_fd_params
 {
@@ -136,7 +139,7 @@ public:
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
 	vector<string> m_env; ///< Environment variables
 	vector<pair<string, string>> m_cgroups; ///< subsystem-cgroup pairs
-	string m_container; ///< heuristic-based container id
+	sinsp_container_info m_container; ///< heuristic-based container
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid; ///< user id
