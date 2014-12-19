@@ -766,7 +766,7 @@ static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int*
 		ASSERT(false);
 		path = "NA";
 	} else {
-		path = p;
+		path = buf;
 	}
 #else
 	res = ppm_cgroup_path(css->cgroup, buf, *available);
@@ -774,7 +774,7 @@ static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int*
 		ASSERT(false);
 		path = "NA";
 	} else {
-		path = p;
+		path = buf;
 	}
 #endif
 
