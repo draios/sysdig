@@ -2791,7 +2791,9 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_container_fields[] =
 {
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "the container id the thread belongs to."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "the container id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "the container name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image."}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -2818,6 +2820,22 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 	switch(m_field_id)
 	{
 	case TYPE_CONTAINER_ID:
+		if(tinfo->m_container.empty())
+		{
+			return NULL;
+		}
+
+		m_tstr = tinfo->m_container;
+		return (uint8_t*)m_tstr.c_str();
+	case TYPE_CONTAINER_NAME:
+		if(tinfo->m_container.empty())
+		{
+			return NULL;
+		}
+
+		m_tstr = tinfo->m_container;
+		return (uint8_t*)m_tstr.c_str();
+	case TYPE_CONTAINER_IMAGE:
 		if(tinfo->m_container.empty())
 		{
 			return NULL;

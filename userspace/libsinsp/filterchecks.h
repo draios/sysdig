@@ -506,7 +506,9 @@ class sinsp_filter_check_container : public sinsp_filter_check
 public:
 	enum check_type
 	{
-		TYPE_CONTAINER_ID
+		TYPE_CONTAINER_ID = 0,
+		TYPE_CONTAINER_NAME,
+		TYPE_CONTAINER_IMAGE,
 	};
 
 	sinsp_filter_check_container();
