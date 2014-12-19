@@ -735,6 +735,10 @@ static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int*
 	int subsys_len;
 	char *path;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+	int res;
+#endif
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
 	struct cgroup_subsys_state *css = task_css(current, subsys_id);
 #else
