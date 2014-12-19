@@ -71,11 +71,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_INACTIVE_THREAD_SCAN_TIME_S 1200
 
 //
-// The time after an inactive thread is removed.
-//
-#define DEFAULT_CONTAINER_TIMEOUT_S DEFAULT_THREAD_TIMEOUT_S
-
-//
 // How often the thread table is sacnned for inactive threads
 //
 #define DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S DEFAULT_INACTIVE_THREAD_SCAN_TIME_S

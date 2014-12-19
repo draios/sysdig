@@ -657,7 +657,6 @@ private:
 	//
 	// Container limits
 	//
-	uint64_t m_container_timeout_ns;
 	uint64_t m_inactive_container_scan_time_ns;
 
 	//
