@@ -720,20 +720,6 @@ scap_addrlist* scap_get_ifaddr_list(scap_t* handle);
 scap_userlist* scap_get_user_list(scap_t* handle);
 
 /*!
-  \brief This function can be used to specify the time after which \ref scap_next
-  returns when no events are available. 
-
-  \param handle Handle to the capture instance.
-  \param handle The number of milliseconds after which scap_next will return 
-  SCAP_TIMEOUT. Use 0 if you want to the scap_next to always return immediately.
-
-  \return SCAP_SUCCESS if the call is succesful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
-   the cause of the error. 
-*/
-int32_t scap_set_empty_buffer_timeout_ms(scap_t* handle, uint32_t timeout_ms);
-
-/*!
   \brief Retrieve the table with the description of every event type that 
   the capture driver supports. 
 

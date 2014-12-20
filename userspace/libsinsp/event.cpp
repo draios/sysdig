@@ -54,15 +54,6 @@ extern sinsp_evttables g_infotables;
 } while(0)
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_evt_param implementation
-///////////////////////////////////////////////////////////////////////////////
-void sinsp_evt_param::init(char *valptr, uint16_t len)
-{
-	m_val = valptr;
-	m_len = len;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // sinsp_evt implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_evt::sinsp_evt() :
@@ -73,6 +64,7 @@ sinsp_evt::sinsp_evt() :
 #ifdef _DEBUG
 	m_filtered_out = false;
 #endif
+	m_event_info_table = g_infotables.m_event_info;
 }
 
 sinsp_evt::sinsp_evt(sinsp *inspector) :
@@ -84,51 +76,11 @@ sinsp_evt::sinsp_evt(sinsp *inspector) :
 #ifdef _DEBUG
 	m_filtered_out = false;
 #endif
+	m_event_info_table = g_infotables.m_event_info;
 }
 
 sinsp_evt::~sinsp_evt()
 {
-}
-
-void sinsp_evt::init()
-{
-	m_params_loaded = false;
-	m_info = scap_event_getinfo(m_pevt);
-	m_tinfo = NULL;
-	m_fdinfo = NULL;
-	m_iosize = 0;
-}
-
-void sinsp_evt::init(uint8_t *evdata, uint16_t cpuid)
-{
-	m_params_loaded = false;
-	m_pevt = (scap_evt *)evdata;
-	m_info = scap_event_getinfo(m_pevt);
-	m_tinfo = NULL;
-	m_fdinfo = NULL;
-	m_iosize = 0;
-	m_cpuid = cpuid;
-	m_evtnum = 0;
-}
-
-uint64_t sinsp_evt::get_num()
-{
-	return m_evtnum;
-}
-
-int16_t sinsp_evt::get_cpuid()
-{
-	return m_cpuid;
-}
-
-uint16_t sinsp_evt::get_type()
-{
-	return m_pevt->type;
-}
-
-ppm_event_flags sinsp_evt::get_flags()
-{
-	return m_info->flags;
 }
 
 uint64_t sinsp_evt::get_ts()
@@ -2014,29 +1966,10 @@ const sinsp_evt_param* sinsp_evt::get_param_value_raw(const char* name)
 	return NULL;
 }
 
-void sinsp_evt::load_params()
-{
-	uint32_t j;
-	uint32_t nparams;
-	sinsp_evt_param par;
-
-	nparams = m_info->nparams;
-	uint16_t *lens = (uint16_t *)((char *)m_pevt + sizeof(struct ppm_evt_hdr));
-	char *valptr = (char *)lens + nparams * sizeof(uint16_t);
-	m_params.clear();
-
-	for(j = 0; j < nparams; j++)
-	{
-		par.init(valptr, lens[j]);
-		m_params.push_back(par);
-		valptr += lens[j];
-	}
-}
-
 void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 {
-	if(get_type() == PPME_GENERIC_E ||
-		get_type() == PPME_GENERIC_X)
+	if(m_pevt->type == PPME_GENERIC_E ||
+		m_pevt->type == PPME_GENERIC_X)
 	{
 		//
 		// This event is a syscall that doesn't have a filler yet.

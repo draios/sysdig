@@ -566,18 +566,6 @@ bool sinsp_threadinfo::is_lastevent_data_valid()
 	return (m_lastevent_cpuid != (uint16_t) - 1);
 }
 
-void sinsp_threadinfo::set_lastevent_data_validity(bool isvalid)
-{
-	if(isvalid)
-	{
-		m_lastevent_cpuid = (uint16_t)1;
-	}
-	else
-	{
-		m_lastevent_cpuid = (uint16_t) - 1;
-	}
-}
-
 sinsp_threadinfo* sinsp_threadinfo::get_cwd_root()
 {
 	if(!(m_flags & PPM_CL_CLONE_FS))
@@ -724,49 +712,6 @@ void sinsp_thread_manager::clear()
 void sinsp_thread_manager::set_listener(sinsp_threadtable_listener* listener)
 {
 	m_listener = listener;
-}
-
-sinsp_threadinfo* sinsp_thread_manager::get_thread(int64_t tid, bool lookup_only)
-{
-	threadinfo_map_iterator_t it;
-
-	//
-	// Try looking up in our simple cache
-	//
-	if(m_last_tinfo && tid == m_last_tid)
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_cached_lookups->increment();
-#endif
-		m_last_tinfo->m_lastaccess_ts = m_inspector->m_lastevent_ts;
-		return m_last_tinfo;
-	}
-
-	//
-	// Caching failed, do a real lookup
-	//
-	it = m_threadtable.find(tid);
-	
-	if(it != m_threadtable.end())
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_non_cached_lookups->increment();
-#endif
-		if(!lookup_only)
-		{
-			m_last_tid = tid;
-			m_last_tinfo = &(it->second);
-			m_last_tinfo->m_lastaccess_ts = m_inspector->m_lastevent_ts;
-		}
-		return &(it->second);
-	}
-	else
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_failed_lookups->increment();
-#endif
-		return NULL;
-	}
 }
 
 void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* threadinfo)
@@ -923,70 +868,6 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 			recreate_child_dependencies();
 		}
 	}
-}
-
-bool sinsp_thread_manager::remove_inactive_threads()
-{
-	bool res = false;
-
-	if(m_last_flush_time_ns == 0)
-	{
-		//
-		// Set the first table scan for 30 seconds in, so that we can spot bugs in the logic without having
-		// to wait for tens of minutes
-		//
-		m_last_flush_time_ns = 
-			(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
-	}
-
-	if(m_inspector->m_lastevent_ts > 
-		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
-	{
-		res = true;
-
-		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
-
-		g_logger.format(sinsp_logger::SEV_INFO, "Flushing thread table");
-
-		//
-		// Go through the table and remove dead entries.
-		//
-		for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end();)
-		{
-			bool closed = (it->second.m_flags & PPM_CL_CLOSED) != 0;
-
-			if(closed || 
-				((m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
-					!scap_is_thread_alive(m_inspector->m_h, it->second.m_pid, it->first, it->second.m_comm.c_str()))
-					)
-			{
-				//
-				// Reset the cache
-				//
-				m_last_tid = 0;
-				m_last_tinfo = NULL;
-
-#ifdef GATHER_INTERNAL_STATS
-				m_removed_threads->increment();
-#endif
-				remove_thread(it++, closed);
-			}
-			else
-			{
-				++it;
-			}
-		}
-
-		//
-		// Rebalance the thread table dependency tree, so we free up threads that
-		// exited but that are stuck because of reference counting.
-		//
-		recreate_child_dependencies();
-
-		g_logger.format(sinsp_logger::SEV_INFO, "Flushing container table");
-	}
-
-	return res;
 }
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc()

@@ -68,7 +68,7 @@ typedef struct scap_device
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
-//	uint64_t m_sn_next_ts; // timestamp
+	uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
 }scap_device;
 
 //
@@ -89,7 +89,6 @@ struct scap
 	scap_threadinfo* m_proclist;
 	scap_threadinfo m_fake_kernel_proc;
 	uint64_t m_evtcnt;
-	uint32_t m_emptybuf_timeout_ms;
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
@@ -172,8 +171,6 @@ int32_t scap_create_userlist(scap_t* handle);
 void scap_free_userlist(scap_userlist* uhandle);
 
 int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
-
-uint32_t scap_event_compute_len(scap_evt* e);
 
 //
 // ASSERT implementation

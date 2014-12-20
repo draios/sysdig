@@ -74,7 +74,11 @@ public:
 	char* m_val;	///< Pointer to the event parameter data.
 	uint16_t m_len; ///< Lenght os the parameter pointed by m_val.
 private:
-	void init(char* valptr, uint16_t len);
+	inline void init(char* valptr, uint16_t len)
+	{
+		m_val = valptr;
+		m_len = len;		
+	}
 
 	friend class sinsp_evt;
 };
@@ -141,24 +145,36 @@ public:
 	/*!
 	  \brief Get the incremental number of this event.
 	*/
-	uint64_t get_num();
+	inline uint64_t get_num()
+	{
+		return m_evtnum;
+	}
 
 	/*!
 	  \brief Get the number of the CPU where this event was captured.
 	*/
-	int16_t get_cpuid();
+	inline int16_t get_cpuid()
+	{
+		return m_cpuid;
+	}
 
 	/*!
 	  \brief Get the event type. 
 	  
 	  \note For a list of event types, refer to \ref etypes.
 	*/
-	uint16_t get_type();
+	inline uint16_t get_type()
+	{
+		return m_pevt->type;
+	}
 
 	/*!
 	  \brief Get the event's flags.
 	*/
-	ppm_event_flags get_flags();
+	inline ppm_event_flags get_flags()
+	{
+		return m_info->flags;
+	}
 
 	/*!
 	  \brief Return the event direction: in or out.
@@ -277,9 +293,43 @@ private:
 
 	const char* get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
-	void init();
-	void init(uint8_t* evdata, uint16_t cpuid);
-	void load_params();
+	inline void init()
+	{
+		m_params_loaded = false;
+		m_info = &(m_event_info_table[m_pevt->type]);
+		m_tinfo = NULL;
+		m_fdinfo = NULL;
+		m_iosize = 0;		
+	}
+	inline void init(uint8_t* evdata, uint16_t cpuid)
+	{
+		m_params_loaded = false;
+		m_pevt = (scap_evt *)evdata;
+		m_info = &(m_event_info_table[m_pevt->type]);
+		m_tinfo = NULL;
+		m_fdinfo = NULL;
+		m_iosize = 0;
+		m_cpuid = cpuid;
+		m_evtnum = 0;		
+	}
+	inline void load_params()
+	{
+		uint32_t j;
+		uint32_t nparams;
+		sinsp_evt_param par;
+
+		nparams = m_info->nparams;
+		uint16_t *lens = (uint16_t *)((char *)m_pevt + sizeof(struct ppm_evt_hdr));
+		char *valptr = (char *)lens + nparams * sizeof(uint16_t);
+		m_params.clear();
+
+		for(j = 0; j < nparams; j++)
+		{
+			par.init(valptr, lens[j]);
+			m_params.push_back(par);
+			valptr += lens[j];
+		}		
+	}
 	string get_param_value_str(uint32_t id, bool resolved);
 	string get_param_value_str(const char* name, bool resolved = true);
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
@@ -307,6 +357,7 @@ VISIBILITY_PRIVATE
 #ifdef HAS_FILTERING
 	bool m_filtered_out;
 #endif
+	const struct ppm_event_info* m_event_info_table;
 
 	friend class sinsp;
 	friend class sinsp_parser;
