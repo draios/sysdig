@@ -709,6 +709,7 @@ private:
 	friend class sinsp_threadinfo;
 	friend class sinsp_fdtable;
 	friend class sinsp_thread_manager;
+	friend class sinsp_container_manager;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;

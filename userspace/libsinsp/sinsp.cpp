@@ -50,7 +50,8 @@ void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
-	m_evt(this)
+	m_evt(this),
+	m_container_manager(this)
 {
 	m_h = NULL;
 	m_parser = NULL;

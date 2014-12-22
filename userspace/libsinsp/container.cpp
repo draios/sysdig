@@ -24,9 +24,56 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "container.h"
 
+sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
+	m_inspector(inspector),
+	m_last_flush_time_ns(0)
+{
+}
+
 bool sinsp_container_manager::remove_inactive_containers()
 {
-	return false;
+	bool res = false;
+
+	if(m_last_flush_time_ns == 0)
+	{
+		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_inactive_container_scan_time_ns + 30 * ONE_SECOND_IN_NS;
+	}
+
+	if(m_inspector->m_lastevent_ts > 
+		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
+	{
+		res = true;
+
+		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
+
+		g_logger.format(sinsp_logger::SEV_INFO, "Flushing container table");
+
+		set<string> containers_in_use;
+
+		threadinfo_map_t* threadtable = m_inspector->m_thread_manager->get_threads();
+
+		for(threadinfo_map_iterator_t it = threadtable->begin(); it != threadtable->end(); ++it)
+		{
+			if(!it->second.m_container.m_id.empty())
+			{
+				containers_in_use.insert(it->second.m_container.m_id);
+			}
+		}
+
+		for(unordered_map<string, sinsp_container_info>::iterator it = m_containers.begin(); it != m_containers.end();)
+		{
+			if(containers_in_use.find(it->first) == containers_in_use.end())
+			{
+				m_containers.erase(it++);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
+
+	return res;
 }
 
 bool sinsp_container_manager::get_container_from_cgroups(const vector<pair<string, string>>& cgroups, sinsp_container_info* container_info)

@@ -36,13 +36,16 @@ public:
 class sinsp_container_manager
 {
 public:
-	unordered_map<string, sinsp_container_info>* get_containers();
+	sinsp_container_manager(sinsp* inspector);
+
+	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
 	bool get_container_from_cgroups(const vector<pair<string, string>>& cgroups, sinsp_container_info* container_info);
 
 private:
 	void parse_docker(sinsp_container_info* container);
 
+	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;
 	uint64_t m_last_flush_time_ns;
 };
