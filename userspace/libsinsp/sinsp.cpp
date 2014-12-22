@@ -515,6 +515,9 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	{
 		if(res == SCAP_TIMEOUT)
 		{
+#ifdef HAS_ANALYZER
+			m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
+#endif
 			*evt = NULL;
 			return res;
 		}
@@ -523,7 +526,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 #ifdef HAS_ANALYZER
 			if(m_analyzer)
 			{
-				m_analyzer->process_event(NULL, sinsp_analyzer::DF_NONE);
+				m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
 			}
 #endif
 		}
