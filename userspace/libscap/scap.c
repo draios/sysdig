@@ -679,6 +679,8 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #endif
 }
 
+int pippo = 0;
+
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	int32_t res;
@@ -689,7 +691,15 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 	}
 	else
 	{
+if(pippo++ < 10)
+{
 		res = scap_next_live(handle, pevent, pcpuid);
+}
+else
+{
+	res = SCAP_TIMEOUT;
+	usleep(100000);
+}
 	}
 
 	if(res == SCAP_SUCCESS)
