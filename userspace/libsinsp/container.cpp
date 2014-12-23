@@ -232,3 +232,8 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		container->m_name = root["Name"].asString().substr(1);
 	}
 }
+
+const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_containers()
+{
+	return &m_containers;
+}
