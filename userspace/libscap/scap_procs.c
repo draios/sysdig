@@ -736,10 +736,12 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 		{
 			if(strncmp(charbuf, comm, strlen(comm)) == 0)
 			{
+				fclose(f);
 				return true;
 			}
 		}
 
+		fclose(f);
 	}
 
 	return false;
