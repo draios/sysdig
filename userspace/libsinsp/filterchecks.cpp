@@ -2831,15 +2831,16 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_CONTAINER_NAME:
-		if(tinfo->m_container.m_name.empty())
+		if(tinfo->m_container.m_id.empty())
 		{
 			m_tstr = "host";
 		}
-		else
+		else if(tinfo->m_container.m_name.empty())
 		{
-			m_tstr = tinfo->m_container.m_name;
+			return NULL;
 		}
 
+		m_tstr = tinfo->m_container.m_name;
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_CONTAINER_IMAGE:
 		if(tinfo->m_container.m_image.empty())
