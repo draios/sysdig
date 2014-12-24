@@ -194,6 +194,12 @@ const char* param_type_to_string(ppm_param_type pt)
 	case PT_FLAGS32:
 		return "FLAGS32";
 		break;
+	case PT_UID:
+		return "UID";
+		break;
+	case PT_GID:
+		return "GID";
+		break;
 	default:
 		ASSERT(false);
 		return "<NA>";
