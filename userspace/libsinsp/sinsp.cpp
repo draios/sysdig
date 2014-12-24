@@ -517,6 +517,12 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	{
 		if(res == SCAP_TIMEOUT)
 		{
+#ifdef HAS_ANALYZER
+			if(m_analyzer)
+			{
+				m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
+			}
+#endif
 			*evt = NULL;
 			return res;
 		}
@@ -525,7 +531,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 #ifdef HAS_ANALYZER
 			if(m_analyzer)
 			{
-				m_analyzer->process_event(NULL, sinsp_analyzer::DF_NONE);
+				m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
 			}
 #endif
 		}
@@ -1188,8 +1194,16 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		// Set the first table scan for 30 seconds in, so that we can spot bugs in the logic without having
 		// to wait for tens of minutes
 		//
-		m_last_flush_time_ns = 
-			(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
+		if(m_inspector->m_inactive_thread_scan_time_ns > 30 * ONE_SECOND_IN_NS)
+		{
+			m_last_flush_time_ns = 
+				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
+		}
+		else
+		{
+			m_last_flush_time_ns = 
+				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns);			
+		}
 	}
 
 	if(m_inspector->m_lastevent_ts > 
