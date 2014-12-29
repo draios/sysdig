@@ -1823,7 +1823,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			{
 				scap_userinfo* user_info = find_it->second;
 				strcpy_sanitized(&m_resolved_paramstr_storage[0], user_info->name,
-								m_resolved_paramstr_storage.size());
+								(uint32_t)m_resolved_paramstr_storage.size());
 			}
 			else
 			{
@@ -1856,7 +1856,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			{
 				scap_groupinfo* group_info = find_it->second;
 				strcpy_sanitized(&m_resolved_paramstr_storage[0], group_info->name,
-								m_resolved_paramstr_storage.size());
+								(uint32_t)m_resolved_paramstr_storage.size());
 			}
 			else
 			{

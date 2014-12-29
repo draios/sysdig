@@ -1155,7 +1155,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Set output buffers len
 		//
-		if(!verbose)
+		if(!verbose && g_chisels.size() == 0)
 		{
 			inspector->set_max_evt_output_len(80);
 		}
