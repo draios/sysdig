@@ -131,6 +131,18 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 		}
 
 		//
+		// Plain libvirt-lxc
+		//
+		pos = cgroup.find("/libvirt/lxc/");
+		if(pos != string::npos)
+		{
+			container_info.m_type = CT_LIBVIRT_LXC;
+			container_info.m_id = cgroup.substr(pos + sizeof("/libvirt/lxc/") - 1);
+			valid_id = true;
+			continue;
+		}
+
+		//
 		// Plain LXC
 		//
 		pos = cgroup.find("/lxc/");
@@ -159,6 +171,9 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 					}
 					break;
 				case CT_LXC:
+					container_info.m_name = container_info.m_id;
+					break;
+				case CT_LIBVIRT_LXC:
 					container_info.m_name = container_info.m_id;
 					break;
 				default:
@@ -196,7 +211,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	scapevt->ts = 0;
+	scapevt->ts = m_inspector->m_lastevent_ts;
 	scapevt->tid = 0;
 	scapevt->len = totlen;
 	scapevt->type = PPME_CONTAINER_E;
