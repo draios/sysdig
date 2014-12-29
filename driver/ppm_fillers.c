@@ -784,10 +784,10 @@ static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int*
 		return 1;
 	}
 
+	memmove(buf + subsys_len + 1, path, pathlen);
 	memcpy(buf, subsys_name, subsys_len);
 	buf += subsys_len;
 	*buf++ = '=';
-	memmove(buf, path, pathlen);
 	buf += pathlen;
 	*buf++ = 0;
 	*available -= (subsys_len + 1 + pathlen + 1);
