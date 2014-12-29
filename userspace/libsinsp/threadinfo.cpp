@@ -320,7 +320,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	ASSERT(m_inspector);
 	if(m_inspector)
 	{
-		m_inspector->m_container_manager.get_container_id_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
+		m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
 	}
 	
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)

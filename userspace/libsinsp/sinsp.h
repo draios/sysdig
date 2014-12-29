@@ -708,7 +708,7 @@ private:
 	//
 	sinsp_evt m_meta_evt;
 	char* m_meta_evt_buf;
-	bool m_pending_meta_evt;
+	bool m_meta_evt_pending;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

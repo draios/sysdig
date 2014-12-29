@@ -41,13 +41,13 @@ public:
 
 	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
-	bool add_container(const sinsp_container_info& container_info);
+	void add_container(const sinsp_container_info& container_info);
 	bool get_container(const string& id, sinsp_container_info* container_info);
-	bool get_container_id_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os, string* container_id);
+	bool resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, string* container_id);
 	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);
 
 private:
-	void parse_docker(sinsp_container_info* container);
+	bool parse_docker(sinsp_container_info* container);
 
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;

@@ -91,6 +91,7 @@ sinsp::sinsp() :
 	m_import_users = true;
 	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
 	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
+	m_meta_evt_pending = false;
 }
 
 sinsp::~sinsp()
@@ -659,6 +660,16 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	if(NULL != m_dumper)
 	{
+		if(m_meta_evt_pending)
+		{
+			m_meta_evt_pending = false;
+			res = scap_dump(m_h, m_dumper, m_meta_evt.m_pevt, m_meta_evt.m_cpuid, 0);
+			if(SCAP_SUCCESS != res)
+			{
+				throw sinsp_exception(scap_getlasterr(m_h));
+			}
+		}
+
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 		scap_dump_flags dflags;
 		

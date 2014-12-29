@@ -88,7 +88,7 @@ bool sinsp_container_manager::get_container(const string& id, sinsp_container_in
 	return false;
 }
 
-bool sinsp_container_manager::get_container_id_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os, string* container_id)
+bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, string* container_id)
 {
 	bool valid_id = false;
 	sinsp_container_info container_info;
@@ -147,24 +147,28 @@ bool sinsp_container_manager::get_container_id_from_cgroups(const vector<pair<st
 	{
 		*container_id = container_info.m_id;
 
-		if(query_os)
+		unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_info.m_id);
+		if(it == m_containers.end())
 		{
-			unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_info.m_id);
-			if(it == m_containers.end())
+			switch(container_info.m_type)
 			{
-				switch(container_info.m_type)
-				{
-					case CT_DOCKER:
+				case CT_DOCKER:
+					if(query_os_for_missing_info)
+					{
 						parse_docker(&container_info);
-						break;
-					case CT_LXC:
-						container_info.m_name = container_info.m_id;
-						break;
-					default:
-						ASSERT(false);
-				}
+					}
+					break;
+				case CT_LXC:
+					container_info.m_name = container_info.m_id;
+					break;
+				default:
+					ASSERT(false);
+			}
 
-				m_containers.insert(std::make_pair(container_info.m_id, container_info));
+			m_containers.insert(std::make_pair(container_info.m_id, container_info));
+			if(container_to_sinsp_event(container_info, &m_inspector->m_meta_evt, SP_EVT_BUF_SIZE))
+			{
+				m_inspector->m_meta_evt_pending = true;
 			}
 		}
 	}
@@ -220,7 +224,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 	return true;
 }
 
-void sinsp_container_manager::parse_docker(sinsp_container_info* container)
+bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 {
 	string file = string(scap_get_host_root()) + "/var/run/docker.sock";
 
@@ -228,7 +232,7 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	if(sock < 0)
 	{
 		ASSERT(false);
-		return;
+		return false;
 	}
 
 	struct sockaddr_un address;
@@ -239,7 +243,7 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 
 	if(connect(sock, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) != 0)
 	{
-		return;
+		return false;
 	}
 
 	string message = "GET /containers/" + container->m_id + "/json HTTP/1.0\r\n\n";
@@ -247,7 +251,7 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	{
 		ASSERT(false);
 		close(sock);
-		return;
+		return false;
 	}
 
 	char buf[256];
@@ -259,7 +263,7 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		{
 			ASSERT(false);
 			close(sock);
-			return;
+			return false;
 		}
 
 		buf[res] = 0;
@@ -272,7 +276,7 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	if(pos == string::npos)
 	{
 		ASSERT(false);
-		return;
+		return false;
 	}
 
 	Json::Value root;
@@ -281,7 +285,7 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	if(!parsingSuccessful)
 	{
 		ASSERT(false);
-		return;
+		return false;
 	}
 
 	if(root.isMember("Config") && root["Config"].isMember("Image"))
@@ -293,6 +297,8 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	{
 		container->m_name = root["Name"].asString().substr(1);
 	}
+
+	return true;
 }
 
 const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_containers()
@@ -300,15 +306,7 @@ const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_
 	return &m_containers;
 }
 
-bool sinsp_container_manager::add_container(const sinsp_container_info& container_info)
+void sinsp_container_manager::add_container(const sinsp_container_info& container_info)
 {
-	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_info.m_id);
-	if(it != m_containers.end())
-	{
-		ASSERT(false);
-		return false;
-	}
-
-	m_containers.insert(std::make_pair(container_info.m_id, container_info));
-	return true;
+	m_containers[container_info.m_id] = container_info;
 }
