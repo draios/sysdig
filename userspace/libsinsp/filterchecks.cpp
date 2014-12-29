@@ -2011,24 +2011,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			m_u64val = 0;
 
-			if(evt->get_direction() == SCAP_ED_IN)
-			{
-				if(evt->m_tinfo != NULL)
-				{
-					uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
-					*pt = evt->get_type();
-				}
-
-				return (uint8_t*)&m_u64val;
-			}
-
 			if(evt->m_tinfo != NULL)
 			{
-				uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
-				if(evt->m_tinfo->m_prevevent_ts && evt->get_type() == *pt + 1)
-				{
-					m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts);
-				}
+				m_u64val = evt->m_tinfo->m_latency;
 			}
 
 			return (uint8_t*)&m_u64val;
@@ -2038,30 +2023,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			m_u64val = 0;
 
-			if(evt->get_direction() == SCAP_ED_IN)
-			{
-				if(evt->m_tinfo != NULL)
-				{
-					uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
-					*pt = evt->get_type();
-				}
-
-				return (uint8_t*)&m_u64val;
-			}
-
 			if(evt->m_tinfo != NULL)
 			{
-				uint16_t* pt = (uint16_t*)evt->m_tinfo->get_private_state(m_th_state_id);
-				if(evt->m_tinfo->m_prevevent_ts && evt->get_type() == *pt + 1)
+				uint64_t lat = evt->m_tinfo->m_latency;
+
+				if(m_field_id == TYPE_LATENCY_S)
 				{
-					if(m_field_id == TYPE_LATENCY_S)
-					{
-						m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts) / 1000000000;
-					}
-					else
-					{
-						m_u64val = (evt->get_ts() - evt->m_tinfo->m_prevevent_ts) % 1000000000;
-					}
+					m_u64val = lat / 1000000000;
+				}
+				else
+				{
+					m_u64val = lat % 1000000000;
 				}
 			}
 
