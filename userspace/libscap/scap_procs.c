@@ -289,7 +289,7 @@ static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char*
 		}
 
 		// transient cgroup
-		if(strncmp(token, "name=", sizeof("name=") - 1) == 0)
+		if(strncmp(subsys_list, "name=", sizeof("name=") - 1) == 0)
 		{
 			continue;
 		}
@@ -313,7 +313,7 @@ static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char*
 			{
 				ASSERT(false);
 				fclose(f);
-				return SCAP_SUCCESS;			
+				return SCAP_SUCCESS;
 			}
 
 			snprintf(tinfo->cgroups + tinfo->cgroups_len, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len, "%s=%s", token, cgroup);
