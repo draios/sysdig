@@ -50,6 +50,7 @@ function on_init()
 	fres = chisel.request_field("evt.rawarg.res")
 	fname = chisel.request_field("fd.name")
 	fpname = chisel.request_field("proc.name")
+	fcontainer = chisel.request_field("container.name")
 
 	-- increase the snaplen so we capture more of the conversation 
 	sysdig.set_snaplen(2000)
@@ -68,6 +69,7 @@ function on_event()
 	res = evt.field(fres)
 	name = evt.field(fname)
 	pname = evt.field(fpname)
+	container = evt.field(fcontainer)
 
 	if name == nil then
 		name = "<NA>"
@@ -78,9 +80,9 @@ function on_event()
 	end
 	
 	if isread then
-		infostr = string.format("%s------ Read %s from %s (%s)", terminal.red, format_bytes(res), name, pname)
+		infostr = string.format("%s------ Read %s from %s (%s) (%s)", terminal.red, format_bytes(res), name, pname, container)
 	else
-		infostr = string.format("%s------ Write %s to %s (%s)", terminal.blue, format_bytes(res), name, pname)
+		infostr = string.format("%s------ Write %s to %s (%s) (%s)", terminal.blue, format_bytes(res), name, pname, container)
 	end
 	
 	print(infostr)
