@@ -89,6 +89,8 @@ sinsp::sinsp() :
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
 	m_import_users = true;
+	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
+	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
 }
 
 sinsp::~sinsp()
@@ -116,6 +118,12 @@ sinsp::~sinsp()
 	{
 		delete m_cycle_writer;
 		m_cycle_writer = NULL;
+	}
+
+	if(m_meta_evt_buf)
+	{
+		delete[] m_meta_evt_buf;
+		m_meta_evt_buf = NULL;
 	}
 }
 
@@ -342,6 +350,20 @@ void sinsp::autodump_start(const string& dump_filename, bool compress)
 	if(NULL == m_dumper)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+
+	const unordered_map<string, sinsp_container_info>* containers_info = m_container_manager.get_containers();
+
+	for(unordered_map<string, sinsp_container_info>::const_iterator it = containers_info->begin(); it != containers_info->end(); ++it)
+	{
+		if(m_container_manager.container_to_sinsp_event(it->second, &m_meta_evt, SP_EVT_BUF_SIZE))
+		{
+			int32_t res = scap_dump(m_h, m_dumper, m_meta_evt.m_pevt, m_meta_evt.m_cpuid, 0);
+			if(SCAP_SUCCESS != res)
+			{
+				throw sinsp_exception(scap_getlasterr(m_h));
+			}
+		}
 	}
 }
 

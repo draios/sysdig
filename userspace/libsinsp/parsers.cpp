@@ -297,6 +297,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETGID_X:
 		parse_setgid_exit(evt);
 		break;
+	case PPME_CONTAINER_E:
+		parse_container_evt(evt);
+		break;
 	default:
 		break;
 	}
@@ -1087,7 +1090,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_19_X:
 			parinfo = evt->get_param(18);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.get_container_from_cgroups(tinfo.m_cgroups, &tinfo.m_container);
+			m_inspector->m_container_manager.get_container_id_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive, &tinfo.m_container_id);
 			break;
 	}
 
@@ -3193,4 +3196,25 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
 		evt->get_thread_info()->m_gid = new_egid;
 	}
+}
+
+void sinsp_parser::parse_container_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	sinsp_container_info container_info;
+
+	parinfo = evt->get_param(0);
+	container_info.m_id = parinfo->m_val;
+
+	parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	container_info.m_type = (sinsp_container_type) *(uint32_t *)parinfo->m_val;
+
+	parinfo = evt->get_param(2);
+	container_info.m_name = parinfo->m_val;
+
+	parinfo = evt->get_param(3);
+	container_info.m_image = parinfo->m_val;
+
+	m_inspector->m_container_manager.add_container(container_info);
 }

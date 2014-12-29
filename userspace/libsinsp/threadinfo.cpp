@@ -142,7 +142,7 @@ void sinsp_threadinfo::compute_program_hash()
 		phs += arg;
 	}
 
-	phs += m_container.m_id;
+	phs += m_container_id;
 
 	m_program_hash = std::hash<std::string>()(phs);
 }
@@ -320,7 +320,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	ASSERT(m_inspector);
 	if(m_inspector)
 	{
-		m_inspector->m_container_manager.get_container_from_cgroups(m_cgroups, &m_container);
+		m_inspector->m_container_manager.get_container_id_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
 	}
 	
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)

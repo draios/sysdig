@@ -2820,35 +2820,61 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 	switch(m_field_id)
 	{
 	case TYPE_CONTAINER_ID:
-		if(tinfo->m_container.m_id.empty())
+		if(tinfo->m_container_id.empty())
 		{
 			m_tstr = "host";
 		}
 		else
 		{
-			m_tstr = tinfo->m_container.m_id;
+			m_tstr = tinfo->m_container_id;
 		}
 		
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_CONTAINER_NAME:
-		if(tinfo->m_container.m_id.empty())
+		if(tinfo->m_container_id.empty())
 		{
 			m_tstr = "host";
 		}
-		else if(tinfo->m_container.m_name.empty())
+		else
 		{
-			return NULL;
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
+
+			if(container_info.m_name.empty())
+			{
+				return NULL;
+			}
+
+			m_tstr = container_info.m_name;
 		}
 
-		m_tstr = tinfo->m_container.m_name;
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_CONTAINER_IMAGE:
-		if(tinfo->m_container.m_image.empty())
+		if(tinfo->m_container_id.empty())
 		{
 			return NULL;
 		}
+		else
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
 
-		m_tstr = tinfo->m_container.m_image;
+			if(container_info.m_image.empty())
+			{
+				return NULL;
+			}
+
+			m_tstr = container_info.m_image;
+		}
+
 		return (uint8_t*)m_tstr.c_str();
 	default:
 		ASSERT(false);

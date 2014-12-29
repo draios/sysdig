@@ -73,6 +73,7 @@ using namespace std;
 #include "stats.h"
 #include "ifinfo.h"
 #include "chisel.h"
+#include "container.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -702,6 +703,13 @@ private:
 	//
 	vector<sinsp_protodecoder*> m_decoders_reset_list;
 
+	//
+	// Meta event management
+	//
+	sinsp_evt m_meta_evt;
+	char* m_meta_evt_buf;
+	bool m_pending_meta_evt;
+
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_parsers;
@@ -715,6 +723,7 @@ private:
 	friend class sinsp_chisel;
 	friend class sinsp_protodecoder;
 	friend class lua_cbacks;
+	friend class sinsp_filter_check_container;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

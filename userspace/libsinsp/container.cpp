@@ -54,9 +54,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 		for(threadinfo_map_iterator_t it = threadtable->begin(); it != threadtable->end(); ++it)
 		{
-			if(!it->second.m_container.m_id.empty())
+			if(!it->second.m_container_id.empty())
 			{
-				containers_in_use.insert(it->second.m_container.m_id);
+				containers_in_use.insert(it->second.m_container_id);
 			}
 		}
 
@@ -76,9 +76,22 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-bool sinsp_container_manager::get_container_from_cgroups(const vector<pair<string, string>>& cgroups, sinsp_container_info* container_info)
+bool sinsp_container_manager::get_container(const string& id, sinsp_container_info* container_info)
+{
+	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(id);
+	if(it != m_containers.end())
+	{
+		*container_info = it->second;
+		return true;
+	}
+
+	return false;
+}
+
+bool sinsp_container_manager::get_container_id_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os, string* container_id)
 {
 	bool valid_id = false;
+	sinsp_container_info container_info;
 
 	for(vector<pair<string, string>>::const_iterator it = cgroups.begin(); it != cgroups.end(); ++it)
 	{
@@ -93,8 +106,8 @@ bool sinsp_container_manager::get_container_from_cgroups(const vector<pair<strin
 		{
 			if(cgroup.length() - pos - sizeof("/docker/") + 1 == 64)
 			{
-				container_info->m_type = CT_DOCKER;
-				container_info->m_id = cgroup.substr(pos + sizeof("/docker/") - 1, 12);
+				container_info.m_type = CT_DOCKER;
+				container_info.m_id = cgroup.substr(pos + sizeof("/docker/") - 1, 12);
 				valid_id = true;
 				break;
 			}
@@ -110,8 +123,8 @@ bool sinsp_container_manager::get_container_from_cgroups(const vector<pair<strin
 			if(pos2 != string::npos &&
 				pos2 - pos - sizeof("docker-") + 1 == 64)
 			{
-				container_info->m_type = CT_DOCKER;
-				container_info->m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
+				container_info.m_type = CT_DOCKER;
+				container_info.m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
 				valid_id = true;
 				continue;					
 			}
@@ -123,8 +136,8 @@ bool sinsp_container_manager::get_container_from_cgroups(const vector<pair<strin
 		pos = cgroup.find("/lxc/");
 		if(pos != string::npos)
 		{
-			container_info->m_type = CT_LXC;
-			container_info->m_id = cgroup.substr(pos + sizeof("/lxc/") - 1);
+			container_info.m_type = CT_LXC;
+			container_info.m_id = cgroup.substr(pos + sizeof("/lxc/") - 1);
 			valid_id = true;
 			continue;
 		}
@@ -132,30 +145,79 @@ bool sinsp_container_manager::get_container_from_cgroups(const vector<pair<strin
 
 	if(valid_id)
 	{
-		unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_info->m_id);
-		if(it == m_containers.end())
-		{
-			switch(container_info->m_type)
-			{
-				case CT_DOCKER:
-					parse_docker(container_info);
-					break;
-				case CT_LXC:
-					container_info->m_name = container_info->m_id;
-					break;
-				default:
-					ASSERT(false);
-			}
+		*container_id = container_info.m_id;
 
-			m_containers.insert(std::make_pair(container_info->m_id, *container_info));
-		}
-		else
+		if(query_os)
 		{
-			*container_info = it->second;
+			unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_info.m_id);
+			if(it == m_containers.end())
+			{
+				switch(container_info.m_type)
+				{
+					case CT_DOCKER:
+						parse_docker(&container_info);
+						break;
+					case CT_LXC:
+						container_info.m_name = container_info.m_id;
+						break;
+					default:
+						ASSERT(false);
+				}
+
+				m_containers.insert(std::make_pair(container_info.m_id, container_info));
+			}
 		}
 	}
 
 	return valid_id;
+}
+
+bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len)
+{
+	size_t totlen = sizeof(scap_evt) + 
+		4 * sizeof(uint16_t) +
+		container_info.m_id.length() + 1 +
+		sizeof(uint32_t) +
+		container_info.m_name.length() + 1 +
+		container_info.m_image.length() + 1;
+
+	if(totlen > evt_len)
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	evt->m_cpuid = 0;
+	evt->m_evtnum = 0;
+
+	scap_evt* scapevt = evt->m_pevt;
+
+	scapevt->ts = 0;
+	scapevt->tid = 0;
+	scapevt->len = totlen;
+	scapevt->type = PPME_CONTAINER_E;
+
+	uint16_t* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
+	char* valptr = (char*)lens + 4 * sizeof(uint16_t);
+
+	lens[0] = container_info.m_id.length() + 1;
+	memcpy(valptr, container_info.m_id.c_str(), lens[0]);
+	valptr += lens[0];
+
+	lens[1] = sizeof(uint32_t);
+	memcpy(valptr, &container_info.m_type, lens[1]);
+	valptr += lens[1];
+
+	lens[2] = container_info.m_name.length() + 1;
+	memcpy(valptr, container_info.m_name.c_str(), lens[2]);
+	valptr += lens[2];
+
+	lens[3] = container_info.m_image.length() + 1;
+	memcpy(valptr, container_info.m_image.c_str(), lens[3]);
+	valptr += lens[3];
+
+	evt->init();
+	return true;
 }
 
 void sinsp_container_manager::parse_docker(sinsp_container_info* container)
@@ -236,4 +298,17 @@ void sinsp_container_manager::parse_docker(sinsp_container_info* container)
 const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_containers()
 {
 	return &m_containers;
+}
+
+bool sinsp_container_manager::add_container(const sinsp_container_info& container_info)
+{
+	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_info.m_id);
+	if(it != m_containers.end())
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	m_containers.insert(std::make_pair(container_info.m_id, container_info));
+	return true;
 }

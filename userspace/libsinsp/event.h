@@ -328,7 +328,7 @@ private:
 			par.init(valptr, lens[j]);
 			m_params.push_back(par);
 			valptr += lens[j];
-		}		
+		}
 	}
 	string get_param_value_str(uint32_t id, bool resolved);
 	string get_param_value_str(const char* name, bool resolved = true);
@@ -370,6 +370,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer_parsers;
 	friend class lua_cbacks;
 	friend class sinsp_proto_detector;
+	friend class sinsp_container_manager;
 };
 
 /*@}*/
