@@ -101,6 +101,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"set_fatfile_dump_mode", &lua_cbacks::set_fatfile_dump_mode},
 	{"is_live", &lua_cbacks::is_live},
 	{"is_tty", &lua_cbacks::is_tty},
+	{"get_terminal_info", &lua_cbacks::get_terminal_info},
 	{"get_filter", &lua_cbacks::get_filter},
 	{"get_machine_info", &lua_cbacks::get_machine_info},
 	{"get_thread_table", &lua_cbacks::get_thread_table},

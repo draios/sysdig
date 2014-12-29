@@ -41,6 +41,7 @@ public:
 	static int end_capture(lua_State *ls);
 	static int is_live(lua_State *ls);
 	static int is_tty(lua_State *ls);
+	static int get_terminal_info(lua_State *ls);
 	static int get_filter(lua_State *ls);
 	static int get_machine_info(lua_State *ls);
 	static int get_thread_table(lua_State *ls);
