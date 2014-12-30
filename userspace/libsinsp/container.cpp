@@ -148,6 +148,23 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 		}
 
 		//
+		// systemd libvirt-lxc
+		//
+		pos = cgroup.find("-lxc\\x2");
+		if(pos != string::npos)
+		{
+			size_t pos2 = cgroup.find(".scope");
+			if(pos2 != string::npos &&
+				pos2 == cgroup.length() - sizeof(".scope") + 1)
+			{
+				container_info.m_type = CT_LIBVIRT_LXC;
+				container_info.m_id = cgroup.substr(pos + sizeof("-lxc\\x2"), pos2 - pos - sizeof("-lxc\\x2"));
+				valid_id = true;
+				continue;
+			}
+		}
+
+		//
 		// Legacy libvirt-lxc
 		//
 		pos = cgroup.find("/libvirt/lxc/");
