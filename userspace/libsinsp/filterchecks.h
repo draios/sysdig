@@ -61,7 +61,7 @@ public:
 	//
 	// Get the list of fields that this check exports
 	//
-	virtual filter_check_info* get_filelds()
+	virtual filter_check_info* get_fields()
 	{
 		return &m_info;
 	}
@@ -122,9 +122,6 @@ protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
-	int32_t extract_arg(string fldname, string val, 
-		OUT const struct ppm_param_info** parinfo,
-		OUT int32_t* argid, OUT string* argname);
 
 	char m_getpropertystr_storage[1024];
 	vector<uint8_t> m_val_storage;
@@ -305,12 +302,13 @@ public:
 		TYPE_EXECTIME = 24,
 		TYPE_TOTEXECTIME = 25,
 		TYPE_CGROUPS = 26,
-		TYPE_VTID = 27,
-		TYPE_VPID = 28,
-		TYPE_IOBYTES = 29,
-		TYPE_TOTIOBYTES = 30,
-		TYPE_LATENCY = 31,
-		TYPE_TOTLATENCY = 32,
+		TYPE_CGROUP = 27,
+		TYPE_VTID = 28,
+		TYPE_VPID = 29,
+		TYPE_IOBYTES = 30,
+		TYPE_TOTIOBYTES = 31,
+		TYPE_LATENCY = 32,
+		TYPE_TOTLATENCY = 33,
 	};
 
 	sinsp_filter_check_thread();
@@ -326,6 +324,7 @@ private:
 	bool compare_full_aname(sinsp_evt *evt);
 
 	int32_t m_argid;
+	string m_argname;
 	uint32_t m_tbool;
 	string m_tstr;
 	uint64_t m_u64val;
