@@ -34,7 +34,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
-#include <linux/cgroup.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
 
@@ -1308,7 +1307,6 @@ int sysdig_init(void)
 	int j;
 	int n_created_devices = 0;
 	struct device *device = NULL;
-	int subsys_count;
 
 	pr_info("driver loading\n");
 
@@ -1438,20 +1436,6 @@ int sysdig_init(void)
 	g_open_count = 0;
 	g_tracepoint_registered = false;
 	g_dropping_mode = 0;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-	subsys_count = CGROUP_SUBSYS_COUNT;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
-	subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
-	subsys_count = CGROUP_SUBSYS_COUNT;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	subsys_count = CGROUP_BUILTIN_SUBSYS_COUNT;
-#else
-	subsys_count = CGROUP_SUBSYS_COUNT;
-#endif
-
-	pr_info("cgroup_subsystems: %d\n", subsys_count);
 
 	return 0;
 
