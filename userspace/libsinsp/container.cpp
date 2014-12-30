@@ -99,7 +99,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 		size_t pos;
 
 		//
-		// Plain docker
+		// Non-systemd Docker
 		//
 		pos = cgroup.find("/docker/");
 		if(pos != string::npos)
@@ -114,7 +114,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 		}
 
 		//
-		// Docker sliced with systemd on EL7
+		// systemd Docker
 		//
 		pos = cgroup.find("docker-");
 		if(pos != string::npos)
@@ -126,12 +126,29 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 				container_info.m_type = CT_DOCKER;
 				container_info.m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
 				valid_id = true;
-				continue;					
+				continue;
 			}
 		}
 
 		//
-		// Plain libvirt-lxc
+		// Non-systemd libvirt-lxc
+		//
+		pos = cgroup.find(".libvirt-lxc");
+		if(pos != string::npos &&
+			pos == cgroup.length() - sizeof(".libvirt-lxc") + 1)
+		{
+			size_t pos2 = cgroup.find_last_of("/");
+			if(pos2 != string::npos)
+			{
+				container_info.m_type = CT_LIBVIRT_LXC;
+				container_info.m_id = cgroup.substr(pos2 + 1, pos - pos2 - 1);
+				valid_id = true;
+				continue;
+			}
+		}
+
+		//
+		// Legacy libvirt-lxc
 		//
 		pos = cgroup.find("/libvirt/lxc/");
 		if(pos != string::npos)
@@ -143,7 +160,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 		}
 
 		//
-		// Plain LXC
+		// Non-systemd LXC
 		//
 		pos = cgroup.find("/lxc/");
 		if(pos != string::npos)
