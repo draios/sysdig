@@ -794,7 +794,7 @@ static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int*
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 #define SUBSYS(_x) 																						\
 if (append_cgroup(#_x, _x ## _cgrp_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) 	\
 	goto cgroups_error;
