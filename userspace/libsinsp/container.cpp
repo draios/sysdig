@@ -360,3 +360,18 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 {
 	m_containers[container_info.m_id] = container_info;
 }
+
+void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
+{
+	for(unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.begin(); it != m_containers.end(); ++it)
+	{
+		if(container_to_sinsp_event(it->second, &m_inspector->m_meta_evt, SP_EVT_BUF_SIZE))
+		{
+			int32_t res = scap_dump(m_inspector->m_h, dumper, m_inspector->m_meta_evt.m_pevt, m_inspector->m_meta_evt.m_cpuid, 0);
+			if(res != SCAP_SUCCESS)
+			{
+				throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+			}
+		}
+	}
+}

@@ -55,6 +55,8 @@ void sinsp_dumper::open(const string& filename, bool compress)
 	{
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 	}
+
+	m_inspector->m_container_manager.dump_containers(m_dumper);
 }
 
 void sinsp_dumper::dump(sinsp_evt* evt)

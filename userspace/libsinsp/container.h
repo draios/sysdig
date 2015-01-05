@@ -44,9 +44,10 @@ public:
 	void add_container(const sinsp_container_info& container_info);
 	bool get_container(const string& id, sinsp_container_info* container_info);
 	bool resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, string* container_id);
-	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);
+	void dump_containers(scap_dumper_t* dumper);
 
 private:
+	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);
 	bool parse_docker(sinsp_container_info* container);
 
 	sinsp* m_inspector;
