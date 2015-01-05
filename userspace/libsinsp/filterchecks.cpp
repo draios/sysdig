@@ -1479,6 +1479,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_DYN, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'arg.fd'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.info", "for most events, this field returns the same value as evt.args. However, for some events (like writes to /dev/log) it provides higher level information coming from decoding the arguments."},
 	{PT_BYTEBUF, EPF_NONE, PF_NA, "evt.buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "evt.buflen", "the lenght of the binary data buffer for events that have one, like read(), recvfrom(), etc."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as an error code string (e.g. 'ENOENT')."},
 	{PT_INT64, EPF_NONE, PF_DEC, "evt.rawres", "event return value, as a number (e.g. -2). Useful for range comparisons."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.failed", "'true' for events that returned an error status."},
@@ -2212,6 +2213,34 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			*len = evt->m_rawbuf_str_len;
 
 			return (uint8_t*)argstr;
+		}
+	case TYPE_BUFLEN:
+		{
+			if(evt->get_direction() == SCAP_ED_OUT)
+			{
+				if(evt->get_category() & EC_IO_BASE)
+				{
+					if(evt->m_fdinfo)
+					{
+						sinsp_evt_param *parinfo;
+						int64_t retval;
+
+						//
+						// Extract the return value
+						//
+						parinfo = evt->get_param(0);
+						ASSERT(parinfo->m_len == sizeof(int64_t));
+						retval = *(int64_t *)parinfo->m_val;
+						
+						if(retval >= 0)
+						{
+							return (uint8_t*)parinfo->m_val;
+						}
+					}
+				}
+			}
+
+			return NULL;
 		}
 	case TYPE_RESRAW:
 		{
