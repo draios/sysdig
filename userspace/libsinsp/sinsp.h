@@ -710,6 +710,10 @@ private:
 	char* m_meta_evt_buf;
 	bool m_meta_evt_pending;
 
+#if defined(HAS_CAPTURE)
+	int64_t m_sysdig_pid;
+#endif
+
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_parsers;

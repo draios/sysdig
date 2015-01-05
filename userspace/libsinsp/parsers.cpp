@@ -55,9 +55,6 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_tmp_evt(m_inspector),
 	m_fd_listener(NULL)
 {
-#if defined(HAS_CAPTURE)
-	m_sysdig_pid = getpid();
-#endif
 }
 
 sinsp_parser::~sinsp_parser()
@@ -89,13 +86,13 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #if defined(HAS_CAPTURE)
 	if(is_live && !m_inspector->is_debug_enabled())
 	{
-		if(evt->get_tid() == m_sysdig_pid && 
+		if(evt->get_tid() == m_inspector->m_sysdig_pid && 
 			etype != PPME_SCHEDSWITCH_1_E && 
 			etype != PPME_SCHEDSWITCH_6_E &&
 			etype != PPME_DROP_E &&
 			etype != PPME_DROP_X &&
 			etype != PPME_SYSDIGEVENT_E &&
-			m_sysdig_pid)
+			m_inspector->m_sysdig_pid)
 		{
 			evt->m_filtered_out = true;
 			return;

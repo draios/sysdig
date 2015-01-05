@@ -121,10 +121,6 @@ private:
 	//
 	sinsp* m_inspector;
 
-#if defined(HAS_CAPTURE)
-	int64_t m_sysdig_pid;
-#endif
-
 	//
 	// Temporary storage to avoid memory allocation
 	//

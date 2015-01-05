@@ -510,11 +510,15 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if(cmd == PPM_IOCTL_GET_VTID)
 			vid = task_pid_nr_ns(task, ns);
 		else
-			vid = task_pid_nr_ns(task, ns);
+			vid = task_tgid_nr_ns(task, ns);
 
 		rcu_read_unlock();
 		return vid;
 	}
+	case PPM_IOCTL_GET_CURRENT_TID:
+		return task_pid_nr(current);
+	case PPM_IOCTL_GET_CURRENT_PID:
+		return task_tgid_nr(current);
 	default:
 		return -ENOTTY;
 	}

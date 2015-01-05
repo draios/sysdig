@@ -380,6 +380,30 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 #endif
 }
 
+int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
+{
+	if(handle->m_file)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
+	if(*pid == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif	
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //

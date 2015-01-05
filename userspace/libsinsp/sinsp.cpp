@@ -92,6 +92,9 @@ sinsp::sinsp() :
 	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
 	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
 	m_meta_evt_pending = false;
+#if defined(HAS_CAPTURE)
+	m_sysdig_pid = 0;
+#endif
 }
 
 sinsp::~sinsp()
@@ -206,10 +209,20 @@ void sinsp::init()
 	//
 	// If m_snaplen was modified, we set snaplen now
 	//
-	if (m_snaplen != DEFAULT_SNAPLEN)
+	if(m_snaplen != DEFAULT_SNAPLEN)
 	{
 		set_snaplen(m_snaplen);
 	}
+
+#if defined(HAS_CAPTURE)
+	if(m_islive)
+	{
+		if(scap_getpid_global(m_h, &m_sysdig_pid) != SCAP_SUCCESS)
+		{
+			ASSERT(false);
+		}
+	}
+#endif
 }
 
 void sinsp::set_import_users(bool import_users)
