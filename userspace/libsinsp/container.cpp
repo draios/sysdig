@@ -16,9 +16,11 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _WIN32
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#endif
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -199,10 +201,12 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			switch(container_info.m_type)
 			{
 				case CT_DOCKER:
+#ifndef _WIN32
 					if(query_os_for_missing_info)
 					{
 						parse_docker(&container_info);
 					}
+#endif
 					break;
 				case CT_LXC:
 					container_info.m_name = container_info.m_id;
@@ -273,6 +277,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 	return true;
 }
 
+#ifndef _WIN32
 bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 {
 	string file = string(scap_get_host_root()) + "/var/run/docker.sock";
@@ -350,6 +355,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 
 	return true;
 }
+#endif
 
 const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_containers()
 {
