@@ -194,6 +194,14 @@ public:
 	const char* get_name();
 
 	/*!
+	  \brief Return the event category.
+	*/
+	inline ppm_event_category get_category()
+	{
+		return m_info->category;
+	}
+
+	/*!
 	  \brief Get the ID of the thread that generated the event.
 	*/
 	int64_t get_tid();

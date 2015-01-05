@@ -23,7 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/types.h>
 #endif
 
-static const __u32 RING_BUF_SIZE = 8 * 1024 * 1024;
+static const __u32 RING_BUF_SIZE = 1024 * 1024;
 static const __u32 MIN_USERSPACE_READ_SIZE = 128 * 1024;
 
 /*
