@@ -620,6 +620,12 @@ captureinfo do_inspect(sinsp* inspector,
 				continue;
 			}
 
+			if(!inspector->is_debug_enabled() &&
+				ev->get_category() & EC_INTERNAL)
+			{
+				continue;
+			}
+
 			if(formatter->tostring(ev, &line))
 			{
 				//
