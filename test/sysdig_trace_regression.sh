@@ -6,11 +6,11 @@ BASEDIR=$(dirname $SCRIPT)
 
 SYSDIG=$1
 CHISELS=$2
-TMPBASE=${3:-$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)}
+TMPBASE=${4:-$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)}
 TRACEDIR="${TMPBASE}/traces"
 RESULTDIR="${TMPBASE}/results"
 BASELINEDIR="${TMPBASE}/baseline"
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
+BRANCH=$3
 
 if [ ! -d "$TRACEDIR" ]; then
 	mkdir -p $TRACEDIR

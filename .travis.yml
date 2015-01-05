@@ -35,4 +35,4 @@ script:
     - make VERBOSE=1
     - make package
     - cd ..
-    - test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels
+    - test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels $TRAVIS_BRANCH
