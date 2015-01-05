@@ -729,6 +729,7 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 }
 #endif
 
+#ifdef CONFIG_CGROUPS
 static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int* available)
 {
 	int pathlen;
@@ -812,6 +813,8 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
 #define SUBSYS(_x) 																						\
 if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
 	goto cgroups_error;
+#endif
+
 #endif
 
 static int f_proc_startupdate(struct event_filler_arguments *args)
@@ -1033,10 +1036,12 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		 * cgroups
 		 */
 		args->str_storage[0] = 0;
+#ifdef CONFIG_CGROUPS
 		rcu_read_lock();
 #include <linux/cgroup_subsys.h>
 cgroups_error:
 		rcu_read_unlock();
+#endif
 
 		res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
 		if (unlikely(res != PPM_SUCCESS))

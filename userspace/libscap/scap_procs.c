@@ -257,6 +257,11 @@ static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char*
 	tinfo->cgroups_len = 0;
 	snprintf(filename, sizeof(filename), "%scgroup", procdirname);
 
+    if(access(filename, R_OK) == -1)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	FILE* f = fopen(filename, "r");
 	if(f == NULL)
 	{
