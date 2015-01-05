@@ -288,7 +288,8 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	memset(&address, 0, sizeof(struct sockaddr_un));
 
 	address.sun_family = AF_UNIX;
-	snprintf(address.sun_path, sizeof(address.sun_path), file.c_str());
+	strncpy(address.sun_path, file.c_str(), sizeof(address.sun_path) - 1);
+	address.sun_path[sizeof(address.sun_path) - 1]= '\0';
 
 	if(connect(sock, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) != 0)
 	{
