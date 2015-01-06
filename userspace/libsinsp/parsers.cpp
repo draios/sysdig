@@ -654,6 +654,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	bool valid_parent = true;
 	bool in_container = false;
 	int64_t vtid = tid;
+	int64_t vpid = -1;
 	uint16_t etype = evt->get_type();
 
 	//
@@ -680,6 +681,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(16);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			vtid = *(int64_t *)parinfo->m_val;
+
+			parinfo = evt->get_param(17);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			vpid = *(int64_t *)parinfo->m_val;
 			break;
 	}
 
@@ -761,6 +766,18 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		}
 		else
 		{
+			//
+			// We are in the child's clone. If we are in a container, make
+			// sure the vtid/vpid are reflected because the father was maybe
+			// running outside the container so created the child thread without
+			// knowing the internal vtid/vpid
+			//
+			if(in_container)
+			{
+				evt->m_tinfo->m_vtid = vtid;
+				evt->m_tinfo->m_vpid = vpid;
+			}
+
 			return;
 		}
 	}
@@ -1060,18 +1077,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	if(in_container)
 	{
-		switch(etype)
-		{
-			case PPME_SYSCALL_CLONE_19_X:
-				parinfo = evt->get_param(16);
-				ASSERT(parinfo->m_len == sizeof(int64_t));
-				tinfo.m_vtid = *(int64_t *)parinfo->m_val;
-
-				parinfo = evt->get_param(17);
-				ASSERT(parinfo->m_len == sizeof(int64_t));
-				tinfo.m_vpid = *(int64_t *)parinfo->m_val;
-				break;
-		}		
+		tinfo.m_vtid = vtid;
+		tinfo.m_vpid = vpid;
 	}
 	else
 	{
