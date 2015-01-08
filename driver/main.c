@@ -112,6 +112,11 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)) */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
+#define CAPTURE_SIGNAL_DELIVERIES 1
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka);
+#endif
+
 DECLARE_BITMAP(g_events_mask, PPM_EVENT_MAX);
 static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
@@ -156,6 +161,9 @@ static struct tracepoint *tp_sys_exit;
 static struct tracepoint *tp_sched_process_exit;
 #ifdef CAPTURE_CONTEXT_SWITCHES
 static struct tracepoint *tp_sched_switch;
+#endif
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+static struct tracepoint *tp_signal_deliver;
 #endif
 
 #ifdef _DEBUG
@@ -265,6 +273,14 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_sched_switch;
 		}
 #endif
+
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+		ret = compat_register_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
+		if (ret) {
+			pr_err("can't create the signal_deliver tracepoint\n");
+			goto err_signal_deliver;
+		}
+#endif
 		g_tracepoint_registered = true;
 	}
 
@@ -281,6 +297,8 @@ err_sys_enter:
 	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 err_sys_exit:
 	ring->open = false;
+err_signal_deliver:
+	compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 cleanup_open:
 	mutex_unlock(&g_open_mutex);
 
@@ -327,6 +345,9 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
 			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+#endif
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
 			tracepoint_synchronize_unregister();
 			g_tracepoint_registered = false;
@@ -1116,6 +1137,13 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 }
 #endif
 
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka)
+{
+	pr_info("signal_deliver_probe called\n");
+}
+#endif
+
 static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_context **ring)
 {
 	unsigned int j;
@@ -1212,6 +1240,10 @@ static void visit_tracepoint(struct tracepoint *tp, void *priv)
 	else if (!strcmp(tp->name, "sched_switch"))
 		tp_sched_switch = tp;
 #endif
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+	else if (!strcmp(tp->name, "signal_deliver"))
+		tp_signal_deliver = tp;
+#endif
 }
 
 static int get_tracepoint_handles(void)
@@ -1233,6 +1265,12 @@ static int get_tracepoint_handles(void)
 #ifdef CAPTURE_CONTEXT_SWITCHES
 	if (!tp_sched_switch) {
 		pr_err("failed to find sched_switch tracepoint\n");
+		return -ENOENT;
+	}
+#endif
+#ifdef CAPTURE_CONTEXT_SWITCHES
+	if (!tp_signal_deliver) {
+		pr_err("failed to find signal_deliver tracepoint\n");
 		return -ENOENT;
 	}
 #endif

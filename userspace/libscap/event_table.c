@@ -236,4 +236,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_GETRESUID_X */ {"getresuid", EC_USER, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"ruid", PT_UID, PF_DEC }, {"euid", PT_UID, PF_DEC }, {"suid", PT_UID, PF_DEC } } },
 	/* PPME_SYSCALL_GETRESGID_E */ {"getresgid", EC_USER, EF_NONE, 0 },
 	/* PPME_SYSCALL_GETRESGID_X */ {"getresgid", EC_USER, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"rgid", PT_GID, PF_DEC }, {"egid", PT_GID, PF_DEC }, {"sgid", PT_GID, PF_DEC } } },
+	/* PPME_SYSCALL_SIGNALDELIVER_E */ {"signal_deliver", EC_SIGNAL, EF_MODIFIES_STATE, 2, {{"pid", PT_PID, PF_DEC}, {"sig", PT_SIGTYPE, PF_DEC} } },
+	/* PPME_SYSCALL_SIGNALDELIVER_X */{"signal_deliver", EC_SIGNAL, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 };
