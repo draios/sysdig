@@ -78,6 +78,10 @@ function ansiterminal.moveto(x, y)
     io.write(schar(27) .. '[' .. tostring(x) .. ";" .. tostring(y) .. 'H')
 end
 
+function ansiterminal.moveup(n)
+    io.write(schar(27) .. '[' .. tostring(n) .. 'F')
+end
+
 function ansiterminal.clearline()
     io.write(schar(27) .. '[' .. "2K")
 end
@@ -88,6 +92,10 @@ end
 
 function ansiterminal.showcursor()
     io.write(schar(27) .. '[' .. "?25h")
+end
+
+function ansiterminal.setbgcol(color)
+    io.write(schar(27) .. '[' .. "48;5;" .. color .. "m")
 end
 
 return ansiterminal
