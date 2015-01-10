@@ -16,19 +16,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Given two filter fields, a key and a value, this chisel creates and renders to the screen a table."
-short_description = "Top processes by CPU usage"
+description = "This console visualzation shows the frequency of system call latencies. The Y axis unit is time. By default, a new line is created twice a second, but that can be changed by specifying a different refresh time argument. The X axis shows a range of latencies. Each latency value has a color that can be black (no calls), green (tens of calls/s), yellow (hundreds of calls/s) or red (Thousands of calls/s). In other words, red areas mean that there are many system calls taking the specified time to return. Use this chisel in conjunction with filters to visualize latencies for certain processes, types of I/O activity, file systems, etc."
+short_description = "Visualize OS latency in real time."
 category = "CPU Usage"
 
 -- Chisel argument list
-args = {}
+args = {
+	{
+		name = "refresh_time", 
+		description = "chart refresh time in milliseconds", 
+		argtype = "int",
+		optional = true
+	},
+}
 
 require "common"
 terminal = require "ansiterminal"
 terminal.enable_color(true)
 
+refresh_time = 500000000
+refresh_per_sec = 1000000000 / refresh_time
 frequencies = {}
 colpalette = {22, 28, 64, 34, 2, 76, 46, 118, 154, 191, 227, 226, 11, 220, 209, 208, 202, 197, 9, 1}
+
+function on_set_arg(name, val)
+    if name == "refresh_time" then
+        refresh_time = parse_numeric_input(val, name) * 1000000
+        refresh_per_sec = 1000000000 / refresh_time
+        return true
+    end
+
+    return false
+end
 
 function on_init()
 	is_tty = sysdig.is_tty()
@@ -52,7 +71,7 @@ function on_init()
 end
 
 function on_capture_start()
-	chisel.set_interval_ns(500000000)
+	chisel.set_interval_ns(refresh_time)
 	return true
 end
 
@@ -81,7 +100,11 @@ function on_event()
 end
 
 function mkcol(n)
-	local col = math.floor(math.log10(n + 1) / math.log10(1.5))
+	local col = math.floor(math.log10(n * refresh_per_sec + 1) / math.log10(1.6))
+
+	if col < 1 then 
+		col = 1
+	end
 
 	if col > #colpalette then 
 		col = #colpalette
