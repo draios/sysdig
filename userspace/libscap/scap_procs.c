@@ -385,11 +385,10 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	{
 		ASSERT(sizeof(line) >= SCAP_MAX_ARGS_SIZE);
 
-		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE, f);
-
+		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE - 1, f);
 		if(filesize > 0)
 		{
-			line[filesize - 1] = 0;
+			line[filesize] = 0;
 
 			exe_len = strlen(line);
 			if(exe_len < filesize)

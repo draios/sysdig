@@ -1157,6 +1157,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(12);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		break;
 	default:
 		ASSERT(false);
 	}
