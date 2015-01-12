@@ -212,7 +212,7 @@ _arguments                                                                      
     '(-cl --list-chisels)'{-cl,--list-chisels}'[lists the available chisels]'                                   \
     '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
     '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \
-    '(-E --exclude-users)'{-E,--exclude-users}'[Don\''t create the user/group tables when starting]'            \
+    '(-E --exclude-users)'{-E,--exclude-users}'[Don'\''t create the user/group tables when starting]'           \
     '(-F --fatfile)'{-F,--fatfile}'[Enable fatfile mode]'                                                       \
     '(-h --help)'{-h,--help}'[Print this help]'                                                                 \
     '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                             \
