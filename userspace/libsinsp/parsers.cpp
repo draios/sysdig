@@ -938,6 +938,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 
+	// Get the command arguments
+	parinfo = evt->get_param(2);
+	evt->m_tinfo->set_args(parinfo->m_val, parinfo->m_len);
+
 	// Copy the working directory
 	parinfo = evt->get_param(6);
 	tinfo.set_cwd(parinfo->m_val, parinfo->m_len);
