@@ -1052,9 +1052,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	if(tid_collision)
 	{
 		reset(evt);
+#ifdef HAS_ANALYZER
+		m_inspector->m_tid_collisions.push_back(tinfo.m_tid);
+#endif
+#ifdef _DEBUG
 		g_logger.format(sinsp_logger::SEV_INFO, 
 			"tid collision for %" PRIu64 "(%s)", 
 			tinfo.m_tid, tinfo.m_comm.c_str());
+#endif
 	}
 
 	return;
