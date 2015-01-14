@@ -428,6 +428,11 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		return false;
 	}
 
+	if(query_os)
+	{
+		evt->m_tinfo->m_flags |= PPM_CL_ACTIVE;
+	}
+
 	if(PPME_IS_ENTER(etype))
 	{
 		evt->m_tinfo->m_lastevent_fd = -1;
