@@ -813,7 +813,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 {
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.pid", "the id of the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exe", "the full name (including the path) of the executable generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exe", "the first command line argument (usually the executable name or a custom one)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "the name (excluding the path) of the executable generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "the arguments passed on the command line when starting the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.env", "the environment variables of the process generating the event."},

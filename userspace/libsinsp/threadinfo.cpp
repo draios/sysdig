@@ -277,7 +277,6 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 {
 	scap_fdinfo *fdi;
 	scap_fdinfo *tfdi;
-	string tcomm(pi->comm);
 
 	init();
 
@@ -286,19 +285,6 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	m_ptid = pi->ptid;
 
 	m_comm = pi->comm;
-
-	if(tcomm == "" || tcomm[tcomm.length() - 1] == '/')
-	{
-		string ts(pi->exe);
-
-		size_t commbegin = ts.rfind('/');
-
-		if(commbegin != string::npos)
-		{
-			m_comm = ts.substr(commbegin + 1);
-		}
-	}
-
 	m_exe = pi->exe;
 	set_args(pi->args, pi->args_len);
 	set_env(pi->env, pi->env_len);

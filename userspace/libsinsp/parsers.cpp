@@ -191,16 +191,20 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_CLONE_16_X:
-	case PPME_SYSCALL_CLONE_19_X:
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_X:
-	case PPME_SYSCALL_FORK_19_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_X:
-	case PPME_SYSCALL_VFORK_19_X:
+	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
 		parse_clone_exit(evt);
 		break;
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
 	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -375,11 +379,14 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	bool query_os;
 	if(etype == PPME_SYSCALL_CLONE_11_X ||
 		etype == PPME_SYSCALL_CLONE_16_X ||
-		etype == PPME_SYSCALL_CLONE_19_X ||
+		etype == PPME_SYSCALL_CLONE_17_X ||
+		etype == PPME_SYSCALL_CLONE_20_X ||
 		etype == PPME_SYSCALL_FORK_X ||
-		etype == PPME_SYSCALL_FORK_19_X ||
+		etype == PPME_SYSCALL_FORK_17_X ||
+		etype == PPME_SYSCALL_FORK_20_X ||
 		etype == PPME_SYSCALL_VFORK_X ||
-		etype == PPME_SYSCALL_VFORK_19_X ||
+		etype == PPME_SYSCALL_VFORK_17_X ||
+		etype == PPME_SYSCALL_VFORK_20_X ||
 		etype == PPME_SCHEDSWITCH_6_E)
 	{
 		query_os = false;
@@ -400,11 +407,14 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	{
 		if(etype == PPME_SYSCALL_CLONE_11_X ||
 			etype == PPME_SYSCALL_CLONE_16_X ||
-			etype == PPME_SYSCALL_CLONE_19_X ||
+			etype == PPME_SYSCALL_CLONE_17_X ||
+			etype == PPME_SYSCALL_CLONE_20_X ||
 			etype == PPME_SYSCALL_FORK_X ||
-			etype == PPME_SYSCALL_FORK_19_X ||
+			etype == PPME_SYSCALL_FORK_17_X ||
+			etype == PPME_SYSCALL_FORK_20_X ||
 			etype == PPME_SYSCALL_VFORK_X ||
-			etype == PPME_SYSCALL_VFORK_19_X)
+			etype == PPME_SYSCALL_VFORK_17_X ||
+			etype == PPME_SYSCALL_VFORK_20_X)
 		{
 #ifdef GATHER_INTERNAL_STATS
 			m_inspector->m_thread_manager->m_failed_lookups->decrement();
@@ -648,7 +658,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	sinsp_evt_param *parinfo;
 	int64_t tid = evt->get_tid();
 	int64_t childtid;
-	unordered_map<int64_t, sinsp_threadinfo>::iterator it;
 	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent
 	bool tid_collision = false;
 	bool valid_parent = true;
@@ -664,6 +673,30 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	childtid = *(int64_t *)parinfo->m_val;
 
+	switch(evt->get_type())
+	{
+	case PPME_SYSCALL_CLONE_11_X:
+		parinfo = evt->get_param(8);
+		break;
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
+		parinfo = evt->get_param(13);
+		break;
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(14);
+		break;
+	default:
+		ASSERT(false);
+	}
+	ASSERT(parinfo->m_len == sizeof(int32_t));
+	uint32_t flags = *(int32_t *)parinfo->m_val;
+
 	if(childtid < 0)
 	{
 		//
@@ -677,15 +710,27 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	switch(etype)
 	{
-		case PPME_SYSCALL_CLONE_19_X:
-			parinfo = evt->get_param(16);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			vtid = *(int64_t *)parinfo->m_val;
+	case PPME_SYSCALL_CLONE_11_X:
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_VFORK_X:
+	case PPME_SYSCALL_VFORK_17_X:
+		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(16);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		vtid = *(int64_t *)parinfo->m_val;
 
-			parinfo = evt->get_param(17);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			vpid = *(int64_t *)parinfo->m_val;
-			break;
+		parinfo = evt->get_param(17);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		vpid = *(int64_t *)parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
 	}
 
 	if(tid != vtid)
@@ -720,27 +765,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			childtid = tid;
 
 			//
-			// Get the flags, and check if this is a process or a new thread
+			// Check if this is a process or a new thread
 			//
-			switch(evt->get_type())
-			{
-				case PPME_SYSCALL_CLONE_11_X:
-					parinfo = evt->get_param(8);
-					break;
-				case PPME_SYSCALL_CLONE_16_X:
-				case PPME_SYSCALL_CLONE_19_X:
-				case PPME_SYSCALL_FORK_X:
-				case PPME_SYSCALL_FORK_19_X:
-				case PPME_SYSCALL_VFORK_X:
-				case PPME_SYSCALL_VFORK_19_X:
-					parinfo = evt->get_param(13);
-					break;
-				default:
-					ASSERT(false);
-			}
-			ASSERT(parinfo->m_len == sizeof(int32_t));
-			uint32_t flags = *(int32_t *)parinfo->m_val;
-
 			if(flags & PPM_CL_CLONE_THREAD)
 			{
 				//
@@ -896,8 +922,29 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// Parent not found in proc, use the event data
 			//
 			parinfo = evt->get_param(1);
-			tinfo.m_comm = (char*)parinfo->m_val;
-			tinfo.m_exe = tinfo.m_comm;
+			tinfo.m_exe = (char*)parinfo->m_val;
+
+			switch(etype)
+			{
+			case PPME_SYSCALL_CLONE_11_X:
+			case PPME_SYSCALL_CLONE_16_X:
+			case PPME_SYSCALL_FORK_X:
+			case PPME_SYSCALL_VFORK_X:
+				tinfo.m_comm = tinfo.m_exe;
+				break;
+			case PPME_SYSCALL_CLONE_17_X:
+			case PPME_SYSCALL_CLONE_20_X:
+			case PPME_SYSCALL_FORK_17_X:
+			case PPME_SYSCALL_FORK_20_X:
+			case PPME_SYSCALL_VFORK_17_X:
+			case PPME_SYSCALL_VFORK_20_X:
+				parinfo = evt->get_param(13);
+				tinfo.m_comm = parinfo->m_val;
+				break;
+			default:
+				ASSERT(false);
+			}
+
 			parinfo = evt->get_param(2);
 			tinfo.set_args(parinfo->m_val, parinfo->m_len);
 
@@ -916,24 +963,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	tinfo.m_pid = *(int64_t *)parinfo->m_val;
 
 	// Get the flags, and check if this is a thread or a new thread
-	switch(etype)
-	{
-		case PPME_SYSCALL_CLONE_11_X:
-			parinfo = evt->get_param(8);
-			break;
-		case PPME_SYSCALL_CLONE_16_X:
-		case PPME_SYSCALL_CLONE_19_X:
-		case PPME_SYSCALL_FORK_X:
-		case PPME_SYSCALL_FORK_19_X:
-		case PPME_SYSCALL_VFORK_X:
-		case PPME_SYSCALL_VFORK_19_X:
-			parinfo = evt->get_param(13);
-			break;
-		default:
-			ASSERT(false);
-	}
-	ASSERT(parinfo->m_len == sizeof(int32_t));
-	tinfo.m_flags = *(int32_t *)parinfo->m_val;
+	tinfo.m_flags = flags;
 
 	//
 	// If clone()'s PPM_CL_CLONE_THREAD is not set it means that a new
@@ -973,16 +1003,33 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	}
 
 	// Copy the command name
-	// XXX We should retrieve the full executable name from the arguments that execve receives in the kernel,
-	// but for the moment we don't do it, so we just copy the command name into the exe string
 	parinfo = evt->get_param(1);
-	string tmps = parinfo->m_val;
-	if(tmps != ptinfo->m_comm)
+	tinfo.m_exe = (char*)parinfo->m_val;
+
+	switch(etype)
 	{
-		tmps = tmps.substr(tmps.rfind("/") + 1);
-		tinfo.m_comm = tmps;
-		tinfo.m_exe = parinfo->m_val;
+	case PPME_SYSCALL_CLONE_11_X:
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
+		tinfo.m_comm = tinfo.m_exe;
+		break;
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(13);
+		tinfo.m_comm = parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
 	}
+
+	// Get the command arguments
+	parinfo = evt->get_param(2);
+	tinfo.set_args(parinfo->m_val, parinfo->m_len);
 
 	// Copy the working directory
 	parinfo = evt->get_param(6);
@@ -993,13 +1040,19 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	tinfo.m_fdlimit = *(int64_t *)parinfo->m_val;
 
-	if(etype == PPME_SYSCALL_CLONE_16_X ||
-		etype == PPME_SYSCALL_CLONE_19_X || 
-		etype == PPME_SYSCALL_FORK_X || 
-		etype == PPME_SYSCALL_FORK_19_X || 
-		etype == PPME_SYSCALL_VFORK_X ||
-		etype == PPME_SYSCALL_VFORK_19_X)
+	switch(etype)
 	{
+	case PPME_SYSCALL_CLONE_11_X:
+		break;
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_X:
+	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1024,24 +1077,32 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(12);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		tinfo.m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
 	}
 
 	// Copy the uid
 	switch(etype)
 	{
-		case PPME_SYSCALL_CLONE_11_X:
-			parinfo = evt->get_param(9);
-			break;
-		case PPME_SYSCALL_CLONE_16_X:
-		case PPME_SYSCALL_CLONE_19_X:
-		case PPME_SYSCALL_FORK_X:
-		case PPME_SYSCALL_FORK_19_X:
-		case PPME_SYSCALL_VFORK_X:
-		case PPME_SYSCALL_VFORK_19_X:
-			parinfo = evt->get_param(14);
-			break;
-		default:
-			ASSERT(false);
+	case PPME_SYSCALL_CLONE_11_X:
+		parinfo = evt->get_param(9);
+		break;
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
+		parinfo = evt->get_param(14);
+		break;
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(15);
+		break;
+	default:
+		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_uid = *(int32_t *)parinfo->m_val;
@@ -1049,19 +1110,24 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Copy the uid
 	switch(etype)
 	{
-		case PPME_SYSCALL_CLONE_11_X:
-			parinfo = evt->get_param(10);
-			break;
-		case PPME_SYSCALL_CLONE_16_X:
-		case PPME_SYSCALL_CLONE_19_X:
-		case PPME_SYSCALL_FORK_X:
-		case PPME_SYSCALL_FORK_19_X:
-		case PPME_SYSCALL_VFORK_X:
-		case PPME_SYSCALL_VFORK_19_X:
-			parinfo = evt->get_param(15);
-			break;
-		default:
-			ASSERT(false);
+	case PPME_SYSCALL_CLONE_11_X:
+		parinfo = evt->get_param(10);
+		break;
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
+		parinfo = evt->get_param(15);
+		break;
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(16);
+		break;
+	default:
+		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_gid = *(int32_t *)parinfo->m_val;
@@ -1091,7 +1157,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	switch(etype)
 	{
-		case PPME_SYSCALL_CLONE_19_X:
+		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(18);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
 			m_inspector->m_container_manager.resolve_container_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive, &tinfo.m_container_id);
@@ -1116,9 +1182,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	if(tid_collision)
 	{
 		reset(evt);
+#ifdef HAS_ANALYZER
+		m_inspector->m_tid_collisions.push_back(tinfo.m_tid);
+#endif
+#ifdef _DEBUG
 		g_logger.format(sinsp_logger::SEV_INFO, 
 			"tid collision for %" PRIu64 "(%s)", 
 			tinfo.m_tid, tinfo.m_comm.c_str());
+#endif
 	}
 
 	return;
@@ -1155,17 +1226,26 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		return;
 	}
 
-	// Get the command name
+	// Get the exe
 	parinfo = evt->get_param(1);
-	string tmps = parinfo->m_val;
-	tmps = tmps.substr(tmps.rfind("/") + 1);
-	evt->m_tinfo->m_comm = tmps;
-
-	//
-	// XXX We should retrieve the full executable name from the arguments that execve receives in the kernel,
-	// but for the moment we don't do it, so we just copy the command name into the exe string
-	//
 	evt->m_tinfo->m_exe = parinfo->m_val;
+
+	switch(etype)
+	{
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+		// Old trace files didn't have comm, so just set it to exe
+		evt->m_tinfo->m_comm = evt->m_tinfo->m_exe;
+		break;
+	case PPME_SYSCALL_EXECVE_15_X:
+		// Get the comm
+		parinfo = evt->get_param(13);
+		evt->m_tinfo->m_comm = parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
+	}
 
 	// Get the command arguments
 	parinfo = evt->get_param(2);
@@ -1185,9 +1265,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	evt->m_tinfo->m_fdlimit = *(int64_t *)parinfo->m_val;
 
-	if(etype == PPME_SYSCALL_EXECVE_13_X ||
-		etype == PPME_SYSCALL_EXECVE_14_X)
+	switch(etype)
 	{
+	case PPME_SYSCALL_EXECVE_8_X:
+		break;
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1212,13 +1296,28 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(12);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
+	}
 
-		if(etype == PPME_SYSCALL_EXECVE_14_X)
-		{
-			// Get the environment
-			parinfo = evt->get_param(13);
-			evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
-		}
+	switch(etype)
+	{
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+		break;
+	case PPME_SYSCALL_EXECVE_14_X:
+		// Get the environment
+		parinfo = evt->get_param(13);
+		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
+		break;
+	case PPME_SYSCALL_EXECVE_15_X:
+		// Get the environment
+		parinfo = evt->get_param(14);
+		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
+		break;
+	default:
+		ASSERT(false);
 	}
 
 	//
