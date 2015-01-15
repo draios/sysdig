@@ -1336,7 +1336,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// Clear the flags for this thread, making sure to propagate the inverted flag
 	//
 	bool inverted = ((evt->m_tinfo->m_flags & PPM_CL_CLONE_INVERTED) != 0);
-	evt->m_tinfo->m_flags = 0;
+	evt->m_tinfo->m_flags = PPM_CL_ACTIVE;
 	if(inverted)
 	{
 		evt->m_tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
