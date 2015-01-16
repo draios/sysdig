@@ -343,14 +343,51 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		return false;
 	}
 
-	if(root.isMember("Config") && root["Config"].isMember("Image"))
+	container->m_image = root["Config"]["Image"].asString();
+	container->m_name = root["Name"].asString();
+	if(!container->m_name.empty())
 	{
-		container->m_image = root["Config"]["Image"].asString();
+		container->m_name = container->m_name.substr(1);
 	}
 
-	if(root.isMember("Name"))
+	string ip = root["NetworkSettings"]["IPAddress"].asString();
+	if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
 	{
-		container->m_name = root["Name"].asString().substr(1);
+		ASSERT(false);
+	}
+
+	vector<string> ports = root["NetworkSettings"]["Ports"].getMemberNames();
+	for(vector<string>::const_iterator it = ports.begin(); it != ports.end(); ++it)
+	{
+		size_t tcp_pos = it->find("/tcp");
+		if(tcp_pos == string::npos)
+		{
+			continue;
+		}
+
+		uint16_t container_port = atoi(it->c_str());
+
+		Json::Value& v = root["NetworkSettings"]["Ports"][*it];
+		if(v.isArray())
+		{
+			for(uint32_t j = 0; j < v.size(); ++j)
+			{	
+				sinsp_container_info::container_port_mapping port_mapping;
+
+				ip = v[j]["HostIp"].asString();
+				string port = v[j]["HostPort"].asString();
+
+				if(inet_pton(AF_INET, ip.c_str(), &port_mapping.m_host_ip) == -1)
+				{
+					ASSERT(false);
+					continue;
+				}
+
+				port_mapping.m_container_port = container_port;
+				port_mapping.m_host_port = atoi(port.c_str());
+				container->m_port_mappings.push_back(port_mapping);
+			}
+		}
 	}
 
 	return true;

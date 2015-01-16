@@ -28,10 +28,32 @@ enum sinsp_container_type
 class sinsp_container_info
 {
 public:
+	class container_port_mapping
+	{
+	public:
+		container_port_mapping():
+			m_host_ip(0),
+			m_host_port(0),
+			m_container_port(0)
+		{
+		}
+
+		uint32_t m_host_ip;
+		uint16_t m_host_port;
+		uint16_t m_container_port;
+	};
+
+	sinsp_container_info():
+		m_container_ip(0)
+	{
+	}
+
 	string m_id;
 	sinsp_container_type m_type;
 	string m_name;
 	string m_image;
+	uint32_t m_container_ip;
+	vector<container_port_mapping> m_port_mappings;
 };
 
 class sinsp_container_manager
