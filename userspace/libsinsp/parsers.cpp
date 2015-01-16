@@ -726,11 +726,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_20_X:
-		parinfo = evt->get_param(16);
+		parinfo = evt->get_param(17);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		vtid = *(int64_t *)parinfo->m_val;
 
-		parinfo = evt->get_param(17);
+		parinfo = evt->get_param(18);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		vpid = *(int64_t *)parinfo->m_val;
 		break;
