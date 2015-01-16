@@ -355,6 +355,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	{
 		ASSERT(false);
 	}
+	container->m_container_ip = ntohl(container->m_container_ip);
 
 	vector<string> ports = root["NetworkSettings"]["Ports"].getMemberNames();
 	for(vector<string>::const_iterator it = ports.begin(); it != ports.end(); ++it)
@@ -382,6 +383,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 					ASSERT(false);
 					continue;
 				}
+				port_mapping.m_host_ip = ntohl(port_mapping.m_host_ip);
 
 				port_mapping.m_container_port = container_port;
 				port_mapping.m_host_port = atoi(port.c_str());
