@@ -1163,7 +1163,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	switch(etype)
 	{
 		case PPME_SYSCALL_CLONE_20_X:
-			parinfo = evt->get_param(18);
+			parinfo = evt->get_param(19);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
 			m_inspector->m_container_manager.resolve_container_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive, &tinfo.m_container_id);
 			break;
