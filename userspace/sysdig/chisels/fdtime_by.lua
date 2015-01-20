@@ -52,7 +52,7 @@ function on_init()
 		"evt.latency",
 		"Time",
 		"evt.is_io=true", 
-		"time")
 		"" .. TOP_NUMBER,
+		"time")
 	return true
 end
