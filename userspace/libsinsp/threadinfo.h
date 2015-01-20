@@ -132,7 +132,7 @@ public:
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
 	string m_comm; ///< Command name (e.g. "top")
-	string m_exe; ///< Full command name (e.g. "/bin/top")
+	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
 	vector<string> m_env; ///< Environment variables
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.

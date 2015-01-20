@@ -301,8 +301,6 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		}
 	}
 
-	target_name[target_res] = 0;
-
 	//
 	// This is a real user level process. Allocate the procinfo structure.
 	//
@@ -341,8 +339,6 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	{
 		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
 	}
-
-	snprintf(tinfo->exe, SCAP_MAX_PATH_SIZE, "%s", target_name);
 
 	//
 	// Gather the command name
@@ -389,17 +385,18 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	{
 		ASSERT(sizeof(line) >= SCAP_MAX_ARGS_SIZE);
 
-		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE, f);
-
+		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE - 1, f);
 		if(filesize > 0)
 		{
-			line[filesize - 1] = 0;
+			line[filesize] = 0;
 
 			exe_len = strlen(line);
 			if(exe_len < filesize)
 			{
 				++exe_len;
 			}
+
+			snprintf(tinfo->exe, SCAP_MAX_PATH_SIZE, "%s", line);
 
 			tinfo->args_len = filesize - exe_len;
 
@@ -409,6 +406,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		else
 		{
 			tinfo->args[0] = 0;
+			tinfo->exe[0] = 0;
 		}
 
 		fclose(f);

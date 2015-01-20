@@ -269,10 +269,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_14_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_14_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_CLONE_16_E] = {f_sys_empty},
-	[PPME_SYSCALL_CLONE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_15_E] = {f_sys_empty},
+	[PPME_SYSCALL_EXECVE_15_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_CLONE_17_E] = {f_sys_empty},
+	[PPME_SYSCALL_CLONE_17_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
@@ -293,10 +293,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SYMLINK_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
 	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
-	[PPME_SYSCALL_FORK_E] = {f_sys_empty},
-	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_VFORK_E] = {f_sys_empty},
-	[PPME_SYSCALL_VFORK_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_FORK_17_E] = {f_sys_empty},
+	[PPME_SYSCALL_FORK_17_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_VFORK_17_E] = {f_sys_empty},
+	[PPME_SYSCALL_VFORK_17_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
@@ -855,9 +855,16 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (args->event_type == PPME_SYSCALL_CLONE_16_X ||
-		args->event_type == PPME_SYSCALL_FORK_X ||
-		args->event_type == PPME_SYSCALL_VFORK_X) {
+	/*
+	 * comm
+	 */
+	res = val_to_ring(args, (uint64_t)current->comm, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (args->event_type == PPME_SYSCALL_CLONE_17_X ||
+		args->event_type == PPME_SYSCALL_FORK_17_X ||
+		args->event_type == PPME_SYSCALL_VFORK_17_X) {
 		/*
 		 * clone-only parameters
 		 */
@@ -872,7 +879,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_16_X)
+		if (args->event_type == PPME_SYSCALL_CLONE_17_X)
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 		else
 			val = 0;
@@ -894,7 +901,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		res = val_to_ring(args, egid, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_14_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_15_X) {
 		/*
 		 * execve-only parameters
 		 */

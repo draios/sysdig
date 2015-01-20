@@ -30,7 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * Limits
  */
-#define PPM_MAX_EVENT_PARAMS 16	/* Max number of parameters an event can have */
+#define PPM_MAX_EVENT_PARAMS 17	/* Max number of parameters an event can have */
 #define PPM_MAX_PATH_SIZE 256	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
 
@@ -121,6 +121,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_CL_NAME_CHANGED (1 << 17)	/* libsinsp-specific flag. Set when the thread name changes */
 										/* (for example because execve was called) */
 #define PPM_CL_CLOSED (1 << 18)			/* thread has been closed. */
+#define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for 
+										   this thread. */
 
 /*
  * Futex Operations
@@ -604,9 +606,17 @@ enum ppm_event_type {
 	PPME_SYSCALL_GETRESUID_X = 211,
 	PPME_SYSCALL_GETRESGID_E = 212,
 	PPME_SYSCALL_GETRESGID_X = 213,
-	PPME_SYSCALL_SIGNALDELIVER_E = 214,
-	PPME_SYSCALL_SIGNALDELIVER_X = 215, /* This should never be called */
-	PPM_EVENT_MAX = 216
+	PPME_SYSCALL_EXECVE_15_E = 214,
+	PPME_SYSCALL_EXECVE_15_X = 215,
+	PPME_SYSCALL_CLONE_17_E = 216,
+	PPME_SYSCALL_CLONE_17_X = 217,
+	PPME_SYSCALL_FORK_17_E = 218,
+	PPME_SYSCALL_FORK_17_X = 219,
+	PPME_SYSCALL_VFORK_17_E = 220,
+	PPME_SYSCALL_VFORK_17_X = 221,
+	PPME_SYSCALL_SIGNALDELIVER_E = 222,
+	PPME_SYSCALL_SIGNALDELIVER_X = 223, /* This should never be called */
+	PPM_EVENT_MAX = 224
 };
 /*@}*/
 

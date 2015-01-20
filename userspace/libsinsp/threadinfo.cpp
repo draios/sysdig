@@ -273,7 +273,6 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 {
 	scap_fdinfo *fdi;
 	scap_fdinfo *tfdi;
-	string tcomm(pi->comm);
 
 	init();
 
@@ -282,24 +281,12 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	m_ptid = pi->ptid;
 
 	m_comm = pi->comm;
-
-	if(tcomm == "" || tcomm[tcomm.length() - 1] == '/')
-	{
-		string ts(pi->exe);
-
-		size_t commbegin = ts.rfind('/');
-
-		if(commbegin != string::npos)
-		{
-			m_comm = ts.substr(commbegin + 1);
-		}
-	}
-
 	m_exe = pi->exe;
 	set_args(pi->args, pi->args_len);
 	set_env(pi->env, pi->env_len);
 	set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
 	m_flags |= pi->flags;
+	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
 	m_fdtable.clear();
 	m_fdlimit = pi->fdlimit;
 	m_uid = pi->uid;
