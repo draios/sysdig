@@ -119,6 +119,7 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args);
 static int f_sys_quotactl_x(struct event_filler_arguments *args);
 static int f_sys_sysdigevent_e(struct event_filler_arguments *args);
 static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
+static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -321,6 +322,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_GETRESUID_X] = {f_sys_getresuid_and_gid_x},
 	[PPME_SYSCALL_GETRESGID_E] = {f_sys_empty},
 	[PPME_SYSCALL_GETRESGID_X] = {f_sys_getresuid_and_gid_x},
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+	[PPME_SYSCALL_SIGNALDELIVER_E] = {f_sys_signaldeliver_e},
+	[PPME_SYSCALL_SIGNALDELIVER_X] = {f_sys_empty},
+#endif
 };
 
 /*
@@ -4118,3 +4123,36 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	/* TODO: remove this debug log */
+	pr_info("SIGNAL INFO: sig: %d, spid: %d, dpid: %d\n", args->signo, args->spid, args->dpid);
+
+	/*
+	 * signal number
+	 */
+	res = val_to_ring(args, args->signo, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * source pid
+	 */
+	res = val_to_ring(args, args->spid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * destination pid
+	 */
+	res = val_to_ring(args, args->dpid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+#endif
