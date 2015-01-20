@@ -94,6 +94,11 @@ static int record_event(enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
 	struct task_struct *sched_prev,
 	struct task_struct *sched_next);
+static int record_signal(enum ppm_event_type event_type,
+	enum syscall_flags drop_flags,
+	int sig,
+	struct siginfo *info,
+	struct k_sigaction *ka);
 
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
 
@@ -112,7 +117,6 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)) */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
-#define CAPTURE_SIGNAL_DELIVERIES 1
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka);
 #endif
@@ -1047,6 +1051,247 @@ static int record_event(enum ppm_event_type event_type,
 	return res;
 }
 
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+static int record_signal(enum ppm_event_type event_type,
+        enum syscall_flags drop_flags,
+        int sig,
+        struct siginfo *info,
+        struct k_sigaction *ka)
+{
+	int res = 0;
+	size_t event_size;
+	int next;
+	u32 freespace;
+	u32 usedspace;
+	u32 delta_from_end;
+	struct event_filler_arguments args;
+	u32 ttail;
+	u32 head;
+	struct ppm_ring_buffer_context *ring;
+	struct ppm_ring_buffer_info *ring_info;
+	int drop = 1;
+	int32_t cbres = PPM_SUCCESS;
+	struct timespec ts;
+
+	getnstimeofday(&ts);
+
+	if (!test_bit(event_type, g_events_mask))
+		return res;
+
+	if (event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
+		if (g_need_to_insert_drop_e == 1)
+			record_drop_e();
+		else if (g_need_to_insert_drop_x == 1)
+			record_drop_x();
+
+		if (drop_event(event_type, drop_flags, &ts))
+			return res;
+	}
+
+	/*
+	 * FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
+	 */
+	ring = get_cpu_var(g_ring_buffers);
+	ring_info = ring->info;
+
+	if (!ring->capture_enabled) {
+		put_cpu_var(g_ring_buffers);
+		return res;
+	}
+
+	ring_info->n_evts++;
+	if (event_type == PPME_SYSCALL_SIGNALDELIVER_E) {
+		ASSERT(info != NULL);
+	}
+
+	/*
+	 * Preemption gate
+	 */
+	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
+		atomic_dec(&ring->preempt_count);
+		put_cpu_var(g_ring_buffers);
+		ring_info->n_preemptions++;
+		ASSERT(false);
+		return res;
+	}
+
+	/*
+	 * Calculate the space currently available in the buffer
+	 */
+	head = ring_info->head;
+	ttail = ring_info->tail;
+
+	if (ttail > head)
+		freespace = ttail - head - 1;
+	else
+		freespace = RING_BUF_SIZE + ttail - head - 1;
+
+	usedspace = RING_BUF_SIZE - freespace - 1;
+	delta_from_end = RING_BUF_SIZE + (2 * PAGE_SIZE) - head - 1;
+
+	ASSERT(freespace <= RING_BUF_SIZE);
+	ASSERT(usedspace <= RING_BUF_SIZE);
+	ASSERT(ttail <= RING_BUF_SIZE);
+	ASSERT(head <= RING_BUF_SIZE);
+	ASSERT(delta_from_end < RING_BUF_SIZE + (2 * PAGE_SIZE));
+	ASSERT(delta_from_end > (2 * PAGE_SIZE) - 1);
+
+	ASSERT(event_type < PPM_EVENT_MAX);
+
+	/*
+	 * Determine how many arguments this event has
+	 */
+	args.nargs = g_event_info[event_type].nparams;
+	args.arg_data_offset = args.nargs * sizeof(u16);
+
+	/*
+	 * Make sure we have enough space for the event header.
+	 * We need at least space for the header plus 16 bit per parameter for the lengths.
+	 */
+	if (likely(freespace >= sizeof(struct ppm_evt_hdr) + args.arg_data_offset)) {
+		/*
+		 * Populate the header
+		 */
+		struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)(ring->buffer + head);
+
+#ifdef PPM_ENABLE_SENTINEL
+		hdr->sentinel_begin = ring->nevents;
+#endif
+		hdr->ts = timespec_to_ns(&ts);
+		hdr->tid = current->pid;
+		hdr->type = event_type;
+
+		/*
+		 * Populate the parameters for the filler callback
+		 */
+		args.buffer = ring->buffer + head + sizeof(struct ppm_evt_hdr);
+#ifdef PPM_ENABLE_SENTINEL
+		args.sentinel = ring->nevents;
+#endif
+		args.buffer_size = min(freespace, delta_from_end) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
+		args.event_type = event_type;
+		args.signo = sig;
+		if (info->si_signo == __SI_KILL) {
+			args.spid = (info->_sifields)._kill._pid;
+		} else if (info->si_signo == __SI_RT) {
+			args.spid = (info->_sifields)._rt._pid;
+		} else if (info->si_signo == __SI_CHLD) {
+			args.spid = (info->_sifields)._sigchld._pid;
+		} else {
+			args.spid = (__kernel_pid_t) 0;
+		}
+		args.dpid = current->pid;
+		args.curarg = 0;
+		args.arg_data_size = args.buffer_size - args.arg_data_offset;
+		args.nevents = ring->nevents;
+		args.str_storage = ring->str_storage;
+		args.enforce_snaplen = false;
+
+		/*
+		 * Fire the filler callback
+		 */
+		if (g_ppm_events[event_type].filler_callback == PPM_AUTOFILL) {
+			/*
+			 * This event is automatically filled. Hand it to f_sys_autofill.
+			 */
+			cbres = f_sys_autofill(&args, &g_ppm_events[event_type]);
+		} else {
+			/*
+			 * There's a callback function for this event
+			 */
+			cbres = g_ppm_events[event_type].filler_callback(&args);
+		}
+
+		if (likely(cbres == PPM_SUCCESS)) {
+			/*
+			 * Validate that the filler added the right number of parameters
+			 */
+			if (likely(args.curarg == args.nargs)) {
+				/*
+				 * The event was successfully insterted in the buffer
+				 */
+				event_size = sizeof(struct ppm_evt_hdr) + args.arg_data_offset;
+				hdr->len = event_size;
+				drop = 0;
+			} else {
+				pr_err("corrupted filler for event type %d (added %u args, should have added %u)\n",
+				       event_type,
+				       args.curarg,
+				       args.nargs);
+				ASSERT(0);
+			}
+		}
+	}
+
+	if (likely(!drop)) {
+		res = 1;
+
+		next = head + event_size;
+
+		if (unlikely(next >= RING_BUF_SIZE)) {
+			/*
+			 * If something has been written in the cushion space at the end of
+			 * the buffer, copy it to the beginning and wrap the head around.
+			 * Note, we don't check that the copy fits because we assume that
+			 * filler_callback failed if the space was not enough.
+			 */
+			if (next > RING_BUF_SIZE) {
+				memcpy(ring->buffer,
+				ring->buffer + RING_BUF_SIZE,
+				next - RING_BUF_SIZE);
+			}
+
+			next -= RING_BUF_SIZE;
+		}
+
+		/*
+		 * Make sure all the memory has been written in real memory before
+		 * we update the head and the user space process (on another CPU)
+		 * can access the buffer.
+		 */
+		smp_wmb();
+
+		ring_info->head = next;
+
+		++ring->nevents;
+	} else {
+		if (cbres == PPM_SUCCESS) {
+			ASSERT(freespace < sizeof(struct ppm_evt_hdr) + args.arg_data_offset);
+			ring_info->n_drops_buffer++;
+		} else if (cbres == PPM_FAILURE_INVALID_USER_MEMORY) {
+#ifdef _DEBUG
+			pr_err("Invalid read from user for event %d\n", event_type);
+#endif
+			ring_info->n_drops_pf++;
+		} else if (cbres == PPM_FAILURE_BUFFER_FULL) {
+			ring_info->n_drops_buffer++;
+		} else {
+			ASSERT(false);
+		}
+	}
+
+#ifdef _DEBUG
+	if (ts.tv_sec > ring->last_print_time.tv_sec + 1) {
+		vpr_info("CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+		       smp_processor_id(),
+		       (usedspace * 100) / RING_BUF_SIZE,
+		       ring_info->n_evts,
+		       ring_info->n_drops_buffer,
+		       ring_info->n_drops_pf,
+		       ring_info->n_preemptions,
+		       ring->info->n_context_switches);
+
+		ring->last_print_time = ts;
+	}
+#endif
+
+	atomic_dec(&ring->preempt_count);
+	put_cpu_var(g_ring_buffers);
+
+	return res;
+}
+#endif
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
@@ -1141,6 +1386,11 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka)
 {
 	pr_info("signal_deliver_probe called\n");
+	record_signal(PPME_SYSCALL_SIGNALDELIVER_E,
+		UF_USED,
+		sig,
+		info,
+		ka);
 }
 #endif
 
@@ -1268,7 +1518,7 @@ static int get_tracepoint_handles(void)
 		return -ENOENT;
 	}
 #endif
-#ifdef CAPTURE_CONTEXT_SWITCHES
+#ifdef CAPTURE_SIGNAL_DELIVERIES
 	if (!tp_signal_deliver) {
 		pr_err("failed to find signal_deliver tracepoint\n");
 		return -ENOENT;
