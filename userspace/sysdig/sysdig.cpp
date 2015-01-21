@@ -96,7 +96,7 @@ static void usage()
 "                    run the specified chisel. If the chisel require arguments,\n"
 "                    they must be specified in the command line after the name.\n"
 " -cl, --list-chisels\n"
-"                    lists the available chisels. Looks for chisels in .,\n"
+"                    lists the available chisels. Looks for chisels in\n"
 "                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
 #endif
 #ifndef DISABLE_CGW
