@@ -378,6 +378,9 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		etype == PPME_SYSCALL_CLONE_16_X ||
 		etype == PPME_SYSCALL_FORK_X ||
 		etype == PPME_SYSCALL_VFORK_X ||
+		etype == PPME_SYSCALL_CLONE_17_X ||
+		etype == PPME_SYSCALL_FORK_17_X ||
+		etype == PPME_SYSCALL_VFORK_17_X ||
 		etype == PPME_SCHEDSWITCH_6_E)
 	{
 		query_os = false;
@@ -399,7 +402,10 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		if(etype == PPME_SYSCALL_CLONE_11_X ||
 			etype == PPME_SYSCALL_CLONE_16_X ||
 			etype == PPME_SYSCALL_FORK_X ||
-			etype == PPME_SYSCALL_VFORK_X)
+			etype == PPME_SYSCALL_VFORK_X ||
+			etype == PPME_SYSCALL_CLONE_17_X ||
+			etype == PPME_SYSCALL_FORK_17_X ||
+			etype == PPME_SYSCALL_VFORK_17_X)
 		{
 #ifdef GATHER_INTERNAL_STATS
 			m_inspector->m_thread_manager->m_failed_lookups->decrement();
