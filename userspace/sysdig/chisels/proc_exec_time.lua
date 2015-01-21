@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "list the processes that have finished running, along with their execution time, and color every line based on the total process run time";
+description = "List the processes that have finished running, along with their execution time, and color every line based on the total process run time";
 short_description = "Show process execution time";
 category = "Performance";
 

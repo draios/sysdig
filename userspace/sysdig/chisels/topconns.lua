@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "Shows the top network connections in terms of total (in+out) bandwidth.";
-short_description = "top network connections by total bytes";
+short_description = "Top network connections by total bytes";
 category = "Net";
 
 -- Chisel argument list

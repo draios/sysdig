@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "reports every attempt to execute bash in a way that exploits the shellshock vulnerability (http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2014-6271). For every attempt, the chisel reports the time, the name of the process trying to run bash, and its PID.";
+description = "Reports every attempt to execute bash in a way that exploits the shellshock vulnerability (http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2014-6271). For every attempt, the chisel reports the time, the name of the process trying to run bash, and its PID.";
 short_description = "print shellshock attacks";
 category = "Security";
 

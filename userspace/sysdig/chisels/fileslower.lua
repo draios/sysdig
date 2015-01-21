@@ -37,7 +37,7 @@ args =
 {
     {
         name = "min_ms",
-        description = "minimum millisecond threshold for showing file I/O",
+        description = "Minimum millisecond threshold for showing file I/O",
         argtype = "int"
     },
 }

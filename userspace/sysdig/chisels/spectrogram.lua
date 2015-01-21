@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This console visualzation shows the frequency of system call latencies. The Y axis unit is time. By default, a new line is created twice a second, but that can be changed by specifying a different refresh time argument. The X axis shows a range of latencies. Each latency value has a color that can be black (no calls), green (tens of calls/s), yellow (hundreds of calls/s) or red (Thousands of calls/s). In other words, red areas mean that there are many system calls taking the specified time to return. Use this chisel in conjunction with filters to visualize latencies for certain processes, types of I/O activity, file systems, etc."
+description = "This console visualization shows the frequency of system call latencies. The Y axis unit is time. By default, a new line is created twice a second, but that can be changed by specifying a different refresh time argument. The X axis shows a range of latencies. Each latency value has a color that can be black (no calls), green (tens of calls/s), yellow (hundreds of calls/s) or red (Thousands of calls/s). In other words, red areas mean that there are many system calls taking the specified time to return. Use this chisel in conjunction with filters to visualize latencies for certain processes, types of I/O activity, file systems, etc."
 short_description = "Visualize OS latency in real time."
 category = "CPU Usage"
 
@@ -24,7 +24,7 @@ category = "CPU Usage"
 args = {
 	{
 		name = "refresh_time", 
-		description = "chart refresh time in milliseconds", 
+		description = "Chart refresh time in milliseconds", 
 		argtype = "int",
 		optional = true
 	},

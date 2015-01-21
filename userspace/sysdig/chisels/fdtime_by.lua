@@ -25,7 +25,7 @@ args =
 {
 	{
 		name = "key", 
-		description = "the filter field used for grouping", 
+		description = "The filter field used for grouping", 
 		argtype = "string"
 	},
 }

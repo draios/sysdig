@@ -31,7 +31,7 @@ args =
 {
     {
         name = "min_msec",
-        description = "minimum milliseconds before which a syscall should complete",
+        description = "Minimum milliseconds before which a syscall should complete",
         argtype = "int"
     },
 }

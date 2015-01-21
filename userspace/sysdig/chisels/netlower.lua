@@ -31,7 +31,7 @@ args =
 {
     {
         name = "min_msec",
-        description = "minimum millisecond threshold for showing network I/O",
+        description = "Minimum millisecond threshold for showing network I/O",
         argtype = "int"
     },
 }

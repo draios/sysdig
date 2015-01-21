@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "counts the total bytes read from and written to files.";
+description = "Counts the total bytes read from and written to files.";
 short_description = "Sum of file I/O bytes";
 category = "I/O";
 

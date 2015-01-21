@@ -25,7 +25,7 @@ args =
 {
 	{
 		name = "filter",
-		description = "a sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.port=80'.", 
+		description = "A sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.port=80'.", 
 		argtype = "filter",
 		optional = true
 	}

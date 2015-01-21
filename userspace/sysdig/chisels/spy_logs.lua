@@ -28,13 +28,13 @@ args =
 {
 	{
 		name = "dump_file_name", 
-		description = "the name of the file where the chisel will write the events related to each syslog entry.", 
+		description = "The name of the file where the chisel will write the events related to each syslog entry.", 
 		argtype = "string",
 		optional = true
 	},
 	{
 		name = "dump_range_ms", 
-		description = "the time interval to capture *before* and *after* each event, in milliseconds. For example, 500 means that 1 second around each displayed event (.5s before and .5s after) will be saved to <dump_file_name>. The default value for dump_range_ms is 1000.", 
+		description = "The time interval to capture *before* and *after* each event, in milliseconds. For example, 500 means that 1 second around each displayed event (.5s before and .5s after) will be saved to <dump_file_name>. The default value for dump_range_ms is 1000.", 
 		argtype = "int",
 		optional = true
 	},

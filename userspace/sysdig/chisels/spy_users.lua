@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "lists every command that users launch interactively (e.g. from bash) and every directory users visit";
+description = "Lists every command that users launch interactively (e.g. from bash) and every directory users visit";
 short_description = "Display interactive user activity";
 category = "Security";
 

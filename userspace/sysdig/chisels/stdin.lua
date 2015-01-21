@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "print the standard input of any process on screen. Combine this script with a filter to limit the output to a specific process or pid.";
+description = "Print the standard input of any process on screen. Combine this script with a filter to limit the output to a specific process or pid.";
 short_description = "Print stdin of processes";
 category = "I/O";
 
