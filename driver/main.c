@@ -196,7 +196,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 {
 	int ret;
 	struct ppm_ring_buffer_context *ring;
-	int ring_no = iminor(filp->f_dentry->d_inode);
+	int ring_no = iminor(filp->f_path.dentry->d_inode);
 
 	mutex_lock(&g_open_mutex);
 
@@ -291,7 +291,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 {
 	int ret;
 	struct ppm_ring_buffer_context *ring;
-	int ring_no = iminor(filp->f_dentry->d_inode);
+	int ring_no = iminor(filp->f_path.dentry->d_inode);
 
 	mutex_lock(&g_open_mutex);
 
@@ -349,7 +349,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case PPM_IOCTL_DISABLE_CAPTURE:
 	{
-		int ring_no = iminor(filp->f_dentry->d_inode);
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
 		mutex_lock(&g_open_mutex);
@@ -362,7 +362,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case PPM_IOCTL_ENABLE_CAPTURE:
 	{
-		int ring_no = iminor(filp->f_dentry->d_inode);
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
 		mutex_lock(&g_open_mutex);
@@ -495,7 +495,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		unsigned long pfn;
 		char *vmalloc_area_ptr;
 		char *orig_vmalloc_area_ptr;
-		int ring_no = iminor(filp->f_dentry->d_inode);
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
 		struct ppm_ring_buffer_context *ring;
 
 		vpr_info("mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
