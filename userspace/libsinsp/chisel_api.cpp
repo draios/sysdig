@@ -982,6 +982,80 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	return 1;
 }
 
+int lua_cbacks::get_container_table(lua_State *ls) 
+{
+	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
+	uint32_t j;
+	sinsp_filter* filter = NULL;
+	sinsp_evt tevt;
+
+	//
+	// Get the chisel state
+	//
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	ASSERT(ch);
+	ASSERT(ch->m_lua_cinfo);
+	ASSERT(ch->m_inspector);
+
+	//
+	// Retrieve the container list
+	//
+	const unordered_map<string, sinsp_container_info>* ctable  = ch->m_inspector->m_container_manager.get_containers();
+
+	ASSERT(ctable != NULL);
+
+	lua_newtable(ls);
+
+	//
+	// Go through the list
+	//
+	j = 0;
+	for(auto it = ctable->begin(); it != ctable->end(); ++it)
+	{
+		lua_newtable(ls);
+		lua_pushliteral(ls, "id");
+		lua_pushstring(ls, it->second.m_id.c_str());
+		lua_settable(ls, -3);
+		lua_pushliteral(ls, "name");
+		lua_pushstring(ls, it->second.m_name.c_str());
+		lua_settable(ls, -3);
+		lua_pushliteral(ls, "image");
+		lua_pushstring(ls, it->second.m_image.c_str());
+		lua_settable(ls, -3);
+
+		lua_pushliteral(ls, "type");
+		if(it->second.m_type == CT_DOCKER)
+		{
+			lua_pushstring(ls, "docker");
+		}
+		else if(it->second.m_type == CT_LXC)
+		{
+			lua_pushstring(ls, "lxc");
+		}
+		else if(it->second.m_type == CT_LIBVIRT_LXC)
+		{
+			lua_pushstring(ls, "libvirt_lxc");
+		}
+		else
+		{
+			ASSERT(false);
+			lua_pushstring(ls, "unknown");
+		}
+		lua_settable(ls, -3);
+
+		//
+		// Set the key for this entry
+		//
+		lua_rawseti(ls,-2, (uint32_t)++j);
+	}
+
+	return 1;
+}
+
 int lua_cbacks::get_output_format(lua_State *ls) 
 {
 	lua_getglobal(ls, "sichisel");

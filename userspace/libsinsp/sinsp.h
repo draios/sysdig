@@ -732,6 +732,7 @@ private:
 	friend class lua_cbacks;
 	friend class sinsp_filter_check_container;
 	friend class sinsp_worker;
+	friend class lua_cbacks;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
