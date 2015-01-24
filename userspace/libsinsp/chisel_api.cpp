@@ -986,7 +986,6 @@ int lua_cbacks::get_container_table(lua_State *ls)
 {
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	uint32_t j;
-	sinsp_filter* filter = NULL;
 	sinsp_evt tevt;
 
 	//
