@@ -277,7 +277,6 @@ public:
 	void set_listener(sinsp_threadtable_listener* listener);
 	void add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
-	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
@@ -301,6 +300,7 @@ public:
 	set<uint16_t> m_server_ports;
 
 private:
+	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
 
