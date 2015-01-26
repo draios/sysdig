@@ -18,10 +18,11 @@ endif()
 
 add_executable(sysdig ${SOURCE_FILES})
 
-target_link_libraries(sysdig
-	sinsp)
-
 if(NOT WIN32)
+
+	target_link_libraries(sysdig
+		sinsp
+		ncurses)
 
 	add_subdirectory(man)
 
@@ -35,6 +36,9 @@ if(NOT WIN32)
 		DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 else()
+
+	target_link_libraries(sysdig
+		sinsp)
 
 	target_link_libraries(sysdig odbc32.lib odbccp32.lib)
 

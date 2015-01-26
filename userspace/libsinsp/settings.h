@@ -91,6 +91,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_SNAPLEN 80
 
 //
+// Is systop functionality included?
+//
+#ifndef _WIN32
+#undef SYSTOP
+#endif
+
+//
 // FD class customized with the storage we need
 //
 #ifdef HAS_ANALYZER

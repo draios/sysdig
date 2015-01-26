@@ -519,4 +519,28 @@ private:
 	string m_tstr;
 };
 
+//
+// For internal use
+//
+class sinsp_filter_check_reference : public sinsp_filter_check
+{
+public:
+	sinsp_filter_check_reference();
+	sinsp_filter_check* allocate_new();
+	inline void set_val(ppm_param_type type, uint8_t* val, int32_t len)
+	{
+		m_finfo.m_type = type;
+		m_val = val;
+		m_len = len;
+	}
+	int32_t parse_field_name(const char* str);
+	void parse_filter_value(const char* str, uint32_t len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	filtercheck_field_info m_finfo;
+	uint8_t* m_val;
+	uint32_t m_len;
+};
+
 #endif // HAS_FILTERING

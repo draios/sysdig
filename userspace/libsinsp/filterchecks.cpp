@@ -2939,4 +2939,41 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 	return NULL;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_reference implementation
+///////////////////////////////////////////////////////////////////////////////
+sinsp_filter_check_reference::sinsp_filter_check_reference()
+{
+	m_info.m_name = "<NA>";
+	m_info.m_fields = &m_finfo;
+	m_info.m_nfiedls = 1;
+	m_info.m_flags = 0;
+	m_finfo.m_print_format = PF_DEC;
+	m_field = &m_finfo;
+}
+
+sinsp_filter_check* sinsp_filter_check_reference::allocate_new()
+{
+	ASSERT(false);
+	return NULL;
+}
+
+int32_t sinsp_filter_check_reference::parse_field_name(const char* str)
+{
+	ASSERT(false);
+	return -1;
+}
+
+void sinsp_filter_check_reference::parse_filter_value(const char* str, uint32_t len)
+{
+	ASSERT(false);
+}
+
+uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	*len = m_len;
+	return m_val;
+}
+
+
 #endif // HAS_FILTERING
