@@ -26,6 +26,7 @@ add_library(sinsp STATIC
 	threadinfo.cpp
 	sinsp.cpp
 	stats.cpp
+	table.cpp
 	utils.cpp)
 
 target_link_libraries(sinsp 
