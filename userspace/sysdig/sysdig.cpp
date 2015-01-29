@@ -939,6 +939,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else if(string(optarg) == "c" || string(optarg) == "container")
 				{
 					output_format = "*%evt.num <TIME> %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+
+					//
+					// This enables chisels to determine if they should print container information
+					//
+					if ( inspector != NULL )
+                                        {
+                                           inspector->set_print_container_data( true );
+                                        }
 				}
 				else
 				{

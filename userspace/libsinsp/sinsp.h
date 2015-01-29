@@ -523,7 +523,8 @@ public:
 	void set_fatfile_dump_mode(bool enable_fatfile);
 
 	/*!
-	  \brief sets the max length of event argument strings. 
+	  \brief Sets the max length of event argument strings. 
+
 	  \param len Max length after which an avent argument string is truncated.
 	   0 means no limit. Use this to reduce verbosity when printing event info
 	   on screen.
@@ -536,6 +537,22 @@ public:
 	inline bool is_debug_enabled()
 	{
 		return m_isdebug_enabled;		
+	}
+
+        /*!
+          \brief Set a flag indicating if the command line requested to show container information.
+
+          \param set true if the command line arugment is set to show container information 
+        */
+        void set_print_container_data(bool print_container_data);
+
+
+	/*!
+	  \brief Returns true if the command line argument is set to show container information.
+	*/
+	inline bool is_print_container_data()
+	{
+		return m_print_container_data;
 	}
 
 	/*!
@@ -639,6 +656,12 @@ private:
 	sinsp_thread_manager* m_thread_manager;
 
 	sinsp_container_manager m_container_manager;
+
+        //
+        // True if the command line argument is set to show container information
+	// The deafult is false set within the constructor
+        //
+	bool m_print_container_data;
 
 #ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;

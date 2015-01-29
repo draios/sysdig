@@ -92,6 +92,10 @@ sinsp::sinsp() :
 	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
 	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
 	m_meta_evt_pending = false;
+
+        // Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
+        m_print_container_data = false;
+
 #if defined(HAS_CAPTURE)
 	m_sysdig_pid = 0;
 #endif
@@ -1152,6 +1156,11 @@ bool sinsp::is_live()
 void sinsp::set_debug_mode(bool enable_debug)
 {
 	m_isdebug_enabled = enable_debug;
+}
+
+void sinsp::set_print_container_data(bool print_container_data)
+{
+	m_print_container_data = print_container_data;
 }
 
 void sinsp::set_fatfile_dump_mode(bool enable_fatfile)

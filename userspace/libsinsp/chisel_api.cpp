@@ -1055,6 +1055,21 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	return 1;
 }
 
+int lua_cbacks::is_print_container_data(lua_State *ls) 
+{
+        lua_getglobal(ls, "sichisel");
+
+        sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+        lua_pop(ls, 1);
+
+        ASSERT(ch);
+        ASSERT(ch->m_lua_cinfo);
+
+        lua_pushboolean(ls, ch->m_inspector->is_print_container_data());
+        return 1;
+}
+
+
 int lua_cbacks::get_output_format(lua_State *ls) 
 {
 	lua_getglobal(ls, "sichisel");
