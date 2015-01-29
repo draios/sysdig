@@ -4,6 +4,7 @@ USAGE: sysdig -c proc_exec_time
 
    sysdig -c proc_exec_time                 # show processes that have finished 
    sysdig -c proc_exec_time disable_colors" # show processes that have finished w/ no colors
+   sysdig -pc -c proc_exec_time             # show processes that have finished and container output
 
 Copyright (C) 2014 Draios inc.
  
@@ -22,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "List the processes that have finished running, along with their execution time, and color every line based on the total process run time";
+description = "List the processes that have finished running, along with their execution time, and color every line based on the total process run time (Green|Blue below thresholds, Yellow at 3 sec, and Red at 10 sec). This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)";
 short_description = "Show process execution time";
 category = "Performance";
 
@@ -62,16 +63,29 @@ function on_init()
     fduration = chisel.request_field("proc.duration")
     fcontainer = chisel.request_field("container.name")
 
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    print_container = sysdig.is_print_container_data()
+
     -- set the filter
     chisel.set_filter("evt.type=procexit")
 
-    print(string.format("%-13.13s %-20.20s %-12.12s %s", 
-                        "proc.duration", "container.name", "proc.name", "proc.args"))
-    print(string.format("%-13.13s %-20.20s %-12.12s %s", 
-                        "-------------", 
-                        "--------------------", 
-                        "------------", 
-                        "--------------------"))
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    if print_container then
+        print(string.format("%-13.13s %-20.20s %-12.12s %s", 
+                            "proc.duration", "container.name", "proc.name", "proc.args"))
+        print(string.format("%-13.13s %-20.20s %-12.12s %s", 
+                            "-------------", 
+                            "--------------------", 
+                            "------------", 
+                            "--------------------"))
+    else
+        print(string.format("%-13.13s %-12.12s %s", 
+                            "proc.duration", "proc.name", "proc.args"))
+        print(string.format("%-13.13s %-12.12s %s", 
+                            "-------------", 
+                            "------------", 
+                            "--------------------"))
+    end
     
     return true
 end
@@ -93,18 +107,19 @@ function on_event()
             color = terminal.blue
         end
 
-        -- Appears to be a visually exceptable way to display the output
-        print(color .. string.format("%-13.13s %-20.20s %-12.12s %s", format_time_interval(duration), evt.field(fcontainer), evt.field(fexe), evt.field(fargs)))
-
-        -- All of these are viable ways to print output
-        --if evt.field(fcontainer) == "host" then    
-            --print(color .. string.format("%-10.10s %-20.20s %-12.12s %s", format_time_interval(duration), "", evt.field(fexe), evt.field(fargs)))
-            --print(color .. string.format("%-10.10s %-12.12s %s", format_time_interval(duration), evt.field(fexe), evt.field(fargs)))
-            --print(color .. format_time_interval(duration) .. ") " .. evt.field(fexe) .. " " .. evt.field(fargs))
-        --else
-            --print(color .. string.format("%-10.10s %-20.20s %-12.12s %s", format_time_interval(duration), evt.field(fcontainer), evt.field(fexe), evt.field(fargs)))
-            --print(color .. format_time_interval(duration) .. ") " .. evt.field(fcontainer) .. " " .. evt.field(fexe) .. " " .. evt.field(fargs))
-        --end
+        -- The -pc or -pcontainer options was supplied on the cmd line 
+        if print_container then
+            print(color .. string.format("%-13.13s %-20.20s %-12.12s %s", 
+                                         format_time_interval(duration), 
+                                         evt.field(fcontainer), 
+                                         evt.field(fexe), 
+                                         evt.field(fargs)))
+        else
+            print(color .. string.format("%-13.13s %-12.12s %s", 
+                                         format_time_interval(duration), 
+                                         evt.field(fexe), 
+                                         evt.field(fargs)))
+        end
     end
     
     return true

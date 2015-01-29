@@ -7,6 +7,7 @@ USAGE: sysdig -c fileslower min_ms
    sysdig -c fileslower 10                 # show file I/O slower than 10 ms
    sysdig -c fileslower 0                  # show all file I/O
    sysdig -c fileslower "1 disable_colors" # show file I/O slower than 1 ms. w/ no colors
+   sysdig -pc -c fileslower 0              # show all file I/O and container output
 
 By default this skips file I/O to /dev. Modify the skip_dev variable in this
 chisel to change this behavior.
@@ -30,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Trace file I/O slower than a threshold, or all file I/O";
+description = "Trace file I/O slower than a threshold, or all file I/O. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)";
 short_description = "Trace slow file I/O";
 category = "Performance";
 
@@ -80,18 +81,42 @@ function on_init()
     latency = chisel.request_field("evt.latency")
     fcontainer = chisel.request_field("container.name")
 
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    print_container = sysdig.is_print_container_data()
+
     -- filter for file I/O
     chisel.set_filter("evt.is_io=true and fd.type=file")
 
-    print(string.format("%-23.23s %-12.12s %-20.20s %-8s %-12s %s", 
-                        "evt.datetime", "proc.name", "container.name", "evt.type", "LATENCY(ms)", "fd.name"))
-    print(string.format("%-23.23s %-12.12s %-20.20s %-8s %7s %s", 
-                        "-----------------------", 
-                        "------------", 
-                        "------------------------------", 
-                        "--------", 
-                        "------------", 
-                        "-----------------------------------------"))
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    if print_container then
+        print(string.format("%-23.23s %-12.12s %-20.20s %-8s %-12s %s", 
+                            "evt.datetime", 
+                            "proc.name", 
+                            "container.name", 
+                            "evt.type", 
+                            "LATENCY(ms)", 
+                            "fd.name"))
+        print(string.format("%-23.23s %-12.12s %-20.20s %-8s %-12s %s", 
+                            "-----------------------", 
+                            "------------", 
+                            "------------------------------", 
+                            "--------", 
+                            "------------", 
+                            "-----------------------------------------"))
+    else
+        print(string.format("%-23.23s %-12.12s %-8s %-12s %s", 
+                            "evt.datetime", 
+                            "proc.name", 
+                            "evt.type", 
+                            "LATENCY(ms)", 
+                            "fd.name"))
+        print(string.format("%-23.23s %-12.12s %-8s %-12s %s", 
+                            "-----------------------", 
+                            "------------", 
+                            "--------", 
+                            "------------", 
+                            "-----------------------------------------"))
+    end
 
     return true
 end
@@ -114,8 +139,23 @@ function on_event()
                  color = terminal.blue
              end
 
-             print(color .. string.format("%-23.23s %-12.12s %-20.20s %-8s %12d %s", 
-                                          evt.field(datetime), evt.field(pname), evt.field(fcontainer), evt.field(etype), lat, fn ))
+             -- The -pc or -pcontainer options was supplied on the cmd line
+             if print_container then
+                 print(color .. string.format("%-23.23s %-12.12s %-20.20s %-8s %12d %s", 
+                                              evt.field(datetime), 
+                                              evt.field(pname), 
+                                              evt.field(fcontainer), 
+                                              evt.field(etype), 
+                                              lat, 
+                                              fn ))
+             else 
+                 print(color .. string.format("%-23.23s %-12.12s %-8s %12d %s", 
+                                              evt.field(datetime), 
+                                              evt.field(pname), 
+                                              evt.field(etype), 
+                                              lat, 
+                                              fn ))
+             end 
          end
     end
 

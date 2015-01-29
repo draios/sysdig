@@ -6,6 +6,7 @@ USAGE: sysdig -c scallslower min_ms
 
    sysdig -c scallslower 1000               # show syscalls slower than 1000 ms.
    sysdig -c scallslower "1 disable_colors" # show syscalls slower than 1 ms. w/ no colors
+   sysdig -pc -c scallslower 1000           # show syscalls slower than 1000 ms and container output
 
 Copyright (C) 2013-2014 Draios inc.
  
@@ -24,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Trace syscalls slower than a threshold milliseconds";
+description = "Trace syscalls slower than a threshold milliseconds. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)";
 short_description = "Trace slow syscalls";
 category = "Performance";
 
@@ -72,14 +73,36 @@ function on_init()
     latency = chisel.request_field("evt.latency")
     fcontainer = chisel.request_field("container.name")
 
-    print(string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
-                        "evt.datatime", "container.name", "proc.name", "LATENCY(ms)", "evt.type"))
-    print(string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
-                        "-----------------------", 
-                        "--------------------", 
-                        "-----------------------", 
-                        "--------------------", 
-                        "--------------------"))
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    print_container = sysdig.is_print_container_data()
+
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    if print_container then
+        print(string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
+                            "evt.datatime", 
+                            "container.name", 
+                            "proc.name", 
+                            "LATENCY(ms)", 
+                            "evt.type"))
+        print(string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
+                            "-----------------------", 
+                            "--------------------", 
+                            "-----------------------", 
+                            "--------------------", 
+                            "--------------------"))
+    else
+        print(string.format("%-23.23s %-23.23s %-20s %s",
+                            "evt.datatime",
+                            "proc.name",
+                            "LATENCY(ms)",
+                            "evt.type"))
+        print(string.format("%-23.23s %-23.23s %-20s %s",
+                            "-----------------------",
+                            "-----------------------",
+                            "--------------------",
+                            "--------------------"))
+    end
+
     return true
 end
 
@@ -94,8 +117,22 @@ function on_event()
         if evt.field(fcontainer) ~= "host" then
             color = terminal.blue
         end
-    
-        print(color .. string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
-                                     evt.field(datetime), evt.field(fcontainer), evt.field(pname), lat, evt.field(etype)))
+
+        -- The -pc or -pcontainer options was supplied on the cmd line
+        if print_container then
+            print(color .. string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
+                                         evt.field(datetime), 
+                                         evt.field(fcontainer), 
+                                         evt.field(pname), 
+                                         lat, 
+                                         evt.field(etype)))
+        else
+            print(color .. string.format("%-23.23s %-23.23s %-20s %s",
+                                         evt.field(datetime),
+                                         evt.field(pname),
+                                         lat,
+                                         evt.field(etype)))
+        end
+
     end
 end
