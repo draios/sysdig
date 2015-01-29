@@ -1388,6 +1388,7 @@ public:
 	curses_table* m_view;
 };
 
+int pippo = 0;
 captureinfo do_systop_inspect(sinsp* inspector,
 					   uint64_t cnt,
 					   vector<table_info>* tables)
@@ -1395,6 +1396,7 @@ captureinfo do_systop_inspect(sinsp* inspector,
 	captureinfo retval;
 	int32_t res;
 	sinsp_evt* ev;
+	bool end_of_sample;
 
 	//
 	// Loop through the events
@@ -1441,7 +1443,18 @@ captureinfo do_systop_inspect(sinsp* inspector,
 				return retval;
 			}
 
-			it->m_data->process_event(ev);
+			end_of_sample = it->m_data->process_event(ev);
+
+			if(end_of_sample)
+			{
+				vector<vector<sinsp_table_field>>* sample = 
+					it->m_data->get_sample(0);
+
+					it->m_view->update_data(sample);
+					it->m_view->render(true);
+
+mvprintw(2, 10, ">>%d", (int)sample->size());
+			}
 		}
 	}
 
@@ -1487,6 +1500,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 	use_default_colors();
 	mousemask(BUTTON1_CLICKED, NULL);
 	noecho();
+	timeout(0);
 
 	//
 	// Parse the arguments
@@ -1656,51 +1670,49 @@ sysdig_init_res systop_init(int argc, char **argv)
 vector<curses_table_column_info> legend;
 filtercheck_field_info finfo;
 
-finfo.m_type = PT_UINT64;
-finfo.m_flags = EPF_NONE;
-finfo.m_print_format = PF_DEC;
-strcpy(finfo.m_description, "desc");
-
-strcpy(finfo.m_name, "num1");
-legend.push_back(curses_table_column_info(&finfo, -1));
-strcpy(finfo.m_name, "num2");
-legend.push_back(curses_table_column_info(&finfo, -1));
-strcpy(finfo.m_name, "num3");
-legend.push_back(curses_table_column_info(&finfo, -1));
-
 finfo.m_type = PT_CHARBUF;
 finfo.m_flags = EPF_NONE;
 finfo.m_print_format = PF_NA;
 strcpy(finfo.m_description, "desc");
 
-strcpy(finfo.m_name, "string1");
-legend.push_back(curses_table_column_info(&finfo, -1));
-strcpy(finfo.m_name, "string2");
+strcpy(finfo.m_name, "name");
 legend.push_back(curses_table_column_info(&finfo, -1));
 
+finfo.m_type = PT_UINT64;
+finfo.m_flags = EPF_NONE;
+finfo.m_print_format = PF_DEC;
+strcpy(finfo.m_description, "desc");
+
+strcpy(finfo.m_name, "buflen");
+legend.push_back(curses_table_column_info(&finfo, -1));
+strcpy(finfo.m_name, "num");
+legend.push_back(curses_table_column_info(&finfo, -1));
+
+/*
 uint64_t numbers[1024];
 char string[] = "abcderfg";	
 
-vector<vector<curses_table_entry>> data;
-vector<curses_table_entry> row;
+vector<vector<sinsp_table_field>> data;
+vector<sinsp_table_field> row;
 
 for(int32_t j = 0; j < 100; j++)
 {
 	row.clear();
 	numbers[j] = j;
 
-	row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
-	row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
-	row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
-	row.push_back(curses_table_entry((uint8_t*)string, 0));
-	row.push_back(curses_table_entry((uint8_t*)string, 0));
+	row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
+	row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
+	row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
+	row.push_back(sinsp_table_field((uint8_t*)string, 0));
+	row.push_back(sinsp_table_field((uint8_t*)string, 0));
 	data.push_back(row);
 }
-
+*/
 
 			curses_table* viz = new curses_table();
-			viz->load_data(&legend, &data);
-			viz->render(true);
+			viz->configure(&legend);
+//			viz->update_data(&data);
+//			viz->render(true);
 
 			tables.push_back(table_info(table, viz));
 
@@ -1757,8 +1769,6 @@ exit:
 
 
 
-
-
 /*
 	int32_t scrollpos = 0;
 
@@ -1803,19 +1813,19 @@ exit:
 	uint64_t numbers[1024];
 	char string[] = "abcderfg";	
 
-	vector<vector<curses_table_entry>> data;
-	vector<curses_table_entry> row;
+	vector<vector<sinsp_table_field>> data;
+	vector<sinsp_table_field> row;
 
 	for(int32_t j = 0; j < 100; j++)
 	{
 		row.clear();
 		numbers[j] = j;
 
-		row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
-		row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
-		row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
-		row.push_back(curses_table_entry((uint8_t*)string, 0));
-		row.push_back(curses_table_entry((uint8_t*)string, 0));
+		row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
+		row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
+		row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
+		row.push_back(sinsp_table_field((uint8_t*)string, 0));
+		row.push_back(sinsp_table_field((uint8_t*)string, 0));
 		data.push_back(row);
 	}
 

@@ -40,12 +40,14 @@ using namespace std;
 #ifdef SYSTOP
 
 #include <curses.h>
+#include "table.h"
 #include "cursestable.h"
 
 curses_table::curses_table()
 {
 	m_selct = 0;
 	m_firstrow = 0;
+	m_data = NULL;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -184,12 +186,10 @@ curses_table::~curses_table()
 	delete m_converter;
 }
 
-void curses_table::load_data(vector<curses_table_column_info>* legend,
-	vector<vector<curses_table_entry>>* data)
+void curses_table::configure(vector<curses_table_column_info>* legend)
 {
 	uint32_t j;
 
-	m_data = data;
 	m_legend = *legend;
 
 	for(j = 0; j < m_legend.size(); j++)
@@ -201,14 +201,21 @@ void curses_table::load_data(vector<curses_table_column_info>* legend,
 	}
 }
 
+void curses_table::update_data(vector<vector<sinsp_table_field>>* data)
+{
+	m_data = data;
+}
+
 void curses_table::render(bool data_changed)
 {
-	uint32_t j;
-	uint32_t k;
-	int32_t l;
+	uint32_t j, k;
+	int32_t l, m;
+	char bgch = ' ';
 
-mvprintw(5, 10, "!!%d:%d", (int)m_firstrow, (int)m_selct);
-refresh();
+	if(m_data == NULL)
+	{	
+		return;
+	}
 
 	if(m_data->size() != 0)
 	{
@@ -219,14 +226,26 @@ refresh();
 		}
 	}
 
+mvprintw(5, 10, "&&%d", (int)m_data->size());
+refresh();
 	if(data_changed)
 	{
+		if(m_selct < 0)
+		{
+			m_selct = 0;
+		}
+		else if(m_selct > (int32_t)m_data->size() - 1)
+		{
+			m_selct = (int32_t)m_data->size() - 1;
+		}
+
 		wattrset(m_win, m_colors[PANEL_HEADER_FOCUS]);
 
 		//
 		// Render the column headers
 		//
-		for(j = 0, k = 0; j < m_w; j++)
+		wmove(m_win, 0, 0);
+		for(j = 0; j < m_w; j++)
 		{
 			waddch(m_win, ' ');
 		}
@@ -240,11 +259,10 @@ refresh();
 		//
 		// Render the rows
 		//
-		vector<curses_table_entry>* row;
+		vector<sinsp_table_field>* row;
 
 		for(l = 0; l < (int32_t)MIN(m_data->size(), m_h - 1); l++)
 		{
-			char bgch = ' ';
 			row = &(m_data->at(l + m_firstrow));
 
 			if(l == m_selct - m_firstrow)
@@ -260,7 +278,7 @@ refresh();
 			// Render the rows
 			//
 			wmove(m_win, l + 1, 0);
-			for(j = 0, k = 0; j < m_w; j++)
+			for(j = 0; j < m_w; j++)
 			{
 				waddch(m_win, bgch);
 			}
@@ -270,6 +288,21 @@ refresh();
 				m_converter->set_val(m_legend[j].m_info.m_type, row->at(j).m_val, row->at(j).m_len);
 				mvwaddnstr(m_win, l + 1, k, m_converter->tostring(NULL), m_legend[j].m_size);
 				k += m_legend[j].m_size;
+			}
+		}
+
+		wattrset(m_win, m_colors[PROCESS]);
+
+		if(l < (int32_t)m_h - 1)
+		{
+			for(m = l; m < (int32_t)m_h - 1; m++)
+			{
+				wmove(m_win, m + 1, 0);
+
+				for(j = 0; j < m_w; j++)
+				{
+					waddch(m_win, ' ');
+				}
 			}
 		}
 	}

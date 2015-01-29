@@ -44,22 +44,6 @@ public:
 	friend class curses_table;
 };
 
-class curses_table_entry
-{
-public:
-	curses_table_entry(uint8_t* val, uint32_t len)
-	{
-		m_len = len;
-		m_val = val;
-	}
-
-private:
-	uint32_t m_len;
-	uint8_t* m_val;
-
-	friend class curses_table;	
-};
-
 class curses_table
 {
 public:
@@ -133,8 +117,8 @@ public:
 	curses_table();
 	~curses_table();
 
-	void load_data(vector<curses_table_column_info>* legend,
-		vector<vector<curses_table_entry>>* data);
+	void configure(vector<curses_table_column_info>* legend);
+	void update_data(vector<vector<sinsp_table_field>>* data);
 	void render(bool data_changed);
 	void scrollwin(uint32_t x, uint32_t y);
 	void set_selection(uint32_t num);
@@ -154,7 +138,7 @@ public:
 	uint32_t m_scrolloff_y;
 	uint32_t m_colsizes[PT_MAX];
 	vector<curses_table_column_info> m_legend;
-	vector<vector<curses_table_entry>>* m_data;
+	vector<vector<sinsp_table_field>>* m_data;
 	sinsp_filter_check_reference* m_converter;
 	int32_t m_selct;
 	int32_t m_firstrow;

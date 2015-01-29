@@ -16,6 +16,9 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <curses.h>
+
+
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
@@ -34,6 +37,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_refresh_interval = SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
 	m_next_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
+	m_buffer = &m_buffer1;
 }
 
 sinsp_table::~sinsp_table()
@@ -146,13 +150,16 @@ void sinsp_table::configure(const string& fmt)
 	m_vals_array_size = (m_n_fields - 1) * sizeof(sinsp_table_field);
 }
 
-void sinsp_table::process_event(sinsp_evt* evt)
+int puppo = 0;
+bool sinsp_table::process_event(sinsp_evt* evt)
 {
+	bool res = false;
 	uint32_t j;
 
 	if(evt == NULL || evt->get_ts() > m_next_flush_time_ns)
 	{
 		flush(evt);
+		res = true;
 	}
 
 	for(j = 0; j < m_n_fields; j++)
@@ -167,7 +174,7 @@ void sinsp_table::process_event(sinsp_evt* evt)
 		//
 		if(val == NULL)
 		{
-			return;
+			return res;
 		}
 
 		sinsp_table_field* pfld = &(m_field_pointers[j]);
@@ -186,13 +193,13 @@ void sinsp_table::process_event(sinsp_evt* evt)
 		//
 		// New entry
 		//
-		key.m_val = m_buffer.copy(key.m_val, key.m_len);
-		vals = (sinsp_table_field*)m_buffer.reserve(m_vals_array_size);
+		key.m_val = m_buffer->copy(key.m_val, key.m_len);
+		vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_size);
 
 		for(j = 1; j < m_n_fields; j++)
 		{
 			uint32_t vlen = get_field_len(j);
-			vals[j - 1].m_val = m_buffer.copy(m_field_pointers[j].m_val, vlen);
+			vals[j - 1].m_val = m_buffer->copy(m_field_pointers[j].m_val, vlen);
 			vals[j - 1].m_len = vlen;
 		}
 
@@ -210,6 +217,8 @@ void sinsp_table::process_event(sinsp_evt* evt)
 			add_fields(m_types[j], &(vals[j - 1]), &m_field_pointers[j]);
 		}
 	}
+
+	return res;
 }
 
 void sinsp_table::flush(sinsp_evt* evt)
@@ -232,12 +241,44 @@ void sinsp_table::flush(sinsp_evt* evt)
 
 //		printf("----------------------\n");
 
-		m_buffer.clear();
+		create_sample();
+mvprintw(4, 10, "!!%d", (int)m_sample_data.size());
+refresh();
+
+		switch_buffers();
+		m_buffer->clear();
 		m_table.clear();
 	}
 
 	uint64_t ts = evt->get_ts();
 	m_next_flush_time_ns = ts - (ts % m_refresh_interval) + m_refresh_interval;
+
+	return;
+}
+
+vector<vector<sinsp_table_field>>* sinsp_table::get_sample(uint32_t sorting_col)
+{
+	return &m_sample_data;
+}
+
+void sinsp_table::create_sample()
+{
+	uint32_t j;
+	m_sample_data.clear();
+	vector<sinsp_table_field> row;
+
+	for(auto it = m_table.begin(); it != m_table.end(); ++it)
+	{
+		row.clear();
+
+		sinsp_table_field* fields = it->second;
+		for(j = 0; j < m_n_fields - 1; j++)
+		{
+			row.push_back(fields[j]);
+		}
+
+		m_sample_data.push_back(row);
+	}
 }
 
 void sinsp_table::add_fields(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
@@ -325,5 +366,17 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 	default:
 		ASSERT(false);
 		return false;
+	}
+}
+
+void sinsp_table::switch_buffers()
+{
+	if(m_buffer == &m_buffer1)
+	{
+		m_buffer = &m_buffer2;
+	}
+	else
+	{
+		m_buffer = &m_buffer1;
 	}
 }

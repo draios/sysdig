@@ -142,14 +142,17 @@ class sinsp_table
 {
 public:
 	sinsp_table(sinsp* inspector);
-	void configure(const string& fmt);
-	void process_event(sinsp_evt* evt);
-	void flush(sinsp_evt* evt);
 	~sinsp_table();
+	void configure(const string& fmt);
+	bool process_event(sinsp_evt* evt);
+	void flush(sinsp_evt* evt);
+	vector<vector<sinsp_table_field>>* get_sample(uint32_t sorting_col);
 
 private:
 	inline void add_fields(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src);
 	inline uint32_t get_field_len(uint32_t id);
+	void create_sample();
+	void switch_buffers();
 
 	sinsp* m_inspector;
 	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_table;
@@ -160,9 +163,12 @@ private:
 	bool m_is_key_present;
 	sinsp_table_field* m_field_pointers;
 	uint32_t m_n_fields;
-	sinsp_table_buffer m_buffer;
+	sinsp_table_buffer* m_buffer;
+	sinsp_table_buffer m_buffer1;
+	sinsp_table_buffer m_buffer2;
 	uint32_t m_vals_array_size;
 	uint64_t m_refresh_interval;
 	uint64_t m_next_flush_time_ns;
 	sinsp_filter_check_reference* m_printer;
+	vector<vector<sinsp_table_field>> m_sample_data;
 };
