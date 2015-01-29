@@ -1,4 +1,10 @@
 --[[
+USAGE: sysdig -c proc_exec_time  
+   eg,
+
+   sysdig -c proc_exec_time                 # show processes that have finished 
+   sysdig -c proc_exec_time disable_colors" # show processes that have finished w/ no colors
+
 Copyright (C) 2014 Draios inc.
  
 This program is free software: you can redistribute it and/or modify
@@ -48,39 +54,62 @@ end
 
 -- Initialization callback
 function on_init()
-	-- Request the fields that we need
-	fetype = chisel.request_field("evt.type")
-	fexe = chisel.request_field("proc.name")
-	fargs = chisel.request_field("proc.args")
-	fdtime = chisel.request_field("evt.time.s")
-	fduration = chisel.request_field("proc.duration")
+    -- Request the fields that we need
+    fetype = chisel.request_field("evt.type")
+    fexe = chisel.request_field("proc.name")
+    fargs = chisel.request_field("proc.args")
+    fdtime = chisel.request_field("evt.time.s")
+    fduration = chisel.request_field("proc.duration")
+    fcontainer = chisel.request_field("container.name")
 
-	-- set the filter
-	chisel.set_filter("evt.type=procexit")
-	
-	return true
+    -- set the filter
+    chisel.set_filter("evt.type=procexit")
+
+    print(string.format("%-13.13s %-20.20s %-12.12s %s", 
+                        "proc.duration", "container.name", "proc.name", "proc.args"))
+    print(string.format("%-13.13s %-20.20s %-12.12s %s", 
+                        "-------------", 
+                        "--------------------", 
+                        "------------", 
+                        "--------------------"))
+    
+    return true
 end
 
 -- Event parsing callback
 function on_event()
-	local dtime = evt.field(fdtime)
-	local duration = evt.field(fduration)
-	
-	if duration ~= nil then
-		local color = terminal.green
-		
-		if duration > THRESHOLD_RED_NS then
-			color = terminal.red
-		elseif duration > THRESHOLD_YELLOW_NS then
-			color = terminal.yellow
-		end
-		
-		print(color .. format_time_interval(duration) .. ") " .. evt.field(fexe) .. " " .. evt.field(fargs))
-	end
-	
-	return true
+    local dtime = evt.field(fdtime)
+    local duration = evt.field(fduration)
+    
+    if duration ~= nil then
+        local color = terminal.green
+        
+        if duration > THRESHOLD_RED_NS then
+            color = terminal.red
+        elseif duration > THRESHOLD_YELLOW_NS then
+            color = terminal.yellow
+        elseif evt.field(fcontainer) ~= "host" then
+            -- if the data is assocaited with a container change the color to blue unless a threshold is met
+            color = terminal.blue
+        end
+
+        -- Appears to be a visually exceptable way to display the output
+        print(color .. string.format("%-13.13s %-20.20s %-12.12s %s", format_time_interval(duration), evt.field(fcontainer), evt.field(fexe), evt.field(fargs)))
+
+        -- All of these are viable ways to print output
+        --if evt.field(fcontainer) == "host" then    
+            --print(color .. string.format("%-10.10s %-20.20s %-12.12s %s", format_time_interval(duration), "", evt.field(fexe), evt.field(fargs)))
+            --print(color .. string.format("%-10.10s %-12.12s %s", format_time_interval(duration), evt.field(fexe), evt.field(fargs)))
+            --print(color .. format_time_interval(duration) .. ") " .. evt.field(fexe) .. " " .. evt.field(fargs))
+        --else
+            --print(color .. string.format("%-10.10s %-20.20s %-12.12s %s", format_time_interval(duration), evt.field(fcontainer), evt.field(fexe), evt.field(fargs)))
+            --print(color .. format_time_interval(duration) .. ") " .. evt.field(fcontainer) .. " " .. evt.field(fexe) .. " " .. evt.field(fargs))
+        --end
+    end
+    
+    return true
 end
 
 function on_capture_end()
-	print(terminal.reset)
+    print(terminal.reset)
 end
