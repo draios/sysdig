@@ -186,18 +186,39 @@ curses_table::~curses_table()
 	delete m_converter;
 }
 
-void curses_table::configure(vector<curses_table_column_info>* legend)
+void curses_table::configure(vector<filtercheck_field_info>* legend, vector<int32_t>* colsizes)
 {
 	uint32_t j;
 
-	m_legend = *legend;
-
-	for(j = 0; j < m_legend.size(); j++)
+	if(colsizes)
 	{
-		if(m_legend[j].m_size == -1)
+		if(colsizes->size() != legend->size())
 		{
-			m_legend[j].m_size = m_colsizes[m_legend[j].m_info.m_type];
+			throw sinsp_exception("invalid table legend: column size doesn't match");
 		}
+	}
+
+	for(j = 1; j < legend->size(); j++)
+	{
+		curses_table_column_info ci;
+		ci.m_info = legend->at(j);
+
+		if(colsizes == NULL || colsizes->at(j) == -1)
+		{
+			ci.m_size = m_colsizes[legend->at(j).m_type];
+		}
+		else
+		{
+			ci.m_size = colsizes->at(j);		
+		}
+
+		int32_t namelen = strlen(ci.m_info.m_name);
+		if(ci.m_size < namelen + 1)
+		{
+			ci.m_size = namelen + 1;
+		}
+
+		m_legend.push_back(ci);
 	}
 }
 
@@ -213,7 +234,7 @@ void curses_table::render(bool data_changed)
 	char bgch = ' ';
 
 	if(m_data == NULL)
-	{	
+	{
 		return;
 	}
 

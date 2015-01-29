@@ -28,6 +28,10 @@ class sinsp_filter_check_reference;
 class curses_table_column_info
 {
 public:	
+	curses_table_column_info()
+	{
+	}
+
 	//
 	// Use -1 as size for atuosize
 	//
@@ -117,7 +121,7 @@ public:
 	curses_table();
 	~curses_table();
 
-	void configure(vector<curses_table_column_info>* legend);
+	void configure(vector<filtercheck_field_info>* legend, vector<int32_t>* colsizes);
 	void update_data(vector<vector<sinsp_table_field>>* data);
 	void render(bool data_changed);
 	void scrollwin(uint32_t x, uint32_t y);

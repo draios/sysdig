@@ -147,6 +147,10 @@ public:
 	bool process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	vector<vector<sinsp_table_field>>* get_sample(uint32_t sorting_col);
+	vector<filtercheck_field_info>* get_legend()
+	{
+		return &m_legend;
+	}
 
 private:
 	inline void add_fields(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src);

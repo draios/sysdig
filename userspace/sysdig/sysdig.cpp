@@ -1664,55 +1664,10 @@ sysdig_init_res systop_init(int argc, char **argv)
 			}
 
 			sinsp_table* table = new sinsp_table(inspector);
-			table->configure("*proc.pid proc.name evt.buflen evt.num");
-
-
-vector<curses_table_column_info> legend;
-filtercheck_field_info finfo;
-
-finfo.m_type = PT_CHARBUF;
-finfo.m_flags = EPF_NONE;
-finfo.m_print_format = PF_NA;
-strcpy(finfo.m_description, "desc");
-
-strcpy(finfo.m_name, "name");
-legend.push_back(curses_table_column_info(&finfo, -1));
-
-finfo.m_type = PT_UINT64;
-finfo.m_flags = EPF_NONE;
-finfo.m_print_format = PF_DEC;
-strcpy(finfo.m_description, "desc");
-
-strcpy(finfo.m_name, "buflen");
-legend.push_back(curses_table_column_info(&finfo, -1));
-strcpy(finfo.m_name, "num");
-legend.push_back(curses_table_column_info(&finfo, -1));
-
-/*
-uint64_t numbers[1024];
-char string[] = "abcderfg";	
-
-vector<vector<sinsp_table_field>> data;
-vector<sinsp_table_field> row;
-
-for(int32_t j = 0; j < 100; j++)
-{
-	row.clear();
-	numbers[j] = j;
-
-	row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
-	row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
-	row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
-	row.push_back(sinsp_table_field((uint8_t*)string, 0));
-	row.push_back(sinsp_table_field((uint8_t*)string, 0));
-	data.push_back(row);
-}
-*/
+			table->configure("*proc.pid proc.pid proc.name evt.buflen evt.num");
 
 			curses_table* viz = new curses_table();
-			viz->configure(&legend);
-//			viz->update_data(&data);
-//			viz->render(true);
+			viz->configure(table->get_legend(), NULL);
 
 			tables.push_back(table_info(table, viz));
 

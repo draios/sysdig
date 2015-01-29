@@ -145,6 +145,7 @@ void sinsp_table::configure(const string& fmt)
 	for(auto it = m_extractors.begin(); it != m_extractors.end(); ++it)
 	{
 		m_types.push_back((*it)->get_field_info()->m_type);
+		m_legend.push_back(*(*it)->get_field_info());
 	}
 
 	m_vals_array_size = (m_n_fields - 1) * sizeof(sinsp_table_field);
