@@ -368,4 +368,50 @@ void curses_table::selection_pagedown()
 	render(true);
 }
 
+//
+// Return false if the user wants us to exit
+//
+bool curses_table::handle_input(int ch)
+{
+	switch(ch)
+	{
+		case 'q':
+			return false;
+/*
+		case 'a':
+			numbers[0]++;
+			render(true);
+			break;
+		case KEY_LEFT:
+			if(scrollpos > 0)
+			{
+				scrollpos--;
+				scrollwin(scrollpos, 10);
+			}
+			break;
+		case KEY_RIGHT:
+			if(scrollpos < TABLE_WIDTH - (int32_t)m_screenw)
+			{
+				scrollpos++;
+				scrollwin(scrollpos, 10);
+			}
+			break;
+*/			
+		case KEY_UP:
+			selection_up();
+			break;
+		case KEY_DOWN:
+			selection_down();
+			break;
+		case KEY_PPAGE:
+			selection_pageup();
+			break;
+		case KEY_NPAGE:
+			selection_pagedown();
+			break;
+	}
+
+	return true;
+}
+
 #endif // SYSTOP

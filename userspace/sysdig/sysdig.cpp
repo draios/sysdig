@@ -1375,8 +1375,391 @@ exit:
 }
 
 #ifdef SYSTOP
+class table_info
+{
+public:
+	table_info(sinsp_table* data, curses_table* view)
+	{
+		m_data = data;
+		m_view = view;
+	}
+
+	sinsp_table* m_data;
+	curses_table* m_view;
+};
+
+captureinfo do_systop_inspect(sinsp* inspector,
+					   uint64_t cnt,
+					   vector<table_info>* tables)
+{
+	captureinfo retval;
+	int32_t res;
+	sinsp_evt* ev;
+
+	//
+	// Loop through the events
+	//
+	while(1)
+	{
+		if(retval.m_nevts == cnt || g_terminate)
+		{
+			//
+			// End of capture, either because the user stopped it, or because
+			// we reached the event count specified with -n.
+			//
+			break;
+		}
+
+		res = inspector->next(&ev);
+
+		if(res == SCAP_TIMEOUT)
+		{
+			continue;
+		}
+		else if(res == SCAP_EOF)
+		{
+			break;
+		}
+		else if(res != SCAP_SUCCESS)
+		{
+			//
+			// Event read error.
+			// Notify the chisels that we're exiting, and then die with an error.
+			//
+			cerr << "res = " << res << endl;
+			throw sinsp_exception(inspector->getlasterr().c_str());
+		}
+
+		retval.m_nevts++;
+
+		int input = getch();
+
+		for(auto it = tables->begin(); it != tables->end(); ++it)
+		{
+			if(it->m_view->handle_input(input) == false)
+			{
+				return retval;
+			}
+
+			it->m_data->process_event(ev);
+		}
+	}
+
+	return retval;
+}
+
 sysdig_init_res systop_init(int argc, char **argv)
 {
+	sysdig_init_res res;
+	sinsp* inspector = NULL;
+	vector<string> infiles;
+	int op;
+	uint64_t cnt = -1;
+	uint32_t snaplen = 0;
+	int long_index = 0;
+	int32_t n_filterargs = 0;
+	captureinfo cinfo;
+	vector<table_info> tables;
+
+	static struct option long_options[] =
+	{
+		{"exclude-users", no_argument, 0, 'E' },
+		{"help", no_argument, 0, 'h' },
+		{"numevents", required_argument, 0, 'n' },
+		{"readfile", required_argument, 0, 'r' },
+		{"snaplen", required_argument, 0, 's' },
+		{"version", no_argument, 0, 0 },
+		{0, 0, 0, 0}
+	};
+
+	//
+	// Initialize ncurses
+	//
+	(void) initscr();      // initialize the curses library
+	keypad(stdscr, TRUE);  // enable keyboard mapping
+	(void) nonl();         // tell curses not to do NL->CR/NL on output
+	intrflush(stdscr, false);
+	keypad(stdscr, true);
+	curs_set(0);
+	if (has_colors()) {
+	  start_color();
+	}
+	use_default_colors();
+	mousemask(BUTTON1_CLICKED, NULL);
+	noecho();
+
+	//
+	// Parse the arguments
+	//
+	try
+	{
+		inspector = new sinsp();
+
+#ifdef HAS_CHISELS
+		add_chisel_dirs(inspector);
+#endif
+
+		//
+		// Parse the args
+		//
+		while((op = getopt_long(argc, argv,
+                                        "Ehn:r:s:", long_options, &long_index)) != -1)
+		{
+			switch(op)
+			{
+			case 'E':
+				inspector->set_import_users(false);
+				break;
+			case 'h':
+				usage();
+				delete inspector;
+				return sysdig_init_res(EXIT_SUCCESS);
+			case 'n':
+				cnt = atoi(optarg);
+				if(cnt <= 0)
+				{
+					throw sinsp_exception(string("invalid event count ") + optarg);
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
+			case 'r':
+				infiles.push_back(optarg);
+				break;
+			case 's':
+				snaplen = atoi(optarg);
+				break;
+			default:
+				break;
+			}
+
+			if(string(long_options[long_index].name) == "version")
+			{
+				printf("sysdig version %s\n", SYSDIG_VERSION);
+				delete inspector;
+				return sysdig_init_res(EXIT_SUCCESS);
+			}
+		}
+
+		string filter;
+
+		//
+		// the filter is at the end of the command line
+		//
+		if(optind + n_filterargs < argc)
+		{
+#ifdef HAS_FILTERING
+			for(int32_t j = optind + n_filterargs; j < argc; j++)
+			{
+				filter += argv[j];
+				if(j < argc)
+				{
+					filter += " ";
+				}
+			}
+#else
+			fprintf(stderr, "filtering not compiled.\n");
+			res.m_res = EXIT_FAILURE;
+			goto exit;
+#endif
+		}
+
+		if(signal(SIGINT, signal_callback) == SIG_ERR)
+		{
+			fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
+			res.m_res = EXIT_FAILURE;
+			goto exit;
+		}
+
+		if(signal(SIGTERM, signal_callback) == SIG_ERR)
+		{
+			fprintf(stderr, "An error occurred while setting SIGTERM signal handler.\n");
+			res.m_res = EXIT_FAILURE;
+			goto exit;
+		}
+
+
+		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
+		{
+#ifdef HAS_FILTERING
+			if(filter.size())
+			{
+				inspector->set_filter(filter);
+			}
+#endif
+
+			//
+			// Launch the capture
+			//
+			bool open_success = true;
+
+			if(infiles.size() != 0)
+			{
+				//
+				// We have a file to open
+				//
+				inspector->open(infiles[j]);
+			}
+			else
+			{
+				if(j > 0)
+				{
+					break;
+				}
+
+				//
+				// No file to open, this is a live capture
+				//
+#if defined(HAS_CAPTURE)
+				try
+				{
+					inspector->open("");
+				}
+				catch(sinsp_exception e)
+				{
+					open_success = false;
+				}
+#else
+				//
+				// Starting live capture
+				// If this fails on Windows and OSX, don't try with any driver
+				//
+				inspector->open("");
+#endif
+
+				//
+				// Starting the live capture failed, try to load the driver with
+				// modprobe.
+				//
+				if(!open_success)
+				{
+					open_success = true;
+
+					if(system("modprobe sysdig-probe > /dev/null 2> /dev/null"))
+					{
+						fprintf(stderr, "Unable to load the driver\n");						
+					}
+
+					inspector->open("");
+				}
+			}
+
+			if(snaplen != 0)
+			{
+				inspector->set_snaplen(snaplen);
+			}
+
+			sinsp_table* table = new sinsp_table(inspector);
+			table->configure("*proc.pid proc.name evt.buflen evt.num");
+
+
+vector<curses_table_column_info> legend;
+filtercheck_field_info finfo;
+
+finfo.m_type = PT_UINT64;
+finfo.m_flags = EPF_NONE;
+finfo.m_print_format = PF_DEC;
+strcpy(finfo.m_description, "desc");
+
+strcpy(finfo.m_name, "num1");
+legend.push_back(curses_table_column_info(&finfo, -1));
+strcpy(finfo.m_name, "num2");
+legend.push_back(curses_table_column_info(&finfo, -1));
+strcpy(finfo.m_name, "num3");
+legend.push_back(curses_table_column_info(&finfo, -1));
+
+finfo.m_type = PT_CHARBUF;
+finfo.m_flags = EPF_NONE;
+finfo.m_print_format = PF_NA;
+strcpy(finfo.m_description, "desc");
+
+strcpy(finfo.m_name, "string1");
+legend.push_back(curses_table_column_info(&finfo, -1));
+strcpy(finfo.m_name, "string2");
+legend.push_back(curses_table_column_info(&finfo, -1));
+
+uint64_t numbers[1024];
+char string[] = "abcderfg";	
+
+vector<vector<curses_table_entry>> data;
+vector<curses_table_entry> row;
+
+for(int32_t j = 0; j < 100; j++)
+{
+	row.clear();
+	numbers[j] = j;
+
+	row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
+	row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
+	row.push_back(curses_table_entry((uint8_t*)&(numbers[j]), 0));
+	row.push_back(curses_table_entry((uint8_t*)string, 0));
+	row.push_back(curses_table_entry((uint8_t*)string, 0));
+	data.push_back(row);
+}
+
+
+			curses_table* viz = new curses_table();
+			viz->load_data(&legend, &data);
+			viz->render(true);
+
+			tables.push_back(table_info(table, viz));
+
+			cinfo = do_systop_inspect(inspector,
+				cnt,
+				&tables);
+
+			//
+			// Done. Close the capture.
+			//
+			inspector->close();
+
+		}
+	}
+	catch(sinsp_capture_interrupt_exception&)
+	{
+	}
+	catch(sinsp_exception& e)
+	{
+		cerr << e.what() << endl;
+		res.m_res = EXIT_FAILURE;
+	}
+	catch(...)
+	{
+		res.m_res = EXIT_FAILURE;
+	}
+
+exit:
+	//
+	// Free all the stuff that was allocated
+	//
+	for(auto it = tables.begin(); it != tables.end(); ++it)
+	{
+		delete it->m_data;
+		delete it->m_view;
+	}
+
+	if(inspector)
+	{
+		delete inspector;
+	}
+
+	//
+	// Restore the original screen
+	//
+	endwin();
+
+	return res;
+
+
+
+
+
+
+
+
+
+
+/*
 	int32_t scrollpos = 0;
 
 	(void) initscr();      // initialize the curses library
@@ -1489,6 +1872,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 	endwin();
 	return sysdig_init_res(EXIT_SUCCESS);
+*/	
 }
 #endif
 

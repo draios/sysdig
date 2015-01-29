@@ -88,8 +88,6 @@ void sinsp_table::configure(const string& fmt)
 			preamble_len = 1;
 		}
 
-		int toklen = 0;
-
 		if(j == lfmtlen - 1)
 		{
 			throw sinsp_exception("invalid table configuration");
@@ -221,18 +219,18 @@ void sinsp_table::flush(sinsp_evt* evt)
 		for(auto it = m_table.begin(); it != m_table.end(); ++it)
 		{
 			m_printer->set_val(m_types[0], it->first.m_val, it->first.m_len);
-			printf("%s", m_printer->tostring(NULL));
+//			printf("%s", m_printer->tostring(NULL));
 
 			for(uint32_t j = 1; j < m_n_fields; j++)
 			{
 				m_printer->set_val(m_types[j], it->second[j - 1].m_val, it->second[j - 1].m_len);
-				printf(" %s", m_printer->tostring(NULL));
+//				printf(" %s", m_printer->tostring(NULL));
 			}
 
-			printf("\n");
+//			printf("\n");
 		}
 
-		printf("----------------------\n");
+//		printf("----------------------\n");
 
 		m_buffer.clear();
 		m_table.clear();

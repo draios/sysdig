@@ -142,6 +142,7 @@ public:
 	void selection_down();
 	void selection_pageup();
 	void selection_pagedown();
+	bool handle_input(int ch);
 
 	int m_colors[LAST_COLORELEMENT];
 	WINDOW* m_win;

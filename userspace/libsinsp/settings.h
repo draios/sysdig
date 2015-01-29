@@ -94,7 +94,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // Is systop functionality included?
 //
 #ifndef _WIN32
-#undef SYSTOP
+#define SYSTOP
 #endif
 
 //
