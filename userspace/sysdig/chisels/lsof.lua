@@ -31,15 +31,6 @@ args =
 	}
 }
 
-function on_set_arg(name, val)
-	if name == "filter" then
-		filter = val
-		return true
-	end
-
-	return false
-end
-
 -- Imports and globals
 require "common"
 local dctable = {}
@@ -76,30 +67,34 @@ function on_capture_end()
 	if not capturing then
 		return
 	end
-	
+
 	local ttable = sysdig.get_thread_table(filter)
 
 	local sorted_ttable = pairs_top_by_val(ttable, 0, function(t,a,b) return a < b end)
-	
+
 	print(extend_string("COMMAND", 20) ..
 		extend_string("PID", 8) ..
-		extend_string("TID", 8) ..
 		extend_string("USER", 8) ..
 		extend_string("FD", 8) ..
 		extend_string("TYPE", 12) ..
 		"NAME")
 
-	for tid, proc in sorted_ttable do
+	ptable = {}
+
+	for _, proc in sorted_ttable do
 		local fdtable = proc.fdtable
 
-		for fd, fdinfo in pairs(fdtable) do
-			print(extend_string(proc.comm, 20) ..
-				extend_string(tostring(proc.pid), 8) ..
-				extend_string(tostring(tid), 8) ..
-				extend_string(proc.username, 8) ..
-				extend_string(tostring(fd), 8) ..
-				extend_string(tostring(fdinfo.type), 12) ..
-				tostring(fdinfo.name))
+		if ptable[proc.pid] ~= true then
+			ptable[proc.pid] = true
+
+			for fd, fdinfo in pairs(fdtable) do
+				print(extend_string(proc.comm, 20) ..
+					extend_string(tostring(proc.pid), 8) ..
+					extend_string(proc.username, 8) ..
+					extend_string(tostring(fd), 8) ..
+					extend_string(tostring(fdinfo.type), 12) ..
+					tostring(fdinfo.name))
+			end
 		end
 	end
 end
