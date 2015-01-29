@@ -279,6 +279,7 @@ sinsp_filter_check::sinsp_filter_check() :
 	m_info.m_fields = NULL;
 	m_info.m_nfiedls = -1;
 	m_val_storage_len = 0;
+	m_aggregation = sinsp_filter_check::A_NONE;
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)

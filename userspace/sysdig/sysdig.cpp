@@ -1388,7 +1388,6 @@ public:
 	curses_table* m_view;
 };
 
-int pippo = 0;
 captureinfo do_systop_inspect(sinsp* inspector,
 					   uint64_t cnt,
 					   vector<table_info>* tables)
@@ -1473,6 +1472,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 	int32_t n_filterargs = 0;
 	captureinfo cinfo;
 	vector<table_info> tables;
+	string errorstr;
 
 	static struct option long_options[] =
 	{
@@ -1664,7 +1664,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 			}
 
 			sinsp_table* table = new sinsp_table(inspector);
-			table->configure("*proc.pid proc.pid proc.name evt.buflen evt.num");
+			table->configure("*proc.pid proc.pid proc.name Sevt.buflen evt.num");
 
 			curses_table* viz = new curses_table();
 			viz->configure(table->get_legend(), NULL);
@@ -1687,11 +1687,12 @@ sysdig_init_res systop_init(int argc, char **argv)
 	}
 	catch(sinsp_exception& e)
 	{
-		cerr << e.what() << endl;
+		errorstr = e.what();
 		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
+		errorstr = "uncatched exception";
 		res.m_res = EXIT_FAILURE;
 	}
 
@@ -1715,129 +1716,12 @@ exit:
 	//
 	endwin();
 
+	if(errorstr != "")
+	{
+		cerr << errorstr << endl;
+	}
+
 	return res;
-
-
-
-
-
-
-
-
-/*
-	int32_t scrollpos = 0;
-
-	(void) initscr();      // initialize the curses library
-	keypad(stdscr, TRUE);  // enable keyboard mapping
-	(void) nonl();         // tell curses not to do NL->CR/NL on output
-	intrflush(stdscr, false);
-	keypad(stdscr, true);
-	curs_set(0);
-	if (has_colors()) {
-	  start_color();
-	}
-	use_default_colors();
-	mousemask(BUTTON1_CLICKED, NULL);
-	noecho();
-
-	vector<curses_table_column_info> legend;
-	filtercheck_field_info finfo;
-
-	finfo.m_type = PT_UINT64;
-	finfo.m_flags = EPF_NONE;
-	finfo.m_print_format = PF_DEC;
-	strcpy(finfo.m_description, "desc");
-
-	strcpy(finfo.m_name, "num1");
-	legend.push_back(curses_table_column_info(&finfo, -1));
-	strcpy(finfo.m_name, "num2");
-	legend.push_back(curses_table_column_info(&finfo, -1));
-	strcpy(finfo.m_name, "num3");
-	legend.push_back(curses_table_column_info(&finfo, -1));
-
-	finfo.m_type = PT_CHARBUF;
-	finfo.m_flags = EPF_NONE;
-	finfo.m_print_format = PF_NA;
-	strcpy(finfo.m_description, "desc");
-
-	strcpy(finfo.m_name, "string1");
-	legend.push_back(curses_table_column_info(&finfo, -1));
-	strcpy(finfo.m_name, "string2");
-	legend.push_back(curses_table_column_info(&finfo, -1));
-
-	uint64_t numbers[1024];
-	char string[] = "abcderfg";	
-
-	vector<vector<sinsp_table_field>> data;
-	vector<sinsp_table_field> row;
-
-	for(int32_t j = 0; j < 100; j++)
-	{
-		row.clear();
-		numbers[j] = j;
-
-		row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
-		row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
-		row.push_back(sinsp_table_field((uint8_t*)&(numbers[j]), 0));
-		row.push_back(sinsp_table_field((uint8_t*)string, 0));
-		row.push_back(sinsp_table_field((uint8_t*)string, 0));
-		data.push_back(row);
-	}
-
-	curses_table cutable;
-	cutable.load_data(&legend, &data);
-	cutable.render(true);
-
-	bool exit = false;
-
-	while(true)
-	{
-		switch(getch())
-		{
-			case 'q':
-				exit = true;
-				break;
-			case 'a':
-				numbers[0]++;
-				cutable.render(true);
-				break;
-			case KEY_LEFT:
-				if(scrollpos > 0)
-				{
-					scrollpos--;
-					cutable.scrollwin(scrollpos, 10);
-				}
-				break;
-			case KEY_RIGHT:
-				if(scrollpos < TABLE_WIDTH - (int32_t)cutable.m_screenw)
-				{
-					scrollpos++;
-					cutable.scrollwin(scrollpos, 10);
-				}
-				break;
-			case KEY_UP:
-				cutable.selection_up();
-				break;
-			case KEY_DOWN:
-				cutable.selection_down();
-				break;
-			case KEY_PPAGE:
-				cutable.selection_pageup();
-				break;
-			case KEY_NPAGE:
-				cutable.selection_pagedown();
-				break;
-		}
-
-		if(exit)
-		{
-			break;
-		}
-	}
-
-	endwin();
-	return sysdig_init_res(EXIT_SUCCESS);
-*/	
 }
 #endif
 

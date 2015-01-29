@@ -140,7 +140,7 @@ public:
 
 class sinsp_table
 {
-public:
+public:	
 	sinsp_table(sinsp* inspector);
 	~sinsp_table();
 	void configure(const string& fmt);
@@ -153,7 +153,8 @@ public:
 	}
 
 private:
-	inline void add_fields(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src);
+	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
+	inline void add_fields(uint32_t dst_id, sinsp_table_field* src);
 	inline uint32_t get_field_len(uint32_t id);
 	void create_sample();
 	void switch_buffers();
@@ -175,4 +176,5 @@ private:
 	uint64_t m_next_flush_time_ns;
 	sinsp_filter_check_reference* m_printer;
 	vector<vector<sinsp_table_field>> m_sample_data;
+	sinsp_table_field* m_vals;
 };

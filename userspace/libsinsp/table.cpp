@@ -79,17 +79,30 @@ void sinsp_table::configure(const string& fmt)
 	{
 		uint32_t preamble_len = 0;
 		bool is_this_the_key = false;
+		sinsp_filter_check::aggregation ag = sinsp_filter_check::A_NONE;
 
-		if(cfmt[j] == '*')
+		switch(cfmt[j])
 		{
-			if(m_is_key_present)
-			{
-				throw sinsp_exception("invalid table configuration");
-			}
+			case '*':
+				if(m_is_key_present)
+				{
+					throw sinsp_exception("invalid table configuration");
+				}
 
-			m_is_key_present = true;
-			is_this_the_key = true;
-			preamble_len = 1;
+				m_is_key_present = true;
+				is_this_the_key = true;
+				preamble_len = 1;
+				break;
+			case 'S':
+				ag = sinsp_filter_check::A_SUM;
+				preamble_len = 1;
+				break;
+			case 'T':
+				ag = sinsp_filter_check::A_TIME_AVG;
+				preamble_len = 1;
+				break;
+			default:
+				break;
 		}
 
 		if(j == lfmtlen - 1)
@@ -106,6 +119,7 @@ void sinsp_table::configure(const string& fmt)
 			throw sinsp_exception("invalid table token " + string(cfmt + j + preamble_len));
 		}
 
+		chk->m_aggregation = ag;
 		m_chks_to_free.push_back(chk);
 
 		j += chk->parse_field_name(cfmt + j + preamble_len) + preamble_len;
@@ -187,35 +201,33 @@ bool sinsp_table::process_event(sinsp_evt* evt)
 	sinsp_table_field key(m_field_pointers[0].m_val, m_field_pointers[0].m_len);
 	auto it = m_table.find(key);
 
-	sinsp_table_field* vals;
-
 	if(it == m_table.end())
 	{
 		//
 		// New entry
 		//
 		key.m_val = m_buffer->copy(key.m_val, key.m_len);
-		vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_size);
+		m_vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_size);
 
 		for(j = 1; j < m_n_fields; j++)
 		{
 			uint32_t vlen = get_field_len(j);
-			vals[j - 1].m_val = m_buffer->copy(m_field_pointers[j].m_val, vlen);
-			vals[j - 1].m_len = vlen;
+			m_vals[j - 1].m_val = m_buffer->copy(m_field_pointers[j].m_val, vlen);
+			m_vals[j - 1].m_len = vlen;
 		}
 
-		m_table[key] = vals;
+		m_table[key] = m_vals;
 	}
 	else
 	{
 		//
 		// Existing entry
 		//
-		vals = it->second;
+		m_vals = it->second;
 
 		for(j = 1; j < m_n_fields; j++)
 		{
-			add_fields(m_types[j], &(vals[j - 1]), &m_field_pointers[j]);
+			add_fields(j, &m_field_pointers[j]);
 		}
 	}
 
@@ -282,7 +294,7 @@ void sinsp_table::create_sample()
 	}
 }
 
-void sinsp_table::add_fields(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
+void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
 {
 	uint8_t* operand1 = dst->m_val;
 	uint8_t* operand2 = src->m_val;
@@ -316,6 +328,24 @@ void sinsp_table::add_fields(ppm_param_type type, sinsp_table_field *dst, sinsp_
 		*(uint64_t*)operand1 += *(uint64_t*)operand2;
 		return;
 	default:
+		return;
+	}
+}
+
+void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src)
+{
+	ppm_param_type type = m_types[dst_id];
+	sinsp_table_field* dst = &(m_vals[dst_id - 1]);
+
+	switch(m_extractors[dst_id]->m_aggregation)
+	{
+	case sinsp_filter_check::A_NONE:
+		return;
+	case sinsp_filter_check::A_SUM:
+		add_fields_sum(type, dst, src);		
+		return;
+	default:
+		ASSERT(false);
 		return;
 	}
 }
