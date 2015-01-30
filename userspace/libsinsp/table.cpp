@@ -491,3 +491,8 @@ void sinsp_table::switch_buffers()
 		m_buffer = &m_buffer1;
 	}
 }
+
+uint32_t sinsp_table::get_row_key(uint32_t rownum)
+{
+	return 0;
+}

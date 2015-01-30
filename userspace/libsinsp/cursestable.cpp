@@ -437,7 +437,7 @@ void curses_table::selection_pagedown()
 	m_selct += (m_h - 1);
 	if(m_selct > (int32_t)m_data->size() - 1)
 	{
-		m_selct = m_data->size() - 1;			
+		m_selct = m_data->size() - 1;
 	}
 
 	render(true);
@@ -497,8 +497,6 @@ bool curses_table::handle_input(int ch)
 
 						if((uint32_t)event.y == m_table_y_start)
 						{
-mvprintw(5, 10, "M%d:%d", (int)event.x, event.y);
-refresh();
 							for(j = 0; j < m_column_startx.size() - 1; j++)
 							{
 								if((uint32_t)event.x >= m_column_startx[j] && (uint32_t)event.x < m_column_startx[j + 1])
@@ -513,6 +511,12 @@ refresh();
 								m_table->set_sorting_col(j + 1);
 							}
 
+							render(true);
+						}
+						else if((uint32_t)event.y > m_table_y_start &&
+							(uint32_t)event.y < m_table_y_start + m_h - 1)
+						{
+							m_selct = event.y - m_table_y_start - 1;
 							render(true);
 						}
 					}

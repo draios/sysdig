@@ -156,6 +156,7 @@ public:
 	{
 		return m_sorting_col;
 	}
+	uint32_t get_row_key(uint32_t rownum);
 
 private:
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
