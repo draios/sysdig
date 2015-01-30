@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <curses.h>
-
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -38,6 +38,8 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_next_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
+	m_is_sorting_ascending = false;
+	m_sorting_col = 0;
 }
 
 sinsp_table::~sinsp_table()
@@ -165,7 +167,6 @@ void sinsp_table::configure(const string& fmt)
 	m_vals_array_size = (m_n_fields - 1) * sizeof(sinsp_table_field);
 }
 
-int puppo = 0;
 bool sinsp_table::process_event(sinsp_evt* evt)
 {
 	bool res = false;
@@ -255,8 +256,6 @@ void sinsp_table::flush(sinsp_evt* evt)
 //		printf("----------------------\n");
 
 		create_sample();
-mvprintw(4, 10, "!!%d", (int)m_sample_data.size());
-refresh();
 
 		switch_buffers();
 		m_buffer->clear();
@@ -269,9 +268,63 @@ refresh();
 	return;
 }
 
-vector<vector<sinsp_table_field>>* sinsp_table::get_sample(uint32_t sorting_col)
+typedef struct table_row_cmp
 {
+	bool operator()(const vector<sinsp_table_field>& src, const vector<sinsp_table_field>& dst)
+	{
+		ppm_cmp_operator op;
+
+		if(m_ascending)
+		{
+			op = CO_LT;
+		}
+		else
+		{
+			op = CO_GT;
+		}
+
+		return flt_compare(op, m_type, 
+			src[m_colid].m_val, 
+			dst[m_colid].m_val, 
+			src[m_colid].m_len, 
+			dst[m_colid].m_len);
+	}
+
+	uint32_t m_colid;
+	ppm_param_type m_type;
+	bool m_ascending;
+}table_row_cmp;
+
+vector<vector<sinsp_table_field>>* sinsp_table::get_sample()
+{
+	table_row_cmp cc;
+	cc.m_colid = m_sorting_col;
+
+	cc.m_ascending = m_is_sorting_ascending;
+	cc.m_type = m_types[m_sorting_col];
+
+mvprintw(4, 10, "s%d:%d", (int)m_sorting_col, (int)m_is_sorting_ascending);
+refresh();
+
+	sort(m_sample_data.begin(),
+		m_sample_data.end(),
+		cc);
+
 	return &m_sample_data;
+}
+
+void sinsp_table::set_sorting_col(uint32_t col)
+{
+	if(col == m_sorting_col)
+	{
+		m_is_sorting_ascending = !m_is_sorting_ascending;
+	}
+	else
+	{
+		m_is_sorting_ascending = false;
+	}
+
+	m_sorting_col = col;
 }
 
 void sinsp_table::create_sample()

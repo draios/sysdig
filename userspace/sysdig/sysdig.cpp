@@ -1447,7 +1447,7 @@ captureinfo do_systop_inspect(sinsp* inspector,
 			if(end_of_sample)
 			{
 				vector<vector<sinsp_table_field>>* sample = 
-					it->m_data->get_sample(0);
+					it->m_data->get_sample();
 
 					it->m_view->update_data(sample);
 					it->m_view->render(true);
@@ -1663,8 +1663,13 @@ sysdig_init_res systop_init(int argc, char **argv)
 				inspector->set_snaplen(snaplen);
 			}
 
+			//
+			// Initialize the table
+			//
 			sinsp_table* table = new sinsp_table(inspector);
 			table->configure("*proc.pid proc.pid proc.name Sevt.buflen evt.num");
+			table->set_sorting_col(3);
+			table->set_sorting_col(3);
 
 			curses_table* viz = new curses_table();
 			viz->configure(table->get_legend(), NULL);

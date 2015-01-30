@@ -146,11 +146,12 @@ public:
 	void configure(const string& fmt);
 	bool process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
-	vector<vector<sinsp_table_field>>* get_sample(uint32_t sorting_col);
+	vector<vector<sinsp_table_field>>* get_sample();
 	vector<filtercheck_field_info>* get_legend()
 	{
 		return &m_legend;
 	}
+	void set_sorting_col(uint32_t col);
 
 private:
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
@@ -177,4 +178,6 @@ private:
 	sinsp_filter_check_reference* m_printer;
 	vector<vector<sinsp_table_field>> m_sample_data;
 	sinsp_table_field* m_vals;
+	uint32_t m_sorting_col;
+	bool m_is_sorting_ascending;
 };
