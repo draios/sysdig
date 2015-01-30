@@ -39,7 +39,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
 	m_is_sorting_ascending = false;
-	m_sorting_val_id = 0;
+	m_sorting_col = 0;
 }
 
 sinsp_table::~sinsp_table()
@@ -298,12 +298,12 @@ void sinsp_table::stdout_print()
 vector<vector<sinsp_table_field>>* sinsp_table::get_sample()
 {
 	table_row_cmp cc;
-	cc.m_colid = m_sorting_val_id;
+	cc.m_colid = m_sorting_col;
 
 	cc.m_ascending = m_is_sorting_ascending;
-	cc.m_type = m_types[m_sorting_val_id + 1];
+	cc.m_type = m_types[m_sorting_col + 1];
 
-//mvprintw(4, 10, "s%d:%d", (int)m_sorting_val_id, (int)m_is_sorting_ascending);
+//mvprintw(4, 10, "s%d:%d", (int)m_sorting_col, (int)m_is_sorting_ascending);
 //refresh();
 
 	sort(m_sample_data.begin(),
@@ -325,7 +325,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 		throw sinsp_exception("invalid table sorting column");
 	}
 
-	if(col == m_sorting_val_id + 1)
+	if(col == m_sorting_col + 1)
 	{
 		m_is_sorting_ascending = !m_is_sorting_ascending;
 	}
@@ -351,7 +351,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 		}
 	}
 
-	m_sorting_val_id = col - 1;
+	m_sorting_col = col - 1;
 }
 
 void sinsp_table::create_sample()

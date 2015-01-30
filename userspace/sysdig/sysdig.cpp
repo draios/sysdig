@@ -1496,7 +1496,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 	  start_color();
 	}
 	use_default_colors();
-	mousemask(BUTTON1_CLICKED, NULL);
+	mousemask(ALL_MOUSE_EVENTS, NULL);
 	noecho();
 	timeout(0);
 
@@ -1666,14 +1666,13 @@ sysdig_init_res systop_init(int argc, char **argv)
 			//
 			sinsp_table* table = new sinsp_table(inspector);
 			table->configure("*proc.pid proc.pid proc.name Sevt.count");
-			table->set_sorting_col(2);
-			table->set_sorting_col(2);
+			table->set_sorting_col(3);
 
 			curses_table* viz = new curses_table();
-			viz->configure(table->get_legend(), NULL);
+			viz->configure(table, NULL);
 
 			tables.push_back(table_info(table, viz));
-			tables.push_back(table_info(table, NULL));
+//			tables.push_back(table_info(table, NULL));
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,

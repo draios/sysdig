@@ -20,6 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define TABLE_WIDTH 400
 #define TABLE_HEIGHT 20
+#define TABLE_Y_START 10
+
 
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
 
@@ -121,7 +123,7 @@ public:
 	curses_table();
 	~curses_table();
 
-	void configure(vector<filtercheck_field_info>* legend, vector<int32_t>* colsizes);
+	void configure(sinsp_table* m_table, vector<int32_t>* colsizes);
 	void update_data(vector<vector<sinsp_table_field>>* data);
 	void render(bool data_changed);
 	void scrollwin(uint32_t x, uint32_t y);
@@ -134,8 +136,10 @@ public:
 
 	int m_colors[LAST_COLORELEMENT];
 	WINDOW* m_win;
+	sinsp_table* m_table;
 	uint32_t m_w;
 	uint32_t m_h;
+	uint32_t m_table_y_start;
 	uint32_t m_screenw;
 	uint32_t m_screenh;
 	uint32_t m_scrolloff_x;
@@ -146,6 +150,7 @@ public:
 	sinsp_filter_check_reference* m_converter;
 	int32_t m_selct;
 	int32_t m_firstrow;
+	vector<uint32_t> m_column_startx;
 };
 
 #endif

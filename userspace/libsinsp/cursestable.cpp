@@ -48,6 +48,8 @@ curses_table::curses_table()
 	m_selct = 0;
 	m_firstrow = 0;
 	m_data = NULL;
+	m_table = NULL;
+	m_table_y_start = TABLE_Y_START;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -177,7 +179,7 @@ curses_table::curses_table()
 	// Create the window
 	//
 	refresh();
-	m_win = newwin(m_h, 500, 10, 0);
+	m_win = newwin(m_h, 500, m_table_y_start, 0);
 }
 
 curses_table::~curses_table()
@@ -186,9 +188,12 @@ curses_table::~curses_table()
 	delete m_converter;
 }
 
-void curses_table::configure(vector<filtercheck_field_info>* legend, vector<int32_t>* colsizes)
+void curses_table::configure(sinsp_table* table, vector<int32_t>* colsizes)
 {
 	uint32_t j;
+
+	m_table = table;
+	vector<filtercheck_field_info>* legend = m_table->get_legend();
 
 	if(colsizes)
 	{
@@ -247,10 +252,10 @@ void curses_table::render(bool data_changed)
 		}
 	}
 
-mvprintw(5, 10, "&&%d", (int)m_data->size());
-refresh();
 	if(data_changed)
 	{
+		m_column_startx.clear();
+
 		if(m_selct < 0)
 		{
 			m_selct = 0;
@@ -273,7 +278,23 @@ refresh();
 
 		for(j = 0, k = 0; j < m_legend.size(); j++)
 		{
+			if(j == m_table->get_sorting_col())
+			{
+				wattrset(m_win, m_colors[PANEL_HIGHLIGHT_FOCUS]);
+			}
+			else
+			{
+				wattrset(m_win, m_colors[PANEL_HEADER_FOCUS]);
+			}
+
+			m_column_startx.push_back(k);
 			mvwaddnstr(m_win, 0, k, m_legend[j].m_info.m_name, m_legend[j].m_size);
+
+			for(l = strlen(m_legend[j].m_info.m_name); l < m_legend[j].m_size; l++)
+			{
+				waddch(m_win, ' ');
+			}
+
 			k += m_legend[j].m_size;
 		}
 
@@ -286,7 +307,7 @@ refresh();
 		{
 			row = &(m_data->at(l + m_firstrow));
 
-			if(l == m_selct - m_firstrow)
+			if(l == m_selct - (int32_t)m_firstrow)
 			{
 				wattrset(m_win, m_colors[PANEL_HIGHLIGHT_FOCUS]);
 			}
@@ -363,7 +384,7 @@ void curses_table::selection_up()
 {
 	if(m_selct > 0)
 	{
-		if(m_selct <= m_firstrow)
+		if(m_selct <= (int32_t)m_firstrow)
 		{
 			m_firstrow--;
 		}
@@ -462,6 +483,41 @@ bool curses_table::handle_input(int ch)
 			break;
 		case KEY_NPAGE:
 			selection_pagedown();
+			break;
+		case KEY_MOUSE:
+			{
+				uint32_t j;
+				MEVENT event;
+
+				if(getmouse(&event) == OK)
+				{
+//					if(event.bstate & BUTTON1_PRESSED)
+					{
+						ASSERT((m_data->size() == 0) || (m_column_startx.size() == m_data->at(0).size()));
+
+						if((uint32_t)event.y == m_table_y_start)
+						{
+mvprintw(5, 10, "M%d:%d", (int)event.x, event.y);
+refresh();
+							for(j = 0; j < m_column_startx.size() - 1; j++)
+							{
+								if((uint32_t)event.x >= m_column_startx[j] && (uint32_t)event.x < m_column_startx[j + 1])
+								{
+									m_table->set_sorting_col(j + 1);
+									break;
+								}
+							}
+
+							if(j == m_column_startx.size() - 1)
+							{
+								m_table->set_sorting_col(j + 1);
+							}
+
+							render(true);
+						}
+					}
+				}
+			}
 			break;
 	}
 

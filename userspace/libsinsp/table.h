@@ -152,6 +152,10 @@ public:
 		return &m_legend;
 	}
 	void set_sorting_col(uint32_t col);
+	uint32_t get_sorting_col()
+	{
+		return m_sorting_col;
+	}
 
 private:
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
@@ -179,6 +183,6 @@ private:
 	sinsp_filter_check_reference* m_printer;
 	vector<vector<sinsp_table_field>> m_sample_data;
 	sinsp_table_field* m_vals;
-	uint32_t m_sorting_val_id;
+	uint32_t m_sorting_col;
 	bool m_is_sorting_ascending;
 };
