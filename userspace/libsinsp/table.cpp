@@ -39,7 +39,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
 	m_is_sorting_ascending = false;
-	m_sorting_col = 0;
+	m_sorting_val_id = 0;
 }
 
 sinsp_table::~sinsp_table()
@@ -239,22 +239,6 @@ void sinsp_table::flush(sinsp_evt* evt)
 {
 	if(m_next_flush_time_ns != 0)
 	{
-		for(auto it = m_table.begin(); it != m_table.end(); ++it)
-		{
-			m_printer->set_val(m_types[0], it->first.m_val, it->first.m_len);
-//			printf("%s", m_printer->tostring(NULL));
-
-			for(uint32_t j = 1; j < m_n_fields; j++)
-			{
-				m_printer->set_val(m_types[j], it->second[j - 1].m_val, it->second[j - 1].m_len);
-//				printf(" %s", m_printer->tostring(NULL));
-			}
-
-//			printf("\n");
-		}
-
-//		printf("----------------------\n");
-
 		create_sample();
 
 		switch_buffers();
@@ -295,16 +279,32 @@ typedef struct table_row_cmp
 	bool m_ascending;
 }table_row_cmp;
 
+void sinsp_table::stdout_print()
+{
+	for(auto it = m_sample_data.begin(); it != m_sample_data.end(); ++it)
+	{
+		for(uint32_t j = 0; j < m_n_fields - 1; j++)
+		{
+			m_printer->set_val(m_types[j + 1], (*it)[j].m_val, (*it)[j].m_len);
+				printf("%s ", m_printer->tostring(NULL));
+		}
+
+			printf("\n");
+	}
+
+		printf("----------------------\n");
+}
+
 vector<vector<sinsp_table_field>>* sinsp_table::get_sample()
 {
 	table_row_cmp cc;
-	cc.m_colid = m_sorting_col;
+	cc.m_colid = m_sorting_val_id;
 
 	cc.m_ascending = m_is_sorting_ascending;
-	cc.m_type = m_types[m_sorting_col];
+	cc.m_type = m_types[m_sorting_val_id + 1];
 
-mvprintw(4, 10, "s%d:%d", (int)m_sorting_col, (int)m_is_sorting_ascending);
-refresh();
+//mvprintw(4, 10, "s%d:%d", (int)m_sorting_val_id, (int)m_is_sorting_ascending);
+//refresh();
 
 	sort(m_sample_data.begin(),
 		m_sample_data.end(),
@@ -315,16 +315,43 @@ refresh();
 
 void sinsp_table::set_sorting_col(uint32_t col)
 {
-	if(col == m_sorting_col)
+	if(col == 0)
+	{
+		throw sinsp_exception("cannot sort by key");
+	}
+
+	if(col > m_n_fields)
+	{
+		throw sinsp_exception("invalid table sorting column");
+	}
+
+	if(col == m_sorting_val_id + 1)
 	{
 		m_is_sorting_ascending = !m_is_sorting_ascending;
 	}
 	else
 	{
-		m_is_sorting_ascending = false;
+		switch(m_types[col])
+		{
+			case PT_INT8:
+			case PT_INT16:
+			case PT_INT32:
+			case PT_INT64:
+			case PT_UINT8:
+			case PT_UINT16:
+			case PT_UINT32:
+			case PT_UINT64:
+			case PT_RELTIME:
+			case PT_ABSTIME:
+				m_is_sorting_ascending = false;
+				break;
+			default:
+				m_is_sorting_ascending = true;
+				break;
+		}
 	}
 
-	m_sorting_col = col;
+	m_sorting_val_id = col - 1;
 }
 
 void sinsp_table::create_sample()

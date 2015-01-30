@@ -159,6 +159,7 @@ private:
 	inline uint32_t get_field_len(uint32_t id);
 	void create_sample();
 	void switch_buffers();
+	void stdout_print();
 
 	sinsp* m_inspector;
 	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_table;
@@ -178,6 +179,6 @@ private:
 	sinsp_filter_check_reference* m_printer;
 	vector<vector<sinsp_table_field>> m_sample_data;
 	sinsp_table_field* m_vals;
-	uint32_t m_sorting_col;
+	uint32_t m_sorting_val_id;
 	bool m_is_sorting_ascending;
 };

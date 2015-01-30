@@ -1451,8 +1451,6 @@ captureinfo do_systop_inspect(sinsp* inspector,
 
 					it->m_view->update_data(sample);
 					it->m_view->render(true);
-
-mvprintw(2, 10, ">>%d", (int)sample->size());
 			}
 		}
 	}
@@ -1667,14 +1665,15 @@ sysdig_init_res systop_init(int argc, char **argv)
 			// Initialize the table
 			//
 			sinsp_table* table = new sinsp_table(inspector);
-			table->configure("*proc.pid proc.pid proc.name Sevt.buflen evt.num");
-			table->set_sorting_col(3);
-			table->set_sorting_col(3);
+			table->configure("*proc.pid proc.pid proc.name Sevt.count");
+			table->set_sorting_col(2);
+			table->set_sorting_col(2);
 
 			curses_table* viz = new curses_table();
 			viz->configure(table->get_legend(), NULL);
 
 			tables.push_back(table_info(table, viz));
+			tables.push_back(table_info(table, NULL));
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,
