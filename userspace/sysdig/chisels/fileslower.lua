@@ -16,7 +16,7 @@ Note: The file I/O traced is those matched by the sysdig filter:
 "evt.is_io=true and fd.type=file".
 
 Copyright (C) 2014 Brendan Gregg.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -74,12 +74,13 @@ end
 function on_init()
     -- set the following fields on_event()
     etype = chisel.request_field("evt.type")
-    dir = chisel.request_field("evt.dir")  
+    dir = chisel.request_field("evt.dir") 
     datetime = chisel.request_field("evt.datetime")
     fname = chisel.request_field("fd.name")
     pname = chisel.request_field("proc.name")
     latency = chisel.request_field("evt.latency")
-    fcontainer = chisel.request_field("container.name")
+    fcontainername = chisel.request_field("container.name")
+    fcontainerid = chisel.request_field("container.id")
 
     -- The -pc or -pcontainer options was supplied on the cmd line
     print_container = sysdig.is_print_container_data()
@@ -89,32 +90,34 @@ function on_init()
 
     -- The -pc or -pcontainer options was supplied on the cmd line
     if print_container then
-        print(string.format("%-23.23s %-12.12s %-20.20s %-8s %-12s %s", 
-                            "evt.datetime", 
-                            "proc.name", 
-                            "container.name", 
-                            "evt.type", 
-                            "LATENCY(ms)", 
+        print(string.format("%-23.23s %-20.20s %-20.20s %-12.12s %-8s %-12s %s",
+                            "evt.datetime",
+                            "container.id",
+                            "container.name",
+                            "proc.name",
+                            "evt.type",
+                            "LATENCY(ms)",
                             "fd.name"))
-        print(string.format("%-23.23s %-12.12s %-20.20s %-8s %-12s %s", 
-                            "-----------------------", 
-                            "------------", 
-                            "------------------------------", 
-                            "--------", 
-                            "------------", 
+        print(string.format("%-23.23s %-20.20s %-20.20s %-12.12s %-8s %-12s %s",
+                            "-----------------------",
+                            "------------------------------",
+                            "------------------------------",
+                            "------------",
+                            "--------",
+                            "------------",
                             "-----------------------------------------"))
     else
-        print(string.format("%-23.23s %-12.12s %-8s %-12s %s", 
-                            "evt.datetime", 
-                            "proc.name", 
-                            "evt.type", 
-                            "LATENCY(ms)", 
+        print(string.format("%-23.23s %-12.12s %-8s %-12s %s",
+                            "evt.datetime",
+                            "proc.name",
+                            "evt.type",
+                            "LATENCY(ms)",
                             "fd.name"))
-        print(string.format("%-23.23s %-12.12s %-8s %-12s %s", 
-                            "-----------------------", 
-                            "------------", 
-                            "--------", 
-                            "------------", 
+        print(string.format("%-23.23s %-12.12s %-8s %-12s %s",
+                            "-----------------------",
+                            "------------",
+                            "--------",
+                            "------------",
                             "-----------------------------------------"))
     end
 
@@ -135,27 +138,28 @@ function on_event()
          if skip_dev == false or string.sub(fn, 0, 5) ~= "/dev/" then
 
              -- If this is a container modify the output color
-             if evt.field(fcontainer) ~= "host" then
+             if evt.field(fcontainername) ~= "host" then
                  color = terminal.blue
              end
 
              -- The -pc or -pcontainer options was supplied on the cmd line
              if print_container then
-                 print(color .. string.format("%-23.23s %-12.12s %-20.20s %-8s %12d %s", 
-                                              evt.field(datetime), 
-                                              evt.field(pname), 
-                                              evt.field(fcontainer), 
-                                              evt.field(etype), 
-                                              lat, 
+                 print(color .. string.format("%-23.23s %-20.20s %-20.20s %-12.12s %-8s %12d %s",
+                                              evt.field(datetime),
+                                              evt.field(fcontainerid),
+                                              evt.field(fcontainername),
+                                              evt.field(pname),
+                                              evt.field(etype),
+                                              lat,
                                               fn ))
-             else 
-                 print(color .. string.format("%-23.23s %-12.12s %-8s %12d %s", 
-                                              evt.field(datetime), 
-                                              evt.field(pname), 
-                                              evt.field(etype), 
-                                              lat, 
+             else
+                 print(color .. string.format("%-23.23s %-12.12s %-8s %12d %s",
+                                              evt.field(datetime),
+                                              evt.field(pname),
+                                              evt.field(etype),
+                                              lat,
                                               fn ))
-             end 
+             end
          end
     end
 

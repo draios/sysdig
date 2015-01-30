@@ -9,7 +9,7 @@ USAGE: sysdig -c scallslower min_ms
    sysdig -pc -c scallslower 1000           # show syscalls slower than 1000 ms and container output
 
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -71,24 +71,27 @@ function on_init()
     datetime = chisel.request_field("evt.datetime")
     pname = chisel.request_field("proc.name")
     latency = chisel.request_field("evt.latency")
-    fcontainer = chisel.request_field("container.name")
+    fcontainername = chisel.request_field("container.name")
+    fcontainerid = chisel.request_field("container.id")
 
     -- The -pc or -pcontainer options was supplied on the cmd line
     print_container = sysdig.is_print_container_data()
 
     -- The -pc or -pcontainer options was supplied on the cmd line
     if print_container then
-        print(string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
-                            "evt.datatime", 
-                            "container.name", 
-                            "proc.name", 
-                            "LATENCY(ms)", 
+        print(string.format("%-23.23s %-20.20s  %-20.20s %-23.23s %-20s %s",
+                            "evt.datatime",
+                            "container.id",
+                            "container.name",
+                            "proc.name",
+                            "LATENCY(ms)",
                             "evt.type"))
-        print(string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
-                            "-----------------------", 
-                            "--------------------", 
-                            "-----------------------", 
-                            "--------------------", 
+        print(string.format("%-23.23s %-20.20s %-20.20s %-23.23s %-20s %s",
+                            "-----------------------",
+                            "--------------------",
+                            "--------------------",
+                            "-----------------------",
+                            "--------------------",
                             "--------------------"))
     else
         print(string.format("%-23.23s %-23.23s %-20s %s",
@@ -114,17 +117,18 @@ function on_event()
     lat = evt.field(latency) / 1000000
     if lat > min_ms then
 
-        if evt.field(fcontainer) ~= "host" then
+        if evt.field(fcontainername) ~= "host" then
             color = terminal.blue
         end
 
         -- The -pc or -pcontainer options was supplied on the cmd line
         if print_container then
-            print(color .. string.format("%-23.23s %-20.20s %-23.23s %-20s %s", 
-                                         evt.field(datetime), 
-                                         evt.field(fcontainer), 
-                                         evt.field(pname), 
-                                         lat, 
+            print(color .. string.format("%-23.23s %-20.20s %-20.20s %-23.23s %-20s %s",
+                                         evt.field(datetime),
+                                         evt.field(fcontainerid),
+                                         evt.field(fcontainername),
+                                         evt.field(pname),
+                                         lat,
                                          evt.field(etype)))
         else
             print(color .. string.format("%-23.23s %-23.23s %-20s %s",

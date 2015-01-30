@@ -9,7 +9,7 @@ USAGE: sysdig -c netlower min_ms
    sysdig -c netlower 1000                  # show network I/O slower than 1000 ms and container output
 
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -71,7 +71,8 @@ function on_init()
     fname = chisel.request_field("fd.name")
     pname = chisel.request_field("proc.name")
     latency = chisel.request_field("evt.latency")
-    fcontainer = chisel.request_field("container.name")
+    fcontainername = chisel.request_field("container.name")
+    fcontainerid = chisel.request_field("container.id")
 
     -- The -pc or -pcontainer options was supplied on the cmd line
     print_container = sysdig.is_print_container_data()
@@ -81,20 +82,22 @@ function on_init()
 
     -- The -pc or -pcontainer options was supplied on the cmd line
     if print_container then
-       print(string.format("%-23.23s %-12.12s %-20.20s %-8s %-12s %s", 
-                           "evt.datetime", 
-                           "proc.name", 
-                           "container.name", 
-                           "evt.type", 
-                           "LATENCY(ms)", 
-                           "fd.name"))
-       print(string.format("%-23.23s %-12.12s %-20.20s %-8s %-12s %s",
-                           "-----------------------", 
-                           "------------", 
-                           "------------------------------", 
-                           "--------", 
-                           "------------", 
-                           "-----------------------------------------"))
+        print(string.format("%-23.23s %-20.20s %-20.20s %-12.12s %-8s %-12s %s",
+                            "evt.datetime",
+                            "container.id",
+                            "container.name",
+                            "proc.name",
+                            "evt.type",
+                            "LATENCY(ms)",
+                            "fd.name"))
+        print(string.format("%-23.23s %-20.20s %-20.20s %-12.12s %-8s %-12s %s",
+                            "-----------------------",
+                            "------------------------------",
+                            "------------------------------",
+                            "------------",
+                            "--------",
+                            "------------",
+                            "-----------------------------------------"))
     else
         print(string.format("%-23.23s %-12.12s %-8s %-12s %s",
                             "evt.datetime",
@@ -124,27 +127,28 @@ function on_event()
     if evt.field(dir) == "<" and lat > min_ms then
 
         -- If this is a container modify the output color
-        if evt.field(fcontainer) ~= "host" then
+        if evt.field(fcontainername) ~= "host" then
             color = terminal.blue
         end
 
          -- The -pc or -pcontainer options was supplied on the cmd line
-         if print_container then
-             print(color .. string.format("%-23.23s %-12.12s %-20.20s %-8s %12d %s",
-                                          evt.field(datetime),
-                                          evt.field(pname),
-                                          evt.field(fcontainer),
-                                          evt.field(etype),
-                                          lat,
-                                          fn ))
-         else
-             print(color .. string.format("%-23.23s %-12.12s %-8s %12d %s",
-                                          evt.field(datetime),
-                                          evt.field(pname),
-                                          evt.field(etype),
-                                          lat,
-                                          fn ))
-         end
+             if print_container then
+                 print(color .. string.format("%-23.23s %-20.20s %-20.20s %-12.12s %-8s %12d %s",
+                                              evt.field(datetime),
+                                              evt.field(fcontainerid),
+                                              evt.field(fcontainername),
+                                              evt.field(pname),
+                                              evt.field(etype),
+                                              lat,
+                                              fn ))
+             else
+                 print(color .. string.format("%-23.23s %-12.12s %-8s %12d %s",
+                                              evt.field(datetime),
+                                              evt.field(pname),
+                                              evt.field(etype),
+                                              lat,
+                                              fn ))
+             end
     end
 
     return true
