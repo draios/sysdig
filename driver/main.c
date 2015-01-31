@@ -1044,13 +1044,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
-#ifdef __NR_socketcall
-		if(table_index == __NR_socketcall)
-		{
-			used = 1;
-			drop_flags = UF_USED | UF_NEVER_DROP;
-		}
-#endif
+
 		if (used)
 			record_event(g_syscall_table[table_index].enter_event_type, regs, id, drop_flags, NULL, NULL);
 		else
@@ -1079,13 +1073,6 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
-#ifdef __NR_socketcall
-		if(table_index == __NR_socketcall)
-		{
-			used = 1;
-			drop_flags = UF_USED | UF_NEVER_DROP;
-		}
-#endif
 
 		if (used)
 			record_event(g_syscall_table[table_index].exit_event_type, regs, id, drop_flags, NULL, NULL);
