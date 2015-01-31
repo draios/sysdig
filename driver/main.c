@@ -1047,8 +1047,8 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 #ifdef __NR_socketcall
 		if(table_index == __NR_socketcall)
 		{
-			int used = 1;
-			enum syscall_flags drop_flags = UF_USED | UF_NEVER_DROP;
+			used = 1;
+			drop_flags = UF_USED | UF_NEVER_DROP;
 		}
 #endif
 		if (used)
@@ -1082,8 +1082,8 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 #ifdef __NR_socketcall
 		if(table_index == __NR_socketcall)
 		{
-			int used = 1;
-			enum syscall_flags drop_flags = UF_USED | UF_NEVER_DROP;
+			used = 1;
+			drop_flags = UF_USED | UF_NEVER_DROP;
 		}
 #endif
 
