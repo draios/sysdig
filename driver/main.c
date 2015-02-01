@@ -1093,9 +1093,9 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 			drop_flags = UF_NEVER_DROP;
 			type = PPME_GENERIC_X;
 		} else
-			type = g_syscall_table[table_index].enter_event_type;
+			type = g_syscall_table[table_index].exit_event_type;
 #else
-		type = g_syscall_table[table_index].enter_event_type;
+		type = g_syscall_table[table_index].exit_event_type;
 #endif
 
 		if (used)
