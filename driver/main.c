@@ -1121,6 +1121,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
+		struct event_data_t event_data;
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
@@ -1136,7 +1137,6 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		type = g_syscall_table[table_index].enter_event_type;
 #endif
 
-		struct event_data_t event_data;
 		event_data.category = PPMC_SYSCALL;
 		event_data.event_info.syscall_data.regs = regs;
 		event_data.event_info.syscall_data.id = id;
@@ -1167,6 +1167,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
+		struct event_data_t event_data;
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
@@ -1182,7 +1183,6 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		type = g_syscall_table[table_index].exit_event_type;
 #endif
 
-		struct event_data_t event_data;
 		event_data.category = PPMC_SYSCALL;
 		event_data.event_info.syscall_data.regs = regs;
 		event_data.event_info.syscall_data.id = id;
