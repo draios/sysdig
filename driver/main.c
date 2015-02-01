@@ -1237,7 +1237,6 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka)
 {
 	struct event_data_t event_data;
-	pr_info("signal_deliver_probe called\n");
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;
 	event_data.event_info.signal_data.info = info;
