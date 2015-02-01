@@ -119,7 +119,9 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args);
 static int f_sys_quotactl_x(struct event_filler_arguments *args);
 static int f_sys_sysdigevent_e(struct event_filler_arguments *args);
 static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
+#ifdef CAPTURE_SIGNAL_DELIVERIES
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
+#endif
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
