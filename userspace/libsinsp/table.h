@@ -58,6 +58,52 @@ public:
 	friend class curses_table;	
 };
 
+#define STF_STORAGE_BUFSIZE 1
+
+class sinsp_table_field_storage : public sinsp_table_field
+{
+public:
+	sinsp_table_field_storage()
+	{
+		m_storage_len = STF_STORAGE_BUFSIZE;
+		uint8_t* m_val = new uint8_t[m_storage_len];
+		m_isvalid = false;
+	}
+
+	~sinsp_table_field_storage()
+	{
+		if(m_val != NULL)
+		{
+			delete[] m_val;
+		}
+	}
+
+	void copy(sinsp_table_field* other)
+	{
+		m_val = NULL;
+
+		if(other->m_len > m_storage_len)
+		{
+			resize(other->m_len);
+		}
+
+		m_len = other->m_len;
+		memcpy(m_val, other->m_val, m_len);
+	}
+
+	bool m_isvalid;
+
+private:
+	void resize(uint32_t newlen)
+	{
+		delete[] m_val;
+		m_storage_len = newlen;
+		m_val = new uint8_t[m_storage_len];
+	}
+
+	uint32_t m_storage_len;
+};
+
 struct sinsp_table_field_hasher
 {
   size_t operator()(const sinsp_table_field& k) const
@@ -138,6 +184,13 @@ public:
 	uint32_t m_pos;
 };
 
+class sinsp_sample_row
+{
+public:
+	sinsp_table_field m_key;
+	vector<sinsp_table_field> m_data;
+};
+
 class sinsp_table
 {
 public:	
@@ -146,7 +199,7 @@ public:
 	void configure(const string& fmt);
 	bool process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
-	vector<vector<sinsp_table_field>>* get_sample();
+	vector<sinsp_sample_row>* get_sample();
 	vector<filtercheck_field_info>* get_legend()
 	{
 		return &m_legend;
@@ -156,7 +209,8 @@ public:
 	{
 		return m_sorting_col;
 	}
-	uint32_t get_row_key(uint32_t rownum);
+	sinsp_table_field* get_row_key(uint32_t rownum);
+	int32_t get_row_from_key(sinsp_table_field* key);
 
 private:
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
@@ -182,7 +236,7 @@ private:
 	uint64_t m_refresh_interval;
 	uint64_t m_next_flush_time_ns;
 	sinsp_filter_check_reference* m_printer;
-	vector<vector<sinsp_table_field>> m_sample_data;
+	vector<sinsp_sample_row> m_sample_data;
 	sinsp_table_field* m_vals;
 	uint32_t m_sorting_col;
 	bool m_is_sorting_ascending;

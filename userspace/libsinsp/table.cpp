@@ -28,6 +28,36 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 extern sinsp_filter_check_list g_filterlist;
 
+//
+//
+// Table sorter functor
+typedef struct table_row_cmp
+{
+	bool operator()(const sinsp_sample_row& src, const sinsp_sample_row& dst)
+	{
+		ppm_cmp_operator op;
+
+		if(m_ascending)
+		{
+			op = CO_LT;
+		}
+		else
+		{
+			op = CO_GT;
+		}
+
+		return flt_compare(op, m_type, 
+			src.m_data[m_colid].m_val, 
+			dst.m_data[m_colid].m_val, 
+			src.m_data[m_colid].m_len, 
+			dst.m_data[m_colid].m_len);
+	}
+
+	uint32_t m_colid;
+	ppm_param_type m_type;
+	bool m_ascending;
+}table_row_cmp;
+
 sinsp_table::sinsp_table(sinsp* inspector)
 {
 	m_inspector = inspector;
@@ -252,40 +282,13 @@ void sinsp_table::flush(sinsp_evt* evt)
 	return;
 }
 
-typedef struct table_row_cmp
-{
-	bool operator()(const vector<sinsp_table_field>& src, const vector<sinsp_table_field>& dst)
-	{
-		ppm_cmp_operator op;
-
-		if(m_ascending)
-		{
-			op = CO_LT;
-		}
-		else
-		{
-			op = CO_GT;
-		}
-
-		return flt_compare(op, m_type, 
-			src[m_colid].m_val, 
-			dst[m_colid].m_val, 
-			src[m_colid].m_len, 
-			dst[m_colid].m_len);
-	}
-
-	uint32_t m_colid;
-	ppm_param_type m_type;
-	bool m_ascending;
-}table_row_cmp;
-
 void sinsp_table::stdout_print()
 {
 	for(auto it = m_sample_data.begin(); it != m_sample_data.end(); ++it)
 	{
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
-			m_printer->set_val(m_types[j + 1], (*it)[j].m_val, (*it)[j].m_len);
+			m_printer->set_val(m_types[j + 1], it->m_data[j].m_val, it->m_data[j].m_len);
 				printf("%s ", m_printer->tostring(NULL));
 		}
 
@@ -295,7 +298,7 @@ void sinsp_table::stdout_print()
 		printf("----------------------\n");
 }
 
-vector<vector<sinsp_table_field>>* sinsp_table::get_sample()
+vector<sinsp_sample_row>* sinsp_table::get_sample()
 {
 	table_row_cmp cc;
 	cc.m_colid = m_sorting_col;
@@ -310,6 +313,7 @@ vector<vector<sinsp_table_field>>* sinsp_table::get_sample()
 		m_sample_data.end(),
 		cc);
 
+//stdout_print();
 	return &m_sample_data;
 }
 
@@ -358,16 +362,18 @@ void sinsp_table::create_sample()
 {
 	uint32_t j;
 	m_sample_data.clear();
-	vector<sinsp_table_field> row;
+	sinsp_sample_row row;
 
 	for(auto it = m_table.begin(); it != m_table.end(); ++it)
 	{
-		row.clear();
+		row.m_key = it->first;
+
+		row.m_data.clear();
 
 		sinsp_table_field* fields = it->second;
 		for(j = 0; j < m_n_fields - 1; j++)
 		{
-			row.push_back(fields[j]);
+			row.m_data.push_back(fields[j]);
 		}
 
 		m_sample_data.push_back(row);
@@ -492,7 +498,29 @@ void sinsp_table::switch_buffers()
 	}
 }
 
-uint32_t sinsp_table::get_row_key(uint32_t rownum)
+sinsp_table_field* sinsp_table::get_row_key(uint32_t rownum)
 {
-	return 0;
+	if(rownum >= m_sample_data.size())
+	{
+		return NULL;
+	}
+
+	return &m_sample_data[rownum].m_key;
+}
+
+int32_t sinsp_table::get_row_from_key(sinsp_table_field* key)
+{
+	uint32_t j;
+
+	for(j = 0; j < m_sample_data.size(); j++)
+	{
+		sinsp_table_field* rowkey = &(m_sample_data[j].m_key);
+
+		if(*rowkey == *key)
+		{
+			return j;
+		}
+	}
+
+	return -1;
 }
