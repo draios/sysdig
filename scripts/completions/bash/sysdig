@@ -1,8 +1,6 @@
-# This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.90
-
-complete -W                                     \
-'                                               \
+_sysdig_complete()
+{
+  local opts='                                  \
   -A                                            \
   --print-ascii                                 \
   -b                                            \
@@ -55,16 +53,25 @@ complete -W                                     \
   -c                                            \
   --chisel                                      \
   -i                                            \
-  --chisel-info' sysdig
+  --chisel-info'
 
-  # Sysdig 0.1.85 had these options too, but they were problematic, so I'm
-  # removing them until they can be fixed
-  # -C
-  # --file-size
-  # -G
-  # --seconds
-  # -W
-  # --limit
+  local cur=${COMP_WORDS[COMP_CWORD]}
+  local prev=${COMP_WORDS[COMP_CWORD-1]}
+
+  case "$prev" in
+   -r)
+     COMPREPLY=()
+     return 0
+     ;;
+
+  esac
+
+  # completing an option
+  if [[ "$cur" == -* ]]; then
+          COMPREPLY=( $( compgen -W "$opts" -- $cur ) )
+  fi
+}
+complete -o default -F _sysdig_complete sysdig
 
 # Local Variables:
 # mode:sh
