@@ -1,6 +1,6 @@
 --[[
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -58,11 +58,11 @@ function on_event()
 		if prname == nil then
 			prname = ""
 		end			
-		line = string.format("%d) 0.%.9d %s (%d) > %s %s", evt.field(fevnum), 
-			0, 
-			prname, 
-			evt.field(ftid), 
-			evtype, 
+		line = string.format("%d) 0.%.9d %s (%d) > %s %s", evt.field(fevnum),
+			0,
+			prname,
+			evt.field(ftid),
+			evtype,
 			evt.field(fevtargs))
 		
 		last_lines[tid] = line
@@ -74,11 +74,11 @@ function on_event()
 					prname = ""
 				end
 				
-				line = string.format("%d) %d.%.9d %s (%d) < %s %s", evt.field(fevnum), 
-					latency / 1000000000, 
-					latency % 1000000000, 
-					prname, evt.field(ftid), 
-					evtype, 
+				line = string.format("%d) %d.%.9d %s (%d) < %s %s", evt.field(fevnum),
+					latency / 1000000000,
+					latency % 1000000000,
+					prname, evt.field(ftid),
+					evtype,
 					evt.field(fevtargs))
 
 				table.insert(slow_calls, j, {latency, last_lines[tid], line})
@@ -94,7 +94,7 @@ function on_event()
 	return true
 end
 
--- Interval callback, emits the output
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
 	for j = 1, #slow_calls do
 		print(slow_calls[j][2])

@@ -1,6 +1,6 @@
 --[[
 Copyright (C) 2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -19,19 +19,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 description = "Given a filter on the command line, this chisel saves the events that are in a time range around filter matches, and that are on the SAME process/thread. The time rang can be adjusted with the dump_range_ms argument. For example, 'sysdig -c around evt.type=open and evt.failed=true' will save two seconds of activity around every failed open.";
 short_description = "Export to file the events around the where the given filter matches.";
 category = "Misc";
-		   
+		
 -- Argument list
-args = 
+args =
 {
 	{
-		name = "dump_file_name", 
-		description = "The name of the file where the chisel will write the events related to each syslog entry.", 
+		name = "dump_file_name",
+		description = "The name of the file where the chisel will write the events related to each syslog entry.",
 		argtype = "string",
 		optional = false
 	},
 	{
-		name = "dump_range_ms", 
-		description = "The time interval to capture *before* and *after* each event, in milliseconds. For example, 500 means that 1 second around each displayed event (.5s before and .5s after) will be saved to <dump_file_name>. The default value for dump_range_ms is 1000.", 
+		name = "dump_range_ms",
+		description = "The time interval to capture *before* and *after* each event, in milliseconds. For example, 500 means that 1 second around each displayed event (.5s before and .5s after) will be saved to <dump_file_name>. The default value for dump_range_ms is 1000.",
 		argtype = "int",
 		optional = true
 	},
@@ -47,15 +47,15 @@ local capturing = false
 
 -- Argument notification callback
 function on_set_arg(name, val)
-    if name == "dump_file_name" then
-        dump_file_name = val
-        return true
-    elseif name == "dump_range_ms" then
-        dump_range_ms = val
-        return true
-    end
+	if name == "dump_file_name" then
+		dump_file_name = val
+		return true
+	elseif name == "dump_range_ms" then
+		dump_range_ms = val
+		return true
+	end
 
-    return false
+	return false
 end
 
 -- Initialization callback
@@ -106,6 +106,7 @@ function on_event()
 	return true
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
 	if is_tty then
 		print(terminal.reset)
