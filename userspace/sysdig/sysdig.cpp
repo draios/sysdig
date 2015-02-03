@@ -1397,8 +1397,6 @@ captureinfo do_systop_inspect(sinsp* inspector,
 	int32_t res;
 	sinsp_evt* ev;
 	bool end_of_sample;
-	sinsp_table_field_storage m_last_key;
-	int32_t selected_row = 0;
 
 	//
 	// Loop through the events
@@ -1452,30 +1450,6 @@ captureinfo do_systop_inspect(sinsp* inspector,
 				vector<sinsp_sample_row>* sample = 
 					it->m_data->get_sample();
 
-				if(!m_last_key.m_isvalid)
-				{
-					sinsp_table_field* rowkey = it->m_data->get_row_key(selected_row);
-				
-					if(rowkey != NULL)
-					{
-						m_last_key.copy(rowkey);
-						m_last_key.m_isvalid = true;
-					}
-					else
-					{
-						m_last_key.m_isvalid = false;
-					}
-				}
-				else
-				{
-					selected_row = it->m_data->get_row_from_key(&m_last_key);
-					if(selected_row == -1)
-					{
-						selected_row = 0;
-						m_last_key.m_isvalid = false;
-					}
-				}
-
 				it->m_view->update_data(sample);
 				it->m_view->render(true);
 			}
@@ -1513,7 +1487,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 	//
 	// Initialize ncurses
 	//
-/*
 	(void) initscr();      // initialize the curses library
 	keypad(stdscr, TRUE);  // enable keyboard mapping
 	(void) nonl();         // tell curses not to do NL->CR/NL on output
@@ -1527,7 +1500,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 	mousemask(ALL_MOUSE_EVENTS, NULL);
 	noecho();
 	timeout(0);
-*/
+
 	//
 	// Parse the arguments
 	//
@@ -1696,11 +1669,11 @@ sysdig_init_res systop_init(int argc, char **argv)
 			table->configure("*proc.pid proc.pid proc.name Sevt.count");
 			table->set_sorting_col(3);
 
-//			curses_table* viz = new curses_table();
-//			viz->configure(table, NULL);
+			curses_table* viz = new curses_table();
+			viz->configure(table, NULL);
 
-//			tables.push_back(table_info(table, viz));
-			tables.push_back(table_info(table, NULL));
+			tables.push_back(table_info(table, viz));
+//			tables.push_back(table_info(table, NULL));
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,
@@ -1745,7 +1718,7 @@ exit:
 	//
 	// Restore the original screen
 	//
-//	endwin();
+	endwin();
 
 	if(errorstr != "")
 	{

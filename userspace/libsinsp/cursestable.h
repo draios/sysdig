@@ -124,15 +124,16 @@ public:
 	~curses_table();
 
 	void configure(sinsp_table* m_table, vector<int32_t>* colsizes);
-	void update_data(vector<vector<sinsp_table_field>>* data);
+	void update_data(vector<sinsp_sample_row>* data);
 	void render(bool data_changed);
 	void scrollwin(uint32_t x, uint32_t y);
-	void set_selection(uint32_t num);
 	void selection_up();
 	void selection_down();
 	void selection_pageup();
 	void selection_pagedown();
+	void selection_goto(int32_t row);
 	bool handle_input(int ch);
+	void update_rowkey(int32_t row);
 
 	int m_colors[LAST_COLORELEMENT];
 	WINDOW* m_win;
@@ -146,11 +147,12 @@ public:
 	uint32_t m_scrolloff_y;
 	uint32_t m_colsizes[PT_MAX];
 	vector<curses_table_column_info> m_legend;
-	vector<vector<sinsp_table_field>>* m_data;
+	vector<sinsp_sample_row>* m_data;
 	sinsp_filter_check_reference* m_converter;
 	int32_t m_selct;
 	int32_t m_firstrow;
 	vector<uint32_t> m_column_startx;
+	sinsp_table_field_storage m_last_key;
 };
 
 #endif

@@ -227,9 +227,42 @@ void curses_table::configure(sinsp_table* table, vector<int32_t>* colsizes)
 	}
 }
 
-void curses_table::update_data(vector<vector<sinsp_table_field>>* data)
+void curses_table::update_rowkey(int32_t row)
+{
+	sinsp_table_field* rowkey = m_table->get_row_key(row);
+
+	if(rowkey != NULL)
+	{
+		m_last_key.copy(rowkey);
+		m_last_key.m_isvalid = true;
+	}
+	else
+	{
+		m_last_key.m_isvalid = false;
+	}
+}
+
+void curses_table::update_data(vector<sinsp_sample_row>* data)
 {
 	m_data = data;
+
+	if(!m_last_key.m_isvalid)
+	{
+		update_rowkey(m_selct);
+	}
+	else
+	{
+		m_selct = m_table->get_row_from_key(&m_last_key);
+		if(m_selct == -1)
+		{
+			m_selct = 0;
+			m_last_key.m_isvalid = false;
+		}
+		else
+		{
+			selection_goto(m_selct);			
+		}
+	}
 }
 
 void curses_table::render(bool data_changed)
@@ -245,7 +278,7 @@ void curses_table::render(bool data_changed)
 
 	if(m_data->size() != 0)
 	{
-		if(m_legend.size() != m_data->at(0).size())
+		if(m_legend.size() != m_data->at(0).m_values.size())
 		{
 			ASSERT(false);
 			throw sinsp_exception("corrupted curses table data");
@@ -305,7 +338,7 @@ void curses_table::render(bool data_changed)
 
 		for(l = 0; l < (int32_t)MIN(m_data->size(), m_h - 1); l++)
 		{
-			row = &(m_data->at(l + m_firstrow));
+			row = &(m_data->at(l + m_firstrow).m_values);
 
 			if(l == m_selct - (int32_t)m_firstrow)
 			{
@@ -374,22 +407,20 @@ void curses_table::scrollwin(uint32_t x, uint32_t y)
 	render(false);
 }
 
-void curses_table::set_selection(uint32_t num)
-{
-	m_selct = num;
-	render(false);
-}
-
 void curses_table::selection_up()
 {
 	if(m_selct > 0)
 	{
 		if(m_selct <= (int32_t)m_firstrow)
 		{
-			m_firstrow--;
+			if(m_firstrow > 0)
+			{
+				m_firstrow--;
+			}
 		}
 
 		m_selct--;
+		update_rowkey(m_selct);
 		render(true);
 	}
 }
@@ -400,11 +431,14 @@ void curses_table::selection_down()
 	{
 		if(m_selct - m_firstrow > (int32_t)m_h - 3)
 		{
-			m_firstrow++;
+			if(m_firstrow < (int32_t)m_data->size() - 1)
+			{
+				m_firstrow++;
+			}
 		}
 
 		m_selct++;
-
+		update_rowkey(m_selct);
 		render(true);
 	}
 }
@@ -423,6 +457,7 @@ void curses_table::selection_pageup()
 		m_selct = 0;
 	}
 
+	update_rowkey(m_selct);
 	render(true);
 }
 
@@ -440,8 +475,34 @@ void curses_table::selection_pagedown()
 		m_selct = m_data->size() - 1;
 	}
 
+	update_rowkey(m_selct);
 	render(true);
 }
+
+void curses_table::selection_goto(int32_t row)
+{
+	if(row == -1 ||
+		row >= (int32_t)m_data->size())
+	{
+		ASSERT(false);
+		return;
+	}
+
+	m_firstrow = row - (m_h - 1);
+	if(m_firstrow > (int32_t)(m_data->size() - m_h + 1))
+	{
+		m_firstrow = m_data->size() - m_h + 1;
+	}
+	else if(m_firstrow < 0)
+	{
+		m_firstrow = 0;
+	}
+
+	m_selct = row;
+
+	render(true);
+}
+
 
 //
 // Return false if the user wants us to exit
@@ -493,7 +554,7 @@ bool curses_table::handle_input(int ch)
 				{
 //					if(event.bstate & BUTTON1_PRESSED)
 					{
-						ASSERT((m_data->size() == 0) || (m_column_startx.size() == m_data->at(0).size()));
+						ASSERT((m_data->size() == 0) || (m_column_startx.size() == m_data->at(0).m_values.size()));
 
 						if((uint32_t)event.y == m_table_y_start)
 						{

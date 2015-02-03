@@ -58,7 +58,7 @@ public:
 	friend class curses_table;	
 };
 
-#define STF_STORAGE_BUFSIZE 1
+#define STF_STORAGE_BUFSIZE 512
 
 class sinsp_table_field_storage : public sinsp_table_field
 {
@@ -66,7 +66,7 @@ public:
 	sinsp_table_field_storage()
 	{
 		m_storage_len = STF_STORAGE_BUFSIZE;
-		uint8_t* m_val = new uint8_t[m_storage_len];
+		m_val = new uint8_t[m_storage_len];
 		m_isvalid = false;
 	}
 
@@ -80,8 +80,6 @@ public:
 
 	void copy(sinsp_table_field* other)
 	{
-		m_val = NULL;
-
 		if(other->m_len > m_storage_len)
 		{
 			resize(other->m_len);
@@ -97,6 +95,7 @@ private:
 	void resize(uint32_t newlen)
 	{
 		delete[] m_val;
+		m_val = NULL;
 		m_storage_len = newlen;
 		m_val = new uint8_t[m_storage_len];
 	}
@@ -188,7 +187,7 @@ class sinsp_sample_row
 {
 public:
 	sinsp_table_field m_key;
-	vector<sinsp_table_field> m_data;
+	vector<sinsp_table_field> m_values;
 };
 
 class sinsp_table

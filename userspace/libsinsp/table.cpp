@@ -47,10 +47,10 @@ typedef struct table_row_cmp
 		}
 
 		return flt_compare(op, m_type, 
-			src.m_data[m_colid].m_val, 
-			dst.m_data[m_colid].m_val, 
-			src.m_data[m_colid].m_len, 
-			dst.m_data[m_colid].m_len);
+			src.m_values[m_colid].m_val, 
+			dst.m_values[m_colid].m_val, 
+			src.m_values[m_colid].m_len, 
+			dst.m_values[m_colid].m_len);
 	}
 
 	uint32_t m_colid;
@@ -288,7 +288,7 @@ void sinsp_table::stdout_print()
 	{
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
-			m_printer->set_val(m_types[j + 1], it->m_data[j].m_val, it->m_data[j].m_len);
+			m_printer->set_val(m_types[j + 1], it->m_values[j].m_val, it->m_values[j].m_len);
 				printf("%s ", m_printer->tostring(NULL));
 		}
 
@@ -368,12 +368,12 @@ void sinsp_table::create_sample()
 	{
 		row.m_key = it->first;
 
-		row.m_data.clear();
+		row.m_values.clear();
 
 		sinsp_table_field* fields = it->second;
 		for(j = 0; j < m_n_fields - 1; j++)
 		{
-			row.m_data.push_back(fields[j]);
+			row.m_values.push_back(fields[j]);
 		}
 
 		m_sample_data.push_back(row);
