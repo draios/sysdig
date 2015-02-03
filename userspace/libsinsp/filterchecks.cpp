@@ -2985,21 +2985,21 @@ char* sinsp_filter_check_reference::format_bytes(int64_t val)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2fP", ((double)val) / (1024 * 1024 * 1024 * 1024 * 1024));
+					"%.2fP", ((double)val) / (1024LL * 1024 * 1024 * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024LL * 1024 * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2fT", ((double)val) / (1024 * 1024 * 1024 * 1024));
+					"%.2fT", ((double)val) / (1024LL * 1024 * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024LL * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2fG", ((double)val) / (1024 * 1024 * 1024));
+					"%.2fG", ((double)val) / (1024LL * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024 * 1024))
@@ -3038,42 +3038,42 @@ char* sinsp_filter_check_reference::format_time(uint64_t val)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%u.%02us", val / ONE_SECOND_IN_NS, (val % ONE_SECOND_IN_NS) / 10000000);
+					"%u.%02us", (unsigned int)(val / ONE_SECOND_IN_NS), (unsigned int)((val % ONE_SECOND_IN_NS) / 10000000));
 		return m_getpropertystr_storage;
 	}
 	else if(val >= ONE_SECOND_IN_NS / 100)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%ums", val / (ONE_SECOND_IN_NS / 1000));
+					"%ums", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)));
 		return m_getpropertystr_storage;
 	}
 	else if(val >= ONE_SECOND_IN_NS / 1000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%u.%02ums", val / (ONE_SECOND_IN_NS / 1000), (val % ONE_MILLISECOND_IN_NS) / 10000);
+					"%u.%02ums", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)), (unsigned int)((val % ONE_MILLISECOND_IN_NS) / 10000));
 		return m_getpropertystr_storage;
 	}
 	else if(val >= ONE_SECOND_IN_NS / 100000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%uus", val / (ONE_SECOND_IN_NS / 1000000));
+					"%uus", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)));
 		return m_getpropertystr_storage;
 	}
 	else if(val >= ONE_SECOND_IN_NS / 1000000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%u.%02uus", val / (ONE_SECOND_IN_NS / 1000000), (val % ONE_MICROSECOND_IN_NS) / 10);
+					"%u.%02uus", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)), (unsigned int)((val % ONE_MICROSECOND_IN_NS) / 10));
 		return m_getpropertystr_storage;
 	}
 	else
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%uns", val);
+					"%uns", (unsigned int)val);
 		return m_getpropertystr_storage;
 	}
 }
@@ -3117,6 +3117,10 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt)
 			break;
 		case PT_UINT64:
 			val = (int64_t)*(uint64_t*)rawval;
+			break;
+		default:
+			ASSERT(false);
+			val = 0;
 			break;
 		}
 

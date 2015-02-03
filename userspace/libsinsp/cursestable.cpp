@@ -361,7 +361,7 @@ void curses_table::render(bool data_changed)
 			for(j = 0, k = 0; j < m_legend.size(); j++)
 			{
 				m_converter->set_val(m_legend[j].m_info.m_type, row->at(j).m_val, row->at(j).m_len);
-				mvwaddnstr(m_win, l + 1, k, m_converter->tostring(NULL), m_legend[j].m_size);
+				mvwaddnstr(m_win, l + 1, k, m_converter->tostring_nice(NULL), m_legend[j].m_size);
 				k += m_legend[j].m_size;
 			}
 		}
