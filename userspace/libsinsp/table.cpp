@@ -143,7 +143,7 @@ void sinsp_table::configure(const string& fmt)
 		}
 
 		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + preamble_len), 
-			m_inspector, 
+			m_inspector,
 			false);
 
 		if(chk == NULL)
@@ -289,7 +289,7 @@ void sinsp_table::stdout_print()
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
 			m_printer->set_val(m_types[j + 1], it->m_values[j].m_val, it->m_values[j].m_len);
-				printf("%s ", m_printer->tostring(NULL));
+				printf("%s ", m_printer->tostring_nice(NULL));
 		}
 
 			printf("\n");

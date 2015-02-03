@@ -547,8 +547,12 @@ public:
 	int32_t parse_field_name(const char* str);
 	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	char* tostring_nice(sinsp_evt* evt);
 
 private:
+	char* format_bytes(int64_t val);
+	char* format_time(uint64_t val);
+
 	filtercheck_field_info m_finfo;
 	uint8_t* m_val;
 	uint32_t m_len;
