@@ -1674,8 +1674,8 @@ sysdig_init_res systop_init(int argc, char **argv)
 			// Initialize the table
 			//
 			sinsp_table* table = new sinsp_table(inspector);
-			table->configure("*proc.pid proc.pid proc.name Sevt.count");
-			table->set_sorting_col(3);
+			table->configure("*evt.type evt.type Sevt.count");
+			table->set_sorting_col(2);
 
 			curses_table* viz = new curses_table();
 			viz->configure(table, NULL);

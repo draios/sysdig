@@ -300,6 +300,16 @@ void sinsp_table::stdout_print()
 
 vector<sinsp_sample_row>* sinsp_table::get_sample()
 {
+	if(m_sample_data.size() == 0)
+	{
+		return &m_sample_data;
+	}
+
+	if(m_sorting_col >= m_sample_data[0].m_values.size())
+	{
+		throw sinsp_exception("invalid table sorting column");
+	}
+
 	table_row_cmp cc;
 	cc.m_colid = m_sorting_col;
 
