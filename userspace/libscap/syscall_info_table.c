@@ -334,4 +334,18 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_PROCESS_VM_WRITEV*/ { EC_IO_OTHER, "process_vm_writev" },
 	/*PPM_SC_FORK*/ { EC_IO_OTHER, "fork" },
 	/*PPM_SC_VFORK*/ { EC_IO_OTHER, "vfork" },
+	/*PPM_SC_SETUID32*/ { EC_IO_OTHER, "setuid" },
+	/*PPM_SC_GETUID32*/ { EC_IO_OTHER, "getuid" },
+	/*PPM_SC_SETGID32*/ { EC_IO_OTHER, "setgid" },
+	/*PPM_SC_GETEUID32*/ { EC_IO_OTHER, "geteuid" },
+	/*PPM_SC_GETGID32*/ { EC_IO_OTHER, "getgid" },
+	/*PPM_SC_SETRESUID32*/ { EC_IO_OTHER, "setresuid" },
+	/*PPM_SC_SETRESGID32*/ { EC_IO_OTHER, "setresgid" },
+	/*PPM_SC_GETRESUID32*/ { EC_IO_OTHER, "getresuid" },
+	/*PPM_SC_GETRESGID32*/ { EC_IO_OTHER, "getresgid" },
 };
+
+bool validate_info_table_size()
+{
+	return (sizeof(g_syscall_info_table) / sizeof(g_syscall_info_table[0]) == PPM_SC_MAX);
+}

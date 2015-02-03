@@ -196,7 +196,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 {
 	int ret;
 	struct ppm_ring_buffer_context *ring;
-	int ring_no = iminor(filp->f_dentry->d_inode);
+	int ring_no = iminor(filp->f_path.dentry->d_inode);
 
 	mutex_lock(&g_open_mutex);
 
@@ -291,7 +291,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 {
 	int ret;
 	struct ppm_ring_buffer_context *ring;
-	int ring_no = iminor(filp->f_dentry->d_inode);
+	int ring_no = iminor(filp->f_path.dentry->d_inode);
 
 	mutex_lock(&g_open_mutex);
 
@@ -349,7 +349,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case PPM_IOCTL_DISABLE_CAPTURE:
 	{
-		int ring_no = iminor(filp->f_dentry->d_inode);
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
 		mutex_lock(&g_open_mutex);
@@ -362,7 +362,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case PPM_IOCTL_ENABLE_CAPTURE:
 	{
-		int ring_no = iminor(filp->f_dentry->d_inode);
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
 
 		mutex_lock(&g_open_mutex);
@@ -533,7 +533,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		unsigned long pfn;
 		char *vmalloc_area_ptr;
 		char *orig_vmalloc_area_ptr;
-		int ring_no = iminor(filp->f_dentry->d_inode);
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
 		struct ppm_ring_buffer_context *ring;
 
 		vpr_info("mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
@@ -1082,9 +1082,21 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
+		enum ppm_event_type type;
+
+#ifdef __NR_socketcall
+		if (id == __NR_socketcall) {
+			used = true;
+			drop_flags = UF_NEVER_DROP;
+			type = PPME_GENERIC_E;
+		} else
+			type = g_syscall_table[table_index].enter_event_type;
+#else
+		type = g_syscall_table[table_index].enter_event_type;
+#endif
 
 		if (used)
-			record_event(g_syscall_table[table_index].enter_event_type, regs, id, drop_flags, NULL, NULL);
+			record_event(type, regs, id, drop_flags, NULL, NULL);
 		else
 			record_event(PPME_GENERIC_E, regs, id, UF_ALWAYS_DROP, NULL, NULL);
 	}
@@ -1111,9 +1123,21 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
+		enum ppm_event_type type;
+
+#ifdef __NR_socketcall
+		if (id == __NR_socketcall) {
+			used = true;
+			drop_flags = UF_NEVER_DROP;
+			type = PPME_GENERIC_X;
+		} else
+			type = g_syscall_table[table_index].exit_event_type;
+#else
+		type = g_syscall_table[table_index].exit_event_type;
+#endif
 
 		if (used)
-			record_event(g_syscall_table[table_index].exit_event_type, regs, id, drop_flags, NULL, NULL);
+			record_event(type, regs, id, drop_flags, NULL, NULL);
 		else
 			record_event(PPME_GENERIC_X, regs, id, UF_ALWAYS_DROP, NULL, NULL);
 	}

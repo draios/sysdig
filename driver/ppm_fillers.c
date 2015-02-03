@@ -2067,7 +2067,7 @@ static int f_sys_pipe_x(struct event_filler_arguments *args)
 	file = fget(fds[0]);
 	val = 0;
 	if (likely(file != NULL)) {
-		val = file->f_dentry->d_inode->i_ino;
+		val = file->f_path.dentry->d_inode->i_ino;
 		fput(file);
 	}
 
