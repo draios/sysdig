@@ -1,6 +1,6 @@
 --[[
 Copyright (C) 2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -19,13 +19,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 description = "Print the system network connections, with an output that is similar to the one of netstat";
 short_description = "List (and optionally filter) network connections.";
 category = "System State";
-		   
+		
 -- Argument list
-args = 
+args =
 {
 	{
 		name = "filter",
-		description = "A sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.port=80'.", 
+		description = "A sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.port=80'.",
 		argtype = "filter",
 		optional = true
 	}
@@ -61,6 +61,7 @@ function on_init()
 	return true
 end
 
+-- Called by sysdig after the capture is configured, after on_set_arg() has been called for every chisel argument, but before any packet has been captured.
 function on_capture_start()	
 	capturing = true
 	return true
@@ -72,6 +73,7 @@ function on_event()
 	return false
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
 	if not capturing then
 		return

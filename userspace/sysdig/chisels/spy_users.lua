@@ -1,10 +1,9 @@
 --[[
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
-
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,39 +15,48 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Lists every command that users launch interactively (e.g. from bash) and every directory users visit";
+description = "Lists every command that users launch interactively (e.g. from bash) and every directory users visit. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)";
 short_description = "Display interactive user activity";
 category = "Security";
 
 -- Chisel argument list
-args = 
+args =
 {
 	{
 		name = "max_depth",
-		description = "the maximum depth to show in the hierarchy of processes", 
+		description = "the maximum depth to show in the hierarchy of processes",
 		argtype = "int",
-        optional = true
-	}
+		optional = true
+	},
+	{
+		name = "disable_color",
+		description = "Set to 'disable_colors' if you want to disable color output",
+		argtype = "string",
+		optional = true
+	},
 }
 
 require "common"
+terminal = require "ansiterminal"
+terminal.enable_color(true)
 
 MAX_ANCESTOR_NAVIGATION = 16
 max_depth = -1
 
 -- Argument notification callback
 function on_set_arg(name, val)
-    if name == "max_depth" then
-        max_depth = parse_numeric_input(val, name)
-        return true
-    end
+	if name == "max_depth" then
+		max_depth = parse_numeric_input(val, name)
+	elseif name == "disable_color" and val == "disable_color" then
+		terminal.enable_color(false)
+	end
 
-    return false
+	return true
 end
 
 -- Initialization callback
 function on_init()
-	-- Request the fields that we need
+	-- Request the fields needed for this chisel 
 	fetype = chisel.request_field("evt.type")
 	fexe = chisel.request_field("proc.exe")
 	fargs = chisel.request_field("proc.args")
@@ -57,17 +65,22 @@ function on_init()
 	fdtime = chisel.request_field("evt.time.s")
 	fpid = chisel.request_field("proc.pid")
 	fppid = chisel.request_field("proc.ppid")
+	fcontainername = chisel.request_field("container.name")
+	fcontainerid = chisel.request_field("container.id")
 	fanames = {}
 	fapids = {}
 
+	-- The -pc or -pcontainer options was supplied on the cmd line
+	print_container = sysdig.is_print_container_data()
+
 	-- set the filter
 	chisel.set_filter("((evt.type=execve and evt.dir=<) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)) and evt.failed=false")
-	
+
 	for j = 0, MAX_ANCESTOR_NAVIGATION do
 		fanames[j] = chisel.request_field("proc.aname[" .. j .. "]")
 		fapids[j] = chisel.request_field("proc.apid[" .. j .. "]")
 	end
-	
+
 	return true
 end
 
@@ -75,33 +88,45 @@ process_tree = {}
 
 -- Event parsing callback
 function on_event()
+
+    -- Default color is black
+	local color = terminal.black
+
+    -- If -pc or -pcontainer option change default to green
+	if  print_container then
+		color = terminal.green
+    end
+		
+
 	local user = evt.field(fuser)
 	local dtime = evt.field(fdtime)
 	local pid = evt.field(fpid)
 	local ppid = evt.field(fppid)
 	local ischdir = evt.field(fetype) == "chdir"
+	local containername = evt.field(fcontainername)
+	local containerid = evt.field(fcontainerid)
 	local aname
 	local icorr = 1
 
-	if ischdir then 
+	if ischdir then
 		ppid = pid
 		table.insert(fanames, 0, 0)
 		table.insert(fapids, 0, 0)
 		icorr = 0
 	end
-	
+
 	if user == nil then
 		user = "<NA>"
 	end
-	
+
 	if not process_tree[ppid] then
 		-- No parent pid in the table yet.
 		-- Add one and make sure that there's a shell among the ancestors
 		process_tree[ppid] = {-1}
-		
+
 		for j = 1, MAX_ANCESTOR_NAVIGATION do
 			aname = evt.field(fanames[j])
-			
+
 			if aname == nil then
 				if evt.field(fapids[j]) == nil then
 					-- no shell in the ancestor list, hide this command
@@ -122,27 +147,87 @@ function on_event()
 		-- the parent process has already been detected as NOT having a shell ancestor
 		return true
 	end
-	
+
 	if not process_tree[pid] then
 		process_tree[pid] = {1 + process_tree[ppid][1], process_tree[ppid][2]}
 	end
-	
+
 	if ischdir then
+
 		if max_depth ~= -1 then
 			if process_tree[pid][1] - icorr > max_depth then
 				return true
 			end
 		end
 
-		print(extend_string("", 4 * (process_tree[pid][1] - icorr)) .. process_tree[pid][2] .. " " .. dtime .. " " .. user .. ") " .. "cd " .. evt.field(fdir))
+		-- The -pc or -pcontainer options was supplied on the cmd line
+		if  print_container then
+
+			-- Conatiner will print out as blue
+			if containername ~= "host" then
+				color = terminal.blue
+			end
+
+			print(color ..
+				  extend_string("", 4 * (process_tree[pid][1] - icorr)) .. process_tree[pid][2] .. " " ..
+				  dtime .. " " ..
+				  user .. "@" ..
+				  containername ..") cd " ..
+				  evt.field(fdir))
+
+		else
+
+			print(color ..
+				  extend_string("", 4 * (process_tree[pid][1] - icorr)) .. process_tree[pid][2] .. " " ..
+				  dtime .. " " ..
+				  user .. ") cd " ..
+				  evt.field(fdir))
+
+		end
 	else
 		if max_depth ~= -1 then
 			if process_tree[pid][1] - 1 > max_depth then
 				return true
 			end
 		end
-		
-		print(extend_string("", 4 * (process_tree[pid][1] - 1)) .. process_tree[pid][2] .. " " .. dtime .. " " .. user .. ") " .. evt.field(fexe) .. " " .. evt.field(fargs))
+
+		-- The -pc or -pcontainer options was supplied on the cmd line
+		if  print_container then
+
+			-- Conatiner will print out as blue
+			if containername ~= "host" then
+				color = terminal.blue
+			end
+
+			print(color ..
+				  extend_string("", 4 * (process_tree[pid][1] - 1)) ..  process_tree[pid][2] ..  " " ..
+				  dtime .. " " ..
+				  user .. "@" ..
+				  containername ..") " ..
+				  evt.field(fexe) .. " " ..
+				  evt.field(fargs))
+		else
+
+			print(color ..
+				  extend_string("", 3 * (process_tree[pid][1] - 1)) .. process_tree[pid][2] .. " " ..
+				  dtime .. " " ..
+				  user ..") " ..
+				  evt.field(fexe) .. " " ..
+				  evt.field(fargs))
+
+		end
+
+-- Tabular format, a future option with potentially a chisel cmd line argument?
+--				 print(color .. string.format("%10.10s %-10.10s %-8.8s %-20.20s %-20.20s %-15.15s %s",
+--												(process_tree[pid][1] - 1),
+--												process_tree[pid][2],
+--												dtime,
+--												containerid,
+--												containername,
+--												user,
+--												evt.field(fexe) .. " " .. evt.field(fargs)))
+
+
 	end
 
 	return true

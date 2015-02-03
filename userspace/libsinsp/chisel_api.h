@@ -46,6 +46,7 @@ public:
 	static int get_machine_info(lua_State *ls);
 	static int get_thread_table(lua_State *ls);
 	static int get_container_table(lua_State *ls);
+	static int is_print_container_data(lua_State *ls);
 	static int get_output_format(lua_State *ls);
 	static int get_evtsource_name(lua_State *ls);
 	static int set_event_formatter(lua_State *ls);

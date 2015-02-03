@@ -1,6 +1,6 @@
 --[[
 Copyright (C) 2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -19,16 +19,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 description = "List the running containers and the metadata";
 short_description = "List the running containers";
 category = "System State";
-		   
+		
 -- Argument list
-args = 
+args =
 {
-        {
-                name = "desc",
-                description = "Prints the result set as a data structure",
-                argtype = "string",
-                optional = true
-        }
+		{
+				name = "desc",
+				description = "Prints the result set as a data structure",
+				argtype = "string",
+				optional = true
+		}
 }
 
 -- Imports and globals
@@ -39,12 +39,12 @@ local filter = nil
 local desc = false
 
 function on_set_arg(name, val)
-        if name == "desc" and val == "desc" then
-                desc = true
-                return true
-        end
+		if name == "desc" and val == "desc" then
+				desc = true
+				return true
+		end
 
-        return false
+		return false
 end
 
 -- Initialization callback
@@ -58,27 +58,28 @@ function on_event()
 	return false
 end
 
+-- Called by sysdig after the capture is configured, after on_set_arg() has been called for every chisel argument, but before any packet has been captured.
 function on_capture_start()
-        capturing = true
-        return true
+		capturing = true
+		return true
 end
 
-
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end(ts_s, ts_ns, delta)
-        if not capturing then
-                return
-        end
+		if not capturing then
+				return
+		end
 
 	local ttable = sysdig.get_container_table(filter)
 
 	-- Print out the result set as a data structure
-        if ( desc ) then
+		if ( desc ) then
 		print(st(ttable))
-        else
+		else
 	-- Print out the information in a tabular format
 
 		local sorted_ttable = pairs_top_by_val(ttable, 0, function(t,a,b) return a < b end)
-   
+
 		print( extend_string("container.type", 15) ..
 			extend_string("container.image", 16) ..
 			extend_string("container.name", 20 ) ..
@@ -94,6 +95,6 @@ function on_capture_end(ts_s, ts_ns, delta)
 			extend_string(tostring(val.name), 20) ..
 			extend_string(tostring(val.id), 13)
 			)
-		end 
-	end 
+		end
+	end
 end
