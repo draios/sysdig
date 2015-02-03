@@ -407,19 +407,40 @@ void curses_table::scrollwin(uint32_t x, uint32_t y)
 	render(false);
 }
 
+void curses_table::sanitize_selection()
+{
+	if(m_firstrow > (int32_t)(m_data->size() - m_h + 1))
+	{
+		m_firstrow = m_data->size() - m_h + 1;
+	}
+	
+	if(m_firstrow < 0)
+	{
+		m_firstrow = 0;
+	}	
+
+	if(m_selct > (int32_t)m_data->size() - 1)
+	{
+		m_selct = m_data->size() - 1;
+	}
+	
+	if(m_selct < 0)
+	{
+		m_selct = 0;
+	}	
+}
+
 void curses_table::selection_up()
 {
 	if(m_selct > 0)
 	{
 		if(m_selct <= (int32_t)m_firstrow)
 		{
-			if(m_firstrow > 0)
-			{
-				m_firstrow--;
-			}
+			m_firstrow--;
 		}
 
 		m_selct--;
+		sanitize_selection();
 		update_rowkey(m_selct);
 		render(true);
 	}
@@ -431,13 +452,11 @@ void curses_table::selection_down()
 	{
 		if(m_selct - m_firstrow > (int32_t)m_h - 3)
 		{
-			if(m_firstrow < (int32_t)m_data->size() - 1)
-			{
-				m_firstrow++;
-			}
+			m_firstrow++;
 		}
 
 		m_selct++;
+		sanitize_selection();
 		update_rowkey(m_selct);
 		render(true);
 	}
@@ -446,17 +465,9 @@ void curses_table::selection_down()
 void curses_table::selection_pageup()
 {
 	m_firstrow -= (m_h - 1);
-	if(m_firstrow < 0)
-	{
-		m_firstrow = 0;
-	}
-
 	m_selct -= (m_h - 1);
-	if(m_selct < 0)
-	{
-		m_selct = 0;
-	}
 
+	sanitize_selection();
 	update_rowkey(m_selct);
 	render(true);
 }
@@ -464,17 +475,9 @@ void curses_table::selection_pageup()
 void curses_table::selection_pagedown()
 {
 	m_firstrow += (m_h - 1);
-	if(m_firstrow > (int32_t)(m_data->size() - m_h + 1))
-	{
-		m_firstrow = m_data->size() - m_h + 1;
-	}
-
 	m_selct += (m_h - 1);
-	if(m_selct > (int32_t)m_data->size() - 1)
-	{
-		m_selct = m_data->size() - 1;
-	}
 
+	sanitize_selection();
 	update_rowkey(m_selct);
 	render(true);
 }
@@ -488,18 +491,10 @@ void curses_table::selection_goto(int32_t row)
 		return;
 	}
 
-	m_firstrow = row - (m_h - 1);
-	if(m_firstrow > (int32_t)(m_data->size() - m_h + 1))
-	{
-		m_firstrow = m_data->size() - m_h + 1;
-	}
-	else if(m_firstrow < 0)
-	{
-		m_firstrow = 0;
-	}
-
+	m_firstrow = row - (m_h /2);
 	m_selct = row;
 
+	sanitize_selection();
 	render(true);
 }
 
@@ -558,6 +553,9 @@ bool curses_table::handle_input(int ch)
 
 						if((uint32_t)event.y == m_table_y_start)
 						{
+							//
+							// This is a click on a column header. Change the sorting accordingly.
+							//
 							for(j = 0; j < m_column_startx.size() - 1; j++)
 							{
 								if((uint32_t)event.x >= m_column_startx[j] && (uint32_t)event.x < m_column_startx[j + 1])
@@ -577,7 +575,12 @@ bool curses_table::handle_input(int ch)
 						else if((uint32_t)event.y > m_table_y_start &&
 							(uint32_t)event.y < m_table_y_start + m_h - 1)
 						{
+							//
+							// This is a click on a row. Update the selection.
+							//
 							m_selct = event.y - m_table_y_start - 1;
+							sanitize_selection();
+							update_rowkey(m_selct);
 							render(true);
 						}
 					}

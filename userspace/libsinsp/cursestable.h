@@ -134,6 +134,7 @@ public:
 	void selection_goto(int32_t row);
 	bool handle_input(int ch);
 	void update_rowkey(int32_t row);
+	void sanitize_selection();
 
 	int m_colors[LAST_COLORELEMENT];
 	WINDOW* m_win;
