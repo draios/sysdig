@@ -50,6 +50,7 @@ static bool g_terminate = false;
 vector<sinsp_chisel*> g_chisels;
 #endif
 
+//#define NOCURSESUI
 
 
 // Sysdig 0.1.85 had log-rotation options (-C,-G,-W), but they were problematic,
@@ -1442,13 +1443,13 @@ captureinfo do_systop_inspect(sinsp* inspector,
 
 		retval.m_nevts++;
 
-#ifndef _WIN32
+#ifndef NOCURSESUI
 		int input = getch();
 #endif
 
 		for(auto it = tables->begin(); it != tables->end(); ++it)
 		{
-#ifndef _WIN32
+#ifndef NOCURSESUI
 			if(it->m_view->handle_input(input) == false)
 			{
 				return retval;
@@ -1462,10 +1463,20 @@ captureinfo do_systop_inspect(sinsp* inspector,
 				vector<sinsp_sample_row>* sample = 
 					it->m_data->get_sample();
 
-#ifndef _WIN32
+#ifndef NOCURSESUI
 				it->m_view->update_data(sample);
 				it->m_view->render(true);
-#endif
+
+				if(!inspector->is_live())
+				{
+					while(getch() != 'a')
+					{
+mvprintw(4, 10, "aaa");
+refresh();						
+						usleep(100000);
+					}
+				}
+#endif				
 			}
 		}
 	}
@@ -1501,7 +1512,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 	//
 	// Initialize ncurses
 	//
-#ifndef _WIN32
+#ifndef NOCURSESUI
 	(void) initscr();      // initialize the curses library
 	keypad(stdscr, TRUE);  // enable keyboard mapping
 	(void) nonl();         // tell curses not to do NL->CR/NL on output
@@ -1685,7 +1696,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 			table->configure("*evt.type evt.type Sevt.count");
 			table->set_sorting_col(2);
 
-#ifndef _WIN32
+#ifndef NOCURSESUI
 			curses_table* viz = new curses_table();
 			viz->configure(table, NULL);
 
@@ -1736,7 +1747,7 @@ exit:
 	//
 	// Restore the original screen
 	//
-#ifndef _WIN32
+#ifndef NOCURSESUI
 	endwin();
 #endif
 

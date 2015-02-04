@@ -171,7 +171,8 @@ curses_table::curses_table()
 	//
 	getmaxyx(stdscr, m_screenh, m_screenw);
 	m_w = TABLE_WIDTH;
-	m_h = TABLE_HEIGHT;
+	//m_h = TABLE_HEIGHT;
+	m_h = m_screenh - 2;
 	m_scrolloff_x = 0;
 	m_scrolloff_y = 10;
 
@@ -180,6 +181,14 @@ curses_table::curses_table()
 	//
 	refresh();
 	m_win = newwin(m_h, 500, m_table_y_start, 0);
+
+	//
+	// Pipulate the main menu entries
+	//
+	m_menuitems.push_back("Help");
+	m_menuitems.push_back("View");
+	m_menuitems.push_back("Setup");
+	m_menuitems.push_back("Search");
 }
 
 curses_table::~curses_table()
@@ -256,12 +265,35 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 		if(m_selct == -1)
 		{
 			m_selct = 0;
+			m_firstrow = 0;
 			m_last_key.m_isvalid = false;
 		}
 		else
 		{
 			selection_goto(m_selct);			
 		}
+
+		sanitize_selection();
+	}
+}
+
+void curses_table::render_main_menu()
+{
+	uint32_t j = 0;
+	uint32_t k = 0;
+
+	for(j = 0; j < m_menuitems.size(); j++)
+	{
+		attrset(m_colors[PROCESS]);
+		string fks = string("F") + to_string(j + 1);
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
+		k += 2;
+
+		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+		fks = m_menuitems[j];
+		fks.resize(6, ' ');
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+		k += 6;
 	}
 }
 
@@ -338,6 +370,11 @@ void curses_table::render(bool data_changed)
 
 		for(l = 0; l < (int32_t)MIN(m_data->size(), m_h - 1); l++)
 		{
+			if(l + m_firstrow >= (int32_t)m_data->size())
+			{
+				break;
+			}
+
 			row = &(m_data->at(l + m_firstrow).m_values);
 
 			if(l == m_selct - (int32_t)m_firstrow)
@@ -346,7 +383,7 @@ void curses_table::render(bool data_changed)
 			}
 			else
 			{
-				wattrset(m_win, m_colors[PROCESS]);				
+				wattrset(m_win, m_colors[PROCESS]);
 			}
 
 			//
@@ -394,6 +431,12 @@ void curses_table::render(bool data_changed)
 		FALSE);
 
 	wrefresh(m_win);
+
+	//
+	// Draw the menu at the bottom of the screen
+	//
+	render_main_menu();
+
 	refresh();
 }
 
@@ -428,6 +471,11 @@ void curses_table::sanitize_selection()
 	{
 		m_selct = 0;
 	}	
+
+	if(m_firstrow > m_selct)
+	{
+		m_firstrow = m_selct;
+	}
 }
 
 void curses_table::selection_up()
@@ -539,6 +587,14 @@ bool curses_table::handle_input(int ch)
 			break;
 		case KEY_NPAGE:
 			selection_pagedown();
+			break;
+		case KEY_F(1):
+			mvprintw(0, 0, "F1");
+			refresh();
+			break;
+		case KEY_F(2):
+			mvprintw(0, 0, "F1");
+			refresh();
 			break;
 		case KEY_MOUSE:
 			{

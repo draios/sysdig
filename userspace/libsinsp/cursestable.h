@@ -20,7 +20,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define TABLE_WIDTH 400
 #define TABLE_HEIGHT 20
-#define TABLE_Y_START 10
+#define TABLE_Y_START 1
 
 
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
@@ -133,8 +133,11 @@ public:
 	void selection_pagedown();
 	void selection_goto(int32_t row);
 	bool handle_input(int ch);
+
+private:
 	void update_rowkey(int32_t row);
 	void sanitize_selection();
+	void render_main_menu();
 
 	int m_colors[LAST_COLORELEMENT];
 	WINDOW* m_win;
@@ -154,6 +157,7 @@ public:
 	int32_t m_firstrow;
 	vector<uint32_t> m_column_startx;
 	sinsp_table_field_storage m_last_key;
+	vector<string> m_menuitems;
 };
 
 #endif
