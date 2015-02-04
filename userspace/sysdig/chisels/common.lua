@@ -181,14 +181,16 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 		local str = json.encode(res, { indent = true })
 		print(str)
 	else
-		local header = extend_string(viz_info.value_desc, 10)
+        -- Same size to extend each string
+        local EXTEND_STRING_SIZE = 20
+		local header = extend_string(viz_info.value_desc, EXTEND_STRING_SIZE)
 		
 		for i, fldname in ipairs(viz_info.key_desc) do
-			header = header .. extend_string(fldname, 10)
+			header = header .. extend_string(fldname, EXTEND_STRING_SIZE)
 		end
 		
 		print(header)
-		print("------------------------------")
+		print("----------------------------------------")
 
 		for k,v in sorted_grtable do
 			local keystr = ""
@@ -197,18 +199,18 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 
 			for i, singlekey in ipairs(singlekeys) do
 				if i < #singlekeys then
-					keystr = keystr .. extend_string(string.sub(singlekey, 0, 10), 10)
+					keystr = keystr .. extend_string(string.sub(singlekey, 0, 10), EXTEND_STRING_SIZE)
 				else
 					keystr = keystr .. singlekey
 				end
 			end
 			
 			if viz_info.value_units == "none" then
-				print(extend_string(tostring(v), 10) .. keystr)
+				print(extend_string(tostring(v), EXTEND_STRING_SIZE) .. keystr)
 			elseif viz_info.value_units == "bytes" then
-				print(extend_string(format_bytes(v), 10) .. keystr)
+				print(extend_string(format_bytes(v), EXTEND_STRING_SIZE) .. keystr)
 			elseif viz_info.value_units == "time" then
-				print(extend_string(format_time_interval(v), 10) .. keystr)
+				print(extend_string(format_time_interval(v), EXTEND_STRING_SIZE) .. keystr)
 			elseif viz_info.value_units == "timepct" then
 				if timedelta ~= 0 then
 					pctstr = string.format("%.2f%%", v / timedelta * 100)
@@ -216,7 +218,7 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 					pctstr = "0.00%"
 				end
 
-				print(extend_string(pctstr, 10) .. keystr)	
+				print(extend_string(pctstr, EXTEND_STRING_SIZE) .. keystr)	
 			end
 		end
 	end
