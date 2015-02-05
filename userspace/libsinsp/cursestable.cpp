@@ -43,13 +43,269 @@ using namespace std;
 #include "table.h"
 #include "cursestable.h"
 
-curses_table::curses_table()
+///////////////////////////////////////////////////////////////////////////////
+// curses_table_sidemenu implementation
+///////////////////////////////////////////////////////////////////////////////
+curses_scrollable_list::curses_scrollable_list()
 {
 	m_selct = 0;
 	m_firstrow = 0;
+}
+
+void curses_scrollable_list::sanitize_selection(int32_t datasize)
+{
+	if(m_firstrow > (datasize - (int32_t)m_h + 1))
+	{
+		m_firstrow = datasize - (int32_t)m_h + 1;
+	}
+	
+	if(m_firstrow < 0)
+	{
+		m_firstrow = 0;
+	}	
+
+	if(m_selct > datasize - 1)
+	{
+		m_selct = datasize - 1;
+	}
+	
+	if(m_selct < 0)
+	{
+		m_selct = 0;
+	}	
+
+	if(m_firstrow > m_selct)
+	{
+		m_firstrow = m_selct;
+	}
+}
+
+void curses_scrollable_list::selection_up(int32_t datasize)
+{
+	if(m_selct > 0)
+	{
+		if(m_selct <= (int32_t)m_firstrow)
+		{
+			m_firstrow--;
+		}
+
+		m_selct--;
+		sanitize_selection(datasize);
+	}
+}
+
+void curses_scrollable_list::selection_down(int32_t datasize)
+{
+	if(m_selct < datasize - 1)
+	{
+		if(m_selct - m_firstrow > (int32_t)m_h - 3)
+		{
+			m_firstrow++;
+		}
+
+		m_selct++;
+		sanitize_selection(datasize);
+	}
+}
+
+void curses_scrollable_list::selection_pageup(int32_t datasize)
+{
+	m_firstrow -= (m_h - 1);
+	m_selct -= (m_h - 1);
+
+	sanitize_selection(datasize);
+}
+
+void curses_scrollable_list::selection_pagedown(int32_t datasize)
+{
+	m_firstrow += (m_h - 1);
+	m_selct += (m_h - 1);
+
+	sanitize_selection(datasize);
+}
+
+void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)
+{
+	if(row == -1 ||
+		row >= datasize)
+	{
+		ASSERT(false);
+		return;
+	}
+
+	m_firstrow = row - (m_h /2);
+	m_selct = row;
+
+	sanitize_selection(datasize);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// curses_table_sidemenu implementation
+///////////////////////////////////////////////////////////////////////////////
+curses_table_sidemenu::curses_table_sidemenu(curses_table* parent)
+{
+	ASSERT(parent != NULL);
+	m_parent = parent;
+	m_h = parent->m_h;
+	m_w = SIDEMENU_WIDTH;
+	m_y_start = TABLE_Y_START;
+	m_win = newwin(m_h, m_w, m_y_start, 0);
+	m_selct = m_parent->m_selected_view;
+}
+
+curses_table_sidemenu::~curses_table_sidemenu()
+{
+	delwin(m_win);
+}
+
+void curses_table_sidemenu::render()
+{
+	int32_t j, k;
+
+	//
+	// Render window header
+	//
+	wattrset(m_win, m_parent->m_colors[curses_table::PANEL_HEADER_FOCUS]);
+
+	wmove(m_win, 0, 0);
+	for(j = 0; j < (int32_t)m_w - 1; j++)
+	{
+		waddch(m_win, ' ');
+	}
+
+	// white space at the right
+	wattrset(m_win, m_parent->m_colors[curses_table::PROCESS]);
+	waddch(m_win, ' ');
+
+	wattrset(m_win, m_parent->m_colors[curses_table::PANEL_HEADER_FOCUS]);
+	mvwaddnstr(m_win, 0, 0, "Select View", m_w);
+
+	//
+	// Render the rows
+	//
+	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_parent->m_views.size()); j++)
+	{
+		if(j == m_selct)
+		{
+			wattrset(m_win, m_parent->m_colors[curses_table::PANEL_HIGHLIGHT_FOCUS]);
+		}
+		else
+		{
+			wattrset(m_win, m_parent->m_colors[curses_table::PROCESS]);
+		}
+
+		// clear the line
+		wmove(m_win, j - m_firstrow + 1, 0);
+		for(k = 0; k < (int32_t)m_w - 1; k++)
+		{
+			waddch(m_win, ' ');
+		}
+
+		// add the new line
+		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_parent->m_views[j].m_name.c_str(), m_w);
+
+		// white space at the right
+		wattrset(m_win, m_parent->m_colors[curses_table::PROCESS]);
+		wmove(m_win, j - m_firstrow + 1, m_w - 1);
+		waddch(m_win, ' ');
+	}
+
+	wrefresh(m_win);
+}
+
+//
+// Return true if the parent should handle the event
+//
+sysdig_table_action curses_table_sidemenu::handle_input(int ch)
+{
+	switch(ch)
+	{
+		case '\n':
+		case '\r':
+		case KEY_ENTER:
+			m_parent->m_selected_view = m_selct;
+			return STA_SWITCH_VIEW;
+		case KEY_UP:
+			selection_up((int32_t)m_parent->m_views.size());
+			render();
+			return STA_NONE;
+		case KEY_DOWN:
+			selection_down((int32_t)m_parent->m_views.size());
+			render();
+			return STA_NONE;
+		case KEY_PPAGE:
+			selection_pageup((int32_t)m_parent->m_views.size());
+			render();
+			return STA_NONE;
+		case KEY_NPAGE:
+			selection_pagedown((int32_t)m_parent->m_views.size());
+			render();
+			return STA_NONE;
+		case KEY_MOUSE:
+			{
+/*
+				uint32_t j;
+				MEVENT event;
+
+				if(getmouse(&event) == OK)
+				{
+//					if(event.bstate & BUTTON1_PRESSED)
+					{
+						ASSERT((m_data->size() == 0) || (m_column_startx.size() == m_data->at(0).m_values.size()));
+
+						if((uint32_t)event.y == m_table_y_start)
+						{
+							//
+							// This is a click on a column header. Change the sorting accordingly.
+							//
+							for(j = 0; j < m_column_startx.size() - 1; j++)
+							{
+								if((uint32_t)event.x >= m_column_startx[j] && (uint32_t)event.x < m_column_startx[j + 1])
+								{
+									m_table->set_sorting_col(j + 1);
+									break;
+								}
+							}
+
+							if(j == m_column_startx.size() - 1)
+							{
+								m_table->set_sorting_col(j + 1);
+							}
+
+							render(true);
+						}
+						else if((uint32_t)event.y > m_table_y_s						(uint32_t)event.y < m_table_y_start + m_h - 1)
+						{
+							//
+							// This is a click on a row. Update the selection.
+							//
+							m_selct = event.y - m_table_y_start - 1;
+							sanitize_selection();
+							update_rowkey(m_selct);
+							render(true);
+						}
+					}
+				}
+*/			
+			}
+			break;
+			
+	}
+
+	return STA_PARENT_HANDLE;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// curses_table implementation
+///////////////////////////////////////////////////////////////////////////////
+curses_table::curses_table()
+{
 	m_data = NULL;
 	m_table = NULL;
+	m_table_x_start = 0;
 	m_table_y_start = TABLE_Y_START;
+	m_sidemenu = NULL;
+	m_selected_view = 0;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -177,10 +433,10 @@ curses_table::curses_table()
 	m_scrolloff_y = 10;
 
 	//
-	// Create the window
+	// Create the table window
 	//
 	refresh();
-	m_win = newwin(m_h, 500, m_table_y_start, 0);
+	m_tblwin = newwin(m_h, 500, m_table_y_start, 0);
 
 	//
 	// Pipulate the main menu entries
@@ -193,11 +449,17 @@ curses_table::curses_table()
 
 curses_table::~curses_table()
 {
-	delwin(m_win);
+	delwin(m_tblwin);
+
+	if(m_sidemenu != NULL)
+	{
+		delete m_sidemenu;
+	}
+
 	delete m_converter;
 }
 
-void curses_table::configure(sinsp_table* table, vector<int32_t>* colsizes)
+void curses_table::configure(sinsp_table* table, vector<int32_t>* colsizes, vector<sinsp_table_info>* views)
 {
 	uint32_t j;
 
@@ -233,6 +495,11 @@ void curses_table::configure(sinsp_table* table, vector<int32_t>* colsizes)
 		}
 
 		m_legend.push_back(ci);
+	}
+
+	if(views != NULL)
+	{
+		m_views = *views;
 	}
 }
 
@@ -270,10 +537,11 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 		}
 		else
 		{
-			selection_goto(m_selct);			
+			selection_goto((int32_t)m_data->size(), m_selct);			
+			render(true);
 		}
 
-		sanitize_selection();
+		sanitize_selection((int32_t)m_data->size());
 	}
 }
 
@@ -330,34 +598,34 @@ void curses_table::render(bool data_changed)
 			m_selct = (int32_t)m_data->size() - 1;
 		}
 
-		wattrset(m_win, m_colors[PANEL_HEADER_FOCUS]);
+		wattrset(m_tblwin, m_colors[PANEL_HEADER_FOCUS]);
 
 		//
 		// Render the column headers
 		//
-		wmove(m_win, 0, 0);
+		wmove(m_tblwin, 0, 0);
 		for(j = 0; j < m_w; j++)
 		{
-			waddch(m_win, ' ');
+			waddch(m_tblwin, ' ');
 		}
 
 		for(j = 0, k = 0; j < m_legend.size(); j++)
 		{
 			if(j == m_table->get_sorting_col())
 			{
-				wattrset(m_win, m_colors[PANEL_HIGHLIGHT_FOCUS]);
+				wattrset(m_tblwin, m_colors[PANEL_HIGHLIGHT_FOCUS]);
 			}
 			else
 			{
-				wattrset(m_win, m_colors[PANEL_HEADER_FOCUS]);
+				wattrset(m_tblwin, m_colors[PANEL_HEADER_FOCUS]);
 			}
 
 			m_column_startx.push_back(k);
-			mvwaddnstr(m_win, 0, k, m_legend[j].m_info.m_name, m_legend[j].m_size);
+			mvwaddnstr(m_tblwin, 0, k, m_legend[j].m_info.m_name, m_legend[j].m_size);
 
 			for(l = strlen(m_legend[j].m_info.m_name); l < m_legend[j].m_size; l++)
 			{
-				waddch(m_win, ' ');
+				waddch(m_tblwin, ' ');
 			}
 
 			k += m_legend[j].m_size;
@@ -379,48 +647,49 @@ void curses_table::render(bool data_changed)
 
 			if(l == m_selct - (int32_t)m_firstrow)
 			{
-				wattrset(m_win, m_colors[PANEL_HIGHLIGHT_FOCUS]);
+				wattrset(m_tblwin, m_colors[PANEL_HIGHLIGHT_FOCUS]);
 			}
 			else
 			{
-				wattrset(m_win, m_colors[PROCESS]);
+				wattrset(m_tblwin, m_colors[PROCESS]);
 			}
 
 			//
 			// Render the rows
 			//
-			wmove(m_win, l + 1, 0);
+			wmove(m_tblwin, l + 1, 0);
 			for(j = 0; j < m_w; j++)
 			{
-				waddch(m_win, bgch);
+				waddch(m_tblwin, bgch);
 			}
 
 			for(j = 0, k = 0; j < m_legend.size(); j++)
 			{
 				m_converter->set_val(m_legend[j].m_info.m_type, row->at(j).m_val, row->at(j).m_len);
-				mvwaddnstr(m_win, l + 1, k, m_converter->tostring_nice(NULL), m_legend[j].m_size);
+				mvwaddnstr(m_tblwin, l + 1, k, m_converter->tostring_nice(NULL), m_legend[j].m_size);
 				k += m_legend[j].m_size;
 			}
 		}
 
-		wattrset(m_win, m_colors[PROCESS]);
+		wattrset(m_tblwin, m_colors[PROCESS]);
 
 		if(l < (int32_t)m_h - 1)
 		{
 			for(m = l; m < (int32_t)m_h - 1; m++)
 			{
-				wmove(m_win, m + 1, 0);
+				wmove(m_tblwin, m + 1, 0);
 
 				for(j = 0; j < m_w; j++)
 				{
-					waddch(m_win, ' ');
+					waddch(m_tblwin, ' ');
 				}
 			}
 		}
 	}
 
-	wrefresh(m_win);
-	copywin(m_win,
+	wrefresh(m_tblwin);
+
+	copywin(m_tblwin,
 		stdscr,
 		0,
 		m_scrolloff_x,
@@ -430,19 +699,29 @@ void curses_table::render(bool data_changed)
 		m_screenw - 1,
 		FALSE);
 
-	wrefresh(m_win);
+	wrefresh(m_tblwin);
 
+//mvprintw(0, 0, "!!!!%d", (int)res);
+//refresh();
 	//
 	// Draw the menu at the bottom of the screen
 	//
 	render_main_menu();
+
+	//
+	// Draw the side menu
+	//
+	if(m_sidemenu)
+	{
+		m_sidemenu->render();
+	}
 
 	refresh();
 }
 
 void curses_table::scrollwin(uint32_t x, uint32_t y)
 {
-	wrefresh(m_win);
+	wrefresh(m_tblwin);
 
 	m_scrolloff_x = x;
 	m_scrolloff_y = y;
@@ -450,112 +729,28 @@ void curses_table::scrollwin(uint32_t x, uint32_t y)
 	render(false);
 }
 
-void curses_table::sanitize_selection()
-{
-	if(m_firstrow > (int32_t)(m_data->size() - m_h + 1))
-	{
-		m_firstrow = m_data->size() - m_h + 1;
-	}
-	
-	if(m_firstrow < 0)
-	{
-		m_firstrow = 0;
-	}	
-
-	if(m_selct > (int32_t)m_data->size() - 1)
-	{
-		m_selct = m_data->size() - 1;
-	}
-	
-	if(m_selct < 0)
-	{
-		m_selct = 0;
-	}	
-
-	if(m_firstrow > m_selct)
-	{
-		m_firstrow = m_selct;
-	}
-}
-
-void curses_table::selection_up()
-{
-	if(m_selct > 0)
-	{
-		if(m_selct <= (int32_t)m_firstrow)
-		{
-			m_firstrow--;
-		}
-
-		m_selct--;
-		sanitize_selection();
-		update_rowkey(m_selct);
-		render(true);
-	}
-}
-
-void curses_table::selection_down()
-{
-	if(m_selct < (int32_t)m_data->size() - 1)
-	{
-		if(m_selct - m_firstrow > (int32_t)m_h - 3)
-		{
-			m_firstrow++;
-		}
-
-		m_selct++;
-		sanitize_selection();
-		update_rowkey(m_selct);
-		render(true);
-	}
-}
-
-void curses_table::selection_pageup()
-{
-	m_firstrow -= (m_h - 1);
-	m_selct -= (m_h - 1);
-
-	sanitize_selection();
-	update_rowkey(m_selct);
-	render(true);
-}
-
-void curses_table::selection_pagedown()
-{
-	m_firstrow += (m_h - 1);
-	m_selct += (m_h - 1);
-
-	sanitize_selection();
-	update_rowkey(m_selct);
-	render(true);
-}
-
-void curses_table::selection_goto(int32_t row)
-{
-	if(row == -1 ||
-		row >= (int32_t)m_data->size())
-	{
-		ASSERT(false);
-		return;
-	}
-
-	m_firstrow = row - (m_h /2);
-	m_selct = row;
-
-	sanitize_selection();
-	render(true);
-}
-
-
 //
 // Return false if the user wants us to exit
 //
-bool curses_table::handle_input(int ch)
+sysdig_table_action curses_table::handle_input(int ch)
 {
+	if(m_sidemenu)
+	{
+		sysdig_table_action ta = m_sidemenu->handle_input(ch);
+		if(ta == STA_SWITCH_VIEW)
+		{
+			return ta;
+		}
+		else if(ta != STA_PARENT_HANDLE)
+		{
+			return STA_NONE;
+		}
+	}
+
 	switch(ch)
 	{
 		case 'q':
-			return false;
+			return STA_QUIT;
 /*
 		case 'a':
 			numbers[0]++;
@@ -577,24 +772,45 @@ bool curses_table::handle_input(int ch)
 			break;
 */			
 		case KEY_UP:
-			selection_up();
+			selection_up((int32_t)m_data->size());
+			update_rowkey(m_selct);
+			render(true);
 			break;
 		case KEY_DOWN:
-			selection_down();
+			selection_down((int32_t)m_data->size());
+			update_rowkey(m_selct);
+			render(true);
 			break;
 		case KEY_PPAGE:
-			selection_pageup();
+			selection_pageup((int32_t)m_data->size());
+			update_rowkey(m_selct);
+			render(true);
 			break;
 		case KEY_NPAGE:
-			selection_pagedown();
+			selection_pagedown((int32_t)m_data->size());
+			update_rowkey(m_selct);
+			render(true);
 			break;
 		case KEY_F(1):
 			mvprintw(0, 0, "F1");
 			refresh();
 			break;
 		case KEY_F(2):
-			mvprintw(0, 0, "F1");
-			refresh();
+			if(m_sidemenu == NULL)
+			{
+				m_table_x_start = SIDEMENU_WIDTH;
+				m_sidemenu = new curses_table_sidemenu(this);
+			}
+			else
+			{
+				m_table_x_start = 0;
+				delete m_sidemenu;
+				m_sidemenu = NULL;
+			}
+
+			delwin(m_tblwin);
+			m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
+			render(true);
 			break;
 		case KEY_MOUSE:
 			{
@@ -635,7 +851,7 @@ bool curses_table::handle_input(int ch)
 							// This is a click on a row. Update the selection.
 							//
 							m_selct = event.y - m_table_y_start - 1;
-							sanitize_selection();
+							sanitize_selection((int32_t)m_data->size());
 							update_rowkey(m_selct);
 							render(true);
 						}
@@ -645,7 +861,7 @@ bool curses_table::handle_input(int ch)
 			break;
 	}
 
-	return true;
+	return STA_NONE;
 }
 
 #endif // SYSTOP

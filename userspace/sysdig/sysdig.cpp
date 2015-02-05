@@ -1450,7 +1450,7 @@ captureinfo do_systop_inspect(sinsp* inspector,
 		for(auto it = tables->begin(); it != tables->end(); ++it)
 		{
 #ifndef NOCURSESUI
-			if(it->m_view->handle_input(input) == false)
+			if(it->m_view->handle_input(input) == STA_QUIT)
 			{
 				return retval;
 			}
@@ -1526,6 +1526,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 	mousemask(ALL_MOUSE_EVENTS, NULL);
 	noecho();
 	timeout(0);
+	raw();
 #endif
 
 	//
@@ -1692,13 +1693,19 @@ sysdig_init_res systop_init(int argc, char **argv)
 			//
 			// Initialize the table
 			//
+			vector<sinsp_table_info> views;
+			views.push_back(sinsp_table_info("top processes", "*proc.name proc.name Sevt.count", NULL));
+			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", NULL));
+			views.push_back(sinsp_table_info("top processes", "*proc.name proc.name Sevt.count", NULL));
+			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", NULL));
+
 			sinsp_table* table = new sinsp_table(inspector);
 			table->configure("*evt.type evt.type Sevt.count");
 			table->set_sorting_col(2);
 
 #ifndef NOCURSESUI
 			curses_table* viz = new curses_table();
-			viz->configure(table, NULL);
+			viz->configure(table, NULL, &views);
 
 			tables.push_back(table_info(table, viz));
 #else

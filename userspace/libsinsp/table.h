@@ -21,6 +21,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 class sinsp_filter_check_reference;
 
+typedef enum sysdig_table_action
+{
+	STA_NONE,
+	STA_PARENT_HANDLE,
+	STA_QUIT,
+	STA_SWITCH_VIEW,
+}sysdig_table_action;
+
 class sinsp_table_field
 {
 public:
@@ -239,4 +247,26 @@ private:
 	sinsp_table_field* m_vals;
 	uint32_t m_sorting_col;
 	bool m_is_sorting_ascending;
+};
+
+class sinsp_table_info
+{
+public:
+	sinsp_table_info()
+	{
+		m_colsizes = NULL;
+	}
+
+	sinsp_table_info(string name, string info, vector<int32_t>* colsizes, uint32_t sortingcol = 0)
+	{
+		m_name = name;
+		m_info = info;
+		m_colsizes = colsizes;
+		m_sortingcol = sortingcol;
+	}
+
+	string m_name;
+	string m_info;
+	vector<int32_t>* m_colsizes;
+	uint32_t m_sortingcol;
 };

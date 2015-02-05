@@ -21,11 +21,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define TABLE_WIDTH 400
 #define TABLE_HEIGHT 20
 #define TABLE_Y_START 1
-
+#define SIDEMENU_WIDTH 20
 
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
 
 class sinsp_filter_check_reference;
+class curses_table;
 
 class curses_table_column_info
 {
@@ -50,7 +51,37 @@ public:
 	friend class curses_table;
 };
 
-class curses_table
+class curses_scrollable_list
+{
+public:
+	curses_scrollable_list();
+	void sanitize_selection(int32_t datasize);
+	void selection_up(int32_t datasize);
+	void selection_down(int32_t datasize);
+	void selection_pageup(int32_t datasize);
+	void selection_pagedown(int32_t datasize);
+	void selection_goto(int32_t datasize, int32_t row);
+
+	int32_t m_selct;
+	int32_t m_firstrow;
+	uint32_t m_w;
+	uint32_t m_h;
+};
+
+class curses_table_sidemenu : public curses_scrollable_list
+{
+public:
+	curses_table_sidemenu(curses_table* parent);
+	~curses_table_sidemenu();
+	void render();
+	sysdig_table_action handle_input(int ch);
+
+	WINDOW* m_win;
+	int32_t m_y_start;
+	curses_table* m_parent;
+};
+
+class curses_table : public curses_scrollable_list
 {
 public:
 	enum ColorElements_ {
@@ -123,27 +154,22 @@ public:
 	curses_table();
 	~curses_table();
 
-	void configure(sinsp_table* m_table, vector<int32_t>* colsizes);
+	void configure(sinsp_table* m_table, 
+		vector<int32_t>* colsizes,
+		vector<sinsp_table_info>* views);
 	void update_data(vector<sinsp_sample_row>* data);
 	void render(bool data_changed);
 	void scrollwin(uint32_t x, uint32_t y);
-	void selection_up();
-	void selection_down();
-	void selection_pageup();
-	void selection_pagedown();
-	void selection_goto(int32_t row);
-	bool handle_input(int ch);
+	sysdig_table_action handle_input(int ch);
 
 private:
 	void update_rowkey(int32_t row);
-	void sanitize_selection();
 	void render_main_menu();
 
 	int m_colors[LAST_COLORELEMENT];
-	WINDOW* m_win;
+	WINDOW* m_tblwin;
 	sinsp_table* m_table;
-	uint32_t m_w;
-	uint32_t m_h;
+	int32_t m_table_x_start;
 	uint32_t m_table_y_start;
 	uint32_t m_screenw;
 	uint32_t m_screenh;
@@ -153,11 +179,14 @@ private:
 	vector<curses_table_column_info> m_legend;
 	vector<sinsp_sample_row>* m_data;
 	sinsp_filter_check_reference* m_converter;
-	int32_t m_selct;
-	int32_t m_firstrow;
 	vector<uint32_t> m_column_startx;
 	sinsp_table_field_storage m_last_key;
 	vector<string> m_menuitems;
+	curses_table_sidemenu* m_sidemenu;
+	vector<sinsp_table_info> m_views;
+	uint32_t m_selected_view;
+
+	friend class curses_table_sidemenu;
 };
 
 #endif
