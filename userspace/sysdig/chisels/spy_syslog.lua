@@ -1,10 +1,9 @@
 --[[
 Copyright (C) 2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
-
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,20 +18,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 description = "Print every message written to syslog by any process. You can combine this chisel with filters like 'proc.name=foo' (to restrict the output to a specific process), or 'syslog.message contains foo' (to show only messages including a specific string). You can also write the events generated around each log entry to file by using the dump_file_name and dump_range_ms arguments.";
 short_description = "Print every message written to syslog. Optionally, export the events around each syslog message to file.";
 category = "Logs";
-		   
+		
 -- Argument list
-args = 
+args =
 {
 	{
-		name = "dump_file_name", 
-		description = "The name of the file where the chisel will write the events related to each syslog entry.", 
+		name = "dump_file_name",
+		description = "The name of the file where the chisel will write the events related to each syslog entry.",
 		argtype = "string",
 		optional = true
 	},
 	{
-		name = "dump_range_ms", 
-		description = "The time interval to capture *before* and *after* each event, in milliseconds. For example, 500 means that 1 second around each displayed event (.5s before and .5s after) will be saved to <dump_file_name>. The default value for dump_range_ms is 1000.", 
+		name = "dump_range_ms",
+		description = "The time interval to capture *before* and *after* each event, in milliseconds. For example, 500 means that 1 second around each displayed event (.5s before and .5s after) will be saved to <dump_file_name>. The default value for dump_range_ms is 1000.",
 		argtype = "int",
+		optional = true
+	},
+	{
+		name = "disable_color",
+		description = "Set to 'disable_colors' if you want to disable color output",
+		argtype = "string",
 		optional = true
 	},
 }
@@ -48,16 +53,19 @@ local capturing = false
 
 -- Argument notification callback
 function on_set_arg(name, val)
-    if name == "dump_file_name" then
+	if name == "dump_file_name" then
 		do_dump = true
-        dump_file_name = val
-        return true
-    elseif name == "dump_range_ms" then
-        dump_range_ms = val
-        return true
-    end
+		dump_file_name = val
+		return true
+	elseif name == "dump_range_ms" then
+		dump_range_ms = val
+		return true
+	elseif name == "disable_color" and val == "disable_color" then
+		terminal.enable_color(false)
+		return true
+	end
 
-    return false
+	return false
 end
 
 -- Initialization callback
@@ -69,8 +77,13 @@ function on_init()
 	fmsg = chisel.request_field("syslog.message")
 	ftid = chisel.request_field("thread.tid")
 	fpname = chisel.request_field("proc.name")
+	fcontainername = chisel.request_field("container.name")
+	fcontainerid = chisel.request_field("container.id")
 
-	-- increase the snaplen so we capture more of the conversation 
+	-- The -pc or -pcontainer options was supplied on the cmd line
+	print_container = sysdig.is_print_container_data()
+
+	-- increase the snaplen so we capture more of the conversation
 	sysdig.set_snaplen(1000)
 	
 	-- set the filter
@@ -96,6 +109,10 @@ end
 
 -- Event parsing callback
 function on_event()	
+
+	-- Default color is black
+	local color = terminal.black
+
 	-- Extract the event details
 	local fac = evt.field(ffac)
 	local sev = evt.field(fsev)
@@ -103,6 +120,8 @@ function on_event()
 	local sevcode = evt.field(fsevcode)
 	local tid = evt.field(ftid)
 	local pname = evt.field(fpname)
+	local containername = evt.field(fcontainername)
+	local containerid = evt.field(fcontainerid)
 	
 	-- Render the message to screen
 	if is_tty then
@@ -112,11 +131,51 @@ function on_event()
 			color = terminal.yellow
 		elseif sevcode < 4 then
 			color = terminal.red
+		elseif containername ~= "host" then
+			-- If -pc or -pcontainer option change default to blue
+			color = terminal.blue
+		else
+			color = terminal.green
 		end
 
-		infostr = string.format("%s%s.%s %s[%u] %s", color, fac, sev, pname, tid, msg)
+		-- The -pc or -pcontainer options was supplied on the cmd line
+		if  print_container then
+			infostr = string.format("%s%-20s %-20s %s.%s %s[%u] %s", 
+									color, 
+									containerid, 
+									containername, 
+									fac, 
+									sev, 
+									pname, 
+									tid, 
+									msg)
+		else
+			infostr = string.format("%s%s.%s %s[%u] %s", 
+									color, 
+									fac, 
+									sev, 
+									pname, 
+									tid, 
+									msg)
+		end
 	else
-		infostr = string.format("%s.%s %s[%u] %s", fac, sev, pname, tid, msg)
+		if  print_container then
+			infostr = string.format("%-20s %-20s %s.%s %s[%u] %s", 
+									fac, 
+									containerid, 
+									containername, 
+									sev, 
+									pname, 
+									tid, 
+									msg)
+		else 
+			infostr = string.format("%s.%s %s[%u] %s", 
+									fac, 
+									sev, 
+									pname, 
+									tid, 
+									msg)
+		end 
 	end
 	
 	print(infostr)

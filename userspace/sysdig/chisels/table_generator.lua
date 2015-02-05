@@ -1,10 +1,9 @@
 --[[
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
-
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,47 +15,47 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Given two filter fields, a key and a value, this chisel creates and renders to the screen a table."
-short_description = "FD bytes group by"
-category = "IO"
+description = "Given two filter fields, a key and a value, this chisel creates and renders a table to the screen."
+short_description = "Filter on a key and value"
+category = "Filter"
 hidden = true
 
 -- Chisel argument list
-args = 
+args =
 {
 	{
-		name = "keys", 
-		description = "comma-separated list of filter fields to use for grouping", 
+		name = "keys",
+		description = "comma-separated list of filter fields to use for grouping",
 		argtype = "string"
 	},
 	{
-		name = "keydescs", 
-		description = "comma separated list of human readable descriptions for the key", 
+		name = "keydescs",
+		description = "comma separated list of human readable descriptions for the key",
 		argtype = "string"
 	},
 	{
-		name = "value", 
-		description = "the value to count for every key", 
+		name = "value",
+		description = "the value to count for every key",
 		argtype = "string"
 	},
 	{
-		name = "valuedesc", 
-		description = "human readable description for the value", 
+		name = "valuedesc",
+		description = "human readable description for the value",
 		argtype = "string"
 	},
 	{
-		name = "filter", 
-		description = "the filter to apply", 
+		name = "filter",
+		description = "the filter to apply",
 		argtype = "string"
 	},
 	{
-		name = "top_number", 
-		description = "maximum number of elements to display", 
+		name = "top_number",
+		description = "maximum number of elements to display",
 		argtype = "string"
 	},
 	{
-		name = "value_units", 
-		description = "how to render the values in the result. Can be 'bytes', 'time', 'timepct', or 'none'.", 
+		name = "value_units",
+		description = "how to render the values in the result. Can be 'bytes', 'time', 'timepct', or 'none'.",
 		argtype = "string"
 	},
 }
@@ -69,7 +68,7 @@ filter = ""
 islive = false
 fkeys = {}
 
-vizinfo = 
+vizinfo =
 {
 	key_fld = {},
 	key_desc = {},

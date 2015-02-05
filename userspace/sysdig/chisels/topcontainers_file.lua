@@ -15,12 +15,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Sorted list of containers that use the most network bandwidth."
-short_description = "Top containers by network I/O"
-category = "Net"
+description = "Shows the top containers in terms of total (in+out) bytes to disk."
+short_description = "Top containers by R+W disk bytes"
+category = "I/O"
 
 -- Chisel argument list
 args = {}
+
+-- The number of items to show
+TOP_NUMBER = 10
+
+-- Argument notification callback
+function on_set_arg(name, val)
+	return false
+end
 
 -- Initialization callback
 function on_init()
@@ -29,9 +37,8 @@ function on_init()
 		"container.name",
 		"evt.rawarg.res",
 		"Bytes",
-		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true and container.name!=host",
-		"100",
+		"fd.type=file and evt.is_io=true and container.name!=host",
+		"" .. TOP_NUMBER,
 		"bytes")
-		
 	return true
 end
