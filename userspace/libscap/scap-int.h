@@ -172,6 +172,8 @@ void scap_free_userlist(scap_userlist* uhandle);
 
 int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 
+int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname);
+
 //
 // ASSERT implementation
 //

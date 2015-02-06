@@ -249,7 +249,7 @@ static int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo
 }
 #endif
 
-static int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname)
+int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_CGROUPS_SIZE];
