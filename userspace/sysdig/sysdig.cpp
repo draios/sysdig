@@ -1651,9 +1651,9 @@ sysdig_init_res systop_init(int argc, char **argv)
 			sinsp_cursesui ui(inspector);
 
 			vector<sinsp_table_info> views;
+			views.push_back(sinsp_table_info("top processes", "*proc.pid proc.pid Mproc.vmsize proc.vmrss", NULL, 2));
 			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", NULL, 2));
 			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", NULL, 2));
-			views.push_back(sinsp_table_info("top processes", "*proc.name proc.name Sevt.count", NULL, 2));
 
 			ui.configure(&views);
 			ui.start();

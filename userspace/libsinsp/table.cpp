@@ -133,6 +133,14 @@ void sinsp_table::configure(const string& fmt)
 				ag = sinsp_filter_check::A_TIME_AVG;
 				preamble_len = 1;
 				break;
+			case 'm':
+				ag = sinsp_filter_check::A_MIN;
+				preamble_len = 1;
+				break;
+			case 'M':
+				ag = sinsp_filter_check::A_MAX;
+				preamble_len = 1;
+				break;
 			default:
 				break;
 		}
@@ -428,6 +436,68 @@ void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, si
 	}
 }
 
+void sinsp_table::add_fields_max(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
+{
+	uint8_t* operand1 = dst->m_val;
+	uint8_t* operand2 = src->m_val;
+
+	switch(type)
+	{
+	case PT_INT8:
+		if(*(int8_t*)operand1 < *(int8_t*)operand2)
+		{
+			*(int8_t*)operand1 = *(int8_t*)operand2;
+		}
+		return;
+	case PT_INT16:
+		if(*(int16_t*)operand1 < *(int16_t*)operand2)
+		{
+			*(int16_t*)operand1 = *(int16_t*)operand2;
+		}
+		return;
+	case PT_INT32:
+		if(*(int32_t*)operand1 < *(int32_t*)operand2)
+		{
+			*(int32_t*)operand1 = *(int32_t*)operand2;
+		}
+		return;
+	case PT_INT64:
+		if(*(int64_t*)operand1 < *(int64_t*)operand2)
+		{
+			*(int64_t*)operand1 = *(int64_t*)operand2;
+		}
+		return;
+	case PT_UINT8:
+		if(*(uint8_t*)operand1 < *(uint8_t*)operand2)
+		{
+			*(uint8_t*)operand1 = *(uint8_t*)operand2;
+		}
+		return;
+	case PT_UINT16:
+		if(*(uint16_t*)operand1 < *(uint16_t*)operand2)
+		{
+			*(uint16_t*)operand1 = *(uint16_t*)operand2;
+		}
+		return;
+	case PT_UINT32:
+		if(*(uint32_t*)operand1 < *(uint32_t*)operand2)
+		{
+			*(uint32_t*)operand1 = *(uint32_t*)operand2;
+		}
+		return;
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+		if(*(uint64_t*)operand1 < *(uint64_t*)operand2)
+		{
+			*(uint64_t*)operand1 = *(uint64_t*)operand2;
+		}
+		return;
+	default:
+		return;
+	}
+}
+
 void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src)
 {
 	ppm_param_type type = m_types[dst_id];
@@ -439,6 +509,9 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src)
 		return;
 	case sinsp_filter_check::A_SUM:
 		add_fields_sum(type, dst, src);		
+		return;
+	case sinsp_filter_check::A_MAX:
+		add_fields_max(type, dst, src);		
 		return;
 	default:
 		ASSERT(false);
