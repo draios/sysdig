@@ -374,10 +374,13 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 		{
 			subsys.erase(pos, sizeof("_cgroup") - 1);
 		}
-
-		if(subsys == "perf")
+		else if(subsys == "perf")
 		{
 			subsys = "perf_event";
+		}
+		else if(subsys == "mem")
+		{
+			subsys = "memory";
 		}
 
 		m_cgroups.push_back(std::make_pair(subsys, cgroup));
