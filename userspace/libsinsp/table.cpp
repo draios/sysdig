@@ -17,7 +17,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <algorithm>
+#ifndef _WIN32
 #include <curses.h>
+#endif
 
 #include "sinsp.h"
 #include "sinsp_int.h"

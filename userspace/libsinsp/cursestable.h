@@ -17,10 +17,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifdef SYSTOP
-
 #define TABLE_WIDTH 400
 #define TABLE_Y_START 2
 #define SIDEMENU_WIDTH 20
+
+#include <curses.h>
 
 class sinsp_filter_check_reference;
 class curses_table;

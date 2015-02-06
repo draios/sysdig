@@ -40,19 +40,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <getopt.h>
 #endif
 
-#ifdef SYSTOP
-#include <curses.h>
 #include "cursestable.h"
 #include "cursesui.h"
-#endif
 
 static bool g_terminate = false;
 #ifdef HAS_CHISELS
 vector<sinsp_chisel*> g_chisels;
 #endif
-
-//#define NOCURSESUI
-
 
 // Sysdig 0.1.85 had log-rotation options (-C,-G,-W), but they were problematic,
 // so I'm disabling them until they can be fixed

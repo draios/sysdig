@@ -16,9 +16,9 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _WIN32
 #include <unistd.h>
-
-#ifdef SYSTOP
+#endif
 
 class sinsp_table_info
 {
@@ -184,10 +184,11 @@ refresh();
 	uint32_t m_selected_view;
 
 private:
+#ifndef NOCURSESUI
 	void render();
 	void render_header();
 	void render_main_menu();
-
+#endif
 	sinsp* m_inspector;
 	vector<string> m_menuitems;
 	uint32_t m_screenw;
@@ -195,5 +196,3 @@ private:
 	sinsp_table* m_datatable;
 	curses_table* m_viz;
 };
-
-#endif // SYSTOP

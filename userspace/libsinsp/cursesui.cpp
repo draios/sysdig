@@ -4,14 +4,16 @@
 #include "filter.h"
 #include "filterchecks.h"
 
-#ifdef SYSTOP
-
+#ifndef _WIN32
 #include <curses.h>
+#endif
 #include "table.h"
 #include "cursestable.h"
 #include "cursesui.h"
 
+#ifndef NOCURSESUI
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
+#endif
 
 sinsp_cursesui::sinsp_cursesui(sinsp* inspector)
 {
@@ -23,6 +25,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector)
 	//
 	// Colors initialization
 	//
+#ifndef NOCURSESUI
 	m_colors[RESET_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
 	m_colors[DEFAULT_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
 	m_colors[FUNCTION_BAR] = ColorPair(COLOR_BLACK,COLOR_CYAN);
@@ -99,6 +102,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector)
 	// Get screen dimensions
 	//
 	getmaxyx(stdscr, m_screenh, m_screenw);
+#endif
 }
 
 sinsp_cursesui::~sinsp_cursesui()
@@ -148,10 +152,13 @@ void sinsp_cursesui::start()
 	m_datatable->configure(m_views[m_selected_view].m_config);
 	m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 
+#ifndef NOCURSESUI
 	m_viz = new curses_table();
 	m_viz->configure(this, m_datatable, NULL);
+#endif
 }
 
+#ifndef NOCURSESUI
 void sinsp_cursesui::render_header()
 {
 	uint32_t j = 0;
@@ -204,11 +211,10 @@ void sinsp_cursesui::render()
 	//
 	render_main_menu();
 }
+#endif
 
 sinsp_table_info* sinsp_cursesui::get_selected_view()
 {
 	ASSERT(m_selected_view < m_views.size());
 	return &m_views[m_selected_view];
 }
-
-#endif // SYSTOP
