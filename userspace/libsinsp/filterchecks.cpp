@@ -35,8 +35,8 @@ extern sinsp_evttables g_infotables;
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 {
-	{PT_INT64, EPF_NONE, PF_DEC, "fd.num", "the unique number identifying the file descriptor."},
-	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.type", "type of FD. Can be 'file', 'directory', ipv4', 'ipv6', 'unix', 'pipe', 'event', 'signalfd', 'eventpoll', 'inotify' or 'signalfd'."},
+	{PT_INT64, EPF_NONE, PF_ID, "fd.num", "the unique number identifying the file descriptor."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.type", "type of FD. Can be 'file', 'directory', 'ipv4', 'ipv6', 'unix', 'pipe', 'event', 'signalfd', 'eventpoll', 'inotify' or 'signalfd'."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.typechar", "type of FD as a single character. Can be 'f' for file, 4 for IPv4 socket, 6 for IPv6 socket, 'u' for unix socket, p for pipe, 'e' for eventfd, 's' for signalfd, 'l' for eventpoll, 'i' for inotify, 'o' for uknown."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.name", "FD full name. If the fd is a file, this field contains the full path. If the FD is a socket, this field contain the connection tuple."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.directory", "If the fd is a file, the directory that contains it."},
@@ -812,7 +812,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 {
-	{PT_INT64, EPF_NONE, PF_DEC, "proc.pid", "the id of the process generating the event."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.pid", "the id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exe", "the first command line argument (usually the executable name or a custom one)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "the name (excluding the path) of the executable generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "the arguments passed on the command line when starting the process generating the event."},
@@ -820,11 +820,11 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cmdline", "full process command line, i.e name + arguments."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "the current working directory of the event."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads of that the process generating the event currently has."},
-	{PT_INT64, EPF_NONE, PF_DEC, "proc.ppid", "the pid of the parent of the process generating the event."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.ppid", "the pid of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "the name (excluding the path) of the parent of the process generating the event."},
-	{PT_INT64, EPF_NONE, PF_DEC, "proc.apid", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process. proc.apid without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.apid=1234."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.apid", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process. proc.apid without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.apid=1234."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "the name (excluding the path) of one of the process ancestors. E.g. proc.aname[1] returns the parent name, proc.aname[2] returns the grandparent name, and so on. proc.aname[0] is the name of the current process. proc.aname without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.aname=bash."},
-	{PT_INT64, EPF_NONE, PF_DEC, "proc.loginshellid", "the pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.loginshellid", "the pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "number of nanoseconds since the process started."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "number of open FDs for the process"},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.fdlimit", "maximum number of FDs the process can open."},
@@ -834,7 +834,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmswap", "swapped memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.pfmajor", "number of major page faults since thread start."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.pfminor", "number of minor page faults since thread start."},
-	{PT_INT64, EPF_NONE, PF_DEC, "thread.tid", "the id of the thread generating the event."},
+	{PT_INT64, EPF_NONE, PF_ID, "thread.tid", "the id of the thread generating the event."},
 	{PT_BOOL, EPF_NONE, PF_NA, "thread.ismain", "'true' if the thread generating the event is the main one in the process."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "thread.exectime", "CPU time spent by the last scheduled thread, in nanoseconds. Exported by switch events only."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "thread.totexectime", "Total CPU time, in nanoseconds since the beginning of the capture, for the current thread. Exported by switch events only."},
@@ -1553,7 +1553,7 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_event_fields[] =
 {
-	{PT_UINT64, EPF_NONE, PF_DEC, "evt.num", "event number."},
+	{PT_UINT64, EPF_NONE, PF_ID, "evt.num", "event number."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time", "event timestamp as a time string that includes the nanosecond part."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.s", "event timestamp as a time string with no nanoseconds."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime", "event timestamp as a time string that includes the date."},
@@ -1569,12 +1569,12 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
-	{PT_CHARBUF, EPF_PRINT_ONLY, PF_NA, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
+	{PT_CHARBUF, EPF_PRINT_ONLY, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "For system call events, this is the name of the system call (e.g. 'open')."},
-	{PT_INT16, EPF_NONE, PF_DEC, "evt.cpu", "number of the CPU where this event happened."},
+	{PT_INT16, EPF_NONE, PF_ID, "evt.cpu", "number of the CPU where this event happened."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
-	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.arg", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'resarg.fd' or 'resarg[0]'."},
-	{PT_DYN, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'arg.fd'."},
+	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.arg", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'evt.arg.fd' or 'evt.arg[0]'."},
+	{PT_DYN, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.rawarg", "one of the event arguments specified by name. E.g. 'evt.rawarg.fd'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.info", "for most events, this field returns the same value as evt.args. However, for some events (like writes to /dev/log) it provides higher level information coming from decoding the arguments."},
 	{PT_BYTEBUF, EPF_NONE, PF_NA, "evt.buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "evt.buflen", "the lenght of the binary data buffer for events that have one, like read(), recvfrom(), etc."},
@@ -2597,7 +2597,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_user_fields[] =
 {
-	{PT_UINT32, EPF_NONE, PF_DEC, "user.uid", "user ID."},
+	{PT_UINT32, EPF_NONE, PF_ID, "user.uid", "user ID."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.name", "user name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.homedir", "home directory of the user."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.shell", "user's shell."},
@@ -2671,7 +2671,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_group_fields[] =
 {
-	{PT_UINT64, EPF_NONE, PF_DEC, "group.gid", "group ID."},
+	{PT_UINT64, EPF_NONE, PF_ID, "group.gid", "group ID."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "group.name", "group name."},
 };
 

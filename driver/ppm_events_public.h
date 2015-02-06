@@ -1046,6 +1046,8 @@ enum ppm_print_format {
 	PF_DEC = 1,	/* decimal */
 	PF_HEX = 2,	/* hexadecima */
 	PF_10_PADDED_DEC = 3, /* decimal padded to 10 digits, useful to print the fractional part of a ns timestamp */
+	PF_ID = 4,
+	PF_DIR = 5,
 };
 
 /*!
