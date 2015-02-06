@@ -374,7 +374,8 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 		{
 			subsys.erase(pos, sizeof("_cgroup") - 1);
 		}
-		else if(subsys == "perf")
+
+		if(subsys == "perf")
 		{
 			subsys = "perf_event";
 		}
