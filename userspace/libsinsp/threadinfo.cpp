@@ -366,15 +366,22 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 		}
 
 		string subsys(str, sep - str);
+		string cgroup(sep + 1);
+
+		size_t subsys_length = subsys.length();
 		size_t pos = subsys.find("_cgroup");
 		if(pos != string::npos)
 		{
 			subsys.erase(pos, sizeof("_cgroup") - 1);
 		}
 
-		string cgroup(sep + 1);
+		if(subsys == "perf")
+		{
+			subsys = "perf_event";
+		}
+
 		m_cgroups.push_back(std::make_pair(subsys, cgroup));
-		offset += subsys.length() + 1 + cgroup.length() + 1;
+		offset += subsys_length + 1 + cgroup.length() + 1;
 	}
 }
 
