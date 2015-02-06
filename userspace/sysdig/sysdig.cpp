@@ -43,6 +43,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef SYSTOP
 #include <curses.h>
 #include "cursestable.h"
+#include "cursesui.h"
 #endif
 
 static bool g_terminate = false;
@@ -1385,27 +1386,14 @@ exit:
 
 //#ifdef SYSTOP
 #if 1
-class table_info
-{
-public:
-	table_info(sinsp_table* data, curses_table* view)
-	{
-		m_data = data;
-		m_view = view;
-	}
-
-	sinsp_table* m_data;
-	curses_table* m_view;
-};
 	
 captureinfo do_systop_inspect(sinsp* inspector,
 					   uint64_t cnt,
-					   vector<table_info>* tables)
+					   sinsp_cursesui* ui)
 {
 	captureinfo retval;
 	int32_t res;
 	sinsp_evt* ev;
-	bool end_of_sample;
 
 	//
 	// Loop through the events
@@ -1441,44 +1429,12 @@ captureinfo do_systop_inspect(sinsp* inspector,
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
 
-		retval.m_nevts++;
-
-#ifndef NOCURSESUI
-		int input = getch();
-#endif
-
-		for(auto it = tables->begin(); it != tables->end(); ++it)
+		if(ui->process_event(ev) == true)
 		{
-#ifndef NOCURSESUI
-			if(it->m_view->handle_input(input) == STA_QUIT)
-			{
-				return retval;
-			}
-#endif
-
-			end_of_sample = it->m_data->process_event(ev);
-
-			if(end_of_sample)
-			{
-				vector<sinsp_sample_row>* sample = 
-					it->m_data->get_sample();
-
-#ifndef NOCURSESUI
-				it->m_view->update_data(sample);
-				it->m_view->render(true);
-
-				if(!inspector->is_live())
-				{
-					while(getch() != 'a')
-					{
-mvprintw(4, 10, "aaa");
-refresh();						
-						usleep(100000);
-					}
-				}
-#endif				
-			}
+			return retval;
 		}
+
+		retval.m_nevts++;
 	}
 
 	return retval;
@@ -1495,7 +1451,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 	int long_index = 0;
 	int32_t n_filterargs = 0;
 	captureinfo cinfo;
-	vector<table_info> tables;
 	string errorstr;
 
 	static struct option long_options[] =
@@ -1691,29 +1646,21 @@ sysdig_init_res systop_init(int argc, char **argv)
 			}
 
 			//
-			// Initialize the table
+			// Initialize the UI
 			//
+			sinsp_cursesui ui(inspector);
+
 			vector<sinsp_table_info> views;
-			views.push_back(sinsp_table_info("top processes", "*proc.name proc.name Sevt.count", NULL));
-			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", NULL));
-			views.push_back(sinsp_table_info("top processes", "*proc.name proc.name Sevt.count", NULL));
-			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", NULL));
+			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", NULL, 2));
+			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", NULL, 2));
+			views.push_back(sinsp_table_info("top processes", "*proc.name proc.name Sevt.count", NULL, 2));
 
-			sinsp_table* table = new sinsp_table(inspector);
-			table->configure("*evt.type evt.type Sevt.count");
-			table->set_sorting_col(2);
+			ui.configure(&views);
+			ui.start();
 
-#ifndef NOCURSESUI
-			curses_table* viz = new curses_table();
-			viz->configure(table, NULL, &views);
-
-			tables.push_back(table_info(table, viz));
-#else
-			tables.push_back(table_info(table, NULL));
-#endif
 			cinfo = do_systop_inspect(inspector,
 				cnt,
-				&tables);
+				&ui);
 
 			//
 			// Done. Close the capture.
@@ -1737,15 +1684,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 	}
 
 exit:
-	//
-	// Free all the stuff that was allocated
-	//
-	for(auto it = tables.begin(); it != tables.end(); ++it)
-	{
-		delete it->m_data;
-		delete it->m_view;
-	}
-
 	if(inspector)
 	{
 		delete inspector;

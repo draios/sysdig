@@ -42,6 +42,7 @@ using namespace std;
 #include <curses.h>
 #include "table.h"
 #include "cursestable.h"
+#include "cursesui.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // curses_table_sidemenu implementation
@@ -146,11 +147,11 @@ curses_table_sidemenu::curses_table_sidemenu(curses_table* parent)
 {
 	ASSERT(parent != NULL);
 	m_parent = parent;
-	m_h = parent->m_h;
+	m_h = parent->m_h - 1;
 	m_w = SIDEMENU_WIDTH;
 	m_y_start = TABLE_Y_START;
 	m_win = newwin(m_h, m_w, m_y_start, 0);
-	m_selct = m_parent->m_selected_view;
+	m_selct = m_parent->m_parent->m_selected_view;
 }
 
 curses_table_sidemenu::~curses_table_sidemenu()
@@ -165,7 +166,7 @@ void curses_table_sidemenu::render()
 	//
 	// Render window header
 	//
-	wattrset(m_win, m_parent->m_colors[curses_table::PANEL_HEADER_FOCUS]);
+	wattrset(m_win, m_parent->m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 
 	wmove(m_win, 0, 0);
 	for(j = 0; j < (int32_t)m_w - 1; j++)
@@ -174,24 +175,24 @@ void curses_table_sidemenu::render()
 	}
 
 	// white space at the right
-	wattrset(m_win, m_parent->m_colors[curses_table::PROCESS]);
+	wattrset(m_win, m_parent->m_parent->m_colors[sinsp_cursesui::PROCESS]);
 	waddch(m_win, ' ');
 
-	wattrset(m_win, m_parent->m_colors[curses_table::PANEL_HEADER_FOCUS]);
+	wattrset(m_win, m_parent->m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 	mvwaddnstr(m_win, 0, 0, "Select View", m_w);
 
 	//
 	// Render the rows
 	//
-	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_parent->m_views.size()); j++)
+	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_parent->m_parent->m_views.size()); j++)
 	{
 		if(j == m_selct)
 		{
-			wattrset(m_win, m_parent->m_colors[curses_table::PANEL_HIGHLIGHT_FOCUS]);
+			wattrset(m_win, m_parent->m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
 		}
 		else
 		{
-			wattrset(m_win, m_parent->m_colors[curses_table::PROCESS]);
+			wattrset(m_win, m_parent->m_parent->m_colors[sinsp_cursesui::PROCESS]);
 		}
 
 		// clear the line
@@ -202,10 +203,10 @@ void curses_table_sidemenu::render()
 		}
 
 		// add the new line
-		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_parent->m_views[j].m_name.c_str(), m_w);
+		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_parent->m_parent->m_views[j].m_name.c_str(), m_w);
 
 		// white space at the right
-		wattrset(m_win, m_parent->m_colors[curses_table::PROCESS]);
+		wattrset(m_win, m_parent->m_parent->m_colors[sinsp_cursesui::PROCESS]);
 		wmove(m_win, j - m_firstrow + 1, m_w - 1);
 		waddch(m_win, ' ');
 	}
@@ -223,22 +224,22 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
-			m_parent->m_selected_view = m_selct;
+			m_parent->m_parent->m_selected_view = m_selct;
 			return STA_SWITCH_VIEW;
 		case KEY_UP:
-			selection_up((int32_t)m_parent->m_views.size());
+			selection_up((int32_t)m_parent->m_parent->m_views.size());
 			render();
 			return STA_NONE;
 		case KEY_DOWN:
-			selection_down((int32_t)m_parent->m_views.size());
+			selection_down((int32_t)m_parent->m_parent->m_views.size());
 			render();
 			return STA_NONE;
 		case KEY_PPAGE:
-			selection_pageup((int32_t)m_parent->m_views.size());
+			selection_pageup((int32_t)m_parent->m_parent->m_views.size());
 			render();
 			return STA_NONE;
 		case KEY_NPAGE:
-			selection_pagedown((int32_t)m_parent->m_views.size());
+			selection_pagedown((int32_t)m_parent->m_parent->m_views.size());
 			render();
 			return STA_NONE;
 		case KEY_MOUSE:
@@ -305,7 +306,6 @@ curses_table::curses_table()
 	m_table_x_start = 0;
 	m_table_y_start = TABLE_Y_START;
 	m_sidemenu = NULL;
-	m_selected_view = 0;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -316,73 +316,6 @@ curses_table::curses_table()
 			init_pair((7-i)*8+j, i, (j==0?-1:j));
 		}
 	}
-
-	//
-	// Colors initialization
-	//
-	m_colors[RESET_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
-	m_colors[DEFAULT_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
-	m_colors[FUNCTION_BAR] = ColorPair(COLOR_BLACK,COLOR_CYAN);
-	m_colors[FUNCTION_KEY] = ColorPair( COLOR_WHITE,COLOR_BLACK);
-	m_colors[PANEL_HEADER_FOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
-	m_colors[PANEL_HEADER_UNFOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
-	m_colors[PANEL_HIGHLIGHT_FOCUS] = ColorPair(COLOR_BLACK,COLOR_CYAN);
-	m_colors[PANEL_HIGHLIGHT_UNFOCUS] = ColorPair(COLOR_BLACK, COLOR_WHITE);
-	m_colors[FAILED_SEARCH] = ColorPair(COLOR_RED,COLOR_CYAN);
-	m_colors[UPTIME] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[BATTERY] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[LARGE_NUMBER] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[METER_TEXT] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[METER_VALUE] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[LED_COLOR] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[TASKS_RUNNING] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[PROCESS] = A_NORMAL;
-	m_colors[PROCESS_SHADOW] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
-	m_colors[PROCESS_TAG] = A_BOLD | ColorPair(COLOR_YELLOW,COLOR_BLACK);
-	m_colors[PROCESS_MEGABYTES] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[PROCESS_BASENAME] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[PROCESS_TREE] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[PROCESS_R_STATE] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[PROCESS_D_STATE] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[PROCESS_HIGH_PRIORITY] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[PROCESS_LOW_PRIORITY] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[PROCESS_THREAD] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[PROCESS_THREAD_BASENAME] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[BAR_BORDER] = A_BOLD;
-	m_colors[BAR_SHADOW] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
-	m_colors[SWAP] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[GRAPH_1] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[GRAPH_2] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[GRAPH_3] = A_BOLD | ColorPair(COLOR_YELLOW,COLOR_BLACK);
-	m_colors[GRAPH_4] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[GRAPH_5] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[GRAPH_6] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[GRAPH_7] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[GRAPH_8] = ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[GRAPH_9] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
-	m_colors[MEMORY_USED] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[MEMORY_BUFFERS] = ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[MEMORY_BUFFERS_TEXT] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[MEMORY_CACHE] = ColorPair(COLOR_YELLOW,COLOR_BLACK);
-	m_colors[LOAD_AVERAGE_FIFTEEN] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
-	m_colors[LOAD_AVERAGE_FIVE] = A_NORMAL;
-	m_colors[LOAD_AVERAGE_ONE] = A_BOLD;
-	m_colors[LOAD] = A_BOLD;
-	m_colors[HELP_BOLD] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[CLOCK] = A_BOLD;
-	m_colors[CHECK_BOX] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[CHECK_MARK] = A_BOLD;
-	m_colors[CHECK_TEXT] = A_NORMAL;
-	m_colors[HOSTNAME] = A_BOLD;
-	m_colors[CPU_NICE] = ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[CPU_NICE_TEXT] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[CPU_NORMAL] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[CPU_KERNEL] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[CPU_IOWAIT] = A_BOLD | ColorPair(COLOR_BLACK, COLOR_BLACK);
-	m_colors[CPU_IRQ] = ColorPair(COLOR_YELLOW,COLOR_BLACK);
-	m_colors[CPU_SOFTIRQ] = ColorPair(COLOR_MAGENTA,COLOR_BLACK);
-	m_colors[CPU_STEAL] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[CPU_GUEST] = ColorPair(COLOR_CYAN,COLOR_BLACK);
 
 	//
 	// Column sizes initialization
@@ -427,8 +360,7 @@ curses_table::curses_table()
 	//
 	getmaxyx(stdscr, m_screenh, m_screenw);
 	m_w = TABLE_WIDTH;
-	//m_h = TABLE_HEIGHT;
-	m_h = m_screenh - 2;
+	m_h = m_screenh - 3;
 	m_scrolloff_x = 0;
 	m_scrolloff_y = 10;
 
@@ -437,14 +369,6 @@ curses_table::curses_table()
 	//
 	refresh();
 	m_tblwin = newwin(m_h, 500, m_table_y_start, 0);
-
-	//
-	// Pipulate the main menu entries
-	//
-	m_menuitems.push_back("Help");
-	m_menuitems.push_back("View");
-	m_menuitems.push_back("Setup");
-	m_menuitems.push_back("Search");
 }
 
 curses_table::~curses_table()
@@ -459,11 +383,13 @@ curses_table::~curses_table()
 	delete m_converter;
 }
 
-void curses_table::configure(sinsp_table* table, vector<int32_t>* colsizes, vector<sinsp_table_info>* views)
+void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, vector<int32_t>* colsizes)
 {
 	uint32_t j;
 
+	m_parent = parent;
 	m_table = table;
+
 	vector<filtercheck_field_info>* legend = m_table->get_legend();
 
 	if(colsizes)
@@ -495,11 +421,6 @@ void curses_table::configure(sinsp_table* table, vector<int32_t>* colsizes, vect
 		}
 
 		m_legend.push_back(ci);
-	}
-
-	if(views != NULL)
-	{
-		m_views = *views;
 	}
 }
 
@@ -545,31 +466,10 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 	}
 }
 
-void curses_table::render_main_menu()
-{
-	uint32_t j = 0;
-	uint32_t k = 0;
-
-	for(j = 0; j < m_menuitems.size(); j++)
-	{
-		attrset(m_colors[PROCESS]);
-		string fks = string("F") + to_string(j + 1);
-		mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
-		k += 2;
-
-		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-		fks = m_menuitems[j];
-		fks.resize(6, ' ');
-		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
-		k += 6;
-	}
-}
-
 void curses_table::render(bool data_changed)
 {
 	uint32_t j, k;
 	int32_t l, m;
-	char bgch = ' ';
 
 	if(m_data == NULL)
 	{
@@ -598,7 +498,7 @@ void curses_table::render(bool data_changed)
 			m_selct = (int32_t)m_data->size() - 1;
 		}
 
-		wattrset(m_tblwin, m_colors[PANEL_HEADER_FOCUS]);
+		wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 
 		//
 		// Render the column headers
@@ -613,11 +513,11 @@ void curses_table::render(bool data_changed)
 		{
 			if(j == m_table->get_sorting_col())
 			{
-				wattrset(m_tblwin, m_colors[PANEL_HIGHLIGHT_FOCUS]);
+				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
 			}
 			else
 			{
-				wattrset(m_tblwin, m_colors[PANEL_HEADER_FOCUS]);
+				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 			}
 
 			m_column_startx.push_back(k);
@@ -647,11 +547,11 @@ void curses_table::render(bool data_changed)
 
 			if(l == m_selct - (int32_t)m_firstrow)
 			{
-				wattrset(m_tblwin, m_colors[PANEL_HIGHLIGHT_FOCUS]);
+				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
 			}
 			else
 			{
-				wattrset(m_tblwin, m_colors[PROCESS]);
+				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 			}
 
 			//
@@ -660,7 +560,7 @@ void curses_table::render(bool data_changed)
 			wmove(m_tblwin, l + 1, 0);
 			for(j = 0; j < m_w; j++)
 			{
-				waddch(m_tblwin, bgch);
+				waddch(m_tblwin, ' ');
 			}
 
 			for(j = 0, k = 0; j < m_legend.size(); j++)
@@ -671,7 +571,7 @@ void curses_table::render(bool data_changed)
 			}
 		}
 
-		wattrset(m_tblwin, m_colors[PROCESS]);
+		wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 
 		if(l < (int32_t)m_h - 1)
 		{
@@ -703,10 +603,6 @@ void curses_table::render(bool data_changed)
 
 //mvprintw(0, 0, "!!!!%d", (int)res);
 //refresh();
-	//
-	// Draw the menu at the bottom of the screen
-	//
-	render_main_menu();
 
 	//
 	// Draw the side menu
