@@ -1645,12 +1645,17 @@ sysdig_init_res systop_init(int argc, char **argv)
 			sinsp_cursesui ui(inspector);
 
 			vector<sinsp_table_info> views;
+
+			views.push_back(sinsp_table_info("top processes", 
+				"*proc.pid proc.pid user.name proc.nchilds proc.vmsize proc.vmrss proc.cmdline", 
+				2,
+				"",
+				{-1, 9, 12, 6, 12, 12, 200}));
 			views.push_back(sinsp_table_info("top containers",
-				"*proc.pid proc.pid proc.name container.name Mproc.vmsize proc.vmrss evt.num", 
+				"*proc.pid proc.pid proc.name container.name proc.vmsize proc.vmrss evt.num", 
 				2,
 				"*3 3 S4"));
 //				""));
-			views.push_back(sinsp_table_info("top processes", "*proc.pid proc.pid Mproc.vmsize proc.vmrss", 2));
 			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", 2));
 			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", 2));
 

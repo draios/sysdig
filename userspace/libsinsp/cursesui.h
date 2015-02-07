@@ -23,12 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class sinsp_table_info
 {
 public:
-	sinsp_table_info()
-	{
-		m_colsizes = NULL;
-	}
-
-	sinsp_table_info(string name, string config, uint32_t sortingcol = 1, string merge_config = "", vector<int32_t>* colsizes = NULL)
+	sinsp_table_info(string name, string config, uint32_t sortingcol = 1, string merge_config = "", vector<int32_t> colsizes = {})
 	{
 		m_name = name;
 		m_config = config;
@@ -40,7 +35,7 @@ public:
 	string m_name;
 	string m_config;
 	string m_merge_config;
-	vector<int32_t>* m_colsizes;
+	vector<int32_t> m_colsizes;
 	uint32_t m_sortingcol;
 };
 

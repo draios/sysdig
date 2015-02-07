@@ -71,7 +71,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_n_fields = 0;
 	m_n_premerge_fields = 0;
 	m_n_postmerge_fields = 0;
-	m_refresh_interval = SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
+	m_refresh_interval = 3LL * SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
 	m_next_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
@@ -510,7 +510,6 @@ vector<sinsp_sample_row>* sinsp_table::get_sample()
 	stdout_print();
 #endif
 
-auto res = get_row_key_name_and_val(0);
 	//
 	// Restore the type list used for event processing
 	//
@@ -831,6 +830,7 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 
 	if(rownum >= m_sample_data.size())
 	{
+		ASSERT(false);
 		res.first = NULL;
 		res.second = "";
 	}

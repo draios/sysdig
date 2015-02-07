@@ -396,7 +396,9 @@ void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, vector<
 	{
 		if(colsizes->size() != legend->size())
 		{
-			throw sinsp_exception("invalid table legend: column size doesn't match");
+			throw sinsp_exception("invalid table legend: column size doesn't match (" + 
+				to_string(colsizes->size()) + " sizes, " + 
+				to_string(legend->size()) + " rows");
 		}
 	}
 
@@ -413,13 +415,14 @@ void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, vector<
 		{
 			ci.m_size = colsizes->at(j);		
 		}
-
+/*
 		int32_t namelen = strlen(ci.m_info.m_name);
+		
 		if(ci.m_size < namelen + 1)
 		{
 			ci.m_size = namelen + 1;
 		}
-
+*/
 		m_legend.push_back(ci);
 	}
 }
@@ -487,6 +490,7 @@ void curses_table::render(bool data_changed)
 
 	if(data_changed)
 	{
+		vector<filtercheck_field_info>* legend = m_table->get_legend();
 		m_column_startx.clear();
 
 		if(m_selct < 0)
@@ -521,7 +525,7 @@ void curses_table::render(bool data_changed)
 			}
 
 			m_column_startx.push_back(k);
-			mvwaddnstr(m_tblwin, 0, k, m_legend[j].m_info.m_name, m_legend[j].m_size);
+			mvwaddnstr(m_tblwin, 0, k, m_legend[j].m_info.m_name, m_legend[j].m_size - 1);
 
 			for(l = strlen(m_legend[j].m_info.m_name); l < m_legend[j].m_size; l++)
 			{
@@ -565,7 +569,11 @@ void curses_table::render(bool data_changed)
 
 			for(j = 0, k = 0; j < m_legend.size(); j++)
 			{
-				m_converter->set_val(m_legend[j].m_info.m_type, row->at(j).m_val, row->at(j).m_len);
+				m_converter->set_val(m_legend[j].m_info.m_type, 
+					row->at(j).m_val, 
+					row->at(j).m_len,
+					legend->at(j).m_print_format);
+
 				mvwaddnstr(m_tblwin, l + 1, k, m_converter->tostring_nice(NULL), m_legend[j].m_size);
 				k += m_legend[j].m_size;
 			}
@@ -686,6 +694,17 @@ sysdig_table_action curses_table::handle_input(int ch)
 			selection_pagedown((int32_t)m_data->size());
 			update_rowkey(m_selct);
 			render(true);
+			break;
+		case '\n':
+		case '\r':
+		case KEY_ENTER:
+			{
+				auto res = m_table->get_row_key_name_and_val(m_selct);
+
+				mvprintw(1, 0, "%s=%s", res.first->m_name, res.second.c_str());
+				refresh();
+	//			return STA_SWITCH_VIEW;
+			}
 			break;
 		case KEY_F(1):
 			mvprintw(0, 0, "F1");

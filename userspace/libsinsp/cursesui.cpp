@@ -95,6 +95,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector)
 	//
 	m_menuitems.push_back("Help");
 	m_menuitems.push_back("View");
+	m_menuitems.push_back("Legend");
 	m_menuitems.push_back("Setup");
 	m_menuitems.push_back("Search");
 
@@ -154,7 +155,7 @@ void sinsp_cursesui::start()
 
 #ifndef NOCURSESUI
 	m_viz = new curses_table();
-	m_viz->configure(this, m_datatable, NULL);
+	m_viz->configure(this, m_datatable, &m_views[m_selected_view].m_colsizes);
 #endif
 }
 
