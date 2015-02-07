@@ -510,6 +510,7 @@ vector<sinsp_sample_row>* sinsp_table::get_sample()
 	stdout_print();
 #endif
 
+auto res = get_row_key_name_and_val(0);
 	//
 	// Restore the type list used for event processing
 	//
@@ -822,6 +823,32 @@ void sinsp_table::switch_buffers()
 	{
 		m_buffer = &m_buffer1;
 	}
+}
+
+pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint32_t rownum)
+{
+	pair<filtercheck_field_info*, string> res;
+
+	if(rownum >= m_sample_data.size())
+	{
+		res.first = NULL;
+		res.second = "";
+	}
+	else
+	{
+		vector<filtercheck_field_info>* legend = get_legend();
+		res.first = (filtercheck_field_info*)m_extractors[0]->get_field_info();
+		ASSERT(res.first != NULL);
+
+		m_printer->set_val(m_types->at(0), 
+			m_sample_data[rownum].m_key.m_val, 
+			m_sample_data[rownum].m_key.m_len,
+			legend->at(0).m_print_format);
+
+		res.second = m_printer->tostring(NULL);
+	}
+
+	return res;
 }
 
 sinsp_table_field* sinsp_table::get_row_key(uint32_t rownum)
