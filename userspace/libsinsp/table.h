@@ -203,13 +203,20 @@ class sinsp_table
 public:	
 	sinsp_table(sinsp* inspector);
 	~sinsp_table();
-	void configure(const string& fmt);
+	void configure(const string& fmt, const string& merge_fmt);
 	bool process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	vector<sinsp_sample_row>* get_sample();
 	vector<filtercheck_field_info>* get_legend()
 	{
-		return &m_legend;
+		if(m_do_merging)
+		{
+			return &m_postmerge_legend;
+		}
+		else
+		{
+			return &m_premerge_legend;
+		}
 	}
 	void set_sorting_col(uint32_t col);
 	uint32_t get_sorting_col()
@@ -219,33 +226,50 @@ public:
 	sinsp_table_field* get_row_key(uint32_t rownum);
 	int32_t get_row_from_key(sinsp_table_field* key);
 
+	uint64_t m_next_flush_time_ns;
+
 private:
+	inline void add_row(bool merging);
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields_max(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
-	inline void add_fields(uint32_t dst_id, sinsp_table_field* src);
+	inline void add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr);
 	inline uint32_t get_field_len(uint32_t id);
 	void create_sample();
 	void switch_buffers();
 	void stdout_print();
 
 	sinsp* m_inspector;
-	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_table;
-	vector<filtercheck_field_info> m_legend;
+	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher>* m_table;
+	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_premerge_table;
+	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_merge_table;
+	vector<filtercheck_field_info> m_premerge_legend;
 	vector<sinsp_filter_check*> m_extractors;
+	vector<sinsp_filter_check*> m_mergers;
 	vector<sinsp_filter_check*> m_chks_to_free;
-	vector<ppm_param_type> m_types;
+	vector<ppm_param_type>* m_types;
+	vector<ppm_param_type> m_premerge_types;
+	vector<ppm_param_type> m_postmerge_types;
 	bool m_is_key_present;
-	sinsp_table_field* m_field_pointers;
+	bool m_is_merge_key_present;
+	vector<uint32_t> m_merge_columns;
+	vector<filtercheck_field_info> m_postmerge_legend;
+	sinsp_table_field* m_fld_pointers;
+	sinsp_table_field* m_premerge_fld_pointers;
+	sinsp_table_field* m_postmerge_fld_pointers;
 	uint32_t m_n_fields;
+	uint32_t m_n_premerge_fields;
+	uint32_t m_n_postmerge_fields;
 	sinsp_table_buffer* m_buffer;
 	sinsp_table_buffer m_buffer1;
 	sinsp_table_buffer m_buffer2;
-	uint32_t m_vals_array_size;
+	uint32_t m_vals_array_sz;
+	uint32_t m_premerge_vals_array_sz;
+	uint32_t m_postmerge_vals_array_sz;
 	uint64_t m_refresh_interval;
-	uint64_t m_next_flush_time_ns;
 	sinsp_filter_check_reference* m_printer;
 	vector<sinsp_sample_row> m_sample_data;
 	sinsp_table_field* m_vals;
 	uint32_t m_sorting_col;
 	bool m_is_sorting_ascending;
+	bool m_do_merging;
 };

@@ -28,16 +28,18 @@ public:
 		m_colsizes = NULL;
 	}
 
-	sinsp_table_info(string name, string config, vector<int32_t>* colsizes, uint32_t sortingcol = 1)
+	sinsp_table_info(string name, string config, uint32_t sortingcol = 1, string merge_config = "", vector<int32_t>* colsizes = NULL)
 	{
 		m_name = name;
 		m_config = config;
+		m_merge_config = merge_config;
 		m_colsizes = colsizes;
 		m_sortingcol = sortingcol;
 	}
 
 	string m_name;
 	string m_config;
+	string m_merge_config;
 	vector<int32_t>* m_colsizes;
 	uint32_t m_sortingcol;
 };
@@ -144,10 +146,15 @@ public:
 		}
 #endif
 
-		end_of_sample = m_datatable->process_event(evt);
+		//
+		// Check if it's time to flush
+		//
+		end_of_sample = (evt == NULL || evt->get_ts() > m_datatable->m_next_flush_time_ns);
 
 		if(end_of_sample)
 		{
+			m_datatable->flush(evt);
+
 			//
 			// It's time to refresh the data for this chart.
 			// First of all, render the chart
@@ -175,6 +182,8 @@ refresh();
 			}
 #endif				
 		}
+
+		m_datatable->process_event(evt);
 
 		return false;
 	}

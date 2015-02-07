@@ -1645,9 +1645,14 @@ sysdig_init_res systop_init(int argc, char **argv)
 			sinsp_cursesui ui(inspector);
 
 			vector<sinsp_table_info> views;
-			views.push_back(sinsp_table_info("top processes", "*proc.pid proc.pid Mproc.vmsize proc.vmrss", NULL, 2));
-			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", NULL, 2));
-			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", NULL, 2));
+			views.push_back(sinsp_table_info("top containers",
+				"*proc.pid proc.pid proc.name container.name Mproc.vmsize proc.vmrss evt.num", 
+				2,
+				"*3 3 S4"));
+//				""));
+			views.push_back(sinsp_table_info("top processes", "*proc.pid proc.pid Mproc.vmsize proc.vmrss", 2));
+			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", 2));
+			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", 2));
 
 			ui.configure(&views);
 			ui.start();
@@ -1707,8 +1712,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

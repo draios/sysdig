@@ -149,7 +149,7 @@ void sinsp_cursesui::start()
 
 	m_datatable = new sinsp_table(m_inspector);
 
-	m_datatable->configure(m_views[m_selected_view].m_config);
+	m_datatable->configure(m_views[m_selected_view].m_config, m_views[m_selected_view].m_merge_config);
 	m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 
 #ifndef NOCURSESUI

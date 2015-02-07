@@ -128,6 +128,7 @@ public:
 	boolop m_boolop;
 	ppm_cmp_operator m_cmpop;
 	aggregation m_aggregation;
+	aggregation m_merge_aggregation;
 
 protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
