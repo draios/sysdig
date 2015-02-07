@@ -462,13 +462,18 @@ void sinsp_table::flush(sinsp_evt* evt)
 
 void sinsp_table::stdout_print()
 {
+	vector<filtercheck_field_info>* legend = get_legend();
+
 	for(auto it = m_sample_data.begin(); it != m_sample_data.end(); ++it)
 	{
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
-			m_printer->set_val(m_types->at(j + 1), it->m_values[j].m_val, it->m_values[j].m_len);
-//				printf("%s ", m_printer->tostring_nice(NULL));
-				printf("%s ", m_printer->tostring(NULL));
+			m_printer->set_val(m_types->at(j + 1), 
+				it->m_values[j].m_val, 
+				it->m_values[j].m_len,
+				legend->at(j).m_print_format);
+				printf("%s ", m_printer->tostring_nice(NULL));
+//				printf("%s ", m_printer->tostring(NULL));
 		}
 
 			printf("\n");

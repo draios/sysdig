@@ -539,11 +539,12 @@ class sinsp_filter_check_reference : public sinsp_filter_check
 public:
 	sinsp_filter_check_reference();
 	sinsp_filter_check* allocate_new();
-	inline void set_val(ppm_param_type type, uint8_t* val, int32_t len)
+	inline void set_val(ppm_param_type type, uint8_t* val, int32_t len, ppm_print_format print_format)
 	{
 		m_finfo.m_type = type;
 		m_val = val;
 		m_len = len;
+		m_print_format = print_format;
 	}
 	int32_t parse_field_name(const char* str);
 	void parse_filter_value(const char* str, uint32_t len);
@@ -557,6 +558,7 @@ private:
 	filtercheck_field_info m_finfo;
 	uint8_t* m_val;
 	uint32_t m_len;
+	ppm_print_format m_print_format;
 };
 
 #endif // HAS_FILTERING

@@ -3124,7 +3124,17 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt)
 			break;
 		}
 
-		return format_bytes(val);
+		if(m_print_format == PF_ID)
+		{
+			snprintf(m_getpropertystr_storage,
+						sizeof(m_getpropertystr_storage),
+						"%" PRId64, val);
+			return m_getpropertystr_storage;
+		}
+		else
+		{
+			return format_bytes(val);
+		}
 	}
 	else if(m_field->m_type == PT_RELTIME)
 	{
