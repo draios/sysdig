@@ -222,3 +222,34 @@ sinsp_table_info* sinsp_cursesui::get_selected_view()
 	ASSERT(m_selected_view < m_views.size());
 	return &m_views[m_selected_view];
 }
+
+// returns false if there is no suitable drill down view for this field
+bool sinsp_cursesui::drilldown(string field, string val)
+{
+	uint32_t j = 0;
+
+	for(auto it = m_views.begin(); it != m_views.end(); ++it)
+	{
+		for(auto atit = it->m_applyto.begin(); atit != it->m_applyto.end(); ++atit)
+		{
+			if(*atit == field)
+			{
+				m_sel_hierarchy.push_back(field, val);
+				m_selected_view = j;
+
+				start();
+#ifndef NOCURSESUI
+				clear();
+				m_viz->render(true);
+				render();
+#endif
+
+				return true;
+			}
+		}
+
+		j++;
+	}
+
+	return false;
+}

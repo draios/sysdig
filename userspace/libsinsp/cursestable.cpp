@@ -700,8 +700,10 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case KEY_ENTER:
 			{
 				auto res = m_table->get_row_key_name_and_val(m_selct);
-
 				mvprintw(1, 0, "%s=%s", res.first->m_name, res.second.c_str());
+
+				parent->drilldown(res.first->m_name, res.second.c_str());
+
 				refresh();
 	//			return STA_SWITCH_VIEW;
 			}

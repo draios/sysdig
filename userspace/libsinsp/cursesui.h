@@ -24,7 +24,8 @@ class sinsp_table_info
 {
 public:
 	sinsp_table_info(string name, 
-		string config, 
+		string config,
+		vector<string> applyto,
 		uint32_t sortingcol, 
 		string merge_config, 
 		vector<int32_t>* colsizes, 
@@ -32,6 +33,7 @@ public:
 	{
 		m_name = name;
 		m_config = config;
+		m_applyto = applyto;
 		m_merge_config = merge_config;
 		if(colsizes)
 		{
@@ -47,6 +49,50 @@ public:
 	vector<int32_t> m_colsizes;
 	uint32_t m_sortingcol;
 	string m_filter;
+	vector<string> m_applyto;
+};
+
+class sinsp_ui_selection_info
+{
+public:
+	sinsp_ui_selection_info(string field, string val)
+	{
+		m_field = field;
+		m_val = val;
+	}
+
+	string m_field;
+	string m_val;
+};
+
+class sinsp_ui_selection_hierarchy
+{
+public:
+	void push_back(string field, string val)
+	{
+		m_hierarchy.push_back(sinsp_ui_selection_info(field, val));
+	}
+
+	string tofilter()
+	{
+		string res;
+		uint32_t j;
+
+		for(j = 0; j < m_hierarchy.size(); j++)
+		{
+			res += m_hierarchy[j].m_field;
+			res += "=";
+			res += m_hierarchy[j].m_val;
+
+			if(j < m_hierarchy.size() - 1)
+			{
+				res += " and ";
+			}
+		}
+	}
+
+private:
+	vector<sinsp_ui_selection_info> m_hierarchy;
 };
 
 class sinsp_cursesui
@@ -124,6 +170,8 @@ public:
 	void configure(vector<sinsp_table_info>* views);
 	void start();
 	sinsp_table_info* get_selected_view();
+	// returns false if there is no suitable drill down view for this field
+	bool drilldown(string field, string val);
 
 	//
 	// Return true if the application is supposed to exit
@@ -209,4 +257,5 @@ private:
 	uint32_t m_screenh;
 	sinsp_table* m_datatable;
 	curses_table* m_viz;
+	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 };

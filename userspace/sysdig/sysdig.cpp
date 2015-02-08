@@ -1646,25 +1646,36 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 			vector<sinsp_table_info> views;
 
+			vector<string> at_all;
+			at_all.push_back("");
+			vector<string> at_proc;
+			at_proc.push_back("proc.pid");
+			at_proc.push_back("proc.name");
+			at_proc.push_back("thread.tid");
+
 			int32_t cs [] = {-1, 9, 12, 6, 12, 12, 200};
 			vector<int32_t> csv (cs, cs + sizeof(cs) / sizeof(cs[0]));
 			views.push_back(sinsp_table_info("top processes", 
 				"*proc.pid proc.pid user.name proc.nchilds proc.vmsize proc.vmrss proc.cmdline", 
+				at_all,
 				2,
 				"",
 				&csv,
 				"proc.name=apache2"));
 			views.push_back(sinsp_table_info("top containers",
 				"*proc.pid proc.pid proc.name container.name proc.vmsize proc.vmrss evt.num", 
+				at_all,
 				2,
 				"*3 3 S4",
 				NULL,
 				""));
-			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", 2, "", NULL, ""));
-			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", 2, "", NULL, ""));
+			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", at_proc, 2, "", NULL, ""));
+			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", at_proc, 2, "", NULL, ""));
 
 			ui.configure(&views);
 			ui.start();
+
+//			ui.drilldown("proc.pid", "3564");
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,
