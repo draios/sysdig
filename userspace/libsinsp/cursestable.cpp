@@ -394,11 +394,11 @@ void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, vector<
 
 	if(colsizes)
 	{
-		if(colsizes->size() != legend->size())
+		if(colsizes->size() != 0 && colsizes->size() != legend->size())
 		{
-			throw sinsp_exception("invalid table legend: column size doesn't match (" + 
-				to_string(colsizes->size()) + " sizes, " + 
-				to_string(legend->size()) + " rows");
+			throw sinsp_exception("invalid table legend: column sizes doesn't match (" + 
+				to_string(colsizes->size()) + " column sizes, " + 
+				to_string(legend->size()) + " entries in legend)");
 		}
 	}
 
@@ -407,7 +407,7 @@ void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, vector<
 		curses_table_column_info ci;
 		ci.m_info = legend->at(j);
 
-		if(colsizes == NULL || colsizes->at(j) == -1)
+		if(colsizes->size() == 0 || colsizes->at(j) == -1)
 		{
 			ci.m_size = m_colsizes[legend->at(j).m_type];
 		}
@@ -699,13 +699,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case '\r':
 		case KEY_ENTER:
 			{
-				auto res = m_table->get_row_key_name_and_val(m_selct);
-				mvprintw(1, 0, "%s=%s", res.first->m_name, res.second.c_str());
-
-				parent->drilldown(res.first->m_name, res.second.c_str());
-
-				refresh();
-	//			return STA_SWITCH_VIEW;
+				return STA_DRILLDOWN;
 			}
 			break;
 		case KEY_F(1):

@@ -199,6 +199,12 @@ public:
 			m_viz->render(true);
 			render();
 		}
+		else if(ta == STA_DRILLDOWN)
+		{
+			auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+			mvprintw(1, 0, "%s=%s", res.first->m_name, res.second.c_str());
+			drilldown(res.first->m_name, res.second.c_str());
+		}
 #endif
 
 		//

@@ -1662,7 +1662,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				2,
 				"",
 				&csv,
-				"proc.name=apache2"));
+				""));
 			views.push_back(sinsp_table_info("top containers",
 				"*proc.pid proc.pid proc.name container.name proc.vmsize proc.vmrss evt.num", 
 				at_all,
