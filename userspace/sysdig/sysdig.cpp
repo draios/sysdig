@@ -1676,8 +1676,8 @@ sysdig_init_res systop_init(int argc, char **argv)
 			ui.configure(&views);
 			ui.start();
 
-//			bool dd = ui.drilldown("proc.pid", "3564");
-//			dd = ui.drilldown("evt.type", "open");
+			bool dd = ui.drilldown("proc.pid", "3564");
+			dd = ui.drillup();
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,

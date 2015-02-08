@@ -260,8 +260,6 @@ bool sinsp_cursesui::drillup()
 {
 	if(m_sel_hierarchy.m_hierarchy.size() > 0)
 	{
-mvprintw(1, 0, "%d", m_selected_view);
-refresh();
 		m_selected_view = m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1].m_prev_selected_view;
 		ASSERT(m_selected_view < m_views.size());		
 		m_sel_hierarchy.m_hierarchy.pop_back();
