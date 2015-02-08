@@ -59,7 +59,7 @@ public:
 	{
 		m_field = field;
 		m_val = val;
-		m_prev_selected_view = m_prev_selected_view;
+		m_prev_selected_view = prev_selected_view;
 	}
 
 	string m_field;
