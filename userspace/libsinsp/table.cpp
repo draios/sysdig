@@ -80,6 +80,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_do_merging = true;
 	m_types = &m_premerge_types;
 	m_table = &m_premerge_table;
+	m_filter = NULL;
 }
 
 sinsp_table::~sinsp_table()
@@ -104,7 +105,7 @@ sinsp_table::~sinsp_table()
 	delete m_printer;
 }
 
-void sinsp_table::configure(const string& fmt, const string& merge_fmt)
+void sinsp_table::configure(const string& fmt, const string& merge_fmt, const string& filter)
 {
 	uint32_t j;
 	string lfmt(fmt);
@@ -114,9 +115,17 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt)
 		throw sinsp_exception("empty table initializer");
 	}
 
-	//
-	// Parse the string and extract the tokens
-	//
+	//////////////////////////////////////////////////////////////////////////////////////
+	// If a filter has been spefied, compile it
+	//////////////////////////////////////////////////////////////////////////////////////
+	if(filter != "")
+	{
+		m_filter = new sinsp_filter(m_inspector, filter);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	// Parse the format string and extract the tokens
+	//////////////////////////////////////////////////////////////////////////////////////
 	const char* cfmt = lfmt.c_str();
 
 	m_extractors.clear();
@@ -222,9 +231,9 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt)
 	m_premerge_vals_array_sz = (m_n_fields - 1) * sizeof(sinsp_table_field);
 	m_vals_array_sz = m_premerge_vals_array_sz;
 
-	//
-	// Now generate the real legend, coming after the table merge process 
-	//
+	//////////////////////////////////////////////////////////////////////////////////////
+	// If a merge has been specified, configure it 
+	//////////////////////////////////////////////////////////////////////////////////////
 	if(merge_fmt == "")
 	{
 		//
@@ -381,10 +390,20 @@ void sinsp_table::add_row(bool merging)
 	}
 }
 
-bool sinsp_table::process_event(sinsp_evt* evt)
+void sinsp_table::process_event(sinsp_evt* evt)
 {
-	bool res = false;
 	uint32_t j;
+
+	//
+	// Apply the filter
+	//
+	if(m_filter)
+	{
+		if(!m_filter->run(evt))
+		{
+			return;
+		}
+	}
 
 	//
 	// Extract the values and create the row to add
@@ -401,7 +420,7 @@ bool sinsp_table::process_event(sinsp_evt* evt)
 		//
 		if(val == NULL)
 		{
-			return res;
+			return;
 		}
 
 		sinsp_table_field* pfld = &(m_premerge_fld_pointers[j]);
@@ -415,7 +434,7 @@ bool sinsp_table::process_event(sinsp_evt* evt)
 	//
 	add_row(false);
 
-	return res;
+	return;
 }
 
 void sinsp_table::flush(sinsp_evt* evt)

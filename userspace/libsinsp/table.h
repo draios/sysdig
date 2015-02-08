@@ -203,8 +203,8 @@ class sinsp_table
 public:	
 	sinsp_table(sinsp* inspector);
 	~sinsp_table();
-	void configure(const string& fmt, const string& merge_fmt);
-	bool process_event(sinsp_evt* evt);
+	void configure(const string& fmt, const string& merge_fmt, const string& filter);
+	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	vector<sinsp_sample_row>* get_sample();
 	vector<filtercheck_field_info>* get_legend()
@@ -273,4 +273,5 @@ private:
 	uint32_t m_sorting_col;
 	bool m_is_sorting_ascending;
 	bool m_do_merging;
+	sinsp_filter* m_filter;
 };
