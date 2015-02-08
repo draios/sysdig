@@ -55,22 +55,24 @@ public:
 class sinsp_ui_selection_info
 {
 public:
-	sinsp_ui_selection_info(string field, string val)
+	sinsp_ui_selection_info(string field, string val, uint32_t prev_selected_view)
 	{
 		m_field = field;
 		m_val = val;
+		m_prev_selected_view = m_prev_selected_view;
 	}
 
 	string m_field;
 	string m_val;
+	uint32_t m_prev_selected_view;
 };
 
 class sinsp_ui_selection_hierarchy
 {
 public:
-	void push_back(string field, string val)
+	void push_back(string field, string val, uint32_t prev_selected_view)
 	{
-		m_hierarchy.push_back(sinsp_ui_selection_info(field, val));
+		m_hierarchy.push_back(sinsp_ui_selection_info(field, val, prev_selected_view));
 	}
 
 	string tofilter()
@@ -93,7 +95,6 @@ public:
 		return res;
 	}
 
-private:
 	vector<sinsp_ui_selection_info> m_hierarchy;
 };
 
@@ -174,6 +175,8 @@ public:
 	sinsp_table_info* get_selected_view();
 	// returns false if there is no suitable drill down view for this field
 	bool drilldown(string field, string val);
+	// returns false if we are already at the top of the hierarchy
+	bool drillup();
 
 	//
 	// Return true if the application is supposed to exit
@@ -202,8 +205,11 @@ public:
 		else if(ta == STA_DRILLDOWN)
 		{
 			auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-			mvprintw(1, 0, "%s=%s", res.first->m_name, res.second.c_str());
 			drilldown(res.first->m_name, res.second.c_str());
+		}
+		else if(ta == STA_DRILLUP)
+		{
+			drillup();
 		}
 #endif
 

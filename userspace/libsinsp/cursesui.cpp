@@ -234,7 +234,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 		{
 			if(*atit == field)
 			{
-				m_sel_hierarchy.push_back(field, val);
+				m_sel_hierarchy.push_back(field, val, m_selected_view);
 				m_selected_view = j;
 
 				it->m_filter = m_sel_hierarchy.tofilter();
@@ -251,6 +251,29 @@ bool sinsp_cursesui::drilldown(string field, string val)
 		}
 
 		j++;
+	}
+
+	return false;
+}
+
+bool sinsp_cursesui::drillup()
+{
+	if(m_sel_hierarchy.m_hierarchy.size() > 0)
+	{
+mvprintw(1, 0, "%d", m_selected_view);
+refresh();
+		m_selected_view = m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1].m_prev_selected_view;
+		ASSERT(m_selected_view < m_views.size());		
+		m_sel_hierarchy.m_hierarchy.pop_back();
+		m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
+
+		start();
+#ifndef NOCURSESUI
+		clear();
+		m_viz->render(true);
+		render();
+#endif
+		return true;
 	}
 
 	return false;

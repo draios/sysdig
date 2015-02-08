@@ -702,6 +702,11 @@ sysdig_table_action curses_table::handle_input(int ch)
 				return STA_DRILLDOWN;
 			}
 			break;
+		case KEY_BACKSPACE:
+			{
+				return STA_DRILLUP;
+			}
+			break;
 		case KEY_F(1):
 			mvprintw(0, 0, "F1");
 			refresh();
