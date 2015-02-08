@@ -1677,9 +1677,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 			ui.start();
 
 //			bool dd = ui.drilldown("proc.pid", "3564");
-//			string flt = ui.m_sel_hierarchy.tofilter();
 //			dd = ui.drilldown("evt.type", "open");
-//			flt = ui.m_sel_hierarchy.tofilter();
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,

@@ -237,6 +237,8 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				m_sel_hierarchy.push_back(field, val);
 				m_selected_view = j;
 
+				it->m_filter = m_sel_hierarchy.tofilter();
+
 				start();
 #ifndef NOCURSESUI
 				clear();
