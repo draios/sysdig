@@ -234,7 +234,13 @@ bool sinsp_cursesui::drilldown(string field, string val)
 		{
 			if(*atit == field)
 			{
-				m_sel_hierarchy.push_back(field, val, m_selected_view);
+#ifndef NOCURSESUI
+				sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
+#else
+				sinsp_table_field* rowkey = NULL;
+#endif
+
+				m_sel_hierarchy.push_back(field, val, m_selected_view, rowkey);
 				m_selected_view = j;
 
 				it->m_filter = m_sel_hierarchy.tofilter();
@@ -260,13 +266,18 @@ bool sinsp_cursesui::drillup()
 {
 	if(m_sel_hierarchy.m_hierarchy.size() > 0)
 	{
-		m_selected_view = m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1].m_prev_selected_view;
-		ASSERT(m_selected_view < m_views.size());		
+		sinsp_ui_selection_info* sinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+		m_selected_view = sinfo->m_prev_selected_view;
+		ASSERT(m_selected_view < m_views.size());
 		m_sel_hierarchy.m_hierarchy.pop_back();
 		m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
+		sinsp_table_field_storage trkey;
+		trkey.copy(&sinfo->m_rowkey);
+
 		start();
 #ifndef NOCURSESUI
+		m_viz->m_last_key.copy(&trkey);
 		clear();
 		m_viz->render(true);
 		render();

@@ -99,6 +99,17 @@ public:
 		memcpy(m_val, other->m_val, m_len);
 	}
 
+	void copy(sinsp_table_field_storage* other)
+	{
+		if(other->m_len > m_storage_len)
+		{
+			resize(other->m_len);
+		}
+
+		m_len = other->m_len;
+		memcpy(m_val, other->m_val, m_len);
+	}
+
 	bool m_isvalid;
 
 private:

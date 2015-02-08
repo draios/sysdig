@@ -55,24 +55,34 @@ public:
 class sinsp_ui_selection_info
 {
 public:
-	sinsp_ui_selection_info(string field, string val, uint32_t prev_selected_view)
+	sinsp_ui_selection_info(string field, string val, uint32_t prev_selected_view, sinsp_table_field* rowkey)
 	{
 		m_field = field;
 		m_val = val;
 		m_prev_selected_view = prev_selected_view;
+		if(rowkey != NULL)
+		{
+			m_rowkey.copy(rowkey);
+			m_rowkey.m_isvalid = true;
+		}
+		else
+		{
+			m_rowkey.m_isvalid = false;
+		}
 	}
 
 	string m_field;
 	string m_val;
 	uint32_t m_prev_selected_view;
+	sinsp_table_field_storage m_rowkey;
 };
 
 class sinsp_ui_selection_hierarchy
 {
 public:
-	void push_back(string field, string val, uint32_t prev_selected_view)
+	void push_back(string field, string val, uint32_t prev_selected_view, sinsp_table_field* rowkey)
 	{
-		m_hierarchy.push_back(sinsp_ui_selection_info(field, val, prev_selected_view));
+		m_hierarchy.push_back(sinsp_ui_selection_info(field, val, prev_selected_view, rowkey));
 	}
 
 	string tofilter()
