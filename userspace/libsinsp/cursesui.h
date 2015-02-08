@@ -89,6 +89,8 @@ public:
 				res += " and ";
 			}
 		}
+
+		return res;
 	}
 
 private:
@@ -244,6 +246,7 @@ refresh();
 	int m_colors[LAST_COLORELEMENT];
 	vector<sinsp_table_info> m_views;
 	uint32_t m_selected_view;
+	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 
 private:
 #ifndef NOCURSESUI
@@ -257,5 +260,4 @@ private:
 	uint32_t m_screenh;
 	sinsp_table* m_datatable;
 	curses_table* m_viz;
-	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 };

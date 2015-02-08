@@ -1648,6 +1648,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 			vector<string> at_all;
 			at_all.push_back("");
+			at_all.push_back("evt.type");
 			vector<string> at_proc;
 			at_proc.push_back("proc.pid");
 			at_proc.push_back("proc.name");
@@ -1675,7 +1676,10 @@ sysdig_init_res systop_init(int argc, char **argv)
 			ui.configure(&views);
 			ui.start();
 
-//			ui.drilldown("proc.pid", "3564");
+//			bool dd = ui.drilldown("proc.pid", "3564");
+//			string flt = ui.m_sel_hierarchy.tofilter();
+//			dd = ui.drilldown("evt.type", "open");
+//			flt = ui.m_sel_hierarchy.tofilter();
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,
