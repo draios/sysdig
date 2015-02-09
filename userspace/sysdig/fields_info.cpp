@@ -53,6 +53,11 @@ void list_fields(bool verbose)
 		{
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
+			if(fld->m_flags & EPF_TABLE_ONLY)
+			{
+				continue;
+			}
+
 			printf("%s", fld->m_name);
 			uint32_t namelen = (uint32_t)strlen(fld->m_name);
 

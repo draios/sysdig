@@ -81,6 +81,8 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_types = &m_premerge_types;
 	m_table = &m_premerge_table;
 	m_filter = NULL;
+	m_use_defaults = false;
+	m_zero_u64 = 0;
 }
 
 sinsp_table::~sinsp_table()
@@ -136,10 +138,19 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 		uint32_t preamble_len = 0;
 		bool is_this_the_key = false;
 		sinsp_filter_check::aggregation ag = sinsp_filter_check::A_NONE;
+		bool continue_loop = false;
 
 		switch(cfmt[j])
 		{
 			case '*':
+				if(j == 0)
+				{
+					j++;
+					m_use_defaults = true;
+					continue_loop = true;
+				}
+				break;
+			case 'K':
 				if(m_is_key_present)
 				{
 					throw sinsp_exception("invalid table configuration");
@@ -167,6 +178,11 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 				break;
 			default:
 				break;
+		}
+
+		if(continue_loop)
+		{
+			continue;
 		}
 
 		if(j == lfmtlen - 1)
@@ -254,7 +270,7 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 
 		switch(cmfmt[j])
 		{
-			case '*':
+			case 'K':
 				if(m_is_merge_key_present)
 				{
 					throw sinsp_exception("invalid table configuration");
@@ -413,19 +429,33 @@ void sinsp_table::process_event(sinsp_evt* evt)
 		uint32_t len;
 		uint8_t* val = m_extractors[j]->extract(evt, &len);
 
+		sinsp_table_field* pfld = &(m_premerge_fld_pointers[j]);
+
 		//
-		// XXX For the moment, we drop samples that contain empty values.
+		// XXX For the moment, we only support defaults for numeric fields.
 		// At a certain point we will want to introduce the concept of zero
-		// by default.
+		// for other fields too.
 		//
 		if(val == NULL)
 		{
-			return;
+			if(m_use_defaults)
+			{
+				pfld->m_val = get_default_val(&m_premerge_legend[j]);
+				if(pfld->m_val == NULL)
+				{
+					return;
+				}
+			}
+			else
+			{
+				return;
+			}
+		}
+		else
+		{
+			pfld->m_val = val;
 		}
 
-		sinsp_table_field* pfld = &(m_premerge_fld_pointers[j]);
-
-		pfld->m_val = val;
 		pfld->m_len = get_field_len(j);
 	}
 
@@ -828,6 +858,52 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 	default:
 		ASSERT(false);
 		return false;
+	}
+}
+
+uint8_t* sinsp_table::get_default_val(filtercheck_field_info* fld)
+{
+	switch(fld->m_type)
+	{
+	case PT_INT8:
+	case PT_INT16:
+	case PT_INT32:
+	case PT_INT64:
+	case PT_UINT8:
+	case PT_UINT16:
+	case PT_UINT32:
+	case PT_UINT64:
+		if(fld->m_print_format == PF_DEC)
+		{
+			return (uint8_t*)&m_zero_u64;
+		}
+		else
+		{
+			return NULL;
+		}
+/*
+	case PT_RELTIME:
+	case PT_ABSTIME:
+	case PT_CHARBUF:
+	case PT_BYTEBUF:
+	case PT_SOCKADDR:
+	case PT_SOCKTUPLE:
+	case PT_FDLIST:
+	case PT_FSPATH:
+	case PT_FD:
+	case PT_PID:
+	case PT_ERRNO:
+	case PT_FLAGS8:
+	case PT_SIGTYPE:
+	case PT_FLAGS16:
+	case PT_PORT:
+	case PT_SYSCALLID:
+	case PT_FLAGS32:
+	case PT_BOOL:
+	case PT_IPV4ADDR:
+*/
+	default:
+		return NULL;
 	}
 }
 

@@ -237,6 +237,7 @@ private:
 	inline void add_fields_max(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr);
 	inline uint32_t get_field_len(uint32_t id);
+	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();
 	void switch_buffers();
 	void stdout_print();
@@ -276,6 +277,8 @@ private:
 	bool m_is_sorting_ascending;
 	bool m_do_merging;
 	sinsp_filter* m_filter;
+	bool m_use_defaults;
+	uint64_t m_zero_u64;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

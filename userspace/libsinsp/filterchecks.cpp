@@ -1590,6 +1590,12 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during syscalls like renameat and symlinkat. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file", "the lenght of the binary data buffer, but only for file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.in", "the lenght of the binary data buffer, but only for input file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the lenght of the binary data buffer, but only for output file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the lenght of the binary data buffer, but only for network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the lenght of the binary data buffer, but only for input network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the lenght of the binary data buffer, but only for output network I/O events."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2028,6 +2034,29 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	return (uint8_t*)m_strstorage.c_str();
 }
 
+inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt)
+{
+	if(evt->get_direction() == SCAP_ED_OUT)
+	{
+		sinsp_evt_param *parinfo;
+		int64_t retval;
+
+		//
+		// Extract the return value
+		//
+		parinfo = evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		retval = *(int64_t *)parinfo->m_val;
+						
+		if(retval >= 0)
+		{
+			return (uint8_t*)parinfo->m_val;
+		}
+	}
+
+	return NULL;
+}
+
 Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
 {
 	switch(m_field_id)
@@ -2313,33 +2342,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return (uint8_t*)argstr;
 		}
 	case TYPE_BUFLEN:
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
 		{
-			if(evt->get_direction() == SCAP_ED_OUT)
-			{
-				if(evt->get_category() & EC_IO_BASE)
-				{
-					if(evt->m_fdinfo)
-					{
-						sinsp_evt_param *parinfo;
-						int64_t retval;
-
-						//
-						// Extract the return value
-						//
-						parinfo = evt->get_param(0);
-						ASSERT(parinfo->m_len == sizeof(int64_t));
-						retval = *(int64_t *)parinfo->m_val;
-						
-						if(retval >= 0)
-						{
-							return (uint8_t*)parinfo->m_val;
-						}
-					}
-				}
-			}
-
-			return NULL;
+			return extract_buflen(evt);
 		}
+		break;
 	case TYPE_RESRAW:
 		{
 			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
@@ -2533,6 +2540,72 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_ABSPATH:
 		return extract_abspath(evt, len);
+	case TYPE_BUFLEN_FILE:
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
+		{
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			{
+				return extract_buflen(evt);
+			}
+		}
+
+		break;
+	case TYPE_BUFLEN_FILE_IN:
+		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		{
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			{
+				return extract_buflen(evt);
+			}
+		}
+
+		break;
+	case TYPE_BUFLEN_FILE_OUT:
+		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		{
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			{
+				return extract_buflen(evt);
+			}
+		}
+
+		break;
+	case TYPE_BUFLEN_NET:
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
+		{
+			scap_fd_type etype = evt->m_fdinfo->m_type;
+
+			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			{
+				return extract_buflen(evt);
+			}
+		}
+
+		break;
+	case TYPE_BUFLEN_NET_IN:
+		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		{
+			scap_fd_type etype = evt->m_fdinfo->m_type;
+
+			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			{
+				return extract_buflen(evt);
+			}
+		}
+
+		break;
+	case TYPE_BUFLEN_NET_OUT:
+		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		{
+			scap_fd_type etype = evt->m_fdinfo->m_type;
+
+			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			{
+				return extract_buflen(evt);
+			}
+		}
+
+		break;
 	default:
 		ASSERT(false);
 		return NULL;

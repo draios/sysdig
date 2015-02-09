@@ -1656,24 +1656,24 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 
 			views.push_back(sinsp_table_info("top containers",
-				"*proc.pid container.name proc.vmsize proc.vmrss evt.num", 
+				"*Kproc.pid container.name proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out",
 				at_all,
 				2,
-				"*1 1 S2 S3",
+				"K1 1 S2 S3 S4 S5 S6 S7",
 				NULL,
-				""));
+				"container.name != host"));
 
 			int32_t csp [] = {-1, 9, 12, 6, 12, 12, 200};
 			vector<int32_t> vcsp (csp, csp + sizeof(csp) / sizeof(csp[0]));
 			views.push_back(sinsp_table_info("top processes", 
-				"*proc.pid proc.pid user.name proc.nchilds proc.vmsize proc.vmrss proc.cmdline", 
+				"Kproc.pid proc.pid user.name proc.nchilds proc.vmsize proc.vmrss proc.cmdline", 
 				at_all,
 				2,
 				"",
 				&vcsp,
 				""));
-			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", at_proc, 2, "", NULL, ""));
-			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", at_proc, 2, "", NULL, ""));
+			views.push_back(sinsp_table_info("top syscalls", "Kevt.type evt.type Sevt.count", at_proc, 2, "", NULL, ""));
+			views.push_back(sinsp_table_info("top FDs", "Kfd.name fd.name Sevt.count", at_proc, 2, "", NULL, ""));
 
 			ui.configure(&views);
 			ui.start();

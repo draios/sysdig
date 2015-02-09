@@ -389,6 +389,12 @@ public:
 		TYPE_COUNT = 34,
 		TYPE_AROUND = 35,
 		TYPE_ABSPATH = 36,
+		TYPE_BUFLEN_FILE = 37,
+		TYPE_BUFLEN_FILE_IN = 38,
+		TYPE_BUFLEN_FILE_OUT = 39,
+		TYPE_BUFLEN_NET = 40,
+		TYPE_BUFLEN_NET_IN = 41,
+		TYPE_BUFLEN_NET_OUT = 42,
 	};
 
 	sinsp_filter_check_event();
@@ -419,6 +425,7 @@ private:
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
+	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
 	bool m_is_compare;
 };
