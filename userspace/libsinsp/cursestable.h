@@ -46,6 +46,7 @@ public:
 //private:
 	filtercheck_field_info m_info;
 	int32_t m_size;
+	string m_name;
 
 	friend class curses_table;
 };
@@ -87,7 +88,7 @@ public:
 	~curses_table();
 
 	void configure(sinsp_cursesui* parent, sinsp_table* table, 
-		vector<int32_t>* colsizes);
+		vector<int32_t>* colsizes, vector<string>* colnames);
 	void update_data(vector<sinsp_sample_row>* data);
 	void render(bool data_changed);
 	void scrollwin(uint32_t x, uint32_t y);

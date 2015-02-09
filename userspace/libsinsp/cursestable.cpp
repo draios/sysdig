@@ -388,7 +388,8 @@ curses_table::~curses_table()
 	delete m_converter;
 }
 
-void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, vector<int32_t>* colsizes)
+void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, 
+	vector<int32_t>* colsizes, vector<string>* colnames)
 {
 	uint32_t j;
 
@@ -407,6 +408,16 @@ void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, vector<
 		}
 	}
 
+	if(colnames)
+	{
+		if(colnames->size() != 0 && colnames->size() != legend->size())
+		{
+			throw sinsp_exception("invalid table legend: column names doesn't match (" + 
+				to_string(colnames->size()) + " column sizes, " + 
+				to_string(legend->size()) + " entries in legend)");
+		}
+	}
+
 	for(j = 1; j < legend->size(); j++)
 	{
 		curses_table_column_info ci;
@@ -420,6 +431,16 @@ void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, vector<
 		{
 			ci.m_size = colsizes->at(j);		
 		}
+
+		if(colnames->size() == 0)
+		{
+			ci.m_name = ci.m_info.m_name;
+		}
+		else
+		{
+			ci.m_name = colnames->at(j);	
+		}
+
 /*
 		int32_t namelen = strlen(ci.m_info.m_name);
 		
@@ -530,9 +551,9 @@ void curses_table::render(bool data_changed)
 			}
 
 			m_column_startx.push_back(k);
-			mvwaddnstr(m_tblwin, 0, k, m_legend[j].m_info.m_name, m_legend[j].m_size - 1);
+			mvwaddnstr(m_tblwin, 0, k, m_legend[j].m_name.c_str(), m_legend[j].m_size - 1);
 
-			for(l = strlen(m_legend[j].m_info.m_name); l < m_legend[j].m_size; l++)
+			for(l = strlen(m_legend[j].m_name.c_str()); l < m_legend[j].m_size; l++)
 			{
 				waddch(m_tblwin, ' ');
 			}

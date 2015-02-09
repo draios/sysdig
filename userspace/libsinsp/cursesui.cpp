@@ -216,7 +216,7 @@ void sinsp_cursesui::start()
 
 #ifndef NOCURSESUI
 	m_viz = new curses_table();
-	m_viz->configure(this, m_datatable, &m_views[m_selected_view].m_colsizes);
+	m_viz->configure(this, m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
 #endif
 }
 
