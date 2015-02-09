@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Print the data read and written for any FD. Combine this script with a filter to restrict what it shows. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents  (Write), Red represents (Read), and Green represents the container and data) Container information will contain '[]' around container.name and container.id.";
+description = "Print the data read and written for any FD. Combine this script with a filter to restrict what it shows. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents  [Write], and Red represents [Read] for all data except when the -pc or -pcontainer argument is used. If used the container.name and container.id will be represented as: Green [host], and Cyan [container]) Container information will contain '[]' around container.name and container.id.";
 short_description = "Print the data read and written by processes.";
 category = "I/O";
 
@@ -87,15 +87,28 @@ function on_event()
 
 	local container = ""
 	if print_container then
-	   container = string.format("%s [%s] [%s]", terminal.green, containername, containerid );
+		if containername == "host" then
+			-- Make host green
+			container = string.format("%s [%s] [%s]", terminal.green, containername, containerid );
+		else
+			-- Make container cyan
+			container = string.format("%s [%s] [%s]", terminal.cyan, containername, containerid );
+		end
 	end
-	
+
 	if isread then
-		infostr = string.format("%s------ Read %s from %s (%s) %s", terminal.red, format_bytes(res), name, pname, container)
+		-- Because container info might be colored make the end of the line the same color as read (red)
+		name_pname = string.format("%s %s (%s)", terminal.red, name, pname );
+		-- When a read occurs show it in red
+		infostr = string.format("%s------ Read %s from %s %s", terminal.red, format_bytes(res), container, name_pname)
 	else
-		infostr = string.format("%s------ Write %s to %s (%s) %s", terminal.blue, format_bytes(res), name, pname, container)
+		-- Because container info might be colored make the end of the line the same color as write (blue)
+		name_pname = string.format("%s %s (%s)", terminal.blue, name, pname );
+		-- When a write  occurs show it in blue
+		infostr = string.format("%s------ Write %s to %s %s", terminal.blue, format_bytes(res), container, name_pname)
 	end
-	
+
+	-- Print out the line (if -pc or -pcontainer sandwitch container color between either red of blue)
 	print(infostr)
 
 	return true
