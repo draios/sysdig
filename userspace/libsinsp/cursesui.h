@@ -60,21 +60,14 @@ public:
 		m_field = field;
 		m_val = val;
 		m_prev_selected_view = prev_selected_view;
-		if(rowkey != NULL)
-		{
-			m_rowkey.copy(rowkey);
-			m_rowkey.m_isvalid = true;
-		}
-		else
-		{
-			m_rowkey.m_isvalid = false;
-		}
+
+		m_rowkey = *rowkey;
 	}
 
 	string m_field;
 	string m_val;
 	uint32_t m_prev_selected_view;
-	sinsp_table_field_storage m_rowkey;
+	sinsp_table_field m_rowkey;
 };
 
 class sinsp_ui_selection_hierarchy
@@ -252,8 +245,6 @@ public:
 			{
 				while(getch() != 'a')
 				{
-mvprintw(4, 10, "aaa");
-refresh();						
 					usleep(100000);
 				}
 			}

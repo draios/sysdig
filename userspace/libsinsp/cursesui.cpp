@@ -239,8 +239,15 @@ bool sinsp_cursesui::drilldown(string field, string val)
 #else
 				sinsp_table_field* rowkey = NULL;
 #endif
+				sinsp_table_field rowkeybak;
+				if(rowkey != NULL)
+				{
+					rowkeybak.m_val = new uint8_t[rowkey->m_len];
+					memcpy(rowkeybak.m_val, rowkey->m_val, rowkey->m_len);
+					rowkeybak.m_len = rowkey->m_len;
+				}
 
-				m_sel_hierarchy.push_back(field, val, m_selected_view, rowkey);
+				m_sel_hierarchy.push_back(field, val, m_selected_view, &rowkeybak);
 				m_selected_view = j;
 
 				it->m_filter = m_sel_hierarchy.tofilter();
@@ -267,21 +274,25 @@ bool sinsp_cursesui::drillup()
 	if(m_sel_hierarchy.m_hierarchy.size() > 0)
 	{
 		sinsp_ui_selection_info* sinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+
+		sinsp_table_field rowkey = sinfo->m_rowkey;
+
 		m_selected_view = sinfo->m_prev_selected_view;
 		ASSERT(m_selected_view < m_views.size());
 		m_sel_hierarchy.m_hierarchy.pop_back();
 		m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
-		sinsp_table_field_storage trkey;
-		trkey.copy(&sinfo->m_rowkey);
-
 		start();
 #ifndef NOCURSESUI
-		m_viz->m_last_key.copy(&trkey);
+		m_viz->m_last_key.copy(&rowkey);
+		m_viz->m_last_key.m_isvalid = true;
+		m_viz->m_drilled_up = true;
 		clear();
 		m_viz->render(true);
 		render();
 #endif
+
+		delete[] rowkey.m_val;
 		return true;
 	}
 

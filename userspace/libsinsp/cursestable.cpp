@@ -301,11 +301,13 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 curses_table::curses_table()
 {
+	m_tblwin = NULL;
 	m_data = NULL;
 	m_table = NULL;
 	m_table_x_start = 0;
 	m_table_y_start = TABLE_Y_START;
 	m_sidemenu = NULL;
+	m_drilled_up = false;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -373,7 +375,10 @@ curses_table::curses_table()
 
 curses_table::~curses_table()
 {
-	delwin(m_tblwin);
+	if(m_tblwin)
+	{
+		delwin(m_tblwin);
+	}
 
 	if(m_sidemenu != NULL)
 	{
@@ -446,11 +451,7 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 {
 	m_data = data;
 
-	if(!m_last_key.m_isvalid)
-	{
-		update_rowkey(m_selct);
-	}
-	else
+	if(m_last_key.m_isvalid || m_drilled_up)
 	{
 		m_selct = m_table->get_row_from_key(&m_last_key);
 		if(m_selct == -1)
@@ -466,6 +467,10 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 		}
 
 		sanitize_selection((int32_t)m_data->size());
+	}
+	else
+	{
+		update_rowkey(m_selct);
 	}
 }
 
@@ -698,15 +703,9 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
-			{
-				return STA_DRILLDOWN;
-			}
-			break;
+			return STA_DRILLDOWN;
 		case KEY_BACKSPACE:
-			{
-				return STA_DRILLUP;
-			}
-			break;
+			return STA_DRILLUP;
 		case KEY_F(1):
 			mvprintw(0, 0, "F1");
 			refresh();

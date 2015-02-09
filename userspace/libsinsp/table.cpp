@@ -71,7 +71,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_n_fields = 0;
 	m_n_premerge_fields = 0;
 	m_n_postmerge_fields = 0;
-	m_refresh_interval = 2LL * SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
+	m_refresh_interval = 3LL * SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
 	m_next_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
@@ -888,9 +888,12 @@ int32_t sinsp_table::get_row_from_key(sinsp_table_field* key)
 	{
 		sinsp_table_field* rowkey = &(m_sample_data[j].m_key);
 
-		if(*rowkey == *key)
+		if(rowkey->m_len == key->m_len)
 		{
-			return j;
+			if(memcmp(rowkey->m_val, key->m_val, key->m_len) == 0)
+			{
+				return j;
+			}
 		}
 	}
 

@@ -92,7 +92,10 @@ public:
 	void render(bool data_changed);
 	void scrollwin(uint32_t x, uint32_t y);
 	sysdig_table_action handle_input(int ch);
+	sinsp_table_field_storage m_last_key;
 
+	bool m_drilled_up;
+	
 private:
 	void update_rowkey(int32_t row);
 
@@ -110,7 +113,6 @@ private:
 	vector<sinsp_sample_row>* m_data;
 	sinsp_filter_check_reference* m_converter;
 	vector<uint32_t> m_column_startx;
-	sinsp_table_field_storage m_last_key;
 	curses_table_sidemenu* m_sidemenu;
 
 	friend class curses_table_sidemenu;
