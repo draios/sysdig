@@ -28,25 +28,15 @@ public:
 		vector<string> applyto,
 		uint32_t sortingcol, 
 		string merge_config, 
-		vector<int32_t>* colsizes, 
-		string filter)
-	{
-		m_name = name;
-		m_config = config;
-		m_applyto = applyto;
-		m_merge_config = merge_config;
-		if(colsizes)
-		{
-			m_colsizes = *colsizes;
-		}
-		m_sortingcol = sortingcol;
-		m_filter = filter;
-	}
+		string colnames, 
+		string colsizes, 
+		string filter);
 
 	string m_name;
 	string m_config;
 	string m_merge_config;
 	vector<int32_t> m_colsizes;
+	vector<string> m_colnames;
 	uint32_t m_sortingcol;
 	string m_filter;
 	vector<string> m_applyto;

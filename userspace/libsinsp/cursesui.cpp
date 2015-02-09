@@ -15,6 +15,60 @@
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
 #endif
 
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_table_info implementation
+///////////////////////////////////////////////////////////////////////////////
+sinsp_table_info::sinsp_table_info(string name, 
+	string config,
+	vector<string> applyto,
+	uint32_t sortingcol, 
+	string merge_config, 
+	string colnames, 
+	string colsizes, 
+	string filter)
+{
+	m_name = name;
+	m_config = config;
+	m_applyto = applyto;
+	m_merge_config = merge_config;
+		
+	if(colnames != "")
+	{
+		char *p = strtok((char*)colnames.c_str(), ",");
+		while (p) 
+		{
+			string ts(p);
+			trim(ts);
+			m_colnames.push_back(ts);
+			p = strtok(NULL, ",");
+		}
+	}
+
+	if(colsizes != "")
+	{
+		char *p = strtok((char*)colsizes.c_str(), " ,");
+		while (p) 
+		{
+			try
+			{
+				m_colsizes.push_back(stoi(p));
+			}
+			catch(...)
+			{
+				throw sinsp_exception("table column size string contains invalid numbers");
+			}
+
+			p = strtok(NULL, " ,");
+		}
+	}
+
+	m_sortingcol = sortingcol;
+	m_filter = filter;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_cursesui implementation
+///////////////////////////////////////////////////////////////////////////////
 sinsp_cursesui::sinsp_cursesui(sinsp* inspector)
 {
 	m_inspector = inspector;
@@ -113,10 +167,12 @@ sinsp_cursesui::~sinsp_cursesui()
 		delete m_datatable;
 	}
 
+#ifndef NOCURSESUI
 	if(m_viz != NULL)
 	{
 		delete m_viz;
 	}
+#endif
 }
 
 void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
@@ -143,10 +199,12 @@ void sinsp_cursesui::start()
 		delete m_datatable;
 	}
 
+#ifndef NOCURSESUI
 	if(m_viz != NULL)
 	{
 		delete m_viz;
 	}
+#endif
 
 	m_datatable = new sinsp_table(m_inspector);
 
