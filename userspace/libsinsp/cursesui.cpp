@@ -178,9 +178,27 @@ void sinsp_cursesui::render_header()
 	mvaddstr(0, 0, "Viewing");
 
 	attrset(m_colors[PROCESS]);
-	const char* vs = get_selected_view()->m_name.c_str();
+	const char* vcs = get_selected_view()->m_name.c_str();
 
-	mvaddstr(0, sizeof("Viewing ") - 1, vs);
+	string vs(vcs);
+	if(m_sel_hierarchy.m_hierarchy.size() != 0)
+	{
+		vs += " for ";
+
+		for(j = 0; j < m_sel_hierarchy.m_hierarchy.size(); j++)
+		{
+			vs += m_sel_hierarchy.m_hierarchy[j].m_field;
+			vs += "=";
+			vs += m_sel_hierarchy.m_hierarchy[j].m_val;
+
+			if(j < m_sel_hierarchy.m_hierarchy.size() - 1)
+			{
+				vs += " and ";
+			}
+		}
+	}
+
+	mvaddstr(0, sizeof("Viewing ") - 1, vs.c_str());
 }
 
 void sinsp_cursesui::render_main_menu()
