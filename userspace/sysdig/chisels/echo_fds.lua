@@ -87,13 +87,21 @@ function on_event()
 
 	local container = ""
 	if print_container then
-	   container = string.format("%s [%s] [%s]", terminal.green, containername, containerid );
+		if containername == "host" then
+			container = string.format("%s [%s] [%s]", terminal.green, containername, containerid );
+		else
+			container = string.format("%s [%s] [%s]", terminal.cyan, containername, containerid );
+		end
 	end
+
+    name_pname = string.format("%s %s (%s)", terminal.red, name, pname );
 	
 	if isread then
-		infostr = string.format("%s------ Read %s from %s (%s) %s", terminal.red, format_bytes(res), name, pname, container)
+    	name_pname = string.format("%s %s (%s)", terminal.red, name, pname );
+		infostr = string.format("%s------ Read %s from %s %s", terminal.red, format_bytes(res), container, name_pname)
 	else
-		infostr = string.format("%s------ Write %s to %s (%s) %s", terminal.blue, format_bytes(res), name, pname, container)
+    	name_pname = string.format("%s %s (%s)", terminal.blue, name, pname );
+		infostr = string.format("%s------ Write %s to %s %s", terminal.blue, format_bytes(res), container, name_pname)
 	end
 	
 	print(infostr)
