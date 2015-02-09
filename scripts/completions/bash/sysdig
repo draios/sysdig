@@ -59,8 +59,37 @@ _sysdig_complete()
   local prev=${COMP_WORDS[COMP_CWORD-1]}
 
   case "$prev" in
-   -r)
-     COMPREPLY=()
+   -c|--chisel)
+    local chisels=""
+    local detail="Use the -i flag to get detailed information about a specific chisel"
+      while IFS= read -r line
+      do
+        if [[ $line =~ "---" ]]; then
+            # skip lines such as
+            # -----------------
+            continue;
+        elif [[ -z "$line" ]]; then
+            # empty lines reset the category
+            continue;
+        elif [[ $line =~ "Category" ]]; then
+            # category
+            continue;
+        elif [[ $line =~ $detail ]]; then
+            # detail instructions
+            continue;
+        fi
+
+        local chisel=${line%% *}
+
+        if [[ -z "$chisel" ]]; then
+            # empty lines from description
+            continue; 
+        fi
+
+        chisels="$chisels $chisel"
+
+      done < <(sysdig -cl)
+      COMPREPLY=( $( compgen -W "$chisels" -- $cur ) )
      return 0
      ;;
 
