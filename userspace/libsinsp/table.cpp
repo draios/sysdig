@@ -71,7 +71,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_n_fields = 0;
 	m_n_premerge_fields = 0;
 	m_n_postmerge_fields = 0;
-	m_refresh_interval = 3LL * SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
+	m_refresh_interval = 1LL * SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
 	m_next_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;

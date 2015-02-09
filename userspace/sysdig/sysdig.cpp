@@ -1648,27 +1648,29 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 			vector<string> at_all;
 			at_all.push_back("");
-			at_all.push_back("evt.type");
+			at_all.push_back("container.name");
 			vector<string> at_proc;
 			at_proc.push_back("proc.pid");
 			at_proc.push_back("proc.name");
 			at_proc.push_back("thread.tid");
 
-			int32_t cs [] = {-1, 9, 12, 6, 12, 12, 200};
-			vector<int32_t> csv (cs, cs + sizeof(cs) / sizeof(cs[0]));
+
+			views.push_back(sinsp_table_info("top containers",
+				"*proc.pid container.name proc.vmsize proc.vmrss evt.num", 
+				at_all,
+				2,
+				"*1 1 S2 S3",
+				NULL,
+				""));
+
+			int32_t csp [] = {-1, 9, 12, 6, 12, 12, 200};
+			vector<int32_t> vcsp (csp, csp + sizeof(csp) / sizeof(csp[0]));
 			views.push_back(sinsp_table_info("top processes", 
 				"*proc.pid proc.pid user.name proc.nchilds proc.vmsize proc.vmrss proc.cmdline", 
 				at_all,
 				2,
 				"",
-				&csv,
-				""));
-			views.push_back(sinsp_table_info("top containers",
-				"*proc.pid proc.pid proc.name container.name proc.vmsize proc.vmrss evt.num", 
-				at_all,
-				2,
-				"*3 3 S4",
-				NULL,
+				&vcsp,
 				""));
 			views.push_back(sinsp_table_info("top syscalls", "*evt.type evt.type Sevt.count", at_proc, 2, "", NULL, ""));
 			views.push_back(sinsp_table_info("top FDs", "*fd.name fd.name Sevt.count", at_proc, 2, "", NULL, ""));
