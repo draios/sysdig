@@ -355,7 +355,6 @@ curses_table::curses_table()
 	m_colsizes[PT_FLAGS32] = 32;
 	m_colsizes[PT_UID] = 12;
 	m_colsizes[PT_GID] = 12;
-	m_colsizes[PT_MAX] = 0;
 
 	//
 	// Define the table size

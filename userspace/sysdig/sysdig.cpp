@@ -1656,12 +1656,12 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 
 			views.push_back(sinsp_table_info("top containers",
-				"*Kproc.pid container.name proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out",
+				"*Kproc.pid container.name proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out evt.count proc.nthreads",
 				at_all,
 				2,
-				"K1 1 S2 S3 S4 S5 S6 S7",
-				"NA,NAME,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT",
-				"-1,20,8,8,8,8,8,8",
+				"K1 1 S8 S9 S2 S3 S4 S5 S6 S7",
+				"NA,CONTAINER,PROCS,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT",
+				"-1,20,8,8,8,8,8,8,8,8",
 				"container.name != host"));
 
 			views.push_back(sinsp_table_info("top processes", 

@@ -922,6 +922,19 @@ void sinsp_table::switch_buffers()
 pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint32_t rownum)
 {
 	pair<filtercheck_field_info*, string> res;
+	vector<sinsp_filter_check*>* extractors;
+	vector<ppm_param_type>* types;
+
+	if(m_do_merging)
+	{
+		extractors = &m_mergers;
+		types = &m_postmerge_types;
+	}
+	else
+	{
+		extractors = &m_extractors;
+		types = &m_premerge_types;
+	}
 
 	if(rownum >= m_sample_data.size())
 	{
@@ -932,10 +945,10 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 	else
 	{
 		vector<filtercheck_field_info>* legend = get_legend();
-		res.first = (filtercheck_field_info*)m_extractors[0]->get_field_info();
+		res.first = (filtercheck_field_info*)((*extractors)[0])->get_field_info();
 		ASSERT(res.first != NULL);
 
-		m_printer->set_val(m_types->at(0), 
+		m_printer->set_val(types->at(0), 
 			m_sample_data[rownum].m_key.m_val, 
 			m_sample_data[rownum].m_key.m_len,
 			legend->at(0).m_print_format);
