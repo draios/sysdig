@@ -20,6 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #endif
 
+string combine_filters(string flt1, string flt2);
+
 class sinsp_table_info
 {
 public:
@@ -178,7 +180,7 @@ public:
 	sinsp_cursesui(sinsp* inspector);
 	~sinsp_cursesui();
 	void configure(vector<sinsp_table_info>* views);
-	void start(bool is_drilldown);
+	void start(bool is_drilldown, string filter);
 	sinsp_table_info* get_selected_view();
 	// returns false if there is no suitable drill down view for this field
 	bool drilldown(string field, string val);
@@ -211,10 +213,12 @@ public:
 				field = psinfo->m_field;
 			}
 
-			m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
+			//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
+			string filter = combine_filters(m_sel_hierarchy.tofilter(), 
+				m_views[m_selected_view].m_filter);
 
 			clear();
-			start(true);
+			start(true, filter);
 			populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
 			m_viz->render(true);
 			render();

@@ -1649,7 +1649,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 			views.push_back(sinsp_table_info("Containers",
 				"*Kproc.pid container.name proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out evt.count proc.nthreads",
 				"all",
-				2,
+				1,
 				"K1 1 S8 S9 S2 S3 S4 S5 S6 S7",
 				"NA,CONTAINER,PROCS,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT",
 				"-1,20,8,8,8,8,8,8,8,8",
@@ -1667,7 +1667,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"all,container.name,proc.pid,proc.name,thread.tid",
 				5,
 				"",
-				"NA,SRC IP,SRC PORT,DST IP, DST PORT,BYTES IN,BYTES OUT",
+				"NA,CIP,CPORT,SIP,SPORT,BYTES IN,BYTES OUT",
 				"-1,17,10,17,10,10,10",
 				""));
 			views.push_back(sinsp_table_info("top syscalls", 
@@ -1679,7 +1679,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
 
 			ui.configure(&views);
-			ui.start(false);
+			ui.start(false, views[0].m_filter);
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,

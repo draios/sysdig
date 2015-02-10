@@ -211,7 +211,7 @@ void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
 	m_views = *views;
 }
 
-void sinsp_cursesui::start(bool is_drilldown)
+void sinsp_cursesui::start(bool is_drilldown, string filter)
 {
 	if(m_selected_view >= m_views.size())
 	{
@@ -235,7 +235,7 @@ void sinsp_cursesui::start(bool is_drilldown)
 
 	m_datatable->configure(m_views[m_selected_view].m_config, 
 		m_views[m_selected_view].m_merge_config,
-		m_views[m_selected_view].m_filter);
+		filter);
 
 	m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 
@@ -348,6 +348,24 @@ void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>
 	}
 }
 
+string combine_filters(string flt1, string flt2)
+{
+	if(flt1 == "")
+	{
+		return flt2;
+	}
+	else
+	{
+		if(flt2 == "")
+		{
+			return flt1;
+		}
+	}
+
+	string res = "(" + flt1 + ") and (" + flt2 + ")";
+	return res;
+}
+
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::drilldown(string field, string val)
 {
@@ -375,9 +393,9 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
 				m_selected_view = j;
 
-				it->m_filter = m_sel_hierarchy.tofilter();
-
-				start(true);
+				//it->m_filter = m_sel_hierarchy.tofilter();
+				string filter = combine_filters(m_sel_hierarchy.tofilter(), it->m_filter);
+				start(true, filter);
 #ifndef NOCURSESUI
 				clear();
 				populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
@@ -419,12 +437,23 @@ bool sinsp_cursesui::drillup()
 		m_selected_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
 		ASSERT(m_selected_view < m_views.size());
 		m_sel_hierarchy.m_hierarchy.pop_back();
-		m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
+		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
-		start(true);
+		string filter = combine_filters(m_sel_hierarchy.tofilter(), 
+			m_views[m_selected_view].m_filter);
+
+		start(true, filter);
 #ifndef NOCURSESUI
-		m_viz->m_last_key.copy(&rowkey);
-		m_viz->m_last_key.m_isvalid = true;
+		if(rowkey.m_val != NULL)
+		{
+			m_viz->m_last_key.copy(&rowkey);
+			m_viz->m_last_key.m_isvalid = true;
+		}
+		else
+		{
+			m_viz->m_last_key.m_isvalid = false;
+		}
+
 		m_viz->m_drilled_up = true;
 		populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
 		clear();

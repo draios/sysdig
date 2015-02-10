@@ -601,7 +601,7 @@ void curses_table::render(bool data_changed)
 					row->at(j).m_len,
 					legend->at(j).m_print_format);
 
-				mvwaddnstr(m_tblwin, l + 1, k, m_converter->tostring_nice(NULL), m_legend[j].m_size);
+				mvwaddnstr(m_tblwin, l + 1, k, m_converter->tostring_nice(NULL), m_legend[j].m_size - 1);
 				k += m_legend[j].m_size;
 			}
 		}
