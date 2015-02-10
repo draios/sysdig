@@ -1788,7 +1788,11 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 	char *targetbuf = args->str_storage;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
@@ -1821,7 +1825,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -1878,7 +1882,11 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	int64_t retval;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 
 	/*
 	 * res
@@ -1897,7 +1905,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -1940,7 +1948,11 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	int64_t retval;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 	char *targetbuf = args->str_storage;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
@@ -1966,7 +1978,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
