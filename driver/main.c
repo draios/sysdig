@@ -81,28 +81,6 @@ struct ppm_ring_buffer_context {
 	char *str_storage;	/* String storage. Size is one page. */
 };
 
-struct event_data_t {
-	enum ppm_capture_category category;
-
-	union {
-		struct {
-			struct pt_regs *regs;
-			long id;
-		} syscall_data;
-
-		struct {
-			struct task_struct *sched_prev;
-			struct task_struct *sched_next;
-		} context_data;
-
-		struct {
-			int sig;
-			struct siginfo *info;
-			struct k_sigaction *ka;
-		} signal_data;
-	} event_info;
-};
-
 /*
  * FORWARD DECLARATIONS
  */
@@ -111,8 +89,11 @@ static int ppm_release(struct inode *inode, struct file *filp);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event(enum ppm_event_type event_type,
+	struct pt_regs *regs,
+	long id,
 	enum syscall_flags drop_flags,
-	struct event_data_t *event_datap);
+	struct task_struct *sched_prev,
+	struct task_struct *sched_next);
 
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
 
@@ -130,10 +111,6 @@ TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, st
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next);
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)) */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
-
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka);
-#endif
 
 DECLARE_BITMAP(g_events_mask, PPM_EVENT_MAX);
 static struct ppm_device *g_ppm_devs;
@@ -179,9 +156,6 @@ static struct tracepoint *tp_sys_exit;
 static struct tracepoint *tp_sched_process_exit;
 #ifdef CAPTURE_CONTEXT_SWITCHES
 static struct tracepoint *tp_sched_switch;
-#endif
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-static struct tracepoint *tp_signal_deliver;
 #endif
 
 #ifdef _DEBUG
@@ -291,14 +265,6 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_sched_switch;
 		}
 #endif
-
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-		ret = compat_register_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
-		if (ret) {
-			pr_err("can't create the signal_deliver tracepoint\n");
-			goto err_signal_deliver;
-		}
-#endif
 		g_tracepoint_registered = true;
 	}
 
@@ -315,10 +281,6 @@ err_sys_enter:
 	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 err_sys_exit:
 	ring->open = false;
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-err_signal_deliver:
-	compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
-#endif
 cleanup_open:
 	mutex_unlock(&g_open_mutex);
 
@@ -365,9 +327,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
 			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
-#endif
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
 			tracepoint_synchronize_unregister();
 			g_tracepoint_registered = false;
@@ -416,8 +375,6 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
-		struct event_data_t event_data;
-
 		g_dropping_mode = 0;
 		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE\n");
 		g_sampling_interval = 1000000000;
@@ -427,10 +384,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		 * Push an event into the ring buffer so that the user can know that dropping
 		 * mode has been disabled
 		 */
-		event_data.category = PPMC_CONTEXT_SWITCH;
-		event_data.event_info.context_data.sched_prev = (void *)DEI_DISABLE_DROPPING;
-		event_data.event_info.context_data.sched_next = (void *)0;
-		record_event(PPME_SYSDIGEVENT_E, UF_NEVER_DROP, &event_data);
+		record_event(PPME_SYSDIGEVENT_E, NULL, -1, UF_NEVER_DROP, (void *)DEI_DISABLE_DROPPING, (void *)0);
 		return 0;
 	}
 	case PPM_IOCTL_ENABLE_DROPPING_MODE:
@@ -756,8 +710,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 
 static inline void record_drop_e(void)
 {
-	struct event_data_t event_data = {0};
-	if (record_event(PPME_DROP_E, UF_NEVER_DROP, &event_data) == 0) {
+	if (record_event(PPME_DROP_E, NULL, -1, UF_NEVER_DROP, NULL, NULL) == 0) {
 		g_need_to_insert_drop_e = 1;
 	} else {
 		if (g_need_to_insert_drop_e == 1)
@@ -769,8 +722,7 @@ static inline void record_drop_e(void)
 
 static inline void record_drop_x(void)
 {
-	struct event_data_t event_data = {0};
-	if (record_event(PPME_DROP_X, UF_NEVER_DROP, &event_data) == 0) {
+	if (record_event(PPME_DROP_X, NULL, -1, UF_NEVER_DROP, NULL, NULL) == 0) {
 		g_need_to_insert_drop_x = 1;
 	} else {
 		if (g_need_to_insert_drop_x == 1)
@@ -815,8 +767,11 @@ static inline int drop_event(enum ppm_event_type event_type, enum syscall_flags 
  * Returns 0 if the event is dropped
  */
 static int record_event(enum ppm_event_type event_type,
+	struct pt_regs *regs,
+	long id,
 	enum syscall_flags drop_flags,
-	struct event_data_t *event_datap)
+	struct task_struct *sched_prev,
+	struct task_struct *sched_next)
 {
 	int res = 0;
 	size_t event_size;
@@ -860,16 +815,12 @@ static int record_event(enum ppm_event_type event_type,
 	}
 
 	ring_info->n_evts++;
-	if (event_datap->category == PPMC_CONTEXT_SWITCH && event_datap->event_info.context_data.sched_prev != NULL) {
+	if (sched_prev != NULL) {
 		if (event_type != PPME_SYSDIGEVENT_E) {
-			ASSERT(event_datap->event_info.context_data.sched_prev != NULL);
-			ASSERT(event_datap->event_info.context_data.sched_next != NULL);
-			//ASSERT(regs == NULL);
+			ASSERT(sched_prev != NULL);
+			ASSERT(sched_next != NULL);
+			ASSERT(regs == NULL);
 			ring_info->n_context_switches++;
-		}
-	} else if (event_datap->category == PPMC_SIGNAL) {
-		if (event_type == PPME_SYSCALL_SIGNALDELIVER_E) {
-			ASSERT(event_datap->event_info.signal_data.info != NULL);
 		}
 	}
 
@@ -915,10 +866,10 @@ static int record_event(enum ppm_event_type event_type,
 	 * second argument contains a pointer to the arguments of the original
 	 * call. I guess this was done to reduce the number of syscalls...
 	 */
-	if (event_datap->category == PPMC_SYSCALL && event_datap->event_info.syscall_data.regs && event_datap->event_info.syscall_data.id == __NR_socketcall) {
+	if (regs && id == __NR_socketcall) {
 		enum ppm_event_type tet;
 
-		tet = parse_socketcall(&args, event_datap->event_info.syscall_data.regs);
+		tet = parse_socketcall(&args, regs);
 
 		if (event_type == PPME_GENERIC_E)
 			event_type = tet;
@@ -961,40 +912,10 @@ static int record_event(enum ppm_event_type event_type,
 #endif
 		args.buffer_size = min(freespace, delta_from_end) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
 		args.event_type = event_type;
-
-		if (event_datap->category == PPMC_SYSCALL) {
-			args.regs = event_datap->event_info.syscall_data.regs;
-			args.syscall_id = event_datap->event_info.syscall_data.id;
-		} else {
-			args.regs = NULL;
-			args.syscall_id = -1;
-		}
-
-		if (event_datap->category == PPMC_CONTEXT_SWITCH) {
-			args.sched_prev = event_datap->event_info.context_data.sched_prev;
-			args.sched_next = event_datap->event_info.context_data.sched_next;
-		} else {
-			args.sched_prev = NULL;
-			args.sched_next = NULL;
-		}
-
-		if (event_datap->category == PPMC_SIGNAL) {
-			args.signo = event_datap->event_info.signal_data.sig;
-			if (event_datap->event_info.signal_data.info->si_signo == __SI_KILL) {
-				args.spid = event_datap->event_info.signal_data.info->_sifields._kill._pid;
-			} else if (event_datap->event_info.signal_data.info->si_signo == __SI_RT) {
-				args.spid = event_datap->event_info.signal_data.info->_sifields._rt._pid;
-			} else if (event_datap->event_info.signal_data.info->si_signo == __SI_CHLD) {
-				args.spid = event_datap->event_info.signal_data.info->_sifields._sigchld._pid;
-			} else {
-				args.spid = (__kernel_pid_t) 0;
-			}
-		} else {
-			args.signo = 0;
-			args.spid = (__kernel_pid_t) 0;
-		}
-		args.dpid = current->pid;
-
+		args.regs = regs;
+		args.sched_prev = sched_prev;
+		args.sched_next = sched_next;
+		args.syscall_id = id;
 		args.curarg = 0;
 		args.arg_data_size = args.buffer_size - args.arg_data_offset;
 		args.nevents = ring->nevents;
@@ -1121,7 +1042,6 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
-		struct event_data_t event_data;
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
@@ -1137,14 +1057,10 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		type = g_syscall_table[table_index].enter_event_type;
 #endif
 
-		event_data.category = PPMC_SYSCALL;
-		event_data.event_info.syscall_data.regs = regs;
-		event_data.event_info.syscall_data.id = id;
-		if (used) {
-			record_event(type, drop_flags, &event_data);
-		} else {
-			record_event(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data);
-		}
+		if (used)
+			record_event(type, regs, id, drop_flags, NULL, NULL);
+		else
+			record_event(PPME_GENERIC_E, regs, id, UF_ALWAYS_DROP, NULL, NULL);
 	}
 }
 
@@ -1167,7 +1083,6 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
-		struct event_data_t event_data;
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
@@ -1183,14 +1098,10 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		type = g_syscall_table[table_index].exit_event_type;
 #endif
 
-		event_data.category = PPMC_SYSCALL;
-		event_data.event_info.syscall_data.regs = regs;
-		event_data.event_info.syscall_data.id = id;
-		if (used) {
-			record_event(type, drop_flags, &event_data);
-		} else {
-			record_event(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data);
-		}
+		if (used)
+			record_event(type, regs, id, drop_flags, NULL, NULL);
+		else
+			record_event(PPME_GENERIC_X, regs, id, UF_ALWAYS_DROP, NULL, NULL);
 	}
 }
 
@@ -1199,8 +1110,6 @@ int __access_remote_vm(struct task_struct *t, struct mm_struct *mm, unsigned lon
 
 TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
-	struct event_data_t event_data;
-
 	if (unlikely(current->flags & PF_KTHREAD)) {
 		/*
 		 * We are not interested in kernel threads
@@ -1208,10 +1117,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 		return;
 	}
 
-	event_data.category = PPMC_CONTEXT_SWITCH;
-	event_data.event_info.context_data.sched_prev = p;
-	event_data.event_info.context_data.sched_next = p;
-	record_event(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data);
+	record_event(PPME_PROCEXIT_1_E, NULL, -1, UF_NEVER_DROP, p, p);
 }
 
 #include <linux/ip.h>
@@ -1225,23 +1131,12 @@ TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, st
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next)
 #endif
 {
-	struct event_data_t event_data;
-	event_data.category = PPMC_CONTEXT_SWITCH;
-	event_data.event_info.context_data.sched_prev = prev;
-	event_data.event_info.context_data.sched_next = next;
-	record_event(PPME_SCHEDSWITCH_6_E, UF_USED, &event_data);
-}
-#endif
-
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka)
-{
-	struct event_data_t event_data;
-	event_data.category = PPMC_SIGNAL;
-	event_data.event_info.signal_data.sig = sig;
-	event_data.event_info.signal_data.info = info;
-	event_data.event_info.signal_data.ka = ka;
-	record_event(PPME_SYSCALL_SIGNALDELIVER_E, UF_USED, &event_data);
+	record_event(PPME_SCHEDSWITCH_6_E,
+		NULL,
+		-1,
+		UF_USED,
+		prev,
+		next);
 }
 #endif
 
@@ -1341,10 +1236,6 @@ static void visit_tracepoint(struct tracepoint *tp, void *priv)
 	else if (!strcmp(tp->name, "sched_switch"))
 		tp_sched_switch = tp;
 #endif
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-	else if (!strcmp(tp->name, "signal_deliver"))
-		tp_signal_deliver = tp;
-#endif
 }
 
 static int get_tracepoint_handles(void)
@@ -1366,12 +1257,6 @@ static int get_tracepoint_handles(void)
 #ifdef CAPTURE_CONTEXT_SWITCHES
 	if (!tp_sched_switch) {
 		pr_err("failed to find sched_switch tracepoint\n");
-		return -ENOENT;
-	}
-#endif
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-	if (!tp_signal_deliver) {
-		pr_err("failed to find signal_deliver tracepoint\n");
 		return -ENOENT;
 	}
 #endif
