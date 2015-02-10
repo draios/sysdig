@@ -47,9 +47,6 @@ struct event_filler_arguments {
 #endif
 	int fd; /* Passed by some of the fillers to val_to_ring to compute the snaplen dynamically */
 	bool enforce_snaplen;
-	int signo; /* Signal number */
-	__kernel_pid_t spid; /* PID of source process */
-	__kernel_pid_t dpid; /* PID of destination process */
 };
 
 /*

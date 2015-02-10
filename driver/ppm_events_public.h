@@ -388,16 +388,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPME_IS_EXIT(x) (x & PPME_DIRECTION_FLAG)
 #define PPME_MAKE_ENTER(x) (x & (~1))
 
-/*
- * Event category to classify events in generic categories
- */
-enum ppm_capture_category {
-	PPMC_NONE = 0,
-	PPMC_SYSCALL = 1,
-	PPMC_CONTEXT_SWITCH = 2,
-	PPMC_SIGNAL = 3,
-};
-
 /** @defgroup etypes Event Types
  *  @{
  */
@@ -624,9 +614,7 @@ enum ppm_event_type {
 	PPME_SYSCALL_FORK_17_X = 219,
 	PPME_SYSCALL_VFORK_17_E = 220,
 	PPME_SYSCALL_VFORK_17_X = 221,
-	PPME_SYSCALL_SIGNALDELIVER_E = 222,
-	PPME_SYSCALL_SIGNALDELIVER_X = 223, /* This should never be called */
-	PPM_EVENT_MAX = 224
+	PPM_EVENT_MAX = 222
 };
 /*@}*/
 
