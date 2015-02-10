@@ -211,6 +211,8 @@ public:
 				field = psinfo->m_field;
 			}
 
+			m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
+
 			clear();
 			start(true);
 			populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
