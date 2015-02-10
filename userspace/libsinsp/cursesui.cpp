@@ -97,6 +97,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector)
 {
 	m_inspector = inspector;
 	m_selected_view = 0;
+	m_selected_sidemenu_entry = 0;
 	m_datatable = NULL;
 	m_viz = NULL;
 
@@ -210,7 +211,7 @@ void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
 	m_views = *views;
 }
 
-void sinsp_cursesui::start()
+void sinsp_cursesui::start(bool is_drilldown)
 {
 	if(m_selected_view >= m_views.size())
 	{
@@ -241,6 +242,10 @@ void sinsp_cursesui::start()
 #ifndef NOCURSESUI
 	m_viz = new curses_table();
 	m_viz->configure(this, m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
+	if(!is_drilldown)
+	{
+		populate_sidemenu("", &m_viz->m_sidemenu_viewlist);
+	}
 #endif
 }
 
@@ -323,6 +328,26 @@ sinsp_table_info* sinsp_cursesui::get_selected_view()
 	return &m_views[m_selected_view];
 }
 
+void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist)
+{
+	uint32_t j = 0;
+
+	viewlist->clear();
+
+	for(auto it = m_views.begin(); it != m_views.end(); ++it)
+	{
+		for(auto atit = it->m_applyto.begin(); atit != it->m_applyto.end(); ++atit)
+		{
+			if(*atit == field)
+			{
+				viewlist->push_back(sidemenu_list_entry(it->m_name, j));
+			}
+		}
+
+		j++;
+	}
+}
+
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::drilldown(string field, string val)
 {
@@ -347,16 +372,20 @@ bool sinsp_cursesui::drilldown(string field, string val)
 					rowkeybak.m_len = rowkey->m_len;
 				}
 
-				m_sel_hierarchy.push_back(field, val, m_selected_view, &rowkeybak);
+				m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
 				m_selected_view = j;
 
 				it->m_filter = m_sel_hierarchy.tofilter();
 
-				start();
+				start(true);
 #ifndef NOCURSESUI
 				clear();
+				populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
+				m_selected_sidemenu_entry = 0;
 				m_viz->render(true);
 				render();
+//mvprintw(1, 0, "!!!!%d-%s", pippo, field.c_str());
+//refresh();
 #endif
 
 				return true;
@@ -373,21 +402,34 @@ bool sinsp_cursesui::drillup()
 {
 	if(m_sel_hierarchy.m_hierarchy.size() > 0)
 	{
+		string field;
 		sinsp_ui_selection_info* sinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+
+		if(m_sel_hierarchy.m_hierarchy.size() > 1)
+		{
+			sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 2];
+			field = psinfo->m_field;
+		}
+		
+//		field = sinfo->m_field;
 
 		sinsp_table_field rowkey = sinfo->m_rowkey;
 
 		m_selected_view = sinfo->m_prev_selected_view;
+		m_selected_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
 		ASSERT(m_selected_view < m_views.size());
 		m_sel_hierarchy.m_hierarchy.pop_back();
 		m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
-		start();
+		start(true);
 #ifndef NOCURSESUI
 		m_viz->m_last_key.copy(&rowkey);
 		m_viz->m_last_key.m_isvalid = true;
 		m_viz->m_drilled_up = true;
+		populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
 		clear();
+//mvprintw(1, 0, "@@@@%d-%d-%s", m_selected_view, m_selected_sidemenu_entry, field.c_str());
+//refresh();
 		m_viz->render(true);
 		render();
 #endif

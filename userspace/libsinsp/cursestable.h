@@ -68,6 +68,19 @@ public:
 	uint32_t m_h;
 };
 
+class sidemenu_list_entry
+{
+public:
+	sidemenu_list_entry(string viewname, uint32_t viewid)
+	{
+		m_viewname = viewname;
+		m_viewid = viewid;
+	}
+
+	string m_viewname;
+	uint32_t m_viewid;
+};
+
 class curses_table_sidemenu : public curses_scrollable_list
 {
 public:
@@ -96,6 +109,8 @@ public:
 	sinsp_table_field_storage m_last_key;
 
 	bool m_drilled_up;
+	curses_table_sidemenu* m_sidemenu;
+	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	
 private:
 	void update_rowkey(int32_t row);
@@ -114,7 +129,6 @@ private:
 	vector<sinsp_sample_row>* m_data;
 	sinsp_filter_check_reference* m_converter;
 	vector<uint32_t> m_column_startx;
-	curses_table_sidemenu* m_sidemenu;
 
 	friend class curses_table_sidemenu;
 };

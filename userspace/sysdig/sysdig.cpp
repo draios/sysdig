@@ -1646,7 +1646,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 			vector<sinsp_table_info> views;
 
-			views.push_back(sinsp_table_info("top containers",
+			views.push_back(sinsp_table_info("Containers",
 				"*Kproc.pid container.name proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out evt.count proc.nthreads",
 				"all",
 				2,
@@ -1654,13 +1654,21 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"NA,CONTAINER,PROCS,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT",
 				"-1,20,8,8,8,8,8,8,8,8",
 				"container.name != host"));
-			views.push_back(sinsp_table_info("top processes", 
-				"Kproc.pid proc.pid user.name proc.nchilds proc.vmsize proc.vmrss proc.cmdline", 
+			views.push_back(sinsp_table_info("Processes", 
+				"*Kproc.pid proc.pid user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out proc.cmdline", 
 				"all,container.name",
 				2,
 				"",
+				"NA,PID,USER,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
+				"-1,8,12,8,8,8,8,8,8,8,200",
+				""));
+			views.push_back(sinsp_table_info("Connections", 
+				"*Kfd.name fd.cip fd.cport fd.sip fd.sport Sevt.buflen.net.in Sevt.buflen.net.out",
+				"all,container.name,proc.pid,proc.name,thread.tid",
+				5,
 				"",
-				"-1, 9, 12, 6, 12, 12, 200",
+				"NA,SRC IP,SRC PORT,DST IP, DST PORT,BYTES IN,BYTES OUT",
+				"-1,17,10,17,10,10,10",
 				""));
 			views.push_back(sinsp_table_info("top syscalls", 
 				"Kevt.type evt.type Sevt.count", 
@@ -1671,7 +1679,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
 
 			ui.configure(&views);
-			ui.start();
+			ui.start(false);
 
 			cinfo = do_systop_inspect(inspector,
 				cnt,
@@ -1728,8 +1736,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-	res = systop_init(argc, argv);
-	return 0;
+//	res = systop_init(argc, argv);
+//	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

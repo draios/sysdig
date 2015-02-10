@@ -151,7 +151,7 @@ curses_table_sidemenu::curses_table_sidemenu(curses_table* parent)
 	m_w = SIDEMENU_WIDTH;
 	m_y_start = TABLE_Y_START;
 	m_win = newwin(m_h, m_w, m_y_start, 0);
-	m_selct = m_parent->m_parent->m_selected_view;
+	m_selct = m_parent->m_parent->m_selected_sidemenu_entry;
 }
 
 curses_table_sidemenu::~curses_table_sidemenu()
@@ -184,7 +184,7 @@ void curses_table_sidemenu::render()
 	//
 	// Render the rows
 	//
-	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_parent->m_parent->m_views.size()); j++)
+	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_parent->m_sidemenu_viewlist.size()); j++)
 	{
 		if(j == m_selct)
 		{
@@ -203,7 +203,7 @@ void curses_table_sidemenu::render()
 		}
 
 		// add the new line
-		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_parent->m_parent->m_views[j].m_name.c_str(), m_w);
+		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_parent->m_sidemenu_viewlist[j].m_viewname.c_str(), m_w);
 
 		// white space at the right
 		wattrset(m_win, m_parent->m_parent->m_colors[sinsp_cursesui::PROCESS]);
@@ -224,22 +224,24 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
-			m_parent->m_parent->m_selected_view = m_selct;
+			ASSERT(m_selct < (int32_t)m_parent->m_sidemenu_viewlist.size());
+			m_parent->m_parent->m_selected_view = m_parent->m_sidemenu_viewlist[m_selct].m_viewid;
+			m_parent->m_parent->m_selected_sidemenu_entry = m_selct;
 			return STA_SWITCH_VIEW;
 		case KEY_UP:
-			selection_up((int32_t)m_parent->m_parent->m_views.size());
+			selection_up((int32_t)m_parent->m_sidemenu_viewlist.size());
 			render();
 			return STA_NONE;
 		case KEY_DOWN:
-			selection_down((int32_t)m_parent->m_parent->m_views.size());
+			selection_down((int32_t)m_parent->m_sidemenu_viewlist.size());
 			render();
 			return STA_NONE;
 		case KEY_PPAGE:
-			selection_pageup((int32_t)m_parent->m_parent->m_views.size());
+			selection_pageup((int32_t)m_parent->m_sidemenu_viewlist.size());
 			render();
 			return STA_NONE;
 		case KEY_NPAGE:
-			selection_pagedown((int32_t)m_parent->m_parent->m_views.size());
+			selection_pagedown((int32_t)m_parent->m_sidemenu_viewlist.size());
 			render();
 			return STA_NONE;
 		case KEY_MOUSE:

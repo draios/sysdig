@@ -45,11 +45,16 @@ public:
 class sinsp_ui_selection_info
 {
 public:
-	sinsp_ui_selection_info(string field, string val, uint32_t prev_selected_view, sinsp_table_field* rowkey)
+	sinsp_ui_selection_info(string field, 
+		string val, 
+		uint32_t prev_selected_view, 
+		uint32_t prev_selected_sidemenu_entry, 
+		sinsp_table_field* rowkey)
 	{
 		m_field = field;
 		m_val = val;
 		m_prev_selected_view = prev_selected_view;
+		m_prev_selected_sidemenu_entry = prev_selected_sidemenu_entry;
 
 		m_rowkey = *rowkey;
 	}
@@ -57,15 +62,24 @@ public:
 	string m_field;
 	string m_val;
 	uint32_t m_prev_selected_view;
+	uint32_t m_prev_selected_sidemenu_entry;
 	sinsp_table_field m_rowkey;
 };
 
 class sinsp_ui_selection_hierarchy
 {
 public:
-	void push_back(string field, string val, uint32_t prev_selected_view, sinsp_table_field* rowkey)
+	void push_back(string field, 
+		string val, 
+		uint32_t prev_selected_view, 
+		uint32_t prev_selected_sidemenu_entry, 
+		sinsp_table_field* rowkey)
 	{
-		m_hierarchy.push_back(sinsp_ui_selection_info(field, val, prev_selected_view, rowkey));
+		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
+			val, 
+			prev_selected_view, 
+			prev_selected_sidemenu_entry, 
+			rowkey));
 	}
 
 	string tofilter()
@@ -164,7 +178,7 @@ public:
 	sinsp_cursesui(sinsp* inspector);
 	~sinsp_cursesui();
 	void configure(vector<sinsp_table_info>* views);
-	void start();
+	void start(bool is_drilldown);
 	sinsp_table_info* get_selected_view();
 	// returns false if there is no suitable drill down view for this field
 	bool drilldown(string field, string val);
@@ -190,8 +204,16 @@ public:
 		}
 		else if(ta == STA_SWITCH_VIEW)
 		{
+			string field;
+			if(m_sel_hierarchy.m_hierarchy.size() > 0)
+			{
+				sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+				field = psinfo->m_field;
+			}
+
 			clear();
-			start();
+			start(true);
+			populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
 			m_viz->render(true);
 			render();
 		}
@@ -249,6 +271,7 @@ public:
 	int m_colors[LAST_COLORELEMENT];
 	vector<sinsp_table_info> m_views;
 	uint32_t m_selected_view;
+	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 
 private:
@@ -257,6 +280,8 @@ private:
 	void render_header();
 	void render_main_menu();
 #endif
+	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
+
 	sinsp* m_inspector;
 	vector<string> m_menuitems;
 	uint32_t m_screenw;
