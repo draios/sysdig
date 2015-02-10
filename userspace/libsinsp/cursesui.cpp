@@ -20,7 +20,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_table_info::sinsp_table_info(string name, 
 	string config,
-	vector<string> applyto,
+	string applyto,
 	uint32_t sortingcol, 
 	string merge_config, 
 	string colnames, 
@@ -29,9 +29,33 @@ sinsp_table_info::sinsp_table_info(string name,
 {
 	m_name = name;
 	m_config = config;
-	m_applyto = applyto;
 	m_merge_config = merge_config;
 		
+	if(applyto != "")
+	{
+		char *p = strtok((char*)applyto.c_str(), ",");
+		while (p) 
+		{
+			string ts(p);
+			trim(ts);
+
+			if(ts == "all")
+			{
+				m_applyto.push_back("");
+			}
+			else
+			{
+				m_applyto.push_back(ts);
+			}
+
+			p = strtok(NULL, ",");
+		}
+	}
+	else
+	{
+		m_applyto.push_back("");
+	}
+
 	if(colnames != "")
 	{
 		char *p = strtok((char*)colnames.c_str(), ",");

@@ -25,7 +25,7 @@ class sinsp_table_info
 public:
 	sinsp_table_info(string name, 
 		string config,
-		vector<string> applyto,
+		string applyto,
 		uint32_t sortingcol, 
 		string merge_config, 
 		string colnames, 
