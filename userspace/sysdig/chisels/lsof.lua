@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel prints the open file descriptors for every process in the system, with an output that is similar to the one of lsof";
+description = "This chisel prints the open file descriptors for every process in the system, with an output that is similar to the one of lsof. Output is at a point in time; adjust this in the filter.  It defaults to time of evt.num=0";
 short_description = "List (and optionally filter) the open file descriptors.";
 category = "System State";
 		   
