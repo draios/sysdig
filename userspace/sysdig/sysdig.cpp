@@ -1647,50 +1647,50 @@ sysdig_init_res systop_init(int argc, char **argv)
 			vector<sinsp_table_info> views;
 
 			views.push_back(sinsp_table_info("Top Containers",
-				"*Kproc.pid evt.count proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out container.id container.name",
+				"*Kproc.pid thread.cpu evt.count proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out container.id container.name",
 				"all",
 				1,
-				"K10 S1 S2 S3 S4 S5 S6 S7 S8 9 10",
-				"NA,PROCS,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,ID,NAME",
-				"-1,8,8,9,9,9,9,9,9,16,200",
+				"K11 S1 S2 S3 S4 S5 S6 S7 S8 S9 10 11",
+				"NA,CPU,PROCS,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,ID,NAME",
+				"-1,8,8,8,9,9,9,9,9,9,16,200",
 				"container.name != host"));
 			views.push_back(sinsp_table_info("Top Processes", 
-				"*Kproc.pid proc.pid user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out proc.cmdline", 
+				"*Kproc.pid proc.pid thread.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out proc.cmdline", 
 				"all",
-				1,
+				2,
 				"",
-				"NA,PID,USER,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
-				"-1,8,12,8,8,8,8,8,8,8,200",
+				"NA,PID,CPU%,USER,TH,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
+				"-1,8,8,12,5,9,9,8,8,8,8,200",
 				""));
 			// Top processes for containers
 			views.push_back(sinsp_table_info("Top Processes", 
-				"*Kproc.pid proc.pid proc.vpid proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out proc.cmdline", 
+				"*Kproc.pid thread.cpu proc.pid proc.vpid proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out proc.cmdline", 
 				"container.name",
 				1,
 				"",
-				"NA,PID,VPID,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
-				"-1,8,8,8,8,8,8,8,8,8,200",
+				"NA,PID,CPU%,VPID,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
+				"-1,8,8,8,8,8,8,8,8,8,8,200",
 				""));
 			views.push_back(sinsp_table_info("Top Threads", 
-				"*Kthread.tid thread.tid thread.vtid Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Sevt.count proc.cmdline", 
+				"*Kthread.tid thread.tid thread.cpu thread.vtid Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Sevt.count proc.cmdline", 
 				"proc.pid,proc.name",
 				1,
 				"",
-				"NA,TID,VTID,FILEIN,FILEOUT,NETIN,NETOUT,SCALLS,Command",
-				"-1,8,8,8,8,8,8,8,200",
+				"NA,TID,CPU%,VTID,FILEIN,FILEOUT,NETIN,NETOUT,SCALLS,Command",
+				"-1,8,8,8,8,8,8,8,8,200",
 				""));
 			views.push_back(sinsp_table_info("Top Connections", 
-				"*Kfd.name fd.cip fd.cport fd.sip fd.sport Sevt.buflen.net.in Sevt.buflen.net.out",
+				"*Kfd.name fd.l4proto fd.cip fd.cport fd.sip fd.sport Sevt.buflen.net.in Sevt.buflen.net.out",
 				"all,container.name,proc.pid,proc.name,thread.tid",
 				5,
 				"",
-				"NA,CIP,CPORT,SIP,SPORT,BYTES IN,BYTES OUT",
-				"-1,17,10,17,10,10,10",
+				"NA,PROTO,CIP,CPORT,SIP,SPORT,BYTES IN,BYTES OUT",
+				"-1,6,17,8,17,8,10,10",
 				""));
 			views.push_back(sinsp_table_info("Top Files", 
 				"*Kfd.name Sevt.buflen.file.in Sevt.buflen.file.out fd.name",
 				"all,container.name,proc.pid,proc.name,thread.tid",
-				2,
+				1,
 				"",
 				"NA,BYTES IN,BYTES OUT,FILENAME",
 				"-1,12,12,250",
@@ -1702,6 +1702,13 @@ sysdig_init_res systop_init(int argc, char **argv)
 			views.push_back(sinsp_table_info("top FDs", 
 				"Kfd.name fd.name Sevt.count", 
 				"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
+			views.push_back(sinsp_table_info("Top Users", 
+				"*Kproc.pid user.name proc.cwd proc.cmdline",
+				"all,container.name",
+				3, "", 
+				"NA,USERNAME,DIRECTORY,COMMAND", 
+				"-1,12,30,250", 
+				"proc.pname contains sh"));
 
 			ui.configure(&views);
 			ui.start(false, views[0].m_filter);
@@ -1761,8 +1768,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-	res = systop_init(argc, argv);
-	return 0;
+//	res = systop_init(argc, argv);
+//	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

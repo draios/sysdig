@@ -1023,6 +1023,9 @@ uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt)
 	return res;
 }
 
+double skews[7] = {0.7,1.1,0.4,0.5,0.8,1.6,0.1};
+int pippo = 0;
+
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -1428,7 +1431,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_u64val = tinfo->m_vpid;
 		return (uint8_t*)&m_u64val;
 	case TYPE_CPU:
-		m_dval = 33.3;
 		return (uint8_t*)&m_dval;
 		break;
 	default:

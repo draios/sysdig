@@ -223,7 +223,7 @@ public:
 	void set_sorting_col(uint32_t col);
 	uint32_t get_sorting_col()
 	{
-		return m_sorting_col;
+		return (uint32_t)m_sorting_col;
 	}
 	pair<filtercheck_field_info*, string> get_row_key_name_and_val(uint32_t rownum);
 	sinsp_table_field* get_row_key(uint32_t rownum);
@@ -273,7 +273,7 @@ private:
 	sinsp_filter_check_reference* m_printer;
 	vector<sinsp_sample_row> m_sample_data;
 	sinsp_table_field* m_vals;
-	uint32_t m_sorting_col;
+	int32_t m_sorting_col;
 	bool m_is_sorting_ascending;
 	bool m_do_merging;
 	sinsp_filter* m_filter;

@@ -71,12 +71,12 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_n_fields = 0;
 	m_n_premerge_fields = 0;
 	m_n_postmerge_fields = 0;
-	m_refresh_interval = 1LL * SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
+	m_refresh_interval = 2LL * SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS;
 	m_next_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
 	m_is_sorting_ascending = false;
-	m_sorting_col = 0;
+	m_sorting_col = -1;
 	m_do_merging = true;
 	m_types = &m_premerge_types;
 	m_table = &m_premerge_table;
@@ -544,8 +544,7 @@ vector<sinsp_sample_row>* sinsp_table::get_sample()
 {
 	if(m_sample_data.size() != 0)
 	{
-
-		if(m_sorting_col >= m_sample_data[0].m_values.size())
+		if(m_sorting_col >= (int32_t)m_sample_data[0].m_values.size())
 		{
 			throw sinsp_exception("invalid table sorting column");
 		}
@@ -606,7 +605,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 		throw sinsp_exception("invalid table sorting column");
 	}
 
-	if(col == m_sorting_col + 1)
+	if(col == (uint32_t)(m_sorting_col + 1))
 	{
 		m_is_sorting_ascending = !m_is_sorting_ascending;
 	}
@@ -624,6 +623,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 			case PT_UINT64:
 			case PT_RELTIME:
 			case PT_ABSTIME:
+			case PT_DOUBLE:
 				m_is_sorting_ascending = false;
 				break;
 			default:

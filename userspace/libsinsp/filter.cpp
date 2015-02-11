@@ -219,6 +219,28 @@ bool flt_compare_buffer(ppm_cmp_operator op, char* operand1, char* operand2, uin
 	}
 }
 
+bool flt_compare_double(ppm_cmp_operator op, double operand1, double operand2)
+{
+	switch(op)
+	{
+	case CO_EQ:
+		return (operand1 == operand2);
+	case CO_NE:
+		return (operand1 != operand2);
+	case CO_LT:
+		return (operand1 < operand2);
+	case CO_LE:
+		return (operand1 <= operand2);
+	case CO_GT:
+		return (operand1 > operand2);
+	case CO_GE:
+		return (operand1 >= operand2);
+	default:
+		throw sinsp_exception("'contains' not supported for numeric filters");
+		return false;
+	}
+}
+
 bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	switch(type)
@@ -256,6 +278,8 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 		return flt_compare_string(op, (char*)operand1, (char*)operand2);
 	case PT_BYTEBUF:
 		return flt_compare_buffer(op, (char*)operand1, (char*)operand2, op1_len, op2_len);
+	case PT_DOUBLE:
+		return flt_compare_double(op, *(double*)operand1, *(double*)operand2);
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
@@ -673,7 +697,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 		case PT_DOUBLE:
 			snprintf(m_getpropertystr_storage,
 					 sizeof(m_getpropertystr_storage),
-					 "%lf", *(double*)rawval);
+					 "%.1lf", *(double*)rawval);
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);

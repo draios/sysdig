@@ -374,12 +374,8 @@ curses_table::curses_table()
 	m_tblwin = newwin(m_h, 500, m_table_y_start, 0);
 }
 
-int pippo = 0;
-void* vect[16];
 curses_table::~curses_table()
 {
-vect[pippo]=this;	
-pippo++;
 	if(m_tblwin)
 	{
 		delwin(m_tblwin);
