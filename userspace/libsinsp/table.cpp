@@ -791,6 +791,18 @@ void sinsp_table::add_fields_max(ppm_param_type type, sinsp_table_field *dst, si
 			*(uint64_t*)operand1 = *(uint64_t*)operand2;
 		}
 		return;
+	case PT_CHARBUF:
+	case PT_BYTEBUF:
+		if(dst->m_len >= src->m_len)
+		{
+			memcpy(dst->m_val, src->m_val, src->m_len);
+		}
+		else
+		{
+			dst->m_val = m_buffer->copy(src->m_val, src->m_len);
+		}
+
+		dst->m_len = src->m_len;
 	default:
 		return;
 	}
