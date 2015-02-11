@@ -185,6 +185,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector)
 #endif
 }
 
+int puppo = 0;
 sinsp_cursesui::~sinsp_cursesui()
 {
 	if(m_datatable != NULL)
@@ -195,6 +196,7 @@ sinsp_cursesui::~sinsp_cursesui()
 #ifndef NOCURSESUI
 	if(m_viz != NULL)
 	{
+puppo++;		
 		delete m_viz;
 	}
 #endif
@@ -222,12 +224,14 @@ void sinsp_cursesui::start(bool is_drilldown, string filter)
 	if(m_datatable != NULL)
 	{
 		delete m_datatable;
+		m_datatable = NULL;
 	}
 
 #ifndef NOCURSESUI
 	if(m_viz != NULL)
 	{
 		delete m_viz;
+		m_viz = NULL;
 	}
 #endif
 
