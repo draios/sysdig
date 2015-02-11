@@ -33,13 +33,14 @@ end
 
 -- Initialization callback
 function on_init()
+
 	-- The -pc or -pcontainer options was supplied on the cmd line
 	print_container = sysdig.is_print_container_data()
 
 	if print_container then
 		chisel.exec("table_generator",
-					"container.name,container.id,fd.l4proto,fd.name",
-					"container.name,container.id,Proto,Conn",
+					"container.name,fd.l4proto,fd.name",
+					"container.name,Proto,Conn",
 					"evt.rawarg.res",
 					"Bytes",
 					"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true",
