@@ -279,6 +279,7 @@ private:
 	sinsp_filter* m_filter;
 	bool m_use_defaults;
 	uint64_t m_zero_u64;
+	uint64_t m_zero_double;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

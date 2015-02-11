@@ -83,6 +83,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_filter = NULL;
 	m_use_defaults = false;
 	m_zero_u64 = 0;
+	m_zero_double = 0;
 }
 
 sinsp_table::~sinsp_table()
@@ -859,6 +860,8 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 		return (uint32_t)(strlen((char*)fld->m_val) + 1);
 	case PT_BYTEBUF:
 		return fld->m_len;
+	case PT_DOUBLE:
+		return sizeof(double);
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
@@ -889,27 +892,8 @@ uint8_t* sinsp_table::get_default_val(filtercheck_field_info* fld)
 		{
 			return NULL;
 		}
-/*
-	case PT_RELTIME:
-	case PT_ABSTIME:
-	case PT_CHARBUF:
-	case PT_BYTEBUF:
-	case PT_SOCKADDR:
-	case PT_SOCKTUPLE:
-	case PT_FDLIST:
-	case PT_FSPATH:
-	case PT_FD:
-	case PT_PID:
-	case PT_ERRNO:
-	case PT_FLAGS8:
-	case PT_SIGTYPE:
-	case PT_FLAGS16:
-	case PT_PORT:
-	case PT_SYSCALLID:
-	case PT_FLAGS32:
-	case PT_BOOL:
-	case PT_IPV4ADDR:
-*/
+	case PT_DOUBLE:
+			return (uint8_t*)&m_zero_double;
 	default:
 		return NULL;
 	}

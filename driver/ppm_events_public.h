@@ -1036,9 +1036,10 @@ enum ppm_param_type {
 	PT_FLAGS8 = 28, /* this is an UINT8, but will be interpreted as 8 bit flags. */
 	PT_FLAGS16 = 29, /* this is an UINT16, but will be interpreted as 16 bit flags. */
 	PT_FLAGS32 = 30, /* this is an UINT32, but will be interpreted as 32 bit flags. */
-	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value */
-	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value */
-	PT_MAX = 33 /* array size */
+	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
+	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
+	PT_DOUBLE = 33, /* this is a double precision floating point number. */
+	PT_MAX = 34 /* array size */
 };
 
 enum ppm_print_format {

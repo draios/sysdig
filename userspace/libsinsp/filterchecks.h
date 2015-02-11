@@ -318,10 +318,11 @@ public:
 		TYPE_CGROUP = 28,
 		TYPE_VTID = 29,
 		TYPE_VPID = 30,
-		TYPE_IOBYTES = 31,
-		TYPE_TOTIOBYTES = 32,
-		TYPE_LATENCY = 33,
-		TYPE_TOTLATENCY = 34,
+		TYPE_CPU = 31,
+		TYPE_IOBYTES = 32,
+		TYPE_TOTIOBYTES = 33,
+		TYPE_LATENCY = 34,
+		TYPE_TOTLATENCY = 35,
 	};
 
 	sinsp_filter_check_thread();
@@ -342,6 +343,7 @@ private:
 	string m_tstr;
 	uint64_t m_u64val;
 	int64_t m_s64val;
+	double m_dval;
 	vector<uint64_t> m_last_proc_switch_times;
 };
 

@@ -670,6 +670,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 				        rawval[2],
 				        rawval[3]);
 			return m_getpropertystr_storage;
+		case PT_DOUBLE:
+			snprintf(m_getpropertystr_storage,
+					 sizeof(m_getpropertystr_storage),
+					 "%lf", *(double*)rawval);
+			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
 			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
