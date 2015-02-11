@@ -16,6 +16,19 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+class sidemenu_list_entry
+{
+public:
+	sidemenu_list_entry(string viewname, uint32_t viewid)
+	{
+		m_viewname = viewname;
+		m_viewid = viewid;
+	}
+
+	string m_viewname;
+	uint32_t m_viewid;
+};
+
 #ifdef SYSTOP
 #define TABLE_WIDTH 400
 #define TABLE_Y_START 2

@@ -107,19 +107,6 @@ public:
 	vector<sinsp_ui_selection_info> m_hierarchy;
 };
 
-class sidemenu_list_entry
-{
-public:
-	sidemenu_list_entry(string viewname, uint32_t viewid)
-	{
-		m_viewname = viewname;
-		m_viewid = viewid;
-	}
-
-	string m_viewname;
-	uint32_t m_viewid;
-};
-
 class sinsp_cursesui
 {
 public:
