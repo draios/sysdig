@@ -68,19 +68,6 @@ public:
 	uint32_t m_h;
 };
 
-class sidemenu_list_entry
-{
-public:
-	sidemenu_list_entry(string viewname, uint32_t viewid)
-	{
-		m_viewname = viewname;
-		m_viewid = viewid;
-	}
-
-	string m_viewname;
-	uint32_t m_viewid;
-};
-
 class curses_table_sidemenu : public curses_scrollable_list
 {
 public:

@@ -330,9 +330,17 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 		}
 
 		//
-		// Skip spaces
+		// Go to the end of the string
 		//
 		j += preamble_len + 1;
+		while(j < mfmtlen && (cmfmt[j] != ' ' && cmfmt[j] != '\t' && cmfmt[j] != ','))
+		{
+			j++;
+		}
+
+		//
+		// Skip spaces
+		//
 		while(j < mfmtlen && (cmfmt[j] == ' ' || cmfmt[j] == '\t' || cmfmt[j] == ','))
 		{
 			j++;
