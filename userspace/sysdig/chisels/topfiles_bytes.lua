@@ -38,8 +38,8 @@ function on_init()
 
 	if print_container then
 		chisel.exec("table_generator",
-					"fd.name,container.name",
-					"Filename,container.name",
+					"container.name,fd.name",
+					"container.name,Filename",
 					"evt.rawarg.res",
 					"Bytes",
 					"fd.type=file and evt.is_io=true",
