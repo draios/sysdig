@@ -33,13 +33,28 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("table_generator", 
-		"fd.sport",
-		"Srv Port",
-		"evt.rawarg.res",
-		"Bytes",
-		"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
-		"" .. TOP_NUMBER,
-		"bytes")
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    print_container = sysdig.is_print_container_data()
+
+    if print_container then
+		chisel.exec("table_generator", 
+					"fd.sport,container.name",
+					"Srv Port,container.name",
+					"evt.rawarg.res",
+					"Bytes",
+					"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
+					"" .. TOP_NUMBER,
+					"bytes")
+    else
+		chisel.exec("table_generator", 
+					"fd.sport",
+					"Srv Port",
+					"evt.rawarg.res",
+					"Bytes",
+					"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true", 
+					"" .. TOP_NUMBER,
+					"bytes")
+    end
+
 	return true
 end

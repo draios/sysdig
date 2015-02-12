@@ -33,13 +33,29 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("table_generator", 
-		"proc.name",
-		"Process",
-		"evt.rawarg.res",
-		"Bytes",
-		"fd.type=file and evt.is_io=true", 
-		"" .. TOP_NUMBER,
-		"bytes")
+
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    print_container = sysdig.is_print_container_data()
+
+    if print_container then
+		chisel.exec("table_generator", 
+					"proc.name,container.name",
+					"Process,container.name",
+					"evt.rawarg.res",
+					"Bytes",
+					"fd.type=file and evt.is_io=true", 
+					"" .. TOP_NUMBER,
+					"bytes")
+    else
+		chisel.exec("table_generator", 
+					"proc.name",
+					"Process",
+					"evt.rawarg.res",
+					"Bytes",
+					"fd.type=file and evt.is_io=true", 
+					"" .. TOP_NUMBER,
+					"bytes")
+    end
+
 	return true
 end

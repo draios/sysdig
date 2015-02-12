@@ -33,13 +33,28 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("table_generator", 
-		"fd.name",
-		"Filename",
-		"evt.count",
-		"#Errors",
-		"fd.type=file and evt.failed=true", 
-		"100",
-		"none")
+
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    print_container = sysdig.is_print_container_data()
+
+    if print_container then
+		chisel.exec("table_generator", 
+					"fd.name,container.name",
+					"Filename,container.name",
+					"evt.count",
+					"#Errors",
+					"fd.type=file and evt.failed=true", 
+					"100",
+					"none")
+    else
+		chisel.exec("table_generator", 
+					"fd.name",
+					"Filename",
+					"evt.count",
+					"#Errors",
+					"fd.type=file and evt.failed=true", 
+					"100",
+					"none")
+    end
 	return true
 end
