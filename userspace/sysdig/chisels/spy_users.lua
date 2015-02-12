@@ -56,7 +56,7 @@ end
 
 -- Initialization callback
 function on_init()
-	-- Request the fields needed for this chisel 
+	-- Request the fields needed for this chisel
 	fetype = chisel.request_field("evt.type")
 	fexe = chisel.request_field("proc.exe")
 	fargs = chisel.request_field("proc.args")
@@ -89,13 +89,13 @@ process_tree = {}
 -- Event parsing callback
 function on_event()
 
-    -- Default color is black
+	-- Default color is black
 	local color = terminal.black
 
-    -- If -pc or -pcontainer option change default to green
+	-- If -pc or -pcontainer option change default to green
 	if  print_container then
 		color = terminal.green
-    end
+	end
 		
 
 	local user = evt.field(fuser)
@@ -231,4 +231,9 @@ function on_event()
 	end
 
 	return true
+end
+
+-- Called by the engine at the end of the capture (Ctrl-C)
+function on_capture_end()
+	print(terminal.reset)
 end
