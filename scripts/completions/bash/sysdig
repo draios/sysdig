@@ -59,7 +59,7 @@ _sysdig_complete()
   local prev=${COMP_WORDS[COMP_CWORD-1]}
 
   case "$prev" in
-   -c|--chisel)
+   -c|--chisel|-i|--chisel-info)
     local chisels=""
     local detail="Use the -i flag to get detailed information about a specific chisel"
       while IFS= read -r line
