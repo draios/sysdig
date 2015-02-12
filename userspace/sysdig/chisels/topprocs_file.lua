@@ -1,10 +1,9 @@
 --[[
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
-
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Shows the top processes in terms of total (in+out) bytes to disk."
+description = "Shows the top processes in terms of total (in+out) bytes to disk. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top processes by R+W disk bytes"
 category = "I/O"
 
@@ -34,28 +33,28 @@ end
 -- Initialization callback
 function on_init()
 
-    -- The -pc or -pcontainer options was supplied on the cmd line
-    print_container = sysdig.is_print_container_data()
+	-- The -pc or -pcontainer options was supplied on the cmd line
+	print_container = sysdig.is_print_container_data()
 
-    if print_container then
-		chisel.exec("table_generator", 
+	if print_container then
+		chisel.exec("table_generator",
 					"proc.name,container.name",
 					"Process,container.name",
 					"evt.rawarg.res",
 					"Bytes",
-					"fd.type=file and evt.is_io=true", 
+					"fd.type=file and evt.is_io=true",
 					"" .. TOP_NUMBER,
 					"bytes")
-    else
-		chisel.exec("table_generator", 
+	else
+		chisel.exec("table_generator",
 					"proc.name",
 					"Process",
 					"evt.rawarg.res",
 					"Bytes",
-					"fd.type=file and evt.is_io=true", 
+					"fd.type=file and evt.is_io=true",
 					"" .. TOP_NUMBER,
 					"bytes")
-    end
+	end
 
 	return true
 end
