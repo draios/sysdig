@@ -1339,14 +1339,6 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			res = scap_fd_handle_socket(handle, f_name, tinfo, fdi, sockets, error);
-			if(fdi->type == SCAP_FD_UNKNOWN)
-			{
-				// we can land here if we've got a netlink socket
-				if(handle->m_proc_callback == NULL)
-				{
-					scap_fd_free_fdinfo(&fdi);
-				}
-			} 
 			break;
 		default:
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNSUPPORTED);
