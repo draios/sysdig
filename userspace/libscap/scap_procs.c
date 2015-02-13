@@ -407,7 +407,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 //
 // Add a process to the list by parsing its entry under /proc
 //
-static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, scap_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
+static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
 {
 	char dir_name[256];
 	char target_name[256];
@@ -710,7 +710,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	int32_t res = SCAP_SUCCESS;
 	char childdir[SCAP_MAX_PATH_SIZE];
 
-	scap_socket_list* sockets_by_ns = NULL;
+	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
 	tid = 0;
 	dir_p = opendir(procdirname);
@@ -816,7 +816,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	closedir(dir_p);
 	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
 	{
-		scap_fd_free_sockets_table(handle, &sockets_by_ns);
+		scap_fd_free_ns_sockets_list(handle, &sockets_by_ns);
 	}
 	return res;
 }

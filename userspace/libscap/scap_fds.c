@@ -448,10 +448,10 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 	return res;
 }
 
-void scap_fd_free_sockets_table(scap_t *handle, scap_socket_list **sockets)
+void scap_fd_free_ns_sockets_list(scap_t *handle, struct scap_ns_socket_list **sockets)
 {
-	struct scap_socket_list *fdi;
-	struct scap_socket_list *tfdi;
+	struct scap_ns_socket_list *fdi;
+	struct scap_ns_socket_list *tfdi;
 
 	if(*sockets)
 	{
@@ -645,13 +645,13 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 	return scap_add_fd_to_proc_table(handle, tinfo, fdi);
 }
 
-int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, scap_socket_list **sockets_by_ns, char *error)
+int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, struct scap_ns_socket_list **sockets_by_ns, char *error)
 {
 	char link_name[1024];
 	ssize_t r;
 	scap_fdinfo *tfdi;
 	uint64_t ino;
-	scap_socket_list* sockets = NULL;
+	struct scap_ns_socket_list* sockets = NULL;
 	int32_t uth_status = SCAP_SUCCESS;
 
 	if(*sockets_by_ns == (void*)-1)
@@ -663,7 +663,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 		HASH_FIND_INT64(*sockets_by_ns, &net_ns, sockets);
 		if(sockets == NULL)
 		{
-			sockets = malloc(sizeof(scap_socket_list));
+			sockets = malloc(sizeof(struct scap_ns_socket_list));
 			sockets->net_ns = net_ns;
 			sockets->sockets = NULL;
 
@@ -1230,7 +1230,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 	return uth_status;
 }
 
-int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, scap_socket_list *sockets)
+int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socket_list *sockets)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char netroot[SCAP_MAX_PATH_SIZE];
@@ -1363,7 +1363,7 @@ char * decode_st_mode(struct stat* sb)
 //
 // Scan the directory containing the fd's of a proc /proc/x/fd
 //
-int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinfo, scap_socket_list **sockets_by_ns, char *error)
+int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinfo, struct scap_ns_socket_list **sockets_by_ns, char *error)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
