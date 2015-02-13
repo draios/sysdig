@@ -1,6 +1,6 @@
 --[[
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -15,48 +15,48 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
---[[ 
+--[[
 This file contains a bunch of functions that are helpful in multiple scripts
 ]]--
 
---[[ 
+--[[
 Serialize the content of a table into a tring
 ]]--
 function st(val, name, skipnewlines, depth)
-    skipnewlines = skipnewlines or false
-    depth = depth or 0
+	skipnewlines = skipnewlines or false
+	depth = depth or 0
 
-    local tmp = string.rep(" ", depth)
+	local tmp = string.rep(" ", depth)
 
-    if name then tmp = tmp .. name .. " = " end
+	if name then tmp = tmp .. name .. " = " end
 
-    if type(val) == "table" then
-        tmp = tmp .. "{" .. (not skipnewlines and "\n" or "")
+	if type(val) == "table" then
+		tmp = tmp .. "{" .. (not skipnewlines and "\n" or "")
 
-        for k, v in pairs(val) do
-            tmp =  tmp .. st(v, k, skipnewlines, depth + 1) .. "," .. (not skipnewlines and "\n" or "")
-        end
+		for k, v in pairs(val) do
+			tmp =  tmp .. st(v, k, skipnewlines, depth + 1) .. "," .. (not skipnewlines and "\n" or "")
+		end
 
-        tmp = tmp .. string.rep(" ", depth) .. "}"
-    elseif type(val) == "number" then
-        tmp = tmp .. tostring(val)
-    elseif type(val) == "string" then
-        tmp = tmp .. string.format("%q", val)
-    elseif type(val) == "boolean" then
-        tmp = tmp .. (val and "true" or "false")
-    else
-        tmp = tmp .. "\"[inserializeable datatype:" .. type(val) .. "]\""
-    end
+		tmp = tmp .. string.rep(" ", depth) .. "}"
+	elseif type(val) == "number" then
+		tmp = tmp .. tostring(val)
+	elseif type(val) == "string" then
+		tmp = tmp .. string.format("%q", val)
+	elseif type(val) == "boolean" then
+		tmp = tmp .. (val and "true" or "false")
+	else
+		tmp = tmp .. "\"[inserializeable datatype:" .. type(val) .. "]\""
+	end
 
-    return tmp
+	return tmp
 end
 
---[[ 
+--[[
 Extends a string to newlen with spaces
 ]]--
 function extend_string(s, newlen)
 	if #s < newlen then
-		local ccs = "                                                                                                                                                                       "
+        local ccs = "                                                                                                                                                                       "
 		s = s .. string.sub(ccs, 0, newlen - #s)
 		return s
 	else
@@ -68,19 +68,19 @@ function extend_string(s, newlen)
 	end
 end
 
---[[ 
+--[[
 Basic string split.
 ]]--
 function split(s, delimiter)
-    local result = {}
+	local result = {}
 	
-    for match in (s..delimiter):gmatch("(.-)"..delimiter) do
-        table.insert(result, match)
-    end
-    return result
+	for match in (s..delimiter):gmatch("(.-)"..delimiter) do
+		table.insert(result, match)
+	end
+	return result
 end
 
---[[ 
+--[[
 convert a number into a byte representation.
 E.g. 1230 becomes 1.23K
 ]]--
@@ -100,7 +100,7 @@ function format_bytes(val)
 	end
 end
 
---[[ 
+--[[
 convert a nanosecond time interval into a s.ns representation.
 E.g. 1100000000 becomes 1.1s
 ]]--
@@ -124,7 +124,7 @@ function format_time_interval(val)
 	end
 end
 
---[[ 
+--[[
 extract the top num entries from the table t, after sorting them based on the entry value using the function order()
 ]]--
 function pairs_top_by_val(t, num, order)
@@ -143,14 +143,14 @@ function pairs_top_by_val(t, num, order)
 	end
 end
 
---[[ 
+--[[
 Timestamp <-> string conversion
 ]]--
 function ts_to_str(tshi, tslo)
 	return string.format("%u%.9u", tshi, tslo)
 end
 
---[[ 
+--[[
 Pick a key-value table and render it to the console in sorted top format
 ]]--
 json = require ("dkjson")
@@ -181,8 +181,8 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 		local str = json.encode(res, { indent = true })
 		print(str)
 	else
-        -- Same size to extend each string
-        local EXTEND_STRING_SIZE = 20
+		-- Same size to extend each string
+		local EXTEND_STRING_SIZE = 16
 		local header = extend_string(viz_info.value_desc, EXTEND_STRING_SIZE)
 		
 		for i, fldname in ipairs(viz_info.key_desc) do
@@ -190,7 +190,7 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 		end
 		
 		print(header)
-		print("----------------------------------------")
+		print("--------------------------------------------------------------------------------")
 
 		for k,v in sorted_grtable do
 			local keystr = ""
@@ -204,7 +204,7 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 					keystr = keystr .. singlekey
 				end
 			end
-			
+
 			if viz_info.value_units == "none" then
 				print(extend_string(tostring(v), EXTEND_STRING_SIZE) .. keystr)
 			elseif viz_info.value_units == "bytes" then
@@ -230,11 +230,11 @@ Try to convert user input to a number using tonumber(). If tonumber() returns
 tonumber(value).
 ]]--
 function parse_numeric_input(value, name)
-    val = tonumber(value)
-    if val == nil then
-        print(string.format("Input %s must be a number.", name))
-        require ("os")
-        os.exit()
-    end
-    return val
+	val = tonumber(value)
+	if val == nil then
+		print(string.format("Input %s must be a number.", name))
+		require ("os")
+		os.exit()
+	end
+	return val
 end

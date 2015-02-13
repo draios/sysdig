@@ -269,8 +269,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_15_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_15_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_16_E] = {f_sys_empty},
+	[PPME_SYSCALL_EXECVE_16_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -830,6 +830,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
+	int available = STR_STORAGE_SIZE;
 
 	/*
 	 * Make sure the operation was successful
@@ -984,6 +985,21 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	/*
+	 * cgroups
+	 */
+	args->str_storage[0] = 0;
+#ifdef CONFIG_CGROUPS
+	rcu_read_lock();
+#include <linux/cgroup_subsys.h>
+cgroups_error:
+	rcu_read_unlock();
+#endif
+
+	res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
 	if (args->event_type == PPME_SYSCALL_CLONE_20_X ||
 		args->event_type == PPME_SYSCALL_FORK_20_X ||
 		args->event_type == PPME_SYSCALL_VFORK_20_X) {
@@ -997,7 +1013,6 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		uint64_t euid = current_euid();
 		uint64_t egid = current_egid();
 #endif
-		int available = STR_STORAGE_SIZE;
 
 		/*
 		 * flags
@@ -1039,21 +1054,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-		/*
-		 * cgroups
-		 */
-		args->str_storage[0] = 0;
-#ifdef CONFIG_CGROUPS
-		rcu_read_lock();
-#include <linux/cgroup_subsys.h>
-cgroups_error:
-		rcu_read_unlock();
-#endif
-
-		res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_15_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_16_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1788,7 +1789,11 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 	char *targetbuf = args->str_storage;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
@@ -1821,7 +1826,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -1878,7 +1883,11 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	int64_t retval;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 
 	/*
 	 * res
@@ -1897,7 +1906,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -1940,7 +1949,11 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	int64_t retval;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 	char *targetbuf = args->str_storage;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
@@ -1966,7 +1979,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*

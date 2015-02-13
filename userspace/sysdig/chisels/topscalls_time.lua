@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 TOP_NUMBER = 30
 
 -- Chisel description
-description = "Show the top " .. TOP_NUMBER .. " system calls in terms of time spent in each call. You can use filters to restrict this to a specific process, thread or file."
+description = "Show the top " .. TOP_NUMBER .. " system calls in terms of time spent in each call. You can use filters to restrict this to a specific process, thread or file. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top system calls by time"
 category = "Performance"
 
@@ -33,13 +33,28 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("table_generator", 
-		"evt.type",
-		"Syscall",
-		"evt.latency",
-		"Time",
-		"", 
-		"" .. TOP_NUMBER,
-		"time")
+    -- The -pc or -pcontainer options was supplied on the cmd line
+    print_container = sysdig.is_print_container_data()
+
+    if print_container then
+		chisel.exec("table_generator", 
+			"evt.type,container.name",
+			"Syscall,container.name",
+			"evt.latency",
+			"Time",
+			"", 
+			"" .. TOP_NUMBER,
+			"time")
+    else
+		chisel.exec("table_generator", 
+			"evt.type",
+			"Syscall",
+			"evt.latency",
+			"Time",
+			"", 
+			"" .. TOP_NUMBER,
+			"time")
+    end
+
 	return true
 end
