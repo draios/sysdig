@@ -458,8 +458,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		}
 	}
 
-	printf("scap_proc_add_from_proc %s\n", dir_name);
-
 	//
 	// This is a real user level process. Allocate the procinfo structure.
 	//

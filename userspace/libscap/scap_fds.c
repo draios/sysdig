@@ -150,7 +150,6 @@ int32_t scap_fd_info_to_string(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
  		snprintf(str, stlen, "<UNSUPPORTED>");
  		break;
 	default:
-		printf("type = %d\n", fdi->type);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -992,7 +991,6 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, const char *dir, 
 			}
 
 			HASH_ADD_INT64((*sockets), ino, fdinfo);
-			printf("\t\t\tadd socket\n");
 
 			if(uth_status != SCAP_SUCCESS)
 			{
@@ -1250,8 +1248,6 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 		snprintf(netroot, sizeof(netroot), "%s/proc/net/", scap_get_host_root());
 	}
 
-	printf("\t\tscap_fd_read_sockets %s\n", netroot);
-
 	snprintf(filename, sizeof(filename), "%stcp", netroot);
 	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_TCP, &sockets->sockets) == SCAP_FAILURE)
 	{
@@ -1402,8 +1398,6 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 		link_name[r] = '\0';
 		sscanf(link_name, "net:[%"PRIi64"]", &net_ns);
 	}
-
-	printf("\tscap_fd_scan_fd_dir %s net_ns %"PRIu64"\n", procdir, net_ns);
 
 	while((dir_entry_p = readdir(dir_p)) != NULL)
 	{
