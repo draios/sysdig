@@ -264,7 +264,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	size_t filesize;
 	size_t exe_len;
 	bool free_tinfo = false;
-	int32_t res;
+	int32_t res = SCAP_SUCCESS;
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
