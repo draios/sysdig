@@ -197,7 +197,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			{
 				if(pos < m_tstr.size() - 1)
 				{
-					m_tstr.resize(pos + 1);
+					m_tstr.resize(pos);
 				}
 			}
 			else
@@ -362,7 +362,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				{
 					if(pos < m_tstr.size() - 1)
 					{
-						m_tstr.resize(pos + 1);
+						m_tstr.resize(pos);
 					}
 				}
 				else
