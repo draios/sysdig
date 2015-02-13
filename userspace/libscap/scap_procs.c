@@ -407,7 +407,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 //
 // Add a process to the list by parsing its entry under /proc
 //
-int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, scap_fdinfo** sockets, scap_threadinfo** procinfo, char *error)
+static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, scap_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
 {
 	char dir_name[256];
 	char target_name[256];
@@ -456,6 +456,8 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 			fclose(f);
 		}
 	}
+
+	printf("scap_proc_add_from_proc %s\n", dir_name);
 
 	//
 	// This is a real user level process. Allocate the procinfo structure.
@@ -684,7 +686,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	//
 	if(-1 == parenttid)
 	{
-		return scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets, error);
+		return scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, error);
 	}
 
 	if(free_tinfo)
@@ -707,7 +709,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	int32_t res = SCAP_SUCCESS;
 	char childdir[SCAP_MAX_PATH_SIZE];
 
-	scap_fdinfo* sockets = NULL;
+	scap_socket_list* sockets_by_ns = NULL;
 
 	tid = 0;
 	dir_p = opendir(procdirname);
@@ -722,7 +724,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	{
 		if(!scan_sockets)
 		{
-			sockets = (void*)-1;
+			sockets_by_ns = (void*)-1;
 		}
 	}
 
@@ -772,7 +774,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 			//
 			// We have a process that needs to be explored
 			//
-			res = scap_proc_add_from_proc(handle, tid, parenttid, tid_to_scan, procdirname, &sockets, procinfo, error);
+			res = scap_proc_add_from_proc(handle, tid, parenttid, tid_to_scan, procdirname, &sockets_by_ns, procinfo, error);
 			if(res != SCAP_SUCCESS)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "cannot add procs tid = %"PRIu64", parenttid = %"PRIi32", dirname = %s", tid, parenttid, procdirname);
@@ -811,9 +813,9 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	}
 
 	closedir(dir_p);
-	if(sockets != NULL && sockets != (void*)-1)
+	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
 	{
-		scap_fd_free_table(handle, &sockets);
+		scap_fd_free_sockets_table(handle, &sockets_by_ns);
 	}
 	return res;
 }
