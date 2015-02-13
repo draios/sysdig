@@ -541,7 +541,6 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	else
 	{
 		handle->m_proc_callback(handle->m_proc_callback_context, tinfo->tid, tinfo, fdi, handle);
-		free(fdi);
 	}
 
 	return SCAP_SUCCESS;
@@ -650,7 +649,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 	}
 
 	r = readlink(fname, link_name, 1024);
-	if (r <= 0)
+	if(r <= 0)
 	{
 		return SCAP_SUCCESS;
 	}
@@ -795,7 +794,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, scap_fdinfo **soc
 		HASH_ADD_INT64((*sockets), ino, fdinfo);
 		if(uth_status != SCAP_SUCCESS)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unix socket allocation error");
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unix socket allocatiallocation error");
 			return SCAP_FAILURE;
 		}
 	}
@@ -1339,6 +1338,14 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			res = scap_fd_handle_socket(handle, f_name, tinfo, fdi, sockets, error);
+			if(handle->m_proc_callback == NULL)
+			{
+				// we can land here if we've got a netlink socket
+				if(fdi->type == SCAP_FD_UNKNOWN)
+				{
+					scap_fd_free_fdinfo(&fdi);
+				}
+			} 
 			break;
 		default:
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNSUPPORTED);
@@ -1350,6 +1357,15 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, error);
 			break;
 		}
+
+		if(handle->m_proc_callback != NULL)
+		{
+			if(fdi)
+			{
+				scap_fd_free_fdinfo(&fdi);
+			}
+		}
+
 		if(SCAP_SUCCESS != res)
 		{
 			break;
