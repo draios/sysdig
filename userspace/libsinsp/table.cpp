@@ -530,7 +530,7 @@ void sinsp_table::stdout_print()
 				it->m_values[j].m_val, 
 				it->m_values[j].m_len,
 				legend->at(j).m_print_format);
-				printf("%s ", m_printer->tostring_nice(NULL));
+				printf("%s ", m_printer->tostring_nice(NULL, 10));
 //				printf("%s ", m_printer->tostring(NULL));
 		}
 

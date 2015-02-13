@@ -3090,48 +3090,48 @@ uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len
 // convert a number into a byte representation.
 // E.g. 1230 becomes 1.23K
 //
-char* sinsp_filter_check_reference::format_bytes(int64_t val)
+char* sinsp_filter_check_reference::format_bytes(int64_t val, uint32_t str_len)
 {
 	if(val > (1024LL * 1024 * 1024 * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2fP", ((double)val) / (1024LL * 1024 * 1024 * 1024 * 1024));
+					"%*.2fP", str_len, ((double)val) / (1024LL * 1024 * 1024 * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024LL * 1024 * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2fT", ((double)val) / (1024LL * 1024 * 1024 * 1024));
+					"%*.2fT", str_len, ((double)val) / (1024LL * 1024 * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024LL * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2fG", ((double)val) / (1024LL * 1024 * 1024));
+					"%*.2fG", str_len, ((double)val) / (1024LL * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2fM", ((double)val) / (1024 * 1024));
+					"%*.2fM", str_len, ((double)val) / (1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > 1024)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2fK", ((double)val) / (1024));
+					"%*.2fK", str_len, ((double)val) / (1024));
 		return m_getpropertystr_storage;
 	}
 	else
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%" PRId64, val);
+					"%*" PRId64, str_len, val);
 		return m_getpropertystr_storage;
 	}
 }
@@ -3189,7 +3189,7 @@ char* sinsp_filter_check_reference::format_time(uint64_t val)
 	}
 }
 
-char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt)
+char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_len)
 {
 	uint32_t len;
 	uint8_t* rawval = extract(evt, &len);
@@ -3239,12 +3239,12 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt)
 		{
 			snprintf(m_getpropertystr_storage,
 						sizeof(m_getpropertystr_storage),
-						"%" PRId64, val);
+						"%*" PRId64, str_len, val);
 			return m_getpropertystr_storage;
 		}
 		else
 		{
-			return format_bytes(val);
+			return format_bytes(val, str_len);
 		}
 	}
 	else if(m_field->m_type == PT_RELTIME)

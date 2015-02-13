@@ -578,6 +578,9 @@ void curses_table::render(bool data_changed)
 
 			row = &(m_data->at(l + m_firstrow).m_values);
 
+			//
+			// Pick the proper color based on the selection
+			//
 			if(l == m_selct - (int32_t)m_firstrow)
 			{
 				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
@@ -588,7 +591,7 @@ void curses_table::render(bool data_changed)
 			}
 
 			//
-			// Render the rows
+			// Render the row
 			//
 			wmove(m_tblwin, l + 1, 0);
 			for(j = 0; j < m_w; j++)
@@ -603,7 +606,8 @@ void curses_table::render(bool data_changed)
 					row->at(j).m_len,
 					legend->at(j).m_print_format);
 
-				mvwaddnstr(m_tblwin, l + 1, k, m_converter->tostring_nice(NULL), m_legend[j].m_size - 1);
+				uint32_t size = m_legend[j].m_size - 1;
+				mvwaddnstr(m_tblwin, l + 1, k, m_converter->tostring_nice(NULL, size - 1), size);
 				k += m_legend[j].m_size;
 			}
 		}

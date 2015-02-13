@@ -547,6 +547,12 @@ private:
 class sinsp_filter_check_reference : public sinsp_filter_check
 {
 public:
+	enum alignment
+	{
+		ALIGN_LEFT,
+		ALIGN_RIGHT,
+	};
+
 	sinsp_filter_check_reference();
 	sinsp_filter_check* allocate_new();
 	inline void set_val(ppm_param_type type, uint8_t* val, int32_t len, ppm_print_format print_format)
@@ -559,11 +565,11 @@ public:
 	int32_t parse_field_name(const char* str);
 	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
-	char* tostring_nice(sinsp_evt* evt);
+	char* tostring_nice(sinsp_evt* evt, uint32_t str_len);
 
 private:
-	char* format_bytes(int64_t val);
-	char* format_time(uint64_t val);
+	inline char* format_bytes(int64_t val, uint32_t str_len);
+	inline char* format_time(uint64_t val);
 
 	filtercheck_field_info m_finfo;
 	uint8_t* m_val;
