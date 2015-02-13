@@ -1664,19 +1664,19 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"container.name != host"));
 			// Top processes for containers
 			views.push_back(sinsp_table_info("Top Processes", 
-				"*Kproc.pid thread.cpu proc.pid proc.vpid proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.cmdline", 
+				"*Kproc.pid proc.pid proc.vpid thread.cpu proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.cmdline", 
 				"container.name",
 				1,
 				"",
-				"NA,CPU%,PID,VPID,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
+				"NA,PID,VPID,CPU%,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
 				"-1,8,8,8,8,8,8,8,8,8,8,200",
 				""));
 			views.push_back(sinsp_table_info("Top Threads", 
-				"*Kthread.tid thread.tid thread.cpu thread.vtid Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Sevt.count proc.cmdline", 
+				"*Kthread.tid thread.tid thread.vtid thread.cpu Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Sevt.count proc.cmdline", 
 				"proc.pid,proc.name",
 				1,
 				"",
-				"NA,TID,CPU%,VTID,FILEIN,FILEOUT,NETIN,NETOUT,SCALLS,Command",
+				"NA,TID,VTID,CPU%,FILEIN,FILEOUT,NETIN,NETOUT,SCALLS,Command",
 				"-1,8,8,8,8,8,8,8,8,200",
 				""));
 			views.push_back(sinsp_table_info("Top Connections", 
