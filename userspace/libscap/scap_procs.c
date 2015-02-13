@@ -264,6 +264,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	size_t filesize;
 	size_t exe_len;
 	bool free_tinfo = false;
+	int32_t res;
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -509,9 +510,9 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	//
 	// Only add fds for processes, not threads
 	//
-	if(-1 == parenttid)
+	if(parenttid == -1)
 	{
-		return scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets, error);
+		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets, error);
 	}
 
 	if(free_tinfo)
@@ -519,7 +520,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		free(tinfo);
 	}
 
-	return SCAP_SUCCESS;
+	return res;
 }
 
 //
