@@ -103,58 +103,78 @@ if [ -f /etc/debian_version ]; then
 	if [ -f /etc/lsb-release ]; then
 		. /etc/lsb-release
 		DISTRO=$DISTRIB_ID
-		VERSION=$DISTRIB_RELEASE
+		VERSION=${DISTRIB_RELEASE%.*}
 	else
 		DISTRO="Debian"
 		VERSION=$(cat /etc/debian_version | cut -d'.' -f1)
 	fi
 
-	if [ $DISTRO = "Ubuntu" ]; then
-		VERSION=$(echo $VERSION | cut -d'.' -f1)
-		if [ $VERSION -ge 10 ]; then
-			install_deb
-		else
+	case "$DISTRO" in
+
+		"Ubuntu")
+			if [ $VERSION -ge 10 ]; then
+				install_deb
+			else
+				unsupported
+			fi
+			;;
+
+		"LinuxMint")
+			if [ $VERSION -ge 9 ]; then
+				install_deb
+			else
+				unsupported
+			fi
+			;;
+
+		"Debian")
+			if [ $VERSION -ge 6 ]; then
+				install_deb
+			elif [[ $VERSION == *sid* ]]; then
+				install_deb
+			else
+				unsupported
+			fi
+			;;
+
+		*)
 			unsupported
-		fi
-	elif [ $DISTRO = "LinuxMint" ]; then
-		if [ $VERSION -ge 9 ]; then
-			install_deb
-		else
-			unsupported
-		fi
-	elif [ $DISTRO = "Debian" ]; then
-		if [ $VERSION -ge 6 ]; then
-			install_deb
-		elif [[ $VERSION == *sid* ]]; then
-			install_deb
-		else
-			unsupported
-		fi
-	else
-		unsupported
-	fi
+			;;
+
+	esac
 
 elif [ -f /etc/system-release-cpe ]; then
 	DISTRO=$(cat /etc/system-release-cpe | cut -d':' -f3)
 	VERSION=$(cat /etc/system-release-cpe | cut -d':' -f5 | cut -d'.' -f1 | sed 's/[^0-9]*//g')
 
-	if [ $DISTRO = "oracle" ] || [ $DISTRO = "centos" ] || [ $DISTRO = "redhat" ]; then
-		if [ $VERSION -ge 6 ]; then
+	case "$DISTRO" in
+
+		"oracle" | "centos" | "redhat")
+			if [ $VERSION -ge 6 ]; then
+				install_rpm
+			else
+				unsupported
+			fi
+			;;
+
+		"amazon")
 			install_rpm
-		else
+			;;
+
+		"fedoraproject")
+			if [ $VERSION -ge 13 ]; then
+				install_rpm
+			else
+				unsupported
+			fi
+			;;
+
+		*)
 			unsupported
-		fi
-	elif [ $DISTRO = "amazon" ]; then
-		install_rpm
-	elif [ $DISTRO = "fedoraproject" ]; then
-		if [ $VERSION -ge 13 ]; then
-			install_rpm
-		else
-			unsupported
-		fi
-	else
-		unsupported
-	fi
+			;;
+
+	esac
+
 else
 	unsupported
 fi
