@@ -1651,7 +1651,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"all",
 				2,
 				"",
-				"NA,PID,CPU%,USER,TH,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
+				"NA,PID,CPU%,USER,TH,VIRT,RES,FIN,FOUT,NETIN,NETOUT,Command",
 				"-1,8,8,12,5,9,9,8,8,8,8,200",
 				""));
 			views.push_back(sinsp_table_info("Top Containers",
@@ -1659,7 +1659,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"all",
 				1,
 				"K11 S1 S2 S3 S4 S5 S6 S7 S8 S9 10 11",
-				"NA,CPU,PROCS,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,ID,NAME",
+				"NA,CPU,PROCS,THREADS,VIRT,RES,FIN,FOUT,NETIN,NETOUT,ID,NAME",
 				"-1,8,8,8,9,9,9,9,9,9,16,200",
 				"container.name != host"));
 			// Top processes for containers
@@ -1668,7 +1668,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"container.name",
 				1,
 				"",
-				"NA,PID,VPID,CPU%,THREADS,VIRT,RES,FILEIN,FILEOUT,NETIN,NETOUT,Command",
+				"NA,PID,VPID,CPU%,THREADS,VIRT,RES,FIN,FOUT,NETIN,NETOUT,Command",
 				"-1,8,8,8,8,8,8,8,8,8,8,200",
 				""));
 			views.push_back(sinsp_table_info("Top Threads", 
@@ -1676,7 +1676,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"proc.pid,proc.name",
 				1,
 				"",
-				"NA,TID,VTID,CPU%,FILEIN,FILEOUT,NETIN,NETOUT,SCALLS,Command",
+				"NA,TID,VTID,CPU%,FIN,FOUT,NETIN,NETOUT,SCALLS,Command",
 				"-1,8,8,8,8,8,8,8,8,200",
 				""));
 			views.push_back(sinsp_table_info("Top Connections", 

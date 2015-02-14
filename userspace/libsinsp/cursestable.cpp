@@ -555,10 +555,19 @@ void curses_table::render(bool data_changed)
 			
 			m_column_startx.push_back(k);
 
-			curses_table::alignment al = get_field_alignment(m_legend[j].m_info.m_type);
+			string coltext = m_legend[j].m_name;
+			if((int32_t)coltext.size() > m_legend[j].m_size - 2)
+			{
+				coltext = coltext.substr(0, m_legend[j].m_size - 2);
+			}
 
+			curses_table::alignment al = get_field_alignment(m_table->m_types->at(j + 1));
+			if(al == curses_table::ALIGN_RIGHT)
+			{
+				coltext.insert(0, m_legend[j].m_size - coltext.size() - 2, ' ');
+			}
 
-			mvwaddnstr(m_tblwin, 0, k, m_legend[j].m_name.c_str(), m_legend[j].m_size - 1);
+			mvwaddnstr(m_tblwin, 0, k, coltext.c_str(), m_legend[j].m_size - 1);
 
 			for(l = strlen(m_legend[j].m_name.c_str()); l < m_legend[j].m_size; l++)
 			{
@@ -825,6 +834,7 @@ curses_table::alignment curses_table::get_field_alignment(ppm_param_type type)
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
+	case PT_DOUBLE:
 		return ALIGN_RIGHT;
 	default:
 		return ALIGN_LEFT;
