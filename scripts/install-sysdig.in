@@ -103,7 +103,7 @@ if [ -f /etc/debian_version ]; then
 	if [ -f /etc/lsb-release ]; then
 		. /etc/lsb-release
 		DISTRO=$DISTRIB_ID
-		VERSION=${DISTRIB_RELEASE%.*}
+		VERSION=${DISTRIB_RELEASE%%.*}
 	else
 		DISTRO="Debian"
 		VERSION=$(cat /etc/debian_version | cut -d'.' -f1)
