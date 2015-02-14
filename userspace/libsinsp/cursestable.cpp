@@ -552,8 +552,12 @@ void curses_table::render(bool data_changed)
 			{
 				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 			}
-
+			
 			m_column_startx.push_back(k);
+
+			curses_table::alignment al = get_field_alignment(m_legend[j].m_info.m_type);
+
+
 			mvwaddnstr(m_tblwin, 0, k, m_legend[j].m_name.c_str(), m_legend[j].m_size - 1);
 
 			for(l = strlen(m_legend[j].m_name.c_str()); l < m_legend[j].m_size; l++)
@@ -805,6 +809,26 @@ sysdig_table_action curses_table::handle_input(int ch)
 	}
 
 	return STA_NONE;
+}
+
+curses_table::alignment curses_table::get_field_alignment(ppm_param_type type)
+{
+	switch(type)
+	{
+	case PT_INT8:
+	case PT_INT16:
+	case PT_INT32:
+	case PT_INT64:
+	case PT_UINT8:
+	case PT_UINT16:
+	case PT_UINT32:
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+		return ALIGN_RIGHT;
+	default:
+		return ALIGN_LEFT;
+	}
 }
 
 #endif // SYSTOP

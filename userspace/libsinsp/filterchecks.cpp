@@ -3096,35 +3096,35 @@ char* sinsp_filter_check_reference::format_bytes(int64_t val, uint32_t str_len)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fP", str_len, ((double)val) / (1024LL * 1024 * 1024 * 1024 * 1024));
+					"%*.2fP", str_len - 1, ((double)val) / (1024LL * 1024 * 1024 * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024LL * 1024 * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fT", str_len, ((double)val) / (1024LL * 1024 * 1024 * 1024));
+					"%*.2fT", str_len - 1, ((double)val) / (1024LL * 1024 * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024LL * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fG", str_len, ((double)val) / (1024LL * 1024 * 1024));
+					"%*.2fG", str_len - 1, ((double)val) / (1024LL * 1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > (1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fM", str_len, ((double)val) / (1024 * 1024));
+					"%*.2fM", str_len - 1, ((double)val) / (1024 * 1024));
 		return m_getpropertystr_storage;
 	}
 	else if(val > 1024)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fK", str_len, ((double)val) / (1024));
+					"%*.2fK", str_len - 1, ((double)val) / (1024));
 		return m_getpropertystr_storage;
 	}
 	else
@@ -3252,6 +3252,13 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_l
 		uint64_t val = (uint64_t)*(uint64_t*)rawval;
 		val = 1010000000;
 		return format_time(val);
+	}
+	else if(m_field->m_type == PT_DOUBLE)
+	{
+		snprintf(m_getpropertystr_storage,
+					sizeof(m_getpropertystr_storage),
+					"%*.2lf", str_len, (double)*(double*)rawval);
+		return m_getpropertystr_storage;
 	}
 	else
 	{

@@ -97,6 +97,12 @@ public:
 class curses_table : public curses_scrollable_list
 {
 public:
+	enum alignment
+	{
+		ALIGN_LEFT,
+		ALIGN_RIGHT,
+	};
+
 	curses_table();
 	~curses_table();
 
@@ -114,6 +120,7 @@ public:
 	
 private:
 	void update_rowkey(int32_t row);
+	alignment get_field_alignment(ppm_param_type type);
 
 	WINDOW* m_tblwin;
 	sinsp_cursesui* m_parent;
@@ -129,6 +136,7 @@ private:
 	vector<sinsp_sample_row>* m_data;
 	sinsp_filter_check_reference* m_converter;
 	vector<uint32_t> m_column_startx;
+	char alignbuf[64];
 
 	friend class curses_table_sidemenu;
 };

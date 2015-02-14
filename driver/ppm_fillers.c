@@ -263,7 +263,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PRLIMIT_E] = {f_sys_prlimit_e},
 	[PPME_SYSCALL_PRLIMIT_X] = {f_sys_prlimit_x},
 #ifdef CAPTURE_CONTEXT_SWITCHES
-	[PPME_SCHEDSWITCH_6_E] = {f_sched_switch_e},
+	[PPME_SCHEDSWITCH_8_E] = {f_sched_switch_e},
 #endif
 	[PPME_DROP_E] = {f_sched_drop},
 	[PPME_DROP_X] = {f_sched_drop},
@@ -3094,6 +3094,9 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
+extern void task_times(struct task_struct *p, cputime_t *ut, cputime_t *st);
+void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times);
+
 static int f_sched_switch_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -3153,6 +3156,20 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	 * vm_swap
 	 */
 	res = val_to_ring(args, swap, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * cpu_usr
+	 */
+	res = val_to_ring(args, current->utime, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * cpu_sys
+	 */
+	res = val_to_ring(args, current->stime, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
