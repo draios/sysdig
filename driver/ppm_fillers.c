@@ -4144,13 +4144,6 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 	int res;
 
 	/*
-	 * signal number
-	 */
-	res = val_to_ring(args, args->signo, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
 	 * source pid
 	 */
 	res = val_to_ring(args, args->spid, 0, false, 0);
@@ -4161,6 +4154,13 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 	 * destination pid
 	 */
 	res = val_to_ring(args, args->dpid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * signal number
+	 */
+	res = val_to_ring(args, args->signo, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
