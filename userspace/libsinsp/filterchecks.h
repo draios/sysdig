@@ -280,13 +280,13 @@ private:
 };
 
 //
-// thread checks
+// thread sinsp_filter_check_syslog
 //
 class cpu_usage_info
 {
 public:
-	uint64_t m_last_time;
-	uint64_t m_last_val;
+	uint64_t m_ts_s;
+	uint64_t m_initialcpu;
 };
 
 class sinsp_filter_check_thread : public sinsp_filter_check
@@ -354,6 +354,7 @@ private:
 	double m_dval;
 	vector<uint64_t> m_last_proc_switch_times;
 	uint32_t m_th_state_id;
+	cpu_usage_info m_ui;
 };
 
 //

@@ -859,6 +859,8 @@ sinsp_filter_check_thread::sinsp_filter_check_thread()
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 
 	m_u64val = 0;
+	m_ui.m_ts_s = 0;
+	m_ui.m_initialcpu = 0;
 }
 
 sinsp_filter_check* sinsp_filter_check_thread::allocate_new()
@@ -1449,9 +1451,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(evt->get_type() == PPME_SCHEDSWITCH_8_E && tinfo->m_tid != 0)
 			{
+				uint64_t ftime = evt->get_ts();
+				uint64_t toff = ftime % ONE_SECOND_IN_NS;
+				uint64_t ctime = ftime - toff;
+				uint64_t tosub = 0;
+
 				cpu_usage_info* ui = (cpu_usage_info*)tinfo->get_private_state(m_th_state_id);
-				uint64_t ctime = evt->get_ts();
-				ctime = ctime - ctime % ONE_SECOND_IN_NS;
 
 				uint64_t tcpu;
 
@@ -1461,15 +1466,21 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				parinfo = evt->get_param(7);
 				tcpu += *(uint64_t*)parinfo->m_val;
 
-				if(ctime != ui->m_last_time)
+				if(ctime != m_ui.m_ts_s)
 				{
-					ui->m_last_time = ctime;
-					ui->m_last_val = tcpu;
+					m_ui.m_ts_s = ctime;
+					tosub = toff;
+				}
+
+				if(ctime != ui->m_ts_s)
+				{
+					ui->m_ts_s = ctime;
+					ui->m_initialcpu = tcpu - tosub;
 				}
 				else
 				{
-					uint64_t delta = tcpu - ui->m_last_val;
-					m_dval = (double)delta / (ONE_SECOND_IN_NS / 100);
+					uint64_t deltaval = tcpu - ui->m_initialcpu;
+					m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
 					return (uint8_t*)&m_dval;
 				}
 			}
