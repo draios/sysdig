@@ -275,7 +275,7 @@ int lua_cbacks::request_field(lua_State *ls)
 		throw sinsp_exception("chisel error");
 	}
 
-	chk->parse_field_name(fld);
+	chk->parse_field_name(fld, true);
 
 	lua_pushlightuserdata(ls, chk);
 

@@ -139,7 +139,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 
 			m_chks_to_free.push_back(chk);
 
-			j += chk->parse_field_name(cfmt + j + 1);
+			j += chk->parse_field_name(cfmt + j + 1, true);
 			ASSERT(j <= lfmt.length());
 
 			m_tokens.push_back(chk);

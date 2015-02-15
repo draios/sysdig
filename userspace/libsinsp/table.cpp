@@ -203,7 +203,7 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 		chk->m_aggregation = ag;
 		m_chks_to_free.push_back(chk);
 
-		j += chk->parse_field_name(cfmt + j + preamble_len) + preamble_len;
+		j += chk->parse_field_name(cfmt + j + preamble_len, true) + preamble_len;
 		ASSERT(j <= lfmt.length());
 
 		while(cfmt[j] == ' ' || cfmt[j] == '\t' || cfmt[j] == ',')
@@ -789,6 +789,12 @@ void sinsp_table::add_fields_max(ppm_param_type type, sinsp_table_field *dst, si
 		if(*(uint64_t*)operand1 < *(uint64_t*)operand2)
 		{
 			*(uint64_t*)operand1 = *(uint64_t*)operand2;
+		}
+		return;
+	case PT_DOUBLE:
+		if(*(double*)operand1 < *(double*)operand2)
+		{
+			*(double*)operand1 = *(double*)operand2;
 		}
 		return;
 	case PT_CHARBUF:

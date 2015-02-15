@@ -1579,67 +1579,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 #endif
 
 			//
-			// Launch the capture
-			//
-			bool open_success = true;
-
-			if(infiles.size() != 0)
-			{
-				//
-				// We have a file to open
-				//
-				inspector->open(infiles[j]);
-			}
-			else
-			{
-				if(j > 0)
-				{
-					break;
-				}
-
-				//
-				// No file to open, this is a live capture
-				//
-#if defined(HAS_CAPTURE)
-				try
-				{
-					inspector->open("");
-				}
-				catch(sinsp_exception e)
-				{
-					open_success = false;
-				}
-#else
-				//
-				// Starting live capture
-				// If this fails on Windows and OSX, don't try with any driver
-				//
-				inspector->open("");
-#endif
-
-				//
-				// Starting the live capture failed, try to load the driver with
-				// modprobe.
-				//
-				if(!open_success)
-				{
-					open_success = true;
-
-					if(system("modprobe sysdig-probe > /dev/null 2> /dev/null"))
-					{
-						fprintf(stderr, "Unable to load the driver\n");						
-					}
-
-					inspector->open("");
-				}
-			}
-
-			if(snaplen != 0)
-			{
-				inspector->set_snaplen(snaplen);
-			}
-
-			//
 			// Initialize the UI
 			//
 			sinsp_cursesui ui(inspector);
@@ -1647,7 +1586,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 			vector<sinsp_table_info> views;
 
 			views.push_back(sinsp_table_info("Top Processes", 
-				"*Kproc.pid proc.pid thread.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.cmdline", 
+				"*Kproc.pid proc.pid Mthread.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.cmdline", 
 				"all",
 				2,
 				"",
@@ -1713,6 +1652,70 @@ sysdig_init_res systop_init(int argc, char **argv)
 			ui.configure(&views);
 			ui.start(false, views[0].m_filter);
 
+			//
+			// Launch the capture
+			//
+			bool open_success = true;
+
+			if(infiles.size() != 0)
+			{
+				//
+				// We have a file to open
+				//
+				inspector->open(infiles[j]);
+			}
+			else
+			{
+				if(j > 0)
+				{
+					break;
+				}
+
+				//
+				// No file to open, this is a live capture
+				//
+#if defined(HAS_CAPTURE)
+				try
+				{
+					inspector->open("");
+				}
+				catch(sinsp_exception e)
+				{
+					open_success = false;
+				}
+#else
+				//
+				// Starting live capture
+				// If this fails on Windows and OSX, don't try with any driver
+				//
+				inspector->open("");
+#endif
+
+				//
+				// Starting the live capture failed, try to load the driver with
+				// modprobe.
+				//
+				if(!open_success)
+				{
+					open_success = true;
+
+					if(system("modprobe sysdig-probe > /dev/null 2> /dev/null"))
+					{
+						fprintf(stderr, "Unable to load the driver\n");						
+					}
+
+					inspector->open("");
+				}
+			}
+
+			if(snaplen != 0)
+			{
+				inspector->set_snaplen(snaplen);
+			}
+
+			//
+			// Start the capture loop
+			//
 			cinfo = do_systop_inspect(inspector,
 				cnt,
 				&ui);
@@ -1768,8 +1771,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

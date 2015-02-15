@@ -661,7 +661,7 @@ void sinsp_parser::register_event_callback(sinsp_pd_callback_type etype, sinsp_p
 ///////////////////////////////////////////////////////////////////////////////
 void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	sinsp_evt_param* parinfo;
 	int64_t tid = evt->get_tid();
 	int64_t childtid;
 	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent

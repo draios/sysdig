@@ -94,7 +94,7 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(const
 	{
 		m_check_list[j]->m_inspector = inspector;
 
-		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str());
+		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str(), false);
 
 		if(fldnamelen != -1)
 		{
@@ -825,7 +825,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 	return jsonval;
 }
 
-int32_t sinsp_filter_check::parse_field_name(const char* str)
+int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state)
 {
 	int32_t j;
 	int32_t max_fldlen = -1;
@@ -1315,7 +1315,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
-	chk->parse_field_name((char *)&operand1[0]);
+	chk->parse_field_name((char *)&operand1[0], true);
 	chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
 	parent_expr->add_check(chk);
