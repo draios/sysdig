@@ -299,7 +299,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_setgid_exit(evt);
 		break;
 	case PPME_SYSCALL_SIGNALDELIVER_E:
-		parse_signal_deliver(evt);
 		break;
 	default:
 		break;
@@ -3183,21 +3182,4 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
 		evt->get_thread_info()->m_gid = new_egid;
 	}
-}
-
-void sinsp_parser::parse_signal_deliver(sinsp_evt *evt)
-{
-	sinsp_evt_param *parinfo;
-
-	parinfo = evt->get_param(0);
-	ASSERT(parinfo->m_len == sizeof(uint64_t));
-	printf("spid: %lu   ", *(uint64_t *)parinfo->m_val);
-
-	parinfo = evt->get_param(1);
-	ASSERT(parinfo->m_len == sizeof(uint64_t));
-	printf("dpid: %lu   ", *(uint64_t *)parinfo->m_val);
-
-	parinfo = evt->get_param(2);
-	ASSERT(parinfo->m_len == sizeof(uint8_t));
-	printf("signal: %hhu\n", *(uint8_t *)parinfo->m_val);
 }
