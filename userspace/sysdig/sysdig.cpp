@@ -1585,6 +1585,15 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 			vector<sinsp_table_info> views;
 
+			views.push_back(sinsp_table_info("cpu test", 
+				"*Kproc.pid proc.name Mthread.cpu", 
+				"all",
+				2,
+				"",
+				"NA,PID,CPU%",
+				"-1,8,8",
+				""));
+
 			views.push_back(sinsp_table_info("Top Processes", 
 				"*Kproc.pid proc.pid Mthread.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.cmdline", 
 				"all",

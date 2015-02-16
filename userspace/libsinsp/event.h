@@ -380,6 +380,7 @@ VISIBILITY_PRIVATE
 	friend class lua_cbacks;
 	friend class sinsp_proto_detector;
 	friend class sinsp_container_manager;
+	friend class sinsp_table;
 };
 
 /*@}*/

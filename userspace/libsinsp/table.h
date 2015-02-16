@@ -236,6 +236,7 @@ private:
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields_max(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr);
+	void process_proctable(sinsp_evt* evt);
 	inline uint32_t get_field_len(uint32_t id);
 	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();

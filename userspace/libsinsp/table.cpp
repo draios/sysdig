@@ -29,6 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "table.h"
 
 extern sinsp_filter_check_list g_filterlist;
+extern sinsp_evttables g_infotables;
 
 //
 //
@@ -476,12 +477,51 @@ void sinsp_table::process_event(sinsp_evt* evt)
 	return;
 }
 
+void sinsp_table::process_proctable(sinsp_evt* evt)
+{
+	sinsp_evt tevt;
+	scap_evt tscapevt;
+
+	threadinfo_map_t* threadtable  = m_inspector->m_thread_manager->get_threads();
+	ASSERT(threadtable != NULL);
+
+	uint64_t ts = evt->get_ts();
+	uint64_t ts_s = ts - (ts % ONE_SECOND_IN_NS);
+	tscapevt.ts = ts_s - 1;
+
+	//
+	// Note: as the event type for this fake event, we pick one of the unused
+	//       numbers, so we guarantee that filter checks will not wrongly pick it up
+	//
+	tscapevt.type = PPME_SYSDIGEVENT_X;
+	tscapevt.len = 0;
+
+	tevt.m_inspector = m_inspector;
+	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	tevt.m_pevt = NULL;
+	tevt.m_cpuid = 0;
+	tevt.m_evtnum = 0;
+	tevt.m_pevt = &tscapevt;
+	tevt.m_fdinfo = NULL;
+
+	for(auto it = threadtable->begin(); it != threadtable->end(); ++it)
+	{
+		tevt.m_tinfo = &it->second;
+		process_event(&tevt);
+	}
+}
+
 void sinsp_table::flush(sinsp_evt* evt)
 {
 	if(m_next_flush_time_ns != 0)
 	{
 		//
 		// Time to emit the sample! 
+		// Add the proctable as a sample at the end of the second
+		//
+		process_proctable(evt);
+
+		//
 		// If there is a merging step, switch the types to point to the merging ones.
 		//
 		if(m_do_merging)
