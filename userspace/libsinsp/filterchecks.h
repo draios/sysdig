@@ -341,7 +341,6 @@ public:
 
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
-	inline void save_last_cpu_thread(sinsp_evt *evt, uint64_t tid, uint64_t timeoff);
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
@@ -354,7 +353,6 @@ private:
 	int64_t m_s64val;
 	double m_dval;
 	vector<uint64_t> m_last_proc_switch_times;
-	vector<uint64_t> m_last_proc_switch_tids;
 	uint32_t m_th_state_id;
 	uint64_t m_cursec_ts;
 };

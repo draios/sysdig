@@ -1042,34 +1042,6 @@ uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt)
 	return res;
 }
 
-void sinsp_filter_check_thread::save_last_cpu_thread(sinsp_evt *evt, uint64_t tid, uint64_t timeoff)
-{
-	uint64_t res = 0;
-
-	if(m_last_proc_switch_times.size() == 0)
-	{
-		//
-		// Initialize the vector of CPU times
-		//
-		const scap_machine_info* minfo = m_inspector->get_machine_info();
-		ASSERT(minfo->num_cpus != 0);
-
-		for(uint32_t j = 0; j < minfo->num_cpus; j++)
-		{
-			m_last_proc_switch_times.push_back(0);
-			m_last_proc_switch_tids.push_back(0);
-		}
-	}
-	else
-	{
-		uint32_t cpuid = evt->get_cpuid();
-		ASSERT(cpuid < m_last_proc_switch_times.size());
-
-		m_last_proc_switch_tids[cpuid] = tid;
-		m_last_proc_switch_times[cpuid] = timeoff;
-	}
-}
-
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -1519,20 +1491,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				parinfo = evt->get_param(0);
 				uint64_t nexttid = *(uint64_t*)parinfo->m_val;
 
-				save_last_cpu_thread(evt, nexttid, toff);
 			}
 			if(etype == PPME_SYSDIGEVENT_X)
 			{
-				for(uint32_t j = 0; j < m_last_proc_switch_tids.size(); j++)
-				{
-					if(tinfo->m_tid == m_last_proc_switch_tids[j])
-					{
-	//					uint64_t deltaval = tcpu - ui->m_initialcpu;
-	//					m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
-						m_dval = 33;
-						return (uint8_t*)&m_dval;
-					}
-				}
+				int a = 0;
 			}
 			
 			return NULL;
