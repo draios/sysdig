@@ -1214,6 +1214,6 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 			handle->m_driver_procinfo->entries[j].stime);
 	}
 
-	return 		handle->m_driver_procinfo;
+	return handle->m_driver_procinfo;
 #endif	// HAS_CAPTURE
 }

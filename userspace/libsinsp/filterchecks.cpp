@@ -1448,6 +1448,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u64val;
 	case TYPE_THREAD_CPU:
 		{
+/*
 			if(tinfo->m_tid == 0)
 			{
 				return NULL;
@@ -1492,7 +1493,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				int a = 0;
 			}
-			
+*/			
 			return NULL;
 		}
 	default:

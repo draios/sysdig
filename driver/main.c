@@ -521,7 +521,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return task_tgid_nr(current);
 	case PPM_IOCTL_GET_PROCLIST:
 	{
-		struct task_struct *iter;
+		struct task_struct *p, *t;
 		u64 nentries = 0;
 		struct ppm_proclist_info* pli;
 		struct ppm_proc_info pi;
@@ -533,22 +533,21 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		rcu_read_lock();
 		
-		list_for_each_entry_rcu(iter, &init_task.tasks, tasks) {
-			//vpr_info("T %s\n", iter->comm);
+		for_each_process_thread(p, t) {
 			if (nentries < pli->max_entries) {
-				pi.pid = iter->pid;
-				pi.utime = iter->utime;
-				pi.stime = iter->stime;
+				pi.pid = t->pid;
+				pi.utime = t->utime;
+				pi.stime = t->stime;
 
 				if (copy_to_user((void*)&pli->entries[nentries], &pi, sizeof(struct ppm_proc_info))) {
-					rcu_read_lock();
+					rcu_read_unlock();
 					return -EINVAL;
 				}
 			}
 
 			nentries++;
 		}
-
+		
 		rcu_read_unlock();
 
 		if (copy_to_user((void*)&pli->n_entries, &nentries, sizeof(pli->n_entries)))
@@ -1214,7 +1213,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, st
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next)
 #endif
 {
-	record_event(PPME_SCHEDSWITCH_8_E,
+	record_event(PPME_SCHEDSWITCH_6_E,
 		NULL,
 		-1,
 		UF_USED,

@@ -739,8 +739,12 @@ private:
 	//
 	// End of second housekeeping
 	//
+	bool m_get_procs_cpu_from_driver;
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
+	sinsp_evt pievt;
+	scap_evt piscapevt;
+	uint32_t m_n_cpu_evts;
 
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;

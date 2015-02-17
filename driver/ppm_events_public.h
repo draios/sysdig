@@ -624,8 +624,8 @@ enum ppm_event_type {
 	PPME_CONTAINER_X = 229,
 	PPME_SYSCALL_EXECVE_16_E = 230,
 	PPME_SYSCALL_EXECVE_16_X = 231,
-	PPME_SCHEDSWITCH_8_E = 232,
-	PPME_SCHEDSWITCH_8_X = 233,	/* This should never be called */
+	PPME_PROCINFO_E = 232,
+	PPME_PROCINFO_X = 233,	/* This should never be called */
 	PPM_EVENT_MAX = 234
 };
 /*@}*/

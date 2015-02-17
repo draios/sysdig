@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _WIN32
@@ -25,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <sys/time.h>
 #endif // _WIN32
 
 #include "sinsp.h"
@@ -94,6 +94,7 @@ sinsp::sinsp() :
 	m_meta_evt_pending = false;
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
+	m_get_procs_cpu_from_driver = true;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -101,6 +102,17 @@ sinsp::sinsp() :
 #if defined(HAS_CAPTURE)
 	m_sysdig_pid = 0;
 #endif
+
+	piscapevt.type = PPME_SYSDIGEVENT_X;
+	piscapevt.len = 0;
+
+	pievt.m_inspector = this;
+	pievt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	pievt.m_pevt = NULL;
+	pievt.m_cpuid = 0;
+	pievt.m_evtnum = 0;
+	pievt.m_pevt = &piscapevt;
+	pievt.m_fdinfo = NULL;
 }
 
 sinsp::~sinsp()
@@ -575,25 +587,31 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 
 	uint64_t ts = m_evt.get_ts();
 
-	if(ts > m_next_flush_time_ns)
+	//
+	// If required, retrieve the processes cpu from the kernel
+	//
+	if(m_islive && m_get_procs_cpu_from_driver)
 	{
-		struct timeval tod;
-
-		if(m_next_flush_time_ns != 0)
+		if(ts > m_next_flush_time_ns)
 		{
-			int a = 0;
+			struct timeval tod;
 
-			gettimeofday(&tod, NULL);
-
-			uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
-
-			if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
+			if(m_next_flush_time_ns != 0)
 			{
-				m_last_procrequest_tod = procrequest_tod;
-			}
-		}
+				gettimeofday(&tod, NULL);
 
-		m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+				uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
+
+				if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
+				{
+					struct ppm_proclist_info* pli = scap_get_threadlist_from_driver(m_h);
+
+					m_last_procrequest_tod = procrequest_tod;
+				}
+			}
+
+			m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+		}
 	}
 
 	//
