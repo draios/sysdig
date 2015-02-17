@@ -519,6 +519,51 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return task_pid_nr(current);
 	case PPM_IOCTL_GET_CURRENT_PID:
 		return task_tgid_nr(current);
+	case PPM_IOCTL_GET_PROCLIST:
+	{
+		struct task_struct *iter;
+		u64 nentries = 0;
+		struct ppm_proclist_info* pli;
+		struct ppm_proc_info pi;
+
+		if (copy_from_user(&pli, (void*)arg, sizeof(pli)))
+			return -EINVAL;
+
+		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli->max_entries);
+
+		rcu_read_lock();
+		
+		list_for_each_entry_rcu(iter, &init_task.tasks, tasks) {
+			//vpr_info("T %s\n", iter->comm);
+			if (nentries < pli->max_entries) {
+				pi.pid = iter->pid;
+				pi.utime = iter->utime;
+				pi.stime = iter->stime;
+
+				if (copy_to_user((void*)&pli->entries[nentries], &pi, sizeof(struct ppm_proc_info))) {
+					rcu_read_lock();
+					return -EINVAL;
+				}
+			}
+
+			nentries++;
+		}
+
+		rcu_read_unlock();
+
+		if (copy_to_user((void*)&pli->n_entries, &nentries, sizeof(pli->n_entries)))
+			return -EINVAL;
+
+		if (nentries >= pli->max_entries) {
+			vpr_info("PPM_IOCTL_GET_PROCLIST: not enough space (%d avail, %d required)\n", 
+				(int)pli->max_entries,
+				(int)nentries);
+
+			return -ENOSPC;
+		}
+
+		return 0;
+	}
 	default:
 		return -ENOTTY;
 	}

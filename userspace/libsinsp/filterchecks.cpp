@@ -1487,10 +1487,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
 					return (uint8_t*)&m_dval;
 				}
-
-				parinfo = evt->get_param(0);
-				uint64_t nexttid = *(uint64_t*)parinfo->m_val;
-
 			}
 			if(etype == PPME_SYSDIGEVENT_X)
 			{

@@ -1130,6 +1130,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_GET_VPID _IO(PPM_IOCTL_MAGIC, 11)
 #define PPM_IOCTL_GET_CURRENT_TID _IO(PPM_IOCTL_MAGIC, 12)
 #define PPM_IOCTL_GET_CURRENT_PID _IO(PPM_IOCTL_MAGIC, 13)
+#define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 14)
 
 /*!
   \brief System call description struct.
@@ -1168,5 +1169,19 @@ enum ppm_driver_event_id {
 	DEI_ENABLE_DROPPING = 2,
 };
 
+/*!
+  \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
+*/
+struct ppm_proc_info {
+	uint64_t pid;
+	uint64_t utime;
+	uint64_t stime;
+};
+
+struct ppm_proclist_info {
+	int64_t n_entries;
+	int64_t max_entries;
+	struct ppm_proc_info entries[0];
+};
 
 #endif /* EVENTS_PUBLIC_H_ */

@@ -810,6 +810,11 @@ int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
 */
 const char* scap_get_host_root();
 
+/*!
+  \brief Get the process list by querying the sysdig kernel module.
+*/
+struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
+
 
 /*@}*/
 
