@@ -125,8 +125,8 @@ public:
 	}
 
 	string m_name; ///< Field class name.
-	int32_t m_nfiedls; ///< Number of fields in this field group.
-	const filtercheck_field_info* m_fields; ///< Array containing m_nfiedls field descriptions.
+	int32_t m_nfields; ///< Number of fields in this field group.
+	const filtercheck_field_info* m_fields; ///< Array containing m_nfields field descriptions.
 	uint32_t m_flags;
 };
 

@@ -49,7 +49,7 @@ void list_fields(bool verbose)
 		printf("\n----------------------\n");
 		printf("Field Class: %s\n\n", fci->m_name.c_str());
 
-		for(k = 0; k < fci->m_nfiedls; k++)
+		for(k = 0; k < fci->m_nfields; k++)
 		{
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
