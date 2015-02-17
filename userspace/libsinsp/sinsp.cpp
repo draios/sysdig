@@ -92,9 +92,11 @@ sinsp::sinsp() :
 	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
 	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
 	m_meta_evt_pending = false;
+	m_next_flush_time_ns = 0;
+	m_last_procrequest_tod = 0;
 
-        // Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
-        m_print_container_data = false;
+	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
+	m_print_container_data = false;
 
 #if defined(HAS_CAPTURE)
 	m_sysdig_pid = 0;
@@ -571,11 +573,34 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		return res;
 	}
 
+	uint64_t ts = m_evt.get_ts();
+
+	if(ts > m_next_flush_time_ns)
+	{
+		struct timeval tod;
+
+		if(m_next_flush_time_ns != 0)
+		{
+			int a = 0;
+
+			gettimeofday(&tod, NULL);
+
+			uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
+
+			if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
+			{
+				m_last_procrequest_tod = procrequest_tod;
+			}
+		}
+
+		m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+	}
+
 	//
 	// Store a couple of values that we'll need later inside the event.
 	//
 	m_evt.m_evtnum = scap_event_get_num(m_h);
-	m_lastevent_ts = m_evt.get_ts();
+	m_lastevent_ts = ts;
 #ifdef HAS_FILTERING
 	if(m_firstevent_ts == 0)
 	{

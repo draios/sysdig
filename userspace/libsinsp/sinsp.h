@@ -736,6 +736,12 @@ private:
 	char* m_meta_evt_buf;
 	bool m_meta_evt_pending;
 
+	//
+	// End of second housekeeping
+	//
+	uint64_t m_next_flush_time_ns;
+	uint64_t m_last_procrequest_tod;
+
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
 #endif
