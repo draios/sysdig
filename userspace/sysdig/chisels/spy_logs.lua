@@ -102,6 +102,7 @@ function on_init()
 	return true
 end
 
+-- Final chisel initialization
 function on_capture_start()
 	if do_dump then
 		if sysdig.is_live() then

@@ -1,10 +1,9 @@
 --[[
 Copyright (C) 2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
-
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,18 +18,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 description = "List the running processes, with an output that is similar to the one of ps. Output is at a point in time; adjust this in the filter. It defaults to time of evt.num=0";
 short_description = "List (and optionally filter) the machine processes.";
 category = "System State";
-		   
+		
 -- Argument list
-args = 
+args =
 {
 	{
 		name = "filter",
-		description = "A sysdig-like filter expression that allows restricting the FD list. For example 'fd.name contains /etc' shows all the processes that have files open under /etc.", 
+		description = "A sysdig-like filter expression that allows restricting the FD list. For example 'fd.name contains /etc' shows all the processes that have files open under /etc.",
 		argtype = "filter",
 		optional = true
 	}
 }
 
+-- Argument initialization Callback
 function on_set_arg(name, val)
 	if name == "filter" then
 		filter = val
@@ -72,6 +72,7 @@ function on_event()
 	return false
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end(ts_s, ts_ns, delta)
 	if not capturing then
 		return

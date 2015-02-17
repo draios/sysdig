@@ -94,6 +94,7 @@ function on_init()
 	return true
 end
 
+-- Final chisel initialization
 function on_capture_start()
 	if do_dump then
 		if sysdig.is_live() then
@@ -140,42 +141,42 @@ function on_event()
 
 		-- The -pc or -pcontainer options was supplied on the cmd line
 		if  print_container then
-			infostr = string.format("%s%-20s %-20s %s.%s %s[%u] %s", 
-									color, 
-									containerid, 
-									containername, 
-									fac, 
-									sev, 
-									pname, 
-									tid, 
+			infostr = string.format("%s%-20s %-20s %s.%s %s[%u] %s",
+									color,
+									containerid,
+									containername,
+									fac,
+									sev,
+									pname,
+									tid,
 									msg)
 		else
-			infostr = string.format("%s%s.%s %s[%u] %s", 
-									color, 
-									fac, 
-									sev, 
-									pname, 
-									tid, 
+			infostr = string.format("%s%s.%s %s[%u] %s",
+									color,
+									fac,
+									sev,
+									pname,
+									tid,
 									msg)
 		end
 	else
 		if  print_container then
-			infostr = string.format("%-20s %-20s %s.%s %s[%u] %s", 
-									fac, 
-									containerid, 
-									containername, 
-									sev, 
-									pname, 
-									tid, 
+			infostr = string.format("%-20s %-20s %s.%s %s[%u] %s",
+									fac,
+									containerid,
+									containername,
+									sev,
+									pname,
+									tid,
 									msg)
-		else 
-			infostr = string.format("%s.%s %s[%u] %s", 
-									fac, 
-									sev, 
-									pname, 
-									tid, 
+		else
+			infostr = string.format("%s.%s %s[%u] %s",
+									fac,
+									sev,
+									pname,
+									tid,
 									msg)
-		end 
+		end
 	end
 	
 	print(infostr)
@@ -188,6 +189,7 @@ function on_event()
 	return true
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
 	if is_tty then
 		print(terminal.reset)
