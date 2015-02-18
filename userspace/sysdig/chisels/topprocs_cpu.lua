@@ -5,7 +5,6 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
-
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -16,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Given two filter fields, a key and a value, this chisel creates and renders to the screen a table."
+description = "Given two filter fields, a key and a value, this chisel creates and renders to the screen a table. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top processes by CPU usage"
 category = "CPU Usage"
 
@@ -29,6 +28,8 @@ terminal = require "ansiterminal"
 grtable = {}
 islive = false
 cpustates = {}
+fkeys = {}
+local print_container = false
 
 vizinfo =
 {
@@ -41,10 +42,28 @@ vizinfo =
 	output_format = "normal"
 }
 
-
+-- Initialization callback
 function on_init()
+	-- The -pc or -pcontainer options was supplied on the cmd line
+	print_container = sysdig.is_print_container_data()
+
+	-- Print container info as well
+	if print_container then
+
+		-- Due to requiest for container info update key fld & desc
+		vizinfo.key_fld = {"proc.name", "container.name"}
+		vizinfo.key_desc = {"Process", "container.name"}
+
+		-- Request the fields we need
+		for i, name in ipairs(vizinfo.key_fld) do
+			fkeys[i] = chisel.request_field(name)
+		end
+	else
+		 -- Request the field we need
+		fkey = chisel.request_field(vizinfo.key_fld)
+	end
+
 	-- Request the fields we need
-	fkey = chisel.request_field(vizinfo.key_fld)
 	fvalue = chisel.request_field(vizinfo.value_fld)
 	fnext = chisel.request_field("evt.arg.next")
 	fnextraw = chisel.request_field("evt.rawarg.next")
@@ -54,6 +73,7 @@ function on_init()
 	return true
 end
 
+-- Final chisel initialization
 function on_capture_start()
 	islive = sysdig.is_live()
 	vizinfo.output_format = sysdig.get_output_format()
@@ -75,8 +95,31 @@ function on_capture_start()
 	return true
 end
 
+-- Event parsing callback
 function on_event()
-	key = evt.field(fkey)
+
+	local key = nil
+
+	-- Print container info as well
+	if print_container then
+		local kv = nil
+
+		for i, fld in ipairs(fkeys) do
+			kv = evt.field(fld)
+			if kv == nil then
+				return
+			end
+
+			if key == nil then
+				key = kv
+			else
+				key = key .. "\001\001" .. evt.field(fld)
+			end
+		end
+	else
+		key = evt.field(fkey)
+	end
+
 	value = evt.field(fvalue)
 	cpuid = evt.get_cpuid() + 1
 
@@ -106,6 +149,7 @@ function on_event()
 	return true
 end
 
+-- Periodic timeout callback
 function on_interval(ts_s, ts_ns, delta)
 	if vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
@@ -136,6 +180,7 @@ function on_interval(ts_s, ts_ns, delta)
 	return true
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end(ts_s, ts_ns, delta)
 	if islive and vizinfo.output_format ~= "json" then
 		terminal.clearscreen()

@@ -40,7 +40,7 @@ vizinfo =
 	output_format = "normal"
 }
 
-
+-- Initialization callback
 function on_init()
 	-- Request the fields we need
 	fkey = chisel.request_field(vizinfo.key_fld)
@@ -54,6 +54,7 @@ function on_init()
 	return true
 end
 
+-- Final chisel initialization
 function on_capture_start()
 	islive = sysdig.is_live()
 	vizinfo.output_format = sysdig.get_output_format()
@@ -75,6 +76,7 @@ function on_capture_start()
 	return true
 end
 
+-- Event parsing callback
 function on_event()
 	key = evt.field(fkey)
 	value = evt.field(fvalue)
@@ -106,6 +108,7 @@ function on_event()
 	return true
 end
 
+-- Periodic timeout callback
 function on_interval(ts_s, ts_ns, delta)
 	if vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
@@ -136,6 +139,7 @@ function on_interval(ts_s, ts_ns, delta)
 	return true
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end(ts_s, ts_ns, delta)
 	if islive and vizinfo.output_format ~= "json" then
 		terminal.clearscreen()

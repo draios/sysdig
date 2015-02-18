@@ -1,10 +1,9 @@
 --[[
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
-
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,8 +22,8 @@ category = "CPU Usage"
 -- Chisel argument list
 args = {
 	{
-		name = "refresh_time", 
-		description = "Chart refresh time in milliseconds", 
+		name = "refresh_time",
+		description = "Chart refresh time in milliseconds",
 		argtype = "int",
 		optional = true
 	},
@@ -39,16 +38,18 @@ refresh_per_sec = 1000000000 / refresh_time
 frequencies = {}
 colpalette = {22, 28, 64, 34, 2, 76, 46, 118, 154, 191, 227, 226, 11, 220, 209, 208, 202, 197, 9, 1}
 
+-- Argument initialization Callback
 function on_set_arg(name, val)
-    if name == "refresh_time" then
-        refresh_time = parse_numeric_input(val, name) * 1000000
-        refresh_per_sec = 1000000000 / refresh_time
-        return true
-    end
+	if name == "refresh_time" then
+		refresh_time = parse_numeric_input(val, name) * 1000000
+		refresh_per_sec = 1000000000 / refresh_time
+		return true
+	end
 
-    return false
+	return false
 end
 
+-- Initialization callback
 function on_init()
 	is_tty = sysdig.is_tty()
 
@@ -70,11 +71,13 @@ function on_init()
 	return true
 end
 
+-- Final chisel initialization
 function on_capture_start()
 	chisel.set_interval_ns(refresh_time)
 	return true
 end
 
+-- Event parsing callback
 function on_event()
 	local latency = evt.field(flatency)
 
@@ -102,17 +105,18 @@ end
 function mkcol(n)
 	local col = math.floor(math.log10(n * refresh_per_sec + 1) / math.log10(1.6))
 
-	if col < 1 then 
+	if col < 1 then
 		col = 1
 	end
 
-	if col > #colpalette then 
+	if col > #colpalette then
 		col = #colpalette
 	end
 
 	return colpalette[col]
 end
 
+-- Periodic timeout callback
 function on_interval(ts_s, ts_ns, delta)
 	terminal.moveup(1)
 
@@ -128,7 +132,7 @@ function on_interval(ts_s, ts_ns, delta)
 		io.write(" ")
 	end
 
-	io.write(terminal.reset .. "\n") 
+	io.write(terminal.reset .. "\n")
 
 	local x = 0
 	while true do
@@ -150,13 +154,14 @@ function on_interval(ts_s, ts_ns, delta)
 		end
 	end
 
-	io.write("\n") 
+	io.write("\n")
 
 	frequencies = {}
 
 	return true
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end(ts_s, ts_ns, delta)
 	if is_tty then
 		print(terminal.reset)
@@ -165,4 +170,3 @@ function on_capture_end(ts_s, ts_ns, delta)
 
 	return true
 end
-

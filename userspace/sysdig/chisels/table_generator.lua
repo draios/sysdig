@@ -107,6 +107,7 @@ function on_set_arg(name, val)
 	return false
 end
 
+-- Initialization callback
 function on_init()
 	if #vizinfo.key_fld ~= #vizinfo.key_desc then
 		print("error: number of entries in keys different from number entries in keydescs")
@@ -128,6 +129,7 @@ function on_init()
 	return true
 end
 
+-- Final chisel initialization
 function on_capture_start()
 	islive = sysdig.is_live()
 	vizinfo.output_format = sysdig.get_output_format()
@@ -143,6 +145,7 @@ function on_capture_start()
 	return true
 end
 
+-- Event parsing callback
 function on_event()
 	local key = nil
 	local kv = nil
@@ -175,6 +178,7 @@ function on_event()
 	return true
 end
 
+-- Periodic timeout callback
 function on_interval(ts_s, ts_ns, delta)	
 	if vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
@@ -189,6 +193,7 @@ function on_interval(ts_s, ts_ns, delta)
 	return true
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end(ts_s, ts_ns, delta)
 	if islive and vizinfo.output_format ~= "json" then
 		terminal.clearscreen()

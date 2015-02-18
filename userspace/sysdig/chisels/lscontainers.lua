@@ -5,7 +5,6 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
 
-
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -38,6 +37,7 @@ local capturing = false
 local filter = nil
 local desc = false
 
+-- Argument initialization Callback
 function on_set_arg(name, val)
 		if name == "desc" and val == "desc" then
 				desc = true
@@ -58,7 +58,7 @@ function on_event()
 	return false
 end
 
--- Called by sysdig after the capture is configured, after on_set_arg() has been called for every chisel argument, but before any packet has been captured.
+-- Final chisel initialization
 function on_capture_start()
 		capturing = true
 		return true

@@ -31,6 +31,7 @@ args =
 	}
 }
 
+-- Argument initialization Callback
 function on_set_arg(name, val)
 	if name == "filter" then
 		filter = val
@@ -61,7 +62,7 @@ function on_init()
 	return true
 end
 
--- Called by sysdig after the capture is configured, after on_set_arg() has been called for every chisel argument, but before any packet has been captured.
+-- Final chisel initialization
 function on_capture_start()	
 	capturing = true
 	return true
