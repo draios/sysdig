@@ -1256,7 +1256,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 
 	if(m_ttable_only)
 	{
-		if(!(chk->get_filelds()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
+		if(!(chk->get_fields()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
 		{
 			throw sinsp_exception("the given filter is not supported for thread table filtering");
 		}
