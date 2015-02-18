@@ -54,8 +54,12 @@ sinsp::sinsp() :
 	m_container_manager(this)
 {
 	m_h = NULL;
+	m_nevts = 0;
 	m_parser = NULL;
 	m_dumper = NULL;
+	m_metaevt = NULL;
+	m_skipped_evt = NULL;
+	m_piscapevt = NULL;
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
@@ -103,16 +107,24 @@ sinsp::sinsp() :
 	m_sysdig_pid = 0;
 #endif
 
-	piscapevt.type = PPME_SYSDIGEVENT_X;
-	piscapevt.len = 0;
+	uint32_t evlen = sizeof(scap_evt) + 3 * sizeof(uint16_t) + 3 * sizeof(uint64_t);
+	m_piscapevt = (scap_evt*)new char[evlen];
+	m_piscapevt->type = PPME_PROCINFO_E;
+	m_piscapevt->len = evlen;
+	uint16_t* lens = (uint16_t*)((char *)m_piscapevt + sizeof(struct ppm_evt_hdr));
+	lens[0] = 8;
+	lens[1] = 8;
+	lens[2] = 8;
+	m_piscapevt_vals = (uint64_t*)(lens + 3);
 
-	pievt.m_inspector = this;
-	pievt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
-	pievt.m_pevt = NULL;
-	pievt.m_cpuid = 0;
-	pievt.m_evtnum = 0;
-	pievt.m_pevt = &piscapevt;
-	pievt.m_fdinfo = NULL;
+	m_pievt.m_inspector = this;
+	m_pievt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	m_pievt.m_pevt = NULL;
+	m_pievt.m_cpuid = 0;
+	m_pievt.m_evtnum = 0;
+	m_pievt.m_pevt = m_piscapevt;
+	m_pievt.m_fdinfo = NULL;
+	m_n_procinfo_evts = 0;
 }
 
 sinsp::~sinsp()
@@ -146,6 +158,11 @@ sinsp::~sinsp()
 	{
 		delete[] m_meta_evt_buf;
 		m_meta_evt_buf = NULL;
+	}
+
+	if(m_piscapevt)
+	{
+		delete[] m_piscapevt;
 	}
 }
 
@@ -531,82 +548,129 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 
 bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
 
-int32_t sinsp::next(OUT sinsp_evt **evt)
+void sinsp::add_meta_event(sinsp_evt *metaevt)
 {
-	//
-	// Reset previous event's decoders if required
-	//
-	if(m_decoders_reset_list.size() != 0)
-	{
-		vector<sinsp_protodecoder*>::iterator it;
-		for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
-		{
-			(*it)->on_reset(&m_evt);
-		}
+	m_metaevt = metaevt;
+}
 
-		m_decoders_reset_list.clear();
-	}
+void sinsp::add_meta_event_and_repeat(sinsp_evt *metaevt)
+{
+	m_metaevt = metaevt;
+	m_skipped_evt = &m_evt;
+}
 
-	//
-	// Get the event from libscap
-	//
-	int32_t res = scap_next(m_h, &(m_evt.m_pevt), &(m_evt.m_cpuid));
-
+int32_t sinsp::next(OUT sinsp_evt **puevt)
+{
+	sinsp_evt* evt;
+	int32_t res;
 	// The number of bytes to consider in the dumper
 	int32_t bytes_to_write;
 
-	if(res != SCAP_SUCCESS)
+	//
+	// Check if there are fake cpu events to  events 
+	//
+//	if(m_metaevt != NULL)
+	if(false)
 	{
-		if(res == SCAP_TIMEOUT)
+		res = SCAP_SUCCESS;
+		evt = m_metaevt;
+
+		if(m_skipped_evt)
 		{
-#ifdef HAS_ANALYZER
-			if(m_analyzer)
-			{
-				m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
-			}
-#endif
-			*evt = NULL;
-			return res;
-		}
-		else if(res == SCAP_EOF)
-		{
-#ifdef HAS_ANALYZER
-			if(m_analyzer)
-			{
-				m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
-			}
-#endif
+			m_metaevt = m_skipped_evt;
+			m_skipped_evt = NULL;
 		}
 		else
 		{
-			throw sinsp_exception(scap_getlasterr(m_h));
+			m_metaevt = NULL;
+		}
+	}
+	else
+	{
+		evt = &m_evt;
+
+		//
+		// Reset previous event's decoders if required
+		//
+		if(m_decoders_reset_list.size() != 0)
+		{
+			vector<sinsp_protodecoder*>::iterator it;
+			for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
+			{
+				(*it)->on_reset(evt);
+			}
+
+			m_decoders_reset_list.clear();
 		}
 
-		return res;
+		//
+		// Get the event from libscap
+		//
+		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+
+		if(res != SCAP_SUCCESS)
+		{
+			if(res == SCAP_TIMEOUT)
+			{
+	#ifdef HAS_ANALYZER
+				if(m_analyzer)
+				{
+					m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
+				}
+	#endif
+				*evt = NULL;
+				return res;
+			}
+			else if(res == SCAP_EOF)
+			{
+	#ifdef HAS_ANALYZER
+				if(m_analyzer)
+				{
+					m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
+				}
+	#endif
+			}
+			else
+			{
+				throw sinsp_exception(scap_getlasterr(m_h));
+			}
+
+			return res;
+		}
 	}
 
-	uint64_t ts = m_evt.get_ts();
+	uint64_t ts = evt->get_ts();
 
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
-	if(m_islive && m_get_procs_cpu_from_driver)
+//	if(/*m_islive && */m_get_procs_cpu_from_driver)
+	if(false)
 	{
 		if(ts > m_next_flush_time_ns)
 		{
-			struct timeval tod;
-
 			if(m_next_flush_time_ns != 0)
 			{
+				struct timeval tod;
 				gettimeofday(&tod, NULL);
 
 				uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
 
+//m_piscapevt_vals;
 				if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
 				{
-					struct ppm_proclist_info* pli = scap_get_threadlist_from_driver(m_h);
+//					struct ppm_proclist_info* pli = scap_get_threadlist_from_driver(m_h);
+
+					m_piscapevt->ts = m_next_flush_time_ns - 1;
+					m_piscapevt->tid = 22;
+					m_piscapevt_vals[0] = 33;
+					m_piscapevt_vals[1] = 44;
+					m_piscapevt_vals[2] = 55;
+					add_meta_event_and_repeat(&m_pievt);
 
 					m_last_procrequest_tod = procrequest_tod;
+					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+					return SCAP_TIMEOUT;
 				}
 			}
 
@@ -617,7 +681,8 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	// Store a couple of values that we'll need later inside the event.
 	//
-	m_evt.m_evtnum = scap_event_get_num(m_h);
+	m_nevts++;
+	evt->m_evtnum = m_nevts;
 	m_lastevent_ts = ts;
 #ifdef HAS_FILTERING
 	if(m_firstevent_ts == 0)
@@ -682,7 +747,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		m_analyzer->m_configuration->set_analyzer_sample_len_ns(500000000);
 	}
 
-	sd = should_drop(&m_evt, &m_isdropping, &sw);
+	sd = should_drop(evt, &m_isdropping, &sw);
 #endif
 
 	//
@@ -691,7 +756,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 #ifdef SIMULATE_DROP_MODE
 	if(!sd || m_isdropping)
 	{
-		m_parser->process_event(&m_evt);
+		m_parser->process_event(evt);
 	}
 
 	if(sd && !m_isdropping)
@@ -700,7 +765,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		return SCAP_TIMEOUT;
 	}
 #else
-	m_parser->process_event(&m_evt);
+	m_parser->process_event(evt);
 #endif
 
 	//
@@ -722,17 +787,17 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		scap_dump_flags dflags;
 		
 		bool do_drop;
-		dflags = m_evt.get_dump_flags(&do_drop);
+		dflags = evt->get_dump_flags(&do_drop);
 		if(do_drop)
 		{
-			*evt = &m_evt;
+			*puevt = evt;
 			return SCAP_TIMEOUT;
 		}
 #endif
 
 		if(m_write_cycling)
 		{
-			res = scap_number_of_bytes_to_write(m_evt.m_pevt, m_evt.m_cpuid, &bytes_to_write);
+			res = scap_number_of_bytes_to_write(evt->m_pevt, evt->m_cpuid, &bytes_to_write);
 			if(SCAP_SUCCESS != res)
 			{
 				throw sinsp_exception(scap_getlasterr(m_h));
@@ -757,7 +822,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 			}
 		}
 
-		res = scap_dump(m_h, m_dumper, m_evt.m_pevt, m_evt.m_cpuid, dflags);
+		res = scap_dump(m_h, m_dumper, evt->m_pevt, evt->m_cpuid, dflags);
 		if(SCAP_SUCCESS != res)
 		{
 			throw sinsp_exception(scap_getlasterr(m_h));
@@ -765,9 +830,9 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	}
 
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
-	if(m_evt.m_filtered_out)
+	if(evt->m_filtered_out)
 	{
-		*evt = &m_evt;
+		*puevt = evt;
 		return SCAP_TIMEOUT;
 	}
 #endif
@@ -783,19 +848,19 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		{
 			if(m_isdropping)
 			{
-				m_analyzer->process_event(&m_evt, sinsp_analyzer::DF_FORCE_FLUSH);
+				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH);
 			}
 			else if(sw)
 			{
-				m_analyzer->process_event(&m_evt, sinsp_analyzer::DF_FORCE_FLUSH_BUT_DONT_EMIT);
+				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH_BUT_DONT_EMIT);
 			}
 			else
 			{
-				m_analyzer->process_event(&m_evt, sinsp_analyzer::DF_FORCE_NOFLUSH);
+				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_NOFLUSH);
 			}
 		}
 #else // SIMULATE_DROP_MODE
-		m_analyzer->process_event(&m_evt, sinsp_analyzer::DF_NONE);
+		m_analyzer->process_event(evt, sinsp_analyzer::DF_NONE);
 #endif // SIMULATE_DROP_MODE
 	}
 #endif
@@ -803,18 +868,18 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	// Update the last event time for this thread
 	//
-	if(m_evt.m_tinfo && 
-		m_evt.get_type() != PPME_SCHEDSWITCH_1_E &&
-		m_evt.get_type() != PPME_SCHEDSWITCH_6_E)
+	if(evt->m_tinfo && 
+		evt->get_type() != PPME_SCHEDSWITCH_1_E &&
+		evt->get_type() != PPME_SCHEDSWITCH_6_E)
 	{
-		m_evt.m_tinfo->m_prevevent_ts = m_evt.m_tinfo->m_lastevent_ts;
-		m_evt.m_tinfo->m_lastevent_ts = m_lastevent_ts;
+		evt->m_tinfo->m_prevevent_ts = evt->m_tinfo->m_lastevent_ts;
+		evt->m_tinfo->m_lastevent_ts = m_lastevent_ts;
 	}
 
 	//
 	// Done
 	//
-	*evt = &m_evt;
+	*puevt = evt;
 	return res;
 }
 

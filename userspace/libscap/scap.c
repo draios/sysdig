@@ -1127,15 +1127,15 @@ const char* scap_get_host_root()
 
 bool alloc_proclist_info(scap_t* handle, uint32_t n_entries)
 {
-printf("*3 %d\n", (int)n_entries);
-fflush(stdout);
+	uint32_t memsize;
+
 	if(n_entries >= SCAP_DRIVER_PROCINFO_MAX_SIZE)
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "driver process list too big");
 		return false;
 	}
 
-	uint32_t memsize = sizeof(struct ppm_proclist_info) + 
+	memsize = sizeof(struct ppm_proclist_info) + 
 	sizeof(struct ppm_proc_info) * n_entries;
 
 	if(handle->m_driver_procinfo != NULL)
@@ -1158,8 +1158,6 @@ fflush(stdout);
 
 struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 {
-	uint32_t j;
-
 	//
 	// Not supported on files
 	//

@@ -42,7 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #ifdef _WIN32
-#pragma warning(disable: 4251)
+#pragma warning(disable: 4251 4200)
 #endif
 
 #ifdef _WIN32
@@ -628,8 +628,11 @@ private:
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
+	void add_meta_event(sinsp_evt *metaevt);
+	void add_meta_event_and_repeat(sinsp_evt *metaevt);
 
 	scap_t* m_h;
+	uint32_t m_nevts;
 	int64_t m_filesize;
 	bool m_islive;
 	string m_input_filename;
@@ -732,6 +735,8 @@ private:
 	//
 	// Meta event management
 	//
+	sinsp_evt* m_metaevt;
+	sinsp_evt* m_skipped_evt;
 	sinsp_evt m_meta_evt;
 	char* m_meta_evt_buf;
 	bool m_meta_evt_pending;
@@ -742,9 +747,10 @@ private:
 	bool m_get_procs_cpu_from_driver;
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
-	sinsp_evt pievt;
-	scap_evt piscapevt;
-	uint32_t m_n_cpu_evts;
+	sinsp_evt m_pievt;
+	scap_evt* m_piscapevt;
+	uint64_t* m_piscapevt_vals;
+	uint32_t m_n_procinfo_evts;
 
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;

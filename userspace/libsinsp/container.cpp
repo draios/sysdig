@@ -257,19 +257,19 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 	uint16_t* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
 	char* valptr = (char*)lens + 4 * sizeof(uint16_t);
 
-	lens[0] = (uint32_t)container_info.m_id.length() + 1;
+	lens[0] = (uint16_t)container_info.m_id.length() + 1;
 	memcpy(valptr, container_info.m_id.c_str(), lens[0]);
 	valptr += lens[0];
 
-	lens[1] = sizeof(uint32_t);
+	lens[1] = sizeof(uint16_t);
 	memcpy(valptr, &container_info.m_type, lens[1]);
 	valptr += lens[1];
 
-	lens[2] = (uint32_t)container_info.m_name.length() + 1;
+	lens[2] = (uint16_t)container_info.m_name.length() + 1;
 	memcpy(valptr, container_info.m_name.c_str(), lens[2]);
 	valptr += lens[2];
 
-	lens[3] = (uint32_t)container_info.m_image.length() + 1;
+	lens[3] = (uint16_t)container_info.m_image.length() + 1;
 	memcpy(valptr, container_info.m_image.c_str(), lens[3]);
 	valptr += lens[3];
 
