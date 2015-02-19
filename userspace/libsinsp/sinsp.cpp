@@ -562,23 +562,38 @@ void schedule_next_threadinfo_evt(uint64_t time, sinsp* _this, void* data)
 {
 	sinsp_proc_metainfo* mei = (sinsp_proc_metainfo*)data;
 	ASSERT(mei->m_pli != NULL);
-	ASSERT(mei->m_cur_procinfo_evt <= (int32_t)mei->m_n_procinfo_evts);
-	ppm_proc_info* pi = &(mei->m_pli->entries[mei->m_cur_procinfo_evt]);
 
-	if(mei->m_cur_procinfo_evt >= 0)
+	while(true)
 	{
-		mei->m_piscapevt->ts = time;
-		mei->m_piscapevt->tid = pi->pid;
-		mei->m_piscapevt_vals[0] = pi->utime;
-		mei->m_piscapevt_vals[1] = pi->stime;
+		ASSERT(mei->m_cur_procinfo_evt <= (int32_t)mei->m_n_procinfo_evts);
+		ppm_proc_info* pi = &(mei->m_pli->entries[mei->m_cur_procinfo_evt]);
+
+		if(mei->m_cur_procinfo_evt >= 0)
+		{
+			mei->m_piscapevt->ts = time;
+			mei->m_piscapevt->tid = pi->pid;
+			mei->m_piscapevt_vals[0] = pi->utime;
+			mei->m_piscapevt_vals[1] = pi->stime;
+		}
+
+		mei->m_cur_procinfo_evt++;
+
+		if(mei->m_cur_procinfo_evt < (int32_t)mei->m_n_procinfo_evts)
+		{
+			if(pi->utime == 0 && pi->stime == 0)
+			{
+				continue;
+			}
+
+			_this->add_meta_event(&mei->m_pievt);
+		}
+		else if(mei->m_cur_procinfo_evt == (int32_t)mei->m_n_procinfo_evts)
+		{
+			_this->add_meta_event(mei->m_next_evt);
+		}
+
+		break;
 	}
-
-	mei->m_cur_procinfo_evt++;
-
-	if(mei->m_cur_procinfo_evt <= (int32_t)mei->m_n_procinfo_evts)
-	{
-		_this->add_meta_event(&mei->m_pievt);
-	}	
 }
 
 int32_t sinsp::next(OUT sinsp_evt **puevt)
@@ -698,6 +713,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					{
 						m_meinfo.m_cur_procinfo_evt = -1;
 
+						m_meinfo.m_next_evt = &m_evt;
 						m_meta_event_callback = &schedule_next_threadinfo_evt;
 						schedule_next_threadinfo_evt(m_next_flush_time_ns - 1, this, &m_meinfo);
 					}

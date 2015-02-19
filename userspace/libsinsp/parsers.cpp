@@ -92,6 +92,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			etype != PPME_DROP_E &&
 			etype != PPME_DROP_X &&
 			etype != PPME_SYSDIGEVENT_E &&
+			etype != PPME_PROCINFO_E &&
 			m_inspector->m_sysdig_pid)
 		{
 			evt->m_filtered_out = true;
