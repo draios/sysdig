@@ -1448,52 +1448,38 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u64val;
 	case TYPE_THREAD_CPU:
 		{
-/*
-			if(tinfo->m_tid == 0)
+			if(tinfo->m_tid != 0)
 			{
-				return NULL;
-			}
+				uint16_t etype = evt->get_type();
 
-			uint16_t etype = evt->get_type();
-
-			if(etype == PPME_SCHEDSWITCH_8_E)
-			{
-				uint64_t ftime = evt->get_ts();
-				uint64_t toff = ftime % ONE_SECOND_IN_NS;
-				uint64_t ctime = ftime - toff;
-
-				cpu_usage_info* ui = (cpu_usage_info*)tinfo->get_private_state(m_th_state_id);
-
-				uint64_t tcpu;
-
-				sinsp_evt_param* parinfo = evt->get_param(6);
-				tcpu = *(uint64_t*)parinfo->m_val;
-
-				parinfo = evt->get_param(7);
-				tcpu += *(uint64_t*)parinfo->m_val;
-
-				if(ctime != m_cursec_ts)
+				if(etype == PPME_PROCINFO_E)
 				{
-					m_cursec_ts = ctime;
-				}
+					cpu_usage_info* ui = (cpu_usage_info*)tinfo->get_private_state(m_th_state_id);
 
-				if(ctime != ui->m_ts_s)
-				{
-					ui->m_ts_s = ctime;
-					ui->m_initialcpu = tcpu;
-				}
-				else
-				{
-					uint64_t deltaval = tcpu - ui->m_initialcpu;
-					m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
+					uint64_t tcpu;
+
+					sinsp_evt_param* parinfo = evt->get_param(0);
+					tcpu = *(uint64_t*)parinfo->m_val;
+
+					parinfo = evt->get_param(1);
+					tcpu += *(uint64_t*)parinfo->m_val;
+
+					if(ui->m_last_tot_cpu != 0)
+					{
+						uint64_t deltaval = tcpu - ui->m_last_tot_cpu;
+						m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
+					}
+					else
+					{
+						m_dval = 0;
+					}
+
+					ui->m_last_tot_cpu = tcpu;
+
 					return (uint8_t*)&m_dval;
 				}
 			}
-			if(etype == PPME_SYSDIGEVENT_X)
-			{
-				int a = 0;
-			}
-*/			
+
 			return NULL;
 		}
 	default:

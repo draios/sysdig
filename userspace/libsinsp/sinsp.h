@@ -180,8 +180,8 @@ public:
 	sinsp_evt m_pievt;
 	scap_evt* m_piscapevt;
 	uint64_t* m_piscapevt_vals;
-	uint32_t m_n_procinfo_evts;
-	int32_t m_cur_procinfo_evt;
+	uint64_t m_n_procinfo_evts;
+	int64_t m_cur_procinfo_evt;
 	ppm_proclist_info* m_pli;
 	sinsp_evt* m_next_evt;
 };
