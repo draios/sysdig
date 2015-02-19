@@ -144,8 +144,11 @@ if [ -f /etc/debian_version ]; then
 	esac
 
 elif [ -f /etc/system-release-cpe ]; then
-	DISTRO=$(cat /etc/system-release-cpe | cut -d':' -f3)
-	VERSION=$(cat /etc/system-release-cpe | cut -d':' -f5 | cut -d'.' -f1 | sed 's/[^0-9]*//g')
+	IFS=':' read -ra RELEASE <<< $(</etc/system-release-cpe)
+	RELEASE=($RELEASE)
+
+	DISTRO=${RELEASE[2]}
+	VERSION=$(sed 's/[^0-9]*//g' <<< ${RELEASE[4]%%.*})
 
 	case "$DISTRO" in
 
