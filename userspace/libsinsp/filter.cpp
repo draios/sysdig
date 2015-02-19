@@ -276,7 +276,7 @@ sinsp_filter_check::sinsp_filter_check() :
 	m_inspector = NULL;
 	m_field = NULL;
 	m_info.m_fields = NULL;
-	m_info.m_nfiedls = -1;
+	m_info.m_nfields = -1;
 	m_val_storage_len = 0;
 }
 
@@ -783,13 +783,13 @@ int32_t sinsp_filter_check::parse_field_name(const char* str)
 	int32_t max_fldlen = -1;
 
 	ASSERT(m_info.m_fields != NULL);
-	ASSERT(m_info.m_nfiedls != -1);
+	ASSERT(m_info.m_nfields != -1);
 
 	string val(str);
 
 	m_field_id = 0xffffffff;
 
-	for(j = 0; j < m_info.m_nfiedls; j++)
+	for(j = 0; j < m_info.m_nfields; j++)
 	{
 		string fldname = m_info.m_fields[j].m_name;
 		int32_t fldlen = (uint32_t)fldname.length();
@@ -1256,7 +1256,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 
 	if(m_ttable_only)
 	{
-		if(!(chk->get_filelds()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
+		if(!(chk->get_fields()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
 		{
 			throw sinsp_exception("the given filter is not supported for thread table filtering");
 		}

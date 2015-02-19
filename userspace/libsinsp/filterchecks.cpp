@@ -59,7 +59,7 @@ sinsp_filter_check_fd::sinsp_filter_check_fd()
 
 	m_info.m_name = "fd";
 	m_info.m_fields = sinsp_filter_check_fd_fields;
-	m_info.m_nfiedls = sizeof(sinsp_filter_check_fd_fields) / sizeof(sinsp_filter_check_fd_fields[0]);
+	m_info.m_nfields = sizeof(sinsp_filter_check_fd_fields) / sizeof(sinsp_filter_check_fd_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 }
 
@@ -197,7 +197,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			{
 				if(pos < m_tstr.size() - 1)
 				{
-					m_tstr.resize(pos + 1);
+					m_tstr.resize(pos);
 				}
 			}
 			else
@@ -362,7 +362,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				{
 					if(pos < m_tstr.size() - 1)
 					{
-						m_tstr.resize(pos + 1);
+						m_tstr.resize(pos);
 					}
 				}
 				else
@@ -848,7 +848,7 @@ sinsp_filter_check_thread::sinsp_filter_check_thread()
 {
 	m_info.m_name = "process";
 	m_info.m_fields = sinsp_filter_check_thread_fields;
-	m_info.m_nfiedls = sizeof(sinsp_filter_check_thread_fields) / sizeof(sinsp_filter_check_thread_fields[0]);
+	m_info.m_nfields = sizeof(sinsp_filter_check_thread_fields) / sizeof(sinsp_filter_check_thread_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 
 	m_u64val = 0;
@@ -1500,7 +1500,7 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 	m_is_compare = false;
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
-	m_info.m_nfiedls = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
+	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
 	m_u64val = 0;
 }
 
@@ -2509,7 +2509,7 @@ sinsp_filter_check_user::sinsp_filter_check_user()
 {
 	m_info.m_name = "user";
 	m_info.m_fields = sinsp_filter_check_user_fields;
-	m_info.m_nfiedls = sizeof(sinsp_filter_check_user_fields) / sizeof(sinsp_filter_check_user_fields[0]);
+	m_info.m_nfields = sizeof(sinsp_filter_check_user_fields) / sizeof(sinsp_filter_check_user_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 }
 
@@ -2581,7 +2581,7 @@ sinsp_filter_check_group::sinsp_filter_check_group()
 {
 	m_info.m_name = "group";
 	m_info.m_fields = sinsp_filter_check_group_fields;
-	m_info.m_nfiedls = sizeof(sinsp_filter_check_group_fields) / sizeof(sinsp_filter_check_group_fields[0]);
+	m_info.m_nfields = sizeof(sinsp_filter_check_group_fields) / sizeof(sinsp_filter_check_group_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 }
 
@@ -2697,7 +2697,7 @@ sinsp_filter_check_syslog::sinsp_filter_check_syslog()
 {
 	m_info.m_name = "syslog";
 	m_info.m_fields = sinsp_filter_check_syslog_fields;
-	m_info.m_nfiedls = sizeof(sinsp_filter_check_syslog_fields) / sizeof(sinsp_filter_check_syslog_fields[0]);
+	m_info.m_nfields = sizeof(sinsp_filter_check_syslog_fields) / sizeof(sinsp_filter_check_syslog_fields[0]);
 	m_decoder = NULL;
 }
 
