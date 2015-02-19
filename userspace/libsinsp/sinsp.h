@@ -170,6 +170,20 @@ struct sinsp_capture_interrupt_exception : sinsp_exception
 //#define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 #define DEFAULT_OUTPUT_STR "*%evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 
+//
+// Internal stuff for meta event management
+//
+typedef void (*meta_event_callback)(uint64_t, sinsp*, void* data);
+class sinsp_proc_metainfo
+{
+public:
+	sinsp_evt m_pievt;
+	scap_evt* m_piscapevt;
+	uint64_t* m_piscapevt_vals;
+	uint32_t m_n_procinfo_evts;
+	uint32_t m_cur_procinfo_evt;
+};
+
 /** @defgroup inspector Main library
  @{
 */
@@ -602,6 +616,8 @@ public:
 
 	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
+	void add_meta_event(sinsp_evt *metaevt);
+	void add_meta_event_and_repeat(sinsp_evt *metaevt);
 
 VISIBILITY_PRIVATE
 
@@ -628,8 +644,6 @@ private:
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
-	void add_meta_event(sinsp_evt *metaevt);
-	void add_meta_event_and_repeat(sinsp_evt *metaevt);
 
 	scap_t* m_h;
 	uint32_t m_nevts;
@@ -735,11 +749,12 @@ private:
 	//
 	// Meta event management
 	//
+	sinsp_evt m_meta_evt; // XXX this should go away 
+	char* m_meta_evt_buf; // XXX this should go away 
+	bool m_meta_evt_pending; // XXX this should go away 
 	sinsp_evt* m_metaevt;
 	sinsp_evt* m_skipped_evt;
-	sinsp_evt m_meta_evt;
-	char* m_meta_evt_buf;
-	bool m_meta_evt_pending;
+	meta_event_callback m_meta_event_callback;
 
 	//
 	// End of second housekeeping
@@ -747,10 +762,7 @@ private:
 	bool m_get_procs_cpu_from_driver;
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
-	sinsp_evt m_pievt;
-	scap_evt* m_piscapevt;
-	uint64_t* m_piscapevt_vals;
-	uint32_t m_n_procinfo_evts;
+	sinsp_proc_metainfo m_meinfo;
 
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;

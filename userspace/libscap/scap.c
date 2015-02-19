@@ -223,14 +223,6 @@ scap_t* scap_open_live_int(char *error,
 		scap_stop_dropping_mode(handle);
 	}
 
-struct ppm_proclist_info* pinfo = scap_get_threadlist_from_driver(handle);
-if(pinfo == NULL)
-{
-	scap_close(handle);
-	snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
-	return NULL;	
-}
-
 	//
 	// Create the process list
 	//
@@ -1171,7 +1163,6 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
 #else
-
 	if(handle->m_driver_procinfo == NULL)
 	{
 		if(alloc_proclist_info(handle, SCAP_DRIVER_PROCINFO_INITIAL_SIZE) == false)
@@ -1186,7 +1177,6 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 	{
 		if(errno == ENOSPC)
 		{
-			printf("XXXXX %d\n", (int)handle->m_driver_procinfo->n_entries);
 			fflush(stdout);
 
 			if(alloc_proclist_info(handle, handle->m_driver_procinfo->n_entries + 256) == false)
@@ -1204,14 +1194,14 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 			return NULL;
 		}
 	}
-
+/*
 	for(j = 0; j < handle->m_driver_procinfo->n_entries; j++)
 	{
 		printf("pid:%ld utime:%ld stime:%ld\n", handle->m_driver_procinfo->entries[j].pid,
 			handle->m_driver_procinfo->entries[j].utime,
 			handle->m_driver_procinfo->entries[j].stime);
 	}
-
+*/
 	return handle->m_driver_procinfo;
 #endif	// HAS_CAPTURE
 }

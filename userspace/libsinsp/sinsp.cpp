@@ -59,7 +59,7 @@ sinsp::sinsp() :
 	m_dumper = NULL;
 	m_metaevt = NULL;
 	m_skipped_evt = NULL;
-	m_piscapevt = NULL;
+	m_meinfo.m_piscapevt = NULL;
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
@@ -69,7 +69,6 @@ sinsp::sinsp() :
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
-
 #ifdef HAS_ANALYZER
 	m_analyzer = NULL;
 #endif
@@ -108,23 +107,24 @@ sinsp::sinsp() :
 #endif
 
 	uint32_t evlen = sizeof(scap_evt) + 3 * sizeof(uint16_t) + 3 * sizeof(uint64_t);
-	m_piscapevt = (scap_evt*)new char[evlen];
-	m_piscapevt->type = PPME_PROCINFO_E;
-	m_piscapevt->len = evlen;
-	uint16_t* lens = (uint16_t*)((char *)m_piscapevt + sizeof(struct ppm_evt_hdr));
+	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
+	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
+	m_meinfo.m_piscapevt->len = evlen;
+	uint16_t* lens = (uint16_t*)((char *)m_meinfo.m_piscapevt + sizeof(struct ppm_evt_hdr));
 	lens[0] = 8;
 	lens[1] = 8;
 	lens[2] = 8;
-	m_piscapevt_vals = (uint64_t*)(lens + 3);
+	m_meinfo.m_piscapevt_vals = (uint64_t*)(lens + 3);
 
-	m_pievt.m_inspector = this;
-	m_pievt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
-	m_pievt.m_pevt = NULL;
-	m_pievt.m_cpuid = 0;
-	m_pievt.m_evtnum = 0;
-	m_pievt.m_pevt = m_piscapevt;
-	m_pievt.m_fdinfo = NULL;
-	m_n_procinfo_evts = 0;
+	m_meinfo.m_pievt.m_inspector = this;
+	m_meinfo.m_pievt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	m_meinfo.m_pievt.m_pevt = NULL;
+	m_meinfo.m_pievt.m_cpuid = 0;
+	m_meinfo.m_pievt.m_evtnum = 0;
+	m_meinfo.m_pievt.m_pevt = m_meinfo.m_piscapevt;
+	m_meinfo.m_pievt.m_fdinfo = NULL;
+	m_meinfo.m_n_procinfo_evts = 0;
+	m_meta_event_callback = NULL;
 }
 
 sinsp::~sinsp()
@@ -160,9 +160,9 @@ sinsp::~sinsp()
 		m_meta_evt_buf = NULL;
 	}
 
-	if(m_piscapevt)
+	if(m_meinfo.m_piscapevt)
 	{
-		delete[] m_piscapevt;
+		delete[] m_meinfo.m_piscapevt;
 	}
 }
 
@@ -559,6 +559,22 @@ void sinsp::add_meta_event_and_repeat(sinsp_evt *metaevt)
 	m_skipped_evt = &m_evt;
 }
 
+void schedule_next_threadinfo_evt(uint64_t time, sinsp* _this, void* data)
+{
+	sinsp_proc_metainfo* mei = (sinsp_proc_metainfo*)data;
+	mei->m_piscapevt->ts = time;
+	mei->m_piscapevt->tid = mei->m_cur_procinfo_evt;
+	mei->m_piscapevt_vals[0] = 33;
+	mei->m_piscapevt_vals[1] = 44;
+	mei->m_piscapevt_vals[2] = 55;
+	mei->m_cur_procinfo_evt++;
+
+	if(mei->m_cur_procinfo_evt < mei->m_n_procinfo_evts)
+	{
+		_this->add_meta_event(&mei->m_pievt);
+	}	
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
@@ -569,8 +585,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Check if there are fake cpu events to  events 
 	//
-//	if(m_metaevt != NULL)
-	if(false)
+	if(m_metaevt != NULL)
 	{
 		res = SCAP_SUCCESS;
 		evt = m_metaevt;
@@ -583,6 +598,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		else
 		{
 			m_metaevt = NULL;
+		}
+
+		if(m_meta_event_callback != NULL)
+		{
+			m_meta_event_callback(m_next_flush_time_ns - 1, this, &m_meinfo);
 		}
 	}
 	else
@@ -618,7 +638,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
 				}
 	#endif
-				*evt = NULL;
+				evt = NULL;
 				return res;
 			}
 			else if(res == SCAP_EOF)
@@ -644,8 +664,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
-//	if(/*m_islive && */m_get_procs_cpu_from_driver)
-	if(false)
+	if(m_islive && m_get_procs_cpu_from_driver)
 	{
 		if(ts > m_next_flush_time_ns)
 		{
@@ -656,20 +675,27 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 				uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
 
-//m_piscapevt_vals;
 				if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
 				{
-//					struct ppm_proclist_info* pli = scap_get_threadlist_from_driver(m_h);
-
-					m_piscapevt->ts = m_next_flush_time_ns - 1;
-					m_piscapevt->tid = 22;
-					m_piscapevt_vals[0] = 33;
-					m_piscapevt_vals[1] = 44;
-					m_piscapevt_vals[2] = 55;
-					add_meta_event_and_repeat(&m_pievt);
-
 					m_last_procrequest_tod = procrequest_tod;
-					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;	
+
+					struct ppm_proclist_info* pli = scap_get_threadlist_from_driver(m_h);
+					if(pli == NULL)
+					{
+						throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
+					}
+
+					m_meinfo.m_n_procinfo_evts = pli->n_entries;
+
+					if(m_meinfo.m_n_procinfo_evts > 0)
+					{
+						m_meinfo.m_cur_procinfo_evt = -1;
+
+						m_meta_event_callback = &schedule_next_threadinfo_evt;
+						schedule_next_threadinfo_evt(m_next_flush_time_ns - 1, this, &m_meinfo);
+					}
+
 					return SCAP_TIMEOUT;
 				}
 			}
