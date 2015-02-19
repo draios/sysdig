@@ -298,8 +298,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETGID_X:
 		parse_setgid_exit(evt);
 		break;
-	case PPME_SYSCALL_SIGNALDELIVER_E:
-		break;
 	default:
 		break;
 	}
