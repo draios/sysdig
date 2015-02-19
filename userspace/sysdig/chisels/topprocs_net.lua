@@ -32,8 +32,8 @@ function on_init()
 
 	if print_container then
 		chisel.exec("table_generator",
-					"proc.name,container.name",
-					"Process,container.name",
+					"proc.name,proc.pid,thread.vtid,container.name",
+					"Process,Host_pid,Container_pid,container.name",
 					"evt.rawarg.res",
 					"Bytes",
 					"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true",
@@ -41,8 +41,8 @@ function on_init()
 					"bytes")
 	else
 		chisel.exec("table_generator",
-					"proc.name",
-					"Process",
+					"proc.name,proc.pid",
+					"Process,PID",
 					"evt.rawarg.res",
 					"Bytes",
 					"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true",
