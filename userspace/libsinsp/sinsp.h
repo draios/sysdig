@@ -181,7 +181,8 @@ public:
 	scap_evt* m_piscapevt;
 	uint64_t* m_piscapevt_vals;
 	uint32_t m_n_procinfo_evts;
-	uint32_t m_cur_procinfo_evt;
+	int32_t m_cur_procinfo_evt;
+	ppm_proclist_info* m_pli;
 };
 
 /** @defgroup inspector Main library

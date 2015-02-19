@@ -106,15 +106,14 @@ sinsp::sinsp() :
 	m_sysdig_pid = 0;
 #endif
 
-	uint32_t evlen = sizeof(scap_evt) + 3 * sizeof(uint16_t) + 3 * sizeof(uint64_t);
+	uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
 	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
 	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
 	m_meinfo.m_piscapevt->len = evlen;
 	uint16_t* lens = (uint16_t*)((char *)m_meinfo.m_piscapevt + sizeof(struct ppm_evt_hdr));
 	lens[0] = 8;
 	lens[1] = 8;
-	lens[2] = 8;
-	m_meinfo.m_piscapevt_vals = (uint64_t*)(lens + 3);
+	m_meinfo.m_piscapevt_vals = (uint64_t*)(lens + 2);
 
 	m_meinfo.m_pievt.m_inspector = this;
 	m_meinfo.m_pievt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
@@ -562,14 +561,21 @@ void sinsp::add_meta_event_and_repeat(sinsp_evt *metaevt)
 void schedule_next_threadinfo_evt(uint64_t time, sinsp* _this, void* data)
 {
 	sinsp_proc_metainfo* mei = (sinsp_proc_metainfo*)data;
-	mei->m_piscapevt->ts = time;
-	mei->m_piscapevt->tid = mei->m_cur_procinfo_evt;
-	mei->m_piscapevt_vals[0] = 33;
-	mei->m_piscapevt_vals[1] = 44;
-	mei->m_piscapevt_vals[2] = 55;
+	ASSERT(mei->m_pli != NULL);
+	ASSERT(mei->m_cur_procinfo_evt <= (int32_t)mei->m_n_procinfo_evts);
+	ppm_proc_info* pi = &(mei->m_pli->entries[mei->m_cur_procinfo_evt]);
+
+	if(mei->m_cur_procinfo_evt >= 0)
+	{
+		mei->m_piscapevt->ts = time;
+		mei->m_piscapevt->tid = pi->pid;
+		mei->m_piscapevt_vals[0] = pi->utime;
+		mei->m_piscapevt_vals[1] = pi->stime;
+	}
+
 	mei->m_cur_procinfo_evt++;
 
-	if(mei->m_cur_procinfo_evt < mei->m_n_procinfo_evts)
+	if(mei->m_cur_procinfo_evt <= (int32_t)mei->m_n_procinfo_evts)
 	{
 		_this->add_meta_event(&mei->m_pievt);
 	}	
@@ -680,13 +686,13 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					m_last_procrequest_tod = procrequest_tod;
 					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;	
 
-					struct ppm_proclist_info* pli = scap_get_threadlist_from_driver(m_h);
-					if(pli == NULL)
+					m_meinfo.m_pli = scap_get_threadlist_from_driver(m_h);
+					if(m_meinfo.m_pli == NULL)
 					{
 						throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
 					}
 
-					m_meinfo.m_n_procinfo_evts = pli->n_entries;
+					m_meinfo.m_n_procinfo_evts = m_meinfo.m_pli->n_entries;
 
 					if(m_meinfo.m_n_procinfo_evts > 0)
 					{
