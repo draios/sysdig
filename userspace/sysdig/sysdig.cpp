@@ -1586,12 +1586,12 @@ sysdig_init_res systop_init(int argc, char **argv)
 			vector<sinsp_table_info> views;
 
 			views.push_back(sinsp_table_info("cpu test", 
-				"*Kproc.pid proc.name Mthread.cpu", 
+				"*Kproc.pid proc.pid thread.tid proc.name Mthread.cpu Mproc.cpu", 
 				"all",
-				2,
+				4,
 				"",
-				"NA,PID,CPU%",
-				"-1,8,8",
+				"NA,PID,TID,NAME,TCPU%,PCPU%",
+				"-1,8,8,16,8,8",
 				""));
 
 			views.push_back(sinsp_table_info("Top Processes", 
@@ -1780,8 +1780,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-	res = systop_init(argc, argv);
-	return 0;
+//	res = systop_init(argc, argv);
+//	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);
