@@ -1488,8 +1488,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 					mtui->m_last_mt_cpu_ts = ets;
 				}
 
-				m_dval += thval;
-				mtui->m_last_mt_tot_cpu += m_dval;
+				mtui->m_last_mt_tot_cpu += thval;
+				m_dval = mtui->m_last_mt_tot_cpu;
 
 				return (uint8_t*)&m_dval;
 			}
