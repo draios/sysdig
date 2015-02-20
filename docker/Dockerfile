@@ -21,3 +21,5 @@ RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public |
 COPY ./docker-entrypoint.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
+
+CMD ["bash"]
