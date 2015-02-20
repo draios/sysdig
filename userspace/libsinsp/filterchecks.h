@@ -285,8 +285,9 @@ private:
 class cpu_usage_info
 {
 public:
-	uint64_t m_last_tot_cpu;
-	uint64_t m_last_cpu_ts;
+	uint64_t m_last_t_tot_cpu;
+	double m_last_mt_tot_cpu;
+	uint64_t m_last_mt_cpu_ts;
 };
 
 class sinsp_filter_check_thread : public sinsp_filter_check

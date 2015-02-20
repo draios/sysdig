@@ -1452,9 +1452,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(etype == PPME_PROCINFO_E)
 			{
-				cpu_usage_info* ui = (cpu_usage_info*)tinfo->get_private_state(m_th_state_id);
-
+				double thval;
 				uint64_t tcpu;
+				cpu_usage_info* ui = (cpu_usage_info*)tinfo->get_private_state(m_th_state_id);
 
 				sinsp_evt_param* parinfo = evt->get_param(0);
 				tcpu = *(uint64_t*)parinfo->m_val;
@@ -1462,31 +1462,34 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				parinfo = evt->get_param(1);
 				tcpu += *(uint64_t*)parinfo->m_val;
 
-				if(ui->m_last_tot_cpu != 0)
+				if(ui->m_last_t_tot_cpu != 0)
 				{
-					uint64_t deltaval = tcpu - ui->m_last_tot_cpu;
-					m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
-					if(m_dval > 100)
+					uint64_t deltaval = tcpu - ui->m_last_t_tot_cpu;
+					thval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
+					if(thval > 100)
 					{
-						m_dval = 100;
+						thval = 100;
 					}
 				}
 				else
 				{
-					m_dval = 0;
+					thval = 0;
 				}
+
+				ui->m_last_t_tot_cpu = tcpu;
 
 				uint64_t ets = evt->get_ts();
 				sinsp_threadinfo* mt = tinfo->get_main_thread();
 				cpu_usage_info* mtui = (cpu_usage_info*)mt->get_private_state(m_th_state_id);
 
-				if(ets != mtui->m_last_cpu_ts)
+				if(ets != mtui->m_last_mt_cpu_ts)
 				{
-					mtui->m_last_tot_cpu = 0;
-					mtui->m_last_cpu_ts = ets;
+					mtui->m_last_mt_tot_cpu = 0;
+					mtui->m_last_mt_cpu_ts = ets;
 				}
 
-				mtui->m_last_tot_cpu = tcpu;
+				m_dval += thval;
+				mtui->m_last_mt_tot_cpu += m_dval;
 
 				return (uint8_t*)&m_dval;
 			}
@@ -1509,9 +1512,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				parinfo = evt->get_param(1);
 				tcpu += *(uint64_t*)parinfo->m_val;
 
-				if(ui->m_last_tot_cpu != 0)
+				if(ui->m_last_t_tot_cpu != 0)
 				{
-					uint64_t deltaval = tcpu - ui->m_last_tot_cpu;
+					uint64_t deltaval = tcpu - ui->m_last_t_tot_cpu;
 					m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
 					if(m_dval > 100)
 					{
@@ -1523,7 +1526,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_dval = 0;
 				}
 
-				ui->m_last_tot_cpu = tcpu;
+				ui->m_last_t_tot_cpu = tcpu;
 
 				return (uint8_t*)&m_dval;
 			}
