@@ -14,7 +14,7 @@ if ! hash lsmod > /dev/null 2>&1; then
 fi
 
 if ! hash modprobe > /dev/null 2>&1; then
-	echo "This program requires lsmod"
+	echo "This program requires modprobe"
 	exit 1
 fi
 
