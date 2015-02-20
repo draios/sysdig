@@ -736,6 +736,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	{
 		inspector = new sinsp();
 
+
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
@@ -865,7 +866,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'i':
 				{
 					cname = optarg;
-
 					vector<chisel_desc> chlist;
 
 					sinsp_chisel::get_chisel_list(&chlist);
@@ -1032,6 +1032,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'z':
 				compress = true;
+				break;
+            // getopt_long : '?' for an ambiguous match or an extraneous parameter 
+			case '?':
+				delete inspector;
+				return sysdig_init_res(EXIT_FAILURE);
 				break;
 			default:
 				break;
