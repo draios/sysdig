@@ -67,5 +67,5 @@ private:
 	sinsp_logger_callback m_callback;
 	uint32_t m_flags;
 	severity m_sev;
-	char m_tbuf[512];
+	char m_tbuf[32768];
 };

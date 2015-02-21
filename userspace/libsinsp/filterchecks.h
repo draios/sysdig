@@ -61,7 +61,7 @@ public:
 	//
 	// Get the list of fields that this check exports
 	//
-	virtual filter_check_info* get_filelds()
+	virtual filter_check_info* get_fields()
 	{
 		return &m_info;
 	}
