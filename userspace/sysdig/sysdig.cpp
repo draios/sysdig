@@ -1644,9 +1644,12 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"-1,12,12,250",
 				""));
 			views.push_back(sinsp_table_info("Top Syscalls", 
-				"*Kevt.type evt.type Sevt.count", 
+				"*Kevt.type evt.type Sevt.count Sevt.latency", 
 				"all, proc.pid, proc.name, thread.tid", 
-				2, "", "NA,SYSCALL NAME, #CALLS", "-1,20,16", ""));
+				2, "", 
+				"NA,SYSCALL NAME,#CALLS,TIME", 
+				"-1,20,9,9", 
+				""));
 			views.push_back(sinsp_table_info("top FDs", 
 				"Kfd.name fd.name Sevt.count", 
 				"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
