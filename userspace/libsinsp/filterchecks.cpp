@@ -990,19 +990,6 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 
 		return extract_arg("thread.cgroup", val, NULL);
 	}
-	else if(string(val, 0, sizeof("proc.cpu") - 1) == "proc.cpu" ||
-		string(val, 0, sizeof("thread.cpu") - 1) == "thread.cpu")
-	{
-		//
-		// These fields need to store the previuos event type in the thread state
-		//
-		if(alloc_state)
-		{
-			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(cpu_usage_info));
-		}
-
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
-	}
 	else
 	{
 		return sinsp_filter_check::parse_field_name(str, alloc_state);
@@ -1473,7 +1460,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				double thval;
 				uint64_t tcpu;
-				cpu_usage_info* ui = (cpu_usage_info*)tinfo->get_private_state(m_th_state_id);
 
 				sinsp_evt_param* parinfo = evt->get_param(0);
 				tcpu = *(uint64_t*)parinfo->m_val;
@@ -1481,9 +1467,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				parinfo = evt->get_param(1);
 				tcpu += *(uint64_t*)parinfo->m_val;
 
-				if(ui->m_last_t_tot_cpu != 0)
+				if(tinfo->m_last_t_tot_cpu != 0)
 				{
-					uint64_t deltaval = tcpu - ui->m_last_t_tot_cpu;
+					uint64_t deltaval = tcpu - tinfo->m_last_t_tot_cpu;
 					thval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
 					if(thval > 100)
 					{
@@ -1495,20 +1481,19 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 					thval = 0;
 				}
 
-				ui->m_last_t_tot_cpu = tcpu;
+				tinfo->m_last_t_tot_cpu = tcpu;
 
 				uint64_t ets = evt->get_ts();
 				sinsp_threadinfo* mt = tinfo->get_main_thread();
-				cpu_usage_info* mtui = (cpu_usage_info*)mt->get_private_state(m_th_state_id);
 
-				if(ets != mtui->m_last_mt_cpu_ts)
+				if(ets != mt->m_last_mt_cpu_ts)
 				{
-					mtui->m_last_mt_tot_cpu = 0;
-					mtui->m_last_mt_cpu_ts = ets;
+					mt->m_last_mt_tot_cpu = 0;
+					mt->m_last_mt_cpu_ts = ets;
 				}
 
-				mtui->m_last_mt_tot_cpu += thval;
-				m_dval = mtui->m_last_mt_tot_cpu;
+				mt->m_last_mt_tot_cpu += thval;
+				m_dval = mt->m_last_mt_tot_cpu;
 
 				return (uint8_t*)&m_dval;
 			}
@@ -1521,8 +1506,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(etype == PPME_PROCINFO_E)
 			{
-				cpu_usage_info* ui = (cpu_usage_info*)tinfo->get_private_state(m_th_state_id);
-
 				uint64_t tcpu;
 
 				sinsp_evt_param* parinfo = evt->get_param(0);
@@ -1531,9 +1514,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				parinfo = evt->get_param(1);
 				tcpu += *(uint64_t*)parinfo->m_val;
 
-				if(ui->m_last_t_tot_cpu != 0)
+				if(tinfo->m_last_t_tot_cpu != 0)
 				{
-					uint64_t deltaval = tcpu - ui->m_last_t_tot_cpu;
+					uint64_t deltaval = tcpu - tinfo->m_last_t_tot_cpu;
 					m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
 					if(m_dval > 100)
 					{
@@ -1545,7 +1528,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_dval = 0;
 				}
 
-				ui->m_last_t_tot_cpu = tcpu;
+				tinfo->m_last_t_tot_cpu = tcpu;
 
 				return (uint8_t*)&m_dval;
 			}

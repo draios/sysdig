@@ -170,6 +170,16 @@ public:
 #endif
 
 	//
+	// State for module-based CPU accounting
+	//
+//#ifdef SYSTOP
+#if 1
+	uint64_t m_last_t_tot_cpu;
+	double m_last_mt_tot_cpu;
+	uint64_t m_last_mt_cpu_ts;
+#endif
+
+	//
 	// Global state
 	//
 	sinsp *m_inspector;
