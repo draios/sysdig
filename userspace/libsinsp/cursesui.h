@@ -196,9 +196,6 @@ public:
 
 #ifndef NOCURSESUI
 		int input = getch();
-#endif
-
-#ifndef NOCURSESUI
 		sysdig_table_action ta = m_viz->handle_input(input);
 		if(ta == STA_QUIT)
 		{

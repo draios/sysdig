@@ -817,7 +817,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "the name (excluding the path) of the executable generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "the arguments passed on the command line when starting the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.env", "the environment variables of the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cmdline", "full process command line, i.e name + arguments."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cmdline", "full process command line, i.e. proc.name + proc.args."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exeline", "full process command line, with exe as first argument, i.e. proc.exe + proc.args."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "the current working directory of the event."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nthreads", "the number of threads that the process generating the event currently has, including the main process thread."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads that the process generating the event currently has. This excludes the main process thread."},
@@ -1106,6 +1107,24 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_CMDLINE:
 		{
 			m_tstr = tinfo->get_comm() + " ";
+
+			uint32_t j;
+			uint32_t nargs = (uint32_t)tinfo->m_args.size();
+
+			for(j = 0; j < nargs; j++)
+			{
+				m_tstr += tinfo->m_args[j];
+				if(j < nargs -1)
+				{
+					m_tstr += ' ';
+				}
+			}
+
+			return (uint8_t*)m_tstr.c_str();
+		}
+	case TYPE_EXELINE:
+		{
+			m_tstr = tinfo->get_exe() + " ";
 
 			uint32_t j;
 			uint32_t nargs = (uint32_t)tinfo->m_args.size();
