@@ -606,6 +606,10 @@ public:
 	void start_dropping_mode(uint32_t sampling_ratio);
 	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
 		scap_fdinfo* fdinfo, scap_t* newhandle);
+	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
+	{
+		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
+	}
 
 	//
 	// Allocates private state in the thread info class.

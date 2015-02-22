@@ -97,7 +97,7 @@ sinsp::sinsp() :
 	m_meta_evt_pending = false;
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
-	m_get_procs_cpu_from_driver = true;
+	m_get_procs_cpu_from_driver = false;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -685,7 +685,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
-	if(m_islive && m_get_procs_cpu_from_driver)
+	if(m_get_procs_cpu_from_driver && m_islive)
 	{
 		if(ts > m_next_flush_time_ns)
 		{
