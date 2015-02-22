@@ -1717,6 +1717,14 @@ sysdig_init_res systop_init(int argc, char **argv)
 				}
 			}
 
+			//
+			// Enable gathering the CPU from the kernel module
+			//
+			inspector->set_get_procs_cpu_from_driver(true);
+
+			//
+			// If required, set the snaplen
+			//
 			if(snaplen != 0)
 			{
 				inspector->set_snaplen(snaplen);
