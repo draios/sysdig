@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Given two filter fields, a key and a value, this chisel creates and renders to the screen a table. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
+description = "Show the top process defined by the highest CPU utilization. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top processes by CPU usage"
 category = "CPU Usage"
 
@@ -33,8 +33,8 @@ local print_container = false
 
 vizinfo =
 {
-	key_fld = "proc.name",
-	key_desc = {"Process"},
+	key_fld = {"proc.name","proc.pid"},
+	key_desc = {"Process", "PID"},
 	value_fld = "thread.exectime",
 	value_desc = "CPU%",
 	value_units = "timepct",
@@ -49,18 +49,14 @@ function on_init()
 
 	-- Print container info as well
 	if print_container then
+		-- Modify host pid column name and add container information
+		vizinfo.key_fld = {"proc.name", "proc.pid", "thread.vtid", "container.name"}
+		vizinfo.key_desc = {"Process", "Host_pid", "Container_pid", "container.name"}
+	end
 
-		-- Due to requiest for container info update key fld & desc
-		vizinfo.key_fld = {"proc.name", "container.name"}
-		vizinfo.key_desc = {"Process", "container.name"}
-
-		-- Request the fields we need
-		for i, name in ipairs(vizinfo.key_fld) do
-			fkeys[i] = chisel.request_field(name)
-		end
-	else
-		 -- Request the field we need
-		fkey = chisel.request_field(vizinfo.key_fld)
+	-- Request the fields we need
+	for i, name in ipairs(vizinfo.key_fld) do
+		fkeys[i] = chisel.request_field(name)
 	end
 
 	-- Request the fields we need
@@ -99,25 +95,19 @@ end
 function on_event()
 
 	local key = nil
+	local kv = nil
 
-	-- Print container info as well
-	if print_container then
-		local kv = nil
-
-		for i, fld in ipairs(fkeys) do
-			kv = evt.field(fld)
-			if kv == nil then
-				return
-			end
-
-			if key == nil then
-				key = kv
-			else
-				key = key .. "\001\001" .. evt.field(fld)
-			end
+	for i, fld in ipairs(fkeys) do
+		kv = evt.field(fld)
+		if kv == nil then
+			return
 		end
-	else
-		key = evt.field(fkey)
+
+		if key == nil then
+			key = kv
+		else
+			key = key .. "\001\001" .. evt.field(fld)
+		end
 	end
 
 	value = evt.field(fvalue)
