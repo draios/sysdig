@@ -7,6 +7,8 @@ ENV SYSDIG_VERSION 0.99.41
 
 ENV SYSDIG_HOST_ROOT /host
 
+RUN cp /etc/skel/.bashrc /root && cp /etc/skel/.profile /root
+
 RUN apt-get update \
  && apt-get install -y curl
 
