@@ -41,7 +41,7 @@ fi
 ARCH=$(uname -m)
 KERNEL_RELEASE=$(uname -r)
 SYSDIG_VERSION=$(sysdig --version | cut -d' ' -f3)
-REPOSITORY="cgroups"
+REPOSITORY="dev"
 
 echo "Finding kernel config for $KERNEL_RELEASE"
 
