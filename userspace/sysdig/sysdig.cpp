@@ -1601,6 +1601,13 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"-1,8,8,16,8,8",
 				""));
 */
+			views.push_back(sinsp_table_info("Top Syscalls", 
+				"Ksyscall.type syscall.type Sevt.count Sevt.latency", 
+				"all, proc.pid, proc.name, thread.tid", 
+				2, "", 
+				"NA,SYSCALL NAME,#CALLS,TIME", 
+				"-1,20,9,9", 
+				""));
 			views.push_back(sinsp_table_info("Top Processes", 
 				"*Kproc.pid proc.pid Mproc.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.exeline", 
 				"all",
@@ -1653,13 +1660,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 			views.push_back(sinsp_table_info("top FDs", 
 				"Kfd.name fd.name Sevt.count", 
 				"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
-			views.push_back(sinsp_table_info("Top Syscalls", 
-				"Ksyscall.type syscall.type Sevt.count Sevt.latency", 
-				"all, proc.pid, proc.name, thread.tid", 
-				2, "", 
-				"NA,SYSCALL NAME,#CALLS,TIME", 
-				"-1,20,9,9", 
-				""));
 			views.push_back(sinsp_table_info("User Activity", 
 				"*Kproc.pid Muser.name Mproc.cwd Mproc.cmdline",
 				"all,container.name",

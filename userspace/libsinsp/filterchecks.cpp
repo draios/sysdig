@@ -3252,48 +3252,48 @@ char* sinsp_filter_check_reference::format_bytes(int64_t val, uint32_t str_len)
 #define ONE_MILLISECOND_IN_NS 1000000
 #define ONE_MICROSECOND_IN_NS 1000
 
-char* sinsp_filter_check_reference::format_time(uint64_t val)
+char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 {
 	if(val >= ONE_SECOND_IN_NS)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%u.%02us", (unsigned int)(val / ONE_SECOND_IN_NS), (unsigned int)((val % ONE_SECOND_IN_NS) / 10000000));
+					"%*u.%02us", str_len, (unsigned int)(val / ONE_SECOND_IN_NS), (unsigned int)((val % ONE_SECOND_IN_NS) / 10000000));
 		return m_getpropertystr_storage;
 	}
 	else if(val >= ONE_SECOND_IN_NS / 100)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%ums", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)));
+					"%*ums", str_len, (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)));
 		return m_getpropertystr_storage;
 	}
 	else if(val >= ONE_SECOND_IN_NS / 1000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%u.%02ums", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)), (unsigned int)((val % ONE_MILLISECOND_IN_NS) / 10000));
+					"%*u.%02ums", str_len, (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)), (unsigned int)((val % ONE_MILLISECOND_IN_NS) / 10000));
 		return m_getpropertystr_storage;
 	}
 	else if(val >= ONE_SECOND_IN_NS / 100000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%uus", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)));
+					"%*uus", str_len, (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)));
 		return m_getpropertystr_storage;
 	}
 	else if(val >= ONE_SECOND_IN_NS / 1000000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%u.%02uus", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)), (unsigned int)((val % ONE_MICROSECOND_IN_NS) / 10));
+					"%*u.%02uus", str_len, (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)), (unsigned int)((val % ONE_MICROSECOND_IN_NS) / 10));
 		return m_getpropertystr_storage;
 	}
 	else
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%uns", (unsigned int)val);
+					"%*uns", str_len, (unsigned int)val);
 		return m_getpropertystr_storage;
 	}
 }
@@ -3359,7 +3359,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_l
 	else if(m_field->m_type == PT_RELTIME)
 	{
 		uint64_t val = (uint64_t)*(uint64_t*)rawval;
-		return format_time(val);
+		return format_time(val, str_len);
 	}
 	else if(m_field->m_type == PT_DOUBLE)
 	{

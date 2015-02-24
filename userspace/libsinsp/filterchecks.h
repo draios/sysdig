@@ -574,7 +574,7 @@ public:
 
 private:
 	inline char* format_bytes(int64_t val, uint32_t str_len);
-	inline char* format_time(uint64_t val);
+	inline char* format_time(uint64_t val, uint32_t str_len);
 
 	filtercheck_field_info m_finfo;
 	uint8_t* m_val;
