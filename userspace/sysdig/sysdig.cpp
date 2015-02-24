@@ -1586,7 +1586,9 @@ sysdig_init_res systop_init(int argc, char **argv)
 			//
 			// Initialize the UI
 			//
-			sinsp_cursesui ui(inspector);
+			sinsp_cursesui ui(inspector, 
+				(infiles.size() != 0)? infiles[0] : "",
+				(filter.size() != 0)? filter : "");
 
 			vector<sinsp_table_info> views;
 /*
@@ -1648,16 +1650,16 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"NA,BYTES IN,BYTES OUT,FILENAME",
 				"-1,12,12,250",
 				""));
+			views.push_back(sinsp_table_info("top FDs", 
+				"Kfd.name fd.name Sevt.count", 
+				"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
 			views.push_back(sinsp_table_info("Top Syscalls", 
-				"*Kevt.type evt.type Sevt.count Sevt.latency", 
+				"Ksyscall.type syscall.type Sevt.count Sevt.latency", 
 				"all, proc.pid, proc.name, thread.tid", 
 				2, "", 
 				"NA,SYSCALL NAME,#CALLS,TIME", 
 				"-1,20,9,9", 
 				""));
-			views.push_back(sinsp_table_info("top FDs", 
-				"Kfd.name fd.name Sevt.count", 
-				"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
 			views.push_back(sinsp_table_info("User Activity", 
 				"*Kproc.pid Muser.name Mproc.cwd Mproc.cmdline",
 				"all,container.name",
@@ -1718,17 +1720,17 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 					if(system("modprobe sysdig-probe > /dev/null 2> /dev/null"))
 					{
-						fprintf(stderr, "Unable to load the driver\n");						
+						fprintf(stderr, "Unable to load the driver\n");
 					}
 
 					inspector->open("");
 				}
-			}
 
-			//
-			// Enable gathering the CPU from the kernel module
-			//
-			inspector->set_get_procs_cpu_from_driver(true);
+				//
+				// Enable gathering the CPU from the kernel module
+				//
+				inspector->set_get_procs_cpu_from_driver(true);
+			}
 
 			//
 			// If required, set the snaplen
@@ -1796,8 +1798,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

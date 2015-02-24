@@ -519,7 +519,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 		// Time to emit the sample! 
 		// Add the proctable as a sample at the end of the second
 		//
-		process_proctable(evt);
+		//process_proctable(evt);
 
 		//
 		// If there is a merging step, switch the types to point to the merging ones.

@@ -1683,7 +1683,8 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
 	{PT_CHARBUF, EPF_PRINT_ONLY, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "For system call events, this is the name of the system call (e.g. 'open')."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "syscall.type", "For system call events, the name of the system call (e.g. 'open'). Unset for other events (e.g. switch or sysdig internal events). Use this field instead of evt.type if you need to make sure that the filtered/printed value is actually a system call."},
 	{PT_INT16, EPF_NONE, PF_ID, "evt.cpu", "number of the CPU where this event happened."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.arg", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'evt.arg.fd' or 'evt.arg[0]'."},
@@ -2327,8 +2328,37 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_TYPE:
 		{
 			uint8_t* evname;
+			uint16_t etype = evt->m_pevt->type;
 
-			if(evt->m_pevt->type == PPME_GENERIC_E || evt->m_pevt->type == PPME_GENERIC_X)
+			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+			{
+				sinsp_evt_param *parinfo = evt->get_param(0);
+				ASSERT(parinfo->m_len == sizeof(uint16_t));
+				uint16_t evid = *(uint16_t *)parinfo->m_val;
+
+				evname = (uint8_t*)g_infotables.m_syscall_info_table[evid].name;
+			}
+			else
+			{
+				evname = (uint8_t*)evt->get_name();
+			}
+
+			return evname;
+		}
+		break;
+	case TYPE_SYSCALL_TYPE:
+		{
+			uint8_t* evname;
+			uint16_t etype = evt->m_pevt->type;
+			enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
+
+			if(etype == PPME_SCHEDSWITCH_6_E || 
+				(flags & EC_INTERNAL) || (flags & EF_SKIPPARSERESET))
+			{
+				return NULL;
+			}
+
+			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 			{
 				sinsp_evt_param *parinfo = evt->get_param(0);
 				ASSERT(parinfo->m_len == sizeof(uint16_t));
@@ -3045,7 +3075,7 @@ sinsp_filter_check_container::sinsp_filter_check_container()
 {
 	m_info.m_name = "container";
 	m_info.m_fields = sinsp_filter_check_container_fields;
-	m_info.m_nfiedls = sizeof(sinsp_filter_check_container_fields) / sizeof(sinsp_filter_check_container_fields[0]);
+	m_info.m_nfields = sizeof(sinsp_filter_check_container_fields) / sizeof(sinsp_filter_check_container_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 }
 
@@ -3136,7 +3166,7 @@ sinsp_filter_check_reference::sinsp_filter_check_reference()
 {
 	m_info.m_name = "<NA>";
 	m_info.m_fields = &m_finfo;
-	m_info.m_nfiedls = 1;
+	m_info.m_nfields = 1;
 	m_info.m_flags = 0;
 	m_finfo.m_print_format = PF_DEC;
 	m_field = &m_finfo;
@@ -3329,7 +3359,6 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_l
 	else if(m_field->m_type == PT_RELTIME)
 	{
 		uint64_t val = (uint64_t)*(uint64_t*)rawval;
-		val = 1010000000;
 		return format_time(val);
 	}
 	else if(m_field->m_type == PT_DOUBLE)

@@ -177,7 +177,7 @@ public:
 		LAST_COLORELEMENT
 	};
 
-	sinsp_cursesui(sinsp* inspector);
+	sinsp_cursesui(sinsp* inspector, string event_source_name, string capture_filter);
 	~sinsp_cursesui();
 	void configure(vector<sinsp_table_info>* views);
 	void start(bool is_drilldown, string filter);
@@ -210,12 +210,30 @@ public:
 				field = psinfo->m_field;
 			}
 
-			//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 			string filter = combine_filters(m_sel_hierarchy.tofilter(), 
 				m_views[m_selected_view].m_filter);
 
 			clear();
-			start(true, filter);
+
+			try
+			{
+				start(true, filter);
+			}
+			catch(...)
+			{
+				inspector->close();
+
+#ifdef HAS_FILTERING
+				if(m_capture_filter != "")
+				{
+					inspector->set_filter(m_capture_filter);
+				}
+#endif
+
+				ui.start(true, "");
+				inspector->open(m_event_source_name);
+			}
+
 			populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
 			m_viz->render(true);
 			render();
@@ -291,4 +309,6 @@ private:
 	uint32_t m_screenh;
 	sinsp_table* m_datatable;
 	curses_table* m_viz;
+	string m_event_source_name;
+	string m_capture_filter;
 };

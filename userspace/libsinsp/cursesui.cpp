@@ -93,13 +93,15 @@ sinsp_table_info::sinsp_table_info(string name,
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_cursesui implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_cursesui::sinsp_cursesui(sinsp* inspector)
+sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, string capture_filter)
 {
 	m_inspector = inspector;
+	m_event_source_name = event_source_name;
 	m_selected_view = 0;
 	m_selected_sidemenu_entry = 0;
 	m_datatable = NULL;
 	m_viz = NULL;
+	m_capture_filter = capture_filter;
 
 	//
 	// Colors initialization
@@ -237,9 +239,18 @@ void sinsp_cursesui::start(bool is_drilldown, string filter)
 
 	m_datatable = new sinsp_table(m_inspector);
 
-	m_datatable->configure(m_views[m_selected_view].m_config, 
-		m_views[m_selected_view].m_merge_config,
-		filter);
+	try
+	{
+		m_datatable->configure(m_views[m_selected_view].m_config, 
+			m_views[m_selected_view].m_merge_config,
+			filter);
+	}
+	catch(...)
+	{
+		delete m_datatable;
+		m_datatable = NULL;
+		throw;
+	}
 
 	m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 
