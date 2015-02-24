@@ -221,17 +221,17 @@ public:
 			}
 			catch(...)
 			{
-				inspector->close();
+				m_inspector->close();
 
 #ifdef HAS_FILTERING
 				if(m_capture_filter != "")
 				{
-					inspector->set_filter(m_capture_filter);
+					m_inspector->set_filter(m_capture_filter);
 				}
 #endif
 
-				ui.start(true, "");
-				inspector->open(m_event_source_name);
+				start(true, filter);
+				m_inspector->open(m_event_source_name);
 			}
 
 			populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
