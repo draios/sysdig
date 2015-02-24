@@ -498,6 +498,18 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 	}
 }
 
+void curses_table::print_wait()
+{
+	string wstr = "Gathering Data";
+
+	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
+
+	mvwprintw(m_tblwin, 
+		m_screenh / 2,
+		m_screenw / 2 - wstr.size() / 2, 
+		wstr.c_str());	
+}
+
 void curses_table::render(bool data_changed)
 {
 	uint32_t j, k;
@@ -505,7 +517,8 @@ void curses_table::render(bool data_changed)
 
 	if(m_data == NULL)
 	{
-		return;
+		print_wait();
+		goto render_end;
 	}
 
 	if(m_data->size() != 0)
@@ -578,6 +591,15 @@ void curses_table::render(bool data_changed)
 		}
 
 		//
+		// If there is no data, print the "waiting for data" message
+		//
+		if(m_data->size() == 0)
+		{
+			print_wait();
+			goto render_end;
+		}
+
+		//
 		// Render the rows
 		//
 		vector<sinsp_table_field>* row;
@@ -641,6 +663,7 @@ void curses_table::render(bool data_changed)
 		}
 	}
 
+render_end:
 	wrefresh(m_tblwin);
 
 	copywin(m_tblwin,
