@@ -3206,43 +3206,39 @@ char* sinsp_filter_check_reference::format_bytes(int64_t val, uint32_t str_len)
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
 					"%*.2fP", str_len - 1, ((double)val) / (1024LL * 1024 * 1024 * 1024 * 1024));
-		return m_getpropertystr_storage;
 	}
 	else if(val > (1024LL * 1024 * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
 					"%*.2fT", str_len - 1, ((double)val) / (1024LL * 1024 * 1024 * 1024));
-		return m_getpropertystr_storage;
 	}
 	else if(val > (1024LL * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
 					"%*.2fG", str_len - 1, ((double)val) / (1024LL * 1024 * 1024));
-		return m_getpropertystr_storage;
 	}
 	else if(val > (1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
 					"%*.2fM", str_len - 1, ((double)val) / (1024 * 1024));
-		return m_getpropertystr_storage;
 	}
 	else if(val > 1024)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
 					"%*.2fK", str_len - 1, ((double)val) / (1024));
-		return m_getpropertystr_storage;
 	}
 	else
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
 					"%*" PRId64, str_len, val);
-		return m_getpropertystr_storage;
 	}
+
+	return m_getpropertystr_storage;
 }
 
 //
@@ -3258,44 +3254,55 @@ char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*u.%02us", str_len, (unsigned int)(val / ONE_SECOND_IN_NS), (unsigned int)((val % ONE_SECOND_IN_NS) / 10000000));
-		return m_getpropertystr_storage;
+					"%u.%02us", (unsigned int)(val / ONE_SECOND_IN_NS), (unsigned int)((val % ONE_SECOND_IN_NS) / 10000000));
 	}
 	else if(val >= ONE_SECOND_IN_NS / 100)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*ums", str_len, (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)));
-		return m_getpropertystr_storage;
+					"%ums", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)));
 	}
 	else if(val >= ONE_SECOND_IN_NS / 1000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*u.%02ums", str_len, (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)), (unsigned int)((val % ONE_MILLISECOND_IN_NS) / 10000));
-		return m_getpropertystr_storage;
+					"%u.%02ums", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)), (unsigned int)((val % ONE_MILLISECOND_IN_NS) / 10000));
 	}
 	else if(val >= ONE_SECOND_IN_NS / 100000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*uus", str_len, (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)));
-		return m_getpropertystr_storage;
+					"%uus", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)));
 	}
 	else if(val >= ONE_SECOND_IN_NS / 1000000)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*u.%02uus", str_len, (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)), (unsigned int)((val % ONE_MICROSECOND_IN_NS) / 10));
-		return m_getpropertystr_storage;
+					"%u.%02uus", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)), (unsigned int)((val % ONE_MICROSECOND_IN_NS) / 10));
 	}
 	else
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*uns", str_len, (unsigned int)val);
-		return m_getpropertystr_storage;
+					"%uns", (unsigned int)val);
 	}
+
+	uint32_t reslen = strlen(m_getpropertystr_storage);
+	if(reslen < str_len)
+	{
+		uint32_t padding_size = str_len - reslen;
+
+		memmove(m_getpropertystr_storage + padding_size, 
+			m_getpropertystr_storage,
+			str_len + 1);
+
+		for(uint32_t j = 0; j < padding_size; j++)
+		{
+			m_getpropertystr_storage[j] = ' ';
+		}
+	}
+
+	return m_getpropertystr_storage;
 }
 
 char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_len)
