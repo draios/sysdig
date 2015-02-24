@@ -124,7 +124,7 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 		if (n < bytes_to_read)
 			bytes_to_read = n;
 
-		if (!ppm_access_ok(VERIFY_READ, from, n)) {
+		if (!ppm_access_ok(VERIFY_READ, from, bytes_to_read)) {
 			res = -1;
 			goto strncpy_end;
 		}

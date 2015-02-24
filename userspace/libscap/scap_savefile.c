@@ -1453,6 +1453,7 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 
 scap_read_iflist_error:
 	scap_free_iflist(handle->m_addrlist);
+	handle->m_addrlist = NULL;
 
 	if(readbuf)
 	{
