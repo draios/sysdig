@@ -2855,7 +2855,7 @@ sinsp_filter_check_container::sinsp_filter_check_container()
 {
 	m_info.m_name = "container";
 	m_info.m_fields = sinsp_filter_check_container_fields;
-	m_info.m_nfiedls = sizeof(sinsp_filter_check_container_fields) / sizeof(sinsp_filter_check_container_fields[0]);
+	m_info.m_nfields = sizeof(sinsp_filter_check_container_fields) / sizeof(sinsp_filter_check_container_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
 }
 
