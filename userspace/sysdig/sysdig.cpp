@@ -1480,7 +1480,8 @@ sysdig_init_res systop_init(int argc, char **argv)
 	mousemask(ALL_MOUSE_EVENTS, NULL);
 	noecho();
 	timeout(0);
-	raw();
+	// If this is uncommented, it's possible to natively handle stuff like CTRL+c
+	//raw();
 #endif
 
 	//
