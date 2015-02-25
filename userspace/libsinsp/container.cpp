@@ -261,7 +261,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 	memcpy(valptr, container_info.m_id.c_str(), lens[0]);
 	valptr += lens[0];
 
-	lens[1] = sizeof(uint16_t);
+	lens[1] = sizeof(uint32_t);
 	memcpy(valptr, &container_info.m_type, lens[1]);
 	valptr += lens[1];
 
