@@ -102,6 +102,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, strin
 	m_datatable = NULL;
 	m_viz = NULL;
 	m_capture_filter = capture_filter;
+	m_paused = false;
 
 	//
 	// Colors initialization
