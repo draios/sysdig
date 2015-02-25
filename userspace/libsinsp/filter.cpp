@@ -163,8 +163,14 @@ bool flt_compare_int64(ppm_cmp_operator op, int64_t operand1, int64_t operand2)
 		return (operand1 > operand2);
 	case CO_GE:
 		return (operand1 >= operand2);
-	default:
+	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
+		return false;
+	case CO_IN:
+		throw sinsp_exception("'in' not supported for numeric filters");
+		return false;
+	default:
+		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
 	}
 }
@@ -187,6 +193,8 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 		throw sinsp_exception("'>' not supported for string filters");
 	case CO_GE:
 		throw sinsp_exception("'>=' not supported for string filters");
+	case CO_IN:
+		throw sinsp_exception("'in' not supported for string filters");
 	default:
 		ASSERT(false);
 		throw sinsp_exception("invalid filter operator " + std::to_string((long long) op));
@@ -344,7 +352,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			{
 		 		return (Json::Value::Int64)*(int64_t *)rawval;
 			}
-			else 
+			else
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -645,12 +653,12 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			}
 		case PT_IPV4ADDR:
 			snprintf(m_getpropertystr_storage,
-				        sizeof(m_getpropertystr_storage),
-				        "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-				        rawval[0],
-				        rawval[1],
-				        rawval[2],
-				        rawval[3]);
+						sizeof(m_getpropertystr_storage),
+						"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+						rawval[0],
+						rawval[1],
+						rawval[2],
+						rawval[3]);
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
@@ -765,7 +773,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 	uint32_t len;
 	Json::Value jsonval = extract_as_js(evt, &len);
 
-	if(jsonval == Json::Value::null) 
+	if(jsonval == Json::Value::null)
 	{
 		uint8_t* rawval = extract(evt, &len);
 		if(rawval == NULL)
@@ -773,7 +781,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 			return Json::Value::null;
 		}
 		return rawval_to_json(rawval, m_field, len);
-	} 
+	}
 	
 	return jsonval;
 }
@@ -1039,7 +1047,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	//
 	// If there are quotes, don't stop on blank
 	//
-	if(m_scanpos < m_scansize && 
+	if(m_scanpos < m_scansize &&
 		(m_fltstr[m_scanpos] == '"' || m_fltstr[m_scanpos] == '\''))
 	{
 		is_quoted = true;
@@ -1236,6 +1244,11 @@ ppm_cmp_operator sinsp_filter::next_comparison_operator()
 		m_scanpos += 8;
 		return CO_CONTAINS;
 	}
+	else if(compare_no_consume("in"))
+	{
+		m_scanpos += 2;
+		return CO_IN;
+	}
 	else
 	{
 		throw sinsp_exception("filter error: unrecognized comparison operator after " + m_fltstr.substr(0, start));
@@ -1271,6 +1284,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 	chk->parse_field_name((char *)&operand1[0]);
 	chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
+
 	parent_expr->add_check(chk);
 }
 
@@ -1294,9 +1308,155 @@ void sinsp_filter::pop_expression()
 	m_nest_level--;
 }
 
+//
+// Check to see if the filter has 1 or more  SQL 'in' clause(s)
+// return modified filter to "or" clauses, else return the original filter string
+//
+string sinsp_filter::parse_sql_in_clause(const string& fltstr)
+{
+	// Will contain each filter component
+	vector<string> components;
+
+	// The return fltstr
+	string modified_fltstr;
+
+	// Tmp storage of each operand 'filter' e.g. proc.name
+	string operand;
+
+	// Flags to keep the state while transforming the SQL 'in' clause to a sysdig 'or' syntax
+	bool in_state = false;
+	bool done_in_state = false;
+	bool start_in_state = false;
+
+	if(strcasestr(fltstr.c_str(), " in") != NULL || strcasestr(fltstr.c_str(), " in(") != NULL)
+	{
+		// Assign the local fltstr so it can be modified in place
+		modified_fltstr = fltstr;
+		replace_in_place( modified_fltstr, "(", " ( ");
+		replace_in_place( modified_fltstr, ")", " ) ");
+
+		// Get all of the components of the filter for the state machine
+		components = sinsp_split(modified_fltstr, ' ');
+
+		// Clear to reuse and rebuild the new filter string
+		modified_fltstr.clear();
+
+		uint32_t j;
+		for(j = 0; j < components.size(); j++)
+		{
+			// Remove all white space before and after each component
+			components[j] = trim(components[j]);
+
+			// Start processing SQL 'in' clause as component is "in"
+			if(components[j] == "in" && components[j] != "contains")
+			{
+				// Make sure there is an operand before the first in clause
+				if(j != 0)
+				{
+					operand = components[j - 1];
+				}
+				else
+				{
+					// No filter event for the first SQL "in" clause
+					ASSERT(false);
+					throw sinsp_exception("syntax error in filter SQL 'in' clause");
+				}
+
+				// Remove "in" from current component
+				if(components[j] == "in")
+				{
+					components[j].erase(components[j].begin(),components[j].begin()+2);
+				}
+
+				// Set the "in" State beginning the "in" clause transformation to "or"s
+				in_state = true;
+				start_in_state = true;
+			}
+			// Stop processing SQL 'in' clause
+			else if(strcasestr( components[j].c_str(), ")") != NULL)
+			{
+				in_state = false;
+				done_in_state = true;
+
+				// Remove the trailing ")"
+				std::size_t found = components[j].find(")");
+				components[j].erase(found,1);
+			}
+
+			// Add components that are not in the SQL 'in' clause
+			if(!in_state)
+			{
+				// Current implementation state machine adds an extra "or" at the end
+				if(done_in_state)
+				{
+					// Remove the trailing "or "
+					modified_fltstr.erase(modified_fltstr.end()-3,modified_fltstr.end());
+
+					// Add the ")" for scope resolution
+					modified_fltstr += " )";
+
+					done_in_state = false;
+				}
+
+				// If the next component starts the SQL "in" clause add "(" for scope resolution
+				if(j + 1 < components.size() && (components[j+1] == "in"))
+				{
+					modified_fltstr += "( " + components[j];
+				}
+				else
+				{
+					modified_fltstr += components[j];
+				}
+
+				modified_fltstr += " ";
+			}
+			// Add components that are in the SQL 'in' clause
+			else if(in_state)
+			{
+				//
+				// NOTE: This limits SQL "in" clause(s) to not contain "," as a filter
+				// E.g. proc.name in ( 'value,', ',value' ) will not work
+				//
+				replace_in_place( components[j], ",", "");
+
+				if(strcasestr( components[j].c_str(), "(") != NULL)
+				{
+					// Remove the beginning "("
+					std::size_t found = components[j].find("(");
+					components[j].erase(found,1);
+				}
+
+				// Only include none empty components
+				if(components[j].size() > 0)
+				{
+					// Beginning of the SQL 'in' clause
+					if(start_in_state)
+					{
+						// NOTE: operand already added to reason to add it again
+						modified_fltstr += "=" + components[j] + " or ";
+						start_in_state = false;
+					}
+					else
+					{
+						modified_fltstr += operand + "=" + components[j] + " or ";
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		// No SQL 'in' clause(s) to transform
+		modified_fltstr = fltstr;
+	}
+
+	return modified_fltstr;
+}
+
 void sinsp_filter::compile(const string& fltstr)
 {
-	m_fltstr = fltstr;
+	// Check to see if the filter clause has 1 or more SQL "in" clause(s)
+	m_fltstr = parse_sql_in_clause( fltstr );
 	m_scansize = (uint32_t)m_fltstr.size();
 
 	while(true)
