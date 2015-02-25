@@ -724,6 +724,9 @@ sysdig_table_action curses_table::handle_input(int ch)
 	{
 		case 'q':
 			return STA_QUIT;
+		case 'p':
+			m_parent->m_paused = !m_parent->m_paused;
+			break;
 /*
 		case 'a':
 			numbers[0]++;
