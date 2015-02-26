@@ -1,9 +1,9 @@
-FROM debian:wheezy
+FROM debian:unstable
 
 MAINTAINER Sysdig <support@sysdigcloud.com>
 
 ENV REPO dev
-ENV SYSDIG_VERSION 0.99.226
+ENV SYSDIG_VERSION 0.99.228
 
 ENV SYSDIG_HOST_ROOT /host
 
