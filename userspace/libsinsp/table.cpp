@@ -570,7 +570,7 @@ void sinsp_table::stdout_print()
 				it->m_values[j].m_val, 
 				it->m_values[j].m_len,
 				legend->at(j).m_print_format);
-				printf("%s ", m_printer->tostring_nice(NULL, 20));
+				printf("%s ", m_printer->tostring_nice(NULL, 10));
 //				printf("%s ", m_printer->tostring(NULL));
 		}
 
@@ -768,6 +768,9 @@ void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, si
 	case PT_RELTIME:
 	case PT_ABSTIME:
 		*(uint64_t*)operand1 += *(uint64_t*)operand2;
+		return;
+	case PT_DOUBLE:
+		*(double*)operand1 += *(double*)operand2;
 		return;
 	default:
 		return;
