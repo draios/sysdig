@@ -207,7 +207,7 @@ public:
 	~sinsp_table();
 	void configure(const string& fmt, const string& merge_fmt, const string& filter);
 	void process_event(sinsp_evt* evt);
-	void flush(sinsp_evt* evt, bool paused);
+	void flush(sinsp_evt* evt);
 	vector<sinsp_sample_row>* get_sample();
 	vector<filtercheck_field_info>* get_legend()
 	{
@@ -228,6 +228,7 @@ public:
 	pair<filtercheck_field_info*, string> get_row_key_name_and_val(uint32_t rownum);
 	sinsp_table_field* get_row_key(uint32_t rownum);
 	int32_t get_row_from_key(sinsp_table_field* key);
+	void set_paused(bool paused);
 
 	uint64_t m_next_flush_time_ns;
 
@@ -281,6 +282,7 @@ private:
 	bool m_use_defaults;
 	uint64_t m_zero_u64;
 	uint64_t m_zero_double;
+	bool m_paused;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

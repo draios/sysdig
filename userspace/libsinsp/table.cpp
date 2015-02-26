@@ -85,6 +85,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_use_defaults = false;
 	m_zero_u64 = 0;
 	m_zero_double = 0;
+	m_paused = false;
 }
 
 sinsp_table::~sinsp_table()
@@ -511,9 +512,9 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	}
 }
 
-void sinsp_table::flush(sinsp_evt* evt, bool paused)
+void sinsp_table::flush(sinsp_evt* evt)
 {
-	if(!paused)
+	if(!m_paused)
 	{
 		if(m_next_flush_time_ns != 0)
 		{
@@ -585,25 +586,31 @@ void sinsp_table::stdout_print()
 
 vector<sinsp_sample_row>* sinsp_table::get_sample()
 {
-	if(m_sample_data.size() != 0)
+	if(!m_paused)
 	{
-		if(m_sorting_col >= (int32_t)m_sample_data[0].m_values.size())
+		//
+		// Sort the sample
+		//
+		if(m_sample_data.size() != 0)
 		{
-			throw sinsp_exception("invalid table sorting column");
-		}
+			if(m_sorting_col >= (int32_t)m_sample_data[0].m_values.size())
+			{
+				throw sinsp_exception("invalid table sorting column");
+			}
 
-		table_row_cmp cc;
-		cc.m_colid = m_sorting_col;
+			table_row_cmp cc;
+			cc.m_colid = m_sorting_col;
 
-		cc.m_ascending = m_is_sorting_ascending;
-		cc.m_type = m_types->at(m_sorting_col + 1);
+			cc.m_ascending = m_is_sorting_ascending;
+			cc.m_type = m_types->at(m_sorting_col + 1);
 
 //mvprintw(4, 10, "s%d:%d", (int)m_sorting_col, (int)m_is_sorting_ascending);
 //refresh();
 
-		sort(m_sample_data.begin(),
-			m_sample_data.end(),
-			cc);
+			sort(m_sample_data.begin(),
+				m_sample_data.end(),
+				cc);
+		}
 	}
 
 #ifdef _WIN32
@@ -1043,4 +1050,9 @@ int32_t sinsp_table::get_row_from_key(sinsp_table_field* key)
 	}
 
 	return -1;
+}
+
+void sinsp_table::set_paused(bool paused)
+{
+	m_paused = paused;
 }

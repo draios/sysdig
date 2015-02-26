@@ -302,6 +302,15 @@ void sinsp_cursesui::render_header()
 	}
 
 	mvaddstr(0, sizeof("Viewing ") - 1, vs.c_str());
+
+	if(m_paused)
+	{
+		string wstr = "PAUSED";
+		attrset(m_colors[sinsp_cursesui::LARGE_NUMBER]);
+		mvprintw(0,
+			m_screenw / 2 - wstr.size() / 2, 
+			wstr.c_str());	
+	}
 }
 
 void sinsp_cursesui::render_main_menu()
@@ -484,4 +493,11 @@ bool sinsp_cursesui::drillup()
 	}
 
 	return false;
+}
+
+void sinsp_cursesui::pause()
+{
+	m_paused = !m_paused;
+	m_datatable->set_paused(m_paused);
+	render_header();
 }

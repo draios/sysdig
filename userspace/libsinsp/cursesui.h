@@ -186,6 +186,7 @@ public:
 	bool drilldown(string field, string val);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
+	void pause();
 
 	//
 	// Return true if the application is supposed to exit
@@ -257,7 +258,7 @@ public:
 
 		if(end_of_sample)
 		{
-			m_datatable->flush(evt, m_paused);
+			m_datatable->flush(evt);
 
 			//
 			// It's time to refresh the data for this chart.
@@ -295,13 +296,13 @@ public:
 	uint32_t m_selected_view;
 	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
-	bool m_paused;
 
 private:
 #ifndef NOCURSESUI
 	void render();
 	void render_header();
 	void render_main_menu();
+
 #endif
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
 
@@ -313,4 +314,5 @@ private:
 	curses_table* m_viz;
 	string m_event_source_name;
 	string m_capture_filter;
+	bool m_paused;
 };
