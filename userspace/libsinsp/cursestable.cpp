@@ -824,6 +824,8 @@ sysdig_table_action curses_table::handle_input(int ch)
 								m_table->set_sorting_col(j + 1);
 							}
 
+							m_table->sort_sample();
+							update_data(m_data);
 							render(true);
 						}
 						else if((uint32_t)event.y > m_table_y_start &&

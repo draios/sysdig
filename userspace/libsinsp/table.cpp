@@ -584,33 +584,35 @@ void sinsp_table::stdout_print()
 		printf("----------------------\n");
 }
 
-vector<sinsp_sample_row>* sinsp_table::get_sample()
+void sinsp_table::sort_sample()
 {
-	if(!m_paused)
+	if(m_sample_data.size() != 0)
 	{
-		//
-		// Sort the sample
-		//
-		if(m_sample_data.size() != 0)
+		if(m_sorting_col >= (int32_t)m_sample_data[0].m_values.size())
 		{
-			if(m_sorting_col >= (int32_t)m_sample_data[0].m_values.size())
-			{
-				throw sinsp_exception("invalid table sorting column");
-			}
+			throw sinsp_exception("invalid table sorting column");
+		}
 
-			table_row_cmp cc;
-			cc.m_colid = m_sorting_col;
+		table_row_cmp cc;
+		cc.m_colid = m_sorting_col;
 
-			cc.m_ascending = m_is_sorting_ascending;
-			cc.m_type = m_types->at(m_sorting_col + 1);
+		cc.m_ascending = m_is_sorting_ascending;
+		cc.m_type = m_types->at(m_sorting_col + 1);
 
 //mvprintw(4, 10, "s%d:%d", (int)m_sorting_col, (int)m_is_sorting_ascending);
 //refresh();
 
-			sort(m_sample_data.begin(),
-				m_sample_data.end(),
-				cc);
-		}
+		sort(m_sample_data.begin(),
+			m_sample_data.end(),
+			cc);
+	}
+}
+
+vector<sinsp_sample_row>* sinsp_table::get_sample()
+{
+	if(!m_paused)
+	{
+		sort_sample();
 	}
 
 #ifdef _WIN32
