@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # This script builds a precompiled version of sysdig-probe for a bunch of kernels
-# The precompiled binary is then obtained at runtime by sysdig-probe-installer
+# The precompiled binary is then obtained at runtime by sysdig-probe-loader
 # Ideally, the community should expand this stuff with better support
 #
 set -exu
