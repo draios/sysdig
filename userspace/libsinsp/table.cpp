@@ -511,45 +511,48 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	}
 }
 
-void sinsp_table::flush(sinsp_evt* evt)
+void sinsp_table::flush(sinsp_evt* evt, bool paused)
 {
-	if(m_next_flush_time_ns != 0)
+	if(!paused)
 	{
-		//
-		// Time to emit the sample! 
-		// Add the proctable as a sample at the end of the second
-		//
-		//process_proctable(evt);
-
-		//
-		// If there is a merging step, switch the types to point to the merging ones.
-		//
-		if(m_do_merging)
+		if(m_next_flush_time_ns != 0)
 		{
-			m_types = &m_postmerge_types;
-			m_table = &m_merge_table;
-			m_n_fields = m_n_postmerge_fields;
-			m_vals_array_sz = m_postmerge_vals_array_sz;
-			m_fld_pointers = m_postmerge_fld_pointers;
+			//
+			// Time to emit the sample! 
+			// Add the proctable as a sample at the end of the second
+			//
+			//process_proctable(evt);
+
+			//
+			// If there is a merging step, switch the types to point to the merging ones.
+			//
+			if(m_do_merging)
+			{
+				m_types = &m_postmerge_types;
+				m_table = &m_merge_table;
+				m_n_fields = m_n_postmerge_fields;
+				m_vals_array_sz = m_postmerge_vals_array_sz;
+				m_fld_pointers = m_postmerge_fld_pointers;
+			}
+
+			//
+			// Emit the sample
+			//
+			create_sample();
+
+			//
+			// Switch the data storage so that the current one is still usable by the 
+			// consumers of the table.
+			//
+			switch_buffers();
+
+			//
+			// Reinitialize the tables
+			//
+			m_buffer->clear();
+			m_premerge_table.clear();
+			m_merge_table.clear();
 		}
-
-		//
-		// Emit the sample
-		//
-		create_sample();
-
-		//
-		// Switch the data storage so that the current one is still usable by the 
-		// consumers of the table.
-		//
-		switch_buffers();
-
-		//
-		// Reinitialize the tables
-		//
-		m_buffer->clear();
-		m_premerge_table.clear();
-		m_merge_table.clear();
 	}
 
 	uint64_t ts = evt->get_ts();

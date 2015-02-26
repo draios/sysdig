@@ -207,7 +207,7 @@ public:
 	~sinsp_table();
 	void configure(const string& fmt, const string& merge_fmt, const string& filter);
 	void process_event(sinsp_evt* evt);
-	void flush(sinsp_evt* evt);
+	void flush(sinsp_evt* evt, bool paused);
 	vector<sinsp_sample_row>* get_sample();
 	vector<filtercheck_field_info>* get_legend()
 	{

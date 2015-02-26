@@ -257,10 +257,7 @@ public:
 
 		if(end_of_sample)
 		{
-			if(!m_paused)
-			{
-				m_datatable->flush(evt);
-			}
+			m_datatable->flush(evt, m_paused);
 
 			//
 			// It's time to refresh the data for this chart.
