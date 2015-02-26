@@ -20,6 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #endif
 
+#define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
+
 string combine_filters(string flt1, string flt2);
 
 class sinsp_table_info
@@ -194,67 +196,94 @@ public:
 	inline bool process_event(sinsp_evt* evt)
 	{
 		bool end_of_sample;
+		uint64_t ts = evt->get_ts();
 
+		//
+		// Process the user input
+		//
 #ifndef NOCURSESUI
-		int input = getch();
-		sysdig_table_action ta = m_viz->handle_input(input);
-
-		if(ta == STA_QUIT)
+		if(ts - m_last_input_check_ts > UI_USER_INPUT_CHECK_PERIOD_NS)
 		{
-			return true;
-		}
-		else if(ta == STA_SWITCH_VIEW)
-		{
-			string field;
-			if(m_sel_hierarchy.m_hierarchy.size() > 0)
+			uint32_t ninputs = 0;
+
+			while(true)
 			{
-				sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
-				field = psinfo->m_field;
-			}
+				int input = getch();
 
-			string filter = combine_filters(m_sel_hierarchy.tofilter(), 
-				m_views[m_selected_view].m_filter);
-
-			clear();
-
-			try
-			{
-				start(true, filter);
-			}
-			catch(...)
-			{
-				m_inspector->close();
-
-#ifdef HAS_FILTERING
-				if(m_capture_filter != "")
+				if(input == -1)
 				{
-					m_inspector->set_filter(m_capture_filter);
+					break;
 				}
-#endif
+				else
+				{
+					ninputs++;
+				}
 
-				start(true, filter);
-				m_inspector->open(m_event_source_name);
+				sysdig_table_action ta = m_viz->handle_input(input);
+
+				if(ta == STA_QUIT)
+				{
+					return true;
+				}
+				else if(ta == STA_SWITCH_VIEW)
+				{
+					string field;
+					if(m_sel_hierarchy.m_hierarchy.size() > 0)
+					{
+						sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+						field = psinfo->m_field;
+					}
+
+					string filter = combine_filters(m_sel_hierarchy.tofilter(), 
+						m_views[m_selected_view].m_filter);
+
+					clear();
+
+					try
+					{
+						start(true, filter);
+					}
+					catch(...)
+					{
+						m_inspector->close();
+
+	#ifdef HAS_FILTERING
+						if(m_capture_filter != "")
+						{
+							m_inspector->set_filter(m_capture_filter);
+						}
+	#endif
+
+						start(true, filter);
+						m_inspector->open(m_event_source_name);
+					}
+
+					populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
+					m_viz->render(true);
+					render();
+				}
+				else if(ta == STA_DRILLDOWN)
+				{
+					auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+					drilldown(res.first->m_name, res.second.c_str());
+				}
+				else if(ta == STA_DRILLUP)
+				{
+					drillup();
+				}
 			}
 
-			populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
-			m_viz->render(true);
-			render();
-		}
-		else if(ta == STA_DRILLDOWN)
-		{
-			auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-			drilldown(res.first->m_name, res.second.c_str());
-		}
-		else if(ta == STA_DRILLUP)
-		{
-			drillup();
+			if(ninputs == 0)
+			{
+				m_last_input_check_ts = ts;
+			}
 		}
 #endif
 
 		//
 		// Check if it's time to flush
 		//
-		end_of_sample = (evt == NULL || evt->get_ts() > m_datatable->m_next_flush_time_ns);
+		end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
 
 		if(end_of_sample)
 		{
@@ -315,4 +344,5 @@ private:
 	string m_event_source_name;
 	string m_capture_filter;
 	bool m_paused;
+	uint64_t m_last_input_check_ts;
 };
