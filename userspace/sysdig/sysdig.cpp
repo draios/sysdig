@@ -1269,6 +1269,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					inspector->open("");
 				}
+
+				//
+				// Enable gathering the CPU from the kernel module
+				//
+				inspector->set_get_procs_cpu_from_driver(true);
 			}
 
 			if(snaplen != 0)
