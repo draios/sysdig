@@ -138,6 +138,7 @@ private:
 	sinsp_filter_check_reference* m_converter;
 	vector<uint32_t> m_column_startx;
 	char alignbuf[64];
+	bool m_selection_changed;
 
 	friend class curses_table_sidemenu;
 };

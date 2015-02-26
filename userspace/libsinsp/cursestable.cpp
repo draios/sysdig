@@ -310,6 +310,7 @@ curses_table::curses_table()
 	m_table_y_start = TABLE_Y_START;
 	m_sidemenu = NULL;
 	m_drilled_up = false;
+	m_selection_changed = false;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -475,7 +476,7 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 {
 	m_data = data;
 
-	if(m_last_key.m_isvalid || m_drilled_up)
+	if(m_selection_changed && (m_last_key.m_isvalid || m_drilled_up))
 	{
 		m_selct = m_table->get_row_from_key(&m_last_key);
 		if(m_selct == -1)
@@ -748,21 +749,25 @@ sysdig_table_action curses_table::handle_input(int ch)
 			break;
 */			
 		case KEY_UP:
+			m_selection_changed = true;
 			selection_up((int32_t)m_data->size());
 			update_rowkey(m_selct);
 			render(true);
 			break;
 		case KEY_DOWN:
+			m_selection_changed = true;
 			selection_down((int32_t)m_data->size());
 			update_rowkey(m_selct);
 			render(true);
 			break;
 		case KEY_PPAGE:
+			m_selection_changed = true;
 			selection_pageup((int32_t)m_data->size());
 			update_rowkey(m_selct);
 			render(true);
 			break;
 		case KEY_NPAGE:
+			m_selection_changed = true;
 			selection_pagedown((int32_t)m_data->size());
 			update_rowkey(m_selct);
 			render(true);
@@ -834,6 +839,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 							//
 							// This is a click on a row. Update the selection.
 							//
+							m_selection_changed = true;
 							m_selct = event.y - m_table_y_start - 1;
 							sanitize_selection((int32_t)m_data->size());
 							update_rowkey(m_selct);
