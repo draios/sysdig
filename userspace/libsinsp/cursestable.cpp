@@ -246,53 +246,57 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			return STA_NONE;
 		case KEY_MOUSE:
 			{
-/*
-				uint32_t j;
 				MEVENT event;
 
 				if(getmouse(&event) == OK)
 				{
-//					if(event.bstate & BUTTON1_PRESSED)
+					if(event.bstate & BUTTON1_CLICKED)
 					{
-						ASSERT((m_data->size() == 0) || (m_column_startx.size() == m_data->at(0).m_values.size()));
-
-						if((uint32_t)event.y == m_table_y_start)
+						if((uint32_t)event.y > m_parent->m_table_y_start &&
+							(uint32_t)event.y < m_parent->m_table_y_start + m_h - 1)
 						{
 							//
-							// This is a click on a column header. Change the sorting accordingly.
+							// This is a click one of the menu entries. Update the selection.
 							//
-							for(j = 0; j < m_column_startx.size() - 1; j++)
-							{
-								if((uint32_t)event.x >= m_column_startx[j] && (uint32_t)event.x < m_column_startx[j + 1])
-								{
-									m_table->set_sorting_col(j + 1);
-									break;
-								}
-							}
-
-							if(j == m_column_startx.size() - 1)
-							{
-								m_table->set_sorting_col(j + 1);
-							}
-
-							render(true);
+							m_selct = m_firstrow + (event.y - m_parent->m_table_y_start - 1);
+							sanitize_selection((int32_t)m_parent->m_sidemenu_viewlist.size());
+							render();
 						}
-						else if((uint32_t)event.y > m_table_y_s						(uint32_t)event.y < m_table_y_start + m_h - 1)
+					}
+					else if(event.bstate & BUTTON1_DOUBLE_CLICKED)
+					{
+						if((uint32_t)event.y > m_parent->m_table_y_start &&
+							(uint32_t)event.y < m_parent->m_table_y_start + m_h - 1)
 						{
 							//
-							// This is a click on a row. Update the selection.
+							// This is a double click one of the menu entries. 
+							// Update the selection.
 							//
-							m_selct = event.y - m_table_y_start - 1;
-							sanitize_selection();
-							update_rowkey(m_selct);
-							render(true);
+							m_selct = m_firstrow + (event.y - m_parent->m_table_y_start - 1);
+							sanitize_selection((int32_t)m_parent->m_sidemenu_viewlist.size());
+							render();
+
+							//
+							// This delay is here just as a lazy way to give the user the
+							// feeling that the row has been clicked 
+							//
+							usleep(200000);
+
+							//
+							// Notify the parent that a selection has happened
+							//
+							ASSERT(m_selct < (int32_t)m_parent->m_sidemenu_viewlist.size());
+							m_parent->m_parent->m_selected_view = m_parent->m_sidemenu_viewlist[m_selct].m_viewid;
+							m_parent->m_parent->m_selected_sidemenu_entry = m_selct;
+							return STA_SWITCH_VIEW;
 						}
 					}
 				}
-*/			
 			}
+
+			return STA_NONE;
+		default:
 			break;
-			
 	}
 
 	return STA_PARENT_HANDLE;
