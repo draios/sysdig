@@ -806,8 +806,6 @@ sysdig_table_action curses_table::handle_input(int ch)
 
 				if(getmouse(&event) == OK)
 				{
-//mvprintw(1, 0, "%d:%d", (int)event.y, (int)event.y - m_table_y_start - 1);
-//refresh();
 					if(event.bstate & BUTTON1_CLICKED)
 					{
 						ASSERT((m_data->size() == 0) || (m_column_startx.size() == m_data->at(0).m_values.size()));
@@ -846,6 +844,32 @@ sysdig_table_action curses_table::handle_input(int ch)
 							sanitize_selection((int32_t)m_data->size());
 							update_rowkey(m_selct);
 							render(true);
+						}
+					}
+					else if(event.bstate & BUTTON1_DOUBLE_CLICKED)
+					{
+						if((uint32_t)event.y > m_table_y_start &&
+							(uint32_t)event.y < m_table_y_start + m_h - 1)
+						{
+							//
+							// Update the selection
+							//
+							m_selection_changed = true;
+							m_selct = m_firstrow + (event.y - m_table_y_start - 1);
+							sanitize_selection((int32_t)m_data->size());
+							update_rowkey(m_selct);
+							render(true);
+
+							//
+							// This delay is here just as a lazy way to give the user the
+							// feeling that the row has been clicked 
+							//
+							usleep(200000);
+
+							//
+							// Let the ui manager know that a drill down needs to happen
+							//
+							return STA_DRILLDOWN;
 						}
 					}
 				}
