@@ -173,7 +173,7 @@ struct sinsp_capture_interrupt_exception : sinsp_exception
 //
 // Internal stuff for meta event management
 //
-typedef void (*meta_event_callback)(uint64_t, sinsp*, void* data);
+typedef void (*meta_event_callback)(sinsp*, void* data);
 class sinsp_proc_metainfo
 {
 public:
