@@ -91,12 +91,12 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-clist_login_shells" $TRACEDIR
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cspy_users" $TRACEDIR $RESULTDIR/spy_users $BASELINEDIR/spy_users || ret=1
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-pc -cspy_users" $TRACEDIR $RESULTDIR/spy_users_container $BASELINEDIR/spy_users_container || ret=1
 # Category: System State
-$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-clscontainers" $TRACEDIR $RESULTDIR/lscontainers $BASELINEDIR/lscontainers || ret=1
+# $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-clscontainers" $TRACEDIR $RESULTDIR/lscontainers $BASELINEDIR/lscontainers || ret=1
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-clsof" $TRACEDIR $RESULTDIR/lsof $BASELINEDIR/lsof || ret=1
-$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cnetstat" $TRACEDIR $RESULTDIR/netstat $BASELINEDIR/netstat || ret=1
+# $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cnetstat" $TRACEDIR $RESULTDIR/netstat $BASELINEDIR/netstat || ret=1
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cps" $TRACEDIR $RESULTDIR/ps $BASELINEDIR/ps || ret=1
 # JSON
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-j -n 10000" $TRACEDIR $RESULTDIR/fd_fields_json $BASELINEDIR/fd_fields_json || ret=1
 
-rm -rf "${TMPBASE}"
+# rm -rf "${TMPBASE}"
 exit $ret
