@@ -358,6 +358,7 @@ curses_table::curses_table()
 	m_colsizes[PT_FLAGS32] = 32;
 	m_colsizes[PT_UID] = 12;
 	m_colsizes[PT_GID] = 12;
+	m_colsizes[PT_DOUBLE] = 8;
 
 	//
 	// Define the table size
@@ -533,7 +534,6 @@ void curses_table::render(bool data_changed)
 
 	if(data_changed)
 	{
-		vector<filtercheck_field_info>* legend = m_table->get_legend();
 		m_column_startx.clear();
 
 		if(m_selct < 0)
@@ -640,7 +640,7 @@ void curses_table::render(bool data_changed)
 				m_converter->set_val(m_legend[j].m_info.m_type, 
 					row->at(j).m_val, 
 					row->at(j).m_len,
-					legend->at(j).m_print_format);
+					m_legend[j].m_info.m_print_format);
 
 				uint32_t size = m_legend[j].m_size - 1;
 				mvwaddnstr(m_tblwin, l + 1, k, m_converter->tostring_nice(NULL, size - 1), size);
