@@ -1,6 +1,8 @@
 #!/bin/bash
 #
-# Installer for precompiled sysdig probe and custom dkms builds
+# Simple script that desperately tries to load sysdig-probe looking
+# for it in a bunch of ways. Convenient when running sysdig inside
+# a container or in other weird environments.
 #
 
 if [ $(id -u) != 0 ]; then
