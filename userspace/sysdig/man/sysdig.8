@@ -71,6 +71,11 @@ evt.args is the list of event arguments.
 The output format can be customized with the \-p switch, using any of
 the fields listed by \[aq]sysdig \-l\[aq].
 .PP
+Using \-pc or \-pcontainer, the default format will be changed to a
+container\-friendly one:
+.PP
+\f[C]%evt.num\ %evt.time\ %evt.cpu\ %container.name\ (%container.id)\ %proc.name\ (%thread.tid:%thread.vtid)\ %evt.dir\ %evt.type\ %evt.info\f[]
+.PP
 \f[B]Trace Files\f[]
 .PP
 A trace file can be created using the \-w switch:
@@ -303,6 +308,7 @@ Print progress on stderr while processing trace files.
 .P
 .PD
 Specify the format to be used when printing the events.
+With \-pc or \-pcontainer will use a container\-friendly format.
 See the examples section below for more info.
 .PP
 \f[B]\-q\f[], \f[B]\-\-quiet\f[]
