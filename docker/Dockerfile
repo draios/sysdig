@@ -1,9 +1,9 @@
-FROM debian:wheezy
+FROM debian:unstable
 
 MAINTAINER Sysdig <support@sysdigcloud.com>
 
 ENV REPO dev
-ENV SYSDIG_VERSION 0.99.226
+ENV SYSDIG_VERSION 0.99.231
 
 ENV SYSDIG_HOST_ROOT /host
 
@@ -18,6 +18,8 @@ RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public |
  && apt-get install -y --no-install-recommends sysdig=$SYSDIG_VERSION \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s $SYSDIG_HOST_ROOT/lib/modules /lib/modules
 
 COPY ./docker-entrypoint.sh /
 
