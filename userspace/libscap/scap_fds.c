@@ -1256,14 +1256,14 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	}
 
 	snprintf(filename, sizeof(filename), "%sudp", netroot);
-	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_TCP, &sockets->sockets) == SCAP_FAILURE)
+	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_UDP, &sockets->sockets) == SCAP_FAILURE)
 	{
 		scap_fd_free_table(handle, &sockets->sockets);
 		return SCAP_FAILURE;		
 	}
 
 	snprintf(filename, sizeof(filename), "%sraw", netroot);
-	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_TCP, &sockets->sockets) == SCAP_FAILURE)
+	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_RAW, &sockets->sockets) == SCAP_FAILURE)
 	{
 		scap_fd_free_table(handle, &sockets->sockets);
 		return SCAP_FAILURE;		
