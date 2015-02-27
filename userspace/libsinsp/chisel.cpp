@@ -981,7 +981,7 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 {
 	if(m_lua_is_first_evt)
 	{
-		first_event_inits(evt);
+		return;
 	}
 
 	if(m_lua_cinfo->m_callback_interval != 0)
