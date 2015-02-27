@@ -478,15 +478,15 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 
 	if(m_selection_changed && (m_last_key.m_isvalid || m_drilled_up))
 	{
-		m_selct = m_table->get_row_from_key(&m_last_key);
-		if(m_selct == -1)
+		int32_t selct = m_table->get_row_from_key(&m_last_key);
+		if(selct == -1)
 		{
-			m_selct = 0;
-			m_firstrow = 0;
+			m_selct--;
 			m_last_key.m_isvalid = false;
 		}
 		else
 		{
+			m_selct = selct;
 			selection_goto((int32_t)m_data->size(), m_selct);			
 			render(true);
 		}
@@ -806,7 +806,9 @@ sysdig_table_action curses_table::handle_input(int ch)
 
 				if(getmouse(&event) == OK)
 				{
-//					if(event.bstate & BUTTON1_PRESSED)
+//mvprintw(1, 0, "%d:%d", (int)event.y, (int)event.y - m_table_y_start - 1);
+//refresh();
+					if(event.bstate & BUTTON1_CLICKED)
 					{
 						ASSERT((m_data->size() == 0) || (m_column_startx.size() == m_data->at(0).m_values.size()));
 
@@ -840,7 +842,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 							// This is a click on a row. Update the selection.
 							//
 							m_selection_changed = true;
-							m_selct = event.y - m_table_y_start - 1;
+							m_selct = m_firstrow + (event.y - m_table_y_start - 1);
 							sanitize_selection((int32_t)m_data->size());
 							update_rowkey(m_selct);
 							render(true);
