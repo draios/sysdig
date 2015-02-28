@@ -651,7 +651,7 @@ vector<sinsp_sample_row>* sinsp_table::get_sample()
 		//
 		// If we have a freetext filter, we start by filtering the sample
 		//
-		if(m_freetext_filter.size() != 0)
+		if(m_freetext_filter != "")
 		{
 			filter_sample();
 			m_sample_data = &m_filtered_sample_data;

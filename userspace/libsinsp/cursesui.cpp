@@ -620,12 +620,19 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			render();
 			break;
 		case KEY_BACKSPACE:
-			m_cursor_pos--;
-			move(m_screenh - 1, m_cursor_pos);
-			addch(' ');
-			move(m_screenh - 1, m_cursor_pos);
-			m_flt_string.pop_back();
-			break;
+			if(m_flt_string.size() > 0)
+			{
+				m_cursor_pos--;
+				move(m_screenh - 1, m_cursor_pos);
+				addch(' ');
+				move(m_screenh - 1, m_cursor_pos);
+				m_flt_string.pop_back();
+				break;
+			}
+			else
+			{
+				return STA_NONE;
+			}
 	}
 
 	if(ch >= ' ' && ch <= '~')
@@ -634,6 +641,17 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		m_flt_string += ch;
 		m_cursor_pos++;
 	}
+
+	//
+	// Update the filter in the datatable
+	//
+	m_datatable->set_freetext_filter(m_flt_string);
+
+	//
+	// Refresh the data and the visualization
+	//
+	m_viz->update_data(m_datatable->get_sample());
+	m_viz->render(true);
 
 	return STA_NONE;
 }
