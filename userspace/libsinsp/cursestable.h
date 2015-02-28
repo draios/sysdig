@@ -27,10 +27,10 @@ public:
 		ALIGN_RIGHT,
 	};
 
-	curses_table();
+	curses_table(sinsp_cursesui* parent);
 	~curses_table();
 
-	void configure(sinsp_cursesui* parent, sinsp_table* table, 
+	void configure(sinsp_table* table, 
 		vector<int32_t>* colsizes, vector<string>* colnames);
 	void update_data(vector<sinsp_sample_row>* data);
 	void render(bool data_changed);
@@ -55,8 +55,6 @@ private:
 	sinsp_table* m_table;
 	int32_t m_table_x_start;
 	uint32_t m_table_y_start;
-	uint32_t m_screenw;
-	uint32_t m_screenh;
 	uint32_t m_scrolloff_x;
 	uint32_t m_scrolloff_y;
 	uint32_t m_colsizes[PT_MAX];

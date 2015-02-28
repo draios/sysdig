@@ -48,7 +48,7 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////
 // curses_table implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_table::curses_table()
+curses_table::curses_table(sinsp_cursesui* parent)
 {
 	m_tblwin = NULL;
 	m_data = NULL;
@@ -57,6 +57,7 @@ curses_table::curses_table()
 	m_table_y_start = TABLE_Y_START;
 	m_drilled_up = false;
 	m_selection_changed = false;
+	m_parent = parent;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -109,9 +110,8 @@ curses_table::curses_table()
 	//
 	// Define the table size
 	//
-	getmaxyx(stdscr, m_screenh, m_screenw);
 	m_w = TABLE_WIDTH;
-	m_h = m_screenh - 3;
+	m_h = m_parent->m_screenh - 3;
 	m_scrolloff_x = 0;
 	m_scrolloff_y = 10;
 
@@ -132,12 +132,11 @@ curses_table::~curses_table()
 	delete m_converter;
 }
 
-void curses_table::configure(sinsp_cursesui* parent, sinsp_table* table, 
+void curses_table::configure(sinsp_table* table, 
 	vector<int32_t>* colsizes, vector<string>* colnames)
 {
 	uint32_t j;
 
-	m_parent = parent;
 	m_table = table;
 
 	vector<filtercheck_field_info>* legend = m_table->get_legend();
@@ -248,8 +247,8 @@ void curses_table::print_wait()
 	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 
 	mvwprintw(m_tblwin, 
-		m_screenh / 2,
-		m_screenw / 2 - wstr.size() / 2, 
+		m_parent->m_screenh / 2,
+		m_parent->m_screenw / 2 - wstr.size() / 2, 
 		wstr.c_str());	
 }
 
@@ -415,7 +414,7 @@ render_end:
 		m_scrolloff_y,
 		0,
 		m_scrolloff_y + (m_h - 1),
-		m_screenw - 1,
+		m_parent->m_screenw - 1,
 		FALSE);
 
 	wrefresh(m_tblwin);

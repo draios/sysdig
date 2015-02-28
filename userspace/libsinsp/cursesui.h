@@ -332,12 +332,17 @@ public:
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	curses_table* m_viz;
+	uint32_t m_screenw;
+	uint32_t m_screenh;
 
 private:
 #ifndef NOCURSESUI
 	void render();
 	void render_header();
+	void render_default_main_menu();
+	void render_search_main_menu();
 	void render_main_menu();
+	sysdig_table_action handle_textbox_input(int ch);
 	sysdig_table_action handle_input(int ch);
 
 #endif
@@ -345,8 +350,6 @@ private:
 
 	sinsp* m_inspector;
 	vector<string> m_menuitems;
-	uint32_t m_screenw;
-	uint32_t m_screenh;
 	sinsp_table* m_datatable;
 	string m_event_source_name;
 	string m_capture_filter;
@@ -354,4 +357,6 @@ private:
 	uint64_t m_last_input_check_ts;
 	bool m_searching;
 	curses_table_sidemenu* m_sidemenu;
+	uint32_t m_cursor_pos;
+	string m_flt_string;
 };

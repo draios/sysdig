@@ -105,6 +105,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, strin
 	m_capture_filter = capture_filter;
 	m_paused = false;
 	m_last_input_check_ts = 0;
+	m_searching = false;
 	m_sidemenu = NULL;
 
 	//
@@ -264,8 +265,8 @@ void sinsp_cursesui::start(bool is_drilldown, string filter)
 	m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 
 #ifndef NOCURSESUI
-	m_viz = new curses_table();
-	m_viz->configure(this, m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
+	m_viz = new curses_table(this);
+	m_viz->configure(m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
 	if(!is_drilldown)
 	{
 		populate_sidemenu("", &m_sidemenu_viewlist);
@@ -321,29 +322,105 @@ void sinsp_cursesui::render_header()
 	}
 }
 
+void sinsp_cursesui::render_default_main_menu()
+{
+	uint32_t j = 0;
+	uint32_t k = 0;
+
+	move(m_screenh - 1, 0);
+	for(uint32_t j = 0; j < m_screenw; j++)
+	{
+		addch(' ');
+	}
+
+	for(j = 0; j < m_menuitems.size(); j++)
+	{
+		attrset(m_colors[PROCESS]);
+		string fks = string("F") + to_string(j + 1);
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
+		k += 2;
+
+		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+		fks = m_menuitems[j];
+		fks.resize(6, ' ');
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+		k += 6;
+	}
+}
+
+void sinsp_cursesui::render_search_main_menu()
+{
+	uint32_t k = 0;
+
+	//
+	// Only clear the line if this is the first refresh, to prevent deleting the
+	// text that the user is typing
+	//
+	if(m_cursor_pos == 0)
+	{
+		move(m_screenh - 1, 0);
+		for(uint32_t j = 0; j < m_screenw; j++)
+		{
+			addch(' ');
+		}
+	}
+
+	attrset(m_colors[PROCESS]);
+	string fks = "Enter";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Done";
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	attrset(m_colors[PROCESS]);
+	fks = "Esc";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Clear";
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	k++;
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = " Filter: ";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+
+	uint32_t cursor_pos = k;
+
+	if(m_cursor_pos == 0)
+	{
+		for(; k < m_screenw; k++)
+		{
+			addch(' ');
+		}
+
+		m_cursor_pos = cursor_pos;
+
+		mvprintw(m_screenh - 1, m_cursor_pos, m_flt_string.c_str());
+
+		m_cursor_pos += m_flt_string.size();
+	}
+
+	move(m_screenh - 1, m_cursor_pos);
+}
+
 void sinsp_cursesui::render_main_menu()
 {
 	if(m_searching)
 	{
+		render_search_main_menu();
 	}
 	else
 	{
-		uint32_t j = 0;
-		uint32_t k = 0;
-
-		for(j = 0; j < m_menuitems.size(); j++)
-		{
-			attrset(m_colors[PROCESS]);
-			string fks = string("F") + to_string(j + 1);
-			mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
-			k += 2;
-
-			attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-			fks = m_menuitems[j];
-			fks.resize(6, ' ');
-			mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
-			k += 6;
-		}
+		render_default_main_menu();
 	}
 }
 
@@ -524,6 +601,40 @@ void sinsp_cursesui::pause()
 	render_header();
 }
 
+sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
+{
+	switch(ch)
+	{
+		case 27: // ESC
+			m_flt_string = "";
+			// FALL THROUGH
+		case '\n':
+		case '\r':
+		case KEY_ENTER:
+		case KEY_F(4):
+			m_searching = 0;
+			curs_set(0);
+			render();
+			break;
+		case KEY_BACKSPACE:
+			m_cursor_pos--;
+			move(m_screenh - 1, m_cursor_pos);
+			addch(' ');
+			move(m_screenh - 1, m_cursor_pos);
+			m_flt_string.pop_back();
+			break;
+	}
+
+	if(ch >= ' ' && ch <= '~')
+	{
+		addch(ch);
+		m_flt_string += ch;
+		m_cursor_pos++;
+	}
+
+	return STA_NONE;
+}
+
 sysdig_table_action sinsp_cursesui::handle_input(int ch)
 {
 	if(m_sidemenu)
@@ -541,7 +652,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 	if(m_searching)
 	{
-		ASSERT(m_sidemenu = NULL);
+		ASSERT(m_sidemenu == NULL);
+		return handle_textbox_input(ch);
 	}
 
 	sysdig_table_action actn = m_viz->handle_input(ch);
@@ -552,6 +664,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 	switch(ch)
 	{
+		case 27: // ESC
 		case 'q':
 			return STA_QUIT;
 		case 'p':
@@ -575,7 +688,10 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			break;
 		case KEY_F(4):
 			m_searching = true;
+			m_cursor_pos = 0;
 			curs_set(1);
+			render();
+			break;
 		default:
 		break;
 	}
