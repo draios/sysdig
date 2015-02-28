@@ -1314,133 +1314,249 @@ void sinsp_filter::pop_expression()
 //
 string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 {
-	// Will contain each filter component
+	// Will contain each filter component splitting on " "
 	vector<string> components;
 
-	// The return fltstr
+	// The return fltstr which has been modified
 	string modified_fltstr;
 
 	// Tmp storage of each operand 'filter' e.g. proc.name
 	string operand;
 
-	// Flags to keep the state while transforming the SQL 'in' clause to a sysdig 'or' syntax
+	// Flags to keep the state while transforming the SQL 'in' clause to the sysdig 'or' syntax
 	bool in_state = false;
-	bool done_in_state = false;
 	bool start_in_state = false;
+	bool done_in_state = false;
+	bool value_state = false;
+	bool start_value_state = false;
+	bool done_value_state = false;
 
+    // Count to make sure "," exists within SQL "in" clause
+    uint32_t value_count = 0;
+    uint32_t comma_count = 0;
+
+	// Only parse the filter string if it has SQL "in" clause(s)
 	if(strcasestr(fltstr.c_str(), " in") != NULL || strcasestr(fltstr.c_str(), " in(") != NULL)
 	{
 		// Assign the local fltstr so it can be modified in place
-		modified_fltstr = fltstr;
-		replace_in_place( modified_fltstr, "(", " ( ");
-		replace_in_place( modified_fltstr, ")", " ) ");
+        modified_fltstr = fltstr;
 
 		// Get all of the components of the filter for the state machine
 		components = sinsp_split(modified_fltstr, ' ');
 
 		// Clear to reuse and rebuild the new filter string
-		modified_fltstr.clear();
+        modified_fltstr.clear();
 
-		uint32_t j;
-		for(j = 0; j < components.size(); j++)
-		{
-			// Remove all white space before and after each component
-			components[j] = trim(components[j]);
-
-			// Start processing SQL 'in' clause as component is "in"
-			if(components[j] == "in" && components[j] != "contains")
-			{
-				// Make sure there is an operand before the first in clause
-				if(j != 0)
-				{
+        // Filter component state machine
+        uint32_t j;
+        for(j = 0; j < components.size(); j++)
+        {
+			// Start processing SQL 'in' clause; only these three options can start this state
+			if(!start_value_state && 
+			   !in_state &&
+               ( components[j] == "in" || components[j] == "in(" ))
+            {
+                // Make sure there is an operand before the first "in" clause
+                if(j != 0)
+                {
+					// Capture the operand to build 'or's e.g. "proc.name in(..."
 					operand = components[j - 1];
+                }
+                else
+                {
+                    // No filter field before SQL "in" clause e.g. "and in(..."
+                    ASSERT(false);
+                    throw sinsp_exception("syntax error no filter filed before SQL 'in' clause");
+                }
+
+                // Set the "in" State BEGINNING the "in" clause transformation to "or"s
+                in_state = true;
+                start_in_state = true;
+                done_in_state = false;
+
+            }
+            // Stop processing SQL 'in' clause; given these three conditions
+            else if(!start_value_state && // Start value state has passed
+                    in_state && // Still in the SQL "in" state
+                    components[j] == ")" ) // SQL "in" end delimiter found
+            {
+                // Set the "in" State ENDING  the "in" clause transformation to "or"s
+                in_state = false;
+                done_in_state = true;
+
+            }
+
+            // Check to see if the componet might be a value wrapped with "'"
+            std::size_t first = components[j].find_first_of("'");
+            std::size_t last = components[j].find_last_of("'");
+
+            // Start value state machine if there is only 1 "'" within component 
+            if(first == last)
+            {
+                // End the value state iff 
+             	if(value_state && // Value state started 
+				   strcasestr(components[j].c_str(), "'") != NULL) // Value end delimiter found 
+				{
+                    // Done parsing this value within the SQL "in" clause
+					value_state = false;
+    				done_value_state = true;
 				}
+				// Only start the value state if 
+            	else if(in_state && // Started the SQL 'in' state
+						!value_state && // Not already started the value state
+                 		strcasestr(components[j].c_str(), "'") != NULL) // Value start delimiter found 
+				{
+					// Start parsing this value within the SQL "in" clause
+					value_state = true;
+					start_value_state = true;
+    				done_value_state = false;
+				}
+			}
+
+            // Done parsing the SQL "in" clause
+			if(done_in_state)
+            {
+				// Make sure there are "," between SQL "in" clause values
+				if(comma_count != value_count-1 && // The comma count is 1 less then value count
+                   value_count != 1) // There is more than 1 values within the SQL "in" clause
+                {
+                    // There were not enough commas given the amount of values 
+                    ASSERT(false);
+                    throw sinsp_exception("syntax error in filter SQL 'in' clause missing ',' ");
+                }
+
+				// Reset the counts for each potential SQL "in" clause 
+                comma_count = 0;
+                value_count = 0;
+				done_in_state = false;
+
+				// Make sure to add ending scope resolution when done with SQL "in" clause conversion
+				modified_fltstr += " ) ";
+            }
+            // Each component not apart of the SQL 'in' clause
+			else if(!in_state)
+			{
+                //
+				// Do to the way this state machine works a filter field exists before
+				// the SQL "in" clause start delimiter is found
+                // if the next component is apart of the SQL "in" clause then start scope resolution
+                //
+                if(j+1 < components.size() && (components[j+1] == "in(" || components[j+1] == "in"))
+                {
+					// Only add scope resolution "(" and do not add the operand
+                	modified_fltstr += "( ";
+                }
 				else
 				{
-					// No filter event for the first SQL "in" clause
-					ASSERT(false);
-					throw sinsp_exception("syntax error in filter SQL 'in' clause");
+					// Add each component back to the filter string as it was originally
+					modified_fltstr += components[j] + " ";
 				}
-
-				// Remove "in" from current component
-				if(components[j] == "in")
-				{
-					components[j].erase(components[j].begin(),components[j].begin()+2);
-				}
-
-				// Set the "in" State beginning the "in" clause transformation to "or"s
-				in_state = true;
-				start_in_state = true;
 			}
-			// Stop processing SQL 'in' clause
-			else if(strcasestr( components[j].c_str(), ")") != NULL)
-			{
-				in_state = false;
-				done_in_state = true;
-
-				// Remove the trailing ")"
-				std::size_t found = components[j].find(")");
-				components[j].erase(found,1);
-			}
-
-			// Add components that are not in the SQL 'in' clause
-			if(!in_state)
-			{
-				// Current implementation state machine adds an extra "or" at the end
-				if(done_in_state)
-				{
-					// Remove the trailing "or "
-					modified_fltstr.erase(modified_fltstr.end()-3,modified_fltstr.end());
-
-					// Add the ")" for scope resolution
-					modified_fltstr += " )";
-
-					done_in_state = false;
-				}
-
-				// If the next component starts the SQL "in" clause add "(" for scope resolution
-				if(j + 1 < components.size() && (components[j+1] == "in"))
-				{
-					modified_fltstr += "( " + components[j];
-				}
-				else
-				{
-					modified_fltstr += components[j];
-				}
-
-				modified_fltstr += " ";
-			}
-			// Add components that are in the SQL 'in' clause
+            // while in the SQL "in" state do the following
 			else if(in_state)
 			{
-				//
-				// NOTE: This limits SQL "in" clause(s) to not contain "," as a filter
-				// E.g. proc.name in ( 'value,', ',value' ) will not work
-				//
-				replace_in_place( components[j], ",", "");
-
-				if(strcasestr( components[j].c_str(), "(") != NULL)
+				// Check if in the value's start state
+                if(value_state && start_value_state)
+                {
+					// Append the operand filter field before the value
+					modified_fltstr += operand + "=" + components[j] + " ";
+					start_value_state = false;
+                }
+				// Check if in the value's state but not its start state
+                else if(value_state && !start_value_state)
 				{
-					// Remove the beginning "("
-					std::size_t found = components[j].find("(");
-					components[j].erase(found,1);
+					//
+                    // There might be one or more parts to a value, so append them
+					// this is due to splitting on " " to loop through each component
+					//
+					modified_fltstr += components[j] + " ";
 				}
+				// Ending the value state
+                else if(done_value_state)
+                {
+					// Check to see if the last part of the value has a "," attached
+                    std::size_t found = components[j].find(",");
+                    if(found+1 == components[j].size())
+                    {
+						// If a comma is attached replace it with an " or "
+                        replace_in_place( components[j], ",", " or ");
 
-				// Only include none empty components
-				if(components[j].size() > 0)
-				{
-					// Beginning of the SQL 'in' clause
-					if(start_in_state)
+						// Keep track that a "," was found
+                        comma_count++;
+                    }
+
+					modified_fltstr += components[j];
+
+					// Keep track that a value was found
+					value_count++;
+					done_value_state = false;
+                }
+				// No longer parsing a value; which means there wasn't a single "'" in this component
+                else
+                {
+					// If the "," wasn't attached to the end of a value e.g. "... value1 , value2"
+					if(components[j] == ",")
 					{
-						// NOTE: operand already added to reason to add it again
-						modified_fltstr += "=" + components[j] + " or ";
-						start_in_state = false;
+						// If a comma then replace it with an " or "
+						replace_in_place( components[j], ",", " or ");
+
+						// Keep track that a "," was found
+						comma_count++;
+						modified_fltstr += components[j];
 					}
+					// Beginning of SQL "in" clause skip "in(" or "in", but allow these within values
+					else if(start_in_state && components[j] != "in(" && components[j] != "in" && components[j] != "(")
+					{
+						// Drop all space seperators because of splitting on " "
+						if(components[j] != "")
+						{
+							// Check to see if the last part of the value has a "," attached
+                    		std::size_t found = components[j].find(",");
+                    		if(found+1 == components[j].size())
+							{
+								// If a comma is attached replace it with an " or "
+								replace_in_place( components[j], ",", " or ");
+
+								// Keep track that a "," was found
+								comma_count++;
+							}
+
+							modified_fltstr += operand + "=" + components[j] + " ";
+
+							// Keep track that a value was found
+							value_count++;
+                    		start_in_state = false;
+						}
+					}
+					// All of the rest of the values within the SQL "in" clause
+					else if(!start_in_state)
+                    {
+                        // Drop all space seperators because of splitting on " "
+                        if(components[j] != "")
+                        {
+                            // Check to see if the last part of the value has a "," attached
+                            std::size_t found = components[j].find(",");
+                            if(found+1 == components[j].size())
+                            {
+                                // If a comma is attached replace it with an " or "
+                                replace_in_place( components[j], ",", " or ");
+
+                                // Keep track that a "," was found
+                                comma_count++;
+                            }
+
+							modified_fltstr += operand + "=" + components[j] + " ";
+
+							// Keep track that a value was found
+							value_count++;
+						}
+                    }
 					else
 					{
-						modified_fltstr += operand + "=" + components[j] + " or ";
+						// Edge case if the first value is "in" e.g. "proc.name in ( in ..."
+                    	start_in_state = false;
 					}
-				}
+                }
 			}
 		}
 	}
@@ -1552,7 +1668,7 @@ void sinsp_filter::compile(const string& fltstr)
 
 			break;
 		default:
-			if (m_state == ST_NEED_EXPRESSION)
+			if(m_state == ST_NEED_EXPRESSION)
 			{
 				parse_check(m_curexpr, m_last_boolop);
 
