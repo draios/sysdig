@@ -104,6 +104,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, strin
 	m_capture_filter = capture_filter;
 	m_paused = false;
 	m_last_input_check_ts = 0;
+	m_sidemenu = NULL;
 
 	//
 	// Colors initialization
@@ -204,6 +205,11 @@ puppo++;
 		delete m_viz;
 	}
 #endif
+
+	if(m_sidemenu != NULL)
+	{
+		delete m_sidemenu;
+	}
 }
 
 void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
@@ -316,21 +322,27 @@ void sinsp_cursesui::render_header()
 
 void sinsp_cursesui::render_main_menu()
 {
-	uint32_t j = 0;
-	uint32_t k = 0;
-
-	for(j = 0; j < m_menuitems.size(); j++)
+	if(m_searching)
 	{
-		attrset(m_colors[PROCESS]);
-		string fks = string("F") + to_string(j + 1);
-		mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
-		k += 2;
+	}
+	else
+	{
+		uint32_t j = 0;
+		uint32_t k = 0;
 
-		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-		fks = m_menuitems[j];
-		fks.resize(6, ' ');
-		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
-		k += 6;
+		for(j = 0; j < m_menuitems.size(); j++)
+		{
+			attrset(m_colors[PROCESS]);
+			string fks = string("F") + to_string(j + 1);
+			mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
+			k += 2;
+
+			attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+			fks = m_menuitems[j];
+			fks.resize(6, ' ');
+			mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+			k += 6;
+		}
 	}
 }
 
@@ -345,6 +357,14 @@ void sinsp_cursesui::render()
 	// Draw the menu at the bottom of the screen
 	//
 	render_main_menu();
+
+	//
+	// If requires, draw the side menu
+	//
+	if(m_sidemenu)
+	{
+		m_sidemenu->render();
+	}
 }
 #endif
 
@@ -501,4 +521,58 @@ void sinsp_cursesui::pause()
 	m_paused = !m_paused;
 	m_datatable->set_paused(m_paused);
 	render_header();
+}
+
+sysdig_table_action sinsp_cursesui::handle_input(int ch)
+{
+	if(m_sidemenu)
+	{
+		sysdig_table_action ta = m_sidemenu->handle_input(ch);
+		if(ta == STA_SWITCH_VIEW)
+		{
+			return ta;
+		}
+		else if(ta != STA_PARENT_HANDLE)
+		{
+			return STA_NONE;
+		}
+	}
+
+	sysdig_table_action actn = m_viz->handle_input(ch);
+	if(actn != STA_NONE)
+	{
+		return actn;
+	}
+
+	switch(ch)
+	{
+		case 'q':
+			return STA_QUIT;
+		case 'p':
+			pause();
+			break;
+		case KEY_F(2):
+			if(m_sidemenu == NULL)
+			{
+				m_viz->set_x_start(SIDEMENU_WIDTH);
+				m_sidemenu = new curses_table_sidemenu(m_viz);
+			}
+			else
+			{
+				m_viz->set_x_start(0);
+				delete m_sidemenu;
+				m_sidemenu = NULL;
+			}
+
+			m_viz->recreate_win();
+			render();
+			break;
+		case KEY_F(4):
+			m_searching = true;
+			curs_set(1);
+		default:
+		break;
+	}
+
+	return STA_NONE;
 }

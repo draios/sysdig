@@ -312,7 +312,6 @@ curses_table::curses_table()
 	m_table = NULL;
 	m_table_x_start = 0;
 	m_table_y_start = TABLE_Y_START;
-	m_sidemenu = NULL;
 	m_drilled_up = false;
 	m_selection_changed = false;
 
@@ -385,11 +384,6 @@ curses_table::~curses_table()
 	if(m_tblwin)
 	{
 		delwin(m_tblwin);
-	}
-
-	if(m_sidemenu != NULL)
-	{
-		delete m_sidemenu;
 	}
 
 	delete m_converter;
@@ -686,14 +680,6 @@ render_end:
 //mvprintw(0, 0, "!!!!%d", (int)res);
 //refresh();
 
-	//
-	// Draw the side menu
-	//
-	if(m_sidemenu)
-	{
-		m_sidemenu->render();
-	}
-
 	refresh();
 }
 
@@ -712,26 +698,8 @@ void curses_table::scrollwin(uint32_t x, uint32_t y)
 //
 sysdig_table_action curses_table::handle_input(int ch)
 {
-	if(m_sidemenu)
-	{
-		sysdig_table_action ta = m_sidemenu->handle_input(ch);
-		if(ta == STA_SWITCH_VIEW)
-		{
-			return ta;
-		}
-		else if(ta != STA_PARENT_HANDLE)
-		{
-			return STA_NONE;
-		}
-	}
-
 	switch(ch)
 	{
-		case 'q':
-			return STA_QUIT;
-		case 'p':
-			m_parent->pause();
-			break;
 /*
 		case 'a':
 			numbers[0]++;
@@ -786,23 +754,25 @@ sysdig_table_action curses_table::handle_input(int ch)
 			mvprintw(0, 0, "F1");
 			refresh();
 			break;
+/*
 		case KEY_F(2):
-			if(m_sidemenu == NULL)
+			if(m_parent->m_sidemenu == NULL)
 			{
 				m_table_x_start = SIDEMENU_WIDTH;
-				m_sidemenu = new curses_table_sidemenu(this);
+				m_parent->m_sidemenu = new curses_table_sidemenu(this);
 			}
 			else
 			{
 				m_table_x_start = 0;
-				delete m_sidemenu;
-				m_sidemenu = NULL;
+				delete m_parent->m_sidemenu;
+				m_parent->m_sidemenu = NULL;
 			}
 
 			delwin(m_tblwin);
 			m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
 			render(true);
-			break;
+			return STA_SKIP;
+*/			
 		case KEY_MOUSE:
 			{
 				uint32_t j;
@@ -879,6 +849,8 @@ sysdig_table_action curses_table::handle_input(int ch)
 				}
 			}
 			break;
+		default:
+			break;
 	}
 
 	return STA_NONE;
@@ -903,6 +875,13 @@ curses_table::alignment curses_table::get_field_alignment(ppm_param_type type)
 	default:
 		return ALIGN_LEFT;
 	}
+}
+
+void curses_table::recreate_win()
+{
+	delwin(m_tblwin);
+	m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
+	render(true);
 }
 
 #endif // SYSTOP

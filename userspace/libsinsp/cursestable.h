@@ -32,7 +32,6 @@ public:
 #ifdef SYSTOP
 #define TABLE_WIDTH 400
 #define TABLE_Y_START 2
-#define SIDEMENU_WIDTH 20
 
 #include <curses.h>
 
@@ -112,10 +111,14 @@ public:
 	void render(bool data_changed);
 	void scrollwin(uint32_t x, uint32_t y);
 	sysdig_table_action handle_input(int ch);
-	sinsp_table_field_storage m_last_key;
+	void set_x_start(uint32_t x)
+	{
+		m_table_x_start = x;
+	}
+	void recreate_win();
 
+	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
-	curses_table_sidemenu* m_sidemenu;
 	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	
 private:

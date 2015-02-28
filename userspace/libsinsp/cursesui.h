@@ -21,6 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
+#define SIDEMENU_WIDTH 20
 
 string combine_filters(string flt1, string flt2);
 
@@ -219,7 +220,7 @@ public:
 					ninputs++;
 				}
 
-				sysdig_table_action ta = m_viz->handle_input(input);
+				sysdig_table_action ta = handle_input(input);
 
 				if(ta == STA_QUIT)
 				{
@@ -331,6 +332,7 @@ private:
 	void render();
 	void render_header();
 	void render_main_menu();
+	sysdig_table_action handle_input(int ch);
 
 #endif
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
@@ -345,4 +347,6 @@ private:
 	string m_capture_filter;
 	bool m_paused;
 	uint64_t m_last_input_check_ts;
+	bool m_searching;
+	curses_table_sidemenu* m_sidemenu;
 };

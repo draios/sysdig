@@ -1473,21 +1473,24 @@ sysdig_init_res systop_init(int argc, char **argv)
 	//
 #ifndef NOCURSESUI
 	(void) initscr();      // initialize the curses library
-	keypad(stdscr, TRUE);  // enable keyboard mapping
 	(void) nonl();         // tell curses not to do NL->CR/NL on output
 	intrflush(stdscr, false);
 	keypad(stdscr, true);
 	curs_set(0);
 	if (has_colors()) {
 	  start_color();
-	}
+	}	
 	use_default_colors();
 	mousemask(ALL_MOUSE_EVENTS, NULL);
 	noecho();
+	
 	timeout(0);
+	
 	// If this is uncommented, it's possible to natively handle stuff like CTRL+c
-	//raw();
+	//raw();	
 #endif
+char str[80];
+getstr(str);
 
 	//
 	// Parse the arguments
