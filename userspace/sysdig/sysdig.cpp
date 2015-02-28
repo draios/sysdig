@@ -40,6 +40,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <getopt.h>
 #endif
 
+#include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
 

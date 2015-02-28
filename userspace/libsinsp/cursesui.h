@@ -259,7 +259,11 @@ public:
 						m_inspector->open(m_event_source_name);
 					}
 
-					populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
+					populate_sidemenu(field, &m_sidemenu_viewlist);
+
+					delete m_sidemenu;
+					m_sidemenu = NULL;
+
 					m_viz->render(true);
 					render();
 				}
@@ -326,6 +330,8 @@ public:
 	uint32_t m_selected_view;
 	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
+	vector<sidemenu_list_entry> m_sidemenu_viewlist;
+	curses_table* m_viz;
 
 private:
 #ifndef NOCURSESUI
@@ -342,7 +348,6 @@ private:
 	uint32_t m_screenw;
 	uint32_t m_screenh;
 	sinsp_table* m_datatable;
-	curses_table* m_viz;
 	string m_event_source_name;
 	string m_capture_filter;
 	bool m_paused;

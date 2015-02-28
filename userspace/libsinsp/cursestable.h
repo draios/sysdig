@@ -16,82 +16,7 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-class sidemenu_list_entry
-{
-public:
-	sidemenu_list_entry(string viewname, uint32_t viewid)
-	{
-		m_viewname = viewname;
-		m_viewid = viewid;
-	}
-
-	string m_viewname;
-	uint32_t m_viewid;
-};
-
 #ifdef SYSTOP
-#define TABLE_WIDTH 400
-#define TABLE_Y_START 2
-
-#include <curses.h>
-
-class sinsp_filter_check_reference;
-class curses_table;
-class sinsp_cursesui;
-
-class curses_table_column_info
-{
-public:	
-	curses_table_column_info()
-	{
-	}
-
-	//
-	// Use -1 as size for atuosize
-	//
-	curses_table_column_info(IN filtercheck_field_info* info, int32_t size)
-	{
-		m_info = *info;
-		m_size = size;
-	}
-
-//private:
-	filtercheck_field_info m_info;
-	int32_t m_size;
-	string m_name;
-
-	friend class curses_table;
-};
-
-class curses_scrollable_list
-{
-public:
-	curses_scrollable_list();
-	void sanitize_selection(int32_t datasize);
-	void selection_up(int32_t datasize);
-	void selection_down(int32_t datasize);
-	void selection_pageup(int32_t datasize);
-	void selection_pagedown(int32_t datasize);
-	void selection_goto(int32_t datasize, int32_t row);
-
-	int32_t m_selct;
-	int32_t m_firstrow;
-	uint32_t m_w;
-	uint32_t m_h;
-};
-
-class curses_table_sidemenu : public curses_scrollable_list
-{
-public:
-	curses_table_sidemenu(curses_table* parent);
-	~curses_table_sidemenu();
-	void render();
-	sysdig_table_action handle_input(int ch);
-
-	WINDOW* m_win;
-	int32_t m_y_start;
-	curses_table* m_parent;
-};
 
 class curses_table : public curses_scrollable_list
 {
@@ -119,7 +44,6 @@ public:
 
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
-	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	
 private:
 	void update_rowkey(int32_t row);

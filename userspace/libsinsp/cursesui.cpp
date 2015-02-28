@@ -8,6 +8,7 @@
 #include <curses.h>
 #endif
 #include "table.h"
+#include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
 
@@ -267,7 +268,7 @@ void sinsp_cursesui::start(bool is_drilldown, string filter)
 	m_viz->configure(this, m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
 	if(!is_drilldown)
 	{
-		populate_sidemenu("", &m_viz->m_sidemenu_viewlist);
+		populate_sidemenu("", &m_sidemenu_viewlist);
 	}
 #endif
 }
@@ -444,7 +445,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				start(true, filter);
 #ifndef NOCURSESUI
 				clear();
-				populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
+				populate_sidemenu(field, &m_sidemenu_viewlist);
 				m_selected_sidemenu_entry = 0;
 				m_viz->render(true);
 				render();
@@ -501,7 +502,7 @@ bool sinsp_cursesui::drillup()
 		}
 
 		m_viz->m_drilled_up = true;
-		populate_sidemenu(field, &m_viz->m_sidemenu_viewlist);
+		populate_sidemenu(field, &m_sidemenu_viewlist);
 		clear();
 //mvprintw(1, 0, "@@@@%d-%d-%s", m_selected_view, m_selected_sidemenu_entry, field.c_str());
 //refresh();
@@ -538,8 +539,13 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		}
 	}
 
+	if(m_searching)
+	{
+		ASSERT(m_sidemenu = NULL);
+	}
+
 	sysdig_table_action actn = m_viz->handle_input(ch);
-	if(actn != STA_NONE)
+	if(actn != STA_PARENT_HANDLE)
 	{
 		return actn;
 	}
@@ -555,7 +561,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			if(m_sidemenu == NULL)
 			{
 				m_viz->set_x_start(SIDEMENU_WIDTH);
-				m_sidemenu = new curses_table_sidemenu(m_viz);
+				m_sidemenu = new curses_table_sidemenu(this);
 			}
 			else
 			{

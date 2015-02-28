@@ -9,8 +9,9 @@ add_library(sinsp STATIC
 	chisel_api.cpp
 	container.cpp
 	cyclewriter.cpp
-	cursesui.cpp
+	cursescomponents.cpp
 	cursestable.cpp
+	cursesui.cpp
 	event.cpp
 	eventformatter.cpp
 	dumper.cpp
