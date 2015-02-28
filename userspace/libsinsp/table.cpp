@@ -617,11 +617,11 @@ void sinsp_table::filter_sample()
 	}
 }
 
-void sinsp_table::sort_sample(vector<sinsp_sample_row>* sample_data)
+void sinsp_table::sort_sample()
 {
-	if(sample_data->size() != 0)
+	if(m_sample_data->size() != 0)
 	{
-		if(m_sorting_col >= (int32_t)sample_data->at(0).m_values.size())
+		if(m_sorting_col >= (int32_t)m_sample_data->at(0).m_values.size())
 		{
 			throw sinsp_exception("invalid table sorting column");
 		}
@@ -635,8 +635,8 @@ void sinsp_table::sort_sample(vector<sinsp_sample_row>* sample_data)
 //mvprintw(4, 10, "s%d:%d", (int)m_sorting_col, (int)m_is_sorting_ascending);
 //refresh();
 
-		sort(sample_data->begin(),
-			sample_data->end(),
+		sort(m_sample_data->begin(),
+			m_sample_data->end(),
 			cc);
 	}
 }
@@ -664,7 +664,7 @@ vector<sinsp_sample_row>* sinsp_table::get_sample()
 		//
 		// Sort the sample
 		//
-		sort_sample(m_sample_data);
+		sort_sample();
 	}
 
 #ifdef _WIN32
