@@ -106,12 +106,12 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, strin
 	m_paused = false;
 	m_last_input_check_ts = 0;
 	m_searching = false;
+#ifndef NOCURSESUI
 	m_sidemenu = NULL;
 
 	//
 	// Colors initialization
 	//
-#ifndef NOCURSESUI
 	m_colors[RESET_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
 	m_colors[DEFAULT_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
 	m_colors[FUNCTION_BAR] = ColorPair(COLOR_BLACK,COLOR_CYAN);
@@ -192,7 +192,6 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, strin
 #endif
 }
 
-int puppo = 0;
 sinsp_cursesui::~sinsp_cursesui()
 {
 	if(m_datatable != NULL)
@@ -203,15 +202,14 @@ sinsp_cursesui::~sinsp_cursesui()
 #ifndef NOCURSESUI
 	if(m_viz != NULL)
 	{
-puppo++;		
 		delete m_viz;
 	}
-#endif
 
 	if(m_sidemenu != NULL)
 	{
 		delete m_sidemenu;
 	}
+#endif
 }
 
 void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
@@ -452,6 +450,7 @@ sinsp_table_info* sinsp_cursesui::get_selected_view()
 	return &m_views[m_selected_view];
 }
 
+#ifndef NOCURSESUI
 void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist)
 {
 	uint32_t j = 0;
@@ -471,6 +470,7 @@ void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>
 		j++;
 	}
 }
+#endif // NOCURSESUI
 
 string combine_filters(string flt1, string flt2)
 {
@@ -598,9 +598,12 @@ void sinsp_cursesui::pause()
 {
 	m_paused = !m_paused;
 	m_datatable->set_paused(m_paused);
+#ifndef NOCURSESUI
 	render_header();
+#endif
 }
 
+#ifndef NOCURSESUI
 sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 {
 	switch(ch)
@@ -698,3 +701,4 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 	return STA_NONE;
 }
+#endif // NOCURSESUI

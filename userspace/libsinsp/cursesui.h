@@ -344,9 +344,10 @@ private:
 	void render_main_menu();
 	sysdig_table_action handle_textbox_input(int ch);
 	sysdig_table_action handle_input(int ch);
-
-#endif
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
+
+	curses_table_sidemenu* m_sidemenu;
+#endif
 
 	sinsp* m_inspector;
 	vector<string> m_menuitems;
@@ -356,7 +357,6 @@ private:
 	bool m_paused;
 	uint64_t m_last_input_check_ts;
 	bool m_searching;
-	curses_table_sidemenu* m_sidemenu;
 	uint32_t m_cursor_pos;
 	string m_flt_string;
 };

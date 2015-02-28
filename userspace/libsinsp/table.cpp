@@ -562,33 +562,66 @@ void sinsp_table::flush(sinsp_evt* evt)
 	return;
 }
 
-void sinsp_table::stdout_print()
+void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data)
 {
 	vector<filtercheck_field_info>* legend = get_legend();
 
-	for(auto it = m_sample_data.begin(); it != m_sample_data.end(); ++it)
+	for(auto it = sample_data->begin(); it != sample_data->end(); ++it)
 	{
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
 			m_printer->set_val(m_types->at(j + 1), 
 				it->m_values[j].m_val, 
 				it->m_values[j].m_len,
-				legend->at(j).m_print_format);
+				legend->at(j + 1).m_print_format);
 				printf("%s ", m_printer->tostring_nice(NULL, 10));
 //				printf("%s ", m_printer->tostring(NULL));
 		}
 
-			printf("\n");
+		printf("\n");
 	}
 
-		printf("----------------------\n");
+	printf("----------------------\n");
 }
 
-void sinsp_table::sort_sample()
+void sinsp_table::filter_sample()
 {
-	if(m_sample_data.size() != 0)
+	vector<filtercheck_field_info>* legend = get_legend();
+
+	m_filtered_sample_data.clear();
+
+	for(auto it : m_full_sample_data)
 	{
-		if(m_sorting_col >= (int32_t)m_sample_data[0].m_values.size())
+		for(uint32_t j = 0; j < it.m_values.size(); j++)
+		{
+			ppm_param_type type = m_types->at(j + 1);
+
+			if(type == PT_CHARBUF || type == PT_BYTEBUF || type == PT_SYSCALLID ||
+				type == PT_PORT || type == PT_L4PROTO || type == PT_SOCKFAMILY || type == PT_IPV4ADDR ||
+				type == PT_UID || type == PT_GID)
+			{
+				m_printer->set_val(type, 
+					it.m_values[j].m_val, 
+					it.m_values[j].m_len,
+					legend->at(j + 1).m_print_format);
+					
+				string strval = m_printer->tostring_nice(NULL, 0);
+
+				if(strval.find(m_freetext_filter) != string::npos)
+				{
+					m_filtered_sample_data.push_back(it);
+					break;
+				}
+			}
+		}
+	}
+}
+
+void sinsp_table::sort_sample(vector<sinsp_sample_row>* sample_data)
+{
+	if(sample_data->size() != 0)
+	{
+		if(m_sorting_col >= (int32_t)sample_data->at(0).m_values.size())
 		{
 			throw sinsp_exception("invalid table sorting column");
 		}
@@ -602,25 +635,44 @@ void sinsp_table::sort_sample()
 //mvprintw(4, 10, "s%d:%d", (int)m_sorting_col, (int)m_is_sorting_ascending);
 //refresh();
 
-		sort(m_sample_data.begin(),
-			m_sample_data.end(),
+		sort(sample_data->begin(),
+			sample_data->end(),
 			cc);
 	}
 }
 
 vector<sinsp_sample_row>* sinsp_table::get_sample()
 {
+	//
+	// No sample generation happens when the table is paused
+	//
 	if(!m_paused)
 	{
-		sort_sample();
+		//
+		// If we have a freetext filter, we start by filtering the sample
+		//
+		if(m_freetext_filter.size() != 0)
+		{
+			filter_sample();
+			m_sample_data = &m_filtered_sample_data;
+		}
+		else
+		{
+			m_sample_data = &m_full_sample_data;
+		}
+
+		//
+		// Sort the sample
+		//
+		sort_sample(m_sample_data);
 	}
 
 #ifdef _WIN32
-	stdout_print();
+	stdout_print(m_sample_data);
 #endif
 
 	//
-	// Restore the type list used for event processing
+	// Restore the lists used for event processing
 	//
 	m_types = &m_premerge_types;
 	m_table = &m_premerge_table;
@@ -628,7 +680,7 @@ vector<sinsp_sample_row>* sinsp_table::get_sample()
 	m_vals_array_sz = m_premerge_vals_array_sz;
 	m_fld_pointers = m_premerge_fld_pointers;
 
-	return &m_sample_data;
+	return m_sample_data;
 }
 
 void sinsp_table::set_sorting_col(uint32_t col)
@@ -690,7 +742,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 void sinsp_table::create_sample()
 {
 	uint32_t j;
-	m_sample_data.clear();
+	m_full_sample_data.clear();
 	sinsp_sample_row row;
 
 	//
@@ -743,7 +795,7 @@ void sinsp_table::create_sample()
 			row.m_values.push_back(fields[j]);
 		}
 
-		m_sample_data.push_back(row);
+		m_full_sample_data.push_back(row);
 	}
 
 }
@@ -1001,7 +1053,7 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 		types = &m_premerge_types;
 	}
 
-	if(rownum >= m_sample_data.size())
+	if(rownum >= m_sample_data->size())
 	{
 		ASSERT(false);
 		res.first = NULL;
@@ -1014,8 +1066,8 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 		ASSERT(res.first != NULL);
 
 		m_printer->set_val(types->at(0), 
-			m_sample_data[rownum].m_key.m_val, 
-			m_sample_data[rownum].m_key.m_len,
+			m_sample_data->at(rownum).m_key.m_val, 
+			m_sample_data->at(rownum).m_key.m_len,
 			legend->at(0).m_print_format);
 
 		res.second = m_printer->tostring(NULL);
@@ -1026,21 +1078,21 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 
 sinsp_table_field* sinsp_table::get_row_key(uint32_t rownum)
 {
-	if(rownum >= m_sample_data.size())
+	if(rownum >= m_sample_data->size())
 	{
 		return NULL;
 	}
 
-	return &m_sample_data[rownum].m_key;
+	return &m_sample_data->at(rownum).m_key;
 }
 
 int32_t sinsp_table::get_row_from_key(sinsp_table_field* key)
 {
 	uint32_t j;
 
-	for(j = 0; j < m_sample_data.size(); j++)
+	for(j = 0; j < m_sample_data->size(); j++)
 	{
-		sinsp_table_field* rowkey = &(m_sample_data[j].m_key);
+		sinsp_table_field* rowkey = &(m_sample_data->at(j).m_key);
 
 		if(rowkey->m_len == key->m_len)
 		{

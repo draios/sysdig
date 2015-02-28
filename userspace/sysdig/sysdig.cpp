@@ -1490,8 +1490,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 	// If this is uncommented, it's possible to natively handle stuff like CTRL+c
 	//raw();	
 #endif
-char str[80];
-getstr(str);
 
 	//
 	// Parse the arguments
@@ -1601,16 +1599,6 @@ getstr(str);
 				(filter.size() != 0)? filter : "");
 
 			vector<sinsp_table_info> views;
-/*
-			views.push_back(sinsp_table_info("cpu test", 
-				"*Kproc.pid proc.pid thread.tid proc.name Mthread.cpu Mproc.cpu", 
-				"all",
-				4,
-				"",
-				"NA,PID,TID,NAME,TCPU%,PCPU%",
-				"-1,8,8,16,8,8",
-				""));
-*/
 			views.push_back(sinsp_table_info("Top Processes", 
 				"*Kproc.pid proc.pid Mproc.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.exeline", 
 				"all",
@@ -1808,8 +1796,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

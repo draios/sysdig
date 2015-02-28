@@ -208,7 +208,8 @@ public:
 	void configure(const string& fmt, const string& merge_fmt, const string& filter);
 	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
-	void sort_sample();
+	void filter_sample();
+	void sort_sample(vector<sinsp_sample_row>* sample_data);
 	vector<sinsp_sample_row>* get_sample();
 	vector<filtercheck_field_info>* get_legend()
 	{
@@ -230,6 +231,10 @@ public:
 	sinsp_table_field* get_row_key(uint32_t rownum);
 	int32_t get_row_from_key(sinsp_table_field* key);
 	void set_paused(bool paused);
+	void set_freetext_filter(string filter)
+	{
+		m_freetext_filter = filter;
+	}
 
 	uint64_t m_next_flush_time_ns;
 
@@ -243,7 +248,7 @@ private:
 	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();
 	void switch_buffers();
-	void stdout_print();
+	void stdout_print(vector<sinsp_sample_row>* sample_data);
 
 	sinsp* m_inspector;
 	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher>* m_table;
@@ -274,7 +279,9 @@ private:
 	uint32_t m_postmerge_vals_array_sz;
 	uint64_t m_refresh_interval;
 	sinsp_filter_check_reference* m_printer;
-	vector<sinsp_sample_row> m_sample_data;
+	vector<sinsp_sample_row> m_full_sample_data;
+	vector<sinsp_sample_row> m_filtered_sample_data;
+	vector<sinsp_sample_row>* m_sample_data;
 	sinsp_table_field* m_vals;
 	int32_t m_sorting_col;
 	bool m_is_sorting_ascending;
@@ -284,6 +291,7 @@ private:
 	uint64_t m_zero_u64;
 	uint64_t m_zero_double;
 	bool m_paused;
+	string m_freetext_filter;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;
