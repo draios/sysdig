@@ -285,8 +285,7 @@ void sinsp_cursesui::render_header()
 		addch(' ');
 	}
 
-	attrset(m_colors[PANEL_HEADER_FOCUS]);
-	mvaddstr(0, 0, "Viewing");
+	mvaddstr(0, 0, "Viewing:");
 
 	attrset(m_colors[PROCESS]);
 	const char* vcs = get_selected_view()->m_name.c_str();
@@ -309,7 +308,7 @@ void sinsp_cursesui::render_header()
 		}
 	}
 
-	mvaddstr(0, sizeof("Viewing ") - 1, vs.c_str());
+	mvaddstr(0, sizeof("Viewing: ") - 1, vs.c_str());
 
 	if(m_paused)
 	{
@@ -318,6 +317,19 @@ void sinsp_cursesui::render_header()
 		mvprintw(0,
 			m_screenw / 2 - wstr.size() / 2, 
 			wstr.c_str());	
+	}
+
+	attrset(m_colors[PROCESS]);
+	mvaddstr(1, 0, "Filter:");
+	uint32_t k = sizeof("Filter: ") - 1;
+
+	if(m_combined_filter != "")
+	{
+		mvaddstr(1, k, m_combined_filter.c_str());
+	}
+	else
+	{
+		mvaddstr(1, k, "none");		
 	}
 }
 
@@ -552,18 +564,22 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
 				m_selected_view = j;
 
-				string filter;
+				m_combined_filter = "";
 				if(m_is_filter_sysdig)
 				{
 					if(m_flt_string != "")
 					{
-						filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
+						m_combined_filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
 					}
 				}
+				else
+				{
+					m_combined_filter = m_sel_hierarchy.tofilter();
+				}
 
-				filter = combine_filters(filter, m_views[1].m_filter);
+				m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
 
-				start(true, filter);
+				start(true, m_combined_filter);
 #ifndef NOCURSESUI
 				clear();
 				populate_sidemenu(field, &m_sidemenu_viewlist);
@@ -607,18 +623,22 @@ bool sinsp_cursesui::drillup()
 		m_sel_hierarchy.m_hierarchy.pop_back();
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
-		string filter;
+		m_combined_filter = "";
 		if(m_is_filter_sysdig)
 		{
 			if(m_flt_string != "")
 			{
-				filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
+				m_combined_filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
 			}
 		}
+		else
+		{
+			m_combined_filter = m_sel_hierarchy.tofilter();
+		}
 
-		filter = combine_filters(filter, m_views[1].m_filter);
+		m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
 
-		start(true, filter);
+		start(true, m_combined_filter);
 #ifndef NOCURSESUI
 		if(rowkey.m_val != NULL)
 		{
@@ -672,10 +692,39 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
-		case KEY_F(4):
+		case KEY_F(4):			
 			m_searching = 0;
 			curs_set(0);
 			render();
+
+			if(m_is_filter_sysdig)
+			{
+				if(m_flt_string != "")
+				{
+					sinsp_filter* f;
+
+					try
+					{
+						f = new sinsp_filter(m_inspector, m_flt_string);
+					}
+					catch(sinsp_exception e)
+					{
+						string wstr = "Invalid sysdig filter";
+
+						attrset(m_colors[sinsp_cursesui::FAILED_SEARCH]);
+						mvprintw(m_screenh / 2,
+							m_screenw / 2 - wstr.size() / 2, 
+							wstr.c_str());	
+
+						m_flt_string = "";
+						break;
+					}
+
+					delete f;
+					return STA_SWITCH_VIEW;
+				}
+			}
+
 			break;
 		case KEY_BACKSPACE:
 			if(m_flt_string.size() > 0)
@@ -700,23 +749,19 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		m_cursor_pos++;
 	}
 
-	if(m_is_filter_sysdig)
-	{
-
-	}
-	else
+	if(!m_is_filter_sysdig)
 	{
 		//
 		// Update the filter in the datatable
 		//
 		m_datatable->set_freetext_filter(m_flt_string);
-	}
 
-	//
-	// Refresh the data and the visualization
-	//
-	m_viz->update_data(m_datatable->get_sample());
-	m_viz->render(true);
+		//
+		// Refresh the data and the visualization
+		//
+		m_viz->update_data(m_datatable->get_sample());
+		m_viz->render(true);
+	}
 
 	return STA_NONE;
 }

@@ -239,22 +239,26 @@ public:
 						field = psinfo->m_field;
 					}
 
-					string filter;
+					m_combined_filter = "";
 					if(m_is_filter_sysdig)
 					{
 						if(m_flt_string != "")
 						{
-							filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
+							m_combined_filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
 						}
 					}
+					else
+					{
+						m_combined_filter = m_sel_hierarchy.tofilter();
+					}
 
-					filter = combine_filters(filter, m_views[1].m_filter);
+					m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
 
 					clear();
 
 					try
 					{
-						start(true, filter);
+						start(true, m_combined_filter);
 					}
 					catch(...)
 					{
@@ -267,7 +271,7 @@ public:
 						}
 	#endif
 
-						start(true, filter);
+						start(true, m_combined_filter);
 						m_inspector->open(m_event_source_name);
 					}
 
@@ -372,4 +376,5 @@ private:
 	uint32_t m_cursor_pos;
 	string m_flt_string;
 	bool m_is_filter_sysdig;
+	string m_combined_filter;
 };
