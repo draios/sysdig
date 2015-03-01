@@ -363,4 +363,5 @@ private:
 	bool m_searching;
 	uint32_t m_cursor_pos;
 	string m_flt_string;
+	bool m_is_filter_sysdig;
 };

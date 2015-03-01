@@ -106,6 +106,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, strin
 	m_paused = false;
 	m_last_input_check_ts = 0;
 	m_searching = false;
+	m_is_filter_sysdig = false;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 
@@ -364,7 +365,34 @@ void sinsp_cursesui::render_search_main_menu()
 	}
 
 	attrset(m_colors[PROCESS]);
-	string fks = "Enter";
+	string fks = "F1";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Help";
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	attrset(m_colors[PROCESS]);
+	fks = "F2";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	if(m_is_filter_sysdig)
+	{
+		fks = "Text";
+	}
+	else
+	{
+		fks = "sysdig";
+	}
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	attrset(m_colors[PROCESS]);
+	fks = "Enter";
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
 	k += fks.size();
 
@@ -387,8 +415,15 @@ void sinsp_cursesui::render_search_main_menu()
 
 	k++;
 	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-	fks = " Filter: ";
-	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	if(m_is_filter_sysdig)
+	{
+		fks = "Expression: ";
+	}
+	else
+	{
+		fks = "Text: ";
+	}
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 20);
 	k += fks.size();
 
 	uint32_t cursor_pos = k;
@@ -608,6 +643,12 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 {
 	switch(ch)
 	{
+		case KEY_F(2):
+			m_is_filter_sysdig = !m_is_filter_sysdig;
+			m_flt_string = "";
+			m_cursor_pos = 0;
+			render();
+			return STA_NONE;
 		case 27: // ESC
 			m_flt_string = "";
 			// FALL THROUGH
@@ -642,10 +683,17 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		m_cursor_pos++;
 	}
 
-	//
-	// Update the filter in the datatable
-	//
-	m_datatable->set_freetext_filter(m_flt_string);
+	if(m_is_filter_sysdig)
+	{
+
+	}
+	else
+	{
+		//
+		// Update the filter in the datatable
+		//
+		m_datatable->set_freetext_filter(m_flt_string);
+	}
 
 	//
 	// Refresh the data and the visualization
