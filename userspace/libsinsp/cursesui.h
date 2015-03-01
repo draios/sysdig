@@ -239,8 +239,16 @@ public:
 						field = psinfo->m_field;
 					}
 
-					string filter = combine_filters(m_sel_hierarchy.tofilter(), 
-						m_views[m_selected_view].m_filter);
+					string filter;
+					if(m_is_filter_sysdig)
+					{
+						if(m_flt_string != "")
+						{
+							filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
+						}
+					}
+
+					filter = combine_filters(filter, m_views[1].m_filter);
 
 					clear();
 

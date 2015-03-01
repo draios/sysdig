@@ -552,8 +552,17 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
 				m_selected_view = j;
 
-				//it->m_filter = m_sel_hierarchy.tofilter();
-				string filter = combine_filters(m_sel_hierarchy.tofilter(), it->m_filter);
+				string filter;
+				if(m_is_filter_sysdig)
+				{
+					if(m_flt_string != "")
+					{
+						filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
+					}
+				}
+
+				filter = combine_filters(filter, m_views[1].m_filter);
+
 				start(true, filter);
 #ifndef NOCURSESUI
 				clear();
@@ -598,8 +607,16 @@ bool sinsp_cursesui::drillup()
 		m_sel_hierarchy.m_hierarchy.pop_back();
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
-		string filter = combine_filters(m_sel_hierarchy.tofilter(), 
-			m_views[m_selected_view].m_filter);
+		string filter;
+		if(m_is_filter_sysdig)
+		{
+			if(m_flt_string != "")
+			{
+				filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
+			}
+		}
+
+		filter = combine_filters(filter, m_views[1].m_filter);
 
 		start(true, filter);
 #ifndef NOCURSESUI
