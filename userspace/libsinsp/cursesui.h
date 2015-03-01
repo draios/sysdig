@@ -190,6 +190,10 @@ public:
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void pause();
+	bool is_searching()
+	{
+		return m_searching;
+	}
 
 	//
 	// Return true if the application is supposed to exit

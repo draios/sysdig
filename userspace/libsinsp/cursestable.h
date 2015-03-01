@@ -48,6 +48,7 @@ public:
 private:
 	void update_rowkey(int32_t row);
 	alignment get_field_alignment(ppm_param_type type);
+	void print_nomatch();
 	void print_wait();
 
 	WINDOW* m_tblwin;

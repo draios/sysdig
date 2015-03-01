@@ -252,6 +252,18 @@ void curses_table::print_wait()
 		wstr.c_str());	
 }
 
+void curses_table::print_nomatch()
+{
+	string wstr = "No match";
+
+	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::FAILED_SEARCH]);
+
+	mvwprintw(m_tblwin, 
+		m_parent->m_screenh / 2,
+		m_parent->m_screenw / 2 - wstr.size() / 2, 
+		wstr.c_str());	
+}
+
 void curses_table::render(bool data_changed)
 {
 	uint32_t j, k;
@@ -336,8 +348,11 @@ void curses_table::render(bool data_changed)
 		//
 		if(m_data->size() == 0)
 		{
-			print_wait();
-			goto render_end;
+			if(!m_parent->is_searching())
+			{
+				print_wait();
+				goto render_end;
+			}
 		}
 
 		//
@@ -405,6 +420,14 @@ void curses_table::render(bool data_changed)
 	}
 
 render_end:
+	if(m_data && m_data->size() == 0)
+	{
+		if(m_parent->is_searching())
+		{
+			print_nomatch();
+		}
+	}
+
 	wrefresh(m_tblwin);
 
 	copywin(m_tblwin,
@@ -418,7 +441,6 @@ render_end:
 		FALSE);
 
 	wrefresh(m_tblwin);
-
 //mvprintw(0, 0, "!!!!%d", (int)res);
 //refresh();
 
