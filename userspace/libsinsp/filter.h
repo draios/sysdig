@@ -82,10 +82,10 @@ private:
 	void pop_expression();
 
 	//
-	// Check to see if the filter has 1 or more  SQL 'in' clause(s)
+	// Check to see if the filter has 1 or more 'in' clause(s)
 	// return modified filter to "or" clauses, else return the original filter string
 	//
-	string parse_sql_in_clause(const string& fltstr);
+	string parse_in_clause(const string& fltstr);
 
 	void compile(const string& fltstr);
 

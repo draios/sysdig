@@ -185,6 +185,8 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 		return (strcmp(operand1, operand2) != 0);
 	case CO_CONTAINS:
 		return (strstr(operand1, operand2) != NULL);
+	case CO_IN:
+		return (strstr(operand1, operand2) != NULL);
 	case CO_LT:
 		throw sinsp_exception("'<' not supported for string filters");
 	case CO_LE:
@@ -193,8 +195,6 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 		throw sinsp_exception("'>' not supported for string filters");
 	case CO_GE:
 		throw sinsp_exception("'>=' not supported for string filters");
-	case CO_IN:
-		throw sinsp_exception("'in' not supported for string filters");
 	default:
 		ASSERT(false);
 		throw sinsp_exception("invalid filter operator " + std::to_string((long long) op));
@@ -1309,11 +1309,11 @@ void sinsp_filter::pop_expression()
 }
 
 //
-// Check to see if the filter has 1 or more  SQL 'in' clause(s)
+// Check to see if the filter has 1 or more 'in' clause(s)
 // return modified filter to "or" clauses, else return the original filter string
-// throw if no filter field before SQL "in" delimitor, or no "," after multiple values
+// throw if no filter field before "in" delimitor, or no "," after multiple values
 //
-string sinsp_filter::parse_sql_in_clause(const string& fltstr)
+string sinsp_filter::parse_in_clause(const string& fltstr)
 {
 	// Will contain each filter component splitting on " "
 	vector<string> components;
@@ -1324,7 +1324,7 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 	// Tmp storage of each operand 'filter' e.g. proc.name
 	string operand;
 
-	// Flags to keep the state while transforming the SQL 'in' clause to the sysdig 'or' syntax
+	// Flags to keep the state while transforming the 'in' clause to the sysdig 'or' syntax
 	bool in_state = false;
 	bool start_in_state = false;
 	bool done_in_state = false;
@@ -1332,12 +1332,13 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 	bool start_value_state = false;
 	bool done_value_state = false;
 
-	// Count to make sure "," exists within SQL "in" clause
+	// Count to make sure "," exists within "in" clause
 	uint32_t value_count = 0;
 	uint32_t comma_count = 0;
 
-	// Only parse the filter string if it has SQL "in" clause(s)
-	if(strcasestr(fltstr.c_str(), " in") != NULL || strcasestr(fltstr.c_str(), " in(") != NULL)
+	// Only parse the filter string if it has "in" clause(s)
+    if (fltstr.find(" in(") != std::string::npos || // Acceptable syntax for 'in' clause
+        fltstr.find(" in (") != std::string::npos) // Acceptable syntax for 'in' clause
 	{
 		// Assign the local fltstr so it can be modified in place
 		modified_fltstr = fltstr;
@@ -1352,7 +1353,7 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 		uint32_t j;
 		for(j = 0; j < components.size(); j++)
 		{
-			// Start processing SQL 'in' clause; only these three options can start this state
+			// Start processing 'in' clause; only these three options can start this state
 			if(!start_value_state &&
 			   !in_state &&
 			   ( components[j] == "in" || components[j] == "in(" ))
@@ -1365,9 +1366,9 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 				}
 				else
 				{
-					// No filter field before SQL "in" clause e.g. "and in(..."
+					// No filter field before "in" clause e.g. "and in(..."
 					ASSERT(false);
-					throw sinsp_exception("syntax error no filter filed before SQL 'in' clause");
+					throw sinsp_exception("syntax error no filter field before 'in' clause");
 				}
 
 				// Set the "in" State BEGINNING the "in" clause transformation to "or"s
@@ -1376,10 +1377,10 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 				done_in_state = false;
 
 			}
-			// Stop processing SQL 'in' clause; given these three conditions
+			// Stop processing 'in' clause; given these three conditions
 			else if(!start_value_state && // Start value state has passed
-					in_state && // Still in the SQL "in" state
-					components[j] == ")" ) // SQL "in" end delimiter found
+					in_state && // Still in the "in" state
+					components[j] == ")" ) // "in" end delimiter found
 			{
 				// Set the "in" State ENDING  the "in" clause transformation to "or"s
 				in_state = false;
@@ -1396,50 +1397,50 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 			{
 				// End the value state iff
 				 if(value_state && // Value state started
-				   strcasestr(components[j].c_str(), "'") != NULL) // Value end delimiter found
+				   components[j].find("'") != std::string::npos)  // Value end delimiter found
 				{
-					// Done parsing this value within the SQL "in" clause
+					// Done parsing this value within the "in" clause
 					value_state = false;
 					done_value_state = true;
 				}
 				// Only start the value state if
-				else if(in_state && // Started the SQL 'in' state
+				else if(in_state && // Started the 'in' state
 						!value_state && // Not already started the value state
-						 strcasestr(components[j].c_str(), "'") != NULL) // Value start delimiter found
+						components[j].find("'") != std::string::npos) // Value start delimiter found
 				{
-					// Start parsing this value within the SQL "in" clause
+					// Start parsing this value within the "in" clause
 					value_state = true;
 					start_value_state = true;
 					done_value_state = false;
 				}
 			}
 
-			// Done parsing the SQL "in" clause
+			// Done parsing the "in" clause
 			if(done_in_state)
 			{
 				if(comma_count != value_count-1 && // The comma count is 1 less then value count
-				   value_count != 1) // There is more than 1 values within the SQL "in" clause
+				   value_count != 1) // There is more than 1 values within the "in" clause
 				{
 					// There were not enough commas given the amount of values
 					ASSERT(false);
-					throw sinsp_exception("syntax error in filter SQL 'in' clause with ','");
+					throw sinsp_exception("syntax error in filter 'in' clause with ','");
 				}
 
-				// Reset the counts for each potential SQL "in" clause
+				// Reset the counts for each potential "in" clause
 				comma_count = 0;
 				value_count = 0;
 				done_in_state = false;
 
-				// Make sure to add ending scope resolution when done with SQL "in" clause conversion
+				// Make sure to add ending scope resolution when done with "in" clause conversion
 				modified_fltstr += " ) ";
 			}
-			// Each component not apart of the SQL 'in' clause
+			// Each component not apart of the 'in' clause
 			else if(!in_state)
 			{
 				//
 				// Do to the way this state machine works a filter field exists before
-				// the SQL "in" clause start delimiter is found
-				// if the next component is apart of the SQL "in" clause then start scope resolution
+				// the "in" clause start delimiter is found
+				// if the next component is apart of the "in" clause then start scope resolution
 				//
 				if(j+1 < components.size() && (components[j+1] == "in(" || components[j+1] == "in"))
 				{
@@ -1452,7 +1453,7 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 					modified_fltstr += components[j] + " ";
 				}
 			}
-			// while in the SQL "in" state do the following
+			// while in the "in" state do the following
 			else if(in_state)
 			{
 				// Check if in the value's start state
@@ -1485,12 +1486,12 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 						comma_count++;
 					}
 
-					// Make sure SQL "in" syntax is correct; i.e. don't allow " in( ... value)"
+					// Make sure "in" syntax is correct; i.e. don't allow " in( ... value)"
 					found = components[j].find(")");
 					if(found+1 == components[j].size())
 					{
 						ASSERT(false);
-						throw sinsp_exception("syntax error in filter SQL 'in' clause not properly ended ' )' near " + components[j]);
+						throw sinsp_exception("syntax error in filter 'in' clause not properly ended ' )' near " + components[j]);
 					}
 
 					modified_fltstr += components[j];
@@ -1512,7 +1513,7 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 						comma_count++;
 						modified_fltstr += components[j];
 					}
-					// Beginning of SQL "in" clause skip "in(" or "in", but allow these within values
+					// Beginning of "in" clause skip "in(" or "in", but allow these within values
 					else if(start_in_state && components[j] != "in(" && components[j] != "in" && components[j] != "(")
 					{
 						// Drop all space seperators because of splitting on " "
@@ -1536,7 +1537,7 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 							start_in_state = false;
 						}
 					}
-					// All of the rest of the values within the SQL "in" clause
+					// All of the rest of the values within the "in" clause
 					else if(!start_in_state && components[j] != "(")
 					{
 						// Drop all space seperators because of splitting on " "
@@ -1553,12 +1554,12 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 								comma_count++;
 							}
 
-							// Make sure SQL "in" syntax is correct; i.e. don't allow " in( ... value)"
+							// Make sure "in" syntax is correct; i.e. don't allow " in( ... value)"
 							found = components[j].find(")");
 							if(found+1 == components[j].size())
 							{
 								ASSERT(false);
-								throw sinsp_exception("syntax error in filter SQL 'in' clause not properly ended ' )' near " + components[j]);
+								throw sinsp_exception("syntax error in filter 'in' clause not properly ended ' )' near " + components[j]);
 							}
 
 							modified_fltstr += operand + "=" + components[j] + " ";
@@ -1578,7 +1579,7 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 	}
 	else
 	{
-		// No SQL 'in' clause(s) to transform
+		// No 'in' clause(s) to transform
 		modified_fltstr = fltstr;
 	}
 
@@ -1586,7 +1587,7 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 	{
 		// The done_in_state was never called
 		ASSERT(false);
-		throw sinsp_exception("syntax error in filter SQL 'in' clause not properly ended ' )'");
+		throw sinsp_exception("syntax error in filter 'in' clause not properly ended ' )'");
 	}
 
 	return modified_fltstr;
@@ -1594,8 +1595,8 @@ string sinsp_filter::parse_sql_in_clause(const string& fltstr)
 
 void sinsp_filter::compile(const string& fltstr)
 {
-	// Check to see if the filter clause has 1 or more SQL "in" clause(s)
-	m_fltstr = parse_sql_in_clause( fltstr );
+	// Check to see if the filter clause has 1 or more "in" clause(s)
+	m_fltstr = parse_in_clause( fltstr );
 	m_scansize = (uint32_t)m_fltstr.size();
 
 	while(true)
