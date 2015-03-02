@@ -1,6 +1,6 @@
 --[[
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -16,16 +16,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Groups all the active FDs based on the given filter field, and returns the fd count for each key. For example, it can be used to list the number of connections per process or per IP endpoint."
+description = "Groups all the active FDs based on the given filter field, and returns the fd count for each key. For example, it can be used to list the number of connections per process or per IP end-point."
 short_description = "FD count, aggregated by an arbitrary filter field"
 category = "I/O"
 
 -- Chisel argument list
-args = 
+args =
 {
 	{
-		name = "key", 
-		description = "the filter field used for grouping", 
+		name = "key",
+		description = "The filter field used for grouping",
 		argtype = "string"
 	},
 }
@@ -85,7 +85,7 @@ function on_event()
 	return true
 end
 
--- Interval callback, emits the ourput
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
 	sorted_grtable = pairs_top_by_val(grtable, TOP_NUMBER, function(t,a,b) return t[b]["c"] < t[a]["c"] end)
 	

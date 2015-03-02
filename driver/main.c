@@ -257,7 +257,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;
-	ring->capture_enabled = true;
+	ring->capture_enabled = false;
 	getnstimeofday(&ring->last_print_time);
 	ring->open = true;
 
@@ -526,7 +526,45 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		g_do_dynamic_snaplen = true;
 		return 0;
 	}
+	case PPM_IOCTL_GET_VTID:
+	case PPM_IOCTL_GET_VPID:
+	{
+		pid_t vid;
+		struct pid *pid;
+		struct task_struct *task;
+		struct pid_namespace *ns;
 
+		rcu_read_lock();
+		pid = find_pid_ns(arg, &init_pid_ns);
+		if(!pid) {
+			rcu_read_unlock();
+			return -EINVAL;
+		}
+
+		task = pid_task(pid, PIDTYPE_PID);
+		if (!task) {
+			rcu_read_unlock();
+			return -EINVAL;
+		}
+
+		ns = ns_of_pid(pid);
+		if(!pid) {
+			rcu_read_unlock();
+			return -EINVAL;
+		}
+
+		if(cmd == PPM_IOCTL_GET_VTID)
+			vid = task_pid_nr_ns(task, ns);
+		else
+			vid = task_tgid_nr_ns(task, ns);
+
+		rcu_read_unlock();
+		return vid;
+	}
+	case PPM_IOCTL_GET_CURRENT_TID:
+		return task_pid_nr(current);
+	case PPM_IOCTL_GET_CURRENT_PID:
+		return task_tgid_nr(current);
 	default:
 		return -ENOTTY;
 	}

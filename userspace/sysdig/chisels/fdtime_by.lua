@@ -18,14 +18,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Chisel description
 description = "Groups FD activity based on the given filter field, and returns the keys where most time was spent. For example, this script can be used to list the processes or files that caused the biggest I/O latency."
 short_description = "FD time group by"
-category = "IO"
+category = "I/O"
 
 -- Chisel argument list
 args = 
 {
 	{
 		name = "key", 
-		description = "the filter field used for grouping", 
+		description = "The filter field used for grouping", 
 		argtype = "string"
 	},
 }

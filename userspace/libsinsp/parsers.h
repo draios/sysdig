@@ -102,6 +102,7 @@ private:
 	void parse_setresgid_exit(sinsp_evt* evt);
 	void parse_setuid_exit(sinsp_evt* evt);
 	void parse_setgid_exit(sinsp_evt* evt);
+	void parse_container_evt(sinsp_evt* evt);
 
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
 	inline void add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t ino);
@@ -119,10 +120,6 @@ private:
 	// Pointers to inspector context
 	//
 	sinsp* m_inspector;
-
-#if defined(HAS_CAPTURE)
-	int64_t m_sysdig_pid;
-#endif
 
 	//
 	// Temporary storage to avoid memory allocation

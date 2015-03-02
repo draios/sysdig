@@ -34,6 +34,10 @@ where:
 
 The output format can be customized with the -p switch, using any of the fields listed by 'sysdig -l'.
 
+Using -pc or -pcontainer, the default format will be changed to a container-friendly one:
+
+```%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info```
+
 **Trace Files**  
 
 A trace file can be created using the -w switch:
@@ -128,7 +132,7 @@ OPTIONS
   Print progress on stderr while processing trace files.
   
 **-p** _outputformat_, **--print**=_outputformat_  
-  Specify the format to be used when printing the events. See the examples section below for more info.
+  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. See the examples section below for more info.
   
 **-q**, **--quiet**  
   Don't print events on the screen. Useful when dumping to disk.

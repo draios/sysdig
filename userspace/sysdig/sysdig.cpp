@@ -162,6 +162,7 @@ static void usage()
 " -P, --progress     Print progress on stderr while processing trace files\n"
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
+"                    With -pc or -pcontainer will use a container-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
@@ -210,7 +211,7 @@ static void usage()
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
 " line with the following format:\n\n"
-" %%evt.num %%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.args\n\n"
+" %%evt.num %%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.info\n\n"
 "where:\n"
 " evt.num is the incremental event number\n"
 " evt.time is the event timestamp\n"
@@ -220,9 +221,11 @@ static void usage()
 "   PID for single thread processes\n"
 " evt.dir is the event direction, > for enter events and < for exit events\n"
 " evt.type is the name of the event, e.g. 'open' or 'read'\n"
-" evt.args is the list of event arguments.\n\n"
+" evt.info is the list of event arguments.\n\n"
 "The output format can be customized with the -p switch, using any of the\n"
 "fields listed by 'sysdig -l'.\n\n"
+"Using -pc or -pcontainer, the default format will be changed to a container-friendly one:\n\n"
+"%%evt.num %%evt.time %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Examples:\n\n"
 " Capture all the events from the live system and print them to screen\n"
 "   $ sysdig\n\n"
@@ -617,6 +620,12 @@ captureinfo do_inspect(sinsp* inspector,
 				continue;
 			}
 
+			if(!inspector->is_debug_enabled() &&
+				ev->get_category() & EC_INTERNAL)
+			{
+				continue;
+			}
+
 			if(formatter->tostring(ev, &line))
 			{
 				//
@@ -730,11 +739,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	};
 
 	output_format = "*%evt.num <TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
-//	output_format = DEFAULT_OUTPUT_STR;
 
 	try
 	{
 		inspector = new sinsp();
+
 
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
@@ -865,7 +874,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'i':
 				{
 					cname = optarg;
-
 					vector<chisel_desc> chlist;
 
 					sinsp_chisel::get_chisel_list(&chlist);
@@ -927,6 +935,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
+				}
+				else if(string(optarg) == "c" || string(optarg) == "container")
+				{
+					output_format = "*%evt.num <TIME> %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+
+					//
+					// This enables chisels to determine if they should print container information
+					//
+					if ( inspector != NULL )
+                                        {
+                                           inspector->set_print_container_data( true );
+                                        }
 				}
 				else
 				{
@@ -1032,6 +1052,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'z':
 				compress = true;
+				break;
+            // getopt_long : '?' for an ambiguous match or an extraneous parameter 
+			case '?':
+				delete inspector;
+				return sysdig_init_res(EXIT_FAILURE);
 				break;
 			default:
 				break;

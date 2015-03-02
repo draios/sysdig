@@ -68,6 +68,8 @@ void sinsp_threadinfo::init()
 	m_vmswap_kb = 0;
 	m_pfmajor = 0;
 	m_pfminor = 0;
+	m_vtid = -1;
+	m_vpid = -1;
 	m_main_thread = NULL;
 	m_lastevent_fd = 0;
 #ifdef HAS_FILTERING
@@ -139,6 +141,8 @@ void sinsp_threadinfo::compute_program_hash()
 	{
 		phs += arg;
 	}
+
+	phs += m_container_id;
 
 	m_program_hash = std::hash<std::string>()(phs);
 }
@@ -297,7 +301,15 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	m_pfmajor = pi->pfmajor;
 	m_pfminor = pi->pfminor;
 	m_nchilds = 0;
-
+	m_vtid = pi->vtid;
+	m_vpid = pi->vpid;
+	set_cgroups(pi->cgroups, pi->cgroups_len);
+	ASSERT(m_inspector);
+	if(m_inspector)
+	{
+		m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
+	}
+	
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
 	{
 		add_fd(fdi);
@@ -335,6 +347,45 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 	{
 		m_env.push_back(env + offset);
 		offset += m_env.back().length() + 1;
+	}
+}
+
+void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
+{
+	m_cgroups.clear();
+
+	size_t offset = 0;
+	while(offset < len)
+	{
+		const char* str = cgroups + offset;
+		const char* sep = strchr(str, '=');
+		if(sep == NULL)
+		{
+			ASSERT(false);
+			return;
+		}
+
+		string subsys(str, sep - str);
+		string cgroup(sep + 1);
+
+		size_t subsys_length = subsys.length();
+		size_t pos = subsys.find("_cgroup");
+		if(pos != string::npos)
+		{
+			subsys.erase(pos, sizeof("_cgroup") - 1);
+		}
+
+		if(subsys == "perf")
+		{
+			subsys = "perf_event";
+		}
+		else if(subsys == "mem")
+		{
+			subsys = "memory";
+		}
+
+		m_cgroups.push_back(std::make_pair(subsys, cgroup));
+		offset += subsys_length + 1 + cgroup.length() + 1;
 	}
 }
 

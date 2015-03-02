@@ -30,7 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * Limits
  */
-#define PPM_MAX_EVENT_PARAMS 17	/* Max number of parameters an event can have */
+#define PPM_MAX_EVENT_PARAMS 20	/* Max number of parameters an event can have */
 #define PPM_MAX_PATH_SIZE 256	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
 
@@ -624,9 +624,19 @@ enum ppm_event_type {
 	PPME_SYSCALL_FORK_17_X = 219,
 	PPME_SYSCALL_VFORK_17_E = 220,
 	PPME_SYSCALL_VFORK_17_X = 221,
-	PPME_SYSCALL_SIGNALDELIVER_E = 222,
-	PPME_SYSCALL_SIGNALDELIVER_X = 223, /* This should never be called */
-	PPM_EVENT_MAX = 224
+	PPME_SYSCALL_CLONE_20_E = 222,
+	PPME_SYSCALL_CLONE_20_X = 223,
+	PPME_SYSCALL_FORK_20_E = 224,
+	PPME_SYSCALL_FORK_20_X = 225,
+	PPME_SYSCALL_VFORK_20_E = 226,
+	PPME_SYSCALL_VFORK_20_X = 227,
+	PPME_CONTAINER_E = 228,
+	PPME_CONTAINER_X = 229,
+	PPME_SYSCALL_EXECVE_16_E = 230,
+	PPME_SYSCALL_EXECVE_16_X = 231,
+	PPME_SYSCALL_SIGNALDELIVER_E = 232,
+	PPME_SYSCALL_SIGNALDELIVER_X = 233, /* This should never be called */
+	PPM_EVENT_MAX = 234
 };
 /*@}*/
 
@@ -1122,7 +1132,10 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_MASK_UNSET_EVENT _IO(PPM_IOCTL_MAGIC, 7)
 #define PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN _IO(PPM_IOCTL_MAGIC, 8)
 #define PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN _IO(PPM_IOCTL_MAGIC, 9)
-
+#define PPM_IOCTL_GET_VTID _IO(PPM_IOCTL_MAGIC, 10)
+#define PPM_IOCTL_GET_VPID _IO(PPM_IOCTL_MAGIC, 11)
+#define PPM_IOCTL_GET_CURRENT_TID _IO(PPM_IOCTL_MAGIC, 12)
+#define PPM_IOCTL_GET_CURRENT_PID _IO(PPM_IOCTL_MAGIC, 13)
 
 /*!
   \brief System call description struct.

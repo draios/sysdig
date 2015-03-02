@@ -15,8 +15,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Show the top process defined by the highest CPU utilization. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
-short_description = "Top processes by CPU usage"
+description = "Given two filter fields, a key and a value, this chisel creates and renders a dynamic table to the screen. Where key=container.name and value=thread.exectime (CPU%)"
+short_description = "Top containers by CPU usage"
 category = "CPU Usage"
 
 -- Chisel argument list
@@ -28,13 +28,11 @@ terminal = require "ansiterminal"
 grtable = {}
 islive = false
 cpustates = {}
-fkeys = {}
-local print_container = false
 
 vizinfo =
 {
-	key_fld = {"proc.name","proc.pid"},
-	key_desc = {"Process", "PID"},
+	key_fld = "container.name",
+	key_desc = {"container.name"},
 	value_fld = "thread.exectime",
 	value_desc = "CPU%",
 	value_units = "timepct",
@@ -44,27 +42,14 @@ vizinfo =
 
 -- Initialization callback
 function on_init()
-	-- The -pc or -pcontainer options was supplied on the cmd line
-	print_container = sysdig.is_print_container_data()
-
-	-- Print container info as well
-	if print_container then
-		-- Modify host pid column name and add container information
-		vizinfo.key_fld = {"proc.name", "proc.pid", "thread.vtid", "container.name"}
-		vizinfo.key_desc = {"Process", "Host_pid", "Container_pid", "container.name"}
-	end
-
 	-- Request the fields we need
-	for i, name in ipairs(vizinfo.key_fld) do
-		fkeys[i] = chisel.request_field(name)
-	end
-
-	-- Request the fields we need
+	fkey = chisel.request_field(vizinfo.key_fld)
 	fvalue = chisel.request_field(vizinfo.value_fld)
 	fnext = chisel.request_field("evt.arg.next")
 	fnextraw = chisel.request_field("evt.rawarg.next")
-	
-	chisel.set_filter("evt.type=switch")
+
+	-- Filter out the host container.name	
+	chisel.set_filter("evt.type=switch and container.name!=host")
 	
 	return true
 end
@@ -93,23 +78,7 @@ end
 
 -- Event parsing callback
 function on_event()
-
-	local key = nil
-	local kv = nil
-
-	for i, fld in ipairs(fkeys) do
-		kv = evt.field(fld)
-		if kv == nil then
-			return
-		end
-
-		if key == nil then
-			key = kv
-		else
-			key = key .. "\001\001" .. evt.field(fld)
-		end
-	end
-
+	key = evt.field(fkey)
 	value = evt.field(fvalue)
 	cpuid = evt.get_cpuid() + 1
 

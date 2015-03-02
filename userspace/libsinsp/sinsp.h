@@ -73,6 +73,7 @@ using namespace std;
 #include "stats.h"
 #include "ifinfo.h"
 #include "chisel.h"
+#include "container.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -522,7 +523,8 @@ public:
 	void set_fatfile_dump_mode(bool enable_fatfile);
 
 	/*!
-	  \brief sets the max length of event argument strings. 
+	  \brief Sets the max length of event argument strings. 
+
 	  \param len Max length after which an avent argument string is truncated.
 	   0 means no limit. Use this to reduce verbosity when printing event info
 	   on screen.
@@ -535,6 +537,22 @@ public:
 	inline bool is_debug_enabled()
 	{
 		return m_isdebug_enabled;		
+	}
+
+        /*!
+          \brief Set a flag indicating if the command line requested to show container information.
+
+          \param set true if the command line arugment is set to show container information 
+        */
+        void set_print_container_data(bool print_container_data);
+
+
+	/*!
+	  \brief Returns true if the command line argument is set to show container information.
+	*/
+	inline bool is_print_container_data()
+	{
+		return m_print_container_data;
 	}
 
 	/*!
@@ -637,6 +655,14 @@ private:
 
 	sinsp_thread_manager* m_thread_manager;
 
+	sinsp_container_manager m_container_manager;
+
+        //
+        // True if the command line argument is set to show container information
+	// The deafult is false set within the constructor
+        //
+	bool m_print_container_data;
+
 #ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
@@ -669,6 +695,11 @@ private:
 	uint64_t m_inactive_thread_scan_time_ns;
 
 	//
+	// Container limits
+	//
+	uint64_t m_inactive_container_scan_time_ns;
+
+	//
 	// How to render the data buffers
 	//
 	sinsp_evt::param_fmt m_buffer_format;
@@ -698,6 +729,17 @@ private:
 	//
 	vector<sinsp_protodecoder*> m_decoders_reset_list;
 
+	//
+	// Meta event management
+	//
+	sinsp_evt m_meta_evt;
+	char* m_meta_evt_buf;
+	bool m_meta_evt_pending;
+
+#if defined(HAS_CAPTURE)
+	int64_t m_sysdig_pid;
+#endif
+
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_parsers;
@@ -705,11 +747,14 @@ private:
 	friend class sinsp_threadinfo;
 	friend class sinsp_fdtable;
 	friend class sinsp_thread_manager;
+	friend class sinsp_container_manager;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
 	friend class sinsp_protodecoder;
 	friend class lua_cbacks;
+	friend class sinsp_filter_check_container;
+	friend class sinsp_worker;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

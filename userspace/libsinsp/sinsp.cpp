@@ -50,7 +50,8 @@ void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
-	m_evt(this)
+	m_evt(this),
+	m_container_manager(this)
 {
 	m_h = NULL;
 	m_parser = NULL;
@@ -61,6 +62,7 @@ sinsp::sinsp() :
 	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
+	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
 
@@ -87,6 +89,16 @@ sinsp::sinsp() :
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
 	m_import_users = true;
+	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
+	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
+	m_meta_evt_pending = false;
+
+        // Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
+        m_print_container_data = false;
+
+#if defined(HAS_CAPTURE)
+	m_sysdig_pid = 0;
+#endif
 }
 
 sinsp::~sinsp()
@@ -114,6 +126,12 @@ sinsp::~sinsp()
 	{
 		delete m_cycle_writer;
 		m_cycle_writer = NULL;
+	}
+
+	if(m_meta_evt_buf)
+	{
+		delete[] m_meta_evt_buf;
+		m_meta_evt_buf = NULL;
 	}
 }
 
@@ -195,10 +213,20 @@ void sinsp::init()
 	//
 	// If m_snaplen was modified, we set snaplen now
 	//
-	if (m_snaplen != DEFAULT_SNAPLEN)
+	if(m_snaplen != DEFAULT_SNAPLEN)
 	{
 		set_snaplen(m_snaplen);
 	}
+
+#if defined(HAS_CAPTURE)
+	if(m_islive)
+	{
+		if(scap_getpid_global(m_h, &m_sysdig_pid) != SCAP_SUCCESS)
+		{
+			ASSERT(false);
+		}
+	}
+#endif
 }
 
 void sinsp::set_import_users(bool import_users)
@@ -341,6 +369,8 @@ void sinsp::autodump_start(const string& dump_filename, bool compress)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+
+	m_container_manager.dump_containers(m_dumper);
 }
 
 void sinsp::autodump_next_file()
@@ -435,7 +465,6 @@ void sinsp::import_thread_table()
 {
 	scap_threadinfo *pi;
 	scap_threadinfo *tpi;
-	sinsp_threadinfo newti(this);
 
 	scap_threadinfo *table = scap_get_proc_table(m_h);
 
@@ -444,6 +473,7 @@ void sinsp::import_thread_table()
 	//
 	HASH_ITER(hh, table, pi, tpi)
 	{
+		sinsp_threadinfo newti(this);
 		newti.init(pi);
 		m_thread_manager->add_thread(newti, true);
 	}
@@ -573,6 +603,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	if(m_islive)
 	{
 		m_thread_manager->remove_inactive_threads();
+		m_container_manager.remove_inactive_containers();
 	}
 #endif // HAS_ANALYZER
 
@@ -634,6 +665,16 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	if(NULL != m_dumper)
 	{
+		if(m_meta_evt_pending)
+		{
+			m_meta_evt_pending = false;
+			res = scap_dump(m_h, m_dumper, m_meta_evt.m_pevt, m_meta_evt.m_cpuid, 0);
+			if(SCAP_SUCCESS != res)
+			{
+				throw sinsp_exception(scap_getlasterr(m_h));
+			}
+		}
+
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 		scap_dump_flags dflags;
 		
@@ -1115,6 +1156,11 @@ bool sinsp::is_live()
 void sinsp::set_debug_mode(bool enable_debug)
 {
 	m_isdebug_enabled = enable_debug;
+}
+
+void sinsp::set_print_container_data(bool print_container_data)
+{
+	m_print_container_data = print_container_data;
 }
 
 void sinsp::set_fatfile_dump_mode(bool enable_fatfile)

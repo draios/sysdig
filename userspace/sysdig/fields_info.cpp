@@ -194,6 +194,12 @@ const char* param_type_to_string(ppm_param_type pt)
 	case PT_FLAGS32:
 		return "FLAGS32";
 		break;
+	case PT_UID:
+		return "UID";
+		break;
+	case PT_GID:
+		return "GID";
+		break;
 	default:
 		ASSERT(false);
 		return "<NA>";
@@ -213,7 +219,7 @@ void list_events(sinsp* inspector)
 		const struct ppm_event_info ei = etable[j];
 		char dir = (PPME_IS_ENTER(j))? '>' : '<';
 
-		if((ei.flags & EF_UNUSED) || (ei.flags & EF_OLD_VERSION))
+		if((ei.flags & EF_UNUSED) || (ei.flags & EF_OLD_VERSION) || (ei.category & EC_INTERNAL))
 		{
 			continue;
 		}

@@ -135,6 +135,8 @@ public:
 	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
 	vector<string> m_env; ///< Environment variables
+	vector<pair<string, string>> m_cgroups; ///< subsystem-cgroup pairs
+	string m_container_id; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid; ///< user id
@@ -145,6 +147,8 @@ public:
 	uint32_t m_vmswap_kb; ///< swapped memory (as kb).
 	uint64_t m_pfmajor; ///< number of major page faults since start.
 	uint64_t m_pfminor; ///< number of minor page faults since start.
+	int64_t m_vtid;  ///< The virtual id of this thread.
+	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 
 	//
 	// State for multi-event processing
@@ -182,6 +186,7 @@ VISIBILITY_PRIVATE
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
 	void set_env(const char* env, size_t len);
+	void set_cgroups(const char* cgroups, size_t len);
 	void store_event(sinsp_evt *evt);
 	bool is_lastevent_data_valid();
 	inline void set_lastevent_data_validity(bool isvalid)
@@ -272,7 +277,6 @@ public:
 	void set_listener(sinsp_threadtable_listener* listener);
 	void add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
-	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
@@ -296,6 +300,7 @@ public:
 	set<uint16_t> m_server_ports;
 
 private:
+	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
 

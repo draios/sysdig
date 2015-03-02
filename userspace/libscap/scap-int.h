@@ -97,6 +97,13 @@ struct scap
 	void* m_proc_callback_context;
 };
 
+struct scap_ns_socket_list
+{
+	int64_t net_ns;
+	scap_fdinfo* sockets;
+	UT_hash_handle hh;
+};
+
 //
 // Misc stuff
 //
@@ -134,6 +141,7 @@ void scap_fd_print_fd_table(scap_fdinfo* fds);
 // Return the process info entry geiven a tid
 // Free an fd table and set it to NULL when done
 void scap_fd_free_table(scap_t* handle, scap_fdinfo** fds);
+void scap_fd_free_ns_sockets_list(scap_t* handle, struct scap_ns_socket_list** sockets);
 // Free a process' fd table
 void scap_fd_free_proc_fd_table(scap_t* handle, scap_threadinfo* pi);
 // Convert an fd entry's info into a string
@@ -154,11 +162,11 @@ void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // Read an event from disk
 int32_t scap_next_offline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 // read the filedescriptors for a given process directory
-int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, scap_fdinfo ** sockets, char *error);
+int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, char *error);
 // read tcp or udp sockets from the proc filesystem
-int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, char * dir, int l4proto, scap_fdinfo ** sockets);
+int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, const char * dir, int l4proto, scap_fdinfo ** sockets);
 // read all sockets and add them to the socket table hashed by their ino
-int32_t scap_fd_read_sockets(scap_t* handle, scap_fdinfo** sockets);
+int32_t scap_fd_read_sockets(scap_t* handle, char* procdir, struct scap_ns_socket_list* sockets);
 // prints procs details for a give tid
 void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid);
 // Allocate and return the list of interfaces on this system
@@ -171,6 +179,8 @@ int32_t scap_create_userlist(scap_t* handle);
 void scap_free_userlist(scap_userlist* uhandle);
 
 int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
+
+int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname);
 
 //
 // ASSERT implementation

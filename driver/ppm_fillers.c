@@ -34,6 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
+#include <linux/cgroup.h>
 #include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
@@ -271,10 +272,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_15_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_15_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_CLONE_17_E] = {f_sys_empty},
-	[PPME_SYSCALL_CLONE_17_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_16_E] = {f_sys_empty},
+	[PPME_SYSCALL_EXECVE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
@@ -295,10 +296,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SYMLINK_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
 	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
-	[PPME_SYSCALL_FORK_17_E] = {f_sys_empty},
-	[PPME_SYSCALL_FORK_17_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_VFORK_17_E] = {f_sys_empty},
-	[PPME_SYSCALL_VFORK_17_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_FORK_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_FORK_20_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_VFORK_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_VFORK_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
@@ -697,6 +698,132 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
+static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
+{
+	char *start;
+	struct dentry *dentry = rcu_dereference(cgrp->dentry);
+
+	if (!dentry) {
+		/*
+		 * Inactive subsystems have no dentry for their root
+		 * cgroup
+		 */
+		strcpy(buf, "/");
+		return 0;
+	}
+
+	start = buf + buflen;
+
+	*--start = '\0';
+	for (;;) {
+		int len = dentry->d_name.len;
+		if ((start -= len) < buf)
+			return -ENAMETOOLONG;
+		memcpy(start, cgrp->dentry->d_name.name, len);
+		cgrp = cgrp->parent;
+		if (!cgrp)
+			break;
+		dentry = rcu_dereference(cgrp->dentry);
+		if (!cgrp->parent)
+			continue;
+		if (--start < buf)
+			return -ENAMETOOLONG;
+		*start = '/';
+	}
+	memmove(buf, start, buf + buflen - start);
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_CGROUPS
+static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int* available)
+{
+	int pathlen;
+	int subsys_len;
+	char *path;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+	int res;
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
+	struct cgroup_subsys_state *css = task_css(current, subsys_id);
+#else
+	struct cgroup_subsys_state *css = task_subsys_state(current, subsys_id);
+#endif
+	if (!css) {
+		ASSERT(false);
+		return 1;
+	}
+
+	if (!css->cgroup) {
+		ASSERT(false);
+		return 1;
+	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+	path = cgroup_path(css->cgroup, buf, *available);
+	if (!path) {
+		ASSERT(false);
+		path = "NA";
+	}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	res = cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = buf;
+	}
+#else
+	res = ppm_cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = buf;
+	}
+#endif
+
+	pathlen = strlen(path);
+	subsys_len = strlen(subsys_name);
+	if (subsys_len + 1 + pathlen + 1 > *available) {
+		return 1;
+	}
+
+	memmove(buf + subsys_len + 1, path, pathlen);
+	memcpy(buf, subsys_name, subsys_len);
+	buf += subsys_len;
+	*buf++ = '=';
+	buf += pathlen;
+	*buf++ = 0;
+	*available -= (subsys_len + 1 + pathlen + 1);
+	return 0;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _cgrp_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) 	\
+	goto cgroups_error;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
+#define IS_SUBSYS_ENABLED(option) IS_BUILTIN(option)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+#define IS_SUBSYS_ENABLED(option) IS_ENABLED(option)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#else
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#endif
+
+#endif
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -710,6 +837,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
+	int available = STR_STORAGE_SIZE;
 
 	/*
 	 * Make sure the operation was successful
@@ -864,9 +992,24 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (args->event_type == PPME_SYSCALL_CLONE_17_X ||
-		args->event_type == PPME_SYSCALL_FORK_17_X ||
-		args->event_type == PPME_SYSCALL_VFORK_17_X) {
+	/*
+	 * cgroups
+	 */
+	args->str_storage[0] = 0;
+#ifdef CONFIG_CGROUPS
+	rcu_read_lock();
+#include <linux/cgroup_subsys.h>
+cgroups_error:
+	rcu_read_unlock();
+#endif
+
+	res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (args->event_type == PPME_SYSCALL_CLONE_20_X ||
+		args->event_type == PPME_SYSCALL_FORK_20_X ||
+		args->event_type == PPME_SYSCALL_VFORK_20_X) {
 		/*
 		 * clone-only parameters
 		 */
@@ -881,7 +1024,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_17_X)
+		if (args->event_type == PPME_SYSCALL_CLONE_20_X)
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 		else
 			val = 0;
@@ -903,7 +1046,22 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		res = val_to_ring(args, egid, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_15_X) {
+		
+		/*
+		 * vtid
+		 */
+		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * vpid
+		 */
+		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_16_X) {
 		/*
 		 * execve-only parameters
 		 */

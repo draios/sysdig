@@ -55,9 +55,6 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_tmp_evt(m_inspector),
 	m_fd_listener(NULL)
 {
-#if defined(HAS_CAPTURE)
-	m_sysdig_pid = getpid();
-#endif
 }
 
 sinsp_parser::~sinsp_parser()
@@ -89,13 +86,13 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #if defined(HAS_CAPTURE)
 	if(is_live && !m_inspector->is_debug_enabled())
 	{
-		if(evt->get_tid() == m_sysdig_pid && 
+		if(evt->get_tid() == m_inspector->m_sysdig_pid && 
 			etype != PPME_SCHEDSWITCH_1_E && 
 			etype != PPME_SCHEDSWITCH_6_E &&
 			etype != PPME_DROP_E &&
 			etype != PPME_DROP_X &&
 			etype != PPME_SYSDIGEVENT_E &&
-			m_sysdig_pid)
+			m_inspector->m_sysdig_pid)
 		{
 			evt->m_filtered_out = true;
 			return;
@@ -195,16 +192,20 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_CLONE_16_X:
 	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_X:
-	case PPME_SYSCALL_VFORK_X:
 	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_X:
 	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
 		parse_clone_exit(evt);
 		break;
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
 	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -298,6 +299,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETGID_X:
 		parse_setgid_exit(evt);
 		break;
+	case PPME_CONTAINER_E:
+		parse_container_evt(evt);
+		break;
 	default:
 		break;
 	}
@@ -376,11 +380,14 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	bool query_os;
 	if(etype == PPME_SYSCALL_CLONE_11_X ||
 		etype == PPME_SYSCALL_CLONE_16_X ||
-		etype == PPME_SYSCALL_FORK_X ||
-		etype == PPME_SYSCALL_VFORK_X ||
 		etype == PPME_SYSCALL_CLONE_17_X ||
+		etype == PPME_SYSCALL_CLONE_20_X ||
+		etype == PPME_SYSCALL_FORK_X ||
 		etype == PPME_SYSCALL_FORK_17_X ||
+		etype == PPME_SYSCALL_FORK_20_X ||
+		etype == PPME_SYSCALL_VFORK_X ||
 		etype == PPME_SYSCALL_VFORK_17_X ||
+		etype == PPME_SYSCALL_VFORK_20_X ||
 		etype == PPME_SCHEDSWITCH_6_E)
 	{
 		query_os = false;
@@ -401,11 +408,14 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	{
 		if(etype == PPME_SYSCALL_CLONE_11_X ||
 			etype == PPME_SYSCALL_CLONE_16_X ||
-			etype == PPME_SYSCALL_FORK_X ||
-			etype == PPME_SYSCALL_VFORK_X ||
 			etype == PPME_SYSCALL_CLONE_17_X ||
+			etype == PPME_SYSCALL_CLONE_20_X ||
+			etype == PPME_SYSCALL_FORK_X ||
 			etype == PPME_SYSCALL_FORK_17_X ||
-			etype == PPME_SYSCALL_VFORK_17_X)
+			etype == PPME_SYSCALL_FORK_20_X ||
+			etype == PPME_SYSCALL_VFORK_X ||
+			etype == PPME_SYSCALL_VFORK_17_X ||
+			etype == PPME_SYSCALL_VFORK_20_X)
 		{
 #ifdef GATHER_INTERNAL_STATS
 			m_inspector->m_thread_manager->m_failed_lookups->decrement();
@@ -657,6 +667,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent
 	bool tid_collision = false;
 	bool valid_parent = true;
+	bool in_container = false;
+	int64_t vtid = tid;
+	int64_t vpid = -1;
 	uint16_t etype = evt->get_type();
 
 	//
@@ -681,6 +694,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_VFORK_17_X:
 		parinfo = evt->get_param(14);
 		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(15);
+		break;
 	default:
 		ASSERT(false);
 	}
@@ -694,7 +712,41 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		return;
 	}
-	else if(childtid == 0)
+	
+	//
+	// Get the vtid to check if the clone is within a container
+	//
+	switch(etype)
+	{
+	case PPME_SYSCALL_CLONE_11_X:
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_VFORK_X:
+	case PPME_SYSCALL_VFORK_17_X:
+		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(18);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		vtid = *(int64_t *)parinfo->m_val;
+
+		parinfo = evt->get_param(19);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		vpid = *(int64_t *)parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
+	}
+
+	if(tid != vtid)
+	{
+		in_container = true;
+	}
+
+	if(childtid == 0)
 	{
 		//
 		// clone() returns 0 in the child.
@@ -707,7 +759,12 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// This happens if
 			//  - clone() returns in the child before than in the parent.
 			//  - we dropped the clone exit event in the parent.
+			//  - clone was executed in a container
 			// In both cases, we create the thread entry here
+			//
+			// XXX: inverted_clone flag should be useless for containers
+			// since just the child's clone is allowed to create a thread
+			//
 			is_inverted_clone = true;
 
 			//
@@ -742,6 +799,30 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 		}
 		else
+		{
+			//
+			// We are in the child's clone. If we are in a container, make
+			// sure the vtid/vpid are reflected because the father was maybe
+			// running outside the container so created the child thread without
+			// knowing the internal vtid/vpid
+			//
+			if(in_container)
+			{
+				evt->m_tinfo->m_vtid = vtid;
+				evt->m_tinfo->m_vpid = vpid;
+			}
+
+			return;
+		}
+	}
+	else
+	{
+		//
+		// We are in the father. If the father is running in a container,
+		// don't create the child process but wait until we see child, because
+		// the father just sees the internal tid of the child
+		//
+		if(in_container)
 		{
 			return;
 		}
@@ -784,7 +865,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		}
 		else
 		{
-			ASSERT(evt->get_num() < 10000);
 			m_inspector->remove_thread(childtid, true);
 			tid_collision = true;
 		}
@@ -861,8 +941,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 				tinfo.m_comm = tinfo.m_exe;
 				break;
 			case PPME_SYSCALL_CLONE_17_X:
+			case PPME_SYSCALL_CLONE_20_X:
 			case PPME_SYSCALL_FORK_17_X:
+			case PPME_SYSCALL_FORK_20_X:
 			case PPME_SYSCALL_VFORK_17_X:
+			case PPME_SYSCALL_VFORK_20_X:
 				parinfo = evt->get_param(13);
 				tinfo.m_comm = parinfo->m_val;
 				break;
@@ -940,8 +1023,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_comm = tinfo.m_exe;
 		break;
 	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
 		parinfo = evt->get_param(13);
 		tinfo.m_comm = parinfo->m_val;
 		break;
@@ -968,10 +1054,13 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_CLONE_16_X:
 	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_X:
 	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1017,6 +1106,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_VFORK_17_X:
 		parinfo = evt->get_param(15);
 		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(16);
+		break;
 	default:
 		ASSERT(false);
 	}
@@ -1039,11 +1133,48 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_VFORK_17_X:
 		parinfo = evt->get_param(16);
 		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+		parinfo = evt->get_param(17);
+		break;
 	default:
 		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_gid = *(int32_t *)parinfo->m_val;
+
+	//
+	// If we're in a container, vtid and vpid are
+	// initialized to the values coming from the event,
+	// otherwise they are just set to tid and pid. We can't
+	// use the event in that case because in a non-container
+	// case also the clone exit from the father can create a
+	// child process, and it doesn't have the right vtid and vpid
+	// values
+	//
+	if(in_container)
+	{
+		tinfo.m_vtid = vtid;
+		tinfo.m_vpid = vpid;
+	}
+	else
+	{
+		tinfo.m_vtid = tinfo.m_tid;
+		tinfo.m_vpid = tinfo.m_vpid;
+	}
+
+	//
+	// Set cgroups and heuristically detect container id
+	//
+	switch(etype)
+	{
+		case PPME_SYSCALL_CLONE_20_X:
+			parinfo = evt->get_param(14);
+			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
+			m_inspector->m_container_manager.resolve_container_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive, &tinfo.m_container_id);
+			break;
+	}
 
 	//
 	// Initilaize the thread clone time
@@ -1120,6 +1251,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->m_comm = evt->m_tinfo->m_exe;
 		break;
 	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1153,6 +1285,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_13_X:
 	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1196,6 +1329,21 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		// Get the environment
 		parinfo = evt->get_param(14);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
+		break;
+	case PPME_SYSCALL_EXECVE_16_X:
+		// Get the environment
+		parinfo = evt->get_param(15);
+		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
+
+		//
+		// Set cgroups and heuristically detect container id
+		//
+		parinfo = evt->get_param(14);
+		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
+		if(evt->m_tinfo->m_container_id.empty())
+		{
+			m_inspector->m_container_manager.resolve_container_from_cgroups(evt->m_tinfo->m_cgroups, m_inspector->m_islive, &evt->m_tinfo->m_container_id);
+		}
 		break;
 	default:
 		ASSERT(false);
@@ -3180,4 +3328,25 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
 		evt->get_thread_info()->m_gid = new_egid;
 	}
+}
+
+void sinsp_parser::parse_container_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	sinsp_container_info container_info;
+
+	parinfo = evt->get_param(0);
+	container_info.m_id = parinfo->m_val;
+
+	parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	container_info.m_type = (sinsp_container_type) *(uint32_t *)parinfo->m_val;
+
+	parinfo = evt->get_param(2);
+	container_info.m_name = parinfo->m_val;
+
+	parinfo = evt->get_param(3);
+	container_info.m_image = parinfo->m_val;
+
+	m_inspector->m_container_manager.add_container(container_info);
 }
