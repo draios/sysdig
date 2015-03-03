@@ -675,7 +675,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 
 			if(scap_fd_read_sockets(handle, procdir, sockets) == SCAP_FAILURE)
 			{
-				sockets->sockets = (void*)-1;
+				sockets->sockets = NULL;
 				return SCAP_FAILURE;
 			}
 		}
