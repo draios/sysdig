@@ -46,7 +46,7 @@ public:
 	/*!
 	  \brief Constructs the filter.
 
-	  \param inspector Pointer to the inspector instance that will generate the 
+	  \param inspector Pointer to the inspector instance that will generate the
 	   events to be filtered.
 	  \param fltstr the filter string to compile.
 	  \param ttable_only for internal use only.
@@ -61,7 +61,7 @@ public:
 	  \brief Applies the filter to the given event.
 
 	  \param evt Pointer that needs to be filtered.
-	  \return true if the event is accepted by the filter, false if it's rejected. 
+	  \return true if the event is accepted by the filter, false if it's rejected.
 	*/
 	bool run(sinsp_evt *evt);
 
@@ -80,6 +80,12 @@ private:
 	void parse_check(sinsp_filter_expression* parent_expr, boolop op);
 	void push_expression(boolop op);
 	void pop_expression();
+
+	//
+	// Check to see if the filter has 1 or more 'in' clause(s)
+	// return modified filter to "or" clauses, else return the original filter string
+	//
+	string parse_in_clause(const string& fltstr);
 
 	void compile(const string& fltstr);
 

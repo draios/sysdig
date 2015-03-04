@@ -163,8 +163,14 @@ bool flt_compare_int64(ppm_cmp_operator op, int64_t operand1, int64_t operand2)
 		return (operand1 > operand2);
 	case CO_GE:
 		return (operand1 >= operand2);
-	default:
+	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
+		return false;
+	case CO_IN:
+		throw sinsp_exception("'in' not supported for numeric filters");
+		return false;
+	default:
+		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
 	}
 }
@@ -178,6 +184,8 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 	case CO_NE:
 		return (strcmp(operand1, operand2) != 0);
 	case CO_CONTAINS:
+		return (strstr(operand1, operand2) != NULL);
+	case CO_IN:
 		return (strstr(operand1, operand2) != NULL);
 	case CO_LT:
 		throw sinsp_exception("'<' not supported for string filters");
@@ -344,7 +352,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			{
 		 		return (Json::Value::Int64)*(int64_t *)rawval;
 			}
-			else 
+			else
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -645,12 +653,12 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			}
 		case PT_IPV4ADDR:
 			snprintf(m_getpropertystr_storage,
-				        sizeof(m_getpropertystr_storage),
-				        "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-				        rawval[0],
-				        rawval[1],
-				        rawval[2],
-				        rawval[3]);
+						sizeof(m_getpropertystr_storage),
+						"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+						rawval[0],
+						rawval[1],
+						rawval[2],
+						rawval[3]);
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
@@ -765,7 +773,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 	uint32_t len;
 	Json::Value jsonval = extract_as_js(evt, &len);
 
-	if(jsonval == Json::Value::null) 
+	if(jsonval == Json::Value::null)
 	{
 		uint8_t* rawval = extract(evt, &len);
 		if(rawval == NULL)
@@ -773,7 +781,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 			return Json::Value::null;
 		}
 		return rawval_to_json(rawval, m_field, len);
-	} 
+	}
 	
 	return jsonval;
 }
@@ -1039,7 +1047,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 	//
 	// If there are quotes, don't stop on blank
 	//
-	if(m_scanpos < m_scansize && 
+	if(m_scanpos < m_scansize &&
 		(m_fltstr[m_scanpos] == '"' || m_fltstr[m_scanpos] == '\''))
 	{
 		is_quoted = true;
@@ -1236,6 +1244,11 @@ ppm_cmp_operator sinsp_filter::next_comparison_operator()
 		m_scanpos += 8;
 		return CO_CONTAINS;
 	}
+	else if(compare_no_consume("in"))
+	{
+		m_scanpos += 2;
+		return CO_IN;
+	}
 	else
 	{
 		throw sinsp_exception("filter error: unrecognized comparison operator after " + m_fltstr.substr(0, start));
@@ -1271,6 +1284,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 	chk->parse_field_name((char *)&operand1[0]);
 	chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
+
 	parent_expr->add_check(chk);
 }
 
@@ -1294,9 +1308,295 @@ void sinsp_filter::pop_expression()
 	m_nest_level--;
 }
 
+//
+// Check to see if the filter has 1 or more 'in' clause(s)
+// return modified filter to "or" clauses, else return the original filter string
+// throw if no filter field before "in" delimitor, or no "," after multiple values
+//
+string sinsp_filter::parse_in_clause(const string& fltstr)
+{
+	// Will contain each filter component splitting on " "
+	vector<string> components;
+
+	// The return fltstr which has been modified
+	string modified_fltstr;
+
+	// Tmp storage of each operand 'filter' e.g. proc.name
+	string operand;
+
+	// Flags to keep the state while transforming the 'in' clause to the sysdig 'or' syntax
+	bool in_state = false;
+	bool start_in_state = false;
+	bool done_in_state = false;
+	bool value_state = false;
+	bool start_value_state = false;
+	bool done_value_state = false;
+
+	// Count to make sure "," exists within "in" clause
+	uint32_t value_count = 0;
+	uint32_t comma_count = 0;
+
+	// Only parse the filter string if it has "in" clause(s)
+    if (fltstr.find(" in(") != std::string::npos || // Acceptable syntax for 'in' clause
+        fltstr.find(" in (") != std::string::npos) // Acceptable syntax for 'in' clause
+	{
+		// Assign the local fltstr so it can be modified in place
+		modified_fltstr = fltstr;
+
+		// Get all of the components of the filter for the state machine
+		components = sinsp_split(modified_fltstr, ' ');
+
+		// Clear to reuse and rebuild the new filter string
+		modified_fltstr.clear();
+
+		// Filter component state machine
+		uint32_t j;
+		for(j = 0; j < components.size(); j++)
+		{
+			// Start processing 'in' clause; only these three options can start this state
+			if(!start_value_state &&
+			   !in_state &&
+			   ( components[j] == "in" || components[j] == "in(" ))
+			{
+				// Make sure there is an operand before the first "in" clause
+				if(j != 0)
+				{
+					// Capture the operand to build 'or's e.g. "proc.name in(..."
+					operand = components[j - 1];
+				}
+				else
+				{
+					// No filter field before "in" clause e.g. "and in(..."
+					ASSERT(false);
+					throw sinsp_exception("syntax error no filter field before 'in' clause");
+				}
+
+				// Set the "in" State BEGINNING the "in" clause transformation to "or"s
+				in_state = true;
+				start_in_state = true;
+				done_in_state = false;
+
+			}
+			// Stop processing 'in' clause; given these three conditions
+			else if(!start_value_state && // Start value state has passed
+					in_state && // Still in the "in" state
+					components[j] == ")" ) // "in" end delimiter found
+			{
+				// Set the "in" State ENDING  the "in" clause transformation to "or"s
+				in_state = false;
+				done_in_state = true;
+
+			}
+
+			// Check to see if the componet might be a value wrapped with "'"
+			std::size_t first = components[j].find_first_of("'");
+			std::size_t last = components[j].find_last_of("'");
+
+			// Start value state machine if there is only 1 "'" within component
+			if(first == last)
+			{
+				// End the value state iff
+				 if(value_state && // Value state started
+				   components[j].find("'") != std::string::npos)  // Value end delimiter found
+				{
+					// Done parsing this value within the "in" clause
+					value_state = false;
+					done_value_state = true;
+				}
+				// Only start the value state if
+				else if(in_state && // Started the 'in' state
+						!value_state && // Not already started the value state
+						components[j].find("'") != std::string::npos) // Value start delimiter found
+				{
+					// Start parsing this value within the "in" clause
+					value_state = true;
+					start_value_state = true;
+					done_value_state = false;
+				}
+			}
+
+			// Done parsing the "in" clause
+			if(done_in_state)
+			{
+				if(comma_count != value_count-1 && // The comma count is 1 less then value count
+				   value_count != 1) // There is more than 1 values within the "in" clause
+				{
+					// There were not enough commas given the amount of values
+					ASSERT(false);
+					throw sinsp_exception("syntax error in filter 'in' clause with ','");
+				}
+
+				// Reset the counts for each potential "in" clause
+				comma_count = 0;
+				value_count = 0;
+				done_in_state = false;
+
+				// Make sure to add ending scope resolution when done with "in" clause conversion
+				modified_fltstr += " ) ";
+			}
+			// Each component not apart of the 'in' clause
+			else if(!in_state)
+			{
+				//
+				// Do to the way this state machine works a filter field exists before
+				// the "in" clause start delimiter is found
+				// if the next component is apart of the "in" clause then start scope resolution
+				//
+				if(j+1 < components.size() && (components[j+1] == "in(" || components[j+1] == "in"))
+				{
+					// Only add scope resolution "(" and do not add the operand
+					modified_fltstr += "( ";
+				}
+				else
+				{
+					// Add each component back to the filter string as it was originally
+					modified_fltstr += components[j] + " ";
+				}
+			}
+			// while in the "in" state do the following
+			else if(in_state)
+			{
+				// Check if in the value's start state
+				if(value_state && start_value_state)
+				{
+					// Append the operand filter field before the value
+					modified_fltstr += operand + "=" + components[j] + " ";
+					start_value_state = false;
+				}
+				// Check if in the value's state but not its start state
+				else if(value_state && !start_value_state)
+				{
+					//
+					// There might be one or more parts to a value, so append them
+					// this is due to splitting on " " to loop through each component
+					//
+					modified_fltstr += components[j] + " ";
+				}
+				// Ending the value state
+				else if(done_value_state)
+				{
+					// Check to see if the last part of the value has a "," attached
+					std::size_t found = components[j].find(",");
+					if(found+1 == components[j].size())
+					{
+						// If a comma is attached replace it with an " or "
+						replace_in_place( components[j], ",", " or ");
+
+						// Keep track that a "," was found
+						comma_count++;
+					}
+
+					// Make sure "in" syntax is correct; i.e. don't allow " in( ... value)"
+					found = components[j].find(")");
+					if(found+1 == components[j].size())
+					{
+						ASSERT(false);
+						throw sinsp_exception("syntax error in filter 'in' clause not properly ended ' )' near " + components[j]);
+					}
+
+					modified_fltstr += components[j];
+
+					// Keep track that a value was found
+					value_count++;
+					done_value_state = false;
+				}
+				// No longer parsing a value; which means there wasn't a single "'" in this component
+				else
+				{
+					// If the "," wasn't attached to the end of a value e.g. "... value1 , value2"
+					if(components[j] == ",")
+					{
+						// If a comma then replace it with an " or "
+						replace_in_place( components[j], ",", " or ");
+
+						// Keep track that a "," was found
+						comma_count++;
+						modified_fltstr += components[j];
+					}
+					// Beginning of "in" clause skip "in(" or "in", but allow these within values
+					else if(start_in_state && components[j] != "in(" && components[j] != "in" && components[j] != "(")
+					{
+						// Drop all space seperators because of splitting on " "
+						if(components[j] != "")
+						{
+							// Check to see if the last part of the value has a "," attached
+							std::size_t found = components[j].find(",");
+							if(found+1 == components[j].size())
+							{
+								// If a comma is attached replace it with an " or "
+								replace_in_place( components[j], ",", " or ");
+
+								// Keep track that a "," was found
+								comma_count++;
+							}
+
+							modified_fltstr += operand + "=" + components[j] + " ";
+
+							// Keep track that a value was found
+							value_count++;
+							start_in_state = false;
+						}
+					}
+					// All of the rest of the values within the "in" clause
+					else if(!start_in_state && components[j] != "(")
+					{
+						// Drop all space seperators because of splitting on " "
+						if(components[j] != "")
+						{
+							// Check to see if the last part of the value has a "," attached
+							std::size_t found = components[j].find(",");
+							if(found+1 == components[j].size())
+							{
+								// If a comma is attached replace it with an " or "
+								replace_in_place( components[j], ",", " or ");
+
+								// Keep track that a "," was found
+								comma_count++;
+							}
+
+							// Make sure "in" syntax is correct; i.e. don't allow " in( ... value)"
+							found = components[j].find(")");
+							if(found+1 == components[j].size())
+							{
+								ASSERT(false);
+								throw sinsp_exception("syntax error in filter 'in' clause not properly ended ' )' near " + components[j]);
+							}
+
+							modified_fltstr += operand + "=" + components[j] + " ";
+
+							// Keep track that a value was found
+							value_count++;
+						}
+					}
+					else
+					{
+						// Edge case if the first value is "in" e.g. "proc.name in ( in ..."
+						start_in_state = false;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		// No 'in' clause(s) to transform
+		modified_fltstr = fltstr;
+	}
+
+	if(in_state)
+	{
+		// The done_in_state was never called
+		ASSERT(false);
+		throw sinsp_exception("syntax error in filter 'in' clause not properly ended ' )'");
+	}
+
+	return modified_fltstr;
+}
+
 void sinsp_filter::compile(const string& fltstr)
 {
-	m_fltstr = fltstr;
+	// Check to see if the filter clause has 1 or more "in" clause(s)
+	m_fltstr = parse_in_clause( fltstr );
 	m_scansize = (uint32_t)m_fltstr.size();
 
 	while(true)
@@ -1392,7 +1692,7 @@ void sinsp_filter::compile(const string& fltstr)
 
 			break;
 		default:
-			if (m_state == ST_NEED_EXPRESSION)
+			if(m_state == ST_NEED_EXPRESSION)
 			{
 				parse_check(m_curexpr, m_last_boolop);
 
