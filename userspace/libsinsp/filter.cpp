@@ -1179,7 +1179,11 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 
 bool sinsp_filter::compare_no_consume(const string& str)
 {
-	if(m_scanpos + (int32_t)str.size() >= m_scansize)
+	//
+	// If the rest of the filter cannot contain the operand we may return
+	// The filter may finish with the operand itself though (e.g. "proc.name exists")
+	//
+	if(m_scanpos + (int32_t)str.size() > m_scansize)
 	{
 		return false;
 	}
