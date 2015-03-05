@@ -117,11 +117,19 @@ The list of available fields can be obtained with \[aq]sysdig \-l\[aq].
 .PD
 Filter expressions can use one of these comparison operators:
 \f[I]=\f[], \f[I]!=\f[], \f[I]<\f[], \f[I]<=\f[], \f[I]>\f[],
-\f[I]>=\f[] and \f[I]contains\f[].
+\f[I]>=\f[], \f[I]contains\f[], \f[I]in\f[] and \f[I]exists\f[].
 e.g.
 .RS
 .PP
 $ sysdig fd.name contains /etc
+.PD 0
+.P
+.PD
+$ sysdig "evt.type in ( \[aq]select\[aq], \[aq]poll\[aq] )"
+.PD 0
+.P
+.PD
+$ sysdig proc.name exists
 .RE
 .PP
 Multiple checks can be combined through brakets and the following
