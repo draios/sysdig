@@ -1460,6 +1460,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		{"numevents", required_argument, 0, 'n' },
 		{"readfile", required_argument, 0, 'r' },
 		{"snaplen", required_argument, 0, 's' },
+		{"logfile", required_argument, 0, 0 },
 		{"version", no_argument, 0, 0 },
 		{0, 0, 0, 0}
 	};
@@ -1501,7 +1502,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-                                        "Ehn:r:s:", long_options, &long_index)) != -1)
+			"Ehn:r:s:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -1527,15 +1528,28 @@ sysdig_init_res systop_init(int argc, char **argv)
 			case 's':
 				snaplen = atoi(optarg);
 				break;
+			case 0:
+				{
+					if(long_options[long_index].flag != 0)
+					{
+						break;
+					}
+
+					string optname = string(long_options[long_index].name);
+					if(optname == "version")
+					{
+						printf("sysdig version %s\n", SYSDIG_VERSION);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+					else if(optname == "logfile")
+					{
+						inspector->set_log_file(optarg);
+					}
+				}
+				break;
 			default:
 				break;
-			}
-
-			if(string(long_options[long_index].name) == "version")
-			{
-				printf("sysdig version %s\n", SYSDIG_VERSION);
-				delete inspector;
-				return sysdig_init_res(EXIT_SUCCESS);
 			}
 		}
 
@@ -1791,8 +1805,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

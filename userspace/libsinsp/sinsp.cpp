@@ -1258,6 +1258,11 @@ void sinsp::set_log_callback(sinsp_logger_callback cb)
 	g_logger.add_callback_log(cb);
 }
 
+void sinsp::set_log_file(string filename)
+{
+	g_logger.add_file_log(filename);
+}
+
 void sinsp::set_min_log_severity(sinsp_logger::severity sev)
 {
 	g_logger.set_severity(sev);

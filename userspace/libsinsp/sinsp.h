@@ -337,6 +337,11 @@ public:
 	void set_log_callback(sinsp_logger_callback cb);
 
 	/*!
+	  \brief Instruct sinsp to write its log messages to the given file.
+	*/
+	void set_log_file(string filename);
+
+	/*!
 	  \brief Specify the minimum severity of the messages that go into the logs
 	   emitted by the library.
 	*/

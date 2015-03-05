@@ -582,10 +582,12 @@ void sinsp_cursesui::switch_view()
 
 	m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
 
+#ifndef NOCURSESUI
 	//
 	// Clear the screen to make sure all the crap is removed
 	//
 	clear();
+#endif
 
 	//
 	// If this is a file, we need to restart the capture.
@@ -610,6 +612,7 @@ void sinsp_cursesui::switch_view()
 		}
 	}
 
+#ifndef NOCURSESUI
 	// XXX should this be removed?
 	populate_sidemenu(field, &m_sidemenu_viewlist);
 
@@ -618,6 +621,7 @@ void sinsp_cursesui::switch_view()
 
 	m_viz->render(true);
 	render();
+#endif
 }
 
 // returns false if there is no suitable drill down view for this field

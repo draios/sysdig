@@ -276,7 +276,6 @@ public:
 				m_last_input_check_ts = ts;
 			}
 		}
-#endif
 
 		//
 		// We reading from a file and we reached its end. 
@@ -289,6 +288,7 @@ public:
 			usleep(10000);
 			return false;
 		}
+#endif
 
 		//
 		// Check if it's time to flush
@@ -324,13 +324,17 @@ public:
 				m_datatable->get_sample();
 
 #ifndef NOCURSESUI
+			//
+			// Now refresh the UI.
+			//			
 			m_viz->update_data(sample);
 			m_viz->render(true);
 
 			//
-			// Now refresh the UI.
-			//			
-#endif				
+			// If this is a trace file, check if we reached the end of the file.
+			// Or, if we are in replay mode, wait for a key press before processing
+			// the next sample.
+			//
 			if(!m_inspector->is_live())
 			{
 				if(m_offline_replay)
@@ -347,6 +351,7 @@ public:
 					return false;
 				}
 			}
+#endif
 		}
 
 		m_datatable->process_event(evt);
@@ -365,6 +370,13 @@ public:
 	uint32_t m_screenh;
 
 private:
+	void restart_capture();
+	void switch_view();
+	// returns false if there is no suitable drill down view for this field
+	bool drilldown(string field, string val);
+	// returns false if we are already at the top of the hierarchy
+	bool drillup();
+
 #ifndef NOCURSESUI
 	void render();
 	void render_header();
@@ -374,12 +386,6 @@ private:
 	sysdig_table_action handle_textbox_input(int ch);
 	sysdig_table_action handle_input(int ch);
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
-	void restart_capture();
-	void switch_view();
-	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val);
-	// returns false if we are already at the top of the hierarchy
-	bool drillup();
 
 	curses_table_sidemenu* m_sidemenu;
 #endif
