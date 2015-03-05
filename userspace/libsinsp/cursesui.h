@@ -185,20 +185,20 @@ public:
 	void configure(vector<sinsp_table_info>* views);
 	void start(bool is_drilldown, string filter);
 	sinsp_table_info* get_selected_view();
-	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val);
-	// returns false if we are already at the top of the hierarchy
-	bool drillup();
 	void pause();
 	bool is_searching()
 	{
 		return m_searching;
 	}
+	bool is_eof()
+	{
+		return m_eof != 0;
+	}
 
 	//
 	// Return true if the application is supposed to exit
 	//
-	inline bool process_event(sinsp_evt* evt)
+	inline bool process_event(sinsp_evt* evt, int32_t next_res)
 	{
 		bool end_of_sample;
 		uint64_t ts = evt->get_ts();
@@ -207,16 +207,36 @@ public:
 		// Process the user input
 		//
 #ifndef NOCURSESUI
-		if(ts - m_last_input_check_ts > UI_USER_INPUT_CHECK_PERIOD_NS)
+		if((ts - m_last_input_check_ts > UI_USER_INPUT_CHECK_PERIOD_NS) || m_eof)
 		{
 			uint32_t ninputs = 0;
 
+			uint64_t evtnum = evt->get_num();
+
+			//
+			// If this is a file, print the progress once in a while
+			//
+			if(!m_inspector->is_live())
+			{
+				if(evtnum - m_last_progress_evt > 10000)
+				{
+					m_viz->print_progress(m_inspector->get_read_progress());
+					m_last_progress_evt = evtnum;
+				}
+			}
+
+			//
+			// If we have more than one event in the queue, consume all of them
+			//
 			while(true)
 			{
 				int input = getch();
 
 				if(input == -1)
 				{
+					//
+					// All events consumed
+					//
 					break;
 				}
 				else
@@ -224,64 +244,21 @@ public:
 					ninputs++;
 				}
 
+				//
+				// Handle the event
+				//
 				sysdig_table_action ta = handle_input(input);
 
+				//
+				// Some events require that we perform additional actions
+				//
 				if(ta == STA_QUIT)
 				{
 					return true;
 				}
 				else if(ta == STA_SWITCH_VIEW)
 				{
-					string field;
-					if(m_sel_hierarchy.m_hierarchy.size() > 0)
-					{
-						sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
-						field = psinfo->m_field;
-					}
-
-					m_combined_filter = "";
-					if(m_is_filter_sysdig)
-					{
-						if(m_flt_string != "")
-						{
-							m_combined_filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
-						}
-					}
-					else
-					{
-						m_combined_filter = m_sel_hierarchy.tofilter();
-					}
-
-					m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
-
-					clear();
-
-					try
-					{
-						start(true, m_combined_filter);
-					}
-					catch(...)
-					{
-						m_inspector->close();
-
-	#ifdef HAS_FILTERING
-						if(m_capture_filter != "")
-						{
-							m_inspector->set_filter(m_capture_filter);
-						}
-	#endif
-
-						start(true, m_combined_filter);
-						m_inspector->open(m_event_source_name);
-					}
-
-					populate_sidemenu(field, &m_sidemenu_viewlist);
-
-					delete m_sidemenu;
-					m_sidemenu = NULL;
-
-					m_viz->render(true);
-					render();
+					switch_view();
 				}
 				else if(ta == STA_DRILLDOWN)
 				{
@@ -302,9 +279,38 @@ public:
 #endif
 
 		//
+		// We reading from a file and we reached its end. 
+		// We keep looping because we want to handle user events, but we stop the
+		// processing here. We also make sure to sleep a bit to keep the CPU under
+		// control. 
+		//
+		if(m_eof > 1)
+		{
+			usleep(10000);
+			return false;
+		}
+
+		//
 		// Check if it's time to flush
 		//
-		end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
+		if(m_inspector->is_live() || m_offline_replay)
+		{
+			end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
+		}
+		else
+		{
+			//
+			// For files, we flush only once, at the end of the capture.
+			//
+			if(next_res == SCAP_EOF)
+			{
+				end_of_sample = true;
+			}
+			else
+			{
+				end_of_sample = false;				
+			}
+		}
 
 		if(end_of_sample)
 		{
@@ -323,17 +329,24 @@ public:
 
 			//
 			// Now refresh the UI.
-			//
-			render();
-
+			//			
+#endif				
 			if(!m_inspector->is_live())
 			{
-				while(getch() != 'a')
+				if(m_offline_replay)
 				{
-					usleep(100000);
+					while(getch() != ' ')
+					{
+						usleep(10000);
+					}
+				}
+
+				if(next_res == SCAP_EOF)
+				{
+					m_eof++;
+					return false;
 				}
 			}
-#endif				
 		}
 
 		m_datatable->process_event(evt);
@@ -361,6 +374,12 @@ private:
 	sysdig_table_action handle_textbox_input(int ch);
 	sysdig_table_action handle_input(int ch);
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
+	void restart_capture();
+	void switch_view();
+	// returns false if there is no suitable drill down view for this field
+	bool drilldown(string field, string val);
+	// returns false if we are already at the top of the hierarchy
+	bool drillup();
 
 	curses_table_sidemenu* m_sidemenu;
 #endif
@@ -377,4 +396,7 @@ private:
 	string m_flt_string;
 	bool m_is_filter_sysdig;
 	string m_combined_filter;
+	uint32_t m_eof;
+	bool m_offline_replay;
+	uint64_t m_last_progress_evt;
 };

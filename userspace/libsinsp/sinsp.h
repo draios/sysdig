@@ -595,7 +595,8 @@ public:
 	}
 
 	/*!
-	  \brief XXX.
+	  \brief When reading events from a trace file, this function returns the
+	   read progress as a number between 0 and 100.
 	*/
 	double get_read_progress();
 

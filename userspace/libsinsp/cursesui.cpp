@@ -107,6 +107,9 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, strin
 	m_last_input_check_ts = 0;
 	m_searching = false;
 	m_is_filter_sysdig = false;
+	m_eof = 0;
+	m_offline_replay = false;
+	m_last_progress_evt = 0;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 
@@ -264,7 +267,7 @@ void sinsp_cursesui::start(bool is_drilldown, string filter)
 	m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 
 #ifndef NOCURSESUI
-	m_viz = new curses_table(this);
+	m_viz = new curses_table(this, m_inspector);
 	m_viz->configure(m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
 	if(!is_drilldown)
 	{
@@ -537,6 +540,86 @@ string combine_filters(string flt1, string flt2)
 	return res;
 }
 
+void sinsp_cursesui::restart_capture()
+{
+	m_inspector->close();
+
+#ifdef HAS_FILTERING
+	if(m_capture_filter != "")
+	{
+		m_inspector->set_filter(m_capture_filter);
+	}
+#endif
+
+	start(true, m_combined_filter);
+	m_inspector->open(m_event_source_name);
+}
+
+void sinsp_cursesui::switch_view()
+{
+	string field;
+	if(m_sel_hierarchy.m_hierarchy.size() > 0)
+	{
+		sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+		field = psinfo->m_field;
+	}
+
+	//
+	// Create the filter for the new view
+	//
+	m_combined_filter = "";
+	if(m_is_filter_sysdig)
+	{
+		if(m_flt_string != "")
+		{
+			m_combined_filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
+		}
+	}
+	else
+	{
+		m_combined_filter = m_sel_hierarchy.tofilter();
+	}
+
+	m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
+
+	//
+	// Clear the screen to make sure all the crap is removed
+	//
+	clear();
+
+	//
+	// If this is a file, we need to restart the capture.
+	// If it's a live capture, we restart only if start() fails, which usually
+	// happens in case one of the filter fields requested thread state.
+	//
+	if(!m_inspector->is_live())
+	{
+		m_eof = false;
+		m_last_progress_evt = 0;
+		restart_capture();
+	}
+	else
+	{
+		try
+		{
+			start(true, m_combined_filter);
+		}
+		catch(...)
+		{
+			restart_capture();
+		}
+	}
+
+	// XXX should this be removed?
+	populate_sidemenu(field, &m_sidemenu_viewlist);
+
+	delete m_sidemenu;
+	m_sidemenu = NULL;
+
+	m_viz->render(true);
+	render();
+}
+
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::drilldown(string field, string val)
 {
@@ -579,7 +662,23 @@ bool sinsp_cursesui::drilldown(string field, string val)
 
 				m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
 
-				start(true, m_combined_filter);
+				if(!m_inspector->is_live())
+				{
+					m_eof = false;
+					m_last_progress_evt = 0;
+					restart_capture();
+				}
+				else
+				{
+					try
+					{
+						start(true, m_combined_filter);
+					}
+					catch(...)
+					{
+						restart_capture();
+					}
+				}
 #ifndef NOCURSESUI
 				clear();
 				populate_sidemenu(field, &m_sidemenu_viewlist);
@@ -638,7 +737,23 @@ bool sinsp_cursesui::drillup()
 
 		m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
 
-		start(true, m_combined_filter);
+		if(!m_inspector->is_live())
+		{
+			m_eof = false;
+			m_last_progress_evt = 0;
+			restart_capture();
+		}
+		else
+		{
+			try
+			{
+				start(true, m_combined_filter);
+			}
+			catch(...)
+			{
+				restart_capture();
+			}
+		}
 #ifndef NOCURSESUI
 		if(rowkey.m_val != NULL)
 		{

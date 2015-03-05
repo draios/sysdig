@@ -1391,7 +1391,6 @@ exit:
 
 //#ifdef SYSTOP
 #if 1
-	
 captureinfo do_systop_inspect(sinsp* inspector,
 					   uint64_t cnt,
 					   sinsp_cursesui* ui)
@@ -1420,11 +1419,7 @@ captureinfo do_systop_inspect(sinsp* inspector,
 		{
 			continue;
 		}
-		else if(res == SCAP_EOF)
-		{
-			break;
-		}
-		else if(res != SCAP_SUCCESS)
+		else if(res != SCAP_EOF && res != SCAP_SUCCESS)
 		{
 			//
 			// Event read error.
@@ -1434,7 +1429,7 @@ captureinfo do_systop_inspect(sinsp* inspector,
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
 
-		if(ui->process_event(ev) == true)
+		if(ui->process_event(ev, res) == true)
 		{
 			return retval;
 		}
@@ -1796,8 +1791,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-	res = systop_init(argc, argv);
-	return 0;
+//	res = systop_init(argc, argv);
+//	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

@@ -54,7 +54,6 @@ sinsp::sinsp() :
 	m_container_manager(this)
 {
 	m_h = NULL;
-	m_nevts = 0;
 	m_parser = NULL;
 	m_dumper = NULL;
 	m_metaevt = NULL;
@@ -203,6 +202,7 @@ void sinsp::init()
 	m_stats.clear();
 #endif
 
+	m_nevts = 0;
 	m_tid_to_remove = -1;
 	m_lastevent_ts = 0;
 #ifdef HAS_FILTERING

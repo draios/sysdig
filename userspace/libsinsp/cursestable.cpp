@@ -48,7 +48,7 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////
 // curses_table implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_table::curses_table(sinsp_cursesui* parent)
+curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector)
 {
 	m_tblwin = NULL;
 	m_data = NULL;
@@ -58,6 +58,7 @@ curses_table::curses_table(sinsp_cursesui* parent)
 	m_drilled_up = false;
 	m_selection_changed = false;
 	m_parent = parent;
+	m_inspector = inspector;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -240,9 +241,45 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 	}
 }
 
+void curses_table::print_progress(double progress)
+{
+	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
+
+	string wstr = "Processing File";
+	mvwprintw(m_tblwin, 
+		m_parent->m_screenh / 2,
+		m_parent->m_screenw / 2 - wstr.size() / 2, 
+		wstr.c_str());	
+
+	//
+	// Using sprintf because to_string doesn't support setting the precision 
+	//
+	char numbuf[64];
+	sprintf(numbuf, "%.2lf", progress);
+	wstr = "Progress: " + string(numbuf);
+	mvwprintw(m_tblwin, 
+		m_parent->m_screenh / 2 + 1,
+		m_parent->m_screenw / 2 - wstr.size() / 2, 
+		wstr.c_str());
+
+	wrefresh(m_tblwin);
+}
+
 void curses_table::print_wait()
 {
-	string wstr = "Gathering Data";
+	string wstr;
+
+	if(m_inspector->is_live())
+	{
+		wstr = "Gathering Data";
+	}
+	else
+	{
+		if(m_parent->is_eof())
+		{
+			wstr = "No Data For This View";
+		}
+	}
 
 	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 
@@ -268,6 +305,18 @@ void curses_table::render(bool data_changed)
 {
 	uint32_t j, k;
 	int32_t l, m;
+
+	//
+	// Clear the screen
+	//
+	for(j = 1; j < m_h; j++)
+	{
+		wmove(m_tblwin, j, 0);
+		for(k = 0; k < m_w; k++)
+		{
+			waddch(m_tblwin, ' ');
+		}
+	}
 
 	if(m_data == NULL)
 	{

@@ -27,7 +27,7 @@ public:
 		ALIGN_RIGHT,
 	};
 
-	curses_table(sinsp_cursesui* parent);
+	curses_table(sinsp_cursesui* parent, sinsp* inspector);
 	~curses_table();
 
 	void configure(sinsp_table* table, 
@@ -41,6 +41,7 @@ public:
 		m_table_x_start = x;
 	}
 	void recreate_win();
+	void print_progress(double progress);
 
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
@@ -51,6 +52,7 @@ private:
 	void print_nomatch();
 	void print_wait();
 
+	sinsp* m_inspector;
 	WINDOW* m_tblwin;
 	sinsp_cursesui* m_parent;
 	sinsp_table* m_table;
