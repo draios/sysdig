@@ -54,8 +54,7 @@ end
 
 -- Event parsing callback
 function on_event()
-	sysdig.end_capture()
-	return false
+	return true
 end
 
 -- Final chisel initialization

@@ -2,10 +2,12 @@ FROM debian:unstable
 
 MAINTAINER Sysdig <support@sysdigcloud.com>
 
-ENV REPO dev
-ENV SYSDIG_VERSION 0.99.231
+ENV REPO stable
+ENV SYSDIG_VERSION 0.1.98
 
 ENV SYSDIG_HOST_ROOT /host
+
+ENV HOME /root
 
 RUN cp /etc/skel/.bashrc /root && cp /etc/skel/.profile /root
 

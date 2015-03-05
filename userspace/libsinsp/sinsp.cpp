@@ -1010,12 +1010,12 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 			if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
 				(m_n_proc_lookups <= m_max_n_proc_lookups)))
 			{
-				bool scan_sockets = true;
+				bool scan_sockets = false;
 
 				if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
 					(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
 				{
-					scan_sockets = false;
+					scan_sockets = true;
 				}
 
 				scap_proc = scap_proc_get(m_h, tid, scan_sockets);

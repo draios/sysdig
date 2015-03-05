@@ -1003,6 +1003,7 @@ enum ppm_cmp_operator {
 	CO_GT = 5,
 	CO_GE = 6,
 	CO_CONTAINS = 7,
+	CO_IN = 8,
 };
 
 /*

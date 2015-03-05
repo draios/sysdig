@@ -780,7 +780,6 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 			uit = userlist->find(it->second.m_uid);
 			if(uit == userlist->end())
 			{
-				ASSERT(false);
 				username = "<NA>";
 			}
 			else

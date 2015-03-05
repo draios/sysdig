@@ -119,7 +119,6 @@ function rhel_build {
 }
 
 coreos_build 3.18.1 https://raw.githubusercontent.com/coreos/coreos-overlay/463d19f583961ddf9cc89f26350af2a828a1fa82/sys-kernel/coreos-kernel/files/amd64_defconfig-3.18
-coreos_build 3.18.4 https://raw.githubusercontent.com/coreos/coreos-overlay/bee2fa74623b87beede7f9397cb7278e9d409049/sys-kernel/coreos-kernel/files/amd64_defconfig-3.18
 coreos_build 3.18.6 https://raw.githubusercontent.com/coreos/coreos-overlay/b38dabe01e756f7265983d126f33b947a693091d/sys-kernel/coreos-kernel/files/amd64_defconfig-3.18
 
 # ubuntu_build 3.13.0-43-generic http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-image-3.13.0-43-generic_3.13.0-43.72_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-43-generic_3.13.0-43.72_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-43_3.13.0-43.72_all.deb
