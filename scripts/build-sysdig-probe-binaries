@@ -55,13 +55,16 @@ function coreos_build {
 		cd $DIR_NAME
 		make distclean
 		wget -O .config $KERNEL_CONFIG
+		make silentoldconfig
+		mv .config ../config
+		make distclean
+		wget -O .config $KERNEL_CONFIG
 		sed -i s/"CONFIG_BLK_DEV_INITRD=y"/"# CONFIG_BLK_DEV_INITRD is not set"/ .config
 		make -j8 all
+		cd ..
 	fi
 
-	wget -O config $KERNEL_CONFIG
 	HASH=$(md5sum config | cut -d' ' -f1)
-	rm -rf config
 
 	cd $BASEDIR
 
