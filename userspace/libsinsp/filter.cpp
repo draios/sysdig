@@ -1340,7 +1340,8 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
-	chk->parse_field_name((char *)&operand1[0]);
+
+	chk->parse_field_name((char *)&operand1[0], true);
 
 	//
 	// In this case we want next() to return the very next character
