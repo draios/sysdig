@@ -883,6 +883,10 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 	{
 		return false;
 	}
+	else if(m_cmpop == CO_EXISTS)
+	{
+		return true;
+	}
 
 	return flt_compare(m_cmpop,
 		m_info.m_fields[m_field_id].m_type,
@@ -1222,7 +1226,11 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand)
 
 bool sinsp_filter::compare_no_consume(const string& str)
 {
-	if(m_scanpos + (int32_t)str.size() >= m_scansize)
+	//
+	// If the rest of the filter cannot contain the operand we may return
+	// The filter may finish with the operand itself though (e.g. "proc.name exists")
+	//
+	if(m_scanpos + (int32_t)str.size() > m_scansize)
 	{
 		return false;
 	}
@@ -1296,6 +1304,11 @@ ppm_cmp_operator sinsp_filter::next_comparison_operator()
 		m_scanpos += 2;
 		return CO_IN;
 	}
+	else if(compare_no_consume("exists"))
+	{
+		m_scanpos += 6;
+		return CO_EXISTS;
+	}
 	else
 	{
 		throw sinsp_exception("filter error: unrecognized comparison operator after " + m_fltstr.substr(0, start));
@@ -1324,13 +1337,28 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 	}
 
 	ppm_cmp_operator co = next_comparison_operator();
-	vector<char> operand2 = next_operand(false);
 
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
-	chk->parse_field_name((char *)&operand1[0], true);
-	chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
+	chk->parse_field_name((char *)&operand1[0]);
 
+	//
+	// In this case we want next() to return the very next character
+	// At this moment m_scanpos is already at it
+	// e.g. "(field exists) and ..."
+	//
+	if(co == CO_EXISTS)
+	{
+		m_scanpos--;
+	}
+	//
+	// Otherwise we need a value for the operand
+	//
+	else
+	{
+		vector<char> operand2 = next_operand(false);
+		chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
+	}
 
 	parent_expr->add_check(chk);
 }

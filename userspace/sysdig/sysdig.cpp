@@ -1147,7 +1147,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			for(int32_t j = optind + n_filterargs; j < argc; j++)
 			{
 				filter += argv[j];
-				if(j < argc)
+				if(j < argc - 1)
 				{
 					filter += " ";
 				}
