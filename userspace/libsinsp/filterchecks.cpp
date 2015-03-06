@@ -1710,6 +1710,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the lenght of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the lenght of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the lenght of the binary data buffer, but only for output network I/O events."},
+	{PT_DOUBLE, EPF_TABLE_ONLY, PF_DEC, "evt.xxx", ""},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2753,6 +2754,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		break;
+	case TYPE_XXX:
+		{
+			m_pippo = 33;
+			return (uint8_t*)&m_pippo;
+		}
 	default:
 		ASSERT(false);
 		return NULL;
@@ -3287,7 +3293,7 @@ char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 					"%uns", (unsigned int)val);
 	}
 
-	uint32_t reslen = strlen(m_getpropertystr_storage);
+	uint32_t reslen = (uint32_t)strlen(m_getpropertystr_storage);
 	if(reslen < str_len)
 	{
 		uint32_t padding_size = str_len - reslen;
@@ -3351,6 +3357,11 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_l
 			break;
 		}
 
+		if(m_cnt > 1)
+		{
+			val /= m_cnt;
+		}
+
 		if(m_print_format == PF_ID)
 		{
 			snprintf(m_getpropertystr_storage,
@@ -3370,9 +3381,16 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_l
 	}
 	else if(m_field->m_type == PT_DOUBLE)
 	{
+		double dval = (double)*(double*)rawval;
+			
+		if(m_cnt > 1)
+		{
+			dval /= m_cnt;
+		}
+
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2lf", str_len, (double)*(double*)rawval);
+					"%*.2lf", str_len, dval);
 		return m_getpropertystr_storage;
 	}
 	else

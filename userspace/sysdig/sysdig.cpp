@@ -1593,13 +1593,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
-#ifdef HAS_FILTERING
-			if(filter.size())
-			{
-				inspector->set_filter(filter);
-			}
-#endif
-
 			//
 			// Initialize the UI
 			//
@@ -1676,7 +1669,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"proc.pname contains sh"));
 
 			ui.configure(&views);
-			ui.start(false, views[0].m_filter);
+			ui.start(false);
 
 			//
 			// Launch the capture

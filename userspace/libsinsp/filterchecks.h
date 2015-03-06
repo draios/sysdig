@@ -403,6 +403,7 @@ public:
 		TYPE_BUFLEN_NET = 41,
 		TYPE_BUFLEN_NET_IN = 42,
 		TYPE_BUFLEN_NET_OUT = 43,
+		TYPE_XXX = 44,
 	};
 
 	sinsp_filter_check_event();
@@ -436,6 +437,7 @@ private:
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
 	bool m_is_compare;
+	double m_pippo;
 };
 
 //
@@ -560,11 +562,14 @@ public:
 
 	sinsp_filter_check_reference();
 	sinsp_filter_check* allocate_new();
-	inline void set_val(ppm_param_type type, uint8_t* val, int32_t len, ppm_print_format print_format)
+	inline void set_val(ppm_param_type type, uint8_t* val, 
+		int32_t len, uint32_t cnt,
+		ppm_print_format print_format)
 	{
 		m_finfo.m_type = type;
 		m_val = val;
 		m_len = len;
+		m_cnt = cnt;
 		m_print_format = print_format;
 	}
 	int32_t parse_field_name(const char* str, bool alloc_state);
@@ -579,6 +584,7 @@ private:
 	filtercheck_field_info m_finfo;
 	uint8_t* m_val;
 	uint32_t m_len;
+	uint32_t m_cnt;		// For averages, this stores the entry count
 	ppm_print_format m_print_format;
 };
 

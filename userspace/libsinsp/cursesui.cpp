@@ -94,7 +94,9 @@ sinsp_table_info::sinsp_table_info(string name,
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_cursesui implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, string capture_filter)
+sinsp_cursesui::sinsp_cursesui(sinsp* inspector, 
+							   string event_source_name, 
+							   string cmdline_capture_filter)
 {
 	m_inspector = inspector;
 	m_event_source_name = event_source_name;
@@ -102,13 +104,13 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector, string event_source_name, strin
 	m_selected_sidemenu_entry = 0;
 	m_datatable = NULL;
 	m_viz = NULL;
-	m_capture_filter = capture_filter;
+	m_cmdline_capture_filter = cmdline_capture_filter;
 	m_paused = false;
 	m_last_input_check_ts = 0;
 	m_searching = false;
 	m_is_filter_sysdig = false;
 	m_eof = 0;
-	m_offline_replay = false;
+	m_offline_replay = true;
 	m_last_progress_evt = 0;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
@@ -227,7 +229,7 @@ void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
 	m_views = *views;
 }
 
-void sinsp_cursesui::start(bool is_drilldown, string filter)
+void sinsp_cursesui::start(bool is_drilldown)
 {
 	if(m_selected_view >= m_views.size())
 	{
@@ -249,13 +251,15 @@ void sinsp_cursesui::start(bool is_drilldown, string filter)
 	}
 #endif
 
+	create_complete_filter();
+
 	m_datatable = new sinsp_table(m_inspector);
 
 	try
 	{
 		m_datatable->configure(m_views[m_selected_view].m_config, 
 			m_views[m_selected_view].m_merge_config,
-			filter);
+			m_complete_filter);
 	}
 	catch(...)
 	{
@@ -543,16 +547,21 @@ string combine_filters(string flt1, string flt2)
 void sinsp_cursesui::restart_capture()
 {
 	m_inspector->close();
-
-#ifdef HAS_FILTERING
-	if(m_capture_filter != "")
-	{
-		m_inspector->set_filter(m_capture_filter);
-	}
-#endif
-
-	start(true, m_combined_filter);
+	start(true);
 	m_inspector->open(m_event_source_name);
+}
+
+void sinsp_cursesui::create_complete_filter()
+{
+	m_complete_filter = m_cmdline_capture_filter;
+
+	if(m_is_filter_sysdig)
+	{
+		m_complete_filter = combine_filters(m_complete_filter, m_manual_filter);
+	}
+
+	m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
+	m_complete_filter = combine_filters(m_complete_filter, m_views[m_selected_view].m_filter);
 }
 
 void sinsp_cursesui::switch_view()
@@ -563,24 +572,6 @@ void sinsp_cursesui::switch_view()
 		sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
 		field = psinfo->m_field;
 	}
-
-	//
-	// Create the filter for the new view
-	//
-	m_combined_filter = "";
-	if(m_is_filter_sysdig)
-	{
-		if(m_flt_string != "")
-		{
-			m_combined_filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
-		}
-	}
-	else
-	{
-		m_combined_filter = m_sel_hierarchy.tofilter();
-	}
-
-	m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
 
 #ifndef NOCURSESUI
 	//
@@ -604,7 +595,7 @@ void sinsp_cursesui::switch_view()
 	{
 		try
 		{
-			start(true, m_combined_filter);
+			start(true);
 		}
 		catch(...)
 		{
@@ -651,21 +642,6 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
 				m_selected_view = j;
 
-				m_combined_filter = "";
-				if(m_is_filter_sysdig)
-				{
-					if(m_flt_string != "")
-					{
-						m_combined_filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
-					}
-				}
-				else
-				{
-					m_combined_filter = m_sel_hierarchy.tofilter();
-				}
-
-				m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
-
 				if(!m_inspector->is_live())
 				{
 					m_eof = false;
@@ -676,7 +652,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				{
 					try
 					{
-						start(true, m_combined_filter);
+						start(true);
 					}
 					catch(...)
 					{
@@ -726,21 +702,6 @@ bool sinsp_cursesui::drillup()
 		m_sel_hierarchy.m_hierarchy.pop_back();
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
-		m_combined_filter = "";
-		if(m_is_filter_sysdig)
-		{
-			if(m_flt_string != "")
-			{
-				m_combined_filter = combine_filters(m_flt_string, m_sel_hierarchy.tofilter());
-			}
-		}
-		else
-		{
-			m_combined_filter = m_sel_hierarchy.tofilter();
-		}
-
-		m_combined_filter = combine_filters(m_combined_filter, m_views[m_selected_view].m_filter);
-
 		if(!m_inspector->is_live())
 		{
 			m_eof = false;
@@ -751,7 +712,7 @@ bool sinsp_cursesui::drillup()
 		{
 			try
 			{
-				start(true, m_combined_filter);
+				start(true);
 			}
 			catch(...)
 			{

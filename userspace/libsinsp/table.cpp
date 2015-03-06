@@ -171,6 +171,10 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 				ag = sinsp_filter_check::A_TIME_AVG;
 				preamble_len = 1;
 				break;
+			case 'A':
+				ag = sinsp_filter_check::A_AVG;
+				preamble_len = 1;
+				break;
 			case 'm':
 				ag = sinsp_filter_check::A_MIN;
 				preamble_len = 1;
@@ -376,7 +380,10 @@ void sinsp_table::add_row(bool merging)
 {
 	uint32_t j;
 
-	sinsp_table_field key(m_fld_pointers[0].m_val, m_fld_pointers[0].m_len);
+	sinsp_table_field key(m_fld_pointers[0].m_val, 
+		m_fld_pointers[0].m_len,
+		m_fld_pointers[0].m_cnt);
+
 	auto it = m_table->find(key);
 
 	if(it == m_table->end())
@@ -385,6 +392,7 @@ void sinsp_table::add_row(bool merging)
 		// New entry
 		//
 		key.m_val = m_buffer->copy(key.m_val, key.m_len);
+		key.m_cnt = 1;
 		m_vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_sz);
 
 		for(j = 1; j < m_n_fields; j++)
@@ -392,6 +400,7 @@ void sinsp_table::add_row(bool merging)
 			uint32_t vlen = get_field_len(j);
 			m_vals[j - 1].m_val = m_buffer->copy(m_fld_pointers[j].m_val, vlen);
 			m_vals[j - 1].m_len = vlen;
+			m_vals[j - 1].m_cnt = 1;
 		}
 
 		(*m_table)[key] = m_vals;
@@ -456,6 +465,8 @@ void sinsp_table::process_event(sinsp_evt* evt)
 				{
 					return;
 				}
+
+				pfld->m_cnt = 1;
 			}
 			else
 			{
@@ -465,6 +476,7 @@ void sinsp_table::process_event(sinsp_evt* evt)
 		else
 		{
 			pfld->m_val = val;
+			pfld->m_cnt = 1;
 		}
 
 		pfld->m_len = get_field_len(j);
@@ -508,6 +520,15 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	for(auto it = threadtable->begin(); it != threadtable->end(); ++it)
 	{
 		tevt.m_tinfo = &it->second;
+
+		if(m_filter)
+		{
+			if(!m_filter->run(evt))
+			{
+				continue;
+			}
+		}
+
 		process_event(&tevt);
 	}
 }
@@ -573,6 +594,7 @@ void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data)
 			m_printer->set_val(m_types->at(j + 1), 
 				it->m_values[j].m_val, 
 				it->m_values[j].m_len,
+				it->m_values[j].m_cnt,
 				legend->at(j + 1).m_print_format);
 				printf("%s ", m_printer->tostring_nice(NULL, 10));
 //				printf("%s ", m_printer->tostring(NULL));
@@ -603,6 +625,7 @@ void sinsp_table::filter_sample()
 				m_printer->set_val(type, 
 					it.m_values[j].m_val, 
 					it.m_values[j].m_len,
+					it.m_values[j].m_cnt,
 					legend->at(j + 1).m_print_format);
 					
 				string strval = m_printer->tostring_nice(NULL, 0);
@@ -764,11 +787,13 @@ void sinsp_table::create_sample()
 				{
 					pfld->m_val = it->first.m_val;
 					pfld->m_len = it->first.m_len;
+					pfld->m_cnt = it->first.m_cnt;
 				}
 				else
 				{
 					pfld->m_val = it->second[col - 1].m_val;
 					pfld->m_len = it->second[col - 1].m_len;
+					pfld->m_cnt = it->second[col - 1].m_cnt;
 				}
 			}
 
@@ -804,7 +829,7 @@ void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, si
 {
 	uint8_t* operand1 = dst->m_val;
 	uint8_t* operand2 = src->m_val;
-
+	
 	switch(type)
 	{
 	case PT_INT8:
@@ -931,6 +956,10 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 	case sinsp_filter_check::A_NONE:
 		return;
 	case sinsp_filter_check::A_SUM:
+		add_fields_sum(type, dst, src);		
+		return;
+	case sinsp_filter_check::A_AVG:
+		dst->m_cnt++;
 		add_fields_sum(type, dst, src);		
 		return;
 	case sinsp_filter_check::A_MAX:
@@ -1065,9 +1094,10 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 		res.first = (filtercheck_field_info*)((*extractors)[0])->get_field_info();
 		ASSERT(res.first != NULL);
 
-		m_printer->set_val(types->at(0), 
+		m_printer->set_val(types->at(0),
 			m_sample_data->at(rownum).m_key.m_val, 
 			m_sample_data->at(rownum).m_key.m_len,
+			m_sample_data->at(rownum).m_key.m_cnt,
 			legend->at(0).m_print_format);
 
 		res.second = m_printer->tostring(NULL);

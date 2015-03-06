@@ -39,10 +39,11 @@ public:
 		m_val = NULL;
 	}
 
-	sinsp_table_field(uint8_t* val, uint32_t len)
+	sinsp_table_field(uint8_t* val, uint32_t len, uint32_t cnt)
 	{
 		m_len = len;
 		m_val = val;
+		m_cnt = cnt;
 	}
 
 	bool operator==(const sinsp_table_field &other) const
@@ -63,6 +64,7 @@ public:
 	}
 
 	uint32_t m_len;
+	uint32_t m_cnt;		// For averages, this stores the entry count
 	uint8_t* m_val;
 
 	friend class curses_table;	

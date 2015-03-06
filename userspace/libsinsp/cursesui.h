@@ -180,10 +180,11 @@ public:
 		LAST_COLORELEMENT
 	};
 
-	sinsp_cursesui(sinsp* inspector, string event_source_name, string capture_filter);
+	sinsp_cursesui(sinsp* inspector, string event_source_name, 
+		string cmdline_capture_filter);
 	~sinsp_cursesui();
 	void configure(vector<sinsp_table_info>* views);
-	void start(bool is_drilldown, string filter);
+	void start(bool is_drilldown);
 	sinsp_table_info* get_selected_view();
 	void pause();
 	bool is_searching()
@@ -276,6 +277,7 @@ public:
 				m_last_input_check_ts = ts;
 			}
 		}
+#endif
 
 		//
 		// We reading from a file and we reached its end. 
@@ -285,10 +287,11 @@ public:
 		//
 		if(m_eof > 1)
 		{
+#ifndef NOCURSESUI
 			usleep(10000);
+#endif
 			return false;
 		}
-#endif
 
 		//
 		// Check if it's time to flush
@@ -330,6 +333,7 @@ public:
 			m_viz->update_data(sample);
 			m_viz->render(true);
 
+#endif
 			//
 			// If this is a trace file, check if we reached the end of the file.
 			// Or, if we are in replay mode, wait for a key press before processing
@@ -337,6 +341,7 @@ public:
 			//
 			if(!m_inspector->is_live())
 			{
+#ifndef NOCURSESUI
 				if(m_offline_replay)
 				{
 					while(getch() != ' ')
@@ -344,6 +349,7 @@ public:
 						usleep(10000);
 					}
 				}
+#endif
 
 				if(next_res == SCAP_EOF)
 				{
@@ -351,7 +357,6 @@ public:
 					return false;
 				}
 			}
-#endif
 		}
 
 		m_datatable->process_event(evt);
@@ -376,6 +381,7 @@ private:
 	bool drilldown(string field, string val);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
+	void create_complete_filter();
 
 #ifndef NOCURSESUI
 	void render();
@@ -394,14 +400,14 @@ private:
 	vector<string> m_menuitems;
 	sinsp_table* m_datatable;
 	string m_event_source_name;
-	string m_capture_filter;
+	string m_cmdline_capture_filter;
+	string m_complete_filter;
+	string m_manual_filter;
 	bool m_paused;
 	uint64_t m_last_input_check_ts;
 	bool m_searching;
 	uint32_t m_cursor_pos;
-	string m_flt_string;
 	bool m_is_filter_sysdig;
-	string m_combined_filter;
 	uint32_t m_eof;
 	bool m_offline_replay;
 	uint64_t m_last_progress_evt;
