@@ -444,6 +444,7 @@ void curses_table::render(bool data_changed)
 				m_converter->set_val(m_legend[j].m_info.m_type, 
 					row->at(j).m_val, 
 					row->at(j).m_len,
+					row->at(j).m_cnt,
 					m_legend[j].m_info.m_print_format);
 
 				uint32_t size = m_legend[j].m_size - 1;
@@ -567,25 +568,6 @@ sysdig_table_action curses_table::handle_input(int ch)
 			mvprintw(0, 0, "F1");
 			refresh();
 			break;
-/*
-		case KEY_F(2):
-			if(m_parent->m_sidemenu == NULL)
-			{
-				m_table_x_start = SIDEMENU_WIDTH;
-				m_parent->m_sidemenu = new curses_table_sidemenu(this);
-			}
-			else
-			{
-				m_table_x_start = 0;
-				delete m_parent->m_sidemenu;
-				m_parent->m_sidemenu = NULL;
-			}
-
-			delwin(m_tblwin);
-			m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
-			render(true);
-			return STA_SKIP;
-*/			
 		case KEY_MOUSE:
 			{
 				uint32_t j;

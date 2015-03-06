@@ -1506,6 +1506,12 @@ sysdig_init_res systop_init(int argc, char **argv)
 		{
 			switch(op)
 			{
+			case '?':
+				//
+				// Command line error 
+				//
+				throw sinsp_exception("command line error");
+				break;
 			case 'E':
 				inspector->set_import_users(false);
 				break;
@@ -1603,7 +1609,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 			vector<sinsp_table_info> views;
 			views.push_back(sinsp_table_info("Top Processes", 
 				"*Kproc.pid proc.pid Mproc.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.exeline", 
-				"all",
+				"all, fd.name",
 				2,
 				"",
 				"NA,PID,CPU%,USER,TH,VIRT,RES,FIN,FOUT,NETIN,NETOUT,Command",

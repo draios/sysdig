@@ -331,6 +331,7 @@ public:
 			// Now refresh the UI.
 			//			
 			m_viz->update_data(sample);
+			render();
 			m_viz->render(true);
 
 #endif

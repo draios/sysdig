@@ -110,7 +110,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_searching = false;
 	m_is_filter_sysdig = false;
 	m_eof = 0;
-	m_offline_replay = true;
+	m_offline_replay = false;
 	m_last_progress_evt = 0;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
@@ -330,9 +330,9 @@ void sinsp_cursesui::render_header()
 	mvaddstr(1, 0, "Filter:");
 	uint32_t k = sizeof("Filter: ") - 1;
 
-	if(m_combined_filter != "")
+	if(m_complete_filter != "")
 	{
-		mvaddstr(1, k, m_combined_filter.c_str());
+		mvaddstr(1, k, m_complete_filter.c_str());
 	}
 	else
 	{
@@ -456,9 +456,9 @@ void sinsp_cursesui::render_search_main_menu()
 
 		m_cursor_pos = cursor_pos;
 
-		mvprintw(m_screenh - 1, m_cursor_pos, m_flt_string.c_str());
+		mvprintw(m_screenh - 1, m_cursor_pos, m_manual_filter.c_str());
 
-		m_cursor_pos += m_flt_string.size();
+		m_cursor_pos += m_manual_filter.size();
 	}
 
 	move(m_screenh - 1, m_cursor_pos);
@@ -620,8 +620,10 @@ bool sinsp_cursesui::drilldown(string field, string val)
 {
 	uint32_t j = 0;
 
+
 	for(auto it = m_views.begin(); it != m_views.end(); ++it)
 	{
+//g_logger.format(sinsp_logger::SEV_INFO, "%s", it->m_name.c_str());
 		for(auto atit = it->m_applyto.begin(); atit != it->m_applyto.end(); ++atit)
 		{
 			if(*atit == field)
@@ -762,12 +764,12 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	{
 		case KEY_F(2):
 			m_is_filter_sysdig = !m_is_filter_sysdig;
-			m_flt_string = "";
+			m_manual_filter = "";
 			m_cursor_pos = 0;
 			render();
 			return STA_NONE;
 		case 27: // ESC
-			m_flt_string = "";
+			m_manual_filter = "";
 			// FALL THROUGH
 		case '\n':
 		case '\r':
@@ -779,13 +781,13 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 			if(m_is_filter_sysdig)
 			{
-				if(m_flt_string != "")
+				if(m_manual_filter != "")
 				{
 					sinsp_filter* f;
 
 					try
 					{
-						f = new sinsp_filter(m_inspector, m_flt_string);
+						f = new sinsp_filter(m_inspector, m_manual_filter);
 					}
 					catch(sinsp_exception e)
 					{
@@ -796,24 +798,25 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 							m_screenw / 2 - wstr.size() / 2, 
 							wstr.c_str());	
 
-						m_flt_string = "";
+						m_manual_filter = "";
 						break;
 					}
 
 					delete f;
-					return STA_SWITCH_VIEW;
 				}
+
+				return STA_SWITCH_VIEW;
 			}
 
 			break;
 		case KEY_BACKSPACE:
-			if(m_flt_string.size() > 0)
+			if(m_manual_filter.size() > 0)
 			{
 				m_cursor_pos--;
 				move(m_screenh - 1, m_cursor_pos);
 				addch(' ');
 				move(m_screenh - 1, m_cursor_pos);
-				m_flt_string.pop_back();
+				m_manual_filter.pop_back();
 				break;
 			}
 			else
@@ -825,7 +828,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	if(ch >= ' ' && ch <= '~')
 	{
 		addch(ch);
-		m_flt_string += ch;
+		m_manual_filter += ch;
 		m_cursor_pos++;
 	}
 
@@ -834,7 +837,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		//
 		// Update the filter in the datatable
 		//
-		m_datatable->set_freetext_filter(m_flt_string);
+		m_datatable->set_freetext_filter(m_manual_filter);
 
 		//
 		// Refresh the data and the visualization
