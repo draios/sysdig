@@ -219,7 +219,7 @@ public:
 			//
 			if(!m_inspector->is_live())
 			{
-				if(evtnum - m_last_progress_evt > 10000)
+				if(evtnum - m_last_progress_evt > 30000)
 				{
 					m_viz->print_progress(m_inspector->get_read_progress());
 					m_last_progress_evt = evtnum;
