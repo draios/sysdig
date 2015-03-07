@@ -115,6 +115,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_last_progress_evt = 0;
 	m_spy_win = NULL;
 	m_spy_ctext = NULL;
+	m_printer = new sinsp_filter_check_reference();
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 
@@ -182,9 +183,9 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_colors[CPU_IOWAIT] = A_BOLD | ColorPair(COLOR_BLACK, COLOR_BLACK);
 	m_colors[CPU_IRQ] = ColorPair(COLOR_YELLOW,COLOR_BLACK);
 	m_colors[CPU_SOFTIRQ] = ColorPair(COLOR_MAGENTA,COLOR_BLACK);
-	m_colors[CPU_STEAL] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[CPU_GUEST] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-
+	m_colors[SPY_READ] = ColorPair(COLOR_RED,COLOR_BLACK);
+	m_colors[SPY_WRITE] = ColorPair(COLOR_BLUE,COLOR_BLACK);
+//pippo
 	//
 	// Populate the main menu entries
 	//
@@ -220,6 +221,8 @@ sinsp_cursesui::~sinsp_cursesui()
 		delete m_sidemenu;
 	}
 #endif
+
+	delete m_printer;
 }
 
 void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
@@ -604,17 +607,79 @@ void sinsp_cursesui::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	if(next_res == SCAP_EOF)
 	{
 		ASSERT(!m_inspector->is_live());
-g_logger.format(sinsp_logger::SEV_INFO, "TTT");
-m_spy_str += "AAA\n";
-m_spy_ctext->printf(m_spy_str.c_str());
-		render();
 		m_eof = 2;
 		return;
 	}
 
-//	m_spy_str += to_string(pippo) + '\n';
-	m_spy_ctext->printf("%d\n", pippo++);
-	m_spy_ctext->render();
+	//
+	// Filter the event
+	//
+	ppm_event_flags eflags = evt->get_flags();
+
+	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
+	{
+		return;
+	}
+
+	//
+	// Get and validate the lenght
+	//
+	sinsp_evt_param* parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	int64_t len = *(int64_t*)parinfo->m_val;
+	if(len <= 0)
+	{
+		return;
+	}
+
+/*
+	m_printer->set_val(PT_INT64, 
+		(uint8_t*)parinfo->m_val,
+		parinfo->m_len,
+		1,
+		PF_DEC);
+*/
+/*
+	//
+	// Get fd name
+	//
+	const char* resolved_argstr;
+	const char* argstr;
+	argstr = evt->get_param_value_str("evt.arg.data", &resolved_argstr, m_inspector->get_buffer_format());
+	//uint32_t len = evt->m_rawbuf_str_len;
+	m_fdinfo = evt->get_fd_info();
+*/
+	//
+	// Get the buffer
+	//
+	const char* resolved_argstr;
+	const char* argstr;
+	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+	//uint32_t len = evt->m_rawbuf_str_len;
+
+	argstr = "5....G...............G...G..*................ubu.G..............................";
+	if(argstr != NULL)
+	{
+		if(eflags & EF_READS_FROM_FD)
+		{
+			wattrset(m_spy_win, m_colors[sinsp_cursesui::SPY_READ]);
+			m_spy_ctext->printf("------ Read %d %" PRId64 "B from /proc/69/stat (htop)\n%s",
+				evt->m_evtnum,
+				len,
+				argstr);
+		}
+		else if(eflags & EF_WRITES_TO_FD)
+		{
+			wattrset(m_spy_win, m_colors[sinsp_cursesui::SPY_WRITE]);
+			m_spy_ctext->printf("------ Write %d %" PRId64 "B from /proc/69/stat (htop)\n%s", 
+				evt->m_evtnum,
+				len,
+				argstr);
+		}
+	}
+
+	m_spy_ctext->printf("\n");
+//	m_spy_ctext->render();
 }
 
 void sinsp_cursesui::restart_capture()
@@ -702,8 +767,6 @@ void sinsp_cursesui::spy_selection()
 	clear();
 #endif
 
-	m_spy_str.clear();
-
 	ctext_config config;
 
 	m_spy_win = newwin(m_screenh - 4, m_screenw, 3, 0);
@@ -711,18 +774,19 @@ void sinsp_cursesui::spy_selection()
 
 	m_spy_ctext->get_config(&config);
 
+	//
 	// add my handler
+	//
 	config.m_on_event = my_event;
-	//config.m_bounding_box = true;
 	config.m_buffer_size = 100;
 	config.m_scroll_on_append = false;
-	//config.m_do_wrap = true;
-	//config.m_append_top = true;
+	config.m_do_wrap = true;
 	
+	//
 	// set the config back
+	//
 	m_spy_ctext->set_config(&config);
 
-	wattrset(m_spy_win, m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 
 	//
 	// If this is a file, we need to restart the capture.

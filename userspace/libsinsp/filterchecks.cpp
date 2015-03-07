@@ -1710,7 +1710,6 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the lenght of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the lenght of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the lenght of the binary data buffer, but only for output network I/O events."},
-	{PT_DOUBLE, EPF_TABLE_ONLY, PF_DEC, "evt.xxx", ""},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2754,11 +2753,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		break;
-	case TYPE_XXX:
-		{
-			m_pippo = 33;
-			return (uint8_t*)&m_pippo;
-		}
 	default:
 		ASSERT(false);
 		return NULL;

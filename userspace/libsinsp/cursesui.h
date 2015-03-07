@@ -176,8 +176,8 @@ public:
 		CPU_IOWAIT,
 		CPU_IRQ,
 		CPU_SOFTIRQ,
-		CPU_STEAL,
-		CPU_GUEST,
+		SPY_READ,
+		SPY_WRITE,
 		LAST_COLORELEMENT
 	};
 
@@ -407,5 +407,5 @@ private:
 	uint64_t m_last_progress_evt;
 	WINDOW *m_spy_win;
 	ctext* m_spy_ctext;
-	string m_spy_str;
+	sinsp_filter_check_reference* m_printer;
 };

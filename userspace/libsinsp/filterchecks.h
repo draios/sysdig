@@ -403,7 +403,6 @@ public:
 		TYPE_BUFLEN_NET = 41,
 		TYPE_BUFLEN_NET_IN = 42,
 		TYPE_BUFLEN_NET_OUT = 43,
-		TYPE_XXX = 44,
 	};
 
 	sinsp_filter_check_event();
