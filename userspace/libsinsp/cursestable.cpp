@@ -241,30 +241,6 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 	}
 }
 
-void curses_table::print_progress(double progress)
-{
-	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
-
-	string wstr = "Processing File";
-	mvwprintw(m_tblwin, 
-		m_parent->m_screenh / 2,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
-
-	//
-	// Using sprintf because to_string doesn't support setting the precision 
-	//
-	char numbuf[64];
-	sprintf(numbuf, "%.2lf", progress);
-	wstr = "Progress: " + string(numbuf);
-	mvwprintw(m_tblwin, 
-		m_parent->m_screenh / 2 + 1,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());
-
-	wrefresh(m_tblwin);
-}
-
 void curses_table::print_wait()
 {
 	string wstr;

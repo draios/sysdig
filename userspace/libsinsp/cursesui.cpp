@@ -10,6 +10,7 @@
 #include "table.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
+#include "ctext.h"
 #include "cursesui.h"
 
 #ifndef NOCURSESUI
@@ -112,6 +113,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_eof = 0;
 	m_offline_replay = false;
 	m_last_progress_evt = 0;
+	m_spy_win = NULL;
+	m_spy_ctext = NULL;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 
@@ -186,10 +189,11 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	// Populate the main menu entries
 	//
 	m_menuitems.push_back("Help");
-	m_menuitems.push_back("View");
+	m_menuitems.push_back("Views");
+	m_menuitems.push_back("Spy");
+	m_menuitems.push_back("Search");
 	m_menuitems.push_back("Legend");
 	m_menuitems.push_back("Setup");
-	m_menuitems.push_back("Search");
 
 	//
 	// Get screen dimensions
@@ -244,6 +248,7 @@ void sinsp_cursesui::start(bool is_drilldown)
 	}
 
 #ifndef NOCURSESUI
+//g_logger.format(sinsp_logger::SEV_INFO, "XXX");
 	if(m_viz != NULL)
 	{
 		delete m_viz;
@@ -271,11 +276,14 @@ void sinsp_cursesui::start(bool is_drilldown)
 	m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 
 #ifndef NOCURSESUI
-	m_viz = new curses_table(this, m_inspector);
-	m_viz->configure(m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
-	if(!is_drilldown)
+	if(m_spy_win == NULL)
 	{
-		populate_sidemenu("", &m_sidemenu_viewlist);
+		m_viz = new curses_table(this, m_inspector);
+		m_viz->configure(m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
+		if(!is_drilldown)
+		{
+			populate_sidemenu("", &m_sidemenu_viewlist);
+		}
 	}
 #endif
 }
@@ -544,6 +552,71 @@ string combine_filters(string flt1, string flt2)
 	return res;
 }
 
+void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
+{
+	m_datatable->flush(evt);
+
+	//
+	// It's time to refresh the data for this chart.
+	// First of all, render the chart
+	//
+	vector<sinsp_sample_row>* sample = 
+		m_datatable->get_sample();
+
+#ifndef NOCURSESUI
+	//
+	// Now refresh the UI.
+	//
+	if(m_viz)
+	{
+		m_viz->update_data(sample);
+		m_viz->render(true);
+	}
+
+	render();
+
+#endif
+	//
+	// If this is a trace file, check if we reached the end of the file.
+	// Or, if we are in replay mode, wait for a key press before processing
+	// the next sample.
+	//
+	if(!m_inspector->is_live())
+	{
+#ifndef NOCURSESUI
+		if(m_offline_replay)
+		{
+			while(getch() != ' ')
+			{
+				usleep(10000);
+			}
+		}
+#endif
+	}
+}
+
+int pippo = 0;
+void sinsp_cursesui::process_event_spy(sinsp_evt* evt, int32_t next_res)
+{
+	//
+	// Check if this the end of the capture file, and if yes take note of that 
+	//
+	if(next_res == SCAP_EOF)
+	{
+		ASSERT(!m_inspector->is_live());
+g_logger.format(sinsp_logger::SEV_INFO, "TTT");
+m_spy_str += "AAA\n";
+m_spy_ctext->printf(m_spy_str.c_str());
+		render();
+		m_eof = 2;
+		return;
+	}
+
+//	m_spy_str += to_string(pippo) + '\n';
+	m_spy_ctext->printf("%d\n", pippo++);
+	m_spy_ctext->render();
+}
+
 void sinsp_cursesui::restart_capture()
 {
 	m_inspector->close();
@@ -615,6 +688,70 @@ void sinsp_cursesui::switch_view()
 #endif
 }
 
+int8_t my_event(ctext *context, ctext_event event)
+{
+	return 0;
+}
+
+void sinsp_cursesui::spy_selection()
+{
+#ifndef NOCURSESUI
+	//
+	// Clear the screen to make sure all the crap is removed
+	//
+	clear();
+#endif
+
+	m_spy_str.clear();
+
+	ctext_config config;
+
+	m_spy_win = newwin(m_screenh - 4, m_screenw, 3, 0);
+	m_spy_ctext = new ctext(m_spy_win);
+
+	m_spy_ctext->get_config(&config);
+
+	// add my handler
+	config.m_on_event = my_event;
+	//config.m_bounding_box = true;
+	config.m_buffer_size = 100;
+	config.m_scroll_on_append = false;
+	//config.m_do_wrap = true;
+	//config.m_append_top = true;
+	
+	// set the config back
+	m_spy_ctext->set_config(&config);
+
+	wattrset(m_spy_win, m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+
+	//
+	// If this is a file, we need to restart the capture.
+	// If it's a live capture, we restart only if start() fails, which usually
+	// happens in case one of the filter fields requested thread state.
+	//
+	if(!m_inspector->is_live())
+	{
+		m_eof = false;
+		m_last_progress_evt = 0;
+		restart_capture();
+	}
+	else
+	{
+		try
+		{
+			start(true);
+		}
+		catch(...)
+		{
+			restart_capture();
+		}
+	}
+
+#ifndef NOCURSESUI
+	render();
+#endif
+}
+
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::drilldown(string field, string val)
 {
@@ -623,7 +760,6 @@ bool sinsp_cursesui::drilldown(string field, string val)
 
 	for(auto it = m_views.begin(); it != m_views.end(); ++it)
 	{
-//g_logger.format(sinsp_logger::SEV_INFO, "%s", it->m_name.c_str());
 		for(auto atit = it->m_applyto.begin(); atit != it->m_applyto.end(); ++atit)
 		{
 			if(*atit == field)
@@ -661,6 +797,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 						restart_capture();
 					}
 				}
+
 #ifndef NOCURSESUI
 				clear();
 				populate_sidemenu(field, &m_sidemenu_viewlist);
@@ -758,6 +895,28 @@ void sinsp_cursesui::pause()
 }
 
 #ifndef NOCURSESUI
+void sinsp_cursesui::print_progress(double progress)
+{
+	attrset(m_colors[sinsp_cursesui::PROCESS]);
+
+	string wstr = "Processing File";
+	mvprintw(m_screenh / 2,
+		m_screenw / 2 - wstr.size() / 2, 
+		wstr.c_str());	
+
+	//
+	// Using sprintf because to_string doesn't support setting the precision 
+	//
+	char numbuf[64];
+	sprintf(numbuf, "%.2lf", progress);
+	wstr = "Progress: " + string(numbuf);
+	mvprintw(m_screenh / 2 + 1,
+		m_screenw / 2 - wstr.size() / 2, 
+		wstr.c_str());
+
+	refresh();
+}
+
 sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 {
 	switch(ch)
@@ -900,6 +1059,9 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			m_viz->recreate_win();
 			render();
 			break;
+		case KEY_F(3):
+			return STA_SPY;
+			break;
 		case KEY_F(4):
 			m_searching = true;
 			m_cursor_pos = 0;
@@ -912,4 +1074,5 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 	return STA_NONE;
 }
+
 #endif // NOCURSESUI

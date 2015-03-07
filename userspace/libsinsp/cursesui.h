@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define SIDEMENU_WIDTH 20
 
 string combine_filters(string flt1, string flt2);
+class ctext;
 
 class sinsp_table_info
 {
@@ -221,7 +222,7 @@ public:
 			{
 				if(evtnum - m_last_progress_evt > 30000)
 				{
-					m_viz->print_progress(m_inspector->get_read_progress());
+					print_progress(m_inspector->get_read_progress());
 					m_last_progress_evt = evtnum;
 				}
 			}
@@ -253,22 +254,30 @@ public:
 				//
 				// Some events require that we perform additional actions
 				//
-				if(ta == STA_QUIT)
+				switch(ta)
 				{
+				case STA_QUIT:
 					return true;
-				}
-				else if(ta == STA_SWITCH_VIEW)
-				{
+				case STA_SWITCH_VIEW:
 					switch_view();
-				}
-				else if(ta == STA_DRILLDOWN)
-				{
-					auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-					drilldown(res.first->m_name, res.second.c_str());
-				}
-				else if(ta == STA_DRILLUP)
-				{
+					break;
+				case STA_DRILLDOWN:
+					{
+						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+						drilldown(res.first->m_name, res.second.c_str());
+					}
+					break;
+				case STA_DRILLUP:
 					drillup();
+					break;
+				case STA_SPY:
+					spy_selection();
+					return false;
+				case STA_NONE:
+					break;
+				default:
+					ASSERT(false);
+					break;
 				}
 			}
 
@@ -294,73 +303,53 @@ public:
 		}
 
 		//
-		// Check if it's time to flush
+		// Perform event processing
 		//
-		if(m_inspector->is_live() || m_offline_replay)
+		if(m_spy_ctext)
 		{
-			end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
+			process_event_spy(evt, next_res);
 		}
 		else
 		{
 			//
-			// For files, we flush only once, at the end of the capture.
+			// Check if it's time to flush
 			//
-			if(next_res == SCAP_EOF)
+			if(m_inspector->is_live() || m_offline_replay)
 			{
-				end_of_sample = true;
+				end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
 			}
 			else
 			{
-				end_of_sample = false;				
-			}
-		}
-
-		if(end_of_sample)
-		{
-			m_datatable->flush(evt);
-
-			//
-			// It's time to refresh the data for this chart.
-			// First of all, render the chart
-			//
-			vector<sinsp_sample_row>* sample = 
-				m_datatable->get_sample();
-
-#ifndef NOCURSESUI
-			//
-			// Now refresh the UI.
-			//			
-			m_viz->update_data(sample);
-			render();
-			m_viz->render(true);
-
-#endif
-			//
-			// If this is a trace file, check if we reached the end of the file.
-			// Or, if we are in replay mode, wait for a key press before processing
-			// the next sample.
-			//
-			if(!m_inspector->is_live())
-			{
-#ifndef NOCURSESUI
-				if(m_offline_replay)
-				{
-					while(getch() != ' ')
-					{
-						usleep(10000);
-					}
-				}
-#endif
-
+				//
+				// For files, we flush only once, at the end of the capture.
+				//
 				if(next_res == SCAP_EOF)
 				{
+					end_of_sample = true;
+				}
+				else
+				{
+					end_of_sample = false;				
+				}
+			}
+
+			if(end_of_sample)
+			{
+				handle_end_of_sample(evt, next_res);
+
+				//
+				// Check if this the end of the capture file, and if yes take note of that 
+				//
+				if(next_res == SCAP_EOF)
+				{
+					ASSERT(!m_inspector->is_live());
 					m_eof++;
 					return false;
 				}
 			}
-		}
 
-		m_datatable->process_event(evt);
+			m_datatable->process_event(evt);
+		}
 
 		return false;
 	}
@@ -376,12 +365,15 @@ public:
 	uint32_t m_screenh;
 
 private:
+	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
+	void process_event_spy(sinsp_evt* evt, int32_t next_res);
 	void restart_capture();
 	void switch_view();
 	// returns false if there is no suitable drill down view for this field
 	bool drilldown(string field, string val);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
+	void spy_selection();
 	void create_complete_filter();
 
 #ifndef NOCURSESUI
@@ -393,6 +385,7 @@ private:
 	sysdig_table_action handle_textbox_input(int ch);
 	sysdig_table_action handle_input(int ch);
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
+	void print_progress(double progress);
 
 	curses_table_sidemenu* m_sidemenu;
 #endif
@@ -412,4 +405,7 @@ private:
 	uint32_t m_eof;
 	bool m_offline_replay;
 	uint64_t m_last_progress_evt;
+	WINDOW *m_spy_win;
+	ctext* m_spy_ctext;
+	string m_spy_str;
 };

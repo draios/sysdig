@@ -29,6 +29,7 @@ typedef enum sysdig_table_action
 	STA_SWITCH_VIEW,
 	STA_DRILLDOWN,
 	STA_DRILLUP,
+	STA_SPY,
 }sysdig_table_action;
 
 class sinsp_table_field

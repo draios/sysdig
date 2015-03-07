@@ -8,6 +8,7 @@ add_library(sinsp STATIC
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
+	ctext.cpp
 	cyclewriter.cpp
 	cursescomponents.cpp
 	cursestable.cpp

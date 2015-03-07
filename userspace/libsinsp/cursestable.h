@@ -41,7 +41,6 @@ public:
 		m_table_x_start = x;
 	}
 	void recreate_win();
-	void print_progress(double progress);
 
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
