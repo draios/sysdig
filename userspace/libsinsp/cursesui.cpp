@@ -679,6 +679,7 @@ void sinsp_cursesui::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	}
 
 	m_spy_ctext->printf("\n");
+	m_spy_ctext->printf("\n");
 //	m_spy_ctext->render();
 }
 
@@ -786,30 +787,6 @@ void sinsp_cursesui::spy_selection()
 	// set the config back
 	//
 	m_spy_ctext->set_config(&config);
-
-
-	//
-	// If this is a file, we need to restart the capture.
-	// If it's a live capture, we restart only if start() fails, which usually
-	// happens in case one of the filter fields requested thread state.
-	//
-	if(!m_inspector->is_live())
-	{
-		m_eof = false;
-		m_last_progress_evt = 0;
-		restart_capture();
-	}
-	else
-	{
-		try
-		{
-			start(true);
-		}
-		catch(...)
-		{
-			restart_capture();
-		}
-	}
 
 #ifndef NOCURSESUI
 	render();
@@ -927,6 +904,7 @@ bool sinsp_cursesui::drillup()
 		{
 			m_viz->m_last_key.copy(&rowkey);
 			m_viz->m_last_key.m_isvalid = true;
+			m_viz->m_selection_changed = true;
 		}
 		else
 		{

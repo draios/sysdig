@@ -282,6 +282,8 @@ void curses_table::render(bool data_changed)
 	uint32_t j, k;
 	int32_t l, m;
 
+	wclear(m_tblwin);
+
 	//
 	// Clear the screen
 	//
@@ -459,10 +461,10 @@ render_end:
 	copywin(m_tblwin,
 		stdscr,
 		0,
-		m_scrolloff_x,
-		m_scrolloff_y,
 		0,
-		m_scrolloff_y + (m_h - 1),
+		2,
+		0,
+		m_h,
 		m_parent->m_screenw - 1,
 		FALSE);
 

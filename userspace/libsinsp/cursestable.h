@@ -44,6 +44,7 @@ public:
 
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
+	bool m_selection_changed;
 	
 private:
 	void update_rowkey(int32_t row);
@@ -65,7 +66,6 @@ private:
 	sinsp_filter_check_reference* m_converter;
 	vector<uint32_t> m_column_startx;
 	char alignbuf[64];
-	bool m_selection_changed;
 
 	friend class curses_table_sidemenu;
 };
