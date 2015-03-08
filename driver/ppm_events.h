@@ -26,6 +26,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
  * Various crap that a callback might need
  */
 struct event_filler_arguments {
+	struct ppm_consumer_t *consumer;
 	char *buffer; /* the buffer that will be filled with the data */
 	u32 buffer_size; /* the space in the ring buffer available for this event */
 	u32 syscall_id; /* the system call ID */

@@ -174,7 +174,7 @@ int32_t dpi_lookahead_init(void)
 
 inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 lookahead_size)
 {
-	u32 res = g_snaplen;
+	u32 res = args->consumer->snaplen;
 	int err;
 	struct socket *sock;
 	sa_family_t family;
@@ -213,7 +213,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	}
 */
 
-	if (!g_do_dynamic_snaplen)
+	if (!args->consumer->do_dynamic_snaplen)
 		return res;
 
 	sock = sockfd_lookup(args->fd, &err);
@@ -418,7 +418,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 					 * Calculate the snaplen
 					 */
 					if (likely(args->enforce_snaplen)) {
-						u32 sl = g_snaplen;
+						u32 sl = args->consumer->snaplen;
 
 						sl = compute_snaplen(args, args->buffer + args->arg_data_offset, dpi_lookahead_size);
 

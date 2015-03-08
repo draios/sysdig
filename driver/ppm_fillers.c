@@ -1835,7 +1835,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	iov = (const struct iovec __user *)mh.msg_iov;
 	iovcnt = mh.msg_iovlen;
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -1915,7 +1915,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	iov = (const struct iovec __user *)mh.msg_iov;
 	iovcnt = mh.msg_iovlen;
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_DATA);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2673,7 +2673,7 @@ static int f_sys_writev_e(struct event_filler_arguments *args)
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2706,7 +2706,7 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_DATA);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2813,7 +2813,7 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3179,7 +3179,7 @@ static int f_sched_drop(struct event_filler_arguments *args)
 	/*
 	 * next
 	 */
-	res = val_to_ring(args, g_sampling_ratio, 0, false, 0);
+	res = val_to_ring(args, args->consumer->sampling_ratio, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
