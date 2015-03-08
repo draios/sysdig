@@ -38,6 +38,7 @@ public:
 class sinsp_filter_check_reference;
 class curses_table;
 class sinsp_cursesui;
+class ctext;
 
 class curses_table_column_info
 {
@@ -91,6 +92,24 @@ public:
 	WINDOW* m_win;
 	int32_t m_y_start;
 	sinsp_cursesui* m_parent;
+};
+
+class curses_textbox
+{
+public:
+	curses_textbox(sinsp* inspector, sinsp_cursesui* parent);
+	~curses_textbox();
+	//void render();
+	void set_filter(string filter);
+	void process_event(sinsp_evt* evt, int32_t next_res);
+	sysdig_table_action handle_input(int ch);
+
+	WINDOW *m_win;
+	ctext* m_ctext;
+	sinsp_filter_check_reference* m_printer;
+	sinsp_cursesui* m_parent;
+	sinsp* m_inspector;
+	sinsp_filter* m_filter;
 };
 
 #endif

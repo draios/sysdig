@@ -113,9 +113,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_eof = 0;
 	m_offline_replay = false;
 	m_last_progress_evt = 0;
-	m_spy_win = NULL;
-	m_spy_ctext = NULL;
-	m_printer = new sinsp_filter_check_reference();
+	m_spy_box = NULL;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 
@@ -185,7 +183,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_colors[CPU_SOFTIRQ] = ColorPair(COLOR_MAGENTA,COLOR_BLACK);
 	m_colors[SPY_READ] = ColorPair(COLOR_RED,COLOR_BLACK);
 	m_colors[SPY_WRITE] = ColorPair(COLOR_BLUE,COLOR_BLACK);
-//pippo
+
 	//
 	// Populate the main menu entries
 	//
@@ -221,8 +219,6 @@ sinsp_cursesui::~sinsp_cursesui()
 		delete m_sidemenu;
 	}
 #endif
-
-	delete m_printer;
 }
 
 void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
@@ -238,12 +234,21 @@ void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
 
 void sinsp_cursesui::start(bool is_drilldown)
 {
-	if(m_selected_view >= m_views.size())
+	//
+	// Input validation
+	//
+	if(m_selected_view != 0xffffffff)
 	{
-		ASSERT(false);
-		throw sinsp_exception("invalid view");		
+		if(m_selected_view >= m_views.size())
+		{
+			ASSERT(false);
+			throw sinsp_exception("invalid view");		
+		}
 	}
 
+	//
+	// Delete the previous table and visualizations
+	//
 	if(m_datatable != NULL)
 	{
 		delete m_datatable;
@@ -251,7 +256,6 @@ void sinsp_cursesui::start(bool is_drilldown)
 	}
 
 #ifndef NOCURSESUI
-//g_logger.format(sinsp_logger::SEV_INFO, "XXX");
 	if(m_viz != NULL)
 	{
 		delete m_viz;
@@ -259,27 +263,53 @@ void sinsp_cursesui::start(bool is_drilldown)
 	}
 #endif
 
+	if(m_spy_box)
+	{
+		delete m_spy_box;
+		m_spy_box = NULL;
+	}
+
+	//
+	// Update the filter based on what's selected
+	//
 	create_complete_filter();
 
-	m_datatable = new sinsp_table(m_inspector);
-
-	try
+	//
+	// If we need a new datatable, allocate it and set it up
+	//
+	if(m_selected_view != 0xffffffff)
 	{
-		m_datatable->configure(m_views[m_selected_view].m_config, 
-			m_views[m_selected_view].m_merge_config,
-			m_complete_filter);
+		m_datatable = new sinsp_table(m_inspector);
+
+		try
+		{
+			m_datatable->configure(m_views[m_selected_view].m_config, 
+				m_views[m_selected_view].m_merge_config,
+				m_complete_filter);
+		}
+		catch(...)
+		{
+			delete m_datatable;
+			m_datatable = NULL;
+			throw;
+		}
+
+		m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 	}
-	catch(...)
+	else
 	{
-		delete m_datatable;
-		m_datatable = NULL;
-		throw;
+		//
+		// Create the visualization component
+		//
+		m_spy_box = new curses_textbox(m_inspector, this);
+		m_spy_box->set_filter(m_complete_filter);
 	}
 
-	m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
-
+	//
+	// If we need a table visualization, allocate it and set it up
+	//
 #ifndef NOCURSESUI
-	if(m_spy_win == NULL)
+	if(m_selected_view != 0xffffffff)
 	{
 		m_viz = new curses_table(this, m_inspector);
 		m_viz->configure(m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
@@ -306,13 +336,22 @@ void sinsp_cursesui::render_header()
 	mvaddstr(0, 0, "Viewing:");
 
 	attrset(m_colors[PROCESS]);
-	const char* vcs = get_selected_view()->m_name.c_str();
 
-	string vs(vcs);
+	string vs;
+
+	if(m_selected_view != 0xffffffff)
+	{
+		const char* vcs = get_selected_view()->m_name.c_str();
+		vs = vcs;
+		vs += " for ";
+	}
+	else
+	{
+		vs = "spying ";
+	}
+
 	if(m_sel_hierarchy.m_hierarchy.size() != 0)
 	{
-		vs += " for ";
-
 		for(j = 0; j < m_sel_hierarchy.m_hierarchy.size(); j++)
 		{
 			vs += m_sel_hierarchy.m_hierarchy[j].m_field;
@@ -511,6 +550,11 @@ void sinsp_cursesui::render()
 
 sinsp_table_info* sinsp_cursesui::get_selected_view()
 {
+	if(m_selected_view == 0xffffffff)
+	{
+		return NULL;
+	}
+
 	ASSERT(m_selected_view < m_views.size());
 	return &m_views[m_selected_view];
 }
@@ -598,91 +642,6 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	}
 }
 
-int pippo = 0;
-void sinsp_cursesui::process_event_spy(sinsp_evt* evt, int32_t next_res)
-{
-	//
-	// Check if this the end of the capture file, and if yes take note of that 
-	//
-	if(next_res == SCAP_EOF)
-	{
-		ASSERT(!m_inspector->is_live());
-		m_eof = 2;
-		return;
-	}
-
-	//
-	// Filter the event
-	//
-	ppm_event_flags eflags = evt->get_flags();
-
-	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
-	{
-		return;
-	}
-
-	//
-	// Get and validate the lenght
-	//
-	sinsp_evt_param* parinfo = evt->get_param(0);
-	ASSERT(parinfo->m_len == sizeof(int64_t));
-	int64_t len = *(int64_t*)parinfo->m_val;
-	if(len <= 0)
-	{
-		return;
-	}
-
-/*
-	m_printer->set_val(PT_INT64, 
-		(uint8_t*)parinfo->m_val,
-		parinfo->m_len,
-		1,
-		PF_DEC);
-*/
-/*
-	//
-	// Get fd name
-	//
-	const char* resolved_argstr;
-	const char* argstr;
-	argstr = evt->get_param_value_str("evt.arg.data", &resolved_argstr, m_inspector->get_buffer_format());
-	//uint32_t len = evt->m_rawbuf_str_len;
-	m_fdinfo = evt->get_fd_info();
-*/
-	//
-	// Get the buffer
-	//
-	const char* resolved_argstr;
-	const char* argstr;
-	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
-	//uint32_t len = evt->m_rawbuf_str_len;
-
-	argstr = "5....G...............G...G..*................ubu.G..............................";
-	if(argstr != NULL)
-	{
-		if(eflags & EF_READS_FROM_FD)
-		{
-			wattrset(m_spy_win, m_colors[sinsp_cursesui::SPY_READ]);
-			m_spy_ctext->printf("------ Read %d %" PRId64 "B from /proc/69/stat (htop)\n%s",
-				evt->m_evtnum,
-				len,
-				argstr);
-		}
-		else if(eflags & EF_WRITES_TO_FD)
-		{
-			wattrset(m_spy_win, m_colors[sinsp_cursesui::SPY_WRITE]);
-			m_spy_ctext->printf("------ Write %d %" PRId64 "B from /proc/69/stat (htop)\n%s", 
-				evt->m_evtnum,
-				len,
-				argstr);
-		}
-	}
-
-	m_spy_ctext->printf("\n");
-	m_spy_ctext->printf("\n");
-//	m_spy_ctext->render();
-}
-
 void sinsp_cursesui::restart_capture()
 {
 	m_inspector->close();
@@ -700,7 +659,15 @@ void sinsp_cursesui::create_complete_filter()
 	}
 
 	m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
-	m_complete_filter = combine_filters(m_complete_filter, m_views[m_selected_view].m_filter);
+
+	//
+	// Note: m_selected_view is 0xffffffff when there's no view, because we're doing
+	//       non-view stuff like spying.
+	//
+	if(m_selected_view != 0xffffffff)
+	{
+		m_complete_filter = combine_filters(m_complete_filter, m_views[m_selected_view].m_filter);
+	}
 }
 
 void sinsp_cursesui::switch_view()
@@ -754,39 +721,44 @@ void sinsp_cursesui::switch_view()
 #endif
 }
 
-int8_t my_event(ctext *context, ctext_event event)
+void sinsp_cursesui::spy_selection(string field, string val)
 {
-	return 0;
-}
-
-void sinsp_cursesui::spy_selection()
-{
+	//
+	// Perform the drill down
+	//
 #ifndef NOCURSESUI
-	//
-	// Clear the screen to make sure all the crap is removed
-	//
-	clear();
+	sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
+#else
+	sinsp_table_field* rowkey = NULL;
 #endif
+	sinsp_table_field rowkeybak;
+	if(rowkey != NULL)
+	{
+		rowkeybak.m_val = new uint8_t[rowkey->m_len];
+		memcpy(rowkeybak.m_val, rowkey->m_val, rowkey->m_len);
+		rowkeybak.m_len = rowkey->m_len;
+	}
 
-	ctext_config config;
+	m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
+	m_selected_view = 0xffffffff;
 
-	m_spy_win = newwin(m_screenh - 4, m_screenw, 3, 0);
-	m_spy_ctext = new ctext(m_spy_win);
-
-	m_spy_ctext->get_config(&config);
-
-	//
-	// add my handler
-	//
-	config.m_on_event = my_event;
-	config.m_buffer_size = 100;
-	config.m_scroll_on_append = false;
-	config.m_do_wrap = true;
-	
-	//
-	// set the config back
-	//
-	m_spy_ctext->set_config(&config);
+	if(!m_inspector->is_live())
+	{
+		m_eof = false;
+		m_last_progress_evt = 0;
+		restart_capture();
+	}
+	else
+	{
+		try
+		{
+			start(true);
+		}
+		catch(...)
+		{
+			restart_capture();
+		}
+	}
 
 #ifndef NOCURSESUI
 	render();

@@ -41,6 +41,7 @@ using namespace std;
 
 #include <curses.h>
 #include "table.h"
+#include "ctext.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
@@ -301,6 +302,159 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 	}
 
 	return STA_PARENT_HANDLE;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// curses_textbox implementation
+///////////////////////////////////////////////////////////////////////////////
+// XXX get rid of this
+int8_t my_event(ctext *context, ctext_event event)
+{
+	return 0;
+}
+
+curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
+{
+	ASSERT(inspector != NULL);
+	ASSERT(parent != NULL);
+
+	m_parent = parent;
+	m_win = NULL;
+	m_ctext = NULL;
+	m_filter = NULL;
+	m_printer = new sinsp_filter_check_reference();
+	m_inspector = inspector;
+
+	ctext_config config;
+
+	m_win = newwin(m_parent->m_screenh - 4, m_parent->m_screenw, 3, 0);
+	m_ctext = new ctext(m_win);
+
+	m_ctext->get_config(&config);
+
+	//
+	// add my handler
+	//
+	config.m_on_event = my_event;
+	config.m_buffer_size = 100;
+	config.m_scroll_on_append = false;
+	config.m_do_wrap = true;
+	
+	//
+	// set the config back
+	//
+	m_ctext->set_config(&config);
+}
+
+curses_textbox::~curses_textbox()
+{
+	delwin(m_win);
+	delete m_printer;
+	delete m_ctext;
+	if(m_filter != NULL)
+	{
+		delete m_filter;
+	}
+}
+
+void curses_textbox::set_filter(string filter)
+{
+	m_filter = new sinsp_filter(m_inspector, filter);
+}
+
+void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
+{
+	//
+	// Check if this the end of the capture file, and if yes take note of that 
+	//
+	if(next_res == SCAP_EOF)
+	{
+		ASSERT(!m_inspector->is_live());
+		m_parent->m_eof = 2;
+		return;
+	}
+
+	//
+	// Filter the event
+	//
+	if(m_filter)
+	{
+		if(!m_filter->run(evt))
+		{
+			return;
+		}
+	}
+
+	//
+	// Drop any non I/O event
+	//
+	ppm_event_flags eflags = evt->get_flags();
+
+	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
+	{
+		return;
+	}
+
+	//
+	// Get and validate the lenght
+	//
+	sinsp_evt_param* parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	int64_t len = *(int64_t*)parinfo->m_val;
+	if(len <= 0)
+	{
+		return;
+	}
+
+/*
+	m_printer->set_val(PT_INT64, 
+		(uint8_t*)parinfo->m_val,
+		parinfo->m_len,
+		1,
+		PF_DEC);
+*/
+/*
+	//
+	// Get fd name
+	//
+	const char* resolved_argstr;
+	const char* argstr;
+	argstr = evt->get_param_value_str("evt.arg.data", &resolved_argstr, m_inspector->get_buffer_format());
+	//uint32_t len = evt->m_rawbuf_str_len;
+	m_fdinfo = evt->get_fd_info();
+*/
+	//
+	// Get the buffer
+	//
+	const char* resolved_argstr;
+	const char* argstr;
+	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+	//uint32_t len = evt->m_rawbuf_str_len;
+
+	argstr = "5....G...............G...G..*................ubu.G..............................";
+	if(argstr != NULL)
+	{
+		if(eflags & EF_READS_FROM_FD)
+		{
+			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
+			m_ctext->printf("------ Read %d %" PRId64 "B from /proc/69/stat (htop)\n%s",
+				evt->get_num(),
+				len,
+				argstr);
+		}
+		else if(eflags & EF_WRITES_TO_FD)
+		{
+			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
+			m_ctext->printf("------ Write %d %" PRId64 "B from /proc/69/stat (htop)\n%s", 
+				evt->get_num(),
+				len,
+				argstr);
+		}
+	}
+
+	m_ctext->printf("\n");
+	m_ctext->printf("\n");
+//	m_ctext->render();
 }
 
 #endif // SYSTOP

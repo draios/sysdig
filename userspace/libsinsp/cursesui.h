@@ -271,7 +271,10 @@ public:
 					drillup();
 					break;
 				case STA_SPY:
-					spy_selection();
+					{
+						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+						spy_selection(res.first->m_name, res.second.c_str());
+					}
 					return false;
 				case STA_NONE:
 					break;
@@ -305,9 +308,9 @@ public:
 		//
 		// Perform event processing
 		//
-		if(m_spy_ctext)
+		if(m_spy_box)
 		{
-			process_event_spy(evt, next_res);
+			m_spy_box->process_event(evt, next_res);
 		}
 		else
 		{
@@ -363,19 +366,19 @@ public:
 	curses_table* m_viz;
 	uint32_t m_screenw;
 	uint32_t m_screenh;
+	uint32_t m_eof;
 
-	void render();
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
-	void process_event_spy(sinsp_evt* evt, int32_t next_res);
 	void restart_capture();
 	void switch_view();
+	void spy_selection(string field, string val);
 	// returns false if there is no suitable drill down view for this field
 	bool drilldown(string field, string val);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
-	void spy_selection();
 	void create_complete_filter();
+	void render();
 
 #ifndef NOCURSESUI
 	void render_header();
@@ -402,10 +405,7 @@ private:
 	bool m_searching;
 	uint32_t m_cursor_pos;
 	bool m_is_filter_sysdig;
-	uint32_t m_eof;
 	bool m_offline_replay;
 	uint64_t m_last_progress_evt;
-	WINDOW *m_spy_win;
-	ctext* m_spy_ctext;
-	sinsp_filter_check_reference* m_printer;
+	curses_textbox* m_spy_box;
 };
