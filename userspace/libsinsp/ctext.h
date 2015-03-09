@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <ncurses.h>
+#include <curses.h>
 #include <stdint.h>
 
 #ifndef __83a9222a_c8b9_4f36_9721_5dfbaccb28d0_CTEXT
