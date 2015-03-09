@@ -179,10 +179,12 @@ static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id)
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(el, &g_consumer_list, node) {
-		if (el->consumer_id == consumer_id)
+		if (el->consumer_id == consumer_id) {
+			rcu_read_unlock();
 			return el;
+		}
 	}
-	rcu_read_lock();
+	rcu_read_unlock();
 
 	return NULL;
 }
