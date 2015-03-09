@@ -307,6 +307,10 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	goto cleanup_open;
 
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+err_signal_deliver:
+	compat_unregister_trace(sched_switch_probe, "signal_switch", tp_signal_deliver);
+#endif
 err_sched_switch:
 	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 err_sched_procexit:
@@ -315,10 +319,6 @@ err_sys_enter:
 	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 err_sys_exit:
 	ring->open = false;
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-err_signal_deliver:
-	compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
-#endif
 cleanup_open:
 	mutex_unlock(&g_open_mutex);
 
