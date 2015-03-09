@@ -201,7 +201,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 	}
 
 	if (open_rings == 0) {
-		vpr_info("deallocating consumer %p", consumer->consumer_id);
+		pr_info("deallocating consumer %p", consumer->consumer_id);
 
 		if (remove_from_list) {
 			list_del_rcu(&consumer->node);
@@ -259,7 +259,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto cleanup_open;
 		}
 
-		vpr_info("adding new consumer %p\n", consumer_id);
+		pr_info("adding new consumer %p\n", consumer_id);
 
 		consumer = vmalloc(sizeof(struct ppm_consumer_t));
 		if (!consumer) {
@@ -346,7 +346,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	ring->open = true;
 
 	if (!g_tracepoint_registered) {
-		vpr_info("starting capture\n");
+		pr_info("starting capture\n");
 		/*
 		 * Enable the tracepoints
 		 */
@@ -443,7 +443,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	 */
 	if (list_empty(&g_consumer_list)) {
 		if (g_tracepoint_registered) {
-			vpr_info("no more consumers, stopping capture\n");
+			pr_info("no more consumers, stopping capture\n");
 
 			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
