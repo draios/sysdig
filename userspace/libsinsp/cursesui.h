@@ -384,6 +384,7 @@ private:
 	void render_header();
 	void render_default_main_menu();
 	void render_search_main_menu();
+	void render_spy_main_menu();
 	void render_main_menu();
 	sysdig_table_action handle_textbox_input(int ch);
 	sysdig_table_action handle_input(int ch);

@@ -22,6 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 #ifndef _WIN32
 #include <unistd.h>
+#include <algorithm>
 #endif
 #include <string>
 #include <unordered_map>
@@ -324,6 +325,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 	m_filter = NULL;
 	m_printer = new sinsp_filter_check_reference();
 	m_inspector = inspector;
+	n_prints = 0;
 
 	ctext_config config;
 
@@ -337,7 +339,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 	//
 	config.m_on_event = my_event;
 	config.m_buffer_size = 100;
-	config.m_scroll_on_append = false;
+	config.m_scroll_on_append = true;
 	config.m_do_wrap = true;
 	
 	//
@@ -406,23 +408,26 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 		return;
 	}
 
-/*
-	m_printer->set_val(PT_INT64, 
-		(uint8_t*)parinfo->m_val,
-		parinfo->m_len,
-		1,
-		PF_DEC);
-*/
-/*
 	//
-	// Get fd name
+	// Get thread and fd
 	//
-	const char* resolved_argstr;
-	const char* argstr;
-	argstr = evt->get_param_value_str("evt.arg.data", &resolved_argstr, m_inspector->get_buffer_format());
-	//uint32_t len = evt->m_rawbuf_str_len;
-	m_fdinfo = evt->get_fd_info();
-*/
+	sinsp_threadinfo* m_tinfo =	evt->get_thread_info();
+	if(m_tinfo == NULL)
+	{
+		return;
+	}
+
+	sinsp_fdinfo_t* m_fdinfo = evt->get_fd_info();
+	if(m_fdinfo == NULL)
+	{
+		return;
+	}
+	string fdname = m_fdinfo->m_name;
+	if(fdname == "")
+	{
+		fdname = "unnamed FD";
+	}
+
 	//
 	// Get the buffer
 	//
@@ -430,31 +435,84 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	const char* argstr;
 	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
 	//uint32_t len = evt->m_rawbuf_str_len;
-
-	argstr = "5....G...............G...G..*................ubu.G..............................";
+/*
+if((int)strlen(argstr) > len + 32)
+{
+	g_logger.format("^%d, %d %d", (int)evt->get_num(), (int)len, strlen(argstr));
+}
+*/
 	if(argstr != NULL)
 	{
+		//
+		// Create the info string
+		//
+//		string info_str = "------ ";
+		string info_str = "------ " + to_string(evt->get_num());
+		string dirstr;
+		string cnstr;
 		if(eflags & EF_READS_FROM_FD)
 		{
+			dirstr = "Read ";
+			cnstr = "from ";
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
-			m_ctext->printf("------ Read %d %" PRId64 "B from /proc/69/stat (htop)\n%s",
-				evt->get_num(),
-				len,
-				argstr);
 		}
 		else if(eflags & EF_WRITES_TO_FD)
 		{
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
-			m_ctext->printf("------ Write %d %" PRId64 "B from /proc/69/stat (htop)\n%s", 
-				evt->get_num(),
-				len,
-				argstr);
+			dirstr = "Write ";
+			cnstr = "to ";
 		}
+
+		info_str += dirstr + to_string(len) + 
+			"B " + 
+			cnstr + 
+			fdname + 
+			" (" + m_tinfo->m_comm.c_str() + ")";
+
+		//
+		// Sanitize the info string
+		//
+		info_str.erase(remove_if(info_str.begin(), info_str.end(), g_invalidchar()), info_str.end());
+
+		//
+		// Print the whole thing
+		//
+		m_ctext->printf("%s\n%s",
+			info_str.c_str(),
+			argstr);
 	}
 
 	m_ctext->printf("\n");
 	m_ctext->printf("\n");
 //	m_ctext->render();
+
+	n_prints++;
+}
+
+//
+// Return true if the parent should handle the event
+//
+sysdig_table_action curses_textbox::handle_input(int ch)
+{
+	switch(ch)
+	{
+		case '\n':
+		case '\r':
+		case KEY_ENTER:
+		case KEY_UP:
+			m_ctext->up();
+			m_ctext->render();
+			return STA_NONE;
+		case KEY_DOWN:
+		case KEY_PPAGE:
+		case KEY_NPAGE:
+		case KEY_MOUSE:
+			return STA_NONE;
+		default:
+			break;
+	}
+
+	return STA_PARENT_HANDLE;
 }
 
 #endif // SYSTOP

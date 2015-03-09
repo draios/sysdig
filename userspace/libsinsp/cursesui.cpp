@@ -189,7 +189,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	//
 	m_menuitems.push_back("Help");
 	m_menuitems.push_back("Views");
-	m_menuitems.push_back("Spy");
+	m_menuitems.push_back("See IO");
 	m_menuitems.push_back("Search");
 	m_menuitems.push_back("Legend");
 	m_menuitems.push_back("Setup");
@@ -514,11 +514,109 @@ void sinsp_cursesui::render_search_main_menu()
 	move(m_screenh - 1, m_cursor_pos);
 }
 
+void sinsp_cursesui::render_spy_main_menu()
+{
+	uint32_t k = 0;
+
+	attrset(m_colors[PROCESS]);
+	string fks = "F1";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Help";
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	attrset(m_colors[PROCESS]);
+	fks = "F2";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Save";
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	attrset(m_colors[PROCESS]);
+	fks = "P ";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	if(true)
+	{
+		fks = "Pause";
+	}
+	else
+	{
+		fks = "Resume";
+	}
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	attrset(m_colors[PROCESS]);
+	fks = "Bak";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Exit";
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	attrset(m_colors[PROCESS]);
+	fks = "Esc";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Clear";
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	k++;
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	if(m_is_filter_sysdig)
+	{
+		fks = "Expression: ";
+	}
+	else
+	{
+		fks = "Text: ";
+	}
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 20);
+	k += fks.size();
+
+	uint32_t cursor_pos = k;
+
+	if(m_cursor_pos == 0)
+	{
+		for(; k < m_screenw; k++)
+		{
+			addch(' ');
+		}
+
+		m_cursor_pos = cursor_pos;
+
+		mvprintw(m_screenh - 1, m_cursor_pos, m_manual_filter.c_str());
+
+		m_cursor_pos += m_manual_filter.size();
+	}
+
+	move(m_screenh - 1, m_cursor_pos);
+}
+
 void sinsp_cursesui::render_main_menu()
 {
 	if(m_searching)
 	{
 		render_search_main_menu();
+	}
+	else if(m_spy_box != NULL)
+	{
+		render_spy_main_menu();
 	}
 	else
 	{
@@ -1043,6 +1141,20 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		return handle_textbox_input(ch);
 	}
 
+	if(m_spy_box != NULL)
+	{
+		ASSERT(m_sidemenu == NULL);
+		ASSERT(m_searching == false);
+		sysdig_table_action actn = m_spy_box->handle_input(ch);
+		if(actn != STA_PARENT_HANDLE)
+		{
+			return actn;
+		}
+	}
+
+	//
+	// Pass the event to the table viz
+	//
 	sysdig_table_action actn = m_viz->handle_input(ch);
 	if(actn != STA_PARENT_HANDLE)
 	{

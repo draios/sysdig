@@ -59,8 +59,9 @@ public:
 	void set_severity(severity sev);
 
 	void log(string msg, severity sev=SEV_INFO);
-	// Log function that accepts printf syntax and returns the formatted buffer.
+	// Log functions that accepts printf syntax and return the formatted buffer.
 	char* format(severity sev, const char* fmt, ...);
+	char* format(const char* fmt, ...);
 
 private:
 	FILE* m_file;
