@@ -201,7 +201,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 	}
 
 	if (open_rings == 0) {
-		pr_info("deallocating consumer %p", consumer->consumer_id);
+		pr_info("deallocating consumer %p\n", consumer->consumer_id);
 
 		if (remove_from_list) {
 			list_del_rcu(&consumer->node);
