@@ -261,18 +261,19 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 								return 2000;
 							}
 						}
-					} else if ( (sport >= PPM_START_PORT_MONGODB && sport <= PPM_END_PORT_MONGODB) ||
-								(dport >= PPM_START_PORT_MONGODB && dport <= PPM_END_PORT_MONGODB) ) {
-						if (lookahead_size >= 4)
-						{
-							// Matches both header frame and flags entry on commands
-							// the server does separate reads for header and commands
-							if (buf[3] == 0)
-							{
-								sockfd_put(sock);
-								return 2000;
-							}
-						}
+					} else if (( lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) ||
+							   (lookahead_size >= 16 && ( *(int32_t*)(buf+12) == 1 ||
+									   *(int32_t*)(buf+12) == 2001 ||
+									   *(int32_t*)(buf+12) == 2002 ||
+									   *(int32_t*)(buf+12) == 2003 ||
+									   *(int32_t*)(buf+12) == 2004 ||
+									   *(int32_t*)(buf+12) == 2005 ||
+									   *(int32_t*)(buf+12) == 2006 ||
+									   *(int32_t*)(buf+12) == 2007 )
+							   )
+							) {
+						sockfd_put(sock);
+						return 2000;
 					} else {
 						if (lookahead_size >= 5) {
 							if (*(u32 *)buf == g_http_get_intval ||
