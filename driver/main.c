@@ -1036,11 +1036,8 @@ static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_typ
 }
 
 static void record_event_all_consumers(enum ppm_event_type event_type,
-	struct pt_regs *regs,
-	long id,
 	enum syscall_flags drop_flags,
-	struct task_struct *sched_prev,
-	struct task_struct *sched_next)
+	struct event_data_t *event_datap)
 {
 	struct ppm_consumer_t *consumer;
 	struct timespec ts;
@@ -1049,7 +1046,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-		record_event_consumer(consumer, event_type, regs, id, drop_flags, sched_prev, sched_next, &ts);
+		record_event_consumer(consumer, event_type, drop_flags, &ts, event_datap);
 	}
 	rcu_read_unlock();
 }
