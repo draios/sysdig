@@ -564,6 +564,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		event_data.category = PPMC_CONTEXT_SWITCH;
 		event_data.event_info.context_data.sched_prev = (void *)DEI_DISABLE_DROPPING;
 		event_data.event_info.context_data.sched_next = (void *)0;
+
 		record_event_consumer(consumer, PPME_SYSDIGEVENT_E, UF_NEVER_DROP, &ts, &event_data);
 
 		ret = 0;
@@ -1452,6 +1453,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = p;
 	event_data.event_info.context_data.sched_next = p;
+
 	record_event_all_consumers(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data);
 }
 
