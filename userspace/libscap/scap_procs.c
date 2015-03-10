@@ -233,11 +233,13 @@ static int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo
 {
 	struct rlimit rl;
 
+#ifdef __NR_prlimit64
 	if(syscall(SYS_prlimit64, tid, RLIMIT_NOFILE, NULL, &rl) == 0)
 	{
 		tinfo->fdlimit = rl.rlim_cur;
 		return SCAP_SUCCESS;
 	}
+#endif
 
 	tinfo->fdlimit = -1;
 	return SCAP_SUCCESS;

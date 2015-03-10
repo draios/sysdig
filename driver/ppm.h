@@ -25,6 +25,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define ASSERT(expr)
 #endif
 
+#include <linux/time.h>
+
 /*
  * Global defines
  */
@@ -33,9 +35,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define RW_SNAPLEN_EVENT 4096
 #define RW_MAX_SNAPLEN (256 * 1024 * 1024)
 #define DPI_LOOKAHED_SIZE 5
-
-/* Make sure to use a power of two constant for this */
-extern u32 g_snaplen;
+#define MAX_CONSUMERS 5
 
 /*
  * Global enums
@@ -54,6 +54,35 @@ struct syscall_evt_pair {
 	int flags;
 	enum ppm_event_type enter_event_type;
 	enum ppm_event_type exit_event_type;
+};
+
+/*
+ * The ring descriptor.
+ * We have one of these for each CPU.
+ */
+struct ppm_ring_buffer_context {
+	bool open;
+	bool capture_enabled;
+	struct ppm_ring_buffer_info *info;
+	char *buffer;
+	struct timespec last_print_time;
+	u32 nevents;
+	atomic_t preempt_count;
+	char *str_storage;	/* String storage. Size is one page. */
+};
+
+struct ppm_consumer_t {
+	struct task_struct *consumer_id;
+	struct ppm_ring_buffer_context __percpu *ring_buffers;
+	u32 snaplen;
+	u32 sampling_ratio;
+	bool do_dynamic_snaplen;
+	u32 sampling_interval;
+	int is_dropping;
+	int dropping_mode;
+	volatile int need_to_insert_drop_e;
+	volatile int need_to_insert_drop_x;
+	struct list_head node;
 };
 
 #define STR_STORAGE_SIZE PAGE_SIZE
@@ -81,8 +110,6 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
-extern u32 g_sampling_ratio;
-extern bool g_do_dynamic_snaplen;
 
 #define PPM_PORT_MYSQL 3306
 #define PPM_PORT_POSTGRES 5432
