@@ -1110,7 +1110,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	u32 targetbuflen = STR_STORAGE_SIZE;
 	unsigned long val;
 	u32 notcopied_len;
-	u32 tocopy_len;
+	size_t tocopy_len;
 
 	copylen = iovcnt * sizeof(struct iovec);
 
@@ -1131,6 +1131,14 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	if (flags & PRB_FLAG_PUSH_SIZE) {
 		for (j = 0; j < iovcnt; j++)
 			size += iov[j].iov_len;
+
+		/*
+		 * Size is the total size of the buffers provided by the user. The number of
+		 * received bytes can be smaller 
+		 */
+		if ((flags & PRB_FLAG_IS_WRITE) == 0)
+			if (size > retval)
+				size = retval;
 
 		res = val_to_ring(args, size, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
@@ -1154,7 +1162,23 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			bufsize = 0;
 
 			for (j = 0; j < iovcnt; j++) {
-				tocopy_len = min(iov[j].iov_len, targetbuflen - bufsize - 1);
+				if ((flags & PRB_FLAG_IS_WRITE) == 0) {
+					if (bufsize >= retval) {
+						ASSERT(bufsize >= retval);
+
+						/*
+						 * Copied all the data even if we haven't reached the 
+						 * end of the buffer.
+						 * Copy must stop here.
+						 */
+						break;
+					}
+
+					tocopy_len = min(iov[j].iov_len, (size_t)retval - bufsize);
+					tocopy_len = min(tocopy_len, (size_t)targetbuflen - bufsize - 1);
+				} else {
+					tocopy_len = min(iov[j].iov_len, targetbuflen - bufsize - 1);
+				}
 
 				notcopied_len = (int)ppm_copy_from_user(targetbuf + bufsize,
 						iov[j].iov_base,

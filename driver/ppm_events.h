@@ -93,6 +93,7 @@ extern const struct ppm_event_entry g_ppm_events[];
 #define PRB_FLAG_PUSH_SIZE	1
 #define PRB_FLAG_PUSH_DATA	2
 #define PRB_FLAG_PUSH_ALL	(PRB_FLAG_PUSH_SIZE | PRB_FLAG_PUSH_DATA)
+#define PRB_FLAG_IS_WRITE	4
 
 /*
  * HTTP markers
