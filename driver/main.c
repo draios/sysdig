@@ -722,6 +722,20 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case PPM_IOCTL_GET_CURRENT_PID:
 		ret = task_tgid_nr(current);
 		goto cleanup_ioctl;
+	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
+	{
+		vpr_info("PPM_IOCTL_DISABLE_SIGNAL_DELIVER\n");
+		if (g_tracepoint_registered) 
+			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
+		return 0;
+	}
+	case PPM_IOCTL_ENABLE_SIGNAL_DELIVER:
+	{
+		vpr_info("PPM_IOCTL_ENABLE_SIGNAL_DELIVER\n");
+		if (g_tracepoint_registered)
+			compat_register_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
+		return 0;
+	}
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
