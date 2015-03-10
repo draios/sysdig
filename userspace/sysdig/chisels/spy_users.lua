@@ -113,6 +113,11 @@ function on_event()
 		table.insert(fanames, 0, 0)
 		table.insert(fapids, 0, 0)
 		icorr = 0
+	else
+		for j = 0, MAX_ANCESTOR_NAVIGATION do
+			fanames[j] = chisel.request_field("proc.aname[" .. j .. "]")
+			fapids[j] = chisel.request_field("proc.apid[" .. j .. "]")
+		end
 	end
 
 	if user == nil then

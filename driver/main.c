@@ -66,21 +66,6 @@ struct ppm_device {
 	wait_queue_head_t read_queue;
 };
 
-/*
- * The ring descriptor.
- * We have one of these for each CPU.
- */
-struct ppm_ring_buffer_context {
-	bool open;
-	bool capture_enabled;
-	struct ppm_ring_buffer_info *info;
-	char *buffer;
-	struct timespec last_print_time;
-	u32 nevents;
-	atomic_t preempt_count;
-	char *str_storage;	/* String storage. Size is one page. */
-};
-
 struct event_data_t {
 	enum ppm_capture_category category;
 
@@ -110,10 +95,16 @@ static int ppm_open(struct inode *inode, struct file *filp);
 static int ppm_release(struct inode *inode, struct file *filp);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
-static int record_event(enum ppm_event_type event_type,
+static int record_event_consumer(struct ppm_consumer_t *consumer,
+	enum ppm_event_type event_type,
+	enum syscall_flags drop_flags,
+	struct timespec *ts,
+	struct event_data_t *event_datap);
+static void record_event_all_consumers(enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
 	struct event_data_t *event_datap);
-
+static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
+static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
@@ -157,19 +148,9 @@ static const struct file_operations g_ppe_fops = {
 /*
  * GLOBALS
  */
-
-static DEFINE_PER_CPU(struct ppm_ring_buffer_context*, g_ring_buffers);
-static DEFINE_MUTEX(g_open_mutex);
-static u32 g_open_count;
-u32 g_snaplen = RW_SNAPLEN;
-u32 g_sampling_ratio = 1;
-bool g_do_dynamic_snaplen = false;
-static u32 g_sampling_interval;
-static int g_is_dropping;
-static int g_dropping_mode;
+LIST_HEAD(g_consumer_list);
+static DEFINE_MUTEX(g_consumer_mutex);
 static bool g_tracepoint_registered;
-static volatile int g_need_to_insert_drop_e = 0;
-static volatile int g_need_to_insert_drop_x = 0;
 
 struct cdev *g_ppe_cdev = NULL;
 struct device *g_ppe_dev = NULL;
@@ -215,26 +196,149 @@ static void compat_unregister_trace(void *func, const char *probename, struct tr
 #endif
 }
 
+static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id)
+{
+	struct ppm_consumer_t *el = NULL;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(el, &g_consumer_list, node) {
+		if (el->consumer_id == consumer_id) {
+			rcu_read_unlock();
+			return el;
+		}
+	}
+	rcu_read_unlock();
+
+	return NULL;
+}
+
+static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_from_list)
+{
+	int cpu;
+	int open_rings = 0;
+
+	for_each_online_cpu(cpu) {
+		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+		if (ring && ring->open)
+			++open_rings;
+	}
+
+	if (open_rings == 0) {
+		pr_info("deallocating consumer %p\n", consumer->consumer_id);
+
+		if (remove_from_list) {
+			list_del_rcu(&consumer->node);
+			synchronize_rcu();
+		}
+
+		for_each_online_cpu(cpu) {
+			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+
+			if (ring)
+				free_ring_buffer(ring);
+		}
+
+		free_percpu(consumer->ring_buffers);
+
+		vfree(consumer);
+	}
+}
+
 /*
  * user I/O functions
  */
 static int ppm_open(struct inode *inode, struct file *filp)
 {
 	int ret;
-	struct ppm_ring_buffer_context *ring;
+	int in_list = false;
+	struct ppm_ring_buffer_context *ring = NULL;
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
+	struct task_struct *consumer_id = current;
+	struct ppm_consumer_t *consumer = NULL;
 
-	mutex_lock(&g_open_mutex);
+	/*
+	 * Tricky: to identify a consumer, attach the thread id
+	 * to the newly open file descriptor
+	 */
+	filp->private_data = consumer_id;
 
-	ring = per_cpu(g_ring_buffers, ring_no);
+	mutex_lock(&g_consumer_mutex);
+
+	consumer = ppm_find_consumer(consumer_id);
+	if (!consumer) {
+		unsigned int cpu;
+		unsigned int num_consumers = 0;
+		struct ppm_consumer_t *el = NULL;
+
+		rcu_read_lock();
+		list_for_each_entry_rcu(el, &g_consumer_list, node) {
+			++num_consumers;
+		}
+		rcu_read_unlock();
+
+		if (num_consumers >= MAX_CONSUMERS) {
+			pr_err("maximum number of consumers reached\n");
+			ret = -EBUSY;
+			goto cleanup_open;
+		}
+
+		pr_info("adding new consumer %p\n", consumer_id);
+
+		consumer = vmalloc(sizeof(struct ppm_consumer_t));
+		if (!consumer) {
+			pr_err("can't allocate consumer\n");
+			ret = -ENOMEM;
+			goto cleanup_open;
+		}
+
+		consumer->consumer_id = consumer_id;
+
+		/*
+		 * Initialize the ring buffers array
+		 */
+		consumer->ring_buffers = alloc_percpu(struct ppm_ring_buffer_context);
+		if (consumer->ring_buffers == NULL) {
+			pr_err("can't allocate the ring buffer array\n");
+
+			vfree(consumer);
+
+			ret = -ENOMEM;
+			goto cleanup_open;
+		}
+
+		for_each_online_cpu(cpu) {
+			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+
+			ring->str_storage = NULL;
+			ring->buffer = NULL;
+			ring->info = NULL;
+		}
+
+		for_each_online_cpu(cpu) {
+			pr_info("initializing ring buffer for CPU %u\n", cpu);
+
+			if (!init_ring_buffer(per_cpu_ptr(consumer->ring_buffers, cpu))) {
+				pr_err("can't initialize the ring buffer for CPU %u\n", cpu);
+				ret = -ENOMEM;
+				goto err_init_ring_buffer;
+			}
+		}
+
+		list_add_rcu(&consumer->node, &g_consumer_list);
+		in_list = true;
+	} else {
+		vpr_info("found already existent consumer %p\n", consumer_id);
+	}
+
+	ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
 	if (ring->open) {
-		pr_err("invalid operation: attempting to open device %d multiple times\n", ring_no);
+		pr_err("invalid operation: attempting to open device %d multiple times for consumer %p\n", ring_no, consumer->consumer_id);
 		ret = -EBUSY;
 		goto cleanup_open;
 	}
 
-	vpr_info("opening ring %d\n", ring_no);
+	vpr_info("opening ring %d, consumer %p\n", ring_no, consumer->consumer_id);
 
 	/*
 	 * ring->preempt_count is not reset to 0 on purpose, to prevent a race condition:
@@ -243,11 +347,14 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 * When record_event() will exit, it will decrease
 	 * ring->preempt_count which will become < 0, leading to the complete loss of all the events for that CPU.
 	 */
-	g_dropping_mode = 0;
-	g_snaplen = RW_SNAPLEN;
-	g_sampling_ratio = 1;
-	g_sampling_interval = 0;
-	g_is_dropping = 0;
+	consumer->dropping_mode = 0;
+	consumer->snaplen = RW_SNAPLEN;
+	consumer->sampling_ratio = 1;
+	consumer->sampling_interval = 0;
+	consumer->is_dropping = 0;
+	consumer->do_dynamic_snaplen = false;
+	consumer->need_to_insert_drop_e = 0;
+	consumer->need_to_insert_drop_x = 0;
 	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
 	ring->info->head = 0;
 	ring->info->tail = 0;
@@ -262,7 +369,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	ring->open = true;
 
 	if (!g_tracepoint_registered) {
-		vpr_info("starting capture\n");
+		pr_info("starting capture\n");
 		/*
 		 * Enable the tracepoints
 		 */
@@ -302,7 +409,6 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		g_tracepoint_registered = true;
 	}
 
-	++g_open_count;
 	ret = 0;
 
 	goto cleanup_open;
@@ -319,8 +425,10 @@ err_sys_enter:
 	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 err_sys_exit:
 	ring->open = false;
+err_init_ring_buffer:
+	check_remove_consumer(consumer, in_list);
 cleanup_open:
-	mutex_unlock(&g_open_mutex);
+	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
 }
@@ -330,34 +438,47 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	int ret;
 	struct ppm_ring_buffer_context *ring;
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
+	struct task_struct *consumer_id = filp->private_data;
+	struct ppm_consumer_t *consumer = NULL;
 
-	mutex_lock(&g_open_mutex);
+	mutex_lock(&g_consumer_mutex);
 
-	ring = per_cpu(g_ring_buffers, ring_no);
+	consumer = ppm_find_consumer(consumer_id);
+	if (!consumer) {
+		pr_err("release: unknown consumer %p\n", consumer_id);
+		ret = -EBUSY;
+		goto cleanup_release;
+	}
+
+	ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
 	if (!ring->open) {
-		pr_err("attempting to close unopened device %d\n", ring_no);
+		pr_err("attempting to close unopened device %d for consumer %p\n", ring_no, consumer_id);
 		ret = -EBUSY;
 		goto cleanup_release;
 	}
 
 	ring->capture_enabled = false;
 
-	vpr_info("closing ring %d, evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+	vpr_info("closing ring %d, consumer:%p evt:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 	       ring_no,
+	       consumer_id,
 	       ring->info->n_evts,
 	       ring->info->n_drops_buffer,
 	       ring->info->n_drops_pf,
 	       ring->info->n_preemptions,
 	       ring->info->n_context_switches);
 
+	ring->open = false;
+
+	check_remove_consumer(consumer, true);
+
 	/*
 	 * The last closed device stops event collection
 	 */
-	--g_open_count;
-	if (g_open_count == 0) {
+	if (list_empty(&g_consumer_list)) {
 		if (g_tracepoint_registered) {
-			vpr_info("stopping capture\n");
+			pr_info("no more consumers, stopping capture\n");
 
 			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
@@ -376,69 +497,84 @@ static int ppm_release(struct inode *inode, struct file *filp)
 		}
 	}
 
-	ring->open = false;
 	ret = 0;
 
 cleanup_release:
-	mutex_unlock(&g_open_mutex);
+	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
 }
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+	int ret;
+	struct task_struct *consumer_id = filp->private_data;
+	struct ppm_consumer_t *consumer = NULL;
+
+	mutex_lock(&g_consumer_mutex);
+
+	consumer = ppm_find_consumer(consumer_id);
+	if (!consumer) {
+		pr_err("ioctl: unknown consumer %p\n", consumer_id);
+		ret = -EBUSY;
+		goto cleanup_ioctl;
+	}
+
 	switch (cmd) {
 	case PPM_IOCTL_DISABLE_CAPTURE:
 	{
 		int ring_no = iminor(filp->f_path.dentry->d_inode);
-		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
+		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
-		mutex_lock(&g_open_mutex);
 		ring->capture_enabled = false;
-		mutex_unlock(&g_open_mutex);
 
-		vpr_info("PPM_IOCTL_DISABLE_CAPTURE for ring %d\n", ring_no);
+		vpr_info("PPM_IOCTL_DISABLE_CAPTURE for ring %d, consumer %p\n", ring_no, consumer_id);
 
-		return 0;
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_ENABLE_CAPTURE:
 	{
 		int ring_no = iminor(filp->f_path.dentry->d_inode);
-		struct ppm_ring_buffer_context *ring = per_cpu(g_ring_buffers, ring_no);
+		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
-		mutex_lock(&g_open_mutex);
 		ring->capture_enabled = true;
-		mutex_unlock(&g_open_mutex);
 
-		vpr_info("PPM_IOCTL_ENABLE_CAPTURE for ring %d\n", ring_no);
+		vpr_info("PPM_IOCTL_ENABLE_CAPTURE for ring %d, consumer %p\n", ring_no, consumer_id);
 
-		return 0;
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
 		struct event_data_t event_data;
+		struct timespec ts;
 
-		g_dropping_mode = 0;
-		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE\n");
-		g_sampling_interval = 1000000000;
-		g_sampling_ratio = 1;
+		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE, consumer %p\n", consumer_id);
+
+		consumer->dropping_mode = 0;
+		consumer->sampling_interval = 1000000000;
+		consumer->sampling_ratio = 1;
 
 		/*
 		 * Push an event into the ring buffer so that the user can know that dropping
 		 * mode has been disabled
 		 */
+		getnstimeofday(&ts);
 		event_data.category = PPMC_CONTEXT_SWITCH;
 		event_data.event_info.context_data.sched_prev = (void *)DEI_DISABLE_DROPPING;
 		event_data.event_info.context_data.sched_next = (void *)0;
-		record_event(PPME_SYSDIGEVENT_E, UF_NEVER_DROP, &event_data);
-		return 0;
+		record_event_consumer(consumer, PPME_SYSDIGEVENT_E, UF_NEVER_DROP, &ts, &event_data);
+
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_ENABLE_DROPPING_MODE:
 	{
 		u32 new_sampling_ratio;
 
-		g_dropping_mode = 1;
-		vpr_info("PPM_IOCTL_ENABLE_DROPPING_MODE\n");
+		consumer->dropping_mode = 1;
+		vpr_info("PPM_IOCTL_ENABLE_DROPPING_MODE, consumer %p\n", consumer_id);
 
 		new_sampling_ratio = (u32)arg;
 
@@ -454,17 +590,19 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EINVAL;
 		}
 
-		g_sampling_interval = 1000000000 / new_sampling_ratio;
-		g_sampling_ratio = new_sampling_ratio;
+		consumer->sampling_interval = 1000000000 / new_sampling_ratio;
+		consumer->sampling_ratio = new_sampling_ratio;
 
 		vpr_info("new sampling ratio: %d\n", new_sampling_ratio);
-		return 0;
+
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_SET_SNAPLEN:
 	{
 		u32 new_snaplen;
 
-		vpr_info("PPM_IOCTL_SET_SNAPLEN\n");
+		vpr_info("PPM_IOCTL_SET_SNAPLEN, consumer %p\n", consumer_id);
 		new_snaplen = (u32)arg;
 
 		if (new_snaplen > RW_MAX_SNAPLEN) {
@@ -472,27 +610,31 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EINVAL;
 		}
 
-		g_snaplen = new_snaplen;
+		consumer->snaplen = new_snaplen;
 
-		vpr_info("new snaplen: %d\n", g_snaplen);
-		return 0;
+		vpr_info("new snaplen: %d\n", consumer->snaplen);
+
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_MASK_ZERO_EVENTS:
 	{
-		vpr_info("PPM_IOCTL_MASK_ZERO_EVENTS\n");
+		vpr_info("PPM_IOCTL_MASK_ZERO_EVENTS, consumer %p\n", consumer_id);
 
 		bitmap_zero(g_events_mask, PPM_EVENT_MAX);
 
 		/* Used for dropping events so they must stay on */
 		set_bit(PPME_DROP_E, g_events_mask);
 		set_bit(PPME_DROP_X, g_events_mask);
-		return 0;
+
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_MASK_SET_EVENT:
 	{
 		u32 syscall_to_set = (u32)arg;
 
-		vpr_info("PPM_IOCTL_MASK_SET_EVENT (%u)\n", syscall_to_set);
+		vpr_info("PPM_IOCTL_MASK_SET_EVENT (%u), consumer %p\n", syscall_to_set, consumer_id);
 
 		if (syscall_to_set > PPM_EVENT_MAX) {
 			pr_err("invalid syscall %u\n", syscall_to_set);
@@ -500,13 +642,15 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 
 		set_bit(syscall_to_set, g_events_mask);
-		return 0;
+
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_MASK_UNSET_EVENT:
 	{
 		u32 syscall_to_unset = (u32)arg;
 
-		vpr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u)\n", syscall_to_unset);
+		vpr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u), consumer %p\n", syscall_to_unset, consumer_id);
 
 		if (syscall_to_unset > NR_syscalls) {
 			pr_err("invalid syscall %u\n", syscall_to_unset);
@@ -514,17 +658,23 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 
 		clear_bit(syscall_to_unset, g_events_mask);
-		return 0;
+
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN:
 	{
-		g_do_dynamic_snaplen = false;
-		return 0;
+		consumer->do_dynamic_snaplen = false;
+
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN:
 	{
-		g_do_dynamic_snaplen = true;
-		return 0;
+		consumer->do_dynamic_snaplen = true;
+
+		ret = 0;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_GET_VTID:
 	case PPM_IOCTL_GET_VPID:
@@ -538,19 +688,22 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		pid = find_pid_ns(arg, &init_pid_ns);
 		if(!pid) {
 			rcu_read_unlock();
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		task = pid_task(pid, PIDTYPE_PID);
 		if (!task) {
 			rcu_read_unlock();
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		ns = ns_of_pid(pid);
 		if(!pid) {
 			rcu_read_unlock();
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		if(cmd == PPM_IOCTL_GET_VTID)
@@ -559,21 +712,42 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			vid = task_tgid_nr_ns(task, ns);
 
 		rcu_read_unlock();
-		return vid;
+		ret = vid;
+		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_GET_CURRENT_TID:
-		return task_pid_nr(current);
+		ret = task_pid_nr(current);
+		goto cleanup_ioctl;
 	case PPM_IOCTL_GET_CURRENT_PID:
-		return task_tgid_nr(current);
+		ret = task_tgid_nr(current);
+		goto cleanup_ioctl;
 	default:
-		return -ENOTTY;
+		ret = -ENOTTY;
+		goto cleanup_ioctl;
 	}
+
+cleanup_ioctl:
+	mutex_unlock(&g_consumer_mutex);
+
+	return ret;
 }
 
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 {
+	int ret;
+	struct task_struct *consumer_id = filp->private_data;
+	struct ppm_consumer_t *consumer = NULL;
+
+	mutex_lock(&g_consumer_mutex);
+
+	consumer = ppm_find_consumer(consumer_id);
+	if (!consumer) {
+		pr_err("mmap: unknown consumer %p\n", consumer_id);
+		ret = -EIO;
+		goto cleanup_mmap;
+	}
+
 	if (vma->vm_pgoff == 0) {
-		int ret;
 		long length = vma->vm_end - vma->vm_start;
 		unsigned long useraddr = vma->vm_start;
 		unsigned long pfn;
@@ -582,7 +756,8 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		int ring_no = iminor(filp->f_path.dentry->d_inode);
 		struct ppm_ring_buffer_context *ring;
 
-		vpr_info("mmap for CPU %d, start=%lu len=%ld page_size=%lu\n",
+		vpr_info("mmap for consumer %p, CPU %d, start=%lu len=%ld page_size=%lu\n",
+			   consumer_id,
 		       ring_no,
 		       useraddr,
 		       length,
@@ -595,18 +770,20 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
 			       (long)RING_BUF_SIZE,
 			       (long)PAGE_SIZE);
-			return -EIO;
+			ret = -EIO;
+			goto cleanup_mmap;
 		}
 
 		if (RING_BUF_SIZE / PAGE_SIZE * PAGE_SIZE != RING_BUF_SIZE) {
 			pr_err("Ring buffer size is not a multiple of the page size\n");
-			return -EIO;
+			ret = -EIO;
+			goto cleanup_mmap;
 		}
 
 		/*
 		 * Retrieve the ring structure for this CPU
 		 */
-		ring = per_cpu(g_ring_buffers, ring_no);
+		ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
 		if (length <= PAGE_SIZE) {
 			/*
@@ -624,10 +801,11 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 					      PAGE_SIZE, PAGE_SHARED);
 			if (ret < 0) {
 				pr_err("remap_pfn_range failed (1)\n");
-				return ret;
+				goto cleanup_mmap;
 			}
 
-			return 0;
+			ret = 0;
+			goto cleanup_mmap;
 		} else if (length == RING_BUF_SIZE * 2) {
 			long mlength;
 
@@ -645,7 +823,8 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			 */
 			if (vma->vm_flags & VM_WRITE) {
 				pr_err("invalid mmap flags 0x%lx\n", vma->vm_flags);
-				return -EIO;
+				ret = -EIO;
+				goto cleanup_mmap;
 			}
 
 			/*
@@ -660,7 +839,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 						      PAGE_SIZE, PAGE_SHARED);
 				if (ret < 0) {
 					pr_err("remap_pfn_range failed (1)\n");
-					return ret;
+					goto cleanup_mmap;
 				}
 
 				useraddr += PAGE_SIZE;
@@ -682,7 +861,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 						      PAGE_SIZE, PAGE_SHARED);
 				if (ret < 0) {
 					pr_err("remap_pfn_range failed (1)\n");
-					return ret;
+					goto cleanup_mmap;
 				}
 
 				useraddr += PAGE_SIZE;
@@ -690,15 +869,22 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 				mlength -= PAGE_SIZE;
 			}
 
-			return 0;
+			ret = 0;
+			goto cleanup_mmap;
 		}
 
 		pr_err("Invalid mmap size %ld\n", length);
-		return -EIO;
+		ret = -EIO;
+		goto cleanup_mmap;
 	}
 
 	pr_err("invalid pgoff %lu, must be 0\n", vma->vm_pgoff);
-	return -EIO;
+	ret = -EIO;
+
+cleanup_mmap:
+	mutex_unlock(&g_consumer_mutex);
+
+	return ret;
 }
 
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
@@ -792,68 +978,89 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 }
 #endif /* __NR_socketcall */
 
-static inline void record_drop_e(void)
+static inline void record_drop_e(struct ppm_consumer_t *consumer, struct timespec *ts)
 {
 	struct event_data_t event_data = {0};
-	if (record_event(PPME_DROP_E, UF_NEVER_DROP, &event_data) == 0) {
-		g_need_to_insert_drop_e = 1;
+	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ts, &event_data) == 0) {
+		consumer->need_to_insert_drop_e = 1;
 	} else {
-		if (g_need_to_insert_drop_e == 1)
+		if (consumer->need_to_insert_drop_e == 1)
 			pr_err("drop enter event delayed insert\n");
 
-		g_need_to_insert_drop_e = 0;
+		consumer->need_to_insert_drop_e = 0;
 	}
 }
 
-static inline void record_drop_x(void)
+static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespec *ts)
 {
 	struct event_data_t event_data = {0};
-	if (record_event(PPME_DROP_X, UF_NEVER_DROP, &event_data) == 0) {
-		g_need_to_insert_drop_x = 1;
+	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ts, &event_data) == 0) {
+		consumer->need_to_insert_drop_x = 1;
 	} else {
-		if (g_need_to_insert_drop_x == 1)
+		if (consumer->need_to_insert_drop_x == 1)
 			pr_err("drop exit event delayed insert\n");
 
-		g_need_to_insert_drop_x = 0;
+		consumer->need_to_insert_drop_x = 0;
 	}
 }
 
-static inline int drop_event(enum ppm_event_type event_type, enum syscall_flags drop_flags, struct timespec *ts)
+static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_type event_type, enum syscall_flags drop_flags, struct timespec *ts)
 {
 	if (drop_flags & UF_NEVER_DROP) {
 		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
 		return 0;
 	}
 
-	if (g_dropping_mode) {
+	if (consumer->dropping_mode) {
 		if (drop_flags & UF_ALWAYS_DROP) {
 			ASSERT((drop_flags & UF_NEVER_DROP) == 0);
 			return 1;
 		}
 
-		if (ts->tv_nsec >= g_sampling_interval) {
-			if (g_is_dropping == 0) {
-				g_is_dropping = 1;
-					record_drop_e();
+		if (ts->tv_nsec >= consumer->sampling_interval) {
+			if (consumer->is_dropping == 0) {
+				consumer->is_dropping = 1;
+				record_drop_e(consumer, ts);
 			}
 
 			return 1;
 		}
 
-		if (g_is_dropping == 1) {
-			g_is_dropping = 0;
-				record_drop_x();
+		if (consumer->is_dropping == 1) {
+			consumer->is_dropping = 0;
+			record_drop_x(consumer, ts);
 		}
 	}
 
 	return 0;
 }
 
+static void record_event_all_consumers(enum ppm_event_type event_type,
+	struct pt_regs *regs,
+	long id,
+	enum syscall_flags drop_flags,
+	struct task_struct *sched_prev,
+	struct task_struct *sched_next)
+{
+	struct ppm_consumer_t *consumer;
+	struct timespec ts;
+
+	getnstimeofday(&ts);
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
+		record_event_consumer(consumer, event_type, regs, id, drop_flags, sched_prev, sched_next, &ts);
+	}
+	rcu_read_unlock();
+}
+
 /*
  * Returns 0 if the event is dropped
  */
-static int record_event(enum ppm_event_type event_type,
+static int record_event_consumer(struct ppm_consumer_t *consumer,
+	enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
+	struct timespec *ts,
 	struct event_data_t *event_datap)
 {
 	int res = 0;
@@ -869,31 +1076,28 @@ static int record_event(enum ppm_event_type event_type,
 	struct ppm_ring_buffer_info *ring_info;
 	int drop = 1;
 	int32_t cbres = PPM_SUCCESS;
-	struct timespec ts;
-
-	getnstimeofday(&ts);
 
 	if (!test_bit(event_type, g_events_mask))
 		return res;
 
 	if (event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
-		if (g_need_to_insert_drop_e == 1)
-			record_drop_e();
-		else if (g_need_to_insert_drop_x == 1)
-			record_drop_x();
+		if (consumer->need_to_insert_drop_e == 1)
+			record_drop_e(consumer, ts);
+		else if (consumer->need_to_insert_drop_x == 1)
+			record_drop_x(consumer, ts);
 
-		if (drop_event(event_type, drop_flags, &ts))
+		if (drop_event(consumer, event_type, drop_flags, ts))
 			return res;
 	}
 
 	/*
 	 * FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
 	 */
-	ring = get_cpu_var(g_ring_buffers);
+	ring = get_cpu_ptr(consumer->ring_buffers);
 	ring_info = ring->info;
 
 	if (!ring->capture_enabled) {
-		put_cpu_var(g_ring_buffers);
+		put_cpu_ptr(consumer->ring_buffers);
 		return res;
 	}
 
@@ -916,7 +1120,7 @@ static int record_event(enum ppm_event_type event_type,
 	 */
 	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
 		atomic_dec(&ring->preempt_count);
-		put_cpu_var(g_ring_buffers);
+		put_cpu_ptr(consumer->ring_buffers);
 		ring_info->n_preemptions++;
 		ASSERT(false);
 		return res;
@@ -986,13 +1190,14 @@ static int record_event(enum ppm_event_type event_type,
 #ifdef PPM_ENABLE_SENTINEL
 		hdr->sentinel_begin = ring->nevents;
 #endif
-		hdr->ts = timespec_to_ns(&ts);
+		hdr->ts = timespec_to_ns(ts);
 		hdr->tid = current->pid;
 		hdr->type = event_type;
 
 		/*
 		 * Populate the parameters for the filler callback
 		 */
+		args.consumer = consumer;
 		args.buffer = ring->buffer + head + sizeof(struct ppm_evt_hdr);
 #ifdef PPM_ENABLE_SENTINEL
 		args.sentinel = ring->nevents;
@@ -1123,8 +1328,9 @@ static int record_event(enum ppm_event_type event_type,
 	}
 
 #ifdef _DEBUG
-	if (ts.tv_sec > ring->last_print_time.tv_sec + 1) {
-		vpr_info("CPU%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+	if (ts->tv_sec > ring->last_print_time.tv_sec + 1) {
+		vpr_info("consumer:%p CPU:%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+			   consumer->consumer_id,
 		       smp_processor_id(),
 		       (usedspace * 100) / RING_BUF_SIZE,
 		       ring_info->n_evts,
@@ -1133,12 +1339,12 @@ static int record_event(enum ppm_event_type event_type,
 		       ring_info->n_preemptions,
 		       ring->info->n_context_switches);
 
-		ring->last_print_time = ts;
+		ring->last_print_time = *ts;
 	}
 #endif
 
 	atomic_dec(&ring->preempt_count);
-	put_cpu_var(g_ring_buffers);
+	put_cpu_ptr(consumer->ring_buffers);
 
 	return res;
 }
@@ -1178,11 +1384,11 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		event_data.category = PPMC_SYSCALL;
 		event_data.event_info.syscall_data.regs = regs;
 		event_data.event_info.syscall_data.id = id;
-		if (used) {
-			record_event(type, drop_flags, &event_data);
-		} else {
-			record_event(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data);
-		}
+
+		if (used)
+			record_event_all_consumers(type, drop_flags, &event_data);
+		else
+			record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data);
 	}
 }
 
@@ -1224,11 +1430,11 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		event_data.category = PPMC_SYSCALL;
 		event_data.event_info.syscall_data.regs = regs;
 		event_data.event_info.syscall_data.id = id;
-		if (used) {
-			record_event(type, drop_flags, &event_data);
-		} else {
-			record_event(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data);
-		}
+
+		if (used)
+			record_event_all_consumers(type, drop_flags, &event_data);
+		else
+			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data);
 	}
 }
 
@@ -1249,7 +1455,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = p;
 	event_data.event_info.context_data.sched_next = p;
-	record_event(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data);
+	record_event_all_consumers(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data);
 }
 
 #include <linux/ip.h>
@@ -1267,7 +1473,8 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = prev;
 	event_data.event_info.context_data.sched_next = next;
-	record_event(PPME_SCHEDSWITCH_6_E, UF_USED, &event_data);
+
+	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED, &event_data);
 }
 #endif
 
@@ -1279,28 +1486,20 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 	event_data.event_info.signal_data.sig = sig;
 	event_data.event_info.signal_data.info = info;
 	event_data.event_info.signal_data.ka = ka;
-	record_event(PPME_SYSCALL_SIGNALDELIVER_E, UF_USED, &event_data);
+
+	record_event_all_consumers(PPME_SYSCALL_SIGNALDELIVER_E, UF_USED, &event_data);
 }
 #endif
 
-static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_context **ring)
+static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 {
 	unsigned int j;
 
 	/*
-	 * Allocate the ring descriptor
-	 */
-	*ring = vmalloc(sizeof(struct ppm_ring_buffer_context));
-	if (*ring == NULL) {
-		pr_err("Error allocating ring memory\n");
-		return NULL;
-	}
-
-	/*
 	 * Allocate the string storage in the ring descriptor
 	 */
-	(*ring)->str_storage = (char *)__get_free_page(GFP_USER);
-	if (!(*ring)->str_storage) {
+	ring->str_storage = (char *)__get_free_page(GFP_USER);
+	if (!ring->str_storage) {
 		pr_err("Error allocating the string storage\n");
 		goto err_str_storage;
 	}
@@ -1310,20 +1509,20 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	 * Note how we allocate 2 additional pages: they are used as additional overflow space for
 	 * the event data generation functions, so that they always operate on a contiguous buffer.
 	 */
-	(*ring)->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
-	if ((*ring)->buffer == NULL) {
+	ring->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
+	if (ring->buffer == NULL) {
 		pr_err("Error allocating ring memory\n");
 		goto err_buffer;
 	}
 
 	for (j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
-		(*ring)->buffer[j] = 0;
+		ring->buffer[j] = 0;
 
 	/*
 	 * Allocate the buffer info structure
 	 */
-	(*ring)->info = vmalloc(sizeof(struct ppm_ring_buffer_info));
-	if ((*ring)->info == NULL) {
+	ring->info = vmalloc(sizeof(struct ppm_ring_buffer_info));
+	if (ring->info == NULL) {
 		pr_err("Error allocating ring memory\n");
 		goto err_ring_info;
 	}
@@ -1331,39 +1530,43 @@ static struct ppm_ring_buffer_context *alloc_ring_buffer(struct ppm_ring_buffer_
 	/*
 	 * Initialize the buffer info structure
 	 */
-	(*ring)->open = false;
-	(*ring)->capture_enabled = false;
-	(*ring)->info->head = 0;
-	(*ring)->info->tail = 0;
-	(*ring)->nevents = 0;
-	(*ring)->info->n_evts = 0;
-	(*ring)->info->n_drops_buffer = 0;
-	(*ring)->info->n_drops_pf = 0;
-	(*ring)->info->n_preemptions = 0;
-	(*ring)->info->n_context_switches = 0;
-	atomic_set(&(*ring)->preempt_count, 0);
-	getnstimeofday(&(*ring)->last_print_time);
+	ring->open = false;
+	ring->capture_enabled = false;
+	ring->info->head = 0;
+	ring->info->tail = 0;
+	ring->nevents = 0;
+	ring->info->n_evts = 0;
+	ring->info->n_drops_buffer = 0;
+	ring->info->n_drops_pf = 0;
+	ring->info->n_preemptions = 0;
+	ring->info->n_context_switches = 0;
+	atomic_set(&ring->preempt_count, 0);
+	getnstimeofday(&ring->last_print_time);
 
 	pr_info("CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
 
-	return *ring;
+	return 1;
 
 err_ring_info:
-	vfree((void *)(*ring)->buffer);
+	vfree((void *)ring->buffer);
+	ring->buffer = NULL;
 err_buffer:
-	free_page((unsigned long)(*ring)->str_storage);
+	free_page((unsigned long)ring->str_storage);
+	ring->str_storage = NULL;
 err_str_storage:
-	vfree(*ring);
-
-	return NULL;
+	return 0;
 }
 
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 {
-	vfree(ring->info);
-	vfree((void *)ring->buffer);
-	free_page((unsigned long)ring->str_storage);
-	vfree(ring);
+	if (ring->info)
+		vfree(ring->info);
+
+	if (ring->buffer)
+		vfree((void *)ring->buffer);
+
+	if (ring->str_storage)
+		free_page((unsigned long)ring->str_storage);
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
@@ -1457,24 +1660,9 @@ int sysdig_init(void)
 	if (ret < 0)
 		goto init_module_err;
 
-	/*
-	 * Initialize the ring buffers array
-	 */
 	num_cpus = 0;
 	for_each_online_cpu(cpu) {
-		per_cpu(g_ring_buffers, cpu) = NULL;
 		++num_cpus;
-	}
-
-	for_each_online_cpu(cpu) {
-		pr_info("initializing ring buffer for CPU %u\n", cpu);
-
-		alloc_ring_buffer(&per_cpu(g_ring_buffers, cpu));
-		if (per_cpu(g_ring_buffers, cpu) == NULL) {
-			pr_err("can't initialize the ring buffer for CPU %u\n", cpu);
-			ret = -ENOMEM;
-			goto init_module_err;
-		}
 	}
 
 	/*
@@ -1576,19 +1764,11 @@ int sysdig_init(void)
 	/*
 	 * All ok. Final initalizations.
 	 */
-	g_open_count = 0;
 	g_tracepoint_registered = false;
-	g_dropping_mode = 0;
 
 	return 0;
 
 init_module_err:
-	for_each_online_cpu(cpu)
-		if (per_cpu(g_ring_buffers, cpu) != NULL)
-			free_ring_buffer(per_cpu(g_ring_buffers, cpu));
-
-	/* remove_proc_entry(PPM_DEVICE_NAME, NULL); */
-
 	if (g_ppe_dev != NULL)
 		device_destroy(g_ppm_class, MKDEV(g_ppm_major, g_ppm_numdevs));
 
@@ -1614,14 +1794,8 @@ init_module_err:
 void sysdig_exit(void)
 {
 	int j;
-	int cpu;
 
 	pr_info("driver unloading\n");
-
-	/* remove_proc_entry(PPM_DEVICE_NAME, NULL); */
-
-	for_each_online_cpu(cpu)
-		free_ring_buffer(per_cpu(g_ring_buffers, cpu));
 
 	for (j = 0; j < g_ppm_numdevs; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
