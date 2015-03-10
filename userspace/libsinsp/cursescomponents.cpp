@@ -308,11 +308,6 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-// XXX get rid of this
-int8_t my_event(ctext *context, ctext_event event)
-{
-	return 0;
-}
 
 curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 {
@@ -334,12 +329,9 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 
 	m_ctext->get_config(&config);
 
-	//
-	// add my handler
-	//
-	config.m_on_event = my_event;
-	config.m_buffer_size = 100;
+	config.m_buffer_size = 5000;
 	config.m_scroll_on_append = true;
+  config.m_bounding_box = true;
 	config.m_do_wrap = true;
 	
 	//
@@ -501,7 +493,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 		case KEY_ENTER:
 		case KEY_UP:
 			m_ctext->up();
-			m_ctext->render();
+			m_ctext->redraw();
 			return STA_NONE;
 		case KEY_DOWN:
 		case KEY_PPAGE:
