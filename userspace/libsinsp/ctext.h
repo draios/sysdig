@@ -267,6 +267,46 @@ class ctext
 		int16_t page_down(int16_t page_count = 1);
 
 		//
+		// The jump_to_first_line and jump_to_last_line
+		// can conveniently be mapped to home/end keys
+		// and do what they say under the following
+		// condition:
+		//
+		// 	If the bounding_box is set to true, 
+		// 	then the "first" and "last" line corresponds 
+		// 	to an entire screen full of data.
+		//
+		// 	If the bounding box is set to false, then
+		// 	the screen will be empty except for 1 line
+		// 	corresponding to the first or last line.
+		//
+		// 	That is to say that with a bounding box off,
+		// 	you'd see something like
+		//
+		//	+			+
+		//	 
+		//	
+		//	 xxxxx
+		//	+			+
+		//
+		//	when we are doing jump_to_first_line.
+		//
+		//	With a bounding_box on you'd see
+		//
+		//	+			+
+		//	 xxxxx
+		//	 xx
+		//	 xxx
+		//	+			+
+		//
+		// The return code is how many vertical lines
+		// were scrolled in order to accomplish the 
+		// action.
+		//
+		int16_t jump_to_first_line();
+		int16_t jump_to_last_line();
+
+		//
 		// printf is identical to printf(3) and can be called
 		// from the function at the end of this file, cprintf,
 		// with an instance variable.  It places text into the
@@ -314,17 +354,17 @@ class ctext
 		int8_t ob_end();
 
 	private:
-    void next_line(int16_t*line);
+		void next_line(int16_t*line);
 		bool m_do_draw;
 		void add_row();
 		void add_format_if_needed();
 		int8_t rebuf();
 		int8_t direct_scroll(int16_t x, int16_t y);
 
-    bool cattr_on(attr_t attrs);
-    bool cattr_off();
-	  attr_t m_attrs; 
-    bool m_attrs_set;
+		bool cattr_on(attr_t attrs);
+		bool cattr_off();
+		attr_t m_attrs; 
+		bool m_attrs_set;
 
 		WINDOW *m_win;
 		ctext_config m_config;

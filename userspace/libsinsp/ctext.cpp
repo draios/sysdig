@@ -17,8 +17,12 @@ const ctext_config config_default = {
 ctext::ctext(WINDOW *win, ctext_config *config)
 {
 	this->m_win = win;
+
+	/*
 	this->m_debug = new ofstream();
 	this->m_debug->open("debug.txt");
+	*/
+
 	this->m_do_draw = true;
 	this->m_attrs_set = false;
 	
@@ -182,6 +186,27 @@ int16_t ctext::down(int16_t amount)
 	return this->scroll_to(this->m_pos_x, this->m_pos_y + amount);
 }
 
+int16_t ctext::jump_to_first_line()
+{
+	int16_t current_line = this->m_pos_y;
+
+	// now we try to scroll above the first
+	// line.	the bounding box rule will
+	// take care of the differences for us.
+	this->scroll_to(this->m_pos_x, 0 - this->m_win_height + 1);
+
+	return current_line - this->m_pos_y;
+}
+
+int16_t ctext::jump_to_last_line()
+{
+	int16_t current_line = this->m_pos_y;
+
+	this->get_win_size();
+	this->scroll_to(this->m_pos_x, this->m_max_y - 1);
+	return current_line - this->m_pos_y;
+}
+
 int16_t ctext::page_down(int16_t page_count) 
 {
 	this->get_win_size();
@@ -240,7 +265,7 @@ int8_t ctext::rebuf()
 		}
 	}
  
-	this->m_max_y = this->m_buffer.size();
+	this->m_max_y = this->m_buffer.size() - 1;
 	
 	//
 	// Since we've changed the bounding box of the content we have to
@@ -298,7 +323,7 @@ void ctext::add_format_if_needed()
 		}
 		p_row->format.push_back(new_format);
 	}
-  wstandend(this->m_win);
+	wstandend(this->m_win);
 }
 
 void ctext::add_row()
@@ -318,7 +343,7 @@ void ctext::add_row()
 
 			// set the offset to the initial.
 			p_format.offset = 0;
-//			row.format.push_back(p_format);
+			// row.format.push_back(p_format);
 		}
 	}
 
@@ -352,9 +377,6 @@ int8_t ctext::vprintf(const char*format, va_list ap)
 	{
 		string wstr(p_line, p_line + strlen(p_line));
 		p_row->data += wstr;
-
-		//*this->m_debug << p_row->data.c_str() << endl;
-
 	}
 	// this case is a single new line.
 	else
@@ -483,8 +505,6 @@ int8_t ctext::redraw()
 		return 0;
 	}
 
-	//*this->m_debug << "Start ---" << endl;
-
 	if(!this->m_win)
 	{
 		// Not doing anything without a window.
@@ -550,9 +570,10 @@ int8_t ctext::redraw()
 		index = this->m_pos_y + this->m_win_height - 1;
 	}
 
-	//*this->m_debug << "Start ---" << endl;
 	while(line <= this->m_win_height)
 	{
+		wredrawln(this->m_win, line, 1);
+		
 		if((index < this->m_max_y) && (index >= 0))
 		{
 			// We only index into the object if we have the
@@ -579,7 +600,6 @@ int8_t ctext::redraw()
 				if(!p_source->format.empty() && p_format->offset <= buf_offset)
 				{
 					// then we add it 
-					//*this->m_debug << "on" << p_format->color_pair <<  " ";
 					//mvwchgat
 					wattr_set(this->m_win, p_format->attrs, p_format->color_pair,0);//p_format->color_pair), 0);
 					//this->cattr_on(p_format->color_pair);//p_format->color_pair), 0);
@@ -590,7 +610,7 @@ int8_t ctext::redraw()
 					// see if there's another cutoff point
 					if(p_format != p_source->format.end())
 					{
-						// if it's before our newline then we'll have to do something
+						// If it's before our newline then we'll have to do something
 						// with with that.
 						//
 						// The first one is the characters we are to print this time,
@@ -612,9 +632,8 @@ int8_t ctext::redraw()
 				{
 					to_add = "";
 				}
-				//*this->m_debug << to_add << "||" << p_source->data << endl;
 
-				// this is the number of characters we've placed into
+				// This is the number of characters we've placed into
 				// the window.
 				num_added = to_add.size();
 				buf_offset += num_added;
@@ -625,7 +644,6 @@ int8_t ctext::redraw()
 					// If the amount of data we tried to grab is less than
 					// the width of the window - win_offset then we know to
 					// turn off our attributes
-					//*this->m_debug << "off" << p_format->color_pair << endl;
 
 					// and push our format forward if necessary
 					if( p_format != p_source->format.end() &&
