@@ -20,11 +20,10 @@ ctext::ctext(WINDOW *win, ctext_config *config)
 
 	/*
 	this->m_debug = new ofstream();
-	this->m_debug->open("debug.txt");
+	this->m_debug->open("debug1.txt");
 	*/
 
 	this->m_do_draw = true;
-	this->m_attrs_set = false;
 	
 	if(config) 
 	{
@@ -314,6 +313,7 @@ void ctext::add_format_if_needed()
 			.color_pair = color_pair
 		};
 
+		//*this->m_debug << "fmt:" << row_ix  << " " << new_format.offset << " " << new_format.color_pair << " " << new_format.attrs << "OV" << endl;
 		// if the new thing we are adding has the same
 		// offset as the previous, then we dump the
 		// previous.
@@ -323,7 +323,6 @@ void ctext::add_format_if_needed()
 		}
 		p_row->format.push_back(new_format);
 	}
-	wstandend(this->m_win);
 }
 
 void ctext::add_row()
@@ -342,6 +341,7 @@ void ctext::add_row()
 			ctext_format p_format( p_row.format.back() );
 
 			// set the offset to the initial.
+			//*this->m_debug << "fmt:" << row_ix  << " " << p_format.offset << " " << p_format.color_pair << " " << p_format.attrs << "|" << endl;
 			p_format.offset = 0;
 			row.format.push_back(p_format);
 		}
@@ -363,7 +363,6 @@ int8_t ctext::vprintf(const char*format, va_list ap)
 	this->add_format_if_needed();
 	ctext_row *p_row = &this->m_buffer.back();
 
-	memset(large_buffer, 0, CTEXT_BUFFER_SIZE);
 	vsnprintf(large_buffer, CTEXT_BUFFER_SIZE, format, ap);
 
 	if(this->m_config.m_auto_newline && strlen(large_buffer) < (CTEXT_BUFFER_SIZE - 1))
@@ -468,30 +467,7 @@ int8_t ctext::nprintf(const char*format, ...)
 
 void ctext::next_line(int16_t*line)
 {
-	//wredrawln(win, max(*line - 1, 0), *line + 1);
-	//this->cattr_off();
 	(*line)++;
-}
-
-bool ctext::cattr_off()
-{
-	if(this->m_attrs_set)
-	{
-		wattr_off(this->m_win, COLOR_PAIR(this->m_attrs), 0);
-		this->m_attrs_set = false;
-	}
-	return true;
-}
-
-bool ctext::cattr_on(attr_t attrs) 
-{
-	this->cattr_off();
-
-	wattr_on(this->m_win, COLOR_PAIR(attrs), 0);
-	this->m_attrs = attrs;
-	this->m_attrs_set = true;
-
-	return true;
 }
 
 int8_t ctext::redraw() 

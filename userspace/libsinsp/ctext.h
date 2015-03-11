@@ -361,11 +361,6 @@ class ctext
 		int8_t rebuf();
 		int8_t direct_scroll(int16_t x, int16_t y);
 
-		bool cattr_on(attr_t attrs);
-		bool cattr_off();
-		attr_t m_attrs; 
-		bool m_attrs_set;
-
 		WINDOW *m_win;
 		ctext_config m_config;
 		ctext_buffer m_buffer;
