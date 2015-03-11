@@ -695,22 +695,35 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		rcu_read_lock();
 		
+#ifdef for_each_process_thread
 		for_each_process_thread(p, t) {
-			if (nentries < pli->max_entries) {
-				pi.pid = t->pid;
-				pi.utime = t->utime;
-				pi.stime = t->stime;
+#else
+		for_each_process(p) {
+			t = p;
+			do {
+				task_lock(p);
+#endif
+				if (nentries < pli->max_entries) {
+					pi.pid = t->pid;
+					pi.utime = t->utime;
+					pi.stime = t->stime;
 
-				if (copy_to_user((void*)&pli->entries[nentries], &pi, sizeof(struct ppm_proc_info))) {
-					rcu_read_unlock();
-					ret = -EINVAL;
-					goto cleanup_ioctl;
+					if (copy_to_user((void*)&pli->entries[nentries], &pi, sizeof(struct ppm_proc_info))) {
+						rcu_read_unlock();
+						ret = -EINVAL;
+						goto cleanup_ioctl;
+					}
 				}
-			}
 
-			nentries++;
+				nentries++;
+#ifdef for_each_process_thread
 		}
-		
+#else
+				task_unlock(p);
+			} while_each_thread(p, t);
+		}
+#endif
+
 		rcu_read_unlock();
 
 		if (copy_to_user((void*)&pli->n_entries, &nentries, sizeof(pli->n_entries))) {
