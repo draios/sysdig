@@ -1,5 +1,4 @@
-//#ifdef SYSTOP
-#ifndef NOCURSESUI
+#ifndef _WIN32
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -383,5 +382,4 @@ int cprintf(ctext*win, const char *format, ...);
 
 #endif
 
-#endif // NOCURSESUI
-//#endif // SYSTOP
+#endif // _WIN32
