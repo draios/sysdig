@@ -451,6 +451,7 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 		// Create the info string
 		//
 		string info_str = "------ " + to_string(evt->get_num());
+//		string info_str = "------ ";
 		string dirstr;
 		string cnstr;
 		if(eflags & EF_READS_FROM_FD)
@@ -480,9 +481,10 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 		//
 		// Print the whole thing
 		//
-		m_ctext->printf("%s\n%s",
-			info_str.c_str(),
-			argstr);
+		m_ctext->printf("%s", info_str.c_str());
+		m_ctext->printf("\n");
+		m_ctext->printf("\n");
+		m_ctext->printf("%s", argstr);
 	}
 
 	m_ctext->printf("\n");
