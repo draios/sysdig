@@ -1455,7 +1455,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 
 			ASSERT(m_inspector != NULL);
-			if(m_inspector->m_max_evt_output_len != 0 && blen > m_inspector->m_max_evt_output_len)
+			if(m_inspector->m_max_evt_output_len != 0 && 
+				blen > m_inspector->m_max_evt_output_len &&
+				fmt == PF_NORMAL)
 			{
 				uint32_t real_len = MIN(blen, m_inspector->m_max_evt_output_len);
 
