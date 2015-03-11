@@ -350,6 +350,8 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 	// Initial screen refresh
 	//
 	render();
+
+	m_inspector->set_buffer_format(sinsp_evt::PF_JSONHEXASCII);
 }
 
 curses_textbox::~curses_textbox()
@@ -500,11 +502,11 @@ void curses_textbox::render_header()
 		addch(' ');
 	}
 
-	int16_t ox, oy;
-	int16_t sx, sy;
+	int32_t ox, oy;
+	int32_t sx, sy;
 	char prstr[128];
 
-	m_ctext->get_offset(&ox, &oy); 
+	m_ctext->get_offset(&ox, &oy);
 	m_ctext->get_size(&sx, &sy);
 	float pct;
 	m_ctext->get_offset_percent(&pct);
@@ -537,6 +539,14 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			return STA_NONE;
 		case KEY_DOWN:
 			m_ctext->down();
+			render();
+			return STA_NONE;
+		case KEY_LEFT:
+			m_ctext->left();
+			render();
+			return STA_NONE;
+		case KEY_RIGHT:
+			m_ctext->right();
 			render();
 			return STA_NONE;
 		case KEY_PPAGE:

@@ -1,4 +1,5 @@
-#ifdef SYSTOP
+//#ifdef SYSTOP
+#ifndef NOCURSESUI
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -382,4 +383,5 @@ int cprintf(ctext*win, const char *format, ...);
 
 #endif
 
-#endif // SYSTOP
+#endif // NOCURSESUI
+//#endif // SYSTOP

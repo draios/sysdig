@@ -4,7 +4,8 @@
 
 using namespace std;
 
-#ifdef SYSTOP
+//#ifdef SYSTOP
+#ifndef NOCURSESUI
 
 const ctext_config config_default = {
 	.m_buffer_size = CTEXT_DEFAULT_BUFFER_SIZE,
@@ -676,4 +677,5 @@ int8_t ctext::redraw()
 	return 0;
 }
 
-#endif // SYSTOP
+#endif // NOCURSESUI
+//#endif // SYSTOP
