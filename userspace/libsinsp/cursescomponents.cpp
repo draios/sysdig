@@ -496,8 +496,17 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			m_ctext->redraw();
 			return STA_NONE;
 		case KEY_DOWN:
+			m_ctext->down();
+			m_ctext->redraw();
+			return STA_NONE;
 		case KEY_PPAGE:
+			m_ctext->page_up();
+			m_ctext->redraw();
+			return STA_NONE;
 		case KEY_NPAGE:
+			m_ctext->page_down();
+			m_ctext->redraw();
+			return STA_NONE;
 		case KEY_MOUSE:
 			return STA_NONE;
 		default:
