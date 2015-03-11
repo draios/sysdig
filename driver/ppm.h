@@ -34,7 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define RW_SNAPLEN 80
 #define RW_SNAPLEN_EVENT 4096
 #define RW_MAX_SNAPLEN (256 * 1024 * 1024)
-#define DPI_LOOKAHED_SIZE 5
+#define DPI_LOOKAHED_SIZE 16
 #define MAX_CONSUMERS 5
 
 /*
@@ -113,5 +113,3 @@ extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 
 #define PPM_PORT_MYSQL 3306
 #define PPM_PORT_POSTGRES 5432
-#define PPM_START_PORT_MONGODB 27000
-#define PPM_END_PORT_MONGODB 27018
