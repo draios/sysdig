@@ -261,8 +261,8 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 								return 2000;
 							}
 						}
-					} else if (( lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) ||
-							   (lookahead_size >= 16 && ( *(int32_t*)(buf+12) == 1 ||
+					} else if (( lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
+							   (lookahead_size >= 16 && ( *(int32_t*)(buf+12) == 1 || /* matches header */
 									   *(int32_t*)(buf+12) == 2001 ||
 									   *(int32_t*)(buf+12) == 2002 ||
 									   *(int32_t*)(buf+12) == 2003 ||
