@@ -73,9 +73,9 @@ int32_t ctext::putchar(int32_t c)
 	return this->printf("%c", c);
 }
 
-int16_t ctext::clear(int16_t amount)
+int32_t ctext::clear(int32_t amount)
 {
-	int16_t ret = 0;
+	int32_t ret = 0;
 	if(amount == 0) 
 	{
 		ret = this->m_buffer.size();
@@ -124,12 +124,12 @@ int8_t ctext::ob_end()
 	return ret;
 }
 
-int8_t ctext::direct_scroll(int16_t x, int16_t y)
+int8_t ctext::direct_scroll(int32_t x, int32_t y)
 {
 	if(this->m_config.m_bounding_box) 
 	{
-		x = min(x, (int16_t)(this->m_max_x - this->m_win_width));
-		y = min(y, (int16_t)(this->m_max_y - this->m_win_height));
+		x = min(x, (int32_t)(this->m_max_x - this->m_win_width));
+		y = min(y, (int32_t)(this->m_max_y - this->m_win_height));
 		x = max(0, (int32_t)x);
 		y = max(0, (int32_t)y);
 	}
@@ -145,13 +145,13 @@ int8_t ctext::direct_scroll(int16_t x, int16_t y)
 	return 0;
 }
 
-int8_t ctext::scroll_to(int16_t x, int16_t y)
+int8_t ctext::scroll_to(int32_t x, int32_t y)
 {
 	this->direct_scroll(x, y);
 	return this->redraw();
 }
 
-int8_t ctext::get_offset(int16_t*x, int16_t*y)
+int8_t ctext::get_offset(int32_t*x, int32_t*y)
 {
 	*x = this->m_pos_x;
 	*y = this->m_pos_y;
@@ -167,7 +167,7 @@ int8_t ctext::get_offset_percent(float*percent)
 	return 0;
 }
 
-int8_t ctext::get_size(int16_t*x, int16_t*y)
+int8_t ctext::get_size(int32_t*x, int32_t*y)
 {
 	*x = this->m_max_x;
 	*y = this->m_max_y;
@@ -175,19 +175,19 @@ int8_t ctext::get_size(int16_t*x, int16_t*y)
 	return 0;
 }
 
-int16_t ctext::up(int16_t amount) 
+int32_t ctext::up(int32_t amount) 
 {
 	return this->down(-amount);
 }
 
-int16_t ctext::down(int16_t amount) 
+int32_t ctext::down(int32_t amount) 
 {
 	return this->scroll_to(this->m_pos_x, this->m_pos_y + amount);
 }
 
-int16_t ctext::jump_to_first_line()
+int32_t ctext::jump_to_first_line()
 {
-	int16_t current_line = this->m_pos_y;
+	int32_t current_line = this->m_pos_y;
 
 	// now we try to scroll above the first
 	// line.	the bounding box rule will
@@ -197,33 +197,33 @@ int16_t ctext::jump_to_first_line()
 	return current_line - this->m_pos_y;
 }
 
-int16_t ctext::jump_to_last_line()
+int32_t ctext::jump_to_last_line()
 {
-	int16_t current_line = this->m_pos_y;
+	int32_t current_line = this->m_pos_y;
 
 	this->get_win_size();
 	this->scroll_to(this->m_pos_x, this->m_max_y - 1);
 	return current_line - this->m_pos_y;
 }
 
-int16_t ctext::page_down(int16_t page_count) 
+int32_t ctext::page_down(int32_t page_count) 
 {
 	this->get_win_size();
 	return this->down(page_count * this->m_win_height);
 }
 
-int16_t ctext::page_up(int16_t page_count) 
+int32_t ctext::page_up(int32_t page_count) 
 {
 	this->get_win_size();
 	return this->down(-page_count * this->m_win_height);
 }
 
-int16_t ctext::left(int16_t amount) 
+int32_t ctext::left(int32_t amount) 
 {
 	return this->right(-amount);
 }
 
-int16_t ctext::right(int16_t amount) 
+int32_t ctext::right(int32_t amount) 
 {
 	return this->scroll_to(this->m_pos_x + amount, this->m_pos_y);
 }
@@ -244,7 +244,7 @@ int8_t ctext::rebuf()
 {
 	this->get_win_size();
 
-	if((int16_t)this->m_buffer.size() > this->m_config.m_buffer_size)
+	if((int32_t)this->m_buffer.size() > this->m_config.m_buffer_size)
 	{
 		this->m_buffer.erase(this->m_buffer.begin(), this->m_buffer.end() - this->m_config.m_buffer_size);
 	}
@@ -465,7 +465,7 @@ int8_t ctext::nprintf(const char*format, ...)
 	return ret;
 }
 
-void ctext::next_line(int16_t*line)
+void ctext::next_line(int32_t*line)
 {
 	(*line)++;
 }
@@ -512,8 +512,8 @@ int8_t ctext::redraw()
 	// Regardless of whether this is append to top
 	// or bottom we generate top to bottom.
 
-	int16_t start_char = max(0, (int32_t)this->m_pos_x);
-	int16_t buf_offset = start_char;
+	int32_t start_char = max(0, (int32_t)this->m_pos_x);
+	int32_t buf_offset = start_char;
 	// the endchar will be in the substr
 	
 	//
@@ -525,14 +525,14 @@ int8_t ctext::redraw()
 	// This is the current line of output, which stays
 	// below m_win_height
 	//
-	int16_t line = 0;
+	int32_t line = 0;
 
 	// start at the beginning of the buffer.
-	int16_t index = this->m_pos_y;
-	int16_t directionality = +1;
-	int16_t cutoff;
-	int16_t num_added = 0;
-	int16_t win_offset = 0;
+	int32_t index = this->m_pos_y;
+	int32_t directionality = +1;
+	int32_t cutoff;
+	int32_t num_added = 0;
+	int32_t win_offset = 0;
 	bool b_format = false;
 	string to_add;
 	ctext_row *p_source;
@@ -598,7 +598,7 @@ int8_t ctext::redraw()
 
 				// if we can get that many characters than we grab them
 				// otherwise we do the empty string
-				if(buf_offset < (int16_t)p_source->data.size())
+				if(buf_offset < (int32_t)p_source->data.size())
 				{
 					to_add = p_source->data.substr(buf_offset, cutoff);
 
@@ -631,7 +631,7 @@ int8_t ctext::redraw()
 				}
 
 				// if we are at the end of the string, we break out
-				if((int16_t)p_source->data.size() <= buf_offset || (num_added == 0 && p_source->data.size() > 0))
+				if((int32_t)p_source->data.size() <= buf_offset || (num_added == 0 && p_source->data.size() > 0))
 				{
 					break;
 				}

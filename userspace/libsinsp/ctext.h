@@ -26,7 +26,7 @@ struct ctext_config_struct
 	// This specifies how many lines are kept
 	// in the ring-buffer.	
 	//
-	int16_t m_buffer_size;
+	int32_t m_buffer_size;
 #define CTEXT_DEFAULT_BUFFER_SIZE 100
 
 	//
@@ -136,7 +136,7 @@ typedef struct ctext_format_struct
 {
 	int32_t offset;
 	attr_t attrs;
-	short color_pair;
+	int16_t color_pair;
 } ctext_format;
 
 typedef struct ctext_row_struct
@@ -198,7 +198,7 @@ class ctext
 		// The return code is how many rows were cleared from the 
 		// buffer.
 		//
-		int16_t clear(int16_t amount = 0);
+		int32_t clear(int32_t amount = 0);
 
 		// 
 		// Scroll_to when appending to the bottom in the traditional
@@ -211,7 +211,7 @@ class ctext
 		//
 		// Returns 0 on success
 		//
-		int8_t scroll_to(int16_t x, int16_t y);
+		int8_t scroll_to(int32_t x, int32_t y);
 
 		//
 		// get_offset returns the current coordinates of the view port.
@@ -220,7 +220,7 @@ class ctext
 		// 
 		// Returns 0 on success
 		//
-		int8_t get_offset(int16_t*x, int16_t*y); 
+		int8_t get_offset(int32_t*x, int32_t*y); 
 
 		//
 		// get_offset_percent is a courtesy function returning
@@ -241,7 +241,7 @@ class ctext
 		//
 		// Returns 0 on success
 		//
-		int8_t get_size(int16_t*x, int16_t*y);
+		int8_t get_size(int32_t*x, int32_t*y);
 
 		//
 		// Each of the directional functions,
@@ -252,10 +252,10 @@ class ctext
 		// The return code is how far the movement
 		// happened.
 		//
-		int16_t up(int16_t amount = 1);
-		int16_t down(int16_t amount = 1);
-		int16_t left(int16_t amount = 1);
-		int16_t right(int16_t amount = 1);
+		int32_t up(int32_t amount = 1);
+		int32_t down(int32_t amount = 1);
+		int32_t left(int32_t amount = 1);
+		int32_t right(int32_t amount = 1);
 
 		// 
 		// Identical to the above functions but this
@@ -263,8 +263,8 @@ class ctext
 		// is to say, the height of the current curses
 		// window.)
 		//
-		int16_t page_up(int16_t page_count = 1);
-		int16_t page_down(int16_t page_count = 1);
+		int32_t page_up(int32_t page_count = 1);
+		int32_t page_down(int32_t page_count = 1);
 
 		//
 		// The jump_to_first_line and jump_to_last_line
@@ -303,8 +303,8 @@ class ctext
 		// were scrolled in order to accomplish the 
 		// action.
 		//
-		int16_t jump_to_first_line();
-		int16_t jump_to_last_line();
+		int32_t jump_to_first_line();
+		int32_t jump_to_last_line();
 
 		//
 		// printf is identical to printf(3) and can be called
@@ -354,26 +354,26 @@ class ctext
 		int8_t ob_end();
 
 	private:
-		void next_line(int16_t*line);
+		void next_line(int32_t*line);
 		bool m_do_draw;
 		void add_row();
 		void add_format_if_needed();
 		int8_t rebuf();
-		int8_t direct_scroll(int16_t x, int16_t y);
+		int8_t direct_scroll(int32_t x, int32_t y);
 
 		WINDOW *m_win;
 		ctext_config m_config;
 		ctext_buffer m_buffer;
 
-		int16_t m_pos_x;
-		int16_t m_pos_y;
+		int32_t m_pos_x;
+		int32_t m_pos_y;
 
-		int16_t m_max_x;
-		int16_t m_max_y;
+		int32_t m_max_x;
+		int32_t m_max_y;
 
 		void get_win_size();
-		int16_t m_win_width;
-		int16_t m_win_height;
+		int32_t m_win_width;
+		int32_t m_win_height;
 		ofstream *m_debug;
 };
 
