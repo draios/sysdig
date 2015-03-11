@@ -566,7 +566,17 @@ void sinsp_cursesui::render_spy_main_menu()
 	k += 6;
 
 	attrset(m_colors[PROCESS]);
-	fks = "Esc";
+	fks = "Ins";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Wrap Text";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 32);
+	k += fks.size();
+
+	attrset(m_colors[PROCESS]);
+	fks = "Del";
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
 	k += fks.size();
 
@@ -575,37 +585,6 @@ void sinsp_cursesui::render_spy_main_menu()
 	fks.resize(6, ' ');
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
 	k += 6;
-
-	k++;
-	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-	if(m_is_filter_sysdig)
-	{
-		fks = "Expression: ";
-	}
-	else
-	{
-		fks = "Text: ";
-	}
-	mvaddnstr(m_screenh - 1, k, fks.c_str(), 20);
-	k += fks.size();
-
-	uint32_t cursor_pos = k;
-
-	if(m_cursor_pos == 0)
-	{
-		for(; k < m_screenw; k++)
-		{
-			addch(' ');
-		}
-
-		m_cursor_pos = cursor_pos;
-
-		mvprintw(m_screenh - 1, m_cursor_pos, m_manual_filter.c_str());
-
-		m_cursor_pos += m_manual_filter.size();
-	}
-
-	move(m_screenh - 1, m_cursor_pos);
 }
 
 void sinsp_cursesui::render_main_menu()

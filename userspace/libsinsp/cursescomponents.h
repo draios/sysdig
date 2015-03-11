@@ -99,9 +99,10 @@ class curses_textbox
 public:
 	curses_textbox(sinsp* inspector, sinsp_cursesui* parent);
 	~curses_textbox();
-	//void render();
+	void render();
 	void set_filter(string filter);
 	void process_event(sinsp_evt* evt, int32_t next_res);
+	void render_header();
 	sysdig_table_action handle_input(int ch);
 
 	WINDOW *m_win;

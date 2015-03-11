@@ -308,7 +308,6 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-
 curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 {
 	ASSERT(inspector != NULL);
@@ -331,13 +330,26 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 
 	config.m_buffer_size = 5000;
 	config.m_scroll_on_append = true;
-  config.m_bounding_box = true;
+	config.m_bounding_box = true;
 	config.m_do_wrap = true;
 	
 	//
 	// set the config back
 	//
 	m_ctext->set_config(&config);
+
+	//
+	// If we're offline, disable screen refresh until we've parsed the file
+	//
+	if(!m_inspector->is_live())
+	{
+		m_ctext->ob_start();
+	}
+
+	//
+	// Initial screen refresh
+	//
+	render();
 }
 
 curses_textbox::~curses_textbox()
@@ -365,6 +377,9 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	{
 		ASSERT(!m_inspector->is_live());
 		m_parent->m_eof = 2;
+		m_ctext->jump_to_first_line();
+		m_ctext->ob_end();
+		render();
 		return;
 	}
 
@@ -427,18 +442,12 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	const char* argstr;
 	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
 	//uint32_t len = evt->m_rawbuf_str_len;
-/*
-if((int)strlen(argstr) > len + 32)
-{
-	g_logger.format("^%d, %d %d", (int)evt->get_num(), (int)len, strlen(argstr));
-}
-*/
+
 	if(argstr != NULL)
 	{
 		//
 		// Create the info string
 		//
-//		string info_str = "------ ";
 		string info_str = "------ " + to_string(evt->get_num());
 		string dirstr;
 		string cnstr;
@@ -476,9 +485,40 @@ if((int)strlen(argstr) > len + 32)
 
 	m_ctext->printf("\n");
 	m_ctext->printf("\n");
-//	m_ctext->render();
 
 	n_prints++;
+}
+
+void curses_textbox::render_header()
+{
+	move(2, 0);
+
+	attrset(m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+
+	for(uint32_t j = 0; j < m_parent->m_screenw; j++)
+	{
+		addch(' ');
+	}
+
+	int16_t ox, oy;
+	int16_t sx, sy;
+	char prstr[128];
+
+	m_ctext->get_offset(&ox, &oy); 
+	m_ctext->get_size(&sx, &sy);
+	float pct;
+	m_ctext->get_offset_percent(&pct);
+
+	sprintf(prstr, "%d/%d (%.2f%%)", (int)oy, (int)sy, pct * 100);
+	mvaddstr(2, 0, prstr);
+
+	refresh();
+}
+
+void curses_textbox::render()
+{
+	m_ctext->redraw();
+	render_header();
 }
 
 //
@@ -493,22 +533,24 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 		case KEY_ENTER:
 		case KEY_UP:
 			m_ctext->up();
-			m_ctext->redraw();
+			render();
 			return STA_NONE;
 		case KEY_DOWN:
 			m_ctext->down();
-			m_ctext->redraw();
+			render();
 			return STA_NONE;
 		case KEY_PPAGE:
 			m_ctext->page_up();
-			m_ctext->redraw();
+			render();
 			return STA_NONE;
 		case KEY_NPAGE:
 			m_ctext->page_down();
-			m_ctext->redraw();
+			render();
 			return STA_NONE;
 		case KEY_MOUSE:
 			return STA_NONE;
+		case 'p':
+			return STA_NONE;	
 		default:
 			break;
 	}
