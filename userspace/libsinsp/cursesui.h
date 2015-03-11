@@ -308,11 +308,13 @@ public:
 		//
 		// Perform event processing
 		//
+#ifndef NOCURSESUI
 		if(m_spy_box)
 		{
 			m_spy_box->process_event(evt, next_res);
 		}
 		else
+#endif
 		{
 			//
 			// Check if it's time to flush
@@ -392,6 +394,7 @@ private:
 	void print_progress(double progress);
 
 	curses_table_sidemenu* m_sidemenu;
+	curses_textbox* m_spy_box;
 #endif
 
 	sinsp* m_inspector;
@@ -408,5 +411,4 @@ private:
 	bool m_is_filter_sysdig;
 	bool m_offline_replay;
 	uint64_t m_last_progress_evt;
-	curses_textbox* m_spy_box;
 };

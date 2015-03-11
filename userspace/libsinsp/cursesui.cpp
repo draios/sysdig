@@ -113,9 +113,9 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_eof = 0;
 	m_offline_replay = false;
 	m_last_progress_evt = 0;
-	m_spy_box = NULL;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
+	m_spy_box = NULL;
 
 	//
 	// Colors initialization
@@ -261,13 +261,13 @@ void sinsp_cursesui::start(bool is_drilldown)
 		delete m_viz;
 		m_viz = NULL;
 	}
-#endif
 
 	if(m_spy_box)
 	{
 		delete m_spy_box;
 		m_spy_box = NULL;
 	}
+#endif
 
 	//
 	// Update the filter based on what's selected
@@ -296,6 +296,7 @@ void sinsp_cursesui::start(bool is_drilldown)
 
 		m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
 	}
+#ifndef NOCURSESUI
 	else
 	{
 		//
@@ -308,7 +309,6 @@ void sinsp_cursesui::start(bool is_drilldown)
 	//
 	// If we need a table visualization, allocate it and set it up
 	//
-#ifndef NOCURSESUI
 	if(m_selected_view != 0xffffffff)
 	{
 		m_viz = new curses_table(this, m_inspector);

@@ -1,3 +1,4 @@
+#ifdef SYSTOP
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -380,3 +381,5 @@ class ctext
 int cprintf(ctext*win, const char *format, ...);
 
 #endif
+
+#endif // SYSTOP
