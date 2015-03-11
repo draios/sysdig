@@ -339,11 +339,11 @@ void ctext::add_row()
 
 		if(!p_row.format.empty()) 
 		{
-			ctext_format p_format( *p_row.format.end() );
+			ctext_format p_format( p_row.format.back() );
 
 			// set the offset to the initial.
 			p_format.offset = 0;
-			// row.format.push_back(p_format);
+			row.format.push_back(p_format);
 		}
 	}
 
@@ -601,14 +601,14 @@ int8_t ctext::redraw()
 				{
 					// then we add it 
 					//mvwchgat
-					wattr_set(this->m_win, p_format->attrs, p_format->color_pair,0);//p_format->color_pair), 0);
+					wattr_set(this->m_win, p_format->attrs, p_format->color_pair, 0);//p_format->color_pair), 0);
 					//this->cattr_on(p_format->color_pair);//p_format->color_pair), 0);
 
 					// and tell ourselves below that we've done this.
 					b_format = true;
 
 					// see if there's another cutoff point
-					if(p_format != p_source->format.end())
+					if((p_format + 1) != p_source->format.end())
 					{
 						// If it's before our newline then we'll have to do something
 						// with with that.
@@ -646,7 +646,7 @@ int8_t ctext::redraw()
 					// turn off our attributes
 
 					// and push our format forward if necessary
-					if( p_format != p_source->format.end() &&
+					if( (p_format + 1) != p_source->format.end() &&
 							(p_format + 1)->offset >= buf_offset 
 						)
 					{
