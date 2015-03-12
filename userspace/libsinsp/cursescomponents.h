@@ -19,14 +19,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class sidemenu_list_entry
 {
 public:
-	sidemenu_list_entry(string viewname, uint32_t viewid)
+	sidemenu_list_entry(string name, uint32_t id)
 	{
-		m_viewname = viewname;
-		m_viewid = viewid;
+		m_name = name;
+		m_id = id;
 	}
 
-	string m_viewname;
-	uint32_t m_viewid;
+	string m_name;
+	uint32_t m_id;
 };
 
 #ifdef SYSTOP
@@ -86,12 +86,22 @@ class curses_table_sidemenu : public curses_scrollable_list
 public:
 	curses_table_sidemenu(sinsp_cursesui* parent);
 	~curses_table_sidemenu();
+	void set_entries(vector<sidemenu_list_entry>* entries)
+	{
+		m_entries = entries;
+	}
+	void set_title(string title)
+	{
+		m_title = title;
+	}
 	void render();
 	sysdig_table_action handle_input(int ch);
 
 	WINDOW* m_win;
 	int32_t m_y_start;
 	sinsp_cursesui* m_parent;
+	vector<sidemenu_list_entry>* m_entries;
+	string m_title;
 };
 
 class curses_textbox
@@ -101,17 +111,22 @@ public:
 	~curses_textbox();
 	void render();
 	void set_filter(string filter);
+	void print_no_data();
 	void process_event(sinsp_evt* evt, int32_t next_res);
 	void render_header();
 	sysdig_table_action handle_input(int ch);
+	void populate_sidemenu();
+	void reset();
 
 	WINDOW *m_win;
 	ctext* m_ctext;
-	sinsp_filter_check_reference* m_printer;
 	sinsp_cursesui* m_parent;
 	sinsp* m_inspector;
 	sinsp_filter* m_filter;
 	uint32_t n_prints;
+	bool m_paused;
+	curses_table_sidemenu* m_sidemenu;
+	vector<sidemenu_list_entry> m_entries;
 };
 
 #endif

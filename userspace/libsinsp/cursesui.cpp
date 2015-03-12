@@ -232,7 +232,7 @@ void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
 	m_views = *views;
 }
 
-void sinsp_cursesui::start(bool is_drilldown)
+void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 {
 	//
 	// Input validation
@@ -533,10 +533,10 @@ void sinsp_cursesui::render_spy_main_menu()
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
 	k += fks.size();
 	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-	fks = "Save";
-	fks.resize(6, ' ');
-	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
-	k += 6;
+	fks = "View As";
+	fks.resize(7, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 7);
+	k += 7;
 
 	attrset(m_colors[PROCESS]);
 	fks = "P ";
@@ -616,7 +616,7 @@ void sinsp_cursesui::render()
 	render_main_menu();
 
 	//
-	// If requires, draw the side menu
+	// If required, draw the side menu
 	//
 	if(m_sidemenu)
 	{
@@ -654,6 +654,11 @@ void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>
 		}
 
 		j++;
+	}
+
+	if(m_sidemenu)
+	{
+		m_sidemenu->set_entries(viewlist);
 	}
 }
 #endif // NOCURSESUI
@@ -719,10 +724,10 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	}
 }
 
-void sinsp_cursesui::restart_capture()
+void sinsp_cursesui::restart_capture(bool is_spy_switch)
 {
 	m_inspector->close();
-	start(true);
+	start(true, is_spy_switch);
 	m_inspector->open(m_event_source_name);
 }
 
@@ -747,9 +752,10 @@ void sinsp_cursesui::create_complete_filter()
 	}
 }
 
-void sinsp_cursesui::switch_view()
+void sinsp_cursesui::switch_view(bool is_spy_switch)
 {
 	string field;
+
 	if(m_sel_hierarchy.m_hierarchy.size() > 0)
 	{
 		sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
@@ -761,6 +767,18 @@ void sinsp_cursesui::switch_view()
 	// Clear the screen to make sure all the crap is removed
 	//
 	clear();
+
+	//
+	// If we're currently visualizing the spy box, reset it and return immediately
+	//
+	if(is_spy_switch)
+	{
+		if(m_spy_box)
+		{
+			m_spy_box->reset();
+			return;
+		}
+	}
 #endif
 
 	//
@@ -772,17 +790,17 @@ void sinsp_cursesui::switch_view()
 	{
 		m_eof = false;
 		m_last_progress_evt = 0;
-		restart_capture();
+		restart_capture(is_spy_switch);
 	}
 	else
 	{
 		try
 		{
-			start(true);
+			start(true, is_spy_switch);
 		}
 		catch(...)
 		{
-			restart_capture();
+			restart_capture(is_spy_switch);
 		}
 	}
 
@@ -823,17 +841,17 @@ void sinsp_cursesui::spy_selection(string field, string val)
 	{
 		m_eof = false;
 		m_last_progress_evt = 0;
-		restart_capture();
+		restart_capture(false);
 	}
 	else
 	{
 		try
 		{
-			start(true);
+			start(true, false);
 		}
 		catch(...)
 		{
-			restart_capture();
+			restart_capture(false);
 		}
 	}
 
@@ -874,17 +892,17 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				{
 					m_eof = false;
 					m_last_progress_evt = 0;
-					restart_capture();
+					restart_capture(false);
 				}
 				else
 				{
 					try
 					{
-						start(true);
+						start(true, false);
 					}
 					catch(...)
 					{
-						restart_capture();
+						restart_capture(false);
 					}
 				}
 
@@ -935,17 +953,17 @@ bool sinsp_cursesui::drillup()
 		{
 			m_eof = false;
 			m_last_progress_evt = 0;
-			restart_capture();
+			restart_capture(false);
 		}
 		else
 		{
 			try
 			{
-				start(true);
+				start(true, false);
 			}
 			catch(...)
 			{
-				restart_capture();
+				restart_capture(false);
 			}
 		}
 #ifndef NOCURSESUI
@@ -1153,6 +1171,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			{
 				m_viz->set_x_start(SIDEMENU_WIDTH);
 				m_sidemenu = new curses_table_sidemenu(this);
+				m_sidemenu->set_entries(&m_sidemenu_viewlist);
+				m_sidemenu->set_title("Select View");
 			}
 			else
 			{

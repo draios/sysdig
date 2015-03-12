@@ -48,7 +48,7 @@ using namespace std;
 #include "cursesui.h"
 
 ///////////////////////////////////////////////////////////////////////////////
-// curses_table_sidemenu implementation
+// curses_scrollable_list implementation
 ///////////////////////////////////////////////////////////////////////////////
 curses_scrollable_list::curses_scrollable_list()
 {
@@ -150,11 +150,12 @@ curses_table_sidemenu::curses_table_sidemenu(sinsp_cursesui* parent)
 {
 	ASSERT(parent != NULL);
 	m_parent = parent;
-	m_h = parent->m_viz->m_h - 1;
+	m_h = m_parent->m_screenh - TABLE_Y_START - 1;
 	m_w = SIDEMENU_WIDTH;
 	m_y_start = TABLE_Y_START;
 	m_win = newwin(m_h, m_w, m_y_start, 0);
 	m_selct = m_parent->m_selected_sidemenu_entry;
+	m_entries = NULL;
 }
 
 curses_table_sidemenu::~curses_table_sidemenu()
@@ -165,6 +166,8 @@ curses_table_sidemenu::~curses_table_sidemenu()
 void curses_table_sidemenu::render()
 {
 	int32_t j, k;
+
+	ASSERT(m_entries != NULL);
 
 	//
 	// Render window header
@@ -181,13 +184,14 @@ void curses_table_sidemenu::render()
 	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 	waddch(m_win, ' ');
 
+	ASSERT(m_title != "");
 	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
-	mvwaddnstr(m_win, 0, 0, "Select View", m_w);
+	mvwaddnstr(m_win, 0, 0, m_title.c_str(), m_w);
 
 	//
 	// Render the rows
 	//
-	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_parent->m_sidemenu_viewlist.size()); j++)
+	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_entries->size()); j++)
 	{
 		if(j == m_selct)
 		{
@@ -206,7 +210,7 @@ void curses_table_sidemenu::render()
 		}
 
 		// add the new line
-		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_parent->m_sidemenu_viewlist[j].m_viewname.c_str(), m_w);
+		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries->at(j).m_name.c_str(), m_w);
 
 		// white space at the right
 		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
@@ -227,24 +231,24 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
-			ASSERT(m_selct < (int32_t)m_parent->m_sidemenu_viewlist.size());
-			m_parent->m_selected_view = m_parent->m_sidemenu_viewlist[m_selct].m_viewid;
+			ASSERT(m_selct < (int32_t)m_entries->size());
+			m_parent->m_selected_view = m_entries->at(m_selct).m_id;
 			m_parent->m_selected_sidemenu_entry = m_selct;
 			return STA_SWITCH_VIEW;
 		case KEY_UP:
-			selection_up((int32_t)m_parent->m_sidemenu_viewlist.size());
+			selection_up((int32_t)m_entries->size());
 			render();
 			return STA_NONE;
 		case KEY_DOWN:
-			selection_down((int32_t)m_parent->m_sidemenu_viewlist.size());
+			selection_down((int32_t)m_entries->size());
 			render();
 			return STA_NONE;
 		case KEY_PPAGE:
-			selection_pageup((int32_t)m_parent->m_sidemenu_viewlist.size());
+			selection_pageup((int32_t)m_entries->size());
 			render();
 			return STA_NONE;
 		case KEY_NPAGE:
-			selection_pagedown((int32_t)m_parent->m_sidemenu_viewlist.size());
+			selection_pagedown((int32_t)m_entries->size());
 			render();
 			return STA_NONE;
 		case KEY_MOUSE:
@@ -255,28 +259,28 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 				{
 					if(event.bstate & BUTTON1_CLICKED)
 					{
-						if((uint32_t)event.y > m_parent->m_viz->m_table_y_start &&
-							(uint32_t)event.y < m_parent->m_viz->m_table_y_start + m_h - 1)
+						if((uint32_t)event.y > TABLE_Y_START &&
+							(uint32_t)event.y < TABLE_Y_START + m_h - 1)
 						{
 							//
 							// This is a click one of the menu entries. Update the selection.
 							//
-							m_selct = m_firstrow + (event.y - m_parent->m_viz->m_table_y_start - 1);
-							sanitize_selection((int32_t)m_parent->m_sidemenu_viewlist.size());
+							m_selct = m_firstrow + (event.y - TABLE_Y_START - 1);
+							sanitize_selection((int32_t)m_entries->size());
 							render();
 						}
 					}
 					else if(event.bstate & BUTTON1_DOUBLE_CLICKED)
 					{
-						if((uint32_t)event.y > m_parent->m_viz->m_table_y_start &&
-							(uint32_t)event.y < m_parent->m_viz->m_table_y_start + m_h - 1)
+						if((uint32_t)event.y > TABLE_Y_START &&
+							(uint32_t)event.y < TABLE_Y_START + m_h - 1)
 						{
 							//
 							// This is a double click one of the menu entries. 
 							// Update the selection.
 							//
-							m_selct = m_firstrow + (event.y - m_parent->m_viz->m_table_y_start - 1);
-							sanitize_selection((int32_t)m_parent->m_sidemenu_viewlist.size());
+							m_selct = m_firstrow + (event.y - TABLE_Y_START - 1);
+							sanitize_selection((int32_t)m_entries->size());
 							render();
 
 							//
@@ -288,8 +292,8 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							//
 							// Notify the parent that a selection has happened
 							//
-							ASSERT(m_selct < (int32_t)m_parent->m_sidemenu_viewlist.size());
-							m_parent->m_selected_view = m_parent->m_sidemenu_viewlist[m_selct].m_viewid;
+							ASSERT(m_selct < (int32_t)m_entries->size());
+							m_parent->m_selected_view = m_entries->at(m_selct).m_id;
 							m_parent->m_selected_sidemenu_entry = m_selct;
 							return STA_SWITCH_VIEW;
 						}
@@ -317,13 +321,14 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 	m_win = NULL;
 	m_ctext = NULL;
 	m_filter = NULL;
-	m_printer = new sinsp_filter_check_reference();
 	m_inspector = inspector;
 	n_prints = 0;
+	m_paused = false;
+	m_sidemenu = NULL;
 
 	ctext_config config;
 
-	m_win = newwin(m_parent->m_screenh - 4, m_parent->m_screenw, 3, 0);
+	m_win = newwin(m_parent->m_screenh - 4, m_parent->m_screenw, TABLE_Y_START + 1, 0);
 	m_ctext = new ctext(m_win);
 
 	m_ctext->get_config(&config);
@@ -356,8 +361,12 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 
 curses_textbox::~curses_textbox()
 {
+	if(m_sidemenu)
+	{
+		delete m_sidemenu;
+	}
+
 	delwin(m_win);
-	delete m_printer;
 	delete m_ctext;
 	if(m_filter != NULL)
 	{
@@ -368,6 +377,18 @@ curses_textbox::~curses_textbox()
 void curses_textbox::set_filter(string filter)
 {
 	m_filter = new sinsp_filter(m_inspector, filter);
+}
+
+void curses_textbox::print_no_data()
+{
+	attrset(m_parent->m_colors[sinsp_cursesui::PROCESS]);
+
+	string wstr = "No Data For This Selection";
+	mvprintw(m_parent->m_screenh / 2,
+		m_parent->m_screenw / 2 - wstr.size() / 2, 
+		wstr.c_str());	
+
+	refresh();
 }
 
 void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
@@ -382,6 +403,20 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 		m_ctext->jump_to_first_line();
 		m_ctext->ob_end();
 		render();
+
+		if(n_prints == 0)
+		{
+			print_no_data();
+		}
+
+		return;
+	}
+
+	//
+	// If the user pressed 'p', skip the event
+	//
+	if(m_paused)
+	{
 		return;
 	}
 
@@ -450,8 +485,8 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 		//
 		// Create the info string
 		//
-		string info_str = "------ " + to_string(evt->get_num());
-//		string info_str = "------ ";
+//		string info_str = "------ " + to_string(evt->get_num());
+		string info_str = "------ ";
 		string dirstr;
 		string cnstr;
 		if(eflags & EF_READS_FROM_FD)
@@ -493,6 +528,18 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	n_prints++;
 }
 
+void curses_textbox::populate_sidemenu()
+{
+	ASSERT(m_sidemenu != NULL);
+	m_entries.clear();
+	m_entries.push_back(sidemenu_list_entry("normal", 0));
+	m_entries.push_back(sidemenu_list_entry("binary", 0));
+	m_entries.push_back(sidemenu_list_entry("json", 0));
+
+	m_sidemenu->set_entries(&m_entries);
+	m_sidemenu->set_title("Select Output Type");
+}
+
 void curses_textbox::render_header()
 {
 	move(2, 0);
@@ -513,7 +560,15 @@ void curses_textbox::render_header()
 	float pct;
 	m_ctext->get_offset_percent(&pct);
 
-	sprintf(prstr, "%d/%d (%.2f%%)", (int)oy, (int)sy, pct * 100);
+	if(pct != 0)
+	{
+		sprintf(prstr, "%d/%d (%.2f%%)", (int)oy, (int)sy, pct * 100);
+	}
+	else
+	{
+		sprintf(prstr, "%d/%d (0%%)", (int)oy, (int)sy);
+	}
+
 	mvaddstr(2, 0, prstr);
 
 	refresh();
@@ -523,6 +578,23 @@ void curses_textbox::render()
 {
 	m_ctext->redraw();
 	render_header();
+
+	if(m_paused)
+	{
+		string wstr = "PAUSED";
+		attrset(m_parent->m_colors[sinsp_cursesui::LARGE_NUMBER]);
+		mvprintw(0,
+			m_parent->m_screenw / 2 - wstr.size() / 2, 
+			wstr.c_str());	
+	}
+
+	//
+	// If required, draw the side menu
+	//
+	if(m_sidemenu)
+	{
+		m_sidemenu->render();
+	}
 }
 
 //
@@ -530,6 +602,19 @@ void curses_textbox::render()
 //
 sysdig_table_action curses_textbox::handle_input(int ch)
 {
+	if(m_sidemenu)
+	{
+		sysdig_table_action ta = m_sidemenu->handle_input(ch);
+		if(ta == STA_SWITCH_VIEW)
+		{
+			return STA_SWITCH_SPY;
+		}
+		else if(ta != STA_PARENT_HANDLE)
+		{
+			return STA_NONE;
+		}
+	}
+
 	switch(ch)
 	{
 		case '\n':
@@ -559,10 +644,59 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			m_ctext->page_down();
 			render();
 			return STA_NONE;
-		case KEY_MOUSE:
+		case KEY_HOME:
+			m_ctext->jump_to_first_line();
+			render();
+			return STA_NONE;
+		case KEY_END:
+			m_ctext->jump_to_last_line();
+			render();
+			return STA_NONE;
+		case 'c':
+		case KEY_DC:
+			m_ctext->clear();
+			render();
 			return STA_NONE;
 		case 'p':
+			if(m_inspector->is_live())
+			{
+				m_paused = !m_paused;
+			}
+			m_parent->render();
+			render();
 			return STA_NONE;	
+		case KEY_F(2):
+			if(m_parent->m_screenw < 20)
+			{
+				return STA_NONE;				
+			}
+
+			if(m_sidemenu == NULL)
+			{
+				m_sidemenu = new curses_table_sidemenu(this->m_parent);
+				populate_sidemenu();
+				clear();
+				wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw - 20);
+				mvwin(m_win, TABLE_Y_START + 1, 20);
+				wrefresh(m_win);
+				m_parent->render();
+				render();
+				m_ctext->redraw();
+			}
+			else
+			{
+				delete m_sidemenu;
+				m_sidemenu = NULL;				
+
+				wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw);
+				mvwin(m_win, TABLE_Y_START + 1, 0);
+				wrefresh(m_win);
+				m_parent->render();
+				render();
+				m_ctext->redraw();
+			}
+
+			return STA_NONE;		
 		default:
 			break;
 	}
@@ -570,4 +704,21 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 	return STA_PARENT_HANDLE;
 }
 
+void curses_textbox::reset()
+{
+	if(m_sidemenu != NULL)
+	{
+		delete m_sidemenu;
+		m_sidemenu = NULL;				
+
+		wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw);
+		mvwin(m_win, TABLE_Y_START + 1, 0);
+		wrefresh(m_win);
+		m_parent->render();
+		render();
+		m_ctext->redraw();		
+	}
+
+	m_ctext->clear();
+}
 #endif // SYSTOP

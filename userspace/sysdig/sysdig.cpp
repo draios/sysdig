@@ -1675,7 +1675,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"proc.pname contains sh"));
 
 			ui.configure(&views);
-			ui.start(false);
+			ui.start(false, false);
 
 			//
 			// Launch the capture

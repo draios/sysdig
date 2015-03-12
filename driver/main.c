@@ -691,7 +691,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			goto cleanup_ioctl;
 		}
 
-		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli->max_entries);
+//		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli->max_entries);
 
 		rcu_read_lock();
 		

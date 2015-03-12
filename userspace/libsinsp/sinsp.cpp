@@ -602,6 +602,13 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	// The number of bytes to consider in the dumper
 	int32_t bytes_to_write;
 
+/*
+while(1)
+{
+	scap_get_threadlist_from_driver(m_h);
+}
+*/
+
 	//
 	// Check if there are fake cpu events to  events 
 	//

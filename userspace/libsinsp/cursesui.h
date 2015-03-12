@@ -185,7 +185,7 @@ public:
 		string cmdline_capture_filter);
 	~sinsp_cursesui();
 	void configure(vector<sinsp_table_info>* views);
-	void start(bool is_drilldown);
+	void start(bool is_drilldown, bool is_spy_switch);
 	sinsp_table_info* get_selected_view();
 	void pause();
 	bool is_searching()
@@ -196,6 +196,7 @@ public:
 	{
 		return m_eof != 0;
 	}
+	void render();
 
 	//
 	// Return true if the application is supposed to exit
@@ -259,7 +260,10 @@ public:
 				case STA_QUIT:
 					return true;
 				case STA_SWITCH_VIEW:
-					switch_view();
+					switch_view(false);
+					break;
+				case STA_SWITCH_SPY:
+					switch_view(true);
 					break;
 				case STA_DRILLDOWN:
 					{
@@ -364,7 +368,6 @@ public:
 	uint32_t m_selected_view;
 	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
-	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	curses_table* m_viz;
 	uint32_t m_screenw;
 	uint32_t m_screenh;
@@ -372,15 +375,14 @@ public:
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
-	void restart_capture();
-	void switch_view();
+	void restart_capture(bool is_spy_switch);
+	void switch_view(bool is_spy_switch);
 	void spy_selection(string field, string val);
 	// returns false if there is no suitable drill down view for this field
 	bool drilldown(string field, string val);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void create_complete_filter();
-	void render();
 
 #ifndef NOCURSESUI
 	void render_header();
@@ -411,4 +413,5 @@ private:
 	bool m_is_filter_sysdig;
 	bool m_offline_replay;
 	uint64_t m_last_progress_evt;
+	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 };

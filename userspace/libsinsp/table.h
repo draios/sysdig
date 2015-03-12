@@ -27,6 +27,7 @@ typedef enum sysdig_table_action
 	STA_PARENT_HANDLE,
 	STA_QUIT,
 	STA_SWITCH_VIEW,
+	STA_SWITCH_SPY,
 	STA_DRILLDOWN,
 	STA_DRILLUP,
 	STA_SPY,
