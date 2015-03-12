@@ -181,6 +181,9 @@ Capture all the events from the live system and save them to disk
 Read events from a file and print them to screen
 > $ sysdig -r dumpfile.scap
 
+Prepare a sanitized version of a system capture
+> $ sysdig -r dumpfile.scap 'not evt.buffer contains foo' -w cleandump.scap
+
 Print all the open system calls invoked by cat
 > $ sysdig proc.name=cat and evt.type=open
 
