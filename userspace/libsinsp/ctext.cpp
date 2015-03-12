@@ -175,6 +175,11 @@ int8_t ctext::get_size(int32_t*x, int32_t*y)
 	return 0;
 }
 
+int32_t ctext::available_rows()
+{
+	return this->m_config.m_buffer_size - this->m_max_y - 1;
+}
+
 int32_t ctext::up(int32_t amount) 
 {
 	return this->down(-amount);

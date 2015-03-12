@@ -28,7 +28,7 @@ struct ctext_config_struct
 	// in the ring-buffer.	
 	//
 	int32_t m_buffer_size;
-#define CTEXT_DEFAULT_BUFFER_SIZE 100
+#define CTEXT_DEFAULT_BUFFER_SIZE 500
 
 	//
 	// The bounding box bool specifies whether
@@ -243,6 +243,23 @@ class ctext
 		// Returns 0 on success
 		//
 		int8_t get_size(int32_t*x, int32_t*y);
+
+		//
+		// available_rows communicates how many rows
+		// are left given the buffer size specified
+		// in the config with respect to the amount
+		// of content placed in the buffer.
+		//
+		// If that sounds overly complex, I assure
+		// you this function does pretty much exactly
+		// what you'd expect ... it tells you how
+		// much space you have left in the buffer
+		// before its full and starts dropping 
+		// content.
+		//
+		// Returns number of aviailable rows
+		//
+		int32_t available_rows();
 
 		//
 		// Each of the directional functions,
