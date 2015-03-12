@@ -111,6 +111,8 @@ public:
 	vector<sinsp_ui_selection_info> m_hierarchy;
 };
 
+extern sinsp_logger g_logger;
+
 class sinsp_cursesui
 {
 public:
@@ -264,7 +266,7 @@ public:
 					break;
 				case STA_SWITCH_SPY:
 					switch_view(true);
-					break;
+					return false;
 				case STA_DRILLDOWN:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);

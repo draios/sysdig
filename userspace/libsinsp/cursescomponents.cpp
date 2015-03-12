@@ -719,6 +719,14 @@ void curses_textbox::reset()
 		m_ctext->redraw();		
 	}
 
+	//
+	// If we're offline, disable screen refresh until we've parsed the file
+	//
+	if(!m_inspector->is_live())
+	{
+		m_ctext->ob_start();
+	}
+	
 	m_ctext->clear();
 }
 #endif // SYSTOP

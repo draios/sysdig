@@ -262,7 +262,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		m_viz = NULL;
 	}
 
-	if(m_spy_box)
+	if(m_spy_box && !is_spy_switch)
 	{
 		delete m_spy_box;
 		m_spy_box = NULL;
@@ -776,7 +776,6 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 		if(m_spy_box)
 		{
 			m_spy_box->reset();
-			return;
 		}
 	}
 #endif
@@ -788,9 +787,9 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	//
 	if(!m_inspector->is_live())
 	{
-		m_eof = false;
+		m_eof = 0;
 		m_last_progress_evt = 0;
-		restart_capture(is_spy_switch);
+		restart_capture(true);
 	}
 	else
 	{
@@ -839,7 +838,7 @@ void sinsp_cursesui::spy_selection(string field, string val)
 
 	if(!m_inspector->is_live())
 	{
-		m_eof = false;
+		m_eof = 0;
 		m_last_progress_evt = 0;
 		restart_capture(false);
 	}
@@ -890,7 +889,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 
 				if(!m_inspector->is_live())
 				{
-					m_eof = false;
+					m_eof = 0;
 					m_last_progress_evt = 0;
 					restart_capture(false);
 				}
@@ -951,7 +950,7 @@ bool sinsp_cursesui::drillup()
 
 		if(!m_inspector->is_live())
 		{
-			m_eof = false;
+			m_eof = 0;
 			m_last_progress_evt = 0;
 			restart_capture(false);
 		}
