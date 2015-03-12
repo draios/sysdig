@@ -82,15 +82,13 @@ int32_t ctext::clear(int32_t amount)
 	{
 		ret = this->m_buffer.size();
 		this->m_buffer.clear();
+		this->add_row();
 	}
-	else
+	else if(this->m_buffer.size()) 
 	{
-		if(this->m_buffer.size()) 
-		{
-			ret = this->m_buffer.size();
-			this->m_buffer.erase(this->m_buffer.begin(), this->m_buffer.begin() + amount);
-			ret -= this->m_buffer.size();
-		}
+		ret = this->m_buffer.size();
+		this->m_buffer.erase(this->m_buffer.begin(), this->m_buffer.begin() + amount);
+		ret -= this->m_buffer.size();
 	}
 
 	if (this->m_config.m_on_event)
