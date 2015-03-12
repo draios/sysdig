@@ -394,14 +394,14 @@ typedef struct scap_userlist
 /*!
   \brief The OS on which the capture was made
 */
-typedef enum scap_os_patform
+typedef enum scap_os_platform
 {
 	SCAP_PFORM_UNKNOWN = 0,
 	SCAP_PFORM_LINUX_I386 = 1,
 	SCAP_PFORM_LINUX_X64 = 2,
 	SCAP_PFORM_WINDOWS_I386 = 3,
 	SCAP_PFORM_WINDOWS_X64 = 4,
-}scap_os_patform;
+}scap_os_platform;
 
 /*!
   \brief Indicates if an event is an enter one or an exit one
@@ -499,7 +499,7 @@ void scap_close(scap_t* handle);
     For offline handles, the return value indicates the OS where the data was 
 	originally captured.
 */
-scap_os_patform scap_get_os_platform(scap_t* handle);
+scap_os_platform scap_get_os_platform(scap_t* handle);
 
 /*!
   \brief Return a string with the last error that happened on the given capture.
