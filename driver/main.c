@@ -1710,7 +1710,7 @@ void sysdig_exit(void)
 
 module_init(sysdig_init);
 module_exit(sysdig_exit);
-module_param(max_consumers, uint, 0);
+module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
-module_param(verbose, bool, 0);
+module_param(verbose, bool, 0444);
 MODULE_PARM_DESC(verbose, "Enable verbose logging");
