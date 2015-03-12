@@ -35,7 +35,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define RW_SNAPLEN_EVENT 4096
 #define RW_MAX_SNAPLEN (256 * 1024 * 1024)
 #define DPI_LOOKAHED_SIZE 16
-#define MAX_CONSUMERS 5
 
 /*
  * Global enums

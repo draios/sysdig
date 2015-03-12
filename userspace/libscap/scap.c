@@ -159,7 +159,7 @@ scap_t* scap_open_live_int(char *error,
 		{
 			if(errno == EBUSY)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "device %s is already open. You can't run multiple instances of sysdig.", filename);
+				snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Check the 'max_consumers' parameter in the sysdig-probe driver.", filename);
 			}
 			else
 			{

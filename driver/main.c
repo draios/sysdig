@@ -148,6 +148,8 @@ static bool verbose = 1;
 static bool verbose = 0;
 #endif
 
+static unsigned int max_consumers = 5;
+
 #define vpr_info(fmt, ...)					\
 do {								\
 	if (verbose)						\
@@ -253,7 +255,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		}
 		rcu_read_unlock();
 
-		if (num_consumers >= MAX_CONSUMERS) {
+		if (num_consumers >= max_consumers) {
 			pr_err("maximum number of consumers reached\n");
 			ret = -EBUSY;
 			goto cleanup_open;
@@ -1708,4 +1710,7 @@ void sysdig_exit(void)
 
 module_init(sysdig_init);
 module_exit(sysdig_exit);
+module_param(max_consumers, uint, 0);
+MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
 module_param(verbose, bool, 0);
+MODULE_PARM_DESC(verbose, "Enable verbose logging");
