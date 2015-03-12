@@ -418,7 +418,7 @@ void scap_close(scap_t* handle)
 	free(handle);
 }
 
-scap_os_patform scap_get_os_platform(scap_t* handle)
+scap_os_platform scap_get_os_platform(scap_t* handle)
 {
 #if defined(_M_IX86) || defined(__i386__)
 #ifdef linux
