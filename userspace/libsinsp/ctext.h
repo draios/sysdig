@@ -12,13 +12,6 @@
 
 using namespace std;
 
-typedef enum ctext_event_enum {
-	CTEXT_SCROLL,
-	CTEXT_CLEAR,
-	CTEXT_DATA,
-	CTEXT_CONFIG
-} ctext_event;
-
 class ctext;
 
 struct ctext_config_struct
@@ -113,22 +106,6 @@ struct ctext_config_struct
 	//
 	bool m_auto_newline;
 #define CTEXT_DEFAULT_AUTO_NEWLINE false
-
-	//
-	// The following function pointer, if defined
-	// is executed when an event happens as defined
-	// in the ctext_event enum above.
-	//
-	// If the pointer is not set, then no callback
-	// is called.
-	//
-	// No meta-data travels with the event other than
-	// the callers context and the nature of the event.
-	//
-	// The context can be queried based on the event
-	//
-	int8_t (*m_on_event)(ctext *context, ctext_event event);
-#define CTEXT_DEFAULT_ON_EVENT 0
 };
 
 typedef struct ctext_config_struct ctext_config;
@@ -233,16 +210,12 @@ class ctext
 		int8_t get_offset_percent(float*percent);
 
 		// 
-		// get_size returns the outer text bounds length (x) and height
-		// (y) of the current buffer.
-		//
-		// More technically speaking, this means the longest row of 
-		// content in the buffer for x and the number of rows of content
-		// for y.
+		// get_buf_size returns the number of rows of content
+		// for y in the current buffer.
 		//
 		// Returns 0 on success
 		//
-		int8_t get_size(int32_t*x, int32_t*y);
+		int8_t get_buf_size(int32_t*buf_size);
 
 		//
 		// available_rows communicates how many rows
@@ -372,7 +345,6 @@ class ctext
 		int8_t ob_end();
 
 	private:
-		void next_line(int32_t*line);
 		bool m_do_draw;
 		void add_row();
 		void add_format_if_needed();
@@ -386,7 +358,6 @@ class ctext
 		int32_t m_pos_x;
 		int32_t m_pos_y;
 
-		int32_t m_max_x;
 		int32_t m_max_y;
 
 		void get_win_size();

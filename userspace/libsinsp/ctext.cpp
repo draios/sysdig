@@ -13,7 +13,6 @@ const ctext_config config_default = {
 	.m_append_top = CTEXT_DEFAULT_APPEND_TOP,
 	.m_scroll_on_append = CTEXT_DEFAULT_SCROLL_ON_APPEND,
 	.m_auto_newline = CTEXT_DEFAULT_AUTO_NEWLINE,
-	.m_on_event = CTEXT_DEFAULT_ON_EVENT
 };
 
 ctext::ctext(WINDOW *win, ctext_config *config)
@@ -39,7 +38,6 @@ ctext::ctext(WINDOW *win, ctext_config *config)
 	this->m_pos_x = 0;
 	this->m_pos_y = 0;
 
-	this->m_max_x = 0;
 	this->m_max_y = 0;
 
 	// initialized the buffer with the empty row
@@ -49,12 +47,6 @@ ctext::ctext(WINDOW *win, ctext_config *config)
 int8_t ctext::set_config(ctext_config *config)
 {
 	memcpy(&this->m_config, config, sizeof(ctext_config));
-
-	if (this->m_config.m_on_event)
-	{
-		this->m_config.m_on_event(this, CTEXT_CONFIG);
-	}
-
 	return this->redraw();
 }
 
@@ -91,11 +83,6 @@ int32_t ctext::clear(int32_t amount)
 		ret -= this->m_buffer.size();
 	}
 
-	if (this->m_config.m_on_event)
-	{
-		this->m_config.m_on_event(this, CTEXT_CLEAR);
-	}
-
 	// We do the same logic when removing content
 	// .. perhaps forcing things down or upward
 	if(this->m_config.m_scroll_on_append)
@@ -128,7 +115,6 @@ int8_t ctext::direct_scroll(int32_t x, int32_t y)
 {
 	if(this->m_config.m_bounding_box) 
 	{
-		x = min(x, (int32_t)(this->m_max_x - this->m_win_width));
 		y = min(y, (int32_t)(this->m_max_y - this->m_win_height));
 		x = max(0, (int32_t)x);
 		y = max(0, (int32_t)y);
@@ -136,11 +122,6 @@ int8_t ctext::direct_scroll(int32_t x, int32_t y)
 
 	this->m_pos_x = x;
 	this->m_pos_y = y;
-
-	if (this->m_config.m_on_event)
-	{
-		this->m_config.m_on_event(this, CTEXT_SCROLL);
-	}
 
 	return 0;
 }
@@ -167,10 +148,9 @@ int8_t ctext::get_offset_percent(float*percent)
 	return 0;
 }
 
-int8_t ctext::get_size(int32_t*x, int32_t*y)
+int8_t ctext::get_buf_size(int32_t*buf_size)
 {
-	*x = this->m_max_x;
-	*y = this->m_max_y;
+	*buf_size = this->m_max_y;
 
 	return 0;
 }
@@ -247,28 +227,12 @@ void ctext::get_win_size()
 
 int8_t ctext::rebuf()
 {
-	this->get_win_size();
-
-	if((int32_t)this->m_buffer.size() > this->m_config.m_buffer_size)
+	// memory management is expensive, so we only
+	if((int32_t)this->m_buffer.size() > (this->m_config.m_buffer_size * 11 / 10))
 	{
 		this->m_buffer.erase(this->m_buffer.begin(), this->m_buffer.end() - this->m_config.m_buffer_size);
 	}
 	
-	this->m_max_x = 0;	
-
-	//
-	// Now unfortunately we have to do a scan over everything in N time to find
-	// the maximum length string --- but only if we care about the bounding
-	// box
-	//
-	if(this->m_config.m_bounding_box)
-	{
-		for(ctext_buffer::const_iterator it = this->m_buffer.begin(); it != this->m_buffer.end(); it++) 
-		{
-			this->m_max_x = max((int)this->m_max_x, (int)(*it).data.size());
-		}
-	}
- 
 	this->m_max_y = this->m_buffer.size() - 1;
 	
 	//
@@ -388,10 +352,6 @@ int8_t ctext::vprintf(const char*format, va_list ap)
 		this->add_row();
 	}
 
-	if (this->m_config.m_on_event)
-	{
-		this->m_config.m_on_event(this, CTEXT_DATA);
-	}
 	
 	// Since we are adding content we need to see if we are
 	// to force on scroll.
@@ -453,7 +413,6 @@ int8_t ctext::nprintf(const char*format, ...)
 	this->ob_start();
 
 	// then call the variadic version
-
 	va_start(args, format);
 	ret = this->vprintf(format, args);
 
@@ -468,11 +427,6 @@ int8_t ctext::nprintf(const char*format, ...)
 	this->m_do_draw = true;
 
 	return ret;
-}
-
-void ctext::next_line(int32_t*line)
-{
-	(*line)++;
 }
 
 int8_t ctext::redraw() 
@@ -659,7 +613,7 @@ int8_t ctext::redraw()
 					}
 
 					// otherwise move our line forward
-					this->next_line(&line);
+					line++;
 
 					// we reset the win_offset back to its
 					// initial state
@@ -670,7 +624,7 @@ int8_t ctext::redraw()
 			}
 		}
 		index += directionality;
-		this->next_line(&line);
+		line++;
 	}
 
 	wrefresh(this->m_win);

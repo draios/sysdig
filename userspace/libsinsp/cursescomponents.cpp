@@ -552,11 +552,11 @@ void curses_textbox::render_header()
 	}
 
 	int32_t ox, oy;
-	int32_t sx, sy;
+	int32_t sy;
 	char prstr[128];
 
 	m_ctext->get_offset(&ox, &oy);
-	m_ctext->get_size(&sx, &sy);
+	m_ctext->get_buf_size(&sy);
 	float pct;
 	m_ctext->get_offset_percent(&pct);
 
