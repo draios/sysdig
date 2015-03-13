@@ -46,6 +46,11 @@ fi
 echo "* Unloading sysdig-probe, if present"
 rmmod sysdig-probe
 
+if lsmod | grep sysdig_probe > /dev/null 2>&1; then
+	echo "* sysdig-probe seems to still be loaded, hoping the best"
+	exit 0
+fi
+
 echo "* Running dkms autoinstall"
 dkms autoinstall --kernelver $KERNEL_RELEASE
 
