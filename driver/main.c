@@ -1237,12 +1237,20 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 		if (event_datap->category == PPMC_SIGNAL) {
 			args.signo = event_datap->event_info.signal_data.sig;
-			if (event_datap->event_info.signal_data.info->si_signo == __SI_KILL) {
+
+			if (args.signo == SIGKILL) {
 				args.spid = event_datap->event_info.signal_data.info->_sifields._kill._pid;
-			} else if (event_datap->event_info.signal_data.info->si_signo == __SI_RT) {
-				args.spid = event_datap->event_info.signal_data.info->_sifields._rt._pid;
-			} else if (event_datap->event_info.signal_data.info->si_signo == __SI_CHLD) {
+			} else if (args.signo == SIGTERM || args.signo == SIGHUP || args.signo == SIGINT ||
+					args.signo == SIGTSTP || args.signo == SIGQUIT) {
+				if (event_datap->event_info.signal_data.info->si_code == SI_USER ||
+						event_datap->event_info.signal_data.info->si_code == SI_QUEUE ||
+						event_datap->event_info.signal_data.info->si_code <= 0) {
+					args.spid = event_datap->event_info.signal_data.info->si_pid;
+				}
+			} else if (args.signo == SIGCHLD) {
 				args.spid = event_datap->event_info.signal_data.info->_sifields._sigchld._pid;
+			} else if (args.signo >= SIGRTMIN && args.signo <= SIGRTMAX) {
+				args.spid = event_datap->event_info.signal_data.info->_sifields._rt._pid;
 			} else {
 				args.spid = (__kernel_pid_t) 0;
 			}
