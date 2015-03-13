@@ -901,23 +901,21 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 	uint32_t j;
 	uint32_t size = (uint32_t)m_checks.size();
 	bool res = true;
-	bool chkres;
 
 	for(j = 0; j < size; j++)
 	{
 		sinsp_filter_check* chk = m_checks[j];
 		ASSERT(chk != NULL);
 
-		chkres = chk->compare(evt);
 		if(j == 0)
 		{
 			switch(chk->m_boolop)
 			{
 			case BO_NONE:
-				res = chkres;
+				res = chk->compare(evt);
 				break;
 			case BO_NOT:
-				res = !chkres;
+				res = !chk->compare(evt);
 				break;
 			default:
 				ASSERT(false);
@@ -929,16 +927,16 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 			switch(chk->m_boolop)
 			{
 			case BO_OR:
-				res = res || chkres;
+				res = res || chk->compare(evt);
 				break;
 			case BO_AND:
-				res = res && chkres;
+				res = res && chk->compare(evt);
 				break;
 			case BO_ORNOT:
-				res = res || !chkres;
+				res = res || !chk->compare(evt);
 				break;
 			case BO_ANDNOT:
-				res = res && !chkres;
+				res = res && !chk->compare(evt);
 				break;
 			default:
 				ASSERT(false);
