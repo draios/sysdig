@@ -75,17 +75,11 @@ private:
 	char next();
 	bool compare_no_consume(const string& str);
 
-	vector<char> next_operand(bool expecting_first_operand);
+	vector<char> next_operand(bool expecting_first_operand, bool in_clause);
 	ppm_cmp_operator next_comparison_operator();
 	void parse_check(sinsp_filter_expression* parent_expr, boolop op);
 	void push_expression(boolop op);
 	void pop_expression();
-
-	//
-	// Check to see if the filter has 1 or more 'in' clause(s)
-	// return modified filter to "or" clauses, else return the original filter string
-	//
-	string parse_in_clause(const string& fltstr);
 
 	void compile(const string& fltstr);
 

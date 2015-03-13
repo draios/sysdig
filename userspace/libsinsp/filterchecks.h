@@ -148,6 +148,7 @@ public:
 	~sinsp_filter_check_list();
 	void add_filter_check(sinsp_filter_check* filter_check);
 	void get_all_fields(vector<const filter_check_info*>* list);
+	sinsp_filter_check* new_filter_check_from_another(sinsp_filter_check *chk);
 	sinsp_filter_check* new_filter_check_from_fldname(const string& name, sinsp* inspector, bool do_exact_check);
 
 private:
