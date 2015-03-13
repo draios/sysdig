@@ -346,7 +346,7 @@ class ctext
 
 	private:
 		bool m_do_draw;
-		void add_row();
+		ctext_row* add_row();
 		void add_format_if_needed();
 		int8_t rebuf();
 		int8_t direct_scroll(int32_t x, int32_t y);

@@ -294,7 +294,7 @@ void ctext::add_format_if_needed()
 	}
 }
 
-void ctext::add_row()
+ctext_row* ctext::add_row()
 {
 	ctext_row row;
 
@@ -319,14 +319,22 @@ void ctext::add_row()
 	row.data = "";
 
 	this->m_buffer.push_back(row);
+
+	return &this->m_buffer.back();
+}
+
+char* next_type(char* search, const char delim) 
+{
+	while(*search && *search != delim)
+	{
+ 		search ++;
+	}
+	return search;
 }
 
 int8_t ctext::vprintf(const char*format, va_list ap)
 {
-	// strtok is bullshit and this is needed.
-	bool should_newline = false;
-	int8_t ret;
-	char *p_line;
+	char *p_line, *n_line;
 	char large_buffer[CTEXT_BUFFER_SIZE] = {0};
 
 	this->add_format_if_needed();
@@ -338,19 +346,22 @@ int8_t ctext::vprintf(const char*format, va_list ap)
 	{
 		sprintf(large_buffer + strlen(large_buffer), "\n");
 	}
-	should_newline = (large_buffer[strlen(large_buffer) - 1] == '\n');
 
-	p_line = strtok(large_buffer, "\n");
-	if(p_line)
-	{
-		string wstr(p_line, p_line + strlen(p_line));
+	p_line = large_buffer;
+	do 
+  {
+		n_line = next_type(p_line, '\n');
+
+		string wstr(p_line, n_line - p_line);
 		p_row->data += wstr;
-	}
-	// this case is a single new line.
-	else
-	{
-		this->add_row();
-	}
+
+		if(*n_line)
+		{
+			p_row = this->add_row();
+		}
+		p_line = n_line + 1;
+	} 
+  while (*n_line);
 
 	
 	// Since we are adding content we need to see if we are
@@ -362,24 +373,7 @@ int8_t ctext::vprintf(const char*format, va_list ap)
 		this->direct_scroll(0, this->m_buffer.size() - this->m_win_height);
 	}
 
-	ret = this->redraw();
-
-	while(p_line)
-	{
-		p_line = strtok(0, "\n");
-		if(p_line)
-		{
-			// this means we have encountered a new line and must push our
-			// buffer forward
-			this->add_row();
-			ret = this->printf(p_line);
-		} 
-		else if(should_newline)
-		{
-			this->add_row();
-		}
-	}
-	return ret;
+	return this->redraw();
 }
 
 int cprintf(ctext*win, const char *format, ...)
