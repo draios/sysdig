@@ -149,12 +149,12 @@ void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)
 curses_table_sidemenu::curses_table_sidemenu(sinsp_cursesui* parent)
 {
 	ASSERT(parent != NULL);
-	m_parent = parent;
-	m_h = m_parent->m_screenh - TABLE_Y_START - 1;
+	m_parentui = parent;
+	m_h = m_parentui->m_screenh - TABLE_Y_START - 1;
 	m_w = SIDEMENU_WIDTH;
 	m_y_start = TABLE_Y_START;
 	m_win = newwin(m_h, m_w, m_y_start, 0);
-	m_selct = m_parent->m_selected_sidemenu_entry;
+	m_selct = m_parentui->m_selected_sidemenu_entry;
 	m_entries = NULL;
 }
 
@@ -172,7 +172,7 @@ void curses_table_sidemenu::render()
 	//
 	// Render window header
 	//
-	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+	wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 
 	wmove(m_win, 0, 0);
 	for(j = 0; j < (int32_t)m_w - 1; j++)
@@ -181,11 +181,11 @@ void curses_table_sidemenu::render()
 	}
 
 	// white space at the right
-	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
+	wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PROCESS]);
 	waddch(m_win, ' ');
 
 	ASSERT(m_title != "");
-	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+	wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 	mvwaddnstr(m_win, 0, 0, m_title.c_str(), m_w);
 
 	//
@@ -195,11 +195,11 @@ void curses_table_sidemenu::render()
 	{
 		if(j == m_selct)
 		{
-			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
+			wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
 		}
 		else
 		{
-			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
+			wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PROCESS]);
 		}
 
 		// clear the line
@@ -213,7 +213,7 @@ void curses_table_sidemenu::render()
 		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries->at(j).m_name.c_str(), m_w);
 
 		// white space at the right
-		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
+		wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PROCESS]);
 		wmove(m_win, j - m_firstrow + 1, m_w - 1);
 		waddch(m_win, ' ');
 	}
@@ -232,8 +232,8 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case '\r':
 		case KEY_ENTER:
 			ASSERT(m_selct < (int32_t)m_entries->size());
-			m_parent->m_selected_view = m_entries->at(m_selct).m_id;
-			m_parent->m_selected_sidemenu_entry = m_selct;
+			m_parentui->m_selected_view = m_entries->at(m_selct).m_id;
+			m_parentui->m_selected_sidemenu_entry = m_selct;
 			return STA_SWITCH_VIEW;
 		case KEY_UP:
 			selection_up((int32_t)m_entries->size());
@@ -293,8 +293,8 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							// Notify the parent that a selection has happened
 							//
 							ASSERT(m_selct < (int32_t)m_entries->size());
-							m_parent->m_selected_view = m_entries->at(m_selct).m_id;
-							m_parent->m_selected_sidemenu_entry = m_selct;
+							m_parentui->m_selected_view = m_entries->at(m_selct).m_id;
+							m_parentui->m_selected_sidemenu_entry = m_selct;
 							return STA_SWITCH_VIEW;
 						}
 					}
@@ -333,7 +333,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 
 	m_ctext->get_config(&config);
 
-	config.m_buffer_size = 5000;
+	config.m_buffer_size = 500000;
 	config.m_scroll_on_append = true;
 	config.m_bounding_box = true;
 	config.m_do_wrap = true;
@@ -352,11 +352,16 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 	}
 
 	//
+	// Initialize the inspector to capture longer buffers and format them in a 
+	// readable way
+	//
+	m_inspector->set_buffer_format(sinsp_evt::PF_NORMAL);
+	m_inspector->set_snaplen(2000);
+
+	//
 	// Initial screen refresh
 	//
 	render();
-
-	m_inspector->set_buffer_format(sinsp_evt::PF_JSONHEXASCII);
 }
 
 curses_textbox::~curses_textbox()
@@ -372,6 +377,12 @@ curses_textbox::~curses_textbox()
 	{
 		delete m_filter;
 	}
+
+	//
+	// Restore default snaplen and output formatting
+	//
+	m_inspector->set_snaplen(80);
+	m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
 }
 
 void curses_textbox::set_filter(string filter)
@@ -532,12 +543,13 @@ void curses_textbox::populate_sidemenu()
 {
 	ASSERT(m_sidemenu != NULL);
 	m_entries.clear();
-	m_entries.push_back(sidemenu_list_entry("normal", 0));
-	m_entries.push_back(sidemenu_list_entry("binary", 0));
+	m_entries.push_back(sidemenu_list_entry("dotted ascii", 0));
+	m_entries.push_back(sidemenu_list_entry("ascii only", 0));
+	m_entries.push_back(sidemenu_list_entry("hex", 0));
 	m_entries.push_back(sidemenu_list_entry("json", 0));
 
 	m_sidemenu->set_entries(&m_entries);
-	m_sidemenu->set_title("Select Output Type");
+	m_sidemenu->set_title("View As");
 }
 
 void curses_textbox::render_header()
@@ -717,6 +729,26 @@ void curses_textbox::reset()
 		m_parent->render();
 		render();
 		m_ctext->redraw();		
+	}
+
+g_logger.format("$$$%d", (int)m_parent->m_selected_sidemenu_entry);
+	switch(m_parent->m_selected_sidemenu_entry)
+	{
+		case 0:
+			m_inspector->set_buffer_format(sinsp_evt::PF_NORMAL);
+			break;
+		case 1:
+			m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
+			break;
+		case 2:
+			m_inspector->set_buffer_format(sinsp_evt::PF_HEXASCII);
+			break;
+		case 3:
+			m_inspector->set_buffer_format(sinsp_evt::PF_JSON);
+			break;
+		default:
+			ASSERT(false);
+			break;
 	}
 
 	//

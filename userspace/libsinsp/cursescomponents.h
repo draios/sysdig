@@ -99,7 +99,7 @@ public:
 
 	WINDOW* m_win;
 	int32_t m_y_start;
-	sinsp_cursesui* m_parent;
+	sinsp_cursesui* m_parentui;
 	vector<sidemenu_list_entry>* m_entries;
 	string m_title;
 };
