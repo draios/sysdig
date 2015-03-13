@@ -157,7 +157,9 @@ int8_t ctext::get_buf_size(int32_t*buf_size)
 
 int32_t ctext::available_rows()
 {
-	return this->m_config.m_buffer_size - this->m_max_y - 1;
+	// since our buffer clearing scheme permits us to overflow,
+	// we have to bind this to make sure that we return >= 0 values
+	return max(this->m_config.m_buffer_size - this->m_max_y - 1, 0);
 }
 
 int32_t ctext::up(int32_t amount) 
