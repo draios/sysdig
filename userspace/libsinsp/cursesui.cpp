@@ -566,16 +566,6 @@ void sinsp_cursesui::render_spy_main_menu()
 	k += 6;
 
 	attrset(m_colors[PROCESS]);
-	fks = "Ins";
-	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
-	k += fks.size();
-
-	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-	fks = "Wrap Text";
-	mvaddnstr(m_screenh - 1, k, fks.c_str(), 32);
-	k += fks.size();
-
-	attrset(m_colors[PROCESS]);
 	fks = "Del";
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
 	k += fks.size();
@@ -1159,7 +1149,6 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 	switch(ch)
 	{
-		case 27: // ESC
 		case 'q':
 			return STA_QUIT;
 		case 'p':

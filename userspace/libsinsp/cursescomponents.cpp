@@ -155,6 +155,7 @@ curses_table_sidemenu::curses_table_sidemenu(sinsp_cursesui* parent)
 	m_y_start = TABLE_Y_START;
 	m_win = newwin(m_h, m_w, m_y_start, 0);
 	m_selct = m_parentui->m_selected_sidemenu_entry;
+	m_selct_ori = m_selct;
 	m_entries = NULL;
 }
 
@@ -234,6 +235,11 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			ASSERT(m_selct < (int32_t)m_entries->size());
 			m_parentui->m_selected_view = m_entries->at(m_selct).m_id;
 			m_parentui->m_selected_sidemenu_entry = m_selct;
+			return STA_SWITCH_VIEW;
+		case 27: // ESC
+			ASSERT(m_selct < (int32_t)m_entries->size());
+			m_parentui->m_selected_view = m_entries->at(m_selct_ori).m_id;
+			m_parentui->m_selected_sidemenu_entry = m_selct_ori;
 			return STA_SWITCH_VIEW;
 		case KEY_UP:
 			selection_up((int32_t)m_entries->size());
@@ -333,8 +339,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 
 	m_ctext->get_config(&config);
 
-//	config.m_buffer_size = 500000;
-	config.m_buffer_size = 500;
+	config.m_buffer_size = 500000;
 	config.m_scroll_on_append = true;
 	config.m_bounding_box = true;
 	config.m_do_wrap = true;
@@ -538,6 +543,11 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	m_ctext->printf("\n");
 
 	n_prints++;
+
+	if(n_prints == 1)
+	{
+		render();
+	}
 }
 
 void curses_textbox::populate_sidemenu()
@@ -575,11 +585,9 @@ void curses_textbox::render_header()
 
 	string trs;
 
-g_logger.format(">>>%d", (int)m_ctext->available_rows());
-
-	if(m_ctext->available_rows() == 0)
+	if(m_ctext->available_rows() <= 0)
 	{
-		trs = "   (truncated)";
+		trs = "(truncated)";
 	}
 
 	if(pct != 0)
@@ -684,6 +692,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			{
 				m_paused = !m_paused;
 			}
+			m_ctext->jump_to_last_line();
 			m_parent->render();
 			render();
 			return STA_NONE;	
@@ -736,9 +745,6 @@ void curses_textbox::reset()
 		wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw);
 		mvwin(m_win, TABLE_Y_START + 1, 0);
 		wrefresh(m_win);
-		m_parent->render();
-		render();
-		m_ctext->redraw();		
 	}
 
 	switch(m_parent->m_selected_sidemenu_entry)
@@ -767,7 +773,23 @@ void curses_textbox::reset()
 	{
 		m_ctext->ob_start();
 	}
+
+	//
+	// Disable pause
+	//
+	m_paused = false;
 	
+	//
+	// Clear the screen
+	//
 	m_ctext->clear();
+
+	//
+	// Redraw everything
+	//
+	m_parent->render();
+	render();
+	m_ctext->redraw();
+	n_prints = 0;
 }
 #endif // SYSTOP
