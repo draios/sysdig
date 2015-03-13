@@ -333,7 +333,8 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 
 	m_ctext->get_config(&config);
 
-	config.m_buffer_size = 500000;
+//	config.m_buffer_size = 500000;
+	config.m_buffer_size = 500;
 	config.m_scroll_on_append = true;
 	config.m_bounding_box = true;
 	config.m_do_wrap = true;
@@ -572,13 +573,22 @@ void curses_textbox::render_header()
 	float pct;
 	m_ctext->get_offset_percent(&pct);
 
+	string trs;
+
+g_logger.format(">>>%d", (int)m_ctext->available_rows());
+
+	if(m_ctext->available_rows() == 0)
+	{
+		trs = "   (truncated)";
+	}
+
 	if(pct != 0)
 	{
-		sprintf(prstr, "%d/%d (%.2f%%)", (int)oy, (int)sy, pct * 100);
+		sprintf(prstr, "%d/%d (%.2f%%) %s", (int)oy, (int)sy, pct * 100, trs.c_str());
 	}
 	else
 	{
-		sprintf(prstr, "%d/%d (0%%)", (int)oy, (int)sy);
+		sprintf(prstr, "%d/%d (0%%) %s", (int)oy, (int)sy, trs.c_str());
 	}
 
 	mvaddstr(2, 0, prstr);
@@ -731,7 +741,6 @@ void curses_textbox::reset()
 		m_ctext->redraw();		
 	}
 
-g_logger.format("$$$%d", (int)m_parent->m_selected_sidemenu_entry);
 	switch(m_parent->m_selected_sidemenu_entry)
 	{
 		case 0:
