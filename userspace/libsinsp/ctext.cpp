@@ -115,9 +115,16 @@ int8_t ctext::direct_scroll(int32_t x, int32_t y)
 {
 	if(this->m_config.m_bounding_box) 
 	{
-		y = min(y, (int32_t)(this->m_max_y - this->m_win_height));
-		x = max(0, (int32_t)x);
-		y = max(0, (int32_t)y);
+		y = min(y, this->m_max_y - this->m_win_height);
+		x = max(0, x);
+		y = max(0, y);
+	}
+
+	// if word-wrap is happening, we don't scroll horizontally
+	// at all.
+	if(this->m_config.m_do_wrap)
+	{
+		x = 0;
 	}
 
 	this->m_pos_x = x;
@@ -284,7 +291,6 @@ void ctext::add_format_if_needed()
 			.color_pair = color_pair
 		};
 
-		//*this->m_debug << "fmt:" << row_ix  << " " << new_format.offset << " " << new_format.color_pair << " " << new_format.attrs << "OV" << endl;
 		// if the new thing we are adding has the same
 		// offset as the previous, then we dump the
 		// previous.
@@ -312,13 +318,10 @@ ctext_row* ctext::add_row()
 			ctext_format p_format( p_row.format.back() );
 
 			// set the offset to the initial.
-			//*this->m_debug << "fmt:" << row_ix  << " " << p_format.offset << " " << p_format.color_pair << " " << p_format.attrs << "|" << endl;
 			p_format.offset = 0;
 			row.format.push_back(p_format);
 		}
 	}
-
-	row.data = "";
 
 	this->m_buffer.push_back(row);
 
@@ -337,17 +340,12 @@ char* next_type(char* search, const char delim)
 int8_t ctext::vprintf(const char*format, va_list ap)
 {
 	char *p_line, *n_line;
-	char large_buffer[CTEXT_BUFFER_SIZE] = {0};
+	char large_buffer[CTEXT_BUFFER_SIZE];
 
 	this->add_format_if_needed();
 	ctext_row *p_row = &this->m_buffer.back();
 
 	vsnprintf(large_buffer, CTEXT_BUFFER_SIZE, format, ap);
-
-	if(this->m_config.m_auto_newline && strlen(large_buffer) < (CTEXT_BUFFER_SIZE - 1))
-	{
-		sprintf(large_buffer + strlen(large_buffer), "\n");
-	}
 
 	p_line = large_buffer;
 	do 
@@ -365,6 +363,10 @@ int8_t ctext::vprintf(const char*format, va_list ap)
 	} 
   while (*n_line);
 
+	if(this->m_config.m_auto_newline)
+	{
+		this->add_row();
+	}
 	
 	// Since we are adding content we need to see if we are
 	// to force on scroll.
@@ -467,7 +469,7 @@ int8_t ctext::redraw()
 	// Regardless of whether this is append to top
 	// or bottom we generate top to bottom.
 
-	int32_t start_char = max(0, (int32_t)this->m_pos_x);
+	int32_t start_char = max(0, this->m_pos_x);
 	int32_t buf_offset = start_char;
 	// the endchar will be in the substr
 	
@@ -523,17 +525,12 @@ int8_t ctext::redraw()
 				cutoff = this->m_win_width - win_offset;
 				b_format = false;
 
-				// move the cursor before doing anything.
-				//wmove(this->m_win, line, win_offset);
-
 				wstandend(this->m_win);
 				// if we have a format to account for and we haven't yet,
 				if(!p_source->format.empty() && p_format->offset <= buf_offset)
 				{
 					// then we add it 
-					//mvwchgat
-					wattr_set(this->m_win, p_format->attrs, p_format->color_pair, 0);//p_format->color_pair), 0);
-					//this->cattr_on(p_format->color_pair);//p_format->color_pair), 0);
+					wattr_set(this->m_win, p_format->attrs, p_format->color_pair, 0);
 
 					// and tell ourselves below that we've done this.
 					b_format = true;
@@ -547,7 +544,7 @@ int8_t ctext::redraw()
 						// The first one is the characters we are to print this time,
 						// the second is how many characters we would have asked for
 						// if there was no format specified.
-						cutoff = min((p_format + 1)->offset - buf_offset, (int32_t)cutoff); 
+						cutoff = min((p_format + 1)->offset - buf_offset, cutoff); 
 					}
 				}
 
@@ -603,7 +600,7 @@ int8_t ctext::redraw()
 					//
 					// otherwise if we are not wrapping then
 					// we also break out of this
-					if(line == this->m_win_height || !this->m_config.m_do_wrap )
+					if(line == this->m_win_height || !this->m_config.m_do_wrap)
 					{
 						break;
 					}
