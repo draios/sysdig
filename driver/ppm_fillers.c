@@ -326,8 +326,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_GETRESGID_E] = {f_sys_empty},
 	[PPME_SYSCALL_GETRESGID_X] = {f_sys_getresuid_and_gid_x},
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-	[PPME_SYSCALL_SIGNALDELIVER_E] = {f_sys_signaldeliver_e},
-	[PPME_SYSCALL_SIGNALDELIVER_X] = {f_sys_empty},
+	[PPME_SIGNALDELIVER_E] = {f_sys_signaldeliver_e},
+	[PPME_SIGNALDELIVER_X] = {f_sys_empty},
 #endif
 };
 
