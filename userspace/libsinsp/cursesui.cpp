@@ -189,10 +189,11 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	//
 	m_menuitems.push_back("Help");
 	m_menuitems.push_back("Views");
-	m_menuitems.push_back("See IO");
 	m_menuitems.push_back("Search");
+	m_menuitems.push_back("Filter");
+	m_menuitems.push_back("Spy IO");
+	m_menuitems.push_back("Dig");
 	m_menuitems.push_back("Legend");
-	m_menuitems.push_back("Setup");
 
 	//
 	// Get screen dimensions
@@ -395,6 +396,9 @@ void sinsp_cursesui::render_default_main_menu()
 	uint32_t j = 0;
 	uint32_t k = 0;
 
+	//
+	// Clear the line
+	//
 	move(m_screenh - 1, 0);
 	for(uint32_t j = 0; j < m_screenw; j++)
 	{
@@ -517,6 +521,15 @@ void sinsp_cursesui::render_search_main_menu()
 void sinsp_cursesui::render_spy_main_menu()
 {
 	uint32_t k = 0;
+
+	//
+	// Clear the line
+	//
+	move(m_screenh - 1, 0);
+	for(uint32_t j = 0; j < m_screenw; j++)
+	{
+		addch(' ');
+	}
 
 	attrset(m_colors[PROCESS]);
 	string fks = "F1";

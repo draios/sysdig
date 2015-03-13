@@ -374,6 +374,7 @@ public:
 	uint32_t m_screenw;
 	uint32_t m_screenh;
 	uint32_t m_eof;
+	curses_table_sidemenu* m_sidemenu;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
@@ -397,7 +398,6 @@ private:
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
 	void print_progress(double progress);
 
-	curses_table_sidemenu* m_sidemenu;
 	curses_textbox* m_spy_box;
 #endif
 

@@ -457,7 +457,7 @@ render_end:
 	}
 
 	wrefresh(m_tblwin);
-
+/*
 	copywin(m_tblwin,
 		stdscr,
 		0,
@@ -469,12 +469,10 @@ render_end:
 		FALSE);
 
 	wrefresh(m_tblwin);
-//mvprintw(0, 0, "!!!!%d", (int)res);
-//refresh();
-
+*/
 	refresh();
 }
-
+	
 void curses_table::scrollwin(uint32_t x, uint32_t y)
 {
 	wrefresh(m_tblwin);
