@@ -37,6 +37,7 @@ ctext::ctext(WINDOW *win, ctext_config *config)
 
 	this->m_pos_x = 0;
 	this->m_pos_y = 0;
+	this->m_pos_inrow = 0;
 
 	this->m_max_y = 0;
 
@@ -124,6 +125,8 @@ int8_t ctext::direct_scroll(int32_t x, int32_t y)
 	// at all.
 	if(this->m_config.m_do_wrap)
 	{
+		this->m_pos_x = 0;
+		this->m_pos_inrow = x;
 		x = 0;
 	}
 
@@ -174,9 +177,67 @@ int32_t ctext::up(int32_t amount)
 	return this->down(-amount);
 }
 
+int32_t ctext::page_down(int32_t page_count) 
+{
+	this->get_win_size();
+	return this->down(page_count * this->m_win_height);
+}
+
+int32_t ctext::page_up(int32_t page_count) 
+{
+	this->get_win_size();
+	return this->down(-page_count * this->m_win_height);
+}
+
 int32_t ctext::down(int32_t amount) 
 {
-	return this->scroll_to(this->m_pos_x, this->m_pos_y + amount);
+	// There's a request to make the bounding
+	// box scroll only partial. What a pain.
+	if(this->m_config.m_do_wrap)
+	{
+		int32_t new_y = this->m_pos_y;
+		int32_t new_offset = this->m_pos_inrow;
+		ctext_row *p_row = &this->m_buffer[this->m_pos_y];	
+
+		this->get_win_size();
+
+		while(amount > 0)
+		{
+			new_offset += this->m_win_width;
+			amount --;
+			if(new_offset > (int32_t)p_row->data.size())
+			{
+				if(new_y + 1 >= (int32_t)this->m_buffer.size())
+				{
+					break;
+				}
+				new_offset = 0;
+				new_y++;
+				p_row = &this->m_buffer[new_y];
+			}
+		} 
+
+		while(amount < 0)
+		{
+			new_offset -= this->m_win_width;
+			amount ++;
+			if(new_offset < 0)
+			{
+				if(new_y - 1 <= 0)
+				{
+					break;
+				}
+				new_y--;
+				p_row = &this->m_buffer[new_y];
+				new_offset = p_row->data.size() - p_row->data.size() % this->m_win_width;
+			}
+		}
+		return this->scroll_to(new_offset, new_y);
+	}
+	else
+	{
+		return this->scroll_to(this->m_pos_x, this->m_pos_y + amount);
+	}
 }
 
 int32_t ctext::jump_to_first_line()
@@ -198,18 +259,6 @@ int32_t ctext::jump_to_last_line()
 	this->get_win_size();
 	this->scroll_to(this->m_pos_x, this->m_max_y - 1);
 	return current_line - this->m_pos_y;
-}
-
-int32_t ctext::page_down(int32_t page_count) 
-{
-	this->get_win_size();
-	return this->down(page_count * this->m_win_height);
-}
-
-int32_t ctext::page_up(int32_t page_count) 
-{
-	this->get_win_size();
-	return this->down(-page_count * this->m_win_height);
 }
 
 int32_t ctext::left(int32_t amount) 
@@ -249,7 +298,14 @@ int8_t ctext::rebuf()
 	// issue a rescroll on exactly our previous parameters. This may
 	// force us inward or may retain our position.
 	// 
-	return this->direct_scroll(this->m_pos_x, this->m_pos_y);
+	if(!this->m_config.m_do_wrap)
+	{
+		return this->direct_scroll(this->m_pos_x, this->m_pos_y);
+	}
+	else
+	{
+		return this->direct_scroll(this->m_pos_inrow, this->m_pos_y);
+	}
 }
 
 void ctext::add_format_if_needed()
@@ -446,6 +502,7 @@ int8_t ctext::redraw()
 
 	attr_t res_attrs; 
 	int16_t res_color_pair;
+	bool is_first_line = true;
 	wattr_get(this->m_win, &res_attrs, &res_color_pair, 0);
 	wattr_off(this->m_win, COLOR_PAIR(res_color_pair), 0);
 	
@@ -518,6 +575,11 @@ int8_t ctext::redraw()
 			win_offset = -min(0, (int32_t)this->m_pos_x);
 			buf_offset = start_char;
 
+			if(this->m_config.m_do_wrap && is_first_line)
+			{
+				buf_offset = this->m_pos_inrow;
+			}
+
 			for(;;) 
 			{
 				// our initial cutoff is the remainder of window space
@@ -555,6 +617,7 @@ int8_t ctext::redraw()
 					to_add = p_source->data.substr(buf_offset, cutoff);
 
 					mvwaddstr(this->m_win, line, win_offset, to_add.c_str());
+					is_first_line = false;
 				}
 				else
 				{

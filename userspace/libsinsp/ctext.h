@@ -357,6 +357,7 @@ class ctext
 
 		int32_t m_pos_x;
 		int32_t m_pos_y;
+		int32_t m_pos_inrow;
 
 		int32_t m_max_y;
 
