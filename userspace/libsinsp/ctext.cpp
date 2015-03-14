@@ -223,7 +223,7 @@ int32_t ctext::down(int32_t amount)
 			amount ++;
 			if(new_offset < 0)
 			{
-				if(new_y - 1 <= 0)
+				if(new_y - 1 < 0)
 				{
 					break;
 				}
