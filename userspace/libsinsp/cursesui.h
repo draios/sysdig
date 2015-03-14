@@ -22,6 +22,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
 #define SIDEMENU_WIDTH 20
+#define VIEW_ID_SPY -1
+#define VIEW_ID_DIG -2
 
 string combine_filters(string flt1, string flt2);
 class ctext;
@@ -279,7 +281,13 @@ public:
 				case STA_SPY:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						spy_selection(res.first->m_name, res.second.c_str());
+						spy_selection(res.first->m_name, res.second.c_str(), false);
+					}
+					return false;
+				case STA_DIG:
+					{
+						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+						spy_selection(res.first->m_name, res.second.c_str(), true);
 					}
 					return false;
 				case STA_NONE:
@@ -367,7 +375,7 @@ public:
 
 	int m_colors[LAST_COLORELEMENT];
 	vector<sinsp_table_info> m_views;
-	uint32_t m_selected_view;
+	int32_t m_selected_view;
 	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 	curses_table* m_viz;
@@ -380,7 +388,7 @@ private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
-	void spy_selection(string field, string val);
+	void spy_selection(string field, string val, bool is_dig);
 	// returns false if there is no suitable drill down view for this field
 	bool drilldown(string field, string val);
 	// returns false if we are already at the top of the hierarchy

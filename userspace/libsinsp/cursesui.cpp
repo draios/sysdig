@@ -238,9 +238,9 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	//
 	// Input validation
 	//
-	if(m_selected_view != 0xffffffff)
+	if(m_selected_view >= 0)
 	{
-		if(m_selected_view >= m_views.size())
+		if(m_selected_view >= (int32_t)m_views.size())
 		{
 			ASSERT(false);
 			throw sinsp_exception("invalid view");		
@@ -278,7 +278,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	//
 	// If we need a new datatable, allocate it and set it up
 	//
-	if(m_selected_view != 0xffffffff)
+	if(m_selected_view >= 0)
 	{
 		m_datatable = new sinsp_table(m_inspector);
 
@@ -303,14 +303,14 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		//
 		// Create the visualization component
 		//
-		m_spy_box = new curses_textbox(m_inspector, this);
+		m_spy_box = new curses_textbox(m_inspector, this, m_selected_view);
 		m_spy_box->set_filter(m_complete_filter);
 	}
 
 	//
 	// If we need a table visualization, allocate it and set it up
 	//
-	if(m_selected_view != 0xffffffff)
+	if(m_selected_view >= 0)
 	{
 		m_viz = new curses_table(this, m_inspector);
 		m_viz->configure(m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
@@ -340,9 +340,10 @@ void sinsp_cursesui::render_header()
 
 	string vs;
 
-	if(m_selected_view != 0xffffffff)
+	if(m_selected_view >= 0)
 	{
-		const char* vcs = get_selected_view()->m_name.c_str();
+		sinsp_table_info* sv = get_selected_view();
+		const char* vcs = sv->m_name.c_str();
 		vs = vcs;
 		vs += " for ";
 	}
@@ -630,12 +631,12 @@ void sinsp_cursesui::render()
 
 sinsp_table_info* sinsp_cursesui::get_selected_view()
 {
-	if(m_selected_view == 0xffffffff)
+	if(m_selected_view < 0)
 	{
 		return NULL;
 	}
 
-	ASSERT(m_selected_view < m_views.size());
+	ASSERT(m_selected_view < (int32_t)m_views.size());
 	return &m_views[m_selected_view];
 }
 
@@ -746,10 +747,10 @@ void sinsp_cursesui::create_complete_filter()
 	m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
 
 	//
-	// Note: m_selected_view is 0xffffffff when there's no view, because we're doing
+	// Note: m_selected_view is smaller than 0 when there's no view, because we're doing
 	//       non-view stuff like spying.
 	//
-	if(m_selected_view != 0xffffffff)
+	if(m_selected_view >= 0)
 	{
 		m_complete_filter = combine_filters(m_complete_filter, m_views[m_selected_view].m_filter);
 	}
@@ -818,7 +819,7 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 #endif
 }
 
-void sinsp_cursesui::spy_selection(string field, string val)
+void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 {
 	//
 	// Perform the drill down
@@ -837,7 +838,15 @@ void sinsp_cursesui::spy_selection(string field, string val)
 	}
 
 	m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
-	m_selected_view = 0xffffffff;
+
+	if(is_dig)
+	{
+		m_selected_view = VIEW_ID_DIG;
+	}
+	else
+	{
+		m_selected_view = VIEW_ID_SPY;
+	}
 
 	if(!m_inspector->is_live())
 	{
@@ -947,7 +956,7 @@ bool sinsp_cursesui::drillup()
 
 		m_selected_view = sinfo->m_prev_selected_view;
 		m_selected_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
-		ASSERT(m_selected_view < m_views.size());
+		ASSERT(m_selected_view < (int32_t)m_views.size());
 		m_sel_hierarchy.m_hierarchy.pop_back();
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
@@ -1185,14 +1194,17 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			m_viz->recreate_win();
 			render();
 			break;
-		case KEY_F(3):
-			return STA_SPY;
-			break;
 		case KEY_F(4):
 			m_searching = true;
 			m_cursor_pos = 0;
 			curs_set(1);
 			render();
+			break;
+		case KEY_F(5):
+			return STA_SPY;
+			break;
+		case KEY_F(6):
+			return STA_DIG;
 			break;
 		default:
 		break;

@@ -39,6 +39,7 @@ class sinsp_filter_check_reference;
 class curses_table;
 class sinsp_cursesui;
 class ctext;
+class sinsp_evt_formatter;
 
 class curses_table_column_info
 {
@@ -108,7 +109,7 @@ public:
 class curses_textbox
 {
 public:
-	curses_textbox(sinsp* inspector, sinsp_cursesui* parent);
+	curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type);
 	~curses_textbox();
 	void render();
 	void set_filter(string filter);
@@ -119,6 +120,10 @@ public:
 	void populate_sidemenu();
 	void reset();
 
+private:
+	inline void process_event_spy(sinsp_evt* evt, int32_t next_res);
+	inline void process_event_dig(sinsp_evt* evt, int32_t next_res);
+
 	WINDOW *m_win;
 	ctext* m_ctext;
 	sinsp_cursesui* m_parent;
@@ -128,6 +133,8 @@ public:
 	bool m_paused;
 	curses_table_sidemenu* m_sidemenu;
 	vector<sidemenu_list_entry> m_entries;
+	int32_t m_viz_type;
+	sinsp_evt_formatter* m_formatter;
 };
 
 #endif

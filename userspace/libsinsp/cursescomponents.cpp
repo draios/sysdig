@@ -318,7 +318,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
+curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type)
 {
 	ASSERT(inspector != NULL);
 	ASSERT(parent != NULL);
@@ -331,6 +331,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 	n_prints = 0;
 	m_paused = false;
 	m_sidemenu = NULL;
+	m_viz_type = viz_type;
 
 	ctext_config config;
 
@@ -342,8 +343,21 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent)
 	config.m_buffer_size = 500000;
 	config.m_scroll_on_append = true;
 	config.m_bounding_box = true;
-	config.m_do_wrap = true;
 	
+	//
+	// visualization-type inits
+	//
+	if(m_viz_type == VIEW_ID_DIG)
+	{
+		m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+		config.m_do_wrap = false;
+	}
+	else
+	{
+		m_formatter = NULL;
+		config.m_do_wrap = true;
+	}
+
 	//
 	// set the config back
 	//
@@ -384,6 +398,11 @@ curses_textbox::~curses_textbox()
 		delete m_filter;
 	}
 
+	if(m_formatter)
+	{
+		delete m_formatter;
+	}
+
 	//
 	// Restore default snaplen and output formatting
 	//
@@ -408,46 +427,8 @@ void curses_textbox::print_no_data()
 	refresh();
 }
 
-void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
+void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 {
-	//
-	// Check if this the end of the capture file, and if yes take note of that 
-	//
-	if(next_res == SCAP_EOF)
-	{
-		ASSERT(!m_inspector->is_live());
-		m_parent->m_eof = 2;
-		m_ctext->jump_to_first_line();
-		m_ctext->ob_end();
-		render();
-
-		if(n_prints == 0)
-		{
-			print_no_data();
-		}
-
-		return;
-	}
-
-	//
-	// If the user pressed 'p', skip the event
-	//
-	if(m_paused)
-	{
-		return;
-	}
-
-	//
-	// Filter the event
-	//
-	if(m_filter)
-	{
-		if(!m_filter->run(evt))
-		{
-			return;
-		}
-	}
-
 	//
 	// Drop any non I/O event
 	//
@@ -547,6 +528,72 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	if(n_prints == 1)
 	{
 		render();
+	}
+}
+
+void curses_textbox::process_event_dig(sinsp_evt* evt, int32_t next_res)
+{
+	string line;
+
+	m_formatter->tostring(evt, &line);
+
+	m_ctext->printf("%s\n", line.c_str());
+
+	n_prints++;
+
+	if(n_prints == 1)
+	{
+		render();
+	}
+}
+
+void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
+{
+	//
+	// Check if this the end of the capture file, and if yes take note of that 
+	//
+	if(next_res == SCAP_EOF)
+	{
+		ASSERT(!m_inspector->is_live());
+		m_parent->m_eof = 2;
+		m_ctext->jump_to_first_line();
+		m_ctext->ob_end();
+		render();
+
+		if(n_prints == 0)
+		{
+			print_no_data();
+		}
+
+		return;
+	}
+
+	//
+	// If the user pressed 'p', skip the event
+	//
+	if(m_paused)
+	{
+		return;
+	}
+
+	//
+	// Filter the event
+	//
+	if(m_filter)
+	{
+		if(!m_filter->run(evt))
+		{
+			return;
+		}
+	}
+
+	if(m_viz_type == VIEW_ID_SPY)
+	{
+		process_event_spy(evt, next_res);
+	}
+	else
+	{
+		process_event_dig(evt, next_res);		
 	}
 }
 
@@ -676,6 +723,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			return STA_NONE;
 		case KEY_HOME:
 			m_ctext->jump_to_first_line();
+			m_ctext->scroll_to(0, 0);
 			render();
 			return STA_NONE;
 		case KEY_END:
