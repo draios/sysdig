@@ -98,5 +98,5 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cps" $TRACEDIR $RESULTDIR/ps 
 # JSON
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-j -n 10000" $TRACEDIR $RESULTDIR/fd_fields_json $BASELINEDIR/fd_fields_json || ret=1
 
-# rm -rf "${TMPBASE}"
+rm -rf "${TMPBASE}"
 exit $ret

@@ -38,10 +38,18 @@ fi
 ARCH=$(uname -m)
 KERNEL_RELEASE=$(uname -r)
 SYSDIG_VERSION=$(sysdig --version | cut -d' ' -f3)
-REPOSITORY="stable"
+
+if [ -z "$SYSDIG_REPOSITORY" ]; then
+	SYSDIG_REPOSITORY="stable"
+fi
 
 echo "* Unloading sysdig-probe, if present"
 rmmod sysdig-probe
+
+if lsmod | grep sysdig_probe > /dev/null 2>&1; then
+	echo "* sysdig-probe seems to still be loaded, hoping the best"
+	exit 0
+fi
 
 echo "* Running dkms autoinstall"
 dkms autoinstall --kernelver $KERNEL_RELEASE
@@ -86,7 +94,7 @@ if [ -f ~/.sysdig/$SYSDIG_PROBE_FILENAME ]; then
 	exit $?
 fi
 
-URL="https://s3.amazonaws.com/download.draios.com/$REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME"
+URL="https://s3.amazonaws.com/download.draios.com/$SYSDIG_REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME"
 
 echo "* Trying to download precompiled module from $URL"
 if curl --create-dirs -f -s -o ~/.sysdig/$SYSDIG_PROBE_FILENAME $URL; then

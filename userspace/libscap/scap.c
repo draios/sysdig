@@ -20,6 +20,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #ifndef _WIN32
 #include <unistd.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
@@ -35,6 +36,19 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 //#define NDEBUG
 #include <assert.h>
+
+static uint32_t get_max_consumers()
+{
+	uint32_t max;
+	FILE *pfile = fopen("/sys/module/sysdig_probe/parameters/max_consumers", "r");
+	if(pfile != NULL)
+	{
+		fscanf(pfile, "%"PRIu32, &max);
+		fclose(pfile);
+		return max;
+	}
+	return 0;
+}
 
 char* scap_getlasterr(scap_t* handle)
 {
@@ -160,7 +174,8 @@ scap_t* scap_open_live_int(char *error,
 		{
 			if(errno == EBUSY)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "device %s is already open. You can't run multiple instances of sysdig.", filename);
+				uint32_t curr_max_consumers = get_max_consumers();
+				snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/sysdig_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
 			}
 			else
 			{
@@ -420,7 +435,7 @@ void scap_close(scap_t* handle)
 	free(handle);
 }
 
-scap_os_patform scap_get_os_platform(scap_t* handle)
+scap_os_platform scap_get_os_platform(scap_t* handle)
 {
 #if defined(_M_IX86) || defined(__i386__)
 #ifdef linux

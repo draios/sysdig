@@ -46,6 +46,7 @@ require "common"
 local dctable = {}
 local capturing = false
 local filter = "(fd.type=ipv4)"
+local match = false
 
 -- Argument notification callback
 function on_set_arg(name, val)
@@ -71,6 +72,7 @@ end
 -- Event parsing callback
 function on_event()
 	sysdig.end_capture()
+	match = true
 	return false
 end
 
@@ -80,6 +82,11 @@ function on_capture_end()
 		return
 	end
 	
+	if match == false then
+		print("empty capture or no event matching the filter")
+		return
+	end
+
 	local ttable = sysdig.get_thread_table(filter)
 
 	print(extend_string("Proto", 6) ..
