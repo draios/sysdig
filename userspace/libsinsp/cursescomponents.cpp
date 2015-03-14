@@ -379,6 +379,11 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_inspector->set_snaplen(2000);
 
 	//
+	// Tell the parent to check for input more often
+	//
+	m_parent->m_input_check_period_ns = 100000;
+
+	//
 	// Initial screen refresh
 	//
 	render();
@@ -408,6 +413,11 @@ curses_textbox::~curses_textbox()
 	//
 	m_inspector->set_snaplen(80);
 	m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
+
+	//
+	// Tell the parent to check for input at the usual frequency
+	//
+	m_parent->m_input_check_period_ns = UI_USER_INPUT_CHECK_PERIOD_NS;
 }
 
 void curses_textbox::set_filter(string filter)

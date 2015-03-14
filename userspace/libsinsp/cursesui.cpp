@@ -113,6 +113,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_eof = 0;
 	m_offline_replay = false;
 	m_last_progress_evt = 0;
+	m_input_check_period_ns = UI_USER_INPUT_CHECK_PERIOD_NS;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 	m_spy_box = NULL;

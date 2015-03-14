@@ -214,7 +214,7 @@ public:
 		// Process the user input
 		//
 #ifndef NOCURSESUI
-		if((ts - m_last_input_check_ts > UI_USER_INPUT_CHECK_PERIOD_NS) || m_eof)
+		if((ts - m_last_input_check_ts > m_input_check_period_ns) || m_eof)
 		{
 			uint32_t ninputs = 0;
 
@@ -383,6 +383,7 @@ public:
 	uint32_t m_screenh;
 	uint32_t m_eof;
 	curses_table_sidemenu* m_sidemenu;
+	uint64_t m_input_check_period_ns;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
