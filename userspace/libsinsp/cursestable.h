@@ -41,13 +41,14 @@ public:
 		m_table_x_start = x;
 	}
 	void recreate_win();
+	void update_rowkey(int32_t row);
+	void goto_row(int32_t row);
 
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
 	bool m_selection_changed;
 	
 private:
-	void update_rowkey(int32_t row);
 	alignment get_field_alignment(ppm_param_type type);
 	void print_nomatch();
 	void print_wait();

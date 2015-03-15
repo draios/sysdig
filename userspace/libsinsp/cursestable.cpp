@@ -267,7 +267,7 @@ void curses_table::print_wait()
 
 void curses_table::print_nomatch()
 {
-	string wstr = "No match";
+	string wstr = " NO MATCH ";
 
 	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::FAILED_SEARCH]);
 
@@ -454,6 +454,11 @@ render_end:
 		{
 			print_nomatch();
 		}
+	}
+
+	if(m_parent->m_search_nomatch)
+	{
+		print_nomatch();
 	}
 
 	wrefresh(m_tblwin);
@@ -652,6 +657,14 @@ void curses_table::recreate_win()
 {
 	delwin(m_tblwin);
 	m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
+	render(true);
+}
+
+void curses_table::goto_row(int32_t row)
+{
+	m_selection_changed = true;
+	selection_goto((int32_t)m_data->size(), row);
+	update_rowkey(row);
 	render(true);
 }
 

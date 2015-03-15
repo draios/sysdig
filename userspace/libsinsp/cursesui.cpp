@@ -108,12 +108,14 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_cmdline_capture_filter = cmdline_capture_filter;
 	m_paused = false;
 	m_last_input_check_ts = 0;
-	m_searching = false;
+	m_output_filtering = false;
+	m_output_searching = false;
 	m_is_filter_sysdig = false;
 	m_eof = 0;
 	m_offline_replay = false;
 	m_last_progress_evt = 0;
 	m_input_check_period_ns = UI_USER_INPUT_CHECK_PERIOD_NS;
+	m_search_nomatch = false;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 	m_spy_box = NULL;
@@ -422,9 +424,26 @@ void sinsp_cursesui::render_default_main_menu()
 	}
 }
 
-void sinsp_cursesui::render_search_main_menu()
+void sinsp_cursesui::render_filtersearch_main_menu()
 {
 	uint32_t k = 0;
+	string* str;
+
+	//
+	// Pick the right string based on what we're doing
+	//
+	if(m_output_filtering)
+	{
+		str = &m_manual_filter;
+	}
+	else if(m_output_searching)
+	{
+		str = &m_manual_search_text;
+	}
+	else
+	{
+		ASSERT(false);
+	}
 
 	//
 	// Only clear the line if this is the first refresh, to prevent deleting the
@@ -449,22 +468,25 @@ void sinsp_cursesui::render_search_main_menu()
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
 	k += 6;
 
-	attrset(m_colors[PROCESS]);
-	fks = "F2";
-	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
-	k += fks.size();
-	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-	if(m_is_filter_sysdig)
+	if(m_output_filtering)
 	{
-		fks = "Text";
+		attrset(m_colors[PROCESS]);
+		fks = "F2";
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+		k += fks.size();
+		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+		if(m_is_filter_sysdig)
+		{
+			fks = "Text";
+		}
+		else
+		{
+			fks = "sysdig";
+		}
+		fks.resize(6, ' ');
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+		k += 6;
 	}
-	else
-	{
-		fks = "sysdig";
-	}
-	fks.resize(6, ' ');
-	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
-	k += 6;
 
 	attrset(m_colors[PROCESS]);
 	fks = "Enter";
@@ -512,9 +534,9 @@ void sinsp_cursesui::render_search_main_menu()
 
 		m_cursor_pos = cursor_pos;
 
-		mvprintw(m_screenh - 1, m_cursor_pos, m_manual_filter.c_str());
+		mvprintw(m_screenh - 1, m_cursor_pos, str->c_str());
 
-		m_cursor_pos += m_manual_filter.size();
+		m_cursor_pos += str->size();
 	}
 
 	move(m_screenh - 1, m_cursor_pos);
@@ -594,9 +616,9 @@ void sinsp_cursesui::render_spy_main_menu()
 
 void sinsp_cursesui::render_main_menu()
 {
-	if(m_searching)
+	if(m_output_filtering || m_output_searching)
 	{
-		render_search_main_menu();
+		render_filtersearch_main_menu();
 	}
 	else if(m_spy_box != NULL)
 	{
@@ -1040,34 +1062,53 @@ void sinsp_cursesui::print_progress(double progress)
 
 sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 {
+	bool closing = false;
+	string* str;
+
+	//
+	// Pick the right string based on what we're doing
+	//
+	if(m_output_filtering)
+	{
+		str = &m_manual_filter;
+	}
+	else if(m_output_searching)
+	{
+		str = &m_manual_search_text;
+	}
+	else
+	{
+		ASSERT(false);
+	}
+
 	switch(ch)
 	{
 		case KEY_F(2):
 			m_is_filter_sysdig = !m_is_filter_sysdig;
-			m_manual_filter = "";
+			*str = "";
 			m_cursor_pos = 0;
 			render();
 			return STA_NONE;
 		case 27: // ESC
-			m_manual_filter = "";
+			*str = "";
 			// FALL THROUGH
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
-		case KEY_F(4):			
-			m_searching = 0;
+		case KEY_F(4):
+			closing = true;
 			curs_set(0);
 			render();
 
 			if(m_is_filter_sysdig)
 			{
-				if(m_manual_filter != "")
+				if(*str != "")
 				{
 					sinsp_filter* f;
 
 					try
 					{
-						f = new sinsp_filter(m_inspector, m_manual_filter);
+						f = new sinsp_filter(m_inspector, *str);
 					}
 					catch(sinsp_exception e)
 					{
@@ -1078,7 +1119,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 							m_screenw / 2 - wstr.size() / 2, 
 							wstr.c_str());	
 
-						m_manual_filter = "";
+						*str = "";
 						break;
 					}
 
@@ -1090,13 +1131,13 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 			break;
 		case KEY_BACKSPACE:
-			if(m_manual_filter.size() > 0)
+			if(str->size() > 0)
 			{
 				m_cursor_pos--;
 				move(m_screenh - 1, m_cursor_pos);
 				addch(' ');
 				move(m_screenh - 1, m_cursor_pos);
-				m_manual_filter.pop_back();
+				str->pop_back();
 				break;
 			}
 			else
@@ -1108,22 +1149,53 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	if(ch >= ' ' && ch <= '~')
 	{
 		addch(ch);
-		m_manual_filter += ch;
+		*str += ch;
 		m_cursor_pos++;
 	}
 
-	if(!m_is_filter_sysdig)
+	if(m_output_filtering)
 	{
-		//
-		// Update the filter in the datatable
-		//
-		m_datatable->set_freetext_filter(m_manual_filter);
+		if(!m_is_filter_sysdig)
+		{
+			//
+			// Update the filter in the datatable
+			//
+			m_datatable->set_freetext_filter(*str);
 
-		//
-		// Refresh the data and the visualization
-		//
-		m_viz->update_data(m_datatable->get_sample());
-		m_viz->render(true);
+			//
+			// Refresh the data and the visualization
+			//
+			m_viz->update_data(m_datatable->get_sample());
+			m_viz->render(true);
+		}
+	}
+	else if(m_output_searching)
+	{
+		sinsp_table_field* skey = m_datatable->search_in_sample(*str);
+
+		if(skey != NULL)
+		{
+			int32_t selct = m_datatable->get_row_from_key(skey);
+			m_viz->goto_row(selct);
+			m_search_nomatch = false;
+		}
+		else
+		{
+			m_search_nomatch = true;
+			m_viz->render(true);
+		}
+	}
+	else
+	{
+		ASSERT(false);
+	}
+
+	if(closing)
+	{
+		m_search_nomatch = false;
+		m_output_filtering = false;
+		m_output_searching = false;
+		render();
 	}
 
 	return STA_NONE;
@@ -1144,7 +1216,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		}
 	}
 
-	if(m_searching)
+	if(m_output_filtering || m_output_searching)
 	{
 		ASSERT(m_sidemenu == NULL);
 		return handle_textbox_input(ch);
@@ -1153,7 +1225,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	if(m_spy_box != NULL)
 	{
 		ASSERT(m_sidemenu == NULL);
-		ASSERT(m_searching == false);
+		ASSERT(m_output_filtering == false);
+		ASSERT(m_output_searching == false);
 		sysdig_table_action actn = m_spy_box->handle_input(ch);
 		if(actn != STA_PARENT_HANDLE)
 		{
@@ -1195,8 +1268,15 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			m_viz->recreate_win();
 			render();
 			break;
+		case KEY_F(3):
+			m_output_searching = true;
+			m_manual_search_text = "";
+			m_cursor_pos = 0;
+			curs_set(1);
+			render();
+			break;
 		case KEY_F(4):
-			m_searching = true;
+			m_output_filtering = true;
 			m_cursor_pos = 0;
 			curs_set(1);
 			render();

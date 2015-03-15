@@ -640,6 +640,42 @@ void sinsp_table::filter_sample()
 	}
 }
 
+//
+// Returns the key of the first match, or NULL if no match
+//
+sinsp_table_field* sinsp_table::search_in_sample(string text)
+{
+	vector<filtercheck_field_info>* legend = get_legend();
+
+	for(auto it = m_full_sample_data.begin(); it != m_full_sample_data.end(); ++it)
+	{
+		for(uint32_t j = 0; j < it->m_values.size(); j++)
+		{
+			ppm_param_type type = m_types->at(j + 1);
+
+			if(type == PT_CHARBUF || type == PT_BYTEBUF || type == PT_SYSCALLID ||
+				type == PT_PORT || type == PT_L4PROTO || type == PT_SOCKFAMILY || type == PT_IPV4ADDR ||
+				type == PT_UID || type == PT_GID)
+			{
+				m_printer->set_val(type,
+					it->m_values[j].m_val,
+					it->m_values[j].m_len,
+					it->m_values[j].m_cnt,
+					legend->at(j + 1).m_print_format);
+
+				string strval = m_printer->tostring_nice(NULL, 0);
+
+				if(strval.find(text) != string::npos)
+				{
+					return &(it->m_key);
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
 void sinsp_table::sort_sample()
 {
 	if(m_sample_data->size() != 0)

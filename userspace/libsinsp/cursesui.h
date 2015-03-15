@@ -194,7 +194,7 @@ public:
 	void pause();
 	bool is_searching()
 	{
-		return m_searching;
+		return m_output_filtering;
 	}
 	bool is_eof()
 	{
@@ -384,6 +384,7 @@ public:
 	uint32_t m_eof;
 	curses_table_sidemenu* m_sidemenu;
 	uint64_t m_input_check_period_ns;
+	bool m_search_nomatch;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
@@ -399,7 +400,7 @@ private:
 #ifndef NOCURSESUI
 	void render_header();
 	void render_default_main_menu();
-	void render_search_main_menu();
+	void render_filtersearch_main_menu();
 	void render_spy_main_menu();
 	void render_main_menu();
 	sysdig_table_action handle_textbox_input(int ch);
@@ -417,9 +418,11 @@ private:
 	string m_cmdline_capture_filter;
 	string m_complete_filter;
 	string m_manual_filter;
+	string m_manual_search_text;
 	bool m_paused;
 	uint64_t m_last_input_check_ts;
-	bool m_searching;
+	bool m_output_filtering;
+	bool m_output_searching;
 	uint32_t m_cursor_pos;
 	bool m_is_filter_sysdig;
 	bool m_offline_replay;

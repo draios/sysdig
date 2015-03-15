@@ -214,6 +214,10 @@ public:
 	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	void filter_sample();
+	//
+	// Returns the key of the first match, or NULL if no match
+	//
+	sinsp_table_field* search_in_sample(string text);
 	void sort_sample();
 	vector<sinsp_sample_row>* get_sample();
 	vector<filtercheck_field_info>* get_legend()
