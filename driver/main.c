@@ -91,19 +91,6 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
 
-#ifndef get_cpu_ptr
-#define get_cpu_ptr(var) ({				\
-	preempt_disable();				\
-	this_cpu_ptr(var); })
-#endif
-
-#ifndef put_cpu_ptr
-#define put_cpu_ptr(var) do {				\
-	(void)(var);					\
-	preempt_enable();				\
-} while (0)
-#endif
-
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
 #endif
@@ -1050,6 +1037,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	struct ppm_ring_buffer_info *ring_info;
 	int drop = 1;
 	int32_t cbres = PPM_SUCCESS;
+	int cpu;
 
 	if (!test_bit(event_type, g_events_mask))
 		return res;
@@ -1067,11 +1055,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	/*
 	 * FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
 	 */
-	ring = get_cpu_ptr(consumer->ring_buffers);
+	cpu = get_cpu();
+	ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 	ring_info = ring->info;
 
 	if (!ring->capture_enabled) {
-		put_cpu_ptr(consumer->ring_buffers);
+		put_cpu();
 		return res;
 	}
 
@@ -1090,8 +1079,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 */
 	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
 		atomic_dec(&ring->preempt_count);
-		put_cpu_ptr(consumer->ring_buffers);
 		ring_info->n_preemptions++;
+		put_cpu();
 		ASSERT(false);
 		return res;
 	}
@@ -1284,7 +1273,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 #endif
 
 	atomic_dec(&ring->preempt_count);
-	put_cpu_ptr(consumer->ring_buffers);
+	put_cpu();
 
 	return res;
 }
