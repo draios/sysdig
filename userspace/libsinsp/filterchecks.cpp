@@ -3238,6 +3238,15 @@ char* sinsp_filter_check_reference::format_bytes(int64_t val, uint32_t str_len)
 					"%*" PRId64, str_len, val);
 	}
 
+	uint32_t len = strlen(m_getpropertystr_storage);
+
+	if(len > str_len)
+	{
+		memmove(m_getpropertystr_storage, 
+			m_getpropertystr_storage + len - str_len, 
+			str_len + 1); // include trailing \0
+	}
+
 	return m_getpropertystr_storage;
 }
 

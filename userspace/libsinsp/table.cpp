@@ -597,7 +597,7 @@ void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data)
 				it->m_values[j].m_cnt,
 				legend->at(j + 1).m_print_format);
 				printf("%s ", m_printer->tostring_nice(NULL, 10));
-//				printf("%s ", m_printer->tostring(NULL));
+				//printf("%s ", m_printer->tostring(NULL));
 		}
 
 		printf("\n");
@@ -763,7 +763,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 		throw sinsp_exception("cannot sort by key");
 	}
 
-	if(col > n_fields)
+	if(col >= n_fields)
 	{
 		throw sinsp_exception("invalid table sorting column");
 	}

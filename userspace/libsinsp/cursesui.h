@@ -382,9 +382,11 @@ public:
 	uint32_t m_screenw;
 	uint32_t m_screenh;
 	uint32_t m_eof;
-	curses_table_sidemenu* m_sidemenu;
 	uint64_t m_input_check_period_ns;
 	bool m_search_nomatch;
+#ifndef NOCURSESUI
+	curses_table_sidemenu* m_sidemenu;
+#endif
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
