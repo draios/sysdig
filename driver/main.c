@@ -1256,7 +1256,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 	}
 
-#ifdef _DEBUG
 	if (ts->tv_sec > ring->last_print_time.tv_sec + 1) {
 		vpr_info("consumer:%p CPU:%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 			   consumer->consumer_id,
@@ -1270,7 +1269,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 		ring->last_print_time = *ts;
 	}
-#endif
 
 	atomic_dec(&ring->preempt_count);
 	put_cpu();
