@@ -352,7 +352,18 @@ void sinsp_cursesui::render_header()
 	}
 	else
 	{
-		vs = "spying ";
+		if(m_selected_view == VIEW_ID_SPY)
+		{
+			vs = "I/O activity for ";
+		}
+		else if(m_selected_view == VIEW_ID_DIG)
+		{
+			vs = "sysdig output for ";
+		}
+		else
+		{
+			ASSERT(false);
+		}
 	}
 
 	if(m_sel_hierarchy.m_hierarchy.size() != 0)

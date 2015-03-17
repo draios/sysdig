@@ -612,7 +612,7 @@ void curses_textbox::populate_sidemenu()
 	ASSERT(m_sidemenu != NULL);
 	m_entries.clear();
 	m_entries.push_back(sidemenu_list_entry("dotted ascii", 0));
-	m_entries.push_back(sidemenu_list_entry("ascii only", 0));
+	m_entries.push_back(sidemenu_list_entry("printable ascii", 0));
 	m_entries.push_back(sidemenu_list_entry("hex", 0));
 	m_entries.push_back(sidemenu_list_entry("json", 0));
 
