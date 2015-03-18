@@ -417,6 +417,13 @@ Read events from a file and print them to screen
 $ sysdig \-r dumpfile.scap
 .RE
 .PP
+Prepare a sanitized version of a system capture
+.RS
+.PP
+$ sysdig \-r dumpfile.scap \[aq]not evt.buffer contains foo\[aq] \-w
+cleandump.scap
+.RE
+.PP
 Print all the open system calls invoked by cat
 .RS
 .PP

@@ -1101,6 +1101,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	struct ppm_ring_buffer_info *ring_info;
 	int drop = 1;
 	int32_t cbres = PPM_SUCCESS;
+	int cpu;
 
 	if (!test_bit(event_type, g_events_mask))
 		return res;
@@ -1118,11 +1119,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	/*
 	 * FROM THIS MOMENT ON, WE HAVE TO BE SUPER FAST
 	 */
-	ring = get_cpu_ptr(consumer->ring_buffers);
+	cpu = get_cpu();
+	ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 	ring_info = ring->info;
 
 	if (!ring->capture_enabled) {
-		put_cpu_ptr(consumer->ring_buffers);
+		put_cpu();
 		return res;
 	}
 
@@ -1141,8 +1143,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 */
 	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
 		atomic_dec(&ring->preempt_count);
-		put_cpu_ptr(consumer->ring_buffers);
 		ring_info->n_preemptions++;
+		put_cpu();
 		ASSERT(false);
 		return res;
 	}
@@ -1318,7 +1320,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 	}
 
-#ifdef _DEBUG
 	if (ts->tv_sec > ring->last_print_time.tv_sec + 1) {
 		vpr_info("consumer:%p CPU:%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 			   consumer->consumer_id,
@@ -1332,10 +1333,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 		ring->last_print_time = *ts;
 	}
-#endif
 
 	atomic_dec(&ring->preempt_count);
-	put_cpu_ptr(consumer->ring_buffers);
+	put_cpu();
 
 	return res;
 }

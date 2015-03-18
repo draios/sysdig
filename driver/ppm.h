@@ -73,7 +73,11 @@ struct ppm_ring_buffer_context {
 
 struct ppm_consumer_t {
 	struct task_struct *consumer_id;
+#ifdef __percpu
 	struct ppm_ring_buffer_context __percpu *ring_buffers;
+#else
+	struct ppm_ring_buffer_context *ring_buffers;
+#endif
 	u32 snaplen;
 	u32 sampling_ratio;
 	bool do_dynamic_snaplen;
