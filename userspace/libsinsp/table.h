@@ -60,7 +60,7 @@ public:
 class sinsp_merged_table_entry
 {
 public:
-	sinsp_merged_table_entry sinsp_table_entry(uint32_t original_field_num,
+	sinsp_merged_table_entry(uint32_t original_field_num,
 	string name,
 	uint32_t colsize,
 	bool is_key,

@@ -299,7 +299,17 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	if(m_selected_view >= 0)
 	{
 		m_viz = new curses_table(this, m_inspector);
-		m_viz->configure(m_datatable, &m_views[m_selected_view].m_colsizes, &m_views[m_selected_view].m_colnames);
+
+		vector<int32_t> colsizes;
+		vector<string> colnames;
+
+		for(auto fit : m_views[m_selected_view].m_entries)
+		{
+			colsizes.push_back(fit.m_colsize);
+			colnames.push_back(fit.m_name);
+		}
+
+		m_viz->configure(m_datatable, &colsizes, &colnames);
 		if(!is_drilldown)
 		{
 			populate_sidemenu("", &m_sidemenu_viewlist);

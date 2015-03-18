@@ -1622,19 +1622,10 @@ sysdig_init_res systop_init(int argc, char **argv)
 			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "PID", 8, false, A_SUM));
 			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "PID", 8, false, A_SUM));
 			vflds.push_back(sinsp_table_entry("proc.exeline", "PID", 200, false, A_NONE));
-			views.push_back(sinsp_view_info("test", &vflds, NULL, "all, fd.name", 2, "", "", true));
+			views.push_back(sinsp_view_info("Top Processes", &vflds, NULL, "all, fd.name", 2, "", "", true));
 
 
 /*
-			views.push_back(sinsp_view_info("test",
-				"*Kproc.pid proc.pid Mproc.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.exeline", 
-				"all, fd.name",
-				2,
-				"",
-				"NA,PID,CPU%,USER,TH,VIRT,RES,FIN,FOUT,NETIN,NETOUT,Command",
-				"-1,8,8,12,5,9,9,8,8,8,8,200",
-				""));
-
 			views.push_back(sinsp_view_info("Top Processes",
 				"*Kproc.pid proc.pid Mproc.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.exeline", 
 				"all, fd.name",
