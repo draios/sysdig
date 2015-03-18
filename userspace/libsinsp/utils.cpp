@@ -21,6 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <stdlib.h>
 #endif
+#include <sys/time.h>
 #include <algorithm> 
 #include <functional> 
 
@@ -726,6 +727,14 @@ void sinsp_utils::get_filtercheck_fields_info(OUT vector<const filter_check_info
 	g_filterlist.get_all_fields(list);
 }
 #endif
+
+uint64_t sinsp_utils::get_current_time_ns()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    return tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // gettimeofday() windows implementation
