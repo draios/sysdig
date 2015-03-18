@@ -49,7 +49,7 @@ public:
 	}
 
 	//
-	// Use -1 as size for atuosize
+	// Use -1 as size for autosize
 	//
 	curses_table_column_info(IN filtercheck_field_info* info, int32_t size)
 	{

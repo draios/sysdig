@@ -1606,8 +1606,8 @@ sysdig_init_res systop_init(int argc, char **argv)
 				(infiles.size() != 0)? infiles[0] : "",
 				(filter.size() != 0)? filter : "");
 
-			vector<sinsp_table_info> views;
-			views.push_back(sinsp_table_info("Top Processes", 
+			vector<sinsp_view_info> views;
+			views.push_back(sinsp_view_info("Top Processes", 
 				"*Kproc.pid proc.pid Mproc.cpu user.name proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.exeline", 
 				"all, fd.name",
 				2,
@@ -1615,7 +1615,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"NA,PID,CPU%,USER,TH,VIRT,RES,FIN,FOUT,NETIN,NETOUT,Command",
 				"-1,8,8,12,5,9,9,8,8,8,8,200",
 				""));
-			views.push_back(sinsp_table_info("Top Containers",
+			views.push_back(sinsp_view_info("Top Containers",
 				"*Kproc.pid Sproc.cpu evt.count proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mcontainer.id Mcontainer.name",
 				"all",
 				1,
@@ -1624,7 +1624,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"-1,8,8,8,9,9,9,9,9,9,16,200",
 				"container.name != host"));
 			// Top processes for containers
-			views.push_back(sinsp_table_info("Top Processes", 
+			views.push_back(sinsp_view_info("Top Processes", 
 				"*Kproc.pid proc.pid proc.vpid thread.cpu proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.cmdline", 
 				"container.name",
 				1,
@@ -1632,7 +1632,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"NA,PID,VPID,CPU%,THREADS,VIRT,RES,FIN,FOUT,NETIN,NETOUT,Command",
 				"-1,8,8,8,8,8,8,8,8,8,8,200",
 				""));
-			views.push_back(sinsp_table_info("Top Threads", 
+			views.push_back(sinsp_view_info("Top Threads", 
 				"*Kthread.tid thread.tid thread.vtid thread.cpu Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Sevt.count proc.cmdline", 
 				"proc.pid,proc.name",
 				1,
@@ -1640,7 +1640,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"NA,TID,VTID,CPU%,FIN,FOUT,NETIN,NETOUT,SCALLS,Command",
 				"-1,8,8,8,8,8,8,8,8,200",
 				""));
-			views.push_back(sinsp_table_info("Top Connections", 
+			views.push_back(sinsp_view_info("Top Connections", 
 				"*Kfd.name fd.l4proto fd.cip fd.cport fd.sip fd.sport Sevt.buflen.net.in Sevt.buflen.net.out",
 				"all,container.name,proc.pid,proc.name,thread.tid",
 				5,
@@ -1648,7 +1648,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"NA,PROTO,CIP,CPORT,SIP,SPORT,BYTES IN,BYTES OUT",
 				"-1,6,17,8,17,8,10,10",
 				""));
-			views.push_back(sinsp_table_info("Top Files", 
+			views.push_back(sinsp_view_info("Top Files", 
 				"*Kfd.name Sevt.buflen.file.in Sevt.buflen.file.out fd.name",
 				"all,container.name,proc.pid,proc.name,thread.tid",
 				1,
@@ -1656,17 +1656,17 @@ sysdig_init_res systop_init(int argc, char **argv)
 				"NA,BYTES IN,BYTES OUT,FILENAME",
 				"-1,12,12,250",
 				""));
-			views.push_back(sinsp_table_info("top FDs", 
+			views.push_back(sinsp_view_info("top FDs", 
 				"Kfd.name fd.name Sevt.count", 
 				"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
-			views.push_back(sinsp_table_info("Top Syscalls", 
+			views.push_back(sinsp_view_info("Top Syscalls", 
 				"Ksyscall.type syscall.type Sevt.count Sevt.latency", 
 				"all, proc.pid, proc.name, thread.tid", 
 				2, "", 
 				"NA,SYSCALL NAME,#CALLS,TIME", 
 				"-1,20,9,9", 
 				""));
-			views.push_back(sinsp_table_info("User Activity", 
+			views.push_back(sinsp_view_info("User Activity", 
 				"*Kproc.pid Muser.name Mproc.cwd Mproc.cmdline",
 				"all,container.name",
 				3, "", 

@@ -28,26 +28,34 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 string combine_filters(string flt1, string flt2);
 class ctext;
 
-class sinsp_table_info
+class sinsp_view_entry
 {
 public:
-	sinsp_table_info(string name, 
-		string config,
+	string m_field;
+	string m_name;
+	uint32_t m_colsize;
+	bool m_is_key;
+	sinsp_filter_check::aggregation m_aggregation;
+};
+
+class sinsp_view_info
+{
+public:
+	sinsp_view_info(string name,
+		vector<sinsp_view_entry>* entries,
+		vector<sinsp_view_entry>* merged_entries,
 		string applyto,
 		uint32_t sortingcol, 
-		string merge_config, 
-		string colnames, 
-		string colsizes, 
+		string merge_config,
 		string filter);
 
 	string m_name;
-	string m_config;
 	string m_merge_config;
-	vector<int32_t> m_colsizes;
-	vector<string> m_colnames;
 	uint32_t m_sortingcol;
 	string m_filter;
 	vector<string> m_applyto;
+	vector<sinsp_view_entry> m_entries;
+	vector<sinsp_view_entry> m_merged_entries;
 };
 
 class sinsp_ui_selection_info
@@ -193,9 +201,9 @@ public:
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter);
 	~sinsp_cursesui();
-	void configure(vector<sinsp_table_info>* views);
+	void configure(vector<sinsp_view_info>* views);
 	void start(bool is_drilldown, bool is_spy_switch);
-	sinsp_table_info* get_selected_view();
+	sinsp_view_info* get_selected_view();
 	void pause();
 	bool is_searching()
 	{
@@ -379,7 +387,7 @@ public:
 	}
 
 	int m_colors[LAST_COLORELEMENT];
-	vector<sinsp_table_info> m_views;
+	vector<sinsp_view_info> m_views;
 	int32_t m_selected_view;
 	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;

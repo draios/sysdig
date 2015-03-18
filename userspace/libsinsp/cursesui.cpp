@@ -18,20 +18,19 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_table_info implementation
+// sinsp_view_info implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_table_info::sinsp_table_info(string name, 
-	string config,
+sinsp_view_info::sinsp_view_info(string name,
+	vector<sinsp_view_entry>* entries,
+	vector<sinsp_view_entry>* merged_entries,
 	string applyto,
 	uint32_t sortingcol, 
-	string merge_config, 
-	string colnames, 
-	string colsizes, 
+	string merge_config,
 	string filter)
 {
 	m_name = name;
-	m_config = config;
-	m_merge_config = merge_config;
+	m_entries = *entries;
+	m_merged_entries = *merged_entries;
 		
 	if(applyto != "")
 	{
@@ -56,36 +55,6 @@ sinsp_table_info::sinsp_table_info(string name,
 	else
 	{
 		m_applyto.push_back("");
-	}
-
-	if(colnames != "")
-	{
-		char *p = strtok((char*)colnames.c_str(), ",");
-		while (p) 
-		{
-			string ts(p);
-			trim(ts);
-			m_colnames.push_back(ts);
-			p = strtok(NULL, ",");
-		}
-	}
-
-	if(colsizes != "")
-	{
-		char *p = strtok((char*)colsizes.c_str(), " ,");
-		while (p) 
-		{
-			try
-			{
-				m_colsizes.push_back(stoi(p));
-			}
-			catch(...)
-			{
-				throw sinsp_exception("table column size string contains invalid numbers");
-			}
-
-			p = strtok(NULL, " ,");
-		}
 	}
 
 	m_sortingcol = sortingcol;
@@ -225,7 +194,7 @@ sinsp_cursesui::~sinsp_cursesui()
 #endif
 }
 
-void sinsp_cursesui::configure(vector<sinsp_table_info>* views)
+void sinsp_cursesui::configure(vector<sinsp_view_info>* views)
 {
 	if(views == NULL)
 	{
@@ -345,7 +314,7 @@ void sinsp_cursesui::render_header()
 
 	if(m_selected_view >= 0)
 	{
-		sinsp_table_info* sv = get_selected_view();
+		sinsp_view_info* sv = get_selected_view();
 		const char* vcs = sv->m_name.c_str();
 		vs = vcs;
 		vs += " for ";
@@ -663,7 +632,7 @@ void sinsp_cursesui::render()
 }
 #endif
 
-sinsp_table_info* sinsp_cursesui::get_selected_view()
+sinsp_view_info* sinsp_cursesui::get_selected_view()
 {
 	if(m_selected_view < 0)
 	{
