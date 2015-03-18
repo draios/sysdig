@@ -38,6 +38,9 @@ public:
 		string filter,
 		bool use_defaults);
 
+	void get_colsizes(OUT vector<int32_t>* colsizes);
+	void get_colnames(OUT vector<string>* colnames);
+
 	string m_name;
 	string m_merge_config;
 	uint32_t m_sortingcol;
@@ -45,6 +48,7 @@ public:
 	vector<string> m_applyto;
 	vector<sinsp_table_entry> m_entries;
 	bool m_use_defaults;
+	bool m_does_merge;
 };
 
 class sinsp_ui_selection_info
