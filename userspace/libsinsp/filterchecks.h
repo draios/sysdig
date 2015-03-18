@@ -46,16 +46,6 @@ public:
 class sinsp_filter_check
 {
 public:
-	enum aggregation
-	{
-		A_NONE,
-		A_SUM,
-		A_AVG,
-		A_TIME_AVG,
-		A_MIN,
-		A_MAX,		
-	};
-
 	sinsp_filter_check();
 	
 	virtual ~sinsp_filter_check()
@@ -127,8 +117,8 @@ public:
 	sinsp* m_inspector;
 	boolop m_boolop;
 	ppm_cmp_operator m_cmpop;
-	aggregation m_aggregation;
-	aggregation m_merge_aggregation;
+	sinsp_field_aggregation m_aggregation;
+	sinsp_field_aggregation m_merge_aggregation;
 
 protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);

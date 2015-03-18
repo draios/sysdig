@@ -93,6 +93,19 @@ typedef enum sinsp_pd_callback_type
 	CT_TUPLE_CHANGE,
 }sinsp_pd_callback_type;
 
+//
+// Aggregation type for table fields
+//
+typedef enum sinsp_field_aggregation
+{
+	A_NONE,
+	A_SUM,
+	A_AVG,
+	A_TIME_AVG,
+	A_MIN,
+	A_MAX,		
+}sinsp_field_aggregation;
+
 #include "tuples.h"
 #include "fdinfo.h"
 #include "threadinfo.h"

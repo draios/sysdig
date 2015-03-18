@@ -111,15 +111,9 @@ sinsp_table::~sinsp_table()
 	delete m_printer;
 }
 
-void sinsp_table::configure(const string& fmt, const string& merge_fmt, const string& filter)
+void sinsp_table::configure(vector<sinsp_table_entry>* entries, vector<sinsp_merged_table_entry>* merged_entries, const string& filter, bool use_defaults)
 {
-	uint32_t j;
-	string lfmt(fmt);
-
-	if(lfmt == "")
-	{
-		throw sinsp_exception("empty table initializer");
-	}
+	m_use_defaults = use_defaults;
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	// If a filter has been spefied, compile it
@@ -132,95 +126,34 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Parse the format string and extract the tokens
 	//////////////////////////////////////////////////////////////////////////////////////
-	const char* cfmt = lfmt.c_str();
 
 	m_extractors.clear();
-	uint32_t lfmtlen = (uint32_t)lfmt.length();
 
-	for(j = 0; j < lfmtlen;)
+	for(auto vit : *entries)
 	{
-		uint32_t preamble_len = 0;
-		bool is_this_the_key = false;
-		sinsp_filter_check::aggregation ag = sinsp_filter_check::A_NONE;
-		bool continue_loop = false;
-
-		switch(cfmt[j])
-		{
-			case '*':
-				if(j == 0)
-				{
-					j++;
-					m_use_defaults = true;
-					continue_loop = true;
-				}
-				break;
-			case 'K':
-				if(m_is_key_present)
-				{
-					throw sinsp_exception("invalid table configuration");
-				}
-
-				m_is_key_present = true;
-				is_this_the_key = true;
-				preamble_len = 1;
-				break;
-			case 'S':
-				ag = sinsp_filter_check::A_SUM;
-				preamble_len = 1;
-				break;
-			case 'T':
-				ag = sinsp_filter_check::A_TIME_AVG;
-				preamble_len = 1;
-				break;
-			case 'A':
-				ag = sinsp_filter_check::A_AVG;
-				preamble_len = 1;
-				break;
-			case 'm':
-				ag = sinsp_filter_check::A_MIN;
-				preamble_len = 1;
-				break;
-			case 'M':
-				ag = sinsp_filter_check::A_MAX;
-				preamble_len = 1;
-				break;
-			default:
-				break;
-		}
-
-		if(continue_loop)
-		{
-			continue;
-		}
-
-		if(j == lfmtlen - 1)
-		{
-			throw sinsp_exception("invalid table configuration");
-		}
-
-		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + preamble_len), 
+		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(vit.m_field, 
 			m_inspector,
 			false);
 
 		if(chk == NULL)
 		{
-			throw sinsp_exception("invalid table token " + string(cfmt + j + preamble_len));
+			throw sinsp_exception("invalid table token " + vit.m_field);
 		}
 
-		chk->m_aggregation = ag;
+		chk->m_aggregation = (sinsp_field_aggregation)vit.m_aggregation;
 		m_chks_to_free.push_back(chk);
 
-		j += chk->parse_field_name(cfmt + j + preamble_len, true) + preamble_len;
-		ASSERT(j <= lfmt.length());
+		chk->parse_field_name(vit.m_field.c_str(), true);
 
-		while(cfmt[j] == ' ' || cfmt[j] == '\t' || cfmt[j] == ',')
+		if(vit.m_is_key)
 		{
-			j++;
-		}
+			if(m_is_key_present)
+			{
+				throw sinsp_exception("invalid table configuration: multiple keys specified");
+			}
 
-		if(is_this_the_key)
-		{
 			m_extractors.insert(m_extractors.begin(), chk);
+			m_is_key_present = true;
 		}
 		else
 		{
@@ -238,7 +171,7 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 	//
 	if(!m_is_key_present)
 	{
-		throw sinsp_exception("table is missing a key");
+		throw sinsp_exception("table is missing the key");
 	}
 
 	if(m_n_fields < 2)
@@ -258,7 +191,7 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 	//////////////////////////////////////////////////////////////////////////////////////
 	// If a merge has been specified, configure it 
 	//////////////////////////////////////////////////////////////////////////////////////
-	if(merge_fmt == "")
+	if(merged_entries == NULL || merged_entries->size() == 0)
 	{
 		//
 		// No merge string. We can stop here
@@ -267,57 +200,11 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 		return;
 	}
 
-	char* cmfmt = (char*)merge_fmt.c_str();
-	uint32_t mfmtlen = (uint32_t)merge_fmt.length();
-
-	for(j = 0; j < mfmtlen;)
+	for(auto vit : *merged_entries)
 	{
-		uint32_t preamble_len = 0;
-		bool is_this_the_key = false;
-		sinsp_filter_check::aggregation ag = sinsp_filter_check::A_NONE;
+		uint32_t cnum = vit.m_original_field_num;
 
-		switch(cmfmt[j])
-		{
-			case 'K':
-				if(m_is_merge_key_present)
-				{
-					throw sinsp_exception("invalid table configuration");
-				}
-
-				m_is_merge_key_present = true;
-				is_this_the_key = true;
-				preamble_len = 1;
-				break;
-			case 'S':
-				ag = sinsp_filter_check::A_SUM;
-				preamble_len = 1;
-				break;
-			case 'T':
-				ag = sinsp_filter_check::A_TIME_AVG;
-				preamble_len = 1;
-				break;
-			case 'm':
-				ag = sinsp_filter_check::A_MIN;
-				preamble_len = 1;
-				break;
-			case 'M':
-				ag = sinsp_filter_check::A_MAX;
-				preamble_len = 1;
-				break;
-			default:
-				break;
-		}
-
-		if(j == mfmtlen - 1)
-		{
-			throw sinsp_exception("invalid table merge configuration");
-		}
-
-		char* scnum = cmfmt + j + preamble_len;
-		uint32_t cnum; 
-		uint32_t ns = sscanf(scnum, "%" PRIu32, &cnum);
-
-		if(ns != 1 || cnum >= m_n_fields)
+		if(cnum >= m_n_fields)
 		{
 			throw sinsp_exception("invalid table merge identifier");
 		}
@@ -326,32 +213,21 @@ void sinsp_table::configure(const string& fmt, const string& merge_fmt, const st
 
 		sinsp_filter_check* chk = m_extractors[cnum];
 
-		chk->m_merge_aggregation = ag;
+		chk->m_merge_aggregation = (sinsp_field_aggregation)vit.m_aggregation;
 
-		if(is_this_the_key)
+		if(vit.m_is_key)
 		{
+			if(m_is_merge_key_present)
+			{
+				throw sinsp_exception("invalid table configuration: more than one merge key specified");
+			}
+
+			m_is_merge_key_present = true;
 			m_mergers.insert(m_mergers.begin(), chk);
 		}
 		else
 		{
 			m_mergers.push_back(chk);
-		}
-
-		//
-		// Go to the end of the string
-		//
-		j += preamble_len + 1;
-		while(j < mfmtlen && (cmfmt[j] != ' ' && cmfmt[j] != '\t' && cmfmt[j] != ','))
-		{
-			j++;
-		}
-
-		//
-		// Skip spaces
-		//
-		while(j < mfmtlen && (cmfmt[j] == ' ' || cmfmt[j] == '\t' || cmfmt[j] == ','))
-		{
-			j++;
 		}
 	}
 
@@ -986,16 +862,16 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 
 	switch(aggr)
 	{
-	case sinsp_filter_check::A_NONE:
+	case A_NONE:
 		return;
-	case sinsp_filter_check::A_SUM:
+	case A_SUM:
 		add_fields_sum(type, dst, src);		
 		return;
-	case sinsp_filter_check::A_AVG:
+	case A_AVG:
 		dst->m_cnt++;
 		add_fields_sum(type, dst, src);		
 		return;
-	case sinsp_filter_check::A_MAX:
+	case A_MAX:
 		add_fields_max(type, dst, src);		
 		return;
 	default:

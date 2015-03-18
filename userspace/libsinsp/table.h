@@ -34,6 +34,52 @@ typedef enum sysdig_table_action
 	STA_DIG,
 }sysdig_table_action;
 
+class sinsp_table_entry
+{
+public:
+	sinsp_table_entry(string field,
+	string name,
+	uint32_t colsize,
+	bool is_key,
+	uint32_t aggregation)
+	{
+		m_field = field;
+		m_name = name;
+		m_colsize = colsize;
+		m_is_key = is_key;
+		m_aggregation = aggregation;
+	}
+
+	string m_field;
+	string m_name;
+	uint32_t m_colsize;
+	bool m_is_key;
+	uint32_t m_aggregation;
+};
+
+class sinsp_merged_table_entry
+{
+public:
+	sinsp_merged_table_entry sinsp_table_entry(uint32_t original_field_num,
+	string name,
+	uint32_t colsize,
+	bool is_key,
+	uint32_t aggregation)
+	{
+		m_original_field_num = original_field_num;
+		m_name = name;
+		m_colsize = colsize;
+		m_is_key = is_key;
+		m_aggregation = aggregation;
+	}
+
+	uint32_t m_original_field_num;
+	string m_name;
+	uint32_t m_colsize;
+	bool m_is_key;
+	uint32_t m_aggregation; // this will be casted to a sinsp_filter_check::aggregation
+};
+
 class sinsp_table_field
 {
 public:
@@ -210,7 +256,7 @@ class sinsp_table
 public:	
 	sinsp_table(sinsp* inspector);
 	~sinsp_table();
-	void configure(const string& fmt, const string& merge_fmt, const string& filter);
+	void configure(vector<sinsp_table_entry>* entries, vector<sinsp_merged_table_entry>* merged_entries, const string& filter, bool use_defaults);
 	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	void filter_sample();

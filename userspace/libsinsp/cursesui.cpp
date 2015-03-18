@@ -21,16 +21,29 @@
 // sinsp_view_info implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_view_info::sinsp_view_info(string name,
-	vector<sinsp_view_entry>* entries,
-	vector<sinsp_view_entry>* merged_entries,
+	vector<sinsp_table_entry>* entries,
+	vector<sinsp_merged_table_entry>* merged_entries,
 	string applyto,
 	uint32_t sortingcol, 
 	string merge_config,
-	string filter)
+	string filter,
+	bool use_defaults)
 {
 	m_name = name;
+	
+	if(entries == NULL)
+	{
+		ASSERT(false);
+		throw sinsp_exception("invalid view definition, entries=NULL");
+	}
 	m_entries = *entries;
-	m_merged_entries = *merged_entries;
+
+	if(merged_entries != NULL)
+	{
+		m_merged_entries = *merged_entries;
+	}
+
+	m_use_defaults = use_defaults;
 		
 	if(applyto != "")
 	{
@@ -256,9 +269,10 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 
 		try
 		{
-			m_datatable->configure(m_views[m_selected_view].m_config, 
-				m_views[m_selected_view].m_merge_config,
-				m_complete_filter);
+			m_datatable->configure(&m_views[m_selected_view].m_entries, 
+				&m_views[m_selected_view].m_merged_entries,
+				m_complete_filter,
+				m_views[m_selected_view].m_use_defaults);
 		}
 		catch(...)
 		{

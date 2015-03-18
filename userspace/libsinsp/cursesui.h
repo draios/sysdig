@@ -28,34 +28,26 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 string combine_filters(string flt1, string flt2);
 class ctext;
 
-class sinsp_view_entry
-{
-public:
-	string m_field;
-	string m_name;
-	uint32_t m_colsize;
-	bool m_is_key;
-	sinsp_filter_check::aggregation m_aggregation;
-};
-
 class sinsp_view_info
 {
 public:
 	sinsp_view_info(string name,
-		vector<sinsp_view_entry>* entries,
-		vector<sinsp_view_entry>* merged_entries,
+		vector<sinsp_table_entry>* entries,
+		vector<sinsp_merged_table_entry>* merged_entries,
 		string applyto,
 		uint32_t sortingcol, 
 		string merge_config,
-		string filter);
+		string filter,
+		bool use_defaults);
 
 	string m_name;
 	string m_merge_config;
 	uint32_t m_sortingcol;
 	string m_filter;
 	vector<string> m_applyto;
-	vector<sinsp_view_entry> m_entries;
-	vector<sinsp_view_entry> m_merged_entries;
+	vector<sinsp_table_entry> m_entries;
+	vector<sinsp_merged_table_entry> m_merged_entries;
+	bool m_use_defaults;
 };
 
 class sinsp_ui_selection_info
