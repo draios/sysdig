@@ -76,6 +76,8 @@ public:
 	// Get the list of filtercheck fields
 	//
 	static void get_filtercheck_fields_info(vector<const filter_check_info*>* list);
+
+	static uint64_t get_current_time_ns();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
