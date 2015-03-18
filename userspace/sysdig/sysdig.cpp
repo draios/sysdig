@@ -1612,18 +1612,33 @@ sysdig_init_res systop_init(int argc, char **argv)
 			vflds.clear();
 			vflds.push_back(sinsp_table_entry("proc.pid", "NA", -1, F_IS_KEY, A_NONE));
 			vflds.push_back(sinsp_table_entry("proc.pid", "PID", 8, F_NONE, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.cpu", "PID", 8, F_SORTBY, A_MAX));
-			vflds.push_back(sinsp_table_entry("user.name", "PID", 12, F_NONE, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.nthreads", "PID", 5, F_NONE, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.vmsize", "PID", 9, F_NONE, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.vmrss", "PID", 9, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.cpu", "CPU", 8, F_SORTBY, A_MAX));
+			vflds.push_back(sinsp_table_entry("user.name", "USER", 12, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.nthreads", "TH", 5, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.vmsize", "VIRT", 9, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.vmrss", "RES", 9, F_NONE, A_NONE));
 			vflds.push_back(sinsp_table_entry("evt.buflen.file.in", "FIN", 8, F_NONE, A_SUM));
 			vflds.push_back(sinsp_table_entry("evt.buflen.file.out", "FOUT", 8, F_NONE, A_SUM));
 			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "NETIN", 8, F_NONE, A_SUM));
 			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "NETOUT", 8, F_NONE, A_SUM));
 			vflds.push_back(sinsp_table_entry("proc.exeline", "Command", 200, F_NONE, A_NONE));
 			views.push_back(sinsp_view_info("Top Processes", &vflds, NULL, "all,fd.name", "", "", true));
-
+/*
+			vflds.clear();
+			vflds.push_back(sinsp_table_entry("proc.pid", "NA", -1, F_IS_KEY, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.cpu", "NA", -1, F_NONE, A_MAX));
+			vflds.push_back(sinsp_table_entry("evt.count", "NA", -1, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.nthreads", "NA", -1, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.vmsize", "NA", -1, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.vmrss", "NA", -1, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("evt.buflen.file.in", "NA", -1, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.file.out", "NA", -1, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "NA", -1, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "NA", -1, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("container.id", "NA", -1, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("container.name", "NA", -1, F_NONE, A_NONE));
+			views.push_back(sinsp_view_info("Top Containers", &vflds, NULL, "all", "", "container.name != host", true));
+*/
 			vflds.clear();
 			vflds.push_back(sinsp_table_entry("thread.tid", "NA", -1, F_IS_KEY, A_NONE));
 			vflds.push_back(sinsp_table_entry("thread.tid", "TID", 8, F_NONE, A_NONE));
@@ -1845,8 +1860,8 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-	res = systop_init(argc, argv);
-	return 0;
+//	res = systop_init(argc, argv);
+//	return 0;
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);
