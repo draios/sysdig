@@ -351,7 +351,7 @@ void curses_table::render(bool data_changed)
 			string coltext = m_legend[j].m_name;
 			if((int32_t)coltext.size() > m_legend[j].m_size - 2)
 			{
-				coltext = coltext.substr(0, m_legend[j].m_size - 2);
+				coltext = coltext.substr(0, m_legend[j].m_size - 1);
 			}
 
 			curses_table::alignment al = get_field_alignment(m_table->m_types->at(j + 1));
