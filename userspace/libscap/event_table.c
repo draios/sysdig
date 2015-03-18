@@ -254,4 +254,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_CONTAINER_X */{"container", EC_INTERNAL, EF_UNUSED, 0},
 	/* PPME_SYSCALL_EXECVE_16_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_EXECVE_16_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 16, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA} } },
+	/* PPME_SIGNALDELIVER_E */ {"signaldeliver", EC_SIGNAL, EF_MODIFIES_STATE, 3, {{"spid", PT_PID, PF_DEC}, {"dpid", PT_PID, PF_DEC}, {"sig", PT_SIGTYPE, PF_DEC} } },
+	/* PPME_SIGNALDELIVER_X */ {"signaldeliver", EC_SIGNAL, EF_MODIFIES_STATE, 0 },
 };

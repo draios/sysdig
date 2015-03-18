@@ -388,6 +388,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPME_IS_EXIT(x) (x & PPME_DIRECTION_FLAG)
 #define PPME_MAKE_ENTER(x) (x & (~1))
 
+/*
+ * Event category to classify events in generic categories
+ */
+enum ppm_capture_category {
+	PPMC_NONE = 0,
+	PPMC_SYSCALL = 1,
+	PPMC_CONTEXT_SWITCH = 2,
+	PPMC_SIGNAL = 3,
+};
+
 /** @defgroup etypes Event Types
  *  @{
  */
@@ -624,7 +634,9 @@ enum ppm_event_type {
 	PPME_CONTAINER_X = 229,
 	PPME_SYSCALL_EXECVE_16_E = 230,
 	PPME_SYSCALL_EXECVE_16_X = 231,
-	PPM_EVENT_MAX = 232
+	PPME_SIGNALDELIVER_E = 232,
+	PPME_SIGNALDELIVER_X = 233, /* This should never be called */
+	PPM_EVENT_MAX = 234
 };
 /*@}*/
 
@@ -1126,6 +1138,8 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_GET_VPID _IO(PPM_IOCTL_MAGIC, 11)
 #define PPM_IOCTL_GET_CURRENT_TID _IO(PPM_IOCTL_MAGIC, 12)
 #define PPM_IOCTL_GET_CURRENT_PID _IO(PPM_IOCTL_MAGIC, 13)
+#define PPM_IOCTL_DISABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 14)
+#define PPM_IOCTL_ENABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 15)
 
 /*!
   \brief System call description struct.
