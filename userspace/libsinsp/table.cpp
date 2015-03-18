@@ -111,7 +111,7 @@ sinsp_table::~sinsp_table()
 	delete m_printer;
 }
 
-void sinsp_table::configure(vector<sinsp_table_entry>* entries, vector<sinsp_merged_table_entry>* merged_entries, const string& filter, bool use_defaults)
+void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& filter, bool use_defaults)
 {
 	m_use_defaults = use_defaults;
 
@@ -145,7 +145,7 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, vector<sinsp_mer
 
 		chk->parse_field_name(vit.m_field.c_str(), true);
 
-		if((vit.m_flags & F_IS_KEY) != 0)
+		if((vit.m_flags & TEF_IS_KEY) != 0)
 		{
 			if(m_is_key_present)
 			{
@@ -191,7 +191,19 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, vector<sinsp_mer
 	//////////////////////////////////////////////////////////////////////////////////////
 	// If a merge has been specified, configure it 
 	//////////////////////////////////////////////////////////////////////////////////////
-	if(merged_entries == NULL || merged_entries->size() == 0)
+	bool do_merge = false;
+	uint32_t n_gby_keys = 0;
+
+	for(auto vit : *entries)
+	{
+		if((vit.m_flags & TEF_IS_MERGE_KEY) != 0)
+		{
+			do_merge = true;
+			n_gby_keys++;
+		}
+	}
+
+	if(n_gby_keys == 0)
 	{
 		//
 		// No merge string. We can stop here
@@ -199,23 +211,29 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, vector<sinsp_mer
 		m_do_merging = false;
 		return;
 	}
-
-	for(auto vit : *merged_entries)
+	else if(n_gby_keys > 1)
 	{
-		uint32_t cnum = vit.m_original_field_num;
+		throw sinsp_exception("invalid table definition: multiple groupby keys");
+	}
 
-		if(cnum >= m_n_fields)
+	for(uint32_t j = 0; j < entries->size(); j++)
+	{
+		auto vit = entries->at(j);
+
+		//
+		// Skip original key when grouping
+		//
+		if((vit.m_flags & TEF_IS_KEY) != 0)
 		{
-			throw sinsp_exception("invalid table merge identifier");
+			continue;
 		}
 
-		m_merge_columns.push_back(cnum);
 
-		sinsp_filter_check* chk = m_extractors[cnum];
+		sinsp_filter_check* chk = m_extractors[j];
 
-		chk->m_merge_aggregation = (sinsp_field_aggregation)vit.m_aggregation;
+		chk->m_merge_aggregation = (sinsp_field_aggregation)vit.m_merge_aggregation;
 
-		if((vit.m_flags & F_IS_KEY) != 0)
+		if((vit.m_flags & TEF_IS_MERGE_KEY) != 0)
 		{
 			if(m_is_merge_key_present)
 			{
@@ -224,10 +242,12 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, vector<sinsp_mer
 
 			m_is_merge_key_present = true;
 			m_mergers.insert(m_mergers.begin(), chk);
+			m_merge_columns.insert(m_merge_columns.begin(), j);
 		}
 		else
 		{
 			m_mergers.push_back(chk);
+			m_merge_columns.push_back(j);
 		}
 	}
 

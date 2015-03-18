@@ -33,7 +33,6 @@ class sinsp_view_info
 public:
 	sinsp_view_info(string name,
 		vector<sinsp_table_entry>* entries,
-		vector<sinsp_merged_table_entry>* merged_entries,
 		string applyto,
 		string merge_config,
 		string filter,
@@ -45,7 +44,6 @@ public:
 	string m_filter;
 	vector<string> m_applyto;
 	vector<sinsp_table_entry> m_entries;
-	vector<sinsp_merged_table_entry> m_merged_entries;
 	bool m_use_defaults;
 };
 

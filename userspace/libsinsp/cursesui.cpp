@@ -22,7 +22,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_view_info::sinsp_view_info(string name,
 	vector<sinsp_table_entry>* entries,
-	vector<sinsp_merged_table_entry>* merged_entries,
 	string applyto,
 	string merge_config,
 	string filter,
@@ -36,11 +35,6 @@ sinsp_view_info::sinsp_view_info(string name,
 		throw sinsp_exception("invalid view definition, entries=NULL");
 	}
 	m_entries = *entries;
-
-	if(merged_entries != NULL)
-	{
-		m_merged_entries = *merged_entries;
-	}
 
 	m_use_defaults = use_defaults;
 		
@@ -74,26 +68,12 @@ sinsp_view_info::sinsp_view_info(string name,
 	//
 	uint32_t n_sorting_cols = 0;
 
-	if(merged_entries)
+	for(uint32_t j = 0; j < entries->size(); j++)
 	{
-		for(uint32_t j = 0; j < merged_entries->size(); j++)
+		if((entries->at(j).m_flags & TEF_SORTBY) != 0)
 		{
-			if((merged_entries->at(j).m_flags & F_SORTBY) != 0)
-			{
-				m_sortingcol = j;
-				n_sorting_cols++;
-			}
-		}
-	}
-	else
-	{
-		for(uint32_t j = 0; j < entries->size(); j++)
-		{
-			if((entries->at(j).m_flags & F_SORTBY) != 0)
-			{
-				m_sortingcol = j;
-				n_sorting_cols++;
-			}
+			m_sortingcol = j;
+			n_sorting_cols++;
 		}
 	}
 
@@ -305,7 +285,6 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		try
 		{
 			m_datatable->configure(&m_views[m_selected_view].m_entries, 
-				&m_views[m_selected_view].m_merged_entries,
 				m_complete_filter,
 				m_views[m_selected_view].m_use_defaults);
 		}
