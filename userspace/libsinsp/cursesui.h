@@ -35,7 +35,6 @@ public:
 		vector<sinsp_table_entry>* entries,
 		vector<sinsp_merged_table_entry>* merged_entries,
 		string applyto,
-		uint32_t sortingcol, 
 		string merge_config,
 		string filter,
 		bool use_defaults);

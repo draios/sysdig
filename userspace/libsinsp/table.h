@@ -34,27 +34,34 @@ typedef enum sysdig_table_action
 	STA_DIG,
 }sysdig_table_action;
 
+enum sinsp_table_entry_flags
+{
+	F_NONE = 0,
+	F_IS_KEY = 1,
+	F_SORTBY = (1 << 1),
+};
+
 class sinsp_table_entry
 {
 public:
 	sinsp_table_entry(string field,
 	string name,
 	uint32_t colsize,
-	bool is_key,
+	sinsp_table_entry_flags flags,
 	uint32_t aggregation)
 	{
 		m_field = field;
 		m_name = name;
 		m_colsize = colsize;
-		m_is_key = is_key;
 		m_aggregation = aggregation;
+		m_flags = flags;
 	}
 
 	string m_field;
 	string m_name;
 	uint32_t m_colsize;
-	bool m_is_key;
 	uint32_t m_aggregation;
+	sinsp_table_entry_flags m_flags;
 };
 
 class sinsp_merged_table_entry
@@ -63,21 +70,21 @@ public:
 	sinsp_merged_table_entry(uint32_t original_field_num,
 	string name,
 	uint32_t colsize,
-	bool is_key,
+	sinsp_table_entry_flags flags,
 	uint32_t aggregation)
 	{
 		m_original_field_num = original_field_num;
 		m_name = name;
 		m_colsize = colsize;
-		m_is_key = is_key;
 		m_aggregation = aggregation;
+		m_flags = flags;
 	}
 
 	uint32_t m_original_field_num;
 	string m_name;
 	uint32_t m_colsize;
-	bool m_is_key;
 	uint32_t m_aggregation; // this will be casted to a sinsp_filter_check::aggregation
+	sinsp_table_entry_flags m_flags;
 };
 
 class sinsp_table_field

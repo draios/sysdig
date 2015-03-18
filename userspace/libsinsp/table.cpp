@@ -145,7 +145,7 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, vector<sinsp_mer
 
 		chk->parse_field_name(vit.m_field.c_str(), true);
 
-		if(vit.m_is_key)
+		if((vit.m_flags & F_IS_KEY) != 0)
 		{
 			if(m_is_key_present)
 			{
@@ -215,7 +215,7 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, vector<sinsp_mer
 
 		chk->m_merge_aggregation = (sinsp_field_aggregation)vit.m_aggregation;
 
-		if(vit.m_is_key)
+		if((vit.m_flags & F_IS_KEY) != 0)
 		{
 			if(m_is_merge_key_present)
 			{

@@ -1610,39 +1610,39 @@ sysdig_init_res systop_init(int argc, char **argv)
 			vector<sinsp_table_entry> vflds;
 
 			vflds.clear();
-			vflds.push_back(sinsp_table_entry("proc.pid", "NA", -1, true, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.pid", "PID", 8, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.cpu", "PID", 8, false, A_MAX));
-			vflds.push_back(sinsp_table_entry("user.name", "PID", 12, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.nthreads", "PID", 5, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.vmsize", "PID", 9, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.vmrss", "PID", 9, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("evt.buflen.file.in", "FIN", 8, false, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.buflen.file.out", "FOUT", 8, false, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "NETIN", 8, false, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "NETOUT", 8, false, A_SUM));
-			vflds.push_back(sinsp_table_entry("proc.exeline", "Command", 200, false, A_NONE));
-			views.push_back(sinsp_view_info("Top Processes", &vflds, NULL, "all,fd.name", 2, "", "", true));
+			vflds.push_back(sinsp_table_entry("proc.pid", "NA", -1, F_IS_KEY, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.pid", "PID", 8, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.cpu", "PID", 8, F_SORTBY, A_MAX));
+			vflds.push_back(sinsp_table_entry("user.name", "PID", 12, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.nthreads", "PID", 5, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.vmsize", "PID", 9, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.vmrss", "PID", 9, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("evt.buflen.file.in", "FIN", 8, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.file.out", "FOUT", 8, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "NETIN", 8, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "NETOUT", 8, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("proc.exeline", "Command", 200, F_NONE, A_NONE));
+			views.push_back(sinsp_view_info("Top Processes", &vflds, NULL, "all,fd.name", "", "", true));
 
 			vflds.clear();
-			vflds.push_back(sinsp_table_entry("thread.tid", "NA", -1, true, A_NONE));
-			vflds.push_back(sinsp_table_entry("thread.tid", "TID", 8, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("thread.vtid", "VTID", 8, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("thread.cpu", "CPU%", 8, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("evt.count", "SCALLS", 8, false, A_SUM));
-			vflds.push_back(sinsp_table_entry("proc.exeline", "Command", 200, false, A_NONE));
-			views.push_back(sinsp_view_info("Top Threads", &vflds, NULL, "all,proc.pid,proc.name", 3, "", "", true));
+			vflds.push_back(sinsp_table_entry("thread.tid", "NA", -1, F_IS_KEY, A_NONE));
+			vflds.push_back(sinsp_table_entry("thread.tid", "TID", 8, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("thread.vtid", "VTID", 8, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("thread.cpu", "CPU%", 8, F_SORTBY, A_NONE));
+			vflds.push_back(sinsp_table_entry("evt.count", "SCALLS", 8, F_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("proc.exeline", "Command", 200, F_NONE, A_NONE));
+			views.push_back(sinsp_view_info("Top Threads", &vflds, NULL, "all,proc.pid,proc.name", "", "", true));
 
 			vflds.clear();
-			vflds.push_back(sinsp_table_entry("fd.name", "NA", -1, true, A_NONE));
-			vflds.push_back(sinsp_table_entry("fd.l4proto", "PROTO", 6, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("fd.cip", "CIP", 17, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("fd.cport", "CPORT", 8, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("fd.sip", "SIP", 17, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("fd.sport", "SPORT", 8, false, A_NONE));
-			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "NETIN", 10, false, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "NETOUT", 10, false, A_SUM));
-			views.push_back(sinsp_view_info("Top Connections", &vflds, NULL, "all,container.name,proc.pid,proc.name,thread.tid", 6, "", "", true));
+			vflds.push_back(sinsp_table_entry("fd.name", "NA", -1, F_IS_KEY, A_NONE));
+			vflds.push_back(sinsp_table_entry("fd.l4proto", "PROTO", 6, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("fd.cip", "CIP", 17, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("fd.cport", "CPORT", 8, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("fd.sip", "SIP", 17, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("fd.sport", "SPORT", 8, F_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "NETIN", 10, F_SORTBY, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "NETOUT", 10, F_NONE, A_SUM));
+			views.push_back(sinsp_view_info("Top Connections", &vflds, NULL, "all,container.name,proc.pid,proc.name,thread.tid", "", "", true));
 
 /*
 			views.push_back(sinsp_view_info("Top Processes",

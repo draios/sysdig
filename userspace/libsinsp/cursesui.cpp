@@ -24,7 +24,6 @@ sinsp_view_info::sinsp_view_info(string name,
 	vector<sinsp_table_entry>* entries,
 	vector<sinsp_merged_table_entry>* merged_entries,
 	string applyto,
-	uint32_t sortingcol, 
 	string merge_config,
 	string filter,
 	bool use_defaults)
@@ -70,7 +69,43 @@ sinsp_view_info::sinsp_view_info(string name,
 		m_applyto.push_back("");
 	}
 
-	m_sortingcol = sortingcol;
+	//
+	// Determine the sorting column
+	//
+	uint32_t n_sorting_cols = 0;
+
+	if(merged_entries)
+	{
+		for(uint32_t j = 0; j < merged_entries->size(); j++)
+		{
+			if((merged_entries->at(j).m_flags & F_SORTBY) != 0)
+			{
+				m_sortingcol = j;
+				n_sorting_cols++;
+			}
+		}
+	}
+	else
+	{
+		for(uint32_t j = 0; j < entries->size(); j++)
+		{
+			if((entries->at(j).m_flags & F_SORTBY) != 0)
+			{
+				m_sortingcol = j;
+				n_sorting_cols++;
+			}
+		}
+	}
+
+	if(n_sorting_cols == 0)
+	{
+		m_sortingcol = 0;
+	}
+	else if(n_sorting_cols > 1)
+	{
+		throw sinsp_exception("view format error: more than one sprting column");
+	}
+
 	m_filter = filter;
 }
 
