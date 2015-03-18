@@ -337,7 +337,7 @@ void curses_table::render(bool data_changed)
 
 		for(j = 0, k = 0; j < m_legend.size(); j++)
 		{
-			if(j == m_table->get_sorting_col())
+			if(j == m_table->get_sorting_col() - 1)
 			{
 				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
 			}

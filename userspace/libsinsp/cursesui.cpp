@@ -871,7 +871,9 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 		rowkeybak.m_len = rowkey->m_len;
 	}
 
-	m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
+	m_sel_hierarchy.push_back(field, val, 
+		m_selected_view, m_selected_sidemenu_entry, 
+		&rowkeybak, m_datatable->get_sorting_col());
 
 	if(is_dig)
 	{
@@ -910,7 +912,6 @@ bool sinsp_cursesui::drilldown(string field, string val)
 {
 	uint32_t j = 0;
 
-
 	for(auto it = m_views.begin(); it != m_views.end(); ++it)
 	{
 		for(auto atit = it->m_applyto.begin(); atit != it->m_applyto.end(); ++atit)
@@ -930,7 +931,9 @@ bool sinsp_cursesui::drilldown(string field, string val)
 					rowkeybak.m_len = rowkey->m_len;
 				}
 
-				m_sel_hierarchy.push_back(field, val, m_selected_view, m_selected_sidemenu_entry, &rowkeybak);
+				m_sel_hierarchy.push_back(field, val, 
+					m_selected_view, m_selected_sidemenu_entry, 
+					&rowkeybak, m_datatable->get_sorting_col());
 				m_selected_view = j;
 
 				if(!m_inspector->is_live())
@@ -957,8 +960,6 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				m_selected_sidemenu_entry = 0;
 				m_viz->render(true);
 				render();
-//mvprintw(1, 0, "!!!!%d-%s", pippo, field.c_str());
-//refresh();
 #endif
 
 				return true;
@@ -1025,10 +1026,18 @@ bool sinsp_cursesui::drillup()
 
 		m_viz->m_drilled_up = true;
 		populate_sidemenu(field, &m_sidemenu_viewlist);
+
+		//
+		// If sorting is different from the default one, restore it
+		//
+		if(sinfo->m_prev_sorting_col != m_views[m_selected_view].m_sortingcol)
+		{
+			m_datatable->set_sorting_col(sinfo->m_prev_sorting_col);
+		}
+
 		clear();
-//mvprintw(1, 0, "@@@@%d-%d-%s", m_selected_view, m_selected_sidemenu_entry, field.c_str());
-//refresh();
 		m_viz->render(true);
+
 		render();
 #endif
 

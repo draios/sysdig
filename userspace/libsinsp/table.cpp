@@ -86,6 +86,7 @@ sinsp_table::sinsp_table(sinsp* inspector)
 	m_zero_u64 = 0;
 	m_zero_double = 0;
 	m_paused = false;
+	m_sample_data = NULL;
 }
 
 sinsp_table::~sinsp_table()
@@ -691,9 +692,6 @@ void sinsp_table::sort_sample()
 		cc.m_ascending = m_is_sorting_ascending;
 		cc.m_type = m_types->at(m_sorting_col + 1);
 
-//mvprintw(4, 10, "s%d:%d", (int)m_sorting_col, (int)m_is_sorting_ascending);
-//refresh();
-
 		sort(m_sample_data->begin(),
 			m_sample_data->end(),
 			cc);
@@ -858,7 +856,6 @@ void sinsp_table::create_sample()
 
 		m_full_sample_data.push_back(row);
 	}
-
 }
 
 void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)

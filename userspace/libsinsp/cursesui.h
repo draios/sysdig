@@ -57,12 +57,14 @@ public:
 		string val, 
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
-		sinsp_table_field* rowkey)
+		sinsp_table_field* rowkey,
+		uint32_t prev_sorting_col)
 	{
 		m_field = field;
 		m_val = val;
 		m_prev_selected_view = prev_selected_view;
 		m_prev_selected_sidemenu_entry = prev_selected_sidemenu_entry;
+		m_prev_sorting_col = prev_sorting_col;
 
 		m_rowkey = *rowkey;
 	}
@@ -71,6 +73,7 @@ public:
 	string m_val;
 	uint32_t m_prev_selected_view;
 	uint32_t m_prev_selected_sidemenu_entry;
+	uint32_t m_prev_sorting_col;
 	sinsp_table_field m_rowkey;
 };
 
@@ -81,13 +84,15 @@ public:
 		string val, 
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
-		sinsp_table_field* rowkey)
+		sinsp_table_field* rowkey,
+		uint32_t prev_sorting_col)
 	{
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
 			val, 
 			prev_selected_view, 
 			prev_selected_sidemenu_entry, 
-			rowkey));
+			rowkey,
+			prev_sorting_col));
 	}
 
 	string tofilter()
