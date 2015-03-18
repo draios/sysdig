@@ -724,6 +724,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case PPM_IOCTL_GET_CURRENT_PID:
 		ret = task_tgid_nr(current);
 		goto cleanup_ioctl;
+#ifdef CAPTURE_SIGNAL_DELIVERIES
 	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
 	{
 		vpr_info("PPM_IOCTL_DISABLE_SIGNAL_DELIVER\n");
@@ -740,6 +741,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = 0;
 		goto cleanup_ioctl;
 	}
+#endif
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
