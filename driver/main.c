@@ -1512,7 +1512,7 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 	event_data.event_info.signal_data.info = info;
 	event_data.event_info.signal_data.ka = ka;
 
-	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED, &event_data);
+	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data);
 }
 #endif
 
