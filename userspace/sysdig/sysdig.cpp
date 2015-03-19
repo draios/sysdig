@@ -1611,17 +1611,17 @@ sysdig_init_res systop_init(int argc, char **argv)
 
 			vflds.clear();
 			vflds.push_back(sinsp_table_entry("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
-			vflds.push_back(sinsp_table_entry("proc.cpu", "NA", -1, TEF_SORTBY, A_MAX, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.count", "NA", -1, TEF_NONE, A_NONE, A_SUM));
-			vflds.push_back(sinsp_table_entry("proc.nthreads", "NA", -1, TEF_NONE, A_NONE, A_SUM));
-			vflds.push_back(sinsp_table_entry("proc.vmsize", "NA", -1, TEF_NONE, A_NONE, A_SUM));
-			vflds.push_back(sinsp_table_entry("proc.vmrss", "NA", -1, TEF_NONE, A_NONE, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.buflen.file.in", "NA", -1, TEF_NONE, A_SUM, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.buflen.file.out", "NA", -1, TEF_NONE, A_SUM, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "NA", -1, TEF_NONE, A_SUM, A_SUM));
-			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "NA", -1, TEF_NONE, A_SUM, A_SUM));
-			vflds.push_back(sinsp_table_entry("container.id", "NA", -1, TEF_IS_MERGE_KEY, A_NONE, A_NONE));
-			vflds.push_back(sinsp_table_entry("container.name", "NA", -1, TEF_NONE, A_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("proc.cpu", "CPU", 8, TEF_SORTBY, A_MAX, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.count", "PROCS", 8, TEF_NONE, A_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("proc.nthreads", "THREADS", 8, TEF_NONE, A_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("proc.vmsize", "VIRT", 9, TEF_NONE, A_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("proc.vmrss", "RES", 9, TEF_NONE, A_NONE, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.file.in", "FIN", 9, TEF_NONE, A_SUM, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.file.out", "FOUT", 9, TEF_NONE, A_SUM, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.net.in", "NETIN", 9, TEF_NONE, A_SUM, A_SUM));
+			vflds.push_back(sinsp_table_entry("evt.buflen.net.out", "NETOUT", 9, TEF_NONE, A_SUM, A_SUM));
+			vflds.push_back(sinsp_table_entry("container.id", "ID", -1, TEF_IS_MERGE_KEY, A_NONE, A_NONE));
+			vflds.push_back(sinsp_table_entry("container.name", "NAME", 200, TEF_NONE, A_NONE, A_NONE));
 			views.push_back(sinsp_view_info("Top Containers", &vflds, "all", "", "container.name != host", true));
 
 			vflds.clear();

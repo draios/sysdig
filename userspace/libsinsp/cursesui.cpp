@@ -347,11 +347,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		vector<int32_t> colsizes;
 		vector<string> colnames;
 
-		for(auto fit : m_views[m_selected_view].m_entries)
-		{
-			colsizes.push_back(fit.m_colsize);
-			colnames.push_back(fit.m_name);
-		}
+		m_views[m_selected_view].get_col_names_and_sizes(&colnames, &colsizes);
 
 		m_viz->configure(m_datatable, &colsizes, &colnames);
 		if(!is_drilldown)
@@ -385,17 +381,16 @@ void sinsp_cursesui::render_header()
 		sinsp_view_info* sv = get_selected_view();
 		const char* vcs = sv->m_name.c_str();
 		vs = vcs;
-		vs += " for ";
 	}
 	else
 	{
 		if(m_selected_view == VIEW_ID_SPY)
 		{
-			vs = "I/O activity for ";
+			vs = "I/O activity";
 		}
 		else if(m_selected_view == VIEW_ID_DIG)
 		{
-			vs = "sysdig output for ";
+			vs = "sysdig output";
 		}
 		else
 		{
@@ -405,6 +400,8 @@ void sinsp_cursesui::render_header()
 
 	if(m_sel_hierarchy.m_hierarchy.size() != 0)
 	{
+		vs += " for ";
+
 		for(j = 0; j < m_sel_hierarchy.m_hierarchy.size(); j++)
 		{
 			vs += m_sel_hierarchy.m_hierarchy[j].m_field;
@@ -1208,6 +1205,13 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		addch(ch);
 		*str += ch;
 		m_cursor_pos++;
+	}
+	else
+	{
+		if(ch != KEY_BACKSPACE)
+		{
+			return STA_NONE;
+		}
 	}
 
 	if(m_output_filtering)

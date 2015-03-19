@@ -191,14 +191,12 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 	//////////////////////////////////////////////////////////////////////////////////////
 	// If a merge has been specified, configure it 
 	//////////////////////////////////////////////////////////////////////////////////////
-	bool do_merge = false;
 	uint32_t n_gby_keys = 0;
 
 	for(auto vit : *entries)
 	{
 		if((vit.m_flags & TEF_IS_MERGE_KEY) != 0)
 		{
-			do_merge = true;
 			n_gby_keys++;
 		}
 	}
@@ -215,6 +213,8 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 	{
 		throw sinsp_exception("invalid table definition: multiple groupby keys");
 	}
+
+	m_do_merging = true;
 
 	for(uint32_t j = 0; j < entries->size(); j++)
 	{

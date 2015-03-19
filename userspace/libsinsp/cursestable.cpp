@@ -349,7 +349,7 @@ void curses_table::render(bool data_changed)
 			m_column_startx.push_back(k);
 
 			string coltext = m_legend[j].m_name;
-			if((int32_t)coltext.size() > m_legend[j].m_size - 2)
+			if((int32_t)coltext.size() > m_legend[j].m_size - 1)
 			{
 				coltext = coltext.substr(0, m_legend[j].m_size - 1);
 			}
@@ -357,7 +357,7 @@ void curses_table::render(bool data_changed)
 			curses_table::alignment al = get_field_alignment(m_table->m_types->at(j + 1));
 			if(al == curses_table::ALIGN_RIGHT)
 			{
-				coltext.insert(0, m_legend[j].m_size - coltext.size() - 2, ' ');
+				coltext.insert(0, m_legend[j].m_size - coltext.size() - 1, ' ');
 			}
 
 			mvwaddnstr(m_tblwin, 0, k, coltext.c_str(), m_legend[j].m_size - 1);
