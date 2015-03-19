@@ -95,7 +95,7 @@ sinsp_view_info::sinsp_view_info(string name,
 	m_filter = filter;
 }
 
-void sinsp_view_info::get_colsizes(OUT vector<int32_t>* colsizes)
+void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)
 {
 	for(auto fit : m_entries)
 	{
@@ -103,26 +103,18 @@ void sinsp_view_info::get_colsizes(OUT vector<int32_t>* colsizes)
 		{
 			if((fit.m_flags & TEF_IS_KEY) != 0)
 			{
+				continue;
+			}
+
+			if((fit.m_flags & TEF_IS_MERGE_KEY) != 0)
+			{
+				colsizes->insert(colsizes->begin(), fit.m_colsize);
+				colnames->insert(colnames->begin(), fit.m_name);
 				continue;
 			}
 		}
 
 		colsizes->push_back(fit.m_colsize);
-	}
-}
-
-void sinsp_view_info::get_colnames(OUT vector<string>* colnames)
-{
-	for(auto fit : m_entries)
-	{
-		if(m_does_merge)
-		{
-			if((fit.m_flags & TEF_IS_KEY) != 0)
-			{
-				continue;
-			}
-		}
-
 		colnames->push_back(fit.m_name);
 	}
 }

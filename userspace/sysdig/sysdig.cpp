@@ -1861,8 +1861,10 @@ int main(int argc, char **argv)
 	sysdig_init_res res;
 
 //
-//	res = systop_init(argc, argv);
-//	return 0;
+#ifdef _WIN32
+	res = systop_init(argc, argv);
+	return 0;
+#endif
 //
 #ifdef SYSTOP
 	string fullcmd(argv[0]);

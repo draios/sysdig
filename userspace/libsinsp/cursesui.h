@@ -38,8 +38,7 @@ public:
 		string filter,
 		bool use_defaults);
 
-	void get_colsizes(OUT vector<int32_t>* colsizes);
-	void get_colnames(OUT vector<string>* colnames);
+	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
 
 	string m_name;
 	string m_merge_config;
