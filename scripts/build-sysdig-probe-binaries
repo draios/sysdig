@@ -133,7 +133,7 @@ function rhel_build {
 	build_sysdig
 }
 
-coreos_build coreos-3.18.1 3.18.1 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.1.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/463d19f583961ddf9cc89f26350af2a828a1fa82/sys-kernel/coreos-kernel/files/amd64_defconfig-3.18
+# coreos_build coreos-3.18.1 3.18.1 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.1.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/463d19f583961ddf9cc89f26350af2a828a1fa82/sys-kernel/coreos-kernel/files/amd64_defconfig-3.18
 # coreos_build coreos-3.18.4 3.18.4 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.4.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/bee2fa74623b87beede7f9397cb7278e9d409049/sys-kernel/coreos-kernel/files/amd64_defconfig-3.18
 # coreos_build coreos-3.18.4-2 3.18.4 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.4.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/8b399794d0df370c6f8907c7026521621845e563/sys-kernel/coreos-kernel/files/amd64_defconfig-3.18
 coreos_build coreos-3.18.6 3.18.6 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.6.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/b38dabe01e756f7265983d126f33b947a693091d/sys-kernel/coreos-kernel/files/amd64_defconfig-3.18
