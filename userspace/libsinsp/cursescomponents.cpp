@@ -614,7 +614,10 @@ void curses_textbox::populate_sidemenu()
 	m_entries.push_back(sidemenu_list_entry("dotted ascii", 0));
 	m_entries.push_back(sidemenu_list_entry("printable ascii", 0));
 	m_entries.push_back(sidemenu_list_entry("hex", 0));
-	m_entries.push_back(sidemenu_list_entry("json", 0));
+	if(m_viz_type == VIEW_ID_DIG)
+	{
+		m_entries.push_back(sidemenu_list_entry("json", 0));
+	}
 
 	m_sidemenu->set_entries(&m_entries);
 	m_sidemenu->set_title("View As");
@@ -711,6 +714,10 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			m_ctext->up();
 			render();
 			return STA_NONE;
+		case KEY_BACKSPACE:
+			return STA_PARENT_HANDLE;
+		case 'q':
+			return STA_PARENT_HANDLE;
 		case KEY_DOWN:
 			m_ctext->down();
 			render();
@@ -785,12 +792,12 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 				m_ctext->redraw();
 			}
 
-			return STA_NONE;		
+			return STA_NONE;
 		default:
 			break;
 	}
 
-	return STA_PARENT_HANDLE;
+	return STA_NONE;
 }
 
 void curses_textbox::reset()
