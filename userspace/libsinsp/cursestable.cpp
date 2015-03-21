@@ -678,7 +678,7 @@ bool curses_table::get_position(OUT int32_t* pos,
 {
 	*pos = m_selct + 1;
 	*totlines = (int32_t)m_data->size();
-	*percent = (float)m_selct * 100 / (float)m_data->size();
+	*percent = (float)(m_selct + 1) / (float)m_data->size();
 	*truncated = false;
 
 	return true;
