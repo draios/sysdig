@@ -99,6 +99,12 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 
 void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)
 {
+	if(m_type == viewtype::T_LIST)
+	{
+		colsizes->push_back(-1);
+		colnames->push_back("");
+	}
+
 	for(auto fit : m_columns)
 	{
 		if(m_does_merge)
@@ -314,7 +320,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 
 	if(m_selected_view >= 0)
 	{
-		sinsp_view_info* wi = &(m_views[m_selected_view]);
+		wi = &(m_views[m_selected_view]);
 
 		sinsp_table::tabletype ty;
 
