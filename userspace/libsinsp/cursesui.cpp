@@ -20,8 +20,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_view_info implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_view_info::sinsp_view_info(string name,
-	vector<sinsp_table_entry>* entries,
+sinsp_view_info::sinsp_view_info(viewtype type, 
+	string name,
+	vector<sinsp_table_entry>* columns,
 	string applyto,
 	string merge_config,
 	string filter,
@@ -29,13 +30,14 @@ sinsp_view_info::sinsp_view_info(string name,
 {
 	m_name = name;
 	m_does_merge = false;
+	m_type = type;
 	
-	if(entries == NULL)
+	if(columns == NULL)
 	{
 		ASSERT(false);
-		throw sinsp_exception("invalid view definition, entries=NULL");
+		throw sinsp_exception("invalid view definition, columns=NULL");
 	}
-	m_entries = *entries;
+	m_columns = *columns;
 
 	m_use_defaults = use_defaults;
 		
@@ -69,15 +71,15 @@ sinsp_view_info::sinsp_view_info(string name,
 	//
 	uint32_t n_sorting_cols = 0;
 
-	for(uint32_t j = 0; j < entries->size(); j++)
+	for(uint32_t j = 0; j < columns->size(); j++)
 	{
-		if((entries->at(j).m_flags & TEF_SORTBY) != 0)
+		if((columns->at(j).m_flags & TEF_SORTBY) != 0)
 		{
 			m_sortingcol = j;
 			n_sorting_cols++;
 		}
 
-		if((entries->at(j).m_flags & TEF_IS_MERGE_KEY) != 0)
+		if((columns->at(j).m_flags & TEF_IS_MERGE_KEY) != 0)
 		{
 			m_does_merge = true;
 		}
@@ -97,7 +99,7 @@ sinsp_view_info::sinsp_view_info(string name,
 
 void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)
 {
-	for(auto fit : m_entries)
+	for(auto fit : m_columns)
 	{
 		if(m_does_merge)
 		{
@@ -314,7 +316,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 
 		try
 		{
-			m_datatable->configure(&m_views[m_selected_view].m_entries, 
+			m_datatable->configure(&m_views[m_selected_view].m_columns, 
 				m_complete_filter,
 				m_views[m_selected_view].m_use_defaults);
 		}

@@ -31,8 +31,16 @@ class ctext;
 class sinsp_view_info
 {
 public:
-	sinsp_view_info(string name,
-		vector<sinsp_table_entry>* entries,
+	enum viewtype
+	{
+		T_TABLE,
+		T_SCROLLING_TABLE,
+		T_TEXT,
+	};
+
+	sinsp_view_info(viewtype type,
+		string name,
+		vector<sinsp_table_entry>* columns,
 		string applyto,
 		string merge_config,
 		string filter,
@@ -45,9 +53,10 @@ public:
 	uint32_t m_sortingcol;
 	string m_filter;
 	vector<string> m_applyto;
-	vector<sinsp_table_entry> m_entries;
+	vector<sinsp_table_entry> m_columns;
 	bool m_use_defaults;
 	bool m_does_merge;
+	viewtype m_type;
 };
 
 class sinsp_ui_selection_info
