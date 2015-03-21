@@ -27,6 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 string combine_filters(string flt1, string flt2);
 class ctext;
+class sinsp_chart;
 
 class sinsp_view_info
 {
@@ -418,6 +419,7 @@ private:
 	void render_default_main_menu();
 	void render_filtersearch_main_menu();
 	void render_spy_main_menu();
+	void render_position_info();
 	void render_main_menu();
 	sysdig_table_action handle_textbox_input(int ch);
 	sysdig_table_action handle_input(int ch);
@@ -444,4 +446,5 @@ private:
 	bool m_offline_replay;
 	uint64_t m_last_progress_evt;
 	vector<sidemenu_list_entry> m_sidemenu_viewlist;
+	sinsp_chart* m_chart;
 };

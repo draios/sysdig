@@ -41,6 +41,23 @@ class sinsp_cursesui;
 class ctext;
 class sinsp_evt_formatter;
 
+class sinsp_chart
+{
+public:
+	virtual ~sinsp_chart()
+	{
+
+	}
+
+	//
+	// Retuens false if this chart doesn't support returning the current position
+	//
+	virtual bool get_position(OUT int32_t* pos, 
+		OUT int32_t* totlines, 
+		OUT float* percent,
+		OUT bool* truncated) = 0;
+};
+
 class curses_table_column_info
 {
 public:	
@@ -106,7 +123,7 @@ public:
 	string m_title;
 };
 
-class curses_textbox
+class curses_textbox : public sinsp_chart
 {
 public:
 	curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type);
@@ -119,6 +136,7 @@ public:
 	sysdig_table_action handle_input(int ch);
 	void populate_sidemenu();
 	void reset();
+	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
 
 private:
 	inline void process_event_spy(sinsp_evt* evt, int32_t next_res);

@@ -475,6 +475,9 @@ render_end:
 
 	wrefresh(m_tblwin);
 */
+
+	m_parent->render();
+
 	refresh();
 }
 	
@@ -666,6 +669,19 @@ void curses_table::goto_row(int32_t row)
 	selection_goto((int32_t)m_data->size(), row);
 	update_rowkey(row);
 	render(true);
+}
+
+bool curses_table::get_position(OUT int32_t* pos, 
+	OUT int32_t* totlines, 
+	OUT float* percent, 
+	OUT bool* truncated)
+{
+	*pos = m_selct + 1;
+	*totlines = (int32_t)m_data->size();
+	*percent = (float)m_selct * 100 / (float)m_data->size();
+	*truncated = false;
+
+	return true;
 }
 
 #endif // SYSTOP

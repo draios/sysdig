@@ -18,7 +18,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef SYSTOP
 
-class curses_table : public curses_scrollable_list
+class curses_table : 
+	public curses_scrollable_list,
+	public sinsp_chart
 {
 public:
 	enum alignment
@@ -43,6 +45,7 @@ public:
 	void recreate_win();
 	void update_rowkey(int32_t row);
 	void goto_row(int32_t row);
+	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
 
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;

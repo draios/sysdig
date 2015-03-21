@@ -151,6 +151,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_last_progress_evt = 0;
 	m_input_check_period_ns = UI_USER_INPUT_CHECK_PERIOD_NS;
 	m_search_nomatch = false;
+	m_chart = NULL;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 	m_spy_box = NULL;
@@ -299,12 +300,14 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	{
 		delete m_viz;
 		m_viz = NULL;
+		m_chart = NULL;
 	}
 
 	if(m_spy_box && !is_spy_switch)
 	{
 		delete m_spy_box;
 		m_spy_box = NULL;
+		m_chart = NULL;
 	}
 #endif
 
@@ -361,6 +364,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		// Create the visualization component
 		//
 		m_spy_box = new curses_textbox(m_inspector, this, m_selected_view);
+		m_chart = m_spy_box;
 		m_spy_box->set_filter(m_complete_filter);
 	}
 
@@ -370,6 +374,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	if(m_selected_view >= 0)
 	{
 		m_viz = new curses_table(this, m_inspector);
+		m_chart = m_viz;
 
 		vector<int32_t> colsizes;
 		vector<string> colnames;
@@ -687,6 +692,45 @@ void sinsp_cursesui::render_spy_main_menu()
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
 	k += 6;
 }
+	
+void sinsp_cursesui::render_position_info()
+{
+	ASSERT(m_chart != NULL);
+
+	int32_t pos;
+	int32_t totlines;
+	float percent;
+	bool truncated;
+
+	if(m_chart->get_position(&pos, &totlines, &percent, &truncated))
+	{
+		char prstr[128];
+
+		string trs;
+
+		if(truncated)
+		{
+			trs = "(truncated)";
+		}
+
+		if(percent != 0)
+		{
+			sprintf(prstr, "     %d/%d(%.1f%%)%s", (int)pos, (int)totlines, percent * 100, trs.c_str());
+		}
+		else
+		{
+			sprintf(prstr, "     %d/%d(0.0%%)%s", (int)pos, (int)totlines, trs.c_str());
+		}
+
+		attrset(m_colors[sinsp_cursesui::PROCESS]);
+
+		mvaddstr(m_screenh - 1, 
+			m_screenw - strlen(prstr),
+			prstr);
+
+
+	}
+}
 
 void sinsp_cursesui::render_main_menu()
 {
@@ -723,6 +767,11 @@ void sinsp_cursesui::render()
 	{
 		m_sidemenu->render();
 	}
+
+	//
+	// Print the position in the chart
+	//
+	render_position_info();
 }
 #endif
 

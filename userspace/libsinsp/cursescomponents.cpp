@@ -627,7 +627,7 @@ void curses_textbox::render_header()
 {
 	move(2, 0);
 
-	attrset(m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+	attrset(m_parent->m_colors[sinsp_cursesui::PROCESS]);
 
 	for(uint32_t j = 0; j < m_parent->m_screenw; j++)
 	{
@@ -652,14 +652,16 @@ void curses_textbox::render_header()
 
 	if(pct != 0)
 	{
-		sprintf(prstr, "%d/%d (%.2f%%) %s", (int)oy, (int)sy, pct * 100, trs.c_str());
+		sprintf(prstr, "     %d/%d(%.1f%%)%s", (int)oy, (int)sy, pct * 100, trs.c_str());
 	}
 	else
 	{
-		sprintf(prstr, "%d/%d (0%%) %s", (int)oy, (int)sy, trs.c_str());
+		sprintf(prstr, "     %d/%d(0.0%%)%s", (int)oy, (int)sy, trs.c_str());
 	}
 
-	mvaddstr(2, 0, prstr);
+	mvaddstr(m_parent->m_screenh - 1, 
+		m_parent->m_screenw - strlen(prstr),
+		prstr);
 
 	refresh();
 }
@@ -857,4 +859,20 @@ void curses_textbox::reset()
 	m_ctext->redraw();
 	n_prints = 0;
 }
+
+bool curses_textbox::get_position(OUT int32_t* pos, 
+	OUT int32_t* totlines, 
+	OUT float* percent, 
+	OUT bool* truncated)
+{
+	int32_t ox;
+
+	m_ctext->get_offset(&ox, pos);
+	m_ctext->get_buf_size(totlines);
+	m_ctext->get_offset_percent(percent);
+	*truncated = (m_ctext->available_rows() <= 0);
+
+	return true;
+}
+
 #endif // SYSTOP
