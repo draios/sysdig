@@ -61,9 +61,10 @@ typedef struct table_row_cmp
 	bool m_ascending;
 }table_row_cmp;
 
-sinsp_table::sinsp_table(sinsp* inspector)
+sinsp_table::sinsp_table(sinsp* inspector, tabletype type)
 {
 	m_inspector = inspector;
+	m_type = type;
 	m_is_key_present = false;
 	m_is_merge_key_present = false;
 	m_fld_pointers = NULL;
@@ -161,18 +162,45 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 		}
 	}
 
+	if(m_type == sinsp_table::TT_TABLE)
+	{
+		//
+		// Make sure this is a valid table
+		//
+		if(!m_is_key_present)
+		{
+			throw sinsp_exception("table is missing the key");
+		}
+	}
+	else
+	{
+		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname("evt.num", 
+			m_inspector,
+			false);
+
+		if(chk == NULL)
+		{
+			throw sinsp_exception("internal table error");
+		}
+
+		chk->m_aggregation = A_NONE;
+		m_chks_to_free.push_back(chk);
+
+		chk->parse_field_name("evt.num", true);
+
+		if(m_is_key_present)
+		{
+			throw sinsp_exception("list table can't have a key");
+		}
+
+		m_extractors.insert(m_extractors.begin(), chk);
+		m_is_key_present = true;
+	}
+
 	m_premerge_fld_pointers = new sinsp_table_field[m_extractors.size()];
 	m_fld_pointers = m_premerge_fld_pointers;
 	m_n_premerge_fields = (uint32_t)m_extractors.size();
 	m_n_fields = m_n_premerge_fields;
-
-	//
-	// Make sure this is a valid table
-	//
-	if(!m_is_key_present)
-	{
-		throw sinsp_exception("table is missing the key");
-	}
 
 	if(m_n_fields < 2)
 	{
@@ -212,6 +240,14 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 	else if(n_gby_keys > 1)
 	{
 		throw sinsp_exception("invalid table definition: multiple groupby keys");
+	}
+
+	//
+	// Merging not supported for lists
+	//
+	if(m_type != sinsp_table::TT_TABLE)
+	{
+		throw sinsp_exception("group by not supported for list tables");
 	}
 
 	m_do_merging = true;
@@ -281,15 +317,63 @@ void sinsp_table::add_row(bool merging)
 		m_fld_pointers[0].m_len,
 		m_fld_pointers[0].m_cnt);
 
-	auto it = m_table->find(key);
-
-	if(it == m_table->end())
+	if(m_type == sinsp_table::TT_TABLE)
 	{
 		//
-		// New entry
+		// This is a table. Do a proper key lookup and update the entry
+		//
+		auto it = m_table->find(key);
+
+		if(it == m_table->end())
+		{
+			//
+			// New entry
+			//
+			key.m_val = m_buffer->copy(key.m_val, key.m_len);
+			key.m_cnt = 1;
+			m_vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_sz);
+
+			for(j = 1; j < m_n_fields; j++)
+			{
+				uint32_t vlen = get_field_len(j);
+				m_vals[j - 1].m_val = m_buffer->copy(m_fld_pointers[j].m_val, vlen);
+				m_vals[j - 1].m_len = vlen;
+				m_vals[j - 1].m_cnt = 1;
+			}
+
+			(*m_table)[key] = m_vals;
+		}
+		else
+		{
+			//
+			// Existing entry
+			//
+			m_vals = it->second;
+
+			for(j = 1; j < m_n_fields; j++)
+			{
+				if(merging)
+				{
+					add_fields(j, &m_fld_pointers[j], m_mergers[j]->m_merge_aggregation);
+				}
+				else
+				{
+					add_fields(j, &m_fld_pointers[j], m_extractors[j]->m_aggregation);
+				}
+			}
+		}
+	}
+	else
+	{
+		sinsp_sample_row row;
+
+		//
+		// This is a list. Create the new entry and push it back.
 		//
 		key.m_val = m_buffer->copy(key.m_val, key.m_len);
 		key.m_cnt = 1;
+		row.m_key = key;
+
 		m_vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_sz);
 
 		for(j = 1; j < m_n_fields; j++)
@@ -298,28 +382,10 @@ void sinsp_table::add_row(bool merging)
 			m_vals[j - 1].m_val = m_buffer->copy(m_fld_pointers[j].m_val, vlen);
 			m_vals[j - 1].m_len = vlen;
 			m_vals[j - 1].m_cnt = 1;
+			row.m_values.push_back(m_vals[j - 1]);
 		}
 
-		(*m_table)[key] = m_vals;
-	}
-	else
-	{
-		//
-		// Existing entry
-		//
-		m_vals = it->second;
-
-		for(j = 1; j < m_n_fields; j++)
-		{
-			if(merging)
-			{
-				add_fields(j, &m_fld_pointers[j], m_mergers[j]->m_merge_aggregation);
-			}
-			else
-			{
-				add_fields(j, &m_fld_pointers[j], m_extractors[j]->m_aggregation);
-			}
-		}
+		m_full_sample_data.push_back(row);
 	}
 }
 
@@ -493,7 +559,8 @@ void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data)
 				it->m_values[j].m_len,
 				it->m_values[j].m_cnt,
 				legend->at(j + 1).m_print_format);
-				printf("%s ", m_printer->tostring_nice(NULL, 10));
+				char* prstr = m_printer->tostring_nice(NULL, 10);
+				printf("%s ", prstr);
 				//printf("%s ", m_printer->tostring(NULL));
 		}
 
@@ -575,6 +642,14 @@ sinsp_table_field* sinsp_table::search_in_sample(string text)
 
 void sinsp_table::sort_sample()
 {
+	if(m_type == sinsp_table::TT_LIST)
+	{
+		if(m_sorting_col == -1)
+		{
+			return;
+		}
+	}
+
 	if(m_sample_data->size() != 0)
 	{
 		if(m_sorting_col >= (int32_t)m_sample_data->at(0).m_values.size())
@@ -654,7 +729,15 @@ void sinsp_table::set_sorting_col(uint32_t col)
 
 	if(col == 0)
 	{
-		throw sinsp_exception("cannot sort by key");
+		if(m_type == sinsp_table::TT_TABLE)
+		{
+			throw sinsp_exception("cannot sort by key");
+		}
+		else
+		{
+			m_sorting_col = -1;
+			return;
+		}
 	}
 
 	if(col >= n_fields)
@@ -694,63 +777,74 @@ void sinsp_table::set_sorting_col(uint32_t col)
 
 void sinsp_table::create_sample()
 {
-	uint32_t j;
-	m_full_sample_data.clear();
-	sinsp_sample_row row;
-
-	//
-	// If merging is on, perform the merge and switch to the merged table 
-	//
-	if(m_do_merging)
+	if(m_type == sinsp_table::TT_TABLE)
 	{
-		m_table = &m_merge_table;
-		m_merge_table.clear();
+		uint32_t j;
+		m_full_sample_data.clear();
+		sinsp_sample_row row;
 
-		for(auto it = m_premerge_table.begin(); it != m_premerge_table.end(); ++it)
+		//
+		// If merging is on, perform the merge and switch to the merged table 
+		//
+		if(m_do_merging)
 		{
-			for(j = 0; j < m_n_postmerge_fields; j++)
-			{
-				sinsp_table_field* pfld = &(m_postmerge_fld_pointers[j]);
+			m_table = &m_merge_table;
+			m_merge_table.clear();
 
-				uint32_t col = m_merge_columns[j];
-				if(col == 0)
+			for(auto it = m_premerge_table.begin(); it != m_premerge_table.end(); ++it)
+			{
+				for(j = 0; j < m_n_postmerge_fields; j++)
 				{
-					pfld->m_val = it->first.m_val;
-					pfld->m_len = it->first.m_len;
-					pfld->m_cnt = it->first.m_cnt;
+					sinsp_table_field* pfld = &(m_postmerge_fld_pointers[j]);
+
+					uint32_t col = m_merge_columns[j];
+					if(col == 0)
+					{
+						pfld->m_val = it->first.m_val;
+						pfld->m_len = it->first.m_len;
+						pfld->m_cnt = it->first.m_cnt;
+					}
+					else
+					{
+						pfld->m_val = it->second[col - 1].m_val;
+						pfld->m_len = it->second[col - 1].m_len;
+						pfld->m_cnt = it->second[col - 1].m_cnt;
+					}
 				}
-				else
-				{
-					pfld->m_val = it->second[col - 1].m_val;
-					pfld->m_len = it->second[col - 1].m_len;
-					pfld->m_cnt = it->second[col - 1].m_cnt;
-				}
+
+				add_row(true);
+			}
+		}
+		else
+		{
+			m_table = &m_premerge_table;
+		}
+
+		//
+		// Emit the table
+		//
+		for(auto it = m_table->begin(); it != m_table->end(); ++it)
+		{
+			row.m_key = it->first;
+
+			row.m_values.clear();
+
+			sinsp_table_field* fields = it->second;
+			for(j = 0; j < m_n_fields - 1; j++)
+			{
+				row.m_values.push_back(fields[j]);
 			}
 
-			add_row(true);
+			m_full_sample_data.push_back(row);
 		}
 	}
 	else
 	{
-		m_table = &m_premerge_table;
-	}
-
-	//
-	// Emit the table
-	//
-	for(auto it = m_table->begin(); it != m_table->end(); ++it)
-	{
-		row.m_key = it->first;
-
-		row.m_values.clear();
-
-		sinsp_table_field* fields = it->second;
-		for(j = 0; j < m_n_fields - 1; j++)
-		{
-			row.m_values.push_back(fields[j]);
-		}
-
-		m_full_sample_data.push_back(row);
+		//
+		// If this is a list, there's nothing to be done, since m_full_sample_data
+		// is already prepared and doesn't need to be cleaned.
+		//
+		return;
 	}
 }
 

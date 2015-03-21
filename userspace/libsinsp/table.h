@@ -38,7 +38,7 @@ enum sinsp_table_entry_flags
 {
 	TEF_NONE = 0,
 	TEF_IS_KEY = 1,
-	TEF_SORTBY = (1 << 1),
+	TEF_IS_SORT_COLUMN = (1 << 1),
 	TEF_IS_MERGE_KEY = (1 << 2),
 };
 
@@ -267,7 +267,13 @@ public:
 class sinsp_table
 {
 public:	
-	sinsp_table(sinsp* inspector);
+	enum tabletype
+	{
+		TT_TABLE,
+		TT_LIST,
+	};
+
+	sinsp_table(sinsp* inspector, tabletype type);
 	~sinsp_table();
 	void configure(vector<sinsp_table_entry>* entries, const string& filter, bool use_defaults);
 	void process_event(sinsp_evt* evt);
@@ -360,6 +366,7 @@ private:
 	uint64_t m_zero_double;
 	bool m_paused;
 	string m_freetext_filter;
+	tabletype m_type;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

@@ -73,7 +73,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 
 	for(uint32_t j = 0; j < columns->size(); j++)
 	{
-		if((columns->at(j).m_flags & TEF_SORTBY) != 0)
+		if((columns->at(j).m_flags & TEF_IS_SORT_COLUMN) != 0)
 		{
 			m_sortingcol = j;
 			n_sorting_cols++;
@@ -310,15 +310,34 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	//
 	// If we need a new datatable, allocate it and set it up
 	//
+	sinsp_view_info* wi = NULL;
+
 	if(m_selected_view >= 0)
 	{
-		m_datatable = new sinsp_table(m_inspector);
+		sinsp_view_info* wi = &(m_views[m_selected_view]);
+
+		sinsp_table::tabletype ty;
+
+		if(wi->m_type == sinsp_view_info::T_TABLE)
+		{
+			ty = sinsp_table::TT_TABLE;
+		}
+		else if(wi->m_type == sinsp_view_info::T_LIST)
+		{
+			ty = sinsp_table::TT_LIST;
+		}
+		else
+		{
+			ASSERT(false);
+		}
+
+		m_datatable = new sinsp_table(m_inspector, ty);
 
 		try
 		{
-			m_datatable->configure(&m_views[m_selected_view].m_columns, 
+			m_datatable->configure(&wi->m_columns, 
 				m_complete_filter,
-				m_views[m_selected_view].m_use_defaults);
+				wi->m_use_defaults);
 		}
 		catch(...)
 		{
@@ -327,7 +346,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			throw;
 		}
 
-		m_datatable->set_sorting_col(m_views[m_selected_view].m_sortingcol);
+		m_datatable->set_sorting_col(wi->m_sortingcol);
 	}
 #ifndef NOCURSESUI
 	else
@@ -349,7 +368,9 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		vector<int32_t> colsizes;
 		vector<string> colnames;
 
-		m_views[m_selected_view].get_col_names_and_sizes(&colnames, &colsizes);
+		ASSERT(wi != NULL);
+
+		wi->get_col_names_and_sizes(&colnames, &colsizes);
 
 		m_viz->configure(m_datatable, &colsizes, &colnames);
 		if(!is_drilldown)

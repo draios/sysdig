@@ -34,7 +34,7 @@ public:
 	enum viewtype
 	{
 		T_TABLE,
-		T_SCROLLING_TABLE,
+		T_LIST,
 		T_TEXT,
 	};
 
