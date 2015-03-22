@@ -147,7 +147,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_output_searching = false;
 	m_is_filter_sysdig = false;
 	m_eof = 0;
-	m_offline_replay = false;
+	m_offline_replay = true;
 	m_last_progress_evt = 0;
 	m_input_check_period_ns = UI_USER_INPUT_CHECK_PERIOD_NS;
 	m_search_nomatch = false;

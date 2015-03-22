@@ -525,16 +525,23 @@ void sinsp_table::flush(sinsp_evt* evt)
 			//
 			create_sample();
 
-			//
-			// Switch the data storage so that the current one is still usable by the 
-			// consumers of the table.
-			//
-			switch_buffers();
+			if(m_type == sinsp_table::TT_TABLE)
+			{
+				//
+				// Switch the data storage so that the current one is still usable by the 
+				// consumers of the table.
+				//
+				switch_buffers();
+
+				//
+				// Clear the current data storage
+				//
+				m_buffer->clear();
+			}
 
 			//
 			// Reinitialize the tables
 			//
-			m_buffer->clear();
 			m_premerge_table.clear();
 			m_merge_table.clear();
 		}
