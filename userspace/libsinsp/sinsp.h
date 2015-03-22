@@ -131,6 +131,7 @@ public:
 	{
 		FL_NONE =   0,
 		FL_WORKS_ON_THREAD_TABLE = (1 << 0),	///< This filter check class supports filtering incomplete events that contain only valid thread info and FD info.
+		FL_HIDDEN = (1 << 1),	///< This filter check class won't be shown by stuff like the -l sysdig command line switch.
 	};
 
 	filter_check_info()

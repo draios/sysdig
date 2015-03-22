@@ -46,6 +46,11 @@ void list_fields(bool verbose)
 	{
 		const filter_check_info* fci = fc_plugins[j];
 
+		if(fci->m_flags & filter_check_info::FL_HIDDEN)
+		{
+			continue;
+		}
+
 		printf("\n----------------------\n");
 		printf("Field Class: %s\n\n", fci->m_name.c_str());
 

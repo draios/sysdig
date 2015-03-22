@@ -578,4 +578,23 @@ private:
 	ppm_print_format m_print_format;
 };
 
+//
+// For internal use
+//
+class sinsp_filter_check_utils : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_CNT,
+	};
+
+	sinsp_filter_check_utils();
+	sinsp_filter_check* allocate_new();
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	uint64_t m_cnt;
+};
+
 #endif // HAS_FILTERING

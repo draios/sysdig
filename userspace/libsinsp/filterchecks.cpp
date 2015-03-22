@@ -3402,4 +3402,41 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_l
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_utils implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_utils_fields[] =
+{
+	{PT_UINT64, EPF_NONE, PF_ID, "util.cnt", "incremental counter."},
+};
+
+sinsp_filter_check_utils::sinsp_filter_check_utils()
+{
+	m_info.m_name = "util";
+	m_info.m_fields = sinsp_filter_check_utils_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_utils_fields) / sizeof(sinsp_filter_check_utils_fields[0]);
+	m_info.m_flags = filter_check_info::FL_HIDDEN;
+	m_cnt = 0;
+}
+
+sinsp_filter_check* sinsp_filter_check_utils::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_utils();
+}
+
+uint8_t* sinsp_filter_check_utils::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	switch(m_field_id)
+	{
+	case TYPE_CNT:
+		m_cnt++;
+		return (uint8_t*)&m_cnt;
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return NULL;
+}
+
 #endif // HAS_FILTERING

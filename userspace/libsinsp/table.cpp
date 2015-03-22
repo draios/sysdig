@@ -125,9 +125,8 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	// Parse the format string and extract the tokens
+	// Extract the tokens
 	//////////////////////////////////////////////////////////////////////////////////////
-
 	m_extractors.clear();
 
 	for(auto vit : *entries)
@@ -174,7 +173,7 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 	}
 	else
 	{
-		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname("evt.num", 
+		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname("util.cnt", 
 			m_inspector,
 			false);
 
@@ -186,7 +185,7 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 		chk->m_aggregation = A_NONE;
 		m_chks_to_free.push_back(chk);
 
-		chk->parse_field_name("evt.num", true);
+		chk->parse_field_name("util.cnt", true);
 
 		if(m_is_key_present)
 		{

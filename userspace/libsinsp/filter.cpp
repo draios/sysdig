@@ -57,6 +57,7 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_group());
 	add_filter_check(new sinsp_filter_check_syslog());
 	add_filter_check(new sinsp_filter_check_container());
+	add_filter_check(new sinsp_filter_check_utils());
 }
 
 sinsp_filter_check_list::~sinsp_filter_check_list()
