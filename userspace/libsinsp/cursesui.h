@@ -433,7 +433,7 @@ private:
 #endif
 
 	sinsp* m_inspector;
-	vector<string> m_menuitems;
+	vector<pair<string, string>> m_menuitems;
 	sinsp_table* m_datatable;
 	string m_event_source_name;
 	string m_cmdline_capture_filter;

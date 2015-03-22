@@ -310,6 +310,14 @@ public:
 	{
 		m_freetext_filter = filter;
 	}
+	tabletype get_type()
+	{
+		return m_type;
+	}
+	void set_refresh_interval(uint64_t newinterval)
+	{
+		m_refresh_interval = newinterval;
+	}
 
 	uint64_t m_next_flush_time_ns;
 

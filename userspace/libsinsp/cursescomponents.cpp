@@ -138,6 +138,7 @@ void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)
 	}
 
 	m_firstrow = row - (m_h /2);
+g_logger.format("--- %d", (int)m_firstrow);
 	m_selct = row;
 
 	sanitize_selection(datasize);

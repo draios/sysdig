@@ -116,6 +116,14 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 {
 	m_use_defaults = use_defaults;
 
+	//
+	// If this is a list table, increase the refresh time to improve realtimyiness
+	//
+	if(m_type == sinsp_table::TT_LIST)
+	{
+		set_refresh_interval(200000000);
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////////
 	// If a filter has been spefied, compile it
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -364,6 +372,14 @@ void sinsp_table::add_row(bool merging)
 	}
 	else
 	{
+		//
+		// We are in list mode. Just appen the row to the end of the sample
+		//
+		if(m_paused)
+		{
+			return;
+		}
+
 		sinsp_sample_row row;
 
 		//

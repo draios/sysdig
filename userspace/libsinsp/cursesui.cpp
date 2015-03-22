@@ -228,13 +228,13 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	//
 	// Populate the main menu entries
 	//
-	m_menuitems.push_back("Help");
-	m_menuitems.push_back("Views");
-	m_menuitems.push_back("Search");
-	m_menuitems.push_back("Filter");
-	m_menuitems.push_back("Spy IO");
-	m_menuitems.push_back("Dig");
-	m_menuitems.push_back("Legend");
+	m_menuitems.push_back(pair<string, string>("F1", "Help"));
+	m_menuitems.push_back(pair<string, string>("F2", "Views"));
+	m_menuitems.push_back(pair<string, string>("F3", "Search"));
+	m_menuitems.push_back(pair<string, string>("F4", "Filter"));
+	m_menuitems.push_back(pair<string, string>("F5", "Spy IO"));
+	m_menuitems.push_back(pair<string, string>("F6", "Dig"));
+	m_menuitems.push_back(pair<string, string>("P", "Pause"));
 
 	//
 	// Get screen dimensions
@@ -493,12 +493,12 @@ void sinsp_cursesui::render_default_main_menu()
 	for(j = 0; j < m_menuitems.size(); j++)
 	{
 		attrset(m_colors[PROCESS]);
-		string fks = string("F") + to_string(j + 1);
+		string fks = m_menuitems[j].first;
 		mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
-		k += 2;
+		k += MAX(fks.size(), 2);
 
 		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-		fks = m_menuitems[j];
+		fks = m_menuitems[j].second;
 		fks.resize(6, ' ');
 		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
 		k += 6;

@@ -230,7 +230,7 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 		else
 		{
 			m_selct = selct;
-			selection_goto((int32_t)m_data->size(), m_selct);			
+//			selection_goto((int32_t)m_data->size(), m_selct);
 			render(true);
 		}
 
@@ -282,7 +282,6 @@ void curses_table::render(bool data_changed)
 {
 	uint32_t j, k;
 	int32_t l, m;
-
 	wclear(m_tblwin);
 
 	//
@@ -333,6 +332,15 @@ void curses_table::render(bool data_changed)
 		wmove(m_tblwin, 0, 0);
 		for(j = 0; j < m_w; j++)
 		{
+			if(m_type == sinsp_table::TT_TABLE)
+			{
+				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+			}
+			else
+			{
+				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_LIST_FOCUS]);
+			}
+
 			waddch(m_tblwin, ' ');
 		}
 
