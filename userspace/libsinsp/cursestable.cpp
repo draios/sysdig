@@ -48,7 +48,7 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////
 // curses_table implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector)
+curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table::tabletype type)
 {
 	m_tblwin = NULL;
 	m_data = NULL;
@@ -59,6 +59,7 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector)
 	m_selection_changed = false;
 	m_parent = parent;
 	m_inspector = inspector;
+	m_type = type;
 
 	m_converter = new sinsp_filter_check_reference();
 
@@ -339,11 +340,25 @@ void curses_table::render(bool data_changed)
 		{
 			if(j == m_table->get_sorting_col() - 1)
 			{
-				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
+				if(m_type == sinsp_table::TT_TABLE)
+				{
+					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
+				}
+				else
+				{
+					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_LIST_HIGHLIGHT]);					
+				}
 			}
 			else
 			{
-				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+				if(m_type == sinsp_table::TT_TABLE)
+				{
+					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+				}
+				else
+				{
+					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_LIST_FOCUS]);
+				}
 			}
 			
 			m_column_startx.push_back(k);
@@ -676,6 +691,11 @@ bool curses_table::get_position(OUT int32_t* pos,
 	OUT float* percent, 
 	OUT bool* truncated)
 {
+	if(m_data == NULL || m_data->size() == 0)
+	{
+		return false;
+	}
+
 	*pos = m_selct + 1;
 	*totlines = (int32_t)m_data->size();
 	*percent = (float)(m_selct + 1) / (float)m_data->size();

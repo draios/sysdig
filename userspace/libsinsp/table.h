@@ -269,6 +269,7 @@ class sinsp_table
 public:	
 	enum tabletype
 	{
+		TT_NONE = 0,
 		TT_TABLE,
 		TT_LIST,
 	};

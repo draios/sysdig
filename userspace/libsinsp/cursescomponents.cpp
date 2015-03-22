@@ -626,42 +626,12 @@ void curses_textbox::populate_sidemenu()
 void curses_textbox::render_header()
 {
 	move(2, 0);
-
-	attrset(m_parent->m_colors[sinsp_cursesui::PROCESS]);
+	attrset(m_parent->m_colors[sinsp_cursesui::FUNCTION_BAR]);
 
 	for(uint32_t j = 0; j < m_parent->m_screenw; j++)
 	{
 		addch(' ');
 	}
-
-	int32_t ox, oy;
-	int32_t sy;
-	char prstr[128];
-
-	m_ctext->get_offset(&ox, &oy);
-	m_ctext->get_buf_size(&sy);
-	float pct;
-	m_ctext->get_offset_percent(&pct);
-
-	string trs;
-
-	if(m_ctext->available_rows() <= 0)
-	{
-		trs = "(truncated)";
-	}
-
-	if(pct != 0)
-	{
-		sprintf(prstr, "     %d/%d(%.1f%%)%s", (int)oy, (int)sy, pct * 100, trs.c_str());
-	}
-	else
-	{
-		sprintf(prstr, "     %d/%d(0.0%%)%s", (int)oy, (int)sy, trs.c_str());
-	}
-
-	mvaddstr(m_parent->m_screenh - 1, 
-		m_parent->m_screenw - strlen(prstr),
-		prstr);
 
 	refresh();
 }
@@ -670,6 +640,7 @@ void curses_textbox::render()
 {
 	m_ctext->redraw();
 	render_header();
+	m_parent->render();
 
 	if(m_paused)
 	{

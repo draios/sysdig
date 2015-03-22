@@ -29,7 +29,7 @@ public:
 		ALIGN_RIGHT,
 	};
 
-	curses_table(sinsp_cursesui* parent, sinsp* inspector);
+	curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table::tabletype type);
 	~curses_table();
 
 	void configure(sinsp_table* table, 
@@ -70,6 +70,7 @@ private:
 	sinsp_filter_check_reference* m_converter;
 	vector<uint32_t> m_column_startx;
 	char alignbuf[64];
+	sinsp_table::tabletype m_type;
 
 	friend class curses_table_sidemenu;
 };

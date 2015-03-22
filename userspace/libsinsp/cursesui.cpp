@@ -161,12 +161,14 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	//
 	m_colors[RESET_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
 	m_colors[DEFAULT_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
-	m_colors[FUNCTION_BAR] = ColorPair(COLOR_BLACK,COLOR_CYAN);
+	m_colors[FUNCTION_BAR] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
 	m_colors[FUNCTION_KEY] = ColorPair( COLOR_WHITE,COLOR_BLACK);
 	m_colors[PANEL_HEADER_FOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
 	m_colors[PANEL_HEADER_UNFOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
 	m_colors[PANEL_HIGHLIGHT_FOCUS] = ColorPair(COLOR_BLACK,COLOR_CYAN);
 	m_colors[PANEL_HIGHLIGHT_UNFOCUS] = ColorPair(COLOR_BLACK, COLOR_WHITE);
+	m_colors[PANEL_HEADER_LIST_FOCUS] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
+	m_colors[PANEL_HEADER_LIST_HIGHLIGHT] = ColorPair(COLOR_BLACK,COLOR_GREEN);
 	m_colors[FAILED_SEARCH] = ColorPair(COLOR_RED,COLOR_CYAN);
 	m_colors[UPTIME] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
 	m_colors[BATTERY] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
@@ -320,12 +322,11 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	// If we need a new datatable, allocate it and set it up
 	//
 	sinsp_view_info* wi = NULL;
+	sinsp_table::tabletype ty = sinsp_table::TT_NONE;
 
 	if(m_selected_view >= 0)
 	{
 		wi = &(m_views[m_selected_view]);
-
-		sinsp_table::tabletype ty;
 
 		if(wi->m_type == sinsp_view_info::T_TABLE)
 		{
@@ -373,7 +374,8 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	//
 	if(m_selected_view >= 0)
 	{
-		m_viz = new curses_table(this, m_inspector);
+		ASSERT(ty != sinsp_table::TT_NONE);
+		m_viz = new curses_table(this, m_inspector, ty);
 		m_chart = m_viz;
 
 		vector<int32_t> colsizes;
@@ -695,13 +697,15 @@ void sinsp_cursesui::render_spy_main_menu()
 	
 void sinsp_cursesui::render_position_info()
 {
-	ASSERT(m_chart != NULL);
+	if(m_chart == NULL)
+	{
+		return;
+	}
 
 	int32_t pos;
 	int32_t totlines;
 	float percent;
 	bool truncated;
-
 	if(m_chart->get_position(&pos, &totlines, &percent, &truncated))
 	{
 		char prstr[128];
@@ -722,7 +726,7 @@ void sinsp_cursesui::render_position_info()
 			sprintf(prstr, "     %d/%d(0.0%%)%s", (int)pos, (int)totlines, trs.c_str());
 		}
 
-		attrset(m_colors[sinsp_cursesui::PROCESS]);
+		attrset(m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 
 		mvaddstr(m_screenh - 1, 
 			m_screenw - strlen(prstr),

@@ -138,7 +138,7 @@ void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& fi
 
 		if(chk == NULL)
 		{
-			throw sinsp_exception("invalid table token " + vit.m_field);
+			throw sinsp_exception("invalid field name " + vit.m_field);
 		}
 
 		chk->m_aggregation = (sinsp_field_aggregation)vit.m_aggregation;
