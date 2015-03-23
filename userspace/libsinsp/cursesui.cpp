@@ -503,6 +503,20 @@ void sinsp_cursesui::render_default_main_menu()
 		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
 		k += 6;
 	}
+
+	if(m_datatable->m_type == sinsp_table::TT_LIST)
+	{
+		attrset(m_colors[PROCESS]);
+		string fks = "C";
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
+		k += MAX(fks.size(), 2);
+
+		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+		fks = "Clear";
+		fks.resize(6, ' ');
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+		k += 6;
+	}
 }
 
 void sinsp_cursesui::render_filtersearch_main_menu()

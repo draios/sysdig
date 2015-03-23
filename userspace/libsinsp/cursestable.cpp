@@ -651,6 +651,10 @@ sysdig_table_action curses_table::handle_input(int ch)
 				}
 			}
 			break;
+		case 'c':
+			m_table->clear();
+			render(true);
+			break;
 		default:
 			break;
 	}

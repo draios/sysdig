@@ -318,6 +318,7 @@ public:
 	{
 		m_refresh_interval = newinterval;
 	}
+	void clear();
 
 	uint64_t m_next_flush_time_ns;
 

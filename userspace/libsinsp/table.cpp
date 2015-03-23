@@ -1185,3 +1185,16 @@ void sinsp_table::set_paused(bool paused)
 {
 	m_paused = paused;
 }
+
+void sinsp_table::clear()
+{
+	if(m_type == sinsp_table::TT_LIST)
+	{
+		m_full_sample_data.clear();
+		m_buffer->clear();
+	}
+	else
+	{
+		ASSERT(false);
+	}
+}
