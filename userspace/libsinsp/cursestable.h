@@ -54,7 +54,7 @@ public:
 	
 private:
 	alignment get_field_alignment(ppm_param_type type);
-	void print_nomatch();
+	void print_error(string wstr);
 	void print_wait();
 
 	sinsp* m_inspector;

@@ -679,7 +679,7 @@ void sinsp_cursesui::render()
 	//
 	// Print the position in the chart
 	//
-	if(!m_output_filtering)
+	if(!(m_output_filtering || m_output_searching))
 	{
 		render_position_info();
 	}
