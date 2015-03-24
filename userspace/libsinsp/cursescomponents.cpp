@@ -54,6 +54,7 @@ curses_scrollable_list::curses_scrollable_list()
 {
 	m_selct = 0;
 	m_firstrow = 0;
+	m_lastrow_selected = true;
 }
 
 void curses_scrollable_list::sanitize_selection(int32_t datasize)
@@ -96,6 +97,8 @@ void curses_scrollable_list::selection_up(int32_t datasize)
 		m_selct--;
 		sanitize_selection(datasize);
 	}
+
+	m_lastrow_selected = false;
 }
 
 void curses_scrollable_list::selection_down(int32_t datasize)
@@ -110,6 +113,11 @@ void curses_scrollable_list::selection_down(int32_t datasize)
 		m_selct++;
 		sanitize_selection(datasize);
 	}
+
+	if(m_selct == datasize - 1)
+	{
+		m_lastrow_selected = true;		
+	}
 }
 
 void curses_scrollable_list::selection_pageup(int32_t datasize)
@@ -118,6 +126,8 @@ void curses_scrollable_list::selection_pageup(int32_t datasize)
 	m_selct -= (m_h - 1);
 
 	sanitize_selection(datasize);
+
+	m_lastrow_selected = false;
 }
 
 void curses_scrollable_list::selection_pagedown(int32_t datasize)
@@ -126,6 +136,11 @@ void curses_scrollable_list::selection_pagedown(int32_t datasize)
 	m_selct += (m_h - 1);
 
 	sanitize_selection(datasize);
+
+	if(m_selct == datasize - 1)
+	{
+		m_lastrow_selected = true;		
+	}
 }
 
 void curses_scrollable_list::selection_home(int32_t datasize)
@@ -134,6 +149,8 @@ void curses_scrollable_list::selection_home(int32_t datasize)
 	m_selct = 0;
 
 	sanitize_selection(datasize);
+
+	m_lastrow_selected = false;
 }
 
 void curses_scrollable_list::selection_end(int32_t datasize)
@@ -142,6 +159,8 @@ void curses_scrollable_list::selection_end(int32_t datasize)
 	m_selct = datasize - 1;
 
 	sanitize_selection(datasize);
+
+	m_lastrow_selected = true;
 }
 
 void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)

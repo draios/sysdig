@@ -230,7 +230,7 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 		else
 		{
 			m_selct = selct;
-//			selection_goto((int32_t)m_data->size(), m_selct);
+			//selection_goto((int32_t)m_data->size(), m_selct);
 			render(true);
 		}
 
@@ -668,6 +668,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 			{
 				m_table->clear();
 				render(true);
+				m_lastrow_selected = true;
 			}
 			break;
 		default:
@@ -729,6 +730,17 @@ bool curses_table::get_position(OUT int32_t* pos,
 	*truncated = false;
 
 	return true;
+}
+
+void curses_table::follow_end()
+{
+	if(m_lastrow_selected)
+	{
+		m_selection_changed = true;
+		selection_end((int32_t)m_data->size());
+		update_rowkey(m_selct);
+		render(true);
+	}
 }
 
 #endif // SYSTOP

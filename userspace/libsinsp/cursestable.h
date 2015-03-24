@@ -46,6 +46,7 @@ public:
 	void update_rowkey(int32_t row);
 	void goto_row(int32_t row);
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
+	void follow_end();
 
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;

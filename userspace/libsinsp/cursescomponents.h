@@ -100,6 +100,7 @@ public:
 	int32_t m_firstrow;
 	uint32_t m_w;
 	uint32_t m_h;
+	bool m_lastrow_selected;
 };
 
 class curses_table_sidemenu : public curses_scrollable_list

@@ -867,6 +867,12 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	if(m_viz)
 	{
 		m_viz->update_data(sample);
+
+		if(m_datatable->m_type == sinsp_table::TT_LIST && m_inspector->is_live())
+		{
+			m_viz->follow_end();
+		}
+
 		m_viz->render(true);
 	}
 
