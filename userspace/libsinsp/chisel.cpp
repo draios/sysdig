@@ -427,6 +427,11 @@ bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 	// Extract the args
 	//
 	lua_getglobal(ls, "args");
+	if(lua_isnoneornil(ls, -1))
+	{
+		goto failure;
+	}
+
 	try
 	{
 		parse_lua_chisel_args(ls, &cd);
@@ -435,6 +440,7 @@ bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 	{
 		goto failure;
 	}
+
 	return true;
 
 failure:
@@ -481,8 +487,11 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 		{
 			continue;
 		}
+
 		tinydir_dir dir;
+
 		tinydir_open(&dir, it->m_dir);
+
 		while(dir.has_next)
 		{
 			tinydir_file file;
@@ -522,6 +531,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 next_file:
 			tinydir_next(&dir);
 		}
+
 		tinydir_close(&dir);
 	}
 }
