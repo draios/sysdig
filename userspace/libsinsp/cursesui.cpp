@@ -789,7 +789,10 @@ void sinsp_cursesui::render()
 	//
 	// Print the position in the chart
 	//
-	render_position_info();
+	if(!m_output_filtering)
+	{
+		render_position_info();
+	}
 }
 #endif
 
@@ -1220,6 +1223,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 {
 	bool closing = false;
 	string* str;
+	bool handled = true;
 
 	//
 	// Pick the right string based on what we're doing
@@ -1300,6 +1304,9 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			{
 				return STA_NONE;
 			}
+		default:
+			handled = false;
+			break;
 	}
 
 	if(ch >= ' ' && ch <= '~')
@@ -1310,7 +1317,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	}
 	else
 	{
-		if(ch != KEY_BACKSPACE)
+		if(!handled)
 		{
 			return STA_NONE;
 		}

@@ -1610,13 +1610,13 @@ sysdig_init_res systop_init(int argc, char **argv)
 			vector<sinsp_table_entry> vflds;
 
 			// test
-			
+/*			
 			vflds.clear();
 			vflds.push_back(sinsp_table_entry("util.cnt", "#", 10, TEF_NONE, A_NONE, A_NONE));
 			vflds.push_back(sinsp_table_entry("evt.time", "TIME", 19, TEF_NONE, A_NONE, A_NONE));
 			vflds.push_back(sinsp_table_entry("evt.type", "name", 40, TEF_NONE, A_NONE, A_NONE));
 			views.push_back(sinsp_view_info(sinsp_view_info::T_LIST, "File Opens", &vflds, "all,fd.name", "", "", true));
-
+*/
 			// Top processes
 			vflds.clear();
 			vflds.push_back(sinsp_table_entry("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
