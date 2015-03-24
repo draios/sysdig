@@ -128,6 +128,22 @@ void curses_scrollable_list::selection_pagedown(int32_t datasize)
 	sanitize_selection(datasize);
 }
 
+void curses_scrollable_list::selection_home(int32_t datasize)
+{
+	m_firstrow = 0;
+	m_selct = 0;
+
+	sanitize_selection(datasize);
+}
+
+void curses_scrollable_list::selection_end(int32_t datasize)
+{
+	m_firstrow = datasize - 1;
+	m_selct = datasize - 1;
+
+	sanitize_selection(datasize);
+}
+
 void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)
 {
 	if(row == -1 ||
@@ -138,7 +154,6 @@ void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)
 	}
 
 	m_firstrow = row - (m_h /2);
-g_logger.format("--- %d", (int)m_firstrow);
 	m_selct = row;
 
 	sanitize_selection(datasize);

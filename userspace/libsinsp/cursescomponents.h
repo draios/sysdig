@@ -91,6 +91,8 @@ public:
 	void selection_down(int32_t datasize);
 	void selection_pageup(int32_t datasize);
 	void selection_pagedown(int32_t datasize);
+	void selection_home(int32_t datasize);
+	void selection_end(int32_t datasize);
 	void selection_goto(int32_t datasize, int32_t row);
 
 	int32_t m_selct;

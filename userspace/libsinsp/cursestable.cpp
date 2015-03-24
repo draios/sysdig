@@ -565,6 +565,18 @@ sysdig_table_action curses_table::handle_input(int ch)
 			update_rowkey(m_selct);
 			render(true);
 			break;
+		case KEY_HOME:
+			m_selection_changed = true;
+			selection_home((int32_t)m_data->size());
+			update_rowkey(m_selct);
+			render(true);
+			break;
+		case KEY_END:
+			m_selection_changed = true;
+			selection_end((int32_t)m_data->size());
+			update_rowkey(m_selct);
+			render(true);
+			break;
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
@@ -652,8 +664,11 @@ sysdig_table_action curses_table::handle_input(int ch)
 			}
 			break;
 		case 'c':
-			m_table->clear();
-			render(true);
+			if(m_type == sinsp_table::TT_LIST)
+			{
+				m_table->clear();
+				render(true);
+			}
 			break;
 		default:
 			break;
