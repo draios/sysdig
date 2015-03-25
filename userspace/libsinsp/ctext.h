@@ -117,6 +117,42 @@ typedef struct ctext_format_struct
 	int16_t color_pair;
 } ctext_format;
 
+typedef struct ctext_pos_struct
+{
+	int32_t x;
+	int32_t y;
+} ctext_pos;
+
+typedef struct ctext_search_struct
+{
+	// the current position of the 
+	// search. ... you could do
+	//
+	// ct.get_offset(&search.pos);
+	//
+	// in order to initialize it to
+	// the current point.
+	//
+	ctext_pos pos;
+
+	// should we wrap around when
+	// we are done.
+	bool do_wrap;
+
+	// true if we are searching forward
+	// false if we aren't.
+	bool is_forward;
+
+	// this is used internally,
+	// please don't modify.
+	ctext_pos _start_pos;
+	ctext_pos _last_match;
+
+	// the string to match
+	string query;
+
+} ctext_search;
+
 typedef struct ctext_row_struct
 {
 	string data;
@@ -170,13 +206,13 @@ class ctext
 		// anew.
 		//
 		// However, if you'd like to only remove part of the content,
-		// then you can pass an amount in and clear will truncate 
-		// amount units of the oldest content.
+		// then you can pass a row_count in and clear will truncate 
+		// row_count units of the oldest content.
 		//
 		// The return code is how many rows were cleared from the 
 		// buffer.
 		//
-		int32_t clear(int32_t amount = 0);
+		int32_t clear(int32_t row_count = -1);
 
 		// 
 		// Scroll_to when appending to the bottom in the traditional
@@ -190,8 +226,8 @@ class ctext
 		// Returns 0 on success
 		//
 		int8_t scroll_to(int32_t x, int32_t y);
+		int8_t scroll_to(ctext_pos *pos);
 
-		//
 		// get_offset returns the current coordinates of the view port.
 		// The values from get_offset are complementary to those 
 		// of scroll_to
@@ -199,6 +235,7 @@ class ctext
 		// Returns 0 on success
 		//
 		int8_t get_offset(int32_t*x, int32_t*y); 
+		int8_t get_offset(ctext_pos *pos);
 
 		//
 		// get_offset_percent is a courtesy function returning
@@ -308,7 +345,6 @@ class ctext
 		// inside of an instance in order to migrate an existing
 		// application to this library seamlessly.
 		//
-		int32_t putchar(int32_t c);
 		int8_t printf(const char*format, ...);
 		int8_t vprintf(const char*format, va_list ap = 0);
 
@@ -322,7 +358,7 @@ class ctext
 		int8_t nprintf(const char*format, ...);
 
 		//
-		// under normal (printf) conditions, this does not
+		// Under normal (printf) conditions, this does not
 		// need to be called explicitly and is instead called
 		// each time a printf is called.
 		//
@@ -344,24 +380,54 @@ class ctext
 		int8_t ob_start();
 		int8_t ob_end();
 
+		int8_t highlight(ctext_search *context);
+		int8_t redraw_partial_test();
+
+		// This is how you initialize a search.
+		ctext_search *new_search(ctext_search *you_manage_this_memory, string to_search, bool is_forward = true, bool do_wrap = false);
+
+		int8_t str_search(ctext_search *to_search);
+
 	private:
-		bool m_do_draw;
+		int8_t map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos *win);
+		int8_t y_scroll_calculate(int32_t amount, ctext_pos *pos);
+		int16_t redraw_partial(int32_t buf_start_x, int32_t buf_start_y, int32_t buf_end_x, int32_t buf_end_y);
+		int16_t redraw_partial(ctext_pos *pos, size_t len);
 		ctext_row* add_row();
 		void add_format_if_needed();
 		int8_t rebuf();
-		int8_t direct_scroll(int32_t x, int32_t y);
+		void get_win_size();
 
+		// 
+		// Directly scroll to an x/y location with respect to
+		// the buffer without any redraw or other calculation.
+		//
+		// This just moves the internal pointers forward with 
+		// respect to the internal configuration.
+		//
+		// The return value is 0 iff the value of the scroll
+		// was changed.  Otherwise, if nothing changed in the
+		// request, -1 is returned.
+		//
+		int8_t direct_scroll(int32_t x, int32_t y);
+		int8_t direct_scroll(ctext_pos *pos);
+
+		// A mast to apply to the text being rendered.
+		attr_t m_attr_mask;
+		int8_t str_search_single(ctext_search *to_search, ctext_pos *limit = 0);
+
+		// Whether or not to draw when new text comes in or to skip the step.
+		bool m_do_draw;
 		WINDOW *m_win;
 		ctext_config m_config;
 		ctext_buffer m_buffer;
 
-		int32_t m_pos_x;
-		int32_t m_pos_y;
-		int32_t m_pos_inrow;
-
+		// The start point of the buffer with
+		// respect to the current viewport
+		ctext_pos m_pos_start;
+		
 		int32_t m_max_y;
 
-		void get_win_size();
 		int32_t m_win_width;
 		int32_t m_win_height;
 		ofstream *m_debug;
