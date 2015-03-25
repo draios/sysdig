@@ -18,116 +18,6 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_view_info implementation
-///////////////////////////////////////////////////////////////////////////////
-sinsp_view_info::sinsp_view_info(viewtype type, 
-	string name,
-	vector<sinsp_table_entry>* columns,
-	string applyto,
-	string merge_config,
-	string filter,
-	bool use_defaults)
-{
-	m_name = name;
-	m_does_merge = false;
-	m_type = type;
-	
-	if(columns == NULL)
-	{
-		ASSERT(false);
-		throw sinsp_exception("invalid view definition, columns=NULL");
-	}
-	m_columns = *columns;
-
-	m_use_defaults = use_defaults;
-		
-	if(applyto != "")
-	{
-		char *p = strtok((char*)applyto.c_str(), ",");
-		while (p) 
-		{
-			string ts(p);
-			trim(ts);
-
-			if(ts == "all")
-			{
-				m_applyto.push_back("");
-			}
-			else
-			{
-				m_applyto.push_back(ts);
-			}
-
-			p = strtok(NULL, ",");
-		}
-	}
-	else
-	{
-		m_applyto.push_back("");
-	}
-
-	//
-	// Determine the sorting column
-	//
-	uint32_t n_sorting_cols = 0;
-
-	for(uint32_t j = 0; j < columns->size(); j++)
-	{
-		if((columns->at(j).m_flags & TEF_IS_SORT_COLUMN) != 0)
-		{
-			m_sortingcol = j;
-			n_sorting_cols++;
-		}
-
-		if((columns->at(j).m_flags & TEF_IS_MERGE_KEY) != 0)
-		{
-			m_does_merge = true;
-		}
-	}
-
-	if(n_sorting_cols == 0)
-	{
-		m_sortingcol = 0;
-	}
-	else if(n_sorting_cols > 1)
-	{
-		throw sinsp_exception("view format error: more than one sprting column");
-	}
-
-	m_filter = filter;
-}
-
-void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)
-{
-	if(m_type == viewtype::T_LIST)
-	{
-		colsizes->push_back(-1);
-		colnames->push_back("");
-	}
-
-	for(auto fit : m_columns)
-	{
-		if(m_does_merge)
-		{
-			if((fit.m_flags & TEF_IS_KEY) != 0)
-			{
-				continue;
-			}
-
-			if((fit.m_flags & TEF_IS_MERGE_KEY) != 0)
-			{
-				colsizes->insert(colsizes->begin(), fit.m_colsize);
-				colnames->insert(colnames->begin(), fit.m_name);
-				continue;
-			}
-		}
-
-		colsizes->push_back(fit.m_colsize);
-		colnames->push_back(fit.m_name);
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // sinsp_cursesui implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_cursesui::sinsp_cursesui(sinsp* inspector, 
@@ -816,7 +706,7 @@ void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>
 
 	for(auto it = m_views.begin(); it != m_views.end(); ++it)
 	{
-		for(auto atit = it->m_applyto.begin(); atit != it->m_applyto.end(); ++atit)
+		for(auto atit = it->m_applies_to.begin(); atit != it->m_applies_to.end(); ++atit)
 		{
 			if(*atit == field)
 			{
@@ -1053,7 +943,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 
 	for(auto it = m_views.begin(); it != m_views.end(); ++it)
 	{
-		for(auto atit = it->m_applyto.begin(); atit != it->m_applyto.end(); ++atit)
+		for(auto atit = it->m_applies_to.begin(); atit != it->m_applies_to.end(); ++atit)
 		{
 			if(*atit == field)
 			{

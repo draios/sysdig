@@ -29,38 +29,6 @@ string combine_filters(string flt1, string flt2);
 class ctext;
 class sinsp_chart;
 
-class sinsp_view_info
-{
-public:
-	enum viewtype
-	{
-		T_NONE = 0,
-		T_TABLE,
-		T_LIST,
-		T_TEXT,
-	};
-
-	sinsp_view_info(viewtype type,
-		string name,
-		vector<sinsp_table_entry>* columns,
-		string applyto,
-		string merge_config,
-		string filter,
-		bool use_defaults);
-
-	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
-
-	string m_name;
-	string m_merge_config;
-	uint32_t m_sortingcol;
-	string m_filter;
-	vector<string> m_applyto;
-	vector<sinsp_table_entry> m_columns;
-	bool m_use_defaults;
-	bool m_does_merge;
-	viewtype m_type;
-};
-
 class sinsp_ui_selection_info
 {
 public:

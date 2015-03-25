@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
 #ifdef HAS_ANALYZER

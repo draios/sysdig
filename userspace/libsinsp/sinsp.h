@@ -72,8 +72,8 @@ using namespace std;
 #include "dumper.h"
 #include "stats.h"
 #include "ifinfo.h"
-#include "chisel.h"
 #include "container.h"
+#include "viewinfo.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -92,19 +92,6 @@ typedef enum sinsp_pd_callback_type
 	CT_WRITE,
 	CT_TUPLE_CHANGE,
 }sinsp_pd_callback_type;
-
-//
-// Aggregation type for table fields
-//
-typedef enum sinsp_field_aggregation
-{
-	A_NONE,
-	A_SUM,
-	A_AVG,
-	A_TIME_AVG,
-	A_MIN,
-	A_MAX,		
-}sinsp_field_aggregation;
 
 #include "tuples.h"
 #include "fdinfo.h"

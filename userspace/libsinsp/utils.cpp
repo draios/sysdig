@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_signal.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "chisel.h"
 #include "protodecoder.h"
 
 #ifndef PATH_MAX

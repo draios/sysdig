@@ -26,8 +26,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm> 
 
 #include <sinsp.h>
-#include "sysdig.h"
 #include "chisel.h"
+#include "sysdig.h"
 
 #define DESCRIPTION_TEXT_START 20
 #define CONSOLE_LINE_LEN 79

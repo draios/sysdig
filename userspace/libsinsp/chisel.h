@@ -22,6 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 class sinsp_filter_check;
 class sinsp_evt_formatter;
+class sinsp_view_info;
 
 typedef struct lua_State lua_State;
 
@@ -73,6 +74,7 @@ public:
 	string m_category;
 	string m_shortdesc;
 	vector<chiselarg_desc> m_args;
+	sinsp_view_info m_viewinfo;
 };
 
 
@@ -123,6 +125,9 @@ public:
 private:
 	bool openfile(string filename, OUT ifstream* is);
 	void free_lua_chisel();
+	static void parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
+	static void parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
+	static bool parse_view_info(lua_State *ls, OUT chisel_desc* cd);
 	static bool init_lua_chisel(chisel_desc &cd, string const &path);
 	void first_event_inits(sinsp_evt* evt);
 

@@ -34,6 +34,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel_api.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "table.h"
+#include "cursescomponents.h"
+#include "cursestable.h"
+#include "cursesui.h"
 
 #ifdef HAS_CHISELS
 #define HAS_LUA_CHISELS
@@ -347,6 +351,238 @@ void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 }
 #endif
 
+void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
+{
+	vector<sinsp_view_column_info>* cols = (vector<sinsp_view_column_info>*)columns;
+
+	lua_pushnil(ls);
+
+	string name;
+	string field;
+	uint32_t colsize = 0xffffffff;
+	uint32_t flags = TEF_NONE;
+	sinsp_field_aggregation aggregation = A_NONE;
+
+	while(lua_next(ls, -2) != 0)
+	{
+		string fldname = lua_tostring(ls, -2);
+
+		if(fldname == "name")
+		{
+			name = lua_tostring(ls, -1);
+		}
+		else if(fldname == "field")
+		{
+			field = lua_tostring(ls, -1);
+		}
+		else if(fldname == "colsize")
+		{
+			if(lua_isnumber(ls, -1))
+			{
+				colsize = (uint32_t)lua_tonumber(ls, -1);
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a number");
+			}
+		}
+		else if(fldname == "is_key")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				bool ik = (lua_toboolean(ls, -1) != 0);
+				if(ik)
+				{
+					flags |= TEF_IS_KEY;
+				}
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean value");
+			}
+		}
+		else if(fldname == "is_sorting")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				bool ik = (lua_toboolean(ls, -1) != 0);
+				if(ik)
+				{
+					flags |= TEF_IS_SORT_COLUMN;
+				}
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean value");
+			}
+		}
+		else if(fldname == "aggregation")
+		{
+			if(lua_isstring(ls, -1))
+			{
+				string ag = lua_tostring(ls, -1);
+				
+				if(ag == "SUM")
+				{
+					aggregation = A_SUM;
+				}
+				else if(ag == "AVG")
+				{
+					aggregation = A_AVG;
+				}
+				else if(ag == "TIME_AVG")
+				{
+					aggregation = A_TIME_AVG;
+				}
+				else if(ag == "MIN")
+				{
+					aggregation = A_MIN;
+				}
+				else if(ag == "MAX")
+				{
+					aggregation = A_MAX;
+				}
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a string value");
+			}
+		}
+
+		lua_pop(ls, 1);
+	}
+
+	cols->push_back(sinsp_view_column_info(field, 
+		name, 
+		colsize, 
+		(sinsp_view_column_info_flags)flags, 
+		aggregation, 
+		A_NONE));
+}
+
+void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
+{
+	lua_pushnil(ls);
+	string name;
+	string type;
+	string desc;
+	bool optional = false;
+
+	while(lua_next(ls, -2) != 0)
+	{
+		if(lua_istable(ls, -1))
+		{
+			parse_view_column(ls, cd, columns);
+		}
+		else
+		{
+			throw sinsp_exception("view_info column entries must be strings");
+		}
+
+		lua_pop(ls, 1);
+	}
+}
+
+bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
+{
+	lua_getglobal(ls, "view_info");
+	if(lua_isnoneornil(ls, -1))
+	{
+		lua_close(ls);
+		return false;
+	}
+
+	lua_pushnil(ls);
+
+	string tmpstr;
+	string name;
+	string description;
+	string tags;
+	string applies_to;
+	string filter;
+	bool use_defaults = false;
+	sinsp_view_info::viewtype vt = sinsp_view_info::T_TABLE;
+	vector<sinsp_view_column_info> columns;
+
+	while(lua_next(ls, -2) != 0)
+	{
+		string fldname = lua_tostring(ls, -2);
+
+		if(fldname == "name")
+		{
+			name = lua_tostring(ls, -1);
+		}
+		else if(fldname == "description")
+		{
+			description = lua_tostring(ls, -1);
+		}
+		else if(fldname == "tags")
+		{
+			tags = lua_tostring(ls, -1);
+		}
+		else if(fldname == "viewtype")
+		{
+			tmpstr = lua_tostring(ls, -1);
+
+			if(tmpstr == "table")
+			{
+				vt = sinsp_view_info::T_TABLE;
+			}
+			else if(tmpstr == "list")
+			{
+				vt = sinsp_view_info::T_LIST;
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be either 'table' or 'list'");
+			}
+		}
+		else if(fldname == "applies_to")
+		{
+			applies_to = lua_tostring(ls, -1);
+		}
+		else if(fldname == "filter")
+		{
+			filter = lua_tostring(ls, -1);
+		}
+		else if(fldname == "use_defaults")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				use_defaults = (lua_toboolean(ls, -1) != 0);
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean");
+			}
+		}
+		else if(fldname == "columns")
+		{
+			if(lua_istable(ls, -1))
+			{
+				parse_view_columns(ls, cd, &columns);
+				int a = 0;
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+			}
+		}
+
+		lua_pop(ls, 1);
+	}
+
+	cd->m_viewinfo = sinsp_view_info(vt,
+		name,
+		&columns,
+		applies_to,
+		filter,
+		use_defaults);
+
+	return true;
+}
+
+
 #ifdef HAS_LUA_CHISELS
 // Initializes a lua chisel
 bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
@@ -386,6 +622,7 @@ bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 	lua_getglobal(ls, "description");
 	if(!lua_isstring(ls, -1))
 	{
+		return parse_view_info(ls, &cd);
 		goto failure;
 	}
 	cd.m_description = lua_tostring(ls, -1);

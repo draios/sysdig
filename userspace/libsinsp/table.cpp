@@ -112,7 +112,7 @@ sinsp_table::~sinsp_table()
 	delete m_printer;
 }
 
-void sinsp_table::configure(vector<sinsp_table_entry>* entries, const string& filter, bool use_defaults)
+void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults)
 {
 	m_use_defaults = use_defaults;
 

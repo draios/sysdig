@@ -30,7 +30,8 @@ add_library(sinsp STATIC
 	sinsp.cpp
 	stats.cpp
 	table.cpp
-	utils.cpp)
+	utils.cpp
+	viewinfo.cpp)
 
 target_link_libraries(sinsp 
 	scap
