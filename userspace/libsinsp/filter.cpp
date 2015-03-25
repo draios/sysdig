@@ -1155,7 +1155,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand, bool in_cl
 			//
 			// End of word
 			//
-			ASSERT(m_scanpos > start);
+			ASSERT(m_scanpos >= start);
 
 			if(curchar == '(' || curchar == ')' || (in_clause && curchar == ','))
 			{
