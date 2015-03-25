@@ -1013,7 +1013,7 @@ bool sinsp_cursesui::drillup()
 			sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 2];
 			field = psinfo->m_field;
 		}
-		
+
 //		field = sinfo->m_field;
 
 		sinsp_table_field rowkey = sinfo->m_rowkey;

@@ -230,8 +230,14 @@ void curses_table::update_data(vector<sinsp_sample_row>* data)
 		else
 		{
 			m_selct = selct;
-			//selection_goto((int32_t)m_data->size(), m_selct);
+			
+//			if(m_drilled_up)
+			{
+				selection_goto((int32_t)m_data->size(), m_selct);
+			}
+
 			render(true);
+//m_drilled_up = false;
 		}
 
 		sanitize_selection((int32_t)m_data->size());
