@@ -39,7 +39,7 @@ view_info =
 			name = "CPU",
 			field = "proc.cpu",
 			colsize = 8,
-			aggregation = "SUM",
+			aggregation = "MAX",
 			is_sorting = true
 		},
 		{

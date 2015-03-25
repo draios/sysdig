@@ -1611,7 +1611,9 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("evt.type", "name", 40, TEF_NONE, A_NONE, A_NONE));
 		views.push_back(sinsp_view_info(sinsp_view_info::T_LIST, "File Opens", &vflds, "all,fd.name", "", "", true));
 */
+		
 		// Top processes
+/*		
 		vflds.clear();
 		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.pid", "PID", 8, TEF_NONE, A_NONE, A_NONE));
@@ -1626,7 +1628,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 8, TEF_NONE, A_SUM, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.exeline", "Command", 200, TEF_NONE, A_NONE, A_NONE));
 		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "Top Processes", &vflds, "all,fd.name", "", true));
-
+*/
 		// File opens
 /*
 		vflds.clear();

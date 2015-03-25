@@ -466,7 +466,6 @@ void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT vo
 	string name;
 	string type;
 	string desc;
-	bool optional = false;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -561,7 +560,6 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			if(lua_istable(ls, -1))
 			{
 				parse_view_columns(ls, cd, &columns);
-				int a = 0;
 			}
 			else
 			{
