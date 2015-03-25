@@ -266,6 +266,14 @@ bool flt_compare_double(ppm_cmp_operator op, double operand1, double operand2)
 
 bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
+	if(op == CO_EXISTS)
+	{
+		//
+		// If we got here, the field exists for sure
+		//
+		return true;
+	}
+
 	switch(type)
 	{
 	case PT_INT8:
@@ -897,10 +905,6 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 	if(extracted_val == NULL)
 	{
 		return false;
-	}
-	else if(m_cmpop == CO_EXISTS)
-	{
-		return true;
 	}
 
 	return flt_compare(m_cmpop,

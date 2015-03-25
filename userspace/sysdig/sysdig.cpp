@@ -1640,6 +1640,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 */
 
 		// Top containers
+/*
 		vflds.clear();
 		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.cpu", "CPU", 8, TEF_IS_SORT_COLUMN, A_MAX, A_SUM));
@@ -1654,6 +1655,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("container.id", "ID", -1, TEF_IS_MERGE_KEY, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("container.name", "NAME", 200, TEF_NONE, A_NONE, A_NONE));
 		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "Top Containers", vtags, vflds, "all", "container.name != host", true));
+*/
 /*			
 		// Top Threads
 		vflds.clear();
@@ -1891,8 +1893,8 @@ int main(int argc, char **argv)
 
 //
 #ifdef _WIN32
-	res = systop_init(argc, argv);
-	return 0;
+//	res = systop_init(argc, argv);
+//	return 0;
 #endif
 //
 #ifdef SYSTOP
