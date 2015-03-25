@@ -19,7 +19,7 @@ view_info =
 {
 	name = "File Opens",
 	description = "List file name and process for of all the file opens.",
-	tags = "Default",
+	tags = {"Default"},
 	viewtype = "list",
 	applies_to = "all,fd.name",
 	filter = "evt.type=open and evt.dir=<",

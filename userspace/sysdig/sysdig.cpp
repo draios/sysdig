@@ -1602,6 +1602,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		//
 		vector<sinsp_view_info> views;
 		vector<sinsp_view_column_info> vflds;
+		vector<string> vtags;
 
 		// test
 /*			
@@ -1652,8 +1653,8 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 9, TEF_NONE, A_SUM, A_SUM));
 		vflds.push_back(sinsp_view_column_info("container.id", "ID", -1, TEF_IS_MERGE_KEY, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("container.name", "NAME", 200, TEF_NONE, A_NONE, A_NONE));
-		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "Top Containers", &vflds, "all", "container.name != host", true));
-			
+		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "Top Containers", vtags, vflds, "all", "container.name != host", true));
+/*			
 		// Top Threads
 		vflds.clear();
 		vflds.push_back(sinsp_view_column_info("thread.tid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
@@ -1675,7 +1676,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("evt.buflen.net.in", "NETIN", 10, TEF_IS_SORT_COLUMN, A_SUM, A_NONE));
 		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 10, TEF_NONE, A_SUM, A_NONE));
 		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "Top Connections", &vflds, "all,container.name,proc.pid,proc.name,thread.tid", "", true));
-
+*/
 /*
 		// Top processes for containers
 		views.push_back(sinsp_view_info("Top Processes", 
@@ -1740,7 +1741,10 @@ sysdig_init_res systop_init(int argc, char **argv)
 		{
 			if(it.m_viewinfo.m_valid)
 			{
-				views.push_back(it.m_viewinfo);
+				if(it.m_viewinfo.m_tags[0] == "Containers")
+				{
+					views.push_back(it.m_viewinfo);
+				}
 			}
 		}
 

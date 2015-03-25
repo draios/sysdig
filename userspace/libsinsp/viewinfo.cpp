@@ -34,7 +34,8 @@ sinsp_view_info::sinsp_view_info()
 
 sinsp_view_info::sinsp_view_info(viewtype type, 
 	string name,
-	vector<sinsp_view_column_info>* columns,
+	vector<string> tags,
+	vector<sinsp_view_column_info> columns,
 	string applies_to,
 	string filter,
 	bool use_defaults)
@@ -42,13 +43,8 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	m_name = name;
 	m_does_merge = false;
 	m_type = type;
-	
-	if(columns == NULL)
-	{
-		ASSERT(false);
-		throw sinsp_exception("invalid view definition, columns=NULL");
-	}
-	m_columns = *columns;
+	m_tags = tags;	
+	m_columns = columns;
 
 	m_use_defaults = use_defaults;
 		
@@ -82,15 +78,15 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	//
 	uint32_t n_sorting_cols = 0;
 
-	for(uint32_t j = 0; j < columns->size(); j++)
+	for(uint32_t j = 0; j < columns.size(); j++)
 	{
-		if((columns->at(j).m_flags & TEF_IS_SORT_COLUMN) != 0)
+		if((columns[j].m_flags & TEF_IS_SORT_COLUMN) != 0)
 		{
 			m_sortingcol = j;
 			n_sorting_cols++;
 		}
 
-		if((columns->at(j).m_flags & TEF_IS_MERGE_KEY) != 0)
+		if((columns[j].m_flags & TEF_IS_MERGE_KEY) != 0)
 		{
 			m_does_merge = true;
 		}

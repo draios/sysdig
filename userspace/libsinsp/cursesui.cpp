@@ -394,7 +394,7 @@ void sinsp_cursesui::render_default_main_menu()
 		k += 6;
 	}
 
-	if(m_datatable->m_type == sinsp_table::TT_LIST)
+	if(m_datatable != NULL && m_datatable->m_type == sinsp_table::TT_LIST)
 	{
 		attrset(m_colors[PROCESS]);
 		string fks = "C";

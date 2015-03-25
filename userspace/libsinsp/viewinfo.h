@@ -82,7 +82,8 @@ public:
 	sinsp_view_info();
 	sinsp_view_info(viewtype type,
 		string name,
-		vector<sinsp_view_column_info>* columns,
+		vector<string> tags,
+		vector<sinsp_view_column_info> columns,
 		string applies_to,
 		string filter,
 		bool use_defaults);
@@ -90,6 +91,7 @@ public:
 	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
 
 	string m_name;
+	vector<string> m_tags;
 	uint32_t m_sortingcol;
 	string m_filter;
 	vector<string> m_applies_to;

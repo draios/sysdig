@@ -19,9 +19,9 @@ view_info =
 {
 	name = "Top Processes",
 	description = "Top Processes.",
-	tags = {"Default"},
+	tags = {"Containers"},
 	viewtype = "table",
-	applies_to = "all,fd.name",
+	applies_to = "all,container.id",
 	use_defaults = true,
 	columns = 
 	{
@@ -36,16 +36,16 @@ view_info =
 			colsize = 8,
 		},
 		{
+			name = "VPID",
+			field = "proc.vpid",
+			colsize = 8,
+		},
+		{
 			name = "CPU",
 			field = "proc.cpu",
 			colsize = 8,
 			aggregation = "MAX",
 			is_sorting = true
-		},
-		{
-			name = "USER",
-			field = "user.name",
-			colsize = 12
 		},
 		{
 			name = "TH",
@@ -63,28 +63,21 @@ view_info =
 			colsize = 9
 		},
 		{
-			name = "FIN",
-			field = "evt.buflen.file.in",
+			name = "FILE",
+			field = "evt.buflen.file",
 			colsize = 8,
 			aggregation = "SUM"
 		},
 		{
-			name = "FOUT",
-			field = "evt.buflen.file.out",
+			name = "NET",
+			field = "evt.buflen.net",
 			colsize = 8,
 			aggregation = "SUM"
 		},
 		{
-			name = "NETIN",
-			field = "evt.buflen.net.in",
-			colsize = 8,
-			aggregation = "SUM"
-		},
-		{
-			name = "NETOUT",
-			field = "evt.buflen.net.out",
-			colsize = 8,
-			aggregation = "SUM"
+			name = "Container",
+			field = "container.name",
+			colsize = 15
 		},
 		{
 			name = "Command",

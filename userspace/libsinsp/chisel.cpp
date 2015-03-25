@@ -462,10 +462,11 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 
 void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
 {
-	lua_pushnil(ls);
 	string name;
 	string type;
 	string desc;
+
+	lua_pushnil(ls);
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -496,12 +497,12 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	string tmpstr;
 	string name;
 	string description;
-	string tags;
 	string applies_to;
 	string filter;
 	bool use_defaults = false;
 	sinsp_view_info::viewtype vt = sinsp_view_info::T_TABLE;
 	vector<sinsp_view_column_info> columns;
+	vector<string> tags;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -517,7 +518,29 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		}
 		else if(fldname == "tags")
 		{
-			tags = lua_tostring(ls, -1);
+			if(lua_istable(ls, -1))
+			{
+				lua_pushnil(ls);
+
+				while(lua_next(ls, -2) != 0)
+				{
+					if(lua_isstring(ls, -1))
+					{
+						tmpstr = lua_tostring(ls, -1);
+						tags.push_back(tmpstr);
+					}
+					else
+					{
+						throw sinsp_exception("tags column entries must be strings");
+					}
+
+					lua_pop(ls, 1);
+				}
+			}
+			else
+			{				
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+			}
 		}
 		else if(fldname == "viewtype")
 		{
@@ -572,7 +595,8 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 
 	cd->m_viewinfo = sinsp_view_info(vt,
 		name,
-		&columns,
+		tags,
+		columns,
 		applies_to,
 		filter,
 		use_defaults);
