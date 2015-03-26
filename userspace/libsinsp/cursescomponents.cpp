@@ -679,7 +679,7 @@ void curses_textbox::render()
 
 	if(m_paused)
 	{
-		string wstr = "PAUSED";
+		string wstr = "   PAUSED   ";
 		attrset(m_parent->m_colors[sinsp_cursesui::LARGE_NUMBER]);
 		mvprintw(0,
 			m_parent->m_screenw / 2 - wstr.size() / 2, 

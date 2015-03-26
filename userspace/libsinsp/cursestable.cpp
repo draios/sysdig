@@ -254,7 +254,7 @@ void curses_table::print_wait()
 
 	if(m_inspector->is_live())
 	{
-		wstr = "Gathering Data";
+		wstr = "Collecting Data";
 	}
 	else
 	{

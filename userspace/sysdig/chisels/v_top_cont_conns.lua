@@ -22,7 +22,7 @@ view_info =
 	tags = {"Containers"},
 	viewtype = "table",
 	applies_to = "all,container.id,proc.pid,thread.tid,proc.name",
-	filter = "fd.type=ipv4 and fd.name!=",
+	filter = "fd.type=ipv4 and fd.name!=''",
 	use_defaults = true,
 	columns = 
 	{
