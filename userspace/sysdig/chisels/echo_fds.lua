@@ -60,7 +60,7 @@ function on_init()
 	sysdig.set_snaplen(2000)
 	
 	-- set the filter
-	chisel.set_filter("evt.is_io=true and evt.dir=<")
+	chisel.set_filter("evt.is_io=true and evt.dir=< and evt.rawres>0")
 	chisel.set_event_formatter("%evt.arg.data")
 	
 	return true
