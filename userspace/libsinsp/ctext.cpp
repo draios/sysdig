@@ -1,11 +1,11 @@
+#ifndef _WIN32
+
 #include "ctext.h"
 #include <unistd.h>
 #include <string.h>
 #include <algorithm>		// std::max
 
 using namespace std;
-
-#ifndef _WIN32
 
 #define CTEXT_UNDER_X		0x01
 #define CTEXT_OVER_X		0x02

@@ -1653,7 +1653,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 9, TEF_NONE, A_SUM, A_SUM));
 		vflds.push_back(sinsp_view_column_info("container.id", "ID", -1, TEF_IS_MERGE_KEY, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("container.name", "NAME", 200, TEF_NONE, A_NONE, A_NONE));
-		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "Top Containers", vtags, vflds, "all", "container.name != host", true));
+		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "LD_top_cont", "Top Containers", vtags, vflds, "all", "container.name != host", "LD_top_cont_procs", true));
 
 /*			
 		// Top Threads
@@ -1892,8 +1892,8 @@ int main(int argc, char **argv)
 
 //
 #ifdef _WIN32
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 #endif
 //
 #ifdef SYSTOP

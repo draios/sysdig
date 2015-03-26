@@ -17,10 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
+	id = "LD_file_opens",
 	name = "File Opens",
 	description = "List file name and process for of all the file opens.",
 	tags = {"Default"},
-	viewtype = "list",
+	view_type = "list",
 	applies_to = "all,fd.name",
 	filter = "evt.type=open and evt.dir=<",
 	columns = 

@@ -17,10 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
+	id = "LD_top_cont_files",
 	name = "Top Files",
 	description = "Top Files.",
 	tags = {"Containers"},
-	viewtype = "table",
+	view_type = "table",
 	applies_to = "all,container.id,proc.pid,thread.tid,proc.name",
 	filter = "fd.type=file",
 	use_defaults = true,

@@ -17,10 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
+	id = "LD_top_procs",
 	name = "Top Processes",
 	description = "Top Processes.",
 	tags = {"Default"},
-	viewtype = "table",
+	view_type = "table",
 	applies_to = "all,fd.name",
 	use_defaults = true,
 	columns = 

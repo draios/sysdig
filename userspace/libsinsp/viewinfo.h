@@ -81,15 +81,18 @@ public:
 
 	sinsp_view_info();
 	sinsp_view_info(viewtype type,
+		string id,
 		string name,
 		vector<string> tags,
 		vector<sinsp_view_column_info> columns,
 		string applies_to,
 		string filter,
+		string drilldown_target,
 		bool use_defaults);
 
 	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
 
+	string m_id;
 	string m_name;
 	vector<string> m_tags;
 	uint32_t m_sortingcol;
@@ -100,4 +103,5 @@ public:
 	bool m_does_merge;
 	viewtype m_type;
 	bool m_valid;
+	string m_drilldown_target;
 };

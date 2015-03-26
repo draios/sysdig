@@ -17,10 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
+	id = "LD_top_cont_procs",
 	name = "Top Processes",
 	description = "Top Processes.",
 	tags = {"Containers"},
-	viewtype = "table",
+	view_type = "table",
 	applies_to = "all,container.id",
 	use_defaults = true,
 	columns = 

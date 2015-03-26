@@ -495,6 +495,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	lua_pushnil(ls);
 
 	string tmpstr;
+	string id;
 	string name;
 	string description;
 	string applies_to;
@@ -503,6 +504,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	sinsp_view_info::viewtype vt = sinsp_view_info::T_TABLE;
 	vector<sinsp_view_column_info> columns;
 	vector<string> tags;
+	string drilldown_target;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -511,6 +513,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		if(fldname == "name")
 		{
 			name = lua_tostring(ls, -1);
+		}
+		if(fldname == "id")
+		{
+			id = lua_tostring(ls, -1);
 		}
 		else if(fldname == "description")
 		{
@@ -542,7 +548,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
-		else if(fldname == "viewtype")
+		else if(fldname == "view_type")
 		{
 			tmpstr = lua_tostring(ls, -1);
 
@@ -558,6 +564,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			{
 				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be either 'table' or 'list'");
 			}
+		}
+		else if(fldname == "drilldown_target")
+		{
+			drilldown_target = lua_tostring(ls, -1);
 		}
 		else if(fldname == "applies_to")
 		{
@@ -594,11 +604,13 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	}
 
 	cd->m_viewinfo = sinsp_view_info(vt,
+		id,
 		name,
 		tags,
 		columns,
 		applies_to,
 		filter,
+		drilldown_target,
 		use_defaults);
 
 	return true;

@@ -33,18 +33,22 @@ sinsp_view_info::sinsp_view_info()
 }
 
 sinsp_view_info::sinsp_view_info(viewtype type, 
+	string id,
 	string name,
 	vector<string> tags,
 	vector<sinsp_view_column_info> columns,
 	string applies_to,
 	string filter,
+	string drilldown_target,
 	bool use_defaults)
 {
+	m_id = id;
 	m_name = name;
 	m_does_merge = false;
 	m_type = type;
 	m_tags = tags;	
 	m_columns = columns;
+	m_drilldown_target = drilldown_target;
 
 	m_use_defaults = use_defaults;
 		
