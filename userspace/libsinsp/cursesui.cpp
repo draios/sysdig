@@ -297,8 +297,8 @@ void sinsp_cursesui::render_header()
 	}
 
 	mvaddstr(0, 0, "Viewing:");
-
-	attrset(m_colors[PROCESS]);
+ 
+	attrset(m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 
 	string vs;
 
@@ -356,6 +356,8 @@ void sinsp_cursesui::render_header()
 	mvaddstr(1, 0, "Filter:");
 	uint32_t k = sizeof("Filter: ") - 1;
 
+	attrset(m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	
 	if(m_complete_filter != "")
 	{
 		mvaddnstr(1, k, m_complete_filter.c_str(), m_screenw);
@@ -940,62 +942,78 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 #endif
 }
 
+
+// returns false if there is no suitable drill down view for this field
+bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num)
+{
+#ifndef NOCURSESUI
+	sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
+#else
+	sinsp_table_field* rowkey = NULL;
+#endif
+	sinsp_table_field rowkeybak;
+	if(rowkey != NULL)
+	{
+		rowkeybak.m_val = new uint8_t[rowkey->m_len];
+		memcpy(rowkeybak.m_val, rowkey->m_val, rowkey->m_len);
+		rowkeybak.m_len = rowkey->m_len;
+	}
+
+	m_sel_hierarchy.push_back(field, val, 
+		m_selected_view, m_selected_sidemenu_entry, 
+		&rowkeybak, m_datatable->get_sorting_col());
+	m_selected_view = new_view_num;
+
+	if(!m_inspector->is_live())
+	{
+		m_eof = 0;
+		m_last_progress_evt = 0;
+		restart_capture(false);
+	}
+	else
+	{
+		try
+		{
+			start(true, false);
+		}
+		catch(...)
+		{
+			restart_capture(false);
+		}
+	}
+
+#ifndef NOCURSESUI
+	clear();
+	populate_sidemenu(field, &m_sidemenu_viewlist);
+	m_selected_sidemenu_entry = 0;
+	m_viz->render(true);
+	render();
+#endif
+
+	return true;
+}
+
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::drilldown(string field, string val)
 {
 	uint32_t j = 0;
 
+	for(j = 0; j < m_views.size(); ++j)
+	{
+		if(m_views[j].m_id == m_views[m_selected_view].m_drilldown_target)
+		{
+				return do_drilldown(field, val, j);			
+		}
+	}
+
+	j = 0;
 	for(auto it = m_views.begin(); it != m_views.end(); ++it)
 	{
 		for(auto atit = it->m_applies_to.begin(); atit != it->m_applies_to.end(); ++atit)
 		{
 			if(*atit == field)
 			{
-#ifndef NOCURSESUI
-				sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
-#else
-				sinsp_table_field* rowkey = NULL;
-#endif
-				sinsp_table_field rowkeybak;
-				if(rowkey != NULL)
-				{
-					rowkeybak.m_val = new uint8_t[rowkey->m_len];
-					memcpy(rowkeybak.m_val, rowkey->m_val, rowkey->m_len);
-					rowkeybak.m_len = rowkey->m_len;
-				}
-
-				m_sel_hierarchy.push_back(field, val, 
-					m_selected_view, m_selected_sidemenu_entry, 
-					&rowkeybak, m_datatable->get_sorting_col());
-				m_selected_view = j;
-
-				if(!m_inspector->is_live())
-				{
-					m_eof = 0;
-					m_last_progress_evt = 0;
-					restart_capture(false);
-				}
-				else
-				{
-					try
-					{
-						start(true, false);
-					}
-					catch(...)
-					{
-						restart_capture(false);
-					}
-				}
-
-#ifndef NOCURSESUI
-				clear();
-				populate_sidemenu(field, &m_sidemenu_viewlist);
-				m_selected_sidemenu_entry = 0;
-				m_viz->render(true);
-				render();
-#endif
-
-				return true;
+				return do_drilldown(field, val, j);
 			}
 		}
 
