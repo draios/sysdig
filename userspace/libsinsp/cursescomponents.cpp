@@ -646,9 +646,9 @@ void curses_textbox::populate_sidemenu()
 {
 	ASSERT(m_sidemenu != NULL);
 	m_entries.clear();
-	m_entries.push_back(sidemenu_list_entry("dotted ascii", 0));
-	m_entries.push_back(sidemenu_list_entry("printable ascii", 0));
-	m_entries.push_back(sidemenu_list_entry("hex", 0));
+	m_entries.push_back(sidemenu_list_entry("dotted ascii", -1));
+	m_entries.push_back(sidemenu_list_entry("printable ascii", -1));
+	m_entries.push_back(sidemenu_list_entry("hex", -1));
 	if(m_viz_type == VIEW_ID_DIG)
 	{
 		m_entries.push_back(sidemenu_list_entry("json", 0));

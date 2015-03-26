@@ -358,11 +358,11 @@ void sinsp_cursesui::render_header()
 
 	if(m_complete_filter != "")
 	{
-		mvaddstr(1, k, m_complete_filter.c_str());
+		mvaddnstr(1, k, m_complete_filter.c_str(), m_screenw);
 	}
 	else
 	{
-		mvaddstr(1, k, "none");		
+		mvaddnstr(1, k, "none", m_screenw);
 	}
 }
 
@@ -877,7 +877,11 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	delete m_sidemenu;
 	m_sidemenu = NULL;
 
-	m_viz->render(true);
+	if(m_viz != NULL)
+	{
+		m_viz->render(true);
+	}
+
 	render();
 #endif
 }
@@ -1013,8 +1017,6 @@ bool sinsp_cursesui::drillup()
 			sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 2];
 			field = psinfo->m_field;
 		}
-
-//		field = sinfo->m_field;
 
 		sinsp_table_field rowkey = sinfo->m_rowkey;
 

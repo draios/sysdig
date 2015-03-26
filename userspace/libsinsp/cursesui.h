@@ -260,10 +260,10 @@ public:
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
 						drilldown(res.first->m_name, res.second.c_str());
 					}
-					break;
+					return false;
 				case STA_DRILLUP:
 					drillup();
-					break;
+					return false;
 				case STA_SPY:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
