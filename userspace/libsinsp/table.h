@@ -287,8 +287,8 @@ private:
 	vector<ppm_param_type> m_premerge_types;
 	vector<ppm_param_type> m_postmerge_types;
 	bool m_is_key_present;
-	bool m_is_merge_key_present;
-	vector<uint32_t> m_merge_columns;
+	bool m_is_groupby_key_present;
+	vector<uint32_t> m_groupby_columns;
 	vector<filtercheck_field_info> m_postmerge_legend;
 	sinsp_table_field* m_fld_pointers;
 	sinsp_table_field* m_premerge_fld_pointers;

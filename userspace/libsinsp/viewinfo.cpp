@@ -44,7 +44,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 {
 	m_id = id;
 	m_name = name;
-	m_does_merge = false;
+	m_does_groupby = false;
 	m_type = type;
 	m_tags = tags;	
 	m_columns = columns;
@@ -90,9 +90,9 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 			n_sorting_cols++;
 		}
 
-		if((columns[j].m_flags & TEF_IS_MERGE_KEY) != 0)
+		if((columns[j].m_flags & TEF_IS_GROUPBY_KEY) != 0)
 		{
-			m_does_merge = true;
+			m_does_groupby = true;
 		}
 	}
 
@@ -119,14 +119,14 @@ void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT 
 
 	for(auto fit : m_columns)
 	{
-		if(m_does_merge)
+		if(m_does_groupby)
 		{
 			if((fit.m_flags & TEF_IS_KEY) != 0)
 			{
 				continue;
 			}
 
-			if((fit.m_flags & TEF_IS_MERGE_KEY) != 0)
+			if((fit.m_flags & TEF_IS_GROUPBY_KEY) != 0)
 			{
 				colsizes->insert(colsizes->begin(), fit.m_colsize);
 				colnames->insert(colnames->begin(), fit.m_name);

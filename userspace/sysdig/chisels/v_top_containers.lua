@@ -17,12 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_cont_procs",
-	name = "Top Processes",
-	description = "Top Processes.",
+	id = "LD_top_containers",
+	name = "Top Containers 1",
+	description = "Top Containers.",
 	tags = {"Containers"},
 	view_type = "table",
-	applies_to = "all,container.id",
+	applies_to = "all",
 	use_defaults = true,
 	columns = 
 	{
@@ -32,58 +32,60 @@ view_info =
 			is_key = true
 		},
 		{
-			name = "PID",
-			field = "proc.pid",
-			colsize = 8,
-		},
-		{
-			name = "VPID",
-			field = "proc.vpid",
-			colsize = 8,
-		},
-		{
 			name = "CPU",
 			field = "proc.cpu",
 			colsize = 8,
 			aggregation = "AVG",
+			groupby_aggregation = "SUM",
 			is_sorting = true
 		},
 		{
-			name = "TH",
+			name = "PROCS",
+			field = "evt.count",
+			groupby_aggregation = "SUM",
+			colsize = 8,
+		},
+		{
+			name = "THREADS",
 			field = "proc.nthreads",
+			groupby_aggregation = "SUM",
 			colsize = 5
 		},
 		{
 			name = "VIRT",
 			field = "proc.vmsize",
+			groupby_aggregation = "SUM",
 			colsize = 9
 		},
 		{
 			name = "RES",
 			field = "proc.vmrss",
+			groupby_aggregation = "SUM",
 			colsize = 9
 		},
 		{
 			name = "FILE",
 			field = "evt.buflen.file",
 			colsize = 8,
-			aggregation = "SUM"
+			aggregation = "SUM",
+			groupby_aggregation = "SUM"
 		},
 		{
 			name = "NET",
 			field = "evt.buflen.net",
 			colsize = 8,
-			aggregation = "SUM"
+			aggregation = "SUM",
+			groupby_aggregation = "SUM"
+		},
+		{
+			name = "ID",
+			field = "container.id",
+			is_groupby_key = true
 		},
 		{
 			name = "Container",
 			field = "container.name",
 			colsize = 15
 		},
-		{
-			name = "Command",
-			field = "proc.exeline",
-			colsize = 200
-		}
 	}
 }

@@ -66,7 +66,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type)
 	m_inspector = inspector;
 	m_type = type;
 	m_is_key_present = false;
-	m_is_merge_key_present = false;
+	m_is_groupby_key_present = false;
 	m_fld_pointers = NULL;
 	m_premerge_fld_pointers = NULL;
 	m_postmerge_fld_pointers = NULL;
@@ -230,7 +230,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 
 	for(auto vit : *entries)
 	{
-		if((vit.m_flags & TEF_IS_MERGE_KEY) != 0)
+		if((vit.m_flags & TEF_IS_GROUPBY_KEY) != 0)
 		{
 			n_gby_keys++;
 		}
@@ -274,37 +274,37 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 
 		sinsp_filter_check* chk = m_extractors[j];
 
-		chk->m_merge_aggregation = (sinsp_field_aggregation)vit.m_merge_aggregation;
+		chk->m_merge_aggregation = (sinsp_field_aggregation)vit.m_groupby_aggregation;
 
-		if((vit.m_flags & TEF_IS_MERGE_KEY) != 0)
+		if((vit.m_flags & TEF_IS_GROUPBY_KEY) != 0)
 		{
-			if(m_is_merge_key_present)
+			if(m_is_groupby_key_present)
 			{
-				throw sinsp_exception("invalid table configuration: more than one merge key specified");
+				throw sinsp_exception("invalid table configuration: more than one groupby key specified");
 			}
 
-			m_is_merge_key_present = true;
+			m_is_groupby_key_present = true;
 			m_mergers.insert(m_mergers.begin(), chk);
-			m_merge_columns.insert(m_merge_columns.begin(), j);
+			m_groupby_columns.insert(m_groupby_columns.begin(), j);
 		}
 		else
 		{
 			m_mergers.push_back(chk);
-			m_merge_columns.push_back(j);
+			m_groupby_columns.push_back(j);
 		}
 	}
 
 	m_postmerge_fld_pointers = new sinsp_table_field[m_mergers.size()];
 	m_n_postmerge_fields = (uint32_t)m_mergers.size();
 
-	if(!m_is_merge_key_present)
+	if(!m_is_groupby_key_present)
 	{
-		throw sinsp_exception("table is missing the merge key");
+		throw sinsp_exception("table is missing the groupby key");
 	}
 
-	if(m_merge_columns.size() < 2)
+	if(m_groupby_columns.size() < 2)
 	{
-		throw sinsp_exception("merged table has no values");
+		throw sinsp_exception("groupby table has no values");
 	}
 
 	for(auto it = m_mergers.begin(); it != m_mergers.end(); ++it)
@@ -819,7 +819,7 @@ void sinsp_table::create_sample()
 				{
 					sinsp_table_field* pfld = &(m_postmerge_fld_pointers[j]);
 
-					uint32_t col = m_merge_columns[j];
+					uint32_t col = m_groupby_columns[j];
 					if(col == 0)
 					{
 						pfld->m_val = it->first.m_val;

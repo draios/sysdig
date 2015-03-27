@@ -39,7 +39,7 @@ enum sinsp_view_column_info_flags
 	TEF_NONE = 0,
 	TEF_IS_KEY = 1,
 	TEF_IS_SORT_COLUMN = (1 << 1),
-	TEF_IS_MERGE_KEY = (1 << 2),
+	TEF_IS_GROUPBY_KEY = (1 << 2),
 };
 
 class sinsp_view_column_info
@@ -50,13 +50,13 @@ public:
 	uint32_t colsize,
 	sinsp_view_column_info_flags flags,
 	sinsp_field_aggregation aggregation,
-	sinsp_field_aggregation merge_aggregation)
+	sinsp_field_aggregation groupby_aggregation)
 	{
 		m_field = field;
 		m_name = name;
 		m_colsize = colsize;
 		m_aggregation = aggregation;
-		m_merge_aggregation = merge_aggregation;
+		m_groupby_aggregation = groupby_aggregation;
 		m_flags = flags;
 	}
 
@@ -64,7 +64,7 @@ public:
 	string m_name;
 	uint32_t m_colsize;
 	sinsp_field_aggregation m_aggregation;
-	sinsp_field_aggregation m_merge_aggregation;
+	sinsp_field_aggregation m_groupby_aggregation;
 	sinsp_view_column_info_flags m_flags;
 };
 
@@ -100,7 +100,7 @@ public:
 	vector<string> m_applies_to;
 	vector<sinsp_view_column_info> m_columns;
 	bool m_use_defaults;
-	bool m_does_merge;
+	bool m_does_groupby;
 	viewtype m_type;
 	bool m_valid;
 	string m_drilldown_target;

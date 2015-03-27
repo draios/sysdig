@@ -351,6 +351,38 @@ void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 }
 #endif
 
+sinsp_field_aggregation sinsp_chisel::string_to_aggregation(string ag)
+{
+	sinsp_field_aggregation res = A_NONE;
+
+	if(ag == "SUM")
+	{
+		res = A_SUM;
+	}
+	else if(ag == "AVG")
+	{
+		res = A_AVG;
+	}
+	else if(ag == "TIME_AVG")
+	{
+		res = A_TIME_AVG;
+	}
+	else if(ag == "MIN")
+	{
+		res = A_MIN;
+	}
+	else if(ag == "MAX")
+	{
+		res = A_MAX;
+	}
+	else
+	{
+		throw sinsp_exception("unknown view column aggregation " + ag);
+	}
+
+	return res;
+}
+
 void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
 {
 	vector<sinsp_view_column_info>* cols = (vector<sinsp_view_column_info>*)columns;
@@ -362,6 +394,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	uint32_t colsize = 0xffffffff;
 	uint32_t flags = TEF_NONE;
 	sinsp_field_aggregation aggregation = A_NONE;
+	sinsp_field_aggregation groupby_aggregation = A_NONE;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -401,6 +434,21 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean value");
 			}
 		}
+		else if(fldname == "is_groupby_key")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				bool ik = (lua_toboolean(ls, -1) != 0);
+				if(ik)
+				{
+					flags |= TEF_IS_GROUPBY_KEY;
+				}
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean value");
+			}
+		}
 		else if(fldname == "is_sorting")
 		{
 			if(lua_isboolean(ls, -1))
@@ -421,31 +469,17 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 			if(lua_isstring(ls, -1))
 			{
 				string ag = lua_tostring(ls, -1);
-				
-				if(ag == "SUM")
-				{
-					aggregation = A_SUM;
-				}
-				else if(ag == "AVG")
-				{
-					aggregation = A_AVG;
-				}
-				else if(ag == "TIME_AVG")
-				{
-					aggregation = A_TIME_AVG;
-				}
-				else if(ag == "MIN")
-				{
-					aggregation = A_MIN;
-				}
-				else if(ag == "MAX")
-				{
-					aggregation = A_MAX;
-				}
+
+				aggregation = string_to_aggregation(ag);
 			}
-			else
+		}
+		else if(fldname == "groupby_aggregation")
+		{
+			if(lua_isstring(ls, -1))
 			{
-				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a string value");
+				string ag = lua_tostring(ls, -1);
+
+				groupby_aggregation = string_to_aggregation(ag);
 			}
 		}
 
@@ -457,7 +491,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		colsize, 
 		(sinsp_view_column_info_flags)flags, 
 		aggregation, 
-		A_NONE));
+		groupby_aggregation));
 }
 
 void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
@@ -598,6 +632,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			{
 				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
 			}
+		}
+		else
+		{
+			ASSERT(false);
 		}
 
 		lua_pop(ls, 1);

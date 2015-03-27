@@ -125,6 +125,7 @@ public:
 private:
 	bool openfile(string filename, OUT ifstream* is);
 	void free_lua_chisel();
+	static sinsp_field_aggregation string_to_aggregation(string ag);
 	static void parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
 	static void parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
 	static bool parse_view_info(lua_State *ls, OUT chisel_desc* cd);
