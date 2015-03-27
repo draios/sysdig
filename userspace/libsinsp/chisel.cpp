@@ -548,7 +548,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		{
 			name = lua_tostring(ls, -1);
 		}
-		if(fldname == "id")
+		else if(fldname == "id")
 		{
 			id = lua_tostring(ls, -1);
 		}
@@ -635,7 +635,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		}
 		else
 		{
-			ASSERT(false);
+			throw sinsp_exception("unknown view property " + string(lua_tostring(ls, -2)));
 		}
 
 		lua_pop(ls, 1);
