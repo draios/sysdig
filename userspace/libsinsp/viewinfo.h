@@ -32,15 +32,12 @@ typedef enum sinsp_field_aggregation
 }sinsp_field_aggregation;
 
 ///////////////////////////////////////////////////////////////////////////////
-// View information
+// sinsp_view_column_info flags
 ///////////////////////////////////////////////////////////////////////////////
-enum sinsp_view_column_info_flags
-{
-	TEF_NONE = 0,
-	TEF_IS_KEY = 1,
-	TEF_IS_SORT_COLUMN = (1 << 1),
-	TEF_IS_GROUPBY_KEY = (1 << 2),
-};
+#define TEF_NONE 0
+#define TEF_IS_KEY 1
+#define TEF_IS_SORT_COLUMN (1 << 1)
+#define TEF_IS_GROUPBY_KEY (1 << 2)
 
 class sinsp_view_column_info
 {
@@ -48,7 +45,7 @@ public:
 	sinsp_view_column_info(string field,
 	string name,
 	uint32_t colsize,
-	sinsp_view_column_info_flags flags,
+	uint32_t flags,
 	sinsp_field_aggregation aggregation,
 	sinsp_field_aggregation groupby_aggregation)
 	{
@@ -65,7 +62,7 @@ public:
 	uint32_t m_colsize;
 	sinsp_field_aggregation m_aggregation;
 	sinsp_field_aggregation m_groupby_aggregation;
-	sinsp_view_column_info_flags m_flags;
+	uint32_t m_flags;
 };
 
 class sinsp_view_info

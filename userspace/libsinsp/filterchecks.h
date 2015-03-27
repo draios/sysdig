@@ -27,6 +27,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 }
 
 bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
+bool flt_compare_avg(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
+
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 
 class operand_info

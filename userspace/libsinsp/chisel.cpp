@@ -489,7 +489,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	cols->push_back(sinsp_view_column_info(field, 
 		name, 
 		colsize, 
-		(sinsp_view_column_info_flags)flags, 
+		(uint32_t)flags, 
 		aggregation, 
 		groupby_aggregation));
 }

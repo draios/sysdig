@@ -49,11 +49,25 @@ typedef struct table_row_cmp
 			op = CO_GT;
 		}
 
-		return flt_compare(op, m_type, 
-			src.m_values[m_colid].m_val, 
-			dst.m_values[m_colid].m_val, 
-			src.m_values[m_colid].m_len, 
-			dst.m_values[m_colid].m_len);
+		if(src.m_values[m_colid].m_cnt != 0 ||
+			dst.m_values[m_colid].m_cnt != 0)
+		{
+			return flt_compare_avg(op, m_type, 
+				src.m_values[m_colid].m_val, 
+				dst.m_values[m_colid].m_val, 
+				src.m_values[m_colid].m_len, 
+				dst.m_values[m_colid].m_len,
+				src.m_values[m_colid].m_cnt, 
+				dst.m_values[m_colid].m_cnt);
+		}
+		else
+		{
+			return flt_compare(op, m_type, 
+				src.m_values[m_colid].m_val, 
+				dst.m_values[m_colid].m_val, 
+				src.m_values[m_colid].m_len, 
+				dst.m_values[m_colid].m_len);
+		}
 	}
 
 	uint32_t m_colid;
@@ -742,6 +756,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 	{
 		n_fields = m_n_postmerge_fields;
 		types = &m_postmerge_types;
+		col--;
 	}
 	else
 	{
@@ -1004,6 +1019,11 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 		add_fields_sum(type, dst, src);		
 		return;
 	case A_AVG:
+if(src->m_cnt != 0)
+{
+	int a = 0;
+}
+
 		dst->m_cnt += src->m_cnt;
 		add_fields_sum(type, dst, src);		
 		return;

@@ -290,17 +290,17 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		return flt_compare_uint64(op, (uint64_t)*(int8_t*)operand1, (uint64_t)*(int8_t*)operand2);
+		return flt_compare_uint64(op, (uint64_t)*(uint8_t*)operand1, (uint64_t)*(uint8_t*)operand2);
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_PORT:
 	case PT_SYSCALLID:
-		return flt_compare_uint64(op, (uint64_t)*(int16_t*)operand1, (uint64_t)*(int16_t*)operand2);
+		return flt_compare_uint64(op, (uint64_t)*(uint16_t*)operand1, (uint64_t)*(uint16_t*)operand2);
 	case PT_UINT32:
 	case PT_FLAGS32:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
-		return flt_compare_uint64(op, (uint64_t)*(int32_t*)operand1, (uint64_t)*(int32_t*)operand2);
+		return flt_compare_uint64(op, (uint64_t)*(uint32_t*)operand1, (uint64_t)*(uint32_t*)operand2);
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
@@ -315,6 +315,108 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 	case PT_FSPATH:
+	default:
+		ASSERT(false);
+		return false;
+	}
+}
+
+bool flt_compare_avg(ppm_cmp_operator op, 
+					 ppm_param_type type, 
+					 void* operand1, 
+					 void* operand2, 
+					 uint32_t op1_len, 
+					 uint32_t op2_len,
+					 uint32_t cnt1,
+					 uint32_t cnt2)
+{
+	int64_t i641, i642;
+	uint64_t u641, u642;
+	double d1, d2;
+
+	//
+	// If count = 0 we assume that the value is zero too (there are assertions to
+	// check that, and we just divide by 1
+	//
+	if(cnt1 == 0)
+	{
+		cnt1 = 1;
+	}
+
+	if(cnt2 == 0)
+	{
+		cnt2 = 1;
+	}
+
+	switch(type)
+	{
+	case PT_INT8:
+		i641 = ((int64_t)*(int8_t*)operand1) / cnt1;
+		i642 = ((int64_t)*(int8_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || i641 == 0);
+		ASSERT(cnt2 != 0 || i642 == 0);
+		return flt_compare_int64(op, i641, i642);
+	case PT_INT16:
+		i641 = ((int64_t)*(int16_t*)operand1) / cnt1;
+		i642 = ((int64_t)*(int16_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || i641 == 0);
+		ASSERT(cnt2 != 0 || i642 == 0);
+		return flt_compare_int64(op, i641, i642);
+	case PT_INT32:
+		i641 = ((int64_t)*(int32_t*)operand1) / cnt1;
+		i642 = ((int64_t)*(int32_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || i641 == 0);
+		ASSERT(cnt2 != 0 || i642 == 0);
+		return flt_compare_int64(op, i641, i642);
+	case PT_INT64:
+	case PT_FD:
+	case PT_PID:
+	case PT_ERRNO:
+		i641 = ((int64_t)*(int64_t*)operand1) / cnt1;
+		i642 = ((int64_t)*(int64_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || i641 == 0);
+		ASSERT(cnt2 != 0 || i642 == 0);
+		return flt_compare_int64(op, i641, i642);
+	case PT_FLAGS8:
+	case PT_UINT8:
+	case PT_SIGTYPE:
+		u641 = ((uint64_t)*(uint8_t*)operand1) / cnt1;
+		u642 = ((uint64_t)*(uint8_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || u641 == 0);
+		ASSERT(cnt2 != 0 || u642 == 0);
+		return flt_compare_uint64(op, u641, u642);
+	case PT_FLAGS16:
+	case PT_UINT16:
+	case PT_PORT:
+	case PT_SYSCALLID:
+		u641 = ((uint64_t)*(uint16_t*)operand1) / cnt1;
+		u642 = ((uint64_t)*(uint16_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || u641 == 0);
+		ASSERT(cnt2 != 0 || u642 == 0);
+		return flt_compare_uint64(op, u641, u642);
+	case PT_UINT32:
+	case PT_FLAGS32:
+	case PT_BOOL:
+	case PT_IPV4ADDR:
+		u641 = ((uint64_t)*(uint32_t*)operand1) / cnt1;
+		u642 = ((uint64_t)*(uint32_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || u641 == 0);
+		ASSERT(cnt2 != 0 || u642 == 0);
+		return flt_compare_uint64(op, u641, u642);
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+		u641 = (*(uint64_t*)operand1) / cnt1;
+		u642 = (*(uint64_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || u641 == 0);
+		ASSERT(cnt2 != 0 || u642 == 0);
+		return flt_compare_uint64(op, u641, u642);
+	case PT_DOUBLE:
+		d1 = (*(double*)operand1) / cnt1;
+		d2 = (*(double*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || d1 == 0);
+		ASSERT(cnt2 != 0 || d2 == 0);
+		return flt_compare_double(op, d1, d2);
 	default:
 		ASSERT(false);
 		return false;
