@@ -1617,7 +1617,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.clear();
 		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.pid", "PID", 8, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.cpu", "CPU", 8, TEF_IS_SORT_COLUMN, A_MAX, A_NONE));
+		vflds.push_back(sinsp_view_column_info("proc.cpu", "CPU", 8, TEF_IS_SORT_COLUMN, A_AVG, A_NONE));
 		vflds.push_back(sinsp_view_column_info("user.name", "USER", 12, TEF_NONE, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.nthreads", "TH", 5, TEF_NONE, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.vmsize", "VIRT", 9, TEF_NONE, A_NONE, A_NONE));

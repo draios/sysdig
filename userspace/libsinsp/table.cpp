@@ -345,7 +345,7 @@ void sinsp_table::add_row(bool merging)
 				uint32_t vlen = get_field_len(j);
 				m_vals[j - 1].m_val = m_buffer->copy(m_fld_pointers[j].m_val, vlen);
 				m_vals[j - 1].m_len = vlen;
-				m_vals[j - 1].m_cnt = 1;
+				m_vals[j - 1].m_cnt = m_fld_pointers[j].m_cnt;
 			}
 
 			(*m_table)[key] = m_vals;
@@ -444,7 +444,7 @@ void sinsp_table::process_event(sinsp_evt* evt)
 					return;
 				}
 
-				pfld->m_cnt = 1;
+				pfld->m_cnt = 0;
 			}
 			else
 			{
@@ -1004,7 +1004,7 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 		add_fields_sum(type, dst, src);		
 		return;
 	case A_AVG:
-		dst->m_cnt++;
+		dst->m_cnt += src->m_cnt;
 		add_fields_sum(type, dst, src);		
 		return;
 	case A_MAX:
