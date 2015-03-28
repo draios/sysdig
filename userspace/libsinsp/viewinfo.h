@@ -101,4 +101,7 @@ public:
 	viewtype m_type;
 	bool m_valid;
 	string m_drilldown_target;
+
+private:
+	void move_key_to_front(uint32_t keyflag);
 };

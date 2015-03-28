@@ -51,7 +51,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	m_drilldown_target = drilldown_target;
 
 	m_use_defaults = use_defaults;
-		
+	
 	if(applies_to != "")
 	{
 		char *p = strtok((char*)applies_to.c_str(), ",");
@@ -78,19 +78,25 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	}
 
 	//
-	// Determine the sorting column
+	// Make sure the keys go at the beginning
+	//
+	move_key_to_front(TEF_IS_GROUPBY_KEY);
+	move_key_to_front(TEF_IS_KEY);
+
+	//
+	// Determine the sorting and grouping columns
 	//
 	uint32_t n_sorting_cols = 0;
 
-	for(uint32_t j = 0; j < columns.size(); j++)
+	for(uint32_t j = 0; j < m_columns.size(); j++)
 	{
-		if((columns[j].m_flags & TEF_IS_SORT_COLUMN) != 0)
+		if((m_columns[j].m_flags & TEF_IS_SORT_COLUMN) != 0)
 		{
 			m_sortingcol = j;
 			n_sorting_cols++;
 		}
 
-		if((columns[j].m_flags & TEF_IS_GROUPBY_KEY) != 0)
+		if((m_columns[j].m_flags & TEF_IS_GROUPBY_KEY) != 0)
 		{
 			m_does_groupby = true;
 		}
@@ -136,5 +142,20 @@ void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT 
 
 		colsizes->push_back(fit.m_colsize);
 		colnames->push_back(fit.m_name);
+	}
+}
+
+void sinsp_view_info::move_key_to_front(uint32_t keyflag)
+{
+	for(uint32_t j = 0; j < m_columns.size(); j++)
+	{
+		if((m_columns[j].m_flags & keyflag) != 0)
+		{
+			sinsp_view_column_info ci = m_columns[j];
+
+			m_columns.erase(m_columns.begin() +j);
+			m_columns.insert(m_columns.begin(), ci);
+			return;
+		}
 	}
 }
