@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 view_info = 
 {
 	id = "LD_top_procs",
-	name = "Top Processes",
+	name = "Top Processes 1",
 	description = "Top Processes.",
 	tags = {"Default"},
 	view_type = "table",
@@ -40,7 +40,7 @@ view_info =
 			name = "CPU",
 			field = "proc.cpu",
 			colsize = 8,
-			aggregation = "MAX",
+			aggregation = "AVG",
 			is_sorting = true
 		},
 		{

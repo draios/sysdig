@@ -23,6 +23,7 @@ view_info =
 	tags = {"Containers"},
 	view_type = "table",
 	applies_to = "all",
+	filter = "container.name != host",
 	use_defaults = true,
 	columns = 
 	{
@@ -35,7 +36,7 @@ view_info =
 			name = "CPU",
 			field = "proc.cpu",
 			colsize = 8,
-			aggregation = "AVG",
+			aggregation = "MAX",
 			groupby_aggregation = "SUM",
 			is_sorting = true
 		},
