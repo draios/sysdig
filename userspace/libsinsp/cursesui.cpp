@@ -906,9 +906,19 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 		rowkeybak.m_len = rowkey->m_len;
 	}
 
+	uint32_t srtcol;
+	if(m_datatable->m_do_merging)
+	{
+		srtcol = m_datatable->get_sorting_col();
+	}
+	else
+	{
+		srtcol = m_datatable->get_sorting_col() + 1;
+	}
+	
 	m_sel_hierarchy.push_back(field, val, 
 		m_selected_view, m_selected_sidemenu_entry, 
-		&rowkeybak, m_datatable->get_sorting_col());
+		&rowkeybak, srtcol);
 
 	if(is_dig)
 	{
@@ -958,9 +968,19 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 		rowkeybak.m_len = rowkey->m_len;
 	}
 
+	uint32_t srtcol;
+	if(m_datatable->m_do_merging)
+	{
+		srtcol = m_datatable->get_sorting_col();
+	}
+	else
+	{
+		srtcol = m_datatable->get_sorting_col() + 1;
+	}
+
 	m_sel_hierarchy.push_back(field, val, 
 		m_selected_view, m_selected_sidemenu_entry, 
-		&rowkeybak, m_datatable->get_sorting_col() + 1);
+		&rowkeybak, srtcol);
 	m_selected_view = new_view_num;
 
 	if(!m_inspector->is_live())
