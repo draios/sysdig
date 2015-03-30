@@ -961,7 +961,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 
 	m_sel_hierarchy.push_back(field, val, 
 		m_selected_view, m_selected_sidemenu_entry, 
-		&rowkeybak, m_datatable->get_sorting_col());
+		&rowkeybak, m_datatable->get_sorting_col() + 1);
 	m_selected_view = new_view_num;
 
 	if(!m_inspector->is_live())

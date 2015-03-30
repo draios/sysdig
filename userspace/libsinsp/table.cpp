@@ -764,8 +764,6 @@ void sinsp_table::set_sorting_col(uint32_t col)
 		types = &m_premerge_types;
 	}
 
-g_logger.format("**%d", col);
-sinsp_utils::bt();
 	if(col == 0)
 	{
 		if(m_type == sinsp_table::TT_TABLE)
