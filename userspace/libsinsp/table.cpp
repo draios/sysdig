@@ -49,8 +49,8 @@ typedef struct table_row_cmp
 			op = CO_GT;
 		}
 
-		if(src.m_values[m_colid].m_cnt != 0 ||
-			dst.m_values[m_colid].m_cnt != 0)
+		if(src.m_values[m_colid].m_cnt > 1 ||
+			dst.m_values[m_colid].m_cnt > 1)
 		{
 			return flt_compare_avg(op, m_type, 
 				src.m_values[m_colid].m_val, 
@@ -677,7 +677,7 @@ sinsp_table_field* sinsp_table::search_in_sample(string text)
 }
 
 void sinsp_table::sort_sample()
-{
+{	
 	if(m_type == sinsp_table::TT_LIST)
 	{
 		if(m_sorting_col == -1)
@@ -695,9 +695,9 @@ void sinsp_table::sort_sample()
 
 		table_row_cmp cc;
 		cc.m_colid = m_sorting_col;
-
 		cc.m_ascending = m_is_sorting_ascending;
-		cc.m_type = m_types->at(m_sorting_col + 1);
+		uint32_t tyid = m_do_merging? m_sorting_col + 2 : m_sorting_col + 1;
+		cc.m_type = m_types->at(tyid);
 
 		sort(m_sample_data->begin(),
 			m_sample_data->end(),
@@ -756,7 +756,6 @@ void sinsp_table::set_sorting_col(uint32_t col)
 	{
 		n_fields = m_n_postmerge_fields;
 		types = &m_postmerge_types;
-		col--;
 	}
 	else
 	{
@@ -810,6 +809,12 @@ void sinsp_table::set_sorting_col(uint32_t col)
 	}
 
 	m_sorting_col = col - 1;
+g_logger.format("# %d %d", col, m_sorting_col);
+}
+
+uint32_t sinsp_table::get_sorting_col()
+{
+	return (uint32_t)m_sorting_col + 1;
 }
 
 void sinsp_table::create_sample()

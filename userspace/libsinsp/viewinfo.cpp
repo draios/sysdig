@@ -102,6 +102,11 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 		}
 	}
 
+	if(m_does_groupby)
+	{
+		m_sortingcol--;
+	}
+
 	if(n_sorting_cols == 0)
 	{
 		m_sortingcol = 0;

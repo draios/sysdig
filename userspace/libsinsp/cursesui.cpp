@@ -942,7 +942,6 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 #endif
 }
 
-
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num)
 {
