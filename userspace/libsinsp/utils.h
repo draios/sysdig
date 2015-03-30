@@ -78,6 +78,13 @@ public:
 	static void get_filtercheck_fields_info(vector<const filter_check_info*>* list);
 
 	static uint64_t get_current_time_ns();
+
+#ifndef _WIN32
+	//
+	// Print the call stack
+	//
+	static void bt(void);
+#endif // _WIN32
 };
 
 ///////////////////////////////////////////////////////////////////////////////

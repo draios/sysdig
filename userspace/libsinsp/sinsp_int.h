@@ -23,6 +23,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef _WIN32
 #include <Windows.h>
+#else
+#include <csignal>
 #endif
 #include <assert.h>
 

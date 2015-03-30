@@ -764,6 +764,8 @@ void sinsp_table::set_sorting_col(uint32_t col)
 		types = &m_premerge_types;
 	}
 
+g_logger.format("**%d", col);
+sinsp_utils::bt();
 	if(col == 0)
 	{
 		if(m_type == sinsp_table::TT_TABLE)
@@ -1019,11 +1021,6 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 		add_fields_sum(type, dst, src);		
 		return;
 	case A_AVG:
-if(src->m_cnt != 0)
-{
-	int a = 0;
-}
-
 		dst->m_cnt += src->m_cnt;
 		add_fields_sum(type, dst, src);		
 		return;

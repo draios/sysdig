@@ -24,6 +24,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 #include <algorithm> 
 #include <functional> 
+#include <execinfo.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -736,6 +739,30 @@ uint64_t sinsp_utils::get_current_time_ns()
 
     return tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
 }
+
+#ifndef _WIN32
+void sinsp_utils::bt(void)
+{
+	static const char start[] = "BACKTRACE ------------";
+	static const char end[] = "----------------------";
+
+	void *bt[1024];
+	int bt_size;
+	char **bt_syms;
+	int i;
+
+	bt_size = backtrace(bt, 1024);
+	bt_syms = backtrace_symbols(bt, bt_size);
+	g_logger.format("%s", start);
+	for (i = 1; i < bt_size; i++) 
+	{
+		g_logger.format("%s", bt_syms[i]);
+	}
+	g_logger.format("%s", end);
+
+	free(bt_syms);
+}
+#endif // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////////
 // gettimeofday() windows implementation
