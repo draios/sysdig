@@ -677,7 +677,7 @@ sinsp_table_field* sinsp_table::search_in_sample(string text)
 }
 
 void sinsp_table::sort_sample()
-{	
+{
 	if(m_type == sinsp_table::TT_LIST)
 	{
 		if(m_sorting_col == -1)
@@ -697,8 +697,7 @@ void sinsp_table::sort_sample()
 		cc.m_colid = m_sorting_col;
 		cc.m_ascending = m_is_sorting_ascending;
 		uint32_t tyid = m_do_merging? m_sorting_col + 2 : m_sorting_col + 1;
-		cc.m_type = m_types->at(tyid);
-
+		cc.m_type = m_premerge_types[tyid];
 		sort(m_sample_data->begin(),
 			m_sample_data->end(),
 			cc);
@@ -809,7 +808,6 @@ void sinsp_table::set_sorting_col(uint32_t col)
 	}
 
 	m_sorting_col = col - 1;
-g_logger.format("# %d %d", col, m_sorting_col);
 }
 
 uint32_t sinsp_table::get_sorting_col()
