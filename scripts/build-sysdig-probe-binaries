@@ -4,7 +4,7 @@
 # The precompiled binary is then obtained at runtime by sysdig-probe-loader
 # Ideally, the community should expand this stuff with better support
 #
-set -exu
+set -exuo pipefail
 
 SYSDIG_VERSION=$1
 REPOSITORY_NAME=$2
