@@ -1,4 +1,5 @@
 option(BUILD_DRIVER "Build the driver on Linux" ON)
+option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS} ${SYSDIG_FEATURE_FLAGS}")
@@ -39,21 +40,23 @@ add_custom_target(install_driver
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 	VERBATIM)
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
-	RENAME Makefile
-	DESTINATION "src/sysdig-${SYSDIG_VERSION}")
+if(ENABLE_DKMS)
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
+		RENAME Makefile
+		DESTINATION "src/sysdig-${SYSDIG_VERSION}")
 
-install(FILES
-	${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
-	dynamic_params_table.c
-	event_table.c
-	flags_table.c
-	main.c
-	ppm.h
-	ppm_events.c
-	ppm_events.h
-	ppm_events_public.h
-	ppm_fillers.c
-	ppm_ringbuffer.h
-	syscall_table.c
-	DESTINATION "src/sysdig-${SYSDIG_VERSION}")
+	install(FILES
+		${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
+		dynamic_params_table.c
+		event_table.c
+		flags_table.c
+		main.c
+		ppm.h
+		ppm_events.c
+		ppm_events.h
+		ppm_events_public.h
+		ppm_fillers.c
+		ppm_ringbuffer.h
+		syscall_table.c
+		DESTINATION "src/sysdig-${SYSDIG_VERSION}")
+endif()
