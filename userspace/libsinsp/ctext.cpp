@@ -134,16 +134,16 @@ int8_t ctext::str_search(ctext_search *to_search)
 		ctext_search in_viewport;
 		ctext_pos limit;
 
-		// because c++ makes life impossibly difficult.
+		// Because c++ makes life impossibly difficult.
 		memcpy(&in_viewport, to_search, sizeof(ctext_search) - sizeof(string));
 		in_viewport.query = to_search->query;
 
-		// we will say the limit is the viewport height ... this makes sure we go over
+		// We will say the limit is the viewport height ... this makes sure we go over
 		// the maximum extent possible.  We also make sure we do this after our first match
 		// otherwise this would reflect our current viewport, shameful!
 		limit.y = min(to_search->pos.y + this->m_win_height, (int32_t)this->m_buffer.size());
 
-		// now we iterate through the viewport highlighting all of the instances, using the 
+		// Now we iterate through the viewport highlighting all of the instances, using the 
 		// limit and the in_viewport pointer
 		while(search_ret >= 0)
 		{
@@ -151,7 +151,7 @@ int8_t ctext::str_search(ctext_search *to_search)
 			search_ret = this->str_search_single(&in_viewport, &limit);
 		}
 	}
-	// refresh our window and we're done with it.
+	// Refresh our window and we're done with it.
 	wrefresh(this->m_win);
 
 	return 0;
@@ -174,7 +174,7 @@ int8_t ctext::str_search_single(ctext_search *to_search, ctext_pos *limit)
 
 		if(to_search->is_forward)
 		{
-			found = haystack.find(to_search->query, (size_t)(to_search->pos.x ? to_search->pos.x + 1 : to_search->pos.x));
+			found = haystack.find(to_search->query, (size_t)( (to_search->pos.x == -2) ? to_search->pos.x + 2 : to_search->pos.x + 1));
 		}
 		else
 		{
@@ -186,13 +186,13 @@ int8_t ctext::str_search_single(ctext_search *to_search, ctext_pos *limit)
 			if(to_search->is_forward)
 			{
 				to_search->pos.y = (to_search->pos.y + 1) % size;
-				to_search->pos.x = 0;
+				to_search->pos.x = -2;
 			}
 			else
 			{
 				to_search->pos.y--;
 
-				// wrap if we are going backwards.
+				// Wrap if we are going backwards.
 				if(to_search->pos.y == -1)
 				{
 					to_search->pos.y = size - 1;
@@ -213,7 +213,7 @@ int8_t ctext::str_search_single(ctext_search *to_search, ctext_pos *limit)
 		}
 		else
 		{
-			// this is all we really care about, we don't need
+			// This is all we really care about, we don't need
 			// to look at the x value
 			to_search->_last_match.y = to_search->pos.y;
 			to_search->pos.x = (int32_t)found;
@@ -347,7 +347,7 @@ int8_t ctext::get_buf_size(int32_t*buf_size)
 
 int32_t ctext::available_rows()
 {
-	// since our buffer clearing scheme permits us to overflow,
+	// Since our buffer clearing scheme permits us to overflow,
 	// we have to bind this to make sure that we return >= 0 values
 	return max(this->m_config.m_buffer_size - this->m_max_y - 1, 0);
 }
@@ -369,7 +369,7 @@ int32_t ctext::page_up(int32_t page_count)
 	return this->down(-page_count * this->m_win_height);
 }
 
-// let's do this real fast.
+// Lets do this real fast.
 int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 {
 	int8_t ret = 0;
@@ -391,7 +391,7 @@ int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 		// the start of where we ought to be drawing
 		if(buffer_y < this->m_pos_start.y || (buffer_y == this->m_pos_start.y && buffer_x < this->m_pos_start.x))
 		{
-			// we omit win calculations here since they
+			// We omit win calculations here since they
 			// would be more expensive then we'd like
 			win->x = win->y = -1;
 
@@ -410,7 +410,7 @@ int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 			{
 				new_offset += this->m_win_width;
 
-				// there's an edge case that requires this
+				// There's an edge case that requires this
 				// twice due to a short circuit exit that 
 				// would be triggered at the end of a buffer, 
 				// see below.
@@ -525,7 +525,7 @@ int32_t ctext::jump_to_first_line()
 {
 	int32_t current_line = this->m_pos_start.y;
 
-	// now we try to scroll above the first
+	// Now we try to scroll above the first
 	// line.	the bounding box rule will
 	// take care of the differences for us.
 	this->scroll_to(this->m_pos_start.x, 0 - this->m_win_height + 1);
@@ -597,13 +597,13 @@ void ctext::add_format_if_needed()
 		return;
 	}
 
-	// get the most current row.
+	// Get the most current row.
 	ctext_row *p_row = &this->m_buffer.back();
 
 	ctext_format p_format = {0,0,0};
 	if(!p_row->format.empty()) 
 	{
-		// and the most current format
+		// And the most current format
 		p_format = p_row->format.back();
 	} 
 
@@ -611,7 +611,7 @@ void ctext::add_format_if_needed()
 
 	if(attrs != p_format.attrs || color_pair != p_format.color_pair)
 	{
-		// our properties have changed so we need to record this.
+		// Our properties have changed so we need to record this.
 		ctext_format new_format = 
 		{
 			// this is our offset
@@ -621,7 +621,7 @@ void ctext::add_format_if_needed()
 			.color_pair = color_pair
 		};
 
-		// if the new thing we are adding has the same
+		// If the new thing we are adding has the same
 		// offset as the previous, then we dump the
 		// previous.
 		if(p_format.offset == new_format.offset && !p_row->format.empty())
@@ -636,7 +636,7 @@ ctext_row* ctext::add_row()
 {
 	ctext_row row;
 
-	// if there is an exsting line, then
+	// If there is an exsting line, then
 	// we carry over the format from the
 	// last line..
 	if(!this->m_buffer.empty())
@@ -831,7 +831,7 @@ int16_t ctext::redraw_partial(
 	int32_t win_current_end_x;
 	int32_t buf_offset_x;
 
-	// we need to get relative start and end positions.
+	// We need to get relative start and end positions.
 	ctext_pos win_start, win_end;
 
 	ret = this->map_to_win(buf_start_x, buf_start_y, &win_start);
