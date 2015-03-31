@@ -16,6 +16,13 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+class search_caller_interface
+{
+public:
+	virtual void on_search_key_pressed(string search_str) = 0;
+	virtual string* get_last_search_string() = 0;
+};
+
 class sidemenu_list_entry
 {
 public:
@@ -126,7 +133,8 @@ public:
 	string m_title;
 };
 
-class curses_textbox : public sinsp_chart
+class curses_textbox : 
+public sinsp_chart, public search_caller_interface
 {
 public:
 	curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type);
@@ -140,6 +148,8 @@ public:
 	void populate_sidemenu();
 	void reset();
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
+	void on_search_key_pressed(string search_str);
+	string* get_last_search_string();
 
 private:
 	inline void process_event_spy(sinsp_evt* evt, int32_t next_res);
@@ -156,6 +166,7 @@ private:
 	vector<sidemenu_list_entry> m_entries;
 	int32_t m_viz_type;
 	sinsp_evt_formatter* m_formatter;
+	string m_last_search_string;
 };
 
 #endif

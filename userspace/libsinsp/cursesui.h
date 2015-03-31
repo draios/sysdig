@@ -69,7 +69,7 @@ public:
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
 			val, 
 			prev_selected_view, 
-			prev_selected_sidemenu_entry, 
+			prev_selected_sidemenu_entry,
 			rowkey,
 			prev_sorting_col));
 	}
@@ -187,6 +187,7 @@ public:
 		return m_eof != 0;
 	}
 	void render();
+	void turn_search_on(search_caller_interface* ifc);
 
 	//
 	// Return true if the application is supposed to exit
@@ -419,4 +420,5 @@ private:
 	uint64_t m_last_progress_evt;
 	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	sinsp_chart* m_chart;
+	search_caller_interface* m_search_caller_interface;
 };

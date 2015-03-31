@@ -45,6 +45,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 	m_spy_box = NULL;
+	m_search_caller_interface = NULL;
 
 	//
 	// Colors initialization
@@ -368,6 +369,17 @@ void sinsp_cursesui::render_header()
 	}
 }
 
+void sinsp_cursesui::turn_search_on(search_caller_interface* ifc)
+{
+	m_search_caller_interface = ifc;
+	m_output_searching = false;
+	m_output_filtering = false;
+	m_manual_search_text = "";
+	m_cursor_pos = 0;
+	curs_set(1);
+	render();
+}
+
 void sinsp_cursesui::render_default_main_menu()
 {
 	uint32_t j = 0;
@@ -429,7 +441,14 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 	}
 	else
 	{
-		ASSERT(false);
+		if(m_search_caller_interface)
+		{
+			str = m_search_caller_interface->get_last_search_string();
+		}
+		else
+		{
+			ASSERT(false);
+		}
 	}
 
 	//
@@ -563,6 +582,16 @@ void sinsp_cursesui::render_spy_main_menu()
 	k += 7;
 
 	attrset(m_colors[PROCESS]);
+	fks = "F3";
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
+	k += fks.size();
+	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+	fks = "Search";
+	fks.resize(6, ' ');
+	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
+	k += 6;
+
+	attrset(m_colors[PROCESS]);
 	fks = "P ";
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
 	k += fks.size();
@@ -644,7 +673,7 @@ void sinsp_cursesui::render_position_info()
 
 void sinsp_cursesui::render_main_menu()
 {
-	if(m_output_filtering || m_output_searching)
+	if(m_output_filtering || m_output_searching || m_search_caller_interface != NULL)
 	{
 		render_filtersearch_main_menu();
 	}
@@ -681,7 +710,7 @@ void sinsp_cursesui::render()
 	//
 	// Print the position in the chart
 	//
-	if(!(m_output_filtering || m_output_searching))
+	if(!(m_output_filtering || m_output_searching || m_search_caller_interface != NULL))
 	{
 		render_position_info();
 	}
@@ -915,7 +944,7 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 	{
 		srtcol = m_datatable->get_sorting_col() + 1;
 	}
-	
+
 	m_sel_hierarchy.push_back(field, val, 
 		m_selected_view, m_selected_sidemenu_entry, 
 		&rowkeybak, srtcol);
@@ -1151,7 +1180,7 @@ void sinsp_cursesui::print_progress(double progress)
 sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 {
 	bool closing = false;
-	string* str;
+	string* str = NULL;
 	bool handled = true;
 
 	//
@@ -1167,7 +1196,14 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	}
 	else
 	{
-		ASSERT(false);
+		if(m_search_caller_interface)
+		{
+			str = m_search_caller_interface->get_last_search_string();
+		}
+		else
+		{
+			ASSERT(false);
+		}
 	}
 
 	switch(ch)
@@ -1184,6 +1220,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
+		case KEY_F(3):
 		case KEY_F(4):
 			closing = true;
 			curs_set(0);
@@ -1286,7 +1323,14 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	}
 	else
 	{
-		ASSERT(false);
+		if(m_search_caller_interface)
+		{
+			m_search_caller_interface->on_search_key_pressed(*str);
+		}
+		else
+		{
+			ASSERT(false);
+		}
 	}
 
 	if(closing)
@@ -1294,6 +1338,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		m_search_nomatch = false;
 		m_output_filtering = false;
 		m_output_searching = false;
+		m_search_caller_interface = NULL;
 		render();
 	}
 
@@ -1315,7 +1360,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		}
 	}
 
-	if(m_output_filtering || m_output_searching)
+	if(m_output_filtering || m_output_searching || m_search_caller_interface != NULL)
 	{
 		ASSERT(m_sidemenu == NULL);
 		return handle_textbox_input(ch);
@@ -1368,6 +1413,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			render();
 			break;
 		case KEY_F(3):
+			m_search_caller_interface = NULL;
 			m_output_searching = true;
 			m_manual_search_text = "";
 			m_cursor_pos = 0;
@@ -1375,6 +1421,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			render();
 			break;
 		case KEY_F(4):
+			m_search_caller_interface = NULL;
 			m_output_filtering = true;
 			m_cursor_pos = 0;
 			curs_set(1);

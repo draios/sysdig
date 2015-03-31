@@ -1614,7 +1614,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 */
 		
 		// Top processes
-/*
 		vflds.clear();
 		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_GROUPBY_KEY, A_NONE, A_NONE));
@@ -1630,7 +1629,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 8, TEF_NONE, A_SUM, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.exeline", "Command", 200, TEF_NONE, A_NONE, A_NONE));
 		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "XXX", "Top Processes", vtags, vflds, "all,fd.name", "", "", true));
-*/
+
 		// File opens
 /*
 		vflds.clear();
@@ -1639,7 +1638,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("proc.exeline", "Command", 200, TEF_NONE, A_NONE, A_NONE));
 		views.push_back(sinsp_view_info(sinsp_view_info::T_LIST, "File Opens", &vflds, "all,fd.name", "evt.type=open and evt.dir=<", true));
 */
-
+/*
 		// Top containers
 		vflds.clear();
 		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
@@ -1655,7 +1654,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("container.id", "ID", -1, TEF_IS_GROUPBY_KEY, A_NONE, A_NONE));
 		vflds.push_back(sinsp_view_column_info("container.name", "NAME", 200, TEF_NONE, A_NONE, A_NONE));
 		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "LD_top_cont", "Top Containers", vtags, vflds, "all", "container.name != host", "LD_top_cont_procs", true));
-
+*/
 /*			
 		// Top Threads
 		vflds.clear();

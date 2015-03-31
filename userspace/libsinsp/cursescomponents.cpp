@@ -801,6 +801,10 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			}
 
 			return STA_NONE;
+		case KEY_F(3):
+			m_last_search_string = "";
+			m_parent->turn_search_on(this);
+			break;		
 		default:
 			break;
 	}
@@ -879,6 +883,29 @@ bool curses_textbox::get_position(OUT int32_t* pos,
 	*truncated = (m_ctext->available_rows() <= 0);
 
 	return true;
+}
+
+void curses_textbox::on_search_key_pressed(string search_str)
+{
+	m_last_search_string = search_str;
+
+	ctext_search searcher;
+	m_ctext->new_search(&searcher, search_str);
+g_logger.format("1-- %s", m_last_search_string.c_str());
+	m_ctext->str_search(&searcher);
+g_logger.format("2-- %s", m_last_search_string.c_str());
+
+/*
+	do 
+	{
+		ret = ct.str_search(&searcher);
+	} while (!ret);
+*/	
+}
+
+string* curses_textbox::get_last_search_string()
+{
+	return &m_last_search_string;
 }
 
 #endif // SYSTOP
