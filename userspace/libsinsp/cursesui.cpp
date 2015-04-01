@@ -121,7 +121,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	//
 	m_menuitems.push_back(pair<string, string>("F1", "Help"));
 	m_menuitems.push_back(pair<string, string>("F2", "Views"));
-	m_menuitems.push_back(pair<string, string>("F3", "Search"));
+	m_menuitems.push_back(pair<string, string>("CTRL+F", "Search"));
 	m_menuitems.push_back(pair<string, string>("F4", "Filter"));
 	m_menuitems.push_back(pair<string, string>("F5", "Spy IO"));
 	m_menuitems.push_back(pair<string, string>("F6", "Dig"));
@@ -371,6 +371,9 @@ void sinsp_cursesui::render_header()
 
 void sinsp_cursesui::turn_search_on(search_caller_interface* ifc)
 {
+	ASSERT(m_spy_box != NULL);
+	m_spy_box->get_offset(&m_search_start_x, &m_search_start_y);
+
 	m_search_caller_interface = ifc;
 	m_output_searching = false;
 	m_output_filtering = false;
@@ -398,7 +401,7 @@ void sinsp_cursesui::render_default_main_menu()
 	{
 		attrset(m_colors[PROCESS]);
 		string fks = m_menuitems[j].first;
-		mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), MAX(fks.size(), 2));
 		k += MAX(fks.size(), 2);
 
 		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
@@ -1216,11 +1219,17 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			return STA_NONE;
 		case 27: // ESC
 			*str = "";
+
+			if(m_spy_box != NULL)
+			{
+				m_spy_box->scroll_to(m_search_start_x, m_search_start_y);
+				m_spy_box->up();
+			}
 			// FALL THROUGH
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
-		case KEY_F(3):
+		case 6:	// CTRL+F
 		case KEY_F(4):
 			closing = true;
 			curs_set(0);
@@ -1264,12 +1273,27 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 				addch(' ');
 				move(m_screenh - 1, m_cursor_pos);
 				str->pop_back();
+
+				if(str->size() < 2)
+				{
+					if(m_spy_box != NULL)
+					{
+						m_spy_box->scroll_to(m_search_start_x, m_search_start_y); 
+					}
+				}
+
 				break;
 			}
 			else
 			{
 				return STA_NONE;
 			}
+		case KEY_F(3):
+			if(m_spy_box != NULL)
+			{
+				m_spy_box->search_next();
+			}
+			break;
 		default:
 			handled = false;
 			break;
@@ -1387,6 +1411,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		return actn;
 	}
 
+
 	switch(ch)
 	{
 		case 'q':
@@ -1412,13 +1437,19 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			m_viz->recreate_win();
 			render();
 			break;
-		case KEY_F(3):
+		case 6:	// CTRL+F
 			m_search_caller_interface = NULL;
 			m_output_searching = true;
 			m_manual_search_text = "";
 			m_cursor_pos = 0;
 			curs_set(1);
 			render();
+			break;
+		case KEY_F(3):
+			if(m_spy_box != NULL)
+			{
+				m_spy_box->search_next();
+			}
 			break;
 		case KEY_F(4):
 			m_search_caller_interface = NULL;

@@ -46,6 +46,7 @@ class sinsp_filter_check_reference;
 class curses_table;
 class sinsp_cursesui;
 class ctext;
+typedef struct ctext_search_struct ctext_search;
 class sinsp_evt_formatter;
 
 class sinsp_chart
@@ -150,6 +151,10 @@ public:
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
 	void on_search_key_pressed(string search_str);
 	string* get_last_search_string();
+	int8_t get_offset(int32_t* x, int32_t* y); 
+	int8_t scroll_to(int32_t x, int32_t y);
+	void up();
+	void search_next();
 
 private:
 	inline void process_event_spy(sinsp_evt* evt, int32_t next_res);
@@ -167,6 +172,7 @@ private:
 	int32_t m_viz_type;
 	sinsp_evt_formatter* m_formatter;
 	string m_last_search_string;
+	ctext_search* m_searcher;
 };
 
 #endif

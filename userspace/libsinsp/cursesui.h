@@ -421,4 +421,5 @@ private:
 	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	sinsp_chart* m_chart;
 	search_caller_interface* m_search_caller_interface;
+	int32_t m_search_start_x, m_search_start_y;
 };

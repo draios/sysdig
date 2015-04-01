@@ -367,6 +367,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_paused = false;
 	m_sidemenu = NULL;
 	m_viz_type = viz_type;
+	m_searcher = NULL;
 
 	ctext_config config;
 
@@ -374,6 +375,8 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_ctext = new ctext(m_win);
 
 	m_ctext->get_config(&config);
+
+	m_searcher = new ctext_search();
 
 	config.m_buffer_size = 500000;
 	config.m_scroll_on_append = true;
@@ -432,7 +435,14 @@ curses_textbox::~curses_textbox()
 	}
 
 	delwin(m_win);
+	
 	delete m_ctext;
+
+	if(m_searcher)
+	{
+		delete m_searcher;
+	}
+
 	if(m_filter != NULL)
 	{
 		delete m_filter;
@@ -715,17 +725,17 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 
 	switch(ch)
 	{
-		case '\n':
-		case '\r':
-		case KEY_ENTER:
+		case KEY_BACKSPACE:
+			return STA_DRILLUP;
+		case 'q':
+			return STA_PARENT_HANDLE;
 		case KEY_UP:
 			m_ctext->up();
 			render();
 			return STA_NONE;
-		case KEY_BACKSPACE:
-			return STA_PARENT_HANDLE;
-		case 'q':
-			return STA_PARENT_HANDLE;
+		case '\n':
+		case '\r':
+		case KEY_ENTER:
 		case KEY_DOWN:
 			m_ctext->down();
 			render();
@@ -742,6 +752,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			m_ctext->page_up();
 			render();
 			return STA_NONE;
+		case ' ':
 		case KEY_NPAGE:
 			m_ctext->page_down();
 			render();
@@ -801,10 +812,13 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			}
 
 			return STA_NONE;
-		case KEY_F(3):
+		case 6:	// CTRL+F
 			m_last_search_string = "";
 			m_parent->turn_search_on(this);
-			break;		
+			break;
+		case KEY_F(3):
+			m_ctext->str_search(m_searcher);
+			break;
 		default:
 			break;
 	}
@@ -889,23 +903,33 @@ void curses_textbox::on_search_key_pressed(string search_str)
 {
 	m_last_search_string = search_str;
 
-	ctext_search searcher;
-	m_ctext->new_search(&searcher, search_str);
-g_logger.format("1-- %s", m_last_search_string.c_str());
-	m_ctext->str_search(&searcher);
-g_logger.format("2-- %s", m_last_search_string.c_str());
-
-/*
-	do 
-	{
-		ret = ct.str_search(&searcher);
-	} while (!ret);
-*/	
+	m_ctext->new_search(m_searcher, search_str);
+	m_ctext->str_search(m_searcher);
 }
 
 string* curses_textbox::get_last_search_string()
 {
 	return &m_last_search_string;
+}
+
+int8_t curses_textbox::get_offset(int32_t* x, int32_t* y)
+{
+	return m_ctext->get_offset(x, y);
+}
+
+int8_t curses_textbox::scroll_to(int32_t x, int32_t y)
+{
+	return m_ctext->scroll_to(x, y);
+}
+
+void curses_textbox::up()
+{
+	m_ctext->up();
+}
+
+void curses_textbox::search_next()
+{
+	m_ctext->str_search(m_searcher);
 }
 
 #endif // SYSTOP
