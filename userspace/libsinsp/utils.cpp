@@ -21,12 +21,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <execinfo.h>
+#include <unistd.h>
 #endif
 #include <algorithm> 
 #include <functional> 
-#include <execinfo.h>
 #include <errno.h>
-#include <unistd.h>
 
 #include "sinsp.h"
 #include "sinsp_int.h"

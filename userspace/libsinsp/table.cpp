@@ -651,7 +651,18 @@ sinsp_table_field* sinsp_table::search_in_sample(string text)
 	{
 		for(uint32_t j = 0; j < it->m_values.size(); j++)
 		{
-			ppm_param_type type = m_types->at(j + 1);
+			ppm_param_type type;
+
+			ASSERT(m_types->size() == it->m_values.size() + 2);
+
+			if(m_do_merging)
+			{
+				type = m_types->at(j + 2);
+			}
+			else
+			{
+				type = m_types->at(j + 1);
+			}
 
 			if(type == PT_CHARBUF || type == PT_BYTEBUF || type == PT_SYSCALLID ||
 				type == PT_PORT || type == PT_L4PROTO || type == PT_SOCKFAMILY || type == PT_IPV4ADDR ||
