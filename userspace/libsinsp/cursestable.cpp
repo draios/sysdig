@@ -544,7 +544,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 				scrollwin(scrollpos, 10);
 			}
 			break;
-*/			
+*/
 		case KEY_UP:
 			m_selection_changed = true;
 			selection_up((int32_t)m_data->size());

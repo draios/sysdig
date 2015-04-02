@@ -632,7 +632,7 @@ void sinsp_cursesui::render_spy_main_menu()
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
 	k += 6;
 }
-	
+
 void sinsp_cursesui::render_position_info()
 {
 	if(m_chart == NULL)
@@ -647,8 +647,16 @@ void sinsp_cursesui::render_position_info()
 	if(m_chart->get_position(&pos, &totlines, &percent, &truncated))
 	{
 		char prstr[128];
-
 		string trs;
+		uint32_t csize = 18;
+
+		attrset(m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+
+		move(m_screenh - 1, m_screenw - csize);
+		for(uint32_t k = 0; k < csize; k++)
+		{
+			addch(' ');
+		}
 
 		if(truncated)
 		{
@@ -657,20 +665,16 @@ void sinsp_cursesui::render_position_info()
 
 		if(percent != 0)
 		{
-			sprintf(prstr, "     %d/%d(%.1f%%)%s", (int)pos, (int)totlines, percent * 100, trs.c_str());
+			sprintf(prstr, "%d/%d(%.1f%%)%s", (int)pos, (int)totlines, percent * 100, trs.c_str());
 		}
 		else
 		{
-			sprintf(prstr, "     %d/%d(0.0%%)%s", (int)pos, (int)totlines, trs.c_str());
+			sprintf(prstr, "%d/%d(0.0%%)%s", (int)pos, (int)totlines, trs.c_str());
 		}
-
-		attrset(m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 
 		mvaddstr(m_screenh - 1, 
 			m_screenw - strlen(prstr),
 			prstr);
-
-
 	}
 }
 
@@ -696,6 +700,14 @@ void sinsp_cursesui::render()
 	// Draw the header at the top of the page
 	//
 	render_header();
+
+	//
+	// Print the position in the chart
+	//
+	if(m_output_filtering || m_output_searching || m_search_caller_interface != NULL)
+	{
+		render_position_info();
+	}
 
 	//
 	// Draw the menu at the bottom of the screen
@@ -1217,6 +1229,19 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			m_cursor_pos = 0;
 			render();
 			return STA_NONE;
+		case KEY_DOWN:
+		case KEY_UP:
+		case KEY_PPAGE:
+		case KEY_NPAGE:
+			if(m_spy_box != NULL)
+			{
+				m_spy_box->handle_input(ch);
+			}
+			else
+			{
+				m_viz->handle_input(ch);
+			}
+			return STA_NONE;
 		case 27: // ESC
 			*str = "";
 
@@ -1350,6 +1375,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		if(m_search_caller_interface)
 		{
 			m_search_caller_interface->on_search_key_pressed(*str);
+			render();
 		}
 		else
 		{
