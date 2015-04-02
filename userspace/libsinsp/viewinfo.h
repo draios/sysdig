@@ -85,7 +85,8 @@ public:
 		string applies_to,
 		string filter,
 		string drilldown_target,
-		bool use_defaults);
+		bool use_defaults,
+		bool is_root);
 
 	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
 
@@ -101,6 +102,7 @@ public:
 	viewtype m_type;
 	bool m_valid;
 	string m_drilldown_target;
+	bool m_is_root;
 
 private:
 	void move_key_to_front(uint32_t keyflag);

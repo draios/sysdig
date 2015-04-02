@@ -40,7 +40,8 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	string applies_to,
 	string filter,
 	string drilldown_target,
-	bool use_defaults)
+	bool use_defaults,
+	bool is_root)
 {
 	m_id = id;
 	m_name = name;
@@ -49,6 +50,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	m_tags = tags;	
 	m_columns = columns;
 	m_drilldown_target = drilldown_target;
+	m_is_root = is_root;
 
 	m_use_defaults = use_defaults;
 	

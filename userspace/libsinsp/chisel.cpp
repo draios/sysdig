@@ -539,6 +539,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	vector<sinsp_view_column_info> columns;
 	vector<string> tags;
 	string drilldown_target;
+	bool is_root = false;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -622,6 +623,17 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean");
 			}
 		}
+		else if(fldname == "is_root")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				is_root = (lua_toboolean(ls, -1) != 0);
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean");
+			}
+		}
 		else if(fldname == "columns")
 		{
 			if(lua_istable(ls, -1))
@@ -649,7 +661,8 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		applies_to,
 		filter,
 		drilldown_target,
-		use_defaults);
+		use_defaults,
+		is_root);
 
 	return true;
 }

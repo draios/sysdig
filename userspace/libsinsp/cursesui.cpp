@@ -162,7 +162,25 @@ void sinsp_cursesui::configure(vector<sinsp_view_info>* views)
 		throw sinsp_exception("trying to configure the command line UI with no views");
 	}
 
+	//
+	// Copy the input views
+	//
 	m_views = *views;
+
+	//
+	// Resort the list to put the root views on top
+	//
+	for(uint32_t j = 0; j < m_views.size(); j++)
+	{
+		if(m_views[j].m_is_root)
+		{
+			sinsp_view_info ci = m_views[j];
+
+			m_views.erase(m_views.begin() +j);
+			m_views.insert(m_views.begin(), ci);
+			return;
+		}
+	}
 }
 
 void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
