@@ -18,11 +18,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 view_info = 
 {
 	id = "LD_top_procs",
-	name = "Top Processes 1",
-	description = "Top Processes.",
+	name = "Top Processes",
+	description = "This is the typical top/htop process list, showing usage of resources like CPU, memory, disk and network on a by process basis.",
 	tags = {"Default"},
 	view_type = "table",
 	applies_to = "all,fd.name",
+	is_root = true,
+	drilldown_target = "LD_file_opens",
 	use_defaults = true,
 	columns = 
 	{
