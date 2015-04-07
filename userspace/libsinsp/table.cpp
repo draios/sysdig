@@ -653,14 +653,14 @@ sinsp_table_field* sinsp_table::search_in_sample(string text)
 		{
 			ppm_param_type type;
 
-			ASSERT(m_types->size() == it->m_values.size() + 2);
-
 			if(m_do_merging)
 			{
+				ASSERT(m_types->size() == it->m_values.size() + 2);
 				type = m_types->at(j + 2);
 			}
 			else
 			{
+				ASSERT(m_types->size() == it->m_values.size() + 1);
 				type = m_types->at(j + 1);
 			}
 
@@ -709,6 +709,7 @@ void sinsp_table::sort_sample()
 		cc.m_ascending = m_is_sorting_ascending;
 		uint32_t tyid = m_do_merging? m_sorting_col + 2 : m_sorting_col + 1;
 		cc.m_type = m_premerge_types[tyid];
+
 		sort(m_sample_data->begin(),
 			m_sample_data->end(),
 			cc);

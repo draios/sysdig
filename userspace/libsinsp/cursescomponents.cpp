@@ -376,12 +376,10 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 
 	m_ctext->get_config(&config);
 
-	m_searcher = new ctext_search();
-
 	config.m_buffer_size = 500000;
 	config.m_scroll_on_append = true;
 	config.m_bounding_box = true;
-	
+
 	//
 	// visualization-type inits
 	//
@@ -400,6 +398,11 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	// set the config back
 	//
 	m_ctext->set_config(&config);
+
+	//
+	// Allocate the searcher
+	//
+	m_searcher = new ctext_search();
 
 	//
 	// If we're offline, disable screen refresh until we've parsed the file

@@ -46,6 +46,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_sidemenu = NULL;
 	m_spy_box = NULL;
 	m_search_caller_interface = NULL;
+	m_viewinfo_ctext = NULL;
 
 	//
 	// Colors initialization
@@ -121,10 +122,11 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	//
 	m_menuitems.push_back(pair<string, string>("F1", "Help"));
 	m_menuitems.push_back(pair<string, string>("F2", "Views"));
-	m_menuitems.push_back(pair<string, string>("CTRL+F", "Search"));
 	m_menuitems.push_back(pair<string, string>("F4", "Filter"));
 	m_menuitems.push_back(pair<string, string>("F5", "Spy IO"));
 	m_menuitems.push_back(pair<string, string>("F6", "Dig"));
+	m_menuitems.push_back(pair<string, string>("F7", "Legend"));
+	m_menuitems.push_back(pair<string, string>("CTRL+F", "Search"));
 	m_menuitems.push_back(pair<string, string>("P", "Pause"));
 
 	//
@@ -1014,6 +1016,35 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 #endif
 }
 
+#ifndef NOCURSESUI
+void sinsp_cursesui::show_selected_view_info()
+{
+	ctext_config config;
+	sinsp_view_info& vinfo = m_views[m_selected_view];
+
+	m_viewinfo_ctext = new ctext(stdscr);
+
+	m_viewinfo_ctext->get_config(&config);
+
+	config.m_buffer_size = 50000;
+	config.m_scroll_on_append = false;
+	config.m_bounding_box = true;
+	config.m_do_wrap = true;
+
+	m_viewinfo_ctext->set_config(&config);
+
+	attrset(m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_viewinfo_ctext->printf("%s\n\n", vinfo.m_name.c_str());
+
+	m_viewinfo_ctext->printf("%s\n\n", vinfo.m_name.c_str());
+	
+	attrset(m_colors[sinsp_cursesui::PROCESS]);
+	m_viewinfo_ctext->printf("AAAAAAAAAAAAAAA\n");
+
+	m_viewinfo_ctext->redraw();
+}
+#endif
+
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num)
 {
@@ -1033,11 +1064,11 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	uint32_t srtcol;
 	if(m_datatable->m_do_merging)
 	{
-		srtcol = m_datatable->get_sorting_col();
+		srtcol = m_datatable->get_sorting_col() - 1;
 	}
 	else
 	{
-		srtcol = m_datatable->get_sorting_col() + 1;
+		srtcol = m_datatable->get_sorting_col();
 	}
 
 	m_sel_hierarchy.push_back(field, val, 
@@ -1507,6 +1538,9 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			break;
 		case KEY_F(6):
 			return STA_DIG;
+			break;
+		case KEY_F(7):
+			show_selected_view_info();
 			break;
 		default:
 		break;

@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define SIDEMENU_WIDTH 20
 #define VIEW_ID_SPY -1
 #define VIEW_ID_DIG -2
+#define VIEW_ID_INFO -3
 
 string combine_filters(string flt1, string flt2);
 class ctext;
@@ -398,8 +399,10 @@ private:
 	sysdig_table_action handle_input(int ch);
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
 	void print_progress(double progress);
+	void show_selected_view_info();
 
 	curses_textbox* m_spy_box;
+	ctext* m_viewinfo_ctext;
 #endif
 
 	sinsp* m_inspector;
