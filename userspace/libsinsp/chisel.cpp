@@ -390,6 +390,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	lua_pushnil(ls);
 
 	string name;
+	string description;
 	string field;
 	uint32_t colsize = 0xffffffff;
 	uint32_t flags = TEF_NONE;
@@ -403,6 +404,10 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		if(fldname == "name")
 		{
 			name = lua_tostring(ls, -1);
+		}
+		else if(fldname == "description")
+		{
+			description = lua_tostring(ls, -1);
 		}
 		else if(fldname == "field")
 		{
@@ -487,7 +492,8 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	}
 
 	cols->push_back(sinsp_view_column_info(field, 
-		name, 
+		name,
+		description,
 		colsize, 
 		(uint32_t)flags, 
 		aggregation, 

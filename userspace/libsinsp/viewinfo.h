@@ -44,6 +44,7 @@ class sinsp_view_column_info
 public:
 	sinsp_view_column_info(string field,
 	string name,
+	string description,
 	uint32_t colsize,
 	uint32_t flags,
 	sinsp_field_aggregation aggregation,
@@ -51,6 +52,7 @@ public:
 	{
 		m_field = field;
 		m_name = name;
+		m_description = description;
 		m_colsize = colsize;
 		m_aggregation = aggregation;
 		m_groupby_aggregation = groupby_aggregation;
@@ -63,6 +65,7 @@ public:
 	sinsp_field_aggregation m_aggregation;
 	sinsp_field_aggregation m_groupby_aggregation;
 	uint32_t m_flags;
+	string m_description;
 };
 
 class sinsp_view_info
