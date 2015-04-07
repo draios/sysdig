@@ -175,4 +175,18 @@ private:
 	ctext_search* m_searcher;
 };
 
+class curses_viewinfo_page
+{
+public:
+	curses_viewinfo_page(sinsp_cursesui* parent);
+	~curses_viewinfo_page();
+	sysdig_table_action handle_input(int ch);
+
+private:
+	void render();
+
+	sinsp_cursesui* m_parent;
+	ctext* m_ctext;
+};
+
 #endif

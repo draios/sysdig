@@ -935,4 +935,134 @@ void curses_textbox::search_next()
 	m_ctext->str_search(m_searcher);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// curses_viewinfo_page implementation
+///////////////////////////////////////////////////////////////////////////////
+curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
+{
+	m_parent = parent;
+	ctext_config config;
+	sinsp_view_info& vinfo = parent->m_views[parent->m_selected_view];
+
+	m_ctext = new ctext(stdscr);
+
+	m_ctext->get_config(&config);
+
+	config.m_buffer_size = 50000;
+	config.m_scroll_on_append = false;
+	config.m_bounding_box = true;
+	config.m_do_wrap = true;
+
+	m_ctext->set_config(&config);
+
+	attrset(parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("%s\n\n", vinfo.m_name.c_str());
+
+	attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf("%s\n\n", vinfo.m_description.c_str());
+	
+	if(vinfo.m_filter != "")
+	{
+		attrset(parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+		m_ctext->printf("Filter: ");
+
+		attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+		m_ctext->printf("%s\n\n", vinfo.m_filter.c_str());
+	}
+
+	vector<filtercheck_field_info>* legend = parent->m_datatable->get_legend();
+
+	attrset(parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("Columns\n\n");
+
+	uint32_t j = parent->m_datatable->is_merging()? 2 : 1;
+
+	for(; j < vinfo.m_columns.size(); j++)
+	{
+		auto c = &(vinfo.m_columns[j]);
+
+		string desc;
+
+		if(c->m_description != "")
+		{
+			desc = c->m_description;
+		}
+		else
+		{
+			desc = legend->at(parent->m_datatable->is_merging()? j - 1 : j).m_description;
+		}
+
+		attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+		m_ctext->printf("%s: ", c->m_name.c_str());
+		//m_ctext->printf("Filter Field: %s\n", c->m_field.c_str());
+		m_ctext->printf("%s", desc.c_str());
+		m_ctext->printf("\n\n");
+	}
+
+	m_ctext->redraw();
+}
+
+curses_viewinfo_page::~curses_viewinfo_page()
+{
+	delete m_ctext;
+}
+
+void curses_viewinfo_page::render()
+{
+	m_ctext->redraw();
+}
+
+sysdig_table_action curses_viewinfo_page::handle_input(int ch)
+{
+	switch(ch)
+	{
+		case KEY_UP:
+			m_ctext->up();
+			render();
+			return STA_NONE;
+		case '\n':
+		case '\r':
+		case KEY_ENTER:
+		case KEY_DOWN:
+			m_ctext->down();
+			render();
+			return STA_NONE;
+		case KEY_LEFT:
+			m_ctext->left();
+			render();
+			return STA_NONE;
+		case KEY_RIGHT:
+			m_ctext->right();
+			render();
+			return STA_NONE;
+		case KEY_PPAGE:
+			m_ctext->page_up();
+			render();
+			return STA_NONE;
+		case ' ':
+		case KEY_NPAGE:
+			m_ctext->page_down();
+			render();
+			return STA_NONE;
+		case KEY_HOME:
+			m_ctext->jump_to_first_line();
+			m_ctext->scroll_to(0, 0);
+			render();
+			return STA_NONE;
+		case KEY_END:
+			m_ctext->jump_to_last_line();
+			render();
+			return STA_NONE;
+		case 'c':
+		case KEY_DC:
+			m_ctext->clear();
+			render();
+			return STA_NONE;
+		default:
+		break;
+	}
+
+	return STA_DESTROY_CHILD;	
+}
+
 #endif // SYSTOP

@@ -361,6 +361,7 @@ public:
 		return false;
 	}
 
+	sinsp_table* m_datatable;
 	int m_colors[LAST_COLORELEMENT];
 	vector<sinsp_view_info> m_views;
 	int32_t m_selected_view;
@@ -402,12 +403,10 @@ private:
 	void show_selected_view_info();
 
 	curses_textbox* m_spy_box;
-	ctext* m_viewinfo_ctext;
 #endif
 
 	sinsp* m_inspector;
 	vector<pair<string, string>> m_menuitems;
-	sinsp_table* m_datatable;
 	string m_event_source_name;
 	string m_cmdline_capture_filter;
 	string m_complete_filter;
@@ -425,4 +424,5 @@ private:
 	sinsp_chart* m_chart;
 	search_caller_interface* m_search_caller_interface;
 	int32_t m_search_start_x, m_search_start_y;
+	curses_viewinfo_page* m_viewinfo_page;
 };

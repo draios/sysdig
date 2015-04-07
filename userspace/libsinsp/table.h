@@ -32,6 +32,7 @@ typedef enum sysdig_table_action
 	STA_DRILLUP,
 	STA_SPY,
 	STA_DIG,
+	STA_DESTROY_CHILD,
 }sysdig_table_action;
 
 class sinsp_table_field
@@ -257,6 +258,10 @@ public:
 		m_refresh_interval = newinterval;
 	}
 	void clear();
+	bool is_merging()
+	{
+		return m_do_merging;
+	}
 
 	uint64_t m_next_flush_time_ns;
 
