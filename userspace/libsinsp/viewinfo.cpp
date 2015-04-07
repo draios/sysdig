@@ -35,6 +35,7 @@ sinsp_view_info::sinsp_view_info()
 sinsp_view_info::sinsp_view_info(viewtype type, 
 	string id,
 	string name,
+	string description,
 	vector<string> tags,
 	vector<sinsp_view_column_info> columns,
 	string applies_to,
@@ -45,6 +46,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 {
 	m_id = id;
 	m_name = name;
+	m_description = description;
 	m_does_groupby = false;
 	m_type = type;
 	m_tags = tags;	

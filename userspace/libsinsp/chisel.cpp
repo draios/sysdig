@@ -656,6 +656,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	cd->m_viewinfo = sinsp_view_info(vt,
 		id,
 		name,
+		description,
 		tags,
 		columns,
 		applies_to,

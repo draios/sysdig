@@ -80,6 +80,7 @@ public:
 	sinsp_view_info(viewtype type,
 		string id,
 		string name,
+		string description,
 		vector<string> tags,
 		vector<sinsp_view_column_info> columns,
 		string applies_to,
@@ -92,6 +93,7 @@ public:
 
 	string m_id;
 	string m_name;
+	string m_description;
 	vector<string> m_tags;
 	uint32_t m_sortingcol;
 	string m_filter;
