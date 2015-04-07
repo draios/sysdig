@@ -125,7 +125,7 @@ typedef struct ctext_pos_struct
 
 typedef struct ctext_search_struct
 {
-	// the current position of the 
+	// The current position of the 
 	// search. ... you could do
 	//
 	// ct.get_offset(&search.pos);
@@ -135,20 +135,24 @@ typedef struct ctext_search_struct
 	//
 	ctext_pos pos;
 
-	// should we wrap around when
+	// Should we wrap around when
 	// we are done.
 	bool do_wrap;
 
-	// true if we are searching forward
+	// True if we are searching forward
 	// false if we aren't.
 	bool is_forward;
 
-	// this is used internally,
+	// Case insensitivity is defined in the 
+	// classic (c >= 'A' ? c | 0x20) manner.
+	bool is_case_insensitive;
+
+	// This is used internally,
 	// please don't modify.
 	ctext_pos _start_pos;
 	ctext_pos _last_match;
 
-	// the string to match
+	// The string to match
 	string query;
 
 } ctext_search;
@@ -380,23 +384,69 @@ class ctext
 		int8_t ob_start();
 		int8_t ob_end();
 
-		int8_t highlight(ctext_search *context);
-		int8_t redraw_partial_test();
+		//
+		// This highlights a search context given a mask.
+		// A few big mask optiosn are A_REVERSE, A_UNDERLINE, 
+		// A_BLINK, and A_BOLD. They can be binary ORed.
+		//
+		int8_t highlight(ctext_search *context = 0, int32_t mask = A_REVERSE);
 
+		//
 		// This is how you initialize a search.
-		ctext_search *new_search(ctext_search *you_manage_this_memory, string to_search, bool is_forward = true, bool do_wrap = false);
+		//
+		// You are free to toggle the properties of the object
+		// at your own pleasure or peril.
+		//
+		// Returns you_manage_this_memory back at you or NULL
+		// on an error.
+		//
+		ctext_search *new_search(ctext_search *you_manage_this_memory, string to_search, bool is_case_insensitive = false, bool is_forward = true, bool do_wrap = false);
 
+		//
+		// After you've initiated your search you can then go over
+		// the body of text by re-executing the str_search function.
+		//
+		// You don't have to worry about incrementing any silly variables
+		// to avoid an infinite loop on the previous match or any of those
+		// annoyances that the base c/c++ libraries decided to make YOUR
+		// problem every time.
+		//
+		// This function will go to the "next" match (based on your parameters)
+		// and then highlight all the matches in the viewport.  You can
+		// "turn off" this highlighting by running search_off (see below).
+		//
+		// Returns 0 every time a valid search is found and something
+		// "happened".  Otherwise you get something non-zero, signifying that
+		// the search is "done".
+		//
 		int8_t str_search(ctext_search *to_search);
 
+		// Turn off syntax highlighting from search.
+		int8_t search_off();
+
 	private:
+		//
+		// This function answers the question "where on the screen would
+		// the buffer at line X, character Y appear?" The *win gets populated
+		// with the answer or a value is returned if there's an overflow.
+		//
 		int8_t map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos *win);
+
 		int8_t y_scroll_calculate(int32_t amount, ctext_pos *pos);
 		int16_t redraw_partial(int32_t buf_start_x, int32_t buf_start_y, int32_t buf_end_x, int32_t buf_end_y);
 		int16_t redraw_partial(ctext_pos *pos, size_t len);
+
+		// This is just a test function to make sure everything works.
+		int8_t redraw_partial_test();
+
 		ctext_row* add_row();
 		void add_format_if_needed();
 		int8_t rebuf();
 		void get_win_size();
+		
+		// Highlights the matches in he current vieport without
+		// doing any scrolling.
+		int8_t highlight_matches(ctext_search *context = 0);
 
 		// 
 		// Directly scroll to an x/y location with respect to
@@ -414,22 +464,32 @@ class ctext
 
 		// A mast to apply to the text being rendered.
 		attr_t m_attr_mask;
-		int8_t str_search_single(ctext_search *to_search, ctext_pos *limit = 0);
+
+		//
+		// Leave the new_pos_out as null for an idempotent version of this function -
+		// as in one that doesn't modify the to_search_in variable in returning a value.
+		//
+		// It's perfectly acceptable to pass the same variable as both to_search_in and
+		// new_pos_out if you want to execute it with a side-effect - as much of the
+		// implementation actually does.
+		//
+		int8_t str_search_single(ctext_search *to_search_in, ctext_search *new_pos_out = 0, ctext_pos *limit = 0);
 
 		// Whether or not to draw when new text comes in or to skip the step.
 		bool m_do_draw;
 		WINDOW *m_win;
 		ctext_config m_config;
 		ctext_buffer m_buffer;
+		ctext_search *m_last_search;
 
 		// The start point of the buffer with
 		// respect to the current viewport
 		ctext_pos m_pos_start;
 		
 		int32_t m_max_y;
-
 		int32_t m_win_width;
 		int32_t m_win_height;
+
 		ofstream *m_debug;
 };
 
