@@ -1743,10 +1743,15 @@ sysdig_init_res systop_init(int argc, char **argv)
 		{
 			if(it.m_viewinfo.m_valid)
 			{
-				if(it.m_viewinfo.m_tags[0] != "Containers")
+				if(it.m_viewinfo.m_tags.size() != 0)
 				{
-					views.push_back(it.m_viewinfo);
+					if(it.m_viewinfo.m_tags[0] == "Containers")
+					{
+						continue;
+					}
 				}
+
+				views.push_back(it.m_viewinfo);
 			}
 		}
 

@@ -37,6 +37,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	string name,
 	string description,
 	vector<string> tags,
+	vector<string> tips,
 	vector<sinsp_view_column_info> columns,
 	string applies_to,
 	string filter,
@@ -50,6 +51,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	m_does_groupby = false;
 	m_type = type;
 	m_tags = tags;	
+	m_tips = tips;	
 	m_columns = columns;
 	m_drilldown_target = drilldown_target;
 	m_is_root = is_root;

@@ -955,27 +955,48 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 
 	m_ctext->set_config(&config);
 
-	attrset(parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
-	m_ctext->printf("%s\n\n", vinfo.m_name.c_str());
+	//
+	// Print title and info
+	//
+	attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	m_ctext->printf("%s\n", vinfo.m_name.c_str());
 
 	attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf("%s\n\n", vinfo.m_description.c_str());
-	
-	if(vinfo.m_filter != "")
-	{
-		attrset(parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
-		m_ctext->printf("Filter: ");
 
-		attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
-		m_ctext->printf("%s\n\n", vinfo.m_filter.c_str());
+	//
+	// Print the tips if present
+	//
+	if(vinfo.m_tips.size() != 0)
+	{
+		attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+		m_ctext->printf("Tips\n");
+
+		for(uint32_t j = 0; j < vinfo.m_tips.size(); j++)
+		{
+			attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+			m_ctext->printf("%s\n\n", vinfo.m_tips[j].c_str());
+		}
 	}
 
+	//
+	// Print columns info
+	//
 	vector<filtercheck_field_info>* legend = parent->m_datatable->get_legend();
 
-	attrset(parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
-	m_ctext->printf("Columns\n\n");
+	attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	m_ctext->printf("Columns\n");
 
-	uint32_t j = parent->m_datatable->is_merging()? 2 : 1;
+	uint32_t j;
+
+	if(parent->m_datatable->get_type() == sinsp_table::TT_TABLE)
+	{
+		j = parent->m_datatable->is_merging()? 2 : 1;
+	}
+	else
+	{
+		j = 0;		
+	}
 
 	for(; j < vinfo.m_columns.size(); j++)
 	{
@@ -992,13 +1013,28 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 			desc = legend->at(parent->m_datatable->is_merging()? j - 1 : j).m_description;
 		}
 
+		attrset(parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+		m_ctext->printf("%s", c->m_name.c_str());
 		attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
-		m_ctext->printf("%s: ", c->m_name.c_str());
-		//m_ctext->printf("Filter Field: %s\n", c->m_field.c_str());
-		m_ctext->printf("%s", desc.c_str());
-		m_ctext->printf("\n\n");
+		m_ctext->printf(": %s", desc.c_str());
+		m_ctext->printf("\n");
 	}
 
+	//
+	// If there's a filter, print it 
+	//
+	if(vinfo.m_filter != "")
+	{
+		attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+		m_ctext->printf("Filter\n");
+
+		attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+		m_ctext->printf("%s\n\n", vinfo.m_filter.c_str());
+	}
+
+	//
+	// Done. Refresh the screen
+	//
 	m_ctext->redraw();
 }
 

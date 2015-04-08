@@ -85,6 +85,7 @@ public:
 		string name,
 		string description,
 		vector<string> tags,
+		vector<string> tips,
 		vector<sinsp_view_column_info> columns,
 		string applies_to,
 		string filter,
@@ -98,6 +99,7 @@ public:
 	string m_name;
 	string m_description;
 	vector<string> m_tags;
+	vector<string> m_tips;
 	uint32_t m_sortingcol;
 	string m_filter;
 	vector<string> m_applies_to;

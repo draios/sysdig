@@ -544,6 +544,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	sinsp_view_info::viewtype vt = sinsp_view_info::T_TABLE;
 	vector<sinsp_view_column_info> columns;
 	vector<string> tags;
+	vector<string> tips;
 	string drilldown_target;
 	bool is_root = false;
 
@@ -579,6 +580,32 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 					else
 					{
 						throw sinsp_exception("tags column entries must be strings");
+					}
+
+					lua_pop(ls, 1);
+				}
+			}
+			else
+			{				
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+			}
+		}
+		else if(fldname == "tips")
+		{
+			if(lua_istable(ls, -1))
+			{
+				lua_pushnil(ls);
+
+				while(lua_next(ls, -2) != 0)
+				{
+					if(lua_isstring(ls, -1))
+					{
+						tmpstr = lua_tostring(ls, -1);
+						tips.push_back(tmpstr);
+					}
+					else
+					{
+						throw sinsp_exception("tips column entries must be strings");
 					}
 
 					lua_pop(ls, 1);
@@ -651,10 +678,6 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
-		else
-		{
-			throw sinsp_exception("unknown view property " + string(lua_tostring(ls, -2)));
-		}
 
 		lua_pop(ls, 1);
 	}
@@ -664,6 +687,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		name,
 		description,
 		tags,
+		tips,
 		columns,
 		applies_to,
 		filter,
