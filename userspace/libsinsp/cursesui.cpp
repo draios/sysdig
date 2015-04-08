@@ -42,11 +42,11 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_input_check_period_ns = UI_USER_INPUT_CHECK_PERIOD_NS;
 	m_search_nomatch = false;
 	m_chart = NULL;
-	m_viewinfo_page = NULL;
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 	m_spy_box = NULL;
 	m_search_caller_interface = NULL;
+	m_viewinfo_page = NULL;
 
 	//
 	// Colors initialization
@@ -161,7 +161,7 @@ sinsp_cursesui::~sinsp_cursesui()
 #endif
 }
 
-void sinsp_cursesui::configure(vector<sinsp_view_info>* views)
+void sinsp_cursesui::configure(sinsp_view_manager* views)
 {
 	if(views == NULL)
 	{
@@ -175,19 +175,9 @@ void sinsp_cursesui::configure(vector<sinsp_view_info>* views)
 	m_views = *views;
 
 	//
-	// Resort the list to put the root views on top
+	// Determine which view is the starting one
 	//
-	for(uint32_t j = 0; j < m_views.size(); j++)
-	{
-		if(m_views[j].m_is_root)
-		{
-			sinsp_view_info ci = m_views[j];
-
-			m_views.erase(m_views.begin() +j);
-			m_views.insert(m_views.begin(), ci);
-			return;
-		}
-	}
+	m_selected_view = m_views.get_selected_view();
 }
 
 void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
@@ -242,7 +232,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 
 	if(m_selected_view >= 0)
 	{
-		wi = &(m_views[m_selected_view]);
+		wi = m_views.at(m_selected_view);
 
 		if(wi->m_type == sinsp_view_info::T_TABLE)
 		{
@@ -765,7 +755,7 @@ sinsp_view_info* sinsp_cursesui::get_selected_view()
 	}
 
 	ASSERT(m_selected_view < (int32_t)m_views.size());
-	return &m_views[m_selected_view];
+	return m_views.at(m_selected_view);
 }
 
 #ifndef NOCURSESUI
@@ -824,6 +814,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	vector<sinsp_sample_row>* sample = 
 		m_datatable->get_sample();
 
+#ifndef NOCURSESUI
 	//
 	// If the help page has been shown, don't update the screen
 	//
@@ -835,7 +826,6 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	//
 	// Now refresh the UI.
 	//
-#ifndef NOCURSESUI
 	if(m_viz)
 	{
 		m_viz->update_data(sample);
@@ -894,7 +884,8 @@ void sinsp_cursesui::create_complete_filter()
 	//
 	if(m_selected_view >= 0)
 	{
-		m_complete_filter = combine_filters(m_complete_filter, m_views[m_selected_view].m_filter);
+		m_complete_filter = combine_filters(m_complete_filter, 
+			m_views.at(m_selected_view)->m_filter);
 	}
 }
 
@@ -1082,15 +1073,16 @@ bool sinsp_cursesui::drilldown(string field, string val)
 
 	for(j = 0; j < m_views.size(); ++j)
 	{
-		if(m_views[j].m_id == m_views[m_selected_view].m_drilldown_target)
+		if(m_views.at(j)->m_id == m_views.at(m_selected_view)->m_drilldown_target)
 		{
 				return do_drilldown(field, val, j);			
 		}
 	}
 
-	j = 0;
-	for(auto it = m_views.begin(); it != m_views.end(); ++it)
+	for(j = 0; j < m_views.size(); ++j)
 	{
+		auto it = m_views.at(j);
+
 		for(auto atit = it->m_applies_to.begin(); atit != it->m_applies_to.end(); ++atit)
 		{
 			if(*atit == field)
@@ -1098,8 +1090,6 @@ bool sinsp_cursesui::drilldown(string field, string val)
 				return do_drilldown(field, val, j);
 			}
 		}
-
-		j++;
 	}
 
 	return false;

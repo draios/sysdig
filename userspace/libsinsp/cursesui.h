@@ -175,7 +175,7 @@ public:
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter);
 	~sinsp_cursesui();
-	void configure(vector<sinsp_view_info>* views);
+	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
 	sinsp_view_info* get_selected_view();
 	void pause();
@@ -363,7 +363,7 @@ public:
 
 	sinsp_table* m_datatable;
 	int m_colors[LAST_COLORELEMENT];
-	vector<sinsp_view_info> m_views;
+	sinsp_view_manager m_views;
 	int32_t m_selected_view;
 	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
@@ -403,6 +403,7 @@ private:
 	void show_selected_view_info();
 
 	curses_textbox* m_spy_box;
+	curses_viewinfo_page* m_viewinfo_page;
 #endif
 
 	sinsp* m_inspector;
@@ -424,5 +425,4 @@ private:
 	sinsp_chart* m_chart;
 	search_caller_interface* m_search_caller_interface;
 	int32_t m_search_start_x, m_search_start_y;
-	curses_viewinfo_page* m_viewinfo_page;
 };

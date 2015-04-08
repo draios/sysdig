@@ -170,3 +170,67 @@ void sinsp_view_info::move_key_to_front(uint32_t keyflag)
 		}
 	}
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_view_manager implementation
+///////////////////////////////////////////////////////////////////////////////
+void sinsp_view_manager::add(sinsp_view_info* vinfo)
+{
+	m_views.push_back(*vinfo);
+}
+
+typedef struct view_cmp
+{
+	bool operator()(const sinsp_view_info& src, const sinsp_view_info& dst)
+	{
+		return src.m_name < dst.m_name;
+	}
+}table_row_cmp;
+
+void sinsp_view_manager::sort_views()
+{
+	view_cmp cc;
+
+	//
+	// Sort the list alphabetically
+	//
+	sort(m_views.begin(),
+		m_views.end(),
+		cc);
+
+/*
+	//
+	// Resort the list to put the root views on top
+	//
+	for(uint32_t j = 0; j < m_views.size(); j++)
+	{
+		if(m_views[j].m_is_root)
+		{
+			sinsp_view_info ci = m_views[j];
+
+			m_views.erase(m_views.begin() +j);
+			m_views.insert(m_views.begin(), ci);
+			return;
+		}
+	}
+*/
+}
+
+vector<sinsp_view_info>* sinsp_view_manager::get_views()
+{
+	sort_views();
+	return &m_views;
+}
+
+uint32_t sinsp_view_manager::get_selected_view()
+{
+	sort_views();
+
+	for(uint32_t j = 0; j < m_views.size(); j++)
+	{
+		if(m_views[j].m_is_root)
+		{
+			return j;
+		}
+	}
+}

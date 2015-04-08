@@ -595,7 +595,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				m_tbool = false;
 			}
 
-
 			return (uint8_t*)&m_tbool;
 		}
 		break;

@@ -1600,7 +1600,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		//
 		// Create the list of views
 		//
-		vector<sinsp_view_info> views;
+		sinsp_view_manager view_manager;
 		vector<sinsp_view_column_info> vflds;
 		vector<string> vtags;
 
@@ -1751,7 +1751,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 					}
 				}
 
-				views.push_back(it.m_viewinfo);
+				view_manager.add(&it.m_viewinfo);
 			}
 		}
 
@@ -1767,7 +1767,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				(infiles.size() != 0)? infiles[0] : "",
 				(filter.size() != 0)? filter : "");
 
-			ui.configure(&views);
+			ui.configure(&view_manager);
 			ui.start(false, false);
 
 			//

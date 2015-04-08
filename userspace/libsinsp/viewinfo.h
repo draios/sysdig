@@ -31,14 +31,17 @@ typedef enum sinsp_field_aggregation
 	A_MAX,		
 }sinsp_field_aggregation;
 
-///////////////////////////////////////////////////////////////////////////////
+//
 // sinsp_view_column_info flags
-///////////////////////////////////////////////////////////////////////////////
+//
 #define TEF_NONE 0
 #define TEF_IS_KEY 1
 #define TEF_IS_SORT_COLUMN (1 << 1)
 #define TEF_IS_GROUPBY_KEY (1 << 2)
 
+///////////////////////////////////////////////////////////////////////////////
+// Column information
+///////////////////////////////////////////////////////////////////////////////
 class sinsp_view_column_info
 {
 public:
@@ -61,13 +64,16 @@ public:
 
 	string m_field;
 	string m_name;
+	string m_description;
 	uint32_t m_colsize;
 	sinsp_field_aggregation m_aggregation;
 	sinsp_field_aggregation m_groupby_aggregation;
 	uint32_t m_flags;
-	string m_description;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// View information
+///////////////////////////////////////////////////////////////////////////////
 class sinsp_view_info
 {
 public:
@@ -113,4 +119,28 @@ public:
 
 private:
 	void move_key_to_front(uint32_t keyflag);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// View manager
+///////////////////////////////////////////////////////////////////////////////
+class sinsp_view_manager
+{
+public:
+	void add(sinsp_view_info* vinfo);
+	vector<sinsp_view_info>* get_views();
+	uint32_t get_selected_view();
+	size_t size()
+	{
+		return m_views.size();
+	}
+	sinsp_view_info* at(uint32_t viewnum)
+	{
+		return &m_views[viewnum];
+	}
+
+private:
+	void sort_views();
+
+	vector<sinsp_view_info> m_views;
 };
