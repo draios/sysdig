@@ -819,15 +819,23 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 
 	//
 	// It's time to refresh the data for this chart.
-	// First of all, render the chart
+	// First of all, create the data for the chart
 	//
 	vector<sinsp_sample_row>* sample = 
 		m_datatable->get_sample();
 
-#ifndef NOCURSESUI
+	//
+	// If the help page has been shown, don't update the screen
+	//
+	if(m_viewinfo_page)
+	{
+		return;
+	}
+
 	//
 	// Now refresh the UI.
 	//
+#ifndef NOCURSESUI
 	if(m_viz)
 	{
 		m_viz->update_data(sample);
@@ -1325,10 +1333,6 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 				return STA_NONE;
 			}
 		case KEY_F(3):
-			if(m_spy_box != NULL)
-			{
-				m_spy_box->search_next();
-			}
 			break;
 		default:
 			handled = false;

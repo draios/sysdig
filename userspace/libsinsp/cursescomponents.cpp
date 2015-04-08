@@ -819,9 +819,6 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			m_last_search_string = "";
 			m_parent->turn_search_on(this);
 			break;
-		case KEY_F(3):
-			m_ctext->str_search(m_searcher);
-			break;
 		default:
 			break;
 	}
@@ -906,7 +903,10 @@ void curses_textbox::on_search_key_pressed(string search_str)
 {
 	m_last_search_string = search_str;
 
-	m_ctext->new_search(m_searcher, search_str);
+	m_ctext->new_search(m_searcher, 
+		search_str,
+		true);
+
 	m_ctext->str_search(m_searcher);
 }
 
@@ -1014,6 +1014,15 @@ void curses_viewinfo_page::render()
 
 sysdig_table_action curses_viewinfo_page::handle_input(int ch)
 {
+	int32_t totlines;
+
+	m_ctext->get_buf_size(&totlines);
+
+	if(totlines < (int32_t)m_parent->m_screenh)
+	{
+		return STA_DESTROY_CHILD;			
+	}
+
 	switch(ch)
 	{
 		case KEY_UP:
@@ -1051,11 +1060,6 @@ sysdig_table_action curses_viewinfo_page::handle_input(int ch)
 			return STA_NONE;
 		case KEY_END:
 			m_ctext->jump_to_last_line();
-			render();
-			return STA_NONE;
-		case 'c':
-		case KEY_DC:
-			m_ctext->clear();
 			render();
 			return STA_NONE;
 		default:
