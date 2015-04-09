@@ -198,6 +198,14 @@ void sinsp_view_manager::sort_views()
 	sort(m_views.begin(),
 		m_views.end(),
 		cc);
+
+	//
+	// Resort the list to put the root views on top
+	//
+	for(uint32_t j = 0; j < m_views.size(); j++)
+	{
+g_logger.format("> %d) %s", j, m_views[j].m_name.c_str());
+	}
 }
 
 vector<sinsp_view_info>* sinsp_view_manager::get_views()

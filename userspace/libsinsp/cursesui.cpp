@@ -377,11 +377,11 @@ void sinsp_cursesui::render_header()
 	
 	if(m_complete_filter != "")
 	{
-		mvaddnstr(1, k, m_complete_filter.c_str(), m_screenw);
+		mvaddnstr(1, k, m_complete_filter.c_str(), m_screenw - k - 1);
 	}
 	else
 	{
-		mvaddnstr(1, k, "none", m_screenw);
+		mvaddnstr(1, k, "none", m_screenw - k - 1);
 	}
 }
 
@@ -762,6 +762,8 @@ sinsp_view_info* sinsp_cursesui::get_selected_view()
 #ifndef NOCURSESUI
 void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist)
 {
+	uint32_t k = 0;
+
 	viewlist->clear();
 
 	for(uint32_t j = 0; j < m_views.size(); ++j)
@@ -776,13 +778,15 @@ void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>
 
 				if(it->m_name == m_views.at(m_selected_view)->m_name)
 				{
-					m_selected_sidemenu_entry = j;
+					m_selected_sidemenu_entry = k;
 
 					if(m_sidemenu != NULL)
 					{
-						m_sidemenu->m_selct = j;
+						m_sidemenu->m_selct = k;
 					}
 				}
+
+				k++;
 			}
 		}
 	}
@@ -1481,6 +1485,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				m_sidemenu = new curses_table_sidemenu(this);
 				m_sidemenu->set_entries(&m_sidemenu_viewlist);
 				m_sidemenu->m_selct = m_selected_sidemenu_entry;
+g_logger.format("%d", m_sidemenu->m_selct);
 				m_sidemenu->set_title("Select View");
 			}
 			else

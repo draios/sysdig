@@ -23,7 +23,7 @@ view_info =
 	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Us it after a drill down for more fine grained investigation."},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = "all,container.id,proc.pid,thread.tid,proc.name,fd.sport",
+	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,proc.name,fd.sport",
 	filter = "fd.type=ipv4 and fd.name!=''",
 	use_defaults = true,
 	columns = 
