@@ -264,12 +264,18 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 {
 	switch(ch)
 	{
+		case KEY_BACKSPACE:
+			//
+			// Disable backspace when sidemenu is open
+			//
+			return STA_NONE;
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
 			ASSERT(m_selct < (int32_t)m_entries->size());
 			m_parentui->m_selected_view = m_entries->at(m_selct).m_id;
 			m_parentui->m_selected_sidemenu_entry = m_selct;
+
 			return STA_SWITCH_VIEW;
 		case 27: // ESC
 			ASSERT(m_selct < (int32_t)m_entries->size());
@@ -942,7 +948,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 {
 	m_parent = parent;
 	ctext_config config;
-	sinsp_view_info& vinfo = parent->m_views[parent->m_selected_view];
+	sinsp_view_info* vinfo = parent->m_views.at(parent->m_selected_view);
 
 	m_ctext = new ctext(stdscr);
 
@@ -959,23 +965,23 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 	// Print title and info
 	//
 	attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
-	m_ctext->printf("%s\n", vinfo.m_name.c_str());
+	m_ctext->printf("%s\n", vinfo->m_name.c_str());
 
 	attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf("%s\n\n", vinfo.m_description.c_str());
+	m_ctext->printf("%s\n\n", vinfo->m_description.c_str());
 
 	//
 	// Print the tips if present
 	//
-	if(vinfo.m_tips.size() != 0)
+	if(vinfo->m_tips.size() != 0)
 	{
 		attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
 		m_ctext->printf("Tips\n");
 
-		for(uint32_t j = 0; j < vinfo.m_tips.size(); j++)
+		for(uint32_t j = 0; j < vinfo->m_tips.size(); j++)
 		{
 			attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
-			m_ctext->printf("%s\n\n", vinfo.m_tips[j].c_str());
+			m_ctext->printf("%s\n\n", vinfo->m_tips[j].c_str());
 		}
 	}
 
@@ -998,9 +1004,9 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 		j = 0;		
 	}
 
-	for(; j < vinfo.m_columns.size(); j++)
+	for(; j < vinfo->m_columns.size(); j++)
 	{
-		auto c = &(vinfo.m_columns[j]);
+		auto c = &(vinfo->m_columns[j]);
 
 		string desc;
 
@@ -1023,13 +1029,13 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 	//
 	// If there's a filter, print it 
 	//
-	if(vinfo.m_filter != "")
+	if(vinfo->m_filter != "")
 	{
 		attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
 		m_ctext->printf("Filter\n");
 
 		attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
-		m_ctext->printf("%s\n\n", vinfo.m_filter.c_str());
+		m_ctext->printf("%s\n\n", vinfo->m_filter.c_str());
 	}
 
 	//

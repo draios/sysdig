@@ -178,6 +178,7 @@ void sinsp_cursesui::configure(sinsp_view_manager* views)
 	// Determine which view is the starting one
 	//
 	m_selected_view = m_views.get_selected_view();
+	m_selected_sidemenu_entry = m_selected_view;
 }
 
 void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
@@ -761,24 +762,32 @@ sinsp_view_info* sinsp_cursesui::get_selected_view()
 #ifndef NOCURSESUI
 void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist)
 {
-	uint32_t j = 0;
-
 	viewlist->clear();
 
-	for(auto it = m_views.begin(); it != m_views.end(); ++it)
+	for(uint32_t j = 0; j < m_views.size(); ++j)
 	{
+		auto it = m_views.at(j);
+
 		for(auto atit = it->m_applies_to.begin(); atit != it->m_applies_to.end(); ++atit)
 		{
 			if(*atit == field)
 			{
 				viewlist->push_back(sidemenu_list_entry(it->m_name, j));
+
+				if(it->m_name == m_views.at(m_selected_view)->m_name)
+				{
+					m_selected_sidemenu_entry = j;
+
+					if(m_sidemenu != NULL)
+					{
+						m_sidemenu->m_selct = j;
+					}
+				}
 			}
 		}
-
-		j++;
 	}
 
-	if(m_sidemenu)
+	if(m_sidemenu != NULL)
 	{
 		m_sidemenu->set_entries(viewlist);
 	}
@@ -941,9 +950,6 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
-	// XXX should this be removed?
-	populate_sidemenu(field, &m_sidemenu_viewlist);
-
 	delete m_sidemenu;
 	m_sidemenu = NULL;
 
@@ -1058,7 +1064,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 #ifndef NOCURSESUI
 	clear();
 	populate_sidemenu(field, &m_sidemenu_viewlist);
-	m_selected_sidemenu_entry = 0;
+//	m_selected_sidemenu_entry = 0;
 	m_viz->render(true);
 	render();
 #endif
@@ -1075,7 +1081,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 	{
 		if(m_views.at(j)->m_id == m_views.at(m_selected_view)->m_drilldown_target)
 		{
-				return do_drilldown(field, val, j);			
+			return do_drilldown(field, val, j);			
 		}
 	}
 
@@ -1151,7 +1157,7 @@ bool sinsp_cursesui::drillup()
 		//
 		// If sorting is different from the default one, restore it
 		//
-		if(sinfo->m_prev_sorting_col != m_views[m_selected_view].m_sortingcol)
+		if(sinfo->m_prev_sorting_col != m_views.at(m_selected_view)->m_sortingcol)
 		{
 			m_datatable->set_sorting_col(sinfo->m_prev_sorting_col);
 		}
@@ -1474,6 +1480,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				m_viz->set_x_start(SIDEMENU_WIDTH);
 				m_sidemenu = new curses_table_sidemenu(this);
 				m_sidemenu->set_entries(&m_sidemenu_viewlist);
+				m_sidemenu->m_selct = m_selected_sidemenu_entry;
 				m_sidemenu->set_title("Select View");
 			}
 			else
@@ -1508,10 +1515,16 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			render();
 			break;
 		case KEY_F(5):
-			return STA_SPY;
+			if(m_datatable->m_sample_data->size() != 0)
+			{
+				return STA_SPY;
+			}
 			break;
 		case KEY_F(6):
-			return STA_DIG;
+			if(m_datatable->m_sample_data->size() != 0)
+			{
+				return STA_DIG;
+			}
 			break;
 		case KEY_F(7):
 			m_viewinfo_page = new curses_viewinfo_page(this);

@@ -1159,7 +1159,7 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 
 	if(rownum >= m_sample_data->size())
 	{
-		ASSERT(false);
+		ASSERT(m_sample_data->size() == 0);
 		res.first = NULL;
 		res.second = "";
 	}

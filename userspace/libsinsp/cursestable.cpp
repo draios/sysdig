@@ -147,7 +147,7 @@ void curses_table::configure(sinsp_table* table,
 	{
 		if(colsizes->size() != 0 && colsizes->size() != legend->size())
 		{
-			throw sinsp_exception("invalid table legend for view " + m_parent->m_views[m_parent->m_selected_view].m_name + 
+			throw sinsp_exception("invalid table legend for view " + m_parent->m_views.at(m_parent->m_selected_view)->m_name + 
 				" : column sizes doesn't match (" + 
 				to_string(colsizes->size()) + " column sizes, " + 
 				to_string(legend->size()) + " entries in legend)");
@@ -158,7 +158,7 @@ void curses_table::configure(sinsp_table* table,
 	{
 		if(colnames->size() != 0 && colnames->size() != legend->size())
 		{
-			throw sinsp_exception("invalid table legend for view " + m_parent->m_views[m_parent->m_selected_view].m_name + 
+			throw sinsp_exception("invalid table legend for view " + m_parent->m_views.at(m_parent->m_selected_view)->m_name + 
 				" : column names doesn't match (" + 
 				to_string(colnames->size()) + " column names, " + 
 				to_string(legend->size()) + " entries in legend)");

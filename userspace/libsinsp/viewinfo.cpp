@@ -23,6 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "chisel.h"
 #include "protodecoder.h"
+#include <algorithm>
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_view_info implementation
@@ -197,23 +198,6 @@ void sinsp_view_manager::sort_views()
 	sort(m_views.begin(),
 		m_views.end(),
 		cc);
-
-/*
-	//
-	// Resort the list to put the root views on top
-	//
-	for(uint32_t j = 0; j < m_views.size(); j++)
-	{
-		if(m_views[j].m_is_root)
-		{
-			sinsp_view_info ci = m_views[j];
-
-			m_views.erase(m_views.begin() +j);
-			m_views.insert(m_views.begin(), ci);
-			return;
-		}
-	}
-*/
 }
 
 vector<sinsp_view_info>* sinsp_view_manager::get_views()
@@ -233,4 +217,6 @@ uint32_t sinsp_view_manager::get_selected_view()
 			return j;
 		}
 	}
+
+	return 0;
 }
