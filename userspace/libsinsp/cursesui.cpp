@@ -1515,16 +1515,27 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			render();
 			break;
 		case KEY_F(5):
-			if(m_datatable->m_sample_data->size() != 0)
+			if(m_datatable == NULL)
+			{
+				return STA_NONE;
+			}
+
+			if(m_datatable->m_sample_data != NULL && m_datatable->m_sample_data->size() != 0)
 			{
 				return STA_SPY;
 			}
 			break;
 		case KEY_F(6):
-			if(m_datatable->m_sample_data->size() != 0)
+			if(m_datatable == NULL)
+			{
+				return STA_NONE;
+			}
+
+			if(m_datatable->m_sample_data != NULL && m_datatable->m_sample_data->size() != 0)
 			{
 				return STA_DIG;
 			}
+
 			break;
 		case KEY_F(7):
 			m_viewinfo_page = new curses_viewinfo_page(this);
