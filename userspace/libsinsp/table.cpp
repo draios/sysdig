@@ -941,6 +941,48 @@ void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, si
 	}
 }
 
+void sinsp_table::add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
+{
+	uint8_t* operand1 = dst->m_val;
+	uint8_t* operand2 = src->m_val;
+	uint32_t cnt2 = src->m_cnt;
+	
+	switch(type)
+	{
+	case PT_INT8:
+		*(int8_t*)operand1 += (*(int8_t*)operand2) / cnt2;
+		return;
+	case PT_INT16:
+		*(int16_t*)operand1 += (*(int16_t*)operand2) / cnt2;
+		return;
+	case PT_INT32:
+		*(int32_t*)operand1 += (*(int32_t*)operand2) / cnt2;
+		return;
+	case PT_INT64:
+		*(int64_t*)operand1 += (*(int64_t*)operand2) / cnt2;
+		return;
+	case PT_UINT8:
+		*(uint8_t*)operand1 += (*(uint8_t*)operand2) / cnt2;
+		return;
+	case PT_UINT16:
+		*(uint16_t*)operand1 += (*(uint16_t*)operand2) / cnt2;
+		return;
+	case PT_UINT32:
+		*(uint32_t*)operand1 += (*(uint32_t*)operand2) / cnt2;
+		return;
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+		*(uint64_t*)operand1 += (*(uint64_t*)operand2) / cnt2;
+		return;
+	case PT_DOUBLE:
+		*(double*)operand1 += (*(double*)operand2) / cnt2;
+		return;
+	default:
+		return;
+	}
+}
+
 void sinsp_table::add_fields_max(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
 {
 	uint8_t* operand1 = dst->m_val;
@@ -1031,7 +1073,15 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 	case A_NONE:
 		return;
 	case A_SUM:
-		add_fields_sum(type, dst, src);		
+		if(src->m_cnt < 2)
+		{
+			add_fields_sum(type, dst, src);
+		}
+		else
+		{
+			add_fields_sum_of_avg(type, dst, src);
+		}
+
 		return;
 	case A_AVG:
 		dst->m_cnt += src->m_cnt;

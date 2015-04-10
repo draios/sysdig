@@ -268,6 +268,7 @@ public:
 private:
 	inline void add_row(bool merging);
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
+	inline void add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields_max(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr);
 	void process_proctable(sinsp_evt* evt);
