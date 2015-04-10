@@ -3,7 +3,8 @@
 #include "ctext.h"
 #include <unistd.h>
 #include <string.h>
-#include <algorithm>		// std::max
+#include <algorithm>
+#include <climits>
 
 using namespace std;
 
@@ -78,8 +79,7 @@ int8_t ctext::set_config(ctext_config *config)
 
 int8_t ctext::get_config(ctext_config *config)
 {
-	memcpy(config, &this->m_config, sizeof(ctext_config));
-	return 0;
+	return !memcpy(config, &this->m_config, sizeof(ctext_config));
 }
 
 int8_t ctext::attach_curses_window(WINDOW *win)
@@ -93,14 +93,16 @@ int8_t ctext::highlight(ctext_search *context, int32_t mask)
 	this->m_attr_mask |= mask;
 	this->redraw_partial(&context->pos, context->_query.size());
 	this->m_attr_mask &= ~mask;
+
 	return 0;
 }
 
 int8_t ctext::set_query(ctext_search *p_search, string new_query)
 {
 	this->get_offset(&p_search->pos);
-	p_search->_query = new_query;
 	this->get_offset(&p_search->_start_pos);
+
+	p_search->_query = new_query;
 	p_search->_last_match.y = -1;
 	p_search->_last_event = this->m_event_counter;
 	p_search->_match_count = 0;
@@ -440,6 +442,10 @@ int32_t ctext::available_rows()
 {
 	// Since our buffer clearing scheme permits us to overflow,
 	// we have to bind this to make sure that we return >= 0 values
+	if(this->m_config.m_buffer_size == -1)
+	{
+		return (int32_t)LONG_MAX;
+	}
 	return max(this->m_config.m_buffer_size - this->m_max_y - 1, 0);
 }
 
@@ -537,7 +543,7 @@ int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 				}
 			}
 
-			// keep the y at the end
+			// Keep the y at the end
 			// win->y = -1;
 
 			// If we get here that means that we went all the way through
@@ -568,7 +574,7 @@ int8_t ctext::y_scroll_calculate(int32_t amount, ctext_pos *pos)
 			{
 				if(new_y + 1 >= (int32_t)this->m_buffer.size())
 				{
-					// this means that forwarding our buffer was a mistake
+					// This means that forwarding our buffer was a mistake
 					break;
 				}
 				new_offset = 0;
@@ -657,8 +663,8 @@ void ctext::get_win_size()
 
 int8_t ctext::rebuf()
 {
-	// memory management is expensive, so we only
-	if((int32_t)this->m_buffer.size() > (this->m_config.m_buffer_size * 11 / 10))
+	// Memory management is expensive, so we only do this occasionally
+	if(this->m_config.m_buffer_size != -1 && (int32_t)this->m_buffer.size() > (this->m_config.m_buffer_size * 11 / 10))
 	{
 		this->m_buffer.erase(this->m_buffer.begin(), this->m_buffer.end() - this->m_config.m_buffer_size);
 	}
@@ -705,7 +711,7 @@ void ctext::add_format_if_needed()
 		// Our properties have changed so we need to record this.
 		ctext_format new_format = 
 		{
-			// this is our offset
+			// This is our offset
 			.offset = (int32_t)p_row->data.size(),
 
 			.attrs = attrs,
@@ -849,6 +855,7 @@ int8_t ctext::nprintf(const char*format, ...)
 	return ret;
 }
 
+#if 0
 int8_t ctext::redraw_partial_test()
 {
 	attr_t res_attrs; 
@@ -895,6 +902,7 @@ int8_t ctext::redraw_partial_test()
 
 	return 0;
 }
+#endif
 
 int16_t ctext::redraw_partial(ctext_pos *pos, size_t len)
 {
@@ -1271,7 +1279,7 @@ int8_t ctext::redraw()
 					}
 				}
 
-				// if we are at the end of the string, we break out
+				// If we are at the end of the string, we break out
 				if((int32_t)p_source->data.size() <= buf_offset || (num_added == 0 && p_source->data.size() > 0))
 				{
 					break;

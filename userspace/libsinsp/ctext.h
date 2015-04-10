@@ -20,6 +20,9 @@ struct ctext_config_struct
 	// This specifies how many lines are kept
 	// in the ring-buffer.	
 	//
+	// A value of -1 means to keep it completely
+	// unregulated.
+	//
 	int32_t m_buffer_size;
 #define CTEXT_DEFAULT_BUFFER_SIZE 500
 
