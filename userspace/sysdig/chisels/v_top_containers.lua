@@ -38,7 +38,7 @@ view_info =
 			field = "proc.cpu",
 			description = "Amount of CPU used by the container.",
 			colsize = 8,
-			aggregation = "MAX",
+			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			is_sorting = true
 		},

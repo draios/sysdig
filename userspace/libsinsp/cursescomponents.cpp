@@ -1026,6 +1026,8 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 		m_ctext->printf("\n");
 	}
 
+	m_ctext->printf("\n");
+
 	//
 	// If there's a filter, print it 
 	//
