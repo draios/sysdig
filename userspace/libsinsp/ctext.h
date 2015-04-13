@@ -20,6 +20,9 @@ struct ctext_config_struct
 	// This specifies how many lines are kept
 	// in the ring-buffer.	
 	//
+	// A value of -1 means to keep it completely
+	// unregulated.
+	//
 	int32_t m_buffer_size;
 #define CTEXT_DEFAULT_BUFFER_SIZE 500
 
@@ -151,9 +154,11 @@ typedef struct ctext_search_struct
 	// please don't modify.
 	ctext_pos _start_pos;
 	ctext_pos _last_match;
+	uint64_t _last_event;
+	int16_t _match_count;
 
 	// The string to match
-	string query;
+	string _query;
 
 } ctext_search;
 
@@ -403,6 +408,15 @@ class ctext
 		ctext_search *new_search(ctext_search *you_manage_this_memory, string to_search, bool is_case_insensitive = false, bool is_forward = true, bool do_wrap = false);
 
 		//
+		// If you want to modify the query of an existing search then you
+		// should call this function directly instead of trying to modify
+		// the parameter yourself.
+		//
+		// Returns 0 on success
+		//
+		int8_t set_query(ctext_search *p_search, string new_query);
+
+		//
 		// After you've initiated your search you can then go over
 		// the body of text by re-executing the str_search function.
 		//
@@ -489,6 +503,7 @@ class ctext
 		int32_t m_max_y;
 		int32_t m_win_width;
 		int32_t m_win_height;
+		uint64_t m_event_counter;
 
 		ofstream *m_debug;
 };

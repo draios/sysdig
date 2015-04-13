@@ -3,7 +3,8 @@
 #include "ctext.h"
 #include <unistd.h>
 #include <string.h>
-#include <algorithm>		// std::max
+#include <algorithm>
+#include <climits>
 
 using namespace std;
 
@@ -28,7 +29,7 @@ void search_copy(ctext_search *dst, ctext_search *src)
 {
   // Because c++ makes life impossibly difficult.
 	memcpy(dst, src, sizeof(ctext_search) - sizeof(string));
-	dst->query = src->query;
+	dst->_query = src->_query;
 }
 
 ctext::ctext(WINDOW *win, ctext_config *config)
@@ -55,6 +56,7 @@ ctext::ctext(WINDOW *win, ctext_config *config)
 
 	this->m_attr_mask = 0;
 	this->m_last_search = 0;
+	this->m_event_counter = 0;
 
 	this->m_max_y = 0;
 
@@ -77,8 +79,7 @@ int8_t ctext::set_config(ctext_config *config)
 
 int8_t ctext::get_config(ctext_config *config)
 {
-	memcpy(config, &this->m_config, sizeof(ctext_config));
-	return 0;
+	return !memcpy(config, &this->m_config, sizeof(ctext_config));
 }
 
 int8_t ctext::attach_curses_window(WINDOW *win)
@@ -90,8 +91,22 @@ int8_t ctext::attach_curses_window(WINDOW *win)
 int8_t ctext::highlight(ctext_search *context, int32_t mask)
 {
 	this->m_attr_mask |= mask;
-	this->redraw_partial(&context->pos, context->query.size());
+	this->redraw_partial(&context->pos, context->_query.size());
 	this->m_attr_mask &= ~mask;
+
+	return 0;
+}
+
+int8_t ctext::set_query(ctext_search *p_search, string new_query)
+{
+	this->get_offset(&p_search->pos);
+	this->get_offset(&p_search->_start_pos);
+
+	p_search->_query = new_query;
+	p_search->_last_match.y = -1;
+	p_search->_last_event = this->m_event_counter;
+	p_search->_match_count = 0;
+
 	return 0;
 }
 
@@ -104,15 +119,11 @@ ctext_search *ctext::new_search(ctext_search *you_manage_this_memory, string to_
 		return NULL;
 	}
 
-	this->get_offset(&p_search->pos);
-
 	p_search->is_case_insensitive = is_case_insensitive;
 	p_search->do_wrap = do_wrap;
 	p_search->is_forward = is_forward;
-	p_search->query = to_search;
 
-	this->get_offset(&p_search->_start_pos);
-	p_search->_last_match.y = -1;
+	this->set_query(p_search, to_search);
 	
 	return p_search;
 }
@@ -142,10 +153,15 @@ int8_t ctext::highlight_matches(ctext_search *to_search)
 	// We will say the limit is the viewport height ... this makes sure we go over
 	// the maximum extent possible.  We also make sure we do this after our first match
 	// otherwise this would reflect our current viewport, shameful!
-	limit.y = min(to_search->pos.y + this->m_win_height, (int32_t)this->m_buffer.size());
+	limit.y = min(this->m_pos_start.y + this->m_win_height, (int32_t)this->m_buffer.size());
 
 	// Now we iterate through the viewport highlighting all of the instances, using the 
 	// limit and the in_viewport pointer
+	if(this->m_event_counter != in_viewport._last_event) 
+	{
+		search_ret = this->str_search_single(&in_viewport, &in_viewport, &limit);
+	}
+
 	do 
 	{
 		this->highlight(&in_viewport, mask);
@@ -155,7 +171,6 @@ int8_t ctext::highlight_matches(ctext_search *to_search)
 
 	return 0;
 }
-
 
 int8_t ctext::str_search(ctext_search *to_search)
 {
@@ -181,7 +196,10 @@ int8_t ctext::str_search(ctext_search *to_search)
 		{
 			scroll_ret = this->direct_scroll(0, to_search->pos.y);
 		}
-		if(!scroll_ret)
+
+		// this makes sure we move forward ... but we only do this
+		// if we didn't push the event forward
+		if(!scroll_ret || to_search->_match_count == 1)
 		{
 			break;
 		}
@@ -204,7 +222,7 @@ int8_t ctext::str_search_single(ctext_search *to_search_in, ctext_search *new_po
 	size_t found;
 	string haystack;
 	ctext_search res, *out;
-	string query = to_search_in->query; 
+	string query = to_search_in->_query; 
 
 	if(!to_search_in)
 	{
@@ -219,6 +237,17 @@ int8_t ctext::str_search_single(ctext_search *to_search_in, ctext_search *new_po
 	else 
 	{
 		out = new_pos_out;
+	}
+
+	// If a (scroll) event has happened since we last ran this,
+	// then we need to update exactly where we want to start
+	// the search from.
+	if(to_search_in->_last_event < this->m_event_counter)
+	{
+		out->pos.y = this->m_pos_start.y;
+		out->pos.x = this->m_pos_start.x;
+		out->_last_event = this->m_event_counter;
+		out->_match_count = 0;
 	}
 
 	if(to_search_in->is_case_insensitive)
@@ -279,6 +308,7 @@ int8_t ctext::str_search_single(ctext_search *to_search_in, ctext_search *new_po
 			// to look at the x value
 			out->_last_match.y = out->pos.y;
 			out->pos.x = (int32_t)found;
+			out->_match_count++;
 			break;
 		}
 	}
@@ -376,6 +406,7 @@ int8_t ctext::scroll_to(ctext_pos *pos)
 int8_t ctext::scroll_to(int32_t x, int32_t y)
 {
 	this->direct_scroll(x, y);
+	this->m_event_counter++;
 	return this->redraw();
 }
 
@@ -411,6 +442,10 @@ int32_t ctext::available_rows()
 {
 	// Since our buffer clearing scheme permits us to overflow,
 	// we have to bind this to make sure that we return >= 0 values
+	if(this->m_config.m_buffer_size == -1)
+	{
+		return (int32_t)LONG_MAX;
+	}
 	return max(this->m_config.m_buffer_size - this->m_max_y - 1, 0);
 }
 
@@ -508,7 +543,7 @@ int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 				}
 			}
 
-			// keep the y at the end
+			// Keep the y at the end
 			// win->y = -1;
 
 			// If we get here that means that we went all the way through
@@ -539,7 +574,7 @@ int8_t ctext::y_scroll_calculate(int32_t amount, ctext_pos *pos)
 			{
 				if(new_y + 1 >= (int32_t)this->m_buffer.size())
 				{
-					// this means that forwarding our buffer was a mistake
+					// This means that forwarding our buffer was a mistake
 					break;
 				}
 				new_offset = 0;
@@ -628,8 +663,8 @@ void ctext::get_win_size()
 
 int8_t ctext::rebuf()
 {
-	// memory management is expensive, so we only
-	if((int32_t)this->m_buffer.size() > (this->m_config.m_buffer_size * 11 / 10))
+	// Memory management is expensive, so we only do this occasionally
+	if(this->m_config.m_buffer_size != -1 && (int32_t)this->m_buffer.size() > (this->m_config.m_buffer_size * 11 / 10))
 	{
 		this->m_buffer.erase(this->m_buffer.begin(), this->m_buffer.end() - this->m_config.m_buffer_size);
 	}
@@ -676,7 +711,7 @@ void ctext::add_format_if_needed()
 		// Our properties have changed so we need to record this.
 		ctext_format new_format = 
 		{
-			// this is our offset
+			// This is our offset
 			.offset = (int32_t)p_row->data.size(),
 
 			.attrs = attrs,
@@ -820,6 +855,7 @@ int8_t ctext::nprintf(const char*format, ...)
 	return ret;
 }
 
+#if 0
 int8_t ctext::redraw_partial_test()
 {
 	attr_t res_attrs; 
@@ -866,6 +902,7 @@ int8_t ctext::redraw_partial_test()
 
 	return 0;
 }
+#endif
 
 int16_t ctext::redraw_partial(ctext_pos *pos, size_t len)
 {
@@ -1242,7 +1279,7 @@ int8_t ctext::redraw()
 					}
 				}
 
-				// if we are at the end of the string, we break out
+				// If we are at the end of the string, we break out
 				if((int32_t)p_source->data.size() <= buf_offset || (num_added == 0 && p_source->data.size() > 0))
 				{
 					break;
