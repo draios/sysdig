@@ -20,8 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <limits.h>
 #include <stdlib.h>
-#endif
 #include <sys/time.h>
+#endif
 #include <algorithm> 
 #include <functional> 
 
