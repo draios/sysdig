@@ -133,6 +133,8 @@ string ipv6serveraddr_to_string(ipv6serverinfo* addr);
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////
 vector<string> sinsp_split(const string &s, char delim);
+template<typename It>
+string sinsp_join(It begin, It end, char delim);
 string& ltrim(string &s);
 string& rtrim(string &s);
 string& trim(string &s);
@@ -162,3 +164,15 @@ public:
 	static bool tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res);
 	static bool tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res);
 };
+
+template<typename It>
+string sinsp_join(It begin, It end, char delim)
+{
+	stringstream ss;
+	ss << *begin;
+	for(auto it = begin+1; it < end; ++it)
+	{
+		ss << delim << *it;
+	}
+	return ss.str();
+}
