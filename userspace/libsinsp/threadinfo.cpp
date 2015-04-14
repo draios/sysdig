@@ -137,9 +137,9 @@ void sinsp_threadinfo::compute_program_hash()
 {
 	string phs = m_exe;
 
-	for(string arg : m_args)
+	for(auto arg = m_args.begin(); arg != m_args.end(); ++arg)
 	{
-		phs += arg;
+		phs += *arg;
 	}
 
 	phs += m_container_id;
