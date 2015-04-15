@@ -19,7 +19,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class search_caller_interface
 {
 public:
-	virtual void on_search_key_pressed(string search_str) = 0;
+	virtual bool on_search_key_pressed(string search_str) = 0;
+	virtual bool on_search_next() = 0;
 	virtual string* get_last_search_string() = 0;
 };
 
@@ -149,12 +150,12 @@ public:
 	void populate_sidemenu();
 	void reset();
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
-	void on_search_key_pressed(string search_str);
 	string* get_last_search_string();
 	int8_t get_offset(int32_t* x, int32_t* y); 
 	int8_t scroll_to(int32_t x, int32_t y);
 	void up();
-	void search_next();
+	bool on_search_key_pressed(string search_str);
+	bool on_search_next();
 
 private:
 	inline void process_event_spy(sinsp_evt* evt, int32_t next_res);

@@ -393,7 +393,7 @@ void sinsp_cursesui::turn_search_on(search_caller_interface* ifc)
 	m_search_caller_interface = ifc;
 	m_output_searching = false;
 	m_output_filtering = false;
-	m_manual_search_text = "";
+	//m_manual_search_text = "";
 	m_cursor_pos = 0;
 	curs_set(1);
 	render();
@@ -1333,6 +1333,25 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 				return STA_NONE;
 			}
 		case KEY_F(3):
+			if(m_search_caller_interface)
+			{
+				if(m_search_caller_interface->on_search_next())
+				{
+					render();
+				}
+				else
+				{
+					string wstr = "  NOT FOUND ";
+					attrset(m_colors[sinsp_cursesui::FAILED_SEARCH]);
+
+					mvprintw(m_screenh / 2,
+						m_screenw / 2 - wstr.size() / 2, 
+						wstr.c_str());
+
+					render();
+				}
+			}
+
 			break;
 		default:
 			handled = false;
@@ -1389,7 +1408,22 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	{
 		if(m_search_caller_interface)
 		{
-			m_search_caller_interface->on_search_key_pressed(*str);
+			if(m_search_caller_interface->on_search_key_pressed(*str))
+			{
+				render();
+			}
+			else
+			{
+				string wstr = "  NOT FOUND ";
+				attrset(m_colors[sinsp_cursesui::FAILED_SEARCH]);
+
+				mvprintw(m_screenh / 2,
+					m_screenw / 2 - wstr.size() / 2, 
+					wstr.c_str());
+
+				render();
+			}
+
 			render();
 		}
 		else
@@ -1485,7 +1519,6 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				m_sidemenu = new curses_table_sidemenu(this);
 				m_sidemenu->set_entries(&m_sidemenu_viewlist);
 				m_sidemenu->m_selct = m_selected_sidemenu_entry;
-g_logger.format("%d", m_sidemenu->m_selct);
 				m_sidemenu->set_title("Select View");
 			}
 			else
@@ -1501,17 +1534,13 @@ g_logger.format("%d", m_sidemenu->m_selct);
 		case 6:	// CTRL+F
 			m_search_caller_interface = NULL;
 			m_output_searching = true;
-			m_manual_search_text = "";
+			//m_manual_search_text = "";
 			m_cursor_pos = 0;
 			curs_set(1);
 			render();
 			break;
-		case KEY_F(3):
-			if(m_spy_box != NULL)
-			{
-				m_spy_box->search_next();
-			}
-			break;
+		//case KEY_F(3):
+		//	break;
 		case KEY_F(4):
 			m_search_caller_interface = NULL;
 			m_output_filtering = true;
