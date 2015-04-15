@@ -111,8 +111,7 @@ end
 -- Event parsing callback
 function on_event()	
 
-	-- Default color is black
-	local color = terminal.black
+	local color = ""
 
 	-- Extract the event details
 	local fac = evt.field(ffac)
