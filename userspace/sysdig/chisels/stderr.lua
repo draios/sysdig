@@ -65,8 +65,7 @@ end
 -- Event parsing callback
 function on_event()
 
-	-- Default colot is black
-	local color = terminal.black
+	local color = ""
 
 	-- If -pc or -pcontainer option change default to green
 	if  print_container then
