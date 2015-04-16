@@ -17,12 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_file_opens",
+	id = "file_opens",
 	name = "File Opens",
 	description = "List file name and process for of all the file opens.",
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = "all,container.id,proc.pid,thread.tid,proc.name,fd.sport",
+	applies_to = "all,fd.name",
 	filter = "evt.type=open and evt.dir=<",
 	columns = 
 	{

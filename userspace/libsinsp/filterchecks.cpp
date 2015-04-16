@@ -1744,6 +1744,8 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during syscalls like renameat and symlinkat. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.in", "the lenght of the binary data buffer, but only for input I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.out", "the lenght of the binary data buffer, but only for output I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file", "the lenght of the binary data buffer, but only for file I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.in", "the lenght of the binary data buffer, but only for input file I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the lenght of the binary data buffer, but only for output file I/O events."},
@@ -2810,6 +2812,20 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_ABSPATH:
 		return extract_abspath(evt, len);
+	case TYPE_BUFLEN_IN:
+		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		{
+			return extract_buflen(evt);
+		}
+
+		break;
+	case TYPE_BUFLEN_OUT:
+		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		{
+			return extract_buflen(evt);
+		}
+
+		break;
 	case TYPE_BUFLEN_FILE:
 		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
 		{

@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_threads",
+	id = "top_threads",
 	name = "Top Threads",
 	description = "This view is available for processes, and lists the threads inside the process, showing usage of resources like CPU, memory, disk and network for each thread.",
 	tags = {"Default"},

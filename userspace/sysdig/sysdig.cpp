@@ -1453,9 +1453,11 @@ sysdig_init_res systop_init(int argc, char **argv)
 	int32_t n_filterargs = 0;
 	captureinfo cinfo;
 	string errorstr;
+	string display_view;
 
 	static struct option long_options[] =
 	{
+		{"display", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"help", no_argument, 0, 'h' },
 		{"numevents", required_argument, 0, 'n' },
@@ -1503,7 +1505,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"Ehn:r:s:", long_options, &long_index)) != -1)
+			"d:Ehn:r:s:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -1512,6 +1514,9 @@ sysdig_init_res systop_init(int argc, char **argv)
 				// Command line error 
 				//
 				throw sinsp_exception("command line error");
+				break;
+			case 'd':
+				display_view = optarg;
 				break;
 			case 'E':
 				inspector->set_import_users(false);
@@ -1604,15 +1609,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vector<sinsp_view_column_info> vflds;
 		vector<string> vtags;
 
-		// test
-/*			
-		vflds.clear();
-		vflds.push_back(sinsp_view_column_info("util.cnt", "#", 10, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.time", "TIME", 19, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.type", "name", 40, TEF_NONE, A_NONE, A_NONE));
-		views.push_back(sinsp_view_info(sinsp_view_info::T_LIST, "File Opens", &vflds, "all,fd.name", "", "", true));
-*/
-		
 		// Top processes
 /*		
 		vflds.clear();
@@ -1630,107 +1626,6 @@ sysdig_init_res systop_init(int argc, char **argv)
 		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 8, TEF_NONE, A_SUM, A_NONE));
 		vflds.push_back(sinsp_view_column_info("proc.exeline", "Command", 200, TEF_NONE, A_NONE, A_NONE));
 		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "XXX", "Top Processes", vtags, vflds, "all,fd.name", "", "", true));
-*/
-		// File opens
-/*
-		vflds.clear();
-		vflds.push_back(sinsp_view_column_info("evt.time", "TIME", 19, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("fd.name", "File", 40, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.exeline", "Command", 200, TEF_NONE, A_NONE, A_NONE));
-		views.push_back(sinsp_view_info(sinsp_view_info::T_LIST, "File Opens", &vflds, "all,fd.name", "evt.type=open and evt.dir=<", true));
-*/
-/*
-		// Top containers
-		vflds.clear();
-		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("thread.cpu", "CPU", 8, TEF_IS_SORT_COLUMN, A_AVG, A_SUM));
-		vflds.push_back(sinsp_view_column_info("evt.count", "PROCS", 8, TEF_NONE, A_NONE, A_SUM));
-		vflds.push_back(sinsp_view_column_info("proc.nthreads", "THREADS", 8, TEF_NONE, A_NONE, A_SUM));
-		vflds.push_back(sinsp_view_column_info("proc.vmsize", "VIRT", 9, TEF_NONE, A_NONE, A_SUM));
-		vflds.push_back(sinsp_view_column_info("proc.vmrss", "RES", 9, TEF_NONE, A_NONE, A_SUM));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.file.in", "FIN", 9, TEF_NONE, A_SUM, A_SUM));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.file.out", "FOUT", 9, TEF_NONE, A_SUM, A_SUM));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.net.in", "NETIN", 9, TEF_NONE, A_SUM, A_SUM));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 9, TEF_NONE, A_SUM, A_SUM));
-		vflds.push_back(sinsp_view_column_info("container.id", "ID", -1, TEF_IS_GROUPBY_KEY, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("container.name", "NAME", 200, TEF_NONE, A_NONE, A_NONE));
-		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "LD_top_cont", "Top Containers", vtags, vflds, "all", "container.name != host", "LD_top_cont_procs", true));
-*/
-/*			
-		// Top Threads
-		vflds.clear();
-		vflds.push_back(sinsp_view_column_info("thread.tid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("thread.tid", "TID", 8, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("thread.vtid", "VTID", 8, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("thread.cpu", "CPU%", 8, TEF_IS_SORT_COLUMN, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.count", "SCALLS", 8, TEF_NONE, A_SUM, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.exeline", "Command", 200, TEF_NONE, A_NONE, A_NONE));
-		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "Top Threads", &vflds, "all,proc.pid,proc.name", "", true));
-
-		// Top Connections
-		vflds.clear();
-		vflds.push_back(sinsp_view_column_info("fd.name", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("fd.l4proto", "PROTO", 6, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("fd.cip", "CIP", 17, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("fd.cport", "CPORT", 8, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("fd.sip", "SIP", 17, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("fd.sport", "SPORT", 8, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.net.in", "NETIN", 10, TEF_IS_SORT_COLUMN, A_SUM, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 10, TEF_NONE, A_SUM, A_NONE));
-		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "Top Connections", &vflds, "all,container.name,proc.pid,proc.name,thread.tid", "", true));
-*/
-/*
-		// Top processes for containers
-		views.push_back(sinsp_view_info("Top Processes", 
-			"*Kproc.pid proc.pid proc.vpid thread.cpu proc.nthreads proc.vmsize proc.vmrss Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Mproc.cmdline", 
-			"container.name",
-			1,
-			"",
-			"NA,PID,VPID,CPU%,THREADS,VIRT,RES,FIN,FOUT,NETIN,NETOUT,Command",
-			"-1,8,8,8,8,8,8,8,8,8,8,200",
-			""));
-
-		views.push_back(sinsp_view_info("Top Threads", 
-			"*Kthread.tid thread.tid thread.vtid thread.cpu Sevt.buflen.file.in Sevt.buflen.file.out Sevt.buflen.net.in Sevt.buflen.net.out Sevt.count proc.cmdline", 
-			"proc.pid,proc.name",
-			1,
-			"",
-			"NA,TID,VTID,CPU%,FIN,FOUT,NETIN,NETOUT,SCALLS,Command",
-			"-1,8,8,8,8,8,8,8,8,200",
-			""));
-		views.push_back(sinsp_view_info("Top Connections", 
-			"*Kfd.name fd.l4proto fd.cip fd.cport fd.sip fd.sport Sevt.buflen.net.in Sevt.buflen.net.out",
-			"all,container.name,proc.pid,proc.name,thread.tid",
-			5,
-			"",
-			"NA,PROTO,CIP,CPORT,SIP,SPORT,BYTES IN,BYTES OUT",
-			"-1,6,17,8,17,8,10,10",
-			""));
-		views.push_back(sinsp_view_info("Top Files", 
-			"*Kfd.name Sevt.buflen.file.in Sevt.buflen.file.out fd.name",
-			"all,container.name,proc.pid,proc.name,thread.tid",
-			1,
-			"",
-			"NA,BYTES IN,BYTES OUT,FILENAME",
-			"-1,12,12,250",
-			""));
-		views.push_back(sinsp_view_info("top FDs", 
-			"Kfd.name fd.name Sevt.count", 
-			"proc.pid, proc.name, thread.tid", 2, "", "", "", ""));
-		views.push_back(sinsp_view_info("Top Syscalls", 
-			"Ksyscall.type syscall.type Sevt.count Sevt.latency", 
-			"all, proc.pid, proc.name, thread.tid", 
-			2, "", 
-			"NA,SYSCALL NAME,#CALLS,TIME", 
-			"-1,20,9,9", 
-			""));
-		views.push_back(sinsp_view_info("User Activity", 
-			"*Kproc.pid Muser.name Mproc.cwd Mproc.cmdline",
-			"all,container.name",
-			3, "", 
-			"NA,USERNAME,DIRECTORY,COMMAND", 
-			"-1,12,30,250", 
-			"proc.pname contains sh"));
 */
 
 		//
@@ -1754,6 +1649,11 @@ sysdig_init_res systop_init(int argc, char **argv)
 				view_manager.add(&it.m_viewinfo);
 			}
 		}
+
+		//
+		// Set the initial disply view
+		//
+		view_manager.set_selected_view(display_view);
 
 		//
 		// Go through the input sources and apply the processing to all of them
@@ -1898,8 +1798,8 @@ int main(int argc, char **argv)
 
 //
 #ifdef _WIN32
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 #endif
 //
 #ifdef SYSTOP

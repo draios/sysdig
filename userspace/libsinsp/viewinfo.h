@@ -130,6 +130,7 @@ public:
 	void add(sinsp_view_info* vinfo);
 	vector<sinsp_view_info>* get_views();
 	uint32_t get_selected_view();
+	void set_selected_view(string viewid);
 	size_t size()
 	{
 		return m_views.size();
@@ -143,4 +144,6 @@ private:
 	void sort_views();
 
 	vector<sinsp_view_info> m_views;
+
+	string m_selected_view_id;
 };

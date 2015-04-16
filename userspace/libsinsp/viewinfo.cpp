@@ -116,7 +116,14 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 
 	if(n_sorting_cols == 0)
 	{
-		m_sortingcol = 0;
+		if(m_does_groupby)
+		{
+			m_sortingcol = 2;
+		}
+		else
+		{
+			m_sortingcol = 1;
+		}
 	}
 	else if(n_sorting_cols > 1)
 	{
@@ -220,13 +227,31 @@ uint32_t sinsp_view_manager::get_selected_view()
 {
 	sort_views();
 
-	for(uint32_t j = 0; j < m_views.size(); j++)
+	if(m_selected_view_id != "")
 	{
-		if(m_views[j].m_is_root)
+		for(uint32_t j = 0; j < m_views.size(); j++)
 		{
-			return j;
+			if(m_views[j].m_id == m_selected_view_id)
+			{
+				return j;
+			}
+		}
+	}
+	else
+	{
+		for(uint32_t j = 0; j < m_views.size(); j++)
+		{
+			if(m_views[j].m_is_root)
+			{
+				return j;
+			}
 		}
 	}
 
 	return 0;
+}
+
+void sinsp_view_manager::set_selected_view(string viewid)
+{
+	m_selected_view_id = viewid;
 }

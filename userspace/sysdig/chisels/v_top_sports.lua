@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_sports",
+	id = "top_sports",
 	name = "Top Server Ports",
 	description = "This view lists all of the server ports in terms of network bandwidth usage.",
 	tips = {"Want to restrict this visualization to a single process or container? Just drill down into them before applying it.", 

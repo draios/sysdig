@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_incoming_connections",
+	id = "incoming_connections",
 	name = "New Connections",
 	description = "List every newly established network connection.",
 	tags = {"Default"},

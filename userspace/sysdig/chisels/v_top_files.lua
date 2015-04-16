@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_files",
+	id = "top_files",
 	name = "Top Files",
 	description = "This view lists the files that were accessed on the file system. The list can be sorted by metrics like the input/output bytes and the IOPS",
 	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation."},

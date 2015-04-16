@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_containers",
+	id = "top_containers",
 	name = "Top Containers",
 	description = "List all the containers running on this machine, and the resources that each of them uses.",
 	tips = {"Select a container and click enter to drill down into it. At that point, you will be able to access several views that will show you the details of the selected container."},

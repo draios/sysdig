@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_io_by_type",
+	id = "io_by_type",
 	name = "I/O by Type",
 	description = "Show an overview of the I/O volume based on I/O type. Possible I/O types are: file, directory, ipv4 or ipv6 network traffic, pipe, unix socket, signal fd, event fd, inotify fd.",
 	tips = {"This view is a good starting point to understand what a machine is doing besides CPU computation. Remeber that you can apply it to a process or to a container as well, to get an overview of what they are doing."},
@@ -35,14 +35,14 @@ view_info =
 		},
 		{
 			name = "BYTES IN",
-			field = "evt.buflen.file.in",
+			field = "evt.buflen.in",
 			description = "Amount of bytes read from the FDs of the specific type. For live captures, this is the amount during the last sampling interval. For trace files, this is the total amount for the full file.",
 			colsize = 12,
 			aggregation = "SUM"
 		},
 		{
 			name = "BYTES OUT",
-			field = "evt.buflen.file.out",
+			field = "evt.buflen.out",
 			description = "Amount of bytes written to the FDs of the specific type. For live captures, this is the amount during the last sampling interval. For trace files, this is the total amount for the full file.",
 			colsize = 12,
 			aggregation = "SUM"

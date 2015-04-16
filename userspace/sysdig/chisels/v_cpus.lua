@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_infoz = 
 {
-	id = "LD_cores",
+	id = "cores",
 	name = "CPUs",
 	description = "This is the typical top/htop process list, showing usage of resources like CPU, memory, disk and network on a by process basis.",
 	tags = {"Default"},
