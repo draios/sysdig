@@ -17,14 +17,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_cont_conns",
+	id = "LD_top_conns",
 	name = "Top Connections",
 	description = "Top network connections. This view lists all of the network connections that were active during the last sampling interval, with details for each of them.",
-	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Us it after a drill down for more fine grained investigation."},
+	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation."},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,proc.name,fd.sport",
-	filter = "fd.type=ipv4 and fd.name!=''",
+	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport",
+	filter = "fd.type=ipv4 or fd.type=ipv6 and fd.name!=''",
 	use_defaults = true,
 	columns = 
 	{

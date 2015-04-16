@@ -120,7 +120,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	}
 	else if(n_sorting_cols > 1)
 	{
-		throw sinsp_exception("view format error: more than one sprting column");
+		throw sinsp_exception("view format error: more than one sorting column");
 	}
 
 	m_filter = filter;
@@ -200,12 +200,14 @@ void sinsp_view_manager::sort_views()
 		cc);
 
 	//
-	// Resort the list to put the root views on top
+	// Print the view list for debugging purposes
 	//
+/*
 	for(uint32_t j = 0; j < m_views.size(); j++)
 	{
-g_logger.format("> %d) %s", j, m_views[j].m_name.c_str());
+		g_logger.format("> %d) %s", j, m_views[j].m_name.c_str());
 	}
+*/	
 }
 
 vector<sinsp_view_info>* sinsp_view_manager::get_views()
