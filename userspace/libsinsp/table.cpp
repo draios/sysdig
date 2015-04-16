@@ -811,6 +811,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 			case PT_RELTIME:
 			case PT_ABSTIME:
 			case PT_DOUBLE:
+			case PT_BOOL:
 				m_is_sorting_ascending = false;
 				break;
 			default:
@@ -926,6 +927,7 @@ void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, si
 		*(uint16_t*)operand1 += *(uint16_t*)operand2;
 		return;
 	case PT_UINT32:
+	case PT_BOOL:
 		*(uint32_t*)operand1 += *(uint32_t*)operand2;
 		return;
 	case PT_UINT64:
@@ -999,6 +1001,7 @@ void sinsp_table::add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field *
 		*(uint16_t*)operand1 += (*(uint16_t*)operand2) / cnt2;
 		break;
 	case PT_UINT32:
+	case PT_BOOL:
 		if(cnt1 > 1)
 		{
 			*(int8_t*)operand1 = *(int8_t*)operand1 / cnt1;
@@ -1076,6 +1079,7 @@ void sinsp_table::add_fields_max(ppm_param_type type, sinsp_table_field *dst, si
 		}
 		return;
 	case PT_UINT32:
+	case PT_BOOL:
 		if(*(uint32_t*)operand1 < *(uint32_t*)operand2)
 		{
 			*(uint32_t*)operand1 = *(uint32_t*)operand2;
@@ -1212,6 +1216,7 @@ uint8_t* sinsp_table::get_default_val(filtercheck_field_info* fld)
 	case PT_UINT16:
 	case PT_UINT32:
 	case PT_UINT64:
+	case PT_BOOL:
 		if(fld->m_print_format == PF_DEC)
 		{
 			return (uint8_t*)&m_zero_u64;
