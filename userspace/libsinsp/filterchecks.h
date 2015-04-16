@@ -372,32 +372,33 @@ public:
 		TYPE_DELTA_NS = 15,
 		TYPE_DIR = 16,
 		TYPE_TYPE = 17,
-		TYPE_SYSCALL_TYPE = 18,
-		TYPE_CPU = 19,
-		TYPE_ARGS = 20,
-		TYPE_ARGSTR = 21,
-		TYPE_ARGRAW = 22,
-		TYPE_INFO = 23,
-		TYPE_BUFFER = 24,
-		TYPE_BUFLEN = 25,
-		TYPE_RESSTR = 26,
-		TYPE_RESRAW = 27,
-		TYPE_FAILED = 28,
-		TYPE_ISIO = 29,
-		TYPE_ISIO_READ = 30,
-		TYPE_ISIO_WRITE = 31,
-		TYPE_IODIR = 32,
-		TYPE_ISWAIT = 33,
-		TYPE_ISSYSLOG = 34,
-		TYPE_COUNT = 35,
-		TYPE_AROUND = 36,
-		TYPE_ABSPATH = 37,
-		TYPE_BUFLEN_FILE = 38,
-		TYPE_BUFLEN_FILE_IN = 39,
-		TYPE_BUFLEN_FILE_OUT = 40,
-		TYPE_BUFLEN_NET = 41,
-		TYPE_BUFLEN_NET_IN = 42,
-		TYPE_BUFLEN_NET_OUT = 43,
+		TYPE_TYPE_IS = 18,
+		TYPE_SYSCALL_TYPE = 19,
+		TYPE_CPU = 20,
+		TYPE_ARGS = 21,
+		TYPE_ARGSTR = 22,
+		TYPE_ARGRAW = 23,
+		TYPE_INFO = 24,
+		TYPE_BUFFER = 25,
+		TYPE_BUFLEN = 26,
+		TYPE_RESSTR = 27,
+		TYPE_RESRAW = 28,
+		TYPE_FAILED = 29,
+		TYPE_ISIO = 30,
+		TYPE_ISIO_READ = 31,
+		TYPE_ISIO_WRITE = 32,
+		TYPE_IODIR = 33,
+		TYPE_ISWAIT = 34,
+		TYPE_ISSYSLOG = 35,
+		TYPE_COUNT = 36,
+		TYPE_AROUND = 37,
+		TYPE_ABSPATH = 38,
+		TYPE_BUFLEN_FILE = 39,
+		TYPE_BUFLEN_FILE_IN = 40,
+		TYPE_BUFLEN_FILE_OUT = 41,
+		TYPE_BUFLEN_NET = 42,
+		TYPE_BUFLEN_NET_IN = 43,
+		TYPE_BUFLEN_NET_OUT = 44,
 	};
 
 	sinsp_filter_check_event();
@@ -416,7 +417,9 @@ public:
 	string m_strstorage;
 	string m_argname;
 	int32_t m_argid;
+	uint32_t m_evtid;
 	const ppm_param_info* m_arginfo;
+
 	//
 	// Note: this copy of the field is used by some fields, like TYPE_ARGS and 
 	// TYPE_RESARG, that need to do on the fly type customization
@@ -425,6 +428,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	int32_t extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);

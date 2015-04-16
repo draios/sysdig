@@ -1722,6 +1722,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
 	{PT_CHARBUF, EPF_PRINT_ONLY, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.type.is", "allows to specify an event type, and returns true for events that are of that type. For example, evt.type.is.open returns true for open events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syscall.type", "For system call events, the name of the system call (e.g. 'open'). Unset for other events (e.g. switch or sysdig internal events). Use this field instead of evt.type if you need to make sure that the filtered/printed value is actually a system call."},
 	{PT_INT16, EPF_NONE, PF_ID, "evt.cpu", "number of the CPU where this event happened."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
@@ -1825,6 +1826,40 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 	return parsed_len; 
 }
 
+int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+{
+	uint32_t parsed_len = 0;
+
+	if(val[fldname.size()] == '.')
+	{
+		string itype = val.substr(fldname.size() + 1);
+
+		if(sinsp_numparser::tryparseu32(itype, &m_evtid))
+		{
+			parsed_len = (uint32_t)(fldname.size() + itype.size() + 1);
+			return parsed_len; 
+		}
+
+		for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
+		{
+			const ppm_event_info* ei = &g_infotables.m_event_info[j];
+
+			if(itype == ei->name)
+			{
+				m_evtid = j;
+				parsed_len = (uint32_t)(fldname.size() + strlen(ei->name) + 1);
+				break;
+			}
+		}
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len; 
+}
+
 int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_state)
 {
 	string val(str);
@@ -1896,6 +1931,13 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		}
 
 		return (int32_t)val.size() + 1;
+	}
+	else if(string(val, 0, sizeof("evt.type.is") - 1) == "evt.type.is")
+	{
+		m_field_id = TYPE_TYPE_IS;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_type("evt.type.is", val, NULL);
 	}
 	else
 	{
@@ -2384,6 +2426,22 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return evname;
 		}
 		break;
+	case TYPE_TYPE_IS:
+		{
+			uint16_t etype = evt->m_pevt->type;
+			if(etype == m_evtid)
+			{
+				m_u32val = 1;
+			}
+			else
+			{
+				m_u32val = 0;
+			}
+
+			return (uint8_t*)&m_u32val;
+		}
+		break;
+
 	case TYPE_SYSCALL_TYPE:
 		{
 			uint8_t* evname;
