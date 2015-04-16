@@ -1836,6 +1836,7 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 
 		if(sinsp_numparser::tryparseu32(itype, &m_evtid))
 		{
+			m_evtid1 = PPM_EVENT_MAX;
 			parsed_len = (uint32_t)(fldname.size() + itype.size() + 1);
 			return parsed_len; 
 		}
@@ -1847,6 +1848,7 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 			if(itype == ei->name)
 			{
 				m_evtid = j;
+				m_evtid1 = j + 1;
 				parsed_len = (uint32_t)(fldname.size() + strlen(ei->name) + 1);
 				break;
 			}
@@ -2429,7 +2431,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_TYPE_IS:
 		{
 			uint16_t etype = evt->m_pevt->type;
-			if(etype == m_evtid)
+			if(etype == m_evtid || etype == m_evtid1)
 			{
 				m_u32val = 1;
 			}

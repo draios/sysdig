@@ -418,6 +418,7 @@ public:
 	string m_argname;
 	int32_t m_argid;
 	uint32_t m_evtid;
+	uint32_t m_evtid1;
 	const ppm_param_info* m_arginfo;
 
 	//
