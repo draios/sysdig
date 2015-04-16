@@ -24,8 +24,8 @@ view_infoz =
 	view_type = "table",
 	applies_to = "all,container.id,proc.pid",
 	is_root = true,
-	drilldown_target = "LD_top_procs",
 	use_defaults = true,
+	drilldown_target = "LD_top_procs",
 	columns = 
 	{
 		{

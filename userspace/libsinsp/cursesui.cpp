@@ -306,6 +306,9 @@ void sinsp_cursesui::render_header()
 {
 	uint32_t j = 0;
 
+	//
+	// Show the 'viewing' line
+	//
 	attrset(m_colors[PROCESS]);
 	move(0, 0);
 	for(j = 0; j < m_screenw; j++)
@@ -369,7 +372,17 @@ void sinsp_cursesui::render_header()
 			wstr.c_str());	
 	}
 
+	//
+	// Show the 'filter' line
+	//
 	attrset(m_colors[PROCESS]);
+
+	move(1, 0);
+	for(uint32_t j = 0; j < m_screenw; j++)
+	{
+		addch(' ');
+	}
+
 	mvaddstr(1, 0, "Filter:");
 	uint32_t k = sizeof("Filter: ") - 1;
 

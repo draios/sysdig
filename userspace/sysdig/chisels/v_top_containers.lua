@@ -26,6 +26,7 @@ view_info =
 	applies_to = "all",
 	filter = "container.name != host",
 	use_defaults = true,
+	drilldown_target = "LD_top_cont_procs",
 	columns = 
 	{
 		{

@@ -1,5 +1,5 @@
 --[[
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2015 Draios inc.
  
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -24,8 +24,9 @@ view_info =
 	tags = {"Default"},
 	view_type = "table",
 	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport",
-	filter = "fd.type=file and fd.name!=''",
+	filter = "fd.type=file or fd.type=directory and fd.name!=''",
 	use_defaults = true,
+	drilldown_target = "LD_top_procs",
 	columns = 
 	{
 		{
@@ -36,14 +37,14 @@ view_info =
 		{
 			name = "BYTES IN",
 			field = "evt.buflen.file.in",
-			description = "Amount of bytes written to the file. For live captures, this is the amount during the last sampling interval. For trace files, this is the total amount for the full file.",
+			description = "Amount of bytes read from the file. For live captures, this is the amount during the last sampling interval. For trace files, this is the total amount for the full file.",
 			colsize = 12,
 			aggregation = "SUM"
 		},
 		{
 			name = "BYTES OUT",
 			field = "evt.buflen.file.out",
-			description = "amount of bytes sent by the process owning the socket. For live captures, this is the amount during the last sampling interval. For trace files, this is the total amount for the full file.",
+			description = "amount of bytes written to the file. For live captures, this is the amount during the last sampling interval. For trace files, this is the total amount for the full file.",
 			colsize = 12,
 			aggregation = "SUM"
 		},
