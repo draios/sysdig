@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_cont_procs",
+	id = "top_cont_procs",
 	name = "Top Processes",
 	description = "Top Processes.",
 	tags = {"Containers"},

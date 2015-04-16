@@ -17,14 +17,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_procs",
+	id = "top_procs",
 	name = "Top Processes",
 	description = "This is the typical top/htop process list, showing usage of resources like CPU, memory, disk and network on a by process basis.",
 	tags = {"Default"},
 	view_type = "table",
 	applies_to = "all,container.id,fd.name,fd.sport",
 	is_root = true,
-	drilldown_target = "LD_top_threads",
+	drilldown_target = "top_threads",
 	use_defaults = true,
 	columns = 
 	{

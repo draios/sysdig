@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_cont_conns",
+	id = "top_cont_conns",
 	name = "Top Connections",
 	description = "Top Connections with conyainer context.",
 	tags = {"Containers"},

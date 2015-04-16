@@ -26,7 +26,7 @@ view_info =
 	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport",
 	filter = "fd.type=ipv4 or fd.type=ipv6 and fd.name!=''",
 	use_defaults = true,
-	drilldown_target = "LD_incoming_connections",
+	drilldown_target = "incoming_connections",
 	columns = 
 	{
 		{

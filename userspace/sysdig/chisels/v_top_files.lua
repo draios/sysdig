@@ -26,7 +26,7 @@ view_info =
 	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport",
 	filter = "fd.type=file or fd.type=directory and fd.name!=''",
 	use_defaults = true,
-	drilldown_target = "LD_top_procs",
+	drilldown_target = "top_procs",
 	columns = 
 	{
 		{

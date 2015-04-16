@@ -25,7 +25,7 @@ view_infoz =
 	applies_to = "all,container.id,proc.pid",
 	is_root = true,
 	use_defaults = true,
-	drilldown_target = "LD_top_procs",
+	drilldown_target = "top_procs",
 	columns = 
 	{
 		{

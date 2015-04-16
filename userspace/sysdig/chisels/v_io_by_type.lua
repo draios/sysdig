@@ -25,7 +25,7 @@ view_info =
 	view_type = "table",
 	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport",
 	use_defaults = true,
-	drilldown_target = "LD_top_procs",
+	drilldown_target = "top_procs",
 	columns = 
 	{
 		{

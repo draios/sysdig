@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "LD_top_cont_files",
+	id = "top_cont_files",
 	name = "Top Files",
 	description = "Top Files.",
 	tags = {"Containers"},

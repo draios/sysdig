@@ -24,7 +24,7 @@ view_info =
 	view_type = "table",
 	applies_to = "proc.pid,proc.name,container.id,fd.sport",
 	is_root = true,
-	drilldown_target = "LD_top_files",
+	drilldown_target = "top_files",
 	use_defaults = true,
 	columns = 
 	{

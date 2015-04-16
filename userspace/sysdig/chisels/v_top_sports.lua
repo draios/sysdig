@@ -26,7 +26,7 @@ view_info =
 	applies_to = "all,container.id,proc.pid,thread.tid,proc.name",
 	filter = "fd.type=ipv4 and fd.name!=''",
 	use_defaults = true,
-	drilldown_target = "LD_top_procs",
+	drilldown_target = "top_procs",
 	columns = 
 	{
 		{
