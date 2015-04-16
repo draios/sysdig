@@ -1739,6 +1739,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.io_dir", "'r' for events that read from FDs, like read(); 'w' for events that write to FDs, like write()."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_wait", "'true' for events that make the thread wait, e.g. sleep(), select(), poll()."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.wait_latency", "for events that make the thread wait (e.g. sleep(), select(), poll()), this is the time spent waiting for the event to return."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_syslog", "'true' for events that are writes to /dev/log."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
@@ -2761,6 +2762,29 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		return (uint8_t*)&m_u32val;
+	case TYPE_WAIT_LATENCY:
+		{
+			ppm_event_flags eflags = evt->get_flags();
+			uint16_t etype = evt->m_pevt->type;
+
+			if(eflags & (EF_WAITS) && PPME_IS_EXIT(etype))
+			{
+				if(evt->m_tinfo != NULL)
+				{
+					m_u64val = evt->m_tinfo->m_latency;
+				}
+				else
+				{
+					m_u64val = 0;
+				}
+
+				return (uint8_t*)&m_u64val;
+			}
+			else
+			{
+				return NULL;
+			}
+		}
 	case TYPE_ISSYSLOG:
 		{
 			m_u32val = 0;
