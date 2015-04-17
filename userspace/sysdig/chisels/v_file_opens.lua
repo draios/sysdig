@@ -19,7 +19,7 @@ view_info =
 {
 	id = "file_opens",
 	name = "File Opens List",
-	description = "List file name and process for of all the file opens.",
+	description = "List file name and process for of every single file open.",
 	tags = {"Default"},
 	view_type = "list",
 	applies_to = "all,fd.name",
@@ -28,17 +28,26 @@ view_info =
 	{
 		{
 			name = "TIME",
-			field = "evt.time",
+			field = "evt.num",
+			description = "The timestamp of the file open.",
 			colsize = 19,
+		},
+		{
+			name = "RES",
+			field = "evt.res",
+			description = "The result of the open call.",
+			colsize = 8,
 		},
 		{
 			name = "FILE",
 			field = "fd.name",
+			description = "The file name.",
 			colsize = 40,
 		},
 		{
 			name = "Command",
 			field = "proc.exeline",
+			description = "The program that opened the file, including its arguments.",
 			colsize = 200,
 		}		
 	}

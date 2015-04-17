@@ -19,31 +19,35 @@ view_info =
 {
 	id = "spy_users",
 	name = "Spy Users",
-	description = "List file name and process for of all the file opens.",
+	description = "Lists all the commands that are run interactively, i.e. that have a shell as the parent process. The result is the display of all the user activity, sorted by time.",
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = "all,fd.name",
+	applies_to = "all,container.id,proc.pid,thread.tid,proc.name",
 	filter = "((evt.type=execve and evt.dir=<) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)) and evt.failed=false",
 	columns = 
 	{
 		{
 			name = "TIME",
 			field = "evt.time.s",
+			description = "Time when the command was executed.",
 			colsize = 12,
 		},
 		{
 			name = "USER",
 			field = "user.name",
+			description = "Name of the user running the command.",
 			colsize = 8,
 		},
 		{
 			name = "SHELL",
 			field = "proc.ppid",
+			description = "Pid of the shell where this command was executed. This, essentially, corresponds to a 'session ID'. You can filer or sort by this column to isolate a specific interactive user session.",
 			colsize = 8,
 		},
 		{
 			name = "Command",
 			field = "proc.exeline",
+			description = "The executed command, including arguments.",
 			colsize = 200,
 		}		
 	}
