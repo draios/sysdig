@@ -1562,6 +1562,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			render();
 			break;
 		case KEY_F(5):
+		case 's':
 			if(m_datatable == NULL)
 			{
 				return STA_NONE;
@@ -1573,6 +1574,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			}
 			break;
 		case KEY_F(6):
+		case 'd':
 			if(m_datatable == NULL)
 			{
 				return STA_NONE;

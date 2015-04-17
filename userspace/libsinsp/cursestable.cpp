@@ -523,6 +523,11 @@ void curses_table::scrollwin(uint32_t x, uint32_t y)
 //
 sysdig_table_action curses_table::handle_input(int ch)
 {
+	if(m_data == NULL)
+	{
+		return STA_PARENT_HANDLE;
+	}
+
 	switch(ch)
 	{
 /*

@@ -17,44 +17,41 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_syscalls",
-	name = "Top System Calls",
-	description = "Show the top system calls in the system based on number of invocations and time spent calling them.",
-	tips = {"This view is useful to spot not only system activity saturation, but also things like high wait time.", "Drill down by clicking enter on a system call to see which processes are using it."},
+	id = "top_syscall_procs",
+	name = "Top Syscall Callers",
+	description = "Show the top processes based on number of system call invocations and time spent calling them.",
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport",
+	applies_to = "evt.type",
 	use_defaults = true,
 	filter = "syscall.type exists",
-	drilldown_target = "top_syscall_procs",
 	columns = 
 	{
 		{
 			name = "NA",
-			field = "evt.type",
+			field = "proc.pid",
 			is_key = true
 		},
 		{
 			is_sorting = true,
 			name = "COUNT",
 			field = "evt.count",
-			description = "Number of times the system call has been invoked.",
+			description = "Number of system calls this process has invoked.",
 			colsize = 10,
 			aggregation = "SUM"
 		},
 		{
 			name = "TIME",
 			field = "evt.latency",
-			description = "Total time spent waiting for this system call to return.",
+			description = "Total time spent on system calls by the process.",
 			colsize = 10,
 			aggregation = "SUM"
 		},
 		{
-			name = "SYSCALL",
-			field = "evt.type",
-			description = "System call name.",
-			colsize = 32,
-			aggregation = "SUM"
-		},
+			name = "Command",
+			description = "The full command line of the process.",
+			field = "proc.exeline",
+			colsize = 200
+		}
 	}
 }
