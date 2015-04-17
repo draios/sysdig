@@ -1045,6 +1045,15 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 	m_ctext->printf("\n");
 
 	//
+	// Print the view ID
+	//
+	attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	m_ctext->printf("ID\n");
+
+	attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf("%s\n\n", vinfo->m_id.c_str());
+
+	//
 	// If there's a filter, print it 
 	//
 	if(vinfo->m_filter != "")

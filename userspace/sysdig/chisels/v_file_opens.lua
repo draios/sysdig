@@ -20,22 +20,23 @@ view_info =
 	id = "file_opens",
 	name = "File Opens List",
 	description = "List file name and process for of every single file open.",
+	tips = {"The RES column is very useful to identify failed opens. Successful opens will show 'SUCCESS' in this column, while failed opens will show an errno code. Do a 'man errno' to find the meaning of the main codes. And remember that you can sort the opens based on this code, or filter for specific codes using the F4 key."},
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = "all,fd.name",
+	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport,fd.name",
 	filter = "evt.type=open and evt.dir=<",
 	columns = 
 	{
 		{
 			name = "TIME",
-			field = "evt.num",
+			field = "evt.time",
 			description = "The timestamp of the file open.",
 			colsize = 19,
 		},
 		{
 			name = "RES",
 			field = "evt.res",
-			description = "The result of the open call.",
+			description = "The result of the open call. This can be either 'SUCCESS', or an errno code.",
 			colsize = 8,
 		},
 		{

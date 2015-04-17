@@ -120,14 +120,15 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	//
 	// Populate the main menu entries
 	//
-	m_menuitems.push_back(pair<string, string>("F1", "Help"));
-	m_menuitems.push_back(pair<string, string>("F2", "Views"));
-	m_menuitems.push_back(pair<string, string>("F4", "Filter"));
-	m_menuitems.push_back(pair<string, string>("F5", "Spy IO"));
-	m_menuitems.push_back(pair<string, string>("F6", "Dig"));
-	m_menuitems.push_back(pair<string, string>("F7", "Legend"));
-	m_menuitems.push_back(pair<string, string>("CTRL+F", "Search"));
-	m_menuitems.push_back(pair<string, string>("P", "Pause"));
+	m_menuitems.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL));
+	m_menuitems.push_back(sinsp_menuitem_info("F2", "Views", sinsp_menuitem_info::ALL));
+	m_menuitems.push_back(sinsp_menuitem_info("F4", "Filter", sinsp_menuitem_info::ALL));
+	m_menuitems.push_back(sinsp_menuitem_info("F5", "Spy IO", sinsp_menuitem_info::TABLE));
+	m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE));
+	m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL));
+	m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL));
+	m_menuitems.push_back(sinsp_menuitem_info("P", "Pause", sinsp_menuitem_info::ALL));
+	m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST));
 
 	//
 	// Get screen dimensions
@@ -416,6 +417,16 @@ void sinsp_cursesui::render_default_main_menu()
 {
 	uint32_t j = 0;
 	uint32_t k = 0;
+	bool is_table;
+
+	if(m_datatable != NULL && m_datatable->m_type == sinsp_table::TT_TABLE)
+	{
+		is_table = true;
+	}
+	else
+	{
+		is_table = false;		
+	}
 
 	//
 	// Clear the line
@@ -428,27 +439,23 @@ void sinsp_cursesui::render_default_main_menu()
 
 	for(j = 0; j < m_menuitems.size(); j++)
 	{
+		if(is_table && ((m_menuitems[j].m_type & sinsp_menuitem_info::TABLE) == 0))
+		{
+			continue;
+		}
+
+		if((!is_table) && ((m_menuitems[j].m_type & sinsp_menuitem_info::LIST) == 0))
+		{
+			continue;
+		}
+
 		attrset(m_colors[PROCESS]);
-		string fks = m_menuitems[j].first;
+		string fks = m_menuitems[j].m_key;
 		mvaddnstr(m_screenh - 1, k, fks.c_str(), MAX(fks.size(), 2));
 		k += MAX(fks.size(), 2);
 
 		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-		fks = m_menuitems[j].second;
-		fks.resize(6, ' ');
-		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
-		k += 6;
-	}
-
-	if(m_datatable != NULL && m_datatable->m_type == sinsp_table::TT_LIST)
-	{
-		attrset(m_colors[PROCESS]);
-		string fks = "C";
-		mvaddnstr(m_screenh - 1, k, fks.c_str(), 2);
-		k += MAX(fks.size(), 2);
-
-		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
-		fks = "Clear";
+		fks = m_menuitems[j].m_desc;
 		fks.resize(6, ' ');
 		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
 		k += 6;
@@ -1565,6 +1572,16 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		case 's':
 			if(m_datatable == NULL)
 			{
+				//
+				// No F5 for non table displays
+				//
+				return STA_NONE;
+			}
+			else if(m_datatable->m_type == sinsp_table::TT_LIST)
+			{
+				//
+				// No F5 for list tables
+				//
 				return STA_NONE;
 			}
 
@@ -1577,6 +1594,16 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		case 'd':
 			if(m_datatable == NULL)
 			{
+				//
+				// No F5 for non table displays
+				//
+				return STA_NONE;
+			}
+			else if(m_datatable->m_type == sinsp_table::TT_LIST)
+			{
+				//
+				// No F5 for list tables
+				//
 				return STA_NONE;
 			}
 

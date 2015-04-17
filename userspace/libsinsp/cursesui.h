@@ -30,6 +30,28 @@ string combine_filters(string flt1, string flt2);
 class ctext;
 class sinsp_chart;
 
+class sinsp_menuitem_info
+{
+public:
+	enum type 
+	{
+		TABLE = 1,
+		LIST = 2,
+		ALL = TABLE | LIST,
+	};
+
+	sinsp_menuitem_info(string key, string desc, sinsp_menuitem_info::type type)
+	{
+		m_key = key;
+		m_desc = desc;
+		m_type = type;
+	}
+
+	string m_key;
+	string m_desc;
+	sinsp_menuitem_info::type m_type;
+};
+
 class sinsp_ui_selection_info
 {
 public:
@@ -408,7 +430,7 @@ private:
 #endif
 
 	sinsp* m_inspector;
-	vector<pair<string, string>> m_menuitems;
+	vector<sinsp_menuitem_info> m_menuitems;
 	string m_event_source_name;
 	string m_cmdline_capture_filter;
 	string m_complete_filter;
