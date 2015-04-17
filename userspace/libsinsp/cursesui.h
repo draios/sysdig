@@ -195,7 +195,6 @@ public:
 	//
 	inline bool process_event(sinsp_evt* evt, int32_t next_res)
 	{
-		bool end_of_sample;
 		uint64_t ts = evt->get_ts();
 
 		//
@@ -253,7 +252,7 @@ public:
 					return true;
 				case STA_SWITCH_VIEW:
 					switch_view(false);
-					break;
+					return false;
 				case STA_SWITCH_SPY:
 					switch_view(true);
 					return false;
@@ -318,6 +317,8 @@ public:
 		else
 #endif
 		{
+			bool end_of_sample;
+
 			//
 			// Check if it's time to flush
 			//
