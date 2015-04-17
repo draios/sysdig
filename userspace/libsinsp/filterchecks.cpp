@@ -1742,9 +1742,10 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.wait_latency", "for events that make the thread wait (e.g. sleep(), select(), poll()), this is the time spent waiting for the event to return."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_syslog", "'true' for events that are writes to /dev/log."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error", "This filter field returns 1 for events that returned with an error, and can be used to count event failures from inside chisels."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.exit", "This filter field returns 1 for exit events, and can be used to count single events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during syscalls like renameat and symlinkat. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
-	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error", "This filter field returns 1 for events that returned with an error, and can be used to count event failures from inside chisels."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.in", "the lenght of the binary data buffer, but only for input I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.out", "the lenght of the binary data buffer, but only for output I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file", "the lenght of the binary data buffer, but only for file I/O events."},
@@ -2877,6 +2878,16 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return NULL;
 		}
 		break;
+	case TYPE_COUNT_EXIT:
+		if(PPME_IS_EXIT(evt->get_type()))
+		{
+			m_u32val = 1;
+			return (uint8_t*)&m_u32val;
+		}
+		else
+		{
+			return NULL;
+		}
 	case TYPE_ABSPATH:
 		return extract_abspath(evt, len);
 	case TYPE_BUFLEN_IN:
