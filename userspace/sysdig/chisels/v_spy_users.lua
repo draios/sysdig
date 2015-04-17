@@ -17,24 +17,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "file_opens",
-	name = "File Opens List",
+	id = "spy_users",
+	name = "Spy Users",
 	description = "List file name and process for of all the file opens.",
 	tags = {"Default"},
 	view_type = "list",
 	applies_to = "all,fd.name",
-	filter = "evt.type=open and evt.dir=<",
+	filter = "((evt.type=execve and evt.dir=<) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)) and evt.failed=false",
 	columns = 
 	{
 		{
 			name = "TIME",
-			field = "evt.time",
-			colsize = 19,
+			field = "evt.time.s",
+			colsize = 12,
 		},
 		{
-			name = "FILE",
-			field = "fd.name",
-			colsize = 40,
+			name = "USER",
+			field = "user.name",
+			colsize = 8,
+		},
+		{
+			name = "SHELL",
+			field = "proc.ppid",
+			colsize = 8,
 		},
 		{
 			name = "Command",
