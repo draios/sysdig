@@ -1731,7 +1731,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.info", "for most events, this field returns the same value as evt.args. However, for some events (like writes to /dev/log) it provides higher level information coming from decoding the arguments."},
 	{PT_BYTEBUF, EPF_NONE, PF_NA, "evt.buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "evt.buflen", "the lenght of the binary data buffer for events that have one, like read(), recvfrom(), etc."},
-	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as an error code string (e.g. 'ENOENT')."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "evt.res", "event return value, as a string. If the event failed, the result is an error code string (e.g. 'ENOENT'), otherwise the result is the string 'SUCCESS'."},
 	{PT_INT64, EPF_NONE, PF_DEC, "evt.rawres", "event return value, as a number (e.g. -2). Useful for range comparisons."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.failed", "'true' for events that returned an error status."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io", "'true' for events that read or write to FDs, like read(), send, recvfrom(), etc."},
@@ -2625,39 +2625,65 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			const char* resolved_argstr;
 			const char* argstr;
 
-			argstr = evt->get_param_value_str("res", &resolved_argstr);
+			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
 
-			if(resolved_argstr != NULL && resolved_argstr[0] != 0)
+			if(pi != NULL)
 			{
-				return (uint8_t*)resolved_argstr;
+				ASSERT(pi->m_len == sizeof(int64_t));
+
+				int64_t res = *(int64_t*)pi->m_val;
+
+				if(res >= 0)
+				{
+					*len = sizeof("SUCCESS");
+					return (uint8_t*)"SUCCESS";
+				}
+				else
+				{
+					argstr = evt->get_param_value_str("res", &resolved_argstr);
+					ASSERT(resolved_argstr != NULL && resolved_argstr[0] != 0);
+
+					if(resolved_argstr != NULL && resolved_argstr[0] != 0)
+					{
+						return (uint8_t*)resolved_argstr;
+					}
+					else if(argstr != NULL)
+					{
+						return (uint8_t*)argstr;
+					}
+				}
 			}
 			else
 			{
-				if(argstr == NULL)
+				if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 				{
-					if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+					pi = evt->get_param_value_raw("fd");
+
+					int64_t res = *(int64_t*)pi->m_val;
+
+					if(res >= 0)
+					{
+						*len = sizeof("SUCCESS");
+						return (uint8_t*)"SUCCESS";
+					}
+					else
 					{
 						argstr = evt->get_param_value_str("fd", &resolved_argstr);
+						ASSERT(resolved_argstr != NULL && resolved_argstr[0] != 0);
 
 						if(resolved_argstr != NULL && resolved_argstr[0] != 0)
 						{
 							return (uint8_t*)resolved_argstr;
 						}
-						else
+						else if(argstr != NULL)
 						{
 							return (uint8_t*)argstr;
 						}
 					}
-					else
-					{
-						return NULL;
-					}
-				}
-				else
-				{
-					return (uint8_t*)argstr;
 				}
 			}
+
+			return NULL;
 		}
 		break;
 	case TYPE_FAILED:
