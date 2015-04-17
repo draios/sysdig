@@ -350,14 +350,14 @@ void sinsp_table::add_row(bool merging)
 			//
 			// New entry
 			//
-			key.m_val = m_buffer->copy(key.m_val, key.m_len);
+			key.m_val = key.m_val;
 			key.m_cnt = 1;
 			m_vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_sz);
 
 			for(j = 1; j < m_n_fields; j++)
 			{
 				uint32_t vlen = get_field_len(j);
-				m_vals[j - 1].m_val = m_buffer->copy(m_fld_pointers[j].m_val, vlen);
+				m_vals[j - 1].m_val = m_fld_pointers[j].m_val;
 				m_vals[j - 1].m_len = vlen;
 				m_vals[j - 1].m_cnt = m_fld_pointers[j].m_cnt;
 			}
@@ -399,7 +399,7 @@ void sinsp_table::add_row(bool merging)
 		//
 		// This is a list. Create the new entry and push it back.
 		//
-		key.m_val = m_buffer->copy(key.m_val, key.m_len);
+		key.m_val = key.m_val;
 		key.m_cnt = 1;
 		row.m_key = key;
 
@@ -408,7 +408,7 @@ void sinsp_table::add_row(bool merging)
 		for(j = 1; j < m_n_fields; j++)
 		{
 			uint32_t vlen = get_field_len(j);
-			m_vals[j - 1].m_val = m_buffer->copy(m_fld_pointers[j].m_val, vlen);
+			m_vals[j - 1].m_val = m_fld_pointers[j].m_val;
 			m_vals[j - 1].m_len = vlen;
 			m_vals[j - 1].m_cnt = 1;
 			row.m_values.push_back(m_vals[j - 1]);
@@ -464,14 +464,17 @@ void sinsp_table::process_event(sinsp_evt* evt)
 			{
 				return;
 			}
+
+			pfld->m_len = get_field_len(j);
 		}
 		else
 		{
 			pfld->m_val = val;
+			pfld->m_len = get_field_len(j);
+			pfld->m_val = m_buffer->copy(val, pfld->m_len);
 			pfld->m_cnt = 1;
 		}
 
-		pfld->m_len = get_field_len(j);
 	}
 
 	//

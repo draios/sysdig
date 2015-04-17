@@ -1798,8 +1798,8 @@ int main(int argc, char **argv)
 
 //
 #ifdef _WIN32
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 #endif
 //
 #ifdef SYSTOP
