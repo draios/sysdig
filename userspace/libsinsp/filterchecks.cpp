@@ -1744,6 +1744,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during syscalls like renameat and symlinkat. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error", "This filter field returns 1 for events that returned with an error, and can be used to count event failures from inside chisels."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.in", "the lenght of the binary data buffer, but only for input I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.out", "the lenght of the binary data buffer, but only for output I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file", "the lenght of the binary data buffer, but only for file I/O events."},
@@ -2836,6 +2837,46 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_COUNT:
 		m_u32val = 1;
 		return (uint8_t*)&m_u32val;
+	case TYPE_COUNT_ERROR:
+		{
+			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+
+			if(pi != NULL)
+			{
+				ASSERT(pi->m_len == sizeof(uint64_t));
+
+				int64_t res = *(int64_t*)pi->m_val;
+				if(res >= 0)
+				{
+					m_u32val = 1;
+					return (uint8_t*)&m_u32val;
+				}
+				else
+				{
+					return NULL;
+				}
+			}
+
+			if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			{
+				pi = evt->get_param_value_raw("fd");
+
+				if(pi != NULL)
+				{
+					ASSERT(pi->m_len == sizeof(uint64_t));
+
+					int64_t res = *(int64_t*)pi->m_val;
+					if(res >= 0)
+					{
+						m_u32val = 1;
+						return (uint8_t*)&m_u32val;
+					}
+				}
+			}
+
+			return NULL;
+		}
+		break;
 	case TYPE_ABSPATH:
 		return extract_abspath(evt, len);
 	case TYPE_BUFLEN_IN:
