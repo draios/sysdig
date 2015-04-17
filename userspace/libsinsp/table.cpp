@@ -458,14 +458,14 @@ void sinsp_table::process_event(sinsp_evt* evt)
 					return;
 				}
 
+				pfld->m_len = get_field_len(j);
+				pfld->m_val = m_buffer->copy(pfld->m_val, pfld->m_len);
 				pfld->m_cnt = 0;
 			}
 			else
 			{
 				return;
 			}
-
-			pfld->m_len = get_field_len(j);
 		}
 		else
 		{
@@ -474,7 +474,6 @@ void sinsp_table::process_event(sinsp_evt* evt)
 			pfld->m_val = m_buffer->copy(val, pfld->m_len);
 			pfld->m_cnt = 1;
 		}
-
 	}
 
 	//
