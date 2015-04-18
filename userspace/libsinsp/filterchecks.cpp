@@ -2941,7 +2941,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_COUNT_ERROR_MEMORY:
 		{
-			if(evt->get_category() == EC_IO_READ)
+			if(evt->get_category() == EC_MEMORY)
 			{
 				return extract_error_count(evt, len);
 			}
@@ -2976,7 +2976,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SOCKET_ACCEPT_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
-					etype == PPME_SOCKET_CONNECT_X))
+					etype == PPME_SOCKET_CONNECT_X ||
+					evt->get_category() == EC_MEMORY))
 				{
 					return extract_error_count(evt, len);
 				}
