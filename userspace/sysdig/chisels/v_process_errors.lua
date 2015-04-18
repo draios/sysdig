@@ -22,7 +22,7 @@ view_info =
 	description = "This view shows system error information counters for processes. Errors are reported according to 4 categories: file I/O, network I/O, memory allocation and 'other'.",
 	tips = {
 		"If you click enter on a selection in this chart, you will be able to see the specific errors that the process is generating.",
-		"Diggin into a process by clicking on F6 will let you explore the system calls for that specific process and see the full details about each error."
+		"Digging into a process by clicking on F6 will let you explore the system calls for that specific process and see the full details about each error."
 	},
 	tags = {"Default"},
 	view_type = "table",
