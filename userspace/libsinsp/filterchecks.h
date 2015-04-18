@@ -393,17 +393,21 @@ public:
 		TYPE_ISSYSLOG = 36,
 		TYPE_COUNT = 37,
 		TYPE_COUNT_ERROR = 38,
-		TYPE_COUNT_EXIT = 39,
-		TYPE_AROUND = 40,
-		TYPE_ABSPATH = 41,
-		TYPE_BUFLEN_IN = 42,
-		TYPE_BUFLEN_OUT = 43,
-		TYPE_BUFLEN_FILE = 44,
-		TYPE_BUFLEN_FILE_IN = 45,
-		TYPE_BUFLEN_FILE_OUT = 46,
-		TYPE_BUFLEN_NET = 47,
-		TYPE_BUFLEN_NET_IN = 48,
-		TYPE_BUFLEN_NET_OUT = 49,
+		TYPE_COUNT_ERROR_FILE = 39,
+		TYPE_COUNT_ERROR_NET = 40,
+		TYPE_COUNT_ERROR_MEMORY = 41,
+		TYPE_COUNT_ERROR_OTHER = 42,
+		TYPE_COUNT_EXIT = 43,
+		TYPE_AROUND = 44,
+		TYPE_ABSPATH = 45,
+		TYPE_BUFLEN_IN = 46,
+		TYPE_BUFLEN_OUT = 47,
+		TYPE_BUFLEN_FILE = 48,
+		TYPE_BUFLEN_FILE_IN = 49,
+		TYPE_BUFLEN_FILE_OUT = 50,
+		TYPE_BUFLEN_NET = 51,
+		TYPE_BUFLEN_NET_IN = 52,
+		TYPE_BUFLEN_NET_OUT = 53,
 	};
 
 	sinsp_filter_check_event();
@@ -435,6 +439,7 @@ public:
 private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);

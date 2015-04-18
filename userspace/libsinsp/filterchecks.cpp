@@ -1743,6 +1743,10 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_syslog", "'true' for events that are writes to /dev/log."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error", "This filter field returns 1 for events that returned with an error, and can be used to count event failures from inside chisels."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error.file", "This filter field returns 1 for events that returned with an error and are related to file I/O, and can be used to count event failures from inside chisels."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error.net", "This filter field returns 1 for events that returned with an error and are related to network I/O, and can be used to count event failures from inside chisels."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error.memory", "This filter field returns 1 for events that returned with an error and are related to memory allocation, and can be used to count event failures from inside chisels."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error.other", "This filter field returns 1 for events that returned with an error and are related to none of the previous categories, and can be used to count event failures from inside chisels."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.exit", "This filter field returns 1 for exit events, and can be used to count single events from inside chisels."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during syscalls like renameat and symlinkat. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
@@ -2295,6 +2299,46 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	return Json::Value::null;
 }
 
+uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint32_t* len)
+{
+	const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+
+	if(pi != NULL)
+	{
+		ASSERT(pi->m_len == sizeof(uint64_t));
+
+		int64_t res = *(int64_t*)pi->m_val;
+		if(res >= 0)
+		{
+			m_u32val = 1;
+			return (uint8_t*)&m_u32val;
+		}
+		else
+		{
+			return NULL;
+		}
+	}
+
+	if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+	{
+		pi = evt->get_param_value_raw("fd");
+
+		if(pi != NULL)
+		{
+			ASSERT(pi->m_len == sizeof(uint64_t));
+
+			int64_t res = *(int64_t*)pi->m_val;
+			if(res >= 0)
+			{
+				m_u32val = 1;
+				return (uint8_t*)&m_u32val;
+			}
+		}
+	}
+
+	return NULL;
+}
+
 uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	switch(m_field_id)
@@ -2839,45 +2883,107 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_u32val = 1;
 		return (uint8_t*)&m_u32val;
 	case TYPE_COUNT_ERROR:
+		return extract_error_count(evt, len);
+	case TYPE_COUNT_ERROR_FILE:
 		{
-			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
-			if(pi != NULL)
+			if(fdinfo != NULL)
 			{
-				ASSERT(pi->m_len == sizeof(uint64_t));
-
-				int64_t res = *(int64_t*)pi->m_val;
-				if(res >= 0)
+				if(fdinfo->m_type == SCAP_FD_FILE ||
+					fdinfo->m_type == SCAP_FD_DIRECTORY)
 				{
-					m_u32val = 1;
-					return (uint8_t*)&m_u32val;
-				}
-				else
-				{
-					return NULL;
+					return extract_error_count(evt, len);
 				}
 			}
-
-			if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			else
 			{
-				pi = evt->get_param_value_raw("fd");
+				uint16_t etype = evt->get_type();
 
-				if(pi != NULL)
+				if(etype == PPME_SYSCALL_OPEN_X ||
+					etype == PPME_SYSCALL_CREAT_X ||
+					etype == PPME_SYSCALL_OPENAT_X)
 				{
-					ASSERT(pi->m_len == sizeof(uint64_t));
-
-					int64_t res = *(int64_t*)pi->m_val;
-					if(res >= 0)
-					{
-						m_u32val = 1;
-						return (uint8_t*)&m_u32val;
-					}
+					return extract_error_count(evt, len);
 				}
 			}
 
 			return NULL;
 		}
-		break;
+	case TYPE_COUNT_ERROR_NET:
+		{
+			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+					fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
+					fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK ||
+					fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK ||
+					fdinfo->m_type == SCAP_FD_UNIX_SOCK)
+				{
+					return extract_error_count(evt, len);
+				}
+			}
+			else
+			{
+				uint16_t etype = evt->get_type();
+
+				if(etype == PPME_SOCKET_ACCEPT_X ||
+					etype == PPME_SOCKET_ACCEPT4_X ||
+					etype == PPME_SOCKET_CONNECT_X)
+				{
+					return extract_error_count(evt, len);
+				}
+			}
+
+			return NULL;
+		}
+	case TYPE_COUNT_ERROR_MEMORY:
+		{
+			if(evt->get_category() == EC_IO_READ)
+			{
+				return extract_error_count(evt, len);
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+	case TYPE_COUNT_ERROR_OTHER:
+		{
+			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+
+			if(fdinfo != NULL)
+			{
+				if(!(fdinfo->m_type == SCAP_FD_FILE ||
+					fdinfo->m_type == SCAP_FD_DIRECTORY ||
+					fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+					fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
+					fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK ||
+					fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK ||
+					fdinfo->m_type == SCAP_FD_UNIX_SOCK))
+				{
+					return extract_error_count(evt, len);
+				}
+			}
+			else
+			{
+				uint16_t etype = evt->get_type();
+
+				if(!(etype == PPME_SYSCALL_OPEN_X ||
+					etype == PPME_SYSCALL_CREAT_X ||
+					etype == PPME_SYSCALL_OPENAT_X ||
+					etype == PPME_SOCKET_ACCEPT_X ||
+					etype == PPME_SOCKET_ACCEPT4_X ||
+					etype == PPME_SOCKET_CONNECT_X))
+				{
+					return extract_error_count(evt, len);
+				}
+			}
+
+			return NULL;
+		}
 	case TYPE_COUNT_EXIT:
 		if(PPME_IS_EXIT(evt->get_type()))
 		{

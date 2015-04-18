@@ -985,7 +985,7 @@ enum ppm_event_category {
 	EC_IO_WRITE = 33,/* General I/O write (can be file, socket, IPC...) */
 	EC_IO_OTHER = 34,/* General I/O that is neither read not write (can be file, socket, IPC...) */
 	EC_WAIT = 64,	/* General wait (can be file, socket, IPC...) */
-	EC_SCHEDULER = 128,	/* General wait (can be file, socket, IPC...) */
+	EC_SCHEDULER = 128,	/* Scheduler event (e.g. context switch) */
 	EC_INTERNAL = 256,	/* Internal event that shouldn't be shown to the user */
 };
 
