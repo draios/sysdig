@@ -20,10 +20,10 @@ view_info =
 	id = "file_opens",
 	name = "File Opens List",
 	description = "List file name and process for of every single file open.",
-	tips = {"The RES column is very useful to identify failed opens. Successful opens will show 'SUCCESS' in this column, while failed opens will show an errno code. Do a 'man errno' to find the meaning of the main codes. And remember that you can sort the opens based on this code, or filter for specific codes using the F4 key."},
+	tips = {"The RES column is very useful to identify failed opens. Successful opens will show 'SUCCESS' in this column, while failed opens will show an errno code. Do a 'man errno' to find the meaning of the most important codes. And remember that you can sort the opens based on this code, or filter for specific codes using the F4 key."},
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport,fd.name",
+	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport,fd.name,fd.directory,evt.res",
 	filter = "evt.type=open and evt.dir=<",
 	columns = 
 	{

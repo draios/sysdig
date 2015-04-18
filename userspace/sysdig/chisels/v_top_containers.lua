@@ -23,7 +23,7 @@ view_info =
 	tips = {"Select a container and click enter to drill down into it. At that point, you will be able to access several views that will show you the details of the selected container."},
 --	tags = {"Containers"},
 	view_type = "table",
-	applies_to = "all",
+	applies_to = "all,evt.res",
 	filter = "container.name != host",
 	use_defaults = true,
 	drilldown_target = "top_cont_procs",

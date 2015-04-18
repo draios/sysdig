@@ -22,7 +22,7 @@ view_info =
 	description = "Top Files.",
 	tags = {"Containers"},
 	view_type = "table",
-	applies_to = "all,container.id,proc.pid,thread.tid,proc.name",
+	applies_to = "all,container.id,proc.pid,thread.tid,proc.name,fd.directory,evt.res",
 	filter = "fd.type=file",
 	use_defaults = true,
 	columns = 

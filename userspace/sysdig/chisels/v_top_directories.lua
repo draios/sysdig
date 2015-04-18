@@ -17,21 +17,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_files",
-	name = "Top Files",
-	description = "This view lists the files that were accessed on the file system. The list can be sorted by metrics like the input/output bytes and the IOPS",
+	id = "top_directories",
+	name = "Top Directories",
+	description = "This view lists the directories that were accessed on the file system. The list can be sorted by metrics like the input/output bytes and the IOPS",
 	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation."},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport,fd.directory,evt.res",
+	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport,evt.res",
 	filter = "fd.type=file or fd.type=directory and fd.name!=''",
 	use_defaults = true,
-	drilldown_target = "top_procs",
+	drilldown_target = "top_files",
 	columns = 
 	{
 		{
 			name = "NA",
-			field = "fd.name",
+			field = "fd.directory",
 			is_key = true
 		},
 		{
@@ -71,9 +71,9 @@ view_info =
 			aggregation = "SUM"
 		},
 		{
-			name = "FILENAME",
-			description = "The file name including its full path.",
-			field = "fd.name",
+			name = "DIRNAME",
+			description = "The full directory path name.",
+			field = "fd.directory",
 			colsize = 200
 		}
 	}

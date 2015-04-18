@@ -1,5 +1,5 @@
 --[[
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2015 Draios inc.
  
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -18,11 +18,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 view_info = 
 {
 	id = "top_procs",
-	name = "Top Processes",
+	name = "Processes",
 	description = "This is the typical top/htop process list, showing usage of resources like CPU, memory, disk and network on a by process basis.",
+	tips = {"This is a perfect view to start a drill down session. Click enter or double click on a process to dive into it and explore its behavior."},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = "all,container.id,fd.name,fd.sport,evt.type",
+	applies_to = "all,container.id,fd.name,fd.sport,evt.type,fd.directory",
 	is_root = true,
 	drilldown_target = "top_threads",
 	use_defaults = true,

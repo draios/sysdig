@@ -22,7 +22,7 @@ view_info =
 	description = "Top Connections with conyainer context.",
 	tags = {"Containers"},
 	view_type = "table",
-	applies_to = "all,container.id,proc.pid,thread.tid,proc.name",
+	applies_to = "all,container.id,proc.pid,thread.tid,proc.name,evt.res",
 	filter = "fd.type=ipv4 and fd.name!=''",
 	use_defaults = true,
 	columns = 

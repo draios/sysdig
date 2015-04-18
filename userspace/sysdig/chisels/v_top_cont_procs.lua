@@ -22,7 +22,7 @@ view_info =
 	description = "Top Processes.",
 	tags = {"Containers"},
 	view_type = "table",
-	applies_to = "all,container.id",
+	applies_to = "all,container.id,fd.directory,fd.name,evt.res",
 	use_defaults = true,
 	columns = 
 	{

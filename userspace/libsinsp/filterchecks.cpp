@@ -2308,7 +2308,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 		ASSERT(pi->m_len == sizeof(uint64_t));
 
 		int64_t res = *(int64_t*)pi->m_val;
-		if(res >= 0)
+		if(res < 0)
 		{
 			m_u32val = 1;
 			return (uint8_t*)&m_u32val;
@@ -2328,7 +2328,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 			ASSERT(pi->m_len == sizeof(uint64_t));
 
 			int64_t res = *(int64_t*)pi->m_val;
-			if(res >= 0)
+			if(res < 0)
 			{
 				m_u32val = 1;
 				return (uint8_t*)&m_u32val;
