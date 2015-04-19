@@ -100,6 +100,14 @@ public:
 		bool is_root);
 
 	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
+	viewtype get_type()
+	{
+		return m_type;
+	}
+	bool does_groupby()
+	{
+		return m_does_groupby;
+	}
 
 	string m_id;
 	string m_name;

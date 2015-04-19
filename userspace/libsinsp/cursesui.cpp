@@ -1471,6 +1471,12 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		sysdig_table_action ta = m_sidemenu->handle_input(ch);
 		if(ta == STA_SWITCH_VIEW)
 		{
+			if(m_viewinfo_page)
+			{
+				delete m_viewinfo_page;
+				m_viewinfo_page = NULL;
+			}
+
 			return ta;
 		}
 		else if(ta != STA_PARENT_HANDLE)
@@ -1497,7 +1503,11 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		}
 	}
 
-	if(m_viewinfo_page)
+	//
+	// Note: the info page doesn't handle input when the sidemenu is on, because in that
+	//       case it's just going to passively show the info for the selected view
+	//
+	if(m_viewinfo_page && m_sidemenu == NULL)
 	{
 		sysdig_table_action actn = m_viewinfo_page->handle_input(ch);
 
@@ -1527,6 +1537,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 	switch(ch)
 	{
+		case KEY_F(10):
 		case 'q':
 			return STA_QUIT;
 		case 'p':
@@ -1540,16 +1551,31 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				m_sidemenu->set_entries(&m_sidemenu_viewlist);
 				m_sidemenu->m_selct = m_selected_sidemenu_entry;
 				m_sidemenu->set_title("Select View");
+
+				render();
+
+				m_viewinfo_page = new curses_viewinfo_page(this, 
+					m_selected_view,
+					TABLE_Y_START,
+					SIDEMENU_WIDTH,
+					m_screenh - TABLE_Y_START - 1,
+					m_screenw - SIDEMENU_WIDTH);
 			}
 			else
 			{
+				if(m_viewinfo_page)
+				{
+					delete m_viewinfo_page;
+					m_viewinfo_page = NULL;
+				}
+
 				m_viz->set_x_start(0);
 				delete m_sidemenu;
 				m_sidemenu = NULL;
+				m_viz->recreate_win();
+				render();
 			}
 
-			m_viz->recreate_win();
-			render();
 			break;
 		case 6:	// CTRL+F
 			m_search_caller_interface = NULL;
@@ -1614,7 +1640,12 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			break;
 		case KEY_F(7):
-			m_viewinfo_page = new curses_viewinfo_page(this);
+			m_viewinfo_page = new curses_viewinfo_page(this,
+				m_selected_view,
+				0,
+				0,
+				m_screenh,
+				m_screenw);
 			break;
 		default:
 		break;

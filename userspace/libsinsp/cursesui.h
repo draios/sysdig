@@ -398,6 +398,7 @@ public:
 	bool m_search_nomatch;
 #ifndef NOCURSESUI
 	curses_table_sidemenu* m_sidemenu;
+	curses_viewinfo_page* m_viewinfo_page;
 #endif
 
 private:
@@ -426,7 +427,6 @@ private:
 	void show_selected_view_info();
 
 	curses_textbox* m_spy_box;
-	curses_viewinfo_page* m_viewinfo_page;
 #endif
 
 	sinsp* m_inspector;

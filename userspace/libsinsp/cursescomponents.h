@@ -120,6 +120,11 @@ public:
 	void set_entries(vector<sidemenu_list_entry>* entries)
 	{
 		m_entries = entries;
+
+		if(m_entries->size() == 0)
+		{
+			m_selct = 0;
+		}
 	}
 	void set_title(string title)
 	{
@@ -133,6 +138,9 @@ public:
 	sinsp_cursesui* m_parentui;
 	vector<sidemenu_list_entry>* m_entries;
 	string m_title;
+
+private:
+	void update_view_info();
 };
 
 class curses_textbox : 
@@ -174,18 +182,20 @@ private:
 	sinsp_evt_formatter* m_formatter;
 	string m_last_search_string;
 	ctext_search* m_searcher;
+	bool m_handle_input;
 };
 
 class curses_viewinfo_page
 {
 public:
-	curses_viewinfo_page(sinsp_cursesui* parent);
+	curses_viewinfo_page(sinsp_cursesui* parent, uint32_t viewnum, uint32_t starty, uint32_t startx, uint32_t h, uint32_t w);
 	~curses_viewinfo_page();
 	sysdig_table_action handle_input(int ch);
 
 private:
 	void render();
 
+	WINDOW* m_win;
 	sinsp_cursesui* m_parent;
 	ctext* m_ctext;
 };

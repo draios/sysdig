@@ -258,17 +258,34 @@ void curses_table_sidemenu::render()
 }
 
 //
+// Update the view info page in the parent
+//
+void curses_table_sidemenu::update_view_info()
+{
+	if(m_parentui->m_viewinfo_page)
+	{
+		delete m_parentui->m_viewinfo_page;
+
+		ASSERT(m_selct < (int32_t)m_entries->size());
+
+		m_parentui->m_viewinfo_page = new curses_viewinfo_page(m_parentui,
+			m_entries->at(m_selct).m_id,
+			TABLE_Y_START,
+			SIDEMENU_WIDTH,
+			m_parentui->m_screenh - TABLE_Y_START - 1,
+			m_parentui->m_screenw - SIDEMENU_WIDTH);
+	}
+}
+
+//
 // Return true if the parent should handle the event
 //
 sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 {
+	int32_t prev_select;
+
 	switch(ch)
 	{
-		case KEY_BACKSPACE:
-			//
-			// Disable backspace when sidemenu is open
-			//
-			return STA_NONE;
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
@@ -277,30 +294,88 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			m_parentui->m_selected_sidemenu_entry = m_selct;
 
 			return STA_SWITCH_VIEW;
+		case KEY_BACKSPACE:
 		case 27: // ESC
 			ASSERT(m_selct < (int32_t)m_entries->size());
 			m_parentui->m_selected_view = m_entries->at(m_selct_ori).m_id;
 			m_parentui->m_selected_sidemenu_entry = m_selct_ori;
 			return STA_SWITCH_VIEW;
 		case KEY_UP:
+			if(m_entries->size() == 0)
+			{
+				return STA_NONE;
+			}
+
+			prev_select = m_selct;
+
 			selection_up((int32_t)m_entries->size());
+
+			if(m_selct != prev_select)
+			{
+				update_view_info();
+			}
+
 			render();
 			return STA_NONE;
 		case KEY_DOWN:
+			if(m_entries->size() == 0)
+			{
+				return STA_NONE;
+			}
+
+			prev_select = m_selct;
+
 			selection_down((int32_t)m_entries->size());
+
+			if(m_selct != prev_select)
+			{
+				update_view_info();
+			}
+
 			render();
 			return STA_NONE;
 		case KEY_PPAGE:
+			if(m_entries->size() == 0)
+			{
+				return STA_NONE;
+			}
+
+			prev_select = m_selct;
+
 			selection_pageup((int32_t)m_entries->size());
+
+			if(m_selct != prev_select)
+			{
+				update_view_info();
+			}
+
 			render();
 			return STA_NONE;
 		case KEY_NPAGE:
+			if(m_entries->size() == 0)
+			{
+				return STA_NONE;
+			}
+
+			prev_select = m_selct;
+
 			selection_pagedown((int32_t)m_entries->size());
+
+			if(m_selct != prev_select)
+			{
+				update_view_info();
+			}
+
 			render();
 			return STA_NONE;
 		case KEY_MOUSE:
 			{
 				MEVENT event;
+
+				if(m_entries->size() == 0)
+				{
+					return STA_NONE;
+				}
 
 				if(getmouse(&event) == OK)
 				{
@@ -314,6 +389,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							//
 							m_selct = m_firstrow + (event.y - TABLE_Y_START - 1);
 							sanitize_selection((int32_t)m_entries->size());
+							update_view_info();
 							render();
 						}
 					}
@@ -719,6 +795,11 @@ void curses_textbox::render()
 //
 sysdig_table_action curses_textbox::handle_input(int ch)
 {
+	if(!m_handle_input)
+	{
+		return STA_PARENT_HANDLE;
+	}
+
 	if(m_sidemenu)
 	{
 		sysdig_table_action ta = m_sidemenu->handle_input(ch);
@@ -960,13 +1041,22 @@ bool curses_textbox::on_search_next()
 ///////////////////////////////////////////////////////////////////////////////
 // curses_viewinfo_page implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
+curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
+	uint32_t viewnum,
+	uint32_t starty, 
+	uint32_t startx, 
+	uint32_t h, 
+	uint32_t w)
 {
 	m_parent = parent;
 	ctext_config config;
-	sinsp_view_info* vinfo = parent->m_views.at(parent->m_selected_view);
 
-	m_ctext = new ctext(stdscr);
+	sinsp_view_info* vinfo = parent->m_views.at(viewnum);
+
+	m_win = newwin(h, w, starty, startx);
+
+	m_ctext = new ctext(m_win);
+//	m_ctext = new ctext(stdscr);
 
 	m_ctext->get_config(&config);
 
@@ -980,10 +1070,10 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 	//
 	// Print title and info
 	//
-	attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
 	m_ctext->printf("%s\n", vinfo->m_name.c_str());
 
-	attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf("%s\n\n", vinfo->m_description.c_str());
 
 	//
@@ -991,12 +1081,12 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 	//
 	if(vinfo->m_tips.size() != 0)
 	{
-		attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+		wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
 		m_ctext->printf("Tips\n");
 
 		for(uint32_t j = 0; j < vinfo->m_tips.size(); j++)
 		{
-			attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+			wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 			m_ctext->printf("%s\n\n", vinfo->m_tips[j].c_str());
 		}
 	}
@@ -1004,16 +1094,16 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 	//
 	// Print columns info
 	//
-	vector<filtercheck_field_info>* legend = parent->m_datatable->get_legend();
+//	vector<filtercheck_field_info>* legend = parent->m_datatable->get_legend();
 
-	attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
 	m_ctext->printf("Columns\n");
 
 	uint32_t j;
 
-	if(parent->m_datatable->get_type() == sinsp_table::TT_TABLE)
+	if(vinfo->get_type() == sinsp_view_info::T_TABLE)
 	{
-		j = parent->m_datatable->is_merging()? 2 : 1;
+		j = vinfo->does_groupby()? 2 : 1;
 	}
 	else
 	{
@@ -1025,19 +1115,11 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 		auto c = &(vinfo->m_columns[j]);
 
 		string desc;
+		desc = c->m_description;
 
-		if(c->m_description != "")
-		{
-			desc = c->m_description;
-		}
-		else
-		{
-			desc = legend->at(parent->m_datatable->is_merging()? j - 1 : j).m_description;
-		}
-
-		attrset(parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+		wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 		m_ctext->printf("%s", c->m_name.c_str());
-		attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+		wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 		m_ctext->printf(": %s", desc.c_str());
 		m_ctext->printf("\n");
 	}
@@ -1047,10 +1129,10 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 	//
 	// Print the view ID
 	//
-	attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
 	m_ctext->printf("ID\n");
 
-	attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf("%s\n\n", vinfo->m_id.c_str());
 
 	//
@@ -1058,10 +1140,10 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 	//
 	if(vinfo->m_filter != "")
 	{
-		attrset(parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+		wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
 		m_ctext->printf("Filter\n");
 
-		attrset(parent->m_colors[sinsp_cursesui::PROCESS]);
+		wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 		m_ctext->printf("%s\n\n", vinfo->m_filter.c_str());
 	}
 
@@ -1074,6 +1156,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent)
 curses_viewinfo_page::~curses_viewinfo_page()
 {
 	delete m_ctext;
+	delwin(m_win);
 }
 
 void curses_viewinfo_page::render()
