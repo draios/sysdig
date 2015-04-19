@@ -182,7 +182,7 @@ private:
 	sinsp_evt_formatter* m_formatter;
 	string m_last_search_string;
 	ctext_search* m_searcher;
-	bool m_handle_input;
+	bool m_has_searched;
 };
 
 class curses_viewinfo_page

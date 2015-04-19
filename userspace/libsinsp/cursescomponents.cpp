@@ -450,6 +450,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_sidemenu = NULL;
 	m_viz_type = viz_type;
 	m_searcher = NULL;
+	m_has_searched = false;
 
 	ctext_config config;
 
@@ -795,11 +796,6 @@ void curses_textbox::render()
 //
 sysdig_table_action curses_textbox::handle_input(int ch)
 {
-	if(!m_handle_input)
-	{
-		return STA_PARENT_HANDLE;
-	}
-
 	if(m_sidemenu)
 	{
 		sysdig_table_action ta = m_sidemenu->handle_input(ch);
@@ -1022,12 +1018,18 @@ bool curses_textbox::on_search_key_pressed(string search_str)
 	}
 	else
 	{
+		m_has_searched = true;
 		return true;
 	}
 }
 
 bool curses_textbox::on_search_next()
 {
+	if(!m_has_searched)
+	{
+		return false;
+	}
+
 	if(m_ctext->str_search(m_searcher) != 0)
 	{
 		return false;
