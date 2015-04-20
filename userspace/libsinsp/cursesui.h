@@ -399,6 +399,7 @@ public:
 #ifndef NOCURSESUI
 	curses_table_sidemenu* m_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;
+	curses_mainhelp_page* m_mainhelp_page;
 #endif
 
 private:

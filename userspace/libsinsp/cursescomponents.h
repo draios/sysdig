@@ -185,6 +185,21 @@ private:
 	bool m_has_searched;
 };
 
+class curses_mainhelp_page
+{
+public:
+	curses_mainhelp_page(sinsp_cursesui* parent);
+	~curses_mainhelp_page();
+	sysdig_table_action handle_input(int ch);
+
+private:
+	void render();
+
+	WINDOW* m_win;
+	sinsp_cursesui* m_parent;
+	ctext* m_ctext;
+};
+
 class curses_viewinfo_page
 {
 public:

@@ -592,10 +592,6 @@ sysdig_table_action curses_table::handle_input(int ch)
 			return STA_DRILLDOWN;
 		case KEY_BACKSPACE:
 			return STA_DRILLUP;
-		case KEY_F(1):
-			mvprintw(0, 0, "F1");
-			refresh();
-			break;
 		case KEY_MOUSE:
 			{
 				uint32_t j;

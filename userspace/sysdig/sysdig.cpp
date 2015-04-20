@@ -1441,6 +1441,8 @@ captureinfo do_systop_inspect(sinsp* inspector,
 	return retval;
 }
 
+string g_version_string = SYSDIG_VERSION;
+
 sysdig_init_res systop_init(int argc, char **argv)
 {
 	sysdig_init_res res;

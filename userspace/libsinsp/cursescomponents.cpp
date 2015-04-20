@@ -286,6 +286,9 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 
 	switch(ch)
 	{
+		case KEY_HOME:
+		case KEY_END:
+			return STA_NONE;
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
@@ -1167,6 +1170,115 @@ void curses_viewinfo_page::render()
 }
 
 sysdig_table_action curses_viewinfo_page::handle_input(int ch)
+{
+	int32_t totlines;
+
+	m_ctext->get_buf_size(&totlines);
+
+	if(totlines < (int32_t)m_parent->m_screenh)
+	{
+		return STA_DESTROY_CHILD;			
+	}
+
+	switch(ch)
+	{
+		case KEY_UP:
+			m_ctext->up();
+			render();
+			return STA_NONE;
+		case '\n':
+		case '\r':
+		case KEY_ENTER:
+		case KEY_DOWN:
+			m_ctext->down();
+			render();
+			return STA_NONE;
+		case KEY_LEFT:
+			m_ctext->left();
+			render();
+			return STA_NONE;
+		case KEY_RIGHT:
+			m_ctext->right();
+			render();
+			return STA_NONE;
+		case KEY_PPAGE:
+			m_ctext->page_up();
+			render();
+			return STA_NONE;
+		case ' ':
+		case KEY_NPAGE:
+			m_ctext->page_down();
+			render();
+			return STA_NONE;
+		case KEY_HOME:
+			m_ctext->jump_to_first_line();
+			m_ctext->scroll_to(0, 0);
+			render();
+			return STA_NONE;
+		case KEY_END:
+			m_ctext->jump_to_last_line();
+			render();
+			return STA_NONE;
+		default:
+		break;
+	}
+
+	return STA_DESTROY_CHILD;	
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// curses_mainhelp_page implementation
+///////////////////////////////////////////////////////////////////////////////
+extern string g_version_string;
+
+curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
+{
+	m_parent = parent;
+	ctext_config config;
+
+	m_win = newwin(parent->m_screenh, parent->m_screenw, 0, 0);
+
+	m_ctext = new ctext(m_win);
+
+	m_ctext->get_config(&config);
+
+	config.m_buffer_size = 50000;
+	config.m_scroll_on_append = false;
+	config.m_bounding_box = true;
+	config.m_do_wrap = true;
+
+	m_ctext->set_config(&config);
+
+	//
+	// Print title and info
+	//
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	m_ctext->printf("sysdig %s\nSee man page for full documentation\n\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("Arrows");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": scroll process list\n");
+
+	//
+	// Done. Refresh the screen
+	//
+	m_ctext->redraw();
+}
+
+curses_mainhelp_page::~curses_mainhelp_page()
+{
+	delete m_ctext;
+	delwin(m_win);
+}
+
+void curses_mainhelp_page::render()
+{
+	m_ctext->redraw();
+}
+
+sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 {
 	int32_t totlines;
 

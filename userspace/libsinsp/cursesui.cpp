@@ -47,6 +47,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_spy_box = NULL;
 	m_search_caller_interface = NULL;
 	m_viewinfo_page = NULL;
+	m_mainhelp_page = NULL;
 
 	//
 	// Colors initialization
@@ -158,6 +159,11 @@ sinsp_cursesui::~sinsp_cursesui()
 	if(m_viewinfo_page != NULL)
 	{
 		delete m_viewinfo_page;
+	}
+
+	if(m_mainhelp_page != NULL)
+	{
+		delete m_mainhelp_page;
 	}
 #endif
 }
@@ -851,7 +857,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	//
 	// If the help page has been shown, don't update the screen
 	//
-	if(m_viewinfo_page)
+	if(m_viewinfo_page != NULL || m_mainhelp_page != NULL)
 	{
 		return;
 	}
@@ -1526,6 +1532,25 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		return actn;
 	}
 
+	if(m_mainhelp_page != NULL)
+	{
+		sysdig_table_action actn = m_mainhelp_page->handle_input(ch);
+
+		if(actn == STA_DESTROY_CHILD)
+		{
+			delete m_mainhelp_page;
+			m_mainhelp_page = NULL;
+			if(m_viz != NULL)
+			{
+				m_viz->render(true);
+			}
+			render();
+			return STA_NONE;
+		}
+
+		return actn;
+	}
+
 	//
 	// Pass the event to the table viz
 	//
@@ -1537,6 +1562,9 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 	switch(ch)
 	{
+		case KEY_F(1):
+			m_mainhelp_page = new curses_mainhelp_page(this);
+			break;
 		case KEY_F(10):
 		case 'q':
 			return STA_QUIT;
