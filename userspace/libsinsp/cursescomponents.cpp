@@ -184,12 +184,12 @@ void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)
 curses_table_sidemenu::curses_table_sidemenu(sinsp_cursesui* parent)
 {
 	ASSERT(parent != NULL);
-	m_parentui = parent;
-	m_h = m_parentui->m_screenh - TABLE_Y_START - 1;
+	m_parent = parent;
+	m_h = m_parent->m_screenh - TABLE_Y_START - 1;
 	m_w = SIDEMENU_WIDTH;
 	m_y_start = TABLE_Y_START;
 	m_win = newwin(m_h, m_w, m_y_start, 0);
-	m_selct = m_parentui->m_selected_sidemenu_entry;
+	m_selct = m_parent->m_selected_sidemenu_entry;
 	m_selct_ori = m_selct;
 	m_entries = NULL;
 }
@@ -208,7 +208,7 @@ void curses_table_sidemenu::render()
 	//
 	// Render window header
 	//
-	wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 
 	wmove(m_win, 0, 0);
 	for(j = 0; j < (int32_t)m_w - 1; j++)
@@ -217,11 +217,11 @@ void curses_table_sidemenu::render()
 	}
 
 	// white space at the right
-	wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PROCESS]);
+	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 	waddch(m_win, ' ');
 
 	ASSERT(m_title != "");
-	wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
+	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 	mvwaddnstr(m_win, 0, 0, m_title.c_str(), m_w);
 
 	//
@@ -231,11 +231,11 @@ void curses_table_sidemenu::render()
 	{
 		if(j == m_selct)
 		{
-			wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
+			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
 		}
 		else
 		{
-			wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PROCESS]);
+			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 		}
 
 		// clear the line
@@ -249,7 +249,7 @@ void curses_table_sidemenu::render()
 		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries->at(j).m_name.c_str(), m_w);
 
 		// white space at the right
-		wattrset(m_win, m_parentui->m_colors[sinsp_cursesui::PROCESS]);
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 		wmove(m_win, j - m_firstrow + 1, m_w - 1);
 		waddch(m_win, ' ');
 	}
@@ -262,18 +262,18 @@ void curses_table_sidemenu::render()
 //
 void curses_table_sidemenu::update_view_info()
 {
-	if(m_parentui->m_viewinfo_page)
+	if(m_parent->m_viewinfo_page)
 	{
-		delete m_parentui->m_viewinfo_page;
+		delete m_parent->m_viewinfo_page;
 
 		ASSERT(m_selct < (int32_t)m_entries->size());
 
-		m_parentui->m_viewinfo_page = new curses_viewinfo_page(m_parentui,
+		m_parent->m_viewinfo_page = new curses_viewinfo_page(m_parent,
 			m_entries->at(m_selct).m_id,
 			TABLE_Y_START,
 			SIDEMENU_WIDTH,
-			m_parentui->m_screenh - TABLE_Y_START - 1,
-			m_parentui->m_screenw - SIDEMENU_WIDTH);
+			m_parent->m_screenh - TABLE_Y_START - 1,
+			m_parent->m_screenw - SIDEMENU_WIDTH);
 	}
 }
 
@@ -293,15 +293,20 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case '\r':
 		case KEY_ENTER:
 			ASSERT(m_selct < (int32_t)m_entries->size());
-			m_parentui->m_selected_view = m_entries->at(m_selct).m_id;
-			m_parentui->m_selected_sidemenu_entry = m_selct;
-
+			if(m_parent->m_spy_box == NULL)
+			{
+				m_parent->m_selected_view = m_entries->at(m_selct).m_id;
+			}
+			m_parent->m_selected_sidemenu_entry = m_selct;
 			return STA_SWITCH_VIEW;
 		case KEY_BACKSPACE:
 		case 27: // ESC
 			ASSERT(m_selct < (int32_t)m_entries->size());
-			m_parentui->m_selected_view = m_entries->at(m_selct_ori).m_id;
-			m_parentui->m_selected_sidemenu_entry = m_selct_ori;
+			if(m_parent->m_spy_box == NULL)
+			{
+				m_parent->m_selected_view = m_entries->at(m_selct).m_id;
+			}
+			m_parent->m_selected_sidemenu_entry = m_selct_ori;
 			return STA_SWITCH_VIEW;
 		case KEY_UP:
 			if(m_entries->size() == 0)
@@ -419,8 +424,11 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							// Notify the parent that a selection has happened
 							//
 							ASSERT(m_selct < (int32_t)m_entries->size());
-							m_parentui->m_selected_view = m_entries->at(m_selct).m_id;
-							m_parentui->m_selected_sidemenu_entry = m_selct;
+							if(m_parent->m_spy_box == NULL)
+							{
+								m_parent->m_selected_view = m_entries->at(m_selct).m_id;
+							}
+							m_parent->m_selected_sidemenu_entry = m_selct;
 							return STA_SWITCH_VIEW;
 						}
 					}
@@ -901,6 +909,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			}
 
 			return STA_NONE;
+		case '/':
 		case KEY_F(3):
 			on_search_next();
 			break;
@@ -1075,7 +1084,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	//
 	// Print title and info
 	//
-	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 	m_ctext->printf("%s\n", vinfo->m_name.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
@@ -1086,7 +1095,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	//
 	if(vinfo->m_tips.size() != 0)
 	{
-		wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+		wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 		m_ctext->printf("Tips\n");
 
 		for(uint32_t j = 0; j < vinfo->m_tips.size(); j++)
@@ -1101,7 +1110,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	//
 //	vector<filtercheck_field_info>* legend = parent->m_datatable->get_legend();
 
-	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 	m_ctext->printf("Columns\n");
 
 	uint32_t j;
@@ -1134,7 +1143,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	//
 	// Print the view ID
 	//
-	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 	m_ctext->printf("ID\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
@@ -1145,7 +1154,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	//
 	if(vinfo->m_filter != "")
 	{
-		wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
+		wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 		m_ctext->printf("Filter\n");
 
 		wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
@@ -1253,13 +1262,134 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	// Print title and info
 	//
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
-	m_ctext->printf("sysdig %s\nSee man page for full documentation\n\n",
+	m_ctext->printf("XXX %s. See man page for full documentation\n\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("How to use XXX\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(
+"1. you can either see real time data, or analyze a trace file by using the -r command line flag.\n"
+"2. you switch view by using the F2 key.\n"
+"3. you drill down into a selection by clicking enter. You drill up by clicking backspace.\n"
+"4. you can observe I/O activity (F5) or see sysdig output (F6) for anything you select.\n"
+);
+
+	//
+	// Explore window keys
+	//
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("\nExplore Window\n",
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
-	m_ctext->printf("Arrows");
+	m_ctext->printf(" Arrows");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": scroll process list\n");
+	m_ctext->printf(": scroll in the list       ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("CTRL+F /");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": incremental search\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("     F2");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": switch view                  ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("F4 \\");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": incremental filtering\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("  Enter");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": drill down                  ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("F10 q");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": quit\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("Bkspace");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": drill up                    ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("DEL c");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": clear the view content\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("   F5 e");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": echo FDs for selection         ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("F7");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": see info page for the selected view\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("   F6 d");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": sysdig output for selection     ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("P");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": Pause visualization\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf(" ? F1 h");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": show this help screen\n");
+
+	//
+	// Text windows keys
+	//
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("\nEcho and sysdig Windows\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf(" Arrows");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": scroll up and down       ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("CTRL+F /");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": search\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("Bkspace");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": drill up                  ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("     F3");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": find next\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("     F2");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": choose buffer print format      ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("P");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": Pause visualization\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("  DEL c");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": clear the screen\n");
 
 	//
 	// Done. Refresh the screen
@@ -1302,14 +1432,6 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 			m_ctext->down();
 			render();
 			return STA_NONE;
-		case KEY_LEFT:
-			m_ctext->left();
-			render();
-			return STA_NONE;
-		case KEY_RIGHT:
-			m_ctext->right();
-			render();
-			return STA_NONE;
 		case KEY_PPAGE:
 			m_ctext->page_up();
 			render();
@@ -1328,6 +1450,9 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 			m_ctext->jump_to_last_line();
 			render();
 			return STA_NONE;
+		case KEY_F(10):
+		case 'q':
+			return STA_PARENT_HANDLE;
 		default:
 		break;
 	}

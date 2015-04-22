@@ -669,6 +669,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 			}
 			break;
 		case 'c':
+		case KEY_DC:
 			if(m_type == sinsp_table::TT_LIST)
 			{
 				m_table->clear();

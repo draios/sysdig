@@ -124,7 +124,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_menuitems.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL));
 	m_menuitems.push_back(sinsp_menuitem_info("F2", "Views", sinsp_menuitem_info::ALL));
 	m_menuitems.push_back(sinsp_menuitem_info("F4", "Filter", sinsp_menuitem_info::ALL));
-	m_menuitems.push_back(sinsp_menuitem_info("F5", "Spy IO", sinsp_menuitem_info::TABLE));
+	m_menuitems.push_back(sinsp_menuitem_info("F5", "Echo", sinsp_menuitem_info::TABLE));
 	m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE));
 	m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL));
 	m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL));
@@ -279,6 +279,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		// Create the visualization component
 		//
 		m_spy_box = new curses_textbox(m_inspector, this, m_selected_view);
+		m_spy_box->reset();
 		m_chart = m_spy_box;
 		m_spy_box->set_filter(m_complete_filter);
 	}
@@ -627,7 +628,7 @@ void sinsp_cursesui::render_spy_main_menu()
 	k += 7;
 
 	attrset(m_colors[PROCESS]);
-	fks = "F3";
+	fks = "CTRL+F";
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 10);
 	k += fks.size();
 	attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
@@ -965,7 +966,7 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	{
 		m_eof = 0;
 		m_last_progress_evt = 0;
-		restart_capture(true);
+		restart_capture(is_spy_switch);
 	}
 	else
 	{
@@ -1554,14 +1555,19 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	// Pass the event to the table viz
 	//
-	sysdig_table_action actn = m_viz->handle_input(ch);
-	if(actn != STA_PARENT_HANDLE)
+	if(m_viz)
 	{
-		return actn;
+		sysdig_table_action actn = m_viz->handle_input(ch);
+		if(actn != STA_PARENT_HANDLE)
+		{
+			return actn;
+		}
 	}
 
 	switch(ch)
 	{
+		case '?':
+		case 'h':
 		case KEY_F(1):
 			m_mainhelp_page = new curses_mainhelp_page(this);
 			break;
@@ -1605,6 +1611,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			}
 
 			break;
+		case '/':
 		case 6:	// CTRL+F
 			m_search_caller_interface = NULL;
 			m_output_searching = true;
@@ -1615,6 +1622,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			break;
 		//case KEY_F(3):
 		//	break;
+		case '\\':
 		case KEY_F(4):
 			m_search_caller_interface = NULL;
 			m_output_filtering = true;
@@ -1623,7 +1631,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			render();
 			break;
 		case KEY_F(5):
-		case 's':
+		case 'e':
 			if(m_datatable == NULL)
 			{
 				//
@@ -1641,6 +1649,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			if(m_datatable->m_sample_data != NULL && m_datatable->m_sample_data->size() != 0)
 			{
+				m_selected_sidemenu_entry = 0;
 				return STA_SPY;
 			}
 			break;
@@ -1663,6 +1672,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			if(m_datatable->m_sample_data != NULL && m_datatable->m_sample_data->size() != 0)
 			{
+				m_selected_sidemenu_entry = 0;
 				return STA_DIG;
 			}
 

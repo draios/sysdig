@@ -400,6 +400,7 @@ public:
 	curses_table_sidemenu* m_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;
 	curses_mainhelp_page* m_mainhelp_page;
+	curses_textbox* m_spy_box;
 #endif
 
 private:
@@ -426,8 +427,6 @@ private:
 	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
 	void print_progress(double progress);
 	void show_selected_view_info();
-
-	curses_textbox* m_spy_box;
 #endif
 
 	sinsp* m_inspector;
