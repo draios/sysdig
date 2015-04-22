@@ -3738,6 +3738,12 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, uint32_t str_l
 	else if(m_field->m_type == PT_RELTIME)
 	{
 		uint64_t val = (uint64_t)*(uint64_t*)rawval;
+
+		if(m_cnt > 1)
+		{
+			val /= m_cnt;
+		}
+
 		return format_time(val, str_len);
 	}
 	else if(m_field->m_type == PT_DOUBLE)
