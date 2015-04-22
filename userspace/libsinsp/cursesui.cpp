@@ -1473,6 +1473,32 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 sysdig_table_action sinsp_cursesui::handle_input(int ch)
 {
+	if(m_mainhelp_page != NULL)
+	{
+		sysdig_table_action actn = m_mainhelp_page->handle_input(ch);
+
+		if(actn == STA_DESTROY_CHILD)
+		{
+			delete m_mainhelp_page;
+			m_mainhelp_page = NULL;
+			
+			if(m_viz != NULL)
+			{
+				m_viz->render(true);
+			}
+
+			if(m_spy_box)
+			{
+				m_spy_box->render();
+			}
+
+			render();
+			return STA_NONE;
+		}
+
+		return actn;
+	}
+
 	if(m_sidemenu)
 	{
 		sysdig_table_action ta = m_sidemenu->handle_input(ch);
@@ -1526,25 +1552,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			{
 				m_viz->render(true);
 			}
-			render();
-			return STA_NONE;
-		}
 
-		return actn;
-	}
-
-	if(m_mainhelp_page != NULL)
-	{
-		sysdig_table_action actn = m_mainhelp_page->handle_input(ch);
-
-		if(actn == STA_DESTROY_CHILD)
-		{
-			delete m_mainhelp_page;
-			m_mainhelp_page = NULL;
-			if(m_viz != NULL)
-			{
-				m_viz->render(true);
-			}
 			render();
 			return STA_NONE;
 		}

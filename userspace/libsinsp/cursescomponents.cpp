@@ -822,10 +822,11 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 
 	switch(ch)
 	{
-		case KEY_BACKSPACE:
-			return STA_DRILLUP;
+		case KEY_F(1):
 		case 'q':
 			return STA_PARENT_HANDLE;
+		case KEY_BACKSPACE:
+			return STA_DRILLUP;
 		case KEY_UP:
 			m_ctext->up();
 			render();
@@ -1421,6 +1422,9 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 
 	switch(ch)
 	{
+		case 'q':
+		case KEY_F(10):
+			return STA_PARENT_HANDLE;
 		case KEY_UP:
 			m_ctext->up();
 			render();
@@ -1450,9 +1454,6 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 			m_ctext->jump_to_last_line();
 			render();
 			return STA_NONE;
-		case KEY_F(10):
-		case 'q':
-			return STA_PARENT_HANDLE;
 		default:
 		break;
 	}
