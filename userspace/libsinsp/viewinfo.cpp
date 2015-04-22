@@ -52,7 +52,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	m_does_groupby = false;
 	m_type = type;
 	m_tags = tags;	
-	m_tips = tips;	
+	m_tips = tips;
 	m_columns = columns;
 	m_drilldown_target = drilldown_target;
 	m_is_root = is_root;
@@ -132,6 +132,34 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 
 	m_filter = filter;
 	m_valid = true;
+}
+
+void sinsp_view_info::apply_tag(string tag)
+{
+	for(auto it = m_columns.begin(); it != m_columns.end();)
+	{
+		bool found = false;
+
+		if(it->m_tags.size() != 0)
+		{
+			for(string t : it->m_tags)
+			{
+				if(t == tag)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if(!found)
+			{
+				it = m_columns.erase(it);
+				continue;
+			}
+		}
+
+		++it;
+	}
 }
 
 void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)

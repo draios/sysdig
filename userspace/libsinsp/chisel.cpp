@@ -389,6 +389,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 
 	lua_pushnil(ls);
 
+	string tmpstr;
 	string name;
 	string description;
 	string field;
@@ -396,6 +397,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	uint32_t flags = TEF_NONE;
 	sinsp_field_aggregation aggregation = A_NONE;
 	sinsp_field_aggregation groupby_aggregation = A_NONE;
+	vector<string> tags;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -487,6 +489,32 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 				groupby_aggregation = string_to_aggregation(ag);
 			}
 		}
+		else if(fldname == "tags")
+		{
+			if(lua_istable(ls, -1))
+			{
+				lua_pushnil(ls);
+
+				while(lua_next(ls, -2) != 0)
+				{
+					if(lua_isstring(ls, -1))
+					{
+						tmpstr = lua_tostring(ls, -1);
+						tags.push_back(tmpstr);
+					}
+					else
+					{
+						throw sinsp_exception("tags column entries must be strings");
+					}
+
+					lua_pop(ls, 1);
+				}
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+			}
+		}
 
 		lua_pop(ls, 1);
 	}
@@ -497,7 +525,8 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		colsize, 
 		(uint32_t)flags, 
 		aggregation, 
-		groupby_aggregation));
+		groupby_aggregation,
+		tags));
 }
 
 void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
@@ -579,7 +608,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 					}
 					else
 					{
-						throw sinsp_exception("tags column entries must be strings");
+						throw sinsp_exception("tags entries must be strings");
 					}
 
 					lua_pop(ls, 1);

@@ -46,12 +46,13 @@ class sinsp_view_column_info
 {
 public:
 	sinsp_view_column_info(string field,
-	string name,
-	string description,
-	uint32_t colsize,
-	uint32_t flags,
-	sinsp_field_aggregation aggregation,
-	sinsp_field_aggregation groupby_aggregation)
+		string name,
+		string description,
+		uint32_t colsize,
+		uint32_t flags,
+		sinsp_field_aggregation aggregation,
+		sinsp_field_aggregation groupby_aggregation,
+		vector<string> tags)
 	{
 		m_field = field;
 		m_name = name;
@@ -60,6 +61,7 @@ public:
 		m_aggregation = aggregation;
 		m_groupby_aggregation = groupby_aggregation;
 		m_flags = flags;
+		m_tags = tags;
 	}
 
 	string m_field;
@@ -69,6 +71,7 @@ public:
 	sinsp_field_aggregation m_aggregation;
 	sinsp_field_aggregation m_groupby_aggregation;
 	uint32_t m_flags;
+	vector<string> m_tags;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -104,10 +107,13 @@ public:
 	{
 		return m_type;
 	}
+
 	bool does_groupby()
 	{
 		return m_does_groupby;
 	}
+
+	void apply_tag(string tag);
 
 	string m_id;
 	string m_name;

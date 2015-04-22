@@ -84,6 +84,12 @@ view_info =
 			aggregation = "SUM"
 		},
 		{
+			tags = {"containers"},
+			name = "Container",
+			field = "container.name",
+			colsize = 15
+		},
+		{
 			name = "Command",
 			description = "The full command line of the process.",
 			field = "proc.exeline",

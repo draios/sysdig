@@ -1456,6 +1456,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 	captureinfo cinfo;
 	string errorstr;
 	string display_view;
+	bool print_containers = false;
 
 	static struct option long_options[] =
 	{
@@ -1464,6 +1465,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		{"help", no_argument, 0, 'h' },
 		{"numevents", required_argument, 0, 'n' },
 		{"readfile", required_argument, 0, 'r' },
+		{"print", required_argument, 0, 'p' },
 		{"snaplen", required_argument, 0, 's' },
 		{"logfile", required_argument, 0, 0 },
 		{"version", no_argument, 0, 0 },
@@ -1507,7 +1509,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehn:r:s:", long_options, &long_index)) != -1)
+			"d:Ehn:p:r:s:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -1535,6 +1537,13 @@ sysdig_init_res systop_init(int argc, char **argv)
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
+				break;
+			case 'p':
+				if(string(optarg) == "c" || string(optarg) == "container")
+				{
+					print_containers = true;
+				}
+
 				break;
 			case 'r':
 				infiles.push_back(optarg);
@@ -1631,7 +1640,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 */
 
 		//
-		// Scan the chisel list to load the Lua view, and add them to the list
+		// Scan the chisel list to load the Lua views, and add them to the list
 		//
 		vector<chisel_desc> chlist;
 		sinsp_chisel::get_chisel_list(&chlist);
@@ -1640,6 +1649,15 @@ sysdig_init_res systop_init(int argc, char **argv)
 		{
 			if(it.m_viewinfo.m_valid)
 			{
+				if(print_containers)
+				{
+					it.m_viewinfo.apply_tag("containers");
+				}
+				else
+				{
+					it.m_viewinfo.apply_tag("Default");
+				}
+
 				if(it.m_viewinfo.m_tags.size() != 0)
 				{
 					if(it.m_viewinfo.m_tags[0] == "Containers")
@@ -1800,8 +1818,8 @@ int main(int argc, char **argv)
 
 //
 #ifdef _WIN32
-//	res = systop_init(argc, argv);
-//	return 0;
+	res = systop_init(argc, argv);
+	return 0;
 #endif
 //
 #ifdef SYSTOP
