@@ -20,7 +20,10 @@ view_info =
 	id = "top_syscalls",
 	name = "Top System Calls",
 	description = "Show the top system calls in the system based on number of invocations and time spent calling them.",
-	tips = {"This view is useful to spot not only system activity saturation, but also things like high wait time.", "Drill down by clicking enter on a system call to see which processes are using it."},
+	tips = {
+		"This view is useful to spot not only system activity saturation, but also things like high wait time.", 
+		"Drill down by clicking enter on a system call to see which processes are using it.",
+		"The AVG TIME column is useful to identify system operations that tend to be consistently slow and can be the cause of bottlenecks."},
 	tags = {"Default"},
 	view_type = "table",
 	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport,fd.name,fd.directory,evt.res",
