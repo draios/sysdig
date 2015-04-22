@@ -51,7 +51,8 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_server", "'true' if the process owning this FD is the server endpoint in the connection."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.uid", "a unique identifier for the FD, created by chaining the FD number and the thread ID."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containername", "chaining the container ID and the FD name. Useful when trying to identify which container an FD belongs to."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containername", "chaining of the container ID and the FD name. Useful when trying to identify which container an FD belongs to."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containerdirectory", "chaining of the container ID and the directory name. Useful when trying to identify which container a directory belongs to."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -226,6 +227,33 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return NULL;
 		}
 	}
+	case TYPE_CONTAINERDIRECTORY:
+	{
+		if(extract_fdname_from_creator(evt, len) == true)
+		{
+			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+
+			size_t pos = m_tstr.rfind('/');
+			if(pos != string::npos)
+			{
+				if(pos < m_tstr.size() - 1)
+				{
+					m_tstr.resize(pos);
+				}
+			}
+			else
+			{
+				m_tstr = "/";
+			}
+
+			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			return (uint8_t*)m_tstr.c_str();
+		}
+		else
+		{
+			return NULL;
+		}
+	}
 	case TYPE_FILENAME:
 	{
 		if(evt->get_type() != PPME_SYSCALL_OPEN_E && evt->get_type() != PPME_SYSCALL_OPENAT_E &&
@@ -372,6 +400,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 		return (uint8_t*)m_fdinfo->get_typestring();
 	case TYPE_DIRECTORY:
+	case TYPE_CONTAINERDIRECTORY:
 		{
 			if(m_fdinfo == NULL)
 			{
@@ -400,6 +429,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				{
 					m_tstr = "/";
 				}
+			}
+
+			if(m_field_id == TYPE_CONTAINERDIRECTORY)
+			{
+				m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
 			}
 
 			return (uint8_t*)m_tstr.c_str();

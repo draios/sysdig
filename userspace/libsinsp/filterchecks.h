@@ -235,6 +235,7 @@ public:
 		TYPE_IS_SERVER = 14,
 		TYPE_UID = 15,
 		TYPE_CONTAINERNAME = 16,
+		TYPE_CONTAINERDIRECTORY = 17,
 	};
 
 	enum fd_type

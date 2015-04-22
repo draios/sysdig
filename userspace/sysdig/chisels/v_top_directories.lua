@@ -30,8 +30,15 @@ view_info =
 	columns = 
 	{
 		{
+			tags = {"default"},
 			name = "NA",
 			field = "fd.directory",
+			is_key = true
+		},
+		{
+			tags = {"containers"},
+			name = "NA",
+			field = "fd.containerdirectory",
 			is_key = true
 		},
 		{
@@ -69,6 +76,12 @@ view_info =
 			description = "Number I/O errors that happened on this file.",
 			colsize = 9,
 			aggregation = "SUM"
+		},
+		{
+			tags = {"containers"},
+			name = "Container",
+			field = "container.name",
+			colsize = 15
 		},
 		{
 			name = "DIRNAME",

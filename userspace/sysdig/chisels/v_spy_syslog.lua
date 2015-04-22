@@ -52,6 +52,12 @@ view_info =
 			colsize = 8,
 		},
 		{
+			tags = {"containers"},
+			name = "Container",
+			field = "container.name",
+			colsize = 15
+		},
+		{
 			name = "MESSAGE",
 			field = "syslog.message",
 			description = "Message sent to syslog",

@@ -30,6 +30,13 @@ view_info =
 	columns = 
 	{
 		{
+			tags = {"default"},
+			name = "NA",
+			field = "fd.name",
+			is_key = true
+		},
+		{
+			tags = {"containers"},
 			name = "NA",
 			field = "fd.containername",
 			is_key = true
@@ -87,15 +94,17 @@ view_info =
 			aggregation = "SUM"
 		},
 		{
+			tags = {"containers"},
+			name = "Container",
+			field = "container.name",
+			description = "Name of the container. What this field contains depends on the containerization technology. For example, for docker this is the content of the 'NAMES' column in 'docker ps'",
+			colsize = 15
+		},
+		{
 			name = "Command",
 			description = "The full command line of the process owning the connection's socket.",
 			field = "proc.exeline",
 			colsize = 200
 		}
---		,{
---			name = "Container",
---			field = "container.name",
---			colsize = 15
---		}
 	}
 }

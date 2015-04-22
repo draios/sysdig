@@ -46,6 +46,13 @@ view_info =
 			colsize = 40,
 		},
 		{
+			tags = {"containers"},
+			name = "Container",
+			field = "container.name",
+			description = "Name of the container. What this field contains depends on the containerization technology. For example, for docker this is the content of the 'NAMES' column in 'docker ps'",
+			colsize = 15
+		},
+		{
 			name = "Command",
 			field = "proc.exeline",
 			description = "The program that opened the file, including its arguments.",

@@ -41,7 +41,8 @@ view_info =
 			field = "thread.pfmajor",
 			description = "Number of major page faults that the process generated since its start.",
 			colsize = 9,
-			aggregation = "MAX"
+			aggregation = "MAX",
+			is_sorting = true
 		},
 		{
 			name = "MINOR",
@@ -55,6 +56,19 @@ view_info =
 			description = "Process PID.",
 			field = "proc.pid",
 			colsize = 8,
+		},
+		{
+			name = "VPID",
+			field = "proc.vpid",
+			description = "PID that the process has inside the container.",
+			colsize = 8,
+		},
+		{
+			tags = {"containers"},
+			name = "Container",
+			field = "container.name",
+			description = "Name of the container. What this field contains depends on the containerization technology. For example, for docker this is the content of the 'NAMES' column in 'docker ps'",
+			colsize = 15
 		},
 		{
 			name = "Command",

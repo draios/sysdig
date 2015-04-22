@@ -1655,7 +1655,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				}
 				else
 				{
-					it.m_viewinfo.apply_tag("Default");
+					it.m_viewinfo.apply_tag("default");
 				}
 
 				if(it.m_viewinfo.m_tags.size() != 0)

@@ -62,10 +62,5 @@ view_info =
 			colsize = 12,
 			aggregation = "SUM"
 		}
---		,{
---			name = "Container",
---			field = "container.name",
---			colsize = 15
---		}
 	}
 }
