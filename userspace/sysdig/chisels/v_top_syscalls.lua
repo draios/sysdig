@@ -43,11 +43,18 @@ view_info =
 			aggregation = "SUM"
 		},
 		{
-			name = "TIME",
+			name = "TOT TIME",
 			field = "evt.latency",
-			description = "Total time spent waiting for this system call to return.",
+			description = "Total time spent waiting for the given system call to return.",
 			colsize = 10,
 			aggregation = "SUM"
+		},
+		{
+			name = "AVG TIME",
+			field = "evt.latency",
+			description = "Average time spent in the given system call. This is calculated dividing the value under TOT TIME by the value under COUNT.",
+			colsize = 10,
+			aggregation = "AVG"
 		},
 		{
 			name = "SYSCALL",
