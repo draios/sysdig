@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_procs",
+	id = "procs",
 	name = "Processes",
 	description = "This is the typical top/htop process list, showing usage of resources like CPU, memory, disk and network on a by process basis.",
 	tips = {"This is a perfect view to start a drill down session. Click enter or double click on a process to dive into it and explore its behavior."},
@@ -25,7 +25,7 @@ view_info =
 	view_type = "table",
 	applies_to = "all,container.id,fd.name,fd.sport,evt.type,fd.directory,fd.type",
 	is_root = true,
-	drilldown_target = "top_threads",
+	drilldown_target = "threads",
 	use_defaults = true,
 	columns = 
 	{

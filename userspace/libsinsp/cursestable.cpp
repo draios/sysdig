@@ -381,7 +381,9 @@ void curses_table::render(bool data_changed)
 				coltext = coltext.substr(0, m_legend[j].m_size - 1);
 			}
 
-			curses_table::alignment al = get_field_alignment(m_table->m_types->at(j + 1));
+			uint32_t tindex = m_table->m_do_merging? j + 2 : j + 1;
+
+			curses_table::alignment al = get_field_alignment(m_table->m_types->at(tindex));
 			if(al == curses_table::ALIGN_RIGHT)
 			{
 				coltext.insert(0, m_legend[j].m_size - coltext.size() - 1, ' ');

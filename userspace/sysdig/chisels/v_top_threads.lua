@@ -17,14 +17,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_threads",
-	name = "Top Threads",
+	id = "threads",
+	name = "Threads",
 	description = "This view is available for processes, and lists the threads inside the process, showing usage of resources like CPU, memory, disk and network for each thread.",
 	tags = {"Default"},
 	view_type = "table",
 	applies_to = "proc.pid,proc.name,container.id,fd.sport,fd.name,fd.directory,evt.res",
 	is_root = true,
-	drilldown_target = "top_files",
+	drilldown_target = "files",
 	use_defaults = true,
 	columns = 
 	{

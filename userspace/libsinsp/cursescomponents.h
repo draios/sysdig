@@ -191,9 +191,9 @@ public:
 	curses_mainhelp_page(sinsp_cursesui* parent);
 	~curses_mainhelp_page();
 	sysdig_table_action handle_input(int ch);
+	void render();
 
 private:
-	void render();
 
 	WINDOW* m_win;
 	sinsp_cursesui* m_parent;
@@ -206,9 +206,9 @@ public:
 	curses_viewinfo_page(sinsp_cursesui* parent, uint32_t viewnum, uint32_t starty, uint32_t startx, uint32_t h, uint32_t w);
 	~curses_viewinfo_page();
 	sysdig_table_action handle_input(int ch);
+	void render();
 
 private:
-	void render();
 
 	WINDOW* m_win;
 	sinsp_cursesui* m_parent;

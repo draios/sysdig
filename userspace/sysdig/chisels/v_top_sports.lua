@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_sports",
-	name = "Top Server Ports",
+	id = "sports",
+	name = "Server Ports",
 	description = "This view lists all of the server ports in terms of network bandwidth usage.",
 	tips = {"Want to restrict this visualization to a single process or container? Just drill down into them before applying it.", 
 		"Select a port and drill down with the 'Top Processes' view to see which processes are generating traffic on a port."},
@@ -26,7 +26,7 @@ view_info =
 	applies_to = "all,container.id,proc.pid,thread.tid,proc.name,evt.res",
 	filter = "fd.type=ipv4 and fd.name!=''",
 	use_defaults = true,
-	drilldown_target = "top_procs",
+	drilldown_target = "procs",
 	columns = 
 	{
 		{

@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_errors",
-	name = "Top Errors",
+	id = "errors",
+	name = "Errors",
 	description = "This view shows the top system call errors, sorted by number of occurrences. Errors are shows as errno codes. Do a 'man errno' to find the meaning of the most important codes.",
 	tips = {
 		"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation.",
@@ -29,7 +29,7 @@ view_info =
 	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport,fd.directory",
 	filter = "evt.res != SUCCESS",
 	use_defaults = true,
-	drilldown_target = "top_procs",
+	drilldown_target = "procs",
 	columns = 
 	{
 		{

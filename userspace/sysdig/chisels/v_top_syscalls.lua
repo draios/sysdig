@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_syscalls",
-	name = "Top System Calls",
+	id = "syscalls",
+	name = "System Calls",
 	description = "Show the top system calls in the system based on number of invocations and time spent calling them.",
 	tips = {
 		"This view is useful to spot not only system activity saturation, but also things like high wait time.", 
@@ -29,7 +29,7 @@ view_info =
 	applies_to = "all,container.id,proc.pid,proc.name,thread.tid,fd.sport,fd.name,fd.directory,evt.res",
 	use_defaults = true,
 	filter = "syscall.type exists",
-	drilldown_target = "top_syscall_procs",
+	drilldown_target = "syscall_procs",
 	columns = 
 	{
 		{

@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_conns",
-	name = "Top Connections",
+	id = "conns",
+	name = "Connections",
 	description = "Top network connections. This view lists all of the network connections that were active during the last sampling interval, with details for each of them.",
 	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation."},
 	tags = {"Default"},

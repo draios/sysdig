@@ -286,6 +286,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 
 	switch(ch)
 	{
+		case KEY_F(1):
 		case KEY_HOME:
 		case KEY_END:
 			return STA_NONE;
@@ -1422,6 +1423,8 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 
 	switch(ch)
 	{
+		case KEY_F(1):
+			return STA_NONE;
 		case 'q':
 		case KEY_F(10):
 			return STA_PARENT_HANDLE;

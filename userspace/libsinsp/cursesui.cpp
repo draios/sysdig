@@ -1481,15 +1481,20 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		{
 			delete m_mainhelp_page;
 			m_mainhelp_page = NULL;
-			
+
+			if(m_spy_box)
+			{
+				m_spy_box->render();
+			}
+
 			if(m_viz != NULL)
 			{
 				m_viz->render(true);
 			}
 
-			if(m_spy_box)
+			if(m_viewinfo_page)
 			{
-				m_spy_box->render();
+				m_viewinfo_page->render();
 			}
 
 			render();

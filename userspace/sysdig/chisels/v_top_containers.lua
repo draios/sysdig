@@ -17,16 +17,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_containers",
-	name = "Top Containers",
+	id = "containers",
+	name = "Containers",
 	description = "List all the containers running on this machine, and the resources that each of them uses.",
 	tips = {"Select a container and click enter to drill down into it. At that point, you will be able to access several views that will show you the details of the selected container."},
---	tags = {"Containers"},
 	view_type = "table",
 	applies_to = "all,evt.res",
 	filter = "container.name != host",
 	use_defaults = true,
-	drilldown_target = "top_cont_procs",
+	drilldown_target = "cont_procs",
 	columns = 
 	{
 		{

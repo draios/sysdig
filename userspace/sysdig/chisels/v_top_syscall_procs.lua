@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "top_syscall_procs",
-	name = "Top Syscall Callers",
+	id = "syscall_procs",
+	name = "Syscall Callers",
 	description = "Show the top processes based on number of system call invocations and time spent calling them.",
 	tags = {"Default"},
 	view_type = "table",
