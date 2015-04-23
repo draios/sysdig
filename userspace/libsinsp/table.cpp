@@ -1219,6 +1219,8 @@ uint8_t* sinsp_table::get_default_val(filtercheck_field_info* fld)
 	case PT_UINT32:
 	case PT_UINT64:
 	case PT_BOOL:
+	case PT_RELTIME:
+	case PT_ABSTIME:
 		if(fld->m_print_format == PF_DEC)
 		{
 			return (uint8_t*)&m_zero_u64;

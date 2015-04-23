@@ -219,6 +219,16 @@ public:
 	{
 		uint64_t ts = evt->get_ts();
 
+		if(!m_inspector->is_live())
+		{
+			if(m_1st_evt_ts == 0)
+			{
+				m_1st_evt_ts = ts;	
+			}
+
+			m_last_evt_ts = ts;	
+		}
+
 		//
 		// Process the user input
 		//
@@ -448,4 +458,9 @@ private:
 	sinsp_chart* m_chart;
 	search_caller_interface* m_search_caller_interface;
 	int32_t m_search_start_x, m_search_start_y;
+	uint64_t m_n_evts_in_file;
+	uint64_t m_1st_evt_ts;
+	uint64_t m_last_evt_ts;
+	uint64_t m_evt_ts_delta;
+	sinsp_filter_check_reference* m_timedelta_formatter;
 };

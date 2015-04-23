@@ -42,6 +42,11 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_input_check_period_ns = UI_USER_INPUT_CHECK_PERIOD_NS;
 	m_search_nomatch = false;
 	m_chart = NULL;
+	m_n_evts_in_file = 0;
+	m_1st_evt_ts = 0;
+	m_last_evt_ts = 0;
+	m_evt_ts_delta = 0;
+	m_timedelta_formatter = new sinsp_filter_check_reference();
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 	m_spy_box = NULL;
@@ -166,6 +171,8 @@ sinsp_cursesui::~sinsp_cursesui()
 		delete m_mainhelp_page;
 	}
 #endif
+
+	delete m_timedelta_formatter;
 }
 
 void sinsp_cursesui::configure(sinsp_view_manager* views)
@@ -313,11 +320,12 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 void sinsp_cursesui::render_header()
 {
 	uint32_t j = 0;
+	uint32_t k;
 
 	//
 	// Show the 'viewing' line
 	//
-	attrset(m_colors[PROCESS]);
+	attrset(m_colors[HELP_BOLD]);
 	move(0, 0);
 	for(j = 0; j < m_screenw; j++)
 	{
@@ -326,7 +334,7 @@ void sinsp_cursesui::render_header()
 
 	mvaddstr(0, 0, "Viewing:");
  
-	attrset(m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	attrset(m_colors[sinsp_cursesui::PROCESS]);
 
 	string vs;
 
@@ -383,7 +391,7 @@ void sinsp_cursesui::render_header()
 	//
 	// Show the 'filter' line
 	//
-	attrset(m_colors[PROCESS]);
+	attrset(m_colors[HELP_BOLD]);
 
 	move(1, 0);
 	for(uint32_t j = 0; j < m_screenw; j++)
@@ -391,10 +399,49 @@ void sinsp_cursesui::render_header()
 		addch(' ');
 	}
 
-	mvaddstr(1, 0, "Filter:");
-	uint32_t k = sizeof("Filter: ") - 1;
+	attrset(m_colors[HELP_BOLD]);
 
-	attrset(m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	mvaddstr(1, 0, "Source:");
+	k = sizeof("Source: ") - 1;
+
+	attrset(m_colors[sinsp_cursesui::PROCESS]);
+	
+	string srcstr;
+	
+	if(m_inspector->is_live())
+	{
+		srcstr = "Live System";
+	}
+	else
+	{
+		if(m_n_evts_in_file == 0)
+		{
+			m_n_evts_in_file = m_inspector->get_num_events();
+			m_evt_ts_delta = m_last_evt_ts - m_1st_evt_ts;
+		}
+
+		srcstr = m_inspector->get_input_filename();
+		srcstr += " (" + to_string(m_n_evts_in_file) + " evts, ";
+
+		m_timedelta_formatter->set_val(PT_RELTIME, 
+			(uint8_t*)&m_evt_ts_delta,
+			8,
+			0,
+			ppm_print_format::PF_DEC);
+
+			srcstr += string(m_timedelta_formatter->tostring_nice(NULL, 0)) + ")";
+	}
+
+	mvaddnstr(1, k, srcstr.c_str(), m_screenw - k - 1);
+
+	k += srcstr.size() + 1;
+
+	attrset(m_colors[HELP_BOLD]);
+
+	mvaddstr(1, k, "Filter:");
+	k += sizeof("Filter: ") - 1;
+
+	attrset(m_colors[sinsp_cursesui::PROCESS]);
 	
 	if(m_complete_filter != "")
 	{

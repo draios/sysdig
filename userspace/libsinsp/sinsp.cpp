@@ -1320,11 +1320,6 @@ sinsp_evt::param_fmt sinsp::get_buffer_format()
 	return m_buffer_format;
 }
 
-bool sinsp::is_live()
-{
-	return m_islive;
-}
-
 void sinsp::set_debug_mode(bool enable_debug)
 {
 	m_isdebug_enabled = enable_debug;

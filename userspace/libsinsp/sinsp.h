@@ -524,7 +524,10 @@ public:
 	/*!
 	  \brief Returns true if the current capture is live.
 	*/
-	bool is_live();
+	inline bool is_live()
+	{
+		return m_islive;		
+	}
 
 	/*!
 	  \brief Set the debugging mode of the inspector.
