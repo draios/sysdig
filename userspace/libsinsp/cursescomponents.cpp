@@ -302,6 +302,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			return STA_SWITCH_VIEW;
 		case KEY_BACKSPACE:
 		case 27: // ESC
+		case KEY_RESIZE:
 			ASSERT(m_selct < (int32_t)m_entries->size());
 			if(m_parent->m_spy_box == NULL)
 			{
@@ -771,6 +772,7 @@ void curses_textbox::render_header()
 	move(2, 0);
 	attrset(m_parent->m_colors[sinsp_cursesui::FUNCTION_BAR]);
 
+g_logger.format("$$ %d", m_parent->m_screenw);
 	for(uint32_t j = 0; j < m_parent->m_screenw; j++)
 	{
 		addch(' ');
@@ -825,6 +827,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 	{
 		case KEY_F(1):
 		case 'q':
+		case KEY_RESIZE:
 			return STA_PARENT_HANDLE;
 		case KEY_BACKSPACE:
 			return STA_DRILLUP;
@@ -1427,6 +1430,7 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 			return STA_NONE;
 		case 'q':
 		case KEY_F(10):
+		case KEY_RESIZE:
 			return STA_PARENT_HANDLE;
 		case KEY_UP:
 			m_ctext->up();

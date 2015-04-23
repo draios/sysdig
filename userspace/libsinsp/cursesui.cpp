@@ -1745,8 +1745,34 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				m_screenh,
 				m_screenw);
 			break;
+		case KEY_RESIZE:
+			getmaxyx(stdscr, m_screenh, m_screenw);
+			
+			render();
+
+			if(m_spy_box)
+			{
+				m_spy_box->render();
+				m_spy_box->render();
+			}
+
+			if(m_viz != NULL)
+			{
+				m_viz->render(true);
+				m_viz->render(true);
+			}
+
+			if(m_viewinfo_page)
+			{
+				m_viewinfo_page->render();
+				m_viewinfo_page->render();
+			}
+
+			render();
+
+			break;
 		default:
-		break;
+			break;
 	}
 
 	return STA_NONE;
