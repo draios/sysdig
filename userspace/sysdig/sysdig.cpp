@@ -1512,7 +1512,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehn:p:r:s:", long_options, &long_index)) != -1)
+			"d:Ehn:p:r:s:v:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
