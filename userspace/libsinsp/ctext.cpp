@@ -933,6 +933,8 @@ int16_t ctext::redraw_partial(
 	// We need to get relative start and end positions.
 	ctext_pos win_start, win_end;
 
+	buf_start_x = max(0, buf_start_x);
+
 	ret = this->map_to_win(buf_start_x, buf_start_y, &win_start);
 
 	// This means that none of this will map to screen, 
