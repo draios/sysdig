@@ -1520,6 +1520,19 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 sysdig_table_action sinsp_cursesui::handle_input(int ch)
 {
+	//
+	// Avoid parsing keys during file load
+	//
+	if((!m_inspector->is_live()) && !is_eof())
+	{
+		if(ch != KEY_BACKSPACE && 
+			ch != 'q' &&
+			ch != KEY_F(10))
+		{
+			return STA_NONE;
+		}
+	}
+
 	if(m_mainhelp_page != NULL)
 	{
 		sysdig_table_action actn = m_mainhelp_page->handle_input(ch);

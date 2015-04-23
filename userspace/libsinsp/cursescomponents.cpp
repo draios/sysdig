@@ -289,6 +289,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case KEY_F(1):
 		case KEY_HOME:
 		case KEY_END:
+		case KEY_F(7):
 			return STA_NONE;
 		case '\n':
 		case '\r':
