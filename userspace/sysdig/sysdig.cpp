@@ -1457,10 +1457,11 @@ sysdig_init_res systop_init(int argc, char **argv)
 	string errorstr;
 	string display_view;
 	bool print_containers = false;
+	uint64_t refresh_interval_ns = 2000000000;
 
 	static struct option long_options[] =
 	{
-		{"display", required_argument, 0, 'd' },
+		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"help", no_argument, 0, 'h' },
 		{"numevents", required_argument, 0, 'n' },
@@ -1468,6 +1469,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 		{"print", required_argument, 0, 'p' },
 		{"snaplen", required_argument, 0, 's' },
 		{"logfile", required_argument, 0, 0 },
+		{"view", required_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{0, 0, 0, 0}
 	};
@@ -1481,7 +1483,8 @@ sysdig_init_res systop_init(int argc, char **argv)
 	intrflush(stdscr, false);
 	keypad(stdscr, true);
 	curs_set(0);
-	if (has_colors()) {
+	if (has_colors()) 
+	{
 	  start_color();
 	}	
 	use_default_colors();
@@ -1520,7 +1523,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 				throw sinsp_exception("command line error");
 				break;
 			case 'd':
-				display_view = optarg;
+				refresh_interval_ns = atoi(optarg) * 1000000;
 				break;
 			case 'E':
 				inspector->set_import_users(false);
@@ -1550,6 +1553,9 @@ sysdig_init_res systop_init(int argc, char **argv)
 				break;
 			case 's':
 				snaplen = atoi(optarg);
+				break;
+			case 'v':
+				display_view = optarg;
 				break;
 			case 0:
 				{
@@ -1685,7 +1691,8 @@ sysdig_init_res systop_init(int argc, char **argv)
 			//
 			sinsp_cursesui ui(inspector, 
 				(infiles.size() != 0)? infiles[0] : "",
-				(filter.size() != 0)? filter : "");
+				(filter.size() != 0)? filter : "",
+				refresh_interval_ns);
 
 			ui.configure(&view_manager);
 			ui.start(false, false);

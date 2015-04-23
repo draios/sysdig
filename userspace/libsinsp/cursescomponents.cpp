@@ -773,7 +773,6 @@ void curses_textbox::render_header()
 	move(2, 0);
 	attrset(m_parent->m_colors[sinsp_cursesui::FUNCTION_BAR]);
 
-g_logger.format("$$ %d", m_parent->m_screenw);
 	for(uint32_t j = 0; j < m_parent->m_screenw; j++)
 	{
 		addch(' ');

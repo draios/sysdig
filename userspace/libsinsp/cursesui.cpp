@@ -22,7 +22,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_cursesui::sinsp_cursesui(sinsp* inspector, 
 							   string event_source_name, 
-							   string cmdline_capture_filter)
+							   string cmdline_capture_filter, 
+							   uint64_t refresh_interval_ns)
 {
 	m_inspector = inspector;
 	m_event_source_name = event_source_name;
@@ -47,6 +48,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_last_evt_ts = 0;
 	m_evt_ts_delta = 0;
 	m_timedelta_formatter = new sinsp_filter_check_reference();
+	m_refresh_interval_ns = refresh_interval_ns;
+
 #ifndef NOCURSESUI
 	m_sidemenu = NULL;
 	m_spy_box = NULL;
@@ -262,7 +265,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			ASSERT(false);
 		}
 
-		m_datatable = new sinsp_table(m_inspector, ty);
+		m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns);
 
 		try
 		{

@@ -216,7 +216,7 @@ public:
 		TT_LIST,
 	};
 
-	sinsp_table(sinsp* inspector, tabletype type);
+	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns);
 	~sinsp_table();
 	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults);
 	void process_event(sinsp_evt* evt);
@@ -253,9 +253,9 @@ public:
 	{
 		return m_type;
 	}
-	void set_refresh_interval(uint64_t newinterval)
+	void set_refresh_interval(uint64_t newinterval_ns)
 	{
-		m_refresh_interval = newinterval;
+		m_refresh_interval_ns = newinterval_ns;
 	}
 	void clear();
 	bool is_merging()
@@ -305,7 +305,7 @@ private:
 	uint32_t m_vals_array_sz;
 	uint32_t m_premerge_vals_array_sz;
 	uint32_t m_postmerge_vals_array_sz;
-	uint64_t m_refresh_interval;
+	uint64_t m_refresh_interval_ns;
 	sinsp_filter_check_reference* m_printer;
 	vector<sinsp_sample_row> m_full_sample_data;
 	vector<sinsp_sample_row> m_filtered_sample_data;

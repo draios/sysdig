@@ -195,7 +195,7 @@ public:
 	};
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
-		string cmdline_capture_filter);
+		string cmdline_capture_filter, uint64_t refresh_interval_ns);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -463,4 +463,5 @@ private:
 	uint64_t m_last_evt_ts;
 	uint64_t m_evt_ts_delta;
 	sinsp_filter_check_reference* m_timedelta_formatter;
+	uint64_t m_refresh_interval_ns;
 };
