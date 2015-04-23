@@ -170,7 +170,8 @@ string sinsp_join(It begin, It end, char delim)
 {
 	stringstream ss;
 	ss << *begin;
-	for(auto it = begin+1; it < end; ++it)
+	++begin;
+	for(auto it = begin; it < end; ++it)
 	{
 		ss << delim << *it;
 	}
