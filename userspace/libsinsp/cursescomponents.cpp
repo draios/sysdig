@@ -1305,7 +1305,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	// Explore window keys
 	//
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
-	m_ctext->printf("\nExplore Window\n",
+	m_ctext->printf("\nExplore Window Keys\n",
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
@@ -1377,7 +1377,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	// Text windows keys
 	//
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
-	m_ctext->printf("\nEcho and sysdig Windows\n",
+	m_ctext->printf("\nEcho and sysdig Windows Keys\n",
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
@@ -1416,6 +1416,19 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf(": clear the screen\n");
 
 	//
+	// Mouse
+	//
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("\nMouse Usage\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf("Clicking on column headers lets you sort the table." 
+		"Double clicking on row entries performs a drill down."
+		"Clicking on the filter string allows to change the sysdig filter."
+		"You can click on the entries in the menu at the bottom of the screen to perform their action.\n");
+
+	//
 	// Done. Refresh the screen
 	//
 	m_ctext->redraw();
@@ -1445,11 +1458,12 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 
 	switch(ch)
 	{
+		case KEY_RESIZE:
+			return STA_DESTROY_CHILD;	
 		case KEY_F(1):
 			return STA_NONE;
 		case 'q':
 		case KEY_F(10):
-		case KEY_RESIZE:
 			return STA_PARENT_HANDLE;
 		case KEY_UP:
 			m_ctext->up();

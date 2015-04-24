@@ -1567,8 +1567,10 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			render();
 			return STA_NONE;
 		}
-
-		return actn;
+		else if(actn != STA_PARENT_HANDLE)
+		{
+			return actn;			
+		}
 	}
 
 	if(m_sidemenu)
@@ -1686,7 +1688,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				m_viz->set_x_start(0);
 				delete m_sidemenu;
 				m_sidemenu = NULL;
-				m_viz->recreate_win();
+				m_viz->recreate_win(m_screenh - 3);
 				render();
 			}
 
@@ -1778,6 +1780,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			if(m_viz != NULL)
 			{
+				m_viz->recreate_win(m_screenh - 3);
 				m_viz->render(true);
 				m_viz->render(true);
 			}

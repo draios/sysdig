@@ -714,9 +714,10 @@ curses_table::alignment curses_table::get_field_alignment(ppm_param_type type)
 	}
 }
 
-void curses_table::recreate_win()
+void curses_table::recreate_win(int h)
 {
 	delwin(m_tblwin);
+	m_h = h;
 	m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
 	render(true);
 }

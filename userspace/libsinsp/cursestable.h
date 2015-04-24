@@ -42,7 +42,7 @@ public:
 	{
 		m_table_x_start = x;
 	}
-	void recreate_win();
+	void recreate_win(int h);
 	void update_rowkey(int32_t row);
 	void goto_row(int32_t row);
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
