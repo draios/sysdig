@@ -586,7 +586,7 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 	//
 	if(m_output_filtering)
 	{
-		str = &m_manual_filter;
+		str = &m_complete_filter;
 
 		if(*str == "" && m_is_filter_sysdig && m_complete_filter != "")
 		{
@@ -939,23 +939,25 @@ void sinsp_cursesui::restart_capture(bool is_spy_switch)
 
 void sinsp_cursesui::create_complete_filter()
 {
-	m_complete_filter = m_cmdline_capture_filter;
-
-	if(m_is_filter_sysdig)
+	if(m_is_filter_sysdig && m_manual_filter != "")
 	{
-		m_complete_filter = combine_filters(m_complete_filter, m_manual_filter);
+		m_complete_filter = m_manual_filter;
 	}
-
-	m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
-
-	//
-	// Note: m_selected_view is smaller than 0 when there's no view, because we're doing
-	//       non-view stuff like spying.
-	//
-	if(m_selected_view >= 0)
+	else
 	{
-		m_complete_filter = combine_filters(m_complete_filter, 
-			m_views.at(m_selected_view)->m_filter);
+		m_complete_filter = m_cmdline_capture_filter;
+
+		m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
+
+		//
+		// Note: m_selected_view is smaller than 0 when there's no view, because we're doing
+		//       non-view stuff like spying.
+		//
+		if(m_selected_view >= 0)
+		{
+			m_complete_filter = combine_filters(m_complete_filter, 
+				m_views.at(m_selected_view)->m_filter);
+		}
 	}
 }
 
@@ -1130,6 +1132,8 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	render();
 #endif
 
+	m_manual_filter = "";
+
 	return true;
 }
 
@@ -1168,6 +1172,8 @@ bool sinsp_cursesui::drillup()
 	{
 		string field;
 		sinsp_ui_selection_info* sinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+
+		m_manual_filter = "";
 
 		if(m_sel_hierarchy.m_hierarchy.size() > 1)
 		{
@@ -1334,7 +1340,6 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		case KEY_F(4):
 			closing = true;
 			curs_set(0);
-			render();
 
 			if(m_is_filter_sysdig)
 			{
@@ -1821,6 +1826,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 						m_search_caller_interface = NULL;
 						m_is_filter_sysdig = true;
 						m_output_filtering = true;
+						m_manual_filter = m_complete_filter;
 						m_cursor_pos = 0;
 						curs_set(1);
 						render();
