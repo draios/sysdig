@@ -173,6 +173,11 @@ public:
 		return -1;
 	}
 
+	void clear()
+	{
+		m_list.clear();
+	}
+
 	vector<sinsp_mouse_to_key_list_entry> m_list;
 };
 
@@ -481,6 +486,7 @@ private:
 
 #ifndef NOCURSESUI
 	void render_header();
+	void draw_bottom_menu(vector<sinsp_menuitem_info>* items, bool istable);
 	void render_default_main_menu();
 	void render_filtersearch_main_menu();
 	void render_spy_main_menu();
@@ -495,6 +501,7 @@ private:
 
 	sinsp* m_inspector;
 	vector<sinsp_menuitem_info> m_menuitems;
+	vector<sinsp_menuitem_info> m_menuitems_spybox;
 	string m_event_source_name;
 	string m_cmdline_capture_filter;
 	string m_complete_filter;
