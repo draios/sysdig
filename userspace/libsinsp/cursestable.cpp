@@ -597,22 +597,29 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case KEY_MOUSE:
 			{
 				uint32_t j;
-				MEVENT event;
 
-				if(getmouse(&event) == OK)
+				if(getmouse(&m_last_mevent) == OK)
 				{
-					if(event.bstate & BUTTON1_CLICKED)
+					if(m_last_mevent.bstate & BUTTON1_CLICKED)
 					{
+						//
+						// Bottom menu clicks are handled by the parent
+						//
+						if((uint32_t)m_last_mevent.y == m_parent->m_screenh - 1)
+						{
+							return STA_PARENT_HANDLE;
+						}
+
 						ASSERT((m_data->size() == 0) || (m_column_startx.size() == m_data->at(0).m_values.size()));
 
-						if((uint32_t)event.y == m_table_y_start)
+						if((uint32_t)m_last_mevent.y == m_table_y_start)
 						{
 							//
 							// This is a click on a column header. Change the sorting accordingly.
 							//
 							for(j = 0; j < m_column_startx.size() - 1; j++)
 							{
-								if((uint32_t)event.x >= m_column_startx[j] && (uint32_t)event.x < m_column_startx[j + 1])
+								if((uint32_t)m_last_mevent.x >= m_column_startx[j] && (uint32_t)m_last_mevent.x < m_column_startx[j + 1])
 								{
 									m_table->set_sorting_col(j + 1);
 									break;
@@ -628,29 +635,29 @@ sysdig_table_action curses_table::handle_input(int ch)
 							update_data(m_data);
 							render(true);
 						}
-						else if((uint32_t)event.y > m_table_y_start &&
-							(uint32_t)event.y < m_table_y_start + m_h - 1)
+						else if((uint32_t)m_last_mevent.y > m_table_y_start &&
+							(uint32_t)m_last_mevent.y < m_table_y_start + m_h - 1)
 						{
 							//
 							// This is a click on a row. Update the selection.
 							//
 							m_selection_changed = true;
-							m_selct = m_firstrow + (event.y - m_table_y_start - 1);
+							m_selct = m_firstrow + (m_last_mevent.y - m_table_y_start - 1);
 							sanitize_selection((int32_t)m_data->size());
 							update_rowkey(m_selct);
 							render(true);
 						}
 					}
-					else if(event.bstate & BUTTON1_DOUBLE_CLICKED)
+					else if(m_last_mevent.bstate & BUTTON1_DOUBLE_CLICKED)
 					{
-						if((uint32_t)event.y > m_table_y_start &&
-							(uint32_t)event.y < m_table_y_start + m_h - 1)
+						if((uint32_t)m_last_mevent.y > m_table_y_start &&
+							(uint32_t)m_last_mevent.y < m_table_y_start + m_h - 1)
 						{
 							//
 							// Update the selection
 							//
 							m_selection_changed = true;
-							m_selct = m_firstrow + (event.y - m_table_y_start - 1);
+							m_selct = m_firstrow + (m_last_mevent.y - m_table_y_start - 1);
 							sanitize_selection((int32_t)m_data->size());
 							update_rowkey(m_selct);
 							render(true);

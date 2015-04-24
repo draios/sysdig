@@ -51,6 +51,7 @@ public:
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
 	bool m_selection_changed;
+	MEVENT m_last_mevent;
 	
 private:
 	alignment get_field_alignment(ppm_param_type type);

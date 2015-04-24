@@ -289,7 +289,11 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case KEY_F(1):
 		case KEY_HOME:
 		case KEY_END:
+		case KEY_F(4):
+		case KEY_F(5):
+		case KEY_F(6):
 		case KEY_F(7):
+		case 6:
 			return STA_NONE;
 		case '\n':
 		case '\r':
@@ -381,39 +385,45 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			return STA_NONE;
 		case KEY_MOUSE:
 			{
-				MEVENT event;
-
 				if(m_entries->size() == 0)
 				{
 					return STA_NONE;
 				}
 
-				if(getmouse(&event) == OK)
+				if(getmouse(&m_last_mevent) == OK)
 				{
-					if(event.bstate & BUTTON1_CLICKED)
+					//
+					// Bottom menu clicks are handled by the parent
+					//
+					if((uint32_t)m_last_mevent.y == m_parent->m_screenh - 1)
 					{
-						if((uint32_t)event.y > TABLE_Y_START &&
-							(uint32_t)event.y < TABLE_Y_START + m_h - 1)
+						return STA_PARENT_HANDLE;
+					}
+
+					if(m_last_mevent.bstate & BUTTON1_CLICKED)
+					{
+						if((uint32_t)m_last_mevent.y > TABLE_Y_START &&
+							(uint32_t)m_last_mevent.y < TABLE_Y_START + m_h - 1)
 						{
 							//
 							// This is a click one of the menu entries. Update the selection.
 							//
-							m_selct = m_firstrow + (event.y - TABLE_Y_START - 1);
+							m_selct = m_firstrow + (m_last_mevent.y - TABLE_Y_START - 1);
 							sanitize_selection((int32_t)m_entries->size());
 							update_view_info();
 							render();
 						}
 					}
-					else if(event.bstate & BUTTON1_DOUBLE_CLICKED)
+					else if(m_last_mevent.bstate & BUTTON1_DOUBLE_CLICKED)
 					{
-						if((uint32_t)event.y > TABLE_Y_START &&
-							(uint32_t)event.y < TABLE_Y_START + m_h - 1)
+						if((uint32_t)m_last_mevent.y > TABLE_Y_START &&
+							(uint32_t)m_last_mevent.y < TABLE_Y_START + m_h - 1)
 						{
 							//
 							// This is a double click one of the menu entries. 
 							// Update the selection.
 							//
-							m_selct = m_firstrow + (event.y - TABLE_Y_START - 1);
+							m_selct = m_firstrow + (m_last_mevent.y - TABLE_Y_START - 1);
 							sanitize_selection((int32_t)m_entries->size());
 							render();
 
@@ -920,6 +930,15 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			break;
 		case 6:	// CTRL+F
 			m_parent->turn_search_on(this);
+			break;
+		case KEY_MOUSE:
+			{
+				if(getmouse(&m_last_mevent) == OK)
+				{
+					return STA_PARENT_HANDLE;
+				}
+			}
+
 			break;
 		default:
 			break;

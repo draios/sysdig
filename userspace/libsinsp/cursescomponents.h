@@ -138,6 +138,7 @@ public:
 	sinsp_cursesui* m_parent;
 	vector<sidemenu_list_entry>* m_entries;
 	string m_title;
+	MEVENT m_last_mevent;
 
 private:
 	void update_view_info();
@@ -164,6 +165,8 @@ public:
 	void up();
 	bool on_search_key_pressed(string search_str);
 	bool on_search_next();
+
+	MEVENT m_last_mevent;
 
 private:
 	inline void process_event_spy(sinsp_evt* evt, int32_t next_res);

@@ -29,6 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 string combine_filters(string flt1, string flt2);
 class ctext;
 class sinsp_chart;
+extern sinsp_logger g_logger;
 
 class sinsp_menuitem_info
 {
@@ -40,16 +41,21 @@ public:
 		ALL = TABLE | LIST,
 	};
 
-	sinsp_menuitem_info(string key, string desc, sinsp_menuitem_info::type type)
+	sinsp_menuitem_info(string key, 
+		string desc, 
+		sinsp_menuitem_info::type type,
+		int keyboard_equivalent)
 	{
 		m_key = key;
 		m_desc = desc;
 		m_type = type;
+		m_keyboard_equivalent = keyboard_equivalent;
 	}
 
 	string m_key;
 	string m_desc;
 	sinsp_menuitem_info::type m_type;
+	int m_keyboard_equivalent;
 };
 
 class sinsp_ui_selection_info
@@ -120,7 +126,55 @@ public:
 	vector<sinsp_ui_selection_info> m_hierarchy;
 };
 
-extern sinsp_logger g_logger;
+class sinsp_mouse_to_key_list_entry
+{
+public:
+	sinsp_mouse_to_key_list_entry(uint32_t startx,
+		uint32_t starty,
+		uint32_t endx,
+		uint32_t endy,
+		int keyboard_equivalent)
+	{
+		m_startx = startx;
+		m_endx = endx;
+		m_starty = starty;
+		m_endy = endy;
+		m_keyboard_equivalent = keyboard_equivalent;
+	}
+
+	uint32_t m_startx;
+	uint32_t m_endx;
+	uint32_t m_starty;
+	uint32_t m_endy;
+	int m_keyboard_equivalent;
+};
+
+class sinsp_mouse_to_key_list
+{
+public:
+	void add(sinsp_mouse_to_key_list_entry entry)
+	{
+		m_list.push_back(entry);		
+	}
+
+	int get_key_from_coordinates(uint32_t x, uint32_t y)
+	{		
+		for(auto e : m_list)
+		{
+			if(x >= e.m_startx &&
+				x <= e.m_endx &&
+				y >= e.m_starty &&
+				y <= e.m_endy)
+			{
+				return e.m_keyboard_equivalent;
+			}
+		}
+
+		return -1;
+	}
+
+	vector<sinsp_mouse_to_key_list_entry> m_list;
+};
 
 class sinsp_cursesui
 {
@@ -464,4 +518,5 @@ private:
 	uint64_t m_evt_ts_delta;
 	sinsp_filter_check_reference* m_timedelta_formatter;
 	uint64_t m_refresh_interval_ns;
+	sinsp_mouse_to_key_list m_mouse_to_key_list;
 };

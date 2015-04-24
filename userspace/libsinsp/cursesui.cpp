@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2013-2015 Draios inc.
+
+This file is part of sysdig.
+
+sysdig is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2 as
+published by the Free Software Foundation.
+
+sysdig is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
@@ -129,15 +147,15 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	//
 	// Populate the main menu entries
 	//
-	m_menuitems.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL));
-	m_menuitems.push_back(sinsp_menuitem_info("F2", "Views", sinsp_menuitem_info::ALL));
-	m_menuitems.push_back(sinsp_menuitem_info("F4", "Filter", sinsp_menuitem_info::ALL));
-	m_menuitems.push_back(sinsp_menuitem_info("F5", "Echo", sinsp_menuitem_info::TABLE));
-	m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE));
-	m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL));
-	m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL));
-	m_menuitems.push_back(sinsp_menuitem_info("P", "Pause", sinsp_menuitem_info::ALL));
-	m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST));
+	m_menuitems.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL, KEY_F(1)));
+	m_menuitems.push_back(sinsp_menuitem_info("F2", "Views", sinsp_menuitem_info::ALL, KEY_F(2)));
+	m_menuitems.push_back(sinsp_menuitem_info("F4", "Filter", sinsp_menuitem_info::ALL, KEY_F(4)));
+	m_menuitems.push_back(sinsp_menuitem_info("F5", "Echo", sinsp_menuitem_info::TABLE, KEY_F(5)));
+	m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE, KEY_F(6)));
+	m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL, KEY_F(7)));
+	m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
+	m_menuitems.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
+	m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST, 'c'));
 
 	//
 	// Get screen dimensions
@@ -506,6 +524,8 @@ void sinsp_cursesui::render_default_main_menu()
 			continue;
 		}
 
+		uint32_t startx = k;
+
 		attrset(m_colors[PROCESS]);
 		string fks = m_menuitems[j].m_key;
 		mvaddnstr(m_screenh - 1, k, fks.c_str(), MAX(fks.size(), 2));
@@ -516,6 +536,12 @@ void sinsp_cursesui::render_default_main_menu()
 		fks.resize(6, ' ');
 		mvaddnstr(m_screenh - 1, k, fks.c_str(), 6);
 		k += 6;
+		
+		m_mouse_to_key_list.add(sinsp_mouse_to_key_list_entry(startx,
+			m_screenh - 1,
+			k - 1,
+			m_screenh - 1,
+			m_menuitems[j].m_keyboard_equivalent));
 	}
 }
 
@@ -1785,6 +1811,39 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			}
 
 			render();
+
+			break;
+		case KEY_MOUSE:
+			{
+				MEVENT* event;
+
+g_logger.format("UU");
+				if(m_sidemenu != NULL)
+				{
+					event = &m_sidemenu->m_last_mevent;
+				}
+				else if(m_spy_box != NULL)
+				{
+					event = &m_spy_box->m_last_mevent;
+				}
+				else if(m_viz != NULL)
+				{
+					event = &m_viz->m_last_mevent;
+				}
+
+				if(event->bstate & BUTTON1_CLICKED ||
+					event->bstate & BUTTON1_DOUBLE_CLICKED)
+				{
+					if((uint32_t)event->y == m_screenh - 1)
+					{
+						int keyc = m_mouse_to_key_list.get_key_from_coordinates(event->x, event->y);
+						if(keyc != -1)
+						{
+							return handle_input(keyc);
+						}
+					}
+				}
+			}
 
 			break;
 		default:
