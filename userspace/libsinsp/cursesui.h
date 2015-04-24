@@ -526,4 +526,6 @@ private:
 	sinsp_filter_check_reference* m_timedelta_formatter;
 	uint64_t m_refresh_interval_ns;
 	sinsp_mouse_to_key_list m_mouse_to_key_list;
+	uint32_t m_filterstring_start_x;
+	uint32_t m_filterstring_end_x;
 };

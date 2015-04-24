@@ -35,13 +35,13 @@ view_info =
 			is_key = true
 		},
 		{
-			tags = {"containers"},
 			name = "PID",
 			description = "Process PID.",
 			field = "proc.pid",
 			colsize = 8,
 		},
 		{
+			tags = {"containers"},
 			name = "VPID",
 			field = "proc.vpid",
 			description = "PID that the process has inside the container.",

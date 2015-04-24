@@ -463,6 +463,7 @@ void sinsp_cursesui::render_header()
 	mvaddnstr(1, k, srcstr.c_str(), m_screenw - k - 1);
 
 	k += srcstr.size() + 1;
+	m_filterstring_start_x = k;
 
 	attrset(m_colors[HELP_BOLD]);
 
@@ -470,15 +471,21 @@ void sinsp_cursesui::render_header()
 	k += sizeof("Filter: ") - 1;
 
 	attrset(m_colors[sinsp_cursesui::PROCESS]);
-	
+
+	string sflt;
 	if(m_complete_filter != "")
 	{
-		mvaddnstr(1, k, m_complete_filter.c_str(), m_screenw - k - 1);
+		sflt = m_complete_filter.c_str();
 	}
 	else
 	{
-		mvaddnstr(1, k, "none", m_screenw - k - 1);
+		sflt = "none";
 	}
+
+	mvaddnstr(1, k, sflt.c_str(), m_screenw - k - 1);
+	
+	k += sflt.size();
+	m_filterstring_end_x = k;
 }
 
 void sinsp_cursesui::turn_search_on(search_caller_interface* ifc)
@@ -489,7 +496,6 @@ void sinsp_cursesui::turn_search_on(search_caller_interface* ifc)
 	m_search_caller_interface = ifc;
 	m_output_searching = false;
 	m_output_filtering = false;
-	//m_manual_search_text = "";
 	m_cursor_pos = 0;
 	curs_set(1);
 	render();
@@ -581,6 +587,11 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 	if(m_output_filtering)
 	{
 		str = &m_manual_filter;
+
+		if(*str == "" && m_is_filter_sysdig && m_complete_filter != "")
+		{
+			*str = m_complete_filter;
+		}
 	}
 	else if(m_output_searching)
 	{
@@ -1337,6 +1348,15 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 					}
 					catch(sinsp_exception e)
 					{
+						//
+						// Backup the cursor position
+						//
+						int cx, cy;
+						getyx(stdscr, cy, cx);
+
+						//
+						// Print the error string
+						//
 						string wstr = "Invalid sysdig filter";
 
 						attrset(m_colors[sinsp_cursesui::FAILED_SEARCH]);
@@ -1344,14 +1364,19 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 							m_screenw / 2 - wstr.size() / 2, 
 							wstr.c_str());	
 
-						*str = "";
+						//
+						// Restore the cursor
+						//
+						attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
+						move(cy, cx);
+						curs_set(1);
+//						*str = "";
+						closing = false;
 						break;
 					}
 
 					delete f;
 				}
-
-				return STA_SWITCH_VIEW;
 			}
 
 			break;
@@ -1485,6 +1510,11 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 		m_output_searching = false;
 		m_search_caller_interface = NULL;
 		render();
+
+		if(m_is_filter_sysdig)
+		{
+			return STA_SWITCH_VIEW;
+		}
 	}
 
 	return STA_NONE;
@@ -1492,8 +1522,6 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 sysdig_table_action sinsp_cursesui::handle_input(int ch)
 {
-g_logger.format("** %d", ch);
-
 	//
 	// Avoid parsing keys during file load
 	//
@@ -1783,9 +1811,19 @@ g_logger.format("** %d", ch);
 						int keyc = m_mouse_to_key_list.get_key_from_coordinates(event->x, event->y);
 						if(keyc != -1)
 						{
-g_logger.format("UU %d", keyc);
 							return handle_input(keyc);
 						}
+					}
+					else if((uint32_t)event->y == 1 &&
+						(uint32_t)event->x >= m_filterstring_start_x &&
+						(uint32_t)event->x <= m_filterstring_end_x)
+					{
+						m_search_caller_interface = NULL;
+						m_is_filter_sysdig = true;
+						m_output_filtering = true;
+						m_cursor_pos = 0;
+						curs_set(1);
+						render();
 					}
 				}
 			}
