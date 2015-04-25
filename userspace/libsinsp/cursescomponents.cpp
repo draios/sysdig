@@ -1296,9 +1296,9 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf(
 "1. you can either see real time data, or analyze a trace file by using the -r command line flag.\n"
-"2. you switch view by using the F2 key.\n"
-"3. you drill down into a selection by clicking enter. You drill up by clicking backspace.\n"
-"4. you can observe I/O activity (F5) or see sysdig output (F6) for anything you select.\n"
+"2. you can switch view by using the F2 key.\n"
+"3. to drill down into a selection, click on enter. To navigate back, click on backspace.\n"
+"4. you can observe reads and writes (F5) or see sysdig events (F6) for any selection.\n"
 );
 
 	//
@@ -1423,10 +1423,10 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf("Clicking on column headers lets you sort the table." 
-		"Double clicking on row entries performs a drill down."
-		"Clicking on the filter string allows to change the sysdig filter."
-		"You can click on the entries in the menu at the bottom of the screen to perform their action.\n");
+	m_ctext->printf("Clicking on column headers lets you sort the table.\n" 
+		"Double clicking on row entries performs a drill down.\n"
+		"Clicking on the filter string at the top of the screen lets you change the sysdig filter.\n"
+		"You can use the mouse on the entries in the menu at the bottom of the screen to perform their action.\n");
 
 	//
 	// Done. Refresh the screen
