@@ -93,28 +93,14 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	//
 	// Determine the sorting and grouping columns
 	//
-	uint32_t n_sorting_cols = 0;
-
-	for(uint32_t j = 0; j < m_columns.size(); j++)
-	{
-		if((m_columns[j].m_flags & TEF_IS_SORT_COLUMN) != 0)
-		{
-			m_sortingcol = j;
-			n_sorting_cols++;
-		}
-
-		if((m_columns[j].m_flags & TEF_IS_GROUPBY_KEY) != 0)
-		{
-			m_does_groupby = true;
-		}
-	}
+	set_sorting_col();
 
 	if(m_does_groupby)
 	{
 		m_sortingcol--;
 	}
 
-	if(n_sorting_cols == 0)
+	if(m_n_sorting_cols == 0)
 	{
 		if(m_does_groupby)
 		{
@@ -125,13 +111,32 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 			m_sortingcol = 1;
 		}
 	}
-	else if(n_sorting_cols > 1)
+	else if(m_n_sorting_cols > 1)
 	{
 		throw sinsp_exception("view format error: more than one sorting column");
 	}
 
 	m_filter = filter;
 	m_valid = true;
+}
+
+void sinsp_view_info::set_sorting_col()
+{
+	m_n_sorting_cols = 0;
+
+	for(uint32_t j = 0; j < m_columns.size(); j++)
+	{
+		if((m_columns[j].m_flags & TEF_IS_SORT_COLUMN) != 0)
+		{
+			m_sortingcol = j;
+			m_n_sorting_cols++;
+		}
+
+		if((m_columns[j].m_flags & TEF_IS_GROUPBY_KEY) != 0)
+		{
+			m_does_groupby = true;
+		}
+	}
 }
 
 void sinsp_view_info::apply_tag(string tag)
@@ -160,6 +165,12 @@ void sinsp_view_info::apply_tag(string tag)
 
 		++it;
 	}
+
+	//
+	// Make sure to recalculate the sorting and grouping columns, which could change
+	// if we remove columns.
+	//
+	set_sorting_col();
 }
 
 void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)
@@ -237,12 +248,10 @@ void sinsp_view_manager::sort_views()
 	//
 	// Print the view list for debugging purposes
 	//
-/*
-	for(uint32_t j = 0; j < m_views.size(); j++)
-	{
-		g_logger.format("> %d) %s", j, m_views[j].m_name.c_str());
-	}
-*/	
+	//for(uint32_t j = 0; j < m_views.size(); j++)
+	//{
+	//	g_logger.format("> %d) %s", j, m_views[j].m_name.c_str());
+	//}
 }
 
 vector<sinsp_view_info>* sinsp_view_manager::get_views()

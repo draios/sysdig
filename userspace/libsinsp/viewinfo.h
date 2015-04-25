@@ -132,7 +132,10 @@ public:
 	bool m_is_root;
 
 private:
+	void set_sorting_col();
 	void move_key_to_front(uint32_t keyflag);
+
+	uint32_t m_n_sorting_cols;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
