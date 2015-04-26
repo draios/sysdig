@@ -1,3 +1,6 @@
+#include "sinsp.h"
+#include "sinsp_int.h"
+
 #ifdef CSYSDIG
 
 #ifndef _WIN32
