@@ -1,0 +1,184 @@
+.TH "" "" "" "" ""
+.SS NAME
+.PP
+csysdig \- the ncurses user interface for sysdig
+.SS SYNOPSIS
+.PP
+\f[B]sysdig\f[] [\f[I]option\f[]]...
+[\f[I]filter\f[]]
+.SS DESCRIPTION
+.PP
+csysdig exports sysdig\[aq]s functionality through an intuitive and
+powerful ncurses\-bases user interface.
+For more information about sysdig, refer to its man page.
+.PP
+csysdig has been designed to mimic tools like \f[B]top\f[] and
+\f[B]htop\f[], but it offers much richer functionality, based on these
+key concepts:
+.IP "1." 3
+Support for both live analysis and sysdig trace files.
+Trace files can come from the same machine or from another machine.
+.PD 0
+.P
+.PD
+.IP "2." 3
+Visibility into many classes of resources, including CPU, memory, disk
+I/O, network I/O.
+.PD 0
+.P
+.PD
+.IP "3." 3
+Ability to drill down into a selection (e.g.
+a process, a file, a network connection) to get more information about
+it.
+.PD 0
+.P
+.PD
+.IP "4." 3
+Full customization support.
+.PD 0
+.P
+.PD
+.IP "5." 3
+Container support.
+.PP
+csysdig works on any terminal, and has support for terminal colors and
+mouse input.
+.PP
+csysdig includes support for sysdig\[aq]s powerul filtering language.
+.PP
+\f[B]Views\f[]
+.PP
+csysdig is based on the concept of \[aq]views\[aq], Lua scripts that
+determine how metrics are collected, processed and represented on
+screen.
+Views are located in the sysdig chisel directory path,
+.PD 0
+.P
+.PD
+usually \f[I]/usr/share/sysdig/chisels\f[] and \f[I]~/.chisels\f[].
+You can edit the views in those folders to customize their behavior, or
+you can add new views for your specific needs.
+.SS BASIC USAGE
+.PP
+If you are familiar with top and htop, csysdig\[aq]s UI should feel
+pretty natural to use.
+However, keep in mind that:
+.IP "1." 3
+If you run csysdig without arguments, it will display live system data,
+updating every 2 seconds.
+To analyze a trace file, use the \-r command line flag.
+.PD 0
+.P
+.PD
+.IP "2." 3
+You can switch to a different view by using the \f[I]F2\f[] key.
+.PD 0
+.P
+.PD
+.IP "3." 3
+You can to drill down into a selection by typing \f[I]enter\f[].
+You can navigate back by typing \f[I]backspace\f[].
+.PD 0
+.P
+.PD
+.IP "4." 3
+You can observe reads and writes (\f[I]F5\f[]) or see sysdig events
+(\f[I]F6\f[]) for any selection.
+.SS OPTIONS
+.PP
+\f[B]\-d\f[] \f[I]period\f[], \f[B]\-\-delay\f[]=\f[I]period\f[]
+.PD 0
+.P
+.PD
+Set the delay between updates, in milliseconds.
+This works similarly to the \-d option in top.
+.PP
+\f[B]\-E\f[], \f[B]\-\-exclude\-users\f[]
+.PD 0
+.P
+.PD
+Don\[aq]t create the user/group tables by querying the OS when sysdig
+starts.
+This also means that no user or group info will be written to the
+tracefile by the \-w flag.
+The user/group tables are necessary to use filter fields like user.name
+or group.name.
+However, creating them can increase sysdig\[aq]s startup time.
+Moreover, they contain information that could be privacy sensitive.
+.PP
+\f[B]\-h\f[], \f[B]\-\-help\f[]
+.PD 0
+.P
+.PD
+Print this page
+.PP
+\f[B]\-\-logfile\f[] \f[I]file\f[]
+.PD 0
+.P
+.PD
+Print program logs into the given file.
+.PP
+\f[B]\-n\f[] \f[I]num\f[], \f[B]\-\-numevents\f[]=\f[I]num\f[]
+.PD 0
+.P
+.PD
+Stop capturing after \f[I]num\f[] events
+.PP
+\f[B]\-pc\f[], \f[B]\-pcontainers\f[]_
+.PD 0
+.P
+.PD
+Instruct csysdig to use a container\-friendly format in its views.
+This will cause several of the views to contain additional
+container\-related columns.
+.PP
+\f[B]\-r\f[] \f[I]readfile\f[], \f[B]\-\-read\f[]=\f[I]readfile\f[]
+.PD 0
+.P
+.PD
+Read the events from \f[I]readfile\f[].
+.PP
+\f[B]\-s\f[] \f[I]len\f[], \f[B]\-\-snaplen\f[]=\f[I]len\f[]
+.PD 0
+.P
+.PD
+Capture the first \f[I]len\f[] bytes of each I/O buffer.
+By default, the first 80 bytes are captured.
+Use this option with caution, it can generate huge trace files.
+.PP
+\f[B]\-v\f[] \f[I]view\f[]id_, \f[B]\-\-views\f[]=\f[I]view\f[]id_
+.PD 0
+.P
+.PD
+Run the view with the given ID when csysdig starts.
+View IDs can be found in the view documentation pages in csysdig.
+Combine this option with a command line filter for complete output
+customization.
+.PP
+\f[B]\-\-version\f[]
+.PD 0
+.P
+.PD
+Print version number.
+.SS FILES
+.PP
+\f[I]/usr/share/sysdig/chisels\f[]
+.PD 0
+.P
+.PD
+The global chisels directory.
+.PP
+\f[I]~/.chisels\f[]
+.PD 0
+.P
+.PD
+The personal chisels directory.
+.SS AUTHOR
+.PP
+sysdig inc.
+<info@sysdigcloud.com>
+.SS SEE ALSO
+.PP
+\f[B]sysdig\f[](8), \f[B]strace\f[](8), \f[B]tcpdump\f[](8),
+\f[B]lsof\f[](8)
