@@ -22,6 +22,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 
+#ifdef CSYSDIG
+
 #ifndef _WIN32
 #include <curses.h>
 #endif
@@ -1846,3 +1848,5 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 }
 
 #endif // NOCURSESUI
+
+#endif // CSYSDIG

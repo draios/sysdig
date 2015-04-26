@@ -9,24 +9,40 @@ if(NOT WIN32)
 	set(SOURCE_FILES
 		fields_info.cpp
 		sysdig.cpp)
+
+	set(SOURCE_FILES_CSYSDIG
+		fields_info.cpp
+		csysdig.cpp)
 else()
 	set(SOURCE_FILES
 		fields_info.cpp
 		sysdig.cpp
 		win32/getopt.c)
+
+	set(SOURCE_FILES_CSYSDIG
+		fields_info.cpp
+		csysdig.cpp
+		win32/getopt.c)
 endif()
 
 add_executable(sysdig ${SOURCE_FILES})
+add_executable(csysdig ${SOURCE_FILES_CSYSDIG})
 
 if(NOT WIN32)
 
 	target_link_libraries(sysdig
+		sinsp)
+
+	target_link_libraries(csysdig
 		sinsp
 		ncurses)
 
 	add_subdirectory(man)
 
 	install(TARGETS sysdig 
+		DESTINATION bin)
+
+	install(TARGETS csysdig 
 		DESTINATION bin)
 
 	install(DIRECTORY chisels
@@ -40,7 +56,12 @@ else()
 	target_link_libraries(sysdig
 		sinsp)
 
+	target_link_libraries(csysdig
+		sinsp)
+
 	target_link_libraries(sysdig odbc32.lib odbccp32.lib)
+
+	target_link_libraries(csysdig odbc32.lib odbccp32.lib)
 
 	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
@@ -61,6 +82,11 @@ else()
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 			$<TARGET_FILE:sysdig>
 			"${PROJECT_BINARY_DIR}/$(Configuration)/sysdig.exe")
+
+	add_custom_command(TARGET csysdig POST_BUILD
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+			$<TARGET_FILE:csysdig>
+			"${PROJECT_BINARY_DIR}/$(Configuration)/csysdig.exe")
 
 endif()
 

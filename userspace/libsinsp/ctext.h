@@ -1,3 +1,4 @@
+#ifdef CSYSDIG
 #ifndef _WIN32
 #include <fstream>
 #include <iostream>
@@ -513,3 +514,4 @@ int cprintf(ctext*win, const char *format, ...);
 #endif
 
 #endif // _WIN32
+#endif // CSYSDIG

@@ -1,3 +1,5 @@
+#ifdef CSYSDIG
+
 #ifndef _WIN32
 
 #include "ctext.h"
@@ -1327,3 +1329,4 @@ int8_t ctext::redraw()
 }
 
 #endif // _WIN32
+#endif // CSYSDIG

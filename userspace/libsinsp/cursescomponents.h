@@ -37,7 +37,8 @@ public:
 	uint32_t m_id;
 };
 
-#ifdef SYSTOP
+#ifdef CSYSDIG
+#ifndef NOCURSESUI
 #define TABLE_WIDTH 400
 #define TABLE_Y_START 2
 
@@ -218,4 +219,5 @@ private:
 	ctext* m_ctext;
 };
 
-#endif
+#endif // NOCURSESUI
+#endif // CSYSDIG

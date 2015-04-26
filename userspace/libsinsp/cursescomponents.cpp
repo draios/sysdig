@@ -38,7 +38,8 @@ using namespace std;
 #include "filter.h"
 #include "filterchecks.h"
 
-#ifdef SYSTOP
+#ifdef CSYSDIG
+#ifndef NOCURSESUI
 
 #include <curses.h>
 #include "table.h"
@@ -1501,4 +1502,5 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 	return STA_DESTROY_CHILD;	
 }
 
-#endif // SYSTOP
+#endif // NOCURSESUI
+#endif // CSYSDIG

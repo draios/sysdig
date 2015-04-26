@@ -16,7 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifdef SYSTOP
+#ifdef CSYSDIG
+#ifndef NOCURSESUI
 
 class curses_table : 
 	public curses_scrollable_list,
@@ -77,4 +78,5 @@ private:
 	friend class curses_table_sidemenu;
 };
 
-#endif
+#endif // NOCURSESUI
+#endif // CSYSDIG

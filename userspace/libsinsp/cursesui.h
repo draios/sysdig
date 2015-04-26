@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef CSYSDIG
+
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -529,3 +531,5 @@ private:
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;
 };
+
+#endif // CSYSDIG
