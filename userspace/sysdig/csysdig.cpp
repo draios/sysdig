@@ -86,7 +86,7 @@ static void add_chisel_dirs(sinsp* inspector)
 }
 #endif
 
-captureinfo do_systop_inspect(sinsp* inspector,
+captureinfo do_inspect(sinsp* inspector,
 					   uint64_t cnt,
 					   sinsp_cursesui* ui)
 {
@@ -137,7 +137,7 @@ captureinfo do_systop_inspect(sinsp* inspector,
 
 string g_version_string = SYSDIG_VERSION;
 
-sysdig_init_res systop_init(int argc, char **argv)
+sysdig_init_res csysdig_init(int argc, char **argv)
 {
 	sysdig_init_res res;
 	sinsp* inspector = NULL;
@@ -463,7 +463,7 @@ sysdig_init_res systop_init(int argc, char **argv)
 			//
 			// Start the capture loop
 			//
-			cinfo = do_systop_inspect(inspector,
+			cinfo = do_inspect(inspector,
 				cnt,
 				&ui);
 
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
 {
 	sysdig_init_res res;
 
-	res = systop_init(argc, argv);
+	res = csysdig_init(argc, argv);
 
 #ifdef _WIN32
 	_CrtDumpMemoryLeaks();
