@@ -1287,11 +1287,11 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	// Print title and info
 	//
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
-	m_ctext->printf("XXX %s. See man page for full documentation\n\n",
+	m_ctext->printf("csysdig %s. See man page for full documentation\n\n",
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
-	m_ctext->printf("How to use XXX\n",
+	m_ctext->printf("How to use csysdig\n",
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);

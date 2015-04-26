@@ -56,9 +56,60 @@ static void signal_callback(int signal)
 	g_terminate = true;
 }
 
+//
+// Program help
+//
 static void usage()
 {
-    printf("TODO");
+    printf(
+"csysdig version " SYSDIG_VERSION "\n"
+"Usage: csysdig [options] [filter]\n\n"
+"Options:\n"
+" -d <period>, --delay=<period>\n"
+"                    Set the delay between updates, in milliseconds. This works\n"
+"                    similarly to the -d option in top.\n"
+" -E, --exclude-users\n"
+"                    Don't create the user/group tables by querying the OS when\n"
+"                    sysdig starts. This also means that no user or group info\n"
+"                    will be written to the tracefile by the -w flag.\n"
+"                    The user/group tables are necessary to use filter fields\n"
+"                    like user.name or group.name. However, creating them can\n"
+"                    increase sysdig's startup time. Moreover, they contain\n"
+"                    information that could be privacy sensitive.\n"
+" -h, --help         Print this page\n"
+" --logfile=<file>\n"
+"                    emit program logs into the given file.\n"
+" -n <num>, --numevents=<num>\n"
+"                    Stop capturing after <num> events\n"
+" -pc, -pcontainer\n"
+"                    Instruct csysdig to use a container-friendly format in its.\n"
+"                    views.\n"
+"                    This will cause several of the views to contain additional\n"
+"                    container-related columns.\n"
+" -r <readfile>, --read=<readfile>\n"
+"                    Read the events from <readfile>.\n"
+" -s <len>, --snaplen=<len>\n"
+"                    Capture the first <len> bytes of each I/O buffer.\n"
+"                    By default, the first 80 bytes are captured. Use this\n"
+"                    option with caution, it can generate huge trace files.\n"
+" -v <view_id>, --view=<view_id>\n"
+"                    Run the view with the given ID when csysdig starts.\n"
+"                    View IDs can be found in the view documentation pages in\n"
+"                    csysdig. Combine  this option with a command line filter for\n"
+"                    complete output customization.\n"
+" --version          Print version number.\n"
+"\n"
+"How to use csysdig:\n"
+"1. you can either see real time data, or analyze a trace file by using the -r\n"
+"   command line flag.\n"
+"2. you can switch view by using the F2 key.\n"
+"3. to drill down into a selection, click on enter. To navigate back, click on\n"
+"   backspace.\n"
+"4. you can observe reads and writes (F5) or see sysdig events (F6) for any\n"
+"   selection.\n"
+"\nAdditional help can be obtained by clicking F1 while the program is running,\n"
+"and in the man page.\n\n"
+    );
 }
 
 #ifdef HAS_CHISELS
@@ -159,37 +210,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"exclude-users", no_argument, 0, 'E' },
 		{"help", no_argument, 0, 'h' },
 		{"numevents", required_argument, 0, 'n' },
-		{"readfile", required_argument, 0, 'r' },
 		{"print", required_argument, 0, 'p' },
+		{"readfile", required_argument, 0, 'r' },
 		{"snaplen", required_argument, 0, 's' },
 		{"logfile", required_argument, 0, 0 },
 		{"view", required_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{0, 0, 0, 0}
 	};
-
-	//
-	// Initialize ncurses
-	//
-#ifndef NOCURSESUI
-	(void) initscr();      // initialize the curses library
-	(void) nonl();         // tell curses not to do NL->CR/NL on output
-	intrflush(stdscr, false);
-	keypad(stdscr, true);
-	curs_set(0);
-	if (has_colors()) 
-	{
-	  start_color();
-	}	
-	use_default_colors();
-	mousemask(ALL_MOUSE_EVENTS, NULL);
-	noecho();
-	
-	timeout(0);
-	
-	// If this is uncommented, it's possible to natively handle stuff like CTRL+c
-	//raw();	
-#endif
 
 	//
 	// Parse the arguments
@@ -312,6 +340,29 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			res.m_res = EXIT_FAILURE;
 			goto exit;
 		}
+
+		//
+		// Initialize ncurses
+		//
+#ifndef NOCURSESUI
+		(void) initscr();      // initialize the curses library
+		(void) nonl();         // tell curses not to do NL->CR/NL on output
+		intrflush(stdscr, false);
+		keypad(stdscr, true);
+		curs_set(0);
+		if (has_colors())
+		{
+		  start_color();
+		}
+		use_default_colors();
+		mousemask(ALL_MOUSE_EVENTS, NULL);
+		noecho();
+
+		timeout(0);
+
+		// If this is uncommented, it's possible to natively handle stuff like CTRL+c
+		//raw();
+#endif
 
 		//
 		// Create the list of views
