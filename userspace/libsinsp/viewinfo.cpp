@@ -95,6 +95,28 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	//
 	set_sorting_col();
 
+	m_filter = filter;
+	m_valid = true;
+}
+
+void sinsp_view_info::set_sorting_col()
+{
+	m_n_sorting_cols = 0;
+
+	for(uint32_t j = 0; j < m_columns.size(); j++)
+	{
+		if((m_columns[j].m_flags & TEF_IS_SORT_COLUMN) != 0)
+		{
+			m_sortingcol = j;
+			m_n_sorting_cols++;
+		}
+
+		if((m_columns[j].m_flags & TEF_IS_GROUPBY_KEY) != 0)
+		{
+			m_does_groupby = true;
+		}
+	}
+
 	if(m_does_groupby)
 	{
 		m_sortingcol--;
@@ -116,26 +138,10 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 		throw sinsp_exception("view format error: more than one sorting column");
 	}
 
-	m_filter = filter;
-	m_valid = true;
-}
-
-void sinsp_view_info::set_sorting_col()
-{
-	m_n_sorting_cols = 0;
-
-	for(uint32_t j = 0; j < m_columns.size(); j++)
+	if((int64_t)m_sortingcol < 0)
 	{
-		if((m_columns[j].m_flags & TEF_IS_SORT_COLUMN) != 0)
-		{
-			m_sortingcol = j;
-			m_n_sorting_cols++;
-		}
-
-		if((m_columns[j].m_flags & TEF_IS_GROUPBY_KEY) != 0)
-		{
-			m_does_groupby = true;
-		}
+		ASSERT(false);
+		throw sinsp_exception("view sorting column configuration error");
 	}
 }
 
