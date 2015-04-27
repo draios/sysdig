@@ -266,11 +266,12 @@ bool flt_compare_double(ppm_cmp_operator op, double operand1, double operand2)
 
 bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
+	//
+	// sinsp_filter_check_*::compare
+	// already discard NULL values
+	//
 	if(op == CO_EXISTS)
 	{
-		//
-		// If we got here, the field exists for sure
-		//
 		return true;
 	}
 
