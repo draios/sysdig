@@ -29,7 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "sysdig.h"
 
-#define DESCRIPTION_TEXT_START 20
+#define DESCRIPTION_TEXT_START 16
 #define CONSOLE_LINE_LEN 79
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
@@ -58,15 +58,14 @@ void list_fields(bool verbose)
 		{
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
-			if(fld->m_flags & EPF_TABLE_ONLY)
-			{
-				continue;
-			}
-
 			printf("%s", fld->m_name);
 			uint32_t namelen = (uint32_t)strlen(fld->m_name);
 
-			ASSERT(namelen < DESCRIPTION_TEXT_START);
+			if(namelen >= DESCRIPTION_TEXT_START)
+			{
+				printf("\n");
+				namelen = 0;
+			}
 
 			for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
 			{

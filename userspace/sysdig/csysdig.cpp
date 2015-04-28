@@ -77,9 +77,7 @@ static void usage()
 "                    increase sysdig's startup time. Moreover, they contain\n"
 "                    information that could be privacy sensitive.\n"
 " -h, --help         Print this page\n"
-" -l, --list         List the fields that can be used in views.\n"
-"                    formatting. Use -lv to get additional information for each\n"
-"                    field.\n"
+" -l, --list         List all the fields that can be used in views.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
 " -n <num>, --numevents=<num>\n"
@@ -319,18 +317,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		if(list_flds)
 		{
-			if(verbose)
-			{
-				//
-				// -ll shows the fields verbosely, i.e. with more information
-				// like the type
-				//
-				list_fields(true);
-			}
-			else
-			{
-				list_fields(false);
-			}
+			list_fields(false);
 
 			res.m_res = EXIT_SUCCESS;
 			goto exit;
