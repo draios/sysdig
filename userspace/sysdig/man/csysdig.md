@@ -6,43 +6,118 @@ csysdig - the ncurses user interface for sysdig
 SYNOPSIS
 --------
 
-**sysdig** [*option*]... [*filter*]
+**csysdig** [*option*]... [*filter*]
 
 DESCRIPTION
 -----------
 
-csysdig exports sysdig's functionality through an intuitive and powerful ncurses-bases user interface. For more information about sysdig, refer to its man page.
+csysdig exports sysdig's functionality through an intuitive and powerful ncurses-bases user interface.
 
-csysdig has been designed to mimic tools like **top** and **htop**, but it offers much richer functionality, based on these key concepts:
+csysdig has been designed to mimic tools like **top** and **htop**, but it offers richer functionality, including:
 
-1. Support for both live analysis and sysdig trace files. Trace files can come from the same machine or from another machine. 
-2. Visibility into many classes of resources, including CPU, memory, disk I/O, network I/O.
-3. Ability to drill down into a selection (e.g. a process, a file, a network connection) to get more information about it.
-4. Full customization support.
-5. Container support.
+- Support for both live analysis and sysdig trace files. Trace files can come from the same machine or from another machine. 
+- Visibility into a broad range of metrics, including CPU, memory, disk I/O, network I/O.
+- Ability to observe input/output activity for processes, files, network connections and more.
+- Ability to drill down into processes, files, network connections and more to further explore their beavior.
+- Full customization support.
+- Support for sysdig's filtering language.
+- Container support by design.
 
-csysdig works on any terminal, and has support for terminal colors and mouse input.
-
-csysdig includes support for sysdig's powerul filtering language.
+csysdig works on any terminal, and has support for colors and mouse input.
 
 **Views**  
 
-csysdig is based on the concept of 'views', Lua scripts that determine how metrics are collected, processed and represented on screen. Views are located in the sysdig chisel directory path,
-usually */usr/share/sysdig/chisels* and *~/.chisels*. You can edit the views in those folders to customize their behavior, or you can add new views for your specific needs.  
+csysdig is based on the concept of 'views', little Lua scripts that determine how metrics are collected, processed and represented on screen. Including a new visualization to csysdig doesn't require to update the program, and is simply a matter of adding a new view. Views rely on the sysdig processing engine, and this means that they can include any sysdig filter field. Views are located in the sysdig chisel directory path, usually */usr/share/sysdig/chisels* and *~/.chisels*.
 
 
 BASIC USAGE
 -----------
 
-If you are familiar with top and htop, csysdig's UI should feel pretty natural to use. However, keep in mind that:
+Here are some basic tips to get you started with sysdig:
 
 1. If you run csysdig without arguments, it will display live system data, updating every 2 seconds. To analyze a trace file, use the -r command line flag.
 2. You can switch to a different view by using the _F2_ key.
 3. You can to drill down into a selection by typing _enter_. You can navigate back by typing _backspace_.
-4. You can observe reads and writes (_F5_) or see sysdig events (_F6_) for any selection.
+4. You can observe input/output for the currently selected entity by typing _F5_
+5. You can see sysdig events for the currently selected entity by typing _F6_
+ or see sysdig events (_F6_) for any selection.
 
-OPTIONS
--------
+INTERACTIVE COMMANDS  
+--------------------  
+
+##Views Window##
+
+**Arrows, PgUP, PgDn, Home, End**
+  Change the selection and scroll view content.  
+
+**Enter**
+  Drill down into the currently highlited entry.  
+
+**Backspace**
+  Navigate back to the previous view.  
+
+**F2**
+  Show the view picker. This will let you switch to another view.  
+
+**CTRL+F /**
+  Incremental search in the list of view entries.  
+
+**F4**
+    Incremental filtering of the view entries.  
+
+**F5, e**
+  'echo FDs' for the selection, i.e. view FD input/output for the currently highlited entry.  
+
+**F6, d**
+  'dig' into the selection, i.e. view sysdig events for the currently highlited entry. Refer to the sysdig man page to learn of to interpret the content of this window.  
+
+**F7**
+  Show the help page for the currently displayed view.  
+
+**F10, q**
+  Quit.  
+
+**DEL, c**
+  For views that are listing elements without aggregating them by key (identifiable by yellow column headers), this allows to clar the view content.  
+
+**p**
+  Pause screen updates.  
+
+**F1, h, ?**
+  Show the help screen.  
+
+##Echo and sysdig Windows##
+
+**Arrows, PgUP, PgDn, Home, End**
+  Scroll the page content.  
+
+**Backspace**
+  Navigate back to the previous view.  
+
+**CTRL+F /**
+  Search inside the window content.  
+
+**F3**
+  Find Next.  
+
+**F2**
+  Chose the output rendering format. Options are 'Dotted ASCII' (non-printable binary bytes are rendered as dots), 'Printable ASCII' (non-printable binary bytes are not included and line endings are rendered accurately) and 'Hex' (dotted ASCII rapresentation is included together with the Hexadecimal rendering of the buffers).
+
+**DEL, c**
+  Clar the screen content.  
+
+**p**
+  Pause screen updates.  
+
+MOUSE USAGE
+-----------
+- Clicking on column headers lets you sort the table.
+- Double clicking on row entries performs a drill down.
+- Clicking on the filter string at the top of the screen (the text after 'Filter:') lets you change the sysdig filter and customize the view content.
+- You can use the mouse on the entries in the menu at the bottom of the screen to perform their respective actions.
+
+COMMAND LINE OPTIONS
+--------------------
   
 **-d** _period_, **--delay**=_period_  
   Set the delay between updates, in milliseconds. This works similarly to the -d option in top.  
@@ -78,10 +153,10 @@ FILES
 -----
 
 */usr/share/sysdig/chisels*  
-  The global chisels directory.
+  The global views directory.
 
 *~/.chisels*  
-  The personal chisels directory.
+  The personal views directory.
 
 AUTHOR
 ------

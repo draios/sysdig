@@ -767,9 +767,9 @@ void curses_textbox::populate_sidemenu()
 {
 	ASSERT(m_sidemenu != NULL);
 	m_entries.clear();
-	m_entries.push_back(sidemenu_list_entry("dotted ascii", -1));
-	m_entries.push_back(sidemenu_list_entry("printable ascii", -1));
-	m_entries.push_back(sidemenu_list_entry("hex", -1));
+	m_entries.push_back(sidemenu_list_entry("Dotted ASCII", -1));
+	m_entries.push_back(sidemenu_list_entry("Printable ASCII", -1));
+	m_entries.push_back(sidemenu_list_entry("Hex", -1));
 	if(m_viz_type == VIEW_ID_DIG)
 	{
 		m_entries.push_back(sidemenu_list_entry("json", 0));
@@ -1306,7 +1306,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	// Explore window keys
 	//
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
-	m_ctext->printf("\nExplore Window Keys\n",
+	m_ctext->printf("\nKeyboard Shortcuts for the Views Window\n",
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
@@ -1365,9 +1365,9 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf(": sysdig output for selection     ");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
-	m_ctext->printf("P");
+	m_ctext->printf("p");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": Pause visualization\n");
+	m_ctext->printf(": Pause scree updates\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf(" ? F1 h");
@@ -1378,7 +1378,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	// Text windows keys
 	//
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
-	m_ctext->printf("\nEcho and sysdig Windows Keys\n",
+	m_ctext->printf("\nKeyboard Shortcuts for the 'Echo' and 'Sysdig' Windows\n",
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
@@ -1427,7 +1427,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf("Clicking on column headers lets you sort the table.\n" 
 		"Double clicking on row entries performs a drill down.\n"
 		"Clicking on the filter string at the top of the screen lets you change the sysdig filter.\n"
-		"You can use the mouse on the entries in the menu at the bottom of the screen to perform their action.\n");
+		"You can use the mouse on the entries in the menu at the bottom of the screen to perform their respective actions.\n");
 
 	//
 	// Done. Refresh the screen
