@@ -127,8 +127,11 @@ COMMAND LINE OPTIONS
 
 **-h**, **--help**  
   Print this page
+
+**-l**, **--list**  
+  List all the fields that can be used in views.
   
-**--logfile** _file_        
+**--logfile** _file_  
   Print program logs into the given file.
   
 **-n** _num_, **--numevents**=_num_  
