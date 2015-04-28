@@ -148,7 +148,11 @@ COMMAND LINE OPTIONS
 
 **--version**  
   Print version number.
-    
+
+FILTERING
+---------
+Similarly to what you do with sysdig, you can specify a filter on the command line to restrict the events that csysdig processes. To modify the filter while the program is running, or to add a filter at runtime, click on the filter text in the UI with the mouse.
+
 FILES
 -----
 
