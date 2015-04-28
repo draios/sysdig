@@ -77,6 +77,9 @@ static void usage()
 "                    increase sysdig's startup time. Moreover, they contain\n"
 "                    information that could be privacy sensitive.\n"
 " -h, --help         Print this page\n"
+" -l, --list         List the fields that can be used in views.\n"
+"                    formatting. Use -lv to get additional information for each\n"
+"                    field.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
 " -n <num>, --numevents=<num>\n"
@@ -203,12 +206,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	string display_view;
 	bool print_containers = false;
 	uint64_t refresh_interval_ns = 2000000000;
+	bool list_flds = false;
 
 	static struct option long_options[] =
 	{
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"help", no_argument, 0, 'h' },
+		{"list", optional_argument, 0, 'l' },
 		{"numevents", required_argument, 0, 'n' },
 		{"print", required_argument, 0, 'p' },
 		{"readfile", required_argument, 0, 'r' },
@@ -234,7 +239,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehn:p:r:s:v:", long_options, &long_index)) != -1)
+			"d:Ehln:p:r:s:v:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -254,6 +259,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				usage();
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			case 'l':
+				list_flds = true;
+				break;
 			case 'n':
 				cnt = atoi(optarg);
 				if(cnt <= 0)
@@ -305,6 +313,28 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		}
 
 		string filter;
+
+		//
+		// If -l was specified, print the fields and exit
+		//
+		if(list_flds)
+		{
+			if(verbose)
+			{
+				//
+				// -ll shows the fields verbosely, i.e. with more information
+				// like the type
+				//
+				list_fields(true);
+			}
+			else
+			{
+				list_fields(false);
+			}
+
+			res.m_res = EXIT_SUCCESS;
+			goto exit;
+		}
 
 		//
 		// the filter is at the end of the command line
