@@ -47,66 +47,66 @@ INTERACTIVE COMMANDS
 
 ##Views Window##
 
-**Arrows, PgUP, PgDn, Home, End**
+**Arrows, PgUP, PgDn, Home, End**  
   Change the selection and scroll view content.  
 
-**Enter**
+**Enter**  
   Drill down into the currently highlited entry.  
 
-**Backspace**
+**Backspace**  
   Navigate back to the previous view.  
 
-**F2**
+**F2**  
   Show the view picker. This will let you switch to another view.  
 
-**CTRL+F /**
+**CTRL+F /**  
   Incremental search in the list of view entries.  
 
-**F4**
+**F4**  
     Incremental filtering of the view entries.  
 
-**F5, e**
+**F5, e**  
   'echo FDs' for the selection, i.e. view FD input/output for the currently highlited entry.  
 
-**F6, d**
+**F6, d**  
   'dig' into the selection, i.e. view sysdig events for the currently highlited entry. Refer to the sysdig man page to learn of to interpret the content of this window.  
 
-**F7**
+**F7**  
   Show the help page for the currently displayed view.  
 
-**F10, q**
+**F10, q**  
   Quit.  
 
-**DEL, c**
+**DEL, c**  
   For views that are listing elements without aggregating them by key (identifiable by yellow column headers), this allows to clar the view content.  
 
-**p**
+**p**  
   Pause screen updates.  
 
-**F1, h, ?**
+**F1, h, ?**  
   Show the help screen.  
 
 ##Echo and sysdig Windows##
 
-**Arrows, PgUP, PgDn, Home, End**
+**Arrows, PgUP, PgDn, Home, End**  
   Scroll the page content.  
 
-**Backspace**
+**Backspace**  
   Navigate back to the previous view.  
 
-**CTRL+F /**
+**CTRL+F /**  
   Search inside the window content.  
 
-**F3**
+**F3**  
   Find Next.  
 
-**F2**
+**F2**  
   Chose the output rendering format. Options are 'Dotted ASCII' (non-printable binary bytes are rendered as dots), 'Printable ASCII' (non-printable binary bytes are not included and line endings are rendered accurately) and 'Hex' (dotted ASCII rapresentation is included together with the Hexadecimal rendering of the buffers).
 
-**DEL, c**
+**DEL, c**  
   Clar the screen content.  
 
-**p**
+**p**  
   Pause screen updates.  
 
 MOUSE USAGE
