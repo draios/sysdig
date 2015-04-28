@@ -40,7 +40,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	vector<string> tags,
 	vector<string> tips,
 	vector<sinsp_view_column_info> columns,
-	string applies_to,
+	vector<string> applies_to,
 	string filter,
 	string drilldown_target,
 	bool use_defaults,
@@ -56,34 +56,10 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	m_columns = columns;
 	m_drilldown_target = drilldown_target;
 	m_is_root = is_root;
+	m_applies_to = applies_to;
 
 	m_use_defaults = use_defaults;
 	
-	if(applies_to != "")
-	{
-		char *p = strtok((char*)applies_to.c_str(), ",");
-		while (p) 
-		{
-			string ts(p);
-			trim(ts);
-
-			if(ts == "all")
-			{
-				m_applies_to.push_back("");
-			}
-			else
-			{
-				m_applies_to.push_back(ts);
-			}
-
-			p = strtok(NULL, ",");
-		}
-	}
-	else
-	{
-		m_applies_to.push_back("");
-	}
-
 	//
 	// Make sure the keys go at the beginning
 	//

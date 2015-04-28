@@ -567,7 +567,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	string id;
 	string name;
 	string description;
-	string applies_to;
+	vector<string> applies_to;
 	string filter;
 	bool use_defaults = false;
 	sinsp_view_info::viewtype vt = sinsp_view_info::T_TABLE;
@@ -668,7 +668,29 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		}
 		else if(fldname == "applies_to")
 		{
-			applies_to = lua_tostring(ls, -1);
+			if(lua_istable(ls, -1))
+			{
+				lua_pushnil(ls);
+
+				while(lua_next(ls, -2) != 0)
+				{
+					if(lua_isstring(ls, -1))
+					{
+						tmpstr = lua_tostring(ls, -1);
+						applies_to.push_back(tmpstr);
+					}
+					else
+					{
+						throw sinsp_exception("tips column entries must be strings");
+					}
+
+					lua_pop(ls, 1);
+				}
+			}
+			else
+			{				
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+			}
 		}
 		else if(fldname == "filter")
 		{

@@ -96,7 +96,7 @@ public:
 		vector<string> tags,
 		vector<string> tips,
 		vector<sinsp_view_column_info> columns,
-		string applies_to,
+		vector<string> applies_to,
 		string filter,
 		string drilldown_target,
 		bool use_defaults,

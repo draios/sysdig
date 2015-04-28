@@ -22,7 +22,7 @@ view_info =
 	description = "Lists all the commands that are run interactively, i.e. that have a shell as the parent process. The result is the display of all the user activity, sorted by time.",
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = "all,container.id,proc.pid,thread.tid,proc.name",
+	applies_to = {"all", "container.id", "proc.pid", "thread.tid", "proc.name"},
 	filter = "((evt.type=execve and evt.dir=<) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)) and evt.failed=false",
 	columns = 
 	{
