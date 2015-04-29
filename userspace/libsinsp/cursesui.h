@@ -112,7 +112,10 @@ public:
 
 	~sinsp_ui_selection_hierarchy()
 	{
-		while(pop_back());
+		for(auto e : m_hierarchy)
+		{
+			delete [] e.m_rowkey.m_val;
+		}
 	}
 
 	string tofilter()
@@ -177,7 +180,6 @@ public:
 		}
 		else
 		{
-			delete m_hierarchy[m_hierarchy.size() - 1].m_rowkey.m_val;
 			m_hierarchy.pop_back();
 			return true;
 		}

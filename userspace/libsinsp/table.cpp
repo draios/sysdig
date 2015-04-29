@@ -123,6 +123,11 @@ sinsp_table::~sinsp_table()
 		delete[] m_postmerge_fld_pointers;
 	}
 
+	if(m_filter != NULL)
+	{
+		delete m_filter;
+	}
+	
 	delete m_printer;
 }
 

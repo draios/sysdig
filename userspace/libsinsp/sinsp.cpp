@@ -195,6 +195,12 @@ void sinsp::init()
 	//
 	// Allocate the cycle writer
 	//
+	if(m_cycle_writer)
+	{
+		delete m_cycle_writer;
+		m_cycle_writer = NULL;
+	}
+	
 	m_cycle_writer = new cycle_writer();
 
 	//

@@ -1245,7 +1245,8 @@ bool sinsp_cursesui::drillup()
 
 		render();
 #endif
-
+		
+		delete[] rowkey.m_val;
 		return true;
 	}
 

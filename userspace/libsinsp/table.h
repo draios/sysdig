@@ -102,6 +102,7 @@ public:
 		}
 
 		m_len = other->m_len;
+
 		memcpy(m_val, other->m_val, m_len);
 	}
 
@@ -142,6 +143,14 @@ public:
 	sinsp_table_buffer()
 	{
 		push_buffer();
+	}
+
+	~sinsp_table_buffer()
+	{
+		for(auto it = m_bufs.begin(); it != m_bufs.end(); ++it)
+		{
+			delete[] *it;
+		}
 	}
 
 	void push_buffer()
