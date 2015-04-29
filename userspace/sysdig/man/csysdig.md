@@ -69,7 +69,7 @@ INTERACTIVE COMMANDS
   'echo FDs' for the selection, i.e. view FD input/output for the currently highlited entry.  
 
 **F6, d**  
-  'dig' into the selection, i.e. view sysdig events for the currently highlited entry. Refer to the sysdig man page to learn of to interpret the content of this window.  
+  'dig' into the selection, i.e. view sysdig events for the currently highlited entry. Refer to the sysdig man page to learn about interpreting the content of this window.  
 
 **F7**  
   Show the help page for the currently displayed view.  
@@ -78,7 +78,7 @@ INTERACTIVE COMMANDS
   Quit.  
 
 **DEL, c**  
-  For views that are listing elements without aggregating them by key (identifiable by yellow column headers), this allows to clar the view content.  
+  For views that are listing elements without aggregating them by key (identifiable by yellow column headers), this command clears the view content.  
 
 **p**  
   Pause screen updates.  
@@ -101,10 +101,10 @@ INTERACTIVE COMMANDS
   Find Next.  
 
 **F2**  
-  Chose the output rendering format. Options are 'Dotted ASCII' (non-printable binary bytes are rendered as dots), 'Printable ASCII' (non-printable binary bytes are not included and line endings are rendered accurately) and 'Hex' (dotted ASCII rapresentation is included together with the Hexadecimal rendering of the buffers).
+  Chose the output rendering format. Options are 'Dotted ASCII' (non-printable binary bytes are rendered as dots), 'Printable ASCII' (non-printable binary bytes are not included and line endings are rendered accurately) and 'Hex' (dotted ASCII representation is included together with the Hexadecimal rendering of the buffers).
 
 **DEL, c**  
-  Clar the screen content.  
+  Clear the screen content.  
 
 **p**  
   Pause screen updates.  
@@ -120,7 +120,7 @@ COMMAND LINE OPTIONS
 --------------------
   
 **-d** _period_, **--delay**=_period_  
-  Set the delay between updates, in milliseconds. This works similarly to the -d option in top.  
+  Set the delay between updates, in milliseconds (by default = 2000). This works similarly to the -d option in top.  
 
 **-E**, **--exclude-users**  
   Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.  
@@ -147,7 +147,7 @@ COMMAND LINE OPTIONS
   Capture the first _len_ bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
 
 **-v** _view_id_, **--views**=_view_id_  
-  Run the view with the given ID when csysdig starts. View IDs can be found in the view documentation pages in csysdig. Combine  this option with a command line filter for complete output customization.
+  Run the view with the given ID when csysdig starts. View IDs can be found in the view documentation pages in csysdig. Combine this option with a command line filter for complete output customization.
 
 **--version**  
   Print version number.
@@ -168,7 +168,7 @@ FILES
 AUTHOR
 ------
 
-sysdig inc. <info@sysdigcloud.com>
+Draios Inc. (dba Sysdig) <info@sysdigcloud.com>
 
 SEE ALSO
 --------
