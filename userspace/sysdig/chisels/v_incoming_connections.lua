@@ -22,7 +22,7 @@ view_info =
 	description = "List every newly established network connection.",
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = {"all", "container.id", "proc.pid", "thread.tid", "proc.name", "fd.name", "fd.containername", "fd.sport"},
+	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "fd.name", "fd.containername", "fd.sport"},
 	filter = "evt.type=accept and evt.dir=< and evt.failed=false",
 	columns = 
 	{

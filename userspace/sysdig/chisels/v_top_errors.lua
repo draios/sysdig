@@ -26,7 +26,7 @@ view_info =
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"all", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.directory"},
+	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.directory"},
 	filter = "evt.res != SUCCESS",
 	use_defaults = true,
 	drilldown_target = "procs",

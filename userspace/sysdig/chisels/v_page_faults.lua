@@ -26,7 +26,7 @@ view_info =
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"all", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory"},
+	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory"},
 	drilldown_target = "errors",
 	use_defaults = true,
 	columns = 
