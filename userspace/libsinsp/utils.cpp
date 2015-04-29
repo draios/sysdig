@@ -22,6 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <sys/time.h>
 #endif
+#include <sys/time.h>
 #include <algorithm> 
 #include <functional> 
 
