@@ -688,7 +688,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				}
 			}
 			else
-			{				
+			{
 				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
