@@ -925,7 +925,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
 			case 'n':
-				cnt = atoi(optarg);
+				try
+				{
+					cnt = stoi(optarg);
+				}
+				catch(...)
+				{
+					throw sinsp_exception("can't parse the -n argument, make sure it's a number");
+				}
+
 				if(cnt <= 0)
 				{
 					throw sinsp_exception(string("invalid event count ") + optarg);

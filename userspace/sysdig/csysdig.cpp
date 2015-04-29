@@ -248,7 +248,15 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				throw sinsp_exception("command line error");
 				break;
 			case 'd':
-				refresh_interval_ns = atoi(optarg) * 1000000;
+				try
+				{
+					refresh_interval_ns = stoi(optarg) * 1000000;
+				}
+				catch(...)
+				{
+					throw sinsp_exception("can't parse the -d argument, make sure it's a number");
+				}
+
 				break;
 			case 'E':
 				inspector->set_import_users(false);
@@ -261,7 +269,15 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				list_flds = true;
 				break;
 			case 'n':
-				cnt = atoi(optarg);
+				try
+				{
+					cnt = stoi(optarg);
+				}
+				catch(...)
+				{
+					throw sinsp_exception("can't parse the -n argument, make sure it's a number");
+				}
+
 				if(cnt <= 0)
 				{
 					throw sinsp_exception(string("invalid event count ") + optarg);
