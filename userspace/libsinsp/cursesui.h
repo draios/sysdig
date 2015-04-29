@@ -110,6 +110,11 @@ public:
 			prev_sorting_col));
 	}
 
+	~sinsp_ui_selection_hierarchy()
+	{
+		while(pop_back());
+	}
+
 	string tofilter()
 	{
 		string res;
@@ -164,10 +169,18 @@ public:
 		return &m_hierarchy[j];
 	}
 
-	void pop_back()
+	bool pop_back()
 	{
-		delete m_hierarchy[m_hierarchy.size() - 1].m_rowkey.m_val;
-		m_hierarchy.pop_back();
+		if(m_hierarchy.size() == 0)
+		{
+			return false;
+		}
+		else
+		{
+			delete m_hierarchy[m_hierarchy.size() - 1].m_rowkey.m_val;
+			m_hierarchy.pop_back();
+			return true;
+		}
 	}
 
 
