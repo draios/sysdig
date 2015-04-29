@@ -40,7 +40,6 @@ Here are some basic tips to get you started with sysdig:
 3. You can to drill down into a selection by typing _enter_. You can navigate back by typing _backspace_.
 4. You can observe input/output for the currently selected entity by typing _F5_
 5. You can see sysdig events for the currently selected entity by typing _F6_
- or see sysdig events (_F6_) for any selection.
 
 INTERACTIVE COMMANDS  
 --------------------  
@@ -123,7 +122,7 @@ COMMAND LINE OPTIONS
   Set the delay between updates, in milliseconds (by default = 2000). This works similarly to the -d option in top.  
 
 **-E**, **--exclude-users**  
-  Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.  
+  Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time.  
 
 **-h**, **--help**  
   Print this page
