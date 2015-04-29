@@ -213,7 +213,7 @@ BUGS
 AUTHOR
 ------
 
-Draios inc. <info@draios.com>
+Draios Inc. (dba Sysdig) <info@sysdigcloud.com>
 
 SEE ALSO
 --------
