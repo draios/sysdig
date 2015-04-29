@@ -1048,7 +1048,9 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 	uint32_t srtcol;
 	srtcol = m_datatable->get_sorting_col();
 
-	m_sel_hierarchy.push_back(field, val, 
+	ASSERT(m_selected_view < (int32_t)m_views.size());
+
+	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
 		m_selected_view, m_selected_sidemenu_entry, 
 		&rowkeybak, srtcol);
 
@@ -1103,7 +1105,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	uint32_t srtcol;
 	srtcol = m_datatable->get_sorting_col();
 
-	m_sel_hierarchy.push_back(field, val, 
+	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
 		m_selected_view, m_selected_sidemenu_entry, 
 		&rowkeybak, srtcol);
 	m_selected_view = new_view_num;

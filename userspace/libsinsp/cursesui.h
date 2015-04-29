@@ -64,7 +64,8 @@ class sinsp_ui_selection_info
 {
 public:
 	sinsp_ui_selection_info(string field, 
-		string val, 
+		string val,
+		string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
 		sinsp_table_field* rowkey,
@@ -72,6 +73,7 @@ public:
 	{
 		m_field = field;
 		m_val = val;
+		m_view_filter = view_filter;
 		m_prev_selected_view = prev_selected_view;
 		m_prev_selected_sidemenu_entry = prev_selected_sidemenu_entry;
 		m_prev_sorting_col = prev_sorting_col;
@@ -81,6 +83,7 @@ public:
 
 	string m_field;
 	string m_val;
+	string m_view_filter;
 	uint32_t m_prev_selected_view;
 	uint32_t m_prev_selected_sidemenu_entry;
 	uint32_t m_prev_sorting_col;
@@ -91,14 +94,16 @@ class sinsp_ui_selection_hierarchy
 {
 public:
 	void push_back(string field, 
-		string val, 
+		string val,
+		string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
 		sinsp_table_field* rowkey,
 		uint32_t prev_sorting_col)
 	{
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
-			val, 
+			val,
+			view_filter,
 			prev_selected_view, 
 			prev_selected_sidemenu_entry,
 			rowkey,
@@ -109,12 +114,36 @@ public:
 	{
 		string res;
 		uint32_t j;
+		uint32_t hs = m_hierarchy.size();
 
-		for(j = 0; j < m_hierarchy.size(); j++)
+		for(j = 0; j < hs; j++)
 		{
+			bool has_filter = false;
+
+			if(m_hierarchy[j].m_view_filter != "")
+			{
+				has_filter = true;
+			}
+
+			if(has_filter)
+			{
+				if(hs > 1)
+				{
+					res += "(";
+				}
+				res += "(";
+				res += m_hierarchy[j].m_view_filter;
+				res += ") and ";
+			}
+
 			res += m_hierarchy[j].m_field;
 			res += "=";
 			res += m_hierarchy[j].m_val;
+
+			if(has_filter && hs > 1)
+			{
+				res += ")";
+			}
 
 			if(j < m_hierarchy.size() - 1)
 			{
