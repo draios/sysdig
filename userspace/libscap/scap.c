@@ -43,10 +43,16 @@ static uint32_t get_max_consumers()
 	FILE *pfile = fopen("/sys/module/sysdig_probe/parameters/max_consumers", "r");
 	if(pfile != NULL)
 	{
-		fscanf(pfile, "%"PRIu32, &max);
+		int w = fscanf(pfile, "%"PRIu32, &max);
+		if(w == 0)
+		{
+			return 0;
+		}
+		
 		fclose(pfile);
 		return max;
 	}
+
 	return 0;
 }
 

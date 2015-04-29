@@ -588,8 +588,9 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 	//
 	if(m_output_filtering)
 	{
-		str = &m_complete_filter;
+		str = &m_manual_filter;
 
+g_logger.format("2> %s", str->c_str());
 		if(*str == "" && m_is_filter_sysdig && m_complete_filter != "")
 		{
 			*str = m_complete_filter;
@@ -1290,6 +1291,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	if(m_output_filtering)
 	{
 		str = &m_manual_filter;
+g_logger.format("A> %s", str->c_str());
 	}
 	else if(m_output_searching)
 	{
@@ -1800,7 +1802,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			break;
 		case KEY_MOUSE:
 			{
-				MEVENT* event;
+				MEVENT* event = NULL;
 
 				if(m_sidemenu != NULL)
 				{
@@ -1813,6 +1815,12 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				else if(m_viz != NULL)
 				{
 					event = &m_viz->m_last_mevent;
+				}
+
+				if(event == NULL)
+				{
+					ASSERT(false);
+					break;
 				}
 
 				if(event->bstate & BUTTON1_CLICKED ||
