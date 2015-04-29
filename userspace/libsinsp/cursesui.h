@@ -154,6 +154,24 @@ public:
 		return res;
 	}
 
+	uint32_t size()
+	{
+		return m_hierarchy.size();
+	}
+
+	sinsp_ui_selection_info* at(uint32_t j)
+	{
+		return &m_hierarchy[j];
+	}
+
+	void pop_back()
+	{
+		delete m_hierarchy[m_hierarchy.size() - 1].m_rowkey.m_val;
+		m_hierarchy.pop_back();
+	}
+
+
+private:
 	vector<sinsp_ui_selection_info> m_hierarchy;
 };
 

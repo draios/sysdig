@@ -755,6 +755,11 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 {
 	lua_State* ls = lua_open();
+	if(ls == NULL)
+	{
+		return false;
+	}
+
 	luaL_openlibs(ls);
 
 	//

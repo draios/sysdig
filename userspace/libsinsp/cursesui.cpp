@@ -234,8 +234,15 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	{
 		if(m_selected_view >= (int32_t)m_views.size())
 		{
-			ASSERT(false);
-			throw sinsp_exception("invalid view");		
+			if(m_views.size() == 0)
+			{
+				throw sinsp_exception("no views loaded");
+			}
+			else
+			{
+				ASSERT(false);
+				throw sinsp_exception("invalid view");
+			}
 		}
 	}
 
@@ -390,17 +397,17 @@ void sinsp_cursesui::render_header()
 		}
 	}
 
-	if(m_sel_hierarchy.m_hierarchy.size() != 0)
+	if(m_sel_hierarchy.size() != 0)
 	{
 		vs += " for ";
 
-		for(j = 0; j < m_sel_hierarchy.m_hierarchy.size(); j++)
+		for(j = 0; j < m_sel_hierarchy.size(); j++)
 		{
-			vs += m_sel_hierarchy.m_hierarchy[j].m_field;
+			vs += m_sel_hierarchy.at(j)->m_field;
 			vs += "=";
-			vs += m_sel_hierarchy.m_hierarchy[j].m_val;
+			vs += m_sel_hierarchy.at(j)->m_val;
 
-			if(j < m_sel_hierarchy.m_hierarchy.size() - 1)
+			if(j < m_sel_hierarchy.size() - 1)
 			{
 				vs += " and ";
 			}
@@ -590,7 +597,6 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 	{
 		str = &m_manual_filter;
 
-g_logger.format("2> %s", str->c_str());
 		if(*str == "" && m_is_filter_sysdig && m_complete_filter != "")
 		{
 			*str = m_complete_filter;
@@ -968,9 +974,9 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 {
 	string field;
 
-	if(m_sel_hierarchy.m_hierarchy.size() > 0)
+	if(m_sel_hierarchy.size() > 0)
 	{
-		sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+		sinsp_ui_selection_info* psinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
 		field = psinfo->m_field;
 	}
 
@@ -1173,16 +1179,16 @@ bool sinsp_cursesui::drilldown(string field, string val)
 
 bool sinsp_cursesui::drillup()
 {
-	if(m_sel_hierarchy.m_hierarchy.size() > 0)
+	if(m_sel_hierarchy.size() > 0)
 	{
 		string field;
-		sinsp_ui_selection_info* sinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 1];
+		sinsp_ui_selection_info* sinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
 
 		m_manual_filter = "";
 
-		if(m_sel_hierarchy.m_hierarchy.size() > 1)
+		if(m_sel_hierarchy.size() > 1)
 		{
-			sinsp_ui_selection_info* psinfo = &m_sel_hierarchy.m_hierarchy[m_sel_hierarchy.m_hierarchy.size() - 2];
+			sinsp_ui_selection_info* psinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 2);
 			field = psinfo->m_field;
 		}
 
@@ -1191,7 +1197,7 @@ bool sinsp_cursesui::drillup()
 		m_selected_view = sinfo->m_prev_selected_view;
 		m_selected_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
 		ASSERT(m_selected_view < (int32_t)m_views.size());
-		m_sel_hierarchy.m_hierarchy.pop_back();
+		m_sel_hierarchy.pop_back();
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
 		if(!m_inspector->is_live())
@@ -1240,7 +1246,6 @@ bool sinsp_cursesui::drillup()
 		render();
 #endif
 
-		delete[] rowkey.m_val;
 		return true;
 	}
 
@@ -1291,7 +1296,6 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	if(m_output_filtering)
 	{
 		str = &m_manual_filter;
-g_logger.format("A> %s", str->c_str());
 	}
 	else if(m_output_searching)
 	{
