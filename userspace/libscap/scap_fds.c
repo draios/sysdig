@@ -205,7 +205,7 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 	case SCAP_FD_EVENTPOLL:
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
-		res += (uint32_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE) + 2;    // 2 is the lenght field before the string
+		res += (uint32_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE) + 2;    // 2 is the length field before the string
 		break;
 	default:
 		ASSERT(false);
