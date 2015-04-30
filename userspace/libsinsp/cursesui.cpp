@@ -202,6 +202,11 @@ sinsp_cursesui::~sinsp_cursesui()
 	}
 #endif
 
+	if(m_spy_box)
+	{
+		delete m_spy_box;
+	}
+
 	delete m_timedelta_formatter;
 }
 
@@ -1245,7 +1250,7 @@ bool sinsp_cursesui::drillup()
 
 		render();
 #endif
-		
+
 		delete[] rowkey.m_val;
 		return true;
 	}
