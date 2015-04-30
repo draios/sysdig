@@ -555,7 +555,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			// Done. Close the capture.
 			//
 			inspector->close();
-
 		}
 	}
 	catch(sinsp_capture_interrupt_exception&)
