@@ -200,12 +200,12 @@ sinsp_cursesui::~sinsp_cursesui()
 	{
 		delete m_mainhelp_page;
 	}
-#endif
 
 	if(m_spy_box)
 	{
 		delete m_spy_box;
 	}
+#endif
 
 	delete m_timedelta_formatter;
 }
