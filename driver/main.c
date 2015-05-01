@@ -45,7 +45,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm.h"
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Draios");
+MODULE_AUTHOR("sysdig inc");
 
 #define PPM_DEVICE_NAME "sysdig"
 #define PPE_DEVICE_NAME PPM_DEVICE_NAME "-events"
@@ -106,6 +106,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
@@ -767,9 +768,17 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				task_lock(p);
 #endif
 				if (nentries < pli->max_entries) {
+					cputime_t utime, stime;
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
+					utime = t->utime;
+					stime = t->stime;
+#else
+					ppm_task_cputime_adjusted(t, &utime, &stime);
+#endif
 					pi.pid = t->pid;
-					pi.utime = t->utime;
-					pi.stime = t->stime;
+					pi.utime = utime;
+					pi.stime = stime;
 
 					if (copy_to_user((void*)&pli->entries[nentries], &pi, sizeof(struct ppm_proc_info))) {
 						rcu_read_unlock();
