@@ -37,6 +37,7 @@ static unsigned long long vtime_delta(struct task_struct *tsk)
 	return clock - tsk->vtime_snap;
 }
 
+#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
 static void
 fetch_task_cputime(struct task_struct *t,
 		   cputime_t *u_dst, cputime_t *s_dst,
@@ -76,7 +77,16 @@ fetch_task_cputime(struct task_struct *t,
 		}
 	} while (read_seqretry(&t->vtime_seqlock, seq));
 }
-
+#else
+static inline void task_cputime(struct task_struct *t,
+				cputime_t *utime, cputime_t *stime)
+{
+	if (utime)
+		*utime = t->utime;
+	if (stime)
+		*stime = t->stime;
+}
+#endif
 
 void task_cputime(struct task_struct *t, cputime_t *utime, cputime_t *stime)
 {
