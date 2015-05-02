@@ -77,16 +77,6 @@ fetch_task_cputime(struct task_struct *t,
 		}
 	} while (read_seqretry(&t->vtime_seqlock, seq));
 }
-#else
-static inline void task_cputime(struct task_struct *t,
-				cputime_t *utime, cputime_t *stime)
-{
-	if (utime)
-		*utime = t->utime;
-	if (stime)
-		*stime = t->stime;
-}
-#endif
 
 void task_cputime(struct task_struct *t, cputime_t *utime, cputime_t *stime)
 {
@@ -99,6 +89,16 @@ void task_cputime(struct task_struct *t, cputime_t *utime, cputime_t *stime)
 	if (stime)
 		*stime += sdelta;
 } 
+#else
+static inline void task_cputime(struct task_struct *t,
+				cputime_t *utime, cputime_t *stime)
+{
+	if (utime)
+		*utime = t->utime;
+	if (stime)
+		*stime = t->stime;
+}
+#endif
 
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 void task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st)
