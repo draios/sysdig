@@ -88,15 +88,6 @@ void task_cputime(struct task_struct *t, cputime_t *utime, cputime_t *stime)
 		*utime += udelta;
 	if (stime)
 		*stime += sdelta;
-} 
-#else
-static inline void task_cputime(struct task_struct *t,
-				cputime_t *utime, cputime_t *stime)
-{
-	if (utime)
-		*utime = t->utime;
-	if (stime)
-		*stime = t->stime;
 }
 #endif
 
