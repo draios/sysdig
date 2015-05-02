@@ -26,6 +26,7 @@
 
 #define cmpxchg_cputime(ptr, old, new) cmpxchg(ptr, old, new)
 
+#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
 static unsigned long long vtime_delta(struct task_struct *tsk)
 {
 	unsigned long long clock;
@@ -37,7 +38,6 @@ static unsigned long long vtime_delta(struct task_struct *tsk)
 	return clock - tsk->vtime_snap;
 }
 
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
 static void
 fetch_task_cputime(struct task_struct *t,
 		   cputime_t *u_dst, cputime_t *s_dst,
