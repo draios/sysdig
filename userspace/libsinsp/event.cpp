@@ -2043,7 +2043,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 						cat->m_subcategory = SC_OTHER;
 						break;
 					default:
-						ASSERT(false);
+//						ASSERT(false);
 						cat->m_subcategory = SC_UNKNOWN;
 						break;
 				}

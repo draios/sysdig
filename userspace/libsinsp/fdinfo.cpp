@@ -75,7 +75,7 @@ template<> char sinsp_fdinfo_t::get_typechar()
 	case SCAP_FD_TIMERFD:
 		return CHAR_FD_TIMERFD;
 	default:
-		ASSERT(false);
+//		ASSERT(false);
 		return '?';
 	}
 }
