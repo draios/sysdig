@@ -284,12 +284,11 @@ void curses_table_sidemenu::update_view_info()
 sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 {
 	int32_t prev_select;
+	int input;
 
 	switch(ch)
 	{
 		case KEY_F(1):
-		case KEY_HOME:
-		case KEY_END:
 		case KEY_F(4):
 		case KEY_F(5):
 		case KEY_F(6):
@@ -326,6 +325,12 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 
 			selection_up((int32_t)m_entries->size());
 
+			input = getch();
+			if(input != -1)
+			{
+				return handle_input(input);
+			}
+
 			if(m_selct != prev_select)
 			{
 				update_view_info();
@@ -342,6 +347,12 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			prev_select = m_selct;
 
 			selection_down((int32_t)m_entries->size());
+
+			input = getch();
+			if(input != -1)
+			{
+				return handle_input(input);
+			}
 
 			if(m_selct != prev_select)
 			{
@@ -360,6 +371,12 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 
 			selection_pageup((int32_t)m_entries->size());
 
+			input = getch();
+			if(input != -1)
+			{
+				return handle_input(input);
+			}
+
 			if(m_selct != prev_select)
 			{
 				update_view_info();
@@ -376,6 +393,58 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			prev_select = m_selct;
 
 			selection_pagedown((int32_t)m_entries->size());
+
+			input = getch();
+			if(input != -1)
+			{
+				return handle_input(input);
+			}
+
+			if(m_selct != prev_select)
+			{
+				update_view_info();
+			}
+
+			render();
+			return STA_NONE;
+		case KEY_HOME:
+			if(m_entries->size() == 0)
+			{
+				return STA_NONE;
+			}
+
+			prev_select = m_selct;
+
+			selection_home((int32_t)m_entries->size());
+
+			input = getch();
+			if(input != -1)
+			{
+				return handle_input(input);
+			}
+
+			if(m_selct != prev_select)
+			{
+				update_view_info();
+			}
+
+			render();
+			return STA_NONE;
+		case KEY_END:
+			if(m_entries->size() == 0)
+			{
+				return STA_NONE;
+			}
+
+			prev_select = m_selct;
+
+			selection_end((int32_t)m_entries->size());
+
+			input = getch();
+			if(input != -1)
+			{
+				return handle_input(input);
+			}
 
 			if(m_selct != prev_select)
 			{
@@ -1089,13 +1158,13 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 {
 	m_parent = parent;
 	ctext_config config;
+	int input;
 
 	sinsp_view_info* vinfo = parent->m_views.at(viewnum);
 
 	m_win = newwin(h, w, starty, startx);
 
 	m_ctext = new ctext(m_win);
-//	m_ctext = new ctext(stdscr);
 
 	m_ctext->get_config(&config);
 
@@ -1115,6 +1184,13 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf("%s\n\n", vinfo->m_description.c_str());
 
+	// Stop and check for keyboard input
+	input = getch();
+	if(input != -1)
+	{
+		handle_input(input);
+	}
+
 	//
 	// Print the tips if present
 	//
@@ -1130,11 +1206,16 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 		}
 	}
 
+	// Stop and check for keyboard input
+	input = getch();
+	if(input != -1)
+	{
+		handle_input(input);
+	}
+
 	//
 	// Print columns info
 	//
-//	vector<filtercheck_field_info>* legend = parent->m_datatable->get_legend();
-
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 	m_ctext->printf("Columns\n");
 
@@ -1161,6 +1242,13 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 		wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 		m_ctext->printf(": %s", desc.c_str());
 		m_ctext->printf("\n");
+
+		// Stop and check for keyboard input
+		input = getch();
+		if(input != -1)
+		{
+			handle_input(input);
+		}
 	}
 
 	m_ctext->printf("\n");
@@ -1174,6 +1262,13 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf("%s\n\n", vinfo->m_id.c_str());
 
+	// Stop and check for keyboard input
+	input = getch();
+	if(input != -1)
+	{
+		handle_input(input);
+	}
+	
 	//
 	// If there's a filter, print it 
 	//
@@ -1184,6 +1279,13 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 
 		wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 		m_ctext->printf("%s\n\n", vinfo->m_filter.c_str());
+	}
+
+	// Stop and check for keyboard input
+	input = getch();
+	if(input != -1)
+	{
+		handle_input(input);
 	}
 
 	//
