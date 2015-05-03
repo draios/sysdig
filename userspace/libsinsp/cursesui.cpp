@@ -1101,6 +1101,17 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num)
 {
+	//
+	// unpause the thing if it's paused
+	//
+	if(m_paused)
+	{
+		pause();
+	}
+
+	//
+	// Do the drilldown
+	//
 #ifndef NOCURSESUI
 	sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
 #else
@@ -1186,6 +1197,17 @@ bool sinsp_cursesui::drillup()
 {
 	if(m_sel_hierarchy.size() > 0)
 	{
+		//
+		// unpause the thing if it's paused
+		//
+		if(m_paused)
+		{
+			pause();
+		}
+
+		//
+		// Do the drillup
+		//
 		string field;
 		sinsp_ui_selection_info* sinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
 
