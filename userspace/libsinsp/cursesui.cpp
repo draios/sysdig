@@ -910,7 +910,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	//
 	// Now refresh the UI.
 	//
-	if(m_viz)
+	if(m_viz && !m_paused)
 	{
 		m_viz->update_data(sample);
 
