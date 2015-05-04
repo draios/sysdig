@@ -364,7 +364,11 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 		printf("%s", cd->m_name.c_str());
 		uint32_t namelen = (uint32_t)cd->m_name.size();
 
-		ASSERT(namelen < (DESCRIPTION_TEXT_START));
+		if(namelen >= DESCRIPTION_TEXT_START)
+		{
+			printf("\n");
+			namelen = 0;
+		}
 
 		for(l = 0; l < (DESCRIPTION_TEXT_START - namelen); l++)
 		{
