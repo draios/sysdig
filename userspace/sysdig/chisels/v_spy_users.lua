@@ -24,6 +24,7 @@ view_info =
 	view_type = "list",
 	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name"},
 	filter = "((evt.type=execve and evt.dir=<) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)) and evt.failed=false",
+	use_defaults = true,
 	columns = 
 	{
 		{

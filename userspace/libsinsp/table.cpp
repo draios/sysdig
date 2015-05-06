@@ -428,6 +428,7 @@ void sinsp_table::process_event(sinsp_evt* evt)
 {
 	uint32_t j;
 
+BRK(21162);
 	//
 	// Apply the filter
 	//
