@@ -34,6 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
+#include <linux/jiffies.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
 
@@ -755,7 +756,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			goto cleanup_ioctl;
 		}
 
-//		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli->max_entries);
+		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli->max_entries);
 
 		rcu_read_lock();
 		
@@ -777,8 +778,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 					ppm_task_cputime_adjusted(t, &utime, &stime);
 #endif
 					pi.pid = t->pid;
-					pi.utime = utime;
-					pi.stime = stime;
+					pi.utime = cputime_to_clock_t(utime);
+					pi.stime = cputime_to_clock_t(stime);
 
 					if (copy_to_user((void*)&pli->entries[nentries], &pi, sizeof(struct ppm_proc_info))) {
 						rcu_read_unlock();

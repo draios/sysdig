@@ -1542,7 +1542,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				if(tinfo->m_last_t_tot_cpu != 0)
 				{
 					uint64_t deltaval = tcpu - tinfo->m_last_t_tot_cpu;
-					thval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
+					thval = (double)deltaval;// / (ONE_SECOND_IN_NS / 100);
 					if(thval > 100)
 					{
 						thval = 100;
@@ -1589,7 +1589,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				if(tinfo->m_last_t_tot_cpu != 0)
 				{
 					uint64_t deltaval = tcpu - tinfo->m_last_t_tot_cpu;
-					m_dval = (double)deltaval / (ONE_SECOND_IN_NS / 100);
+					m_dval = (double)deltaval;// / (ONE_SECOND_IN_NS / 100);
 					if(m_dval > 100)
 					{
 						m_dval = 100;
