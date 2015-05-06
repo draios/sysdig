@@ -345,6 +345,11 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 	{
 		chisel_desc* cd = &(chlist->at(j));
 
+		if(cd->m_viewinfo.m_valid)
+		{
+			continue;
+		}
+
 		string category = cd->m_category;
 
 		if(category != last_category) 

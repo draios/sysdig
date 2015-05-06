@@ -795,7 +795,6 @@ bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 	if(!lua_isstring(ls, -1))
 	{
 		return parse_view_info(ls, &cd);
-		goto failure;
 	}
 	cd.m_description = lua_tostring(ls, -1);
 
