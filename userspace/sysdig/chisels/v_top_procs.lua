@@ -69,11 +69,13 @@ view_info =
 		{
 			name = "VIRT",
 			field = "proc.vmsize",
+			description = "total virtual memory for the process (as kb).",
 			colsize = 9
 		},
 		{
 			name = "RES",
 			field = "proc.vmrss",
+			description = "resident non-swapped memory for the process (as kb).",
 			colsize = 9
 		},
 		{
