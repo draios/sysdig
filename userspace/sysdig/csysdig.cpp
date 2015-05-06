@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "sysdig.h"
 #include "table.h"
+#include "utils.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -250,7 +251,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'd':
 				try
 				{
-					refresh_interval_ns = stoi(optarg) * 1000000;
+					refresh_interval_ns = sinsp_numparser::parseu64(optarg) * 1000000;
 				}
 				catch(...)
 				{
@@ -271,7 +272,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'n':
 				try
 				{
-					cnt = stoi(optarg);
+					cnt = sinsp_numparser::parseu64(optarg);
 				}
 				catch(...)
 				{

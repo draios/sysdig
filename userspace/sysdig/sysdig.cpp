@@ -927,7 +927,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'n':
 				try
 				{
-					cnt = stoi(optarg);
+					cnt = sinsp_numparser::parseu64(optarg);
 				}
 				catch(...)
 				{
