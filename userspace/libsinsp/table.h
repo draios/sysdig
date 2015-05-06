@@ -321,7 +321,7 @@ private:
 	vector<sinsp_sample_row>* m_sample_data;
 	sinsp_table_field* m_vals;
 	int32_t m_sorting_col;
-	int32_t m_prev_sorting_col;
+	bool m_just_sorted;
 	bool m_is_sorting_ascending;
 	bool m_do_merging;
 	sinsp_filter* m_filter;

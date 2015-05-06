@@ -93,7 +93,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_buffer = &m_buffer1;
 	m_is_sorting_ascending = false;
 	m_sorting_col = -1;
-	m_prev_sorting_col = -1;
+	m_just_sorted = true;
 	m_do_merging = true;
 	m_types = &m_premerge_types;
 	m_table = &m_premerge_table;
@@ -699,12 +699,12 @@ void sinsp_table::sort_sample()
 {
 	if(m_type == sinsp_table::TT_LIST)
 	{
-		if(m_sorting_col == -1 || m_sorting_col == m_prev_sorting_col)
+		if(m_sorting_col == -1 || !m_just_sorted)
 		{
 			return;
 		}
 
-		m_prev_sorting_col = m_sorting_col;
+		m_just_sorted = false;
 	}
 
 	if(m_sample_data->size() != 0)
@@ -830,7 +830,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 		}
 	}
 
-	m_prev_sorting_col = m_sorting_col;
+	m_just_sorted = true;
 	m_sorting_col = col - 1;
 }
 
