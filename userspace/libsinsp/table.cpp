@@ -585,6 +585,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 	}
 
 	uint64_t ts = evt->get_ts();
+
 	m_next_flush_time_ns = ts - (ts % m_refresh_interval_ns) + m_refresh_interval_ns;
 
 	return;

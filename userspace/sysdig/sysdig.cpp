@@ -30,7 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sinsp.h>
 #include "chisel.h"
 #include "sysdig.h"
-#include "table.h"
+#include "utils.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -59,22 +59,6 @@ static void usage();
 static void signal_callback(int signal)
 {
 	g_terminate = true;
-}
-
-void replace_in_place(string& str, string substr_to_replace, string new_substr)
-{
-	size_t index = 0;
-	uint32_t nsize = (uint32_t)substr_to_replace.size();
-
-	while (true)
-	{
-		 index = str.find(substr_to_replace, index);
-		 if (index == string::npos) break;
-
-		 str.replace(index, nsize, new_substr);
-
-		 index += nsize;
-	}
 }
 
 //
@@ -489,8 +473,7 @@ captureinfo do_inspect(sinsp* inspector,
 					   bool print_progress,
 					   sinsp_filter* display_filter,
 					   vector<summary_table_entry>* summary_table,
-					   sinsp_evt_formatter* formatter,
-					   vector<sinsp_table>* tables)
+					   sinsp_evt_formatter* formatter)
 {
 	captureinfo retval;
 	int32_t res;
@@ -614,14 +597,6 @@ captureinfo do_inspect(sinsp* inspector,
 			}
 
 			//
-			// If there are tables to update, update them
-			//
-			for(auto it = tables->begin(); it != tables->end(); ++it)
-			{
-				it->process_event(ev);
-			}
-
-			//
 			// When the quiet flag is specified, we don't do any kind of processing other
 			// than counting the events.
 			//
@@ -696,7 +671,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
 	string timefmt = "%evt.time";
-	vector<sinsp_table> tables;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;	
@@ -1295,10 +1269,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->autodump_next_file();
 			}
 
-//sinsp_table table(inspector);
-//tables.push_back(table);
-//tables[0].configure("*proc.pid proc.name evt.buflen evt.num");
-
 			//
 			// Notify the chisels that the capture is starting
 			//
@@ -1311,8 +1281,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				print_progress,
 				display_filter,
 				summary_table,
-				&formatter,
-				&tables);
+				&formatter);
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC - duration;
 
