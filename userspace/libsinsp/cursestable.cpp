@@ -456,7 +456,11 @@ void curses_table::render(bool data_changed)
 					m_legend[j].m_info.m_print_format);
 
 				uint32_t size = m_legend[j].m_size - 1;
-				mvwaddnstr(m_tblwin, l + 1, k, m_converter->tostring_nice(NULL, size), size);
+				mvwaddnstr(m_tblwin,
+					l + 1,
+					k,
+					m_converter->tostring_nice(NULL, size, m_parent->get_time_delta()),
+					size);
 				k += m_legend[j].m_size;
 			}
 		}

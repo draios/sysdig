@@ -471,7 +471,7 @@ void sinsp_cursesui::render_header()
 			0,
 			ppm_print_format::PF_DEC);
 
-			srcstr += string(m_timedelta_formatter->tostring_nice(NULL, 0)) + ")";
+			srcstr += string(m_timedelta_formatter->tostring_nice(NULL, 0, 0)) + ")";
 	}
 
 	mvaddnstr(1, k, srcstr.c_str(), m_screenw - k - 1);
@@ -1498,7 +1498,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			//
 			// Refresh the data and the visualization
 			//
-			m_viz->update_data(m_datatable->get_sample());
+			m_viz->update_data(m_datatable->get_sample(get_time_delta()));
 			m_viz->render(true);
 		}
 	}

@@ -3563,37 +3563,37 @@ char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fP", str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024 * 1024));
+					"%*.2lfP", str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024 * 1024));
 	}
 	else if(val > (1024LL * 1024 * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fT", str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024));
+					"%*.2lfT", str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024));
 	}
 	else if(val > (1024LL * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fG", str_len - 1, (val) / (1024LL * 1024 * 1024));
+					"%*.2lfG", str_len - 1, (val) / (1024LL * 1024 * 1024));
 	}
 	else if(val > (1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fM", str_len - 1, (val) / (1024 * 1024));
+					"%*.2lfM", str_len - 1, (val) / (1024 * 1024));
 	}
 	else if(val > 1024)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2fK", str_len - 1, (val) / (1024));
+					"%*.2lfK", str_len - 1, (val) / (1024));
 	}
 	else
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*" PRId64, str_len, val);
+					"%*.2lf", str_len, val);
 	}
 
 	uint32_t len = (uint32_t)strlen(m_getpropertystr_storage);
@@ -3672,6 +3672,116 @@ char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 	return m_getpropertystr_storage;
 }
 
+char* sinsp_filter_check_reference::print_double(uint8_t* rawval, uint32_t str_len)
+{
+	double val;
+
+	switch(m_field->m_type)
+	{
+	case PT_INT8:
+		val = (double)*(int8_t*)rawval;
+		break;
+	case PT_INT16:
+		val = (double)*(int16_t*)rawval;
+		break;
+	case PT_INT32:
+		val = (double)*(int32_t*)rawval;
+		break;
+	case PT_INT64:
+		val = (double)*(int64_t*)rawval;
+		break;
+	case PT_UINT8:
+		val = (double)*(uint8_t*)rawval;
+		break;
+	case PT_UINT16:
+		val = (double)*(uint16_t*)rawval;
+		break;
+	case PT_UINT32:
+		val = (double)*(uint32_t*)rawval;
+		break;
+	case PT_UINT64:
+		val = (double)*(uint64_t*)rawval;
+		break;
+	default:
+		ASSERT(false);
+		val = 0;
+		break;
+	}
+
+	if(m_cnt > 1)
+	{
+		val /= m_cnt;
+	}
+
+	if(m_print_format == PF_ID)
+	{
+		snprintf(m_getpropertystr_storage,
+					sizeof(m_getpropertystr_storage),
+					"%*lf", str_len, val);
+		return m_getpropertystr_storage;
+	}
+	else
+	{
+		return format_bytes(val, str_len);
+	}
+
+}
+
+char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
+{
+	int64_t val;
+
+	switch(m_field->m_type)
+	{
+	case PT_INT8:
+		val = (int64_t)*(int8_t*)rawval;
+		break;
+	case PT_INT16:
+		val = (int64_t)*(int16_t*)rawval;
+		break;
+	case PT_INT32:
+		val = (int64_t)*(int32_t*)rawval;
+		break;
+	case PT_INT64:
+		val = (int64_t)*(int64_t*)rawval;
+		break;
+	case PT_UINT8:
+		val = (int64_t)*(uint8_t*)rawval;
+		break;
+	case PT_UINT16:
+		val = (int64_t)*(uint16_t*)rawval;
+		break;
+	case PT_UINT32:
+		val = (int64_t)*(uint32_t*)rawval;
+		break;
+	case PT_UINT64:
+		val = (int64_t)*(uint64_t*)rawval;
+		break;
+	default:
+		ASSERT(false);
+		val = 0;
+		break;
+	}
+
+	if(m_cnt > 1)
+	{
+		val /= m_cnt;
+	}
+
+	if(m_print_format == PF_ID)
+	{
+		snprintf(m_getpropertystr_storage,
+					sizeof(m_getpropertystr_storage),
+					"%*" PRId64, str_len, val);
+		return m_getpropertystr_storage;
+	}
+	else
+	{
+		return format_bytes(val, str_len);
+	}
+
+}
+
 char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, 
 												  uint32_t str_len,
 												  uint64_t time_delta)
@@ -3691,55 +3801,13 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 
 	if(m_field->m_type >= PT_INT8 && m_field->m_type <= PT_UINT64)
 	{
-		double val;
-
-		switch(m_field->m_type)
+		if(m_print_format == PF_ID || m_cnt == 1 || m_cnt == 0)
 		{
-		case PT_INT8:
-			val = (double)*(int8_t*)rawval;
-			break;
-		case PT_INT16:
-			val = (double)*(int16_t*)rawval;
-			break;
-		case PT_INT32:
-			val = (double)*(int32_t*)rawval;
-			break;
-		case PT_INT64:
-			val = (double)*(int64_t*)rawval;
-			break;
-		case PT_UINT8:
-			val = (double)*(uint8_t*)rawval;
-			break;
-		case PT_UINT16:
-			val = (double)*(uint16_t*)rawval;
-			break;
-		case PT_UINT32:
-			val = (double)*(uint32_t*)rawval;
-			break;
-		case PT_UINT64:
-			val = (double)*(uint64_t*)rawval;
-			break;
-		default:
-			ASSERT(false);
-			val = 0;
-			break;
-		}
-
-		if(m_cnt > 1)
-		{
-			val /= m_cnt;
-		}
-
-		if(m_print_format == PF_ID)
-		{
-			snprintf(m_getpropertystr_storage,
-						sizeof(m_getpropertystr_storage),
-						"%*" PRId64, str_len, val);
-			return m_getpropertystr_storage;
+			return print_int(rawval, str_len);
 		}
 		else
 		{
-			return format_bytes(val, str_len);
+			return print_double(rawval, str_len);
 		}
 	}
 	else if(m_field->m_type == PT_RELTIME)

@@ -590,6 +590,8 @@ public:
 private:
 	inline char* format_bytes(double val, uint32_t str_len);
 	inline char* format_time(uint64_t val, uint32_t str_len);
+	char* print_double(uint8_t* rawval, uint32_t str_len);
+	char* print_int(uint8_t* rawval, uint32_t str_len);
 
 	filtercheck_field_info m_finfo;
 	uint8_t* m_val;
