@@ -122,7 +122,7 @@ public:
 	{
 		string res;
 		uint32_t j;
-		uint32_t hs = m_hierarchy.size();
+		uint32_t hs = (uint32_t)m_hierarchy.size();
 
 		for(j = 0; j < hs; j++)
 		{
@@ -164,7 +164,7 @@ public:
 
 	uint32_t size()
 	{
-		return m_hierarchy.size();
+		return (uint32_t)m_hierarchy.size();
 	}
 
 	sinsp_ui_selection_info* at(uint32_t j)
@@ -334,6 +334,7 @@ public:
 	}
 	void render();
 	void turn_search_on(search_caller_interface* ifc);
+	uint64_t get_time_delta();
 
 	//
 	// Return true if the application is supposed to exit

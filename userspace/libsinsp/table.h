@@ -236,7 +236,7 @@ public:
 	//
 	sinsp_table_field* search_in_sample(string text);
 	void sort_sample();
-	vector<sinsp_sample_row>* get_sample();
+	vector<sinsp_sample_row>* get_sample(uint64_t time_delta);
 	vector<filtercheck_field_info>* get_legend()
 	{
 		if(m_do_merging)
@@ -285,15 +285,16 @@ private:
 	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();
 	void switch_buffers();
-	void stdout_print(vector<sinsp_sample_row>* sample_data);
+	void stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
 
 	sinsp* m_inspector;
 	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher>* m_table;
 	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_premerge_table;
 	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_merge_table;
 	vector<filtercheck_field_info> m_premerge_legend;
-	vector<sinsp_filter_check*> m_extractors;
-	vector<sinsp_filter_check*> m_mergers;
+	vector<sinsp_filter_check*> m_premerge_extractors;
+	vector<sinsp_filter_check*> m_postmerge_extractors;
+	vector<sinsp_filter_check*>* m_extractors;
 	vector<sinsp_filter_check*> m_chks_to_free;
 	vector<ppm_param_type>* m_types;
 	vector<ppm_param_type> m_premerge_types;

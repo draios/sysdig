@@ -252,6 +252,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				try
 				{
 					refresh_interval_ns = sinsp_numparser::parseu64(optarg) * 1000000;
+
+					if(refresh_interval_ns < 100000000)
+					{
+						throw sinsp_exception("Period must be bigger then 100ms");
+					}
 				}
 				catch(...)
 				{

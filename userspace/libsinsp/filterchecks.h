@@ -585,16 +585,16 @@ public:
 	int32_t parse_field_name(const char* str, bool alloc_state);
 	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
-	char* tostring_nice(sinsp_evt* evt, uint32_t str_len);
+	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
 private:
-	inline char* format_bytes(int64_t val, uint32_t str_len);
+	inline char* format_bytes(double val, uint32_t str_len);
 	inline char* format_time(uint64_t val, uint32_t str_len);
 
 	filtercheck_field_info m_finfo;
 	uint8_t* m_val;
 	uint32_t m_len;
-	uint32_t m_cnt;		// For averages, this stores the entry count
+	double m_cnt;		// For averages, this stores the entry count
 	ppm_print_format m_print_format;
 };
 

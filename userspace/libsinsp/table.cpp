@@ -97,6 +97,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_do_merging = true;
 	m_types = &m_premerge_types;
 	m_table = &m_premerge_table;
+	m_extractors = &m_premerge_extractors;
 	m_filter = NULL;
 	m_use_defaults = false;
 	m_zero_u64 = 0;
@@ -155,7 +156,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	//////////////////////////////////////////////////////////////////////////////////////
 	// Extract the tokens
 	//////////////////////////////////////////////////////////////////////////////////////
-	m_extractors.clear();
+	m_premerge_extractors.clear();
 
 	for(auto vit : *entries)
 	{
@@ -180,12 +181,12 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 				throw sinsp_exception("invalid table configuration: multiple keys specified");
 			}
 
-			m_extractors.insert(m_extractors.begin(), chk);
+			m_premerge_extractors.insert(m_premerge_extractors.begin(), chk);
 			m_is_key_present = true;
 		}
 		else
 		{
-			m_extractors.push_back(chk);
+			m_premerge_extractors.push_back(chk);
 		}
 	}
 
@@ -220,13 +221,13 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 			throw sinsp_exception("list table can't have a key");
 		}
 
-		m_extractors.insert(m_extractors.begin(), chk);
+		m_premerge_extractors.insert(m_premerge_extractors.begin(), chk);
 		m_is_key_present = true;
 	}
 
-	m_premerge_fld_pointers = new sinsp_table_field[m_extractors.size()];
+	m_premerge_fld_pointers = new sinsp_table_field[m_premerge_extractors.size()];
 	m_fld_pointers = m_premerge_fld_pointers;
-	m_n_premerge_fields = (uint32_t)m_extractors.size();
+	m_n_premerge_fields = (uint32_t)m_premerge_extractors.size();
 	m_n_fields = m_n_premerge_fields;
 
 	if(m_n_fields < 2)
@@ -234,7 +235,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		throw sinsp_exception("table has no values");
 	}
 
-	for(auto it = m_extractors.begin(); it != m_extractors.end(); ++it)
+	for(auto it = m_premerge_extractors.begin(); it != m_premerge_extractors.end(); ++it)
 	{
 		m_premerge_types.push_back((*it)->get_field_info()->m_type);
 		m_premerge_legend.push_back(*(*it)->get_field_info());
@@ -292,7 +293,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		}
 
 
-		sinsp_filter_check* chk = m_extractors[j];
+		sinsp_filter_check* chk = m_premerge_extractors[j];
 
 		chk->m_merge_aggregation = (sinsp_field_aggregation)vit.m_groupby_aggregation;
 
@@ -304,18 +305,18 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 			}
 
 			m_is_groupby_key_present = true;
-			m_mergers.insert(m_mergers.begin(), chk);
+			m_postmerge_extractors.insert(m_postmerge_extractors.begin(), chk);
 			m_groupby_columns.insert(m_groupby_columns.begin(), j);
 		}
 		else
 		{
-			m_mergers.push_back(chk);
+			m_postmerge_extractors.push_back(chk);
 			m_groupby_columns.push_back(j);
 		}
 	}
 
-	m_postmerge_fld_pointers = new sinsp_table_field[m_mergers.size()];
-	m_n_postmerge_fields = (uint32_t)m_mergers.size();
+	m_postmerge_fld_pointers = new sinsp_table_field[m_postmerge_extractors.size()];
+	m_n_postmerge_fields = (uint32_t)m_postmerge_extractors.size();
 
 	if(!m_is_groupby_key_present)
 	{
@@ -327,7 +328,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		throw sinsp_exception("groupby table has no values");
 	}
 
-	for(auto it = m_mergers.begin(); it != m_mergers.end(); ++it)
+	for(auto it = m_postmerge_extractors.begin(); it != m_postmerge_extractors.end(); ++it)
 	{
 		m_postmerge_types.push_back((*it)->get_field_info()->m_type);
 		m_postmerge_legend.push_back(*(*it)->get_field_info());
@@ -381,11 +382,11 @@ void sinsp_table::add_row(bool merging)
 			{
 				if(merging)
 				{
-					add_fields(j, &m_fld_pointers[j], m_mergers[j]->m_merge_aggregation);
+					add_fields(j, &m_fld_pointers[j], m_postmerge_extractors[j]->m_merge_aggregation);
 				}
 				else
 				{
-					add_fields(j, &m_fld_pointers[j], m_extractors[j]->m_aggregation);
+					add_fields(j, &m_fld_pointers[j], m_premerge_extractors[j]->m_aggregation);
 				}
 			}
 		}
@@ -428,7 +429,6 @@ void sinsp_table::process_event(sinsp_evt* evt)
 {
 	uint32_t j;
 
-BRK(21162);
 	//
 	// Apply the filter
 	//
@@ -446,7 +446,7 @@ BRK(21162);
 	for(j = 0; j < m_n_premerge_fields; j++)
 	{
 		uint32_t len;
-		uint8_t* val = m_extractors[j]->extract(evt, &len);
+		uint8_t* val = m_premerge_extractors[j]->extract(evt, &len);
 
 		sinsp_table_field* pfld = &(m_premerge_fld_pointers[j]);
 
@@ -556,6 +556,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 				m_n_fields = m_n_postmerge_fields;
 				m_vals_array_sz = m_postmerge_vals_array_sz;
 				m_fld_pointers = m_postmerge_fld_pointers;
+				m_extractors = &m_postmerge_extractors;
 			}
 
 			//
@@ -592,7 +593,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 	return;
 }
 
-void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data)
+void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t time_delta)
 {
 	vector<filtercheck_field_info>* legend = get_legend();
 
@@ -600,12 +601,21 @@ void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data)
 	{
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
+			sinsp_filter_check* extractor = m_extractors->at(j);
+			uint64_t td = 0;
+
+			if(extractor->m_aggregation == A_TIME_AVG || 
+				extractor->m_merge_aggregation == A_TIME_AVG)
+			{
+				td = time_delta;
+			}
+
 			m_printer->set_val(m_types->at(j + 1), 
-				it->m_values[j].m_val, 
+				it->m_values[j].m_val,
 				it->m_values[j].m_len,
 				it->m_values[j].m_cnt,
 				legend->at(j + 1).m_print_format);
-				char* prstr = m_printer->tostring_nice(NULL, 10);
+				char* prstr = m_printer->tostring_nice(NULL, 10, td);
 				printf("%s ", prstr);
 				//printf("%s ", m_printer->tostring(NULL));
 		}
@@ -638,7 +648,7 @@ void sinsp_table::filter_sample()
 					it.m_values[j].m_cnt,
 					legend->at(j + 1).m_print_format);
 					
-				string strval = m_printer->tostring_nice(NULL, 0);
+				string strval = m_printer->tostring_nice(NULL, 0, 0);
 
 				if(strval.find(m_freetext_filter) != string::npos)
 				{
@@ -684,7 +694,7 @@ sinsp_table_field* sinsp_table::search_in_sample(string text)
 					it->m_values[j].m_cnt,
 					legend->at(j + 1).m_print_format);
 
-				string strval = m_printer->tostring_nice(NULL, 0);
+				string strval = m_printer->tostring_nice(NULL, 0, 0);
 
 				if(strval.find(text) != string::npos)
 				{
@@ -728,7 +738,7 @@ void sinsp_table::sort_sample()
 	}
 }
 
-vector<sinsp_sample_row>* sinsp_table::get_sample()
+vector<sinsp_sample_row>* sinsp_table::get_sample(uint64_t time_delta)
 {
 	//
 	// No sample generation happens when the table is paused
@@ -755,7 +765,7 @@ vector<sinsp_sample_row>* sinsp_table::get_sample()
 	}
 
 #ifdef _WIN32
-	stdout_print(m_sample_data);
+	stdout_print(m_sample_data, time_delta);
 #endif
 
 	//
@@ -766,6 +776,7 @@ vector<sinsp_sample_row>* sinsp_table::get_sample()
 	m_n_fields = m_n_premerge_fields;
 	m_vals_array_sz = m_premerge_vals_array_sz;
 	m_fld_pointers = m_premerge_fld_pointers;
+	m_extractors = &m_premerge_extractors;
 
 	return m_sample_data;
 }
@@ -1139,6 +1150,7 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 	case A_NONE:
 		return;
 	case A_SUM:
+	case A_TIME_AVG:
 		if(src->m_cnt < 2)
 		{
 			add_fields_sum(type, dst, src);
@@ -1270,12 +1282,12 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 
 	if(m_do_merging)
 	{
-		extractors = &m_mergers;
+		extractors = &m_postmerge_extractors;
 		types = &m_postmerge_types;
 	}
 	else
 	{
-		extractors = &m_extractors;
+		extractors = &m_premerge_extractors;
 		types = &m_premerge_types;
 	}
 

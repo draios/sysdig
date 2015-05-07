@@ -896,7 +896,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	// First of all, create the data for the chart
 	//
 	vector<sinsp_sample_row>* sample = 
-		m_datatable->get_sample();
+		m_datatable->get_sample(get_time_delta());
 
 #ifndef NOCURSESUI
 	//
@@ -1890,5 +1890,17 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 }
 
 #endif // NOCURSESUI
+
+uint64_t sinsp_cursesui::get_time_delta()
+{
+	if(m_inspector->is_live())
+	{
+		return m_refresh_interval_ns;
+	}
+	else
+	{
+		return m_last_evt_ts - m_1st_evt_ts;
+	}
+}
 
 #endif // CSYSDIG
