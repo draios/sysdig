@@ -449,6 +449,15 @@ void curses_table::render(bool data_changed)
 
 			for(j = 0, k = 0; j < m_legend.size(); j++)
 			{
+				sinsp_filter_check* extractor = m_table->m_extractors->at(j + 1);
+				uint64_t td = 0;
+
+				if(extractor->m_aggregation == A_TIME_AVG || 
+					extractor->m_merge_aggregation == A_TIME_AVG)
+				{
+					td = m_parent->get_time_delta();
+				}
+
 				m_converter->set_val(m_legend[j].m_info.m_type, 
 					row->at(j).m_val, 
 					row->at(j).m_len,
@@ -459,7 +468,7 @@ void curses_table::render(bool data_changed)
 				mvwaddnstr(m_tblwin,
 					l + 1,
 					k,
-					m_converter->tostring_nice(NULL, size, m_parent->get_time_delta()),
+					m_converter->tostring_nice(NULL, size, td),
 					size);
 				k += m_legend[j].m_size;
 			}
