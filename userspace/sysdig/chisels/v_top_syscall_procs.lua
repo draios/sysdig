@@ -34,16 +34,16 @@ view_info =
 		},
 		{
 			is_sorting = true,
-			name = "COUNT",
+			name = "CALLS/S",
 			field = "evt.count",
-			description = "Number of system calls this process has invoked.",
+			description = "Number of system calls per second that this process has invoked.",
 			colsize = 10,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
 			name = "TIME",
 			field = "evt.latency",
-			description = "Total time spent on system calls by the process.",
+			description = "Total time spent on system calls by the process during the sample interval. On trace files, this is the total for the whole file.",
 			colsize = 10,
 			aggregation = "SUM"
 		},

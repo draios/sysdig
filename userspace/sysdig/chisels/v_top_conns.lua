@@ -73,25 +73,25 @@ view_info =
 		},
 		{
 			is_sorting = true,
-			name = "BYTES IN",
+			name = "BPS IN",
 			field = "evt.buflen.net.in",
-			description = "Amount of bytes received by the process owning the socket.",
+			description = "This connection's input bandwidth in bytes per second.",
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
-			name = "BYTES OUT",
+			name = "BPS OUT",
 			field = "evt.buflen.net.out",
-			description = "amount of bytes sent by the process owning the socket.",
+			description = "This connection's output bandwidth in bytes per second.",
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
-			name = "IO CALLS",
+			name = "IOPS",
 			field = "evt.count",
-			description = "Total (read+write) number of input/output calls made by the process on the connection.",
+			description = "Total (read+write) number of calls per second made on this connection by the owning process.",
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
 			tags = {"containers"},

@@ -39,11 +39,11 @@ view_info =
 		},
 		{
 			is_sorting = true,
-			name = "COUNT",
+			name = "CALLS/S",
 			field = "evt.count",
-			description = "Number of times the system call has been invoked.",
+			description = "Number of calls per second for this system call.",
 			colsize = 10,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
 			name = "TOT TIME",

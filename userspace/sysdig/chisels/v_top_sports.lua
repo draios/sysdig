@@ -41,19 +41,19 @@ view_info =
 			colsize = 8,
 		},
 		{
-			name = "BYTES IN",
+			name = "BPS IN",
 			field = "evt.buflen.net.in",
-			description = "Amount of bytes received by the process owning the socket.",
+			description = "This port's input bandwidth in bytes per second.",
 			is_sorting = true,
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
-			name = "BYTES OUT",
+			name = "BPS OUT",
 			field = "evt.buflen.net.out",
-			description = "amount of bytes sent by the process owning the socket.",
+			description = "This port's output bandwidth in bytes per second.",
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
 			name = "IO CALLS",

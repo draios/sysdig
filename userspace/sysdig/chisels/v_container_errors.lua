@@ -44,7 +44,7 @@ view_info =
 		{
 			name = "FILE",
 			field = "evt.count.error.file",
-			description = "Number of file I/O errors generated in the container.",
+			description = "Number of file I/O errors generated in the container during the sample interval. On trace files, this is the total for the whole file.",
 			colsize = 8,
 			aggregation = "SUM",
 			groupby_aggregation = "SUM"
@@ -52,7 +52,7 @@ view_info =
 		{
 			name = "NET",
 			field = "evt.count.error.net",
-			description = "Number of network I/O errors generated in the container.",
+			description = "Number of network I/O errors generated in the container during the sample interval. On trace files, this is the total for the whole file.",
 			colsize = 8,
 			aggregation = "SUM",
 			groupby_aggregation = "SUM"
@@ -60,7 +60,7 @@ view_info =
 		{
 			name = "MEMORY",
 			field = "evt.count.error.memory",
-			description = "Number of memory allocation/release related errors generated in the container.",
+			description = "Number of memory allocation/release related errors generated in the container during the sample interval. On trace files, this is the total for the whole file.",
 			colsize = 8,
 			aggregation = "SUM",
 			groupby_aggregation = "SUM"
@@ -68,7 +68,7 @@ view_info =
 		{
 			name = "OTHER",
 			field = "evt.count.error.other",
-			description = "Number of errors generated in the container that don't fall in any of the previous categories. E.g. signal or event related errors.",
+			description = "Number of errors generated in the container that don't fall in any of the previous categories. E.g. signal or event related errors. On trace files, this is the total for the whole file.",
 			colsize = 8,
 			aggregation = "SUM",
 			groupby_aggregation = "SUM"

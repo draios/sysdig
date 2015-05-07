@@ -66,14 +66,14 @@ view_info =
 		{
 			name = "OPENS",
 			field = "evt.type.is.3",
-			description = "Number times the file has been opened.",
+			description = "Number times the file has been opened during the sample interval. On trace files, this is the total for the whole file.",
 			colsize = 9,
 			aggregation = "SUM"
 		},
 		{
 			name = "ERRORS",
 			field = "evt.count.error",
-			description = "Number I/O errors that happened on this file.",
+			description = "Number I/O errors that happened on this file during the sample interval. On trace files, this is the total for the whole file.",
 			colsize = 9,
 			aggregation = "SUM"
 		},
