@@ -215,7 +215,7 @@ BUGS
 AUTHOR
 ------
 
-sysdig inc. <info@sysdigcloud.com>
+Draios Inc. aka sysdig <info@sysdigcloud.com>
 
 SEE ALSO
 --------

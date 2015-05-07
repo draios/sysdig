@@ -94,10 +94,6 @@ You can observe input/output for the currently selected entity by typing
 .IP "5." 3
 You can see sysdig events for the currently selected entity by typing
 \f[I]F6\f[]
-.PD 0
-.P
-.PD
-or see sysdig events (\f[I]F6\f[]) for any selection.
 .SS INTERACTIVE COMMANDS
 .SS Views Window
 .PP
@@ -151,7 +147,7 @@ view FD input/output for the currently highlited entry.
 .PD
 \[aq]dig\[aq] into the selection, i.e.
 view sysdig events for the currently highlited entry.
-Refer to the sysdig man page to learn of to interpret the content of
+Refer to the sysdig man page to learn about interpreting the content of
 this window.
 .PP
 \f[B]F7\f[]
@@ -171,7 +167,7 @@ Quit.
 .P
 .PD
 For views that are listing elements without aggregating them by key
-(identifiable by yellow column headers), this allows to clar the view
+(identifiable by yellow column headers), this command clears the view
 content.
 .PP
 \f[B]p\f[]
@@ -219,14 +215,14 @@ Chose the output rendering format.
 Options are \[aq]Dotted ASCII\[aq] (non\-printable binary bytes are
 rendered as dots), \[aq]Printable ASCII\[aq] (non\-printable binary
 bytes are not included and line endings are rendered accurately) and
-\[aq]Hex\[aq] (dotted ASCII rapresentation is included together with the
+\[aq]Hex\[aq] (dotted ASCII representation is included together with the
 Hexadecimal rendering of the buffers).
 .PP
 \f[B]DEL, c\f[]
 .PD 0
 .P
 .PD
-Clar the screen content.
+Clear the screen content.
 .PP
 \f[B]p\f[]
 .PD 0
@@ -260,7 +256,7 @@ screen to perform their respective actions.
 .PD 0
 .P
 .PD
-Set the delay between updates, in milliseconds.
+Set the delay between updates, in milliseconds (by default = 2000).
 This works similarly to the \-d option in top.
 .PP
 \f[B]\-E\f[], \f[B]\-\-exclude\-users\f[]
@@ -274,13 +270,18 @@ tracefile by the \-w flag.
 The user/group tables are necessary to use filter fields like user.name
 or group.name.
 However, creating them can increase sysdig\[aq]s startup time.
-Moreover, they contain information that could be privacy sensitive.
 .PP
 \f[B]\-h\f[], \f[B]\-\-help\f[]
 .PD 0
 .P
 .PD
 Print this page
+.PP
+\f[B]\-l\f[], \f[B]\-\-list\f[]
+.PD 0
+.P
+.PD
+List all the fields that can be used in views.
 .PP
 \f[B]\-\-logfile\f[] \f[I]file\f[]
 .PD 0
@@ -330,6 +331,12 @@ customization.
 .P
 .PD
 Print version number.
+.SS FILTERING
+.PP
+Similarly to what you do with sysdig, you can specify a filter on the
+command line to restrict the events that csysdig processes.
+To modify the filter while the program is running, or to add a filter at
+runtime, click on the filter text in the UI with the mouse.
 .SS FILES
 .PP
 \f[I]/usr/share/sysdig/chisels\f[]
@@ -345,8 +352,8 @@ The global views directory.
 The personal views directory.
 .SS AUTHOR
 .PP
-sysdig inc.
-<info@sysdigcloud.com>
+Draios Inc.
+(dba Sysdig) <info@sysdigcloud.com>
 .SS SEE ALSO
 .PP
 \f[B]sysdig\f[](8), \f[B]strace\f[](8), \f[B]tcpdump\f[](8),

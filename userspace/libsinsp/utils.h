@@ -178,4 +178,5 @@ string sinsp_join(It begin, It end, char delim)
 	}
 	return ss.str();
 }
+<<<<<<< HEAD
 */
