@@ -601,7 +601,7 @@ void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t t
 	{
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
-			sinsp_filter_check* extractor = m_extractors->at(j);
+			sinsp_filter_check* extractor = m_extractors->at(j + 1);
 			uint64_t td = 0;
 
 			if(extractor->m_aggregation == A_TIME_AVG || 
