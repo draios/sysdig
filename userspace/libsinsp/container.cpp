@@ -345,7 +345,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 
 	container->m_image = root["Config"]["Image"].asString();
 	container->m_name = root["Name"].asString();
-	if(!container->m_name.empty())
+	if(!container->m_name.empty() && container->m_name[0] == '/')
 	{
 		container->m_name = container->m_name.substr(1);
 	}
