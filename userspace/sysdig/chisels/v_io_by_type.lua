@@ -34,26 +34,26 @@ view_info =
 			is_key = true
 		},
 		{
-			name = "BYTES IN",
+			name = "BPS IN",
 			field = "evt.buflen.in",
-			description = "Amount of bytes read from the FDs of the specific type. For live captures, this is the amount during the last sampling interval. For trace files, this is the total amount for the full file.",
+			description = "Bytes per second read from the FDs of the specific type.",
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
-			name = "BYTES OUT",
+			name = "BPS OUT",
 			field = "evt.buflen.out",
-			description = "Amount of bytes written to the FDs of the specific type. For live captures, this is the amount during the last sampling interval. For trace files, this is the total amount for the full file.",
+			description = "Bytes per second written to the FDs of the specific type.",
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
 			is_sorting = true,
-			name = "OPS",
+			name = "IOPS",
 			field = "evt.count",
 			description = "Number of I/O operations for the specified I/O category. This counts all the operations on the file, including, open, close, read, write, stat, and so on. As a consequence, this value can be nonzero even if I/O bytes for the file are zero.",
 			colsize = 9,
-			aggregation = "SUM"
+			aggregation = "TIME_AVG"
 		},
 		{
 			name = "TIME",
