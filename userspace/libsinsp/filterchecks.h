@@ -49,7 +49,7 @@ class sinsp_filter_check
 {
 public:
 	sinsp_filter_check();
-	
+
 	virtual ~sinsp_filter_check()
 	{
 	}
@@ -70,19 +70,19 @@ public:
 
 	//
 	// Parse the name of the field.
-	// Returns the lenght of the parsed field if successful, an exception in 
+	// Returns the length of the parsed field if successful, an exception in
 	// case of error.
 	//
 	virtual int32_t parse_field_name(const char* str, bool alloc_state);
-	
+
 	//
 	// If this check is used by a filter, extract the constant to compare it to
-	// Doesn't return the field lenght because the filtering engine can calculate it.
+	// Doesn't return the field length because the filtering engine can calculate it.
 	//
 	virtual void parse_filter_value(const char* str, uint32_t len);
 
 	//
-	// Return the info about the field that this instance contains 
+	// Return the info about the field that this instance contains
 	//
 	virtual const filtercheck_field_info* get_field_info();
 
@@ -432,7 +432,7 @@ public:
 	const ppm_param_info* m_arginfo;
 
 	//
-	// Note: this copy of the field is used by some fields, like TYPE_ARGS and 
+	// Note: this copy of the field is used by some fields, like TYPE_ARGS and
 	// TYPE_RESARG, that need to do on the fly type customization
 	//
 	filtercheck_field_info m_customfield;
@@ -507,7 +507,7 @@ public:
 
 	// XXX this is overkill and wasted for most of the fields.
 	// It could be optimized by dynamically allocating the right amount
-	// of memory, but we don't care for the moment since we expect filters 
+	// of memory, but we don't care for the moment since we expect filters
 	// to be pretty small.
 	string m_text;
 	uint32_t m_text_len;
