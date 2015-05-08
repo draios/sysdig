@@ -1016,6 +1016,15 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	}
 	else
 	{
+		//
+		// When live, also make sure to unpause the viz, otherwise the screen 
+		// will stay empty.
+		//
+		if(m_paused)
+		{
+			pause();
+		}
+
 		try
 		{
 			start(true, is_spy_switch);
