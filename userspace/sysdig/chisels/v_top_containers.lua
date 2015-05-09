@@ -25,7 +25,7 @@ view_info =
 	applies_to = {"", "evt.res"},
 	filter = "container.name != host",
 	use_defaults = true,
-	drilldown_target = "cont_procs",
+	drilldown_target = "procs",
 	columns = 
 	{
 		{

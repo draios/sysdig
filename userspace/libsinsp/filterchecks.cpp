@@ -3067,12 +3067,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_COUNT_PROCINFO:
 		{
-			sinsp_threadinfo* tinfo = evt->get_thread_info();
+			uint16_t etype = evt->get_type();
 
-			if(tinfo != NULL && tinfo->is_main_thread())
+			if(etype == PPME_PROCINFO_E)
 			{
-				m_u32val = 1;
-				return (uint8_t*)&m_u32val;
+				sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+				if(tinfo != NULL && tinfo->is_main_thread())
+				{
+					m_u32val = 1;
+					return (uint8_t*)&m_u32val;
+				}
 			}
 		}
 
