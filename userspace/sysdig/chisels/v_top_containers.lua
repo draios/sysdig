@@ -44,28 +44,30 @@ view_info =
 		},
 		{
 			name = "PROCS",
-			field = "evt.count",
+			field = "evt.count.procinfo",
 			description = "Number of processes currently running inside the container.",
+			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			colsize = 8,
 		},
 		{
 			name = "THREADS",
-			field = "proc.nthreads",
+			field = "evt.count",
 			description = "Number of threads currently running inside the container.",
+			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			colsize = 5
 		},
 		{
 			name = "VIRT",
-			field = "proc.vmsize",
+			field = "thread.vmsize",
 			description = "total virtual memory for the process (as kb).",
 			groupby_aggregation = "SUM",
 			colsize = 9
 		},
 		{
 			name = "RES",
-			field = "proc.vmrss",
+			field = "thread.vmrss",
 			description = "resident non-swapped memory for the process (as kb).",
 			groupby_aggregation = "SUM",
 			colsize = 9
@@ -87,9 +89,8 @@ view_info =
 			groupby_aggregation = "SUM"
 		},
 		{
-			name = "ID",
+			name = "NA",
 			field = "container.id",
-			description = "ID of the container. The format depends on the container technology.",
 			is_groupby_key = true
 		},
 		{
