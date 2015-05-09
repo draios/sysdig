@@ -3557,7 +3557,7 @@ uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len
 // convert a number into a byte representation.
 // E.g. 1230 becomes 1.23K
 //
-char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len)
+char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len, bool is_int)
 {
 	if(val > (1024LL * 1024 * 1024 * 1024 * 1024))
 	{
@@ -3591,9 +3591,18 @@ char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len)
 	}
 	else
 	{
-		snprintf(m_getpropertystr_storage,
-					sizeof(m_getpropertystr_storage),
-					"%*.2lf", str_len, val);
+		if(is_int)
+		{
+			snprintf(m_getpropertystr_storage,
+						sizeof(m_getpropertystr_storage),
+						"%*.0lf", str_len, val);
+		}
+		else
+		{
+			snprintf(m_getpropertystr_storage,
+						sizeof(m_getpropertystr_storage),
+						"%*.2lf", str_len, val);
+		}
 	}
 
 	uint32_t len = (uint32_t)strlen(m_getpropertystr_storage);
@@ -3722,7 +3731,7 @@ char* sinsp_filter_check_reference::print_double(uint8_t* rawval, uint32_t str_l
 	}
 	else
 	{
-		return format_bytes(val, str_len);
+		return format_bytes(val, str_len, false);
 	}
 
 }
@@ -3777,7 +3786,7 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 	}
 	else
 	{
-		return format_bytes(val, str_len);
+		return format_bytes(val, str_len, true);
 	}
 
 }

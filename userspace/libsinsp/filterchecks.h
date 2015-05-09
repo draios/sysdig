@@ -588,7 +588,7 @@ public:
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
 private:
-	inline char* format_bytes(double val, uint32_t str_len);
+	inline char* format_bytes(double val, uint32_t str_len, bool is_int);
 	inline char* format_time(uint64_t val, uint32_t str_len);
 	char* print_double(uint8_t* rawval, uint32_t str_len);
 	char* print_int(uint8_t* rawval, uint32_t str_len);
