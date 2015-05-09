@@ -76,7 +76,10 @@ public:
 	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
-	bool is_main_thread();
+	inline bool is_main_thread()
+	{
+		return m_tid == m_pid;
+	}
 
 	/*!
 	  \brief Get the main thread of the process containing this thread.

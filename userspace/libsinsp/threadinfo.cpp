@@ -391,11 +391,6 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 	}
 }
 
-bool sinsp_threadinfo::is_main_thread()
-{
-	return m_tid == m_pid;
-}
-
 sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 {
 	if(m_main_thread == NULL)

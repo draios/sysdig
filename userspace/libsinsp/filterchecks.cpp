@@ -1203,8 +1203,19 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_tstr = tinfo->get_cwd();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_NTHREADS:
-		m_u64val = tinfo->m_nchilds + 1;
-		return (uint8_t*)&m_u64val;
+		{
+			sinsp_threadinfo* ptinfo = tinfo->get_main_thread();
+			if(ptinfo)
+			{
+				m_u64val = ptinfo->m_nchilds + 1;
+				return (uint8_t*)&m_u64val;
+			}
+			else
+			{
+				ASSERT(false);
+				return NULL;
+			}
+		}
 	case TYPE_NCHILDS:
 		return (uint8_t*)&tinfo->m_nchilds;
 	case TYPE_ISMAINTHREAD:
