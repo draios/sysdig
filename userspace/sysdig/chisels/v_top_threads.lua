@@ -46,12 +46,14 @@ view_info =
 			colsize = 8,
 		},
 		{
+			tags = {"containers"},
 			name = "VPID",
 			field = "proc.vpid",
 			description = "PID that the process has inside the container.",
 			colsize = 8,
 		},
 		{
+			tags = {"containers"},
 			name = "VTPID",
 			field = "thread.vtid",
 			description = "TID that the tread has inside the container.",

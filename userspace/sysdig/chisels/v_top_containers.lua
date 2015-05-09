@@ -30,7 +30,7 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "proc.pid",
+			field = "thread.tid",
 			is_key = true
 		},
 		{
