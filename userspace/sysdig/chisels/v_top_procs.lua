@@ -76,7 +76,7 @@ view_info =
 		},
 		{
 			name = "VIRT",
-			field = "proc.vmsize",
+			field = "thread.vmsize",
 			description = "total virtual memory for the process (as kb).",
 			aggregation = "MAX",
 			groupby_aggregation = "MAX",
@@ -84,7 +84,7 @@ view_info =
 		},
 		{
 			name = "RES",
-			field = "proc.vmrss",
+			field = "thread.vmrss",
 			description = "resident non-swapped memory for the process (as kb).",
 			aggregation = "MAX",
 			groupby_aggregation = "MAX",

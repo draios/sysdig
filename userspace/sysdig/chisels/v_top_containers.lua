@@ -62,6 +62,7 @@ view_info =
 			name = "VIRT",
 			field = "thread.vmsize",
 			description = "total virtual memory for the process (as kb).",
+			aggregation = "MAX",
 			groupby_aggregation = "SUM",
 			colsize = 9
 		},
@@ -69,6 +70,7 @@ view_info =
 			name = "RES",
 			field = "thread.vmrss",
 			description = "resident non-swapped memory for the process (as kb).",
+			aggregation = "MAX",
 			groupby_aggregation = "SUM",
 			colsize = 9
 		},
