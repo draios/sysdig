@@ -1256,6 +1256,9 @@ uint8_t* sinsp_table::get_default_val(filtercheck_field_info* fld)
 			return (uint8_t*)&m_zero_double;
 	case PT_CHARBUF:
 			return (uint8_t*)&m_zero_u64;
+	case PT_PORT:
+	case PT_IPV4ADDR:
+		return NULL;
 	default:
 		ASSERT(false);
 		return NULL;
