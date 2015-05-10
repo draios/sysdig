@@ -35,7 +35,7 @@ view_info =
 		},
 		{
 			name = "CPU",
-			field = "proc.cpu",
+			field = "thread.cpu",
 			description = "Amount of CPU used by the container.",
 			colsize = 8,
 			aggregation = "AVG",
@@ -52,11 +52,11 @@ view_info =
 		},
 		{
 			name = "THREADS",
-			field = "evt.count",
+			field = "evt.count.threadinfo",
 			description = "Number of threads currently running inside the container.",
 			aggregation = "AVG",
 			groupby_aggregation = "SUM",
-			colsize = 5
+			colsize = 8
 		},
 		{
 			name = "VIRT",
