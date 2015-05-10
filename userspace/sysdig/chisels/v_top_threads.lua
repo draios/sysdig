@@ -61,7 +61,7 @@ view_info =
 		},
 		{
 			name = "CPU",
-			field = "proc.cpu",
+			field = "thread.cpu",
 			description = "Amount of CPU used by the proccess.",
 			colsize = 8,
 			aggregation = "AVG",
