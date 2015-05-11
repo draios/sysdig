@@ -1310,9 +1310,6 @@ void sinsp_chisel::on_init()
 
 void sinsp_chisel::first_event_inits(sinsp_evt* evt)
 {
-	lua_pushlightuserdata(m_ls, evt);
-	lua_setglobal(m_ls, "sievt");
-
 	uint64_t ts = evt->get_ts();
 	if(m_lua_cinfo->m_callback_interval != 0)
 	{
@@ -1353,6 +1350,9 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 			return false;
 		}
 	}
+
+	lua_pushlightuserdata(m_ls, evt);
+	lua_setglobal(m_ls, "sievt");
 
 	//
 	// If the script has the on_event callback, call it

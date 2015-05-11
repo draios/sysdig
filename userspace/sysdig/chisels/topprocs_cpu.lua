@@ -27,7 +27,6 @@ terminal = require "ansiterminal"
 
 grtable = {}
 islive = false
-cpustates = {}
 fkeys = {}
 local print_container = false
 
@@ -50,7 +49,7 @@ function on_init()
 	-- Print container info as well
 	if print_container then
 		-- Modify host pid column name and add container information
-		vizinfo.key_fld = {"proc.name", "proc.pid", "thread.vtid", "container.name"}
+		vizinfo.key_fld = {"proc.name", "proc.pid", "proc.vpid", "container.name"}
 		vizinfo.key_desc = {"Process", "Host_pid", "Container_pid", "container.name"}
 	end
 
@@ -61,11 +60,10 @@ function on_init()
 
 	-- Request the fields we need
 	fvalue = chisel.request_field(vizinfo.value_fld)
-	fnext = chisel.request_field("evt.arg.next")
-	fnextraw = chisel.request_field("evt.rawarg.next")
+	fcpu = chisel.request_field("thread.cpu")
 	
-	chisel.set_filter("evt.type=switch")
-	
+	chisel.set_filter("evt.type=procinfo")
+
 	return true
 end
 
@@ -82,18 +80,11 @@ function on_capture_start()
 		end
 	end
 
-	ncpus = sysdig.get_machine_info().num_cpus
-
-	for j = 1, ncpus do
-		cpustates[j] = {0, 0, 0, ""}
-	end
-
 	return true
 end
 
 -- Event parsing callback
 function on_event()
-
 	local key = nil
 	local kv = nil
 
@@ -110,31 +101,13 @@ function on_event()
 		end
 	end
 
-	value = evt.field(fvalue)
-	cpuid = evt.get_cpuid() + 1
+	local cpu = evt.field(fcpu)
 
-	if key ~= nil and value ~= nil and value > 0 then
-		thissec = value - cpustates[cpuid][3]
-		if thissec < 0 then
-			thissec = 0
-		end
-
-		if grtable[key] == nil then
-			grtable[key] = thissec
-		else
-			grtable[key] = grtable[key] + thissec
-		end
-		
-		cpustates[cpuid][1], cpustates[cpuid][2] = evt.get_ts()
-	end
-
-	if evt.field(fnext) ~= "" .. evt.field(fnextraw) then
-		cpustates[cpuid][4] = evt.field(fnext)
+	if grtable[key] == nil then
+		grtable[key] = cpu * 10000000
 	else
-		cpustates[cpuid][4] = nil
+		grtable[key] = grtable[key] + (cpu * 10000000)
 	end
-
-	cpustates[cpuid][3] = 0
 
 	return true
 end
@@ -144,22 +117,6 @@ function on_interval(ts_s, ts_ns, delta)
 	if vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
 		terminal.moveto(0, 0)
-	end
-	
-	for cpuid = 1, ncpus do
-		if cpustates[cpuid][1] ~= 0 then
-			cpustates[cpuid][3] = 1000000000 - cpustates[cpuid][2]
-
-			key = cpustates[cpuid][4]
-
-			if key ~= nil and value ~= nil and value > 0 then
-				if grtable[key] == nil then
-					grtable[key] = cpustates[cpuid][3]
-				else
-					grtable[key] = grtable[key] + cpustates[cpuid][3]
-				end
-			end
-		end
 	end
 	
 	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
