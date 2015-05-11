@@ -1,8 +1,3 @@
-#include "sinsp.h"
-#include "sinsp_int.h"
-
-#ifdef CSYSDIG
-
 #ifndef _WIN32
 
 #include "ctext.h"
@@ -32,7 +27,7 @@ const ctext_config config_default = {
 
 void search_copy(ctext_search *dst, ctext_search *src)
 {
-  // Because c++ makes life impossibly difficult.
+	// Because c++ makes life impossibly difficult.
 	memcpy(dst, src, sizeof(ctext_search) - sizeof(string));
 	dst->_query = src->_query;
 }
@@ -45,7 +40,7 @@ ctext::ctext(WINDOW *win, ctext_config *config)
 	this->m_debug = new ofstream();
 	this->m_debug->open("debug1.txt");
 	*/
-
+	
 	this->m_do_draw = true;
 	
 	if(config) 
@@ -202,7 +197,7 @@ int8_t ctext::str_search(ctext_search *to_search)
 			scroll_ret = this->direct_scroll(0, to_search->pos.y);
 		}
 
-		// this makes sure we move forward ... but we only do this
+		// This makes sure we move forward ... but we only do this
 		// if we didn't push the event forward
 		if(!scroll_ret || to_search->_match_count == 1)
 		{
@@ -296,9 +291,11 @@ int8_t ctext::str_search_single(ctext_search *to_search_in, ctext_search *new_po
 				out->pos.x = (int32_t)this->m_buffer[out->pos.y].data.size();
 			}
 
+			//
 			// The edge case here is if there are no matches and we ARE wrapping,
 			// we don't want the idiot case of going through the haystack endlessly
 			// like a chump and locking up the application.
+			//
 			if(
 					(out->pos.y == out->_start_pos.y && (out->do_wrap == false || out->_last_match.y == -1)) ||
 					(limit && out->pos.y > limit->y)
@@ -344,7 +341,7 @@ int32_t ctext::clear(int32_t row_count)
 	{
 		this->get_win_size();
 
-		// now we force it.
+		// Now we force it.
 		this->direct_scroll(0, this->m_buffer.size() - this->m_win_height);
 	}
 
@@ -471,7 +468,7 @@ int32_t ctext::page_up(int32_t page_count)
 	return this->down(-page_count * this->m_win_height);
 }
 
-// Lets do this real fast.
+// Let's do this real fast.
 int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 {
 	int8_t ret = 0;
@@ -479,7 +476,7 @@ int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 	// This is the trivial case.
 	if(!this->m_config.m_do_wrap)
 	{
-		// these are trivial.
+		// These are trivial.
 		win->y = buffer_y - this->m_pos_start.y;
 		win->x = buffer_x - this->m_pos_start.x;
 
@@ -501,7 +498,7 @@ int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 		}
 		else 
 		{
-			// to see if it's an overflow y is a bit harder
+			// To see if it's an overflow y is a bit harder
 			int32_t new_y = this->m_pos_start.y;
 
 			int32_t new_offset = this->m_pos_start.x;
@@ -512,10 +509,12 @@ int8_t ctext::map_to_win(int32_t buffer_x, int32_t buffer_y, ctext_pos*win)
 			{
 				new_offset += this->m_win_width;
 
+				//
 				// There's an edge case that requires this
 				// twice due to a short circuit exit that 
 				// would be triggered at the end of a buffer, 
 				// see below.
+				//
 				if(buffer_y == new_y && buffer_x < new_offset)
 				{
 					win->x = buffer_x - (new_offset - this->m_win_width);
@@ -577,9 +576,13 @@ int8_t ctext::y_scroll_calculate(int32_t amount, ctext_pos *pos)
 			amount --;
 			if(new_offset > (int32_t)p_row->data.size())
 			{
-				if(new_y + 1 >= (int32_t)this->m_buffer.size())
+				if((new_y + this->m_win_height + 1) >= (int32_t)this->m_buffer.size())
 				{
+					//
 					// This means that forwarding our buffer was a mistake
+					// so we undo our work and get out of here.
+					//
+					new_offset -= this->m_win_width;
 					break;
 				}
 				new_offset = 0;
@@ -615,7 +618,6 @@ int8_t ctext::y_scroll_calculate(int32_t amount, ctext_pos *pos)
 	return 0;
 }
 
-
 int32_t ctext::down(int32_t amount) 
 {
 	ctext_pos new_pos;
@@ -627,9 +629,11 @@ int32_t ctext::jump_to_first_line()
 {
 	int32_t current_line = this->m_pos_start.y;
 
+	//
 	// Now we try to scroll above the first
 	// line.	the bounding box rule will
 	// take care of the differences for us.
+	//
 	this->scroll_to(this->m_pos_start.x, 0 - this->m_win_height + 1);
 
 	return current_line - this->m_pos_start.y;
@@ -723,9 +727,11 @@ void ctext::add_format_if_needed()
 			.color_pair = color_pair
 		};
 
+		//
 		// If the new thing we are adding has the same
 		// offset as the previous, then we dump the
 		// previous.
+		//
 		if(p_format.offset == new_format.offset && !p_row->format.empty())
 		{
 			p_row->format.pop_back();
@@ -749,7 +755,7 @@ ctext_row* ctext::add_row()
 		{
 			ctext_format p_format( p_row.format.back() );
 
-			// set the offset to the initial.
+			// Set the offset to the initial.
 			p_format.offset = 0;
 			row.format.push_back(p_format);
 		}
@@ -840,17 +846,17 @@ int8_t ctext::nprintf(const char*format, ...)
 	int8_t ret;
 	va_list args;
 
-	// first turn off the rerdaw flag
+	// First turn off the rerdaw flag
 	this->ob_start();
 
-	// then call the variadic version
+	// Then call the variadic version
 	va_start(args, format);
 	ret = this->vprintf(format, args);
 
 	va_end(args);
 
 	//
-	// then manually untoggle the flag
+	// Then manually untoggle the flag
 	// (this is necessary because ob_end
 	// does TWO things, breaking loads of
 	// anti-patterns I'm sure.)
@@ -970,17 +976,17 @@ int16_t ctext::redraw_partial(
 	int32_t win_current_y = win_start.y;
 	int32_t buf_current_y = buf_start_y;
 
-	// this is for horizontal scroll.
+	// This is for horizontal scroll.
 	int32_t start_char = max(0, this->m_pos_start.x);
 	
 	while(win_current_y <= win_end.y)
 	{
 		win_current_end_x = this->m_win_width;
 
-		// if we are at the last line to generate
+		// If we are at the last line to generate
 		if(win_current_y == win_end.y)
 		{
-			// then we make sure that we end
+			// Then we make sure that we end
 			// where we are supposed to.
 			win_current_end_x = win_end.x;
 		}
@@ -1009,17 +1015,17 @@ int16_t ctext::redraw_partial(
 
 			for(;;) 
 			{
-				// our initial num_to_add is the remainder of window space
+				// Our initial num_to_add is the remainder of window space
 				// - our start (end of the screen - starting position)
 				num_to_add = win_current_end_x - win_current_x;
 				b_format = false;
 
 				wstandend(this->m_win);
 
-				// if we have a format to account for and we haven't yet,
+				// If we have a format to account for and we haven't yet,
 				if(!p_source->format.empty() && p_format->offset <= buf_offset_x)
 				{
-					// then we add it 
+					// Then we add it 
 					wattr_set(this->m_win, p_format->attrs | this->m_attr_mask, p_format->color_pair, 0);
 
 					// and tell ourselves below that we've done this.
@@ -1028,12 +1034,14 @@ int16_t ctext::redraw_partial(
 					// see if there's another num_to_add point
 					if((p_format + 1) != p_source->format.end())
 					{
+						//
 						// If it's before our newline then we'll have to do something
 						// with with that.
 						//
 						// The first one is the characters we are to print this time,
 						// the second is how many characters we would have asked for
 						// if there was no format specified.
+						//
 						num_to_add = min((p_format + 1)->offset - buf_offset_x, num_to_add); 
 					}
 				} 
@@ -1042,8 +1050,10 @@ int16_t ctext::redraw_partial(
 					wattr_set(this->m_win, this->m_attr_mask, 0, 0);
 				}
 
-				// if we can get that many characters than we grab them
+				//
+				// If we can get that many characters than we grab them
 				// otherwise we do the empty string
+				//
 				if(buf_offset_x < (int32_t)p_source->data.size())
 				{
 					to_add = p_source->data.substr(buf_offset_x, num_to_add);
@@ -1064,11 +1074,12 @@ int16_t ctext::redraw_partial(
 				// See if we need to reset our format
 				if(b_format) 
 				{
+					//
 					// If the amount of data we tried to grab is less than
 					// the width of the window - win_offset then we know to
-					// turn off our attributes
-
-					// and push our format forward if necessary
+					// turn off our attributes and push our format forward 
+					// if necessary.
+					//
 					if( (p_format + 1) != p_source->format.end() && (p_format + 1)->offset >= buf_offset_x )
 					{
 						p_format ++;
@@ -1081,35 +1092,37 @@ int16_t ctext::redraw_partial(
 					break;
 				}
 
-				// otherwise, move win_current_x forward
+				// Otherwise, move win_current_x forward
 				win_current_x += num_added_x;
 				
-				// otherwise, if we are wrapping, then we do that here.
+				// Otherwise, if we are wrapping, then we do that here.
 				if(win_current_x == win_current_end_x)
 				{
-					// if we've hit the vertical bottom
+					//
+					// If we've hit the vertical bottom
 					// of our window then we break out
 					// of this
 					//
-					// otherwise if we are not wrapping then
-					// we also break out of this
+					// Otherwise if we are not wrapping then
+					// we also break out of this.
+					//
 					if(win_current_y == win_end.y)
 					{
 						break;
 					}
 
-					// otherwise move our line forward
+					// Otherwise move our line forward
 					win_current_y++;
 
-					// if we are at the last line to generate
+					// If we are at the last line to generate
 					if(win_current_y == win_end.y)
 					{
-						// then we make sure that we end
+						// Then we make sure that we end
 						// where we are supposed to.
 						win_current_end_x = win_end.x;
 					}
 
-					// we reset the win_current_x back to its
+					// We reset the win_current_x back to its
 					// initial state
 					win_current_x = 0;
 
@@ -1126,9 +1139,12 @@ int16_t ctext::redraw_partial(
 
 int8_t ctext::redraw() 
 {
+	//
 	// Bail out if we aren't supposed to draw
 	// this time.
+	//
 	// Calculate the bounds of everything first.
+	//
 	this->rebuf();
 	if(!this->m_do_draw)
 	{
@@ -1164,9 +1180,10 @@ int8_t ctext::redraw()
 	//
 	werase(this->m_win);
 
+	//
 	// Regardless of whether this is append to top
 	// or bottom we generate top to bottom.
-
+	// 
 	int32_t start_char = max(0, this->m_pos_start.x);
 	int32_t buf_offset = start_char;
 	// the endchar will be in the substr
@@ -1182,7 +1199,7 @@ int8_t ctext::redraw()
 	//
 	int32_t line = 0;
 
-	// start at the beginning of the buffer.
+	// Start at the beginning of the buffer.
 	int32_t index = this->m_pos_start.y;
 	int32_t directionality = +1;
 	int32_t cutoff;
@@ -1193,7 +1210,7 @@ int8_t ctext::redraw()
 	ctext_row *p_source;
 	vector<ctext_format>::iterator p_format;
 
-	// if we are appending to the top then we start
+	// If we are appending to the top then we start
 	// at the end and change our directionality.
 	if(this->m_config.m_append_top)
 	{
@@ -1223,13 +1240,14 @@ int8_t ctext::redraw()
 
 			for(;;) 
 			{
-				// our initial cutoff is the remainder of window space
+				// Our initial cutoff is the remainder of window space
 				// - our start
 				cutoff = this->m_win_width - win_offset;
 				b_format = false;
 
 				wstandend(this->m_win);
-				// if we have a format to account for and we haven't yet,
+
+				// If we have a format to account for and we haven't yet,
 				if(!p_source->format.empty() && p_format->offset <= buf_offset)
 				{
 					// then we add it 
@@ -1238,20 +1256,22 @@ int8_t ctext::redraw()
 					// and tell ourselves below that we've done this.
 					b_format = true;
 
-					// see if there's another cutoff point
+					// See if there's another cutoff point
 					if((p_format + 1) != p_source->format.end())
 					{
+						//
 						// If it's before our newline then we'll have to do something
 						// with with that.
 						//
 						// The first one is the characters we are to print this time,
 						// the second is how many characters we would have asked for
 						// if there was no format specified.
+						//
 						cutoff = min((p_format + 1)->offset - buf_offset, cutoff); 
 					}
 				}
 
-				// if we can get that many characters than we grab them
+				// If we can get that many characters than we grab them
 				// otherwise we do the empty string
 				if(buf_offset < (int32_t)p_source->data.size())
 				{
@@ -1273,11 +1293,12 @@ int8_t ctext::redraw()
 				// See if we need to reset our format
 				if(b_format) 
 				{
+					//
 					// If the amount of data we tried to grab is less than
 					// the width of the window - win_offset then we know to
-					// turn off our attributes
-
-					// and push our format forward if necessary
+					// turn off our attributes and push our format forward if 
+					// necessary.
+					//
 					if( (p_format + 1) != p_source->format.end() &&
 							(p_format + 1)->offset >= buf_offset 
 						)
@@ -1298,25 +1319,26 @@ int8_t ctext::redraw()
 				// otherwise, if we are wrapping, then we do that here.
 				if(win_offset == this->m_win_width)
 				{
-					// if we've hit the vertical bottom
-					// of our window then we break out
-					// of this
 					//
-					// otherwise if we are not wrapping then
-					// we also break out of this
+					// If we've hit the vertical bottom
+					// of our window then we break out
+					// of this otherwise if we are not 
+					// wrapping then we also break out 
+					// of this.
+					//
 					if(line == this->m_win_height || !this->m_config.m_do_wrap)
 					{
 						break;
 					}
 
-					// otherwise move our line forward
+					// Otherwise move our line forward
 					line++;
 
-					// we reset the win_offset back to its
+					// We reset the win_offset back to its
 					// initial state
 					win_offset = 0;
 
-					// and we loop again.
+					// And we loop again.
 				}
 			}
 		}
@@ -1332,4 +1354,3 @@ int8_t ctext::redraw()
 }
 
 #endif // _WIN32
-#endif // CSYSDIG
