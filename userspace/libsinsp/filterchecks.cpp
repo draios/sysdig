@@ -916,8 +916,9 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cgroup", "the cgroup the thread belongs to, for a specific subsystem. E.g. thread.cgroup.cpuacct."},
 	{PT_INT64, EPF_NONE, PF_ID, "thread.vtid", "the id of the thread generating the event as seen from its current PID namespace."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.vpid", "the id of the process generating the event as seen from its current PID namespace."},
-//	{PT_DOUBLE, EPF_NONE, PF_NA, "proc.cpu", "the CPU consumed by the process in the last second. This is the sum of the CPU usage of all the threads in the process."},
 	{PT_DOUBLE, EPF_NONE, PF_NA, "thread.cpu", "the CPU consumed by the thread in the last second."},
+	{PT_DOUBLE, EPF_NONE, PF_NA, "thread.cpu.user", "the user CPU consumed by the thread in the last second."},
+	{PT_DOUBLE, EPF_NONE, PF_NA, "thread.cpu.system", "the system CPU consumed by the thread in the last second."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmsize", "For the process main thread, this is the total virtual memory for the process (as kb). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmrss", "For the process main thread, this is the resident non-swapped memory for the process (as kb). For the other threads, this field is zero."},
 };
@@ -1098,6 +1099,52 @@ uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt)
 	m_last_proc_switch_times[cpuid] = ts;
 
 	return res;
+}
+
+uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system)
+{
+	uint16_t etype = evt->get_type();
+
+	if(etype == PPME_PROCINFO_E)
+	{
+		uint64_t user = 0;
+		uint64_t system = 0;
+		uint64_t tcpu;
+
+		if(extract_user)
+		{
+			sinsp_evt_param* parinfo = evt->get_param(0);
+			user = *(uint64_t*)parinfo->m_val;
+		}
+
+		if(extract_system)
+		{
+			sinsp_evt_param* parinfo = evt->get_param(1);
+			system = *(uint64_t*)parinfo->m_val;
+		}
+
+		tcpu = user + system;
+
+		if(tinfo->m_last_t_tot_cpu != 0)
+		{
+			uint64_t deltaval = tcpu - tinfo->m_last_t_tot_cpu;
+			m_dval = (double)deltaval;// / (ONE_SECOND_IN_NS / 100);
+			if(m_dval > 100)
+			{
+				m_dval = 100;
+			}
+		}
+		else
+		{
+			m_dval = 0;
+		}
+
+		tinfo->m_last_t_tot_cpu = tcpu;
+
+		return (uint8_t*)&m_dval;
+	}
+
+	return NULL;
 }
 
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
@@ -1552,38 +1599,15 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 */
 	case TYPE_THREAD_CPU:
 		{
-			uint16_t etype = evt->get_type();
-
-			if(etype == PPME_PROCINFO_E)
-			{
-				uint64_t tcpu;
-
-				sinsp_evt_param* parinfo = evt->get_param(0);
-				tcpu = *(uint64_t*)parinfo->m_val;
-
-				parinfo = evt->get_param(1);
-				tcpu += *(uint64_t*)parinfo->m_val;
-
-				if(tinfo->m_last_t_tot_cpu != 0)
-				{
-					uint64_t deltaval = tcpu - tinfo->m_last_t_tot_cpu;
-					m_dval = (double)deltaval;// / (ONE_SECOND_IN_NS / 100);
-					if(m_dval > 100)
-					{
-						m_dval = 100;
-					}
-				}
-				else
-				{
-					m_dval = 0;
-				}
-
-				tinfo->m_last_t_tot_cpu = tcpu;
-
-				return (uint8_t*)&m_dval;
-			}
-
-			return NULL;
+			return extract_thread_cpu(evt, tinfo, true, true);
+		}
+	case TYPE_THREAD_CPU_USER:
+		{
+			return extract_thread_cpu(evt, tinfo, true, false);
+		}
+	case TYPE_THREAD_CPU_SYSTEM:
+		{
+			return extract_thread_cpu(evt, tinfo, false, true);
 		}
 	default:
 		ASSERT(false);

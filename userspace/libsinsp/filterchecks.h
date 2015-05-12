@@ -315,10 +315,11 @@ public:
 		TYPE_CGROUP = 29,
 		TYPE_VTID = 30,
 		TYPE_VPID = 31,
-		TYPE_PROC_CPU = 32,
-		TYPE_THREAD_CPU = 33,
-		TYPE_THREAD_VMSIZE = 34,
-		TYPE_THREAD_VMRSS = 35,
+		TYPE_THREAD_CPU = 32,
+		TYPE_THREAD_CPU_USER = 33,
+		TYPE_THREAD_CPU_SYSTEM = 34,
+		TYPE_THREAD_VMSIZE = 35,
+		TYPE_THREAD_VMRSS = 36,
 	};
 
 	sinsp_filter_check_thread();
@@ -330,6 +331,7 @@ public:
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	uint8_t* extract_thread_cpu(sinsp_evt *evt, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
 
