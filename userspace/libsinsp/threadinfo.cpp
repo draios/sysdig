@@ -78,8 +78,6 @@ void sinsp_threadinfo::init()
 #endif
 	m_ainfo = NULL;
 	m_program_hash = 0;
-	m_last_t_tot_cpu = 0;
-	m_last_mt_cpu_ts = 0;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()

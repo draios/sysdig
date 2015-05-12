@@ -1061,6 +1061,13 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 
 		return extract_arg("thread.cgroup", val, NULL);
 	}
+	else if(string(val, 0, sizeof("thread.cpu") - 1) == "thread.cpu")
+	{
+		if(alloc_state)
+		{
+			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint64_t));
+		}
+	}
 	else
 	{
 		return sinsp_filter_check::parse_field_name(str, alloc_state);
@@ -1125,9 +1132,10 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_thr
 
 		tcpu = user + system;
 
-		if(tinfo->m_last_t_tot_cpu != 0)
+		uint64_t* last_t_tot_cpu = (uint64_t*)tinfo->get_private_state(m_th_state_id);
+		if(last_t_tot_cpu != 0)
 		{
-			uint64_t deltaval = tcpu - tinfo->m_last_t_tot_cpu;
+			uint64_t deltaval = tcpu - *last_t_tot_cpu;
 			m_dval = (double)deltaval;// / (ONE_SECOND_IN_NS / 100);
 			if(m_dval > 100)
 			{
@@ -1139,7 +1147,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_thr
 			m_dval = 0;
 		}
 
-		tinfo->m_last_t_tot_cpu = tcpu;
+		*last_t_tot_cpu = tcpu;
 
 		return (uint8_t*)&m_dval;
 	}
