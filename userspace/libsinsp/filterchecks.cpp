@@ -916,7 +916,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cgroup", "the cgroup the thread belongs to, for a specific subsystem. E.g. thread.cgroup.cpuacct."},
 	{PT_INT64, EPF_NONE, PF_ID, "thread.vtid", "the id of the thread generating the event as seen from its current PID namespace."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.vpid", "the id of the process generating the event as seen from its current PID namespace."},
-	{PT_DOUBLE, EPF_NONE, PF_NA, "proc.cpu", "the CPU consumed by the process in the last second. This is the sum of the CPU usage of all the threads in the process."},
+//	{PT_DOUBLE, EPF_NONE, PF_NA, "proc.cpu", "the CPU consumed by the process in the last second. This is the sum of the CPU usage of all the threads in the process."},
 	{PT_DOUBLE, EPF_NONE, PF_NA, "thread.cpu", "the CPU consumed by the thread in the last second."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmsize", "For the process main thread, this is the total virtual memory for the process (as kb). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmrss", "For the process main thread, this is the resident non-swapped memory for the process (as kb). For the other threads, this field is zero."},
@@ -1500,6 +1500,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 		m_u64val = tinfo->m_vpid;
 		return (uint8_t*)&m_u64val;
+/*
 	case TYPE_PROC_CPU:
 		{
 			uint16_t etype = evt->get_type();
@@ -1548,6 +1549,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return NULL;
 		}
+*/
 	case TYPE_THREAD_CPU:
 		{
 			uint16_t etype = evt->get_type();
