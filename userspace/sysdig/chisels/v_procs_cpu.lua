@@ -20,7 +20,9 @@ view_info =
 	id = "procs_cpu",
 	name = "Processes CPU",
 	description = "Show total versus user versus system CPU usage for every process.",
-	tips = {"If a process shows an unusual amount of system CPU usage, you can drill down with the 'System Calls' view to understand what it's doing."},
+	tips = {
+		"A high value for both SYS and SYSCALLS likely means that the process is I/O bound. A high value for SYS and a moderate value for SYSCALLS might on the other side indicate a kernel bottleneck. In both cases, drilling down with the 'System Calls' view can help understand what's happening."
+	},
 	view_type = "table",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "fd.type"},
 	is_root = true,
@@ -75,6 +77,14 @@ view_info =
 			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			colsize = 8,
+		},
+		{
+			name = "SYSCALLS",
+			field = "evt.count",
+			description = "Number of system calls per second made by the proccess.",
+			aggregation = "TIME_AVG",
+			groupby_aggregation = "SUM",
+			colsize = 9,
 		},
 		{
 			tags = {"containers"},
