@@ -17,14 +17,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "procs_cpu",
-	name = "Processes CPU",
-	description = "Show total versus user versus system CPU usage for every process.",
-	tips = {"If a process shows an unusual amount of system CPU usage, you can drill down with the 'System Calls' view to understand what it's doing."},
+	id = "procs_fd_usage",
+	name = "Processes FD Usage",
+	description = "This view summarizes file descriptor usage for the processes in the system.",
+	tips = {
+	"A process that reaches its FD limit will very likely be killed by the OS. As a consequence, processes for which the OPEN column value is close to the MAX column value (or which, alternatively, have a PCT value close to 100) deserve particular attention.",
+	"Clicking enter on a selection will show the activity I/O activity done by the process on different families of FDs."},
+	tags = {"Default"},
 	view_type = "table",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "fd.type"},
 	is_root = true,
-	drilldown_target = "threads",
+	drilldown_target = "io_by_type",
 	use_defaults = true,
 	columns = 
 	{
@@ -52,28 +55,26 @@ view_info =
 			colsize = 8,
 		},
 		{
-			name = "TOT",
-			field = "thread.cpu",
-			description = "Total amount of CPU used by the proccess (user + system).",
-			aggregation = "AVG",
-			groupby_aggregation = "SUM",
-			colsize = 8,
-			is_sorting = true
-		},
-		{
-			name = "USER",
-			field = "thread.cpu.user",
-			description = "Amount of user CPU used by the proccess.",
-			aggregation = "AVG",
-			groupby_aggregation = "SUM",
+			name = "OPEN",
+			field = "proc.fdopencount",
+			description = "Number of open FDs that the process currently has. On a trace file, this is the maximum value reached by the process over the whole file.",
+			aggregation = "MAX",
+			groupby_aggregation = "MAX",
 			colsize = 8,
 		},
 		{
-			name = "SYS",
-			field = "thread.cpu.system",
-			description = "Amount of system CPU used by the proccess.",
-			aggregation = "AVG",
-			groupby_aggregation = "SUM",
+			name = "MAX",
+			field = "proc.fdlimit",
+			description = "Maximum number of FDs that this process can open.",
+			aggregation = "MAX",
+			groupby_aggregation = "MAX",
+			colsize = 8,
+		},
+		{
+			name = "PCT",
+			description = "Percentage of currently open FDs versus the maximum allows for this process. In other words, this euquals to OPEN * 100 / MAX, and can be used to quickly identify processes that are getting close to their limit.",
+			aggregation = "MAX",
+			groupby_aggregation = "MAX",
 			colsize = 8,
 		},
 		{
