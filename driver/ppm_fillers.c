@@ -3168,21 +3168,6 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 
 #if 0
 	/*
-	 * cpu_usr
-	 */
-	res = val_to_ring(args, current->utime, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * cpu_sys
-	 */
-	res = val_to_ring(args, current->stime, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-
-	/*
 	 * steal
 	 */
 	steal = cputime64_to_clock_t(kcpustat_this_cpu->cpustat[CPUTIME_STEAL]);
