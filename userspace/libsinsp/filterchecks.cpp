@@ -902,7 +902,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "number of nanoseconds since the process started."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "number of open FDs for the process"},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.fdlimit", "maximum number of FDs the process can open."},
-	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdusage", "the ratio between open FDs and maximum available FDs for the process."},
+	{PT_DOUBLE, EPF_NONE, PF_DEC, "proc.fdusage", "the ratio between open FDs and maximum available FDs for the process."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmsize", "total virtual memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmrss", "resident non-swapped memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmswap", "swapped memory for the process (as kb)."},
@@ -1457,8 +1457,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_s64val = tinfo->get_fd_limit();
 		return (uint8_t*)&m_s64val;
 	case TYPE_FDUSAGE:
-		m_u64val = tinfo->get_fd_usage_pct();
-		return (uint8_t*)&m_u64val;
+		m_dval = tinfo->get_fd_usage_pct_d();
+		return (uint8_t*)&m_dval;
 	case TYPE_VMSIZE:
 		m_u64val = tinfo->m_vmsize_kb;
 		return (uint8_t*)&m_u64val;

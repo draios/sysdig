@@ -671,6 +671,28 @@ uint64_t sinsp_threadinfo::get_fd_usage_pct()
 	}
 }
 
+double sinsp_threadinfo::get_fd_usage_pct_d()
+{
+	int64_t fdlimit = get_fd_limit();
+	if(fdlimit > 0)
+	{
+		uint64_t fd_opencount = get_fd_opencount();
+		ASSERT(fd_opencount <= (uint64_t) fdlimit);
+		if(fd_opencount <= (uint64_t) fdlimit)
+		{
+			return ((double)fd_opencount * 100) / fdlimit;
+		}
+		else
+		{
+			return 100;
+		}
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 uint64_t sinsp_threadinfo::get_fd_opencount()
 {
 	return get_main_thread()->m_fdtable.size();
