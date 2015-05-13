@@ -33,13 +33,8 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "thread.tid",
-			is_key = true
-		},
-		{
-			name = "NA",
 			field = "proc.pid",
-			is_groupby_key = true
+			is_key = true
 		},
 		{
 			name = "PID",
@@ -59,7 +54,6 @@ view_info =
 			field = "proc.fdopencount",
 			description = "Number of open FDs that the process currently has. On a trace file, this is the maximum value reached by the process over the whole file.",
 			aggregation = "MAX",
-			groupby_aggregation = "MAX",
 			colsize = 8,
 		},
 		{
@@ -67,7 +61,6 @@ view_info =
 			field = "proc.fdlimit",
 			description = "Maximum number of FDs that this process can open.",
 			aggregation = "MAX",
-			groupby_aggregation = "MAX",
 			colsize = 8,
 		},
 		{
@@ -75,7 +68,6 @@ view_info =
 			field = "proc.fdusage",
 			description = "Percentage of currently open FDs versus the maximum allows for this process. In other words, this euquals to OPEN * 100 / MAX, and can be used to quickly identify processes that are getting close to their limit.",
 			aggregation = "MAX",
-			groupby_aggregation = "MAX",
 			colsize = 8,
 		},
 		{
