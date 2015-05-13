@@ -72,6 +72,7 @@ view_info =
 		},
 		{
 			name = "PCT",
+			field = "proc.fdusage",
 			description = "Percentage of currently open FDs versus the maximum allows for this process. In other words, this euquals to OPEN * 100 / MAX, and can be used to quickly identify processes that are getting close to their limit.",
 			aggregation = "MAX",
 			groupby_aggregation = "MAX",

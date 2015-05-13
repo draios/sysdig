@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "process_errors",
-	name = "Process Errors",
+	id = "procs_errors",
+	name = "Processes Errors",
 	description = "This view shows system error counters for processes. Errors are grouped into 4 categories: file I/O, network I/O, memory allocation and 'other'.",
 	tips = {
 		"If you click 'enter' on a selection in this chart, you will be able to see the specific errors that the process is generating.",
