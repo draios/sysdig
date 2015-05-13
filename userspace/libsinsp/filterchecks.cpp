@@ -1067,6 +1067,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		{
 			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint64_t));
 		}
+
+		return sinsp_filter_check::parse_field_name(str, alloc_state);
 	}
 	else
 	{
@@ -1133,7 +1135,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_thr
 		tcpu = user + system;
 
 		uint64_t* last_t_tot_cpu = (uint64_t*)tinfo->get_private_state(m_th_state_id);
-		if(last_t_tot_cpu != 0)
+		if(*last_t_tot_cpu != 0)
 		{
 			uint64_t deltaval = tcpu - *last_t_tot_cpu;
 			m_dval = (double)deltaval;// / (ONE_SECOND_IN_NS / 100);
@@ -3600,50 +3602,52 @@ uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len
 //
 char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len, bool is_int)
 {
+	char* pr_fmt;
+
+	if(is_int)
+	{
+		pr_fmt = (char*)"%*.0lf%c";
+	}
+	else
+	{
+		pr_fmt = (char*)"%*.2lf%c";
+	}
+
 	if(val > (1024LL * 1024 * 1024 * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2lfP", str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024 * 1024));
+					pr_fmt, str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024 * 1024), 'P');
 	}
 	else if(val > (1024LL * 1024 * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2lfT", str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024));
+					pr_fmt, str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024), 'T');
 	}
 	else if(val > (1024LL * 1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2lfG", str_len - 1, (val) / (1024LL * 1024 * 1024));
+					pr_fmt, str_len - 1, (val) / (1024LL * 1024 * 1024), 'G');
 	}
 	else if(val > (1024 * 1024))
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2lfM", str_len - 1, (val) / (1024 * 1024));
+					pr_fmt, str_len - 1, (val) / (1024 * 1024), 'M');
 	}
 	else if(val > 1024)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%*.2lfK", str_len - 1, (val) / (1024));
+					pr_fmt, str_len - 1, (val) / (1024), 'K');
 	}
 	else
 	{
-		if(is_int)
-		{
-			snprintf(m_getpropertystr_storage,
-						sizeof(m_getpropertystr_storage),
-						"%*.0lf", str_len, val);
-		}
-		else
-		{
-			snprintf(m_getpropertystr_storage,
-						sizeof(m_getpropertystr_storage),
-						"%*.2lf", str_len, val);
-		}
+		snprintf(m_getpropertystr_storage,
+					sizeof(m_getpropertystr_storage),
+					pr_fmt, str_len, val, 0);
 	}
 
 	uint32_t len = (uint32_t)strlen(m_getpropertystr_storage);
