@@ -225,7 +225,7 @@ public:
 		TT_LIST,
 	};
 
-	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns);
+	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout);
 	~sinsp_table();
 	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults);
 	void process_event(sinsp_evt* evt);
@@ -332,6 +332,7 @@ private:
 	bool m_paused;
 	string m_freetext_filter;
 	tabletype m_type;
+	bool m_print_to_stdout;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

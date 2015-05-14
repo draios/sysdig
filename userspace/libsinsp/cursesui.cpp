@@ -43,7 +43,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 sinsp_cursesui::sinsp_cursesui(sinsp* inspector, 
 							   string event_source_name, 
 							   string cmdline_capture_filter, 
-							   uint64_t refresh_interval_ns)
+							   uint64_t refresh_interval_ns,
+							   bool print_containers,
+							   bool raw_output)
 {
 	m_inspector = inspector;
 	m_event_source_name = event_source_name;
@@ -69,108 +71,112 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_evt_ts_delta = 0;
 	m_timedelta_formatter = new sinsp_filter_check_reference();
 	m_refresh_interval_ns = refresh_interval_ns;
-
+	m_print_containers = print_containers;
+	m_raw_output = raw_output;
 #ifndef NOCURSESUI
-	m_sidemenu = NULL;
-	m_spy_box = NULL;
-	m_search_caller_interface = NULL;
-	m_viewinfo_page = NULL;
-	m_mainhelp_page = NULL;
+	if(!m_raw_output)
+	{
+		m_sidemenu = NULL;
+		m_spy_box = NULL;
+		m_search_caller_interface = NULL;
+		m_viewinfo_page = NULL;
+		m_mainhelp_page = NULL;
 
-	//
-	// Colors initialization
-	//
-	m_colors[RESET_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
-	m_colors[DEFAULT_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
-	m_colors[FUNCTION_BAR] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
-	m_colors[FUNCTION_KEY] = ColorPair( COLOR_WHITE,COLOR_BLACK);
-	m_colors[PANEL_HEADER_FOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
-	m_colors[PANEL_HEADER_UNFOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
-	m_colors[PANEL_HIGHLIGHT_FOCUS] = ColorPair(COLOR_BLACK,COLOR_CYAN);
-	m_colors[PANEL_HIGHLIGHT_UNFOCUS] = ColorPair(COLOR_BLACK, COLOR_WHITE);
-	m_colors[PANEL_HEADER_LIST_FOCUS] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
-	m_colors[PANEL_HEADER_LIST_HIGHLIGHT] = ColorPair(COLOR_BLACK,COLOR_GREEN);
-	m_colors[FAILED_SEARCH] = ColorPair(COLOR_RED,COLOR_CYAN);
-	m_colors[UPTIME] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[BATTERY] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[LARGE_NUMBER] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[METER_TEXT] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[METER_VALUE] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[LED_COLOR] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[TASKS_RUNNING] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[PROCESS] = A_NORMAL;
-	m_colors[PROCESS_SHADOW] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
-	m_colors[PROCESS_TAG] = A_BOLD | ColorPair(COLOR_YELLOW,COLOR_BLACK);
-	m_colors[PROCESS_MEGABYTES] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[PROCESS_BASENAME] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[PROCESS_TREE] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[PROCESS_R_STATE] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[PROCESS_D_STATE] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[PROCESS_HIGH_PRIORITY] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[PROCESS_LOW_PRIORITY] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[PROCESS_THREAD] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[PROCESS_THREAD_BASENAME] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[BAR_BORDER] = A_BOLD;
-	m_colors[BAR_SHADOW] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
-	m_colors[SWAP] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[GRAPH_1] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[GRAPH_2] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[GRAPH_3] = A_BOLD | ColorPair(COLOR_YELLOW,COLOR_BLACK);
-	m_colors[GRAPH_4] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[GRAPH_5] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[GRAPH_6] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[GRAPH_7] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[GRAPH_8] = ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[GRAPH_9] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
-	m_colors[MEMORY_USED] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[MEMORY_BUFFERS] = ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[MEMORY_BUFFERS_TEXT] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[MEMORY_CACHE] = ColorPair(COLOR_YELLOW,COLOR_BLACK);
-	m_colors[LOAD_AVERAGE_FIFTEEN] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
-	m_colors[LOAD_AVERAGE_FIVE] = A_NORMAL;
-	m_colors[LOAD_AVERAGE_ONE] = A_BOLD;
-	m_colors[LOAD] = A_BOLD;
-	m_colors[HELP_BOLD] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[CLOCK] = A_BOLD;
-	m_colors[CHECK_BOX] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-	m_colors[CHECK_MARK] = A_BOLD;
-	m_colors[CHECK_TEXT] = A_NORMAL;
-	m_colors[HOSTNAME] = A_BOLD;
-	m_colors[CPU_NICE] = ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[CPU_NICE_TEXT] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
-	m_colors[CPU_NORMAL] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-	m_colors[CPU_KERNEL] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[CPU_IOWAIT] = A_BOLD | ColorPair(COLOR_BLACK, COLOR_BLACK);
-	m_colors[CPU_IRQ] = ColorPair(COLOR_YELLOW,COLOR_BLACK);
-	m_colors[CPU_SOFTIRQ] = ColorPair(COLOR_MAGENTA,COLOR_BLACK);
-	m_colors[SPY_READ] = ColorPair(COLOR_RED,COLOR_BLACK);
-	m_colors[SPY_WRITE] = ColorPair(COLOR_BLUE,COLOR_BLACK);
+		//
+		// Colors initialization
+		//
+		m_colors[RESET_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
+		m_colors[DEFAULT_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
+		m_colors[FUNCTION_BAR] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
+		m_colors[FUNCTION_KEY] = ColorPair( COLOR_WHITE,COLOR_BLACK);
+		m_colors[PANEL_HEADER_FOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
+		m_colors[PANEL_HEADER_UNFOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
+		m_colors[PANEL_HIGHLIGHT_FOCUS] = ColorPair(COLOR_BLACK,COLOR_CYAN);
+		m_colors[PANEL_HIGHLIGHT_UNFOCUS] = ColorPair(COLOR_BLACK, COLOR_WHITE);
+		m_colors[PANEL_HEADER_LIST_FOCUS] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
+		m_colors[PANEL_HEADER_LIST_HIGHLIGHT] = ColorPair(COLOR_BLACK,COLOR_GREEN);
+		m_colors[FAILED_SEARCH] = ColorPair(COLOR_RED,COLOR_CYAN);
+		m_colors[UPTIME] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[BATTERY] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[LARGE_NUMBER] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[METER_TEXT] = ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[METER_VALUE] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[LED_COLOR] = ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[TASKS_RUNNING] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[PROCESS] = A_NORMAL;
+		m_colors[PROCESS_SHADOW] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
+		m_colors[PROCESS_TAG] = A_BOLD | ColorPair(COLOR_YELLOW,COLOR_BLACK);
+		m_colors[PROCESS_MEGABYTES] = ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[PROCESS_BASENAME] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[PROCESS_TREE] = ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[PROCESS_R_STATE] = ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[PROCESS_D_STATE] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[PROCESS_HIGH_PRIORITY] = ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[PROCESS_LOW_PRIORITY] = ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[PROCESS_THREAD] = ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[PROCESS_THREAD_BASENAME] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[BAR_BORDER] = A_BOLD;
+		m_colors[BAR_SHADOW] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
+		m_colors[SWAP] = ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[GRAPH_1] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[GRAPH_2] = ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[GRAPH_3] = A_BOLD | ColorPair(COLOR_YELLOW,COLOR_BLACK);
+		m_colors[GRAPH_4] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[GRAPH_5] = ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[GRAPH_6] = ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[GRAPH_7] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
+		m_colors[GRAPH_8] = ColorPair(COLOR_BLUE,COLOR_BLACK);
+		m_colors[GRAPH_9] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
+		m_colors[MEMORY_USED] = ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[MEMORY_BUFFERS] = ColorPair(COLOR_BLUE,COLOR_BLACK);
+		m_colors[MEMORY_BUFFERS_TEXT] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
+		m_colors[MEMORY_CACHE] = ColorPair(COLOR_YELLOW,COLOR_BLACK);
+		m_colors[LOAD_AVERAGE_FIFTEEN] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
+		m_colors[LOAD_AVERAGE_FIVE] = A_NORMAL;
+		m_colors[LOAD_AVERAGE_ONE] = A_BOLD;
+		m_colors[LOAD] = A_BOLD;
+		m_colors[HELP_BOLD] = A_BOLD | ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[CLOCK] = A_BOLD;
+		m_colors[CHECK_BOX] = ColorPair(COLOR_CYAN,COLOR_BLACK);
+		m_colors[CHECK_MARK] = A_BOLD;
+		m_colors[CHECK_TEXT] = A_NORMAL;
+		m_colors[HOSTNAME] = A_BOLD;
+		m_colors[CPU_NICE] = ColorPair(COLOR_BLUE,COLOR_BLACK);
+		m_colors[CPU_NICE_TEXT] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
+		m_colors[CPU_NORMAL] = ColorPair(COLOR_GREEN,COLOR_BLACK);
+		m_colors[CPU_KERNEL] = ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[CPU_IOWAIT] = A_BOLD | ColorPair(COLOR_BLACK, COLOR_BLACK);
+		m_colors[CPU_IRQ] = ColorPair(COLOR_YELLOW,COLOR_BLACK);
+		m_colors[CPU_SOFTIRQ] = ColorPair(COLOR_MAGENTA,COLOR_BLACK);
+		m_colors[SPY_READ] = ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[SPY_WRITE] = ColorPair(COLOR_BLUE,COLOR_BLACK);
 
-	//
-	// Populate the main menu entries
-	//
-	m_menuitems.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL, KEY_F(1)));
-	m_menuitems.push_back(sinsp_menuitem_info("F2", "Views", sinsp_menuitem_info::ALL, KEY_F(2)));
-	m_menuitems.push_back(sinsp_menuitem_info("F4", "Filter", sinsp_menuitem_info::ALL, KEY_F(4)));
-	m_menuitems.push_back(sinsp_menuitem_info("F5", "Echo", sinsp_menuitem_info::TABLE, KEY_F(5)));
-	m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE, KEY_F(6)));
-	m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL, KEY_F(7)));
-	m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
-	m_menuitems.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
-	m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST, 'c'));
+		//
+		// Populate the main menu entries
+		//
+		m_menuitems.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL, KEY_F(1)));
+		m_menuitems.push_back(sinsp_menuitem_info("F2", "Views", sinsp_menuitem_info::ALL, KEY_F(2)));
+		m_menuitems.push_back(sinsp_menuitem_info("F4", "Filter", sinsp_menuitem_info::ALL, KEY_F(4)));
+		m_menuitems.push_back(sinsp_menuitem_info("F5", "Echo", sinsp_menuitem_info::TABLE, KEY_F(5)));
+		m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE, KEY_F(6)));
+		m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL, KEY_F(7)));
+		m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
+		m_menuitems.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
+		m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST, 'c'));
 
-	m_menuitems_spybox.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL, KEY_F(1)));
-	m_menuitems_spybox.push_back(sinsp_menuitem_info("F2", "View As", sinsp_menuitem_info::ALL, KEY_F(2)));
-	m_menuitems_spybox.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
-	m_menuitems_spybox.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
-	m_menuitems_spybox.push_back(sinsp_menuitem_info("Bak", "Back", sinsp_menuitem_info::ALL, KEY_BACKSPACE));
-	m_menuitems_spybox.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::ALL, 'c'));
-	m_menuitems_spybox.push_back(sinsp_menuitem_info("CTRL+G", "Goto", sinsp_menuitem_info::ALL, 7));
+		m_menuitems_spybox.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL, KEY_F(1)));
+		m_menuitems_spybox.push_back(sinsp_menuitem_info("F2", "View As", sinsp_menuitem_info::ALL, KEY_F(2)));
+		m_menuitems_spybox.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
+		m_menuitems_spybox.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
+		m_menuitems_spybox.push_back(sinsp_menuitem_info("Bak", "Back", sinsp_menuitem_info::ALL, KEY_BACKSPACE));
+		m_menuitems_spybox.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::ALL, 'c'));
+		m_menuitems_spybox.push_back(sinsp_menuitem_info("CTRL+G", "Goto", sinsp_menuitem_info::ALL, 7));
 
-	//
-	// Get screen dimensions
-	//
-	getmaxyx(stdscr, m_screenh, m_screenw);
+		//
+		// Get screen dimensions
+		//
+		getmaxyx(stdscr, m_screenh, m_screenw);
+	}
 #endif
 }
 
@@ -182,29 +188,32 @@ sinsp_cursesui::~sinsp_cursesui()
 	}
 
 #ifndef NOCURSESUI
-	if(m_viz != NULL)
+	if(!m_raw_output)
 	{
-		delete m_viz;
-	}
+		if(m_viz != NULL)
+		{
+			delete m_viz;
+		}
 
-	if(m_sidemenu != NULL)
-	{
-		delete m_sidemenu;
-	}
+		if(m_sidemenu != NULL)
+		{
+			delete m_sidemenu;
+		}
 
-	if(m_viewinfo_page != NULL)
-	{
-		delete m_viewinfo_page;
-	}
+		if(m_viewinfo_page != NULL)
+		{
+			delete m_viewinfo_page;
+		}
 
-	if(m_mainhelp_page != NULL)
-	{
-		delete m_mainhelp_page;
-	}
+		if(m_mainhelp_page != NULL)
+		{
+			delete m_mainhelp_page;
+		}
 
-	if(m_spy_box)
-	{
-		delete m_spy_box;
+		if(m_spy_box)
+		{
+			delete m_spy_box;
+		}
 	}
 #endif
 
@@ -262,18 +271,21 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
-	if(m_viz != NULL)
+	if(!m_raw_output)
 	{
-		delete m_viz;
-		m_viz = NULL;
-		m_chart = NULL;
-	}
+		if(m_viz != NULL)
+		{
+			delete m_viz;
+			m_viz = NULL;
+			m_chart = NULL;
+		}
 
-	if(m_spy_box && !is_spy_switch)
-	{
-		delete m_spy_box;
-		m_spy_box = NULL;
-		m_chart = NULL;
+		if(m_spy_box && !is_spy_switch)
+		{
+			delete m_spy_box;
+			m_spy_box = NULL;
+			m_chart = NULL;
+		}
 	}
 #endif
 
@@ -305,7 +317,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			ASSERT(false);
 		}
 
-		m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns);
+		m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
 
 		try
 		{
@@ -325,6 +337,11 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 #ifndef NOCURSESUI
 	else
 	{
+		if(m_raw_output)
+		{
+			return;
+		}
+
 		//
 		// Create the visualization component
 		//
@@ -332,6 +349,11 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		m_spy_box->reset();
 		m_chart = m_spy_box;
 		m_spy_box->set_filter(m_complete_filter);
+	}
+
+	if(m_raw_output)
+	{
+		return;
 	}
 
 	//
@@ -902,31 +924,33 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 		m_datatable->get_sample(get_time_delta());
 
 #ifndef NOCURSESUI
-	//
-	// If the help page has been shown, don't update the screen
-	//
-	if(m_viewinfo_page != NULL || m_mainhelp_page != NULL)
+	if(!m_raw_output)
 	{
-		return;
-	}
-
-	//
-	// Now refresh the UI.
-	//
-	if(m_viz && !m_paused)
-	{
-		m_viz->update_data(sample);
-
-		if(m_datatable->m_type == sinsp_table::TT_LIST && m_inspector->is_live())
+		//
+		// If the help page has been shown, don't update the screen
+		//
+		if(m_viewinfo_page != NULL || m_mainhelp_page != NULL)
 		{
-			m_viz->follow_end();
+			return;
 		}
 
-		m_viz->render(true);
+		//
+		// Now refresh the UI.
+		//
+		if(m_viz && !m_paused)
+		{
+			m_viz->update_data(sample);
+
+			if(m_datatable->m_type == sinsp_table::TT_LIST && m_inspector->is_live())
+			{
+				m_viz->follow_end();
+			}
+
+			m_viz->render(true);
+		}
+
+		render();
 	}
-
-	render();
-
 #endif
 	//
 	// If this is a trace file, check if we reached the end of the file.
@@ -936,11 +960,14 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	if(!m_inspector->is_live())
 	{
 #ifndef NOCURSESUI
-		if(m_offline_replay)
+		if(!m_raw_output)
 		{
-			while(getch() != ' ')
+			if(m_offline_replay)
 			{
-				usleep(10000);
+				while(getch() != ' ')
+				{
+					usleep(10000);
+				}
 			}
 		}
 #endif
@@ -989,19 +1016,22 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
-	//
-	// Clear the screen to make sure all the crap is removed
-	//
-	clear();
-
-	//
-	// If we're currently visualizing the spy box, reset it and return immediately
-	//
-	if(is_spy_switch)
+	if(!m_raw_output)
 	{
-		if(m_spy_box)
+		//
+		// Clear the screen to make sure all the crap is removed
+		//
+		clear();
+
+		//
+		// If we're currently visualizing the spy box, reset it and return immediately
+		//
+		if(is_spy_switch)
 		{
-			m_spy_box->reset();
+			if(m_spy_box)
+			{
+				m_spy_box->reset();
+			}
 		}
 	}
 #endif
@@ -1039,15 +1069,18 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
-	delete m_sidemenu;
-	m_sidemenu = NULL;
-
-	if(m_viz != NULL)
+	if(!m_raw_output)
 	{
-		m_viz->render(true);
-	}
+		delete m_sidemenu;
+		m_sidemenu = NULL;
 
-	render();
+		if(m_viz != NULL)
+		{
+			m_viz->render(true);
+		}
+
+		render();
+	}
 #endif
 }
 

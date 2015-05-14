@@ -90,6 +90,8 @@ static void usage()
 "                    container-related columns.\n"
 " -r <readfile>, --read=<readfile>\n"
 "                    Read the events from <readfile>.\n"
+" --raw              Print raw output on a regular terminal instead of enabling\n"
+"                    ncurses-based ANSI output.\n"
 " -s <len>, --snaplen=<len>\n"
 "                    Capture the first <len> bytes of each I/O buffer.\n"
 "                    By default, the first 80 bytes are captured. Use this\n"
@@ -206,6 +208,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool print_containers = false;
 	uint64_t refresh_interval_ns = 2000000000;
 	bool list_flds = false;
+	bool m_raw_output = false;
 
 	static struct option long_options[] =
 	{
@@ -216,6 +219,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"numevents", required_argument, 0, 'n' },
 		{"print", required_argument, 0, 'p' },
 		{"readfile", required_argument, 0, 'r' },
+		{"raw", no_argument, 0, 0 },
 		{"snaplen", required_argument, 0, 's' },
 		{"logfile", required_argument, 0, 0 },
 		{"view", required_argument, 0, 'v' },
@@ -294,6 +298,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'p':
 				if(string(optarg) == "c" || string(optarg) == "container")
 				{
+					inspector->set_print_container_data(true);
 					print_containers = true;
 				}
 
@@ -324,6 +329,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					else if(optname == "logfile")
 					{
 						inspector->set_log_file(optarg);
+					}
+					else if(optname == "raw")
+					{
+						m_raw_output = true;
 					}
 				}
 				break;
@@ -384,23 +393,26 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Initialize ncurses
 		//
 #ifndef NOCURSESUI
-		(void) initscr();      // initialize the curses library
-		(void) nonl();         // tell curses not to do NL->CR/NL on output
-		intrflush(stdscr, false);
-		keypad(stdscr, true);
-		curs_set(0);
-		if (has_colors())
+		if(!m_raw_output)
 		{
-		  start_color();
+			(void) initscr();      // initialize the curses library
+			(void) nonl();         // tell curses not to do NL->CR/NL on output
+			intrflush(stdscr, false);
+			keypad(stdscr, true);
+			curs_set(0);
+			if (has_colors())
+			{
+			  start_color();
+			}
+			use_default_colors();
+			mousemask(ALL_MOUSE_EVENTS, NULL);
+			noecho();
+
+			timeout(0);
+
+			// If this is uncommented, it's possible to natively handle stuff like CTRL+c
+			//raw();
 		}
-		use_default_colors();
-		mousemask(ALL_MOUSE_EVENTS, NULL);
-		noecho();
-
-		timeout(0);
-
-		// If this is uncommented, it's possible to natively handle stuff like CTRL+c
-		//raw();
 #endif
 
 		//
@@ -455,7 +467,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			sinsp_cursesui ui(inspector, 
 				(infiles.size() != 0)? infiles[0] : "",
 				(filter.size() != 0)? filter : "",
-				refresh_interval_ns);
+				refresh_interval_ns,
+				print_containers,
+				m_raw_output);
 
 			ui.configure(&view_manager);
 			ui.start(false, false);
@@ -566,7 +580,10 @@ exit:
 	// Restore the original screen
 	//
 #ifndef NOCURSESUI
-	endwin();
+	if(!m_raw_output)
+	{
+		endwin();
+	}
 #endif
 
 	if(errorstr != "")

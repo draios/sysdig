@@ -67,6 +67,7 @@ public:
 	bool get_container(const string& id, sinsp_container_info* container_info);
 	bool resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, string* container_id);
 	void dump_containers(scap_dumper_t* dumper);
+	string get_container_name(sinsp_threadinfo* tinfo);
 
 private:
 	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);

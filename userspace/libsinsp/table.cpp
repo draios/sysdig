@@ -75,7 +75,7 @@ typedef struct table_row_cmp
 	bool m_ascending;
 }table_row_cmp;
 
-sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns)
+sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout)
 {
 	m_inspector = inspector;
 	m_type = type;
@@ -88,6 +88,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_n_premerge_fields = 0;
 	m_n_postmerge_fields = 0;
 	m_refresh_interval_ns = refresh_interval_ns;
+	m_print_to_stdout = print_to_stdout;
 	m_next_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
@@ -764,8 +765,16 @@ vector<sinsp_sample_row>* sinsp_table::get_sample(uint64_t time_delta)
 		sort_sample();
 	}
 
-#ifdef _WIN32
-	stdout_print(m_sample_data, time_delta);
+	//
+	// If required, emit the sample to stdout
+	//
+#ifndef _WIN32
+	if(m_print_to_stdout)
+	{
+#endif
+		stdout_print(m_sample_data, time_delta);
+#ifndef _WIN32
+	}
 #endif
 
 	//

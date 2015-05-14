@@ -420,3 +420,31 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 		}
 	}
 }
+
+string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
+{
+	string res;
+
+	if(tinfo->m_container_id.empty())
+	{
+		res = "host";
+	}
+	else
+	{
+		sinsp_container_info container_info;
+		bool found = get_container(tinfo->m_container_id, &container_info);
+		if(!found)
+		{
+			return NULL;
+		}
+
+		if(container_info.m_name.empty())
+		{
+			return NULL;
+		}
+
+		res = container_info.m_name;
+	}
+
+	return res;
+}

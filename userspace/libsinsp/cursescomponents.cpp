@@ -562,7 +562,14 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	//
 	if(m_viz_type == VIEW_ID_DIG)
 	{
-		m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+		if(m_parent->m_print_containers)
+		{
+			m_formatter = new sinsp_evt_formatter(m_inspector, "*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+		}
+		else
+		{
+			m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+		}
 		config.m_do_wrap = false;
 	}
 	else
@@ -711,14 +718,12 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	const char* resolved_argstr;
 	const char* argstr;
 	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
-	//uint32_t len = evt->m_rawbuf_str_len;
 
 	if(argstr != NULL)
 	{
 		//
 		// Create the info string
 		//
-//		string info_str = "------ " + to_string(evt->get_num());
 		string info_str = "------ ";
 		string dirstr;
 		string cnstr;
@@ -740,6 +745,11 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 			cnstr + 
 			fdname + 
 			" (" + m_tinfo->m_comm.c_str() + ")";
+
+		if(m_parent->m_print_containers)
+		{
+			info_str += " " + m_inspector->m_container_manager.get_container_name(m_tinfo);
+		}
 
 		//
 		// Sanitize the info string

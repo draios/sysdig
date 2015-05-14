@@ -318,7 +318,8 @@ public:
 	};
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
-		string cmdline_capture_filter, uint64_t refresh_interval_ns);
+		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
+		bool print_containers, bool raw_output);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -449,17 +450,24 @@ public:
 #endif
 
 		//
-		// We reading from a file and we reached its end. 
-		// We keep looping because we want to handle user events, but we stop the
-		// processing here. We also make sure to sleep a bit to keep the CPU under
-		// control. 
+		// We were reading from a file and we reached its end. 
+		// Unless we are in raw mode, we keep looping because we want to handle user events, 
+		// but we stop the processing here. We also make sure to sleep a bit to keep the 
+		// CPU under control. 
 		//
 		if(m_eof > 1)
 		{
 #ifndef NOCURSESUI
 			usleep(10000);
 #endif
-			return false;
+			if(m_raw_output)
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
 		}
 
 		//
@@ -530,6 +538,7 @@ public:
 	uint32_t m_eof;
 	uint64_t m_input_check_period_ns;
 	bool m_search_nomatch;
+	bool m_print_containers;
 #ifndef NOCURSESUI
 	curses_table_sidemenu* m_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;
@@ -594,6 +603,7 @@ private:
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;
 	string m_search_header_text;
+	bool m_raw_output;
 };
 
 #endif // CSYSDIG

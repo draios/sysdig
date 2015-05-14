@@ -936,10 +936,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					//
 					// This enables chisels to determine if they should print container information
 					//
-					if ( inspector != NULL )
-                                        {
-                                           inspector->set_print_container_data( true );
-                                        }
+					if(inspector != NULL)
+					{
+						inspector->set_print_container_data(true);
+					}
 				}
 				else
 				{

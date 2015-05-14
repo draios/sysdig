@@ -800,6 +800,7 @@ private:
 	friend class sinsp_filter_check_container;
 	friend class sinsp_worker;
 	friend class sinsp_table;
+	friend class curses_textbox;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
