@@ -909,6 +909,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 		case 'q':
 		case KEY_RESIZE:
 			return STA_PARENT_HANDLE;
+		case 27: // ESC
 		case KEY_BACKSPACE:
 			return STA_DRILLUP;
 		case KEY_UP:
@@ -999,7 +1000,12 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			on_search_next();
 			break;
 		case 6:	// CTRL+F
-			m_parent->turn_search_on(this);
+			m_search_type_is_goto = false;
+			m_parent->turn_search_on(this, "Text");
+			break;
+		case 7:	// CTRL+G
+			m_search_type_is_goto = true;
+			m_parent->turn_search_on(this, "Line");
 			break;
 		case KEY_MOUSE:
 			{
@@ -1114,18 +1120,45 @@ bool curses_textbox::on_search_key_pressed(string search_str)
 {
 	m_last_search_string = search_str;
 
-	m_ctext->new_search(m_searcher, 
-		search_str,
-		true);
-
-	if(m_ctext->str_search(m_searcher) != 0)
+	if(m_search_type_is_goto)
 	{
-		return false;
+		uint32_t line;
+
+		try
+		{
+			line = sinsp_numparser::parseu32(search_str);
+		}
+		catch(...)
+		{
+			return false;			
+		}
+
+		int32_t totlines;
+		m_ctext->get_buf_size(&totlines);
+
+ 		if(line > (uint32_t)totlines)
+ 		{
+			return false;
+ 		}
+
+		scroll_to(0, line);
+		return true;
 	}
 	else
 	{
-		m_has_searched = true;
-		return true;
+		m_ctext->new_search(m_searcher, 
+			search_str,
+			true);
+
+		if(m_ctext->str_search(m_searcher) != 0)
+		{
+			return false;
+		}
+		else
+		{
+			m_has_searched = true;
+			return true;
+		}
 	}
 }
 
@@ -1469,7 +1502,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("p");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": Pause scree updates\n");
+	m_ctext->printf(": pause scree updates\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf(" ? F1 h");
@@ -1511,12 +1544,17 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("P");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": Pause visualization\n");
+	m_ctext->printf(": pause visualization\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("  DEL c");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": clear the screen\n");
+	m_ctext->printf(": clear the screen           ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("CTRL+G");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": go to line\n");
 
 	//
 	// Mouse

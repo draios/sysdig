@@ -333,7 +333,7 @@ public:
 		return m_eof != 0;
 	}
 	void render();
-	void turn_search_on(search_caller_interface* ifc);
+	void turn_search_on(search_caller_interface* ifc, string header_text);
 	uint64_t get_time_delta();
 
 	//
@@ -593,6 +593,7 @@ private:
 	sinsp_mouse_to_key_list m_mouse_to_key_list;
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;
+	string m_search_header_text;
 };
 
 #endif // CSYSDIG

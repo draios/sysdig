@@ -187,6 +187,7 @@ private:
 	string m_last_search_string;
 	ctext_search* m_searcher;
 	bool m_has_searched;
+	bool m_search_type_is_goto;
 };
 
 class curses_mainhelp_page

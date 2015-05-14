@@ -108,6 +108,9 @@ INTERACTIVE COMMANDS
 **p**  
   Pause screen updates.  
 
+**CTRL+G**  
+  Go to line.  
+
 MOUSE USAGE
 -----------
 - Clicking on column headers lets you sort the table.

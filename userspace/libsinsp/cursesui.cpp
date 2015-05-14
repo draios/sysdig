@@ -165,6 +165,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_menuitems_spybox.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
 	m_menuitems_spybox.push_back(sinsp_menuitem_info("Bak", "Back", sinsp_menuitem_info::ALL, KEY_BACKSPACE));
 	m_menuitems_spybox.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::ALL, 'c'));
+	m_menuitems_spybox.push_back(sinsp_menuitem_info("CTRL+G", "Goto", sinsp_menuitem_info::ALL, 7));
 
 	//
 	// Get screen dimensions
@@ -502,9 +503,10 @@ void sinsp_cursesui::render_header()
 	m_filterstring_end_x = k;
 }
 
-void sinsp_cursesui::turn_search_on(search_caller_interface* ifc)
+void sinsp_cursesui::turn_search_on(search_caller_interface* ifc, string header_text)
 {
 	ASSERT(m_spy_box != NULL);
+	m_search_header_text = header_text;
 	m_spy_box->get_offset(&m_search_start_x, &m_search_start_y);
 
 	m_search_caller_interface = ifc;
@@ -696,7 +698,8 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 	}
 	else
 	{
-		fks = "Text: ";
+		ASSERT(m_search_header_text != "");
+		fks = m_search_header_text + ": ";
 	}
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 20);
 	k += fks.size();
@@ -1352,6 +1355,9 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 	switch(ch)
 	{
+		case KEY_F(1):
+			m_mainhelp_page = new curses_mainhelp_page(this);
+			return STA_NONE;
 		case KEY_F(2):
 			m_is_filter_sysdig = !m_is_filter_sysdig;
 			*str = "";

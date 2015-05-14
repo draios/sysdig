@@ -407,27 +407,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Create the list of views
 		//
 		sinsp_view_manager view_manager;
-		vector<sinsp_view_column_info> vflds;
-		vector<string> vtags;
-
-		// Top processes
-/*		
-		vflds.clear();
-		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_KEY, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.pid", "NA", -1, TEF_IS_GROUPBY_KEY, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.pid", "PID", 8, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.cpu", "CPU", 8, TEF_IS_SORT_COLUMN, A_MAX, A_AVG));
-		vflds.push_back(sinsp_view_column_info("user.name", "USER", 12, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.nthreads", "TH", 5, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.vmsize", "VIRT", 9, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.vmrss", "RES", 9, TEF_NONE, A_NONE, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.file.in", "FIN", 8, TEF_NONE, A_SUM, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.file.out", "FOUT", 8, TEF_NONE, A_SUM, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.net.in", "NETIN", 8, TEF_NONE, A_SUM, A_NONE));
-		vflds.push_back(sinsp_view_column_info("evt.buflen.net.out", "NETOUT", 8, TEF_NONE, A_SUM, A_NONE));
-		vflds.push_back(sinsp_view_column_info("proc.exeline", "Command", 200, TEF_NONE, A_NONE, A_NONE));
-		views.push_back(sinsp_view_info(sinsp_view_info::T_TABLE, "XXX", "Top Processes", vtags, vflds, "all,fd.name", "", "", true));
-*/
 
 		//
 		// Scan the chisel list to load the Lua views, and add them to the list
