@@ -158,6 +158,10 @@ FILTERING
 ---------
 Similarly to what you do with sysdig, you can specify a filter on the command line to restrict the events that csysdig processes. To modify the filter while the program is running, or to add a filter at runtime, click on the filter text in the UI with the mouse.
 
+CUSTOMIZING CSYSDIG
+-------------------
+csysdig is completely customizable. This means that you can modify any of the csysdig views, and even create your own views. Like sysdig chisels, csysdig views are Lua scripts. Full information can be found at the following github wiki page: https://github.com/draios/agent/wiki/csysdig-View-Format-Reference.
+
 FILES
 -----
 
