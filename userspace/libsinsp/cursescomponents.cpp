@@ -727,6 +727,7 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		string info_str = "------ ";
 		string dirstr;
 		string cnstr;
+
 		if(eflags & EF_READS_FROM_FD)
 		{
 			dirstr = "Read ";
@@ -746,11 +747,6 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 			fdname + 
 			" (" + m_tinfo->m_comm.c_str() + ")";
 
-		if(m_parent->m_print_containers)
-		{
-			info_str += " " + m_inspector->m_container_manager.get_container_name(m_tinfo);
-		}
-
 		//
 		// Sanitize the info string
 		//
@@ -760,6 +756,23 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		// Print the whole thing
 		//
 		m_ctext->printf("%s", info_str.c_str());
+		
+		if(m_parent->m_print_containers)
+		{
+			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
+			
+			m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
+
+			if(eflags & EF_READS_FROM_FD)
+			{
+				wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
+			}
+			else if(eflags & EF_WRITES_TO_FD)
+			{
+				wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
+			}
+		}
+
 		m_ctext->printf("\n");
 		m_ctext->printf("\n");
 		m_ctext->printf("%s", argstr);
