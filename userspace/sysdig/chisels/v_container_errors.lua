@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "container_errors",
-	name = "Container Errors",
+	id = "containers_errors",
+	name = "Containers Errors",
 	description = "This view shows system error counters for each container running on the machine. Errors are grouped into 4 categories: file I/O, network I/O, memory allocation and 'other'.",
 	tips = {
 		"If you click 'enter' on a selection in this chart, you will be able to see the specific errors that the container is generating.",
@@ -28,6 +28,7 @@ view_info =
 	view_type = "table",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory"},
 	drilldown_target = "errors",
+	filter = "container.name != host",
 	use_defaults = true,
 	columns = 
 	{
