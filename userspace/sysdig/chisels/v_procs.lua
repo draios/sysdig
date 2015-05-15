@@ -43,7 +43,7 @@ view_info =
 			name = "PID",
 			description = "Process PID.",
 			field = "proc.pid",
-			colsize = 8,
+			colsize = 7,
 		},
 		{
 			tags = {"containers"},

@@ -47,7 +47,7 @@ INTERACTIVE COMMANDS
 ##Views Window##
 
 **Arrows, PgUP, PgDn, Home, End**  
-  Change the selection and scroll view content.  
+  Change the selection and scroll view content, both vertically and horizontally.  
 
 **Enter**  
   Drill down into the currently highlited entry.  
