@@ -42,7 +42,8 @@ view_info =
 			field = "evt.count",
 			description = "The number of times the error happened during the sample interval. On trace files, this is the total for the whole file.",
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "SUM",
+			is_sorting = true,
 		},
 		{
 			name = "ERROR",

@@ -55,6 +55,7 @@ view_info =
 			description = "Number of open FDs that the process currently has. On a trace file, this is the maximum value reached by the process over the whole file.",
 			aggregation = "MAX",
 			colsize = 8,
+			is_sorting = true,
 		},
 		{
 			name = "MAX",
