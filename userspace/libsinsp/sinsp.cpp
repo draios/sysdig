@@ -34,6 +34,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
+#include "../libscap/scap-int.h"
+#include "../libscap/scap_next.h"
+
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
@@ -266,6 +269,8 @@ void sinsp::init()
 		}
 	}
 #endif
+
+start_dropping_mode(1);
 }
 
 void sinsp::set_import_users(bool import_users)
@@ -656,7 +661,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		// Get the event from libscap
 		//
 		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
-
+return SCAP_TIMEOUT;
 		if(res != SCAP_SUCCESS)
 		{
 			if(res == SCAP_TIMEOUT)
@@ -824,7 +829,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #else
 	m_parser->process_event(evt);
 #endif
-
+return SCAP_TIMEOUT;
 	//
 	// If needed, dump the event to file
 	//

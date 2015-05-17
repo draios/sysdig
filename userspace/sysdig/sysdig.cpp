@@ -500,6 +500,7 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 
 		res = inspector->next(&ev);
+continue;
 
 		if(res == SCAP_TIMEOUT)
 		{
