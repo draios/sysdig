@@ -84,7 +84,7 @@ public:
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
-	sinsp_threadinfo* get_main_thread();
+	inline sinsp_threadinfo* get_main_thread();
 
 	/*!
 	  \brief Get the process that launched this thread's process.
@@ -185,7 +185,7 @@ VISIBILITY_PRIVATE
 	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
 	void add_fd(scap_fdinfo *fdinfo);
 	void remove_fd(int64_t fd);
-	sinsp_fdtable* get_fd_table();
+	inline sinsp_fdtable* get_fd_table();
 	void set_cwd(const char *cwd, uint32_t cwdlen);
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
