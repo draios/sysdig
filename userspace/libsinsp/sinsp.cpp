@@ -33,6 +33,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
+
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
@@ -515,6 +516,19 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 {
 	ASSERT(m_network_interfaces);
 	m_network_interfaces->import_ipv4_interface(ifinfo);
+}
+
+void sinsp::refresh_ifaddr_list()
+{
+#ifdef HAS_CAPTURE
+	if(m_islive)
+	{
+		ASSERT(m_network_interfaces);
+		scap_refresh_iflist(m_h);
+		m_network_interfaces->clear();
+		m_network_interfaces->import_interfaces(scap_get_ifaddr_list(m_h));
+	}
+#endif
 }
 
 bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);

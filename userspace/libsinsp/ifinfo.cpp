@@ -215,8 +215,7 @@ void sinsp_network_interfaces::import_interfaces(scap_addrlist* paddrlist)
 {
 	if(NULL != paddrlist)
 	{
-		m_ipv4_interfaces.clear();
-		m_ipv6_interfaces.clear();
+		clear();
 		import_ipv4_ifaddr_list(paddrlist->n_v4_addrs, paddrlist->v4list);
 		import_ipv6_ifaddr_list(paddrlist->n_v6_addrs, paddrlist->v6list);
 	}
