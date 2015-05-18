@@ -116,7 +116,6 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 	m_w = TABLE_WIDTH;
 	m_h = m_parent->m_screenh - 3;
 	m_scrolloff_x = 0;
-	m_scrolloff_y = 10;
 
 	//
 	// Create the table window
@@ -504,36 +503,21 @@ render_end:
 		print_error(string(" NOT FOUND "));
 	}
 
-	wrefresh(m_tblwin);
-/*
-	copywin(m_tblwin,
-		stdscr,
-		0,
-		0,
-		2,
-		0,
-		m_h,
-		m_parent->m_screenw - 1,
-		FALSE);
+	if(m_scrolloff_x != 0)
+	{
+		chtype chstr[m_w];
+		for(j = 0; j < m_h; j++)
+		{
+			mvwinchnstr(m_tblwin, j, 0, chstr, m_parent->m_screenw + m_scrolloff_x);
+			mvwaddchnstr(m_tblwin, j, 0, chstr + m_scrolloff_x, m_parent->m_screenw);
+		}
+	}
 
 	wrefresh(m_tblwin);
-*/
-
 	m_parent->render();
-
 	refresh();
 }
 	
-void curses_table::scrollwin(uint32_t x, uint32_t y)
-{
-	wrefresh(m_tblwin);
-
-	m_scrolloff_x = x;
-	m_scrolloff_y = y;
-
-	render(false);
-}
-
 //
 // Return false if the user wants us to exit
 //
@@ -551,21 +535,21 @@ sysdig_table_action curses_table::handle_input(int ch)
 			numbers[0]++;
 			render(true);
 			break;
+*/
 		case KEY_LEFT:
-			if(scrollpos > 0)
+			if(m_scrolloff_x > 0)
 			{
-				scrollpos--;
-				scrollwin(scrollpos, 10);
+				m_scrolloff_x -= 4;
+				render(true);
 			}
 			break;
 		case KEY_RIGHT:
-			if(scrollpos < TABLE_WIDTH - (int32_t)m_screenw)
+			if(m_scrolloff_x < m_w - m_parent->m_screenw)
 			{
-				scrollpos++;
-				scrollwin(scrollpos, 10);
+				m_scrolloff_x += 4;
+				render(true);
 			}
 			break;
-*/
 		case KEY_UP:
 			m_selection_changed = true;
 			selection_up((int32_t)m_data->size());

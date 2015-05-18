@@ -1,6 +1,6 @@
 FROM debian:unstable
 
-MAINTAINER Sysdig <support@sysdigcloud.com>
+MAINTAINER Sysdig <support@sysdig.com>
 
 ENV SYSDIG_REPOSITORY dev
 
@@ -9,6 +9,8 @@ ENV SYSDIG_HOST_ROOT /host
 ENV HOME /root
 
 RUN cp /etc/skel/.bashrc /root && cp /etc/skel/.profile /root
+
+ADD http://download.draios.com/apt-draios-priority /etc/apt/preferences.d/
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \

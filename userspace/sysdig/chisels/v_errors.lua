@@ -29,7 +29,7 @@ view_info =
 	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.directory"},
 	filter = "evt.res != SUCCESS",
 	use_defaults = true,
-	drilldown_target = "procs",
+	drilldown_target = "procs_errors",
 	columns = 
 	{
 		{
@@ -42,7 +42,8 @@ view_info =
 			field = "evt.count",
 			description = "The number of times the error happened during the sample interval. On trace files, this is the total for the whole file.",
 			colsize = 12,
-			aggregation = "SUM"
+			aggregation = "SUM",
+			is_sorting = true,
 		},
 		{
 			name = "ERROR",

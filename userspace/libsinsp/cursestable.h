@@ -37,7 +37,6 @@ public:
 		vector<int32_t>* colsizes, vector<string>* colnames);
 	void update_data(vector<sinsp_sample_row>* data);
 	void render(bool data_changed);
-	void scrollwin(uint32_t x, uint32_t y);
 	sysdig_table_action handle_input(int ch);
 	void set_x_start(uint32_t x)
 	{
@@ -66,7 +65,6 @@ private:
 	int32_t m_table_x_start;
 	uint32_t m_table_y_start;
 	uint32_t m_scrolloff_x;
-	uint32_t m_scrolloff_y;
 	uint32_t m_colsizes[PT_MAX];
 	vector<curses_table_column_info> m_legend;
 	vector<sinsp_sample_row>* m_data;

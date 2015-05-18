@@ -1328,7 +1328,10 @@ bool sinsp_cursesui::drillup()
 void sinsp_cursesui::pause()
 {
 	m_paused = !m_paused;
-	m_datatable->set_paused(m_paused);
+	if(m_datatable != NULL)
+	{
+		m_datatable->set_paused(m_paused);
+	}
 #ifndef NOCURSESUI
 	render_header();
 #endif

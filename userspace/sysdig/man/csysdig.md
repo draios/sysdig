@@ -11,7 +11,7 @@ SYNOPSIS
 DESCRIPTION
 -----------
 
-csysdig exports sysdig's functionality through an intuitive and powerful ncurses-bases user interface.
+csysdig exports sysdig's functionality through an intuitive and powerful ncurses-based user interface.
 
 csysdig has been designed to mimic tools like **top** and **htop**, but it offers richer functionality, including:
 
@@ -47,7 +47,7 @@ INTERACTIVE COMMANDS
 ##Views Window##
 
 **Arrows, PgUP, PgDn, Home, End**  
-  Change the selection and scroll view content.  
+  Change the selection and scroll view content, both vertically and horizontally.  
 
 **Enter**  
   Drill down into the currently highlited entry.  
