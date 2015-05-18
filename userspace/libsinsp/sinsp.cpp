@@ -995,7 +995,7 @@ void sinsp::stop_dropping_mode()
 {
 	if(m_islive)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR, "stopping drop mode");
+		g_logger.format(sinsp_logger::SEV_INFO, "stopping drop mode");
 
 		if(scap_stop_dropping_mode(m_h) != SCAP_SUCCESS)
 		{
@@ -1008,7 +1008,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 {
 	if(m_islive)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR, "setting drop mode to %" PRIu32, sampling_ratio);
+		g_logger.format(sinsp_logger::SEV_INFO, "setting drop mode to %" PRIu32, sampling_ratio);
 
 		if(scap_start_dropping_mode(m_h, sampling_ratio) != SCAP_SUCCESS)
 		{
