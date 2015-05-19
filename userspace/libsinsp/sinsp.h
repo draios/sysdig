@@ -633,8 +633,12 @@ public:
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
 	void add_meta_event_and_repeat(sinsp_evt *metaevt);
+	scap_t* get_scap_handle()
+	{
+		return m_h;
+	}
 
-VISIBILITY_PRIVATE
+//VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
