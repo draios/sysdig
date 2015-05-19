@@ -1943,35 +1943,30 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 	if(!found_mi)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find machine info block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(!found_ul)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find user list block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(!found_il)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find interface list block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(!found_fdl)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find file descriptor list block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(!found_pl)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find process list block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
