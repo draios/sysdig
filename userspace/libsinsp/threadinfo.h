@@ -25,7 +25,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
-class sinsp_threadinfo;
 
 typedef struct erase_fd_params
 {
@@ -228,7 +227,7 @@ public:
 	//
 	sinsp *m_inspector;
 
-//VISIBILITY_PRIVATE
+VISIBILITY_PRIVATE
 	void init();
 	void init(const scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
@@ -254,7 +253,6 @@ public:
 
 		return &(root->m_fdtable);
 	}
-
 	void set_cwd(const char *cwd, uint32_t cwdlen);
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
@@ -373,7 +371,7 @@ public:
 
 	set<uint16_t> m_server_ports;
 
-//private:
+private:
 	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);

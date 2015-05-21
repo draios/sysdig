@@ -608,7 +608,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 					}
 					else
 					{
-						throw sinsp_exception("tags entries must be strings");
+						throw sinsp_exception("error in view " + cd->m_name + ": " + "tags entries must be strings");
 					}
 
 					lua_pop(ls, 1);
@@ -616,7 +616,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			}
 			else
 			{				
-				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
 		else if(fldname == "tips")
@@ -634,7 +634,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 					}
 					else
 					{
-						throw sinsp_exception("tips column entries must be strings");
+						throw sinsp_exception("error in view " + cd->m_name + ": " + "tips column entries must be strings");
 					}
 
 					lua_pop(ls, 1);
@@ -642,7 +642,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			}
 			else
 			{				
-				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
 		else if(fldname == "view_type")
@@ -659,7 +659,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			}
 			else
 			{
-				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be either 'table' or 'list'");
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be either 'table' or 'list'");
 			}
 		}
 		else if(fldname == "drilldown_target")
@@ -681,7 +681,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 					}
 					else
 					{
-						throw sinsp_exception("tips column entries must be strings");
+						throw sinsp_exception("error in view " + cd->m_name + ": " + "tips column entries must be strings");
 					}
 
 					lua_pop(ls, 1);
@@ -689,7 +689,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			}
 			else
 			{
-				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
 		else if(fldname == "filter")
@@ -704,7 +704,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			}
 			else
 			{
-				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean");
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be a boolean");
 			}
 		}
 		else if(fldname == "is_root")
@@ -715,7 +715,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			}
 			else
 			{
-				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean");
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be a boolean");
 			}
 		}
 		else if(fldname == "columns")
@@ -726,7 +726,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			}
 			else
 			{
-				throw sinsp_exception(string(lua_tostring(ls, -2)) + " is not a table");
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
 

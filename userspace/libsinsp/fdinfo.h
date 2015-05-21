@@ -391,6 +391,7 @@ class sinsp_fdtable
 {
 public:
 	sinsp_fdtable(sinsp* inspector);
+
 	inline sinsp_fdinfo_t* find(int64_t fd)
 	{
 		unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit = m_table.find(fd);
@@ -428,7 +429,7 @@ public:
 			return &(fdit->second);
 		}
 	}
-
+	
 	// If the key is already present, overwrite the existing value and return false.
 	sinsp_fdinfo_t* add(int64_t fd, sinsp_fdinfo_t* fdinfo);
 	// If the key is present, returns true, otherwise returns false.
