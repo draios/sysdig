@@ -34,7 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
-#include "../libscap/scap-int.h"
+//#include "../libscap/scap-int.h"
 //#include "../libscap/scap_next.h"
 
 #ifdef HAS_ANALYZER
