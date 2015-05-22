@@ -637,6 +637,7 @@ public:
 	{
 		return m_h;
 	}
+	const struct ppm_event_info* get_event_info_table();
 
 //VISIBILITY_PRIVATE
 

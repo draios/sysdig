@@ -1403,6 +1403,11 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
+const struct ppm_event_info* sinsp::get_event_info_table()
+{
+	return g_infotables.m_event_info;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next
 ///////////////////////////////////////////////////////////////////////////////

@@ -247,7 +247,11 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #endif
 }
 
+#ifndef _WIN32
 inline int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+#else
+int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+#endif
 {
 	int32_t res;
 
@@ -255,10 +259,12 @@ inline int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pc
 	{
 		res = scap_next_offline(handle, pevent, pcpuid);
 	}
+#ifndef _WIN32
 	else
 	{
 		res = scap_next_live(handle, pevent, pcpuid);
 	}
+#endif
 
 	if(res == SCAP_SUCCESS)
 	{
