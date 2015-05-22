@@ -129,11 +129,20 @@ function rhel_build {
 	build_sysdig
 }
 
-# To generate configurations until we get more sofisticated:
-# sudo cp /proc/config.gz /tmp; sudo gunzip /tmp/config.gz; curl --upload-file /tmp/config https://transfer.sh/config
+coreos_build coreos-591.0.0 3.18.6 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.6.tar.xz https://transfer.sh/1fXwY5/config-591.0.0-3.18.6
+coreos_build coreos-612.0.0 3.19.0 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz https://transfer.sh/XjDFm/config-612.0.0-3.19.0
+# 612.1.0
+# 640.0.0
+# 647.0.0
+# 653.0.0
+coreos_build coreos-660.0.0 4.0.0 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.tar.xz https://transfer.sh/AiIyx/config-660.0.0-4.0.0
 coreos_build coreos-3.19.3 3.19.3 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.3.tar.xz https://transfer.sh/1h437T/config
 coreos_build coreos-4.0.1 4.0.1 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.1.tar.xz https://transfer.sh/hYZUf/config
+# 668.2.0
+# 668.3.0
+coreos_build coreos-675.0.0 4.0.1 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.1.tar.xz https://transfer.sh/eNVfw/config-675.0.0-4.0.1
 coreos_build coreos-4.0.3 4.0.3 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.3.tar.xz https://transfer.sh/kapRQ/config
+# 681.0.0
 
 # ubuntu_build 3.13.0-43-generic http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-image-3.13.0-43-generic_3.13.0-43.72_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-43-generic_3.13.0-43.72_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-43_3.13.0-43.72_all.deb
 # ubuntu_build 3.13.0-44-generic http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-image-3.13.0-44-generic_3.13.0-44.73_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-44-generic_3.13.0-44.73_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-44_3.13.0-44.73_all.deb
