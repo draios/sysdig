@@ -186,11 +186,13 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 //
 // ASSERT implementation
 //
+#ifndef ASSERT
 #ifdef _DEBUG
 #define ASSERT(X) assert(X)
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG
+#endif // ASSERT
 
 #define CHECK_READ_SIZE(read_size, expected_size) if(read_size != expected_size) \
 	{\

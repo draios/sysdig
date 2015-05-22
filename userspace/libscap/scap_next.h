@@ -27,7 +27,7 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
-bool check_scap_next_wait(scap_t* handle)
+inline bool check_scap_next_wait(scap_t* handle)
 {
 	uint32_t j;
 	bool res = true;
@@ -63,7 +63,7 @@ bool check_scap_next_wait(scap_t* handle)
 	}
 }
 
-int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
+inline int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
 {
 	uint32_t thead;
 	uint32_t ttail;
@@ -115,7 +115,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** b
 	return SCAP_SUCCESS;
 }
 
-int32_t refill_read_buffers(scap_t* handle, bool wait)
+inline int32_t refill_read_buffers(scap_t* handle, bool wait)
 {
 	uint32_t j;
 	uint32_t ndevs = handle->m_ndevs;
@@ -247,7 +247,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #endif
 }
 
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+inline int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	int32_t res;
 

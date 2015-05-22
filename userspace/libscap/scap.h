@@ -69,6 +69,7 @@ typedef struct ppm_evt_hdr scap_evt;
 #define SCAP_NOTFOUND 4
 #define SCAP_INPUT_TOO_SMALL 5
 #define SCAP_EOF 6
+#define SCAP_DROP 7
 
 //
 // Last error string size for scap_open_live()
