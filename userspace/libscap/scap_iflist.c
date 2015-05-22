@@ -225,6 +225,13 @@ int32_t scap_create_iflist(scap_t* handle)
 
 	return SCAP_SUCCESS;
 }
+
+void scap_refresh_iflist(scap_t* handle)
+{
+	scap_free_iflist(handle->m_addrlist);
+	handle->m_addrlist = NULL;
+	scap_create_iflist(handle);
+}
 #endif // HAS_CAPTURE
 
 //

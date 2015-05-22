@@ -1224,10 +1224,3 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 	return handle->m_driver_procinfo;
 #endif	// HAS_CAPTURE
 }
-
-void scap_refresh_iflist(scap_t* handle)
-{
-	scap_free_iflist(handle->m_addrlist);
-	handle->m_addrlist = NULL;
-	scap_create_iflist(handle);
-}
