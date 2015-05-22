@@ -123,6 +123,9 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
+static int f_sys_semop_x(struct event_filler_arguments *args);
+static int f_sys_semctl_x(struct event_filler_arguments *args);
+
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -329,6 +332,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SIGNALDELIVER_E] = {f_sys_signaldeliver_e},
 	[PPME_SIGNALDELIVER_X] = {f_sys_empty},
 #endif
+        [PPME_SYSCALL_SEMOP_E] = {f_sys_empty},
+        [PPME_SYSCALL_SEMOP_X] = {f_sys_semop_x},
+        [PPME_SYSCALL_SEMCTL_E] = {f_sys_empty},
+        [PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
 };
 
 /*
@@ -4325,3 +4332,149 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 #endif
+
+static inline u16 semop_flags_to_scap(short flags)
+{
+	u16 res = 0;
+
+	if (flags & IPC_NOWAIT)
+		res |= PPM_IPC_NOWAIT;
+
+	if (flags & SEM_UNDO)
+		res |= PPM_SEM_UNDO;
+
+	return res;
+}
+
+static int f_sys_semop_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+        struct sembuf *ptr;
+        unsigned j;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * semid
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * sembuf
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, (unsigned long*) &ptr);
+
+	/*
+	 * nsops
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (val && ptr)
+        {
+            // max length of sembuf array in g_event_info = 2
+            const unsigned max_nsops = 2;
+            struct sembuf dummy = {0, 0, 0};
+
+            for(j=0; j<max_nsops; j++)
+            {
+                struct sembuf *p = &dummy;
+                if (val--)
+                    p = &ptr[j];
+
+                res = val_to_ring(args, p->sem_num, 0, true, 0);
+                if (unlikely(res != PPM_SUCCESS))
+                    return res;
+
+                res = val_to_ring(args, p->sem_op, 0, true, 0);
+                if (unlikely(res != PPM_SUCCESS))
+                    return res;
+
+                res = val_to_ring(args, semop_flags_to_scap(p->sem_flg), 0, true, 0);
+                if (unlikely(res != PPM_SUCCESS))
+                    return res;
+            }
+        }
+
+	return add_sentinel(args);
+}
+
+static inline u32 semctl_cmd_to_scap(unsigned cmd)
+{
+    switch (cmd)
+    {
+        case IPC_STAT: return PPM_IPC_STAT;
+        case IPC_SET: return PPM_IPC_SET;
+        case IPC_RMID: return PPM_IPC_RMID;
+        case IPC_INFO: return PPM_IPC_INFO;
+        case SEM_INFO: return PPM_SEM_INFO;
+        case SEM_STAT: return PPM_SEM_STAT;
+        case GETALL: return PPM_GETALL;
+        case GETNCNT: return PPM_GETNCNT;
+        case GETPID: return PPM_GETPID;
+        case GETVAL: return PPM_GETVAL;
+        case GETZCNT: return PPM_GETZCNT;
+        case SETALL: return PPM_SETALL;
+        case SETVAL: return PPM_SETVAL;
+    }
+    return 0;
+}
+
+static int f_sys_semctl_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * semid
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * semnum
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * cmd
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, semctl_cmd_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * optional argument semun/val
+	 */
+	if (val == SETVAL)
+		syscall_get_arguments(current, args->regs, 3, 1, &val);
+	else
+		val = 0;
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}

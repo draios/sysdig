@@ -241,6 +241,8 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_getresgid32
 	[__NR_getresgid32 - SYSCALL_TABLE_ID0] = { UF_USED, PPME_SYSCALL_GETRESGID_E, PPME_SYSCALL_GETRESGID_X },
 #endif
+	[__NR_semop - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SEMOP_E, PPME_SYSCALL_SEMOP_X},
+	[__NR_semctl - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SEMCTL_E, PPME_SYSCALL_SEMCTL_X},
 };
 
 /*
