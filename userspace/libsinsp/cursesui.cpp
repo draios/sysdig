@@ -1481,7 +1481,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 				move(m_screenh - 1, m_cursor_pos);
 				addch(' ');
 				move(m_screenh - 1, m_cursor_pos);
-				str->pop_back();
+				*str = str->substr(0, str->size() - 1);
 
 				if(str->size() < 2)
 				{
