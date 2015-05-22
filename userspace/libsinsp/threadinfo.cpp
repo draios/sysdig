@@ -636,12 +636,12 @@ sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
 #ifdef _WIN32
 sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 {
-	if(m_main_thread == NULL)
+	if (m_main_thread == NULL)
 	{
 		//
 		// Is this a child thread?
 		//
-		if(m_pid == m_tid)
+		if (m_pid == m_tid)
 		{
 			//
 			// No, this is either a single thread process or the root thread of a
@@ -658,10 +658,9 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			// Yes, this is a child thread. Find the process root thread.
 			//
 			sinsp_threadinfo* ptinfo = lookup_thread();
-			int ee = petu();
-			if(NULL == ptinfo)
+			if (NULL == ptinfo)
 			{
-				return (sinsp_threadinfo*)ee;
+				return NULL;
 			}
 
 			m_main_thread = ptinfo;

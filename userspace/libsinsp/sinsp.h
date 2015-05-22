@@ -186,6 +186,15 @@ public:
 	sinsp_evt* m_next_evt;
 };
 
+
+class sinsp_next_ex_args
+{
+public:
+	scap_evt* m_evt;
+	int32_t m_res;
+	uint16_t m_cpuid;
+};
+
 /** @defgroup inspector Main library
  @{
 */
@@ -245,7 +254,7 @@ public:
 	  \note: the returned event can be considered valid only until the next
 	   call to \ref next()
 	*/
-	int32_t next(OUT sinsp_evt** evt);
+	int32_t next(OUT sinsp_evt** evt, sinsp_next_ex_args* ex_args = NULL);
 
 	/*!
 	  \brief Get the number of events that have been captured and processed

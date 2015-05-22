@@ -610,7 +610,7 @@ void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 	}
 }
 
-int32_t sinsp::next(OUT sinsp_evt **puevt)
+int32_t sinsp::next(OUT sinsp_evt **puevt, sinsp_next_ex_args* ex_args)
 {
 	sinsp_evt* evt;
 	int32_t res;
@@ -661,8 +661,17 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		//
 		// Get the event from libscap
 		//
-		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
-//return SCAP_TIMEOUT;
+		if(ex_args == NULL)
+		{
+			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+		}
+		else
+		{
+			evt->m_pevt = ex_args->m_evt;
+			evt->m_cpuid = ex_args->m_cpuid;
+			res = ex_args->m_res;
+		}
+
 		if(res != SCAP_SUCCESS)
 		{
 			if(res == SCAP_TIMEOUT)
@@ -830,7 +839,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #else
 	m_parser->process_event(evt);
 #endif
-return SCAP_TIMEOUT;
+
 	//
 	// If needed, dump the event to file
 	//
