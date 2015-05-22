@@ -168,7 +168,7 @@ public:
 template<typename It>
 string sinsp_join(It begin, It end, char delim)
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << *begin;
 	++begin;
 	for(auto it = begin; it < end; ++it)
