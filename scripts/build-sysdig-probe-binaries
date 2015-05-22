@@ -135,8 +135,8 @@ coreos_build coreos-612.0.0 3.19.0 https://www.kernel.org/pub/linux/kernel/v3.x/
 # 640.0.0
 # 647.0.0
 # 653.0.0
-coreos_build coreos-660.0.0 4.0.0 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.tar.xz https://transfer.sh/AiIyx/config-660.0.0-4.0.0
 coreos_build coreos-3.19.3 3.19.3 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.3.tar.xz https://transfer.sh/1h437T/config
+coreos_build coreos-660.0.0 4.0.0 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.tar.xz https://transfer.sh/AiIyx/config-660.0.0-4.0.0
 coreos_build coreos-4.0.1 4.0.1 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.1.tar.xz https://transfer.sh/hYZUf/config
 # 668.2.0
 # 668.3.0
