@@ -852,6 +852,7 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 void scap_proc_free_table(scap_t* handle);
+void scap_refresh_iflist(scap_t* handle);
 
 #ifdef __cplusplus
 }

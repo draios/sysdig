@@ -634,6 +634,8 @@ public:
 	void add_meta_event(sinsp_evt *metaevt);
 	void add_meta_event_and_repeat(sinsp_evt *metaevt);
 
+	void refresh_ifaddr_list();
+
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE

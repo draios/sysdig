@@ -71,6 +71,7 @@ public:
 	bool is_ipv4addr_in_local_machine(uint32_t addr);
 	vector<sinsp_ipv4_ifinfo>* get_ipv4_list();
 	vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
+	inline void clear();
 
 VISIBILITY_PRIVATE
 	uint32_t infer_ipv4_address(uint32_t destination_address);
@@ -78,5 +79,10 @@ VISIBILITY_PRIVATE
 	void import_ipv6_ifaddr_list(uint32_t count, scap_ifinfo_ipv6* plist);
 	vector<sinsp_ipv4_ifinfo> m_ipv4_interfaces;
 	vector<sinsp_ipv6_ifinfo> m_ipv6_interfaces;
-
 };
+
+void sinsp_network_interfaces::clear()
+{
+	m_ipv4_interfaces.clear();
+	m_ipv6_interfaces.clear();
+}
