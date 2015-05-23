@@ -736,14 +736,12 @@ void ctext::add_format_if_needed()
 	if(attrs != p_format.attrs || color_pair != p_format.color_pair)
 	{
 		// Our properties have changed so we need to record this.
-		ctext_format new_format = 
-		{
-			// This is our offset
-			.offset = (int32_t)p_row->data.size(),
+		ctext_format new_format;
 
-			.attrs = attrs,
-			.color_pair = color_pair
-		};
+		// This is our offset
+		new_format.offset = (int32_t)p_row->data.size();
+		new_format.attrs = attrs;
+		new_format.color_pair = color_pair;
 
 		//
 		// If the new thing we are adding has the same
