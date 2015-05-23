@@ -34,7 +34,7 @@ using namespace std;
 #define CTEXT_OVER			(CTEXT_OVER_Y | CTEXT_OVER_X)
 #define CTEXT_UNDER			(CTEXT_UNDER_Y | CTEXT_UNDER_X)
 
-const ctext_config config_default;
+ctext_config config_default;
 
 void search_copy(ctext_search *dst, ctext_search *src)
 {
