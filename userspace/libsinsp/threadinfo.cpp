@@ -629,6 +629,48 @@ sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
 	return m_inspector->get_thread(m_pid, true, true);
 }
 
+//
+// Note: this is duplicated here because visual studio has trouble inlining
+//       the method.
+//
+#ifdef _WIN32
+sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
+{
+	if (m_main_thread == NULL)
+	{
+		//
+		// Is this a child thread?
+		//
+		if (m_pid == m_tid)
+		{
+			//
+			// No, this is either a single thread process or the root thread of a
+			// multithread process.
+			// Note: we don't set m_main_thread because there are cases in which this is 
+			//       invoked for a threadinfo that is in the stack. Caching the this pointer
+			//       would cause future mess.
+			//
+			return this;
+		}
+		else
+		{
+			//
+			// Yes, this is a child thread. Find the process root thread.
+			//
+			sinsp_threadinfo* ptinfo = lookup_thread();
+			if (NULL == ptinfo)
+			{
+				return NULL;
+			}
+
+			m_main_thread = ptinfo;
+		}
+	}
+
+	return m_main_thread;
+}
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
