@@ -165,6 +165,7 @@ public:
 	static bool tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res);
 };
 
+/*
 template<typename It>
 string sinsp_join(It begin, It end, char delim)
 {
@@ -177,3 +178,4 @@ string sinsp_join(It begin, It end, char delim)
 	}
 	return ss.str();
 }
+*/
