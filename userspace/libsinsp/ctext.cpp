@@ -34,14 +34,7 @@ using namespace std;
 #define CTEXT_OVER			(CTEXT_OVER_Y | CTEXT_OVER_X)
 #define CTEXT_UNDER			(CTEXT_UNDER_Y | CTEXT_UNDER_X)
 
-const ctext_config config_default = {
-	.m_buffer_size = CTEXT_DEFAULT_BUFFER_SIZE,
-	.m_bounding_box = CTEXT_DEFAULT_BOUNDING_BOX,
-	.m_do_wrap = CTEXT_DEFAULT_DO_WRAP,
-	.m_append_top = CTEXT_DEFAULT_APPEND_TOP,
-	.m_scroll_on_append = CTEXT_DEFAULT_SCROLL_ON_APPEND,
-	.m_auto_newline = CTEXT_DEFAULT_AUTO_NEWLINE,
-};
+const ctext_config config_default;
 
 void search_copy(ctext_search *dst, ctext_search *src)
 {
@@ -53,6 +46,13 @@ void search_copy(ctext_search *dst, ctext_search *src)
 ctext::ctext(WINDOW *win, ctext_config *config)
 {
 	this->m_win = win;
+
+	config_default.m_buffer_size = CTEXT_DEFAULT_BUFFER_SIZE;
+	config_default.m_bounding_box = CTEXT_DEFAULT_BOUNDING_BOX;
+	config_default.m_do_wrap = CTEXT_DEFAULT_DO_WRAP;
+	config_default.m_append_top = CTEXT_DEFAULT_APPEND_TOP;
+	config_default.m_scroll_on_append = CTEXT_DEFAULT_SCROLL_ON_APPEND;
+	config_default.m_auto_newline = CTEXT_DEFAULT_AUTO_NEWLINE;
 
 	/*
 	this->m_debug = new ofstream();
