@@ -449,7 +449,6 @@ private:
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
 	bool m_is_compare;
-	double m_pippo;
 };
 
 //
