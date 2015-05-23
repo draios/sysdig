@@ -84,6 +84,7 @@ public:
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
+#ifndef _WIN32
 	inline sinsp_threadinfo* get_main_thread()
 	{
 		if(m_main_thread == NULL)
@@ -107,7 +108,7 @@ public:
 				//
 				// Yes, this is a child thread. Find the process root thread.
 				//
-				sinsp_threadinfo *ptinfo = lookup_thread();
+				sinsp_threadinfo* ptinfo = lookup_thread();
 				if(NULL == ptinfo)
 				{
 					return NULL;
@@ -119,6 +120,9 @@ public:
 
 		return m_main_thread;
 	}
+#else
+	sinsp_threadinfo* get_main_thread();
+#endif
 
 	/*!
 	  \brief Get the process that launched this thread's process.
