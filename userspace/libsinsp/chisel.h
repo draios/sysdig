@@ -113,6 +113,7 @@ public:
 	void set_args(string args);
 	bool run(sinsp_evt* evt);
 	void do_timeout(sinsp_evt* evt);
+	void do_end_of_sample();
 	void on_init();
 	void on_capture_start();
 	void on_capture_end();

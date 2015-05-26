@@ -1206,5 +1206,40 @@ int lua_cbacks::exec(lua_State *ls)
 	return 0;
 }
 
+int lua_cbacks::push_metric(lua_State *ls) 
+{
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	ASSERT(ch);
+	ASSERT(ch->m_lua_cinfo);
+
+	sinsp* inspector = ch->m_inspector;
+
+	if(lua_istable(ls, 1))
+	{
+		/* table is in the stack at index 't' */
+		lua_pushnil(ls);  /* first key */
+
+		while (lua_next(ls, 1) != 0) {
+			/* uses 'key' (at index -2) and 'value' (at index -1) */
+			fprintf(stderr, "%s - %s : %s\n",
+				lua_typename(ls, lua_type(ls, -2)),
+				lua_typename(ls, lua_type(ls, -1)),
+				lua_tostring(ls, -1)
+				);
+			/* removes 'value'; keeps 'key' for next iteration */
+			lua_pop(ls, 1);
+		}
+
+		double number = lua_tonumber(ls, 2);
+		printf ("Parameter1: %f", number);
+	}
+
+	return 0;
+}
+
 #endif // HAS_LUA_CHISELS
 #endif // HAS_CHISELS

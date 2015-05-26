@@ -53,6 +53,7 @@ public:
 	static int set_interval_ns(lua_State *ls);
 	static int set_interval_s(lua_State *ls);
 	static int exec(lua_State *ls);
+	static int push_metric(lua_State *ls);
 };
 
 #endif // HAS_CHISELS

@@ -116,6 +116,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"make_ts", &lua_cbacks::make_ts},
 	{"run_sysdig", &lua_cbacks::run_sysdig},
 	{"end_capture", &lua_cbacks::end_capture},
+	{"push_metric", &lua_cbacks::push_metric},
 	{NULL,NULL}
 };
 
@@ -1440,6 +1441,26 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 			m_lua_last_interval_ts = ts;
 		}
 	}
+}
+
+void sinsp_chisel::do_end_of_sample()
+{
+#ifdef HAS_LUA_CHISELS
+	lua_getglobal(m_ls, "on_end_of_sample");
+
+	if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+	{
+		throw sinsp_exception(m_filename + " chisel error: calling on_end_of_sample() failed:" + lua_tostring(m_ls, -1));
+	}
+
+	int oeres = lua_toboolean(m_ls, -1);
+	lua_pop(m_ls, 1);
+
+	if(oeres == false)
+	{
+		throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
+	}
+#endif // HAS_LUA_CHISELS
 }
 
 void sinsp_chisel::on_capture_start()
