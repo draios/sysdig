@@ -36,7 +36,8 @@ if(NOT WIN32)
 
 	target_link_libraries(csysdig
 		sinsp
-		${CURSES_LIBRARIES})
+		ncurses
+		tinfo)
 
 	add_subdirectory(man)
 
