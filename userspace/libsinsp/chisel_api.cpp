@@ -35,6 +35,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel_api.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "statsite_proxy.h"
+#include "analyzer.h"
 
 #ifdef HAS_CHISELS
 #define HAS_LUA_CHISELS
@@ -1208,6 +1210,9 @@ int lua_cbacks::exec(lua_State *ls)
 
 int lua_cbacks::push_metric(lua_State *ls) 
 {
+	statsd_metric metric;
+	metric.m_type = statsd_metric::type_t::GAUGE;
+
 	lua_getglobal(ls, "sichisel");
 
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
@@ -1218,25 +1223,58 @@ int lua_cbacks::push_metric(lua_State *ls)
 
 	sinsp* inspector = ch->m_inspector;
 
-	if(lua_istable(ls, 1))
+	//
+	// tags
+	//
+	if(lua_istable(ls, 3))
 	{
-		/* table is in the stack at index 't' */
-		lua_pushnil(ls);  /* first key */
+		lua_pushnil(ls);
 
-		while (lua_next(ls, 1) != 0) {
-			/* uses 'key' (at index -2) and 'value' (at index -1) */
-			fprintf(stderr, "%s - %s : %s\n",
-				lua_typename(ls, lua_type(ls, -2)),
-				lua_typename(ls, lua_type(ls, -1)),
-				lua_tostring(ls, -1)
-				);
-			/* removes 'value'; keeps 'key' for next iteration */
+		while(lua_next(ls, 3) != 0) 
+		{
+			string tag = lua_tostring(ls, -1);
+			metric.m_tags[tag] = "";
 			lua_pop(ls, 1);
 		}
 
-		double number = lua_tonumber(ls, 2);
-		printf ("Parameter1: %f", number);
+		lua_pop(ls, 1);
 	}
+	else
+	{
+		string err = "error in chisel " + ch->m_filename + ": third argument must be a table";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
+
+	//
+	// Name
+	//
+	if(lua_isstring(ls, 1))
+	{
+		metric.m_name = lua_tostring(ls, 1);
+	}
+	else
+	{
+		string err = "errord in chisel " + ch->m_filename + ": first argument must be a string";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
+
+	//
+	// Value
+	//
+	if(lua_isnumber(ls, 2))
+	{
+		metric.m_value = lua_tonumber(ls, 2);
+	}
+	else
+	{
+		string err = "errord in chisel " + ch->m_filename + ": second argument must be a number";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
+
+	inspector->m_analyzer->add_chisel_metric(&metric);
 
 	return 0;
 }
