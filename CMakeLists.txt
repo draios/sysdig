@@ -234,6 +234,8 @@ endif()
 if(NOT WIN32)
 	set(CURSES_NEED_NCURSES TRUE)
 	find_package(Curses REQUIRED)
+	message(STATUS "CURSES_INCLUDE_DIR: ${CURSES_INCLUDE_DIR}")
+	message(STATUS "CURSES_LIBRARIES: ${CURSES_LIBRARIES}")
 endif()
 
 add_subdirectory(userspace/sysdig)
