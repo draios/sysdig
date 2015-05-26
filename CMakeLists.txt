@@ -228,6 +228,14 @@ else()
 	endif()
 endif()
 
+#
+# ncurses, keep it simple for the moment
+#
+if(NOT WIN32)
+	set(CURSES_NEED_NCURSES TRUE)
+	find_package(Curses REQUIRED)
+endif()
+
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
