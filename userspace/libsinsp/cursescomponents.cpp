@@ -1565,7 +1565,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf(": choose buffer print format      ");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
-	m_ctext->printf("P");
+	m_ctext->printf("p");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf(": pause visualization\n");
 
