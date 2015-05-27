@@ -3,7 +3,10 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
-include_directories("${CURSES_INCLUDE_DIR}")
+
+if(NOT WIN32)
+	include_directories("${CURSES_INCLUDE_DIR}")
+endif()
 
 add_library(sinsp STATIC
 	chisel.cpp
