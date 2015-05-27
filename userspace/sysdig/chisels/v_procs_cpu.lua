@@ -24,6 +24,7 @@ view_info =
 		"A high value for both SYS and SYSCALLS likely means that the process is I/O bound. A high value for SYS and a moderate value for SYSCALLS might on the other side indicate a kernel bottleneck. In both cases, drilling down with the 'System Calls' view can help understand what's happening."
 	},
 	view_type = "table",
+	filter = "evt.type!=switch",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "fd.type"},
 	is_root = true,
 	drilldown_target = "threads",
@@ -96,6 +97,7 @@ view_info =
 			name = "Command",
 			description = "The full command line of the process.",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			colsize = 200
 		}
 	}

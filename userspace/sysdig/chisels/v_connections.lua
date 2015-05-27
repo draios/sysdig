@@ -104,6 +104,7 @@ view_info =
 			name = "Command",
 			description = "The full command line of the process owning the connection's socket.",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			colsize = 200
 		}
 	}

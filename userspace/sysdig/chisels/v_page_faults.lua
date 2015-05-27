@@ -26,6 +26,7 @@ view_info =
 	},
 	tags = {"Default"},
 	view_type = "table",
+	filter = "evt.type!=switch",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory"},
 	drilldown_target = "errors",
 	use_defaults = true,
@@ -74,6 +75,7 @@ view_info =
 			name = "Command",
 			description = "Full command line of the process.",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			colsize = 200
 		}
 	}

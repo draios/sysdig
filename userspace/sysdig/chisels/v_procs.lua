@@ -23,6 +23,7 @@ view_info =
 	tips = {"This is a perfect view to start a drill down session. Click enter or double click on a process to dive into it and explore its behavior."},
 	tags = {"Default"},
 	view_type = "table",
+	filter = "evt.type!=switch",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "fd.type"},
 	is_root = true,
 	drilldown_target = "threads",
@@ -116,6 +117,7 @@ view_info =
 			name = "Command",
 			description = "The full command line of the process.",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			colsize = 200
 		}
 	}

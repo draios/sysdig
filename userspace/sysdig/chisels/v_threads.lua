@@ -22,6 +22,7 @@ view_info =
 	description = "This view is available for processes, and lists the threads inside the process, showing usage of resources like CPU, memory, disk and network for each thread.",
 	tags = {"Default"},
 	view_type = "table",
+	filter = "evt.type!=switch",
 	applies_to = {"proc.pid", "proc.name", "container.id", "fd.sport", "fd.name", "fd.directory", "evt.res"},
 	is_root = true,
 	drilldown_target = "files",
@@ -92,6 +93,7 @@ view_info =
 			name = "Command",
 			description = "The full command line of the process.",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			colsize = 200
 		}
 	}

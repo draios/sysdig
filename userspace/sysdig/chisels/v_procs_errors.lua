@@ -25,6 +25,7 @@ view_info =
 		"Digging into a process by clicking on F6 will let you explore the system calls for that specific process and see the full details about what's causing the errors."
 	},
 	tags = {"Default"},
+	filter = "evt.type!=switch",
 	view_type = "table",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory"},
 	drilldown_target = "errors",
@@ -81,6 +82,7 @@ view_info =
 			name = "Command",
 			description = "Full command line of the process.",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			colsize = 200
 		}
 	}

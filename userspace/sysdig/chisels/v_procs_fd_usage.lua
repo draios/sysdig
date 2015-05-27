@@ -25,6 +25,7 @@ view_info =
 	"Clicking enter on a selection will show the activity I/O activity done by the process on different families of FDs."},
 	tags = {"Default"},
 	view_type = "table",
+	filter = "evt.type!=switch",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "fd.type"},
 	is_root = true,
 	drilldown_target = "io_by_type",
@@ -81,6 +82,7 @@ view_info =
 			name = "Command",
 			description = "The full command line of the process.",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			colsize = 200
 		}
 	}

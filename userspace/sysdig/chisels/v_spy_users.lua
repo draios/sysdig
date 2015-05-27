@@ -55,6 +55,7 @@ view_info =
 		{
 			name = "Command",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			description = "The executed command, including arguments.",
 			colsize = 200,
 		}		

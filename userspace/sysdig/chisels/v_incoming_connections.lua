@@ -48,6 +48,7 @@ view_info =
 		{
 			name = "Command",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			description = "Name and argyuments of the process that received the connection.",
 			colsize = 200,
 		}		

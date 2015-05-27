@@ -55,6 +55,7 @@ view_info =
 		{
 			name = "Command",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			description = "The program that opened the file, including its arguments.",
 			colsize = 200,
 		}		
