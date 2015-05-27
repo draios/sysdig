@@ -18,7 +18,7 @@ csysdig has been designed to mimic tools like **top** and **htop**, but it offer
 - Support for both live analysis and sysdig trace files. Trace files can come from the same machine or from another machine. 
 - Visibility into a broad range of metrics, including CPU, memory, disk I/O, network I/O.
 - Ability to observe input/output activity for processes, files, network connections and more.
-- Ability to drill down into processes, files, network connections and more to further explore their beavior.
+- Ability to drill down into processes, files, network connections and more to further explore their behavior.
 - Full customization support.
 - Support for sysdig's filtering language.
 - Container support by design.
