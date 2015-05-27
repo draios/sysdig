@@ -99,7 +99,7 @@ view_info =
 			name = "Container",
 			field = "container.name",
 			description = "Name of the container.",
-			colsize = 15
+			colsize = 200
 		},
 	}
 }
