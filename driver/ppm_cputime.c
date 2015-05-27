@@ -1,5 +1,5 @@
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 8, 0))
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
 #include <asm/atomic.h>
