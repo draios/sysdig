@@ -720,8 +720,14 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 	}
 	else
 	{
-		ASSERT(m_search_header_text != "");
-		fks = m_search_header_text + ": ";
+		if(m_search_header_text == "")
+		{
+			fks = "Text to match: ";
+		}
+		else
+		{
+			fks = m_search_header_text + ": ";
+		}
 	}
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 20);
 	k += fks.size();
