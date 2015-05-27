@@ -37,7 +37,7 @@ view_info =
 			name = "USER",
 			field = "user.name",
 			description = "Name of the user running the command.",
-			colsize = 8,
+			colsize = 12,
 		},
 		{
 			name = "SHELL",
