@@ -96,7 +96,19 @@ view_info =
 			is_groupby_key = true
 		},
 		{
-			name = "Container",
+			name = "IMAGE",
+			field = "container.image",
+			description = "Container image name.",
+			colsize = 15
+		},
+		{
+			name = "ID",
+			field = "container.id",
+			description = "Container ID. The format of this column depends on the containerization technology. For example, Docker ID are 12 characters hexadecimal digit strings.",
+			colsize = 13
+		},
+		{
+			name = "NAME",
 			field = "container.name",
 			description = "Name of the container.",
 			colsize = 200
