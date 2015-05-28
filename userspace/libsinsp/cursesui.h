@@ -431,7 +431,10 @@ public:
 				case STA_DRILLDOWN:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						drilldown(res.first->m_name, res.second.c_str());
+						if(res.first != NULL)
+						{
+							drilldown(res.first->m_name, res.second.c_str());
+						}
 					}
 					return false;
 				case STA_DRILLUP:
@@ -440,13 +443,19 @@ public:
 				case STA_SPY:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						spy_selection(res.first->m_name, res.second.c_str(), false);
+						if(res.first != NULL)
+						{
+							spy_selection(res.first->m_name, res.second.c_str(), false);
+						}
 					}
 					return false;
 				case STA_DIG:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						spy_selection(res.first->m_name, res.second.c_str(), true);
+						if(res.first != NULL)
+						{
+							spy_selection(res.first->m_name, res.second.c_str(), true);
+						}
 					}
 					return false;
 				case STA_NONE:
