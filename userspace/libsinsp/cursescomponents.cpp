@@ -1542,7 +1542,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf(" Arrows");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": scroll up and down       ");
+	m_ctext->printf(": scroll the page          ");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("CTRL+F /");
