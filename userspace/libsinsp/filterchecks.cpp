@@ -654,7 +654,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
 			{
-				if(m_field_id == TYPE_LIP)
+				if(m_field_id == TYPE_LPORT)
 				{
 					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
 				}
@@ -665,7 +665,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else
 			{
-				if(m_field_id == TYPE_LIP)
+				if(m_field_id == TYPE_LPORT)
 				{
 					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
 				}
