@@ -5,16 +5,23 @@ env:
     - BUILD_TYPE=Debug NEW_CC=gcc NEW_CXX=g++
     - BUILD_TYPE=Release NEW_CC=gcc NEW_CXX=g++
 before_install:
-    - apt-get update
+    - sudo apt-get update
 install:
-    - apt-get install rpm linux-headers-generic gcc-4.5 g++-4.5 gcc-4.4 g++-4.4
-    - apt-get purge libncurses5-dev
+    - sudo apt-get install rpm linux-headers-generic
+    - sudo apt-get purge libncurses5-dev cmake
 before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
 script:
     - set -e
     - export CC=$NEW_CC
     - export CXX=$NEW_CXX
+    - wget https://s3.amazonaws.com/download.draios.com/dependencies/cmake-3.2.2.tar.gz
+    - tar -xzf cmake-3.2.2.tar.gz
+    - cd cmake-3.2.2
+    - ./bootstrap --prefix=/usr
+    - make
+    - make install
+    - cd ..
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
@@ -28,10 +35,10 @@ script:
     - cd zlib-1.2.8
     - ./configure
     - make
-    - make install
+    - sudo make install
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
-    - apt-get install libncurses5-dev libluajit-5.1-dev libjsoncpp-dev
+    - sudo apt-get install libncurses5-dev libluajit-5.1-dev libjsoncpp-dev
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF -DUSE_BUNDLED_ZLIB=OFF -DUSE_BUNDLED_NCURSES=OFF -DZLIB_PREFIX=/usr/local
