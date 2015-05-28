@@ -641,11 +641,11 @@ void sinsp_table::filter_sample()
 
 			if(m_do_merging)
 			{
-				type = m_types->at(j + 2);
+				type = m_postmerge_types[j + 1];
 			}
 			else
 			{
-				type = m_types->at(j + 1);
+				type = m_premerge_types[j + 1];
 			}
 
 			if(type == PT_CHARBUF || type == PT_BYTEBUF || type == PT_SYSCALLID ||
