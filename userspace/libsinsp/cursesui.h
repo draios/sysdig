@@ -69,7 +69,9 @@ public:
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
 		sinsp_table_field* rowkey,
-		uint32_t prev_sorting_col)
+		uint32_t prev_sorting_col,
+		string prev_manual_filter,
+		bool prev_is_filter_sysdig)
 	{
 		m_field = field;
 		m_val = val;
@@ -77,6 +79,8 @@ public:
 		m_prev_selected_view = prev_selected_view;
 		m_prev_selected_sidemenu_entry = prev_selected_sidemenu_entry;
 		m_prev_sorting_col = prev_sorting_col;
+		m_prev_manual_filter = prev_manual_filter;
+		m_prev_is_filter_sysdig = prev_is_filter_sysdig;
 
 		m_rowkey = *rowkey;
 	}
@@ -87,6 +91,8 @@ public:
 	uint32_t m_prev_selected_view;
 	uint32_t m_prev_selected_sidemenu_entry;
 	uint32_t m_prev_sorting_col;
+	string m_prev_manual_filter;
+	bool m_prev_is_filter_sysdig;
 	sinsp_table_field m_rowkey;
 };
 
@@ -99,7 +105,9 @@ public:
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
 		sinsp_table_field* rowkey,
-		uint32_t prev_sorting_col)
+		uint32_t prev_sorting_col,
+		string prev_manual_filter,
+		bool prev_is_filter_sysdig)
 	{
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
 			val,
@@ -107,7 +115,9 @@ public:
 			prev_selected_view, 
 			prev_selected_sidemenu_entry,
 			rowkey,
-			prev_sorting_col));
+			prev_sorting_col,
+			prev_manual_filter,
+			prev_is_filter_sysdig));
 	}
 
 	~sinsp_ui_selection_hierarchy()
