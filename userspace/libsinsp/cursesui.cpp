@@ -1115,7 +1115,8 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 
 	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
 		m_selected_view, m_selected_sidemenu_entry, 
-		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig);
+		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
+		m_datatable->is_sorting_ascending());
 
 	if(is_dig)
 	{
@@ -1181,7 +1182,9 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 
 	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
 		m_selected_view, m_selected_sidemenu_entry, 
-		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig);
+		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig,
+		m_datatable->is_sorting_ascending());
+
 	m_selected_view = new_view_num;
 
 	if(!m_inspector->is_live())
@@ -1276,6 +1279,7 @@ bool sinsp_cursesui::drillup()
 		m_selected_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
 		m_manual_filter = sinfo->m_prev_manual_filter;
 		m_is_filter_sysdig = sinfo->m_prev_is_filter_sysdig;
+		bool is_sorting_ascending = sinfo->m_prev_is_sorting_ascending;
 
 
 		ASSERT(m_selected_view < (int32_t)m_views.size());
@@ -1323,6 +1327,8 @@ bool sinsp_cursesui::drillup()
 		{
 			m_datatable->set_sorting_col(sinfo->m_prev_sorting_col);
 		}
+
+		m_datatable->set_is_sorting_ascending(is_sorting_ascending);
 
 		//
 		// If filtering is different from the default one, apply it

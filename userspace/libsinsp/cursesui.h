@@ -71,7 +71,8 @@ public:
 		sinsp_table_field* rowkey,
 		uint32_t prev_sorting_col,
 		string prev_manual_filter,
-		bool prev_is_filter_sysdig)
+		bool prev_is_filter_sysdig,
+		bool prev_is_sorting_ascending)
 	{
 		m_field = field;
 		m_val = val;
@@ -81,6 +82,7 @@ public:
 		m_prev_sorting_col = prev_sorting_col;
 		m_prev_manual_filter = prev_manual_filter;
 		m_prev_is_filter_sysdig = prev_is_filter_sysdig;
+		m_prev_is_sorting_ascending = prev_is_sorting_ascending;
 
 		m_rowkey = *rowkey;
 	}
@@ -94,6 +96,7 @@ public:
 	string m_prev_manual_filter;
 	bool m_prev_is_filter_sysdig;
 	sinsp_table_field m_rowkey;
+	bool m_prev_is_sorting_ascending;
 };
 
 class sinsp_ui_selection_hierarchy
@@ -107,7 +110,8 @@ public:
 		sinsp_table_field* rowkey,
 		uint32_t prev_sorting_col,
 		string prev_manual_filter,
-		bool prev_is_filter_sysdig)
+		bool prev_is_filter_sysdig,
+		bool prev_is_sorting_ascending)
 	{
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
 			val,
@@ -117,7 +121,8 @@ public:
 			rowkey,
 			prev_sorting_col,
 			prev_manual_filter,
-			prev_is_filter_sysdig));
+			prev_is_filter_sysdig,
+			prev_is_sorting_ascending));
 	}
 
 	~sinsp_ui_selection_hierarchy()
