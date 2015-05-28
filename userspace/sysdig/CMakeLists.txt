@@ -40,8 +40,7 @@ if(NOT WIN32)
 
 	target_link_libraries(csysdig
 		sinsp
-		ncurses
-		tinfo)
+		"${CURSES_LIBRARIES}")
 
 	add_subdirectory(man)
 
@@ -96,4 +95,4 @@ else()
 
 endif()
 
-configure_file(config.h.in config.h)
+configure_file(config_sysdig.h.in config_sysdig.h)

@@ -232,10 +232,28 @@ endif()
 # ncurses, keep it simple for the moment
 #
 if(NOT WIN32)
-	set(CURSES_NEED_NCURSES TRUE)
-	find_package(Curses REQUIRED)
-	message(STATUS "CURSES_INCLUDE_DIR: ${CURSES_INCLUDE_DIR}")
-	message(STATUS "CURSES_LIBRARIES: ${CURSES_LIBRARIES}")
+	option(USE_BUNDLED_NCURSES "Enable building of the bundled ncurses" ON)
+	
+	if(USE_BUNDLED_NCURSES)
+		set(CURSES_BUNDLE_DIR "${PROJECT_BINARY_DIR}/ncurses-prefix/src/ncurses")
+		set(CURSES_INCLUDE_DIR "${CURSES_BUNDLE_DIR}/include/")
+		set(CURSES_LIBRARIES "${CURSES_BUNDLE_DIR}/lib/libncurses.a")
+
+		message(STATUS "Using bundled ncurses in '${CURSES_BUNDLE_DIR}'")
+
+		ExternalProject_Add(ncurses
+			URL "http://download.draios.com/dependencies/ncurses-5.9.tar.gz"
+			URL_MD5 "8cb9c412e5f2d96bc6f459aa8c6282a1"
+			CONFIGURE_COMMAND ./configure --without-cxx --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests --with-terminfo-dirs=/etc/terminfo:/lib/terminfo:/usr/share/terminfo
+			BUILD_COMMAND ${CMD_MAKE}
+			BUILD_IN_SOURCE 1
+			INSTALL_COMMAND "")
+
+	else()
+		set(CURSES_NEED_NCURSES TRUE)
+		find_package(Curses REQUIRED)
+		message(STATUS "Found ncurses: include: ${CURSES_INCLUDE_DIR}, lib: ${CURSES_LIBRARIES}")
+	endif()
 endif()
 
 add_subdirectory(userspace/sysdig)
