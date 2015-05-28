@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "connections",
-	name = "Connections",
+	id = "connections_cs",
+	name = "Connections cs",
 	description = "Top network connections. This view lists all of the network connections that were active during the last sampling interval, with details for each of them.",
 	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation."},
 	tags = {"Default"},
@@ -48,27 +48,27 @@ view_info =
 			colsize = 8,
 		},
 		{
-			name = "LIP",
-			description = "Local IP Address.",
-			field = "fd.lip",
+			name = "CIP",
+			description = "Client IP Address.",
+			field = "fd.cip",
 			colsize = 17,
 		},
 		{
-			name = "LPORT",
-			description = "Local Port.",
-			field = "fd.lport",
+			name = "CPORT",
+			description = "Client Port.",
+			field = "fd.cport",
 			colsize = 8,
 		},
 		{
-			name = "RIP",
-			description = "Remote IP Address.",
-			field = "fd.rip",
+			name = "SIP",
+			description = "Server IP Address.",
+			field = "fd.sip",
 			colsize = 17,
 		},
 		{
-			name = "RPORT",
-			description = "Remote Port.",
-			field = "fd.rport",
+			name = "SPORT",
+			description = "Server Port.",
+			field = "fd.sport",
 			colsize = 8,
 		},
 		{
