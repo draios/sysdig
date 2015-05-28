@@ -20,7 +20,7 @@ script:
     - cd cmake-3.2.2
     - ./bootstrap --prefix=/usr
     - make
-    - make install
+    - sudo make install
     - cd ..
     - mkdir build
     - cd build
