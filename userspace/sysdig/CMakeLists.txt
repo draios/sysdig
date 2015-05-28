@@ -38,6 +38,8 @@ if(NOT WIN32)
 	target_link_libraries(sysdig
 		sinsp)
 
+	add_dependencies(csysdig ncurses)
+
 	target_link_libraries(csysdig
 		sinsp
 		"${CURSES_LIBRARIES}")
