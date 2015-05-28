@@ -12,6 +12,7 @@ install:
 before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
 script:
+    - set -e
     - export CC=$NEW_CC
     - export CXX=$NEW_CXX
     - mkdir build
