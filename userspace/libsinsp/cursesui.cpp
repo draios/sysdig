@@ -73,6 +73,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_refresh_interval_ns = refresh_interval_ns;
 	m_print_containers = print_containers;
 	m_raw_output = raw_output;
+	m_spybox_text_format = sinsp_evt::PF_NORMAL;
 #ifndef NOCURSESUI
 	if(!m_raw_output)
 	{
@@ -1723,6 +1724,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		ASSERT(m_output_filtering == false);
 		ASSERT(m_output_searching == false);
 		sysdig_table_action actn = m_spy_box->handle_input(ch);
+
 		if(actn != STA_PARENT_HANDLE)
 		{
 			return actn;

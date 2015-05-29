@@ -47,6 +47,7 @@ using namespace std;
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
+#include "utils.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // curses_scrollable_list implementation
@@ -862,12 +863,29 @@ void curses_textbox::populate_sidemenu()
 	m_entries.push_back(sidemenu_list_entry("Dotted ASCII", -1));
 	m_entries.push_back(sidemenu_list_entry("Printable ASCII", -1));
 	m_entries.push_back(sidemenu_list_entry("Hex", -1));
-	if(m_viz_type == VIEW_ID_DIG)
-	{
-		m_entries.push_back(sidemenu_list_entry("json", 0));
-	}
 
 	m_sidemenu->set_entries(&m_entries);
+
+	switch(m_parent->m_spybox_text_format)
+	{
+		case sinsp_evt::PF_NORMAL:
+			m_sidemenu->m_selct = 0;
+			break;
+		case sinsp_evt::PF_EOLS:
+			m_sidemenu->m_selct = 1;
+			break;
+		case sinsp_evt::PF_HEXASCII:
+			m_sidemenu->m_selct = 2;
+			break;
+		case sinsp_evt::PF_JSON:
+			m_sidemenu->m_selct = 3;
+			break;
+		default:
+			ASSERT(false);
+			m_sidemenu->m_selct = 0;
+			break;
+	}
+
 	m_sidemenu->set_title("View As");
 }
 
@@ -918,6 +936,24 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 		sysdig_table_action ta = m_sidemenu->handle_input(ch);
 		if(ta == STA_SWITCH_VIEW)
 		{
+			switch(m_parent->m_selected_sidemenu_entry)
+			{
+				case 0:
+					m_parent->m_spybox_text_format = sinsp_evt::PF_NORMAL;
+					break;
+				case 1:
+					m_parent->m_spybox_text_format = sinsp_evt::PF_EOLS;
+					break;
+				case 2:
+					m_parent->m_spybox_text_format = sinsp_evt::PF_HEXASCII;
+					break;
+				case 3:
+					m_parent->m_spybox_text_format = sinsp_evt::PF_JSON;
+					break;
+				default:
+					ASSERT(false);
+					break;
+			}
 			return STA_SWITCH_SPY;
 		}
 		else if(ta != STA_PARENT_HANDLE)
@@ -1058,24 +1094,7 @@ void curses_textbox::reset()
 		wrefresh(m_win);
 	}
 
-	switch(m_parent->m_selected_sidemenu_entry)
-	{
-		case 0:
-			m_inspector->set_buffer_format(sinsp_evt::PF_NORMAL);
-			break;
-		case 1:
-			m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
-			break;
-		case 2:
-			m_inspector->set_buffer_format(sinsp_evt::PF_HEXASCII);
-			break;
-		case 3:
-			m_inspector->set_buffer_format(sinsp_evt::PF_JSON);
-			break;
-		default:
-			ASSERT(false);
-			break;
-	}
+	m_inspector->set_buffer_format(m_parent->m_spybox_text_format);
 
 	//
 	// If we're offline, disable screen refresh until we've parsed the file

@@ -568,6 +568,7 @@ public:
 	curses_viewinfo_page* m_viewinfo_page;
 	curses_mainhelp_page* m_mainhelp_page;
 	curses_textbox* m_spy_box;
+	sinsp_evt::param_fmt m_spybox_text_format;
 #endif
 
 private:
