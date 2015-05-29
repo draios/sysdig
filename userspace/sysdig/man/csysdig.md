@@ -37,9 +37,15 @@ Here are some basic tips to get you started with sysdig:
 
 1. If you run csysdig without arguments, it will display live system data, updating every 2 seconds. To analyze a trace file, use the -r command line flag.
 2. You can switch to a different view by using the _F2_ key.
-3. You can to drill down into a selection by typing _enter_. You can navigate back by typing _backspace_.
+3. You can to drill down into a selection by clicking _enter_. You can navigate back by typing _backspace_.
 4. You can observe input/output for the currently selected entity by typing _F5_
 5. You can see sysdig events for the currently selected entity by typing _F6_
+
+DRILLING DOWN
+-------------
+You drill down by selecting an element in a view and then clicking _enter_. Once inside a selection, you can switch to a different view, and the new view will be applied in the context of the selection. For example, if you drill down into a process called foo and then switch to the _Connections_ view, the output will include only the connections made or recieved by _foo_. 
+
+You can drill down multiple times, by keeping clicking _enter_. For example, you can click on a container in the _Containers_ view to get the processes running inside it, and then click on one of the processes to see its threads.
 
 INTERACTIVE COMMANDS  
 --------------------  

@@ -1445,8 +1445,11 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	// Print title and info
 	//
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
-	m_ctext->printf("csysdig %s. See man page for full documentation\n\n",
+	m_ctext->printf("csysdig %s. See man page for full documentation\n",
 		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf("Note: you can scroll this page by using the keyboard arrows.\n\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 	m_ctext->printf("How to use csysdig\n",
@@ -1456,8 +1459,18 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf(
 "1. you can either see real time data, or analyze a trace file by using the -r command line flag.\n"
 "2. you can switch to a different view by using the F2 key.\n"
-"3. You can to drill down into a selection by typing enter. You can navigate back by typing backspace.\n"
-"4. you can observe reads and writes (F5) or see sysdig events (F6) for any selection.\n"
+"3. You can to drill down into a selection by clicking enter. You can navigate back by typing backspace.\n"
+"4. you can observe reads and writes (F5) or see sysdig events (F6) for any selection.\n\n"
+);
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("Drilling down\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(
+"You drill down by selecting an element in a view and then clicking enter. Once inside a selection, you can switch to a different view, and the new view will be applied in the context of the selection. For example, if you drill down into a process called foo and then switch to the Connections view, the output will include only the connections made or recieved by foo.\n\n"
+"You can drill down multiple times, by keeping clicking enter. For example, you can click on a container in the Containers view to get the processes running inside it, and then click on one of the processes to see its threads.\n"
 );
 
 	//
