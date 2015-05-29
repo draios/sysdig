@@ -56,7 +56,7 @@ INTERACTIVE COMMANDS
   Change the selection and scroll view content, both vertically and horizontally.  
 
 **Enter**  
-  Drill down into the currently highlited entry.  
+  Drill down into the currently highlighted entry.  
 
 **Backspace**  
   Navigate back to the previous view.  
@@ -71,10 +71,10 @@ INTERACTIVE COMMANDS
     Incremental filtering of the view entries.  
 
 **F5, e**  
-  'echo FDs' for the selection, i.e. view FD input/output for the currently highlited entry.  
+  'echo FDs' for the selection, i.e. view FD input/output for the currently highlighted entry.  
 
 **F6, d**  
-  'dig' into the selection, i.e. view sysdig events for the currently highlited entry. Refer to the sysdig man page to learn about interpreting the content of this window.  
+  'dig' into the selection, i.e. view sysdig events for the currently highlighted entry. Refer to the sysdig man page to learn about interpreting the content of this window.  
 
 **F7**  
   Show the help page for the currently displayed view.  
