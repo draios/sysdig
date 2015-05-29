@@ -1507,7 +1507,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("CTRL+F /");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": incremental search\n");
+	m_ctext->printf(": search\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("     F2");
@@ -1517,7 +1517,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("F4 \\");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": incremental filtering\n");
+	m_ctext->printf(": filter(freetext or sysdig)\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("  Enter");
