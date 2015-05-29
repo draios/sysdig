@@ -258,4 +258,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SIGNALDELIVER_X */ {"signaldeliver", EC_SIGNAL, EF_UNUSED, 0 },
 	/* PPME_PROCINFO_E */{"procinfo", EC_INTERNAL, EF_SKIPPARSERESET, 2, {{"cpu_usr", PT_UINT64, PF_DEC}, {"cpu_sys", PT_UINT64, PF_DEC} } },
 	/* PPME_PROCINFO_X */{"NA2", EC_INTERNAL, EF_UNUSED, 0},
+	/* PPME_SYSCALL_GETDENTS_E */{"getdents", EC_FILE, EF_USES_FD, 1, {{"fd", PT_FD, PF_NA} } },
+	/* PPME_SYSCALL_GETDENTS_X */{"getdents", EC_FILE, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_GETDENTS64_E */{"getdents64", EC_FILE, EF_USES_FD, 1, {{"fd", PT_FD, PF_NA} } },
+	/* PPME_SYSCALL_GETDENTS64_X */{"getdents64", EC_FILE, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 };
