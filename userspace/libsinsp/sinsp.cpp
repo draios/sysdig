@@ -681,7 +681,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
 				}
 	#endif
-				evt = NULL;
+				*puevt = NULL;
 				return res;
 			}
 			else if(res == SCAP_EOF)
