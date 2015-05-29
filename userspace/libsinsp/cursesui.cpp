@@ -1043,6 +1043,11 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 #endif
 
 	//
+	// Clear the manual filter
+	//
+	m_manual_filter = "";
+
+	//
 	// If this is a file, we need to restart the capture.
 	// If it's a live capture, we restart only if start() fails, which usually
 	// happens in case one of the filter fields requested thread state.
