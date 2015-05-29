@@ -1634,7 +1634,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf("csysdig is completely customizable. This means that you can modify any of the csysdig views, " 
 		"and even create your own views. Like sysdig chisels, csysdig views are Lua scripts. Full information can "
-		"be found at the following github wiki page: https://github.com/draios/agent/wiki/csysdig-View-Format-Reference.\n");
+		"be found at the following github wiki page: https://github.com/draios/sysdig/wiki/csysdig-View-Format-Reference.\n");
 
 	//
 	// Done. Refresh the screen
