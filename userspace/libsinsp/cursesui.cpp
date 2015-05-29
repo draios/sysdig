@@ -386,7 +386,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 void sinsp_cursesui::render_header()
 {
 	uint32_t j = 0;
-	uint32_t k;
+	uint32_t k = 0;
 
 	//
 	// Show the 'viewing' line
@@ -399,6 +399,7 @@ void sinsp_cursesui::render_header()
 	}
 
 	mvaddstr(0, 0, "Viewing:");
+	k += sizeof("Viewing: ") - 1;
  
 	attrset(m_colors[sinsp_cursesui::PROCESS]);
 
@@ -426,9 +427,18 @@ void sinsp_cursesui::render_header()
 		}
 	}
 
+	mvaddstr(0, k, vs.c_str());
+
+	k+= vs.size() + 1;
+
+	attrset(m_colors[HELP_BOLD]);
+	mvaddstr(0, k, "For: ");
+	k += sizeof("For: ") - 1;
+
+	attrset(m_colors[sinsp_cursesui::PROCESS]);
 	if(m_sel_hierarchy.size() != 0)
 	{
-		vs += " for ";
+		vs = "";
 
 		for(j = 0; j < m_sel_hierarchy.size(); j++)
 		{
@@ -442,8 +452,12 @@ void sinsp_cursesui::render_header()
 			}
 		}
 	}
+	else
+	{
+		vs = "whole machine";
+	}
 
-	mvaddstr(0, sizeof("Viewing: ") - 1, vs.c_str());
+	mvaddstr(0, k, vs.c_str());
 
 	if(m_paused)
 	{
