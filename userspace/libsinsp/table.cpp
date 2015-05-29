@@ -522,6 +522,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	for(auto it = threadtable->begin(); it != threadtable->end(); ++it)
 	{
 		tevt.m_tinfo = &it->second;
+		tscapevt.tid = tevt.m_tinfo->m_tid;
 
 		if(m_filter)
 		{

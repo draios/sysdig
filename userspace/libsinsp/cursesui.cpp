@@ -73,8 +73,9 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_refresh_interval_ns = refresh_interval_ns;
 	m_print_containers = print_containers;
 	m_raw_output = raw_output;
-	m_spybox_text_format = sinsp_evt::PF_NORMAL;
 #ifndef NOCURSESUI
+	m_spybox_text_format = sinsp_evt::PF_NORMAL;
+
 	if(!m_raw_output)
 	{
 		m_sidemenu = NULL;
