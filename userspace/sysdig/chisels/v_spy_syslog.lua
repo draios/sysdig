@@ -61,7 +61,7 @@ view_info =
 			name = "MESSAGE",
 			field = "syslog.message",
 			description = "Message sent to syslog",
-			colsize = 40,
+			colsize = 0
 		}
 	}
 }

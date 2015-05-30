@@ -39,7 +39,7 @@ public:
 
 #ifdef CSYSDIG
 #ifndef NOCURSESUI
-#define TABLE_WIDTH 400
+#define TABLE_WIDTH 10000
 #define TABLE_Y_START 2
 
 #include <curses.h>

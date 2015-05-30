@@ -57,7 +57,7 @@ view_info =
 			field = "proc.exeline",
 			aggregation = "MAX",
 			description = "The executed command, including arguments.",
-			colsize = 200,
+			colsize = 0
 		}		
 	}
 }

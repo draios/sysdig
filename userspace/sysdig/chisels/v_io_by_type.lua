@@ -66,8 +66,8 @@ view_info =
 			name = "I/O Type",
 			field = "fd.type",
 			description = "Type of I/O. Can be one of: file, directory, ipv4, ipv6, pipe, unix, signal, event, inotify",
-			colsize = 12,
 			aggregation = "SUM"
+			colsize = 0
 		},
 	}
 }

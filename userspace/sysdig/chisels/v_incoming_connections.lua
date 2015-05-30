@@ -50,7 +50,7 @@ view_info =
 			field = "proc.exeline",
 			aggregation = "MAX",
 			description = "Name and argyuments of the process that received the connection.",
-			colsize = 200,
+			colsize = 0
 		}		
 	}
 }
