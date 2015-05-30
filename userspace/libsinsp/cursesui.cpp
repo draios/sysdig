@@ -50,6 +50,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_inspector = inspector;
 	m_event_source_name = event_source_name;
 	m_selected_view = 0;
+	m_prev_selected_view = 0;
 	m_selected_sidemenu_entry = 0;
 	m_datatable = NULL;
 	m_viz = NULL;
@@ -381,6 +382,8 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		}
 	}
 #endif
+
+	m_prev_selected_view = m_selected_view;
 }
 
 #ifndef NOCURSESUI
@@ -1059,9 +1062,14 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 #endif
 
 	//
-	// Clear the manual filter
+	// Clear the manual filter, but not if this is a sysdig filter and we're in the same
+	// view (applying sysdig filters causes the same view to the reloaded, and in that
+	// case we want to preserve the filter).
 	//
-	m_manual_filter = "";
+	if(m_prev_selected_view != m_selected_view)
+	{
+		m_manual_filter = "";
+	}
 
 	//
 	// If this is a file, we need to restart the capture.
@@ -1208,6 +1216,11 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 
 	m_selected_view = new_view_num;
 
+	//
+	// Reset the filter
+	//
+	m_manual_filter = "";
+
 	if(!m_inspector->is_live())
 	{
 		m_eof = 0;
@@ -1233,8 +1246,6 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	m_viz->render(true);
 	render();
 #endif
-
-	m_manual_filter = "";
 
 	return true;
 }

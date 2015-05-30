@@ -554,6 +554,7 @@ public:
 	int m_colors[LAST_COLORELEMENT];
 	sinsp_view_manager m_views;
 	int32_t m_selected_view;
+	int32_t m_prev_selected_view;
 	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 	curses_table* m_viz;
