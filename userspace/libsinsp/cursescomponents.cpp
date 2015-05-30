@@ -546,6 +546,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_viz_type = viz_type;
 	m_searcher = NULL;
 	m_has_searched = false;
+	m_last_progress_update_ts = 0;
 
 	ctext_config config;
 
@@ -803,6 +804,14 @@ void curses_textbox::process_event_dig(sinsp_evt* evt, int32_t next_res)
 	if(n_prints == 1)
 	{
 		render();
+	}
+
+	uint64_t ts = evt->get_ts();
+
+	if(ts > (m_last_progress_update_ts + 100000000))
+	{
+		render();
+		m_last_progress_update_ts = ts;
 	}
 }
 
