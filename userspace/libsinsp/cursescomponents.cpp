@@ -1057,6 +1057,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 		case '/':
 		case KEY_F(3):
 			on_search_next();
+			m_parent->render();
 			break;
 		case 6:	// CTRL+F
 			m_search_type_is_goto = false;
