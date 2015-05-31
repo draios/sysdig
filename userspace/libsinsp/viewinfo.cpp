@@ -267,6 +267,7 @@ uint32_t sinsp_view_manager::get_selected_view()
 		}
 	}
 
+	throw sinsp_exception("view " + m_selected_view_id + " not found");
 	return 0;
 }
 
