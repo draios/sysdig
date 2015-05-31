@@ -215,11 +215,11 @@ void curses_table::update_rowkey(int32_t row)
 	}
 }
 
-void curses_table::update_data(vector<sinsp_sample_row>* data)
+void curses_table::update_data(vector<sinsp_sample_row>* data, bool force_selection_change)
 {
 	m_data = data;
 
-	if(m_selection_changed && (m_last_key.m_isvalid || m_drilled_up))
+	if(m_selection_changed && (m_last_key.m_isvalid || m_drilled_up || force_selection_change))
 	{
 		int32_t selct = m_table->get_row_from_key(&m_last_key);
 		if(selct == -1)

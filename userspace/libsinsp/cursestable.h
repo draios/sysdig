@@ -35,7 +35,7 @@ public:
 
 	void configure(sinsp_table* table, 
 		vector<int32_t>* colsizes, vector<string>* colnames);
-	void update_data(vector<sinsp_sample_row>* data);
+	void update_data(vector<sinsp_sample_row>* data, bool force_selection_change = false);
 	void render(bool data_changed);
 	sysdig_table_action handle_input(int ch);
 	void set_x_start(uint32_t x)

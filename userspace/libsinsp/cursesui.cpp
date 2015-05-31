@@ -1605,7 +1605,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			//
 			// Refresh the data and the visualization
 			//
-			m_viz->update_data(m_datatable->get_sample(get_time_delta()));
+			m_viz->update_data(m_datatable->get_sample(get_time_delta()), true);
 			m_viz->render(true);
 		}
 	}
