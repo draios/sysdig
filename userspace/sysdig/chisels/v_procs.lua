@@ -23,7 +23,7 @@ view_info =
 	tips = {"This is a perfect view to start a drill down session. Click enter or double click on a process to dive into it and explore its behavior."},
 	tags = {"Default"},
 	view_type = "table",
-	filter = "evt.type!=switch",
+	filter = "evt.type=procinfo or evt.type=procinfo or evt.type=sysdigevent",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "fd.type"},
 	is_root = true,
 	drilldown_target = "threads",

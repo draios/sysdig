@@ -822,7 +822,6 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	//
 	if(next_res == SCAP_EOF)
 	{
-		ASSERT(!m_inspector->is_live());
 		m_parent->m_eof = 2;
 		m_ctext->jump_to_first_line();
 		m_ctext->ob_end();

@@ -76,15 +76,14 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_raw_output = raw_output;
 #ifndef NOCURSESUI
 	m_spybox_text_format = sinsp_evt::PF_NORMAL;
+	m_sidemenu = NULL;
+	m_spy_box = NULL;
+	m_search_caller_interface = NULL;
+	m_viewinfo_page = NULL;
+	m_mainhelp_page = NULL;
 
 	if(!m_raw_output)
 	{
-		m_sidemenu = NULL;
-		m_spy_box = NULL;
-		m_search_caller_interface = NULL;
-		m_viewinfo_page = NULL;
-		m_mainhelp_page = NULL;
-
 		//
 		// Colors initialization
 		//

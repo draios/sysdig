@@ -23,7 +23,7 @@ view_info =
 	tips = {"Apply this view to a process to get the list of threads for that process only. Similarly, apply it to a container to see the threads running inside it."},
 	tags = {"Default"},
 	view_type = "table",
-	filter = "evt.type!=switch",
+	filter = "evt.type=procinfo or evt.type=procinfo or evt.type=sysdigevent",
 	applies_to = {"", "proc.pid", "proc.name", "container.id", "fd.sport", "fd.name", "fd.directory", "evt.res"},
 	is_root = true,
 	drilldown_target = "files",
