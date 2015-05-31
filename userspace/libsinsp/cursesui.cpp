@@ -1487,7 +1487,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			closing = true;
 			curs_set(0);
 
-			if(m_is_filter_sysdig)
+			if(m_is_filter_sysdig && !m_output_searching)
 			{
 				if(*str != "")
 				{
@@ -1655,15 +1655,22 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 	if(closing)
 	{
+		sysdig_table_action res = STA_NONE;
+
+		if(m_is_filter_sysdig && !m_output_searching)
+		{
+			res = STA_SWITCH_VIEW;
+		}
+
 		m_search_nomatch = false;
 		m_output_filtering = false;
 		m_output_searching = false;
 		m_search_caller_interface = NULL;
 		render();
 
-		if(m_is_filter_sysdig)
+		if(res != STA_NONE)
 		{
-			return STA_SWITCH_VIEW;
+			return res;
 		}
 	}
 
