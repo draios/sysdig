@@ -47,6 +47,10 @@ You drill down by selecting an element in a view and then clicking _enter_. Once
 
 You can drill down multiple times, by keeping clicking _enter_. For example, you can click on a container in the _Containers_ view to get the processes running inside it, and then click on one of the processes to see its threads.
 
+CONTAINERS SUPPORT
+------------------
+Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include the columns with the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.
+
 INTERACTIVE COMMANDS  
 --------------------  
 

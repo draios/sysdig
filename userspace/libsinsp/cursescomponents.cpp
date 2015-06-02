@@ -1501,6 +1501,15 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 "You can drill down multiple times, by keeping clicking enter. For example, you can click on a container in the Containers view to get the processes running inside it, and then click on one of the processes to see its threads.\n"
 );
 
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("Containers Support\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(
+"Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include the columns with the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.\n\n"
+);
+
 	//
 	// Explore window keys
 	//

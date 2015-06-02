@@ -108,6 +108,14 @@ You can drill down multiple times, by keeping clicking \f[I]enter\f[].
 For example, you can click on a container in the \f[I]Containers\f[]
 view to get the processes running inside it, and then click on one of
 the processes to see its threads.
+.SS CONTAINER SUPPORT
+.PP
+Starting csysdig with the \-pc command line switch will cause many of
+the views to include additional container information.
+For example, the \f[I]Processes\f[] will include the columns with the
+container the process belongs to.
+Similarly, the \f[I]Connections\f[] view will show which container each
+connection belongs to.
 .SS INTERACTIVE COMMANDS
 .SS Views Window
 .PP
