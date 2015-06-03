@@ -1007,7 +1007,7 @@ void sinsp_cursesui::restart_capture(bool is_spy_switch)
 
 void sinsp_cursesui::create_complete_filter()
 {
-	if(m_is_filter_sysdig && m_manual_filter != "")
+	if(m_is_filter_sysdig)
 	{
 		m_complete_filter = m_manual_filter;
 	}
