@@ -35,9 +35,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "table.h"
-#include "cursescomponents.h"
-#include "cursestable.h"
-#include "cursesui.h"
 
 #ifdef HAS_CHISELS
 #define HAS_LUA_CHISELS
