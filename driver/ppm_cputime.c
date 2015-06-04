@@ -239,7 +239,11 @@ out:
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st)
 {
 	struct task_cputime cputime = {
+#ifdef CONFIG_SCHED_BFS
 		.sum_exec_runtime = tsk_seruntime(p),
+#else
+		.sum_exec_runtime = p->se.sum_exec_runtime,
+#endif
 	};
 
 	task_cputime(p, &cputime.utime, &cputime.stime);
