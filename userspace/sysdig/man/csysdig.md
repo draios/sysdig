@@ -184,7 +184,7 @@ FILES
 AUTHOR
 ------
 
-Draios Inc. (dba Sysdig) <info@sysdigcloud.com>
+Draios Inc. (dba Sysdig) <info@sysdig.com>
 
 SEE ALSO
 --------
