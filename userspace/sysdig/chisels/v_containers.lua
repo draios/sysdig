@@ -99,7 +99,7 @@ view_info =
 			name = "IMAGE",
 			field = "container.image",
 			description = "Container image name.",
-			colsize = 15
+			colsize = 25
 		},
 		{
 			name = "ID",
