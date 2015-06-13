@@ -1448,8 +1448,6 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 	switch(ch)
 	{
-		case '?':
-		case 'h':
 		case KEY_F(1):
 			m_mainhelp_page = new curses_mainhelp_page(this);
 			return STA_NONE;
