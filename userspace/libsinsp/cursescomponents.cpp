@@ -684,7 +684,7 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	}
 
 	//
-	// Get and validate the lenght
+	// Get and validate the length
 	//
 	sinsp_evt_param* parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
@@ -1497,7 +1497,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf(
-"You drill down by selecting an element in a view and then clicking enter. Once inside a selection, you can switch to a different view, and the new view will be applied in the context of the selection. For example, if you drill down into a process called foo and then switch to the Connections view, the output will include only the connections made or recieved by foo.\n\n"
+"You drill down by selecting an element in a view and then clicking enter. Once inside a selection, you can switch to a different view, and the new view will be applied in the context of the selection. For example, if you drill down into a process called foo and then switch to the Connections view, the output will include only the connections made or received by foo.\n\n"
 "You can drill down multiple times, by keeping clicking enter. For example, you can click on a container in the Containers view to get the processes running inside it, and then click on one of the processes to see its threads.\n\n"
 );
 
