@@ -373,7 +373,7 @@ class ctext
 		// application to this library seamlessly.
 		//
 		int8_t printf(const char*format, ...);
-		int8_t vprintf(const char*format, va_list ap = 0);
+		int8_t vprintf(const char*format, va_list ap);
 
 		//
 		// nprintf is identical to the printf above EXCEPT for
