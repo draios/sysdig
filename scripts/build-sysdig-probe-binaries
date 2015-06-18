@@ -144,6 +144,7 @@ coreos_build coreos-4.0.1 4.0.1 https://www.kernel.org/pub/linux/kernel/v4.x/lin
 coreos_build coreos-675.0.0 4.0.1 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.1.tar.xz https://transfer.sh/eNVfw/config-675.0.0-4.0.1
 coreos_build coreos-4.0.3 4.0.3 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.3.tar.xz https://transfer.sh/kapRQ/config
 # 681.0.0
+# 681.1.0
 # 695.0.0
 # 695.2.0
 coreos_build coreos-695.2.0 4.0.5 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.5.tar.xz https://transfer.sh/phdvv/config-695.2.0-4.0.5
