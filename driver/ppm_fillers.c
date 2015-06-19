@@ -660,6 +660,9 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_VM)
 		res |= PPM_CL_CLONE_VM;
 
+	if (flags & CLONE_NEWUSER)
+		res |= PPM_CL_CLONE_NEWUSER;
+
 	return res;
 }
 

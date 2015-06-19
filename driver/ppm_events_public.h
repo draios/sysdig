@@ -121,8 +121,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_CL_NAME_CHANGED (1 << 17)	/* libsinsp-specific flag. Set when the thread name changes */
 										/* (for example because execve was called) */
 #define PPM_CL_CLOSED (1 << 18)			/* thread has been closed. */
-#define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for 
+#define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for
 										   this thread. */
+#define PPM_CL_CLONE_NEWUSER (1 << 20)
 
 /*
  * Futex Operations
