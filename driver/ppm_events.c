@@ -1171,7 +1171,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 						ASSERT(bufsize >= retval);
 
 						/*
-						 * Copied all the data even if we haven't reached the 
+						 * Copied all the data even if we haven't reached the
 						 * end of the buffer.
 						 * Copy must stop here.
 						 */
