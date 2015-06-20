@@ -1192,8 +1192,7 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 		}
 	}
 
-	int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, &handle->m_driver_procinfo);
-
+	int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
 	if(ioctlres)
 	{
 		if(errno == ENOSPC)
@@ -1213,14 +1212,7 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 			return NULL;
 		}
 	}
-/*
-	for(j = 0; j < handle->m_driver_procinfo->n_entries; j++)
-	{
-		printf("pid:%ld utime:%ld stime:%ld\n", handle->m_driver_procinfo->entries[j].pid,
-			handle->m_driver_procinfo->entries[j].utime,
-			handle->m_driver_procinfo->entries[j].stime);
-	}
-*/
+
 	return handle->m_driver_procinfo;
 #endif	// HAS_CAPTURE
 }
