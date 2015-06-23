@@ -4225,7 +4225,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 		if(m_strval.back() == ',')
 		{
-			m_strval.pop_back();
+			m_strval = m_strval.substr(0, m_strval.size() - 1);
 		}
 
 		return (uint8_t*)m_strval.c_str();
