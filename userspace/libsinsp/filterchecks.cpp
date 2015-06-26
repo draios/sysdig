@@ -44,9 +44,13 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.ip", "matches the ip address (client or server) of the fd."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.cip", "client IP address."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.sip", "server IP address."},
+	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.lip", "local IP address."},
+	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.rip", "remote IP address."},
 	{PT_PORT, EPF_FILTER_ONLY, PF_DEC, "fd.port", "matches the port (either client or server) of the fd."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.cport", "for TCP/UDP FDs, the client port."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.sport", "for TCP/UDP FDs, server port."},
+	{PT_PORT, EPF_NONE, PF_DEC, "fd.lport", "for TCP/UDP FDs, the local port."},
+	{PT_PORT, EPF_NONE, PF_DEC, "fd.rport", "for TCP/UDP FDs, the remote port."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.l4proto", "the IP protocol of a socket. Can be 'tcp', 'udp', 'icmp' or 'raw'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_server", "'true' if the process owning this FD is the server endpoint in the connection."},
@@ -522,6 +526,50 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		break;
+	case TYPE_LIP:
+	case TYPE_RIP:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+			if(evt_type != SCAP_FD_IPV4_SOCK)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
+			{
+				if(m_field_id == TYPE_LIP)
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+				}
+				else
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+				}
+			}
+			else
+			{
+				if(m_field_id == TYPE_LIP)
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+				}
+				else
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+				}
+			}
+		}
+
+		break;
 	case TYPE_CLIENTPORT:
 		{
 			if(m_fdinfo == NULL)
@@ -585,6 +633,50 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 		}
+	case TYPE_LPORT:
+	case TYPE_RPORT:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+			if(evt_type != SCAP_FD_IPV4_SOCK)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
+			{
+				if(m_field_id == TYPE_LPORT)
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+				}
+				else
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+				}
+			}
+			else
+			{
+				if(m_field_id == TYPE_LPORT)
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+				}
+				else
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+				}
+			}
+		}
+
+		break;
 	case TYPE_L4PROTO:
 		{
 			if(m_fdinfo == NULL)
@@ -1768,7 +1860,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
 	{PT_CHARBUF, EPF_PRINT_ONLY, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
-	{PT_UINT32, EPF_NONE, PF_NA, "evt.type.is", "allows to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
+	{PT_UINT32, EPF_NONE, PF_NA, "evt.type.is", "allows one to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syscall.type", "For system call events, the name of the system call (e.g. 'open'). Unset for other events (e.g. switch or sysdig internal events). Use this field instead of evt.type if you need to make sure that the filtered/printed value is actually a system call."},
 	{PT_INT16, EPF_NONE, PF_ID, "evt.cpu", "number of the CPU where this event happened."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
@@ -1798,14 +1890,14 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT32, EPF_TABLE_ONLY, PF_DEC, "evt.count.threadinfo", "This filter field returns 1 for procinfo events, and can be used to count processes from inside views."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during syscalls like renameat and symlinkat. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.in", "the lenght of the binary data buffer, but only for input I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.out", "the lenght of the binary data buffer, but only for output I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file", "the lenght of the binary data buffer, but only for file I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.in", "the lenght of the binary data buffer, but only for input file I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the lenght of the binary data buffer, but only for output file I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the lenght of the binary data buffer, but only for network I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the lenght of the binary data buffer, but only for input network I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the lenght of the binary data buffer, but only for output network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.in", "the length of the binary data buffer, but only for input I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.out", "the length of the binary data buffer, but only for output I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file", "the length of the binary data buffer, but only for file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.in", "the length of the binary data buffer, but only for input file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the length of the binary data buffer, but only for output file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -3819,7 +3911,7 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 
 	if(m_cnt > 1)
 	{
-		val /= m_cnt;
+		val /= (int64_t)m_cnt;
 	}
 
 	if(m_print_format == PF_ID)
@@ -3831,7 +3923,7 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 	}
 	else
 	{
-		return format_bytes(val, str_len, true);
+		return format_bytes((double)val, str_len, true);
 	}
 
 }
@@ -3873,7 +3965,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 			val /= m_cnt;
 		}
 
-		return format_time(val, str_len);
+		return format_time((int64_t)val, str_len);
 	}
 	else if(m_field->m_type == PT_DOUBLE)
 	{
@@ -3930,6 +4022,218 @@ uint8_t* sinsp_filter_check_utils::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 
 	return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_fdlist implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_fdlist_fields[] =
+{
+	{PT_CHARBUF, EPF_NONE, PF_ID, "fdlist.nums", "for poll events, this is a comma-separated list of the FD numbers in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fdlist.names", "for poll events, this is a comma-separated list of the FD names in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fdlist.cips", "for poll events, this is a comma-separated list of the client IP addresses in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fdlist.sips", "for poll events, this is a comma-separated list of the server IP addresses in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "fdlist.cports", "for TCP/UDP FDs, for poll events, this is a comma-separated list of the client TCP/UDP ports in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "fdlist.sports", "for poll events, this is a comma-separated list of the server TCP/UDP ports in the 'fds' argument, returned as a string."},
+};
+
+sinsp_filter_check_fdlist::sinsp_filter_check_fdlist()
+{
+	m_info.m_name = "fdlist";
+	m_info.m_fields = sinsp_filter_check_fdlist_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_fdlist_fields) / sizeof(sinsp_filter_check_fdlist_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+}
+
+sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_fdlist();
+}
+
+int32_t sinsp_filter_check_fdlist::parse_field_name(const char* str, bool alloc_state)
+{
+	return sinsp_filter_check::parse_field_name(str, alloc_state);
+}
+
+uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	ASSERT(evt);
+	sinsp_evt_param *parinfo;
+
+	uint16_t etype = evt->get_type();
+
+	if(etype == PPME_SYSCALL_POLL_E)
+	{
+		parinfo = evt->get_param(0);
+	}
+	else if(etype == PPME_SYSCALL_POLL_X)
+	{
+		parinfo = evt->get_param(1);
+	}
+	else
+	{
+		return NULL;
+	}
+
+	uint32_t j = 0;
+	char* payload = parinfo->m_val;
+	uint16_t nfds = *(uint16_t *)payload;
+	uint32_t pos = 2;
+	uint32_t spos = 0;
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+	m_strval.clear();
+
+	for(j = 0; j < nfds; j++)
+	{
+		char tch;
+		bool add_comma = true;
+		int64_t fd = *(int64_t *)(payload + pos);
+
+		sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
+
+		switch(m_field_id)
+		{
+		case TYPE_FDNUMS:
+		{
+			m_strval += to_string(fd);
+		}
+		break;
+		case TYPE_FDNAMES:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_name != "")
+				{
+					m_strval += fdinfo->m_name;
+				}
+				else
+				{
+					m_strval += "<NA>";
+				}
+			}
+			else
+			{
+				m_strval += "<NA>";
+			}
+		}
+		break;
+		case TYPE_CLIENTIPS:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				{
+					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+				{
+					inet_ntop(AF_INET6, fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+			}
+
+			add_comma = false;
+		}
+		break;
+		case TYPE_SERVERIPS:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				{
+					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+				{
+					inet_ntop(AF_INET6, fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK)
+				{
+					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
+				{
+					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+			}
+
+			add_comma = false;
+		}
+		break;
+		case TYPE_CLIENTPORTS:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				{
+					m_strval += to_string(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+				{
+					m_strval += to_string(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+					break;
+				}
+			}
+
+			add_comma = false;
+		}
+		case TYPE_SERVERPORTS:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				{
+					m_strval += to_string(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+				{
+					m_strval += to_string(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+					break;
+				}
+			}
+
+			add_comma = false;
+		}
+		break;
+		default:
+			ASSERT(false);
+		}
+
+		if(j < nfds && add_comma)
+		{
+			m_strval += ",";
+		}
+
+		pos += 10;
+	}
+
+	if(m_strval.size() != 0)
+	{
+		if(m_strval.back() == ',')
+		{
+			m_strval = m_strval.substr(0, m_strval.size() - 1);
+		}
+
+		return (uint8_t*)m_strval.c_str();
+	}
+	else
+	{
+		return NULL;
+	}
 }
 
 #endif // HAS_FILTERING

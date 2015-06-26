@@ -69,7 +69,10 @@ public:
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
 		sinsp_table_field* rowkey,
-		uint32_t prev_sorting_col)
+		uint32_t prev_sorting_col,
+		string prev_manual_filter,
+		bool prev_is_filter_sysdig,
+		bool prev_is_sorting_ascending)
 	{
 		m_field = field;
 		m_val = val;
@@ -77,6 +80,9 @@ public:
 		m_prev_selected_view = prev_selected_view;
 		m_prev_selected_sidemenu_entry = prev_selected_sidemenu_entry;
 		m_prev_sorting_col = prev_sorting_col;
+		m_prev_manual_filter = prev_manual_filter;
+		m_prev_is_filter_sysdig = prev_is_filter_sysdig;
+		m_prev_is_sorting_ascending = prev_is_sorting_ascending;
 
 		m_rowkey = *rowkey;
 	}
@@ -87,7 +93,10 @@ public:
 	uint32_t m_prev_selected_view;
 	uint32_t m_prev_selected_sidemenu_entry;
 	uint32_t m_prev_sorting_col;
+	string m_prev_manual_filter;
+	bool m_prev_is_filter_sysdig;
 	sinsp_table_field m_rowkey;
+	bool m_prev_is_sorting_ascending;
 };
 
 class sinsp_ui_selection_hierarchy
@@ -99,7 +108,10 @@ public:
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
 		sinsp_table_field* rowkey,
-		uint32_t prev_sorting_col)
+		uint32_t prev_sorting_col,
+		string prev_manual_filter,
+		bool prev_is_filter_sysdig,
+		bool prev_is_sorting_ascending)
 	{
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
 			val,
@@ -107,7 +119,10 @@ public:
 			prev_selected_view, 
 			prev_selected_sidemenu_entry,
 			rowkey,
-			prev_sorting_col));
+			prev_sorting_col,
+			prev_manual_filter,
+			prev_is_filter_sysdig,
+			prev_is_sorting_ascending));
 	}
 
 	~sinsp_ui_selection_hierarchy()
@@ -416,7 +431,10 @@ public:
 				case STA_DRILLDOWN:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						drilldown(res.first->m_name, res.second.c_str());
+						if(res.first != NULL)
+						{
+							drilldown(res.first->m_name, res.second.c_str());
+						}
 					}
 					return false;
 				case STA_DRILLUP:
@@ -425,13 +443,19 @@ public:
 				case STA_SPY:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						spy_selection(res.first->m_name, res.second.c_str(), false);
+						if(res.first != NULL)
+						{
+							spy_selection(res.first->m_name, res.second.c_str(), false);
+						}
 					}
 					return false;
 				case STA_DIG:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						spy_selection(res.first->m_name, res.second.c_str(), true);
+						if(res.first != NULL)
+						{
+							spy_selection(res.first->m_name, res.second.c_str(), true);
+						}
 					}
 					return false;
 				case STA_NONE:
@@ -530,6 +554,7 @@ public:
 	int m_colors[LAST_COLORELEMENT];
 	sinsp_view_manager m_views;
 	int32_t m_selected_view;
+	int32_t m_prev_selected_view;
 	uint32_t m_selected_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 	curses_table* m_viz;
@@ -544,6 +569,7 @@ public:
 	curses_viewinfo_page* m_viewinfo_page;
 	curses_mainhelp_page* m_mainhelp_page;
 	curses_textbox* m_spy_box;
+	sinsp_evt::param_fmt m_spybox_text_format;
 #endif
 
 private:

@@ -21,7 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 #include <string>
 #include <vector>
-#include <ncurses.h>
+#include <curses.h>
 #include <stdint.h>
 
 #ifndef __83a9222a_c8b9_4f36_9721_5dfbaccb28d0_CTEXT
@@ -373,7 +373,7 @@ class ctext
 		// application to this library seamlessly.
 		//
 		int8_t printf(const char*format, ...);
-		int8_t vprintf(const char*format, va_list ap = 0);
+		int8_t vprintf(const char*format, va_list ap);
 
 		//
 		// nprintf is identical to the printf above EXCEPT for

@@ -63,7 +63,7 @@ Filter expressions can use one of these comparison operators: _=_, _!=_, _<_, _<
 > $ sysdig "evt.type in ( 'select', 'poll' )"
 > $ sysdig proc.name exists
 
-Multiple checks can be combined through brakets and the following boolean operators: _and_, _or_, _not_. e.g.
+Multiple checks can be combined through brackets and the following boolean operators: _and_, _or_, _not_. e.g.
 > $ sysdig "not (fd.name contains /proc or fd.name contains /dev)"
 
 **Chisels**  

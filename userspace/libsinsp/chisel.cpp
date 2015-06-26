@@ -35,9 +35,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "table.h"
-#include "cursescomponents.h"
-#include "cursestable.h"
-#include "cursesui.h"
 
 #ifdef HAS_CHISELS
 #define HAS_LUA_CHISELS
@@ -1312,6 +1309,7 @@ void sinsp_chisel::on_init()
 void sinsp_chisel::first_event_inits(sinsp_evt* evt)
 {
 	uint64_t ts = evt->get_ts();
+
 	if(m_lua_cinfo->m_callback_interval != 0)
 	{
 		m_lua_last_interval_sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
@@ -1326,6 +1324,12 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 	string line;
 
 	ASSERT(m_ls);
+
+	//
+	// Make the event available to the API
+	//
+	lua_pushlightuserdata(m_ls, evt);
+	lua_setglobal(m_ls, "sievt");
 
 	//
 	// If this is the first event, put the event pointer on the stack.
@@ -1351,9 +1355,6 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 			return false;
 		}
 	}
-
-	lua_pushlightuserdata(m_ls, evt);
-	lua_setglobal(m_ls, "sievt");
 
 	//
 	// If the script has the on_event callback, call it

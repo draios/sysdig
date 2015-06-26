@@ -228,6 +228,34 @@ else()
 	endif()
 endif()
 
+#
+# ncurses, keep it simple for the moment
+#
+if(NOT WIN32)
+	option(USE_BUNDLED_NCURSES "Enable building of the bundled ncurses" ON)
+	
+	if(USE_BUNDLED_NCURSES)
+		set(CURSES_BUNDLE_DIR "${PROJECT_BINARY_DIR}/ncurses-prefix/src/ncurses")
+		set(CURSES_INCLUDE_DIR "${CURSES_BUNDLE_DIR}/include/")
+		set(CURSES_LIBRARIES "${CURSES_BUNDLE_DIR}/lib/libncurses.a")
+
+		message(STATUS "Using bundled ncurses in '${CURSES_BUNDLE_DIR}'")
+
+		ExternalProject_Add(ncurses
+			URL "http://download.draios.com/dependencies/ncurses-5.9.tar.gz"
+			URL_MD5 "8cb9c412e5f2d96bc6f459aa8c6282a1"
+			CONFIGURE_COMMAND ./configure --without-cxx --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests --with-terminfo-dirs=/etc/terminfo:/lib/terminfo:/usr/share/terminfo
+			BUILD_COMMAND ${CMD_MAKE}
+			BUILD_IN_SOURCE 1
+			INSTALL_COMMAND "")
+
+	else()
+		set(CURSES_NEED_NCURSES TRUE)
+		find_package(Curses REQUIRED)
+		message(STATUS "Found ncurses: include: ${CURSES_INCLUDE_DIR}, lib: ${CURSES_LIBRARIES}")
+	endif()
+endif()
+
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
@@ -243,14 +271,14 @@ set(CPACK_STRIP_FILES "ON")
 
 set(CPACK_GENERATOR DEB RPM TGZ)
 
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Draios Inc. <support@draios.com>")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Sysdig <support@sysdig.com>")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
-set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "http://www.draios.com")
+set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "http://www.sysdig.org")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "dkms (>= 2.1.0.0)")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/scripts/debian/postinst;${CMAKE_BINARY_DIR}/scripts/debian/prerm")
 
 set(CPACK_RPM_PACKAGE_LICENSE "GPLv2")
-set(CPACK_RPM_PACKAGE_URL "http://www.draios.com")
+set(CPACK_RPM_PACKAGE_URL "http://www.sysdig.org")
 set(CPACK_RPM_PACKAGE_REQUIRES "dkms, gcc, make, kernel-devel, perl")
 set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/scripts/rpm/postinstall")
 set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/scripts/rpm/preuninstall")

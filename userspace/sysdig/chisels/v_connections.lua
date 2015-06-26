@@ -23,7 +23,7 @@ view_info =
 	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation."},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport,evt.res"},
+	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.dport", "fd.port", "fd.lport", "fd.rport", "evt.res"},
 	filter = "fd.type=ipv4 or fd.type=ipv6 and fd.name!=''",
 	use_defaults = true,
 	drilldown_target = "incoming_connections",
@@ -48,27 +48,27 @@ view_info =
 			colsize = 8,
 		},
 		{
-			name = "CIP",
-			description = "Client IP Address.",
-			field = "fd.cip",
+			name = "LIP",
+			description = "Local IP Address.",
+			field = "fd.lip",
 			colsize = 17,
 		},
 		{
-			name = "CPORT",
-			description = "Client Port.",
-			field = "fd.cport",
+			name = "LPORT",
+			description = "Local Port.",
+			field = "fd.lport",
 			colsize = 8,
 		},
 		{
-			name = "SIP",
-			description = "Server IP Address.",
-			field = "fd.sip",
+			name = "RIP",
+			description = "Remote IP Address.",
+			field = "fd.rip",
 			colsize = 17,
 		},
 		{
-			name = "SPORT",
-			description = "Server Port.",
-			field = "fd.sport",
+			name = "RPORT",
+			description = "Remote Port.",
+			field = "fd.rport",
 			colsize = 8,
 		},
 		{
@@ -104,7 +104,8 @@ view_info =
 			name = "Command",
 			description = "The full command line of the process owning the connection's socket.",
 			field = "proc.exeline",
-			colsize = 200
+			aggregation = "MAX",
+			colsize = 0
 		}
 	}
 }

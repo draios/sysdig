@@ -58,6 +58,7 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_syslog());
 	add_filter_check(new sinsp_filter_check_container());
 	add_filter_check(new sinsp_filter_check_utils());
+	add_filter_check(new sinsp_filter_check_fdlist());
 }
 
 sinsp_filter_check_list::~sinsp_filter_check_list()
@@ -1293,7 +1294,9 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand, bool in_cl
 				escape_state = PES_NUMBER;
 				break;
 			default:
-				escape_state = PES_ERROR;
+				escape_state = PES_NORMAL;
+				res.push_back('\\');
+				res.push_back(curchar);
 				break;
 			}
 			break;

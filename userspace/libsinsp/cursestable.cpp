@@ -121,7 +121,7 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 	// Create the table window
 	//
 	refresh();
-	m_tblwin = newwin(m_h, 500, m_table_y_start, 0);
+	m_tblwin = newwin(m_h, m_w, m_table_y_start, 0);
 }
 
 curses_table::~curses_table()
@@ -215,11 +215,11 @@ void curses_table::update_rowkey(int32_t row)
 	}
 }
 
-void curses_table::update_data(vector<sinsp_sample_row>* data)
+void curses_table::update_data(vector<sinsp_sample_row>* data, bool force_selection_change)
 {
 	m_data = data;
 
-	if(m_selection_changed && (m_last_key.m_isvalid || m_drilled_up))
+	if(m_selection_changed && (m_last_key.m_isvalid || m_drilled_up || force_selection_change))
 	{
 		int32_t selct = m_table->get_row_from_key(&m_last_key);
 		if(selct == -1)
@@ -291,6 +291,7 @@ void curses_table::render(bool data_changed)
 	//
 	// Clear the screen
 	//
+/*	
 	for(j = 1; j < m_h; j++)
 	{
 		wmove(m_tblwin, j, 0);
@@ -299,7 +300,7 @@ void curses_table::render(bool data_changed)
 			waddch(m_tblwin, ' ');
 		}
 	}
-
+*/
 	if(m_data == NULL)
 	{
 		print_wait();
@@ -464,11 +465,21 @@ void curses_table::render(bool data_changed)
 					m_legend[j].m_info.m_print_format);
 
 				uint32_t size = m_legend[j].m_size - 1;
+				
+				//
+				// size=0 means "use the whole available space"
+				//
+				if(size == 0)
+				{
+					size = m_w - k - 1;
+				}
+
 				mvwaddnstr(m_tblwin,
 					l + 1,
 					k,
 					m_converter->tostring_nice(NULL, size, td),
 					size);
+
 				k += m_legend[j].m_size;
 			}
 		}

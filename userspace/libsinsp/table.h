@@ -271,6 +271,14 @@ public:
 	{
 		return m_do_merging;
 	}
+	bool is_sorting_ascending()
+	{
+		return m_is_sorting_ascending;
+	}
+	void set_is_sorting_ascending(bool is_sorting_ascending)
+	{
+		m_is_sorting_ascending = is_sorting_ascending;
+	}
 
 	uint64_t m_next_flush_time_ns;
 

@@ -22,7 +22,7 @@ view_info =
 	description = "List every newly established network connection.",
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "fd.name", "fd.containername", "fd.sport"},
+	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "fd.name", "fd.containername", "fd.sport", "fd.dport", "fd.port", "fd.lport", "fd.rport"},
 	filter = "evt.type=accept and evt.dir=< and evt.failed=false",
 	columns = 
 	{
@@ -48,8 +48,9 @@ view_info =
 		{
 			name = "Command",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			description = "Name and argyuments of the process that received the connection.",
-			colsize = 200,
+			colsize = 0
 		}		
 	}
 }

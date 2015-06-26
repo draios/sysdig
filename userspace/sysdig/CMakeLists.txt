@@ -1,4 +1,9 @@
 include_directories("${JSONCPP_INCLUDE}")
+
+if(NOT WIN32)
+	include_directories("${CURSES_INCLUDE_DIR}")
+endif()
+
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libscap")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libsinsp")
@@ -33,10 +38,13 @@ if(NOT WIN32)
 	target_link_libraries(sysdig
 		sinsp)
 
+	if(USE_BUNDLED_NCURSES)
+		add_dependencies(csysdig ncurses)
+	endif()
+
 	target_link_libraries(csysdig
 		sinsp
-		ncurses
-		tinfo)
+		"${CURSES_LIBRARIES}")
 
 	add_subdirectory(man)
 
@@ -91,4 +99,4 @@ else()
 
 endif()
 
-configure_file(config.h.in config.h)
+configure_file(config_sysdig.h.in config_sysdig.h)

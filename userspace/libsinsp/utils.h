@@ -164,18 +164,3 @@ public:
 	static bool tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res);
 	static bool tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res);
 };
-
-/*
-template<typename It>
-string sinsp_join(It begin, It end, char delim)
-{
-	std::stringstream ss;
-	ss << *begin;
-	++begin;
-	for(auto it = begin; it < end; ++it)
-	{
-		ss << delim << *it;
-	}
-	return ss.str();
-}
-*/

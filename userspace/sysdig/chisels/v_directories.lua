@@ -87,7 +87,7 @@ view_info =
 			name = "DIRNAME",
 			description = "The full directory path name.",
 			field = "fd.directory",
-			colsize = 200
+			colsize = 0
 		}
 	}
 }

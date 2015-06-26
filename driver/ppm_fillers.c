@@ -123,6 +123,7 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
+static int f_sys_setns_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -329,6 +330,12 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SIGNALDELIVER_E] = {f_sys_signaldeliver_e},
 	[PPME_SIGNALDELIVER_X] = {f_sys_empty},
 #endif
+	[PPME_SYSCALL_GETDENTS_E] = {f_sys_single},
+	[PPME_SYSCALL_GETDENTS_X] = {f_sys_single_x},
+	[PPME_SYSCALL_GETDENTS64_E] = {f_sys_single},
+	[PPME_SYSCALL_GETDENTS64_X] = {f_sys_single_x},
+	[PPME_SYSCALL_SETNS_E] = {f_sys_setns_e},
+	[PPME_SYSCALL_SETNS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 };
 
 /*
@@ -652,6 +659,9 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 
 	if (flags & CLONE_VM)
 		res |= PPM_CL_CLONE_VM;
+
+	if (flags & CLONE_NEWUSER)
+		res |= PPM_CL_CLONE_NEWUSER;
 
 	return res;
 }
@@ -3173,9 +3183,7 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	steal = cputime64_to_clock_t(kcpustat_this_cpu->cpustat[CPUTIME_STEAL]);
 	res = val_to_ring(args, steal, 0, false);
 	if(unlikely(res != PPM_SUCCESS))
-	{
 		return res;
-	}
 #endif
 
 	return add_sentinel(args);
@@ -4293,6 +4301,32 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = val_to_ring(args, uid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_setns_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	u32 flags;
+
+	/*
+	 * parse fd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * get type, parse as clone flags as it's a subset of it
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	flags = clone_flags_to_scap(val);
+	res = val_to_ring(args, flags, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

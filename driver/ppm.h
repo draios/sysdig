@@ -91,6 +91,7 @@ struct ppm_consumer_t {
 	volatile int need_to_insert_drop_e;
 	volatile int need_to_insert_drop_x;
 	struct list_head node;
+	struct ppm_proclist_info* proclist_info;
 };
 
 #define STR_STORAGE_SIZE PAGE_SIZE
@@ -121,3 +122,4 @@ extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 
 #define PPM_PORT_MYSQL 3306
 #define PPM_PORT_POSTGRES 5432
+#define PPM_PORT_STATSD 8125

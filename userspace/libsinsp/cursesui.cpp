@@ -50,6 +50,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_inspector = inspector;
 	m_event_source_name = event_source_name;
 	m_selected_view = 0;
+	m_prev_selected_view = 0;
 	m_selected_sidemenu_entry = 0;
 	m_datatable = NULL;
 	m_viz = NULL;
@@ -74,14 +75,15 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_print_containers = print_containers;
 	m_raw_output = raw_output;
 #ifndef NOCURSESUI
+	m_spybox_text_format = sinsp_evt::PF_NORMAL;
+	m_sidemenu = NULL;
+	m_spy_box = NULL;
+	m_search_caller_interface = NULL;
+	m_viewinfo_page = NULL;
+	m_mainhelp_page = NULL;
+
 	if(!m_raw_output)
 	{
-		m_sidemenu = NULL;
-		m_spy_box = NULL;
-		m_search_caller_interface = NULL;
-		m_viewinfo_page = NULL;
-		m_mainhelp_page = NULL;
-
 		//
 		// Colors initialization
 		//
@@ -379,13 +381,15 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		}
 	}
 #endif
+
+	m_prev_selected_view = m_selected_view;
 }
 
 #ifndef NOCURSESUI
 void sinsp_cursesui::render_header()
 {
 	uint32_t j = 0;
-	uint32_t k;
+	uint32_t k = 0;
 
 	//
 	// Show the 'viewing' line
@@ -398,6 +402,7 @@ void sinsp_cursesui::render_header()
 	}
 
 	mvaddstr(0, 0, "Viewing:");
+	k += sizeof("Viewing: ") - 1;
  
 	attrset(m_colors[sinsp_cursesui::PROCESS]);
 
@@ -425,9 +430,18 @@ void sinsp_cursesui::render_header()
 		}
 	}
 
+	mvaddstr(0, k, vs.c_str());
+
+	k+= vs.size() + 1;
+
+	attrset(m_colors[HELP_BOLD]);
+	mvaddstr(0, k, "For: ");
+	k += sizeof("For: ") - 1;
+
+	attrset(m_colors[sinsp_cursesui::PROCESS]);
 	if(m_sel_hierarchy.size() != 0)
 	{
-		vs += " for ";
+		vs = "";
 
 		for(j = 0; j < m_sel_hierarchy.size(); j++)
 		{
@@ -441,8 +455,12 @@ void sinsp_cursesui::render_header()
 			}
 		}
 	}
+	else
+	{
+		vs = "whole machine";
+	}
 
-	mvaddstr(0, sizeof("Viewing: ") - 1, vs.c_str());
+	mvaddstr(0, k, vs.c_str());
 
 	if(m_paused)
 	{
@@ -720,8 +738,14 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 	}
 	else
 	{
-		ASSERT(m_search_header_text != "");
-		fks = m_search_header_text + ": ";
+		if(m_search_header_text == "")
+		{
+			fks = "Text to match: ";
+		}
+		else
+		{
+			fks = m_search_header_text + ": ";
+		}
 	}
 	mvaddnstr(m_screenh - 1, k, fks.c_str(), 20);
 	k += fks.size();
@@ -983,7 +1007,7 @@ void sinsp_cursesui::restart_capture(bool is_spy_switch)
 
 void sinsp_cursesui::create_complete_filter()
 {
-	if(m_is_filter_sysdig && m_manual_filter != "")
+	if(m_is_filter_sysdig)
 	{
 		m_complete_filter = m_manual_filter;
 	}
@@ -1035,6 +1059,16 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 		}
 	}
 #endif
+
+	//
+	// Clear the manual filter, but not if this is a sysdig filter and we're in the same
+	// view (applying sysdig filters causes the same view to the reloaded, and in that
+	// case we want to preserve the filter).
+	//
+	if(m_prev_selected_view != m_selected_view)
+	{
+		m_manual_filter = "";
+	}
 
 	//
 	// If this is a file, we need to restart the capture.
@@ -1109,7 +1143,8 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 
 	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
 		m_selected_view, m_selected_sidemenu_entry, 
-		&rowkeybak, srtcol);
+		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
+		m_datatable->is_sorting_ascending());
 
 	if(is_dig)
 	{
@@ -1175,8 +1210,15 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 
 	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
 		m_selected_view, m_selected_sidemenu_entry, 
-		&rowkeybak, srtcol);
+		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig,
+		m_datatable->is_sorting_ascending());
+
 	m_selected_view = new_view_num;
+
+	//
+	// Reset the filter
+	//
+	m_manual_filter = "";
 
 	if(!m_inspector->is_live())
 	{
@@ -1203,8 +1245,6 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	m_viz->render(true);
 	render();
 #endif
-
-	m_manual_filter = "";
 
 	return true;
 }
@@ -1268,9 +1308,16 @@ bool sinsp_cursesui::drillup()
 
 		m_selected_view = sinfo->m_prev_selected_view;
 		m_selected_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
+		m_manual_filter = sinfo->m_prev_manual_filter;
+		m_is_filter_sysdig = sinfo->m_prev_is_filter_sysdig;
+		bool is_sorting_ascending = sinfo->m_prev_is_sorting_ascending;
+
+
 		ASSERT(m_selected_view < (int32_t)m_views.size());
+
 		m_sel_hierarchy.pop_back();
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
+
 
 		if(!m_inspector->is_live())
 		{
@@ -1310,6 +1357,16 @@ bool sinsp_cursesui::drillup()
 		if(sinfo->m_prev_sorting_col != m_views.at(m_selected_view)->m_sortingcol)
 		{
 			m_datatable->set_sorting_col(sinfo->m_prev_sorting_col);
+		}
+
+		m_datatable->set_is_sorting_ascending(is_sorting_ascending);
+
+		//
+		// If filtering is different from the default one, apply it
+		//
+		if(m_manual_filter != "" && !m_is_filter_sysdig)
+		{
+			m_datatable->set_freetext_filter(m_manual_filter);
 		}
 
 		clear();
@@ -1430,7 +1487,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			closing = true;
 			curs_set(0);
 
-			if(m_is_filter_sysdig)
+			if(m_is_filter_sysdig && !m_output_searching)
 			{
 				if(*str != "")
 				{
@@ -1464,7 +1521,6 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 						attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
 						move(cy, cx);
 						curs_set(1);
-//						*str = "";
 						closing = false;
 						break;
 					}
@@ -1549,7 +1605,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			//
 			// Refresh the data and the visualization
 			//
-			m_viz->update_data(m_datatable->get_sample(get_time_delta()));
+			m_viz->update_data(m_datatable->get_sample(get_time_delta()), true);
 			m_viz->render(true);
 		}
 	}
@@ -1599,15 +1655,22 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 	if(closing)
 	{
+		sysdig_table_action res = STA_NONE;
+
+		if(m_is_filter_sysdig && !m_output_searching)
+		{
+			res = STA_SWITCH_VIEW;
+		}
+
 		m_search_nomatch = false;
 		m_output_filtering = false;
 		m_output_searching = false;
 		m_search_caller_interface = NULL;
 		render();
 
-		if(m_is_filter_sysdig)
+		if(res != STA_NONE)
 		{
-			return STA_SWITCH_VIEW;
+			return res;
 		}
 	}
 
@@ -1693,6 +1756,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		ASSERT(m_output_filtering == false);
 		ASSERT(m_output_searching == false);
 		sysdig_table_action actn = m_spy_box->handle_input(ch);
+
 		if(actn != STA_PARENT_HANDLE)
 		{
 			return actn;
