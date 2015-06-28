@@ -50,18 +50,13 @@ end
 
 transactions = {}
 
-HTTP_METHODS = { "GET", "POST", "PUT", "DELETE", "HEAD" }
-
 function parse_request(req_buffer)
-    for _, method in ipairs(HTTP_METHODS) do
-        method_found = string.find(req_buffer, "^" .. method)
-        if method_found then
-            url = string.match(req_buffer, "%g+", string.len(method)+1)
-            return {
-                method=method,
-                url=url
-            }
-        end
+    method, url = string.match(req_buffer, "^(%u+) (%g+)")
+    if method and url then
+        return {
+            method=method,
+            url=url
+        }
     end
     return nil
 end
@@ -81,7 +76,7 @@ function on_event()
     if not buf then
         return
     end
-    
+
     fd = evt.field(fd_field)
     pid = evt.field(pid_field)
     key = tostring(pid) + tostring(fd)
