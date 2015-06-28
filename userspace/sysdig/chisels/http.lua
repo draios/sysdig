@@ -38,7 +38,7 @@ function on_init()
     -- The -pc or -pcontainer options was supplied on the cmd line
     print_container = sysdig.is_print_container_data()
 
-    chisel.set_filter("evt.is_io = true and fd.type = ipv4")
+    chisel.set_filter("evt.is_io = true and evt.buflen.net > 0 and fd.type = ipv4")
     buffer_field = chisel.request_field("evt.buffer")
     fd_field = chisel.request_field("fd.num")
     pid_field = chisel.request_field("proc.pid")
@@ -72,11 +72,6 @@ end
 
 function on_event()
     buf = evt.field(buffer_field)
-
-    if not buf then
-        return
-    end
-
     fd = evt.field(fd_field)
     pid = evt.field(pid_field)
     key = tostring(pid) + tostring(fd)
