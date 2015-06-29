@@ -35,7 +35,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel_api.h"
 #include "filter.h"
 #include "filterchecks.h"
-#include "statsite_proxy.h"
 #include "analyzer.h"
 
 #ifdef HAS_CHISELS
