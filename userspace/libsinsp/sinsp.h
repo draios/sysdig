@@ -109,6 +109,16 @@ class sinsp_protodecoder;
 vector<string> sinsp_split(const string &s, char delim);
 
 /*!
+  \brief Information about a chisel
+*/
+class sinsp_chisel_details
+{
+public:
+	string m_name;
+	vector<pair<string, string>> m_args;
+};
+
+/*!
   \brief Information about a group of filter/formatting fields.
 */
 class filter_check_info

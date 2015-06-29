@@ -77,7 +77,6 @@ public:
 	sinsp_view_info m_viewinfo;
 };
 
-
 class chiselinfo
 {
 public:
