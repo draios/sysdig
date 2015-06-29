@@ -35,7 +35,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel_api.h"
 #include "filter.h"
 #include "filterchecks.h"
+#ifdef HAS_ANALYZER
 #include "analyzer.h"
+#endif
 
 #ifdef HAS_CHISELS
 #define HAS_LUA_CHISELS
@@ -1207,6 +1209,7 @@ int lua_cbacks::exec(lua_State *ls)
 	return 0;
 }
 
+#ifdef HAS_ANALYZER
 int lua_cbacks::push_metric(lua_State *ls) 
 {
 	statsd_metric metric;
@@ -1278,5 +1281,6 @@ int lua_cbacks::push_metric(lua_State *ls)
 	return 0;
 }
 
+#endif // HAS_ANALYZER
 #endif // HAS_LUA_CHISELS
 #endif // HAS_CHISELS
