@@ -94,7 +94,7 @@ if [ -f ~/.sysdig/$SYSDIG_PROBE_FILENAME ]; then
 	exit $?
 fi
 
-URL="https://s3.amazonaws.com/download.draios.com/$SYSDIG_REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME"
+URL="https://download.sysdig.com/$SYSDIG_REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME"
 
 echo "* Trying to download precompiled module from $URL"
 if curl --create-dirs -f -s -o ~/.sysdig/$SYSDIG_PROBE_FILENAME $URL; then

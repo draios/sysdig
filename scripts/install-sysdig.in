@@ -36,9 +36,9 @@ function install_rpm {
 	fi
 
 	echo "* Installing Draios public key"
-	rpm --quiet --import https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public
+	rpm --quiet --import https://download.sysdig.com/DRAIOS-GPG-KEY.public
 	echo "* Installing Draios repository"
-	curl -s -o /etc/yum.repos.d/draios.repo http://download.draios.com/_REPOSITORY_NAME_/rpm/draios.repo
+	curl -s -o /etc/yum.repos.d/draios.repo https://download.sysdig.com/_REPOSITORY_NAME_/rpm/draios.repo
 	echo "* Installing kernel headers"
 	KERNEL_VERSION=$(uname -r)
 	if [[ $KERNEL_VERSION == *PAE* ]]; then
@@ -62,9 +62,9 @@ function install_deb {
 	fi
 
 	echo "* Installing Draios public key"
-	curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
+	curl -s https://download.sysdig.com/DRAIOS-GPG-KEY.public | apt-key add -
 	echo "* Installing Draios repository"
-	curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/_REPOSITORY_NAME_/deb/draios.list
+	curl -s -o /etc/apt/sources.list.d/draios.list https://download.sysdig.com/_REPOSITORY_NAME_/deb/draios.list
 	apt-get -qq update < /dev/null
 	echo "* Installing kernel headers"
 	apt-get -qq -y install linux-headers-$(uname -r) < /dev/null || kernel_warning

@@ -123,7 +123,7 @@ else()
 	if(NOT WIN32)
 		set(LUAJIT_LIB "${LUAJIT_SRC}/libluajit.a")
 		ExternalProject_Add(luajit
-			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
+			URL "https://download.sysdig.com/dependencies/LuaJIT-2.0.3.tar.gz"
 			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE}
@@ -132,7 +132,7 @@ else()
 	else()
 		set(LUAJIT_LIB "${LUAJIT_SRC}/lua51.lib")
 		ExternalProject_Add(luajit
-			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
+			URL "https://download.sysdig.com/dependencies/LuaJIT-2.0.3.tar.gz"
 			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND msvcbuild.bat
@@ -210,7 +210,7 @@ else()
 	if(NOT WIN32)
 		set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
 		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
+			URL "https://download.sysdig.com/dependencies/zlib-1.2.8.tar.gz"
 			URL_MD5 "44d667c142d7cda120332623eab69f40"
 			CONFIGURE_COMMAND "./configure"
 			BUILD_COMMAND ${CMD_MAKE}
@@ -219,7 +219,7 @@ else()
 	else()
 		set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
 		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
+			URL "https://download.sysdig.com/dependencies/zlib-1.2.8.tar.gz"
 			URL_MD5 "44d667c142d7cda120332623eab69f40"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND nmake -f win32/Makefile.msc
@@ -242,7 +242,7 @@ if(NOT WIN32)
 		message(STATUS "Using bundled ncurses in '${CURSES_BUNDLE_DIR}'")
 
 		ExternalProject_Add(ncurses
-			URL "http://download.draios.com/dependencies/ncurses-5.9.tar.gz"
+			URL "https://download.sysdig.com/dependencies/ncurses-5.9.tar.gz"
 			URL_MD5 "8cb9c412e5f2d96bc6f459aa8c6282a1"
 			CONFIGURE_COMMAND ./configure --without-cxx --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests --with-terminfo-dirs=/etc/terminfo:/lib/terminfo:/usr/share/terminfo
 			BUILD_COMMAND ${CMD_MAKE}

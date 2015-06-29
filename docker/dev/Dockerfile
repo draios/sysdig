@@ -10,7 +10,7 @@ ENV HOME /root
 
 RUN cp /etc/skel/.bashrc /root && cp /etc/skel/.profile /root
 
-ADD http://download.draios.com/apt-draios-priority /etc/apt/preferences.d/
+ADD https://download.sysdig.com/apt-draios-priority /etc/apt/preferences.d/
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -20,8 +20,8 @@ RUN apt-get update \
 	gcc \
 	gcc-4.8
 
-RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add - \
- && curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/$SYSDIG_REPOSITORY/deb/draios.list \
+RUN curl -s https://download.sysdig.com/DRAIOS-GPG-KEY.public | apt-key add - \
+ && curl -s -o /etc/apt/sources.list.d/draios.list https://download.sysdig.com/$SYSDIG_REPOSITORY/deb/draios.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends sysdig \
  && apt-get clean \
