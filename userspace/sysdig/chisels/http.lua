@@ -23,8 +23,19 @@ category = "Net";
 -- Chisel argument list
 args = {}
 
--- The number of items to show
-TOP_NUMBER = 30
+require "common"
+terminal = require "ansiterminal"
+
+vizinfo =
+{
+    key_fld = {"url","method"},
+    key_desc = {"url", "method"},
+    value_fld = "ncalls",
+    value_desc = "time",
+    value_units = "time",
+    top_number = 30,
+    output_format = "normal"
+}
 
 -- Argument notification callback
 function on_set_arg(name, val)
@@ -44,11 +55,19 @@ function on_init()
     pid_field = chisel.request_field("proc.pid")
     rawtime_field = chisel.request_field("evt.rawtime")
     buflen_field = chisel.request_field("evt.buflen.net")
-    sysdig.set_snaplen(3000)
+    if print_container then
+        container_field = chisel.request_field("container.name")
+        vizinfo["key_fld"][3] = "container"
+        vizinfo["key_desc"][3] = "container"
+    end
+
+    sysdig.set_snaplen(1024)
     return true
 end
 
-transactions = {}
+islive = false
+grtable = {}
+partial_transactions = {}
 
 function parse_request(req_buffer)
     method, url = string.match(req_buffer, "^(%u+) (%g+)")
@@ -70,34 +89,98 @@ function parse_response(resp_buffer)
     end
 end
 
+function build_grtable_key(transaction)
+    request = transaction["request"]
+    ret = string.format("%s\001\001%s", request["url"], request["method"])
+    if print_container then
+        ret = ret .. "\001\001" .. transaction["container"]
+    end
+    return ret
+end
+
 function on_event()
     buf = evt.field(buffer_field)
     fd = evt.field(fd_field)
     pid = evt.field(pid_field)
-    key = tostring(pid) + tostring(fd)
+    key = string.format("%d\001\001%d", pid, fd)
+
     timestamp = evt.field(rawtime_field)
     buflen = evt.field(buflen_field)
-    transaction = transactions[key]
+    transaction = partial_transactions[key]
     if not transaction then
         request = parse_request(buf)
         if request then
-            transactions[key] = {
+            partial_transactions[key] = {
                 ts= timestamp,
                 request= request,
                 requestlen=buflen
             }
+            if print_container then
+                partial_transactions[key]["container"] = evt.field(container_field)
+            end
         end
     else
         response = parse_response(buf)
         if response then
-            print(string.format("%s %s -> %d %d ms %d bytes",
-                transaction["request"]["method"],
-                transaction["request"]["url"],
-                response,
-                (timestamp - transaction["ts"])/1000000,
-                transaction["requestlen"] + buflen
-            ))
-            transactions[key] = nil
+            --print(string.format("%s %s -> %d %d ms %d bytes",
+            --    transaction["request"]["method"],
+            --    transaction["request"]["url"],
+            --    response,
+            --    (timestamp - transaction["ts"])/1000000,
+            --    transaction["requestlen"] + buflen
+            --))
+            grtable_key = build_grtable_key(transaction)
+            elapsed_time = (timestamp - transaction["ts"])
+            --bytes = transaction["requestlen"] + buflen
+            if grtable[grtable_key] then
+                grtable[grtable_key] = grtable[grtable_key] + elapsed_time
+            else
+                grtable[grtable_key] = elapsed_time
+            end
+            partial_transactions[key] = nil
         end
     end
+end
+
+-- Final chisel initialization
+function on_capture_start()
+    islive = sysdig.is_live()
+    vizinfo.output_format = sysdig.get_output_format()
+
+    if islive then
+        chisel.set_interval_s(1)
+        if vizinfo.output_format ~= "json" then
+            terminal.clearscreen()
+            terminal.hidecursor()
+        end
+    end
+
+    return true
+end
+
+function on_interval(ts_s, ts_ns, delta)
+    if vizinfo.output_format ~= "json" then
+        terminal.clearscreen()
+        terminal.moveto(0, 0)
+    end
+
+    print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
+
+    -- Clear the table
+    grtable = {}
+    return true
+end
+
+-- Called by the engine at the end of the capture (Ctrl-C)
+function on_capture_end(ts_s, ts_ns, delta)
+    if islive and vizinfo.output_format ~= "json" then
+        terminal.clearscreen()
+        terminal.moveto(0 ,0)
+        terminal.showcursor()
+        return true
+    end
+
+    print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
+
+    return true
 end
