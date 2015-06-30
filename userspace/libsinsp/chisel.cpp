@@ -113,7 +113,9 @@ const static struct luaL_reg ll_sysdig [] =
 	{"make_ts", &lua_cbacks::make_ts},
 	{"run_sysdig", &lua_cbacks::run_sysdig},
 	{"end_capture", &lua_cbacks::end_capture},
+#ifdef HAS_ANALYZER
 	{"push_metric", &lua_cbacks::push_metric},
+#endif
 	{NULL,NULL}
 };
 
@@ -1165,7 +1167,7 @@ void sinsp_chisel::set_args(string args)
 				}			
 			}
 		}
-	
+
 		if(inquotes)
 		{
 			throw sinsp_exception("corrupted parameters for chisel " + m_filename);
@@ -1188,13 +1190,54 @@ void sinsp_chisel::set_args(string args)
 		throw sinsp_exception("too many parameters for chisel " + m_filename +
 			", " + to_string((long long int)(n_required_args)) + " required, " +
 			to_string((long long int)(n_optional_args)) + " optional, " +
-                        to_string((long long int)m_argvals.size()) + " given");
+			to_string((long long int)m_argvals.size()) + " given");
+	}
+
+	//
+	// Create the arguments vector
+	//
+	vector<pair<string, string>> vargs;
+
+	for(j = 0; j < m_argvals.size(); j++)
+	{
+		vargs.push_back(pair<string, string>(m_lua_script_info.m_args[j].m_name,
+			m_argvals[j]));
+	}
+
+	set_args(vargs);
+#endif
+}
+
+void sinsp_chisel::set_args(vector<pair<string, string>> args)
+{
+#ifdef HAS_LUA_CHISELS
+	uint32_t j;
+	uint32_t n_required_args = get_n_required_args();
+	uint32_t n_optional_args = get_n_optional_args();
+
+	ASSERT(m_ls);
+
+	//
+	// Validate the arguments
+	//
+	if(args.size() < n_required_args)
+	{
+		throw sinsp_exception("wrong number of parameters for chisel " + m_filename +
+			", " + to_string((long long int)n_required_args) + " required, " + 
+			to_string((long long int)args.size()) + " given");
+	}
+	else if(args.size() > n_optional_args + n_required_args)
+	{
+		throw sinsp_exception("too many parameters for chisel " + m_filename +
+			", " + to_string((long long int)(n_required_args)) + " required, " +
+			to_string((long long int)(n_optional_args)) + " optional, " +
+			to_string((long long int)args.size()) + " given");
 	}
 
 	//
 	// Push the arguments
 	//
-	for(j = 0; j < m_argvals.size(); j++)
+	for(j = 0; j < args.size(); j++)
 	{
 		lua_getglobal(m_ls, "on_set_arg");
 		if(!lua_isfunction(m_ls, -1))
@@ -1203,8 +1246,8 @@ void sinsp_chisel::set_args(string args)
 			throw sinsp_exception("chisel " + m_filename + " misses a set_arg() function.");
 		}
 
-		lua_pushstring(m_ls, m_lua_script_info.m_args[j].m_name.c_str()); 
-		lua_pushstring(m_ls, m_argvals[j].c_str());
+		lua_pushstring(m_ls, args[j].first.c_str()); 
+		lua_pushstring(m_ls, args[j].second.c_str());
 
 		//
 		// call get_info()
