@@ -834,12 +834,62 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
 
 #endif
 
+/* Takes in a NULL-terminated array of pointers to strings in userspace, and
+ * concatenates them to a single \0-separated string. Return the length of this
+ * string, or <0 on error */
+static int accumulate_argv_or_env(const char __user* __user* argv,
+
+				  char* str_storage,
+				  int available)
+{
+	int len = 0;
+	int n_bytes_copied;
+
+	if (argv == NULL)
+		return PPM_FAILURE_BUG;
+
+	for (;;) {
+		const char __user *p;
+		if (unlikely(ppm_get_user(p, argv)))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		if (p == NULL)
+			break;
+
+		/* need at least enough space for a \0 */
+		if (available < 1)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		n_bytes_copied = ppm_strncpy_from_user(&str_storage[len], p,
+						       available);
+
+		/* ppm_strncpy_from_user includes the trailing \0 in its return
+		 * count. I want to pretend it was strncpy_from_user() so I
+		 * subtract off the 1 */
+		n_bytes_copied--;
+
+		if (n_bytes_copied < 0)
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		if (n_bytes_copied >= available)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		/* update buffer. I want to keep the trailing \0, so I +1 */
+		available   -= n_bytes_copied+1;
+		len         += n_bytes_copied+1;
+
+		argv++;
+	}
+
+	return len;
+}
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res = 0;
-	unsigned int exe_len = 0;
-	unsigned int args_len = 0;
+	unsigned int exe_len = 0;  /* the length of the executable string */
+	unsigned int args_len = 0; /*the combined length of the arguments string + executable string */
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
@@ -857,56 +907,95 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (likely(retval >= 0)) {
-		if (unlikely(!mm)) {
-			args->str_storage[0] = 0;
-			pr_info("f_proc_startupdate drop, mm=NULL\n");
-			return PPM_FAILURE_BUG;
-		}
+	if (unlikely(retval < 0 &&
+		     args->event_type != PPME_SYSCALL_EXECVE_16_X)) {
 
-		if (unlikely(!mm->arg_end)) {
-			args->str_storage[0] = 0;
-			pr_info("f_proc_startupdate drop, mm->arg_end=NULL\n");
-			return PPM_FAILURE_BUG;
-		}
+		/* The call failed, but this syscall has no exe, args
+		 * anyway, so I report empty ones */
+		*args->str_storage = 0;
 
-		args_len = mm->arg_end - mm->arg_start;
+		/*
+		 * exe
+		 */
+		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 
-		if (args_len) {
-			if (args_len > PAGE_SIZE)
-				args_len = PAGE_SIZE;
+		/*
+		 * Args
+		 */
+		res = val_to_ring(args, (int64_t)(long)args->str_storage, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	} else {
 
-			if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
-				return PPM_FAILURE_INVALID_USER_MEMORY;
+		if (likely(retval >= 0)) {
+			/*
+			 * The call suceeded. Get exe, args from the current
+			 * process; put one \0-separated exe-args string into
+			 * str_storage
+			 */
 
-			args->str_storage[args_len - 1] = 0;
+			if (unlikely(!mm)) {
+				args->str_storage[0] = 0;
+				pr_info("f_proc_startupdate drop, mm=NULL\n");
+				return PPM_FAILURE_BUG;
+			}
+
+			if (unlikely(!mm->arg_end)) {
+				args->str_storage[0] = 0;
+				pr_info("f_proc_startupdate drop, mm->arg_end=NULL\n");
+				return PPM_FAILURE_BUG;
+			}
+
+			args_len = mm->arg_end - mm->arg_start;
+
+			if (args_len) {
+				if (args_len > PAGE_SIZE)
+					args_len = PAGE_SIZE;
+
+				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+				args->str_storage[args_len - 1] = 0;
+			} else {
+				*args->str_storage = 0;
+			}
+
 		} else {
-			*args->str_storage = 0;
+
+			/*
+			 * The execve call failed. I get exe, args from the
+			 * input args; put one \0-separated exe-args string into
+			 * str_storage
+			 */
+
+			syscall_get_arguments(current, args->regs, 1, 1, &val);
+			args_len = accumulate_argv_or_env( (const char __user* __user *)val,
+							   args->str_storage, available);
+			if (unlikely(args_len < 0))
+				return args_len;
 		}
-		
+
 		exe_len = strnlen(args->str_storage, args_len);
 		if (exe_len < args_len)
 			++exe_len;
-	} else {
+
 		/*
-		 * The call failed. Return empty strings for exe and args
+		 * exe
 		 */
-		*args->str_storage = 0;
+		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * Args
+		 */
+		res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 	}
 
-	/*
-	 * exe
-	 */
-	res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * Args
-	 */
-	res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
 	/*
 	 * tid
@@ -1096,9 +1185,13 @@ cgroups_error:
 			}
 		} else {
 			/*
-			 * The call failed. Return empty strings for env as well
+			 * The call failed, so get the env from the arguments
 			 */
-			*args->str_storage = 0;
+			syscall_get_arguments(current, args->regs, 2, 1, &val);
+			env_len = accumulate_argv_or_env( (const char __user* __user *)val,
+							  args->str_storage, available);
+			if (unlikely(env_len < 0))
+				return env_len;
 		}
 
 		/*
