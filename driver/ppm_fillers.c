@@ -846,7 +846,7 @@ static int accumulate_argv_or_env(const char __user* __user* argv,
 	int n_bytes_copied;
 
 	if (argv == NULL)
-		return PPM_FAILURE_BUG;
+		return len;
 
 	for (;;) {
 		const char __user *p;
@@ -969,7 +969,8 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			 * input args; put one \0-separated exe-args string into
 			 * str_storage
 			 */
-
+			args->str_storage[0] = 0;
+			
 			syscall_get_arguments(current, args->regs, 1, 1, &val);
 			args_len = accumulate_argv_or_env( (const char __user* __user *)val,
 							   args->str_storage, available);
