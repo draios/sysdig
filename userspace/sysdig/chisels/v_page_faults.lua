@@ -26,6 +26,7 @@ view_info =
 	},
 	tags = {"Default"},
 	view_type = "table",
+	filter = "evt.type!=switch",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory"},
 	drilldown_target = "errors",
 	use_defaults = true,
@@ -58,6 +59,7 @@ view_info =
 			colsize = 8,
 		},
 		{
+			tags = {"containers"},
 			name = "VPID",
 			field = "proc.vpid",
 			description = "PID that the process has inside the container.",
@@ -74,7 +76,8 @@ view_info =
 			name = "Command",
 			description = "Full command line of the process.",
 			field = "proc.exeline",
-			colsize = 200
+			aggregation = "MAX",
+			colsize = 0
 		}
 	}
 }

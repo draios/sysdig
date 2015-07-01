@@ -771,7 +771,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				if (nentries < pli->max_entries) {
 					cputime_t utime, stime;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0))
 					utime = t->utime;
 					stime = t->stime;
 #else

@@ -18,7 +18,7 @@ csysdig has been designed to mimic tools like **top** and **htop**, but it offer
 - Support for both live analysis and sysdig trace files. Trace files can come from the same machine or from another machine. 
 - Visibility into a broad range of metrics, including CPU, memory, disk I/O, network I/O.
 - Ability to observe input/output activity for processes, files, network connections and more.
-- Ability to drill down into processes, files, network connections and more to further explore their beavior.
+- Ability to drill down into processes, files, network connections and more to further explore their behavior.
 - Full customization support.
 - Support for sysdig's filtering language.
 - Container support by design.
@@ -37,9 +37,19 @@ Here are some basic tips to get you started with sysdig:
 
 1. If you run csysdig without arguments, it will display live system data, updating every 2 seconds. To analyze a trace file, use the -r command line flag.
 2. You can switch to a different view by using the _F2_ key.
-3. You can to drill down into a selection by typing _enter_. You can navigate back by typing _backspace_.
+3. You can to drill down into a selection by clicking _enter_. You can navigate back by typing _backspace_.
 4. You can observe input/output for the currently selected entity by typing _F5_
 5. You can see sysdig events for the currently selected entity by typing _F6_
+
+DRILLING DOWN
+-------------
+You drill down by selecting an element in a view and then clicking _enter_. Once inside a selection, you can switch to a different view, and the new view will be applied in the context of the selection. For example, if you drill down into a process called foo and then switch to the _Connections_ view, the output will include only the connections made or recieved by _foo_. 
+
+You can drill down multiple times, by keeping clicking _enter_. For example, you can click on a container in the _Containers_ view to get the processes running inside it, and then click on one of the processes to see its threads.
+
+CONTAINERS SUPPORT
+------------------
+Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include the columns with the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.
 
 INTERACTIVE COMMANDS  
 --------------------  
@@ -50,7 +60,7 @@ INTERACTIVE COMMANDS
   Change the selection and scroll view content, both vertically and horizontally.  
 
 **Enter**  
-  Drill down into the currently highlited entry.  
+  Drill down into the currently highlighted entry.  
 
 **Backspace**  
   Navigate back to the previous view.  
@@ -65,10 +75,10 @@ INTERACTIVE COMMANDS
     Incremental filtering of the view entries.  
 
 **F5, e**  
-  'echo FDs' for the selection, i.e. view FD input/output for the currently highlited entry.  
+  'echo FDs' for the selection, i.e. view FD input/output for the currently highlighted entry.  
 
 **F6, d**  
-  'dig' into the selection, i.e. view sysdig events for the currently highlited entry. Refer to the sysdig man page to learn about interpreting the content of this window.  
+  'dig' into the selection, i.e. view sysdig events for the currently highlighted entry. Refer to the sysdig man page to learn about interpreting the content of this window.  
 
 **F7**  
   Show the help page for the currently displayed view.  
@@ -160,7 +170,7 @@ Similarly to what you do with sysdig, you can specify a filter on the command li
 
 CUSTOMIZING CSYSDIG
 -------------------
-csysdig is completely customizable. This means that you can modify any of the csysdig views, and even create your own views. Like sysdig chisels, csysdig views are Lua scripts. Full information can be found at the following github wiki page: https://github.com/draios/agent/wiki/csysdig-View-Format-Reference.
+csysdig is completely customizable. This means that you can modify any of the csysdig views, and even create your own views. Like sysdig chisels, csysdig views are Lua scripts. Full information can be found at the following github wiki page: https://github.com/draios/sysdig/wiki/csysdig-View-Format-Reference.
 
 FILES
 -----
@@ -174,7 +184,7 @@ FILES
 AUTHOR
 ------
 
-Draios Inc. (dba Sysdig) <info@sysdigcloud.com>
+Draios Inc. (dba Sysdig) <info@sysdig.com>
 
 SEE ALSO
 --------

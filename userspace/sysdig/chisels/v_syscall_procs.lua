@@ -58,7 +58,8 @@ view_info =
 			name = "Command",
 			description = "The full command line of the process.",
 			field = "proc.exeline",
-			colsize = 200
+			aggregation = "MAX",
+			colsize = 0
 		}
 	}
 }

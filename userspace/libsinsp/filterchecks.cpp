@@ -44,9 +44,13 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.ip", "matches the ip address (client or server) of the fd."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.cip", "client IP address."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.sip", "server IP address."},
+	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.lip", "local IP address."},
+	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.rip", "remote IP address."},
 	{PT_PORT, EPF_FILTER_ONLY, PF_DEC, "fd.port", "matches the port (either client or server) of the fd."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.cport", "for TCP/UDP FDs, the client port."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.sport", "for TCP/UDP FDs, server port."},
+	{PT_PORT, EPF_NONE, PF_DEC, "fd.lport", "for TCP/UDP FDs, the local port."},
+	{PT_PORT, EPF_NONE, PF_DEC, "fd.rport", "for TCP/UDP FDs, the remote port."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.l4proto", "the IP protocol of a socket. Can be 'tcp', 'udp', 'icmp' or 'raw'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sockfamily", "the socket family for socket events. Can be 'ip' or 'unix'."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_server", "'true' if the process owning this FD is the server endpoint in the connection."},
@@ -522,6 +526,50 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		break;
+	case TYPE_LIP:
+	case TYPE_RIP:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+			if(evt_type != SCAP_FD_IPV4_SOCK)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
+			{
+				if(m_field_id == TYPE_LIP)
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+				}
+				else
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+				}
+			}
+			else
+			{
+				if(m_field_id == TYPE_LIP)
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+				}
+				else
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+				}
+			}
+		}
+
+		break;
 	case TYPE_CLIENTPORT:
 		{
 			if(m_fdinfo == NULL)
@@ -585,6 +633,50 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 		}
+	case TYPE_LPORT:
+	case TYPE_RPORT:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+			if(evt_type != SCAP_FD_IPV4_SOCK)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
+			{
+				if(m_field_id == TYPE_LPORT)
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+				}
+				else
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+				}
+			}
+			else
+			{
+				if(m_field_id == TYPE_LPORT)
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+				}
+				else
+				{
+					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+				}
+			}
+		}
+
+		break;
 	case TYPE_L4PROTO:
 		{
 			if(m_fdinfo == NULL)
@@ -3819,7 +3911,7 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 
 	if(m_cnt > 1)
 	{
-		val /= m_cnt;
+		val /= (int64_t)m_cnt;
 	}
 
 	if(m_print_format == PF_ID)
@@ -3831,7 +3923,7 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 	}
 	else
 	{
-		return format_bytes(val, str_len, true);
+		return format_bytes((double)val, str_len, true);
 	}
 
 }
@@ -3873,7 +3965,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 			val /= m_cnt;
 		}
 
-		return format_time(val, str_len);
+		return format_time((int64_t)val, str_len);
 	}
 	else if(m_field->m_type == PT_DOUBLE)
 	{

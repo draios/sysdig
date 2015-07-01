@@ -638,7 +638,11 @@ enum ppm_event_type {
 	PPME_SIGNALDELIVER_X = 233, /* This should never be called */
 	PPME_PROCINFO_E = 234,
 	PPME_PROCINFO_X = 235,	/* This should never be called */
-	PPM_EVENT_MAX = 236
+	PPME_SYSCALL_GETDENTS_E = 236,
+	PPME_SYSCALL_GETDENTS_X = 237,
+	PPME_SYSCALL_GETDENTS64_E = 238,
+	PPME_SYSCALL_GETDENTS64_X = 239,
+	PPM_EVENT_MAX = 240
 };
 /*@}*/
 

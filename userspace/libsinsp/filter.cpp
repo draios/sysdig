@@ -1316,7 +1316,9 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand, bool in_cl
 				escape_state = PES_NUMBER;
 				break;
 			default:
-				escape_state = PES_ERROR;
+				escape_state = PES_NORMAL;
+				res.push_back('\\');
+				res.push_back(curchar);
 				break;
 			}
 			break;

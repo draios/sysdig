@@ -33,7 +33,7 @@ connections and more.
 .PD
 .IP \[bu] 2
 Ability to drill down into processes, files, network connections and
-more to further explore their beavior.
+more to further explore their behavior.
 .PD 0
 .P
 .PD
@@ -80,7 +80,7 @@ You can switch to a different view by using the \f[I]F2\f[] key.
 .P
 .PD
 .IP "3." 3
-You can to drill down into a selection by typing \f[I]enter\f[].
+You can to drill down into a selection by clicking \f[I]enter\f[].
 You can navigate back by typing \f[I]backspace\f[].
 .PD 0
 .P
@@ -94,6 +94,28 @@ You can observe input/output for the currently selected entity by typing
 .IP "5." 3
 You can see sysdig events for the currently selected entity by typing
 \f[I]F6\f[]
+.SS DRILLING DOWN
+.PP
+You drill down by selecting an element in a view and then clicking
+\f[I]enter\f[].
+Once inside a selection, you can switch to a different view, and the new
+view will be applied in the context of the selection.
+For example, if you drill down into a process called foo and then switch
+to the \f[I]Connections\f[] view, the output will include only the
+connections made or recieved by \f[I]foo\f[].
+.PP
+You can drill down multiple times, by keeping clicking \f[I]enter\f[].
+For example, you can click on a container in the \f[I]Containers\f[]
+view to get the processes running inside it, and then click on one of
+the processes to see its threads.
+.SS CONTAINER SUPPORT
+.PP
+Starting csysdig with the \-pc command line switch will cause many of
+the views to include additional container information.
+For example, the \f[I]Processes\f[] will include the columns with the
+container the process belongs to.
+Similarly, the \f[I]Connections\f[] view will show which container each
+connection belongs to.
 .SS INTERACTIVE COMMANDS
 .SS Views Window
 .PP
@@ -108,7 +130,7 @@ horizontally.
 .PD 0
 .P
 .PD
-Drill down into the currently highlited entry.
+Drill down into the currently highlighted entry.
 .PP
 \f[B]Backspace\f[]
 .PD 0
@@ -140,14 +162,14 @@ Incremental filtering of the view entries.
 .P
 .PD
 \[aq]echo FDs\[aq] for the selection, i.e.
-view FD input/output for the currently highlited entry.
+view FD input/output for the currently highlighted entry.
 .PP
 \f[B]F6, d\f[]
 .PD 0
 .P
 .PD
 \[aq]dig\[aq] into the selection, i.e.
-view sysdig events for the currently highlited entry.
+view sysdig events for the currently highlighted entry.
 Refer to the sysdig man page to learn about interpreting the content of
 this window.
 .PP
@@ -351,7 +373,7 @@ This means that you can modify any of the csysdig views, and even create
 your own views.
 Like sysdig chisels, csysdig views are Lua scripts.
 Full information can be found at the following github wiki page:
-<https://github.com/draios/agent/wiki/csysdig-View-Format-Reference>.
+<https://github.com/draios/sysdig/wiki/csysdig-View-Format-Reference>.
 .SS FILES
 .PP
 \f[I]/usr/share/sysdig/chisels\f[]

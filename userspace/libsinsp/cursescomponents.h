@@ -39,7 +39,7 @@ public:
 
 #ifdef CSYSDIG
 #ifndef NOCURSESUI
-#define TABLE_WIDTH 400
+#define TABLE_WIDTH 10000
 #define TABLE_Y_START 2
 
 #include <curses.h>
@@ -188,6 +188,7 @@ private:
 	ctext_search* m_searcher;
 	bool m_has_searched;
 	bool m_search_type_is_goto;
+	uint64_t m_last_progress_update_ts;
 };
 
 class curses_mainhelp_page

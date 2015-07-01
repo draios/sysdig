@@ -87,7 +87,7 @@ view_info =
 			name = "FILENAME",
 			description = "The file name including its full path.",
 			field = "fd.name",
-			colsize = 200
+			colsize = 0
 		}
 	}
 }

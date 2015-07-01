@@ -560,6 +560,19 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 	m_network_interfaces->import_ipv4_interface(ifinfo);
 }
 
+void sinsp::refresh_ifaddr_list()
+{
+#ifdef HAS_CAPTURE
+	if(m_islive)
+	{
+		ASSERT(m_network_interfaces);
+		scap_refresh_iflist(m_h);
+		m_network_interfaces->clear();
+		m_network_interfaces->import_interfaces(scap_get_ifaddr_list(m_h));
+	}
+#endif
+}
+
 bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
 
 void sinsp::add_meta_event(sinsp_evt *metaevt)
@@ -682,7 +695,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt, sinsp_next_ex_args* ex_args)
 					m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
 				}
 	#endif
-				evt = NULL;
+				*puevt = NULL;
 				return res;
 			}
 			else if(res == SCAP_EOF)
@@ -1159,7 +1172,7 @@ void sinsp::stop_dropping_mode()
 {
 	if(m_islive)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR, "stopping drop mode");
+		g_logger.format(sinsp_logger::SEV_INFO, "stopping drop mode");
 
 		if(scap_stop_dropping_mode(m_h) != SCAP_SUCCESS)
 		{
@@ -1172,7 +1185,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 {
 	if(m_islive)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR, "setting drop mode to %" PRIu32, sampling_ratio);
+		g_logger.format(sinsp_logger::SEV_INFO, "setting drop mode to %" PRIu32, sampling_ratio);
 
 		if(scap_start_dropping_mode(m_h, sampling_ratio) != SCAP_SUCCESS)
 		{

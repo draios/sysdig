@@ -49,7 +49,7 @@ view_info =
 			name = "ERROR",
 			description = "The error 'errno' code. Do a 'man errno' to find the meaning of the most important codes.",
 			field = "evt.res",
-			colsize = 200
+			colsize = 0
 		}
 	}
 }

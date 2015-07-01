@@ -47,6 +47,7 @@ using namespace std;
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
+#include "utils.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // curses_scrollable_list implementation
@@ -545,6 +546,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_viz_type = viz_type;
 	m_searcher = NULL;
 	m_has_searched = false;
+	m_last_progress_update_ts = 0;
 
 	ctext_config config;
 
@@ -803,6 +805,14 @@ void curses_textbox::process_event_dig(sinsp_evt* evt, int32_t next_res)
 	{
 		render();
 	}
+
+	uint64_t ts = evt->get_ts();
+
+	if(ts > (m_last_progress_update_ts + 100000000))
+	{
+		render();
+		m_last_progress_update_ts = ts;
+	}
 }
 
 void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
@@ -812,7 +822,6 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	//
 	if(next_res == SCAP_EOF)
 	{
-		ASSERT(!m_inspector->is_live());
 		m_parent->m_eof = 2;
 		m_ctext->jump_to_first_line();
 		m_ctext->ob_end();
@@ -862,12 +871,29 @@ void curses_textbox::populate_sidemenu()
 	m_entries.push_back(sidemenu_list_entry("Dotted ASCII", -1));
 	m_entries.push_back(sidemenu_list_entry("Printable ASCII", -1));
 	m_entries.push_back(sidemenu_list_entry("Hex", -1));
-	if(m_viz_type == VIEW_ID_DIG)
-	{
-		m_entries.push_back(sidemenu_list_entry("json", 0));
-	}
 
 	m_sidemenu->set_entries(&m_entries);
+
+	switch(m_parent->m_spybox_text_format)
+	{
+		case sinsp_evt::PF_NORMAL:
+			m_sidemenu->m_selct = 0;
+			break;
+		case sinsp_evt::PF_EOLS:
+			m_sidemenu->m_selct = 1;
+			break;
+		case sinsp_evt::PF_HEXASCII:
+			m_sidemenu->m_selct = 2;
+			break;
+		case sinsp_evt::PF_JSON:
+			m_sidemenu->m_selct = 3;
+			break;
+		default:
+			ASSERT(false);
+			m_sidemenu->m_selct = 0;
+			break;
+	}
+
 	m_sidemenu->set_title("View As");
 }
 
@@ -918,6 +944,24 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 		sysdig_table_action ta = m_sidemenu->handle_input(ch);
 		if(ta == STA_SWITCH_VIEW)
 		{
+			switch(m_parent->m_selected_sidemenu_entry)
+			{
+				case 0:
+					m_parent->m_spybox_text_format = sinsp_evt::PF_NORMAL;
+					break;
+				case 1:
+					m_parent->m_spybox_text_format = sinsp_evt::PF_EOLS;
+					break;
+				case 2:
+					m_parent->m_spybox_text_format = sinsp_evt::PF_HEXASCII;
+					break;
+				case 3:
+					m_parent->m_spybox_text_format = sinsp_evt::PF_JSON;
+					break;
+				default:
+					ASSERT(false);
+					break;
+			}
 			return STA_SWITCH_SPY;
 		}
 		else if(ta != STA_PARENT_HANDLE)
@@ -1021,6 +1065,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 		case '/':
 		case KEY_F(3):
 			on_search_next();
+			m_parent->render();
 			break;
 		case 6:	// CTRL+F
 			m_search_type_is_goto = false;
@@ -1058,24 +1103,7 @@ void curses_textbox::reset()
 		wrefresh(m_win);
 	}
 
-	switch(m_parent->m_selected_sidemenu_entry)
-	{
-		case 0:
-			m_inspector->set_buffer_format(sinsp_evt::PF_NORMAL);
-			break;
-		case 1:
-			m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
-			break;
-		case 2:
-			m_inspector->set_buffer_format(sinsp_evt::PF_HEXASCII);
-			break;
-		case 3:
-			m_inspector->set_buffer_format(sinsp_evt::PF_JSON);
-			break;
-		default:
-			ASSERT(false);
-			break;
-	}
+	m_inspector->set_buffer_format(m_parent->m_spybox_text_format);
 
 	//
 	// If we're offline, disable screen refresh until we've parsed the file
@@ -1445,8 +1473,11 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	// Print title and info
 	//
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::TASKS_RUNNING]);
-	m_ctext->printf("csysdig %s. See man page for full documentation\n\n",
+	m_ctext->printf("csysdig %s. See man page for full documentation\n",
 		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf("Note: you can scroll this page by using the keyboard arrows.\n\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 	m_ctext->printf("How to use csysdig\n",
@@ -1456,8 +1487,27 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf(
 "1. you can either see real time data, or analyze a trace file by using the -r command line flag.\n"
 "2. you can switch to a different view by using the F2 key.\n"
-"3. You can to drill down into a selection by typing enter. You can navigate back by typing backspace.\n"
-"4. you can observe reads and writes (F5) or see sysdig events (F6) for any selection.\n"
+"3. You can to drill down into a selection by clicking enter. You can navigate back by typing backspace.\n"
+"4. you can observe reads and writes (F5) or see sysdig events (F6) for any selection.\n\n"
+);
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("Drilling down\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(
+"You drill down by selecting an element in a view and then clicking enter. Once inside a selection, you can switch to a different view, and the new view will be applied in the context of the selection. For example, if you drill down into a process called foo and then switch to the Connections view, the output will include only the connections made or recieved by foo.\n\n"
+"You can drill down multiple times, by keeping clicking enter. For example, you can click on a container in the Containers view to get the processes running inside it, and then click on one of the processes to see its threads.\n\n"
+);
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("Containers Support\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(
+"Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include the columns with the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.\n\n"
 );
 
 	//
@@ -1475,7 +1525,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("CTRL+F /");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": incremental search\n");
+	m_ctext->printf(": search\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("     F2");
@@ -1485,7 +1535,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("F4 \\");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": incremental filtering\n");
+	m_ctext->printf(": filter(freetext or sysdig)\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("  Enter");
@@ -1525,7 +1575,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("p");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": pause scree updates\n");
+	m_ctext->printf(": pause screen updates\n");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf(" ? F1 h");
@@ -1542,7 +1592,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf(" Arrows");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": scroll up and down       ");
+	m_ctext->printf(": scroll the page          ");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf("CTRL+F /");
@@ -1565,7 +1615,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf(": choose buffer print format      ");
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
-	m_ctext->printf("P");
+	m_ctext->printf("p");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf(": pause visualization\n");
 
@@ -1602,7 +1652,27 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf("csysdig is completely customizable. This means that you can modify any of the csysdig views, " 
 		"and even create your own views. Like sysdig chisels, csysdig views are Lua scripts. Full information can "
-		"be found at the following github wiki page: https://github.com/draios/agent/wiki/csysdig-View-Format-Reference.\n");
+		"be found at the following github wiki page: https://github.com/draios/sysdig/wiki/csysdig-View-Format-Reference.\n");
+
+	//
+	// sysdig cloud
+	//
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("\nNeed a distributed csysdig?\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf("Sysdig cloud offers distributed csysdig functionality, a powerful web interface and much more.\nwww.sysdig.com.\n");
+
+	//
+	// Bottom padding to compensate for a ctext bug
+	//
+	uint64_t trlen = ((parent->m_screenh * 230 / parent->m_screenw)) / 10;
+
+	for(uint32_t j = 0; j < trlen; j++)
+	{
+		m_ctext->printf("\n");
+	}
 
 	//
 	// Done. Refresh the screen

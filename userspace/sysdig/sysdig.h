@@ -18,7 +18,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include "config.h"
+#include <config_sysdig.h>
 
 //
 // ASSERT implementation

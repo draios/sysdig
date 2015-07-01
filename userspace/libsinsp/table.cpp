@@ -522,6 +522,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	for(auto it = threadtable->begin(); it != threadtable->end(); ++it)
 	{
 		tevt.m_tinfo = &it->second;
+		tscapevt.tid = tevt.m_tinfo->m_tid;
 
 		if(m_filter)
 		{
@@ -637,7 +638,16 @@ void sinsp_table::filter_sample()
 	{
 		for(uint32_t j = 0; j < it.m_values.size(); j++)
 		{
-			ppm_param_type type = m_types->at(j + 1);
+			ppm_param_type type;
+
+			if(m_do_merging)
+			{
+				type = m_postmerge_types[j + 1];
+			}
+			else
+			{
+				type = m_premerge_types[j + 1];
+			}
 
 			if(type == PT_CHARBUF || type == PT_BYTEBUF || type == PT_SYSCALLID ||
 				type == PT_PORT || type == PT_L4PROTO || type == PT_SOCKFAMILY || type == PT_IPV4ADDR ||

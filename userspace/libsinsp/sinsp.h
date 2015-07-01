@@ -648,7 +648,9 @@ public:
 	}
 	const struct ppm_event_info* get_event_info_table();
 
-//VISIBILITY_PRIVATE
+	void refresh_ifaddr_list();
+
+VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN

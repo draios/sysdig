@@ -209,15 +209,19 @@ public:
 		TYPE_IP = 6,
 		TYPE_CLIENTIP = 7,
 		TYPE_SERVERIP = 8,
-		TYPE_PORT = 9,
-		TYPE_CLIENTPORT = 10,
-		TYPE_SERVERPORT = 11,
-		TYPE_L4PROTO = 12,
-		TYPE_SOCKFAMILY = 13,
-		TYPE_IS_SERVER = 14,
-		TYPE_UID = 15,
-		TYPE_CONTAINERNAME = 16,
-		TYPE_CONTAINERDIRECTORY = 17,
+		TYPE_LIP = 9,
+		TYPE_RIP = 10,
+		TYPE_PORT = 11,
+		TYPE_CLIENTPORT = 12,
+		TYPE_SERVERPORT = 13,
+		TYPE_LPORT = 14,
+		TYPE_RPORT = 15,
+		TYPE_L4PROTO = 16,
+		TYPE_SOCKFAMILY = 17,
+		TYPE_IS_SERVER = 18,
+		TYPE_UID = 19,
+		TYPE_CONTAINERNAME = 20,
+		TYPE_CONTAINERDIRECTORY = 21,
 	};
 
 	enum fd_type
@@ -431,7 +435,6 @@ private:
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
 	bool m_is_compare;
-	double m_pippo;
 };
 
 //

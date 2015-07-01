@@ -37,7 +37,7 @@ view_info =
 			name = "USER",
 			field = "user.name",
 			description = "Name of the user running the command.",
-			colsize = 8,
+			colsize = 12,
 		},
 		{
 			name = "SHELL",
@@ -55,8 +55,9 @@ view_info =
 		{
 			name = "Command",
 			field = "proc.exeline",
+			aggregation = "MAX",
 			description = "The executed command, including arguments.",
-			colsize = 200,
+			colsize = 0
 		}		
 	}
 }

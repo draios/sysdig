@@ -1,4 +1,6 @@
 #include <linux/version.h>
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 9, 0))
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
 #include <asm/atomic.h>
 #else
@@ -237,10 +239,16 @@ out:
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st)
 {
 	struct task_cputime cputime = {
+#ifdef CONFIG_SCHED_BFS
+		.sum_exec_runtime = tsk_seruntime(p),
+#else
 		.sum_exec_runtime = p->se.sum_exec_runtime,
+#endif
 	};
 
 	task_cputime(p, &cputime.utime, &cputime.stime);
 	cputime_adjust(&cputime, &p->prev_cputime, ut, st);
 }
 #endif /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE */
+
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) */
