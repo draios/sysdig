@@ -1209,6 +1209,41 @@ int lua_cbacks::exec(lua_State *ls)
 	return 0;
 }
 
+int lua_cbacks::log(lua_State *ls) 
+{
+	lua_getglobal(ls, "sichisel");
+
+	string message(lua_tostring(ls, 1));
+	string sevstr(lua_tostring(ls, 2));
+
+	sinsp_logger::severity sevcode = sinsp_logger::SEV_INFO;
+
+	if(sevstr == "debug")
+	{
+		sevcode = sinsp_logger::SEV_DEBUG;
+	}
+	else if(sevstr == "info")
+	{
+		sevcode = sinsp_logger::SEV_INFO;
+	}
+	else if(sevstr == "warning")
+	{
+		sevcode = sinsp_logger::SEV_WARNING;
+	}
+	else if(sevstr == "error")
+	{
+		sevcode = sinsp_logger::SEV_ERROR;
+	}
+	else if(sevstr == "critical")
+	{
+		sevcode = sinsp_logger::SEV_CRITICAL;
+	}
+
+	g_logger.log(message, sevcode);
+
+	return 0;
+}
+
 #ifdef HAS_ANALYZER
 int lua_cbacks::push_metric(lua_State *ls) 
 {

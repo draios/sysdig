@@ -106,6 +106,10 @@ public:
 	static void add_lua_package_path(lua_State* ls, const char* path);
 	static void get_chisel_list(vector<chisel_desc>* chisel_descs);
 	void load(string cmdstr);
+	string get_name()
+	{
+		return m_filename;
+	}
 	uint32_t get_n_args();
 	uint32_t get_n_optional_args();
 	uint32_t get_n_required_args();

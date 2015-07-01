@@ -113,6 +113,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"make_ts", &lua_cbacks::make_ts},
 	{"run_sysdig", &lua_cbacks::run_sysdig},
 	{"end_capture", &lua_cbacks::end_capture},
+	{"log", &lua_cbacks::log},
 #ifdef HAS_ANALYZER
 	{"push_metric", &lua_cbacks::push_metric},
 #endif

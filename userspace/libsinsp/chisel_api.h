@@ -53,7 +53,10 @@ public:
 	static int set_interval_ns(lua_State *ls);
 	static int set_interval_s(lua_State *ls);
 	static int exec(lua_State *ls);
+	static int log(lua_State *ls);
+#ifdef HAS_ANALYZER
 	static int push_metric(lua_State *ls);
+#endif
 };
 
 #endif // HAS_CHISELS
