@@ -889,7 +889,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	unsigned long val;
 	int res = 0;
 	unsigned int exe_len = 0;  /* the length of the executable string */
-	unsigned int args_len = 0; /*the combined length of the arguments string + executable string */
+	int args_len = 0; /*the combined length of the arguments string + executable string */
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
