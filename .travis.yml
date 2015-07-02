@@ -42,7 +42,7 @@ script:
     - cd jsoncpp-0.10.2-p1
     - cmake -DBUILD_SHARED_LIBS=ON .
     - make
-    - make install
+    - sudo make install
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
     - sudo apt-get install libncurses5-dev libluajit-5.1-dev
