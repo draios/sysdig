@@ -315,9 +315,10 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		 * Note, we have two loops here because the first one makes sure that ALL of the
 		 * rings are properly initialized to null, since the second one could be interrupted
 		 * and cause issues in the cleanup phase.
+		 * This might not be necessary, because alloc_percpu memsets the allocated entries to
+		 * 0, but better be extra safe.
 		 */
-pr_err("*1\n");
-		for_each_online_cpu(cpu) {
+		for_each_possible_cpu(cpu) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
 			ring->cpu_online = false;
@@ -325,7 +326,6 @@ pr_err("*1\n");
 			ring->buffer = NULL;
 			ring->info = NULL;
 		}
-pr_err("*2\n");
 
 		for_each_online_cpu(cpu) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
@@ -340,7 +340,6 @@ pr_err("*2\n");
 
 			ring->cpu_online = true;
 		}
-pr_err("*3\n");
 
 		list_add_rcu(&consumer->node, &g_consumer_list);
 		in_list = true;
@@ -1803,6 +1802,7 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	switch (action) {
 	case CPU_UP_PREPARE:
 	case CPU_UP_PREPARE_FROZEN:
+
 		rcu_read_lock();
 
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
