@@ -256,10 +256,10 @@ static int ppm_open(struct inode *inode, struct file *filp)
 {
 	int ret;
 	int in_list = false;
-	struct ppm_ring_buffer_context *ring = NULL;
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
 	struct task_struct *consumer_id = current;
 	struct ppm_consumer_t *consumer = NULL;
+	struct ppm_ring_buffer_context *ring = NULL;
 
 	/*
 	 * Tricky: to identify a consumer, attach the thread id
@@ -318,7 +318,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		 */
 pr_err("*1\n");
 		for_each_online_cpu(cpu) {
-			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
 			ring->cpu_online = false;
 			ring->str_storage = NULL;
@@ -328,9 +328,11 @@ pr_err("*1\n");
 pr_err("*2\n");
 
 		for_each_online_cpu(cpu) {
+			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+
 			pr_info("initializing ring buffer for CPU %u\n", cpu);
 
-			if (!init_ring_buffer(per_cpu_ptr(consumer->ring_buffers, cpu))) {
+			if (!init_ring_buffer(ring)) {
 				pr_err("can't initialize the ring buffer for CPU %u\n", cpu);
 				ret = -ENOMEM;
 				goto err_init_ring_buffer;
