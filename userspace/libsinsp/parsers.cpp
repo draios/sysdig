@@ -1727,22 +1727,22 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	//
 	if(family == PPM_AF_INET)
 	{
-		evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
-		evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip = *(uint32_t *)(packed_data + 1);
-		evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = *(uint16_t *)(packed_data + 5);
+		uint16_t port = *(uint16_t *)(packed_data + 5);
+		if(port > 0)
+		{
+			evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
+			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
+		}
 	}
 	else if (family == PPM_AF_INET6)
 	{
-		evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
-		if(sinsp_utils::is_ipv4_mapped_ipv6(packed_data + 1))
+		uint16_t port = *(uint16_t *)(packed_data + 17);
+		if(port > 0)
 		{
-			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip = *(uint32_t *)(packed_data + 13);
+			evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
+			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
 		}
-		evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = *(uint16_t *)(packed_data + 17);
 	}
-	g_logger.format(sinsp_logger::SEV_DEBUG, "bind parsed, fd=%d, family=%u, ip=%u, port=%u", family,
-					evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip,
-					evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port);
 	//
 	// Update the name of this socket
 	//
