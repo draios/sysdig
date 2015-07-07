@@ -19,12 +19,12 @@
 set -e
 
 function set_proxy {
-    echo "* Using proxy ${1}"
-    export {http,https}_proxy="${1}"
+	echo "* Using proxy ${1}"
+	export {http,https}_proxy="${1}"
 }
 
 function unset_proxy {
-    unset {http,https}_proxy
+	unset {http,https}_proxy
 }
 
 function install_rpm {
@@ -97,7 +97,7 @@ function kernel_warning {
 }
 
 function help {
-    echo "Usage: $(basename ${0}) [-p | --proxy] [-h | --help]"
+	echo "Usage: $(basename ${0}) [-p | --proxy] [-h | --help]"
 	echo "  proxy: if you are installing sysdig behind a proxy" 
 	echo "         (e.g. http://<proxy_endpoint>:<proxy_port> or http://<user>:<password>@<proxy_endpoint>:<proxy_port>)"
 	echo "  help: print this usage and exit"
@@ -115,29 +115,29 @@ function is_valid_value {
 
 while [[ ${#} > 0 ]]
 	do
-        key="${1}"
+		key="${1}"
 
-        case ${key} in
-            -p|--proxy)
-                if is_valid_value "${2}"; then
-                    PROXY="${2}"
-                else
-                    echo "ERROR: no value provided for proxy endpoint option, use -h | --help for $(basename ${0}) Usage"
-                    exit 1
-                fi
-                shift
-                ;;
-            -h|--help)
-                help
-                exit 1
-                ;;
-            *)
-                echo "ERROR: Invalid option: ${1}, use -h | --help for $(basename ${0}) Usage"
-                exit 1
-                ;;
-        esac
-        shift
-    done
+		case ${key} in
+			-p|--proxy)
+				if is_valid_value "${2}"; then
+					PROXY="${2}"
+				else
+					echo "ERROR: no value provided for proxy endpoint option, use -h | --help for $(basename ${0}) Usage"
+					exit 1
+				fi
+				shift
+				;;
+			-h|--help)
+				help
+				exit 1
+				;;
+			*)
+				echo "ERROR: Invalid option: ${1}, use -h | --help for $(basename ${0}) Usage"
+				exit 1
+				;;
+		esac
+		shift
+	done
 
 if [ $(id -u) != 0 ]; then
 	echo "Installer must be run as root (or with sudo)."
@@ -145,7 +145,7 @@ if [ $(id -u) != 0 ]; then
 fi
 
 if [ ! -z "${PROXY}" ]; then
-    set_proxy "${PROXY}"
+	set_proxy "${PROXY}"
 fi
 
 echo "* Detecting operating system"
@@ -236,7 +236,7 @@ else
 fi
 
 if [ ! -z "${PROXY}" ]; then
-    unset_proxy
+	unset_proxy
 fi
 
 exit 0
