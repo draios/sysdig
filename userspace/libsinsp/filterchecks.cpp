@@ -4079,14 +4079,12 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 	char* payload = parinfo->m_val;
 	uint16_t nfds = *(uint16_t *)payload;
 	uint32_t pos = 2;
-	uint32_t spos = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
 	m_strval.clear();
 
 	for(j = 0; j < nfds; j++)
 	{
-		char tch;
 		bool add_comma = true;
 		int64_t fd = *(int64_t *)(payload + pos);
 
