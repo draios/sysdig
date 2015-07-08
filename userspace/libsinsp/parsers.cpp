@@ -1162,7 +1162,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	else
 	{
 		tinfo.m_vtid = tinfo.m_tid;
-		tinfo.m_vpid = tinfo.m_vpid;
+		tinfo.m_vpid = tinfo.m_pid;
 	}
 
 	//
