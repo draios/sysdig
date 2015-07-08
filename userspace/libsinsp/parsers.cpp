@@ -1723,7 +1723,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	family = *packed_data;
 
 	//
-	// Update the FD info with this tuple
+	// Update the FD info with this tuple, assume that if port > 0, means that
+	// the socket is used for listening
 	//
 	if(family == PPM_AF_INET)
 	{
