@@ -20,7 +20,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linux/compat.h>
 #include <linux/cdev.h>
-#include <asm/syscall.h>
+#include "syscall.h"
 #include <asm/unistd.h>
 #include <net/sock.h>
 #include <net/af_unix.h>
@@ -34,7 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
-#include <linux/cgroup.h>
+//#include <linux/cgroup.h>
 #include <asm/mman.h>
 
 #include "ppm_ringbuffer.h"
@@ -618,10 +618,12 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_FS)
 		res |= PPM_CL_CLONE_FS;
 
+#ifdef CLONE_IO
 	if (flags & CLONE_IO)
 		res |= PPM_CL_CLONE_IO;
+#endif
 
-	if (flags & CLONE_NEWIPC)
+	/*if (flags & CLONE_NEWIPC)
 		res |= PPM_CL_CLONE_NEWIPC;
 
 	if (flags & CLONE_NEWNET)
@@ -634,7 +636,7 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 		res |= PPM_CL_CLONE_NEWPID;
 
 	if (flags & CLONE_NEWUTS)
-		res |= PPM_CL_CLONE_NEWUTS;
+		res |= PPM_CL_CLONE_NEWUTS;*/
 
 	if (flags & CLONE_PARENT_SETTID)
 		res |= PPM_CL_CLONE_PARENT_SETTID;
@@ -660,8 +662,8 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_VM)
 		res |= PPM_CL_CLONE_VM;
 
-	if (flags & CLONE_NEWUSER)
-		res |= PPM_CL_CLONE_NEWUSER;
+	/*if (flags & CLONE_NEWUSER)
+		res |= PPM_CL_CLONE_NEWUSER;*/
 
 	return res;
 }
@@ -708,6 +710,7 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 	return 0;
 }
 
+#ifdef CONFIG_CGROUPS
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 {
@@ -746,7 +749,6 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 }
 #endif
 
-#ifdef CONFIG_CGROUPS
 static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int* available)
 {
 	int pathlen;
@@ -1015,10 +1017,10 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * ptid
 	 */
-	if (current->real_parent)
+	//if (current->real_parent)
 		ptid = current->parent->pid;
-	else
-		ptid = 0;
+	//else
+	//	ptid = 0;
 
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -1040,7 +1042,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * fdlimit
 	 */
-	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
+	res = val_to_ring(args, (int64_t)10, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1117,8 +1119,8 @@ cgroups_error:
 		uint64_t euid = from_kuid_munged(current_user_ns(), current_euid());
 		uint64_t egid = from_kgid_munged(current_user_ns(), current_egid());
 #else
-		uint64_t euid = current_euid();
-		uint64_t egid = current_egid();
+		uint64_t euid = current->euid;
+		uint64_t egid = current->egid;
 #endif
 
 		/*
@@ -1150,14 +1152,14 @@ cgroups_error:
 		/*
 		 * vtid
 		 */
-		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
+		res = val_to_ring(args, current->pid, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
 		/*
 		 * vpid
 		 */
-		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
+		res = val_to_ring(args, current->tgid, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
@@ -2191,7 +2193,7 @@ static int f_sys_pipe_x(struct event_filler_arguments *args)
 	file = fget(fds[0]);
 	val = 0;
 	if (likely(file != NULL)) {
-		val = file->f_path.dentry->d_inode->i_ino;
+		val = file->f_dentry->d_inode->i_ino;
 		fput(file);
 	}
 
@@ -2230,13 +2232,13 @@ static int f_sys_eventfd_e(struct event_filler_arguments *args)
 
 static inline u16 shutdown_how_to_scap(unsigned long how)
 {
-	if (how == SHUT_RD) {
+	//if (how == SHUT_RD) {
 		return PPM_SHUT_RD;
-	} else if (how == SHUT_WR) {
-		return SHUT_WR;
-	} else if (how == SHUT_RDWR) {
-		return SHUT_RDWR;
-	}
+	//} else if (how == SHUT_WR) {
+	//	return SHUT_WR;
+	//} else if (how == SHUT_RDWR) {
+	//	return SHUT_RDWR;
+	//}
 
 	ASSERT(false);
 	return (u16)how;
@@ -2297,20 +2299,20 @@ static inline u16 futex_op_to_scap(unsigned long op)
 		res = PPM_FU_FUTEX_UNLOCK_PI;
 	else if (flt_op == FUTEX_TRYLOCK_PI)
 		res = PPM_FU_FUTEX_TRYLOCK_PI;
-	else if (flt_op == FUTEX_WAIT_BITSET)
-		res = PPM_FU_FUTEX_WAIT_BITSET;
-	else if (flt_op == FUTEX_WAKE_BITSET)
-		res = PPM_FU_FUTEX_WAKE_BITSET;
-	else if (flt_op == FUTEX_WAIT_REQUEUE_PI)
-		res = PPM_FU_FUTEX_WAIT_REQUEUE_PI;
-	else if (flt_op == FUTEX_CMP_REQUEUE_PI)
-		res = PPM_FU_FUTEX_CMP_REQUEUE_PI;
+	//else if (flt_op == FUTEX_WAIT_BITSET)
+	//	res = PPM_FU_FUTEX_WAIT_BITSET;
+	//else if (flt_op == FUTEX_WAKE_BITSET)
+	//	res = PPM_FU_FUTEX_WAKE_BITSET;
+	//else if (flt_op == FUTEX_WAIT_REQUEUE_PI)
+	//	res = PPM_FU_FUTEX_WAIT_REQUEUE_PI;
+	//else if (flt_op == FUTEX_CMP_REQUEUE_PI)
+	//	res = PPM_FU_FUTEX_CMP_REQUEUE_PI;
 
 	if (op & FUTEX_PRIVATE_FLAG)
 		res |= PPM_FU_FUTEX_PRIVATE_FLAG;
 
-	if (op & FUTEX_CLOCK_REALTIME)
-		res |= PPM_FU_FUTEX_CLOCK_REALTIME;
+	//if (op & FUTEX_CLOCK_REALTIME)
+	//	res |= PPM_FU_FUTEX_CLOCK_REALTIME;
 
 	return res;
 }
@@ -3020,8 +3022,8 @@ static inline u8 rlimit_resource_to_scap(unsigned long rresource)
 		return PPM_RLIMIT_NICE;
 	case RLIMIT_RTPRIO:
 		return PPM_RLIMIT_RTPRIO;
-	case RLIMIT_RTTIME:
-		return PPM_RLIMIT_RTTIME;
+	//case RLIMIT_RTTIME:
+	//	return PPM_RLIMIT_RTTIME;
 	default:
 		return PPM_RLIMIT_UNKNOWN;
 	}
@@ -3333,18 +3335,18 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	case F_SETLKW64:
 		return PPM_FCNTL_F_SETLKW64;
 #endif
-	case F_SETOWN_EX:
-		return PPM_FCNTL_F_SETOWN_EX;
-	case F_GETOWN_EX:
-		return PPM_FCNTL_F_GETOWN_EX;
+	//case F_SETOWN_EX:
+	//	return PPM_FCNTL_F_SETOWN_EX;
+	//case F_GETOWN_EX:
+	//	return PPM_FCNTL_F_GETOWN_EX;
 	case F_SETLEASE:
 		return PPM_FCNTL_F_SETLEASE;
 	case F_GETLEASE:
 		return PPM_FCNTL_F_GETLEASE;
 	case F_CANCELLK:
 		return PPM_FCNTL_F_CANCELLK;
-	case F_DUPFD_CLOEXEC:
-		return PPM_FCNTL_F_DUPFD_CLOEXEC;
+	//case F_DUPFD_CLOEXEC:
+	//	return PPM_FCNTL_F_DUPFD_CLOEXEC;
 	case F_NOTIFY:
 		return PPM_FCNTL_F_NOTIFY;
 #ifdef F_SETPIPE_SZ

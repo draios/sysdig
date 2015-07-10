@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #include <linux/atomic.h>
 #endif
+#include <linux/kobject.h>
 #include <linux/cdev.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -35,7 +36,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
 #include <linux/jiffies.h>
-#include <asm/syscall.h>
+#include <trace/sched.h>
+#include "syscall.h"
 #include <net/sock.h>
 
 #include <asm/unistd.h>
@@ -59,6 +61,10 @@ MODULE_AUTHOR("sysdig inc");
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, NULL)
     #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, NULL)
     #define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
+#endif
+
+#ifndef NS_syscalls
+#define NR_syscalls 339
 #endif
 
 struct ppm_device {
@@ -257,7 +263,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	int ret;
 	int in_list = false;
 	struct ppm_ring_buffer_context *ring = NULL;
-	int ring_no = iminor(filp->f_path.dentry->d_inode);
+	int ring_no = iminor(filp->f_dentry->d_inode);
 	struct task_struct *consumer_id = current;
 	struct ppm_consumer_t *consumer = NULL;
 
@@ -443,7 +449,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 {
 	int ret;
 	struct ppm_ring_buffer_context *ring;
-	int ring_no = iminor(filp->f_path.dentry->d_inode);
+	int ring_no = iminor(filp->f_dentry->d_inode);
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
 
@@ -496,7 +502,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
-			tracepoint_synchronize_unregister();
+			//tracepoint_synchronize_unregister();
 			g_tracepoint_registered = false;
 		} else {
 			ASSERT(false);
@@ -529,7 +535,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case PPM_IOCTL_DISABLE_CAPTURE:
 	{
-		int ring_no = iminor(filp->f_path.dentry->d_inode);
+		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
 		ring->capture_enabled = false;
@@ -541,7 +547,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case PPM_IOCTL_ENABLE_CAPTURE:
 	{
-		int ring_no = iminor(filp->f_path.dentry->d_inode);
+		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
 		ring->capture_enabled = true;
@@ -683,7 +689,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-	case PPM_IOCTL_GET_VTID:
+	/*case PPM_IOCTL_GET_VTID:
 	case PPM_IOCTL_GET_VPID:
 	{
 		pid_t vid;
@@ -721,12 +727,12 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		rcu_read_unlock();
 		ret = vid;
 		goto cleanup_ioctl;
-	}
+	}*/
 	case PPM_IOCTL_GET_CURRENT_TID:
-		ret = task_pid_nr(current);
+		ret = current->pid;
 		goto cleanup_ioctl;
 	case PPM_IOCTL_GET_CURRENT_PID:
-		ret = task_tgid_nr(current);
+		ret = current->tgid;
 		goto cleanup_ioctl;
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
@@ -867,7 +873,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		unsigned long pfn;
 		char *vmalloc_area_ptr;
 		char *orig_vmalloc_area_ptr;
-		int ring_no = iminor(filp->f_path.dentry->d_inode);
+		int ring_no = iminor(filp->f_dentry->d_inode);
 		struct ppm_ring_buffer_context *ring;
 
 		vpr_info("mmap for consumer %p, CPU %d, start=%lu len=%ld page_size=%lu\n",
@@ -1564,7 +1570,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
 
-	if (unlikely(current->flags & PF_KTHREAD)) {
+	if (unlikely(current->flags & 0x00200000)) {
 		/*
 		 * We are not interested in kernel threads
 		 */
@@ -1803,7 +1809,7 @@ int sysdig_init(void)
 		goto init_module_err;
 	}
 
-	g_ppm_class->devnode = ppm_devnode;
+	//g_ppm_class->devnode = ppm_devnode;
 
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
@@ -1936,7 +1942,7 @@ void sysdig_exit(void)
 
 	kfree(g_ppm_devs);
 
-	tracepoint_synchronize_unregister();
+	//tracepoint_synchronize_unregister();
 }
 
 module_init(sysdig_init);

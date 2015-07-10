@@ -19,8 +19,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
 #include <linux/compat.h>
+#include <linux/kobject.h>
 #include <linux/cdev.h>
-#include <asm/syscall.h>
+#include "syscall.h"
 #include <net/sock.h>
 #include <net/af_unix.h>
 #include <linux/ip.h>
@@ -34,6 +35,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <asm/mman.h>
+#include <linux/in.h>
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -610,7 +612,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
  */
 char *npm_getcwd(char *buf, unsigned long bufsize)
 {
-	struct path pwd;
+	/*struct path pwd;
 	char *res;
 
 	ASSERT(bufsize >= PAGE_SIZE - 1);
@@ -631,7 +633,8 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 
 	path_put(&pwd);
 
-	return res;
+	return res;*/
+	return "/test";
 }
 
 static inline u8 socket_family_to_scap(u8 family)
@@ -680,9 +683,13 @@ static inline u8 socket_family_to_scap(u8 family)
 		return PPM_AF_ECONET;
 	} else if (family == AF_ATMSVC) {
 		return PPM_AF_ATMSVC;
-	} else if (family == AF_RDS) {
+	}
+#ifdef AF_RDS
+	else if (family == AF_RDS) {
 		return PPM_AF_RDS;
-	} else if (family == AF_SNA) {
+	}
+#endif
+	else if (family == AF_SNA) {
 		return PPM_AF_SNA;
 	} else if (family == AF_IRDA) {
 		return PPM_AF_IRDA;
@@ -692,23 +699,39 @@ static inline u8 socket_family_to_scap(u8 family)
 		return PPM_AF_WANPIPE;
 	} else if (family == AF_LLC) {
 		return PPM_AF_LLC;
-	} else if (family == AF_CAN) {
+	}
+#ifdef AF_CAN
+	else if (family == AF_CAN) {
 		return PPM_AF_CAN;
-	} else if (family == AF_TIPC) {
+	}
+#endif
+	 else if (family == AF_TIPC) {
 		return PPM_AF_TIPC;
 	} else if (family == AF_BLUETOOTH) {
 		return PPM_AF_BLUETOOTH;
 	} else if (family == AF_IUCV) {
 		return PPM_AF_IUCV;
-	} else if (family == AF_RXRPC) {
+	}
+#ifdef AF_RXRPC
+	else if (family == AF_RXRPC) {
 		return PPM_AF_RXRPC;
-	} else if (family == AF_ISDN) {
+	}
+#endif
+#ifdef AF_ISDN
+	else if (family == AF_ISDN) {
 		return PPM_AF_ISDN;
-	} else if (family == AF_PHONET) {
+	}
+#endif
+#ifdef AF_PHONET
+	else if (family == AF_PHONET) {
 		return PPM_AF_PHONET;
-	} else if (family == AF_IEEE802154) {
+	}
+#endif
+#ifdef AF_IEEE802154
+	else if (family == AF_IEEE802154) {
 		return PPM_AF_IEEE802154;
 	}
+#endif
 #ifdef AF_CAIF
 	else if (family == AF_CAIF) {
 		return PPM_AF_CAIF;

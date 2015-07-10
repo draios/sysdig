@@ -194,7 +194,7 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 		res += 
 			sizeof(uint64_t) + // unix source 
 			sizeof(uint64_t) +  // unix destination
-			(uint32_t)strnlen(fdi->info.unix_socket_info.fname, SCAP_MAX_PATH_SIZE) + 2;
+			(uint32_t)strlen(fdi->info.unix_socket_info.fname) + 2;
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -205,7 +205,7 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 	case SCAP_FD_EVENTPOLL:
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
-		res += (uint32_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE) + 2;    // 2 is the length field before the string
+		res += (uint32_t)strlen(fdi->info.fname) + 2;    // 2 is the length field before the string
 		break;
 	default:
 		ASSERT(false);
@@ -278,7 +278,7 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, gzFile f)
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
 			return SCAP_FAILURE;
 		}
-		stlen = (uint16_t)strnlen(fdi->info.unix_socket_info.fname, SCAP_MAX_PATH_SIZE);
+		stlen = (uint16_t)strlen(fdi->info.unix_socket_info.fname);
 		if(gzwrite(f, &stlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        (stlen > 0 && gzwrite(f, fdi->info.unix_socket_info.fname, stlen) != stlen))
 		{
@@ -295,7 +295,7 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, gzFile f)
 	case SCAP_FD_EVENTPOLL:
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
-		stlen = (uint16_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE);
+		stlen = (uint16_t)strlen(fdi->info.fname);
 		if(gzwrite(f, &stlen,  sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        (stlen > 0 && gzwrite(f, fdi->info.fname, stlen) != stlen))
 		{
