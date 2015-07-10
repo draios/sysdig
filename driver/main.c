@@ -154,7 +154,7 @@ static const struct file_operations g_ppe_fops = {
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
 static bool g_tracepoint_registered;
-static atomic_t g_open_count;
+//static atomic_t g_open_count;
 
 struct cdev *g_ppe_cdev = NULL;
 struct device *g_ppe_dev = NULL;
@@ -276,12 +276,13 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 *       critical section ensures that there are no other opens
 	 *       going on.
 	 */
+/*	 
 	if (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 		mutex_unlock(&g_consumer_mutex);
 		return -EBUSY;
 	}
-
+*/
 	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		unsigned int cpu;
@@ -467,7 +468,7 @@ err_sys_exit:
 err_init_ring_buffer:
 	check_remove_consumer(consumer, in_list);
 cleanup_open:
-	atomic_dec(&g_open_count);
+//	atomic_dec(&g_open_count);
 
 	mutex_unlock(&g_consumer_mutex);
 
@@ -490,12 +491,13 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	 *       critical section ensures that there are no other opens
 	 *       going on.
 	 */
+/*
 	if (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 		mutex_unlock(&g_consumer_mutex);
 		return -EBUSY;
 	}
-
+*/
 	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		pr_err("release: unknown consumer %p\n", consumer_id);
@@ -558,7 +560,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	ret = 0;
 
 cleanup_release:
-	atomic_dec(&g_open_count);
+//	atomic_dec(&g_open_count);
 	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
@@ -1825,11 +1827,12 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	/*
 	 * Make sure there are no opens running
 	 */
+/*	 
 	if (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 		return NOTIFY_DONE;
 	}
-
+*/
 	/*
 	 * We only care about new cpus being added for now, if they go away, no
 	 * worries, we just keep the memory allocated, as hopefully they will
@@ -1839,6 +1842,7 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	case CPU_UP_PREPARE:
 	case CPU_UP_PREPARE_FROZEN:
 
+		mutex_lock(&g_consumer_mutex);
 		rcu_read_lock();
 
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
@@ -1856,9 +1860,10 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 		}
 
 		rcu_read_unlock();
+		mutex_unlock(&g_consumer_mutex);
 	}
 
-	atomic_dec(&g_open_count);
+//	atomic_dec(&g_open_count);
 
 	return NOTIFY_DONE;
 }
@@ -1996,7 +2001,7 @@ int sysdig_init(void)
 	 * All ok. Final initalizations.
 	 */
 	g_tracepoint_registered = false;
-	atomic_set(&g_open_count, 0);
+//	atomic_set(&g_open_count, 0);
 
 	return 0;
 
