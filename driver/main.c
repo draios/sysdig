@@ -278,6 +278,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 */
 	if (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
+		mutex_unlock(&g_consumer_mutex);
 		return -EBUSY;
 	}
 
@@ -483,6 +484,18 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 	mutex_lock(&g_consumer_mutex);
 
+	/*
+	 * This makes sure that we don't interfere with cpu_callback.
+	 * Note: doing this check after we are in the g_consumer_mutex
+	 *       critical section ensures that there are no other opens
+	 *       going on.
+	 */
+	if (unlikely(atomic_inc_return(&g_open_count) != 1)) {
+		atomic_dec(&g_open_count);
+		mutex_unlock(&g_consumer_mutex);
+		return -EBUSY;
+	}
+
 	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		pr_err("release: unknown consumer %p\n", consumer_id);
@@ -545,6 +558,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	ret = 0;
 
 cleanup_release:
+	atomic_dec(&g_open_count);
 	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
