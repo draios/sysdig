@@ -235,7 +235,9 @@ pr_err(">RA %d", (int)g_open_count.counter);
 
 pr_err(">RB %d", (int)g_open_count.counter);
 		if (remove_from_list) {
+pr_err(">RB1 %d", (int)g_open_count.counter);
 			list_del_rcu(&consumer->node);
+pr_err(">RB2 %d", (int)g_open_count.counter);
 			synchronize_rcu();
 		}
 
@@ -281,10 +283,11 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 *       going on.
 	 */
 pr_err(">O %d", (int)g_open_count.counter);
+/*
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
-
+*/
 	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		unsigned int cpu;
@@ -471,7 +474,7 @@ err_init_ring_buffer:
 	check_remove_consumer(consumer, in_list);
 cleanup_open:
 pr_err("<O %d", (int)g_open_count.counter);
-	atomic_dec(&g_open_count);
+//	atomic_dec(&g_open_count);
 
 	mutex_unlock(&g_consumer_mutex);
 
@@ -495,10 +498,11 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	 *       going on.
 	 */
 pr_err(">R %d", (int)g_open_count.counter);
+/*
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
-
+*/
 	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		pr_err("release: unknown consumer %p\n", consumer_id);
@@ -564,7 +568,7 @@ pr_err(">R2 %d", (int)g_open_count.counter);
 
 cleanup_release:
 pr_err("<R %d", (int)g_open_count.counter);
-	atomic_dec(&g_open_count);
+//	atomic_dec(&g_open_count);
 	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
@@ -1835,10 +1839,11 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	 * Make sure there are no opens running
 	 */
 pr_err(">C %d", (int)g_open_count.counter);
+/*
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
-
+*/
 	/*
 	 * We only care about new cpus being added for now, if they go away, no
 	 * worries, we just keep the memory allocated, as hopefully they will
@@ -1870,7 +1875,7 @@ pr_err(">CC %d", (int)g_open_count.counter);
 	}
 
 pr_err("<C %d", (int)g_open_count.counter);
-	atomic_dec(&g_open_count);
+//	atomic_dec(&g_open_count);
 	return NOTIFY_DONE;
 }
 
