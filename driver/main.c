@@ -1848,8 +1848,10 @@ pr_err(">C %d", (int)g_open_count.counter);
 	switch (action) {
 	case CPU_UP_PREPARE:
 	case CPU_UP_PREPARE_FROZEN:
+pr_err(">CA %d", (int)g_open_count.counter);
 		rcu_read_lock();
 
+pr_err(">CB %d", (int)g_open_count.counter);
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 			if (!ring->cpu_online) {
@@ -1857,6 +1859,7 @@ pr_err(">C %d", (int)g_open_count.counter);
 					cpu,
 					consumer);
 
+pr_err(">CC %d", (int)g_open_count.counter);
 				if (!init_ring_buffer(per_cpu_ptr(consumer->ring_buffers, cpu)))
 					pr_err("can't initialize the ring buffer for CPU %lu , consumer %p\n", 
 						cpu,
