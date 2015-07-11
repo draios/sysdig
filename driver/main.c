@@ -276,7 +276,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 *       critical section ensures that there are no other opens
 	 *       going on.
 	 */
-pr_err("O %d", (int)g_open_count.counter);
+pr_err(">O %d", (int)g_open_count.counter);
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
@@ -466,6 +466,7 @@ err_sys_exit:
 err_init_ring_buffer:
 	check_remove_consumer(consumer, in_list);
 cleanup_open:
+pr_err("<O %d", (int)g_open_count.counter);
 	atomic_dec(&g_open_count);
 
 	mutex_unlock(&g_consumer_mutex);
@@ -489,7 +490,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	 *       critical section ensures that there are no other opens
 	 *       going on.
 	 */
-pr_err("R %d", (int)g_open_count.counter);
+pr_err(">R %d", (int)g_open_count.counter);
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
@@ -556,6 +557,7 @@ pr_err("R %d", (int)g_open_count.counter);
 	ret = 0;
 
 cleanup_release:
+pr_err("<R %d", (int)g_open_count.counter);
 	atomic_dec(&g_open_count);
 	mutex_unlock(&g_consumer_mutex);
 
@@ -1823,7 +1825,7 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	/*
 	 * Make sure there are no opens running
 	 */
-pr_err("C %d", (int)g_open_count.counter);
+pr_err(">C %d", (int)g_open_count.counter);
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
@@ -1855,6 +1857,7 @@ pr_err("C %d", (int)g_open_count.counter);
 		rcu_read_unlock();
 	}
 
+pr_err("<C %d", (int)g_open_count.counter);
 	atomic_dec(&g_open_count);
 	return NOTIFY_DONE;
 }
