@@ -275,7 +275,8 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 * Note: doing this check after we are in the g_consumer_mutex
 	 *       critical section ensures that there are no other opens
 	 *       going on.
-	 */ 
+	 */
+pr_err("O %d", (int)g_open_count.counter);
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
@@ -488,6 +489,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	 *       critical section ensures that there are no other opens
 	 *       going on.
 	 */
+pr_err("R %d", (int)g_open_count.counter);
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
@@ -1821,6 +1823,7 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	/*
 	 * Make sure there are no opens running
 	 */
+pr_err("C %d", (int)g_open_count.counter);
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
 	}
