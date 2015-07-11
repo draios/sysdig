@@ -223,6 +223,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 	int cpu;
 	int open_rings = 0;
 
+pr_err(">RA %d", (int)g_open_count.counter);
 	for_each_possible_cpu(cpu) {
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 		if (ring && ring->open)
@@ -232,18 +233,22 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 	if (open_rings == 0) {
 		pr_info("deallocating consumer %p\n", consumer->consumer_id);
 
+pr_err(">RB %d", (int)g_open_count.counter);
 		if (remove_from_list) {
 			list_del_rcu(&consumer->node);
 			synchronize_rcu();
 		}
 
+pr_err(">RC %d", (int)g_open_count.counter);
 		for_each_possible_cpu(cpu) {
 			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
+pr_err(">RD %d", (int)g_open_count.counter);
 			if (ring->cpu_online)
 				free_ring_buffer(ring);
 		}
 
+pr_err(">RE %d", (int)g_open_count.counter);
 		free_percpu(consumer->ring_buffers);
 
 		vfree(consumer);
@@ -528,8 +533,10 @@ pr_err(">R %d", (int)g_open_count.counter);
 
 	ring->open = false;
 
+pr_err(">R1 %d", (int)g_open_count.counter);
 	check_remove_consumer(consumer, true);
 
+pr_err(">R2 %d", (int)g_open_count.counter);
 	/*
 	 * The last closed device stops event collection
 	 */
@@ -1728,12 +1735,15 @@ err_str_storage:
 
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 {
+pr_err(">F1 %d", (int)g_open_count.counter);
 	if (ring->info)
 		vfree(ring->info);
 
+pr_err(">F2 %d", (int)g_open_count.counter);
 	if (ring->buffer)
 		vfree((void *)ring->buffer);
 
+pr_err(">F3 %d", (int)g_open_count.counter);
 	if (ring->str_storage)
 		free_page((unsigned long)ring->str_storage);
 }
