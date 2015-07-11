@@ -243,7 +243,6 @@ pr_err(">RC %d", (int)g_open_count.counter);
 		for_each_possible_cpu(cpu) {
 			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
-pr_err(">RD %d", (int)g_open_count.counter);
 			if (ring->cpu_online)
 				free_ring_buffer(ring);
 		}
