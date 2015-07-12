@@ -1853,6 +1853,7 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	long cpu = (long)hcpu;
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_consumer_t *consumer;
+	int j = 0;
 
 	/*
 	 * Make sure there are no opens running
@@ -1880,14 +1881,14 @@ pr_err(">CB %d", (int)g_open_count.counter);
 			if (!ring->cpu_online) {
 				pr_info("initializing ring buffer for CPU %lu, consumer %p\n", 
 					cpu,
-					consumer);
+					consumer->consumer_id);
 
-pr_err(">CC %d", (int)g_open_count.counter);
+pr_err(">CC* %d", (int)j);
 				if (!init_ring_buffer(per_cpu_ptr(consumer->ring_buffers, cpu)))
 					pr_err("can't initialize the ring buffer for CPU %lu , consumer %p\n", 
 						cpu,
-						consumer);
-pr_err(">CD %d", (int)g_open_count.counter);
+						consumer->consumer_id);
+pr_err(">CD* %d", (int)j);
 			}
 		}
 
