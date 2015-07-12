@@ -100,6 +100,7 @@ const struct ppm_name_value clone_flags[] = {
 	{"CLONE_INVERTED", PPM_CL_CLONE_INVERTED},
 	{"NAME_CHANGED", PPM_CL_NAME_CHANGED},
 	{"CLOSED", PPM_CL_CLOSED},
+	{"CLONE_NEWUSER", PPM_CL_CLONE_NEWUSER},
 	{ },
 };
 

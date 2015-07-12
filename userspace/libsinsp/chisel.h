@@ -77,7 +77,6 @@ public:
 	sinsp_view_info m_viewinfo;
 };
 
-
 class chiselinfo
 {
 public:
@@ -107,12 +106,18 @@ public:
 	static void add_lua_package_path(lua_State* ls, const char* path);
 	static void get_chisel_list(vector<chisel_desc>* chisel_descs);
 	void load(string cmdstr);
+	string get_name()
+	{
+		return m_filename;
+	}
 	uint32_t get_n_args();
 	uint32_t get_n_optional_args();
 	uint32_t get_n_required_args();
 	void set_args(string args);
+	void set_args(vector<pair<string, string>> args);
 	bool run(sinsp_evt* evt);
 	void do_timeout(sinsp_evt* evt);
+	void do_end_of_sample();
 	void on_init();
 	void on_capture_start();
 	void on_capture_end();

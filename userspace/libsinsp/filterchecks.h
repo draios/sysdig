@@ -97,7 +97,7 @@ public:
 	//
 	virtual Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
 	{
-		return Json::Value::null;
+		return Json::Value::nullRef;
 	}
 
 	//
@@ -622,6 +622,32 @@ public:
 
 private:
 	uint64_t m_cnt;
+};
+
+//
+// fdlist checks
+//
+class sinsp_filter_check_fdlist : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_FDNUMS = 0,
+		TYPE_FDNAMES = 1,
+		TYPE_CLIENTIPS = 2,
+		TYPE_SERVERIPS = 3,
+		TYPE_CLIENTPORTS = 4,
+		TYPE_SERVERPORTS = 5,
+	};
+
+	sinsp_filter_check_fdlist();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	string m_strval;
+	char m_addrbuff[100];
 };
 
 #endif // HAS_FILTERING

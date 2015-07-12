@@ -252,6 +252,7 @@ pr_err(">RC %d", (int)g_open_count.counter);
 pr_err(">RE %d", (int)g_open_count.counter);
 		free_percpu(consumer->ring_buffers);
 
+		kfree(consumer->proclist_info);
 		vfree(consumer);
 	}
 }
@@ -316,6 +317,7 @@ pr_err(">O %d", (int)g_open_count.counter);
 		}
 
 		consumer->consumer_id = consumer_id;
+		consumer->proclist_info = NULL;
 
 		/*
 		 * Initialize the ring buffers array
@@ -821,15 +823,29 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 		struct task_struct *p, *t;
 		u64 nentries = 0;
-		struct ppm_proclist_info* pli;
-		struct ppm_proc_info pi;
+		struct ppm_proclist_info pli;
+		u32 memsize;
 
 		if (copy_from_user(&pli, (void*)arg, sizeof(pli))) {
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
 
-		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli->max_entries);
+		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli.max_entries);
+
+		if (consumer->proclist_info == NULL || consumer->proclist_info->max_entries != pli.max_entries) {
+			if (consumer->proclist_info != NULL)
+				kfree(consumer->proclist_info);
+
+			memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * pli.max_entries;
+			consumer->proclist_info = kmalloc(memsize, GFP_KERNEL);
+			if(!consumer->proclist_info) {
+				ret = -EINVAL;
+				goto cleanup_ioctl;
+			}
+
+			consumer->proclist_info->max_entries = pli.max_entries;
+		}
 
 		rcu_read_lock();
 		
@@ -841,7 +857,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			do {
 				task_lock(p);
 #endif
-				if (nentries < pli->max_entries) {
+				if (nentries < pli.max_entries) {
 					cputime_t utime, stime;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0))
@@ -850,15 +866,9 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #else
 					ppm_task_cputime_adjusted(t, &utime, &stime);
 #endif
-					pi.pid = t->pid;
-					pi.utime = cputime_to_clock_t(utime);
-					pi.stime = cputime_to_clock_t(stime);
-
-					if (copy_to_user((void*)&pli->entries[nentries], &pi, sizeof(struct ppm_proc_info))) {
-						rcu_read_unlock();
-						ret = -EINVAL;
-						goto cleanup_ioctl;
-					}
+					consumer->proclist_info->entries[nentries].pid = t->pid;
+					consumer->proclist_info->entries[nentries].utime = cputime_to_clock_t(utime);
+					consumer->proclist_info->entries[nentries].stime = cputime_to_clock_t(stime);
 				}
 
 				nentries++;
@@ -872,18 +882,27 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		rcu_read_unlock();
 
-		if (copy_to_user((void*)&pli->n_entries, &nentries, sizeof(pli->n_entries))) {
-			ret = -EINVAL;
-			goto cleanup_ioctl;
-		}
+		consumer->proclist_info->n_entries = nentries;
 
-		if (nentries >= pli->max_entries) {
+		if (nentries >= pli.max_entries) {
 			vpr_info("PPM_IOCTL_GET_PROCLIST: not enough space (%d avail, %d required)\n", 
-				(int)pli->max_entries,
+				(int)pli.max_entries,
 				(int)nentries);
+
+			if (copy_to_user((void*)arg, consumer->proclist_info, sizeof(struct ppm_proclist_info))) {
+				ret = -EINVAL;
+				goto cleanup_ioctl;
+			}
 
 			ret = -ENOSPC;
 			goto cleanup_ioctl;
+		} else {
+			memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * nentries;
+			
+			if (copy_to_user((void*)arg, consumer->proclist_info, memsize)) {
+				ret = -EINVAL;
+				goto cleanup_ioctl;
+			}
 		}
 
 		ret = 0;
