@@ -1887,6 +1887,7 @@ pr_err(">CC %d", (int)g_open_count.counter);
 					pr_err("can't initialize the ring buffer for CPU %lu , consumer %p\n", 
 						cpu,
 						consumer);
+pr_err(">CD %d", (int)g_open_count.counter);
 			}
 		}
 
