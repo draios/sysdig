@@ -1859,6 +1859,8 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	 * Make sure there are no opens running
 	 */
 pr_err(">C %d", (int)g_open_count.counter);
+mutex_lock(&g_consumer_mutex);
+pr_err(">C1 %d", (int)g_open_count.counter);
 /*
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
@@ -1898,6 +1900,7 @@ pr_err(">CD %d", (int)j);
 
 pr_err("<C %d", (int)g_open_count.counter);
 //	atomic_dec(&g_open_count);
+mutex_unlock(&g_consumer_mutex);
 	return NOTIFY_DONE;
 }
 
