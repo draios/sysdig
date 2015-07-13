@@ -549,18 +549,26 @@ pr_err(">R2 %d", (int)g_open_count.counter);
 		if (g_tracepoint_registered) {
 			pr_info("no more consumers, stopping capture\n");
 
+pr_err(">RU1");
 			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+pr_err(">RU2");
 			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+pr_err(">RU3");
 			compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
+pr_err(">RU4");
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
 			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+pr_err(">RU5");
 #endif
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
+pr_err(">RU6");
 #endif
 			tracepoint_synchronize_unregister();
+pr_err(">RU7");
 			g_tracepoint_registered = false;
+pr_err(">RU8");
 		} else {
 			ASSERT(false);
 		}
