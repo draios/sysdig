@@ -1877,18 +1877,19 @@ pr_err(">CA %d", (int)g_open_count.counter);
 
 pr_err(">CB %d", (int)g_open_count.counter);
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
+pr_err(">CBB %d", (int)g_open_count.counter);
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 			if (!ring->cpu_online) {
 				pr_info("initializing ring buffer for CPU %lu, consumer %p\n", 
 					cpu,
 					consumer->consumer_id);
 
-pr_err(">CC* %d", (int)j);
+pr_err(">CC %d", (int)j);
 				if (!init_ring_buffer(per_cpu_ptr(consumer->ring_buffers, cpu)))
 					pr_err("can't initialize the ring buffer for CPU %lu , consumer %p\n", 
 						cpu,
 						consumer->consumer_id);
-pr_err(">CD* %d", (int)j);
+pr_err(">CD %d", (int)j);
 			}
 		}
 
