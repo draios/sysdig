@@ -1984,7 +1984,7 @@ int sysdig_init(void)
 		device = device_create(g_ppm_class, NULL, /* no parent device */
 				       g_ppm_devs[j].dev,
 				       NULL, /* no additional data */
-				       PPM_DEVICE_NAME "%d\n",
+				       PPM_DEVICE_NAME "%d",
 				       j);
 
 		if (IS_ERR(device)) {
