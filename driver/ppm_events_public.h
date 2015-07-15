@@ -95,6 +95,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_O_DIRECT (1 << 9)
 #define PPM_O_DIRECTORY (1 << 10)
 #define PPM_O_LARGEFILE (1 << 11)
+#define PPM_O_CLOEXEC	(1 << 12)
 
 /*
  * Clone flags

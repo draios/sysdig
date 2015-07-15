@@ -77,6 +77,7 @@ const struct ppm_name_value file_flags[] = {
 	{"O_RDWR", PPM_O_RDWR},
 	{"O_WRONLY", PPM_O_WRONLY},
 	{"O_RDONLY", PPM_O_RDONLY},
+	{"O_CLOEXEC", PPM_O_CLOEXEC},
 	{"O_NONE", PPM_O_NONE},
 	{0, 0},
 };

@@ -473,6 +473,9 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 	if (flags & O_LARGEFILE)
 		res |= PPM_O_LARGEFILE;
 
+	if (flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+
 	return res;
 }
 
