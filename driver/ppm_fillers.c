@@ -124,6 +124,7 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
 static int f_sys_setns_e(struct event_filler_arguments *args);
+static int f_cpu_hotplug_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -336,6 +337,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_GETDENTS64_X] = {f_sys_single_x},
 	[PPME_SYSCALL_SETNS_E] = {f_sys_setns_e},
 	[PPME_SYSCALL_SETNS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_CPU_HOTPLUG_E] = {f_cpu_hotplug_e},
 };
 
 /*
@@ -4456,3 +4458,24 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 #endif
+
+static int f_cpu_hotplug_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	/*
+	 * cpu
+	 */
+	res = val_to_ring(args, (uint64_t)args->sched_prev, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * action
+	 */
+	res = val_to_ring(args, (uint64_t)args->sched_next, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}

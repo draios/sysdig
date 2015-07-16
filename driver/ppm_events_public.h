@@ -645,7 +645,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_GETDENTS64_X = 239,
 	PPME_SYSCALL_SETNS_E = 240,
 	PPME_SYSCALL_SETNS_X = 241,
-	PPM_EVENT_MAX = 242
+	PPME_CPU_HOTPLUG_E = 242,
+	PPME_CPU_HOTPLUG_X = 243, /* This should never be called */
+	PPM_EVENT_MAX = 244
 };
 /*@}*/
 

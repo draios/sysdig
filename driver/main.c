@@ -1303,7 +1303,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 	ring_info->n_evts++;
 	if (event_datap->category == PPMC_CONTEXT_SWITCH && event_datap->event_info.context_data.sched_prev != NULL) {
-		if (event_type != PPME_SYSDIGEVENT_E) {
+		if (event_type != PPME_SYSDIGEVENT_E && event_type != PPME_CPU_HOTPLUG_E) {
 			ASSERT(event_datap->event_info.context_data.sched_prev != NULL);
 			ASSERT(event_datap->event_info.context_data.sched_next != NULL);
 			ring_info->n_context_switches++;
@@ -1861,7 +1861,9 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	long cpu = (long)hcpu;
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_consumer_t *consumer;
-	int j = 0;
+	bool event_recorded = false;
+	struct timespec ts;
+	struct event_data_t event_data;
 
 	/*
 	 * Make sure there are no opens running
@@ -1889,6 +1891,17 @@ pr_err(">CB %d\n", (int)g_open_count.counter);
 pr_err(">CBB %d\n", (int)g_open_count.counter);
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 			ring->capture_enabled = false;
+
+			getnstimeofday(&ts);
+
+			event_data.category = PPMC_CONTEXT_SWITCH;
+			event_data.event_info.context_data.sched_prev = (void *)cpu;
+			event_data.event_info.context_data.sched_next = (void *)1;
+
+			if (!event_recorded) {
+				record_event_consumer(consumer, PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &ts, &event_data);
+				event_recorded = true;
+			}
 		}
 
 		rcu_read_unlock();
