@@ -82,6 +82,15 @@ const struct ppm_name_value file_flags[] = {
 	{0, 0},
 };
 
+const struct ppm_name_value flock_flags[] = {
+	{"LOCK_SH", PPM_LOCK_SH},
+	{"LOCK_EX", PPM_LOCK_EX},
+	{"LOCK_NB", PPM_LOCK_NB},
+	{"LOCK_UN", PPM_LOCK_UN},
+	{"LOCK_NONE", PPM_LOCK_NONE},
+	{ },
+};
+
 const struct ppm_name_value clone_flags[] = {
 	{"CLONE_FILES", PPM_CL_CLONE_FILES},
 	{"CLONE_FS", PPM_CL_CLONE_FS},

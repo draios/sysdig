@@ -124,6 +124,7 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
 static int f_sys_setns_e(struct event_filler_arguments *args);
+static int f_sys_flock_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -336,6 +337,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_GETDENTS64_X] = {f_sys_single_x},
 	[PPME_SYSCALL_SETNS_E] = {f_sys_setns_e},
 	[PPME_SYSCALL_SETNS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_FLOCK_E] = {f_sys_flock_e},
+	[PPME_SYSCALL_FLOCK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 };
 
 /*
@@ -4399,6 +4402,45 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 
 	res = val_to_ring(args, uid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static inline u32 flock_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	if (flags & LOCK_EX)
+		res |= PPM_LOCK_EX;
+
+	if (flags & LOCK_SH)
+		res |= PPM_LOCK_SH;
+
+	if (flags & LOCK_UN)
+		res |= PPM_LOCK_UN;
+
+	if (flags & LOCK_NB)
+		res |= PPM_LOCK_NB;
+
+	return res;
+}
+
+static int f_sys_flock_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	u32 flags;
+
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	flags = flock_flags_to_scap(val);
+	res = val_to_ring(args, flags, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
 		return res;
 
 	return add_sentinel(args);
