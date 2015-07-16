@@ -1864,6 +1864,7 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	bool event_recorded = false;
 	struct timespec ts;
 	struct event_data_t event_data;
+	long sd_action = 0;
 
 	/*
 	 * Make sure there are no opens running
@@ -1883,12 +1884,21 @@ pr_err(">C %d\n", (int)g_open_count.counter);
 	switch (action) {
 	case CPU_UP_PREPARE:
 	case CPU_UP_PREPARE_FROZEN:
-pr_err(">CA %d\n", (int)g_open_count.counter);
+		sd_action = 1;
+		break;
+	case CPU_DOWN_PREPARE:
+	case CPU_DOWN_PREPARE_FROZEN:
+		sd_action = 2;
+		break;
+	default:
+		break;
+	}
+
+	if (sd_action != 0) {
 		rcu_read_lock();
 
-pr_err(">CB %d\n", (int)g_open_count.counter);
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-pr_err(">CBB %d\n", (int)g_open_count.counter);
+	pr_err(">CBB %d\n", (int)g_open_count.counter);
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 			ring->capture_enabled = false;
 
@@ -1896,7 +1906,7 @@ pr_err(">CBB %d\n", (int)g_open_count.counter);
 
 			event_data.category = PPMC_CONTEXT_SWITCH;
 			event_data.event_info.context_data.sched_prev = (void *)cpu;
-			event_data.event_info.context_data.sched_next = (void *)1;
+			event_data.event_info.context_data.sched_next = (void *)sd_action;
 
 			if (!event_recorded) {
 				record_event_consumer(consumer, PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &ts, &event_data);
