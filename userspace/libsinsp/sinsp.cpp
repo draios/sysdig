@@ -35,8 +35,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "cyclewriter.h"
 #include "protodecoder.h"
 #include "../libscap/scap-int.h"
-#include "../libscap/scap_next.h"
-//int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"

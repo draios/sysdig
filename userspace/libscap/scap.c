@@ -33,7 +33,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
 #include "scap-int.h"
-#include "scap_next.h"
 
 //#define NDEBUG
 #include <assert.h>
@@ -467,6 +466,13 @@ uint32_t scap_get_ndevs(scap_t* handle)
 {
 	return handle->m_ndevs;
 }
+
+//
+// function definition in case of non-inlining
+//
+#ifndef SCAP_INLINED
+#include "scap_next.h"
+#endif
 
 //
 // Return the process list for the given handle

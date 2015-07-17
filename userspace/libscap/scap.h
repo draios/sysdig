@@ -830,7 +830,12 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
 uint32_t scap_get_ndevs(scap_t* handle);
 
 // Retrieve a buffer of events from one of the cpus
-extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len);
+#ifndef SCAP_INLINED
+//extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len);
+extern int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
+#else
+#include "scap_next.h"
+#endif //SCAP_INLINED
 
 #ifdef PPM_ENABLE_SENTINEL
 // Get the sentinel at the beginning of the event

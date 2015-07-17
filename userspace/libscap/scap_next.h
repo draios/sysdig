@@ -1,4 +1,20 @@
+////////////////////////////////////////////////////////////////////////////
+// Functions definitions for inlining
+////////////////////////////////////////////////////////////////////////////
+
+#pragma once
+
 #include "settings.h"
+#include <unistd.h>
+
+#ifdef SCAP_INLINED
+#include "scap-int.h"
+#define SCAP_INLINED_STATIC static
+#define SCAP_INLINED_INLINE inline
+#else
+#define SCAP_INLINED_STATIC
+#define SCAP_INLINED_INLINE
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +43,7 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
-inline bool check_scap_next_wait(scap_t* handle)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE bool check_scap_next_wait(scap_t* handle)
 {
 	uint32_t j;
 	bool res = true;
@@ -63,7 +79,7 @@ inline bool check_scap_next_wait(scap_t* handle)
 	}
 }
 
-inline int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
 {
 	uint32_t thead;
 	uint32_t ttail;
@@ -115,7 +131,7 @@ inline int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT c
 	return SCAP_SUCCESS;
 }
 
-inline int32_t refill_read_buffers(scap_t* handle, bool wait)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* handle, bool wait)
 {
 	uint32_t j;
 	uint32_t ndevs = handle->m_ndevs;
@@ -248,7 +264,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 }
 
 #ifndef _WIN32
-inline int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 #else
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 #endif

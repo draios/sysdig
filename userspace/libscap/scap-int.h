@@ -20,6 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // Private definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 
+#pragma once
+
 #include "settings.h"
 
 #ifdef __cplusplus
@@ -116,7 +118,9 @@ struct scap_ns_socket_list
 //
 
 // Read the full event buffer for the given processor
+#ifndef SCAP_INLINED
 int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
+#endif
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
 // Remove an entry from the process list by parsin a PPME_PROC_EXIT event
