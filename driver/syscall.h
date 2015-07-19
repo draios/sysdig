@@ -220,26 +220,6 @@ static inline void syscall_set_arguments(struct task_struct *task,
 		}
 }
 
-#if 0
-static inline int syscall_get_arch(void)
-{
-#ifdef CONFIG_IA32_EMULATION
-	/*
-	 * TS_COMPAT is set for 32-bit syscall entry and then
-	 * remains set until we return to user mode.
-	 *
-	 * TIF_IA32 tasks should always have TS_COMPAT set at
-	 * system call time.
-	 *
-	 * x32 tasks should be considered AUDIT_ARCH_X86_64.
-	 */
-	/*if (task_thread_info(current)->status & TS_COMPAT)
-		return AUDIT_ARCH_I386;
-#endif
-	/* Both x32 and x86_64 are considered "64-bit". */
-	/*return AUDIT_ARCH_X86_64;
-}
-#endif /* 0 */
 #endif	/* CONFIG_X86_32 */
 
 #endif	/* _ASM_X86_SYSCALL_H */
