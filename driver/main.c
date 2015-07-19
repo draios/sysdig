@@ -154,7 +154,6 @@ static const struct file_operations g_ppe_fops = {
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
 static bool g_tracepoint_registered;
-static atomic_t g_open_count;
 
 struct cdev *g_ppe_cdev = NULL;
 struct device *g_ppe_dev = NULL;
@@ -271,17 +270,6 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	mutex_lock(&g_consumer_mutex);
 
-	/*
-	 * This makes sure that we don't interfere with cpu_callback.
-	 * Note: doing this check after we are in the g_consumer_mutex
-	 *       critical section ensures that there are no other opens
-	 *       going on.
-	 */
-/*
-	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
-		atomic_dec(&g_open_count);
-	}
-*/
 	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		unsigned int cpu;
@@ -468,9 +456,6 @@ err_sys_exit:
 err_init_ring_buffer:
 	check_remove_consumer(consumer, in_list);
 cleanup_open:
-pr_err("<O %d\n", (int)g_open_count.counter);
-//	atomic_dec(&g_open_count);
-
 	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
@@ -486,17 +471,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 	mutex_lock(&g_consumer_mutex);
 
-	/*
-	 * This makes sure that we don't interfere with cpu_callback.
-	 * Note: doing this check after we are in the g_consumer_mutex
-	 *       critical section ensures that there are no other opens
-	 *       going on.
-	 */
-/*
-	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
-		atomic_dec(&g_open_count);
-	}
-*/
 	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		pr_err("release: unknown consumer %p\n", consumer_id);
@@ -559,7 +533,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	ret = 0;
 
 cleanup_release:
-//	atomic_dec(&g_open_count);
 	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
@@ -1844,19 +1817,6 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	struct event_data_t event_data;
 	long sd_action = 0;
 
-	/*
-	 * Make sure there are no opens running
-	 */
-/*
-	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
-		atomic_dec(&g_open_count);
-	}
-*/
-	/*
-	 * We only care about new cpus being added for now, if they go away, no
-	 * worries, we just keep the memory allocated, as hopefully they will
-	 * come back someday...
-	 */
 	switch (action) {
 	case CPU_UP_PREPARE:
 	case CPU_UP_PREPARE_FROZEN:
@@ -1870,6 +1830,9 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 		break;
 	}
 
+	/*
+	 * Based on the action, spit an event in the first available ring
+	 */
 	if (sd_action != 0) {
 		rcu_read_lock();
 
@@ -1892,8 +1855,6 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 		rcu_read_unlock();
 	}
 
-pr_err("<C %d\n", (int)g_open_count.counter);
-//	atomic_dec(&g_open_count);
 	return NOTIFY_DONE;
 }
 
@@ -2030,7 +1991,6 @@ int sysdig_init(void)
 	 * All ok. Final initalizations.
 	 */
 	g_tracepoint_registered = false;
-	atomic_set(&g_open_count, 0);
 
 	return 0;
 
