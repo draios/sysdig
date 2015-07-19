@@ -223,7 +223,6 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 	int cpu;
 	int open_rings = 0;
 
-pr_err(">RA %d\n", (int)g_open_count.counter);
 	for_each_possible_cpu(cpu) {
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 		if (ring && ring->open)
@@ -233,15 +232,11 @@ pr_err(">RA %d\n", (int)g_open_count.counter);
 	if (open_rings == 0) {
 		pr_info("deallocating consumer %p\n", consumer->consumer_id);
 
-pr_err(">RB %d\n", (int)g_open_count.counter);
 		if (remove_from_list) {
-pr_err(">RB1 %d\n", (int)g_open_count.counter);
 			list_del_rcu(&consumer->node);
-pr_err(">RB2 %d\n", (int)g_open_count.counter);
 			synchronize_rcu();
 		}
 
-pr_err(">RC %d\n", (int)g_open_count.counter);
 		for_each_possible_cpu(cpu) {
 			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
@@ -249,7 +244,6 @@ pr_err(">RC %d\n", (int)g_open_count.counter);
 				free_ring_buffer(ring);
 		}
 
-pr_err(">RE %d\n", (int)g_open_count.counter);
 		free_percpu(consumer->ring_buffers);
 
 		kfree(consumer->proclist_info);
@@ -283,7 +277,6 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 *       critical section ensures that there are no other opens
 	 *       going on.
 	 */
-pr_err(">O %d\n", (int)g_open_count.counter);
 /*
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
@@ -499,7 +492,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	 *       critical section ensures that there are no other opens
 	 *       going on.
 	 */
-pr_err(">R %d\n", (int)g_open_count.counter);
 /*
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
@@ -538,10 +530,8 @@ pr_err(">R %d\n", (int)g_open_count.counter);
 
 	ring->open = false;
 
-pr_err(">R1 %d\n", (int)g_open_count.counter);
 	check_remove_consumer(consumer, true);
 
-pr_err(">R2 %d\n", (int)g_open_count.counter);
 	/*
 	 * The last closed device stops event collection
 	 */
@@ -549,26 +539,18 @@ pr_err(">R2 %d\n", (int)g_open_count.counter);
 		if (g_tracepoint_registered) {
 			pr_info("no more consumers, stopping capture\n");
 
-pr_err(">RU1\n");
 			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
-pr_err(">RU2\n");
 			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
-pr_err(">RU3\n");
 			compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
-pr_err(">RU4\n");
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
 			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
-pr_err(">RU5\n");
 #endif
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
-pr_err(">RU6\n");
 #endif
 			tracepoint_synchronize_unregister();
-pr_err(">RU7\n");
 			g_tracepoint_registered = false;
-pr_err(">RU8\n");
 		} else {
 			ASSERT(false);
 		}
@@ -577,7 +559,6 @@ pr_err(">RU8\n");
 	ret = 0;
 
 cleanup_release:
-pr_err("<R %d\n", (int)g_open_count.counter);
 //	atomic_dec(&g_open_count);
 	mutex_unlock(&g_consumer_mutex);
 
@@ -1765,15 +1746,12 @@ err_str_storage:
 
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 {
-pr_err(">F1 %d\n", (int)g_open_count.counter);
 	if (ring->info)
 		vfree(ring->info);
 
-pr_err(">F2 %d\n", (int)g_open_count.counter);
 	if (ring->buffer)
 		vfree((void *)ring->buffer);
 
-pr_err(">F3 %d\n", (int)g_open_count.counter);
 	if (ring->str_storage)
 		free_page((unsigned long)ring->str_storage);
 }
@@ -1869,8 +1847,6 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	/*
 	 * Make sure there are no opens running
 	 */
-pr_err(">C %d\n", (int)g_open_count.counter);
-
 /*
 	while (unlikely(atomic_inc_return(&g_open_count) != 1)) {
 		atomic_dec(&g_open_count);
@@ -1898,7 +1874,6 @@ pr_err(">C %d\n", (int)g_open_count.counter);
 		rcu_read_lock();
 
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-	pr_err(">CBB %d\n", (int)g_open_count.counter);
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 			ring->capture_enabled = false;
 
