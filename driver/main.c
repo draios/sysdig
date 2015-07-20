@@ -170,6 +170,7 @@ struct device *g_ppe_dev = NULL;
 struct class_device *g_ppe_dev = NULL;
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
 static struct tracepoint *tp_sys_enter;
 static struct tracepoint *tp_sys_exit;
 static struct tracepoint *tp_sched_process_exit;
@@ -179,6 +180,7 @@ static struct tracepoint *tp_sched_switch;
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static struct tracepoint *tp_signal_deliver;
 #endif
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)) */
 
 #ifdef _DEBUG
 static bool verbose = 1;
