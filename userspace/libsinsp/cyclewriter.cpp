@@ -180,6 +180,7 @@ cycle_writer::conclusion cycle_writer::next_file()
 			//
 			m_last_reason = "Maximum Number of Capture Files Written";
 
+			printf("%s\n", m_last_reason.c_str());
 			return DOQUIT;
 		}
 
@@ -256,7 +257,7 @@ cycle_writer::conclusion cycle_writer::next_file()
 	// with above) on to the end of m_last_file_name
 	// which we created from above.
 	//
-	if(m_file_limit > 0) 
+	if(m_rollover_mb > 0)
 	{
 		//
 		// If the first character value is null (explicitly set 

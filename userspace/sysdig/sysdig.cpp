@@ -49,7 +49,7 @@ vector<sinsp_chisel*> g_chisels;
 // Sysdig 0.1.85 had log-rotation options (-C,-G,-W), but they were problematic,
 // so I'm disabling them until they can be fixed
 //
-#define DISABLE_CGW
+//#define DISABLE_CGW
 
 static void usage();
 
