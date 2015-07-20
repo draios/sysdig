@@ -38,7 +38,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/jiffies.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include <trace/sched.h>
-#include "syscall.h"
+#include "ppm_syscall.h"
 #endif
 #include <net/sock.h>
 
