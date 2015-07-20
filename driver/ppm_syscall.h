@@ -10,7 +10,6 @@
  * See asm-generic/syscall.h for descriptions of what we must do here.
  */
 
-//#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #ifndef _ASM_X86_SYSCALL_H
 #define _ASM_X86_SYSCALL_H
 
@@ -224,4 +223,3 @@ static inline void syscall_set_arguments(struct task_struct *task,
 #endif	/* CONFIG_X86_32 */
 
 #endif	/* _ASM_X86_SYSCALL_H */
-//#endif /* LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20) */

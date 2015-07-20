@@ -1803,8 +1803,11 @@ int sysdig_init(void)
 	int acrret = 0;
 	int j;
 	int n_created_devices = 0;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	struct device *device = NULL;
-
+#else
+	struct class_device *device = NULL;
+#endif
 	pr_info("driver loading\n");
 
 	ret = get_tracepoint_handles();
