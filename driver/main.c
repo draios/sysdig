@@ -24,7 +24,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #include <linux/atomic.h>
 #endif
-#include <linux/kobject.h>
 #include <linux/cdev.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -37,6 +36,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tracepoint.h>
 #include <linux/jiffies.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include <linux/kobject.h>
 #include <trace/sched.h>
 #include "ppm_syscall.h"
 #include <trace/syscall.h>
@@ -64,10 +64,6 @@ MODULE_AUTHOR("sysdig inc");
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, NULL)
     #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, NULL)
     #define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
-#endif
-
-#ifndef NS_syscalls
-#define NR_syscalls 339
 #endif
 
 struct ppm_device {

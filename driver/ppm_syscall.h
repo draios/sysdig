@@ -20,6 +20,10 @@
 #include <asm/thread_info.h>	/* for TS_COMPAT */
 #include <asm/unistd.h>
 
+#ifndef NS_syscalls
+#define NR_syscalls (__NR_syscall_max + 1)
+#endif
+
 typedef void (*sys_call_ptr_t)(void);
 extern const sys_call_ptr_t sys_call_table[];
 
