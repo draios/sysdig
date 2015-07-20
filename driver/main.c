@@ -718,7 +718,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-	/*case PPM_IOCTL_GET_VTID:
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+	case PPM_IOCTL_GET_VTID:
 	case PPM_IOCTL_GET_VPID:
 	{
 		pid_t vid;
@@ -756,7 +757,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		rcu_read_unlock();
 		ret = vid;
 		goto cleanup_ioctl;
-	}*/
+	}
+#endif
 	case PPM_IOCTL_GET_CURRENT_TID:
 		ret = current->pid;
 		goto cleanup_ioctl;
