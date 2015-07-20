@@ -220,7 +220,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
 		}
 }
 
-/*
+#if 0
 static inline int syscall_get_arch(void)
 {
 #ifdef CONFIG_IA32_EMULATION
@@ -238,7 +238,8 @@ static inline int syscall_get_arch(void)
 #endif
 	/* Both x32 and x86_64 are considered "64-bit". */
 	/*return AUDIT_ARCH_X86_64;
-}*/
+}
+#endif /* 0 */
 #endif	/* CONFIG_X86_32 */
 
 #endif	/* _ASM_X86_SYSCALL_H */
