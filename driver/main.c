@@ -1833,11 +1833,16 @@ int sysdig_init(void)
 			goto init_module_err;
 		}
 
-		device = device_create(g_ppm_class, NULL, /* no parent device */
-				       g_ppm_devs[j].dev,
-				       NULL, /* no additional data */
-				       PPM_DEVICE_NAME "%d",
-				       j);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device = device_create(
+#else
+		device = class_device_create(
+#endif
+						g_ppm_class, NULL, /* no parent device */
+						g_ppm_devs[j].dev,
+						NULL, /* no additional data */
+						PPM_DEVICE_NAME "%d",
+						j);
 
 		if (IS_ERR(device)) {
 			pr_err("error creating the device for  %s\n", PPM_DEVICE_NAME);
@@ -1867,13 +1872,18 @@ int sysdig_init(void)
 		goto init_module_err;
 	}
 
-	g_ppe_dev = device_create(g_ppm_class, NULL,
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	g_ppe_dev = device_create(
+#else
+	g_ppe_dev = class_device_create(
+#endif
+			g_ppm_class, NULL,
 			MKDEV(g_ppm_major, g_ppm_numdevs),
 			NULL, /* no additional data */
 			PPE_DEVICE_NAME);
 
 	if (IS_ERR(g_ppe_dev)) {
-		pr_err("error creating the device for  %s\n", PPE_DEVICE_NAME);
+		pr_err("error creating the device for %s\n", PPE_DEVICE_NAME);
 		ret = -EFAULT;
 		goto init_module_err;
 	}
