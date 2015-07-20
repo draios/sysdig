@@ -1210,7 +1210,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	struct event_data_t *event_datap)
 {
 	int res = 0;
-	size_t event_size;
+	size_t event_size = 0;
 	int next;
 	u32 freespace;
 	u32 usedspace;
@@ -1846,7 +1846,7 @@ int sysdig_init(void)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	g_ppm_class->devnode = ppm_devnode;
 #endif
-	
+
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
 	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
