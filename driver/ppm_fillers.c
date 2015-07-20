@@ -20,7 +20,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linux/compat.h>
 #include <linux/cdev.h>
-#include "syscall.h"
+#include "ppm_syscall.h"
 #include <asm/unistd.h>
 #include <net/sock.h>
 #include <net/af_unix.h>

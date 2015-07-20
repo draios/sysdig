@@ -38,8 +38,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/jiffies.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include <trace/sched.h>
-#endif
 #include "syscall.h"
+#endif
 #include <net/sock.h>
 
 #include <asm/unistd.h>

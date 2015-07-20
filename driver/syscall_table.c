@@ -26,7 +26,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/sched.h>
 #include <linux/version.h>
 #include <linux/wait.h>
-#include "syscall.h"
+#include "ppm_syscall.h"
 #include <net/sock.h>
 #include <asm/unistd.h>
 
