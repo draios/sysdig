@@ -1781,6 +1781,7 @@ static int get_tracepoint_handles(void)
 }
 #endif
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
 static char *ppm_devnode(struct device *dev, umode_t *mode)
 #else
@@ -1797,6 +1798,7 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 
 	return NULL;
 }
+#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
 int sysdig_init(void)
 {
@@ -1841,8 +1843,10 @@ int sysdig_init(void)
 		goto init_module_err;
 	}
 
-	//g_ppm_class->devnode = ppm_devnode;
-
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	g_ppm_class->devnode = ppm_devnode;
+#endif
+	
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
 	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
