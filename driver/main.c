@@ -36,7 +36,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
 #include <linux/jiffies.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include <trace/sched.h>
+#endif
 #include "syscall.h"
 #include <net/sock.h>
 
