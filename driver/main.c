@@ -718,7 +718,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case PPM_IOCTL_GET_VTID:
 	case PPM_IOCTL_GET_VPID:
 	{
