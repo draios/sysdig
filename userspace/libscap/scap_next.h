@@ -10,7 +10,7 @@
 #ifdef SCAP_INLINED
 #include "scap-int.h"
 #define SCAP_INLINED_STATIC static
-#define SCAP_INLINED_INLINE inline
+#define SCAP_INLINED_INLINE __always_inline
 #else
 #define SCAP_INLINED_STATIC
 #define SCAP_INLINED_INLINE
@@ -25,7 +25,7 @@ extern "C" {
 #if defined(HAS_CAPTURE)
 
 #ifndef _WIN32
-static inline void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
 #else
 void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
 #endif
@@ -175,7 +175,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* hand
 #endif // HAS_CAPTURE
 
 #ifndef _WIN32
-static inline int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 #else
 static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 #endif
