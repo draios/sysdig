@@ -164,7 +164,11 @@ static DEFINE_MUTEX(g_consumer_mutex);
 static bool g_tracepoint_registered;
 
 struct cdev *g_ppe_cdev = NULL;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 struct device *g_ppe_dev = NULL;
+#else
+struct class_device *g_ppe_dev = NULL;
+#endif
 
 static struct tracepoint *tp_sys_enter;
 static struct tracepoint *tp_sys_exit;
