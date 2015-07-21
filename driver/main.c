@@ -1621,12 +1621,17 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
 
-	if (unlikely(current->flags & 0x00200000)) {
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	if (unlikely(current->flags & PF_KTHREAD)) {
+#else
+	if (unlikely(current->flags & PF_BORROWED_MM)) {
+#endif
 		/*
 		 * We are not interested in kernel threads
 		 */
 		return;
 	}
+#endif
 
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = p;
