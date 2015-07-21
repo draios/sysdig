@@ -535,7 +535,9 @@ static int ppm_release(struct inode *inode, struct file *filp)
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
-			//tracepoint_synchronize_unregister();
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+			tracepoint_synchronize_unregister();
+#endif
 			g_tracepoint_registered = false;
 		} else {
 			ASSERT(false);
@@ -2006,7 +2008,9 @@ void sysdig_exit(void)
 
 	kfree(g_ppm_devs);
 
-	//tracepoint_synchronize_unregister();
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	tracepoint_synchronize_unregister();
+#endif
 }
 
 module_init(sysdig_init);
