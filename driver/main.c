@@ -773,6 +773,14 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		goto cleanup_ioctl;
 	}
 #endif
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	case PPM_IOCTL_GET_CURRENT_TID:
+		ret = task_pid_nr(current);
+		goto cleanup_ioctl;
+	case PPM_IOCTL_GET_CURRENT_PID:
+		ret = task_tgid_nr(current);
+		goto cleanup_ioctl;
+#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
 	{
