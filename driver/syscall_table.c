@@ -26,9 +26,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/sched.h>
 #include <linux/version.h>
 #include <linux/wait.h>
-#include "ppm_syscall.h"
 #include <net/sock.h>
 #include <asm/unistd.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include "ppm_syscall.h"
+#else
+#include <asm/syscall.h>
+#endif
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"

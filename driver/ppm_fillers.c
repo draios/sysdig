@@ -20,7 +20,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linux/compat.h>
 #include <linux/cdev.h>
-#include "ppm_syscall.h"
 #include <asm/unistd.h>
 #include <net/sock.h>
 #include <net/af_unix.h>
@@ -36,6 +35,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/quota.h>
 //#include <linux/cgroup.h>
 #include <asm/mman.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include "ppm_syscall.h"
+#else
+#include <asm/syscall.h>
+#endif
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"

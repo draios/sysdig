@@ -24,6 +24,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <trace/sched.h>
 #include "ppm_syscall.h"
 #include <trace/syscall.h>
+#else
+#include <asm/syscall.h>
 #endif
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
 #include <asm/atomic.h>
