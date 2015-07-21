@@ -773,12 +773,6 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		goto cleanup_ioctl;
 	}
 #endif
-	case PPM_IOCTL_GET_CURRENT_TID:
-		ret = current->pid;
-		goto cleanup_ioctl;
-	case PPM_IOCTL_GET_CURRENT_PID:
-		ret = current->tgid;
-		goto cleanup_ioctl;
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
 	{
