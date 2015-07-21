@@ -266,7 +266,11 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	int ret;
 	int in_list = false;
 	struct ppm_ring_buffer_context *ring = NULL;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
 	int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 	struct task_struct *consumer_id = current;
 	struct ppm_consumer_t *consumer = NULL;
 
