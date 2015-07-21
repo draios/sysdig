@@ -19,6 +19,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
 #include <linux/version.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include <linux/kobject.h>
+#include <trace/sched.h>
+#include "ppm_syscall.h"
+#include <trace/syscall.h>
+#endif
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
 #include <asm/atomic.h>
 #else
@@ -35,12 +41,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
 #include <linux/jiffies.h>
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
-#include <linux/kobject.h>
-#include <trace/sched.h>
-#include "ppm_syscall.h"
-#include <trace/syscall.h>
-#endif
 #include <net/sock.h>
 
 #include <asm/unistd.h>
