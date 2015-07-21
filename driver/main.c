@@ -473,7 +473,11 @@ static int ppm_release(struct inode *inode, struct file *filp)
 {
 	int ret;
 	struct ppm_ring_buffer_context *ring;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
 	int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
 
@@ -564,7 +568,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case PPM_IOCTL_DISABLE_CAPTURE:
 	{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
 		int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
 		ring->capture_enabled = false;
@@ -576,7 +584,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case PPM_IOCTL_ENABLE_CAPTURE:
 	{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
 		int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 
 		ring->capture_enabled = true;
@@ -904,7 +916,11 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		unsigned long pfn;
 		char *vmalloc_area_ptr;
 		char *orig_vmalloc_area_ptr;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
 		int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 		struct ppm_ring_buffer_context *ring;
 
 		vpr_info("mmap for consumer %p, CPU %d, start=%lu len=%ld page_size=%lu\n",
