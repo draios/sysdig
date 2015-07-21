@@ -42,6 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tracepoint.h>
 #include <linux/jiffies.h>
 #include <net/sock.h>
+#include <asm/asm-offsets.h>	/* For NR_syscalls */
 
 #include <asm/unistd.h>
 
@@ -1631,7 +1632,6 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 		 */
 		return;
 	}
-#endif
 
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = p;
