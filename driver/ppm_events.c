@@ -37,6 +37,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/in.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include "ppm_syscall.h"
+#include "dm-mpath.h.h"
 #else
 #include <asm/syscall.h>
 #endif
