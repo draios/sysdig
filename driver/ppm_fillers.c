@@ -626,20 +626,30 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 		res |= PPM_CL_CLONE_IO;
 #endif
 
-	/*if (flags & CLONE_NEWIPC)
+#ifdef CLONE_NEWIPC
+	if (flags & CLONE_NEWIPC)
 		res |= PPM_CL_CLONE_NEWIPC;
+#endif
 
+#ifdef CLONE_NEWNET
 	if (flags & CLONE_NEWNET)
 		res |= PPM_CL_CLONE_NEWNET;
+#endif
 
+#ifdef CLONE_NEWNS
 	if (flags & CLONE_NEWNS)
 		res |= PPM_CL_CLONE_NEWNS;
+#endif
 
+#ifdef CLONE_NEWPID
 	if (flags & CLONE_NEWPID)
 		res |= PPM_CL_CLONE_NEWPID;
+#endif
 
+#ifdef PPM_CL_CLONE_NEWUTS
 	if (flags & CLONE_NEWUTS)
-		res |= PPM_CL_CLONE_NEWUTS;*/
+		res |= PPM_CL_CLONE_NEWUTS;
+#endif
 
 	if (flags & CLONE_PARENT_SETTID)
 		res |= PPM_CL_CLONE_PARENT_SETTID;
@@ -665,9 +675,11 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_VM)
 		res |= PPM_CL_CLONE_VM;
 
-	/*if (flags & CLONE_NEWUSER)
-		res |= PPM_CL_CLONE_NEWUSER;*/
-
+#ifdef CLONE_NEWUSER
+	if (flags & CLONE_NEWUSER)
+		res |= PPM_CL_CLONE_NEWUSER;
+#endif
+	
 	return res;
 }
 
