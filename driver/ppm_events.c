@@ -36,8 +36,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <asm/mman.h>
 #include <linux/in.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include <linux/mount.h>
 #include "ppm_syscall.h"
-#include "dm-mpath.h"
 #else
 #include <asm/syscall.h>
 #endif
@@ -615,6 +615,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
  * of buf.
  * Buf must be at least 1 page in size.
  */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 char *npm_getcwd(char *buf, unsigned long bufsize)
 {
 	struct path pwd;
@@ -631,11 +632,7 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 	read_unlock(&current->fs->lock);
 #endif
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	res = d_path(&pwd, buf, bufsize);
-#else
-	res = d_path(pwd.dentry, pwd.mnt, buf, bufsize);
-#endif
 
 	if (IS_ERR(res))
 		res = NULL;
@@ -644,6 +641,28 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 
 	return res;
 }
+#else /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
+char *npm_getcwd(char *buf, unsigned long bufsize)
+{
+        struct dentry *dentry;
+        struct vfsmount *mnt;
+        char *res;
+
+        ASSERT(bufsize >= PAGE_SIZE - 1);
+
+        read_lock(&current->fs->lock);
+        mnt = mntget(current->fs->pwdmnt);
+        dentry = dget(current->fs->pwd);
+        read_unlock(&current->fs->lock);
+
+        res = d_path(dentry, mnt, buf, bufsize);
+
+        if (IS_ERR(res))
+                res = NULL;
+
+        return res;
+}
+#endif
 
 static inline u8 socket_family_to_scap(u8 family)
 {
