@@ -1040,7 +1040,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 #else
 	ptid = current->parent->pid;
 #endif
-	
+
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -1061,7 +1061,11 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * fdlimit
 	 */
-	res = val_to_ring(args, (int64_t)10, 0, false, 0);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
+#else
+	res = 0;
+#endif
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1137,6 +1141,9 @@ cgroups_error:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		uint64_t euid = from_kuid_munged(current_user_ns(), current_euid());
 		uint64_t egid = from_kgid_munged(current_user_ns(), current_egid());
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		uint64_t euid = current_euid();
+		uint64_t egid = current_egid();
 #else
 		uint64_t euid = current->euid;
 		uint64_t egid = current->egid;
@@ -1171,14 +1178,28 @@ cgroups_error:
 		/*
 		 * vtid
 		 */
-		res = val_to_ring(args, current->pid, 0, false, 0);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
+#else
+		//
+		// Not relevant in old kernels
+		//
+		res = 0;
+#endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
 		/*
 		 * vpid
 		 */
-		res = val_to_ring(args, current->tgid, 0, false, 0);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
+#else
+		//
+		// Not relevant in old kernels
+		//
+		res = 0;
+#endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
@@ -2212,7 +2233,11 @@ static int f_sys_pipe_x(struct event_filler_arguments *args)
 	file = fget(fds[0]);
 	val = 0;
 	if (likely(file != NULL)) {
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		val = file->f_path.dentry->d_inode->i_ino;
+#else
 		val = file->f_dentry->d_inode->i_ino;
+#endif
 		fput(file);
 	}
 
