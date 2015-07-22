@@ -2276,15 +2276,17 @@ static int f_sys_eventfd_e(struct event_filler_arguments *args)
 
 static inline u16 shutdown_how_to_scap(unsigned long how)
 {
-	//if (how == SHUT_RD) {
+#ifdef SHUT_RD	
+	if (how == SHUT_RD) {
 		return PPM_SHUT_RD;
-	//} else if (how == SHUT_WR) {
-	//	return SHUT_WR;
-	//} else if (how == SHUT_RDWR) {
-	//	return SHUT_RDWR;
-	//}
+	} else if (how == SHUT_WR) {
+		return SHUT_WR;
+	} else if (how == SHUT_RDWR) {
+		return SHUT_RDWR;
+	}
 
 	ASSERT(false);
+#endif
 	return (u16)how;
 }
 
@@ -2343,20 +2345,30 @@ static inline u16 futex_op_to_scap(unsigned long op)
 		res = PPM_FU_FUTEX_UNLOCK_PI;
 	else if (flt_op == FUTEX_TRYLOCK_PI)
 		res = PPM_FU_FUTEX_TRYLOCK_PI;
-	//else if (flt_op == FUTEX_WAIT_BITSET)
-	//	res = PPM_FU_FUTEX_WAIT_BITSET;
-	//else if (flt_op == FUTEX_WAKE_BITSET)
-	//	res = PPM_FU_FUTEX_WAKE_BITSET;
-	//else if (flt_op == FUTEX_WAIT_REQUEUE_PI)
-	//	res = PPM_FU_FUTEX_WAIT_REQUEUE_PI;
-	//else if (flt_op == FUTEX_CMP_REQUEUE_PI)
-	//	res = PPM_FU_FUTEX_CMP_REQUEUE_PI;
+#ifdef FUTEX_WAIT_BITSET
+	else if (flt_op == FUTEX_WAIT_BITSET)
+		res = PPM_FU_FUTEX_WAIT_BITSET;
+#endif
+#ifdef FUTEX_WAKE_BITSET
+	else if (flt_op == FUTEX_WAKE_BITSET)
+		res = PPM_FU_FUTEX_WAKE_BITSET;
+#endif
+#ifdef FUTEX_WAIT_REQUEUE_PI
+	else if (flt_op == FUTEX_WAIT_REQUEUE_PI)
+		res = PPM_FU_FUTEX_WAIT_REQUEUE_PI;
+#endif
+#ifdef FUTEX_CMP_REQUEUE_PI
+	else if (flt_op == FUTEX_CMP_REQUEUE_PI)
+		res = PPM_FU_FUTEX_CMP_REQUEUE_PI;
+#endif
 
 	if (op & FUTEX_PRIVATE_FLAG)
 		res |= PPM_FU_FUTEX_PRIVATE_FLAG;
 
-	//if (op & FUTEX_CLOCK_REALTIME)
-	//	res |= PPM_FU_FUTEX_CLOCK_REALTIME;
+#ifdef FUTEX_CLOCK_REALTIME
+	if (op & FUTEX_CLOCK_REALTIME)
+		res |= PPM_FU_FUTEX_CLOCK_REALTIME;
+#endif
 
 	return res;
 }
@@ -3066,8 +3078,10 @@ static inline u8 rlimit_resource_to_scap(unsigned long rresource)
 		return PPM_RLIMIT_NICE;
 	case RLIMIT_RTPRIO:
 		return PPM_RLIMIT_RTPRIO;
-	//case RLIMIT_RTTIME:
-	//	return PPM_RLIMIT_RTTIME;
+#ifdef RLIMIT_RTTIME
+	case RLIMIT_RTTIME:
+		return PPM_RLIMIT_RTTIME;
+#endif
 	default:
 		return PPM_RLIMIT_UNKNOWN;
 	}
@@ -3379,18 +3393,24 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	case F_SETLKW64:
 		return PPM_FCNTL_F_SETLKW64;
 #endif
-	//case F_SETOWN_EX:
-	//	return PPM_FCNTL_F_SETOWN_EX;
-	//case F_GETOWN_EX:
-	//	return PPM_FCNTL_F_GETOWN_EX;
+#ifdef F_SETOWN_EX
+	case F_SETOWN_EX:
+		return PPM_FCNTL_F_SETOWN_EX;
+#endif
+#ifdef F_GETOWN_EX
+	case F_GETOWN_EX:
+		return PPM_FCNTL_F_GETOWN_EX;
+#endif
 	case F_SETLEASE:
 		return PPM_FCNTL_F_SETLEASE;
 	case F_GETLEASE:
 		return PPM_FCNTL_F_GETLEASE;
 	case F_CANCELLK:
 		return PPM_FCNTL_F_CANCELLK;
-	//case F_DUPFD_CLOEXEC:
-	//	return PPM_FCNTL_F_DUPFD_CLOEXEC;
+#ifdef F_DUPFD_CLOEXEC
+	case F_DUPFD_CLOEXEC:
+		return PPM_FCNTL_F_DUPFD_CLOEXEC;
+#endif
 	case F_NOTIFY:
 		return PPM_FCNTL_F_NOTIFY;
 #ifdef F_SETPIPE_SZ
