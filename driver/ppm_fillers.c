@@ -646,7 +646,7 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 		res |= PPM_CL_CLONE_NEWPID;
 #endif
 
-#ifdef PPM_CL_CLONE_NEWUTS
+#ifdef CLONE_NEWUTS
 	if (flags & CLONE_NEWUTS)
 		res |= PPM_CL_CLONE_NEWUTS;
 #endif
