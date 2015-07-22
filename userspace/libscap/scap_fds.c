@@ -194,7 +194,7 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 		res += 
 			sizeof(uint64_t) + // unix source 
 			sizeof(uint64_t) +  // unix destination
-			(uint32_t)strlen(fdi->info.unix_socket_info.fname) + 2;
+			(uint32_t)strnlen(fdi->info.unix_socket_info.fname, SCAP_MAX_PATH_SIZE) + 2;
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
