@@ -679,7 +679,7 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_NEWUSER)
 		res |= PPM_CL_CLONE_NEWUSER;
 #endif
-	
+
 	return res;
 }
 
@@ -1032,11 +1032,15 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * ptid
 	 */
-	//if (current->real_parent)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	if (current->real_parent)
 		ptid = current->parent->pid;
-	//else
-	//	ptid = 0;
-
+	else
+		ptid = 0;
+#else
+	ptid = current->parent->pid;
+#endif
+	
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
