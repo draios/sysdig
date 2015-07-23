@@ -1064,7 +1064,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
 #else
-	res = 0;
+	res = val_to_ring(args, (int64_t)0, 0, false, 0);
 #endif
 	if (res != PPM_SUCCESS)
 		return res;
@@ -1184,7 +1184,7 @@ cgroups_error:
 		//
 		// Not relevant in old kernels
 		//
-		res = 0;
+		res = val_to_ring(args, 0, 0, false, 0);
 #endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
@@ -1198,7 +1198,7 @@ cgroups_error:
 		//
 		// Not relevant in old kernels
 		//
-		res = 0;
+		res = val_to_ring(args, 0, 0, false, 0);
 #endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
