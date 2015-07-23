@@ -121,8 +121,11 @@ OPTIONS
   Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.
 
 **-e** _numevents_
-  If used together with -w option, creates a dump file containing
-  only a specified number of events given in _numevents_ parameter.
+  If used together with -w option, creates a series of dump files
+  containingonly a specified number of events given in _numevents_
+  parameter each.
+  Used alongside -W flags creates a ring buffer of file containing
+  _numevents_ each.
 
 **-F**, **--fatfile**
   Enable fatfile mode. When writing in fatfile mode, the output file will contain events that will be invisible when reading the file, but that are necessary to fully reconstruct the state. Fatfile mode is useful when saving events to disk with an aggressive filter. The filter could drop events that would the state to be updated (e.g. clone() or open()). With fatfile mode, those events are still saved to file, but 'hidden' so that they won't appear when reading the file. Be aware that using this flag might generate substantially bigger traces files.
@@ -132,6 +135,8 @@ OPTIONS
   _numseconds_ seconds. Savefiles will have the name specified
   by -w which should include a time format as defined by strftime(3).
   If no time format is specified, a counter will be used.
+  If no data format is specified, this can be used with -W flag to
+  create a ring buffer of events.
 
 **-h**, **--help**  
   Print this page
