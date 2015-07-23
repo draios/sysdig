@@ -45,12 +45,6 @@ static bool g_terminate = false;
 vector<sinsp_chisel*> g_chisels;
 #endif
 
-//
-// Sysdig 0.1.85 had log-rotation options (-C,-G,-W), but they were problematic,
-// so I'm disabling them until they can be fixed
-//
-//#define DISABLE_CGW
-
 static void usage();
 
 //
@@ -84,7 +78,6 @@ static void usage()
 "                    lists the available chisels. Looks for chisels in\n"
 "                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
 #endif
-#ifndef DISABLE_CGW
 " -C <file_size>, --file-size=<file_size>\n"
 "                    Before writing an event, check whether the file is\n"
 "                    currently larger than file_size and, if so, close the\n"
@@ -93,7 +86,6 @@ static void usage()
 "                    starting at 0 and continuing upward. The units of file_size\n"
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
-#endif
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -108,6 +100,8 @@ static void usage()
 "                    like user.name or group.name. However, creating them can\n"
 "                    increase sysdig's startup time. Moreover, they contain\n"
 "                    information that could be privacy sensitive.\n"
+" -e <num_events>    If used together with -w option, creates a dump file containing\n"
+"                    only a specified number of events given in num_events parameter.\n"
 " -F, --fatfile	     Enable fatfile mode\n"
 "                    when writing in fatfile mode, the output file will contain\n"
 "                    events that will be invisible when reading the file, but\n"
@@ -119,17 +113,11 @@ static void usage()
 "                    'hidden' so that they won't appear when reading the file.\n"
 "                    Be aware that using this flag might generate substantially\n"
 "                    bigger traces files.\n"
-#ifndef DISABLE_CGW
 " -G <num_seconds>, --seconds=<num_seconds>\n"
 "                    Rotates the dump file specified with the -w option every\n"
 "                    num_seconds seconds. Savefiles will have the name specified\n"
 "                    by -w which should include a time format as defined by strftime(3).\n"
-"                    If no time format is specified, each new file will overwrite the\n"
-"                    previous.\n"
-"\n"
-"                    If used in conjunction with the -C option, filenames will take\n"
-"                    the form of `file<count>'.\n"
-#endif
+"                    If no time format is specified, a counter will be used.\n"
 " -h, --help         Print this page\n"
 #ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
@@ -175,19 +163,15 @@ static void usage()
 " --version          Print version number.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
-#ifndef DISABLE_CGW
 " -W <num>, --limit <num>\n"
 "                    Used in conjunction with the -C option, this will limit the number\n"
 "                    of files created to the specified number, and begin overwriting files\n"
-"                    from the beginning, thus creating a 'rotating' buffer. In addition, it\n"
-"                    will name the files with enough leading 0s to support the maximum number\n"
-"                    of files, allowing them to sort correctly.\n"
+"                    from the beginning, thus creating a 'rotating' buffer.\n"
 "\n"
 "                    Used in conjunction with the -G option, this will limit the number\n"
 "                    of rotated dump files that get created, exiting with status 0 when\n"
 "                    reaching the limit. If used with -C as well, the behavior will result\n"
 "                    in cyclical files per timeslice.\n"
-#endif
 " -x, --print-hex    Print data buffers in hex.\n"
 " -X, --print-hex-ascii\n"
 "                    Print data buffers in hex and ASCII.\n"
@@ -676,7 +660,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int duration_seconds = 0;	
 	int rollover_mb = 0;
 	int file_limit = 0;
-	bool do_cycle = false;
+	unsigned long event_limit = 0L;
 
 	static struct option long_options[] =
 	{
@@ -689,17 +673,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
 		{"exclude-users", no_argument, 0, 'E' },
+		{"event-limit", required_argument, 0, 'e'},
 		{"fatfile", no_argument, 0, 'F'},
-#ifndef DISABLE_CGW
 		{"seconds", required_argument, 0, 'G' },
-#endif
 		{"help", no_argument, 0, 'h' },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
-#ifndef DISABLE_CGW
 		{"file-size", required_argument, 0, 'C' },
-#endif
 		{"json", no_argument, 0, 'j' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
@@ -714,9 +695,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{"writefile", required_argument, 0, 'w' },
-#ifndef DISABLE_CGW
 		{"limit", required_argument, 0, 'W' },
-#endif
 		{"print-hex", no_argument, 0, 'x'},
 		{"print-hex-ascii", no_argument, 0, 'X'},
 		{"compress", no_argument, 0, 'z' },
@@ -739,17 +718,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		while((op = getopt_long(argc, argv,
                                         "Abc:"
-#ifndef DISABLE_CGW
                                         "C:"
-#endif
-                                        "dDEF"
-#ifndef DISABLE_CGW
+                                        "dDEe:F"
                                         "G:"
-#endif
                                         "hi:jlLn:Pp:qr:Ss:t:v"
-#ifndef DISABLE_CGW
                                         "W:"
-#endif
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
 			switch(op)
@@ -816,7 +789,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 				break;
 
-#ifndef DISABLE_CGW
 			// File-size
 			case 'C':
 				rollover_mb = atoi(optarg);
@@ -826,11 +798,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
-
-				// -C always implicates a cycle
-				do_cycle = true;
 				break;
-#endif
 
 			case 'D':
 				inspector->set_debug_mode(true);
@@ -838,10 +806,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'E':
 				inspector->set_import_users(false);
 				break;
+			case 'e':
+				event_limit = strtoul(optarg, NULL, 0);
+				if(event_limit <= 0)
+				{
+					throw sinsp_exception(string("invalid parameter 'number of events' ") + optarg);
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
 			case 'F':
 				inspector->set_fatfile_dump_mode(true);
 				break;
-#ifndef DISABLE_CGW
 			// Number of seconds between roll-over
 			case 'G':
 				duration_seconds = atoi(optarg);
@@ -852,7 +828,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-#endif
 
 #ifdef HAS_CHISELS
 			// --chisel-info and -i
@@ -1010,7 +985,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				quiet = true;
 				break;
 
-#ifndef DISABLE_CGW
 			// Number of capture files to cycle through
 			case 'W':
 				file_limit = atoi(optarg);
@@ -1021,7 +995,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-#endif
 
 			case 'x':
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
@@ -1265,7 +1238,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			if(outfile != "")
 			{
-				inspector->setup_cycle_writer(outfile, rollover_mb, duration_seconds, file_limit, do_cycle, compress);
+				inspector->setup_cycle_writer(outfile, rollover_mb, duration_seconds, file_limit, event_limit, compress);
 				inspector->autodump_next_file();
 			}
 
