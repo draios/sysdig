@@ -754,12 +754,12 @@ void sinsp_utils::bt(void)
 
 	bt_size = backtrace(bt, 1024);
 	bt_syms = backtrace_symbols(bt, bt_size);
-	printf("%s", start);
+	printf("%s\n", start);
 	for (i = 1; i < bt_size; i++) 
 	{
-		printf("%s", bt_syms[i]);
+		printf("%s\n", bt_syms[i]);
 	}
-	printf("%s", end);
+	printf("%s\n", end);
 
 	free(bt_syms);
 }
