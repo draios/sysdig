@@ -693,7 +693,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			}
 			else
 			{
-				throw sinsp_exception(scap_getlasterr(m_h));
+				m_lasterr = scap_getlasterr(m_h);
 			}
 
 			return res;

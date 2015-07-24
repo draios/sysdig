@@ -348,6 +348,10 @@ public:
 	{
 		return m_eof != 0;
 	}
+	void set_truncated_input(bool truncated)
+	{
+		m_truncated_input = truncated;
+	}
 	void render();
 	void turn_search_on(search_caller_interface* ifc, string header_text);
 	uint64_t get_time_delta();
@@ -630,6 +634,7 @@ private:
 	uint32_t m_filterstring_end_x;
 	string m_search_header_text;
 	bool m_raw_output;
+	bool m_truncated_input;
 };
 
 #endif // CSYSDIG

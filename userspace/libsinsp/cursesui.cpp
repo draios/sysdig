@@ -74,6 +74,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_refresh_interval_ns = refresh_interval_ns;
 	m_print_containers = print_containers;
 	m_raw_output = raw_output;
+	m_truncated_input = false;
 #ifndef NOCURSESUI
 	m_spybox_text_format = sinsp_evt::PF_NORMAL;
 	m_sidemenu = NULL;
@@ -505,6 +506,11 @@ void sinsp_cursesui::render_header()
 
 		srcstr = m_inspector->get_input_filename();
 		srcstr += " (" + to_string(m_n_evts_in_file) + " evts, ";
+
+		if(m_truncated_input)
+		{
+			srcstr += " truncated, ";
+		}
 
 		m_timedelta_formatter->set_val(PT_RELTIME, 
 			(uint8_t*)&m_evt_ts_delta,
