@@ -26,7 +26,9 @@
 #include "ppm_events.h"
 #include "ppm.h"
 
+#ifndef cmpxchg_cputime
 #define cmpxchg_cputime(ptr, old, new) cmpxchg(ptr, old, new)
+#endif
 
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
 static unsigned long long vtime_delta(struct task_struct *tsk)

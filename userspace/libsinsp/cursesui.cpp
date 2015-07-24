@@ -1179,7 +1179,7 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 }
 
 // returns false if there is no suitable drill down view for this field
-bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num)
+bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num, filtercheck_field_info* info)
 {
 	//
 	// unpause the thing if it's paused
@@ -1187,6 +1187,15 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	if(m_paused)
 	{
 		pause();
+	}
+
+	//
+	//	escape string parameters
+	//
+	if(info->m_type & PT_CHARBUF)
+	{
+		string escape = "\"";
+		val = escape + val + escape;
 	}
 
 	//
@@ -1250,7 +1259,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 }
 
 // returns false if there is no suitable drill down view for this field
-bool sinsp_cursesui::drilldown(string field, string val)
+bool sinsp_cursesui::drilldown(string field, string val, filtercheck_field_info* info)
 {
 	uint32_t j = 0;
 
@@ -1258,7 +1267,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 	{
 		if(m_views.at(j)->m_id == m_views.at(m_selected_view)->m_drilldown_target)
 		{
-			return do_drilldown(field, val, j);			
+			return do_drilldown(field, val, j, info);			
 		}
 	}
 
@@ -1270,7 +1279,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 		{
 			if(*atit == field)
 			{
-				return do_drilldown(field, val, j);
+				return do_drilldown(field, val, j, info);
 			}
 		}
 	}

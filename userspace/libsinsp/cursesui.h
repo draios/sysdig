@@ -433,7 +433,7 @@ public:
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
 						if(res.first != NULL)
 						{
-							drilldown(res.first->m_name, res.second.c_str());
+							drilldown(res.first->m_name, res.second.c_str(), res.first);
 						}
 					}
 					return false;
@@ -577,9 +577,9 @@ private:
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
 	void spy_selection(string field, string val, bool is_dig);
-	bool do_drilldown(string field, string val, uint32_t new_view_num);
+	bool do_drilldown(string field, string val, uint32_t new_view_num, filtercheck_field_info* info);
 	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val);
+	bool drilldown(string field, string val, filtercheck_field_info* info);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void create_complete_filter();

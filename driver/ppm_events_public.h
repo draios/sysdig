@@ -95,6 +95,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_O_DIRECT (1 << 9)
 #define PPM_O_DIRECTORY (1 << 10)
 #define PPM_O_LARGEFILE (1 << 11)
+#define PPM_O_CLOEXEC	(1 << 12)
+
+/*
+ * flock() flags
+ */
+#define PPM_LOCK_NONE 0
+#define PPM_LOCK_SH (1 << 0)
+#define PPM_LOCK_EX (1 << 1)
+#define PPM_LOCK_NB (1 << 2)
+#define PPM_LOCK_UN (1 << 3)
 
 /*
  * Clone flags
@@ -645,7 +655,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_GETDENTS64_X = 239,
 	PPME_SYSCALL_SETNS_E = 240,
 	PPME_SYSCALL_SETNS_X = 241,
-	PPM_EVENT_MAX = 242
+	PPME_SYSCALL_FLOCK_E = 242,
+	PPME_SYSCALL_FLOCK_X = 243,
+	PPM_EVENT_MAX = 244
 };
 /*@}*/
 
@@ -1165,6 +1177,7 @@ struct ppm_syscall_desc {
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
+extern const struct ppm_name_value flock_flags[];
 extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];
 extern const struct ppm_name_value lseek_whence[];
