@@ -202,7 +202,7 @@ void sinsp::init()
 		m_cycle_writer = NULL;
 	}
 	
-	m_cycle_writer = new cycle_writer();
+	m_cycle_writer = new cycle_writer(this->is_live());
 
 	//
 	// Basic inits
@@ -622,8 +622,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
-	// The number of bytes to consider in the dumper
-	int32_t bytes_to_write;
 
 	//
 	// Check if there are fake cpu events to  events 
@@ -868,32 +866,26 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 		if(m_write_cycling)
 		{
-			res = scap_number_of_bytes_to_write(evt->m_pevt, evt->m_cpuid, &bytes_to_write);
-			if(SCAP_SUCCESS != res)
+			//res = scap_number_of_bytes_to_write(evt->m_pevt, evt->m_cpuid, &bytes_to_write);
+			switch(m_cycle_writer->consider(evt))
 			{
-				throw sinsp_exception(scap_getlasterr(m_h));
-			}
-			else 
-			{
-				switch(m_cycle_writer->consider(bytes_to_write))
-				{
-					case cycle_writer::NEWFILE:
-						autodump_next_file();
-						break;
+				case cycle_writer::NEWFILE:
+					autodump_next_file();
+					break;
 
-					case cycle_writer::DOQUIT:
-						stop_capture();
-						return SCAP_EOF;
-						break;
+				case cycle_writer::DOQUIT:
+					stop_capture();
+					return SCAP_EOF;
+					break;
 
-					case cycle_writer::SAMEFILE:
-						// do nothing.
-						break;
-				}
+				case cycle_writer::SAMEFILE:
+					// do nothing.
+					break;
 			}
 		}
 
 		res = scap_dump(m_h, m_dumper, evt->m_pevt, evt->m_cpuid, dflags);
+
 		if(SCAP_SUCCESS != res)
 		{
 			throw sinsp_exception(scap_getlasterr(m_h));
@@ -1375,16 +1367,16 @@ sinsp_parser* sinsp::get_parser()
 	return m_parser;
 }
 
-bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress) 
+bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress)
 {
 	m_compress = compress;
 
-	if(rollover_mb != 0 || duration_seconds != 0 || file_limit != 0 || do_cycle == true)
+	if(rollover_mb != 0 || duration_seconds != 0 || file_limit != 0 || event_limit != 0)
 	{
 		m_write_cycling = true;
 	}
 
-	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, do_cycle);
+	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit, &m_dumper);
 }
 
 double sinsp::get_read_progress()
