@@ -109,6 +109,16 @@ scap_t* scap_open_live_int(char *error,
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
 		return NULL;
 	}
+#ifdef HAVE_EXTERNAL_SCAP_READER
+	handle->m_n_consecutive_waits = (uint32_t *) calloc(ndevs, sizeof(uint32_t));
+	if(!handle->m_n_consecutive_waits)
+	{
+		scap_close(handle);
+		free(handle->m_devs);
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device sleep counters");
+		return NULL;
+	}
+#endif
 
 	for(j = 0; j < ndevs; j++)
 	{
@@ -240,7 +250,9 @@ scap_t* scap_open_live_int(char *error,
 		//
 		handle->m_devs[j].m_lastreadsize = 0;
 		handle->m_devs[j].m_sn_len = 0;
+#ifndef HAVE_EXTERNAL_SCAP_READER
 		handle->m_n_consecutive_waits = 0;
+#endif
 		scap_stop_dropping_mode(handle);
 	}
 
@@ -434,6 +446,13 @@ void scap_close(scap_t* handle)
 	{
 		scap_free_userlist(handle->m_userlist);
 	}
+#ifdef HAVE_EXTERNAL_SCAP_READER
+	// Free waits space
+	if(handle->m_n_consecutive_waits!= NULL)
+	{
+		free(handle->m_n_consecutive_waits);
+	}
+#endif
 
 	//
 	// Release the handle
@@ -694,11 +713,11 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 		//
 		for(j = 0; j < handle->m_ndevs; j++)
 		{
-			scap_readbuf(handle,
-               j,
-               false,
-               &handle->m_devs[j].m_sn_next_event,
-               &handle->m_devs[j].m_sn_len);
+//			scap_readbuf(handle,
+//               j,
+//               &handle->m_devs[j].m_sn_next_event,
+//               &handle->m_devs[j].m_sn_len);
+			scap_update_snap(&handle->m_devs[j]);
 
 			handle->m_devs[j].m_sn_len = 0;
 		}
@@ -766,11 +785,11 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 		//
 		for(j = 0; j < handle->m_ndevs; j++)
 		{
-			scap_readbuf(handle,
-				j,
-				false,
-				&handle->m_devs[j].m_sn_next_event,
-				&handle->m_devs[j].m_sn_len);
+//			scap_readbuf(handle,
+//				j,
+//				&handle->m_devs[j].m_sn_next_event,
+//				&handle->m_devs[j].m_sn_len);
+			scap_update_snap(&handle->m_devs[j]);
 
 			handle->m_devs[j].m_sn_len = 0;
 		}

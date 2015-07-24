@@ -16,6 +16,13 @@ add_library(scap STATIC
 
 add_dependencies(scap zlib)
 
+option(DEFINE_HAVE_EXTERNAL_SCAP_READER "Try multi-threaded scap" OFF)
+
+if(DEFINE_HAVE_EXTERNAL_SCAP_READER)
+	message(STATUS "Multi-threaded scap!")
+	add_definitions( -DHAVE_EXTERNAL_SCAP_READER )
+endif()
+
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)

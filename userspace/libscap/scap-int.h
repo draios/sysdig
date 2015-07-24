@@ -70,7 +70,7 @@ typedef struct scap_device
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
-	uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
+	//uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
 }scap_device;
 
 //
@@ -94,7 +94,11 @@ struct scap
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
+#ifdef HAVE_EXTERNAL_SCAP_READER
+	uint32_t *m_n_consecutive_waits;
+#else
 	uint32_t m_n_consecutive_waits;
+#endif
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
@@ -119,7 +123,14 @@ struct scap_ns_socket_list
 
 // Read the full event buffer for the given processor
 #ifndef SCAP_INLINED
-int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
+//extern int32_t scap_readbuf(scap_t* handle, uint32_t proc, OUT char** buf, OUT uint32_t* len);
+extern int32_t scap_update_snap(scap_device* dev);
+extern void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size);
+extern uint32_t get_read_size(struct ppm_ring_buffer_info* bufinfo);
+#ifdef HAVE_EXTERNAL_SCAP_READER
+extern inline int32_t scap_next_live_cpu(scap_t* handle, uint32_t cpu, OUT scap_evt** pe);
+#endif
+//#else
 #endif
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);

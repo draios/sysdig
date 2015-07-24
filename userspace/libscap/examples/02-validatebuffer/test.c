@@ -25,9 +25,54 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <scap.h>
 #include <scap-int.h>
 #include "../../../../driver/ppm_events_public.h"
+#include "../../driver/ppm_ringbuffer.h"
 
 extern const struct ppm_event_info g_event_info[];
 
+static inline int32_t scap_readbuf(scap_device* dev, OUT char** buf, OUT uint32_t* len)
+{
+	uint32_t ttail;
+	uint32_t read_size;
+
+	//
+	// Update the tail based on the amount of data read in the *previous* call.
+	// Tail is never updated when we serve the data, because we assume that the caller is using
+	// the buffer we give to her until she calls us again.
+	//
+	ttail = dev->m_bufinfo->tail + dev->m_lastreadsize;
+
+
+	if(ttail >= RING_BUF_SIZE)
+	{
+		ttail = ttail - RING_BUF_SIZE;
+	}
+	//
+	// Make sure every read of the old buffer is completed before we move the tail and the
+	// producer (on another CPU) can start overwriting it.
+	// I use this instead of asm(mfence) because it should be portable even on the weirdest
+	// CPUs
+	//
+	__sync_synchronize();
+	dev->m_bufinfo->tail = ttail;
+
+	//
+	// Read the pointers.
+	//
+	read_size = get_read_size(dev->m_bufinfo);
+
+	//
+	// Remember read_size so we can update the tail at the next call
+	//
+	dev->m_lastreadsize = read_size;
+
+	//
+	// Return the results
+	//
+	*len = read_size;
+	*buf = dev->m_buffer + ttail;
+
+	return SCAP_SUCCESS;
+}
 
 size_t g_get_event_size(enum ppm_event_type event_type, uint16_t* lens)
 {
@@ -198,7 +243,7 @@ int main()
 		{
 			uint32_t nevents;
 
-			ret = scap_readbuf(h, j, false, &buf, &buflen);
+			ret = scap_readbuf(&(h->m_devs[j]), &buf, &buflen);
 
 			if(ret != SCAP_SUCCESS)
 			{
