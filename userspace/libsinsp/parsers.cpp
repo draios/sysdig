@@ -75,9 +75,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	uint16_t etype = evt->m_pevt->type;
 	bool is_live = m_inspector->m_islive;
 
-BRK(30472);
-auto pippo = m_inspector->get_thread(20710);
-
 	//
 	// Cleanup the event-related state
 	//
