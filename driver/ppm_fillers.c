@@ -581,6 +581,40 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	unsigned long bufsize;
+	bool is_user_evt = false;
+
+	{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+		int fd;
+		struct fd f;
+
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		f = fdget(fd);
+
+		if (f.file && f.file->f_op) {
+			if (THIS_MODULE == f.file->f_op->owner)
+				is_user_evt = true;
+
+			fdput(f);
+		}
+#else
+		int fd;
+		struct file *file;
+
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+
+		file = fget(fd);
+		if (file && file->f_op) {
+			if (THIS_MODULE == file->f_op->owner)
+				is_user_evt = true;
+
+			fput(file);
+		}
+#endif
+	}
 
 	/*
 	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
