@@ -3031,7 +3031,7 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 			{
 				if(evt->m_tinfo->get_main_thread()->m_fdlimit != -1)
 				{
-					ASSERT(curval == evt->m_tinfo->get_main_thread()->m_fdlimit);
+//					ASSERT(curval == evt->m_tinfo->get_main_thread()->m_fdlimit);
 				}
 			}
 #endif
