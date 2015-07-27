@@ -13,7 +13,7 @@
 #define SCAP_INLINED_INLINE __always_inline
 #else
 #define SCAP_INLINED_STATIC
-#define SCAP_INLINED_INLINE
+#define SCAP_INLINED_INLINE __attribute__((noinline))
 #endif
 
 #ifdef __cplusplus
@@ -400,7 +400,14 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next(scap_t* handle, OUT sc
 		// Intercept SCAP_SLEEP, go sleeping and tell upper layers they must call us again
 		//
 		usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
+#ifdef HAVE_EXTERNAL_SCAP_READER
+		//
+		// in this case, attribute all sleeps to core 0, as just the sum matters
+		//
+		handle->m_n_consecutive_waits[0]++;
+#else
 		handle->m_n_consecutive_waits++;
+#endif
 		res = SCAP_TIMEOUT;
 	}
 	else if(res == SCAP_FAILURE)
