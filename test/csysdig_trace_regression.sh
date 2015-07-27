@@ -14,20 +14,16 @@ BRANCH=$3
 
 if [ ! -d "$TRACEDIR" ]; then
 	mkdir -p $TRACEDIR
-	cd $TRACEDIR
 	wget https://download.sysdig.com/sysdig-tests/traces.zip
-	unzip traces.zip
+	unzip traces.zip -d $TRACEDIR
 	rm -rf traces.zip
-	cd -
 fi
 
 if [ ! -d "$BASELINEDIR" ]; then
 	mkdir -p $BASELINEDIR
-	cd $BASELINEDIR
 	wget -O baseline.zip https://download.sysdig.com/sysdig-tests/baseline-$BRANCH.zip || wget -O baseline.zip https://download.sysdig.com/sysdig-tests/baseline-dev.zip
-	unzip baseline.zip
+	unzip baseline.zip -d $BASELINEDIR
 	rm -rf baseline.zip
-	cd -
 fi
 
 echo "Executing sysdig tests in ${TMPBASE}"
