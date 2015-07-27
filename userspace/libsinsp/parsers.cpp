@@ -1686,13 +1686,64 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 {
+	sinsp_evt_param *parinfo;
+	int64_t retval;
 	const char *parstr;
+	uint8_t *packed_data;
+	uint8_t family;
 
 	if(evt->m_fdinfo == NULL)
 	{
 		return;
 	}
 
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(uint64_t));
+	retval = *(int64_t*)parinfo->m_val;
+
+	if(retval < 0)
+	{
+		return;
+	}
+
+	parinfo = evt->get_param(1);
+	if(parinfo->m_len == 0)
+	{
+		//
+		// No address, there's nothing we can really do with this.
+		// This happens for socket types that we don't support, so we have the assertion
+		// to make sure that this is not a type of socket that we support.
+		//
+		ASSERT(!(evt->m_fdinfo->is_unix_socket() || evt->m_fdinfo->is_ipv4_socket()));
+		return;
+	}
+
+	packed_data = (uint8_t*)parinfo->m_val;
+
+	family = *packed_data;
+
+	//
+	// Update the FD info with this tuple, assume that if port > 0, means that
+	// the socket is used for listening
+	//
+	if(family == PPM_AF_INET)
+	{
+		uint16_t port = *(uint16_t *)(packed_data + 5);
+		if(port > 0)
+		{
+			evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
+			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
+		}
+	}
+	else if (family == PPM_AF_INET6)
+	{
+		uint16_t port = *(uint16_t *)(packed_data + 17);
+		if(port > 0)
+		{
+			evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
+			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
+		}
+	}
 	//
 	// Update the name of this socket
 	//
