@@ -793,6 +793,11 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 void curses_textbox::process_event_dig(sinsp_evt* evt, int32_t next_res)
 {
+	if(!m_inspector->is_debug_enabled() && evt->get_category() & EC_INTERNAL)
+	{
+		return;
+	}
+
 	string line;
 
 	m_formatter->tostring(evt, &line);
