@@ -21,7 +21,14 @@ short_description = "Top http connections";
 category = "Net";
 
 -- Chisel argument list
-args = {}
+args = {
+    {
+        name = "by",
+        description = "Show top HTTP transactions by: ncalls, time or bytes, default is ncalls",
+        argtype = "string",
+        optional = true
+    },
+}
 
 require "common"
 terminal = require "ansiterminal"
@@ -31,15 +38,34 @@ vizinfo =
     key_fld = {"url","method"},
     key_desc = {"url", "method"},
     value_fld = "ncalls",
-    value_desc = "time",
-    value_units = "time",
+    value_desc = "ncalls",
+    value_units = "none",
     top_number = 30,
     output_format = "normal"
 }
 
+by_field = "ncalls"
+
 -- Argument notification callback
 function on_set_arg(name, val)
-    return false
+    if name == "by" then
+        if val == "time" then
+            vizinfo["value_fld"] = "time"
+            vizinfo["value_desc"] = "time"
+            vizinfo["value_units"] = "time"
+        elseif val == "ncalls" then
+            vizinfo["value_fld"] = "ncalls"
+            vizinfo["value_desc"] = "ncalls"
+            vizinfo["value_units"] = "none"
+        elseif val == "bytes" then
+            vizinfo["value_fld"] = "bytes"
+            vizinfo["value_desc"] = "bytes"
+            vizinfo["value_units"] = "bytes"
+        else
+            -- TODO: Log error and quit
+        end
+        by_field = val
+    end
 end
 
 
@@ -130,12 +156,19 @@ function on_event()
             --    transaction["requestlen"] + buflen
             --))
             grtable_key = build_grtable_key(transaction)
-            elapsed_time = (timestamp - transaction["ts"])
-            --bytes = transaction["requestlen"] + buflen
+            transaction_value = 0
+            if by_field == "ncalls" then
+                transaction_value = 1
+            elseif by_field == "time" then
+                transaction_value = (timestamp - transaction["ts"])
+            elseif by_field == "bytes" then
+                transaction_value = transaction["requestlen"] + buflen
+            end
+
             if grtable[grtable_key] then
-                grtable[grtable_key] = grtable[grtable_key] + elapsed_time
+                grtable[grtable_key] = grtable[grtable_key] + transaction_value
             else
-                grtable[grtable_key] = elapsed_time
+                grtable[grtable_key] = transaction_value
             end
             partial_transactions[key] = nil
         end
