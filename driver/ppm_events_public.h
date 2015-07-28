@@ -657,7 +657,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_SETNS_X = 241,
 	PPME_SYSCALL_FLOCK_E = 242,
 	PPME_SYSCALL_FLOCK_X = 243,
-	PPM_EVENT_MAX = 244
+	PPME_USER_E = 244,
+	PPME_USER_X = 245,
+	PPM_EVENT_MAX = 246
 };
 /*@}*/
 
@@ -1076,7 +1078,9 @@ enum ppm_param_type {
 	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_DOUBLE = 33, /* this is a double precision floating point number. */
-	PT_MAX = 34 /* array size */
+	PT_CHARBUFARRAY = 34,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
+	PT_CHARBUF_PAIR_ARRAY = 35,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
+	PT_MAX = 36 /* array size */
 };
 
 enum ppm_print_format {

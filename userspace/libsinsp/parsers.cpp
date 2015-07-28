@@ -40,6 +40,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
+#include "appevts.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer_thread.h"
@@ -2386,6 +2387,111 @@ void sinsp_parser::swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo)
 	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport = fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
 	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = tip;
 	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
+}
+
+void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
+{
+	sinsp_threadinfo* tinfo = evt->m_tinfo;
+	
+	//
+	// User events get into the engine as normal writes, but the FD has a flag to
+	// quickly recognize them.
+	//	
+	if(retval == -PPM_USERVET_MAGIC)
+	{
+		//
+		// Extract the data buffer
+		//
+		sinsp_evt_param *parinfo = evt->get_param(1);
+		char* data = parinfo->m_val;
+		uint32_t datalen = parinfo->m_len;
+		sinsp_appevtparser* p = tinfo->m_appevt_parser;
+
+		if(p == NULL)
+		{
+			p = tinfo->m_appevt_parser = new sinsp_appevtparser(m_inspector);
+		}
+
+		p->process_event_data(data, datalen, evt->get_ts());
+		if(p->m_res == sinsp_appevtparser::RES_TRUNCATED)
+		{
+			evt->m_filtered_out = true;
+			return;
+		}
+
+		p->m_args.first = &p->m_argnames;
+		p->m_args.second = &p->m_argvals;
+
+		//
+		// Populate the user event that we will send up the stack instead of the write
+		//
+		uint8_t* fakeevt_storage = (uint8_t*)m_fake_userevt;
+		m_fake_userevt->ts = evt->m_pevt->ts;
+		m_fake_userevt->tid = evt->m_pevt->tid;
+
+		if(p->m_res == sinsp_appevtparser::RES_OK)
+		{
+			if(p->m_type_str[0] == '>')
+			{
+				m_fake_userevt->type = PPME_USER_E;
+
+				uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+				lens[0] = 8;
+				lens[1] = 8;
+				lens[2] = 8;
+
+				*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = p->m_id;
+				*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
+				*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
+			}
+			else
+			{
+				m_fake_userevt->type = PPME_USER_X;
+
+				uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+				lens[0] = 8;
+				lens[1] = 8;
+
+				*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 4) = p->m_id;
+				*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 12) = (uint64_t)&p->m_tags;
+			}
+		}
+		else
+		{
+			//
+			// Parsing error.
+			// We don't know the direction, so we use enter.
+			//
+			m_fake_userevt->type = PPME_USER_E;
+
+			uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+			lens[0] = 8;
+			lens[1] = 8;
+			lens[2] = 8;
+
+			p->m_tags.clear();
+			m_appevt_error_string = "invalid app event " + string(data, datalen);
+			p->m_tags.push_back((char*)m_appevt_error_string.c_str());
+			*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = 0;
+			*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
+			*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
+		}
+
+		scap_evt* tevt = evt->m_pevt;
+		evt->m_pevt = m_fake_userevt;
+		evt->init();
+		//evt->m_poriginal_evt = tevt;
+
+		//
+		// Update some thread information
+		//
+		tinfo->m_lastevent_fd = -1;
+		tinfo->m_lastevent_type = PPME_USER_E;
+		tinfo->m_latency = 0;
+		tinfo->m_last_latency_entertime = 0;
+
+		return;
+	}
 }
 
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt)

@@ -74,6 +74,7 @@ using namespace std;
 #include "ifinfo.h"
 #include "container.h"
 #include "viewinfo.h"
+#include "utils.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -105,6 +106,7 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
+class sinsp_partial_appevt;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -770,6 +772,13 @@ private:
 #endif
 
 	//
+	// App events 
+	//
+	bool m_track_appevts_state;
+	list<sinsp_partial_appevt*> m_partial_appevts_list;
+	simple_lifo_queue<sinsp_partial_appevt>* m_partial_appevts_pool;
+		
+	//
 	// Protocol decoding state
 	//
 	vector<sinsp_protodecoder*> m_decoders_reset_list;
@@ -807,6 +816,8 @@ private:
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
+	friend class sinsp_appevtparser;
+	friend class sinsp_filter_check_event;
 	friend class sinsp_protodecoder;
 	friend class lua_cbacks;
 	friend class sinsp_filter_check_container;
