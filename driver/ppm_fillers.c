@@ -479,9 +479,10 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 	if (flags & O_LARGEFILE)
 		res |= PPM_O_LARGEFILE;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 	if (flags & O_CLOEXEC)
 		res |= PPM_O_CLOEXEC;
-
+#endif
 	return res;
 }
 
