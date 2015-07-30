@@ -349,6 +349,7 @@ VISIBILITY_PRIVATE
 
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
+	scap_evt* m_poriginal_evt;	// This is used when the original event is replaced by a different one (e.g. in the case of user events)
 	uint16_t m_cpuid;
 	uint64_t m_evtnum;
 	bool m_params_loaded;

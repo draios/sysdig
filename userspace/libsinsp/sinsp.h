@@ -777,14 +777,14 @@ private:
 	bool m_track_appevts_state;
 	list<sinsp_partial_appevt*> m_partial_appevts_list;
 	simple_lifo_queue<sinsp_partial_appevt>* m_partial_appevts_pool;
-		
+
 	//
 	// Protocol decoding state
 	//
 	vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	//
-	// Meta event management
+	// Containers meta event management
 	//
 	sinsp_evt m_meta_evt; // XXX this should go away 
 	char* m_meta_evt_buf; // XXX this should go away 
