@@ -214,7 +214,7 @@ _arguments                                                                      
     '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
     '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \
     '(-E --exclude-users)'{-E,--exclude-users}'[Don'\''t create the user/group tables when starting]'           \
-    '(-e)'{-e}'[Rotate the capture file every <num> events]:Maximum event number'                               \
+    '(-e --events)'{-e,--events}'[Rotate the capture file every <num> events]:Maximum event number:'            \
     '(-F --fatfile)'{-F,--fatfile}'[Enable fatfile mode]'                                                       \
     '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'  \
     '(-h --help)'{-h,--help}'[Print this help]'                                                                 \
