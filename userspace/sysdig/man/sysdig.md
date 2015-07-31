@@ -98,6 +98,15 @@ OPTIONS
     
 **-c** _chiselname_ _chiselargs_, **--chisel**=_chiselname_ _chiselargs_  
   run the specified chisel. If the chisel require arguments, they must be specified in the command line after the name.
+
+**-C** _filesize_
+  Before writing an event, check whether the file is
+  currently larger than _filesize_ and, if so, close the
+  current file and open a new one. Savefiles will have the
+  name specified with the -w flag, with a number after it,
+  starting at 0 and continuing upward. The units of file_size
+  are millions of bytes (10^6, not 2^20). Use the -W flag to
+  determine how many files will be saved to disk.
   
 **-cl**, **--list-chisels**  
   lists the available chisels. Looks for chisels in ./chisels, ~/.chisels and /usr/share/sysdig/chisels.
@@ -109,10 +118,25 @@ OPTIONS
   Capture events about sysdig itself
 
 **-E**, **--exclude-users**  
-  Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.  
+  Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.
+
+**-e** _numevents_
+  If used together with -w option, creates a series of dump files
+  containingonly a specified number of events given in _numevents_
+  parameter each.
+  Used alongside -W flags creates a ring buffer of file containing
+  _numevents_ each.
 
 **-F**, **--fatfile**
   Enable fatfile mode. When writing in fatfile mode, the output file will contain events that will be invisible when reading the file, but that are necessary to fully reconstruct the state. Fatfile mode is useful when saving events to disk with an aggressive filter. The filter could drop events that would the state to be updated (e.g. clone() or open()). With fatfile mode, those events are still saved to file, but 'hidden' so that they won't appear when reading the file. Be aware that using this flag might generate substantially bigger traces files.
+
+**-G** _numseconds_
+  Rotates the dump file specified with the -w option every
+  _numseconds_ seconds. Savefiles will have the name specified
+  by -w which should include a time format as defined by strftime(3).
+  If no time format is specified, a counter will be used.
+  If no data format is specified, this can be used with -W flag to
+  create a ring buffer of events.
 
 **-h**, **--help**  
   Print this page
@@ -162,6 +186,16 @@ OPTIONS
 **-w** _writefile_, **--write**=_writefile_  
   Write the captured events to _writefile_.
 
+**-W** _num_
+  Used in conjunction with the -C option, this will limit the number
+  of files created to the specified number, and begin overwriting files
+  from the beginning, thus creating a 'rotating' buffer.
+  
+  Used in conjunction with the -G option, this will limit the number
+  of rotated dump files that get created, exiting with status 0 when
+  reaching the limit. If used with -C as well, the behavior will result
+  in cyclical files per timeslice.
+
 **-x**, **--print-hex**  
   Print data buffers in hex.
   
@@ -179,6 +213,9 @@ Capture all the events from the live system and print them to screen
 
 Capture all the events from the live system and save them to disk
 > $ sysdig -w dumpfile.scap
+
+Capture all the events in the latest 24 hours and save them to disk organized in files containing 1 hour of system activity each
+> $ sysdig -G 3600 -W 24 -w dumpfile.scap
 
 Read events from a file and print them to screen
 > $ sysdig -r dumpfile.scap

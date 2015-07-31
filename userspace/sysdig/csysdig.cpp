@@ -175,8 +175,16 @@ captureinfo do_inspect(sinsp* inspector,
 			// Event read error.
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
-			cerr << "res = " << res << endl;
-			throw sinsp_exception(inspector->getlasterr().c_str());
+			if(inspector->is_live())
+			{
+				throw sinsp_exception(inspector->getlasterr());
+			}
+			else
+			{
+				ui->set_truncated_input(true);
+				res = SCAP_EOF;
+				continue;
+			}
 		}
 
 		if(ui->process_event(ev, res) == true)

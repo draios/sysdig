@@ -5,16 +5,22 @@ _sysdig_complete()
   --print-ascii                                 \
   -b                                            \
   --print-base64                                \
+  -C                                            \
+  --file-size                                   \
   -cl                                           \
   --list-chisels                                \
   -d                                            \
   --displayflt                                  \
   -D                                            \
   --debug                                       \
+  -e                                            \
+  --events                                      \
   -E                                            \
   --exclude-users                               \
   -F                                            \
   --fatfile                                     \
+  -G                                            \
+  --seconds                                     \
   -h                                            \
   --help                                        \
   -j                                            \
@@ -46,6 +52,8 @@ _sysdig_complete()
   --read                                        \
   -w                                            \
   --write                                       \
+  -W                                            \
+  --limit                                       \
   -s                                            \
   --snaplen                                     \
   -t                                            \
