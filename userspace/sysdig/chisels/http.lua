@@ -186,11 +186,7 @@ function on_capture_start()
     return true
 end
 
-function on_interval(ts_s, ts_ns, delta)
-    if vizinfo.output_format ~= "json" then
-        terminal.clearscreen()
-        terminal.moveto(0, 0)
-    end
+function aggregate_grtable()
     for key, transactions in pairs(grtable) do
         if by_field == "ncalls" then
             grtable[key] = #transactions
@@ -208,6 +204,15 @@ function on_interval(ts_s, ts_ns, delta)
             grtable[key] = total_time / #transactions
         end
     end
+end
+
+function on_interval(ts_s, ts_ns, delta)
+    if vizinfo.output_format ~= "json" then
+        terminal.clearscreen()
+        terminal.moveto(0, 0)
+    end
+
+    aggregate_grtable()
     print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 
     -- Clear the table
@@ -224,6 +229,7 @@ function on_capture_end(ts_s, ts_ns, delta)
         return true
     end
 
+    aggregate_grtable()
     print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 
     return true
