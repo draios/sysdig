@@ -44,6 +44,8 @@ function on_init()
     rawtime_field = chisel.request_field("evt.rawtime")
     buflen_field = chisel.request_field("evt.buflen.net")
     datetime_field = chisel.request_field("evt.datetime")
+    dir_field = chisel.request_field("evt.io_dir")
+
     if print_container then
         container_field = chisel.request_field("container.name")
     end
@@ -84,18 +86,27 @@ function on_event()
     buf = evt.field(buffer_field)
     fd = evt.field(fd_field)
     pid = evt.field(pid_field)
+    evt_dir = evt.field(dir_field)
     key = string.format("%d\001\001%d", pid, fd)
 
     timestamp = evt.field(rawtime_field)
     buflen = evt.field(buflen_field)
+
     transaction = partial_transactions[key]
     if not transaction then
         request = parse_request(buf)
         if request then
+            transaction_dir = "<NA>"
+            if evt_dir == "read" then
+                transaction_dir = "<"
+            elseif evt_dir == "write" then
+                transaction_dir = ">"
+            end
             partial_transactions[key] = {
                 ts= timestamp,
                 request= request,
-                request_len=buflen
+                request_len=buflen,
+                dir=transaction_dir
             }
             if print_container then
                 partial_transactions[key]["container"] = evt.field(container_field)
@@ -104,8 +115,9 @@ function on_event()
     else
         response = parse_response(buf)
         if response then
-            print(string.format("%s method=%s url=%s response_code=%d latency=%dms size=%dB",
+            print(string.format("%s %s method=%s url=%s response_code=%d latency=%dms size=%dB",
                 evt.field(datetime_field),
+                transaction["dir"],
                 transaction["request"]["method"],
                 transaction["request"]["url"],
                 response,

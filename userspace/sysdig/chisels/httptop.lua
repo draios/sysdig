@@ -83,6 +83,8 @@ function on_init()
     pid_field = chisel.request_field("proc.pid")
     rawtime_field = chisel.request_field("evt.rawtime")
     buflen_field = chisel.request_field("evt.buflen.net")
+    dir_field = chisel.request_field("evt.io_dir")
+
     if print_container then
         container_field = chisel.request_field("container.name")
         table.insert(vizinfo["key_fld"], 1, "container")
@@ -136,6 +138,7 @@ function on_event()
     buf = evt.field(buffer_field)
     fd = evt.field(fd_field)
     pid = evt.field(pid_field)
+    evt_dir = evt.field(dir_field)
     key = string.format("%d\001\001%d", pid, fd)
 
     timestamp = evt.field(rawtime_field)
@@ -144,10 +147,17 @@ function on_event()
     if not transaction then
         request = parse_request(buf)
         if request then
+            transaction_dir = "<NA>"
+            if evt_dir == "read" then
+                transaction_dir = "server"
+            elseif evt_dir == "write" then
+                transaction_dir = "client"
+            end
             partial_transactions[key] = {
                 ts= timestamp,
                 request= request,
-                request_len=buflen
+                request_len=buflen,
+                dir=transaction_dir
             }
             if print_container then
                 partial_transactions[key]["container"] = evt.field(container_field)
