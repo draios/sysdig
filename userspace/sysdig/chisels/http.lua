@@ -85,8 +85,8 @@ function on_init()
     buflen_field = chisel.request_field("evt.buflen.net")
     if print_container then
         container_field = chisel.request_field("container.name")
-        vizinfo["key_fld"][3] = "container"
-        vizinfo["key_desc"][3] = "container"
+        table.insert(vizinfo["key_fld"], "container")
+        table.insert(vizinfo["key_desc"],"container")
     end
 
     sysdig.set_snaplen(1024)
