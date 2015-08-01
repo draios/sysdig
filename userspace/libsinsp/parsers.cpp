@@ -67,11 +67,6 @@ sinsp_parser::~sinsp_parser()
 	}
 
 	m_protodecoders.clear();
-
-	if(m_inspector->m_partial_appevts_pool != NULL)
-	{
-		delete m_inspector->m_partial_appevts_pool;
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -117,6 +112,19 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	if(m_inspector->m_filter)
 	{
 		ppm_event_flags eflags = evt->get_flags();
+
+		if(etype == PPME_SYSCALL_WRITE_X)
+		{
+			//
+			// Writes with PPM_USERVET_MAGIC as return code are user events
+			//
+			sinsp_evt_param* parinfo = evt->get_param(0);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			if(*(int64_t *)parinfo->m_val == -PPM_USERVET_MAGIC)
+			{
+				eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
+			}
+		}
 
 		if(eflags & EF_MODIFIES_STATE)
 		{
@@ -2501,11 +2509,6 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	ppm_event_flags eflags = evt->get_flags();
 
-	if(!evt->m_fdinfo)
-	{
-		return;
-	}
-
 	//
 	// Extract the return value
 	//
@@ -2520,6 +2523,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	if(retval == -PPM_USERVET_MAGIC)
 	{
 		parse_user_event(evt, retval);
+	}
+
+	if(!evt->m_fdinfo)
+	{
+		return;
 	}
 
 	//
