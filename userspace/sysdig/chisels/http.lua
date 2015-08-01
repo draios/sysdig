@@ -62,9 +62,11 @@ function on_set_arg(name, val)
             vizinfo["value_desc"] = "bytes"
             vizinfo["value_units"] = "bytes"
         else
-            -- TODO: Log error and quit
+            print("Invalid argument! Valid options: ncalls, bytes, time")
+            return false
         end
         by_field = val
+        return true
     end
 end
 
@@ -156,20 +158,13 @@ function on_event()
             --    transaction["requestlen"] + buflen
             --))
             grtable_key = build_grtable_key(transaction)
-            transaction_value = 0
-            if by_field == "ncalls" then
-                transaction_value = 1
-            elseif by_field == "time" then
-                transaction_value = (timestamp - transaction["ts"])
-            elseif by_field == "bytes" then
-                transaction_value = transaction["requestlen"] + buflen
-            end
+            transaction["response_ts"] = timestamp
+            transaction["responselen"] = buflen
 
-            if grtable[grtable_key] then
-                grtable[grtable_key] = grtable[grtable_key] + transaction_value
-            else
-                grtable[grtable_key] = transaction_value
+            if not grtable[grtable_key] then
+                grtable[grtable_key] = {}
             end
+            table.insert(grtable[grtable_key], transaction)
             partial_transactions[key] = nil
         end
     end
@@ -196,7 +191,23 @@ function on_interval(ts_s, ts_ns, delta)
         terminal.clearscreen()
         terminal.moveto(0, 0)
     end
-
+    for key, transactions in pairs(grtable) do
+        if by_field == "ncalls" then
+            grtable[key] = #transactions
+        elseif by_field == "bytes" then
+            total_bytes = 0
+            for _, tr in ipairs(transactions) do
+                total_bytes = total_bytes + tr["requestlen"] + tr["responselen"]
+            end
+            grtable[key] = total_bytes
+        elseif by_field == "time" then
+            total_time = 0
+            for _, tr in ipairs(transactions) do
+                total_time = total_time + tr["response_ts"] - tr["ts"]
+            end
+            grtable[key] = total_time / #transactions
+        end
+    end
     print_sorted_table(grtable, ts_s, 0, delta, vizinfo)
 
     -- Clear the table
