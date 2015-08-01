@@ -67,6 +67,11 @@ sinsp_parser::~sinsp_parser()
 	}
 
 	m_protodecoders.clear();
+
+	if(m_inspector->m_partial_appevts_pool != NULL)
+	{
+		delete m_inspector->m_partial_appevts_pool;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

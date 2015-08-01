@@ -2015,6 +2015,146 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	}
+	case PT_CHARBUFARRAY:
+	{
+		ASSERT(param->m_len == sizeof(uint64_t));
+		vector<char*>* strvect = (vector<char*>*)*(uint64_t *)param->m_val;
+
+		m_paramstr_storage[0] = 0;
+
+		while(true)
+		{
+			vector<char*>::iterator it;
+			vector<char*>::iterator itbeg;
+			bool need_to_resize = false;
+
+			//
+			// Copy the arguments
+			//
+			char* dst = &m_paramstr_storage[0];
+			char* dstend = &m_paramstr_storage[0] + m_paramstr_storage.size() - 2;
+
+			for(it = itbeg = strvect->begin(); it != strvect->end(); ++it)
+			{
+				char* src = *it;
+
+				if(it != itbeg)
+				{
+					if(dst < dstend - 1)
+					{
+						*dst++ = ',';
+					}
+				}
+
+				while(*src != 0 && dst < dstend)
+				{
+					*dst++ = *src++;
+				}
+
+				if(dst == dstend)
+				{
+					//
+					// Reached the end of m_paramstr_storage, we need to resize it
+					//
+					need_to_resize = true;
+					break;
+				}
+			}
+
+			if(need_to_resize)
+			{
+				m_paramstr_storage.resize(m_paramstr_storage.size() * 2);
+				continue;
+			}
+
+			*dst = 0;
+
+			break;
+		}
+	}
+	break;
+	case PT_CHARBUF_PAIR_ARRAY:
+	{
+		ASSERT(param->m_len == sizeof(uint64_t));
+		pair<vector<char*>*, vector<char*>*>* pairs = 
+			(pair<vector<char*>*, vector<char*>*>*)*(uint64_t *)param->m_val;
+		ASSERT(pairs->first->size() == pairs->second->size());
+
+		m_paramstr_storage[0] = 0;
+
+		while(true)
+		{
+			vector<char*>::iterator it1;
+			vector<char*>::iterator itbeg1;
+			vector<char*>::iterator it2;
+			vector<char*>::iterator itbeg2;
+			bool need_to_resize = false;
+
+			//
+			// Copy the arguments
+			//
+			char* dst = &m_paramstr_storage[0];
+			char* dstend = &m_paramstr_storage[0] + m_paramstr_storage.size() - 2;
+
+			for(it1 = itbeg1 = pairs->first->begin(), it2 = itbeg2 = pairs->second->begin(); 
+			it1 != pairs->first->end(); 
+				++it1, ++it2)
+			{
+				char* src = *it1;
+
+				if(it1 != itbeg1)
+				{
+					if(dst < dstend - 1)
+					{
+						*dst++ = ',';
+					}
+				}
+
+				//
+				// Copy the first string
+				//
+				while(*src != 0 && dst < dstend)
+				{
+					*dst++ = *src++;
+				}
+
+				if(dst < dstend - 1)
+				{
+					*dst++ = ':';
+				}
+
+				//
+				// Copy the second string
+				//
+				src = *it2;
+				while(*src != 0 && dst < dstend)
+				{
+					*dst++ = *src++;
+				}
+
+				if(dst == dstend)
+				{
+					//
+					// Reached the end of m_paramstr_storage, we need to resize it
+					//
+					need_to_resize = true;
+					break;
+				}
+			}
+
+			if(need_to_resize)
+			{
+				m_paramstr_storage.resize(m_paramstr_storage.size() * 2);
+				continue;
+			}
+
+			*dst = 0;
+
+			break;
+		}
+
+		break;
+	}
 	default:
 		ASSERT(false);
 		snprintf(&m_paramstr_storage[0],
