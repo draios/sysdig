@@ -33,6 +33,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
+#ifdef CONFIG_CGROUPS
+#include <linux/cgroup.h>
+#endif
 #include <asm/mman.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include "ppm_syscall.h"
