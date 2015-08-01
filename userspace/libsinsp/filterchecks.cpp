@@ -27,6 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
+#include "appevts.h"
 
 extern sinsp_evttables g_infotables;
 
@@ -3440,6 +3441,348 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return (uint8_t*)ginfo->name;
 		}
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_appevt implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_appevt_fields[] =
+{
+	{PT_UINT64, EPF_NONE, PF_DEC, "appevt.id", "event ID."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "appevt.ntags", "Number of tags that this user event has."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "appevt.nargs", "Number of arguments that this user event has."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "appevt.tags", "comma-separated list of event tags."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "appevt.tag", "one of the app event tags specified by offset. E.g. 'appevt.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'appevt.tag[-1]' returns the last tag."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "appevt.args", "comma-separated list of event arguments."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "appevt.arg", "one of the app event arguments specified by name or by offset. E.g. 'appevt.tag.mytag' or 'appevt.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'appevt.arg[-1]' returns the last argument."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "appevt.latency", "delta between an exit event and the correspondent enter event."},
+};
+
+sinsp_filter_check_appevt::sinsp_filter_check_appevt()
+{
+	m_info.m_name = "app";
+	m_info.m_fields = sinsp_filter_check_appevt_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_appevt_fields) / sizeof(sinsp_filter_check_appevt_fields[0]);
+
+	m_storage_size = UESTORAGE_INITIAL_BUFSIZE;
+	m_storage = (char*)malloc(m_storage_size);
+	if(m_storage == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_filter_check_appevt::sinsp_filter_check_appevt");
+	}
+
+	m_cargname = NULL;
+}
+
+sinsp_filter_check* sinsp_filter_check_appevt::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_appevt();
+}
+
+int32_t sinsp_filter_check_appevt::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+{
+	uint32_t parsed_len = 0;
+
+	//
+	// 'arg' and 'resarg' are handled in a custom way
+	//
+	if(val[fldname.size()] == '[')
+	{
+		if(parinfo != NULL)
+		{
+			throw sinsp_exception("appevt field must be expressed explicitly");
+		}
+
+		parsed_len = (uint32_t)val.find(']');
+		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+		m_argid = sinsp_numparser::parsed32(numstr);
+		parsed_len++;
+	}
+	else if(val[fldname.size()] == '.')
+	{
+		if(fldname == "appevt.tag")
+		{
+			throw sinsp_exception("invalid syntax for appevt.arg");
+		}
+
+		m_argname = val.substr(fldname.size() + 1);
+		m_cargname = m_argname.c_str();
+		parsed_len = (uint32_t)(fldname.size() + m_argname.size() + 1);
+		m_argid = TEXT_ARG_ID;
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len; 
+}
+
+int32_t sinsp_filter_check_appevt::parse_field_name(const char* str, bool alloc_state)
+{
+	int32_t res;
+	string val(str);
+
+	//
+	// A couple of fields are handled in a custom way
+	//
+	if(string(val, 0, sizeof("appevt.tag") - 1) == "appevt.tag" &&
+		string(val, 0, sizeof("appevt.tags") - 1) != "appevt.tags")
+	{
+		m_field_id = TYPE_TAG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("appevt.tag", val, NULL);
+	}
+	else if(string(val, 0, sizeof("appevt.arg") - 1) == "appevt.arg" &&
+		string(val, 0, sizeof("appevt.args") - 1) != "appevt.args")
+	{
+		m_field_id = TYPE_ARG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("appevt.arg", val, NULL);
+	}
+	else
+	{
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+	}
+
+	if(m_field_id == TYPE_LATENCY)
+	{
+		m_inspector->request_appevt_state_tracking();
+	}
+
+	return res;
+}
+
+uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	sinsp_appevtparser* eparser;
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	uint16_t etype = evt->get_type();
+
+	if(etype != PPME_USER_E && etype != PPME_USER_X)
+	{
+		return NULL;
+	}
+
+	if(tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	eparser = tinfo->m_appevt_parser;
+
+	if(eparser == NULL)
+	{
+		return NULL;
+	}
+
+	switch(m_field_id)
+	{
+	case TYPE_ID:
+		return (uint8_t*)&eparser->m_id;
+	case TYPE_NTAGS:
+		m_u32val = (uint32_t)eparser->m_tags.size();
+		return (uint8_t*)&m_u32val;
+	case TYPE_NARGS:
+		{
+			sinsp_partial_appevt* pae = eparser->m_enter_pae;
+			if(pae == NULL)
+			{
+				return NULL;
+			}
+
+			m_u32val = (uint32_t)pae->m_argvals.size();
+			return (uint8_t*)&m_u32val;
+		}
+	case TYPE_TAGS:
+		{
+			vector<char*>::iterator it;
+			vector<uint32_t>::iterator sit;
+
+			uint32_t ntags = (uint32_t)eparser->m_tags.size();
+			uint32_t encoded_tags_len = eparser->m_tot_taglens + ntags + 1;
+
+			if(m_storage_size < encoded_tags_len)
+			{
+				m_storage = (char*)realloc(m_storage, encoded_tags_len);
+				m_storage_size = encoded_tags_len;
+			}
+
+			char* p = m_storage;
+
+			for(it = eparser->m_tags.begin(), sit = eparser->m_taglens.begin(); 
+				it != eparser->m_tags.end(); ++it, ++sit)
+			{
+				memcpy(p, *it, (*sit));
+				p += (*sit);
+				*p++ = ',';
+			}
+
+			if(p != m_storage)
+			{
+				*--p = 0;
+			}
+			else
+			{
+				*p = 0;
+			}
+
+			return (uint8_t*)m_storage;
+		}
+	case TYPE_TAG:
+		{
+			char* res = NULL;
+
+			if(m_argid >= 0)
+			{
+				if(m_argid < (int32_t)eparser->m_tags.size())
+				{
+					res = eparser->m_tags[m_argid];
+				}
+			}
+			else
+			{
+				int32_t id = (int32_t)eparser->m_tags.size() + m_argid;
+
+				if(id >= 0)
+				{
+					res = eparser->m_tags[id];
+				}
+			}
+
+			return (uint8_t*)res;
+		}
+	case TYPE_ARGS:
+		{
+			sinsp_partial_appevt* pae;
+			pae = eparser->m_enter_pae;
+
+			if(pae == NULL)
+			{
+				return NULL;
+			}
+
+			vector<char*>::iterator nameit;
+			vector<char*>::iterator valit;
+			vector<uint32_t>::iterator namesit;
+			vector<uint32_t>::iterator valsit;
+
+			uint32_t nargs = (uint32_t)pae->m_argnames.size();
+			uint32_t encoded_args_len = pae->m_argnames_len + pae->m_argvals_len +
+				nargs + nargs + 2;
+
+			if(m_storage_size < encoded_args_len)
+			{
+				m_storage = (char*)realloc(m_storage, encoded_args_len);
+				m_storage_size = encoded_args_len;
+			}
+
+			char* p = m_storage;
+
+			for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(), 
+				namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin(); 
+				nameit != pae->m_argnames.end(); 
+				++nameit, ++namesit, ++valit, ++valsit)
+			{
+				strcpy(p, *nameit);
+				p += (*namesit);
+				*p++ = ':';
+
+				memcpy(p, *valit, (*valsit));
+				p += (*valsit);
+				*p++ = ',';
+			}
+
+			if(p != m_storage)
+			{
+				*--p = 0;
+			}
+			else
+			{
+				*p = 0;
+			}
+
+			return (uint8_t*)m_storage;
+		}
+	case TYPE_ARG:
+		{
+			char* res = NULL;
+			sinsp_partial_appevt* pae = eparser->m_enter_pae;
+			if(pae == NULL)
+			{
+				return NULL;
+			}
+
+			if(m_argid == TEXT_ARG_ID)
+			{
+				//
+				// Argument expressed as name, e.g. appevt.arg.name.
+				// Scan the argname list and find the match.
+				//
+				uint32_t j;
+
+				for(j = 0; j < pae->m_nargs; j++)
+				{
+					if(strcmp(m_cargname, pae->m_argnames[j]) == 0)
+					{
+						res = pae->m_argvals[j];
+						break;
+					}
+				}
+			}
+			else
+			{
+				//
+				// Argument expressed as id, e.g. appevt.arg[1].
+				// Pick the corresponding value.
+				//
+				if(m_argid >= 0)
+				{
+					if(m_argid < (int32_t)pae->m_nargs)
+					{
+						res = pae->m_argvals[m_argid];
+					}
+				}
+				else
+				{
+					int32_t id = (int32_t)pae->m_nargs + m_argid;
+
+					if(id >= 0)
+					{
+						res = pae->m_argvals[id];
+					}
+				}
+			}
+
+			return (uint8_t*)res;
+		}
+	case TYPE_LATENCY:
+		{
+			if(etype == PPME_USER_X)
+			{
+				sinsp_partial_appevt* pae = eparser->m_enter_pae;
+				if(pae == NULL)
+				{
+					return NULL;
+				}
+
+				m_u64val = eparser->m_exit_pae.m_time - pae->m_time;
+				return (uint8_t*)&m_u64val;
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+		break;
 	default:
 		ASSERT(false);
 		break;

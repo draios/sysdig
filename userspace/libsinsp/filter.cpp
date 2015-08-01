@@ -59,6 +59,7 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_container());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
+	add_filter_check(new sinsp_filter_check_appevt());
 }
 
 sinsp_filter_check_list::~sinsp_filter_check_list()
@@ -1640,39 +1641,56 @@ void sinsp_filter::compile(const string& fltstr)
 			pop_expression();
 			break;
 		case 'o':
-			if(next() == 'r')
+			if(m_scanpos != 0 && m_state != ST_NEED_EXPRESSION)
 			{
-				m_last_boolop = BO_OR;
+				if(next() == 'r')
+				{
+					m_last_boolop = BO_OR;
+				}
+				else
+				{
+					throw sinsp_exception("syntax error in filter at position " + to_string((long long)m_scanpos));
+				}
+
+				if(m_state != ST_EXPRESSION_DONE)
+				{
+					throw sinsp_exception("unexpected 'or' after " + m_fltstr.substr(0, m_scanpos));
+				}
+
+				m_state = ST_NEED_EXPRESSION;
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
+				parse_check(m_curexpr, m_last_boolop);
+				m_state = ST_EXPRESSION_DONE;
 			}
-
-			if(m_state != ST_EXPRESSION_DONE)
-			{
-				throw sinsp_exception("unexpected 'or' after " + m_fltstr.substr(0, m_scanpos));
-			}
-
-			m_state = ST_NEED_EXPRESSION;
 
 			break;
 		case 'a':
-			if(next() == 'n' && next() == 'd')
+			if(m_scanpos != 0 && m_state != ST_NEED_EXPRESSION)
 			{
-				m_last_boolop = BO_AND;
+
+				if(next() == 'n' && next() == 'd')
+				{
+					m_last_boolop = BO_AND;
+				}
+				else
+				{
+					throw sinsp_exception("syntax error in filter at position " + to_string((long long)m_scanpos));
+				}
+
+				if(m_state != ST_EXPRESSION_DONE)
+				{
+					throw sinsp_exception("unexpected 'and' after " + m_fltstr.substr(0, m_scanpos));
+				}
+
+				m_state = ST_NEED_EXPRESSION;
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
+				parse_check(m_curexpr, m_last_boolop);
+				m_state = ST_EXPRESSION_DONE;
 			}
-
-			if(m_state != ST_EXPRESSION_DONE)
-			{
-				throw sinsp_exception("unexpected 'and' after " + m_fltstr.substr(0, m_scanpos));
-			}
-
-			m_state = ST_NEED_EXPRESSION;
 
 			break;
 		case 'n':

@@ -633,6 +633,15 @@ public:
 	}
 
 	//
+	// Used by filters to enable app event state tracking, which is disabled
+	// by default for performance reasons
+	//
+	void sinsp::request_appevt_state_tracking()
+	{
+		m_track_appevts_state = true;
+	}
+
+	//
 	// Allocates private state in the thread info class.
 	// Returns the ID to use when retrieving the memory area.
 	// Will fail if called after the capture starts.
