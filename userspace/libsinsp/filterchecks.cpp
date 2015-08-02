@@ -3553,7 +3553,7 @@ int32_t sinsp_filter_check_appevt::parse_field_name(const char* str, bool alloc_
 		res = sinsp_filter_check::parse_field_name(str, alloc_state);
 	}
 
-	if(m_field_id == TYPE_LATENCY)
+	if(m_field_id == TYPE_LATENCY || m_field_id == TYPE_ARG || m_field_id == TYPE_ARGS)
 	{
 		m_inspector->request_appevt_state_tracking();
 	}

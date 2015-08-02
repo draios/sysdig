@@ -57,6 +57,12 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_fd_listener(NULL)
 {
 	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
+
+	//
+	// Note: allocated here instead of in the sinsp constructor because sinsp_partial_appevt
+	//       is not defined in sinsp.cpp
+	//
+	m_inspector->m_partial_appevts_pool = new simple_lifo_queue<sinsp_partial_appevt>(128);
 }
 
 sinsp_parser::~sinsp_parser()
@@ -67,6 +73,11 @@ sinsp_parser::~sinsp_parser()
 	}
 
 	m_protodecoders.clear();
+
+	if(m_inspector->m_partial_appevts_pool != NULL)
+	{
+		delete m_inspector->m_partial_appevts_pool;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

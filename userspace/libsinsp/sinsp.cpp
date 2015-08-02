@@ -127,7 +127,6 @@ sinsp::sinsp() :
 	m_meinfo.m_pievt.m_fdinfo = NULL;
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
-	m_partial_appevts_pool = NULL;
 }
 
 sinsp::~sinsp()
@@ -166,11 +165,6 @@ sinsp::~sinsp()
 	if(m_meinfo.m_piscapevt)
 	{
 		delete[] m_meinfo.m_piscapevt;
-	}
-
-	if(m_partial_appevts_pool != NULL)
-	{
-		delete m_partial_appevts_pool;
 	}
 }
 
