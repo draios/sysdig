@@ -415,9 +415,17 @@ public:
 		TYPE_BUFLEN_NET = 53,
 		TYPE_BUFLEN_NET_IN = 54,
 		TYPE_BUFLEN_NET_OUT = 55,
+		TYPE_MARKER_ID = 56,
+		TYPE_MARKER_NTAGS = 57,
+		TYPE_MARKER_NARGS = 58,
+		TYPE_MARKER_TAGS = 59,
+		TYPE_MARKER_TAG = 60,
+		TYPE_MARKER_ARGS = 61,
+		TYPE_MARKER_ARG = 62,
 	};
 
 	sinsp_filter_check_event();
+	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state);
 	void parse_filter_value(const char* str, uint32_t len);
@@ -451,8 +459,12 @@ private:
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
+	inline bool compare_marker(sinsp_evt *evt, sinsp_partial_marker* pae);
 
 	bool m_is_compare;
+	char* m_storage;
+	uint32_t m_storage_size;
+	const char* m_cargname;
 };
 
 //
