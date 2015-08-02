@@ -59,10 +59,10 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
 
 	//
-	// Note: allocated here instead of in the sinsp constructor because sinsp_partial_appevt
+	// Note: allocated here instead of in the sinsp constructor because sinsp_partial_marker
 	//       is not defined in sinsp.cpp
 	//
-	m_inspector->m_partial_appevts_pool = new simple_lifo_queue<sinsp_partial_appevt>(128);
+	m_inspector->m_partial_markers_pool = new simple_lifo_queue<sinsp_partial_marker>(128);
 }
 
 sinsp_parser::~sinsp_parser()
@@ -74,9 +74,9 @@ sinsp_parser::~sinsp_parser()
 
 	m_protodecoders.clear();
 
-	if(m_inspector->m_partial_appevts_pool != NULL)
+	if(m_inspector->m_partial_markers_pool != NULL)
 	{
-		delete m_inspector->m_partial_appevts_pool;
+		delete m_inspector->m_partial_markers_pool;
 	}
 }
 
@@ -2424,15 +2424,15 @@ void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
 	sinsp_evt_param *parinfo = evt->get_param(1);
 	char* data = parinfo->m_val;
 	uint32_t datalen = parinfo->m_len;
-	sinsp_appevtparser* p = tinfo->m_appevt_parser;
+	sinsp_markerparser* p = tinfo->m_marker_parser;
 
 	if(p == NULL)
 	{
-		p = tinfo->m_appevt_parser = new sinsp_appevtparser(m_inspector);
+		p = tinfo->m_marker_parser = new sinsp_markerparser(m_inspector);
 	}
 
 	p->process_event_data(data, datalen, evt->get_ts());
-	if(p->m_res == sinsp_appevtparser::RES_TRUNCATED)
+	if(p->m_res == sinsp_markerparser::RES_TRUNCATED)
 	{
 		evt->m_filtered_out = true;
 		return;
@@ -2448,7 +2448,7 @@ void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
 	m_fake_userevt->ts = evt->m_pevt->ts;
 	m_fake_userevt->tid = evt->m_pevt->tid;
 
-	if(p->m_res == sinsp_appevtparser::RES_OK)
+	if(p->m_res == sinsp_markerparser::RES_OK)
 	{
 		if(p->m_type_str[0] == '>')
 		{
@@ -2489,8 +2489,8 @@ void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
 		lens[2] = 8;
 
 		p->m_tags.clear();
-		m_appevt_error_string = "invalid app event " + string(data, datalen);
-		p->m_tags.push_back((char*)m_appevt_error_string.c_str());
+		m_marker_error_string = "invalid app event " + string(data, datalen);
+		p->m_tags.push_back((char*)m_marker_error_string.c_str());
 		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = 0;
 		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
 		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;

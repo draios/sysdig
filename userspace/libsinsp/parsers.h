@@ -128,7 +128,7 @@ private:
 	sinsp_evt m_tmp_evt;
 	uint8_t m_fake_userevt_storage[4096];
 	scap_evt* m_fake_userevt;
-	string m_appevt_error_string;
+	string m_marker_error_string;
 
 	// FD listener callback
 	sinsp_fd_listener* m_fd_listener;

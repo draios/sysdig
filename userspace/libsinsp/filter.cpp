@@ -59,7 +59,7 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_container());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
-	add_filter_check(new sinsp_filter_check_appevt());
+	add_filter_check(new sinsp_filter_check_marker());
 }
 
 sinsp_filter_check_list::~sinsp_filter_check_list()

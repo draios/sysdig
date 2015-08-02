@@ -3450,42 +3450,42 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_filter_check_appevt implementation
+// sinsp_filter_check_marker implementation
 ///////////////////////////////////////////////////////////////////////////////
-const filtercheck_field_info sinsp_filter_check_appevt_fields[] =
+const filtercheck_field_info sinsp_filter_check_marker_fields[] =
 {
-	{PT_UINT64, EPF_NONE, PF_DEC, "appevt.id", "event ID."},
-	{PT_UINT32, EPF_NONE, PF_DEC, "appevt.ntags", "Number of tags that this user event has."},
-	{PT_UINT32, EPF_NONE, PF_DEC, "appevt.nargs", "Number of arguments that this user event has."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "appevt.tags", "comma-separated list of event tags."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "appevt.tag", "one of the app event tags specified by offset. E.g. 'appevt.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'appevt.tag[-1]' returns the last tag."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "appevt.args", "comma-separated list of event arguments."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "appevt.arg", "one of the app event arguments specified by name or by offset. E.g. 'appevt.tag.mytag' or 'appevt.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'appevt.arg[-1]' returns the last argument."},
-	{PT_RELTIME, EPF_NONE, PF_DEC, "appevt.latency", "delta between an exit event and the correspondent enter event."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "marker.id", "event ID."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "marker.ntags", "Number of tags that this user event has."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "marker.nargs", "Number of arguments that this user event has."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.tags", "comma-separated list of event tags."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.tag", "one of the app event tags specified by offset. E.g. 'marker.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'marker.tag[-1]' returns the last tag."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.args", "comma-separated list of event arguments."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.arg", "one of the app event arguments specified by name or by offset. E.g. 'marker.tag.mytag' or 'marker.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'marker.arg[-1]' returns the last argument."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "marker.latency", "delta between an exit event and the correspondent enter event."},
 };
 
-sinsp_filter_check_appevt::sinsp_filter_check_appevt()
+sinsp_filter_check_marker::sinsp_filter_check_marker()
 {
-	m_info.m_name = "app";
-	m_info.m_fields = sinsp_filter_check_appevt_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_appevt_fields) / sizeof(sinsp_filter_check_appevt_fields[0]);
+	m_info.m_name = "marker";
+	m_info.m_fields = sinsp_filter_check_marker_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_marker_fields) / sizeof(sinsp_filter_check_marker_fields[0]);
 
 	m_storage_size = UESTORAGE_INITIAL_BUFSIZE;
 	m_storage = (char*)malloc(m_storage_size);
 	if(m_storage == NULL)
 	{
-		throw sinsp_exception("memory allocation error in sinsp_filter_check_appevt::sinsp_filter_check_appevt");
+		throw sinsp_exception("memory allocation error in sinsp_filter_check_marker::sinsp_filter_check_marker");
 	}
 
 	m_cargname = NULL;
 }
 
-sinsp_filter_check* sinsp_filter_check_appevt::allocate_new()
+sinsp_filter_check* sinsp_filter_check_marker::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_appevt();
+	return (sinsp_filter_check*) new sinsp_filter_check_marker();
 }
 
-int32_t sinsp_filter_check_appevt::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+int32_t sinsp_filter_check_marker::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
@@ -3496,7 +3496,7 @@ int32_t sinsp_filter_check_appevt::extract_arg(string fldname, string val, OUT c
 	{
 		if(parinfo != NULL)
 		{
-			throw sinsp_exception("appevt field must be expressed explicitly");
+			throw sinsp_exception("marker field must be expressed explicitly");
 		}
 
 		parsed_len = (uint32_t)val.find(']');
@@ -3506,9 +3506,9 @@ int32_t sinsp_filter_check_appevt::extract_arg(string fldname, string val, OUT c
 	}
 	else if(val[fldname.size()] == '.')
 	{
-		if(fldname == "appevt.tag")
+		if(fldname == "marker.tag")
 		{
-			throw sinsp_exception("invalid syntax for appevt.arg");
+			throw sinsp_exception("invalid syntax for marker.arg");
 		}
 
 		m_argname = val.substr(fldname.size() + 1);
@@ -3524,7 +3524,7 @@ int32_t sinsp_filter_check_appevt::extract_arg(string fldname, string val, OUT c
 	return parsed_len; 
 }
 
-int32_t sinsp_filter_check_appevt::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_marker::parse_field_name(const char* str, bool alloc_state)
 {
 	int32_t res;
 	string val(str);
@@ -3532,21 +3532,21 @@ int32_t sinsp_filter_check_appevt::parse_field_name(const char* str, bool alloc_
 	//
 	// A couple of fields are handled in a custom way
 	//
-	if(string(val, 0, sizeof("appevt.tag") - 1) == "appevt.tag" &&
-		string(val, 0, sizeof("appevt.tags") - 1) != "appevt.tags")
+	if(string(val, 0, sizeof("marker.tag") - 1) == "marker.tag" &&
+		string(val, 0, sizeof("marker.tags") - 1) != "marker.tags")
 	{
 		m_field_id = TYPE_TAG;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("appevt.tag", val, NULL);
+		res = extract_arg("marker.tag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("appevt.arg") - 1) == "appevt.arg" &&
-		string(val, 0, sizeof("appevt.args") - 1) != "appevt.args")
+	else if(string(val, 0, sizeof("marker.arg") - 1) == "marker.arg" &&
+		string(val, 0, sizeof("marker.args") - 1) != "marker.args")
 	{
 		m_field_id = TYPE_ARG;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("appevt.arg", val, NULL);
+		res = extract_arg("marker.arg", val, NULL);
 	}
 	else
 	{
@@ -3555,15 +3555,15 @@ int32_t sinsp_filter_check_appevt::parse_field_name(const char* str, bool alloc_
 
 	if(m_field_id == TYPE_LATENCY || m_field_id == TYPE_ARG || m_field_id == TYPE_ARGS)
 	{
-		m_inspector->request_appevt_state_tracking();
+		m_inspector->request_marker_state_tracking();
 	}
 
 	return res;
 }
 
-uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_marker::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
-	sinsp_appevtparser* eparser;
+	sinsp_markerparser* eparser;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	uint16_t etype = evt->get_type();
 
@@ -3577,7 +3577,7 @@ uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return NULL;
 	}
 
-	eparser = tinfo->m_appevt_parser;
+	eparser = tinfo->m_marker_parser;
 
 	if(eparser == NULL)
 	{
@@ -3593,7 +3593,7 @@ uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_NARGS:
 		{
-			sinsp_partial_appevt* pae = eparser->m_enter_pae;
+			sinsp_partial_marker* pae = eparser->m_enter_pae;
 			if(pae == NULL)
 			{
 				return NULL;
@@ -3662,7 +3662,7 @@ uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_ARGS:
 		{
-			sinsp_partial_appevt* pae;
+			sinsp_partial_marker* pae;
 			pae = eparser->m_enter_pae;
 
 			if(pae == NULL)
@@ -3715,7 +3715,7 @@ uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_ARG:
 		{
 			char* res = NULL;
-			sinsp_partial_appevt* pae = eparser->m_enter_pae;
+			sinsp_partial_marker* pae = eparser->m_enter_pae;
 			if(pae == NULL)
 			{
 				return NULL;
@@ -3724,7 +3724,7 @@ uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
 			if(m_argid == TEXT_ARG_ID)
 			{
 				//
-				// Argument expressed as name, e.g. appevt.arg.name.
+				// Argument expressed as name, e.g. marker.arg.name.
 				// Scan the argname list and find the match.
 				//
 				uint32_t j;
@@ -3741,7 +3741,7 @@ uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
 			else
 			{
 				//
-				// Argument expressed as id, e.g. appevt.arg[1].
+				// Argument expressed as id, e.g. marker.arg[1].
 				// Pick the corresponding value.
 				//
 				if(m_argid >= 0)
@@ -3768,7 +3768,7 @@ uint8_t* sinsp_filter_check_appevt::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(etype == PPME_USER_X)
 			{
-				sinsp_partial_appevt* pae = eparser->m_enter_pae;
+				sinsp_partial_marker* pae = eparser->m_enter_pae;
 				if(pae == NULL)
 				{
 					return NULL;

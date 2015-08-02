@@ -266,6 +266,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SETNS_X */ {"setns", EC_PROCESS, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC}}},
 	/* PPME_SYSCALL_FLOCK_E */ {"flock", EC_FILE, EF_USES_FD, 2, {{"fd", PT_FD, PF_NA}, {"operation", PT_FLAGS32, PF_HEX, flock_flags}}},
 	/* PPME_SYSCALL_FLOCK_X */ {"flock", EC_FILE, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC}}},
-	/* PPME_USER_E */{"appevt", EC_OTHER, EF_NONE, 3, {{"id", PT_UINT64, PF_DEC}, {"tags", PT_CHARBUFARRAY, PF_NA}, {"args", PT_CHARBUF_PAIR_ARRAY, PF_NA} } },
-	/* PPME_USER_X */{"appevt", EC_OTHER, EF_NONE, 2, {{"id", PT_UINT64, PF_DEC}, {"tags", PT_CHARBUFARRAY, PF_NA} } },
+	/* PPME_USER_E */{"marker", EC_OTHER, EF_NONE, 3, {{"id", PT_UINT64, PF_DEC}, {"tags", PT_CHARBUFARRAY, PF_NA}, {"args", PT_CHARBUF_PAIR_ARRAY, PF_NA} } },
+	/* PPME_USER_X */{"marker", EC_OTHER, EF_NONE, 2, {{"id", PT_UINT64, PF_DEC}, {"tags", PT_CHARBUFARRAY, PF_NA} } },
 };

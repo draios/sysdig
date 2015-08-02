@@ -40,7 +40,7 @@ sinsp_threadinfo::sinsp_threadinfo() :
 	m_fdtable(NULL)
 {
 	m_inspector = NULL;
-	m_appevt_parser = NULL;
+	m_marker_parser = NULL;
 	init();
 }
 
@@ -48,7 +48,7 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp *inspector) :
 	m_fdtable(inspector)
 {
 	m_inspector = inspector;
-	m_appevt_parser = NULL;
+	m_marker_parser = NULL;
 	init();
 }
 

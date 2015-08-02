@@ -93,7 +93,7 @@ sinsp::sinsp() :
 	m_isfatfile_enabled = false;
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
-	m_track_appevts_state = false;
+	m_track_markers_state = false;
 	m_import_users = true;
 	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
 	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;

@@ -502,7 +502,7 @@ public:
 //
 #define TEXT_ARG_ID -1000000
 
-class sinsp_filter_check_appevt : public sinsp_filter_check
+class sinsp_filter_check_marker : public sinsp_filter_check
 {
 public:
 	enum check_type
@@ -517,7 +517,7 @@ public:
 		TYPE_LATENCY,
 	};
 
-	sinsp_filter_check_appevt();
+	sinsp_filter_check_marker();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
