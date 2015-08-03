@@ -41,9 +41,9 @@ bool cycle_writer::setup(string base_file_name, int rollover_mb, int duration_se
 
 	if(duration_seconds > 0 && file_limit > 0)
 	{
-		m_past_names = new string [file_limit];
+		m_past_names = new string[file_limit];
 		
-		for(int j = 0; j < file_limit; j++)
+		for(int32_t j = 0; j < file_limit; j++)
 		{
 			m_past_names[j] = "";
 		}
@@ -174,8 +174,7 @@ cycle_writer::conclusion cycle_writer::next_file()
 
 			if(m_past_names[m_file_index] != "")
 			{
-				int res = remove(m_past_names[m_file_index].c_str());
-				printf("%s (%d)\n", m_past_names[m_file_index].c_str(), res);
+				remove(m_past_names[m_file_index].c_str());
 			}
 
 			m_past_names[m_file_index] = string(file_name);
