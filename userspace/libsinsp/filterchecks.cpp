@@ -27,7 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
-#include "appevts.h"
+#include "markers.h"
 
 extern sinsp_evttables g_infotables;
 

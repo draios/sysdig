@@ -40,7 +40,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
-#include "appevts.h"
+#include "markers.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer_thread.h"
@@ -51,6 +51,19 @@ bool should_drop(sinsp_evt *evt);
 
 extern sinsp_protodecoder_list g_decoderlist;
 
+#if 1
+sinsp_parser::sinsp_parser(sinsp *inspector) :
+	m_inspector(inspector),
+	m_tmp_evt(m_inspector),
+	m_fd_listener(NULL)
+{
+	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
+	m_inspector->m_partial_markers_pool = new simple_lifo_queue<sinsp_partial_marker>(128);
+
+	sinsp_markerparser p(inspector);
+	p.test();
+}
+#else
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
@@ -64,6 +77,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	//
 	m_inspector->m_partial_markers_pool = new simple_lifo_queue<sinsp_partial_marker>(128);
 }
+#endif
 
 sinsp_parser::~sinsp_parser()
 {
