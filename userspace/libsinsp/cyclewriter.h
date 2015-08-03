@@ -150,6 +150,6 @@ private:
 
 	// Used when ciclewriting on time with specified
 	// name format for deleting "out-of-range" files
-	string *m_past_names = NULL;
+	string *m_past_names;
 };
 

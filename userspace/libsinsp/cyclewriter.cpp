@@ -13,7 +13,8 @@ cycle_writer::cycle_writer(bool is_live) :
 	m_file_index(0),
 	m_first_consider(false),
 	m_event_count(0L),
-	m_dumper(NULL)
+	m_dumper(NULL),
+	m_past_names(NULL)
 {
 	//
 	// null terminate the first
