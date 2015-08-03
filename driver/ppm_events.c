@@ -274,6 +274,9 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 							) {
 						sockfd_put(sock);
 						return 2000;
+					} else if ( dport == PPM_PORT_STATSD ) {
+						sockfd_put(sock);
+						return 2000;
 					} else {
 						if (lookahead_size >= 5) {
 							if (*(u32 *)buf == g_http_get_intval ||
@@ -1168,7 +1171,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 						ASSERT(bufsize >= retval);
 
 						/*
-						 * Copied all the data even if we haven't reached the 
+						 * Copied all the data even if we haven't reached the
 						 * end of the buffer.
 						 * Copy must stop here.
 						 */

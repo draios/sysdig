@@ -1,5 +1,5 @@
 --[[
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2015 Draios inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Given two filter fields, a key and a value, this chisel creates and renders a dynamic table to the screen. Where key=container.name and value=thread.exectime (CPU%)"
+description = "Show the top containers defined by the highest CPU utilization."
 short_description = "Top containers by CPU usage"
 category = "CPU Usage"
 
@@ -27,11 +27,11 @@ terminal = require "ansiterminal"
 
 grtable = {}
 islive = false
-cpustates = {}
+fkeys = {}
 
 vizinfo =
 {
-	key_fld = "container.name",
+	key_fld = {"container.name"},
 	key_desc = {"container.name"},
 	value_fld = "thread.exectime",
 	value_desc = "CPU%",
@@ -43,14 +43,16 @@ vizinfo =
 -- Initialization callback
 function on_init()
 	-- Request the fields we need
-	fkey = chisel.request_field(vizinfo.key_fld)
-	fvalue = chisel.request_field(vizinfo.value_fld)
-	fnext = chisel.request_field("evt.arg.next")
-	fnextraw = chisel.request_field("evt.rawarg.next")
+	for i, name in ipairs(vizinfo.key_fld) do
+		fkeys[i] = chisel.request_field(name)
+	end
 
-	-- Filter out the host container.name	
-	chisel.set_filter("evt.type=switch and container.name!=host")
+	-- Request the fields we need
+	fvalue = chisel.request_field(vizinfo.value_fld)
+	fcpu = chisel.request_field("thread.cpu")
 	
+	chisel.set_filter("evt.type=procinfo")
+
 	return true
 end
 
@@ -67,43 +69,34 @@ function on_capture_start()
 		end
 	end
 
-	ncpus = sysdig.get_machine_info().num_cpus
-
-	for j = 1, ncpus do
-		cpustates[j] = {0, 0, 0, ""}
-	end
-
 	return true
 end
 
 -- Event parsing callback
 function on_event()
-	key = evt.field(fkey)
-	value = evt.field(fvalue)
-	cpuid = evt.get_cpuid() + 1
+	local key = nil
+	local kv = nil
 
-	if key ~= nil and value ~= nil and value > 0 then
-		thissec = value - cpustates[cpuid][3]
-		if thissec < 0 then
-			thissec = 0
+	for i, fld in ipairs(fkeys) do
+		kv = evt.field(fld)
+		if kv == nil then
+			return
 		end
 
-		if grtable[key] == nil then
-			grtable[key] = thissec
+		if key == nil then
+			key = kv
 		else
-			grtable[key] = grtable[key] + thissec
+			key = key .. "\001\001" .. evt.field(fld)
 		end
-		
-		cpustates[cpuid][1], cpustates[cpuid][2] = evt.get_ts()
 	end
 
-	if evt.field(fnext) ~= "" .. evt.field(fnextraw) then
-		cpustates[cpuid][4] = evt.field(fnext)
+	local cpu = evt.field(fcpu)
+
+	if grtable[key] == nil then
+		grtable[key] = cpu * 10000000
 	else
-		cpustates[cpuid][4] = nil
+		grtable[key] = grtable[key] + (cpu * 10000000)
 	end
-
-	cpustates[cpuid][3] = 0
 
 	return true
 end
@@ -113,22 +106,6 @@ function on_interval(ts_s, ts_ns, delta)
 	if vizinfo.output_format ~= "json" then
 		terminal.clearscreen()
 		terminal.moveto(0, 0)
-	end
-	
-	for cpuid = 1, ncpus do
-		if cpustates[cpuid][1] ~= 0 then
-			cpustates[cpuid][3] = 1000000000 - cpustates[cpuid][2]
-
-			key = cpustates[cpuid][4]
-
-			if key ~= nil and value ~= nil and value > 0 then
-				if grtable[key] == nil then
-					grtable[key] = cpustates[cpuid][3]
-				else
-					grtable[key] = grtable[key] + cpustates[cpuid][3]
-				end
-			end
-		end
 	end
 	
 	print_sorted_table(grtable, ts_s, 0, delta, vizinfo)

@@ -91,6 +91,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_SNAPLEN 80
 
 //
+// Is csysdig functionality included?
+//
+#define CSYSDIG
+
+#ifdef _WIN32
+#define NOCURSESUI
+#endif
+
+//
 // FD class customized with the storage we need
 //
 #ifdef HAS_ANALYZER

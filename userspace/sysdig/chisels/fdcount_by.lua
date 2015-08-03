@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Groups all the active FDs based on the given filter field, and returns the fd count for each key. For example, it can be used to list the number of connections per process or per IP end-point."
+description = "Groups all the active FDs based on the given filter field, and returns the fd count for each key. For example, it can be used to list the number of connections per process or per IP endpoint."
 short_description = "FD count, aggregated by an arbitrary filter field"
 category = "I/O"
 

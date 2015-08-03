@@ -75,7 +75,7 @@ template<> char sinsp_fdinfo_t::get_typechar()
 	case SCAP_FD_TIMERFD:
 		return CHAR_FD_TIMERFD;
 	default:
-		ASSERT(false);
+//		ASSERT(false);
 		return '?';
 	}
 }
@@ -308,44 +308,6 @@ sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
 {
 	m_inspector = inspector;
 	reset_cache();
-}
-
-sinsp_fdinfo_t* sinsp_fdtable::find(int64_t fd)
-{
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit = m_table.find(fd);
-
-	//
-	// Try looking up in our simple cache
-	//
-	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_cached_fd_lookups++;
-#endif
-		return m_last_accessed_fdinfo;
-	}
-
-	//
-	// Caching failed, do a real lookup
-	//
-	fdit = m_table.find(fd);
-
-	if(fdit == m_table.end())
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_failed_fd_lookups++;
-#endif
-		return NULL;
-	}
-	else
-	{
-#ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_noncached_fd_lookups++;
-#endif
-		m_last_accessed_fd = fd;
-		m_last_accessed_fdinfo = &(fdit->second);
-		return &(fdit->second);
-	}
 }
 
 sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)

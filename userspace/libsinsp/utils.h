@@ -78,6 +78,13 @@ public:
 	static void get_filtercheck_fields_info(vector<const filter_check_info*>* list);
 
 	static uint64_t get_current_time_ns();
+
+#ifndef _WIN32
+	//
+	// Print the call stack
+	//
+	static void bt(void);
+#endif // _WIN32
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -157,16 +164,3 @@ public:
 	static bool tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res);
 	static bool tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res);
 };
-
-template<typename It>
-string sinsp_join(It begin, It end, char delim)
-{
-	stringstream ss;
-	ss << *begin;
-	++begin;
-	for(auto it = begin; it < end; ++it)
-	{
-		ss << delim << *it;
-	}
-	return ss.str();
-}

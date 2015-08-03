@@ -91,13 +91,18 @@ struct ppm_consumer_t {
 	volatile int need_to_insert_drop_e;
 	volatile int need_to_insert_drop_x;
 	struct list_head node;
+	struct ppm_proclist_info* proclist_info;
 };
 
 #define STR_STORAGE_SIZE PAGE_SIZE
 
 /*
  * Global functions
+ *
+ * These are analogous to get_user(), copy_from_user() and strncpy_from_user(),
+ * but they can't sleep, barf on page fault or be preempted
  */
+#define ppm_get_user(x, ptr) ({ ppm_copy_from_user(&x, ptr, sizeof(x)) ? -EFAULT : 0; })
 unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned long n);
 long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 
@@ -121,3 +126,4 @@ extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 
 #define PPM_PORT_MYSQL 3306
 #define PPM_PORT_POSTGRES 5432
+#define PPM_PORT_STATSD 8125

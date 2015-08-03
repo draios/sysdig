@@ -34,6 +34,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
+#include <linux/jiffies.h>
 #include <asm/syscall.h>
 #include <net/sock.h>
 
@@ -45,7 +46,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm.h"
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Draios");
+MODULE_AUTHOR("sysdig inc");
 
 #define PPM_DEVICE_NAME "sysdig"
 #define PPE_DEVICE_NAME PPM_DEVICE_NAME "-events"
@@ -106,6 +107,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
@@ -242,6 +244,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 
 		free_percpu(consumer->ring_buffers);
 
+		kfree(consumer->proclist_info);
 		vfree(consumer);
 	}
 }
@@ -294,6 +297,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		}
 
 		consumer->consumer_id = consumer_id;
+		consumer->proclist_info = NULL;
 
 		/*
 		 * Initialize the ring buffers array
@@ -742,6 +746,95 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		goto cleanup_ioctl;
 	}
 #endif
+	case PPM_IOCTL_GET_PROCLIST:
+	{
+		struct task_struct *p, *t;
+		u64 nentries = 0;
+		struct ppm_proclist_info pli;
+		u32 memsize;
+
+		if (copy_from_user(&pli, (void*)arg, sizeof(pli))) {
+			ret = -EINVAL;
+			goto cleanup_ioctl;
+		}
+
+		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli.max_entries);
+
+		if (consumer->proclist_info == NULL || consumer->proclist_info->max_entries != pli.max_entries) {
+			if (consumer->proclist_info != NULL)
+				kfree(consumer->proclist_info);
+
+			memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * pli.max_entries;
+			consumer->proclist_info = kmalloc(memsize, GFP_KERNEL);
+			if(!consumer->proclist_info) {
+				ret = -EINVAL;
+				goto cleanup_ioctl;
+			}
+
+			consumer->proclist_info->max_entries = pli.max_entries;
+		}
+
+		rcu_read_lock();
+		
+#ifdef for_each_process_thread
+		for_each_process_thread(p, t) {
+#else
+		for_each_process(p) {
+			t = p;
+			do {
+				task_lock(p);
+#endif
+				if (nentries < pli.max_entries) {
+					cputime_t utime, stime;
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0))
+					utime = t->utime;
+					stime = t->stime;
+#else
+					ppm_task_cputime_adjusted(t, &utime, &stime);
+#endif
+					consumer->proclist_info->entries[nentries].pid = t->pid;
+					consumer->proclist_info->entries[nentries].utime = cputime_to_clock_t(utime);
+					consumer->proclist_info->entries[nentries].stime = cputime_to_clock_t(stime);
+				}
+
+				nentries++;
+#ifdef for_each_process_thread
+		}
+#else
+				task_unlock(p);
+			} while_each_thread(p, t);
+		}
+#endif
+
+		rcu_read_unlock();
+
+		consumer->proclist_info->n_entries = nentries;
+
+		if (nentries >= pli.max_entries) {
+			vpr_info("PPM_IOCTL_GET_PROCLIST: not enough space (%d avail, %d required)\n", 
+				(int)pli.max_entries,
+				(int)nentries);
+
+			if (copy_to_user((void*)arg, consumer->proclist_info, sizeof(struct ppm_proclist_info))) {
+				ret = -EINVAL;
+				goto cleanup_ioctl;
+			}
+
+			ret = -ENOSPC;
+			goto cleanup_ioctl;
+		} else {
+			memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * nentries;
+			
+			if (copy_to_user((void*)arg, consumer->proclist_info, memsize)) {
+				ret = -EINVAL;
+				goto cleanup_ioctl;
+			}
+		}
+
+		ret = 0;
+		goto cleanup_ioctl;
+	}
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;

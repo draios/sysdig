@@ -76,12 +76,53 @@ public:
 	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
-	bool is_main_thread();
+	inline bool is_main_thread()
+	{
+		return m_tid == m_pid;
+	}
 
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
+#ifndef _WIN32
+	inline sinsp_threadinfo* get_main_thread()
+	{
+		if(m_main_thread == NULL)
+		{
+			//
+			// Is this a child thread?
+			//
+			if(m_pid == m_tid)
+			{
+				//
+				// No, this is either a single thread process or the root thread of a
+				// multithread process.
+				// Note: we don't set m_main_thread because there are cases in which this is 
+				//       invoked for a threadinfo that is in the stack. Caching the this pointer
+				//       would cause future mess.
+				//
+				return this;
+			}
+			else
+			{
+				//
+				// Yes, this is a child thread. Find the process root thread.
+				//
+				sinsp_threadinfo* ptinfo = lookup_thread();
+				if(NULL == ptinfo)
+				{
+					return NULL;
+				}
+
+				m_main_thread = ptinfo;
+			}
+		}
+
+		return m_main_thread;
+	}
+#else
 	sinsp_threadinfo* get_main_thread();
+#endif
 
 	/*!
 	  \brief Get the process that launched this thread's process.
@@ -96,7 +137,22 @@ public:
 	  \return Pointer to the FD information, or NULL if the given FD doesn't
 	   exist
 	*/
-	sinsp_fdinfo_t* get_fd(int64_t fd);
+	inline sinsp_fdinfo_t* get_fd(int64_t fd)
+	{
+		if(fd < 0)
+		{
+			return NULL;
+		}
+
+		sinsp_fdtable* fdt = get_fd_table();
+
+		if(fdt)
+		{
+			return fdt->find(fd);
+		}
+
+		return NULL;
+	}
 
 	/*!
 	  \brief Return true if this thread is bound to the given server port.
@@ -114,6 +170,7 @@ public:
 	  \brief Return the ratio between open FDs and maximum available FDs for this thread.
 	*/
 	uint64_t get_fd_usage_pct();
+	double get_fd_usage_pct_d();
 
 	/*!
 	  \brief Return the number of open FDs for this thread.
@@ -181,7 +238,25 @@ VISIBILITY_PRIVATE
 	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
 	void add_fd(scap_fdinfo *fdinfo);
 	void remove_fd(int64_t fd);
-	sinsp_fdtable* get_fd_table();
+	inline sinsp_fdtable* get_fd_table()
+	{
+		sinsp_threadinfo* root;
+
+		if(!(m_flags & PPM_CL_CLONE_FILES))
+		{
+			root = this;
+		}
+		else
+		{
+			root = get_main_thread();
+			if(NULL == root)
+			{
+				return NULL;
+			}
+		}
+
+		return &(root->m_fdtable);
+	}
 	void set_cwd(const char *cwd, uint32_t cwdlen);
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
@@ -202,6 +277,7 @@ VISIBILITY_PRIVATE
 	}
 	void allocate_private_state();
 	void compute_program_hash();
+	sinsp_threadinfo* lookup_thread();
 
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations

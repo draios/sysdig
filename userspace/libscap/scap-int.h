@@ -95,6 +95,7 @@ struct scap
 	uint32_t m_n_consecutive_waits;
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
+	struct ppm_proclist_info* m_driver_procinfo;
 };
 
 struct scap_ns_socket_list
@@ -208,6 +209,12 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 #define MIN(X,Y) ((X) < (Y)? (X):(Y))
 #define MAX(X,Y) ((X) > (Y)? (X):(Y))
 #endif
+
+//
+// Driver proc info table sizes
+//
+#define SCAP_DRIVER_PROCINFO_INITIAL_SIZE 7
+#define SCAP_DRIVER_PROCINFO_MAX_SIZE 128000
 
 #ifdef __cplusplus
 }

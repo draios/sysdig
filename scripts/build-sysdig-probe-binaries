@@ -28,14 +28,16 @@ function build_sysdig {
 	make driver
 	strip -g driver/sysdig-probe.ko
 	cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
+	cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
 	cd $BASEDIR
 }
 
 function coreos_build {
 	CONFIGURATION_NAME=$1
 	KERNEL_RELEASE=$2
-	KERNEL_URL=$3
-	KERNEL_CONFIG=$4
+	EXTRAVERSION=$3
+	KERNEL_URL=$4
+	KERNEL_CONFIG=$5
 
 	TGZ_NAME=$(echo $KERNEL_URL | awk -F"/" '{print $NF }')
 	DIR_NAME=$(echo $TGZ_NAME | sed 's/.tar.xz//')
@@ -54,13 +56,16 @@ function coreos_build {
 		tar xf $TGZ_NAME
 		cd $DIR_NAME
 		make distclean
+		sed -i "s/^EXTRAVERSION.*/EXTRAVERSION = $EXTRAVERSION/" Makefile
 		wget -O .config $KERNEL_CONFIG
+		cp .config ../config-orig
 		make modules_prepare
 		mv .config ../config
 		cd ..
 	fi
 
 	HASH=$(md5sum config | cut -d' ' -f1)
+	HASH_ORIG=$(md5sum config-orig | cut -d' ' -f1)
 
 	cd $BASEDIR
 
@@ -129,11 +134,26 @@ function rhel_build {
 	build_sysdig
 }
 
-coreos_build coreos-3.19.0 3.19.0 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/b70c57deb14602e7cc65a238f2b0230cd8665c94/sys-kernel/coreos-kernel/files/amd64_defconfig-3.19
-coreos_build coreos-3.19.0-2 3.19.0 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/709954c8e3c14659bb5ec55b37bfed9ac5a90dd2/sys-kernel/coreos-kernel/files/amd64_defconfig-3.19
-coreos_build coreos-3.19.3 3.19.3 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.3.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/782bc9ce10e890d509d80b0cf1097750b812402e/sys-kernel/coreos-kernel/files/amd64_defconfig-3.19
-coreos_build coreos-4.0.0 4.0.0 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/0ef911292e52985a75686106d47c0472e8082599/sys-kernel/coreos-kernel/files/amd64_defconfig-4.0
-coreos_build coreos-4.0.1 4.0.1 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.1.tar.xz https://raw.githubusercontent.com/coreos/coreos-overlay/2859b773b633439f7a39bda354a2de275bc95a6b/sys-kernel/coreos-kernel/files/amd64_defconfig-4.0
+coreos_build coreos-494.5.0 3.17.2 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.2.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-494.5.0-3.17.2
+coreos_build coreos-522.2.0 3.17.7+ "+" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.7.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-522.2.0-3.17.7%2B
+# 522.3.0
+# 522.4.0
+coreos_build coreos-522.5.0 3.17.8+ "+" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.8.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-522.5.0-3.17.8%2B
+# 522.6.0
+coreos_build coreos-557.2.0 3.18.1 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.1.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-557.2.0-3.18.1
+coreos_build coreos-607.0.0 3.18.6 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.6.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-607.0.0-3.18.6
+coreos_build coreos-633.1.0 3.19.0 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-633.1.0-3.19.0
+coreos_build coreos-647.0.0 3.19.3 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.3.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-647.0.0-3.19.3
+coreos_build coreos-647.2.0 4.0.1 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.1.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-647.2.0-4.0.1
+coreos_build coreos-681.0.0 4.0.3 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.3.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-681.0.0-4.0.3
+coreos_build coreos-681.1.0 4.0.5 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.5.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-681.1.0-4.0.5
+# 681.2.0
+# 717.1.0
+# 717.3.0
+# 723.0.0
+# 723.1.0
+# 723.3.0
+coreos_build coreos-752.1.0 4.0.9-coreos -coreos https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.9.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-752.1.0-4.0.9-coreos
 
 # ubuntu_build 3.13.0-43-generic http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-image-3.13.0-43-generic_3.13.0-43.72_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-43-generic_3.13.0-43.72_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-43_3.13.0-43.72_all.deb
 # ubuntu_build 3.13.0-44-generic http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-image-3.13.0-44-generic_3.13.0-44.73_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-44-generic_3.13.0-44.73_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-44_3.13.0-44.73_all.deb

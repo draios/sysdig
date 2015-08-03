@@ -57,6 +57,8 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_group());
 	add_filter_check(new sinsp_filter_check_syslog());
 	add_filter_check(new sinsp_filter_check_container());
+	add_filter_check(new sinsp_filter_check_utils());
+	add_filter_check(new sinsp_filter_check_fdlist());
 }
 
 sinsp_filter_check_list::~sinsp_filter_check_list()
@@ -94,7 +96,7 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(const
 	{
 		m_check_list[j]->m_inspector = inspector;
 
-		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str());
+		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str(), false);
 
 		if(fldnamelen != -1)
 		{
@@ -202,13 +204,13 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 	case CO_IN:
 		return (strstr(operand1, operand2) != NULL);
 	case CO_LT:
-		throw sinsp_exception("'<' not supported for string filters");
+		return (strcmp(operand1, operand2) < 0);
 	case CO_LE:
-		throw sinsp_exception("'<=' not supported for string filters");
+		return (strcmp(operand1, operand2) <= 0);
 	case CO_GT:
-		throw sinsp_exception("'>' not supported for string filters");
+		return (strcmp(operand1, operand2) > 0);
 	case CO_GE:
-		throw sinsp_exception("'>=' not supported for string filters");
+		return (strcmp(operand1, operand2) >= 0);
 	default:
 		ASSERT(false);
 		throw sinsp_exception("invalid filter operator " + std::to_string((long long) op));
@@ -241,6 +243,28 @@ bool flt_compare_buffer(ppm_cmp_operator op, char* operand1, char* operand2, uin
 	}
 }
 
+bool flt_compare_double(ppm_cmp_operator op, double operand1, double operand2)
+{
+	switch(op)
+	{
+	case CO_EQ:
+		return (operand1 == operand2);
+	case CO_NE:
+		return (operand1 != operand2);
+	case CO_LT:
+		return (operand1 < operand2);
+	case CO_LE:
+		return (operand1 <= operand2);
+	case CO_GT:
+		return (operand1 > operand2);
+	case CO_GE:
+		return (operand1 >= operand2);
+	default:
+		throw sinsp_exception("'contains' not supported for numeric filters");
+		return false;
+	}
+}
+
 bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	//
@@ -268,17 +292,17 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		return flt_compare_uint64(op, (uint64_t)*(int8_t*)operand1, (uint64_t)*(int8_t*)operand2);
+		return flt_compare_uint64(op, (uint64_t)*(uint8_t*)operand1, (uint64_t)*(uint8_t*)operand2);
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_PORT:
 	case PT_SYSCALLID:
-		return flt_compare_uint64(op, (uint64_t)*(int16_t*)operand1, (uint64_t)*(int16_t*)operand2);
+		return flt_compare_uint64(op, (uint64_t)*(uint16_t*)operand1, (uint64_t)*(uint16_t*)operand2);
 	case PT_UINT32:
 	case PT_FLAGS32:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
-		return flt_compare_uint64(op, (uint64_t)*(int32_t*)operand1, (uint64_t)*(int32_t*)operand2);
+		return flt_compare_uint64(op, (uint64_t)*(uint32_t*)operand1, (uint64_t)*(uint32_t*)operand2);
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
@@ -287,10 +311,114 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 		return flt_compare_string(op, (char*)operand1, (char*)operand2);
 	case PT_BYTEBUF:
 		return flt_compare_buffer(op, (char*)operand1, (char*)operand2, op1_len, op2_len);
+	case PT_DOUBLE:
+		return flt_compare_double(op, *(double*)operand1, *(double*)operand2);
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 	case PT_FSPATH:
+	default:
+		ASSERT(false);
+		return false;
+	}
+}
+
+bool flt_compare_avg(ppm_cmp_operator op, 
+					 ppm_param_type type, 
+					 void* operand1, 
+					 void* operand2, 
+					 uint32_t op1_len, 
+					 uint32_t op2_len,
+					 uint32_t cnt1,
+					 uint32_t cnt2)
+{
+	int64_t i641, i642;
+	uint64_t u641, u642;
+	double d1, d2;
+
+	//
+	// If count = 0 we assume that the value is zero too (there are assertions to
+	// check that, and we just divide by 1
+	//
+	if(cnt1 == 0)
+	{
+		cnt1 = 1;
+	}
+
+	if(cnt2 == 0)
+	{
+		cnt2 = 1;
+	}
+
+	switch(type)
+	{
+	case PT_INT8:
+		i641 = ((int64_t)*(int8_t*)operand1) / cnt1;
+		i642 = ((int64_t)*(int8_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || i641 == 0);
+		ASSERT(cnt2 != 0 || i642 == 0);
+		return flt_compare_int64(op, i641, i642);
+	case PT_INT16:
+		i641 = ((int64_t)*(int16_t*)operand1) / cnt1;
+		i642 = ((int64_t)*(int16_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || i641 == 0);
+		ASSERT(cnt2 != 0 || i642 == 0);
+		return flt_compare_int64(op, i641, i642);
+	case PT_INT32:
+		i641 = ((int64_t)*(int32_t*)operand1) / cnt1;
+		i642 = ((int64_t)*(int32_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || i641 == 0);
+		ASSERT(cnt2 != 0 || i642 == 0);
+		return flt_compare_int64(op, i641, i642);
+	case PT_INT64:
+	case PT_FD:
+	case PT_PID:
+	case PT_ERRNO:
+		i641 = ((int64_t)*(int64_t*)operand1) / cnt1;
+		i642 = ((int64_t)*(int64_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || i641 == 0);
+		ASSERT(cnt2 != 0 || i642 == 0);
+		return flt_compare_int64(op, i641, i642);
+	case PT_FLAGS8:
+	case PT_UINT8:
+	case PT_SIGTYPE:
+		u641 = ((uint64_t)*(uint8_t*)operand1) / cnt1;
+		u642 = ((uint64_t)*(uint8_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || u641 == 0);
+		ASSERT(cnt2 != 0 || u642 == 0);
+		return flt_compare_uint64(op, u641, u642);
+	case PT_FLAGS16:
+	case PT_UINT16:
+	case PT_PORT:
+	case PT_SYSCALLID:
+		u641 = ((uint64_t)*(uint16_t*)operand1) / cnt1;
+		u642 = ((uint64_t)*(uint16_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || u641 == 0);
+		ASSERT(cnt2 != 0 || u642 == 0);
+		return flt_compare_uint64(op, u641, u642);
+	case PT_UINT32:
+	case PT_FLAGS32:
+	case PT_BOOL:
+	case PT_IPV4ADDR:
+		u641 = ((uint64_t)*(uint32_t*)operand1) / cnt1;
+		u642 = ((uint64_t)*(uint32_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || u641 == 0);
+		ASSERT(cnt2 != 0 || u642 == 0);
+		return flt_compare_uint64(op, u641, u642);
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+		u641 = (*(uint64_t*)operand1) / cnt1;
+		u642 = (*(uint64_t*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || u641 == 0);
+		ASSERT(cnt2 != 0 || u642 == 0);
+		return flt_compare_uint64(op, u641, u642);
+	case PT_DOUBLE:
+		d1 = (*(double*)operand1) / cnt1;
+		d2 = (*(double*)operand2) / cnt2;
+		ASSERT(cnt1 != 0 || d1 == 0);
+		ASSERT(cnt2 != 0 || d2 == 0);
+		return flt_compare_double(op, d1, d2);
 	default:
 		ASSERT(false);
 		return false;
@@ -310,6 +438,8 @@ sinsp_filter_check::sinsp_filter_check() :
 	m_info.m_fields = NULL;
 	m_info.m_nfields = -1;
 	m_val_storage_len = 0;
+	m_aggregation = A_NONE;
+	m_merge_aggregation = A_NONE;
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -325,7 +455,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 	switch(finfo->m_type)
 	{
 		case PT_INT8:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				return *(int8_t *)rawval;
 			}
@@ -336,11 +467,12 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::null;
+				return Json::Value::nullRef;
 			}
 
 		case PT_INT16:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				return *(int16_t *)rawval;
 			}
@@ -351,11 +483,12 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::null;
+				return Json::Value::nullRef;
 			}
 
 		case PT_INT32:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				return *(int32_t *)rawval;
 			}
@@ -366,12 +499,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::null;
+				return Json::Value::nullRef;
 			}
 
 		case PT_INT64:
 		case PT_PID:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 		 		return (Json::Value::Int64)*(int64_t *)rawval;
 			}
@@ -382,7 +516,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				return *(uint8_t *)rawval;
 			}
@@ -393,12 +528,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::null;
+				return Json::Value::nullRef;
 			}
 
 		case PT_PORT: // This can be resolved in the future
 		case PT_UINT16:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				return *(uint16_t *)rawval;
 			}
@@ -409,11 +545,12 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::null;
+				return Json::Value::nullRef;
 			}
 
 		case PT_UINT32:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				return *(uint32_t *)rawval;
 			}
@@ -424,13 +561,14 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::null;
+				return Json::Value::nullRef;
 			}
 
 		case PT_UINT64:
 		case PT_RELTIME:
 		case PT_ABSTIME:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				return (Json::Value::UInt64)*(uint64_t *)rawval;
 			}
@@ -443,13 +581,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::null;
+				return Json::Value::nullRef;
 			}
 
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
 			ASSERT(false);
-			return Json::Value::null;
+			return Json::Value::nullRef;
 
 		case PT_BOOL:
 			return Json::Value((bool)(*(uint32_t*)rawval != 0));
@@ -475,7 +613,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 	switch(finfo->m_type)
 	{
 		case PT_INT8:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId8;
 			}
@@ -494,7 +633,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(int8_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_INT16:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId16;
 			}
@@ -513,7 +653,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(int16_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_INT32:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId32;
 			}
@@ -534,7 +675,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 		case PT_INT64:
 		case PT_PID:
 		case PT_ERRNO:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId64;
 			}
@@ -557,7 +699,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu8;
 			}
@@ -577,7 +720,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		case PT_PORT: // This can be resolved in the future
 		case PT_UINT16:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu16;
 			}
@@ -596,7 +740,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(uint16_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_UINT32:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu32;
 			}
@@ -617,7 +762,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 		case PT_UINT64:
 		case PT_RELTIME:
 		case PT_ABSTIME:
-			if(finfo->m_print_format == PF_DEC)
+			if(finfo->m_print_format == PF_DEC ||
+			   finfo->m_print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu64;
 			}
@@ -682,6 +828,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 						rawval[1],
 						rawval[2],
 						rawval[3]);
+			return m_getpropertystr_storage;
+		case PT_DOUBLE:
+			snprintf(m_getpropertystr_storage,
+					 sizeof(m_getpropertystr_storage),
+					 "%.1lf", *(double*)rawval);
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
@@ -796,12 +947,13 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 	uint32_t len;
 	Json::Value jsonval = extract_as_js(evt, &len);
 
-	if(jsonval == Json::Value::null)
+	if(jsonval == Json::Value::nullRef)
 	{
 		uint8_t* rawval = extract(evt, &len);
 		if(rawval == NULL)
 		{
-			return Json::Value::null;
+			return Json::Value::nullRef
+;
 		}
 		return rawval_to_json(rawval, m_field, len);
 	}
@@ -809,7 +961,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 	return jsonval;
 }
 
-int32_t sinsp_filter_check::parse_field_name(const char* str)
+int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state)
 {
 	int32_t j;
 	int32_t max_fldlen = -1;
@@ -1108,7 +1260,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand, bool in_cl
 			//
 			// End of word
 			//
-			ASSERT(m_scanpos > start);
+			ASSERT(m_scanpos >= start);
 
 			if(curchar == '(' || curchar == ')' || (in_clause && curchar == ','))
 			{
@@ -1143,7 +1295,9 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand, bool in_cl
 				escape_state = PES_NUMBER;
 				break;
 			default:
-				escape_state = PES_ERROR;
+				escape_state = PES_NORMAL;
+				res.push_back('\\');
+				res.push_back(curchar);
 				break;
 			}
 			break;
@@ -1310,7 +1464,8 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
-	chk->parse_field_name((char *)&operand1[0]);
+
+	chk->parse_field_name((char *)&operand1[0], true);
 
 	//
 	// In this case we need to create '(field=value1 or field=value2 ...)'

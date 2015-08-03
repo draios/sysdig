@@ -42,7 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #ifdef _WIN32
-#pragma warning(disable: 4251)
+#pragma warning(disable: 4251 4200)
 #endif
 
 #ifdef _WIN32
@@ -72,8 +72,8 @@ using namespace std;
 #include "dumper.h"
 #include "stats.h"
 #include "ifinfo.h"
-#include "chisel.h"
 #include "container.h"
+#include "viewinfo.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -109,6 +109,16 @@ class sinsp_protodecoder;
 vector<string> sinsp_split(const string &s, char delim);
 
 /*!
+  \brief Information about a chisel
+*/
+class sinsp_chisel_details
+{
+public:
+	string m_name;
+	vector<pair<string, string>> m_args;
+};
+
+/*!
   \brief Information about a group of filter/formatting fields.
 */
 class filter_check_info
@@ -118,6 +128,7 @@ public:
 	{
 		FL_NONE =   0,
 		FL_WORKS_ON_THREAD_TABLE = (1 << 0),	///< This filter check class supports filtering incomplete events that contain only valid thread info and FD info.
+		FL_HIDDEN = (1 << 1),	///< This filter check class won't be shown by stuff like the -l sysdig command line switch.
 	};
 
 	filter_check_info()
@@ -168,6 +179,22 @@ struct sinsp_capture_interrupt_exception : sinsp_exception
   \brief The deafult way an event is converted to string by the library
 */
 #define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
+
+//
+// Internal stuff for meta event management
+//
+typedef void (*meta_event_callback)(sinsp*, void* data);
+class sinsp_proc_metainfo
+{
+public:
+	sinsp_evt m_pievt;
+	scap_evt* m_piscapevt;
+	uint64_t* m_piscapevt_vals;
+	uint64_t m_n_procinfo_evts;
+	int64_t m_cur_procinfo_evt;
+	ppm_proclist_info* m_pli;
+	sinsp_evt* m_next_evt;
+};
 
 /** @defgroup inspector Main library
  @{
@@ -319,6 +346,11 @@ public:
 	  \param cb the target function that will receive the log messages.
 	*/
 	void set_log_callback(sinsp_logger_callback cb);
+
+	/*!
+	  \brief Instruct sinsp to write its log messages to the given file.
+	*/
+	void set_log_file(string filename);
 
 	/*!
 	  \brief Specify the minimum severity of the messages that go into the logs
@@ -502,7 +534,10 @@ public:
 	/*!
 	  \brief Returns true if the current capture is live.
 	*/
-	bool is_live();
+	inline bool is_live()
+	{
+		return m_islive;		
+	}
 
 	/*!
 	  \brief Set the debugging mode of the inspector.
@@ -578,7 +613,8 @@ public:
 	}
 
 	/*!
-	  \brief XXX.
+	  \brief When reading events from a trace file, this function returns the
+	   read progress as a number between 0 and 100.
 	*/
 	double get_read_progress();
 
@@ -589,6 +625,10 @@ public:
 	void start_dropping_mode(uint32_t sampling_ratio);
 	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
 		scap_fdinfo* fdinfo, scap_t* newhandle);
+	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
+	{
+		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
+	}
 
 	//
 	// Allocates private state in the thread info class.
@@ -599,8 +639,12 @@ public:
 
 	sinsp_parser* get_parser();
 
-	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress);
+	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
+	void add_meta_event(sinsp_evt *metaevt);
+	void add_meta_event_and_repeat(sinsp_evt *metaevt);
+
+	void refresh_ifaddr_list();
 
 VISIBILITY_PRIVATE
 
@@ -629,6 +673,7 @@ private:
 	bool remove_inactive_threads();
 
 	scap_t* m_h;
+	uint32_t m_nevts;
 	int64_t m_filesize;
 	bool m_islive;
 	string m_input_filename;
@@ -732,9 +777,20 @@ private:
 	//
 	// Meta event management
 	//
-	sinsp_evt m_meta_evt;
-	char* m_meta_evt_buf;
-	bool m_meta_evt_pending;
+	sinsp_evt m_meta_evt; // XXX this should go away 
+	char* m_meta_evt_buf; // XXX this should go away 
+	bool m_meta_evt_pending; // XXX this should go away 
+	sinsp_evt* m_metaevt;
+	sinsp_evt* m_skipped_evt;
+	meta_event_callback m_meta_event_callback;
+
+	//
+	// End of second housekeeping
+	//
+	bool m_get_procs_cpu_from_driver;
+	uint64_t m_next_flush_time_ns;
+	uint64_t m_last_procrequest_tod;
+	sinsp_proc_metainfo m_meinfo;
 
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
@@ -755,7 +811,9 @@ private:
 	friend class lua_cbacks;
 	friend class sinsp_filter_check_container;
 	friend class sinsp_worker;
-
+	friend class sinsp_table;
+	friend class curses_textbox;
+	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 

@@ -8,6 +8,9 @@ sysdig \- the definitive system and process troubleshooting tool
 [\f[I]filter\f[]]
 .SS DESCRIPTION
 .PP
+\f[B]Note: if you are interested in an easier to use interface for the
+sysdig functionality, use the csysdig command line utility.\f[]
+.PP
 sysdig is a tool for system troubleshooting, analysis and exploration.
 It can be used to capture, filter and decode system calls and other OS
 events.
@@ -132,7 +135,7 @@ $ sysdig "evt.type in ( \[aq]select\[aq], \[aq]poll\[aq] )"
 $ sysdig proc.name exists
 .RE
 .PP
-Multiple checks can be combined through brakets and the following
+Multiple checks can be combined through brackets and the following
 boolean operators: \f[I]and\f[], \f[I]or\f[], \f[I]not\f[].
 e.g.
 .RS
@@ -209,6 +212,39 @@ run the specified chisel.
 If the chisel require arguments, they must be specified in the command
 line after the name.
 .PP
+\f[B]\-C\f[] \f[I]filesize\f[]
+.PD 0
+.P
+.PD
+Before writing an event, check whether the file is
+.PD 0
+.P
+.PD
+currently larger than \f[I]filesize\f[] and, if so, close the
+.PD 0
+.P
+.PD
+current file and open a new one.
+Savefiles will have the
+.PD 0
+.P
+.PD
+name specified with the \-w flag, with a number after it,
+.PD 0
+.P
+.PD
+starting at 0 and continuing upward.
+The units of file_size
+.PD 0
+.P
+.PD
+are millions of bytes (10^6, not 2^20).
+Use the \-W flag to
+.PD 0
+.P
+.PD
+determine how many files will be saved to disk.
+.PP
 \f[B]\-cl\f[], \f[B]\-\-list\-chisels\f[]
 .PD 0
 .P
@@ -247,6 +283,28 @@ or group.name.
 However, creating them can increase sysdig\[aq]s startup time.
 Moreover, they contain information that could be privacy sensitive.
 .PP
+\f[B]\-e\f[] \f[I]numevents\f[]
+.PD 0
+.P
+.PD
+If used together with \-w option, creates a series of dump files
+.PD 0
+.P
+.PD
+containingonly a specified number of events given in \f[I]numevents\f[]
+.PD 0
+.P
+.PD
+parameter each.
+.PD 0
+.P
+.PD
+Used alongside \-W flags creates a ring buffer of file containing
+.PD 0
+.P
+.PD
+\f[I]numevents\f[] each.
+.PP
 \f[B]\-F\f[], \f[B]\-\-fatfile\f[]
 .PD 0
 .P
@@ -263,6 +321,33 @@ With fatfile mode, those events are still saved to file, but
 \[aq]hidden\[aq] so that they won\[aq]t appear when reading the file.
 Be aware that using this flag might generate substantially bigger traces
 files.
+.PP
+\f[B]\-G\f[] \f[I]numseconds\f[]
+.PD 0
+.P
+.PD
+Rotates the dump file specified with the \-w option every
+.PD 0
+.P
+.PD
+\f[I]numseconds\f[] seconds.
+Savefiles will have the name specified
+.PD 0
+.P
+.PD
+by \-w which should include a time format as defined by strftime(3).
+.PD 0
+.P
+.PD
+If no time format is specified, a counter will be used.
+.PD 0
+.P
+.PD
+If no data format is specified, this can be used with \-W flag to
+.PD 0
+.P
+.PD
+create a ring buffer of events.
 .PP
 \f[B]\-h\f[], \f[B]\-\-help\f[]
 .PD 0
@@ -380,6 +465,35 @@ Print version number.
 .PD
 Write the captured events to \f[I]writefile\f[].
 .PP
+\f[B]\-W\f[] \f[I]num\f[]
+.PD 0
+.P
+.PD
+Used in conjunction with the \-C option, this will limit the number
+.PD 0
+.P
+.PD
+of files created to the specified number, and begin overwriting files
+.PD 0
+.P
+.PD
+from the beginning, thus creating a \[aq]rotating\[aq] buffer.
+.PP
+Used in conjunction with the \-G option, this will limit the number
+.PD 0
+.P
+.PD
+of rotated dump files that get created, exiting with status 0 when
+.PD 0
+.P
+.PD
+reaching the limit.
+If used with \-C as well, the behavior will result
+.PD 0
+.P
+.PD
+in cyclical files per timeslice.
+.PP
 \f[B]\-x\f[], \f[B]\-\-print\-hex\f[]
 .PD 0
 .P
@@ -409,6 +523,13 @@ Capture all the events from the live system and save them to disk
 .RS
 .PP
 $ sysdig \-w dumpfile.scap
+.RE
+.PP
+Capture all the events in the latest 24 hours and save them to disk
+organized in files containing 1 hour of system activity each
+.RS
+.PP
+$ sysdig \-G 3600 \-W 24 \-w dumpfile.scap
 .RE
 .PP
 Read events from a file and print them to screen
@@ -468,8 +589,9 @@ While it is possible to use sysdig with LuaJIT in Lua 5.2 mode or
 regular Lua, some chisels may not work as expected.
 .SS AUTHOR
 .PP
-Draios inc.
-<info@draios.com>
+Draios Inc.
+aka sysdig <info@sysdigcloud.com>
 .SS SEE ALSO
 .PP
-\f[B]strace\f[](8), \f[B]tcpdump\f[](8), \f[B]lsof\f[](8)
+\f[B]csysdig\f[](8), \f[B]strace\f[](8), \f[B]tcpdump\f[](8),
+\f[B]lsof\f[](8)

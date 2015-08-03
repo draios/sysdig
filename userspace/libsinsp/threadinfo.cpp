@@ -389,72 +389,9 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 	}
 }
 
-bool sinsp_threadinfo::is_main_thread()
-{
-	return m_tid == m_pid;
-}
-
-sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
-{
-	if(m_main_thread == NULL)
-	{
-		//
-		// Is this a child thread?
-		//
-		if(m_pid == m_tid)
-		{
-			//
-			// No, this is either a single thread process or the root thread of a
-			// multithread process.
-			// Note: we don't set m_main_thread because there are cases in which this is 
-			//       invoked for a threadinfo that is in the stack. Caching the this pointer
-			//       would cause future mess.
-			//
-			return this;
-		}
-		else
-		{
-			//
-			// Yes, this is a child thread. Find the process root thread.
-			//
-			sinsp_threadinfo *ptinfo = m_inspector->get_thread(m_pid, true, true);
-			if(NULL == ptinfo)
-			{
-				ASSERT(false);
-				return NULL;
-			}
-
-			m_main_thread = ptinfo;
-		}
-	}
-
-	return m_main_thread;
-}
-
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
 {
 	return m_inspector->get_thread(m_ptid, false, true);
-}
-
-sinsp_fdtable* sinsp_threadinfo::get_fd_table()
-{
-	sinsp_threadinfo* root;
-
-	if(!(m_flags & PPM_CL_CLONE_FILES))
-	{
-		root = this;
-	}
-	else
-	{
-		root = get_main_thread();
-		if(NULL == root)
-		{
-			ASSERT(false);
-			return NULL;
-		}
-	}
-
-	return &(root->m_fdtable);
 }
 
 sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
@@ -472,27 +409,6 @@ sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
 void sinsp_threadinfo::remove_fd(int64_t fd)
 {
 	get_fd_table()->erase(fd);
-}
-
-sinsp_fdinfo_t* sinsp_threadinfo::get_fd(int64_t fd)
-{
-	if(fd < 0)
-	{
-		return NULL;
-	}
-
-	sinsp_fdtable* fdt = get_fd_table();
-
-	if(fdt)
-	{
-		return fdt->find(fd);
-	}
-	else
-	{
-		ASSERT(false);
-	}
-
-	return NULL;
 }
 
 bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
@@ -676,6 +592,28 @@ uint64_t sinsp_threadinfo::get_fd_usage_pct()
 	}
 }
 
+double sinsp_threadinfo::get_fd_usage_pct_d()
+{
+	int64_t fdlimit = get_fd_limit();
+	if(fdlimit > 0)
+	{
+		uint64_t fd_opencount = get_fd_opencount();
+		ASSERT(fd_opencount <= (uint64_t) fdlimit);
+		if(fd_opencount <= (uint64_t) fdlimit)
+		{
+			return ((double)fd_opencount * 100) / fdlimit;
+		}
+		else
+		{
+			return 100;
+		}
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 uint64_t sinsp_threadinfo::get_fd_opencount()
 {
 	return get_main_thread()->m_fdtable.size();
@@ -685,6 +623,53 @@ uint64_t sinsp_threadinfo::get_fd_limit()
 {
 	return get_main_thread()->m_fdlimit;
 }
+
+sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
+{
+	return m_inspector->get_thread(m_pid, true, true);
+}
+
+//
+// Note: this is duplicated here because visual studio has trouble inlining
+//       the method.
+//
+#ifdef _WIN32
+sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
+{
+	if (m_main_thread == NULL)
+	{
+		//
+		// Is this a child thread?
+		//
+		if (m_pid == m_tid)
+		{
+			//
+			// No, this is either a single thread process or the root thread of a
+			// multithread process.
+			// Note: we don't set m_main_thread because there are cases in which this is 
+			//       invoked for a threadinfo that is in the stack. Caching the this pointer
+			//       would cause future mess.
+			//
+			return this;
+		}
+		else
+		{
+			//
+			// Yes, this is a child thread. Find the process root thread.
+			//
+			sinsp_threadinfo* ptinfo = lookup_thread();
+			if (NULL == ptinfo)
+			{
+				return NULL;
+			}
+
+			m_main_thread = ptinfo;
+		}
+	}
+
+	return m_main_thread;
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation

@@ -26,10 +26,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm> 
 
 #include <sinsp.h>
-#include "sysdig.h"
 #include "chisel.h"
+#include "sysdig.h"
 
-#define DESCRIPTION_TEXT_START 20
+#define DESCRIPTION_TEXT_START 16
 #define CONSOLE_LINE_LEN 79
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
@@ -46,6 +46,11 @@ void list_fields(bool verbose)
 	{
 		const filter_check_info* fci = fc_plugins[j];
 
+		if(fci->m_flags & filter_check_info::FL_HIDDEN)
+		{
+			continue;
+		}
+
 		printf("\n----------------------\n");
 		printf("Field Class: %s\n\n", fci->m_name.c_str());
 
@@ -56,7 +61,11 @@ void list_fields(bool verbose)
 			printf("%s", fld->m_name);
 			uint32_t namelen = (uint32_t)strlen(fld->m_name);
 
-			ASSERT(namelen < DESCRIPTION_TEXT_START);
+			if(namelen >= DESCRIPTION_TEXT_START)
+			{
+				printf("\n");
+				namelen = 0;
+			}
 
 			for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
 			{
@@ -336,6 +345,11 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 	{
 		chisel_desc* cd = &(chlist->at(j));
 
+		if(cd->m_viewinfo.m_valid)
+		{
+			continue;
+		}
+
 		string category = cd->m_category;
 
 		if(category != last_category) 
@@ -355,7 +369,11 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 		printf("%s", cd->m_name.c_str());
 		uint32_t namelen = (uint32_t)cd->m_name.size();
 
-		ASSERT(namelen < (DESCRIPTION_TEXT_START));
+		if(namelen >= DESCRIPTION_TEXT_START)
+		{
+			printf("\n");
+			namelen = 0;
+		}
 
 		for(l = 0; l < (DESCRIPTION_TEXT_START - namelen); l++)
 		{

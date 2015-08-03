@@ -251,13 +251,13 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 
 	scapevt->ts = m_inspector->m_lastevent_ts;
 	scapevt->tid = 0;
-	scapevt->len = totlen;
+	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_E;
 
 	uint16_t* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
 	char* valptr = (char*)lens + 4 * sizeof(uint16_t);
 
-	lens[0] = container_info.m_id.length() + 1;
+	lens[0] = (uint16_t)container_info.m_id.length() + 1;
 	memcpy(valptr, container_info.m_id.c_str(), lens[0]);
 	valptr += lens[0];
 
@@ -265,11 +265,11 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 	memcpy(valptr, &container_info.m_type, lens[1]);
 	valptr += lens[1];
 
-	lens[2] = container_info.m_name.length() + 1;
+	lens[2] = (uint16_t)container_info.m_name.length() + 1;
 	memcpy(valptr, container_info.m_name.c_str(), lens[2]);
 	valptr += lens[2];
 
-	lens[3] = container_info.m_image.length() + 1;
+	lens[3] = (uint16_t)container_info.m_image.length() + 1;
 	memcpy(valptr, container_info.m_image.c_str(), lens[3]);
 	valptr += lens[3];
 
@@ -419,4 +419,32 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 			}
 		}
 	}
+}
+
+string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
+{
+	string res;
+
+	if(tinfo->m_container_id.empty())
+	{
+		res = "host";
+	}
+	else
+	{
+		sinsp_container_info container_info;
+		bool found = get_container(tinfo->m_container_id, &container_info);
+		if(!found)
+		{
+			return NULL;
+		}
+
+		if(container_info.m_name.empty())
+		{
+			return NULL;
+		}
+
+		res = container_info.m_name;
+	}
+
+	return res;
 }

@@ -212,7 +212,7 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 			elseif viz_info.value_units == "time" then
 				print(extend_string(format_time_interval(v), EXTEND_STRING_SIZE) .. keystr)
 			elseif viz_info.value_units == "timepct" then
-				if timedelta ~= 0 then
+				if timedelta > 0 then
 					pctstr = string.format("%.2f%%", v / timedelta * 100)
 				else
 					pctstr = "0.00%"

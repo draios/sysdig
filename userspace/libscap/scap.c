@@ -43,10 +43,16 @@ static uint32_t get_max_consumers()
 	FILE *pfile = fopen("/sys/module/sysdig_probe/parameters/max_consumers", "r");
 	if(pfile != NULL)
 	{
-		fscanf(pfile, "%"PRIu32, &max);
+		int w = fscanf(pfile, "%"PRIu32, &max);
+		if(w == 0)
+		{
+			return 0;
+		}
+		
 		fclose(pfile);
 		return max;
 	}
+
 	return 0;
 }
 
@@ -124,6 +130,7 @@ scap_t* scap_open_live_int(char *error,
 	handle->m_machine_info.reserved2 = 0;
 	handle->m_machine_info.reserved3 = 0;
 	handle->m_machine_info.reserved4 = 0;
+	handle->m_driver_procinfo = NULL;
 
 	//
 	// Create the interface list
@@ -290,6 +297,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_last_evt_dump_flags = 0;
+	handle->m_driver_procinfo = NULL;
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -1128,4 +1136,83 @@ const char* scap_get_host_root()
 	}
 
 	return p;
+}
+
+bool alloc_proclist_info(scap_t* handle, uint32_t n_entries)
+{
+	uint32_t memsize;
+
+	if(n_entries >= SCAP_DRIVER_PROCINFO_MAX_SIZE)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "driver process list too big");
+		return false;
+	}
+
+	memsize = sizeof(struct ppm_proclist_info) + 
+	sizeof(struct ppm_proc_info) * n_entries;
+
+	if(handle->m_driver_procinfo != NULL)
+	{
+		free(handle->m_driver_procinfo);
+	}
+
+	handle->m_driver_procinfo = (struct ppm_proclist_info*)malloc(memsize);
+	if(handle->m_driver_procinfo == NULL)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "driver process list allocation error");
+		return false;
+	}
+
+	handle->m_driver_procinfo->max_entries = n_entries;
+	handle->m_driver_procinfo->n_entries = 0;
+
+	return true;
+}
+
+struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_file)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_threadlist_from_driver not supported on offline captures");
+		return NULL;
+	}
+
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return NULL;
+#else
+	if(handle->m_driver_procinfo == NULL)
+	{
+		if(alloc_proclist_info(handle, SCAP_DRIVER_PROCINFO_INITIAL_SIZE) == false)
+		{
+			return NULL;
+		}
+	}
+
+	int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
+	if(ioctlres)
+	{
+		if(errno == ENOSPC)
+		{
+			if(alloc_proclist_info(handle, handle->m_driver_procinfo->n_entries + 256) == false)
+			{
+				return NULL;
+			}
+			else
+			{
+				return scap_get_threadlist_from_driver(handle);
+			}
+		}
+		else
+		{
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "Error calling PPM_IOCTL_GET_PROCLIST");
+			return NULL;
+		}
+	}
+
+	return handle->m_driver_procinfo;
+#endif	// HAS_CAPTURE
 }
