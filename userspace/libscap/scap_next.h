@@ -247,7 +247,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* hand
 		// update device snap infos
 		//
 		int32_t next_snaplen = scap_update_snap(dev);
-		cons_waits += handle->m_n_consecutive_waits[j];
+		cons_waits += dev->m_n_consecutive_waits;
 
 		//
 		// (kindof) Check the event production rate
@@ -265,7 +265,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* hand
 	{
 		for(j = 0; j < ndevs; j++)
 		{
-			handle->m_n_consecutive_waits[j] = 0;
+			handle->m_devs[j].m_n_consecutive_waits = 0;
 		}
 		res = SCAP_TIMEOUT;
 	}
@@ -283,10 +283,8 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* hand
 // Handles the logic to extract en event from a single CPU buffer.
 // Returns the event extracted (or NULL if none exists)
 //
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(scap_t* handle, uint32_t cpu, OUT scap_evt** pe)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(scap_device* const dev, OUT scap_evt** pe)
 {
-	scap_device *dev = &(handle->m_devs[cpu]);
-
 	//
 	// Make sure that we have data from this ring
 	//
@@ -299,8 +297,6 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(scap_t* handl
 		*pe = (scap_evt*)dev->m_sn_next_event;
 		if((*pe)->len > dev->m_sn_len)
 		{
-			//snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_next buffer corruption");
-
 			//
 			// if you get the following assertion, first recompile the driver and libscap
 			//
@@ -329,7 +325,8 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* handle, O
 
 	for(j = 0; j < ndevs; j++)
 	{
-		res = scap_next_live_cpu(handle, j, &pe);
+		scap_device* const dev = &(handle->m_devs[j]);
+		res = scap_next_live_cpu(dev, &pe);
 
 		if(res == SCAP_NOTFOUND)
 		{
@@ -392,7 +389,12 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next(scap_t* handle, OUT sc
 
 	if(res == SCAP_SUCCESS)
 	{
+#ifdef HAVE_EXTERNAL_SCAP_READER
+		handle->m_devs[*pcpuid].m_evtcnt++;
+#else
 		handle->m_evtcnt++;
+#endif
+
 	}
 	else if(res == SCAP_SLEEP)
 	{
@@ -404,7 +406,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next(scap_t* handle, OUT sc
 		//
 		// in this case, attribute all sleeps to core 0, as just the sum matters
 		//
-		handle->m_n_consecutive_waits[0]++;
+		handle->m_devs[0].m_n_consecutive_waits++;
 #else
 		handle->m_n_consecutive_waits++;
 #endif

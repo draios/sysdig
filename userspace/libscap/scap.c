@@ -109,21 +109,15 @@ scap_t* scap_open_live_int(char *error,
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
 		return NULL;
 	}
-#ifdef HAVE_EXTERNAL_SCAP_READER
-	handle->m_n_consecutive_waits = (uint32_t *) calloc(ndevs, sizeof(uint32_t));
-	if(!handle->m_n_consecutive_waits)
-	{
-		scap_close(handle);
-		free(handle->m_devs);
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device sleep counters");
-		return NULL;
-	}
-#endif
 
 	for(j = 0; j < ndevs; j++)
 	{
 		handle->m_devs[j].m_buffer = (char*)MAP_FAILED;
 		handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)MAP_FAILED;
+#ifdef HAVE_EXTERNAL_SCAP_READER
+		handle->m_devs[j].m_evtcnt=0;
+		handle->m_devs[j].m_n_consecutive_waits=0;
+#endif
 	}
 
 	handle->m_ndevs = ndevs;
@@ -303,7 +297,9 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_devs = NULL;
 	handle->m_ndevs = 0;
 	handle->m_proclist = NULL;
+#ifndef HAVE_EXTERNAL_SCAP_READER
 	handle->m_evtcnt = 0;
+#endif
 	handle->m_file = NULL;
 	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
@@ -446,14 +442,6 @@ void scap_close(scap_t* handle)
 	{
 		scap_free_userlist(handle->m_userlist);
 	}
-#ifdef HAVE_EXTERNAL_SCAP_READER
-	// Free waits space
-	if(handle->m_n_consecutive_waits!= NULL)
-	{
-		free(handle->m_n_consecutive_waits);
-	}
-#endif
-
 	//
 	// Release the handle
 	//

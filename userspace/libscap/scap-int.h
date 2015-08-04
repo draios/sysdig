@@ -62,7 +62,7 @@ extern "C" {
 //
 // The device descriptor
 //
-typedef struct scap_device
+struct scap_device
 {
 	int m_fd;
 	char* m_buffer;
@@ -70,35 +70,38 @@ typedef struct scap_device
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
+#ifdef HAVE_EXTERNAL_SCAP_READER
+	uint64_t m_evtcnt;
+	uint32_t m_n_consecutive_waits;
+#endif
 	//uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
-}scap_device;
+} __attribute((aligned(64)));
+typedef struct scap_device scap_device;
 
 //
 // The open instance handle
 //
 struct scap
 {
-	scap_device* m_devs;
-	uint32_t m_ndevs;
 #ifdef USE_ZLIB
 	gzFile m_file;
 #else
 	FILE* m_file;
+#endif
+	scap_device* m_devs;
+	uint32_t m_ndevs;
+#ifndef HAVE_EXTERNAL_SCAP_READER
+	uint64_t m_evtcnt;
+	uint32_t m_n_consecutive_waits;
 #endif
 	char* m_file_evt_buf;
 	uint32_t m_last_evt_dump_flags;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 	scap_threadinfo* m_proclist;
 	scap_threadinfo m_fake_kernel_proc;
-	uint64_t m_evtcnt;
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
-#ifdef HAVE_EXTERNAL_SCAP_READER
-	uint32_t *m_n_consecutive_waits;
-#else
-	uint32_t m_n_consecutive_waits;
-#endif
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
@@ -128,7 +131,7 @@ extern int32_t scap_update_snap(scap_device* dev);
 extern void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size);
 extern uint32_t get_read_size(struct ppm_ring_buffer_info* bufinfo);
 #ifdef HAVE_EXTERNAL_SCAP_READER
-extern int32_t scap_next_live_cpu(scap_t* handle, uint32_t cpu, OUT scap_evt** pe);
+extern int32_t scap_next_live_cpu(scap_device* const dev, OUT scap_evt** pe);
 #endif
 #endif
 // Scan a directory containing process information

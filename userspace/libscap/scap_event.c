@@ -57,7 +57,18 @@ uint32_t scap_event_getlen(scap_evt* e)
 
 uint64_t scap_event_get_num(scap_t* handle)
 {
+#ifdef HAVE_EXTERNAL_SCAP_READER
+	uint64_t res = 0;
+	uint32_t i;
+
+	for( i = 0; i < handle->m_ndevs; i++)
+	{
+		res += handle->m_devs[i].m_evtcnt;
+	}
+	return res;
+#else
 	return handle->m_evtcnt;
+#endif
 }
 
 uint64_t scap_event_get_ts(scap_evt* e)

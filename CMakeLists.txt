@@ -42,10 +42,10 @@ endif()
 
 if(NOT WIN32)
 
-	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
+	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG ${CUSTOM}")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -ggdb")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ggdb --std=c++0x")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -ggdb ${CUSTOM}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ggdb --std=c++0x ${CUSTOM}")
 
 	set(CMAKE_C_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
