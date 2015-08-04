@@ -295,7 +295,9 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(scap_device* 
 	else
 	{
 		*pe = (scap_evt*)dev->m_sn_next_event;
-		if((*pe)->len > dev->m_sn_len)
+		uint32_t len = (*pe)->len;
+		__builtin_prefetch(dev->m_sn_next_event + len,0,3);
+		if(len > dev->m_sn_len)
 		{
 			//
 			// if you get the following assertion, first recompile the driver and libscap
