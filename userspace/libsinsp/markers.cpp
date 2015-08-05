@@ -53,17 +53,18 @@ void sinsp_markerparser::set_storage_size(uint32_t newsize)
 inline sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(char *data, uint32_t datalen, uint64_t ts)
 {
 	ASSERT(data != NULL);
+	uint32_t storlen = m_fragment_size + datalen;
 
 	//
 	// Make sure we have enough space in the buffer and copy the data into it
 	//
-	if(m_storage_size < m_fragment_size + datalen + 1)
+	if(m_storage_size < storlen + 1)
 	{
-		set_storage_size(m_fragment_size + datalen + 1);
+		set_storage_size(storlen + 1);
 	}
 
 	memcpy(m_storage + m_fragment_size, data, datalen);
-	m_storage[m_fragment_size + datalen] = 0;
+	m_storage[storlen] = 0;
 
 	if(m_fragment_size != 0)
 	{
@@ -73,7 +74,34 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(c
 	//
 	// Do the parsing
 	//
-	parse(m_storage, m_fragment_size + datalen);
+	if(storlen > 0)
+	{
+		//
+		// Reset the content
+		//
+		m_tags.clear();
+		m_argnames.clear();
+		m_argvals.clear();
+		m_taglens.clear();
+		m_argnamelens.clear();
+		m_argvallens.clear();
+		m_tot_taglens = 0;
+		m_tot_argnamelens = 0;
+		m_tot_argvallens = 0;
+
+		if(m_storage[0] == '[')
+		{
+			parse(m_storage, storlen);
+		}
+		else
+		{
+			bin_parse(m_storage, storlen);
+		}
+	}
+	else
+	{
+		m_res == sinsp_markerparser::RES_TRUNCATED;
+	}
 
 	if(m_res == sinsp_markerparser::RES_FAILED)
 	{
@@ -209,23 +237,9 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(c
 
 inline void sinsp_markerparser::parse(char* evtstr, uint32_t evtstrlen)
 {
-	char* p;
+	char* p = m_storage;
 	uint32_t delta;
 	char* tstr;
-
-	//
-	// Reset the content
-	//
-	p = m_storage;
-	m_tags.clear();
-	m_argnames.clear();
-	m_argvals.clear();
-	m_taglens.clear();
-	m_argnamelens.clear();
-	m_argvallens.clear();
-	m_tot_taglens = 0;
-	m_tot_argnamelens = 0;
-	m_tot_argvallens = 0;
 
 	//
 	// Skip the initial braket
@@ -449,6 +463,158 @@ inline void sinsp_markerparser::parse(char* evtstr, uint32_t evtstrlen)
 
 	m_res = sinsp_markerparser::RES_OK;
 	return;
+}
+
+inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
+{
+	char* p = evtstr;
+	char* end = evtstr + evtstrlen;
+	uint32_t delta;
+
+	//
+	// Extract the type
+	//
+	m_type_str = p;
+
+	//
+	// Jump to the beginning of the ID
+	//
+	while(true)
+	{
+		if(p == end - 1)
+		{
+			m_res = sinsp_markerparser::RES_TRUNCATED;
+			return;
+		}
+
+		if(*p == 0)
+		{
+			++p;
+			break;
+		}
+
+		++p;
+	}
+
+	//
+	// Extract the ID
+	//
+	m_res = parsenumber_zeroend(p, &m_id, &delta);
+	if(m_res > sinsp_markerparser::RES_COMMA)
+	{
+		return;
+	}
+	p += delta;
+
+	//
+	// Extract the tags
+	//
+	if(*p != 0)
+	{
+		while(true)
+		{
+			char* start = p;
+
+			if(p == end - 1)
+			{
+				m_res = sinsp_markerparser::RES_TRUNCATED;
+				return;
+			}
+
+			m_tags.push_back(p);
+
+			while(!(*p == ',' || *p == 0))
+			{
+				++p;
+			}
+
+			m_taglens.push_back(p - start);
+			m_tot_taglens += (p - start);
+
+			if(*p == 0)
+			{
+				break;
+			}
+			else
+			{
+				*p = 0;
+				++p;
+			}
+		}
+	}
+
+	++p;
+
+	//
+	// Extract the arguments
+	//
+	if(*p != 0)
+	{
+		while(true)
+		{
+			char* start = p;
+
+			if(p == end - 1)
+			{
+				m_res = sinsp_markerparser::RES_TRUNCATED;
+				return;
+			}
+
+			//
+			// Arg name
+			//
+			m_argnames.push_back(p);
+
+			while(!(*p == ':' || *p == 0))
+			{
+				++p;
+			}
+
+			m_argnamelens.push_back(p - start);
+			m_tot_argnamelens += (p - start);
+
+			if(*p == 0)
+			{
+				m_res = sinsp_markerparser::RES_TRUNCATED;
+				return;
+			}
+			else
+			{
+				*p = 0;
+				++p;
+			}
+
+			//
+			// Arg vals
+			//
+			start = p;
+			m_argvals.push_back(p);
+
+			while(!(*p == ',' || *p == 0))
+			{
+				++p;
+			}
+
+			m_argvallens.push_back(p - start);
+			m_tot_argvallens += (p - start);
+
+			if(*p == 0)
+			{
+				break;
+				return;
+			}
+			else
+			{
+				*p = 0;
+				++p;
+			}
+		}
+	}
+
+	//
+	// All done
+	//
+	m_res = sinsp_markerparser::RES_OK;
 }
 
 inline sinsp_markerparser::parse_result sinsp_markerparser::skip_spaces(char* p, uint32_t* delta)
@@ -761,6 +927,30 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber(char* p,
 	return retval;
 }
 
+inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_zeroend(char* p, uint64_t* res, uint32_t* delta)
+{
+	char* start = p;
+	sinsp_markerparser::parse_result retval = sinsp_markerparser::RES_OK;
+	uint64_t val = 0;
+
+	while(*p >= '0' && *p <= '9')
+	{
+		val = val * 10 + (*p - '0');
+		p++;
+	}
+
+	if(*p != 0)
+	{
+		return sinsp_markerparser::RES_FAILED;
+	}
+	else
+	{
+		*delta = (uint32_t)(p - start + 1);
+		*res = val;
+		return sinsp_markerparser::RES_OK;
+	}
+}
+
 inline void sinsp_markerparser::init_partial_marker(sinsp_partial_marker* pae)
 {
 	vector<char*>::iterator it;
@@ -858,16 +1048,16 @@ inline void sinsp_markerparser::init_partial_marker(sinsp_partial_marker* pae)
 
 void sinsp_markerparser::test()
 {
-	//	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
-	//	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
+//	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
+//	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
 	char doc[] = ">\00012435\0mysql,query,init\0argname1:argval1,argname2:argval2,argname3:argval3\0";
-	char doc1[] = "t\00012435\0mysq,query,init\0";
+	char doc1[] = "<t\00012435\0mysq,query,init\0";
 
 	printf("1\n");
 
 	float cpu_time = ((float)clock ()) / CLOCKS_PER_SEC;
 
-	for(uint64_t j = 0; j < 10000000; j++)
+	for(uint64_t j = 0; j < 30000000; j++)
 	{
 		process_event_data(doc, sizeof(doc) - 1, 10);
 
@@ -885,5 +1075,5 @@ void sinsp_markerparser::test()
 	}
 
 	cpu_time = ((float)clock()/ CLOCKS_PER_SEC) - cpu_time;
-	printf ("tempo: %5.2f\n", cpu_time);
+	printf ("time: %5.2f\n", cpu_time);
 }

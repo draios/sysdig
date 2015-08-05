@@ -51,7 +51,7 @@ bool should_drop(sinsp_evt *evt);
 
 extern sinsp_protodecoder_list g_decoderlist;
 
-#if 1
+#if 0
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
@@ -175,7 +175,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 
 	evt->m_filtered_out = false;
 #endif
-
+BRK(11301);
 	//
 	// Route the event to the proper function
 	//
@@ -200,6 +200,19 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
 		store_event(evt);
+		break;
+	case PPME_SYSCALL_WRITE_E:
+		evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+		if(evt->m_fdinfo)
+		{
+			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_USER_EVENT_FD)
+			{
+				//evt->m_flt_flag = sinsp_evt::FF_FILTER_DONT_DISPLAY;
+				int a = 0;
+				return;
+			}
+		}
+
 		break;
 	case PPME_SYSCALL_READ_X:
 	case PPME_SYSCALL_WRITE_X:
@@ -367,7 +380,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #endif
 
 	//
-	// Offline captures can prodice events with the SCAP_DF_STATE_ONLY. They are
+	// Offline captures can produce events with the SCAP_DF_STATE_ONLY. They are
 	// supposed to go through the engine, but they must be filtered out before 
 	// reaching the user.
 	//

@@ -114,6 +114,7 @@ public:
 	void set_storage_size(uint32_t newsize);
 	inline parse_result process_event_data(char *data, uint32_t datalen, uint64_t ts);
 	inline void parse(char* evtstr, uint32_t evtstrlen);
+	inline void bin_parse(char* evtstr, uint32_t evtstrlen);
 	void test();
 
 	char* m_type_str;
@@ -141,6 +142,7 @@ VISIBILITY_PRIVATE
 	inline parse_result parsestr(char* p, char** res, uint32_t* delta);
 	inline parse_result parsestr_not_enforce(char* p, char** res, uint32_t* delta);
 	inline parse_result parsenumber(char* p, uint64_t* res, uint32_t* delta);
+	inline parse_result parsenumber_zeroend(char* p, uint64_t* res, uint32_t* delta);
 	inline void init_partial_marker(sinsp_partial_marker* pae);
 
 	sinsp *m_inspector;
