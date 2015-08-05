@@ -126,7 +126,9 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 
 static int f_sys_setns_e(struct event_filler_arguments *args);
 static int f_sys_flock_e(struct event_filler_arguments *args);
+static int f_sys_semop_e(struct event_filler_arguments *args);
 static int f_sys_semop_x(struct event_filler_arguments *args);
+static int f_sys_semctl_e(struct event_filler_arguments *args);
 static int f_sys_semctl_x(struct event_filler_arguments *args);
 
 /*
@@ -342,9 +344,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SETNS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_FLOCK_E] = {f_sys_flock_e},
 	[PPME_SYSCALL_FLOCK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-        [PPME_SYSCALL_SEMOP_E] = {f_sys_empty},
+        [PPME_SYSCALL_SEMOP_E] = {f_sys_semop_e},
         [PPME_SYSCALL_SEMOP_X] = {f_sys_semop_x},
-        [PPME_SYSCALL_SEMCTL_E] = {f_sys_empty},
+        [PPME_SYSCALL_SEMCTL_E] = {f_sys_semctl_e},
         [PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
 };
 
@@ -4522,18 +4524,11 @@ static inline u16 semop_flags_to_scap(short flags)
 	return res;
 }
 
-static int f_sys_semop_x(struct event_filler_arguments *args)
+static int f_sys_semop_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	int64_t retval;
         struct sembuf *ptr;
-        unsigned j;
-
-	retval = (int64_t)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
 	/*
 	 * semid
@@ -4561,6 +4556,7 @@ static int f_sys_semop_x(struct event_filler_arguments *args)
             // max length of sembuf array in g_event_info = 2
             const unsigned max_nsops = 2;
             struct sembuf dummy = {0, 0, 0};
+            unsigned j;
 
             for(j=0; j<max_nsops; j++)
             {
@@ -4581,6 +4577,19 @@ static int f_sys_semop_x(struct event_filler_arguments *args)
                     return res;
             }
         }
+
+	return add_sentinel(args);
+}
+
+static int f_sys_semop_x(struct event_filler_arguments *args)
+{
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	return add_sentinel(args);
 }
@@ -4606,16 +4615,10 @@ static inline u32 semctl_cmd_to_scap(unsigned cmd)
     return 0;
 }
 
-static int f_sys_semctl_x(struct event_filler_arguments *args)
+static int f_sys_semctl_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	int64_t retval;
-
-	retval = (int64_t)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
 	/*
 	 * semid
@@ -4649,6 +4652,19 @@ static int f_sys_semctl_x(struct event_filler_arguments *args)
 	else
 		val = 0;
 	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_semctl_x(struct event_filler_arguments *args)
+{
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

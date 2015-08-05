@@ -303,9 +303,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_CONTAINER_E:
 		parse_container_evt(evt);
 		break;
-	case PPME_SYSCALL_SEMOP_X:
-		parse_semop_exit(evt);
-		break;
 	default:
 		break;
 	}
@@ -3404,17 +3401,4 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 	container_info.m_image = parinfo->m_val;
 
 	m_inspector->m_container_manager.add_container(container_info);
-}
-
-void sinsp_parser::parse_semop_exit(sinsp_evt *evt)
-{
-	sinsp_evt_param *parinfo;
-	int64_t retval;
-
-	//
-	// Extract the return value
-	//
-	parinfo = evt->get_param(0);
-	retval = *(int64_t *)parinfo->m_val;
-	ASSERT(parinfo->m_len == sizeof(int64_t));
 }

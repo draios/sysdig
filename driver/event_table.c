@@ -266,8 +266,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SETNS_X */ {"setns", EC_PROCESS, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_FLOCK_E */ {"flock", EC_FILE, EF_USES_FD, 2, {{"fd", PT_FD, PF_NA}, {"operation", PT_FLAGS32, PF_HEX, flock_flags} } },
 	/* PPME_SYSCALL_FLOCK_X */ {"flock", EC_FILE, EF_USES_FD, 1, {{"res", PT_ERRNO, PF_DEC} } },
-        /* PPME_SYSCALL_SEMOP_E */{"semop", EC_PROCESS, EF_NONE, 0},
-        /* PPME_SYSCALL_SEMOP_X */{"semop", EC_PROCESS, EF_NONE, 9, {{"res", PT_ERRNO, PF_DEC}, {"semid", PT_INT32, PF_DEC}, {"nsops", PT_UINT32, PF_DEC}, {"sem_num_0", PT_UINT16, PF_DEC}, {"sem_op_0", PT_INT16, PF_DEC}, {"sem_flg_0", PT_FLAGS16, PF_HEX, semop_flags}, {"sem_num_1", PT_UINT16, PF_DEC}, {"sem_op_1", PT_INT16, PF_DEC}, {"sem_flg_1", PT_FLAGS16, PF_HEX, semop_flags} } },
-        /* PPME_SYSCALL_SEMCTL_E */{"semctl", EC_PROCESS, EF_NONE, 0},
-        /* PPME_SYSCALL_SEMCTL_X */{"semctl", EC_PROCESS, EF_NONE, 5, {{"res", PT_ERRNO, PF_DEC}, {"semid", PT_INT32, PF_DEC}, {"semnum", PT_INT32, PF_DEC}, {"cmd", PT_FLAGS16, PF_HEX, semctl_commands}, {"val", PT_INT32, PF_DEC} } },
+        /* PPME_SYSCALL_SEMOP_E */{"semop", EC_PROCESS, EF_NONE, 8, {{"semid", PT_INT32, PF_DEC}, {"nsops", PT_UINT32, PF_DEC}, {"sem_num_0", PT_UINT16, PF_DEC}, {"sem_op_0", PT_INT16, PF_DEC}, {"sem_flg_0", PT_FLAGS16, PF_HEX, semop_flags}, {"sem_num_1", PT_UINT16, PF_DEC}, {"sem_op_1", PT_INT16, PF_DEC}, {"sem_flg_1", PT_FLAGS16, PF_HEX, semop_flags} } },
+        /* PPME_SYSCALL_SEMOP_X */{"semop", EC_PROCESS, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+        /* PPME_SYSCALL_SEMCTL_E */{"semctl", EC_PROCESS, EF_NONE, 4, {{"semid", PT_INT32, PF_DEC}, {"semnum", PT_INT32, PF_DEC}, {"cmd", PT_FLAGS16, PF_HEX, semctl_commands}, {"val", PT_INT32, PF_DEC} } },
+        /* PPME_SYSCALL_SEMCTL_X */{"semctl", EC_PROCESS, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 };
