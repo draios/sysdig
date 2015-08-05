@@ -110,6 +110,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 //
+// Name of the device used for marker injection
+//
+#define USER_EVT_DEVICE_NAME "/dev/sysdig-events"
+
+//
 // FD class customized with the storage we need
 //
 #ifdef HAS_ANALYZER

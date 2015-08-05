@@ -175,7 +175,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 
 	evt->m_filtered_out = false;
 #endif
-BRK(11301);
+
 	//
 	// Route the event to the proper function
 	//
@@ -205,10 +205,9 @@ BRK(11301);
 		evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 		if(evt->m_fdinfo)
 		{
-			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_USER_EVENT_FD)
+			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_MARKER_FD)
 			{
-				//evt->m_flt_flag = sinsp_evt::FF_FILTER_DONT_DISPLAY;
-				int a = 0;
+				evt->m_filtered_out = true;
 				return;
 			}
 		}
@@ -1578,6 +1577,14 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		fdi.m_openflags = flags;
 		fdi.add_filename(fullpath);
+
+		//
+		// If this is a user event fd, mark it with the proper flag
+		//
+		if(fdi.m_name == USER_EVT_DEVICE_NAME)
+		{
+			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_MARKER_FD;
+		}
 
 		//
 		// Add the fd to the table.
