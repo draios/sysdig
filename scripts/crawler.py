@@ -1,19 +1,35 @@
 #!/usr/bin/python
 
 import urllib2
-from lxml import etree
 from lxml import html
-from StringIO import StringIO
 
+#
+# This is the main configuration tree for easily analying Linux repositories
+# hunting packages. When adding repos or so be sure to respect the same data
+# structure
+#
 repos = {
 	"CentOS" : [
-		{	# source 1
+		{
+			# This is the root path of the repository in which the script will
+			# look for distros (HTML page)
 			"root" : "https://mirrors.kernel.org/centos/",
+
+			# This is the XPath + Regex (optional) for analyzing the `root`
+			# page and discover possible distro versions. Use the regex if you
+			# want to limit the version release
 			"discovery_pattern" : "/html/body//pre/a[regex:test(@href, '^7.*$')]/@href",
+
+			# Once we have found every version available, we need to know were
+			# to go inside the tree to find packages we need (HTML pages)
 			"subdirs" : [
 				"os/x86_64/Packages/",
 				"updates/x86_64/Packages/"
 			],
+
+			# Finally, we need to inspect every page for packages we need.
+			# Again, this is a XPath + Regex query so use the regex if you want
+			# to limit the number of packages reported.
 			"page_pattern" : "/html/body//a[regex:test(@href, '^(kernel-headers-).*\.rpm$')]/@href"
 		},
 
@@ -29,8 +45,19 @@ repos = {
 	]
 }
 
+#
+# In our design you are not supposed to modify the code. The whole script is
+# created so that you just have to add entry to the `repos` array and new
+# links will be found automagically without needing to write any single line
+# of code.
+#
+
 packages = {}
 
+#
+# Navigate the `repos` tree and look for packages we need that match the
+# patterns given. Save the result in `packages`.
+#
 for distro, repositories in repos.iteritems():
 	for repo in repositories:
 		
@@ -40,6 +67,9 @@ for distro, repositories in repos.iteritems():
 		for version in versions:
 			for subdir in repo["subdirs"]:
 
+				# The try - except block is used because 404 errors and similar
+				# might happen (and actually happen because not all repos have
+				# packages we need)
 				try:
 					source = repo["root"] + version + subdir
 					page = urllib2.urlopen(source).read()
@@ -50,9 +80,12 @@ for distro, repositories in repos.iteritems():
 							packages[distro] = {}
 						if not rpm in packages[distro]:
 							packages[distro][rpm] = source + rpm
-				except:	# we don't care about 404s and so
+				except:
 					continue
 
+#
+# Print URLs found and valid to stdout
+#
 for name, package in packages.iteritems():
 	print name
 	for key, value in package.iteritems():
