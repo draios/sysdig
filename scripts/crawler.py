@@ -7,72 +7,53 @@ from StringIO import StringIO
 
 repos = {
 	"CentOS" : [
-		{	# mirrors.kernel.org
-
-			# You are supposed to use XPath syntax in the `pattern` attribute.
-			# Fore more information, visit http://lxml.de/xpathxslt.html
-			"pattern" : "/html/body//a[regex:test(@href, '^(kernel-headers-).*\.rpm$')]/@href",
-			#"pattern" : "/html/body//a[starts-with(text(), 'kernel-headers')]/@href",
-			
-			# An array of web folders in which look for packages (all links
-			# share the same `pattern`)
-			"links" : [
-				"https://mirrors.kernel.org/centos/7/os/x86_64/Packages/",
-				"https://mirrors.kernel.org/centos/7/updates/x86_64/Packages/"
-			]
+		{	# source 1
+			"root" : "https://mirrors.kernel.org/centos/",
+			"discovery_pattern" : "/html/body//pre/a[regex:test(@href, '^7.*$')]/@href",
+			"subdirs" : [
+				"os/x86_64/Packages/",
+				"updates/x86_64/Packages/"
+			],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^(kernel-headers-).*\.rpm$')]/@href"
 		},
 
-		{	# vault.centos.org
-			"pattern" : "//body//table/tr/td/a[regex:test(@href, '^(kernel-headers-).*\.rpm$')]/@href",
-			"links" : [
-				"http://vault.centos.org/7.0.1406/os/x86_64/Packages/",
-				"http://vault.centos.org/7.0.1406/updates/x86_64/Packages/"
-			]
+		{
+			"root" : "http://vault.centos.org/",
+			"discovery_pattern" : "//body//table/tr/td/a[regex:test(@href, '^7.*$')]/@href",
+			"subdirs" : [
+				"os/x86_64/Packages/",
+				"updates/x86_64/Packages/"
+			],
+			"page_pattern" : "//body//table/tr/td/a[regex:test(@href, '^(kernel-headers-).*\.rpm$')]/@href"
 		}
 	]
 }
 
-sources = {}
-"""
-sources = {
-	"distro" : {
-		"rpm1" : "http://rpm1",
-		"rpm2" : "http://rpm2",
-		"rpm3" : "http://rpm3",
-	},
-	"distro" : {
-		"rpm1" : "http://rpm1",
-		"rpm2" : "http://rpm2",
-		"rpm3" : "http://rpm3",
-	},
-	...
-}
-"""
+packages = {}
 
-# In our design you are not supposed to modify the code. The whole script is
-# created so that you just have to add entry to the `repos` array and new
-# links will be found automagically without needing to write any single line
-# of code.
+for distro, repositories in repos.iteritems():
+	for repo in repositories:
+		
+		root = urllib2.urlopen(repo["root"]).read()
+		versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-#
-# Navigate the `repos` tree and look for packages we need that match the
-# pattern given. Save the result in `sources`.
-#
-for name, repo in repos.iteritems():
-	for source in repo:
-		for link in source["links"]:
+		for version in versions:
+			for subdir in repo["subdirs"]:
 
-			page = urllib2.urlopen(link).read()	# This might rise an exception
-			rpms = html.fromstring(page).xpath(source["pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+				try:
+					source = repo["root"] + version + subdir
+					page = urllib2.urlopen(source).read()
+					rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-			for rpm in rpms:
-				if not name in sources:
-					sources[name] = {}
-				if not rpm in sources[name]:
-					sources[name][rpm] = link + rpm
-#
-# Print URLs to stdout
-#
-for distro, rpms in sources.iteritems():
-	for rpm, url in rpms.iteritems():
-		print rpm + "\t" + url
+					for rpm in rpms:
+						if not distro in packages:
+							packages[distro] = {}
+						if not rpm in packages[distro]:
+							packages[distro][rpm] = source + rpm
+				except:	# we don't care about 404s and so
+					continue
+
+for name, package in packages.iteritems():
+	print name
+	for key, value in package.iteritems():
+		print key + "\t" + value
