@@ -3600,10 +3600,10 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 		}
 
 		//
-		// For PPME_USER_X events, it's possible that the pae is already returned to the pool.
+		// For PPME_MARKER_X events, it's possible that the pae is already returned to the pool.
 		// Get it from the parser.
 		//
-		if(etype == PPME_USER_X)
+		if(etype == PPME_MARKER_X)
 		{
 			sinsp_markerparser* eparser = tinfo->m_marker_parser;
 
@@ -3901,7 +3901,7 @@ uint8_t* sinsp_filter_check_marker::extract(sinsp_evt *evt, OUT uint32_t* len)
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	uint16_t etype = evt->get_type();
 
-	if(etype != PPME_USER_E && etype != PPME_USER_X)
+	if(etype != PPME_MARKER_E && etype != PPME_MARKER_X)
 	{
 		return NULL;
 	}
@@ -4100,7 +4100,7 @@ uint8_t* sinsp_filter_check_marker::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_LATENCY:
 		{
-			if(etype == PPME_USER_X)
+			if(etype == PPME_MARKER_X)
 			{
 				sinsp_partial_marker* pae = eparser->m_enter_pae;
 				if(pae == NULL)

@@ -2448,7 +2448,7 @@ void sinsp_parser::swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo)
 	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 }
 
-void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
+void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 {
 	sinsp_threadinfo* tinfo = evt->m_tinfo;
 	
@@ -2486,7 +2486,7 @@ void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
 	{
 		if(p->m_type_str[0] == '>')
 		{
-			m_fake_userevt->type = PPME_USER_E;
+			m_fake_userevt->type = PPME_MARKER_E;
 
 			uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
 			lens[0] = 8;
@@ -2499,7 +2499,7 @@ void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
 		}
 		else
 		{
-			m_fake_userevt->type = PPME_USER_X;
+			m_fake_userevt->type = PPME_MARKER_X;
 
 			uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
 			lens[0] = 8;
@@ -2515,7 +2515,7 @@ void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
 		// Parsing error.
 		// We don't know the direction, so we use enter.
 		//
-		m_fake_userevt->type = PPME_USER_E;
+		m_fake_userevt->type = PPME_MARKER_E;
 
 		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
 		lens[0] = 8;
@@ -2539,7 +2539,7 @@ void sinsp_parser::parse_user_event(sinsp_evt *evt, int64_t retval)
 	// Update some thread information
 	//
 	tinfo->m_lastevent_fd = -1;
-	tinfo->m_lastevent_type = PPME_USER_E;
+	tinfo->m_lastevent_type = PPME_MARKER_E;
 	tinfo->m_latency = 0;
 	tinfo->m_last_latency_entertime = 0;
 
@@ -2567,7 +2567,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	//	
 	if(retval == -PPM_USERVET_MAGIC)
 	{
-		parse_user_event(evt, retval);
+		parse_marker(evt, retval);
 	}
 
 	if(!evt->m_fdinfo)
