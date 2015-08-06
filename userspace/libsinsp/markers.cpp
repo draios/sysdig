@@ -50,7 +50,7 @@ void sinsp_markerparser::set_storage_size(uint32_t newsize)
 	m_storage_size = newsize;
 }
 
-inline sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(char *data, uint32_t datalen, uint64_t ts)
+sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(char *data, uint32_t datalen, uint64_t ts)
 {
 	ASSERT(data != NULL);
 	uint32_t storlen = m_fragment_size + datalen;
@@ -100,7 +100,7 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(c
 	}
 	else
 	{
-		m_res == sinsp_markerparser::RES_TRUNCATED;
+		m_res = sinsp_markerparser::RES_TRUNCATED;
 	}
 
 	if(m_res == sinsp_markerparser::RES_FAILED)
@@ -930,7 +930,6 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber(char* p,
 inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_zeroend(char* p, uint64_t* res, uint32_t* delta)
 {
 	char* start = p;
-	sinsp_markerparser::parse_result retval = sinsp_markerparser::RES_OK;
 	uint64_t val = 0;
 
 	while(*p >= '0' && *p <= '9')

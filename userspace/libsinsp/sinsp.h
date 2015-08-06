@@ -61,6 +61,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <queue>
 #include <vector>
 #include <set>
+#include <list>
 
 using namespace std;
 
@@ -636,7 +637,7 @@ public:
 	// Used by filters to enable app event state tracking, which is disabled
 	// by default for performance reasons
 	//
-	void sinsp::request_marker_state_tracking()
+	void request_marker_state_tracking()
 	{
 		m_track_markers_state = true;
 	}

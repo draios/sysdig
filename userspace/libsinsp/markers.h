@@ -112,7 +112,7 @@ public:
 		return m_storage_size;
 	}
 	void set_storage_size(uint32_t newsize);
-	inline parse_result process_event_data(char *data, uint32_t datalen, uint64_t ts);
+	parse_result process_event_data(char *data, uint32_t datalen, uint64_t ts);
 	inline void parse(char* evtstr, uint32_t evtstrlen);
 	inline void bin_parse(char* evtstr, uint32_t evtstrlen);
 	void test();

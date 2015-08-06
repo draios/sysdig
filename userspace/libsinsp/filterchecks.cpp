@@ -2040,7 +2040,7 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_state)
 {
 	string val(str);
-	int32_t res;
+	int32_t res = 0;
 
 	//
 	// A couple of fields are handled in a custom way
