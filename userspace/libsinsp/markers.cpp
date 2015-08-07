@@ -489,6 +489,45 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 	p++;
 
 	//
+	// Extract the scope
+	//
+	if(*p == '0')
+	{
+		m_res = sinsp_markerparser::RES_TRUNCATED;
+		return;
+	}
+
+	switch(*p)
+	{
+	case 't':
+		m_id = m_tinfo->m_tid;
+		delta = 2;
+		break;
+	case 'p':
+		m_id = m_tinfo->m_pid;
+		delta = 2;
+		break;
+	case 's':
+		m_id = m_tinfo->m_ptid;
+		delta = 2;
+		break;
+	case 0:
+	case 'g':
+		m_id = 0;
+		delta = 2;
+		break;
+	default:
+		m_res = parsenumber_colend(p, &m_id, &delta);
+		if(m_res > sinsp_markerparser::RES_COMMA)
+		{
+			return;
+		}
+		break;
+	}
+
+	p += delta;
+
+	//
 	// Extract the tags
 	//
 	if(*p == '0')
@@ -563,8 +602,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 
 			if(*p == 0)
 			{
-				m_res = sinsp_markerparser::RES_TRUNCATED;
-				return;
+				break;
 			}
 			else if(*p == ':')
 			{
@@ -593,8 +631,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 
 			if(*p == 0)
 			{
-				m_res = sinsp_markerparser::RES_TRUNCATED;
-				return;
+				break;
 			}
 			else if(*p == ':')
 			{
@@ -610,45 +647,6 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 	}
 
 	++p;
-
-	//
-	// Extract the ID
-	//
-	if(*p == '0')
-	{
-		m_res = sinsp_markerparser::RES_TRUNCATED;
-		return;
-	}
-
-	switch(*p)
-	{
-	case 't':
-		m_id = m_tinfo->m_tid;
-		delta = 1;
-		break;
-	case 'p':
-		m_id = m_tinfo->m_pid;
-		delta = 1;
-		break;
-	case 's':
-		m_id = m_tinfo->m_ptid;
-		delta = 1;
-		break;
-	case 0:
-	case 'g':
-		m_id = 0;
-		delta = 1;
-		break;
-	default:
-		m_res = parsenumber_zeroend(p, &m_id, &delta);
-		if(m_res > sinsp_markerparser::RES_COMMA)
-		{
-			return;
-		}
-		break;
-	}
-
-	p += delta;
 
 	//
 	// All done
@@ -973,7 +971,7 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber(char* p,
 	return retval;
 }
 
-inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_zeroend(char* p, uint64_t* res, uint32_t* delta)
+inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_colend(char* p, uint64_t* res, uint32_t* delta)
 {
 	char* start = p;
 	uint64_t val = 0;
@@ -984,13 +982,13 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_zeroend(
 		p++;
 	}
 
-	if(*p != 0)
+	if(*p != ':')
 	{
 		return sinsp_markerparser::RES_FAILED;
 	}
 	else
 	{
-		*delta = (uint32_t)(p - start + 1);
+		*delta = (uint32_t)(p - start + 2);
 		*res = val;
 		return sinsp_markerparser::RES_OK;
 	}
@@ -1095,8 +1093,8 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:mysql.query.init:argname1=argval1,argname2=argval2,argname3=argval3:p\0";
-	char doc1[] = "<:mysql.query.init::p\0";
+	char doc[] = ">:p:mysql.query.init:argname1=argval1,argname2=argval2,argname3=argval3\0";
+	char doc1[] = "<:p:mysql.query.init:\0";
 
 	sinsp_threadinfo tinfo;
 	

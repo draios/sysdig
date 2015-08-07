@@ -143,7 +143,7 @@ VISIBILITY_PRIVATE
 	inline parse_result parsestr(char* p, char** res, uint32_t* delta);
 	inline parse_result parsestr_not_enforce(char* p, char** res, uint32_t* delta);
 	inline parse_result parsenumber(char* p, uint64_t* res, uint32_t* delta);
-	inline parse_result parsenumber_zeroend(char* p, uint64_t* res, uint32_t* delta);
+	inline parse_result parsenumber_colend(char* p, uint64_t* res, uint32_t* delta);
 	inline void init_partial_marker(sinsp_partial_marker* pae);
 
 	sinsp *m_inspector;
