@@ -19,6 +19,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
 #include <linux/version.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include <linux/kobject.h>
+#include <trace/sched.h>
+#include "ppm_syscall.h"
+#include <trace/syscall.h>
+#else
+#include <asm/syscall.h>
+#endif
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
 #include <asm/atomic.h>
 #else
@@ -36,8 +44,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tracepoint.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
-#include <asm/syscall.h>
 #include <net/sock.h>
+#include <asm/asm-offsets.h>	/* For NR_syscalls */
 
 #include <asm/unistd.h>
 
@@ -159,10 +167,14 @@ static DEFINE_MUTEX(g_consumer_mutex);
 static bool g_tracepoint_registered;
 
 struct cdev *g_ppe_cdev = NULL;
-struct device *g_ppe_dev = NULL;
-
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
 static struct tracepoint *tp_sys_exit;
+struct device *g_ppe_dev = NULL;
+#else
+struct class_device *g_ppe_dev = NULL;
+#endif
+
 static struct tracepoint *tp_sched_process_exit;
 #ifdef CAPTURE_CONTEXT_SWITCHES
 static struct tracepoint *tp_sched_switch;
@@ -260,7 +272,11 @@ static int ppm_open(struct inode *inode, struct file *filp)
 {
 	int ret;
 	int in_list = false;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
+	int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 	struct task_struct *consumer_id = current;
 	struct ppm_consumer_t *consumer = NULL;
 	struct ppm_ring_buffer_context *ring = NULL;
@@ -404,13 +420,22 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		/*
 		 * Enable the tracepoints
 		 */
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+#else
+		ret = register_trace_syscall_enter(syscall_enter_probe);
+#endif
 		if (ret) {
 			pr_err("can't create the sys_exit tracepoint\n");
 			goto err_sys_exit;
 		}
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+#else
+		ret = register_trace_syscall_exit(syscall_exit_probe);
+#endif
 		if (ret) {
 			pr_err("can't create the sys_enter tracepoint\n");
 			goto err_sys_enter;
@@ -451,9 +476,17 @@ err_signal_deliver:
 err_sched_switch:
 	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 err_sched_procexit:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+#else
+	unregister_trace_syscall_enter(syscall_enter_probe);
+#endif
 err_sys_enter:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+#else
+	unregister_trace_syscall_exit(syscall_exit_probe);
+#endif
 err_sys_exit:
 	ring->open = false;
 err_init_ring_buffer:
@@ -468,7 +501,11 @@ static int ppm_release(struct inode *inode, struct file *filp)
 {
 	int ret;
 	struct ppm_ring_buffer_context *ring;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
+	int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
 
@@ -516,8 +553,13 @@ static int ppm_release(struct inode *inode, struct file *filp)
 		if (g_tracepoint_registered) {
 			pr_info("no more consumers, stopping capture\n");
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+#else
+			unregister_trace_syscall_exit(syscall_exit_probe);
+			unregister_trace_syscall_enter(syscall_enter_probe);
+#endif
 			compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
@@ -526,7 +568,9 @@ static int ppm_release(struct inode *inode, struct file *filp)
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			tracepoint_synchronize_unregister();
+#endif
 			g_tracepoint_registered = false;
 		} else {
 			ASSERT(false);
@@ -559,7 +603,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case PPM_IOCTL_DISABLE_CAPTURE:
 	{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
+		int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 		if (!ring) {
 			ASSERT(false);
@@ -575,7 +623,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case PPM_IOCTL_ENABLE_CAPTURE:
 	{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
+		int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 		if (!ring) {
 			ASSERT(false);
@@ -721,6 +773,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = 0;
 		goto cleanup_ioctl;
 	}
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case PPM_IOCTL_GET_VTID:
 	case PPM_IOCTL_GET_VPID:
 	{
@@ -760,12 +813,15 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = vid;
 		goto cleanup_ioctl;
 	}
+#endif
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case PPM_IOCTL_GET_CURRENT_TID:
 		ret = task_pid_nr(current);
 		goto cleanup_ioctl;
 	case PPM_IOCTL_GET_CURRENT_PID:
 		ret = task_tgid_nr(current);
 		goto cleanup_ioctl;
+#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
 	{
@@ -905,7 +961,11 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		unsigned long pfn;
 		char *vmalloc_area_ptr;
 		char *orig_vmalloc_area_ptr;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		int ring_no = iminor(filp->f_path.dentry->d_inode);
+#else
+		int ring_no = iminor(filp->f_dentry->d_inode);
+#endif
 		struct ppm_ring_buffer_context *ring;
 
 		vpr_info("mmap for consumer %p, CPU %d, start=%lu len=%ld page_size=%lu\n",
@@ -1226,7 +1286,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	struct event_data_t *event_datap)
 {
 	int res = 0;
-	size_t event_size;
+	size_t event_size = 0;
 	int next;
 	u32 freespace;
 	u32 usedspace;
@@ -1616,7 +1676,11 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (unlikely(current->flags & PF_KTHREAD)) {
+#else
+	if (unlikely(current->flags & PF_BORROWED_MM)) {
+#endif
 		/*
 		 * We are not interested in kernel threads
 		 */
@@ -1798,6 +1862,7 @@ static int get_tracepoint_handles(void)
 }
 #endif
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
 static char *ppm_devnode(struct device *dev, umode_t *mode)
 #else
@@ -1814,6 +1879,7 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 
 	return NULL;
 }
+#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
 /*
  * This gets called every time a CPU is added or removed
@@ -1831,11 +1897,15 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 
 	switch (action) {
 	case CPU_UP_PREPARE:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case CPU_UP_PREPARE_FROZEN:
+#endif	
 		sd_action = 1;
 		break;
 	case CPU_DOWN_PREPARE:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case CPU_DOWN_PREPARE_FROZEN:
+#endif
 		sd_action = 2;
 		break;
 	default:
@@ -1884,8 +1954,11 @@ int sysdig_init(void)
 	int acrret = 0;
 	int j;
 	int n_created_devices = 0;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	struct device *device = NULL;
-
+#else
+	struct class_device *device = NULL;
+#endif
 	pr_info("driver loading\n");
 
 	ret = get_tracepoint_handles();
@@ -1915,7 +1988,9 @@ int sysdig_init(void)
 		goto init_module_err;
 	}
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	g_ppm_class->devnode = ppm_devnode;
+#endif
 
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
@@ -1939,11 +2014,16 @@ int sysdig_init(void)
 			goto init_module_err;
 		}
 
-		device = device_create(g_ppm_class, NULL, /* no parent device */
-				       g_ppm_devs[j].dev,
-				       NULL, /* no additional data */
-				       PPM_DEVICE_NAME "%d",
-				       j);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device = device_create(
+#else
+		device = class_device_create(
+#endif
+						g_ppm_class, NULL, /* no parent device */
+						g_ppm_devs[j].dev,
+						NULL, /* no additional data */
+						PPM_DEVICE_NAME "%d",
+						j);
 
 		if (IS_ERR(device)) {
 			pr_err("error creating the device for  %s\n", PPM_DEVICE_NAME);
@@ -1973,13 +2053,18 @@ int sysdig_init(void)
 		goto init_module_err;
 	}
 
-	g_ppe_dev = device_create(g_ppm_class, NULL,
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	g_ppe_dev = device_create(
+#else
+	g_ppe_dev = class_device_create(
+#endif
+			g_ppm_class, NULL,
 			MKDEV(g_ppm_major, g_ppm_numdevs),
 			NULL, /* no additional data */
 			PPE_DEVICE_NAME);
 
 	if (IS_ERR(g_ppe_dev)) {
-		pr_err("error creating the device for  %s\n", PPE_DEVICE_NAME);
+		pr_err("error creating the device for %s\n", PPE_DEVICE_NAME);
 		ret = -EFAULT;
 		goto init_module_err;
 	}
@@ -2054,7 +2139,9 @@ void sysdig_exit(void)
 
 	kfree(g_ppm_devs);
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	tracepoint_synchronize_unregister();
+#endif
 
 	unregister_cpu_notifier(&cpu_notifier);
 }
@@ -2063,5 +2150,7 @@ module_init(sysdig_init);
 module_exit(sysdig_exit);
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 module_param(verbose, bool, 0444);
+#endif
 MODULE_PARM_DESC(verbose, "Enable verbose logging");

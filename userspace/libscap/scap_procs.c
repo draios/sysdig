@@ -892,6 +892,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	char charbuf[SCAP_MAX_PATH_SIZE];
 	FILE* f;
 
+
 	//
 	// No /proc parsing for offline captures
 	//
@@ -917,6 +918,22 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 		}
 
 		fclose(f);
+	}
+	else
+	{
+		//
+		// If /proc/<pid>/task/<tid>/comm does not exist but /proc/<pid>/task/<tid>/exe does exist, we assume we're on an ancient
+		// OS like RHEL5 and we return true.
+		// This could generate some false positives on such old distros, and we're going to accept it.
+		//
+		snprintf(charbuf, sizeof(charbuf), "%s/proc/%" PRId64 "/task/%" PRId64 "/exe", scap_get_host_root(), pid, tid);
+		f = fopen(charbuf, "r");
+		if(f != NULL)
+		{
+			fclose(f);
+			return true;
+		}
+
 	}
 
 	return false;
