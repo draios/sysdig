@@ -89,7 +89,7 @@ sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(char *da
 		m_tot_argnamelens = 0;
 		m_tot_argvallens = 0;
 
-		if(m_storage[0] == '[')
+		if(m_storage[0] == '[' || m_storage[0] == ' ')
 		{
 			parse(m_storage, storlen);
 		}
@@ -1097,6 +1097,7 @@ void sinsp_markerparser::test()
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
 	char doc[] = ">:mysql.query.init:argname1=argval1,argname2=argval2,argname3=argval3:p\0";
 	char doc1[] = "<:mysql.query.init::p\0";
+
 	sinsp_threadinfo tinfo;
 	
 	m_tinfo = &tinfo;
