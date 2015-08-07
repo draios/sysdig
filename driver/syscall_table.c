@@ -128,7 +128,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 
 #ifndef __NR_socketcall
 	[__NR_socket - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
-	[__NR_bind - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
+	[__NR_bind - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
 	[__NR_connect - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
 	[__NR_listen - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_LISTEN_E, PPME_SOCKET_LISTEN_X},
 	[__NR_accept - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_ACCEPT_E, PPME_SOCKET_ACCEPT_X},

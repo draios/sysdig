@@ -42,6 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
+#include <linux/cpu.h>
 #include <linux/jiffies.h>
 #include <net/sock.h>
 #include <asm/asm-offsets.h>	/* For NR_syscalls */
@@ -233,7 +234,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 	int cpu;
 	int open_rings = 0;
 
-	for_each_online_cpu(cpu) {
+	for_each_possible_cpu(cpu) {
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 		if (ring && ring->open)
 			++open_rings;
@@ -247,10 +248,10 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 			synchronize_rcu();
 		}
 
-		for_each_online_cpu(cpu) {
+		for_each_possible_cpu(cpu) {
 			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
-			if (ring)
+			if (ring->cpu_online)
 				free_ring_buffer(ring);
 		}
 
@@ -269,6 +270,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	int ret;
 	int in_list = false;
 	struct ppm_ring_buffer_context *ring = NULL;
+
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
 #else
@@ -276,6 +278,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #endif
 	struct task_struct *consumer_id = current;
 	struct ppm_consumer_t *consumer = NULL;
+	struct ppm_ring_buffer_context *ring = NULL;
 
 	/*
 	 * Tricky: to identify a consumer, attach the thread id
@@ -328,22 +331,34 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto cleanup_open;
 		}
 
-		for_each_online_cpu(cpu) {
-			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+		/*
+		 * Note, we have two loops here because the first one makes sure that ALL of the
+		 * rings are properly initialized to null, since the second one could be interrupted
+		 * and cause issues in the cleanup phase.
+		 * This might not be necessary, because alloc_percpu memsets the allocated entries to
+		 * 0, but better be extra safe.
+		 */
+		for_each_possible_cpu(cpu) {
+			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
+			ring->cpu_online = false;
 			ring->str_storage = NULL;
 			ring->buffer = NULL;
 			ring->info = NULL;
 		}
 
 		for_each_online_cpu(cpu) {
+			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+
 			pr_info("initializing ring buffer for CPU %u\n", cpu);
 
-			if (!init_ring_buffer(per_cpu_ptr(consumer->ring_buffers, cpu))) {
+			if (!init_ring_buffer(ring)) {
 				pr_err("can't initialize the ring buffer for CPU %u\n", cpu);
 				ret = -ENOMEM;
 				goto err_init_ring_buffer;
 			}
+
+			ring->cpu_online = true;
 		}
 
 		list_add_rcu(&consumer->node, &g_consumer_list);
@@ -353,6 +368,15 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	}
 
 	ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
+
+	/*
+	 * Check if the CPU pointed by this device is online. If it isn't stop here and
+	 * return ENODEV.
+	 */
+	if (ring->cpu_online == false) {
+		ret = -ENODEV;
+		goto cleanup_open;
+	}
 
 	if (ring->open) {
 		pr_err("invalid operation: attempting to open device %d multiple times for consumer %p\n", ring_no, consumer->consumer_id);
@@ -494,6 +518,11 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	}
 
 	ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
+	if (!ring) {
+		ASSERT(false);
+		ret = -ENODEV;
+		goto cleanup_release;
+	}
 
 	if (!ring->open) {
 		pr_err("attempting to close unopened device %d for consumer %p\n", ring_no, consumer_id);
@@ -579,6 +608,10 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 #endif
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
+		if (!ring) {
+			ASSERT(false);
+			return -ENODEV;
+		}
 
 		ring->capture_enabled = false;
 
@@ -595,6 +628,10 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		int ring_no = iminor(filp->f_dentry->d_inode);
 #endif
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
+		if (!ring) {
+			ASSERT(false);
+			return -ENODEV;
+		}
 
 		ring->capture_enabled = true;
 
@@ -958,6 +995,10 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		 * Retrieve the ring structure for this CPU
 		 */
 		ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
+		if (!ring) {
+			ASSERT(false);
+			return -ENODEV;
+		}
 
 		if (length <= PAGE_SIZE) {
 			/*
@@ -1267,6 +1308,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 */
 	cpu = get_cpu();
 	ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+	ASSERT(ring);
+
 	ring_info = ring->info;
 
 	if (!ring->capture_enabled) {
@@ -1276,10 +1319,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 	ring_info->n_evts++;
 	if (event_datap->category == PPMC_CONTEXT_SWITCH && event_datap->event_info.context_data.sched_prev != NULL) {
-		if (event_type != PPME_SYSDIGEVENT_E) {
+		if (event_type != PPME_SYSDIGEVENT_E && event_type != PPME_CPU_HOTPLUG_E) {
 			ASSERT(event_datap->event_info.context_data.sched_prev != NULL);
 			ASSERT(event_datap->event_info.context_data.sched_next != NULL);
-			//ASSERT(regs == NULL);
 			ring_info->n_context_switches++;
 		}
 	} else if (event_datap->category == PPMC_SIGNAL) {
@@ -1829,6 +1871,66 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 }
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
+/*
+ * This gets called every time a CPU is added or removed
+ */
+static int cpu_callback(struct notifier_block *self, unsigned long action,
+			void *hcpu)
+{
+	long cpu = (long)hcpu;
+	struct ppm_ring_buffer_context *ring;
+	struct ppm_consumer_t *consumer;
+	bool event_recorded = false;
+	struct timespec ts;
+	struct event_data_t event_data;
+	long sd_action = 0;
+
+	switch (action) {
+	case CPU_UP_PREPARE:
+	case CPU_UP_PREPARE_FROZEN:
+		sd_action = 1;
+		break;
+	case CPU_DOWN_PREPARE:
+	case CPU_DOWN_PREPARE_FROZEN:
+		sd_action = 2;
+		break;
+	default:
+		break;
+	}
+
+	/*
+	 * Based on the action, spit an event in the first available ring
+	 */
+	if (sd_action != 0) {
+		rcu_read_lock();
+
+		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
+			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+			ring->capture_enabled = false;
+
+			getnstimeofday(&ts);
+
+			event_data.category = PPMC_CONTEXT_SWITCH;
+			event_data.event_info.context_data.sched_prev = (void *)cpu;
+			event_data.event_info.context_data.sched_next = (void *)sd_action;
+
+			if (!event_recorded) {
+				record_event_consumer(consumer, PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &ts, &event_data);
+				event_recorded = true;
+			}
+		}
+
+		rcu_read_unlock();
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block cpu_notifier = {
+	.notifier_call = &cpu_callback,
+	.next = NULL,
+};
+
 int sysdig_init(void)
 {
 	dev_t dev;
@@ -1850,7 +1952,7 @@ int sysdig_init(void)
 		goto init_module_err;
 
 	num_cpus = 0;
-	for_each_online_cpu(cpu) {
+	for_each_possible_cpu(cpu) {
 		++num_cpus;
 	}
 
@@ -1963,6 +2065,12 @@ int sysdig_init(void)
 	}
 
 	/*
+	 * Set up our callback in case we get a hotplug even while we are 
+	 * initializing the cpu structures
+	 */
+	register_cpu_notifier(&cpu_notifier);
+
+	/*
 	 * All ok. Final initalizations.
 	 */
 	g_tracepoint_registered = false;
@@ -2020,6 +2128,8 @@ void sysdig_exit(void)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	tracepoint_synchronize_unregister();
 #endif
+
+	unregister_cpu_notifier(&cpu_notifier);
 }
 
 module_init(sysdig_init);
