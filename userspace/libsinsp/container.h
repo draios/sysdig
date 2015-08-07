@@ -54,6 +54,7 @@ public:
 	string m_image;
 	uint32_t m_container_ip;
 	vector<container_port_mapping> m_port_mappings;
+	map<string, string> m_labels;
 };
 
 class sinsp_container_manager
