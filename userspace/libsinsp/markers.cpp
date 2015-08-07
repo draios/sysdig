@@ -156,9 +156,10 @@ sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(char *da
 	//
 	// Parser tests stop here
 	//
-#ifdef DR_TEST_APPEVT_PARSER
-	return sinsp_markerparser::RES_OK;
-#endif
+	if(m_inspector == NULL)
+	{
+		return sinsp_markerparser::RES_OK;
+	}
 
 	//
 	// Event decoding done. We do state tracking only if explicitly requested
@@ -468,7 +469,6 @@ inline void sinsp_markerparser::parse(char* evtstr, uint32_t evtstrlen)
 inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 {
 	char* p = evtstr;
-	char* end = evtstr + evtstrlen;
 	uint32_t delta;
 
 	//
