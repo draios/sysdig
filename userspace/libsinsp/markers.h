@@ -131,6 +131,7 @@ public:
 	uint32_t m_tot_argvallens;
 	sinsp_partial_marker* m_enter_pae;
 	sinsp_partial_marker m_exit_pae;
+	sinsp_threadinfo* m_tinfo;
 
 VISIBILITY_PRIVATE
 	inline parse_result skip_spaces(char* p, uint32_t* delta);

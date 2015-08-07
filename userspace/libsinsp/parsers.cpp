@@ -51,7 +51,7 @@ bool should_drop(sinsp_evt *evt);
 
 extern sinsp_protodecoder_list g_decoderlist;
 
-#if 0
+#if 1
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
@@ -2451,7 +2451,8 @@ void sinsp_parser::swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo)
 void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 {
 	sinsp_threadinfo* tinfo = evt->m_tinfo;
-	
+	ASSERT(tinfo);
+
 	//
 	// Extract the data buffer
 	//
@@ -2472,6 +2473,7 @@ void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 		return;
 	}
 
+	p->m_tinfo = tinfo;
 	p->m_args.first = &p->m_argnames;
 	p->m_args.second = &p->m_argvals;
 

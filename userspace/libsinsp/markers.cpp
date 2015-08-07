@@ -474,56 +474,38 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 	//
 	// Extract the type
 	//
-	m_type_str = p;
+	m_type_str = p++;
 
 	//
-	// Jump to the beginning of the ID
+	// Jump to the beginning of the tags
 	//
-	while(true)
+	if(*p != ':')
 	{
-		if(p == end - 1)
-		{
-			m_res = sinsp_markerparser::RES_TRUNCATED;
-			return;
-		}
-
-		if(*p == 0)
-		{
-			++p;
-			break;
-		}
-
-		++p;
-	}
-
-	//
-	// Extract the ID
-	//
-	m_res = parsenumber_zeroend(p, &m_id, &delta);
-	if(m_res > sinsp_markerparser::RES_COMMA)
-	{
+		m_res = sinsp_markerparser::RES_FAILED;
 		return;
 	}
-	p += delta;
+
+	*p = 0;
+	p++;
 
 	//
 	// Extract the tags
 	//
-	if(*p != 0)
+	if(*p == '0')
+	{
+		m_res = sinsp_markerparser::RES_TRUNCATED;
+		return;
+	}
+
+	if(*p != ':')
 	{
 		while(true)
 		{
 			char* start = p;
 
-			if(p == end - 1)
-			{
-				m_res = sinsp_markerparser::RES_TRUNCATED;
-				return;
-			}
-
 			m_tags.push_back(p);
 
-			while(!(*p == ',' || *p == 0))
+			while(!(*p == '.' || *p == ':' || *p == 0))
 			{
 				++p;
 			}
@@ -531,9 +513,15 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 			m_taglens.push_back(p - start);
 			m_tot_taglens += (p - start);
 
-			if(*p == 0)
+			if(*p == ':')
 			{
+				*p = 0;
 				break;
+			}
+			else if(*p == 0)
+			{
+				m_res = sinsp_markerparser::RES_TRUNCATED;
+				return;
 			}
 			else
 			{
@@ -548,24 +536,24 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 	//
 	// Extract the arguments
 	//
-	if(*p != 0)
+	if(*p == '0')
+	{
+		m_res = sinsp_markerparser::RES_TRUNCATED;
+		return;
+	}
+
+	if(*p != ':')
 	{
 		while(true)
 		{
 			char* start = p;
-
-			if(p == end - 1)
-			{
-				m_res = sinsp_markerparser::RES_TRUNCATED;
-				return;
-			}
 
 			//
 			// Arg name
 			//
 			m_argnames.push_back(p);
 
-			while(!(*p == ':' || *p == 0))
+			while(!(*p == '=' || *p == ':' || *p == 0))
 			{
 				++p;
 			}
@@ -576,6 +564,11 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 			if(*p == 0)
 			{
 				m_res = sinsp_markerparser::RES_TRUNCATED;
+				return;
+			}
+			else if(*p == ':')
+			{
+				m_res = sinsp_markerparser::RES_FAILED;
 				return;
 			}
 			else
@@ -590,7 +583,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 			start = p;
 			m_argvals.push_back(p);
 
-			while(!(*p == ',' || *p == 0))
+			while(!(*p == ',' || *p == 0 || *p == ':'))
 			{
 				++p;
 			}
@@ -600,8 +593,13 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 
 			if(*p == 0)
 			{
-				break;
+				m_res = sinsp_markerparser::RES_TRUNCATED;
 				return;
+			}
+			else if(*p == ':')
+			{
+				*p = 0;
+				break;
 			}
 			else
 			{
@@ -611,10 +609,58 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 		}
 	}
 
+	++p;
+
+	//
+	// Extract the ID
+	//
+	if(*p == '0')
+	{
+		m_res = sinsp_markerparser::RES_TRUNCATED;
+		return;
+	}
+
+	switch(*p)
+	{
+	case 't':
+		m_id = m_tinfo->m_tid;
+		delta = 1;
+		break;
+	case 'p':
+		m_id = m_tinfo->m_pid;
+		delta = 1;
+		break;
+	case 's':
+		m_id = m_tinfo->m_ptid;
+		delta = 1;
+		break;
+	case 0:
+	case 'g':
+		m_id = 0;
+		delta = 1;
+		break;
+	default:
+		m_res = parsenumber_zeroend(p, &m_id, &delta);
+		if(m_res > sinsp_markerparser::RES_COMMA)
+		{
+			return;
+		}
+		break;
+	}
+
+	p += delta;
+
 	//
 	// All done
 	//
-	m_res = sinsp_markerparser::RES_OK;
+	if(*p == 0)
+	{
+		m_res = sinsp_markerparser::RES_OK;
+	}
+	else
+	{
+		m_res = sinsp_markerparser::RES_FAILED;
+	}
 }
 
 inline sinsp_markerparser::parse_result sinsp_markerparser::skip_spaces(char* p, uint32_t* delta)
@@ -1049,8 +1095,14 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">\00012435\0mysql,query,init\0argname1:argval1,argname2:argval2,argname3:argval3\0";
-	char doc1[] = "<t\00012435\0mysq,query,init\0";
+	char doc[] = ">:mysql.query.init:argname1=argval1,argname2=argval2,argname3=argval3:p\0";
+	char doc1[] = "<:mysql.query.init::p\0";
+	sinsp_threadinfo tinfo;
+	
+	m_tinfo = &tinfo;
+	tinfo.m_ptid = 11;
+	tinfo.m_pid = 22;
+	tinfo.m_tid = 33;
 
 	printf("1\n");
 
