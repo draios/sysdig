@@ -65,6 +65,7 @@ struct syscall_evt_pair {
  * We have one of these for each CPU.
  */
 struct ppm_ring_buffer_context {
+	bool cpu_online;
 	bool open;
 	bool capture_enabled;
 	struct ppm_ring_buffer_info *info;

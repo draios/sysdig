@@ -355,6 +355,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_CONTAINER_E:
 		parse_container_evt(evt);
 		break;
+	case PPME_CPU_HOTPLUG_E:
+		parse_container_evt(evt);
+		break;
 	default:
 		break;
 	}
@@ -3570,4 +3573,14 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 	container_info.m_image = parinfo->m_val;
 
 	m_inspector->m_container_manager.add_container(container_info);
+}
+
+void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
+{
+#ifdef HAS_ANALYZER
+	if(m_inspector->is_live())
+	{
+		throw sinsp_exception("CPUs configuration change detected. Aborting.");
+	}
+#endif
 }
