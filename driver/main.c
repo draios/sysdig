@@ -1885,11 +1885,15 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 
 	switch (action) {
 	case CPU_UP_PREPARE:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case CPU_UP_PREPARE_FROZEN:
+#endif	
 		sd_action = 1;
 		break;
 	case CPU_DOWN_PREPARE:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case CPU_DOWN_PREPARE_FROZEN:
+#endif
 		sd_action = 2;
 		break;
 	default:
