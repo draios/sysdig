@@ -44,6 +44,8 @@ Join the Community
 
 Sysdig Cloud
 ---
-Sysdig is proudly supported by [Sysdig Cloud] (http://sysdigcloud.com/).  
+Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Cloud] (http://sysdig.com)!
 
-Like working on sysdig? [Sysdig Cloud is hiring] (http://sysdigcloud.com/jobs/).
+Sysdig is proudly supported by [Sysdig Inc] (http://sysdig.com/).  
+
+Interested in what we're doing? [Sysdig is hiring] (http://sysdig.com/jobs/).
