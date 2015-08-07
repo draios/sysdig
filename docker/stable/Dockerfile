@@ -18,7 +18,11 @@ RUN apt-get update \
 	curl \
 	ca-certificates \
 	gcc \
+	gcc-4.9 \
 	gcc-4.8
+
+RUN rm -rf /usr/bin/gcc \
+ && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc
 
 RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add - \
  && curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/$SYSDIG_REPOSITORY/deb/draios.list \

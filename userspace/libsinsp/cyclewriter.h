@@ -33,7 +33,13 @@ public:
 	};
 
 	cycle_writer(bool is_live);
-	~cycle_writer() {};
+	~cycle_writer()
+	{
+		if(m_past_names != NULL)
+		{
+			delete[] m_past_names;
+		}
+	};
 
 	//
 	// Setup sets all the parameters of the 
@@ -141,5 +147,9 @@ private:
 	scap_dumper_t** m_dumper;
 
 	bool live;
+
+	// Used when ciclewriting on time with specified
+	// name format for deleting "out-of-range" files
+	string *m_past_names;
 };
 

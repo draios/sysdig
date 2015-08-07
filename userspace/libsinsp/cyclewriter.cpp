@@ -13,7 +13,8 @@ cycle_writer::cycle_writer(bool is_live) :
 	m_file_index(0),
 	m_first_consider(false),
 	m_event_count(0L),
-	m_dumper(NULL)
+	m_dumper(NULL),
+	m_past_names(NULL)
 {
 	//
 	// null terminate the first
@@ -38,6 +39,16 @@ bool cycle_writer::setup(string base_file_name, int rollover_mb, int duration_se
 	m_file_limit = file_limit;
 	m_event_limit = event_limit;
 	m_dumper = dumper;
+
+	if(duration_seconds > 0 && file_limit > 0)
+	{
+		m_past_names = new string[file_limit];
+		
+		for(int32_t j = 0; j < file_limit; j++)
+		{
+			m_past_names[j] = "";
+		}
+	}
 
 	//
 	// Seed the filename with an initial
@@ -161,6 +172,13 @@ cycle_writer::conclusion cycle_writer::next_file()
 			their_size = strftime(file_name, our_size, m_base_file_name.c_str(), our_time);
 
 			if(their_size == 0) { /* TODO: if fail but as string size has been increased to 4096 it's very unlikely we get here */ }
+
+			if(m_past_names[m_file_index] != "")
+			{
+				remove(m_past_names[m_file_index].c_str());
+			}
+
+			m_past_names[m_file_index] = string(file_name);
 
 			m_last_file_name = file_name;
 		}
