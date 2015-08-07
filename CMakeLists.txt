@@ -33,13 +33,6 @@ endif()
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
-option(DEFINE_SCAP_INLINE "Inline Scap" ON)
-
-if(DEFINE_SCAP_INLINE)
-	message(STATUS "Inlining Scap as if there's no tomorrow!!!")
-	add_definitions( -DSCAP_INLINED )
-endif()
-
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG ${CUSTOM}")

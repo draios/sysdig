@@ -817,6 +817,8 @@ private:
 	friend class sinsp_worker;
 	friend class sinsp_table;
 	friend class curses_textbox;
+	// just a filthy way to be quick...
+	friend scap_t* leech_scap_handle(sinsp*);
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

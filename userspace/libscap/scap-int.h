@@ -124,16 +124,6 @@ struct scap_ns_socket_list
 // Internal library functions
 //
 
-// Read the full event buffer for the given processor
-#ifndef SCAP_INLINED
-//extern int32_t scap_readbuf(scap_t* handle, uint32_t proc, OUT char** buf, OUT uint32_t* len);
-extern int32_t scap_update_snap(scap_device* dev);
-extern void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size);
-extern uint32_t get_read_size(struct ppm_ring_buffer_info* bufinfo);
-#ifdef HAVE_EXTERNAL_SCAP_READER
-extern int32_t scap_next_live_cpu(scap_device* const dev, OUT scap_evt** pe);
-#endif
-#endif
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
 // Remove an entry from the process list by parsin a PPME_PROC_EXIT event

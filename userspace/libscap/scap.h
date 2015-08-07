@@ -45,7 +45,7 @@ extern "C" {
 /** @defgroup scap_defs public definitions and structures
  *  @{
  */
-
+//#include "scap-int.h"
 //
 // Forward declarations
 //
@@ -508,6 +508,12 @@ scap_os_platform scap_get_os_platform(scap_t* handle);
 */
 char* scap_getlasterr(scap_t* handle);
 
+//
+// Return the number of event capture devices that the library is handling. Each processor
+// has its own event capture device.
+//
+uint32_t scap_get_ndevs(scap_t* handle);
+
 /*!
   \brief Get the next event from the from the given capture instance
 
@@ -521,7 +527,12 @@ char* scap_getlasterr(scap_t* handle);
    SCAP_EOF when the end of an offline capture is reached.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error. 
 */
-//int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
+#ifndef HAVE_EXTERNAL_SCAP_READER
+extern int32_t scap_next_central(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
+#define scap_next(handle, pevent, pcpuid) scap_next_central(handle, pevent, pcpuid)
+#else
+#include "scap_external.h"
+#endif
 
 /*!
   \brief Get the length of an event
@@ -823,20 +834,6 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
 ///////////////////////////////////////////////////////////////////////////////
 // Non public functions
 ///////////////////////////////////////////////////////////////////////////////
-
-//
-// Return the number of event capture devices that the library is handling. Each processor
-// has its own event capture device.
-//
-uint32_t scap_get_ndevs(scap_t* handle);
-
-// Retrieve a buffer of events from one of the cpus
-#ifndef SCAP_INLINED
-//extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len);
-extern int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
-#else
-#include "scap_next.h"
-#endif //SCAP_INLINED
 
 #ifdef PPM_ENABLE_SENTINEL
 // Get the sentinel at the beginning of the event

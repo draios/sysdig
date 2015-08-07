@@ -32,7 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
-#include "scap-int.h"
+#include "scap_next.h"
 
 //#define NDEBUG
 #include <assert.h>
@@ -475,13 +475,6 @@ uint32_t scap_get_ndevs(scap_t* handle)
 }
 
 //
-// function definition in case of non-inlining
-//
-#ifndef SCAP_INLINED
-#include "scap_next.h"
-#endif
-
-//
 // Return the process list for the given handle
 //
 scap_threadinfo* scap_get_proc_table(scap_t* handle)
@@ -548,6 +541,13 @@ int32_t scap_stop_capture(scap_t* handle)
 	return SCAP_SUCCESS;
 #endif // HAS_CAPTURE
 }
+
+#ifndef HAVE_EXTERNAL_SCAP_READER
+int32_t scap_next_central(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	return scap_next_centralized(handle, pevent, pcpuid);
+}
+#endif
 
 //
 // Start capturing the events

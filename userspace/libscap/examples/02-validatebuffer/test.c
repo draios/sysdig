@@ -23,7 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <assert.h>
 
 #include <scap.h>
-#include <scap-int.h>
+#include <scap_next.h>
 #include "../../../../driver/ppm_events_public.h"
 #include "../../driver/ppm_ringbuffer.h"
 
