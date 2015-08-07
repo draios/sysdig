@@ -20,7 +20,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linux/compat.h>
 #include <linux/cdev.h>
-#include <asm/syscall.h>
 #include <asm/unistd.h>
 #include <net/sock.h>
 #include <net/af_unix.h>
@@ -34,8 +33,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
+#ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
+#endif
 #include <asm/mman.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include "ppm_syscall.h"
+#else
+#include <asm/syscall.h>
+#endif
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -125,6 +131,7 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
 static int f_sys_setns_e(struct event_filler_arguments *args);
 static int f_sys_flock_e(struct event_filler_arguments *args);
+static int f_cpu_hotplug_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -339,6 +346,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SETNS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_FLOCK_E] = {f_sys_flock_e},
 	[PPME_SYSCALL_FLOCK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_CPU_HOTPLUG_E] = {f_cpu_hotplug_e},
 };
 
 /*
@@ -476,9 +484,10 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 	if (flags & O_LARGEFILE)
 		res |= PPM_O_LARGEFILE;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 	if (flags & O_CLOEXEC)
 		res |= PPM_O_CLOEXEC;
-
+#endif
 	return res;
 }
 
@@ -624,23 +633,35 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_FS)
 		res |= PPM_CL_CLONE_FS;
 
+#ifdef CLONE_IO
 	if (flags & CLONE_IO)
 		res |= PPM_CL_CLONE_IO;
+#endif
 
+#ifdef CLONE_NEWIPC
 	if (flags & CLONE_NEWIPC)
 		res |= PPM_CL_CLONE_NEWIPC;
+#endif
 
+#ifdef CLONE_NEWNET
 	if (flags & CLONE_NEWNET)
 		res |= PPM_CL_CLONE_NEWNET;
+#endif
 
+#ifdef CLONE_NEWNS
 	if (flags & CLONE_NEWNS)
 		res |= PPM_CL_CLONE_NEWNS;
+#endif
 
+#ifdef CLONE_NEWPID
 	if (flags & CLONE_NEWPID)
 		res |= PPM_CL_CLONE_NEWPID;
+#endif
 
+#ifdef CLONE_NEWUTS
 	if (flags & CLONE_NEWUTS)
 		res |= PPM_CL_CLONE_NEWUTS;
+#endif
 
 	if (flags & CLONE_PARENT_SETTID)
 		res |= PPM_CL_CLONE_PARENT_SETTID;
@@ -666,8 +687,10 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_VM)
 		res |= PPM_CL_CLONE_VM;
 
+#ifdef CLONE_NEWUSER
 	if (flags & CLONE_NEWUSER)
 		res |= PPM_CL_CLONE_NEWUSER;
+#endif
 
 	return res;
 }
@@ -714,6 +737,7 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 	return 0;
 }
 
+#ifdef CONFIG_CGROUPS
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 {
@@ -752,7 +776,6 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 }
 #endif
 
-#ifdef CONFIG_CGROUPS
 static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int* available)
 {
 	int pathlen;
@@ -1021,10 +1044,14 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * ptid
 	 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (current->real_parent)
 		ptid = current->parent->pid;
 	else
 		ptid = 0;
+#else
+	ptid = current->parent->pid;
+#endif
 
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -1046,7 +1073,11 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * fdlimit
 	 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
+#else
+	res = val_to_ring(args, (int64_t)0, 0, false, 0);
+#endif
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1122,9 +1153,12 @@ cgroups_error:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		uint64_t euid = from_kuid_munged(current_user_ns(), current_euid());
 		uint64_t egid = from_kgid_munged(current_user_ns(), current_egid());
-#else
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		uint64_t euid = current_euid();
 		uint64_t egid = current_egid();
+#else
+		uint64_t euid = current->euid;
+		uint64_t egid = current->egid;
 #endif
 
 		/*
@@ -1156,14 +1190,28 @@ cgroups_error:
 		/*
 		 * vtid
 		 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
+#else
+		//
+		// Not relevant in old kernels
+		//
+		res = val_to_ring(args, 0, 0, false, 0);
+#endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
 		/*
 		 * vpid
 		 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
+#else
+		//
+		// Not relevant in old kernels
+		//
+		res = val_to_ring(args, 0, 0, false, 0);
+#endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
@@ -2197,7 +2245,11 @@ static int f_sys_pipe_x(struct event_filler_arguments *args)
 	file = fget(fds[0]);
 	val = 0;
 	if (likely(file != NULL)) {
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		val = file->f_path.dentry->d_inode->i_ino;
+#else
+		val = file->f_dentry->d_inode->i_ino;
+#endif
 		fput(file);
 	}
 
@@ -2236,6 +2288,7 @@ static int f_sys_eventfd_e(struct event_filler_arguments *args)
 
 static inline u16 shutdown_how_to_scap(unsigned long how)
 {
+#ifdef SHUT_RD	
 	if (how == SHUT_RD) {
 		return PPM_SHUT_RD;
 	} else if (how == SHUT_WR) {
@@ -2245,6 +2298,7 @@ static inline u16 shutdown_how_to_scap(unsigned long how)
 	}
 
 	ASSERT(false);
+#endif
 	return (u16)how;
 }
 
@@ -2303,20 +2357,30 @@ static inline u16 futex_op_to_scap(unsigned long op)
 		res = PPM_FU_FUTEX_UNLOCK_PI;
 	else if (flt_op == FUTEX_TRYLOCK_PI)
 		res = PPM_FU_FUTEX_TRYLOCK_PI;
+#ifdef FUTEX_WAIT_BITSET
 	else if (flt_op == FUTEX_WAIT_BITSET)
 		res = PPM_FU_FUTEX_WAIT_BITSET;
+#endif
+#ifdef FUTEX_WAKE_BITSET
 	else if (flt_op == FUTEX_WAKE_BITSET)
 		res = PPM_FU_FUTEX_WAKE_BITSET;
+#endif
+#ifdef FUTEX_WAIT_REQUEUE_PI
 	else if (flt_op == FUTEX_WAIT_REQUEUE_PI)
 		res = PPM_FU_FUTEX_WAIT_REQUEUE_PI;
+#endif
+#ifdef FUTEX_CMP_REQUEUE_PI
 	else if (flt_op == FUTEX_CMP_REQUEUE_PI)
 		res = PPM_FU_FUTEX_CMP_REQUEUE_PI;
+#endif
 
 	if (op & FUTEX_PRIVATE_FLAG)
 		res |= PPM_FU_FUTEX_PRIVATE_FLAG;
 
+#ifdef FUTEX_CLOCK_REALTIME
 	if (op & FUTEX_CLOCK_REALTIME)
 		res |= PPM_FU_FUTEX_CLOCK_REALTIME;
+#endif
 
 	return res;
 }
@@ -3026,8 +3090,10 @@ static inline u8 rlimit_resource_to_scap(unsigned long rresource)
 		return PPM_RLIMIT_NICE;
 	case RLIMIT_RTPRIO:
 		return PPM_RLIMIT_RTPRIO;
+#ifdef RLIMIT_RTTIME
 	case RLIMIT_RTTIME:
 		return PPM_RLIMIT_RTTIME;
+#endif
 	default:
 		return PPM_RLIMIT_UNKNOWN;
 	}
@@ -3339,18 +3405,24 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	case F_SETLKW64:
 		return PPM_FCNTL_F_SETLKW64;
 #endif
+#ifdef F_SETOWN_EX
 	case F_SETOWN_EX:
 		return PPM_FCNTL_F_SETOWN_EX;
+#endif
+#ifdef F_GETOWN_EX
 	case F_GETOWN_EX:
 		return PPM_FCNTL_F_GETOWN_EX;
+#endif
 	case F_SETLEASE:
 		return PPM_FCNTL_F_SETLEASE;
 	case F_GETLEASE:
 		return PPM_FCNTL_F_GETLEASE;
 	case F_CANCELLK:
 		return PPM_FCNTL_F_CANCELLK;
+#ifdef F_DUPFD_CLOEXEC
 	case F_DUPFD_CLOEXEC:
 		return PPM_FCNTL_F_DUPFD_CLOEXEC;
+#endif
 	case F_NOTIFY:
 		return PPM_FCNTL_F_NOTIFY;
 #ifdef F_SETPIPE_SZ
@@ -4501,3 +4573,24 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 #endif
+
+static int f_cpu_hotplug_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	/*
+	 * cpu
+	 */
+	res = val_to_ring(args, (uint64_t)args->sched_prev, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * action
+	 */
+	res = val_to_ring(args, (uint64_t)args->sched_next, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
