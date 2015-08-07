@@ -1,4 +1,5 @@
-#!/usr/bin/python
+# Author: Samuele Pilleri
+# Date: August 8th, 2015
 
 import urllib2
 from lxml import html
@@ -52,41 +53,37 @@ repos = {
 # of code.
 #
 
-packages = {}
+def crawl():
 
-#
-# Navigate the `repos` tree and look for packages we need that match the
-# patterns given. Save the result in `packages`.
-#
-for distro, repositories in repos.iteritems():
-	for repo in repositories:
-		
-		root = urllib2.urlopen(repo["root"]).read()
-		versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+	packages = {}
 
-		for version in versions:
-			for subdir in repo["subdirs"]:
+	#
+	# Navigate the `repos` tree and look for packages we need that match the
+	# patterns given. Save the result in `packages`.
+	#
+	for distro, repositories in repos.iteritems():
+		for repo in repositories:
+			
+			root = urllib2.urlopen(repo["root"]).read()
+			versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-				# The try - except block is used because 404 errors and similar
-				# might happen (and actually happen because not all repos have
-				# packages we need)
-				try:
-					source = repo["root"] + version + subdir
-					page = urllib2.urlopen(source).read()
-					rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+			for version in versions:
+				for subdir in repo["subdirs"]:
 
-					for rpm in rpms:
-						if not distro in packages:
-							packages[distro] = {}
-						if not rpm in packages[distro]:
-							packages[distro][rpm] = source + rpm
-				except:
-					continue
+					# The try - except block is used because 404 errors and similar
+					# might happen (and actually happen because not all repos have
+					# packages we need)
+					try:
+						source = repo["root"] + version + subdir
+						page = urllib2.urlopen(source).read()
+						rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-#
-# Print URLs found and valid to stdout
-#
-for name, package in packages.iteritems():
-	print name
-	for key, value in package.iteritems():
-		print key + "\t" + value
+						for rpm in rpms:
+							if not distro in packages:
+								packages[distro] = {}
+							if not rpm in packages[distro]:
+								packages[distro][rpm] = source + rpm
+					except:
+						continue
+
+	return packages
