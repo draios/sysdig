@@ -100,7 +100,7 @@ sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(char *da
 	}
 	else
 	{
-		m_res = sinsp_markerparser::RES_TRUNCATED;
+		m_res = sinsp_markerparser::RES_FAILED;
 	}
 
 	if(m_res == sinsp_markerparser::RES_FAILED)
