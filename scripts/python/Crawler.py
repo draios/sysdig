@@ -1,5 +1,5 @@
 # Author: Samuele Pilleri
-# Date: August 8th, 2015
+# Date: August 6th, 2015
 
 import urllib2
 from lxml import html
@@ -70,9 +70,9 @@ def crawl():
 			for version in versions:
 				for subdir in repo["subdirs"]:
 
-					# The try - except block is used because 404 errors and similar
-					# might happen (and actually happen because not all repos have
-					# packages we need)
+					# The try - except block is used because 404 errors and
+					# similar might happen (and actually happen because not all
+					# repos have packages we need)
 					try:
 						source = repo["root"] + version + subdir
 						page = urllib2.urlopen(source).read()
