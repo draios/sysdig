@@ -585,7 +585,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 	//
 	// Extract the arguments
 	//
-	if(*p == '0')
+	if(*p == 0)
 	{
 		m_res = sinsp_markerparser::RES_TRUNCATED;
 		return;
@@ -627,7 +627,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 			start = p;
 			m_argvals.push_back(p);
 
-			while(!(*p == ',' || *p == 0))
+			while(!(*p == ',' || *p == ':' || *p == 0))
 			{
 				++p;
 			}
@@ -635,9 +635,14 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 			m_argvallens.push_back(p - start);
 			m_tot_argvallens += (p - start);
 
-			if(*p == 0)
+			if(*p == ':')
 			{
 				m_res = sinsp_markerparser::RES_OK;
+				break;
+			}
+			else if(*p == 0)
+			{
+				m_res = sinsp_markerparser::RES_TRUNCATED;
 				break;
 			}
 			else
@@ -1093,7 +1098,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">";
+	char doc[] = ">:12345:mysql:argname1=argval1,argname2=argval2,argname3=argval3:";
 	char doc1[] = ":12345:mysql:argname1=argval1,argname2=argval2,argname3=argval3";
 
 	sinsp_threadinfo tinfo;
@@ -1109,7 +1114,7 @@ void sinsp_markerparser::test()
 
 	for(uint64_t j = 0; j < 30000000; j++)
 	{
-		process_event_data(doc, sizeof(doc) - 1, 10);
+		process_event_data(doc, 65, 10);
 
 		if(m_res != sinsp_markerparser::RES_OK)
 		{
