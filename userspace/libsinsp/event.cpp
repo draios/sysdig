@@ -2042,7 +2042,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				{
 					if(dst < dstend - 1)
 					{
-						*dst++ = ',';
+						*dst++ = '.';
 					}
 				}
 
