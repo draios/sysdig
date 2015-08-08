@@ -985,7 +985,14 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_colend(c
 
 	if(*p != ':')
 	{
-		return sinsp_markerparser::RES_FAILED;
+		if(*p == 0)
+		{
+			return sinsp_markerparser::RES_TRUNCATED;
+		}
+		else
+		{
+			return sinsp_markerparser::RES_FAILED;
+		}
 	}
 	else
 	{
@@ -1094,7 +1101,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:p:mysql.query.init:argname1=argval1,argname2=argval2,argname3=argval3";
+	char doc[] = ">:123";
 	char doc1[] = "<:p:mysql.query.init:\0";
 
 	sinsp_threadinfo tinfo;
