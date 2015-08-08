@@ -35,8 +35,8 @@ terminal = require "ansiterminal"
 
 vizinfo =
 {
-    key_fld = {"url","method"},
-    key_desc = {"url", "method"},
+    key_fld = {"method", "url"},
+    key_desc = {"method", "url"},
     value_fld = "ncalls",
     value_desc = "ncalls",
     value_units = "none",
@@ -85,8 +85,8 @@ function on_init()
     buflen_field = chisel.request_field("evt.buflen.net")
     if print_container then
         container_field = chisel.request_field("container.name")
-        table.insert(vizinfo["key_fld"], "container")
-        table.insert(vizinfo["key_desc"],"container")
+        table.insert(vizinfo["key_fld"], 1, "container")
+        table.insert(vizinfo["key_desc"], 1, "container")
     end
 
     sysdig.set_snaplen(1024)
@@ -100,11 +100,18 @@ partial_transactions = {}
 function parse_request(req_buffer)
     method, url = string.match(req_buffer, "^(%u+) (%g+)")
     if method and url then
+        host = string.match(req_buffer, "Host: (%g+)%.%.")
+        print(host)
+        print(url)
+        if host then
+            url = host .. url
+        end
         return {
             method=method,
             url=url
         }
     end
+
     return nil
 end
 
@@ -119,10 +126,11 @@ end
 
 function build_grtable_key(transaction)
     request = transaction["request"]
-    ret = string.format("%s\001\001%s", request["url"], request["method"])
+    ret = ""
     if print_container then
-        ret = ret .. "\001\001" .. transaction["container"]
+        ret = transaction["container"] .. "\001\001"
     end
+    ret = ret .. string.format("%s\001\001%s", request["method"], request["url"])
     return ret
 end
 
