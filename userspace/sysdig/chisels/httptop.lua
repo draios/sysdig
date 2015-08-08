@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Shows http connections";
+description = "Show top HTTP transactions by: ncalls, time or bytes";
 short_description = "Top http connections";
 category = "Net";
 
@@ -101,8 +101,6 @@ function parse_request(req_buffer)
     method, url = string.match(req_buffer, "^(%u+) (%g+)")
     if method and url then
         host = string.match(req_buffer, "Host: (%g+)%.%.")
-        print(host)
-        print(url)
         if host then
             url = host .. url
         end
@@ -149,7 +147,7 @@ function on_event()
             partial_transactions[key] = {
                 ts= timestamp,
                 request= request,
-                requestlen=buflen
+                request_len=buflen
             }
             if print_container then
                 partial_transactions[key]["container"] = evt.field(container_field)
@@ -163,12 +161,12 @@ function on_event()
             --    transaction["request"]["url"],
             --    response,
             --    (timestamp - transaction["ts"])/1000000,
-            --    transaction["requestlen"] + buflen
+            --    transaction["request_len"] + buflen
             --))
-            grtable_key = build_grtable_key(transaction)
             transaction["response_ts"] = timestamp
-            transaction["responselen"] = buflen
-
+            transaction["response_len"] = buflen
+            transaction["response_code"] = response
+            grtable_key = build_grtable_key(transaction)
             if not grtable[grtable_key] then
                 grtable[grtable_key] = {}
             end
@@ -201,7 +199,7 @@ function aggregate_grtable()
         elseif by_field == "bytes" then
             total_bytes = 0
             for _, tr in ipairs(transactions) do
-                total_bytes = total_bytes + tr["requestlen"] + tr["responselen"]
+                total_bytes = total_bytes + tr["request_len"] + tr["response_len"]
             end
             grtable[key] = total_bytes
         elseif by_field == "time" then
