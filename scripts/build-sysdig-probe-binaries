@@ -108,30 +108,65 @@ function ubuntu_build {
 }
 
 function rhel_build {
-	KERNEL_RELEASE=$1
-	IMAGE_NAME=$2
-	HEADERS_NAME=$3
+	# KERNEL_RELEASE=$1
+	# IMAGE_NAME=$2
+	# HEADERS_NAME=$3
 
-	if [ ! -f $IMAGE_NAME ]; then
-		exit 1
+	# if [ ! -f $IMAGE_NAME ]; then
+	# 	exit 1
+	# fi
+
+	# if [ ! -f $HEADERS_NAME ]; then
+	# 	exit 1
+	# fi
+
+	# if [ ! -d $KERNEL_RELEASE ]; then
+	# 	mkdir $KERNEL_RELEASE
+	# 	cd $KERNEL_RELEASE
+	# 	rpm2cpio ../$IMAGE_NAME | cpio -idmv
+	# 	rpm2cpio ../$HEADERS_NAME | cpio -idmv
+	# 	cd ..
+	# fi
+	# 
+	# HASH=$(md5sum $KERNEL_RELEASE/boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+	# 
+	# export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
+	# build_sysdig
+
+	#
+	# The function just requires the rpm url
+	#
+
+	# Get all the parameters needed
+	url=$1
+	rpm=$(echo $url | grep -o '[^/]*$')
+	kernel_name=$(echo $rpm | awk 'match($0, /[^kernel\-(devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+
+	if [ ! -d $kernel_name ]; then
+		mkdir $kernel_name
 	fi
 
-	if [ ! -f $HEADERS_NAME ]; then
-		exit 1
+	cd $kernel_name
+
+	echo Downloading $rpm
+	wget $url > /dev/null
+	rpm2cpio $rpm | cpio -idm
+
+	num_rpm=$(ls kernel-*.rpm -1 | wc -l)
+
+	if[ $num_rpm -eq 2 ]; then
+
+		# You can build
+
+		echo Building $kernel_name
+
+		HASH=$(md5sum boot/config-$kernel_name | cut -d' ' -f1)
+
+		export KERNELDIR=$BASEDIR/$kernel_name/usr/src/kernels/$kernel_name
+		build_sysdig
 	fi
 
-	if [ ! -d $KERNEL_RELEASE ]; then
-		mkdir $KERNEL_RELEASE
-		cd $KERNEL_RELEASE
-		rpm2cpio ../$IMAGE_NAME | cpio -idmv
-		rpm2cpio ../$HEADERS_NAME | cpio -idmv
-		cd ..
-	fi
-
-	HASH=$(md5sum $KERNEL_RELEASE/boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
-
-	export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
-	build_sysdig
+	cd ..
 }
 
 coreos_build coreos-494.5.0 3.17.2 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.2.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-494.5.0-3.17.2
