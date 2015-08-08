@@ -989,7 +989,7 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_colend(c
 	}
 	else
 	{
-		*delta = (uint32_t)(p - start + 2);
+		*delta = (uint32_t)(p - start + 1);
 		*res = val;
 		return sinsp_markerparser::RES_OK;
 	}
@@ -1094,7 +1094,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = "<::mysql:argname1=argval1,argname2=argval2,argname3=argval3";
+	char doc[] = ">:p:mysql.query.init:argname1=argval1,argname2=argval2,argname3=argval3";
 	char doc1[] = "<:p:mysql.query.init:\0";
 
 	sinsp_threadinfo tinfo;
