@@ -595,7 +595,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 			//
 			m_argnames.push_back(p);
 
-			while(!(*p == '=' || *p == ':' || *p == 0))
+			while(!(*p == '=' || *p == 0))
 			{
 				++p;
 			}
@@ -605,12 +605,8 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 
 			if(*p == 0)
 			{
+				m_res = sinsp_markerparser::RES_TRUNCATED;
 				break;
-			}
-			else if(*p == ':')
-			{
-				m_res = sinsp_markerparser::RES_FAILED;
-				return;
 			}
 			else
 			{
@@ -624,7 +620,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 			start = p;
 			m_argvals.push_back(p);
 
-			while(!(*p == ',' || *p == 0 || *p == ':'))
+			while(!(*p == ',' || *p == 0))
 			{
 				++p;
 			}
@@ -634,11 +630,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 
 			if(*p == 0)
 			{
-				break;
-			}
-			else if(*p == ':')
-			{
-				*p = 0;
+				m_res = sinsp_markerparser::RES_OK;
 				break;
 			}
 			else
@@ -652,14 +644,7 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 	//
 	// All done
 	//
-	if(*p == 0)
-	{
-		m_res = sinsp_markerparser::RES_OK;
-	}
-	else
-	{
-		m_res = sinsp_markerparser::RES_FAILED;
-	}
+	return;
 }
 
 inline sinsp_markerparser::parse_result sinsp_markerparser::skip_spaces(char* p, uint32_t* delta)
@@ -1101,8 +1086,8 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:123";
-	char doc1[] = "<:p:mysql.query.init:\0";
+	char doc[] = ">:12345:mysql:argnam";
+	char doc1[] = ":12345:mysql:argnam";
 
 	sinsp_threadinfo tinfo;
 	
