@@ -511,7 +511,10 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 		m_id = m_tinfo->m_ptid;
 		delta = 2;
 		break;
-	case 0:
+	case ':':
+		m_id = 0;
+		delta = 1;
+		break;
 	case 'g':
 		m_id = 0;
 		delta = 2;
@@ -1091,7 +1094,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:12345:mysql.query.init:argname1=argval1,argname2=argval2,argname3=argval3\0";
+	char doc[] = "<::mysql:argname1=argval1,argname2=argval2,argname3=argval3";
 	char doc1[] = "<:p:mysql.query.init:\0";
 
 	sinsp_threadinfo tinfo;
