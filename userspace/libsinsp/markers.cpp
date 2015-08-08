@@ -89,13 +89,13 @@ sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(char *da
 		m_tot_argnamelens = 0;
 		m_tot_argvallens = 0;
 
-		if(m_storage[0] == '[' || m_storage[0] == ' ')
+		if(m_storage[0] == '>' || m_storage[0] == '<')
 		{
-			parse(m_storage, storlen);
+			bin_parse(m_storage, storlen);
 		}
 		else
 		{
-			bin_parse(m_storage, storlen);
+			parse(m_storage, storlen);
 		}
 	}
 	else
