@@ -2520,6 +2520,7 @@ void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 		p = tinfo->m_marker_parser = new sinsp_markerparser(m_inspector);
 	}
 
+	p->m_tinfo = tinfo;
 	p->process_event_data(data, datalen, evt->get_ts());
 	if(p->m_res == sinsp_markerparser::RES_TRUNCATED)
 	{
@@ -2527,7 +2528,6 @@ void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 		return;
 	}
 
-	p->m_tinfo = tinfo;
 	p->m_args.first = &p->m_argnames;
 	p->m_args.second = &p->m_argvals;
 
