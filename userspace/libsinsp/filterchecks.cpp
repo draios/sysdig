@@ -3791,7 +3791,7 @@ const filtercheck_field_info sinsp_filter_check_marker_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "marker.id", "event ID."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "marker.ntags", "Number of tags that this user event has."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "marker.nargs", "Number of arguments that this user event has."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.tags", "comma-separated list of event tags."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.tags", "dot-separated list of event tags."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.tag", "one of the app event tags specified by offset. E.g. 'marker.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'marker.tag[-1]' returns the last tag."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.args", "comma-separated list of event arguments."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.arg", "one of the app event arguments specified by name or by offset. E.g. 'marker.tag.mytag' or 'marker.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'marker.arg[-1]' returns the last argument."},
@@ -3842,7 +3842,7 @@ int32_t sinsp_filter_check_marker::extract_arg(string fldname, string val, OUT c
 	{
 		if(fldname == "marker.tag")
 		{
-			throw sinsp_exception("invalid syntax for marker.arg");
+			throw sinsp_exception("invalid syntax for marker.tag");
 		}
 
 		m_argname = val.substr(fldname.size() + 1);
@@ -3957,7 +3957,7 @@ uint8_t* sinsp_filter_check_marker::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				memcpy(p, *it, (*sit));
 				p += (*sit);
-				*p++ = ',';
+				*p++ = '.';
 			}
 
 			if(p != m_storage)

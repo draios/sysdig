@@ -308,7 +308,8 @@ private:
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
-		m_iosize = 0;		
+		m_iosize = 0;
+		m_poriginal_evt = NULL;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
@@ -319,7 +320,8 @@ private:
 		m_fdinfo = NULL;
 		m_iosize = 0;
 		m_cpuid = cpuid;
-		m_evtnum = 0;		
+		m_evtnum = 0;
+		m_poriginal_evt = NULL;
 	}
 	inline void load_params()
 	{
