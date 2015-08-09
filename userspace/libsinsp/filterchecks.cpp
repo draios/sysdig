@@ -4028,7 +4028,7 @@ uint8_t* sinsp_filter_check_marker::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				strcpy(p, *nameit);
 				p += (*namesit);
-				*p++ = ':';
+				*p++ = '=';
 
 				memcpy(p, *valit, (*valsit));
 				p += (*valsit);
