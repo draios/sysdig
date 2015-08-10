@@ -94,7 +94,9 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	{
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SOCKET_ACCEPT_X:
+	case PPME_SOCKET_ACCEPT_5_X:
 	case PPME_SOCKET_ACCEPT4_X:
+	case PPME_SOCKET_ACCEPT4_5_X:
 	case PPME_SYSCALL_CREAT_X:
 		{
 			const char* argstr = evt->get_param_as_str(1, &resolved_argstr, 
@@ -297,16 +299,18 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return m_tcstr;
 		case PPME_SOCKET_SOCKET_E:
 		case PPME_SOCKET_ACCEPT_E:
+		case PPME_SOCKET_ACCEPT_5_E:
 		case PPME_SOCKET_ACCEPT4_E:
-			//
-			// Note, this is not accurate, because it always
-			// returns IPv4 even if this could be IPv6 or unix.
-			// For the moment, I assume it's better than nothing, and doing
-			// real event parsing here would be a pain. 
-			//
-			m_tcstr[0] = CHAR_FD_IPV4_SOCK;
-			m_tcstr[1] = 0;
-			return m_tcstr;
+		case PPME_SOCKET_ACCEPT4_5_E:
+                	//
+                	// Note, this is not accurate, because it always
+                	// returns IPv4 even if this could be IPv6 or unix.
+                	// For the moment, I assume it's better than nothing, and doing
+                	// real event parsing here would be a pain.
+                	//
+                	m_tcstr[0] = CHAR_FD_IPV4_SOCK;
+                	m_tcstr[1] = 0;
+                	return m_tcstr;
 		case PPME_SYSCALL_PIPE_E:
 			m_tcstr[0] = CHAR_FD_FIFO;
 			m_tcstr[1] = 0;
@@ -3070,7 +3074,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				uint16_t etype = evt->get_type();
 
 				if(etype == PPME_SOCKET_ACCEPT_X ||
+					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
+					etype == PPME_SOCKET_ACCEPT4_5_X ||
 					etype == PPME_SOCKET_CONNECT_X)
 				{
 					return extract_error_count(evt, len);
@@ -3115,7 +3121,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					etype == PPME_SYSCALL_CREAT_X ||
 					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SOCKET_ACCEPT_X ||
+					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
+					etype == PPME_SOCKET_ACCEPT4_5_X ||
 					etype == PPME_SOCKET_CONNECT_X ||
 					evt->get_category() == EC_MEMORY))
 				{
