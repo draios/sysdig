@@ -7,14 +7,6 @@ import urllib2
 from lxml import html
 
 #
-# The script reads in sys.argv[1] which repo he has to crawl. The parameter must
-# have the same value as the key in `repos`. For example, if I need the CentOS
-# packages, I'll execute something like:
-#	./crawler.py CentOS
-# and all packages found for CentOS will be printed on stdout.
-#
-
-#
 # This is the main configuration tree for easily analying Linux repositories
 # hunting packages. When adding repos or so be sure to respect the same data
 # structure
