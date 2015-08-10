@@ -392,6 +392,13 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		}
 	}
 
+	vector<string> labels = root["Config"]["Labels"].getMemberNames();
+	for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+	{
+		string val = root["Config"]["Labels"][*it].asString();
+		container->m_labels[*it] = val;
+	}
+	
 	return true;
 }
 #endif
