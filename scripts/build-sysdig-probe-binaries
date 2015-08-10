@@ -154,6 +154,7 @@ coreos_build coreos-681.1.0 4.0.5 "" https://www.kernel.org/pub/linux/kernel/v4.
 # 723.1.0
 # 723.3.0
 coreos_build coreos-752.1.0 4.0.9-coreos -coreos https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.9.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-752.1.0-4.0.9-coreos
+coreos_build coreos-766.0.0 4.1.4-coreos-r1 -coreos-r1 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.1.4.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-766.0.0-4.1.4-coreos-r1
 
 # ubuntu_build 3.13.0-43-generic http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-image-3.13.0-43-generic_3.13.0-43.72_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-43-generic_3.13.0-43.72_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-43_3.13.0-43.72_all.deb
 # ubuntu_build 3.13.0-44-generic http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-image-3.13.0-44-generic_3.13.0-44.73_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-44-generic_3.13.0-44.73_amd64.deb http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-44_3.13.0-44.73_all.deb
