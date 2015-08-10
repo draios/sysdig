@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Show a \"tail\" of HTTP transactions";
-short_description = "Tail of http transactions";
+description = "Show a log of all HTTP requests";
+short_description = "HTTP requests log";
 category = "Net";
 args = {}
 
@@ -31,8 +31,6 @@ function on_init()
 
     return true
 end
-
-islive = false
 
 function on_transaction(transaction)
     if print_container then

@@ -83,9 +83,9 @@ function run_http_parser(evt, on_transaction)
                 ts= timestamp,
                 request= request,
                 request_len=buflen,
-                dir=transaction_dir
+                dir=transaction_dir,
+                container=evt.field(container_field)
             }
-            partial_transactions[key]["container"] = evt.field(container_field)
         end
     else
         response = parse_response(buf)
