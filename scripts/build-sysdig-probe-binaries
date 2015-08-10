@@ -161,8 +161,6 @@ do
 	rhel_build $URL
 done
 
-exit
-
 #
 # CoreOS build
 #
