@@ -100,10 +100,7 @@ OPTIONS
   run the specified chisel. If the chisel require arguments, they must be specified in the command line after the name.
 
 **-C** _filesize_  
-  Break a capture into seperate files, and limit the size of each file based on
-  the specified number of megabytes. The units of _filesize_ are millions of bytes (10^6, not 2^20). Use in 
-  conjunction with **-W** to enable automatic file rotation. Otherwise, new files will continue to be created 
-  until the capture is manually stopped. 
+  Break a capture into separate files, and limit the size of each file based on the specified number of megabytes. The units of _filesize_ are millions of bytes (10^6, not 2^20). Use in conjunction with **-W** to enable automatic file rotation. Otherwise, new files will continue to be created until the capture is manually stopped. 
   
   Files will have the name specified by **-w** with a counter added starting at 0.
   
@@ -120,10 +117,7 @@ OPTIONS
   Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the **-w** flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.
 
 **-e** _numevents_  
-  Break a capture into seperate files, and limit the size of each file based on
-  the specified number of events. Use in conjunction with **-W** to enable 
-  automatic file rotation. Otherwise, new files will continue to be created 
-  until the capture is manually stopped.
+  Break a capture into separate files, and limit the size of each file based on the specified number of events. Use in conjunction with **-W** to enable automatic file rotation. Otherwise, new files will continue to be created until the capture is manually stopped.
   
   Files will have the name specified by **-w** with a counter added starting at 0.
 
@@ -131,13 +125,9 @@ OPTIONS
   Enable fatfile mode. When writing in fatfile mode, the output file will contain events that will be invisible when reading the file, but that are necessary to fully reconstruct the state. Fatfile mode is useful when saving events to disk with an aggressive filter. The filter could drop events that would the state to be updated (e.g. clone() or open()). With fatfile mode, those events are still saved to file, but 'hidden' so that they won't appear when reading the file. Be aware that using this flag might generate substantially bigger traces files.
 
 **-G** _numseconds_  
-  Break a capture into seperate files, and limit the size of each file based on
-  the specified number of seconds. Use in conjunction with **-W** to enable 
-  automatic file rotation. Otherwise, new files will continue to be created 
-  until the capture is manually stopped. 
+  Break a capture into separate files, and limit the size of each file based on the specified number of seconds. Use in conjunction with **-W** to enable automatic file rotation. Otherwise, new files will continue to be created until the capture is manually stopped. 
   
-  Files will have the name specified by **-w** which should include a time format 
-  as defined by strftime(3). If no time format is specified, a counter will be used.
+  Files will have the name specified by **-w** which should include a time format as defined by strftime(3). If no time format is specified, a counter will be used.
 
 **-h**, **--help**  
   Print this page
@@ -188,11 +178,7 @@ OPTIONS
   Write the captured events to _writefile_.
 
 **-W** _num_  
-  Turn on file rotation for continuous capture, and limit the number 
-  of files created to the specified number. Once the cap is reached, 
-  older files will be overwriten (ring buffer). Use in conjunction 
-  with the **-C** / **-G** / **-e** options to limit the size of each file based 
-  on number of megabytes, seconds, and/or events (respectively).
+  Turn on file rotation for continuous capture, and limit the number of files created to the specified number. Once the cap is reached, older files will be overwriten (ring buffer). Use in conjunction with the **-C** / **-G** / **-e** options to limit the size of each file based on number of megabytes, seconds, and/or events (respectively).
 
 **-x**, **--print-hex**  
   Print data buffers in hex.
