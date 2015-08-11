@@ -78,11 +78,14 @@ struct ppm_device {
 
 struct event_data_t {
 	enum ppm_capture_category category;
+	int socketcall_syscall;
+	bool compat;
 
 	union {
 		struct {
 			struct pt_regs *regs;
 			long id;
+			const enum ppm_syscall_code *cur_g_syscall_code_routing_table;
 		} syscall_data;
 
 		struct {
@@ -97,6 +100,14 @@ struct event_data_t {
 		} signal_data;
 	} event_info;
 };
+
+struct task_execve {
+	pid_t pid;
+	const struct syscall_evt_pair *cur_g_syscall_table;
+	const enum ppm_syscall_code *cur_g_syscall_code_routing_table;
+	struct list_head node;
+};
+
 
 /*
  * FORWARD DECLARATIONS
@@ -187,6 +198,11 @@ static bool verbose = 0;
 #endif
 
 static unsigned int max_consumers = 5;
+
+
+/* TODO(sgotti) is an rcu list feasible? */
+LIST_HEAD(task_execve_list);
+static DEFINE_MUTEX(task_execve_mutex);
 
 #define vpr_info(fmt, ...)					\
 do {								\
@@ -1114,8 +1130,19 @@ static const unsigned char nas[21] = {
 	AL(4), AL(5), AL(4)
 };
 #undef AL
+#ifdef CONFIG_COMPAT
+#define AL(x) ((x) * sizeof(compat_ulong_t))
+static const unsigned char compat_nas[21] = {
+	AL(0), AL(3), AL(3), AL(3), AL(2), AL(3),
+	AL(3), AL(3), AL(4), AL(4), AL(4), AL(6),
+	AL(6), AL(2), AL(5), AL(5), AL(3), AL(3),
+	AL(4), AL(5), AL(4)
+};
+#undef AL
+#endif
 
-#ifdef __NR_socketcall
+
+#ifdef _HAS_SOCKETCALL
 static enum ppm_event_type parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
 {
 	unsigned long __user args[2];
@@ -1136,8 +1163,21 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 #endif
 		return PPME_GENERIC_E;
 
-	if (unlikely(ppm_copy_from_user(filler_args->socketcall_args, scargs, nas[socketcall_id])))
-		return PPME_GENERIC_E;
+#ifdef CONFIG_COMPAT
+	if(unlikely(filler_args->compat)) {
+		compat_ulong_t socketcall_args32[6];
+		int i;
+		if (unlikely(ppm_copy_from_user(socketcall_args32, compat_ptr(args[1]), compat_nas[socketcall_id])))
+			return PPME_GENERIC_E;
+		for(i = 0; i < 6; i++)
+			filler_args->socketcall_args[i] = (unsigned long)socketcall_args32[i];
+	} else {
+#endif
+		if (unlikely(ppm_copy_from_user(filler_args->socketcall_args, scargs, nas[socketcall_id])))
+			return PPME_GENERIC_E;
+#ifdef CONFIG_COMPAT
+	}
+#endif
 
 	switch (socketcall_id) {
 	case SYS_SOCKET:
@@ -1189,7 +1229,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 		return PPME_GENERIC_E;
 	}
 }
-#endif /* __NR_socketcall */
+#endif /* _HAS_SOCKETCALL */
 
 static inline void record_drop_e(struct ppm_consumer_t *consumer, struct timespec *ts)
 {
@@ -1359,7 +1399,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	ASSERT(head <= RING_BUF_SIZE);
 	ASSERT(delta_from_end < RING_BUF_SIZE + (2 * PAGE_SIZE));
 	ASSERT(delta_from_end > (2 * PAGE_SIZE) - 1);
-#ifdef __NR_socketcall
+#ifdef _HAS_SOCKETCALL
 	/*
 	 * If this is a socketcall system call, determine the correct event type
 	 * by parsing the arguments and patch event_type accordingly
@@ -1370,16 +1410,24 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 * second argument contains a pointer to the arguments of the original
 	 * call. I guess this was done to reduce the number of syscalls...
 	 */
-	if (event_datap->category == PPMC_SYSCALL && event_datap->event_info.syscall_data.regs && event_datap->event_info.syscall_data.id == __NR_socketcall) {
+	if (event_datap->category == PPMC_SYSCALL && event_datap->event_info.syscall_data.regs && event_datap->event_info.syscall_data.id == event_datap->socketcall_syscall) {
 		enum ppm_event_type tet;
 
+		args.is_socketcall = true;
+		args.compat = true;
 		tet = parse_socketcall(&args, event_datap->event_info.syscall_data.regs);
 
 		if (event_type == PPME_GENERIC_E)
 			event_type = tet;
 		else
 			event_type = tet + 1;
+
+	} else {
+		args.is_socketcall = false;
+		args.compat = false;
 	}
+
+	args.socketcall_syscall = event_datap->socketcall_syscall;
 #endif
 
 	ASSERT(event_type < PPM_EVENT_MAX);
@@ -1421,9 +1469,11 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		if (event_datap->category == PPMC_SYSCALL) {
 			args.regs = event_datap->event_info.syscall_data.regs;
 			args.syscall_id = event_datap->event_info.syscall_data.id;
+			args.cur_g_syscall_code_routing_table = event_datap->event_info.syscall_data.cur_g_syscall_code_routing_table;
 		} else {
 			args.regs = NULL;
 			args.syscall_id = -1;
+			args.cur_g_syscall_code_routing_table = NULL;
 		}
 
 		if (event_datap->category == PPMC_CONTEXT_SWITCH) {
@@ -1571,38 +1621,71 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
+	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
+	const enum ppm_syscall_code *cur_g_syscall_code_routing_table = g_syscall_code_routing_table;
+	bool compat = false;
+	int execve_syscall = __NR_execve;
+#ifdef __NR_socketcall
+	int socketcall_syscall = __NR_socketcall;
+#else
+	int socketcall_syscall = -1;
+#endif
 
-#ifdef CONFIG_X86_64
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	/*
 	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
-	 * kernel flag), we skip its events.
-	 * XXX Decide what to do about this.
+	 * kernel flag), we switch to the ia32 syscall table.
 	 */
-	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
-		return;
+	if (unlikely(test_tsk_thread_flag(current, TIF_IA32))) {
+		cur_g_syscall_table = g_syscall_ia32_table;
+		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
+		execve_syscall = __NR_ia32_execve;
+		socketcall_syscall = __NR_ia32_socketcall;
+		compat = true;
+	}
 #endif
+
+	if (unlikely(id == execve_syscall)) {
+		struct task_execve *t;
+		t = vmalloc(sizeof(struct task_execve));
+		if (!t) {
+			pr_err("can't allocate task_execve\n");
+			mutex_unlock(&task_execve_mutex);
+			return;
+		}
+		t->pid = current->pid;
+		t->cur_g_syscall_table = cur_g_syscall_table;
+		t->cur_g_syscall_code_routing_table = cur_g_syscall_code_routing_table;
+
+		mutex_lock(&task_execve_mutex);
+		list_add(&t->node, &task_execve_list);
+		mutex_unlock(&task_execve_mutex);
+	}
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
-		int used = g_syscall_table[table_index].flags & UF_USED;
-		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
+		int used = cur_g_syscall_table[table_index].flags & UF_USED;
+		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
 
-#ifdef __NR_socketcall
-		if (id == __NR_socketcall) {
+#ifdef _HAS_SOCKETCALL
+		if (id == socketcall_syscall) {
 			used = true;
 			drop_flags = UF_NEVER_DROP;
 			type = PPME_GENERIC_E;
 		} else
-			type = g_syscall_table[table_index].enter_event_type;
+			type = cur_g_syscall_table[table_index].enter_event_type;
 #else
-		type = g_syscall_table[table_index].enter_event_type;
+		type = cur_g_syscall_table[table_index].enter_event_type;
 #endif
 
 		event_data.category = PPMC_SYSCALL;
 		event_data.event_info.syscall_data.regs = regs;
 		event_data.event_info.syscall_data.id = id;
+		event_data.event_info.syscall_data.cur_g_syscall_code_routing_table = cur_g_syscall_code_routing_table;
+		event_data.socketcall_syscall = socketcall_syscall;
+		event_data.compat = compat;
 
 		if (used)
 			record_event_all_consumers(type, drop_flags, &event_data);
@@ -1615,40 +1698,80 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 {
 	int id;
 	long table_index;
-
-#ifdef CONFIG_X86_64
-	/*
-     * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
-	 * kernel flag), we skip its events.
-	 * XXX Decide what to do about this.
-	 */
-	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
-		return;
+	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
+	const enum ppm_syscall_code *cur_g_syscall_code_routing_table = g_syscall_code_routing_table;
+	bool compat = false;
+	struct task_execve *el = NULL;
+#ifdef __NR_socketcall
+	int socketcall_syscall = __NR_socketcall;
+#else
+	int socketcall_syscall = -1;
 #endif
+	bool pid_found = false;
 
 	id = syscall_get_nr(current, regs);
+
+	/* Only search task_execve_table if the current syscall id matches one of the execve ids for the various abis */
+	if (unlikely(id == __NR_execve
+#ifdef CONFIG_IA32_EMULATION
+	    || id == __NR_ia32_execve
+#endif
+		    )) {
+		mutex_lock(&task_execve_mutex);
+		list_for_each_entry(el, &task_execve_list, node) {
+			if (el->pid == current->pid) {
+				cur_g_syscall_table = el->cur_g_syscall_table;
+				cur_g_syscall_code_routing_table = el->cur_g_syscall_code_routing_table;
+				pid_found = true;
+				break;
+			}
+		}
+		if (pid_found) {
+			list_del(&el->node);
+			vfree(el);
+		}
+		mutex_unlock(&task_execve_mutex);
+	}
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+	if (likely(!pid_found)) {
+		/*
+		 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
+		 * kernel flag), we switch to the ia32 syscall table.
+		 */
+		if (unlikely(test_tsk_thread_flag(current, TIF_IA32))) {
+			cur_g_syscall_table = g_syscall_ia32_table;
+			cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
+			socketcall_syscall = __NR_ia32_socketcall;
+			compat = true;
+		}
+	}
+#endif
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
-		int used = g_syscall_table[table_index].flags & UF_USED;
-		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
+		int used = cur_g_syscall_table[table_index].flags & UF_USED;
+		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
 
-#ifdef __NR_socketcall
-		if (id == __NR_socketcall) {
+#ifdef _HAS_SOCKETCALL
+		if (id == socketcall_syscall) {
 			used = true;
 			drop_flags = UF_NEVER_DROP;
 			type = PPME_GENERIC_X;
 		} else
-			type = g_syscall_table[table_index].exit_event_type;
+			type = cur_g_syscall_table[table_index].exit_event_type;
 #else
-		type = g_syscall_table[table_index].exit_event_type;
+		type = cur_g_syscall_table[table_index].exit_event_type;
 #endif
 
 		event_data.category = PPMC_SYSCALL;
 		event_data.event_info.syscall_data.regs = regs;
 		event_data.event_info.syscall_data.id = id;
+		event_data.event_info.syscall_data.cur_g_syscall_code_routing_table = cur_g_syscall_code_routing_table;
+		event_data.socketcall_syscall = socketcall_syscall;
+		event_data.compat = compat;
 
 		if (used)
 			record_event_all_consumers(type, drop_flags, &event_data);
@@ -1663,6 +1786,8 @@ int __access_remote_vm(struct task_struct *t, struct mm_struct *mm, unsigned lon
 TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
+	struct task_execve *el = NULL;
+	bool pid_found = false;
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (unlikely(current->flags & PF_KTHREAD)) {
@@ -1674,6 +1799,20 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 		 */
 		return;
 	}
+
+	/* Remove the process if it was killed inside execve */
+	mutex_lock(&task_execve_mutex);
+	list_for_each_entry(el, &task_execve_list, node) {
+		if (el->pid == current->pid) {
+			pid_found = true;
+			break;
+		}
+	}
+	if (pid_found) {
+		list_del(&el->node);
+		vfree(el);
+	}
+	mutex_unlock(&task_execve_mutex);
 
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = p;

@@ -125,6 +125,11 @@ extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+extern const struct syscall_evt_pair g_syscall_ia32_table[];
+extern const enum ppm_syscall_code g_syscall_ia32_code_routing_table[];
+#endif
+
 #define PPM_PORT_MYSQL 3306
 #define PPM_PORT_POSTGRES 5432
 #define PPM_PORT_STATSD 8125
