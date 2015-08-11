@@ -161,10 +161,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_CONNECT_X] = {f_sys_connect_x},
 	[PPME_SOCKET_LISTEN_E] = {PPM_AUTOFILL, 2, APT_SOCK, {{0}, {1} } },
 	[PPME_SOCKET_LISTEN_X] = {f_sys_single_x},
-	[PPME_SOCKET_ACCEPT_E] = {f_sys_empty},
-	[PPME_SOCKET_ACCEPT_X] = {f_sys_accept_x},
-	[PPME_SOCKET_ACCEPT4_E] = {f_sys_accept4_e},
-	[PPME_SOCKET_ACCEPT4_X] = {f_sys_accept_x},
+	[PPME_SOCKET_ACCEPT_5_E] = {f_sys_empty},
+	[PPME_SOCKET_ACCEPT_5_X] = {f_sys_accept_x},
+	[PPME_SOCKET_ACCEPT4_5_E] = {f_sys_accept4_e},
+	[PPME_SOCKET_ACCEPT4_5_X] = {f_sys_accept_x},
 	[PPME_SOCKET_SEND_E] = {f_sys_send_e},
 	[PPME_SOCKET_SEND_X] = {f_sys_send_x},
 	[PPME_SOCKET_SENDTO_E] = {f_sys_sendto_e},
@@ -1566,6 +1566,16 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 		sockfd_put(sock);
 	}
 
+	res = val_to_ring(args, val, 0, false, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	val = (unsigned long)sock->sk->sk_ack_backlog ? (unsigned long)sock->sk->sk_ack_backlog : 0;
+	res = val_to_ring(args, val, 0, false, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	val = (unsigned long)sock->sk->sk_max_ack_backlog ? (unsigned long)sock->sk->sk_max_ack_backlog : 0;
 	res = val_to_ring(args, val, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
