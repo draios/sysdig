@@ -226,7 +226,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_connect_exit(evt);
 		break;
 	case PPME_SOCKET_ACCEPT_X:
+	case PPME_SOCKET_ACCEPT_5_X:
 	case PPME_SOCKET_ACCEPT4_X:
+	case PPME_SOCKET_ACCEPT4_5_X:
 		parse_accept_exit(evt);
 		break;
 	case PPME_SYSCALL_CLOSE_E:
@@ -301,6 +303,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_setgid_exit(evt);
 		break;
 	case PPME_CONTAINER_E:
+		parse_container_evt(evt);
+		break;
+	case PPME_CPU_HOTPLUG_E:
 		parse_container_evt(evt);
 		break;
 	default:
@@ -3401,4 +3406,14 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 	container_info.m_image = parinfo->m_val;
 
 	m_inspector->m_container_manager.add_container(container_info);
+}
+
+void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
+{
+#ifdef HAS_ANALYZER
+	if(m_inspector->is_live())
+	{
+		throw sinsp_exception("CPUs configuration change detected. Aborting.");
+	}
+#endif
 }
