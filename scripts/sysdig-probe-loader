@@ -75,10 +75,16 @@ if [ -f /proc/config.gz ]; then
 	HASH=$(zcat /proc/config.gz | md5sum - | cut -d' ' -f1)
 elif [ -f /boot/config-$KERNEL_RELEASE ]; then
 	echo "Found kernel config at /boot/config-$KERNEL_RELEASE"
-	HASH=$(md5sum /boot/config-$KERNEL_RELEASE | cut -d' ' -f1)	
+	HASH=$(md5sum /boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
 elif [ ! -z "$SYSDIG_HOST_ROOT" ] && [ -f $SYSDIG_HOST_ROOT/boot/config-$KERNEL_RELEASE ]; then
 	echo "Found kernel config at $SYSDIG_HOST_ROOT/boot/config-$KERNEL_RELEASE"
-	HASH=$(md5sum $SYSDIG_HOST_ROOT/boot/config-$KERNEL_RELEASE | cut -d' ' -f1)	
+	HASH=$(md5sum $SYSDIG_HOST_ROOT/boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+elif [ -f /usr/lib/ostree-boot/config-$KERNEL_RELEASE ]; then
+	echo "Found kernel config at /usr/lib/ostree-boot/config-$KERNEL_RELEASE"
+	HASH=$(md5sum /usr/lib/ostree-boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+elif [ ! -z "$SYSDIG_HOST_ROOT" ] && [ -f $SYSDIG_HOST_ROOT/usr/lib/ostree-boot/config-$KERNEL_RELEASE ]; then
+	echo "Found kernel config at $SYSDIG_HOST_ROOT/usr/lib/ostree-boot/config-$KERNEL_RELEASE"
+        HASH=$(md5sum $SYSDIG_HOST_ROOT/usr/lib/ostree-boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
 fi
 
 if [ -z "$HASH" ]; then

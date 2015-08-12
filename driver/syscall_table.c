@@ -131,7 +131,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_bind - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
 	[__NR_connect - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
 	[__NR_listen - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_LISTEN_E, PPME_SOCKET_LISTEN_X},
-	[__NR_accept - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_ACCEPT_E, PPME_SOCKET_ACCEPT_X},
+	[__NR_accept - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_ACCEPT_5_E, PPME_SOCKET_ACCEPT_5_X},
 	[__NR_getsockname - SYSCALL_TABLE_ID0] =                {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_GETSOCKNAME_E, PPME_SOCKET_GETSOCKNAME_X},
 	[__NR_getpeername - SYSCALL_TABLE_ID0] =                {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_GETPEERNAME_E, PPME_SOCKET_GETPEERNAME_X},
 	[__NR_socketpair - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_NEVER_DROP, PPME_SOCKET_SOCKETPAIR_E, PPME_SOCKET_SOCKETPAIR_X},
@@ -141,7 +141,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_setsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X},
 	[__NR_getsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X},
 	[__NR_sendmsg - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X},
-	[__NR_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_ACCEPT4_E, PPME_SOCKET_ACCEPT4_X},
+	[__NR_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_ACCEPT4_5_E, PPME_SOCKET_ACCEPT4_5_X},
 #endif
 
 #ifdef __NR_sendmmsg

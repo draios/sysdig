@@ -33,41 +33,20 @@ single line, with the following format:
 where:
 .IP \[bu] 2
 evt.num is the incremental event number
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.time is the event timestamp
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.cpu is the CPU number where the event was captured
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 proc.name is the name of the process that generated the event
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 thread.tid id the TID that generated the event, which corresponds to the
 PID for single thread processes
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.dir is the event direction, > for enter events and < for exit events
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.type is the name of the event, e.g.
 \[aq]open\[aq] or \[aq]read\[aq]
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.args is the list of event arguments.
 .PP
@@ -216,34 +195,15 @@ line after the name.
 .PD 0
 .P
 .PD
-Before writing an event, check whether the file is
-.PD 0
-.P
-.PD
-currently larger than \f[I]filesize\f[] and, if so, close the
-.PD 0
-.P
-.PD
-current file and open a new one.
-Savefiles will have the
-.PD 0
-.P
-.PD
-name specified with the \-w flag, with a number after it,
-.PD 0
-.P
-.PD
-starting at 0 and continuing upward.
-The units of file_size
-.PD 0
-.P
-.PD
-are millions of bytes (10^6, not 2^20).
-Use the \-W flag to
-.PD 0
-.P
-.PD
-determine how many files will be saved to disk.
+Break a capture into seperate files, and limit the size of each file
+based on the specified number of megabytes.
+The units of \f[I]filesize\f[] are millions of bytes (10^6, not 2^20).
+Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
+Otherwise, new files will continue to be created until the capture is
+manually stopped.
+.PP
+Files will have the name specified by \f[B]\-w\f[] with a counter added
+starting at 0.
 .PP
 \f[B]\-cl\f[], \f[B]\-\-list\-chisels\f[]
 .PD 0
@@ -277,7 +237,7 @@ Capture events about sysdig itself
 Don\[aq]t create the user/group tables by querying the OS when sysdig
 starts.
 This also means that no user or group info will be written to the
-tracefile by the \-w flag.
+tracefile by the \f[B]\-w\f[] flag.
 The user/group tables are necessary to use filter fields like user.name
 or group.name.
 However, creating them can increase sysdig\[aq]s startup time.
@@ -287,23 +247,14 @@ Moreover, they contain information that could be privacy sensitive.
 .PD 0
 .P
 .PD
-If used together with \-w option, creates a series of dump files
-.PD 0
-.P
-.PD
-containingonly a specified number of events given in \f[I]numevents\f[]
-.PD 0
-.P
-.PD
-parameter each.
-.PD 0
-.P
-.PD
-Used alongside \-W flags creates a ring buffer of file containing
-.PD 0
-.P
-.PD
-\f[I]numevents\f[] each.
+Break a capture into seperate files, and limit the size of each file
+based on the specified number of events.
+Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
+Otherwise, new files will continue to be created until the capture is
+manually stopped.
+.PP
+Files will have the name specified by \f[B]\-w\f[] with a counter added
+starting at 0.
 .PP
 \f[B]\-F\f[], \f[B]\-\-fatfile\f[]
 .PD 0
@@ -326,28 +277,15 @@ files.
 .PD 0
 .P
 .PD
-Rotates the dump file specified with the \-w option every
-.PD 0
-.P
-.PD
-\f[I]numseconds\f[] seconds.
-Savefiles will have the name specified
-.PD 0
-.P
-.PD
-by \-w which should include a time format as defined by strftime(3).
-.PD 0
-.P
-.PD
+Break a capture into seperate files, and limit the size of each file
+based on the specified number of seconds.
+Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
+Otherwise, new files will continue to be created until the capture is
+manually stopped.
+.PP
+Files will have the name specified by \f[B]\-w\f[] which should include
+a time format as defined by strftime(3).
 If no time format is specified, a counter will be used.
-.PD 0
-.P
-.PD
-If no data format is specified, this can be used with \-W flag to
-.PD 0
-.P
-.PD
-create a ring buffer of events.
 .PP
 \f[B]\-h\f[], \f[B]\-\-help\f[]
 .PD 0
@@ -469,30 +407,12 @@ Write the captured events to \f[I]writefile\f[].
 .PD 0
 .P
 .PD
-Used in conjunction with the \-C option, this will limit the number
-.PD 0
-.P
-.PD
-of files created to the specified number, and begin overwriting files
-.PD 0
-.P
-.PD
-from the beginning, thus creating a \[aq]rotating\[aq] buffer.
-.PP
-Used in conjunction with the \-G option, this will limit the number
-.PD 0
-.P
-.PD
-of rotated dump files that get created, exiting with status 0 when
-.PD 0
-.P
-.PD
-reaching the limit.
-If used with \-C as well, the behavior will result
-.PD 0
-.P
-.PD
-in cyclical files per timeslice.
+Turn on file rotation for continuous capture, and limit the number of
+files created to the specified number.
+Once the cap is reached, older files will be overwriten (ring buffer).
+Use in conjunction with the \f[B]\-C\f[] / \f[B]\-G\f[] / \f[B]\-e\f[]
+options to limit the size of each file based on number of megabytes,
+seconds, and/or events (respectively).
 .PP
 \f[B]\-x\f[], \f[B]\-\-print\-hex\f[]
 .PD 0
