@@ -83,6 +83,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args);
 static int f_sys_recvmsg_e(struct event_filler_arguments *args);
 static int f_sys_recvmsg_x(struct event_filler_arguments *args);
 static int f_sys_shutdown_e(struct event_filler_arguments *args);
+static int f_sys_sockopt_x(struct event_filler_arguments *args);
 static int f_sys_pipe_x(struct event_filler_arguments *args);
 static int f_sys_eventfd_e(struct event_filler_arguments *args);
 static int f_sys_futex_e(struct event_filler_arguments *args);
@@ -179,6 +180,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_RECVMSG_X] = {f_sys_recvmsg_x},
 	[PPME_SOCKET_SHUTDOWN_E] = {f_sys_shutdown_e},
 	[PPME_SOCKET_SHUTDOWN_X] = {f_sys_single_x},
+	[PPME_SOCKET_SETSOCKOPT_E] = {f_sys_empty},
+	[PPME_SOCKET_SETSOCKOPT_X] = {f_sys_sockopt_x},
+	[PPME_SOCKET_GETSOCKOPT_E] = {f_sys_empty},
+	[PPME_SOCKET_GETSOCKOPT_X] = {f_sys_sockopt_x},
 	[PPME_SYSCALL_PIPE_E] = {f_sys_empty},
 	[PPME_SYSCALL_PIPE_X] = {f_sys_pipe_x},
 	[PPME_SYSCALL_EVENTFD_E] = {f_sys_eventfd_e},
@@ -434,6 +439,38 @@ static int f_sys_single_x(struct event_filler_arguments *args)
 		return res;
 
 	return add_sentinel(args);
+}
+
+static int f_sys_sockopt_x(struct event_filler_arguments *args)
+{
+        unsigned long val;
+        int res;
+
+        /*
+         * fd
+         */
+        syscall_get_arguments(current, args->regs, 0, 1, &val);
+        res = val_to_ring(args, val, 0, false, 0);
+        if (unlikely(res != PPM_SUCCESS))
+                return res;
+
+        /*
+         * level
+         */
+        syscall_get_arguments(current, args->regs, 1, 1, &val);
+        res = val_to_ring(args, val, 0, false, 0);
+        if (unlikely(res != PPM_SUCCESS))
+                return res;
+
+        /*
+         * optname
+         */
+        syscall_get_arguments(current, args->regs, 2, 1, &val);
+        res = val_to_ring(args, val, 0, false, 0);
+        if (unlikely(res != PPM_SUCCESS))
+                return res;
+
+        return add_sentinel(args);
 }
 
 static inline u32 open_flags_to_scap(unsigned long flags)
