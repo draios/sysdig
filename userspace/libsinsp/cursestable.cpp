@@ -602,6 +602,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case KEY_ENTER:
 			return STA_DRILLDOWN;
 		case KEY_BACKSPACE:
+		case 127:
 			return STA_DRILLUP;
 		case KEY_MOUSE:
 			{
