@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Show top HTTP transactions by: ncalls, time or bytes";
-short_description = "Top http connections";
+description = "Show top HTTP requests by: ncalls, time or bytes";
+short_description = "Top HTTP requests";
 category = "Net";
 
 -- Chisel argument list
