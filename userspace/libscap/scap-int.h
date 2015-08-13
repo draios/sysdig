@@ -37,6 +37,7 @@ extern "C" {
 #ifdef USE_ZLIB
 #include <zlib.h>
 #else
+#include <stdio.h>
 #define	gzFile FILE*
 #define gzflush(X, Y) fflush(X)
 #define gzopen fopen
@@ -68,8 +69,12 @@ struct scap_device
 	char* m_buffer;
 	struct ppm_ring_buffer_info* m_bufinfo;
 	uint32_t m_lastreadsize;
-	char* m_sn_next_event; // Pointer to the next event available for scap_next
-	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
+	char* volatile m_sn_next_event; // Pointer to the next event available for scap_next
+	volatile uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
+	volatile uint32_t m_flag;
+	char* m_sn_next_event_scap; // Pointer to the next event available for scap_next
+	uint32_t m_sn_len_scap;
+	uint32_t m_flag_scap;
 #ifdef HAVE_EXTERNAL_SCAP_READER
 	uint64_t m_evtcnt;
 	uint32_t m_n_consecutive_waits;
@@ -195,7 +200,7 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 //
 #ifndef ASSERT
 #ifdef _DEBUG
-#define ASSERT(X) assert(X)
+#define ASSERT(X) assert(X);
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG

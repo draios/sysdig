@@ -59,6 +59,7 @@ using namespace std;
 //
 // ASSERT implementation
 //
+#ifndef ASSERT
 #ifdef _DEBUG
 #ifdef ASSERT_TO_LOG
 #define ASSERT(X) \
@@ -68,11 +69,12 @@ using namespace std;
 		assert(X); \
 	} 
 #else
-#define ASSERT(X) assert(X)
+#define ASSERT(X) assert(X);
 #endif // ASSERT_TO_LOG
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG
+#endif // ASSERT
 
 //
 // Public export macro
