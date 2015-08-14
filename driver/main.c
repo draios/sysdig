@@ -46,7 +46,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/jiffies.h>
 #include <net/sock.h>
 #include <asm/asm-offsets.h>	/* For NR_syscalls */
-
 #include <asm/unistd.h>
 
 #include "ppm_ringbuffer.h"
@@ -100,14 +99,6 @@ struct event_data_t {
 		} signal_data;
 	} event_info;
 };
-
-struct task_execve {
-	pid_t pid;
-	const struct syscall_evt_pair *cur_g_syscall_table;
-	const enum ppm_syscall_code *cur_g_syscall_code_routing_table;
-	struct list_head node;
-};
-
 
 /*
  * FORWARD DECLARATIONS
@@ -198,11 +189,6 @@ static bool verbose = 0;
 #endif
 
 static unsigned int max_consumers = 5;
-
-
-/* TODO(sgotti) is an rcu list feasible? */
-LIST_HEAD(task_execve_list);
-static DEFINE_MUTEX(task_execve_mutex);
 
 #define vpr_info(fmt, ...)					\
 do {								\
@@ -1624,7 +1610,6 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
 	const enum ppm_syscall_code *cur_g_syscall_code_routing_table = g_syscall_code_routing_table;
 	bool compat = false;
-	int execve_syscall = __NR_execve;
 #ifdef __NR_socketcall
 	int socketcall_syscall = __NR_socketcall;
 #else
@@ -1636,31 +1621,13 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
 	 * kernel flag), we switch to the ia32 syscall table.
 	 */
-	if (unlikely(test_tsk_thread_flag(current, TIF_IA32))) {
+	if (unlikely(task_thread_info(current)->status & TS_COMPAT)) {
 		cur_g_syscall_table = g_syscall_ia32_table;
 		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
-		execve_syscall = __NR_ia32_execve;
 		socketcall_syscall = __NR_ia32_socketcall;
 		compat = true;
 	}
 #endif
-
-	if (unlikely(id == execve_syscall)) {
-		struct task_execve *t;
-		t = vmalloc(sizeof(struct task_execve));
-		if (!t) {
-			pr_err("can't allocate task_execve\n");
-			mutex_unlock(&task_execve_mutex);
-			return;
-		}
-		t->pid = current->pid;
-		t->cur_g_syscall_table = cur_g_syscall_table;
-		t->cur_g_syscall_code_routing_table = cur_g_syscall_code_routing_table;
-
-		mutex_lock(&task_execve_mutex);
-		list_add(&t->node, &task_execve_list);
-		mutex_unlock(&task_execve_mutex);
-	}
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
@@ -1701,50 +1668,26 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
 	const enum ppm_syscall_code *cur_g_syscall_code_routing_table = g_syscall_code_routing_table;
 	bool compat = false;
-	struct task_execve *el = NULL;
 #ifdef __NR_socketcall
 	int socketcall_syscall = __NR_socketcall;
 #else
 	int socketcall_syscall = -1;
 #endif
-	bool pid_found = false;
 
 	id = syscall_get_nr(current, regs);
 
-	/* Only search task_execve_table if the current syscall id matches one of the execve ids for the various abis */
-	if (unlikely(id == __NR_execve
-#ifdef CONFIG_IA32_EMULATION
-	    || id == __NR_ia32_execve
-#endif
-		    )) {
-		mutex_lock(&task_execve_mutex);
-		list_for_each_entry(el, &task_execve_list, node) {
-			if (el->pid == current->pid) {
-				cur_g_syscall_table = el->cur_g_syscall_table;
-				cur_g_syscall_code_routing_table = el->cur_g_syscall_code_routing_table;
-				pid_found = true;
-				break;
-			}
-		}
-		if (pid_found) {
-			list_del(&el->node);
-			vfree(el);
-		}
-		mutex_unlock(&task_execve_mutex);
-	}
-
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
-	if (likely(!pid_found)) {
-		/*
-		 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
-		 * kernel flag), we switch to the ia32 syscall table.
-		 */
-		if (unlikely(test_tsk_thread_flag(current, TIF_IA32))) {
-			cur_g_syscall_table = g_syscall_ia32_table;
-			cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
-			socketcall_syscall = __NR_ia32_socketcall;
-			compat = true;
-		}
+	/*
+	 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
+	 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
+	 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
+	 * which is a very old syscall, not used anymore by most applications
+	 */
+	if(unlikely((task_thread_info(current)->status & TS_COMPAT) && id != __NR_execve)) {
+		cur_g_syscall_table = g_syscall_ia32_table;
+		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
+		socketcall_syscall = __NR_ia32_socketcall;
+		compat = true;
 	}
 #endif
 
@@ -1786,8 +1729,6 @@ int __access_remote_vm(struct task_struct *t, struct mm_struct *mm, unsigned lon
 TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
-	struct task_execve *el = NULL;
-	bool pid_found = false;
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (unlikely(current->flags & PF_KTHREAD)) {
@@ -1799,20 +1740,6 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 		 */
 		return;
 	}
-
-	/* Remove the process if it was killed inside execve */
-	mutex_lock(&task_execve_mutex);
-	list_for_each_entry(el, &task_execve_list, node) {
-		if (el->pid == current->pid) {
-			pid_found = true;
-			break;
-		}
-	}
-	if (pid_found) {
-		list_del(&el->node);
-		vfree(el);
-	}
-	mutex_unlock(&task_execve_mutex);
 
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = p;
