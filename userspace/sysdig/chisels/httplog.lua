@@ -44,9 +44,9 @@ function on_transaction(transaction)
                 transaction["dir"],
                 transaction["request"]["method"],
                 transaction["request"]["url"],
-                transaction["response_code"],
-                (transaction["response_ts"] - transaction["ts"])/1000000,
-                transaction["request_len"] + transaction["response_len"]
+                transaction["response"]["code"],
+                (transaction["response"]["ts"] - transaction["request"]["ts"])/1000000,
+                transaction["response"]["length"]
             ))
 end
 

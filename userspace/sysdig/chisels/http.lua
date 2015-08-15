@@ -20,12 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 partial_transactions = {}
 
 function http_init()
-    chisel.set_filter("evt.is_io = true and evt.buflen.net > 0 and fd.type = ipv4")
+    chisel.set_filter("evt.is_io = true and evt.buflen.net > 0 and fd.sockfamily = ip")
     buffer_field = chisel.request_field("evt.buffer")
     fd_field = chisel.request_field("fd.num")
     pid_field = chisel.request_field("proc.pid")
     rawtime_field = chisel.request_field("evt.rawtime")
-    buflen_field = chisel.request_field("evt.buflen.net")
     datetime_field = chisel.request_field("evt.datetime")
     dir_field = chisel.request_field("evt.io_dir")
 
@@ -53,7 +52,14 @@ end
 function parse_response(resp_buffer)
     resp_code = string.match(resp_buffer, "HTTP/[%g]+ (%d+)")
     if resp_code then
-        return tonumber(resp_code)
+        content_length = string.match(resp_buffer, "Content%-Length: (%d+)%.%.")
+        if not content_length then
+            content_length = 0
+        end
+        return {
+          code = tonumber(resp_code),
+          length = tonumber(content_length)
+        }
     else
         return nil
     end
@@ -67,7 +73,6 @@ function run_http_parser(evt, on_transaction)
     key = string.format("%d\001\001%d", pid, fd)
 
     timestamp = evt.field(rawtime_field)
-    buflen = evt.field(buflen_field)
 
     transaction = partial_transactions[key]
     if not transaction then
@@ -79,10 +84,9 @@ function run_http_parser(evt, on_transaction)
             elseif evt_dir == "write" then
                 transaction_dir = ">"
             end
+            request["ts"] = timestamp
             partial_transactions[key] = {
-                ts= timestamp,
                 request= request,
-                request_len=buflen,
                 dir=transaction_dir,
                 container=evt.field(container_field)
             }
@@ -90,9 +94,8 @@ function run_http_parser(evt, on_transaction)
     else
         response = parse_response(buf)
         if response then
-            transaction["response_ts"] = timestamp
-            transaction["response_len"] = buflen
-            transaction["response_code"] = response
+            transaction["response"] = response
+            transaction["response"]["ts"] = timestamp
             on_transaction(transaction)
             partial_transactions[key] = nil
         end

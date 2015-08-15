@@ -135,13 +135,13 @@ function aggregate_grtable()
         elseif by_field == "bytes" then
             total_bytes = 0
             for _, tr in ipairs(transactions) do
-                total_bytes = total_bytes + tr["request_len"] + tr["response_len"]
+                total_bytes = total_bytes + tr["response"]["length"]
             end
             grtable[key] = total_bytes
         elseif by_field == "time" then
             total_time = 0
             for _, tr in ipairs(transactions) do
-                total_time = total_time + tr["response_ts"] - tr["ts"]
+                total_time = total_time + tr["response"]["ts"] - tr["request"]["ts"]
             end
             grtable[key] = total_time / #transactions
         end
