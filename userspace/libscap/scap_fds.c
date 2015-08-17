@@ -141,7 +141,7 @@ int32_t scap_fd_info_to_string(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
 		snprintf(str, stlen, "<INOTIFY>");
 		break;
 	case SCAP_FD_UNIX_SOCK:
-		snprintf(str, stlen, "%"PRIi64" %"PRIu64" %"PRIX64"-> %"PRIX64" %s", fdi->fd,fdi->ino, fdi->info.unix_socket_info.source,fdi->info.unix_socket_info.destination, fdi->info.unix_socket_info.fname);
+		snprintf(str, stlen, "%" PRIi64" %" PRIu64 " %" PRIX64 "-> %" PRIX64 " %s", fdi->fd,fdi->ino, fdi->info.unix_socket_info.source,fdi->info.unix_socket_info.destination, fdi->info.unix_socket_info.fname);
 		break;
 	case SCAP_FD_FILE:
 	case SCAP_FD_DIRECTORY:
@@ -330,7 +330,7 @@ uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nb
 
 	if(stlen >= SCAP_MAX_PATH_SIZE)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid filename len %"PRId32, stlen);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid filename len %" PRId32, stlen);
 		return SCAP_FAILURE;
 	}
 
@@ -577,7 +577,7 @@ int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo,
 		return SCAP_FAILURE;
 	}
 	link_name[r] = '\0';
-	if(1 != sscanf(link_name, "pipe:[%"PRIi64"]", &ino))
+	if(1 != sscanf(link_name, "pipe:[%" PRIi64 "]", &ino))
 	{
 		// in this case we've got a named pipe
 		// and we've got to call stat on the link name
@@ -692,7 +692,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 	strncpy(fdi->info.fname, link_name, SCAP_MAX_PATH_SIZE);
 
 	// link name for sockets should be of the format socket:[ino]
-	if(1 != sscanf(link_name, "socket:[%"PRIi64"]", &ino))
+	if(1 != sscanf(link_name, "socket:[%" PRIi64 "]", &ino))
 	{
 		// it's a kind of socket, but we don't support it right now
 		fdi->type = SCAP_FD_UNSUPPORTED;
@@ -812,7 +812,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 			continue;
 		}
 
-		sscanf(token, "%"PRIu64, &(fdinfo->ino));
+		sscanf(token, "%" PRIu64 , &(fdinfo->ino));
 
 		// 8. Path
 		token = strtok(NULL, delimiters);
@@ -1396,7 +1396,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	else
 	{
 		link_name[r] = '\0';
-		sscanf(link_name, "net:[%"PRIi64"]", &net_ns);
+		sscanf(link_name, "net:[%" PRIi64 "]", &net_ns);
 	}
 
 	while((dir_entry_p = readdir(dir_p)) != NULL)
@@ -1404,7 +1404,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 		fdi = NULL;
 		snprintf(f_name, 1024, "%s/%s", fd_dir_name, dir_entry_p->d_name);
 
-		if(-1 == stat(f_name, &sb) || 1 != sscanf(dir_entry_p->d_name, "%"PRIu64, &fd))
+		if(-1 == stat(f_name, &sb) || 1 != sscanf(dir_entry_p->d_name, "%" PRIu64 , &fd))
 		{
 			continue;
 		}
@@ -1508,7 +1508,7 @@ void scap_fd_print_fd_table(scap_fdinfo *fds)
 			ASSERT(false);
 			snprintf(str, SCAP_MAX_PATH_SIZE, "N.A.");
 		}
-		fprintf(stderr, "  %"PRIu64") %s\n", fdi->fd, str);
+		fprintf(stderr, "  %" PRIu64 ") %s\n", fdi->fd, str);
 	}
 }
 

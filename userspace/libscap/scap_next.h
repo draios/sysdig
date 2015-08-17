@@ -9,7 +9,7 @@
 
 #include "scap-int.h"
 #define SCAP_INLINED_STATIC static
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(_DEBUG)
 #define SCAP_INLINED_INLINE __always_inline
 #else
 #define SCAP_INLINED_INLINE inline
@@ -23,7 +23,7 @@ extern "C" {
 
 #if defined(HAS_CAPTURE)
 
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE uint32_t get_read_size(struct ppm_ring_buffer_info* bufinfo)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE uint32_t get_read_size(struct ppm_ring_buffer_info* const bufinfo)
 {
 	uint32_t phead = bufinfo->head;
 	uint32_t ptail = bufinfo->tail;
@@ -43,7 +43,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE uint32_t get_read_size(struct ppm_ring_b
 // in order to advance the buffer reading.
 // Returns the new snap length.
 //
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_update_snap(scap_device* dev)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_update_snap(scap_device* const dev)
 {
 	uint32_t ttail;
 	uint32_t read_size;
@@ -94,20 +94,20 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_update_snap(scap_device* de
 // Handles the logic to extract en event from a single CPU buffer.
 // Returns the event extracted (or NULL if none exists)
 //
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(scap_device* const dev, OUT scap_evt** pe)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(const scap_device* const dev, OUT scap_evt** const pe)
 {
 	//
 	// Make sure that we have data from this ring
 	//
 	if(dev->m_sn_len == 0)
 	{
-		return SCAP_NOTFOUND;
+		return SCAP_EMPTY;
 	}
 	else
 	{
 		*pe = (scap_evt*)dev->m_sn_next_event;
 		uint32_t len = (*pe)->len;
-		__builtin_prefetch(dev->m_sn_next_event + len,0,3);
+		__builtin_prefetch((void*)((char *)dev->m_sn_next_event + len),0,3);
 		if(len > dev->m_sn_len)
 		{
 			//
@@ -193,7 +193,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* handle, O
 		scap_device* const dev = &(handle->m_devs[j]);
 		res = scap_next_live_cpu(dev, &pe);
 
-		if(res == SCAP_NOTFOUND)
+		if(res == SCAP_EMPTY)
 		{
 			continue;
 		}

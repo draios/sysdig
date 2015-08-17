@@ -71,6 +71,7 @@ typedef struct ppm_evt_hdr scap_evt;
 #define SCAP_EOF 6
 #define SCAP_DROP 7
 #define SCAP_SLEEP 8
+#define SCAP_EMPTY 9
 
 //
 // Last error string size for scap_open_live()
@@ -531,7 +532,14 @@ uint32_t scap_get_ndevs(scap_t* handle);
 extern int32_t scap_next_central(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 #define scap_next(handle, pevent, pcpuid) scap_next_central(handle, pevent, pcpuid)
 #else
+// scap_external could have C++ linkage
+#ifdef __cplusplus
+}
+#endif
 #include "scap_external.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 #endif
 
 /*!

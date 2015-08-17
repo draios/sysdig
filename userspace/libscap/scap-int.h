@@ -71,15 +71,16 @@ struct scap_device
 	uint32_t m_lastreadsize;
 	char* volatile m_sn_next_event; // Pointer to the next event available for scap_next
 	volatile uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
+#ifdef HAVE_EXTERNAL_SCAP_READER
+	uint32_t m_n_consecutive_waits;
 	volatile uint32_t m_flag;
+	uint64_t m_evtcnt;
+	char cache_line_pad[12];
+
 	char* m_sn_next_event_scap; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len_scap;
 	uint32_t m_flag_scap;
-#ifdef HAVE_EXTERNAL_SCAP_READER
-	uint64_t m_evtcnt;
-	uint32_t m_n_consecutive_waits;
 #endif
-	//uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
 } __attribute((aligned(64)));
 typedef struct scap_device scap_device;
 

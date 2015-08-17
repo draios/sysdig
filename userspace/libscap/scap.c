@@ -43,7 +43,7 @@ static uint32_t get_max_consumers()
 	FILE *pfile = fopen("/sys/module/sysdig_probe/parameters/max_consumers", "r");
 	if(pfile != NULL)
 	{
-		int w = fscanf(pfile, "%"PRIu32, &max);
+		int w = fscanf(pfile, "%" PRIu32, &max);
 		if(w == 0)
 		{
 			return 0;
@@ -185,7 +185,7 @@ scap_t* scap_open_live_int(char *error,
 			if(errno == EBUSY)
 			{
 				uint32_t curr_max_consumers = get_max_consumers();
-				snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/sysdig_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+				snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/sysdig_probe/parameters/max_consumers is '%" PRIu32 "'.", filename, curr_max_consumers);
 			}
 			else
 			{
@@ -244,8 +244,11 @@ scap_t* scap_open_live_int(char *error,
 		//
 		handle->m_devs[j].m_lastreadsize = 0;
 		handle->m_devs[j].m_sn_len = 0;
-#ifndef HAVE_EXTERNAL_SCAP_READER
+#ifdef HAVE_EXTERNAL_SCAP_READER
+		handle->m_devs[j].m_flag = 0;
+#else
 		handle->m_n_consecutive_waits = 0;
+		handle->m_evtcnt = 0;
 #endif
 		scap_stop_dropping_mode(handle);
 	}
