@@ -1175,7 +1175,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 	case SYS_LISTEN:
 		return PPME_SOCKET_LISTEN_E;
 	case SYS_ACCEPT:
-		return PPME_SOCKET_ACCEPT_E;
+		return PPME_SOCKET_ACCEPT_5_E;
 	case SYS_GETSOCKNAME:
 		return PPME_SOCKET_GETSOCKNAME_E;
 	case SYS_GETPEERNAME:
@@ -1209,7 +1209,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 		return PPME_SOCKET_RECVMMSG_E;
 #endif
 	case SYS_ACCEPT4:
-		return PPME_SOCKET_ACCEPT4_E;
+		return PPME_SOCKET_ACCEPT4_5_E;
 	default:
 		ASSERT(false);
 		return PPME_GENERIC_E;

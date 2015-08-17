@@ -94,7 +94,9 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	{
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SOCKET_ACCEPT_X:
+	case PPME_SOCKET_ACCEPT_5_X:
 	case PPME_SOCKET_ACCEPT4_X:
+	case PPME_SOCKET_ACCEPT4_5_X:
 	case PPME_SYSCALL_CREAT_X:
 		{
 			const char* argstr = evt->get_param_as_str(1, &resolved_argstr, 
@@ -297,16 +299,18 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return m_tcstr;
 		case PPME_SOCKET_SOCKET_E:
 		case PPME_SOCKET_ACCEPT_E:
+		case PPME_SOCKET_ACCEPT_5_E:
 		case PPME_SOCKET_ACCEPT4_E:
-			//
-			// Note, this is not accurate, because it always
-			// returns IPv4 even if this could be IPv6 or unix.
-			// For the moment, I assume it's better than nothing, and doing
-			// real event parsing here would be a pain. 
-			//
-			m_tcstr[0] = CHAR_FD_IPV4_SOCK;
-			m_tcstr[1] = 0;
-			return m_tcstr;
+		case PPME_SOCKET_ACCEPT4_5_E:
+                	//
+                	// Note, this is not accurate, because it always
+                	// returns IPv4 even if this could be IPv6 or unix.
+                	// For the moment, I assume it's better than nothing, and doing
+                	// real event parsing here would be a pain.
+                	//
+                	m_tcstr[0] = CHAR_FD_IPV4_SOCK;
+                	m_tcstr[1] = 0;
+                	return m_tcstr;
 		case PPME_SYSCALL_PIPE_E:
 			m_tcstr[0] = CHAR_FD_FIFO;
 			m_tcstr[1] = 0;
@@ -1862,6 +1866,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
 	{PT_UINT32, EPF_NONE, PF_NA, "evt.type.is", "allows one to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syscall.type", "For system call events, the name of the system call (e.g. 'open'). Unset for other events (e.g. switch or sysdig internal events). Use this field instead of evt.type if you need to make sure that the filtered/printed value is actually a system call."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.category", "The event category. Example values are 'file' (for file operations like open and close), 'net' (for network operations like socket and bind), memory (for things like brk or mmap), and so on."},
 	{PT_INT16, EPF_NONE, PF_ID, "evt.cpu", "number of the CPU where this event happened."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.arg", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'evt.arg.fd' or 'evt.arg[0]'."},
@@ -2662,6 +2667,90 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return evname;
 		}
 		break;
+	case TYPE_CATEGORY:
+		sinsp_evt::category cat;
+		evt->get_category(&cat);
+
+		switch(cat.m_category)
+		{
+		case EC_UNKNOWN:
+			m_strstorage = "unknown";
+			break;
+		case EC_OTHER:
+			m_strstorage = "other";
+			break;
+		case EC_FILE:
+			m_strstorage = "file";
+			break;
+		case EC_NET:
+			m_strstorage = "net";
+			break;
+		case EC_IPC:
+			m_strstorage = "IPC";
+			break;
+		case EC_MEMORY:
+			m_strstorage = "memory";
+			break;
+		case EC_PROCESS:
+			m_strstorage = "process";
+			break;
+		case EC_SLEEP:
+			m_strstorage = "sleep";
+			break;
+		case EC_SYSTEM:
+			m_strstorage = "system";
+			break;
+		case EC_SIGNAL:
+			m_strstorage = "signal";
+			break;
+		case EC_USER:
+			m_strstorage = "user";
+			break;
+		case EC_TIME:
+			m_strstorage = "time";
+			break;
+		case EC_PROCESSING:
+			m_strstorage = "processing";
+			break;
+		case EC_IO_READ:
+		case EC_IO_WRITE:
+		case EC_IO_OTHER:
+		{
+			switch(cat.m_subcategory)
+			{
+			case sinsp_evt::SC_FILE:
+				m_strstorage = "file";
+				break;
+			case sinsp_evt::SC_NET:
+				m_strstorage = "net";
+				break;
+			case sinsp_evt::SC_IPC:
+				m_strstorage = "ipc";
+				break;
+			case sinsp_evt::SC_NONE:
+			case sinsp_evt::SC_UNKNOWN:
+			case sinsp_evt::SC_OTHER:
+				m_strstorage = "unknown";
+				break;
+			default:
+				ASSERT(false);
+				m_strstorage = "unknown";
+				break;
+			}
+		}
+		break;
+		case EC_WAIT:
+			m_strstorage = "wait";
+			break;
+		case EC_SCHEDULER:
+			m_strstorage = "scheduler";
+			break;
+		default:
+			m_strstorage = "unknown";
+			break;
+		}
+
+		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_NUMBER:
 		return (uint8_t*)&evt->m_evtnum;
 	case TYPE_CPU:
@@ -3070,7 +3159,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				uint16_t etype = evt->get_type();
 
 				if(etype == PPME_SOCKET_ACCEPT_X ||
+					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
+					etype == PPME_SOCKET_ACCEPT4_5_X ||
 					etype == PPME_SOCKET_CONNECT_X)
 				{
 					return extract_error_count(evt, len);
@@ -3115,7 +3206,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					etype == PPME_SYSCALL_CREAT_X ||
 					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SOCKET_ACCEPT_X ||
+					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
+					etype == PPME_SOCKET_ACCEPT4_5_X ||
 					etype == PPME_SOCKET_CONNECT_X ||
 					evt->get_category() == EC_MEMORY))
 				{
