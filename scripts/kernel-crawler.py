@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 # Author: Samuele Pilleri
-# Date: August 7th, 2015
+# Date: August 17th, 2015
 
+import sys
 import urllib2
 from lxml import html
 
@@ -66,38 +67,38 @@ repos = {
 #
 packages = {}
 
+if len(sys.argv) < 2 or not sys.argv[1] in repos:
+	sys.stderr.write("Usage: " + sys.argv[0] + " <distro>\n")
+	sys.exit(1)
+
 #
 # Navigate the `repos` tree and look for packages we need that match the
 # patterns given. Save the result in `packages`.
 #
-for distro, repositories in repos.iteritems():
-	for repo in repositories:
-		
-		root = urllib2.urlopen(repo["root"]).read()
-		versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+for repo in repos[sys.argv[1]]:
+	
+	root = urllib2.urlopen(repo["root"]).read()
+	versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-		for version in versions:
-			for subdir in repo["subdirs"]:
+	for version in versions:
+		for subdir in repo["subdirs"]:
 
-				# The try - except block is used because 404 errors and similar
-				# might happen (and actually happen because not all repos have
-				# packages we need)
-				try:
-					source = repo["root"] + version + subdir
-					page = urllib2.urlopen(source).read()
-					rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+			# The try - except block is used because 404 errors and similar
+			# might happen (and actually happen because not all repos have
+			# packages we need)
+			try:
+				source = repo["root"] + version + subdir
+				page = urllib2.urlopen(source).read()
+				rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-					for rpm in rpms:
-						if not distro in packages:
-							packages[distro] = {}
-						if not rpm in packages:
-							packages[distro][rpm] = source + rpm
-				except:
-					continue
+				for rpm in rpms:
+					if not rpm in packages:
+						packages[rpm] = source + rpm
+			except:
+				continue
 
 #
 # Print URLs to stdout
 #
-for distro, rpms in packages.iteritems():
-	for rpm, url in rpms.iteritems():
-		print(url)
+for rpm, url in packages.iteritems():
+	print(url)

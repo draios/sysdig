@@ -154,7 +154,7 @@ function rhel_build {
 # RHEL build
 #
 DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py)"
+URLS="$($DIR/kernel-crawler.py CentOS 2> /dev/null)"
 
 for URL in $URLS
 do
