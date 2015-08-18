@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _WIN32
@@ -25,14 +24,17 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <sys/time.h>
 #endif // _WIN32
 
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
 #include "filterchecks.h"
+#include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
+
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
@@ -50,20 +52,24 @@ void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
-	m_evt(this)
+	m_evt(this),
+	m_container_manager(this)
 {
 	m_h = NULL;
 	m_parser = NULL;
 	m_dumper = NULL;
+	m_metaevt = NULL;
+	m_skipped_evt = NULL;
+	m_meinfo.m_piscapevt = NULL;
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
+	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
-
 #ifdef HAS_ANALYZER
 	m_analyzer = NULL;
 #endif
@@ -78,6 +84,7 @@ sinsp::sinsp() :
 	m_isdropping = false;
 #endif
 	m_n_proc_lookups = 0;
+	m_n_proc_lookups_duration_ns = 0;
 	m_max_n_proc_lookups = 0;
 	m_max_n_proc_socket_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
@@ -87,6 +94,38 @@ sinsp::sinsp() :
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
 	m_import_users = true;
+	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
+	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
+	m_meta_evt_pending = false;
+	m_next_flush_time_ns = 0;
+	m_last_procrequest_tod = 0;
+	m_get_procs_cpu_from_driver = false;
+
+	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
+	m_print_container_data = false;
+
+#if defined(HAS_CAPTURE)
+	m_sysdig_pid = 0;
+#endif
+
+	uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
+	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
+	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
+	m_meinfo.m_piscapevt->len = evlen;
+	uint16_t* lens = (uint16_t*)((char *)m_meinfo.m_piscapevt + sizeof(struct ppm_evt_hdr));
+	lens[0] = 8;
+	lens[1] = 8;
+	m_meinfo.m_piscapevt_vals = (uint64_t*)(lens + 2);
+
+	m_meinfo.m_pievt.m_inspector = this;
+	m_meinfo.m_pievt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	m_meinfo.m_pievt.m_pevt = NULL;
+	m_meinfo.m_pievt.m_cpuid = 0;
+	m_meinfo.m_pievt.m_evtnum = 0;
+	m_meinfo.m_pievt.m_pevt = m_meinfo.m_piscapevt;
+	m_meinfo.m_pievt.m_fdinfo = NULL;
+	m_meinfo.m_n_procinfo_evts = 0;
+	m_meta_event_callback = NULL;
 }
 
 sinsp::~sinsp()
@@ -114,6 +153,17 @@ sinsp::~sinsp()
 	{
 		delete m_cycle_writer;
 		m_cycle_writer = NULL;
+	}
+
+	if(m_meta_evt_buf)
+	{
+		delete[] m_meta_evt_buf;
+		m_meta_evt_buf = NULL;
+	}
+
+	if(m_meinfo.m_piscapevt)
+	{
+		delete[] m_meinfo.m_piscapevt;
 	}
 }
 
@@ -146,7 +196,13 @@ void sinsp::init()
 	//
 	// Allocate the cycle writer
 	//
-	m_cycle_writer = new cycle_writer();
+	if(m_cycle_writer)
+	{
+		delete m_cycle_writer;
+		m_cycle_writer = NULL;
+	}
+	
+	m_cycle_writer = new cycle_writer(this->is_live());
 
 	//
 	// Basic inits
@@ -155,6 +211,7 @@ void sinsp::init()
 	m_stats.clear();
 #endif
 
+	m_nevts = 0;
 	m_tid_to_remove = -1;
 	m_lastevent_ts = 0;
 #ifdef HAS_FILTERING
@@ -162,6 +219,7 @@ void sinsp::init()
 #endif
 	m_fds_to_remove->clear();
 	m_n_proc_lookups = 0;
+	m_n_proc_lookups_duration_ns = 0;
 
 	if(m_islive == false)
 	{
@@ -195,10 +253,20 @@ void sinsp::init()
 	//
 	// If m_snaplen was modified, we set snaplen now
 	//
-	if (m_snaplen != DEFAULT_SNAPLEN)
+	if(m_snaplen != DEFAULT_SNAPLEN)
 	{
 		set_snaplen(m_snaplen);
 	}
+
+#if defined(HAS_CAPTURE)
+	if(m_islive)
+	{
+		if(scap_getpid_global(m_h, &m_sysdig_pid) != SCAP_SUCCESS)
+		{
+			ASSERT(false);
+		}
+	}
+#endif
 }
 
 void sinsp::set_import_users(bool import_users)
@@ -341,6 +409,8 @@ void sinsp::autodump_start(const string& dump_filename, bool compress)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+
+	m_container_manager.dump_containers(m_dumper);
 }
 
 void sinsp::autodump_next_file()
@@ -435,7 +505,6 @@ void sinsp::import_thread_table()
 {
 	scap_threadinfo *pi;
 	scap_threadinfo *tpi;
-	sinsp_threadinfo newti(this);
 
 	scap_threadinfo *table = scap_get_proc_table(m_h);
 
@@ -444,6 +513,7 @@ void sinsp::import_thread_table()
 	//
 	HASH_ITER(hh, table, pi, tpi)
 	{
+		sinsp_threadinfo newti(this);
 		newti.init(pi);
 		m_thread_manager->add_thread(newti, true);
 	}
@@ -485,67 +555,204 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 	m_network_interfaces->import_ipv4_interface(ifinfo);
 }
 
+void sinsp::refresh_ifaddr_list()
+{
+#ifdef HAS_CAPTURE
+	if(m_islive)
+	{
+		ASSERT(m_network_interfaces);
+		scap_refresh_iflist(m_h);
+		m_network_interfaces->clear();
+		m_network_interfaces->import_interfaces(scap_get_ifaddr_list(m_h));
+	}
+#endif
+}
+
 bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
 
-int32_t sinsp::next(OUT sinsp_evt **evt)
+void sinsp::add_meta_event(sinsp_evt *metaevt)
 {
-	//
-	// Reset previous event's decoders if required
-	//
-	if(m_decoders_reset_list.size() != 0)
+	m_metaevt = metaevt;
+}
+
+void sinsp::add_meta_event_and_repeat(sinsp_evt *metaevt)
+{
+	m_metaevt = metaevt;
+	m_skipped_evt = &m_evt;
+}
+
+void schedule_next_threadinfo_evt(sinsp* _this, void* data)
+{
+	sinsp_proc_metainfo* mei = (sinsp_proc_metainfo*)data;
+	ASSERT(mei->m_pli != NULL);
+
+	while(true)
 	{
-		vector<sinsp_protodecoder*>::iterator it;
-		for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
+		ASSERT(mei->m_cur_procinfo_evt <= (int32_t)mei->m_n_procinfo_evts);
+		ppm_proc_info* pi = &(mei->m_pli->entries[mei->m_cur_procinfo_evt]);
+
+		if(mei->m_cur_procinfo_evt >= 0)
 		{
-			(*it)->on_reset(&m_evt);
+			mei->m_piscapevt->tid = pi->pid;
+			mei->m_piscapevt_vals[0] = pi->utime;
+			mei->m_piscapevt_vals[1] = pi->stime;
 		}
 
-		m_decoders_reset_list.clear();
+		mei->m_cur_procinfo_evt++;
+
+		if(mei->m_cur_procinfo_evt < (int32_t)mei->m_n_procinfo_evts)
+		{
+			if(pi->utime == 0 && pi->stime == 0)
+			{
+				continue;
+			}
+
+			_this->add_meta_event(&mei->m_pievt);
+		}
+		else if(mei->m_cur_procinfo_evt == (int32_t)mei->m_n_procinfo_evts)
+		{
+			_this->add_meta_event(mei->m_next_evt);
+		}
+
+		break;
 	}
+}
+
+int32_t sinsp::next(OUT sinsp_evt **puevt)
+{
+	sinsp_evt* evt;
+	int32_t res;
 
 	//
-	// Get the event from libscap
+	// Check if there are fake cpu events to  events 
 	//
-	int32_t res = scap_next(m_h, &(m_evt.m_pevt), &(m_evt.m_cpuid));
-
-	// The number of bytes to consider in the dumper
-	int32_t bytes_to_write;
-
-	if(res != SCAP_SUCCESS)
+	if(m_metaevt != NULL)
 	{
-		if(res == SCAP_TIMEOUT)
+		res = SCAP_SUCCESS;
+		evt = m_metaevt;
+
+		if(m_skipped_evt)
 		{
-#ifdef HAS_ANALYZER
-			if(m_analyzer)
-			{
-				m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
-			}
-#endif
-			*evt = NULL;
-			return res;
-		}
-		else if(res == SCAP_EOF)
-		{
-#ifdef HAS_ANALYZER
-			if(m_analyzer)
-			{
-				m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
-			}
-#endif
+			m_metaevt = m_skipped_evt;
+			m_skipped_evt = NULL;
 		}
 		else
 		{
-			throw sinsp_exception(scap_getlasterr(m_h));
+			m_metaevt = NULL;
 		}
 
-		return res;
+		if(m_meta_event_callback != NULL)
+		{
+			m_meta_event_callback(this, &m_meinfo);
+		}
+	}
+	else
+	{
+		evt = &m_evt;
+
+		//
+		// Reset previous event's decoders if required
+		//
+		if(m_decoders_reset_list.size() != 0)
+		{
+			vector<sinsp_protodecoder*>::iterator it;
+			for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
+			{
+				(*it)->on_reset(evt);
+			}
+
+			m_decoders_reset_list.clear();
+		}
+
+		//
+		// Get the event from libscap
+		//
+		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+
+		if(res != SCAP_SUCCESS)
+		{
+			if(res == SCAP_TIMEOUT)
+			{
+	#ifdef HAS_ANALYZER
+				if(m_analyzer)
+				{
+					m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
+				}
+	#endif
+				*puevt = NULL;
+				return res;
+			}
+			else if(res == SCAP_EOF)
+			{
+	#ifdef HAS_ANALYZER
+				if(m_analyzer)
+				{
+					m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
+				}
+	#endif
+			}
+			else
+			{
+				m_lasterr = scap_getlasterr(m_h);
+			}
+
+			return res;
+		}
+	}
+
+	uint64_t ts = evt->get_ts();
+
+	//
+	// If required, retrieve the processes cpu from the kernel
+	//
+	if(m_get_procs_cpu_from_driver && m_islive)
+	{
+		if(ts > m_next_flush_time_ns)
+		{
+			if(m_next_flush_time_ns != 0)
+			{
+				struct timeval tod;
+				gettimeofday(&tod, NULL);
+
+				uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
+
+				if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
+				{
+					m_last_procrequest_tod = procrequest_tod;
+					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;	
+
+					m_meinfo.m_pli = scap_get_threadlist_from_driver(m_h);
+					if(m_meinfo.m_pli == NULL)
+					{
+						throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
+					}
+
+					m_meinfo.m_n_procinfo_evts = m_meinfo.m_pli->n_entries;
+
+					if(m_meinfo.m_n_procinfo_evts > 0)
+					{
+						m_meinfo.m_cur_procinfo_evt = -1;
+
+						m_meinfo.m_piscapevt->ts = m_next_flush_time_ns - (ONE_SECOND_IN_NS + 1);
+						m_meinfo.m_next_evt = &m_evt;
+						m_meta_event_callback = &schedule_next_threadinfo_evt;
+						schedule_next_threadinfo_evt(this, &m_meinfo);
+					}
+
+					return SCAP_TIMEOUT;
+				}
+			}
+
+			m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+		}
 	}
 
 	//
 	// Store a couple of values that we'll need later inside the event.
 	//
-	m_evt.m_evtnum = scap_event_get_num(m_h);
-	m_lastevent_ts = m_evt.get_ts();
+	m_nevts++;
+	evt->m_evtnum = m_nevts;
+	m_lastevent_ts = ts;
 #ifdef HAS_FILTERING
 	if(m_firstevent_ts == 0)
 	{
@@ -573,6 +780,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	if(m_islive)
 	{
 		m_thread_manager->remove_inactive_threads();
+		m_container_manager.remove_inactive_containers();
 	}
 #endif // HAS_ANALYZER
 
@@ -608,7 +816,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		m_analyzer->m_configuration->set_analyzer_sample_len_ns(500000000);
 	}
 
-	sd = should_drop(&m_evt, &m_isdropping, &sw);
+	sd = should_drop(evt, &m_isdropping, &sw);
 #endif
 
 	//
@@ -617,7 +825,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 #ifdef SIMULATE_DROP_MODE
 	if(!sd || m_isdropping)
 	{
-		m_parser->process_event(&m_evt);
+		m_parser->process_event(evt);
 	}
 
 	if(sd && !m_isdropping)
@@ -626,7 +834,7 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		return SCAP_TIMEOUT;
 	}
 #else
-	m_parser->process_event(&m_evt);
+	m_parser->process_event(evt);
 #endif
 
 	//
@@ -634,46 +842,50 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	if(NULL != m_dumper)
 	{
+		if(m_meta_evt_pending)
+		{
+			m_meta_evt_pending = false;
+			res = scap_dump(m_h, m_dumper, m_meta_evt.m_pevt, m_meta_evt.m_cpuid, 0);
+			if(SCAP_SUCCESS != res)
+			{
+				throw sinsp_exception(scap_getlasterr(m_h));
+			}
+		}
+
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 		scap_dump_flags dflags;
 		
 		bool do_drop;
-		dflags = m_evt.get_dump_flags(&do_drop);
+		dflags = evt->get_dump_flags(&do_drop);
 		if(do_drop)
 		{
-			*evt = &m_evt;
+			*puevt = evt;
 			return SCAP_TIMEOUT;
 		}
 #endif
 
 		if(m_write_cycling)
 		{
-			res = scap_number_of_bytes_to_write(m_evt.m_pevt, m_evt.m_cpuid, &bytes_to_write);
-			if(SCAP_SUCCESS != res)
+			//res = scap_number_of_bytes_to_write(evt->m_pevt, evt->m_cpuid, &bytes_to_write);
+			switch(m_cycle_writer->consider(evt))
 			{
-				throw sinsp_exception(scap_getlasterr(m_h));
-			}
-			else 
-			{
-				switch(m_cycle_writer->consider(bytes_to_write))
-				{
-					case cycle_writer::NEWFILE:
-						autodump_next_file();
-						break;
+				case cycle_writer::NEWFILE:
+					autodump_next_file();
+					break;
 
-					case cycle_writer::DOQUIT:
-						stop_capture();
-						return SCAP_EOF;
-						break;
+				case cycle_writer::DOQUIT:
+					stop_capture();
+					return SCAP_EOF;
+					break;
 
-					case cycle_writer::SAMEFILE:
-						// do nothing.
-						break;
-				}
+				case cycle_writer::SAMEFILE:
+					// do nothing.
+					break;
 			}
 		}
 
-		res = scap_dump(m_h, m_dumper, m_evt.m_pevt, m_evt.m_cpuid, dflags);
+		res = scap_dump(m_h, m_dumper, evt->m_pevt, evt->m_cpuid, dflags);
+
 		if(SCAP_SUCCESS != res)
 		{
 			throw sinsp_exception(scap_getlasterr(m_h));
@@ -681,9 +893,9 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	}
 
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
-	if(m_evt.m_filtered_out)
+	if(evt->m_filtered_out)
 	{
-		*evt = &m_evt;
+		*puevt = evt;
 		return SCAP_TIMEOUT;
 	}
 #endif
@@ -699,19 +911,19 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 		{
 			if(m_isdropping)
 			{
-				m_analyzer->process_event(&m_evt, sinsp_analyzer::DF_FORCE_FLUSH);
+				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH);
 			}
 			else if(sw)
 			{
-				m_analyzer->process_event(&m_evt, sinsp_analyzer::DF_FORCE_FLUSH_BUT_DONT_EMIT);
+				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH_BUT_DONT_EMIT);
 			}
 			else
 			{
-				m_analyzer->process_event(&m_evt, sinsp_analyzer::DF_FORCE_NOFLUSH);
+				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_NOFLUSH);
 			}
 		}
 #else // SIMULATE_DROP_MODE
-		m_analyzer->process_event(&m_evt, sinsp_analyzer::DF_NONE);
+		m_analyzer->process_event(evt, sinsp_analyzer::DF_NONE);
 #endif // SIMULATE_DROP_MODE
 	}
 #endif
@@ -719,18 +931,18 @@ int32_t sinsp::next(OUT sinsp_evt **evt)
 	//
 	// Update the last event time for this thread
 	//
-	if(m_evt.m_tinfo && 
-		m_evt.get_type() != PPME_SCHEDSWITCH_1_E &&
-		m_evt.get_type() != PPME_SCHEDSWITCH_6_E)
+	if(evt->m_tinfo && 
+		evt->get_type() != PPME_SCHEDSWITCH_1_E &&
+		evt->get_type() != PPME_SCHEDSWITCH_6_E)
 	{
-		m_evt.m_tinfo->m_prevevent_ts = m_evt.m_tinfo->m_lastevent_ts;
-		m_evt.m_tinfo->m_lastevent_ts = m_lastevent_ts;
+		evt->m_tinfo->m_prevevent_ts = evt->m_tinfo->m_lastevent_ts;
+		evt->m_tinfo->m_lastevent_ts = m_lastevent_ts;
 	}
 
 	//
 	// Done
 	//
-	*evt = &m_evt;
+	*puevt = evt;
 	return res;
 }
 
@@ -802,26 +1014,34 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 
 			if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
 			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64, tid);
+				g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64, 
+					tid, m_n_proc_lookups_duration_ns / 1000000);
 			}
 
 			if(m_n_proc_lookups == m_max_n_proc_lookups)
 			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number");
+				g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64, 
+					m_n_proc_lookups_duration_ns / 1000000);
 			}
 
 			if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
 				(m_n_proc_lookups <= m_max_n_proc_lookups)))
 			{
-				bool scan_sockets = true;
+				bool scan_sockets = false;
 
 				if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
 					(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
 				{
-					scan_sockets = false;
+					scan_sockets = true;
 				}
 
+#ifdef HAS_ANALYZER
+				uint64_t ts = sinsp_utils::get_current_time_ns();
+#endif
 				scap_proc = scap_proc_get(m_h, tid, scan_sockets);
+#ifdef HAS_ANALYZER
+				m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
+#endif
 			}
 		}
 
@@ -930,7 +1150,7 @@ void sinsp::stop_dropping_mode()
 {
 	if(m_islive)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR, "stopping drop mode");
+		g_logger.format(sinsp_logger::SEV_INFO, "stopping drop mode");
 
 		if(scap_stop_dropping_mode(m_h) != SCAP_SUCCESS)
 		{
@@ -943,7 +1163,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 {
 	if(m_islive)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR, "setting drop mode to %" PRIu32, sampling_ratio);
+		g_logger.format(sinsp_logger::SEV_INFO, "setting drop mode to %" PRIu32, sampling_ratio);
 
 		if(scap_start_dropping_mode(m_h, sampling_ratio) != SCAP_SUCCESS)
 		{
@@ -1061,6 +1281,11 @@ void sinsp::set_log_callback(sinsp_logger_callback cb)
 	g_logger.add_callback_log(cb);
 }
 
+void sinsp::set_log_file(string filename)
+{
+	g_logger.add_file_log(filename);
+}
+
 void sinsp::set_min_log_severity(sinsp_logger::severity sev)
 {
 	g_logger.set_severity(sev);
@@ -1107,14 +1332,14 @@ sinsp_evt::param_fmt sinsp::get_buffer_format()
 	return m_buffer_format;
 }
 
-bool sinsp::is_live()
-{
-	return m_islive;
-}
-
 void sinsp::set_debug_mode(bool enable_debug)
 {
 	m_isdebug_enabled = enable_debug;
+}
+
+void sinsp::set_print_container_data(bool print_container_data)
+{
+	m_print_container_data = print_container_data;
 }
 
 void sinsp::set_fatfile_dump_mode(bool enable_fatfile)
@@ -1142,16 +1367,16 @@ sinsp_parser* sinsp::get_parser()
 	return m_parser;
 }
 
-bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress) 
+bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress)
 {
 	m_compress = compress;
 
-	if(rollover_mb != 0 || duration_seconds != 0 || file_limit != 0 || do_cycle == true)
+	if(rollover_mb != 0 || duration_seconds != 0 || file_limit != 0 || event_limit != 0)
 	{
 		m_write_cycling = true;
 	}
 
-	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, do_cycle);
+	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit, &m_dumper);
 }
 
 double sinsp::get_read_progress()

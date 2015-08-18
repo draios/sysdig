@@ -35,6 +35,7 @@ typedef enum filtercheck_field_flags
 	EPF_FILTER_ONLY, ///< this field can only be used as a filter.
 	EPF_PRINT_ONLY, ///< this field can only be printed.
 	EPF_REQUIRES_ARGUMENT, ///< this field includes an argument, under the form 'property.argument'.
+	EPF_TABLE_ONLY, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
 }filtercheck_field_flags;
 
 /*!
@@ -336,7 +337,7 @@ private:
 			par.init(valptr, lens[j]);
 			m_params.push_back(par);
 			valptr += lens[j];
-		}		
+		}
 	}
 	string get_param_value_str(uint32_t id, bool resolved);
 	string get_param_value_str(const char* name, bool resolved = true);
@@ -378,6 +379,9 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer_parsers;
 	friend class lua_cbacks;
 	friend class sinsp_proto_detector;
+	friend class sinsp_container_manager;
+	friend class sinsp_table;
+	friend class sinsp_cursesui;
 };
 
 /*@}*/

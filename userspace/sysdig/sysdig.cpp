@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #define __STDC_FORMAT_MACROS
+
 #include <stdio.h>
 #include <iostream>
 #include <time.h>
@@ -27,8 +28,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 
 #include <sinsp.h>
-#include "sysdig.h"
 #include "chisel.h"
+#include "sysdig.h"
+#include "utils.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -43,13 +45,6 @@ static bool g_terminate = false;
 vector<sinsp_chisel*> g_chisels;
 #endif
 
-
-
-// Sysdig 0.1.85 had log-rotation options (-C,-G,-W), but they were problematic,
-// so I'm disabling them until they can be fixed
-#define DISABLE_CGW
-
-
 static void usage();
 
 //
@@ -58,22 +53,6 @@ static void usage();
 static void signal_callback(int signal)
 {
 	g_terminate = true;
-}
-
-void replace_in_place(string& str, string substr_to_replace, string new_substr)
-{
-	size_t index = 0;
-	uint32_t nsize = (uint32_t)substr_to_replace.size();
-
-	while (true)
-	{
-		 index = str.find(substr_to_replace, index);
-		 if (index == string::npos) break;
-
-		 str.replace(index, nsize, new_substr);
-
-		 index += nsize;
-	}
 }
 
 //
@@ -99,7 +78,6 @@ static void usage()
 "                    lists the available chisels. Looks for chisels in\n"
 "                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
 #endif
-#ifndef DISABLE_CGW
 " -C <file_size>, --file-size=<file_size>\n"
 "                    Before writing an event, check whether the file is\n"
 "                    currently larger than file_size and, if so, close the\n"
@@ -108,7 +86,6 @@ static void usage()
 "                    starting at 0 and continuing upward. The units of file_size\n"
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
-#endif
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -123,6 +100,11 @@ static void usage()
 "                    like user.name or group.name. However, creating them can\n"
 "                    increase sysdig's startup time. Moreover, they contain\n"
 "                    information that could be privacy sensitive.\n"
+" -e <num_events>    If used together with -w option, creates a series of dump files\n"
+"                    containing only a specified number of events given in num_events\n"
+"                    parameter each.\n"
+"                    Used alongside -W flags creates a ring buffer of file containing\n"
+"                    num_events each.\n"
 " -F, --fatfile	     Enable fatfile mode\n"
 "                    when writing in fatfile mode, the output file will contain\n"
 "                    events that will be invisible when reading the file, but\n"
@@ -134,17 +116,13 @@ static void usage()
 "                    'hidden' so that they won't appear when reading the file.\n"
 "                    Be aware that using this flag might generate substantially\n"
 "                    bigger traces files.\n"
-#ifndef DISABLE_CGW
 " -G <num_seconds>, --seconds=<num_seconds>\n"
 "                    Rotates the dump file specified with the -w option every\n"
 "                    num_seconds seconds. Savefiles will have the name specified\n"
 "                    by -w which should include a time format as defined by strftime(3).\n"
-"                    If no time format is specified, each new file will overwrite the\n"
-"                    previous.\n"
-"\n"
-"                    If used in conjunction with the -C option, filenames will take\n"
-"                    the form of `file<count>'.\n"
-#endif
+"                    If no time format is specified, a counter will be used.\n"
+"                    If no data format is specified, this can be used with -W flag to\n"
+"                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
 #ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
@@ -162,6 +140,7 @@ static void usage()
 " -P, --progress     Print progress on stderr while processing trace files\n"
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
+"                    With -pc or -pcontainer will use a container-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
@@ -189,19 +168,15 @@ static void usage()
 " --version          Print version number.\n"
 " -w <writefile>, --write=<writefile>\n"
 "                    Write the captured events to <writefile>.\n"
-#ifndef DISABLE_CGW
 " -W <num>, --limit <num>\n"
 "                    Used in conjunction with the -C option, this will limit the number\n"
 "                    of files created to the specified number, and begin overwriting files\n"
-"                    from the beginning, thus creating a 'rotating' buffer. In addition, it\n"
-"                    will name the files with enough leading 0s to support the maximum number\n"
-"                    of files, allowing them to sort correctly.\n"
+"                    from the beginning, thus creating a 'rotating' buffer.\n"
 "\n"
 "                    Used in conjunction with the -G option, this will limit the number\n"
 "                    of rotated dump files that get created, exiting with status 0 when\n"
 "                    reaching the limit. If used with -C as well, the behavior will result\n"
 "                    in cyclical files per timeslice.\n"
-#endif
 " -x, --print-hex    Print data buffers in hex.\n"
 " -X, --print-hex-ascii\n"
 "                    Print data buffers in hex and ASCII.\n"
@@ -210,7 +185,7 @@ static void usage()
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
 " line with the following format:\n\n"
-" %%evt.num %%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.args\n\n"
+" %%evt.num %%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.info\n\n"
 "where:\n"
 " evt.num is the incremental event number\n"
 " evt.time is the event timestamp\n"
@@ -220,9 +195,11 @@ static void usage()
 "   PID for single thread processes\n"
 " evt.dir is the event direction, > for enter events and < for exit events\n"
 " evt.type is the name of the event, e.g. 'open' or 'read'\n"
-" evt.args is the list of event arguments.\n\n"
+" evt.info is the list of event arguments.\n\n"
 "The output format can be customized with the -p switch, using any of the\n"
 "fields listed by 'sysdig -l'.\n\n"
+"Using -pc or -pcontainer, the default format will be changed to a container-friendly one:\n\n"
+"%%evt.num %%evt.time %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Examples:\n\n"
 " Capture all the events from the live system and print them to screen\n"
 "   $ sysdig\n\n"
@@ -617,6 +594,12 @@ captureinfo do_inspect(sinsp* inspector,
 				continue;
 			}
 
+			if(!inspector->is_debug_enabled() &&
+				ev->get_category() & EC_INTERNAL)
+			{
+				continue;
+			}
+
 			if(formatter->tostring(ev, &line))
 			{
 				//
@@ -682,7 +665,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int duration_seconds = 0;	
 	int rollover_mb = 0;
 	int file_limit = 0;
-	bool do_cycle = false;
+	unsigned long event_limit = 0L;
 
 	static struct option long_options[] =
 	{
@@ -695,17 +678,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
 		{"exclude-users", no_argument, 0, 'E' },
+		{"event-limit", required_argument, 0, 'e'},
 		{"fatfile", no_argument, 0, 'F'},
-#ifndef DISABLE_CGW
 		{"seconds", required_argument, 0, 'G' },
-#endif
 		{"help", no_argument, 0, 'h' },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
-#ifndef DISABLE_CGW
 		{"file-size", required_argument, 0, 'C' },
-#endif
 		{"json", no_argument, 0, 'j' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
@@ -720,9 +700,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{"writefile", required_argument, 0, 'w' },
-#ifndef DISABLE_CGW
 		{"limit", required_argument, 0, 'W' },
-#endif
 		{"print-hex", no_argument, 0, 'x'},
 		{"print-hex-ascii", no_argument, 0, 'X'},
 		{"compress", no_argument, 0, 'z' },
@@ -730,11 +708,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	};
 
 	output_format = "*%evt.num <TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
-//	output_format = DEFAULT_OUTPUT_STR;
 
 	try
 	{
 		inspector = new sinsp();
+
 
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
@@ -745,17 +723,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		while((op = getopt_long(argc, argv,
                                         "Abc:"
-#ifndef DISABLE_CGW
                                         "C:"
-#endif
-                                        "dDEF"
-#ifndef DISABLE_CGW
+                                        "dDEe:F"
                                         "G:"
-#endif
                                         "hi:jlLn:Pp:qr:Ss:t:v"
-#ifndef DISABLE_CGW
                                         "W:"
-#endif
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
 			switch(op)
@@ -822,7 +794,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 				break;
 
-#ifndef DISABLE_CGW
 			// File-size
 			case 'C':
 				rollover_mb = atoi(optarg);
@@ -832,11 +803,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
-
-				// -C always implicates a cycle
-				do_cycle = true;
 				break;
-#endif
 
 			case 'D':
 				inspector->set_debug_mode(true);
@@ -844,10 +811,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'E':
 				inspector->set_import_users(false);
 				break;
+			case 'e':
+				event_limit = strtoul(optarg, NULL, 0);
+				if(event_limit <= 0)
+				{
+					throw sinsp_exception(string("invalid parameter 'number of events' ") + optarg);
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
 			case 'F':
 				inspector->set_fatfile_dump_mode(true);
 				break;
-#ifndef DISABLE_CGW
 			// Number of seconds between roll-over
 			case 'G':
 				duration_seconds = atoi(optarg);
@@ -858,14 +833,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-#endif
 
 #ifdef HAS_CHISELS
 			// --chisel-info and -i
 			case 'i':
 				{
 					cname = optarg;
-
 					vector<chisel_desc> chlist;
 
 					sinsp_chisel::get_chisel_list(&chlist);
@@ -906,7 +879,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
 			case 'n':
-				cnt = atoi(optarg);
+				try
+				{
+					cnt = sinsp_numparser::parseu64(optarg);
+				}
+				catch(...)
+				{
+					throw sinsp_exception("can't parse the -n argument, make sure it's a number");
+				}
+
 				if(cnt <= 0)
 				{
 					throw sinsp_exception(string("invalid event count ") + optarg);
@@ -927,6 +908,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
+				}
+				else if(string(optarg) == "c" || string(optarg) == "container")
+				{
+					output_format = "*%evt.num <TIME> %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+
+					//
+					// This enables chisels to determine if they should print container information
+					//
+					if(inspector != NULL)
+					{
+						inspector->set_print_container_data(true);
+					}
 				}
 				else
 				{
@@ -997,7 +990,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				quiet = true;
 				break;
 
-#ifndef DISABLE_CGW
 			// Number of capture files to cycle through
 			case 'W':
 				file_limit = atoi(optarg);
@@ -1008,7 +1000,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-#endif
 
 			case 'x':
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
@@ -1032,6 +1023,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'z':
 				compress = true;
+				break;
+            // getopt_long : '?' for an ambiguous match or an extraneous parameter 
+			case '?':
+				delete inspector;
+				return sysdig_init_res(EXIT_FAILURE);
 				break;
 			default:
 				break;
@@ -1108,7 +1104,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			for(int32_t j = optind + n_filterargs; j < argc; j++)
 			{
 				filter += argv[j];
-				if(j < argc)
+				if(j < argc - 1)
 				{
 					filter += " ";
 				}
@@ -1231,6 +1227,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					inspector->open("");
 				}
+
+				//
+				// Enable gathering the CPU from the kernel module
+				//
+				inspector->set_get_procs_cpu_from_driver(true);
 			}
 
 			if(snaplen != 0)
@@ -1242,7 +1243,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			if(outfile != "")
 			{
-				inspector->setup_cycle_writer(outfile, rollover_mb, duration_seconds, file_limit, do_cycle, compress);
+				inspector->setup_cycle_writer(outfile, rollover_mb, duration_seconds, file_limit, event_limit, compress);
 				inspector->autodump_next_file();
 			}
 
@@ -1281,7 +1282,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// Done. Close the capture.
 			//
 			inspector->close();
-
 		}
 	}
 	catch(sinsp_capture_interrupt_exception&)

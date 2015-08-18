@@ -20,7 +20,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linux/compat.h>
 #include <linux/cdev.h>
-#include <asm/syscall.h>
 #include <asm/unistd.h>
 #include <net/sock.h>
 #include <net/af_unix.h>
@@ -34,7 +33,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
+#ifdef CONFIG_CGROUPS
+#include <linux/cgroup.h>
+#endif
 #include <asm/mman.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include "ppm_syscall.h"
+#else
+#include <asm/syscall.h>
+#endif
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -119,6 +126,12 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args);
 static int f_sys_quotactl_x(struct event_filler_arguments *args);
 static int f_sys_sysdigevent_e(struct event_filler_arguments *args);
 static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
+#endif
+static int f_sys_setns_e(struct event_filler_arguments *args);
+static int f_sys_flock_e(struct event_filler_arguments *args);
+static int f_cpu_hotplug_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -148,10 +161,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_CONNECT_X] = {f_sys_connect_x},
 	[PPME_SOCKET_LISTEN_E] = {PPM_AUTOFILL, 2, APT_SOCK, {{0}, {1} } },
 	[PPME_SOCKET_LISTEN_X] = {f_sys_single_x},
-	[PPME_SOCKET_ACCEPT_E] = {f_sys_empty},
-	[PPME_SOCKET_ACCEPT_X] = {f_sys_accept_x},
-	[PPME_SOCKET_ACCEPT4_E] = {f_sys_accept4_e},
-	[PPME_SOCKET_ACCEPT4_X] = {f_sys_accept_x},
+	[PPME_SOCKET_ACCEPT_5_E] = {f_sys_empty},
+	[PPME_SOCKET_ACCEPT_5_X] = {f_sys_accept_x},
+	[PPME_SOCKET_ACCEPT4_5_E] = {f_sys_accept4_e},
+	[PPME_SOCKET_ACCEPT4_5_X] = {f_sys_accept_x},
 	[PPME_SOCKET_SEND_E] = {f_sys_send_e},
 	[PPME_SOCKET_SEND_X] = {f_sys_send_x},
 	[PPME_SOCKET_SENDTO_E] = {f_sys_sendto_e},
@@ -268,10 +281,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_15_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_15_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_CLONE_17_E] = {f_sys_empty},
-	[PPME_SYSCALL_CLONE_17_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_16_E] = {f_sys_empty},
+	[PPME_SYSCALL_EXECVE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
@@ -292,10 +305,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SYMLINK_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
 	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
-	[PPME_SYSCALL_FORK_17_E] = {f_sys_empty},
-	[PPME_SYSCALL_FORK_17_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_VFORK_17_E] = {f_sys_empty},
-	[PPME_SYSCALL_VFORK_17_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_FORK_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_FORK_20_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_VFORK_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_VFORK_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
@@ -321,6 +334,19 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_GETRESUID_X] = {f_sys_getresuid_and_gid_x},
 	[PPME_SYSCALL_GETRESGID_E] = {f_sys_empty},
 	[PPME_SYSCALL_GETRESGID_X] = {f_sys_getresuid_and_gid_x},
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+	[PPME_SIGNALDELIVER_E] = {f_sys_signaldeliver_e},
+	[PPME_SIGNALDELIVER_X] = {f_sys_empty},
+#endif
+	[PPME_SYSCALL_GETDENTS_E] = {f_sys_single},
+	[PPME_SYSCALL_GETDENTS_X] = {f_sys_single_x},
+	[PPME_SYSCALL_GETDENTS64_E] = {f_sys_single},
+	[PPME_SYSCALL_GETDENTS64_X] = {f_sys_single_x},
+	[PPME_SYSCALL_SETNS_E] = {f_sys_setns_e},
+	[PPME_SYSCALL_SETNS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_FLOCK_E] = {f_sys_flock_e},
+	[PPME_SYSCALL_FLOCK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_CPU_HOTPLUG_E] = {f_cpu_hotplug_e},
 };
 
 /*
@@ -458,6 +484,10 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 	if (flags & O_LARGEFILE)
 		res |= PPM_O_LARGEFILE;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
+	if (flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
 	return res;
 }
 
@@ -603,23 +633,35 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_FS)
 		res |= PPM_CL_CLONE_FS;
 
+#ifdef CLONE_IO
 	if (flags & CLONE_IO)
 		res |= PPM_CL_CLONE_IO;
+#endif
 
+#ifdef CLONE_NEWIPC
 	if (flags & CLONE_NEWIPC)
 		res |= PPM_CL_CLONE_NEWIPC;
+#endif
 
+#ifdef CLONE_NEWNET
 	if (flags & CLONE_NEWNET)
 		res |= PPM_CL_CLONE_NEWNET;
+#endif
 
+#ifdef CLONE_NEWNS
 	if (flags & CLONE_NEWNS)
 		res |= PPM_CL_CLONE_NEWNS;
+#endif
 
+#ifdef CLONE_NEWPID
 	if (flags & CLONE_NEWPID)
 		res |= PPM_CL_CLONE_NEWPID;
+#endif
 
+#ifdef CLONE_NEWUTS
 	if (flags & CLONE_NEWUTS)
 		res |= PPM_CL_CLONE_NEWUTS;
+#endif
 
 	if (flags & CLONE_PARENT_SETTID)
 		res |= PPM_CL_CLONE_PARENT_SETTID;
@@ -644,6 +686,11 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 
 	if (flags & CLONE_VM)
 		res |= PPM_CL_CLONE_VM;
+
+#ifdef CLONE_NEWUSER
+	if (flags & CLONE_NEWUSER)
+		res |= PPM_CL_CLONE_NEWUSER;
+#endif
 
 	return res;
 }
@@ -690,12 +737,188 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 	return 0;
 }
 
+#ifdef CONFIG_CGROUPS
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
+static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
+{
+	char *start;
+	struct dentry *dentry = rcu_dereference(cgrp->dentry);
+
+	if (!dentry) {
+		/*
+		 * Inactive subsystems have no dentry for their root
+		 * cgroup
+		 */
+		strcpy(buf, "/");
+		return 0;
+	}
+
+	start = buf + buflen;
+
+	*--start = '\0';
+	for (;;) {
+		int len = dentry->d_name.len;
+		if ((start -= len) < buf)
+			return -ENAMETOOLONG;
+		memcpy(start, cgrp->dentry->d_name.name, len);
+		cgrp = cgrp->parent;
+		if (!cgrp)
+			break;
+		dentry = rcu_dereference(cgrp->dentry);
+		if (!cgrp->parent)
+			continue;
+		if (--start < buf)
+			return -ENAMETOOLONG;
+		*start = '/';
+	}
+	memmove(buf, start, buf + buflen - start);
+	return 0;
+}
+#endif
+
+static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int* available)
+{
+	int pathlen;
+	int subsys_len;
+	char *path;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+	int res;
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
+	struct cgroup_subsys_state *css = task_css(current, subsys_id);
+#else
+	struct cgroup_subsys_state *css = task_subsys_state(current, subsys_id);
+#endif
+	if (!css) {
+		ASSERT(false);
+		return 1;
+	}
+
+	if (!css->cgroup) {
+		ASSERT(false);
+		return 1;
+	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+	path = cgroup_path(css->cgroup, buf, *available);
+	if (!path) {
+		ASSERT(false);
+		path = "NA";
+	}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	res = cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = buf;
+	}
+#else
+	res = ppm_cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = buf;
+	}
+#endif
+
+	pathlen = strlen(path);
+	subsys_len = strlen(subsys_name);
+	if (subsys_len + 1 + pathlen + 1 > *available) {
+		return 1;
+	}
+
+	memmove(buf + subsys_len + 1, path, pathlen);
+	memcpy(buf, subsys_name, subsys_len);
+	buf += subsys_len;
+	*buf++ = '=';
+	buf += pathlen;
+	*buf++ = 0;
+	*available -= (subsys_len + 1 + pathlen + 1);
+	return 0;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _cgrp_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) 	\
+	goto cgroups_error;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
+#define IS_SUBSYS_ENABLED(option) IS_BUILTIN(option)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+#define IS_SUBSYS_ENABLED(option) IS_ENABLED(option)
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#else
+#define SUBSYS(_x) 																						\
+if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
+	goto cgroups_error;
+#endif
+
+#endif
+
+/* Takes in a NULL-terminated array of pointers to strings in userspace, and
+ * concatenates them to a single \0-separated string. Return the length of this
+ * string, or <0 on error */
+static int accumulate_argv_or_env(const char __user* __user* argv,
+
+				  char* str_storage,
+				  int available)
+{
+	int len = 0;
+	int n_bytes_copied;
+
+	if (argv == NULL)
+		return len;
+
+	for (;;) {
+		const char __user *p;
+		if (unlikely(ppm_get_user(p, argv)))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		if (p == NULL)
+			break;
+
+		/* need at least enough space for a \0 */
+		if (available < 1)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		n_bytes_copied = ppm_strncpy_from_user(&str_storage[len], p,
+						       available);
+
+		/* ppm_strncpy_from_user includes the trailing \0 in its return
+		 * count. I want to pretend it was strncpy_from_user() so I
+		 * subtract off the 1 */
+		n_bytes_copied--;
+
+		if (n_bytes_copied < 0)
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		if (n_bytes_copied >= available)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		/* update buffer. I want to keep the trailing \0, so I +1 */
+		available   -= n_bytes_copied+1;
+		len         += n_bytes_copied+1;
+
+		argv++;
+	}
+
+	return len;
+}
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res = 0;
-	unsigned int exe_len = 0;
-	unsigned int args_len = 0;
+	unsigned int exe_len = 0;  /* the length of the executable string */
+	int args_len = 0; /*the combined length of the arguments string + executable string */
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
@@ -703,6 +926,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
+	int available = STR_STORAGE_SIZE;
 
 	/*
 	 * Make sure the operation was successful
@@ -712,56 +936,96 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (likely(retval >= 0)) {
-		if (unlikely(!mm)) {
-			args->str_storage[0] = 0;
-			pr_info("f_proc_startupdate drop, mm=NULL\n");
-			return PPM_FAILURE_BUG;
-		}
+	if (unlikely(retval < 0 &&
+		     args->event_type != PPME_SYSCALL_EXECVE_16_X)) {
 
-		if (unlikely(!mm->arg_end)) {
-			args->str_storage[0] = 0;
-			pr_info("f_proc_startupdate drop, mm->arg_end=NULL\n");
-			return PPM_FAILURE_BUG;
-		}
+		/* The call failed, but this syscall has no exe, args
+		 * anyway, so I report empty ones */
+		*args->str_storage = 0;
 
-		args_len = mm->arg_end - mm->arg_start;
+		/*
+		 * exe
+		 */
+		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 
-		if (args_len) {
-			if (args_len > PAGE_SIZE)
-				args_len = PAGE_SIZE;
+		/*
+		 * Args
+		 */
+		res = val_to_ring(args, (int64_t)(long)args->str_storage, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	} else {
 
-			if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
-				return PPM_FAILURE_INVALID_USER_MEMORY;
+		if (likely(retval >= 0)) {
+			/*
+			 * The call suceeded. Get exe, args from the current
+			 * process; put one \0-separated exe-args string into
+			 * str_storage
+			 */
 
-			args->str_storage[args_len - 1] = 0;
+			if (unlikely(!mm)) {
+				args->str_storage[0] = 0;
+				pr_info("f_proc_startupdate drop, mm=NULL\n");
+				return PPM_FAILURE_BUG;
+			}
+
+			if (unlikely(!mm->arg_end)) {
+				args->str_storage[0] = 0;
+				pr_info("f_proc_startupdate drop, mm->arg_end=NULL\n");
+				return PPM_FAILURE_BUG;
+			}
+
+			args_len = mm->arg_end - mm->arg_start;
+
+			if (args_len) {
+				if (args_len > PAGE_SIZE)
+					args_len = PAGE_SIZE;
+
+				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+				args->str_storage[args_len - 1] = 0;
+			} else {
+				*args->str_storage = 0;
+			}
+
 		} else {
-			*args->str_storage = 0;
+
+			/*
+			 * The execve call failed. I get exe, args from the
+			 * input args; put one \0-separated exe-args string into
+			 * str_storage
+			 */
+			args->str_storage[0] = 0;
+			
+			syscall_get_arguments(current, args->regs, 1, 1, &val);
+			args_len = accumulate_argv_or_env( (const char __user* __user *)val,
+							   args->str_storage, available);
+			if (unlikely(args_len < 0))
+				return args_len;
 		}
-		
+
 		exe_len = strnlen(args->str_storage, args_len);
 		if (exe_len < args_len)
 			++exe_len;
-	} else {
+
 		/*
-		 * The call failed. Return empty strings for exe and args
+		 * exe
 		 */
-		*args->str_storage = 0;
+		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * Args
+		 */
+		res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 	}
 
-	/*
-	 * exe
-	 */
-	res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * Args
-	 */
-	res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
 	/*
 	 * tid
@@ -780,10 +1044,14 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * ptid
 	 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (current->real_parent)
 		ptid = current->parent->pid;
 	else
 		ptid = 0;
+#else
+	ptid = current->parent->pid;
+#endif
 
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -805,7 +1073,11 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * fdlimit
 	 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
+#else
+	res = val_to_ring(args, (int64_t)0, 0, false, 0);
+#endif
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -857,24 +1129,42 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (args->event_type == PPME_SYSCALL_CLONE_17_X ||
-		args->event_type == PPME_SYSCALL_FORK_17_X ||
-		args->event_type == PPME_SYSCALL_VFORK_17_X) {
+	/*
+	 * cgroups
+	 */
+	args->str_storage[0] = 0;
+#ifdef CONFIG_CGROUPS
+	rcu_read_lock();
+#include <linux/cgroup_subsys.h>
+cgroups_error:
+	rcu_read_unlock();
+#endif
+
+	res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (args->event_type == PPME_SYSCALL_CLONE_20_X ||
+		args->event_type == PPME_SYSCALL_FORK_20_X ||
+		args->event_type == PPME_SYSCALL_VFORK_20_X) {
 		/*
 		 * clone-only parameters
 		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		uint64_t euid = from_kuid_munged(current_user_ns(), current_euid());
 		uint64_t egid = from_kgid_munged(current_user_ns(), current_egid());
-#else
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		uint64_t euid = current_euid();
 		uint64_t egid = current_egid();
+#else
+		uint64_t euid = current->euid;
+		uint64_t egid = current->egid;
 #endif
 
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_17_X)
+		if (args->event_type == PPME_SYSCALL_CLONE_20_X)
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 		else
 			val = 0;
@@ -896,7 +1186,36 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		res = val_to_ring(args, egid, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_15_X) {
+		
+		/*
+		 * vtid
+		 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
+#else
+		//
+		// Not relevant in old kernels
+		//
+		res = val_to_ring(args, 0, 0, false, 0);
+#endif
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * vpid
+		 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
+#else
+		//
+		// Not relevant in old kernels
+		//
+		res = val_to_ring(args, 0, 0, false, 0);
+#endif
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_16_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -921,9 +1240,13 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			}
 		} else {
 			/*
-			 * The call failed. Return empty strings for env as well
+			 * The call failed, so get the env from the arguments
 			 */
-			*args->str_storage = 0;
+			syscall_get_arguments(current, args->regs, 2, 1, &val);
+			env_len = accumulate_argv_or_env( (const char __user* __user *)val,
+							  args->str_storage, available);
+			if (unlikely(env_len < 0))
+				return env_len;
 		}
 
 		/*
@@ -1243,6 +1566,16 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 		sockfd_put(sock);
 	}
 
+	res = val_to_ring(args, val, 0, false, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	val = (unsigned long)sock->sk->sk_ack_backlog ? (unsigned long)sock->sk->sk_ack_backlog : 0;
+	res = val_to_ring(args, val, 0, false, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	val = (unsigned long)sock->sk->sk_max_ack_backlog ? (unsigned long)sock->sk->sk_max_ack_backlog : 0;
 	res = val_to_ring(args, val, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
@@ -1631,7 +1964,11 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 	char *targetbuf = args->str_storage;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
@@ -1664,7 +2001,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -1673,7 +2010,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	iov = (const struct iovec __user *)mh.msg_iov;
 	iovcnt = mh.msg_iovlen;
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -1721,7 +2058,11 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	int64_t retval;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 
 	/*
 	 * res
@@ -1740,7 +2081,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -1749,7 +2090,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	iov = (const struct iovec __user *)mh.msg_iov;
 	iovcnt = mh.msg_iovlen;
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_DATA);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -1783,7 +2124,11 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	int64_t retval;
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
 	struct msghdr mh;
+#endif
 	char *targetbuf = args->str_storage;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
@@ -1809,7 +2154,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	val = args->socketcall_args[1];
 #endif
 
-	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(struct msghdr))))
+	if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -1910,7 +2255,11 @@ static int f_sys_pipe_x(struct event_filler_arguments *args)
 	file = fget(fds[0]);
 	val = 0;
 	if (likely(file != NULL)) {
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		val = file->f_path.dentry->d_inode->i_ino;
+#else
+		val = file->f_dentry->d_inode->i_ino;
+#endif
 		fput(file);
 	}
 
@@ -1949,6 +2298,7 @@ static int f_sys_eventfd_e(struct event_filler_arguments *args)
 
 static inline u16 shutdown_how_to_scap(unsigned long how)
 {
+#ifdef SHUT_RD	
 	if (how == SHUT_RD) {
 		return PPM_SHUT_RD;
 	} else if (how == SHUT_WR) {
@@ -1958,6 +2308,7 @@ static inline u16 shutdown_how_to_scap(unsigned long how)
 	}
 
 	ASSERT(false);
+#endif
 	return (u16)how;
 }
 
@@ -2016,20 +2367,30 @@ static inline u16 futex_op_to_scap(unsigned long op)
 		res = PPM_FU_FUTEX_UNLOCK_PI;
 	else if (flt_op == FUTEX_TRYLOCK_PI)
 		res = PPM_FU_FUTEX_TRYLOCK_PI;
+#ifdef FUTEX_WAIT_BITSET
 	else if (flt_op == FUTEX_WAIT_BITSET)
 		res = PPM_FU_FUTEX_WAIT_BITSET;
+#endif
+#ifdef FUTEX_WAKE_BITSET
 	else if (flt_op == FUTEX_WAKE_BITSET)
 		res = PPM_FU_FUTEX_WAKE_BITSET;
+#endif
+#ifdef FUTEX_WAIT_REQUEUE_PI
 	else if (flt_op == FUTEX_WAIT_REQUEUE_PI)
 		res = PPM_FU_FUTEX_WAIT_REQUEUE_PI;
+#endif
+#ifdef FUTEX_CMP_REQUEUE_PI
 	else if (flt_op == FUTEX_CMP_REQUEUE_PI)
 		res = PPM_FU_FUTEX_CMP_REQUEUE_PI;
+#endif
 
 	if (op & FUTEX_PRIVATE_FLAG)
 		res |= PPM_FU_FUTEX_PRIVATE_FLAG;
 
+#ifdef FUTEX_CLOCK_REALTIME
 	if (op & FUTEX_CLOCK_REALTIME)
 		res |= PPM_FU_FUTEX_CLOCK_REALTIME;
+#endif
 
 	return res;
 }
@@ -2503,7 +2864,7 @@ static int f_sys_writev_e(struct event_filler_arguments *args)
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2536,7 +2897,7 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_DATA);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2643,7 +3004,7 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, g_snaplen, PRB_FLAG_PUSH_SIZE);
+	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2739,8 +3100,10 @@ static inline u8 rlimit_resource_to_scap(unsigned long rresource)
 		return PPM_RLIMIT_NICE;
 	case RLIMIT_RTPRIO:
 		return PPM_RLIMIT_RTPRIO;
+#ifdef RLIMIT_RTTIME
 	case RLIMIT_RTTIME:
 		return PPM_RLIMIT_RTTIME;
+#endif
 	default:
 		return PPM_RLIMIT_UNKNOWN;
 	}
@@ -2924,6 +3287,9 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
+extern void task_times(struct task_struct *p, cputime_t *ut, cputime_t *st);
+void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times);
+
 static int f_sched_switch_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2986,17 +3352,15 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-/*
-	//
-	// steal
-	//
+#if 0
+	/*
+	 * steal
+	 */
 	steal = cputime64_to_clock_t(kcpustat_this_cpu->cpustat[CPUTIME_STEAL]);
 	res = val_to_ring(args, steal, 0, false);
 	if(unlikely(res != PPM_SUCCESS))
-	{
 		return res;
-	}
-*/
+#endif
 
 	return add_sentinel(args);
 }
@@ -3009,7 +3373,7 @@ static int f_sched_drop(struct event_filler_arguments *args)
 	/*
 	 * next
 	 */
-	res = val_to_ring(args, g_sampling_ratio, 0, false, 0);
+	res = val_to_ring(args, args->consumer->sampling_ratio, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3051,18 +3415,24 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	case F_SETLKW64:
 		return PPM_FCNTL_F_SETLKW64;
 #endif
+#ifdef F_SETOWN_EX
 	case F_SETOWN_EX:
 		return PPM_FCNTL_F_SETOWN_EX;
+#endif
+#ifdef F_GETOWN_EX
 	case F_GETOWN_EX:
 		return PPM_FCNTL_F_GETOWN_EX;
+#endif
 	case F_SETLEASE:
 		return PPM_FCNTL_F_SETLEASE;
 	case F_GETLEASE:
 		return PPM_FCNTL_F_GETLEASE;
 	case F_CANCELLK:
 		return PPM_FCNTL_F_CANCELLK;
+#ifdef F_DUPFD_CLOEXEC
 	case F_DUPFD_CLOEXEC:
 		return PPM_FCNTL_F_DUPFD_CLOEXEC;
+#endif
 	case F_NOTIFY:
 		return PPM_FCNTL_F_NOTIFY;
 #ifdef F_SETPIPE_SZ
@@ -4113,6 +4483,122 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = val_to_ring(args, uid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static inline u32 flock_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	if (flags & LOCK_EX)
+		res |= PPM_LOCK_EX;
+
+	if (flags & LOCK_SH)
+		res |= PPM_LOCK_SH;
+
+	if (flags & LOCK_UN)
+		res |= PPM_LOCK_UN;
+
+	if (flags & LOCK_NB)
+		res |= PPM_LOCK_NB;
+
+	return res;
+}
+
+static int f_sys_flock_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	u32 flags;
+
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	flags = flock_flags_to_scap(val);
+	res = val_to_ring(args, flags, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_setns_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	u32 flags;
+
+	/*
+	 * parse fd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * get type, parse as clone flags as it's a subset of it
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	flags = clone_flags_to_scap(val);
+	res = val_to_ring(args, flags, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	/*
+	 * source pid
+	 */
+	res = val_to_ring(args, args->spid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * destination pid
+	 */
+	res = val_to_ring(args, args->dpid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * signal number
+	 */
+	res = val_to_ring(args, args->signo, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+#endif
+
+static int f_cpu_hotplug_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	/*
+	 * cpu
+	 */
+	res = val_to_ring(args, (uint64_t)args->sched_prev, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * action
+	 */
+	res = val_to_ring(args, (uint64_t)args->sched_next, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

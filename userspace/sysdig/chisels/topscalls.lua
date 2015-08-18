@@ -1,6 +1,6 @@
 --[[
 Copyright (C) 2013-2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 TOP_NUMBER = 30
 
 -- Chisel description
-description = "Show the top " .. TOP_NUMBER .. " system calls in terms of number of calls. You can use filters to restrict this to a specific process, thread or file."
+description = "Show the top " .. TOP_NUMBER .. " system calls in terms of number of calls. You can use filters to restrict this to a specific process, thread or file. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top system calls by number of calls"
 category = "Performance"
 
@@ -33,13 +33,29 @@ end
 
 -- Initialization callback
 function on_init()
-	chisel.exec("table_generator", 
-		"evt.type",
-		"Syscall",
-		"evt.count",
-		"# Calls",
-		"evt.type!=switch",
-		"" .. TOP_NUMBER,
-		"none")
+
+	-- The -pc or -pcontainer options was supplied on the cmd line
+	print_container = sysdig.is_print_container_data()
+
+	if print_container then
+		chisel.exec("table_generator",
+					"evt.type,container.name",
+					"Syscall,container.name",
+					"evt.count",
+					"# Calls",
+					"evt.type!=switch",
+					"" .. TOP_NUMBER,
+					"none")
+	else
+		chisel.exec("table_generator",
+					"evt.type",
+					"Syscall",
+					"evt.count",
+					"# Calls",
+					"evt.type!=switch",
+					"" .. TOP_NUMBER,
+					"none")
+	end
+
 	return true
 end

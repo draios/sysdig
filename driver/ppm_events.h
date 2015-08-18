@@ -26,6 +26,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
  * Various crap that a callback might need
  */
 struct event_filler_arguments {
+	struct ppm_consumer_t *consumer;
 	char *buffer; /* the buffer that will be filled with the data */
 	u32 buffer_size; /* the space in the ring buffer available for this event */
 	u32 syscall_id; /* the system call ID */
@@ -47,6 +48,9 @@ struct event_filler_arguments {
 #endif
 	int fd; /* Passed by some of the fillers to val_to_ring to compute the snaplen dynamically */
 	bool enforce_snaplen;
+	int signo; /* Signal number */
+	__kernel_pid_t spid; /* PID of source process */
+	__kernel_pid_t dpid; /* PID of destination process */
 };
 
 /*
@@ -92,6 +96,7 @@ extern const struct ppm_event_entry g_ppm_events[];
 #define PRB_FLAG_PUSH_SIZE	1
 #define PRB_FLAG_PUSH_DATA	2
 #define PRB_FLAG_PUSH_ALL	(PRB_FLAG_PUSH_SIZE | PRB_FLAG_PUSH_DATA)
+#define PRB_FLAG_IS_WRITE	4
 
 /*
  * HTTP markers

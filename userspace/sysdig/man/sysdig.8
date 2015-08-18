@@ -8,6 +8,9 @@ sysdig \- the definitive system and process troubleshooting tool
 [\f[I]filter\f[]]
 .SS DESCRIPTION
 .PP
+\f[B]Note: if you are interested in an easier to use interface for the
+sysdig functionality, use the csysdig command line utility.\f[]
+.PP
 sysdig is a tool for system troubleshooting, analysis and exploration.
 It can be used to capture, filter and decode system calls and other OS
 events.
@@ -30,46 +33,30 @@ single line, with the following format:
 where:
 .IP \[bu] 2
 evt.num is the incremental event number
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.time is the event timestamp
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.cpu is the CPU number where the event was captured
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 proc.name is the name of the process that generated the event
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 thread.tid id the TID that generated the event, which corresponds to the
 PID for single thread processes
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.dir is the event direction, > for enter events and < for exit events
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.type is the name of the event, e.g.
 \[aq]open\[aq] or \[aq]read\[aq]
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.args is the list of event arguments.
 .PP
 The output format can be customized with the \-p switch, using any of
 the fields listed by \[aq]sysdig \-l\[aq].
+.PP
+Using \-pc or \-pcontainer, the default format will be changed to a
+container\-friendly one:
+.PP
+\f[C]%evt.num\ %evt.time\ %evt.cpu\ %container.name\ (%container.id)\ %proc.name\ (%thread.tid:%thread.vtid)\ %evt.dir\ %evt.type\ %evt.info\f[]
 .PP
 \f[B]Trace Files\f[]
 .PP
@@ -112,14 +99,22 @@ The list of available fields can be obtained with \[aq]sysdig \-l\[aq].
 .PD
 Filter expressions can use one of these comparison operators:
 \f[I]=\f[], \f[I]!=\f[], \f[I]<\f[], \f[I]<=\f[], \f[I]>\f[],
-\f[I]>=\f[] and \f[I]contains\f[].
+\f[I]>=\f[], \f[I]contains\f[], \f[I]in\f[] and \f[I]exists\f[].
 e.g.
 .RS
 .PP
 $ sysdig fd.name contains /etc
+.PD 0
+.P
+.PD
+$ sysdig "evt.type in ( \[aq]select\[aq], \[aq]poll\[aq] )"
+.PD 0
+.P
+.PD
+$ sysdig proc.name exists
 .RE
 .PP
-Multiple checks can be combined through brakets and the following
+Multiple checks can be combined through brackets and the following
 boolean operators: \f[I]and\f[], \f[I]or\f[], \f[I]not\f[].
 e.g.
 .RS
@@ -196,6 +191,20 @@ run the specified chisel.
 If the chisel require arguments, they must be specified in the command
 line after the name.
 .PP
+\f[B]\-C\f[] \f[I]filesize\f[]
+.PD 0
+.P
+.PD
+Break a capture into seperate files, and limit the size of each file
+based on the specified number of megabytes.
+The units of \f[I]filesize\f[] are millions of bytes (10^6, not 2^20).
+Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
+Otherwise, new files will continue to be created until the capture is
+manually stopped.
+.PP
+Files will have the name specified by \f[B]\-w\f[] with a counter added
+starting at 0.
+.PP
 \f[B]\-cl\f[], \f[B]\-\-list\-chisels\f[]
 .PD 0
 .P
@@ -228,11 +237,24 @@ Capture events about sysdig itself
 Don\[aq]t create the user/group tables by querying the OS when sysdig
 starts.
 This also means that no user or group info will be written to the
-tracefile by the \-w flag.
+tracefile by the \f[B]\-w\f[] flag.
 The user/group tables are necessary to use filter fields like user.name
 or group.name.
 However, creating them can increase sysdig\[aq]s startup time.
 Moreover, they contain information that could be privacy sensitive.
+.PP
+\f[B]\-e\f[] \f[I]numevents\f[]
+.PD 0
+.P
+.PD
+Break a capture into seperate files, and limit the size of each file
+based on the specified number of events.
+Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
+Otherwise, new files will continue to be created until the capture is
+manually stopped.
+.PP
+Files will have the name specified by \f[B]\-w\f[] with a counter added
+starting at 0.
 .PP
 \f[B]\-F\f[], \f[B]\-\-fatfile\f[]
 .PD 0
@@ -250,6 +272,20 @@ With fatfile mode, those events are still saved to file, but
 \[aq]hidden\[aq] so that they won\[aq]t appear when reading the file.
 Be aware that using this flag might generate substantially bigger traces
 files.
+.PP
+\f[B]\-G\f[] \f[I]numseconds\f[]
+.PD 0
+.P
+.PD
+Break a capture into seperate files, and limit the size of each file
+based on the specified number of seconds.
+Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
+Otherwise, new files will continue to be created until the capture is
+manually stopped.
+.PP
+Files will have the name specified by \f[B]\-w\f[] which should include
+a time format as defined by strftime(3).
+If no time format is specified, a counter will be used.
 .PP
 \f[B]\-h\f[], \f[B]\-\-help\f[]
 .PD 0
@@ -303,6 +339,7 @@ Print progress on stderr while processing trace files.
 .P
 .PD
 Specify the format to be used when printing the events.
+With \-pc or \-pcontainer will use a container\-friendly format.
 See the examples section below for more info.
 .PP
 \f[B]\-q\f[], \f[B]\-\-quiet\f[]
@@ -366,6 +403,17 @@ Print version number.
 .PD
 Write the captured events to \f[I]writefile\f[].
 .PP
+\f[B]\-W\f[] \f[I]num\f[]
+.PD 0
+.P
+.PD
+Turn on file rotation for continuous capture, and limit the number of
+files created to the specified number.
+Once the cap is reached, older files will be overwriten (ring buffer).
+Use in conjunction with the \f[B]\-C\f[] / \f[B]\-G\f[] / \f[B]\-e\f[]
+options to limit the size of each file based on number of megabytes,
+seconds, and/or events (respectively).
+.PP
 \f[B]\-x\f[], \f[B]\-\-print\-hex\f[]
 .PD 0
 .P
@@ -397,10 +445,24 @@ Capture all the events from the live system and save them to disk
 $ sysdig \-w dumpfile.scap
 .RE
 .PP
+Capture all the events in the latest 24 hours and save them to disk
+organized in files containing 1 hour of system activity each
+.RS
+.PP
+$ sysdig \-G 3600 \-W 24 \-w dumpfile.scap
+.RE
+.PP
 Read events from a file and print them to screen
 .RS
 .PP
 $ sysdig \-r dumpfile.scap
+.RE
+.PP
+Prepare a sanitized version of a system capture
+.RS
+.PP
+$ sysdig \-r dumpfile.scap \[aq]not evt.buffer contains foo\[aq] \-w
+cleandump.scap
 .RE
 .PP
 Print all the open system calls invoked by cat
@@ -447,8 +509,9 @@ While it is possible to use sysdig with LuaJIT in Lua 5.2 mode or
 regular Lua, some chisels may not work as expected.
 .SS AUTHOR
 .PP
-Draios inc.
-<info@draios.com>
+Draios Inc.
+aka sysdig <info@sysdigcloud.com>
 .SS SEE ALSO
 .PP
-\f[B]strace\f[](8), \f[B]tcpdump\f[](8), \f[B]lsof\f[](8)
+\f[B]csysdig\f[](8), \f[B]strace\f[](8), \f[B]tcpdump\f[](8),
+\f[B]lsof\f[](8)

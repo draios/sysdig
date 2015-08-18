@@ -160,7 +160,6 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	uint16_t commlen;
 	uint16_t exelen;
 	uint16_t argslen;
-	uint16_t envlen;
 	uint16_t cwdlen;
 
 	//
@@ -185,13 +184,16 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		    sizeof(uint64_t) +  // pfmajor
 		    sizeof(uint64_t) +  // pfminor
 		    2 + tinfo->env_len +
+		    sizeof(int64_t) +  // vtid
+		    sizeof(int64_t) +  // vpid
+		    2 + tinfo->cgroups_len +
 		    sizeof(uint32_t));
 	}
 
 	//
 	// Create the block
 	//
-	bh.block_type = PL_BLOCK_TYPE_V3;
+	bh.block_type = PL_BLOCK_TYPE_V4;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
@@ -208,7 +210,6 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		commlen = (uint16_t)strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
 		exelen = (uint16_t)strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
 		argslen = tinfo->args_len;
-		envlen = tinfo->env_len;
 		cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
 
 		if(gzwrite(f, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
@@ -231,8 +232,12 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		        gzwrite(f, &(tinfo->vmswap_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		        gzwrite(f, &(tinfo->pfmajor), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		        gzwrite(f, &(tinfo->pfminor), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &envlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->env, envlen) != envlen)
+		        gzwrite(f, &(tinfo->env_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, tinfo->env, tinfo->env_len) != tinfo->env_len ||
+		        gzwrite(f, &(tinfo->vtid), sizeof(int64_t)) != sizeof(int64_t) ||
+		        gzwrite(f, &(tinfo->vpid), sizeof(int64_t)) != sizeof(int64_t) ||
+		        gzwrite(f, &(tinfo->cgroups_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, tinfo->cgroups, tinfo->cgroups_len) != tinfo->cgroups_len)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 			return SCAP_FAILURE;
@@ -550,7 +555,9 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 		handle->m_proc_callback = NULL;
 
 		scap_proc_free_table(handle);
-		if(scap_proc_scan_proc_dir(handle, "/proc", -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
+		char filename[SCAP_MAX_PATH_SIZE];
+		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+		if(scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
 		{
 			handle->m_proc_callback = tcb;
 			return NULL;
@@ -808,6 +815,9 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.pfmajor = 0;
 	tinfo.pfminor = 0;
 	tinfo.env_len = 0;
+	tinfo.vtid = -1;
+	tinfo.vpid = -1;
+	tinfo.cgroups_len = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
@@ -965,6 +975,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3:
 		case PL_BLOCK_TYPE_V3_INT:
+		case PL_BLOCK_TYPE_V4:
 			//
 			// vmsize_kb
 			//
@@ -1006,7 +1017,8 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			totreadsize += readsize;
 
 			if(block_type == PL_BLOCK_TYPE_V3 ||
-				block_type == PL_BLOCK_TYPE_V3_INT)
+				block_type == PL_BLOCK_TYPE_V3_INT ||
+				block_type == PL_BLOCK_TYPE_V4)
 			{
 				//
 				// env
@@ -1028,6 +1040,45 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				// the string is not null-terminated on file
 				tinfo.env[stlen] = 0;
 				tinfo.env_len = stlen;
+
+				totreadsize += readsize;
+			}
+
+			if(block_type == PL_BLOCK_TYPE_V4)
+			{
+				//
+				// vtid
+				//
+				readsize = gzread(f, &(tinfo.vtid), sizeof(int64_t));
+				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+
+				totreadsize += readsize;
+
+				//
+				// vpid
+				//
+				readsize = gzread(f, &(tinfo.vpid), sizeof(int64_t));
+				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+
+				totreadsize += readsize;
+
+				//
+				// cgroups
+				//
+				readsize = gzread(f, &(stlen), sizeof(uint16_t));
+				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+
+				if(stlen > SCAP_MAX_CGROUPS_SIZE)
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid cgroupslen %d", stlen);
+					return SCAP_FAILURE;
+				}
+				tinfo.cgroups_len = stlen;
+
+				totreadsize += readsize;
+
+				readsize = gzread(f, tinfo.cgroups, stlen);
+				CHECK_READ_SIZE(readsize, stlen);
 
 				totreadsize += readsize;
 			}
@@ -1402,6 +1453,7 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 
 scap_read_iflist_error:
 	scap_free_iflist(handle->m_addrlist);
+	handle->m_addrlist = NULL;
 
 	if(readbuf)
 	{
@@ -1796,6 +1848,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case PL_BLOCK_TYPE_V1:
 		case PL_BLOCK_TYPE_V2:
 		case PL_BLOCK_TYPE_V3:
+		case PL_BLOCK_TYPE_V4:
 		case PL_BLOCK_TYPE_V1_INT:
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3_INT:
@@ -1890,35 +1943,30 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 	if(!found_mi)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find machine info block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(!found_ul)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find user list block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(!found_il)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find interface list block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(!found_fdl)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find file descriptor list block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(!found_pl)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find process list block.");			
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 

@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "counts the total bytes read from and written to the network, and prints the result every second";
+description = "Counts the total bytes read from and written to the network, and prints the result every second";
 short_description = "Show total network I/O bytes";
 category = "Net";
 

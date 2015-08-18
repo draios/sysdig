@@ -30,7 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * Limits
  */
-#define PPM_MAX_EVENT_PARAMS 17	/* Max number of parameters an event can have */
+#define PPM_MAX_EVENT_PARAMS 20	/* Max number of parameters an event can have */
 #define PPM_MAX_PATH_SIZE 256	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
 
@@ -95,6 +95,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_O_DIRECT (1 << 9)
 #define PPM_O_DIRECTORY (1 << 10)
 #define PPM_O_LARGEFILE (1 << 11)
+#define PPM_O_CLOEXEC	(1 << 12)
+
+/*
+ * flock() flags
+ */
+#define PPM_LOCK_NONE 0
+#define PPM_LOCK_SH (1 << 0)
+#define PPM_LOCK_EX (1 << 1)
+#define PPM_LOCK_NB (1 << 2)
+#define PPM_LOCK_UN (1 << 3)
 
 /*
  * Clone flags
@@ -121,8 +131,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_CL_NAME_CHANGED (1 << 17)	/* libsinsp-specific flag. Set when the thread name changes */
 										/* (for example because execve was called) */
 #define PPM_CL_CLOSED (1 << 18)			/* thread has been closed. */
-#define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for 
+#define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for
 										   this thread. */
+#define PPM_CL_CLONE_NEWUSER (1 << 20)
 
 /*
  * Futex Operations
@@ -388,6 +399,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPME_IS_EXIT(x) (x & PPME_DIRECTION_FLAG)
 #define PPME_MAKE_ENTER(x) (x & (~1))
 
+/*
+ * Event category to classify events in generic categories
+ */
+enum ppm_capture_category {
+	PPMC_NONE = 0,
+	PPMC_SYSCALL = 1,
+	PPMC_CONTEXT_SWITCH = 2,
+	PPMC_SIGNAL = 3,
+};
+
 /** @defgroup etypes Event Types
  *  @{
  */
@@ -614,7 +635,35 @@ enum ppm_event_type {
 	PPME_SYSCALL_FORK_17_X = 219,
 	PPME_SYSCALL_VFORK_17_E = 220,
 	PPME_SYSCALL_VFORK_17_X = 221,
-	PPM_EVENT_MAX = 222
+	PPME_SYSCALL_CLONE_20_E = 222,
+	PPME_SYSCALL_CLONE_20_X = 223,
+	PPME_SYSCALL_FORK_20_E = 224,
+	PPME_SYSCALL_FORK_20_X = 225,
+	PPME_SYSCALL_VFORK_20_E = 226,
+	PPME_SYSCALL_VFORK_20_X = 227,
+	PPME_CONTAINER_E = 228,
+	PPME_CONTAINER_X = 229,
+	PPME_SYSCALL_EXECVE_16_E = 230,
+	PPME_SYSCALL_EXECVE_16_X = 231,
+	PPME_SIGNALDELIVER_E = 232,
+	PPME_SIGNALDELIVER_X = 233, /* This should never be called */
+	PPME_PROCINFO_E = 234,
+	PPME_PROCINFO_X = 235,	/* This should never be called */
+	PPME_SYSCALL_GETDENTS_E = 236,
+	PPME_SYSCALL_GETDENTS_X = 237,
+	PPME_SYSCALL_GETDENTS64_E = 238,
+	PPME_SYSCALL_GETDENTS64_X = 239,
+	PPME_SYSCALL_SETNS_E = 240,
+	PPME_SYSCALL_SETNS_X = 241,
+	PPME_SYSCALL_FLOCK_E = 242,
+	PPME_SYSCALL_FLOCK_X = 243,
+	PPME_CPU_HOTPLUG_E = 244,
+	PPME_CPU_HOTPLUG_X = 245, /* This should never be called */
+	PPME_SOCKET_ACCEPT_5_E = 246,
+	PPME_SOCKET_ACCEPT_5_X = 247,
+	PPME_SOCKET_ACCEPT4_5_E = 248,
+	PPME_SOCKET_ACCEPT4_5_X = 249,
+	PPM_EVENT_MAX = 250
 };
 /*@}*/
 
@@ -961,7 +1010,7 @@ enum ppm_event_category {
 	EC_IO_WRITE = 33,/* General I/O write (can be file, socket, IPC...) */
 	EC_IO_OTHER = 34,/* General I/O that is neither read not write (can be file, socket, IPC...) */
 	EC_WAIT = 64,	/* General wait (can be file, socket, IPC...) */
-	EC_SCHEDULER = 128,	/* General wait (can be file, socket, IPC...) */
+	EC_SCHEDULER = 128,	/* Scheduler event (e.g. context switch) */
 	EC_INTERNAL = 256,	/* Internal event that shouldn't be shown to the user */
 };
 
@@ -991,6 +1040,8 @@ enum ppm_cmp_operator {
 	CO_GT = 5,
 	CO_GE = 6,
 	CO_CONTAINS = 7,
+	CO_IN = 8,
+	CO_EXISTS = 9,
 };
 
 /*
@@ -1028,8 +1079,10 @@ enum ppm_param_type {
 	PT_FLAGS8 = 28, /* this is an UINT8, but will be interpreted as 8 bit flags. */
 	PT_FLAGS16 = 29, /* this is an UINT16, but will be interpreted as 16 bit flags. */
 	PT_FLAGS32 = 30, /* this is an UINT32, but will be interpreted as 32 bit flags. */
-	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value */
-	PT_GID = 32 /* this is an UINT32, MAX_UINT32 will be interpreted as no value */
+	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
+	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
+	PT_DOUBLE = 33, /* this is a double precision floating point number. */
+	PT_MAX = 34 /* array size */
 };
 
 enum ppm_print_format {
@@ -1037,6 +1090,8 @@ enum ppm_print_format {
 	PF_DEC = 1,	/* decimal */
 	PF_HEX = 2,	/* hexadecima */
 	PF_10_PADDED_DEC = 3, /* decimal padded to 10 digits, useful to print the fractional part of a ns timestamp */
+	PF_ID = 4,
+	PF_DIR = 5,
 };
 
 /*!
@@ -1110,7 +1165,13 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_MASK_UNSET_EVENT _IO(PPM_IOCTL_MAGIC, 7)
 #define PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN _IO(PPM_IOCTL_MAGIC, 8)
 #define PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN _IO(PPM_IOCTL_MAGIC, 9)
-
+#define PPM_IOCTL_GET_VTID _IO(PPM_IOCTL_MAGIC, 10)
+#define PPM_IOCTL_GET_VPID _IO(PPM_IOCTL_MAGIC, 11)
+#define PPM_IOCTL_GET_CURRENT_TID _IO(PPM_IOCTL_MAGIC, 12)
+#define PPM_IOCTL_GET_CURRENT_PID _IO(PPM_IOCTL_MAGIC, 13)
+#define PPM_IOCTL_DISABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 14)
+#define PPM_IOCTL_ENABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 15)
+#define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 16)
 
 /*!
   \brief System call description struct.
@@ -1122,6 +1183,7 @@ struct ppm_syscall_desc {
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
+extern const struct ppm_name_value flock_flags[];
 extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];
 extern const struct ppm_name_value lseek_whence[];
@@ -1149,5 +1211,19 @@ enum ppm_driver_event_id {
 	DEI_ENABLE_DROPPING = 2,
 };
 
+/*!
+  \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
+*/
+struct ppm_proc_info {
+	uint64_t pid;
+	uint64_t utime;
+	uint64_t stime;
+};
+
+struct ppm_proclist_info {
+	int64_t n_entries;
+	int64_t max_entries;
+	struct ppm_proc_info entries[0];
+};
 
 #endif /* EVENTS_PUBLIC_H_ */

@@ -19,8 +19,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
 #include <linux/compat.h>
+#include <linux/kobject.h>
 #include <linux/cdev.h>
-#include <asm/syscall.h>
 #include <net/sock.h>
 #include <net/af_unix.h>
 #include <linux/ip.h>
@@ -34,6 +34,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <asm/mman.h>
+#include <linux/in.h>
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
+#include <linux/mount.h>
+#include "ppm_syscall.h"
+#else
+#include <asm/syscall.h>
+#endif
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -124,7 +131,7 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 		if (n < bytes_to_read)
 			bytes_to_read = n;
 
-		if (!ppm_access_ok(VERIFY_READ, from, n)) {
+		if (!ppm_access_ok(VERIFY_READ, from, bytes_to_read)) {
 			res = -1;
 			goto strncpy_end;
 		}
@@ -174,7 +181,7 @@ int32_t dpi_lookahead_init(void)
 
 inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 lookahead_size)
 {
-	u32 res = g_snaplen;
+	u32 res = args->consumer->snaplen;
 	int err;
 	struct socket *sock;
 	sa_family_t family;
@@ -213,7 +220,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	}
 */
 
-	if (!g_do_dynamic_snaplen)
+	if (!args->consumer->do_dynamic_snaplen)
 		return res;
 
 	sock = sockfd_lookup(args->fd, &err);
@@ -261,18 +268,22 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 								return 2000;
 							}
 						}
-					} else if ( (sport >= PPM_START_PORT_MONGODB && sport <= PPM_END_PORT_MONGODB) ||
-								(dport >= PPM_START_PORT_MONGODB && dport <= PPM_END_PORT_MONGODB) ) {
-						if (lookahead_size >= 4)
-						{
-							// Matches both header frame and flags entry on commands
-							// the server does separate reads for header and commands
-							if (buf[3] == 0)
-							{
-								sockfd_put(sock);
-								return 2000;
-							}
-						}
+					} else if (( lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
+							   (lookahead_size >= 16 && ( *(int32_t*)(buf+12) == 1 || /* matches header */
+									   *(int32_t*)(buf+12) == 2001 ||
+									   *(int32_t*)(buf+12) == 2002 ||
+									   *(int32_t*)(buf+12) == 2003 ||
+									   *(int32_t*)(buf+12) == 2004 ||
+									   *(int32_t*)(buf+12) == 2005 ||
+									   *(int32_t*)(buf+12) == 2006 ||
+									   *(int32_t*)(buf+12) == 2007 )
+							   )
+							) {
+						sockfd_put(sock);
+						return 2000;
+					} else if ( dport == PPM_PORT_STATSD ) {
+						sockfd_put(sock);
+						return 2000;
 					} else {
 						if (lookahead_size >= 5) {
 							if (*(u32 *)buf == g_http_get_intval ||
@@ -418,7 +429,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 					 * Calculate the snaplen
 					 */
 					if (likely(args->enforce_snaplen)) {
-						u32 sl = g_snaplen;
+						u32 sl = args->consumer->snaplen;
 
 						sl = compute_snaplen(args, args->buffer + args->arg_data_offset, dpi_lookahead_size);
 
@@ -604,6 +615,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
  * of buf.
  * Buf must be at least 1 page in size.
  */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 char *npm_getcwd(char *buf, unsigned long bufsize)
 {
 	struct path pwd;
@@ -629,6 +641,28 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 
 	return res;
 }
+#else /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
+char *npm_getcwd(char *buf, unsigned long bufsize)
+{
+        struct dentry *dentry;
+        struct vfsmount *mnt;
+        char *res;
+
+        ASSERT(bufsize >= PAGE_SIZE - 1);
+
+        read_lock(&current->fs->lock);
+        mnt = mntget(current->fs->pwdmnt);
+        dentry = dget(current->fs->pwd);
+        read_unlock(&current->fs->lock);
+
+        res = d_path(dentry, mnt, buf, bufsize);
+
+        if (IS_ERR(res))
+                res = NULL;
+
+        return res;
+}
+#endif
 
 static inline u8 socket_family_to_scap(u8 family)
 {
@@ -676,9 +710,13 @@ static inline u8 socket_family_to_scap(u8 family)
 		return PPM_AF_ECONET;
 	} else if (family == AF_ATMSVC) {
 		return PPM_AF_ATMSVC;
-	} else if (family == AF_RDS) {
+	}
+#ifdef AF_RDS
+	else if (family == AF_RDS) {
 		return PPM_AF_RDS;
-	} else if (family == AF_SNA) {
+	}
+#endif
+	else if (family == AF_SNA) {
 		return PPM_AF_SNA;
 	} else if (family == AF_IRDA) {
 		return PPM_AF_IRDA;
@@ -688,23 +726,39 @@ static inline u8 socket_family_to_scap(u8 family)
 		return PPM_AF_WANPIPE;
 	} else if (family == AF_LLC) {
 		return PPM_AF_LLC;
-	} else if (family == AF_CAN) {
+	}
+#ifdef AF_CAN
+	else if (family == AF_CAN) {
 		return PPM_AF_CAN;
-	} else if (family == AF_TIPC) {
+	}
+#endif
+	 else if (family == AF_TIPC) {
 		return PPM_AF_TIPC;
 	} else if (family == AF_BLUETOOTH) {
 		return PPM_AF_BLUETOOTH;
 	} else if (family == AF_IUCV) {
 		return PPM_AF_IUCV;
-	} else if (family == AF_RXRPC) {
+	}
+#ifdef AF_RXRPC
+	else if (family == AF_RXRPC) {
 		return PPM_AF_RXRPC;
-	} else if (family == AF_ISDN) {
+	}
+#endif
+#ifdef AF_ISDN
+	else if (family == AF_ISDN) {
 		return PPM_AF_ISDN;
-	} else if (family == AF_PHONET) {
+	}
+#endif
+#ifdef AF_PHONET
+	else if (family == AF_PHONET) {
 		return PPM_AF_PHONET;
-	} else if (family == AF_IEEE802154) {
+	}
+#endif
+#ifdef AF_IEEE802154
+	else if (family == AF_IEEE802154) {
 		return PPM_AF_IEEE802154;
 	}
+#endif
 #ifdef AF_CAIF
 	else if (family == AF_CAIF) {
 		return PPM_AF_CAIF;
@@ -1110,7 +1164,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	u32 targetbuflen = STR_STORAGE_SIZE;
 	unsigned long val;
 	u32 notcopied_len;
-	u32 tocopy_len;
+	size_t tocopy_len;
 
 	copylen = iovcnt * sizeof(struct iovec);
 
@@ -1131,6 +1185,14 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	if (flags & PRB_FLAG_PUSH_SIZE) {
 		for (j = 0; j < iovcnt; j++)
 			size += iov[j].iov_len;
+
+		/*
+		 * Size is the total size of the buffers provided by the user. The number of
+		 * received bytes can be smaller 
+		 */
+		if ((flags & PRB_FLAG_IS_WRITE) == 0)
+			if (size > retval)
+				size = retval;
 
 		res = val_to_ring(args, size, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
@@ -1154,7 +1216,23 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			bufsize = 0;
 
 			for (j = 0; j < iovcnt; j++) {
-				tocopy_len = min(iov[j].iov_len, targetbuflen - bufsize - 1);
+				if ((flags & PRB_FLAG_IS_WRITE) == 0) {
+					if (bufsize >= retval) {
+						ASSERT(bufsize >= retval);
+
+						/*
+						 * Copied all the data even if we haven't reached the
+						 * end of the buffer.
+						 * Copy must stop here.
+						 */
+						break;
+					}
+
+					tocopy_len = min(iov[j].iov_len, (size_t)retval - bufsize);
+					tocopy_len = min(tocopy_len, (size_t)targetbuflen - bufsize - 1);
+				} else {
+					tocopy_len = min(iov[j].iov_len, targetbuflen - bufsize - 1);
+				}
 
 				notcopied_len = (int)ppm_copy_from_user(targetbuf + bufsize,
 						iov[j].iov_base,

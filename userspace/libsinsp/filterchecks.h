@@ -27,6 +27,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 }
 
 bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
+bool flt_compare_avg(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
+
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 
 class operand_info
@@ -47,7 +49,7 @@ class sinsp_filter_check
 {
 public:
 	sinsp_filter_check();
-	
+
 	virtual ~sinsp_filter_check()
 	{
 	}
@@ -61,26 +63,26 @@ public:
 	//
 	// Get the list of fields that this check exports
 	//
-	virtual filter_check_info* get_filelds()
+	virtual filter_check_info* get_fields()
 	{
 		return &m_info;
 	}
 
 	//
 	// Parse the name of the field.
-	// Returns the lenght of the parsed field if successful, an exception in 
+	// Returns the length of the parsed field if successful, an exception in
 	// case of error.
 	//
-	virtual int32_t parse_field_name(const char* str);
-	
+	virtual int32_t parse_field_name(const char* str, bool alloc_state);
+
 	//
 	// If this check is used by a filter, extract the constant to compare it to
-	// Doesn't return the field lenght because the filtering engine can calculate it.
+	// Doesn't return the field length because the filtering engine can calculate it.
 	//
 	virtual void parse_filter_value(const char* str, uint32_t len);
 
 	//
-	// Return the info about the field that this instance contains 
+	// Return the info about the field that this instance contains
 	//
 	virtual const filtercheck_field_info* get_field_info();
 
@@ -95,7 +97,7 @@ public:
 	//
 	virtual Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
 	{
-		return Json::Value::null;
+		return Json::Value::nullRef;
 	}
 
 	//
@@ -117,14 +119,13 @@ public:
 	sinsp* m_inspector;
 	boolop m_boolop;
 	ppm_cmp_operator m_cmpop;
+	sinsp_field_aggregation m_aggregation;
+	sinsp_field_aggregation m_merge_aggregation;
 
 protected:
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
-	int32_t extract_arg(string fldname, string val, 
-		OUT const struct ppm_param_info** parinfo,
-		OUT int32_t* argid, OUT string* argname);
 
 	char m_getpropertystr_storage[1024];
 	vector<uint8_t> m_val_storage;
@@ -151,6 +152,7 @@ public:
 	~sinsp_filter_check_list();
 	void add_filter_check(sinsp_filter_check* filter_check);
 	void get_all_fields(vector<const filter_check_info*>* list);
+	sinsp_filter_check* new_filter_check_from_another(sinsp_filter_check *chk);
 	sinsp_filter_check* new_filter_check_from_fldname(const string& name, sinsp* inspector, bool do_exact_check);
 
 private:
@@ -177,7 +179,7 @@ public:
 	// The following methods are part of the filter check interface but are irrelevant
 	// for this class, because they are used only for the leaves of the filtering tree.
 	//
-	int32_t parse_field_name(const char* str)
+	int32_t parse_field_name(const char* str, bool alloc_state)
 	{
 		ASSERT(false);
 		return 0;
@@ -225,12 +227,19 @@ public:
 		TYPE_IP = 6,
 		TYPE_CLIENTIP = 7,
 		TYPE_SERVERIP = 8,
-		TYPE_PORT = 9,
-		TYPE_CLIENTPORT = 10,
-		TYPE_SERVERPORT = 11,
-		TYPE_L4PROTO = 12,
-		TYPE_SOCKFAMILY = 13,
-		TYPE_IS_SERVER = 14,
+		TYPE_LIP = 9,
+		TYPE_RIP = 10,
+		TYPE_PORT = 11,
+		TYPE_CLIENTPORT = 12,
+		TYPE_SERVERPORT = 13,
+		TYPE_LPORT = 14,
+		TYPE_RPORT = 15,
+		TYPE_L4PROTO = 16,
+		TYPE_SOCKFAMILY = 17,
+		TYPE_IS_SERVER = 18,
+		TYPE_UID = 19,
+		TYPE_CONTAINERNAME = 20,
+		TYPE_CONTAINERDIRECTORY = 21,
 	};
 
 	enum fd_type
@@ -251,7 +260,7 @@ public:
 
 	sinsp_filter_check_fd();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str);
+	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
@@ -271,7 +280,7 @@ private:
 };
 
 //
-// thread checks
+// thread sinsp_filter_check_syslog
 //
 class sinsp_filter_check_thread : public sinsp_filter_check
 {
@@ -284,50 +293,62 @@ public:
 		TYPE_ARGS = 3,
 		TYPE_ENV = 4,
 		TYPE_CMDLINE = 5,
-		TYPE_CWD = 6,
-		TYPE_NCHILDS = 7,
-		TYPE_PPID = 8,
-		TYPE_PNAME = 9,
-		TYPE_APID = 10,
-		TYPE_ANAME = 11,
-		TYPE_LOGINSHELLID = 12,
-		TYPE_DURATION = 13,
-		TYPE_FDOPENCOUNT = 14,
-		TYPE_FDLIMIT = 15,
-		TYPE_FDUSAGE = 16,
-		TYPE_VMSIZE = 17,
-		TYPE_VMRSS = 18,
-		TYPE_VMSWAP = 19,
-		TYPE_PFMAJOR = 20,
-		TYPE_PFMINOR = 21,
-		TYPE_TID = 22,
-		TYPE_ISMAINTHREAD = 23,
-		TYPE_EXECTIME = 24,
-		TYPE_TOTEXECTIME = 25,
-		TYPE_IOBYTES = 26,
-		TYPE_TOTIOBYTES = 27,
-		TYPE_LATENCY = 28,
-		TYPE_TOTLATENCY = 29,
+		TYPE_EXELINE = 6,
+		TYPE_CWD = 7,
+		TYPE_NTHREADS = 8,
+		TYPE_NCHILDS = 9,
+		TYPE_PPID = 10,
+		TYPE_PNAME = 11,
+		TYPE_APID = 12,
+		TYPE_ANAME = 13,
+		TYPE_LOGINSHELLID = 14,
+		TYPE_DURATION = 15,
+		TYPE_FDOPENCOUNT = 16,
+		TYPE_FDLIMIT = 17,
+		TYPE_FDUSAGE = 18,
+		TYPE_VMSIZE = 19,
+		TYPE_VMRSS = 20,
+		TYPE_VMSWAP = 21,
+		TYPE_PFMAJOR = 22,
+		TYPE_PFMINOR = 23,
+		TYPE_TID = 24,
+		TYPE_ISMAINTHREAD = 25,
+		TYPE_EXECTIME = 26,
+		TYPE_TOTEXECTIME = 27,
+		TYPE_CGROUPS = 28,
+		TYPE_CGROUP = 29,
+		TYPE_VTID = 30,
+		TYPE_VPID = 31,
+		TYPE_THREAD_CPU = 32,
+		TYPE_THREAD_CPU_USER = 33,
+		TYPE_THREAD_CPU_SYSTEM = 34,
+		TYPE_THREAD_VMSIZE = 35,
+		TYPE_THREAD_VMRSS = 36,
 	};
 
 	sinsp_filter_check_thread();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str);
+	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	uint8_t* extract_thread_cpu(sinsp_evt *evt, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
 
 	int32_t m_argid;
+	string m_argname;
 	uint32_t m_tbool;
 	string m_tstr;
 	uint64_t m_u64val;
 	int64_t m_s64val;
+	double m_dval;
 	vector<uint64_t> m_last_proc_switch_times;
+	uint32_t m_th_state_id;
+	uint64_t m_cursec_ts;
 };
 
 //
@@ -356,30 +377,50 @@ public:
 		TYPE_DELTA_NS = 15,
 		TYPE_DIR = 16,
 		TYPE_TYPE = 17,
-		TYPE_CPU = 18,
-		TYPE_ARGS = 19,
-		TYPE_ARGSTR = 20,
-		TYPE_ARGRAW = 21,
-		TYPE_INFO = 22,
-		TYPE_BUFFER = 23,
-		TYPE_BUFLEN = 24,
-		TYPE_RESSTR = 25,
-		TYPE_RESRAW = 26,
-		TYPE_FAILED = 27,
-		TYPE_ISIO = 28,
-		TYPE_ISIO_READ = 29,
-		TYPE_ISIO_WRITE = 30,
-		TYPE_IODIR = 31,
-		TYPE_ISWAIT = 32,
-		TYPE_ISSYSLOG = 33,
-		TYPE_COUNT = 34,
-		TYPE_AROUND = 35,
-		TYPE_ABSPATH = 36,
+		TYPE_TYPE_IS = 18,
+		TYPE_SYSCALL_TYPE = 19,
+		TYPE_CATEGORY = 20,
+		TYPE_CPU = 21,
+		TYPE_ARGS = 22,
+		TYPE_ARGSTR = 23,
+		TYPE_ARGRAW = 24,
+		TYPE_INFO = 25,
+		TYPE_BUFFER = 26,
+		TYPE_BUFLEN = 27,
+		TYPE_RESSTR = 28,
+		TYPE_RESRAW = 29,
+		TYPE_FAILED = 30,
+		TYPE_ISIO = 31,
+		TYPE_ISIO_READ = 32,
+		TYPE_ISIO_WRITE = 33,
+		TYPE_IODIR = 34,
+		TYPE_ISWAIT = 35,
+		TYPE_WAIT_LATENCY = 36,
+		TYPE_ISSYSLOG = 37,
+		TYPE_COUNT = 38,
+		TYPE_COUNT_ERROR = 39,
+		TYPE_COUNT_ERROR_FILE = 40,
+		TYPE_COUNT_ERROR_NET = 41,
+		TYPE_COUNT_ERROR_MEMORY = 42,
+		TYPE_COUNT_ERROR_OTHER = 43,
+		TYPE_COUNT_EXIT = 44,
+		TYPE_COUNT_PROCINFO = 45,
+		TYPE_COUNT_THREADINFO = 46,
+		TYPE_AROUND = 47,
+		TYPE_ABSPATH = 48,
+		TYPE_BUFLEN_IN = 49,
+		TYPE_BUFLEN_OUT = 50,
+		TYPE_BUFLEN_FILE = 51,
+		TYPE_BUFLEN_FILE_IN = 52,
+		TYPE_BUFLEN_FILE_OUT = 53,
+		TYPE_BUFLEN_NET = 54,
+		TYPE_BUFLEN_NET_IN = 55,
+		TYPE_BUFLEN_NET_OUT = 56,
 	};
 
 	sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str);
+	int32_t parse_field_name(const char* str, bool alloc_state);
 	void parse_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
@@ -393,18 +434,24 @@ public:
 	string m_strstorage;
 	string m_argname;
 	int32_t m_argid;
+	uint32_t m_evtid;
+	uint32_t m_evtid1;
 	const ppm_param_info* m_arginfo;
+
 	//
-	// Note: this copy of the field is used by some fields, like TYPE_ARGS and 
+	// Note: this copy of the field is used by some fields, like TYPE_ARGS and
 	// TYPE_RESARG, that need to do on the fly type customization
 	//
 	filtercheck_field_info m_customfield;
 
 private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	int32_t extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
 	int32_t gmt2local(time_t t);
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
+	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
 	bool m_is_compare;
 };
@@ -460,13 +507,13 @@ public:
 	rawstring_check(string text);
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
-	int32_t parse_field_name(const char* str);
+	int32_t parse_field_name(const char* str, bool alloc_state);
 	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 	// XXX this is overkill and wasted for most of the fields.
 	// It could be optimized by dynamically allocating the right amount
-	// of memory, but we don't care for the moment since we expect filters 
+	// of memory, but we don't care for the moment since we expect filters
 	// to be pretty small.
 	string m_text;
 	uint32_t m_text_len;
@@ -491,11 +538,117 @@ public:
 
 	sinsp_filter_check_syslog();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str);
+	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 	sinsp_decoder_syslog* m_decoder;
 	uint32_t m_gid;
 	string m_name;
 };
+
+class sinsp_filter_check_container : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_CONTAINER_ID = 0,
+		TYPE_CONTAINER_NAME,
+		TYPE_CONTAINER_IMAGE,
+	};
+
+	sinsp_filter_check_container();
+	sinsp_filter_check* allocate_new();
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	string m_tstr;
+};
+
+//
+// For internal use
+//
+class sinsp_filter_check_reference : public sinsp_filter_check
+{
+public:
+	enum alignment
+	{
+		ALIGN_LEFT,
+		ALIGN_RIGHT,
+	};
+
+	sinsp_filter_check_reference();
+	sinsp_filter_check* allocate_new();
+	inline void set_val(ppm_param_type type, uint8_t* val, 
+		int32_t len, uint32_t cnt,
+		ppm_print_format print_format)
+	{
+		m_finfo.m_type = type;
+		m_val = val;
+		m_len = len;
+		m_cnt = cnt;
+		m_print_format = print_format;
+	}
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	void parse_filter_value(const char* str, uint32_t len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
+
+private:
+	inline char* format_bytes(double val, uint32_t str_len, bool is_int);
+	inline char* format_time(uint64_t val, uint32_t str_len);
+	char* print_double(uint8_t* rawval, uint32_t str_len);
+	char* print_int(uint8_t* rawval, uint32_t str_len);
+
+	filtercheck_field_info m_finfo;
+	uint8_t* m_val;
+	uint32_t m_len;
+	double m_cnt;		// For averages, this stores the entry count
+	ppm_print_format m_print_format;
+};
+
+//
+// For internal use
+//
+class sinsp_filter_check_utils : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_CNT,
+	};
+
+	sinsp_filter_check_utils();
+	sinsp_filter_check* allocate_new();
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	uint64_t m_cnt;
+};
+
+//
+// fdlist checks
+//
+class sinsp_filter_check_fdlist : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_FDNUMS = 0,
+		TYPE_FDNAMES = 1,
+		TYPE_CLIENTIPS = 2,
+		TYPE_SERVERIPS = 3,
+		TYPE_CLIENTPORTS = 4,
+		TYPE_SERVERPORTS = 5,
+	};
+
+	sinsp_filter_check_fdlist();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	string m_strval;
+	char m_addrbuff[100];
+};
+
 #endif // HAS_FILTERING

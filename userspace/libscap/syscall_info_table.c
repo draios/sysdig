@@ -347,6 +347,5 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 
 bool validate_info_table_size()
 {
-	int a = sizeof(g_syscall_info_table) / sizeof(g_syscall_info_table[0]);
 	return (sizeof(g_syscall_info_table) / sizeof(g_syscall_info_table[0]) == PPM_SC_MAX);
 }

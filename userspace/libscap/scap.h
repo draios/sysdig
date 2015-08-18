@@ -99,6 +99,7 @@ typedef struct evt_param_info
 #define SCAP_MAX_PATH_SIZE 1024
 #define SCAP_MAX_ARGS_SIZE 4096
 #define SCAP_MAX_ENV_SIZE 4096
+#define SCAP_MAX_CGROUPS_SIZE 4096
 
 /*!
   \brief File Descriptor type
@@ -209,6 +210,10 @@ typedef struct scap_threadinfo
 	uint32_t vmswap_kb; ///< swapped memory (as kb)
 	uint64_t pfmajor; ///< number of major page faults since start
 	uint64_t pfminor; ///< number of minor page faults since start
+	int64_t vtid;
+	int64_t vpid;
+	char cgroups[SCAP_MAX_CGROUPS_SIZE];
+	uint16_t cgroups_len;
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
@@ -389,14 +394,14 @@ typedef struct scap_userlist
 /*!
   \brief The OS on which the capture was made
 */
-typedef enum scap_os_patform
+typedef enum scap_os_platform
 {
 	SCAP_PFORM_UNKNOWN = 0,
 	SCAP_PFORM_LINUX_I386 = 1,
 	SCAP_PFORM_LINUX_X64 = 2,
 	SCAP_PFORM_WINDOWS_I386 = 3,
 	SCAP_PFORM_WINDOWS_X64 = 4,
-}scap_os_patform;
+}scap_os_platform;
 
 /*!
   \brief Indicates if an event is an enter one or an exit one
@@ -494,7 +499,7 @@ void scap_close(scap_t* handle);
     For offline handles, the return value indicates the OS where the data was 
 	originally captured.
 */
-scap_os_patform scap_get_os_platform(scap_t* handle);
+scap_os_platform scap_get_os_platform(scap_t* handle);
 
 /*!
   \brief Return a string with the last error that happened on the given capture.
@@ -798,6 +803,19 @@ int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id);
 int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
 
 
+/*!
+  \brief Get the root directory of the system. This usually changes
+  if sysdig runs in a container, so that all the information for the
+  host can be correctly extracted.
+*/
+const char* scap_get_host_root();
+
+/*!
+  \brief Get the process list by querying the sysdig kernel module.
+*/
+struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
+
+
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -825,6 +843,8 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 // Check if the given thread exists in ;proc
 bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm);
 
+// like getpid() but returns the global PID even inside a container
+int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
 
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);
@@ -832,6 +852,7 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 void scap_proc_free_table(scap_t* handle);
+void scap_refresh_iflist(scap_t* handle);
 
 #ifdef __cplusplus
 }

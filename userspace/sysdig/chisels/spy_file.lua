@@ -25,13 +25,13 @@ args =
 {
 	{
 		name = "read_or_write",
-		description = "specify 'R' to capture only read events; 'W' to capture only write events; 'RW' to capture read and write events. By default both read and write events are captured.",
+		description = "Specify 'R' to capture only read events; 'W' to capture only write events; 'RW' to capture read and write events. By default both read and write events are captured.",
 		argtype = "string",
 		optional = true
 	},
 	{
 		name = "spy_on_file_name", 
-		description = "the name of the file which the chisel should spy on for all read and write activity.", 
+		description = "The name of the file which the chisel should spy on for all read and write activity.", 
 		argtype = "string",
 		optional = true
 	}

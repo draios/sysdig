@@ -1,10 +1,9 @@
 --[[
 Copyright (C) 2014 Draios inc.
- 
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation.
-
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,21 +15,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel prints the open file descriptors for every process in the system, with an output that is similar to the one of lsof";
+description = "This chisel prints the open file descriptors for every process in the system, with an output that is similar to the one of lsof. Output is at a point in time; adjust this in the filter.  It defaults to time of evt.num=0";
 short_description = "List (and optionally filter) the open file descriptors.";
 category = "System State";
-		   
+		
 -- Argument list
-args = 
+args =
 {
 	{
 		name = "filter",
-		description = "a sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.name contains /etc'.", 
+		description = "A sysdig-like filter expression that allows restricting the FD list. E.g. 'proc.name=foo and fd.name contains /etc'.",
 		argtype = "filter",
 		optional = true
 	}
 }
 
+-- Argument initialization Callback
 function on_set_arg(name, val)
 	if name == "filter" then
 		filter = val
@@ -45,6 +45,7 @@ require "common"
 local dctable = {}
 local capturing = false
 local filter = nil
+local match = false
 
 -- Argument notification callback
 function on_set_arg(name, val)
@@ -61,6 +62,7 @@ function on_init()
 	return true
 end
 
+-- Final chisel initialization
 function on_capture_start()	
 	capturing = true
 	return true
@@ -69,14 +71,21 @@ end
 -- Event parsing callback
 function on_event()
 	sysdig.end_capture()
+	match = true
 	return false
 end
 
+-- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
 	if not capturing then
 		return
 	end
 	
+	if match == false then
+		print("empty capture or no event matching the filter")
+		return
+	end
+
 	local ttable = sysdig.get_thread_table(filter)
 
 	local sorted_ttable = pairs_top_by_val(ttable, 0, function(t,a,b) return a < b end)

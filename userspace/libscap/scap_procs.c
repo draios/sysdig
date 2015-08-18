@@ -24,10 +24,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <dirent.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
+#include <sys/ioctl.h>
 #endif
 
 #include "scap.h"
-
+#include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
 
 #if defined(HAS_CAPTURE)
@@ -227,16 +228,18 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 // use prlimit to extract the RLIMIT_NOFILE for the tid. On systems where prlimit
 // is not supported, just return -1
 //
-int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo)
+static int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo)
 #ifdef SYS_prlimit64
 {
 	struct rlimit rl;
 
+#ifdef __NR_prlimit64
 	if(syscall(SYS_prlimit64, tid, RLIMIT_NOFILE, NULL, &rl) == 0)
 	{
 		tinfo->fdlimit = rl.rlim_cur;
 		return SCAP_SUCCESS;
 	}
+#endif
 
 	tinfo->fdlimit = -1;
 	return SCAP_SUCCESS;
@@ -248,10 +251,165 @@ int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo)
 }
 #endif
 
+int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname)
+{
+	char filename[SCAP_MAX_PATH_SIZE];
+	char line[SCAP_MAX_CGROUPS_SIZE];
+
+	tinfo->cgroups_len = 0;
+	snprintf(filename, sizeof(filename), "%scgroup", procdirname);
+
+    if(access(filename, R_OK) == -1)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	FILE* f = fopen(filename, "r");
+	if(f == NULL)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	while(fgets(line, sizeof(line), f) != NULL)
+	{
+		char* token;
+		char* subsys_list;
+		char* cgroup;
+
+		// id
+		token = strtok(line, ":");
+		if(token == NULL)
+		{
+			ASSERT(false);
+			fclose(f);
+			return SCAP_FAILURE;
+		}
+
+		// subsys
+		subsys_list = strtok(NULL, ":");
+		if(subsys_list == NULL)
+		{
+			ASSERT(false);
+			fclose(f);
+			return SCAP_FAILURE;
+		}
+
+		// transient cgroup
+		if(strncmp(subsys_list, "name=", sizeof("name=") - 1) == 0)
+		{
+			continue;
+		}
+
+		// cgroup
+		cgroup = strtok(NULL, ":");
+		if(cgroup == NULL)
+		{
+			ASSERT(false);
+			fclose(f);
+			return SCAP_FAILURE;
+		}
+
+		// remove the \n
+		cgroup[strlen(cgroup) - 1] = 0;
+
+		while((token = strtok(subsys_list, ",")) != NULL)
+		{
+			subsys_list = NULL;
+			if(strlen(cgroup) + 1 + strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len)
+			{
+				ASSERT(false);
+				fclose(f);
+				return SCAP_SUCCESS;
+			}
+
+			snprintf(tinfo->cgroups + tinfo->cgroups_len, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len, "%s=%s", token, cgroup);
+			tinfo->cgroups_len += strlen(cgroup) + 1 + strlen(token) + 1;			
+		}
+	}
+
+	fclose(f);
+	return SCAP_SUCCESS;
+}
+
+static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
+{
+	if(handle->m_file)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*vtid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
+
+	if(*vtid == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
+static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
+{
+	if(handle->m_file)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*vpid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
+
+	if(*vpid == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
+int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
+{
+	if(handle->m_file)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
+	if(*pid == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif	
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
-int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, scap_fdinfo** sockets, scap_threadinfo** procinfo, char *error)
+static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
 {
 	char dir_name[256];
 	char target_name[256];
@@ -264,6 +422,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	size_t filesize;
 	size_t exe_len;
 	bool free_tinfo = false;
+	int32_t res = SCAP_SUCCESS;
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -477,6 +636,23 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		return SCAP_FAILURE;
 	}
 
+	if(scap_proc_fill_cgroups(tinfo, dir_name) == SCAP_FAILURE)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill cgroups for %" PRIu64, tinfo->tid);
+		free(tinfo);
+		return SCAP_FAILURE;	
+	}
+
+	if(scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
+	{
+		tinfo->vtid = -1;
+	}
+
+	if(scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
+	{
+		tinfo->vpid = -1;
+	}
+
 	//
 	// if tid_to_scan is set we assume this is a runtime lookup so no
 	// need to use the table
@@ -509,9 +685,9 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 	//
 	// Only add fds for processes, not threads
 	//
-	if(-1 == parenttid)
+	if(parenttid == -1)
 	{
-		return scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets, error);
+		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, error);
 	}
 
 	if(free_tinfo)
@@ -519,7 +695,7 @@ int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int
 		free(tinfo);
 	}
 
-	return SCAP_SUCCESS;
+	return res;
 }
 
 //
@@ -534,7 +710,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	int32_t res = SCAP_SUCCESS;
 	char childdir[SCAP_MAX_PATH_SIZE];
 
-	scap_fdinfo* sockets = NULL;
+	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
 	tid = 0;
 	dir_p = opendir(procdirname);
@@ -549,7 +725,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	{
 		if(!scan_sockets)
 		{
-			sockets = (void*)-1;
+			sockets_by_ns = (void*)-1;
 		}
 	}
 
@@ -599,7 +775,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 			//
 			// We have a process that needs to be explored
 			//
-			res = scap_proc_add_from_proc(handle, tid, parenttid, tid_to_scan, procdirname, &sockets, procinfo, error);
+			res = scap_proc_add_from_proc(handle, tid, parenttid, tid_to_scan, procdirname, &sockets_by_ns, procinfo, error);
 			if(res != SCAP_SUCCESS)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "cannot add procs tid = %"PRIu64", parenttid = %"PRIi32", dirname = %s", tid, parenttid, procdirname);
@@ -638,9 +814,9 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	}
 
 	closedir(dir_p);
-	if(sockets != NULL && sockets != (void*)-1)
+	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
 	{
-		scap_fd_free_table(handle, &sockets);
+		scap_fd_free_ns_sockets_list(handle, &sockets_by_ns);
 	}
 	return res;
 }
@@ -697,8 +873,9 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	}
 
 	struct scap_threadinfo* tinfo = NULL;
-
-	if(scap_proc_scan_proc_dir(handle, "/proc", -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+	if(scap_proc_scan_proc_dir(handle, filename, -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		return NULL;
 	}
@@ -715,6 +892,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	char charbuf[SCAP_MAX_PATH_SIZE];
 	FILE* f;
 
+
 	//
 	// No /proc parsing for offline captures
 	//
@@ -724,7 +902,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 		return false;
 	}
 
-	snprintf(charbuf, sizeof(charbuf), "/proc/%" PRId64 "/task/%" PRId64 "/comm", pid, tid);
+	snprintf(charbuf, sizeof(charbuf), "%s/proc/%" PRId64 "/task/%" PRId64 "/comm", scap_get_host_root(), pid, tid);
 
 	f = fopen(charbuf, "r");
 
@@ -740,6 +918,22 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 		}
 
 		fclose(f);
+	}
+	else
+	{
+		//
+		// If /proc/<pid>/task/<tid>/comm does not exist but /proc/<pid>/task/<tid>/exe does exist, we assume we're on an ancient
+		// OS like RHEL5 and we return true.
+		// This could generate some false positives on such old distros, and we're going to accept it.
+		//
+		snprintf(charbuf, sizeof(charbuf), "%s/proc/%" PRId64 "/task/%" PRId64 "/exe", scap_get_host_root(), pid, tid);
+		f = fopen(charbuf, "r");
+		if(f != NULL)
+		{
+			fclose(f);
+			return true;
+		}
+
 	}
 
 	return false;

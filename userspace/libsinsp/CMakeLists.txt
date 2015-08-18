@@ -4,10 +4,19 @@ include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
 
+if(NOT WIN32)
+	include_directories("${CURSES_INCLUDE_DIR}")
+endif()
+
 add_library(sinsp STATIC
 	chisel.cpp
 	chisel_api.cpp
+	container.cpp
+	ctext.cpp
 	cyclewriter.cpp
+	cursescomponents.cpp
+	cursestable.cpp
+	cursesui.cpp
 	event.cpp
 	eventformatter.cpp
 	dumper.cpp
@@ -24,7 +33,9 @@ add_library(sinsp STATIC
 	threadinfo.cpp
 	sinsp.cpp
 	stats.cpp
-	utils.cpp)
+	table.cpp
+	utils.cpp
+	viewinfo.cpp)
 
 target_link_libraries(sinsp 
 	scap

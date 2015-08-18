@@ -26,10 +26,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm> 
 
 #include <sinsp.h>
-#include "sysdig.h"
 #include "chisel.h"
+#include "sysdig.h"
 
-#define DESCRIPTION_TEXT_START 20
+#define DESCRIPTION_TEXT_START 16
 #define CONSOLE_LINE_LEN 79
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
@@ -46,17 +46,26 @@ void list_fields(bool verbose)
 	{
 		const filter_check_info* fci = fc_plugins[j];
 
+		if(fci->m_flags & filter_check_info::FL_HIDDEN)
+		{
+			continue;
+		}
+
 		printf("\n----------------------\n");
 		printf("Field Class: %s\n\n", fci->m_name.c_str());
 
-		for(k = 0; k < fci->m_nfiedls; k++)
+		for(k = 0; k < fci->m_nfields; k++)
 		{
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
 			printf("%s", fld->m_name);
 			uint32_t namelen = (uint32_t)strlen(fld->m_name);
 
-			ASSERT(namelen < DESCRIPTION_TEXT_START);
+			if(namelen >= DESCRIPTION_TEXT_START)
+			{
+				printf("\n");
+				namelen = 0;
+			}
 
 			for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
 			{
@@ -194,6 +203,12 @@ const char* param_type_to_string(ppm_param_type pt)
 	case PT_FLAGS32:
 		return "FLAGS32";
 		break;
+	case PT_UID:
+		return "UID";
+		break;
+	case PT_GID:
+		return "GID";
+		break;
 	default:
 		ASSERT(false);
 		return "<NA>";
@@ -213,7 +228,7 @@ void list_events(sinsp* inspector)
 		const struct ppm_event_info ei = etable[j];
 		char dir = (PPME_IS_ENTER(j))? '>' : '<';
 
-		if((ei.flags & EF_UNUSED) || (ei.flags & EF_OLD_VERSION))
+		if((ei.flags & EF_UNUSED) || (ei.flags & EF_OLD_VERSION) || (ei.category & EC_INTERNAL))
 		{
 			continue;
 		}
@@ -330,6 +345,11 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 	{
 		chisel_desc* cd = &(chlist->at(j));
 
+		if(cd->m_viewinfo.m_valid)
+		{
+			continue;
+		}
+
 		string category = cd->m_category;
 
 		if(category != last_category) 
@@ -349,7 +369,11 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 		printf("%s", cd->m_name.c_str());
 		uint32_t namelen = (uint32_t)cd->m_name.size();
 
-		ASSERT(namelen < (DESCRIPTION_TEXT_START));
+		if(namelen >= DESCRIPTION_TEXT_START)
+		{
+			printf("\n");
+			namelen = 0;
+		}
 
 		for(l = 0; l < (DESCRIPTION_TEXT_START - namelen); l++)
 		{

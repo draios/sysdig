@@ -59,13 +59,14 @@ public:
 	void set_severity(severity sev);
 
 	void log(string msg, severity sev=SEV_INFO);
-	// Log function that accepts printf syntax and returns the formatted buffer.
+	// Log functions that accepts printf syntax and return the formatted buffer.
 	char* format(severity sev, const char* fmt, ...);
+	char* format(const char* fmt, ...);
 
 private:
 	FILE* m_file;
 	sinsp_logger_callback m_callback;
 	uint32_t m_flags;
 	severity m_sev;
-	char m_tbuf[512];
+	char m_tbuf[32768];
 };

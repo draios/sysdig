@@ -1,0 +1,192 @@
+#!/bin/bash
+#
+# This script builds a precompiled version of sysdig-probe for a bunch of kernels
+# The precompiled binary is then obtained at runtime by sysdig-probe-loader
+# Ideally, the community should expand this stuff with better support
+#
+set -exuo pipefail
+
+SYSDIG_VERSION=$1
+REPOSITORY_NAME=$2
+BASEDIR=$(pwd)
+ARCH=$(uname -m)
+
+rm -rf $BASEDIR/output || true
+mkdir $BASEDIR/output
+
+function build_sysdig {
+	if [ ! -f $SYSDIG_VERSION.tar.gz ]; then
+		wget https://github.com/draios/sysdig/archive/$SYSDIG_VERSION.tar.gz
+	fi
+
+	rm -rf sysdig-$SYSDIG_VERSION
+	tar zxf $SYSDIG_VERSION.tar.gz
+	cd sysdig-$SYSDIG_VERSION
+	mkdir build
+	cd build
+	cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$SYSDIG_VERSION ..
+	make driver
+	strip -g driver/sysdig-probe.ko
+	cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
+	cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
+	cd $BASEDIR
+}
+
+function coreos_build {
+	CONFIGURATION_NAME=$1
+	KERNEL_RELEASE=$2
+	EXTRAVERSION=$3
+	KERNEL_URL=$4
+	KERNEL_CONFIG=$5
+
+	TGZ_NAME=$(echo $KERNEL_URL | awk -F"/" '{print $NF }')
+	DIR_NAME=$(echo $TGZ_NAME | sed 's/.tar.xz//')
+
+	if [ ! -d $CONFIGURATION_NAME ]; then
+		mkdir $CONFIGURATION_NAME
+	fi
+
+	cd $CONFIGURATION_NAME
+
+	if [ ! -f $TGZ_NAME ]; then
+		wget $KERNEL_URL
+	fi
+
+	if [ ! -d $DIR_NAME ]; then
+		tar xf $TGZ_NAME
+		cd $DIR_NAME
+		make distclean
+		sed -i "s/^EXTRAVERSION.*/EXTRAVERSION = $EXTRAVERSION/" Makefile
+		wget -O .config $KERNEL_CONFIG
+		cp .config ../config-orig
+		make modules_prepare
+		mv .config ../config
+		cd ..
+	fi
+
+	HASH=$(md5sum config | cut -d' ' -f1)
+	HASH_ORIG=$(md5sum config-orig | cut -d' ' -f1)
+
+	cd $BASEDIR
+
+	export KERNELDIR=$BASEDIR/$CONFIGURATION_NAME/$DIR_NAME
+	build_sysdig
+}
+
+function ubuntu_build {
+	KERNEL_RELEASE=$1
+	IMAGE_URL=$2
+	HEADERS_GENERIC_URL=$3
+	HEADERS_URL=$4
+
+	IMAGE_NAME=$(echo $IMAGE_URL | awk -F"/" '{print $NF }')
+	HEADERS_GENERIC_NAME=$(echo $HEADERS_GENERIC_URL | awk -F"/" '{print $NF }')
+	HEADERS_NAME=$(echo $HEADERS_URL | awk -F"/" '{print $NF }')
+
+	if [ ! -f $IMAGE_NAME ]; then
+		wget $IMAGE_URL
+	fi
+
+	if [ ! -f $HEADERS_GENERIC_NAME ]; then
+		wget $HEADERS_GENERIC_URL
+	fi
+
+	if [ ! -f $HEADERS_NAME ]; then
+		wget $HEADERS_URL
+	fi
+
+	if [ ! -d $KERNEL_RELEASE ]; then
+		dpkg -x $IMAGE_NAME $KERNEL_RELEASE
+		dpkg -x $HEADERS_GENERIC_NAME $KERNEL_RELEASE
+		dpkg -x $HEADERS_NAME $KERNEL_RELEASE
+	fi
+
+	HASH=$(md5sum $KERNEL_RELEASE/boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+
+	export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/linux-headers-$KERNEL_RELEASE
+	build_sysdig
+}
+
+function rhel_build {
+
+	#
+	# The function just requires the rpm url
+	#
+
+	# Get all the parameters needed
+	URL=$1
+	RPM=$(echo $URL | grep -o '[^/]*$')
+	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+
+	if [ ! -d $KERNEL_RELEASE ]; then
+		mkdir $KERNEL_RELEASE
+	fi
+
+	cd $KERNEL_RELEASE
+
+	if [ ! -f $RPM ]; then
+		echo Downloading $RPM
+		wget $URL
+		rpm2cpio $RPM | cpio -idm
+	fi
+
+	NUM_RPM=$(ls kernel-*.rpm -1 | wc -l)
+
+	if [ $NUM_RPM -eq 2 ]; then
+
+		#echo Building $KERNEL_RELEASE
+
+		echo -e "\e[92mBuilding $KERNEL_RELEASE\e[39m"
+
+		HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+		HASH_ORIG=$HASH
+
+		cd $BASEDIR
+
+		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
+		build_sysdig
+	fi
+
+	cd $BASEDIR
+}
+
+#
+# RHEL build
+#
+DIR=$(dirname $(readlink -f $0))
+URLS="$($DIR/kernel-crawler.py)"
+
+for URL in $URLS
+do
+	rhel_build $URL
+done
+
+#
+# CoreOS build
+#
+coreos_build coreos-494.5.0 3.17.2 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.2.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-494.5.0-3.17.2
+coreos_build coreos-522.2.0 3.17.7+ "+" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.7.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-522.2.0-3.17.7%2B
+# 522.3.0
+# 522.4.0
+coreos_build coreos-522.5.0 3.17.8+ "+" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.8.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-522.5.0-3.17.8%2B
+# 522.6.0
+coreos_build coreos-557.2.0 3.18.1 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.1.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-557.2.0-3.18.1
+coreos_build coreos-607.0.0 3.18.6 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.6.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-607.0.0-3.18.6
+coreos_build coreos-633.1.0 3.19.0 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-633.1.0-3.19.0
+coreos_build coreos-647.0.0 3.19.3 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.3.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-647.0.0-3.19.3
+coreos_build coreos-647.2.0 4.0.1 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.1.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-647.2.0-4.0.1
+coreos_build coreos-681.0.0 4.0.3 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.3.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-681.0.0-4.0.3
+coreos_build coreos-681.1.0 4.0.5 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.5.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-681.1.0-4.0.5
+# 681.2.0
+# 717.1.0
+# 717.3.0
+# 723.0.0
+# 723.1.0
+# 723.3.0
+coreos_build coreos-752.1.0 4.0.9-coreos -coreos https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.9.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-752.1.0-4.0.9-coreos
+coreos_build coreos-766.0.0 4.1.4-coreos-r1 -coreos-r1 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.1.4.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-766.0.0-4.1.4-coreos-r1
+
+#
+# Upload modules
+#
+aws s3 cp ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --recursive --acl public-read

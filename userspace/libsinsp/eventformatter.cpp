@@ -139,7 +139,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 
 			m_chks_to_free.push_back(chk);
 
-			j += chk->parse_field_name(cfmt + j + 1);
+			j += chk->parse_field_name(cfmt + j + 1, true);
 			ASSERT(j <= lfmt.length());
 
 			m_tokens.push_back(chk);
@@ -198,7 +198,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 				continue;
 			}
 
-			if(json_value == Json::Value::null && m_require_all_values)
+			if(json_value == Json::Value::nullRef && m_require_all_values)
 			{
 				retval = false;
 				continue;

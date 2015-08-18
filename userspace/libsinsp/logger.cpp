@@ -172,3 +172,16 @@ char* sinsp_logger::format(severity sev, const char* fmt, ...)
 
 	return m_tbuf;
 }
+
+char* sinsp_logger::format(const char* fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsnprintf(m_tbuf, sizeof(m_tbuf), fmt, ap);
+	va_end(ap);
+
+	log(m_tbuf, SEV_INFO);
+
+	return m_tbuf;
+}

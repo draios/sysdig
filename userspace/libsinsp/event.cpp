@@ -874,7 +874,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_SOCKADDR:
 		if(payload_len == 0)
 		{
-			ret = Json::Value::null;
+			ret = Json::Value::nullRef;
 			break;
 		}
 		else if(payload[0] == AF_UNIX)
@@ -923,7 +923,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_SOCKTUPLE:
 		if(payload_len == 0)
 		{
-			ret = Json::Value::null;
+			ret = Json::Value::nullRef;
 			break;
 		}
 
@@ -1455,7 +1455,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 
 			ASSERT(m_inspector != NULL);
-			if(m_inspector->m_max_evt_output_len != 0)
+			if(m_inspector->m_max_evt_output_len != 0 && 
+				blen > m_inspector->m_max_evt_output_len &&
+				fmt == PF_NORMAL)
 			{
 				uint32_t real_len = MIN(blen, m_inspector->m_max_evt_output_len);
 
@@ -1473,7 +1475,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			{
 				m_rawbuf_str_len = blen;
 			}
-
 			break;
 		}
 	}
@@ -2042,7 +2043,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 						cat->m_subcategory = SC_OTHER;
 						break;
 					default:
-						ASSERT(false);
+//						ASSERT(false);
 						cat->m_subcategory = SC_UNKNOWN;
 						break;
 				}
