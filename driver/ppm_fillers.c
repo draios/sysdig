@@ -909,6 +909,7 @@ static int accumulate_argv_or_env(const char __user* __user* argv,
 }
 
 #ifdef CONFIG_COMPAT
+/* compat version that deals correctly with 32bits pointers of argv */
 static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 				  char* str_storage,
 				  int available)
@@ -948,7 +949,6 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 		if (n_bytes_copied >= available)
 			return PPM_FAILURE_BUFFER_FULL;
 
-		//printk(pr_fmt("Copied from argv: %s\n"), &str_storage[len]);
 		/* update buffer. I want to keep the trailing \0, so I +1 */
 		available   -= n_bytes_copied+1;
 		len         += n_bytes_copied+1;
