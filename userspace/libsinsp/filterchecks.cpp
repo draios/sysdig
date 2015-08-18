@@ -1731,7 +1731,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 
 	if(tinfo == NULL)
 	{
-		return NULL;
+		return false;
 	}
 
 	sinsp_threadinfo* mt = NULL;
@@ -1746,7 +1746,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 
 		if(mt == NULL)
 		{
-			return NULL;
+			return false;
 		}
 	}
 
@@ -1781,7 +1781,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 
 	if(tinfo == NULL)
 	{
-		return NULL;
+		return false;
 	}
 
 	sinsp_threadinfo* mt = NULL;
@@ -1796,7 +1796,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 
 		if(mt == NULL)
 		{
-			return NULL;
+			return false;
 		}
 	}
 

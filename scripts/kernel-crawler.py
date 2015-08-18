@@ -21,7 +21,7 @@ repos = {
 			# This is the XPath + Regex (optional) for analyzing the `root`
 			# page and discover possible distro versions. Use the regex if you
 			# want to limit the version release
-			"discovery_pattern" : "/html/body//pre/a[regex:test(@href, '^7.*$')]/@href",
+			"discovery_pattern" : "/html/body//pre/a[regex:test(@href, '^6|7.*$')]/@href",
 
 			# Once we have found every version available, we need to know were
 			# to go inside the tree to find packages we need (HTML pages)
@@ -38,7 +38,7 @@ repos = {
 
 		{
 			"root" : "http://vault.centos.org/",
-			"discovery_pattern" : "//body//table/tr/td/a[regex:test(@href, '^7.*$')]/@href",
+			"discovery_pattern" : "//body//table/tr/td/a[regex:test(@href, '^6|7.*$')]/@href",
 			"subdirs" : [
 				"os/x86_64/Packages/",
 				"updates/x86_64/Packages/"
@@ -48,7 +48,7 @@ repos = {
 
 		{
 			"root" : "http://vault.centos.org/centos/",
-			"discovery_pattern" : "//body//table/tr/td/a[regex:test(@href, '^7.*$')]/@href",
+			"discovery_pattern" : "//body//table/tr/td/a[regex:test(@href, '^6|7.*$')]/@href",
 			"subdirs" : [
 				"os/x86_64/Packages/",
 				"updates/x86_64/Packages/"
