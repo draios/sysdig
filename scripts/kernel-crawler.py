@@ -56,14 +56,34 @@ repos = {
 			],
 			"page_pattern" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
 		}
+	],
+
+	"Ubuntu" : [
+		{
+			# Had to split the URL because, unlikely other repos for which the
+			# script was first created, Ubuntu puts everything into a single
+			# folder. The real URL is be:
+			# http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/
+			"root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
+			"discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
+			"subdirs" : [""],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-3.*-generic.*amd64.deb$')]/@href"
+		},
+
+		{
+			"root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
+			"discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
+			"subdirs" : [""],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-3.*_all.deb$')]/@href"
+		}
 	]
 }
 
 #
 # In our design you are not supposed to modify the code. The whole script is
 # created so that you just have to add entry to the `repos` array and new
-# links will be found automagically without needing to write any single line
-# of code.
+# links will be found automagically without needing to write any single line of
+# code.
 #
 packages = {}
 
