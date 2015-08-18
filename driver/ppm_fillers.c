@@ -863,7 +863,6 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
  * concatenates them to a single \0-separated string. Return the length of this
  * string, or <0 on error */
 static int accumulate_argv_or_env(const char __user* __user* argv,
-
 				  char* str_storage,
 				  int available)
 {
@@ -908,6 +907,59 @@ static int accumulate_argv_or_env(const char __user* __user* argv,
 
 	return len;
 }
+
+#ifdef CONFIG_COMPAT
+static int compat_accumulate_argv_or_env(compat_uptr_t argv,
+				  char* str_storage,
+				  int available)
+{
+	int len = 0;
+	int n_bytes_copied;
+
+	if (compat_ptr(argv) == NULL)
+		return len;
+
+	for (;;) {
+		compat_uptr_t compat_p;
+		const char __user *p;
+		if (unlikely(ppm_get_user(compat_p, compat_ptr(argv))))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+		p = compat_ptr(compat_p);
+
+		if (p == NULL)
+			break;
+
+		/* need at least enough space for a \0 */
+		if (available < 1)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		n_bytes_copied = ppm_strncpy_from_user(&str_storage[len], p,
+						       available);
+
+		/* ppm_strncpy_from_user includes the trailing \0 in its return
+		 * count. I want to pretend it was strncpy_from_user() so I
+		 * subtract off the 1 */
+		n_bytes_copied--;
+
+		if (n_bytes_copied < 0) {
+			printk(pr_fmt("Error on copy here3"));
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+		}
+		if (n_bytes_copied >= available)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		//printk(pr_fmt("Copied from argv: %s\n"), &str_storage[len]);
+		/* update buffer. I want to keep the trailing \0, so I +1 */
+		available   -= n_bytes_copied+1;
+		len         += n_bytes_copied+1;
+
+		argv += sizeof(compat_uptr_t);
+	}
+
+	return len;
+}
+
+#endif
 
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
@@ -997,7 +1049,13 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			args->str_storage[0] = 0;
 			
 			syscall_get_arguments(current, args->regs, 1, 1, &val);
-			args_len = accumulate_argv_or_env( (const char __user* __user *)val,
+#ifdef CONFIG_COMPAT
+			if(unlikely(args->compat))
+				args_len = compat_accumulate_argv_or_env( (compat_uptr_t)val,
+							   args->str_storage, available);
+			else
+#endif
+				args_len = accumulate_argv_or_env( (const char __user* __user *)val,
 							   args->str_storage, available);
 			if (unlikely(args_len < 0))
 				return args_len;
@@ -1239,7 +1297,13 @@ cgroups_error:
 			 * The call failed, so get the env from the arguments
 			 */
 			syscall_get_arguments(current, args->regs, 2, 1, &val);
-			env_len = accumulate_argv_or_env( (const char __user* __user *)val,
+#ifdef CONFIG_COMPAT
+			if (unlikely(args->compat))
+				env_len = compat_accumulate_argv_or_env( (compat_uptr_t)val,
+							  args->str_storage, available);
+			else
+#endif
+				env_len = accumulate_argv_or_env( (const char __user* __user *)val,
 							  args->str_storage, available);
 			if (unlikely(env_len < 0))
 				return env_len;

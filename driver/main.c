@@ -1456,10 +1456,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			args.regs = event_datap->event_info.syscall_data.regs;
 			args.syscall_id = event_datap->event_info.syscall_data.id;
 			args.cur_g_syscall_code_routing_table = event_datap->event_info.syscall_data.cur_g_syscall_code_routing_table;
+			args.compat = event_datap->compat;
 		} else {
 			args.regs = NULL;
 			args.syscall_id = -1;
 			args.cur_g_syscall_code_routing_table = NULL;
+			args.compat = false;
 		}
 
 		if (event_datap->category == PPMC_CONTEXT_SWITCH) {
