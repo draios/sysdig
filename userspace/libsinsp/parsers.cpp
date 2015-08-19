@@ -2581,7 +2581,7 @@ void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 		lens[2] = 8;
 
 		p->m_tags.clear();
-		m_marker_error_string = "invalid marker " + string(data, datalen);
+		m_marker_error_string = "invalid marker " + string(data, datalen) + ", len" + to_string(datalen);
 		p->m_tags.push_back((char*)m_marker_error_string.c_str());
 		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = 0;
 		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
