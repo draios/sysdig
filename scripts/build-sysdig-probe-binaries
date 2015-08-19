@@ -130,16 +130,16 @@ function ubuntu_build {
 		dpkg -x $DEB ./
 	fi
 
-	$NUM_DEB=$(ls linux-*.deb -1 | wc -l)
+	NUM_DEB=$(ls linux-*.deb -1 | wc -l)
 
 	if [ $NUM_DEB -eq 3 ]; then
 
 		echo -e "\e[92mBuilding Ubuntu $KERNEL_RELEASE_FULL\e[39m"
 
-		HASH=$(md5sum $KERNEL_RELEASE/boot/config-$KERNEL_RELEASE-generic | cut -d' ' -f1)
+		HASH=$(md5sum $KERNEL_RELEASE/$KERNEL_UPDATE/boot/config-$KERNEL_RELEASE-generic | cut -d' ' -f1)
 		HASH_ORIG=HASH
 
-		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/linux-headers-$KERNEL_RELEASE-generic
+		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/$KERNEL_UPDATE/usr/src/linux-headers-$KERNEL_RELEASE-generic
 		build_sysdig
 	fi
 
