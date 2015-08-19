@@ -105,14 +105,14 @@ function boot2docker_build {
         cp -r aufs-standalone/Documentation . 
         cp -r aufs-standalone/fs .
         cp -r /aufs-standalone/include/uapi/linux/aufs_type.h include/uapi/linux/
-	    set -e && for patch in \
-	        /aufs-standalone/aufs*-kbuild.patch \
-	        /aufs-standalone/aufs*-base.patch \
-	        /aufs-standalone/aufs*-mmap.patch \
-	        /aufs-standalone/aufs*-standalone.patch \
-	        /aufs-standalone/aufs*-loopback.patch \
-	    ; do \
-	        patch -p1 < "$patch"; \
+	    set -e && for patch in
+	        /aufs-standalone/aufs*-kbuild.patch
+	        /aufs-standalone/aufs*-base.patch
+	        /aufs-standalone/aufs*-mmap.patch
+	        /aufs-standalone/aufs*-standalone.patch 
+	        /aufs-standalone/aufs*-loopback.patch
+	    ; do
+	        patch -p1 < "$patch";
 	    done
 		wget -O .config $KERNEL_CONFIG
 		cp .config ../config-orig
