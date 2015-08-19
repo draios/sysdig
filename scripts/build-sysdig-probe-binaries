@@ -105,7 +105,7 @@ function boot2docker_build {
         cp -r aufs-standalone/Documentation . 
         cp -r aufs-standalone/fs .
         cp -r /aufs-standalone/include/uapi/linux/aufs_type.h include/uapi/linux/
-	    set -e && for patch in
+        set -e && for patch in
 	        /aufs-standalone/aufs*-kbuild.patch
 	        /aufs-standalone/aufs*-base.patch
 	        /aufs-standalone/aufs*-mmap.patch
