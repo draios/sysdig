@@ -2199,7 +2199,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	if(!args->compat) {
 #endif
 		if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 
 		iov = (const struct iovec __user *)mh.msg_iov;
@@ -2211,7 +2211,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 #ifdef CONFIG_COMPAT
 	} else {
 		if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh))))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		compat_iov = (const struct compat_iovec __user *)compat_ptr(compat_mh.msg_iov);
 		iovcnt = compat_mh.msg_iovlen;
@@ -3410,7 +3410,7 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 	int64_t retval;
 	struct rlimit rl;
 #ifdef CONFIG_COMPAT
-        struct compat_rlimit compat_rl;
+	struct compat_rlimit compat_rl;
 #endif
 	int64_t newcur;
 	int64_t newmax;
@@ -3462,22 +3462,22 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 #ifdef CONFIG_COMPAT
         if (!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
-			oldcur = -1;
-			oldmax = -1;
-		} else {
-			oldcur = rl.rlim_cur;
-			oldmax = rl.rlim_max;
-		}
+			if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
+				oldcur = -1;
+				oldmax = -1;
+			} else {
+				oldcur = rl.rlim_cur;
+				oldmax = rl.rlim_max;
+			}
 #ifdef CONFIG_COMPAT
         } else {
-		if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit)))) {
-			oldcur = -1;
-			oldmax = -1;
-		} else {
-			oldcur = compat_rl.rlim_cur;
-			oldmax = compat_rl.rlim_max;
-		}
+			if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit)))) {
+				oldcur = -1;
+				oldmax = -1;
+			} else {
+				oldcur = compat_rl.rlim_cur;
+				oldmax = compat_rl.rlim_max;
+			}
         }
 #endif
 
@@ -4502,7 +4502,7 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	struct if_dqinfo dqinfo;
 	uint32_t quota_fmt_out;
 
-	char empty_string[] = "";
+	const char empty_string[] = "";
 
 	/*
 	 * extract cmd
