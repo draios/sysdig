@@ -8,7 +8,7 @@ import urllib2
 from lxml import html
 
 #
-# This is the main configuration tree for easily analying Linux repositories
+# This is the main configuration tree for easily analyze Linux repositories
 # hunting packages. When adding repos or so be sure to respect the same data
 # structure
 #
