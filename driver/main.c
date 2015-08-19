@@ -52,6 +52,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
+#if defined(CONFIG_IA32_EMULATION) && !defined(__NR_ia32_socketcall)
+#include "ppm_compat_unistd_32.h"
+#endif
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("sysdig inc");
