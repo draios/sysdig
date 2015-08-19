@@ -125,7 +125,7 @@ function ubuntu_build {
 	cd $KERNEL_UPDATE
 
 	if [ ! -f $DEB ]; then
-		echo -e "\e[34mDownloading $DEB ($INDEX of $TOT)...\e[39m"
+		echo -e "\e[93mDownloading $DEB ($INDEX of $TOT)...\e[39m"
 		wget $URL
 		dpkg -x $DEB ./
 	fi
@@ -164,7 +164,7 @@ function rhel_build {
 	cd $KERNEL_RELEASE
 
 	if [ ! -f $RPM ]; then
-		echo -e "\e[34mDownloading $RPM ($INDEX of $TOT)...\e[39m"
+		echo -e "\e[93mDownloading $RPM ($INDEX of $TOT)...\e[39m"
 		wget $URL
 		rpm2cpio $RPM | cpio -idm
 	fi
