@@ -18,7 +18,7 @@ BASEDIR=$(pwd)
 ARCH=$(uname -m)
 
 #rm -rf $BASEDIR/output || true
-if [ ! -d $BADEDIR/output ]; then
+if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
 fi
 
@@ -246,8 +246,6 @@ do
 	ubuntu_build $URL
 done
 
-exit
-
 #
 # RHEL build
 #
@@ -300,3 +298,5 @@ boot2docker_build boot2docker-1.8.1 4.0.9-boot2docker https://www.kernel.org/pub
 # Upload modules
 #
 aws s3 cp ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --recursive --acl public-read
+
+echo "All done. Bye bye!"
