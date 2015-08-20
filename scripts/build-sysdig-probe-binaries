@@ -17,7 +17,6 @@ REPOSITORY_NAME=$2
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 
-#rm -rf $BASEDIR/output || true
 if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
 fi
@@ -239,7 +238,7 @@ function rhel_build {
 
 echo Crawling Ubuntu repos
 DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Ubuntu 2> /dev/null)"
+URLS="$($DIR/kernel-crawler.py Ubuntu)"
 
 for URL in $URLS
 do
@@ -252,7 +251,7 @@ done
 
 echo Crawling CentOS repos
 DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py CentOS 2> /dev/null)"
+URLS="$($DIR/kernel-crawler.py CentOS)"
 
 for URL in $URLS
 do
@@ -299,4 +298,4 @@ boot2docker_build boot2docker-1.8.1 4.0.9-boot2docker https://www.kernel.org/pub
 #
 aws s3 cp ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --recursive --acl public-read
 
-echo "All done. Bye bye!"
+echo "Success."
