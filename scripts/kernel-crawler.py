@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
 # Author: Samuele Pilleri
-# Date: August 7th, 2015
+# Date: August 17th, 2015
 
+import sys
 import urllib2
 from lxml import html
 
 #
-# This is the main configuration tree for easily analying Linux repositories
+# This is the main configuration tree for easily analyze Linux repositories
 # hunting packages. When adding repos or so be sure to respect the same data
 # structure
 #
@@ -55,49 +56,69 @@ repos = {
 			],
 			"page_pattern" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
 		}
+	],
+
+	"Ubuntu" : [
+		{
+			# Had to split the URL because, unlikely other repos for which the
+			# script was first created, Ubuntu puts everything into a single
+			# folder. The real URL is be:
+			# http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/
+			"root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
+			"discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
+			"subdirs" : [""],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
+		},
+
+		{
+			"root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
+			"discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
+			"subdirs" : [""],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
+		}
 	]
 }
 
 #
 # In our design you are not supposed to modify the code. The whole script is
 # created so that you just have to add entry to the `repos` array and new
-# links will be found automagically without needing to write any single line
-# of code.
+# links will be found automagically without needing to write any single line of
+# code.
 #
 packages = {}
+
+if len(sys.argv) < 2 or not sys.argv[1] in repos:
+	sys.stderr.write("Usage: " + sys.argv[0] + " <distro>\n")
+	sys.exit(1)
 
 #
 # Navigate the `repos` tree and look for packages we need that match the
 # patterns given. Save the result in `packages`.
 #
-for distro, repositories in repos.iteritems():
-	for repo in repositories:
-		
-		root = urllib2.urlopen(repo["root"]).read()
-		versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+for repo in repos[sys.argv[1]]:
+	
+	root = urllib2.urlopen(repo["root"]).read()
+	versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-		for version in versions:
-			for subdir in repo["subdirs"]:
+	for version in versions:
+		for subdir in repo["subdirs"]:
 
-				# The try - except block is used because 404 errors and similar
-				# might happen (and actually happen because not all repos have
-				# packages we need)
-				try:
-					source = repo["root"] + version + subdir
-					page = urllib2.urlopen(source).read()
-					rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+			# The try - except block is used because 404 errors and similar
+			# might happen (and actually happen because not all repos have
+			# packages we need)
+			try:
+				source = repo["root"] + version + subdir
+				page = urllib2.urlopen(source).read()
+				rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-					for rpm in rpms:
-						if not distro in packages:
-							packages[distro] = {}
-						if not rpm in packages:
-							packages[distro][rpm] = source + rpm
-				except:
-					continue
+				for rpm in rpms:
+					if not rpm in packages:
+						packages[rpm] = source + rpm
+			except:
+				continue
 
 #
 # Print URLs to stdout
 #
-for distro, rpms in packages.iteritems():
-	for rpm, url in rpms.iteritems():
-		print(url)
+for rpm, url in packages.iteritems():
+	print(url)
