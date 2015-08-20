@@ -559,8 +559,8 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 				++p;
 			}
 
-			m_taglens.push_back(p - start);
-			m_tot_taglens += (p - start);
+			m_taglens.push_back((uint32_t)(p - start));
+			m_tot_taglens += (uint32_t)(p - start);
 
 			if(*p == ':')
 			{
@@ -607,8 +607,8 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 				++p;
 			}
 
-			m_argnamelens.push_back(p - start);
-			m_tot_argnamelens += (p - start);
+			m_argnamelens.push_back((uint32_t)(p - start));
+			m_tot_argnamelens += (uint32_t)(p - start);
 
 			if(*p == 0)
 			{
@@ -632,8 +632,8 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 				++p;
 			}
 
-			m_argvallens.push_back(p - start);
-			m_tot_argvallens += (p - start);
+			m_argvallens.push_back((uint32_t)(p - start));
+			m_tot_argvallens += (uint32_t)(p - start);
 
 			if(*p == ':')
 			{
