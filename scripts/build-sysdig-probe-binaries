@@ -103,6 +103,7 @@ function boot2docker_build {
 	cd $CONFIGURATION_NAME
 
 	if [ ! -f $TGZ_NAME ]; then
+		echo Downloading $TGZ_NAME [Boot2Docker]
 		wget $KERNEL_URL
 	fi
 
@@ -235,6 +236,8 @@ for URL in $URLS
 do
 	ubuntu_build $URL
 done
+
+exit
 
 #
 # RHEL build
