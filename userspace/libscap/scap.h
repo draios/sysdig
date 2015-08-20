@@ -532,7 +532,6 @@ uint32_t scap_get_ndevs(scap_t* handle);
 extern int32_t scap_next_central(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 #define scap_next(handle, pevent, pcpuid) scap_next_central(handle, pevent, pcpuid)
 #else
-// scap_external could have C++ linkage
 #ifdef __cplusplus
 }
 #endif

@@ -29,7 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 extern const struct ppm_event_info g_event_info[];
 
-static inline int32_t scap_readbuf(scap_device* dev, OUT char** buf, OUT uint32_t* len)
+static inline int32_t scap_readbuf_local(scap_device* dev, OUT char** buf, OUT uint32_t* len)
 {
 	uint32_t ttail;
 	uint32_t read_size;
@@ -243,7 +243,7 @@ int main()
 		{
 			uint32_t nevents;
 
-			ret = scap_readbuf(&(h->m_devs[j]), &buf, &buflen);
+			ret = scap_readbuf_local(&(h->m_devs[j]), &buf, &buflen);
 
 			if(ret != SCAP_SUCCESS)
 			{

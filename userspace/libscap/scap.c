@@ -32,6 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
+#include "scap-int.h"
 #include "scap_next.h"
 
 //#define NDEBUG
@@ -114,10 +115,6 @@ scap_t* scap_open_live_int(char *error,
 	{
 		handle->m_devs[j].m_buffer = (char*)MAP_FAILED;
 		handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)MAP_FAILED;
-#ifdef HAVE_EXTERNAL_SCAP_READER
-		handle->m_devs[j].m_evtcnt=0;
-		handle->m_devs[j].m_n_consecutive_waits=0;
-#endif
 	}
 
 	handle->m_ndevs = ndevs;
@@ -244,14 +241,15 @@ scap_t* scap_open_live_int(char *error,
 		//
 		handle->m_devs[j].m_lastreadsize = 0;
 		handle->m_devs[j].m_sn_len = 0;
-#ifdef HAVE_EXTERNAL_SCAP_READER
-		handle->m_devs[j].m_flag = 0;
-#else
+#ifndef HAVE_EXTERNAL_SCAP_READER
 		handle->m_n_consecutive_waits = 0;
 		handle->m_evtcnt = 0;
 #endif
 		scap_stop_dropping_mode(handle);
 	}
+#ifdef HAVE_EXTERNAL_SCAP_READER
+	scap_external_init(handle);
+#endif
 
 	//
 	// Create the process list
@@ -389,6 +387,9 @@ scap_t* scap_open(scap_open_args args, char *error)
 
 void scap_close(scap_t* handle)
 {
+#ifdef HAVE_EXTERNAL_SCAP_READER
+	scap_external_close(handle);
+#endif
 	if(handle->m_file)
 	{
 		gzclose(handle->m_file);

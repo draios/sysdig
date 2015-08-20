@@ -37,7 +37,6 @@ extern "C" {
 #ifdef USE_ZLIB
 #include <zlib.h>
 #else
-#include <stdio.h>
 #define	gzFile FILE*
 #define gzflush(X, Y) fflush(X)
 #define gzopen fopen
@@ -61,57 +60,56 @@ extern "C" {
 #define PF_CLONING 1
 
 //
+// definitions for default scap-reader
+//
+#ifndef HAVE_EXTERNAL_SCAP_READER
+//
 // The device descriptor
 //
-struct scap_device
+typedef struct scap_device
 {
 	int m_fd;
 	char* m_buffer;
 	struct ppm_ring_buffer_info* m_bufinfo;
 	uint32_t m_lastreadsize;
-	char* volatile m_sn_next_event; // Pointer to the next event available for scap_next
-	volatile uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
-#ifdef HAVE_EXTERNAL_SCAP_READER
-	uint32_t m_n_consecutive_waits;
-	volatile uint32_t m_flag;
-	uint64_t m_evtcnt;
-	char cache_line_pad[12];
-
-	char* m_sn_next_event_scap; // Pointer to the next event available for scap_next
-	uint32_t m_sn_len_scap;
-	uint32_t m_flag_scap;
-#endif
-} __attribute((aligned(64)));
-typedef struct scap_device scap_device;
+	char* m_sn_next_event; // Pointer to the next event available for scap_next
+	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
+	uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
+} scap_device;
 
 //
 // The open instance handle
 //
 struct scap
 {
+	scap_device* m_devs;
+	uint32_t m_ndevs;
 #ifdef USE_ZLIB
 	gzFile m_file;
 #else
 	FILE* m_file;
-#endif
-	scap_device* m_devs;
-	uint32_t m_ndevs;
-#ifndef HAVE_EXTERNAL_SCAP_READER
-	uint64_t m_evtcnt;
-	uint32_t m_n_consecutive_waits;
 #endif
 	char* m_file_evt_buf;
 	uint32_t m_last_evt_dump_flags;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 	scap_threadinfo* m_proclist;
 	scap_threadinfo m_fake_kernel_proc;
+	uint64_t m_evtcnt;
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
+	uint32_t m_n_consecutive_waits;
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
 };
+
+// Read the full event buffer for the given processor
+int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
+#else
+#include <scap_external_int.h>
+#endif
+
 
 struct scap_ns_socket_list
 {
@@ -205,7 +203,7 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG
-#endif // ASSERT
+#endif //ASSERT
 
 #define CHECK_READ_SIZE(read_size, expected_size) if(read_size != expected_size) \
 	{\
