@@ -209,8 +209,6 @@ do
 	ubuntu_build $URL
 done
 
-exit
-
 #
 # RHEL build
 #
