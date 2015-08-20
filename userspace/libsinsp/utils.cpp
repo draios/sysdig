@@ -290,8 +290,6 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "EALREADY";
 	case SE_ENOMEDIUM:
 		return "ENOMEDIUM";
-	case PPM_USERVET_MAGIC:
-		return "";	
 	default:
 		ASSERT(false);
 		return "";

@@ -1230,6 +1230,6 @@ struct ppm_proclist_info {
 	struct ppm_proc_info entries[0];
 };
 
-#define PPM_USERVET_MAGIC 959222
+//#define PPM_USERVET_MAGIC 959222
 
 #endif /* EVENTS_PUBLIC_H_ */

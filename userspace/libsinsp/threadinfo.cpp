@@ -247,6 +247,12 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 		newfdi.m_name = fdi->info.fname;
+
+		if(newfdi.m_name == USER_EVT_DEVICE_NAME)
+		{
+			newfdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_MARKER_FD;
+		}
+
 		break;
 	default:
 		ASSERT(false);

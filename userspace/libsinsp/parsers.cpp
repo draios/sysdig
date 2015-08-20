@@ -145,7 +145,16 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			//
 			sinsp_evt_param* parinfo = evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
-			if(*(int64_t *)parinfo->m_val == -PPM_USERVET_MAGIC)
+
+			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+
+			if(fdinfo == NULL)
+			{
+				fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+				evt->m_fdinfo = fdinfo;
+			}
+
+			if(fdinfo && fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_MARKER_FD)
 			{
 				eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
 			}
@@ -163,7 +172,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 				{
 					if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E))
 					{
-						evt->m_tinfo->m_lastevent_type = PPM_SC_MAX;
+						evt->m_tinfo->m_lastevent_type = PPM_EVENT_MAX;
 					}
 				}
 
@@ -535,7 +544,11 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		else
 		{
 			tinfo->set_lastevent_data_validity(false);
-			return false;
+
+			if(tinfo->m_lastevent_type != PPME_MARKER_E)
+			{
+				return false;
+			}
 		}
 
 		//
@@ -2619,17 +2632,18 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	retval = *(int64_t *)parinfo->m_val;
 
+	if(!evt->m_fdinfo)
+	{
+		return;
+	}
+
 	//
 	// User events get into the engine as normal writes, but the FD has a flag to
 	// quickly recognize them.
-	//	
-	if(retval == -PPM_USERVET_MAGIC)
+	//
+	if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_MARKER_FD)
 	{
 		parse_marker(evt, retval);
-	}
-
-	if(!evt->m_fdinfo)
-	{
 		return;
 	}
 
