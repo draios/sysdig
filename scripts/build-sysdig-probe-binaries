@@ -6,13 +6,21 @@
 #
 set -euo pipefail
 
+#
+# For continuous integration log purposes, wget prints its own output to stderr
+# so it can be convenient to redirect it to a file. This can be done directly
+# at runtime.
+#
+
 SYSDIG_VERSION=$1
 REPOSITORY_NAME=$2
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 
 #rm -rf $BASEDIR/output || true
-#mkdir $BASEDIR/output
+if [ ! -d $BADEDIR/output ]; then
+	mkdir $BASEDIR/output
+fi
 
 function build_sysdig {
 
@@ -229,6 +237,7 @@ function rhel_build {
 # Ubuntu build
 #
 
+echo Crawling Ubuntu repos
 DIR=$(dirname $(readlink -f $0))
 URLS="$($DIR/kernel-crawler.py Ubuntu 2> /dev/null)"
 
@@ -242,6 +251,8 @@ exit
 #
 # RHEL build
 #
+
+echo Crawling CentOS repos
 DIR=$(dirname $(readlink -f $0))
 URLS="$($DIR/kernel-crawler.py CentOS 2> /dev/null)"
 
