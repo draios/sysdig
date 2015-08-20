@@ -4,31 +4,42 @@
 # The precompiled binary is then obtained at runtime by sysdig-probe-loader
 # Ideally, the community should expand this stuff with better support
 #
-set -exuo pipefail
+set -euo pipefail
 
 SYSDIG_VERSION=$1
 REPOSITORY_NAME=$2
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 
-rm -rf $BASEDIR/output || true
-mkdir $BASEDIR/output
+#rm -rf $BASEDIR/output || true
+#mkdir $BASEDIR/output
 
 function build_sysdig {
-	if [ ! -f $SYSDIG_VERSION.tar.gz ]; then
-		wget https://github.com/draios/sysdig/archive/$SYSDIG_VERSION.tar.gz
+
+	if [ ! -f $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+
+		# In ${FUNCNAME[1]} there's the name of the caller function so we can understand which OS we are building the kernel for
+		echo Building sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
+
+		if [ ! -f $SYSDIG_VERSION.tar.gz ]; then
+			wget https://github.com/draios/sysdig/archive/$SYSDIG_VERSION.tar.gz
+		fi
+
+		rm -rf sysdig-$SYSDIG_VERSION
+		tar zxf $SYSDIG_VERSION.tar.gz
+		cd sysdig-$SYSDIG_VERSION
+		mkdir build
+		cd build
+		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$SYSDIG_VERSION ..
+		make driver
+		strip -g driver/sysdig-probe.ko
+		cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
+		cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
+
+	else
+		echo Skypping sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko \(already built\)
 	fi
 
-	rm -rf sysdig-$SYSDIG_VERSION
-	tar zxf $SYSDIG_VERSION.tar.gz
-	cd sysdig-$SYSDIG_VERSION
-	mkdir build
-	cd build
-	cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$SYSDIG_VERSION ..
-	make driver
-	strip -g driver/sysdig-probe.ko
-	cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
-	cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
 	cd $BASEDIR
 }
 
@@ -49,6 +60,7 @@ function coreos_build {
 	cd $CONFIGURATION_NAME
 
 	if [ ! -f $TGZ_NAME ]; then
+		echo Downloading $TGZ_NAME [CoreOS]
 		wget $KERNEL_URL
 	fi
 
@@ -74,37 +86,6 @@ function coreos_build {
 }
 
 function ubuntu_build {
-	#KERNEL_RELEASE=$1
-	#IMAGE_URL=$2
-	#HEADERS_GENERIC_URL=$3
-	#HEADERS_URL=$4
-	#
-	#IMAGE_NAME=$(echo $IMAGE_URL | awk -F"/" '{print $NF }')
-	#HEADERS_GENERIC_NAME=$(echo $HEADERS_GENERIC_URL | awk -F"/" '{print $NF }')
-	#HEADERS_NAME=$(echo $HEADERS_URL | awk -F"/" '{print $NF }')
-	#
-	#if [ ! -f $IMAGE_NAME ]; then
-	#	wget $IMAGE_URL
-	#fi
-	#
-	#if [ ! -f $HEADERS_GENERIC_NAME ]; then
-	#	wget $HEADERS_GENERIC_URL
-	#fi
-	#
-	#if [ ! -f $HEADERS_NAME ]; then
-	#	wget $HEADERS_URL
-	#fi
-	#
-	#if [ ! -d $KERNEL_RELEASE ]; then
-	#	dpkg -x $IMAGE_NAME $KERNEL_RELEASE
-	#	dpkg -x $HEADERS_GENERIC_NAME $KERNEL_RELEASE
-	#	dpkg -x $HEADERS_NAME $KERNEL_RELEASE
-	#fi
-	#
-	#HASH=$(md5sum $KERNEL_RELEASE/boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
-	#
-	#export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/linux-headers-$KERNEL_RELEASE
-	#build_sysdig
 
 	URL=$1
 	DEB=$(echo $URL | grep -o '[^/]*$')
@@ -125,7 +106,7 @@ function ubuntu_build {
 	cd $KERNEL_UPDATE
 
 	if [ ! -f $DEB ]; then
-		echo -e "\e[93mDownloading $DEB ($INDEX of $TOT)...\e[39m"
+		echo Downloading $DEB [Ubuntu]
 		wget $URL
 		dpkg -x $DEB ./
 	fi
@@ -133,8 +114,6 @@ function ubuntu_build {
 	NUM_DEB=$(ls linux-*.deb -1 | wc -l)
 
 	if [ $NUM_DEB -eq 3 ]; then
-
-		echo -e "\e[92mBuilding Ubuntu $KERNEL_RELEASE_FULL\e[39m"
 
 		HASH=$(md5sum boot/config-$KERNEL_RELEASE-generic | cut -d' ' -f1)
 		HASH_ORIG=$HASH
@@ -164,7 +143,7 @@ function rhel_build {
 	cd $KERNEL_RELEASE
 
 	if [ ! -f $RPM ]; then
-		echo -e "\e[93mDownloading $RPM ($INDEX of $TOT)...\e[39m"
+		echo Downloading $RPM [RHEL and CentOS]
 		wget $URL
 		rpm2cpio $RPM | cpio -idm
 	fi
@@ -174,8 +153,6 @@ function rhel_build {
 	if [ $NUM_RPM -eq 2 ]; then
 
 		#echo Building $KERNEL_RELEASE
-
-		echo -e "\e[92mBuilding CentOS $KERNEL_RELEASE\e[39m"
 
 		HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
 		HASH_ORIG=$HASH
@@ -195,17 +172,9 @@ function rhel_build {
 
 DIR=$(dirname $(readlink -f $0))
 URLS="$($DIR/kernel-crawler.py Ubuntu 2> /dev/null)"
-INDEX=0
-TOT=0
 
 for URL in $URLS
 do
-	TOT=$(( $TOT + 1 ))
-done
-
-for URL in $URLS
-do
-	INDEX=$(( $INDEX + 1 ))
 	ubuntu_build $URL
 done
 
@@ -214,13 +183,6 @@ done
 #
 DIR=$(dirname $(readlink -f $0))
 URLS="$($DIR/kernel-crawler.py CentOS 2> /dev/null)"
-INDEX=0
-TOT=0
-
-for URL in $URLS
-do
-	TOT=$(( $TOT + 1 ))
-done
 
 for URL in $URLS
 do
