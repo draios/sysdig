@@ -184,6 +184,8 @@ function ubuntu_build {
 		HASH=$(md5sum boot/config-$KERNEL_RELEASE-generic | cut -d' ' -f1)
 		HASH_ORIG=$HASH
 
+		cd $BASEDIR
+		
 		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/$KERNEL_UPDATE/usr/src/linux-headers-$KERNEL_RELEASE-generic
 		build_sysdig
 	fi
