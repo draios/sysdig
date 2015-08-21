@@ -91,7 +91,7 @@ sinsp_markerparser::parse_result sinsp_markerparser::process_event_data(char *da
 
 		if(m_storage[0] == '>' || m_storage[0] == '<')
 		{
-			bin_parse(m_storage, storlen);
+			parse_simple(m_storage, storlen);
 		}
 		else
 		{
@@ -466,7 +466,7 @@ inline void sinsp_markerparser::parse(char* evtstr, uint32_t evtstrlen)
 	return;
 }
 
-inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
+inline void sinsp_markerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 {
 	char* p = evtstr;
 	uint32_t delta;
@@ -556,6 +556,12 @@ inline void sinsp_markerparser::bin_parse(char* evtstr, uint32_t evtstrlen)
 
 			while(!(*p == '.' || *p == ':' || *p == 0))
 			{
+				if(!isalnum(*p))
+				{
+					m_res = sinsp_markerparser::RES_FAILED;
+					return;
+				}
+
 				++p;
 			}
 
@@ -1099,7 +1105,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:t:us::\n";
+	char doc[] = ">:t:us:t:us::\n";
 	char doc1[] = ":12345:mysql:argname1=argval1,argname2=argval2,argname3=argval3";
 
 	sinsp_threadinfo tinfo;
