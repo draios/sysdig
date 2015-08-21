@@ -76,6 +76,35 @@ repos = {
 			"subdirs" : [""],
 			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
 		}
+	],
+
+	"Fedora" : [
+		{
+			"root" : "https://mirrors.kernel.org/fedora/releases/",
+			"discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+			"subdirs" : [
+				"Everything/x86_64/os/Packages/k/"
+			],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
+		},
+
+		{
+			"root" : "https://mirrors.kernel.org/fedora/updates/",
+			"discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+			"subdirs" : [
+				"x86_64/k/"
+			],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
+		},
+
+		# {
+		# 	"root" : "https://mirrors.kernel.org/fedora/development/",
+		# 	"discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+		# 	"subdirs" : [
+		# 		"x86_64/os/Packages/k/"
+		# 	],
+		# 	"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
+		# }
 	]
 }
 

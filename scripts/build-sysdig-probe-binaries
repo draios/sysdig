@@ -261,6 +261,19 @@ do
 done
 
 #
+# Fedora build
+#
+
+echo Building Fedora
+DIR=$(dirname $(readlink -f $0))
+URLS="$($DIR/kernel-crawler.py Fedora)"
+
+for URL in $URLS
+do
+	rhel_build $URL
+done
+
+#
 # CoreOS build
 #
 echo Building CoreOS
