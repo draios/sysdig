@@ -2981,6 +2981,9 @@ static int f_sys_readv_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int64_t retval;
 	int res;
+#ifdef CONFIG_COMPAT
+	const struct compat_iovec __user *compat_iov;
+#endif
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
@@ -2996,10 +2999,20 @@ static int f_sys_readv_x(struct event_filler_arguments *args)
 	 * data and size
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec __user *)val;
+
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+#ifdef CONFIG_COMPAT
+	if(unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+	}
+	else
+#endif
+	{
+		iov = (const struct iovec __user*)val;
+		res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3010,6 +3023,9 @@ static int f_sys_writev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
+#ifdef CONFIG_COMPAT
+	const struct compat_iovec __user *compat_iov;
+#endif
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
@@ -3024,14 +3040,27 @@ static int f_sys_writev_e(struct event_filler_arguments *args)
 	/*
 	 * size
 	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+#ifdef CONFIG_COMPAT
+	if(unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt,
+											args->consumer->snaplen,
+											PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	}
+	else
+#endif
+	{
+		iov = (const struct iovec __user *)val;
+		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen,
+									  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	}
+
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3043,6 +3072,9 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int res;
 	int64_t retval;
+#ifdef CONFIG_COMPAT
+	const struct compat_iovec __user *compat_iov;
+#endif
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
@@ -3057,14 +3089,24 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	/*
 	 * data and size
 	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
+
 
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+#ifdef CONFIG_COMPAT
+	if(unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+	}
+	else
+#endif
+	{
+		iov = (const struct iovec __user *)val;
+		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
