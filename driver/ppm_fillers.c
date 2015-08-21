@@ -3158,6 +3158,9 @@ static int f_sys_preadv_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int64_t retval;
 	int res;
+#ifdef CONFIG_COMPAT
+	const struct compat_iovec __user *compat_iov;
+#endif
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
@@ -3172,11 +3175,20 @@ static int f_sys_preadv_x(struct event_filler_arguments *args)
 	/*
 	 * data and size
 	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
 
-	res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+#ifdef CONFIG_COMPAT
+	if(unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+	}
+	else
+#endif
+	{
+		iov = (const struct iovec __user *)val;
+		res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3192,6 +3204,9 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	unsigned long pos1;
 	uint64_t pos64;
 #endif
+#ifdef CONFIG_COMPAT
+	const struct compat_iovec __user *compat_iov;
+#endif
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
@@ -3206,14 +3221,26 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	/*
 	 * size
 	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	iov = (const struct iovec __user *)val;
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 	/*
 	 * Copy the buffer
 	 */
-	res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+#ifdef CONFIG_COMPAT
+	if(unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt,
+									args->consumer->snaplen,
+									PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	}
+	else
+#endif
+	{
+		iov = (const struct iovec __user *)val;
+		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen,
+									  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
