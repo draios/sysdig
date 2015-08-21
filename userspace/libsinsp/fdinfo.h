@@ -371,6 +371,7 @@ private:
 
 	fd_callbacks_info* m_callbaks;
 
+	friend class sinsp;
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;
 	friend class sinsp_analyzer;

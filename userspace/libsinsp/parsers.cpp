@@ -220,7 +220,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 				}
 			}
 		}
-
 		break;
 	case PPME_SYSCALL_READ_X:
 	case PPME_SYSCALL_WRITE_X:
@@ -2537,9 +2536,13 @@ void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 
 	p->m_tinfo = tinfo;
 	p->process_event_data(data, datalen, evt->get_ts());
+
 	if(p->m_res == sinsp_markerparser::RES_TRUNCATED)
 	{
-		evt->m_filtered_out = true;
+		if(!m_inspector->m_dumper)
+		{
+			evt->m_filtered_out = true;
+		}
 		return;
 	}
 
