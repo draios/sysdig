@@ -111,14 +111,14 @@ repos = {
 			"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
 		},
 
-		{
-			"root" : "https://mirrors.kernel.org/fedora/development/",
-			"discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
-			"subdirs" : [
-				"x86_64/os/Packages/k/"
-			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
-		}
+		# {
+		# 	"root" : "https://mirrors.kernel.org/fedora/development/",
+		# 	"discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+		# 	"subdirs" : [
+		# 		"x86_64/os/Packages/k/"
+		# 	],
+		# 	"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
+		# }
 	]
 }
 
