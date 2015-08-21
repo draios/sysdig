@@ -181,12 +181,15 @@ function ubuntu_build {
 
 	if [ $NUM_DEB -eq 3 ]; then
 
-		HASH=$(md5sum boot/config-$KERNEL_RELEASE-generic | cut -d' ' -f1)
+		local KERNEL_FOLDER=$KERNEL_RELEASE
+		KERNEL_RELEASE=$(ls -1 linux-image-* | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+-[a-z]+")
+
+		HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
 		HASH_ORIG=$HASH
 
 		cd $BASEDIR
 		
-		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/$KERNEL_UPDATE/usr/src/linux-headers-$KERNEL_RELEASE-generic
+		export KERNELDIR=$BASEDIR/$KERNEL_FOLDER/$KERNEL_UPDATE/usr/src/linux-headers-$KERNEL_RELEASE
 		build_sysdig
 	fi
 
