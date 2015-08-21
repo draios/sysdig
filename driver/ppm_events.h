@@ -51,7 +51,6 @@ struct event_filler_arguments {
 	int signo; /* Signal number */
 	__kernel_pid_t spid; /* PID of source process */
 	__kernel_pid_t dpid; /* PID of destination process */
-	bool is_user_event;
 };
 
 /*

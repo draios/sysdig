@@ -602,6 +602,7 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	/*
 	 * Determine if this is a user event 
 	 */
+/*
 	args->is_user_event = false;
 
 	if (g_ppe_events_enabled) {
@@ -628,14 +629,17 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 		}
 #endif
 	}
+*/
 
 	/*
 	 * res
 	 */
+/*
 	if (args->is_user_event)
 		retval = -PPM_USERVET_MAGIC;
 	else
-		retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+*/	
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))

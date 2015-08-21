@@ -141,11 +141,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		if(etype == PPME_SYSCALL_WRITE_X)
 		{
 			//
-			// Writes with PPM_USERVET_MAGIC as return code are user events
+			// Check if this is a user event
 			//
-			sinsp_evt_param* parinfo = evt->get_param(0);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-
 			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
 			if(fdinfo == NULL)
@@ -211,7 +208,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
-		if(m_inspector->m_dumper)
+		if(!m_inspector->m_dumper)
 		{
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 			if(evt->m_fdinfo)
