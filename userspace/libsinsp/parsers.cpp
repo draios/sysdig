@@ -211,13 +211,16 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
-		evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
-		if(evt->m_fdinfo)
+		if(m_inspector->m_dumper)
 		{
-			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_MARKER_FD)
+			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+			if(evt->m_fdinfo)
 			{
-				evt->m_filtered_out = true;
-				return;
+				if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_MARKER_FD)
+				{
+					evt->m_filtered_out = true;
+					return;
+				}
 			}
 		}
 
