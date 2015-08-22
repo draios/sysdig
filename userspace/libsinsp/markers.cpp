@@ -557,7 +557,7 @@ inline void sinsp_markerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 
 			while(!(*p == '.' || *p == ':' || *p == 0))
 			{
-				if(!isalnum(*p))
+				if(*p == '\n' || *p == '>' || *p == '<')
 				{
 					m_res = sinsp_markerparser::RES_FAILED;
 					return;
@@ -611,7 +611,7 @@ inline void sinsp_markerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 
 			while(!(*p == '=' || *p == 0))
 			{
-				if(!isalnum(*p))
+				if(*p == '\n' || *p == '>' || *p == '<')
 				{
 					m_res = sinsp_markerparser::RES_FAILED;
 					return;
@@ -1112,7 +1112,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:t:us\n";
+	char doc[] = ">:t:us.srvc_next0::";
 	char doc1[] = ">:t:us::\n";
 
 	sinsp_threadinfo tinfo;
