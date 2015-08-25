@@ -76,7 +76,7 @@ function coreos_build {
 	fi
 
 	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
-	VANILLA=$(echo $KERNEL_RELEASE | sed s/[-+].*//)
+	VANILLA=$(echo $KERNEL_RELEASE | sed s/[-+].*// | sed s/\.0$//)
 	MAJOR=$(echo $KERNEL_RELEASE | head -c1)
 	EXTRAVERSION=$(echo $KERNEL_RELEASE | sed s/[^-+]*//)
 	TGZ_NAME=linux-${VANILLA}.tar.xz
