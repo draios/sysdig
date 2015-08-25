@@ -75,12 +75,12 @@ function coreos_build {
 		cp config-* config_orig
 	fi
 
-	UNAME=$(ls config-* | sed s/config-//)
-	KERNEL_RELEASE=$(echo $UNAME | sed s/[-+].*//)
+	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
+	VANILLA=$(echo $KERNEL_RELEASE | sed s/[-+].*//)
 	MAJOR=$(echo $KERNEL_RELEASE | head -c1)
-	EXTRAVERSION=$(echo $UNAME | sed s/[^-+]*//)
-	TGZ_NAME=linux-${KERNEL_RELEASE}.tar.xz
-	DIR_NAME=linux-${KERNEL_RELEASE}
+	EXTRAVERSION=$(echo $KERNEL_RELEASE | sed s/[^-+]*//)
+	TGZ_NAME=linux-${VANILLA}.tar.xz
+	DIR_NAME=linux-${VANILLA}
 	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/$TGZ_NAME
 	
 	if [ ! -f $TGZ_NAME ]; then
