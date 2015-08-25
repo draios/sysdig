@@ -119,6 +119,35 @@ repos = {
 		# 	],
 		# 	"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
 		# }
+	],
+
+	"CoreOS" : [
+		{
+			"root" : "http://alpha.release.core-os.net/",
+			"discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
+			"subdirs" : [
+				""
+			],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]')]/@href"
+		},
+
+		{
+			"root" : "http://beta.release.core-os.net/",
+			"discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
+			"subdirs" : [
+				""
+			],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]')]/@href"
+		},
+
+		{
+			"root" : "http://stable.release.core-os.net/",
+			"discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
+			"subdirs" : [
+				""
+			],
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]')]/@href"
+		}
 	]
 }
 
