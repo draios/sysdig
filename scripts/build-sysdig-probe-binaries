@@ -77,10 +77,11 @@ function coreos_build {
 
 	UNAME=$(ls config-* | sed s/config-//)
 	KERNEL_RELEASE=$(echo $UNAME | sed s/[-+].*//)
+	MAJOR=$(echo $KERNEL_RELEASE | head -c1)
 	EXTRAVERSION=$(echo $UNAME | sed s/[^-+]*//)
 	TGZ_NAME=linux-${KERNEL_RELEASE}.tar.xz
 	DIR_NAME=linux-${KERNEL_RELEASE}
-	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v4.x/$TGZ_NAME
+	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/$TGZ_NAME
 	
 	if [ ! -f $TGZ_NAME ]; then
 		wget $KERNEL_URL
