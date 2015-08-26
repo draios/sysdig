@@ -51,23 +51,39 @@ function build_sysdig {
 }
 
 function coreos_build {
-	CONFIGURATION_NAME=$1
-	KERNEL_RELEASE=$2
-	EXTRAVERSION=$3
-	KERNEL_URL=$4
-	KERNEL_CONFIG=$5
+	VERSION_URL=$1
+	VERSION_NUMBER=$(echo $VERSION_URL | grep -o '[0-9][0-9][0-9]\.[0-9]\.[0-9]')
+	COREOS_DIR="coreos-"$VERSION_NUMBER
 
-	TGZ_NAME=$(echo $KERNEL_URL | awk -F"/" '{print $NF }')
-	DIR_NAME=$(echo $TGZ_NAME | sed 's/.tar.xz//')
-
-	if [ ! -d $CONFIGURATION_NAME ]; then
-		mkdir $CONFIGURATION_NAME
+	if [ ! -d $COREOS_DIR ]; then
+		mkdir $COREOS_DIR
 	fi
 
-	cd $CONFIGURATION_NAME
+	cd $COREOS_DIR
 
+	if [ ! -f config_orig ]; then
+		wget ${VERSION_URL}coreos_developer_container.bin.bz2
+		bunzip2 coreos_developer_container.bin.bz2
+		sudo kpartx -asv coreos_developer_container.bin
+		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
+		sudo mkdir /tmp/loop || true
+		sudo mount /dev/mapper/$LOOPDEV /tmp/loop
+		cp /tmp/loop/usr/boot/config-* .
+		sudo umount /tmp/loop
+		sudo kpartx -dv coreos_developer_container.bin
+		rm -rf coreos_developer_container.bin
+		cp config-* config_orig
+	fi
+
+	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
+	VANILLA=$(echo $KERNEL_RELEASE | sed s/[-+].*// | sed s/\.0$//)
+	MAJOR=$(echo $KERNEL_RELEASE | head -c1)
+	EXTRAVERSION=$(echo $KERNEL_RELEASE | sed s/[^-+]*//)
+	TGZ_NAME=linux-${VANILLA}.tar.xz
+	DIR_NAME=linux-${VANILLA}
+	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/$TGZ_NAME
+	
 	if [ ! -f $TGZ_NAME ]; then
-		echo Downloading $TGZ_NAME [CoreOS]
 		wget $KERNEL_URL
 	fi
 
@@ -76,19 +92,18 @@ function coreos_build {
 		cd $DIR_NAME
 		make distclean
 		sed -i "s/^EXTRAVERSION.*/EXTRAVERSION = $EXTRAVERSION/" Makefile
-		wget -O .config $KERNEL_CONFIG
-		cp .config ../config-orig
+		cp ../config_orig .config
 		make modules_prepare
 		mv .config ../config
 		cd ..
 	fi
 
 	HASH=$(md5sum config | cut -d' ' -f1)
-	HASH_ORIG=$(md5sum config-orig | cut -d' ' -f1)
+	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
 
 	cd $BASEDIR
 
-	export KERNELDIR=$BASEDIR/$CONFIGURATION_NAME/$DIR_NAME
+	export KERNELDIR=$BASEDIR/$COREOS_DIR/$DIR_NAME
 	build_sysdig
 }
 
@@ -280,30 +295,13 @@ done
 # CoreOS build
 #
 echo Building CoreOS
+DIR=$(dirname $(readlink -f $0))
+URLS="$($DIR/kernel-crawler.py CoreOS)"
 
-coreos_build coreos-494.5.0 3.17.2 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.2.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-494.5.0-3.17.2
-coreos_build coreos-522.2.0 3.17.7+ "+" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.7.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-522.2.0-3.17.7%2B
-# 522.3.0
-# 522.4.0
-coreos_build coreos-522.5.0 3.17.8+ "+" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.17.8.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-522.5.0-3.17.8%2B
-# 522.6.0
-coreos_build coreos-557.2.0 3.18.1 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.1.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-557.2.0-3.18.1
-coreos_build coreos-607.0.0 3.18.6 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.18.6.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-607.0.0-3.18.6
-coreos_build coreos-633.1.0 3.19.0 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-633.1.0-3.19.0
-coreos_build coreos-647.0.0 3.19.3 "" https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.19.3.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-647.0.0-3.19.3
-coreos_build coreos-647.2.0 4.0.1 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.1.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-647.2.0-4.0.1
-coreos_build coreos-681.0.0 4.0.3 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.3.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-681.0.0-4.0.3
-coreos_build coreos-681.1.0 4.0.5 "" https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.5.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-681.1.0-4.0.5
-# 681.2.0
-# 717.1.0
-# 717.3.0
-# 723.0.0
-# 723.1.0
-# 723.3.0
-coreos_build coreos-752.1.0 4.0.9-coreos -coreos https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.9.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-752.1.0-4.0.9-coreos
-coreos_build coreos-766.0.0 4.1.4-coreos-r1 -coreos-r1 https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.1.4.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-766.0.0-4.1.4-coreos-r1
-coreos_build coreos-744.0.0 4.1.5-coreos -coreos https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.1.5.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-774.0.0-4.1.5-coreos
-coreos_build coreos-779.0.0 4.1.5-coreos -coreos https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.1.5.tar.xz https://s3.amazonaws.com/download.draios.com/coreos-kernels/config-779.0.0-4.1.5-coreos
+for URL in $URLS
+do
+	coreos_build $URL
+done
 
 #
 # boot2docker build

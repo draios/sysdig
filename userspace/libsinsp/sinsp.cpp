@@ -192,8 +192,9 @@ void sinsp::init()
 	//
 	// Attach the protocol decoders
 	//
+#ifndef HAS_ANALYZER
 	add_protodecoders();
-
+#endif
 	//
 	// Allocate the cycle writer
 	//
