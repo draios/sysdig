@@ -28,25 +28,46 @@ and can be extended through Lua scripts, called chisels.
 By default, sysdig prints the information for each captured event on a
 single line, with the following format:
 .PP
-\f[C]<evt.num>\ <evt.time>\ <evt.cpu>\ <proc.name>\ <thread.tid>\ <evt.dir>\ <evt.type>\ <evt.args>\f[]
+\f[C]*%evt.num\ %evt.time\ %evt.cpu\ %proc.name\ (%thread.tid)\ %evt.dir\ %evt.type\ %evt.info\f[]
 .PP
 where:
 .IP \[bu] 2
 evt.num is the incremental event number
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.time is the event timestamp
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.cpu is the CPU number where the event was captured
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 proc.name is the name of the process that generated the event
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 thread.tid id the TID that generated the event, which corresponds to the
 PID for single thread processes
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.dir is the event direction, > for enter events and < for exit events
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.type is the name of the event, e.g.
 \[aq]open\[aq] or \[aq]read\[aq]
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.args is the list of event arguments.
 .PP
@@ -56,7 +77,7 @@ the fields listed by \[aq]sysdig \-l\[aq].
 Using \-pc or \-pcontainer, the default format will be changed to a
 container\-friendly one:
 .PP
-\f[C]%evt.num\ %evt.time\ %evt.cpu\ %container.name\ (%container.id)\ %proc.name\ (%thread.tid:%thread.vtid)\ %evt.dir\ %evt.type\ %evt.info\f[]
+\f[C]*%evt.num\ %evt.time\ %evt.cpu\ %container.name\ (%container.id)\ %proc.name\ (%thread.tid:%thread.vtid)\ %evt.dir\ %evt.type\ %evt.info\f[]
 .PP
 \f[B]Trace Files\f[]
 .PP
@@ -341,6 +362,8 @@ Print progress on stderr while processing trace files.
 Specify the format to be used when printing the events.
 With \-pc or \-pcontainer will use a container\-friendly format.
 See the examples section below for more info.
+Specifying \f[B]\-pp\f[] on the command line will cause sysdig to print
+the default command line format and exit.
 .PP
 \f[B]\-q\f[], \f[B]\-\-quiet\f[]
 .PD 0
