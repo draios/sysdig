@@ -1508,7 +1508,9 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 	int fd;
 	char *targetbuf = args->str_storage;
 	u16 size = 0;
-	unsigned long val;
+	unsigned long queuepct = 0;
+	unsigned long ack_backlog = 0;
+	unsigned long max_ack_backlog = 0;
 	unsigned long srvskfd;
 	int err = 0;
 	struct socket *sock;
@@ -1553,30 +1555,26 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 #endif
 	sock = sockfd_lookup(srvskfd, &err);
 
-	if (unlikely(!sock || !(sock->sk))) {
-		val = 0;
-
-		if (sock)
-			sockfd_put(sock);
-	} else {
-		if (sock->sk->sk_max_ack_backlog == 0)
-			val = 0;
-		else
-			val = (unsigned long)sock->sk->sk_ack_backlog * 100 / sock->sk->sk_max_ack_backlog;
-		sockfd_put(sock);
+	if (sock && sock->sk) {
+		ack_backlog = sock->sk->sk_ack_backlog;
+		max_ack_backlog = sock->sk->sk_max_ack_backlog;
 	}
 
-	res = val_to_ring(args, val, 0, false, 0);
+	if (sock)
+		sockfd_put(sock);
+
+	if (max_ack_backlog)
+		queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
+
+	res = val_to_ring(args, queuepct, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
-	val = (unsigned long)sock->sk->sk_ack_backlog ? (unsigned long)sock->sk->sk_ack_backlog : 0;
-	res = val_to_ring(args, val, 0, false, 0);
+	res = val_to_ring(args, ack_backlog, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
-	val = (unsigned long)sock->sk->sk_max_ack_backlog ? (unsigned long)sock->sk->sk_max_ack_backlog : 0;
-	res = val_to_ring(args, val, 0, false, 0);
+	res = val_to_ring(args, max_ack_backlog, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
