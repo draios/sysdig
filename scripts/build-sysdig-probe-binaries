@@ -4,7 +4,7 @@
 # The precompiled binary is then obtained at runtime by sysdig-probe-loader
 # Ideally, the community should expand this stuff with better support
 #
-set -exuo pipefail
+set -euo pipefail
 
 #
 # For continuous integration log purposes, wget prints its own output to stderr
@@ -256,40 +256,40 @@ function rhel_build {
 # Ubuntu build
 #
 
-# echo Building Ubuntu
-# DIR=$(dirname $(readlink -f $0))
-# URLS="$($DIR/kernel-crawler.py Ubuntu)"
+echo Building Ubuntu
+DIR=$(dirname $(readlink -f $0))
+URLS="$($DIR/kernel-crawler.py Ubuntu)"
 
-# for URL in $URLS
-# do
-# 	ubuntu_build $URL
-# done
+for URL in $URLS
+do
+	ubuntu_build $URL
+done
 
-# #
-# # RHEL build
-# #
+#
+# RHEL build
+#
 
-# echo Building RHEL
-# DIR=$(dirname $(readlink -f $0))
-# URLS="$($DIR/kernel-crawler.py CentOS)"
+echo Building RHEL
+DIR=$(dirname $(readlink -f $0))
+URLS="$($DIR/kernel-crawler.py CentOS)"
 
-# for URL in $URLS
-# do
-# 	rhel_build $URL
-# done
+for URL in $URLS
+do
+	rhel_build $URL
+done
 
-# #
-# # Fedora build
-# #
+#
+# Fedora build
+#
 
-# echo Building Fedora
-# DIR=$(dirname $(readlink -f $0))
-# URLS="$($DIR/kernel-crawler.py Fedora)"
+echo Building Fedora
+DIR=$(dirname $(readlink -f $0))
+URLS="$($DIR/kernel-crawler.py Fedora)"
 
-# for URL in $URLS
-# do
-# 	rhel_build $URL
-# done
+for URL in $URLS
+do
+	rhel_build $URL
+done
 
 #
 # CoreOS build
@@ -306,17 +306,17 @@ done
 #
 # boot2docker build
 #
-# echo Building boot2docker
+echo Building boot2docker
 
-# # tracepoints only enabled >= 1.7.0
-# boot2docker_build boot2docker-1.7.0 4.0.5-boot2docker https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.5.tar.xz https://raw.githubusercontent.com/boot2docker/boot2docker/v1.7.0/kernel_config https://github.com/sfjro/aufs4-standalone aufs4.0 a8c8a849e236d7f7fa121c8344899a796ccf7b8f
-# boot2docker_build boot2docker-1.7.1 4.0.7-boot2docker https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.7.tar.xz https://raw.githubusercontent.com/boot2docker/boot2docker/v1.7.1/kernel_config https://github.com/sfjro/aufs4-standalone aufs4.0 e274de9419a0c135179244e45f3991fe5dc70b03
-# boot2docker_build boot2docker-1.8.0 4.0.9-boot2docker https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.9.tar.xz https://raw.githubusercontent.com/boot2docker/boot2docker/v1.8.0/kernel_config https://github.com/sfjro/aufs4-standalone aufs4.0 e274de9419a0c135179244e45f3991fe5dc70b03
-# boot2docker_build boot2docker-1.8.1 4.0.9-boot2docker https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.9.tar.xz https://raw.githubusercontent.com/boot2docker/boot2docker/v1.8.1/kernel_config https://github.com/sfjro/aufs4-standalone aufs4.0 e274de9419a0c135179244e45f3991fe5dc70b03
+# tracepoints only enabled >= 1.7.0
+boot2docker_build boot2docker-1.7.0 4.0.5-boot2docker https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.5.tar.xz https://raw.githubusercontent.com/boot2docker/boot2docker/v1.7.0/kernel_config https://github.com/sfjro/aufs4-standalone aufs4.0 a8c8a849e236d7f7fa121c8344899a796ccf7b8f
+boot2docker_build boot2docker-1.7.1 4.0.7-boot2docker https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.7.tar.xz https://raw.githubusercontent.com/boot2docker/boot2docker/v1.7.1/kernel_config https://github.com/sfjro/aufs4-standalone aufs4.0 e274de9419a0c135179244e45f3991fe5dc70b03
+boot2docker_build boot2docker-1.8.0 4.0.9-boot2docker https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.9.tar.xz https://raw.githubusercontent.com/boot2docker/boot2docker/v1.8.0/kernel_config https://github.com/sfjro/aufs4-standalone aufs4.0 e274de9419a0c135179244e45f3991fe5dc70b03
+boot2docker_build boot2docker-1.8.1 4.0.9-boot2docker https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.0.9.tar.xz https://raw.githubusercontent.com/boot2docker/boot2docker/v1.8.1/kernel_config https://github.com/sfjro/aufs4-standalone aufs4.0 e274de9419a0c135179244e45f3991fe5dc70b03
 
 #
 # Upload modules
 #
-# aws s3 cp ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --recursive --acl public-read
+aws s3 cp ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --recursive --acl public-read
 
 echo "Success."
