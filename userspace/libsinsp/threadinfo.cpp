@@ -761,10 +761,10 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 	remove_thread(m_threadtable.find(tid), force);
 }
 
-void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool force)
+threadinfo_map_iterator_t sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool force)
 {
 	uint64_t nchilds;
-
+	threadinfo_map_iterator_t ret = it;
 	if(it == m_threadtable.end())
 	{
 		//
@@ -776,7 +776,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 #ifdef GATHER_INTERNAL_STATS
 		m_failed_lookups->increment();
 #endif
-		return;
+		return it;
 	}
 	else if((nchilds = it->second.m_nchilds) == 0 || force)
 	{
@@ -844,7 +844,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		m_removed_threads->increment();
 #endif
 
-		m_threadtable.erase(it);
+		ret = m_threadtable.erase(it);
 
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
@@ -857,6 +857,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 			recreate_child_dependencies();
 		}
 	}
+	return ret;
 }
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc()
