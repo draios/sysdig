@@ -1546,28 +1546,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		if(payload[0] == PPM_AF_INET)
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
-			{
-				/*snprintf(&m_paramstr_storage[0],
-				         m_paramstr_storage.size(),
-				         "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-				         (unsigned int)(uint8_t)payload[1],
-				         (unsigned int)(uint8_t)payload[2],
-				         (unsigned int)(uint8_t)payload[3],
-				         (unsigned int)(uint8_t)payload[4],
-				         (unsigned int)*(uint16_t*)(payload+5),
-				         (unsigned int)(uint8_t)payload[7],
-				         (unsigned int)(uint8_t)payload[8],
-				         (unsigned int)(uint8_t)payload[9],
-				         (unsigned int)(uint8_t)payload[10],
-				         (unsigned int)*(uint16_t*)(payload+11));
-
-				if (this->m_fdinfo->is_tcp_socket())
-					printf("Proto: TCP ~ ");
-				else if (this->m_fdinfo->is_udp_socket())
-					printf("Proto: UDP ~ ");
-
-				printf("Porte: %u -> %u\n", (unsigned int)*(uint16_t*)(payload + 5), (unsigned int)*(uint16_t*)(payload + 11));*/
-				
+			{				
 				string proto = "";
 				if (this->m_fdinfo->is_tcp_socket())
 				{
