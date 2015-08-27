@@ -1546,52 +1546,71 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		if(payload[0] == PPM_AF_INET)
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
-			{				
-				string proto = "";
-				if (this->m_fdinfo->is_tcp_socket())
+			{	
+				if (m_inspector->m_hostname_and_port_resolution_enabled)
 				{
-					proto = "tcp";
-				}
-				else if (this->m_fdinfo->is_udp_socket())
-				{
-					proto = "udp";
-				}
+					string proto = "";
+					if (this->m_fdinfo->is_tcp_socket())
+					{
+						proto = "tcp";
+					}
+					else if (this->m_fdinfo->is_udp_socket())
+					{
+						proto = "udp";
+					}
 
-				struct servent * res1 = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 5)), proto.c_str());
-				string port1 = "";
-				if (res1)
-				{
-					port1 = res1->s_name;
+					struct servent * res1 = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 5)), proto.c_str());
+					string port1 = "";
+					if (res1)
+					{
+						port1 = res1->s_name;
+					}
+					else
+					{
+						port1 = to_string((unsigned int)*(uint16_t*)(payload + 5));
+					}
+
+					struct servent * res2 = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 11)), proto.c_str());
+					string port2 = "";
+					if (res2)
+					{
+						port2 = res2->s_name;
+					}
+					else
+					{
+						port2 = to_string((unsigned int)*(uint16_t*)(payload + 11));
+					}
+
+					snprintf(&m_paramstr_storage[0],
+						m_paramstr_storage.size(),
+						"%u.%u.%u.%u:%s->%u.%u.%u.%u:%s",
+						(unsigned int)(uint8_t)payload[1],
+						(unsigned int)(uint8_t)payload[2],
+						(unsigned int)(uint8_t)payload[3],
+						(unsigned int)(uint8_t)payload[4],
+						port1.c_str(),
+						(unsigned int)(uint8_t)payload[7],
+						(unsigned int)(uint8_t)payload[8],
+						(unsigned int)(uint8_t)payload[9],
+						(unsigned int)(uint8_t)payload[10],
+						port2.c_str());
 				}
 				else
 				{
-					port1 = to_string((unsigned int)*(uint16_t*)(payload + 5));
+					snprintf(&m_paramstr_storage[0],
+						m_paramstr_storage.size(),
+						"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
+						(unsigned int)(uint8_t)payload[1],
+						(unsigned int)(uint8_t)payload[2],
+						(unsigned int)(uint8_t)payload[3],
+						(unsigned int)(uint8_t)payload[4],
+						(unsigned int)*(uint16_t*)(payload + 5),
+						(unsigned int)(uint8_t)payload[7],
+						(unsigned int)(uint8_t)payload[8],
+						(unsigned int)(uint8_t)payload[9],
+						(unsigned int)(uint8_t)payload[10],
+						(unsigned int)*(uint16_t*)(payload + 11));
 				}
-
-				struct servent * res2 = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 11)), proto.c_str());
-				string port2 = "";
-				if (res2)
-				{
-					port2 = res2->s_name;
-				}
-				else
-				{
-					port2 = to_string((unsigned int)*(uint16_t*)(payload + 11));
-				}
-
-				snprintf(&m_paramstr_storage[0],
-					m_paramstr_storage.size(),
-					"%u.%u.%u.%u:%s->%u.%u.%u.%u:%s",
-					(unsigned int)(uint8_t)payload[1],
-					(unsigned int)(uint8_t)payload[2],
-					(unsigned int)(uint8_t)payload[3],
-					(unsigned int)(uint8_t)payload[4],
-					port1.c_str(),
-					(unsigned int)(uint8_t)payload[7],
-					(unsigned int)(uint8_t)payload[8],
-					(unsigned int)(uint8_t)payload[9],
-					(unsigned int)(uint8_t)payload[10],
-					port2.c_str());
 				
 			}
 			else
