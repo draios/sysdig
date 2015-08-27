@@ -21,8 +21,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
+#include <netdb.h>
 #else
 #define NOMINMAX
+#include <WinSock2.h>
 #endif
 
 #include <limits>
@@ -1532,7 +1534,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	case PT_SOCKTUPLE:
-		if(payload_len == 0)
+ 		if(payload_len == 0)
 		{
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
@@ -1545,7 +1547,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
-				snprintf(&m_paramstr_storage[0],
+				/*snprintf(&m_paramstr_storage[0],
 				         m_paramstr_storage.size(),
 				         "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
 				         (unsigned int)(uint8_t)payload[1],
@@ -1558,6 +1560,60 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				         (unsigned int)(uint8_t)payload[9],
 				         (unsigned int)(uint8_t)payload[10],
 				         (unsigned int)*(uint16_t*)(payload+11));
+
+				if (this->m_fdinfo->is_tcp_socket())
+					printf("Proto: TCP ~ ");
+				else if (this->m_fdinfo->is_udp_socket())
+					printf("Proto: UDP ~ ");
+
+				printf("Porte: %u -> %u\n", (unsigned int)*(uint16_t*)(payload + 5), (unsigned int)*(uint16_t*)(payload + 11));*/
+				
+				string proto = "";
+				if (this->m_fdinfo->is_tcp_socket())
+				{
+					proto = "tcp";
+				}
+				else if (this->m_fdinfo->is_udp_socket())
+				{
+					proto = "udp";
+				}
+
+				struct servent * res1 = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 5)), proto.c_str());
+				string port1 = "";
+				if (res1)
+				{
+					port1 = res1->s_name;
+				}
+				else
+				{
+					port1 = to_string((unsigned int)*(uint16_t*)(payload + 5));
+				}
+
+				struct servent * res2 = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 11)), proto.c_str());
+				string port2 = "";
+				if (res2)
+				{
+					port2 = res2->s_name;
+				}
+				else
+				{
+					port2 = to_string((unsigned int)*(uint16_t*)(payload + 11));
+				}
+
+				snprintf(&m_paramstr_storage[0],
+					m_paramstr_storage.size(),
+					"%u.%u.%u.%u:%s->%u.%u.%u.%u:%s",
+					(unsigned int)(uint8_t)payload[1],
+					(unsigned int)(uint8_t)payload[2],
+					(unsigned int)(uint8_t)payload[3],
+					(unsigned int)(uint8_t)payload[4],
+					port1.c_str(),
+					(unsigned int)(uint8_t)payload[7],
+					(unsigned int)(uint8_t)payload[8],
+					(unsigned int)(uint8_t)payload[9],
+					(unsigned int)(uint8_t)payload[10],
+					port2.c_str());
+				
 			}
 			else
 			{
