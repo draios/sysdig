@@ -40,6 +40,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen);
 #endif
 
+#ifdef _WIN32
+#include <WinSock2.h>
+#elif
+#include <netdb.h>
+#endif
+
+
 extern sinsp_filter_check_list g_filterlist;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -863,7 +870,16 @@ void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_par
 		case PT_UINT8:
 			*(uint8_t*)(&m_val_storage[0]) = sinsp_numparser::parseu8(str);
 			break;
-		case PT_PORT: // This can be resolved in the future
+		case PT_PORT:
+		{
+			string in(str);
+			*(uint16_t*)(&m_val_storage[0]) = in.empty() ? 0 : (
+				(strspn(in.c_str(), "0123456789") == in.size())
+				? stoi(in)
+				: ntohs(getservbyname(in.c_str(), NULL)->s_port)
+				);
+			break;
+		}
 		case PT_FLAGS16:
 		case PT_UINT16:
 			*(uint16_t*)(&m_val_storage[0]) = sinsp_numparser::parseu16(str);
