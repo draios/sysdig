@@ -25,7 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef __NR_socketcall
 	#define _HAS_SOCKETCALL
 #endif
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION) && defined(__NR_ia32_socketcall)
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	#define _HAS_SOCKETCALL
 #endif
 
