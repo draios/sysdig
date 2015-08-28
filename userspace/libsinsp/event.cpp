@@ -1546,7 +1546,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		if(payload[0] == PPM_AF_INET)
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
-			{	
+			{
 				if (m_inspector->m_hostname_and_port_resolution_enabled)
 				{
 					string proto = "";
@@ -1559,22 +1559,23 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 						proto = "udp";
 					}
 
-					struct servent * res1 = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 5)), proto.c_str());
+					struct servent * res;
+					res = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 5)), proto.c_str());
 					string port1 = "";
-					if (res1)
+					if (res)
 					{
-						port1 = res1->s_name;
+						port1 = res->s_name;
 					}
 					else
 					{
 						port1 = to_string((unsigned int)*(uint16_t*)(payload + 5));
 					}
 
-					struct servent * res2 = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 11)), proto.c_str());
+					res = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 11)), proto.c_str());
 					string port2 = "";
-					if (res2)
+					if (res)
 					{
-						port2 = res2->s_name;
+						port2 = res->s_name;
 					}
 					else
 					{

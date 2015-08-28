@@ -458,6 +458,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			ASSERT(evt->get_param_info(0)->type == PT_FD);
 
 			evt->m_tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
+			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 		}
 
 		evt->m_tinfo->m_latency = 0;

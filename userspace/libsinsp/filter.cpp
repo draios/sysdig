@@ -42,7 +42,7 @@ void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_
 
 #ifdef _WIN32
 #include <WinSock2.h>
-#elif
+#else
 #include <netdb.h>
 #endif
 
