@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "XXX";
+description = "Flame graph generator";
 short_description = "Sysdig marker flame graph builder";
 category = "Performance";
 
@@ -62,7 +62,7 @@ function on_event()
 	local latency = evt.field(flatency)
 	local contname = evt.field(fcontname)
 	local hr = {}
-	
+
 	if latency == nil then
 		return true
 	end
@@ -82,31 +82,44 @@ function on_event()
 		
 		if j == #hr then
 			if mrk_cur[mv] == nil then
-				mrk_cur[mv] = {svUnique=latency, svTotal=0, cont=contname}
+				mrk_cur[mv] = {t=latency, cont=contname}
+				if j == 1 then
+					mrk_cur[mv].n = 0
+				end
 			else
-				mrk_cur[mv]["svUnique"] = mrk_cur[mv]["svUnique"] + latency
+				mrk_cur[mv]["t"] = mrk_cur[mv]["t"] + latency
 				mrk_cur[mv]["cont"] = contname
 			end
 		elseif j == (#hr - 1) then
 			if mrk_cur[mv] == nil then
-				mrk_cur[mv] = {svUnique=-latency, svTotal=0}
+				mrk_cur[mv] = {t=-latency}
+				if j == 1 then
+					mrk_cur[mv].n = 0
+				end
 			else
-				mrk_cur[mv]["svUnique"] = mrk_cur[mv]["svUnique"] - latency
+				mrk_cur[mv]["t"] = mrk_cur[mv]["t"] - latency
 			end
 		else
 			if mrk_cur[mv] == nil then
-				mrk_cur[mv] = {svUnique=0, svTotal=0}
+				mrk_cur[mv] = {t=0}
+				if j == 1 then
+					mrk_cur[mv].n = 0
+				end
 			end
 		end
 		
 		--print(mv)
 		--print(st(mrk_cur))
 		
-		if mrk_cur[mv]["svChildren"] == nil then
-			mrk_cur[mv]["svChildren"] = {}
+		if mrk_cur[mv]["ch"] == nil then
+			mrk_cur[mv]["ch"] = {}
 		end
 		
-		mrk_cur = mrk_cur[mv]["svChildren"]
+		if #hr == 1 then
+			mrk_cur[mv].n = mrk_cur[mv].n + 1
+		end
+
+		mrk_cur = mrk_cur[mv]["ch"]
 	end
 
 	--print(st(data))
@@ -114,10 +127,24 @@ function on_event()
 	return true
 end
 
+function normalize(node, factor)
+	node.t = node.t / factor
+	if node.ch then
+		for k,d in pairs(node.ch) do
+			normalize(d, factor)
+		end
+	end
+end
+
 -- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
+	-- normalize each root marker tree
+	for i,v in pairs(data) do
+--		normalize(v, v.n)
+	end
+
 	local FGData = {}
-	FGData[""] = {svChildren=data, svUnique=0, svTotal=0}
+	FGData[""] = {ch=data, t=0}
 	local str = json.encode(FGData, { indent = true })
 	print("FGData = " .. str .. ";")
 end
