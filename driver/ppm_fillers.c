@@ -4560,7 +4560,6 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-/* TODO(sgotti) handle compat_if_dqblk and compat_if_dqinfo (not exported */
 static int f_sys_quotactl_x(struct event_filler_arguments *args)
 {
 	unsigned long val, len;
