@@ -4643,7 +4643,7 @@ static int f_sys_semop_e(struct event_filler_arguments *args)
 
 static int f_sys_semop_x(struct event_filler_arguments *args)
 {
-	unsigned long nsops, len;
+	unsigned long nsops;
 	int res;
 	int64_t retval;
 	struct sembuf *ptr;
