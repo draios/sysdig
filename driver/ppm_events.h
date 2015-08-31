@@ -21,6 +21,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 /* To know about __NR_socketcall */
 #include <asm/unistd.h>
+#ifdef CONFIG_COMPAT
+#include <linux/compat.h>
+#endif
 
 #ifdef __NR_socketcall
 	#define _HAS_SOCKETCALL
