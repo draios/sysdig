@@ -1419,9 +1419,12 @@ int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_e
 
 	for (j = 0; j < evinfo->n_autofill_args; j++) {
 		if (evinfo->autofill_args[j].id >= 0) {
-#ifdef CONFIG_COMPAT
-			if (!args->is_socketcall) {
+#ifdef _HAS_SOCKETCALL
+			if (args->is_socketcall && evinfo->paramtype == APT_SOCK) {
+				val = args->socketcall_args[evinfo->autofill_args[j].id];
+			} else
 #endif
+			{
 				/*
 				 * Regular argument
 				 */
@@ -1430,22 +1433,7 @@ int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_e
 						evinfo->autofill_args[j].id,
 						1,
 						&val);
-#ifdef CONFIG_COMPAT
-			} else {
-				if (evinfo->paramtype == APT_SOCK) {
-					val = args->socketcall_args[evinfo->autofill_args[j].id];
-				} else {
-					/*
-					 * Regular argument
-					 */
-					syscall_get_arguments(current,
-							args->regs,
-							evinfo->autofill_args[j].id,
-							1,
-							&val);
-				}
 			}
-#endif
 
 			res = val_to_ring(args, val, 0, true, 0);
 			if (unlikely(res != PPM_SUCCESS))
