@@ -371,6 +371,26 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_QFMT_VFS_V1		(1 << 3)
 
 /*
+ * Semop flags
+ */
+#define PPM_IPC_NOWAIT		(1 << 0)
+#define PPM_SEM_UNDO		(1 << 1)
+
+#define PPM_IPC_STAT		(1 << 0)
+#define PPM_IPC_SET		(1 << 1)
+#define PPM_IPC_RMID		(1 << 2)
+#define PPM_IPC_INFO		(1 << 3)
+#define PPM_SEM_INFO		(1 << 4)
+#define PPM_SEM_STAT		(1 << 5)
+#define PPM_GETALL		(1 << 6)
+#define PPM_GETNCNT		(1 << 7)
+#define PPM_GETPID		(1 << 8)
+#define PPM_GETVAL		(1 << 9)
+#define PPM_GETZCNT		(1 << 10)
+#define PPM_SETALL		(1 << 11)
+#define PPM_SETVAL		(1 << 12)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -663,7 +683,11 @@ enum ppm_event_type {
 	PPME_SOCKET_ACCEPT_5_X = 247,
 	PPME_SOCKET_ACCEPT4_5_E = 248,
 	PPME_SOCKET_ACCEPT4_5_X = 249,
-	PPM_EVENT_MAX = 250
+        PPME_SYSCALL_SEMOP_E = 250,
+        PPME_SYSCALL_SEMOP_X = 251,
+        PPME_SYSCALL_SEMCTL_E = 252,
+        PPME_SYSCALL_SEMCTL_X = 253,
+	PPM_EVENT_MAX = 254
 };
 /*@}*/
 
@@ -1199,6 +1223,9 @@ extern const struct ppm_name_value quotactl_cmds[];
 extern const struct ppm_name_value quotactl_types[];
 extern const struct ppm_name_value quotactl_dqi_flags[];
 extern const struct ppm_name_value quotactl_quota_fmts[];
+extern const struct ppm_name_value semop_flags[];
+extern const struct ppm_name_value semctl_commands[];
+
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 
