@@ -382,7 +382,6 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 		if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP ||
 			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
 		{
-			fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 			if (resolve)
 			{
 				string proto = "";
@@ -486,7 +485,6 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 		{
 			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 			{
-				fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 				snprintf(targetbuf,
 							targetbuf_size,
 							"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
@@ -896,7 +894,6 @@ string sinsp_gethostname()
 string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 {
 	char buf[100];
-	fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 	if(resolve)
 	{
 		string proto = "";
@@ -991,7 +988,6 @@ string ipv6tuple_to_string(_ipv6tuple* tuple)
 string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 {
 	char buf[50];
-	fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 	if(resolve)
 	{
 		string proto = "";

@@ -690,8 +690,7 @@ private:
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
-	public: bool m_hostname_and_port_resolution_enabled;
-private:
+	bool m_hostname_and_port_resolution_enabled;
 	uint32_t m_max_evt_output_len;
 	bool m_compress;
 	sinsp_evt m_evt;

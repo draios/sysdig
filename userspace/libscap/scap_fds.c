@@ -97,7 +97,6 @@ int32_t scap_fd_info_to_string(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
 	switch(fdi->type)
 	{
 	case SCAP_FD_IPV4_SOCK:
-		fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 		snprintf(str, stlen, "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
 		         fdi->info.ipv4info.sip >> 24,
 		         fdi->info.ipv4info.sip >> 16 & 0xff,
@@ -111,7 +110,6 @@ int32_t scap_fd_info_to_string(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
 		         (uint32_t)fdi->info.ipv4info.dport);
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
-		fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 		snprintf(str, stlen, "%u.%u.%u.%u:%u",
 		         fdi->info.ipv4serverinfo.ip >> 24,
 		         fdi->info.ipv4serverinfo.ip >> 16 & 0xff,
