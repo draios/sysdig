@@ -2078,9 +2078,14 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		ASSERT(param->m_len == sizeof(uint64_t));
 		pair<vector<char*>*, vector<char*>*>* pairs = 
 			(pair<vector<char*>*, vector<char*>*>*)*(uint64_t *)param->m_val;
-		ASSERT(pairs->first->size() == pairs->second->size());
 
 		m_paramstr_storage[0] = 0;
+
+		if(pairs->first->size() != pairs->second->size())
+		{
+			ASSERT(false);
+			break;
+		}
 
 		while(true)
 		{

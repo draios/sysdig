@@ -2535,6 +2535,7 @@ void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 	}
 
 	p->m_tinfo = tinfo;
+
 	p->process_event_data(data, datalen, evt->get_ts());
 
 	if(p->m_res == sinsp_markerparser::RES_TRUNCATED)
@@ -2589,6 +2590,9 @@ void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 		// Parsing error.
 		// We don't know the direction, so we use enter.
 		//
+		p->m_argnames.clear();
+		p->m_argvals.clear();
+
 		m_fake_userevt->type = PPME_MARKER_E;
 
 		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
