@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <execinfo.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <netdb.h>
 #endif
 #include <algorithm> 
 #include <functional> 
@@ -371,7 +372,7 @@ const char* sinsp_utils::signal_to_str(uint8_t code)
 	}
 }
 
-bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size)
+bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve)
 {
 	if(stype == SCAP_FD_IPV4_SOCK)
 	{
@@ -381,19 +382,75 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 		if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP ||
 			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
 		{
-			snprintf(targetbuf,
-				targetbuf_size,
-				"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-				(unsigned int)(uint8_t)sb[0],
-				(unsigned int)(uint8_t)sb[1],
-				(unsigned int)(uint8_t)sb[2],
-				(unsigned int)(uint8_t)sb[3],
-				(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
-				(unsigned int)(uint8_t)db[0],
-				(unsigned int)(uint8_t)db[1],
-				(unsigned int)(uint8_t)db[2],
-				(unsigned int)(uint8_t)db[3],
-				(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+			fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
+			if (resolve)
+			{
+				string proto = "";
+				if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP)
+				{
+					proto = "tcp";
+				}
+				else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
+				{
+					proto = "udp";
+				}
+
+				struct servent * res;
+				res = getservbyport(htons((unsigned int)sinfo->m_ipv4info.m_fields.m_sport), proto.c_str());
+
+				string port1 = "";
+				if (res)
+				{
+					port1 = res->s_name;
+				}
+				else
+				{
+					port1 = to_string((unsigned int)sinfo->m_ipv4info.m_fields.m_sport);
+				}
+
+				res = getservbyport(htons((unsigned int)sinfo->m_ipv4info.m_fields.m_dport), proto.c_str());
+
+				string port2 = "";
+				if (res)
+				{
+					port2 = res->s_name;
+				}
+				else
+				{
+					port2 = to_string((unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+				}
+
+				snprintf(targetbuf,
+					targetbuf_size,
+					"%u.%u.%u.%u:%s->%u.%u.%u.%u:%s",
+					(unsigned int)(uint8_t)sb[0],
+					(unsigned int)(uint8_t)sb[1],
+					(unsigned int)(uint8_t)sb[2],
+					(unsigned int)(uint8_t)sb[3],
+					port1.c_str(),
+					(unsigned int)(uint8_t)db[0],
+					(unsigned int)(uint8_t)db[1],
+					(unsigned int)(uint8_t)db[2],
+					(unsigned int)(uint8_t)db[3],
+					port2.c_str());
+
+			}
+			else
+			{
+				snprintf(targetbuf,
+					targetbuf_size,
+					"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
+					(unsigned int)(uint8_t)sb[0],
+					(unsigned int)(uint8_t)sb[1],
+					(unsigned int)(uint8_t)sb[2],
+					(unsigned int)(uint8_t)sb[3],
+					(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
+					(unsigned int)(uint8_t)db[0],
+					(unsigned int)(uint8_t)db[1],
+					(unsigned int)(uint8_t)db[2],
+					(unsigned int)(uint8_t)db[3],
+					(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+			}
 		}
 		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP ||
 			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW)
@@ -429,6 +486,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 		{
 			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 			{
+				fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 				snprintf(targetbuf,
 							targetbuf_size,
 							"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
@@ -835,9 +893,58 @@ string sinsp_gethostname()
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
-string ipv4tuple_to_string(ipv4tuple* tuple)
+string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 {
 	char buf[50];
+	fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
+	if(resolve)
+	{
+		string proto = "";
+		if(tuple->m_fields.m_l4proto == SCAP_L4_TCP)
+		{
+			proto = "tcp";
+		}
+		else if(tuple->m_fields.m_l4proto == SCAP_L4_UDP)
+		{
+			proto = "udp";
+		}
+
+		struct servent * res;
+		res = getservbyport(htons(tuple->m_fields.m_sport), proto.c_str());
+		string port1 = "";
+		if (res)
+		{
+			port1 = res->s_name;
+		}
+		else
+		{
+			port1 = to_string(tuple->m_fields.m_sport);
+		}
+
+		res = getservbyport(htons(tuple->m_fields.m_dport), proto.c_str());
+		string port2 = "";
+		if (res)
+		{
+			port2 = res->s_name;
+		}
+		else
+		{
+			port2 = to_string(tuple->m_fields.m_dport);
+		}
+
+		sprintf(buf, 
+			"%d.%d.%d.%d:%s->%d.%d.%d.%d:%s", 
+			(tuple->m_fields.m_sip & 0xFF),
+			((tuple->m_fields.m_sip & 0xFF00) >> 8),
+			((tuple->m_fields.m_sip & 0xFF0000) >> 16),
+			((tuple->m_fields.m_sip & 0xFF000000) >> 24),
+			port1.c_str(),
+			(tuple->m_fields.m_dip & 0xFF),
+			((tuple->m_fields.m_dip & 0xFF00) >> 8),
+			((tuple->m_fields.m_dip & 0xFF0000) >> 16),
+			((tuple->m_fields.m_dip & 0xFF000000) >> 24),
+			port2.c_str());
+	}
 	sprintf(buf, 
 		"%d.%d.%d.%d:%d->%d.%d.%d.%d:%d", 
 		(tuple->m_fields.m_sip & 0xFF),
@@ -881,6 +988,7 @@ string ipv6tuple_to_string(_ipv6tuple* tuple)
 string ipv4serveraddr_to_string(ipv4serverinfo* addr)
 {
 	char buf[50];
+	fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 	sprintf(buf, 
 		"%d.%d.%d.%d:%d", 
 		(addr->m_ip & 0xFF),

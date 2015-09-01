@@ -2518,7 +2518,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
 							fdtype, &evt->m_paramstr_storage[0],
-							(uint32_t)evt->m_paramstr_storage.size());
+							(uint32_t)evt->m_paramstr_storage.size(),
+							m_inspector->m_hostname_and_port_resolution_enabled);
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}
@@ -2612,7 +2613,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
 							fdtype, &evt->m_paramstr_storage[0],
-							(uint32_t)evt->m_paramstr_storage.size());
+							(uint32_t)evt->m_paramstr_storage.size(),
+							m_inspector->m_hostname_and_port_resolution_enabled);
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}

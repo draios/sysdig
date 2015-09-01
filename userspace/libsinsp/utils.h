@@ -52,7 +52,7 @@ public:
 	//
 	//
 	//
-	static bool sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size);
+	static bool sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve = false);
 
 	//
 	// Concatenate two paths and puts the result in "target".
@@ -124,7 +124,7 @@ string sinsp_gethostname();
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
-string ipv4tuple_to_string(ipv4tuple* tuple);
+string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve = false);
 string ipv6tuple_to_string(_ipv6tuple* tuple);
 string ipv4serveraddr_to_string(ipv4serverinfo* addr);
 string ipv6serveraddr_to_string(ipv6serverinfo* addr);

@@ -1509,14 +1509,52 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(payload_len == 1 + 4 + 2)
 			{
-				snprintf(&m_paramstr_storage[0],
-				         m_paramstr_storage.size(),
-				         "%u.%u.%u.%u:%u",
-				         (unsigned int)(uint8_t)payload[1],
-				         (unsigned int)(uint8_t)payload[2],
-				         (unsigned int)(uint8_t)payload[3],
-				         (unsigned int)(uint8_t)payload[4],
-				         (unsigned int)*(uint16_t*)(payload+5));
+				fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
+				if (m_inspector->m_hostname_and_port_resolution_enabled)
+				{
+					string proto = "";
+					if (this->m_fdinfo->is_tcp_socket())
+					{
+						proto = "tcp";
+					}
+					else if (this->m_fdinfo->is_udp_socket())
+					{
+						proto = "udp";
+					}
+
+					struct servent * res;
+					res = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 5)), proto.c_str());
+
+					string port = "";
+					if (res)
+					{
+						port = res->s_name;
+					}
+					else
+					{
+						port = to_string((unsigned int)*(uint16_t*)(payload+5));
+					}
+
+					snprintf(&m_paramstr_storage[0],
+					         m_paramstr_storage.size(),
+					         "%u.%u.%u.%u:%s",
+					         (unsigned int)(uint8_t)payload[1],
+					         (unsigned int)(uint8_t)payload[2],
+					         (unsigned int)(uint8_t)payload[3],
+					         (unsigned int)(uint8_t)payload[4],
+					         port.c_str());
+				}
+				else
+				{
+					snprintf(&m_paramstr_storage[0],
+					         m_paramstr_storage.size(),
+					         "%u.%u.%u.%u:%u",
+					         (unsigned int)(uint8_t)payload[1],
+					         (unsigned int)(uint8_t)payload[2],
+					         (unsigned int)(uint8_t)payload[3],
+					         (unsigned int)(uint8_t)payload[4],
+					         (unsigned int)*(uint16_t*)(payload+5));
+				}
 			}
 			else
 			{
@@ -1582,6 +1620,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 						port2 = to_string((unsigned int)*(uint16_t*)(payload + 11));
 					}
 
+					fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 					snprintf(&m_paramstr_storage[0],
 						m_paramstr_storage.size(),
 						"%u.%u.%u.%u:%s->%u.%u.%u.%u:%s",
@@ -1598,6 +1637,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				}
 				else
 				{
+					fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 					snprintf(&m_paramstr_storage[0],
 						m_paramstr_storage.size(),
 						"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
@@ -1633,6 +1673,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 				{
+					fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 					snprintf(&m_paramstr_storage[0],
 							 m_paramstr_storage.size(),
 							 "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
