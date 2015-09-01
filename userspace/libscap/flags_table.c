@@ -77,7 +77,17 @@ const struct ppm_name_value file_flags[] = {
 	{"O_RDWR", PPM_O_RDWR},
 	{"O_WRONLY", PPM_O_WRONLY},
 	{"O_RDONLY", PPM_O_RDONLY},
+	{"O_CLOEXEC", PPM_O_CLOEXEC},
 	{"O_NONE", PPM_O_NONE},
+	{0, 0},
+};
+
+const struct ppm_name_value flock_flags[] = {
+	{"LOCK_SH", PPM_LOCK_SH},
+	{"LOCK_EX", PPM_LOCK_EX},
+	{"LOCK_NB", PPM_LOCK_NB},
+	{"LOCK_UN", PPM_LOCK_UN},
+	{"LOCK_NONE", PPM_LOCK_NONE},
 	{0, 0},
 };
 
@@ -101,6 +111,7 @@ const struct ppm_name_value clone_flags[] = {
 	{"CLONE_INVERTED", PPM_CL_CLONE_INVERTED},
 	{"NAME_CHANGED", PPM_CL_NAME_CHANGED},
 	{"CLOSED", PPM_CL_CLOSED},
+	{"CLONE_NEWUSER", PPM_CL_CLONE_NEWUSER},
 	{0, 0},
 };
 
@@ -323,4 +334,27 @@ const struct ppm_name_value quotactl_quota_fmts[] = {
 	{"QFMT_VFS_V0", PPM_QFMT_VFS_V0},
 	{"QFMT_VFS_V1", PPM_QFMT_VFS_V1},
 	{0, 0},
+};
+
+const struct ppm_name_value semop_flags[] = {
+	{"IPC_NOWAIT", PPM_IPC_NOWAIT},
+	{"SEM_UNDO", PPM_SEM_UNDO},
+	{ },
+};
+
+const struct ppm_name_value semctl_commands[] = {
+        {"IPC_STAT", PPM_IPC_STAT},
+        {"IPC_SET", PPM_IPC_SET},
+        {"IPC_RMID", PPM_IPC_RMID},
+        {"IPC_INFO", PPM_IPC_INFO},
+        {"SEM_INFO", PPM_SEM_INFO},
+        {"SEM_STAT", PPM_SEM_STAT},
+        {"GETALL", PPM_GETALL},
+        {"GETNCNT", PPM_GETNCNT},
+        {"GETPID", PPM_GETPID},
+        {"GETVAL", PPM_GETVAL},
+        {"GETZCNT", PPM_GETZCNT},
+        {"SETALL", PPM_SETALL},
+        {"SETVAL", PPM_SETVAL},
+	{ },
 };

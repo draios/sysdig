@@ -75,10 +75,16 @@ if [ -f /proc/config.gz ]; then
 	HASH=$(zcat /proc/config.gz | md5sum - | cut -d' ' -f1)
 elif [ -f /boot/config-$KERNEL_RELEASE ]; then
 	echo "Found kernel config at /boot/config-$KERNEL_RELEASE"
-	HASH=$(md5sum /boot/config-$KERNEL_RELEASE | cut -d' ' -f1)	
+	HASH=$(md5sum /boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
 elif [ ! -z "$SYSDIG_HOST_ROOT" ] && [ -f $SYSDIG_HOST_ROOT/boot/config-$KERNEL_RELEASE ]; then
 	echo "Found kernel config at $SYSDIG_HOST_ROOT/boot/config-$KERNEL_RELEASE"
-	HASH=$(md5sum $SYSDIG_HOST_ROOT/boot/config-$KERNEL_RELEASE | cut -d' ' -f1)	
+	HASH=$(md5sum $SYSDIG_HOST_ROOT/boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+elif [ -f /usr/lib/ostree-boot/config-$KERNEL_RELEASE ]; then
+	echo "Found kernel config at /usr/lib/ostree-boot/config-$KERNEL_RELEASE"
+	HASH=$(md5sum /usr/lib/ostree-boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+elif [ ! -z "$SYSDIG_HOST_ROOT" ] && [ -f $SYSDIG_HOST_ROOT/usr/lib/ostree-boot/config-$KERNEL_RELEASE ]; then
+	echo "Found kernel config at $SYSDIG_HOST_ROOT/usr/lib/ostree-boot/config-$KERNEL_RELEASE"
+        HASH=$(md5sum $SYSDIG_HOST_ROOT/usr/lib/ostree-boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
 fi
 
 if [ -z "$HASH" ]; then
@@ -94,7 +100,7 @@ if [ -f ~/.sysdig/$SYSDIG_PROBE_FILENAME ]; then
 	exit $?
 fi
 
-URL="https://s3.amazonaws.com/download.draios.com/$SYSDIG_REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME"
+URL=$(echo https://s3.amazonaws.com/download.draios.com/$SYSDIG_REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME | sed s/+/%2B/g)
 
 echo "* Trying to download precompiled module from $URL"
 if curl --create-dirs -f -s -o ~/.sysdig/$SYSDIG_PROBE_FILENAME $URL; then

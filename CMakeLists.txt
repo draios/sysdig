@@ -242,8 +242,8 @@ if(NOT WIN32)
 		message(STATUS "Using bundled ncurses in '${CURSES_BUNDLE_DIR}'")
 
 		ExternalProject_Add(ncurses
-			URL "http://download.draios.com/dependencies/ncurses-5.9.tar.gz"
-			URL_MD5 "8cb9c412e5f2d96bc6f459aa8c6282a1"
+			URL "http://download.draios.com/dependencies/ncurses-6.0-20150725.tgz"
+			URL_MD5 "32b8913312e738d707ae68da439ca1f4"
 			CONFIGURE_COMMAND ./configure --without-cxx --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests --with-terminfo-dirs=/etc/terminfo:/lib/terminfo:/usr/share/terminfo
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1

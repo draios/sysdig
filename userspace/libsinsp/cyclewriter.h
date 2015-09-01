@@ -27,11 +27,19 @@ public:
 
 		// It's the end of the capture,
 		// close the file handle and exit.
+		// (actually never used, but kept for future
+		//   implementations and backwards compatibility)
 		DOQUIT
 	};
 
-	cycle_writer();
-	~cycle_writer() {};
+	cycle_writer(bool is_live);
+	~cycle_writer()
+	{
+		if(m_past_names != NULL)
+		{
+			delete[] m_past_names;
+		}
+	};
 
 	//
 	// Setup sets all the parameters of the 
@@ -41,10 +49,10 @@ public:
 	// (via a call to consider()), then this will
 	// be locked down and return false.
 	//
-	bool setup(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle);
+	bool setup(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, scap_dumper_t** dumper);
 	
 	//
-	// Consider byte_count bytes at the current time
+	// Consider file size at the current time
 	// and tell us whether 
 	//
 	//  * a new file should be written,
@@ -57,7 +65,7 @@ public:
 	// get_current_file_name() will tell us the new
 	// capture file name to use.
 	// 
-	cycle_writer::conclusion consider(long byte_count);
+	cycle_writer::conclusion consider(sinsp_evt* evt);
 
 	//
 	// The yields the current file name 
@@ -90,7 +98,7 @@ private:
 	string m_base_file_name; // = ""
 
 	// Number of bytes before rolling over
-	int m_rollover_mb; // = 0
+	int64_t m_rollover_mb; // = 0
 
 	// Time in seconds between captures
 	int m_duration_seconds; // = 0
@@ -98,12 +106,11 @@ private:
 	// Total number of allowed captures
 	int m_file_limit; // = 0
 
-	// Whether to cycle the names at all
-	bool m_do_cycle; // = false
+	// Event division: every how many event
+	// should I split the file?
+	unsigned long m_event_limit; // = 0L
 
 private:
-	// Total number of bytes written
-	int m_byte_count;
 
 	// Last time of a capture
 	time_t m_last_time;
@@ -132,6 +139,17 @@ private:
 	// it will lock the setup() from 
 	// being further run
 	//
-	bool m_first_consider;
+	bool m_first_consider; // = false
+
+	// number of events
+	unsigned long m_event_count; // = 0L
+
+	scap_dumper_t** m_dumper;
+
+	bool live;
+
+	// Used when ciclewriting on time with specified
+	// name format for deleting "out-of-range" files
+	string *m_past_names;
 };
 

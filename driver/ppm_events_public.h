@@ -95,6 +95,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_O_DIRECT (1 << 9)
 #define PPM_O_DIRECTORY (1 << 10)
 #define PPM_O_LARGEFILE (1 << 11)
+#define PPM_O_CLOEXEC	(1 << 12)
+
+/*
+ * flock() flags
+ */
+#define PPM_LOCK_NONE 0
+#define PPM_LOCK_SH (1 << 0)
+#define PPM_LOCK_EX (1 << 1)
+#define PPM_LOCK_NB (1 << 2)
+#define PPM_LOCK_UN (1 << 3)
 
 /*
  * Clone flags
@@ -121,8 +131,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_CL_NAME_CHANGED (1 << 17)	/* libsinsp-specific flag. Set when the thread name changes */
 										/* (for example because execve was called) */
 #define PPM_CL_CLOSED (1 << 18)			/* thread has been closed. */
-#define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for 
+#define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for
 										   this thread. */
+#define PPM_CL_CLONE_NEWUSER (1 << 20)
 
 /*
  * Futex Operations
@@ -358,6 +369,26 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_QFMT_VFS_OLD	(1 << 1)
 #define PPM_QFMT_VFS_V0		(1 << 2)
 #define PPM_QFMT_VFS_V1		(1 << 3)
+
+/*
+ * Semop flags
+ */
+#define PPM_IPC_NOWAIT		(1 << 0)
+#define PPM_SEM_UNDO		(1 << 1)
+
+#define PPM_IPC_STAT		(1 << 0)
+#define PPM_IPC_SET		(1 << 1)
+#define PPM_IPC_RMID		(1 << 2)
+#define PPM_IPC_INFO		(1 << 3)
+#define PPM_SEM_INFO		(1 << 4)
+#define PPM_SEM_STAT		(1 << 5)
+#define PPM_GETALL		(1 << 6)
+#define PPM_GETNCNT		(1 << 7)
+#define PPM_GETPID		(1 << 8)
+#define PPM_GETVAL		(1 << 9)
+#define PPM_GETZCNT		(1 << 10)
+#define PPM_SETALL		(1 << 11)
+#define PPM_SETVAL		(1 << 12)
 
 /*
  * SuS says limits have to be unsigned.
@@ -642,7 +673,21 @@ enum ppm_event_type {
 	PPME_SYSCALL_GETDENTS_X = 237,
 	PPME_SYSCALL_GETDENTS64_E = 238,
 	PPME_SYSCALL_GETDENTS64_X = 239,
-	PPM_EVENT_MAX = 240
+	PPME_SYSCALL_SETNS_E = 240,
+	PPME_SYSCALL_SETNS_X = 241,
+	PPME_SYSCALL_FLOCK_E = 242,
+	PPME_SYSCALL_FLOCK_X = 243,
+	PPME_CPU_HOTPLUG_E = 244,
+	PPME_CPU_HOTPLUG_X = 245, /* This should never be called */
+	PPME_SOCKET_ACCEPT_5_E = 246,
+	PPME_SOCKET_ACCEPT_5_X = 247,
+	PPME_SOCKET_ACCEPT4_5_E = 248,
+	PPME_SOCKET_ACCEPT4_5_X = 249,
+	PPME_SYSCALL_SEMOP_E = 250,
+	PPME_SYSCALL_SEMOP_X = 251,
+	PPME_SYSCALL_SEMCTL_E = 252,
+	PPME_SYSCALL_SEMCTL_X = 253,
+	PPM_EVENT_MAX = 254
 };
 /*@}*/
 
@@ -1162,6 +1207,7 @@ struct ppm_syscall_desc {
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
+extern const struct ppm_name_value flock_flags[];
 extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];
 extern const struct ppm_name_value lseek_whence[];
@@ -1177,6 +1223,9 @@ extern const struct ppm_name_value quotactl_cmds[];
 extern const struct ppm_name_value quotactl_types[];
 extern const struct ppm_name_value quotactl_dqi_flags[];
 extern const struct ppm_name_value quotactl_quota_fmts[];
+extern const struct ppm_name_value semop_flags[];
+extern const struct ppm_name_value semctl_commands[];
+
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 

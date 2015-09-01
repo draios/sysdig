@@ -109,6 +109,16 @@ class sinsp_protodecoder;
 vector<string> sinsp_split(const string &s, char delim);
 
 /*!
+  \brief Information about a chisel
+*/
+class sinsp_chisel_details
+{
+public:
+	string m_name;
+	vector<pair<string, string>> m_args;
+};
+
+/*!
   \brief Information about a group of filter/formatting fields.
 */
 class filter_check_info
@@ -638,7 +648,7 @@ public:
 
 	sinsp_parser* get_parser();
 
-	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, bool do_cycle, bool compress);
+	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
 	void add_meta_event_and_repeat(sinsp_evt *metaevt);
@@ -817,7 +827,7 @@ private:
 	friend class sinsp_worker;
 	friend class sinsp_table;
 	friend class curses_textbox;
-
+	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 

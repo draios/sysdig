@@ -74,6 +74,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_refresh_interval_ns = refresh_interval_ns;
 	m_print_containers = print_containers;
 	m_raw_output = raw_output;
+	m_truncated_input = false;
 #ifndef NOCURSESUI
 	m_spybox_text_format = sinsp_evt::PF_NORMAL;
 	m_sidemenu = NULL;
@@ -505,6 +506,11 @@ void sinsp_cursesui::render_header()
 
 		srcstr = m_inspector->get_input_filename();
 		srcstr += " (" + to_string(m_n_evts_in_file) + " evts, ";
+
+		if(m_truncated_input)
+		{
+			srcstr += " truncated, ";
+		}
 
 		m_timedelta_formatter->set_val(PT_RELTIME, 
 			(uint8_t*)&m_evt_ts_delta,
@@ -1179,7 +1185,7 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 }
 
 // returns false if there is no suitable drill down view for this field
-bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num)
+bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num, filtercheck_field_info* info)
 {
 	//
 	// unpause the thing if it's paused
@@ -1187,6 +1193,15 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	if(m_paused)
 	{
 		pause();
+	}
+
+	//
+	//	escape string parameters
+	//
+	if(info->m_type & PT_CHARBUF)
+	{
+		string escape = "\"";
+		val = escape + val + escape;
 	}
 
 	//
@@ -1250,7 +1265,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 }
 
 // returns false if there is no suitable drill down view for this field
-bool sinsp_cursesui::drilldown(string field, string val)
+bool sinsp_cursesui::drilldown(string field, string val, filtercheck_field_info* info)
 {
 	uint32_t j = 0;
 
@@ -1258,7 +1273,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 	{
 		if(m_views.at(j)->m_id == m_views.at(m_selected_view)->m_drilldown_target)
 		{
-			return do_drilldown(field, val, j);			
+			return do_drilldown(field, val, j, info);			
 		}
 	}
 
@@ -1270,7 +1285,7 @@ bool sinsp_cursesui::drilldown(string field, string val)
 		{
 			if(*atit == field)
 			{
-				return do_drilldown(field, val, j);
+				return do_drilldown(field, val, j, info);
 			}
 		}
 	}
@@ -1531,6 +1546,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 			break;
 		case KEY_BACKSPACE:
+		case 127:
 			if(str->size() > 0)
 			{
 				m_cursor_pos--;
@@ -1684,7 +1700,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	if((!m_inspector->is_live()) && !is_eof())
 	{
-		if(ch != KEY_BACKSPACE && 
+		if(ch != KEY_BACKSPACE &&
+			ch != 127 &&
 			ch != 'q' &&
 			ch != KEY_F(10))
 		{

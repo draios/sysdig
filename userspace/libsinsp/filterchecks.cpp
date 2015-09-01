@@ -94,7 +94,9 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	{
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SOCKET_ACCEPT_X:
+	case PPME_SOCKET_ACCEPT_5_X:
 	case PPME_SOCKET_ACCEPT4_X:
+	case PPME_SOCKET_ACCEPT4_5_X:
 	case PPME_SYSCALL_CREAT_X:
 		{
 			const char* argstr = evt->get_param_as_str(1, &resolved_argstr, 
@@ -297,16 +299,18 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return m_tcstr;
 		case PPME_SOCKET_SOCKET_E:
 		case PPME_SOCKET_ACCEPT_E:
+		case PPME_SOCKET_ACCEPT_5_E:
 		case PPME_SOCKET_ACCEPT4_E:
-			//
-			// Note, this is not accurate, because it always
-			// returns IPv4 even if this could be IPv6 or unix.
-			// For the moment, I assume it's better than nothing, and doing
-			// real event parsing here would be a pain. 
-			//
-			m_tcstr[0] = CHAR_FD_IPV4_SOCK;
-			m_tcstr[1] = 0;
-			return m_tcstr;
+		case PPME_SOCKET_ACCEPT4_5_E:
+                	//
+                	// Note, this is not accurate, because it always
+                	// returns IPv4 even if this could be IPv6 or unix.
+                	// For the moment, I assume it's better than nothing, and doing
+                	// real event parsing here would be a pain.
+                	//
+                	m_tcstr[0] = CHAR_FD_IPV4_SOCK;
+                	m_tcstr[1] = 0;
+                	return m_tcstr;
 		case PPME_SYSCALL_PIPE_E:
 			m_tcstr[0] = CHAR_FD_FIFO;
 			m_tcstr[1] = 0;
@@ -1726,7 +1730,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 
 	if(tinfo == NULL)
 	{
-		return NULL;
+		return false;
 	}
 
 	sinsp_threadinfo* mt = NULL;
@@ -1741,7 +1745,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 
 		if(mt == NULL)
 		{
-			return NULL;
+			return false;
 		}
 	}
 
@@ -1776,7 +1780,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 
 	if(tinfo == NULL)
 	{
-		return NULL;
+		return false;
 	}
 
 	sinsp_threadinfo* mt = NULL;
@@ -1791,7 +1795,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 
 		if(mt == NULL)
 		{
-			return NULL;
+			return false;
 		}
 	}
 
@@ -1852,16 +1856,17 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.reltime", "number of nanoseconds from the beginning of the capture."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.reltime.s", "number of seconds from the beginning of the capture."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.reltime.ns", "fractional part (in ns) of the time from the beginning of the capture."},
-	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency", "delta between an exit event and the correspondent enter event."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency", "delta between an exit event and the correspondent enter event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency.s", "integer part of the event latency delta."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.latency.ns", "fractional part of the event latency delta."},
-	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
 	{PT_CHARBUF, EPF_PRINT_ONLY, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
-	{PT_UINT32, EPF_NONE, PF_NA, "evt.type.is", "allows to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
+	{PT_UINT32, EPF_NONE, PF_NA, "evt.type.is", "allows one to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "syscall.type", "For system call events, the name of the system call (e.g. 'open'). Unset for other events (e.g. switch or sysdig internal events). Use this field instead of evt.type if you need to make sure that the filtered/printed value is actually a system call."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.category", "The event category. Example values are 'file' (for file operations like open and close), 'net' (for network operations like socket and bind), memory (for things like brk or mmap), and so on."},
 	{PT_INT16, EPF_NONE, PF_ID, "evt.cpu", "number of the CPU where this event happened."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.arg", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'evt.arg.fd' or 'evt.arg[0]'."},
@@ -1877,7 +1882,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_io_write", "'true' for events that write to FDs, like write(), send(), etc."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.io_dir", "'r' for events that read from FDs, like read(); 'w' for events that write to FDs, like write()."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_wait", "'true' for events that make the thread wait, e.g. sleep(), select(), poll()."},
-	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.wait_latency", "for events that make the thread wait (e.g. sleep(), select(), poll()), this is the time spent waiting for the event to return."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.wait_latency", "for events that make the thread wait (e.g. sleep(), select(), poll()), this is the time spent waiting for the event to return, in nanoseconds."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_syslog", "'true' for events that are writes to /dev/log."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count", "This filter field always returns 1 and can be used to count events from inside chisels."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "evt.count.error", "This filter field returns 1 for events that returned with an error, and can be used to count event failures from inside chisels."},
@@ -1890,14 +1895,14 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT32, EPF_TABLE_ONLY, PF_DEC, "evt.count.threadinfo", "This filter field returns 1 for procinfo events, and can be used to count processes from inside views."},
 	{PT_UINT64, EPF_FILTER_ONLY, PF_DEC, "evt.around", "Accepts the event if it's around the specified time interval. The syntax is evt.around[T]=D, where T is the value returned by %evt.rawtime for the event and D is a delta in milliseconds. For example, evt.around[1404996934793590564]=1000 will return the events with timestamp with one second before the timestamp and one second after it, for a total of two seconds of capture."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.abspath", "Absolute path calculated from dirfd and name during syscalls like renameat and symlinkat. Use 'evt.abspath.src' or 'evt.abspath.dst' for syscalls that support multiple paths."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.in", "the lenght of the binary data buffer, but only for input I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.out", "the lenght of the binary data buffer, but only for output I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file", "the lenght of the binary data buffer, but only for file I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.in", "the lenght of the binary data buffer, but only for input file I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the lenght of the binary data buffer, but only for output file I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the lenght of the binary data buffer, but only for network I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the lenght of the binary data buffer, but only for input network I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the lenght of the binary data buffer, but only for output network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.in", "the length of the binary data buffer, but only for input I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.out", "the length of the binary data buffer, but only for output I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file", "the length of the binary data buffer, but only for file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.in", "the length of the binary data buffer, but only for input file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the length of the binary data buffer, but only for output file I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2433,10 +2438,10 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 		return m_u32val;
 
 	default:
-		return Json::Value::null;
+		return Json::Value::nullRef;
 	}
 
-	return Json::Value::null;
+	return Json::Value::nullRef;
 }
 
 uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint32_t* len)
@@ -2662,6 +2667,90 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return evname;
 		}
 		break;
+	case TYPE_CATEGORY:
+		sinsp_evt::category cat;
+		evt->get_category(&cat);
+
+		switch(cat.m_category)
+		{
+		case EC_UNKNOWN:
+			m_strstorage = "unknown";
+			break;
+		case EC_OTHER:
+			m_strstorage = "other";
+			break;
+		case EC_FILE:
+			m_strstorage = "file";
+			break;
+		case EC_NET:
+			m_strstorage = "net";
+			break;
+		case EC_IPC:
+			m_strstorage = "IPC";
+			break;
+		case EC_MEMORY:
+			m_strstorage = "memory";
+			break;
+		case EC_PROCESS:
+			m_strstorage = "process";
+			break;
+		case EC_SLEEP:
+			m_strstorage = "sleep";
+			break;
+		case EC_SYSTEM:
+			m_strstorage = "system";
+			break;
+		case EC_SIGNAL:
+			m_strstorage = "signal";
+			break;
+		case EC_USER:
+			m_strstorage = "user";
+			break;
+		case EC_TIME:
+			m_strstorage = "time";
+			break;
+		case EC_PROCESSING:
+			m_strstorage = "processing";
+			break;
+		case EC_IO_READ:
+		case EC_IO_WRITE:
+		case EC_IO_OTHER:
+		{
+			switch(cat.m_subcategory)
+			{
+			case sinsp_evt::SC_FILE:
+				m_strstorage = "file";
+				break;
+			case sinsp_evt::SC_NET:
+				m_strstorage = "net";
+				break;
+			case sinsp_evt::SC_IPC:
+				m_strstorage = "ipc";
+				break;
+			case sinsp_evt::SC_NONE:
+			case sinsp_evt::SC_UNKNOWN:
+			case sinsp_evt::SC_OTHER:
+				m_strstorage = "unknown";
+				break;
+			default:
+				ASSERT(false);
+				m_strstorage = "unknown";
+				break;
+			}
+		}
+		break;
+		case EC_WAIT:
+			m_strstorage = "wait";
+			break;
+		case EC_SCHEDULER:
+			m_strstorage = "scheduler";
+			break;
+		default:
+			m_strstorage = "unknown";
+			break;
+		}
+
+		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_NUMBER:
 		return (uint8_t*)&evt->m_evtnum;
 	case TYPE_CPU:
@@ -3070,7 +3159,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				uint16_t etype = evt->get_type();
 
 				if(etype == PPME_SOCKET_ACCEPT_X ||
+					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
+					etype == PPME_SOCKET_ACCEPT4_5_X ||
 					etype == PPME_SOCKET_CONNECT_X)
 				{
 					return extract_error_count(evt, len);
@@ -3115,7 +3206,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					etype == PPME_SYSCALL_CREAT_X ||
 					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SOCKET_ACCEPT_X ||
+					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
+					etype == PPME_SOCKET_ACCEPT4_5_X ||
 					etype == PPME_SOCKET_CONNECT_X ||
 					evt->get_category() == EC_MEMORY))
 				{
@@ -4022,6 +4115,216 @@ uint8_t* sinsp_filter_check_utils::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 
 	return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_fdlist implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_fdlist_fields[] =
+{
+	{PT_CHARBUF, EPF_NONE, PF_ID, "fdlist.nums", "for poll events, this is a comma-separated list of the FD numbers in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fdlist.names", "for poll events, this is a comma-separated list of the FD names in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fdlist.cips", "for poll events, this is a comma-separated list of the client IP addresses in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fdlist.sips", "for poll events, this is a comma-separated list of the server IP addresses in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "fdlist.cports", "for TCP/UDP FDs, for poll events, this is a comma-separated list of the client TCP/UDP ports in the 'fds' argument, returned as a string."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "fdlist.sports", "for poll events, this is a comma-separated list of the server TCP/UDP ports in the 'fds' argument, returned as a string."},
+};
+
+sinsp_filter_check_fdlist::sinsp_filter_check_fdlist()
+{
+	m_info.m_name = "fdlist";
+	m_info.m_fields = sinsp_filter_check_fdlist_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_fdlist_fields) / sizeof(sinsp_filter_check_fdlist_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+}
+
+sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_fdlist();
+}
+
+int32_t sinsp_filter_check_fdlist::parse_field_name(const char* str, bool alloc_state)
+{
+	return sinsp_filter_check::parse_field_name(str, alloc_state);
+}
+
+uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	ASSERT(evt);
+	sinsp_evt_param *parinfo;
+
+	uint16_t etype = evt->get_type();
+
+	if(etype == PPME_SYSCALL_POLL_E)
+	{
+		parinfo = evt->get_param(0);
+	}
+	else if(etype == PPME_SYSCALL_POLL_X)
+	{
+		parinfo = evt->get_param(1);
+	}
+	else
+	{
+		return NULL;
+	}
+
+	uint32_t j = 0;
+	char* payload = parinfo->m_val;
+	uint16_t nfds = *(uint16_t *)payload;
+	uint32_t pos = 2;
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+	m_strval.clear();
+
+	for(j = 0; j < nfds; j++)
+	{
+		bool add_comma = true;
+		int64_t fd = *(int64_t *)(payload + pos);
+
+		sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
+
+		switch(m_field_id)
+		{
+		case TYPE_FDNUMS:
+		{
+			m_strval += to_string(fd);
+		}
+		break;
+		case TYPE_FDNAMES:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_name != "")
+				{
+					m_strval += fdinfo->m_name;
+				}
+				else
+				{
+					m_strval += "<NA>";
+				}
+			}
+			else
+			{
+				m_strval += "<NA>";
+			}
+		}
+		break;
+		case TYPE_CLIENTIPS:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				{
+					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+				{
+					inet_ntop(AF_INET6, fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+			}
+
+			add_comma = false;
+		}
+		break;
+		case TYPE_SERVERIPS:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				{
+					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+				{
+					inet_ntop(AF_INET6, fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK)
+				{
+					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
+				{
+					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, m_addrbuff, sizeof(m_addrbuff));
+					m_strval += m_addrbuff;
+					break;
+				}
+			}
+
+			add_comma = false;
+		}
+		break;
+		case TYPE_CLIENTPORTS:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				{
+					m_strval += to_string(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+				{
+					m_strval += to_string(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+					break;
+				}
+			}
+
+			add_comma = false;
+		}
+		case TYPE_SERVERPORTS:
+		{
+			if(fdinfo != NULL)
+			{
+				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
+				{
+					m_strval += to_string(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+					break;
+				}
+				else if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+				{
+					m_strval += to_string(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+					break;
+				}
+			}
+
+			add_comma = false;
+		}
+		break;
+		default:
+			ASSERT(false);
+		}
+
+		if(j < nfds && add_comma)
+		{
+			m_strval += ",";
+		}
+
+		pos += 10;
+	}
+
+	if(m_strval.size() != 0)
+	{
+		if(m_strval.back() == ',')
+		{
+			m_strval = m_strval.substr(0, m_strval.size() - 1);
+		}
+
+		return (uint8_t*)m_strval.c_str();
+	}
+	else
+	{
+		return NULL;
+	}
 }
 
 #endif // HAS_FILTERING

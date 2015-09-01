@@ -77,6 +77,8 @@ scap_t* scap_open_live_int(char *error,
 	int len;
 	uint32_t ndevs;
 	uint32_t res;
+	uint32_t max_devs;
+	uint32_t all_scanned_devs;
 
 	//
 	// Allocate the handle
@@ -97,6 +99,7 @@ scap_t* scap_open_live_int(char *error,
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
+	max_devs = sysconf(_SC_NPROCESSORS_CONF);	
 
 	//
 	// Allocate the device descriptors.
@@ -170,16 +173,23 @@ scap_t* scap_open_live_int(char *error,
 	//
 	// Open and initialize all the devices
 	//
-	for(j = 0; j < handle->m_ndevs; j++)
+	for(j = 0, all_scanned_devs = 0; j < handle->m_ndevs && all_scanned_devs < max_devs; all_scanned_devs++)
 	{
 		//
 		// Open the device
 		//
-		sprintf(filename, "%s/dev/sysdig%d", scap_get_host_root(), j);
+		sprintf(filename, "%s/dev/sysdig%d", scap_get_host_root(), all_scanned_devs);
 
 		if((handle->m_devs[j].m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
 		{
-			if(errno == EBUSY)
+			if(errno == ENODEV)
+			{
+				//
+				// This CPU is offline, so we just skip it
+				//
+				continue;
+			}
+			else if(errno == EBUSY)
 			{
 				uint32_t curr_max_consumers = get_max_consumers();
 				snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/sysdig_probe/parameters/max_consumers is '%" PRIu32 "'.", filename, curr_max_consumers);
@@ -246,6 +256,7 @@ scap_t* scap_open_live_int(char *error,
 		handle->m_evtcnt = 0;
 #endif
 		scap_stop_dropping_mode(handle);
+		j++;
 	}
 #ifdef HAVE_EXTERNAL_SCAP_READER
 	scap_external_init(handle);
@@ -948,8 +959,7 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 		}
 	}
 
-	int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, &handle->m_driver_procinfo);
-
+	int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
 	if(ioctlres)
 	{
 		if(errno == ENOSPC)
@@ -969,14 +979,7 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 			return NULL;
 		}
 	}
-/*
-	for(j = 0; j < handle->m_driver_procinfo->n_entries; j++)
-	{
-		printf("pid:%ld utime:%ld stime:%ld\n", handle->m_driver_procinfo->entries[j].pid,
-			handle->m_driver_procinfo->entries[j].utime,
-			handle->m_driver_procinfo->entries[j].stime);
-	}
-*/
+
 	return handle->m_driver_procinfo;
 #endif	// HAS_CAPTURE
 }

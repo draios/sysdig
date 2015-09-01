@@ -57,6 +57,7 @@ if(ENABLE_DKMS)
 		ppm_events_public.h
 		ppm_fillers.c
 		ppm_ringbuffer.h
+		ppm_syscall.h
 		syscall_table.c
 		ppm_cputime.c
 		DESTINATION "src/sysdig-${SYSDIG_VERSION}")

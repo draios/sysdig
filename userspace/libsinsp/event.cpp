@@ -874,7 +874,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_SOCKADDR:
 		if(payload_len == 0)
 		{
-			ret = Json::Value::null;
+			ret = Json::Value::nullRef;
 			break;
 		}
 		else if(payload[0] == AF_UNIX)
@@ -923,7 +923,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_SOCKTUPLE:
 		if(payload_len == 0)
 		{
-			ret = Json::Value::null;
+			ret = Json::Value::nullRef;
 			break;
 		}
 

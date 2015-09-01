@@ -209,11 +209,14 @@ typeset -A opt_args
 _arguments                                                                                                      \
     '(-A --print-ascii)'{-A,--print-ascii}'[Only print the text portion of data buffers]'                       \
     '(-b --print-base64)'{-b,--print-base64}'[Print data buffers in base64]'                                    \
+    '(-C --file-size)'{-C,--file-size=-}'[Chunk captures to files of given size]:Maximum chunk file size:'      \
     '(-cl --list-chisels)'{-cl,--list-chisels}'[lists the available chisels]'                                   \
     '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
     '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \
     '(-E --exclude-users)'{-E,--exclude-users}'[Don'\''t create the user/group tables when starting]'           \
+    '(-e --events)'{-e,--events}'[Rotate the capture file every <num> events]:Maximum event number:'            \
     '(-F --fatfile)'{-F,--fatfile}'[Enable fatfile mode]'                                                       \
+    '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'  \
     '(-h --help)'{-h,--help}'[Print this help]'                                                                 \
     '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                             \
     '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                          \
@@ -230,6 +233,7 @@ _arguments                                                                      
     '(-p --print)'{-p,--print=-}'[Specify the event format]:Event output format:->format'                       \
     '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
     '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
+    '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files' \
     '(-s --snaplen)'{-s,--snaplen=-}'[Capture the first <len> bytes of each I/O buffer]:Buffer length (bytes):' \
     '(-t --timetype)'{-t,--timetype=-}'[Change the way event time is displayed]:Time-reporting type:((          \
        h\:"human-readable string"                                                                               \
