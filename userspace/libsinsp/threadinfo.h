@@ -376,7 +376,7 @@ public:
 	set<uint16_t> m_server_ports;
 
 private:
-	pair<bool, threadinfo_map_iterator_t> remove_thread(threadinfo_map_iterator_t it, bool force);
+	threadinfo_map_iterator_t remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
 
