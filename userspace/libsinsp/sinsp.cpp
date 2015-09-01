@@ -1459,7 +1459,15 @@ bool sinsp_thread_manager::remove_inactive_threads()
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				it = remove_thread(it, closed);
+				auto remove_ret = remove_thread(it, closed);
+				if(remove_ret.first)
+				{
+					it = remove_ret.second;
+				}
+				else
+				{
+					++it;
+				}
 			}
 			else
 			{
