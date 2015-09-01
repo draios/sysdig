@@ -895,7 +895,7 @@ string sinsp_gethostname()
 ///////////////////////////////////////////////////////////////////////////////
 string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 {
-	char buf[50];
+	char buf[100];
 	fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
 	if(resolve)
 	{
@@ -945,18 +945,21 @@ string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 			((tuple->m_fields.m_dip & 0xFF000000) >> 24),
 			port2.c_str());
 	}
-	sprintf(buf, 
-		"%d.%d.%d.%d:%d->%d.%d.%d.%d:%d", 
-		(tuple->m_fields.m_sip & 0xFF),
-		((tuple->m_fields.m_sip & 0xFF00) >> 8),
-		((tuple->m_fields.m_sip & 0xFF0000) >> 16),
-		((tuple->m_fields.m_sip & 0xFF000000) >> 24),
-		tuple->m_fields.m_sport,
-		(tuple->m_fields.m_dip & 0xFF),
-		((tuple->m_fields.m_dip & 0xFF00) >> 8),
-		((tuple->m_fields.m_dip & 0xFF0000) >> 16),
-		((tuple->m_fields.m_dip & 0xFF000000) >> 24),
-		tuple->m_fields.m_dport);
+	else
+	{
+		sprintf(buf, 
+			"%d.%d.%d.%d:%d->%d.%d.%d.%d:%d", 
+			(tuple->m_fields.m_sip & 0xFF),
+			((tuple->m_fields.m_sip & 0xFF00) >> 8),
+			((tuple->m_fields.m_sip & 0xFF0000) >> 16),
+			((tuple->m_fields.m_sip & 0xFF000000) >> 24),
+			tuple->m_fields.m_sport,
+			(tuple->m_fields.m_dip & 0xFF),
+			((tuple->m_fields.m_dip & 0xFF00) >> 8),
+			((tuple->m_fields.m_dip & 0xFF0000) >> 16),
+			((tuple->m_fields.m_dip & 0xFF000000) >> 24),
+			tuple->m_fields.m_dport);
+	}
 	return string(buf);
 }
 
@@ -985,17 +988,52 @@ string ipv6tuple_to_string(_ipv6tuple* tuple)
 	return string(buf);
 }
 
-string ipv4serveraddr_to_string(ipv4serverinfo* addr)
+string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 {
 	char buf[50];
 	fprintf(stderr, "%s:%d\n", __FILE__, __LINE__);
-	sprintf(buf, 
-		"%d.%d.%d.%d:%d", 
-		(addr->m_ip & 0xFF),
-		((addr->m_ip & 0xFF00) >> 8),
-		((addr->m_ip & 0xFF0000) >> 16),
-		((addr->m_ip & 0xFF000000) >> 24),
-		addr->m_port);
+	if(resolve)
+	{
+		string proto = "";
+		if(addr->m_l4proto == SCAP_L4_TCP)
+		{
+			proto = "tcp";
+		}
+		else if(addr->m_l4proto == SCAP_L4_UDP)
+		{
+			proto = "udp";
+		}
+
+		struct servent * res;
+		res = getservbyport(htons(addr->m_port), proto.c_str());
+		string port = "";
+		if (res)
+		{
+			port = res->s_name;
+		}
+		else
+		{
+			port = to_string(addr->m_port);
+		}
+
+		sprintf(buf, 
+			"%d.%d.%d.%d:%s", 
+			(addr->m_ip & 0xFF),
+			((addr->m_ip & 0xFF00) >> 8),
+			((addr->m_ip & 0xFF0000) >> 16),
+			((addr->m_ip & 0xFF000000) >> 24),
+			port.c_str());
+	}
+	else
+	{
+		sprintf(buf, 
+			"%d.%d.%d.%d:%d", 
+			(addr->m_ip & 0xFF),
+			((addr->m_ip & 0xFF00) >> 8),
+			((addr->m_ip & 0xFF0000) >> 16),
+			((addr->m_ip & 0xFF000000) >> 24),
+			addr->m_port);
+	}
 	return string(buf);
 }
 

@@ -241,6 +241,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	try
 	{
 		inspector = new sinsp();
+		fprintf(stderr, "%d\n", inspector->m_hostname_and_port_resolution_enabled);
 
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);

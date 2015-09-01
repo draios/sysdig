@@ -173,7 +173,7 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 		newfdi.m_sockinfo.m_ipv4serverinfo.m_ip = fdi->info.ipv4serverinfo.ip;
 		newfdi.m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
 		newfdi.m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
-		newfdi.m_name = ipv4serveraddr_to_string(&newfdi.m_sockinfo.m_ipv4serverinfo);
+		newfdi.m_name = ipv4serveraddr_to_string(&newfdi.m_sockinfo.m_ipv4serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
 			
 		//
 		// We keep note of all the host bound server ports.
