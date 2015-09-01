@@ -30,6 +30,7 @@ json = require ("dkjson")
 local markers = {}
 local flatency = nil
 local fcontname = nil
+local fexe = nil
 local MAX_DEPTH = 256
 local data = {}
 
@@ -49,6 +50,7 @@ function on_init()
 	
 	flatency = chisel.request_field("marker.latency")
 	fcontname = chisel.request_field("container.name")
+	fexe = chisel.request_field("proc.exeline")
 
 	-- set the filter
 	chisel.set_filter("evt.type=marker and evt.dir=<")
@@ -61,6 +63,7 @@ function on_event()
 	local mrk_cur = data
 	local latency = evt.field(flatency)
 	local contname = evt.field(fcontname)
+	local exe = evt.field(fexe)
 	local hr = {}
 
 	if latency == nil then
@@ -82,17 +85,19 @@ function on_event()
 		
 		if j == #hr then
 			if mrk_cur[mv] == nil then
-				mrk_cur[mv] = {t=latency, cont=contname}
+				mrk_cur[mv] = {t=latency, tt=latency, cont=contname, exe=exe}
 				if j == 1 then
 					mrk_cur[mv].n = 0
 				end
 			else
 				mrk_cur[mv]["t"] = mrk_cur[mv]["t"] + latency
+				mrk_cur[mv]["tt"] = mrk_cur[mv]["tt"] + latency
 				mrk_cur[mv]["cont"] = contname
+				mrk_cur[mv]["exe"] = exe
 			end
 		elseif j == (#hr - 1) then
 			if mrk_cur[mv] == nil then
-				mrk_cur[mv] = {t=-latency}
+				mrk_cur[mv] = {t=-latency,tt=0}
 				if j == 1 then
 					mrk_cur[mv].n = 0
 				end
@@ -101,7 +106,7 @@ function on_event()
 			end
 		else
 			if mrk_cur[mv] == nil then
-				mrk_cur[mv] = {t=0}
+				mrk_cur[mv] = {t=0, tt=0}
 				if j == 1 then
 					mrk_cur[mv].n = 0
 				end
@@ -129,6 +134,7 @@ end
 
 function normalize(node, factor)
 	node.t = node.t / factor
+	node.tt = node.tt / factor
 	if node.ch then
 		for k,d in pairs(node.ch) do
 			normalize(d, factor)
@@ -140,11 +146,11 @@ end
 function on_capture_end()
 	-- normalize each root marker tree
 	for i,v in pairs(data) do
---		normalize(v, v.n)
+		normalize(v, v.n)
 	end
 
 	local FGData = {}
-	FGData[""] = {ch=data, t=0}
+	FGData[""] = {ch=data, t=0, tt=0}
 	local str = json.encode(FGData, { indent = true })
 	print("FGData = " .. str .. ";")
 end
