@@ -4155,11 +4155,11 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 	uint16_t etype = evt->get_type();
 
-	if(etype == PPME_SYSCALL_POLL_E)
+	if(etype == PPME_SYSCALL_POLL_E || etype == PPME_SYSCALL_PPOLL_E)
 	{
 		parinfo = evt->get_param(0);
 	}
-	else if(etype == PPME_SYSCALL_POLL_X)
+	else if(etype == PPME_SYSCALL_POLL_X || etype == PPME_SYSCALL_PPOLL_X)
 	{
 		parinfo = evt->get_param(1);
 	}

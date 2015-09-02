@@ -1747,14 +1747,24 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			ASSERT(payload_len == sizeof(uint64_t));
 			uint64_t val = *(uint64_t *)payload;
 
-			snprintf(&m_paramstr_storage[0],
+			if(val == (uint64_t)(-1))
+			{
+				snprintf(&m_paramstr_storage[0],
+					 m_paramstr_storage.size(),
+					 "none");
+				m_resolved_paramstr_storage[0] = '\0';
+			}
+			else
+			{
+				snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "%" PRIu64, val);
 
-			snprintf(&m_resolved_paramstr_storage[0],
-						m_resolved_paramstr_storage.size(),
-						"%lgs",
-						((double)val) / 1000000000);
+				snprintf(&m_resolved_paramstr_storage[0],
+					 m_resolved_paramstr_storage.size(),
+					 "%lgs",
+					 ((double)val) / 1000000000);
+			}
 		}
 		break;
 	case PT_FLAGS8:
