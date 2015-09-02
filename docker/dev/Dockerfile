@@ -29,8 +29,8 @@ RUN apt-get update \
 # it to 4.8
 
 RUN rm -rf /usr/bin/gcc \
- && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc
- && ln -s /usr/bin/gcc-4.8 /usr/bin/gcc-4.7
+ && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc \
+ && ln -s /usr/bin/gcc-4.8 /usr/bin/gcc-4.7 \
  && ln -s /usr/bin/gcc-4.8 /usr/bin/gcc-4.6
 
 RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add - \
