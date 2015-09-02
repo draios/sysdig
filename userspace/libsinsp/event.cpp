@@ -1184,6 +1184,11 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		         m_paramstr_storage.size(),
 		         "INVALID DYNAMIC PARAMETER");
 		break;
+
+	case PT_SIGSET:
+		ret = get_param_as_str(id, resolved_str, fmt);
+		break;
+
 	default:
 		ASSERT(false);
 		snprintf(&m_paramstr_storage[0],
@@ -1874,6 +1879,43 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			snprintf(&m_resolved_paramstr_storage[0],
 					m_resolved_paramstr_storage.size(),
 					"<NONE>");
+		}
+		break;
+	}
+	case PT_SIGSET:
+	{
+		ASSERT(payload_len == sizeof(uint32_t));
+		uint32_t val = *(uint32_t *)payload;
+
+		m_resolved_paramstr_storage[0] = '\0';
+		m_paramstr_storage[0]          = '\0';
+
+		char* storage = &m_paramstr_storage[0];
+		int remaining = m_paramstr_storage.size();
+		bool first = true;
+
+		for(int sig = 0; sig < 32; sig++)
+		{
+			if(val & (1U << sig) )
+			{
+				const char* sigstr = sinsp_utils::signal_to_str(sig+1);
+				if(sigstr)
+				{
+					int printed = snprintf(storage, remaining,
+							       "%s%s",
+							       !first ? " " : "",
+							       sigstr);
+					if(printed >= remaining)
+					{
+						storage[remaining-1] = '\0';
+						break;
+					}
+
+					first	   = false;
+					storage	  += printed;
+					remaining -= printed;
+				}
+			}
 		}
 		break;
 	}
