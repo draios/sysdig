@@ -47,7 +47,6 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.lip", "local IP address."},
 	{PT_IPV4ADDR, EPF_NONE, PF_NA, "fd.rip", "remote IP address."},
 	{PT_PORT, EPF_FILTER_ONLY, PF_DEC, "fd.port", "matches the port (either client or server) of the fd."},
-	{PT_PORT, EPF_FILTER_ONLY, PF_DEC, "fd.proto", "matches the protocol (either client or server) of the fd."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.cport", "for TCP/UDP FDs, the client port."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.sport", "for TCP/UDP FDs, server port."},
 	{PT_PORT, EPF_NONE, PF_DEC, "fd.lport", "for TCP/UDP FDs, the local port."},
