@@ -57,6 +57,11 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.uid", "a unique identifier for the FD, created by chaining the FD number and the thread ID."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containername", "chaining of the container ID and the FD name. Useful when trying to identify which container an FD belongs to."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containerdirectory", "chaining of the container ID and the directory name. Useful when trying to identify which container a directory belongs to."},
+	{PT_PORT, EPF_FILTER_ONLY, PF_NA, "fd.proto", "matches the protocol (either client or server) of the fd."},
+	{PT_PORT, EPF_NONE, PF_DEC, "fd.cproto", "for TCP/UDP FDs, the client protocol."},
+	{PT_PORT, EPF_NONE, PF_DEC, "fd.sproto", "for TCP/UDP FDs, server protocol."},
+	{PT_PORT, EPF_NONE, PF_DEC, "fd.lproto", "for TCP/UDP FDs, the local protocol."},
+	{PT_PORT, EPF_NONE, PF_DEC, "fd.rproto", "for TCP/UDP FDs, the remote protocol."}
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -575,6 +580,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 		break;
 	case TYPE_CLIENTPORT:
+	case TYPE_CLIENTPROTO:
 		{
 			if(m_fdinfo == NULL)
 			{
@@ -598,6 +604,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 	case TYPE_SERVERPORT:
+	case TYPE_SERVERPROTO:
 		{
 			if(m_fdinfo == NULL)
 			{
@@ -639,6 +646,8 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_LPORT:
 	case TYPE_RPORT:
+	case TYPE_LPROTO:
+	case TYPE_RPROTO:
 		{
 			if(m_fdinfo == NULL)
 			{
@@ -658,7 +667,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
 			{
-				if(m_field_id == TYPE_LPORT)
+				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
 					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
 				}
@@ -669,7 +678,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else
 			{
-				if(m_field_id == TYPE_LPORT)
+				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
 					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
 				}
@@ -953,7 +962,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	{
 		return compare_ip(evt);
 	}
-	else if(m_field_id == TYPE_PORT)
+	else if(m_field_id == TYPE_PORT || m_field_id == TYPE_PROTO)
 	{
 		return compare_port(evt);
 	}
