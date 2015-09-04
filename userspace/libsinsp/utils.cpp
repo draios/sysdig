@@ -25,6 +25,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <sys/time.h>
 #include <netdb.h>
+#else
+#include <WinSock2.h>
 #endif
 #include <algorithm> 
 #include <functional> 

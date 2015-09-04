@@ -20,6 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _WIN32
 #include <algorithm>
 #include <netdb.h>
+#else
+#include <WinSock2.h>
 #endif
 #include "sinsp.h"
 #include "sinsp_int.h"
