@@ -640,7 +640,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			res = getservbyport(htons(nport), proto.c_str());
-			if (res)
+			if (res && m_inspector->m_hostname_and_port_resolution_enabled)
 			{
 				port = res->s_name;
 			}
@@ -743,7 +743,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			res = getservbyport(htons(nport), proto.c_str());
-			if (res)
+			if (res && m_inspector->m_hostname_and_port_resolution_enabled)
 			{
 				port = res->s_name;
 			}
@@ -854,7 +854,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			res = getservbyport(htons(nport), proto.c_str());
-			if (res)
+			if (res && m_inspector->m_hostname_and_port_resolution_enabled)
 			{
 				port = res->s_name;
 			}

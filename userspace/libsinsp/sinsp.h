@@ -825,6 +825,7 @@ private:
 	friend class sinsp_worker;
 	friend class sinsp_table;
 	friend class curses_textbox;
+	friend class sinsp_filter_check_fd;
 	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
