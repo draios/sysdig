@@ -19,6 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 #ifndef _WIN32
 #include <algorithm>
+#include <netdb.h>
 #endif
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -58,10 +59,10 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containername", "chaining of the container ID and the FD name. Useful when trying to identify which container an FD belongs to."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containerdirectory", "chaining of the container ID and the directory name. Useful when trying to identify which container a directory belongs to."},
 	{PT_PORT, EPF_FILTER_ONLY, PF_NA, "fd.proto", "matches the protocol (either client or server) of the fd."},
-	{PT_PORT, EPF_NONE, PF_DEC, "fd.cproto", "for TCP/UDP FDs, the client protocol."},
-	{PT_PORT, EPF_NONE, PF_DEC, "fd.sproto", "for TCP/UDP FDs, server protocol."},
-	{PT_PORT, EPF_NONE, PF_DEC, "fd.lproto", "for TCP/UDP FDs, the local protocol."},
-	{PT_PORT, EPF_NONE, PF_DEC, "fd.rproto", "for TCP/UDP FDs, the remote protocol."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.cproto", "for TCP/UDP FDs, the client protocol."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sproto", "for TCP/UDP FDs, server protocol."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.lproto", "for TCP/UDP FDs, the local protocol."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rproto", "for TCP/UDP FDs, the remote protocol."}
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -580,7 +581,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 		break;
 	case TYPE_CLIENTPORT:
-	case TYPE_CLIENTPROTO:
 		{
 			if(m_fdinfo == NULL)
 			{
@@ -603,8 +603,55 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
 			}
 		}
+	case TYPE_CLIENTPROTO:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+
+			string proto = "";
+			string port = "";
+			struct servent * res;
+			int16_t nport;
+			if (this->m_fdinfo->is_tcp_socket())
+			{
+				proto = "tcp";
+			}
+			else if (this->m_fdinfo->is_udp_socket())
+			{
+				proto = "udp";
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport;
+			}
+
+			res = getservbyport(htons(nport), proto.c_str());
+			if (res)
+			{
+				port = res->s_name;
+			}
+			else
+			{
+				port = to_string(nport);
+			}
+
+			return (uint8_t*)port.c_str();
+		}
 	case TYPE_SERVERPORT:
-	case TYPE_SERVERPROTO:
 		{
 			if(m_fdinfo == NULL)
 			{
@@ -644,10 +691,71 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 		}
+	case TYPE_SERVERPROTO:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+
+			string proto = "";
+			string port = "";
+			struct servent * res;
+			int16_t nport;
+			if (this->m_fdinfo->is_tcp_socket())
+			{
+				proto = "tcp";
+			}
+			else if (this->m_fdinfo->is_udp_socket())
+			{
+				proto = "udp";
+			}
+
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				if(m_fdinfo->is_role_none())
+				{
+					return NULL;
+				}
+				nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+			}
+			else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
+			{
+				nport = m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				if(m_fdinfo->is_role_none())
+				{
+					return NULL;
+				}
+				nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport;
+			}
+			else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
+			{
+				nport = m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
+			}
+			else
+			{
+				return NULL;
+			}
+
+			res = getservbyport(htons(nport), proto.c_str());
+			if (res)
+			{
+				port = res->s_name;
+			}
+			else
+			{
+				port = to_string(nport);
+			}
+
+			return (uint8_t*)port.c_str();
+		}
 	case TYPE_LPORT:
 	case TYPE_RPORT:
-	case TYPE_LPROTO:
-	case TYPE_RPROTO:
 		{
 			if(m_fdinfo == NULL)
 			{
@@ -689,7 +797,75 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 
-		break;
+
+	case TYPE_LPROTO:
+	case TYPE_RPROTO:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+			if(evt_type != SCAP_FD_IPV4_SOCK)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			string proto = "";
+			string port = "";
+			struct servent * res;
+			int16_t nport;
+			if (this->m_fdinfo->is_tcp_socket())
+			{
+				proto = "tcp";
+			}
+			else if (this->m_fdinfo->is_udp_socket())
+			{
+				proto = "udp";
+			}
+
+			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
+			{
+				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
+				{
+					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+				}
+				else
+				{
+					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+				}
+			}
+			else
+			{
+				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
+				{
+					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+				}
+				else
+				{
+					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+				}
+			}
+
+			res = getservbyport(htons(nport), proto.c_str());
+			if (res)
+			{
+				port = res->s_name;
+			}
+			else
+			{
+				port = to_string(nport);
+			}
+
+			return (uint8_t*)port.c_str();
+		}
+
 	case TYPE_L4PROTO:
 		{
 			if(m_fdinfo == NULL)
