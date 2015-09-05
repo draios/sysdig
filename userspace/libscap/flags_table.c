@@ -339,7 +339,7 @@ const struct ppm_name_value quotactl_quota_fmts[] = {
 const struct ppm_name_value semop_flags[] = {
 	{"IPC_NOWAIT", PPM_IPC_NOWAIT},
 	{"SEM_UNDO", PPM_SEM_UNDO},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value semctl_commands[] = {
@@ -356,5 +356,5 @@ const struct ppm_name_value semctl_commands[] = {
         {"GETZCNT", PPM_GETZCNT},
         {"SETALL", PPM_SETALL},
         {"SETVAL", PPM_SETVAL},
-	{ },
+		{0, 0},
 };
