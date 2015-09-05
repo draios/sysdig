@@ -508,15 +508,15 @@ inline void sinsp_markerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 	switch(*p)
 	{
 	case 't':
-		m_id = m_tinfo->m_tid;
+		m_id = (uint64_t)-(int64_t)m_tinfo->m_tid;
 		delta = 2;
 		break;
 	case 'p':
-		m_id = m_tinfo->m_pid;
+		m_id = (uint64_t)-(int64_t)m_tinfo->m_pid;
 		delta = 2;
 		break;
 	case 's':
-		m_id = m_tinfo->m_ptid;
+		m_id = (uint64_t)-(int64_t)m_tinfo->m_ptid;
 		delta = 2;
 		break;
 	case ':':

@@ -912,7 +912,7 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 
 bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 {
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	//
 	// Make sure this is an event that creates or consumes an fd
@@ -2498,7 +2498,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 		}
 	}
 
-	if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+	if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 	{
 		pi = evt->get_param_value_raw("fd");
 
@@ -2915,7 +2915,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return (uint8_t*)pi->m_val;
 			}
 
-			if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
 				pi = evt->get_param_value_raw("fd");
 
@@ -2964,7 +2964,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else
 			{
-				if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+				if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 				{
 					pi = evt->get_param_value_raw("fd");
 
@@ -3008,7 +3008,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_u32val = 1;
 				}
 			}
-			else if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			else if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
 				pi = evt->get_param_value_raw("fd");
 
@@ -3027,7 +3027,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	case TYPE_ISIO:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & (EF_READS_FROM_FD | EF_WRITES_TO_FD))
 			{
 				m_u32val = 1;
@@ -3041,7 +3041,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_ISIO_READ:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_READS_FROM_FD)
 			{
 				m_u32val = 1;
@@ -3055,7 +3055,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_ISIO_WRITE:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				m_u32val = 1;
@@ -3069,7 +3069,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_IODIR:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				m_strstorage = "write";
@@ -3087,7 +3087,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_ISWAIT:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & (EF_WAITS))
 			{
 				m_u32val = 1;
@@ -3101,7 +3101,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_WAIT_LATENCY:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			uint16_t etype = evt->m_pevt->type;
 
 			if(eflags & (EF_WAITS) && PPME_IS_EXIT(etype))
@@ -3126,7 +3126,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			m_u32val = 0;
 
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;

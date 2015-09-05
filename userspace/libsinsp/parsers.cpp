@@ -136,7 +136,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 
 	if(m_inspector->m_filter)
 	{
-		ppm_event_flags eflags = evt->get_flags();
+		ppm_event_flags eflags = evt->get_info_flags();
 
 		if(etype == PPME_SYSCALL_WRITE_X)
 		{
@@ -154,6 +154,17 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			if(fdinfo && fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_MARKER_FD)
 			{
 				eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
+			}
+			else
+			{
+				if(!m_inspector->m_islive)
+				{
+					if((evt->get_dump_flags() & SCAP_DF_MARKER) != 0)
+					{
+						evt->m_fdinfo = NULL;
+						eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
+					}
+				}
 			}
 		}
 
@@ -420,7 +431,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	evt->init();
 
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 	uint16_t etype = evt->get_type();
 
 	evt->m_fdinfo = NULL;
@@ -2612,6 +2623,7 @@ void sinsp_parser::parse_marker(sinsp_evt *evt, int64_t retval)
 	evt->m_pevt = m_fake_userevt;
 	evt->init();
 	evt->m_poriginal_evt = tevt;
+	evt->m_flags |= (uint32_t)sinsp_evt::SINSP_EF_IS_MARKER;
 
 	//
 	// Update some thread information
@@ -2630,7 +2642,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	int64_t retval;
 	int64_t tid = evt->get_tid();
 	sinsp_evt *enter_evt = &m_tmp_evt;
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	//
 	// Extract the return value
@@ -2641,7 +2653,18 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 	if(!evt->m_fdinfo)
 	{
-		return;
+		if(!m_inspector->m_islive)
+		{
+			if((evt->get_dump_flags() & SCAP_DF_MARKER) != 0)
+			{
+				parse_marker(evt, retval);
+				return;
+			}
+		}
+		else
+		{
+			return;
+		}
 	}
 
 	//

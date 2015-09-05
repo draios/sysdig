@@ -59,7 +59,7 @@ extern sinsp_evttables g_infotables;
 sinsp_evt::sinsp_evt() :
 	m_paramstr_storage(256), m_resolved_paramstr_storage(1024)
 {
-	m_params_loaded = false;
+	m_flags = EF_NONE;
 	m_tinfo = NULL;
 #ifdef _DEBUG
 	m_filtered_out = false;
@@ -71,7 +71,7 @@ sinsp_evt::sinsp_evt(sinsp *inspector) :
 	m_paramstr_storage(1024), m_resolved_paramstr_storage(1024)
 {
 	m_inspector = inspector;
-	m_params_loaded = false;
+	m_flags = EF_NONE;
 	m_tinfo = NULL;
 #ifdef _DEBUG
 	m_filtered_out = false;
@@ -148,10 +148,10 @@ int64_t sinsp_evt::get_fd_num()
 
 uint32_t sinsp_evt::get_num_params()
 {
-	if(!m_params_loaded)
+	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
 		load_params();
-		m_params_loaded = true;
+		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
 	return (uint32_t)m_params.size();
@@ -159,10 +159,10 @@ uint32_t sinsp_evt::get_num_params()
 
 sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
 {
-	if(!m_params_loaded)
+	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
 		load_params();
-		m_params_loaded = true;
+		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
 	return &(m_params[id]);
@@ -170,10 +170,10 @@ sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
 
 const char *sinsp_evt::get_param_name(uint32_t id)
 {
-	if(!m_params_loaded)
+	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
 		load_params();
-		m_params_loaded = true;
+		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
 	ASSERT(id < m_info->nparams);
@@ -183,10 +183,10 @@ const char *sinsp_evt::get_param_name(uint32_t id)
 
 const struct ppm_param_info* sinsp_evt::get_param_info(uint32_t id)
 {
-	if(!m_params_loaded)
+	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
 		load_params();
-		m_params_loaded = true;
+		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
 	ASSERT(id < m_info->nparams);
@@ -722,10 +722,10 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	//
 	// Make sure the params are actually loaded
 	//
-	if(!m_params_loaded)
+	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
 		load_params();
-		m_params_loaded = true;
+		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
 	//
@@ -1347,10 +1347,10 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	// Make sure the params are actually loaded
 	//
-	if(!m_params_loaded)
+	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
 		load_params();
-		m_params_loaded = true;
+		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
 	//
@@ -2228,10 +2228,10 @@ const sinsp_evt_param* sinsp_evt::get_param_value_raw(const char* name)
 	//
 	// Make sure the params are actually loaded
 	//
-	if(!m_params_loaded)
+	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
 		load_params();
-		m_params_loaded = true;
+		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
 	//
@@ -2347,14 +2347,14 @@ bool sinsp_evt::is_filtered_out()
 #ifdef HAS_FILTERING
 scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 {
-	scap_dump_flags dflags = SCAP_DF_NONE;
+	uint32_t dflags = SCAP_DF_NONE;
 	*should_drop = false;
 
 	if(m_filtered_out)
 	{
 		if(m_inspector->m_isfatfile_enabled)
 		{
-			ppm_event_flags eflags = get_flags();
+			ppm_event_flags eflags = get_info_flags();
 
 			if(eflags & EF_MODIFIES_STATE)
 			{
@@ -2363,7 +2363,7 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 			else
 			{
 				*should_drop = true;
-				return dflags;
+				goto fd_marker;
 			}
 		}
 		else
@@ -2372,6 +2372,12 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 		}
 	}
 
-	return dflags;
+fd_marker:
+	if(m_flags & sinsp_evt::SINSP_EF_IS_MARKER)
+	{
+		dflags |= SCAP_DF_MARKER;
+	}
+
+	return (scap_dump_flags)dflags;
 }
 #endif
