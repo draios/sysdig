@@ -118,7 +118,7 @@ public:
 	void test();
 
 	char* m_type_str;
-	uint64_t m_id;
+	int64_t m_id;
 	vector<char*> m_tags;
 	vector<char*> m_argnames;
 	vector<char*> m_argvals;
@@ -142,8 +142,8 @@ VISIBILITY_PRIVATE
 	inline parse_result skip_spaces_and_commas_and_all_brakets(char* p, uint32_t* delta);
 	inline parse_result parsestr(char* p, char** res, uint32_t* delta);
 	inline parse_result parsestr_not_enforce(char* p, char** res, uint32_t* delta);
-	inline parse_result parsenumber(char* p, uint64_t* res, uint32_t* delta);
-	inline parse_result parsenumber_colend(char* p, uint64_t* res, uint32_t* delta);
+	inline parse_result parsenumber(char* p, int64_t* res, uint32_t* delta);
+	inline parse_result parsenumber_colend(char* p, int64_t* res, uint32_t* delta);
 	inline void init_partial_marker(sinsp_partial_marker* pae);
 
 	sinsp *m_inspector;

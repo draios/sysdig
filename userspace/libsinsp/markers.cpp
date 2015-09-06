@@ -950,11 +950,19 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsestr_not_enforce
 	return sinsp_markerparser::RES_OK;
 }
 
-inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber(char* p, uint64_t* res, uint32_t* delta)
+inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber(char* p, int64_t* res, uint32_t* delta)
 {
 	char* start = p;
 	sinsp_markerparser::parse_result retval = sinsp_markerparser::RES_OK;
-	uint64_t val = 0;
+	int64_t val = 0;
+
+	bool negative = false;
+
+	if(*p == '-')
+	{
+		negative = true;
+		p++;
+	}
 
 	while(*p >= '0' && *p <= '9')
 	{
@@ -978,15 +986,30 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber(char* p,
 
 	*p = 0;
 
-	*res = val;
+	if(negative)
+	{
+		*res = val;
+	}
+	else
+	{
+		*res = -val;
+	}
+
 	*delta = (uint32_t)(p - start + 1);
 	return retval;
 }
 
-inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_colend(char* p, uint64_t* res, uint32_t* delta)
+inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_colend(char* p, int64_t* res, uint32_t* delta)
 {
 	char* start = p;
-	uint64_t val = 0;
+	int64_t val = 0;
+	bool negative = false;
+
+	if(*p == '-')
+	{
+		negative = true;
+		p++;
+	}
 
 	while(*p >= '0' && *p <= '9')
 	{
@@ -1008,7 +1031,15 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber_colend(c
 	else
 	{
 		*delta = (uint32_t)(p - start + 1);
-		*res = val;
+		if(negative)
+		{
+			*res = -val;
+		}
+		else
+		{
+			*res = val;
+		}
+
 		return sinsp_markerparser::RES_OK;
 	}
 }
@@ -1112,7 +1143,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:t:us.srvc_next0::";
+	char doc[] = ">:-10:us.srvc_next0::";
 	char doc1[] = ">:t:us::\n";
 
 	sinsp_threadinfo tinfo;
