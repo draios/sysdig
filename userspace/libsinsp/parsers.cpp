@@ -2651,7 +2651,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	retval = *(int64_t *)parinfo->m_val;
 
-	if(!evt->m_fdinfo)
+	if(evt->m_fdinfo == NULL)
 	{
 		if(!m_inspector->m_islive)
 		{
@@ -2661,10 +2661,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				return;
 			}
 		}
-		else
-		{
-			return;
-		}
+
+		return;
 	}
 
 	//
