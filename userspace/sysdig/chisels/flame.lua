@@ -28,11 +28,13 @@ require "common"
 json = require ("dkjson")
 
 local markers = {}
+local fid = nil
 local flatency = nil
 local fcontname = nil
 local fexe = nil
 local MAX_DEPTH = 256
-local data = {}
+local avg_tree = {}
+local full_tree = {}
 
 -- Argument notification callback
 function on_set_arg(name, val)
@@ -48,6 +50,7 @@ function on_init()
 		markers[j] = minfo
 	end
 	
+	fid = chisel.request_field("marker.id")
 	flatency = chisel.request_field("marker.latency")
 	fcontname = chisel.request_field("container.name")
 	fexe = chisel.request_field("proc.exeline")
@@ -58,24 +61,8 @@ function on_init()
 	return true
 end
 
--- Event parsing callback
-function on_event()
-	local mrk_cur = data
-	local latency = evt.field(flatency)
-	local contname = evt.field(fcontname)
-	local exe = evt.field(fexe)
-	local hr = {}
-
-	if latency == nil then
-		return true
-	end
-
-	for j = 0, MAX_DEPTH do
-		hr[j + 1] = evt.field(markers[j])
-	end
-
-	--print(st(hr))
-
+-- This function parses the marker event and upgrades accordingly the given transaction entry
+function parse_marker(mrk_cur, hr, latency, contname, exe)
 	for j = 1, #hr do
 		local mv = hr[j]
 		
@@ -125,9 +112,39 @@ function on_event()
 		end
 
 		mrk_cur = mrk_cur[mv]["ch"]
+	end		
+end
+
+-- Event parsing callback
+function on_event()
+	local latency = evt.field(flatency)
+	local contname = evt.field(fcontname)
+	local id = evt.field(fid)
+	local exe = evt.field(fexe)
+	local hr = {}
+	local full_trs = nil
+
+	if latency == nil then
+		return true
 	end
 
-	--print(st(data))
+	for j = 0, MAX_DEPTH do
+		hr[j + 1] = evt.field(markers[j])
+	end
+
+	--print(st(hr))
+
+	parse_marker(avg_tree, hr, latency, contname, exe)
+
+	if id > 0 then
+		if full_tree[id] == nil then
+			full_tree[id] = {}
+		end
+
+		parse_marker(full_tree[id], hr, latency, contname, exe)
+	end
+
+	--print(st(avg_tree))
 	
 	return true
 end
@@ -145,12 +162,46 @@ end
 -- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
 	-- normalize each root marker tree
-	for i,v in pairs(data) do
+	for i,v in pairs(avg_tree) do
 		normalize(v, v.n)
 	end
 
-	local FGData = {}
-	FGData[""] = {ch=data, t=0, tt=0}
-	local str = json.encode(FGData, { indent = true })
-	print("FGData = " .. str .. ";")
+	-- emit the average transaction
+	local AvgData = {}
+	AvgData[""] = {ch=avg_tree, t=0, tt=0}
+	local str = json.encode(AvgData, { indent = true })
+	print("AvgData = " .. str .. ";")
+
+	-- Locate the best and worst transaction
+	local tbest = nil
+	local tworst = nil
+	local besttime = 1000000000000000
+	local worsttime = 0
+
+	for i,v in pairs(full_tree) do
+		for key,val in pairs(v) do
+			if val.tt > worsttime then
+				worsttime = val.tt
+				tworst = v
+			end
+
+			if val.tt < besttime then
+				besttime = val.tt
+				tbest = v
+			end
+		end
+	end
+
+	-- emit the best and worst transaction
+	local tdata = {}
+	tdata[""] = {ch=tbest, t=0, tt=0}
+	local str = json.encode(tdata, { indent = true })
+	print("MinData = " .. str .. ";")
+
+	local tdata = {}
+	tdata[""] = {ch=tworst, t=0, tt=0}
+	local str = json.encode(tdata, { indent = true })
+	print("MaxData = " .. str .. ";")
+
+--	print(st(full_tree))
 end
