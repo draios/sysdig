@@ -1993,6 +1993,11 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 		return;
 	}
 
+	//
+	// Add the entry to the table
+	//
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+
 	fdi.m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 	fdi.m_flags = 0;
 
@@ -2005,11 +2010,6 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	// Mark this fd as a server
 	//
 	fdi.set_role_server();
-
-	//
-	// Add the entry to the table
-	//
-	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 }
 
 void sinsp_parser::parse_close_enter(sinsp_evt *evt)
