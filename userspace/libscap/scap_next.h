@@ -9,7 +9,7 @@
 
 #include "scap-int.h"
 #define SCAP_INLINED_STATIC static
-#if !defined(_WIN32) && !defined(_DEBUG)
+#if !defined(_WIN32)/* && !defined(_DEBUG)*/
 #define SCAP_INLINED_INLINE __always_inline
 #else
 #define SCAP_INLINED_INLINE inline
@@ -107,7 +107,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(const scap_de
 	{
 		*pe = (scap_evt*)dev->m_sn_next_event;
 		uint32_t len = (*pe)->len;
-		__builtin_prefetch((void*)((char *)dev->m_sn_next_event + len),0,3);
+//		__builtin_prefetch((void*)((char *)dev->m_sn_next_event + len),0,3);
 		if(len > dev->m_sn_len)
 		{
 			//
@@ -124,7 +124,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(const scap_de
 
 #if defined(HAS_CAPTURE)
 
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* handle)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* const handle)
 {
 	uint32_t j;
 	uint32_t ndevs = handle->m_ndevs;
@@ -172,7 +172,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* hand
 
 
 
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* const handle, OUT scap_evt** const pevent, OUT uint16_t* const pcpuid)
 {
 #if !defined(HAS_CAPTURE)
 	//
@@ -181,9 +181,8 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* handle, O
 	ASSERT(false);
 	return SCAP_FAILURE;
 #else
-	uint32_t j, res;
+	uint32_t j;
 	uint64_t max_ts = 0xffffffffffffffffLL;
-	scap_evt* pe = NULL;
 	uint32_t ndevs = handle->m_ndevs;
 
 	*pcpuid = 65535;
@@ -191,24 +190,33 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* handle, O
 	for(j = 0; j < ndevs; j++)
 	{
 		scap_device* const dev = &(handle->m_devs[j]);
-		res = scap_next_live_cpu(dev, &pe);
+//		res = scap_next_live_cpu(dev, &pe);
 
-		if(res == SCAP_EMPTY)
+		if(dev->m_sn_len == 0)
 		{
 			continue;
 		}
-		else if (res == SCAP_FAILURE)
+		else
 		{
-			return SCAP_FAILURE;
-		}
-		//
-		// We want to consume the event with the lowest timestamp
-		//
-		if(pe->ts < max_ts)
-		{
-			*pevent = pe;
-			*pcpuid = j;
-			max_ts = pe->ts;
+			scap_evt* const pe = (scap_evt*)(dev->m_sn_next_event);
+//			__builtin_prefetch((void*)((char *)dev->m_sn_next_event + pe->len),0,3);
+			if(pe->len > dev->m_sn_len)
+			{
+				//
+				// if you get the following assertion, first recompile the driver and libscap
+				//
+				ASSERT(false);
+				return SCAP_FAILURE;
+			}
+			//
+			// We want to consume the event with the lowest timestamp
+			//
+			if(pe->ts < max_ts)
+			{
+				*pevent = pe;
+				*pcpuid = j;
+				max_ts = pe->ts;
+			}
 		}
 	}
 	//
