@@ -1584,7 +1584,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
-				if (m_inspector->m_hostname_and_port_resolution_enabled)
+				if (m_inspector->m_hostname_and_port_resolution_enabled && m_fdinfo)
 				{
 					string proto = "";
 					if (this->m_fdinfo->is_tcp_socket())

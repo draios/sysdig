@@ -38,7 +38,7 @@ mkdir -p $DIRNAME
 for f in $TRACESDIR/*
 do
 	echo "Processing $f"
-	TZ=UTC eval $SYSDIG -r $f $ARGS > $DIRNAME/$(basename $f).output
+	TZ=UTC eval $SYSDIG -N -r $f $ARGS > $DIRNAME/$(basename $f).output
 done
 
 echo Data saved in $DIRNAME
