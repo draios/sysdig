@@ -625,7 +625,18 @@ inline void sinsp_markerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 
 			if(*p == 0)
 			{
-				m_res = sinsp_markerparser::RES_TRUNCATED;
+				if(*(p - 1) == ':')
+				{
+					//
+					// This means there was an argument without value, 
+					// which we don't support
+					//
+					m_res = sinsp_markerparser::RES_FAILED;
+				}
+				else
+				{
+					m_res = sinsp_markerparser::RES_TRUNCATED;
+				}
 				break;
 			}
 			else
@@ -1143,7 +1154,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:10+10:us.srvc_next0::";
+	char doc[] = ">:10:us.srvc_next0::";
 	char doc1[] = ">:t:us::\n";
 
 	sinsp_threadinfo tinfo;
