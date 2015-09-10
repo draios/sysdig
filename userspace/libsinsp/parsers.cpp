@@ -459,6 +459,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			ASSERT(evt->get_param_info(0)->type == PT_FD);
 
 			evt->m_tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
+			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 		}
 
 		evt->m_tinfo->m_latency = 0;
@@ -2518,7 +2519,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
 							fdtype, &evt->m_paramstr_storage[0],
-							(uint32_t)evt->m_paramstr_storage.size());
+							(uint32_t)evt->m_paramstr_storage.size(),
+							m_inspector->m_hostname_and_port_resolution_enabled);
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}
@@ -2612,7 +2614,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
 							fdtype, &evt->m_paramstr_storage[0],
-							(uint32_t)evt->m_paramstr_storage.size());
+							(uint32_t)evt->m_paramstr_storage.size(),
+							m_inspector->m_hostname_and_port_resolution_enabled);
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}

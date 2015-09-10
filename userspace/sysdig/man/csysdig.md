@@ -145,6 +145,9 @@ COMMAND LINE OPTIONS
   
 **--logfile** _file_  
   Print program logs into the given file.
+
+**-N**
+  Don't convert addresses (i.e., host addresses, port numbers, etc.) to names.
   
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events

@@ -1512,14 +1512,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(payload_len == 1 + 4 + 2)
 			{
+				ipv4serverinfo addr;
+				addr.m_ip = *(uint32_t*)(payload + 1);
+				addr.m_port = *(uint16_t*)(payload+5);
+				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				string straddr = ipv4serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
 				snprintf(&m_paramstr_storage[0],
-				         m_paramstr_storage.size(),
-				         "%u.%u.%u.%u:%u",
-				         (unsigned int)(uint8_t)payload[1],
-				         (unsigned int)(uint8_t)payload[2],
-				         (unsigned int)(uint8_t)payload[3],
-				         (unsigned int)(uint8_t)payload[4],
-				         (unsigned int)*(uint16_t*)(payload+5));
+					   	 m_paramstr_storage.size(),
+					   	 "%s",
+					   	 straddr.c_str());
 			}
 			else
 			{
@@ -1537,7 +1538,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	case PT_SOCKTUPLE:
-		if(payload_len == 0)
+ 		if(payload_len == 0)
 		{
 			snprintf(&m_paramstr_storage[0],
 			         m_paramstr_storage.size(),
@@ -1550,19 +1551,17 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
+				ipv4tuple addr;
+				addr.m_fields.m_sip = *(uint32_t*)(payload + 1);
+				addr.m_fields.m_sport = *(uint16_t*)(payload+5);
+				addr.m_fields.m_dip = *(uint32_t*)(payload + 7);
+				addr.m_fields.m_dport = *(uint16_t*)(payload+11);
+				addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
 				snprintf(&m_paramstr_storage[0],
-				         m_paramstr_storage.size(),
-				         "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-				         (unsigned int)(uint8_t)payload[1],
-				         (unsigned int)(uint8_t)payload[2],
-				         (unsigned int)(uint8_t)payload[3],
-				         (unsigned int)(uint8_t)payload[4],
-				         (unsigned int)*(uint16_t*)(payload+5),
-				         (unsigned int)(uint8_t)payload[7],
-				         (unsigned int)(uint8_t)payload[8],
-				         (unsigned int)(uint8_t)payload[9],
-				         (unsigned int)(uint8_t)payload[10],
-				         (unsigned int)*(uint16_t*)(payload+11));
+					   	 m_paramstr_storage.size(),
+					   	 "%s",
+					   	 straddr.c_str());
 			}
 			else
 			{
@@ -1583,19 +1582,18 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 				{
+					ipv4tuple addr;
+					addr.m_fields.m_sip = *(uint32_t*)sip;
+					addr.m_fields.m_sport = *(uint16_t*)(payload+17);
+					addr.m_fields.m_dip = *(uint32_t*)dip;
+					addr.m_fields.m_dport = *(uint16_t*)(payload+35);
+					addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+					string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+
 					snprintf(&m_paramstr_storage[0],
 							 m_paramstr_storage.size(),
-							 "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-							 (unsigned int)sip[0],
-							 (unsigned int)sip[1],
-							 (unsigned int)sip[2],
-							 (unsigned int)sip[3],
-							 (unsigned int)*(uint16_t*)(payload + 17),
-							 (unsigned int)dip[0],
-							 (unsigned int)dip[1],
-							 (unsigned int)dip[2],
-							 (unsigned int)dip[3],
-							 (unsigned int)*(uint16_t*)(payload + 35));
+							 "%s",
+							 straddr.c_str());
 					break;
 				}
 				else
@@ -1607,11 +1605,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					{
 						snprintf(&m_paramstr_storage[0],
 								 m_paramstr_storage.size(),
-								 "%s:%u->%s:%u",
+								 "%s:%s->%s:%s",
 								 srcstr,
-								 (unsigned int)*(uint16_t*)(payload + 17),
+								 port_to_string(*(uint16_t*)(payload + 17), (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN, m_inspector->m_hostname_and_port_resolution_enabled).c_str(),
 								 dststr,
-								 (unsigned int)*(uint16_t*)(payload + 35));
+								 port_to_string(*(uint16_t*)(payload + 35), (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN, m_inspector->m_hostname_and_port_resolution_enabled).c_str());
 						break;
 					}
 				}

@@ -56,7 +56,7 @@ view_info =
 		{
 			name = "LPORT",
 			description = "Local Port.",
-			field = "fd.lport",
+			field = "fd.lproto",
 			colsize = 8,
 		},
 		{
@@ -68,7 +68,7 @@ view_info =
 		{
 			name = "RPORT",
 			description = "Remote Port.",
-			field = "fd.rport",
+			field = "fd.rproto",
 			colsize = 8,
 		},
 		{
