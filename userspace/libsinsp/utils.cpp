@@ -384,74 +384,17 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 		if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP ||
 			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
 		{
-			if (resolve)
-			{
-				string proto = "";
-				if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP)
-				{
-					proto = "tcp";
-				}
-				else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
-				{
-					proto = "udp";
-				}
-
-				struct servent * res;
-				res = getservbyport(htons((unsigned int)sinfo->m_ipv4info.m_fields.m_sport), proto.c_str());
-
-				string port1 = "";
-				if (res)
-				{
-					port1 = res->s_name;
-				}
-				else
-				{
-					port1 = to_string((unsigned int)sinfo->m_ipv4info.m_fields.m_sport);
-				}
-
-				res = getservbyport(htons((unsigned int)sinfo->m_ipv4info.m_fields.m_dport), proto.c_str());
-
-				string port2 = "";
-				if (res)
-				{
-					port2 = res->s_name;
-				}
-				else
-				{
-					port2 = to_string((unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
-				}
-
-				snprintf(targetbuf,
-					targetbuf_size,
-					"%u.%u.%u.%u:%s->%u.%u.%u.%u:%s",
-					(unsigned int)(uint8_t)sb[0],
-					(unsigned int)(uint8_t)sb[1],
-					(unsigned int)(uint8_t)sb[2],
-					(unsigned int)(uint8_t)sb[3],
-					port1.c_str(),
-					(unsigned int)(uint8_t)db[0],
-					(unsigned int)(uint8_t)db[1],
-					(unsigned int)(uint8_t)db[2],
-					(unsigned int)(uint8_t)db[3],
-					port2.c_str());
-
-			}
-			else
-			{
-				snprintf(targetbuf,
-					targetbuf_size,
-					"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-					(unsigned int)(uint8_t)sb[0],
-					(unsigned int)(uint8_t)sb[1],
-					(unsigned int)(uint8_t)sb[2],
-					(unsigned int)(uint8_t)sb[3],
-					(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
-					(unsigned int)(uint8_t)db[0],
-					(unsigned int)(uint8_t)db[1],
-					(unsigned int)(uint8_t)db[2],
-					(unsigned int)(uint8_t)db[3],
-					(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
-			}
+			ipv4tuple addr;
+			addr.m_fields.m_sip = ipv4octet_to_raw((uint8_t)sb[0], (uint8_t)sb[1], (uint8_t)sb[2], (uint8_t)sb[3]);
+			addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
+			addr.m_fields.m_dip = ipv4octet_to_raw((uint8_t)db[0], (uint8_t)db[1], (uint8_t)db[2], (uint8_t)db[3]);
+			addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
+			addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
+			string straddr = ipv4tuple_to_string(&addr, resolve);
+			snprintf(targetbuf,
+					 targetbuf_size,
+					 "%s",
+					 straddr.c_str());
 		}
 		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP ||
 			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW)
@@ -487,19 +430,17 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 		{
 			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 			{
+				ipv4tuple addr;
+				addr.m_fields.m_sip = ipv4octet_to_raw((uint8_t)sip[0], (uint8_t)sip[1], (uint8_t)sip[2], (uint8_t)sip[3]);
+				addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
+				addr.m_fields.m_dip = ipv4octet_to_raw((uint8_t)dip[0], (uint8_t)dip[1], (uint8_t)dip[2], (uint8_t)dip[3]);
+				addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
+				addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
+				string straddr = ipv4tuple_to_string(&addr, resolve);
 				snprintf(targetbuf,
-							targetbuf_size,
-							"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-							(unsigned int)sip[0],
-							(unsigned int)sip[1],
-							(unsigned int)sip[2],
-							(unsigned int)sip[3],
-							(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
-							(unsigned int)dip[0],
-							(unsigned int)dip[1],
-							(unsigned int)dip[2],
-							(unsigned int)dip[3],
-							(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+						 targetbuf_size,
+						 "%s",
+						 straddr.c_str());
 				return true;
 			}
 			else
@@ -511,11 +452,11 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				{
 					snprintf(targetbuf,
 								targetbuf_size,
-								"%s:%u->%s:%u",
+								"%s:%s->%s:%s",
 								srcstr,
-								(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
+								port_to_string(sinfo->m_ipv4info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
 								dststr,
-								(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+								port_to_string(sinfo->m_ipv4info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
 					return true;
 				}
 			}
@@ -893,76 +834,110 @@ string sinsp_gethostname()
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
-string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
+int32_t ipv4octet_to_raw(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4)
 {
-	char buf[100];
-	if(resolve)
+	return (o1) | (o2 << 8) | (o3 << 16) | (o4 << 24);
+}
+
+string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
+{
+	/*fprintf(stderr, "port: %d\tresolve: %d\t", port, resolve);
+	switch(l4proto)
 	{
-		string proto = "";
-		if(tuple->m_fields.m_l4proto == SCAP_L4_TCP)
-		{
-			proto = "tcp";
-		}
-		else if(tuple->m_fields.m_l4proto == SCAP_L4_UDP)
-		{
-			proto = "udp";
-		}
+		case 0:
+			fprintf(stderr, "l4proto: SCAP_L4_UNKNOWN\t");
+			break;
 
-		struct servent * res;
-		res = getservbyport(htons(tuple->m_fields.m_sport), proto.c_str());
-		string port1 = "";
-		if (res)
-		{
-			port1 = res->s_name;
-		}
-		else
-		{
-			port1 = to_string(tuple->m_fields.m_sport);
-		}
+		case 1:
+			fprintf(stderr, "l4proto: SCAP_L4_NA\t");
+			break;
 
-		res = getservbyport(htons(tuple->m_fields.m_dport), proto.c_str());
-		string port2 = "";
-		if (res)
-		{
-			port2 = res->s_name;
-		}
-		else
-		{
-			port2 = to_string(tuple->m_fields.m_dport);
-		}
+		case 2:
+			fprintf(stderr, "l4proto: SCAP_L4_TCP\t");
+			break;
 
-		sprintf(buf, 
-			"%d.%d.%d.%d:%s->%d.%d.%d.%d:%s", 
-			(tuple->m_fields.m_sip & 0xFF),
-			((tuple->m_fields.m_sip & 0xFF00) >> 8),
-			((tuple->m_fields.m_sip & 0xFF0000) >> 16),
-			((tuple->m_fields.m_sip & 0xFF000000) >> 24),
-			port1.c_str(),
-			(tuple->m_fields.m_dip & 0xFF),
-			((tuple->m_fields.m_dip & 0xFF00) >> 8),
-			((tuple->m_fields.m_dip & 0xFF0000) >> 16),
-			((tuple->m_fields.m_dip & 0xFF000000) >> 24),
-			port2.c_str());
+		case 3:
+			fprintf(stderr, "l4proto: SCAP_L4_UDP\t");
+			break;
+
+		case 4:
+			fprintf(stderr, "l4proto: SCAP_L4_ICMP\t");
+			break;
+
+		case 5:
+			fprintf(stderr, "l4proto: SCAP_L4_RAW\t");
+			break;
+
+		default:
+			fprintf(stderr, "Merda...\t");
+			break;
+	}*/
+
+	string proto = "";
+	if(l4proto == SCAP_L4_TCP)
+	{
+		proto = "tcp";
+	}
+	else if(l4proto == SCAP_L4_UDP)
+	{
+		proto = "udp";
+	}
+
+	struct servent * res;
+	res = getservbyport(htons(port), (proto != "") ? proto.c_str() : NULL);
+	string ret = "";
+	if (resolve && res)
+	{
+		ret = res->s_name;
 	}
 	else
 	{
-		sprintf(buf, 
-			"%d.%d.%d.%d:%d->%d.%d.%d.%d:%d", 
-			(tuple->m_fields.m_sip & 0xFF),
-			((tuple->m_fields.m_sip & 0xFF00) >> 8),
-			((tuple->m_fields.m_sip & 0xFF0000) >> 16),
-			((tuple->m_fields.m_sip & 0xFF000000) >> 24),
-			tuple->m_fields.m_sport,
-			(tuple->m_fields.m_dip & 0xFF),
-			((tuple->m_fields.m_dip & 0xFF00) >> 8),
-			((tuple->m_fields.m_dip & 0xFF0000) >> 16),
-			((tuple->m_fields.m_dip & 0xFF000000) >> 24),
-			tuple->m_fields.m_dport);
+		ret = to_string(port);
 	}
+
+	//fprintf(stderr, "ret: %s\n", ret.c_str());
+
+	return ret;
+}
+
+string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
+{
+	char buf[50];
+
+	snprintf(buf,
+		sizeof(buf),
+		"%d.%d.%d.%d:%s", 
+		(addr->m_ip & 0xFF),
+		((addr->m_ip & 0xFF00) >> 8),
+		((addr->m_ip & 0xFF0000) >> 16),
+		((addr->m_ip & 0xFF000000) >> 24),
+		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
+	
 	return string(buf);
 }
 
-string ipv6tuple_to_string(_ipv6tuple* tuple)
+string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
+{
+	char buf[100];
+
+	ipv4serverinfo info;
+
+	info.m_ip = tuple->m_fields.m_sip;
+	info.m_port = tuple->m_fields.m_sport;
+	info.m_l4proto = tuple->m_fields.m_l4proto;
+	string source = ipv4serveraddr_to_string(&info, resolve);
+
+	info.m_ip = tuple->m_fields.m_dip;
+	info.m_port = tuple->m_fields.m_dport;
+	info.m_l4proto = tuple->m_fields.m_l4proto;
+	string dest = ipv4serveraddr_to_string(&info, resolve);
+
+	snprintf(buf, sizeof(buf), "%s->%s", source.c_str(), dest.c_str());
+	
+	return string(buf);
+}
+
+string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 {
 	char source_address[100];
 	char destination_address[100];
@@ -978,64 +953,16 @@ string ipv6tuple_to_string(_ipv6tuple* tuple)
 		return string();
 	}
 	
-	snprintf(buf,200,"%s:%u->%s:%u",
+	snprintf(buf,200,"%s:%s->%s:%s",
 		source_address,
-		tuple->m_fields.m_sport,
+		port_to_string(tuple->m_fields.m_sport, tuple->m_fields.m_l4proto, resolve).c_str(),
 		destination_address,
-		tuple->m_fields.m_dport);
+		port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
 	
 	return string(buf);
 }
 
-string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
-{
-	char buf[50];
-	if(resolve)
-	{
-		string proto = "";
-		if(addr->m_l4proto == SCAP_L4_TCP)
-		{
-			proto = "tcp";
-		}
-		else if(addr->m_l4proto == SCAP_L4_UDP)
-		{
-			proto = "udp";
-		}
-
-		struct servent * res;
-		res = getservbyport(htons(addr->m_port), proto.c_str());
-		string port = "";
-		if (res)
-		{
-			port = res->s_name;
-		}
-		else
-		{
-			port = to_string(addr->m_port);
-		}
-
-		sprintf(buf, 
-			"%d.%d.%d.%d:%s", 
-			(addr->m_ip & 0xFF),
-			((addr->m_ip & 0xFF00) >> 8),
-			((addr->m_ip & 0xFF0000) >> 16),
-			((addr->m_ip & 0xFF000000) >> 24),
-			port.c_str());
-	}
-	else
-	{
-		sprintf(buf, 
-			"%d.%d.%d.%d:%d", 
-			(addr->m_ip & 0xFF),
-			((addr->m_ip & 0xFF00) >> 8),
-			((addr->m_ip & 0xFF0000) >> 16),
-			((addr->m_ip & 0xFF000000) >> 24),
-			addr->m_port);
-	}
-	return string(buf);
-}
-
-string ipv6serveraddr_to_string(ipv6serverinfo* addr)
+string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
 {
 	char address[100];
 	char buf[200];
@@ -1045,9 +972,9 @@ string ipv6serveraddr_to_string(ipv6serverinfo* addr)
 		return string();
 	}
 
-	snprintf(buf,200,"%s:%u",
+	snprintf(buf,200,"%s:%s",
 		address,
-		addr->m_port);
+		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 	
 	return string(buf);
 }

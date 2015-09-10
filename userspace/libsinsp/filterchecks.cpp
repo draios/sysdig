@@ -614,41 +614,23 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			scap_fd_type evt_type = m_fdinfo->m_type;
 
-			string proto = "";
-			string port = "";
-			struct servent * res;
-			int16_t nport;
-			if (this->m_fdinfo->is_tcp_socket())
-			{
-				proto = "tcp";
-			}
-			else if (this->m_fdinfo->is_udp_socket())
-			{
-				proto = "udp";
-			}
-
 			if(m_fdinfo->is_role_none())
 			{
 				return NULL;
 			}
 
+			string port = "";
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport;
-			}
-
-			res = getservbyport(htons(nport), proto.c_str());
-			if (res && m_inspector->m_hostname_and_port_resolution_enabled)
-			{
-				port = res->s_name;
+				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 			else
 			{
-				port = to_string(nport);
+				ASSERT(false);
 			}
 
 			return (uint8_t*)port.c_str();
@@ -700,20 +682,9 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 
-			scap_fd_type evt_type = m_fdinfo->m_type;
+			uint16_t nport = 0;
 
-			string proto = "";
-			string port = "";
-			struct servent * res;
-			int16_t nport;
-			if (this->m_fdinfo->is_tcp_socket())
-			{
-				proto = "tcp";
-			}
-			else if (this->m_fdinfo->is_udp_socket())
-			{
-				proto = "udp";
-			}
+			scap_fd_type evt_type = m_fdinfo->m_type;
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
@@ -744,14 +715,18 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 
-			res = getservbyport(htons(nport), proto.c_str());
-			if (res && m_inspector->m_hostname_and_port_resolution_enabled)
+			string port = "";
+			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				port = res->s_name;
+				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 			else
 			{
-				port = to_string(nport);
+				ASSERT(false);
 			}
 
 			return (uint8_t*)port.c_str();
@@ -819,18 +794,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 
-			string proto = "";
-			string port = "";
-			struct servent * res;
-			int16_t nport;
-			if (this->m_fdinfo->is_tcp_socket())
-			{
-				proto = "tcp";
-			}
-			else if (this->m_fdinfo->is_udp_socket())
-			{
-				proto = "udp";
-			}
+			int16_t nport = 0;
 
 			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
 			{
@@ -855,14 +819,18 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
-			res = getservbyport(htons(nport), proto.c_str());
-			if (res && m_inspector->m_hostname_and_port_resolution_enabled)
+			string port = "";
+			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				port = res->s_name;
+				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 			else
 			{
-				port = to_string(nport);
+				ASSERT(false);
 			}
 
 			return (uint8_t*)port.c_str();

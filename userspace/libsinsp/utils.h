@@ -125,9 +125,14 @@ string sinsp_gethostname();
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
 string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve);
-string ipv6tuple_to_string(_ipv6tuple* tuple);
+string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve);
 string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve);
-string ipv6serveraddr_to_string(ipv6serverinfo* addr);
+string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve);
+int32_t ipv4octet_to_raw(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4);
+
+// l4proto should be of type scap_l4_proto, but since it's an enum sometimes is
+// used as int and we would have to cast
+string port_to_string(uint16_t port, uint8_t l4proto, bool resolve);
 
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers

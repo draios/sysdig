@@ -1509,51 +1509,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(payload_len == 1 + 4 + 2)
 			{
-				if (m_inspector->m_hostname_and_port_resolution_enabled)
-				{
-					string proto = "";
-					if (this->m_fdinfo->is_tcp_socket())
-					{
-						proto = "tcp";
-					}
-					else if (this->m_fdinfo->is_udp_socket())
-					{
-						proto = "udp";
-					}
-
-					struct servent * res;
-					res = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 5)), proto.c_str());
-
-					string port = "";
-					if (res)
-					{
-						port = res->s_name;
-					}
-					else
-					{
-						port = to_string((unsigned int)*(uint16_t*)(payload+5));
-					}
-
-					snprintf(&m_paramstr_storage[0],
-					         m_paramstr_storage.size(),
-					         "%u.%u.%u.%u:%s",
-					         (unsigned int)(uint8_t)payload[1],
-					         (unsigned int)(uint8_t)payload[2],
-					         (unsigned int)(uint8_t)payload[3],
-					         (unsigned int)(uint8_t)payload[4],
-					         port.c_str());
-				}
-				else
-				{
-					snprintf(&m_paramstr_storage[0],
-					         m_paramstr_storage.size(),
-					         "%u.%u.%u.%u:%u",
-					         (unsigned int)(uint8_t)payload[1],
-					         (unsigned int)(uint8_t)payload[2],
-					         (unsigned int)(uint8_t)payload[3],
-					         (unsigned int)(uint8_t)payload[4],
-					         (unsigned int)*(uint16_t*)(payload+5));
-				}
+				ipv4serverinfo addr;
+				addr.m_ip = ipv4octet_to_raw((uint8_t)payload[1], (uint8_t)payload[2], (uint8_t)payload[3], (uint8_t)payload[4]);
+				addr.m_port = *(uint16_t*)(payload+5);
+				addr.m_l4proto = m_fdinfo->get_l4proto();
+				string straddr = ipv4serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+				snprintf(&m_paramstr_storage[0],
+					   	 m_paramstr_storage.size(),
+					   	 "%s",
+					   	 straddr.c_str());
 			}
 			else
 			{
@@ -1584,72 +1548,17 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
-				if (m_inspector->m_hostname_and_port_resolution_enabled && m_fdinfo)
-				{
-					string proto = "";
-					if (this->m_fdinfo->is_tcp_socket())
-					{
-						proto = "tcp";
-					}
-					else if (this->m_fdinfo->is_udp_socket())
-					{
-						proto = "udp";
-					}
-
-					struct servent * res;
-					res = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 5)), proto.c_str());
-					string port1 = "";
-					if (res)
-					{
-						port1 = res->s_name;
-					}
-					else
-					{
-						port1 = to_string((unsigned int)*(uint16_t*)(payload + 5));
-					}
-
-					res = getservbyport(htons((unsigned int)*(uint16_t*)(payload + 11)), proto.c_str());
-					string port2 = "";
-					if (res)
-					{
-						port2 = res->s_name;
-					}
-					else
-					{
-						port2 = to_string((unsigned int)*(uint16_t*)(payload + 11));
-					}
-
-					snprintf(&m_paramstr_storage[0],
-						m_paramstr_storage.size(),
-						"%u.%u.%u.%u:%s->%u.%u.%u.%u:%s",
-						(unsigned int)(uint8_t)payload[1],
-						(unsigned int)(uint8_t)payload[2],
-						(unsigned int)(uint8_t)payload[3],
-						(unsigned int)(uint8_t)payload[4],
-						port1.c_str(),
-						(unsigned int)(uint8_t)payload[7],
-						(unsigned int)(uint8_t)payload[8],
-						(unsigned int)(uint8_t)payload[9],
-						(unsigned int)(uint8_t)payload[10],
-						port2.c_str());
-				}
-				else
-				{
-					snprintf(&m_paramstr_storage[0],
-						m_paramstr_storage.size(),
-						"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-						(unsigned int)(uint8_t)payload[1],
-						(unsigned int)(uint8_t)payload[2],
-						(unsigned int)(uint8_t)payload[3],
-						(unsigned int)(uint8_t)payload[4],
-						(unsigned int)*(uint16_t*)(payload + 5),
-						(unsigned int)(uint8_t)payload[7],
-						(unsigned int)(uint8_t)payload[8],
-						(unsigned int)(uint8_t)payload[9],
-						(unsigned int)(uint8_t)payload[10],
-						(unsigned int)*(uint16_t*)(payload + 11));
-				}
-				
+				ipv4tuple addr;
+				addr.m_fields.m_sip = ipv4octet_to_raw((uint8_t)payload[1], (uint8_t)payload[2], (uint8_t)payload[3], (uint8_t)payload[4]);
+				addr.m_fields.m_sport = *(uint16_t*)(payload+5);
+				addr.m_fields.m_dip = ipv4octet_to_raw((uint8_t)payload[7], (uint8_t)payload[8], (uint8_t)payload[9], (uint8_t)payload[10]);
+				addr.m_fields.m_dport = *(uint16_t*)(payload+11);
+				addr.m_fields.m_l4proto = m_fdinfo->get_l4proto();
+				string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+				snprintf(&m_paramstr_storage[0],
+					   	 m_paramstr_storage.size(),
+					   	 "%s",
+					   	 straddr.c_str());
 			}
 			else
 			{
@@ -1670,19 +1579,18 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 				{
+					ipv4tuple addr;
+					addr.m_fields.m_sip = ipv4octet_to_raw((uint8_t)sip[0], (uint8_t)sip[1], (uint8_t)sip[2], (uint8_t)sip[3]);
+					addr.m_fields.m_sport = *(uint16_t*)(payload+17);
+					addr.m_fields.m_dip = ipv4octet_to_raw((uint8_t)dip[0], (uint8_t)dip[1], (uint8_t)dip[2], (uint8_t)dip[3]);
+					addr.m_fields.m_dport = *(uint16_t*)(payload+35);
+					addr.m_fields.m_l4proto = m_fdinfo->get_l4proto();
+					string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+
 					snprintf(&m_paramstr_storage[0],
 							 m_paramstr_storage.size(),
-							 "%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-							 (unsigned int)sip[0],
-							 (unsigned int)sip[1],
-							 (unsigned int)sip[2],
-							 (unsigned int)sip[3],
-							 (unsigned int)*(uint16_t*)(payload + 17),
-							 (unsigned int)dip[0],
-							 (unsigned int)dip[1],
-							 (unsigned int)dip[2],
-							 (unsigned int)dip[3],
-							 (unsigned int)*(uint16_t*)(payload + 35));
+							 "%s",
+							 straddr.c_str());
 					break;
 				}
 				else
@@ -1694,11 +1602,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					{
 						snprintf(&m_paramstr_storage[0],
 								 m_paramstr_storage.size(),
-								 "%s:%u->%s:%u",
+								 "%s:%s->%s:%s",
 								 srcstr,
-								 (unsigned int)*(uint16_t*)(payload + 17),
+								 port_to_string(*(uint16_t*)(payload + 17), m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled).c_str(),
 								 dststr,
-								 (unsigned int)*(uint16_t*)(payload + 35));
+								 port_to_string(*(uint16_t*)(payload + 35), m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled).c_str());
 						break;
 					}
 				}
