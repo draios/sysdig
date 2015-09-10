@@ -297,8 +297,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 }
 
 //
-// errno to string conversion.
-// Only the first 40 error codes are currently implemented
+// signal to string conversion.
+// Only non-extremely-obscure signals are implemented
 //
 const char* sinsp_utils::signal_to_str(uint8_t code)
 {

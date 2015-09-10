@@ -317,6 +317,7 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 	case PT_FSPATH:
+	case PT_SIGSET:
 	default:
 		ASSERT(false);
 		return false;

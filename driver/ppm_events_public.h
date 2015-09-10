@@ -687,7 +687,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_SEMOP_X = 251,
 	PPME_SYSCALL_SEMCTL_E = 252,
 	PPME_SYSCALL_SEMCTL_X = 253,
-	PPM_EVENT_MAX = 254
+	PPME_SYSCALL_PPOLL_E = 254,
+	PPME_SYSCALL_PPOLL_X = 255,
+	PPM_EVENT_MAX = 256
 };
 /*@}*/
 
@@ -1106,7 +1108,8 @@ enum ppm_param_type {
 	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_DOUBLE = 33, /* this is a double precision floating point number. */
-	PT_MAX = 34 /* array size */
+	PT_SIGSET = 34, /* sigset_t. I only store the lower UINT32 of it */
+	PT_MAX = 35 /* array size */
 };
 
 enum ppm_print_format {
