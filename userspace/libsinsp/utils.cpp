@@ -852,7 +852,7 @@ string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 	}
 
 	struct servent * res;
-	res = getservbyport(htons(port), (proto != "") ? proto.c_str() : NULL);
+	res = getservbyport(htons(port), (proto != "") ? proto.c_str() : NULL);	// best effort!
 	string ret = "";
 	if (resolve && res)
 	{

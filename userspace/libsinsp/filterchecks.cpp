@@ -625,10 +625,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
-			else
-			{
-				ASSERT(false);
-			}
 
 			return (uint8_t*)port.c_str();
 		}
