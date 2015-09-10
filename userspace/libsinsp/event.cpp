@@ -1508,7 +1508,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			if(payload_len == 1 + 4 + 2)
 			{
 				ipv4serverinfo addr;
-				addr.m_ip = ipv4octet_to_raw((uint8_t)payload[1], (uint8_t)payload[2], (uint8_t)payload[3], (uint8_t)payload[4]);
+				addr.m_ip = *(uint32_t*)(payload + 1);
 				addr.m_port = *(uint16_t*)(payload+5);
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				string straddr = ipv4serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
@@ -1547,9 +1547,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
 				ipv4tuple addr;
-				addr.m_fields.m_sip = ipv4octet_to_raw((uint8_t)payload[1], (uint8_t)payload[2], (uint8_t)payload[3], (uint8_t)payload[4]);
+				addr.m_fields.m_sip = *(uint32_t*)(payload + 1);
 				addr.m_fields.m_sport = *(uint16_t*)(payload+5);
-				addr.m_fields.m_dip = ipv4octet_to_raw((uint8_t)payload[7], (uint8_t)payload[8], (uint8_t)payload[9], (uint8_t)payload[10]);
+				addr.m_fields.m_dip = *(uint32_t*)(payload + 7);
 				addr.m_fields.m_dport = *(uint16_t*)(payload+11);
 				addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
@@ -1578,9 +1578,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 				{
 					ipv4tuple addr;
-					addr.m_fields.m_sip = ipv4octet_to_raw((uint8_t)sip[0], (uint8_t)sip[1], (uint8_t)sip[2], (uint8_t)sip[3]);
+					addr.m_fields.m_sip = *(uint32_t*)sip;
 					addr.m_fields.m_sport = *(uint16_t*)(payload+17);
-					addr.m_fields.m_dip = ipv4octet_to_raw((uint8_t)dip[0], (uint8_t)dip[1], (uint8_t)dip[2], (uint8_t)dip[3]);
+					addr.m_fields.m_dip = *(uint32_t*)dip;
 					addr.m_fields.m_dport = *(uint16_t*)(payload+35);
 					addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 					string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);

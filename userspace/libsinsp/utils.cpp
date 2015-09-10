@@ -385,9 +385,9 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
 		{
 			ipv4tuple addr;
-			addr.m_fields.m_sip = ipv4octet_to_raw((uint8_t)sb[0], (uint8_t)sb[1], (uint8_t)sb[2], (uint8_t)sb[3]);
+			addr.m_fields.m_sip = *(uint32_t*)sb;
 			addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
-			addr.m_fields.m_dip = ipv4octet_to_raw((uint8_t)db[0], (uint8_t)db[1], (uint8_t)db[2], (uint8_t)db[3]);
+			addr.m_fields.m_dip = *(uint32_t*)db;
 			addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
 			addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
 			string straddr = ipv4tuple_to_string(&addr, resolve);
@@ -431,9 +431,9 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 			{
 				ipv4tuple addr;
-				addr.m_fields.m_sip = ipv4octet_to_raw((uint8_t)sip[0], (uint8_t)sip[1], (uint8_t)sip[2], (uint8_t)sip[3]);
+				addr.m_fields.m_sip = *(uint32_t*)sip;
 				addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
-				addr.m_fields.m_dip = ipv4octet_to_raw((uint8_t)dip[0], (uint8_t)dip[1], (uint8_t)dip[2], (uint8_t)dip[3]);
+				addr.m_fields.m_dip = *(uint32_t*)dip;
 				addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
 				addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
 				string straddr = ipv4tuple_to_string(&addr, resolve);
@@ -834,29 +834,32 @@ string sinsp_gethostname()
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
-int32_t ipv4octet_to_raw(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4)
-{
-	return (o1) | (o2 << 8) | (o3 << 16) | (o4 << 24);
-}
-
 string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 {
-	string proto = "";
-	if(l4proto == SCAP_L4_TCP)
-	{
-		proto = "tcp";
-	}
-	else if(l4proto == SCAP_L4_UDP)
-	{
-		proto = "udp";
-	}
-
-	struct servent * res;
-	res = getservbyport(htons(port), (proto != "") ? proto.c_str() : NULL);	// best effort!
 	string ret = "";
-	if (resolve && res)
+	if(resolve)
 	{
-		ret = res->s_name;
+		string proto = "";
+		if(l4proto == SCAP_L4_TCP)
+		{
+			proto = "tcp";
+		}
+		else if(l4proto == SCAP_L4_UDP)
+		{
+			proto = "udp";
+		}
+
+		// `port` is saved with network byte order
+		struct servent * res;
+		res = getservbyport(ntohs(port), (proto != "") ? proto.c_str() : NULL);	// best effort!
+		if (res)
+		{
+			ret = res->s_name;
+		}
+		else
+		{
+			ret = to_string(port);
+		}
 	}
 	else
 	{
@@ -870,6 +873,7 @@ string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 {
 	char buf[50];
 
+	// IP address is saved with host byte order, that's why we do shifts
 	snprintf(buf,
 		sizeof(buf),
 		"%d.%d.%d.%d:%s", 
