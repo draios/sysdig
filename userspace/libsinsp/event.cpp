@@ -21,10 +21,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
-#include <netdb.h>
 #else
 #define NOMINMAX
-#include <WinSock2.h>
 #endif
 
 #include <limits>

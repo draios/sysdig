@@ -19,9 +19,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 #ifndef _WIN32
 #include <algorithm>
-#include <netdb.h>
-#else
-#include <WinSock2.h>
 #endif
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -723,10 +720,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
 				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
-			}
-			else
-			{
-				ASSERT(false);
 			}
 
 			return (uint8_t*)port.c_str();

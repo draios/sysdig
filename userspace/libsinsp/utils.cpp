@@ -841,38 +841,6 @@ int32_t ipv4octet_to_raw(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4)
 
 string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 {
-	/*fprintf(stderr, "port: %d\tresolve: %d\t", port, resolve);
-	switch(l4proto)
-	{
-		case 0:
-			fprintf(stderr, "l4proto: SCAP_L4_UNKNOWN\t");
-			break;
-
-		case 1:
-			fprintf(stderr, "l4proto: SCAP_L4_NA\t");
-			break;
-
-		case 2:
-			fprintf(stderr, "l4proto: SCAP_L4_TCP\t");
-			break;
-
-		case 3:
-			fprintf(stderr, "l4proto: SCAP_L4_UDP\t");
-			break;
-
-		case 4:
-			fprintf(stderr, "l4proto: SCAP_L4_ICMP\t");
-			break;
-
-		case 5:
-			fprintf(stderr, "l4proto: SCAP_L4_RAW\t");
-			break;
-
-		default:
-			fprintf(stderr, "Merda...\t");
-			break;
-	}*/
-
 	string proto = "";
 	if(l4proto == SCAP_L4_TCP)
 	{
@@ -894,8 +862,6 @@ string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 	{
 		ret = to_string(port);
 	}
-
-	//fprintf(stderr, "ret: %s\n", ret.c_str());
 
 	return ret;
 }
@@ -937,6 +903,23 @@ string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 	return string(buf);
 }
 
+string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
+{
+	char address[100];
+	char buf[200];
+
+	if(NULL == inet_ntop(AF_INET6, addr->m_ip, address, 100))
+	{
+		return string();
+	}
+
+	snprintf(buf,200,"%s:%s",
+		address,
+		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
+	
+	return string(buf);
+}
+
 string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 {
 	char source_address[100];
@@ -958,23 +941,6 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 		port_to_string(tuple->m_fields.m_sport, tuple->m_fields.m_l4proto, resolve).c_str(),
 		destination_address,
 		port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
-	
-	return string(buf);
-}
-
-string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
-{
-	char address[100];
-	char buf[200];
-
-	if(NULL == inet_ntop(AF_INET6, addr->m_ip, address, 100))
-	{
-		return string();
-	}
-
-	snprintf(buf,200,"%s:%s",
-		address,
-		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 	
 	return string(buf);
 }

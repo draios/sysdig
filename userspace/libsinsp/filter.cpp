@@ -873,11 +873,24 @@ void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_par
 		case PT_PORT:
 		{
 			string in(str);
-			*(uint16_t*)(&m_val_storage[0]) = in.empty() ? 0 : (
-				(strspn(in.c_str(), "0123456789") == in.size())
-				? stoi(in)
-				: ntohs(getservbyname(in.c_str(), NULL)->s_port)
-				);
+
+			if(in.empty())
+			{
+				*(uint16_t*)(&m_val_storage[0]) = 0;
+			}
+			else
+			{
+				// if the string is made only of numbers
+				if(strspn(in.c_str(), "0123456789") == in.size())
+				{
+					*(uint16_t*)(&m_val_storage[0]) = stoi(in);
+				}
+				else
+				{
+					*(uint16_t*)(&m_val_storage[0]) = ntohs(getservbyname(in.c_str(), NULL)->s_port);
+				}
+			}
+
 			break;
 		}
 		case PT_FLAGS16:
