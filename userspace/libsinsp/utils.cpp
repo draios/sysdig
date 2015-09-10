@@ -26,6 +26,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/time.h>
 #include <netdb.h>
 #else
+#pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
 #endif
 #include <algorithm> 
