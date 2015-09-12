@@ -285,63 +285,6 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_centralized(scap_t* ha
 
 #else // HAVE_EXTERNAL_SCAP_READER
 
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffer_cpu(scap_device* const dev)
-{
-	int32_t res = SCAP_SLEEP;
-	int32_t next_snaplen;
-
-	//
-	// Check if we slept enough
-	//
-	if(dev->m_n_consecutive_waits >= MAX_N_CONSECUTIVE_WAITS)
-	{
-		dev->m_n_consecutive_waits = 0;
-		res = SCAP_TIMEOUT;
-	}
-
-	//
-	// update device snap infos
-	//
-	next_snaplen = scap_update_snap(dev);
-
-	//
-	// (kindof) Check the event production rate
-	//
-	if(next_snaplen > 20000)
-	{
-		dev->m_n_consecutive_waits = 0;
-		res = SCAP_TIMEOUT;
-	}
-	//
-	// Note: we might return a spurious timeout here in case the previous loop extracted valid data to parse.
-	//       It's ok, since this is rare and the caller will just call us again after receiving a
-	//       SCAP_TIMEOUT.
-	//
-	return res;
-}
-
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_mt(scap_device* const dev, OUT scap_evt** const pevent)
-{
-	int32_t res = scap_next_live_cpu(dev, pevent);
-
-	if(res == SCAP_SUCCESS)
-	{
-		dev->m_evtcnt++;
-		ASSERT(dev->m_sn_len >= (*pevent)->len);
-		dev->m_sn_len -= (*pevent)->len;
-		dev->m_sn_next_event += (*pevent)->len;
-		return SCAP_SUCCESS;
-	}
-	else
-	{
-		//
-		// Local buffer has been consumed. Check if there's enough data to keep going or
-		// if we should wait.
-		//
-		return refill_read_buffer_cpu(dev);
-	}
-}
-
 #endif //HAVE_EXTERNAL_SCAP_READER
 
 #ifdef __cplusplus

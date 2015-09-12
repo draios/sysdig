@@ -33,7 +33,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
 #include "scap-int.h"
+
+#ifndef HAVE_EXTERNAL_SCAP_READER
 #include "scap_next.h"
+#else
+#include "scap_external.h"
+#endif
 
 //#define NDEBUG
 #include <assert.h>
@@ -61,6 +66,22 @@ char* scap_getlasterr(scap_t* handle)
 {
 	return handle->m_lasterr;
 }
+
+#ifndef HAVE_EXTERNAL_SCAP_READER
+
+static void scap_dev_init(scap_device* const dev)
+{
+	dev->m_lastreadsize = 0;
+	dev->m_sn_len = 0;
+}
+
+static void scap_handle_init(scap_t* const handle)
+{
+	handle->m_n_consecutive_waits = 0;
+	handle->m_evtcnt = 0;
+}
+
+#endif
 
 scap_t* scap_open_live_int(char *error, 
 						   proc_entry_callback proc_callback,
@@ -249,18 +270,15 @@ scap_t* scap_open_live_int(char *error,
 		//
 		// Additional initializations
 		//
-		handle->m_devs[j].m_lastreadsize = 0;
-		handle->m_devs[j].m_sn_len = 0;
-#ifndef HAVE_EXTERNAL_SCAP_READER
-		handle->m_n_consecutive_waits = 0;
-		handle->m_evtcnt = 0;
-#endif
+		scap_dev_init(handle->m_devs + j);
+//#ifndef HAVE_EXTERNAL_SCAP_READER
+//		handle->m_n_consecutive_waits = 0;
+//		handle->m_evtcnt = 0;
+//#endif
 		scap_stop_dropping_mode(handle);
 		j++;
 	}
-#ifdef HAVE_EXTERNAL_SCAP_READER
-	scap_external_init(handle);
-#endif
+	scap_handle_init(handle);
 
 	//
 	// Create the process list
@@ -309,15 +327,16 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_devs = NULL;
 	handle->m_ndevs = 0;
 	handle->m_proclist = NULL;
-#ifndef HAVE_EXTERNAL_SCAP_READER
-	handle->m_evtcnt = 0;
-#endif
+//#ifndef HAVE_EXTERNAL_SCAP_READER
+//	handle->m_evtcnt = 0;
+//#endif
 	handle->m_file = NULL;
 	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_last_evt_dump_flags = 0;
 	handle->m_driver_procinfo = NULL;
+	scap_handle_init(handle);
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -720,7 +739,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 //               j,
 //               &handle->m_devs[j].m_sn_next_event,
 //               &handle->m_devs[j].m_sn_len);
-			scap_update_snap(&handle->m_devs[j]);
+			scap_update_snap(handle->m_devs + j);
 
 			handle->m_devs[j].m_sn_len = 0;
 		}
