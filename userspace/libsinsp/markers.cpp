@@ -999,11 +999,11 @@ inline sinsp_markerparser::parse_result sinsp_markerparser::parsenumber(char* p,
 
 	if(negative)
 	{
-		*res = val;
+		*res = -val;
 	}
 	else
 	{
-		*res = -val;
+		*res = val;
 	}
 
 	*delta = (uint32_t)(p - start + 1);
@@ -1154,7 +1154,7 @@ void sinsp_markerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-	char doc[] = ">:10:us.srvc_next0::";
+	char doc[] = "[\">\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 	char doc1[] = ">:t:us::\n";
 
 	sinsp_threadinfo tinfo;
