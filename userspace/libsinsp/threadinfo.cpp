@@ -123,7 +123,7 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc()
 				it->second.m_sockinfo.m_ipv4info.m_fields.m_sport = it->second.m_sockinfo.m_ipv4info.m_fields.m_dport;
 				it->second.m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 
-				it->second.m_name = ipv4tuple_to_string(&it->second.m_sockinfo.m_ipv4info);
+				it->second.m_name = ipv4tuple_to_string(&it->second.m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
 
 				it->second.set_role_server();
 			}
@@ -169,13 +169,13 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 		newfdi.m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv4info.dport;
 		newfdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv4info.l4proto;
 		m_inspector->m_network_interfaces->update_fd(&newfdi);
-		newfdi.m_name = ipv4tuple_to_string(&newfdi.m_sockinfo.m_ipv4info);
+		newfdi.m_name = ipv4tuple_to_string(&newfdi.m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
 		newfdi.m_sockinfo.m_ipv4serverinfo.m_ip = fdi->info.ipv4serverinfo.ip;
 		newfdi.m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
 		newfdi.m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
-		newfdi.m_name = ipv4serveraddr_to_string(&newfdi.m_sockinfo.m_ipv4serverinfo);
+		newfdi.m_name = ipv4serveraddr_to_string(&newfdi.m_sockinfo.m_ipv4serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
 			
 		//
 		// We keep note of all the host bound server ports.
@@ -199,7 +199,7 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 			newfdi.m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv6info.dport;
 			newfdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
 			m_inspector->m_network_interfaces->update_fd(&newfdi);
-			newfdi.m_name = ipv4tuple_to_string(&newfdi.m_sockinfo.m_ipv4info);
+			newfdi.m_name = ipv4tuple_to_string(&newfdi.m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
 		}
 		else
 		{
@@ -208,14 +208,14 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 			newfdi.m_sockinfo.m_ipv6info.m_fields.m_sport = fdi->info.ipv6info.sport;
 			newfdi.m_sockinfo.m_ipv6info.m_fields.m_dport = fdi->info.ipv6info.dport;
 			newfdi.m_sockinfo.m_ipv6info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
-			newfdi.m_name = ipv6tuple_to_string(&newfdi.m_sockinfo.m_ipv6info);
+			newfdi.m_name = ipv6tuple_to_string(&newfdi.m_sockinfo.m_ipv6info, m_inspector->m_hostname_and_port_resolution_enabled);
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
 		copy_ipv6_address(newfdi.m_sockinfo.m_ipv6serverinfo.m_ip, fdi->info.ipv6serverinfo.ip);
 		newfdi.m_sockinfo.m_ipv6serverinfo.m_port = fdi->info.ipv6serverinfo.port;
 		newfdi.m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi->info.ipv6serverinfo.l4proto;
-		newfdi.m_name = ipv6serveraddr_to_string(&newfdi.m_sockinfo.m_ipv6serverinfo);
+		newfdi.m_name = ipv6serveraddr_to_string(&newfdi.m_sockinfo.m_ipv6serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
 
 		//
 		// We keep note of all the host bound server ports.

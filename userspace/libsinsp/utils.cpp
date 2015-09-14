@@ -24,6 +24,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <execinfo.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <netdb.h>
+#else
+#pragma comment(lib, "Ws2_32.lib")
+#include <WinSock2.h>
 #endif
 #include <algorithm> 
 #include <functional> 
@@ -297,8 +301,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 }
 
 //
-// errno to string conversion.
-// Only the first 40 error codes are currently implemented
+// signal to string conversion.
+// Only non-extremely-obscure signals are implemented
 //
 const char* sinsp_utils::signal_to_str(uint8_t code)
 {
@@ -371,7 +375,7 @@ const char* sinsp_utils::signal_to_str(uint8_t code)
 	}
 }
 
-bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size)
+bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve)
 {
 	if(stype == SCAP_FD_IPV4_SOCK)
 	{
@@ -381,19 +385,17 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 		if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP ||
 			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
 		{
+			ipv4tuple addr;
+			addr.m_fields.m_sip = *(uint32_t*)sb;
+			addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
+			addr.m_fields.m_dip = *(uint32_t*)db;
+			addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
+			addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
+			string straddr = ipv4tuple_to_string(&addr, resolve);
 			snprintf(targetbuf,
-				targetbuf_size,
-				"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-				(unsigned int)(uint8_t)sb[0],
-				(unsigned int)(uint8_t)sb[1],
-				(unsigned int)(uint8_t)sb[2],
-				(unsigned int)(uint8_t)sb[3],
-				(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
-				(unsigned int)(uint8_t)db[0],
-				(unsigned int)(uint8_t)db[1],
-				(unsigned int)(uint8_t)db[2],
-				(unsigned int)(uint8_t)db[3],
-				(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+					 targetbuf_size,
+					 "%s",
+					 straddr.c_str());
 		}
 		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP ||
 			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW)
@@ -429,19 +431,17 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 		{
 			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 			{
+				ipv4tuple addr;
+				addr.m_fields.m_sip = *(uint32_t*)sip;
+				addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
+				addr.m_fields.m_dip = *(uint32_t*)dip;
+				addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
+				addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
+				string straddr = ipv4tuple_to_string(&addr, resolve);
 				snprintf(targetbuf,
-							targetbuf_size,
-							"%u.%u.%u.%u:%u->%u.%u.%u.%u:%u",
-							(unsigned int)sip[0],
-							(unsigned int)sip[1],
-							(unsigned int)sip[2],
-							(unsigned int)sip[3],
-							(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
-							(unsigned int)dip[0],
-							(unsigned int)dip[1],
-							(unsigned int)dip[2],
-							(unsigned int)dip[3],
-							(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+						 targetbuf_size,
+						 "%s",
+						 straddr.c_str());
 				return true;
 			}
 			else
@@ -453,11 +453,11 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				{
 					snprintf(targetbuf,
 								targetbuf_size,
-								"%s:%u->%s:%u",
+								"%s:%s->%s:%s",
 								srcstr,
-								(unsigned int)sinfo->m_ipv4info.m_fields.m_sport,
+								port_to_string(sinfo->m_ipv4info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
 								dststr,
-								(unsigned int)sinfo->m_ipv4info.m_fields.m_dport);
+								port_to_string(sinfo->m_ipv4info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
 					return true;
 				}
 			}
@@ -835,25 +835,97 @@ string sinsp_gethostname()
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
-string ipv4tuple_to_string(ipv4tuple* tuple)
+string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
+{
+	string ret = "";
+	if(resolve)
+	{
+		string proto = "";
+		if(l4proto == SCAP_L4_TCP)
+		{
+			proto = "tcp";
+		}
+		else if(l4proto == SCAP_L4_UDP)
+		{
+			proto = "udp";
+		}
+
+		// `port` is saved with network byte order
+		struct servent * res;
+		res = getservbyport(ntohs(port), (proto != "") ? proto.c_str() : NULL);	// best effort!
+		if (res)
+		{
+			ret = res->s_name;
+		}
+		else
+		{
+			ret = to_string(port);
+		}
+	}
+	else
+	{
+		ret = to_string(port);
+	}
+
+	return ret;
+}
+
+string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 {
 	char buf[50];
-	sprintf(buf, 
-		"%d.%d.%d.%d:%d->%d.%d.%d.%d:%d", 
-		(tuple->m_fields.m_sip & 0xFF),
-		((tuple->m_fields.m_sip & 0xFF00) >> 8),
-		((tuple->m_fields.m_sip & 0xFF0000) >> 16),
-		((tuple->m_fields.m_sip & 0xFF000000) >> 24),
-		tuple->m_fields.m_sport,
-		(tuple->m_fields.m_dip & 0xFF),
-		((tuple->m_fields.m_dip & 0xFF00) >> 8),
-		((tuple->m_fields.m_dip & 0xFF0000) >> 16),
-		((tuple->m_fields.m_dip & 0xFF000000) >> 24),
-		tuple->m_fields.m_dport);
+
+	// IP address is saved with host byte order, that's why we do shifts
+	snprintf(buf,
+		sizeof(buf),
+		"%d.%d.%d.%d:%s", 
+		(addr->m_ip & 0xFF),
+		((addr->m_ip & 0xFF00) >> 8),
+		((addr->m_ip & 0xFF0000) >> 16),
+		((addr->m_ip & 0xFF000000) >> 24),
+		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
+	
 	return string(buf);
 }
 
-string ipv6tuple_to_string(_ipv6tuple* tuple)
+string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
+{
+	char buf[100];
+
+	ipv4serverinfo info;
+
+	info.m_ip = tuple->m_fields.m_sip;
+	info.m_port = tuple->m_fields.m_sport;
+	info.m_l4proto = tuple->m_fields.m_l4proto;
+	string source = ipv4serveraddr_to_string(&info, resolve);
+
+	info.m_ip = tuple->m_fields.m_dip;
+	info.m_port = tuple->m_fields.m_dport;
+	info.m_l4proto = tuple->m_fields.m_l4proto;
+	string dest = ipv4serveraddr_to_string(&info, resolve);
+
+	snprintf(buf, sizeof(buf), "%s->%s", source.c_str(), dest.c_str());
+	
+	return string(buf);
+}
+
+string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
+{
+	char address[100];
+	char buf[200];
+
+	if(NULL == inet_ntop(AF_INET6, addr->m_ip, address, 100))
+	{
+		return string();
+	}
+
+	snprintf(buf,200,"%s:%s",
+		address,
+		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
+	
+	return string(buf);
+}
+
+string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 {
 	char source_address[100];
 	char destination_address[100];
@@ -869,41 +941,11 @@ string ipv6tuple_to_string(_ipv6tuple* tuple)
 		return string();
 	}
 	
-	snprintf(buf,200,"%s:%u->%s:%u",
+	snprintf(buf,200,"%s:%s->%s:%s",
 		source_address,
-		tuple->m_fields.m_sport,
+		port_to_string(tuple->m_fields.m_sport, tuple->m_fields.m_l4proto, resolve).c_str(),
 		destination_address,
-		tuple->m_fields.m_dport);
-	
-	return string(buf);
-}
-
-string ipv4serveraddr_to_string(ipv4serverinfo* addr)
-{
-	char buf[50];
-	sprintf(buf, 
-		"%d.%d.%d.%d:%d", 
-		(addr->m_ip & 0xFF),
-		((addr->m_ip & 0xFF00) >> 8),
-		((addr->m_ip & 0xFF0000) >> 16),
-		((addr->m_ip & 0xFF000000) >> 24),
-		addr->m_port);
-	return string(buf);
-}
-
-string ipv6serveraddr_to_string(ipv6serverinfo* addr)
-{
-	char address[100];
-	char buf[200];
-
-	if(NULL == inet_ntop(AF_INET6, addr->m_ip, address, 100))
-	{
-		return string();
-	}
-
-	snprintf(buf,200,"%s:%u",
-		address,
-		addr->m_port);
+		port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
 	
 	return string(buf);
 }

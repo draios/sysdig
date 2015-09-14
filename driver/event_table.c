@@ -276,6 +276,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SEMOP_X */ {"semop", EC_PROCESS, EF_NONE, 8, {{"res", PT_ERRNO, PF_DEC}, {"nsops", PT_UINT32, PF_DEC}, {"sem_num_0", PT_UINT16, PF_DEC}, {"sem_op_0", PT_INT16, PF_DEC}, {"sem_flg_0", PT_FLAGS16, PF_HEX, semop_flags}, {"sem_num_1", PT_UINT16, PF_DEC}, {"sem_op_1", PT_INT16, PF_DEC}, {"sem_flg_1", PT_FLAGS16, PF_HEX, semop_flags} } },
 	/* PPME_SYSCALL_SEMCTL_E */{"semctl", EC_PROCESS, EF_NONE, 4, {{"semid", PT_INT32, PF_DEC}, {"semnum", PT_INT32, PF_DEC}, {"cmd", PT_FLAGS16, PF_HEX, semctl_commands}, {"val", PT_INT32, PF_DEC} } },
 	/* PPME_SYSCALL_SEMCTL_X */{"semctl", EC_PROCESS, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_PPOLL_E */{"ppoll", EC_WAIT, EF_WAITS, 3, {{"fds", PT_FDLIST, PF_DEC}, {"timeout", PT_RELTIME, PF_DEC}, {"sigmask", PT_SIGSET, PF_DEC} } },
+	/* PPME_SYSCALL_PPOLL_X */{"ppoll", EC_WAIT, EF_WAITS, 2, {{"res", PT_ERRNO, PF_DEC}, {"fds", PT_FDLIST, PF_DEC} } },
 	/* PPME_MARKER_E */{"marker", EC_OTHER, EF_NONE, 3, {{"id", PT_INT64, PF_DEC}, {"tags", PT_CHARBUFARRAY, PF_NA}, {"args", PT_CHARBUF_PAIR_ARRAY, PF_NA} } },
 	/* PPME_MARKER_X */{"marker", EC_OTHER, EF_NONE, 2, {{"id", PT_INT64, PF_DEC}, {"tags", PT_CHARBUFARRAY, PF_NA} } },
 };

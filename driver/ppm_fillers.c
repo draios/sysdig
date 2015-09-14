@@ -139,6 +139,7 @@ static int f_sys_semop_e(struct event_filler_arguments *args);
 static int f_sys_semop_x(struct event_filler_arguments *args);
 static int f_sys_semctl_e(struct event_filler_arguments *args);
 static int f_sys_semctl_x(struct event_filler_arguments *args);
+static int f_sys_ppoll_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -358,6 +359,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SEMOP_X] = {f_sys_semop_x},
 	[PPME_SYSCALL_SEMCTL_E] = {f_sys_semctl_e},
 	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
+	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
+	[PPME_SYSCALL_PPOLL_X] = {f_sys_poll_x}, // exit same for poll() and ppoll()
 };
 
 /*
@@ -2681,6 +2684,64 @@ static int f_sys_poll_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static int timespec_parse(struct event_filler_arguments *args, unsigned long val)
+{
+	uint64_t longtime;
+	char *targetbuf = args->str_storage;
+	struct timespec *tts = (struct timespec *)targetbuf;
+	int cfulen;
+
+	/*
+	 * interval
+	 * We copy the timespec structure and then convert it to a 64bit relative time
+	 */
+	cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
+
+	if(cfulen != 0)
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
+
+	return val_to_ring(args, longtime, 0, false, 0);
+}
+
+static int f_sys_ppoll_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	res = poll_parse_fds(args, true);
+	if(res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * timeout
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	// NULL timeout specified as 0xFFFFFF....
+	if(val == (unsigned long)NULL)
+		res = val_to_ring(args, (uint64_t)(-1), 0, false, 0);
+	else
+		res = timespec_parse(args, val);
+	if(res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * sigmask
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	if(val != (unsigned long)NULL)
+		if(0 != ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if(res != PPM_SUCCESS)
+		return res;
+
+	return add_sentinel(args);
+}
+
+/* This is the same for poll() and ppoll() */
 static int f_sys_poll_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
@@ -3087,27 +3148,11 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 
 static int f_sys_nanosleep_e(struct event_filler_arguments *args)
 {
-	int res;
-	uint64_t longtime;
 	unsigned long val;
-	char *targetbuf = args->str_storage;
-	struct timespec *tts = (struct timespec *)targetbuf;
-	int cfulen;
+	int res;
 
-	/*
-	 * interval
-	 * We copy the timespec structure and then convert it to a 64bit relative time
-	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
-
-	cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
-
-	if (unlikely(cfulen != 0))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
-
-	longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
-
-	res = val_to_ring(args, longtime, 0, false, 0);
+	res = timespec_parse(args, val);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

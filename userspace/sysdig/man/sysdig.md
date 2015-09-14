@@ -144,6 +144,9 @@ OPTIONS
 **-l**, **--list**  
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
     
+**-N**
+  Don't convert addresses (i.e., host addresses, port numbers, etc.) to names.
+
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events
 

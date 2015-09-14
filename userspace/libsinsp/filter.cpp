@@ -40,6 +40,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen);
 #endif
 
+#ifdef _WIN32
+#pragma comment(lib, "Ws2_32.lib")
+#include <WinSock2.h>
+#else
+#include <netdb.h>
+#endif
+
+
 extern sinsp_filter_check_list g_filterlist;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -318,6 +326,7 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 	case PT_FSPATH:
+	case PT_SIGSET:
 	default:
 		ASSERT(false);
 		return false;
@@ -864,7 +873,29 @@ void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_par
 		case PT_UINT8:
 			*(uint8_t*)(&m_val_storage[0]) = sinsp_numparser::parseu8(str);
 			break;
-		case PT_PORT: // This can be resolved in the future
+		case PT_PORT:
+		{
+			string in(str);
+
+			if(in.empty())
+			{
+				*(uint16_t*)(&m_val_storage[0]) = 0;
+			}
+			else
+			{
+				// if the string is made only of numbers
+				if(strspn(in.c_str(), "0123456789") == in.size())
+				{
+					*(uint16_t*)(&m_val_storage[0]) = stoi(in);
+				}
+				else
+				{
+					*(uint16_t*)(&m_val_storage[0]) = ntohs(getservbyname(in.c_str(), NULL)->s_port);
+				}
+			}
+
+			break;
+		}
 		case PT_FLAGS16:
 		case PT_UINT16:
 			*(uint16_t*)(&m_val_storage[0]) = sinsp_numparser::parseu16(str);

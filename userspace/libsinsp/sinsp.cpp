@@ -91,6 +91,7 @@ sinsp::sinsp() :
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
+	m_hostname_and_port_resolution_enabled = true;
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
 	m_track_markers_state = false;
@@ -1349,6 +1350,11 @@ void sinsp::set_print_container_data(bool print_container_data)
 void sinsp::set_fatfile_dump_mode(bool enable_fatfile)
 {
 	m_isfatfile_enabled = enable_fatfile;
+}
+
+void sinsp::set_hostname_and_port_resolution_mode(bool enable)
+{
+	m_hostname_and_port_resolution_enabled = enable;
 }
 
 void sinsp::set_max_evt_output_len(uint32_t len)

@@ -135,6 +135,8 @@ static void usage()
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" -N                 Don't convert addresses (i.e., host addresses, port numbers, etc.)\n"
+"                    to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " -P, --progress     Print progress on stderr while processing trace files\n"
@@ -726,7 +728,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jlLn:Pp:qr:Ss:t:v"
+                                        "hi:jlLNn:Pp:qr:Ss:t:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -878,6 +880,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				list_events(inspector);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			case 'N':
+				inspector->set_hostname_and_port_resolution_mode(false);
+				break;
 			case 'n':
 				try
 				{
