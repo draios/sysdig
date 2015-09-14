@@ -1110,14 +1110,10 @@ enum ppm_param_type {
 	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_DOUBLE = 33, /* this is a double precision floating point number. */
-<<<<<<< HEAD
-	PT_CHARBUFARRAY = 34,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
-	PT_CHARBUF_PAIR_ARRAY = 35,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
-	PT_MAX = 36 /* array size */
-=======
 	PT_SIGSET = 34, /* sigset_t. I only store the lower UINT32 of it */
-	PT_MAX = 35 /* array size */
->>>>>>> dev
+	PT_CHARBUFARRAY = 35,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
+	PT_CHARBUF_PAIR_ARRAY = 36,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
+	PT_MAX = 37 /* array size */
 };
 
 enum ppm_print_format {
