@@ -1056,7 +1056,7 @@ int32_t sinsp_numparser::parsed8(const string& str)
 
 uint32_t sinsp_numparser::parseu16(const string& str)
 {
-	uint16_t res;
+	uint32_t res;
 	char temp;
 
 	if(std::sscanf(str.c_str(), "%" PRIu16 "%c", &res, &temp) != 1)
@@ -1069,7 +1069,7 @@ uint32_t sinsp_numparser::parseu16(const string& str)
 
 int32_t sinsp_numparser::parsed16(const string& str)
 {
-	int16_t res;
+	int32_t res;
 	char temp;
 
 	if(std::sscanf(str.c_str(), "%" PRId16 "%c", &res, &temp) != 1)
