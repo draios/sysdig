@@ -2047,6 +2047,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
+	{PT_CHARBUF, EPF_PRINT_ONLY, PF_NA, "evt.outputtime", "runtime time output format."}
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2735,6 +2736,66 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			return (uint8_t*)&m_tsdelta;
+		}
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
+		{
+			m_strstorage = "";
+			switch(m_inspector->m_output_time_flag)
+			{
+				case 'h':
+					ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+					return (uint8_t*)m_strstorage.c_str();
+
+				case 'a':
+					m_strstorage += to_string(evt->get_ts() / ONE_SECOND_IN_NS);
+					m_strstorage += ".";
+					m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'r':
+					if(m_first_ts == 0)
+					{
+						m_first_ts = evt->get_ts();
+					}
+
+					m_strstorage += to_string((evt->get_ts() - m_first_ts) / ONE_SECOND_IN_NS);
+					m_strstorage += ".";
+					m_strstorage += to_string((evt->get_ts() - m_first_ts) % ONE_SECOND_IN_NS);
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'd':
+					if(evt->m_tinfo != NULL)
+					{
+						uint64_t lat = evt->m_tinfo->m_latency;
+
+						m_strstorage += to_string(lat / 1000000000);
+						m_strstorage += ".";
+						m_strstorage += to_string(lat % 1000000000);
+					}
+
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'D':
+					if(m_u64val == 0)
+					{
+						m_u64val = evt->get_ts();
+						m_tsdelta = 0;
+						m_strstorage += to_string(m_tsdelta);
+					}
+					else
+					{
+						uint64_t tts = evt->get_ts();
+
+						m_strstorage += to_string((tts - m_u64val) / ONE_SECOND_IN_NS);
+						m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
+						m_strstorage += ".";
+						m_strstorage += to_string((tts - m_u64val) % ONE_SECOND_IN_NS);
+						m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
+
+						m_u64val = tts;
+					}
+					return (uint8_t*) m_strstorage.c_str();
+			}
 		}
 	case TYPE_DIR:
 		if(PPME_IS_ENTER(evt->get_type()))

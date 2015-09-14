@@ -961,23 +961,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					if(tms == "h")
 					{
-						timefmt = "%evt.time";
+						timefmt == "%evt.time";
 					}
-					else if(tms == "a")
+					else if(tms == "a" || tms == "r" || tms == "d" || tms == "D")
 					{
-						timefmt = "%evt.rawtime.s.%evt.rawtime.ns";
-					}
-					else if(tms == "r")
-					{
-						timefmt = "%evt.reltime.s.%evt.reltime.ns";
-					}
-					else if(tms == "d")
-					{
-						timefmt = "%evt.latency.s.%evt.latency.ns";
-					}
-					else if(tms == "D")
-					{
-						timefmt = "%evt.deltatime.s.%evt.deltatime.ns";
+						timefmt == "%evt.outputtime";
+						inspector->set_time_output_mode(tms.c_str()[0]);
 					}
 					else
 					{
