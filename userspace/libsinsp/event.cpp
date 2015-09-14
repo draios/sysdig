@@ -2170,6 +2170,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			break;
 		}
+	}
 	case PT_SIGSET:
 	{
 		ASSERT(payload_len == sizeof(uint32_t));
