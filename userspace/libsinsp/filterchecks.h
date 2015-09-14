@@ -421,6 +421,7 @@ public:
 		TYPE_BUFLEN_NET = 54,
 		TYPE_BUFLEN_NET_IN = 55,
 		TYPE_BUFLEN_NET_OUT = 56,
+		TYPE_RUNTIME_TIME_OUTPUT_FORMAT = 57
 	};
 
 	sinsp_filter_check_event();
