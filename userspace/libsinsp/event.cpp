@@ -2170,6 +2170,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			break;
 		}
+
+		break;
 	}
 	case PT_SIGSET:
 	{
