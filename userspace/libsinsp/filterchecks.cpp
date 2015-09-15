@@ -2582,6 +2582,9 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 		m_u32val = 1;
 		return m_u32val;
 
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
+		return Json::Value((const char *)extract(evt, len));
+
 	default:
 		return Json::Value::nullRef;
 	}
@@ -2630,7 +2633,12 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 }
 
 uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
-{
+{	
+	if(m_first_ts == 0)
+	{
+		m_first_ts = evt->get_ts();
+	}
+	
 	switch(m_field_id)
 	{
 	case TYPE_TIME:
@@ -2739,6 +2747,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		{
+			char timebuffer[100];
 			m_strstorage = "";
 			switch(m_inspector->m_output_time_flag)
 			{
@@ -2760,7 +2769,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 					m_strstorage += to_string((evt->get_ts() - m_first_ts) / ONE_SECOND_IN_NS);
 					m_strstorage += ".";
-					m_strstorage += to_string((evt->get_ts() - m_first_ts) % ONE_SECOND_IN_NS);
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (evt->get_ts() - m_first_ts) % ONE_SECOND_IN_NS);
+					m_strstorage += string(timebuffer);
 					return (uint8_t*) m_strstorage.c_str();
 
 				case 'd':
@@ -2770,7 +2780,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 						m_strstorage += to_string(lat / 1000000000);
 						m_strstorage += ".";
-						m_strstorage += to_string(lat % 1000000000);
+						snprintf(timebuffer, sizeof(timebuffer), "%09lu", lat % 1000000000);
+						m_strstorage += string(timebuffer);
 					}
 
 					return (uint8_t*) m_strstorage.c_str();
@@ -2780,20 +2791,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					{
 						m_u64val = evt->get_ts();
 						m_tsdelta = 0;
-						m_strstorage += to_string(m_tsdelta);
 					}
-					else
-					{
-						uint64_t tts = evt->get_ts();
+					uint64_t tts = evt->get_ts();
 
-						m_strstorage += to_string((tts - m_u64val) / ONE_SECOND_IN_NS);
-						m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
-						m_strstorage += ".";
-						m_strstorage += to_string((tts - m_u64val) % ONE_SECOND_IN_NS);
-						m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
+					m_strstorage += to_string((tts - m_u64val) / ONE_SECOND_IN_NS);
+					m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
+					m_strstorage += ".";
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (tts - m_u64val) % ONE_SECOND_IN_NS);
+					m_strstorage += string(timebuffer);
+					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
 
-						m_u64val = tts;
-					}
+					m_u64val = tts;
 					return (uint8_t*) m_strstorage.c_str();
 			}
 		}

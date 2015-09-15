@@ -492,6 +492,16 @@ captureinfo do_inspect(sinsp* inspector,
 
 		res = inspector->next(&ev);
 
+		if(ev != NULL)
+		{
+			ts = ev->get_ts();
+			if(firstts == 0)
+			{
+				firstts = ts;
+			}
+			deltats = ts - firstts;
+		}
+
 		if(res == SCAP_TIMEOUT)
 		{
 			if(ev != NULL && ev->is_filtered_out())
@@ -522,13 +532,6 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 
 		retval.m_nevts++;
-
-		ts = ev->get_ts();
-		if(firstts == 0)
-		{
-			firstts = ts;
-		}
-		deltats = ts - firstts;
 
 		if(print_progress)
 		{
@@ -661,7 +664,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool jflag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
-	string timefmt = "%evt.time";
+	string timefmt = "%evt.outputtime";
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;	
@@ -929,6 +932,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else
 				{
 					output_format = optarg;
+					replace_in_place(output_format, "%evt.time ", "%evt.outputtime ");
 				}
 
 				break;
@@ -959,13 +963,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					string tms(optarg);
 
-					if(tms == "h")
+					if(tms == "h" || tms == "a" || tms == "r" || tms == "d" || tms == "D")
 					{
-						timefmt == "%evt.time";
-					}
-					else if(tms == "a" || tms == "r" || tms == "d" || tms == "D")
-					{
-						timefmt == "%evt.outputtime";
+						timefmt = "%evt.outputtime";
 						inspector->set_time_output_mode(tms.c_str()[0]);
 					}
 					else
