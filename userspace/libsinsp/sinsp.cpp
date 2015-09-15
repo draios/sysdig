@@ -672,11 +672,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		//
 		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
 
-		if(m_firstevent_ts == 0 && evt != NULL)
-		{
-			m_firstevent_ts = evt->get_ts();
-		}
-
 		if(res != SCAP_SUCCESS)
 		{
 			if(res == SCAP_TIMEOUT)
