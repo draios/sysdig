@@ -2726,8 +2726,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		{
-			printf("filterchecks.cpp::m_inspector->m_firstevent_ts=%lu\n", m_inspector->m_firstevent_ts);
-			printf("filterchecks.cpp::m_inspector=%p\n", m_inspector);
 			char timebuffer[100];
 			m_strstorage = "";
 			switch(m_inspector->m_output_time_flag)
