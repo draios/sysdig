@@ -2843,8 +2843,6 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 	}
 #endif
 
-	longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
-
 	return val_to_ring(args, longtime, 0, false, 0);
 }
 
