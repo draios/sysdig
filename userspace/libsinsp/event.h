@@ -350,8 +350,8 @@ VISIBILITY_PRIVATE
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
 	uint16_t m_cpuid;
-	public: uint64_t m_evtnum;
-	private: bool m_params_loaded;
+	uint64_t m_evtnum;
+	bool m_params_loaded;
 	const struct ppm_event_info* m_info;
 	vector<sinsp_evt_param> m_params;
 
