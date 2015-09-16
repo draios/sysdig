@@ -497,6 +497,12 @@ captureinfo do_inspect(sinsp* inspector,
 			if(firstts == 0)
 			{
 				firstts = ts;
+				printf("sysdig.cpp::firstts=%lu, ev->m_evtnum=%lu\n", firstts, ev->m_evtnum);
+				printf("sysdig.cpp::inspector=%p\n", inspector);
+
+				#ifdef HAS_FILTERING
+				inspector->m_firstevent_ts = ts;
+				#endif
 			}
 			deltats = ts - firstts;
 		}

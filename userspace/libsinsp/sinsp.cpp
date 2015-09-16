@@ -756,12 +756,12 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	m_nevts++;
 	evt->m_evtnum = m_nevts;
 	m_lastevent_ts = ts;
-#ifdef HAS_FILTERING
+/*#ifdef HAS_FILTERING
 	if(m_firstevent_ts == 0)
 	{
 		m_firstevent_ts = m_lastevent_ts;
 	}
-#endif
+#endif*/
 
 #ifndef HAS_ANALYZER
 	//
