@@ -529,8 +529,7 @@ uint32_t scap_get_ndevs(scap_t* handle);
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error. 
 */
 #ifndef HAVE_EXTERNAL_SCAP_READER
-extern int32_t scap_next_central(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
-#define scap_next(handle, pevent, pcpuid) scap_next_central(handle, pevent, pcpuid)
+extern int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 #else
 #ifdef __cplusplus
 }

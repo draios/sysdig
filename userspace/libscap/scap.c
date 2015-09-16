@@ -271,10 +271,6 @@ scap_t* scap_open_live_int(char *error,
 		// Additional initializations
 		//
 		scap_dev_init(handle->m_devs + j);
-//#ifndef HAVE_EXTERNAL_SCAP_READER
-//		handle->m_n_consecutive_waits = 0;
-//		handle->m_evtcnt = 0;
-//#endif
 		scap_stop_dropping_mode(handle);
 		j++;
 	}
@@ -327,9 +323,6 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_devs = NULL;
 	handle->m_ndevs = 0;
 	handle->m_proclist = NULL;
-//#ifndef HAVE_EXTERNAL_SCAP_READER
-//	handle->m_evtcnt = 0;
-//#endif
 	handle->m_file = NULL;
 	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
@@ -577,9 +570,9 @@ int32_t scap_stop_capture(scap_t* handle)
 }
 
 #ifndef HAVE_EXTERNAL_SCAP_READER
-int32_t scap_next_central(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
-	return scap_next_centralized(handle, pevent, pcpuid);
+	return scap_next_main(handle, pevent, pcpuid);
 }
 #endif
 

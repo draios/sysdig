@@ -6,24 +6,17 @@
 
 #include "settings.h"
 #include <unistd.h>
-
 #include "scap-int.h"
-#define SCAP_INLINED_STATIC static
-#if !defined(_WIN32)/* && !defined(_DEBUG)*/
-#define SCAP_INLINED_INLINE __always_inline
-#else
-#define SCAP_INLINED_INLINE inline
-#endif
+#include "../../driver/ppm_ringbuffer.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "../../driver/ppm_ringbuffer.h"
 
 #if defined(HAS_CAPTURE)
 
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE uint32_t get_read_size(struct ppm_ring_buffer_info* const bufinfo)
+static __always_inline uint32_t get_read_size(struct ppm_ring_buffer_info* const bufinfo)
 {
 	uint32_t phead = bufinfo->head;
 	uint32_t ptail = bufinfo->tail;
@@ -43,7 +36,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE uint32_t get_read_size(struct ppm_ring_b
 // in order to advance the buffer reading.
 // Returns the new snap length.
 //
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_update_snap(scap_device* const dev)
+static __always_inline int32_t scap_update_snap(scap_device* const dev)
 {
 	uint32_t ttail;
 	uint32_t read_size;
@@ -94,7 +87,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_update_snap(scap_device* co
 // Handles the logic to extract en event from a single CPU buffer.
 // Returns the event extracted (or NULL if none exists)
 //
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(const scap_device* const dev, OUT scap_evt** const pe)
+static __always_inline int32_t scap_next_live_cpu(const scap_device* const dev, OUT scap_evt** const pe)
 {
 	//
 	// Make sure that we have data from this ring
@@ -120,11 +113,9 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live_cpu(const scap_de
 	return SCAP_SUCCESS;
 }
 
-#ifndef HAVE_EXTERNAL_SCAP_READER
-
 #if defined(HAS_CAPTURE)
 
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* const handle)
+static __always_inline int32_t refill_read_buffers(scap_t* const handle)
 {
 	uint32_t j;
 	uint32_t ndevs = handle->m_ndevs;
@@ -172,7 +163,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t refill_read_buffers(scap_t* cons
 
 
 
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* const handle, OUT scap_evt** const pevent, OUT uint16_t* const pcpuid)
+static __always_inline int32_t scap_next_live(scap_t* const handle, OUT scap_evt** const pevent, OUT uint16_t* const pcpuid)
 {
 #if !defined(HAS_CAPTURE)
 	//
@@ -243,7 +234,7 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_live(scap_t* const han
 #endif
 }
 
-SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_centralized(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+static __always_inline int32_t scap_next_main(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	int32_t res;
 
@@ -282,10 +273,6 @@ SCAP_INLINED_STATIC SCAP_INLINED_INLINE int32_t scap_next_centralized(scap_t* ha
 
 	return res;
 }
-
-#else // HAVE_EXTERNAL_SCAP_READER
-
-#endif //HAVE_EXTERNAL_SCAP_READER
 
 #ifdef __cplusplus
 }
