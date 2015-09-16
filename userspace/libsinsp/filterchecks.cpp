@@ -2632,7 +2632,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 }
 
 uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
-{	
+{
 	switch(m_field_id)
 	{
 	case TYPE_TIME:

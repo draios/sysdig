@@ -667,7 +667,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool jflag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
-	string timefmt = "%evt.outputtime";
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;	
@@ -715,7 +714,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
-	output_format = "*%evt.num <TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
+	output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
 
 	try
 	{
@@ -915,14 +914,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					//
 					// -pp shows the default output format, useful if the user wants to tweak it.
 					//
-					replace_in_place(output_format, "<TIME>", timefmt);
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
 				}
 				else if(string(optarg) == "c" || string(optarg) == "container")
 				{
-					output_format = "*%evt.num <TIME> %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+					output_format = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
 					//
 					// This enables chisels to determine if they should print container information
@@ -968,7 +966,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					if(tms == "h" || tms == "a" || tms == "r" || tms == "d" || tms == "D")
 					{
-						timefmt = "%evt.outputtime";
 						inspector->set_time_output_mode(tms.c_str()[0]);
 					}
 					else
@@ -1131,11 +1128,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			res.m_res = EXIT_FAILURE;
 			goto exit;
 		}
-
-		//
-		// Insert the right time format based on the -t flag
-		//
-		replace_in_place(output_format, "<TIME>", timefmt);
 
 		//
 		// Create the event formatter
