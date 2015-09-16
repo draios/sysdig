@@ -261,20 +261,20 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 								return 2000;
 							}
 						}
-					} else if (( lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
-							   (lookahead_size >= 16 && ( *(int32_t*)(buf+12) == 1 || /* matches header */
-									   *(int32_t*)(buf+12) == 2001 ||
-									   *(int32_t*)(buf+12) == 2002 ||
-									   *(int32_t*)(buf+12) == 2003 ||
-									   *(int32_t*)(buf+12) == 2004 ||
-									   *(int32_t*)(buf+12) == 2005 ||
-									   *(int32_t*)(buf+12) == 2006 ||
-									   *(int32_t*)(buf+12) == 2007 )
+					} else if ((lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
+							   (lookahead_size >= 16 && (*(int32_t *)(buf+12) == 1 || /* matches header */
+									   *(int32_t *)(buf+12) == 2001 ||
+									   *(int32_t *)(buf+12) == 2002 ||
+									   *(int32_t *)(buf+12) == 2003 ||
+									   *(int32_t *)(buf+12) == 2004 ||
+									   *(int32_t *)(buf+12) == 2005 ||
+									   *(int32_t *)(buf+12) == 2006 ||
+									   *(int32_t *)(buf+12) == 2007)
 							   )
 							) {
 						sockfd_put(sock);
 						return 2000;
-					} else if ( dport == PPM_PORT_STATSD ) {
+					} else if (dport == PPM_PORT_STATSD) {
 						sockfd_put(sock);
 						return 2000;
 					} else {
@@ -524,6 +524,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_UINT32:
 	case PT_UID:
 	case PT_GID:
+	case PT_SIGSET:
 		if (likely(args->arg_data_size >= sizeof(u32))) {
 			*(u32 *)(args->buffer + args->arg_data_offset) = (u32)val;
 			len = sizeof(u32);
@@ -637,23 +638,23 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 #else /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 char *npm_getcwd(char *buf, unsigned long bufsize)
 {
-        struct dentry *dentry;
-        struct vfsmount *mnt;
-        char *res;
+	struct dentry *dentry;
+	struct vfsmount *mnt;
+	char *res;
 
-        ASSERT(bufsize >= PAGE_SIZE - 1);
+	ASSERT(bufsize >= PAGE_SIZE - 1);
 
-        read_lock(&current->fs->lock);
-        mnt = mntget(current->fs->pwdmnt);
-        dentry = dget(current->fs->pwd);
-        read_unlock(&current->fs->lock);
+	read_lock(&current->fs->lock);
+	mnt = mntget(current->fs->pwdmnt);
+	dentry = dget(current->fs->pwd);
+	read_unlock(&current->fs->lock);
 
-        res = d_path(dentry, mnt, buf, bufsize);
+	res = d_path(dentry, mnt, buf, bufsize);
 
-        if (IS_ERR(res))
-                res = NULL;
+	if (IS_ERR(res))
+		res = NULL;
 
-        return res;
+	return res;
 }
 #endif
 
@@ -1181,7 +1182,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 
 		/*
 		 * Size is the total size of the buffers provided by the user. The number of
-		 * received bytes can be smaller 
+		 * received bytes can be smaller
 		 */
 		if ((flags & PRB_FLAG_IS_WRITE) == 0)
 			if (size > retval)

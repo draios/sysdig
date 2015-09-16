@@ -1546,6 +1546,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 			break;
 		case KEY_BACKSPACE:
+		case 127:
 			if(str->size() > 0)
 			{
 				m_cursor_pos--;
@@ -1699,7 +1700,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	if((!m_inspector->is_live()) && !is_eof())
 	{
-		if(ch != KEY_BACKSPACE && 
+		if(ch != KEY_BACKSPACE &&
+			ch != 127 &&
 			ch != 'q' &&
 			ch != KEY_F(10))
 		{

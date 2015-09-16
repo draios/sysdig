@@ -335,3 +335,26 @@ const struct ppm_name_value quotactl_quota_fmts[] = {
 	{"QFMT_VFS_V1", PPM_QFMT_VFS_V1},
 	{0, 0},
 };
+
+const struct ppm_name_value semop_flags[] = {
+	{"IPC_NOWAIT", PPM_IPC_NOWAIT},
+	{"SEM_UNDO", PPM_SEM_UNDO},
+	{0, 0},
+};
+
+const struct ppm_name_value semctl_commands[] = {
+        {"IPC_STAT", PPM_IPC_STAT},
+        {"IPC_SET", PPM_IPC_SET},
+        {"IPC_RMID", PPM_IPC_RMID},
+        {"IPC_INFO", PPM_IPC_INFO},
+        {"SEM_INFO", PPM_SEM_INFO},
+        {"SEM_STAT", PPM_SEM_STAT},
+        {"GETALL", PPM_GETALL},
+        {"GETNCNT", PPM_GETNCNT},
+        {"GETPID", PPM_GETPID},
+        {"GETVAL", PPM_GETVAL},
+        {"GETZCNT", PPM_GETZCNT},
+        {"SETALL", PPM_SETALL},
+        {"SETVAL", PPM_SETVAL},
+		{0, 0},
+};

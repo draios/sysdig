@@ -81,6 +81,8 @@ static void usage()
 " -l, --list         List all the fields that can be used in views.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
+" -N\n"
+"                    Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " -pc, -pcontainer\n"
@@ -250,7 +252,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehln:p:r:s:v:", long_options, &long_index)) != -1)
+			"d:EhlNn:p:r:s:v:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -285,6 +287,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				return sysdig_init_res(EXIT_SUCCESS);
 			case 'l':
 				list_flds = true;
+				break;
+			case 'N':
+				inspector->set_hostname_and_port_resolution_mode(false);
 				break;
 			case 'n':
 				try

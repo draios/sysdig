@@ -31,13 +31,13 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "fd.sport",
+			field = "fd.sproto",
 			is_key = true
 		},
 		{
 			name = "SPORT",
 			description = "Server Port.",
-			field = "fd.sport",
+			field = "fd.sproto",
 			colsize = 8,
 		},
 		{

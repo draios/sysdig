@@ -786,7 +786,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		rcu_read_lock();
 		pid = find_pid_ns(arg, &init_pid_ns);
-		if(!pid) {
+		if (!pid) {
 			rcu_read_unlock();
 			ret = -EINVAL;
 			goto cleanup_ioctl;
@@ -800,13 +800,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 
 		ns = ns_of_pid(pid);
-		if(!pid) {
+		if (!pid) {
 			rcu_read_unlock();
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
 
-		if(cmd == PPM_IOCTL_GET_VTID)
+		if (cmd == PPM_IOCTL_GET_VTID)
 			vid = task_pid_nr_ns(task, ns);
 		else
 			vid = task_tgid_nr_ns(task, ns);
@@ -828,7 +828,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
 	{
 		vpr_info("PPM_IOCTL_DISABLE_SIGNAL_DELIVER\n");
-		if (g_tracepoint_registered) 
+		if (g_tracepoint_registered)
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 		ret = 0;
 		goto cleanup_ioctl;
@@ -849,7 +849,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		struct ppm_proclist_info pli;
 		u32 memsize;
 
-		if (copy_from_user(&pli, (void*)arg, sizeof(pli))) {
+		if (copy_from_user(&pli, (void *)arg, sizeof(pli))) {
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
@@ -862,7 +862,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 			memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * pli.max_entries;
 			consumer->proclist_info = kmalloc(memsize, GFP_KERNEL);
-			if(!consumer->proclist_info) {
+			if (!consumer->proclist_info) {
 				ret = -EINVAL;
 				goto cleanup_ioctl;
 			}
@@ -871,7 +871,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 
 		rcu_read_lock();
-		
+
 #ifdef for_each_process_thread
 		for_each_process_thread(p, t) {
 #else
@@ -908,11 +908,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		consumer->proclist_info->n_entries = nentries;
 
 		if (nentries >= pli.max_entries) {
-			vpr_info("PPM_IOCTL_GET_PROCLIST: not enough space (%d avail, %d required)\n", 
+			vpr_info("PPM_IOCTL_GET_PROCLIST: not enough space (%d avail, %d required)\n",
 				(int)pli.max_entries,
 				(int)nentries);
 
-			if (copy_to_user((void*)arg, consumer->proclist_info, sizeof(struct ppm_proclist_info))) {
+			if (copy_to_user((void *)arg, consumer->proclist_info, sizeof(struct ppm_proclist_info))) {
 				ret = -EINVAL;
 				goto cleanup_ioctl;
 			}
@@ -921,8 +921,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			goto cleanup_ioctl;
 		} else {
 			memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * nentries;
-			
-			if (copy_to_user((void*)arg, consumer->proclist_info, memsize)) {
+
+			if (copy_to_user((void *)arg, consumer->proclist_info, memsize)) {
 				ret = -EINVAL;
 				goto cleanup_ioctl;
 			}
@@ -1223,6 +1223,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 static inline void record_drop_e(struct ppm_consumer_t *consumer, struct timespec *ts)
 {
 	struct event_data_t event_data = {0};
+
 	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ts, &event_data) == 0) {
 		consumer->need_to_insert_drop_e = 1;
 	} else {
@@ -1236,6 +1237,7 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer, struct timespe
 static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespec *ts)
 {
 	struct event_data_t event_data = {0};
+	
 	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ts, &event_data) == 0) {
 		consumer->need_to_insert_drop_x = 1;
 	} else {
@@ -1765,6 +1767,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 #endif
 {
 	struct event_data_t event_data;
+
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = prev;
 	event_data.event_info.context_data.sched_next = next;

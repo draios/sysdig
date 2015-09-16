@@ -130,9 +130,15 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
+
 static int f_sys_setns_e(struct event_filler_arguments *args);
 static int f_sys_flock_e(struct event_filler_arguments *args);
 static int f_cpu_hotplug_e(struct event_filler_arguments *args);
+static int f_sys_semop_e(struct event_filler_arguments *args);
+static int f_sys_semop_x(struct event_filler_arguments *args);
+static int f_sys_semctl_e(struct event_filler_arguments *args);
+static int f_sys_semctl_x(struct event_filler_arguments *args);
+static int f_sys_ppoll_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -348,6 +354,12 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FLOCK_E] = {f_sys_flock_e},
 	[PPME_SYSCALL_FLOCK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_CPU_HOTPLUG_E] = {f_cpu_hotplug_e},
+	[PPME_SYSCALL_SEMOP_E] = {f_sys_semop_e},
+	[PPME_SYSCALL_SEMOP_X] = {f_sys_semop_x},
+	[PPME_SYSCALL_SEMCTL_E] = {f_sys_semctl_e},
+	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
+	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
+	[PPME_SYSCALL_PPOLL_X] = {f_sys_poll_x}, // exit same for poll() and ppoll()
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -1573,7 +1585,9 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 	int fd;
 	char *targetbuf = args->str_storage;
 	u16 size = 0;
-	unsigned long val;
+	unsigned long queuepct = 0;
+	unsigned long ack_backlog = 0;
+	unsigned long max_ack_backlog = 0;
 	unsigned long srvskfd;
 	int err = 0;
 	struct socket *sock;
@@ -1618,30 +1632,26 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 
 	sock = sockfd_lookup(srvskfd, &err);
 
-	if (unlikely(!sock || !(sock->sk))) {
-		val = 0;
-
-		if (sock)
-			sockfd_put(sock);
-	} else {
-		if (sock->sk->sk_max_ack_backlog == 0)
-			val = 0;
-		else
-			val = (unsigned long)sock->sk->sk_ack_backlog * 100 / sock->sk->sk_max_ack_backlog;
-		sockfd_put(sock);
+	if (sock && sock->sk) {
+		ack_backlog = sock->sk->sk_ack_backlog;
+		max_ack_backlog = sock->sk->sk_max_ack_backlog;
 	}
 
-	res = val_to_ring(args, val, 0, false, 0);
+	if (sock)
+		sockfd_put(sock);
+
+	if (max_ack_backlog)
+		queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
+
+	res = val_to_ring(args, queuepct, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
-	val = (unsigned long)sock->sk->sk_ack_backlog ? (unsigned long)sock->sk->sk_ack_backlog : 0;
-	res = val_to_ring(args, val, 0, false, 0);
+	res = val_to_ring(args, ack_backlog, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
-	val = (unsigned long)sock->sk->sk_max_ack_backlog ? (unsigned long)sock->sk->sk_max_ack_backlog : 0;
-	res = val_to_ring(args, val, 0, false, 0);
+	res = val_to_ring(args, max_ack_backlog, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -2801,6 +2811,80 @@ static int f_sys_poll_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static int timespec_parse(struct event_filler_arguments *args, unsigned long val)
+{
+	uint64_t longtime;
+	char *targetbuf = args->str_storage;
+	struct timespec *tts = (struct timespec *)targetbuf;
+#ifdef CONFIG_COMPAT
+	struct compat_timespec *compat_tts = (struct compat_timespec *)targetbuf;
+#endif
+	int cfulen;
+
+	/*
+	 * interval
+	 * We copy the timespec structure and then convert it to a 64bit relative time
+	 */
+#ifdef CONFIG_COMPAT
+	if (!args->compat) {
+#endif
+	cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
+	if (unlikely(cfulen != 0))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
+#ifdef CONFIG_COMPAT
+	} else {
+		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)compat_ptr(val), sizeof(struct compat_timespec));
+		if (unlikely(cfulen != 0))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		longtime = ((uint64_t)compat_tts->tv_sec) * 1000000000 + compat_tts->tv_nsec;
+	}
+#endif
+
+	longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
+
+	return val_to_ring(args, longtime, 0, false, 0);
+}
+
+static int f_sys_ppoll_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	res = poll_parse_fds(args, true);
+	if(res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * timeout
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	// NULL timeout specified as 0xFFFFFF....
+	if(val == (unsigned long)NULL)
+		res = val_to_ring(args, (uint64_t)(-1), 0, false, 0);
+	else
+		res = timespec_parse(args, val);
+	if(res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * sigmask
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	if(val != (unsigned long)NULL)
+		if(0 != ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if(res != PPM_SUCCESS)
+		return res;
+
+	return add_sentinel(args);
+}
+
+/* This is the same for poll() and ppoll() */
 static int f_sys_poll_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
@@ -3276,42 +3360,11 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 
 static int f_sys_nanosleep_e(struct event_filler_arguments *args)
 {
-	int res;
-	uint64_t longtime;
 	unsigned long val;
-	char *targetbuf = args->str_storage;
-	struct timespec *tts = (struct timespec *)targetbuf;
-#ifdef CONFIG_COMPAT
-	struct compat_timespec *compat_tts = (struct compat_timespec *)targetbuf;
-#endif
-	int cfulen;
+	int res;
 
-	/*
-	 * interval
-	 * We copy the timespec structure and then convert it to a 64bit relative time
-	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
-
-#ifdef CONFIG_COMPAT
-	if (!args->compat) {
-#endif
-		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
-		if (unlikely(cfulen != 0))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
-#ifdef CONFIG_COMPAT
-	} else {
-		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)compat_ptr(val), sizeof(struct compat_timespec));
-		if (unlikely(cfulen != 0))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		longtime = ((uint64_t)compat_tts->tv_sec) * 1000000000 + compat_tts->tv_nsec;
-	}
-#endif
-
-
-	res = val_to_ring(args, longtime, 0, false, 0);
+	res = timespec_parse(args, val);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -4929,6 +4982,173 @@ static int f_cpu_hotplug_e(struct event_filler_arguments *args)
 	 * action
 	 */
 	res = val_to_ring(args, (uint64_t)args->sched_next, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static inline u16 semop_flags_to_scap(short flags)
+{
+	u16 res = 0;
+
+	if (flags & IPC_NOWAIT)
+		res |= PPM_IPC_NOWAIT;
+
+	if (flags & SEM_UNDO)
+		res |= PPM_SEM_UNDO;
+
+	return res;
+}
+
+static int f_sys_semop_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * semid
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_semop_x(struct event_filler_arguments *args)
+{
+	unsigned long nsops;
+	int res;
+	int64_t retval;
+	struct sembuf *ptr;
+
+	/*
+	 * return value
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * nsops
+	 * actually this could be read in the enter function but
+	 * we also need to know the value to access the sembuf structs
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &nsops);
+	res = val_to_ring(args, nsops, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * sembuf
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, (unsigned long*) &ptr);
+
+	if (nsops && ptr) {
+		// max length of sembuf array in g_event_info = 2
+		const unsigned max_nsops = 2;
+		unsigned       j;
+
+		for(j=0; j<max_nsops; j++) {
+			struct sembuf sops = {0, 0, 0};
+
+			if (nsops--)
+				if (unlikely(ppm_copy_from_user(&sops, (void *)&ptr[j], sizeof(struct sembuf))))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+			res = val_to_ring(args, sops.sem_num, 0, true, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+
+			res = val_to_ring(args, sops.sem_op, 0, true, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+
+			res = val_to_ring(args, semop_flags_to_scap(sops.sem_flg), 0, true, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+		}
+	}
+
+	return add_sentinel(args);
+}
+
+static inline u32 semctl_cmd_to_scap(unsigned cmd)
+{
+	switch (cmd) {
+	case IPC_STAT: return PPM_IPC_STAT;
+	case IPC_SET: return PPM_IPC_SET;
+	case IPC_RMID: return PPM_IPC_RMID;
+	case IPC_INFO: return PPM_IPC_INFO;
+	case SEM_INFO: return PPM_SEM_INFO;
+	case SEM_STAT: return PPM_SEM_STAT;
+	case GETALL: return PPM_GETALL;
+	case GETNCNT: return PPM_GETNCNT;
+	case GETPID: return PPM_GETPID;
+	case GETVAL: return PPM_GETVAL;
+	case GETZCNT: return PPM_GETZCNT;
+	case SETALL: return PPM_SETALL;
+	case SETVAL: return PPM_SETVAL;
+	}
+    return 0;
+}
+
+static int f_sys_semctl_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * semid
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * semnum
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * cmd
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, semctl_cmd_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * optional argument semun/val
+	 */
+	if (val == SETVAL)
+		syscall_get_arguments(current, args->regs, 3, 1, &val);
+	else
+		val = 0;
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_semctl_x(struct event_filler_arguments *args)
+{
+	int res;
+	int64_t retval;
+
+	/*
+	 * return value
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

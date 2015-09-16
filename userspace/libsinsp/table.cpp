@@ -1227,6 +1227,7 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 	case PT_FLAGS32:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
+	case PT_SIGSET:
 		return 4;
 	case PT_UINT64:
 	case PT_RELTIME:

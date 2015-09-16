@@ -109,6 +109,7 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 	m_colsizes[PT_UID] = 12;
 	m_colsizes[PT_GID] = 12;
 	m_colsizes[PT_DOUBLE] = 8;
+	m_colsizes[PT_SIGSET] = 32;
 
 	//
 	// Define the table size
@@ -602,6 +603,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case KEY_ENTER:
 			return STA_DRILLDOWN;
 		case KEY_BACKSPACE:
+		case 127:
 			return STA_DRILLUP;
 		case KEY_MOUSE:
 			{

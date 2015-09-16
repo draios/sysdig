@@ -307,6 +307,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			m_parent->m_selected_sidemenu_entry = m_selct;
 			return STA_SWITCH_VIEW;
 		case KEY_BACKSPACE:
+		case 127:
 		case 27: // ESC
 		case KEY_RESIZE:
 			ASSERT(m_selct < (int32_t)m_entries->size());
@@ -983,6 +984,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			return STA_PARENT_HANDLE;
 		case 27: // ESC
 		case KEY_BACKSPACE:
+		case 127:
 			return STA_DRILLUP;
 		case KEY_UP:
 			m_ctext->up();
