@@ -60,6 +60,6 @@ if(ENABLE_DKMS)
 		ppm_syscall.h
 		syscall_table.c
 		ppm_cputime.c
-    ppm_compat_unistd_32.h
+		ppm_compat_unistd_32.h
 		DESTINATION "src/sysdig-${SYSDIG_VERSION}")
 endif()
