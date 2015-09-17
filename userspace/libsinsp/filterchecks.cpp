@@ -2562,6 +2562,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_TIME:
 	case TYPE_TIME_S:
 	case TYPE_DATETIME:
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
 
 	case TYPE_RAWTS:
@@ -2580,9 +2581,6 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_COUNT:
 		m_u32val = 1;
 		return m_u32val;
-
-	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
-		return Json::Value((const char *)extract(evt, len));
 
 	default:
 		return Json::Value::nullRef;
