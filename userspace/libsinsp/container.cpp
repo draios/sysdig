@@ -196,7 +196,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 		if(pos != string::npos)
 		{
 			container_info.m_type = CT_MESOS;
-			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/"));
+			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
 			valid_id = true;
 			continue;
 		}
