@@ -629,6 +629,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	if(m_firstevent_ts == 0 && *puevt != NULL)
 	{
 		m_firstevent_ts = (*puevt)->get_ts();
+		printf("sinsp::next -> ts=%lu, evt.num=%lu\n", m_firstevent_ts, (*puevt)->m_evtnum);
 	}
 
 	//
