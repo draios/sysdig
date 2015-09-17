@@ -498,10 +498,6 @@ captureinfo do_inspect(sinsp* inspector,
 			if(firstts == 0)
 			{
 				firstts = ts;
-
-				#ifdef HAS_FILTERING
-				inspector->m_firstevent_ts = ts;
-				#endif
 			}
 			deltats = ts - firstts;
 		}

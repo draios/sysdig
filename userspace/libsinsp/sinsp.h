@@ -734,8 +734,8 @@ private:
 	bool m_print_container_data;
 
 #ifdef HAS_FILTERING
-	public: uint64_t m_firstevent_ts;
-	private: sinsp_filter* m_filter;
+	uint64_t m_firstevent_ts;
+	sinsp_filter* m_filter;
 	string m_filterstring;
 #endif
 

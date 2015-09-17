@@ -626,6 +626,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	sinsp_evt* evt;
 	int32_t res;
 
+	if(m_firstevent_ts == 0 && *puevt != NULL)
+	{
+		m_firstevent_ts = (*puevt)->get_ts();
+	}
+
 	//
 	// Check if there are fake cpu events to  events 
 	//
