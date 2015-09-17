@@ -103,6 +103,7 @@ private:
 	void parse_setuid_exit(sinsp_evt* evt);
 	void parse_setgid_exit(sinsp_evt* evt);
 	void parse_container_evt(sinsp_evt* evt);
+	inline void parse_marker(sinsp_evt *evt, int64_t retval);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
 
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
@@ -126,7 +127,11 @@ private:
 	// Temporary storage to avoid memory allocation
 	//
 	sinsp_evt m_tmp_evt;
+	uint8_t m_fake_userevt_storage[4096];
+	scap_evt* m_fake_userevt;
+	string m_marker_error_string;
 
+	// FD listener callback
 	sinsp_fd_listener* m_fd_listener;
 
 	//

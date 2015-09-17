@@ -33,41 +33,20 @@ single line, with the following format:
 where:
 .IP \[bu] 2
 evt.num is the incremental event number
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.time is the event timestamp
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.cpu is the CPU number where the event was captured
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 proc.name is the name of the process that generated the event
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 thread.tid id the TID that generated the event, which corresponds to the
 PID for single thread processes
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.dir is the event direction, > for enter events and < for exit events
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.type is the name of the event, e.g.
 \[aq]open\[aq] or \[aq]read\[aq]
-.PD 0
-.P
-.PD
 .IP \[bu] 2
 evt.args is the list of event arguments.
 .PP
@@ -346,8 +325,7 @@ Use \-lv to get additional information for each field.
 .PD 0
 .P
 .PD
-Don\[aq]t convert addresses (i.e., host addresses, port numbers, etc.)
-to names.
+Don\[aq]t convert port numbers to names.
 .PP
 \f[B]\-n\f[] \f[I]num\f[], \f[B]\-\-numevents\f[]=\f[I]num\f[]
 .PD 0
@@ -407,7 +385,7 @@ Use this option with caution, it can generate huge trace files.
 Change the way event time is displayed.
 Accepted values are \f[B]h\f[] for human\-readable string, \f[B]a\f[]
 for absolute timestamp from epoch, \f[B]r\f[] for relative time from the
-beginning of the capture, \f[B]d\f[] for delta between event enter and
+first displayed event, \f[B]d\f[] for delta between event enter and
 exit, and \f[B]D\f[] for delta from the previous event.
 .PP
 \f[B]\-v\f[], \f[B]\-\-verbose\f[]
