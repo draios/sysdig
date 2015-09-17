@@ -94,6 +94,7 @@ sinsp::sinsp() :
 	m_hostname_and_port_resolution_enabled = true;
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
+	m_track_markers_state = false;
 	m_import_users = true;
 	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
 	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
@@ -886,7 +887,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			}
 		}
 
-		res = scap_dump(m_h, m_dumper, evt->m_pevt, evt->m_cpuid, dflags);
+		scap_evt* pdevt = (m_evt.m_poriginal_evt)? m_evt.m_poriginal_evt : m_evt.m_pevt;
+
+		res = scap_dump(m_h, m_dumper, pdevt, evt->m_cpuid, dflags);
 
 		if(SCAP_SUCCESS != res)
 		{

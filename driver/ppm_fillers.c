@@ -48,6 +48,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events.h"
 #include "ppm.h"
 
+extern bool g_ppe_events_enabled;
+
 /* This is described in syscall(2). Some syscalls take 64-bit arguments. On
  * arches that have 64-bit registers, these arguments are shipped in a register.
  * On 32-bit arches, however, these are split between two consecutive registers,
@@ -610,9 +612,47 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	args->fd = (int)val;
 
 	/*
+	 * Determine if this is a user event 
+	 */
+/*
+	args->is_user_event = false;
+
+	if (g_ppe_events_enabled) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+		struct fd f;
+
+		f = fdget(args->fd);
+
+		if (f.file && f.file->f_op) {
+			if (THIS_MODULE == f.file->f_op->owner)
+				args->is_user_event = true;
+
+			fdput(f);
+		}
+#else
+		struct file *file;
+
+		file = fget(args->fd);
+		if (file && file->f_op) {
+			if (THIS_MODULE == file->f_op->owner)
+				args->is_user_event = true;
+
+			fput(file);
+		}
+#endif
+	}
+*/
+
+	/*
 	 * res
 	 */
+/*
+	if (args->is_user_event)
+		retval = -PPM_USERVET_MAGIC;
+	else
+*/	
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;

@@ -421,9 +421,17 @@ public:
 		TYPE_BUFLEN_NET = 54,
 		TYPE_BUFLEN_NET_IN = 55,
 		TYPE_BUFLEN_NET_OUT = 56,
+		TYPE_MARKER_ID = 56,
+		TYPE_MARKER_NTAGS = 57,
+		TYPE_MARKER_NARGS = 58,
+		TYPE_MARKER_TAGS = 59,
+		TYPE_MARKER_TAG = 60,
+		TYPE_MARKER_ARGS = 61,
+		TYPE_MARKER_ARG = 62,
 	};
 
 	sinsp_filter_check_event();
+	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state);
 	void parse_filter_value(const char* str, uint32_t len);
@@ -457,8 +465,12 @@ private:
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
+	inline bool compare_marker(sinsp_evt *evt, sinsp_partial_marker* pae);
 
 	bool m_is_compare;
+	char* m_storage;
+	uint32_t m_storage_size;
+	const char* m_cargname;
 };
 
 //
@@ -501,6 +513,43 @@ public:
 
 	uint32_t m_gid;
 	string m_name;
+};
+
+//
+// Application events
+//
+#define TEXT_ARG_ID -1000000
+
+class sinsp_filter_check_marker : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_ID = 0,
+		TYPE_NTAGS,
+		TYPE_NARGS,
+		TYPE_TAGS,
+		TYPE_TAG,
+		TYPE_ARGS,
+		TYPE_ARG,
+		TYPE_LATENCY,
+	};
+
+	sinsp_filter_check_marker();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+
+	int32_t m_argid;
+	string m_argname;
+	const char* m_cargname;
+	char* m_storage;
+	uint32_t m_storage_size;
+	int64_t m_u64val;
+	int32_t m_u32val;
 };
 
 //
