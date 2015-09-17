@@ -56,13 +56,14 @@ function on_init()
 	fexe = chisel.request_field("proc.exeline")
 
 	-- set the filter
+--	chisel.set_filter("(evt.type=marker and evt.dir=<) or (evt.is_io_write=true and (fd.num<3 or fd.name contains log))")
 	chisel.set_filter("evt.type=marker and evt.dir=<")
 
 	return true
 end
 
 -- This function parses the marker event and upgrades accordingly the given transaction entry
-function parse_marker(mrk_cur, hr, latency, contname, exe)
+function parse_marker(mrk_cur, hr, latency, contname, exe, id)
 	for j = 1, #hr do
 		local mv = hr[j]
 		
@@ -77,32 +78,27 @@ function parse_marker(mrk_cur, hr, latency, contname, exe)
 					mrk_cur[mv].n = 0
 				end
 			else
-				mrk_cur[mv]["t"] = mrk_cur[mv]["t"] + latency
 				mrk_cur[mv]["tt"] = mrk_cur[mv]["tt"] + latency
 				mrk_cur[mv]["cont"] = contname
 				mrk_cur[mv]["exe"] = exe
 			end
 		elseif j == (#hr - 1) then
 			if mrk_cur[mv] == nil then
-				mrk_cur[mv] = {t=-latency,tt=0}
+				mrk_cur[mv] = {tt=0}
 				if j == 1 then
 					mrk_cur[mv].n = 0
 				end
-			else
-				mrk_cur[mv]["t"] = mrk_cur[mv]["t"] - latency
 			end
 		else
 			if mrk_cur[mv] == nil then
-				mrk_cur[mv] = {t=0, tt=0}
+				mrk_cur[mv] = {tt=0}
 				if j == 1 then
 					mrk_cur[mv].n = 0
+					mrk_cur[mv]["id"] = id
 				end
 			end
 		end
-		
-		--print(mv)
-		--print(st(mrk_cur))
-		
+				
 		if mrk_cur[mv]["ch"] == nil then
 			mrk_cur[mv]["ch"] = {}
 		end
@@ -132,21 +128,56 @@ function on_event()
 		hr[j + 1] = evt.field(markers[j])
 	end
 
-	--print(st(hr))
-
-	parse_marker(avg_tree, hr, latency, contname, exe)
+	parse_marker(avg_tree, hr, latency, contname, exe, 0)
 
 	if id > 0 then
 		if full_tree[id] == nil then
 			full_tree[id] = {}
 		end
 
-		parse_marker(full_tree[id], hr, latency, contname, exe)
+		parse_marker(full_tree[id], hr, latency, contname, exe, id)
 	end
 
-	--print(st(avg_tree))
-	
 	return true
+end
+
+function calculate_t_in_node(node)
+	local totchtime = 0
+	local maxchtime = 0
+	local nconc = 0
+	local ch_to_keep
+
+	if node.ch then
+		for k,d in pairs(node.ch) do
+			local nv = calculate_t_in_node(d)
+
+			totchtime = totchtime + nv
+
+			if nv > maxchtime then
+				maxchtime = nv
+				ch_to_keep = d
+			end
+
+			nconc = nconc + 1
+		end
+	end
+
+	if node.tt >= totchtime then
+		node.t = node.tt - totchtime
+	else
+		node.t = node.tt - maxchtime
+		node.nconc = nconc
+
+		for k,d in pairs(node.ch) do
+			if d ~= ch_to_keep then
+				node.ch[k] = nil
+			end
+		end
+
+--print(st(node))
+	end
+
+	return node.tt
 end
 
 function normalize(node, factor)
@@ -161,6 +192,11 @@ end
 
 -- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end()
+	-- calculate the unique time spent in each node
+	for i,v in pairs(avg_tree) do
+		calculate_t_in_node(v)
+	end
+
 	-- normalize each root marker tree
 	for i,v in pairs(avg_tree) do
 		normalize(v, v.n)
@@ -179,25 +215,41 @@ function on_capture_end()
 	local worsttime = 0
 
 	for i,v in pairs(full_tree) do
+		local ttt = 0
 		for key,val in pairs(v) do
-			if val.tt > worsttime then
-				worsttime = val.tt
-				tworst = v
-			end
-
-			if val.tt < besttime then
-				besttime = val.tt
-				tbest = v
-			end
+			ttt = ttt + val.tt
 		end
+
+		if ttt > worsttime then
+			worsttime = ttt
+			tworst = v
+		end
+
+		if ttt < besttime then
+			besttime = ttt
+			tbest = v
+		end		
 	end
 
-	-- emit the best and worst transaction
+	-- normalize the best transaction
+	for i,v in pairs(tbest) do
+		calculate_t_in_node(v)
+	end
+
+	-- emit the best transaction
 	local tdata = {}
 	tdata[""] = {ch=tbest, t=0, tt=0}
 	local str = json.encode(tdata, { indent = true })
 	print("MinData = " .. str .. ";")
 
+	-- normalize the worst transaction
+	if tworst ~= tbest then
+		for i,v in pairs(tworst) do
+			calculate_t_in_node(v)
+		end
+	end
+
+	-- emit the worst transaction
 	local tdata = {}
 	tdata[""] = {ch=tworst, t=0, tt=0}
 	local str = json.encode(tdata, { indent = true })
