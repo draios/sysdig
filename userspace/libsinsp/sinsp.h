@@ -61,6 +61,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <queue>
 #include <vector>
 #include <set>
+#include <list>
 
 using namespace std;
 
@@ -74,6 +75,7 @@ using namespace std;
 #include "ifinfo.h"
 #include "container.h"
 #include "viewinfo.h"
+#include "utils.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -105,6 +107,7 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
+class sinsp_partial_marker;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -562,10 +565,23 @@ public:
 	  \note Sysdig can use the system library functions getservbyport and so to
 	   resolve protocol names and domain names.
 	  
-	  \param disable If set to false it will enable this function and use plain
+	  \param enable If set to false it will enable this function and use plain
 	   numerical values.
 	*/
 	void set_hostname_and_port_resolution_mode(bool enable);
+
+	/*!
+	  \brief Set the runtime flag for resolving the timespan in a human
+	   readable mode.
+
+	  \note Moved to the inspector due to sysdig#426 issue
+
+	  \param flag Can be 'h', 'a', 'r', 'd', 'D' as documented in the manual.
+	*/
+	inline void set_time_output_mode(char flag)
+	{
+		m_output_time_flag = flag;
+	}
 
 	/*!
 	  \brief Sets the max length of event argument strings. 
@@ -642,6 +658,15 @@ public:
 	}
 
 	//
+	// Used by filters to enable app event state tracking, which is disabled
+	// by default for performance reasons
+	//
+	void request_marker_state_tracking()
+	{
+		m_track_markers_state = true;
+	}
+
+	//
 	// Allocates private state in the thread info class.
 	// Returns the ID to use when retrieving the memory area.
 	// Will fail if called after the capture starts.
@@ -691,6 +716,7 @@ private:
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
 	bool m_hostname_and_port_resolution_enabled;
+	char m_output_time_flag;
 	uint32_t m_max_evt_output_len;
 	bool m_compress;
 	sinsp_evt m_evt;
@@ -782,12 +808,19 @@ private:
 #endif
 
 	//
+	// App events 
+	//
+	bool m_track_markers_state;
+	list<sinsp_partial_marker*> m_partial_markers_list;
+	simple_lifo_queue<sinsp_partial_marker>* m_partial_markers_pool;
+
+	//
 	// Protocol decoding state
 	//
 	vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	//
-	// Meta event management
+	// Containers meta event management
 	//
 	sinsp_evt m_meta_evt; // XXX this should go away 
 	char* m_meta_evt_buf; // XXX this should go away 
@@ -819,6 +852,8 @@ private:
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
+	friend class sinsp_markerparser;
+	friend class sinsp_filter_check_event;
 	friend class sinsp_protodecoder;
 	friend class lua_cbacks;
 	friend class sinsp_filter_check_container;
@@ -826,6 +861,7 @@ private:
 	friend class sinsp_table;
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
+	friend class sinsp_filter_check_event;
 	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

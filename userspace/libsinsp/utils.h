@@ -19,6 +19,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once	
 
 class sinsp_evttables;
+typedef union _sinsp_sockinfo sinsp_sockinfo;
+typedef union _ipv4tuple ipv4tuple;
+typedef union _ipv6tuple ipv6tuple;
+typedef struct ipv4serverinfo ipv4serverinfo;
+typedef struct ipv6serverinfo ipv6serverinfo;
+class filter_check_info;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Initializer class.
@@ -173,4 +179,58 @@ public:
 
 	static bool tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res);
 	static bool tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// A simple class to manage pre-allocated objects in a LIFO
+// fashion and make sure all of them are deleted upon destruction.
+///////////////////////////////////////////////////////////////////////////////
+template<typename OBJ>
+class simple_lifo_queue
+{
+public:
+	simple_lifo_queue(uint32_t size)
+	{
+		uint32_t j;
+		for(j = 0; j < size; j++)
+		{
+			OBJ* newentry = new OBJ;
+			m_full_list.push_back(newentry);
+			m_avail_list.push_back(newentry);
+		}
+	}
+	~simple_lifo_queue()
+	{
+		while(!m_avail_list.empty())
+		{
+			OBJ* head = m_avail_list.front();
+			delete head;
+			m_avail_list.pop_front();
+		}
+	}
+	void push(OBJ* newentry)
+
+	{
+		m_avail_list.push_front(newentry);
+	}
+
+	OBJ* pop()
+	{
+		if(m_avail_list.empty())
+		{
+			return NULL;
+		}
+		OBJ* head = m_avail_list.front();
+		m_avail_list.pop_front();
+		return head;
+	}
+
+	bool empty()
+	{
+		return m_avail_list.empty();
+	}
+
+private:
+	list<OBJ*> m_avail_list;
+	list<OBJ*> m_full_list;
 };

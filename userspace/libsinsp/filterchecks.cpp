@@ -27,6 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
+#include "markers.h"
 
 extern sinsp_evttables g_infotables;
 
@@ -1055,7 +1056,7 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 
 bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 {
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	//
 	// Make sure this is an event that creates or consumes an fd
@@ -2006,6 +2007,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
+	{PT_CHARBUF, EPF_PRINT_ONLY, PF_NA, "evt.outputtime", "this depends on -t param, default is %evt.time ('h')."},
 	{PT_CHARBUF, EPF_PRINT_ONLY, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
 	{PT_UINT32, EPF_NONE, PF_NA, "evt.type.is", "allows one to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
@@ -2047,16 +2049,40 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
+	// App events related fields. These can be used only as filter fields, not as display fields
+	{PT_INT64, EPF_FILTER_ONLY, PF_DEC, "evt.marker.id", "event ID."},
+	{PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evt.marker.ntags", "Number of tags that this marker has."},
+	{PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evt.marker.nargs", "Number of arguments that this marker has."},
+	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evt.marker.tags", "comma-separated list of event tags."},
+	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evt.marker.tag", "one of the app event tags specified by offset. E.g. 'marker.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'marker.tag[-1]' returns the last tag."},
+	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evt.marker.args", "comma-separated list of event arguments."},
+	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evt.marker.arg", "one of the app event arguments specified by name or by offset. E.g. 'marker.tag.mytag' or 'marker.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'marker.arg[-1]' returns the last argument."}
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
 {
-	m_first_ts = 0;
 	m_is_compare = false;
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
 	m_u64val = 0;
+
+	m_storage_size = UESTORAGE_INITIAL_BUFSIZE;
+	m_storage = (char*)malloc(m_storage_size);
+	if(m_storage == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_filter_check_appevt::sinsp_filter_check_appevt");
+	}
+
+	m_cargname = NULL;
+}
+
+sinsp_filter_check_event::~sinsp_filter_check_event()
+{
+	if(m_storage != NULL)
+	{
+		free(m_storage);
+	}
 }
 
 sinsp_filter_check* sinsp_filter_check_event::allocate_new()
@@ -2163,6 +2189,7 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_state)
 {
 	string val(str);
+	int32_t res = 0;
 
 	//
 	// A couple of fields are handled in a custom way
@@ -2173,7 +2200,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		m_field_id = TYPE_ARGSTR;
 		m_field = &m_info.m_fields[m_field_id];
 
-		return extract_arg("evt.arg", val, NULL);
+		res = extract_arg("evt.arg", val, NULL);
 	}
 	else if(string(val, 0, sizeof("evt.rawarg") - 1) == "evt.rawarg")
 	{
@@ -2185,14 +2212,14 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 
 		m_customfield.m_type = m_arginfo->type;
 
-		return res;
+		res = res;
 	}
 	else if(string(val, 0, sizeof("evt.around") - 1) == "evt.around")
 	{
 		m_field_id = TYPE_AROUND;
 		m_field = &m_info.m_fields[m_field_id];
 
-		return extract_arg("evt.around", val, NULL);
+		res = extract_arg("evt.around", val, NULL);
 	}
 	else if(string(val, 0, sizeof("evt.latency") - 1) == "evt.latency" ||
 		string(val, 0, sizeof("evt.latency.s") - 1) == "evt.latency.s" ||
@@ -2206,7 +2233,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint16_t));
 		}
 
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
 	}
 	else if(string(val, 0, sizeof("evt.abspath") - 1) == "evt.abspath")
 	{
@@ -2230,19 +2257,26 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 			throw sinsp_exception("wrong syntax for evt.abspath");
 		}
 
-		return (int32_t)val.size() + 1;
+		res = (int32_t)val.size() + 1;
 	}
 	else if(string(val, 0, sizeof("evt.type.is") - 1) == "evt.type.is")
 	{
 		m_field_id = TYPE_TYPE_IS;
 		m_field = &m_info.m_fields[m_field_id];
 
-		return extract_type("evt.type.is", val, NULL);
+		res = extract_type("evt.type.is", val, NULL);
 	}
 	else
 	{
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
 	}
+
+	if(m_field_id >= TYPE_MARKER_ID && m_field_id <= TYPE_MARKER_ARG)
+	{
+		m_inspector->request_marker_state_tracking();
+	}
+
+	return res;
 }
 
 void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
@@ -2562,6 +2596,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_TIME:
 	case TYPE_TIME_S:
 	case TYPE_DATETIME:
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
 
 	case TYPE_RAWTS:
@@ -2608,7 +2643,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 		}
 	}
 
-	if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+	if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 	{
 		pi = evt->get_param_value_raw("fd");
 
@@ -2650,28 +2685,13 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_u64val = evt->get_ts() % ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = evt->get_ts() - m_first_ts;
+		m_u64val = evt->get_ts() - m_inspector->m_firstevent_ts;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS_S:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = (evt->get_ts() - m_first_ts) / ONE_SECOND_IN_NS;
+		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS_NS:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = (evt->get_ts() - m_first_ts) % ONE_SECOND_IN_NS;
+		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_LATENCY:
 		{
@@ -2735,6 +2755,61 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			return (uint8_t*)&m_tsdelta;
+		}
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
+		{
+			char timebuffer[100];
+			m_strstorage = "";
+			switch(m_inspector->m_output_time_flag)
+			{
+				case 'h':
+					ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+					return (uint8_t*)m_strstorage.c_str();
+
+				case 'a':
+					m_strstorage += to_string(evt->get_ts() / ONE_SECOND_IN_NS);
+					m_strstorage += ".";
+					m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'r':
+					m_strstorage += to_string((evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS);
+					m_strstorage += ".";
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS);
+					m_strstorage += string(timebuffer);
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'd':
+					if(evt->m_tinfo != NULL)
+					{
+						uint64_t lat = evt->m_tinfo->m_latency;
+
+						m_strstorage += to_string(lat / 1000000000);
+						m_strstorage += ".";
+						snprintf(timebuffer, sizeof(timebuffer), "%09lu", lat % 1000000000);
+						m_strstorage += string(timebuffer);
+					}
+
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'D':
+					if(m_u64val == 0)
+					{
+						m_u64val = evt->get_ts();
+						m_tsdelta = 0;
+					}
+					uint64_t tts = evt->get_ts();
+
+					m_strstorage += to_string((tts - m_u64val) / ONE_SECOND_IN_NS);
+					m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
+					m_strstorage += ".";
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (tts - m_u64val) % ONE_SECOND_IN_NS);
+					m_strstorage += string(timebuffer);
+					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
+
+					m_u64val = tts;
+					return (uint8_t*) m_strstorage.c_str();
+			}
 		}
 	case TYPE_DIR:
 		if(PPME_IS_ENTER(evt->get_type()))
@@ -3025,7 +3100,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return (uint8_t*)pi->m_val;
 			}
 
-			if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
 				pi = evt->get_param_value_raw("fd");
 
@@ -3074,7 +3149,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else
 			{
-				if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+				if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 				{
 					pi = evt->get_param_value_raw("fd");
 
@@ -3118,7 +3193,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_u32val = 1;
 				}
 			}
-			else if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			else if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
 				pi = evt->get_param_value_raw("fd");
 
@@ -3137,7 +3212,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	case TYPE_ISIO:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & (EF_READS_FROM_FD | EF_WRITES_TO_FD))
 			{
 				m_u32val = 1;
@@ -3151,7 +3226,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_ISIO_READ:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_READS_FROM_FD)
 			{
 				m_u32val = 1;
@@ -3165,7 +3240,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_ISIO_WRITE:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				m_u32val = 1;
@@ -3179,7 +3254,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_IODIR:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				m_strstorage = "write";
@@ -3197,7 +3272,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_ISWAIT:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & (EF_WAITS))
 			{
 				m_u32val = 1;
@@ -3211,7 +3286,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_WAIT_LATENCY:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			uint16_t etype = evt->m_pevt->type;
 
 			if(eflags & (EF_WAITS) && PPME_IS_EXIT(etype))
@@ -3236,7 +3311,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			m_u32val = 0;
 
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
@@ -3491,6 +3566,251 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	return NULL;
 }
 
+inline bool sinsp_filter_check_event::compare_marker(sinsp_evt *evt, sinsp_partial_marker* pae)
+{
+	ASSERT(pae);
+
+	switch(m_field_id)
+	{
+	case TYPE_MARKER_ID:
+		if(flt_compare(m_cmpop, PT_UINT64, 
+			&pae->m_id,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_MARKER_NTAGS:
+		m_u32val = (uint32_t)pae->m_tags.size();
+
+		if(flt_compare(m_cmpop, PT_UINT32, 
+			&m_u32val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_MARKER_NARGS:
+		m_u32val = (uint32_t)pae->m_argvals.size();
+
+		if(flt_compare(m_cmpop, PT_UINT32, 
+			&m_u32val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_MARKER_TAGS:
+	{
+		vector<char*>::iterator it;
+		vector<uint32_t>::iterator sit;
+
+		uint32_t encoded_tags_len = pae->m_tags_len + pae->m_ntags + 1;
+
+		if(m_storage_size < encoded_tags_len)
+		{
+			m_storage = (char*)realloc(m_storage, encoded_tags_len);
+			m_storage_size = encoded_tags_len;
+		}
+
+		char* p = m_storage;
+
+		for(it = pae->m_tags.begin(), sit = pae->m_taglens.begin(); 
+		it != pae->m_tags.end(); ++it, ++sit)
+		{
+			memcpy(p, *it, (*sit));
+			p += (*sit);
+			*p++ = ',';
+		}
+
+		if(p != m_storage)
+		{
+			*--p = 0;
+		}
+		else
+		{
+			*p = 0;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF, 
+			m_storage,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_MARKER_TAG:
+	{
+		char* val = NULL;
+
+		if(m_argid >= 0)
+		{
+			if(m_argid < (int32_t)pae->m_ntags)
+			{
+				val = pae->m_tags[m_argid];
+			}
+		}
+		else
+		{
+			int32_t id = (int32_t)pae->m_ntags + m_argid;
+
+			if(id >= 0)
+			{
+				val = pae->m_tags[id];
+			}
+		}
+
+		if(val == NULL)
+		{
+			return false;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF, 
+			val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_MARKER_ARGS:
+	{
+		vector<char*>::iterator nameit;
+		vector<char*>::iterator valit;
+		vector<uint32_t>::iterator namesit;
+		vector<uint32_t>::iterator valsit;
+
+		uint32_t nargs = (uint32_t)pae->m_argnames.size();
+		uint32_t encoded_args_len = pae->m_argnames_len + pae->m_argvals_len +
+			nargs + nargs + 2;
+
+		if(m_storage_size < encoded_args_len)
+		{
+			m_storage = (char*)realloc(m_storage, encoded_args_len);
+			m_storage_size = encoded_args_len;
+		}
+
+		char* p = m_storage;
+
+		for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(), 
+			namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin(); 
+			nameit != pae->m_argnames.end(); 
+			++nameit, ++namesit, ++valit, ++valsit)
+		{
+			strcpy(p, *nameit);
+			p += (*namesit);
+			*p++ = ':';
+
+			memcpy(p, *valit, (*valsit));
+			p += (*valsit);
+			*p++ = ',';
+		}
+
+		if(p != m_storage)
+		{
+			*--p = 0;
+		}
+		else
+		{
+			*p = 0;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF, 
+			m_storage,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_MARKER_ARG:
+	{
+		char* val = NULL;
+
+		if(m_argid == TEXT_ARG_ID)
+		{
+			//
+			// Argument expressed as name, e.g. evt.marker.arg.name.
+			// Scan the argname list and find the match.
+			//
+			uint32_t j;
+
+			for(j = 0; j < pae->m_nargs; j++)
+			{
+				if(strcmp(m_cargname, pae->m_argnames[j]) == 0)
+				{
+					val = pae->m_argvals[j];
+					break;
+				}
+			}
+		}
+		else
+		{
+			//
+			// Argument expressed as id, e.g. evt.marker.arg[1].
+			// Pick the corresponding value.
+			//
+			if(m_argid >= 0)
+			{
+				if(m_argid < (int32_t)pae->m_nargs)
+				{
+					val = pae->m_argvals[m_argid];
+				}
+			}
+			else
+			{
+				int32_t id = (int32_t)pae->m_nargs + m_argid;
+
+				if(id >= 0)
+				{
+					val = pae->m_argvals[id];
+				}
+			}
+		}
+
+		if(val == NULL)
+		{
+			return false;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF, 
+			val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return NULL;
+}
+
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 {
 	bool res;
@@ -3532,11 +3852,67 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 
 		return res1 && res2;
 	}
+	else if(m_field_id >= TYPE_MARKER_ID && m_field_id <= TYPE_MARKER_ARG)
+	{
+		list<sinsp_partial_marker*>* partial_markers_list = &m_inspector->m_partial_markers_list;
+		list<sinsp_partial_marker*>::iterator it;
+		uint16_t etype = evt->get_type();
+
+		sinsp_threadinfo* tinfo = evt->get_thread_info();
+		if(tinfo == NULL)
+		{
+			res = false;
+			goto fcec_end;
+		}
+
+		//
+		// Scan the list and see if there's a match
+		//
+		for(it = partial_markers_list->begin(); it != partial_markers_list->end(); ++it)
+		{
+			if(compare_marker(evt, *it) == true)
+			{
+				res = true;
+				goto fcec_end;
+			}
+		}
+
+		//
+		// For PPME_MARKER_X events, it's possible that the pae is already returned to the pool.
+		// Get it from the parser.
+		//
+		if(etype == PPME_MARKER_X)
+		{
+			sinsp_markerparser* eparser = tinfo->m_marker_parser;
+
+			if(eparser == NULL)
+			{
+				ASSERT(false);
+				res = false;
+				goto fcec_end;
+			}
+
+			if(eparser->m_enter_pae == NULL)
+			{
+				res = false;
+				goto fcec_end;
+			}
+
+			if(compare_marker(evt, eparser->m_enter_pae) == true)
+			{
+				res = true;
+				goto fcec_end;
+			}
+		}
+
+		res = false;
+	}
 	else
 	{
 		res = sinsp_filter_check::compare(evt);
 	}
 
+fcec_end:
 	m_is_compare = false;
 
 	return res;
@@ -3677,6 +4053,348 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return (uint8_t*)ginfo->name;
 		}
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_marker implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_marker_fields[] =
+{
+	{PT_INT64, EPF_NONE, PF_DEC, "marker.id", "marker ID. This is a unique identifier that is used to match the enter and exit event for this marker. It can also be used to match different markers belonging to a transaction."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "marker.ntags", "number of tags that this marker has."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "marker.nargs", "number of arguments that this marker has."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.tags", "dot-separated list of event tags."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.tag", "one of the app event tags specified by offset. E.g. 'marker.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'marker.tag[-1]' returns the last tag."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.args", "comma-separated list of event arguments."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marker.arg", "one of the app event arguments specified by name or by offset. E.g. 'marker.tag.mytag' or 'marker.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'marker.arg[-1]' returns the last argument."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "marker.latency", "delta between an exit event and the correspondent enter event."},
+};
+
+sinsp_filter_check_marker::sinsp_filter_check_marker()
+{
+	m_info.m_name = "marker";
+	m_info.m_fields = sinsp_filter_check_marker_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_marker_fields) / sizeof(sinsp_filter_check_marker_fields[0]);
+
+	m_storage_size = UESTORAGE_INITIAL_BUFSIZE;
+	m_storage = (char*)malloc(m_storage_size);
+	if(m_storage == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_filter_check_marker::sinsp_filter_check_marker");
+	}
+
+	m_cargname = NULL;
+}
+
+sinsp_filter_check* sinsp_filter_check_marker::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_marker();
+}
+
+int32_t sinsp_filter_check_marker::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+{
+	uint32_t parsed_len = 0;
+
+	//
+	// 'arg' and 'resarg' are handled in a custom way
+	//
+	if(val[fldname.size()] == '[')
+	{
+		if(parinfo != NULL)
+		{
+			throw sinsp_exception("marker field must be expressed explicitly");
+		}
+
+		parsed_len = (uint32_t)val.find(']');
+		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+		m_argid = sinsp_numparser::parsed32(numstr);
+		parsed_len++;
+	}
+	else if(val[fldname.size()] == '.')
+	{
+		if(fldname == "marker.tag")
+		{
+			throw sinsp_exception("invalid syntax for marker.tag");
+		}
+
+		m_argname = val.substr(fldname.size() + 1);
+		m_cargname = m_argname.c_str();
+		parsed_len = (uint32_t)(fldname.size() + m_argname.size() + 1);
+		m_argid = TEXT_ARG_ID;
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len; 
+}
+
+int32_t sinsp_filter_check_marker::parse_field_name(const char* str, bool alloc_state)
+{
+	int32_t res;
+	string val(str);
+
+	//
+	// A couple of fields are handled in a custom way
+	//
+	if(string(val, 0, sizeof("marker.tag") - 1) == "marker.tag" &&
+		string(val, 0, sizeof("marker.tags") - 1) != "marker.tags")
+	{
+		m_field_id = TYPE_TAG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("marker.tag", val, NULL);
+	}
+	else if(string(val, 0, sizeof("marker.arg") - 1) == "marker.arg" &&
+		string(val, 0, sizeof("marker.args") - 1) != "marker.args")
+	{
+		m_field_id = TYPE_ARG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("marker.arg", val, NULL);
+	}
+	else
+	{
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+	}
+
+	if(m_field_id == TYPE_LATENCY || m_field_id == TYPE_ARG || m_field_id == TYPE_ARGS)
+	{
+		m_inspector->request_marker_state_tracking();
+	}
+
+	return res;
+}
+
+uint8_t* sinsp_filter_check_marker::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	sinsp_markerparser* eparser;
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	uint16_t etype = evt->get_type();
+
+	if(etype != PPME_MARKER_E && etype != PPME_MARKER_X)
+	{
+		return NULL;
+	}
+
+	if(tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	eparser = tinfo->m_marker_parser;
+
+	if(eparser == NULL)
+	{
+		return NULL;
+	}
+
+	switch(m_field_id)
+	{
+	case TYPE_ID:
+		return (uint8_t*)&eparser->m_id;
+	case TYPE_NTAGS:
+		m_u32val = (uint32_t)eparser->m_tags.size();
+		return (uint8_t*)&m_u32val;
+	case TYPE_NARGS:
+		{
+			sinsp_partial_marker* pae = eparser->m_enter_pae;
+			if(pae == NULL)
+			{
+				return NULL;
+			}
+
+			m_u32val = (uint32_t)pae->m_argvals.size();
+			return (uint8_t*)&m_u32val;
+		}
+	case TYPE_TAGS:
+		{
+			vector<char*>::iterator it;
+			vector<uint32_t>::iterator sit;
+
+			uint32_t ntags = (uint32_t)eparser->m_tags.size();
+			uint32_t encoded_tags_len = eparser->m_tot_taglens + ntags + 1;
+
+			if(m_storage_size < encoded_tags_len)
+			{
+				m_storage = (char*)realloc(m_storage, encoded_tags_len);
+				m_storage_size = encoded_tags_len;
+			}
+
+			char* p = m_storage;
+
+			for(it = eparser->m_tags.begin(), sit = eparser->m_taglens.begin(); 
+				it != eparser->m_tags.end(); ++it, ++sit)
+			{
+				memcpy(p, *it, (*sit));
+				p += (*sit);
+				*p++ = '.';
+			}
+
+			if(p != m_storage)
+			{
+				*--p = 0;
+			}
+			else
+			{
+				*p = 0;
+			}
+
+			return (uint8_t*)m_storage;
+		}
+	case TYPE_TAG:
+		{
+			char* res = NULL;
+
+			if(m_argid >= 0)
+			{
+				if(m_argid < (int32_t)eparser->m_tags.size())
+				{
+					res = eparser->m_tags[m_argid];
+				}
+			}
+			else
+			{
+				int32_t id = (int32_t)eparser->m_tags.size() + m_argid;
+
+				if(id >= 0)
+				{
+					res = eparser->m_tags[id];
+				}
+			}
+
+			return (uint8_t*)res;
+		}
+	case TYPE_ARGS:
+		{
+			sinsp_partial_marker* pae;
+			pae = eparser->m_enter_pae;
+
+			if(pae == NULL)
+			{
+				return NULL;
+			}
+
+			vector<char*>::iterator nameit;
+			vector<char*>::iterator valit;
+			vector<uint32_t>::iterator namesit;
+			vector<uint32_t>::iterator valsit;
+
+			uint32_t nargs = (uint32_t)pae->m_argnames.size();
+			uint32_t encoded_args_len = pae->m_argnames_len + pae->m_argvals_len +
+				nargs + nargs + 2;
+
+			if(m_storage_size < encoded_args_len)
+			{
+				m_storage = (char*)realloc(m_storage, encoded_args_len);
+				m_storage_size = encoded_args_len;
+			}
+
+			char* p = m_storage;
+
+			for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(), 
+				namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin(); 
+				nameit != pae->m_argnames.end(); 
+				++nameit, ++namesit, ++valit, ++valsit)
+			{
+				strcpy(p, *nameit);
+				p += (*namesit);
+				*p++ = '=';
+
+				memcpy(p, *valit, (*valsit));
+				p += (*valsit);
+				*p++ = ',';
+			}
+
+			if(p != m_storage)
+			{
+				*--p = 0;
+			}
+			else
+			{
+				*p = 0;
+			}
+
+			return (uint8_t*)m_storage;
+		}
+	case TYPE_ARG:
+		{
+			char* res = NULL;
+			sinsp_partial_marker* pae = eparser->m_enter_pae;
+			if(pae == NULL)
+			{
+				return NULL;
+			}
+
+			if(m_argid == TEXT_ARG_ID)
+			{
+				//
+				// Argument expressed as name, e.g. marker.arg.name.
+				// Scan the argname list and find the match.
+				//
+				uint32_t j;
+
+				for(j = 0; j < pae->m_nargs; j++)
+				{
+					if(strcmp(m_cargname, pae->m_argnames[j]) == 0)
+					{
+						res = pae->m_argvals[j];
+						break;
+					}
+				}
+			}
+			else
+			{
+				//
+				// Argument expressed as id, e.g. marker.arg[1].
+				// Pick the corresponding value.
+				//
+				if(m_argid >= 0)
+				{
+					if(m_argid < (int32_t)pae->m_nargs)
+					{
+						res = pae->m_argvals[m_argid];
+					}
+				}
+				else
+				{
+					int32_t id = (int32_t)pae->m_nargs + m_argid;
+
+					if(id >= 0)
+					{
+						res = pae->m_argvals[id];
+					}
+				}
+			}
+
+			return (uint8_t*)res;
+		}
+	case TYPE_LATENCY:
+		{
+			if(etype == PPME_MARKER_X)
+			{
+				sinsp_partial_marker* pae = eparser->m_enter_pae;
+				if(pae == NULL)
+				{
+					return NULL;
+				}
+
+				m_u64val = eparser->m_exit_pae.m_time - pae->m_time;
+				return (uint8_t*)&m_u64val;
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+		break;
 	default:
 		ASSERT(false);
 		break;

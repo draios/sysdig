@@ -677,7 +677,7 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	//
 	// Drop any non I/O event
 	//
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
 	{

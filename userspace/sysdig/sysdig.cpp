@@ -491,6 +491,16 @@ captureinfo do_inspect(sinsp* inspector,
 
 		res = inspector->next(&ev);
 
+		if(ev != NULL)
+		{
+			ts = ev->get_ts();
+			if(firstts == 0)
+			{
+				firstts = ts;
+			}
+			deltats = ts - firstts;
+		}
+
 		if(res == SCAP_TIMEOUT)
 		{
 			if(ev != NULL && ev->is_filtered_out())
@@ -521,13 +531,6 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 
 		retval.m_nevts++;
-
-		ts = ev->get_ts();
-		if(firstts == 0)
-		{
-			firstts = ts;
-		}
-		deltats = ts - firstts;
 
 		if(print_progress)
 		{
@@ -660,7 +663,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool jflag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
-	string timefmt = "%evt.time";
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;	
@@ -708,7 +710,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
-	output_format = "*%evt.num <TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
+	output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
 
 	try
 	{
@@ -908,14 +910,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					//
 					// -pp shows the default output format, useful if the user wants to tweak it.
 					//
-					replace_in_place(output_format, "<TIME>", timefmt);
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
 				}
 				else if(string(optarg) == "c" || string(optarg) == "container")
 				{
-					output_format = "*%evt.num <TIME> %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+					output_format = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
 					//
 					// This enables chisels to determine if they should print container information
@@ -928,6 +929,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else
 				{
 					output_format = optarg;
+					replace_in_place(output_format, "%evt.time ", "%evt.outputtime ");
 				}
 
 				break;
@@ -958,25 +960,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					string tms(optarg);
 
-					if(tms == "h")
+					if(tms == "h" || tms == "a" || tms == "r" || tms == "d" || tms == "D")
 					{
-						timefmt = "%evt.time";
-					}
-					else if(tms == "a")
-					{
-						timefmt = "%evt.rawtime.s.%evt.rawtime.ns";
-					}
-					else if(tms == "r")
-					{
-						timefmt = "%evt.reltime.s.%evt.reltime.ns";
-					}
-					else if(tms == "d")
-					{
-						timefmt = "%evt.latency.s.%evt.latency.ns";
-					}
-					else if(tms == "D")
-					{
-						timefmt = "%evt.deltatime.s.%evt.deltatime.ns";
+						inspector->set_time_output_mode(tms.c_str()[0]);
 					}
 					else
 					{
@@ -1138,11 +1124,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			res.m_res = EXIT_FAILURE;
 			goto exit;
 		}
-
-		//
-		// Insert the right time format based on the -t flag
-		//
-		replace_in_place(output_format, "<TIME>", timefmt);
 
 		//
 		// Create the event formatter

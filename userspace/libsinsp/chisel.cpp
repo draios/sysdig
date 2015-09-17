@@ -973,19 +973,16 @@ void sinsp_chisel::load(string cmdstr)
 	ifstream is;
 
 	//
-	// Try to open the file as is
+	// Try to open the file with lua extension
 	//
-	if(!openfile(m_filename, &is))
+	if(!openfile(m_filename + ".lua", &is))
 	{
 		//
-		// Try to add the .sc extension
+		// Try to open the file as is
 		//
-		if(!openfile(m_filename + ".sc", &is))
+		if(!openfile(m_filename, &is))
 		{
-			if(!openfile(m_filename + ".lua", &is))
-			{
-				throw sinsp_exception("can't open file " + m_filename);
-			}
+			throw sinsp_exception("can't open file " + m_filename);
 		}
 	}
 
