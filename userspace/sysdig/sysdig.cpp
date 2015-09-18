@@ -915,7 +915,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else
 				{
 					output_format = optarg;
-					replace_in_place(output_format, "%evt.time ", "%evt.outputtime ");
 				}
 
 				break;
