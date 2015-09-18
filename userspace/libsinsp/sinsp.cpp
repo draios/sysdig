@@ -626,11 +626,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	sinsp_evt* evt;
 	int32_t res;
 
-	if(m_firstevent_ts == 0 && *puevt != NULL)
-	{
-		m_firstevent_ts = (*puevt)->get_ts();
-	}
-
 	//
 	// Check if there are fake cpu events to  events 
 	//
@@ -676,6 +671,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		// Get the event from libscap
 		//
 		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+		
+		if(m_firstevent_ts == 0 && evt->m_pevt != NULL)
+		{
+			m_firstevent_ts = evt->m_pevt->ts;
+		}
 
 		if(res != SCAP_SUCCESS)
 		{
