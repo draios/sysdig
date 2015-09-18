@@ -189,6 +189,17 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			valid_id = true;
 			continue;
 		}
+		//
+		// Mesos
+		//
+		pos = cgroup.find("/mesos/");
+		if(pos != string::npos)
+		{
+			container_info.m_type = CT_MESOS;
+			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
+			valid_id = true;
+			continue;
+		}
 	}
 
 	if(valid_id)
@@ -212,6 +223,9 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 					container_info.m_name = container_info.m_id;
 					break;
 				case CT_LIBVIRT_LXC:
+					container_info.m_name = container_info.m_id;
+					break;
+				case CT_MESOS:
 					container_info.m_name = container_info.m_id;
 					break;
 				default:
