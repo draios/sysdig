@@ -2006,6 +2006,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
+	{PT_CHARBUF, EPF_PRINT_ONLY, PF_NA, "evt.outputtime", "this depends on -t param, default is %evt.time ('h')."},
 	{PT_CHARBUF, EPF_PRINT_ONLY, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
 	{PT_UINT32, EPF_NONE, PF_NA, "evt.type.is", "allows one to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
@@ -2046,12 +2047,11 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the length of the binary data buffer, but only for output file I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."}
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
 {
-	m_first_ts = 0;
 	m_is_compare = false;
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
@@ -2562,6 +2562,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_TIME:
 	case TYPE_TIME_S:
 	case TYPE_DATETIME:
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
 
 	case TYPE_RAWTS:
@@ -2650,28 +2651,13 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_u64val = evt->get_ts() % ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = evt->get_ts() - m_first_ts;
+		m_u64val = evt->get_ts() - m_inspector->m_firstevent_ts;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS_S:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = (evt->get_ts() - m_first_ts) / ONE_SECOND_IN_NS;
+		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS_NS:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = (evt->get_ts() - m_first_ts) % ONE_SECOND_IN_NS;
+		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_LATENCY:
 		{
@@ -2735,6 +2721,67 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			return (uint8_t*)&m_tsdelta;
+		}
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
+		{
+			char timebuffer[100];
+			m_strstorage = "";
+			switch(m_inspector->m_output_time_flag)
+			{
+				case 'h':
+					ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+					return (uint8_t*)m_strstorage.c_str();
+
+				case 'a':
+					m_strstorage += to_string(evt->get_ts() / ONE_SECOND_IN_NS);
+					m_strstorage += ".";
+					m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'r':
+					m_strstorage += to_string((evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS);
+					m_strstorage += ".";
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS);
+					m_strstorage += string(timebuffer);
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'd':
+				{
+					if(evt->m_tinfo != NULL)
+					{
+						uint64_t lat = evt->m_tinfo->m_latency;
+
+						m_strstorage += to_string(lat / 1000000000);
+						m_strstorage += ".";
+						snprintf(timebuffer, sizeof(timebuffer), "%09lu", lat % 1000000000);
+						m_strstorage += string(timebuffer);
+					}
+					else
+					{
+						m_strstorage = "0.000000000";
+					}
+
+					return (uint8_t*) m_strstorage.c_str();
+				}
+
+				case 'D':
+					if(m_u64val == 0)
+					{
+						m_u64val = evt->get_ts();
+						m_tsdelta = 0;
+					}
+					uint64_t tts = evt->get_ts();
+
+					m_strstorage += to_string((tts - m_u64val) / ONE_SECOND_IN_NS);
+					m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
+					m_strstorage += ".";
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (tts - m_u64val) % ONE_SECOND_IN_NS);
+					m_strstorage += string(timebuffer);
+					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
+
+					m_u64val = tts;
+					return (uint8_t*) m_strstorage.c_str();
+			}
 		}
 	case TYPE_DIR:
 		if(PPME_IS_ENTER(evt->get_type()))
