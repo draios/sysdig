@@ -671,11 +671,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		// Get the event from libscap
 		//
 		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
-		
-		if(m_firstevent_ts == 0 && evt->m_pevt != NULL)
-		{
-			m_firstevent_ts = evt->m_pevt->ts;
-		}
 
 		if(res != SCAP_SUCCESS)
 		{
@@ -709,6 +704,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 
 	uint64_t ts = evt->get_ts();
+
+	if(m_firstevent_ts == 0)
+	{
+		m_firstevent_ts = ts;
+	}
 
 	//
 	// If required, retrieve the processes cpu from the kernel

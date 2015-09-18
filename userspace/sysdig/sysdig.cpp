@@ -468,9 +468,6 @@ captureinfo do_inspect(sinsp* inspector,
 	captureinfo retval;
 	int32_t res;
 	sinsp_evt* ev;
-	uint64_t ts;
-	uint64_t deltats = 0;
-	uint64_t firstts = 0;
 	string line;
 	double last_printed_progress_pct = 0;
 
@@ -490,16 +487,6 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 
 		res = inspector->next(&ev);
-
-		if(ev != NULL)
-		{
-			ts = ev->get_ts();
-			if(firstts == 0)
-			{
-				firstts = ts;
-			}
-			deltats = ts - firstts;
-		}
 
 		if(res == SCAP_TIMEOUT)
 		{
@@ -630,7 +617,6 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 	}
 
-	retval.m_time = deltats;
 	return retval;
 }
 
