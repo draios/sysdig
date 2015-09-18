@@ -1153,13 +1153,14 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 		return PPME_GENERIC_E;
 
 #ifdef CONFIG_COMPAT
-	if(unlikely(filler_args->compat)) {
+	if (unlikely(filler_args->compat)) {
 		compat_ulong_t socketcall_args32[6];
-		int i;
+		int j;
+
 		if (unlikely(ppm_copy_from_user(socketcall_args32, compat_ptr(args[1]), compat_nas[socketcall_id])))
 			return PPME_GENERIC_E;
-		for(i = 0; i < 6; i++)
-			filler_args->socketcall_args[i] = (unsigned long)socketcall_args32[i];
+		for (j = 0; j < 6; ++j)
+			filler_args->socketcall_args[j] = (unsigned long)socketcall_args32[j];
 	} else {
 #endif
 		if (unlikely(ppm_copy_from_user(filler_args->socketcall_args, scargs, nas[socketcall_id])))
@@ -1237,7 +1238,7 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer, struct timespe
 static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespec *ts)
 {
 	struct event_data_t event_data = {0};
-	
+
 	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ts, &event_data) == 0) {
 		consumer->need_to_insert_drop_x = 1;
 	} else {
@@ -1690,7 +1691,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
 	 * which is a very old syscall, not used anymore by most applications
 	 */
-	if(unlikely((task_thread_info(current)->status & TS_COMPAT) && id != __NR_execve)) {
+	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && id != __NR_execve)) {
 		cur_g_syscall_table = g_syscall_ia32_table;
 		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
 		socketcall_syscall = __NR_ia32_socketcall;
@@ -1780,6 +1781,7 @@ TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struc
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka)
 {
 	struct event_data_t event_data;
+
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;
 	event_data.event_info.signal_data.info = info;
@@ -1961,7 +1963,7 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	case CPU_UP_PREPARE:
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case CPU_UP_PREPARE_FROZEN:
-#endif	
+#endif
 		sd_action = 1;
 		break;
 	case CPU_DOWN_PREPARE:

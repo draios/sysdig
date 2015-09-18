@@ -359,7 +359,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SEMCTL_E] = {f_sys_semctl_e},
 	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
 	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
-	[PPME_SYSCALL_PPOLL_X] = {f_sys_poll_x}, // exit same for poll() and ppoll()
+	[PPME_SYSCALL_PPOLL_X] = {f_sys_poll_x}, /* exit same for poll() and ppoll() */
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -369,7 +369,7 @@ static int f_sys_generic(struct event_filler_arguments *args)
 	int res;
 	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
 	const enum ppm_syscall_code *cur_g_syscall_code_routing_table = args->cur_g_syscall_code_routing_table;
-	
+
 #ifdef _HAS_SOCKETCALL
 	if (unlikely(args->syscall_id == args->socketcall_syscall)) {
 		/*
@@ -766,7 +766,9 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 	*--start = '\0';
 	for (;;) {
 		int len = dentry->d_name.len;
-		if ((start -= len) < buf)
+
+		start -= len
+		if (start < buf)
 			return -ENAMETOOLONG;
 		memcpy(start, cgrp->dentry->d_name.name, len);
 		cgrp = cgrp->parent;
@@ -784,7 +786,7 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 }
 #endif
 
-static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int* available)
+static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int *available)
 {
 	int pathlen;
 	int subsys_len;
@@ -835,9 +837,8 @@ static int append_cgroup(const char* subsys_name, int subsys_id, char* buf, int*
 
 	pathlen = strlen(path);
 	subsys_len = strlen(subsys_name);
-	if (subsys_len + 1 + pathlen + 1 > *available) {
+	if (subsys_len + 1 + pathlen + 1 > *available)
 		return 1;
-	}
 
 	memmove(buf + subsys_len + 1, path, pathlen);
 	memcpy(buf, subsys_name, subsys_len);
@@ -874,8 +875,8 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
 /* Takes in a NULL-terminated array of pointers to strings in userspace, and
  * concatenates them to a single \0-separated string. Return the length of this
  * string, or <0 on error */
-static int accumulate_argv_or_env(const char __user* __user* argv,
-				  char* str_storage,
+static int accumulate_argv_or_env(const char __user * __user *argv,
+				  char *str_storage,
 				  int available)
 {
 	int len = 0;
@@ -886,6 +887,7 @@ static int accumulate_argv_or_env(const char __user* __user* argv,
 
 	for (;;) {
 		const char __user *p;
+
 		if (unlikely(ppm_get_user(p, argv)))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
@@ -923,7 +925,7 @@ static int accumulate_argv_or_env(const char __user* __user* argv,
 #ifdef CONFIG_COMPAT
 /* compat version that deals correctly with 32bits pointers of argv */
 static int compat_accumulate_argv_or_env(compat_uptr_t argv,
-				  char* str_storage,
+				  char *str_storage,
 				  int available)
 {
 	int len = 0;
@@ -935,6 +937,7 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 	for (;;) {
 		compat_uptr_t compat_p;
 		const char __user *p;
+
 		if (unlikely(ppm_get_user(compat_p, compat_ptr(argv))))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		p = compat_ptr(compat_p);
@@ -1059,15 +1062,15 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			 * str_storage
 			 */
 			args->str_storage[0] = 0;
-			
+
 			syscall_get_arguments(current, args->regs, 1, 1, &val);
 #ifdef CONFIG_COMPAT
-			if(unlikely(args->compat))
-				args_len = compat_accumulate_argv_or_env( (compat_uptr_t)val,
+			if (unlikely(args->compat))
+				args_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
 							   args->str_storage, available);
 			else
 #endif
-				args_len = accumulate_argv_or_env( (const char __user* __user *)val,
+				args_len = accumulate_argv_or_env((const char __user * __user *)val,
 							   args->str_storage, available);
 			if (unlikely(args_len < 0))
 				return args_len;
@@ -1259,9 +1262,7 @@ cgroups_error:
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
 #else
-		//
-		// Not relevant in old kernels
-		//
+		/* Not relevant in old kernels */
 		res = val_to_ring(args, 0, 0, false, 0);
 #endif
 		if (unlikely(res != PPM_SUCCESS))
@@ -1273,9 +1274,7 @@ cgroups_error:
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
 #else
-		//
-		// Not relevant in old kernels
-		//
+		/* Not relevant in old kernels */
 		res = val_to_ring(args, 0, 0, false, 0);
 #endif
 		if (unlikely(res != PPM_SUCCESS))
@@ -1315,7 +1314,7 @@ cgroups_error:
 							  args->str_storage, available);
 			else
 #endif
-				env_len = accumulate_argv_or_env( (const char __user* __user *)val,
+				env_len = accumulate_argv_or_env((const char __user * __user *)val,
 							  args->str_storage, available);
 			if (unlikely(env_len < 0))
 				return env_len;
@@ -1978,7 +1977,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		/*
 		 * Get the fd
 		 */
-		if (!args->is_socketcall){
+		if (!args->is_socketcall) {
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 			fd = (int)val;
 		} else
@@ -2404,11 +2403,11 @@ static int f_sys_pipe_x(struct event_filler_arguments *args)
 	if (!args->compat) {
 #endif
 		if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, sizeof(fds))))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+			return PPM_FAILURE_INVALID_USER_MEMORY;
 #ifdef CONFIG_COMPAT
 	} else {
 		if (unlikely(ppm_copy_from_user(fds, (const void __user *)compat_ptr(val), sizeof(fds))))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 #endif
 
@@ -2466,14 +2465,13 @@ static int f_sys_eventfd_e(struct event_filler_arguments *args)
 
 static inline u16 shutdown_how_to_scap(unsigned long how)
 {
-#ifdef SHUT_RD	
-	if (how == SHUT_RD) {
+#ifdef SHUT_RD
+	if (how == SHUT_RD)
 		return PPM_SHUT_RD;
-	} else if (how == SHUT_WR) {
+	else if (how == SHUT_WR)
 		return SHUT_WR;
-	} else if (how == SHUT_RDWR) {
+	else if (how == SHUT_RDWR)
 		return SHUT_RDWR;
-	}
 
 	ASSERT(false);
 #endif
@@ -2750,7 +2748,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 
 	fds = (struct pollfd *)args->str_storage;
 #ifdef CONFIG_COMPAT
-	if(!args->compat) {
+	if (!args->compat) {
 #endif
 		if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, nfds * sizeof(struct pollfd))))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -2828,11 +2826,11 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
-	cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
-	if (unlikely(cfulen != 0))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
+		if (unlikely(cfulen != 0))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
 
-	longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
+		longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
 #ifdef CONFIG_COMPAT
 	} else {
 		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)compat_ptr(val), sizeof(struct compat_timespec));
@@ -2852,31 +2850,31 @@ static int f_sys_ppoll_e(struct event_filler_arguments *args)
 	int res;
 
 	res = poll_parse_fds(args, true);
-	if(res != PPM_SUCCESS)
+	if (res != PPM_SUCCESS)
 		return res;
 
 	/*
 	 * timeout
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	// NULL timeout specified as 0xFFFFFF....
-	if(val == (unsigned long)NULL)
+	/* NULL timeout specified as 0xFFFFFF.... */
+	if (val == (unsigned long)NULL)
 		res = val_to_ring(args, (uint64_t)(-1), 0, false, 0);
 	else
 		res = timespec_parse(args, val);
-	if(res != PPM_SUCCESS)
+	if (res != PPM_SUCCESS)
 		return res;
 
 	/*
 	 * sigmask
 	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
-	if(val != (unsigned long)NULL)
-		if(0 != ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
+	if (val != (unsigned long)NULL)
+		if (0 != ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = val_to_ring(args, val, 0, false, 0);
-	if(res != PPM_SUCCESS)
+	if (res != PPM_SUCCESS)
 		return res;
 
 	return add_sentinel(args);
@@ -3085,11 +3083,10 @@ static int f_sys_readv_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 #ifdef CONFIG_COMPAT
-	if(unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+	if (unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
 		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
-	}
-	else
+	} else
 #endif
 	{
 		iov = (const struct iovec __user*)val;
@@ -3129,13 +3126,12 @@ static int f_sys_writev_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #ifdef CONFIG_COMPAT
-	if(unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+	if (unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
 		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt,
 											args->consumer->snaplen,
 											PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
-	}
-	else
+	} else
 #endif
 	{
 		iov = (const struct iovec __user *)val;
@@ -3179,11 +3175,10 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #ifdef CONFIG_COMPAT
-	if(unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+	if (unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
 		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
-	}
-	else
+	} else
 #endif
 	{
 		iov = (const struct iovec __user *)val;
@@ -3261,11 +3256,10 @@ static int f_sys_preadv_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
-	if(unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+	if (unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
 		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
-	}
-	else
+	} else
 #endif
 	{
 		iov = (const struct iovec __user *)val;
@@ -3310,13 +3304,12 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 #ifdef CONFIG_COMPAT
-	if(unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user*)compat_ptr(val);
+	if (unlikely(args->compat)) {
+		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
 		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt,
 									args->consumer->snaplen,
 									PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
-	}
-	else
+	} else
 #endif
 	{
 		iov = (const struct iovec __user *)val;
@@ -3552,7 +3545,7 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 		syscall_get_arguments(current, args->regs, 2, 1, &val);
 
 #ifdef CONFIG_COMPAT
-                if (!args->compat) {
+		if (!args->compat) {
 #endif
 			if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
 				newcur = -1;
@@ -3562,7 +3555,7 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 				newmax = rl.rlim_max;
 			}
 #ifdef CONFIG_COMPAT
-                } else {
+		} else {
 			if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit)))) {
 				newcur = -1;
 				newmax = -1;
@@ -3570,7 +3563,7 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 				newcur = compat_rl.rlim_cur;
 				newmax = compat_rl.rlim_max;
 			}
-                }
+		}
 #endif
 	} else {
 		newcur = -1;
@@ -3580,25 +3573,25 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 
 #ifdef CONFIG_COMPAT
-        if (!args->compat) {
+	if (!args->compat) {
 #endif
-			if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
-				oldcur = -1;
-				oldmax = -1;
-			} else {
-				oldcur = rl.rlim_cur;
-				oldmax = rl.rlim_max;
-			}
+		if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
+			oldcur = -1;
+			oldmax = -1;
+		} else {
+			oldcur = rl.rlim_cur;
+			oldmax = rl.rlim_max;
+		}
 #ifdef CONFIG_COMPAT
-        } else {
-			if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit)))) {
-				oldcur = -1;
-				oldmax = -1;
-			} else {
-				oldcur = compat_rl.rlim_cur;
-				oldmax = compat_rl.rlim_max;
-			}
-        }
+	} else {
+		if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit)))) {
+			oldcur = -1;
+			oldmax = -1;
+		} else {
+			oldcur = compat_rl.rlim_cur;
+			oldmax = compat_rl.rlim_max;
+		}
+	}
 #endif
 
 	/*
@@ -3704,7 +3697,7 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	 */
 	steal = cputime64_to_clock_t(kcpustat_this_cpu->cpustat[CPUTIME_STEAL]);
 	res = val_to_ring(args, steal, 0, false);
-	if(unlikely(res != PPM_SUCCESS))
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
 #endif
 
@@ -4897,13 +4890,13 @@ static int f_sys_flock_e(struct event_filler_arguments *args)
 
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
-	if(unlikely(res != PPM_SUCCESS))
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 	flags = flock_flags_to_scap(val);
 	res = val_to_ring(args, flags, 0, false, 0);
-	if(unlikely(res != PPM_SUCCESS))
+	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	return add_sentinel(args);
@@ -5043,14 +5036,14 @@ static int f_sys_semop_x(struct event_filler_arguments *args)
 	/*
 	 * sembuf
 	 */
-	syscall_get_arguments(current, args->regs, 1, 1, (unsigned long*) &ptr);
+	syscall_get_arguments(current, args->regs, 1, 1, (unsigned long *) &ptr);
 
 	if (nsops && ptr) {
-		// max length of sembuf array in g_event_info = 2
+		/* max length of sembuf array in g_event_info = 2 */
 		const unsigned max_nsops = 2;
 		unsigned       j;
 
-		for(j=0; j<max_nsops; j++) {
+		for (j = 0; j < max_nsops; j++) {
 			struct sembuf sops = {0, 0, 0};
 
 			if (nsops--)
@@ -5091,7 +5084,7 @@ static inline u32 semctl_cmd_to_scap(unsigned cmd)
 	case SETALL: return PPM_SETALL;
 	case SETVAL: return PPM_SETVAL;
 	}
-    return 0;
+	return 0;
 }
 
 static int f_sys_semctl_e(struct event_filler_arguments *args)
