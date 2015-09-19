@@ -230,6 +230,7 @@ _arguments                                                                      
     '(-X --print-hex-ascii)'{-X,--print-hex-ascii}'[Print data buffers in hex and ASCII]'                       \
     '(-z --compress)'{-z,--compress}'[Enables compression for stored tracefiles]'                               \
     '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
+    '-N[Do not convert port numbers to names]'                                                                  \
     '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format' \
     '-pp[Report the default printing format used if -p is omitted]'                                             \
     '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
