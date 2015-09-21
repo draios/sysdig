@@ -2,12 +2,12 @@
 set -e
 
 DKMS_PACKAGE_NAME="@PACKAGE_NAME@"
-DKMS_VERSION="@SYSDIG_VERSION@"
+DKMS_VERSION="@PROBE_VERSION@"
 
 case "$1" in
-    remove|upgrade|deconfigure)
-      if [  "$(dkms status -m $DKMS_PACKAGE_NAME -v $DKMS_VERSION)" ]; then
-         dkms remove -m $DKMS_PACKAGE_NAME -v $DKMS_VERSION --all
-      fi
-    ;;
+	remove|upgrade|deconfigure)
+		if [  "$(dkms status -m $DKMS_PACKAGE_NAME -v $DKMS_VERSION)" ]; then
+			dkms remove -m $DKMS_PACKAGE_NAME -v $DKMS_VERSION --all
+		fi
+	;;
 esac
