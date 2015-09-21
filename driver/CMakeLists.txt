@@ -17,7 +17,8 @@ configure_file(Makefile.in Makefile.dkms)
 configure_file(driver_config.h.in driver_config.h)
 
 set(CLEAN_FILES
-	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
+	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile"
+	"${CMAKE_CURRENT_SOURCE_DIR}/driver_config.h")
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}")
 
@@ -35,6 +36,7 @@ if(BUILD_DRIVER)
 else()
 	add_custom_target(driver
 		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
+		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/driver_config.h driver_config.h
 		COMMAND $(MAKE)
 		COMMAND cp -f ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -50,7 +52,7 @@ add_custom_target(install_driver
 if(ENABLE_DKMS)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
 		RENAME Makefile
-		DESTINATION "src/sysdig-${SYSDIG_VERSION}")
+		DESTINATION "src/${PROBE_PACKAGE}-${SYSDIG_VERSION}")
 
 	install(FILES
 		${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
