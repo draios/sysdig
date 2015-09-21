@@ -56,6 +56,7 @@ if(ENABLE_DKMS)
 	install(FILES
 		${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
 		dynamic_params_table.c
+		driver_config.h
 		event_table.c
 		flags_table.c
 		main.c
