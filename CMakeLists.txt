@@ -263,7 +263,7 @@ add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
-set(CPACK_PACKAGE_VENDOR "Draios Inc.")
+set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "sysdig, a system-level exploration and troubleshooting tool")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/scripts/description.txt")
 set(CPACK_PACKAGE_VERSION "${SYSDIG_VERSION}")
