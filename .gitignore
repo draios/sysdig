@@ -7,3 +7,4 @@
 *.mod.c
 build/
 driver/Makefile
+driver/driver_config.h

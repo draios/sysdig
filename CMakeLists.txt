@@ -20,7 +20,7 @@ cmake_minimum_required(VERSION 2.8.2)
 project(sysdig) 
 
 if(NOT DEFINED SYSDIG_VERSION)
-	set(SYSDIG_VERSION "0.1.1-dev")
+	set(SYSDIG_VERSION "0.1.1dev")
 endif()
 
 if(NOT DEFINED DIR_ETC)

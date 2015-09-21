@@ -7,8 +7,14 @@ else()
 	set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
 endif()
 
+set(PROBE_PACKAGE "sysdig")
+set(PROBE_VERSION "${SYSDIG_VERSION}")
+set(PROBE_NAME "sysdig-probe")
+set(PROBE_DEVICE_NAME "sysdig")
+
 configure_file(dkms.conf.in dkms.conf)
 configure_file(Makefile.in Makefile.dkms)
+configure_file(driver_config.h.in driver_config.h)
 
 set(CLEAN_FILES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
@@ -21,15 +27,16 @@ set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}"
 if(BUILD_DRIVER)
 	add_custom_target(driver ALL
 		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
+		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/driver_config.h driver_config.h
 		COMMAND $(MAKE)
-		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
+		COMMAND cp -f ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 else()
 	add_custom_target(driver
 		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
 		COMMAND $(MAKE)
-		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
+		COMMAND cp -f ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 endif()
