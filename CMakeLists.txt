@@ -49,6 +49,16 @@ if(NOT WIN32)
 	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
 
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS} ${SYSDIG_FEATURE_FLAGS}")
+		else()
+			set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
+		endif()
+
+		set(PROBE_VERSION "${SYSDIG_VERSION}")
+		set(PROBE_NAME "sysdig-probe")
+		set(PROBE_DEVICE_NAME "sysdig")
+
 		add_subdirectory(driver)
 		add_definitions(-DHAS_CAPTURE)
 	endif()

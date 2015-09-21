@@ -1,16 +1,6 @@
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS} ${SYSDIG_FEATURE_FLAGS}")
-else()
-	set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
-endif()
-
-set(PROBE_VERSION "${SYSDIG_VERSION}")
-set(PROBE_NAME "sysdig-probe")
-set(PROBE_DEVICE_NAME "sysdig")
-
 configure_file(dkms.conf.in dkms.conf)
 configure_file(Makefile.in Makefile.dkms)
 configure_file(driver_config.h.in driver_config.h)
@@ -51,7 +41,8 @@ add_custom_target(install_driver
 if(ENABLE_DKMS)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
 		RENAME Makefile
-		DESTINATION "src/${PACKAGE_NAME}-${SYSDIG_VERSION}")
+		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
+		COMPONENT agent)
 
 	install(FILES
 		${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
@@ -69,5 +60,6 @@ if(ENABLE_DKMS)
 		ppm_syscall.h
 		syscall_table.c
 		ppm_cputime.c
-		DESTINATION "src/${PACKAGE_NAME}-${SYSDIG_VERSION}")
+		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
+		COMPONENT agent)
 endif()
