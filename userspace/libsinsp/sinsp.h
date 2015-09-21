@@ -566,6 +566,17 @@ public:
 	void set_fatfile_dump_mode(bool enable_fatfile);
 
 	/*!
+	  \brief Set whether Sysdig should resolve hostnames and port protocols or not.
+
+	  \note Sysdig can use the system library functions getservbyport and so to
+	   resolve protocol names and domain names.
+	  
+	  \param disable If set to false it will enable this function and use plain
+	   numerical values.
+	*/
+	void set_hostname_and_port_resolution_mode(bool enable);
+
+	/*!
 	  \brief Sets the max length of event argument strings. 
 
 	  \param len Max length after which an avent argument string is truncated.
@@ -693,6 +704,7 @@ private:
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
+	bool m_hostname_and_port_resolution_enabled;
 	uint32_t m_max_evt_output_len;
 	bool m_compress;
 	sinsp_evt m_evt;
@@ -827,6 +839,7 @@ private:
 	friend class sinsp_worker;
 	friend class sinsp_table;
 	friend class curses_textbox;
+	friend class sinsp_filter_check_fd;
 	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

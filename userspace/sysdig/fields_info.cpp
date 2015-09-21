@@ -209,6 +209,9 @@ const char* param_type_to_string(ppm_param_type pt)
 	case PT_GID:
 		return "GID";
 		break;
+	case PT_SIGSET:
+		return "SIGSET";
+		break;
 	default:
 		ASSERT(false);
 		return "<NA>";

@@ -230,7 +230,8 @@ _arguments                                                                      
     '(-X --print-hex-ascii)'{-X,--print-hex-ascii}'[Print data buffers in hex and ASCII]'                       \
     '(-z --compress)'{-z,--compress}'[Enables compression for stored tracefiles]'                               \
     '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
-    '(-p --print)'{-p,--print=-}'[Specify the event format]:Event output format:->format'                       \
+    '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format' \
+    '-pp[Report the default printing format used if -p is omitted]'                                             \
     '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
     '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
     '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files' \
@@ -239,16 +240,11 @@ _arguments                                                                      
        h\:"human-readable string"                                                                               \
        a\:"absolute timestamp from epoch"                                                                       \
        r\:"relative time from capture start"                                                                    \
-       d\:"delta between enter/exit"))'                                                                         \
+       d\:"delta between enter/exit"                                                                            \
+       D\:"delta from previous event"))'                                                                        \
     '(-c --chisel)'{-c,--chisel}'[Run a given chisel]:Chisel:->chisel'                                          \
     '(-i --chisel-info)'{-i,--chisel-info}'[Get a detailed chisel description]:Chisel:->chisel' \
     '*:Filter or chisel argument:->filter_or_chiselarg' && return 0
-
-    # Sysdig 0.1.85 had these options too, but they were problematic, so I'm
-    # removing them until they can be fixed
-    # '(-C --file-size)'{-C,--file-size=-}'[Chunk captures to files of given size]:Maximum chunk file size:'
-    # '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'
-    # '(-W --limit)'{-W,--limit}'[Limit split captures (-C or -G) to a given number of files]:Maximum number of files'
 
 
 case $state in
