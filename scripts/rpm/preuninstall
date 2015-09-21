@@ -1,1 +1,1 @@
-dkms remove -m sysdig -v %{version} --all --rpm_safe_upgrade
+dkms remove -m %{module} -v %{version} --all --rpm_safe_upgrade

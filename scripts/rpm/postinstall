@@ -1,7 +1,7 @@
-dkms add -m sysdig -v %{version} --rpm_safe_upgrade
+dkms add -m %{module} -v %{version} --rpm_safe_upgrade
 if [ `uname -r | grep -c "BOOT"` -eq 0 ] && [ -e /lib/modules/`uname -r`/build/include ]; then
-	dkms build -m sysdig -v %{version}
-	dkms install --force -m sysdig -v %{version}
+	dkms build -m %{module} -v %{version}
+	dkms install --force -m %{module} -v %{version}
 elif [ `uname -r | grep -c "BOOT"` -gt 0 ]; then
 	echo -e ""
 	echo -e "Module build for the currently running kernel was skipped since you"
