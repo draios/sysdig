@@ -7,7 +7,6 @@ else()
 	set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
 endif()
 
-set(PROBE_PACKAGE "sysdig")
 set(PROBE_VERSION "${SYSDIG_VERSION}")
 set(PROBE_NAME "sysdig-probe")
 set(PROBE_DEVICE_NAME "sysdig")
@@ -52,7 +51,7 @@ add_custom_target(install_driver
 if(ENABLE_DKMS)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
 		RENAME Makefile
-		DESTINATION "src/${PROBE_PACKAGE}-${SYSDIG_VERSION}")
+		DESTINATION "src/${PACKAGE_NAME}-${SYSDIG_VERSION}")
 
 	install(FILES
 		${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
@@ -69,5 +68,5 @@ if(ENABLE_DKMS)
 		ppm_syscall.h
 		syscall_table.c
 		ppm_cputime.c
-		DESTINATION "src/sysdig-${SYSDIG_VERSION}")
+		DESTINATION "src/${PACKAGE_NAME}-${SYSDIG_VERSION}")
 endif()
