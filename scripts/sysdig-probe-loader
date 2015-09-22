@@ -41,9 +41,11 @@ fi
 if [ "$SCRIPT_NAME" = "sysdig-probe-loader" ]; then
 	SYSDIG_VERSION=$(sysdig --version | cut -d' ' -f3)	
 	PROBE_NAME="sysdig-probe"
+	PACKAGE_NAME="sysdig"
 elif [ "$SCRIPT_NAME" = "sysdigcloud-probe-loader" ]; then
 	SYSDIG_VERSION=$(/opt/draios/bin/dragent --version)
 	PROBE_NAME="sysdigcloud-probe"
+	PACKAGE_NAME="draios-agent"
 else
 	echo "This script must be called as sysdig-probe-loader or sysdigcloud-probe-loader"
 	exit 1
@@ -69,7 +71,7 @@ fi
 
 echo "* Trying to load a dkms $PROBE_NAME, if present"
 
-if insmod /var/lib/dkms/sysdig/$SYSDIG_VERSION/$KERNEL_RELEASE/$ARCH/module/$PROBE_NAME.ko > /dev/null 2>&1; then
+if insmod /var/lib/dkms/$PACKAGE_NAME/$SYSDIG_VERSION/$KERNEL_RELEASE/$ARCH/module/$PROBE_NAME.ko > /dev/null 2>&1; then
 	echo "$PROBE_NAME found and loaded in dkms"
 	exit 0
 fi
