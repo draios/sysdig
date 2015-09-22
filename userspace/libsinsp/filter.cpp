@@ -1136,29 +1136,6 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 	return res;
 }
 
-int32_t sinsp_filter_expression::parse_field_name(const char* str, bool alloc_state)
-{
-	ASSERT(false);
-	return 0;
-}
-
-void sinsp_filter_expression::parse_filter_value(const char* str, uint32_t len)
-{
-	ASSERT(false);
-}
-
-const filtercheck_field_info* sinsp_filter_expression::get_field_info()
-{
-	ASSERT(false);
-	return NULL;
-}
-
-uint8_t* sinsp_filter_expression::extract(sinsp_evt *evt, OUT uint32_t* len)
-{
-	ASSERT(false);
-	return NULL;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter implementation
 ///////////////////////////////////////////////////////////////////////////////

@@ -34,7 +34,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
-#include "../libscap/scap-int.h"
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
@@ -270,8 +269,6 @@ void sinsp::init()
 		}
 	}
 #endif
-
-start_dropping_mode(1);
 }
 
 void sinsp::set_import_users(bool import_users)
@@ -623,7 +620,7 @@ void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 	}
 }
 
-int32_t sinsp::next(OUT sinsp_evt **puevt, sinsp_next_ex_args* ex_args)
+int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
@@ -672,16 +669,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt, sinsp_next_ex_args* ex_args)
 		//
 		// Get the event from libscap
 		//
-		if(ex_args == NULL)
-		{
-			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
-		}
-		else
-		{
-			evt->m_pevt = ex_args->m_evt;
-			evt->m_cpuid = ex_args->m_cpuid;
-			res = ex_args->m_res;
-		}
+		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
 
 		if(res != SCAP_SUCCESS)
 		{
@@ -1420,11 +1408,6 @@ double sinsp::get_read_progress()
 bool sinsp::remove_inactive_threads()
 {
 	return m_thread_manager->remove_inactive_threads();
-}
-
-const struct ppm_event_info* sinsp::get_event_info_table()
-{
-	return g_infotables.m_event_info;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

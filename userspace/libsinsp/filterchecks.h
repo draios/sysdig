@@ -179,10 +179,28 @@ public:
 	// The following methods are part of the filter check interface but are irrelevant
 	// for this class, because they are used only for the leaves of the filtering tree.
 	//
-	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
-	const filtercheck_field_info* get_field_info();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	int32_t parse_field_name(const char* str, bool alloc_state)
+	{
+		ASSERT(false);
+		return 0;
+	}
+
+	void parse_filter_value(const char* str, uint32_t len)
+	{
+		ASSERT(false);
+	}
+
+	const filtercheck_field_info* get_field_info()
+	{
+		ASSERT(false);
+		return NULL;
+	}
+
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len)
+	{
+		ASSERT(false);
+		return NULL;
+	}
 
 	sinsp_filter_expression* m_parent;
 	vector<sinsp_filter_check*> m_checks;

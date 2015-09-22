@@ -196,15 +196,6 @@ public:
 	sinsp_evt* m_next_evt;
 };
 
-
-class sinsp_next_ex_args
-{
-public:
-	scap_evt* m_evt;
-	int32_t m_res;
-	uint16_t m_cpuid;
-};
-
 /** @defgroup inspector Main library
  @{
 */
@@ -264,7 +255,7 @@ public:
 	  \note: the returned event can be considered valid only until the next
 	   call to \ref next()
 	*/
-	int32_t next(OUT sinsp_evt** evt, sinsp_next_ex_args* ex_args = NULL);
+	int32_t next(OUT sinsp_evt** evt);
 
 	/*!
 	  \brief Get the number of events that have been captured and processed
@@ -633,6 +624,14 @@ public:
 	}
 
 	/*!
+	 \brief returns the scap handle
+	*/
+	scap_t *get_scap_handle()
+	{
+		return m_h;
+	}
+
+	/*!
 	  \brief When reading events from a trace file, this function returns the
 	   read progress as a number between 0 and 100.
 	*/
@@ -663,11 +662,6 @@ public:
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
 	void add_meta_event_and_repeat(sinsp_evt *metaevt);
-	scap_t* get_scap_handle()
-	{
-		return m_h;
-	}
-	const struct ppm_event_info* get_event_info_table();
 
 	void refresh_ifaddr_list();
 

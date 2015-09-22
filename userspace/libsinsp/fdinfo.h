@@ -299,7 +299,7 @@ public:
 		return (m_callbaks != NULL);
 	}
 
-//VISIBILITY_PRIVATE
+VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
@@ -318,9 +318,8 @@ private:
 		FLAGS_ROLE_SERVER = (1 << 3),
 		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
 		FLAGS_CLOSE_CANCELED = (1 << 5),
-		// Pipe-specific flag
+		// Pipe-specific flags
 		FLAGS_IS_SOCKET_PIPE = (1 << 6),
-		FLAGS_NEVER_DROP = (1 << 7),
 	};
 
 	void add_filename(const char* fullpath);

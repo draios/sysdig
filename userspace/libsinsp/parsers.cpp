@@ -529,6 +529,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 				//
 				// A close gets canceled when the same fd is created succesfully between
 				// close enter and close exit.
+				// If that happens
 				//
 				erase_fd_params eparams;
 

@@ -83,36 +83,6 @@ static __always_inline int32_t scap_update_snap(scap_device* const dev)
 
 #endif // HAS_CAPTURE
 
-//
-// Handles the logic to extract en event from a single CPU buffer.
-// Returns the event extracted (or NULL if none exists)
-//
-static __always_inline int32_t scap_next_live_cpu(const scap_device* const dev, OUT scap_evt** const pe)
-{
-	//
-	// Make sure that we have data from this ring
-	//
-	if(dev->m_sn_len == 0)
-	{
-		return SCAP_EMPTY;
-	}
-	else
-	{
-		*pe = (scap_evt*)dev->m_sn_next_event;
-		uint32_t len = (*pe)->len;
-//		__builtin_prefetch((void*)((char *)dev->m_sn_next_event + len),0,3);
-		if(len > dev->m_sn_len)
-		{
-			//
-			// if you get the following assertion, first recompile the driver and libscap
-			//
-			ASSERT(false);
-			return SCAP_FAILURE;
-		}
-	}
-	return SCAP_SUCCESS;
-}
-
 #if defined(HAS_CAPTURE)
 
 static __always_inline int32_t refill_read_buffers(scap_t* const handle)

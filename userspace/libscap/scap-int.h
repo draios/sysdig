@@ -59,10 +59,8 @@ extern "C" {
 //
 #define PF_CLONING 1
 
-//
-// definitions for default scap-reader
-//
 #ifndef HAVE_EXTERNAL_SCAP_READER
+
 //
 // The device descriptor
 //
@@ -75,7 +73,13 @@ typedef struct scap_device
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
 	uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
-} scap_device;
+}scap_device;
+
+static inline void scap_dev_init(scap_device* const dev)
+{
+		dev->m_lastreadsize = 0;
+		dev->m_sn_len = 0;
+}
 
 //
 // The open instance handle
@@ -104,12 +108,17 @@ struct scap
 	struct ppm_proclist_info* m_driver_procinfo;
 };
 
+static inline void scap_handle_late_init(scap_t* const handle)
+{
+	// nothing to do, assuming handle memory is already zeroed
+}
+
 // Read the full event buffer for the given processor
 int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
-#else
-#include <scap_external_int.h>
-#endif
 
+#else
+#include "scap_external.h"
+#endif
 
 struct scap_ns_socket_list
 {
@@ -127,6 +136,8 @@ struct scap_ns_socket_list
 //
 // Internal library functions
 //
+
+
 
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
@@ -197,13 +208,11 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 //
 // ASSERT implementation
 //
-#ifndef ASSERT
 #ifdef _DEBUG
-#define ASSERT(X) assert(X);
+#define ASSERT(X) assert(X)
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG
-#endif //ASSERT
 
 #define CHECK_READ_SIZE(read_size, expected_size) if(read_size != expected_size) \
 	{\

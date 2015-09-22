@@ -34,12 +34,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "scap_savefile.h"
 #include "scap-int.h"
 
-#ifndef HAVE_EXTERNAL_SCAP_READER
-#include "scap_next.h"
-#else
-#include "scap_external.h"
-#endif
-
 //#define NDEBUG
 #include <assert.h>
 
@@ -49,7 +43,7 @@ static uint32_t get_max_consumers()
 	FILE *pfile = fopen("/sys/module/sysdig_probe/parameters/max_consumers", "r");
 	if(pfile != NULL)
 	{
-		int w = fscanf(pfile, "%" PRIu32, &max);
+		int w = fscanf(pfile, "%"PRIu32, &max);
 		if(w == 0)
 		{
 			return 0;
@@ -66,22 +60,6 @@ char* scap_getlasterr(scap_t* handle)
 {
 	return handle->m_lasterr;
 }
-
-#ifndef HAVE_EXTERNAL_SCAP_READER
-
-static void scap_dev_init(scap_device* const dev)
-{
-	dev->m_lastreadsize = 0;
-	dev->m_sn_len = 0;
-}
-
-static void scap_handle_init(scap_t* const handle)
-{
-	handle->m_n_consecutive_waits = 0;
-	handle->m_evtcnt = 0;
-}
-
-#endif
 
 scap_t* scap_open_live_int(char *error, 
 						   proc_entry_callback proc_callback,
@@ -213,7 +191,7 @@ scap_t* scap_open_live_int(char *error,
 			else if(errno == EBUSY)
 			{
 				uint32_t curr_max_consumers = get_max_consumers();
-				snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/sysdig_probe/parameters/max_consumers is '%" PRIu32 "'.", filename, curr_max_consumers);
+				snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/sysdig_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
 			}
 			else
 			{
@@ -274,7 +252,7 @@ scap_t* scap_open_live_int(char *error,
 		scap_stop_dropping_mode(handle);
 		j++;
 	}
-	scap_handle_init(handle);
+	scap_handle_late_init(handle);
 
 	//
 	// Create the process list
@@ -323,13 +301,13 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_devs = NULL;
 	handle->m_ndevs = 0;
 	handle->m_proclist = NULL;
+	handle->m_evtcnt = 0;
 	handle->m_file = NULL;
 	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_last_evt_dump_flags = 0;
 	handle->m_driver_procinfo = NULL;
-	scap_handle_init(handle);
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -469,6 +447,7 @@ void scap_close(scap_t* handle)
 	{
 		scap_free_userlist(handle->m_userlist);
 	}
+
 	//
 	// Release the handle
 	//
@@ -500,6 +479,16 @@ uint32_t scap_get_ndevs(scap_t* handle)
 {
 	return handle->m_ndevs;
 }
+
+#ifndef HAVE_EXTERNAL_SCAP_READER
+#include "scap_next.h"
+#endif
+
+int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	return scap_next_main(handle, pevent, pcpuid);
+}
+
 
 //
 // Return the process list for the given handle
@@ -568,13 +557,6 @@ int32_t scap_stop_capture(scap_t* handle)
 	return SCAP_SUCCESS;
 #endif // HAS_CAPTURE
 }
-
-#ifndef HAVE_EXTERNAL_SCAP_READER
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
-{
-	return scap_next_main(handle, pevent, pcpuid);
-}
-#endif
 
 //
 // Start capturing the events
@@ -728,12 +710,8 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 		//
 		for(j = 0; j < handle->m_ndevs; j++)
 		{
-//			scap_readbuf(handle,
-//               j,
-//               &handle->m_devs[j].m_sn_next_event,
-//               &handle->m_devs[j].m_sn_len);
+//			scap_readbuf(handle, j, false, &handle->m_devs[j].m_sn_next_event, &handle->m_devs[j].m_sn_len);
 			scap_update_snap(handle->m_devs + j);
-
 			handle->m_devs[j].m_sn_len = 0;
 		}
 	}
@@ -800,12 +778,9 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 		//
 		for(j = 0; j < handle->m_ndevs; j++)
 		{
-//			scap_readbuf(handle,
-//				j,
-//				&handle->m_devs[j].m_sn_next_event,
-//				&handle->m_devs[j].m_sn_len);
-			scap_update_snap(&handle->m_devs[j]);
+//			scap_readbuf(handle, j, false, &handle->m_devs[j].m_sn_next_event, &handle->m_devs[j].m_sn_len);
 
+			scap_update_snap(&handle->m_devs[j]);
 			handle->m_devs[j].m_sn_len = 0;
 		}
 	}
