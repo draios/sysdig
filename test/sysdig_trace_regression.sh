@@ -37,6 +37,11 @@ ret=0
 # Fields
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-n 1000" $TRACEDIR $RESULTDIR/default $BASELINEDIR/default || ret=1
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-n 1000 -pc" $TRACEDIR $RESULTDIR/containers $BASELINEDIR/containers || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-n 1000 -t h" $TRACEDIR $RESULTDIR/time_human $BASELINEDIR/time_human || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-n 1000 -t a" $TRACEDIR $RESULTDIR/time_absolute $BASELINEDIR/time_absolute || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-n 1000 -t r" $TRACEDIR $RESULTDIR/time_relative $BASELINEDIR/time_relative || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-n 1000 -t d" $TRACEDIR $RESULTDIR/delta_enter $BASELINEDIR/delta_enter || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-n 1000 -t D" $TRACEDIR $RESULTDIR/delta_previous $BASELINEDIR/delta_previous || ret=1
 # Category: CPU Usage
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopcontainers_cpu" $TRACEDIR $RESULTDIR/topcontainers_cpu $BASELINEDIR/topcontainers_cpu || ret=1
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopprocs_cpu" $TRACEDIR $RESULTDIR/topprocs_cpu $BASELINEDIR/topprocs_cpu || ret=1

@@ -1,10 +1,10 @@
 #compdef sysdig
 
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.90
+# 0.1.101
 
 # this must match fields_info.cpp
-local DESCRIPTION_TEXT_START=20
+local DESCRIPTION_TEXT_START=16
 
 # handles completion of filter fields
 function _filter () {
@@ -222,19 +222,13 @@ _arguments                                                                      
     '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                          \
     '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                              \
     '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                              \
-    '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                   \
-    '(-q --quiet)'{-q,--quiet}'[Do not print events on the screen]'                                             \
-    '(-S --summary)'{-S,--summary}'[Print the event summary when the capture ends]'                             \
-    '(-v --verbose)'{-v,--verbose}'[Verbose output]'                                                            \
-    '(-x --print-hex)'{-x,--print-hex}'[Print data buffers in hex]'                                             \
-    '(-X --print-hex-ascii)'{-X,--print-hex-ascii}'[Print data buffers in hex and ASCII]'                       \
-    '(-z --compress)'{-z,--compress}'[Enables compression for stored tracefiles]'                               \
+    '-N[Do not convert port numbers to names]'                                                                  \
     '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
+    '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                   \
     '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format' \
-    '-pp[Report the default printing format used if -p is omitted]'                                             \
+    '(-q --quiet)'{-q,--quiet}'[Do not print events on the screen]'                                             \
     '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
-    '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
-    '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files' \
+    '(-S --summary)'{-S,--summary}'[Print the event summary when the capture ends]'                             \
     '(-s --snaplen)'{-s,--snaplen=-}'[Capture the first <len> bytes of each I/O buffer]:Buffer length (bytes):' \
     '(-t --timetype)'{-t,--timetype=-}'[Change the way event time is displayed]:Time-reporting type:((          \
        h\:"human-readable string"                                                                               \
@@ -242,6 +236,13 @@ _arguments                                                                      
        r\:"relative time from capture start"                                                                    \
        d\:"delta between enter/exit"                                                                            \
        D\:"delta from previous event"))'                                                                        \
+    '(-v --verbose)'{-v,--verbose}'[Verbose output]'                                                            \
+    '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
+    '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files' \
+    '(-x --print-hex)'{-x,--print-hex}'[Print data buffers in hex]'                                             \
+    '(-X --print-hex-ascii)'{-X,--print-hex-ascii}'[Print data buffers in hex and ASCII]'                       \
+    '(-z --compress)'{-z,--compress}'[Enables compression for stored tracefiles]'                               \
+    '-pp[Report the default printing format used if -p is omitted]'                                             \
     '(-c --chisel)'{-c,--chisel}'[Run a given chisel]:Chisel:->chisel'                                          \
     '(-i --chisel-info)'{-i,--chisel-info}'[Get a detailed chisel description]:Chisel:->chisel' \
     '*:Filter or chisel argument:->filter_or_chiselarg' && return 0

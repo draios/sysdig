@@ -562,10 +562,23 @@ public:
 	  \note Sysdig can use the system library functions getservbyport and so to
 	   resolve protocol names and domain names.
 	  
-	  \param disable If set to false it will enable this function and use plain
+	  \param enable If set to false it will enable this function and use plain
 	   numerical values.
 	*/
 	void set_hostname_and_port_resolution_mode(bool enable);
+
+	/*!
+	  \brief Set the runtime flag for resolving the timespan in a human
+	   readable mode.
+
+	  \note Moved to the inspector due to sysdig#426 issue
+
+	  \param flag Can be 'h', 'a', 'r', 'd', 'D' as documented in the manual.
+	*/
+	inline void set_time_output_mode(char flag)
+	{
+		m_output_time_flag = flag;
+	}
 
 	/*!
 	  \brief Sets the max length of event argument strings. 
@@ -699,6 +712,7 @@ private:
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
 	bool m_hostname_and_port_resolution_enabled;
+	char m_output_time_flag;
 	uint32_t m_max_evt_output_len;
 	bool m_compress;
 	sinsp_evt m_evt;
@@ -834,6 +848,7 @@ private:
 	friend class sinsp_table;
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
+	friend class sinsp_filter_check_event;
 	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

@@ -92,6 +92,7 @@ sinsp::sinsp() :
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_hostname_and_port_resolution_enabled = true;
+	m_output_time_flag = 'h';
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
 	m_import_users = true;
@@ -704,6 +705,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	uint64_t ts = evt->get_ts();
 
+	if(m_firstevent_ts == 0)
+	{
+		m_firstevent_ts = ts;
+	}
+
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
@@ -755,12 +761,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	m_nevts++;
 	evt->m_evtnum = m_nevts;
 	m_lastevent_ts = ts;
-#ifdef HAS_FILTERING
-	if(m_firstevent_ts == 0)
-	{
-		m_firstevent_ts = m_lastevent_ts;
-	}
-#endif
 
 #ifndef HAS_ANALYZER
 	//

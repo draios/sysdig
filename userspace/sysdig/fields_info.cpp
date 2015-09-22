@@ -29,7 +29,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "sysdig.h"
 
+// Must match the value in the zsh tab completion
 #define DESCRIPTION_TEXT_START 16
+
+
 #define CONSOLE_LINE_LEN 79
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
