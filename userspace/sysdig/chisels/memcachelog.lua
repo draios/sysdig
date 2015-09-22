@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Chisel description
 description = "Show a log of memcached commands (get/set)"
 short_description = "memcached requests log"
-category = "Net"
+category = "Application"
 
 -- Chisel argument list
 args =
