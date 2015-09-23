@@ -1,5 +1,6 @@
 *.o
 *.ko
+*.ko.unsigned
 *.cmd
 *.symvers
 *.order
