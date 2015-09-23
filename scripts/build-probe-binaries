@@ -39,7 +39,7 @@ function build_sysdig {
 		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
 		if [ ! -d sysdig ]; then
-			git clone https://github.com/draios/sysdig.git
+			git clone git@github.com:draios/sysdig.git
 		fi
 
 		cd sysdig
@@ -68,11 +68,11 @@ function build_sysdigcloud {
 		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
 		if [ ! -d sysdig ]; then
-			git clone https://github.com/draios/sysdig.git
+			git clone git@github.com:draios/sysdig.git
 		fi
 
 		if [ ! -d agent ]; then
-			git clone https://github.com/draios/agent.git
+			git clone git@github.com:draios/agent.git
 		fi
 
 		cd sysdig
