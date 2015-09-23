@@ -31,16 +31,28 @@ static __always_inline uint32_t get_read_size(struct ppm_ring_buffer_info* const
 	}
 }
 
-//
-// Updates the current snap length, the next event pointer and the buffer read size
-// in order to advance the buffer reading.
-// Returns the new snap length.
-//
+///
+/// \brief updates the scap device data structure when the snap length reaches 0,
+///			also advancing the tail
+///
+/// Updates the current snap length, the next event pointer and the buffer read size
+/// in order to advance the buffer reading.
+/// Returns the new snap length.
+///
+/// This function assumes the snap length to be 0, indicating that all the events
+/// previously found in the buffer have been consumed.
+///
+/// Function invariants before call
+/// ( dev->m_bufinfo->tail + dev->m_lastreadsize ) % RING_BUF_SIZE ==
+/// ( dev->m_sn_next_event - dev->m_buffer ) % RING_BUF_SIZE
+/// and dev->m_sn_len == 0
+///
 static __always_inline int32_t scap_update_snap(scap_device* const dev)
 {
 	uint32_t ttail;
 	uint32_t read_size;
 
+	ASSERT(dev->m_sn_len == 0);
 	//
 	// Update the tail based on the amount of data read in the *previous* call.
 	// Tail is never updated when we serve the data, because we assume that the caller is using

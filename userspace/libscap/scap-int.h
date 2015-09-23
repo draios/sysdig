@@ -61,9 +61,18 @@ extern "C" {
 
 #ifndef HAVE_EXTERNAL_SCAP_READER
 
-//
-// The device descriptor
-//
+///
+/// \brief The device descriptor
+///
+/// for every event that is collected, m_sn_len is to be decremented
+/// of its length while m_sn_next_event is to be incremented.
+///
+/// The invariant that must ALWAYS hold is
+///
+/// ( dev->m_bufinfo->tail + dev->m_sn_len ) % RING_BUF_SIZE ==
+/// ( dev->m_sn_next_event - dev->m_buffer ) % RING_BUF_SIZE
+///
+/// where both sides of the equality represent the relative head position
 typedef struct scap_device
 {
 	int m_fd;
