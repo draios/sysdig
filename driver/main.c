@@ -48,6 +48,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <asm/asm-offsets.h>	/* For NR_syscalls */
 #include <asm/unistd.h>
 
+#include "driver_config.h"
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
 #include "ppm_events.h"
@@ -58,9 +59,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("sysdig inc");
-
-#define PPM_DEVICE_NAME "sysdig"
-#define PPE_DEVICE_NAME PPM_DEVICE_NAME "-events"
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2)
@@ -2023,7 +2021,7 @@ int sysdig_init(void)
 #else
 	struct class_device *device = NULL;
 #endif
-	pr_info("driver loading\n");
+	pr_info("driver loading, " PROBE_NAME " " PROBE_VERSION "\n");
 
 	ret = get_tracepoint_handles();
 	if (ret < 0)
@@ -2038,14 +2036,14 @@ int sysdig_init(void)
 	 * Initialize the user I/O
 	 * ( + 1 for sysdig-events)
 	 */
-	acrret = alloc_chrdev_region(&dev, 0, num_cpus + 1, PPM_DEVICE_NAME);
+	acrret = alloc_chrdev_region(&dev, 0, num_cpus + 1, PROBE_DEVICE_NAME);
 	if (acrret < 0) {
-		pr_err("could not allocate major number for %s\n", PPM_DEVICE_NAME);
+		pr_err("could not allocate major number for %s\n", PROBE_DEVICE_NAME);
 		ret = -ENOMEM;
 		goto init_module_err;
 	}
 
-	g_ppm_class = class_create(THIS_MODULE, PPM_DEVICE_NAME);
+	g_ppm_class = class_create(THIS_MODULE, PROBE_DEVICE_NAME);
 	if (IS_ERR(g_ppm_class)) {
 		pr_err("can't allocate device class\n");
 		ret = -EFAULT;
@@ -2073,7 +2071,7 @@ int sysdig_init(void)
 		g_ppm_devs[j].dev = MKDEV(g_ppm_major, j);
 
 		if (cdev_add(&g_ppm_devs[j].cdev, g_ppm_devs[j].dev, 1) < 0) {
-			pr_err("could not allocate chrdev for %s\n", PPM_DEVICE_NAME);
+			pr_err("could not allocate chrdev for %s\n", PROBE_DEVICE_NAME);
 			ret = -EFAULT;
 			goto init_module_err;
 		}
@@ -2086,11 +2084,11 @@ int sysdig_init(void)
 						g_ppm_class, NULL, /* no parent device */
 						g_ppm_devs[j].dev,
 						NULL, /* no additional data */
-						PPM_DEVICE_NAME "%d",
+						PROBE_DEVICE_NAME "%d",
 						j);
 
 		if (IS_ERR(device)) {
-			pr_err("error creating the device for  %s\n", PPM_DEVICE_NAME);
+			pr_err("error creating the device for  %s\n", PROBE_DEVICE_NAME);
 			cdev_del(&g_ppm_devs[j].cdev);
 			ret = -EFAULT;
 			goto init_module_err;
@@ -2104,7 +2102,7 @@ int sysdig_init(void)
 
 	g_ppe_cdev = cdev_alloc();
 	if (g_ppe_cdev == NULL) {
-		pr_err("error allocating the device %s\n", PPE_DEVICE_NAME);
+		pr_err("error allocating the device %s\n", PROBE_EVENT_DEVICE_NAME);
 		ret = -ENOMEM;
 		goto init_module_err;
 	}
@@ -2112,7 +2110,7 @@ int sysdig_init(void)
 	cdev_init(g_ppe_cdev, &g_ppe_fops);
 
 	if (cdev_add(g_ppe_cdev, MKDEV(g_ppm_major, g_ppm_numdevs), 1) < 0) {
-		pr_err("could not allocate chrdev for %s\n", PPE_DEVICE_NAME);
+		pr_err("could not allocate chrdev for %s\n", PROBE_EVENT_DEVICE_NAME);
 		ret = -EFAULT;
 		goto init_module_err;
 	}
@@ -2125,10 +2123,10 @@ int sysdig_init(void)
 			g_ppm_class, NULL,
 			MKDEV(g_ppm_major, g_ppm_numdevs),
 			NULL, /* no additional data */
-			PPE_DEVICE_NAME);
+			PROBE_EVENT_DEVICE_NAME);
 
 	if (IS_ERR(g_ppe_dev)) {
-		pr_err("error creating the device for %s\n", PPE_DEVICE_NAME);
+		pr_err("error creating the device for %s\n", PROBE_EVENT_DEVICE_NAME);
 		ret = -EFAULT;
 		goto init_module_err;
 	}
@@ -2137,7 +2135,7 @@ int sysdig_init(void)
 	 * Snaplen lookahead initialization
 	 */
 	if (dpi_lookahead_init() != PPM_SUCCESS) {
-		pr_err("initializing lookahead-based snaplen  %s\n", PPE_DEVICE_NAME);
+		pr_err("initializing lookahead-based snaplen  %s\n", PROBE_EVENT_DEVICE_NAME);
 		ret = -EFAULT;
 		goto init_module_err;
 	}

@@ -645,12 +645,12 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 
 	if(scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
 	{
-		tinfo->vtid = -1;
+		tinfo->vtid = tinfo->tid;
 	}
 
 	if(scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
 	{
-		tinfo->vpid = -1;
+		tinfo->vpid = tinfo->pid;
 	}
 
 	//

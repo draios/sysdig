@@ -20,7 +20,7 @@ cmake_minimum_required(VERSION 2.8.2)
 project(sysdig) 
 
 if(NOT DEFINED SYSDIG_VERSION)
-	set(SYSDIG_VERSION "0.1.1-dev")
+	set(SYSDIG_VERSION "0.1.1dev")
 endif()
 
 if(NOT DEFINED DIR_ETC)
@@ -30,6 +30,8 @@ endif()
 if(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
 endif()
+
+set(PACKAGE_NAME "sysdig")
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
@@ -47,6 +49,16 @@ if(NOT WIN32)
 	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fno-strict-aliasing -DNDEBUG")
 
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS} ${SYSDIG_FEATURE_FLAGS}")
+		else()
+			set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
+		endif()
+
+		set(PROBE_VERSION "${SYSDIG_VERSION}")
+		set(PROBE_NAME "sysdig-probe")
+		set(PROBE_DEVICE_NAME "sysdig")
+
 		add_subdirectory(driver)
 		add_definitions(-DHAS_CAPTURE)
 	endif()
@@ -260,8 +272,8 @@ add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
 
-set(CPACK_PACKAGE_NAME "sysdig")
-set(CPACK_PACKAGE_VENDOR "Draios Inc.")
+set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
+set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "sysdig, a system-level exploration and troubleshooting tool")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/scripts/description.txt")
 set(CPACK_PACKAGE_VERSION "${SYSDIG_VERSION}")

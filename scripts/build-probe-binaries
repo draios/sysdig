@@ -12,8 +12,9 @@ set -euo pipefail
 # at runtime.
 #
 
-SYSDIG_VERSION=$1
-REPOSITORY_NAME=$2
+PROBE_NAME=$1
+PROBE_VERSION=$2
+REPOSITORY_NAME=$3
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 
@@ -21,30 +22,79 @@ if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
 fi
 
+function build_probe {
+	if [ "$PROBE_NAME" = "sysdig-probe" ]; then
+		build_sysdig
+	elif [ "$PROBE_NAME" = "sysdigcloud-probe" ]; then
+		build_sysdigcloud
+	else
+		exit 1
+	fi
+}
+
 function build_sysdig {
 
-	if [ ! -f $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
-		# In ${FUNCNAME[1]} there's the name of the caller function so we can understand which OS we are building the kernel for
-		echo Building sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
+		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
-		if [ ! -f $SYSDIG_VERSION.tar.gz ]; then
-			wget https://github.com/draios/sysdig/archive/$SYSDIG_VERSION.tar.gz
+		if [ ! -d sysdig ]; then
+			git clone git@github.com:draios/sysdig.git
 		fi
 
-		rm -rf sysdig-$SYSDIG_VERSION
-		tar zxf $SYSDIG_VERSION.tar.gz
-		cd sysdig-$SYSDIG_VERSION
+		cd sysdig
+		git checkout master
+		git pull
+		git checkout $PROBE_VERSION
+		rm -rf build || true
 		mkdir build
 		cd build
-		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$SYSDIG_VERSION ..
+		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$PROBE_VERSION ..
 		make driver
-		strip -g driver/sysdig-probe.ko
-		cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
-		cp driver/sysdig-probe.ko $BASEDIR/output/sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
-
+		strip -g driver/$PROBE_NAME.ko
+		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
+		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
 	else
-		echo Skipping sysdig-probe-$SYSDIG_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko \(already built\)
+		echo Skipping $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko \(already built\)
+	fi
+
+	cd $BASEDIR
+}
+
+function build_sysdigcloud {
+
+	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+
+		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
+
+		if [ ! -d sysdig ]; then
+			git clone git@github.com:draios/sysdig.git
+		fi
+
+		if [ ! -d agent ]; then
+			git clone git@github.com:draios/agent.git
+		fi
+
+		cd sysdig
+		git checkout master
+		git pull
+		git checkout agent/$PROBE_VERSION
+		rm -rf build || true
+		cd ..
+		cd agent
+		git checkout master
+		git pull
+		git checkout $PROBE_VERSION
+		rm -rf build || true
+		mkdir build
+		cd build
+		cmake -DCMAKE_BUILD_TYPE=Release -DAGENT_VERSION=$PROBE_VERSION ..
+		make driver
+		strip -g driver/$PROBE_NAME.ko
+		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
+		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
+	else
+		echo Skipping $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko \(already built\)
 	fi
 
 	cd $BASEDIR
@@ -104,7 +154,7 @@ function coreos_build {
 	cd $BASEDIR
 
 	export KERNELDIR=$BASEDIR/$COREOS_DIR/$DIR_NAME
-	build_sysdig
+	build_probe
 }
 
 function boot2docker_build {
@@ -163,7 +213,7 @@ function boot2docker_build {
 	cd $BASEDIR
 
 	export KERNELDIR=$BASEDIR/$CONFIGURATION_NAME/$DIR_NAME
-	build_sysdig
+	build_probe
 }
 
 function ubuntu_build {
@@ -205,7 +255,7 @@ function ubuntu_build {
 		cd $BASEDIR
 		
 		export KERNELDIR=$BASEDIR/$KERNEL_FOLDER/$KERNEL_UPDATE/usr/src/linux-headers-$KERNEL_RELEASE
-		build_sysdig
+		build_probe
 	fi
 
 	cd $BASEDIR
@@ -246,7 +296,7 @@ function rhel_build {
 		cd $BASEDIR
 
 		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
-		build_sysdig
+		build_probe
 	fi
 
 	cd $BASEDIR

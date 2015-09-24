@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Chisel description
 description = "Show top HTTP requests by: ncalls, time or bytes";
 short_description = "Top HTTP requests";
-category = "Net";
+category = "Application";
 
 -- Chisel argument list
 args = {

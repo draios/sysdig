@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-DKMS_PACKAGE_NAME="sysdig"
-DKMS_VERSION="@SYSDIG_VERSION@"
+DKMS_PACKAGE_NAME="@PACKAGE_NAME@"
+DKMS_VERSION="@PROBE_VERSION@"
 
 postinst_found=0
 

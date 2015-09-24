@@ -1,17 +1,13 @@
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS} ${SYSDIG_FEATURE_FLAGS}")
-else()
-	set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
-endif()
-
 configure_file(dkms.conf.in dkms.conf)
 configure_file(Makefile.in Makefile.dkms)
+configure_file(driver_config.h.in driver_config.h)
 
 set(CLEAN_FILES
-	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile")
+	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile"
+	"${CMAKE_CURRENT_SOURCE_DIR}/driver_config.h")
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}")
 
@@ -20,16 +16,18 @@ set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}"
 # http://public.kitware.com/Bug/view.php?id=8438
 if(BUILD_DRIVER)
 	add_custom_target(driver ALL
-		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/driver_config.h driver_config.h
 		COMMAND $(MAKE)
-		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 else()
 	add_custom_target(driver
-		COMMAND cp -f ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/driver_config.h driver_config.h
 		COMMAND $(MAKE)
-		COMMAND cp -f sysdig-probe.ko "${CMAKE_CURRENT_BINARY_DIR}"
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 endif()
@@ -43,11 +41,13 @@ add_custom_target(install_driver
 if(ENABLE_DKMS)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
 		RENAME Makefile
-		DESTINATION "src/sysdig-${SYSDIG_VERSION}")
+		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
+		COMPONENT agent)
 
 	install(FILES
 		${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
 		dynamic_params_table.c
+		driver_config.h
 		event_table.c
 		flags_table.c
 		main.c
@@ -61,5 +61,6 @@ if(ENABLE_DKMS)
 		syscall_table.c
 		ppm_cputime.c
 		ppm_compat_unistd_32.h
-		DESTINATION "src/sysdig-${SYSDIG_VERSION}")
+		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
+		COMPONENT agent)
 endif()
