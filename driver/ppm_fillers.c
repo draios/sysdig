@@ -82,6 +82,7 @@ static int f_sys_recvfrom_e(struct event_filler_arguments *args);
 static int f_sys_recvfrom_x(struct event_filler_arguments *args);
 static int f_sys_recvmsg_e(struct event_filler_arguments *args);
 static int f_sys_recvmsg_x(struct event_filler_arguments *args);
+static int f_sys_socket_e(struct event_filler_arguments *args);
 static int f_sys_shutdown_e(struct event_filler_arguments *args);
 static int f_sys_pipe_x(struct event_filler_arguments *args);
 static int f_sys_eventfd_e(struct event_filler_arguments *args);
@@ -157,7 +158,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_WRITE_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {2} } },
 	[PPME_SYSCALL_WRITE_X] = {f_sys_write_x},
 	[PPME_PROCEXIT_1_E] = {f_sys_procexit_e},
-	[PPME_SOCKET_SOCKET_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
+	[PPME_SOCKET_SOCKET_E] = {f_sys_socket_e},
 	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
 	[PPME_SOCKET_SOCKETPAIR_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKETPAIR_X] = {f_sys_socketpair_x},
@@ -541,6 +542,254 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, 0, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
+
+	return add_sentinel(args);
+}
+
+static inline u32 socket_family_to_scap(unsigned long flags)
+{
+	switch (flags)
+	{
+		case AF_NFC:
+			return PPM_AF_NFC;
+		case AF_ALG:
+			return PPM_AF_ALG;
+		case AF_CAIF:
+			return PPM_AF_CAIF;
+		case AF_IEEE802154:
+			return PPM_AF_IEEE802154;
+		case AF_PHONET:
+			return PPM_AF_PHONET;
+		case AF_ISDN:
+			return PPM_AF_ISDN;
+		case AF_RXRPC:
+			return PPM_AF_RXRPC;
+		case AF_IUCV:
+			return PPM_AF_IUCV;
+		case AF_BLUETOOTH:
+			return PPM_AF_BLUETOOTH;
+		case AF_TIPC:
+			return PPM_AF_TIPC;
+		case AF_CAN:
+			return PPM_AF_CAN;
+		case AF_LLC:
+			return PPM_AF_LLC;
+		case AF_WANPIPE:
+			return PPM_AF_WANPIPE;
+		case AF_PPPOX:
+			return PPM_AF_PPPOX;
+		case AF_IRDA:
+			return PPM_AF_IRDA;
+		case AF_SNA:
+			return PPM_AF_SNA;
+		case AF_RDS:
+			return PPM_AF_RDS;
+		case AF_ATMSVC:
+			return PPM_AF_ATMSVC;
+		case AF_ECONET:
+			return PPM_AF_ECONET;
+		case AF_ASH:
+			return PPM_AF_ASH;
+		case AF_PACKET:
+			return PPM_AF_PACKET;
+		case AF_NETLINK:	/* alias of AF_ROUTE */
+			return PPM_AF_NETLINK;
+		case AF_KEY:
+			return PPM_AF_KEY;
+		case AF_SECURITY:
+			return PPM_AF_SECURITY;
+		case AF_NETBEUI:
+			return PPM_AF_NETBEUI;
+		case AF_DECnet:
+			return PPM_AF_DECnet;
+		case AF_ROSE:
+			return PPM_AF_ROSE;
+		case AF_INET6:
+			return PPM_AF_INET6;
+		case AF_X25:
+			return PPM_AF_X25;
+		case AF_ATMPVC:
+			return PPM_AF_ATMPVC;
+		case AF_BRIDGE:
+			return PPM_AF_BRIDGE;
+		case AF_NETROM:
+			return PPM_AF_NETROM;
+		case AF_APPLETALK:
+			return PPM_AF_APPLETALK;
+		case AF_IPX:
+			return PPM_AF_IPX;
+		case AF_AX25:
+			return PPM_AF_AX25;
+		case AF_INET:
+			return PPM_AF_INET;
+		case AF_LOCAL:	/* alias of AF_UNIX */
+			return PPM_AF_LOCAL;
+		default:
+			return PPM_AF_UNSPEC;
+	}
+}
+
+static inline u32 socket_type_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	switch (flags & SOCK_TYPE_MASK)
+	{
+		case SOCK_STREAM:
+			res |= PPM_SOCK_STREAM;
+			break;
+
+		case SOCK_DGRAM:
+			res |= PPM_SOCK_DGRAM;
+			break;
+
+		case SOCK_RAW:
+			res |= PPM_SOCK_RAW;
+			break;
+
+		case SOCK_RDM:
+			res |= PPM_SOCK_RDM;
+			break;
+
+		case SOCK_SEQPACKET:
+			res |= PPM_SOCK_SEQPACKET;
+			break;
+
+		case SOCK_DCCP:
+			res |= PPM_SOCK_DCCP;
+			break;
+
+		case SOCK_PACKET:
+			res |= PPM_SOCK_PACKET;
+			break;
+	}
+
+	if (flags & SOCK_CLOEXEC)
+		res |= PPM_SOCK_CLOEXEC;
+
+	if (flags & SOCK_NONBLOCK)
+		res |= PPM_SOCK_NONBLOCK;
+
+	return res;
+}
+
+static inline u32 inet_families_to_scap(unsigned long flags)
+{
+	switch (flags)
+	{
+		case IPPROTO_IP:
+			return PPM_IPPROTO_IP;
+		case IPPROTO_ICMP:
+			return PPM_IPPROTO_ICMP;
+		case IPPROTO_TCP:
+			return PPM_IPPROTO_TCP;
+		case IPPROTO_UDP:
+			return PPM_IPPROTO_UDP;
+		case IPPROTO_IGMP:
+			return PPM_IPPROTO_IGMP;
+
+#ifdef IPPROTO_GGP
+		case IPPROTO_GGP:
+			return PPM_IPPROTO_GGP;
+#endif
+
+		case IPPROTO_IPIP:
+			return PPM_IPPROTO_IPIP;
+		case IPPROTO_EGP:
+			return PPM_IPPROTO_EGP;
+		case IPPROTO_PUP:
+			return PPM_IPPROTO_PUP;
+		case IPPROTO_IDP:
+			return PPM_IPPROTO_IDP;
+		case IPPROTO_TP:
+			return PPM_IPPROTO_TP;
+		case IPPROTO_DCCP:
+			return PPM_IPPROTO_DCCP;
+		case IPPROTO_IPV6:
+			return PPM_IPPROTO_IPV6;
+		case IPPROTO_ROUTING:
+			return PPM_IPPROTO_ROUTING;
+		case IPPROTO_FRAGMENT:
+			return PPM_IPPROTO_FRAGMENT;
+		case IPPROTO_RSVP:
+			return PPM_IPPROTO_RSVP;
+		case IPPROTO_GRE:
+			return PPM_IPPROTO_GRE;
+		case IPPROTO_ESP:
+			return PPM_IPPROTO_ESP;
+		case IPPROTO_AH:
+			return PPM_IPPROTO_AH;
+		case IPPROTO_ICMPV6:
+			return PPM_IPPROTO_ICMPV6;
+		case IPPROTO_NONE:
+			return PPM_IPPROTO_NONE;
+		case IPPROTO_DSTOPTS:
+			return PPM_IPPROTO_DSTOPTS;
+
+#ifdef IPPROTO_HELLO
+		case IPPROTO_HELLO:
+			return PPM_IPPROTO_HELLO;
+#endif
+
+#ifdef IPPROTO_ND
+		case IPPROTO_ND:
+			return PPM_IPPROTO_ND;
+#endif
+
+		case IPPROTO_MTP:
+			return PPM_IPPROTO_MTP;
+		case IPPROTO_ENCAP:
+			return PPM_IPPROTO_ENCAP;
+		case IPPROTO_PIM:
+			return PPM_IPPROTO_PIM;
+		case IPPROTO_COMP:
+			return PPM_IPPROTO_COMP;
+		case IPPROTO_SCTP:
+			return PPM_IPPROTO_SCTP;
+		case IPPROTO_UDPLITE:
+			return PPM_IPPROTO_UDPLITE;
+		case IPPROTO_RAW:
+			return PPM_IPPROTO_RAW;
+		default:
+			return PPM_IPPROTO_UNSPEC;
+	}
+}
+
+static int f_sys_socket_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * Domain
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, socket_family_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, socket_type_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	printk(KERN_INFO "sysdig: check\n");
+
+	/*
+	 * Proto
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, inet_families_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	printk(KERN_INFO "proto ok\n");
 
 	return add_sentinel(args);
 }

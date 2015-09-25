@@ -79,6 +79,59 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_AF_NFC          39      /* NFC sockets                  */
 
 /*
+ * Socket types
+ */
+
+#define PPM_SOCK_UNSPEC		0
+#define PPM_SOCK_STREAM		1		/* Sequenced, reliable, connection-based byte streams. */
+#define PPM_SOCK_DGRAM		1 << 1	/* Connectionless, unreliable datagrams of fixed maximum length. */
+#define PPM_SOCK_RAW		1 << 2	/* Provides raw network protocol access. */
+#define PPM_SOCK_RDM		1 << 3	/* Provides a reliable datagram layer that does not guarantee ordering. */
+#define PPM_SOCK_SEQPACKET	1 << 4	/* Provides a sequenced, reliable, two-way connection-based data transmission path for datagrams of fixed maximum length; a consumer is required to read an entire packet with each input system call. */
+#define PPM_SOCK_DCCP		1 << 5	/* Datagram Congestion Control Protocol. */
+#define PPM_SOCK_PACKET		1 << 6	/* Obsolete. Linux specific way of getting packets at the dev level. For writing rarp and other similar things on the user level. */
+
+#define PPM_SOCK_CLOEXEC	(1 << 16)	/* Set the close-on-exec (FD_CLOEXEC) flag on the new file descriptor. */
+#define PPM_SOCK_NONBLOCK	(1 << 17)	/* Set the O_NONBLOCK file status flag on the new open file description. */
+
+/*
+ * Socket protocol
+ */
+
+#define PPM_IPPROTO_UNSPEC		0
+#define PPM_IPPROTO_IP			1
+#define PPM_IPPROTO_ICMP		2
+#define PPM_IPPROTO_TCP			3
+#define PPM_IPPROTO_UDP			4
+#define PPM_IPPROTO_IGMP		5
+#define PPM_IPPROTO_GGP			6
+#define PPM_IPPROTO_IPIP		7
+#define PPM_IPPROTO_EGP			8
+#define PPM_IPPROTO_PUP			9
+#define PPM_IPPROTO_IDP			10
+#define PPM_IPPROTO_TP			11
+#define PPM_IPPROTO_DCCP		12
+#define PPM_IPPROTO_IPV6		13
+#define PPM_IPPROTO_ROUTING		14
+#define PPM_IPPROTO_FRAGMENT	15
+#define PPM_IPPROTO_RSVP		16
+#define PPM_IPPROTO_GRE			17
+#define PPM_IPPROTO_ESP			18
+#define PPM_IPPROTO_AH			19
+#define PPM_IPPROTO_ICMPV6		20
+#define PPM_IPPROTO_NONE		21
+#define PPM_IPPROTO_DSTOPTS		22
+#define PPM_IPPROTO_HELLO		23
+#define PPM_IPPROTO_ND			24
+#define PPM_IPPROTO_MTP			25
+#define PPM_IPPROTO_ENCAP		26
+#define PPM_IPPROTO_PIM			27
+#define PPM_IPPROTO_COMP		28
+#define PPM_IPPROTO_SCTP		29
+#define PPM_IPPROTO_UDPLITE		30
+#define PPM_IPPROTO_RAW			31
+
+/*
  * File flags
  */
 #define PPM_O_NONE	0
@@ -1209,6 +1262,8 @@ struct ppm_syscall_desc {
 };
 
 extern const struct ppm_name_value socket_families[];
+extern const struct ppm_name_value socket_types[];
+extern const struct ppm_name_value inet_protocols[];
 extern const struct ppm_name_value file_flags[];
 extern const struct ppm_name_value flock_flags[];
 extern const struct ppm_name_value clone_flags[];
