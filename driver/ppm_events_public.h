@@ -100,36 +100,36 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define PPM_IPPROTO_UNSPEC		0
 #define PPM_IPPROTO_IP			1
-#define PPM_IPPROTO_ICMP		2
-#define PPM_IPPROTO_TCP			3
-#define PPM_IPPROTO_UDP			4
-#define PPM_IPPROTO_IGMP		5
-#define PPM_IPPROTO_GGP			6
-#define PPM_IPPROTO_IPIP		7
-#define PPM_IPPROTO_EGP			8
-#define PPM_IPPROTO_PUP			9
-#define PPM_IPPROTO_IDP			10
-#define PPM_IPPROTO_TP			11
-#define PPM_IPPROTO_DCCP		12
-#define PPM_IPPROTO_IPV6		13
-#define PPM_IPPROTO_ROUTING		14
-#define PPM_IPPROTO_FRAGMENT	15
-#define PPM_IPPROTO_RSVP		16
-#define PPM_IPPROTO_GRE			17
-#define PPM_IPPROTO_ESP			18
-#define PPM_IPPROTO_AH			19
-#define PPM_IPPROTO_ICMPV6		20
-#define PPM_IPPROTO_NONE		21
-#define PPM_IPPROTO_DSTOPTS		22
-#define PPM_IPPROTO_HELLO		23
-#define PPM_IPPROTO_ND			24
-#define PPM_IPPROTO_MTP			25
-#define PPM_IPPROTO_ENCAP		26
-#define PPM_IPPROTO_PIM			27
-#define PPM_IPPROTO_COMP		28
-#define PPM_IPPROTO_SCTP		29
-#define PPM_IPPROTO_UDPLITE		30
-#define PPM_IPPROTO_RAW			31
+#define PPM_IPPROTO_ICMP		1 << 1
+#define PPM_IPPROTO_TCP			1 << 2
+#define PPM_IPPROTO_UDP			1 << 3
+#define PPM_IPPROTO_IGMP		1 << 4
+#define PPM_IPPROTO_GGP			1 << 5
+#define PPM_IPPROTO_IPIP		1 << 6
+#define PPM_IPPROTO_EGP			1 << 7
+#define PPM_IPPROTO_PUP			1 << 8
+#define PPM_IPPROTO_IDP			1 << 9
+#define PPM_IPPROTO_TP			1 << 10
+#define PPM_IPPROTO_DCCP		1 << 11
+#define PPM_IPPROTO_IPV6		1 << 12
+#define PPM_IPPROTO_ROUTING		1 << 13
+#define PPM_IPPROTO_FRAGMENT	1 << 14
+#define PPM_IPPROTO_RSVP		1 << 15
+#define PPM_IPPROTO_GRE			1 << 16
+#define PPM_IPPROTO_ESP			1 << 17
+#define PPM_IPPROTO_AH			1 << 18
+#define PPM_IPPROTO_ICMPV6		1 << 19
+#define PPM_IPPROTO_NONE		1 << 20
+#define PPM_IPPROTO_DSTOPTS		1 << 21
+#define PPM_IPPROTO_HELLO		1 << 22
+#define PPM_IPPROTO_ND			1 << 23
+#define PPM_IPPROTO_MTP			1 << 24
+#define PPM_IPPROTO_ENCAP		1 << 25
+#define PPM_IPPROTO_PIM			1 << 26
+#define PPM_IPPROTO_COMP		1 << 27
+#define PPM_IPPROTO_SCTP		1 << 28
+#define PPM_IPPROTO_UDPLITE		1 << 29
+#define PPM_IPPROTO_RAW			1 << 30
 
 /*
  * File flags

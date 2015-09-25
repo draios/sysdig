@@ -63,7 +63,6 @@ const struct ppm_name_value socket_families[] = {
 };
 
 const struct ppm_name_value socket_types[] = {
-	{"SOCK_UNSPEC", PPM_SOCK_UNSPEC},
 	{"SOCK_STREAM", PPM_SOCK_STREAM},
 	{"SOCK_DGRAM", PPM_SOCK_DGRAM},
 	{"SOCK_RAW", PPM_SOCK_RAW},
@@ -73,11 +72,11 @@ const struct ppm_name_value socket_types[] = {
 	{"SOCK_PACKET", PPM_SOCK_PACKET},
 	{"SOCK_CLOEXEC", PPM_SOCK_CLOEXEC},
 	{"SOCK_NONBLOCK", PPM_SOCK_NONBLOCK},
+	{"SOCK_UNSPEC", PPM_SOCK_UNSPEC},
 	{ },
 };
 
 const struct ppm_name_value inet_protocols[] = {
-	{"IPPROTO_UNSPEC", PPM_IPPROTO_UNSPEC},
 	{"IPPROTO_IP", PPM_IPPROTO_IP},
 	{"IPPROTO_ICMP", PPM_IPPROTO_ICMP},
 	{"IPPROTO_TCP", PPM_IPPROTO_TCP},
@@ -109,6 +108,7 @@ const struct ppm_name_value inet_protocols[] = {
 	{"IPPROTO_SCTP", PPM_IPPROTO_SCTP},
 	{"IPPROTO_UDPLITE", PPM_IPPROTO_UDPLITE},
 	{"IPPROTO_RAW", PPM_IPPROTO_RAW},
+	{"IPPROTO_UNSPEC", PPM_IPPROTO_UNSPEC},
 	{ },
 };
 
