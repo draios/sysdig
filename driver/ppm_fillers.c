@@ -701,8 +701,12 @@ static inline u32 inet_families_to_scap(unsigned long flags)
 			return PPM_IPPROTO_PUP;
 		case IPPROTO_IDP:
 			return PPM_IPPROTO_IDP;
+
+#ifdef IPPROTO_TP
 		case IPPROTO_TP:
 			return PPM_IPPROTO_TP;
+#endif
+
 		case IPPROTO_DCCP:
 			return PPM_IPPROTO_DCCP;
 		case IPPROTO_IPV6:
@@ -736,10 +740,16 @@ static inline u32 inet_families_to_scap(unsigned long flags)
 			return PPM_IPPROTO_ND;
 #endif
 
+#ifdef IPPROTO_MTP
 		case IPPROTO_MTP:
 			return PPM_IPPROTO_MTP;
+#endif
+
+#ifdef IPPROTO_ENCAP
 		case IPPROTO_ENCAP:
 			return PPM_IPPROTO_ENCAP;
+#endif
+
 		case IPPROTO_PIM:
 			return PPM_IPPROTO_PIM;
 		case IPPROTO_COMP:
