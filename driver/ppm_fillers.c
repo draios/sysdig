@@ -767,7 +767,7 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 	for (;;) {
 		int len = dentry->d_name.len;
 
-		start -= len
+		start -= len;
 		if (start < buf)
 			return -ENAMETOOLONG;
 		memcpy(start, cgrp->dentry->d_name.name, len);
