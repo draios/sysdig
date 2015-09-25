@@ -788,8 +788,6 @@ static int f_sys_socket_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	printk(KERN_INFO "sysdig: check\n");
-
 	/*
 	 * Proto
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
@@ -798,8 +796,6 @@ static int f_sys_socket_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, inet_families_to_scap(val), 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
-
-	printk(KERN_INFO "proto ok\n");
 
 	return add_sentinel(args);
 }
