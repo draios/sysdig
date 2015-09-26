@@ -550,12 +550,22 @@ static inline u32 socket_family_to_scap(unsigned long flags)
 {
 	switch (flags)
 	{
+
+#ifdef AF_NFC
 		case AF_NFC:
 			return PPM_AF_NFC;
+#endif
+
+#ifdef AF_ALG
 		case AF_ALG:
 			return PPM_AF_ALG;
+#endif
+
+#ifdef
 		case AF_CAIF:
 			return PPM_AF_CAIF;
+#endif
+
 		case AF_IEEE802154:
 			return PPM_AF_IEEE802154;
 		case AF_PHONET:
