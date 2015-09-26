@@ -561,7 +561,7 @@ static inline u32 socket_family_to_scap(unsigned long flags)
 			return PPM_AF_ALG;
 #endif
 
-#ifdef
+#ifdef AF_CAIF
 		case AF_CAIF:
 			return PPM_AF_CAIF;
 #endif
