@@ -359,6 +359,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
 	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
 	[PPME_SYSCALL_PPOLL_X] = {f_sys_poll_x}, // exit same for poll() and ppoll()
+	[PPME_SYSCALL_MOUNT_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {1}, {2}, {3} } }, /* ignore arg 4 */
+	[PPME_SYSCALL_MOUNT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_UMOUNT_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
+	[PPME_SYSCALL_UMOUNT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 };
 
 /*

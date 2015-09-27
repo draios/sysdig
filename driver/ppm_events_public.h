@@ -177,6 +177,46 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_POLLWRBAND (1 << 10)
 
 /*
+ * mount() flags
+ */
+#define PPM_MS_RDONLY        1
+#define PPM_MS_NOSUID        2
+#define PPM_MS_NODEV         4
+#define PPM_MS_NOEXEC        8
+#define PPM_MS_SYNCHRONOUS  16
+#define PPM_MS_REMOUNT      32
+#define PPM_MS_MANDLOCK     64
+#define PPM_MS_DIRSYNC      128
+#define PPM_MS_NOATIME      1024
+#define PPM_MS_NODIRATIME   2048
+#define PPM_MS_BIND         4096
+#define PPM_MS_MOVE         8192
+#define PPM_MS_REC          16384
+#define PPM_MS_SILENT       32768
+#define PPM_MS_POSIXACL     (1<<16)
+#define PPM_MS_UNBINDABLE   (1<<17)
+#define PPM_MS_PRIVATE      (1<<18)
+#define PPM_MS_SLAVE        (1<<19)
+#define PPM_MS_SHARED       (1<<20)
+#define PPM_MS_RELATIME     (1<<21)
+#define PPM_MS_KERNMOUNT    (1<<22)
+#define PPM_MS_I_VERSION    (1<<23)
+#define PPM_MS_STRICTATIME  (1<<24)
+#define PPM_MS_LAZYTIME     (1<<25)
+#define PPM_MS_NOSEC        (1<<28)
+#define PPM_MS_BORN         (1<<29)
+#define PPM_MS_ACTIVE       (1<<30)
+#define PPM_MS_NOUSER       (1<<31)
+
+/*
+ * umount() flags
+ */
+#define PPM_MNT_FORCE       1
+#define PPM_MNT_DETACH      2
+#define PPM_MNT_EXPIRE      4
+#define PPM_UMOUNT_NOFOLLOW 8
+
+/*
  * shutdown() how
  */
 #define PPM_SHUT_RD 0
@@ -689,7 +729,11 @@ enum ppm_event_type {
 	PPME_SYSCALL_SEMCTL_X = 253,
 	PPME_SYSCALL_PPOLL_E = 254,
 	PPME_SYSCALL_PPOLL_X = 255,
-	PPM_EVENT_MAX = 256
+	PPME_SYSCALL_MOUNT_E = 256,
+	PPME_SYSCALL_MOUNT_X = 257,
+	PPME_SYSCALL_UMOUNT_E = 258,
+	PPME_SYSCALL_UMOUNT_X = 259,
+	PPM_EVENT_MAX = 260
 };
 /*@}*/
 
@@ -1215,6 +1259,8 @@ extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];
 extern const struct ppm_name_value lseek_whence[];
 extern const struct ppm_name_value poll_flags[];
+extern const struct ppm_name_value mount_flags[];
+extern const struct ppm_name_value umount_flags[];
 extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];

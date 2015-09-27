@@ -149,6 +149,49 @@ const struct ppm_name_value poll_flags[] = {
 	{0, 0},
 };
 
+/* http://lxr.free-electrons.com/source/include/uapi/linux/fs.h?v=4.2#L65 */
+const struct ppm_name_value mount_flags[] = {
+	{"RDONLY", PPM_MS_RDONLY},
+	{"NOSUID", PPM_MS_NOSUID},
+	{"NODEV", PPM_MS_NODEV},
+	{"NOEXEC", PPM_MS_NOEXEC},
+	{"SYNCHRONOUS", PPM_MS_SYNCHRONOUS},
+	{"REMOUNT", PPM_MS_REMOUNT},
+	{"MANDLOCK", PPM_MS_MANDLOCK},
+	{"DIRSYNC", PPM_MS_DIRSYNC},
+	{"NOATIME", PPM_MS_NOATIME},
+	{"NODIRATIME", PPM_MS_NODIRATIME},
+	{"BIND", PPM_MS_BIND},
+	{"MOVE", PPM_MS_MOVE},
+	{"REC", PPM_MS_REC},
+	{"SILENT", PPM_MS_SILENT},
+	{"POSIXACL", PPM_MS_POSIXACL},
+	{"UNBINDABLE", PPM_MS_UNBINDABLE},
+	{"PRIVATE", PPM_MS_PRIVATE},
+	{"SLAVE", PPM_MS_SLAVE},
+	{"SHARED", PPM_MS_SHARED},
+	{"RELATIME", PPM_MS_RELATIME},
+	{"KERNMOUNT", PPM_MS_KERNMOUNT},
+	{"I_VERSION", PPM_MS_I_VERSION},
+	{"STRICTATIME", PPM_MS_STRICTATIME},
+	{"LAZYTIME", PPM_MS_LAZYTIME},
+	/* 2 unassigned yet */
+	{"NOSEC", PPM_MS_NOSEC},
+	{"BORN", PPM_MS_BORN},
+	{"ACTIVE", PPM_MS_ACTIVE},
+	{"NOUSER", PPM_MS_NOUSER},
+	{ },
+};
+
+/* http://lxr.free-electrons.com/source/include/linux/fs.h?v=4.2#L1251 */
+const struct ppm_name_value umount_flags[] = {
+	{"FORCE", PPM_MNT_FORCE},
+	{"DETACH", PPM_MNT_DETACH},
+	{"EXPIRE", PPM_MNT_EXPIRE},
+	{"NOFOLLOW", PPM_UMOUNT_NOFOLLOW},
+	{ },
+};
+
 const struct ppm_name_value lseek_whence[] = {
 	{"SEEK_END", PPM_SEEK_END},
 	{"SEEK_CUR", PPM_SEEK_CUR},
