@@ -175,12 +175,11 @@ const struct ppm_name_value mount_flags[] = {
 	{"I_VERSION", PPM_MS_I_VERSION},
 	{"STRICTATIME", PPM_MS_STRICTATIME},
 	{"LAZYTIME", PPM_MS_LAZYTIME},
-	/* 2 unassigned yet */
 	{"NOSEC", PPM_MS_NOSEC},
 	{"BORN", PPM_MS_BORN},
 	{"ACTIVE", PPM_MS_ACTIVE},
 	{"NOUSER", PPM_MS_NOUSER},
-	{ },
+	{0, 0},
 };
 
 /* http://lxr.free-electrons.com/source/include/linux/fs.h?v=4.2#L1251 */
@@ -189,7 +188,7 @@ const struct ppm_name_value umount_flags[] = {
 	{"DETACH", PPM_MNT_DETACH},
 	{"EXPIRE", PPM_MNT_EXPIRE},
 	{"NOFOLLOW", PPM_UMOUNT_NOFOLLOW},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value lseek_whence[] = {

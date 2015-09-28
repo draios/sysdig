@@ -179,20 +179,21 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * mount() flags
  */
-#define PPM_MS_RDONLY        1
-#define PPM_MS_NOSUID        2
-#define PPM_MS_NODEV         4
-#define PPM_MS_NOEXEC        8
-#define PPM_MS_SYNCHRONOUS  16
-#define PPM_MS_REMOUNT      32
-#define PPM_MS_MANDLOCK     64
-#define PPM_MS_DIRSYNC      128
-#define PPM_MS_NOATIME      1024
-#define PPM_MS_NODIRATIME   2048
-#define PPM_MS_BIND         4096
-#define PPM_MS_MOVE         8192
-#define PPM_MS_REC          16384
-#define PPM_MS_SILENT       32768
+#define PPM_MS_RDONLY       (1<<0)
+#define PPM_MS_NOSUID       (1<<1)
+#define PPM_MS_NODEV        (1<<2)
+#define PPM_MS_NOEXEC       (1<<3)
+#define PPM_MS_SYNCHRONOUS  (1<<4)
+#define PPM_MS_REMOUNT      (1<<5)
+#define PPM_MS_MANDLOCK     (1<<6)
+#define PPM_MS_DIRSYNC      (1<<7)
+
+#define PPM_MS_NOATIME      (1<<10)
+#define PPM_MS_NODIRATIME   (1<<11)
+#define PPM_MS_BIND         (1<<12)
+#define PPM_MS_MOVE         (1<<13)
+#define PPM_MS_REC          (1<<14)
+#define PPM_MS_SILENT       (1<<15)
 #define PPM_MS_POSIXACL     (1<<16)
 #define PPM_MS_UNBINDABLE   (1<<17)
 #define PPM_MS_PRIVATE      (1<<18)
@@ -203,6 +204,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_MS_I_VERSION    (1<<23)
 #define PPM_MS_STRICTATIME  (1<<24)
 #define PPM_MS_LAZYTIME     (1<<25)
+
 #define PPM_MS_NOSEC        (1<<28)
 #define PPM_MS_BORN         (1<<29)
 #define PPM_MS_ACTIVE       (1<<30)
