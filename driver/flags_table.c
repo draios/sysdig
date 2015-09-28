@@ -174,7 +174,6 @@ const struct ppm_name_value mount_flags[] = {
 	{"I_VERSION", PPM_MS_I_VERSION},
 	{"STRICTATIME", PPM_MS_STRICTATIME},
 	{"LAZYTIME", PPM_MS_LAZYTIME},
-	/* 2 unassigned yet */
 	{"NOSEC", PPM_MS_NOSEC},
 	{"BORN", PPM_MS_BORN},
 	{"ACTIVE", PPM_MS_ACTIVE},
