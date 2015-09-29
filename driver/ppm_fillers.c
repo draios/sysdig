@@ -138,6 +138,7 @@ static int f_sys_semop_x(struct event_filler_arguments *args);
 static int f_sys_semctl_e(struct event_filler_arguments *args);
 static int f_sys_semctl_x(struct event_filler_arguments *args);
 static int f_sys_ppoll_e(struct event_filler_arguments *args);
+static int f_sys_mount_e(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -359,6 +360,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
 	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
 	[PPME_SYSCALL_PPOLL_X] = {f_sys_poll_x}, // exit same for poll() and ppoll()
+	[PPME_SYSCALL_MOUNT_E] = {f_sys_mount_e},
+	[PPME_SYSCALL_MOUNT_X] = {PPM_AUTOFILL, 4, APT_REG, {{AF_ID_RETVAL}, {0}, {1}, {2} } },
+	[PPME_SYSCALL_UMOUNT_E] = {PPM_AUTOFILL, 1, APT_REG, {{1} } },
+	[PPME_SYSCALL_UMOUNT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 };
 
 /*
@@ -2716,6 +2721,28 @@ static int f_sys_poll_x(struct event_filler_arguments *args)
 		return res;
 
 	res = poll_parse_fds(args, false);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+#define PPM_MS_MGC_MSK 0xffff0000
+#define PPM_MS_MGC_VAL 0xC0ED0000
+
+static int f_sys_mount_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * Fix mount flags in arg 3.
+	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	if ((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
+		val &= ~PPM_MS_MGC_MSK;
+	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
