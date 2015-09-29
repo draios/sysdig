@@ -482,12 +482,12 @@ uint32_t scap_get_ndevs(scap_t* handle)
 
 #ifndef HAVE_EXTERNAL_SCAP_READER
 #include "scap_next.h"
-#endif
-
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	return scap_next_main(handle, pevent, pcpuid);
 }
+#endif
+
 
 
 //
@@ -546,12 +546,14 @@ int32_t scap_stop_capture(scap_t* handle)
 	//
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
+		scap_stop_capture_pre(handle, j);
 		if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_stop_capture failed for device %" PRIu32, j);
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
+		scap_stop_capture_post(handle, j);
 	}
 
 	return SCAP_SUCCESS;

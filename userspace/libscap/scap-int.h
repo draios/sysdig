@@ -125,6 +125,9 @@ static inline void scap_handle_late_init(scap_t* const handle)
 // Read the full event buffer for the given processor
 int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
 
+#define scap_stop_capture_pre(handle, j)
+#define scap_stop_capture_post(handle, j)
+
 #else
 #include "scap_external.h"
 #endif
