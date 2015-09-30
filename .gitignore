@@ -1,5 +1,6 @@
 *.o
 *.ko
+*.ko.unsigned
 *.cmd
 *.symvers
 *.order
@@ -7,3 +8,4 @@
 *.mod.c
 build/
 driver/Makefile
+driver/driver_config.h

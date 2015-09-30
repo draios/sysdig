@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include<linux/version.h>
+#include <linux/version.h>
 
 /*
  * Our Own ASSERT implementation, so we can easily switch among BUG_ON, WARN_ON and nothing
@@ -124,6 +124,11 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+extern const struct syscall_evt_pair g_syscall_ia32_table[];
+extern const enum ppm_syscall_code g_syscall_ia32_code_routing_table[];
+#endif
 
 #define PPM_PORT_MYSQL 3306
 #define PPM_PORT_POSTGRES 5432

@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 partial_transactions = {}
 
 function http_init()
-    chisel.set_filter("evt.is_io = true and evt.buflen.net > 0 and fd.sockfamily = ip")
+    chisel.set_filter("evt.is_io = true and evt.buflen > 0 and (fd.sockfamily = ip or fd.sockfamily = unix)")
     buffer_field = chisel.request_field("evt.buffer")
     fd_field = chisel.request_field("fd.num")
     pid_field = chisel.request_field("proc.pid")
