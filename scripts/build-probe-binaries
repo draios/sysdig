@@ -52,6 +52,13 @@ function build_sysdig {
 		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$PROBE_VERSION ..
 		make driver
 		strip -g driver/$PROBE_NAME.ko
+
+		KO_VERSION=$(/sbin/modinfo driver/$PROBE_NAME.ko | grep vermagic | tr -s " " | cut -d " " -f 2)
+		if [ "$KO_VERSION" != "$KERNEL_RELEASE" ]; then
+			echo "Corrupted probe, KO_VERSION " $KO_VERSION ", KERNEL_RELEASE " $KERNEL_RELEASE
+			exit 1
+		fi
+
 		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
 		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
 	else
@@ -91,6 +98,13 @@ function build_sysdigcloud {
 		cmake -DCMAKE_BUILD_TYPE=Release -DAGENT_VERSION=$PROBE_VERSION ..
 		make driver
 		strip -g driver/$PROBE_NAME.ko
+
+		KO_VERSION=$(/sbin/modinfo driver/$PROBE_NAME.ko | grep vermagic | tr -s " " | cut -d " " -f 2)
+		if [ "$KO_VERSION" != "$KERNEL_RELEASE" ]; then
+			echo "Corrupted probe, KO_VERSION " $KO_VERSION ", KERNEL_RELEASE " $KERNEL_RELEASE
+			exit 1
+		fi
+
 		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
 		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
 	else
