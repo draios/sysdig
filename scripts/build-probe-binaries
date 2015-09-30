@@ -46,6 +46,7 @@ function build_sysdig {
 		git checkout master
 		git pull
 		git checkout $PROBE_VERSION
+		make -C driver clean
 		rm -rf build || true
 		mkdir build
 		cd build
@@ -86,6 +87,7 @@ function build_sysdigcloud {
 		git checkout master
 		git pull
 		git checkout agent/$PROBE_VERSION
+		make -C driver clean
 		rm -rf build || true
 		cd ..
 		cd agent
