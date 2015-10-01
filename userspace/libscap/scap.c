@@ -682,6 +682,7 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle)
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 {
+	int32_t res;
 	//
 	// Not supported on files
 	//
@@ -698,7 +699,10 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 	//
 	// Tell the driver to change the snaplen
 	//
-	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SNAPLEN, snaplen))
+	scap_set_snaplen_pre(handle, snaplen);
+	res = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SNAPLEN, snaplen);
+	scap_set_snaplen_post(handle, snaplen);
+	if(res)
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_snaplen failed");
 		ASSERT(false);
