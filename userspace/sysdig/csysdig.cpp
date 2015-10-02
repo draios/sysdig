@@ -518,13 +518,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					open_success = false;
 				}
-#else
-				//
-				// Starting live capture
-				// If this fails on Windows and OSX, don't try with any driver
-				//
-				inspector->open("");
-#endif
 
 				//
 				// Starting the live capture failed, try to load the driver with
@@ -541,6 +534,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 					inspector->open("");
 				}
+#else
+				//
+				// Starting live capture
+				// If this fails on Windows and OSX, don't try with any driver
+				//
+				inspector->open("");
+#endif
 
 				//
 				// Enable gathering the CPU from the kernel module
