@@ -2130,12 +2130,20 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 			else
 			{
 				*should_drop = true;
-				return dflags;
 			}
 		}
 		else
 		{
 			*should_drop = true;
+		}
+
+		if(*should_drop)
+		{
+			ppm_event_category ecat = get_info_category();
+			if(ecat & EC_INTERNAL)
+			{
+				*should_drop = false;
+			}
 		}
 	}
 
