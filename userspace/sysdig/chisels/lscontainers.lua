@@ -63,6 +63,12 @@ function on_capture_start()
 		return true
 end
 
+-- Event parsing callback
+function on_event()
+	sysdig.end_capture()
+	return true
+end
+
 -- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end(ts_s, ts_ns, delta)
 		if not capturing then
