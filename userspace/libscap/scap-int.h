@@ -131,7 +131,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** bu
 #define scap_set_snaplen_post(handle, len)
 
 #else
-#include <scap_external.h>
+#include <scap_external_int.h>
 #endif
 
 struct scap_ns_socket_list
