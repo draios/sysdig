@@ -546,7 +546,74 @@ void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT vo
 		}
 		else
 		{
-			throw sinsp_exception("view_info column entries must be strings");
+			throw sinsp_exception("view_info column entries must be tables");
+		}
+
+		lua_pop(ls, 1);
+	}
+}
+
+void sinsp_chisel::parse_view_hotkey(lua_State *ls, OUT chisel_desc* cd, OUT void* hotkeys)
+{
+	vector<sinsp_view_hotkey_info>* keys = (vector<sinsp_view_hotkey_info>*)hotkeys;
+
+	lua_pushnil(ls);
+
+	char key;
+	string command;
+	string description;
+	string tmpstr;
+
+	while(lua_next(ls, -2) != 0)
+	{
+		string fldname = lua_tostring(ls, -2);
+
+		if(fldname == "key")
+		{
+			tmpstr = lua_tostring(ls, -1);
+			if(tmpstr.size() == 1)
+			{
+				key = tmpstr[0];
+			}
+			else
+			{
+				throw sinsp_exception("hotkey 'key' fileld must be a single character string");
+			}
+		}
+		else if(fldname == "command")
+		{
+			command = lua_tostring(ls, -1);
+		}
+		else if(fldname == "description")
+		{
+			description = lua_tostring(ls, -1);
+		}
+
+		lua_pop(ls, 1);
+	}
+
+	keys->push_back(sinsp_view_hotkey_info(key, 
+		command,
+		description));
+}
+
+void sinsp_chisel::parse_view_hotkeys(lua_State *ls, OUT chisel_desc* cd, OUT void* hotkeys)
+{
+	string name;
+	string type;
+	string desc;
+
+	lua_pushnil(ls);
+
+	while(lua_next(ls, -2) != 0)
+	{
+		if(lua_istable(ls, -1))
+		{
+			parse_view_hotkey(ls, cd, hotkeys);
+		}
+		else
+		{
+			throw sinsp_exception("view_info hotkey entries must be tables");
 		}
 
 		lua_pop(ls, 1);
@@ -573,6 +640,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	bool use_defaults = false;
 	sinsp_view_info::viewtype vt = sinsp_view_info::T_TABLE;
 	vector<sinsp_view_column_info> columns;
+	vector<sinsp_view_hotkey_info> hotkeys;
 	vector<string> tags;
 	vector<string> tips;
 	string drilldown_target;
@@ -730,6 +798,17 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
+		else if(fldname == "hotkeys")
+		{
+			if(lua_istable(ls, -1))
+			{
+				parse_view_hotkeys(ls, cd, &hotkeys);
+			}
+			else
+			{
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
+			}
+		}
 
 		lua_pop(ls, 1);
 	}
@@ -745,7 +824,8 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		filter,
 		drilldown_target,
 		use_defaults,
-		is_root);
+		is_root,
+		hotkeys);
 
 	return true;
 }
