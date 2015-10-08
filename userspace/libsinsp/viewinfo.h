@@ -75,6 +75,26 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// Hotkey information
+///////////////////////////////////////////////////////////////////////////////
+class sinsp_view_hotkey_info
+{
+public:
+	sinsp_view_hotkey_info(char key,
+		string command,
+		string description)
+	{
+		m_key = key;
+		m_command = command;
+		m_description = description;
+	}
+
+	char m_key;
+	string m_command;
+	string m_description;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // View information
 ///////////////////////////////////////////////////////////////////////////////
 class sinsp_view_info
@@ -100,7 +120,8 @@ public:
 		string filter,
 		string drilldown_target,
 		bool use_defaults,
-		bool is_root);
+		bool is_root,
+		vector<sinsp_view_hotkey_info> hotkeys);
 
 	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
 	viewtype get_type()
@@ -130,6 +151,7 @@ public:
 	bool m_valid;
 	string m_drilldown_target;
 	bool m_is_root;
+	vector<sinsp_view_hotkey_info> m_hotkeys;
 
 private:
 	void set_sorting_col();
