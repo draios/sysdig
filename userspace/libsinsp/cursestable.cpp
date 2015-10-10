@@ -529,7 +529,42 @@ render_end:
 	m_parent->render();
 	refresh();
 }
-	
+
+string curses_table::get_field_val(string fldname)
+{
+	uint32_t j;
+	vector<sinsp_table_field>* row;
+	string res;
+
+	row = &(m_data->at(m_selct).m_values);
+
+	for(j = 1; j < m_parent->m_datatable->m_postmerge_legend.size(); j++)
+	{
+		auto le = m_parent->m_datatable->m_postmerge_legend[j];
+
+		if(le.m_name == fldname)
+		{
+			uint32_t k = j - 1;
+			m_converter->set_val(m_legend[k].m_info.m_type, 
+				row->at(k).m_val, 
+				row->at(k).m_len,
+				row->at(k).m_cnt,
+				m_legend[k].m_info.m_print_format);
+
+			res = m_converter->tostring_nice(NULL, 0, 0);
+
+			break;
+		}
+	}
+
+	if(j == m_parent->m_datatable->m_postmerge_legend.size())
+	{
+		throw sinsp_exception("field: " + fldname + " not found in this view");
+	}
+
+	return res;
+}
+
 //
 // Return false if the user wants us to exit
 //
@@ -539,6 +574,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 	{
 		return STA_PARENT_HANDLE;
 	}
+
 
 	switch(ch)
 	{
@@ -699,6 +735,117 @@ sysdig_table_action curses_table::handle_input(int ch)
 			break;
 		default:
 			break;
+	}
+
+	//
+	// Check if this view has any action configured, and if yes find if this key
+	// is one of the view hotkeys
+	//
+	sinsp_view_info* vinfo = m_parent->get_selected_view();
+
+	for(auto hk : vinfo->m_actions)
+	{
+		if(hk.m_hotkey == ch)
+		{
+			string resolved_command;
+			bool replacing = false;
+			string fld_to_replace;
+
+			//
+			// Scan the command string and replace the field names with the values from the selection
+			//
+			for(uint32_t j = 0; j < hk.m_command.size(); j++)
+			{
+				char sc = hk.m_command[j];
+
+				if(sc == '%')
+				{
+					fld_to_replace = "";
+
+					if(replacing)
+					{
+						throw sinsp_exception("the following command has the wrong syntax: " + hk.m_command);
+					}
+
+					replacing = true;
+				}
+				else
+				{
+					if(replacing)
+					{
+						if(sc == ' ' || sc == '\t' || sc == '0')
+						{
+							replacing = false;
+							string val = get_field_val(fld_to_replace);
+							resolved_command += val;
+							resolved_command += sc;
+						}
+						else
+						{
+							fld_to_replace += sc;
+						}
+					}
+					else
+					{
+						resolved_command += sc;
+					}
+				}
+			}
+
+			if(replacing)
+			{
+				string  val = get_field_val(fld_to_replace);
+				resolved_command += val;
+			}
+
+			g_logger.format("running command: %s", resolved_command.c_str());
+
+			sinsp_table_field* rowkey = m_parent->m_datatable->get_row_key(m_selct);
+/*
+			curs_set(1);
+			clear();
+			move(1, 0);
+			refresh();
+
+			reset_shell_mode();
+*/
+			//
+			// Exit curses mode
+			//
+			endwin();
+
+			//
+			// Run the command
+			//
+			int sret = system(resolved_command.c_str());
+			if(sret == -1)
+			{
+				g_logger.format("command failed");
+			}
+
+			printf("Command finished. Press enter to return to csysdig.");
+			fflush(stdout);
+
+			//
+			// Wait for the enter key
+			// 
+			while(getch() == -1)
+			{
+				usleep(10000);
+			}
+
+			//
+			// Empty the keyboard buffer
+			//
+			while(getch() != -1);
+
+			//
+			// Reenter curses mode
+			//
+			reset_prog_mode();
+
+			return STA_NONE;
+		}
 	}
 
 	return STA_PARENT_HANDLE;

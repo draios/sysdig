@@ -120,5 +120,5 @@ view_info =
 			aggregation = "MAX",
 			colsize = 0
 		}
-	}
+	},
 }

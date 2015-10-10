@@ -57,6 +57,7 @@ private:
 	alignment get_field_alignment(ppm_param_type type);
 	void print_error(string wstr);
 	void print_wait();
+	string get_field_val(string fldname);
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;
