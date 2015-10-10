@@ -133,8 +133,8 @@ private:
 	static sinsp_field_aggregation string_to_aggregation(string ag);
 	static void parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
 	static void parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
-	static void parse_view_hotkey(lua_State *ls, OUT chisel_desc* cd, OUT void* hotkeys);
-	static void parse_view_hotkeys(lua_State *ls, OUT chisel_desc* cd, OUT void* hotkeys);
+	static void parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT void* actions);
+	static void parse_view_actions(lua_State *ls, OUT chisel_desc* cd, OUT void* actions);
 	static bool parse_view_info(lua_State *ls, OUT chisel_desc* cd);
 	static bool init_lua_chisel(chisel_desc &cd, string const &path);
 	void first_event_inits(sinsp_evt* evt);

@@ -113,5 +113,23 @@ view_info =
 			description = "Name of the container.",
 			colsize = 0
 		},
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "a",
+			command = "docker attach %container.id",
+			description = "attach"
+		},
+		{
+			hotkey = "l",
+			command = "docker logs %container.id",
+			description = "logs"
+		},
+		{
+			hotkey = "b",
+			command = "docker exec -i -t %container.id /bin/bash",
+			description = "logs"
+		},
+	},
 }
