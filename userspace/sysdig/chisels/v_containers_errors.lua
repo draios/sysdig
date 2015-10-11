@@ -75,10 +75,69 @@ view_info =
 			groupby_aggregation = "SUM"
 		},
 		{
+			name = "ID",
+			field = "container.id",
+			description = "Container ID. The format of this column depends on the containerization technology. For example, Docker ID are 12 characters hexadecimal digit strings.",
+			colsize = 13
+		},
+		{
 			name = "Container",
 			field = "container.name",
 			description = "Name of the container. What this field contains depends on the containerization technology. For example, for docker this is the content of the 'NAMES' column in 'docker ps'",
 			colsize = 0
 		}
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "a",
+			command = "docker attach %container.id",
+			description = "Docker Attach"
+		},
+		{
+			hotkey = "b",
+			command = "docker exec -i -t %container.id /bin/bash",
+			description = "Bash Shell"
+		},
+		{
+			hotkey = "h",
+			command = "docker history %container.image",
+			description = "Image History"
+		},
+		{
+			hotkey = "i",
+			command = "docker inspect %container.id",
+			description = "Docker Inspect"
+		},
+		{
+			hotkey = "k",
+			command = "docker kill %container.id",
+			description = "Kill"
+		},
+		{
+			hotkey = "l",
+			command = "docker logs %container.id",
+			description = "Logs"
+		},
+		{
+			hotkey = "s",
+			command = "docker stats %container.id",
+			description = "Stop"
+		},
+		{
+			hotkey = "u",
+			command = "docker unpause %container.id",
+			description = "Unpause Container"
+		},
+		{
+			hotkey = "w",
+			command = "docker wait %container.id",
+			description = "Wait Container"
+		},
+		{
+			hotkey = "z",
+			command = "docker pause %container.id",
+			description = "Pause Container"
+		},
+	},
 }
