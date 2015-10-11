@@ -1788,7 +1788,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		}
 	}
 
-	if(m_view_sidemenu)
+	if(m_view_sidemenu != NULL)
 	{
 		ASSERT(m_action_sidemenu == NULL);
 
@@ -1810,21 +1810,35 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	}
 	else
 	{
-		sysdig_table_action ta = m_action_sidemenu->handle_input(ch);
-		if(ta == STA_SWITCH_VIEW)
+		if(m_action_sidemenu != NULL)
 		{
-			sinsp_view_info* vinfo = get_selected_view();
+			sysdig_table_action ta = m_action_sidemenu->handle_input(ch);
+			if(ta == STA_SWITCH_VIEW)
+			{
+				sinsp_view_info* vinfo = get_selected_view();
 
-			g_logger.format("running action %d %s", m_selected_action_sidemenu_entry,
-				vinfo->m_name.c_str());
-			ASSERT(m_selected_action_sidemenu_entry < vinfo->m_actions.size());
-			run_action(&vinfo->m_actions[m_selected_action_sidemenu_entry]);
+				g_logger.format("running action %d %s", m_selected_action_sidemenu_entry,
+					vinfo->m_name.c_str());
+				ASSERT(m_selected_action_sidemenu_entry < vinfo->m_actions.size());
+				run_action(&vinfo->m_actions[m_selected_action_sidemenu_entry]);
 
-			return ta;
-		}
-		else if(ta != STA_PARENT_HANDLE)
-		{
-			return STA_NONE;
+				return ta;
+			}
+			else if(ta == STA_DESTROY_CHILD)
+			{
+				m_viz->set_x_start(0);
+				delete m_action_sidemenu;
+				m_action_sidemenu = NULL;
+				m_viz->set_x_start(0);
+				m_viz->recreate_win(m_screenh - 3);
+				m_viz->render(true);
+				m_viz->render(true);
+				render();				
+			}
+			else if(ta != STA_PARENT_HANDLE)
+			{
+				return STA_NONE;
+			}
 		}
 	}
 
@@ -2223,7 +2237,7 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 		g_logger.format("command failed");
 	}
 
-	printf("Command finished. Press enter to return to csysdig.");
+	printf("Command finished. Press ENTER to return to csysdig.");
 	fflush(stdout);
 
 	//
