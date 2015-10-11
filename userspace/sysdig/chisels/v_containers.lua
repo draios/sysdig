@@ -124,12 +124,12 @@ view_info =
 		{
 			hotkey = "l",
 			command = "docker logs %container.id",
-			description = "logs"
+			description = "logz"
 		},
 		{
 			hotkey = "b",
 			command = "docker exec -i -t %container.id /bin/bash",
-			description = "logs"
+			description = "exec bash"
 		},
 	},
 }

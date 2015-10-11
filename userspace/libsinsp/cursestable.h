@@ -47,7 +47,8 @@ public:
 	void goto_row(int32_t row);
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
 	void follow_end();
-
+	string get_field_val(string fldname);
+	
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
 	bool m_selection_changed;
@@ -57,7 +58,6 @@ private:
 	alignment get_field_alignment(ppm_param_type type);
 	void print_error(string wstr);
 	void print_wait();
-	string get_field_val(string fldname);
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;

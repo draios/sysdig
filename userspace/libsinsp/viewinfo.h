@@ -136,6 +136,8 @@ public:
 
 	void apply_tag(string tag);
 
+	void run_action(sinsp_view_action_info* action);
+
 	string m_id;
 	string m_name;
 	string m_description;

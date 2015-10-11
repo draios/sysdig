@@ -183,7 +183,7 @@ void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_table_sidemenu implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_table_sidemenu::curses_table_sidemenu(sinsp_cursesui* parent)
+curses_table_sidemenu::curses_table_sidemenu(sidemenu_type type, sinsp_cursesui* parent, uint32_t selct)
 {
 	ASSERT(parent != NULL);
 	m_parent = parent;
@@ -191,9 +191,9 @@ curses_table_sidemenu::curses_table_sidemenu(sinsp_cursesui* parent)
 	m_w = SIDEMENU_WIDTH;
 	m_y_start = TABLE_Y_START;
 	m_win = newwin(m_h, m_w, m_y_start, 0);
-	m_selct = m_parent->m_selected_sidemenu_entry;
+	m_selct = selct;
 	m_selct_ori = m_selct;
-	m_entries = NULL;
+	m_type = type;
 }
 
 curses_table_sidemenu::~curses_table_sidemenu()
@@ -205,7 +205,7 @@ void curses_table_sidemenu::render()
 {
 	int32_t j, k;
 
-	ASSERT(m_entries != NULL);
+	ASSERT(m_entries.size() != 0);
 
 	//
 	// Render window header
@@ -229,7 +229,7 @@ void curses_table_sidemenu::render()
 	//
 	// Render the rows
 	//
-	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_entries->size()); j++)
+	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_entries.size()); j++)
 	{
 		if(j == m_selct)
 		{
@@ -248,7 +248,7 @@ void curses_table_sidemenu::render()
 		}
 
 		// add the new line
-		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries->at(j).m_name.c_str(), m_w);
+		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries.at(j).m_name.c_str(), m_w);
 
 		// white space at the right
 		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
@@ -268,10 +268,10 @@ void curses_table_sidemenu::update_view_info()
 	{
 		delete m_parent->m_viewinfo_page;
 
-		ASSERT(m_selct < (int32_t)m_entries->size());
+		ASSERT(m_selct < (int32_t)m_entries.size());
 
 		m_parent->m_viewinfo_page = new curses_viewinfo_page(m_parent,
-			m_entries->at(m_selct).m_id,
+			m_entries.at(m_selct).m_id,
 			TABLE_Y_START,
 			SIDEMENU_WIDTH,
 			m_parent->m_screenh - TABLE_Y_START - 1,
@@ -299,33 +299,51 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case '\n':
 		case '\r':
 		case KEY_ENTER:
-			ASSERT(m_selct < (int32_t)m_entries->size());
-			if(m_parent->m_spy_box == NULL)
+			ASSERT(m_selct < (int32_t)m_entries.size());
+			if(m_type == ST_VIEWS)
 			{
-				m_parent->m_selected_view = m_entries->at(m_selct).m_id;
+				if(m_parent->m_spy_box == NULL)
+				{
+					m_parent->m_selected_view = m_entries.at(m_selct).m_id;
+				}
+
+				m_parent->m_selected_view_sidemenu_entry = m_selct;
 			}
-			m_parent->m_selected_sidemenu_entry = m_selct;
+			else
+			{
+				m_parent->m_selected_action_sidemenu_entry = m_selct;
+			}
+
 			return STA_SWITCH_VIEW;
 		case KEY_BACKSPACE:
 		case 127:
 		case 27: // ESC
 		case KEY_RESIZE:
-			ASSERT(m_selct < (int32_t)m_entries->size());
+			ASSERT(m_selct < (int32_t)m_entries.size());
 			if(m_parent->m_spy_box == NULL)
 			{
-				m_parent->m_selected_view = m_entries->at(m_selct).m_id;
+				m_parent->m_selected_view = m_entries.at(m_selct).m_id;
 			}
-			m_parent->m_selected_sidemenu_entry = m_selct_ori;
+
+			if(m_type == ST_VIEWS)
+			{
+				m_parent->m_selected_view_sidemenu_entry = m_selct_ori;
+			}
+			else
+			{
+				m_parent->m_selected_action_sidemenu_entry = m_selct_ori;
+			}
+
 			return STA_SWITCH_VIEW;
 		case KEY_UP:
-			if(m_entries->size() == 0)
+			if(m_entries.size() == 0)
 			{
 				return STA_NONE;
 			}
 
 			prev_select = m_selct;
 
-			selection_up((int32_t)m_entries->size());
+			selection_up((int32_t)m_entries.size());
 
 			input = getch();
 			if(input != -1)
@@ -341,14 +359,14 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			render();
 			return STA_NONE;
 		case KEY_DOWN:
-			if(m_entries->size() == 0)
+			if(m_entries.size() == 0)
 			{
 				return STA_NONE;
 			}
 
 			prev_select = m_selct;
 
-			selection_down((int32_t)m_entries->size());
+			selection_down((int32_t)m_entries.size());
 
 			input = getch();
 			if(input != -1)
@@ -364,14 +382,14 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			render();
 			return STA_NONE;
 		case KEY_PPAGE:
-			if(m_entries->size() == 0)
+			if(m_entries.size() == 0)
 			{
 				return STA_NONE;
 			}
 
 			prev_select = m_selct;
 
-			selection_pageup((int32_t)m_entries->size());
+			selection_pageup((int32_t)m_entries.size());
 
 			input = getch();
 			if(input != -1)
@@ -387,14 +405,14 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			render();
 			return STA_NONE;
 		case KEY_NPAGE:
-			if(m_entries->size() == 0)
+			if(m_entries.size() == 0)
 			{
 				return STA_NONE;
 			}
 
 			prev_select = m_selct;
 
-			selection_pagedown((int32_t)m_entries->size());
+			selection_pagedown((int32_t)m_entries.size());
 
 			input = getch();
 			if(input != -1)
@@ -410,14 +428,14 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			render();
 			return STA_NONE;
 		case KEY_HOME:
-			if(m_entries->size() == 0)
+			if(m_entries.size() == 0)
 			{
 				return STA_NONE;
 			}
 
 			prev_select = m_selct;
 
-			selection_home((int32_t)m_entries->size());
+			selection_home((int32_t)m_entries.size());
 
 			input = getch();
 			if(input != -1)
@@ -433,14 +451,14 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			render();
 			return STA_NONE;
 		case KEY_END:
-			if(m_entries->size() == 0)
+			if(m_entries.size() == 0)
 			{
 				return STA_NONE;
 			}
 
 			prev_select = m_selct;
 
-			selection_end((int32_t)m_entries->size());
+			selection_end((int32_t)m_entries.size());
 
 			input = getch();
 			if(input != -1)
@@ -457,7 +475,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 			return STA_NONE;
 		case KEY_MOUSE:
 			{
-				if(m_entries->size() == 0)
+				if(m_entries.size() == 0)
 				{
 					return STA_NONE;
 				}
@@ -481,7 +499,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							// This is a click one of the menu entries. Update the selection.
 							//
 							m_selct = m_firstrow + (m_last_mevent.y - TABLE_Y_START - 1);
-							sanitize_selection((int32_t)m_entries->size());
+							sanitize_selection((int32_t)m_entries.size());
 							update_view_info();
 							render();
 						}
@@ -496,7 +514,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							// Update the selection.
 							//
 							m_selct = m_firstrow + (m_last_mevent.y - TABLE_Y_START - 1);
-							sanitize_selection((int32_t)m_entries->size());
+							sanitize_selection((int32_t)m_entries.size());
 							render();
 
 							//
@@ -508,12 +526,21 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							//
 							// Notify the parent that a selection has happened
 							//
-							ASSERT(m_selct < (int32_t)m_entries->size());
+							ASSERT(m_selct < (int32_t)m_entries.size());
 							if(m_parent->m_spy_box == NULL)
 							{
-								m_parent->m_selected_view = m_entries->at(m_selct).m_id;
+								m_parent->m_selected_view = m_entries.at(m_selct).m_id;
 							}
-							m_parent->m_selected_sidemenu_entry = m_selct;
+
+							if(m_type == ST_VIEWS)
+							{
+								m_parent->m_selected_view_sidemenu_entry = m_selct;
+							}
+							else
+							{
+								m_parent->m_selected_action_sidemenu_entry = m_selct;
+							}
+
 							return STA_SWITCH_VIEW;
 						}
 					}
@@ -950,7 +977,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 		sysdig_table_action ta = m_sidemenu->handle_input(ch);
 		if(ta == STA_SWITCH_VIEW)
 		{
-			switch(m_parent->m_selected_sidemenu_entry)
+			switch(m_parent->m_selected_view_sidemenu_entry)
 			{
 				case 0:
 					m_parent->m_spybox_text_format = sinsp_evt::PF_NORMAL;
@@ -1045,7 +1072,9 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 
 			if(m_sidemenu == NULL)
 			{
-				m_sidemenu = new curses_table_sidemenu(this->m_parent);
+				m_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_VIEWS,
+					this->m_parent,
+					0);
 				populate_sidemenu();
 				clear();
 				wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw - 20);
