@@ -747,103 +747,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 	{
 		if(hk.m_hotkey == ch)
 		{
-			string resolved_command;
-			bool replacing = false;
-			string fld_to_replace;
-
-			//
-			// Scan the command string and replace the field names with the values from the selection
-			//
-			for(uint32_t j = 0; j < hk.m_command.size(); j++)
-			{
-				char sc = hk.m_command[j];
-
-				if(sc == '%')
-				{
-					fld_to_replace = "";
-
-					if(replacing)
-					{
-						throw sinsp_exception("the following command has the wrong syntax: " + hk.m_command);
-					}
-
-					replacing = true;
-				}
-				else
-				{
-					if(replacing)
-					{
-						if(sc == ' ' || sc == '\t' || sc == '0')
-						{
-							replacing = false;
-							string val = get_field_val(fld_to_replace);
-							resolved_command += val;
-							resolved_command += sc;
-						}
-						else
-						{
-							fld_to_replace += sc;
-						}
-					}
-					else
-					{
-						resolved_command += sc;
-					}
-				}
-			}
-
-			if(replacing)
-			{
-				string  val = get_field_val(fld_to_replace);
-				resolved_command += val;
-			}
-
-			g_logger.format("running command: %s", resolved_command.c_str());
-
-			sinsp_table_field* rowkey = m_parent->m_datatable->get_row_key(m_selct);
-/*
-			curs_set(1);
-			clear();
-			move(1, 0);
-			refresh();
-
-			reset_shell_mode();
-*/
-			//
-			// Exit curses mode
-			//
-			endwin();
-
-			//
-			// Run the command
-			//
-			int sret = system(resolved_command.c_str());
-			if(sret == -1)
-			{
-				g_logger.format("command failed");
-			}
-
-			printf("Command finished. Press enter to return to csysdig.");
-			fflush(stdout);
-
-			//
-			// Wait for the enter key
-			// 
-			while(getch() == -1)
-			{
-				usleep(10000);
-			}
-
-			//
-			// Empty the keyboard buffer
-			//
-			while(getch() != -1);
-
-			//
-			// Reenter curses mode
-			//
-			reset_prog_mode();
-
+			m_parent->run_action(&hk);
 			return STA_NONE;
 		}
 	}
@@ -875,7 +779,12 @@ curses_table::alignment curses_table::get_field_alignment(ppm_param_type type)
 void curses_table::recreate_win(int h)
 {
 	delwin(m_tblwin);
-	m_h = h;
+	
+	if(h != 0)
+	{
+		m_h = h;
+	}
+	
 	m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
 	render(true);
 }
