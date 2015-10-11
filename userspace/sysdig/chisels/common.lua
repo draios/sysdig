@@ -182,7 +182,7 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 		print(str)
 	else
 		-- Same size to extend each string
-		local EXTEND_STRING_SIZE = 16
+		local EXTEND_STRING_SIZE = 20
 		local header = extend_string(viz_info.value_desc, EXTEND_STRING_SIZE)
 		
 		for i, fldname in ipairs(viz_info.key_desc) do
