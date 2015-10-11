@@ -563,6 +563,7 @@ void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	string command;
 	string description;
 	string tmpstr;
+	bool waitfinish = false;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -588,6 +589,15 @@ void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		{
 			description = lua_tostring(ls, -1);
 		}
+		else if(fldname == "wait_finish")
+		{
+			int wf = lua_toboolean(ls, -1);
+
+			if(wf != 0)
+			{
+				waitfinish = true;
+			}
+		}
 
 		lua_pop(ls, 1);
 	}
@@ -604,7 +614,8 @@ void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT voi
 
 	keys->push_back(sinsp_view_action_info(key, 
 		command,
-		description));
+		description,
+		waitfinish));
 }
 
 void sinsp_chisel::parse_view_actions(lua_State *ls, OUT chisel_desc* cd, OUT void* actions)

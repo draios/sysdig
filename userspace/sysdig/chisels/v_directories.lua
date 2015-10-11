@@ -89,5 +89,13 @@ view_info =
 			field = "fd.directory",
 			colsize = 0
 		}
-	}
+	};
+	actions = 
+	{
+		{
+			hotkey = "l",
+			command = "ls -al %fd.directory",
+			description = "ls directory"
+		},
+	},
 }

@@ -2221,6 +2221,7 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 		resolved_command += val;
 	}
 
+	g_logger.format("original command: %s", action->m_command.c_str());
 	g_logger.format("running command: %s", resolved_command.c_str());
 
 	//
@@ -2237,16 +2238,22 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 		g_logger.format("command failed");
 	}
 
-	printf("Command finished. Press ENTER to return to csysdig.");
-	fflush(stdout);
-
 	//
-	// Wait for the enter key
-	// 
-	while(getch() == -1)
+	// If needed, wait for the command to complete
+	//
+	if(action->m_waitfinish)
 	{
-		usleep(10000);
-	}
+		printf("Command finished. Press ENTER to return to csysdig.");
+		fflush(stdout);
+
+		//
+		// Wait for the enter key
+		// 
+		while(getch() == -1)
+		{
+			usleep(10000);
+		}
+		}
 
 	//
 	// Empty the keyboard buffer
@@ -2257,6 +2264,11 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 	// Reenter curses mode
 	//
 	reset_prog_mode();
+
+	//
+	// Refresh the screen
+	//
+	render();
 }
 
 #endif // CSYSDIG
