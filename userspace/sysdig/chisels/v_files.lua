@@ -89,5 +89,14 @@ view_info =
 			field = "fd.name",
 			colsize = 0
 		}
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "l",
+			command = "less %fd.name",
+			description = "less file",
+			wait_finish = false
+		},
+	},
 }

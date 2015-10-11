@@ -82,16 +82,19 @@ class sinsp_view_action_info
 public:
 	sinsp_view_action_info(char hotkey,
 		string command,
-		string description)
+		string description,
+		bool waitfinish)
 	{
 		m_hotkey = hotkey;
 		m_command = command;
 		m_description = description;
+		m_waitfinish = waitfinish;
 	}
 
 	char m_hotkey;
 	string m_command;
 	string m_description;
+	bool m_waitfinish;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

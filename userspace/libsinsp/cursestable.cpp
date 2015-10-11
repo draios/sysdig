@@ -538,9 +538,20 @@ string curses_table::get_field_val(string fldname)
 
 	row = &(m_data->at(m_selct).m_values);
 
-	for(j = 1; j < m_parent->m_datatable->m_postmerge_legend.size(); j++)
+	vector<filtercheck_field_info>* legend;
+
+	if(m_parent->m_datatable->m_postmerge_legend.size() != 0)
 	{
-		auto le = m_parent->m_datatable->m_postmerge_legend[j];
+		legend = &m_parent->m_datatable->m_postmerge_legend;
+	}
+	else
+	{
+		legend = &m_parent->m_datatable->m_premerge_legend;
+	}
+
+	for(j = 1; j < legend->size(); j++)
+	{
+		auto le = legend->at(j);
 
 		if(le.m_name == fldname)
 		{
@@ -557,7 +568,7 @@ string curses_table::get_field_val(string fldname)
 		}
 	}
 
-	if(j == m_parent->m_datatable->m_postmerge_legend.size())
+	if(j == legend->size())
 	{
 		throw sinsp_exception("field: " + fldname + " not found in this view");
 	}
