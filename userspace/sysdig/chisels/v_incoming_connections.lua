@@ -43,7 +43,7 @@ view_info =
 			name = "Container",
 			field = "container.name",
 			description = "Name of the container. What this field contains depends on the containerization technology. For example, for docker this is the content of the 'NAMES' column in 'docker ps'",
-			colsize = 15
+			colsize = 20
 		},
 		{
 			name = "Command",

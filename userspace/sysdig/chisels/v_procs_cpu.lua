@@ -91,7 +91,7 @@ view_info =
 			tags = {"containers"},
 			name = "The container this process belongs to.",
 			field = "container.name",
-			colsize = 15
+			colsize = 20
 		},
 		{
 			name = "Command",
