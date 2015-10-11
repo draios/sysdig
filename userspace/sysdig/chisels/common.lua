@@ -199,7 +199,7 @@ function print_sorted_table(stable, ts_s, ts_ns, timedelta, viz_info)
 
 			for i, singlekey in ipairs(singlekeys) do
 				if i < #singlekeys then
-					keystr = keystr .. extend_string(string.sub(singlekey, 0, 10), EXTEND_STRING_SIZE)
+					keystr = keystr .. extend_string(string.sub(singlekey, 0, EXTEND_STRING_SIZE), EXTEND_STRING_SIZE)
 				else
 					keystr = keystr .. singlekey
 				end
