@@ -320,21 +320,24 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 		case 27: // ESC
 		case KEY_RESIZE:
 			ASSERT(m_selct < (int32_t)m_entries.size());
-			if(m_parent->m_spy_box == NULL)
-			{
-				m_parent->m_selected_view = m_entries.at(m_selct).m_id;
-			}
 
 			if(m_type == ST_VIEWS)
 			{
+				if(m_parent->m_spy_box == NULL)
+				{
+					m_parent->m_selected_view = m_entries.at(m_selct).m_id;
+				}
+
 				m_parent->m_selected_view_sidemenu_entry = m_selct_ori;
+	
+				return STA_SWITCH_VIEW;
 			}
 			else
 			{
 				m_parent->m_selected_action_sidemenu_entry = m_selct_ori;
+				return STA_DESTROY_CHILD;
 			}
 
-			return STA_SWITCH_VIEW;
 		case KEY_UP:
 			if(m_entries.size() == 0)
 			{
