@@ -457,19 +457,25 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 // Event processing loop
 //
 captureinfo do_inspect(sinsp* inspector,
-					   uint64_t cnt,
-					   bool quiet,
-					   bool json,
-					   bool print_progress,
-					   sinsp_filter* display_filter,
-					   vector<summary_table_entry>* summary_table,
-					   sinsp_evt_formatter* formatter)
+	uint64_t cnt,
+	bool quiet,
+	bool json,
+	bool do_flush,
+	bool print_progress,
+	sinsp_filter* display_filter,
+	vector<summary_table_entry>* summary_table,
+	sinsp_evt_formatter* formatter)
 {
 	captureinfo retval;
 	int32_t res;
 	sinsp_evt* ev;
 	string line;
 	double last_printed_progress_pct = 0;
+
+	if(json)
+	{
+		do_flush = true;
+	}
 
 	//
 	// Loop through the events
@@ -609,11 +615,12 @@ captureinfo do_inspect(sinsp* inspector,
 				{
 					cout << endl;
 				}
-				else
-				{
-					cout << flush;
-				}
 			}
+		}
+
+		if(do_flush)
+		{
+			cout << flush;
 		}
 	}
 
@@ -647,6 +654,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int32_t n_filterargs = 0;
 	int cflag = 0;
 	bool jflag = false;
+	bool unbuf_flag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
 
@@ -686,6 +694,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"timetype", required_argument, 0, 't' },
+		{"unbuffered", no_argument, 0, 0 },
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{"writefile", required_argument, 0, 'w' },
@@ -1014,6 +1023,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
 			}
+
+			if(string(long_options[long_index].name) == "unbuffered")
+			{
+				unbuf_flag = true;
+			}
 		}
 
 		//
@@ -1226,6 +1240,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				cnt,
 				quiet,
 				jflag,
+				unbuf_flag,
 				print_progress,
 				display_filter,
 				summary_table,
