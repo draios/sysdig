@@ -38,7 +38,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
+
+#ifdef HAVE_EXTERNAL_SCAP_READER
+
+#include "scap_external.h"
+
 #endif
+
+#endif
+
+
 
 extern sinsp_evttables g_infotables;
 #ifdef HAS_CHISELS
@@ -307,6 +316,13 @@ void sinsp::open(uint32_t timeout_ms)
 	}
 
 	init();
+	//thread table setter for scap external impl
+#ifdef HAVE_EXTERNAL_SCAP_READER
+
+	set_global_thread_table(m_thread_manager->get_threads());
+
+#endif //HAVE_EXTERNAL_SCAP_READER
+
 }
 
 void sinsp::open(string filename)
@@ -361,6 +377,7 @@ void sinsp::open(string filename)
 	}
 
 	init();
+
 }
 
 void sinsp::close()
