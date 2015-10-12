@@ -121,4 +121,24 @@ view_info =
 			colsize = 0
 		}
 	},
+	actions = 
+	{
+		{
+			hotkey = "k",
+			command = "kill %proc.pid",
+			description = "kill",
+			wait_finish = false
+		},
+		{
+			hotkey = "9",
+			command = "kill -9 %proc.pid",
+			description = "kill -9",
+			wait_finish = false
+		},
+		{
+			hotkey = "l",
+			command = "ltrace -p %proc.pid",
+			description = "ltrace",
+		},
+	},
 }
