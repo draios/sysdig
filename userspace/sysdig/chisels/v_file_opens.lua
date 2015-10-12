@@ -65,7 +65,8 @@ view_info =
 		{
 			hotkey = "l",
 			command = "less %fd.name",
-			description = "less file"
+			description = "less file",
+			wait_finish = false
 		},
 	},
 }
