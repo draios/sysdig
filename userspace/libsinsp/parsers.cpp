@@ -372,7 +372,15 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	if(eflags & EF_SKIPPARSERESET)
 	{
-		evt->m_tinfo = NULL;
+		if(etype == PPME_PROCINFO_E)
+		{
+			evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, false, false);
+		}
+		else
+		{
+			evt->m_tinfo = NULL;
+		}
+
 		return false;
 	}
 

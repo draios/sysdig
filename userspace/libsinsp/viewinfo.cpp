@@ -44,7 +44,8 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	string filter,
 	string drilldown_target,
 	bool use_defaults,
-	bool is_root)
+	bool is_root,
+	vector<sinsp_view_hotkey_info> hotkeys)
 {
 	m_id = id;
 	m_name = name;
@@ -73,6 +74,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 
 	m_filter = filter;
 	m_valid = true;
+	m_hotkeys = hotkeys;
 }
 
 void sinsp_view_info::set_sorting_col()
