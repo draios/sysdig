@@ -81,7 +81,7 @@ view_info =
 			tags = {"containers"},
 			name = "Container",
 			field = "container.name",
-			colsize = 15
+			colsize = 20
 		},
 		{
 			name = "DIRNAME",
