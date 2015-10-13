@@ -2253,7 +2253,7 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 		{
 			usleep(10000);
 		}
-		}
+	}
 
 	//
 	// Empty the keyboard buffer

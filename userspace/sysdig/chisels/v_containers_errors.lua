@@ -92,52 +92,52 @@ view_info =
 		{
 			hotkey = "a",
 			command = "docker attach %container.id",
-			description = "Docker Attach"
+			description = "docker attach"
 		},
 		{
 			hotkey = "b",
 			command = "docker exec -i -t %container.id /bin/bash",
-			description = "Bash Shell"
+			description = "bash shell"
 		},
 		{
 			hotkey = "h",
 			command = "docker history %container.image",
-			description = "Image History"
+			description = "image history"
 		},
 		{
 			hotkey = "i",
 			command = "docker inspect %container.id",
-			description = "Docker Inspect"
+			description = "docker inspect"
 		},
 		{
 			hotkey = "k",
 			command = "docker kill %container.id",
-			description = "Kill"
+			description = "docker kill"
 		},
 		{
 			hotkey = "l",
 			command = "docker logs %container.id",
-			description = "Logs"
+			description = "docker logs"
 		},
 		{
 			hotkey = "s",
 			command = "docker stats %container.id",
-			description = "Stop"
-		},
-		{
-			hotkey = "u",
-			command = "docker unpause %container.id",
-			description = "Unpause Container"
-		},
-		{
-			hotkey = "w",
-			command = "docker wait %container.id",
-			description = "Wait Container"
+			description = "docker stop"
 		},
 		{
 			hotkey = "z",
 			command = "docker pause %container.id",
-			description = "Pause Container"
+			description = "docker pause"
+		},
+		{
+			hotkey = "u",
+			command = "docker unpause %container.id",
+			description = "docker unpause"
+		},
+		{
+			hotkey = "w",
+			command = "docker wait %container.id",
+			description = "docker wait"
 		},
 	},
 }

@@ -570,7 +570,7 @@ string curses_table::get_field_val(string fldname)
 
 	if(j == legend->size())
 	{
-		throw sinsp_exception("field: " + fldname + " not found in this view");
+		throw sinsp_exception("field '" + fldname + "'' not found in this view");
 	}
 
 	return res;
