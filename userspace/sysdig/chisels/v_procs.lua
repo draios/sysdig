@@ -136,9 +136,9 @@ view_info =
 			wait_finish = false
 		},
 		{
-			hotkey = "l",
-			command = "ltrace -p %proc.pid",
-			description = "ltrace",
+			hotkey = "c",
+			command = "gcore %proc.pid",
+			description = "generate core",
 		},
 	},
 }
