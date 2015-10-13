@@ -1404,6 +1404,25 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 		m_ctext->printf("%s\n\n", vinfo->m_filter.c_str());
 	}
 
+	//
+	// Print the actions if present
+	//
+	if(vinfo->m_actions.size() != 0)
+	{
+		wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+		m_ctext->printf("Action Hotkeys\n");
+
+		for(uint32_t j = 0; j < vinfo->m_actions.size(); j++)
+		{
+			wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+			m_ctext->printf("%c", vinfo->m_actions[j].m_hotkey);
+			wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+			m_ctext->printf(": %s (%s)\n", 
+				vinfo->m_actions[j].m_description.c_str(),
+				vinfo->m_actions[j].m_command.c_str());
+		}
+	}
+
 	// Stop and check for keyboard input
 	input = getch();
 	if(input != -1)
