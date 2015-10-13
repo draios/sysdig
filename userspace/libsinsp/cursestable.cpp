@@ -292,16 +292,6 @@ void curses_table::render(bool data_changed)
 	//
 	// Clear the screen
 	//
-/*	
-	for(j = 1; j < m_h; j++)
-	{
-		wmove(m_tblwin, j, 0);
-		for(k = 0; k < m_w; k++)
-		{
-			waddch(m_tblwin, ' ');
-		}
-	}
-*/
 	if(m_data == NULL)
 	{
 		print_wait();
@@ -589,12 +579,6 @@ sysdig_table_action curses_table::handle_input(int ch)
 
 	switch(ch)
 	{
-/*
-		case 'a':
-			numbers[0]++;
-			render(true);
-			break;
-*/
 		case KEY_LEFT:
 			if(m_scrolloff_x > 0)
 			{
