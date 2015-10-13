@@ -563,7 +563,7 @@ void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	string command;
 	string description;
 	string tmpstr;
-	bool waitfinish = false;
+	bool waitfinish = true;
 
 	while(lua_next(ls, -2) != 0)
 	{
