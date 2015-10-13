@@ -237,6 +237,7 @@ _arguments                                                                      
        d\:"delta between enter/exit"                                                                            \
        D\:"delta from previous event"))'                                                                        \
     '(-v --verbose)'{-v,--verbose}'[Verbose output]'                                                            \
+    '--unbuffered[Disable buffering of output]'                                                                 \
     '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
     '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files' \
     '(-x --print-hex)'{-x,--print-hex}'[Print data buffers in hex]'                                             \
