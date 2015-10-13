@@ -56,7 +56,7 @@ view_info =
 		{
 			name = "LPORT",
 			description = "Local Port.",
-			field = "fd.lproto",
+			field = "fd.lport",
 			colsize = 8,
 		},
 		{
@@ -68,7 +68,13 @@ view_info =
 		{
 			name = "RPORT",
 			description = "Remote Port.",
-			field = "fd.rproto",
+			field = "fd.rport",
+			colsize = 8,
+		},
+		{
+			name = "PROTO",
+			description = "Connection protocol, obtained by resolving the server port name.",
+			field = "fd.sproto",
 			colsize = 8,
 		},
 		{
@@ -107,5 +113,23 @@ view_info =
 			aggregation = "MAX",
 			colsize = 0
 		}
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "c",
+			command = "tcpdump -niany host %fd.lip and host %fd.rip and port %fd.lport and port %fd.rport",
+			description = "tcpdump connection",
+		},
+		{
+			hotkey = "l",
+			command = "tcpdump -niany host %fd.lip",
+			description = "tcpdump local IP",
+		},
+		{
+			hotkey = "r",
+			command = "tcpdump -niany host %fd.rip",
+			description = "tcpdump remote IP",
+		},
+	},
 }

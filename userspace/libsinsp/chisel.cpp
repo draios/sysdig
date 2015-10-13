@@ -593,9 +593,9 @@ void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		{
 			int wf = lua_toboolean(ls, -1);
 
-			if(wf != 0)
+			if(wf == 0)
 			{
-				waitfinish = true;
+				waitfinish = false;
 			}
 		}
 
