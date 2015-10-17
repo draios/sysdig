@@ -385,6 +385,6 @@ boot2docker_build boot2docker-1.8.1 4.0.9-boot2docker https://www.kernel.org/pub
 #
 # Upload modules
 #
-aws s3 cp ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --recursive --acl public-read
+aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
 
 echo "Success."
