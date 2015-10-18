@@ -30,9 +30,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif // _WIN32
 
 #include "scap.h"
-#ifndef _WIN32
+#ifdef HAS_CAPTURE
 #include "../../driver/driver_config.h"
-#endif // _WIN32
+#endif // HAS_CAPTURE
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
 #include "scap-int.h"
