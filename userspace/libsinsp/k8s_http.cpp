@@ -10,6 +10,7 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "k8s.h"
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
