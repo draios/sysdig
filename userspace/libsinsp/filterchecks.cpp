@@ -80,11 +80,6 @@ sinsp_filter_check* sinsp_filter_check_fd::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fd();
 }
 
-int32_t sinsp_filter_check_fd::parse_field_name(const char* str, bool alloc_state)
-{
-	return sinsp_filter_check::parse_field_name(str, alloc_state);
-}
-
 bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len)
 {
 	const char* resolved_argstr;
@@ -4327,11 +4322,6 @@ sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fdlist();
 }
 
-int32_t sinsp_filter_check_fdlist::parse_field_name(const char* str, bool alloc_state)
-{
-	return sinsp_filter_check::parse_field_name(str, alloc_state);
-}
-
 uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	ASSERT(evt);
@@ -4509,6 +4499,91 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 		return NULL;
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_k8s implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
+{
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.name", "Kubernetes pod name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.id", "Kubernetes pod id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.label", "Kubernetes pod label. E.g. 'k8s.pod.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.name", "Kubernetes replication controller name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.id", "Kubernetes replication controller id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.label", "Kubernetes replication controller label. E.g. 'k8s.rc.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.name", "Kubernetes service name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.id", "Kubernetes service id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.label", "Kubernetes service label. E.g. 'k8s.svc.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.name", "Kubernetes namespace name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.id", "Kubernetes namespace id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.label", "Kubernetes namespace label. E.g. 'k8s.ns.label.foo'."},
+};
+
+sinsp_filter_check_k8s::sinsp_filter_check_k8s()
+{
+	m_info.m_name = "k8s";
+	m_info.m_fields = sinsp_filter_check_k8s_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_k8s_fields) / sizeof(sinsp_filter_check_k8s_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+}
+
+sinsp_filter_check* sinsp_filter_check_k8s::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_k8s();
+}
+
+uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	ASSERT(evt);
+	if(evt == NULL)
+	{
+		ASSERT(false);
+		return NULL;
+	}
+
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	if(tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	if(tinfo->m_container_id.empty())
+	{
+		return NULL;
+	}
+
+	switch(m_field_id)
+	{
+	case TYPE_K8S_POD_NAME:
+		break;
+	case TYPE_K8S_POD_ID:
+		break;
+	case TYPE_K8S_POD_LABEL:
+		break;
+	case TYPE_K8S_RC_NAME:
+		break;
+	case TYPE_K8S_RC_ID:
+		break;
+	case TYPE_K8S_RC_LABEL:
+		break;
+	case TYPE_K8S_SVC_NAME:
+		break;
+	case TYPE_K8S_SVC_ID:
+		break;
+	case TYPE_K8S_SVC_LABEL:
+		break;
+	case TYPE_K8S_NS_NAME:
+		break;
+	case TYPE_K8S_NS_ID:
+		break;
+	case TYPE_K8S_NS_LABEL:
+		break;
+	default:
+		ASSERT(false);
+		return NULL;
+	}
+	return NULL;
 }
 
 #endif // HAS_FILTERING

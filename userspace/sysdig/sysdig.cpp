@@ -131,6 +131,8 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
+" -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
+"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\"\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -688,6 +690,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
+		{"k8s-api", required_argument, 0, 'k'},
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"numevents", required_argument, 0, 'n' },
@@ -728,7 +731,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jlLNn:Pp:qr:Ss:t:v"
+                                        "hi:jk:lLNn:Pp:qr:Ss:t:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
