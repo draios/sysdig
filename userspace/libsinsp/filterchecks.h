@@ -675,9 +675,13 @@ public:
 
 	sinsp_filter_check_k8s();
 	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 private:
+	int32_t extract_arg(const string& fldname, const string& val);
+
+	string m_argname;
 	string m_tstr;
 };
 

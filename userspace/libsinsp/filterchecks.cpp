@@ -4533,6 +4533,74 @@ sinsp_filter_check* sinsp_filter_check_k8s::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_k8s();
 }
 
+int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_state)
+{
+	string val(str);
+
+	if(string(val, 0, sizeof("k8s.pod.label") - 1) == "k8s.pod.label")
+	{
+		m_field_id = TYPE_K8S_POD_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.pod.label", val);
+	}
+	else if(string(val, 0, sizeof("k8s.rc.label") - 1) == "k8s.rc.label")
+	{
+		m_field_id = TYPE_K8S_RC_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.rc.label", val);
+	}
+	else if(string(val, 0, sizeof("k8s.svc.label") - 1) == "k8s.svc.label")
+	{
+		m_field_id = TYPE_K8S_SVC_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.svc.label", val);
+	}
+	else if(string(val, 0, sizeof("k8s.ns.label") - 1) == "k8s.ns.label")
+	{
+		m_field_id = TYPE_K8S_NS_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.ns.label", val);
+	}
+	else
+	{
+		return sinsp_filter_check::parse_field_name(str, alloc_state);
+	}
+}
+
+int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string& val)
+{
+	int32_t parsed_len = 0;
+
+	if(val[fldname.size()] == '.')
+	{
+		size_t endpos;
+		for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
+		{
+			if(!isalnum(val[endpos])
+				&& val[endpos] != '/'
+				&& val[endpos] != '_'
+				&& val[endpos] != '-'
+				&& val[endpos] != '.')
+			{
+				break;
+			}
+		}
+
+		parsed_len = (uint32_t)endpos;
+		m_argname = val.substr(fldname.size() + 1, endpos - fldname.size() - 1);
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len;
+}
+
 uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	ASSERT(evt);
