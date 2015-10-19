@@ -25,6 +25,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "protodecoder.h"
 
+#ifdef HAVE_EXTERNAL_SCAP_READER
+#include "urcu-qsbr.h"
+#endif //HAVE_EXTERNAL_SCAP_READER
+
 static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 {
 	dest[0] = src[0];
@@ -844,8 +848,15 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		m_removed_threads->increment();
 #endif
 
-		m_threadtable.erase(it);
+#ifdef HAVE_EXTERNAL_SCAP_READER
+		//rcu_assign_pointer(&it, NULL);
+		void *p = &(it->second);
 
+		rcu_assign_pointer(p, NULL);
+		synchronize_rcu();
+#endif
+
+		m_threadtable.erase(it);
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
 		// of a main process or program that some childs refer to.

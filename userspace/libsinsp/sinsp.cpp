@@ -319,7 +319,7 @@ void sinsp::open(uint32_t timeout_ms)
 	//thread table setter for scap external impl
 #ifdef HAVE_EXTERNAL_SCAP_READER
 
-	set_global_thread_table(m_thread_manager->get_threads());
+	set_scap_inspector(this, this->m_thread_manager->get_threads());
 
 #endif //HAVE_EXTERNAL_SCAP_READER
 
