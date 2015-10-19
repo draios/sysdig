@@ -11,23 +11,28 @@ set(CLEAN_FILES
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}")
 
+add_custom_target(configure_driver ALL
+	COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/driver_config.h driver_config.h
+	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+	VERBATIM)
+
 # This if/else is needed because you currently cannot manipulate dependencies
 # of built-in targets like "all" in CMake:
 # http://public.kitware.com/Bug/view.php?id=8438
 if(BUILD_DRIVER)
 	add_custom_target(driver ALL
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/driver_config.h driver_config.h
 		COMMAND $(MAKE)
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
+		DEPENDS configure_driver
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 else()
 	add_custom_target(driver
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/driver_config.h driver_config.h
 		COMMAND $(MAKE)
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
+		DEPENDS configure_driver
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 endif()
