@@ -265,7 +265,6 @@ public:
 
 	sinsp_filter_check_fd();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
@@ -648,12 +647,38 @@ public:
 
 	sinsp_filter_check_fdlist();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 private:
 	string m_strval;
 	char m_addrbuff[100];
+};
+
+class sinsp_filter_check_k8s : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_K8S_POD_NAME = 0,
+		TYPE_K8S_POD_ID,
+		TYPE_K8S_POD_LABEL,
+		TYPE_K8S_RC_NAME,
+		TYPE_K8S_RC_ID,
+		TYPE_K8S_RC_LABEL,
+		TYPE_K8S_SVC_NAME,
+		TYPE_K8S_SVC_ID,
+		TYPE_K8S_SVC_LABEL,
+		TYPE_K8S_NS_NAME,
+		TYPE_K8S_NS_ID,
+		TYPE_K8S_NS_LABEL,
+	};
+
+	sinsp_filter_check_k8s();
+	sinsp_filter_check* allocate_new();
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	string m_tstr;
 };
 
 #endif // HAS_FILTERING
