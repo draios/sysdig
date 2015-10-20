@@ -4512,9 +4512,9 @@ const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.name", "Kubernetes replication controller name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.id", "Kubernetes replication controller id."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.label", "Kubernetes replication controller label. E.g. 'k8s.rc.label.foo'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.name", "Kubernetes service name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.id", "Kubernetes service id."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.label", "Kubernetes service label. E.g. 'k8s.svc.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.name", "Kubernetes service name (can return more than one value, concatenated)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.id", "Kubernetes service id (can return more than one value, concatenated)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.label", "Kubernetes service label. E.g. 'k8s.svc.label.foo' (can return more than one value, concatenated)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.name", "Kubernetes namespace name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.id", "Kubernetes namespace id."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.label", "Kubernetes namespace label. E.g. 'k8s.ns.label.foo'."},
@@ -4644,9 +4644,19 @@ const k8s_rc_s* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_s* pod)
 {
 	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
 
+	//
+	// Find the rc (one and one only) that matches namespace
+	// and all set of labels, excluding the ones without labels
+	// for the moment until we have a more robust detection
+	//
 	for(const k8s_rc_s& rc : k8s_state.get_rcs())
 	{
 		if(pod->get_namespace() != rc.get_namespace())
+		{
+			continue;
+		}
+
+		if(rc.get_labels().empty())
 		{
 			continue;
 		}
@@ -4681,6 +4691,63 @@ const k8s_rc_s* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_s* pod)
 	}
 
 	return NULL;
+}
+
+vector<const k8s_service_s*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_pod_s* pod)
+{
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+	vector<const k8s_service_s*> services;
+
+	//
+	// Find the services (more than one possibly) that match
+	// all the selectors of this pod
+	//
+	for(const k8s_service_s& service : k8s_state.get_services())
+	{
+		if(pod->get_namespace() != service.get_namespace())
+		{
+			continue;
+		}
+
+		//
+		// For the moment, exclude services that don't work
+		// based on selectors
+		//
+		if(service.get_selectors().empty())
+		{
+			continue;
+		}
+
+		bool found_all_selectors = true;
+
+		for(const k8s_pair_s& selector : service.get_selectors())
+		{
+			bool found_selector = false;
+
+			for(const k8s_pair_s& pod_label : pod->get_labels())
+			{
+				if(pod_label.first == selector.first &&
+					pod_label.second == selector.second)
+				{
+					found_selector = true;
+					break;
+				}
+			}
+
+			if(!found_selector)
+			{
+				found_all_selectors = false;
+				break;
+			}
+		}
+
+		if(found_all_selectors)
+		{
+			services.push_back(&service);
+		}
+	}
+
+	return services;
 }
 
 uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
@@ -4772,11 +4839,74 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	}
 	case TYPE_K8S_SVC_NAME:
+	{
+		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		if(!services.empty())
+		{
+			m_tstr.clear();
+			for(const k8s_service_s* service : services)
+			{
+				if(!m_tstr.empty())
+				{
+					m_tstr.append(",");
+				}
+
+				m_tstr.append(service->get_name());
+			}
+
+			return (uint8_t*) m_tstr.c_str();
+		}
+
 		break;
+	}
 	case TYPE_K8S_SVC_ID:
+	{
+		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		if(!services.empty())
+		{
+			m_tstr.clear();
+			for(const k8s_service_s* service : services)
+			{
+				if(!m_tstr.empty())
+				{
+					m_tstr.append(",");
+				}
+
+				m_tstr.append(service->get_uid());
+			}
+
+			return (uint8_t*) m_tstr.c_str();
+		}
+
 		break;
+	}
 	case TYPE_K8S_SVC_LABEL:
+	{
+		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		if(!services.empty())
+		{
+			m_tstr.clear();
+			for(const k8s_service_s* service : services)
+			{
+				for(const k8s_pair_s& label_pair : service->get_labels())
+				{
+					if(label_pair.first == m_argname)
+					{
+						if(!m_tstr.empty())
+						{
+							m_tstr.append(",");
+						}
+
+						m_tstr.append(label_pair.second);
+					}
+				}
+			}
+
+			return (uint8_t*) m_tstr.c_str();
+		}
+
 		break;
+	}
 	case TYPE_K8S_NS_NAME:
 	{
 		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
