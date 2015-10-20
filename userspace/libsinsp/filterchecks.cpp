@@ -4629,6 +4629,24 @@ const k8s_pod_s* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadi
 	return NULL;
 }
 
+const k8s_ns_s* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
+{
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+
+	const k8s_state_s::namespaces& namespaces = k8s_state.get_namespaces();
+
+	for(k8s_state_s::namespaces::const_iterator it = namespaces.begin();
+		it != namespaces.end(); ++it)
+	{
+		if(it->get_name() == ns_name)
+		{
+			return &(*it);
+		}
+	}
+
+	return NULL;
+}
+
 uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	if(m_inspector->m_k8s_client == NULL)
@@ -4658,10 +4676,12 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	switch(m_field_id)
 	{
 	case TYPE_K8S_POD_NAME:
-		return (uint8_t*) pod->get_name().c_str();
+		m_tstr = pod->get_name().c_str();
+		return (uint8_t*) m_tstr.c_str();
 		break;
 	case TYPE_K8S_POD_ID:
-		return (uint8_t*) pod->get_uid().c_str();
+		m_tstr = pod->get_uid().c_str();
+		return (uint8_t*) m_tstr.c_str();
 		break;
 	case TYPE_K8S_POD_LABEL:
 	{
@@ -4671,7 +4691,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(it->first == m_argname)
 			{
-				return (uint8_t*) it->second.c_str();
+				m_tstr = it->second.c_str();
+				return (uint8_t*) m_tstr.c_str();
 			}
 		}
 
@@ -4690,11 +4711,52 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_K8S_SVC_LABEL:
 		break;
 	case TYPE_K8S_NS_NAME:
+	{
+		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		if(ns == NULL)
+		{
+			return NULL;
+		}
+	
+		m_tstr = ns->get_name().c_str();
+		return (uint8_t*) m_tstr.c_str();
+
 		break;
+	}
 	case TYPE_K8S_NS_ID:
+	{
+		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		if(ns == NULL)
+		{
+			return NULL;
+		}
+
+		m_tstr = ns->get_uid().c_str();
+		return (uint8_t*) m_tstr.c_str();
+	
 		break;
+	}
 	case TYPE_K8S_NS_LABEL:
+	{
+		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		if(ns == NULL)
+		{
+			return NULL;
+		}
+
+		const k8s_pair_list& labels = ns->get_labels();
+		for(k8s_pair_list::const_iterator it = labels.begin();
+			it != labels.end(); ++it)
+		{
+			if(it->first == m_argname)
+			{
+				m_tstr = it->second.c_str();
+				return (uint8_t*) m_tstr.c_str();
+			}
+		}
+
 		break;
+	}
 	default:
 		ASSERT(false);
 		return NULL;
