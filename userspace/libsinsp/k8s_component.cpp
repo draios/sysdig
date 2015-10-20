@@ -221,7 +221,7 @@ std::string k8s_component::get_name(type t)
 
 	std::ostringstream os;
 	os << "Unknown component type " << static_cast<int>(t);
-	throw std::invalid_argument(os.str().c_str());
+	throw sinsp_exception(os.str().c_str());
 }
 
 k8s_component::type k8s_component::get_type(const std::string& name)
@@ -249,7 +249,7 @@ k8s_component::type k8s_component::get_type(const std::string& name)
 
 	std::ostringstream os;
 	os << "Unknown component name " << name;
-	throw std::invalid_argument(os.str().c_str());
+	throw sinsp_exception(os.str().c_str());
 }
 
 k8s_pair_s* k8s_component::get_label(const k8s_pair_s& label)
@@ -426,7 +426,7 @@ void k8s_state_s::replace_items(k8s_component::type t, const std::string& name, 
 	std::ostringstream os;
 	os << "Unknown component type " << static_cast<int>(t) <<
 		" or object name " << name;
-	throw std::invalid_argument(os.str().c_str());
+	throw sinsp_exception(os.str().c_str());
 }
 
 k8s_component& k8s_state_s::add_common_single_value(k8s_component::type component, const std::string& name, const std::string& uid, const std::string& ns)
@@ -455,7 +455,7 @@ k8s_component& k8s_state_s::add_common_single_value(k8s_component::type componen
 
 	std::ostringstream os;
 	os << "Unknown component: " << component;
-	throw std::invalid_argument(os.str());
+	throw sinsp_exception(os.str());
 }
 
 k8s_node_s* k8s_state_s::get_node(const std::string& uid)
