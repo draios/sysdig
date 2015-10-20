@@ -74,6 +74,7 @@ using namespace std;
 #include "ifinfo.h"
 #include "container.h"
 #include "viewinfo.h"
+#include "k8s.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -642,6 +643,11 @@ public:
 	*/
 	double get_read_progress();
 
+	void set_k8s_api_server(const string& api_server)
+	{
+		m_k8s_api_server = api_server;
+	}
+
 	//
 	// Misc internal stuff
 	//
@@ -727,10 +733,13 @@ private:
 
 	sinsp_container_manager m_container_manager;
 
-        //
-        // True if the command line argument is set to show container information
+	string m_k8s_api_server;
+	k8s* m_k8s_client;
+
+	//
+	// True if the command line argument is set to show container information
 	// The deafult is false set within the constructor
-        //
+	//
 	bool m_print_container_data;
 
 #ifdef HAS_FILTERING
@@ -841,6 +850,7 @@ private:
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_event;
+	friend class sinsp_filter_check_k8s;
 	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

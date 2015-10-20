@@ -872,6 +872,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				jflag = true;
 				break;
+			case 'k':
+				inspector->set_k8s_api_server(optarg);
+				break;
 			case 'h':
 				usage();
 				delete inspector;

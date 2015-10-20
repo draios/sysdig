@@ -4603,6 +4603,11 @@ int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string&
 
 uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
+	if(m_inspector->m_k8s_client == NULL)
+	{
+		return NULL;
+	}
+
 	ASSERT(evt);
 	if(evt == NULL)
 	{
@@ -4620,6 +4625,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 		return NULL;
 	}
+
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
 
 	switch(m_field_id)
 	{
