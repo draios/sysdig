@@ -59,5 +59,14 @@ view_info =
 			description = "The program that opened the file, including its arguments.",
 			colsize = 0,
 		}		
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "l",
+			command = "less %fd.name",
+			description = "less file",
+			wait_finish = false
+		},
+	},
 }
