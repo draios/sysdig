@@ -4601,6 +4601,34 @@ int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string&
 	return parsed_len;
 }
 
+const k8s_pod_s* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadinfo* tinfo)
+{
+	if(tinfo->m_container_id.empty())
+	{
+		return NULL;
+	}
+
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+
+	const k8s_state_s::pods& pods = k8s_state.get_pods();
+	for(k8s_state_s::pods::const_iterator it_pods = pods.begin();
+		it_pods != pods.end(); ++it_pods)
+	{
+		const vector<string>& container_ids = it_pods->get_container_ids();
+		for(vector<string>::const_iterator it_containers = container_ids.begin();
+			it_containers != container_ids.end(); ++it_containers)
+		{
+			if(it_containers->find("docker://") == 0 &&
+				it_containers->find(tinfo->m_container_id) == sizeof("docker://") - 1)
+			{
+				return &(*it_pods);
+			}
+		}
+	}
+
+	return NULL;
+}
+
 uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	if(m_inspector->m_k8s_client == NULL)
@@ -4621,21 +4649,34 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return NULL;
 	}
 
-	if(tinfo->m_container_id.empty())
+	const k8s_pod_s* pod = find_pod_for_thread(tinfo);
+	if(pod == NULL)
 	{
 		return NULL;
 	}
 
-	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
-
 	switch(m_field_id)
 	{
 	case TYPE_K8S_POD_NAME:
+		return (uint8_t*) pod->get_name().c_str();
 		break;
 	case TYPE_K8S_POD_ID:
+		return (uint8_t*) pod->get_uid().c_str();
 		break;
 	case TYPE_K8S_POD_LABEL:
+	{
+		const k8s_pair_list& labels = pod->get_labels();
+		for(k8s_pair_list::const_iterator it = labels.begin();
+			it != labels.end(); ++it)
+		{
+			if(it->first == m_argname)
+			{
+				return (uint8_t*) it->second.c_str();
+			}
+		}
+
 		break;
+	}
 	case TYPE_K8S_RC_NAME:
 		break;
 	case TYPE_K8S_RC_ID:
@@ -4658,6 +4699,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		ASSERT(false);
 		return NULL;
 	}
+
 	return NULL;
 }
 
