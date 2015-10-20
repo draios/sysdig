@@ -278,14 +278,10 @@ void sinsp::init()
 	}
 #endif
 
-	if(!m_k8s_api_server.empty())
+	if(!m_k8s_api_server.empty() &&
+		m_k8s_client == NULL)
 	{
-		g_logger.log("Fetching k8s state");
-		if(m_k8s_client)
-		{
-			delete m_k8s_client;
-		}
-
+		g_logger.log("Fetching initial k8s state");
 		m_k8s_client = new k8s(m_k8s_api_server);
 	}
 }
