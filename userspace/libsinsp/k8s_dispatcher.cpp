@@ -524,7 +524,7 @@ void k8s_dispatcher::dispatch()
 						{
 							std::ostringstream eos;
 							eos << "Unknown component: " << static_cast<int>(m_type);
-							throw std::invalid_argument(os.str());
+							throw sinsp_exception(os.str());
 						}
 					}
 					os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
@@ -572,5 +572,5 @@ k8s_dispatcher::msg_reason k8s_dispatcher::to_reason(const std::string& desc)
 	else if(desc == "DELETED") { return COMPONENT_DELETED; }
 	else if(desc == "ERROR") { return COMPONENT_ERROR; }
 	else if(desc == "UNKNOWN") { return COMPONENT_UNKNOWN; }
-	throw std::invalid_argument(desc);
+	throw sinsp_exception(desc);
 }

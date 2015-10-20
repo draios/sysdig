@@ -34,7 +34,7 @@ k8s_http::k8s_http(k8s& k8s,
 {
 	if(!m_curl)
 	{
-		throw std::runtime_error("CURL initialization failed.");
+		throw sinsp_exception("CURL initialization failed.");
 	}
 	std::ostringstream url;
 	url << m_protocol << "://";
@@ -134,7 +134,7 @@ int k8s_http::get_watch_socket()
 		if(!wait(m_watch_socket, 0, 60000L))
 		{
 			curl_easy_cleanup(m_curl);
-			throw std::runtime_error("Error: timeout.");
+			throw sinsp_exception("Error: timeout.");
 		}
 
 		std::ostringstream request;
@@ -208,7 +208,7 @@ void k8s_http::check_error(CURLcode res)
 	{
 		std::ostringstream os;
 		os << "Error: " << curl_easy_strerror(res);
-		throw std::runtime_error(os.str());
+		throw sinsp_exception(os.str());
 	}
 }
 

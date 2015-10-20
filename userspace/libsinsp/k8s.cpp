@@ -140,7 +140,7 @@ std::size_t k8s::count(k8s_component::type component) const
 
 	std::ostringstream os;
 	os << "Unknown component " << static_cast<int>(component);
-	throw std::invalid_argument(os.str());
+	throw sinsp_exception(os.str());
 }
 
 void k8s::extract_data(const Json::Value& items, k8s_component::type component)
@@ -219,11 +219,11 @@ void k8s::parse_json(const std::string& json, const k8s_component::component_map
 		}
 		else
 		{
-			throw std::invalid_argument("Invalid JSON");
+			throw sinsp_exception("Invalid JSON");
 		}
 	}
 	else
 	{
-		throw std::runtime_error("JSON parsing failed");
+		throw sinsp_exception("JSON parsing failed");
 	}
 }
