@@ -3,7 +3,6 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
-include_directories(/home/gianluca/build/agent/dependencies/poco-1.4.6p4-all/target/include/)
 
 if(NOT WIN32)
 	include_directories("${CURSES_INCLUDE_DIR}")
@@ -42,6 +41,7 @@ add_library(sinsp STATIC
 	sinsp.cpp
 	stats.cpp
 	table.cpp
+	uri.cpp
 	utils.cpp
 	viewinfo.cpp)
 
@@ -50,7 +50,6 @@ target_link_libraries(sinsp
 	"${JSONCPP_LIB}"
 	b64
 	curl
-	/home/gianluca/build/agent/dependencies/poco-1.4.6p4-all/target/lib/libPocoFoundation.a
 	pthread)
 
 if(NOT WIN32)
