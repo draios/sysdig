@@ -4610,18 +4610,14 @@ const k8s_pod_s* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadi
 
 	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
 
-	const k8s_state_s::pods& pods = k8s_state.get_pods();
-	for(k8s_state_s::pods::const_iterator it_pods = pods.begin();
-		it_pods != pods.end(); ++it_pods)
+	for(const k8s_pod_s& pod : k8s_state.get_pods())
 	{
-		const vector<string>& container_ids = it_pods->get_container_ids();
-		for(vector<string>::const_iterator it_containers = container_ids.begin();
-			it_containers != container_ids.end(); ++it_containers)
+		for(const string& container_id : pod.get_container_ids())
 		{
-			if(it_containers->find("docker://") == 0 &&
-				it_containers->find(tinfo->m_container_id) == sizeof("docker://") - 1)
+			if(container_id.find("docker://") == 0 &&
+				container_id.find(tinfo->m_container_id) == sizeof("docker://") - 1)
 			{
-				return &(*it_pods);
+				return &pod;
 			}
 		}
 	}
@@ -4633,14 +4629,54 @@ const k8s_ns_s* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
 {
 	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
 
-	const k8s_state_s::namespaces& namespaces = k8s_state.get_namespaces();
-
-	for(k8s_state_s::namespaces::const_iterator it = namespaces.begin();
-		it != namespaces.end(); ++it)
+	for(const k8s_ns_s& ns : k8s_state.get_namespaces())
 	{
-		if(it->get_name() == ns_name)
+		if(ns.get_name() == ns_name)
 		{
-			return &(*it);
+			return &ns;
+		}
+	}
+
+	return NULL;
+}
+
+const k8s_rc_s* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_s* pod)
+{
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+
+	for(const k8s_rc_s& rc : k8s_state.get_rcs())
+	{
+		if(pod->get_namespace() != rc.get_namespace())
+		{
+			continue;
+		}
+
+		bool found_all_labels = true;
+
+		for(const k8s_pair_s& rc_label : rc.get_labels())
+		{
+			bool found_label = false;
+
+			for(const k8s_pair_s& pod_label : pod->get_labels())
+			{
+				if(pod_label.first == rc_label.first &&
+					pod_label.second == rc_label.second)
+				{
+					found_label = true;
+					break;
+				}
+			}
+
+			if(!found_label)
+			{
+				found_all_labels = false;
+				break;
+			}
+		}
+
+		if(found_all_labels)
+		{
+			return &rc;
 		}
 	}
 
@@ -4676,22 +4712,20 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	switch(m_field_id)
 	{
 	case TYPE_K8S_POD_NAME:
-		m_tstr = pod->get_name().c_str();
+		m_tstr = pod->get_name();
 		return (uint8_t*) m_tstr.c_str();
 		break;
 	case TYPE_K8S_POD_ID:
-		m_tstr = pod->get_uid().c_str();
+		m_tstr = pod->get_uid();
 		return (uint8_t*) m_tstr.c_str();
 		break;
 	case TYPE_K8S_POD_LABEL:
 	{
-		const k8s_pair_list& labels = pod->get_labels();
-		for(k8s_pair_list::const_iterator it = labels.begin();
-			it != labels.end(); ++it)
+		for(const k8s_pair_s& label_pair : pod->get_labels())
 		{
-			if(it->first == m_argname)
+			if(label_pair.first == m_argname)
 			{
-				m_tstr = it->second.c_str();
+				m_tstr = label_pair.second;
 				return (uint8_t*) m_tstr.c_str();
 			}
 		}
@@ -4699,11 +4733,44 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	}
 	case TYPE_K8S_RC_NAME:
+	{
+		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		if(rc != NULL)
+		{
+			m_tstr = rc->get_name();
+			return (uint8_t*) m_tstr.c_str();
+		}
+
 		break;
+	}
 	case TYPE_K8S_RC_ID:
+	{
+		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		if(rc != NULL)
+		{
+			m_tstr = rc->get_uid();
+			return (uint8_t*) m_tstr.c_str();
+		}
+
 		break;
+	}
 	case TYPE_K8S_RC_LABEL:
+	{
+		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		if(rc != NULL)
+		{
+			for(const k8s_pair_s& label_pair : rc->get_labels())
+			{
+				if(label_pair.first == m_argname)
+				{
+					m_tstr = label_pair.second;
+					return (uint8_t*) m_tstr.c_str();
+				}
+			}
+		}
+
 		break;
+	}
 	case TYPE_K8S_SVC_NAME:
 		break;
 	case TYPE_K8S_SVC_ID:
@@ -4713,45 +4780,37 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_K8S_NS_NAME:
 	{
 		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
-		if(ns == NULL)
+		if(ns != NULL)
 		{
-			return NULL;
-		}
-	
-		m_tstr = ns->get_name().c_str();
-		return (uint8_t*) m_tstr.c_str();
+			m_tstr = ns->get_name();
+			return (uint8_t*) m_tstr.c_str();
+		}	
 
 		break;
 	}
 	case TYPE_K8S_NS_ID:
 	{
 		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
-		if(ns == NULL)
+		if(ns != NULL)
 		{
-			return NULL;
+			m_tstr = ns->get_uid();
+			return (uint8_t*) m_tstr.c_str();
 		}
-
-		m_tstr = ns->get_uid().c_str();
-		return (uint8_t*) m_tstr.c_str();
 	
 		break;
 	}
 	case TYPE_K8S_NS_LABEL:
 	{
 		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
-		if(ns == NULL)
+		if(ns != NULL)
 		{
-			return NULL;
-		}
-
-		const k8s_pair_list& labels = ns->get_labels();
-		for(k8s_pair_list::const_iterator it = labels.begin();
-			it != labels.end(); ++it)
-		{
-			if(it->first == m_argname)
+			for(const k8s_pair_s& label_pair : ns->get_labels())
 			{
-				m_tstr = it->second.c_str();
-				return (uint8_t*) m_tstr.c_str();
+				if(label_pair.first == m_argname)
+				{
+					m_tstr = label_pair.second;
+					return (uint8_t*) m_tstr.c_str();
+				}
 			}
 		}
 

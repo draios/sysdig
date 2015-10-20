@@ -682,6 +682,7 @@ private:
 	int32_t extract_arg(const string& fldname, const string& val);
 	const k8s_pod_s* find_pod_for_thread(const sinsp_threadinfo* tinfo);
 	const k8s_ns_s* find_ns_by_name(const string& ns_name);
+	const k8s_rc_s* find_rc_by_pod(const k8s_pod_s* pod);
 
 	string m_argname;
 	string m_tstr;
