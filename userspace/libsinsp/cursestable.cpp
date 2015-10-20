@@ -292,16 +292,6 @@ void curses_table::render(bool data_changed)
 	//
 	// Clear the screen
 	//
-/*	
-	for(j = 1; j < m_h; j++)
-	{
-		wmove(m_tblwin, j, 0);
-		for(k = 0; k < m_w; k++)
-		{
-			waddch(m_tblwin, ' ');
-		}
-	}
-*/
 	if(m_data == NULL)
 	{
 		print_wait();
@@ -529,7 +519,53 @@ render_end:
 	m_parent->render();
 	refresh();
 }
-	
+
+string curses_table::get_field_val(string fldname)
+{
+	uint32_t j;
+	vector<sinsp_table_field>* row;
+	string res;
+
+	row = &(m_data->at(m_selct).m_values);
+
+	vector<filtercheck_field_info>* legend;
+
+	if(m_parent->m_datatable->m_postmerge_legend.size() != 0)
+	{
+		legend = &m_parent->m_datatable->m_postmerge_legend;
+	}
+	else
+	{
+		legend = &m_parent->m_datatable->m_premerge_legend;
+	}
+
+	for(j = 1; j < legend->size(); j++)
+	{
+		auto le = legend->at(j);
+
+		if(le.m_name == fldname)
+		{
+			uint32_t k = j - 1;
+			m_converter->set_val(m_legend[k].m_info.m_type, 
+				row->at(k).m_val, 
+				row->at(k).m_len,
+				row->at(k).m_cnt,
+				m_legend[k].m_info.m_print_format);
+
+			res = m_converter->tostring_nice(NULL, 0, 0);
+
+			break;
+		}
+	}
+
+	if(j == legend->size())
+	{
+		throw sinsp_exception("field '" + fldname + "'' not found in this view");
+	}
+
+	return res;
+}
+
 //
 // Return false if the user wants us to exit
 //
@@ -540,14 +576,9 @@ sysdig_table_action curses_table::handle_input(int ch)
 		return STA_PARENT_HANDLE;
 	}
 
+
 	switch(ch)
 	{
-/*
-		case 'a':
-			numbers[0]++;
-			render(true);
-			break;
-*/
 		case KEY_LEFT:
 			if(m_scrolloff_x > 0)
 			{
@@ -701,6 +732,21 @@ sysdig_table_action curses_table::handle_input(int ch)
 			break;
 	}
 
+	//
+	// Check if this view has any action configured, and if yes find if this key
+	// is one of the view hotkeys
+	//
+	sinsp_view_info* vinfo = m_parent->get_selected_view();
+
+	for(auto hk : vinfo->m_actions)
+	{
+		if(hk.m_hotkey == ch)
+		{
+			m_parent->run_action(&hk);
+			return STA_NONE;
+		}
+	}
+
 	return STA_PARENT_HANDLE;
 }
 
@@ -728,7 +774,12 @@ curses_table::alignment curses_table::get_field_alignment(ppm_param_type type)
 void curses_table::recreate_win(int h)
 {
 	delwin(m_tblwin);
-	m_h = h;
+	
+	if(h != 0)
+	{
+		m_h = h;
+	}
+	
 	m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
 	render(true);
 }
