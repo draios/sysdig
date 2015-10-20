@@ -54,9 +54,13 @@ public:
 
 	void set_namespace(const std::string& ns);
 
+	k8s_pair_s* get_label(const k8s_pair_s& label);
+
 	const k8s_pair_list& get_labels() const;
 
-	k8s_pair_list& get_labels();
+	void set_labels(k8s_pair_list&& labels);
+
+	void add_labels(k8s_pair_list&& labels);
 
 	void swap_labels(k8s_pair_list& new_labels);
 
@@ -64,9 +68,13 @@ public:
 
 	void emplace_label(const k8s_pair_s& label);
 
+	k8s_pair_s* get_selector(const k8s_pair_s& selector);
+
 	const k8s_pair_list& get_selectors() const;
 
-	k8s_pair_list& get_selectors();
+	void set_selectors(k8s_pair_list&& selectors);
+
+	void add_selectors(k8s_pair_list&& selectors);
 
 	void swap_selectors(k8s_pair_list& new_selectors);
 
@@ -122,18 +130,22 @@ public:
 class k8s_node_s : public k8s_component
 {
 public:
+	typedef std::vector<std::string> host_ip_list;
+
 	k8s_node_s(const std::string& name, const std::string& uid, const std::string& ns = "");
 
-	const std::vector<std::string>& get_host_ips() const;
+	const host_ip_list& get_host_ips() const;
 
-	std::vector<std::string>& get_host_ips();
+	void set_host_ips(host_ip_list&& host_ips);
+
+	void add_host_ips(host_ip_list&& host_ips);
 
 	void push_host_ip(const std::string& host_ip);
 
 	void emplace_host_ip(std::string&& host_ip);
 
 private:
-	std::vector<std::string> host_ips;
+	host_ip_list m_host_ips;
 };
 
 
@@ -144,11 +156,15 @@ private:
 class k8s_pod_s : public k8s_component
 {
 public:
+	typedef std::vector<std::string> container_list;
+
 	k8s_pod_s(const std::string& name, const std::string& uid, const std::string& ns = "");
 
-	const std::vector<std::string>& get_container_ids() const;
+	const container_list& get_container_ids() const;
 
-	std::vector<std::string>& get_container_ids();
+	void set_container_ids(container_list&& container_ids);
+	
+	void add_container_ids(container_list&& container_ids);
 
 	void push_container_id(const std::string& container_id);
 
@@ -320,7 +336,7 @@ public:
 	{
 		for (auto& comp : container)
 		{
-			if (uid == comp.get_uid())
+			if(uid == comp.get_uid())
 			{
 				return true;
 			}
@@ -336,7 +352,7 @@ public:
 	{
 		for (auto& comp : container)
 		{
-			if (comp.get_uid() == uid)
+			if(comp.get_uid() == uid)
 			{
 				return comp;
 			}
@@ -353,7 +369,7 @@ public:
 			component != end;
 			++component)
 		{
-			if (component->get_uid() == uid)
+			if(component->get_uid() == uid)
 			{
 				components.erase(component);
 				return true;
@@ -412,9 +428,9 @@ inline const k8s_pair_list& k8s_component::get_labels() const
 	return m_labels;
 }
 
-inline k8s_pair_list& k8s_component::get_labels()
+inline void k8s_component::set_labels(k8s_pair_list&& labels)
 {
-	return m_labels;
+	m_labels = std::move(labels);
 }
 
 inline void k8s_component::swap_labels(k8s_pair_list& new_labels)
@@ -437,9 +453,9 @@ inline const k8s_pair_list& k8s_component::get_selectors() const
 	return m_selectors;
 }
 
-inline k8s_pair_list& k8s_component::get_selectors()
+inline void k8s_component::set_selectors(k8s_pair_list&& selectors)
 {
-	return m_selectors;
+	m_selectors = std::move(selectors);
 }
 
 inline void k8s_component::swap_selectors(k8s_pair_list& new_selectors)
@@ -471,24 +487,29 @@ inline k8s_component::type k8s_component::get_type(const component_pair& p)
 // node
 //
 
-inline const std::vector<std::string>& k8s_node_s::get_host_ips() const
+inline const k8s_node_s::host_ip_list& k8s_node_s::get_host_ips() const
 {
-	return host_ips;
+	return m_host_ips;
 }
 
-inline std::vector<std::string>& k8s_node_s::get_host_ips()
+inline void k8s_node_s::set_host_ips(host_ip_list&& host_ips)
 {
-	return host_ips;
+	m_host_ips = std::move(host_ips);
+}
+
+inline void k8s_node_s::add_host_ips(host_ip_list&& host_ips)
+{
+	m_host_ips.insert(m_host_ips.end(), host_ips.begin(), host_ips.end());
 }
 
 inline void k8s_node_s::push_host_ip(const std::string& host_ip)
 {
-	host_ips.push_back(host_ip);
+	m_host_ips.push_back(host_ip);
 }
 
 inline void k8s_node_s::emplace_host_ip(std::string&& host_ip)
 {
-	host_ips.emplace_back(std::move(host_ip));
+	m_host_ips.emplace_back(std::move(host_ip));
 }
 
 
@@ -496,14 +517,19 @@ inline void k8s_node_s::emplace_host_ip(std::string&& host_ip)
 // pod 
 //
 
-inline const std::vector<std::string>& k8s_pod_s::get_container_ids() const
+inline const k8s_pod_s::container_list& k8s_pod_s::get_container_ids() const
 {
 	return m_container_ids;
 }
 
-inline std::vector<std::string>& k8s_pod_s::get_container_ids()
+inline void k8s_pod_s::set_container_ids(container_list&& container_ids)
 {
-	return m_container_ids;
+	m_container_ids = std::move(container_ids);
+}
+
+inline void k8s_pod_s::add_container_ids(container_list&& container_ids)
+{
+	m_container_ids.insert(m_container_ids.end(), container_ids.begin(), container_ids.end());
 }
 
 inline void k8s_pod_s::push_container_id(const std::string& container_id)
