@@ -10,7 +10,6 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "k8s.h"
-#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -33,13 +32,13 @@ k8s_http::k8s_http(k8s& k8s,
 		m_watch_socket(0),
 		m_data_ready(false)
 {
-	if (!m_curl)
+	if(!m_curl)
 	{
 		throw std::runtime_error("CURL initialization failed.");
 	}
 	std::ostringstream url;
 	url << m_protocol << "://";
-	if (!m_credentials.empty())
+	if(!m_credentials.empty())
 	{
 		url << m_credentials << '@';	
 	}
@@ -50,7 +49,7 @@ k8s_http::k8s_http(k8s& k8s,
 
 k8s_http::~k8s_http()
 {
-	if (m_curl)
+	if(m_curl)
 	{
 		curl_easy_cleanup(m_curl);
 	}
@@ -69,7 +68,7 @@ bool k8s_http::get_all_data(std::ostream& os)
 	curl_easy_setopt(m_curl, CURLOPT_URL, m_url.c_str());
 	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L);
 	
-	if (m_protocol == "https")
+	if(m_protocol == "https")
 	{
 		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0);
 	}
@@ -81,7 +80,7 @@ bool k8s_http::get_all_data(std::ostream& os)
 
 	CURLcode res = curl_easy_perform(m_curl);
 
-	if (res != CURLE_OK)
+	if(res != CURLE_OK)
 	{
 		os << curl_easy_strerror(res) << std::flush;
 	}
@@ -119,7 +118,7 @@ int k8s_http::wait(curl_socket_t sockfd, int for_recv, long timeout_ms)
 
 int k8s_http::get_watch_socket()
 {
-	if (!m_watch_socket)
+	if(!m_watch_socket)
 	{
 		long sockextr;
 		size_t iolen;
@@ -140,7 +139,7 @@ int k8s_http::get_watch_socket()
 
 		std::ostringstream request;
 		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\n";
-		if (!m_credentials.empty())
+		if(!m_credentials.empty())
 		{
 			std::istringstream is(m_credentials);
 			std::ostringstream os;
@@ -162,9 +161,9 @@ void k8s_http::on_data()
 	size_t iolen = 0;
 	char buf[1024] = { 0 };
 	check_error(curl_easy_recv(m_curl, buf, 1024, &iolen));
-	if (iolen > 0)
+	if(iolen > 0)
 	{
-		if (m_data_ready)
+		if(m_data_ready)
 		{
 			m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), buf, iolen));
 		}
@@ -173,10 +172,10 @@ void k8s_http::on_data()
 			std::string data(buf, iolen);
 			std::string end = "\r\n\r\n";
 			std::string::size_type pos = data.find(end);
-			if (pos != std::string::npos)
+			if(pos != std::string::npos)
 			{
 				pos += end.size();
-				if (iolen == pos) // right on the edge of data
+				if(iolen == pos) // right on the edge of data
 				{
 					m_data_ready = true;
 				}
@@ -213,11 +212,3 @@ void k8s_http::check_error(CURLcode res)
 	}
 }
 
-// find substring (case insensitive)
-int k8s_http::ci_find_substr(const std::string& str1, const std::string& str2)
-{
-	std::string::const_iterator it = std::search(str1.begin(), str1.end(), 
-		str2.begin(), str2.end(), my_equal());
-	if (it != str1.end()) return it - str1.begin();
-	else return -1; // not found
-}

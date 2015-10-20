@@ -23,7 +23,7 @@ void k8s_poller::add(k8s_http* handler)
 
 	FD_SET(sockfd, &m_errfd);
 	FD_SET(sockfd, &m_infd);
-	if (sockfd > m_nfds)
+	if(sockfd > m_nfds)
 	{
 		m_nfds = sockfd;
 	}
@@ -35,14 +35,14 @@ void k8s_poller::remove(int sockfd)
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	socket_map_t::iterator it = m_sockets.find(sockfd);
-	if (it != m_sockets.end())
+	if(it != m_sockets.end())
 	{
 		m_sockets.erase(it);
 	}
 	m_nfds = 0;
 	for (auto& sock : m_sockets)
 	{
-		if (sock.first > m_nfds)
+		if(sock.first > m_nfds)
 		{
 			m_nfds = sock.first;
 		}
@@ -67,7 +67,7 @@ void k8s_poller::poll()
 	
 		{
 			std::lock_guard<std::mutex> lock(m_mutex);
-			if (m_sockets.size())
+			if(m_sockets.size())
 			{
 				res = select(m_nfds + 1, &m_infd, NULL, &m_errfd, &tv);
 
@@ -75,11 +75,11 @@ void k8s_poller::poll()
 				{
 					//TODO
 				}
-				else if (res > 0) // data
+				else if(res > 0) // data
 				{
 					for (auto& sock : m_sockets)
 					{
-						if (FD_ISSET(sock.first, &m_infd))
+						if(FD_ISSET(sock.first, &m_infd))
 						{
 							sock.second->on_data();
 						}
@@ -88,7 +88,7 @@ void k8s_poller::poll()
 							FD_SET(sock.first, &m_infd);
 						}
 
-						if (FD_ISSET(sock.first, &m_errfd))
+						if(FD_ISSET(sock.first, &m_errfd))
 						{
 							sock.second->on_error();
 						}

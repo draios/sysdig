@@ -46,14 +46,14 @@ private:
 	// so we have to go with the forward declaration above and pointers here ...
 	typedef std::map<k8s_component::type, k8s_dispatcher*> dispatch_map;
 
-	static dispatch_map make_dispatch_map(k8s_state_s& state);
+	static dispatch_map make_dispatch_map(k8s_state_s& state, std::mutex& mut);
 
-	k8s_net                 m_net;
-	bool                    m_watch;
-	bool                    m_own_proto;
-	k8s_state_s             m_state;
-	dispatch_map            m_dispatch;
-	std::mutex              m_mutex;
-
+	mutable std::mutex m_mutex;
+	k8s_net            m_net;
+	bool               m_watch;
+	bool               m_own_proto;
+	k8s_state_s        m_state;
+	dispatch_map       m_dispatch;
+	
 	static const k8s_component::component_map m_components;
 };

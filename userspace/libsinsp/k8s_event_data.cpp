@@ -25,7 +25,7 @@ k8s_event_data::k8s_event_data(k8s_event_data&& other):
 
 k8s_event_data& k8s_event_data::operator=(k8s_event_data&& other)
 {
-	if (this != &other)
+	if(this != &other)
 	{
 		m_component = other.m_component;
 		m_data = other.m_data;

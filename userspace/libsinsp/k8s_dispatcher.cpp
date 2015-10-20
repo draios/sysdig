@@ -11,9 +11,10 @@
 #include <sstream>
 #include <iostream>
 
-k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_s& state) :
+k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_s& state, std::mutex& mut) :
 	m_type(t),
-	m_state(state)
+	m_state(state),
+	m_mutex(mut)
 {
 }
 
@@ -23,7 +24,7 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 
 	std::string&& data = event_data.data();
 
-	if (m_messages.size() == 0)
+	if(m_messages.size() == 0)
 	{
 		m_messages.push_back("");
 	}
@@ -32,7 +33,7 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 	std::string::size_type pos = msg->find_first_of('\n');
 	
 	// previous msg full, this is a beginning of new message
-	if (pos != std::string::npos && pos == (msg->size() - 1))
+	if(pos != std::string::npos && pos == (msg->size() - 1))
 	{
 		m_messages.push_back("");
 		msg = &m_messages.back();
@@ -46,12 +47,12 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 		msg = &m_messages.back();
 	};
 
-	if (data.size() > 0)
+	if(data.size() > 0)
 	{
 		msg->append((data));
 	}
 
-	dispatch(); // ?TODO: in separate thread?
+	dispatch(); // candidate for separate thread
 }
 
 bool k8s_dispatcher::is_valid(const std::string& msg)
@@ -60,7 +61,7 @@ bool k8s_dispatcher::is_valid(const std::string& msg)
 	// so, here we only check for messages that are single newline only
 	// or those that are longer than one character and contain multiple newlines.
 
-	if ((msg.size() == 1 && msg[0] == '\n') ||
+	if((msg.size() == 1 && msg[0] == '\n') ||
 		std::count(msg.begin(), msg.end(), '\n') > 1)
 	{
 		return false;
@@ -72,7 +73,7 @@ bool k8s_dispatcher::is_ready(const std::string& msg)
 {
 	// absurd minimum ( "{}\n" ) but it's hard to tell 
 	// what minimal size is, so there ...
-	if (msg.size() < 3) 
+	if(msg.size() < 3) 
 	{
 		return false;
 	}
@@ -83,15 +84,15 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(const Json::Value& root)
 {
 	msg_data data;
 	Json::Value evtype = root["type"];
-	if (!evtype.isNull())
+	if(!evtype.isNull())
 	{
 		const std::string& et = evtype.asString();
-		if (!et.empty())
+		if(!et.empty())
 		{
-			if      (et[0] == 'A') { data.m_reason = COMPONENT_ADDED;    }
-			else if (et[0] == 'M') { data.m_reason = COMPONENT_MODIFIED; }
-			else if (et[0] == 'D') { data.m_reason = COMPONENT_DELETED;  }
-			else if (et[0] == 'E') { data.m_reason = COMPONENT_ERROR;    }
+			if     (et[0] == 'A') { data.m_reason = COMPONENT_ADDED;    }
+			else if(et[0] == 'M') { data.m_reason = COMPONENT_MODIFIED; }
+			else if(et[0] == 'D') { data.m_reason = COMPONENT_DELETED;  }
+			else if(et[0] == 'E') { data.m_reason = COMPONENT_ERROR;    }
 		}
 		else
 		{
@@ -99,23 +100,23 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(const Json::Value& root)
 		}
 	}
 	Json::Value object = root["object"];
-	if (!object.isNull() && object.isObject())
+	if(!object.isNull() && object.isObject())
 	{
 		Json::Value meta = object["metadata"];
-		if (!meta.isNull() && meta.isObject())
+		if(!meta.isNull() && meta.isObject())
 		{
 			Json::Value name = meta["name"];
-			if (!name.isNull())
+			if(!name.isNull())
 			{
 				data.m_name = name.asString();
 			}
 			Json::Value uid = meta["uid"];
-			if (!uid.isNull())
+			if(!uid.isNull())
 			{
 				data.m_uid = uid.asString();
 			}
 			Json::Value nspace = meta["namespace"];
-			if (!nspace.isNull())
+			if(!nspace.isNull())
 			{
 				data.m_namespace = nspace.asString();
 			}
@@ -126,31 +127,68 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(const Json::Value& root)
 
 void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 {
-	if (data.m_reason == COMPONENT_ADDED || data.m_reason == COMPONENT_MODIFIED)
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	if(data.m_reason == COMPONENT_ADDED)
 	{
 		std::vector<std::string> addresses = k8s_component::extract_nodes_addresses(root["status"]);
-		k8s_node_s& node = m_state.get_component<k8s_state_s::nodes, k8s_node_s>(m_state.get_nodes(), data.m_name, data.m_uid);
-		if (addresses.size() > 0)
+		if(m_state.has(m_state.get_nodes(), data.m_uid))
 		{
-			node.get_host_ips() = std::move(addresses);
+			std::ostringstream os;
+			os << "ADDED message received for existing node [" << data.m_uid << "], updating only.";
+			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+		}
+		k8s_node_s& node = m_state.get_component<k8s_state_s::nodes, k8s_node_s>(m_state.get_nodes(), data.m_name, data.m_uid);
+		if(addresses.size() > 0)
+		{
+			node.set_host_ips(std::move(addresses));
 		}
 		Json::Value object = root["object"];
-		if (!object.isNull())
+		if(!object.isNull())
 		{
 			Json::Value metadata = object["metadata"];
-			if (!metadata.isNull())
+			if(!metadata.isNull())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
-				if (entries.size() > 0)
+				if(entries.size() > 0)
 				{
-					node.get_labels() = std::move(entries);
+					node.set_labels(std::move(entries));
 				}
 			}
 		}
 	}
-	else if (data.m_reason == COMPONENT_DELETED)
+	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		if (!m_state.delete_component(m_state.get_nodes(), data.m_uid))
+		std::vector<std::string> addresses = k8s_component::extract_nodes_addresses(root["status"]);
+		if(!m_state.has(m_state.get_nodes(), data.m_uid))
+		{
+			std::ostringstream os;
+			os << "MODIFIED message received for non-existing node [" << data.m_uid << "], giving up.";
+			g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+			return;
+		}
+		k8s_node_s& node = m_state.get_component<k8s_state_s::nodes, k8s_node_s>(m_state.get_nodes(), data.m_name, data.m_uid);
+		if(addresses.size() > 0)
+		{
+			node.add_host_ips(std::move(addresses));
+		}
+		Json::Value object = root["object"];
+		if(!object.isNull())
+		{
+			Json::Value metadata = object["metadata"];
+			if(!metadata.isNull())
+			{
+				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
+				if(entries.size() > 0)
+				{
+					node.add_labels(std::move(entries));
+				}
+			}
+		}
+	}
+	else if(data.m_reason == COMPONENT_DELETED)
+	{
+		if(!m_state.delete_component(m_state.get_nodes(), data.m_uid))
 		{
 			g_logger.log(std::string("NODE not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
@@ -163,26 +201,58 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& data)
 {
-	if (data.m_reason == COMPONENT_ADDED || data.m_reason == COMPONENT_MODIFIED)
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	if(data.m_reason == COMPONENT_ADDED)
 	{
-		k8s_ns_s& node = m_state.get_component<k8s_state_s::namespaces, k8s_ns_s>(m_state.get_namespaces(), data.m_name, data.m_uid);
+		if(m_state.has(m_state.get_namespaces(), data.m_uid))
+		{
+			std::ostringstream os;
+			os << "ADDED message received for existing namespace [" << data.m_uid << "], updating only.";
+			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+		}
+		k8s_ns_s& ns = m_state.get_component<k8s_state_s::namespaces, k8s_ns_s>(m_state.get_namespaces(), data.m_name, data.m_uid);
 		Json::Value object = root["object"];
-		if (!object.isNull())
+		if(!object.isNull())
 		{
 			Json::Value metadata = object["metadata"];
-			if (!metadata.isNull())
+			if(!metadata.isNull())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
-				if (entries.size() > 0)
+				if(entries.size() > 0)
 				{
-					node.get_labels() = std::move(entries);
+					ns.set_labels(std::move(entries));
 				}
 			}
 		}
 	}
-	else if (data.m_reason == COMPONENT_DELETED)
+	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		if (!m_state.delete_component(m_state.get_namespaces(), data.m_uid))
+		if(!m_state.has(m_state.get_namespaces(), data.m_uid))
+		{
+			std::ostringstream os;
+			os << "MODIFIED message received for non-existing node [" << data.m_uid << "], giving up.";
+			g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+			return;
+		}
+		k8s_ns_s& ns = m_state.get_component<k8s_state_s::namespaces, k8s_ns_s>(m_state.get_namespaces(), data.m_name, data.m_uid);
+		Json::Value object = root["object"];
+		if(!object.isNull())
+		{
+			Json::Value metadata = object["metadata"];
+			if(!metadata.isNull())
+			{
+				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
+				if(entries.size() > 0)
+				{
+					ns.add_labels(std::move(entries));
+				}
+			}
+		}
+	}
+	else if(data.m_reason == COMPONENT_DELETED)
+	{
+		if(!m_state.delete_component(m_state.get_namespaces(), data.m_uid))
 		{
 			g_logger.log(std::string("NAMESPACE not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
@@ -195,29 +265,64 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 
 void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 {
-	if (data.m_reason == COMPONENT_ADDED || data.m_reason == COMPONENT_MODIFIED)
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	if(data.m_reason == COMPONENT_ADDED)
 	{
 		Json::Value object = root["object"];
-		if (!object.isNull())
+		if(!object.isNull())
 		{
+			if(m_state.has(m_state.get_pods(), data.m_uid))
+			{
+				std::ostringstream os;
+				os << "ADDED message received for existing pod [" << data.m_uid << "], updating only.";
+				g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+			}
 			k8s_pod_s& pod = m_state.get_component<k8s_state_s::pods, k8s_pod_s>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
 			Json::Value metadata = object["metadata"];
-			if (!metadata.isNull())
+			if(!metadata.isNull())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
-				if (entries.size() > 0)
+				if(entries.size() > 0)
 				{
-					pod.get_labels() = std::move(entries);
+					pod.set_labels(std::move(entries));
 				}
 			}
-			std::vector<std::string> containers = k8s_component::extract_pod_containers(object);
-			pod.get_container_ids() = std::move(containers);
+			k8s_pod_s::container_list containers = k8s_component::extract_pod_containers(object);
+			pod.set_container_ids(std::move(containers));
 			k8s_component::extract_pod_data(object, pod);
 		}
 	}
-	else if (data.m_reason == COMPONENT_DELETED)
+	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		if (!m_state.delete_component(m_state.get_namespaces(), data.m_uid))
+		Json::Value object = root["object"];
+		if(!object.isNull())
+		{
+			if(!m_state.has(m_state.get_pods(), data.m_uid))
+			{
+				std::ostringstream os;
+				os << "MODIFIED message received for non-existing pod [" << data.m_uid << "], giving up.";
+				g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+				return;
+			}
+			k8s_pod_s& pod = m_state.get_component<k8s_state_s::pods, k8s_pod_s>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
+			Json::Value metadata = object["metadata"];
+			if(!metadata.isNull())
+			{
+				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
+				if(entries.size() > 0)
+				{
+					pod.add_labels(std::move(entries));
+				}
+			}
+			k8s_pod_s::container_list containers = k8s_component::extract_pod_containers(object);
+			pod.add_container_ids(std::move(containers));
+			k8s_component::extract_pod_data(object, pod);
+		}
+	}
+	else if(data.m_reason == COMPONENT_DELETED)
+	{
+		if(!m_state.delete_component(m_state.get_namespaces(), data.m_uid))
 		{
 			g_logger.log(std::string("POD not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
@@ -230,36 +335,78 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 {
-	if (data.m_reason == COMPONENT_ADDED || data.m_reason == COMPONENT_MODIFIED)
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	if(data.m_reason == COMPONENT_ADDED)
 	{
+		if(m_state.has(m_state.get_rcs(), data.m_uid))
+		{
+			std::ostringstream os;
+			os << "ADDED message received for existing replication controller [" << data.m_uid << "], updating only.";
+			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+		}
 		k8s_rc_s& rc = m_state.get_component<k8s_state_s::controllers, k8s_rc_s>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
 		Json::Value object = root["object"];
-		if (!object.isNull())
+		if(!object.isNull())
 		{
 			Json::Value metadata = object["metadata"];
-			if (!metadata.isNull())
+			if(!metadata.isNull())
 			{
 				k8s_pair_list labels = k8s_component::extract_object(metadata, "labels");
-				if (labels.size() > 0)
+				if(labels.size() > 0)
 				{
-					rc.get_labels() = std::move(labels);
+					rc.set_labels(std::move(labels));
 				}
 			}
 
 			Json::Value spec = object["spec"];
-			if (!spec.isNull())
+			if(!spec.isNull())
 			{
 				k8s_pair_list selectors = k8s_component::extract_object(spec, "selector");
-				if (selectors.size() > 0)
+				if(selectors.size() > 0)
 				{
-					rc.get_labels() = std::move(selectors);
+					rc.set_selectors(std::move(selectors));
 				}
 			}
 		}
 	}
-	else if (data.m_reason == COMPONENT_DELETED)
+	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		if (!m_state.delete_component(m_state.get_namespaces(), data.m_uid))
+		if(!m_state.has(m_state.get_rcs(), data.m_uid))
+		{
+			std::ostringstream os;
+			os << "MODIFIED message received for non-existing replication controller [" << data.m_uid << "], giving up.";
+			g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+			return;
+		}
+		k8s_rc_s& rc = m_state.get_component<k8s_state_s::controllers, k8s_rc_s>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
+		Json::Value object = root["object"];
+		if(!object.isNull())
+		{
+			Json::Value metadata = object["metadata"];
+			if(!metadata.isNull())
+			{
+				k8s_pair_list labels = k8s_component::extract_object(metadata, "labels");
+				if(labels.size() > 0)
+				{
+					rc.add_labels(std::move(labels));
+				}
+			}
+
+			Json::Value spec = object["spec"];
+			if(!spec.isNull())
+			{
+				k8s_pair_list selectors = k8s_component::extract_object(spec, "selector");
+				if(selectors.size() > 0)
+				{
+					rc.add_selectors(std::move(selectors));
+				}
+			}
+		}
+	}
+	else if(data.m_reason == COMPONENT_DELETED)
+	{
+		if(!m_state.delete_component(m_state.get_namespaces(), data.m_uid))
 		{
 			g_logger.log(std::string("CONTROLLER not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
@@ -272,27 +419,60 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& data)
 {
-	if (data.m_reason == COMPONENT_ADDED || data.m_reason == COMPONENT_MODIFIED)
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	if(data.m_reason == COMPONENT_ADDED)
 	{
 		Json::Value object = root["object"];
-		if (!object.isNull())
+		if(!object.isNull())
 		{
+			if(m_state.has(m_state.get_services(), data.m_uid))
+			{
+				std::ostringstream os;
+				os << "ADDED message received for existing service [" << data.m_uid << "], updating only.";
+				g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+			}
 			k8s_service_s& service = m_state.get_component<k8s_state_s::services, k8s_service_s>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
 			Json::Value metadata = object["metadata"];
-			if (!metadata.isNull())
+			if(!metadata.isNull())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
-				if (entries.size() > 0)
+				if(entries.size() > 0)
 				{
-					service.get_labels() = std::move(entries);
+					service.set_labels(std::move(entries));
 				}
 			}
 			k8s_component::extract_services_data(object, service);
 		}
 	}
-	else if (data.m_reason == COMPONENT_DELETED)
+	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		if (!m_state.delete_component(m_state.get_namespaces(), data.m_uid))
+		Json::Value object = root["object"];
+		if(!object.isNull())
+		{
+			if(!m_state.has(m_state.get_services(), data.m_uid))
+			{
+				std::ostringstream os;
+				os << "MODIFIED message received for non-existing service [" << data.m_uid << "], giving up.";
+				g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+				return;
+			}
+			k8s_service_s& service = m_state.get_component<k8s_state_s::services, k8s_service_s>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
+			Json::Value metadata = object["metadata"];
+			if(!metadata.isNull())
+			{
+				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
+				if(entries.size() > 0)
+				{
+					service.add_labels(std::move(entries));
+				}
+			}
+			k8s_component::extract_services_data(object, service);
+		}
+	}
+	else if(data.m_reason == COMPONENT_DELETED)
+	{
+		if(!m_state.delete_component(m_state.get_namespaces(), data.m_uid))
 		{
 			g_logger.log(std::string("SERVICE not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
@@ -307,15 +487,15 @@ void k8s_dispatcher::dispatch()
 {
 	for (list::iterator it = m_messages.begin(); it != m_messages.end();)
 	{
-		if (is_ready(*it))
+		if(is_ready(*it))
 		{
 			Json::Value root;
 			Json::Reader reader;
-			if (reader.parse(*it, root, false))
+			if(reader.parse(*it, root, false))
 			{
 				std::ostringstream os;
 				msg_data data = get_msg_data(root);
-				if (data.is_valid())
+				if(data.is_valid())
 				{
 					os << '[' << to_reason_desc(data.m_reason) << ',';
 					switch (m_type)
@@ -387,10 +567,10 @@ std::string k8s_dispatcher::to_reason_desc(msg_reason reason)
 
 k8s_dispatcher::msg_reason k8s_dispatcher::to_reason(const std::string& desc)
 {
-	if (desc == "ADDED") { return COMPONENT_ADDED; }
-	else if (desc == "MODIFIED") { return COMPONENT_MODIFIED; }
-	else if (desc == "DELETED") { return COMPONENT_DELETED; }
-	else if (desc == "ERROR") { return COMPONENT_ERROR; }
-	else if (desc == "UNKNOWN") { return COMPONENT_UNKNOWN; }
+	if(desc == "ADDED") { return COMPONENT_ADDED; }
+	else if(desc == "MODIFIED") { return COMPONENT_MODIFIED; }
+	else if(desc == "DELETED") { return COMPONENT_DELETED; }
+	else if(desc == "ERROR") { return COMPONENT_ERROR; }
+	else if(desc == "UNKNOWN") { return COMPONENT_UNKNOWN; }
 	throw std::invalid_argument(desc);
 }
