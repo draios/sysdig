@@ -7,7 +7,6 @@
 #include "k8s_dispatcher.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "google/protobuf/text_format.h"
 #include <sstream>
 #include <utility>
 #include <memory>
