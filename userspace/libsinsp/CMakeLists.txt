@@ -3,6 +3,7 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
+include_directories(/home/gianluca/build/agent/dependencies/poco-1.4.6p4-all/target/include/)
 
 if(NOT WIN32)
 	include_directories("${CURSES_INCLUDE_DIR}")
@@ -24,6 +25,13 @@ add_library(sinsp STATIC
 	filter.cpp
 	filterchecks.cpp
 	ifinfo.cpp
+	k8s.cpp
+	k8s_component.cpp
+	k8s_dispatcher.cpp
+	k8s_event_data.cpp
+	k8s_http.cpp
+	k8s_net.cpp
+	k8s_poller.cpp
 	memmem.cpp
 	internal_metrics.cpp
 	"${JSONCPP_LIB_SRC}"
@@ -39,7 +47,11 @@ add_library(sinsp STATIC
 
 target_link_libraries(sinsp 
 	scap
-	"${JSONCPP_LIB}")
+	"${JSONCPP_LIB}"
+	b64
+	curl
+	/home/gianluca/build/agent/dependencies/poco-1.4.6p4-all/target/lib/libPocoFoundation.a
+	pthread)
 
 if(NOT WIN32)
 	add_dependencies(sinsp luajit)

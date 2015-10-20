@@ -9,6 +9,7 @@ include_directories("${PROJECT_SOURCE_DIR}/userspace/libscap")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libsinsp")
 include_directories("${PROJECT_BINARY_DIR}/userspace/sysdig")
 include_directories(.)
+include_directories(/home/gianluca/build/agent/dependencies/poco-1.4.6p4-all/target/include/)
 
 if(NOT WIN32)
 	set(SOURCE_FILES
