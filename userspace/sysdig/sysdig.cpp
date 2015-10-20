@@ -132,7 +132,9 @@ static void usage()
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
 " -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
-"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\"\n"
+"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
+"                    The API server can also be specified via the environment variable\n"
+"                    SYSDIG_K8S_API.\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -663,6 +665,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool unbuf_flag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
+	string k8s_api;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;	
@@ -873,7 +876,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				jflag = true;
 				break;
 			case 'k':
-				inspector->set_k8s_api_server(optarg);
+				k8s_api = optarg;
 				break;
 			case 'h':
 				usage();
@@ -1145,6 +1148,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if(!verbose && g_chisels.size() == 0)
 		{
 			inspector->set_max_evt_output_len(80);
+		}
+
+		if(!k8s_api.empty())
+		{
+			inspector->set_k8s_api_server(k8s_api);			
+		}
+		else
+		{
+			char* k8s_api_env = getenv("SYSDIG_K8S_API");
+			if(k8s_api_env != NULL)
+			{
+				inspector->set_k8s_api_server(k8s_api_env);
+			}
 		}
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
