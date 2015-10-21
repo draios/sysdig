@@ -30,13 +30,6 @@ script:
     - cd ..
     - rm -rf build
     - pushd $(mktemp -d --tmpdir sysdig.XXXXXXXXXX)
-    - wget http://download.draios.com/dependencies/zlib-1.2.8.tar.gz
-    - tar -xzf zlib-1.2.8.tar.gz
-    - cd zlib-1.2.8
-    - ./configure
-    - make
-    - sudo make install
-    - cd ..
     - wget https://github.com/open-source-parsers/jsoncpp/archive/0.10.2-p1.tar.gz
     - tar zxvf 0.10.2-p1.tar.gz
     - cd jsoncpp-0.10.2-p1
@@ -44,12 +37,12 @@ script:
     - make
     - sudo make install
     - cd ..
-    # - wget https://s3.amazonaws.com/download.draios.com/dependencies/libb64-1.2.src.zip
-    # - unzip libb64-1.2.src.zip
-    # - cd libb64-1.2
-    # - make
-    # - sudo cp -r include/* /usr/local/include/
-    # - sudo cp src/libb64.a /usr/local/lib/
+    - wget https://s3.amazonaws.com/download.draios.com/dependencies/libb64-1.2.src.zip
+    - unzip libb64-1.2.src.zip
+    - cd libb64-1.2
+    - make
+    - sudo cp -r include/* /usr/local/include/
+    - sudo cp src/libb64.a /usr/local/lib/
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
     - sudo apt-get install libncurses5-dev libluajit-5.1-dev
