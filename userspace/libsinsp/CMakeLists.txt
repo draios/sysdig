@@ -3,6 +3,7 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
+include_directories("${B64_INCLUDE}")
 
 if(NOT WIN32)
 	include_directories("${CURSES_INCLUDE_DIR}")
@@ -48,7 +49,7 @@ add_library(sinsp STATIC
 target_link_libraries(sinsp 
 	scap
 	"${JSONCPP_LIB}"
-	b64
+	"${B64_LIB}"
 	curl
 	pthread)
 
