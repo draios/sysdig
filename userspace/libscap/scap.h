@@ -507,21 +507,6 @@ scap_os_platform scap_get_os_platform(scap_t* handle);
 char* scap_getlasterr(scap_t* handle);
 
 /*!
-  \brief Get the next event from the from the given capture instance
-
-  \param handle Handle to the capture instance.
-  \param pevent User-provided event pointer that will be initialized with address of the event.
-  \param pcpuid User-provided event pointer that will be initialized with the ID if the CPU
-    where the event was captured.
-			
-  \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain valid data.
-   SCAP_TIMEOUT in case the read timeout expired and no event is available.
-   SCAP_EOF when the end of an offline capture is reached.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error. 
-*/
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
-
-/*!
   \brief Get the length of an event
 
   \param e pointer to an event returned by \ref scap_next.
@@ -829,7 +814,7 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
 uint32_t scap_get_ndevs(scap_t* handle);
 
 // Retrieve a buffer of events from one of the cpus
-extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len);
+//int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len);
 
 #ifdef PPM_ENABLE_SENTINEL
 // Get the sentinel at the beginning of the event

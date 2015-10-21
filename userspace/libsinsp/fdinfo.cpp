@@ -371,7 +371,9 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// Replace the fd as a struct copy
 		//
-		insert_res.first->second.copy(*fdinfo, true);
+		it->second.copy(*fdinfo, true);
+		return &(it->second);
+
 	}
 
 	return &(insert_res.first->second);

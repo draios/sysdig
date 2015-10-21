@@ -282,7 +282,6 @@ VISIBILITY_PRIVATE
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations
 	//  std::deque<sinsp_fdop> m_last_fdop;
-
 	//
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info

@@ -23,6 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <assert.h>
 
 #include <scap.h>
+#include <scap_next.h>
 #include "../../../../driver/ppm_events_public.h"
 
 extern const struct ppm_event_info g_event_info[];

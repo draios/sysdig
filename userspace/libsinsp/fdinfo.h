@@ -143,6 +143,7 @@ public:
 		{
 			m_usrstate = NULL;
 		}
+
 	}
 
 	/*!

@@ -19,6 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <signal.h>
 #include <scap.h>
+#include <scap_next.h>
 
 uint64_t g_nevts = 0;
 

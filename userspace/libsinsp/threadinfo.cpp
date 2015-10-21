@@ -25,6 +25,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "protodecoder.h"
 
+#ifdef HAS_THREAD_FILTERING
+#include "scap_new.h"
+#endif
+
 static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 {
 	dest[0] = src[0];
@@ -78,6 +82,8 @@ void sinsp_threadinfo::init()
 #endif
 	m_ainfo = NULL;
 	m_program_hash = 0;
+
+
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -839,6 +845,15 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		//
 		m_last_tid = 0;
 		m_last_tinfo = NULL;
+
+		//
+		// Wipe scap caches
+		//
+#ifdef HAS_THREAD_FILTERING
+
+		scap_wipe_caches(m_inspector->m_h);
+
+#endif
 
 #ifdef GATHER_INTERNAL_STATS
 		m_removed_threads->increment();
