@@ -28,6 +28,7 @@ script:
     - make
     - sudo cp -r include/* /usr/local/include/
     - sudo cp src/libb64.a /usr/local/lib/
+    - cd ..
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
