@@ -308,8 +308,10 @@ void sinsp::open(uint32_t timeout_ms)
 	}
 
 	init();
-
+#ifdef HAS_EARLY_FILTERING
 	set_scap_inspector(this, this->m_thread_manager->get_threads());
+#endif
+
 }
 
 void sinsp::open(string filename)
