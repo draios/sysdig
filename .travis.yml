@@ -26,8 +26,8 @@ script:
     - unzip libb64-1.2.src.zip
     - cd libb64-1.2
     - make
-    - cp -r include/* /usr/local/include/
-    - cp src/libb64.a /usr/local/lib/
+    - sudo cp -r include/* /usr/local/include/
+    - sudo cp src/libb64.a /usr/local/lib/
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
