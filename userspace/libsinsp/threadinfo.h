@@ -182,6 +182,62 @@ public:
 	*/
 	uint64_t get_fd_limit();
 
+#ifdef HAS_EARLY_FILTERING
+	void reset_file_access_count();
+
+	__always_inline void increment_total_write_access()
+	{
+		if(is_main_thread())
+		{
+			m_total_write_access++;
+		}
+		else
+		{
+			get_main_thread()->increment_total_write_access();
+		}
+	}
+
+	__always_inline void increment_total_read_access()
+	{
+		if(is_main_thread())
+		{
+			m_total_read_access++;
+		}
+		else
+		{
+			get_main_thread()->increment_total_read_access();
+		}
+	}
+
+	__always_inline double get_old_mean_read()
+	{
+		if(is_main_thread())
+		{
+			return m_old_mean_read;
+		}
+		return get_main_thread()->get_old_mean_read();
+	}
+
+	__always_inline double get_old_mean_write()
+	{
+		if(is_main_thread())
+		{
+			return m_old_mean_write;
+		}
+		return get_main_thread()->get_old_mean_write();
+	}
+
+	__always_inline int32_t get_last_filtered_enter()
+	{
+		return m_last_enter_filtered_category;
+	}
+
+	__always_inline void set_last_enter_filtered(int32_t filtered)
+	{
+		m_last_enter_filtered_category = filtered;
+	}
+
+#endif
 	//
 	// Core state
 	//
@@ -282,7 +338,6 @@ VISIBILITY_PRIVATE
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations
 	//  std::deque<sinsp_fdop> m_last_fdop;
-
 	//
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
@@ -292,6 +347,17 @@ VISIBILITY_PRIVATE
 	sinsp_threadinfo* m_main_thread;
 	uint8_t m_lastevent_data[SP_EVT_BUF_SIZE]; // Used by some event parsers to store the last enter event
 	vector<void*> m_private_state;
+
+#ifdef HAS_EARLY_FILTERING
+	//
+	// State for file filtering in scap (used only in main thread)
+	//
+	uint32_t m_total_write_access;
+	uint32_t m_total_read_access;
+	double m_old_mean_read;
+	double m_old_mean_write;
+	int16_t m_last_enter_filtered_category;
+#endif
 
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;

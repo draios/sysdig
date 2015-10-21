@@ -24,6 +24,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 
+#ifdef HAS_EARLY_FILTERING
+#include "scap_new.h"
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdinfo inomlementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -372,6 +376,11 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		// Replace the fd as a struct copy
 		//
 		insert_res.first->second.copy(*fdinfo, true);
+
+#ifdef HAS_EARLY_FILTERING
+		scap_wipe_fd_caches(m_inspector->m_h);
+#endif
+
 	}
 
 	return &(insert_res.first->second);
@@ -385,6 +394,10 @@ void sinsp_fdtable::erase(int64_t fd)
 	{
 		m_last_accessed_fd = -1;		
 	}
+
+#ifdef HAS_EARLY_FILTERING
+	scap_wipe_fd_caches(m_inspector->m_h);
+#endif
 
 	if(fdit == m_table.end())
 	{
