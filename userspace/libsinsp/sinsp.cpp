@@ -38,7 +38,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
+
+#ifdef HAS_EARLY_FILTERING
 #include "scap_new.h"
+#endif
+
 #endif
 
 extern sinsp_evttables g_infotables;
