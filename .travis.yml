@@ -22,13 +22,6 @@ script:
     - make
     - sudo make install
     - cd ..
-    - wget https://s3.amazonaws.com/download.draios.com/dependencies/libb64-1.2.src.zip
-    - unzip libb64-1.2.src.zip
-    - cd libb64-1.2
-    - make
-    - sudo cp -r include/* /usr/local/include/
-    - sudo cp src/libb64.a /usr/local/lib/
-    - cd ..
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
@@ -50,12 +43,19 @@ script:
     - cmake -DBUILD_SHARED_LIBS=ON .
     - make
     - sudo make install
+    - cd ..
+    # - wget https://s3.amazonaws.com/download.draios.com/dependencies/libb64-1.2.src.zip
+    # - unzip libb64-1.2.src.zip
+    # - cd libb64-1.2
+    # - make
+    # - sudo cp -r include/* /usr/local/include/
+    # - sudo cp src/libb64.a /usr/local/lib/
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
     - sudo apt-get install libncurses5-dev libluajit-5.1-dev
     - mkdir build
     - cd build
-    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF -DUSE_BUNDLED_ZLIB=OFF -DUSE_BUNDLED_NCURSES=OFF -DZLIB_PREFIX=/usr/local
+    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF -DUSE_BUNDLED_NCURSES=OFF -DUSE_BUNDLED_B64=OFF
     - make VERBOSE=1
     - make package
     - cd ..

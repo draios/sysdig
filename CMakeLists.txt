@@ -99,22 +99,8 @@ include(ExternalProject)
 # LuaJIT
 #
 option(USE_BUNDLED_LUAJIT "Enable building of the bundled LuaJIT" ON)
-option(LUAJIT_PREFIX "Build with LuaJIT at the given path" "")
 
-if(LUAJIT_PREFIX AND USE_BUNDLED_LUAJIT)
-    message(FATAL_ERROR "You must set either LUAJIT_PREFIX or USE_BUNDLED_LUAJIT "
-                         "not both.")
-endif()
-
-if(LUAJIT_PREFIX)
-	find_path(LUAJIT_INCLUDE luajit.h "${LUAJIT_PREFIX}/*" NO_DEFAULT_PATH)
-	find_library(LUAJIT_LIB NAMES luajit luajit-5.1 PATHS "${LUAJIT_PREFIX}/*" NO_DEFAULT_PATH)
-	if(LUAJIT_INCLUDE AND LUAJIT_LIB)
-		message(STATUS "Found LuaJIT: include: ${LUAJIT_INCLUDE}, lib: ${LUAJIT_LIB}")
-	else()
-		message(FATAL_ERROR "Couldn't find LuaJIT in '${LUAJIT_PREFIX}'")
-	endif()
-elseif(NOT USE_BUNDLED_LUAJIT)
+if(NOT USE_BUNDLED_LUAJIT)
 	find_path(LUAJIT_INCLUDE luajit.h PATH_SUFFIXES luajit-2.0 luajit)
 	find_library(LUAJIT_LIB NAMES luajit luajit-5.1)
 	if(LUAJIT_INCLUDE AND LUAJIT_LIB)
@@ -158,24 +144,10 @@ endif()
 # JsonCpp
 #
 option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ON)
-option(JSONCPP_PREFIX "Build with jsoncpp at the given path" "")
-
-if(JSONCPP_PREFIX AND USE_BUNDLED_JSONCPP)
-	message(FATAL_ERROR "You must set either JSONCPP_PREFIX or USE_BUNDLED_JSONCPP "
-			     "not both.")
-endif()
 
 set(JSONCPP_SRC "${PROJECT_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp")
 
-if(JSONCPP_PREFIX)
-	find_path(JSONCPP_INCLUDE json/json.h "${JSONCPP_PREFIX}/*" NO_DEFAULT_PATH)
-	find_library(JSONCPP_LIB NAMES jsoncpp PATHS "${JSONCPP_PREFIX}/*" NO_DEFAULT_PATH)
-	if(JSONCPP_INCLUDE AND JSONCPP_LIB)
-		message(STATUS "Found jsoncpp: include: ${JSONCPP_INCLUDE}, lib: ${JSONCPP_LIB}")
-	else()
-		message(FATAL_ERROR "Couldn't find jsoncpp in '${JSONCPP_PREFIX}'")
-	endif()
-elseif(NOT USE_BUNDLED_JSONCPP)
+if(NOT USE_BUNDLED_JSONCPP)
 	find_path(JSONCPP_INCLUDE json/json.h PATH_SUFFIXES jsoncpp)
 	find_library(JSONCPP_LIB NAMES jsoncpp)
 	if(JSONCPP_INCLUDE AND JSONCPP_LIB)
@@ -193,22 +165,8 @@ endif()
 # zlib
 #
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ON)
-option(ZLIB_PREFIX "Build with zlib at the given path" "")
 
-if(ZLIB_PREFIX AND USE_BUNDLED_ZLIB)
-    message(FATAL_ERROR "You must set either ZLIB_PREFIX or USE_BUNDLED_ZLIB "
-                         "not both.")
-endif()
-
-if(ZLIB_PREFIX)
-	find_path(ZLIB_INCLUDE zlib.h "${ZLIB_PREFIX}/*" NO_DEFAULT_PATH)
-	find_library(ZLIB_LIB NAMES z PATHS "${ZLIB_PREFIX}/*" NO_DEFAULT_PATH)
-	if(ZLIB_INCLUDE AND ZLIB_LIB)
-		message(STATUS "Found zlib: include: ${ZLIB_INCLUDE}, lib: ${ZLIB_LIB}")
-	else()
-		message(FATAL_ERROR "Couldn't find zlib in '${ZLIB_PREFIX}'")
-	endif()
-elseif(NOT USE_BUNDLED_ZLIB)
+if(NOT USE_BUNDLED_ZLIB)
 	find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
 	find_library(ZLIB_LIB NAMES z)
 	if(ZLIB_INCLUDE AND ZLIB_LIB)
