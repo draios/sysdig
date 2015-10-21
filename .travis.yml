@@ -13,8 +13,6 @@ before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
 script:
     - set -e
-    - export CC=$NEW_CC
-    - export CXX=$NEW_CXX
     - wget https://s3.amazonaws.com/download.draios.com/dependencies/cmake-3.3.2.tar.gz
     - tar -xzf cmake-3.3.2.tar.gz
     - cd cmake-3.3.2
