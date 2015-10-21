@@ -1152,14 +1152,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 		if(!k8s_api.empty())
 		{
-			inspector->set_k8s_api_server(k8s_api);			
+			inspector->init_k8s_client(k8s_api);			
 		}
 		else
 		{
 			char* k8s_api_env = getenv("SYSDIG_K8S_API");
 			if(k8s_api_env != NULL)
 			{
-				inspector->set_k8s_api_server(k8s_api_env);
+				inspector->init_k8s_client(k8s_api_env);
 			}
 		}
 

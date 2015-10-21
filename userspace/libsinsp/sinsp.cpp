@@ -277,13 +277,6 @@ void sinsp::init()
 		}
 	}
 #endif
-
-	if(!m_k8s_api_server.empty() &&
-		m_k8s_client == NULL)
-	{
-		g_logger.log("Fetching initial k8s state");
-		m_k8s_client = new k8s(m_k8s_api_server);
-	}
 }
 
 void sinsp::set_import_users(bool import_users)
@@ -1422,6 +1415,15 @@ double sinsp::get_read_progress()
 bool sinsp::remove_inactive_threads()
 {
 	return m_thread_manager->remove_inactive_threads();
+}
+
+void sinsp::init_k8s_client(const string& api_server)
+{
+	if(m_k8s_client == NULL)
+	{
+		g_logger.log("Fetching initial k8s state");
+		m_k8s_client = new k8s(api_server);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
