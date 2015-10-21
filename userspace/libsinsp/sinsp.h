@@ -635,6 +635,14 @@ public:
 	{
 		return m_input_filename;
 	}
+	
+	/*!
+	 \brief returns the scap handle
+	*/
+	inline scap_t* get_scap_handle()
+	{
+		return m_h;
+	}
 
 	/*!
 	  \brief When reading events from a trace file, this function returns the

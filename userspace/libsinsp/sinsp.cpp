@@ -38,6 +38,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
+#include "scap_new.h"
 #endif
 
 extern sinsp_evttables g_infotables;
@@ -307,6 +308,8 @@ void sinsp::open(uint32_t timeout_ms)
 	}
 
 	init();
+
+	set_scap_inspector(this, this->m_thread_manager->get_threads());
 }
 
 void sinsp::open(string filename)
