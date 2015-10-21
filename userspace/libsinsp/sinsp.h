@@ -643,10 +643,7 @@ public:
 	*/
 	double get_read_progress();
 
-	void set_k8s_api_server(const string& api_server)
-	{
-		m_k8s_api_server = api_server;
-	}
+	void init_k8s_client(const string& api_server);
 
 	//
 	// Misc internal stuff
@@ -733,7 +730,6 @@ private:
 
 	sinsp_container_manager m_container_manager;
 
-	string m_k8s_api_server;
 	k8s* m_k8s_client;
 
 	//
