@@ -34,6 +34,7 @@ endif()
 set(PACKAGE_NAME "sysdig")
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
+add_definitions(-DK8S_DISABLE_THREAD)
 
 if(NOT WIN32)
 
