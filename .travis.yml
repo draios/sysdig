@@ -53,7 +53,7 @@ script:
     - sudo cp src/libb64.a /usr/local/lib/
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
-    - sudo apt-get install libncurses5-dev libluajit-5.1-dev libcurl4-openssl-dev
+    - sudo apt-get install libncurses5-dev libluajit-5.1-dev libcurl4-openssl-dev libssl-dev
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_DEPS=OFF
