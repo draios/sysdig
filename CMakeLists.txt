@@ -100,7 +100,7 @@ option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system
 #
 # LuaJIT
 #
-option(USE_BUNDLED_LUAJIT "Enable building of the bundled LuaJIT" ON)
+option(USE_BUNDLED_LUAJIT "Enable building of the bundled LuaJIT" ${USE_BUNDLED_DEPS})
 
 if(NOT USE_BUNDLED_LUAJIT OR NOT USE_BUNDLED_DEPS)
 	find_path(LUAJIT_INCLUDE luajit.h PATH_SUFFIXES luajit-2.0 luajit)
@@ -166,9 +166,9 @@ endif()
 #
 # zlib
 #
-option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ON)
+option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
 
-if(NOT USE_BUNDLED_ZLIB OR NOT USE_BUNDLED_DEPS)
+if(NOT USE_BUNDLED_ZLIB)
 	find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
 	find_library(ZLIB_LIB NAMES z)
 	if(ZLIB_INCLUDE AND ZLIB_LIB)
@@ -205,9 +205,9 @@ endif()
 # ncurses, keep it simple for the moment
 #
 if(NOT WIN32)
-	option(USE_BUNDLED_NCURSES "Enable building of the bundled ncurses" ON)
+	option(USE_BUNDLED_NCURSES "Enable building of the bundled ncurses" ${USE_BUNDLED_DEPS})
 	
-	if(NOT USE_BUNDLED_NCURSES OR NOT USE_BUNDLED_DEPS)
+	if(NOT USE_BUNDLED_NCURSES)
 		set(CURSES_NEED_NCURSES TRUE)
 		find_package(Curses REQUIRED)
 		message(STATUS "Found ncurses: include: ${CURSES_INCLUDE_DIR}, lib: ${CURSES_LIBRARIES}")
@@ -231,9 +231,9 @@ endif()
 #
 # libb64
 # 
-option(USE_BUNDLED_B64 "Enable building of the bundled b64" ON)
+option(USE_BUNDLED_B64 "Enable building of the bundled b64" ${USE_BUNDLED_DEPS})
 
-if(NOT USE_BUNDLED_B64 OR NOT USE_BUNDLED_DEPS)
+if(NOT USE_BUNDLED_B64)
 	find_path(B64_INCLUDE NAMES b64/encode.h)
 	find_library(B64_LIB NAMES b64)
 	if(B64_INCLUDE AND B64_LIB)
@@ -258,9 +258,9 @@ endif()
 #
 # OpenSSL
 #
-option(USE_BUNDLED_OPENSSL "Enable building of the bundled OpenSSL" ON)
+option(USE_BUNDLED_OPENSSL "Enable building of the bundled OpenSSL" ${USE_BUNDLED_DEPS})
 
-if(NOT USE_BUNDLED_OPENSSL OR NOT USE_BUNDLED_DEPS)
+if(NOT USE_BUNDLED_OPENSSL)
 	find_package(OpenSSL REQUIRED)
 	message(STATUS "Found OpenSSL: include: ${OPENSSL_INCLUDE_DIR}, lib: ${OPENSSL_LIBRARIES}")
 else()
@@ -282,9 +282,9 @@ endif()
 #
 # libcurl
 #
-option(USE_BUNDLED_CURL "Enable building of the bundled curl" ON)
+option(USE_BUNDLED_CURL "Enable building of the bundled curl" ${USE_BUNDLED_DEPS})
 
-if(NOT USE_BUNDLED_CURL OR NOT USE_BUNDLED_DEPS)
+if(NOT USE_BUNDLED_CURL)
 	find_package(CURL REQUIRED)
 	message(STATUS "Found CURL: include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARIES}")
 else()
