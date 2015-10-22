@@ -8,7 +8,7 @@ before_install:
 install:
     - sudo apt-get -qq install g++-4.8
     - sudo apt-get install rpm linux-headers-generic
-    - sudo apt-get purge libncurses5-dev cmake
+    - sudo apt-get purge libncurses5-dev cmake libcurl4-openssl-dev
     - sudo dpkg -l
 before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
@@ -46,7 +46,7 @@ script:
     - sudo cp src/libb64.a /usr/local/lib/
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
-    - sudo apt-get install libncurses5-dev libluajit-5.1-dev
+    - sudo apt-get install libncurses5-dev libluajit-5.1-dev libcurl4-openssl-dev
     - mkdir build
     - cd build
     - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF -DUSE_BUNDLED_NCURSES=OFF -DUSE_BUNDLED_B64=OFF -DUSE_BUNDLED_CURL=OFF
