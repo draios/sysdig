@@ -1988,6 +1988,10 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 			fdi.m_type = SCAP_FD_IPV4_SOCK;
 			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 		}
+		else
+		{
+			fdi.m_type = SCAP_FD_IPV6_SOCK;
+		}
 	}
 	else if(*packed_data == PPM_AF_UNIX)
 	{
