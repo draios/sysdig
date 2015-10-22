@@ -50,8 +50,8 @@ function build_sysdig {
 		mkdir build
 		cd build
 		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$PROBE_VERSION ..
-		make -C ../driver clean
 		make configure_driver
+		make -C ../driver clean
 		make driver
 		strip -g driver/$PROBE_NAME.ko
 
@@ -98,8 +98,8 @@ function build_sysdigcloud {
 		mkdir build
 		cd build
 		cmake -DCMAKE_BUILD_TYPE=Release -DAGENT_VERSION=$PROBE_VERSION ..
-		make -C ../../sysdig/driver clean
 		make configure_driver
+		make -C ../../sysdig/driver clean
 		make driver
 		strip -g driver/$PROBE_NAME.ko
 
