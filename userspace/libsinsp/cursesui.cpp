@@ -2174,6 +2174,14 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 	bool replacing = false;
 	string fld_to_replace;
 
+	if(m_viz->get_data_size() == 0)
+	{
+		//
+		// No elements in the table means no selection
+		//
+		return;
+	}
+
 	//
 	// Scan the command string and replace the field names with the values from the selection
 	//

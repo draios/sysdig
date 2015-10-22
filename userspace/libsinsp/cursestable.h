@@ -48,7 +48,18 @@ public:
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
 	void follow_end();
 	string get_field_val(string fldname);
-	
+	uint32_t get_data_size()
+	{
+		if(m_table != NULL)
+		{
+			return m_data->size();
+		}
+		else
+		{
+			return 0;
+		}
+	}
+
 	sinsp_table_field_storage m_last_key;
 	bool m_drilled_up;
 	bool m_selection_changed;
