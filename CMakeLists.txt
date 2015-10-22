@@ -149,7 +149,7 @@ option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ON)
 
 set(JSONCPP_SRC "${PROJECT_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp")
 
-if(NOT USE_BUNDLED_JSONCPP OR NOT USE_BUNDLED_DEPS)
+if(NOT USE_BUNDLED_JSONCPP)
 	find_path(JSONCPP_INCLUDE json/json.h PATH_SUFFIXES jsoncpp)
 	find_library(JSONCPP_LIB NAMES jsoncpp)
 	if(JSONCPP_INCLUDE AND JSONCPP_LIB)
