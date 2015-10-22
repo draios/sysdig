@@ -254,6 +254,30 @@ else()
 		INSTALL_COMMAND "")
 endif()
 
+#
+# libcurl
+#
+option(USE_BUNDLED_CURL "Enable building of the bundled curl" ON)
+
+if(NOT USE_BUNDLED_CURL)
+	find_package(CURL REQUIRED)
+	message(STATUS "Found CURL: include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARIES}")
+else()
+	set(CURL_BUNDLE_DIR "${PROJECT_BINARY_DIR}/curl-prefix/src/curl")
+	set(CURL_INCLUDE_DIR "${CURL_BUNDLE_DIR}/include/")
+	set(CURL_LIBRARIES "${CURL_BUNDLE_DIR}/lib/.libs/libcurl.a")
+
+	message(STATUS "Using bundled curl in '${CURL_BUNDLE_DIR}'")
+
+	ExternalProject_Add(curl
+		URL "http://download.draios.com/dependencies/curl-7.45.0.tar.bz2"
+		URL_MD5 "62c1a352b28558f25ba6209214beadc8"
+		CONFIGURE_COMMAND ./configure --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2
+		BUILD_COMMAND ${CMD_MAKE}
+		BUILD_IN_SOURCE 1
+		INSTALL_COMMAND "")	
+endif()
+
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)

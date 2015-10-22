@@ -4,6 +4,7 @@ include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
 include_directories("${B64_INCLUDE}")
+include_directories("${CURL_INCLUDE_DIR}")
 
 if(NOT WIN32)
 	include_directories("${CURSES_INCLUDE_DIR}")
@@ -50,12 +51,14 @@ target_link_libraries(sinsp
 	scap
 	"${JSONCPP_LIB}"
 	"${B64_LIB}"
-	curl
+	"${CURL_LIBRARIES}"
 	pthread)
 
 if(NOT WIN32)
-	add_dependencies(sinsp luajit)
-	
+	if(USE_BUNDLED_LUAJIT)
+		add_dependencies(sinsp luajit)
+	endif()
+
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
 		dl)
