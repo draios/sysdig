@@ -95,12 +95,14 @@ endif()
 
 include(ExternalProject)
 
+option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
+
 #
 # LuaJIT
 #
 option(USE_BUNDLED_LUAJIT "Enable building of the bundled LuaJIT" ON)
 
-if(NOT USE_BUNDLED_LUAJIT)
+if(NOT USE_BUNDLED_LUAJIT OR NOT USE_BUNDLED_DEPS)
 	find_path(LUAJIT_INCLUDE luajit.h PATH_SUFFIXES luajit-2.0 luajit)
 	find_library(LUAJIT_LIB NAMES luajit luajit-5.1)
 	if(LUAJIT_INCLUDE AND LUAJIT_LIB)
@@ -147,7 +149,7 @@ option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ON)
 
 set(JSONCPP_SRC "${PROJECT_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp")
 
-if(NOT USE_BUNDLED_JSONCPP)
+if(NOT USE_BUNDLED_JSONCPP OR NOT USE_BUNDLED_DEPS)
 	find_path(JSONCPP_INCLUDE json/json.h PATH_SUFFIXES jsoncpp)
 	find_library(JSONCPP_LIB NAMES jsoncpp)
 	if(JSONCPP_INCLUDE AND JSONCPP_LIB)
@@ -166,7 +168,7 @@ endif()
 #
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ON)
 
-if(NOT USE_BUNDLED_ZLIB)
+if(NOT USE_BUNDLED_ZLIB OR NOT USE_BUNDLED_DEPS)
 	find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
 	find_library(ZLIB_LIB NAMES z)
 	if(ZLIB_INCLUDE AND ZLIB_LIB)
@@ -205,7 +207,11 @@ endif()
 if(NOT WIN32)
 	option(USE_BUNDLED_NCURSES "Enable building of the bundled ncurses" ON)
 	
-	if(USE_BUNDLED_NCURSES)
+	if(NOT USE_BUNDLED_NCURSES OR NOT USE_BUNDLED_DEPS)
+		set(CURSES_NEED_NCURSES TRUE)
+		find_package(Curses REQUIRED)
+		message(STATUS "Found ncurses: include: ${CURSES_INCLUDE_DIR}, lib: ${CURSES_LIBRARIES}")
+	else()
 		set(CURSES_BUNDLE_DIR "${PROJECT_BINARY_DIR}/ncurses-prefix/src/ncurses")
 		set(CURSES_INCLUDE_DIR "${CURSES_BUNDLE_DIR}/include/")
 		set(CURSES_LIBRARIES "${CURSES_BUNDLE_DIR}/lib/libncurses.a")
@@ -219,11 +225,6 @@ if(NOT WIN32)
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			INSTALL_COMMAND "")
-
-	else()
-		set(CURSES_NEED_NCURSES TRUE)
-		find_package(Curses REQUIRED)
-		message(STATUS "Found ncurses: include: ${CURSES_INCLUDE_DIR}, lib: ${CURSES_LIBRARIES}")
 	endif()
 endif()
 
@@ -232,7 +233,7 @@ endif()
 # 
 option(USE_BUNDLED_B64 "Enable building of the bundled b64" ON)
 
-if(NOT USE_BUNDLED_B64)
+if(NOT USE_BUNDLED_B64 OR NOT USE_BUNDLED_DEPS)
 	find_path(B64_INCLUDE NAMES b64/encode.h)
 	find_library(B64_LIB NAMES b64)
 	if(B64_INCLUDE AND B64_LIB)
@@ -259,7 +260,7 @@ endif()
 #
 option(USE_BUNDLED_OPENSSL "Enable building of the bundled OpenSSL" ON)
 
-if(NOT USE_BUNDLED_OPENSSL)
+if(NOT USE_BUNDLED_OPENSSL OR NOT USE_BUNDLED_DEPS)
 	find_package(OpenSSL REQUIRED)
 	message(STATUS "Found OpenSSL: include: ${OPENSSL_INCLUDE_DIR}, lib: ${OPENSSL_LIBRARIES}")
 else()
@@ -283,7 +284,7 @@ endif()
 #
 option(USE_BUNDLED_CURL "Enable building of the bundled curl" ON)
 
-if(NOT USE_BUNDLED_CURL)
+if(NOT USE_BUNDLED_CURL OR NOT USE_BUNDLED_DEPS)
 	find_package(CURL REQUIRED)
 	message(STATUS "Found CURL: include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARIES}")
 else()
