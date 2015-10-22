@@ -116,7 +116,7 @@ int k8s_http::wait(curl_socket_t sockfd, int for_recv, long timeout_ms)
 	return res;
 }
 
-int k8s_http::get_watch_socket()
+int k8s_http::get_watch_socket(long timeout_ms)
 {
 	if(!m_watch_socket)
 	{
@@ -131,7 +131,7 @@ int k8s_http::get_watch_socket()
 		check_error(curl_easy_getinfo(m_curl, CURLINFO_LASTSOCKET, &sockextr));
 		m_watch_socket = sockextr;
 
-		if(!wait(m_watch_socket, 0, 60000L))
+		if(!wait(m_watch_socket, 0, timeout_ms))
 		{
 			curl_easy_cleanup(m_curl);
 			throw sinsp_exception("Error: timeout.");
@@ -149,6 +149,12 @@ int k8s_http::get_watch_socket()
 		request << "\r\n";
 		check_error(curl_easy_send(m_curl, request.str().c_str(), request.str().size(), &iolen));
 		ASSERT (request.str().size() == iolen);
+		if(!wait(m_watch_socket, 1, timeout_ms))
+		{
+			curl_easy_cleanup(m_curl);
+			m_curl = 0;
+			throw sinsp_exception("Error: timeout.");
+		}
 
 		g_logger.log(std::string("Polling ") + url, sinsp_logger::SEV_DEBUG);
 	}

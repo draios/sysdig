@@ -2,14 +2,21 @@
 // k8s_poller.cpp
 //
 
+
+#include "sinsp.h"
+#include "sinsp_int.h"
 #include "k8s_poller.h"
 #include "k8s_http.h"
 #include <unistd.h>
+#include <string.h>
+#include <sstream>
 
-k8s_poller::k8s_poller(long timeout_ms): m_nfds(0), m_timeout_ms(timeout_ms), m_stopped(false)
+k8s_poller::k8s_poller(bool do_loop, long timeout_ms): m_nfds(0),
+	m_loop(do_loop),
+	m_timeout_ms(timeout_ms),
+	m_stopped(false)
 {
-	FD_ZERO(&m_errfd);
-	FD_ZERO(&m_infd);
+	remove_all();
 }
 
 k8s_poller::~k8s_poller()
@@ -18,8 +25,9 @@ k8s_poller::~k8s_poller()
 
 void k8s_poller::add(k8s_http* handler)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
-	int sockfd = handler->get_watch_socket();
+	K8S_LOCK_GUARD_MUTEX;
+
+	int sockfd = handler->get_watch_socket(5000L);
 
 	FD_SET(sockfd, &m_errfd);
 	FD_SET(sockfd, &m_infd);
@@ -32,7 +40,7 @@ void k8s_poller::add(k8s_http* handler)
 
 void k8s_poller::remove(int sockfd)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	K8S_LOCK_GUARD_MUTEX;
 
 	socket_map_t::iterator it = m_sockets.find(sockfd);
 	if(it != m_sockets.end())
@@ -51,8 +59,23 @@ void k8s_poller::remove(int sockfd)
 
 void k8s_poller::remove_all()
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	K8S_LOCK_GUARD_MUTEX;
+
+	FD_ZERO(&m_errfd);
+	FD_ZERO(&m_infd);
 	m_sockets.clear();
+}
+
+bool k8s_poller::is_active() const
+{
+	K8S_LOCK_GUARD_MUTEX;
+	return m_sockets.size() > 0;
+}
+
+int k8s_poller::subscription_count() const
+{
+	K8S_LOCK_GUARD_MUTEX;
+	return static_cast<int>(m_sockets.size());
 }
 
 void k8s_poller::poll()
@@ -62,18 +85,18 @@ void k8s_poller::poll()
 
 	while (!m_stopped)
 	{
-		tv.tv_sec  = m_timeout_ms / 1000;
-		tv.tv_usec = (m_timeout_ms % 1000) * 1000;
-	
+		tv.tv_sec  = m_loop ? m_timeout_ms / 1000 : 0;
+		tv.tv_usec = m_loop ? (m_timeout_ms % 1000) * 1000 : 0;
 		{
-			std::lock_guard<std::mutex> lock(m_mutex);
+			K8S_LOCK_GUARD_MUTEX;
+
 			if(m_sockets.size())
 			{
 				res = select(m_nfds + 1, &m_infd, NULL, &m_errfd, &tv);
-
 				if(res < 0) // error
 				{
-					//TODO
+					g_logger.log(strerror(errno), sinsp_logger::SEV_CRITICAL);
+					remove_all();
 				}
 				else if(res > 0) // data
 				{
@@ -99,6 +122,14 @@ void k8s_poller::poll()
 					}
 				}
 			}
+			else
+			{
+				g_logger.log("Poller is empty.", sinsp_logger::SEV_ERROR);
+			}
+		}
+		if(!m_loop)
+		{
+			break;
 		}
 		sleep(1);
 	}

@@ -272,12 +272,6 @@ void k8s_component::add_labels(k8s_pair_list&& labels)
 		{
 			emplace_label(std::move(label));
 		}
-		else // harmless, just log
-		{
-			std::ostringstream os;
-			os << "Attempt to add existing label: [" << label.first << ',' << label.second << ']';
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
-		}
 	}
 }
 
@@ -300,12 +294,6 @@ void k8s_component::add_selectors(k8s_pair_list&& selectors)
 		if(!get_selector(selector))
 		{
 			emplace_selector(std::move(selector));
-		}
-		else // harmless, just log
-		{
-			std::ostringstream os;
-			os << "Attempt to add existing selector: [" << selector.first << ',' << selector.second << ']';
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
 		}
 	}
 }
