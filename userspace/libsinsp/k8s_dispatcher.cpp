@@ -11,10 +11,18 @@
 #include <sstream>
 #include <iostream>
 
-k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_s& state, std::mutex& mut) :
+
+k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_s& state
+#ifndef K8S_DISABLE_THREAD
+	,std::mutex& mut
+#endif
+	) :
 	m_type(t),
 	m_state(state),
-	m_mutex(mut)
+	m_counter(0)
+#ifndef K8S_DISABLE_THREAD
+	,m_mutex(mut)
+#endif
 {
 }
 
@@ -89,7 +97,7 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(const Json::Value& root)
 		const std::string& et = evtype.asString();
 		if(!et.empty())
 		{
-			if     (et[0] == 'A') { data.m_reason = COMPONENT_ADDED;    }
+			if(et[0] == 'A') { data.m_reason = COMPONENT_ADDED;    }
 			else if(et[0] == 'M') { data.m_reason = COMPONENT_MODIFIED; }
 			else if(et[0] == 'D') { data.m_reason = COMPONENT_DELETED;  }
 			else if(et[0] == 'E') { data.m_reason = COMPONENT_ERROR;    }
@@ -127,7 +135,7 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(const Json::Value& root)
 
 void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	K8S_LOCK_GUARD_MUTEX;
 
 	if(data.m_reason == COMPONENT_ADDED)
 	{
@@ -201,7 +209,7 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& data)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	K8S_LOCK_GUARD_MUTEX;
 
 	if(data.m_reason == COMPONENT_ADDED)
 	{
@@ -265,7 +273,7 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 
 void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	K8S_LOCK_GUARD_MUTEX;
 
 	if(data.m_reason == COMPONENT_ADDED)
 	{
@@ -335,7 +343,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	K8S_LOCK_GUARD_MUTEX;
 
 	if(data.m_reason == COMPONENT_ADDED)
 	{
@@ -419,7 +427,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& data)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	K8S_LOCK_GUARD_MUTEX;
 
 	if(data.m_reason == COMPONENT_ADDED)
 	{
@@ -497,7 +505,8 @@ void k8s_dispatcher::dispatch()
 				msg_data data = get_msg_data(root);
 				if(data.is_valid())
 				{
-					os << '[' << to_reason_desc(data.m_reason) << ',';
+					std::ostringstream os;
+					os << '[' << m_counter++ << ',' << to_reason_desc(data.m_reason) << ',';
 					switch (m_type)
 					{
 						case k8s_component::K8S_NODES:

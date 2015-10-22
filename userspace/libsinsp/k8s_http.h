@@ -25,7 +25,7 @@ public:
 
 	bool get_all_data(std::ostream& os);
 
-	int get_watch_socket();
+	int get_watch_socket(long timeout_ms);
 
 	void on_data();
 
