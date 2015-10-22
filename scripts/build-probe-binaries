@@ -46,11 +46,11 @@ function build_sysdig {
 		git checkout master
 		git pull
 		git checkout $PROBE_VERSION
-		make -C driver clean
 		rm -rf build || true
 		mkdir build
 		cd build
 		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$PROBE_VERSION ..
+		make -C ../driver clean
 		make configure_driver
 		make driver
 		strip -g driver/$PROBE_NAME.ko
@@ -88,7 +88,6 @@ function build_sysdigcloud {
 		git checkout master
 		git pull
 		git checkout agent/$PROBE_VERSION
-		make -C driver clean
 		rm -rf build || true
 		cd ..
 		cd agent
@@ -99,6 +98,7 @@ function build_sysdigcloud {
 		mkdir build
 		cd build
 		cmake -DCMAKE_BUILD_TYPE=Release -DAGENT_VERSION=$PROBE_VERSION ..
+		make -C ../../sysdig/driver clean
 		make configure_driver
 		make driver
 		strip -g driver/$PROBE_NAME.ko
