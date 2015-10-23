@@ -24,7 +24,7 @@ view_info =
 	tags = {"Default"},
 	view_type = "table",
 	filter = "evt.type!=switch",
-	applies_to = {"", "proc.pid", "proc.name", "container.id", "fd.sport", "fd.name", "fd.directory", "evt.res"},
+	applies_to = {"", "proc.pid", "proc.name", "container.id", "fd.sport", "fd.name", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	is_root = true,
 	drilldown_target = "files",
 	use_defaults = true,
