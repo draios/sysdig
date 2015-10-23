@@ -53,3 +53,10 @@ script:
     - make package
     - cd ..
     - test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels $TRAVIS_BRANCH
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/fdbc2356fb0ea2f15033
+    on_success: change
+    on_failure: always
+    on_start: never
