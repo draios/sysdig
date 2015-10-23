@@ -98,7 +98,7 @@ void k8s_poller::poll()
 					g_logger.log(strerror(errno), sinsp_logger::SEV_CRITICAL);
 					remove_all();
 				}
-				else if(res > 0) // data
+				else // data or idle
 				{
 					for (auto& sock : m_sockets)
 					{
