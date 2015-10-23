@@ -108,9 +108,13 @@ view_info =
 	{
 		{
 			hotkey = "d",
-			command = "kubectl --namespace=%k8s.ns.name describe pods/%k8s.pod.name",
-			description = "describe",
-			wait_finish = true
+			command = "kubectl --namespace=%k8s.ns.name describe pods %k8s.pod.name",
+			description = "describe"
+		},
+		{
+			hotkey = "x",
+			command = "kubectl --namespace=%k8s.ns.name delete pods %k8s.pod.name",
+			description = "delete"
 		},
 		{
 			hotkey = "b",
@@ -131,6 +135,6 @@ view_info =
 			hotkey = "p",
 			command = "kubectl --namespace=%k8s.ns.name logs -p %k8s.pod.name",
 			description = "previous log"
-		},
+		}
 	}
 }

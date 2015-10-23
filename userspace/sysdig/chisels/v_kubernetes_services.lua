@@ -109,8 +109,12 @@ view_info =
 		{
 			hotkey = "d",
 			command = "kubectl --namespace=%k8s.ns.name describe services/%k8s.svc.name",
-			description = "describe",
-			wait_finish = true
+			description = "describe"
+		},
+		{
+			hotkey = "x",
+			command = "kubectl --namespace=%k8s.ns.name delete services %k8s.svc.name",
+			description = "delete"
 		}
 	}
 }

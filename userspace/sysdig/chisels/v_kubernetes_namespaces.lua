@@ -102,9 +102,13 @@ view_info =
 	{
 		{
 			hotkey = "d",
-			command = "kubectl --namespace=%k8s.ns.name describe namespaces/%k8s.ns.name",
-			description = "describe",
-			wait_finish = true
+			command = "kubectl --namespace=%k8s.ns.name describe namespaces %k8s.ns.name",
+			description = "describe"
+		},
+		{
+			hotkey = "x",
+			command = "kubectl --namespace=%k8s.ns.name delete namespaces %k8s.ns.name",
+			description = "delete"
 		}
 	}
 }

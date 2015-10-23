@@ -108,9 +108,13 @@ view_info =
 	{
 		{
 			hotkey = "d",
-			command = "kubectl --namespace=%k8s.ns.name describe rc/%k8s.rc.name",
-			description = "describe",
-			wait_finish = true
+			command = "kubectl --namespace=%k8s.ns.name describe rc %k8s.rc.name",
+			description = "describe"
+		},
+		{
+			hotkey = "x",
+			command = "kubectl --namespace=%k8s.ns.name delete rc %k8s.rc.name",
+			description = "delete"
 		}
 	}
 }
