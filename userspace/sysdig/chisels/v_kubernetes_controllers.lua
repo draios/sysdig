@@ -103,5 +103,14 @@ view_info =
 			description = "Controller labels.",
 			colsize = 0
 		},
+	},
+	actions = 
+	{
+		{
+			hotkey = "d",
+			command = "kubectl --namespace=%k8s.ns.name describe rc/%k8s.rc.name",
+			description = "describe",
+			wait_finish = true
+		}
 	}
 }

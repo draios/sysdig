@@ -97,5 +97,14 @@ view_info =
 			description = "Namespace labels.",
 			colsize = 0
 		},
+	},
+	actions = 
+	{
+		{
+			hotkey = "d",
+			command = "kubectl --namespace=%k8s.ns.name describe namespaces/%k8s.ns.name",
+			description = "describe",
+			wait_finish = true
+		}
 	}
 }

@@ -103,5 +103,14 @@ view_info =
 			description = "Service labels.",
 			colsize = 0
 		},
+	},
+	actions = 
+	{
+		{
+			hotkey = "d",
+			command = "kubectl --namespace=%k8s.ns.name describe services/%k8s.svc.name",
+			description = "describe",
+			wait_finish = true
+		}
 	}
 }
