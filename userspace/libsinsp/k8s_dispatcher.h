@@ -77,7 +77,6 @@ private:
 	k8s_component::type m_type;
 	list                m_messages;
 	k8s_state_s&        m_state;
-	unsigned            m_counter;
 #ifndef K8S_DISABLE_THREAD
 	std::mutex&         m_mutex;
 #endif

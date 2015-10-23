@@ -18,8 +18,7 @@ k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_s& state
 #endif
 	) :
 	m_type(t),
-	m_state(state),
-	m_counter(0)
+	m_state(state)
 #ifndef K8S_DISABLE_THREAD
 	,m_mutex(mut)
 #endif
@@ -144,7 +143,7 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 		{
 			std::ostringstream os;
 			os << "ADDED message received for existing node [" << data.m_uid << "], updating only.";
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
 		k8s_node_s& node = m_state.get_component<k8s_state_s::nodes, k8s_node_s>(m_state.get_nodes(), data.m_name, data.m_uid);
 		if(addresses.size() > 0)
@@ -217,7 +216,7 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 		{
 			std::ostringstream os;
 			os << "ADDED message received for existing namespace [" << data.m_uid << "], updating only.";
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
 		k8s_ns_s& ns = m_state.get_component<k8s_state_s::namespaces, k8s_ns_s>(m_state.get_namespaces(), data.m_name, data.m_uid);
 		Json::Value object = root["object"];
@@ -284,7 +283,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 			{
 				std::ostringstream os;
 				os << "ADDED message received for existing pod [" << data.m_uid << "], updating only.";
-				g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 			}
 			k8s_pod_s& pod = m_state.get_component<k8s_state_s::pods, k8s_pod_s>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
 			Json::Value metadata = object["metadata"];
@@ -351,7 +350,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 		{
 			std::ostringstream os;
 			os << "ADDED message received for existing replication controller [" << data.m_uid << "], updating only.";
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
 		k8s_rc_s& rc = m_state.get_component<k8s_state_s::controllers, k8s_rc_s>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
 		Json::Value object = root["object"];
@@ -438,7 +437,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 			{
 				std::ostringstream os;
 				os << "ADDED message received for existing service [" << data.m_uid << "], updating only.";
-				g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 			}
 			k8s_service_s& service = m_state.get_component<k8s_state_s::services, k8s_service_s>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
 			Json::Value metadata = object["metadata"];
@@ -506,7 +505,7 @@ void k8s_dispatcher::dispatch()
 				if(data.is_valid())
 				{
 					std::ostringstream os;
-					os << '[' << m_counter++ << ',' << to_reason_desc(data.m_reason) << ',';
+					os << '[' << to_reason_desc(data.m_reason) << ',';
 					switch (m_type)
 					{
 						case k8s_component::K8S_NODES:
