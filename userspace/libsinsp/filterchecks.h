@@ -688,7 +688,8 @@ private:
 	const k8s_ns_s* find_ns_by_name(const string& ns_name);
 	const k8s_rc_s* find_rc_by_pod(const k8s_pod_s* pod);
 	vector<const k8s_service_s*> find_svc_by_pod(const k8s_pod_s* pod);
-	string concatenate_labels(const k8s_pair_list& labels);
+	void concatenate_labels(const k8s_pair_list& labels, string* s);
+	bool find_label(const k8s_pair_list& labels, const string& key, string* value);
 
 	string m_argname;
 	string m_tstr;

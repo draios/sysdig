@@ -4758,25 +4758,35 @@ vector<const k8s_service_s*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_p
 	return services;
 }
 
-string sinsp_filter_check_k8s::concatenate_labels(const k8s_pair_list& labels)
+void sinsp_filter_check_k8s::concatenate_labels(const k8s_pair_list& labels, string* s)
 {
-	string s;
-	
 	for(const k8s_pair_s& label_pair : labels)
 	{
-		if(!s.empty())
+		if(!s->empty())
 		{
-			s.append(",");
+			s->append(", ");
 		}
 
-		s.append(label_pair.first);
+		s->append(label_pair.first);
 		if(!label_pair.second.empty())
 		{
-			s.append(":" + label_pair.second);
+			s->append(":" + label_pair.second);
+		}
+	}
+}
+
+bool sinsp_filter_check_k8s::find_label(const k8s_pair_list& labels, const string& key, string* value)
+{
+	for(const k8s_pair_s& label_pair : labels)
+	{
+		if(label_pair.first == key)
+		{
+			*value = label_pair.second;
+			return true;
 		}
 	}
 
-	return s;
+	return false;
 }
 
 uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
@@ -4805,6 +4815,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return NULL;
 	}
 
+	m_tstr.clear();
+
 	switch(m_field_id)
 	{
 	case TYPE_K8S_POD_NAME:
@@ -4815,20 +4827,16 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*) m_tstr.c_str();
 	case TYPE_K8S_POD_LABEL:
 	{
-		for(const k8s_pair_s& label_pair : pod->get_labels())
+		if(find_label(pod->get_labels(), m_argname, &m_tstr))
 		{
-			if(label_pair.first == m_argname)
-			{
-				m_tstr = label_pair.second;
-				return (uint8_t*) m_tstr.c_str();
-			}
+			return (uint8_t*) m_tstr.c_str();
 		}
 
 		break;
 	}
 	case TYPE_K8S_POD_LABELS:
 	{
-		m_tstr = concatenate_labels(pod->get_labels());
+		concatenate_labels(pod->get_labels(), &m_tstr);
 		return (uint8_t*) m_tstr.c_str();
 	}
 	case TYPE_K8S_RC_NAME:
@@ -4858,13 +4866,9 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		const k8s_rc_s* rc = find_rc_by_pod(pod);
 		if(rc != NULL)
 		{
-			for(const k8s_pair_s& label_pair : rc->get_labels())
+			if(find_label(rc->get_labels(), m_argname, &m_tstr))
 			{
-				if(label_pair.first == m_argname)
-				{
-					m_tstr = label_pair.second;
-					return (uint8_t*) m_tstr.c_str();
-				}
+				return (uint8_t*) m_tstr.c_str();
 			}
 		}
 
@@ -4875,7 +4879,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		const k8s_rc_s* rc = find_rc_by_pod(pod);
 		if(rc != NULL)
 		{
-			m_tstr = concatenate_labels(rc->get_labels());
+			concatenate_labels(rc->get_labels(), &m_tstr);
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -4886,12 +4890,11 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
 		if(!services.empty())
 		{
-			m_tstr.clear();
 			for(const k8s_service_s* service : services)
 			{
 				if(!m_tstr.empty())
 				{
-					m_tstr.append(",");
+					m_tstr.append(", ");
 				}
 
 				m_tstr.append(service->get_name());
@@ -4907,12 +4910,11 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
 		if(!services.empty())
 		{
-			m_tstr.clear();
 			for(const k8s_service_s* service : services)
 			{
 				if(!m_tstr.empty())
 				{
-					m_tstr.append(",");
+					m_tstr.append(", ");
 				}
 
 				m_tstr.append(service->get_uid());
@@ -4928,24 +4930,24 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
 		if(!services.empty())
 		{
-			m_tstr.clear();
 			for(const k8s_service_s* service : services)
 			{
-				for(const k8s_pair_s& label_pair : service->get_labels())
+				string val;
+				if(find_label(service->get_labels(), m_argname, &val))
 				{
-					if(label_pair.first == m_argname)
+					if(!m_tstr.empty())
 					{
-						if(!m_tstr.empty())
-						{
-							m_tstr.append(",");
-						}
-
-						m_tstr.append(label_pair.second);
+						m_tstr.append(", ");
 					}
+
+					m_tstr.append(val);
 				}
 			}
 
-			return (uint8_t*) m_tstr.c_str();
+			if(!m_tstr.empty())
+			{
+				return (uint8_t*) m_tstr.c_str();
+			}
 		}
 
 		break;
@@ -4955,16 +4957,9 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
 		if(!services.empty())
 		{
-			m_tstr.clear();
-
 			for(const k8s_service_s* service : services)
 			{
-				if(!m_tstr.empty())
-				{
-					m_tstr.append(",");
-				}
-
-				m_tstr.append(concatenate_labels(service->get_labels()));
+				concatenate_labels(service->get_labels(), &m_tstr);
 			}
 
 			return (uint8_t*) m_tstr.c_str();
@@ -4999,13 +4994,9 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
 		if(ns != NULL)
 		{
-			for(const k8s_pair_s& label_pair : ns->get_labels())
+			if(find_label(ns->get_labels(), m_argname, &m_tstr))
 			{
-				if(label_pair.first == m_argname)
-				{
-					m_tstr = label_pair.second;
-					return (uint8_t*) m_tstr.c_str();
-				}
+				return (uint8_t*) m_tstr.c_str();
 			}
 		}
 
@@ -5016,7 +5007,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
 		if(ns != NULL)
 		{
-			m_tstr = concatenate_labels(ns->get_labels());
+			concatenate_labels(ns->get_labels(), &m_tstr);
 			return (uint8_t*) m_tstr.c_str();
 		}
 
