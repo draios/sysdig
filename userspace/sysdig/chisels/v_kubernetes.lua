@@ -103,5 +103,11 @@ view_info =
 			description = "Services.",
 			colsize = 25
 		},
+		{
+			name = "LABELS",
+			field = "k8s.pod.labels",
+			description = "Labels.",
+			colsize = 0
+		},
 	}
 }
