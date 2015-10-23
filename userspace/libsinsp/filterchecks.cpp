@@ -4969,14 +4969,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_NS_NAME:
 	{
-		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
-		if(ns != NULL)
-		{
-			m_tstr = ns->get_name();
-			return (uint8_t*) m_tstr.c_str();
-		}	
-
-		break;
+		m_tstr = pod->get_namespace();
+		return (uint8_t*) m_tstr.c_str();
 	}
 	case TYPE_K8S_NS_ID:
 	{
