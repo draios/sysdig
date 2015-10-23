@@ -103,5 +103,34 @@ view_info =
 			description = "Pod labels.",
 			colsize = 0
 		},
+	},
+	actions = 
+	{
+		{
+			hotkey = "d",
+			command = "kubectl --namespace=%k8s.ns.name describe pods/%k8s.pod.name",
+			description = "describe",
+			wait_finish = true
+		},
+		{
+			hotkey = "b",
+			command = "kubectl --namespace=%k8s.ns.name exec %k8s.pod.name -i -t -- /bin/bash",
+			description = "bash shell"
+		},
+		{
+			hotkey = "l",
+			command = "kubectl --namespace=%k8s.ns.name logs %k8s.pod.name",
+			description = "log"
+		},
+		{
+			hotkey = "f",
+			command = "kubectl --namespace=%k8s.ns.name logs -f %k8s.pod.name",
+			description = "follow log"
+		},
+		{
+			hotkey = "p",
+			command = "kubectl --namespace=%k8s.ns.name logs -p %k8s.pod.name",
+			description = "previous log"
+		},
 	}
 }
