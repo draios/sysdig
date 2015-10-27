@@ -303,15 +303,15 @@ uint32_t binary_buffer_to_asciionly_string(char *dst, char *src, uint32_t dstlen
 
 		if(isprint((int)(uint8_t)src[j]))
 		{
-			switch(src[j])
-			{
-			case '"':
-			case '\\':
-				dst[k++] = '\\';
-				break;
-			default:
-				break;
-			}
+			// switch(src[j])
+			// {
+			// case '"':
+			// case '\\':
+			// 	dst[k++] = '\\';
+			// 	break;
+			// default:
+			// 	break;
+			// }
 
 			dst[k] = src[j];
 			k++;
@@ -355,15 +355,15 @@ uint32_t binary_buffer_to_string_dots(char *dst, char *src, uint32_t dstlen, uin
 
 		if(isprint((int)(uint8_t)src[j]))
 		{
-			switch(src[j])
-			{
-			case '"':
-			case '\\':
-				dst[k++] = '\\';
-				break;
-			default:
-				break;
-			}
+			// switch(src[j])
+			// {
+			// case '"':
+			// case '\\':
+			// 	dst[k++] = '\\';
+			// 	break;
+			// default:
+			// 	break;
+			// }
 
 			dst[k] = src[j];
 		}
