@@ -101,6 +101,11 @@ view_info =
 			wait_finish = false
 		},
 		{
+			hotkey = "f",
+			command = "docker logs -f %container.id",
+			description = "follow logs"
+		},
+		{
 			hotkey = "h",
 			command = "docker history %container.image",
 			description = "image history"
