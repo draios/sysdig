@@ -142,5 +142,10 @@ view_info =
 			command = "tcpdump -niany host %fd.rip",
 			description = "tcpdump remot IP",
 		},
+		{
+			hotkey = "t",
+			command = "traceroute %fd.rip",
+			description = "traceroute remot IP",
+		},
 	},
 }
