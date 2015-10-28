@@ -27,11 +27,16 @@ public:
 
 	int get_watch_socket(long timeout_ms);
 
-	void on_data();
+	bool is_connected() const;
 
-	void on_error();
+	bool on_data();
+
+	void on_error(const std::string& err, bool disconnect);
 
 private:
+	bool init();
+	void cleanup();
+
 	int wait(curl_socket_t sockfd, int for_recv, long timeout_ms);
 	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 	static void check_error(CURLcode res);
@@ -47,4 +52,9 @@ private:
 	curl_socket_t m_watch_socket;
 	bool          m_data_ready;
 };
+
+inline bool k8s_http::is_connected() const
+{
+	return m_curl != 0;
+}
 

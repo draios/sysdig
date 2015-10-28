@@ -38,12 +38,18 @@ public:
 
 	void stop_watching();
 
+	bool is_alive() const;
+
 private:
 	void extract_data(const Json::Value& items, k8s_component::type component);
 
 	void build_state();
 
 	void parse_json(const std::string& json, const k8s_component::component_map::value_type& component);
+
+	void stop_watch();
+
+	void clean_dispatch();
 
 	// due to deleted default dispatcher constructor, g++ has trouble instantiating map with values,
 	// so we have to go with the forward declaration above and pointers here ...
@@ -58,15 +64,22 @@ private:
 	K8S_DECLARE_MUTEX;
 	bool         m_watch;
 	bool         m_watch_in_thread;
-	k8s_net      m_net;
 	bool         m_own_proto;
 	k8s_state_s  m_state;
 	dispatch_map m_dispatch;
+	k8s_net      m_net;
 	
 	static const k8s_component::component_map m_components;
+	friend class k8s_test;
 };
 
 inline bool k8s::watch_in_thread() const
 {
 	return m_watch_in_thread;
 }
+
+inline bool k8s::is_alive() const
+{
+	return m_net.is_healthy() && m_net.is_watching();
+}
+

@@ -74,7 +74,6 @@ using namespace std;
 #include "ifinfo.h"
 #include "container.h"
 #include "viewinfo.h"
-#include "k8s.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -106,6 +105,7 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
+class k8s;
 
 vector<string> sinsp_split(const string &s, char delim);
 
