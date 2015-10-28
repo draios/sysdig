@@ -45,7 +45,7 @@ public:
 #ifndef K8S_DISABLE_THREAD
 		,std::mutex& mut
 #endif
-        );
+	);
 
 	void enqueue(k8s_event_data&& data);
 

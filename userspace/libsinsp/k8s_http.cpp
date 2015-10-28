@@ -49,9 +49,25 @@ k8s_http::k8s_http(k8s& k8s,
 
 k8s_http::~k8s_http()
 {
+	cleanup();
+}
+
+bool k8s_http::init()
+{
+	if(!m_curl)
+	{
+		cleanup();
+		m_curl = curl_easy_init();
+	}
+	return m_curl != 0;
+}
+
+void k8s_http::cleanup()
+{
 	if(m_curl)
 	{
 		curl_easy_cleanup(m_curl);
+		m_curl = 0;
 	}
 }
 
@@ -84,7 +100,7 @@ bool k8s_http::get_all_data(std::ostream& os)
 	{
 		os << curl_easy_strerror(res) << std::flush;
 	}
-	
+
 	return res == CURLE_OK;
 }
 
@@ -122,7 +138,8 @@ int k8s_http::get_watch_socket(long timeout_ms)
 	{
 		long sockextr;
 		size_t iolen;
-		std::string url = m_url.insert(m_url.find(m_api) + m_api.size(), "/watch");
+		std::string url = m_url;
+		url.insert(m_url.find(m_api) + m_api.size(), "/watch");
 
 		curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L);
@@ -133,7 +150,7 @@ int k8s_http::get_watch_socket(long timeout_ms)
 
 		if(!wait(m_watch_socket, 0, timeout_ms))
 		{
-			curl_easy_cleanup(m_curl);
+			cleanup();
 			throw sinsp_exception("Error: timeout.");
 		}
 
@@ -151,22 +168,22 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		ASSERT (request.str().size() == iolen);
 		if(!wait(m_watch_socket, 1, timeout_ms))
 		{
-			curl_easy_cleanup(m_curl);
-			m_curl = 0;
+			cleanup();
 			throw sinsp_exception("Error: timeout.");
 		}
 
-		g_logger.log(std::string("Polling ") + url, sinsp_logger::SEV_DEBUG);
+		g_logger.log(std::string("Collecting data from ") + url, sinsp_logger::SEV_DEBUG);
 	}
 
 	return m_watch_socket;
 }
 
-void k8s_http::on_data()
+bool k8s_http::on_data()
 {
 	size_t iolen = 0;
 	char buf[1024] = { 0 };
-	check_error(curl_easy_recv(m_curl, buf, 1024, &iolen));
+	CURLcode ret;
+	check_error(ret = curl_easy_recv(m_curl, buf, 1024, &iolen));
 	if(iolen > 0)
 	{
 		if(m_data_ready)
@@ -194,18 +211,22 @@ void k8s_http::on_data()
 			}
 		}
 	}
-	else
+	else if(ret != CURLE_AGAIN)
 	{
 		g_logger.log("Connection closed", sinsp_logger::SEV_ERROR);
 		m_data_ready = false;
-		// TODO: reconnect
+		return false;
 	}
+	return true;
 }
-	
-void k8s_http::on_error()
+
+void k8s_http::on_error(const std::string& err, bool disconnect)
 {
-	g_logger.log("Socket error.", sinsp_logger::SEV_ERROR);
-	//TODO: handle error, reconnect etc...
+	g_logger.log("Socket error:" + err, sinsp_logger::SEV_ERROR);
+	if(disconnect)
+	{
+		cleanup();
+	}
 }
 
 void k8s_http::check_error(CURLcode res)

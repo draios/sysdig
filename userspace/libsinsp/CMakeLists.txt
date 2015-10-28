@@ -27,12 +27,12 @@ add_library(sinsp STATIC
 	filterchecks.cpp
 	ifinfo.cpp
 	k8s.cpp
+	k8s_collector.cpp
 	k8s_component.cpp
 	k8s_dispatcher.cpp
 	k8s_event_data.cpp
 	k8s_http.cpp
 	k8s_net.cpp
-	k8s_poller.cpp
 	memmem.cpp
 	internal_metrics.cpp
 	"${JSONCPP_LIB_SRC}"
