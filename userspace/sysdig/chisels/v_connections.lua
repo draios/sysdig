@@ -127,9 +127,20 @@ view_info =
 			description = "tcpdump local IP",
 		},
 		{
+			hotkey = "n",
+			command = "nslookup %fd.rip",
+			description = "nslookup remote IP",
+		},
+		{
+			hotkey = "p",
+			command = "ping %fd.rip",
+			description = "ping remote IP",
+			wait_finish = false
+		},
+		{
 			hotkey = "r",
 			command = "tcpdump -niany host %fd.rip",
-			description = "tcpdump remote IP",
+			description = "tcpdump remot IP",
 		},
 	},
 }

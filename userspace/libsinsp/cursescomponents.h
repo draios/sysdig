@@ -124,7 +124,8 @@ public:
 
 	curses_table_sidemenu(sidemenu_type type, 
 		sinsp_cursesui* parent, 
-		uint32_t selct);
+		uint32_t selct,
+		uint32_t width);
 	~curses_table_sidemenu();
 	void set_entries(vector<sidemenu_list_entry>* entries)
 	{
