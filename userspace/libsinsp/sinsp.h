@@ -354,6 +354,11 @@ public:
 	void set_log_file(string filename);
 
 	/*!
+	  \brief Instruct sinsp to write its log messages to stderr.
+	*/
+	void set_log_stderr();
+
+	/*!
 	  \brief Specify the minimum severity of the messages that go into the logs
 	   emitted by the library.
 	*/
@@ -698,6 +703,7 @@ private:
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
+	void update_kubernetes_state();
 
 	scap_t* m_h;
 	uint32_t m_nevts;
@@ -730,7 +736,11 @@ private:
 
 	sinsp_container_manager m_container_manager;
 
+	//
+	// Kubernetes stuff
+	//
 	k8s* m_k8s_client;
+	uint64_t m_k8s_last_watch_time_ns;
 
 	//
 	// True if the command line argument is set to show container information
