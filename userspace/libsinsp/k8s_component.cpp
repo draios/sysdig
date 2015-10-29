@@ -288,8 +288,9 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s
 					else if(json_target_port.isString())
 					{
 						std::string port_name = std::move(json_target_port.asString());
-						const k8s_pod_s* pod = service.get_selected_pod(pods);
-						if(pod)
+						std::vector<const k8s_pod_s*> pod_subset = service.get_selected_pods(pods);
+						p.m_target_port = 0;
+						for(const auto& pod : pod_subset)
 						{
 							const k8s_container::list& containers = pod->get_containers();
 							for(const auto& container : containers)
@@ -298,6 +299,7 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s
 								if(container_port)
 								{
 									p.m_target_port = container_port->get_port();
+									break;
 								}
 								else
 								{
@@ -306,11 +308,6 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s
 									p.m_target_port = 0;
 								}
 							}
-						}
-						else
-						{
-							g_logger.log("Error while trying to determine service port: no pods available.", sinsp_logger::SEV_ERROR);
-							p.m_target_port = 0;
 						}
 					}
 					else
@@ -443,6 +440,33 @@ void k8s_component::add_selectors(k8s_pair_list&& selectors)
 	}
 }
 
+// TODO: proper selection process is more complicated, see “Labels and Selectors” at
+// http://kubernetes.io/v1.0/docs/user-guide/labels.html
+bool k8s_component::selector_in_labels(const k8s_pair_s& selector, const k8s_pair_list& labels) const
+{
+	for(const auto& label : labels)
+	{
+		if(label.first == selector.first && label.second == selector.second)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool k8s_component::selectors_in_labels(const k8s_pair_list& labels) const
+{
+	const k8s_pair_list& selectors = get_selectors();
+	for(const auto& selector : selectors)
+	{
+		if(!selector_in_labels(selector, labels))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 //
 // namespace
 //
@@ -506,6 +530,19 @@ k8s_rc_s::k8s_rc_s(const std::string& name, const std::string& uid, const std::s
 {
 }
 
+std::vector<const k8s_pod_s*> k8s_rc_s::get_selected_pods(const std::vector<k8s_pod_s>& pods) const
+{
+	std::vector<const k8s_pod_s*> pod_vec;
+	for(const auto& pod : pods)
+	{
+		if (selectors_in_labels(pod.get_labels()))
+		{
+			pod_vec.push_back(&pod);
+		}
+	}
+	return pod_vec;
+}
+
 
 //
 // service
@@ -515,33 +552,17 @@ k8s_service_s::k8s_service_s(const std::string& name, const std::string& uid, co
 {
 }
 
-// TODO: proper selection process is more complicated, see “Labels and Selectors” at
-// http://kubernetes.io/v1.0/docs/user-guide/labels.html
-bool k8s_service_s::selector_in_labels(const k8s_pair_list& labels, const k8s_pair_s& selector)
+std::vector<const k8s_pod_s*> k8s_service_s::get_selected_pods(const std::vector<k8s_pod_s>& pods) const
 {
-	for(const auto& label : labels)
-	{
-		if(label.first == selector.first && label.second == selector.second)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-const k8s_pod_s* k8s_service_s::get_selected_pod(const std::vector<k8s_pod_s>& pods)
-{
+	std::vector<const k8s_pod_s*> pod_vec;
 	for(const auto& pod : pods)
 	{
-		for (const auto& selector : get_selectors())
+		if (selectors_in_labels(pod.get_labels()))
 		{
-			if (selector_in_labels(pod.get_labels(), selector))
-			{
-				return &pod;
-			}
+			pod_vec.push_back(&pod);
 		}
 	}
-	return 0;
+	return pod_vec;
 }
 
 //
@@ -549,6 +570,7 @@ const k8s_pod_s* k8s_service_s::get_selected_pod(const std::vector<k8s_pod_s>& p
 //
 
 const std::string k8s_state_s::m_prefix = "docker://";
+const unsigned    k8s_state_s::m_id_length = 12u;
 
 k8s_state_s::k8s_state_s()
 {
@@ -560,9 +582,9 @@ void k8s_state_s::update_pod(k8s_pod_s& pod, const Json::Value& item, bool reset
 {
 	k8s_pod_s::container_id_list container_ids = k8s_component::extract_pod_container_ids(item);
 	k8s_container::list containers = k8s_component::extract_pod_containers(item);
-	//TODO: consolidate (integrate IDs into containers)
-	//ASSERT(container_ids.size() == containers.size());
+
 	k8s_component::extract_pod_data(item, pod);
+
 	if(reset) // initially, we just set everything
 	{
 		pod.set_container_ids(std::move(container_ids));
@@ -607,11 +629,6 @@ void k8s_state_s::update_pod(k8s_pod_s& pod, const Json::Value& item, bool reset
 		{
 			pod.add_containers(std::move(containers));
 		}
-	}
-	// cache pods by container ID
-	for(const auto& container_id : container_ids)
-	{
-		cache_pod(container_id, pod);
 	}
 }
 

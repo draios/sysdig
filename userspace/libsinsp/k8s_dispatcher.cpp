@@ -331,9 +331,9 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 			const k8s_pod_s::container_id_list& c_ids = pod->get_container_ids();
 			for(const auto& c_id : c_ids)
 			{
-				if (m_state.is_pod_cached(c_id))
+				if (m_state.is_component_cached(m_state.get_container_pod_map(), c_id))
 				{
-					m_state.uncache_pod(c_id);
+					m_state.uncache_component(m_state.get_container_pod_map(), c_id);
 				}
 			}
 			if(!m_state.delete_component(m_state.get_pods(), data.m_uid))
