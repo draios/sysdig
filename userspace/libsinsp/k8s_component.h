@@ -9,6 +9,7 @@
 
 #include "json/json.h"
 #include "sinsp.h"
+#include "sinsp_int.h"
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -164,6 +165,10 @@ public:
 
 	static type get_type(const std::string& name);
 
+	bool selector_in_labels(const k8s_pair_s& selector, const k8s_pair_list& labels) const;
+
+	bool selectors_in_labels(const k8s_pair_list& labels) const;
+
 private:
 	std::string   m_name;
 	std::string   m_uid;
@@ -287,6 +292,8 @@ class k8s_rc_s : public k8s_component
 {
 public:
 	k8s_rc_s(const std::string& name, const std::string& uid, const std::string& ns = "");
+
+	std::vector<const k8s_pod_s*> get_selected_pods(const std::vector<k8s_pod_s>& pods) const;
 };
 
 
@@ -317,9 +324,7 @@ public:
 
 	void set_port_list(port_list&& ports);
 
-	bool selector_in_labels(const k8s_pair_list& labels, const k8s_pair_s& selector);
-
-	const k8s_pod_s* get_selected_pod(const std::vector<k8s_pod_s>& pods);
+	std::vector<const k8s_pod_s*> get_selected_pods(const std::vector<k8s_pod_s>& pods) const;
 
 private:
 	std::string m_cluster_ip;
@@ -341,9 +346,9 @@ public:
 	typedef std::vector<k8s_rc_s>      controllers;
 	typedef std::vector<k8s_service_s> services;
 
-	typedef std::unordered_map<std::string, k8s_pod_s*>     container_pod_map;
-	typedef std::unordered_map<std::string, k8s_service_s*> pod_service_map;
-	typedef std::unordered_map<std::string, k8s_rc_s*>      pod_rc_map;
+	typedef std::unordered_map<std::string, const k8s_pod_s*>     container_pod_map;
+	typedef std::unordered_multimap<std::string, const k8s_service_s*> pod_service_map;
+	typedef std::unordered_multimap<std::string, const k8s_rc_s*>      pod_rc_map;
 
 	k8s_state_s();
 
@@ -475,7 +480,7 @@ public:
 				return comp;
 			}
 		}
-		container.emplace_back(T(name, uid, ns));
+		container.emplace_back(std::move(T(name, uid, ns)));
 		return container.back();
 	}
 
@@ -503,7 +508,7 @@ public:
 
 	// pod by container;
 
-	const k8s_pod_s* get_pod(const std::string& container)
+	const k8s_pod_s* get_pod(const std::string& container) const
 	{
 		container_pod_map::const_iterator it = m_container_pods.find(container);
 		if(it != m_container_pods.end())
@@ -513,59 +518,80 @@ public:
 		return 0;
 	}
 
-	bool is_pod_cached(const std::string& container_id)
-	{
-		return (m_container_pods.find(container_id) != m_container_pods.end());
-	}
-
-	void cache_pod(const std::string& container_id, k8s_pod_s& pod)
-	{
-		std::string::size_type pos = container_id.find(m_prefix);
-		if (pos == 0)
-		{
-			m_container_pods[container_id.substr(m_prefix.size())] = &pod;
-			return;
-		}
-		throw sinsp_exception("Invalid container ID (expected '" + m_prefix + "{ID}'): " + container_id);
-	}
-
-	void uncache_pod(const std::string& container_id)
-	{
-		container_pod_map::iterator it = m_container_pods.find(container_id);
-		if(it != m_container_pods.end())
-		{
-			m_container_pods.erase(it);
-		}
-		throw sinsp_exception("Container not found: " + container_id);
-	}
-
-	// service by pod
-
-	const k8s_service_s* get_service(const std::string& pod)
-	{
-		pod_service_map::const_iterator it = m_pod_services.find(pod);
-		if(it != m_pod_services.end())
-		{
-			return it->second;
-		}
-		return 0;
-	}
-
-	// replication controller by pod
-
-	const k8s_rc_s* get_rc(const std::string& pod)
-	{
-		pod_rc_map::const_iterator it = m_pod_rcs.find(pod);
-		if(it != m_pod_rcs.end())
-		{
-			return it->second;
-		}
-		return 0;
-	}
-
 	void clear(k8s_component::type type = k8s_component::K8S_COMPONENT_COUNT);
 
+	const container_pod_map& get_container_pod_map() const { return m_container_pods; }
+	const pod_service_map& get_pod_service_map() const { return m_pod_services; }
+	const pod_rc_map& get_pod_rc_map() const { return m_pod_rcs; }
+
 private:
+	template<typename C>
+	const typename C::mapped_type* get_component(const C& map, const std::string& key)
+	{
+		typename C::const_iterator it = map.find(key);
+		if(it != map.end())
+		{
+			return it->second;
+		}
+		return 0;
+	}
+
+	template<typename C>
+	bool is_component_cached(const C& map, const std::string& key) const
+	{
+		return (map.find(key) != map.end());
+	}
+
+	template<typename C>
+	bool is_component_cached(const C& map, const std::string& key, const typename C::mapped_type value) const
+	{
+		auto range = map.equal_range(key);
+		for (auto& it = range.first; it != range.second; ++it)
+		{
+			if(it->first == key && it->second == value)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void cache_pod(container_pod_map& map, const std::string& id, const k8s_pod_s* pod)
+	{
+		ASSERT(pod);
+		ASSERT(!pod->get_name().empty());
+		std::string::size_type pos = id.find(m_prefix);
+		if (pos == 0)
+		{
+			map[id.substr(m_prefix.size(), m_id_length)] = pod;
+			return;
+		}
+		throw sinsp_exception("Invalid container ID (expected '" + m_prefix + "{ID}'): " + id);
+	}
+
+	template<typename C>
+	void cache_component(C& map, const std::string& key, typename C::mapped_type component)
+	{
+		ASSERT(component);
+		ASSERT(!component->get_name().empty());
+		map.insert(typename C::value_type(key, component));
+		return;
+	}
+
+	template<typename C>
+	void uncache_component(C& map, const std::string& key)
+	{
+		typename C::iterator it = map.find(key);
+		if(it != map.end())
+		{
+			map.erase(it);
+		}
+	}
+
+	container_pod_map& get_container_pod_map() { return m_container_pods; }
+	pod_service_map& get_pod_service_map() { return m_pod_services; }
+	pod_rc_map& get_pod_rc_map() { return m_pod_rcs; }
+
 	namespaces  m_namespaces;
 	nodes       m_nodes;
 	pods        m_pods;
@@ -573,9 +599,13 @@ private:
 	services    m_services;
 
 	static const std::string m_prefix; // "docker://"
+	static const unsigned    m_id_length; // 12
 	container_pod_map        m_container_pods;
 	pod_service_map          m_pod_services;
 	pod_rc_map               m_pod_rcs;
+
+	friend class k8s_dispatcher;
+	friend class k8s;
 };
 
 //
