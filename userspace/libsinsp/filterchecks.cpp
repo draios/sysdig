@@ -4618,19 +4618,7 @@ const k8s_pod_s* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadi
 
 	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
 
-	for(const k8s_pod_s& pod : k8s_state.get_pods())
-	{
-		for(const string& container_id : pod.get_container_ids())
-		{
-			if(container_id.find("docker://") == 0 &&
-				container_id.find(tinfo->m_container_id) == sizeof("docker://") - 1)
-			{
-				return &pod;
-			}
-		}
-	}
-
-	return NULL;
+	return k8s_state.get_pod(tinfo->m_container_id);
 }
 
 const k8s_ns_s* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
