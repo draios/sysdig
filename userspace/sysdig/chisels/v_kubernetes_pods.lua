@@ -132,7 +132,7 @@ view_info =
 			description = "follow log"
 		},
 		{
-			hotkey = "p",
+			hotkey = "o",
 			command = "kubectl --namespace=%k8s.ns.name logs -p %k8s.pod.name",
 			description = "previous log"
 		}
