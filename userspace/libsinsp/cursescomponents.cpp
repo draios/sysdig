@@ -183,12 +183,12 @@ void curses_scrollable_list::selection_goto(int32_t datasize, int32_t row)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_table_sidemenu implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_table_sidemenu::curses_table_sidemenu(sidemenu_type type, sinsp_cursesui* parent, uint32_t selct)
+curses_table_sidemenu::curses_table_sidemenu(sidemenu_type type, sinsp_cursesui* parent, uint32_t selct, uint32_t width)
 {
 	ASSERT(parent != NULL);
 	m_parent = parent;
 	m_h = m_parent->m_screenh - TABLE_Y_START - 1;
-	m_w = SIDEMENU_WIDTH;
+	m_w = width;
 	m_y_start = TABLE_Y_START;
 	m_win = newwin(m_h, m_w, m_y_start, 0);
 	m_selct = selct;
@@ -273,9 +273,9 @@ void curses_table_sidemenu::update_view_info()
 		m_parent->m_viewinfo_page = new curses_viewinfo_page(m_parent,
 			m_entries.at(m_selct).m_id,
 			TABLE_Y_START,
-			SIDEMENU_WIDTH,
+			m_w,
 			m_parent->m_screenh - TABLE_Y_START - 1,
-			m_parent->m_screenw - SIDEMENU_WIDTH);
+			m_parent->m_screenw - m_w);
 	}
 }
 
@@ -1076,8 +1076,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			if(m_sidemenu == NULL)
 			{
 				m_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_VIEWS,
-					this->m_parent,
-					0);
+					this->m_parent, 0, VIEW_SIDEMENU_WIDTH);
 				populate_sidemenu();
 				clear();
 				wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw - 20);

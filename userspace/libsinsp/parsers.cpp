@@ -307,7 +307,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_container_evt(evt);
 		break;
 	case PPME_CPU_HOTPLUG_E:
-		parse_container_evt(evt);
+		parse_cpu_hotplug_enter(evt);
 		break;
 	default:
 		break;
