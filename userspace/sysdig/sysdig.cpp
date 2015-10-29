@@ -91,7 +91,8 @@ static void usage()
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
-" -D, --debug        Capture events about sysdig itself\n"
+" -D, --debug        Capture events about sysdig itself and print additional\n"
+"                    logging on standard error.\n"
 " -E, --exclude-users\n"
 "                    Don't create the user/group tables by querying the OS when\n"
 "                    sysdig starts. This also means that no user or group info\n"
@@ -131,6 +132,10 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
+" -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
+"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
+"                    The API server can also be specified via the environment variable\n"
+"                    SYSDIG_K8S_API.\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -661,6 +666,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool unbuf_flag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
+	string k8s_api;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;	
@@ -688,6 +694,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
+		{"k8s-api", required_argument, 0, 'k'},
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"numevents", required_argument, 0, 'n' },
@@ -728,7 +735,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jlLNn:Pp:qr:Ss:t:v"
+                                        "hi:jk:lLNn:Pp:qr:Ss:t:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -809,6 +816,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			case 'D':
 				inspector->set_debug_mode(true);
+				inspector->set_log_stderr();
 				break;
 			case 'E':
 				inspector->set_import_users(false);
@@ -868,6 +876,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// set the json flag to 1 for now, the data format will depend from the print format parameters
 				//
 				jflag = true;
+				break;
+			case 'k':
+				k8s_api = optarg;
 				break;
 			case 'h':
 				usage();
@@ -1139,6 +1150,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if(!verbose && g_chisels.size() == 0)
 		{
 			inspector->set_max_evt_output_len(80);
+		}
+
+		if(!k8s_api.empty())
+		{
+			inspector->init_k8s_client(k8s_api);			
+		}
+		else
+		{
+			char* k8s_api_env = getenv("SYSDIG_K8S_API");
+			if(k8s_api_env != NULL)
+			{
+				inspector->init_k8s_client(k8s_api_env);
+			}
 		}
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
