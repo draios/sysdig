@@ -20,6 +20,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // Private definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 
+#pragma once
+
 #include "settings.h"
 
 #ifdef __cplusplus
