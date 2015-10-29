@@ -346,9 +346,10 @@ public:
 	typedef std::vector<k8s_rc_s>      controllers;
 	typedef std::vector<k8s_service_s> services;
 
-	typedef std::unordered_map<std::string, const k8s_pod_s*>     container_pod_map;
+	typedef std::unordered_map<std::string, const k8s_ns_s*>           namespace_map;
+	typedef std::unordered_map<std::string, const k8s_pod_s*>          container_pod_map;
 	typedef std::unordered_multimap<std::string, const k8s_service_s*> pod_service_map;
-	typedef std::unordered_multimap<std::string, const k8s_rc_s*>      pod_rc_map;
+	typedef std::unordered_map<std::string, const k8s_rc_s*>           pod_rc_map;
 
 	k8s_state_s();
 
@@ -502,6 +503,10 @@ public:
 		return false;
 	}
 
+	void clear(k8s_component::type type = k8s_component::K8S_COMPONENT_COUNT);
+
+#ifdef K8S_DISABLE_THREAD
+
 	//
 	// cached lookup support
 	//
@@ -518,13 +523,19 @@ public:
 		return 0;
 	}
 
-	void clear(k8s_component::type type = k8s_component::K8S_COMPONENT_COUNT);
-
+	const namespace_map& get_namespace_map() const { return m_namespace_map; }
 	const container_pod_map& get_container_pod_map() const { return m_container_pods; }
 	const pod_service_map& get_pod_service_map() const { return m_pod_services; }
 	const pod_rc_map& get_pod_rc_map() const { return m_pod_rcs; }
 
+#endif // K8S_DISABLE_THREAD
+
 private:
+
+	void update_cache(const k8s_component::component_map::key_type& component);
+
+#ifdef K8S_DISABLE_THREAD
+
 	template<typename C>
 	const typename C::mapped_type* get_component(const C& map, const std::string& key)
 	{
@@ -588,21 +599,25 @@ private:
 		}
 	}
 
+	namespace_map& get_namespace_map() { return m_namespace_map; }
 	container_pod_map& get_container_pod_map() { return m_container_pods; }
 	pod_service_map& get_pod_service_map() { return m_pod_services; }
 	pod_rc_map& get_pod_rc_map() { return m_pod_rcs; }
+
+	static const std::string m_prefix; // "docker://"
+	static const unsigned    m_id_length; // portion of the ID to be cached (=12)
+	namespace_map            m_namespace_map;
+	container_pod_map        m_container_pods;
+	pod_service_map          m_pod_services;
+	pod_rc_map               m_pod_rcs;
+
+#endif // K8S_DISABLE_THREAD
 
 	namespaces  m_namespaces;
 	nodes       m_nodes;
 	pods        m_pods;
 	controllers m_controllers;
 	services    m_services;
-
-	static const std::string m_prefix; // "docker://"
-	static const unsigned    m_id_length; // 12
-	container_pod_map        m_container_pods;
-	pod_service_map          m_pod_services;
-	pod_rc_map               m_pod_rcs;
 
 	friend class k8s_dispatcher;
 	friend class k8s;

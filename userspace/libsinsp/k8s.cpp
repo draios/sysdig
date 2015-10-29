@@ -265,54 +265,7 @@ void k8s::parse_json(const std::string& json, const k8s_component::component_map
 		{
 			extract_data(items, component.first);
 			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
-			if(component.first == k8s_component::K8S_PODS)
-			{
-				const k8s_state_s::pods& pods = m_state.get_pods();
-				for(const auto& pod : pods)
-				{
-					const k8s_pod_s::container_id_list& c_ids = pod.get_container_ids();
-					for(const auto& c_id : c_ids)
-					{
-						m_state.cache_pod(m_state.get_container_pod_map(), c_id, &pod);
-					}
-				}
-			}
-			else if(component.first == k8s_component::K8S_REPLICATIONCONTROLLERS)
-			{
-				const k8s_state_s::controllers& rcs = m_state.get_rcs();
-				const k8s_state_s::pods& pods = m_state.get_pods();
-				for(const auto& rc : rcs)
-				{
-					std::vector<const k8s_pod_s*> pod_subset = rc.get_selected_pods(pods);
-					k8s_state_s::pod_rc_map& pod_ctrl_map = m_state.get_pod_rc_map();
-					for(auto& pod : pod_subset)
-					{
-						const std::string& pod_name = pod->get_name();
-						if(!m_state.is_component_cached(pod_ctrl_map, pod_name, &rc))
-						{
-							m_state.cache_component(pod_ctrl_map, pod_name, &rc);
-						}
-					}
-				}
-			}
-			else if(component.first == k8s_component::K8S_SERVICES)
-			{
-				const k8s_state_s::services& services = m_state.get_services();
-				const k8s_state_s::pods& pods = m_state.get_pods();
-				for(const auto& service : services)
-				{
-					std::vector<const k8s_pod_s*> pod_subset = service.get_selected_pods(pods);
-					k8s_state_s::pod_service_map& pod_svc_map = m_state.get_pod_service_map();
-					for(auto& pod : pod_subset)
-					{
-						const std::string& pod_name = pod->get_name();
-						if(!m_state.is_component_cached(pod_svc_map, pod_name, &service))
-						{
-							m_state.cache_component(pod_svc_map, pod_name, &service);
-						}
-					}
-				}
-			}
+			m_state.update_cache(component.first);
 		}
 		else
 		{
