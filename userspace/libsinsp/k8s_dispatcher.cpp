@@ -328,14 +328,6 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 		k8s_pod_s* pod = m_state.get_component<k8s_state_s::pods, k8s_pod_s>(m_state.get_pods(), data.m_uid);
 		if(pod)
 		{
-			const k8s_pod_s::container_id_list& c_ids = pod->get_container_ids();
-			for(const auto& c_id : c_ids)
-			{
-				if (m_state.is_component_cached(m_state.get_container_pod_map(), c_id))
-				{
-					m_state.uncache_component(m_state.get_container_pod_map(), c_id);
-				}
-			}
 			if(!m_state.delete_component(m_state.get_pods(), data.m_uid))
 			{
 				g_logger.log(std::string("Error deleting POD: ") + data.m_name, sinsp_logger::SEV_ERROR);
@@ -550,6 +542,7 @@ void k8s_dispatcher::dispatch()
 					os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
 					g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 					//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
+					m_state.update_cache(m_type);
 				}
 			}
 			else

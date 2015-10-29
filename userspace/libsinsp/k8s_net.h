@@ -71,7 +71,11 @@ inline bool k8s_net::is_secure()
 
 inline bool k8s_net::is_watching() const
 {
+#ifndef K8S_DISABLE_THREAD
 	return !m_stopped;
+#else
+	return true;
+#endif
 }
 
 inline bool k8s_net::is_healthy() const
