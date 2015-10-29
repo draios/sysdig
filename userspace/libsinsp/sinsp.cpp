@@ -129,6 +129,7 @@ sinsp::sinsp() :
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
 	m_k8s_client = NULL;
+	m_k8s_last_watch_time_ns = 0;
 }
 
 sinsp::~sinsp()
@@ -790,6 +791,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		m_thread_manager->remove_inactive_threads();
 		m_container_manager.remove_inactive_containers();
+		
+		if(m_k8s_client)
+		{
+			update_kubernetes_state();
+		}
 	}
 #endif // HAS_ANALYZER
 
@@ -1428,6 +1434,23 @@ void sinsp::init_k8s_client(const string& api_server)
 	{
 		g_logger.log("Fetching initial k8s state");
 		m_k8s_client = new k8s(api_server, true);
+	}
+}
+
+void sinsp::update_kubernetes_state()
+{
+	ASSERT(m_k8s_client);
+	if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+	{
+		m_k8s_last_watch_time_ns = m_lastevent_ts;
+
+		uint64_t delta = sinsp_utils::get_current_time_ns();
+		
+		m_k8s_client->watch();
+
+		delta = sinsp_utils::get_current_time_ns() - delta;
+
+		g_logger.format(sinsp_logger::SEV_INFO, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
 	}
 }
 
