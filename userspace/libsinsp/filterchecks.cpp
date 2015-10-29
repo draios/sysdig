@@ -4625,12 +4625,11 @@ const k8s_ns_s* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
 {
 	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
 
-	for(const k8s_ns_s& ns : k8s_state.get_namespaces())
+	const k8s_state_s::namespace_map& ns_map = k8s_state.get_namespace_map();
+	k8s_state_s::namespace_map::const_iterator it = ns_map.find(ns_name);
+	if(it != ns_map.end())
 	{
-		if(ns.get_name() == ns_name)
-		{
-			return &ns;
-		}
+		return it->second;
 	}
 
 	return NULL;
@@ -4640,50 +4639,11 @@ const k8s_rc_s* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_s* pod)
 {
 	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
 
-	//
-	// Find the rc (one and one only) that matches namespace
-	// and all set of labels, excluding the ones without labels
-	// for the moment until we have a more robust detection
-	//
-	for(const k8s_rc_s& rc : k8s_state.get_rcs())
+	const k8s_state_s::pod_rc_map& pod_rcs = k8s_state.get_pod_rc_map();
+	k8s_state_s::pod_rc_map::const_iterator it = pod_rcs.find(pod->get_uid());
+	if(it != pod_rcs.end())
 	{
-		if(pod->get_namespace() != rc.get_namespace())
-		{
-			continue;
-		}
-
-		if(rc.get_labels().empty())
-		{
-			continue;
-		}
-
-		bool found_all_labels = true;
-
-		for(const k8s_pair_s& rc_label : rc.get_labels())
-		{
-			bool found_label = false;
-
-			for(const k8s_pair_s& pod_label : pod->get_labels())
-			{
-				if(pod_label.first == rc_label.first &&
-					pod_label.second == rc_label.second)
-				{
-					found_label = true;
-					break;
-				}
-			}
-
-			if(!found_label)
-			{
-				found_all_labels = false;
-				break;
-			}
-		}
-
-		if(found_all_labels)
-		{
-			return &rc;
-		}
+		return it->second;
 	}
 
 	return NULL;
@@ -4694,53 +4654,12 @@ vector<const k8s_service_s*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_p
 	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
 	vector<const k8s_service_s*> services;
 
-	//
-	// Find the services (more than one possibly) that match
-	// all the selectors of this pod
-	//
-	for(const k8s_service_s& service : k8s_state.get_services())
+
+	const k8s_state_s::pod_service_map& pod_services = k8s_state.get_pod_service_map();
+	auto range = pod_services.equal_range(pod->get_uid());
+	for(auto it = range.first; it != range.second; ++it)
 	{
-		if(pod->get_namespace() != service.get_namespace())
-		{
-			continue;
-		}
-
-		//
-		// For the moment, exclude services that don't work
-		// based on selectors
-		//
-		if(service.get_selectors().empty())
-		{
-			continue;
-		}
-
-		bool found_all_selectors = true;
-
-		for(const k8s_pair_s& selector : service.get_selectors())
-		{
-			bool found_selector = false;
-
-			for(const k8s_pair_s& pod_label : pod->get_labels())
-			{
-				if(pod_label.first == selector.first &&
-					pod_label.second == selector.second)
-				{
-					found_selector = true;
-					break;
-				}
-			}
-
-			if(!found_selector)
-			{
-				found_all_selectors = false;
-				break;
-			}
-		}
-
-		if(found_all_selectors)
-		{
-			services.push_back(&service);
-		}
+		services.push_back(it->second);
 	}
 
 	return services;
