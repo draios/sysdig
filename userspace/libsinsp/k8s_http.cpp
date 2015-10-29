@@ -183,42 +183,49 @@ bool k8s_http::on_data()
 	size_t iolen = 0;
 	char buf[1024] = { 0 };
 	CURLcode ret;
-	check_error(ret = curl_easy_recv(m_curl, buf, 1024, &iolen));
-	if(iolen > 0)
+	
+	do
 	{
-		if(m_data_ready)
+		iolen = 0;
+		check_error(ret = curl_easy_recv(m_curl, buf, 1024, &iolen));
+		if(iolen > 0)
 		{
-			m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), buf, iolen));
-		}
-		else // wait for a line with "\r\n" only
-		{
-			std::string data(buf, iolen);
-			std::string end = "\r\n\r\n";
-			std::string::size_type pos = data.find(end);
-			if(pos != std::string::npos)
+			if(m_data_ready)
 			{
-				pos += end.size();
-				if(iolen == pos) // right on the edge of data
+				m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), buf, iolen));
+			}
+			else // wait for a line with "\r\n" only
+			{
+				std::string data(buf, iolen);
+				std::string end = "\r\n\r\n";
+				std::string::size_type pos = data.find(end);
+				if(pos != std::string::npos)
 				{
-					m_data_ready = true;
-				}
-				else
-				{
-					char* pbuf = &buf[pos];
-					m_data_ready = true;
-					m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), pbuf, iolen - pos));
+					pos += end.size();
+					if(iolen == pos) // right on the edge of data
+					{
+						m_data_ready = true;
+					}
+					else
+					{
+						char* pbuf = &buf[pos];
+						m_data_ready = true;
+						m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), pbuf, iolen - pos));
+					}
 				}
 			}
 		}
-	}
-	else if(ret != CURLE_AGAIN)
-	{
-		g_logger.log("Connection closed", sinsp_logger::SEV_ERROR);
-		m_data_ready = false;
-		return false;
-	}
+		else if(ret != CURLE_AGAIN)
+		{
+			g_logger.log("Connection closed", sinsp_logger::SEV_ERROR);
+			m_data_ready = false;
+			return false;
+		}
+	} while(iolen && ret != CURLE_AGAIN);
+
 	return true;
 }
+
 
 void k8s_http::on_error(const std::string& err, bool disconnect)
 {
