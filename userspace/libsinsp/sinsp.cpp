@@ -1295,6 +1295,11 @@ void sinsp::set_log_file(string filename)
 	g_logger.add_file_log(filename);
 }
 
+void sinsp::set_log_stderr()
+{
+	g_logger.add_stderr_log();
+}
+
 void sinsp::set_min_log_severity(sinsp_logger::severity sev)
 {
 	g_logger.set_severity(sev);
@@ -1422,7 +1427,7 @@ void sinsp::init_k8s_client(const string& api_server)
 	if(m_k8s_client == NULL)
 	{
 		g_logger.log("Fetching initial k8s state");
-		m_k8s_client = new k8s(api_server);
+		m_k8s_client = new k8s(api_server, true);
 	}
 }
 

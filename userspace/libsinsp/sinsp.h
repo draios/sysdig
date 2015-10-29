@@ -354,6 +354,11 @@ public:
 	void set_log_file(string filename);
 
 	/*!
+	  \brief Instruct sinsp to write its log messages to stderr.
+	*/
+	void set_log_stderr();
+
+	/*!
 	  \brief Specify the minimum severity of the messages that go into the logs
 	   emitted by the library.
 	*/
