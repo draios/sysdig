@@ -519,7 +519,10 @@ char* scap_getlasterr(scap_t* handle);
    SCAP_EOF when the end of an offline capture is reached.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error. 
 */
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
+
+//#ifndef HAS_EARLY_FILTERING
+//int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
+//#endif
 
 /*!
   \brief Get the length of an event

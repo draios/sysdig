@@ -43,6 +43,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "scap_new.h"
 #endif
 
+#ifndef HAS_ANALYZER
+#ifndef HAS_EARLY_FILTERING
+#include "scap_next.h"
+#endif
+#endif
+
+
+
 //#define NDEBUG
 #include <assert.h>
 
@@ -493,16 +501,6 @@ uint32_t scap_get_ndevs(scap_t* handle)
 {
 	return handle->m_ndevs;
 }
-
-#ifndef HAS_ANALYZER
-#ifndef HAS_EARLY_FILTERING
-#include "scap_next.h"
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
-{
-	return scap_next_inline(handle, pevent, pcpuid);
-}
-#endif
-#endif
 
 //
 // Return the process list for the given handle
