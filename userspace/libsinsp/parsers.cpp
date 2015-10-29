@@ -307,7 +307,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_container_evt(evt);
 		break;
 	case PPME_CPU_HOTPLUG_E:
-		parse_container_evt(evt);
+		parse_cpu_hotplug_enter(evt);
 		break;
 	default:
 		break;
@@ -1987,6 +1987,10 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 			set_ipv4_mapped_ipv6_addresses_and_ports(&fdi, packed_data);
 			fdi.m_type = SCAP_FD_IPV4_SOCK;
 			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
+		}
+		else
+		{
+			fdi.m_type = SCAP_FD_IPV6_SOCK;
 		}
 	}
 	else if(*packed_data == PPM_AF_UNIX)

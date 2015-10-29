@@ -89,12 +89,6 @@ view_info =
 	actions = 
 	{
 		{
-			hotkey = "k",
-			command = "kill %proc.pid",
-			description = "kill",
-			wait_finish = false
-		},
-		{
 			hotkey = "9",
 			command = "kill -9 %proc.pid",
 			description = "kill -9",
@@ -104,6 +98,28 @@ view_info =
 			hotkey = "c",
 			command = "gcore %proc.pid",
 			description = "generate core",
+		},
+		{
+			hotkey = "g",
+			command = "gdb -p %proc.pid",
+			description = "gdb attach",
+			wait_finish = false
+		},
+		{
+			hotkey = "k",
+			command = "kill %proc.pid",
+			description = "kill",
+			wait_finish = false
+		},
+		{
+			hotkey = "l",
+			command = "ltrace -p %proc.pid",
+			description = "ltrace",
+		},
+		{
+			hotkey = "s",
+			command = "gdb -p %proc.pid --batch --quiet -ex \"thread apply all bt full\" -ex \"quit\"",
+			description = "print stack",
 		},
 	},
 }

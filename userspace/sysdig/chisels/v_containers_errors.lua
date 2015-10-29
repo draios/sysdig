@@ -97,7 +97,13 @@ view_info =
 		{
 			hotkey = "b",
 			command = "docker exec -i -t %container.id /bin/bash",
-			description = "bash shell"
+			description = "bash shell",
+			wait_finish = false
+		},
+		{
+			hotkey = "f",
+			command = "docker logs -f %container.id",
+			description = "follow logs"
 		},
 		{
 			hotkey = "h",

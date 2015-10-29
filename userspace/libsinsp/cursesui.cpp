@@ -1922,10 +1922,9 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			if(m_view_sidemenu == NULL)
 			{
-				m_viz->set_x_start(SIDEMENU_WIDTH);
+				m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
 				m_view_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_VIEWS,
-					this,
-					m_selected_view_sidemenu_entry);
+					this, m_selected_view_sidemenu_entry, VIEW_SIDEMENU_WIDTH);
 
 				m_view_sidemenu->set_entries(&m_sidemenu_viewlist);
 				m_view_sidemenu->set_title("Select View");
@@ -1935,9 +1934,9 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				m_viewinfo_page = new curses_viewinfo_page(this, 
 					m_selected_view,
 					TABLE_Y_START,
-					SIDEMENU_WIDTH,
+					VIEW_SIDEMENU_WIDTH,
 					m_screenh - TABLE_Y_START - 1,
-					m_screenw - SIDEMENU_WIDTH);
+					m_screenw - VIEW_SIDEMENU_WIDTH);
 			}
 			else
 			{
@@ -2039,14 +2038,13 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			if(m_action_sidemenu == NULL)
 			{
-				m_viz->set_x_start(SIDEMENU_WIDTH);
+				m_viz->set_x_start(ACTION_SIDEMENU_WIDTH);
 				m_action_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_ACTIONS, 
-					this,
-					m_selected_action_sidemenu_entry);
+					this, m_selected_action_sidemenu_entry, ACTION_SIDEMENU_WIDTH);
 				populate_action_sidemenu();
 				m_action_sidemenu->set_title("Select Action");
 
-				m_viz->set_x_start(20);
+				m_viz->set_x_start(ACTION_SIDEMENU_WIDTH);
 				m_viz->recreate_win(m_screenh - 3);
 
 				render();
@@ -2173,6 +2171,14 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 	string resolved_command;
 	bool replacing = false;
 	string fld_to_replace;
+
+	if(m_viz->get_data_size() == 0)
+	{
+		//
+		// No elements in the table means no selection
+		//
+		return;
+	}
 
 	//
 	// Scan the command string and replace the field names with the values from the selection
