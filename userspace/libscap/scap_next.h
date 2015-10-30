@@ -1,17 +1,15 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "settings.h"
 #include <unistd.h>
 #include "scap.h"
 #include "scap-int.h"
 
 #include "../../driver/ppm_ringbuffer.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 
 #if defined(HAS_CAPTURE)
 
@@ -255,8 +253,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #endif
 }
 
-
-static __always_inline int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+static __always_inline int32_t scap_next_inline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	int32_t res;
 
@@ -276,10 +273,6 @@ static __always_inline int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, 
 
 	return res;
 }
-
-
-
-
 
 #ifdef __cplusplus
 }

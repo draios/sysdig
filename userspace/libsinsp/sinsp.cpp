@@ -42,11 +42,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_EARLY_FILTERING
 #include "scap_new.h"
 #else
-#include "scap_next.h"
+#include "scap.h"
 #endif
 
 #else
-#include "scap_next.h"
+#include "scap.h"
 #endif
 
 

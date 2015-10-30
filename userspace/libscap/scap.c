@@ -502,6 +502,21 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	return handle->m_ndevs;
 }
 
+#ifndef HAS_ANALYZER
+#ifndef HAS_EARLY_FILTERING
+
+int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	return scap_next_inline(handle, pevent, pcpuid);
+}
+
+#endif
+#endif
+
+
+
+
+
 //
 // Return the process list for the given handle
 //
