@@ -1444,13 +1444,20 @@ void sinsp::update_kubernetes_state()
 	{
 		m_k8s_last_watch_time_ns = m_lastevent_ts;
 
-		uint64_t delta = sinsp_utils::get_current_time_ns();
-		
-		m_k8s_client->watch();
+		if(m_k8s_client->is_alive())
+		{
+			uint64_t delta = sinsp_utils::get_current_time_ns();
+			
+			m_k8s_client->watch();
 
-		delta = sinsp_utils::get_current_time_ns() - delta;
+			delta = sinsp_utils::get_current_time_ns() - delta;
 
-		g_logger.format(sinsp_logger::SEV_INFO, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
+			g_logger.format(sinsp_logger::SEV_INFO, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
+		}
+		else
+		{
+			g_logger.format(sinsp_logger::SEV_WARNING, "Kubernetes connection not active anymore");
+		}
 	}
 }
 
