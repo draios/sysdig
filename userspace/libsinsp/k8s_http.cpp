@@ -183,7 +183,7 @@ bool k8s_http::on_data()
 	size_t iolen = 0;
 	char buf[1024] = { 0 };
 	CURLcode ret;
-	
+
 	do
 	{
 		iolen = 0;
