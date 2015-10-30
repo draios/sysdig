@@ -265,7 +265,10 @@ void k8s::parse_json(const std::string& json, const k8s_component::component_map
 		{
 			extract_data(items, component.first);
 			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
-			m_state.update_cache(component.first);
+			{
+				K8S_LOCK_GUARD_MUTEX;
+				m_state.update_cache(component.first);
+			}
 		}
 		else
 		{

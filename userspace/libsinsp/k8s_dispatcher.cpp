@@ -542,7 +542,10 @@ void k8s_dispatcher::dispatch()
 					os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
 					g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 					//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
-					m_state.update_cache(m_type);
+					{
+						K8S_LOCK_GUARD_MUTEX;
+						m_state.update_cache(m_type);
+					}
 				}
 			}
 			else
