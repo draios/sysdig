@@ -1430,6 +1430,8 @@ bool sinsp::remove_inactive_threads()
 
 void sinsp::init_k8s_client(const string& api_server)
 {
+	m_k8s_api_server = api_server;
+
 	if(m_k8s_client == NULL)
 	{
 		g_logger.log("Fetching initial k8s state");
@@ -1456,7 +1458,10 @@ void sinsp::update_kubernetes_state()
 		}
 		else
 		{
-			g_logger.format(sinsp_logger::SEV_WARNING, "Kubernetes connection not active anymore");
+			g_logger.format(sinsp_logger::SEV_WARNING, "Kubernetes connection not active anymore, retrying");
+			delete m_k8s_client;
+			m_k8s_client = NULL;
+			init_k8s_client(m_k8s_api_server);
 		}
 	}
 }
