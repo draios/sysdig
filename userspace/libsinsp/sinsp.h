@@ -747,6 +747,7 @@ private:
 	//
 	// Kubernetes stuff
 	//
+	string m_k8s_api_server;
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
 
