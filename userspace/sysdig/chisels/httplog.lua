@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- Chisel description
 description = "Show a log of all HTTP requests";
 short_description = "HTTP requests log";
-category = "Net";
+category = "Application";
 args = {}
 
 require "http"

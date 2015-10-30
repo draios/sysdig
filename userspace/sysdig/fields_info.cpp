@@ -29,7 +29,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "sysdig.h"
 
+// Must match the value in the zsh tab completion
 #define DESCRIPTION_TEXT_START 16
+
+
 #define CONSOLE_LINE_LEN 79
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
@@ -208,6 +211,9 @@ const char* param_type_to_string(ppm_param_type pt)
 		break;
 	case PT_GID:
 		return "GID";
+		break;
+	case PT_SIGSET:
+		return "SIGSET";
 		break;
 	default:
 		ASSERT(false);

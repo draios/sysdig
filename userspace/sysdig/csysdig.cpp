@@ -81,6 +81,8 @@ static void usage()
 " -l, --list         List all the fields that can be used in views.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
+" -N\n"
+"                    Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " -pc, -pcontainer\n"
@@ -250,7 +252,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehln:p:r:s:v:", long_options, &long_index)) != -1)
+			"d:EhlNn:p:r:s:v:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -285,6 +287,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				return sysdig_init_res(EXIT_SUCCESS);
 			case 'l':
 				list_flds = true;
+				break;
+			case 'N':
+				inspector->set_hostname_and_port_resolution_mode(false);
 				break;
 			case 'n':
 				try
@@ -513,13 +518,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					open_success = false;
 				}
-#else
-				//
-				// Starting live capture
-				// If this fails on Windows and OSX, don't try with any driver
-				//
-				inspector->open("");
-#endif
 
 				//
 				// Starting the live capture failed, try to load the driver with
@@ -529,13 +527,20 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					open_success = true;
 
-					if(system("modprobe sysdig-probe > /dev/null 2> /dev/null"))
+					if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
 					{
 						fprintf(stderr, "Unable to load the driver\n");
 					}
 
 					inspector->open("");
 				}
+#else
+				//
+				// Starting live capture
+				// If this fails on Windows and OSX, don't try with any driver
+				//
+				inspector->open("");
+#endif
 
 				//
 				// Enable gathering the CPU from the kernel module

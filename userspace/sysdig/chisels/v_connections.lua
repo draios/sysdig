@@ -72,6 +72,12 @@ view_info =
 			colsize = 8,
 		},
 		{
+			name = "PROTO",
+			description = "Connection protocol, obtained by resolving the server port name.",
+			field = "fd.sproto",
+			colsize = 8,
+		},
+		{
 			is_sorting = true,
 			name = "BPS IN",
 			field = "evt.buflen.net.in",
@@ -98,7 +104,7 @@ view_info =
 			name = "Container",
 			field = "container.name",
 			description = "Name of the container. What this field contains depends on the containerization technology. For example, for docker this is the content of the 'NAMES' column in 'docker ps'",
-			colsize = 15
+			colsize = 20
 		},
 		{
 			name = "Command",
@@ -107,5 +113,39 @@ view_info =
 			aggregation = "MAX",
 			colsize = 0
 		}
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "c",
+			command = "tcpdump -niany host %fd.lip and host %fd.rip and port %fd.lport and port %fd.rport",
+			description = "tcpdump connection",
+		},
+		{
+			hotkey = "l",
+			command = "tcpdump -niany host %fd.lip",
+			description = "tcpdump local IP",
+		},
+		{
+			hotkey = "n",
+			command = "nslookup %fd.rip",
+			description = "nslookup remote IP",
+		},
+		{
+			hotkey = "p",
+			command = "ping %fd.rip",
+			description = "ping remote IP",
+			wait_finish = false
+		},
+		{
+			hotkey = "r",
+			command = "tcpdump -niany host %fd.rip",
+			description = "tcpdump remot IP",
+		},
+		{
+			hotkey = "t",
+			command = "traceroute %fd.rip",
+			description = "traceroute remot IP",
+		},
+	},
 }

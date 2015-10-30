@@ -37,7 +37,7 @@ function on_init()
 
 	if print_container then
 		chisel.exec("table_generator",
-					"fd.sport,container.name",
+					"fd.sproto,container.name",
 					"Srv Port,container.name",
 					"evt.rawarg.res",
 					"Bytes",
@@ -46,7 +46,7 @@ function on_init()
 					"bytes")
 	else
 		chisel.exec("table_generator",
-					"fd.sport",
+					"fd.sproto",
 					"Srv Port",
 					"evt.rawarg.res",
 					"Bytes",

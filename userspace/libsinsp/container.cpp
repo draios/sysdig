@@ -103,13 +103,14 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 		//
 		// Non-systemd Docker
 		//
-		pos = cgroup.find("/docker/");
+		pos = cgroup.find_last_of("/");
 		if(pos != string::npos)
 		{
-			if(cgroup.length() - pos - sizeof("/docker/") + 1 == 64)
+			if(cgroup.length() - pos - 1 == 64 &&
+				cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos) 
 			{
 				container_info.m_type = CT_DOCKER;
-				container_info.m_id = cgroup.substr(pos + sizeof("/docker/") - 1, 12);
+				container_info.m_id = cgroup.substr(pos + 1, 12);
 				valid_id = true;
 				break;
 			}
@@ -189,6 +190,18 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			valid_id = true;
 			continue;
 		}
+
+		//
+		// Mesos
+		//
+		pos = cgroup.find("/mesos/");
+		if(pos != string::npos)
+		{
+			container_info.m_type = CT_MESOS;
+			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
+			valid_id = true;
+			continue;
+		}
 	}
 
 	if(valid_id)
@@ -212,6 +225,9 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 					container_info.m_name = container_info.m_id;
 					break;
 				case CT_LIBVIRT_LXC:
+					container_info.m_name = container_info.m_id;
+					break;
+				case CT_MESOS:
 					container_info.m_name = container_info.m_id;
 					break;
 				default:

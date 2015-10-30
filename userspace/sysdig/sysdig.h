@@ -19,6 +19,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <config_sysdig.h>
+#ifdef HAS_CAPTURE
+#include "../../driver/driver_config.h"
+#endif // HAS_CAPTURE
 
 //
 // ASSERT implementation

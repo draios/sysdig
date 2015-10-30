@@ -5,6 +5,8 @@ sysdig
 
 [![Build Status](https://travis-ci.org/draios/sysdig.png?branch=master)](https://travis-ci.org/draios/sysdig)
 
+[![Join the chat at https://gitter.im/draios/sysdig](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/draios/sysdig?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 #Welcome to **sysdig**!
 
 **Sysdig** is a universal system visibility tool with native support for containers:  
@@ -27,7 +29,7 @@ Far too often, system-level monitoring and troubleshooting still involves loggin
 
 Sysdig instruments your physical and virtual machines at the OS level by installing into the Linux kernel and capturing system calls and other OS events. Sysdig also makes it possible to create trace files for system activity, similarly to what you can do for networks with tools like tcpdump and Wireshark. This way, problems can be analyzed at a later time, without losing important information. Rich system state is stored in the trace files, so that the captured activity can be put into full context.
 
-Think about sysdig as strace + tcpdump + htop + iftop + lsof + ...awsesome sauce.
+Think about sysdig as strace + tcpdump + htop + iftop + lsof + ...awesome sauce.
 
 Documentation / Support
 ---

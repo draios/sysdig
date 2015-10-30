@@ -31,13 +31,19 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "fd.sport",
+			field = "fd.sproto",
 			is_key = true
 		},
 		{
 			name = "SPORT",
 			description = "Server Port.",
 			field = "fd.sport",
+			colsize = 8,
+		},
+		{
+			name = "PROTO",
+			description = "protocol name, obtained by resolving the port number.",
+			field = "fd.sproto",
 			colsize = 8,
 		},
 		{
@@ -62,5 +68,14 @@ view_info =
 			colsize = 12,
 			aggregation = "SUM"
 		}
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "t",
+			command = "tcpdump -niany port %fd.sport",
+			description = "tcpdump port",
+			wait_finish = false
+		},
+	},
 }

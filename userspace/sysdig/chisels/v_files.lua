@@ -81,7 +81,7 @@ view_info =
 			tags = {"containers"},
 			name = "Container",
 			field = "container.name",
-			colsize = 15
+			colsize = 20
 		},
 		{
 			name = "FILENAME",
@@ -89,5 +89,14 @@ view_info =
 			field = "fd.name",
 			colsize = 0
 		}
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "l",
+			command = "less %fd.name",
+			description = "less file",
+			wait_finish = false
+		},
+	},
 }

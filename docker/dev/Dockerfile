@@ -4,6 +4,8 @@ MAINTAINER Sysdig <support@sysdig.com>
 
 ENV SYSDIG_REPOSITORY dev
 
+LABEL RUN="docker run -i -t -v /var/run/docker.sock:/host/var/run/docker.sock -v /dev:/host/dev -v /proc:/host/proc:ro -v /boot:/host/boot:ro -v /lib/modules:/host/lib/modules:ro -v /usr:/host/usr:ro --name NAME IMAGE"
+
 ENV SYSDIG_HOST_ROOT /host
 
 ENV HOME /root
@@ -21,8 +23,15 @@ RUN apt-get update \
 	gcc-4.9 \
 	gcc-4.8
 
+# Terribly terrible hacks: since our base Debian image ships with GCC 5.0 which breaks older kernels,
+# revert the default to gcc-4.9. Also, since some customers use some very old distributions whose kernel
+# makefile is hardcoded for gcc-4.6 or so (e.g. Debian Wheezy), we pretend to have gcc 4.6/4.7 by symlinking
+# it to 4.8
+
 RUN rm -rf /usr/bin/gcc \
- && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc
+ && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc \
+ && ln -s /usr/bin/gcc-4.8 /usr/bin/gcc-4.7 \
+ && ln -s /usr/bin/gcc-4.8 /usr/bin/gcc-4.6
 
 RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add - \
  && curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/$SYSDIG_REPOSITORY/deb/draios.list \

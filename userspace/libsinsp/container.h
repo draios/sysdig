@@ -22,7 +22,8 @@ enum sinsp_container_type
 {
 	CT_DOCKER = 0,
 	CT_LXC = 1,
-	CT_LIBVIRT_LXC = 2
+	CT_LIBVIRT_LXC = 2,
+	CT_MESOS = 3
 };
 
 class sinsp_container_info

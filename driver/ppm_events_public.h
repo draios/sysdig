@@ -177,6 +177,48 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_POLLWRBAND (1 << 10)
 
 /*
+ * mount() flags
+ */
+#define PPM_MS_RDONLY       (1<<0)
+#define PPM_MS_NOSUID       (1<<1)
+#define PPM_MS_NODEV        (1<<2)
+#define PPM_MS_NOEXEC       (1<<3)
+#define PPM_MS_SYNCHRONOUS  (1<<4)
+#define PPM_MS_REMOUNT      (1<<5)
+#define PPM_MS_MANDLOCK     (1<<6)
+#define PPM_MS_DIRSYNC      (1<<7)
+
+#define PPM_MS_NOATIME      (1<<10)
+#define PPM_MS_NODIRATIME   (1<<11)
+#define PPM_MS_BIND         (1<<12)
+#define PPM_MS_MOVE         (1<<13)
+#define PPM_MS_REC          (1<<14)
+#define PPM_MS_SILENT       (1<<15)
+#define PPM_MS_POSIXACL     (1<<16)
+#define PPM_MS_UNBINDABLE   (1<<17)
+#define PPM_MS_PRIVATE      (1<<18)
+#define PPM_MS_SLAVE        (1<<19)
+#define PPM_MS_SHARED       (1<<20)
+#define PPM_MS_RELATIME     (1<<21)
+#define PPM_MS_KERNMOUNT    (1<<22)
+#define PPM_MS_I_VERSION    (1<<23)
+#define PPM_MS_STRICTATIME  (1<<24)
+#define PPM_MS_LAZYTIME     (1<<25)
+
+#define PPM_MS_NOSEC        (1<<28)
+#define PPM_MS_BORN         (1<<29)
+#define PPM_MS_ACTIVE       (1<<30)
+#define PPM_MS_NOUSER       (1<<31)
+
+/*
+ * umount() flags
+ */
+#define PPM_MNT_FORCE       1
+#define PPM_MNT_DETACH      2
+#define PPM_MNT_EXPIRE      4
+#define PPM_UMOUNT_NOFOLLOW 8
+
+/*
  * shutdown() how
  */
 #define PPM_SHUT_RD 0
@@ -369,6 +411,26 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_QFMT_VFS_OLD	(1 << 1)
 #define PPM_QFMT_VFS_V0		(1 << 2)
 #define PPM_QFMT_VFS_V1		(1 << 3)
+
+/*
+ * Semop flags
+ */
+#define PPM_IPC_NOWAIT		(1 << 0)
+#define PPM_SEM_UNDO		(1 << 1)
+
+#define PPM_IPC_STAT		(1 << 0)
+#define PPM_IPC_SET		(1 << 1)
+#define PPM_IPC_RMID		(1 << 2)
+#define PPM_IPC_INFO		(1 << 3)
+#define PPM_SEM_INFO		(1 << 4)
+#define PPM_SEM_STAT		(1 << 5)
+#define PPM_GETALL		(1 << 6)
+#define PPM_GETNCNT		(1 << 7)
+#define PPM_GETPID		(1 << 8)
+#define PPM_GETVAL		(1 << 9)
+#define PPM_GETZCNT		(1 << 10)
+#define PPM_SETALL		(1 << 11)
+#define PPM_SETVAL		(1 << 12)
 
 /*
  * SuS says limits have to be unsigned.
@@ -663,7 +725,17 @@ enum ppm_event_type {
 	PPME_SOCKET_ACCEPT_5_X = 247,
 	PPME_SOCKET_ACCEPT4_5_E = 248,
 	PPME_SOCKET_ACCEPT4_5_X = 249,
-	PPM_EVENT_MAX = 250
+	PPME_SYSCALL_SEMOP_E = 250,
+	PPME_SYSCALL_SEMOP_X = 251,
+	PPME_SYSCALL_SEMCTL_E = 252,
+	PPME_SYSCALL_SEMCTL_X = 253,
+	PPME_SYSCALL_PPOLL_E = 254,
+	PPME_SYSCALL_PPOLL_X = 255,
+	PPME_SYSCALL_MOUNT_E = 256,
+	PPME_SYSCALL_MOUNT_X = 257,
+	PPME_SYSCALL_UMOUNT_E = 258,
+	PPME_SYSCALL_UMOUNT_X = 259,
+	PPM_EVENT_MAX = 260
 };
 /*@}*/
 
@@ -1082,7 +1154,8 @@ enum ppm_param_type {
 	PT_UID = 31, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_DOUBLE = 33, /* this is a double precision floating point number. */
-	PT_MAX = 34 /* array size */
+	PT_SIGSET = 34, /* sigset_t. I only store the lower UINT32 of it */
+	PT_MAX = 35 /* array size */
 };
 
 enum ppm_print_format {
@@ -1188,6 +1261,8 @@ extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];
 extern const struct ppm_name_value lseek_whence[];
 extern const struct ppm_name_value poll_flags[];
+extern const struct ppm_name_value mount_flags[];
+extern const struct ppm_name_value umount_flags[];
 extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
@@ -1199,6 +1274,9 @@ extern const struct ppm_name_value quotactl_cmds[];
 extern const struct ppm_name_value quotactl_types[];
 extern const struct ppm_name_value quotactl_dqi_flags[];
 extern const struct ppm_name_value quotactl_quota_fmts[];
+extern const struct ppm_name_value semop_flags[];
+extern const struct ppm_name_value semctl_commands[];
+
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 
