@@ -35,9 +35,9 @@ function install_rpm {
 		fi
 	fi
 
-	echo "* Installing Draios public key"
+	echo "* Installing Sysdig public key"
 	rpm --quiet --import https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public
-	echo "* Installing Draios repository"
+	echo "* Installing Sysdig repository"
 	curl -s -o /etc/yum.repos.d/draios.repo http://download.draios.com/_REPOSITORY_NAME_/rpm/draios.repo
 	echo "* Installing kernel headers"
 	KERNEL_VERSION=$(uname -r)
@@ -61,9 +61,9 @@ function install_deb {
 		apt-get -qq -y install curl < /dev/null
 	fi
 
-	echo "* Installing Draios public key"
+	echo "* Installing Sysdig public key"
 	curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
-	echo "* Installing Draios repository"
+	echo "* Installing Sysdig repository"
 	curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/_REPOSITORY_NAME_/deb/draios.list
 	apt-get -qq update < /dev/null
 	echo "* Installing kernel headers"

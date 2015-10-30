@@ -81,7 +81,7 @@ view_info =
 			tags = {"containers"},
 			name = "Container",
 			field = "container.name",
-			colsize = 15
+			colsize = 20
 		},
 		{
 			name = "DIRNAME",
@@ -89,5 +89,13 @@ view_info =
 			field = "fd.directory",
 			colsize = 0
 		}
-	}
+	};
+	actions = 
+	{
+		{
+			hotkey = "l",
+			command = "ls -al %fd.directory",
+			description = "ls directory"
+		},
+	},
 }

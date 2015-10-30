@@ -187,6 +187,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_SELECT_E:
 	case PPME_SYSCALL_POLL_E:
+	case PPME_SYSCALL_PPOLL_E:
 	case PPME_SYSCALL_EPOLLWAIT_E:
 		parse_select_poll_epollwait_enter(evt);
 		break;
@@ -306,7 +307,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_container_evt(evt);
 		break;
 	case PPME_CPU_HOTPLUG_E:
-		parse_container_evt(evt);
+		parse_cpu_hotplug_enter(evt);
 		break;
 	default:
 		break;
@@ -371,7 +372,15 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	if(eflags & EF_SKIPPARSERESET)
 	{
-		evt->m_tinfo = NULL;
+		if(etype == PPME_PROCINFO_E)
+		{
+			evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, false, false);
+		}
+		else
+		{
+			evt->m_tinfo = NULL;
+		}
+
 		return false;
 	}
 
@@ -458,6 +467,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			ASSERT(evt->get_param_info(0)->type == PT_FD);
 
 			evt->m_tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
+			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 		}
 
 		evt->m_tinfo->m_latency = 0;
@@ -1978,6 +1988,10 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 			fdi.m_type = SCAP_FD_IPV4_SOCK;
 			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 		}
+		else
+		{
+			fdi.m_type = SCAP_FD_IPV6_SOCK;
+		}
 	}
 	else if(*packed_data == PPM_AF_UNIX)
 	{
@@ -2517,7 +2531,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
 							fdtype, &evt->m_paramstr_storage[0],
-							(uint32_t)evt->m_paramstr_storage.size());
+							(uint32_t)evt->m_paramstr_storage.size(),
+							m_inspector->m_hostname_and_port_resolution_enabled);
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}
@@ -2611,7 +2626,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
 							fdtype, &evt->m_paramstr_storage[0],
-							(uint32_t)evt->m_paramstr_storage.size());
+							(uint32_t)evt->m_paramstr_storage.size(),
+							m_inspector->m_hostname_and_port_resolution_enabled);
 
 						evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 					}

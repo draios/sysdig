@@ -546,7 +546,95 @@ void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT vo
 		}
 		else
 		{
-			throw sinsp_exception("view_info column entries must be strings");
+			throw sinsp_exception("view_info column entries must be tables");
+		}
+
+		lua_pop(ls, 1);
+	}
+}
+
+void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT void* actions)
+{
+	vector<sinsp_view_action_info>* keys = (vector<sinsp_view_action_info>*)actions;
+
+	lua_pushnil(ls);
+
+	char key = 0;
+	string command;
+	string description;
+	string tmpstr;
+	bool waitfinish = true;
+
+	while(lua_next(ls, -2) != 0)
+	{
+		string fldname = lua_tostring(ls, -2);
+
+		if(fldname == "hotkey")
+		{
+			tmpstr = lua_tostring(ls, -1);
+			if(tmpstr.size() == 1)
+			{
+				key = tmpstr[0];
+			}
+			else
+			{
+				throw sinsp_exception("action 'key' field must be a single character string");
+			}
+		}
+		else if(fldname == "command")
+		{
+			command = lua_tostring(ls, -1);
+		}
+		else if(fldname == "description")
+		{
+			description = lua_tostring(ls, -1);
+		}
+		else if(fldname == "wait_finish")
+		{
+			int wf = lua_toboolean(ls, -1);
+
+			if(wf == 0)
+			{
+				waitfinish = false;
+			}
+		}
+
+		lua_pop(ls, 1);
+	}
+
+	if(key == 0)
+	{
+		throw sinsp_exception("action missing the 'key' value");
+	}
+
+	if(command == "")
+	{
+		throw sinsp_exception("action missing the 'command' value");
+	}
+
+	keys->push_back(sinsp_view_action_info(key, 
+		command,
+		description,
+		waitfinish));
+}
+
+void sinsp_chisel::parse_view_actions(lua_State *ls, OUT chisel_desc* cd, OUT void* actions)
+{
+	string name;
+	string type;
+	string desc;
+
+	lua_pushnil(ls);
+
+	while(lua_next(ls, -2) != 0)
+	{
+		if(lua_istable(ls, -1))
+		{
+			parse_view_action(ls, cd, actions);
+		}
+		else
+		{
+			throw sinsp_exception("view_info action entries must be tables");
 		}
 
 		lua_pop(ls, 1);
@@ -573,6 +661,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	bool use_defaults = false;
 	sinsp_view_info::viewtype vt = sinsp_view_info::T_TABLE;
 	vector<sinsp_view_column_info> columns;
+	vector<sinsp_view_action_info> actions;
 	vector<string> tags;
 	vector<string> tips;
 	string drilldown_target;
@@ -730,6 +819,17 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
+		else if(fldname == "actions")
+		{
+			if(lua_istable(ls, -1))
+			{
+				parse_view_actions(ls, cd, &actions);
+			}
+			else
+			{
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
+			}
+		}
 
 		lua_pop(ls, 1);
 	}
@@ -745,7 +845,8 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		filter,
 		drilldown_target,
 		use_defaults,
-		is_root);
+		is_root,
+		actions);
 
 	return true;
 }

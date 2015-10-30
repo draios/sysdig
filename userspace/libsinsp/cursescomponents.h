@@ -116,13 +116,22 @@ public:
 class curses_table_sidemenu : public curses_scrollable_list
 {
 public:
-	curses_table_sidemenu(sinsp_cursesui* parent);
+	enum sidemenu_type {
+		ST_NONE,
+		ST_VIEWS,
+		ST_ACTIONS,
+	};
+
+	curses_table_sidemenu(sidemenu_type type, 
+		sinsp_cursesui* parent, 
+		uint32_t selct,
+		uint32_t width);
 	~curses_table_sidemenu();
 	void set_entries(vector<sidemenu_list_entry>* entries)
 	{
-		m_entries = entries;
+		m_entries = *entries;
 
-		if(m_entries->size() == 0)
+		if(m_entries.size() == 0)
 		{
 			m_selct = 0;
 		}
@@ -137,9 +146,10 @@ public:
 	WINDOW* m_win;
 	int32_t m_y_start;
 	sinsp_cursesui* m_parent;
-	vector<sidemenu_list_entry>* m_entries;
+	vector<sidemenu_list_entry> m_entries;
 	string m_title;
 	MEVENT m_last_mevent;
+	sidemenu_type m_type;
 
 private:
 	void update_view_info();

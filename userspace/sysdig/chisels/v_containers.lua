@@ -113,5 +113,64 @@ view_info =
 			description = "Name of the container.",
 			colsize = 0
 		},
-	}
+	},
+	actions = 
+	{
+		{
+			hotkey = "a",
+			command = "docker attach %container.id",
+			description = "docker attach"
+		},
+		{
+			hotkey = "b",
+			command = "docker exec -i -t %container.id /bin/bash",
+			description = "bash shell",
+			wait_finish = false
+		},
+		{
+			hotkey = "f",
+			command = "docker logs -f %container.id",
+			description = "follow logs"
+		},
+		{
+			hotkey = "h",
+			command = "docker history %container.image",
+			description = "image history"
+		},
+		{
+			hotkey = "i",
+			command = "docker inspect %container.id",
+			description = "docker inspect"
+		},
+		{
+			hotkey = "k",
+			command = "docker kill %container.id",
+			description = "docker kill"
+		},
+		{
+			hotkey = "l",
+			command = "docker logs %container.id",
+			description = "docker logs"
+		},
+		{
+			hotkey = "s",
+			command = "docker stats %container.id",
+			description = "docker stop"
+		},
+		{
+			hotkey = "z",
+			command = "docker pause %container.id",
+			description = "docker pause"
+		},
+		{
+			hotkey = "u",
+			command = "docker unpause %container.id",
+			description = "docker unpause"
+		},
+		{
+			hotkey = "w",
+			command = "docker wait %container.id",
+			description = "docker wait"
+		},
+	},
 }

@@ -23,7 +23,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
-#define SIDEMENU_WIDTH 20
+#define VIEW_SIDEMENU_WIDTH 20
+#define ACTION_SIDEMENU_WIDTH 30
 #define VIEW_ID_SPY -1
 #define VIEW_ID_DIG -2
 #define VIEW_ID_INFO -3
@@ -355,6 +356,7 @@ public:
 	void render();
 	void turn_search_on(search_caller_interface* ifc, string header_text);
 	uint64_t get_time_delta();
+	void run_action(sinsp_view_action_info* action);
 
 	//
 	// Return true if the application is supposed to exit
@@ -559,7 +561,8 @@ public:
 	sinsp_view_manager m_views;
 	int32_t m_selected_view;
 	int32_t m_prev_selected_view;
-	uint32_t m_selected_sidemenu_entry;
+	uint32_t m_selected_view_sidemenu_entry;
+	uint32_t m_selected_action_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 	curses_table* m_viz;
 	uint32_t m_screenw;
@@ -569,7 +572,8 @@ public:
 	bool m_search_nomatch;
 	bool m_print_containers;
 #ifndef NOCURSESUI
-	curses_table_sidemenu* m_sidemenu;
+	curses_table_sidemenu* m_view_sidemenu;
+	curses_table_sidemenu* m_action_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;
 	curses_mainhelp_page* m_mainhelp_page;
 	curses_textbox* m_spy_box;
@@ -598,7 +602,8 @@ private:
 	void render_main_menu();
 	sysdig_table_action handle_textbox_input(int ch);
 	sysdig_table_action handle_input(int ch);
-	void populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
+	void populate_view_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
+	void populate_action_sidemenu();
 	void print_progress(double progress);
 	void show_selected_view_info();
 #endif

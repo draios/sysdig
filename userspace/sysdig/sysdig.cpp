@@ -135,6 +135,7 @@ static void usage()
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" -N                 Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " -P, --progress     Print progress on stderr while processing trace files\n"
@@ -158,6 +159,10 @@ static void usage()
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, d for delta between event enter and exit, and\n"
 "                    D for delta from the previous event.\n"
+" --unbuffered       Turn off output buffering. This causes every single line\n"
+"                    emitted by sysdig to be flushed, which generates higher CPU\n"
+"                    usage but is useful when piping sysdig's output into another\n"
+"                    process or into a script.\n"
 " -v, --verbose      Verbose output.\n"
 "                    This flag will cause the full content of text and binary\n"
 "                    buffers to be printed on screen, instead of being truncated\n"
@@ -456,22 +461,25 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 // Event processing loop
 //
 captureinfo do_inspect(sinsp* inspector,
-					   uint64_t cnt,
-					   bool quiet,
-					   bool json,
-					   bool print_progress,
-					   sinsp_filter* display_filter,
-					   vector<summary_table_entry>* summary_table,
-					   sinsp_evt_formatter* formatter)
+	uint64_t cnt,
+	bool quiet,
+	bool json,
+	bool do_flush,
+	bool print_progress,
+	sinsp_filter* display_filter,
+	vector<summary_table_entry>* summary_table,
+	sinsp_evt_formatter* formatter)
 {
 	captureinfo retval;
 	int32_t res;
 	sinsp_evt* ev;
-	uint64_t ts;
-	uint64_t deltats = 0;
-	uint64_t firstts = 0;
 	string line;
 	double last_printed_progress_pct = 0;
+
+	if(json)
+	{
+		do_flush = true;
+	}
 
 	//
 	// Loop through the events
@@ -520,13 +528,6 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 
 		retval.m_nevts++;
-
-		ts = ev->get_ts();
-		if(firstts == 0)
-		{
-			firstts = ts;
-		}
-		deltats = ts - firstts;
 
 		if(print_progress)
 		{
@@ -618,15 +619,15 @@ captureinfo do_inspect(sinsp* inspector,
 				{
 					cout << endl;
 				}
-				else
-				{
-					cout << flush;
-				}
 			}
+		}
+
+		if(do_flush)
+		{
+			cout << flush;
 		}
 	}
 
-	retval.m_time = deltats;
 	return retval;
 }
 
@@ -657,9 +658,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int32_t n_filterargs = 0;
 	int cflag = 0;
 	bool jflag = false;
+	bool unbuf_flag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
-	string timefmt = "%evt.time";
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;	
@@ -697,6 +698,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"timetype", required_argument, 0, 't' },
+		{"unbuffered", no_argument, 0, 0 },
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{"writefile", required_argument, 0, 'w' },
@@ -707,7 +709,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
-	output_format = "*%evt.num <TIME> %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
+	output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
 
 	try
 	{
@@ -726,7 +728,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jlLn:Pp:qr:Ss:t:v"
+                                        "hi:jlLNn:Pp:qr:Ss:t:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -878,6 +880,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				list_events(inspector);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			case 'N':
+				inspector->set_hostname_and_port_resolution_mode(false);
+				break;
 			case 'n':
 				try
 				{
@@ -904,14 +909,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					//
 					// -pp shows the default output format, useful if the user wants to tweak it.
 					//
-					replace_in_place(output_format, "<TIME>", timefmt);
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
 				}
 				else if(string(optarg) == "c" || string(optarg) == "container")
 				{
-					output_format = "*%evt.num <TIME> %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+					output_format = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
 					//
 					// This enables chisels to determine if they should print container information
@@ -954,25 +958,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					string tms(optarg);
 
-					if(tms == "h")
+					if(tms == "h" || tms == "a" || tms == "r" || tms == "d" || tms == "D")
 					{
-						timefmt = "%evt.time";
-					}
-					else if(tms == "a")
-					{
-						timefmt = "%evt.rawtime.s.%evt.rawtime.ns";
-					}
-					else if(tms == "r")
-					{
-						timefmt = "%evt.reltime.s.%evt.reltime.ns";
-					}
-					else if(tms == "d")
-					{
-						timefmt = "%evt.latency.s.%evt.latency.ns";
-					}
-					else if(tms == "D")
-					{
-						timefmt = "%evt.deltatime.s.%evt.deltatime.ns";
+						inspector->set_time_output_mode(tms.c_str()[0]);
 					}
 					else
 					{
@@ -1038,6 +1026,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				printf("sysdig version %s\n", SYSDIG_VERSION);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			}
+
+			if(string(long_options[long_index].name) == "unbuffered")
+			{
+				unbuf_flag = true;
 			}
 		}
 
@@ -1136,11 +1129,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		}
 
 		//
-		// Insert the right time format based on the -t flag
-		//
-		replace_in_place(output_format, "<TIME>", timefmt);
-
-		//
 		// Create the event formatter
 		//
 		sinsp_evt_formatter formatter(inspector, output_format);
@@ -1204,13 +1192,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					open_success = false;
 				}
-#else
-				//
-				// Starting live capture
-				// If this fails on Windows and OSX, don't try with any driver
-				//
-				inspector->open("");
-#endif
 
 				//
 				// Starting the live capture failed, try to load the driver with
@@ -1220,13 +1201,20 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					open_success = true;
 
-					if(system("modprobe sysdig-probe > /dev/null 2> /dev/null"))
+					if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
 					{
 						fprintf(stderr, "Unable to load the driver\n");						
 					}
 
 					inspector->open("");
 				}
+#else
+				//
+				// Starting live capture
+				// If this fails on Windows and OSX, don't try with any driver
+				//
+				inspector->open("");
+#endif
 
 				//
 				// Enable gathering the CPU from the kernel module
@@ -1256,6 +1244,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				cnt,
 				quiet,
 				jflag,
+				unbuf_flag,
 				print_progress,
 				display_filter,
 				summary_table,

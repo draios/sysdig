@@ -28,25 +28,46 @@ and can be extended through Lua scripts, called chisels.
 By default, sysdig prints the information for each captured event on a
 single line, with the following format:
 .PP
-\f[C]<evt.num>\ <evt.time>\ <evt.cpu>\ <proc.name>\ <thread.tid>\ <evt.dir>\ <evt.type>\ <evt.args>\f[]
+\f[C]*%evt.num\ %evt.time\ %evt.cpu\ %proc.name\ (%thread.tid)\ %evt.dir\ %evt.type\ %evt.info\f[]
 .PP
 where:
 .IP \[bu] 2
 evt.num is the incremental event number
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.time is the event timestamp
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.cpu is the CPU number where the event was captured
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 proc.name is the name of the process that generated the event
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 thread.tid id the TID that generated the event, which corresponds to the
 PID for single thread processes
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.dir is the event direction, > for enter events and < for exit events
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.type is the name of the event, e.g.
 \[aq]open\[aq] or \[aq]read\[aq]
+.PD 0
+.P
+.PD
 .IP \[bu] 2
 evt.args is the list of event arguments.
 .PP
@@ -56,7 +77,7 @@ the fields listed by \[aq]sysdig \-l\[aq].
 Using \-pc or \-pcontainer, the default format will be changed to a
 container\-friendly one:
 .PP
-\f[C]%evt.num\ %evt.time\ %evt.cpu\ %container.name\ (%container.id)\ %proc.name\ (%thread.tid:%thread.vtid)\ %evt.dir\ %evt.type\ %evt.info\f[]
+\f[C]*%evt.num\ %evt.time\ %evt.cpu\ %container.name\ (%container.id)\ %proc.name\ (%thread.tid:%thread.vtid)\ %evt.dir\ %evt.type\ %evt.info\f[]
 .PP
 \f[B]Trace Files\f[]
 .PP
@@ -195,7 +216,7 @@ line after the name.
 .PD 0
 .P
 .PD
-Break a capture into seperate files, and limit the size of each file
+Break a capture into separate files, and limit the size of each file
 based on the specified number of megabytes.
 The units of \f[I]filesize\f[] are millions of bytes (10^6, not 2^20).
 Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
@@ -247,7 +268,7 @@ Moreover, they contain information that could be privacy sensitive.
 .PD 0
 .P
 .PD
-Break a capture into seperate files, and limit the size of each file
+Break a capture into separate files, and limit the size of each file
 based on the specified number of events.
 Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
 Otherwise, new files will continue to be created until the capture is
@@ -277,7 +298,7 @@ files.
 .PD 0
 .P
 .PD
-Break a capture into seperate files, and limit the size of each file
+Break a capture into separate files, and limit the size of each file
 based on the specified number of seconds.
 Use in conjunction with \f[B]\-W\f[] to enable automatic file rotation.
 Otherwise, new files will continue to be created until the capture is
@@ -321,6 +342,12 @@ List the events that the engine supports
 List the fields that can be used for filtering and output formatting.
 Use \-lv to get additional information for each field.
 .PP
+\f[B]\-N\f[]
+.PD 0
+.P
+.PD
+Don\[aq]t convert port numbers to names.
+.PP
 \f[B]\-n\f[] \f[I]num\f[], \f[B]\-\-numevents\f[]=\f[I]num\f[]
 .PD 0
 .P
@@ -341,6 +368,8 @@ Print progress on stderr while processing trace files.
 Specify the format to be used when printing the events.
 With \-pc or \-pcontainer will use a container\-friendly format.
 See the examples section below for more info.
+Specifying \f[B]\-pp\f[] on the command line will cause sysdig to print
+the default command line format and exit.
 .PP
 \f[B]\-q\f[], \f[B]\-\-quiet\f[]
 .PD 0
@@ -379,6 +408,15 @@ Accepted values are \f[B]h\f[] for human\-readable string, \f[B]a\f[]
 for absolute timestamp from epoch, \f[B]r\f[] for relative time from the
 beginning of the capture, \f[B]d\f[] for delta between event enter and
 exit, and \f[B]D\f[] for delta from the previous event.
+.PP
+\f[B]\-\-unbuffered\f[]
+.PD 0
+.P
+.PD
+Turn off output buffering.
+This causes every single line emitted by sysdig to be flushed, which
+generates higher CPU usage but is useful when piping sysdig\[aq]s output
+into another process or into a script.
 .PP
 \f[B]\-v\f[], \f[B]\-\-verbose\f[]
 .PD 0

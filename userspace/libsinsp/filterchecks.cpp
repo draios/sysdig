@@ -57,6 +57,11 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.uid", "a unique identifier for the FD, created by chaining the FD number and the thread ID."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containername", "chaining of the container ID and the FD name. Useful when trying to identify which container an FD belongs to."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.containerdirectory", "chaining of the container ID and the directory name. Useful when trying to identify which container a directory belongs to."},
+	{PT_PORT, EPF_FILTER_ONLY, PF_NA, "fd.proto", "matches the protocol (either client or server) of the fd."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.cproto", "for TCP/UDP FDs, the client protocol."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sproto", "for TCP/UDP FDs, server protocol."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.lproto", "for TCP/UDP FDs, the local protocol."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rproto", "for TCP/UDP FDs, the remote protocol."}
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -355,14 +360,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 	//
 	if(m_field_id == TYPE_FDNUM)
 	{
-		if(m_fdinfo != NULL)
-		{
-			return (uint8_t*)&m_tinfo->m_lastevent_fd;
-		}
-		else
-		{
-			return NULL;
-		}
+		return (uint8_t*)&m_tinfo->m_lastevent_fd;
 	}
 
 	switch(m_field_id)
@@ -597,6 +595,32 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
 			}
 		}
+	case TYPE_CLIENTPROTO:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			string port = "";
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			}
+
+			return (uint8_t*)port.c_str();
+		}
 	case TYPE_SERVERPORT:
 		{
 			if(m_fdinfo == NULL)
@@ -637,6 +661,58 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 		}
+	case TYPE_SERVERPROTO:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			uint16_t nport = 0;
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				if(m_fdinfo->is_role_none())
+				{
+					return NULL;
+				}
+				nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+			}
+			else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
+			{
+				nport = m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port;
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				if(m_fdinfo->is_role_none())
+				{
+					return NULL;
+				}
+				nport = m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport;
+			}
+			else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
+			{
+				nport = m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port;
+			}
+			else
+			{
+				return NULL;
+			}
+
+			string port = "";
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			}
+
+			return (uint8_t*)port.c_str();
+		}
 	case TYPE_LPORT:
 	case TYPE_RPORT:
 		{
@@ -658,7 +734,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
 			{
-				if(m_field_id == TYPE_LPORT)
+				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
 					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
 				}
@@ -669,7 +745,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else
 			{
-				if(m_field_id == TYPE_LPORT)
+				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
 					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
 				}
@@ -680,7 +756,68 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 
-		break;
+
+	case TYPE_LPROTO:
+	case TYPE_RPROTO:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+			if(evt_type != SCAP_FD_IPV4_SOCK)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			int16_t nport = 0;
+
+			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip))
+			{
+				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
+				{
+					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+				}
+				else
+				{
+					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+				}
+			}
+			else
+			{
+				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
+				{
+					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport;
+				}
+				else
+				{
+					nport = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport;
+				}
+			}
+
+			string port = "";
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			}
+			else
+			{
+				ASSERT(false);
+			}
+
+			return (uint8_t*)port.c_str();
+		}
+
 	case TYPE_L4PROTO:
 		{
 			if(m_fdinfo == NULL)
@@ -747,7 +884,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				m_tstr = "ip";
 				return (uint8_t*)m_tstr.c_str();
 			}
-			else if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+			else if(m_fdinfo->m_type == SCAP_FD_UNIX_SOCK)
 			{
 				m_tstr = "unix";
 				return (uint8_t*)m_tstr.c_str();
@@ -953,7 +1090,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	{
 		return compare_ip(evt);
 	}
-	else if(m_field_id == TYPE_PORT)
+	else if(m_field_id == TYPE_PORT || m_field_id == TYPE_PROTO)
 	{
 		return compare_port(evt);
 	}
@@ -1862,6 +1999,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
+	{PT_CHARBUF, EPF_PRINT_ONLY, PF_NA, "evt.outputtime", "this depends on -t param, default is %evt.time ('h')."},
 	{PT_CHARBUF, EPF_PRINT_ONLY, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
 	{PT_UINT32, EPF_NONE, PF_NA, "evt.type.is", "allows one to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
@@ -1902,12 +2040,11 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the length of the binary data buffer, but only for output file I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."}
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
 {
-	m_first_ts = 0;
 	m_is_compare = false;
 	m_info.m_name = "evt";
 	m_info.m_fields = sinsp_filter_check_event_fields;
@@ -2418,6 +2555,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_TIME:
 	case TYPE_TIME_S:
 	case TYPE_DATETIME:
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
 
 	case TYPE_RAWTS:
@@ -2506,28 +2644,13 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_u64val = evt->get_ts() % ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = evt->get_ts() - m_first_ts;
+		m_u64val = evt->get_ts() - m_inspector->m_firstevent_ts;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS_S:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = (evt->get_ts() - m_first_ts) / ONE_SECOND_IN_NS;
+		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_RELTS_NS:
-		if(m_first_ts == 0)
-		{
-			m_first_ts = evt->get_ts();
-		}
-
-		m_u64val = (evt->get_ts() - m_first_ts) % ONE_SECOND_IN_NS;
+		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS;
 		return (uint8_t*)&m_u64val;
 	case TYPE_LATENCY:
 		{
@@ -2591,6 +2714,67 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			return (uint8_t*)&m_tsdelta;
+		}
+	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
+		{
+			char timebuffer[100];
+			m_strstorage = "";
+			switch(m_inspector->m_output_time_flag)
+			{
+				case 'h':
+					ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+					return (uint8_t*)m_strstorage.c_str();
+
+				case 'a':
+					m_strstorage += to_string(evt->get_ts() / ONE_SECOND_IN_NS);
+					m_strstorage += ".";
+					m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'r':
+					m_strstorage += to_string((evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS);
+					m_strstorage += ".";
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS);
+					m_strstorage += string(timebuffer);
+					return (uint8_t*) m_strstorage.c_str();
+
+				case 'd':
+				{
+					if(evt->m_tinfo != NULL)
+					{
+						uint64_t lat = evt->m_tinfo->m_latency;
+
+						m_strstorage += to_string(lat / 1000000000);
+						m_strstorage += ".";
+						snprintf(timebuffer, sizeof(timebuffer), "%09lu", lat % 1000000000);
+						m_strstorage += string(timebuffer);
+					}
+					else
+					{
+						m_strstorage = "0.000000000";
+					}
+
+					return (uint8_t*) m_strstorage.c_str();
+				}
+
+				case 'D':
+					if(m_u64val == 0)
+					{
+						m_u64val = evt->get_ts();
+						m_tsdelta = 0;
+					}
+					uint64_t tts = evt->get_ts();
+
+					m_strstorage += to_string((tts - m_u64val) / ONE_SECOND_IN_NS);
+					m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
+					m_strstorage += ".";
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (tts - m_u64val) % ONE_SECOND_IN_NS);
+					m_strstorage += string(timebuffer);
+					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
+
+					m_u64val = tts;
+					return (uint8_t*) m_strstorage.c_str();
+			}
 		}
 	case TYPE_DIR:
 		if(PPME_IS_ENTER(evt->get_type()))
@@ -4155,11 +4339,11 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 	uint16_t etype = evt->get_type();
 
-	if(etype == PPME_SYSCALL_POLL_E)
+	if(etype == PPME_SYSCALL_POLL_E || etype == PPME_SYSCALL_PPOLL_E)
 	{
 		parinfo = evt->get_param(0);
 	}
-	else if(etype == PPME_SYSCALL_POLL_X)
+	else if(etype == PPME_SYSCALL_POLL_X || etype == PPME_SYSCALL_PPOLL_X)
 	{
 		parinfo = evt->get_param(1);
 	}

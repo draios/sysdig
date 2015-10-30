@@ -178,6 +178,14 @@ public:
 	}
 
 	/*!
+	\brief Get the event's category.
+	*/
+	inline ppm_event_category get_info_category()
+	{
+		return m_info->category;
+	}
+
+	/*!
 	  \brief Return the event direction: in or out.
 	*/
 	event_direction get_direction();

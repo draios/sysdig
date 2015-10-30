@@ -22,7 +22,7 @@ sysdig includes a powerul filtering language, has customizable output, and can b
 
 By default, sysdig prints the information for each captured event on a single line, with the following format:
 
-```<evt.num> <evt.time> <evt.cpu> <proc.name> <thread.tid> <evt.dir> <evt.type> <evt.args>```
+```*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info```
 
 where:
 * evt.num is the incremental event number
@@ -38,7 +38,7 @@ The output format can be customized with the -p switch, using any of the fields 
 
 Using -pc or -pcontainer, the default format will be changed to a container-friendly one:
 
-```%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info```
+```*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info```
 
 **Trace Files**  
 
@@ -144,6 +144,9 @@ OPTIONS
 **-l**, **--list**  
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
     
+**-N**
+  Don't convert port numbers to names.
+
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events
 
@@ -151,7 +154,7 @@ OPTIONS
   Print progress on stderr while processing trace files.
   
 **-p** _outputformat_, **--print**=_outputformat_  
-  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. See the examples section below for more info.
+  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. See the examples section below for more info. Specifying **-pp** on the command line will cause sysdig to print the default command line format and exit.
   
 **-q**, **--quiet**  
   Don't print events on the screen. Useful when dumping to disk.
@@ -168,6 +171,9 @@ OPTIONS
 **-t** _timetype_, **--timetype**=_timetype_  
   Change the way event time is displayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the beginning of the capture, **d** for delta between event enter and exit, and **D** for delta from the previous event.
      
+**--unbuffered**  
+  Turn off output buffering. This causes every single line emitted by sysdig to be flushed, which generates higher CPU usage but is useful when piping sysdig's output into another process or into a script. 
+  
 **-v**, **--verbose**  
   Verbose output. This flag will cause the full content of text and binary buffers to be printed on screen, instead of being truncated to 40 characters. Note that data buffers length is still limited by the snaplen (refer to the -s flag documentation) -v will also make sysdig print some summary information at the end of the capture.
   

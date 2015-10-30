@@ -51,7 +51,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_event_source_name = event_source_name;
 	m_selected_view = 0;
 	m_prev_selected_view = 0;
-	m_selected_sidemenu_entry = 0;
+	m_selected_view_sidemenu_entry = 0;
+	m_selected_action_sidemenu_entry = 0;
 	m_datatable = NULL;
 	m_viz = NULL;
 	m_cmdline_capture_filter = cmdline_capture_filter;
@@ -77,7 +78,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_truncated_input = false;
 #ifndef NOCURSESUI
 	m_spybox_text_format = sinsp_evt::PF_NORMAL;
-	m_sidemenu = NULL;
+	m_view_sidemenu = NULL;
+	m_action_sidemenu = NULL;
 	m_spy_box = NULL;
 	m_search_caller_interface = NULL;
 	m_viewinfo_page = NULL;
@@ -163,6 +165,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		m_menuitems.push_back(sinsp_menuitem_info("F5", "Echo", sinsp_menuitem_info::TABLE, KEY_F(5)));
 		m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE, KEY_F(6)));
 		m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL, KEY_F(7)));
+		m_menuitems.push_back(sinsp_menuitem_info("F8", "Actions", sinsp_menuitem_info::ALL, KEY_F(8)));
 		m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
 		m_menuitems.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
 		m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST, 'c'));
@@ -198,9 +201,14 @@ sinsp_cursesui::~sinsp_cursesui()
 			delete m_viz;
 		}
 
-		if(m_sidemenu != NULL)
+		if(m_view_sidemenu != NULL)
 		{
-			delete m_sidemenu;
+			delete m_view_sidemenu;
+		}
+
+		if(m_action_sidemenu != NULL)
+		{
+			delete m_action_sidemenu;
 		}
 
 		if(m_viewinfo_page != NULL)
@@ -240,7 +248,8 @@ void sinsp_cursesui::configure(sinsp_view_manager* views)
 	// Determine which view is the starting one
 	//
 	m_selected_view = m_views.get_selected_view();
-	m_selected_sidemenu_entry = m_selected_view;
+	m_selected_view_sidemenu_entry = m_selected_view;
+	m_selected_action_sidemenu_entry = 0;
 }
 
 void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
@@ -378,7 +387,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		m_viz->configure(m_datatable, &colsizes, &colnames);
 		if(!is_drilldown)
 		{
-			populate_sidemenu("", &m_sidemenu_viewlist);
+			populate_view_sidemenu("", &m_sidemenu_viewlist);
 		}
 	}
 #endif
@@ -859,9 +868,14 @@ void sinsp_cursesui::render()
 	//
 	// If required, draw the side menu
 	//
-	if(m_sidemenu)
+	if(m_view_sidemenu)
 	{
-		m_sidemenu->render();
+		m_view_sidemenu->render();
+	}
+
+	if(m_action_sidemenu)
+	{
+		m_action_sidemenu->render();
 	}
 
 	//
@@ -886,7 +900,7 @@ sinsp_view_info* sinsp_cursesui::get_selected_view()
 }
 
 #ifndef NOCURSESUI
-void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>* viewlist)
+void sinsp_cursesui::populate_view_sidemenu(string field, vector<sidemenu_list_entry>* viewlist)
 {
 	uint32_t k = 0;
 
@@ -904,11 +918,11 @@ void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>
 
 				if(it->m_name == m_views.at(m_selected_view)->m_name)
 				{
-					m_selected_sidemenu_entry = k;
+					m_selected_view_sidemenu_entry = k;
 
-					if(m_sidemenu != NULL)
+					if(m_view_sidemenu != NULL)
 					{
-						m_sidemenu->m_selct = k;
+						m_view_sidemenu->m_selct = k;
 					}
 				}
 
@@ -917,9 +931,36 @@ void sinsp_cursesui::populate_sidemenu(string field, vector<sidemenu_list_entry>
 		}
 	}
 
-	if(m_sidemenu != NULL)
+	if(m_view_sidemenu != NULL)
 	{
-		m_sidemenu->set_entries(viewlist);
+		m_view_sidemenu->set_entries(viewlist);
+	}
+}
+
+void sinsp_cursesui::populate_action_sidemenu()
+{
+	uint32_t k = 0;
+	vector<sidemenu_list_entry> viewlist;
+
+	m_selected_action_sidemenu_entry = 0;
+
+	sinsp_view_info* vinfo = get_selected_view();
+
+	for(auto hk : vinfo->m_actions)
+	{
+		string str = string("(") + hk.m_hotkey + ") " + hk.m_description;
+		viewlist.push_back(sidemenu_list_entry(str, k++));
+	}
+
+	if(viewlist.size() == 0)
+	{
+		viewlist.push_back(sidemenu_list_entry("<NO ACTIONS>", 0));
+	}
+
+	if(m_action_sidemenu != NULL)
+	{
+		m_action_sidemenu->m_selct = 0;
+		m_action_sidemenu->set_entries(&viewlist);
 	}
 }
 #endif // NOCURSESUI
@@ -1111,8 +1152,11 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 #ifndef NOCURSESUI
 	if(!m_raw_output)
 	{
-		delete m_sidemenu;
-		m_sidemenu = NULL;
+		delete m_view_sidemenu;
+		m_view_sidemenu = NULL;
+
+		delete m_action_sidemenu;
+		m_action_sidemenu = NULL;
 
 		if(m_viz != NULL)
 		{
@@ -1148,7 +1192,7 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 	ASSERT(m_selected_view < (int32_t)m_views.size());
 
 	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
-		m_selected_view, m_selected_sidemenu_entry, 
+		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
 		m_datatable->is_sorting_ascending());
 
@@ -1224,7 +1268,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	srtcol = m_datatable->get_sorting_col();
 
 	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
-		m_selected_view, m_selected_sidemenu_entry, 
+		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig,
 		m_datatable->is_sorting_ascending());
 
@@ -1255,7 +1299,8 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 
 #ifndef NOCURSESUI
 	clear();
-	populate_sidemenu(field, &m_sidemenu_viewlist);
+	populate_view_sidemenu(field, &m_sidemenu_viewlist);
+	populate_action_sidemenu();
 //	m_selected_sidemenu_entry = 0;
 	m_viz->render(true);
 	render();
@@ -1322,7 +1367,7 @@ bool sinsp_cursesui::drillup()
 		sinsp_table_field rowkey = sinfo->m_rowkey;
 
 		m_selected_view = sinfo->m_prev_selected_view;
-		m_selected_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
+		m_selected_view_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
 		m_manual_filter = sinfo->m_prev_manual_filter;
 		m_is_filter_sysdig = sinfo->m_prev_is_filter_sysdig;
 		bool is_sorting_ascending = sinfo->m_prev_is_sorting_ascending;
@@ -1364,7 +1409,8 @@ bool sinsp_cursesui::drillup()
 		}
 
 		m_viz->m_drilled_up = true;
-		populate_sidemenu(field, &m_sidemenu_viewlist);
+		populate_view_sidemenu(field, &m_sidemenu_viewlist);
+		populate_action_sidemenu();
 
 		//
 		// If sorting is different from the default one, restore it
@@ -1546,6 +1592,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 			break;
 		case KEY_BACKSPACE:
+		case 127:
 			if(str->size() > 0)
 			{
 				m_cursor_pos--;
@@ -1699,7 +1746,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	if((!m_inspector->is_live()) && !is_eof())
 	{
-		if(ch != KEY_BACKSPACE && 
+		if(ch != KEY_BACKSPACE &&
+			ch != 127 &&
 			ch != 'q' &&
 			ch != KEY_F(10))
 		{
@@ -1740,9 +1788,11 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		}
 	}
 
-	if(m_sidemenu)
+	if(m_view_sidemenu != NULL)
 	{
-		sysdig_table_action ta = m_sidemenu->handle_input(ch);
+		ASSERT(m_action_sidemenu == NULL);
+
+		sysdig_table_action ta = m_view_sidemenu->handle_input(ch);
 		if(ta == STA_SWITCH_VIEW)
 		{
 			if(m_viewinfo_page)
@@ -1758,16 +1808,51 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			return STA_NONE;
 		}
 	}
+	else
+	{
+		if(m_action_sidemenu != NULL)
+		{
+			sysdig_table_action ta = m_action_sidemenu->handle_input(ch);
+			if(ta == STA_SWITCH_VIEW)
+			{
+				sinsp_view_info* vinfo = get_selected_view();
+
+				g_logger.format("running action %d %s", m_selected_action_sidemenu_entry,
+					vinfo->m_name.c_str());
+				ASSERT(m_selected_action_sidemenu_entry < vinfo->m_actions.size());
+				run_action(&vinfo->m_actions[m_selected_action_sidemenu_entry]);
+
+				return ta;
+			}
+			else if(ta == STA_DESTROY_CHILD)
+			{
+				m_viz->set_x_start(0);
+				delete m_action_sidemenu;
+				m_action_sidemenu = NULL;
+				m_viz->set_x_start(0);
+				m_viz->recreate_win(m_screenh - 3);
+				m_viz->render(true);
+				m_viz->render(true);
+				render();				
+			}
+			else if(ta != STA_PARENT_HANDLE)
+			{
+				return STA_NONE;
+			}
+		}
+	}
 
 	if(m_output_filtering || m_output_searching || m_search_caller_interface != NULL)
 	{
-		ASSERT(m_sidemenu == NULL);
+		ASSERT(m_view_sidemenu == NULL);
+		ASSERT(m_action_sidemenu == NULL);
 		return handle_textbox_input(ch);
 	}
 
 	if(m_spy_box != NULL)
 	{
-		ASSERT(m_sidemenu == NULL);
+		ASSERT(m_view_sidemenu == NULL);
+		ASSERT(m_action_sidemenu == NULL);
 		ASSERT(m_output_filtering == false);
 		ASSERT(m_output_searching == false);
 		sysdig_table_action actn = m_spy_box->handle_input(ch);
@@ -1782,8 +1867,10 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	// Note: the info page doesn't handle input when the sidemenu is on, because in that
 	//       case it's just going to passively show the info for the selected view
 	//
-	if(m_viewinfo_page && m_sidemenu == NULL)
+	if(m_viewinfo_page && m_view_sidemenu == NULL)
 	{
+		ASSERT(m_view_sidemenu == NULL);
+
 		sysdig_table_action actn = m_viewinfo_page->handle_input(ch);
 
 		if(actn == STA_DESTROY_CHILD)
@@ -1828,22 +1915,28 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			pause();
 			break;
 		case KEY_F(2):
-			if(m_sidemenu == NULL)
+			if(m_action_sidemenu != NULL)
 			{
-				m_viz->set_x_start(SIDEMENU_WIDTH);
-				m_sidemenu = new curses_table_sidemenu(this);
-				m_sidemenu->set_entries(&m_sidemenu_viewlist);
-				m_sidemenu->m_selct = m_selected_sidemenu_entry;
-				m_sidemenu->set_title("Select View");
+				break;
+			}
+
+			if(m_view_sidemenu == NULL)
+			{
+				m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
+				m_view_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_VIEWS,
+					this, m_selected_view_sidemenu_entry, VIEW_SIDEMENU_WIDTH);
+
+				m_view_sidemenu->set_entries(&m_sidemenu_viewlist);
+				m_view_sidemenu->set_title("Select View");
 
 				render();
 
 				m_viewinfo_page = new curses_viewinfo_page(this, 
 					m_selected_view,
 					TABLE_Y_START,
-					SIDEMENU_WIDTH,
+					VIEW_SIDEMENU_WIDTH,
 					m_screenh - TABLE_Y_START - 1,
-					m_screenw - SIDEMENU_WIDTH);
+					m_screenw - VIEW_SIDEMENU_WIDTH);
 			}
 			else
 			{
@@ -1854,8 +1947,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				}
 
 				m_viz->set_x_start(0);
-				delete m_sidemenu;
-				m_sidemenu = NULL;
+				delete m_view_sidemenu;
+				m_view_sidemenu = NULL;
 				m_viz->recreate_win(m_screenh - 3);
 				render();
 			}
@@ -1899,7 +1992,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			if(m_datatable->m_sample_data != NULL && m_datatable->m_sample_data->size() != 0)
 			{
-				m_selected_sidemenu_entry = 0;
+				m_selected_view_sidemenu_entry = 0;
+				m_selected_action_sidemenu_entry = 0;
 				return STA_SPY;
 			}
 			break;
@@ -1922,7 +2016,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			if(m_datatable->m_sample_data != NULL && m_datatable->m_sample_data->size() != 0)
 			{
-				m_selected_sidemenu_entry = 0;
+				m_selected_view_sidemenu_entry = 0;
+				m_selected_action_sidemenu_entry = 0;
 				return STA_DIG;
 			}
 
@@ -1934,6 +2029,40 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				0,
 				m_screenh,
 				m_screenw);
+			break;
+		case KEY_F(8):
+			if(m_view_sidemenu != NULL)
+			{
+				break;
+			}
+
+			if(m_action_sidemenu == NULL)
+			{
+				m_viz->set_x_start(ACTION_SIDEMENU_WIDTH);
+				m_action_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_ACTIONS, 
+					this, m_selected_action_sidemenu_entry, ACTION_SIDEMENU_WIDTH);
+				populate_action_sidemenu();
+				m_action_sidemenu->set_title("Select Action");
+
+				m_viz->set_x_start(ACTION_SIDEMENU_WIDTH);
+				m_viz->recreate_win(m_screenh - 3);
+
+				render();
+
+				m_viewinfo_page = NULL;
+			}
+			else
+			{
+				m_viz->set_x_start(0);
+				delete m_action_sidemenu;
+				m_action_sidemenu = NULL;
+				m_viz->set_x_start(0);
+				m_viz->recreate_win(m_screenh - 3);
+				m_viz->render(true);
+				m_viz->render(true);
+				render();
+			}
+
 			break;
 		case KEY_RESIZE:
 			getmaxyx(stdscr, m_screenh, m_screenw);
@@ -1966,9 +2095,13 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			{
 				MEVENT* event = NULL;
 
-				if(m_sidemenu != NULL)
+				if(m_view_sidemenu != NULL)
 				{
-					event = &m_sidemenu->m_last_mevent;
+					event = &m_view_sidemenu->m_last_mevent;
+				}
+				else if(m_action_sidemenu != NULL)
+				{
+					event = &m_action_sidemenu->m_last_mevent;
 				}
 				else if(m_spy_box != NULL)
 				{
@@ -2031,6 +2164,117 @@ uint64_t sinsp_cursesui::get_time_delta()
 	{
 		return m_last_evt_ts - m_1st_evt_ts;
 	}
+}
+
+void sinsp_cursesui::run_action(sinsp_view_action_info* action)
+{
+	string resolved_command;
+	bool replacing = false;
+	string fld_to_replace;
+
+	if(m_viz->get_data_size() == 0)
+	{
+		//
+		// No elements in the table means no selection
+		//
+		return;
+	}
+
+	//
+	// Scan the command string and replace the field names with the values from the selection
+	//
+	for(uint32_t j = 0; j < action->m_command.size(); j++)
+	{
+		char sc = action->m_command[j];
+
+		if(sc == '%')
+		{
+			fld_to_replace = "";
+
+			if(replacing)
+			{
+				throw sinsp_exception("the following command has the wrong syntax: " + action->m_command);
+			}
+
+			replacing = true;
+		}
+		else
+		{
+			if(replacing)
+			{
+				if(sc == ' ' || sc == '\t' || sc == '0')
+				{
+					replacing = false;
+					string val = m_viz->get_field_val(fld_to_replace);
+					resolved_command += val;
+					resolved_command += sc;
+				}
+				else
+				{
+					fld_to_replace += sc;
+				}
+			}
+			else
+			{
+				resolved_command += sc;
+			}
+		}
+	}
+
+	if(replacing)
+	{
+		string  val = m_viz->get_field_val(fld_to_replace);
+		resolved_command += val;
+	}
+
+	g_logger.format("original command: %s", action->m_command.c_str());
+	g_logger.format("running command: %s", resolved_command.c_str());
+
+	//
+	// Exit curses mode
+	//
+	endwin();
+
+	//
+	// Run the command
+	//
+	int sret = system(resolved_command.c_str());
+	if(sret == -1)
+	{
+		g_logger.format("command failed");
+	}
+
+	//
+	// If needed, wait for the command to complete
+	//
+	if(action->m_waitfinish)
+	{
+		printf("Command finished. Press ENTER to return to csysdig.");
+		fflush(stdout);
+
+		//
+		// Wait for the enter key
+		// 
+		while(getch() == -1)
+		{
+			usleep(10000);
+		}
+	}
+
+	//
+	// Empty the keyboard buffer
+	//
+	while(getch() != -1);
+
+	//
+	// Reenter curses mode
+	//
+	reset_prog_mode();
+
+	//
+	// Refresh the screen
+	//
+	render();
 }
 
 #endif // CSYSDIG
