@@ -42,13 +42,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_EARLY_FILTERING
 #include "scap_new.h"
 #else
-#include "scap.h"
+#include "scap_next.h"
 #endif
 
 #else
-#include "scap.h"
+#include "scap_next.h"
 #endif
 
+#include <scap.h>
 
 extern sinsp_evttables g_infotables;
 #ifdef HAS_CHISELS
