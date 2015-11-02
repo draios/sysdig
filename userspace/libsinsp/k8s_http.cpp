@@ -141,8 +141,8 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		std::string url = m_url;
 		url.insert(m_url.find(m_api) + m_api.size(), "/watch");
 
-		curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L);
+		check_error(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()));
+		check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L));
 
 		check_error(curl_easy_perform(m_curl));
 		check_error(curl_easy_getinfo(m_curl, CURLINFO_LASTSOCKET, &sockextr));
@@ -155,7 +155,7 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		}
 
 		std::ostringstream request;
-		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\n";
+		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\n\r\nConnection: Keep-Alive";
 		if(!m_credentials.empty())
 		{
 			std::istringstream is(m_credentials);
@@ -187,7 +187,15 @@ bool k8s_http::on_data()
 	do
 	{
 		iolen = 0;
-		check_error(ret = curl_easy_recv(m_curl, buf, 1024, &iolen));
+		try
+		{
+			check_error(ret = curl_easy_recv(m_curl, buf, 1024, &iolen));
+		}
+		catch(sinsp_exception& ex)
+		{
+			g_logger.log(std::string("Data receive error: ").append(ex.what()), sinsp_logger::SEV_ERROR);
+			return false;
+		}
 		if(iolen > 0)
 		{
 			if(m_data_ready)
