@@ -3263,7 +3263,7 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 	if(evt->m_tinfo)
 	{
 		sinsp_evt_param *parinfo;
-
+		auto main_tinfo = evt->m_tinfo->get_main_thread();
 		parinfo = evt->get_param(1);
 		evt->m_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -3273,15 +3273,15 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 
 		parinfo = evt->get_param(3);
-		evt->m_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+		main_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 
 		parinfo = evt->get_param(4);
-		evt->m_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+		main_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 
 		parinfo = evt->get_param(5);
-		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		main_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 	}
 }
