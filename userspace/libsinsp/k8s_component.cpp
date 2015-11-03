@@ -815,6 +815,7 @@ void k8s_state_s::update_cache(const k8s_component::component_map::key_type& com
 				}
 			}
 		}
+		break;
 
 		case k8s_component::K8S_PODS:
 		{
@@ -837,6 +838,7 @@ void k8s_state_s::update_cache(const k8s_component::component_map::key_type& com
 				}
 			}
 		}
+		break;
 
 		case k8s_component::K8S_REPLICATIONCONTROLLERS:
 		{
@@ -861,6 +863,7 @@ void k8s_state_s::update_cache(const k8s_component::component_map::key_type& com
 				}
 			}
 		}
+		break;
 
 		case k8s_component::K8S_SERVICES:
 		{
@@ -885,6 +888,7 @@ void k8s_state_s::update_cache(const k8s_component::component_map::key_type& com
 				}
 			}
 		}
+		break;
 
 		default: return;
 	}
