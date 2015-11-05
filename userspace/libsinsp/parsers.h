@@ -93,7 +93,6 @@ private:
 	void parse_inotify_init_exit(sinsp_evt* evt);
 	void parse_getrlimit_setrlimit_exit(sinsp_evt* evt);
 	void parse_prlimit_exit(sinsp_evt* evt);
-	void parse_select_poll_epollwait_enter(sinsp_evt *evt);
 	void parse_fcntl_enter(sinsp_evt* evt);
 	void parse_fcntl_exit(sinsp_evt* evt);
 	void parse_context_switch(sinsp_evt* evt);
@@ -116,6 +115,8 @@ private:
 	// Return false if the update didn't happen because the tuple is identical to the given address
 	bool set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
 	void swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo);
+	uint8_t* reserve_event_buffer();
+	void free_event_buffer(uint8_t*);
 
 	//
 	// Pointers to inspector context
@@ -134,6 +135,7 @@ private:
 	//
 	vector<sinsp_protodecoder*> m_protodecoders;
 
+	stack<uint8_t*> m_tmp_events_buffer;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_protodecoder;
