@@ -33,6 +33,8 @@ public:
 	// Processing entry point
 	//
 	void process_event(sinsp_evt* evt);
+	void event_cleanup(sinsp_evt* evt);
+
 	void erase_fd(erase_fd_params* params);
 
 	//
@@ -93,6 +95,7 @@ private:
 	void parse_inotify_init_exit(sinsp_evt* evt);
 	void parse_getrlimit_setrlimit_exit(sinsp_evt* evt);
 	void parse_prlimit_exit(sinsp_evt* evt);
+	void parse_select_poll_epollwait_enter(sinsp_evt *evt);
 	void parse_fcntl_enter(sinsp_evt* evt);
 	void parse_fcntl_exit(sinsp_evt* evt);
 	void parse_context_switch(sinsp_evt* evt);

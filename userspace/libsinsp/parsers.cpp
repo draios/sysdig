@@ -185,6 +185,12 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_OPENAT_X:
 		parse_open_openat_creat_exit(evt);
 		break;
+	case PPME_SYSCALL_SELECT_E:
+	case PPME_SYSCALL_POLL_E:
+	case PPME_SYSCALL_PPOLL_E:
+	case PPME_SYSCALL_EPOLLWAIT_E:
+		parse_select_poll_epollwait_enter(evt);
+		break;
 	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_CLONE_16_X:
 	case PPME_SYSCALL_CLONE_17_X:
@@ -325,13 +331,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		evt->m_filtered_out = false;
 	}
 #endif
-	if(evt->get_direction() == SCAP_ED_OUT &&
-			evt->m_tinfo && evt->m_tinfo->is_lastevent_data_valid())
-	{
-		free_event_buffer(evt->m_tinfo->m_lastevent_data);
-		evt->m_tinfo->m_lastevent_data = NULL;
-		evt->m_tinfo->set_lastevent_data_validity(false);
-	}
 	//
 	// Offline captures can prodice events with the SCAP_DF_STATE_ONLY. They are
 	// supposed to go through the engine, but they must be filtered out before 
@@ -343,6 +342,17 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		{
 			evt->m_filtered_out = true;
 		}
+	}
+}
+
+void sinsp_parser::event_cleanup(sinsp_evt *evt)
+{
+	if(evt->get_direction() == SCAP_ED_OUT &&
+	   evt->m_tinfo && evt->m_tinfo->is_lastevent_data_valid())
+	{
+		free_event_buffer(evt->m_tinfo->m_lastevent_data);
+		evt->m_tinfo->m_lastevent_data = NULL;
+		evt->m_tinfo->set_lastevent_data_validity(false);
 	}
 }
 
@@ -3209,6 +3219,17 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 	}
 }
 
+void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
+{
+	if(evt->m_tinfo == NULL)
+	{
+		ASSERT(false);
+		return;
+	}
+
+	evt->m_tinfo->m_lastevent_data = reserve_event_buffer();
+	*(uint64_t*)evt->m_tinfo->m_lastevent_data = evt->get_ts();
+}
 void sinsp_parser::parse_fcntl_enter(sinsp_evt *evt)
 {
 	if(!evt->m_tinfo)
