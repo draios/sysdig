@@ -463,7 +463,7 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 
 bool sinsp_threadinfo::is_lastevent_data_valid()
 {
-	return (m_lastevent_data && m_lastevent_cpuid != (uint16_t) - 1);
+	return (m_lastevent_cpuid != (uint16_t) - 1);
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_cwd_root()

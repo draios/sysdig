@@ -348,7 +348,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 void sinsp_parser::event_cleanup(sinsp_evt *evt)
 {
 	if(evt->get_direction() == SCAP_ED_OUT &&
-	   evt->m_tinfo && evt->m_tinfo->is_lastevent_data_valid())
+	   evt->m_tinfo && evt->m_tinfo->m_lastevent_data)
 	{
 		free_event_buffer(evt->m_tinfo->m_lastevent_data);
 		evt->m_tinfo->m_lastevent_data = NULL;
@@ -625,7 +625,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	//
 	// Retrieve the copy of the enter event and initialize it
 	//
-	if(!exit_evt->m_tinfo->is_lastevent_data_valid())
+	if(!(exit_evt->m_tinfo->is_lastevent_data_valid() && exit_evt->m_tinfo->m_lastevent_data))
 	{
 		//
 		// This happen especially at the beginning of trace files, where events
