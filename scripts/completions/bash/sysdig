@@ -25,6 +25,8 @@ _sysdig_complete()
   --help                                        \
   -j                                            \
   --json                                        \
+  -k                                            \
+  --k8s-api                                     \
   -L                                            \
   --list-events                                 \
   -l                                            \
