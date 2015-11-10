@@ -182,6 +182,9 @@ public:
 	*/
 	uint64_t get_fd_limit();
 
+#ifdef HAS_EARLY_FILTERING
+	void reset_file_access_count();
+#endif
 	//
 	// Core state
 	//
@@ -224,6 +227,17 @@ public:
 	//
 	uint64_t m_last_latency_entertime;
 	uint64_t m_latency;
+#endif
+
+
+#ifdef HAS_EARLY_FILTERING
+	//
+	// State for file filtering in scap (used only in main thread)
+	//
+	uint32_t m_total_write_access = 0;
+	uint32_t m_total_read_access = 0;
+	double m_old_mean_read = 0;
+	double m_old_mean_write = 0;
 #endif
 
 	//

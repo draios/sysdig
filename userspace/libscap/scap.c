@@ -286,6 +286,13 @@ scap_t* scap_open_live_int(char *error,
 		return NULL;
 	}
 
+
+#ifdef HAS_EARLY_FILTERING
+
+	//allocate state for FD and thread caches
+	allocate_cache_state(handle);
+
+#endif
 	//
 	// Now that sysdig has done all its /proc parsing, start the capture
 	//
@@ -605,14 +612,6 @@ int32_t scap_start_capture(scap_t* handle)
 			return SCAP_FAILURE;
 		}
 	}
-
-#ifdef HAS_EARLY_FILTERING
-
-	//allocate state for FD and thread caches
-	allocate_cache_state(handle);
-
-#endif
-
 
 	return SCAP_SUCCESS;
 #endif // HAS_CAPTURE

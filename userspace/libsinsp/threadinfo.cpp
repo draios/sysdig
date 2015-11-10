@@ -633,6 +633,51 @@ sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
 	return m_inspector->get_thread(m_pid, true, true);
 }
 
+#ifdef HAS_EARLY_FILTERING
+void sinsp_threadinfo::reset_file_access_count()
+{
+	if(is_main_thread())
+	{
+
+		//reset counters and compute mean access on all the FDs of the main thread
+		uint64_t fd_count = get_fd_opencount();
+		if (fd_count>0)
+		{
+			m_old_mean_read = m_total_read_access/fd_count;
+			m_old_mean_write = m_total_write_access/fd_count;
+
+			m_total_write_access = 0;
+			m_total_read_access = 0;
+
+			//reset the FD counters
+			unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
+
+			for(it = m_fdtable.m_table.begin(); it != m_fdtable.m_table.end(); ++it)
+			{
+				sinsp_fdinfo_t fd = it->second;
+				fd.m_old_read_access = fd.m_read_access;
+				fd.m_old_write_access = fd.m_write_access;
+				fd.m_read_access = 0;
+				fd.m_write_access = 0;
+
+			}
+		}
+		else
+		{
+			m_old_mean_read = 0;
+			m_old_mean_write = 0;
+
+			m_total_write_access = 0;
+			m_total_read_access = 0;
+		}
+
+
+	}
+}
+#endif
+
+
+
 //
 // Note: this is duplicated here because visual studio has trouble inlining
 //       the method.

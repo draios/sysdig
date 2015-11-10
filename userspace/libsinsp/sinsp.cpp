@@ -1166,6 +1166,15 @@ void sinsp::stop_capture()
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+
+#ifdef HAS_EARLY_FILTERING
+	//wipe thread and FD caches
+	//We are stopping capture, but we are not exiting, so caches must be there,
+	//but they may contain wrong data when the capture is started again
+	scap_wipe_caches(m_h);
+	scap_wipe_fd_caches(m_h);
+
+#endif
 }
 
 void sinsp::start_capture()
