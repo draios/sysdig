@@ -111,7 +111,7 @@ OPTIONS
   Make the given filter a display one. Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost.
   
 **-D**, **--debug**  
-  Capture events about sysdig itself
+  Capture events about sysdig itself and print additional logging on standard error.
 
 **-E**, **--exclude-users**  
   Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the **-w** flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.
@@ -131,12 +131,15 @@ OPTIONS
 
 **-h**, **--help**  
   Print this page
-  
-**-j**, **--json**         
-  Emit output as json, data buffer encoding will depend from the print format selected.
-  
+
 **-i _chiselname_**, **--chisel-info=**_chiselname_  
   Get a longer description and the arguments associated with a chisel found in the -cl option list.
+  
+**-j**, **--json**         
+  Emit output as json, data buffer encoding will depend from the print format selected.  
+
+**-k**, **--k8s-api**
+  Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
 
 **-L**, **--list-events**  
   List the events that the engine supports
@@ -154,7 +157,7 @@ OPTIONS
   Print progress on stderr while processing trace files.
   
 **-p** _outputformat_, **--print**=_outputformat_  
-  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. See the examples section below for more info. Specifying **-pp** on the command line will cause sysdig to print the default command line format and exit.
+  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. With -pk or -pkubernetes will use a kubernetes-friendly format. Specifying **-pp** on the command line will cause sysdig to print the default command line format and exit.
   
 **-q**, **--quiet**  
   Don't print events on the screen. Useful when dumping to disk.

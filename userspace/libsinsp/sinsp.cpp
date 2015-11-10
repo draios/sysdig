@@ -958,6 +958,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 #endif
 
+	// Clean parse related event data after analyzer did its parsing too
+	m_parser->event_cleanup(evt);
+
 	//
 	// Update the last event time for this thread
 	//

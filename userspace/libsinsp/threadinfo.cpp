@@ -82,7 +82,7 @@ void sinsp_threadinfo::init()
 #endif
 	m_ainfo = NULL;
 	m_program_hash = 0;
-
+	m_lastevent_data = NULL;
 
 #ifdef HAS_EARLY_FILTERING
 	m_total_write_access = 0;
@@ -90,7 +90,6 @@ void sinsp_threadinfo::init()
 	m_old_mean_read = 0;
 	m_old_mean_write = 0;
 #endif
-
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -327,6 +326,7 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	{
 		add_fd(fdi);
 	}
+	m_lastevent_data = NULL;
 }
 
 string sinsp_threadinfo::get_comm()
@@ -470,28 +470,6 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 	}
 
 	return false;
-}
-
-void sinsp_threadinfo::store_event(sinsp_evt *evt)
-{
-	uint32_t elen;
-
-	//
-	// Make sure the event data is going to fit
-	//
-	elen = scap_event_getlen(evt->m_pevt);
-
-	if(elen > SP_EVT_BUF_SIZE)
-	{
-		ASSERT(false);
-		return;
-	}
-
-	//
-	// Copy the data
-	//
-	memcpy(m_lastevent_data, evt->m_pevt, elen);
-	m_lastevent_cpuid = evt->get_cpuid();
 }
 
 bool sinsp_threadinfo::is_lastevent_data_valid()
