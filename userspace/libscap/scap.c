@@ -336,6 +336,10 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_last_evt_dump_flags = 0;
 	handle->m_driver_procinfo = NULL;
 
+#ifdef HAS_EARLY_FILTERING
+	init_filtering_engine();
+#endif
+
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
 	{
@@ -446,6 +450,14 @@ void scap_close(scap_t* handle)
 		{
 			free(handle->m_devs);
 		}
+
+#ifdef HAS_EARLY_FILTERING
+
+		//free space allocated for thread and fd cache
+		deallocate_cache_state();
+
+#endif
+
 #endif // HAS_CAPTURE
 	}
 
@@ -471,13 +483,6 @@ void scap_close(scap_t* handle)
 	{
 		scap_free_userlist(handle->m_userlist);
 	}
-
-#ifdef HAS_EARLY_FILTERING
-
-	//free space allocated for thread and fd cache
-	deallocate_cache_state();
-
-#endif
 
 	//
 	// Release the handle

@@ -376,6 +376,11 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		// Replace the fd as a struct copy
 		//
 		insert_res.first->second.copy(*fdinfo, true);
+
+#ifdef HAS_EARLY_FILTERING
+		scap_wipe_fd_caches(m_inspector->m_h);
+#endif
+
 	}
 
 	return &(insert_res.first->second);

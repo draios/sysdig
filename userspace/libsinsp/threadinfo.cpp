@@ -82,6 +82,15 @@ void sinsp_threadinfo::init()
 #endif
 	m_ainfo = NULL;
 	m_program_hash = 0;
+
+
+#ifdef HAS_EARLY_FILTERING
+	m_total_write_access = 0;
+	m_total_read_access = 0;
+	m_old_mean_read = 0;
+	m_old_mean_write = 0;
+#endif
+
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
