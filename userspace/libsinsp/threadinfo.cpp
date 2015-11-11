@@ -89,6 +89,7 @@ void sinsp_threadinfo::init()
 	m_total_read_access = 0;
 	m_old_mean_read = 0;
 	m_old_mean_write = 0;
+	m_last_enter_filtered_category = -1;
 #endif
 }
 

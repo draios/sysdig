@@ -227,6 +227,16 @@ public:
 		return get_main_thread()->get_old_mean_write();
 	}
 
+	__always_inline int32_t get_last_filtered_enter()
+	{
+		return m_last_enter_filtered_category;
+	}
+
+	__always_inline void set_last_enter_filtered(int32_t filtered)
+	{
+		m_last_enter_filtered_category = filtered;
+	}
+
 #endif
 	//
 	// Core state
@@ -341,10 +351,11 @@ VISIBILITY_PRIVATE
 	//
 	// State for file filtering in scap (used only in main thread)
 	//
-	uint32_t m_total_write_access = 0;
-	uint32_t m_total_read_access = 0;
-	double m_old_mean_read = 0;
-	double m_old_mean_write = 0;
+	uint32_t m_total_write_access;
+	uint32_t m_total_read_access;
+	double m_old_mean_read;
+	double m_old_mean_write;
+	int16_t m_last_enter_filtered_category;
 #endif
 
 	uint16_t m_lastevent_type;
