@@ -598,10 +598,9 @@ void k8s_state_s::update_pod(k8s_pod_s& pod, const Json::Value& item, bool reset
 	{
 		for(k8s_pod_s::container_id_list::iterator it = container_ids.begin(); it != container_ids.end();)
 		{
-			std::string* cid = pod.get_container_id(*it);
-			if(cid && (*cid != *it))
+			if(pod.has_container_id(*it))
 			{
-				*cid = *it;
+				// ignoring container ID notification for an existing ID
 				it = container_ids.erase(it);
 			}
 			else
