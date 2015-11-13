@@ -652,13 +652,13 @@ public:
 
 
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 	/*!
 	 \brief sets early filtering for scap
 	*/
-	inline void set_early_filtering(bool early_filtering)
+	inline void set_thread_filtering(bool thread_filtering)
 	{
-		m_early_filtering = early_filtering;
+		m_thread_filtering = thread_filtering;
 	}
 
 #endif
@@ -855,9 +855,9 @@ private:
 	uint64_t m_last_procrequest_tod;
 	sinsp_proc_metainfo m_meinfo;
 
-#ifdef HAS_EARLY_FILTERING
-	//early filtering flag
-	bool m_early_filtering;
+#ifdef HAS_THREAD_FILTERING
+	//thread filtering flag
+	bool m_thread_filtering;
 
 #endif
 

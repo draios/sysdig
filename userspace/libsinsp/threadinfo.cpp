@@ -25,7 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "protodecoder.h"
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 #include "scap_new.h"
 #endif
 
@@ -880,7 +880,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		//
 		// Wipe scap caches
 		//
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 
 		scap_wipe_caches(m_inspector->m_h);
 

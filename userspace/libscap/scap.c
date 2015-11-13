@@ -41,7 +41,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef HAS_ANALYZER
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 #include "scap_new.h"
 #else
 #include "scap_next.h"
@@ -287,7 +287,7 @@ scap_t* scap_open_live_int(char *error,
 	}
 
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 
 	//allocate state for FD and thread caches
 	allocate_cache_state(handle);
@@ -336,7 +336,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_last_evt_dump_flags = 0;
 	handle->m_driver_procinfo = NULL;
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 	init_filtering_engine();
 #endif
 
@@ -451,7 +451,7 @@ void scap_close(scap_t* handle)
 			free(handle->m_devs);
 		}
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 
 		//free space allocated for thread and fd cache
 		deallocate_cache_state();

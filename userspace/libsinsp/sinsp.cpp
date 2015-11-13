@@ -39,7 +39,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "analyzer_int.h"
 #include "analyzer.h"
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 #include "scap_new.h"
 #else
 #include "scap_next.h"
@@ -327,10 +327,10 @@ void sinsp::open(uint32_t timeout_ms)
 
 	init();
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 	set_scap_inspector(this, this->m_thread_manager->get_threads());
 
-	scap_set_early_filtering(m_early_filtering);
+	scap_set_thread_filtering(m_thread_filtering);
 #endif
 
 }
@@ -1173,13 +1173,14 @@ void sinsp::stop_capture()
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
 
-#ifdef HAS_EARLY_FILTERING
+#ifdef HAS_THREAD_FILTERING
 	//wipe thread and FD caches
 	//We are stopping capture, but we are not exiting, so caches must be there,
 	//but they may contain wrong data when the capture is started again
 	scap_wipe_caches(m_h);
+#ifdef HAS_EARLY_FILTERING
 	scap_wipe_fd_caches(m_h);
-
+#endif
 #endif
 }
 
