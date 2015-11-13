@@ -1,7 +1,7 @@
-# Prior to doing anything, we make sure that we aren't trying to 
+# Prior to doing anything, we make sure that we aren't trying to
 # run cmake in-tree. (see Issue 71: https://github.com/draios/sysdig/issues/71)
 if(EXISTS CMakeLists.txt)
-	message(FATAL_ERROR 
+	message(FATAL_ERROR
 		"Looks like you are trying to run cmake from the base sysdig source directory.\n"
 		"** RUNNING CMAKE FROM THE BASE SYSDIG DIRECTORY WILL NOT WORK **\n"
 		"To Fix:\n"
@@ -17,7 +17,7 @@ endif()
 
 cmake_minimum_required(VERSION 2.8.2)
 
-project(sysdig) 
+project(sysdig)
 
 if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1dev")
@@ -145,7 +145,7 @@ endif()
 #
 # JsonCpp
 #
-option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ON)
+option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ${USE_BUNDLED_DEPS})
 
 set(JSONCPP_SRC "${PROJECT_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp")
 
@@ -206,7 +206,7 @@ endif()
 #
 if(NOT WIN32)
 	option(USE_BUNDLED_NCURSES "Enable building of the bundled ncurses" ${USE_BUNDLED_DEPS})
-	
+
 	if(NOT USE_BUNDLED_NCURSES)
 		set(CURSES_NEED_NCURSES TRUE)
 		find_package(Curses REQUIRED)
@@ -230,7 +230,7 @@ endif()
 
 #
 # libb64
-# 
+#
 option(USE_BUNDLED_B64 "Enable building of the bundled b64" ${USE_BUNDLED_DEPS})
 
 if(NOT USE_BUNDLED_B64)
@@ -276,7 +276,7 @@ else()
 		CONFIGURE_COMMAND ./config
 		BUILD_COMMAND ${CMD_MAKE}
 		BUILD_IN_SOURCE 1
-		INSTALL_COMMAND "")	
+		INSTALL_COMMAND "")
 endif()
 
 #
@@ -307,7 +307,7 @@ else()
 		CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-ssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2
 		BUILD_COMMAND ${CMD_MAKE}
 		BUILD_IN_SOURCE 1
-		INSTALL_COMMAND "")	
+		INSTALL_COMMAND "")
 endif()
 
 add_subdirectory(userspace/sysdig)
