@@ -261,7 +261,7 @@ void k8s::parse_json(const std::string& json, const k8s_component::component_map
 	if(reader.parse(json, root, false))
 	{
 		Json::Value items = root["items"];
-		if(!root.isNull())
+		if(!items.isNull())
 		{
 			extract_data(items, component.first);
 			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);

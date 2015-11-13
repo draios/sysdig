@@ -316,29 +316,41 @@ sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
 
 sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 {
-	pair<unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res;
-
-	insert_res = m_table.emplace(fd, *fdinfo);
-
 	//
 	// Look for the FD in the table
 	//
-	if(insert_res.second == true)
+	auto it = m_table.find(fd);
+
+	// Three possible exits here:
+	// 1. fd is not on the table
+	//   a. the table size is under the limit so create a new entry
+	//   b. table size is over the limit, discard the fd
+	// 2. fd is already in the table, replace it
+	if(it == m_table.end())
 	{
-		//
-		// No entry in the table, this is the normal case
-		//
-		m_last_accessed_fd = -1;
+		if(m_table.size() < m_inspector->m_max_fdtable_size)
+		{
+			//
+			// No entry in the table, this is the normal case
+			//
+			m_last_accessed_fd = -1;
 #ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_added_fds++;
+			m_inspector->m_stats.m_n_added_fds++;
 #endif
+			pair<unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res = m_table.emplace(fd, *fdinfo);
+			return &(insert_res.first->second);
+		}
+		else
+		{
+			return nullptr;
+		}
 	}
 	else
 	{
 		//
 		// the fd is already in the table.
 		//
-		if(insert_res.first->second.m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS)
+		if(it->second.m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS)
 		{
 			//
 			// Sometimes an FD-creating syscall can be called on an FD that is being closed (i.e
@@ -349,7 +361,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 			fdinfo->m_flags &= ~sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS;
 			fdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED;
 			
-			m_table[CANCELED_FD_NUMBER] = insert_res.first->second;
+			m_table[CANCELED_FD_NUMBER] = it->second;
 		}
 		else
 		{
@@ -369,15 +381,15 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// Replace the fd as a struct copy
 		//
-		insert_res.first->second.copy(*fdinfo, true);
+		it->second.copy(*fdinfo, true);
 
 #ifdef HAS_EARLY_FILTERING
 		scap_wipe_fd_caches(m_inspector->m_h);
 #endif
 
-	}
+		return &(it->second);
 
-	return &(insert_res.first->second);
+	}
 }
 
 void sinsp_fdtable::erase(int64_t fd)

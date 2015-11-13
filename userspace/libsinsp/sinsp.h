@@ -799,6 +799,7 @@ private:
 	// Some thread table limits
 	//
 	uint32_t m_max_thread_table_size;
+	uint32_t m_max_fdtable_size;
 	uint64_t m_thread_timeout_ns;
 	uint64_t m_inactive_thread_scan_time_ns;
 
