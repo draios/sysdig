@@ -38,6 +38,13 @@ script:
     - make
     - sudo make install
     - cd ..
+    - wget https://github.com/open-source-parsers/jsoncpp/archive/0.10.5.tar.gz
+    - tar zxvf 0.10.5.tar.gz
+    - cd jsoncpp-0.10.5
+    - cmake -DBUILD_SHARED_LIBS=ON .
+    - make
+    - sudo make install
+    - cd ..
     - wget https://s3.amazonaws.com/download.draios.com/dependencies/libb64-1.2.src.zip
     - unzip libb64-1.2.src.zip
     - cd libb64-1.2
@@ -45,6 +52,7 @@ script:
     - sudo cp -r include/* /usr/local/include/
     - sudo cp src/libb64.a /usr/local/lib/
     - popd
+    - rm -rf userspace/libsinsp/third-party/jsoncpp
     - sudo apt-get install libncurses5-dev libluajit-5.1-dev libcurl4-openssl-dev libssl-dev
     - mkdir build
     - cd build
