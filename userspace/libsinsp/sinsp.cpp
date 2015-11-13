@@ -65,6 +65,7 @@ sinsp::sinsp() :
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
+	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -107,7 +108,7 @@ sinsp::sinsp() :
 	m_print_container_data = false;
 
 #if defined(HAS_CAPTURE)
-	m_sysdig_pid = 0;
+	m_sysdig_pid = getpid();
 #endif
 
 	uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
@@ -1021,46 +1022,44 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 {
 	sinsp_threadinfo* sinsp_proc = find_thread(tid, lookup_only);
 
-	if(sinsp_proc == NULL && query_os_if_not_found)
+	if(sinsp_proc == NULL && query_os_if_not_found &&
+	   (m_thread_manager->m_threadtable.size() < m_max_thread_table_size || tid == m_sysdig_pid))
 	{
 		scap_threadinfo* scap_proc = NULL;
 		sinsp_threadinfo newti(this);
 
-		if(m_thread_manager->m_threadtable.size() < m_max_thread_table_size)
+		m_n_proc_lookups++;
+
+		if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
 		{
-			m_n_proc_lookups++;
+			g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64,
+				tid, m_n_proc_lookups_duration_ns / 1000000);
+		}
 
-			if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
+		if(m_n_proc_lookups == m_max_n_proc_lookups)
+		{
+			g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64,
+				m_n_proc_lookups_duration_ns / 1000000);
+		}
+
+		if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
+			(m_n_proc_lookups <= m_max_n_proc_lookups)))
+		{
+			bool scan_sockets = false;
+
+			if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
+				(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
 			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64, 
-					tid, m_n_proc_lookups_duration_ns / 1000000);
+				scan_sockets = true;
 			}
-
-			if(m_n_proc_lookups == m_max_n_proc_lookups)
-			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64, 
-					m_n_proc_lookups_duration_ns / 1000000);
-			}
-
-			if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
-				(m_n_proc_lookups <= m_max_n_proc_lookups)))
-			{
-				bool scan_sockets = false;
-
-				if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
-					(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
-				{
-					scan_sockets = true;
-				}
 
 #ifdef HAS_ANALYZER
-				uint64_t ts = sinsp_utils::get_current_time_ns();
+			uint64_t ts = sinsp_utils::get_current_time_ns();
 #endif
-				scap_proc = scap_proc_get(m_h, tid, scan_sockets);
+			scap_proc = scap_proc_get(m_h, tid, scan_sockets);
 #ifdef HAS_ANALYZER
-				m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
+			m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
 #endif
-			}
 		}
 
 		if(scap_proc)
