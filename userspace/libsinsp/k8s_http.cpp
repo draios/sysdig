@@ -13,7 +13,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include <sys/epoll.h>
 #include <unistd.h>
 
 k8s_http::k8s_http(k8s& k8s,
