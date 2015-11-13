@@ -152,7 +152,7 @@ void k8s_net::get_all_data(const k8s_component::component_map::value_type& compo
 		std::string err;
 		std::ostringstream* ostr = dynamic_cast<std::ostringstream*>(&out);
 		if(ostr) { err = ostr->str(); }
-		throw sinsp_exception(std::string("An error occured while trying to retrieve data for k8s ")
+		throw sinsp_exception(std::string("An error occurred while trying to retrieve data for k8s ")
 			.append(component.second).append(": ").append(err));
 	}
 }
