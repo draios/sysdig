@@ -128,8 +128,12 @@ sinsp::sinsp() :
 	m_meinfo.m_pievt.m_fdinfo = NULL;
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
+	m_meta_event_callback_data = NULL;
 	m_k8s_client = NULL;
 	m_k8s_last_watch_time_ns = 0;
+
+	m_k8s_client = NULL;
+	m_k8s_api_server = NULL;
 }
 
 sinsp::~sinsp()
@@ -170,11 +174,8 @@ sinsp::~sinsp()
 		delete[] m_meinfo.m_piscapevt;
 	}
 
-	if(m_k8s_client)
-	{
-		delete m_k8s_client;
-		m_k8s_client = NULL;
-	}
+	delete m_k8s_client;
+	delete m_k8s_api_server;
 }
 
 void sinsp::add_protodecoders()
@@ -592,6 +593,17 @@ void sinsp::add_meta_event_and_repeat(sinsp_evt *metaevt)
 	m_skipped_evt = &m_evt;
 }
 
+void sinsp::add_meta_event_callback(meta_event_callback cback, void* data)
+{
+	m_meta_event_callback = cback;
+	m_meta_event_callback_data = data;
+}
+
+void sinsp::remove_meta_event_callback()
+{
+	m_meta_event_callback = NULL;
+}
+
 void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 {
 	sinsp_proc_metainfo* mei = (sinsp_proc_metainfo*)data;
@@ -654,7 +666,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 		if(m_meta_event_callback != NULL)
 		{
-			m_meta_event_callback(this, &m_meinfo);
+			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
 	}
 	else
@@ -751,7 +763,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 						m_meinfo.m_piscapevt->ts = m_next_flush_time_ns - (ONE_SECOND_IN_NS + 1);
 						m_meinfo.m_next_evt = &m_evt;
-						m_meta_event_callback = &schedule_next_threadinfo_evt;
+						add_meta_event_callback(&schedule_next_threadinfo_evt, &m_meinfo);
 						schedule_next_threadinfo_evt(this, &m_meinfo);
 					}
 
@@ -1431,14 +1443,15 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
-void sinsp::init_k8s_client(const string& api_server)
+void sinsp::init_k8s_client(string* api_server)
 {
+	ASSERT(api_server);
 	m_k8s_api_server = api_server;
 
 	if(m_k8s_client == NULL)
 	{
-		g_logger.log("Fetching initial k8s state");
-		m_k8s_client = new k8s(api_server, true);
+		g_logger.log("Fetching initial k8s state", sinsp_logger::SEV_INFO);
+		m_k8s_client = new k8s(*m_k8s_api_server, m_k8s_api_server->empty() ? false : true);
 	}
 }
 
@@ -1452,8 +1465,9 @@ void sinsp::update_kubernetes_state()
 		if(m_k8s_client->is_alive())
 		{
 			uint64_t delta = sinsp_utils::get_current_time_ns();
-			
+
 			m_k8s_client->watch();
+			this->m_parser->schedule_k8s_events(&m_meta_evt);
 
 			delta = sinsp_utils::get_current_time_ns() - delta;
 

@@ -49,12 +49,23 @@ bool should_drop(sinsp_evt *evt);
 #endif
 
 extern sinsp_protodecoder_list g_decoderlist;
+extern sinsp_evttables g_infotables;
 
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
 	m_fd_listener(NULL)
 {
+	m_k8s_metaevents_state.m_piscapevt = (scap_evt*)new char[SP_EVT_BUF_SIZE];
+	m_k8s_metaevents_state.m_piscapevt->type = PPME_K8S_E;
+
+	m_k8s_metaevents_state.m_metaevt.m_inspector = m_inspector;
+	m_k8s_metaevents_state.m_metaevt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	m_k8s_metaevents_state.m_metaevt.m_pevt = NULL;
+	m_k8s_metaevents_state.m_metaevt.m_cpuid = 0;
+	m_k8s_metaevents_state.m_metaevt.m_evtnum = 0;
+	m_k8s_metaevents_state.m_metaevt.m_pevt = m_k8s_metaevents_state.m_piscapevt;
+	m_k8s_metaevents_state.m_metaevt.m_fdinfo = NULL;
 }
 
 sinsp_parser::~sinsp_parser()
@@ -308,6 +319,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
+		break;
+	case PPME_K8S_E:
+		parse_k8s_evt(evt);
 		break;
 	default:
 		break;
@@ -1469,6 +1483,70 @@ void sinsp_parser::parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, O
 	}
 }
 
+void schedule_more_k8s_evts(sinsp* inspector, void* data)
+{
+	ASSERT(data);
+	k8s_metaevents_state* state = (k8s_metaevents_state*)data;
+
+	if(state->m_new_group == true)
+	{
+		state->m_new_group = false;
+		inspector->add_meta_event(&state->m_metaevt);
+		return;
+	}
+
+	k8s* k8s_client = inspector->get_k8s_client();
+	ASSERT(k8s_client);
+	if(!k8s_client->get_capture_events().size())
+	{
+		g_logger.log("K8S event scheduled but no events available."
+					"All pending K8S event request are cancelled.", sinsp_logger::SEV_ERROR);
+		state->m_new_group = false;
+		state->m_n_additional_k8s_events_to_add = 0;
+		inspector->remove_meta_event_callback();
+		return;
+	}
+	string payload = std::move(k8s_client->dequeue_capture_event());
+	state->m_piscapevt->len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
+	ASSERT(state->m_piscapevt->len <= SP_EVT_BUF_SIZE);
+	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
+	*plen = (uint16_t)payload.size();
+	uint8_t* edata = (uint8_t*)(plen + 1);
+	memcpy(edata, payload.c_str(), payload.size() + 1);
+
+	state->m_n_additional_k8s_events_to_add--;
+	if(state->m_n_additional_k8s_events_to_add == 0)
+	{
+		inspector->remove_meta_event_callback();
+	}
+	else
+	{
+		inspector->add_meta_event(&state->m_metaevt);
+	}
+}
+
+void sinsp_parser::schedule_k8s_events(sinsp_evt *evt)
+{
+	//
+	// schedule k8s events, if any available
+	//
+	k8s* k8s_client = 0;
+	if(m_inspector && (k8s_client = m_inspector->m_k8s_client))
+	{
+		int event_count = k8s_client->get_capture_events().size();
+		if(event_count)
+		{
+			m_k8s_metaevents_state.m_piscapevt->tid = evt->get_tid();
+			m_k8s_metaevents_state.m_piscapevt->ts = m_inspector->m_lastevent_ts;
+			m_k8s_metaevents_state.m_new_group = true;
+			m_k8s_metaevents_state.m_n_additional_k8s_events_to_add = event_count;
+			m_inspector->add_meta_event_callback(&schedule_more_k8s_evts, &m_k8s_metaevents_state);
+
+			schedule_more_k8s_evts(m_inspector, &m_k8s_metaevents_state);
+		}
+	}
+}
+
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
@@ -1476,7 +1554,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	char *name;
 	uint32_t namelen;
 	uint32_t flags;
-	//  uint32_t mode;
 	sinsp_fdinfo_t fdi;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	string sdir;
@@ -3478,6 +3555,18 @@ uint8_t* sinsp_parser::reserve_event_buffer()
 		m_tmp_events_buffer.pop();
 		return ptr;
 	}
+}
+
+void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo = evt->get_param(0);
+	ASSERT(parinfo);
+	ASSERT(parinfo->m_len > 0);
+	std::string json(parinfo->m_val, parinfo->m_len);
+	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	ASSERT(m_inspector);
+	ASSERT(m_inspector->m_k8s_client);
+	m_inspector->m_k8s_client->simulate_watch_event(json);
 }
 
 void sinsp_parser::free_event_buffer(uint8_t *ptr)

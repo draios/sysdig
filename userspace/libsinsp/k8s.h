@@ -40,8 +40,15 @@ public:
 
 	bool is_alive() const;
 
+#ifdef HAS_CAPTURE
+	typedef k8s_state_s::event_list_t event_list_t;
+	const event_list_t& get_capture_events() const { return m_state.get_capture_events(); }
+	std::string dequeue_capture_event() { return m_state.dequeue_capture_event(); }
+	void simulate_watch_event(const std::string& json);
+#endif // HAS_CAPTURE
+
 private:
-	void extract_data(const Json::Value& items, k8s_component::type component);
+	void extract_data(Json::Value& items, k8s_component::type component, const std::string& api_version);
 
 	void build_state();
 
@@ -49,7 +56,7 @@ private:
 
 	void stop_watch();
 
-	void clean_dispatch();
+	void cleanup();
 
 	// due to deleted default dispatcher constructor, g++ has trouble instantiating map with values,
 	// so we have to go with the forward declaration above and pointers here ...
@@ -64,11 +71,10 @@ private:
 	K8S_DECLARE_MUTEX;
 	bool         m_watch;
 	bool         m_watch_in_thread;
-	bool         m_own_proto;
 	k8s_state_s  m_state;
 	dispatch_map m_dispatch;
-	k8s_net      m_net;
-	
+	k8s_net*     m_net;
+
 	static const k8s_component::component_map m_components;
 	friend class k8s_test;
 };
@@ -80,6 +86,7 @@ inline bool k8s::watch_in_thread() const
 
 inline bool k8s::is_alive() const
 {
-	return m_net.is_healthy() && m_net.is_watching();
+	ASSERT(m_net);
+	return m_net->is_healthy() && m_net->is_watching();
 }
 
