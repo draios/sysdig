@@ -2236,12 +2236,43 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 	endwin();
 
 	//
+	// If needed, ask for confirmation
+	//
+	if(action->m_ask_confirmation)
+	{
+		printf("Confirm command '%s'? [y/N] ", resolved_command.c_str());
+		fflush(stdout);
+
+		//
+		// Wait for the enter key
+		// 
+		while(int c = getch())
+		{
+			if(c == -1)
+			{
+				usleep(10000);
+				continue;
+			}
+			else if(c == 'y' || c == 'Y')
+			{
+				break;
+			}
+			else
+			{
+				goto action_end;
+			}
+		}
+	}
+
+	//
 	// Run the command
 	//
-	int sret = system(resolved_command.c_str());
-	if(sret == -1)
 	{
-		g_logger.format("command failed");
+		int sret = system(resolved_command.c_str());
+		if(sret == -1)
+		{
+			g_logger.format("command failed");
+		}
 	}
 
 	//
@@ -2261,6 +2292,7 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 		}
 	}
 
+action_end:
 	//
 	// Empty the keyboard buffer
 	//
