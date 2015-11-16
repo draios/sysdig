@@ -270,7 +270,6 @@ else()
 	set(OPENSSL_LIBRARY_CRYPTO "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a")
 
 	message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
-	message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
 
 	ExternalProject_Add(openssl
 		URL "http://download.draios.com/dependencies/openssl-1.0.2d.tar.gz"
