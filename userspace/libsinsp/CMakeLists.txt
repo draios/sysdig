@@ -52,6 +52,8 @@ target_link_libraries(sinsp
 	"${JSONCPP_LIB}"
 	"${B64_LIB}"
 	"${CURL_LIBRARIES}"
+	"${OPENSSL_LIBRARY_SSL}"
+	"${OPENSSL_LIBRARY_CRYPTO}"
 	pthread)
 
 if(NOT WIN32)

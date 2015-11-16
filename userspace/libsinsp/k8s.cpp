@@ -392,7 +392,7 @@ void k8s::parse_json(const std::string& json, const k8s_component::component_map
 	if(reader.parse(json, root, false))
 	{
 		Json::Value items = root["items"];
-		if(!root.isNull())
+		if(!items.isNull())
 		{
 			Json::Value api_version = root["apiVersion"];
 			std::string api_ver = api_version.isNull() ? std::string() : api_version.asString();

@@ -14,7 +14,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include <sys/epoll.h>
 #include <unistd.h>
 
 k8s_http::k8s_http(k8s& k8s,
@@ -49,7 +48,7 @@ k8s_http::k8s_http(k8s& k8s,
 	url << m_protocol << "://";
 	if(!m_credentials.empty())
 	{
-		url << m_credentials << '@';	
+		url << m_credentials << '@';
 	}
 	url << m_host_and_port;
 	url << m_api << '/' << m_component << std::flush;
@@ -95,7 +94,7 @@ bool k8s_http::get_all_data(std::ostream& os)
 	
 	if(m_protocol == "https")
 	{
-		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0);
+		check_error(curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0));
 	}
 
 	curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
@@ -154,6 +153,7 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L));
 
 		check_error(curl_easy_perform(m_curl));
+
 		check_error(curl_easy_getinfo(m_curl, CURLINFO_LASTSOCKET, &sockextr));
 		m_watch_socket = sockextr;
 
@@ -164,7 +164,7 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		}
 
 		std::ostringstream request;
-		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\n\r\nConnection: Keep-Alive";
+		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\nConnection: Keep-Alive\r\n";
 		if(!m_credentials.empty())
 		{
 			std::istringstream is(m_credentials);

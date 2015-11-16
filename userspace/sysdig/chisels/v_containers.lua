@@ -145,7 +145,8 @@ view_info =
 		{
 			hotkey = "k",
 			command = "docker kill %container.id",
-			description = "docker kill"
+			description = "docker kill",
+			ask_confirmation = true
 		},
 		{
 			hotkey = "l",
