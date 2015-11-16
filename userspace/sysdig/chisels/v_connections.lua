@@ -132,7 +132,7 @@ view_info =
 			description = "nslookup remote IP",
 		},
 		{
-			hotkey = "p",
+			hotkey = "P",
 			command = "ping %fd.rip",
 			description = "ping remote IP",
 			wait_finish = false
