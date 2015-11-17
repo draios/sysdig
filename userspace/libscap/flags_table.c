@@ -400,3 +400,9 @@ const struct ppm_name_value semctl_commands[] = {
         {"SETVAL", PPM_SETVAL},
 		{0, 0},
 };
+
+const struct ppm_name_value semget_flags[] = {
+	{"IPC_CREAT", PPM_IPC_CREAT},
+	{"IPC_EXCL", PPM_IPC_EXCL},
+	{0, 0},
+};
