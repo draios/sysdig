@@ -641,6 +641,27 @@ public:
 	{
 		return m_input_filename;
 	}
+	
+	/*!
+	 \brief returns the scap handle
+	*/
+	inline scap_t* get_scap_handle()
+	{
+		return m_h;
+	}
+
+
+
+#ifdef HAS_THREAD_FILTERING
+	/*!
+	 \brief sets early filtering for scap
+	*/
+	inline void set_thread_filtering(bool thread_filtering)
+	{
+		m_thread_filtering = thread_filtering;
+	}
+
+#endif
 
 	/*!
 	  \brief When reading events from a trace file, this function returns the
@@ -834,6 +855,13 @@ private:
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
 	sinsp_proc_metainfo m_meinfo;
+
+#ifdef HAS_THREAD_FILTERING
+	//thread filtering flag
+	bool m_thread_filtering;
+
+#endif
+
 
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;

@@ -143,6 +143,15 @@ public:
 		{
 			m_usrstate = NULL;
 		}
+
+#ifdef HAS_EARLY_FILTERING
+		m_system_file = other.m_system_file;
+		m_read_access = other.m_read_access;
+		m_write_access = other.m_write_access;
+		m_old_read_access = other.m_old_read_access;
+		m_old_write_access = other.m_old_write_access;
+#endif
+
 	}
 
 	/*!
@@ -298,6 +307,15 @@ public:
 	{
 		return (m_callbaks != NULL);
 	}
+
+
+#ifdef HAS_EARLY_FILTERING
+	bool m_system_file = false;
+	uint32_t m_read_access = 0;
+	uint32_t m_write_access = 0;
+	uint32_t m_old_read_access = 0;
+	uint32_t m_old_write_access = 0;
+#endif
 
 VISIBILITY_PRIVATE
 
