@@ -44,8 +44,9 @@ public:
 	typedef k8s_state_s::event_list_t event_list_t;
 	const event_list_t& get_capture_events() const { return m_state.get_capture_events(); }
 	std::string dequeue_capture_event() { return m_state.dequeue_capture_event(); }
-	void simulate_watch_event(const std::string& json);
 #endif // HAS_CAPTURE
+
+	void simulate_watch_event(const std::string& json);
 
 private:
 	void extract_data(Json::Value& items, k8s_component::type component, const std::string& api_version);
@@ -73,7 +74,9 @@ private:
 	bool         m_watch_in_thread;
 	k8s_state_s  m_state;
 	dispatch_map m_dispatch;
+#ifdef HAS_CAPTURE
 	k8s_net*     m_net;
+#endif
 
 	static const k8s_component::component_map m_components;
 	friend class k8s_test;
@@ -86,7 +89,10 @@ inline bool k8s::watch_in_thread() const
 
 inline bool k8s::is_alive() const
 {
+#ifdef HAS_CAPTURE
 	ASSERT(m_net);
 	return m_net->is_healthy() && m_net->is_watching();
+#endif
+	return true;
 }
 

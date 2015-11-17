@@ -1485,6 +1485,7 @@ void sinsp_parser::parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, O
 
 void schedule_more_k8s_evts(sinsp* inspector, void* data)
 {
+#ifdef HAS_CAPTURE
 	ASSERT(data);
 	k8s_metaevents_state* state = (k8s_metaevents_state*)data;
 
@@ -1523,10 +1524,12 @@ void schedule_more_k8s_evts(sinsp* inspector, void* data)
 	{
 		inspector->add_meta_event(&state->m_metaevt);
 	}
+#endif // HAS_CAPTURE
 }
 
 void sinsp_parser::schedule_k8s_events(sinsp_evt *evt)
 {
+#ifdef HAS_CAPTURE
 	//
 	// schedule k8s events, if any available
 	//
@@ -1545,6 +1548,7 @@ void sinsp_parser::schedule_k8s_events(sinsp_evt *evt)
 			schedule_more_k8s_evts(m_inspector, &m_k8s_metaevents_state);
 		}
 	}
+#endif // HAS_CAPTURE
 }
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
@@ -3568,7 +3572,7 @@ void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	g_logger.log(json, sinsp_logger::SEV_DEBUG);
 	ASSERT(m_inspector);
 	ASSERT(m_inspector->m_k8s_client);
 	m_inspector->m_k8s_client->simulate_watch_event(json);

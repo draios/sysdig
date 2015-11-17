@@ -1,7 +1,7 @@
 include_directories("${JSONCPP_INCLUDE}")
-include_directories("${CURL_INCLUDE_DIR}")
 
 if(NOT WIN32)
+	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
 endif()
 

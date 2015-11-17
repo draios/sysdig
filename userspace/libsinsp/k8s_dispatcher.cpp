@@ -555,10 +555,12 @@ void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 			{
 				K8S_LOCK_GUARD_MUTEX;
 				m_state.update_cache(m_type);
+#ifdef HAS_CAPTURE
 				if(enqueue)
 				{
 					m_state.enqueue_capture_event(root);
 				}
+#endif
 			}
 		}
 	}

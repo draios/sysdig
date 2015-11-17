@@ -54,9 +54,11 @@ k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, const s
 	#ifndef K8S_DISABLE_THREAD
 		m_dispatch(std::move(make_dispatch_map(m_state, m_mutex))),
 	#else
-		m_dispatch(std::move(make_dispatch_map(m_state))),
+		m_dispatch(std::move(make_dispatch_map(m_state)))
 	#endif
-		m_net(uri.empty() ? 0 : new k8s_net(*this, uri, api))
+#ifdef HAS_CAPTURE
+		,m_net(uri.empty() ? 0 : new k8s_net(*this, uri, api))
+#endif
 {
 	if (!uri.empty())
 	{
@@ -91,11 +93,13 @@ k8s::~k8s()
 
 void k8s::stop_watch()
 {
+#ifdef HAS_CAPTURE
 	if(m_watch)
 	{
 		ASSERT(m_net);
 		m_net->stop_watching();
 	}
+#endif
 }
 
 void k8s::cleanup()
@@ -104,11 +108,14 @@ void k8s::cleanup()
 	{
 		delete update.second;
 	}
+#ifdef HAS_CAPTURE
 	delete m_net;
+#endif
 }
 
 void k8s::build_state()
 {
+#ifdef HAS_CAPTURE
 	std::ostringstream os;
 	for (auto& component : m_components)
 	{
@@ -121,6 +128,7 @@ void k8s::build_state()
 		parse_json(os.str(), component);
 		os.str("");
 	}
+#endif
 }
 
 const k8s_state_s& k8s::get_state(bool rebuild)
@@ -142,28 +150,30 @@ const k8s_state_s& k8s::get_state(bool rebuild)
 
 void k8s::watch()
 {
+#ifdef HAS_CAPTURE
 	ASSERT(m_net);
 	if((m_watch && !m_net->is_watching()) || !m_watch_in_thread)
 	{
 		m_net->watch();
 	}
+#endif
 }
 
 void k8s::stop_watching()
 {
+#ifdef HAS_CAPTURE
 	ASSERT(m_net);
 	if(m_net->is_watching())
 	{
 		m_net->stop_watching();
 	}
+#endif
 }
 
 void k8s::on_watch_data(k8s_event_data&& msg)
 {
 	m_dispatch[msg.component()]->enqueue(std::move(msg));
 }
-
-#ifdef HAS_CAPTURE
 
 void k8s::simulate_watch_event(const std::string& json)
 {
@@ -202,8 +212,6 @@ void k8s::simulate_watch_event(const std::string& json)
 	ASSERT(component_type < k8s_component::K8S_COMPONENT_COUNT);
 	m_dispatch[component_type]->extract_data(json, false);
 }
-
-#endif // HAS_CAPTURE
 
 std::size_t k8s::count(k8s_component::type component) const
 {

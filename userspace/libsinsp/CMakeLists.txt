@@ -3,10 +3,10 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
-include_directories("${B64_INCLUDE}")
-include_directories("${CURL_INCLUDE_DIR}")
 
 if(NOT WIN32)
+	include_directories("${B64_INCLUDE}")
+	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
 endif()
 
@@ -53,8 +53,7 @@ target_link_libraries(sinsp
 	"${B64_LIB}"
 	"${CURL_LIBRARIES}"
 	"${OPENSSL_LIBRARY_SSL}"
-	"${OPENSSL_LIBRARY_CRYPTO}"
-	pthread)
+	"${OPENSSL_LIBRARY_CRYPTO}")
 
 if(NOT WIN32)
 	if(USE_BUNDLED_LUAJIT)
@@ -63,7 +62,8 @@ if(NOT WIN32)
 
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
-		dl)
+		dl
+		pthread)
 else()
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}")
