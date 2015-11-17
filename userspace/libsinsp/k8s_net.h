@@ -5,6 +5,8 @@
 //
 #pragma once
 
+#ifdef HAS_CAPTURE
+
 #include "k8s_component.h"
 #include "k8s_event_data.h"
 #include "k8s_http.h"
@@ -84,4 +86,5 @@ inline bool k8s_net::is_healthy() const
 		static_cast<int>(m_api_interfaces.size());
 }
 
+#endif // HAS_CAPTURE
 

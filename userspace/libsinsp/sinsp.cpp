@@ -1035,7 +1035,11 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 	sinsp_threadinfo* sinsp_proc = find_thread(tid, lookup_only);
 
 	if(sinsp_proc == NULL && query_os_if_not_found &&
-	   (m_thread_manager->m_threadtable.size() < m_max_thread_table_size || tid == m_sysdig_pid))
+	   (m_thread_manager->m_threadtable.size() < m_max_thread_table_size
+#if defined(HAS_CAPTURE)
+		   || tid == m_sysdig_pid
+#endif
+		))
 	{
 		scap_threadinfo* scap_proc = NULL;
 		sinsp_threadinfo newti(this);

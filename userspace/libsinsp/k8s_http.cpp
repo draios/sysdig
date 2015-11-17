@@ -2,6 +2,8 @@
 // k8s_http.cpp
 //
 
+#ifdef HAS_CAPTURE
+
 #include "k8s_http.h"
 #include "curl/curl.h"
 #include "curl/easy.h"
@@ -263,3 +265,4 @@ void k8s_http::check_error(CURLcode res)
 	}
 }
 
+#endif // HAS_CAPTURE

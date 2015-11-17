@@ -42,7 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #ifdef _WIN32
-#pragma warning(disable: 4251 4200)
+#pragma warning(disable: 4251 4200 4221)
 #endif
 
 #ifdef _WIN32
@@ -871,6 +871,12 @@ private:
 // Macros for enable/disable k8s threading
 // Used to eliminate mutex locking when running single-threaded
 //
+
+#ifndef HAS_CAPTURE
+#ifndef K8S_DISABLE_THREAD
+#define K8S_DISABLE_THREAD
+#endif
+#endif
 
 #ifndef K8S_DISABLE_THREAD
 #include <mutex>
