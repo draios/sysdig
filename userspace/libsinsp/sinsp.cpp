@@ -319,8 +319,10 @@ void sinsp::open(uint32_t timeout_ms)
 	init();
 }
 
-int64_t sinsp::get_file_size(const std::string& fname)
+int64_t sinsp::get_file_size(const std::string& fname, char *error)
 {
+	static string err_str = "Could not determine capture file size: ";
+	std::string errdesc;
 #ifdef _WIN32
 	LARGE_INTEGER li = { 0 };
 	HANDLE fh = CreateFile(fname.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
@@ -332,6 +334,7 @@ int64_t sinsp::get_file_size(const std::string& fname)
 			CloseHandle(fh);
 			return li.QuadPart;
 		}
+		errdesc = get_error_desc(err_str);
 		CloseHandle(fh);
 	}
 #else
@@ -341,6 +344,8 @@ int64_t sinsp::get_file_size(const std::string& fname)
 		return st.st_size;
 	}
 #endif
+	if(errdesc.empty()) errdesc = get_error_desc(err_str);
+	strncpy(error, errdesc.c_str(), errdesc.size() > SCAP_LASTERR_SIZE ? SCAP_LASTERR_SIZE : errdesc.size());
 	return -1;
 }
 
@@ -360,7 +365,7 @@ std::string sinsp::get_error_desc(const std::string& msg)
 #else
 	char* msg_buf = strerror(errno); // first, so error is not wiped out by intermediate calls
 	std::string errstr = msg;
-	if(es)
+	if(msg_buf)
 	{
 		errstr.append(msg_buf, strlen(msg_buf));
 	}
@@ -370,7 +375,7 @@ std::string sinsp::get_error_desc(const std::string& msg)
 
 void sinsp::open(string filename)
 {
-	char error[SCAP_LASTERR_SIZE];
+	char error[SCAP_LASTERR_SIZE] = {0};
 
 	m_islive = false;
 
@@ -405,12 +410,11 @@ void sinsp::open(string filename)
 		throw sinsp_exception(error);
 	}
 
-	static string fs_err_desc = "Could not determine capture file size: ";
-	m_filesize = get_file_size(filename);
+	m_filesize = get_file_size(filename, error);
 
-	if (m_filesize < 0)
+	if(m_filesize < 0)
 	{
-		throw sinsp_exception(get_error_desc(fs_err_desc));
+		throw sinsp_exception(error);
 	}
 
 	init();
