@@ -4,7 +4,7 @@ include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT APPLE)
 	include_directories("${B64_INCLUDE}")
 	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
@@ -49,16 +49,19 @@ add_library(sinsp STATIC
 
 target_link_libraries(sinsp 
 	scap
-	"${JSONCPP_LIB}"
-	"${B64_LIB}"
-	"${CURL_LIBRARIES}"
-	"${OPENSSL_LIBRARY_SSL}"
-	"${OPENSSL_LIBRARY_CRYPTO}")
+	"${JSONCPP_LIB}")
 
 if(NOT WIN32)
 	if(USE_BUNDLED_LUAJIT)
 		add_dependencies(sinsp luajit)
 	endif()
+
+    if(NOT WIN32 AND NOT APPLE)
+        target_link_libraries("${B64_LIB}"
+            "${CURL_LIBRARIES}"
+            "${OPENSSL_LIBRARY_SSL}"
+            "${OPENSSL_LIBRARY_CRYPTO}")
+    endif()
 
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"

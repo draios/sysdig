@@ -228,7 +228,7 @@ if(NOT WIN32)
 	endif()
 endif()
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT APPLE)
 	#
 	# libb64
 	#
@@ -312,7 +312,7 @@ if(NOT WIN32)
 			BUILD_IN_SOURCE 1
 			INSTALL_COMMAND "")
 	endif()
-endif() # NOT WIN32
+endif() # NOT WIN32 AND NOT APPLE
 
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
