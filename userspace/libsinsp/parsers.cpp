@@ -321,7 +321,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_cpu_hotplug_enter(evt);
 		break;
 	case PPME_K8S_E:
-		parse_k8s_evt(evt);
+		if(!m_inspector->is_live())
+		{
+			parse_k8s_evt(evt);
+		}
 		break;
 	default:
 		break;

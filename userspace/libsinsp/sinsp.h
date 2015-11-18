@@ -542,7 +542,7 @@ public:
 	*/
 	inline bool is_live()
 	{
-		return m_islive;		
+		return m_islive;
 	}
 
 	/*!
