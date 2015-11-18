@@ -91,7 +91,8 @@ static void usage()
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
-" -D, --debug        Capture events about sysdig itself\n"
+" -D, --debug        Capture events about sysdig itself and print additional\n"
+"                    logging on standard error.\n"
 " -E, --exclude-users\n"
 "                    Don't create the user/group tables by querying the OS when\n"
 "                    sysdig starts. This also means that no user or group info\n"
@@ -146,6 +147,7 @@ static void usage()
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
 "                    With -pc or -pcontainer will use a container-friendly format.\n"
+"                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
@@ -194,7 +196,7 @@ static void usage()
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
 " line with the following format:\n\n"
-" %%evt.num %%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.info\n\n"
+" %%evt.num %%evt.outputtime %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.info\n\n"
 "where:\n"
 " evt.num is the incremental event number\n"
 " evt.time is the event timestamp\n"
@@ -208,7 +210,9 @@ static void usage()
 "The output format can be customized with the -p switch, using any of the\n"
 "fields listed by 'sysdig -l'.\n\n"
 "Using -pc or -pcontainer, the default format will be changed to a container-friendly one:\n\n"
-"%%evt.num %%evt.time %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
+"%%evt.num %%evt.outputtime %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
+"Using -pk or -pkubernetes, the default format will be changed to a kubernetes-friendly one:\n\n"
+"%%evt.num %%evt.outputtime %%evt.cpu %%k8s.pod.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Examples:\n\n"
 " Capture all the events from the live system and print them to screen\n"
 "   $ sysdig\n\n"
@@ -815,6 +819,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			case 'D':
 				inspector->set_debug_mode(true);
+				inspector->set_log_stderr();
 				break;
 			case 'E':
 				inspector->set_import_users(false);
@@ -925,6 +930,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else if(string(optarg) == "c" || string(optarg) == "container")
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+
+					//
+					// This enables chisels to determine if they should print container information
+					//
+					if(inspector != NULL)
+					{
+						inspector->set_print_container_data(true);
+					}
+				}
+				else if(string(optarg) == "k" || string(optarg) == "kubernetes")
+				{
+					output_format = "*%evt.num %evt.outputtime %evt.cpu %k8s.pod.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
 					//
 					// This enables chisels to determine if they should print container information

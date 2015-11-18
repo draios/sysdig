@@ -326,6 +326,7 @@ void curses_table::render(bool data_changed)
 		// Render the column headers
 		//
 		wmove(m_tblwin, 0, 0);
+
 		for(j = 0; j < m_w; j++)
 		{
 			if(m_type == sinsp_table::TT_TABLE)
@@ -780,7 +781,7 @@ void curses_table::recreate_win(int h)
 		m_h = h;
 	}
 	
-	m_tblwin = newwin(m_h, 500, m_table_y_start, m_table_x_start);
+	m_tblwin = newwin(m_h, m_w, m_table_y_start, m_table_x_start);
 	render(true);
 }
 

@@ -140,6 +140,9 @@ COMMAND LINE OPTIONS
 **-h**, **--help**  
   Print this page
 
+**-k**, **--k8s-api**
+  Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
+
 **-l**, **--list**  
   List all the fields that can be used in views.
   

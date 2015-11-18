@@ -13,7 +13,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include <sys/epoll.h>
 #include <unistd.h>
 
 k8s_http::k8s_http(k8s& k8s,
@@ -40,7 +39,7 @@ k8s_http::k8s_http(k8s& k8s,
 	url << m_protocol << "://";
 	if(!m_credentials.empty())
 	{
-		url << m_credentials << '@';	
+		url << m_credentials << '@';
 	}
 	url << m_host_and_port;
 	url << m_api << '/' << m_component << std::flush;
@@ -49,9 +48,25 @@ k8s_http::k8s_http(k8s& k8s,
 
 k8s_http::~k8s_http()
 {
+	cleanup();
+}
+
+bool k8s_http::init()
+{
+	if(!m_curl)
+	{
+		cleanup();
+		m_curl = curl_easy_init();
+	}
+	return m_curl != 0;
+}
+
+void k8s_http::cleanup()
+{
 	if(m_curl)
 	{
 		curl_easy_cleanup(m_curl);
+		m_curl = 0;
 	}
 }
 
@@ -70,7 +85,7 @@ bool k8s_http::get_all_data(std::ostream& os)
 	
 	if(m_protocol == "https")
 	{
-		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0);
+		check_error(curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0));
 	}
 
 	curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
@@ -84,7 +99,7 @@ bool k8s_http::get_all_data(std::ostream& os)
 	{
 		os << curl_easy_strerror(res) << std::flush;
 	}
-	
+
 	return res == CURLE_OK;
 }
 
@@ -116,29 +131,31 @@ int k8s_http::wait(curl_socket_t sockfd, int for_recv, long timeout_ms)
 	return res;
 }
 
-int k8s_http::get_watch_socket()
+int k8s_http::get_watch_socket(long timeout_ms)
 {
 	if(!m_watch_socket)
 	{
 		long sockextr;
 		size_t iolen;
-		std::string url = m_url.insert(m_url.find(m_api) + m_api.size(), "/watch");
+		std::string url = m_url;
+		url.insert(m_url.find(m_api) + m_api.size(), "/watch");
 
-		curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L);
+		check_error(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()));
+		check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L));
 
 		check_error(curl_easy_perform(m_curl));
+
 		check_error(curl_easy_getinfo(m_curl, CURLINFO_LASTSOCKET, &sockextr));
 		m_watch_socket = sockextr;
 
-		if(!wait(m_watch_socket, 0, 60000L))
+		if(!wait(m_watch_socket, 0, timeout_ms))
 		{
-			curl_easy_cleanup(m_curl);
+			cleanup();
 			throw sinsp_exception("Error: timeout.");
 		}
 
 		std::ostringstream request;
-		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\n";
+		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\nConnection: Keep-Alive\r\n";
 		if(!m_credentials.empty())
 		{
 			std::istringstream is(m_credentials);
@@ -149,57 +166,82 @@ int k8s_http::get_watch_socket()
 		request << "\r\n";
 		check_error(curl_easy_send(m_curl, request.str().c_str(), request.str().size(), &iolen));
 		ASSERT (request.str().size() == iolen);
+		if(!wait(m_watch_socket, 1, timeout_ms))
+		{
+			cleanup();
+			throw sinsp_exception("Error: timeout.");
+		}
 
-		g_logger.log(std::string("Polling ") + url, sinsp_logger::SEV_DEBUG);
+		g_logger.log(std::string("Collecting data from ") + url, sinsp_logger::SEV_DEBUG);
 	}
 
 	return m_watch_socket;
 }
 
-void k8s_http::on_data()
+bool k8s_http::on_data()
 {
 	size_t iolen = 0;
 	char buf[1024] = { 0 };
-	check_error(curl_easy_recv(m_curl, buf, 1024, &iolen));
-	if(iolen > 0)
+	CURLcode ret;
+
+	do
 	{
-		if(m_data_ready)
+		iolen = 0;
+		try
 		{
-			m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), buf, iolen));
+			check_error(ret = curl_easy_recv(m_curl, buf, 1024, &iolen));
 		}
-		else // wait for a line with "\r\n" only
+		catch(sinsp_exception& ex)
 		{
-			std::string data(buf, iolen);
-			std::string end = "\r\n\r\n";
-			std::string::size_type pos = data.find(end);
-			if(pos != std::string::npos)
+			g_logger.log(std::string("Data receive error: ").append(ex.what()), sinsp_logger::SEV_ERROR);
+			return false;
+		}
+		if(iolen > 0)
+		{
+			if(m_data_ready)
 			{
-				pos += end.size();
-				if(iolen == pos) // right on the edge of data
+				m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), buf, iolen));
+			}
+			else // wait for a line with "\r\n" only
+			{
+				std::string data(buf, iolen);
+				std::string end = "\r\n\r\n";
+				std::string::size_type pos = data.find(end);
+				if(pos != std::string::npos)
 				{
-					m_data_ready = true;
-				}
-				else
-				{
-					char* pbuf = &buf[pos];
-					m_data_ready = true;
-					m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), pbuf, iolen - pos));
+					pos += end.size();
+					if(iolen == pos) // right on the edge of data
+					{
+						m_data_ready = true;
+					}
+					else
+					{
+						char* pbuf = &buf[pos];
+						m_data_ready = true;
+						m_k8s.on_watch_data(k8s_event_data(k8s_component::get_type(m_component), pbuf, iolen - pos));
+					}
 				}
 			}
 		}
-	}
-	else
-	{
-		g_logger.log("Connection closed", sinsp_logger::SEV_ERROR);
-		m_data_ready = false;
-		// TODO: reconnect
-	}
+		else if(ret != CURLE_AGAIN)
+		{
+			g_logger.log("Connection closed", sinsp_logger::SEV_ERROR);
+			m_data_ready = false;
+			return false;
+		}
+	} while(iolen && ret != CURLE_AGAIN);
+
+	return true;
 }
-	
-void k8s_http::on_error()
+
+
+void k8s_http::on_error(const std::string& err, bool disconnect)
 {
-	g_logger.log("Socket error.", sinsp_logger::SEV_ERROR);
-	//TODO: handle error, reconnect etc...
+	g_logger.log("Socket error:" + err, sinsp_logger::SEV_ERROR);
+	if(disconnect)
+	{
+		cleanup();
+	}
 }
 
 void k8s_http::check_error(CURLcode res)

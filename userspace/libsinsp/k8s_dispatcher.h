@@ -6,12 +6,12 @@
 
 #pragma once
 
+#include "k8s_common.h"
 #include "k8s_component.h"
 #include "k8s_event_data.h"
 #include "json/json.h"
 #include <deque>
 #include <string>
-#include <mutex>
 
 class k8s_dispatcher
 {
@@ -41,8 +41,11 @@ public:
 	k8s_dispatcher() = delete;
 	
 	k8s_dispatcher(k8s_component::type t,
-		k8s_state_s& state,
-		std::mutex& mut);
+		k8s_state_s& state
+#ifndef K8S_DISABLE_THREAD
+		,std::mutex& mut
+#endif
+	);
 
 	void enqueue(k8s_event_data&& data);
 
@@ -74,7 +77,9 @@ private:
 	k8s_component::type m_type;
 	list                m_messages;
 	k8s_state_s&        m_state;
+#ifndef K8S_DISABLE_THREAD
 	std::mutex&         m_mutex;
+#endif
 };
 
 

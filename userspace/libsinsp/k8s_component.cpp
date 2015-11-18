@@ -9,6 +9,60 @@
 #include <iostream>
 
 //
+// container
+//
+
+k8s_container::k8s_container()
+{
+}
+
+k8s_container::k8s_container(const std::string& name, const port_list& ports): m_name(name),
+		m_ports(ports)
+{
+}
+
+k8s_container::k8s_container(const k8s_container& other): m_name(other.m_name),
+	m_ports(other.m_ports)
+{
+}
+
+k8s_container::k8s_container(k8s_container&& other): m_name(std::move(other.m_name)),
+	m_ports(std::move(other.m_ports))
+{
+}
+
+k8s_container& k8s_container::operator=(const k8s_container& other)
+{
+	m_name = other.m_name;
+	m_ports = other.m_ports;
+	return *this;
+}
+
+bool k8s_container::has_port(const std::string& port_name) const
+{
+	for(const auto& port : m_ports)
+	{
+		if (port.get_name() == port_name)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+const k8s_container::port* k8s_container::get_port(const std::string& port_name) const
+{
+	for(const auto& port : m_ports)
+	{
+		if (port.get_name() == port_name)
+		{
+			return &port;
+		}
+	}
+	return 0;
+}
+
+//
 // component
 //
 
@@ -48,7 +102,7 @@ k8s_pair_list k8s_component::extract_object(const Json::Value& object, const std
 	return entry_list;
 }
 
-std::vector<std::string> k8s_component::extract_pod_containers(const Json::Value& item)
+std::vector<std::string> k8s_component::extract_pod_container_ids(const Json::Value& item)
 {
 	std::vector<std::string> container_list;
 	Json::Value status = item["status"];
@@ -70,6 +124,61 @@ std::vector<std::string> k8s_component::extract_pod_containers(const Json::Value
 	return container_list;
 }
 
+k8s_container::list k8s_component::extract_pod_containers(const Json::Value& item)
+{
+	k8s_container::list ext_containers;
+	Json::Value spec = item["spec"];
+	if(!spec.isNull())
+	{
+		Json::Value containers = spec["containers"];
+		if(!containers.isNull())
+		{
+			for (auto& container : containers)
+			{
+				std::string cont_name;
+				Json::Value name = container["name"];
+				if(!name.isNull()) { cont_name = name.asString(); }
+				else { return ext_containers; }
+
+				k8s_container::port_list cont_ports;
+				Json::Value ports = container["ports"];
+				for(const auto& port : ports)
+				{
+					k8s_container::port cont_port;
+					Json::Value name = port["name"];
+					if(!name.isNull())
+					{
+						cont_port.set_name(name.asString());
+					}
+					Json::Value cport = port["containerPort"];
+					if(!cport.isNull())
+					{
+						cont_port.set_port(cport.asUInt());
+					}
+					else
+					{
+						g_logger.log("Port not found, setting value to 0", sinsp_logger::SEV_WARNING);
+						cont_port.set_port(0);
+					}
+					Json::Value protocol = port["protocol"];
+					if(!protocol.isNull())
+					{
+						cont_port.set_protocol(protocol.asString());
+					}
+					else
+					{
+						std::string port_name = name.isNull() ? "[NO NAME]" : name.asString();
+						g_logger.log("Protocol not found for port: " + port_name, sinsp_logger::SEV_WARNING);
+					}
+					cont_ports.push_back(cont_port);
+				}
+				ext_containers.emplace_back(k8s_container(cont_name, cont_ports));
+			}
+		}
+	}
+	return ext_containers;
+}
+
 void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_s& pod)
 {
 	Json::Value spec = item["spec"];
@@ -78,7 +187,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_s& pod)
 		Json::Value node_name = spec["nodeName"];
 		if(!node_name.isNull())
 		{
-			const std::string& nn = node_name.asString();
+			std::string nn = std::move(node_name.asString());
 			if(!nn.empty())
 			{
 				pod.set_node_name(nn);
@@ -90,7 +199,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_s& pod)
 			Json::Value host_ip = status["hostIP"];
 			if(!host_ip.isNull())
 			{
-				const std::string& hip = host_ip.asString();
+				std::string hip = std::move(host_ip.asString());
 				if(!hip.empty())
 				{
 					pod.set_host_ip(hip);
@@ -99,7 +208,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_s& pod)
 			Json::Value pod_ip = status["podIP"];
 			if(!pod_ip.isNull())
 			{
-				const std::string& pip = pod_ip.asString();
+				std::string pip = std::move(pod_ip.asString());
 				if(!pip.empty())
 				{
 					pod.set_internal_ip(pip);
@@ -140,7 +249,7 @@ std::vector<std::string> k8s_component::extract_nodes_addresses(const Json::Valu
 	return address_list;
 }
 
-void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s& service)
+void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s& service, const k8s_state_s::pods& pods)
 {
 	if(!spec.isNull())
 	{
@@ -166,13 +275,46 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s
 				Json::Value json_protocol = port["protocol"];
 				if(!json_protocol.isNull())
 				{
-					p.m_protocol = json_protocol.asString();
+					p.m_protocol = std::move(json_protocol.asString());
 				}
 
 				Json::Value json_target_port = port["targetPort"];
 				if(!json_target_port.isNull())
 				{
-					p.m_target_port = json_target_port.asUInt();
+					if(json_target_port.isIntegral())
+					{
+						p.m_target_port = json_target_port.asUInt();
+					}
+					else if(json_target_port.isString())
+					{
+						std::string port_name = std::move(json_target_port.asString());
+						std::vector<const k8s_pod_s*> pod_subset = service.get_selected_pods(pods);
+						p.m_target_port = 0;
+						for(const auto& pod : pod_subset)
+						{
+							const k8s_container::list& containers = pod->get_containers();
+							for(const auto& container : containers)
+							{
+								const k8s_container::port* container_port = container.get_port(port_name);
+								if(container_port)
+								{
+									p.m_target_port = container_port->get_port();
+									break;
+								}
+								else
+								{
+									g_logger.log("Error while trying to determine port for service [" + service.get_name() + "]: "
+												"no ports found for container [" + container.get_name() + "]", sinsp_logger::SEV_ERROR);
+									p.m_target_port = 0;
+								}
+							}
+						}
+					}
+					else
+					{
+						g_logger.log("Port of unknown or unsupported type.", sinsp_logger::SEV_ERROR);
+						p.m_target_port = 0;
+					}
 				}
 
 				Json::Value json_node_port = port["nodePort"];
@@ -272,12 +414,6 @@ void k8s_component::add_labels(k8s_pair_list&& labels)
 		{
 			emplace_label(std::move(label));
 		}
-		else // harmless, just log
-		{
-			std::ostringstream os;
-			os << "Attempt to add existing label: [" << label.first << ',' << label.second << ']';
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
-		}
 	}
 }
 
@@ -301,13 +437,34 @@ void k8s_component::add_selectors(k8s_pair_list&& selectors)
 		{
 			emplace_selector(std::move(selector));
 		}
-		else // harmless, just log
+	}
+}
+
+// TODO: proper selection process is more complicated, see “Labels and Selectors” at
+// http://kubernetes.io/v1.0/docs/user-guide/labels.html
+bool k8s_component::selector_in_labels(const k8s_pair_s& selector, const k8s_pair_list& labels) const
+{
+	for(const auto& label : labels)
+	{
+		if(label.first == selector.first && label.second == selector.second)
 		{
-			std::ostringstream os;
-			os << "Attempt to add existing selector: [" << selector.first << ',' << selector.second << ']';
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+			return true;
 		}
 	}
+	return false;
+}
+
+bool k8s_component::selectors_in_labels(const k8s_pair_list& labels) const
+{
+	const k8s_pair_list& selectors = get_selectors();
+	for(const auto& selector : selectors)
+	{
+		if(!selector_in_labels(selector, labels))
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 //
@@ -338,6 +495,32 @@ k8s_pod_s::k8s_pod_s(const std::string& name, const std::string& uid, const std:
 {
 }
 
+bool k8s_pod_s::has_container_id(const std::string& container_id)
+{
+	for(const auto& c : m_container_ids)
+	{
+		if(c == container_id) { return true; }
+	}
+	return false;
+}
+
+std::string* k8s_pod_s::get_container_id(const std::string& container_id)
+{
+	for(auto& c : m_container_ids)
+	{
+		if(c == container_id) { return &c; }
+	}
+	return 0;
+}
+
+k8s_container* k8s_pod_s::get_container(const std::string& container_name)
+{
+	for(auto& c : m_containers)
+	{
+		if(c.get_name() == container_name) { return &c; }
+	}
+	return 0;
+}
 
 //
 // replication controller
@@ -345,6 +528,19 @@ k8s_pod_s::k8s_pod_s(const std::string& name, const std::string& uid, const std:
 k8s_rc_s::k8s_rc_s(const std::string& name, const std::string& uid, const std::string& ns) : 
 	k8s_component(name, uid, ns)
 {
+}
+
+std::vector<const k8s_pod_s*> k8s_rc_s::get_selected_pods(const std::vector<k8s_pod_s>& pods) const
+{
+	std::vector<const k8s_pod_s*> pod_vec;
+	for(const auto& pod : pods)
+	{
+		if (selectors_in_labels(pod.get_labels()) && get_namespace() == pod.get_namespace())
+		{
+			pod_vec.push_back(&pod);
+		}
+	}
+	return pod_vec;
 }
 
 
@@ -356,14 +552,99 @@ k8s_service_s::k8s_service_s(const std::string& name, const std::string& uid, co
 {
 }
 
+std::vector<const k8s_pod_s*> k8s_service_s::get_selected_pods(const std::vector<k8s_pod_s>& pods) const
+{
+	std::vector<const k8s_pod_s*> pod_vec;
+	for(const auto& pod : pods)
+	{
+		if (selectors_in_labels(pod.get_labels()) && get_namespace() == pod.get_namespace())
+		{
+			pod_vec.push_back(&pod);
+		}
+	}
+	return pod_vec;
+}
 
 //
 // state
 //
 
+#ifdef K8S_DISABLE_THREAD
+
+const std::string k8s_state_s::m_prefix = "docker://";
+const unsigned    k8s_state_s::m_id_length = 12u;
+
+#endif // K8S_DISABLE_THREAD
+
 k8s_state_s::k8s_state_s()
 {
 }
+
+// state/pods
+
+void k8s_state_s::update_pod(k8s_pod_s& pod, const Json::Value& item, bool reset)
+{
+	k8s_pod_s::container_id_list container_ids = k8s_component::extract_pod_container_ids(item);
+	k8s_container::list containers = k8s_component::extract_pod_containers(item);
+
+	k8s_component::extract_pod_data(item, pod);
+
+	if(reset) // initially, we just set everything
+	{
+		pod.set_container_ids(std::move(container_ids));
+		pod.set_containers(std::move(containers));
+	}
+	else // update call
+	{
+		for(k8s_pod_s::container_id_list::iterator it = container_ids.begin(); it != container_ids.end();)
+		{
+			if(pod.has_container_id(*it))
+			{
+				// ignoring container ID notification for an existing ID
+				it = container_ids.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+
+		if(container_ids.size()) // what's left are new container IDs
+		{
+			pod.add_container_ids(std::move(container_ids));
+		}
+
+		for(k8s_pod_s::container_list::iterator it = containers.begin(); it != containers.end();)
+		{
+			k8s_container* c = pod.get_container(it->get_name());
+			if(c && (*c != *it))
+			{
+				*c = *it;
+				it = containers.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+
+		if(containers.size()) // what's left are new containers
+		{
+			pod.add_containers(std::move(containers));
+		}
+	}
+}
+
+bool k8s_state_s::has_pod(k8s_pod_s& pod)
+{
+	for(const auto& p : m_pods)
+	{
+		if(p == pod) { return true; }
+	}
+	return false;
+}
+
+// state/general
 
 void k8s_state_s::replace_items(k8s_component::type t, const std::string& name, const std::vector<k8s_pair_s>&& items)
 {
@@ -506,3 +787,111 @@ void k8s_state_s::clear(k8s_component::type type)
 		}
 	}
 }
+
+// state/caching
+
+void k8s_state_s::update_cache(const k8s_component::component_map::key_type& component)
+{
+#ifdef K8S_DISABLE_THREAD
+
+	switch (component)
+	{
+		case k8s_component::K8S_NAMESPACES:
+		{
+			const k8s_state_s::namespaces& nspaces = get_namespaces();
+			k8s_state_s::namespace_map& ns_map = get_namespace_map();
+			ns_map.clear();
+			for(const auto& ns : nspaces)
+			{
+				std::string ns_name = ns.get_name();
+				if(!is_component_cached(ns_map, ns_name, &ns))
+				{
+					cache_component(ns_map, ns_name, &ns);
+				}
+				else
+				{
+					g_logger.log("Attempt to cache already cached NAMESPACE: " + ns_name, sinsp_logger::SEV_ERROR);
+				}
+			}
+		}
+		break;
+
+		case k8s_component::K8S_PODS:
+		{
+			const k8s_state_s::pods& pods = get_pods();
+			k8s_state_s::container_pod_map& container_pod_map = get_container_pod_map();
+			container_pod_map.clear();
+			for(const auto& pod : pods)
+			{
+				const k8s_pod_s::container_id_list& c_ids = pod.get_container_ids();
+				for(const auto& c_id : c_ids)
+				{
+					if(!is_component_cached(container_pod_map, c_id, &pod))
+					{
+						cache_pod(container_pod_map, c_id, &pod);
+					}
+					else
+					{
+						g_logger.log("Attempt to cache already cached POD: " + c_id, sinsp_logger::SEV_ERROR);
+					}
+				}
+			}
+		}
+		break;
+
+		case k8s_component::K8S_REPLICATIONCONTROLLERS:
+		{
+			const k8s_state_s::controllers& rcs = get_rcs();
+			const k8s_state_s::pods& pods = get_pods();
+			k8s_state_s::pod_rc_map& pod_ctrl_map = get_pod_rc_map();
+			pod_ctrl_map.clear();
+			for(const auto& rc : rcs)
+			{
+				std::vector<const k8s_pod_s*> pod_subset = rc.get_selected_pods(pods);
+				for(auto& pod : pod_subset)
+				{
+					const std::string& pod_uid = pod->get_uid();
+					if(!is_component_cached(pod_ctrl_map, pod_uid, &rc))
+					{
+						cache_component(pod_ctrl_map, pod_uid, &rc);
+					}
+					else
+					{
+						g_logger.log("Attempt to cache already cached REPLICATION CONTROLLER: " + pod_uid, sinsp_logger::SEV_ERROR);
+					}
+				}
+			}
+		}
+		break;
+
+		case k8s_component::K8S_SERVICES:
+		{
+			const k8s_state_s::services& services = get_services();
+			const k8s_state_s::pods& pods = get_pods();
+			k8s_state_s::pod_service_map& pod_svc_map = get_pod_service_map();
+			pod_svc_map.clear();
+			for(const auto& service : services)
+			{
+				std::vector<const k8s_pod_s*> pod_subset = service.get_selected_pods(pods);
+				for(auto& pod : pod_subset)
+				{
+					const std::string& pod_uid = pod->get_uid();
+					if(!is_component_cached(pod_svc_map, pod_uid, &service))
+					{
+						cache_component(pod_svc_map, pod_uid, &service);
+					}
+					else
+					{
+						g_logger.log("Attempt to cache already cached SERVICE: " + pod_uid, sinsp_logger::SEV_ERROR);
+					}
+				}
+			}
+		}
+		break;
+
+		default: return;
+	}
+
+#endif // K8S_DISABLE_THREAD
+}
+

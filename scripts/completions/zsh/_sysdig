@@ -219,6 +219,7 @@ _arguments                                                                      
     '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'  \
     '(-h --help)'{-h,--help}'[Print this help]'                                                                 \
     '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                             \
+    '(-k --k8s-api)'{-k,--k8s-api}'[Kubernetes API server]'                                                     \
     '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                          \
     '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                              \
     '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                              \
