@@ -319,6 +319,55 @@ void sinsp::open(uint32_t timeout_ms)
 	init();
 }
 
+int64_t sinsp::get_file_size(const std::string& fname)
+{
+#ifdef _WIN32
+	LARGE_INTEGER li = { 0 };
+	HANDLE fh = CreateFile(fname.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+		OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+	if (fh != INVALID_HANDLE_VALUE)
+	{
+		if (0 != GetFileSizeEx(fh, &li))
+		{
+			CloseHandle(fh);
+			return li.QuadPart;
+		}
+		CloseHandle(fh);
+	}
+#else
+	struct stat st;
+	if (0 == stat(fname.c_str(), &st))
+	{
+		return st.st_size;
+	}
+#endif
+	return -1;
+}
+
+std::string sinsp::get_error_desc(const std::string& msg)
+{
+#ifdef _WIN32
+	DWORD err_no = GetLastError(); // first, so error is not wiped out by intermediate calls
+	std::string errstr = msg;
+	DWORD flg = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+	LPTSTR msg_buf = 0;
+	if(FormatMessageA(flg, 0, err_no, 0, (LPTSTR)&msg_buf, 0, NULL))
+	if(msg_buf)
+	{
+		errstr.append(msg_buf, strlen(msg_buf));
+		LocalFree(msg_buf);
+	}
+#else
+	char* msg_buf = strerror(errno); // first, so error is not wiped out by intermediate calls
+	std::string errstr = msg;
+	if(es)
+	{
+		errstr.append(msg_buf, strlen(msg_buf));
+	}
+#endif
+	return errstr;
+}
+
 void sinsp::open(string filename)
 {
 	char error[SCAP_LASTERR_SIZE];
@@ -356,18 +405,12 @@ void sinsp::open(string filename)
 		throw sinsp_exception(error);
 	}
 
-	//
-	// gianluca: This might need to be replaced with
-	// a portable stat(), since I'm afraid that on S3
-	// (that we'll use in the backend) the seek will
-	// read the entire file anyway
-	//
-	FILE* fp = fopen(filename.c_str(), "rb");
-	if(fp)
+	static string fs_err_desc = "Could not determine capture file size: ";
+	m_filesize = get_file_size(filename);
+
+	if (m_filesize < 0)
 	{
-		fseek(fp, 0L, SEEK_END);
-		m_filesize = ftell(fp);
-		fclose(fp);
+		throw sinsp_exception(get_error_desc(fs_err_desc));
 	}
 
 	init();
