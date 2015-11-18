@@ -56,12 +56,13 @@ if(NOT WIN32)
 		add_dependencies(sinsp luajit)
 	endif()
 
-    if(NOT WIN32 AND NOT APPLE)
-        target_link_libraries("${B64_LIB}"
-            "${CURL_LIBRARIES}"
-            "${OPENSSL_LIBRARY_SSL}"
-            "${OPENSSL_LIBRARY_CRYPTO}")
-    endif()
+	if(NOT APPLE)
+		target_link_libraries(sinsp
+			"${B64_LIB}"
+			"${CURL_LIBRARIES}"
+			"${OPENSSL_LIBRARY_SSL}"
+			"${OPENSSL_LIBRARY_CRYPTO}")
+	endif()
 
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
