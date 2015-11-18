@@ -22,7 +22,7 @@ view_info =
 	description = "List all the containers running on this machine, and the resources that each of them uses.",
 	tips = {"Select a container and click enter to drill down into it. At that point, you will be able to access several views that will show you the details of the selected container."},
 	view_type = "table",
-	applies_to = {"", "evt.res"},
+	applies_to = {"", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	filter = "container.name != host",
 	use_defaults = true,
 	drilldown_target = "procs",
@@ -124,7 +124,13 @@ view_info =
 		{
 			hotkey = "b",
 			command = "docker exec -i -t %container.id /bin/bash",
-			description = "bash shell"
+			description = "bash shell",
+			wait_finish = false
+		},
+		{
+			hotkey = "f",
+			command = "docker logs -f %container.id",
+			description = "follow logs"
 		},
 		{
 			hotkey = "h",
@@ -139,7 +145,8 @@ view_info =
 		{
 			hotkey = "k",
 			command = "docker kill %container.id",
-			description = "docker kill"
+			description = "docker kill",
+			ask_confirmation = true
 		},
 		{
 			hotkey = "l",

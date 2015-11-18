@@ -8,14 +8,76 @@
 #pragma once
 
 #include "json/json.h"
+#include "sinsp.h"
+#include "sinsp_int.h"
 #include <vector>
 #include <map>
+#include <unordered_map>
 
 typedef std::pair<std::string, std::string> k8s_pair_s;
 typedef std::vector<k8s_pair_s>             k8s_pair_list;
 
 class k8s_pod_s;
 class k8s_service_s;
+
+class k8s_container
+{
+public:
+	typedef std::vector<k8s_container> list;
+
+	class port
+	{
+	public:
+		void set_name(const std::string& name);
+
+		const std::string& get_name() const;
+
+		void set_port(uint32_t port);
+
+		uint32_t get_port() const;
+
+		void set_protocol(const std::string& protocol);
+
+		const std::string& get_protocol() const;
+
+		bool operator==(const port& other) const;
+
+		bool operator!=(const port& other) const;
+
+	private:
+		std::string m_name;
+		uint32_t    m_port = 0;
+		std::string m_protocol;
+	};
+
+	typedef std::vector<port> port_list;
+
+	k8s_container();
+
+	k8s_container(const std::string& name, const port_list& ports);
+
+	k8s_container(const k8s_container& other);
+
+	k8s_container(k8s_container&& other);
+
+	k8s_container& operator=(const k8s_container& other);
+
+	bool has_port(const std::string& port_name) const;
+
+	const port* get_port(const std::string& port_name) const;
+
+	void set_name(const std::string& name);
+
+	const std::string& get_name() const;
+
+	bool operator==(const k8s_container& other) const;
+
+	bool operator!=(const k8s_container& other) const;
+
+private:
+	std::string m_name;
+	port_list   m_ports;
+};
 
 // 
 // component
@@ -87,11 +149,13 @@ public:
 	// extracts labels or selectors
 	static k8s_pair_list extract_object(const Json::Value& object, const std::string& name);
 
-	static std::vector<std::string> extract_pod_containers(const Json::Value& item);
+	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
+
+	static k8s_container::list extract_pod_containers(const Json::Value& item);
 
 	static void extract_pod_data(const Json::Value& item, k8s_pod_s& pod);
 
-	static void extract_services_data(const Json::Value& spec, k8s_service_s& service);
+	static void extract_services_data(const Json::Value& spec, k8s_service_s& service, const std::vector<k8s_pod_s>& pods);
 
 	static const std::string& get_name(const component_pair& p);
 
@@ -100,6 +164,10 @@ public:
 	static type get_type(const component_pair& p);
 
 	static type get_type(const std::string& name);
+
+	bool selector_in_labels(const k8s_pair_s& selector, const k8s_pair_list& labels) const;
+
+	bool selectors_in_labels(const k8s_pair_list& labels) const;
 
 private:
 	std::string   m_name;
@@ -156,20 +224,38 @@ private:
 class k8s_pod_s : public k8s_component
 {
 public:
-	typedef std::vector<std::string> container_list;
+	typedef std::vector<std::string> container_id_list;
+	typedef k8s_container::list container_list;
 
 	k8s_pod_s(const std::string& name, const std::string& uid, const std::string& ns = "");
 
-	const container_list& get_container_ids() const;
+	// container IDs
+	const container_id_list& get_container_ids() const;
 
-	void set_container_ids(container_list&& container_ids);
-	
-	void add_container_ids(container_list&& container_ids);
+	void set_container_ids(container_id_list&& container_ids);
+
+	void add_container_ids(container_id_list&& container_ids);
 
 	void push_container_id(const std::string& container_id);
 
 	void emplace_container_id(std::string&& container_id);
 
+	// containers
+	const container_list& get_containers() const;
+
+	void set_containers(container_list&& containers);
+
+	void add_containers(container_list&& containers);
+
+	void push_container(const k8s_container& container);
+
+	void emplace_container(k8s_container&& container);
+
+	std::string* get_container_id(const std::string& container_id);
+
+	k8s_container* get_container(const std::string& container_name);
+
+	// node name, host IP and internal IP
 	const std::string& get_node_name() const;
 
 	void set_node_name(const std::string& name);
@@ -182,11 +268,19 @@ public:
 
 	void set_internal_ip(const std::string& internal_ip);
 
+	// comparison
+	bool operator==(const k8s_pod_s& other) const;
+
+	bool operator!=(const k8s_pod_s& other) const;
+
+	bool has_container_id(const std::string& container_id);
+
 private:
-	std::vector<std::string> m_container_ids;
-	std::string              m_node_name;
-	std::string              m_host_ip;
-	std::string              m_internal_ip;
+	container_id_list m_container_ids;
+	container_list    m_containers;
+	std::string       m_node_name;
+	std::string       m_host_ip;
+	std::string       m_internal_ip;
 };
 
 
@@ -198,6 +292,8 @@ class k8s_rc_s : public k8s_component
 {
 public:
 	k8s_rc_s(const std::string& name, const std::string& uid, const std::string& ns = "");
+
+	std::vector<const k8s_pod_s*> get_selected_pods(const std::vector<k8s_pod_s>& pods) const;
 };
 
 
@@ -228,6 +324,8 @@ public:
 
 	void set_port_list(port_list&& ports);
 
+	std::vector<const k8s_pod_s*> get_selected_pods(const std::vector<k8s_pod_s>& pods) const;
+
 private:
 	std::string m_cluster_ip;
 	port_list   m_ports;
@@ -247,6 +345,11 @@ public:
 	typedef std::vector<k8s_pod_s>     pods;
 	typedef std::vector<k8s_rc_s>      controllers;
 	typedef std::vector<k8s_service_s> services;
+
+	typedef std::unordered_map<std::string, const k8s_ns_s*>           namespace_map;
+	typedef std::unordered_map<std::string, const k8s_pod_s*>          container_pod_map;
+	typedef std::unordered_multimap<std::string, const k8s_service_s*> pod_service_map;
+	typedef std::unordered_map<std::string, const k8s_rc_s*>           pod_rc_map;
 
 	k8s_state_s();
 
@@ -287,6 +390,12 @@ public:
 	void push_pod(const k8s_pod_s& pod);
 
 	void emplace_pod(k8s_pod_s&& pod);
+
+	void update_pod(k8s_pod_s& pod, const Json::Value& item, bool reset);
+
+	bool has_pod(k8s_pod_s& pod);
+
+	const k8s_pod_s::container_id_list& get_pod_container_ids(k8s_pod_s& pod);
 
 	//
 	// replication controllers
@@ -344,6 +453,21 @@ public:
 		return false;
 	}
 
+	// Returns a pointer to existing component, if it exists.
+	// If component does not exist, it returns null pointer.
+	template <typename C, typename T>
+	T* get_component(C& container, const std::string& uid)
+	{
+		for (auto& comp : container)
+		{
+			if(comp.get_uid() == uid)
+			{
+				return &comp;
+			}
+		}
+		return 0;
+	}
+
 	// Returns the reference to existing component, if it exists.
 	// If component does not exist, it emplaces it to the back of the
 	// container and returns the reference of the added component.
@@ -357,7 +481,7 @@ public:
 				return comp;
 			}
 		}
-		container.emplace_back(T(name, uid, ns));
+		container.emplace_back(std::move(T(name, uid, ns)));
 		return container.back();
 	}
 
@@ -381,13 +505,198 @@ public:
 
 	void clear(k8s_component::type type = k8s_component::K8S_COMPONENT_COUNT);
 
+#ifdef K8S_DISABLE_THREAD
+
+	//
+	// cached lookup support
+	//
+
+	// pod by container;
+
+	const k8s_pod_s* get_pod(const std::string& container) const
+	{
+		container_pod_map::const_iterator it = m_container_pods.find(container);
+		if(it != m_container_pods.end())
+		{
+			return it->second;
+		}
+		return 0;
+	}
+
+	const namespace_map& get_namespace_map() const { return m_namespace_map; }
+	const container_pod_map& get_container_pod_map() const { return m_container_pods; }
+	const pod_service_map& get_pod_service_map() const { return m_pod_services; }
+	const pod_rc_map& get_pod_rc_map() const { return m_pod_rcs; }
+
+#endif // K8S_DISABLE_THREAD
+
 private:
+
+	void update_cache(const k8s_component::component_map::key_type& component);
+
+#ifdef K8S_DISABLE_THREAD
+
+	template<typename C>
+	const typename C::mapped_type* get_component(const C& map, const std::string& key)
+	{
+		typename C::const_iterator it = map.find(key);
+		if(it != map.end())
+		{
+			return it->second;
+		}
+		return 0;
+	}
+
+	template<typename C>
+	bool is_component_cached(const C& map, const std::string& key) const
+	{
+		return (map.find(key) != map.end());
+	}
+
+	template<typename C>
+	bool is_component_cached(const C& map, const std::string& key, const typename C::mapped_type value) const
+	{
+		auto range = map.equal_range(key);
+		for (auto& it = range.first; it != range.second; ++it)
+		{
+			if(it->first == key && it->second == value)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void cache_pod(container_pod_map& map, const std::string& id, const k8s_pod_s* pod)
+	{
+		ASSERT(pod);
+		ASSERT(!pod->get_name().empty());
+		std::string::size_type pos = id.find(m_prefix);
+		if (pos == 0)
+		{
+			map[id.substr(m_prefix.size(), m_id_length)] = pod;
+			return;
+		}
+		throw sinsp_exception("Invalid container ID (expected '" + m_prefix + "{ID}'): " + id);
+	}
+
+	template<typename C>
+	void cache_component(C& map, const std::string& key, typename C::mapped_type component)
+	{
+		ASSERT(component);
+		ASSERT(!component->get_name().empty());
+		map.insert(typename C::value_type(key, component));
+		return;
+	}
+
+	template<typename C>
+	void uncache_component(C& map, const std::string& key)
+	{
+		typename C::iterator it = map.find(key);
+		if(it != map.end())
+		{
+			map.erase(it);
+		}
+	}
+
+	namespace_map& get_namespace_map() { return m_namespace_map; }
+	container_pod_map& get_container_pod_map() { return m_container_pods; }
+	pod_service_map& get_pod_service_map() { return m_pod_services; }
+	pod_rc_map& get_pod_rc_map() { return m_pod_rcs; }
+
+	static const std::string m_prefix; // "docker://"
+	static const unsigned    m_id_length; // portion of the ID to be cached (=12)
+	namespace_map            m_namespace_map;
+	container_pod_map        m_container_pods;
+	pod_service_map          m_pod_services;
+	pod_rc_map               m_pod_rcs;
+
+#endif // K8S_DISABLE_THREAD
+
 	namespaces  m_namespaces;
 	nodes       m_nodes;
 	pods        m_pods;
 	controllers m_controllers;
 	services    m_services;
+
+	friend class k8s_dispatcher;
+	friend class k8s;
 };
+
+//
+// container
+//
+
+inline const std::string& k8s_container::get_name() const
+{
+	return m_name;
+}
+
+inline void k8s_container::set_name(const std::string& name)
+{
+	m_name = name;
+}
+
+inline bool k8s_container::operator==(const k8s_container& other) const
+{
+	if(&other == this) { return true; }
+	return (other.m_name == m_name) && (other.m_ports == m_ports);
+}
+
+inline bool k8s_container::operator!=(const k8s_container& other) const
+{
+	if(&other == this) { return false; }
+	return !(other == *this);
+}
+
+//
+// container::port
+//
+
+inline void k8s_container::port::set_name(const std::string& name)
+{
+	m_name = name;
+}
+
+inline const std::string& k8s_container::port::get_name() const
+{
+	return m_name;
+}
+
+inline void k8s_container::port::set_port(uint32_t port)
+{
+	m_port = port;
+}
+
+inline uint32_t k8s_container::port::get_port() const
+{
+	return m_port;
+}
+
+inline void k8s_container::port::set_protocol(const std::string& protocol)
+{
+	m_protocol = protocol;
+}
+
+inline const std::string& k8s_container::port::get_protocol() const
+{
+	return m_protocol;
+}
+
+inline bool k8s_container::port::operator==(const port& other) const
+{
+	if(&other == this) { return true; }
+	return other.m_name == m_name &&
+			other.m_port == m_port &&
+			other.m_protocol == m_protocol;
+}
+
+inline bool k8s_container::port::operator!=(const port& other) const
+{
+	if(&other == this) { return false; }
+	return !(other == *this);
+}
+
 
 //
 // component
@@ -517,17 +826,19 @@ inline void k8s_node_s::emplace_host_ip(std::string&& host_ip)
 // pod 
 //
 
-inline const k8s_pod_s::container_list& k8s_pod_s::get_container_ids() const
+// container IDs
+
+inline const k8s_pod_s::container_id_list& k8s_pod_s::get_container_ids() const
 {
 	return m_container_ids;
 }
 
-inline void k8s_pod_s::set_container_ids(container_list&& container_ids)
+inline void k8s_pod_s::set_container_ids(container_id_list&& container_ids)
 {
 	m_container_ids = std::move(container_ids);
 }
 
-inline void k8s_pod_s::add_container_ids(container_list&& container_ids)
+inline void k8s_pod_s::add_container_ids(container_id_list&& container_ids)
 {
 	m_container_ids.insert(m_container_ids.end(), container_ids.begin(), container_ids.end());
 }
@@ -540,6 +851,50 @@ inline void k8s_pod_s::push_container_id(const std::string& container_id)
 inline void k8s_pod_s::emplace_container_id(std::string&& container_id)
 {
 	m_container_ids.emplace_back(std::move(container_id));
+}
+
+// comparison
+
+inline bool k8s_pod_s::operator==(const k8s_pod_s& other) const
+{
+	if(&other == this) { return true; }
+	return other.m_container_ids == m_container_ids &&
+			other.m_containers == m_containers &&
+			other.m_host_ip == m_host_ip &&
+			other.m_internal_ip == m_internal_ip;
+}
+
+inline bool k8s_pod_s::operator!=(const k8s_pod_s& other) const
+{
+	if(&other == this) { return false; }
+	return !(other == *this);
+}
+
+// containers
+
+inline const k8s_pod_s::container_list& k8s_pod_s::get_containers() const
+{
+	return m_containers;
+}
+
+inline void k8s_pod_s::set_containers(container_list&& containers)
+{
+	m_containers = std::move(containers);
+}
+
+inline void k8s_pod_s::add_containers(container_list&& containers)
+{
+	m_containers.insert(m_containers.end(), containers.begin(), containers.end());
+}
+
+inline void k8s_pod_s::push_container(const k8s_container& container)
+{
+	m_containers.push_back(container);
+}
+
+inline void k8s_pod_s::emplace_container(k8s_container&& container)
+{
+	m_containers.emplace_back(std::move(container));
 }
 
 inline const std::string& k8s_pod_s::get_node_name() const
@@ -663,6 +1018,11 @@ inline void k8s_state_s::push_pod(const k8s_pod_s& pod)
 inline void k8s_state_s::emplace_pod(k8s_pod_s&& pod)
 {
 	m_pods.emplace_back(std::move(pod));
+}
+
+inline const k8s_pod_s::container_id_list& k8s_state_s::get_pod_container_ids(k8s_pod_s& pod)
+{
+	return pod.get_container_ids();
 }
 
 // replication controllers

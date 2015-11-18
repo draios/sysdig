@@ -395,7 +395,7 @@ public:
 
 	inline sinsp_fdinfo_t* find(int64_t fd)
 	{
-		unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit = m_table.find(fd);
+		unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 
 		//
 		// Try looking up in our simple cache

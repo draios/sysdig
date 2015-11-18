@@ -23,7 +23,7 @@ view_info =
 	tips = {"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation."},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.dport", "fd.port", "fd.lport", "fd.rport", "evt.res"},
+	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.dport", "fd.port", "fd.lport", "fd.rport", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	filter = "fd.type=ipv4 or fd.type=ipv6 and fd.name!=''",
 	use_defaults = true,
 	drilldown_target = "incoming_connections",
@@ -127,9 +127,25 @@ view_info =
 			description = "tcpdump local IP",
 		},
 		{
+			hotkey = "n",
+			command = "nslookup %fd.rip",
+			description = "nslookup remote IP",
+		},
+		{
+			hotkey = "P",
+			command = "ping %fd.rip",
+			description = "ping remote IP",
+			wait_finish = false
+		},
+		{
 			hotkey = "r",
 			command = "tcpdump -niany host %fd.rip",
-			description = "tcpdump remote IP",
+			description = "tcpdump remot IP",
+		},
+		{
+			hotkey = "t",
+			command = "traceroute %fd.rip",
+			description = "traceroute remot IP",
 		},
 	},
 }

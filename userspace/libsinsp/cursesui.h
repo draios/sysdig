@@ -23,7 +23,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
-#define SIDEMENU_WIDTH 20
+#define VIEW_SIDEMENU_WIDTH 20
+#define ACTION_SIDEMENU_WIDTH 30
 #define VIEW_ID_SPY -1
 #define VIEW_ID_DIG -2
 #define VIEW_ID_INFO -3
