@@ -1,7 +1,9 @@
 include_directories("${JSONCPP_INCLUDE}")
 
 if(NOT WIN32)
-	include_directories("${CURL_INCLUDE_DIR}")
+    if(NOT APPLE)
+        include_directories("${CURL_INCLUDE_DIR}")
+    endif()
 	include_directories("${CURSES_INCLUDE_DIR}")
 endif()
 
