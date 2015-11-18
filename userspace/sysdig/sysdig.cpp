@@ -1281,8 +1281,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					k8s_api = new string(k8s_api_env);
 					inspector->init_k8s_client(k8s_api);
-					k8s_api = 0;
 				}
+				else
+				{
+					delete k8s_api;
+				}
+				k8s_api = 0;
 			}
 
 			cinfo = do_inspect(inspector,
