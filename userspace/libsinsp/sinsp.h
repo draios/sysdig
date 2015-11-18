@@ -708,7 +708,7 @@ private:
 	bool remove_inactive_threads();
 	void update_kubernetes_state();
 
-	static int64_t get_file_size(const std::string& fname);
+	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
 
 	scap_t* m_h;
