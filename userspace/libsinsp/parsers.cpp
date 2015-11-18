@@ -1507,13 +1507,13 @@ void schedule_more_k8s_evts(sinsp* inspector, void* data)
 		inspector->remove_meta_event_callback();
 		return;
 	}
-	string payload = std::move(k8s_client->dequeue_capture_event());
+	string payload = k8s_client->dequeue_capture_event();
 	state->m_piscapevt->len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
 	ASSERT(state->m_piscapevt->len <= SP_EVT_BUF_SIZE);
 	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
-	*plen = (uint16_t)payload.size();
-	uint8_t* edata = (uint8_t*)(plen + 1);
-	memcpy(edata, payload.c_str(), payload.size() + 1);
+	plen[0] = (uint16_t)payload.size() + 1;
+	uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
+	memcpy(edata, payload.c_str(), plen[0]);
 
 	state->m_n_additional_k8s_events_to_add--;
 	if(state->m_n_additional_k8s_events_to_add == 0)
