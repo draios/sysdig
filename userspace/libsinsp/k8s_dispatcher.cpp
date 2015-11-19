@@ -12,7 +12,7 @@
 #include <iostream>
 
 
-k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_s& state
+k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_t& state
 #ifndef K8S_DISABLE_THREAD
 	,std::mutex& mut
 #endif
@@ -159,7 +159,7 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 			os << "ADDED message received for existing node [" << data.m_uid << "], updating only.";
 			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
-		k8s_node_s& node = m_state.get_component<k8s_state_s::nodes, k8s_node_s>(m_state.get_nodes(), data.m_name, data.m_uid);
+		k8s_node_t& node = m_state.get_component<k8s_nodes, k8s_node_t>(m_state.get_nodes(), data.m_name, data.m_uid);
 		if(addresses.size() > 0)
 		{
 			node.set_host_ips(std::move(addresses));
@@ -188,7 +188,7 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 			g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 			return;
 		}
-		k8s_node_s& node = m_state.get_component<k8s_state_s::nodes, k8s_node_s>(m_state.get_nodes(), data.m_name, data.m_uid);
+		k8s_node_t& node = m_state.get_component<k8s_nodes, k8s_node_t>(m_state.get_nodes(), data.m_name, data.m_uid);
 		if(addresses.size() > 0)
 		{
 			node.add_host_ips(std::move(addresses));
@@ -232,7 +232,7 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 			os << "ADDED message received for existing namespace [" << data.m_uid << "], updating only.";
 			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
-		k8s_ns_s& ns = m_state.get_component<k8s_state_s::namespaces, k8s_ns_s>(m_state.get_namespaces(), data.m_name, data.m_uid);
+		k8s_ns_t& ns = m_state.get_component<k8s_namespaces, k8s_ns_t>(m_state.get_namespaces(), data.m_name, data.m_uid);
 		Json::Value object = root["object"];
 		if(!object.isNull())
 		{
@@ -256,7 +256,7 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 			g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 			return;
 		}
-		k8s_ns_s& ns = m_state.get_component<k8s_state_s::namespaces, k8s_ns_s>(m_state.get_namespaces(), data.m_name, data.m_uid);
+		k8s_ns_t& ns = m_state.get_component<k8s_namespaces, k8s_ns_t>(m_state.get_namespaces(), data.m_name, data.m_uid);
 		Json::Value object = root["object"];
 		if(!object.isNull())
 		{
@@ -299,7 +299,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 				os << "ADDED message received for existing pod [" << data.m_uid << "], updating only.";
 				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 			}
-			k8s_pod_s& pod = m_state.get_component<k8s_state_s::pods, k8s_pod_s>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
+			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
 			Json::Value metadata = object["metadata"];
 			if(!metadata.isNull())
 			{
@@ -324,7 +324,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 				g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 				return;
 			}
-			k8s_pod_s& pod = m_state.get_component<k8s_state_s::pods, k8s_pod_s>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
+			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
 			Json::Value metadata = object["metadata"];
 			if(!metadata.isNull())
 			{
@@ -339,7 +339,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 	}
 	else if(data.m_reason == COMPONENT_DELETED)
 	{
-		k8s_pod_s* pod = m_state.get_component<k8s_state_s::pods, k8s_pod_s>(m_state.get_pods(), data.m_uid);
+		k8s_pod_t* pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_uid);
 		if(pod)
 		{
 			if(!m_state.delete_component(m_state.get_pods(), data.m_uid))
@@ -370,7 +370,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 			os << "ADDED message received for existing replication controller [" << data.m_uid << "], updating only.";
 			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
-		k8s_rc_s& rc = m_state.get_component<k8s_state_s::controllers, k8s_rc_s>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
+		k8s_rc_t& rc = m_state.get_component<k8s_controllers, k8s_rc_t>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
 		Json::Value object = root["object"];
 		if(!object.isNull())
 		{
@@ -404,7 +404,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 			g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 			return;
 		}
-		k8s_rc_s& rc = m_state.get_component<k8s_state_s::controllers, k8s_rc_s>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
+		k8s_rc_t& rc = m_state.get_component<k8s_controllers, k8s_rc_t>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
 		Json::Value object = root["object"];
 		if(!object.isNull())
 		{
@@ -457,7 +457,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 				os << "ADDED message received for existing service [" << data.m_uid << "], updating only.";
 				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 			}
-			k8s_service_s& service = m_state.get_component<k8s_state_s::services, k8s_service_s>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
+			k8s_service_t& service = m_state.get_component<k8s_services, k8s_service_t>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
 			Json::Value metadata = object["metadata"];
 			if(!metadata.isNull())
 			{
@@ -482,7 +482,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 				g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 				return;
 			}
-			k8s_service_s& service = m_state.get_component<k8s_state_s::services, k8s_service_s>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
+			k8s_service_t& service = m_state.get_component<k8s_services, k8s_service_t>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
 			Json::Value metadata = object["metadata"];
 			if(!metadata.isNull())
 			{
