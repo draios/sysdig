@@ -9,6 +9,7 @@
 #include "json/json.h"
 #include "k8s_common.h"
 #include "k8s_component.h"
+#include "k8s_state.h"
 #include "k8s_event_data.h"
 #include "k8s_net.h"
 #include <sstream>
@@ -22,6 +23,7 @@ public:
 	k8s(const std::string& uri = "http://localhost:80",
 		bool start_watch = false,
 		bool watch_in_thread = false,
+		bool is_captured = false,
 		const std::string& api = "/api/v1/");
 
 	~k8s();
@@ -30,7 +32,7 @@ public:
 
 	void on_watch_data(k8s_event_data&& msg);
 
-	const k8s_state_s& get_state(bool rebuild = false);
+	const k8s_state_t& get_state(bool rebuild = false);
 
 	bool watch_in_thread() const;
 
@@ -41,7 +43,7 @@ public:
 	bool is_alive() const;
 
 #ifdef HAS_CAPTURE
-	typedef k8s_state_s::event_list_t event_list_t;
+	typedef k8s_state_t::event_list_t event_list_t;
 	const event_list_t& get_capture_events() const { return m_state.get_capture_events(); }
 	std::string dequeue_capture_event() { return m_state.dequeue_capture_event(); }
 #endif // HAS_CAPTURE
@@ -64,15 +66,15 @@ private:
 	typedef std::map<k8s_component::type, k8s_dispatcher*> dispatch_map;
 
 #ifdef K8S_DISABLE_THREAD
-	static dispatch_map make_dispatch_map(k8s_state_s& state);
+	static dispatch_map make_dispatch_map(k8s_state_t& state);
 #else
-	static dispatch_map make_dispatch_map(k8s_state_s& state, std::mutex& mut);
+	static dispatch_map make_dispatch_map(k8s_state_t& state, std::mutex& mut);
 #endif // K8S_DISABLE_THREAD
 
 	K8S_DECLARE_MUTEX;
 	bool         m_watch;
 	bool         m_watch_in_thread;
-	k8s_state_s  m_state;
+	k8s_state_t  m_state;
 	dispatch_map m_dispatch;
 #ifdef HAS_CAPTURE
 	k8s_net*     m_net;

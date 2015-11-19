@@ -23,7 +23,7 @@ const k8s_component::component_map k8s::m_components =
 };
 
 #ifdef K8S_DISABLE_THREAD
-	k8s::dispatch_map k8s::make_dispatch_map(k8s_state_s& state)
+	k8s::dispatch_map k8s::make_dispatch_map(k8s_state_t& state)
 	{
 		return dispatch_map
 		{
@@ -35,7 +35,7 @@ const k8s_component::component_map k8s::m_components =
 		};
 	}
 #else
-	k8s::dispatch_map k8s::make_dispatch_map(k8s_state_s& state, std::mutex& mut)
+	k8s::dispatch_map k8s::make_dispatch_map(k8s_state_t& state, std::mutex& mut)
 	{
 		return dispatch_map
 		{
@@ -48,9 +48,10 @@ const k8s_component::component_map k8s::m_components =
 	}
 #endif // K8S_DISABLE_THREAD
 
-k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, const std::string& api) :
+k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, bool is_captured, const std::string& api) :
 		m_watch(uri.empty() ? false : start_watch),
 		m_watch_in_thread(uri.empty() ? false : start_watch && watch_in_thread),
+		m_state(is_captured),
 	#ifndef K8S_DISABLE_THREAD
 		m_dispatch(std::move(make_dispatch_map(m_state, m_mutex))),
 	#else
@@ -131,7 +132,7 @@ void k8s::build_state()
 #endif
 }
 
-const k8s_state_s& k8s::get_state(bool rebuild)
+const k8s_state_t& k8s::get_state(bool rebuild)
 {
 	try
 	{
@@ -275,7 +276,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 				}
 				m_state.add_common_single_value(component, metadata["name"].asString(), metadata["uid"].asString(), nspace);
 
-				std::vector<k8s_pair_s> entries = k8s_component::extract_object(metadata, "labels");
+				std::vector<k8s_pair_t> entries = k8s_component::extract_object(metadata, "labels");
 				if(entries.size() > 0)
 				{
 					m_state.replace_items(component, "labels", std::move(entries));
@@ -285,7 +286,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 			Json::Value spec = item["spec"];
 			if(!spec.isNull())
 			{
-				std::vector<k8s_pair_s> entries = k8s_component::extract_object(spec, "selector");
+				std::vector<k8s_pair_t> entries = k8s_component::extract_object(spec, "selector");
 				if(entries.size() > 0)
 				{
 					m_state.replace_items(component, "selector", std::move(entries));
@@ -299,7 +300,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 			{
 			case k8s_component::K8S_NAMESPACES:
 				{
-					const k8s_state_s::namespaces& nss = m_state.get_namespaces();
+					const k8s_namespaces& nss = m_state.get_namespaces();
 					if(nss.size())
 					{
 						component_kind = "Namespace";
@@ -314,7 +315,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 					Json::Value status = item["status"];
 					if(!status.isNull())
 					{
-						const k8s_state_s::nodes& nds = m_state.get_nodes();
+						const k8s_nodes& nds = m_state.get_nodes();
 						if(nds.size())
 						{
 							component_kind = "Node";
@@ -332,14 +333,14 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 
 			case k8s_component::K8S_PODS:
 				{
-					k8s_state_s::pods& p = m_state.get_pods();
+					k8s_pods& p = m_state.get_pods();
 					if(p.size())
 					{
 						component_kind = "Pod";
 						component_name = p.back().get_name();
 						component_uid = p.back().get_uid();
 						component_ns = p.back().get_namespace();
-						k8s_pod_s& pod = p.back();
+						k8s_pod_t& pod = p.back();
 						m_state.update_pod(pod, item, true);
 					}
 				}
@@ -348,7 +349,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 			case k8s_component::K8S_SERVICES:
 				if(!spec.isNull())
 				{
-					k8s_state_s::services& svcs = m_state.get_services();
+					k8s_services& svcs = m_state.get_services();
 					if(svcs.size())
 					{
 						component_kind = "Service";
@@ -362,7 +363,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 
 			case k8s_component::K8S_REPLICATIONCONTROLLERS:
 				{
-					const k8s_state_s::controllers& rcs = m_state.get_rcs();
+					const k8s_controllers& rcs = m_state.get_rcs();
 					if(rcs.size())
 					{
 						component_kind = "ReplicationController";

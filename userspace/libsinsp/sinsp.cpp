@@ -1482,7 +1482,7 @@ double sinsp::get_read_progress()
 
 	if(fpos == -1)
 	{
-		throw sinsp_exception(scap_getlasterr(m_h));		
+		throw sinsp_exception(scap_getlasterr(m_h));
 	}
 
 	return (double)fpos * 100 / m_filesize;
@@ -1501,7 +1501,12 @@ void sinsp::init_k8s_client(string* api_server)
 	if(m_k8s_client == NULL)
 	{
 		g_logger.log("Fetching initial k8s state", sinsp_logger::SEV_INFO);
-		m_k8s_client = new k8s(*m_k8s_api_server, m_k8s_api_server->empty() ? false : true);
+		bool is_live = !m_k8s_api_server->empty();
+		m_k8s_client = new k8s(*m_k8s_api_server,
+			is_live ? true : false, // watch
+			false, // don't run watch in thread
+			is_live ? true : false // capture
+		);
 	}
 }
 

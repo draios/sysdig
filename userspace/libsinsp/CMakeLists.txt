@@ -29,6 +29,7 @@ add_library(sinsp STATIC
 	k8s.cpp
 	k8s_collector.cpp
 	k8s_component.cpp
+	k8s_state.cpp
 	k8s_dispatcher.cpp
 	k8s_event_data.cpp
 	k8s_http.cpp
