@@ -634,18 +634,24 @@ void sinsp_threadinfo::reset_file_access_count()
 		{
 			m_old_mean_read = m_total_read_access/fd_count;
 			m_old_mean_write = m_total_write_access/fd_count;
-
 			m_total_write_access = 0;
 			m_total_read_access = 0;
 
-			//reset the FD counters
-			unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
 
-			for(it = m_fdtable.m_table.begin(); it != m_fdtable.m_table.end(); ++it)
+			//reset the FD counters
+			for(auto it = m_fdtable.m_table.begin(); it != m_fdtable.m_table.end(); ++it)
 			{
-				sinsp_fdinfo_t fd = it->second;
-				fd.m_old_read_access = fd.m_read_access;
-				fd.m_old_write_access = fd.m_write_access;
+				sinsp_fdinfo_t& fd = it->second;
+				if(fd.m_read_access!=0)
+				{
+					fd.m_old_read_access = fd.m_read_access;
+				}
+
+				if(fd.m_write_access!=0)
+				{
+					fd.m_old_write_access = fd.m_write_access;
+				}
+
 				fd.m_read_access = 0;
 				fd.m_write_access = 0;
 
