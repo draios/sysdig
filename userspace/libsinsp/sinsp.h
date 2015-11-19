@@ -105,6 +105,7 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
+class k8s;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -351,6 +352,11 @@ public:
 	  \brief Instruct sinsp to write its log messages to the given file.
 	*/
 	void set_log_file(string filename);
+
+	/*!
+	  \brief Instruct sinsp to write its log messages to stderr.
+	*/
+	void set_log_stderr();
 
 	/*!
 	  \brief Specify the minimum severity of the messages that go into the logs
@@ -642,6 +648,8 @@ public:
 	*/
 	double get_read_progress();
 
+	void init_k8s_client(const string& api_server);
+
 	//
 	// Misc internal stuff
 	//
@@ -695,6 +703,7 @@ private:
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
+	void update_kubernetes_state();
 
 	scap_t* m_h;
 	uint32_t m_nevts;
@@ -727,10 +736,17 @@ private:
 
 	sinsp_container_manager m_container_manager;
 
-        //
-        // True if the command line argument is set to show container information
+	//
+	// Kubernetes stuff
+	//
+	string m_k8s_api_server;
+	k8s* m_k8s_client;
+	uint64_t m_k8s_last_watch_time_ns;
+
+	//
+	// True if the command line argument is set to show container information
 	// The deafult is false set within the constructor
-        //
+	//
 	bool m_print_container_data;
 
 #ifdef HAS_FILTERING
@@ -762,6 +778,7 @@ private:
 	// Some thread table limits
 	//
 	uint32_t m_max_thread_table_size;
+	uint32_t m_max_fdtable_size;
 	uint64_t m_thread_timeout_ns;
 	uint64_t m_inactive_thread_scan_time_ns;
 
@@ -841,8 +858,23 @@ private:
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_event;
+	friend class sinsp_filter_check_k8s;
 	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
+
+//
+// Macros for enable/disable k8s threading
+// Used to eliminate mutex locking when running single-threaded
+//
+
+#ifndef K8S_DISABLE_THREAD
+#include <mutex>
+#define K8S_DECLARE_MUTEX mutable std::mutex m_mutex
+#define K8S_LOCK_GUARD_MUTEX std::lock_guard<std::mutex> lock(m_mutex)
+#else
+#define K8S_DECLARE_MUTEX
+#define K8S_LOCK_GUARD_MUTEX
+#endif // K8S_DISABLE_THREAD
 
 /*@}*/

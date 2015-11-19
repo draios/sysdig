@@ -80,11 +80,6 @@ sinsp_filter_check* sinsp_filter_check_fd::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fd();
 }
 
-int32_t sinsp_filter_check_fd::parse_field_name(const char* str, bool alloc_state)
-{
-	return sinsp_filter_check::parse_field_name(str, alloc_state);
-}
-
 bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len)
 {
 	const char* resolved_argstr;
@@ -4327,11 +4322,6 @@ sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fdlist();
 }
 
-int32_t sinsp_filter_check_fdlist::parse_field_name(const char* str, bool alloc_state)
-{
-	return sinsp_filter_check::parse_field_name(str, alloc_state);
-}
-
 uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	ASSERT(evt);
@@ -4509,6 +4499,427 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 		return NULL;
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_k8s implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
+{
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.name", "Kubernetes pod name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.id", "Kubernetes pod id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.label", "Kubernetes pod label. E.g. 'k8s.pod.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.labels", "Kubernetes pod comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.name", "Kubernetes replication controller name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.id", "Kubernetes replication controller id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.label", "Kubernetes replication controller label. E.g. 'k8s.rc.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.labels", "Kubernetes replication controller comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.name", "Kubernetes service name (can return more than one value, concatenated)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.id", "Kubernetes service id (can return more than one value, concatenated)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.label", "Kubernetes service label. E.g. 'k8s.svc.label.foo' (can return more than one value, concatenated)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.svc.labels", "Kubernetes service comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.name", "Kubernetes namespace name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.id", "Kubernetes namespace id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.label", "Kubernetes namespace label. E.g. 'k8s.ns.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.labels", "Kubernetes namespace comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+};
+
+sinsp_filter_check_k8s::sinsp_filter_check_k8s()
+{
+	m_info.m_name = "k8s";
+	m_info.m_fields = sinsp_filter_check_k8s_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_k8s_fields) / sizeof(sinsp_filter_check_k8s_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+}
+
+sinsp_filter_check* sinsp_filter_check_k8s::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_k8s();
+}
+
+int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_state)
+{
+	string val(str);
+
+	if(string(val, 0, sizeof("k8s.pod.label") - 1) == "k8s.pod.label" &&
+		string(val, 0, sizeof("k8s.pod.labels") - 1) != "k8s.pod.labels")
+	{
+		m_field_id = TYPE_K8S_POD_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.pod.label", val);
+	}
+	else if(string(val, 0, sizeof("k8s.rc.label") - 1) == "k8s.rc.label" &&
+		string(val, 0, sizeof("k8s.rc.labels") - 1) != "k8s.rc.labels")
+	{
+		m_field_id = TYPE_K8S_RC_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.rc.label", val);
+	}
+	else if(string(val, 0, sizeof("k8s.svc.label") - 1) == "k8s.svc.label" &&
+		string(val, 0, sizeof("k8s.svc.labels") - 1) != "k8s.svc.labels")
+	{
+		m_field_id = TYPE_K8S_SVC_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.svc.label", val);
+	}
+	else if(string(val, 0, sizeof("k8s.ns.label") - 1) == "k8s.ns.label" &&
+		string(val, 0, sizeof("k8s.ns.labels") - 1) != "k8s.ns.labels")
+	{
+		m_field_id = TYPE_K8S_NS_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.ns.label", val);
+	}
+	else
+	{
+		return sinsp_filter_check::parse_field_name(str, alloc_state);
+	}
+}
+
+int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string& val)
+{
+	int32_t parsed_len = 0;
+
+	if(val[fldname.size()] == '.')
+	{
+		size_t endpos;
+		for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
+		{
+			if(!isalnum(val[endpos])
+				&& val[endpos] != '/'
+				&& val[endpos] != '_'
+				&& val[endpos] != '-'
+				&& val[endpos] != '.')
+			{
+				break;
+			}
+		}
+
+		parsed_len = (uint32_t)endpos;
+		m_argname = val.substr(fldname.size() + 1, endpos - fldname.size() - 1);
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len;
+}
+
+const k8s_pod_s* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadinfo* tinfo)
+{
+	if(tinfo->m_container_id.empty())
+	{
+		return NULL;
+	}
+
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+
+	return k8s_state.get_pod(tinfo->m_container_id);
+}
+
+const k8s_ns_s* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
+{
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+
+	const k8s_state_s::namespace_map& ns_map = k8s_state.get_namespace_map();
+	k8s_state_s::namespace_map::const_iterator it = ns_map.find(ns_name);
+	if(it != ns_map.end())
+	{
+		return it->second;
+	}
+
+	return NULL;
+}
+
+const k8s_rc_s* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_s* pod)
+{
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+
+	const k8s_state_s::pod_rc_map& pod_rcs = k8s_state.get_pod_rc_map();
+	k8s_state_s::pod_rc_map::const_iterator it = pod_rcs.find(pod->get_uid());
+	if(it != pod_rcs.end())
+	{
+		return it->second;
+	}
+
+	return NULL;
+}
+
+vector<const k8s_service_s*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_pod_s* pod)
+{
+	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+	vector<const k8s_service_s*> services;
+
+
+	const k8s_state_s::pod_service_map& pod_services = k8s_state.get_pod_service_map();
+	auto range = pod_services.equal_range(pod->get_uid());
+	for(auto it = range.first; it != range.second; ++it)
+	{
+		services.push_back(it->second);
+	}
+
+	return services;
+}
+
+void sinsp_filter_check_k8s::concatenate_labels(const k8s_pair_list& labels, string* s)
+{
+	for(const k8s_pair_s& label_pair : labels)
+	{
+		if(!s->empty())
+		{
+			s->append(", ");
+		}
+
+		s->append(label_pair.first);
+		if(!label_pair.second.empty())
+		{
+			s->append(":" + label_pair.second);
+		}
+	}
+}
+
+bool sinsp_filter_check_k8s::find_label(const k8s_pair_list& labels, const string& key, string* value)
+{
+	for(const k8s_pair_s& label_pair : labels)
+	{
+		if(label_pair.first == key)
+		{
+			*value = label_pair.second;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	if(m_inspector->m_k8s_client == NULL)
+	{
+		return NULL;
+	}
+
+	ASSERT(evt);
+	if(evt == NULL)
+	{
+		ASSERT(false);
+		return NULL;
+	}
+
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	if(tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	const k8s_pod_s* pod = find_pod_for_thread(tinfo);
+	if(pod == NULL)
+	{
+		return NULL;
+	}
+
+	m_tstr.clear();
+
+	switch(m_field_id)
+	{
+	case TYPE_K8S_POD_NAME:
+		m_tstr = pod->get_name();
+		return (uint8_t*) m_tstr.c_str();
+	case TYPE_K8S_POD_ID:
+		m_tstr = pod->get_uid();
+		return (uint8_t*) m_tstr.c_str();
+	case TYPE_K8S_POD_LABEL:
+	{
+		if(find_label(pod->get_labels(), m_argname, &m_tstr))
+		{
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_K8S_POD_LABELS:
+	{
+		concatenate_labels(pod->get_labels(), &m_tstr);
+		return (uint8_t*) m_tstr.c_str();
+	}
+	case TYPE_K8S_RC_NAME:
+	{
+		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		if(rc != NULL)
+		{
+			m_tstr = rc->get_name();
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_K8S_RC_ID:
+	{
+		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		if(rc != NULL)
+		{
+			m_tstr = rc->get_uid();
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_K8S_RC_LABEL:
+	{
+		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		if(rc != NULL)
+		{
+			if(find_label(rc->get_labels(), m_argname, &m_tstr))
+			{
+				return (uint8_t*) m_tstr.c_str();
+			}
+		}
+
+		break;
+	}
+	case TYPE_K8S_RC_LABELS:
+	{
+		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		if(rc != NULL)
+		{
+			concatenate_labels(rc->get_labels(), &m_tstr);
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_K8S_SVC_NAME:
+	{
+		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		if(!services.empty())
+		{
+			for(const k8s_service_s* service : services)
+			{
+				if(!m_tstr.empty())
+				{
+					m_tstr.append(", ");
+				}
+
+				m_tstr.append(service->get_name());
+			}
+
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_K8S_SVC_ID:
+	{
+		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		if(!services.empty())
+		{
+			for(const k8s_service_s* service : services)
+			{
+				if(!m_tstr.empty())
+				{
+					m_tstr.append(", ");
+				}
+
+				m_tstr.append(service->get_uid());
+			}
+
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_K8S_SVC_LABEL:
+	{
+		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		if(!services.empty())
+		{
+			for(const k8s_service_s* service : services)
+			{
+				string val;
+				if(find_label(service->get_labels(), m_argname, &val))
+				{
+					if(!m_tstr.empty())
+					{
+						m_tstr.append(", ");
+					}
+
+					m_tstr.append(val);
+				}
+			}
+
+			if(!m_tstr.empty())
+			{
+				return (uint8_t*) m_tstr.c_str();
+			}
+		}
+
+		break;
+	}
+	case TYPE_K8S_SVC_LABELS:
+	{
+		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		if(!services.empty())
+		{
+			for(const k8s_service_s* service : services)
+			{
+				concatenate_labels(service->get_labels(), &m_tstr);
+			}
+
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_K8S_NS_NAME:
+	{
+		m_tstr = pod->get_namespace();
+		return (uint8_t*) m_tstr.c_str();
+	}
+	case TYPE_K8S_NS_ID:
+	{
+		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		if(ns != NULL)
+		{
+			m_tstr = ns->get_uid();
+			return (uint8_t*) m_tstr.c_str();
+		}
+	
+		break;
+	}
+	case TYPE_K8S_NS_LABEL:
+	{
+		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		if(ns != NULL)
+		{
+			if(find_label(ns->get_labels(), m_argname, &m_tstr))
+			{
+				return (uint8_t*) m_tstr.c_str();
+			}
+		}
+
+		break;
+	}
+	case TYPE_K8S_NS_LABELS:
+	{
+		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		if(ns != NULL)
+		{
+			concatenate_labels(ns->get_labels(), &m_tstr);
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	default:
+		ASSERT(false);
+		return NULL;
+	}
+
+	return NULL;
 }
 
 #endif // HAS_FILTERING

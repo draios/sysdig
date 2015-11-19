@@ -331,7 +331,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		evt->m_filtered_out = false;
 	}
 #endif
-
 	//
 	// Offline captures can prodice events with the SCAP_DF_STATE_ONLY. They are
 	// supposed to go through the engine, but they must be filtered out before 
@@ -343,6 +342,17 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		{
 			evt->m_filtered_out = true;
 		}
+	}
+}
+
+void sinsp_parser::event_cleanup(sinsp_evt *evt)
+{
+	if(evt->get_direction() == SCAP_ED_OUT &&
+	   evt->m_tinfo && evt->m_tinfo->m_lastevent_data)
+	{
+		free_event_buffer(evt->m_tinfo->m_lastevent_data);
+		evt->m_tinfo->m_lastevent_data = NULL;
+		evt->m_tinfo->set_lastevent_data_validity(false);
 	}
 }
 
@@ -576,7 +586,26 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 		return;
 	}
 
-	evt->m_tinfo->store_event(evt);
+	uint32_t elen;
+
+	//
+	// Make sure the event data is going to fit
+	//
+	elen = scap_event_getlen(evt->m_pevt);
+
+	if(elen > SP_EVT_BUF_SIZE)
+	{
+		ASSERT(false);
+		return;
+	}
+
+	//
+	// Copy the data
+	//
+	auto tinfo = evt->m_tinfo;
+	tinfo->m_lastevent_data = reserve_event_buffer();
+	memcpy(tinfo->m_lastevent_data, evt->m_pevt, elen);
+	tinfo->m_lastevent_cpuid = evt->get_cpuid();
 
 #ifdef GATHER_INTERNAL_STATS
 	m_inspector->m_stats.m_n_stored_evts++;
@@ -596,7 +625,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	//
 	// Retrieve the copy of the enter event and initialize it
 	//
-	if(!exit_evt->m_tinfo->is_lastevent_data_valid())
+	if(!(exit_evt->m_tinfo->is_lastevent_data_valid() && exit_evt->m_tinfo->m_lastevent_data))
 	{
 		//
 		// This happen especially at the beginning of trace files, where events
@@ -2761,6 +2790,11 @@ void sinsp_parser::parse_chdir_exit(sinsp_evt *evt)
 	sinsp_evt_param *parinfo;
 	int64_t retval;
 
+	if(!evt->m_tinfo)
+	{
+		return;
+	}
+
 	//
 	// Extract the return value
 	//
@@ -3198,9 +3232,9 @@ void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
 		return;
 	}
 
+	evt->m_tinfo->m_lastevent_data = reserve_event_buffer();
 	*(uint64_t*)evt->m_tinfo->m_lastevent_data = evt->get_ts();
 }
-
 void sinsp_parser::parse_fcntl_enter(sinsp_evt *evt)
 {
 	if(!evt->m_tinfo)
@@ -3263,7 +3297,6 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 	if(evt->m_tinfo)
 	{
 		sinsp_evt_param *parinfo;
-
 		parinfo = evt->get_param(1);
 		evt->m_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -3272,17 +3305,21 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 		evt->m_tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 
-		parinfo = evt->get_param(3);
-		evt->m_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		auto main_tinfo = evt->m_tinfo->get_main_thread();
+		if(main_tinfo)
+		{
+			parinfo = evt->get_param(3);
+			main_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
 
-		parinfo = evt->get_param(4);
-		evt->m_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(uint32_t));
+			parinfo = evt->get_param(4);
+			main_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
 
-		parinfo = evt->get_param(5);
-		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(uint32_t));
+			parinfo = evt->get_param(5);
+			main_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+		}
 	}
 }
 
@@ -3432,4 +3469,30 @@ void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
 		throw sinsp_exception("CPUs configuration change detected. Aborting.");
 	}
 #endif
+}
+
+uint8_t* sinsp_parser::reserve_event_buffer()
+{
+	if(m_tmp_events_buffer.empty())
+	{
+		return (uint8_t*)malloc(sizeof(uint8_t)*SP_EVT_BUF_SIZE);
+	}
+	else
+	{
+		auto ptr = m_tmp_events_buffer.top();
+		m_tmp_events_buffer.pop();
+		return ptr;
+	}
+}
+
+void sinsp_parser::free_event_buffer(uint8_t *ptr)
+{
+	if(m_tmp_events_buffer.size() < m_inspector->m_thread_manager->m_threadtable.size())
+	{
+		m_tmp_events_buffer.push(ptr);
+	}
+	else
+	{
+		free(ptr);
+	}
 }

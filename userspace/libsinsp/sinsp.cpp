@@ -65,6 +65,7 @@ sinsp::sinsp() :
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
+	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -107,7 +108,7 @@ sinsp::sinsp() :
 	m_print_container_data = false;
 
 #if defined(HAS_CAPTURE)
-	m_sysdig_pid = 0;
+	m_sysdig_pid = getpid();
 #endif
 
 	uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
@@ -128,6 +129,8 @@ sinsp::sinsp() :
 	m_meinfo.m_pievt.m_fdinfo = NULL;
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
+	m_k8s_client = NULL;
+	m_k8s_last_watch_time_ns = 0;
 }
 
 sinsp::~sinsp()
@@ -166,6 +169,12 @@ sinsp::~sinsp()
 	if(m_meinfo.m_piscapevt)
 	{
 		delete[] m_meinfo.m_piscapevt;
+	}
+
+	if(m_k8s_client)
+	{
+		delete m_k8s_client;
+		m_k8s_client = NULL;
 	}
 }
 
@@ -783,6 +792,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		m_thread_manager->remove_inactive_threads();
 		m_container_manager.remove_inactive_containers();
+		
+		if(m_k8s_client)
+		{
+			update_kubernetes_state();
+		}
 	}
 #endif // HAS_ANALYZER
 
@@ -930,6 +944,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 #endif
 
+	// Clean parse related event data after analyzer did its parsing too
+	m_parser->event_cleanup(evt);
+
 	//
 	// Update the last event time for this thread
 	//
@@ -1005,46 +1022,44 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 {
 	sinsp_threadinfo* sinsp_proc = find_thread(tid, lookup_only);
 
-	if(sinsp_proc == NULL && query_os_if_not_found)
+	if(sinsp_proc == NULL && query_os_if_not_found &&
+	   (m_thread_manager->m_threadtable.size() < m_max_thread_table_size || tid == m_sysdig_pid))
 	{
 		scap_threadinfo* scap_proc = NULL;
 		sinsp_threadinfo newti(this);
 
-		if(m_thread_manager->m_threadtable.size() < m_max_thread_table_size)
+		m_n_proc_lookups++;
+
+		if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
 		{
-			m_n_proc_lookups++;
+			g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64,
+				tid, m_n_proc_lookups_duration_ns / 1000000);
+		}
 
-			if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
+		if(m_n_proc_lookups == m_max_n_proc_lookups)
+		{
+			g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64,
+				m_n_proc_lookups_duration_ns / 1000000);
+		}
+
+		if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
+			(m_n_proc_lookups <= m_max_n_proc_lookups)))
+		{
+			bool scan_sockets = false;
+
+			if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
+				(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
 			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64, 
-					tid, m_n_proc_lookups_duration_ns / 1000000);
+				scan_sockets = true;
 			}
-
-			if(m_n_proc_lookups == m_max_n_proc_lookups)
-			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64, 
-					m_n_proc_lookups_duration_ns / 1000000);
-			}
-
-			if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
-				(m_n_proc_lookups <= m_max_n_proc_lookups)))
-			{
-				bool scan_sockets = false;
-
-				if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
-					(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
-				{
-					scan_sockets = true;
-				}
 
 #ifdef HAS_ANALYZER
-				uint64_t ts = sinsp_utils::get_current_time_ns();
+			uint64_t ts = sinsp_utils::get_current_time_ns();
 #endif
-				scap_proc = scap_proc_get(m_h, tid, scan_sockets);
+			scap_proc = scap_proc_get(m_h, tid, scan_sockets);
 #ifdef HAS_ANALYZER
-				m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
+			m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
 #endif
-			}
 		}
 
 		if(scap_proc)
@@ -1288,6 +1303,11 @@ void sinsp::set_log_file(string filename)
 	g_logger.add_file_log(filename);
 }
 
+void sinsp::set_log_stderr()
+{
+	g_logger.add_stderr_log();
+}
+
 void sinsp::set_min_log_severity(sinsp_logger::severity sev)
 {
 	g_logger.set_severity(sev);
@@ -1408,6 +1428,44 @@ double sinsp::get_read_progress()
 bool sinsp::remove_inactive_threads()
 {
 	return m_thread_manager->remove_inactive_threads();
+}
+
+void sinsp::init_k8s_client(const string& api_server)
+{
+	m_k8s_api_server = api_server;
+
+	if(m_k8s_client == NULL)
+	{
+		g_logger.log("Fetching initial k8s state");
+		m_k8s_client = new k8s(api_server, true);
+	}
+}
+
+void sinsp::update_kubernetes_state()
+{
+	ASSERT(m_k8s_client);
+	if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+	{
+		m_k8s_last_watch_time_ns = m_lastevent_ts;
+
+		if(m_k8s_client->is_alive())
+		{
+			uint64_t delta = sinsp_utils::get_current_time_ns();
+			
+			m_k8s_client->watch();
+
+			delta = sinsp_utils::get_current_time_ns() - delta;
+
+			g_logger.format(sinsp_logger::SEV_INFO, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
+		}
+		else
+		{
+			g_logger.format(sinsp_logger::SEV_WARNING, "Kubernetes connection not active anymore, retrying");
+			delete m_k8s_client;
+			m_k8s_client = NULL;
+			init_k8s_client(m_k8s_api_server);
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

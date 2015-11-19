@@ -51,7 +51,6 @@ function build_sysdig {
 		mkdir build
 		cd build
 		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$PROBE_VERSION ..
-		make configure_driver
 		make driver
 		strip -g driver/$PROBE_NAME.ko
 
@@ -99,7 +98,6 @@ function build_sysdigcloud {
 		mkdir build
 		cd build
 		cmake -DCMAKE_BUILD_TYPE=Release -DAGENT_VERSION=$PROBE_VERSION ..
-		make configure_driver
 		make driver
 		strip -g driver/$PROBE_NAME.ko
 
@@ -308,7 +306,12 @@ function rhel_build {
 
 		#echo Building $KERNEL_RELEASE
 
-		HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+		if [ -f boot/config-$KERNEL_RELEASE ]; then
+			HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+		else
+			HASH=$(md5sum lib/modules/$KERNEL_RELEASE/config | cut -d' ' -f1)			
+		fi
+
 		HASH_ORIG=$HASH
 
 		cd $BASEDIR

@@ -190,7 +190,11 @@ unsigned long nsecs_to_jiffies(u64 n)
  * runtime accounting.
  */
 static void cputime_adjust(struct task_cputime *curr,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0))
+			   struct prev_cputime *prev,
+#else
 			   struct cputime *prev,
+#endif
 			   cputime_t *ut, cputime_t *st)
 {
 	cputime_t rtime, stime, utime;
