@@ -52,24 +52,33 @@ target_link_libraries(sinsp
 	scap
 	"${JSONCPP_LIB}"
 	"${B64_LIB}"
-	"${CURL_LIBRARIES}"
-	"${OPENSSL_LIBRARY_SSL}"
-	"${OPENSSL_LIBRARY_CRYPTO}"
+	"${ZLIB_LIB}"
 	pthread)
-
-if(USE_BUNDLED_ZLIB)
-	add_dependencies(scap zlib)
-endif()
 
 if(NOT WIN32)
 	if(USE_BUNDLED_LUAJIT)
 		add_dependencies(sinsp luajit)
 	endif()
 
+	if(USE_BUNDLED_CURL)
+		add_dependencies(sinsp curl)
+	endif()
+
+	if(USE_BUNDLED_OPENSSL)
+		add_dependencies(sinsp openssl)
+	endif()
+
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
+		"${CURL_LIBRARIES}"
+		"${OPENSSL_LIBRARY_SSL}"
+		"${OPENSSL_LIBRARY_CRYPTO}"
 		dl)
 else()
 	target_link_libraries(sinsp
-		"${LUAJIT_LIB}")
+		"${LUAJIT_LIB}"
+		"${CURL_LIBRARIES}"
+		"${OPENSSL_LIBRARY_SSL}"
+		"${OPENSSL_LIBRARY_CRYPTO}"
+		dl)
 endif()
