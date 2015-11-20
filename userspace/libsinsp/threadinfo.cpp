@@ -654,6 +654,8 @@ void sinsp_threadinfo::reset_file_access_count()
 
 				fd.m_read_access = 0;
 				fd.m_write_access = 0;
+				fd.m_read_filtered = 0;
+				fd.m_write_filtered = 0;
 
 			}
 		}
