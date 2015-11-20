@@ -78,10 +78,11 @@ private:
 		if(!metadata.isNull())
 		{
 			k8s_pair_list entries = k8s_component::extract_object(metadata, name);
-			if(entries.size() > 0)
-			{
-				component.set_labels(std::move(entries));
-			}
+			component.set_labels(std::move(entries));
+		}
+		else
+		{
+			g_logger.log("Null metadata object received", sinsp_logger::SEV_ERROR);
 		}
 	}
 
