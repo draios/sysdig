@@ -92,6 +92,7 @@ view_info =
 			hotkey = "9",
 			command = "kill -9 %proc.pid",
 			description = "kill -9",
+			ask_confirmation = true,
 			wait_finish = false
 		},
 		{
@@ -109,6 +110,7 @@ view_info =
 			hotkey = "k",
 			command = "kill %proc.pid",
 			description = "kill",
+			ask_confirmation = true,
 			wait_finish = false
 		},
 		{

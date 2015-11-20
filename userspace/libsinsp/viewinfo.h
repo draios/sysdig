@@ -83,17 +83,20 @@ public:
 	sinsp_view_action_info(char hotkey,
 		string command,
 		string description,
+		bool ask_confirmation,
 		bool waitfinish)
 	{
 		m_hotkey = hotkey;
 		m_command = command;
 		m_description = description;
+		m_ask_confirmation = ask_confirmation;
 		m_waitfinish = waitfinish;
 	}
 
 	char m_hotkey;
 	string m_command;
 	string m_description;
+	bool m_ask_confirmation;
 	bool m_waitfinish;
 };
 
