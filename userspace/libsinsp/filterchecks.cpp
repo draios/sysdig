@@ -4609,24 +4609,24 @@ int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string&
 	return parsed_len;
 }
 
-const k8s_pod_s* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadinfo* tinfo)
+const k8s_pod_t* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadinfo* tinfo)
 {
 	if(tinfo->m_container_id.empty())
 	{
 		return NULL;
 	}
 
-	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+	const k8s_state_t& k8s_state = m_inspector->m_k8s_client->get_state();
 
 	return k8s_state.get_pod(tinfo->m_container_id);
 }
 
-const k8s_ns_s* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
+const k8s_ns_t* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
 {
-	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+	const k8s_state_t& k8s_state = m_inspector->m_k8s_client->get_state();
 
-	const k8s_state_s::namespace_map& ns_map = k8s_state.get_namespace_map();
-	k8s_state_s::namespace_map::const_iterator it = ns_map.find(ns_name);
+	const k8s_state_t::namespace_map& ns_map = k8s_state.get_namespace_map();
+	k8s_state_t::namespace_map::const_iterator it = ns_map.find(ns_name);
 	if(it != ns_map.end())
 	{
 		return it->second;
@@ -4635,12 +4635,12 @@ const k8s_ns_s* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
 	return NULL;
 }
 
-const k8s_rc_s* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_s* pod)
+const k8s_rc_t* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_t* pod)
 {
-	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
+	const k8s_state_t& k8s_state = m_inspector->m_k8s_client->get_state();
 
-	const k8s_state_s::pod_rc_map& pod_rcs = k8s_state.get_pod_rc_map();
-	k8s_state_s::pod_rc_map::const_iterator it = pod_rcs.find(pod->get_uid());
+	const k8s_state_t::pod_rc_map& pod_rcs = k8s_state.get_pod_rc_map();
+	k8s_state_t::pod_rc_map::const_iterator it = pod_rcs.find(pod->get_uid());
 	if(it != pod_rcs.end())
 	{
 		return it->second;
@@ -4649,13 +4649,13 @@ const k8s_rc_s* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_s* pod)
 	return NULL;
 }
 
-vector<const k8s_service_s*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_pod_s* pod)
+vector<const k8s_service_t*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_pod_t* pod)
 {
-	const k8s_state_s& k8s_state = m_inspector->m_k8s_client->get_state();
-	vector<const k8s_service_s*> services;
+	const k8s_state_t& k8s_state = m_inspector->m_k8s_client->get_state();
+	vector<const k8s_service_t*> services;
 
 
-	const k8s_state_s::pod_service_map& pod_services = k8s_state.get_pod_service_map();
+	const k8s_state_t::pod_service_map& pod_services = k8s_state.get_pod_service_map();
 	auto range = pod_services.equal_range(pod->get_uid());
 	for(auto it = range.first; it != range.second; ++it)
 	{
@@ -4667,7 +4667,7 @@ vector<const k8s_service_s*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_p
 
 void sinsp_filter_check_k8s::concatenate_labels(const k8s_pair_list& labels, string* s)
 {
-	for(const k8s_pair_s& label_pair : labels)
+	for(const k8s_pair_t& label_pair : labels)
 	{
 		if(!s->empty())
 		{
@@ -4684,7 +4684,7 @@ void sinsp_filter_check_k8s::concatenate_labels(const k8s_pair_list& labels, str
 
 bool sinsp_filter_check_k8s::find_label(const k8s_pair_list& labels, const string& key, string* value)
 {
-	for(const k8s_pair_s& label_pair : labels)
+	for(const k8s_pair_t& label_pair : labels)
 	{
 		if(label_pair.first == key)
 		{
@@ -4716,7 +4716,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return NULL;
 	}
 
-	const k8s_pod_s* pod = find_pod_for_thread(tinfo);
+	const k8s_pod_t* pod = find_pod_for_thread(tinfo);
 	if(pod == NULL)
 	{
 		return NULL;
@@ -4748,7 +4748,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_RC_NAME:
 	{
-		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		const k8s_rc_t* rc = find_rc_by_pod(pod);
 		if(rc != NULL)
 		{
 			m_tstr = rc->get_name();
@@ -4759,7 +4759,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_RC_ID:
 	{
-		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		const k8s_rc_t* rc = find_rc_by_pod(pod);
 		if(rc != NULL)
 		{
 			m_tstr = rc->get_uid();
@@ -4770,7 +4770,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_RC_LABEL:
 	{
-		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		const k8s_rc_t* rc = find_rc_by_pod(pod);
 		if(rc != NULL)
 		{
 			if(find_label(rc->get_labels(), m_argname, &m_tstr))
@@ -4783,7 +4783,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_RC_LABELS:
 	{
-		const k8s_rc_s* rc = find_rc_by_pod(pod);
+		const k8s_rc_t* rc = find_rc_by_pod(pod);
 		if(rc != NULL)
 		{
 			concatenate_labels(rc->get_labels(), &m_tstr);
@@ -4794,10 +4794,10 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_SVC_NAME:
 	{
-		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		vector<const k8s_service_t*> services = find_svc_by_pod(pod);
 		if(!services.empty())
 		{
-			for(const k8s_service_s* service : services)
+			for(const k8s_service_t* service : services)
 			{
 				if(!m_tstr.empty())
 				{
@@ -4814,10 +4814,10 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_SVC_ID:
 	{
-		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		vector<const k8s_service_t*> services = find_svc_by_pod(pod);
 		if(!services.empty())
 		{
-			for(const k8s_service_s* service : services)
+			for(const k8s_service_t* service : services)
 			{
 				if(!m_tstr.empty())
 				{
@@ -4834,10 +4834,10 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_SVC_LABEL:
 	{
-		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		vector<const k8s_service_t*> services = find_svc_by_pod(pod);
 		if(!services.empty())
 		{
-			for(const k8s_service_s* service : services)
+			for(const k8s_service_t* service : services)
 			{
 				string val;
 				if(find_label(service->get_labels(), m_argname, &val))
@@ -4861,10 +4861,10 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_SVC_LABELS:
 	{
-		vector<const k8s_service_s*> services = find_svc_by_pod(pod);
+		vector<const k8s_service_t*> services = find_svc_by_pod(pod);
 		if(!services.empty())
 		{
-			for(const k8s_service_s* service : services)
+			for(const k8s_service_t* service : services)
 			{
 				concatenate_labels(service->get_labels(), &m_tstr);
 			}
@@ -4881,7 +4881,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_NS_ID:
 	{
-		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		const k8s_ns_t* ns = find_ns_by_name(pod->get_namespace());
 		if(ns != NULL)
 		{
 			m_tstr = ns->get_uid();
@@ -4892,7 +4892,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_NS_LABEL:
 	{
-		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		const k8s_ns_t* ns = find_ns_by_name(pod->get_namespace());
 		if(ns != NULL)
 		{
 			if(find_label(ns->get_labels(), m_argname, &m_tstr))
@@ -4905,7 +4905,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 	case TYPE_K8S_NS_LABELS:
 	{
-		const k8s_ns_s* ns = find_ns_by_name(pod->get_namespace());
+		const k8s_ns_t* ns = find_ns_by_name(pod->get_namespace());
 		if(ns != NULL)
 		{
 			concatenate_labels(ns->get_labels(), &m_tstr);

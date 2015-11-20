@@ -12,7 +12,7 @@ class k8s_event_data
 {
 public:
 	k8s_event_data() = delete;
-	
+
 	k8s_event_data(k8s_component::type component, const char* data, int len);
 
 	k8s_event_data(const k8s_event_data& other);
@@ -22,7 +22,7 @@ public:
 	k8s_event_data& operator=(k8s_event_data&& other);
 
 	k8s_component::type component() const;
-	
+
 	std::string data() const;
 
 private:

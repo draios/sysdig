@@ -4,6 +4,8 @@
 
 #pragma once
 
+#ifdef HAS_CAPTURE
+
 #include "k8s_common.h"
 #include <map>
 #include <atomic>
@@ -50,3 +52,5 @@ inline void k8s_collector::stop()
 {
 	m_stopped = true;
 }
+
+#endif // HAS_CAPTURE

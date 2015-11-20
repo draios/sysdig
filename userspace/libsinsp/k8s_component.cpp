@@ -94,7 +94,7 @@ k8s_pair_list k8s_component::extract_object(const Json::Value& object, const std
 				Json::Value val = entries[member];
 				if(!val.isNull())
 				{
-					entry_list.emplace_back(k8s_pair_s(member, val.asString()));
+					entry_list.emplace_back(k8s_pair_t(member, val.asString()));
 				}
 			}
 		}
@@ -179,7 +179,7 @@ k8s_container::list k8s_component::extract_pod_containers(const Json::Value& ite
 	return ext_containers;
 }
 
-void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_s& pod)
+void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 {
 	Json::Value spec = item["spec"];
 	if(!spec.isNull())
@@ -249,7 +249,7 @@ std::vector<std::string> k8s_component::extract_nodes_addresses(const Json::Valu
 	return address_list;
 }
 
-void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s& service, const k8s_state_s::pods& pods)
+void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_t& service, const k8s_pods& pods)
 {
 	if(!spec.isNull())
 	{
@@ -259,13 +259,13 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s
 			service.set_cluster_ip(cluster_ip.asString());
 		}
 
-		k8s_service_s::port_list pl;
+		k8s_service_t::port_list pl;
 		Json::Value ports = spec["ports"];
 		if(!ports.isNull() && ports.isArray())
 		{
 			for (auto& port : ports)
 			{
-				k8s_service_s::net_port p;
+				k8s_service_t::net_port p;
 				Json::Value json_port = port["port"];
 				if(!json_port.isNull())
 				{
@@ -288,7 +288,7 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_s
 					else if(json_target_port.isString())
 					{
 						std::string port_name = std::move(json_target_port.asString());
-						std::vector<const k8s_pod_s*> pod_subset = service.get_selected_pods(pods);
+						std::vector<const k8s_pod_t*> pod_subset = service.get_selected_pods(pods);
 						p.m_target_port = 0;
 						for(const auto& pod : pod_subset)
 						{
@@ -394,7 +394,7 @@ k8s_component::type k8s_component::get_type(const std::string& name)
 	throw sinsp_exception(os.str().c_str());
 }
 
-k8s_pair_s* k8s_component::get_label(const k8s_pair_s& label)
+k8s_pair_t* k8s_component::get_label(const k8s_pair_t& label)
 {
 	for (auto& lbl : m_labels)
 	{
@@ -417,7 +417,7 @@ void k8s_component::add_labels(k8s_pair_list&& labels)
 	}
 }
 
-k8s_pair_s* k8s_component::get_selector(const k8s_pair_s& selector)
+k8s_pair_t* k8s_component::get_selector(const k8s_pair_t& selector)
 {
 	for (auto& sel : m_selectors)
 	{
@@ -442,7 +442,7 @@ void k8s_component::add_selectors(k8s_pair_list&& selectors)
 
 // TODO: proper selection process is more complicated, see “Labels and Selectors” at
 // http://kubernetes.io/v1.0/docs/user-guide/labels.html
-bool k8s_component::selector_in_labels(const k8s_pair_s& selector, const k8s_pair_list& labels) const
+bool k8s_component::selector_in_labels(const k8s_pair_t& selector, const k8s_pair_list& labels) const
 {
 	for(const auto& label : labels)
 	{
@@ -470,7 +470,7 @@ bool k8s_component::selectors_in_labels(const k8s_pair_list& labels) const
 //
 // namespace
 //
-k8s_ns_s::k8s_ns_s(const std::string& name, const std::string& uid, const std::string& ns) :
+k8s_ns_t::k8s_ns_t(const std::string& name, const std::string& uid, const std::string& ns) :
 	k8s_component(name, uid, ns)
 {
 }
@@ -480,7 +480,7 @@ k8s_ns_s::k8s_ns_s(const std::string& name, const std::string& uid, const std::s
 // node
 //
 
-k8s_node_s::k8s_node_s(const std::string& name, const std::string& uid, const std::string& ns) :
+k8s_node_t::k8s_node_t(const std::string& name, const std::string& uid, const std::string& ns) :
 	k8s_component(name, uid, ns)
 {
 }
@@ -490,12 +490,12 @@ k8s_node_s::k8s_node_s(const std::string& name, const std::string& uid, const st
 // pod 
 //
 
-k8s_pod_s::k8s_pod_s(const std::string& name, const std::string& uid, const std::string& ns) :
+k8s_pod_t::k8s_pod_t(const std::string& name, const std::string& uid, const std::string& ns) :
 	k8s_component(name, uid, ns)
 {
 }
 
-bool k8s_pod_s::has_container_id(const std::string& container_id)
+bool k8s_pod_t::has_container_id(const std::string& container_id)
 {
 	for(const auto& c : m_container_ids)
 	{
@@ -504,7 +504,7 @@ bool k8s_pod_s::has_container_id(const std::string& container_id)
 	return false;
 }
 
-std::string* k8s_pod_s::get_container_id(const std::string& container_id)
+std::string* k8s_pod_t::get_container_id(const std::string& container_id)
 {
 	for(auto& c : m_container_ids)
 	{
@@ -513,7 +513,7 @@ std::string* k8s_pod_s::get_container_id(const std::string& container_id)
 	return 0;
 }
 
-k8s_container* k8s_pod_s::get_container(const std::string& container_name)
+k8s_container* k8s_pod_t::get_container(const std::string& container_name)
 {
 	for(auto& c : m_containers)
 	{
@@ -525,14 +525,14 @@ k8s_container* k8s_pod_s::get_container(const std::string& container_name)
 //
 // replication controller
 //
-k8s_rc_s::k8s_rc_s(const std::string& name, const std::string& uid, const std::string& ns) : 
+k8s_rc_t::k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns) : 
 	k8s_component(name, uid, ns)
 {
 }
 
-std::vector<const k8s_pod_s*> k8s_rc_s::get_selected_pods(const std::vector<k8s_pod_s>& pods) const
+std::vector<const k8s_pod_t*> k8s_rc_t::get_selected_pods(const std::vector<k8s_pod_t>& pods) const
 {
-	std::vector<const k8s_pod_s*> pod_vec;
+	std::vector<const k8s_pod_t*> pod_vec;
 	for(const auto& pod : pods)
 	{
 		if (selectors_in_labels(pod.get_labels()) && get_namespace() == pod.get_namespace())
@@ -547,14 +547,14 @@ std::vector<const k8s_pod_s*> k8s_rc_s::get_selected_pods(const std::vector<k8s_
 //
 // service
 //
-k8s_service_s::k8s_service_s(const std::string& name, const std::string& uid, const std::string& ns) : 
+k8s_service_t::k8s_service_t(const std::string& name, const std::string& uid, const std::string& ns) : 
 	k8s_component(name, uid, ns)
 {
 }
 
-std::vector<const k8s_pod_s*> k8s_service_s::get_selected_pods(const std::vector<k8s_pod_s>& pods) const
+std::vector<const k8s_pod_t*> k8s_service_t::get_selected_pods(const std::vector<k8s_pod_t>& pods) const
 {
-	std::vector<const k8s_pod_s*> pod_vec;
+	std::vector<const k8s_pod_t*> pod_vec;
 	for(const auto& pod : pods)
 	{
 		if (selectors_in_labels(pod.get_labels()) && get_namespace() == pod.get_namespace())
@@ -563,335 +563,5 @@ std::vector<const k8s_pod_s*> k8s_service_s::get_selected_pods(const std::vector
 		}
 	}
 	return pod_vec;
-}
-
-//
-// state
-//
-
-#ifdef K8S_DISABLE_THREAD
-
-const std::string k8s_state_s::m_prefix = "docker://";
-const unsigned    k8s_state_s::m_id_length = 12u;
-
-#endif // K8S_DISABLE_THREAD
-
-k8s_state_s::k8s_state_s()
-{
-}
-
-// state/pods
-
-void k8s_state_s::update_pod(k8s_pod_s& pod, const Json::Value& item, bool reset)
-{
-	k8s_pod_s::container_id_list container_ids = k8s_component::extract_pod_container_ids(item);
-	k8s_container::list containers = k8s_component::extract_pod_containers(item);
-
-	k8s_component::extract_pod_data(item, pod);
-
-	if(reset) // initially, we just set everything
-	{
-		pod.set_container_ids(std::move(container_ids));
-		pod.set_containers(std::move(containers));
-	}
-	else // update call
-	{
-		for(k8s_pod_s::container_id_list::iterator it = container_ids.begin(); it != container_ids.end();)
-		{
-			if(pod.has_container_id(*it))
-			{
-				// ignoring container ID notification for an existing ID
-				it = container_ids.erase(it);
-			}
-			else
-			{
-				++it;
-			}
-		}
-
-		if(container_ids.size()) // what's left are new container IDs
-		{
-			pod.add_container_ids(std::move(container_ids));
-		}
-
-		for(k8s_pod_s::container_list::iterator it = containers.begin(); it != containers.end();)
-		{
-			k8s_container* c = pod.get_container(it->get_name());
-			if(c && (*c != *it))
-			{
-				*c = *it;
-				it = containers.erase(it);
-			}
-			else
-			{
-				++it;
-			}
-		}
-
-		if(containers.size()) // what's left are new containers
-		{
-			pod.add_containers(std::move(containers));
-		}
-	}
-}
-
-bool k8s_state_s::has_pod(k8s_pod_s& pod)
-{
-	for(const auto& p : m_pods)
-	{
-		if(p == pod) { return true; }
-	}
-	return false;
-}
-
-// state/general
-
-void k8s_state_s::replace_items(k8s_component::type t, const std::string& name, const std::vector<k8s_pair_s>&& items)
-{
-	switch (t)
-	{
-	case k8s_component::K8S_NODES:
-		if(name == "labels")
-		{
-			m_nodes.back().m_labels = std::move(items);
-			return;
-		}
-		break;
-
-	case k8s_component::K8S_NAMESPACES:
-		if(name == "labels")
-		{
-			m_namespaces.back().m_labels = std::move(items);
-			return;
-		}
-		break;
-
-	case k8s_component::K8S_PODS:
-		if(name == "labels")
-		{
-			m_pods.back().m_labels = std::move(items);
-			return;
-		}
-		break;
-	// only controllers and services can have selectors
-	case k8s_component::K8S_REPLICATIONCONTROLLERS:
-		if(name == "labels")
-		{
-			m_controllers.back().m_labels = std::move(items);
-			return;
-		}
-		else if(name == "selector")
-		{
-			m_controllers.back().m_selectors = std::move(items);
-			return;
-		}
-		break;
-
-	case k8s_component::K8S_SERVICES:
-		if(name == "labels")
-		{
-			m_services.back().m_labels = std::move(items);
-			return;
-		}
-		else if(name == "selector")
-		{
-			m_services.back().m_selectors = std::move(items);
-			return;
-		}
-		break;
-	case k8s_component::K8S_COMPONENT_COUNT:
-	default:
-		break;
-	}
-
-	std::ostringstream os;
-	os << "Unknown component type " << static_cast<int>(t) <<
-		" or object name " << name;
-	throw sinsp_exception(os.str().c_str());
-}
-
-k8s_component& k8s_state_s::add_common_single_value(k8s_component::type component, const std::string& name, const std::string& uid, const std::string& ns)
-{
-	switch (component)
-	{
-		case k8s_component::K8S_NODES:
-			return get_component<nodes, k8s_node_s>(m_nodes, name, uid, ns);
-
-		case k8s_component::K8S_NAMESPACES:
-			return get_component<namespaces, k8s_ns_s>(m_namespaces, name, uid, ns);
-
-		case k8s_component::K8S_PODS:
-			return get_component<pods, k8s_pod_s>(m_pods, name, uid, ns);
-
-		case k8s_component::K8S_REPLICATIONCONTROLLERS:
-			return get_component<controllers, k8s_rc_s>(m_controllers, name, uid, ns);
-
-		case k8s_component::K8S_SERVICES:
-			return get_component<services, k8s_service_s>(m_services, name, uid, ns);
-
-		case k8s_component::K8S_COMPONENT_COUNT:
-		default:
-			break;
-	}
-
-	std::ostringstream os;
-	os << "Unknown component: " << component;
-	throw sinsp_exception(os.str());
-}
-
-k8s_node_s* k8s_state_s::get_node(const std::string& uid)
-{
-	for (auto& node : m_nodes)
-	{
-		if(node.get_uid() == uid)
-		{
-			return &node;
-		}
-	}
-
-	return nullptr;
-}
-
-void k8s_state_s::clear(k8s_component::type type)
-{
-	if(type == k8s_component::K8S_COMPONENT_COUNT)
-	{
-		m_namespaces.clear();
-		m_nodes.clear();
-		m_pods.clear();
-		m_controllers.clear();
-		m_services.clear();
-	}
-	else
-	{
-		switch (type)
-		{
-		case k8s_component::K8S_NODES:
-			m_nodes.clear();
-			break;
-		case k8s_component::K8S_NAMESPACES:
-			m_namespaces.clear();
-			break;
-		case k8s_component::K8S_PODS:
-			m_pods.clear();
-			break;
-		case k8s_component::K8S_REPLICATIONCONTROLLERS:
-			m_controllers.clear();
-			break;
-		case k8s_component::K8S_SERVICES:
-			m_services.clear();
-			break;
-		case k8s_component::K8S_COMPONENT_COUNT:
-		default:
-			break;
-		}
-	}
-}
-
-// state/caching
-
-void k8s_state_s::update_cache(const k8s_component::component_map::key_type& component)
-{
-#ifdef K8S_DISABLE_THREAD
-
-	switch (component)
-	{
-		case k8s_component::K8S_NAMESPACES:
-		{
-			const k8s_state_s::namespaces& nspaces = get_namespaces();
-			k8s_state_s::namespace_map& ns_map = get_namespace_map();
-			ns_map.clear();
-			for(const auto& ns : nspaces)
-			{
-				std::string ns_name = ns.get_name();
-				if(!is_component_cached(ns_map, ns_name, &ns))
-				{
-					cache_component(ns_map, ns_name, &ns);
-				}
-				else
-				{
-					g_logger.log("Attempt to cache already cached NAMESPACE: " + ns_name, sinsp_logger::SEV_ERROR);
-				}
-			}
-		}
-		break;
-
-		case k8s_component::K8S_PODS:
-		{
-			const k8s_state_s::pods& pods = get_pods();
-			k8s_state_s::container_pod_map& container_pod_map = get_container_pod_map();
-			container_pod_map.clear();
-			for(const auto& pod : pods)
-			{
-				const k8s_pod_s::container_id_list& c_ids = pod.get_container_ids();
-				for(const auto& c_id : c_ids)
-				{
-					if(!is_component_cached(container_pod_map, c_id, &pod))
-					{
-						cache_pod(container_pod_map, c_id, &pod);
-					}
-					else
-					{
-						g_logger.log("Attempt to cache already cached POD: " + c_id, sinsp_logger::SEV_ERROR);
-					}
-				}
-			}
-		}
-		break;
-
-		case k8s_component::K8S_REPLICATIONCONTROLLERS:
-		{
-			const k8s_state_s::controllers& rcs = get_rcs();
-			const k8s_state_s::pods& pods = get_pods();
-			k8s_state_s::pod_rc_map& pod_ctrl_map = get_pod_rc_map();
-			pod_ctrl_map.clear();
-			for(const auto& rc : rcs)
-			{
-				std::vector<const k8s_pod_s*> pod_subset = rc.get_selected_pods(pods);
-				for(auto& pod : pod_subset)
-				{
-					const std::string& pod_uid = pod->get_uid();
-					if(!is_component_cached(pod_ctrl_map, pod_uid, &rc))
-					{
-						cache_component(pod_ctrl_map, pod_uid, &rc);
-					}
-					else
-					{
-						g_logger.log("Attempt to cache already cached REPLICATION CONTROLLER: " + pod_uid, sinsp_logger::SEV_ERROR);
-					}
-				}
-			}
-		}
-		break;
-
-		case k8s_component::K8S_SERVICES:
-		{
-			const k8s_state_s::services& services = get_services();
-			const k8s_state_s::pods& pods = get_pods();
-			k8s_state_s::pod_service_map& pod_svc_map = get_pod_service_map();
-			pod_svc_map.clear();
-			for(const auto& service : services)
-			{
-				std::vector<const k8s_pod_s*> pod_subset = service.get_selected_pods(pods);
-				for(auto& pod : pod_subset)
-				{
-					const std::string& pod_uid = pod->get_uid();
-					if(!is_component_cached(pod_svc_map, pod_uid, &service))
-					{
-						cache_component(pod_svc_map, pod_uid, &service);
-					}
-					else
-					{
-						g_logger.log("Attempt to cache already cached SERVICE: " + pod_uid, sinsp_logger::SEV_ERROR);
-					}
-				}
-			}
-		}
-		break;
-
-		default: return;
-	}
-
-#endif // K8S_DISABLE_THREAD
 }
 

@@ -1989,8 +1989,17 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	// Read the block header
 	//
 	readsize = gzread(f, &bh, sizeof(bh));
+
 	if(readsize != sizeof(bh))
 	{
+		int err_no = 0;
+		const char* err_str = gzerror(f, &err_no);
+		if(err_no)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading file: %s, ernum=%d", err_str, err_no);
+			return SCAP_FAILURE;
+		}
+
 		if(readsize == 0)
 		{
 			//
