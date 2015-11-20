@@ -300,15 +300,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 			}
 			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
-			Json::Value metadata = object["metadata"];
-			if(!metadata.isNull())
-			{
-				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
-				if(entries.size() > 0)
-				{
-					pod.set_labels(std::move(entries));
-				}
-			}
+			handle_labels(pod, object["metadata"], "labels");
 			m_state.update_pod(pod, object, false);
 		}
 	}
@@ -325,15 +317,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 				return;
 			}
 			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
-			Json::Value metadata = object["metadata"];
-			if(!metadata.isNull())
-			{
-				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
-				if(entries.size() > 0)
-				{
-					pod.add_labels(std::move(entries));
-				}
-			}
+			handle_labels(pod, object["metadata"], "labels");
 			m_state.update_pod(pod, object, false);
 		}
 	}

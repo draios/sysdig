@@ -71,8 +71,22 @@ private:
 	void handle_rc(const Json::Value& root, const msg_data& data);
 	void handle_service(const Json::Value& root, const msg_data& data);
 
+	// resets the content of labels
+	template <typename T>
+	void handle_labels(T& component, const Json::Value& metadata, const std::string& name)
+	{
+		if(!metadata.isNull())
+		{
+			k8s_pair_list entries = k8s_component::extract_object(metadata, name);
+			if(entries.size() > 0)
+			{
+				component.set_labels(std::move(entries));
+			}
+		}
+	}
+
 	static std::string to_reason_desc(msg_reason reason);
-	
+
 	static msg_reason to_reason(const std::string& desc);
 
 	typedef std::deque<std::string> list;
