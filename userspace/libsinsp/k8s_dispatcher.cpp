@@ -358,25 +358,8 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 		Json::Value object = root["object"];
 		if(!object.isNull())
 		{
-			Json::Value metadata = object["metadata"];
-			if(!metadata.isNull())
-			{
-				k8s_pair_list labels = k8s_component::extract_object(metadata, "labels");
-				if(labels.size() > 0)
-				{
-					rc.set_labels(std::move(labels));
-				}
-			}
-
-			Json::Value spec = object["spec"];
-			if(!spec.isNull())
-			{
-				k8s_pair_list selectors = k8s_component::extract_object(spec, "selector");
-				if(selectors.size() > 0)
-				{
-					rc.set_selectors(std::move(selectors));
-				}
-			}
+			handle_labels(rc, object["metadata"], "labels");
+			handle_selectors(rc, object["spec"], "selector");
 		}
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
@@ -392,25 +375,8 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 		Json::Value object = root["object"];
 		if(!object.isNull())
 		{
-			Json::Value metadata = object["metadata"];
-			if(!metadata.isNull())
-			{
-				k8s_pair_list labels = k8s_component::extract_object(metadata, "labels");
-				if(labels.size() > 0)
-				{
-					rc.add_labels(std::move(labels));
-				}
-			}
-
-			Json::Value spec = object["spec"];
-			if(!spec.isNull())
-			{
-				k8s_pair_list selectors = k8s_component::extract_object(spec, "selector");
-				if(selectors.size() > 0)
-				{
-					rc.add_selectors(std::move(selectors));
-				}
-			}
+			handle_labels(rc, object["metadata"], "labels");
+			handle_selectors(rc, object["spec"], "selector");
 		}
 	}
 	else if(data.m_reason == COMPONENT_DELETED)
@@ -442,15 +408,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 			}
 			k8s_service_t& service = m_state.get_component<k8s_services, k8s_service_t>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
-			Json::Value metadata = object["metadata"];
-			if(!metadata.isNull())
-			{
-				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
-				if(entries.size() > 0)
-				{
-					service.set_labels(std::move(entries));
-				}
-			}
+			handle_labels(service, object["metadata"], "labels");
 			k8s_component::extract_services_data(object, service, m_state.get_pods());
 		}
 	}
@@ -467,15 +425,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 				return;
 			}
 			k8s_service_t& service = m_state.get_component<k8s_services, k8s_service_t>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
-			Json::Value metadata = object["metadata"];
-			if(!metadata.isNull())
-			{
-				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
-				if(entries.size() > 0)
-				{
-					service.add_labels(std::move(entries));
-				}
-			}
+			handle_labels(service, object["metadata"], "labels");
 			k8s_component::extract_services_data(object, service, m_state.get_pods());
 		}
 	}

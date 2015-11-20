@@ -71,7 +71,7 @@ private:
 	void handle_rc(const Json::Value& root, const msg_data& data);
 	void handle_service(const Json::Value& root, const msg_data& data);
 
-	// resets the content of labels
+	// clears the content of labels and fills it with new values, if any
 	template <typename T>
 	void handle_labels(T& component, const Json::Value& metadata, const std::string& name)
 	{
@@ -83,6 +83,21 @@ private:
 		else
 		{
 			g_logger.log("Null metadata object received", sinsp_logger::SEV_ERROR);
+		}
+	}
+
+	// clears the content of seelctors and fills it with new values, if any
+	template <typename T>
+	void handle_selectors(T& component, const Json::Value& spec, const std::string& name)
+	{
+		if(!spec.isNull())
+		{
+			k8s_pair_list selectors = k8s_component::extract_object(spec, name);
+			component.set_selectors(std::move(selectors));
+		}
+		else
+		{
+			g_logger.log("Null spec object received", sinsp_logger::SEV_ERROR);
 		}
 	}
 
