@@ -86,7 +86,7 @@ private:
 		}
 	}
 
-	// clears the content of seelctors and fills it with new values, if any
+	// clears the content of selectors and fills it with new values, if any
 	template <typename T>
 	void handle_selectors(T& component, const Json::Value& spec, const std::string& name)
 	{
