@@ -5,6 +5,7 @@ include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
 include_directories("${B64_INCLUDE}")
 include_directories("${CURL_INCLUDE_DIR}")
+include_directories("${ZLIB_INCLUDE}")
 
 if(NOT WIN32)
 	include_directories("${CURSES_INCLUDE_DIR}")
@@ -55,6 +56,10 @@ target_link_libraries(sinsp
 	"${OPENSSL_LIBRARY_SSL}"
 	"${OPENSSL_LIBRARY_CRYPTO}"
 	pthread)
+
+if(USE_BUNDLED_ZLIB)
+	add_dependencies(scap zlib)
+endif()
 
 if(NOT WIN32)
 	if(USE_BUNDLED_LUAJIT)

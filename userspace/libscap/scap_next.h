@@ -7,7 +7,7 @@ extern "C" {
 #include "settings.h"
 #include <unistd.h>
 #include "scap.h"
-#include "scap-int_live.h"
+#include "scap-int.h"
 
 #include "../../driver/ppm_ringbuffer.h"
 

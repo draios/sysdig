@@ -351,7 +351,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	//
 	// Open the file
 	//
-	handle->m_file = VD(gzopen(fname, "rb"));
+	handle->m_file = gzopen(fname, "rb");
 	if(handle->m_file == NULL)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", fname);
@@ -362,7 +362,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	//
 	// Validate the file and load the non-event blocks
 	//
-	if(scap_read_init(handle, GZ(handle->m_file)) != SCAP_SUCCESS)
+	if(scap_read_init(handle, handle->m_file) != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", scap_getlasterr(handle));
 		scap_close(handle);
@@ -421,7 +421,7 @@ void scap_close(scap_t* handle)
 {
 	if(handle->m_file)
 	{
-		gzclose(GZ(handle->m_file));
+		gzclose(handle->m_file);
 	}
 	else
 	{
