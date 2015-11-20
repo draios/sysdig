@@ -282,4 +282,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MOUNT_X */{"mount", EC_FILE, EF_MODIFIES_STATE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dev", PT_CHARBUF, PF_NA}, {"dir", PT_FSPATH, PF_NA}, {"type", PT_CHARBUF, PF_NA} } },
 	/* PPME_SYSCALL_UMOUNT_E */{"umount", EC_FILE, EF_MODIFIES_STATE, 1, {{"flags", PT_FLAGS32, PF_HEX, umount_flags} } },
 	/* PPME_SYSCALL_UMOUNT_X */{"umount", EC_FILE, EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"name", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_SEMGET_E */{"semget", EC_PROCESS, EF_NONE, 3, {{"key", PT_INT32, PF_HEX}, {"nsems", PT_INT32, PF_DEC}, {"semflg", PT_FLAGS32, PF_HEX, semget_flags} } },
+	/* PPME_SYSCALL_SEMGET_X */{"semget", EC_PROCESS, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 };
