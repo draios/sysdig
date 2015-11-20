@@ -3576,7 +3576,7 @@ void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	//g_logger.log("[" + json + "]", sinsp_logger::SEV_DEBUG);
+	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
 	ASSERT(m_inspector);
 	ASSERT(m_inspector->m_k8s_client);
 	m_inspector->m_k8s_client->simulate_watch_event(json);
