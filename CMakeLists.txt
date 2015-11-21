@@ -228,89 +228,91 @@ if(NOT WIN32)
 	endif()
 endif()
 
-#
-# libb64
-#
-option(USE_BUNDLED_B64 "Enable building of the bundled b64" ${USE_BUNDLED_DEPS})
+if(NOT WIN32 AND NOT APPLE)
+	#
+	# libb64
+	#
+	option(USE_BUNDLED_B64 "Enable building of the bundled b64" ${USE_BUNDLED_DEPS})
 
-if(NOT USE_BUNDLED_B64)
-	find_path(B64_INCLUDE NAMES b64/encode.h)
-	find_library(B64_LIB NAMES b64)
-	if(B64_INCLUDE AND B64_LIB)
-		message(STATUS "Found b64: include: ${B64_INCLUDE}, lib: ${B64_LIB}")
+	if(NOT USE_BUNDLED_B64)
+		find_path(B64_INCLUDE NAMES b64/encode.h)
+		find_library(B64_LIB NAMES b64)
+		if(B64_INCLUDE AND B64_LIB)
+			message(STATUS "Found b64: include: ${B64_INCLUDE}, lib: ${B64_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system b64")
+		endif()
 	else()
-		message(FATAL_ERROR "Couldn't find system b64")
+		set(B64_SRC "${PROJECT_BINARY_DIR}/b64-prefix/src/b64")
+		message(STATUS "Using bundled b64 in '${B64_SRC}'")
+		set(B64_INCLUDE "${B64_SRC}/include")
+		set(B64_LIB "${B64_SRC}/src/libb64.a")
+		ExternalProject_Add(b64
+			URL "http://download.draios.com/dependencies/libb64-1.2.src.zip"
+			URL_MD5 "a609809408327117e2c643bed91b76c5"
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ${CMD_MAKE}
+			BUILD_IN_SOURCE 1
+			INSTALL_COMMAND "")
 	endif()
-else()
-	set(B64_SRC "${PROJECT_BINARY_DIR}/b64-prefix/src/b64")
-	message(STATUS "Using bundled b64 in '${B64_SRC}'")
-	set(B64_INCLUDE "${B64_SRC}/include")
-	set(B64_LIB "${B64_SRC}/src/libb64.a")
-	ExternalProject_Add(b64
-		URL "http://download.draios.com/dependencies/libb64-1.2.src.zip"
-		URL_MD5 "a609809408327117e2c643bed91b76c5"
-		CONFIGURE_COMMAND ""
-		BUILD_COMMAND ${CMD_MAKE}
-		BUILD_IN_SOURCE 1
-		INSTALL_COMMAND "")
-endif()
 
-#
-# OpenSSL
-#
-option(USE_BUNDLED_OPENSSL "Enable building of the bundled OpenSSL" ${USE_BUNDLED_DEPS})
-
-if(NOT USE_BUNDLED_OPENSSL)
-	find_package(OpenSSL REQUIRED)
-	message(STATUS "Found OpenSSL: include: ${OPENSSL_INCLUDE_DIR}, lib: ${OPENSSL_LIBRARIES}")
-else()
-	set(OPENSSL_BUNDLE_DIR "${PROJECT_BINARY_DIR}/openssl-prefix/src/openssl")
-	set(OPENSSL_INSTALL_DIR "${OPENSSL_BUNDLE_DIR}/target")
-	set(OPENSSL_LIBRARY_SSL "${OPENSSL_INSTALL_DIR}/lib/libssl.a")
-	set(OPENSSL_LIBRARY_CRYPTO "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a")
-
-	message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
-
-	ExternalProject_Add(openssl
-		URL "http://download.draios.com/dependencies/openssl-1.0.2d.tar.gz"
-		URL_MD5 "38dd619b2e77cbac69b99f52a053d25a"
-		CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
-		BUILD_COMMAND ${CMD_MAKE}
-		BUILD_IN_SOURCE 1
-		INSTALL_COMMAND ${CMD_MAKE} install)
-endif()
-
-#
-# libcurl
-#
-option(USE_BUNDLED_CURL "Enable building of the bundled curl" ${USE_BUNDLED_DEPS})
-
-if(NOT USE_BUNDLED_CURL)
-	find_package(CURL REQUIRED)
-	message(STATUS "Found CURL: include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARIES}")
-else()
-	set(CURL_BUNDLE_DIR "${PROJECT_BINARY_DIR}/curl-prefix/src/curl")
-	set(CURL_INCLUDE_DIR "${CURL_BUNDLE_DIR}/include/")
-	set(CURL_LIBRARIES "${CURL_BUNDLE_DIR}/lib/.libs/libcurl.a")
+	#
+	# OpenSSL
+	#
+	option(USE_BUNDLED_OPENSSL "Enable building of the bundled OpenSSL" ${USE_BUNDLED_DEPS})
 
 	if(NOT USE_BUNDLED_OPENSSL)
-		set(CURL_SSL_OPTION "")
+		find_package(OpenSSL REQUIRED)
+		message(STATUS "Found OpenSSL: include: ${OPENSSL_INCLUDE_DIR}, lib: ${OPENSSL_LIBRARIES}")
 	else()
-		set(CURL_SSL_OPTION "--with-ssl=${OPENSSL_INSTALL_DIR}")
+		set(OPENSSL_BUNDLE_DIR "${PROJECT_BINARY_DIR}/openssl-prefix/src/openssl")
+		set(OPENSSL_INSTALL_DIR "${OPENSSL_BUNDLE_DIR}/target")
+		set(OPENSSL_LIBRARY_SSL "${OPENSSL_INSTALL_DIR}/lib/libssl.a")
+		set(OPENSSL_LIBRARY_CRYPTO "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a")
+
+		message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
+
+		ExternalProject_Add(openssl
+			URL "http://download.draios.com/dependencies/openssl-1.0.2d.tar.gz"
+			URL_MD5 "38dd619b2e77cbac69b99f52a053d25a"
+			CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
+			BUILD_COMMAND ${CMD_MAKE}
+			BUILD_IN_SOURCE 1
+			INSTALL_COMMAND ${CMD_MAKE} install)
 	endif()
 
-	message(STATUS "Using bundled curl in '${CURL_BUNDLE_DIR}'")
-	message(STATUS "Using SSL for curl in '${CURL_SSL_OPTION}'")
+	#
+	# libcurl
+	#
+	option(USE_BUNDLED_CURL "Enable building of the bundled curl" ${USE_BUNDLED_DEPS})
 
-	ExternalProject_Add(curl
-		DEPENDS openssl
-		URL "http://download.draios.com/dependencies/curl-7.45.0.tar.bz2"
-		URL_MD5 "62c1a352b28558f25ba6209214beadc8"
-		CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2
-		BUILD_COMMAND ${CMD_MAKE}
-		BUILD_IN_SOURCE 1
-		INSTALL_COMMAND "")
-endif()
+	if(NOT USE_BUNDLED_CURL)
+		find_package(CURL REQUIRED)
+		message(STATUS "Found CURL: include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARIES}")
+	else()
+		set(CURL_BUNDLE_DIR "${PROJECT_BINARY_DIR}/curl-prefix/src/curl")
+		set(CURL_INCLUDE_DIR "${CURL_BUNDLE_DIR}/include/")
+		set(CURL_LIBRARIES "${CURL_BUNDLE_DIR}/lib/.libs/libcurl.a")
+
+		if(NOT USE_BUNDLED_OPENSSL)
+			set(CURL_SSL_OPTION "")
+		else()
+			set(CURL_SSL_OPTION "--with-ssl=${OPENSSL_INSTALL_DIR}")
+		endif()
+
+		message(STATUS "Using bundled curl in '${CURL_BUNDLE_DIR}'")
+		message(STATUS "Using SSL for curl in '${CURL_SSL_OPTION}'")
+
+		ExternalProject_Add(curl
+			DEPENDS openssl
+			URL "http://download.draios.com/dependencies/curl-7.45.0.tar.bz2"
+			URL_MD5 "62c1a352b28558f25ba6209214beadc8"
+			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2
+			BUILD_COMMAND ${CMD_MAKE}
+			BUILD_IN_SOURCE 1
+			INSTALL_COMMAND "")
+	endif()
+endif() # NOT WIN32 AND NOT APPLE
 
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)

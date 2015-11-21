@@ -2,14 +2,16 @@
 // k8s_collector.cpp
 //
 
+#ifdef HAS_CAPTURE
 
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "k8s_collector.h"
 #include "k8s_http.h"
-#include <unistd.h>
 #include <string.h>
 #include <sstream>
+#include <unistd.h>
+
 
 k8s_collector::k8s_collector(bool do_loop, long timeout_ms): m_subscription_count(0),
 	m_nfds(0),
@@ -159,3 +161,6 @@ void k8s_collector::get_data()
 		m_stopped = true;
 	}
 }
+
+
+#endif // HAS_CAPTURE

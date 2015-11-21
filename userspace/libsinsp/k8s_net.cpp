@@ -2,6 +2,8 @@
 // k8s_net.cpp
 //
 
+#ifdef HAS_CAPTURE
+
 #include "k8s_net.h"
 #include "k8s_component.h"
 #include "k8s.h"
@@ -157,3 +159,4 @@ void k8s_net::get_all_data(const k8s_component::component_map::value_type& compo
 	}
 }
 
+#endif // HAS_CAPTURE

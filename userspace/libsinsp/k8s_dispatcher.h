@@ -8,6 +8,7 @@
 
 #include "k8s_common.h"
 #include "k8s_component.h"
+#include "k8s_state.h"
 #include "k8s_event_data.h"
 #include "json/json.h"
 #include <deque>
@@ -41,7 +42,7 @@ public:
 	k8s_dispatcher() = delete;
 	
 	k8s_dispatcher(k8s_component::type t,
-		k8s_state_s& state
+		k8s_state_t& state
 #ifndef K8S_DISABLE_THREAD
 		,std::mutex& mut
 #endif
@@ -49,10 +50,12 @@ public:
 
 	void enqueue(k8s_event_data&& data);
 
+	void extract_data(const std::string& json, bool enqueue = false);
+
 private:
 	const std::string& next_msg();
 	
-	msg_data get_msg_data(const Json::Value& root);
+	msg_data get_msg_data(Json::Value& root);
 
 	bool is_valid(const std::string& msg);
 
@@ -61,22 +64,52 @@ private:
 	void remove();
 
 	void dispatch();
-	
+
 	void handle_node(const Json::Value& root, const msg_data& data);
 	void handle_namespace(const Json::Value& root, const msg_data& data);
 	void handle_pod(const Json::Value& root, const msg_data& data);
 	void handle_rc(const Json::Value& root, const msg_data& data);
 	void handle_service(const Json::Value& root, const msg_data& data);
 
+	// clears the content of labels and fills it with new values, if any
+	template <typename T>
+	void handle_labels(T& component, const Json::Value& metadata, const std::string& name)
+	{
+		if(!metadata.isNull())
+		{
+			k8s_pair_list entries = k8s_component::extract_object(metadata, name);
+			component.set_labels(std::move(entries));
+		}
+		else
+		{
+			g_logger.log("Null metadata object received", sinsp_logger::SEV_ERROR);
+		}
+	}
+
+	// clears the content of selectors and fills it with new values, if any
+	template <typename T>
+	void handle_selectors(T& component, const Json::Value& spec, const std::string& name)
+	{
+		if(!spec.isNull())
+		{
+			k8s_pair_list selectors = k8s_component::extract_object(spec, name);
+			component.set_selectors(std::move(selectors));
+		}
+		else
+		{
+			g_logger.log("Null spec object received", sinsp_logger::SEV_ERROR);
+		}
+	}
+
 	static std::string to_reason_desc(msg_reason reason);
-	
+
 	static msg_reason to_reason(const std::string& desc);
 
 	typedef std::deque<std::string> list;
 
 	k8s_component::type m_type;
 	list                m_messages;
-	k8s_state_s&        m_state;
+	k8s_state_t&        m_state;
 #ifndef K8S_DISABLE_THREAD
 	std::mutex&         m_mutex;
 #endif

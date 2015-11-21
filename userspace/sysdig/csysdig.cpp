@@ -223,7 +223,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	uint64_t refresh_interval_ns = 2000000000;
 	bool list_flds = false;
 	bool m_raw_output = false;
-	string k8s_api;
+	string* k8s_api = 0;
 
 	static struct option long_options[] =
 	{
@@ -292,7 +292,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
 			case 'k':
-				k8s_api = optarg;
+				k8s_api = new string(optarg);
 				break;
 			case 'l':
 				list_flds = true;
@@ -327,6 +327,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
+				k8s_api = new string();
 				break;
 			case 's':
 				snaplen = atoi(optarg);
@@ -478,19 +479,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		view_manager.set_selected_view(display_view);
 
-		if(!k8s_api.empty())
-		{
-			inspector->init_k8s_client(k8s_api);			
-		}
-		else
-		{
-			char* k8s_api_env = getenv("SYSDIG_K8S_API");
-			if(k8s_api_env != NULL)
-			{
-				inspector->init_k8s_client(k8s_api_env);
-			}
-		}
-
 		//
 		// Go through the input sources and apply the processing to all of them
 		//
@@ -576,6 +564,24 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			if(snaplen != 0)
 			{
 				inspector->set_snaplen(snaplen);
+			}
+
+			//
+			// run k8s, if required
+			//
+			if(k8s_api)
+			{
+				inspector->init_k8s_client(k8s_api);
+				k8s_api = 0;
+			}
+			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
+			{
+				if(k8s_api_env != NULL)
+				{
+					k8s_api = new string(k8s_api_env);
+					inspector->init_k8s_client(k8s_api);
+					k8s_api = 0;
+				}
 			}
 
 			//
