@@ -330,9 +330,9 @@ void sinsp::open(uint32_t timeout_ms)
 	init();
 
 #ifdef HAS_THREAD_FILTERING
-	set_scap_inspector(this, this->m_thread_manager->get_threads());
+	scap_set_inspector(m_h, this, this->m_thread_manager->get_threads());
 
-	scap_set_thread_filtering(m_thread_filtering);
+	scap_set_thread_filtering(m_h, m_thread_filtering);
 #endif
 
 }

@@ -98,6 +98,9 @@ struct scap
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
+#ifdef HAS_THREAD_FILTERING
+	void* m_filterstate;
+#endif
 };
 
 struct scap_ns_socket_list
