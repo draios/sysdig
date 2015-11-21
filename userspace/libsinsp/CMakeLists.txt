@@ -82,6 +82,5 @@ if(NOT WIN32)
 		pthread)
 else()
 	target_link_libraries(sinsp
-		"${LUAJIT_LIB}"
-		dl)
+		"${LUAJIT_LIB}")
 endif()
