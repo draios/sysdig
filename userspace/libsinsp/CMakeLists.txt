@@ -83,8 +83,5 @@ if(NOT WIN32)
 else()
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
-		"${CURL_LIBRARIES}"
-		"${OPENSSL_LIBRARY_SSL}"
-		"${OPENSSL_LIBRARY_CRYPTO}"
 		dl)
 endif()
