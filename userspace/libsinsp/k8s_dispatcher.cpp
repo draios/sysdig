@@ -146,6 +146,24 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(Json::Value& root)
 	return data;
 }
 
+void k8s_dispatcher::log_error(const Json::Value& root, const std::string& comp)
+{
+	std::string unk_err = "Unknown.";
+	std::ostringstream os;
+	os << "K8S server reported " << comp << " error: ";
+	if(!root.isNull())
+	{
+		Json::Value object = root["object"];
+		if(!object.isNull())
+		{
+			os << object.toStyledString();
+			unk_err.clear();
+		}
+	}
+	os << unk_err;
+	g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+}
+
 void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 {
 	K8S_LOCK_GUARD_MUTEX;
@@ -216,7 +234,7 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 	}
 	else // COMPONENT_ERROR
 	{
-		g_logger.log("Bad NODE watch message.", sinsp_logger::SEV_ERROR);
+		log_error(root, "NODE");
 	}
 }
 
@@ -280,7 +298,7 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 	}
 	else // COMPONENT_ERROR
 	{
-		g_logger.log("Bad NAMESPACE watch message.", sinsp_logger::SEV_ERROR);
+		log_error(root, "NAMESPACE");
 	}
 }
 
@@ -338,7 +356,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 	}
 	else // COMPONENT_ERROR
 	{
-		g_logger.log("Bad POD watch message.", sinsp_logger::SEV_ERROR);
+		log_error(root, "POD");
 	}
 }
 
@@ -388,7 +406,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 	}
 	else // COMPONENT_ERROR
 	{
-		g_logger.log("Bad CONTROLLER watch message.", sinsp_logger::SEV_ERROR);
+		log_error(root, "REPLICATION CONTROLLER");
 	}
 }
 
@@ -438,7 +456,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 	}
 	else // COMPONENT_ERROR
 	{
-		g_logger.log("Bad SERVICE watch message.", sinsp_logger::SEV_ERROR);
+		log_error(root, "SERVICE");
 	}
 }
 
