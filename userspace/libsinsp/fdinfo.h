@@ -144,6 +144,7 @@ public:
 			m_usrstate = NULL;
 		}
 
+
 #ifdef HAS_EARLY_FILTERING
 		m_system_file = other.m_system_file;
 		m_read_access = other.m_read_access;

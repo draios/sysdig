@@ -4,6 +4,8 @@
 
 #pragma once
 
+#ifdef HAS_CAPTURE
+
 #include "curl/curl.h"
 #include <iosfwd>
 #include <map>
@@ -36,9 +38,9 @@ public:
 private:
 	bool init();
 	void cleanup();
+	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
 	int wait(curl_socket_t sockfd, int for_recv, long timeout_ms);
-	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 	static void check_error(CURLcode res);
 
 	CURL*         m_curl;
@@ -58,3 +60,4 @@ inline bool k8s_http::is_connected() const
 	return m_curl != 0;
 }
 
+#endif // HAS_CAPTURE

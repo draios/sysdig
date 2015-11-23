@@ -290,7 +290,8 @@ scap_t* scap_open_live_int(char *error,
 #ifdef HAS_THREAD_FILTERING
 
 	//allocate state for FD and thread caches
-	allocate_cache_state(handle);
+	scap_init_filtering_engine(handle);
+	scap_allocate_cache_state(handle);
 
 #endif
 	//
@@ -337,7 +338,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_driver_procinfo = NULL;
 
 #ifdef HAS_THREAD_FILTERING
-	init_filtering_engine();
+	scap_init_filtering_engine(handle);
 #endif
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
@@ -454,7 +455,11 @@ void scap_close(scap_t* handle)
 #ifdef HAS_THREAD_FILTERING
 
 		//free space allocated for thread and fd cache
+<<<<<<< HEAD
 		deallocate_cache_state();
+=======
+		scap_deallocate_cache_state(handle);
+>>>>>>> origin/thread_filter
 
 #endif
 

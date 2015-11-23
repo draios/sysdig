@@ -3,10 +3,11 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
-include_directories("${B64_INCLUDE}")
-include_directories("${CURL_INCLUDE_DIR}")
+include_directories("${ZLIB_INCLUDE}")
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT APPLE)
+	include_directories("${B64_INCLUDE}")
+	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
 endif()
 
@@ -29,6 +30,7 @@ add_library(sinsp STATIC
 	k8s.cpp
 	k8s_collector.cpp
 	k8s_component.cpp
+	k8s_state.cpp
 	k8s_dispatcher.cpp
 	k8s_event_data.cpp
 	k8s_http.cpp
@@ -49,21 +51,35 @@ add_library(sinsp STATIC
 
 target_link_libraries(sinsp 
 	scap
-	"${JSONCPP_LIB}"
-	"${B64_LIB}"
-	"${CURL_LIBRARIES}"
-	"${OPENSSL_LIBRARY_SSL}"
-	"${OPENSSL_LIBRARY_CRYPTO}"
-	pthread)
+	"${ZLIB_LIB}"
+	"${JSONCPP_LIB}")
 
 if(NOT WIN32)
 	if(USE_BUNDLED_LUAJIT)
 		add_dependencies(sinsp luajit)
 	endif()
 
+	if(NOT APPLE)
+
+		if(USE_BUNDLED_CURL)
+			add_dependencies(sinsp curl)
+		endif()
+
+		if(USE_BUNDLED_OPENSSL)
+			add_dependencies(sinsp openssl)
+		endif()
+
+		target_link_libraries(sinsp
+			"${B64_LIB}"
+			"${CURL_LIBRARIES}"
+			"${OPENSSL_LIBRARY_SSL}"
+			"${OPENSSL_LIBRARY_CRYPTO}")
+	endif()
+
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
-		dl)
+		dl
+		pthread)
 else()
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}")

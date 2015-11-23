@@ -353,7 +353,9 @@ public:
 	{
 		m_truncated_input = truncated;
 	}
+#ifndef NOCURSESUI
 	void render();
+#endif
 	void turn_search_on(search_caller_interface* ifc, string header_text);
 	uint64_t get_time_delta();
 	void run_action(sinsp_view_action_info* action);
@@ -564,7 +566,6 @@ public:
 	uint32_t m_selected_view_sidemenu_entry;
 	uint32_t m_selected_action_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
-	curses_table* m_viz;
 	uint32_t m_screenw;
 	uint32_t m_screenh;
 	uint32_t m_eof;
@@ -572,6 +573,7 @@ public:
 	bool m_search_nomatch;
 	bool m_print_containers;
 #ifndef NOCURSESUI
+	curses_table* m_viz;
 	curses_table_sidemenu* m_view_sidemenu;
 	curses_table_sidemenu* m_action_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;

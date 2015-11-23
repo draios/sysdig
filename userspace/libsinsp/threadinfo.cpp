@@ -782,8 +782,11 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 
 	m_last_tinfo = NULL;
 
-	if(m_threadtable.size() >= m_inspector->m_max_thread_table_size &&
-			threadinfo.m_pid != m_inspector->m_sysdig_pid)
+	if (m_threadtable.size() >= m_inspector->m_max_thread_table_size
+#if defined(HAS_CAPTURE)
+		&& threadinfo.m_pid != m_inspector->m_sysdig_pid
+#endif
+		)
 	{
 		m_n_drops++;
 		return;
