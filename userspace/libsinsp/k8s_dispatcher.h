@@ -101,6 +101,8 @@ private:
 		}
 	}
 
+	void log_error(const Json::Value& root, const std::string& comp);
+
 	static std::string to_reason_desc(msg_reason reason);
 
 	static msg_reason to_reason(const std::string& desc);
