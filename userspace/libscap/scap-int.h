@@ -100,6 +100,7 @@ struct scap
 	struct ppm_proclist_info* m_driver_procinfo;
 #ifdef HAS_THREAD_FILTERING
 	void* m_filterstate;
+	bool m_thread_filtering;
 #endif
 };
 
