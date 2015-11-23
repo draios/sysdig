@@ -389,7 +389,6 @@ std::string sinsp::get_error_desc(const std::string& msg)
 	}
 #endif
 	return errstr;
->>>>>>> origin/thread_filter
 }
 
 void sinsp::open(string filename)

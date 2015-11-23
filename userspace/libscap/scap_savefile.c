@@ -1981,7 +1981,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	block_header bh;
 	size_t readsize;
 	uint32_t readlen;
-	gzFile f = GZ(handle->m_file);
+	gzFile f = handle->m_file;
 
 	ASSERT(f != NULL);
 
