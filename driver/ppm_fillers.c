@@ -141,6 +141,8 @@ static int f_sys_semctl_e(struct event_filler_arguments *args);
 static int f_sys_semctl_x(struct event_filler_arguments *args);
 static int f_sys_ppoll_e(struct event_filler_arguments *args);
 static int f_sys_mount_e(struct event_filler_arguments *args);
+static int f_sys_access_e(struct event_filler_arguments *args);
+static int f_sys_access_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -368,6 +370,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MOUNT_X] = {PPM_AUTOFILL, 4, APT_REG, {{AF_ID_RETVAL}, {0}, {1}, {2} } },
 	[PPME_SYSCALL_UMOUNT_E] = {PPM_AUTOFILL, 1, APT_REG, {{1} } },
 	[PPME_SYSCALL_UMOUNT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_ACCESS_E] = {f_sys_access_e},
+	[PPME_SYSCALL_ACCESS_X] = {f_sys_access_x},
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -5215,6 +5219,65 @@ static int f_sys_semctl_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static inline u32 access_flags_to_scap(unsigned flags)
+{
+	u32 res = 0;
+
+	if (flags == 0/*F_OK*/) {
+		res = PPM_F_OK;
+	} else {
+		if (flags & MAY_EXEC)
+			res |= PPM_X_OK;
+		if (flags & MAY_READ)
+			res |= PPM_R_OK;
+		if (flags & MAY_WRITE)
+			res |= PPM_W_OK;
+	}
+
+	return res;
+}
+
+static int f_sys_access_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, access_flags_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_access_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	/*
+	 * return value
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * pathname
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

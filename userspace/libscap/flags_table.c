@@ -406,3 +406,11 @@ const struct ppm_name_value semget_flags[] = {
 	{"IPC_EXCL", PPM_IPC_EXCL},
 	{0, 0},
 };
+
+const struct ppm_name_value access_flags[] = {
+	{"F_OK", PPM_F_OK},
+	{"R_OK", PPM_R_OK},
+	{"W_OK", PPM_W_OK},
+	{"X_OK", PPM_X_OK},
+	{0, 0},
+};
