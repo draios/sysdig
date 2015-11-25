@@ -76,6 +76,7 @@ sinsp_parser::~sinsp_parser()
 	}
 
 	m_protodecoders.clear();
+	delete[] m_k8s_metaevents_state.m_piscapevt;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

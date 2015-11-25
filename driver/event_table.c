@@ -278,6 +278,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SEMCTL_X */{"semctl", EC_PROCESS, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_PPOLL_E */{"ppoll", EC_WAIT, EF_WAITS, 3, {{"fds", PT_FDLIST, PF_DEC}, {"timeout", PT_RELTIME, PF_DEC}, {"sigmask", PT_SIGSET, PF_DEC} } },
 	/* PPME_SYSCALL_PPOLL_X */{"ppoll", EC_WAIT, EF_WAITS, 2, {{"res", PT_ERRNO, PF_DEC}, {"fds", PT_FDLIST, PF_DEC} } },
-	/* PPME_K8S_E */{"k8s", EC_OTHER, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
+	/* PPME_K8S_E */{"k8s", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_K8S_X */{"NA3", EC_SYSTEM, EF_UNUSED, 0},
 };
