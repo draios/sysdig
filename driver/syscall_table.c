@@ -257,10 +257,16 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_semop
 	[__NR_semop - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SEMOP_E, PPME_SYSCALL_SEMOP_X},
 #endif
+#ifdef __NR_semget
+	[__NR_semget - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SEMGET_E, PPME_SYSCALL_SEMGET_X},
+#endif
 #ifdef __NR_semctl
 	[__NR_semctl - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SEMCTL_E, PPME_SYSCALL_SEMCTL_X},
 #endif
 	[__NR_ppoll - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_PPOLL_E, PPME_SYSCALL_PPOLL_X},
+#ifdef __NR_access
+	[__NR_access - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_ACCESS_E, PPME_SYSCALL_ACCESS_X},
+#endif
 };
 
 /*
@@ -796,6 +802,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setns
 	[__NR_setns - SYSCALL_TABLE_ID0] = PPM_SC_SETNS,
 #endif
+#ifdef __NR_access
+	[__NR_access - SYSCALL_TABLE_ID0] = PPM_SC_ACCESS,
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1006,8 +1015,14 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_semop
 	[__NR_ia32_semop - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SEMOP_E, PPME_SYSCALL_SEMOP_X},
 #endif
+#ifdef __NR_ia32_semget
+	[__NR_ia32_semget - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SEMGET_E, PPME_SYSCALL_SEMGET_X},
+#endif
 #ifdef __NR_ia32_semctl
 	[__NR_ia32_semctl - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SEMCTL_E, PPME_SYSCALL_SEMCTL_X},
+#endif
+#ifdef __NR_ia32_access
+	[__NR_ia32_access - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_ACCESS_E, PPME_SYSCALL_ACCESS_X},
 #endif
 };
 
@@ -1349,6 +1364,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_semctl
 	[__NR_ia32_semctl - SYSCALL_TABLE_ID0] =  PPM_SC_SEMCTL,
+#endif
+#ifdef __NR_ia32_semget
+	[__NR_ia32_semget - SYSCALL_TABLE_ID0] =  PPM_SC_SEMGET,
 #endif
 #ifdef __NR_ia32_msgsnd
 	[__NR_ia32_msgsnd - SYSCALL_TABLE_ID0] =  PPM_SC_MSGSND,
