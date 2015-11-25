@@ -87,7 +87,7 @@ bool k8s_dispatcher::is_ready(const std::string& msg)
 	return msg[msg.size() - 1] == '\n';
 }
 
-k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(const Json::Value& root)
+k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(Json::Value& root)
 {
 	msg_data data;
 	Json::Value evtype = root["type"];
@@ -107,6 +107,20 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(const Json::Value& root)
 		}
 	}
 	Json::Value object = root["object"];
+
+	// +++ for capture
+	Json::Value kind = object["kind"];
+	if(!kind.isNull() && kind.isString() && root["kind"].isNull())
+	{
+		root["kind"] = kind.asString();
+	}
+	Json::Value api_version = object["apiVersion"];
+	if(!api_version.isNull() && api_version.isString() && root["apiVersion"].isNull())
+	{
+		root["apiVersion"] = api_version.asString();
+	}
+	// --- for capture
+
 	if(!object.isNull() && object.isObject())
 	{
 		Json::Value meta = object["metadata"];
@@ -494,65 +508,74 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 	}
 }
 
+void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
+{
+	Json::Value root;
+	Json::Reader reader;
+	if(reader.parse(json, root, false))
+	{
+		std::ostringstream os;
+		msg_data data = get_msg_data(root);
+		if(data.is_valid())
+		{
+			std::ostringstream os;
+			os << '[' << to_reason_desc(data.m_reason) << ',';
+			switch (m_type)
+			{
+				case k8s_component::K8S_NODES:
+					os << "NODE,";
+					handle_node(root, data);
+					break;
+				case k8s_component::K8S_NAMESPACES:
+					os << "NAMESPACE,";
+					handle_namespace(root, data);
+					break;
+				case k8s_component::K8S_PODS:
+					os << "POD,";
+					handle_pod(root, data);
+					break;
+				case k8s_component::K8S_REPLICATIONCONTROLLERS:
+					os << "REPLICATION_CONTROLLER,";
+					handle_rc(root, data);
+					break;
+				case k8s_component::K8S_SERVICES:
+					os << "SERVICE,";
+					handle_service(root, data);
+					break;
+				default:
+				{
+					std::ostringstream eos;
+					eos << "Unknown component: " << static_cast<int>(m_type);
+					throw sinsp_exception(os.str());
+				}
+			}
+			os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
+			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
+			{
+				K8S_LOCK_GUARD_MUTEX;
+				m_state.update_cache(m_type);
+				if(enqueue)
+				{
+					m_state.enqueue_capture_event(root);
+				}
+			}
+		}
+	}
+	else
+	{
+		// TODO: bad notification - discard or throw?
+		g_logger.log("Bad JSON message received.", sinsp_logger::SEV_ERROR);
+	}
+}
+
 void k8s_dispatcher::dispatch()
 {
 	for (list::iterator it = m_messages.begin(); it != m_messages.end();)
 	{
 		if(is_ready(*it))
 		{
-			Json::Value root;
-			Json::Reader reader;
-			if(reader.parse(*it, root, false))
-			{
-				std::ostringstream os;
-				msg_data data = get_msg_data(root);
-				if(data.is_valid())
-				{
-					std::ostringstream os;
-					os << '[' << to_reason_desc(data.m_reason) << ',';
-					switch (m_type)
-					{
-						case k8s_component::K8S_NODES:
-							os << "NODE,";
-							handle_node(root, data);
-							break;
-						case k8s_component::K8S_NAMESPACES:
-							os << "NAMESPACE,";
-							handle_namespace(root, data);
-							break;
-						case k8s_component::K8S_PODS:
-							os << "POD,";
-							handle_pod(root, data);
-							break;
-						case k8s_component::K8S_REPLICATIONCONTROLLERS:
-							os << "REPLICATION_CONTROLLER,";
-							handle_rc(root, data);
-							break;
-						case k8s_component::K8S_SERVICES:
-							os << "SERVICE,";
-							handle_service(root, data);
-							break;
-						default:
-						{
-							std::ostringstream eos;
-							eos << "Unknown component: " << static_cast<int>(m_type);
-							throw sinsp_exception(os.str());
-						}
-					}
-					os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
-					g_logger.log(os.str(), sinsp_logger::SEV_INFO);
-					//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
-					{
-						K8S_LOCK_GUARD_MUTEX;
-						m_state.update_cache(m_type);
-					}
-				}
-			}
-			else
-			{
-				// TODO: bad notification - discard or throw?
-				g_logger.log("Bad JSON message received.", sinsp_logger::SEV_ERROR);
-			}
+			extract_data(*it, true);
 			it = m_messages.erase(it);
 		}
 		else

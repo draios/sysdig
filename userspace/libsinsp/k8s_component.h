@@ -528,6 +528,22 @@ public:
 	const pod_service_map& get_pod_service_map() const { return m_pod_services; }
 	const pod_rc_map& get_pod_rc_map() const { return m_pod_rcs; }
 
+#ifdef HAS_CAPTURE
+	typedef std::deque<std::string> event_list_t;
+	const event_list_t& get_capture_events() const { return m_capture_events; }
+	void enqueue_capture_event(const Json::Value& item) { m_capture_events.emplace_back(Json::FastWriter().write(item)); }
+	std::string dequeue_capture_event()
+	{
+		if(!m_capture_events.size())
+		{
+			throw sinsp_exception("Invalid event dequeue request.");
+		}
+		std::string ev = std::move(m_capture_events.front());
+		m_capture_events.pop_front();
+		return ev;
+	}
+#endif // HAS_CAPTURE
+
 #endif // K8S_DISABLE_THREAD
 
 private:
@@ -610,6 +626,9 @@ private:
 	container_pod_map        m_container_pods;
 	pod_service_map          m_pod_services;
 	pod_rc_map               m_pod_rcs;
+#ifdef HAS_CAPTURE
+	event_list_t             m_capture_events;
+#endif // HAS_CAPTURE
 
 #endif // K8S_DISABLE_THREAD
 

@@ -669,10 +669,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool unbuf_flag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
-	string k8s_api;
+	string* k8s_api = 0;
 
 	// These variables are for the cycle_writer engine
-	int duration_seconds = 0;	
+	int duration_seconds = 0;
 	int rollover_mb = 0;
 	int file_limit = 0;
 	unsigned long event_limit = 0L;
@@ -881,7 +881,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				jflag = true;
 				break;
 			case 'k':
-				k8s_api = optarg;
+				k8s_api = new string(optarg);
 				break;
 			case 'h':
 				usage();
@@ -962,6 +962,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
+				k8s_api = new string();
 				break;
 			case 'S':
 				summary_table = new vector<summary_table_entry>;
@@ -1167,19 +1168,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			inspector->set_max_evt_output_len(80);
 		}
 
-		if(!k8s_api.empty())
-		{
-			inspector->init_k8s_client(k8s_api);			
-		}
-		else
-		{
-			char* k8s_api_env = getenv("SYSDIG_K8S_API");
-			if(k8s_api_env != NULL)
-			{
-				inspector->init_k8s_client(k8s_api_env);
-			}
-		}
-
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
 #ifdef HAS_FILTERING
@@ -1278,6 +1266,24 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// Notify the chisels that the capture is starting
 			//
 			chisels_on_capture_start();
+
+			//
+			// run k8s, if required
+			//
+			if(k8s_api)
+			{
+				inspector->init_k8s_client(k8s_api);
+				k8s_api = 0;
+			}
+			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
+			{
+				if(k8s_api_env != NULL)
+				{
+					k8s_api = new string(k8s_api_env);
+					inspector->init_k8s_client(k8s_api);
+					k8s_api = 0;
+				}
+			}
 
 			cinfo = do_inspect(inspector,
 				cnt,

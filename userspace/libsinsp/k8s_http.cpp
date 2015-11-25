@@ -3,6 +3,7 @@
 //
 
 #include "k8s_http.h"
+#include "curl/curl.h"
 #include "curl/easy.h"
 #include "curl/curlbuild.h"
 #define BUFFERSIZE 512 // b64 needs this macro
@@ -35,6 +36,14 @@ k8s_http::k8s_http(k8s& k8s,
 	{
 		throw sinsp_exception("CURL initialization failed.");
 	}
+
+	curl_version_info_data* data = curl_version_info(CURLVERSION_NOW);
+	if((protocol == "https") && !(data->features | CURL_VERSION_SSL))
+	{
+		cleanup();
+		throw sinsp_exception("HTTPS NOT supported");
+	}
+
 	std::ostringstream url;
 	url << m_protocol << "://";
 	if(!m_credentials.empty())

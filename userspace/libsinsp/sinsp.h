@@ -648,7 +648,8 @@ public:
 	*/
 	double get_read_progress();
 
-	void init_k8s_client(const string& api_server);
+	void init_k8s_client(string* api_server);
+	k8s* get_k8s_client() const { return m_k8s_client; }
 
 	//
 	// Misc internal stuff
@@ -675,6 +676,8 @@ public:
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
 	void add_meta_event_and_repeat(sinsp_evt *metaevt);
+	void add_meta_event_callback(meta_event_callback cback, void* data);
+	void remove_meta_event_callback();
 
 	void refresh_ifaddr_list();
 
@@ -739,7 +742,7 @@ private:
 	//
 	// Kubernetes stuff
 	//
-	string m_k8s_api_server;
+	string* m_k8s_api_server;
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
 
@@ -826,6 +829,7 @@ private:
 	sinsp_evt* m_metaevt;
 	sinsp_evt* m_skipped_evt;
 	meta_event_callback m_meta_event_callback;
+	void* m_meta_event_callback_data;
 
 	//
 	// End of second housekeeping
