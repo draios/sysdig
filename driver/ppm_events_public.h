@@ -418,6 +418,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_IPC_NOWAIT		(1 << 0)
 #define PPM_SEM_UNDO		(1 << 1)
 
+/*
+ * Semget flags
+ */
+#define PPM_IPC_CREAT  (1 << 13)
+#define PPM_IPC_EXCL   (1 << 14)
+
 #define PPM_IPC_STAT		(1 << 0)
 #define PPM_IPC_SET		(1 << 1)
 #define PPM_IPC_RMID		(1 << 2)
@@ -737,7 +743,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_UMOUNT_X = 259,
 	PPME_K8S_E = 260,
 	PPME_K8S_X = 261,
-	PPM_EVENT_MAX = 262
+	PPME_SYSCALL_SEMGET_E = 262,
+	PPME_SYSCALL_SEMGET_X = 263,
+	PPM_EVENT_MAX = 264
 };
 /*@}*/
 
@@ -1277,6 +1285,7 @@ extern const struct ppm_name_value quotactl_types[];
 extern const struct ppm_name_value quotactl_dqi_flags[];
 extern const struct ppm_name_value quotactl_quota_fmts[];
 extern const struct ppm_name_value semop_flags[];
+extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 
 

@@ -136,6 +136,7 @@ static int f_sys_flock_e(struct event_filler_arguments *args);
 static int f_cpu_hotplug_e(struct event_filler_arguments *args);
 static int f_sys_semop_e(struct event_filler_arguments *args);
 static int f_sys_semop_x(struct event_filler_arguments *args);
+static int f_sys_semget_e(struct event_filler_arguments *args);
 static int f_sys_semctl_e(struct event_filler_arguments *args);
 static int f_sys_semctl_x(struct event_filler_arguments *args);
 static int f_sys_ppoll_e(struct event_filler_arguments *args);
@@ -357,6 +358,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_CPU_HOTPLUG_E] = {f_cpu_hotplug_e},
 	[PPME_SYSCALL_SEMOP_E] = {f_sys_semop_e},
 	[PPME_SYSCALL_SEMOP_X] = {f_sys_semop_x},
+	[PPME_SYSCALL_SEMGET_E] = {f_sys_semget_e},
+	[PPME_SYSCALL_SEMGET_X] = {f_sys_single_x},
 	[PPME_SYSCALL_SEMCTL_E] = {f_sys_semctl_e},
 	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
 	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
@@ -5090,6 +5093,51 @@ static int f_sys_semop_x(struct event_filler_arguments *args)
 				return res;
 		}
 	}
+
+	return add_sentinel(args);
+}
+
+static inline u32 semget_flags_to_scap(unsigned flags)
+{
+	u32 res = 0;
+
+	if (flags & IPC_CREAT)
+		res |= PPM_IPC_CREAT;
+
+	if (flags & IPC_EXCL)
+		res |= PPM_IPC_EXCL;
+
+	return res;
+}
+
+static int f_sys_semget_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * key
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * nsems
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * semflg
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, semget_flags_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	return add_sentinel(args);
 }
