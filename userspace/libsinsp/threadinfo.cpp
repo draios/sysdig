@@ -638,20 +638,15 @@ void sinsp_threadinfo::reset_file_access_count()
 			{
 				fd_file_count++;
 
-				if(fd.m_read_access!=0)
-				{
-					fd.m_old_read_access = fd.m_read_access;
-				}
+				fd.m_old_count_in = fd.m_count_in + fd.m_drop_in;
 
-				if(fd.m_write_access!=0)
-				{
-					fd.m_old_write_access = fd.m_write_access;
-				}
+				fd.m_old_count_out = fd.m_count_out + fd.m_drop_out;
 
-				fd.m_read_access = 0;
-				fd.m_write_access = 0;
-				fd.m_read_filtered = 0;
-				fd.m_write_filtered = 0;
+				fd.m_count_in = 0;
+				fd.m_count_out = 0;
+				fd.m_drop_in = 0;
+				fd.m_drop_out = 0;
+
 			}
 		}
 		//if we have files on this thread, reset counters!

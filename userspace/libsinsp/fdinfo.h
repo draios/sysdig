@@ -147,12 +147,12 @@ public:
 
 #ifdef HAS_EARLY_FILTERING
 		m_system_file = other.m_system_file;
-		m_read_access = other.m_read_access;
-		m_write_access = other.m_write_access;
-		m_old_read_access = other.m_old_read_access;
-		m_old_write_access = other.m_old_write_access;
-		m_read_filtered = other.m_read_filtered;
-		m_write_filtered = other.m_write_filtered;
+		m_count_in = other.m_count_in;
+		m_count_out = other.m_count_out;
+		m_drop_in = other.m_drop_in;
+		m_drop_out = other.m_drop_out;
+		m_old_count_in = other.m_old_count_in;
+		m_old_count_out = other.m_old_count_out;
 #endif
 
 	}
@@ -314,12 +314,12 @@ public:
 
 #ifdef HAS_EARLY_FILTERING
 	bool m_system_file = false;
-	uint32_t m_read_access = 0;
-	uint32_t m_write_access = 0;
-	uint32_t m_read_filtered = 0;
-	uint32_t m_write_filtered = 0;
-	uint32_t m_old_read_access = 0;
-	uint32_t m_old_write_access = 0;
+	uint32_t m_count_in = 0;
+	uint32_t m_count_out = 0;
+	uint32_t m_drop_in = 0;
+	uint32_t m_drop_out = 0;
+	uint32_t m_old_count_in = 0;
+	uint32_t m_old_count_out = 0;
 #endif
 
 VISIBILITY_PRIVATE
