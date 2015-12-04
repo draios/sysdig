@@ -194,7 +194,7 @@ void k8s::simulate_watch_event(const std::string& json)
 			else if(type == "Service")               { component_type = k8s_component::K8S_SERVICES;               }
 			else
 			{
-				g_logger.format(sinsp_logger::SEV_ERROR, "Unrecognized component type: %s", type.c_str());
+				g_logger.log("Unrecognized component type: " + type, sinsp_logger::SEV_ERROR);
 				return;
 			}
 		}
