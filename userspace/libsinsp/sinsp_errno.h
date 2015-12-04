@@ -140,6 +140,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define SE_EDQUOT          122     /* Quota exceeded */
 #define SE_ENOMEDIUM       123     /* No medium found */
 #define SE_EMEDIUMTYPE     124     /* Wrong medium type */
+#define SE_ECANCELED       125
 #define SE_ERESTARTSYS     512     /* Interrupted system call */
 #define SE_ERESTARTNOINTR  513
 #define SE_ERESTARTNOHAND  514     /* restart if no handler.. */
