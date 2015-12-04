@@ -77,7 +77,7 @@ view_info =
 		},
 		{
 			name = "VIRT",
-			field = "thread.vmsize",
+			field = "thread.vmsize.b",
 			description = "total virtual memory for the process (as kb).",
 			aggregation = "MAX",
 			groupby_aggregation = "MAX",
