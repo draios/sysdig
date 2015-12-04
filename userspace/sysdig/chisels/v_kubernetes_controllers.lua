@@ -44,7 +44,7 @@ view_info =
 		},
 		{
 			name = "VIRT",
-			field = "thread.vmsize",
+			field = "thread.vmsize.b",
 			description = "total virtual memory for the controller (as kb).",
 			aggregation = "MAX",
 			groupby_aggregation = "SUM",
@@ -52,7 +52,7 @@ view_info =
 		},
 		{
 			name = "RES",
-			field = "thread.vmrss",
+			field = "thread.vmrss.b",
 			description = "resident non-swapped memory for the controller (as kb).",
 			aggregation = "MAX",
 			groupby_aggregation = "SUM",

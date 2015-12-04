@@ -1149,6 +1149,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_DOUBLE, EPF_NONE, PF_NA, "thread.cpu.system", "the system CPU consumed by the thread in the last second."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmsize", "For the process main thread, this is the total virtual memory for the process (as kb). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmrss", "For the process main thread, this is the resident non-swapped memory for the process (as kb). For the other threads, this field is zero."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmsize.b", "For the process main thread, this is the total virtual memory for the process (in bytes). For the other threads, this field is zero."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1711,6 +1713,28 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(tinfo->is_main_thread())
 		{
 			m_u64val = tinfo->m_vmrss_kb;
+		}
+		else
+		{
+			m_u64val = 0;
+		}
+
+		return (uint8_t*)&m_u64val;
+	case TYPE_THREAD_VMSIZE_B:
+		if(tinfo->is_main_thread())
+		{
+			m_u64val = tinfo->m_vmsize_kb / 1024;
+		}
+		else
+		{
+			m_u64val = 0;
+		}
+
+		return (uint8_t*)&m_u64val;
+	case TYPE_THREAD_VMRSS_B:
+		if(tinfo->is_main_thread())
+		{
+			m_u64val = tinfo->m_vmrss_kb / 1024;
 		}
 		else
 		{
