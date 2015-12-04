@@ -85,7 +85,7 @@ view_info =
 		},
 		{
 			name = "RES",
-			field = "thread.vmrss",
+			field = "thread.vmrss.b",
 			description = "resident non-swapped memory for the process (as kb).",
 			aggregation = "MAX",
 			groupby_aggregation = "MAX",
