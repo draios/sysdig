@@ -1723,7 +1723,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_THREAD_VMSIZE_B:
 		if(tinfo->is_main_thread())
 		{
-			m_u64val = tinfo->m_vmsize_kb / 1024;
+			m_u64val = tinfo->m_vmsize_kb * 1024;
 		}
 		else
 		{
@@ -1734,7 +1734,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_THREAD_VMRSS_B:
 		if(tinfo->is_main_thread())
 		{
-			m_u64val = tinfo->m_vmrss_kb / 1024;
+			m_u64val = tinfo->m_vmrss_kb * 1024;
 		}
 		else
 		{
