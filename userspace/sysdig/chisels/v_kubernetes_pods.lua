@@ -45,7 +45,7 @@ view_info =
 		{
 			name = "VIRT",
 			field = "thread.vmsize.b",
-			description = "total virtual memory for the pod (as kb).",
+			description = "Total virtual memory for the pod.",
 			aggregation = "MAX",
 			groupby_aggregation = "SUM",
 			colsize = 9
@@ -53,7 +53,7 @@ view_info =
 		{
 			name = "RES",
 			field = "thread.vmrss.b",
-			description = "resident non-swapped memory for the pod (as kb).",
+			description = "Resident non-swapped memory for the pod.",
 			aggregation = "MAX",
 			groupby_aggregation = "SUM",
 			colsize = 9
