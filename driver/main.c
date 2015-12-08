@@ -1135,19 +1135,21 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 	unsigned long __user args[2];
 	unsigned long __user *scargs;
 	int socketcall_id;
+	bool opt;
 
 	syscall_get_arguments(current, regs, 0, 2, args);
 	socketcall_id = args[0];
 	scargs = (unsigned long __user *)args[1];
 
-	if (unlikely(socketcall_id < SYS_SOCKET ||
+	opt = socketcall_id < SYS_SOCKET;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
-		socketcall_id > SYS_SENDMMSG))
+	opt = opt || (socketcall_id > SYS_SENDMMSG);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-		socketcall_id > SYS_RECVMMSG))
+	opt = opt || (socketcall_id > SYS_RECVMMSG);
 #else
-		socketcall_id > SYS_ACCEPT4))
+	opt = opt || (socketcall_id > SYS_ACCEPT4);
 #endif
+	if (unlikely(opt))	
 		return PPME_GENERIC_E;
 
 #ifdef CONFIG_COMPAT
