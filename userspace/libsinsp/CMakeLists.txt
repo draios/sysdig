@@ -35,7 +35,12 @@ add_library(sinsp STATIC
 	k8s_event_data.cpp
 	k8s_http.cpp
 	k8s_net.cpp
+	marathon_component.cpp
 	memmem.cpp
+	mesos.cpp
+	mesos_component.cpp
+	mesos_http.cpp
+	mesos_state.cpp
 	internal_metrics.cpp
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
