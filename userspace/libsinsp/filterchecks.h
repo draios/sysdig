@@ -329,6 +329,8 @@ public:
 		TYPE_THREAD_CPU_SYSTEM = 34,
 		TYPE_THREAD_VMSIZE = 35,
 		TYPE_THREAD_VMRSS = 36,
+		TYPE_THREAD_VMSIZE_B = 37,
+		TYPE_THREAD_VMRSS_B = 38,
 	};
 
 	sinsp_filter_check_thread();

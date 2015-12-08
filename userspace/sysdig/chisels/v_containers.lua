@@ -60,16 +60,16 @@ view_info =
 		},
 		{
 			name = "VIRT",
-			field = "thread.vmsize",
-			description = "total virtual memory for the process (as kb).",
+			field = "thread.vmsize.b",
+			description = "Total virtual memory for the process.",
 			aggregation = "MAX",
 			groupby_aggregation = "SUM",
 			colsize = 9
 		},
 		{
 			name = "RES",
-			field = "thread.vmrss",
-			description = "resident non-swapped memory for the process (as kb).",
+			field = "thread.vmrss.b",
+			description = "Resident non-swapped memory for the process.",
 			aggregation = "MAX",
 			groupby_aggregation = "SUM",
 			colsize = 9
