@@ -566,7 +566,7 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 	// between opening the handle and starting the dump
 	//
 #if defined(HAS_CAPTURE)
-	if(handle->m_file == NULL)
+	if(handle->m_file == NULL && handle->refresh_proc_table_when_saving)
 	{
 		proc_entry_callback tcb = handle->m_proc_callback;
 		handle->m_proc_callback = NULL;

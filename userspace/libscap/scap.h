@@ -854,6 +854,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 void scap_proc_free_table(scap_t* handle);
 void scap_refresh_iflist(scap_t* handle);
+void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 
 #ifdef __cplusplus
 }

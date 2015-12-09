@@ -135,6 +135,8 @@ sinsp::sinsp() :
 
 	m_k8s_client = NULL;
 	m_k8s_api_server = NULL;
+
+	m_filter_proc_table_when_saving = false;
 }
 
 sinsp::~sinsp()
@@ -182,6 +184,16 @@ sinsp::~sinsp()
 void sinsp::add_protodecoders()
 {
 	m_parser->add_protodecoder("syslog");
+}
+
+void sinsp::filter_proc_table_when_saving(bool filter)
+{
+	m_filter_proc_table_when_saving = filter;
+
+	if(m_h != NULL)
+	{
+		scap_set_refresh_proc_table_when_saving(m_h, !filter);	
+	}
 }
 
 void sinsp::init()
@@ -234,7 +246,7 @@ void sinsp::init()
 	m_n_proc_lookups = 0;
 	m_n_proc_lookups_duration_ns = 0;
 
-	if(m_islive == false)
+	if(m_islive == false || m_filter_proc_table_when_saving == true)
 	{
 		import_thread_table();
 	}
@@ -305,8 +317,11 @@ void sinsp::open(uint32_t timeout_ms)
 	//
 	scap_open_args oargs;
 	oargs.fname = NULL;
-	oargs.proc_callback = ::on_new_entry_from_proc;
-	oargs.proc_callback_context = this;
+	if(!m_filter_proc_table_when_saving)
+	{
+		oargs.proc_callback = ::on_new_entry_from_proc;
+		oargs.proc_callback_context = this;
+	}
 	oargs.import_users = m_import_users;
 
 	m_h = scap_open(oargs, error);
@@ -315,6 +330,8 @@ void sinsp::open(uint32_t timeout_ms)
 	{
 		throw sinsp_exception(error);
 	}
+
+	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
 
 	init();
 }
