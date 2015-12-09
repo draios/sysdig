@@ -29,6 +29,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 ///////////////////////////////////////////////////////////////////////////////
 template<> sinsp_fdinfo_t::sinsp_fdinfo()
 {
+	reset();
+}
+
+template<> void sinsp_fdinfo_t::reset()
+{
 	m_type = SCAP_FD_UNINITIALIZED;
 	m_flags = FLAGS_NONE;
 	m_callbaks = NULL;
@@ -130,38 +135,6 @@ template<> bool sinsp_fdinfo_t::set_net_role_by_guessing(sinsp* inspector,
 										  sinsp_fdinfo_t* pfdinfo,
 										  bool incoming)
 {
-/*
-	bool is_sip_local = 
-		inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(pfdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
-	bool is_dip_local = 
-		inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(pfdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
-
-	//
-	// If only the client is local, mark the role as client.
-	// If only the server is local, mark the role as server.
-	//
-	if(is_sip_local)
-	{
-		if(!is_dip_local)
-		{
-			pfdinfo->set_role_client();
-			return true;
-		}
-	}
-	else if(is_dip_local)
-	{
-		if(!is_sip_local)
-		{
-			pfdinfo->set_role_server();
-			return true;
-		}
-	}
-
-	//
-	// Both addresses are local
-	//
-	ASSERT(is_sip_local && is_dip_local);
-*/
 	//
 	// If this process owns the port, mark it as server, otherwise mark it as client
 	//

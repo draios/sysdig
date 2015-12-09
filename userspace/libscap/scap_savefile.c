@@ -619,7 +619,6 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 	//
 	// Write the fd lists
 	//
-
 	if(scap_write_fdlist(handle, f) != SCAP_SUCCESS)
 	{
 		return NULL;

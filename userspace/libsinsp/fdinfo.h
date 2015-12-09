@@ -101,6 +101,7 @@ public:
 		return *this;
 	}
 
+	void reset();
 	string* tostring();
 
 	inline void copy(const sinsp_fdinfo &other, bool free_state)
