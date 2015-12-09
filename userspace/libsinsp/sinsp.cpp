@@ -566,7 +566,8 @@ void sinsp::on_new_entry_from_proc(void* context,
 			}
 		}
 
-		sinsp_tinfo->add_fd(fdinfo);
+		sinsp_fdinfo_t sinsp_fdinfo;
+		sinsp_tinfo->add_fd_from_scap(fdinfo, &sinsp_fdinfo);
 	}
 }
 
