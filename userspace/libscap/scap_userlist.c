@@ -98,9 +98,33 @@ int32_t scap_create_userlist(scap_t* handle)
 	{
 		handle->m_userlist->users[usercnt].uid = p->pw_uid;
 		handle->m_userlist->users[usercnt].gid = p->pw_gid;
-		strncpy(handle->m_userlist->users[usercnt].name, p->pw_name, sizeof(handle->m_userlist->users[usercnt].name));
-		strncpy(handle->m_userlist->users[usercnt].homedir, p->pw_dir, sizeof(handle->m_userlist->users[usercnt].homedir));
-		strncpy(handle->m_userlist->users[usercnt].shell, p->pw_shell, sizeof(handle->m_userlist->users[usercnt].shell));
+		
+		if(p->pw_name)
+		{
+			strncpy(handle->m_userlist->users[usercnt].name, p->pw_name, sizeof(handle->m_userlist->users[usercnt].name));
+		}
+		else
+		{
+			*handle->m_userlist->users[usercnt].name = '\0';
+		}
+
+		if(p->pw_dir)
+		{
+			strncpy(handle->m_userlist->users[usercnt].homedir, p->pw_dir, sizeof(handle->m_userlist->users[usercnt].homedir));
+		}
+		else
+		{
+			*handle->m_userlist->users[usercnt].homedir = '\0';	
+		}
+
+		if(p->pw_shell)
+		{
+			strncpy(handle->m_userlist->users[usercnt].shell, p->pw_shell, sizeof(handle->m_userlist->users[usercnt].shell));
+		}
+		else
+		{
+			*handle->m_userlist->users[usercnt].shell = '\0';	
+		}
 
 		handle->m_userlist->totsavelen += 
 			sizeof(uint8_t) + // type
@@ -119,7 +143,15 @@ int32_t scap_create_userlist(scap_t* handle)
 	for(grpcnt = 0; g; g = getgrent(), grpcnt++)
 	{
 		handle->m_userlist->groups[grpcnt].gid = g->gr_gid;
-		strncpy(handle->m_userlist->groups[grpcnt].name, g->gr_name, sizeof(handle->m_userlist->groups[grpcnt].name));
+
+		if(g->gr_name)
+		{
+			strncpy(handle->m_userlist->groups[grpcnt].name, g->gr_name, sizeof(handle->m_userlist->groups[grpcnt].name));
+		}
+		else
+		{
+			*handle->m_userlist->groups[grpcnt].name = '\0';
+		}
 
 		handle->m_userlist->totsavelen += 
 			sizeof(uint8_t) + // type
