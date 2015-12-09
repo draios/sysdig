@@ -171,11 +171,15 @@ mesos_task::mesos_task(const std::string& name, const std::string& uid) :
 {
 }
 
-mesos_task::mesos_task(const mesos_task& other): mesos_component(other)
+mesos_task::mesos_task(const mesos_task& other): mesos_component(other),
+	m_app_id(other.m_app_id),
+	m_slave_id(other.m_slave_id)
 {
 }
 
-mesos_task::mesos_task(mesos_task&& other): mesos_component(std::move(other))
+mesos_task::mesos_task(mesos_task&& other): mesos_component(std::move(other)),
+	m_app_id(std::move(other.m_app_id)),
+	m_slave_id(std::move(other.m_slave_id))
 {
 }
 
