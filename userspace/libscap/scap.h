@@ -214,6 +214,7 @@ typedef struct scap_threadinfo
 	int64_t vpid;
 	char cgroups[SCAP_MAX_CGROUPS_SIZE];
 	uint16_t cgroups_len;
+	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;

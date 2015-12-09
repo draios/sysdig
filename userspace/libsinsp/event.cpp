@@ -1903,7 +1903,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		m_paramstr_storage[0]          = '\0';
 
 		char* storage = &m_paramstr_storage[0];
-		int remaining = m_paramstr_storage.size();
+		int remaining = (int)m_paramstr_storage.size();
 		bool first = true;
 
 		for(int sig = 0; sig < 32; sig++)
