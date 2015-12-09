@@ -171,6 +171,7 @@ scap_t* scap_open_live_int(char *error,
 	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
 	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
 	handle->m_fake_kernel_proc.args[0] = 0;
+	handle->refresh_proc_table_when_saving = true;
 
 	//
 	// Open and initialize all the devices
@@ -312,6 +313,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_last_evt_dump_flags = 0;
 	handle->m_driver_procinfo = NULL;
+	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -1229,4 +1231,9 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 
 	return handle->m_driver_procinfo;
 #endif	// HAS_CAPTURE
+}
+
+void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh)
+{
+	handle->refresh_proc_table_when_saving = refresh;
 }
