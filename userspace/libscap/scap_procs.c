@@ -72,6 +72,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->vmswap_kb = 0;
 	tinfo->pfmajor = 0;
 	tinfo->pfminor = 0;
+	tinfo->filtered_out = 0;
 
 	snprintf(filename, sizeof(filename), "%sstatus", procdirname);
 
