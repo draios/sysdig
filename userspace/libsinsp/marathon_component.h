@@ -108,14 +108,13 @@ class marathon_app : public marathon_component
 {
 public:
 	typedef std::shared_ptr<marathon_app> ptr_t;
-	typedef std::vector<mesos_task::ptr_t> task_list_t;
+	typedef std::vector<std::string> task_list_t;
 
 	marathon_app(const std::string& uid);
-
 	~marathon_app();
 
-	void add_or_replace_task(mesos_task::ptr_t ptask);
-
+	void add_task(const std::string& ptask);
+	void remove_task(const std::string& ptask);
 	const task_list_t& get_tasks() const;
 
 private:

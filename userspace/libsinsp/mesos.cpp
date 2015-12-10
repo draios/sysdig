@@ -356,7 +356,7 @@ void mesos::add_app(const Json::Value& app)
 				if(pt)
 				{
 					pt->set_app_id(id);
-					p_app->add_or_replace_task(pt);
+					p_app->add_task(pt->get_uid());
 				}
 				else
 				{
