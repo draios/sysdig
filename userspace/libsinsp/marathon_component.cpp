@@ -94,17 +94,24 @@ marathon_app::~marathon_app()
 {
 }
 
-void marathon_app::add_or_replace_task(mesos_task::ptr_t ptask)
+void marathon_app::add_task(const std::string& ptask)
 {
 	for(auto& task : m_tasks)
 	{
-		if(task->get_uid() == ptask->get_uid())
+		if(task == ptask) { return; }
+	}
+	m_tasks.push_back(ptask);
+}
+
+void marathon_app::remove_task(const std::string& ptask)
+{
+	for(auto& task : m_tasks)
+	{
+		if(task == ptask)
 		{
-			task = ptask;
 			return;
 		}
 	}
-	m_tasks.push_back(ptask);
 }
 
 //
