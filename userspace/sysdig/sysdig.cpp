@@ -1168,6 +1168,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			inspector->set_max_evt_output_len(80);
 		}
 
+		//
+		// Determine if we need to filter when dumping to file
+		//
+		if(filter != "")
+		{
+			inspector->filter_proc_table_when_saving(true);
+		}
+
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
 #ifdef HAS_FILTERING

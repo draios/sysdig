@@ -98,6 +98,7 @@ struct scap
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
+	bool refresh_proc_table_when_saving;
 #ifdef HAS_THREAD_FILTERING
 	void* m_filterstate;
 	bool m_thread_filtering;

@@ -289,7 +289,9 @@ public:
 
 VISIBILITY_PRIVATE
 	void init();
-	void init(const scap_threadinfo* pi);
+	bool should_keep();
+	// return true if, based on the current inspector filter, this thread should be kept
+	void init(scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
 	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
 	void add_fd(scap_fdinfo *fdinfo);

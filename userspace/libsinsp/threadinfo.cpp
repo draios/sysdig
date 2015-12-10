@@ -30,6 +30,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "fdinfo.h"
 #endif
 
+extern sinsp_evttables g_infotables;
+
+
 static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 {
 	dest[0] = src[0];
@@ -288,7 +291,66 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 	}
 }
 
-void sinsp_threadinfo::init(const scap_threadinfo* pi)
+bool sinsp_threadinfo::should_keep()
+{
+	sinsp_evt tevt;
+	scap_evt tscapevt;
+
+	//
+	// Initialize the fake events for filtering
+	//
+	tscapevt.ts = 0;
+	tscapevt.type = PPME_SYSCALL_READ_X;
+	tscapevt.len = 0;
+
+	tevt.m_inspector = m_inspector;
+	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
+	tevt.m_pevt = NULL;
+	tevt.m_cpuid = 0;
+	tevt.m_evtnum = 0;
+	tevt.m_pevt = &tscapevt;
+
+	//
+	// Check if there's at least an fd that matches the filter.
+	// If not, skip this thread
+	//
+	sinsp_fdtable* fdtable = get_fd_table();
+
+	bool match = false;
+
+	for(auto fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
+	{
+		tevt.m_tinfo = this;
+		tevt.m_fdinfo = &(fdit->second);
+		tscapevt.tid = m_tid;
+		int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
+		tevt.m_tinfo->m_lastevent_fd = fdit->first;
+
+		if(m_inspector->m_filter->run(&tevt))
+		{
+			match = true;
+			break;
+		}
+
+		tevt.m_tinfo->m_lastevent_fd = tlefd;
+	}
+
+	//
+	// If at least an FD matched, keep this thread, otherwise filter it out.
+	// Note: checking the FDs will also tell us if this thread matches 
+	//       thread-related filters
+	//
+	if(match)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void sinsp_threadinfo::init(scap_threadinfo* pi)
 {
 	scap_fdinfo *fdi;
 	scap_fdinfo *tfdi;
@@ -329,7 +391,16 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	{
 		add_fd(fdi);
 	}
+
 	m_lastevent_data = NULL;
+
+	if(m_inspector->m_filter != NULL)
+	{
+		if(!should_keep())
+		{
+			pi->filtered_out = 1;
+		}
+	}
 }
 
 string sinsp_threadinfo::get_comm()
