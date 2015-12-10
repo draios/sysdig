@@ -27,6 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef HAS_THREAD_FILTERING
 #include "scap_new.h"
+#include "fdinfo.h"
 #endif
 
 static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
@@ -626,6 +627,7 @@ sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
 void sinsp_threadinfo::reset_file_access_count()
 {
 	uint32_t fd_file_count = 0;
+	//uint32_t fd_net_count = 0;
 	if(is_main_thread())
 	{
 
@@ -646,9 +648,28 @@ void sinsp_threadinfo::reset_file_access_count()
 				fd.m_count_out = 0;
 				fd.m_drop_in = 0;
 				fd.m_drop_out = 0;
-
+			}
+			else if(fd.is_ipv4_socket())
+			{
+				//fd_net_count++;
+				//if(fd.m_drop_in>10 || fd.m_drop_out>10 || fd.m_count_in>10 || fd.m_count_out>10)
+				//{
+				//	printf("%u %d %d %u %u %u %u %u\n", fd.m_transaction_count, fd.m_direction, fd.m_starting_direction, fd.m_change_dir_count, fd.m_count_in, fd.m_count_out, fd.m_drop_in, fd.m_drop_out);
+				//}
+				//
+				fd.m_count_in = 0;
+				fd.m_count_out = 0;
+				fd.m_drop_in = 0;
+				fd.m_drop_out = 0;
+				fd.m_transaction = false;
+				fd.m_transaction_count = 0;
+				fd.m_direction = 0;
+				fd.m_starting_direction = 0;
+				fd.m_change_dir_count = 0;
+				fd.m_transaction_op_count = 0;
 			}
 		}
+		//printf("%ld %u\n", m_tid, fd_net_count);
 		//if we have files on this thread, reset counters!
 		if(fd_file_count>0)
 		{
