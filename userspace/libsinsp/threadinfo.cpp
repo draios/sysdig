@@ -309,6 +309,11 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	if(m_inspector)
 	{
 		m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
+		string mesos_task_id = get_env("MESOS_TASK_ID");
+		if(!mesos_task_id.empty())
+		{
+			m_inspector->m_container_manager.set_mesos_task_id(m_container_id, mesos_task_id);
+		}
 	}
 	
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
@@ -350,6 +355,26 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 		m_env.push_back(env + offset);
 		offset += m_env.back().length() + 1;
 	}
+}
+
+string sinsp_threadinfo::get_env(const string& name) const
+{
+	for(const auto& env_var : m_env)
+	{
+		if((env_var.length() > name.length()) && (env_var.substr(0, name.length()) == name))
+		{
+			std::string::size_type pos = env_var.find('=');
+			if(pos != std::string::npos && env_var.size() > pos + 1)
+			{
+				string val = env_var.substr(pos + 1);
+				std::string::size_type first = val.find_first_not_of(' ');
+				std::string::size_type last = val.find_last_not_of(' ');
+				return val.substr(first, last - first + 1);
+			}
+		}
+	}
+
+	return "";
 }
 
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)

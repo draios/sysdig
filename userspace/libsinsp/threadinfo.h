@@ -74,6 +74,12 @@ public:
 	string get_cwd();
 
 	/*!
+	  \brief Return the value of the specified environment variable for the process
+	  containing this thread. Returns empty string if variable is not found.
+	*/
+	string get_env(const string& name) const;
+
+	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
 	inline bool is_main_thread()
