@@ -153,12 +153,14 @@ public:
 		m_drop_out = other.m_drop_out;
 		m_old_count_in = other.m_old_count_in;
 		m_old_count_out = other.m_old_count_out;
+
 		m_transaction_count = other.m_transaction_count;
 		m_transaction = other.m_transaction;
 		m_direction = other.m_direction;
 		m_starting_direction = other.m_starting_direction;
 		m_change_dir_count = other.m_change_dir_count;
 		m_transaction_op_count= other.m_transaction_op_count;
+		m_follow = other.m_follow;
 #endif
 
 	}
@@ -334,6 +336,7 @@ public:
 	int8_t m_starting_direction = 0;
 	uint32_t m_change_dir_count = 0;
 	uint32_t m_transaction_op_count = 0;
+	bool m_follow = true;
 #endif
 
 VISIBILITY_PRIVATE

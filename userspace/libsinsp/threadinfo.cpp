@@ -738,6 +738,7 @@ void sinsp_threadinfo::reset_file_access_count()
 				fd.m_starting_direction = 0;
 				fd.m_change_dir_count = 0;
 				fd.m_transaction_op_count = 0;
+				fd.m_follow = true;
 			}
 		}
 		//printf("%ld %u\n", m_tid, fd_net_count);
