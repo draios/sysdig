@@ -78,9 +78,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-bool sinsp_container_manager::get_container(const string& id, sinsp_container_info* container_info)
+bool sinsp_container_manager::get_container(const string& container_id, sinsp_container_info* container_info) const
 {
-	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(id);
+	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_id);
 	if(it != m_containers.end())
 	{
 		*container_info = it->second;
@@ -88,6 +88,41 @@ bool sinsp_container_manager::get_container(const string& id, sinsp_container_in
 	}
 
 	return false;
+}
+
+sinsp_container_info* sinsp_container_manager::get_container(const string& container_id)
+{
+	unordered_map<string, sinsp_container_info>::iterator it = m_containers.find(container_id);
+	if(it != m_containers.end())
+	{
+		return &it->second;
+	}
+
+	return NULL;
+}
+
+bool sinsp_container_manager::set_mesos_task_id(const string& container_id, const string& task_id)
+{
+	sinsp_container_info* container = get_container(container_id);
+	if(container)
+	{
+		container->m_mesos_task_id = task_id;
+		return true;
+	}
+
+	return false;
+}
+
+string sinsp_container_manager::get_mesos_task_id(const string& container_id)
+{
+	string mesos_task_id;
+	const sinsp_container_info* container = get_container(container_id);
+	if(container)
+	{
+		mesos_task_id = container->m_mesos_task_id;
+	}
+
+	return mesos_task_id;
 }
 
 bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, string* container_id)
