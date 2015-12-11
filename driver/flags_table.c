@@ -383,6 +383,12 @@ const struct ppm_name_value semop_flags[] = {
 	{ },
 };
 
+const struct ppm_name_value semget_flags[] = {
+	{"IPC_EXCL", PPM_IPC_EXCL},
+	{"IPC_CREAT", PPM_IPC_CREAT},
+	{ },
+};
+
 const struct ppm_name_value semctl_commands[] = {
 	{"IPC_STAT", PPM_IPC_STAT},
 	{"IPC_SET", PPM_IPC_SET},
@@ -397,5 +403,13 @@ const struct ppm_name_value semctl_commands[] = {
 	{"GETZCNT", PPM_GETZCNT},
 	{"SETALL", PPM_SETALL},
 	{"SETVAL", PPM_SETVAL},
+	{ },
+};
+
+const struct ppm_name_value access_flags[] = {
+	{"F_OK", PPM_F_OK},
+	{"R_OK", PPM_R_OK},
+	{"W_OK", PPM_W_OK},
+	{"X_OK", PPM_X_OK},
 	{ },
 };

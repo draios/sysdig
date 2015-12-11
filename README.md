@@ -41,13 +41,13 @@ Join the Community
 ---
 * Contact the [official mailing list] (https://groups.google.com/forum/#!forum/sysdig) for support and to talk with other users
 * Follow us on [Twitter] (https://twitter.com/sysdig) for the Chisel of the Week
-* This is our [blog] (http://sysdigcloud.com/blog/). There are many like it, but this one is ours.
+* This is our [blog] (https://sysdig.com/blog/). There are many like it, but this one is ours.
 * Join our IRC channel `#sysdig` on [Freenode](http://webchat.freenode.net/?channels=sysdig)
 
 Sysdig Cloud
 ---
-Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Cloud] (http://sysdig.com)!
+Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Cloud] (https://sysdig.com/)!
 
-Sysdig is proudly supported by [Sysdig Inc] (http://sysdig.com/).  
+Sysdig is proudly supported by [Sysdig Inc] (https://sysdig.com/).  
 
-Interested in what we're doing? [Sysdig is hiring] (http://sysdig.com/jobs/).
+Interested in what we're doing? [Sysdig is hiring] (https://sysdig.com/jobs/).

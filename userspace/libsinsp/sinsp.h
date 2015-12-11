@@ -678,6 +678,7 @@ public:
 	void add_meta_event_and_repeat(sinsp_evt *metaevt);
 	void add_meta_event_callback(meta_event_callback cback, void* data);
 	void remove_meta_event_callback();
+	void filter_proc_table_when_saving(bool filter);
 
 	void refresh_ifaddr_list();
 
@@ -732,6 +733,7 @@ private:
 	sinsp_parser* m_parser;
 	// the statistics analysis engine
 	scap_dumper_t* m_dumper;
+	bool m_filter_proc_table_when_saving;
 	const scap_machine_info* m_machine_info;
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
