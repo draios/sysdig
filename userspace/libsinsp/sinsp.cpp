@@ -317,6 +317,8 @@ void sinsp::open(uint32_t timeout_ms)
 	//
 	scap_open_args oargs;
 	oargs.fname = NULL;
+	oargs.proc_callback = NULL;
+	oargs.proc_callback_context = NULL;
 	if(!m_filter_proc_table_when_saving)
 	{
 		oargs.proc_callback = ::on_new_entry_from_proc;
