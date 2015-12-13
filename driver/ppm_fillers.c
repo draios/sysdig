@@ -1058,7 +1058,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (current->real_parent)
-		ptid = current->parent->pid;
+		ptid = current->real_parent->pid;
 	else
 		ptid = 0;
 #else
