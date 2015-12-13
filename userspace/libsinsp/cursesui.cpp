@@ -1836,8 +1836,11 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 				g_logger.format("running action %d %s", m_selected_action_sidemenu_entry,
 					vinfo->m_name.c_str());
-				ASSERT(m_selected_action_sidemenu_entry < vinfo->m_actions.size());
-				run_action(&vinfo->m_actions[m_selected_action_sidemenu_entry]);
+				if(vinfo->m_actions.size() != 0)
+				{
+					ASSERT(m_selected_action_sidemenu_entry < vinfo->m_actions.size());
+					run_action(&vinfo->m_actions[m_selected_action_sidemenu_entry]);
+				}
 
 				return ta;
 			}
