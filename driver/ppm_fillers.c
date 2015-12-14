@@ -1127,12 +1127,13 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (current->real_parent)
+		ptid = current->real_parent->pid;
+#else
+	if (current->parent)
 		ptid = current->parent->pid;
+#endif
 	else
 		ptid = 0;
-#else
-	ptid = current->parent->pid;
-#endif
 
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
