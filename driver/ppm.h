@@ -92,7 +92,6 @@ struct ppm_consumer_t {
 	volatile int need_to_insert_drop_e;
 	volatile int need_to_insert_drop_x;
 	struct list_head node;
-	struct ppm_proclist_info *proclist_info;
 };
 
 #define STR_STORAGE_SIZE PAGE_SIZE
