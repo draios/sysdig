@@ -1140,7 +1140,9 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
 			{
-				if((val & flags->value) == flags->value && val != 0)
+				// If flag is 0, then initial_val needs to be 0 for the flag to be resolved
+				if((flags->value == 0 && initial_val == 0) ||
+				   (flags->value != 0 && (val & flags->value) == flags->value && val != 0))
 				{
 					ret["flags"].append(flags->name);
 
@@ -1781,7 +1783,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
 			{
-				if((val & flags->value) == flags->value && val != 0)
+				// If flag is 0, then initial_val needs to be 0 for the flag to be resolved
+				if((flags->value == 0 && initial_val == 0) ||
+				   (flags->value != 0 && (val & flags->value) == flags->value && val != 0))
 				{
 					if(m_resolved_paramstr_storage.size() < j + strlen(separator) + strlen(flags->name))
 					{
