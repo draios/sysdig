@@ -695,7 +695,7 @@ sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
 }
 
 #ifdef HAS_EARLY_FILTERING
-void sinsp_threadinfo::reset_file_access_count()
+void sinsp_threadinfo::reset_access_count()
 {
 	uint32_t fd_file_count = 0;
 	//uint32_t fd_net_count = 0;

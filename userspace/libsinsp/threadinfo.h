@@ -183,7 +183,7 @@ public:
 	uint64_t get_fd_limit();
 
 #ifdef HAS_EARLY_FILTERING
-	void reset_file_access_count();
+	void reset_access_count();
 
 	__always_inline void increment_total_write_access()
 	{
