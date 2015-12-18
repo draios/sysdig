@@ -699,11 +699,11 @@ private:
 	void remove_thread(int64_t tid, bool force);
 	//
 	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but for
+	//       not as a consequence of an event for that thread arriving, but 
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
-	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only);
+	sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only);
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
