@@ -257,6 +257,55 @@ void sinsp::init()
 	m_n_proc_lookups = 0;
 	m_n_proc_lookups_duration_ns = 0;
 
+	//
+	// If we're reading from file, we try to pre-parse the container events before
+	// importing the thread table, so that thread table filtering will work with
+	// container filters
+	//
+	if(m_islive == false)
+	{
+		uint64_t off = scap_ftell(m_h);
+		scap_evt* pevent;
+		uint16_t pcpuid;
+		uint32_t ncnt = 0;
+
+		//
+		// Count how many container events we have
+		//
+		while(true)
+		{
+			int32_t res = scap_next(m_h, &pevent, &pcpuid);
+
+			if(res == SCAP_SUCCESS)
+			{
+				if(pevent->type != PPME_CONTAINER_E)
+				{
+					break;
+				}
+				else
+				{
+					ncnt++;
+					continue;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		//
+		// Rewind and consume the exact number of events
+		//
+		scap_fseek(m_h, off);
+
+		for(uint32_t j = 0; j < ncnt; j++)
+		{
+			sinsp_evt* tevt;
+			next(&tevt);
+		}
+	}
+
 	if(m_islive == false || m_filter_proc_table_when_saving == true)
 	{
 		import_thread_table();
@@ -584,7 +633,8 @@ void sinsp::on_new_entry_from_proc(void* context,
 			}
 		}
 
-		sinsp_tinfo->add_fd(fdinfo);
+		sinsp_fdinfo_t sinsp_fdinfo;
+		sinsp_tinfo->add_fd_from_scap(fdinfo, &sinsp_fdinfo);
 	}
 }
 
