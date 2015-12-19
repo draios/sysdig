@@ -399,7 +399,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	{
 		add_fd_from_scap(fdi, &tfdinfo);
 
-		if(m_inspector->m_filter != NULL)
+		if(m_inspector->m_filter != NULL && !m_inspector->is_live())
 		{
 			tevt.m_tinfo = this;
 			tevt.m_fdinfo = &tfdinfo;
@@ -425,7 +425,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 
 	m_lastevent_data = NULL;
 
-	if(m_inspector->m_filter != NULL)
+	if(m_inspector->m_filter != NULL && !m_inspector->is_live())
 	{
 		if(!match)
 		{
