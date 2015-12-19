@@ -1959,7 +1959,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 
 	if(!found_mi)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find machine info block.");			
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find machine info block.");
 		return SCAP_FAILURE;
 	}
 
@@ -1972,18 +1972,6 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 	if(!found_il)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find interface list block.");			
-		return SCAP_FAILURE;
-	}
-
-	if(!found_fdl)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find file descriptor list block.");			
-		return SCAP_FAILURE;
-	}
-
-	if(!found_pl)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find process list block.");			
 		return SCAP_FAILURE;
 	}
 
@@ -2068,4 +2056,20 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	}
 
 	return SCAP_SUCCESS;
+}
+
+uint64_t scap_ftell(scap_t *handle)
+{
+	gzFile f = handle->m_file;
+	ASSERT(f != NULL);
+
+	return gztell(f);
+}
+
+void scap_fseek(scap_t *handle, uint64_t off)
+{
+	gzFile f = handle->m_file;
+	ASSERT(f != NULL);
+
+	gzseek(f, off, SEEK_SET);
 }
