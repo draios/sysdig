@@ -161,6 +161,7 @@ public:
 		m_change_dir_count = other.m_change_dir_count;
 		m_transaction_op_count= other.m_transaction_op_count;
 		m_follow = other.m_follow;
+		m_end = other.m_end;
 #endif
 
 	}
@@ -337,6 +338,7 @@ public:
 	uint32_t m_change_dir_count = 0;
 	uint32_t m_transaction_op_count = 0;
 	bool m_follow = true;
+	bool m_end = false;
 #endif
 
 VISIBILITY_PRIVATE

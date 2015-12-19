@@ -732,13 +732,13 @@ void sinsp_threadinfo::reset_access_count()
 				fd.m_count_out = 0;
 				fd.m_drop_in = 0;
 				fd.m_drop_out = 0;
-				fd.m_transaction = false;
+				//fd.m_transaction = false;
 				fd.m_transaction_count = 0;
 				fd.m_direction = 0;
 				fd.m_starting_direction = 0;
 				fd.m_change_dir_count = 0;
 				fd.m_transaction_op_count = 0;
-				fd.m_follow = true;
+				//fd.m_follow = true;
 			}
 		}
 		//printf("%ld %u\n", m_tid, fd_net_count);
