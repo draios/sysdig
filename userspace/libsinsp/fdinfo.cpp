@@ -29,7 +29,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 ///////////////////////////////////////////////////////////////////////////////
 template<> sinsp_fdinfo_t::sinsp_fdinfo()
 {
-	reset();
+	m_type = SCAP_FD_UNINITIALIZED;
+	m_flags = FLAGS_NONE;
+	m_callbaks = NULL;
+	m_usrstate = NULL;
 }
 
 template<> void sinsp_fdinfo_t::reset()
