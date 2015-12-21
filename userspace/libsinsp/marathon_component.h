@@ -17,7 +17,7 @@
 #include <memory>
 
 typedef std::pair<std::string, std::string> marathon_pair_t;
-typedef std::vector<marathon_pair_t>             marathon_pair_list;
+typedef std::vector<marathon_pair_t>        marathon_pair_list;
 
 // 
 // component
