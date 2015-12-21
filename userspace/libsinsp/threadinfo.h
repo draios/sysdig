@@ -244,7 +244,7 @@ VISIBILITY_PRIVATE
 	void init(scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
 	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
-	void add_fd(scap_fdinfo *fdinfo);
+	void add_fd_from_scap(scap_fdinfo *fdinfo, OUT sinsp_fdinfo_t *res);
 	void remove_fd(int64_t fd);
 	inline sinsp_fdtable* get_fd_table()
 	{

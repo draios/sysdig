@@ -150,39 +150,40 @@ void sinsp_threadinfo::compute_program_hash()
 	m_program_hash = std::hash<std::string>()(phs);
 }
 
-void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
+void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *res)
 {
-	sinsp_fdinfo_t newfdi;
+	sinsp_fdinfo_t* newfdi = res;
+	newfdi->reset();
 	bool do_add = true;
 
-	newfdi.m_type = fdi->type;
-	newfdi.m_openflags = 0;
-	newfdi.m_type = fdi->type;
-	newfdi.m_flags = sinsp_fdinfo_t::FLAGS_FROM_PROC;
-	newfdi.m_ino = fdi->ino;
+	newfdi->m_type = fdi->type;
+	newfdi->m_openflags = 0;
+	newfdi->m_type = fdi->type;
+	newfdi->m_flags = sinsp_fdinfo_t::FLAGS_FROM_PROC;
+	newfdi->m_ino = fdi->ino;
 
-	switch(newfdi.m_type)
+	switch(newfdi->m_type)
 	{
 	case SCAP_FD_IPV4_SOCK:
-		newfdi.m_sockinfo.m_ipv4info.m_fields.m_sip = fdi->info.ipv4info.sip;
-		newfdi.m_sockinfo.m_ipv4info.m_fields.m_dip = fdi->info.ipv4info.dip;
-		newfdi.m_sockinfo.m_ipv4info.m_fields.m_sport = fdi->info.ipv4info.sport;
-		newfdi.m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv4info.dport;
-		newfdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv4info.l4proto;
-		m_inspector->m_network_interfaces->update_fd(&newfdi);
-		newfdi.m_name = ipv4tuple_to_string(&newfdi.m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+		newfdi->m_sockinfo.m_ipv4info.m_fields.m_sip = fdi->info.ipv4info.sip;
+		newfdi->m_sockinfo.m_ipv4info.m_fields.m_dip = fdi->info.ipv4info.dip;
+		newfdi->m_sockinfo.m_ipv4info.m_fields.m_sport = fdi->info.ipv4info.sport;
+		newfdi->m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv4info.dport;
+		newfdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv4info.l4proto;
+		m_inspector->m_network_interfaces->update_fd(newfdi);
+		newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
-		newfdi.m_sockinfo.m_ipv4serverinfo.m_ip = fdi->info.ipv4serverinfo.ip;
-		newfdi.m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
-		newfdi.m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
-		newfdi.m_name = ipv4serveraddr_to_string(&newfdi.m_sockinfo.m_ipv4serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
+		newfdi->m_sockinfo.m_ipv4serverinfo.m_ip = fdi->info.ipv4serverinfo.ip;
+		newfdi->m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
+		newfdi->m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
+		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
 			
 		//
 		// We keep note of all the host bound server ports.
 		// We'll need them later when patching connections direction.
 		//
-		m_inspector->m_thread_manager->m_server_ports.insert(newfdi.m_sockinfo.m_ipv4serverinfo.m_port);
+		m_inspector->m_thread_manager->m_server_ports.insert(newfdi->m_sockinfo.m_ipv4serverinfo.m_port);
 
 		break;
 	case SCAP_FD_IPV6_SOCK:
@@ -193,49 +194,49 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 			// This is an IPv4-mapped IPv6 addresses (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses).
 			// Convert it into the IPv4 representation.
 			//
-			newfdi.m_type = SCAP_FD_IPV4_SOCK;
-			newfdi.m_sockinfo.m_ipv4info.m_fields.m_sip = fdi->info.ipv6info.sip[3];
-			newfdi.m_sockinfo.m_ipv4info.m_fields.m_dip = fdi->info.ipv6info.dip[3];
-			newfdi.m_sockinfo.m_ipv4info.m_fields.m_sport = fdi->info.ipv6info.sport;
-			newfdi.m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv6info.dport;
-			newfdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
-			m_inspector->m_network_interfaces->update_fd(&newfdi);
-			newfdi.m_name = ipv4tuple_to_string(&newfdi.m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+			newfdi->m_type = SCAP_FD_IPV4_SOCK;
+			newfdi->m_sockinfo.m_ipv4info.m_fields.m_sip = fdi->info.ipv6info.sip[3];
+			newfdi->m_sockinfo.m_ipv4info.m_fields.m_dip = fdi->info.ipv6info.dip[3];
+			newfdi->m_sockinfo.m_ipv4info.m_fields.m_sport = fdi->info.ipv6info.sport;
+			newfdi->m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv6info.dport;
+			newfdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
+			m_inspector->m_network_interfaces->update_fd(newfdi);
+			newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
 		}
 		else
 		{
-			copy_ipv6_address(newfdi.m_sockinfo.m_ipv6info.m_fields.m_sip, fdi->info.ipv6info.sip);
-			copy_ipv6_address(newfdi.m_sockinfo.m_ipv6info.m_fields.m_dip, fdi->info.ipv6info.dip);
-			newfdi.m_sockinfo.m_ipv6info.m_fields.m_sport = fdi->info.ipv6info.sport;
-			newfdi.m_sockinfo.m_ipv6info.m_fields.m_dport = fdi->info.ipv6info.dport;
-			newfdi.m_sockinfo.m_ipv6info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
-			newfdi.m_name = ipv6tuple_to_string(&newfdi.m_sockinfo.m_ipv6info, m_inspector->m_hostname_and_port_resolution_enabled);
+			copy_ipv6_address(newfdi->m_sockinfo.m_ipv6info.m_fields.m_sip, fdi->info.ipv6info.sip);
+			copy_ipv6_address(newfdi->m_sockinfo.m_ipv6info.m_fields.m_dip, fdi->info.ipv6info.dip);
+			newfdi->m_sockinfo.m_ipv6info.m_fields.m_sport = fdi->info.ipv6info.sport;
+			newfdi->m_sockinfo.m_ipv6info.m_fields.m_dport = fdi->info.ipv6info.dport;
+			newfdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
+			newfdi->m_name = ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info, m_inspector->m_hostname_and_port_resolution_enabled);
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		copy_ipv6_address(newfdi.m_sockinfo.m_ipv6serverinfo.m_ip, fdi->info.ipv6serverinfo.ip);
-		newfdi.m_sockinfo.m_ipv6serverinfo.m_port = fdi->info.ipv6serverinfo.port;
-		newfdi.m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi->info.ipv6serverinfo.l4proto;
-		newfdi.m_name = ipv6serveraddr_to_string(&newfdi.m_sockinfo.m_ipv6serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
+		copy_ipv6_address(newfdi->m_sockinfo.m_ipv6serverinfo.m_ip, fdi->info.ipv6serverinfo.ip);
+		newfdi->m_sockinfo.m_ipv6serverinfo.m_port = fdi->info.ipv6serverinfo.port;
+		newfdi->m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi->info.ipv6serverinfo.l4proto;
+		newfdi->m_name = ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
 
 		//
 		// We keep note of all the host bound server ports.
 		// We'll need them later when patching connections direction.
 		//
-		m_inspector->m_thread_manager->m_server_ports.insert(newfdi.m_sockinfo.m_ipv6serverinfo.m_port);
+		m_inspector->m_thread_manager->m_server_ports.insert(newfdi->m_sockinfo.m_ipv6serverinfo.m_port);
 
 		break;
 	case SCAP_FD_UNIX_SOCK:
-		newfdi.m_sockinfo.m_unixinfo.m_fields.m_source = fdi->info.unix_socket_info.source;
-		newfdi.m_sockinfo.m_unixinfo.m_fields.m_dest = fdi->info.unix_socket_info.destination;
-		newfdi.m_name = fdi->info.unix_socket_info.fname;
-		if(newfdi.m_name.empty())
+		newfdi->m_sockinfo.m_unixinfo.m_fields.m_source = fdi->info.unix_socket_info.source;
+		newfdi->m_sockinfo.m_unixinfo.m_fields.m_dest = fdi->info.unix_socket_info.destination;
+		newfdi->m_name = fdi->info.unix_socket_info.fname;
+		if(newfdi->m_name.empty())
 		{
-			newfdi.set_role_client();
+			newfdi->set_role_client();
 		}
 		else
 		{
-			newfdi.set_role_server();
+			newfdi->set_role_server();
 		}
 		break;
 	case SCAP_FD_FIFO:
@@ -247,7 +248,7 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 	case SCAP_FD_EVENT:
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
-		newfdi.m_name = fdi->info.fname;
+		newfdi->m_name = fdi->info.fname;
 		break;
 	default:
 		ASSERT(false);
@@ -264,7 +265,7 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 	for(it = m_inspector->m_parser->m_open_callbacks.begin(); 
 		it != m_inspector->m_parser->m_open_callbacks.end(); ++it)
 	{
-		(*it)->on_fd_from_proc(&newfdi);
+		(*it)->on_fd_from_proc(newfdi);
 	}
 
 	//
@@ -272,7 +273,7 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 	//
 	if(do_add)
 	{
-		m_fdtable.add(fdi->fd, &newfdi);
+		m_fdtable.add(fdi->fd, newfdi);
 	}
 }
 
@@ -375,17 +376,62 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 			m_inspector->m_container_manager.set_mesos_task_id(m_container_id, mesos_task_id, m_ptid);
 		}
 	}
-	
+
+	//
+	// Prepare for filtering
+	//
+	sinsp_fdinfo_t tfdinfo;
+	sinsp_evt tevt;
+	scap_evt tscapevt;
+
+	//
+	// Initialize the fake events for filtering
+	//
+	tscapevt.ts = 0;
+	tscapevt.type = PPME_SYSCALL_READ_X;
+	tscapevt.len = 0;
+
+	tevt.m_inspector = m_inspector;
+	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
+	tevt.m_pevt = NULL;
+	tevt.m_cpuid = 0;
+	tevt.m_evtnum = 0;
+	tevt.m_pevt = &tscapevt;
+	bool match = false;
+
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
 	{
-		add_fd(fdi);
+		add_fd_from_scap(fdi, &tfdinfo);
+
+		if(m_inspector->m_filter != NULL && !m_inspector->is_live())
+		{
+			tevt.m_tinfo = this;
+			tevt.m_fdinfo = &tfdinfo;
+			tscapevt.tid = m_tid;
+			int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
+			tevt.m_tinfo->m_lastevent_fd = fdi->fd;
+
+			if(m_inspector->m_filter->run(&tevt))
+			{
+				match = true;
+			}
+			else
+			{
+				//
+				// This tells scap not to include this FD in the write file
+				//
+				fdi->type = SCAP_FD_UNINITIALIZED;
+			}
+
+			tevt.m_tinfo->m_lastevent_fd = tlefd;
+		}
 	}
 
 	m_lastevent_data = NULL;
 
-	if(m_inspector->m_filter != NULL)
+	if(m_inspector->m_filter != NULL && !m_inspector->is_live())
 	{
-		if(!should_keep())
+		if(!match)
 		{
 			pi->filtered_out = 1;
 		}

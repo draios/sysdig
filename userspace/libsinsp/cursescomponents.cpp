@@ -1559,6 +1559,16 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 );
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
+	m_ctext->printf("Actions and Hotkeys\n",
+		g_version_string.c_str());
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(
+"Each view has a list of command lines that can be executed in the context of the current selction by pressing 'hotkeys'. For example, pressing 'k' in the Processes view kills the selected process, pressing 'b' in the Containers view opens a bash shell in the selected container.\n"
+"Each view supports different actions. You can see which actions a view supports by pressing F8. You can customize the view's actions by editing the view's Lua file.\n\n"
+);
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 	m_ctext->printf("Containers Support\n",
 		g_version_string.c_str());
 
@@ -1637,7 +1647,12 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 	m_ctext->printf(" ? F1 h");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf(": show this help screen\n");
+	m_ctext->printf(": show this help screen          ");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("F8");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": open the view's actions panel\n");
 
 	//
 	// Text windows keys
