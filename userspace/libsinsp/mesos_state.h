@@ -92,6 +92,12 @@ public:
 
 	marathon_group::ptr_t add_or_replace_group(marathon_group::ptr_t group, marathon_group::ptr_t to_group = 0);
 
+	//
+	// state
+	//
+
+	void clear();
+
 private:
 
 	mesos_frameworks m_frameworks;
@@ -228,4 +234,16 @@ inline const marathon_groups& mesos_state_t::get_groups() const
 inline marathon_groups& mesos_state_t::get_groups()
 {
 	return m_groups;
+}
+
+//
+// state
+//
+
+inline void mesos_state_t::clear()
+{
+	m_frameworks.clear();
+	m_slaves.clear();
+	m_apps.clear();
+	m_groups.clear();
 }

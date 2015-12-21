@@ -703,7 +703,48 @@ private:
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
-	sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only);
+	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only)
+	{
+		threadinfo_map_iterator_t it;
+
+		//
+		// Try looking up in our simple cache
+		//
+		if(m_thread_manager->m_last_tinfo && tid == m_thread_manager->m_last_tid)
+		{
+	#ifdef GATHER_INTERNAL_STATS
+			m_thread_manager->m_cached_lookups->increment();
+	#endif
+			m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+			return m_thread_manager->m_last_tinfo;
+		}
+
+		//
+		// Caching failed, do a real lookup
+		//
+		it = m_thread_manager->m_threadtable.find(tid);
+
+		if(it != m_thread_manager->m_threadtable.end())
+		{
+	#ifdef GATHER_INTERNAL_STATS
+			m_thread_manager->m_non_cached_lookups->increment();
+	#endif
+			if(!lookup_only)
+			{
+				m_thread_manager->m_last_tid = tid;
+				m_thread_manager->m_last_tinfo = &(it->second);
+				m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+			}
+			return &(it->second);
+		}
+		else
+		{
+	#ifdef GATHER_INTERNAL_STATS
+			m_thread_manager->m_failed_lookups->increment();
+	#endif
+			return NULL;
+		}
+	}
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();

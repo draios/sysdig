@@ -39,11 +39,12 @@ public:
 	~mesos();
 
 	node_t get_node_type() const;
-	const mesos_state_t get_state() const;
+	const mesos_state_t& get_state() const;
 	bool is_alive() const;
+	void refresh();
+	void clear();
 
 private:
-	void init();
 
 	void parse_state(const std::string& json);
 	void determine_node_type(const Json::Value& root);
@@ -63,7 +64,6 @@ private:
 	void parse_apps(const std::string& json);
 	void add_app(const Json::Value& app);
 
-	std::string   m_container_id;
 	node_t        m_node_type;
 	mesos_http    m_state_http;
 	mesos_http*   m_groups_http;
@@ -78,7 +78,7 @@ inline mesos::node_t mesos::get_node_type() const
 	return m_node_type;
 }
 
-inline const mesos_state_t mesos::get_state() const
+inline const mesos_state_t& mesos::get_state() const
 {
 	return m_state;
 }
@@ -93,4 +93,9 @@ inline bool mesos::is_alive() const
 	return m_state_http.is_connected() &&
 		(!m_groups_http || m_groups_http->is_connected()) &&
 		(!m_apps_http || m_apps_http->is_connected());
+}
+
+inline void mesos::clear()
+{
+	m_state.clear();
 }

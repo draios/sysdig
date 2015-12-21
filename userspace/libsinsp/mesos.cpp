@@ -30,7 +30,7 @@ mesos::mesos(const std::string& state_uri,
 		m_groups_http(groups_uri.empty() ? 0 : new mesos_http(groups_uri + groups_api)),
 		m_apps_http(apps_uri.empty() ? 0 : new mesos_http(apps_uri + apps_api))
 {
-	init();
+	refresh();
 }
 
 mesos::~mesos()
@@ -39,8 +39,10 @@ mesos::~mesos()
 	delete m_apps_http;
 }
 
-void mesos::init()
+void mesos::refresh()
 {
+	clear();
+
 	std::ostringstream os;
 	m_state_http.get_all_data(os);
 	parse_state(os.str());
