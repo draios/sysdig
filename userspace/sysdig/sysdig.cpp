@@ -106,7 +106,7 @@ static void usage()
 "                    parameter each.\n"
 "                    Used alongside -W flags creates a ring buffer of file containing\n"
 "                    num_events each.\n"
-" -F, --fatfile	     Enable fatfile mode\n"
+" -F, --fatfile      Enable fatfile mode\n"
 "                    when writing in fatfile mode, the output file will contain\n"
 "                    events that will be invisible when reading the file, but\n"
 "                    that are necessary to fully reconstruct the state.\n"
@@ -117,6 +117,12 @@ static void usage()
 "                    'hidden' so that they won't appear when reading the file.\n"
 "                    Be aware that using this flag might generate substantially\n"
 "                    bigger traces files.\n"
+" filter-proclist    apply the filter to the process table\n"
+"                    a full dump of /proc is typically included in any trace file\n"
+"                    to make sure all the state required to decode events is in the\n"
+"                    file. This could cause the file to contain unwanted or sensitive\n"
+"                    information. Using this flag causes the command line filter to\n"
+"                    be applied to the /proc dump as well.\n"
 " -G <num_seconds>, --seconds=<num_seconds>\n"
 "                    Rotates the dump file specified with the -w option every\n"
 "                    num_seconds seconds. Savefiles will have the name specified\n"
@@ -667,6 +673,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int cflag = 0;
 	bool jflag = false;
 	bool unbuf_flag = false;
+	bool filter_proclist_flag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
 	string* k8s_api = 0;
@@ -690,6 +697,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"exclude-users", no_argument, 0, 'E' },
 		{"event-limit", required_argument, 0, 'e'},
 		{"fatfile", no_argument, 0, 'F'},
+		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
 #ifdef HAS_CHISELS
@@ -1059,6 +1067,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			{
 				unbuf_flag = true;
 			}
+
+			if(string(long_options[long_index].name) == "filter-proclist")
+			{
+				filter_proclist_flag = true;
+			}
 		}
 
 		//
@@ -1171,9 +1184,25 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Determine if we need to filter when dumping to file
 		//
-		if(filter != "")
+		if(filter_proclist_flag)
 		{
-			inspector->filter_proc_table_when_saving(true);
+			if(filter != "")
+			{
+				if(infiles.size() == 0)
+				{
+					fprintf(stderr, "--filter-proclist not supported with live captures.\n");
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+
+				inspector->filter_proc_table_when_saving(true);
+			}
+			else
+			{
+				fprintf(stderr, "you must specify a filter if you use --filter-proclist.\n");
+				res.m_res = EXIT_FAILURE;
+				goto exit;
+			}
 		}
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
