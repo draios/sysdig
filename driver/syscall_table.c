@@ -28,19 +28,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/wait.h>
 #include <net/sock.h>
 #include <asm/unistd.h>
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
-#include "ppm_syscall.h"
-#else
 #include <asm/syscall.h>
-#endif
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
-#if defined(CONFIG_IA32_EMULATION) && !defined(__NR_ia32_socketcall)
-#include "ppm_compat_unistd_32.h"
-#endif
 
 /*
  * SYSCALL TABLE

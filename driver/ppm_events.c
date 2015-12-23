@@ -35,12 +35,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/kernel.h>
 #include <asm/mman.h>
 #include <linux/in.h>
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
-#include <linux/mount.h>
-#include "ppm_syscall.h"
-#else
 #include <asm/syscall.h>
-#endif
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -183,35 +178,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	int sock_address_len;
 	int peer_address_len;
 	u16 sport, dport;
-
-/*
-	if (args->event_type == PPME_SYSCALL_WRITE_X) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-		struct fd f = fdget(args->fd);
-
-		if (f.file && f.file->f_op) {
-			if (THIS_MODULE == f.file->f_op->owner) {
-				res = RW_SNAPLEN_EVENT;
-				fdput(f);
-				return res;
-			}
-
-			fdput(f);
-		}
-#else
-		struct file* file = fget(args->fd);
-		if (file && file->f_op) {
-			if (THIS_MODULE == file->f_op->owner) {
-				res = RW_SNAPLEN_EVENT;
-				fput(file);
-				return res;
-			}
-
-			fput(file);
-		}
-#endif
-	}
-*/
 
 	if (!args->consumer->do_dynamic_snaplen)
 		return res;
@@ -593,7 +559,6 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
  * of buf.
  * Buf must be at least 1 page in size.
  */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 char *npm_getcwd(char *buf, unsigned long bufsize)
 {
 	struct path pwd;
@@ -601,14 +566,7 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 
 	ASSERT(bufsize >= PAGE_SIZE - 1);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36) || defined CONFIG_VE
 	get_fs_pwd(current->fs, &pwd);
-#else
-	read_lock(&current->fs->lock);
-	pwd = current->fs->pwd;
-	path_get(&pwd);
-	read_unlock(&current->fs->lock);
-#endif
 
 	res = d_path(&pwd, buf, bufsize);
 
@@ -619,28 +577,6 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 
 	return res;
 }
-#else /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
-char *npm_getcwd(char *buf, unsigned long bufsize)
-{
-	struct dentry *dentry;
-	struct vfsmount *mnt;
-	char *res;
-
-	ASSERT(bufsize >= PAGE_SIZE - 1);
-
-	read_lock(&current->fs->lock);
-	mnt = mntget(current->fs->pwdmnt);
-	dentry = dget(current->fs->pwd);
-	read_unlock(&current->fs->lock);
-
-	res = d_path(dentry, mnt, buf, bufsize);
-
-	if (IS_ERR(res))
-		res = NULL;
-
-	return res;
-}
-#endif
 
 static inline u8 socket_family_to_scap(u8 family)
 {

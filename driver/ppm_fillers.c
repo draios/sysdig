@@ -38,11 +38,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/cgroup.h>
 #endif
 #include <asm/mman.h>
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
-#include "ppm_syscall.h"
-#else
 #include <asm/syscall.h>
-#endif
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -478,10 +474,8 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 	if (flags & O_APPEND)
 		res |= PPM_O_APPEND;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	if (flags & O_DSYNC)
 		res |= PPM_O_DSYNC;
-#endif
 
 	if (flags & O_EXCL)
 		res |= PPM_O_EXCL;
@@ -503,11 +497,8 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 
 	if (flags & O_LARGEFILE)
 		res |= PPM_O_LARGEFILE;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 	if (flags & O_CLOEXEC)
 		res |= PPM_O_CLOEXEC;
-#endif
 	return res;
 }
 
@@ -715,88 +706,7 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-/*
- * get_mm_counter was not inline and exported between 3.0 and 3.4
- * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
- * Hence the crap in these two functions
- */
-unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
-{
-	long val = 0;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
-	val = get_mm_counter(mm, member);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	val = atomic_long_read(&mm->rss_stat.count[member]);
-
-	if (val < 0)
-		val = 0;
-#endif
-
-	return val;
-}
-
-static unsigned long ppm_get_mm_swap(struct mm_struct *mm)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	return ppm_get_mm_counter(mm, MM_SWAPENTS);
-#endif
-	return 0;
-}
-
-static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
-	return get_mm_rss(mm);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	return ppm_get_mm_counter(mm, MM_FILEPAGES) +
-		ppm_get_mm_counter(mm, MM_ANONPAGES);
-#else
-	return get_mm_rss(mm);
-#endif
-	return 0;
-}
-
 #ifdef CONFIG_CGROUPS
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
-static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
-{
-	char *start;
-	struct dentry *dentry = rcu_dereference(cgrp->dentry);
-
-	if (!dentry) {
-		/*
-		 * Inactive subsystems have no dentry for their root
-		 * cgroup
-		 */
-		strcpy(buf, "/");
-		return 0;
-	}
-
-	start = buf + buflen;
-
-	*--start = '\0';
-	for (;;) {
-		int len = dentry->d_name.len;
-
-		start -= len;
-		if (start < buf)
-			return -ENAMETOOLONG;
-		memcpy(start, cgrp->dentry->d_name.name, len);
-		cgrp = cgrp->parent;
-		if (!cgrp)
-			break;
-		dentry = rcu_dereference(cgrp->dentry);
-		if (!cgrp->parent)
-			continue;
-		if (--start < buf)
-			return -ENAMETOOLONG;
-		*start = '/';
-	}
-	memmove(buf, start, buf + buflen - start);
-	return 0;
-}
-#endif
 
 static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int *available)
 {
@@ -804,15 +714,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	int subsys_len;
 	char *path;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
-	int res;
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
 	struct cgroup_subsys_state *css = task_css(current, subsys_id);
-#else
-	struct cgroup_subsys_state *css = task_subsys_state(current, subsys_id);
-#endif
 	if (!css) {
 		ASSERT(false);
 		return 1;
@@ -823,29 +725,11 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 		return 1;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 	path = cgroup_path(css->cgroup, buf, *available);
 	if (!path) {
 		ASSERT(false);
 		path = "NA";
 	}
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	res = cgroup_path(css->cgroup, buf, *available);
-	if (res < 0) {
-		ASSERT(false);
-		path = "NA";
-	} else {
-		path = buf;
-	}
-#else
-	res = ppm_cgroup_path(css->cgroup, buf, *available);
-	if (res < 0) {
-		ASSERT(false);
-		path = "NA";
-	} else {
-		path = buf;
-	}
-#endif
 
 	pathlen = strlen(path);
 	subsys_len = strlen(subsys_name);
@@ -862,26 +746,9 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 #define SUBSYS(_x)																						\
 if (append_cgroup(#_x, _x ## _cgrp_id, args->str_storage + STR_STORAGE_SIZE - available, &available))	\
 	goto cgroups_error;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
-#define IS_SUBSYS_ENABLED(option) IS_BUILTIN(option)
-#define SUBSYS(_x)																						\
-if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
-	goto cgroups_error;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
-#define IS_SUBSYS_ENABLED(option) IS_ENABLED(option)
-#define SUBSYS(_x)																						\
-if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
-	goto cgroups_error;
-#else
-#define SUBSYS(_x)																						\
-if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
-	goto cgroups_error;
-#endif
-
 #endif
 
 /* Takes in a NULL-terminated array of pointers to strings in userspace, and
@@ -1125,13 +992,8 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * ptid
 	 */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (current->real_parent)
 		ptid = current->real_parent->pid;
-#else
-	if (current->parent)
-		ptid = current->parent->pid;
-#endif
 	else
 		ptid = 0;
 
@@ -1155,11 +1017,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	/*
 	 * fdlimit
 	 */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
-#else
-	res = val_to_ring(args, (int64_t)0, 0, false, 0);
-#endif
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1179,8 +1037,8 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 
 	if (mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
-		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
-		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+		total_rss = get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = get_mm_counter(mm, MM_SWAPENTS) << (PAGE_SHIFT-10);
 	}
 
 	/*
@@ -1232,16 +1090,8 @@ cgroups_error:
 		/*
 		 * clone-only parameters
 		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		uint64_t euid = from_kuid_munged(current_user_ns(), current_euid());
 		uint64_t egid = from_kgid_munged(current_user_ns(), current_egid());
-#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		uint64_t euid = current_euid();
-		uint64_t egid = current_egid();
-#else
-		uint64_t euid = current->euid;
-		uint64_t egid = current->egid;
-#endif
 
 		/*
 		 * flags
@@ -1272,24 +1122,14 @@ cgroups_error:
 		/*
 		 * vtid
 		 */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_pid_vnr(current), 0, false, 0);
-#else
-		/* Not relevant in old kernels */
-		res = val_to_ring(args, 0, 0, false, 0);
-#endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
 		/*
 		 * vpid
 		 */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
-#else
-		/* Not relevant in old kernels */
-		res = val_to_ring(args, 0, 0, false, 0);
-#endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
@@ -2058,11 +1898,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	struct user_msghdr mh;
-#else
-	struct msghdr mh;
-#endif
 	char *targetbuf = args->str_storage;
 	const struct iovec __user *iov;
 #ifdef CONFIG_COMPAT
@@ -2188,11 +2024,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	struct compat_msghdr compat_mh;
 #endif
 	unsigned long iovcnt;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	struct user_msghdr mh;
-#else
-	struct msghdr mh;
-#endif
 
 	/*
 	 * res
@@ -2274,11 +2106,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	struct compat_msghdr compat_mh;
 #endif
 	unsigned long iovcnt;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	struct user_msghdr mh;
-#else
-	struct msghdr mh;
-#endif
 	char *targetbuf = args->str_storage;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
@@ -2431,11 +2259,7 @@ static int f_sys_pipe_x(struct event_filler_arguments *args)
 	file = fget(fds[0]);
 	val = 0;
 	if (likely(file != NULL)) {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		val = file->f_path.dentry->d_inode->i_ino;
-#else
-		val = file->f_dentry->d_inode->i_ino;
-#endif
 		fput(file);
 	}
 
@@ -3695,8 +3519,8 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	mm = args->sched_prev->mm;
 	if (mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
-		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
-		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+		total_rss = get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = get_mm_counter(mm, MM_SWAPENTS) << (PAGE_SHIFT-10);
 	}
 
 	/*
@@ -4103,8 +3927,8 @@ static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 
 	if (mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
-		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
-		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+		total_rss = get_mm_rss(mm) << (PAGE_SHIFT-10);
+		swap = get_mm_counter(mm, MM_SWAPENTS) << (PAGE_SHIFT-10);
 	}
 
 	/*

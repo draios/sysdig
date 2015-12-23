@@ -1,11 +1,5 @@
-#include <linux/version.h>
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 9, 0))
-
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
-#include <asm/atomic.h>
-#else
 #include <linux/atomic.h>
-#endif
+
 #include <linux/cdev.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -190,11 +184,7 @@ unsigned long nsecs_to_jiffies(u64 n)
  * runtime accounting.
  */
 static void cputime_adjust(struct task_cputime *curr,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0))
 			   struct prev_cputime *prev,
-#else
-			   struct cputime *prev,
-#endif
 			   cputime_t *ut, cputime_t *st)
 {
 	cputime_t rtime, stime, utime;
@@ -256,5 +246,3 @@ void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *
 	cputime_adjust(&cputime, &p->prev_cputime, ut, st);
 }
 #endif /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE */
-
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) */
