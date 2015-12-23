@@ -101,11 +101,13 @@ sinsp_container_info* sinsp_container_manager::get_container(const string& conta
 	return NULL;
 }
 
-bool sinsp_container_manager::set_mesos_task_id(const string& container_id, const string& task_id, int64_t ptid)
+bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container, const string& task_id, int64_t ptid)
 {
+	ASSERT(container);
+	const string& container_id = container->m_id;
 	if(task_id.empty() && -1 == ptid)
 	{
-		g_logger.log("Mesos container detection attempted with insufficient information provided.", sinsp_logger::SEV_WARNING);
+		g_logger.log("Mesos container [" + container_id + "] detection attempted with insufficient information provided.", sinsp_logger::SEV_WARNING);
 		return false;
 	}
 
@@ -116,7 +118,7 @@ bool sinsp_container_manager::set_mesos_task_id(const string& container_id, cons
 	//   (see sinsp_container_manager::parse_docker() for details)
 	// - for mesos native containers, parent process has the MESOS_TASK_ID env variable,
 	//   so we peek into the parent process environment to discover it
-	sinsp_container_info* container = get_container(container_id);
+
 	if(container)
 	{
 		if(container->m_mesos_task_id.empty())
@@ -159,7 +161,9 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 	return mesos_task_id;
 }
 
-bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, string* container_id)
+bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups,
+															 bool query_os_for_missing_info, string* container_id,
+															 const string& mesos_task_id, int64_t ptid)
 {
 	bool valid_id = false;
 	sinsp_container_info container_info;
@@ -269,6 +273,10 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
 			valid_id = true;
+			if(!mesos_task_id.empty() || (-1 != ptid))
+			{
+				set_mesos_task_id(&container_info, mesos_task_id, ptid);
+			}
 			continue;
 		}
 	}

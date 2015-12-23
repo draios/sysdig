@@ -1235,7 +1235,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive, &tinfo.m_container_id);
+			m_inspector->m_container_manager.resolve_container_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive,
+																			&tinfo.m_container_id,
+																			tinfo.get_env("MESOS_TASK_ID"), tinfo.m_ptid);
 			break;
 	}
 
@@ -1405,7 +1407,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
 		if(evt->m_tinfo->m_container_id.empty())
 		{
-			m_inspector->m_container_manager.resolve_container_from_cgroups(evt->m_tinfo->m_cgroups, m_inspector->m_islive, &evt->m_tinfo->m_container_id);
+			m_inspector->m_container_manager.resolve_container_from_cgroups(evt->m_tinfo->m_cgroups, m_inspector->m_islive, &evt->m_tinfo->m_container_id,
+																			evt->m_tinfo->get_env("MESOS_TASK_ID"), evt->m_tinfo->m_ptid);
 		}
 		break;
 	default:

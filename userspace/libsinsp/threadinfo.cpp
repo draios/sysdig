@@ -369,13 +369,8 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	string mesos_task_id = get_env("MESOS_TASK_ID");
 	ASSERT(m_inspector);
-	if(m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id))
-	{
-		if(!m_container_id.empty() && (!mesos_task_id.empty() || (-1 != m_ptid)))
-		{
-			m_inspector->m_container_manager.set_mesos_task_id(m_container_id, mesos_task_id, m_ptid);
-		}
-	}
+
+	m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id, mesos_task_id, m_ptid);
 
 	//
 	// Prepare for filtering
