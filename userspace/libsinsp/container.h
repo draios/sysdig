@@ -68,9 +68,7 @@ public:
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info);
 	bool get_container(const string& id, sinsp_container_info* container_info) const;
-	bool resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups,
-										bool query_os_for_missing_info, string* container_id,
-										const string& mesos_task_id = "", int64_t ptid = -1);
+	bool resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, sinsp_threadinfo* tinfo);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
 	bool set_mesos_task_id(sinsp_container_info* container, const string& task_id, int64_t ptid = -1);

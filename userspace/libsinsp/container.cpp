@@ -161,10 +161,10 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 	return mesos_task_id;
 }
 
-bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups,
-															 bool query_os_for_missing_info, string* container_id,
-															 const string& mesos_task_id, int64_t ptid)
+bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, sinsp_threadinfo* tinfo)
 {
+	ASSERT(tinfo);
+	string* container_id = &tinfo->m_container_id;
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
@@ -273,6 +273,8 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
 			valid_id = true;
+			string mesos_task_id = tinfo->get_env("MESOS_TASK_ID");
+			int64_t ptid = tinfo->m_ptid;
 			if(!mesos_task_id.empty() || (-1 != ptid))
 			{
 				set_mesos_task_id(&container_info, mesos_task_id, ptid);
