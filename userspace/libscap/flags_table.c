@@ -63,6 +63,17 @@ const struct ppm_name_value socket_families[] = {
 	{0, 0},
 };
 
+const struct ppm_name_value sendmsg_flags[] = {
+	{"MSG_CONFIRM", PPM_MSG_CONFIRM},
+	{"MSG_OOB", PPM_MSG_OOB},
+	{"MSG_DONTROUTE", PPM_MSG_DONTROUTE},
+	{"MSG_DONTWAIT", PPM_MSG_DONTWAIT},
+	{"MSG_EOR", PPM_MSG_EOR},
+	{"MSG_NOSIGNAL", PPM_MSG_NOSIGNAL},
+    {"MSG_MORE", PPM_MSG_MORE},
+    {0, 0},
+};
+
 const struct ppm_name_value file_flags[] = {
 	{"O_LARGEFILE", PPM_O_LARGEFILE},
 	{"O_DIRECTORY", PPM_O_DIRECTORY},

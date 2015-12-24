@@ -79,6 +79,17 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_AF_NFC          39      /* NFC sockets                  */
 
 /*
+ * sendmsg() flags
+ */
+#define PPM_MSG_CONFIRM     (1 << 0)
+#define PPM_MSG_OOB         (1 << 1)
+#define PPM_MSG_DONTROUTE   (1 << 2)
+#define PPM_MSG_DONTWAIT    (1 << 3)
+#define PPM_MSG_EOR         (1 << 4)
+#define PPM_MSG_NOSIGNAL    (1 << 5)
+#define PPM_MSG_MORE        (1 << 6)
+
+/*
  * File flags
  */
 #define PPM_O_NONE	0
@@ -1175,7 +1186,8 @@ enum ppm_param_type {
 	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_DOUBLE = 33, /* this is a double precision floating point number. */
 	PT_SIGSET = 34, /* sigset_t. I only store the lower UINT32 of it */
-	PT_MAX = 35 /* array size */
+    PT_MSGLIST = 35, /* list of (struct mmsghdr) objects used by sendmsg()/recvmsg()/sendmmsg()/recvmmsg() */
+	PT_MAX = 36 /* array size */
 };
 
 enum ppm_print_format {
@@ -1275,6 +1287,7 @@ struct ppm_syscall_desc {
 };
 
 extern const struct ppm_name_value socket_families[];
+extern const struct ppm_name_value sendmsg_flags[];
 extern const struct ppm_name_value file_flags[];
 extern const struct ppm_name_value flock_flags[];
 extern const struct ppm_name_value clone_flags[];

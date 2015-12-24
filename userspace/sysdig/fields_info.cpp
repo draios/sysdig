@@ -161,7 +161,10 @@ const char* param_type_to_string(ppm_param_type pt)
 	case PT_PID:
 		return "PID";
 		break;
-	case PT_FDLIST:
+	case PT_MSGLIST:
+		return "MSGLIST";
+		break;
+    case PT_FDLIST:
 		return "FDLIST";
 		break;
 	case PT_FSPATH:

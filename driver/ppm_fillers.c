@@ -77,6 +77,8 @@ static int f_sys_send_x(struct event_filler_arguments *args);
 static int f_sys_sendto_e(struct event_filler_arguments *args);
 static int f_sys_sendmsg_e(struct event_filler_arguments *args);
 static int f_sys_sendmsg_x(struct event_filler_arguments *args);
+static int f_sys_sendmmsg_e(struct event_filler_arguments *args);
+static int f_sys_sendmmsg_x(struct event_filler_arguments *args);
 static int f_sys_recv_e(struct event_filler_arguments *args);
 static int f_sys_recv_x(struct event_filler_arguments *args);
 static int f_sys_recvfrom_e(struct event_filler_arguments *args);
@@ -182,6 +184,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_SENDTO_X] = {f_sys_send_x},
 	[PPME_SOCKET_SENDMSG_E] = {f_sys_sendmsg_e},
 	[PPME_SOCKET_SENDMSG_X] = {f_sys_sendmsg_x},
+    [PPME_SOCKET_SENDMMSG_E] = {f_sys_sendmmsg_e},
+	[PPME_SOCKET_SENDMMSG_X] = {f_sys_sendmmsg_x},
 	[PPME_SOCKET_RECV_E] = {f_sys_recv_e},
 	[PPME_SOCKET_RECV_X] = {f_sys_recv_x},
 	[PPME_SOCKET_RECVFROM_E] = {f_sys_recvfrom_e},
@@ -2058,6 +2062,39 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static inline u32 sendmsg_flags_to_scap(unsigned long flags) {
+    u32 res = 0;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 3, 15)
+    if (flags & MSG_CONFIRM)
+        res |= PPM_MSG_CONFIRM;
+#endif
+
+    if (flags & MSG_OOB)
+        res |= PPM_MSG_OOB;
+    
+    if (flags & MSG_DONTROUTE)
+        res |= PPM_MSG_DONTROUTE;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 2, 0)
+    if (flags & MSG_DONTWAIT)
+        res |= PPM_MSG_DONTWAIT;
+    
+    if (flags & MSG_EOR)
+        res |= PPM_MSG_EOR;
+    
+    if (flags & MSG_NOSIGNAL)
+        res |= PPM_MSG_NOSIGNAL;
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 4, 4)
+    if (flags & MSG_MORE)
+        res |= PPM_MSG_MORE;
+#endif
+    
+    return res;
+}
+
 static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2247,6 +2284,176 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static int f_sys_sendmmsg_e(struct event_filler_arguments *args)
+{
+	int res;
+	unsigned long val;
+    struct mmsghdr mmh;
+	char *targetbuf = args->str_storage;
+    size_t targetbuf_offset = 0;
+#ifdef CONFIG_COMPAT
+	struct compat_mmsghdr compat_mmh;
+#endif
+	unsigned long iovcnt = 0;
+    unsigned int vlen, flags, hdr_index = 0;
+	int fd;
+	int addrlen;
+	int err = 0;
+	struct sockaddr __user *usrsockaddr;
+	struct sockaddr_storage address;
+
+	/*
+	 * fd
+	 */
+	if (!args->is_socketcall)
+		syscall_get_arguments(current, args->regs, 0, 1, &val);
+	else
+		val = args->socketcall_args[0];
+
+	fd = val;
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Retrieve the message headers array pointer
+	 */
+	if (!args->is_socketcall) {
+        syscall_get_arguments(current, args->regs, 2, 1, &val);
+        vlen = (unsigned int)val;
+        syscall_get_arguments(current, args->regs, 3, 1, &val);
+        flags = (unsigned int)val;
+		syscall_get_arguments(current, args->regs, 1, 1, &val);
+    } else {
+		val = args->socketcall_args[1];
+        vlen = (unsigned int)args->socketcall_args[2];
+        flags = (unsigned int)args->socketcall_args[3];
+    }
+    
+    /*
+	 * vlen
+	 */
+    res = val_to_ring(args, vlen, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+    	return res;
+   
+    /*
+	 * flags
+	 */
+    res = val_to_ring(args, sendmsg_flags_to_scap(flags), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+    	return res;
+    
+    /*
+     * iterate all mmsghdr structures in the array and build a list of
+     * [msg_tuple,msg_len] inside the targetbuf before copying it into the ring
+     * buffer.
+     */
+    for (hdr_index = 0; hdr_index < vlen; ++hdr_index) {
+        iovcnt = 0;
+        
+        #ifdef CONFIG_COMPAT
+        if (!args->compat) {
+        #endif
+            size_t iov_index = 0;
+            struct iovec iov_item = { };
+            
+            if (unlikely(ppm_copy_from_user(&mmh, (const void __user *)(val + (sizeof(mmh) * hdr_index)), sizeof(mmh)))) {
+                return PPM_FAILURE_INVALID_USER_MEMORY;
+            }
+            
+            /*
+             * get message size and address
+             */
+            for (iov_index = 0; iov_index < mmh.msg_hdr.msg_iovlen; ++iov_index)
+            {
+                if (unlikely(ppm_copy_from_user(&iov_item, (const void __user *)(mmh.msg_hdr.msg_iov + (sizeof(iov_item) * iov_index)), sizeof(iov_item)))) {
+                    return PPM_FAILURE_INVALID_USER_MEMORY;
+                }
+            
+                iovcnt += iov_item.iov_len;
+            }
+            usrsockaddr = (struct sockaddr __user *)mmh.msg_hdr.msg_name;
+            addrlen = mmh.msg_hdr.msg_namelen;
+        
+        #ifdef CONFIG_COMPAT
+        } else {
+            size_t iov_index = 0;
+            struct iovec iov_item = { };
+            
+            if (unlikely(ppm_copy_from_user(&compat_mmh, (const void __user *)compat_ptr(val + (sizeof(compat_mmh) * hdr_index)), sizeof(compat_mmh)))) {
+                return PPM_FAILURE_INVALID_USER_MEMORY;
+            }
+            
+            /*
+             * get message size and address
+             */
+            for (iov_index = 0; iov_index < compat_mmh.msg_hdr.msg_iovlen; ++iov_index) {
+                if (unlikely(ppm_copy_from_user(&iov_item, (const void __user *)compat_ptr(compat_mmh.msg_hdr.msg_iov + (sizeof(iov_item) * iov_index)), sizeof(iov_item)))) {
+                    return PPM_FAILURE_INVALID_USER_MEMORY;
+                }
+            
+                iovcnt += iov_item.iov_len;
+            }
+            usrsockaddr = (struct sockaddr __user *)compat_ptr(compat_mmh.msg_hdr.msg_name);
+            addrlen = compat_mmh.msg_hdr.msg_namelen;
+        }
+        #endif
+            
+        /*
+        * Copy the address of current message tuples + msg size
+        */
+        err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
+        if (likely(err >= 0)) {
+            u16 *size_p = (u16 *)(targetbuf + targetbuf_offset);
+            targetbuf_offset += sizeof(u16);
+            
+            /*
+            * Convert the fd into socket endpoint information
+            */
+            *size_p = fd_to_socktuple(fd,
+                                      (struct sockaddr *)&address,
+                                      addrlen,
+                                      true,
+                                      false,
+                                      targetbuf + targetbuf_offset,
+                                      STR_STORAGE_SIZE - targetbuf_offset);
+            
+            targetbuf_offset += (*size_p);
+            
+            *(uint64_t *)(targetbuf + targetbuf_offset) = (uint64_t)(unsigned long)iovcnt;
+            targetbuf_offset += sizeof(uint64_t);
+        }
+    }
+    
+    /*
+	 * msgs
+	 */
+    res = val_to_ring(args,
+                      (uint64_t)(unsigned long)targetbuf,
+                      targetbuf_offset,
+                      false,
+                      0);
+    
+	return add_sentinel(args);
+}
+
+static int f_sys_sendmmsg_x(struct event_filler_arguments *args)
+{
+	int res;
+	int64_t retval;
+
+	/*
+	 * res
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+    
+	return add_sentinel(args);
+}
+
 static int f_sys_recvmsg_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2389,7 +2596,6 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-
 
 static int f_sys_pipe_x(struct event_filler_arguments *args)
 {

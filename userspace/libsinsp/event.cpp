@@ -1071,6 +1071,182 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			ret["family"] = (int)payload[0];
 		}
 		break;
+    case PT_MSGLIST:
+        if(payload_len == 0)
+		{
+			ret = Json::Value::nullRef;
+			break;
+		}
+        
+        {
+            int payload_msg_offset = 0;
+            int msg_index = 1;
+            
+            while (payload_msg_offset < payload_len)
+            {
+                Json::Value current_tuple;
+                uint16_t payload_msg_len = *(uint16_t*)(payload + payload_msg_offset);
+                payload_msg_offset += sizeof(uint16_t);
+                if(0 == payload_msg_len)
+                {
+                    ret[msg_index++] = current_tuple;
+                    continue;
+                }
+                
+                if(payload[payload_msg_offset] == PPM_AF_INET)
+                {
+                    if(payload_len == 1 + 4 + 2 + 4 + 2)
+                    {
+                        Json::Value source;
+                        Json::Value dest;
+
+                        const int ipv4_len = (3 + 1) * 4 + 1;
+                        char ipv4_addr[ ipv4_len ];
+
+                        snprintf(
+                            ipv4_addr,
+                            ipv4_len,
+                                "%u.%u.%u.%u",
+                                (unsigned int)(uint8_t)payload[payload_msg_offset + 1],
+                                (unsigned int)(uint8_t)payload[payload_msg_offset + 2],
+                                (unsigned int)(uint8_t)payload[payload_msg_offset + 3],
+                                (unsigned int)(uint8_t)payload[payload_msg_offset + 4]
+                        );
+
+                        source["addr"] = string(ipv4_addr);
+                        source["port"] = *(uint16_t*)(payload + payload_msg_offset + 5);
+
+                        snprintf(
+                            ipv4_addr,
+                            ipv4_len,
+                                 "%u.%u.%u.%u",
+                                 (unsigned int)(uint8_t)payload[payload_msg_offset + 7],
+                                 (unsigned int)(uint8_t)payload[payload_msg_offset + 8],
+                                 (unsigned int)(uint8_t)payload[payload_msg_offset + 9],
+                                 (unsigned int)(uint8_t)payload[payload_msg_offset + 10]
+                        );
+
+
+                        dest["addr"] = string(ipv4_addr);
+                        dest["port"] = *(uint16_t*)(payload + payload_msg_offset + 11);
+
+                        current_tuple["src"] = source;
+                        current_tuple["dst"] = dest;
+                    }
+                    else
+                    {
+                        ASSERT(false);
+                        ret = "INVALID IPv4";
+                        break;
+                    }
+                }
+                else if(payload[payload_msg_offset] == PPM_AF_INET6)
+                {
+                    if(payload_len == 1 + 16 + 2 + 16 + 2)
+                    {
+                        uint8_t* sip6 = (uint8_t*)payload + payload_msg_offset + 1;
+                        uint8_t* dip6 = (uint8_t*)payload + payload_msg_offset + 19;
+                        uint8_t* sip = (uint8_t*)payload + payload_msg_offset + 13;
+                        uint8_t* dip = (uint8_t*)payload + payload_msg_offset + 31;
+
+                        if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
+                        {
+                            Json::Value source;
+                            Json::Value dest;
+
+                            const int ipv4_len = (3 + 1) * 4 + 1;
+                            char ipv4_addr[ ipv4_len ];
+
+                            snprintf(
+                                ipv4_addr,
+                                ipv4_len,
+                                    "%u.%u.%u.%u",
+                                    (unsigned int)sip[0],
+                                    (unsigned int)sip[1],
+                                    (unsigned int)sip[2],
+                                    (unsigned int)sip[3]
+                            );
+
+                            source["addr"] = string(ipv4_addr);
+                            source["port"] = (unsigned int)*(uint16_t*)(payload + payload_msg_offset + 17);
+
+                            snprintf(
+                                ipv4_addr,
+                                ipv4_len,
+                                    "%u.%u.%u.%u",
+                                    (unsigned int)dip[0],
+                                    (unsigned int)dip[1],
+                                    (unsigned int)dip[2],
+                                    (unsigned int)dip[3]
+                            );
+
+                            dest["addr"] = string(ipv4_addr);
+                            dest["port"] = (unsigned int)*(uint16_t*)(payload + payload_msg_offset + 35);
+
+                            current_tuple["src"] = source;
+                            current_tuple["dst"] = dest;
+
+                            break;
+                        }
+                        else
+                        {
+                            char srcstr[INET6_ADDRSTRLEN];
+                            char dststr[INET6_ADDRSTRLEN];
+
+                            if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
+                                inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
+                            {
+                                Json::Value source;
+                                Json::Value dest;
+
+                                source["addr"] = srcstr;
+                                source["port"] = (unsigned int)*(uint16_t*)(payload + payload_msg_offset + 17);
+
+                                dest["addr"] = dststr;
+                                dest["port"] = (unsigned int)*(uint16_t*)(payload + payload_msg_offset + 35);
+
+                                current_tuple["src"] = source;
+                                current_tuple["dst"] = dest;
+
+                                break;
+                            }
+                        }
+                    }
+                    ASSERT(false);
+                    ret = "INVALID IPv6";
+                    break;
+
+                }
+                else if(payload[payload_msg_offset] == AF_UNIX)
+                {
+                    ASSERT(payload_len > 17);
+
+                    //
+                    // Sanitize the file string.
+                    //
+                    string sanitized_str = payload + 17;
+                    sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+
+                    snprintf(&m_paramstr_storage[0],
+                        m_paramstr_storage.size(),
+                        "%" PRIx64 "->%" PRIx64 " %s",
+                        *(uint64_t*)(payload + payload_msg_offset + 1),
+                        *(uint64_t*)(payload + payload_msg_offset + 9),
+                        sanitized_str.c_str());
+                }
+                else
+                {
+                    current_tuple["family"] = (int)payload[payload_msg_offset];
+                }
+                
+                payload_msg_offset += payload_msg_len;
+                current_tuple["msglen"] = (Json::Value::Int64)*(uint64_t*)(payload + payload_msg_offset);
+                payload_msg_offset += sizeof(uint64_t);
+                
+                ret[msg_index++] = current_tuple;
+            }
+        }
+		break;
 	case PT_FDLIST:
 		ret = get_param_as_str(id, resolved_str, fmt);
 		break;
@@ -1646,6 +1822,214 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			         "family %d", (int)payload[0]);
 		}
 		break;
+    case PT_MSGLIST:
+        if(payload_len == 0)
+		{
+			snprintf(&m_paramstr_storage[0],
+			         m_paramstr_storage.size(),
+			         "<empty>");
+			break;
+		}
+        
+        {
+            int r = 0;
+            uint32_t spos = 0;
+            int payload_msg_offset = 0;
+            int msg_index = 0;
+            
+            while(payload_msg_offset < payload_len)
+            {
+                if(0 < (msg_index++))
+                {
+                    r = snprintf(&m_paramstr_storage[0] + spos,
+                                 m_paramstr_storage.size() - spos,
+                                 ",");
+                    if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                    {
+                        m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                        break;
+                    }
+                    spos += r;
+                }
+                                
+                uint16_t payload_msg_len = *(uint16_t*)(payload + payload_msg_offset);
+                payload_msg_offset += sizeof(uint16_t);
+                if(0 == payload_msg_len)
+                {
+                    snprintf(&m_paramstr_storage[0],
+			                 m_paramstr_storage.size(),
+			                 "<empty>");
+                    continue;
+                }
+                
+                if(payload[payload_msg_offset] == PPM_AF_INET)
+                {
+                    if(payload_msg_len == 1 + 4 + 2 + 4 + 2)
+                    {
+                        r = snprintf(&m_paramstr_storage[0] + spos,
+                                     m_paramstr_storage.size() - spos,
+                                     "%u.%u.%u.%u:%d->%u.%u.%u.%u:%d",
+                                     (unsigned int)(uint8_t)payload[payload_msg_offset + 1],
+                                     (unsigned int)(uint8_t)payload[payload_msg_offset + 2],
+                                     (unsigned int)(uint8_t)payload[payload_msg_offset + 3],
+                                     (unsigned int)(uint8_t)payload[payload_msg_offset + 4],
+                                     *(uint16_t*)(payload + payload_msg_offset + 5),
+                                     (unsigned int)(uint8_t)payload[payload_msg_offset + 7],
+                                     (unsigned int)(uint8_t)payload[payload_msg_offset + 8],
+                                     (unsigned int)(uint8_t)payload[payload_msg_offset + 9],
+                                     (unsigned int)(uint8_t)payload[payload_msg_offset + 10],
+                                     *(uint16_t*)(payload + payload_msg_offset + 11));
+                        if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                        {
+                            m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                            break;
+                        }
+                        spos += r;
+                    }
+                    else
+                    {
+                        ASSERT(false);
+                        r = snprintf(&m_paramstr_storage[0] + spos,
+                                     m_paramstr_storage.size() - spos,
+                                     "INVALID IPv4");
+                        if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                        {
+                            m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                            break;
+                        }
+                        spos += r;
+                    }
+                }
+                else if(payload[payload_msg_offset] == PPM_AF_INET6)
+                {
+                    if(payload_msg_len == 1 + 16 + 2 + 16 + 2)
+                    {
+                        uint8_t* sip6 = (uint8_t*)payload + payload_msg_offset + 1;
+                        uint8_t* dip6 = (uint8_t*)payload + payload_msg_offset + 19;
+                        uint8_t* sip = (uint8_t*)payload + payload_msg_offset + 13;
+                        uint8_t* dip = (uint8_t*)payload + payload_msg_offset + 31;
+
+                        if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
+                        {
+                            r = snprintf(&m_paramstr_storage[0] + spos,
+                                     m_paramstr_storage.size() - spos,
+                                     "%u.%u.%u.%u:%d->%u.%u.%u.%u:%d",
+                                     (unsigned int)sip[0],
+                                     (unsigned int)sip[1],
+                                     (unsigned int)sip[2],
+                                     (unsigned int)sip[3],
+                                     (unsigned int)*(uint16_t*)(payload + payload_msg_offset + 17),
+                                     (unsigned int)dip[0],
+                                     (unsigned int)dip[1],
+                                     (unsigned int)dip[2],
+                                     (unsigned int)dip[3],
+                                     (unsigned int)*(uint16_t*)(payload + payload_msg_offset + 35));
+                            if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                            {
+                                m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                                break;
+                            }
+                            spos += r;
+                        }
+                        else
+                        {
+                            char srcstr[INET6_ADDRSTRLEN];
+                            char dststr[INET6_ADDRSTRLEN];
+
+                            if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
+                                inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
+                            {                                
+                                r = snprintf(&m_paramstr_storage[0] + spos,
+                                             m_paramstr_storage.size() - spos,
+                                             "%s:%d->%s:%d",
+                                             srcstr,
+                                             (unsigned int)*(uint16_t*)(payload + payload_msg_offset + 17),
+                                             dststr,
+                                             (unsigned int)*(uint16_t*)(payload + payload_msg_offset + 35));
+                                 if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                                {
+                                    m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                                    break;
+                                }
+                                spos += r;
+                            }
+                            else
+                            {
+                                r = snprintf(&m_paramstr_storage[0] + spos,
+                                             m_paramstr_storage.size() - spos,
+                                             "INVALID IPv6");
+                                if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                                {
+                                    m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                                    break;
+                                }
+                                spos += r;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        r = snprintf(&m_paramstr_storage[0] + spos,
+                                     m_paramstr_storage.size() - spos,
+                                     "INVALID IPv6");
+                        if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                        {
+                            m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                            break;
+                        }
+                        spos += r;
+                    }
+                }
+                else if(payload[payload_msg_offset] == AF_UNIX)
+                {
+                    ASSERT(payload_msg_len > 17);
+
+                    //
+                    // Sanitize the file string.
+                    //
+                    string sanitized_str = payload + 17;
+                    sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+
+                    r = snprintf(&m_paramstr_storage[0] + spos,
+                                 m_paramstr_storage.size() - spos,
+                                 "%" PRIx64 "->%" PRIx64 " %s",
+                                 *(uint64_t*)(payload + payload_msg_offset + 1),
+                                 *(uint64_t*)(payload + payload_msg_offset + 9),
+                                 sanitized_str.c_str());
+                    if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                    {
+                        m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                        break;
+                    }
+                    spos += r;
+                }
+                else
+                {
+                    r = snprintf(&m_paramstr_storage[0] + spos,
+                                 m_paramstr_storage.size() - spos,
+                                 "BAD Family %d", (int)payload[payload_msg_offset]);
+                    if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                    {
+                        m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                        break;
+                    }
+                    spos += r;
+                }
+                
+                payload_msg_offset += payload_msg_len;
+                r = snprintf(&m_paramstr_storage[0] + spos,
+                             m_paramstr_storage.size() - spos,
+                             "[%" PRIu64 "]", *(uint64_t*)(payload + payload_msg_offset));
+                if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
+                {
+                    m_paramstr_storage[m_paramstr_storage.size() - 1] = 0;
+                    break;
+                }
+                spos += r;
+                payload_msg_offset += sizeof(uint64_t);
+            }
+        }
+        break;
 	case PT_FDLIST:
 		{
 			sinsp_threadinfo* tinfo = get_thread_info();
