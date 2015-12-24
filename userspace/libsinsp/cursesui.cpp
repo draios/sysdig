@@ -33,6 +33,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "table.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
+#include "cursesspectro.h"
 #include "ctext.h"
 #include "cursesui.h"
 
@@ -94,6 +95,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_truncated_input = false;
 #ifndef NOCURSESUI
 	m_viz = NULL;
+	m_spectro = NULL;
 	m_spybox_text_format = sinsp_evt::PF_NORMAL;
 	m_view_sidemenu = NULL;
 	m_action_sidemenu = NULL;
@@ -102,13 +104,21 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_viewinfo_page = NULL;
 	m_mainhelp_page = NULL;
 
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			init_pair((7-i)*8+j, i, (j==0?-1:j));
+		}
+	}
+
 	if(!m_raw_output)
 	{
 		//
 		// Colors initialization
 		//
-		m_colors[RESET_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
-		m_colors[DEFAULT_COLOR] = ColorPair( COLOR_WHITE,COLOR_BLACK);
+		m_colors[RESET_COLOR] = ColorPair(COLOR_WHITE,COLOR_BLACK);
+		m_colors[DEFAULT_COLOR] = ColorPair(COLOR_WHITE,COLOR_BLACK);
 		m_colors[FUNCTION_BAR] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
 		m_colors[FUNCTION_KEY] = ColorPair( COLOR_WHITE,COLOR_BLACK);
 		m_colors[PANEL_HEADER_FOCUS] = ColorPair(COLOR_BLACK,COLOR_GREEN);
@@ -140,15 +150,15 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		m_colors[BAR_BORDER] = A_BOLD;
 		m_colors[BAR_SHADOW] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
 		m_colors[SWAP] = ColorPair(COLOR_RED,COLOR_BLACK);
-		m_colors[GRAPH_1] = A_BOLD | ColorPair(COLOR_RED,COLOR_BLACK);
-		m_colors[GRAPH_2] = ColorPair(COLOR_RED,COLOR_BLACK);
-		m_colors[GRAPH_3] = A_BOLD | ColorPair(COLOR_YELLOW,COLOR_BLACK);
-		m_colors[GRAPH_4] = A_BOLD | ColorPair(COLOR_GREEN,COLOR_BLACK);
-		m_colors[GRAPH_5] = ColorPair(COLOR_GREEN,COLOR_BLACK);
-		m_colors[GRAPH_6] = ColorPair(COLOR_CYAN,COLOR_BLACK);
-		m_colors[GRAPH_7] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
-		m_colors[GRAPH_8] = ColorPair(COLOR_BLUE,COLOR_BLACK);
-		m_colors[GRAPH_9] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
+		m_colors[GRAPH_GREEN_L] = ColorPair(COLOR_WHITE,COLOR_GREEN);
+		m_colors[GRAPH_GREEN] = ColorPair(COLOR_WHITE,COLOR_GREEN);
+		m_colors[GRAPH_GREEN_D] = ColorPair(COLOR_BLACK,COLOR_GREEN);
+		m_colors[GRAPH_YELLOW_L] = ColorPair(COLOR_WHITE,COLOR_YELLOW);
+		m_colors[GRAPH_YELLOW] = ColorPair(COLOR_WHITE,COLOR_YELLOW);
+		m_colors[GRAPH_YELLOW_D] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
+		m_colors[GRAPH_RED_L] = ColorPair(COLOR_WHITE,COLOR_RED);
+		m_colors[GRAPH_RED] = ColorPair(COLOR_WHITE,COLOR_RED);
+		m_colors[GRAPH_RED_D] = ColorPair(COLOR_BLACK,COLOR_RED);
 		m_colors[MEMORY_USED] = ColorPair(COLOR_GREEN,COLOR_BLACK);
 		m_colors[MEMORY_BUFFERS] = ColorPair(COLOR_BLUE,COLOR_BLACK);
 		m_colors[MEMORY_BUFFERS_TEXT] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
@@ -216,6 +226,11 @@ sinsp_cursesui::~sinsp_cursesui()
 		if(m_viz != NULL)
 		{
 			delete m_viz;
+		}
+
+		if(m_spectro != NULL)
+		{
+			delete m_spectro;
 		}
 
 		if(m_view_sidemenu != NULL)
@@ -306,15 +321,21 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		{
 			delete m_viz;
 			m_viz = NULL;
-			m_chart = NULL;
+		}
+
+		if(m_spectro != NULL)
+		{
+			delete m_spectro;
+			m_spectro = NULL;
 		}
 
 		if(m_spy_box && !is_spy_switch)
 		{
 			delete m_spy_box;
 			m_spy_box = NULL;
-			m_chart = NULL;
 		}
+
+		m_chart = NULL;
 	}
 #endif
 
@@ -340,6 +361,10 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		else if(wi->m_type == sinsp_view_info::T_LIST)
 		{
 			ty = sinsp_table::TT_LIST;
+		}
+		else if(wi->m_type == sinsp_view_info::T_SPECTRO)
+		{
+			ty = sinsp_table::TT_TABLE;
 		}
 		else
 		{
@@ -390,9 +415,20 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	//
 	if(m_selected_view >= 0)
 	{
-		ASSERT(ty != sinsp_table::TT_NONE);
-		m_viz = new curses_table(this, m_inspector, ty);
-		m_chart = m_viz;
+		if(wi != NULL && wi->m_type == sinsp_view_info::T_SPECTRO)
+		{
+			ASSERT(ty == sinsp_table::TT_TABLE);
+			m_spectro = new curses_spectro(this, m_inspector);
+			m_viz = NULL;
+			m_chart = m_spectro;
+		}
+		else
+		{
+			ASSERT(ty != sinsp_table::TT_NONE);
+			m_viz = new curses_table(this, m_inspector, ty);
+			m_spectro = NULL;
+			m_chart = m_viz;
+		}
 
 		vector<int32_t> colsizes;
 		vector<string> colnames;
@@ -401,7 +437,17 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 
 		wi->get_col_names_and_sizes(&colnames, &colsizes);
 
-		m_viz->configure(m_datatable, &colsizes, &colnames);
+		if(m_viz)
+		{
+			ASSERT(m_spectro == NULL);
+			m_viz->configure(m_datatable, &colsizes, &colnames);
+		}
+		else
+		{
+			ASSERT(m_spectro != NULL);
+			m_spectro->configure(m_datatable);
+		}
+
 		if(!is_drilldown)
 		{
 			populate_view_sidemenu("", &m_sidemenu_viewlist);
@@ -1025,16 +1071,26 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 		//
 		// Now refresh the UI.
 		//
-		if(m_viz && !m_paused)
+		if(!m_paused)
 		{
-			m_viz->update_data(sample);
-
-			if(m_datatable->m_type == sinsp_table::TT_LIST && m_inspector->is_live())
+			if(m_viz)
 			{
-				m_viz->follow_end();
-			}
+				ASSERT(m_spectro == NULL);
+				m_viz->update_data(sample);
 
-			m_viz->render(true);
+				if(m_datatable->m_type == sinsp_table::TT_LIST && m_inspector->is_live())
+				{
+					m_viz->follow_end();
+				}
+
+				m_viz->render(true);
+			}
+			else if(m_spectro)
+			{
+				ASSERT(m_viz == NULL);
+				m_spectro->update_data(sample);
+				m_spectro->render(true);
+			}
 		}
 
 		render();
@@ -1179,6 +1235,10 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 		{
 			m_viz->render(true);
 		}
+		else if(m_spectro != NULL)
+		{
+			m_spectro->render(true);
+		}
 
 		render();
 	}
@@ -1319,7 +1379,14 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	populate_view_sidemenu(field, &m_sidemenu_viewlist);
 	populate_action_sidemenu();
 //	m_selected_sidemenu_entry = 0;
-	m_viz->render(true);
+	if(m_viz)
+	{
+		m_viz->render(true);
+	}
+	else if(m_spectro)
+	{
+		m_spectro->render(true);
+	}
 	render();
 #endif
 
@@ -1448,7 +1515,14 @@ bool sinsp_cursesui::drillup()
 		}
 
 		clear();
-		m_viz->render(true);
+		if(m_viz)
+		{
+			m_viz->render(true);
+		}
+		else if(m_spectro)
+		{
+			m_spectro->render(true);
+		}
 
 		render();
 #endif
@@ -1545,7 +1619,14 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			}
 			else
 			{
-				m_viz->handle_input(ch);
+				if(m_viz)
+				{
+					m_viz->handle_input(ch);
+				}
+				else if(m_spectro)
+				{
+					ASSERT(false);
+				}
 			}
 			return STA_NONE;
 		case 27: // ESC
@@ -1790,6 +1871,10 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			{
 				m_viz->render(true);
 			}
+			else if(m_spectro)
+			{
+				m_spectro->render(true);
+			}
 
 			if(m_viewinfo_page)
 			{
@@ -1846,14 +1931,26 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			}
 			else if(ta == STA_DESTROY_CHILD)
 			{
-				m_viz->set_x_start(0);
-				delete m_action_sidemenu;
-				m_action_sidemenu = NULL;
-				m_viz->set_x_start(0);
-				m_viz->recreate_win(m_screenh - 3);
-				m_viz->render(true);
-				m_viz->render(true);
-				render();				
+				if(m_viz)
+				{
+					m_viz->set_x_start(0);
+					delete m_action_sidemenu;
+					m_action_sidemenu = NULL;
+					m_viz->set_x_start(0);
+					m_viz->recreate_win(m_screenh - 3);
+					m_viz->render(true);
+					m_viz->render(true);
+				}
+				else if(m_spectro)
+				{
+					delete m_action_sidemenu;
+					m_action_sidemenu = NULL;
+					m_spectro->recreate_win(m_screenh - 3);
+					m_spectro->render(true);
+					m_spectro->render(true);
+
+				}				
+				render();
 			}
 			else if(ta != STA_PARENT_HANDLE)
 			{
@@ -1920,6 +2017,14 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			return actn;
 		}
 	}
+	else if(m_spectro)
+	{
+		sysdig_table_action actn = m_spectro->handle_input(ch);
+		if(actn != STA_PARENT_HANDLE)
+		{
+			return actn;
+		}
+	}
 
 	switch(ch)
 	{
@@ -1942,7 +2047,15 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 			if(m_view_sidemenu == NULL)
 			{
-				m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
+				if(m_viz)
+				{
+					m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
+				}
+				else if(m_spectro)
+				{
+					m_spectro->set_x_start(VIEW_SIDEMENU_WIDTH);					
+				}
+
 				m_view_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_VIEWS,
 					this, m_selected_view_sidemenu_entry, VIEW_SIDEMENU_WIDTH);
 
@@ -1966,10 +2079,20 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 					m_viewinfo_page = NULL;
 				}
 
-				m_viz->set_x_start(0);
 				delete m_view_sidemenu;
 				m_view_sidemenu = NULL;
-				m_viz->recreate_win(m_screenh - 3);
+
+				if(m_viz)
+				{
+					m_viz->set_x_start(0);
+					m_viz->recreate_win(m_screenh - 3);
+				}
+				else if(m_spectro)
+				{
+					m_spectro->set_x_start(0);
+					m_spectro->recreate_win(m_screenh - 3);
+				}
+
 				render();
 			}
 
@@ -2056,6 +2179,12 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				break;
 			}
 
+			if(!m_viz)
+			{
+				ASSERT(false);
+				break;
+			}
+
 			if(m_action_sidemenu == NULL)
 			{
 				m_viz->set_x_start(ACTION_SIDEMENU_WIDTH);
@@ -2100,6 +2229,12 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				m_viz->recreate_win(m_screenh - 3);
 				m_viz->render(true);
 				m_viz->render(true);
+			}
+			else if(m_spectro)
+			{
+				m_spectro->recreate_win(m_screenh - 3);
+				m_spectro->render(true);
+				m_spectro->render(true);				
 			}
 
 			if(m_viewinfo_page)
@@ -2191,6 +2326,9 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 	string resolved_command;
 	bool replacing = false;
 	string fld_to_replace;
+
+	ASSERT(m_viz != NULL);
+	ASSERT(m_spectro == NULL);
 
 #ifndef NOCURSESUI
 	if(m_viz->get_data_size() == 0)
