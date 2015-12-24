@@ -64,14 +64,6 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 
 	m_converter = new sinsp_filter_check_reference();
 
-	for (int i = 0; i < 8; i++)
-	{
-		for (int j = 0; j < 8; j++)
-		{
-			init_pair((7-i)*8+j, i, (j==0?-1:j));
-		}
-	}
-
 	//
 	// Column sizes initialization
 	//

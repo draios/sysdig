@@ -32,6 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 string combine_filters(string flt1, string flt2);
 class ctext;
 class sinsp_chart;
+class curses_spectro;
 extern sinsp_logger g_logger;
 
 class sinsp_menuitem_info
@@ -298,15 +299,15 @@ public:
 		PROCESS_THREAD_BASENAME,
 		BAR_BORDER,
 		BAR_SHADOW,
-		GRAPH_1,
-		GRAPH_2,
-		GRAPH_3,
-		GRAPH_4,
-		GRAPH_5,
-		GRAPH_6,
-		GRAPH_7,
-		GRAPH_8,
-		GRAPH_9,
+		GRAPH_GREEN_L,
+		GRAPH_GREEN,
+		GRAPH_GREEN_D,
+		GRAPH_YELLOW_L,
+		GRAPH_YELLOW,
+		GRAPH_YELLOW_D,
+		GRAPH_RED_L,
+		GRAPH_RED,
+		GRAPH_RED_D,
 		MEMORY_USED,
 		MEMORY_BUFFERS,
 		MEMORY_BUFFERS_TEXT,
@@ -574,6 +575,7 @@ public:
 	bool m_print_containers;
 #ifndef NOCURSESUI
 	curses_table* m_viz;
+	curses_spectro* m_spectro;
 	curses_table_sidemenu* m_view_sidemenu;
 	curses_table_sidemenu* m_action_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;

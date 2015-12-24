@@ -56,7 +56,6 @@ class sinsp_chart
 public:
 	virtual ~sinsp_chart()
 	{
-
 	}
 
 	//
