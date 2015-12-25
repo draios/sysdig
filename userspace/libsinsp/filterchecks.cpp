@@ -29,6 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "protodecoder.h"
 
 extern sinsp_evttables g_infotables;
+int32_t g_csysdig_screen_w = -1;
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_fd implementation
@@ -2712,12 +2713,15 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			uint64_t lat = evt->m_tinfo->m_latency;
 			if(lat != 0)
 			{
-				m_u64val = (uint64_t)log10((double)lat);
+				double llatency = log10((double)lat);
 
-				if(m_u64val > 11)
+				if(llatency > 11)
 				{
-					m_u64val = 11;
+					llatency = 11;
 				}
+
+				m_u64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
+				//g_logger.format("%d", (int)g_csysdig_screen_w);
 
 				return (uint8_t*)&m_u64val;
 			}
