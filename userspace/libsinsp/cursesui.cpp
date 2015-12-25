@@ -2327,10 +2327,10 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 	bool replacing = false;
 	string fld_to_replace;
 
+#ifndef NOCURSESUI
 	ASSERT(m_viz != NULL);
 	ASSERT(m_spectro == NULL);
 
-#ifndef NOCURSESUI
 	if(m_viz->get_data_size() == 0)
 	{
 		//
