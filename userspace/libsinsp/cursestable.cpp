@@ -748,6 +748,22 @@ sysdig_table_action curses_table::handle_input(int ch)
 		}
 	}
 
+  for (uint32_t i = 0; i < vinfo->max_col_sort_hotkeys; i++)
+  {
+    if (vinfo->m_col_sort_hotkeys[i] == ch) 
+    {
+      if (i < vinfo->m_columns.size()) 
+      {
+        m_table->set_sorting_col(i + 1);
+        m_table->sort_sample();
+        update_data(m_data);
+				set_x_start(0);
+				recreate_win(m_parent->m_screenh - 3);
+				render(true);
+        break;
+      }
+    }
+  }
 	return STA_PARENT_HANDLE;
 }
 
