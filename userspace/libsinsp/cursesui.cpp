@@ -37,6 +37,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ctext.h"
 #include "cursesui.h"
 
+extern int32_t g_csysdig_screen_w;
+
 #ifndef NOCURSESUI
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
 #endif
@@ -209,6 +211,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		// Get screen dimensions
 		//
 		getmaxyx(stdscr, m_screenh, m_screenw);
+		g_csysdig_screen_w = m_screenw;
 	}
 #endif
 }
