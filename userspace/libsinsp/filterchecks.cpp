@@ -2015,6 +2015,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency", "delta between an exit event and the correspondent enter event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency.s", "integer part of the event latency delta."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.latency.ns", "fractional part of the event latency delta."},
+	{PT_DOUBLE, EPF_TABLE_ONLY, PF_NA, "evt.latency.log", "10-base log of the delta between an exit event and the correspondent enter event."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
@@ -2208,7 +2209,8 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	}
 	else if(string(val, 0, sizeof("evt.latency") - 1) == "evt.latency" ||
 		string(val, 0, sizeof("evt.latency.s") - 1) == "evt.latency.s" ||
-		string(val, 0, sizeof("evt.latency.ns") - 1) == "evt.latency.ns")
+		string(val, 0, sizeof("evt.latency.ns") - 1) == "evt.latency.ns" ||
+		string(val, 0, sizeof("evt.latency.log") - 1) == "evt.latency.log")
 	{
 		//
 		// These fields need to store the previuos event type in the thread state
@@ -2703,6 +2705,26 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return (uint8_t*)&m_u64val;
 		}
+	case TYPE_LATENCY_LOG:
+	{
+		if(evt->m_tinfo != NULL)
+		{
+			uint64_t lat = evt->m_tinfo->m_latency;
+			if(lat != 0)
+			{
+				m_u64val = (uint64_t)log10((double)lat);
+
+				if(m_u64val > 11)
+				{
+					m_u64val = 11;
+				}
+
+				return (uint8_t*)&m_u64val;
+			}
+		}
+
+		return NULL;
+	}
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
 	case TYPE_DELTA_NS:
