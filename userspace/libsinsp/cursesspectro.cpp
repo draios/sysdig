@@ -165,13 +165,11 @@ void curses_spectro::print_error(string wstr)
 void curses_spectro::update_data(vector<sinsp_sample_row>* data, bool force_selection_change)
 {
 	m_data = data;
-	g_logger.format("U*");
 }
 
 void curses_spectro::render(bool data_changed)
 {
-	g_logger.format("R* %d", (int)m_w);
-
+	//g_logger.format("R* %d", (int)m_data->size());
 	wclear(m_tblwin);
 
 	//
@@ -194,27 +192,40 @@ void curses_spectro::render(bool data_changed)
 
 	if(data_changed)
 	{
-		wmove(m_tblwin, 0, 0);
-/*
-		for(uint32_t j = 0; j < m_w; j++)
+		unordered_map<uint64_t, uint64_t> freqs;
+
+		//
+		// Create a map with the frequencies for every latency interval
+		//
+		for(auto d : *m_data)
 		{
-			wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_L]);
-			waddch(m_tblwin, '@');
+			sinsp_table_field* key = &(d.m_values[0]); 
+			sinsp_table_field* data = &(d.m_values[1]); 
+			if(key->m_len != 8)
+			{
+				throw sinsp_exception("the key of a spectrogram view must be a number");
+			}
+
+			uint64_t val = *(uint64_t*)key->m_val;
+			freqs[val] = *(uint64_t*)data->m_val;
+			//g_logger.format(">%d:%d", val, *(uint64_t*)data->m_val);
 		}
 
-		wmove(m_tblwin, 1, 0);
+		//
+		// Render the line
+		//
 		for(uint32_t j = 0; j < m_w; j++)
 		{
-			wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_D]);
-			waddch(m_tblwin, '@');
-		}
-	}
-*/
-
-		wattrset(m_ctextwin, m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_L]);
-		for(uint32_t j = 0; j < m_w - 2; j++)
-		{
-			m_ctext->printf("*");
+			if(freqs.find(j) != freqs.end())
+			{
+				wattrset(m_ctextwin, m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_L]);
+				m_ctext->printf("*");
+			}
+			else
+			{
+				wattrset(m_ctextwin, m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_L]);
+				m_ctext->printf(" ");
+			}
 		}
 
 		m_ctext->printf("\n");
