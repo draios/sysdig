@@ -19,6 +19,19 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef CSYSDIG
 #ifndef NOCURSESUI
 
+class colpalette_entry
+{
+public:
+	colpalette_entry(int color, char ch)
+	{
+		m_color = color;
+		m_char = ch;
+	}
+
+	int m_color;
+	char m_char;
+};
+
 class curses_spectro : 
 	public sinsp_chart
 {
@@ -65,10 +78,10 @@ public:
 private:
 	void print_error(string wstr);
 	void print_wait();
+	uint32_t mkcol(uint64_t n);
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;
-	WINDOW* m_ctextwin;
 	sinsp_cursesui* m_parent;
 	sinsp_table* m_table;
 	int32_t m_table_x_start;
@@ -77,7 +90,8 @@ private:
 	vector<sinsp_sample_row>* m_data;
 	uint32_t m_w;
 	uint32_t m_h;
-	ctext* m_ctext;
+	vector<uint32_t> m_colpalette;
+
 
 	friend class curses_spectro_sidemenu;
 };

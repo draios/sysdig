@@ -14,15 +14,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
-
 view_info = 
 {
 	id = "spectro_file",
 	name = "File Spectrogram",
 	description = "XXX.",
 	tips = {"XXX."},
---	view_type = "spectrogram",
-	view_type = "table",
+	view_type = "spectrogram",
+--	view_type = "table",
 	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	filter = "evt.dir=< and fd.type=file",
 	use_defaults = true,
@@ -43,6 +42,7 @@ view_info =
 			name = "COUNT",
 			description = "XXX.",
 			field = "evt.count",
+			aggregation = "SUM",
 			colsize = 8,
 		}
 	}

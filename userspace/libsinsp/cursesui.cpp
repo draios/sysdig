@@ -152,15 +152,20 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		m_colors[BAR_BORDER] = A_BOLD;
 		m_colors[BAR_SHADOW] = A_BOLD | ColorPair(COLOR_BLACK,COLOR_BLACK);
 		m_colors[SWAP] = ColorPair(COLOR_RED,COLOR_BLACK);
+		m_colors[GRAPH_BLACK] = ColorPair(COLOR_BLACK,COLOR_BLACK);
+		m_colors[GRAPH_WHITE] = ColorPair(COLOR_WHITE,COLOR_WHITE);
+		m_colors[GRAPH_WHITE_D] = ColorPair(COLOR_GREEN,COLOR_WHITE);
 		m_colors[GRAPH_GREEN_L] = ColorPair(COLOR_WHITE,COLOR_GREEN);
 		m_colors[GRAPH_GREEN] = ColorPair(COLOR_WHITE,COLOR_GREEN);
-		m_colors[GRAPH_GREEN_D] = ColorPair(COLOR_BLACK,COLOR_GREEN);
-		m_colors[GRAPH_YELLOW_L] = ColorPair(COLOR_WHITE,COLOR_YELLOW);
+		m_colors[GRAPH_GREEN_D] = ColorPair(COLOR_YELLOW,COLOR_GREEN);
+		m_colors[GRAPH_YELLOW_L] = ColorPair(COLOR_GREEN,COLOR_YELLOW);
 		m_colors[GRAPH_YELLOW] = ColorPair(COLOR_WHITE,COLOR_YELLOW);
-		m_colors[GRAPH_YELLOW_D] = ColorPair(COLOR_BLACK,COLOR_YELLOW);
-		m_colors[GRAPH_RED_L] = ColorPair(COLOR_WHITE,COLOR_RED);
+		m_colors[GRAPH_YELLOW_D] = ColorPair(COLOR_RED,COLOR_YELLOW);
+		m_colors[GRAPH_RED_L] = ColorPair(COLOR_YELLOW,COLOR_RED);
 		m_colors[GRAPH_RED] = ColorPair(COLOR_WHITE,COLOR_RED);
-		m_colors[GRAPH_RED_D] = ColorPair(COLOR_BLACK,COLOR_RED);
+		m_colors[GRAPH_RED_D] = ColorPair(COLOR_MAGENTA,COLOR_RED);
+		m_colors[GRAPH_MAGENTA_L] = ColorPair(COLOR_RED,COLOR_MAGENTA);
+		m_colors[GRAPH_MAGENTA] = ColorPair(COLOR_MAGENTA,COLOR_MAGENTA);
 		m_colors[MEMORY_USED] = ColorPair(COLOR_GREEN,COLOR_BLACK);
 		m_colors[MEMORY_BUFFERS] = ColorPair(COLOR_BLUE,COLOR_BLACK);
 		m_colors[MEMORY_BUFFERS_TEXT] = A_BOLD | ColorPair(COLOR_BLUE,COLOR_BLACK);
@@ -913,6 +918,11 @@ void sinsp_cursesui::render_main_menu()
 
 void sinsp_cursesui::render()
 {
+	if(m_spectro && !m_view_sidemenu)
+	{
+		return;
+	}
+
 	//
 	// Draw the header at the top of the page
 	//
