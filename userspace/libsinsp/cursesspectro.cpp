@@ -22,6 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 #ifndef _WIN32
 #include <unistd.h>
+#include <algorithm>
 #endif
 #include <string>
 #include <unordered_map>
@@ -48,6 +49,46 @@ using namespace std;
 #include "cursesspectro.h"
 #include "cursesui.h"
 
+uint32_t g_colpalette[] = 
+{
+	22, 28, 64, 34, 2, 76, 46, 118, 154, 191, 227, 226, 11, 220, 209, 208, 202, 197, 9, 1
+};
+
+uint32_t g_colpalette_size = sizeof(g_colpalette) / sizeof(g_colpalette[0]);
+
+///////////////////////////////////////////////////////////////////////////////
+// ANSI terminal helpers
+///////////////////////////////////////////////////////////////////////////////
+inline void ansi_movedown(int n)
+{
+	printf("\033[%dE", n);
+}
+
+inline void ansi_moveup(int n)
+{
+	printf("\033[%dF", n);
+}
+
+inline void ansi_reset_color()
+{
+	printf("\033[0m");
+}
+
+inline void ansi_hidecursor()
+{
+	printf("\033[?25l");
+}
+
+inline void ansi_showcursor()
+{
+	printf("\033[?25h");
+}
+
+inline void ansi_moveto(uint32_t x, uint32_t y)
+{
+	printf("\033[%d;%dH", x, y);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // curses_spectro implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,7 +103,6 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_selection_changed = false;
 	m_parent = parent;
 	m_inspector = inspector;
-	m_ctext = NULL;
 
 	//
 	// Define the table size
@@ -77,38 +117,47 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_tblwin = newwin(2, m_w, m_parent->m_screenh - 3, 0);
 
 	//
-	// Create the textbox
+	// Create the color palette
 	//
-	ctext_config config;
+	/*
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_WHITE], ' '));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_WHITE_D], '*'));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_GREEN_L], '*'));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_GREEN], ' '));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_GREEN_D], '*'));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_L], '*'));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW], ' '));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_D], '*'));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_RED_L], '*'));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_RED], ' '));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_RED_D], '*'));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_MAGENTA_L], '*'));
+	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_MAGENTA], ' '));
+	*/
 
-	m_ctextwin = newwin(m_parent->m_screenh - 5, m_parent->m_screenw, TABLE_Y_START, 0);
-	m_ctext = new ctext(m_ctextwin);
-
-	m_ctext->get_config(&config);
-
-	config.m_buffer_size = 50000;
-	config.m_scroll_on_append = false;
-	config.m_bounding_box = true;
-	config.m_do_wrap = true;
-
-	m_ctext->set_config(&config);
+	//
+	// Exit curses mode
+	//
+	endwin();
+	(void) nonl(); // tell curses not to do NL->CR/NL on output
+	intrflush(stdscr, false);
+	mousemask(ALL_MOUSE_EVENTS, NULL);
+	ansi_hidecursor();
+	ansi_moveto(m_h, 0);
 }
 
 curses_spectro::~curses_spectro()
 {
+	ansi_showcursor();
+
+	//
+	// Reenter curses mode
+	//
+	reset_prog_mode();
+
 	if(m_tblwin)
 	{
 		delwin(m_tblwin);
-	}
-
-	if(m_ctextwin)
-	{
-		delwin(m_ctextwin);
-	}
-
-	if(m_ctext)
-	{
-		delete m_ctext;
 	}
 }
 
@@ -167,18 +216,32 @@ void curses_spectro::update_data(vector<sinsp_sample_row>* data, bool force_sele
 	m_data = data;
 }
 
+uint32_t curses_spectro::mkcol(uint64_t val)
+{
+	uint32_t refresh_per_sec = 1;
+	uint32_t col = log10((int)val * refresh_per_sec + 1) / log10(1.6);
+
+	if(col < 1)
+	{
+		col = 1;
+	}
+
+	if(col > g_colpalette_size - 1)
+	{
+		col = g_colpalette_size - 1;
+	}
+
+	return g_colpalette[col];
+}
+
 void curses_spectro::render(bool data_changed)
 {
-	//g_logger.format("R* %d", (int)m_data->size());
-	wclear(m_tblwin);
-
 	//
 	// Clear the screen
 	//
 	if(m_data == NULL)
 	{
-		print_wait();
-		goto render_end;
+		return;
 	}
 
 	if(m_data->size() != 0)
@@ -208,37 +271,39 @@ void curses_spectro::render(bool data_changed)
 
 			uint64_t val = *(uint64_t*)key->m_val;
 			freqs[val] = *(uint64_t*)data->m_val;
-			//g_logger.format(">%d:%d", val, *(uint64_t*)data->m_val);
 		}
 
 		//
 		// Render the line
 		//
-		for(uint32_t j = 0; j < m_w; j++)
+		ansi_moveup(1);
+
+		for(uint32_t j = 0; j < m_w - 1; j++)
 		{
-			if(freqs.find(j) != freqs.end())
+			auto it = freqs.find(j);
+
+			if(it != freqs.end())
 			{
-				wattrset(m_ctextwin, m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_L]);
-				m_ctext->printf("*");
+				uint32_t col = mkcol(it->second);
+				printf("\033[48;5;%dm", col);
+				printf(" ");
 			}
 			else
 			{
-				wattrset(m_ctextwin, m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_L]);
-				m_ctext->printf(" ");
+				printf("\033[48;5;%dm", 0);
+				printf(" ");
 			}
 		}
 
-		m_ctext->printf("\n");
-
-//			m_ctext->down();
-		m_ctext->redraw();
+		printf("\n");
+		ansi_movedown(1);
+		ansi_reset_color();
+		for(uint32_t j = 0; j < m_w - 1; j++)
+		{
+			printf("*");
+		}
+		printf("\n");
 	}
-
-render_end:
-	wrefresh(m_tblwin);
-//	wrefresh(m_ctextwin);
-	m_parent->render();
-	refresh();
 }
 
 //
@@ -251,6 +316,8 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 		return STA_PARENT_HANDLE;
 	}
 
+	g_logger.format("%d", (int)ch);
+
 	switch(ch)
 	{
 		case KEY_ENTER:
@@ -259,12 +326,8 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 		case 127:
 			return STA_DRILLUP;
 		case KEY_DOWN:
-			m_ctext->down();
-			m_ctext->redraw();
 			return STA_NONE;
 		case KEY_UP:
-			m_ctext->up();
-			m_ctext->redraw();
 			return STA_NONE;
 		case KEY_MOUSE:
 			{
