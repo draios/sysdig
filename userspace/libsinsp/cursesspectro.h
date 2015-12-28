@@ -79,6 +79,7 @@ private:
 	void print_error(string wstr);
 	void print_wait();
 	uint32_t mkcol(uint64_t n);
+	void draw_axis();
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;
@@ -91,6 +92,7 @@ private:
 	uint32_t m_w;
 	uint32_t m_h;
 	vector<uint32_t> m_colpalette;
+	sinsp_filter_check_reference* m_converter;
 
 
 	friend class curses_spectro_sidemenu;
