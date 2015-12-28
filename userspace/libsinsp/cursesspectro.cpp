@@ -49,11 +49,13 @@ using namespace std;
 #include "cursesspectro.h"
 #include "cursesui.h"
 
+//
+// The color palette that we will use for the chart
+//
 uint32_t g_colpalette[] = 
 {
 	22, 28, 64, 34, 2, 76, 46, 118, 154, 191, 227, 226, 11, 220, 209, 208, 202, 197, 9, 1
 };
-
 uint32_t g_colpalette_size = sizeof(g_colpalette) / sizeof(g_colpalette[0]);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -103,6 +105,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_selection_changed = false;
 	m_parent = parent;
 	m_inspector = inspector;
+	m_converter = new sinsp_filter_check_reference();
 
 	//
 	// Define the table size
@@ -143,7 +146,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	intrflush(stdscr, false);
 	mousemask(ALL_MOUSE_EVENTS, NULL);
 	ansi_hidecursor();
-	ansi_moveto(m_h, 0);
+	ansi_moveto(m_h + 3, 0);
 }
 
 curses_spectro::~curses_spectro()
@@ -159,6 +162,8 @@ curses_spectro::~curses_spectro()
 	{
 		delwin(m_tblwin);
 	}
+
+	delete m_converter;
 }
 
 void curses_spectro::configure(sinsp_table* table)
@@ -234,6 +239,43 @@ uint32_t curses_spectro::mkcol(uint64_t val)
 	return g_colpalette[col];
 }
 
+void curses_spectro::draw_axis()
+{
+	uint64_t x = 0;
+g_logger.format("********************************");
+
+	while(true)
+	{
+		if(x >= m_w)
+		{
+			break;
+		}
+
+		uint32_t curtime = (uint32_t)((double)x * 11 / m_w);
+		uint32_t prevtime = (uint32_t)(((double)x - 1) * 11 / m_w);
+
+		if(x == 0 || curtime != prevtime)
+		{
+			uint64_t aval = (uint64_t)pow(10, curtime);
+
+			m_converter->set_val(PT_RELTIME, 
+				(uint8_t*)&aval,
+				8,
+				0,
+				ppm_print_format::PF_DEC);
+
+			string tstr = m_converter->tostring_nice(NULL, 0, 1000000000);
+			printf("|%s", tstr.c_str());
+			x += tstr.size() + 1;
+		}
+		else
+		{
+			printf(" ");
+			x++;
+		}
+	}
+}
+
 void curses_spectro::render(bool data_changed)
 {
 	//
@@ -298,10 +340,13 @@ void curses_spectro::render(bool data_changed)
 		printf("\n");
 		ansi_movedown(1);
 		ansi_reset_color();
+		/*
 		for(uint32_t j = 0; j < m_w - 1; j++)
 		{
 			printf("*");
 		}
+		*/
+		draw_axis();
 		printf("\n");
 	}
 }
