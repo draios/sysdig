@@ -120,6 +120,14 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_tblwin = newwin(2, m_w, m_parent->m_screenh - 3, 0);
 
 	//
+	// Put the inspector in offline replay mode
+	//
+	if(!m_inspector->is_live())
+	{
+		parent->m_offline_replay = true;
+	}
+
+	//
 	// Create the color palette
 	//
 	/*
@@ -242,7 +250,6 @@ uint32_t curses_spectro::mkcol(uint64_t val)
 void curses_spectro::draw_axis()
 {
 	uint64_t x = 0;
-g_logger.format("********************************");
 
 	while(true)
 	{

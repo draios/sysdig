@@ -164,6 +164,10 @@ end
 -- Called by the engine at the end of the capture (Ctrl-C)
 function on_capture_end(ts_s, ts_ns, delta)
 	if is_tty then
+		-- Include the last sample
+		on_interval(ts_s, ts_ns, 0)
+		
+		-- reset the terminal
 		print(terminal.reset)
 		terminal.showcursor()
 	end

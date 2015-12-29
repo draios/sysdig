@@ -1117,6 +1117,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	if(!m_inspector->is_live())
 	{
 #ifndef NOCURSESUI
+/*
 		if(!m_raw_output)
 		{
 			if(m_offline_replay)
@@ -1127,6 +1128,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 				}
 			}
 		}
+*/		
 #endif
 	}
 }
