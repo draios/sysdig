@@ -372,7 +372,6 @@ public:
 	inline bool process_event(sinsp_evt* evt, int32_t next_res)
 	{
 		uint64_t ts = evt->get_ts();
-
 		if(!m_inspector->is_live())
 		{
 			if(m_1st_evt_ts == 0)
@@ -396,7 +395,7 @@ public:
 			//
 			// If this is a file, print the progress once in a while
 			//
-			if(!m_inspector->is_live())
+			if(!m_inspector->is_live() && !m_offline_replay)
 			{
 				if(evtnum - m_last_progress_evt > 30000)
 				{
@@ -526,7 +525,14 @@ public:
 			//
 			if(m_inspector->is_live() || m_offline_replay)
 			{
-				end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
+				if(next_res == SCAP_EOF)
+				{
+					end_of_sample = true;
+				}
+				else
+				{
+					end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
+				}
 			}
 			else
 			{
@@ -588,6 +594,7 @@ public:
 	curses_textbox* m_spy_box;
 	sinsp_evt::param_fmt m_spybox_text_format;
 #endif
+	bool m_offline_replay;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
@@ -631,7 +638,6 @@ private:
 	bool m_output_searching;
 	uint32_t m_cursor_pos;
 	bool m_is_filter_sysdig;
-	bool m_offline_replay;
 	uint64_t m_last_progress_evt;
 	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	sinsp_chart* m_chart;
