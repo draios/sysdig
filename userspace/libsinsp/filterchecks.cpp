@@ -2680,6 +2680,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(evt->m_tinfo != NULL)
 			{
+				ppm_event_category ecat = evt->get_info_category();
+				if(ecat & EC_INTERNAL)
+				{
+					return NULL;
+				}
+
 				m_u64val = evt->m_tinfo->m_latency;
 			}
 
@@ -2692,6 +2698,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(evt->m_tinfo != NULL)
 			{
+				ppm_event_category ecat = evt->get_info_category();
+				if(ecat & EC_INTERNAL)
+				{
+					return NULL;
+				}
+
 				uint64_t lat = evt->m_tinfo->m_latency;
 
 				if(m_field_id == TYPE_LATENCY_S)
@@ -2710,6 +2722,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 		if(evt->m_tinfo != NULL)
 		{
+			ppm_event_category ecat = evt->get_info_category();
+			if(ecat & EC_INTERNAL)
+			{
+				return NULL;
+			}
+
 			uint64_t lat = evt->m_tinfo->m_latency;
 			if(lat != 0)
 			{
@@ -2721,7 +2739,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 
 				m_u64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
-				//g_logger.format("%d", (int)g_csysdig_screen_w);
 
 				return (uint8_t*)&m_u64val;
 			}
