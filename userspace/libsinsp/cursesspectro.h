@@ -76,10 +76,11 @@ public:
 	MEVENT m_last_mevent;
 	
 private:
+	void exit_curses();
 	void print_error(string wstr);
-	void print_wait();
 	uint32_t mkcol(uint64_t n);
 	void draw_axis();
+	void draw_menu();
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;
@@ -93,6 +94,7 @@ private:
 	uint32_t m_h;
 	vector<uint32_t> m_colpalette;
 	sinsp_filter_check_reference* m_converter;
+	uint64_t m_n_flushes;
 
 
 	friend class curses_spectro_sidemenu;
