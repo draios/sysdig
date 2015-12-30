@@ -2069,6 +2069,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				else if(m_spectro)
 				{
 					m_spectro->set_x_start(VIEW_SIDEMENU_WIDTH);					
+					m_spectro->set_x_start(VIEW_SIDEMENU_WIDTH);
 				}
 
 				m_view_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_VIEWS,

@@ -71,11 +71,6 @@ inline void ansi_moveup(int n)
 	printf("\033[%dF", n);
 }
 
-inline void ansi_reset_color()
-{
-	printf("\033[0m");
-}
-
 inline void ansi_hidecursor()
 {
 	printf("\033[?25l");
@@ -89,6 +84,26 @@ inline void ansi_showcursor()
 inline void ansi_moveto(uint32_t x, uint32_t y)
 {
 	printf("\033[%d;%dH", x, y);
+}
+
+inline void ansi_clearline()
+{
+	printf("\033[2K");
+}
+
+inline void ansi_setcolor(int col)
+{
+	printf("\033[48;5;%dm", col);
+}
+
+inline void ansi_reset_color()
+{
+	printf("\033[0m");
+}
+
+inline void ansi_clearscreen()
+{
+	printf("\033[2J");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -106,6 +121,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_parent = parent;
 	m_inspector = inspector;
 	m_converter = new sinsp_filter_check_reference();
+	m_n_flushes = 0;
 
 	//
 	// Define the table size
@@ -127,38 +143,27 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 		parent->m_offline_replay = true;
 	}
 
-	//
-	// Create the color palette
-	//
-	/*
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_WHITE], ' '));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_WHITE_D], '*'));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_GREEN_L], '*'));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_GREEN], ' '));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_GREEN_D], '*'));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_L], '*'));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW], ' '));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_YELLOW_D], '*'));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_RED_L], '*'));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_RED], ' '));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_RED_D], '*'));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_MAGENTA_L], '*'));
-	m_colpalette.push_back(colpalette_entry(m_parent->m_colors[sinsp_cursesui::GRAPH_MAGENTA], ' '));
-	*/
-
-	//
-	// Exit curses mode
-	//
-	endwin();
-	(void) nonl(); // tell curses not to do NL->CR/NL on output
-	intrflush(stdscr, false);
-	mousemask(ALL_MOUSE_EVENTS, NULL);
-	ansi_hidecursor();
-	ansi_moveto(m_h + 3, 0);
+g_logger.format("####");
+	exit_curses();
 }
 
 curses_spectro::~curses_spectro()
 {
+	if(m_inspector->is_live())
+	{
+		ansi_movedown(1);
+		draw_menu();
+		ansi_moveup(1);
+		printf("\n\n");
+		ansi_moveup(1);		
+	}
+	else
+	{
+		ansi_movedown(1);
+		draw_menu();
+		printf("\n");		
+	}
+
 	ansi_showcursor();
 
 	//
@@ -172,6 +177,20 @@ curses_spectro::~curses_spectro()
 	}
 
 	delete m_converter;
+}
+
+void curses_spectro::exit_curses()
+{
+	//
+	// Exit curses mode
+	//
+	endwin();
+	(void) nonl(); // tell curses not to do NL->CR/NL on output
+	intrflush(stdscr, false);
+	mousemask(ALL_MOUSE_EVENTS, NULL);
+	ansi_hidecursor();
+	ansi_clearscreen();
+	ansi_moveto(m_h + 3, 0);
 }
 
 void curses_spectro::configure(sinsp_table* table)
@@ -188,30 +207,6 @@ void curses_spectro::configure(sinsp_table* table)
 		ci.m_info = legend->at(j);
 		m_legend.push_back(ci);
 	}
-}
-
-void curses_spectro::print_wait()
-{
-	string wstr;
-
-	if(m_inspector->is_live())
-	{
-		wstr = "Collecting Data";
-	}
-	else
-	{
-		if(m_parent->is_eof())
-		{
-			wstr = "No Data For This View";
-		}
-	}
-
-	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
-
-	mvwprintw(m_tblwin, 
-		m_parent->m_screenh / 2,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
 }
 
 void curses_spectro::print_error(string wstr)
@@ -283,6 +278,24 @@ void curses_spectro::draw_axis()
 	}
 }
 
+void curses_spectro::draw_menu()
+{
+//	ansi_clearline();
+
+	printf("F1");
+/*
+	for(uint32_t j = 0; j < 100; j++)
+	{
+		ansi_setcolor(j);
+		printf("%d ", j);
+	}
+*/
+	ansi_setcolor(6);
+	printf("Help  ");
+
+	ansi_reset_color();
+}
+
 void curses_spectro::render(bool data_changed)
 {
 	//
@@ -300,9 +313,16 @@ void curses_spectro::render(bool data_changed)
 			ASSERT(false);
 			throw sinsp_exception("corrupted curses table data");
 		}
+
+		m_n_flushes++;
 	}
 	else
 	{
+		if(m_n_flushes < 2)
+		{
+			printf("\n");
+		}
+
 		return;
 	}
 
@@ -329,8 +349,6 @@ void curses_spectro::render(bool data_changed)
 		//
 		// Render the line
 		//
-		ansi_moveup(1);
-
 		for(uint32_t j = 0; j < m_w - 1; j++)
 		{
 			auto it = freqs.find(j);
@@ -338,27 +356,23 @@ void curses_spectro::render(bool data_changed)
 			if(it != freqs.end())
 			{
 				uint32_t col = mkcol(it->second);
-				printf("\033[48;5;%dm", col);
+				ansi_setcolor(col);
 				printf(" ");
 			}
 			else
 			{
-				printf("\033[48;5;%dm", 0);
+				ansi_setcolor(0);
 				printf(" ");
 			}
 		}
 
+		ansi_reset_color();
 		printf("\n");
 		ansi_movedown(1);
-		ansi_reset_color();
-		/*
-		for(uint32_t j = 0; j < m_w - 1; j++)
-		{
-			printf("*");
-		}
-		*/
 		draw_axis();
-		printf("\n");
+		//ansi_movedown(1);
+		draw_menu();
+		ansi_moveup(2);
 	}
 }
 
@@ -431,6 +445,8 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 void curses_spectro::recreate_win(int h)
 {
+	exit_curses();
+	
 	delwin(m_tblwin);
 	
 	if(h != 0)
