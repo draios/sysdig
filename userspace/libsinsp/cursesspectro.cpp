@@ -81,9 +81,9 @@ inline void ansi_showcursor()
 	printf("\033[?25h");
 }
 
-inline void ansi_moveto(uint32_t x, uint32_t y)
+inline void ansi_moveto(uint32_t y, uint32_t x)
 {
-	printf("\033[%d;%dH", x, y);
+	printf("\033[%d;%dH", y, x);
 }
 
 inline void ansi_clearline()
@@ -127,7 +127,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	// Define the table size
 	//
 	m_w = m_parent->m_screenw;
-	m_h = m_parent->m_screenh - 3;
+	m_h = m_parent->m_screenh;
 
 	//
 	// Create the table window
@@ -149,6 +149,7 @@ g_logger.format("####");
 
 curses_spectro::~curses_spectro()
 {
+/*	
 	if(m_inspector->is_live())
 	{
 		ansi_movedown(1);
@@ -163,6 +164,9 @@ curses_spectro::~curses_spectro()
 		draw_menu();
 		printf("\n");		
 	}
+*/
+	ansi_moveto(m_h, 0);
+	printf("\n");
 
 	ansi_showcursor();
 
@@ -189,8 +193,7 @@ void curses_spectro::exit_curses()
 	intrflush(stdscr, false);
 	mousemask(ALL_MOUSE_EVENTS, NULL);
 	ansi_hidecursor();
-	ansi_clearscreen();
-	ansi_moveto(m_h + 3, 0);
+//	ansi_clearscreen();
 }
 
 void curses_spectro::configure(sinsp_table* table)
@@ -346,6 +349,8 @@ void curses_spectro::render(bool data_changed)
 			freqs[val] = *(uint64_t*)data->m_val;
 		}
 
+		ansi_moveto(m_h - 2, 0);
+
 		//
 		// Render the line
 		//
@@ -367,12 +372,11 @@ void curses_spectro::render(bool data_changed)
 		}
 
 		ansi_reset_color();
-		printf("\n");
-		ansi_movedown(1);
+		ansi_moveto(m_h - 1, 0);
 		draw_axis();
-		//ansi_movedown(1);
+		ansi_moveto(m_h, 0);
 		draw_menu();
-		ansi_moveup(2);
+		printf("\n");
 	}
 }
 
@@ -446,15 +450,10 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 void curses_spectro::recreate_win(int h)
 {
 	exit_curses();
-	
+
 	delwin(m_tblwin);
 	
-	if(h != 0)
-	{
-		m_h = h;
-	}
-	
-	m_tblwin = newwin(m_h, m_w, m_table_y_start, m_table_x_start);
+	m_tblwin = newwin(m_h - 3, m_w, m_table_y_start, m_table_x_start);
 	render(true);
 }
 
