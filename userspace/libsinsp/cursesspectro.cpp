@@ -301,6 +301,10 @@ void curses_spectro::render(bool data_changed)
 			throw sinsp_exception("corrupted curses table data");
 		}
 	}
+	else
+	{
+		return;
+	}
 
 	if(data_changed)
 	{
