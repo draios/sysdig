@@ -122,7 +122,6 @@ function on_interval(ts_s, ts_ns, delta)
 
 	for x = 1, w do
 		local fr = frequencies[x]
-
 		if fr == nil or fr == 0 then
 			terminal.setbgcol(0)
 		else

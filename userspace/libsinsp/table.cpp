@@ -537,7 +537,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 }
 
 void sinsp_table::flush(sinsp_evt* evt)
-{
+{	
 	if(!m_paused)
 	{
 		if(m_next_flush_time_ns != 0)

@@ -231,7 +231,7 @@ void curses_spectro::update_data(vector<sinsp_sample_row>* data, bool force_sele
 
 uint32_t curses_spectro::mkcol(uint64_t val)
 {
-	uint32_t refresh_per_sec = 1;
+	uint32_t refresh_per_sec = 2;
 	uint32_t col = log10((int)val * refresh_per_sec + 1) / log10(1.6);
 
 	if(col < 1)
@@ -244,7 +244,7 @@ uint32_t curses_spectro::mkcol(uint64_t val)
 		col = g_colpalette_size - 1;
 	}
 
-	return g_colpalette[col];
+	return g_colpalette[col - 1];
 }
 
 void curses_spectro::draw_axis()
