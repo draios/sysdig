@@ -30,13 +30,13 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "evt.latency.log",
+			field = "evt.latency.bucketed",
 			is_key = true
 		},
 		{
 			name = "LATENCY",
 			description = "file latency.",
-			field = "evt.latency.log",
+			field = "evt.latency.bucketed",
 		},
 		{
 			name = "COUNT",
