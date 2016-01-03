@@ -598,6 +598,7 @@ public:
 	sinsp_evt::param_fmt m_spybox_text_format;
 #endif
 	bool m_offline_replay;
+	uint64_t m_refresh_interval_ns;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
@@ -652,7 +653,6 @@ private:
 	uint64_t m_last_evt_ts;
 	uint64_t m_evt_ts_delta;
 	sinsp_filter_check_reference* m_timedelta_formatter;
-	uint64_t m_refresh_interval_ns;
 	sinsp_mouse_to_key_list m_mouse_to_key_list;
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;
