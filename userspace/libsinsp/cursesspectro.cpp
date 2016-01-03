@@ -143,7 +143,6 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 		parent->m_offline_replay = true;
 	}
 
-g_logger.format("####");
 	exit_curses();
 }
 
@@ -169,6 +168,16 @@ curses_spectro::~curses_spectro()
 	printf("\n");
 
 	ansi_showcursor();
+
+	//
+	// Disable offline replay mode
+	//
+	if(!m_inspector->is_live())
+	{
+		m_parent->m_offline_replay = false;
+	}
+
+
 
 	//
 	// Reenter curses mode
@@ -287,15 +296,24 @@ void curses_spectro::draw_menu()
 
 	printf("F1");
 /*
-	for(uint32_t j = 0; j < 100; j++)
+	for(uint32_t j = 0; j < 256; j++)
 	{
 		ansi_setcolor(j);
 		printf("%d ", j);
 	}
 */
-	ansi_setcolor(6);
+	ansi_setcolor(24);
 	printf("Help  ");
+	ansi_reset_color();
 
+	printf("F2");
+	ansi_setcolor(24);
+	printf("Views ");
+	ansi_reset_color();
+
+	printf("p ");
+	ansi_setcolor(24);
+	printf("Pause ");
 	ansi_reset_color();
 }
 
@@ -309,6 +327,8 @@ void curses_spectro::render(bool data_changed)
 		return;
 	}
 
+	m_n_flushes++;
+
 	if(m_data->size() != 0)
 	{
 		if(m_legend.size() != m_data->at(0).m_values.size())
@@ -316,8 +336,6 @@ void curses_spectro::render(bool data_changed)
 			ASSERT(false);
 			throw sinsp_exception("corrupted curses table data");
 		}
-
-		m_n_flushes++;
 	}
 	else
 	{
@@ -325,8 +343,6 @@ void curses_spectro::render(bool data_changed)
 		{
 			printf("\n");
 		}
-
-		return;
 	}
 
 	if(data_changed)
@@ -389,8 +405,6 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 	{
 		return STA_PARENT_HANDLE;
 	}
-
-	g_logger.format("%d", (int)ch);
 
 	switch(ch)
 	{

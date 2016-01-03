@@ -365,21 +365,33 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		if(wi->m_type == sinsp_view_info::T_TABLE)
 		{
 			ty = sinsp_table::TT_TABLE;
+			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
 		}
 		else if(wi->m_type == sinsp_view_info::T_LIST)
 		{
 			ty = sinsp_table::TT_LIST;
+			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
 		}
 		else if(wi->m_type == sinsp_view_info::T_SPECTRO)
 		{
 			ty = sinsp_table::TT_TABLE;
+
+			//
+			// Accelerate the refresh rate to 1/2s
+			//
+			if(m_refresh_interval_ns == 2000000000)
+			{
+				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns / 4, m_raw_output);
+			}
+			else
+			{
+				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
+			}
 		}
 		else
 		{
 			ASSERT(false);
 		}
-
-		m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
 
 		try
 		{
@@ -1557,7 +1569,10 @@ void sinsp_cursesui::pause()
 		m_datatable->set_paused(m_paused);
 	}
 #ifndef NOCURSESUI
-	render_header();
+	if(m_spectro == NULL)
+	{
+		render_header();
+	}
 #endif
 }
 
@@ -1888,7 +1903,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			}
 			else if(m_spectro)
 			{
-				m_spectro->render(true);
+				m_spectro->recreate_win(m_screenh - 3);
 			}
 
 			if(m_viewinfo_page)
@@ -2068,7 +2083,6 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				}
 				else if(m_spectro)
 				{
-					m_spectro->set_x_start(VIEW_SIDEMENU_WIDTH);					
 					m_spectro->set_x_start(VIEW_SIDEMENU_WIDTH);
 				}
 

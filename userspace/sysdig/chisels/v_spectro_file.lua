@@ -22,7 +22,7 @@ view_info =
 	tips = {"XXX."},
 	view_type = "spectrogram",
 --	view_type = "table",
-	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.directory", "fd.containerdirectory"},
 	filter = "evt.dir=< and fd.type=file",
 	use_defaults = false,
 	drilldown_target = "XXX",
