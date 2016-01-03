@@ -439,6 +439,8 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 		case 'c':
 		case KEY_DC: // Del
 			break;
+		case KEY_F(7):
+			return STA_NONE;
 		default:
 			break;
 	}
