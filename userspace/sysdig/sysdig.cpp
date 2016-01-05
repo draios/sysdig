@@ -505,9 +505,9 @@ captureinfo do_inspect(sinsp* inspector,
 	duration_start = ((double)clock()) / CLOCKS_PER_SEC;
 	while(1)
 	{
-                duration_tot = ((double)clock()) / CLOCKS_PER_SEC - duration_start;
                 if(duration_to_tot > 0)
                 {
+		   duration_tot = ((double)clock()) / CLOCKS_PER_SEC - duration_start;
 		   if (duration_tot >= duration_to_tot)
                    {
 			handle_end_of_file(print_progress, formatter);
