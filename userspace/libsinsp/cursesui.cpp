@@ -954,7 +954,6 @@ void sinsp_cursesui::populate_view_cols_sidemenu()
 
 	vector<sidemenu_list_entry> viewlist;
 	sinsp_view_info* vinfo = get_selected_view();
-  string sort_order;
 
 	for(auto it : vinfo->m_columns)
   {
@@ -962,8 +961,7 @@ void sinsp_cursesui::populate_view_cols_sidemenu()
     {
       if (m_sidemenu_sorting_col == k) 
       {
-        sort_order = m_datatable->is_sorting_ascending() ? " ^" : " V";
-        viewlist.push_back(sidemenu_list_entry(it.m_name + sort_order, k++));
+        viewlist.push_back(sidemenu_list_entry(it.m_name, k++));
         continue;
       }
       viewlist.push_back(sidemenu_list_entry(it.m_name, k++));

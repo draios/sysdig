@@ -249,6 +249,15 @@ void curses_table_sidemenu::render()
 
 		// add the new line
 		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries.at(j).m_name.c_str(), m_w);
+    // put sorting order indicator at the right end of this row
+    if (m_parent->m_sidemenu_sorting_col == j) 
+    {
+      wmove(m_win, j - m_firstrow + 1, m_w - 4);
+      char sort_order = m_parent->m_datatable->is_sorting_ascending() ? '^' : 'V';
+      waddch(m_win, '(');
+      waddch(m_win, sort_order);
+      waddch(m_win, ')');
+    }
 
 		// white space at the right
 		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
