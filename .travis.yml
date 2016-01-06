@@ -1,20 +1,20 @@
 language: c
 env:
-    - BUILD_TYPE=Debug NEW_CC=clang NEW_CXX=clang++
-    - BUILD_TYPE=Release NEW_CC=clang NEW_CXX=clang++
-    - BUILD_TYPE=Debug NEW_CC=gcc NEW_CXX=g++
-    - BUILD_TYPE=Release NEW_CC=gcc NEW_CXX=g++
+    - BUILD_TYPE=Debug
+    - BUILD_TYPE=Release
 before_install:
+    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - sudo apt-get update
 install:
-    - sudo apt-get install rpm linux-headers-generic
-    - sudo apt-get purge libncurses5-dev cmake
+    - sudo apt-get install g++-4.8
+    - sudo apt-get install rpm linux-headers-$(uname -r)
+    - sudo apt-get purge libncurses5-dev cmake libcurl4-openssl-dev zlib1g-dev
 before_script:
     - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
 script:
     - set -e
-    - export CC=$NEW_CC
-    - export CXX=$NEW_CXX
+    - export CC="gcc-4.8"
+    - export CXX="g++-4.8"
     - wget https://s3.amazonaws.com/download.draios.com/dependencies/cmake-3.3.2.tar.gz
     - tar -xzf cmake-3.3.2.tar.gz
     - cd cmake-3.3.2
@@ -28,6 +28,7 @@ script:
     - make VERBOSE=1
     - make package
     - cd ..
+    - test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels $TRAVIS_BRANCH
     - rm -rf build
     - pushd $(mktemp -d --tmpdir sysdig.XXXXXXXXXX)
     - wget http://download.draios.com/dependencies/zlib-1.2.8.tar.gz
@@ -37,18 +38,25 @@ script:
     - make
     - sudo make install
     - cd ..
-    - wget https://github.com/open-source-parsers/jsoncpp/archive/0.10.2-p1.tar.gz
-    - tar zxvf 0.10.2-p1.tar.gz
-    - cd jsoncpp-0.10.2-p1
+    - wget https://github.com/open-source-parsers/jsoncpp/archive/0.10.5.tar.gz
+    - tar zxvf 0.10.5.tar.gz
+    - cd jsoncpp-0.10.5
     - cmake -DBUILD_SHARED_LIBS=ON .
     - make
     - sudo make install
+    - cd ..
+    - wget https://s3.amazonaws.com/download.draios.com/dependencies/libb64-1.2.src.zip
+    - unzip libb64-1.2.src.zip
+    - cd libb64-1.2
+    - make
+    - sudo cp -r include/* /usr/local/include/
+    - sudo cp src/libb64.a /usr/local/lib/
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
-    - sudo apt-get install libncurses5-dev libluajit-5.1-dev
+    - sudo apt-get install libncurses5-dev libluajit-5.1-dev libcurl4-openssl-dev libssl-dev
     - mkdir build
     - cd build
-    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_JSONCPP=OFF -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF -DUSE_BUNDLED_ZLIB=OFF -DUSE_BUNDLED_NCURSES=OFF -DZLIB_PREFIX=/usr/local
+    - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_DEPS=OFF
     - make VERBOSE=1
     - make package
     - cd ..

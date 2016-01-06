@@ -69,7 +69,10 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 	//
 	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
 	{
-		totlen += scap_fd_info_len(fdi);
+		if(fdi->type != SCAP_FD_UNINITIALIZED)
+		{
+			totlen += scap_fd_info_len(fdi);
+		}
 	}
 
 	//
@@ -98,9 +101,12 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 	//
 	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
 	{
-		if(scap_fd_write_to_disk(handle, fdi, f) != SCAP_SUCCESS)
+		if(fdi->type != SCAP_FD_UNINITIALIZED)
 		{
-			return SCAP_FAILURE;
+			if(scap_fd_write_to_disk(handle, fdi, f) != SCAP_SUCCESS)
+			{
+				return SCAP_FAILURE;
+			}
 		}
 	}
 
@@ -137,10 +143,13 @@ static int32_t scap_write_fdlist(scap_t *handle, gzFile f)
 
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
-		res = scap_write_proc_fds(handle, tinfo, f);
-		if(res != SCAP_SUCCESS)
+		if(!tinfo->filtered_out)
 		{
-			return res;
+			res = scap_write_proc_fds(handle, tinfo, f);
+			if(res != SCAP_SUCCESS)
+			{
+				return res;
+			}
 		}
 	}
 
@@ -167,27 +176,30 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	//
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
-		totlen += (uint32_t)
-		    (sizeof(uint64_t) +	// tid
-		    sizeof(uint64_t) +	// pid
-		    sizeof(uint64_t) +	// ptid
-		    2 + strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE) +
-		    2 + strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE) +
-		    2 + tinfo->args_len +
-		    2 + strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE) +
-		    sizeof(uint64_t) +	// fdlimit
-		    sizeof(uint32_t) +	// uid
-		    sizeof(uint32_t) +	// gid
-		    sizeof(uint32_t) +  // vmsize_kb
-		    sizeof(uint32_t) +  // vmrss_kb
-		    sizeof(uint32_t) +  // vmswap_kb
-		    sizeof(uint64_t) +  // pfmajor
-		    sizeof(uint64_t) +  // pfminor
-		    2 + tinfo->env_len +
-		    sizeof(int64_t) +  // vtid
-		    sizeof(int64_t) +  // vpid
-		    2 + tinfo->cgroups_len +
-		    sizeof(uint32_t));
+		if(!tinfo->filtered_out)
+		{
+			totlen += (uint32_t)
+				(sizeof(uint64_t) +	// tid
+				sizeof(uint64_t) +	// pid
+				sizeof(uint64_t) +	// ptid
+				2 + strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE) +
+				2 + strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE) +
+				2 + tinfo->args_len +
+				2 + strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE) +
+				sizeof(uint64_t) +	// fdlimit
+				sizeof(uint32_t) +	// uid
+				sizeof(uint32_t) +	// gid
+				sizeof(uint32_t) +  // vmsize_kb
+				sizeof(uint32_t) +  // vmrss_kb
+				sizeof(uint32_t) +  // vmswap_kb
+				sizeof(uint64_t) +  // pfmajor
+				sizeof(uint64_t) +  // pfminor
+				2 + tinfo->env_len +
+				sizeof(int64_t) +  // vtid
+				sizeof(int64_t) +  // vpid
+				2 + tinfo->cgroups_len +
+				sizeof(uint32_t));
+		}
 	}
 
 	//
@@ -207,6 +219,11 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	//
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
+		if(tinfo->filtered_out)
+		{
+			continue;
+		}
+
 		commlen = (uint16_t)strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
 		exelen = (uint16_t)strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
 		argslen = tinfo->args_len;
@@ -549,7 +566,7 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 	// between opening the handle and starting the dump
 	//
 #if defined(HAS_CAPTURE)
-	if(handle->m_file == NULL)
+	if(handle->m_file == NULL && handle->refresh_proc_table_when_saving)
 	{
 		proc_entry_callback tcb = handle->m_proc_callback;
 		handle->m_proc_callback = NULL;
@@ -818,6 +835,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.vtid = -1;
 	tinfo.vpid = -1;
 	tinfo.cgroups_len = 0;
+	tinfo.filtered_out = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
@@ -1989,8 +2007,17 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	// Read the block header
 	//
 	readsize = gzread(f, &bh, sizeof(bh));
+
 	if(readsize != sizeof(bh))
 	{
+		int err_no = 0;
+		const char* err_str = gzerror(f, &err_no);
+		if(err_no)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading file: %s, ernum=%d", err_str, err_no);
+			return SCAP_FAILURE;
+		}
+
 		if(readsize == 0)
 		{
 			//

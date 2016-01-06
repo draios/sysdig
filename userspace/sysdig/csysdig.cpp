@@ -78,6 +78,10 @@ static void usage()
 "                    increase sysdig's startup time. Moreover, they contain\n"
 "                    information that could be privacy sensitive.\n"
 " -h, --help         Print this page\n"
+" -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
+"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
+"                    The API server can also be specified via the environment variable\n"
+"                    SYSDIG_K8S_API.\n"
 " -l, --list         List all the fields that can be used in views.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
@@ -219,12 +223,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	uint64_t refresh_interval_ns = 2000000000;
 	bool list_flds = false;
 	bool m_raw_output = false;
+	string* k8s_api = 0;
 
 	static struct option long_options[] =
 	{
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"help", no_argument, 0, 'h' },
+		{"k8s-api", required_argument, 0, 'k'},
 		{"list", optional_argument, 0, 'l' },
 		{"numevents", required_argument, 0, 'n' },
 		{"print", required_argument, 0, 'p' },
@@ -252,7 +258,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:EhlNn:p:r:s:v:", long_options, &long_index)) != -1)
+			"d:Ehk:lNn:p:r:s:v:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -285,6 +291,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				usage();
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			case 'k':
+				k8s_api = new string(optarg);
+				break;
 			case 'l':
 				list_flds = true;
 				break;
@@ -318,6 +327,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
+				k8s_api = new string();
 				break;
 			case 's':
 				snaplen = atoi(optarg);
@@ -554,6 +564,24 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			if(snaplen != 0)
 			{
 				inspector->set_snaplen(snaplen);
+			}
+
+			//
+			// run k8s, if required
+			//
+			if(k8s_api)
+			{
+				inspector->init_k8s_client(k8s_api);
+				k8s_api = 0;
+			}
+			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
+			{
+				if(k8s_api_env != NULL)
+				{
+					k8s_api = new string(k8s_api_env);
+					inspector->init_k8s_client(k8s_api);
+					k8s_api = 0;
+				}
 			}
 
 			//

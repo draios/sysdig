@@ -91,7 +91,8 @@ static void usage()
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
-" -D, --debug        Capture events about sysdig itself\n"
+" -D, --debug        Capture events about sysdig itself and print additional\n"
+"                    logging on standard error.\n"
 " -E, --exclude-users\n"
 "                    Don't create the user/group tables by querying the OS when\n"
 "                    sysdig starts. This also means that no user or group info\n"
@@ -131,6 +132,10 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
+" -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
+"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
+"                    The API server can also be specified via the environment variable\n"
+"                    SYSDIG_K8S_API.\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -142,6 +147,7 @@ static void usage()
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
 "                    With -pc or -pcontainer will use a container-friendly format.\n"
+"                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
@@ -190,7 +196,7 @@ static void usage()
 "Output format:\n\n"
 "By default, sysdig prints the information for each captured event on a single\n"
 " line with the following format:\n\n"
-" %%evt.num %%evt.time %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.info\n\n"
+" %%evt.num %%evt.outputtime %%evt.cpu %%proc.name (%%thread.tid) %%evt.dir %%evt.type %%evt.info\n\n"
 "where:\n"
 " evt.num is the incremental event number\n"
 " evt.time is the event timestamp\n"
@@ -204,7 +210,9 @@ static void usage()
 "The output format can be customized with the -p switch, using any of the\n"
 "fields listed by 'sysdig -l'.\n\n"
 "Using -pc or -pcontainer, the default format will be changed to a container-friendly one:\n\n"
-"%%evt.num %%evt.time %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
+"%%evt.num %%evt.outputtime %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
+"Using -pk or -pkubernetes, the default format will be changed to a kubernetes-friendly one:\n\n"
+"%%evt.num %%evt.outputtime %%evt.cpu %%k8s.pod.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Examples:\n\n"
 " Capture all the events from the live system and print them to screen\n"
 "   $ sysdig\n\n"
@@ -661,9 +669,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool unbuf_flag = false;
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
+	string* k8s_api = 0;
 
 	// These variables are for the cycle_writer engine
-	int duration_seconds = 0;	
+	int duration_seconds = 0;
 	int rollover_mb = 0;
 	int file_limit = 0;
 	unsigned long event_limit = 0L;
@@ -688,6 +697,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
+		{"k8s-api", required_argument, 0, 'k'},
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"numevents", required_argument, 0, 'n' },
@@ -728,7 +738,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jlLNn:Pp:qr:Ss:t:v"
+                                        "hi:jk:lLNn:Pp:qr:Ss:t:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -809,6 +819,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			case 'D':
 				inspector->set_debug_mode(true);
+				inspector->set_log_stderr();
 				break;
 			case 'E':
 				inspector->set_import_users(false);
@@ -869,6 +880,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				jflag = true;
 				break;
+			case 'k':
+				k8s_api = new string(optarg);
+				break;
 			case 'h':
 				usage();
 				delete inspector;
@@ -925,6 +939,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						inspector->set_print_container_data(true);
 					}
 				}
+				else if(string(optarg) == "k" || string(optarg) == "kubernetes")
+				{
+					output_format = "*%evt.num %evt.outputtime %evt.cpu %k8s.pod.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+
+					//
+					// This enables chisels to determine if they should print container information
+					//
+					if(inspector != NULL)
+					{
+						inspector->set_print_container_data(true);
+					}
+				}
 				else
 				{
 					output_format = optarg;
@@ -936,6 +962,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
+				k8s_api = new string();
 				break;
 			case 'S':
 				summary_table = new vector<summary_table_entry>;
@@ -1141,6 +1168,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			inspector->set_max_evt_output_len(80);
 		}
 
+		//
+		// Determine if we need to filter when dumping to file
+		//
+		if(filter != "")
+		{
+			inspector->filter_proc_table_when_saving(true);
+		}
+
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
 #ifdef HAS_FILTERING
@@ -1239,6 +1274,28 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// Notify the chisels that the capture is starting
 			//
 			chisels_on_capture_start();
+
+			//
+			// run k8s, if required
+			//
+			if(k8s_api)
+			{
+				inspector->init_k8s_client(k8s_api);
+				k8s_api = 0;
+			}
+			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
+			{
+				if(k8s_api_env != NULL)
+				{
+					k8s_api = new string(k8s_api_env);
+					inspector->init_k8s_client(k8s_api);
+				}
+				else
+				{
+					delete k8s_api;
+				}
+				k8s_api = 0;
+			}
 
 			cinfo = do_inspect(inspector,
 				cnt,

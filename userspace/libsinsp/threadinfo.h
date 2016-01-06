@@ -233,7 +233,9 @@ public:
 
 VISIBILITY_PRIVATE
 	void init();
-	void init(const scap_threadinfo* pi);
+	bool should_keep();
+	// return true if, based on the current inspector filter, this thread should be kept
+	void init(scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
 	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
 	void add_fd(scap_fdinfo *fdinfo);
@@ -262,7 +264,6 @@ VISIBILITY_PRIVATE
 	void set_args(const char* args, size_t len);
 	void set_env(const char* env, size_t len);
 	void set_cgroups(const char* cgroups, size_t len);
-	void store_event(sinsp_evt *evt);
 	bool is_lastevent_data_valid();
 	inline void set_lastevent_data_validity(bool isvalid)
 	{
@@ -290,7 +291,7 @@ VISIBILITY_PRIVATE
 	sinsp_fdtable m_fdtable; // The fd table of this thread
 	string m_cwd; // current working directory
 	sinsp_threadinfo* m_main_thread;
-	uint8_t m_lastevent_data[SP_EVT_BUF_SIZE]; // Used by some event parsers to store the last enter event
+	uint8_t* m_lastevent_data; // Used by some event parsers to store the last enter event
 	vector<void*> m_private_state;
 
 	uint16_t m_lastevent_type;

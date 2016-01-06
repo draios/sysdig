@@ -25,6 +25,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "protodecoder.h"
 
+extern sinsp_evttables g_infotables;
+
 static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 {
 	dest[0] = src[0];
@@ -78,6 +80,7 @@ void sinsp_threadinfo::init()
 #endif
 	m_ainfo = NULL;
 	m_program_hash = 0;
+	m_lastevent_data = NULL;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -273,7 +276,66 @@ void sinsp_threadinfo::add_fd(scap_fdinfo *fdi)
 	}
 }
 
-void sinsp_threadinfo::init(const scap_threadinfo* pi)
+bool sinsp_threadinfo::should_keep()
+{
+	sinsp_evt tevt;
+	scap_evt tscapevt;
+
+	//
+	// Initialize the fake events for filtering
+	//
+	tscapevt.ts = 0;
+	tscapevt.type = PPME_SYSCALL_READ_X;
+	tscapevt.len = 0;
+
+	tevt.m_inspector = m_inspector;
+	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
+	tevt.m_pevt = NULL;
+	tevt.m_cpuid = 0;
+	tevt.m_evtnum = 0;
+	tevt.m_pevt = &tscapevt;
+
+	//
+	// Check if there's at least an fd that matches the filter.
+	// If not, skip this thread
+	//
+	sinsp_fdtable* fdtable = get_fd_table();
+
+	bool match = false;
+
+	for(auto fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
+	{
+		tevt.m_tinfo = this;
+		tevt.m_fdinfo = &(fdit->second);
+		tscapevt.tid = m_tid;
+		int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
+		tevt.m_tinfo->m_lastevent_fd = fdit->first;
+
+		if(m_inspector->m_filter->run(&tevt))
+		{
+			match = true;
+			break;
+		}
+
+		tevt.m_tinfo->m_lastevent_fd = tlefd;
+	}
+
+	//
+	// If at least an FD matched, keep this thread, otherwise filter it out.
+	// Note: checking the FDs will also tell us if this thread matches 
+	//       thread-related filters
+	//
+	if(match)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void sinsp_threadinfo::init(scap_threadinfo* pi)
 {
 	scap_fdinfo *fdi;
 	scap_fdinfo *tfdi;
@@ -313,6 +375,16 @@ void sinsp_threadinfo::init(const scap_threadinfo* pi)
 	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
 	{
 		add_fd(fdi);
+	}
+
+	m_lastevent_data = NULL;
+
+	if(m_inspector->m_filter != NULL)
+	{
+		if(!should_keep())
+		{
+			pi->filtered_out = 1;
+		}
 	}
 }
 
@@ -457,28 +529,6 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 	}
 
 	return false;
-}
-
-void sinsp_threadinfo::store_event(sinsp_evt *evt)
-{
-	uint32_t elen;
-
-	//
-	// Make sure the event data is going to fit
-	//
-	elen = scap_event_getlen(evt->m_pevt);
-
-	if(elen > SP_EVT_BUF_SIZE)
-	{
-		ASSERT(false);
-		return;
-	}
-
-	//
-	// Copy the data
-	//
-	memcpy(m_lastevent_data, evt->m_pevt, elen);
-	m_lastevent_cpuid = evt->get_cpuid();
 }
 
 bool sinsp_threadinfo::is_lastevent_data_valid()
@@ -733,7 +783,11 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 
 	m_last_tinfo = NULL;
 
-	if(m_threadtable.size() >= m_inspector->m_max_thread_table_size)
+	if (m_threadtable.size() >= m_inspector->m_max_thread_table_size
+#if defined(HAS_CAPTURE)
+		&& threadinfo.m_pid != m_inspector->m_sysdig_pid
+#endif
+		)
 	{
 		m_n_drops++;
 		return;

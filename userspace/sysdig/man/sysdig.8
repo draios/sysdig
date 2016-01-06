@@ -249,7 +249,8 @@ FD names) to be lost.
 .PD 0
 .P
 .PD
-Capture events about sysdig itself
+Capture events about sysdig itself and print additional logging on
+standard error.
 .PP
 \f[B]\-E\f[], \f[B]\-\-exclude\-users\f[]
 .PD 0
@@ -314,13 +315,6 @@ If no time format is specified, a counter will be used.
 .PD
 Print this page
 .PP
-\f[B]\-j\f[], \f[B]\-\-json\f[]
-.PD 0
-.P
-.PD
-Emit output as json, data buffer encoding will depend from the print
-format selected.
-.PP
 \f[B]\-i \f[I]chiselname\f[]\f[],
 \f[B]\-\-chisel\-info=\f[]\f[I]chiselname\f[]
 .PD 0
@@ -328,6 +322,24 @@ format selected.
 .PD
 Get a longer description and the arguments associated with a chisel
 found in the \-cl option list.
+.PP
+\f[B]\-j\f[], \f[B]\-\-json\f[]
+.PD 0
+.P
+.PD
+Emit output as json, data buffer encoding will depend from the print
+format selected.
+.PP
+\f[B]\-k\f[], \f[B]\-\-k8s\-api\f[]
+.PD 0
+.P
+.PD
+Enable Kubernetes support by connecting to the API server specified as
+argument.
+E.g.
+"<http://admin:password@127.0.0.1:8080>".
+The API server can also be specified via the environment variable
+SYSDIG_K8S_API.
 .PP
 \f[B]\-L\f[], \f[B]\-\-list\-events\f[]
 .PD 0
@@ -367,7 +379,7 @@ Print progress on stderr while processing trace files.
 .PD
 Specify the format to be used when printing the events.
 With \-pc or \-pcontainer will use a container\-friendly format.
-See the examples section below for more info.
+With \-pk or \-pkubernetes will use a kubernetes\-friendly format.
 Specifying \f[B]\-pp\f[] on the command line will cause sysdig to print
 the default command line format and exit.
 .PP

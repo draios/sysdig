@@ -136,10 +136,13 @@ static int f_sys_flock_e(struct event_filler_arguments *args);
 static int f_cpu_hotplug_e(struct event_filler_arguments *args);
 static int f_sys_semop_e(struct event_filler_arguments *args);
 static int f_sys_semop_x(struct event_filler_arguments *args);
+static int f_sys_semget_e(struct event_filler_arguments *args);
 static int f_sys_semctl_e(struct event_filler_arguments *args);
 static int f_sys_semctl_x(struct event_filler_arguments *args);
 static int f_sys_ppoll_e(struct event_filler_arguments *args);
 static int f_sys_mount_e(struct event_filler_arguments *args);
+static int f_sys_access_e(struct event_filler_arguments *args);
+static int f_sys_access_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -357,6 +360,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_CPU_HOTPLUG_E] = {f_cpu_hotplug_e},
 	[PPME_SYSCALL_SEMOP_E] = {f_sys_semop_e},
 	[PPME_SYSCALL_SEMOP_X] = {f_sys_semop_x},
+	[PPME_SYSCALL_SEMGET_E] = {f_sys_semget_e},
+	[PPME_SYSCALL_SEMGET_X] = {f_sys_single_x},
 	[PPME_SYSCALL_SEMCTL_E] = {f_sys_semctl_e},
 	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
 	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
@@ -365,6 +370,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MOUNT_X] = {PPM_AUTOFILL, 4, APT_REG, {{AF_ID_RETVAL}, {0}, {1}, {2} } },
 	[PPME_SYSCALL_UMOUNT_E] = {PPM_AUTOFILL, 1, APT_REG, {{1} } },
 	[PPME_SYSCALL_UMOUNT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_ACCESS_E] = {f_sys_access_e},
+	[PPME_SYSCALL_ACCESS_X] = {f_sys_access_x},
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -1120,12 +1127,13 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (current->real_parent)
+		ptid = current->real_parent->pid;
+#else
+	if (current->parent)
 		ptid = current->parent->pid;
+#endif
 	else
 		ptid = 0;
-#else
-	ptid = current->parent->pid;
-#endif
 
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -5094,6 +5102,51 @@ static int f_sys_semop_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static inline u32 semget_flags_to_scap(unsigned flags)
+{
+	u32 res = 0;
+
+	if (flags & IPC_CREAT)
+		res |= PPM_IPC_CREAT;
+
+	if (flags & IPC_EXCL)
+		res |= PPM_IPC_EXCL;
+
+	return res;
+}
+
+static int f_sys_semget_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * key
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * nsems
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * semflg
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, semget_flags_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 static inline u32 semctl_cmd_to_scap(unsigned cmd)
 {
 	switch (cmd) {
@@ -5167,6 +5220,65 @@ static int f_sys_semctl_x(struct event_filler_arguments *args)
 	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static inline u32 access_flags_to_scap(unsigned flags)
+{
+	u32 res = 0;
+
+	if (flags == 0/*F_OK*/) {
+		res = PPM_F_OK;
+	} else {
+		if (flags & MAY_EXEC)
+			res |= PPM_X_OK;
+		if (flags & MAY_READ)
+			res |= PPM_R_OK;
+		if (flags & MAY_WRITE)
+			res |= PPM_W_OK;
+	}
+
+	return res;
+}
+
+static int f_sys_access_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, access_flags_to_scap(val), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_access_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	/*
+	 * return value
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * pathname
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

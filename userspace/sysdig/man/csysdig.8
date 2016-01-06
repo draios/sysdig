@@ -108,6 +108,18 @@ You can drill down multiple times, by keeping clicking \f[I]enter\f[].
 For example, you can click on a container in the \f[I]Containers\f[]
 view to get the processes running inside it, and then click on one of
 the processes to see its threads.
+.SS ACTIONS AND HOTKEYS
+.PP
+Each view has a list of command lines that can be executed in the
+context of the current selction by pressing \[aq]hotkeys\[aq].
+For example, pressing \[aq]k\[aq] in the Processes view kills the
+selected process, pressing \[aq]b\[aq] in the Containers view opens a
+bash shell in the selected container.
+.PP
+Each view supports different actions.
+You can see which actions a view supports by pressing F8.
+You can customize the view\[aq]s actions by editing the view\[aq]s Lua
+file.
 .SS CONTAINERS SUPPORT
 .PP
 Starting csysdig with the \-pc command line switch will cause many of
@@ -178,6 +190,12 @@ this window.
 .P
 .PD
 Show the help page for the currently displayed view.
+.PP
+\f[B]F8\f[]
+.PD 0
+.P
+.PD
+Open the view\[aq]s actions panel.
 .PP
 \f[B]F10, q\f[]
 .PD 0
@@ -305,6 +323,17 @@ However, creating them can increase sysdig\[aq]s startup time.
 .P
 .PD
 Print this page
+.PP
+\f[B]\-k\f[], \f[B]\-\-k8s\-api\f[]
+.PD 0
+.P
+.PD
+Enable Kubernetes support by connecting to the API server specified as
+argument.
+E.g.
+"<http://admin:password@127.0.0.1:8080>".
+The API server can also be specified via the environment variable
+SYSDIG_K8S_API.
 .PP
 \f[B]\-l\f[], \f[B]\-\-list\f[]
 .PD 0

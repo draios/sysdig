@@ -18,6 +18,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #include <json/json.h>
+#include "k8s.h"
 
 #ifdef HAS_FILTERING
 
@@ -265,7 +266,6 @@ public:
 
 	sinsp_filter_check_fd();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
@@ -329,6 +329,8 @@ public:
 		TYPE_THREAD_CPU_SYSTEM = 34,
 		TYPE_THREAD_VMSIZE = 35,
 		TYPE_THREAD_VMRSS = 36,
+		TYPE_THREAD_VMSIZE_B = 37,
+		TYPE_THREAD_VMRSS_B = 38,
 	};
 
 	sinsp_filter_check_thread();
@@ -648,12 +650,52 @@ public:
 
 	sinsp_filter_check_fdlist();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 private:
 	string m_strval;
 	char m_addrbuff[100];
+};
+
+class sinsp_filter_check_k8s : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_K8S_POD_NAME = 0,
+		TYPE_K8S_POD_ID,
+		TYPE_K8S_POD_LABEL,
+		TYPE_K8S_POD_LABELS,
+		TYPE_K8S_RC_NAME,
+		TYPE_K8S_RC_ID,
+		TYPE_K8S_RC_LABEL,
+		TYPE_K8S_RC_LABELS,
+		TYPE_K8S_SVC_NAME,
+		TYPE_K8S_SVC_ID,
+		TYPE_K8S_SVC_LABEL,
+		TYPE_K8S_SVC_LABELS,
+		TYPE_K8S_NS_NAME,
+		TYPE_K8S_NS_ID,
+		TYPE_K8S_NS_LABEL,
+		TYPE_K8S_NS_LABELS,
+	};
+
+	sinsp_filter_check_k8s();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	int32_t extract_arg(const string& fldname, const string& val);
+	const k8s_pod_t* find_pod_for_thread(const sinsp_threadinfo* tinfo);
+	const k8s_ns_t* find_ns_by_name(const string& ns_name);
+	const k8s_rc_t* find_rc_by_pod(const k8s_pod_t* pod);
+	vector<const k8s_service_t*> find_svc_by_pod(const k8s_pod_t* pod);
+	void concatenate_labels(const k8s_pair_list& labels, string* s);
+	bool find_label(const k8s_pair_list& labels, const string& key, string* value);
+
+	string m_argname;
+	string m_tstr;
 };
 
 #endif // HAS_FILTERING

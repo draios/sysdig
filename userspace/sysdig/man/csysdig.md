@@ -47,6 +47,12 @@ You drill down by selecting an element in a view and then clicking _enter_. Once
 
 You can drill down multiple times, by keeping clicking _enter_. For example, you can click on a container in the _Containers_ view to get the processes running inside it, and then click on one of the processes to see its threads.
 
+ACTIONS AND HOTKEYS
+-------------------
+Each view has a list of command lines that can be executed in the context of the current selction by pressing 'hotkeys'. For example, pressing 'k' in the Processes view kills the selected process, pressing 'b' in the Containers view opens a bash shell in the selected container. 
+
+Each view supports different actions. You can see which actions a view supports by pressing F8. You can customize the view's actions by editing the view's Lua file. 
+
 CONTAINERS SUPPORT
 ------------------
 Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include the columns with the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.
@@ -82,6 +88,9 @@ INTERACTIVE COMMANDS
 
 **F7**  
   Show the help page for the currently displayed view.  
+
+**F8**  
+  Open the view's actions panel.  
 
 **F10, q**  
   Quit.  
@@ -139,6 +148,9 @@ COMMAND LINE OPTIONS
 
 **-h**, **--help**  
   Print this page
+
+**-k**, **--k8s-api**
+  Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
 
 **-l**, **--list**  
   List all the fields that can be used in views.

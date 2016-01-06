@@ -49,12 +49,23 @@ bool should_drop(sinsp_evt *evt);
 #endif
 
 extern sinsp_protodecoder_list g_decoderlist;
+extern sinsp_evttables g_infotables;
 
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
 	m_fd_listener(NULL)
 {
+	m_k8s_metaevents_state.m_piscapevt = (scap_evt*)new char[SP_EVT_BUF_SIZE];
+	m_k8s_metaevents_state.m_piscapevt->type = PPME_K8S_E;
+
+	m_k8s_metaevents_state.m_metaevt.m_inspector = m_inspector;
+	m_k8s_metaevents_state.m_metaevt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	m_k8s_metaevents_state.m_metaevt.m_pevt = NULL;
+	m_k8s_metaevents_state.m_metaevt.m_cpuid = 0;
+	m_k8s_metaevents_state.m_metaevt.m_evtnum = 0;
+	m_k8s_metaevents_state.m_metaevt.m_pevt = m_k8s_metaevents_state.m_piscapevt;
+	m_k8s_metaevents_state.m_metaevt.m_fdinfo = NULL;
 }
 
 sinsp_parser::~sinsp_parser()
@@ -65,6 +76,7 @@ sinsp_parser::~sinsp_parser()
 	}
 
 	m_protodecoders.clear();
+	delete[] m_k8s_metaevents_state.m_piscapevt;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -309,6 +321,12 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
 		break;
+	case PPME_K8S_E:
+		if(!m_inspector->is_live())
+		{
+			parse_k8s_evt(evt);
+		}
+		break;
 	default:
 		break;
 	}
@@ -331,7 +349,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		evt->m_filtered_out = false;
 	}
 #endif
-
 	//
 	// Offline captures can prodice events with the SCAP_DF_STATE_ONLY. They are
 	// supposed to go through the engine, but they must be filtered out before 
@@ -343,6 +360,17 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		{
 			evt->m_filtered_out = true;
 		}
+	}
+}
+
+void sinsp_parser::event_cleanup(sinsp_evt *evt)
+{
+	if(evt->get_direction() == SCAP_ED_OUT &&
+	   evt->m_tinfo && evt->m_tinfo->m_lastevent_data)
+	{
+		free_event_buffer(evt->m_tinfo->m_lastevent_data);
+		evt->m_tinfo->m_lastevent_data = NULL;
+		evt->m_tinfo->set_lastevent_data_validity(false);
 	}
 }
 
@@ -576,7 +604,26 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 		return;
 	}
 
-	evt->m_tinfo->store_event(evt);
+	uint32_t elen;
+
+	//
+	// Make sure the event data is going to fit
+	//
+	elen = scap_event_getlen(evt->m_pevt);
+
+	if(elen > SP_EVT_BUF_SIZE)
+	{
+		ASSERT(false);
+		return;
+	}
+
+	//
+	// Copy the data
+	//
+	auto tinfo = evt->m_tinfo;
+	tinfo->m_lastevent_data = reserve_event_buffer();
+	memcpy(tinfo->m_lastevent_data, evt->m_pevt, elen);
+	tinfo->m_lastevent_cpuid = evt->get_cpuid();
 
 #ifdef GATHER_INTERNAL_STATS
 	m_inspector->m_stats.m_n_stored_evts++;
@@ -596,7 +643,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	//
 	// Retrieve the copy of the enter event and initialize it
 	//
-	if(!exit_evt->m_tinfo->is_lastevent_data_valid())
+	if(!(exit_evt->m_tinfo->is_lastevent_data_valid() && exit_evt->m_tinfo->m_lastevent_data))
 	{
 		//
 		// This happen especially at the beginning of trace files, where events
@@ -1440,6 +1487,74 @@ void sinsp_parser::parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, O
 	}
 }
 
+void schedule_more_k8s_evts(sinsp* inspector, void* data)
+{
+#ifdef HAS_CAPTURE
+	ASSERT(data);
+	k8s_metaevents_state* state = (k8s_metaevents_state*)data;
+
+	if(state->m_new_group == true)
+	{
+		state->m_new_group = false;
+		inspector->add_meta_event(&state->m_metaevt);
+		return;
+	}
+
+	k8s* k8s_client = inspector->get_k8s_client();
+	ASSERT(k8s_client);
+	if(!k8s_client->get_capture_events().size())
+	{
+		g_logger.log("K8S event scheduled but no events available."
+					"All pending K8S event request are cancelled.", sinsp_logger::SEV_ERROR);
+		state->m_new_group = false;
+		state->m_n_additional_k8s_events_to_add = 0;
+		inspector->remove_meta_event_callback();
+		return;
+	}
+	string payload = k8s_client->dequeue_capture_event();
+	state->m_piscapevt->len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
+	ASSERT(state->m_piscapevt->len <= SP_EVT_BUF_SIZE);
+	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
+	plen[0] = (uint16_t)payload.size() + 1;
+	uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
+	memcpy(edata, payload.c_str(), plen[0]);
+
+	state->m_n_additional_k8s_events_to_add--;
+	if(state->m_n_additional_k8s_events_to_add == 0)
+	{
+		inspector->remove_meta_event_callback();
+	}
+	else
+	{
+		inspector->add_meta_event(&state->m_metaevt);
+	}
+#endif // HAS_CAPTURE
+}
+
+void sinsp_parser::schedule_k8s_events(sinsp_evt *evt)
+{
+#ifdef HAS_CAPTURE
+	//
+	// schedule k8s events, if any available
+	//
+	k8s* k8s_client = 0;
+	if(m_inspector && (k8s_client = m_inspector->m_k8s_client))
+	{
+		int event_count = k8s_client->get_capture_events().size();
+		if(event_count)
+		{
+			m_k8s_metaevents_state.m_piscapevt->tid = evt->get_tid();
+			m_k8s_metaevents_state.m_piscapevt->ts = m_inspector->m_lastevent_ts;
+			m_k8s_metaevents_state.m_new_group = true;
+			m_k8s_metaevents_state.m_n_additional_k8s_events_to_add = event_count;
+			m_inspector->add_meta_event_callback(&schedule_more_k8s_evts, &m_k8s_metaevents_state);
+
+			schedule_more_k8s_evts(m_inspector, &m_k8s_metaevents_state);
+		}
+	}
+#endif // HAS_CAPTURE
+}
+
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
@@ -1447,7 +1562,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	char *name;
 	uint32_t namelen;
 	uint32_t flags;
-	//  uint32_t mode;
 	sinsp_fdinfo_t fdi;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	string sdir;
@@ -2761,6 +2875,11 @@ void sinsp_parser::parse_chdir_exit(sinsp_evt *evt)
 	sinsp_evt_param *parinfo;
 	int64_t retval;
 
+	if(!evt->m_tinfo)
+	{
+		return;
+	}
+
 	//
 	// Extract the return value
 	//
@@ -3198,9 +3317,9 @@ void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
 		return;
 	}
 
+	evt->m_tinfo->m_lastevent_data = reserve_event_buffer();
 	*(uint64_t*)evt->m_tinfo->m_lastevent_data = evt->get_ts();
 }
-
 void sinsp_parser::parse_fcntl_enter(sinsp_evt *evt)
 {
 	if(!evt->m_tinfo)
@@ -3263,7 +3382,6 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 	if(evt->m_tinfo)
 	{
 		sinsp_evt_param *parinfo;
-
 		parinfo = evt->get_param(1);
 		evt->m_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -3272,17 +3390,21 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 		evt->m_tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 
-		parinfo = evt->get_param(3);
-		evt->m_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		auto main_tinfo = evt->m_tinfo->get_main_thread();
+		if(main_tinfo)
+		{
+			parinfo = evt->get_param(3);
+			main_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
 
-		parinfo = evt->get_param(4);
-		evt->m_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(uint32_t));
+			parinfo = evt->get_param(4);
+			main_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
 
-		parinfo = evt->get_param(5);
-		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(uint32_t));
+			parinfo = evt->get_param(5);
+			main_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+		}
 	}
 }
 
@@ -3432,4 +3554,42 @@ void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
 		throw sinsp_exception("CPUs configuration change detected. Aborting.");
 	}
 #endif
+}
+
+uint8_t* sinsp_parser::reserve_event_buffer()
+{
+	if(m_tmp_events_buffer.empty())
+	{
+		return (uint8_t*)malloc(sizeof(uint8_t)*SP_EVT_BUF_SIZE);
+	}
+	else
+	{
+		auto ptr = m_tmp_events_buffer.top();
+		m_tmp_events_buffer.pop();
+		return ptr;
+	}
+}
+
+void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo = evt->get_param(0);
+	ASSERT(parinfo);
+	ASSERT(parinfo->m_len > 0);
+	std::string json(parinfo->m_val, parinfo->m_len);
+	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	ASSERT(m_inspector);
+	ASSERT(m_inspector->m_k8s_client);
+	m_inspector->m_k8s_client->simulate_watch_event(json);
+}
+
+void sinsp_parser::free_event_buffer(uint8_t *ptr)
+{
+	if(m_tmp_events_buffer.size() < m_inspector->m_thread_manager->m_threadtable.size())
+	{
+		m_tmp_events_buffer.push(ptr);
+	}
+	else
+	{
+		free(ptr);
+	}
 }

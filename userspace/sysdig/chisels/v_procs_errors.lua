@@ -27,7 +27,7 @@ view_info =
 	tags = {"Default"},
 	filter = "evt.type!=switch",
 	view_type = "table",
-	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory"},
+	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	drilldown_target = "errors",
 	use_defaults = true,
 	columns = 
@@ -92,6 +92,7 @@ view_info =
 			hotkey = "9",
 			command = "kill -9 %proc.pid",
 			description = "kill -9",
+			ask_confirmation = true,
 			wait_finish = false
 		},
 		{
@@ -109,6 +110,7 @@ view_info =
 			hotkey = "k",
 			command = "kill %proc.pid",
 			description = "kill",
+			ask_confirmation = true,
 			wait_finish = false
 		},
 		{

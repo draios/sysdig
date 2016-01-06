@@ -25,7 +25,7 @@ view_info =
 	},
 	view_type = "table",
 	filter = "evt.type!=switch",
-	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "fd.type"},
+	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "fd.type", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	is_root = true,
 	drilldown_target = "threads",
 	use_defaults = true,
@@ -107,6 +107,7 @@ view_info =
 			hotkey = "9",
 			command = "kill -9 %proc.pid",
 			description = "kill -9",
+			ask_confirmation = true,
 			wait_finish = false
 		},
 		{
@@ -124,6 +125,7 @@ view_info =
 			hotkey = "k",
 			command = "kill %proc.pid",
 			description = "kill",
+			ask_confirmation = true,
 			wait_finish = false
 		},
 		{

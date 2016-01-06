@@ -26,6 +26,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef _WIN32
 #include <curses.h>
+#else
+#include <conio.h>
+#define getch _getch
 #endif
 #include "table.h"
 #include "cursescomponents.h"
@@ -35,6 +38,20 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef NOCURSESUI
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
+#endif
+
+#ifndef _WIN32
+static int do_sleep(useconds_t usec)
+{
+	return usleep(usec);
+}
+#else
+int do_sleep(DWORD usec)
+{
+	ASSERT(usec >= 1000);
+	Sleep(DWORD(usec / 1000));
+	return 0;
+}
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -54,7 +71,6 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_selected_view_sidemenu_entry = 0;
 	m_selected_action_sidemenu_entry = 0;
 	m_datatable = NULL;
-	m_viz = NULL;
 	m_cmdline_capture_filter = cmdline_capture_filter;
 	m_paused = false;
 	m_last_input_check_ts = 0;
@@ -77,6 +93,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_raw_output = raw_output;
 	m_truncated_input = false;
 #ifndef NOCURSESUI
+	m_viz = NULL;
 	m_spybox_text_format = sinsp_evt::PF_NORMAL;
 	m_view_sidemenu = NULL;
 	m_action_sidemenu = NULL;
@@ -1867,8 +1884,11 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 				g_logger.format("running action %d %s", m_selected_action_sidemenu_entry,
 					vinfo->m_name.c_str());
-				ASSERT(m_selected_action_sidemenu_entry < vinfo->m_actions.size());
-				run_action(&vinfo->m_actions[m_selected_action_sidemenu_entry]);
+				if(vinfo->m_actions.size() != 0)
+				{
+					ASSERT(m_selected_action_sidemenu_entry < vinfo->m_actions.size());
+					run_action(&vinfo->m_actions[m_selected_action_sidemenu_entry]);
+				}
 
 				return ta;
 			}
@@ -2285,6 +2305,7 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 	bool replacing = false;
 	string fld_to_replace;
 
+#ifndef NOCURSESUI
 	if(m_viz->get_data_size() == 0)
 	{
 		//
@@ -2292,6 +2313,7 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 		//
 		return;
 	}
+#endif // NOCURSESUI
 
 	//
 	// Scan the command string and replace the field names with the values from the selection
@@ -2318,8 +2340,10 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 				if(sc == ' ' || sc == '\t' || sc == '0')
 				{
 					replacing = false;
+#ifndef NOCURSESUI
 					string val = m_viz->get_field_val(fld_to_replace);
 					resolved_command += val;
+#endif // NOCURSESUI
 					resolved_command += sc;
 				}
 				else
@@ -2336,25 +2360,60 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 
 	if(replacing)
 	{
+#ifndef NOCURSESUI
 		string  val = m_viz->get_field_val(fld_to_replace);
 		resolved_command += val;
+#endif // NOCURSESUI
 	}
 
 	g_logger.format("original command: %s", action->m_command.c_str());
 	g_logger.format("running command: %s", resolved_command.c_str());
 
+#ifndef NOCURSESUI
 	//
 	// Exit curses mode
 	//
 	endwin();
+#endif // NOCURSESUI
+
+	//
+	// If needed, ask for confirmation
+	//
+	if(action->m_ask_confirmation)
+	{
+		printf("Confirm command '%s'? [y/N] ", resolved_command.c_str());
+		fflush(stdout);
+
+		//
+		// Wait for the enter key
+		// 
+		while(int c = getch())
+		{
+			if(c == -1)
+			{
+				do_sleep(10000);
+				continue;
+			}
+			else if(c == 'y' || c == 'Y')
+			{
+				break;
+			}
+			else
+			{
+				goto action_end;
+			}
+		}
+	}
 
 	//
 	// Run the command
 	//
-	int sret = system(resolved_command.c_str());
-	if(sret == -1)
 	{
-		g_logger.format("command failed");
+		int sret = system(resolved_command.c_str());
+		if(sret == -1)
+		{
+			g_logger.format("command failed");
+		}
 	}
 
 	//
@@ -2370,15 +2429,17 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 		// 
 		while(getch() == -1)
 		{
-			usleep(10000);
+			do_sleep(10000);
 		}
 	}
 
+action_end:
 	//
 	// Empty the keyboard buffer
 	//
 	while(getch() != -1);
 
+#ifndef NOCURSESUI
 	//
 	// Reenter curses mode
 	//
@@ -2388,6 +2449,7 @@ void sinsp_cursesui::run_action(sinsp_view_action_info* action)
 	// Refresh the screen
 	//
 	render();
+#endif //  NOCURSESUI
 }
 
 #endif // CSYSDIG

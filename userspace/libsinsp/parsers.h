@@ -23,6 +23,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 class sinsp_fd_listener;
 
+class k8s_metaevents_state
+{
+public:
+	bool m_new_group;
+	uint32_t m_n_additional_k8s_events_to_add;
+	sinsp_evt m_metaevt;
+	scap_evt* m_piscapevt;
+};
+
 class sinsp_parser
 {
 public:
@@ -33,6 +42,8 @@ public:
 	// Processing entry point
 	//
 	void process_event(sinsp_evt* evt);
+	void event_cleanup(sinsp_evt* evt);
+
 	void erase_fd(erase_fd_params* params);
 
 	//
@@ -50,6 +61,8 @@ public:
 	//
 	sinsp_protodecoder* add_protodecoder(string decoder_name);
 	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
+
+	void schedule_k8s_events(sinsp_evt *evt);
 
 	//
 	// Protocol decoders callback lists
@@ -104,6 +117,7 @@ private:
 	void parse_setgid_exit(sinsp_evt* evt);
 	void parse_container_evt(sinsp_evt* evt);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
+	void parse_k8s_evt(sinsp_evt *evt);
 
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
 	inline void add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t ino);
@@ -116,6 +130,8 @@ private:
 	// Return false if the update didn't happen because the tuple is identical to the given address
 	bool set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
 	void swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo);
+	uint8_t* reserve_event_buffer();
+	void free_event_buffer(uint8_t*);
 
 	//
 	// Pointers to inspector context
@@ -134,6 +150,9 @@ private:
 	//
 	vector<sinsp_protodecoder*> m_protodecoders;
 
+	k8s_metaevents_state m_k8s_metaevents_state;
+
+	stack<uint8_t*> m_tmp_events_buffer;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_protodecoder;
