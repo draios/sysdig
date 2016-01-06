@@ -20,21 +20,20 @@ view_info =
 	name = "Spectrogram-File",
 	description = "File I/O latency spectrogram.",
 	view_type = "spectrogram",
-	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory", "evt.type"},
+	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory"},
 	filter = "evt.dir=< and fd.type=file",
 	use_defaults = false,
-	drilldown_target = "XXX",
 	columns = 
 	{
 		{
 			name = "NA",
-			field = "evt.latency.bucketed",
+			field = "evt.latency.quantized",
 			is_key = true
 		},
 		{
 			name = "LATENCY",
 			description = "file latency.",
-			field = "evt.latency.bucketed",
+			field = "evt.latency.quantized",
 		},
 		{
 			name = "COUNT",

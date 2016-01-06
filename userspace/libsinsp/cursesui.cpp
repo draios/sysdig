@@ -200,6 +200,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE, KEY_F(6)));
 		m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL, KEY_F(7)));
 		m_menuitems.push_back(sinsp_menuitem_info("F8", "Actions", sinsp_menuitem_info::ALL, KEY_F(8)));
+		m_menuitems.push_back(sinsp_menuitem_info("F12", "Spectro", sinsp_menuitem_info::ALL, KEY_F(8)));
 		m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
 		m_menuitems.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
 		m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST, 'c'));
@@ -431,7 +432,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	}
 
 	//
-	// If we need a table visualization, allocate it and set it up
+	// If we need a table or spectrogram visualization, allocate it and set it up
 	//
 	if(m_selected_view >= 0)
 	{
@@ -1449,6 +1450,32 @@ bool sinsp_cursesui::drilldown(string field, string val, filtercheck_field_info*
 	return false;
 }
 
+bool sinsp_cursesui::spectro_selection(string field, string val, 
+	filtercheck_field_info* info, sysdig_table_action ta)
+{
+	uint32_t j = 0;
+	string spectro_name;
+
+	if(ta == STA_SPECTRO)
+	{
+		spectro_name = "spectro_all";
+	}
+	else
+	{
+		spectro_name = "spectro_file";		
+	}
+
+	for(j = 0; j < m_views.size(); ++j)
+	{
+		if(m_views.at(j)->m_id == spectro_name)
+		{
+			return do_drilldown(field, val, j, info);			
+		}
+	}
+
+	return false;
+}
+
 bool sinsp_cursesui::drillup()
 {
 	if(m_sel_hierarchy.size() > 0)
@@ -1903,7 +1930,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			}
 			else if(m_spectro)
 			{
-				m_spectro->recreate_win(m_screenh - 3);
+				switch_view(false);
 			}
 
 			if(m_viewinfo_page)
@@ -2091,7 +2118,6 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 				m_view_sidemenu->set_entries(&m_sidemenu_viewlist);
 				m_view_sidemenu->set_title("Select View");
-
 				render();
 
 				m_viewinfo_page = new curses_viewinfo_page(this, 
@@ -2100,6 +2126,11 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 					VIEW_SIDEMENU_WIDTH,
 					m_screenh - TABLE_Y_START - 1,
 					m_screenw - VIEW_SIDEMENU_WIDTH);
+
+				if(m_spectro)
+				{
+					render();
+				}
 			}
 			else
 			{
@@ -2119,8 +2150,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				}
 				else if(m_spectro)
 				{
-					m_spectro->set_x_start(0);
-					m_spectro->recreate_win(m_screenh - 3);
+					switch_view(false);					
 				}
 
 				render();
@@ -2295,6 +2325,10 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				else if(m_viz != NULL)
 				{
 					event = &m_viz->m_last_mevent;
+				}
+				else if(m_spectro != NULL)
+				{
+					event = &m_spectro->m_last_mevent;
 				}
 
 				if(event == NULL)

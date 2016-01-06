@@ -453,6 +453,16 @@ public:
 				case STA_DRILLUP:
 					drillup();
 					return false;
+				case STA_SPECTRO:
+				case STA_SPECTRO_FILE:
+					{
+						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+						if(res.first != NULL)
+						{
+							spectro_selection(res.first->m_name, res.second.c_str(), res.first, ta);
+						}
+					}
+					return false;
 				case STA_SPY:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
@@ -602,6 +612,7 @@ private:
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
 	void spy_selection(string field, string val, bool is_dig);
+	bool spectro_selection(string field, string val, filtercheck_field_info* info, sysdig_table_action ta);
 	bool do_drilldown(string field, string val, uint32_t new_view_num, filtercheck_field_info* info);
 	// returns false if there is no suitable drill down view for this field
 	bool drilldown(string field, string val, filtercheck_field_info* info);

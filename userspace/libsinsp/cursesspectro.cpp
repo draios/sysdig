@@ -122,6 +122,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_inspector = inspector;
 	m_converter = new sinsp_filter_check_reference();
 	m_n_flushes = 0;
+	m_mouse_masked = false;
 
 	//
 	// Define the table size
@@ -142,8 +143,6 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	{
 		parent->m_offline_replay = true;
 	}
-
-	exit_curses();
 }
 
 curses_spectro::~curses_spectro()
@@ -167,7 +166,6 @@ curses_spectro::~curses_spectro()
 	ansi_moveto(m_h, 0);
 	printf("\n");
 
-	ansi_showcursor();
 
 	//
 	// Disable offline replay mode
@@ -177,32 +175,12 @@ curses_spectro::~curses_spectro()
 		m_parent->m_offline_replay = false;
 	}
 
-
-
-	//
-	// Reenter curses mode
-	//
-	reset_prog_mode();
-
 	if(m_tblwin)
 	{
 		delwin(m_tblwin);
 	}
 
 	delete m_converter;
-}
-
-void curses_spectro::exit_curses()
-{
-	//
-	// Exit curses mode
-	//
-	endwin();
-	(void) nonl(); // tell curses not to do NL->CR/NL on output
-	intrflush(stdscr, false);
-	mousemask(ALL_MOUSE_EVENTS, NULL);
-	ansi_hidecursor();
-//	ansi_clearscreen();
 }
 
 void curses_spectro::configure(sinsp_table* table)
@@ -290,18 +268,11 @@ void curses_spectro::draw_axis()
 	}
 }
 
-void curses_spectro::draw_menu()
+ 	void curses_spectro::draw_menu()
 {
 //	ansi_clearline();
 
 	printf("F1");
-/*
-	for(uint32_t j = 0; j < 256; j++)
-	{
-		ansi_setcolor(j);
-		printf("%d ", j);
-	}
-*/
 	ansi_setcolor(24);
 	printf("Help  ");
 	ansi_reset_color();
@@ -314,6 +285,11 @@ void curses_spectro::draw_menu()
 	printf("p ");
 	ansi_setcolor(24);
 	printf("Pause ");
+	ansi_reset_color();
+
+	printf("BKSPACE");
+	ansi_setcolor(24);
+	printf("Back");
 	ansi_reset_color();
 }
 
@@ -343,11 +319,15 @@ void curses_spectro::render(bool data_changed)
 		{
 			printf("\n");
 		}
+		else
+		{
+			return;
+		}
 	}
 
 	if(data_changed)
 	{
-		unordered_map<uint64_t, uint64_t> freqs;
+		unordered_map<uint64_t, uint32_t> freqs;
 
 		//
 		// Create a map with the frequencies for every latency interval
@@ -362,7 +342,7 @@ void curses_spectro::render(bool data_changed)
 			}
 
 			uint64_t val = *(uint64_t*)key->m_val;
-			freqs[val] = *(uint64_t*)data->m_val;
+			freqs[val] = *(uint32_t*)data->m_val;
 		}
 
 		ansi_moveto(m_h - 2, 0);
@@ -370,22 +350,28 @@ void curses_spectro::render(bool data_changed)
 		//
 		// Render the line
 		//
+		m_t_row.clear(m_table->m_next_flush_time_ns);
+
 		for(uint32_t j = 0; j < m_w - 1; j++)
 		{
 			auto it = freqs.find(j);
 
 			if(it != freqs.end())
 			{
+				m_t_row.push_back(it->second);
 				uint32_t col = mkcol(it->second);
 				ansi_setcolor(col);
 				printf(" ");
 			}
 			else
 			{
+				m_t_row.push_back(0);
 				ansi_setcolor(0);
 				printf(" ");
 			}
 		}
+
+		m_history.push_back(m_t_row);
 
 		ansi_reset_color();
 		ansi_moveto(m_h - 1, 0);
@@ -408,6 +394,9 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 	switch(ch)
 	{
+		case KEY_F(2):
+			clear();
+			return STA_PARENT_HANDLE;
 		case KEY_ENTER:
 			return STA_DRILLDOWN;
 		case KEY_BACKSPACE:
@@ -419,6 +408,12 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 			return STA_NONE;
 		case KEY_MOUSE:
 			{
+				if(!m_mouse_masked)
+				{
+					mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+					m_mouse_masked = true;
+				}
+
 				if(getmouse(&m_last_mevent) == OK)
 				{
 					if(m_last_mevent.bstate & BUTTON1_CLICKED)
@@ -433,6 +428,26 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 						g_logger.format("mouse clicked");
 					}
+					else
+					{
+						if((m_h - m_last_mevent.y > 3) && 
+							(m_h - m_last_mevent.y - 4) < m_history.size() - 1)
+						{
+							curses_spectro_history_row& row = m_history[m_history.size() - 1 - (m_h - m_last_mevent.y - 4)];
+
+							ASSERT(m_last_mevent.x >= 0);
+							ASSERT(row.m_data.size() == m_w);
+							ASSERT(m_last_mevent.x < m_w);
+
+							uint32_t val = row.m_data[m_last_mevent.x];
+
+							g_logger.format("mouse: %d:%d %d %d", m_last_mevent.x, 
+								m_last_mevent.y,
+								m_h - m_last_mevent.y - 4,
+								(int)val);
+
+						}
+					}
 				}
 			}
 			break;
@@ -445,28 +460,11 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 			break;
 	}
 
-	//
-	// Check if this view has any action configured, and if yes find if this key
-	// is one of the view hotkeys
-	//
-	sinsp_view_info* vinfo = m_parent->get_selected_view();
-
-	for(auto hk : vinfo->m_actions)
-	{
-		if(hk.m_hotkey == ch)
-		{
-			m_parent->run_action(&hk);
-			return STA_NONE;
-		}
-	}
-
 	return STA_PARENT_HANDLE;
 }
 
 void curses_spectro::recreate_win(int h)
 {
-	exit_curses();
-
 	delwin(m_tblwin);
 	
 	m_tblwin = newwin(m_h - 3, m_w, m_table_y_start, m_table_x_start);

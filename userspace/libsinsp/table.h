@@ -32,6 +32,8 @@ typedef enum sysdig_table_action
 	STA_DRILLUP,
 	STA_SPY,
 	STA_DIG,
+	STA_SPECTRO,
+	STA_SPECTRO_FILE,
 	STA_DESTROY_CHILD,
 }sysdig_table_action;
 
