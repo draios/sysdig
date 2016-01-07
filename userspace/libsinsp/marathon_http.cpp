@@ -25,7 +25,7 @@ marathon_http::marathon_http(mesos& m, const uri& url, bool framework_info): mes
 	{
 		if(!refresh_data())
 		{
-			throw sinsp_exception("Caould not obtain Mesos Marathon framework information.");
+			throw sinsp_exception("Could not obtain Mesos Marathon framework information.");
 		}
 	}
 }
