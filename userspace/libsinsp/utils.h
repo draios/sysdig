@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma once	
+#pragma once
 
 class sinsp_evttables;
 
@@ -174,3 +174,14 @@ public:
 	static bool tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res);
 	static bool tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res);
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// JSON helpers
+///////////////////////////////////////////////////////////////////////////////
+namespace Json
+{
+	class Value;
+}
+
+std::string get_json_string(const Json::Value& root, const std::string& name);
+

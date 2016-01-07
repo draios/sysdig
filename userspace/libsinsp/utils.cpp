@@ -41,6 +41,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "chisel.h"
 #include "protodecoder.h"
+#include "json/json.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -1228,4 +1229,19 @@ bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t
 	}
 
 	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// JSON helpers
+///////////////////////////////////////////////////////////////////////////////
+
+std::string get_json_string(const Json::Value& root, const std::string& name)
+{
+	std::string ret;
+	Json::Value json_val = root[name];
+	if(!json_val.isNull() && json_val.isString())
+	{
+		ret = json_val.asString();
+	}
+	return ret;
 }
