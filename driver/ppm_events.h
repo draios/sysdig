@@ -147,9 +147,8 @@ static inline int add_sentinel(struct event_filler_arguments *args)
 		args->arg_data_offset += 4;
 		args->arg_data_size -= 4;
 		return PPM_SUCCESS;
-	} else {
-		return PPM_FAILURE_BUFFER_FULL;
 	}
+	return PPM_FAILURE_BUFFER_FULL;
 #else
 	return PPM_SUCCESS;
 #endif

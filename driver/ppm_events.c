@@ -254,22 +254,22 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						if (lookahead_size >= 2) {
 							if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
 								(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement commmand */
-								 (buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
-								 (buf[0] == 'E' && buf[1] == 0) /* error or execute command */
+								(buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
+								(buf[0] == 'E' && buf[1] == 0) /* error or execute command */
 							) {
 								sockfd_put(sock);
 								return 2000;
 							}
 						}
 					} else if ((lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
-							   (lookahead_size >= 16 && (*(int32_t *)(buf+12) == 1 || /* matches header */
-									   *(int32_t *)(buf+12) == 2001 ||
-									   *(int32_t *)(buf+12) == 2002 ||
-									   *(int32_t *)(buf+12) == 2003 ||
-									   *(int32_t *)(buf+12) == 2004 ||
-									   *(int32_t *)(buf+12) == 2005 ||
-									   *(int32_t *)(buf+12) == 2006 ||
-									   *(int32_t *)(buf+12) == 2007)
+								(lookahead_size >= 16 && (*(int32_t *)(buf+12) == 1 || /* matches header */
+									*(int32_t *)(buf+12) == 2001 ||
+									*(int32_t *)(buf+12) == 2002 ||
+									*(int32_t *)(buf+12) == 2003 ||
+									*(int32_t *)(buf+12) == 2004 ||
+									*(int32_t *)(buf+12) == 2005 ||
+									*(int32_t *)(buf+12) == 2006 ||
+									*(int32_t *)(buf+12) == 2007)
 							   )
 							) {
 						sockfd_put(sock);
@@ -317,12 +317,12 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 
 	if (unlikely(args->curarg >= args->nargs)) {
 		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
-		       smp_processor_id(),
-		       args->nevents,
-		       (u32)args->event_type,
-		       args->curarg,
-		       args->nargs,
-		       current->pid);
+			smp_processor_id(),
+			args->nevents,
+			(u32)args->event_type,
+			args->curarg,
+			args->nargs,
+			current->pid);
 		memory_dump(args->buffer - sizeof(struct ppm_evt_hdr), 32);
 		ASSERT(0);
 		return PPM_FAILURE_BUG;
@@ -384,8 +384,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 			 * Handle NULL pointers
 			 */
 			len = strlcpy(args->buffer + args->arg_data_offset,
-			       "(NULL)",
-			       args->arg_data_size);
+				"(NULL)",
+				args->arg_data_size);
 
 			if (++len > args->arg_data_size)
 				len = args->arg_data_size;
@@ -586,9 +586,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	default:
 		ASSERT(0);
 		pr_err("val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
-		       (int)g_event_info[args->event_type].params[args->curarg].type,
-		       (u32)args->event_type,
-		       g_event_info[args->event_type].name);
+			(int)g_event_info[args->event_type].params[args->curarg].type,
+			(u32)args->event_type,
+			g_event_info[args->event_type].name);
 		return PPM_FAILURE_BUG;
 	}
 
@@ -660,113 +660,101 @@ char *npm_getcwd(char *buf, unsigned long bufsize)
 
 static inline u8 socket_family_to_scap(u8 family)
 {
-	if (family == AF_INET) {
+	if (family == AF_INET)
 		return PPM_AF_INET;
-	} else if (family == AF_INET6) {
+	else if (family == AF_INET6)
 		return PPM_AF_INET6;
-	} else if (family == AF_UNIX) {
+	else if (family == AF_UNIX)
 		return PPM_AF_UNIX;
-	} else if (family == AF_NETLINK) {
+	else if (family == AF_NETLINK)
 		return PPM_AF_NETLINK;
-	} else if (family == AF_PACKET) {
+	else if (family == AF_PACKET)
 		return PPM_AF_PACKET;
-	} else if (family == AF_UNSPEC) {
+	else if (family == AF_UNSPEC)
 		return PPM_AF_UNSPEC;
-	} else if (family == AF_AX25) {
+	else if (family == AF_AX25)
 		return PPM_AF_AX25;
-	} else if (family == AF_IPX) {
+	else if (family == AF_IPX)
 		return PPM_AF_IPX;
-	} else if (family == AF_APPLETALK) {
+	else if (family == AF_APPLETALK)
 		return PPM_AF_APPLETALK;
-	} else if (family == AF_NETROM) {
+	else if (family == AF_NETROM)
 		return PPM_AF_NETROM;
-	} else if (family == AF_BRIDGE) {
+	else if (family == AF_BRIDGE)
 		return PPM_AF_BRIDGE;
-	} else if (family == AF_ATMPVC) {
+	else if (family == AF_ATMPVC)
 		return PPM_AF_ATMPVC;
-	} else if (family == AF_X25) {
+	else if (family == AF_X25)
 		return PPM_AF_X25;
-	} else if (family == AF_ROSE) {
+	else if (family == AF_ROSE)
 		return PPM_AF_ROSE;
-	} else if (family == AF_DECnet) {
+	else if (family == AF_DECnet)
 		return PPM_AF_DECnet;
-	} else if (family == AF_NETBEUI) {
+	else if (family == AF_NETBEUI)
 		return PPM_AF_NETBEUI;
-	} else if (family == AF_SECURITY) {
+	else if (family == AF_SECURITY)
 		return PPM_AF_SECURITY;
-	} else if (family == AF_KEY) {
+	else if (family == AF_KEY)
 		return PPM_AF_KEY;
-	} else if (family == AF_ROUTE) {
+	else if (family == AF_ROUTE)
 		return PPM_AF_ROUTE;
-	} else if (family == AF_ASH) {
+	else if (family == AF_ASH)
 		return PPM_AF_ASH;
-	} else if (family == AF_ECONET) {
+	else if (family == AF_ECONET)
 		return PPM_AF_ECONET;
-	} else if (family == AF_ATMSVC) {
+	else if (family == AF_ATMSVC)
 		return PPM_AF_ATMSVC;
-	}
 #ifdef AF_RDS
-	else if (family == AF_RDS) {
+	else if (family == AF_RDS)
 		return PPM_AF_RDS;
-	}
 #endif
-	else if (family == AF_SNA) {
+	else if (family == AF_SNA)
 		return PPM_AF_SNA;
-	} else if (family == AF_IRDA) {
+	else if (family == AF_IRDA)
 		return PPM_AF_IRDA;
-	} else if (family == AF_PPPOX) {
+	else if (family == AF_PPPOX)
 		return PPM_AF_PPPOX;
-	} else if (family == AF_WANPIPE) {
+	else if (family == AF_WANPIPE)
 		return PPM_AF_WANPIPE;
-	} else if (family == AF_LLC) {
+	else if (family == AF_LLC)
 		return PPM_AF_LLC;
-	}
 #ifdef AF_CAN
-	else if (family == AF_CAN) {
+	else if (family == AF_CAN)
 		return PPM_AF_CAN;
-	}
 #endif
-	 else if (family == AF_TIPC) {
+	 else if (family == AF_TIPC)
 		return PPM_AF_TIPC;
-	} else if (family == AF_BLUETOOTH) {
+	else if (family == AF_BLUETOOTH)
 		return PPM_AF_BLUETOOTH;
-	} else if (family == AF_IUCV) {
+	else if (family == AF_IUCV)
 		return PPM_AF_IUCV;
-	}
 #ifdef AF_RXRPC
-	else if (family == AF_RXRPC) {
+	else if (family == AF_RXRPC)
 		return PPM_AF_RXRPC;
-	}
 #endif
 #ifdef AF_ISDN
-	else if (family == AF_ISDN) {
+	else if (family == AF_ISDN)
 		return PPM_AF_ISDN;
-	}
 #endif
 #ifdef AF_PHONET
-	else if (family == AF_PHONET) {
+	else if (family == AF_PHONET)
 		return PPM_AF_PHONET;
-	}
 #endif
 #ifdef AF_IEEE802154
-	else if (family == AF_IEEE802154) {
+	else if (family == AF_IEEE802154)
 		return PPM_AF_IEEE802154;
-	}
 #endif
 #ifdef AF_CAIF
-	else if (family == AF_CAIF) {
+	else if (family == AF_CAIF)
 		return PPM_AF_CAIF;
-	}
 #endif
 #ifdef AF_ALG
-	else if (family == AF_ALG) {
+	else if (family == AF_ALG)
 		return PPM_AF_ALG;
-	}
 #endif
 #ifdef AF_NFC
-	else if (family == AF_NFC) {
+	else if (family == AF_NFC)
 		return PPM_AF_NFC;
-	}
 #endif
 	else {
 		ASSERT(false);
