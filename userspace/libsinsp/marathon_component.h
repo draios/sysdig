@@ -67,7 +67,7 @@ class marathon_app;
 // group
 //
 
-class marathon_group : public marathon_component
+class marathon_group : public marathon_component, public std::enable_shared_from_this<marathon_group>
 {
 public:
 	typedef std::shared_ptr<marathon_group> ptr_t;
@@ -90,12 +90,29 @@ public:
 	void remove_app(const std::string& id);
 
 	void add_or_replace_group(std::shared_ptr<marathon_group>);
-	void remove_group(const std::string& id);
 
 	const app_map_t& get_apps() const;
 	const group_map_t& get_groups() const;
+	ptr_t get_group(const std::string& group_id);
+
+	bool remove(const std::string& id);
+
+	void print() const;
 
 private:
+
+	template <typename M, typename P>
+	static void add_or_replace_component(M& component_map, P comp)
+	{
+		typename M::value_type val = {comp->get_id(), comp};
+		std::pair<typename M::iterator, bool> ret = component_map.insert(val);
+		if (!ret.second) ret.first->second = comp;
+	}
+
+	bool remove_group(const std::string& id);
+
+	ptr_t get_parent(const std::string& id);
+
 	app_map_t   m_apps;
 	group_map_t m_groups;
 };
@@ -108,7 +125,7 @@ class marathon_app : public marathon_component
 {
 public:
 	typedef std::shared_ptr<marathon_app> ptr_t;
-	typedef std::vector<std::string> task_list_t;
+	typedef std::vector<std::string>      task_list_t;
 
 	marathon_app(const std::string& uid);
 	~marathon_app();
@@ -143,24 +160,9 @@ inline void marathon_component::set_id(const std::string& id)
 // group
 //
 
-inline void marathon_group::add_or_replace_app(std::shared_ptr<marathon_app> app)
-{
-	m_apps.insert({app->get_id(), app});
-}
-
 inline void marathon_group::remove_app(const std::string& id)
 {
 	m_apps.erase(id);
-}
-
-inline void marathon_group::add_or_replace_group(std::shared_ptr<marathon_group> group)
-{
-	m_groups.insert({group->get_id(), group});
-}
-
-inline void marathon_group::remove_group(const std::string& id)
-{
-	m_groups.erase(id);
 }
 
 inline const marathon_group::app_map_t& marathon_group::get_apps() const
@@ -173,6 +175,16 @@ inline const marathon_group::group_map_t& marathon_group::get_groups() const
 	return m_groups;
 }
 
+inline void marathon_group::add_or_replace_group(std::shared_ptr<marathon_group> group)
+{
+	add_or_replace_component(m_groups, group);
+}
+
+inline void marathon_group::add_or_replace_app(std::shared_ptr<marathon_app> app)
+{
+	add_or_replace_component(m_apps, app);
+}
+
 //
 // app
 //
@@ -181,3 +193,4 @@ inline const marathon_app::task_list_t& marathon_app::get_tasks() const
 {
 	return m_tasks;
 }
+

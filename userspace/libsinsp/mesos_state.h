@@ -52,6 +52,8 @@ public:
 
 	void add_or_replace_task(mesos_framework& framework, std::shared_ptr<mesos_task> task);
 
+	void remove_task(mesos_framework& framework, const std::string& uid);
+
 	//
 	// slaves
 	//
@@ -72,6 +74,8 @@ public:
 	// apps
 	//
 
+	void parse_apps(const std::string& json);
+
 	const marathon_apps& get_apps() const;
 
 	marathon_apps& get_apps();
@@ -80,9 +84,13 @@ public:
 
 	void add_or_replace_app(marathon_group::app_ptr_t app);
 
+	bool remove_app(const std::string& id);
+
 	//
 	// groups
 	//
+
+	bool parse_groups(const std::string& json);
 
 	const marathon_groups& get_groups() const;
 
@@ -96,15 +104,22 @@ public:
 	// state
 	//
 
-	void clear();
+	void clear(bool marathon = false);
+
+	void print_groups() const;
 
 private:
+	marathon_group::ptr_t add_group(const Json::Value& group, marathon_group::ptr_t to_group);
+	bool handle_groups(const Json::Value& groups, marathon_group::ptr_t p_groups);
+	void add_app(const Json::Value& app);
 
 	mesos_frameworks m_frameworks;
 	mesos_slaves     m_slaves;
 	marathon_apps    m_apps;
 	marathon_groups  m_groups;
 	bool             m_is_captured;
+
+	friend class marathon_dispatcher;
 };
 
 //
@@ -158,6 +173,11 @@ inline void mesos_state_t::emplace_framework(mesos_framework&& framework)
 inline void mesos_state_t::add_or_replace_task(mesos_framework& framework, std::shared_ptr<mesos_task> task)
 {
 	framework.add_or_replace_task(task);
+}
+
+inline void mesos_state_t::remove_task(mesos_framework& framework, const std::string& uid)
+{
+	framework.remove_task(uid);
 }
 
 //
@@ -240,10 +260,13 @@ inline marathon_groups& mesos_state_t::get_groups()
 // state
 //
 
-inline void mesos_state_t::clear()
+inline void mesos_state_t::clear(bool marathon)
 {
 	m_frameworks.clear();
 	m_slaves.clear();
-	m_apps.clear();
-	m_groups.clear();
+	if(marathon)
+	{
+		m_apps.clear();
+		m_groups.clear();
+	}
 }

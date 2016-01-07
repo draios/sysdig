@@ -123,7 +123,8 @@ marathon_group::marathon_group(const std::string& id) :
 {
 }
 
-marathon_group::marathon_group(const marathon_group& other): marathon_component(other)
+marathon_group::marathon_group(const marathon_group& other): marathon_component(other),
+	std::enable_shared_from_this<marathon_group>()
 {
 }
 
@@ -142,3 +143,85 @@ marathon_group& marathon_group::operator=(const marathon_group&& other)
 	marathon_component::operator =(std::move(other));
 	return *this;
 }
+
+marathon_group::ptr_t marathon_group::get_group(const std::string& group_id)
+{
+	if(group_id == get_id())
+	{
+		return shared_from_this();
+	}
+
+	marathon_groups::iterator it = m_groups.find(group_id);
+	if(it != m_groups.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		for(auto group : m_groups)
+		{
+			if(ptr_t p_group = group.second->get_group(group_id))
+			{
+				return p_group;
+			}
+		}
+	}
+	return 0;
+}
+
+bool marathon_group::remove(const std::string& id)
+{
+	if(id == get_id())
+	{
+		throw sinsp_exception("Invalid access - group can not remove itself.");
+	}
+
+	if(ptr_t group = get_parent(id))
+	{
+		return group->remove_group(id);
+	}
+
+	return false;
+}
+
+marathon_group::ptr_t marathon_group::get_parent(const std::string& id)
+{
+	marathon_groups::iterator it = m_groups.find(id);
+	if(it != m_groups.end())
+	{
+		return shared_from_this();
+	}
+	else
+	{
+		for(auto group : m_groups)
+		{
+			if(group.second->get_group(id))
+			{
+				return group.second;
+			}
+		}
+	}
+	return 0;
+}
+
+bool marathon_group::remove_group(const std::string& id)
+{
+	marathon_groups::iterator it = m_groups.find(id);
+	if(it != m_groups.end())
+	{
+		m_groups.erase(it);
+		return true;
+	}
+	return false;
+}
+
+void marathon_group::print() const
+{
+	std::cout << get_id() << std::endl;
+	for(auto& group : m_groups)
+	{
+		group.second->print();
+	}
+}
+
+
