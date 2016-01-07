@@ -579,7 +579,7 @@ public:
 	curses_table_sidemenu* m_action_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;
 	curses_table_sidemenu* m_view_sort_sidemenu;
-  int32_t m_sidemenu_sorting_col;
+	int32_t m_sidemenu_sorting_col;
 	curses_mainhelp_page* m_mainhelp_page;
 	curses_textbox* m_spy_box;
 	sinsp_evt::param_fmt m_spybox_text_format;
@@ -609,7 +609,7 @@ private:
 	sysdig_table_action handle_input(int ch);
 	void populate_view_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
 	void populate_action_sidemenu();
-  void populate_view_cols_sidemenu();
+	void populate_view_cols_sidemenu();
 	void print_progress(double progress);
 	void show_selected_view_info();
 #endif

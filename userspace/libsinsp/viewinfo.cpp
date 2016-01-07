@@ -75,18 +75,19 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	m_filter = filter;
 	m_valid = true;
 	m_actions = actions;
-  // init the array for hotkeys for sorting columns
-  set_col_sorting_hotkeys();
+	// init the array for hotkeys for sorting columns
+	set_col_sorting_hotkeys();
 }
 
 void sinsp_view_info::set_col_sorting_hotkeys()
 {
-  const char shift_number_keys [] = {'!', '@', '#', '$', '%', '^', '&', '*', '('};
-  uint32_t size = sizeof(shift_number_keys) / sizeof(shift_number_keys[0]);
-  for (uint32_t i=0; i<size; i++) {
-    m_col_sort_hotkeys.push_back(shift_number_keys[i]); 
-  }
-  max_col_sort_hotkeys = m_col_sort_hotkeys.size();
+	const char shift_number_keys [] = {'!', '@', '#', '$', '%', '^', '&', '*', '('};
+	uint32_t size = sizeof(shift_number_keys) / sizeof(shift_number_keys[0]);
+	for(uint32_t i=0; i<size; i++) 
+	{
+		m_col_sort_hotkeys.push_back(shift_number_keys[i]); 
+	}
+	max_col_sort_hotkeys = m_col_sort_hotkeys.size();
 }
 
 void sinsp_view_info::set_sorting_col()
