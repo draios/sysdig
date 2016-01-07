@@ -295,6 +295,17 @@ With fatfile mode, those events are still saved to file, but
 Be aware that using this flag might generate substantially bigger traces
 files.
 .PP
+\f[B]\-\-filter\-proclist\f[]
+.PD 0
+.P
+.PD
+apply the filter to the process table.
+A full dump of /proc is typically included in any trace file to make
+sure all the state required to decode events is in the file.
+This could cause the file to contain unwanted or sensitive information.
+Using this flag causes the command line filter to be applied to the
+/proc dump as well.
+.PP
 \f[B]\-G\f[] \f[I]numseconds\f[]
 .PD 0
 .P

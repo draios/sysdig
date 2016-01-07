@@ -124,6 +124,9 @@ OPTIONS
 **-F**, **--fatfile**  
   Enable fatfile mode. When writing in fatfile mode, the output file will contain events that will be invisible when reading the file, but that are necessary to fully reconstruct the state. Fatfile mode is useful when saving events to disk with an aggressive filter. The filter could drop events that would the state to be updated (e.g. clone() or open()). With fatfile mode, those events are still saved to file, but 'hidden' so that they won't appear when reading the file. Be aware that using this flag might generate substantially bigger traces files.
 
+**--filter-proclist**    
+  apply the filter to the process table. A full dump of /proc is typically included in any trace file to make sure all the state required to decode events is in the file. This could cause the file to contain unwanted or sensitive information. Using this flag causes the command line filter to be applied to the /proc dump as well.
+
 **-G** _numseconds_  
   Break a capture into separate files, and limit the size of each file based on the specified number of seconds. Use in conjunction with **-W** to enable automatic file rotation. Otherwise, new files will continue to be created until the capture is manually stopped. 
   

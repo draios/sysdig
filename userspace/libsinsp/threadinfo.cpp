@@ -292,65 +292,6 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	}
 }
 
-bool sinsp_threadinfo::should_keep()
-{
-	sinsp_evt tevt;
-	scap_evt tscapevt;
-
-	//
-	// Initialize the fake events for filtering
-	//
-	tscapevt.ts = 0;
-	tscapevt.type = PPME_SYSCALL_READ_X;
-	tscapevt.len = 0;
-
-	tevt.m_inspector = m_inspector;
-	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
-	tevt.m_pevt = NULL;
-	tevt.m_cpuid = 0;
-	tevt.m_evtnum = 0;
-	tevt.m_pevt = &tscapevt;
-
-	//
-	// Check if there's at least an fd that matches the filter.
-	// If not, skip this thread
-	//
-	sinsp_fdtable* fdtable = get_fd_table();
-
-	bool match = false;
-
-	for(auto fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
-	{
-		tevt.m_tinfo = this;
-		tevt.m_fdinfo = &(fdit->second);
-		tscapevt.tid = m_tid;
-		int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
-		tevt.m_tinfo->m_lastevent_fd = fdit->first;
-
-		if(m_inspector->m_filter->run(&tevt))
-		{
-			match = true;
-			break;
-		}
-
-		tevt.m_tinfo->m_lastevent_fd = tlefd;
-	}
-
-	//
-	// If at least an FD matched, keep this thread, otherwise filter it out.
-	// Note: checking the FDs will also tell us if this thread matches 
-	//       thread-related filters
-	//
-	if(match)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 void sinsp_threadinfo::init(scap_threadinfo* pi)
 {
 	scap_fdinfo *fdi;
@@ -414,7 +355,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	{
 		add_fd_from_scap(fdi, &tfdinfo);
 
-		if(m_inspector->m_filter != NULL && !m_inspector->is_live())
+		if(m_inspector->m_filter != NULL && m_inspector->m_filter_proc_table_when_saving)
 		{
 			tevt.m_tinfo = this;
 			tevt.m_fdinfo = &tfdinfo;
@@ -440,7 +381,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 
 	m_lastevent_data = NULL;
 
-	if(m_inspector->m_filter != NULL && !m_inspector->is_live())
+	if(m_inspector->m_filter != NULL && m_inspector->m_filter_proc_table_when_saving)
 	{
 		if(!match)
 		{
