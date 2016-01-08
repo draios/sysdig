@@ -648,7 +648,7 @@ int main(int argc, char **argv)
 	string term = getenv("TERM");
 	if(term == "xterm")
 	{
-		setenv("TERM", "xterm-1003", 1);
+		setenv("TERM", "xterm-1002", 1);
 	}
 
 	//
