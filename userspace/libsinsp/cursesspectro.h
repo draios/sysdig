@@ -103,6 +103,7 @@ private:
 	int64_t get_history_color_from_coordinate(uint32_t y, uint32_t x);
 	curses_spectro_history_row* get_history_row_from_coordinate(uint32_t y);
 	uint64_t latency_from_coordinate(uint32_t x);
+	void draw_square(int32_t y1, int32_t x1, int32_t y2, int32_t x2, char c);
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;
@@ -122,6 +123,8 @@ private:
 	bool m_mouse_masked;
 	int32_t m_lastx, m_lasty;
 	int32_t m_selstart_x, m_selstart_y;
+	int32_t m_prev_sel_x1, m_prev_sel_x2;
+	int32_t m_prev_sel_y1, m_prev_sel_y2;
 
 	friend class curses_spectro_sidemenu;
 };
