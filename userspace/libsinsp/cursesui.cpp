@@ -1574,19 +1574,23 @@ bool sinsp_cursesui::drillup()
 
 		m_selected_view = sinfo->m_prev_selected_view;
 		m_selected_view_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
-		if(!m_spectro)
+		
+		if(m_views.at(m_selected_view)->m_type == sinsp_view_info::T_SPECTRO)
+		{
+			m_is_filter_sysdig = false;
+		}
+		else
 		{
 			m_manual_filter = sinfo->m_prev_manual_filter;
+			m_is_filter_sysdig = sinfo->m_prev_is_filter_sysdig;
 		}
-		m_is_filter_sysdig = sinfo->m_prev_is_filter_sysdig;
+		
 		bool is_sorting_ascending = sinfo->m_prev_is_sorting_ascending;
-
 
 		ASSERT(m_selected_view < (int32_t)m_views.size());
 
 		m_sel_hierarchy.pop_back();
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
-
 
 		if(!m_inspector->is_live())
 		{

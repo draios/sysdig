@@ -138,6 +138,10 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_lasty = -1;
 	m_selstart_x = -1;
 	m_selstart_y = -1;
+	m_prev_sel_x1 = -1;
+	m_prev_sel_x2 = -1;
+	m_prev_sel_y1 = -1;
+	m_prev_sel_y2 = -1;
 
 	//
 	// Define the table size
@@ -473,46 +477,21 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 							m_selstart_y = m_last_mevent.y;
 						}
 
-						for(int32_t j = m_selstart_y; j < m_last_mevent.y + 1; j++)
+						if(m_prev_sel_x1 != -1)
 						{
-							for(int32_t k = m_selstart_x; k < m_last_mevent.x + 1; k++)
-							{
-								int64_t col = get_history_color_from_coordinate(j, k);
-								if(col == -1)
-								{
-									break;
-								}
-
-								ansi_moveto(j + 1, k + 1);
-								ansi_setcolor(col);
-								printf("*\n");
-							}
-						}
-/*
-						if(m_lastx != -1)
-						{
-							int64_t oldcol = get_history_color_from_coordinate(m_lasty, m_lastx);
-
-							ansi_moveto(m_lasty + 1, m_lastx + 1);
-							ansi_setcolor(oldcol);
-							printf("X\n");
-
-							m_lastx = -1;
+							draw_square(m_prev_sel_y1, m_prev_sel_x1, 
+								m_prev_sel_y2, m_prev_sel_x2,
+								' ');
 						}
 
-						int64_t hv = get_history_value_from_coordinate(m_last_mevent.y, m_last_mevent.x);
+						m_prev_sel_y1 = m_selstart_y;
+						m_prev_sel_x1 = m_selstart_x;
+						m_prev_sel_y2 = m_last_mevent.y + 1;
+						m_prev_sel_x2 = m_last_mevent.x + 1;
 
-						if(hv != -1)
-						{
-							ansi_moveto(m_last_mevent.y + 1, m_last_mevent.x + 1);
-							ansi_setcolor(0);
-							printf("X\n");
-//							refresh();
-
-							m_lastx = m_last_mevent.x;
-							m_lasty = m_last_mevent.y;
-						}
-*/						
+						draw_square(m_selstart_y, m_selstart_x, 
+							m_last_mevent.y + 1, m_last_mevent.x + 1,
+							'X');
 					}
 				}
 			}
@@ -527,6 +506,56 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 	}
 
 	return STA_PARENT_HANDLE;
+}
+
+void curses_spectro::draw_square(int32_t y1, int32_t x1, int32_t y2, int32_t x2, char c)
+{
+	for(int32_t j = y1; j < y2; j++)
+	{
+		ansi_moveto(j + 1, x1 + 1);
+
+		for(int32_t k = x1; k < x2; k++)
+		{
+			int64_t col = get_history_color_from_coordinate(j, k);
+			if(col == -1)
+			{
+				break;
+			}
+
+			ansi_setcolor(col);
+			printf("%c", c);
+		}
+
+/*
+		if(j == y1 || j == y2 - 1)
+		{
+			for(int32_t k = x1; k < x2; k++)
+			{
+				int64_t col = get_history_color_from_coordinate(j, k);
+				if(col == -1)
+				{
+					break;
+				}
+
+				ansi_setcolor(col);
+				printf("%c", c);
+			}
+		}
+		else
+		{
+			int64_t col = get_history_color_from_coordinate(j, x1);
+			if(col == -1)
+			{
+				break;
+			}
+
+			ansi_setcolor(col);
+			printf("%c", c);
+		}
+*/
+		printf("\n");
+	}
+
 }
 
 int64_t curses_spectro::get_history_value_from_coordinate(uint32_t y, uint32_t x)
