@@ -375,6 +375,14 @@ public:
 	//
 	inline bool process_event(sinsp_evt* evt, int32_t next_res)
 	{
+		if(evt->get_category() & EC_INTERNAL)
+		{
+			if(next_res != SCAP_EOF)
+			{
+				return false;
+			}
+		}
+
 		uint64_t ts = evt->get_ts();
 		if(!m_inspector->is_live())
 		{

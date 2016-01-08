@@ -283,6 +283,8 @@ public:
 	}
 
 	uint64_t m_next_flush_time_ns;
+	uint64_t m_prev_flush_time_ns;
+	uint64_t m_refresh_interval_ns;
 
 private:
 	inline void add_row(bool merging);
@@ -325,7 +327,6 @@ private:
 	uint32_t m_vals_array_sz;
 	uint32_t m_premerge_vals_array_sz;
 	uint32_t m_postmerge_vals_array_sz;
-	uint64_t m_refresh_interval_ns;
 	sinsp_filter_check_reference* m_printer;
 	vector<sinsp_sample_row> m_full_sample_data;
 	vector<sinsp_sample_row> m_filtered_sample_data;
