@@ -93,7 +93,18 @@ inline void ansi_clearline()
 
 inline void ansi_setcolor(int col)
 {
+	// Background
 	printf("\033[48;5;%dm", col);
+
+	// Foreground
+	if(col != 0)
+	{
+		printf("\033[38;5;%dm", 0);
+	}
+	else
+	{
+		printf("\033[38;5;%dm", 255);		
+	}
 }
 
 inline void ansi_reset_color()
@@ -123,6 +134,10 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_converter = new sinsp_filter_check_reference();
 	m_n_flushes = 0;
 	m_mouse_masked = false;
+	m_lastx = -1;
+	m_lasty = -1;
+	m_selstart_x = -1;
+	m_selstart_y = -1;
 
 	//
 	// Define the table size
@@ -418,35 +433,76 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 				{
 					if(m_last_mevent.bstate & BUTTON1_CLICKED)
 					{
-						//
-						// Bottom menu clicks are handled by the parent
-						//
-						if((uint32_t)m_last_mevent.y == m_parent->m_screenh - 1)
-						{
-							return STA_PARENT_HANDLE;
-						}
+						m_selstart_x = -1;
+						m_selstart_y = -1;
 
 						g_logger.format("mouse clicked");
 					}
+					else if(m_last_mevent.bstate & BUTTON1_RELEASED)
+					{
+						curses_spectro_history_row* start_row = get_history_row_from_coordinate(m_selstart_y);
+						curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_last_mevent.y + 1);
+						uint64_t start_latency = latency_from_coordinate(m_selstart_x);
+						uint64_t end_latency = latency_from_coordinate(m_last_mevent.x + 1);
+
+						m_selection_filter = 
+							"(evt.rawtime>="  + to_string(start_row->m_ts) + 
+							" and evt.rawtime<=" + to_string(end_row->m_ts) + 
+							") and (evt.latency>=" + to_string(start_latency) + 
+							" and evt.latency<=" + to_string(end_latency) + ")";
+
+//						m_parent->spy_selection("", "", true);
+						g_logger.format("spectrogram drill down");
+						g_logger.format("filter: %s", m_selection_filter.c_str());
+
+						m_selstart_x = -1;
+						m_selstart_y = -1;
+
+						return STA_DIG;
+					}
 					else
 					{
-						if((m_h - m_last_mevent.y > 3) && 
-							(m_h - m_last_mevent.y - 4) < m_history.size() - 1)
+						if(m_selstart_x == -1)
 						{
-							curses_spectro_history_row& row = m_history[m_history.size() - 1 - (m_h - m_last_mevent.y - 4)];
-
-							ASSERT(m_last_mevent.x >= 0);
-							ASSERT(row.m_data.size() == m_w);
-							ASSERT(m_last_mevent.x < m_w);
-
-							uint32_t val = row.m_data[m_last_mevent.x];
-
-							g_logger.format("mouse: %d:%d %d %d", m_last_mevent.x, 
-								m_last_mevent.y,
-								m_h - m_last_mevent.y - 4,
-								(int)val);
-
+							m_selstart_x = m_last_mevent.x;
+							m_selstart_y = m_last_mevent.y;
 						}
+
+						for(int32_t j = m_selstart_y; j < m_last_mevent.y + 1; j++)
+						{
+							for(int32_t k = m_selstart_x; k < m_last_mevent.x + 1; k++)
+							{
+								int64_t col = get_history_color_from_coordinate(j, k);
+								ansi_moveto(j + 1, k + 1);
+								ansi_setcolor(col);
+								printf("*\n");
+							}
+						}
+/*
+						if(m_lastx != -1)
+						{
+							int64_t oldcol = get_history_color_from_coordinate(m_lasty, m_lastx);
+
+							ansi_moveto(m_lasty + 1, m_lastx + 1);
+							ansi_setcolor(oldcol);
+							printf("X\n");
+
+							m_lastx = -1;
+						}
+
+						int64_t hv = get_history_value_from_coordinate(m_last_mevent.y, m_last_mevent.x);
+
+						if(hv != -1)
+						{
+							ansi_moveto(m_last_mevent.y + 1, m_last_mevent.x + 1);
+							ansi_setcolor(0);
+							printf("X\n");
+//							refresh();
+
+							m_lastx = m_last_mevent.x;
+							m_lasty = m_last_mevent.y;
+						}
+*/						
 					}
 				}
 			}
@@ -461,6 +517,67 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 	}
 
 	return STA_PARENT_HANDLE;
+}
+
+int64_t curses_spectro::get_history_value_from_coordinate(uint32_t y, uint32_t x)
+{
+	if((m_h - y > 3) && 
+		(m_h - y - 4) < m_history.size() - 1)
+	{
+		curses_spectro_history_row& row = m_history[m_history.size() - 1 - (m_h - y - 4)];
+
+		ASSERT(x >= 0);
+		ASSERT(row.m_data.size() == m_w - 1);
+		if(x >= row.m_data.size())
+		{
+			return -1;
+		}
+
+		return row.m_data[x];
+	}
+
+	return -1;
+}
+
+int64_t curses_spectro::get_history_color_from_coordinate(uint32_t y, uint32_t x)
+{
+	int64_t hv = get_history_value_from_coordinate(y, x);
+
+	if(hv != -1)
+	{
+		if(hv == 0)
+		{
+			return 0;
+		}
+		else
+		{
+			int64_t col = mkcol(hv);
+			return col;
+		}
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+curses_spectro_history_row* curses_spectro::get_history_row_from_coordinate(uint32_t y)
+{
+	if((m_h - y > 3) && (m_h - y - 4) < m_history.size() - 1)
+	{
+		return &(m_history[m_history.size() - 1 - (m_h - y - 4)]);
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+uint64_t curses_spectro::latency_from_coordinate(uint32_t x)
+{
+	double curtime = (double)x * 11 / m_w;
+g_logger.format("$ %d %d", (int)x, (int)curtime);	
+	return (uint64_t)pow(10, curtime);
 }
 
 void curses_spectro::recreate_win(int h)

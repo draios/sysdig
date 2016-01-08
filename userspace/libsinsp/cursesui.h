@@ -131,7 +131,10 @@ public:
 	{
 		for(auto e : m_hierarchy)
 		{
-			delete [] e.m_rowkey.m_val;
+			if(e.m_rowkey.m_val != NULL)
+			{
+				delete [] e.m_rowkey.m_val;
+			}
 		}
 	}
 
@@ -365,6 +368,7 @@ public:
 	void turn_search_on(search_caller_interface* ifc, string header_text);
 	uint64_t get_time_delta();
 	void run_action(sinsp_view_action_info* action);
+	void spy_selection(string field, string val, bool is_dig);
 
 	//
 	// Return true if the application is supposed to exit
@@ -474,10 +478,18 @@ public:
 					return false;
 				case STA_DIG:
 					{
-						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						if(res.first != NULL)
+						if(m_viz)
 						{
-							spy_selection(res.first->m_name, res.second.c_str(), true);
+							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+							if(res.first != NULL)
+							{
+								spy_selection(res.first->m_name, res.second.c_str(), true);
+							}
+						}
+						else
+						{
+							ASSERT(m_spectro);
+							spy_selection("", "", true);
 						}
 					}
 					return false;
@@ -609,12 +621,12 @@ public:
 #endif
 	bool m_offline_replay;
 	uint64_t m_refresh_interval_ns;
+	sinsp* m_inspector;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
-	void spy_selection(string field, string val, bool is_dig);
 	bool spectro_selection(string field, string val, filtercheck_field_info* info, sysdig_table_action ta);
 	bool do_drilldown(string field, string val, uint32_t new_view_num, filtercheck_field_info* info);
 	// returns false if there is no suitable drill down view for this field
@@ -640,7 +652,6 @@ private:
 	void show_selected_view_info();
 #endif
 
-	sinsp* m_inspector;
 	vector<sinsp_menuitem_info> m_menuitems;
 	vector<sinsp_menuitem_info> m_menuitems_spybox;
 	string m_event_source_name;

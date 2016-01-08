@@ -1192,6 +1192,12 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 
 void sinsp_cursesui::restart_capture(bool is_spy_switch)
 {
+	if(!m_inspector->is_live() && m_n_evts_in_file == 0)
+	{
+		m_n_evts_in_file = m_inspector->get_num_events();
+		m_evt_ts_delta = m_last_evt_ts - m_1st_evt_ts;
+	}
+
 	m_inspector->close();
 	start(true, is_spy_switch);
 	m_inspector->open(m_event_source_name);
@@ -1322,27 +1328,41 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 
 void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 {
-	//
-	// Perform the drill down
-	//
-#ifndef NOCURSESUI
-	sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
-#else
-	sinsp_table_field* rowkey = NULL;
-#endif
+	uint32_t srtcol;
 	sinsp_table_field rowkeybak;
-	if(rowkey != NULL)
+
+	if(m_viz)
 	{
-		rowkeybak.m_val = new uint8_t[rowkey->m_len];
-		memcpy(rowkeybak.m_val, rowkey->m_val, rowkey->m_len);
-		rowkeybak.m_len = rowkey->m_len;
+#ifndef NOCURSESUI
+		sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
+#else
+		sinsp_table_field* rowkey = NULL;
+#endif
+		if(rowkey != NULL)
+		{
+			rowkeybak.m_val = new uint8_t[rowkey->m_len];
+			memcpy(rowkeybak.m_val, rowkey->m_val, rowkey->m_len);
+			rowkeybak.m_len = rowkey->m_len;
+		}
+
+		srtcol = m_datatable->get_sorting_col();
+	}
+	else if(m_spectro)
+	{
+		m_is_filter_sysdig = true;
+		// loris
+		m_manual_filter = m_spectro->m_selection_filter;
+		srtcol = 0;
+		rowkeybak.m_val = NULL;
+		rowkeybak.m_len = 0;
+	}
+	else
+	{
+		ASSERT(false);
+		return;
 	}
 
-	uint32_t srtcol;
-	srtcol = m_datatable->get_sorting_col();
-
 	ASSERT(m_selected_view < (int32_t)m_views.size());
-
 	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
@@ -1628,7 +1648,10 @@ bool sinsp_cursesui::drillup()
 		render();
 #endif
 
-		delete[] rowkey.m_val;
+		if(rowkey.m_val)
+		{
+			delete[] rowkey.m_val;
+		}
 		return true;
 	}
 

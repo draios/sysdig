@@ -35,9 +35,6 @@ public:
 class curses_spectro_history_row
 {
 public:
-	uint64_t m_ts;
-	vector<uint32_t> m_data;
-
 	void clear(uint64_t ts)
 	{
 		m_ts = ts;
@@ -48,6 +45,9 @@ public:
 	{
 		m_data.push_back(val);
 	}
+
+	uint64_t m_ts;
+	vector<uint32_t> m_data;
 };
 
 class curses_spectro : 
@@ -92,12 +92,17 @@ public:
 	bool m_drilled_up;
 	bool m_selection_changed;
 	MEVENT m_last_mevent;
+	string m_selection_filter;
 	
 private:
 	void print_error(string wstr);
 	uint32_t mkcol(uint64_t n);
 	void draw_axis();
 	void draw_menu();
+	int64_t get_history_value_from_coordinate(uint32_t y, uint32_t x);
+	int64_t get_history_color_from_coordinate(uint32_t y, uint32_t x);
+	curses_spectro_history_row* get_history_row_from_coordinate(uint32_t y);
+	uint64_t latency_from_coordinate(uint32_t x);
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;
@@ -115,6 +120,8 @@ private:
 	vector<curses_spectro_history_row> m_history;
 	curses_spectro_history_row m_t_row;
 	bool m_mouse_masked;
+	int32_t m_lastx, m_lasty;
+	int32_t m_selstart_x, m_selstart_y;
 
 	friend class curses_spectro_sidemenu;
 };
