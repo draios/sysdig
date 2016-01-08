@@ -287,5 +287,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SEMGET_E */{"semget", EC_PROCESS, EF_NONE, 3, {{"key", PT_INT32, PF_HEX}, {"nsems", PT_INT32, PF_DEC}, {"semflg", PT_FLAGS32, PF_HEX, semget_flags} } },
 	/* PPME_SYSCALL_SEMGET_X */{"semget", EC_PROCESS, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_ACCESS_E */{"access", EC_FILE, EF_NONE, 1, {{"mode", PT_FLAGS32, PF_HEX, access_flags} } },
-	/* PPME_SYSCALL_ACCESS_X */{"access", EC_FILE, EF_NONE, 2, {{"res", PT_ERRNO, PF_DEC}, {"name", PT_FSPATH, PF_NA} } }
+	/* PPME_SYSCALL_ACCESS_X */{"access", EC_FILE, EF_NONE, 2, {{"res", PT_ERRNO, PF_DEC}, {"name", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_CHROOT_E */{"chroot", EC_PROCESS, EF_MODIFIES_STATE, 0},
+	/* PPME_SYSCALL_CHROOT_X */{"chroot", EC_PROCESS, EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA} }}
 };
