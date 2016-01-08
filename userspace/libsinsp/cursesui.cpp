@@ -1355,6 +1355,7 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 		srtcol = 0;
 		rowkeybak.m_val = NULL;
 		rowkeybak.m_len = 0;
+		srtcol = 2;
 	}
 	else
 	{
@@ -1573,7 +1574,10 @@ bool sinsp_cursesui::drillup()
 
 		m_selected_view = sinfo->m_prev_selected_view;
 		m_selected_view_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
-		m_manual_filter = sinfo->m_prev_manual_filter;
+		if(!m_spectro)
+		{
+			m_manual_filter = sinfo->m_prev_manual_filter;
+		}
 		m_is_filter_sysdig = sinfo->m_prev_is_filter_sysdig;
 		bool is_sorting_ascending = sinfo->m_prev_is_sorting_ascending;
 
@@ -1602,18 +1606,22 @@ bool sinsp_cursesui::drillup()
 			}
 		}
 #ifndef NOCURSESUI
-		if(rowkey.m_val != NULL)
+		if(m_viz)
 		{
-			m_viz->m_last_key.copy(&rowkey);
-			m_viz->m_last_key.m_isvalid = true;
-			m_viz->m_selection_changed = true;
-		}
-		else
-		{
-			m_viz->m_last_key.m_isvalid = false;
+			if(rowkey.m_val != NULL)
+			{
+				m_viz->m_last_key.copy(&rowkey);
+				m_viz->m_last_key.m_isvalid = true;
+				m_viz->m_selection_changed = true;
+			}
+			else
+			{
+				m_viz->m_last_key.m_isvalid = false;
+			}
+
+			m_viz->m_drilled_up = true;
 		}
 
-		m_viz->m_drilled_up = true;
 		populate_view_sidemenu(field, &m_sidemenu_viewlist);
 		populate_action_sidemenu();
 

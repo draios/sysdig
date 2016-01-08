@@ -365,7 +365,7 @@ void curses_spectro::render(bool data_changed)
 		//
 		// Render the line
 		//
-		m_t_row.clear(m_table->m_next_flush_time_ns);
+		m_t_row.clear(m_table->m_prev_flush_time_ns);
 
 		for(uint32_t j = 0; j < m_w - 1; j++)
 		{
@@ -441,15 +441,20 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 					else if(m_last_mevent.bstate & BUTTON1_RELEASED)
 					{
 						curses_spectro_history_row* start_row = get_history_row_from_coordinate(m_selstart_y);
-						curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_last_mevent.y + 1);
+						curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_last_mevent.y);
 						uint64_t start_latency = latency_from_coordinate(m_selstart_x);
 						uint64_t end_latency = latency_from_coordinate(m_last_mevent.x + 1);
 
+						if(start_row == NULL || end_row == NULL)
+						{
+							break;
+						}
+
 						m_selection_filter = 
-							"(evt.rawtime>="  + to_string(start_row->m_ts) + 
+							"(evt.rawtime>="  + to_string(start_row->m_ts - m_table->m_refresh_interval_ns) + 
 							" and evt.rawtime<=" + to_string(end_row->m_ts) + 
 							") and (evt.latency>=" + to_string(start_latency) + 
-							" and evt.latency<=" + to_string(end_latency) + ")";
+							" and evt.latency<" + to_string(end_latency) + ")";
 
 //						m_parent->spy_selection("", "", true);
 						g_logger.format("spectrogram drill down");
@@ -473,6 +478,11 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 							for(int32_t k = m_selstart_x; k < m_last_mevent.x + 1; k++)
 							{
 								int64_t col = get_history_color_from_coordinate(j, k);
+								if(col == -1)
+								{
+									break;
+								}
+
 								ansi_moveto(j + 1, k + 1);
 								ansi_setcolor(col);
 								printf("*\n");
@@ -563,7 +573,7 @@ int64_t curses_spectro::get_history_color_from_coordinate(uint32_t y, uint32_t x
 
 curses_spectro_history_row* curses_spectro::get_history_row_from_coordinate(uint32_t y)
 {
-	if((m_h - y > 3) && (m_h - y - 4) < m_history.size() - 1)
+	if((y <= m_h - 4) && ((int)y > (int)m_h - 3 - (int)m_history.size()))
 	{
 		return &(m_history[m_history.size() - 1 - (m_h - y - 4)]);
 	}
@@ -576,7 +586,6 @@ curses_spectro_history_row* curses_spectro::get_history_row_from_coordinate(uint
 uint64_t curses_spectro::latency_from_coordinate(uint32_t x)
 {
 	double curtime = (double)x * 11 / m_w;
-g_logger.format("$ %d %d", (int)x, (int)curtime);	
 	return (uint64_t)pow(10, curtime);
 }
 
