@@ -23,7 +23,12 @@ marathon_http::marathon_http(mesos& m, const uri& url, bool framework_info): mes
 {
 	if(framework_info)
 	{
-		if(!refresh_data())
+		g_logger.log("Creating Marathon HTTP object for [" + url.to_string() + ']', sinsp_logger::SEV_INFO);	
+		if(refresh_data())
+		{
+			g_logger.log("Found Marathon framework: " + m_name + " (" + m_id + "), version: " + m_version, sinsp_logger::SEV_INFO);
+		}
+		else
 		{
 			throw sinsp_exception("Could not obtain Mesos Marathon framework information.");
 		}
