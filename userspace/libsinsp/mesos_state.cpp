@@ -243,7 +243,7 @@ void mesos_state_t::add_app(const Json::Value& app)
 			Json::Value task_id = task["id"];
 			if(!task_id.isNull())
 			{
-				g_logger.log("Adding Marathon task: " + task_id.asString(), sinsp_logger::SEV_DEBUG);
+				g_logger.log("Adding Mesos task ID to app: " + task_id.asString(), sinsp_logger::SEV_DEBUG);
 				mesos_framework::task_ptr_t pt = get_task(task_id.asString());
 				if(pt)
 				{
