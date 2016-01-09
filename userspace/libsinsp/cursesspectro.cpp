@@ -427,6 +427,11 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 			return STA_NONE;
 		case KEY_MOUSE:
 			{
+				if(m_inspector->is_live())
+				{
+					break;
+				}
+
 				if(!m_mouse_masked)
 				{
 					mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
@@ -471,7 +476,7 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 					}
 					else
 					{
-						if((m_last_mevent.y > (int)m_h - 4) || ((int)m_last_mevent.y < (int)m_h - 3 - (int)m_history.size()))
+						if((m_last_mevent.y > (int)m_h - 4) || ((int)m_last_mevent.y <= (int)m_h - 3 - (int)m_history.size()))
 						{
 							break;
 						}
