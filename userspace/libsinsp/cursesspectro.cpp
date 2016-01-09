@@ -166,22 +166,6 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 
 curses_spectro::~curses_spectro()
 {
-/*	
-	if(m_inspector->is_live())
-	{
-		ansi_movedown(1);
-		draw_menu();
-		ansi_moveup(1);
-		printf("\n\n");
-		ansi_moveup(1);		
-	}
-	else
-	{
-		ansi_movedown(1);
-		draw_menu();
-		printf("\n");		
-	}
-*/
 	ansi_moveto(m_h, 0);
 	printf("\n");
 
@@ -309,6 +293,11 @@ void curses_spectro::draw_axis()
 	printf("BKSPACE");
 	ansi_setcolor(24);
 	printf("Back");
+	ansi_reset_color();
+
+	printf("MOUSE");
+	ansi_setcolor(24);
+	printf("DrillDown");
 	ansi_reset_color();
 }
 
