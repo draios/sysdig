@@ -477,7 +477,7 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 //
 captureinfo do_inspect(sinsp* inspector,
 	uint64_t cnt,
-        double duration_to_tot,
+	int duration_to_tot,
 	bool quiet,
 	bool json,
 	bool do_flush,
@@ -491,8 +491,7 @@ captureinfo do_inspect(sinsp* inspector,
 	sinsp_evt* ev;
 	string line;
 	double last_printed_progress_pct = 0;
-        double duration_start = 0;
-        double duration_tot = 0;
+        int duration_start = 0;
 
 	if(json)
 	{
@@ -507,12 +506,12 @@ captureinfo do_inspect(sinsp* inspector,
 	{
                 if(duration_to_tot > 0)
                 {
-		   duration_tot = ((double)clock()) / CLOCKS_PER_SEC - duration_start;
-		   if (duration_tot >= duration_to_tot)
-                   {
-			handle_end_of_file(print_progress, formatter);
-			break;
-		   }
+		 	int duration_tot = ((double)clock()) / CLOCKS_PER_SEC - duration_start;
+			if(duration_tot >= duration_to_tot)
+                   	{
+				handle_end_of_file(print_progress, formatter);
+				break;
+		   	}
                 }
 		if(retval.m_nevts == cnt || g_terminate)
 		{
@@ -679,7 +678,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
-	double duration_to_tot = 0;
+	int duration_to_tot = 0;
 	captureinfo cinfo;
 	string output_format;
 	uint32_t snaplen = 0;
@@ -918,15 +917,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
 			case 'M':
-                                duration_to_tot = atoi(optarg);
-                                if(duration_to_tot <= 0)
-                                {
-                                        throw sinsp_exception(string("invalid duration") + optarg);
-                                        res.m_res = EXIT_FAILURE;
-                                        goto exit;
-                                }
-                                break;
-
+				duration_to_tot = atoi(optarg);
+				if(duration_to_tot <= 0)
+				{
+					throw sinsp_exception(string("invalid duration") + optarg);
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
 			case 'N':
 				inspector->set_hostname_and_port_resolution_mode(false);
 				break;
