@@ -369,6 +369,7 @@ public:
 	uint64_t get_time_delta();
 	void run_action(sinsp_view_action_info* action);
 	void spy_selection(string field, string val, bool is_dig);
+	sysdig_table_action handle_input(int ch);
 
 	//
 	// Return true if the application is supposed to exit
@@ -649,7 +650,6 @@ private:
 	void render_position_info();
 	void render_main_menu();
 	sysdig_table_action handle_textbox_input(int ch);
-	sysdig_table_action handle_input(int ch);
 	void populate_view_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
 	void populate_action_sidemenu();
 	void print_progress(double progress);
