@@ -153,6 +153,9 @@ OPTIONS
 **-N**
   Don't convert port numbers to names.
 
+**-M** _num_seconds_
+  Stop collecting after reaching <num_seconds>
+
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events
 
