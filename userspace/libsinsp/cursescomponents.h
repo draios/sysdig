@@ -120,6 +120,7 @@ public:
 		ST_NONE,
 		ST_VIEWS,
 		ST_ACTIONS,
+		ST_COLUMNS,
 	};
 
 	curses_table_sidemenu(sidemenu_type type, 
@@ -230,6 +231,7 @@ private:
 	sinsp_cursesui* m_parent;
 	ctext* m_ctext;
 };
+
 
 #endif // NOCURSESUI
 #endif // CSYSDIG
