@@ -460,17 +460,22 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 							") and (evt.latency>=" + to_string(start_latency) + 
 							" and evt.latency<" + to_string(end_latency) + ")";
 
-//						m_parent->spy_selection("", "", true);
 						g_logger.format("spectrogram drill down");
 						g_logger.format("filter: %s", m_selection_filter.c_str());
 
 						m_selstart_x = -1;
 						m_selstart_y = -1;
 
+						ansi_reset_color();
 						return STA_DIG;
 					}
 					else
 					{
+						if((m_last_mevent.y > (int)m_h - 4) || ((int)m_last_mevent.y < (int)m_h - 3 - (int)m_history.size()))
+						{
+							break;
+						}
+
 						if(m_selstart_x == -1)
 						{
 							m_selstart_x = m_last_mevent.x;
@@ -510,10 +515,15 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 void curses_spectro::draw_square(int32_t y1, int32_t x1, int32_t y2, int32_t x2, char c)
 {
+	if(x2 < x1 || y2 < y1)
+	{
+		return;
+	}
+
 	for(int32_t j = y1; j < y2; j++)
 	{
 		ansi_moveto(j + 1, x1 + 1);
-
+/*
 		for(int32_t k = x1; k < x2; k++)
 		{
 			int64_t col = get_history_color_from_coordinate(j, k);
@@ -525,8 +535,7 @@ void curses_spectro::draw_square(int32_t y1, int32_t x1, int32_t y2, int32_t x2,
 			ansi_setcolor(col);
 			printf("%c", c);
 		}
-
-/*
+*/
 		if(j == y1 || j == y2 - 1)
 		{
 			for(int32_t k = x1; k < x2; k++)
@@ -551,8 +560,18 @@ void curses_spectro::draw_square(int32_t y1, int32_t x1, int32_t y2, int32_t x2,
 
 			ansi_setcolor(col);
 			printf("%c", c);
+
+			col = get_history_color_from_coordinate(j, x2 - 1);
+			if(col == -1)
+			{
+				break;
+			}
+
+			ansi_moveto(j + 1, x2);
+			ansi_setcolor(col);
+			printf("%c", c);
 		}
-*/
+
 		printf("\n");
 	}
 

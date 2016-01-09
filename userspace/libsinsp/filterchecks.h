@@ -22,6 +22,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef HAS_FILTERING
 
+class sinsp_filter_check_reference;
+
 #define VALIDATE_STR_VAL if(val.length() >= sizeof(m_val_storage)) \
 { \
 	throw sinsp_exception("filter error: value too long: " + val); \
@@ -380,54 +382,56 @@ public:
 		TYPE_LATENCY_S = 11,
 		TYPE_LATENCY_NS = 12,
 		TYPE_LATENCY_QUANTIZED = 13,
-		TYPE_DELTA = 14,
-		TYPE_DELTA_S = 15,
-		TYPE_DELTA_NS = 16,
-		TYPE_RUNTIME_TIME_OUTPUT_FORMAT = 17,
-		TYPE_DIR = 18,
-		TYPE_TYPE = 19,
-		TYPE_TYPE_IS = 20,
-		TYPE_SYSCALL_TYPE = 21,
-		TYPE_CATEGORY = 22,
-		TYPE_CPU = 23,
-		TYPE_ARGS = 24,
-		TYPE_ARGSTR = 25,
-		TYPE_ARGRAW = 26,
-		TYPE_INFO = 27,
-		TYPE_BUFFER = 28,
-		TYPE_BUFLEN = 29,
-		TYPE_RESSTR = 30,
-		TYPE_RESRAW = 31,
-		TYPE_FAILED = 32,
-		TYPE_ISIO = 33,
-		TYPE_ISIO_READ = 34,
-		TYPE_ISIO_WRITE = 35,
-		TYPE_IODIR = 36,
-		TYPE_ISWAIT = 37,
-		TYPE_WAIT_LATENCY = 38,
-		TYPE_ISSYSLOG = 39,
-		TYPE_COUNT = 40,
-		TYPE_COUNT_ERROR = 41,
-		TYPE_COUNT_ERROR_FILE = 42,
-		TYPE_COUNT_ERROR_NET = 43,
-		TYPE_COUNT_ERROR_MEMORY = 44,
-		TYPE_COUNT_ERROR_OTHER = 45,
-		TYPE_COUNT_EXIT = 46,
-		TYPE_COUNT_PROCINFO = 47,
-		TYPE_COUNT_THREADINFO = 48,
-		TYPE_AROUND = 49,
-		TYPE_ABSPATH = 50,
-		TYPE_BUFLEN_IN = 51,
-		TYPE_BUFLEN_OUT = 52,
-		TYPE_BUFLEN_FILE = 53,
-		TYPE_BUFLEN_FILE_IN = 54,
-		TYPE_BUFLEN_FILE_OUT = 55,
-		TYPE_BUFLEN_NET = 56,
-		TYPE_BUFLEN_NET_IN = 57,
-		TYPE_BUFLEN_NET_OUT = 58,
+		TYPE_LATENCY_HUMAN = 14,
+		TYPE_DELTA = 15,
+		TYPE_DELTA_S = 16,
+		TYPE_DELTA_NS = 17,
+		TYPE_RUNTIME_TIME_OUTPUT_FORMAT = 18,
+		TYPE_DIR = 19,
+		TYPE_TYPE = 20,
+		TYPE_TYPE_IS = 21,
+		TYPE_SYSCALL_TYPE = 22,
+		TYPE_CATEGORY = 23,
+		TYPE_CPU = 24,
+		TYPE_ARGS = 25,
+		TYPE_ARGSTR = 26,
+		TYPE_ARGRAW = 27,
+		TYPE_INFO = 28,
+		TYPE_BUFFER = 29,
+		TYPE_BUFLEN = 30,
+		TYPE_RESSTR = 31,
+		TYPE_RESRAW = 32,
+		TYPE_FAILED = 33,
+		TYPE_ISIO = 34,
+		TYPE_ISIO_READ = 35,
+		TYPE_ISIO_WRITE = 36,
+		TYPE_IODIR = 37,
+		TYPE_ISWAIT = 38,
+		TYPE_WAIT_LATENCY = 39,
+		TYPE_ISSYSLOG = 40,
+		TYPE_COUNT = 41,
+		TYPE_COUNT_ERROR = 42,
+		TYPE_COUNT_ERROR_FILE = 43,
+		TYPE_COUNT_ERROR_NET = 44,
+		TYPE_COUNT_ERROR_MEMORY = 45,
+		TYPE_COUNT_ERROR_OTHER = 46,
+		TYPE_COUNT_EXIT = 47,
+		TYPE_COUNT_PROCINFO = 48,
+		TYPE_COUNT_THREADINFO = 49,
+		TYPE_AROUND = 50,
+		TYPE_ABSPATH = 51,
+		TYPE_BUFLEN_IN = 52,
+		TYPE_BUFLEN_OUT = 53,
+		TYPE_BUFLEN_FILE = 54,
+		TYPE_BUFLEN_FILE_IN = 55,
+		TYPE_BUFLEN_FILE_OUT = 56,
+		TYPE_BUFLEN_NET = 57,
+		TYPE_BUFLEN_NET_IN = 58,
+		TYPE_BUFLEN_NET_OUT = 59,
 	};
 
 	sinsp_filter_check_event();
+	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state);
 	void parse_filter_value(const char* str, uint32_t len);
@@ -462,6 +466,7 @@ private:
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
 	bool m_is_compare;
+	sinsp_filter_check_reference* m_converter;
 };
 
 //

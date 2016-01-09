@@ -561,7 +561,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type)
+curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, bool is_spectro_drilldown)
 {
 	ASSERT(inspector != NULL);
 	ASSERT(parent != NULL);
@@ -595,14 +595,32 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	//
 	if(m_viz_type == VIEW_ID_DIG)
 	{
-		if(m_parent->m_print_containers)
+		if(is_spectro_drilldown)
 		{
-			m_formatter = new sinsp_evt_formatter(m_inspector, "*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			if(m_parent->m_print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, 
+					"*(latency=%evt.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, 
+					"*(latency=%evt.latency.human) %evt.num %evt.time %evt.cpu %container.name %proc.name %thread.tid %evt.dir %evt.type %evt.info");				
+			}
 		}
 		else
 		{
-			m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+			if(m_parent->m_print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, 
+					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+			}
 		}
+
 		config.m_do_wrap = false;
 	}
 	else

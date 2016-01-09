@@ -295,6 +295,8 @@ void sinsp_cursesui::configure(sinsp_view_manager* views)
 
 void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 {
+	bool is_spectro_dig = false;
+
 	//
 	// Input validation
 	//
@@ -336,6 +338,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		{
 			delete m_spectro;
 			m_spectro = NULL;
+			is_spectro_dig = true;
 		}
 
 		if(m_spy_box && !is_spy_switch)
@@ -420,7 +423,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		//
 		// Create the visualization component
 		//
-		m_spy_box = new curses_textbox(m_inspector, this, m_selected_view);
+		m_spy_box = new curses_textbox(m_inspector, this, m_selected_view, is_spectro_dig);
 		m_spy_box->reset();
 		m_chart = m_spy_box;
 		m_spy_box->set_filter(m_complete_filter);
@@ -1163,7 +1166,9 @@ void sinsp_cursesui::create_complete_filter()
 {
 	if(m_is_filter_sysdig)
 	{
-		m_complete_filter = m_manual_filter;
+		m_complete_filter = "(" + m_complete_filter + 
+			") and (" +  
+			m_manual_filter + ")";
 	}
 	else
 	{
