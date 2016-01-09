@@ -51,6 +51,7 @@ public:
 	void refresh(bool marathon = false);
 	void clear(bool marathon = false);
 
+	bool has_marathon() const;
 	void watch();
 private:
 
@@ -106,24 +107,9 @@ inline bool mesos::is_master() const
 	return m_node_type == NODE_MASTER;
 }
 
-inline bool mesos::is_alive() const
+inline bool mesos::has_marathon() const
 {
-	bool connected = true;
-
-	connected &= m_state_http.is_connected();
-	for(const auto& group : m_marathon_groups_http)
-	{
-		connected &= group.second->is_connected();
-	}
-
-	for(const auto& app : m_marathon_apps_http)
-	{
-		connected &= app.second->is_connected();
-	}
-
-	connected &= (m_collector.subscription_count() > 0);
-
-	return connected;
+	return m_marathon_watch_http.size() > 0;
 }
 
 inline void mesos::clear(bool marathon)
