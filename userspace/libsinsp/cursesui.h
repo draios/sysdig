@@ -415,13 +415,29 @@ public:
 			while(true)
 			{
 				int input = getch();
+				bool sppaused = is_spectro_paused(input);
 
 				if(input == -1)
 				{
 					//
 					// All events consumed
 					//
-					break;
+					if(m_spectro)
+					{
+						if(sppaused)
+						{
+							usleep(100000);
+							continue;
+						}
+						else
+						{
+							break;
+						}
+					}
+					else
+					{
+						break;
+					}
 				}
 				else
 				{
@@ -650,6 +666,7 @@ private:
 	void populate_view_cols_sidemenu();
 	void print_progress(double progress);
 	void show_selected_view_info();
+	bool is_spectro_paused(int input);
 #endif
 
 	vector<sinsp_menuitem_info> m_menuitems;

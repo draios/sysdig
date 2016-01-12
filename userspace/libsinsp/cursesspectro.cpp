@@ -142,6 +142,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_prev_sel_x2 = -1;
 	m_prev_sel_y1 = -1;
 	m_prev_sel_y2 = -1;
+	m_scroll_paused = false;
 
 	//
 	// Define the table size
@@ -271,7 +272,7 @@ void curses_spectro::draw_axis()
 	}
 }
 
- 	void curses_spectro::draw_menu()
+void curses_spectro::draw_menu(bool there_is_more)
 {
 //	ansi_clearline();
 
@@ -299,6 +300,15 @@ void curses_spectro::draw_axis()
 	ansi_setcolor(24);
 	printf("DrillDown");
 	ansi_reset_color();
+
+	if(there_is_more)
+	{
+		printf("SPACE");
+		ansi_setcolor(24);
+		printf("More");
+		ansi_reset_color();
+
+	}
 }
 
 void curses_spectro::render(bool data_changed)
@@ -381,12 +391,19 @@ void curses_spectro::render(bool data_changed)
 
 		m_history.push_back(m_t_row);
 
+		bool will_pause = !m_inspector->is_live() && m_n_flushes % (m_h - 3) == 0;
+		
 		ansi_reset_color();
 		ansi_moveto(m_h - 1, 0);
 		draw_axis();
 		ansi_moveto(m_h, 0);
-		draw_menu();
+		draw_menu(will_pause);
 		printf("\n");
+
+		if(will_pause)
+		{
+			m_scroll_paused = true;
+		}
 	}
 }
 

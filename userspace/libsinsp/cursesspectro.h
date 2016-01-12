@@ -93,12 +93,13 @@ public:
 	bool m_selection_changed;
 	MEVENT m_last_mevent;
 	string m_selection_filter;
+	bool m_scroll_paused;
 	
 private:
 	void print_error(string wstr);
 	uint32_t mkcol(uint64_t n);
 	void draw_axis();
-	void draw_menu();
+	void draw_menu(bool there_is_more);
 	int64_t get_history_value_from_coordinate(uint32_t y, uint32_t x);
 	int64_t get_history_color_from_coordinate(uint32_t y, uint32_t x);
 	curses_spectro_history_row* get_history_row_from_coordinate(uint32_t y);
