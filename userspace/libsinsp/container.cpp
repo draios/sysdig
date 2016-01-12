@@ -309,7 +309,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 						if(container_uuid_pos == 0)
 						{
 							rkt_podid = env_var.substr(COREOS_PODID_VAR.size());
-							container_info.m_type = CT_RKT_COREOS;
+							container_info.m_type = CT_RKT;
 							container_info.m_id = rkt_podid + ":" + rkt_appname;
 							container_info.m_name = rkt_appname;
 							valid_id = true;
@@ -336,7 +336,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 				auto appname_suffix = tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix+FLY_PODID_SUFFIX.size());
 				rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
 											   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
-				container_info.m_type = CT_RKT_FLY;
+				container_info.m_type = CT_RKT;
 				container_info.m_id = rkt_podid + ":" + rkt_appname;
 				container_info.m_name = rkt_appname;
 				valid_id = true;
@@ -369,8 +369,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 				case CT_MESOS:
 					container_info.m_name = container_info.m_id;
 					break;
-				case CT_RKT_FLY:
-				case CT_RKT_COREOS:
+				case CT_RKT:
 #ifndef _WIN32
 					if(query_os_for_missing_info)
 					{

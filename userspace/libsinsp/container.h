@@ -24,8 +24,7 @@ enum sinsp_container_type
 	CT_LXC = 1,
 	CT_LIBVIRT_LXC = 2,
 	CT_MESOS = 3,
-	CT_RKT_COREOS = 4,
-	CT_RKT_FLY = 5
+	CT_RKT = 4
 };
 
 class sinsp_container_info
