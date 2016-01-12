@@ -119,6 +119,7 @@ private:
 	vector<uint32_t> m_colpalette;
 	sinsp_filter_check_reference* m_converter;
 	uint64_t m_n_flushes;
+	uint64_t m_n_flushes_with_data;
 	vector<curses_spectro_history_row> m_history;
 	curses_spectro_history_row m_t_row;
 	bool m_mouse_masked;
