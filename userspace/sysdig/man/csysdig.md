@@ -92,6 +92,9 @@ INTERACTIVE COMMANDS
 **F8**  
   Open the view's actions panel.  
 
+**F9, >**  
+  Open the column sort panel.  
+
 **F10, q**  
   Quit.  
 
@@ -100,6 +103,9 @@ INTERACTIVE COMMANDS
 
 **p**  
   Pause screen updates.  
+
+**`<shift> <1-9>`**  
+  sort column `<n>`  
 
 **F1, h, ?**  
   Show the help screen.  
