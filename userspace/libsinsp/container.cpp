@@ -90,12 +90,12 @@ bool sinsp_container_manager::get_container(const string& id, sinsp_container_in
 	return false;
 }
 
-bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, string* container_id)
+bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
-	for(vector<pair<string, string>>::const_iterator it = cgroups.begin(); it != cgroups.end(); ++it)
+	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
 		string cgroup = it->second;
 		size_t pos;
@@ -204,9 +204,69 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 		}
 	}
 
+	string rkt_podid, rkt_appname;
+	if(!valid_id)
+	{
+		// Try parsing from process root,
+		// Strings used to detect rkt stage1-cores pods
+		static const string COREOS_PREFIX = "/opt/stage2/";
+		static const string COREOS_APP_SUFFIX = "/rootfs";
+		static const string COREOS_PODID_VAR = "container_uuid=";
+
+		auto prefix = tinfo->m_root.find(COREOS_PREFIX);
+		if(prefix != string::npos)
+		{
+			auto suffix = tinfo->m_root.find(COREOS_APP_SUFFIX, prefix);
+			if(suffix != string::npos)
+			{
+				rkt_appname = tinfo->m_root.substr(prefix + COREOS_PREFIX.size(), suffix - prefix - COREOS_PREFIX.size());
+				// It is a rkt pod with stage1-coreos
+				sinsp_threadinfo* tinfo_it = tinfo;
+				while(!valid_id && tinfo_it != nullptr)
+				{
+					for(const auto& env_var : tinfo_it->m_env)
+					{
+						auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
+						if(container_uuid_pos == 0)
+						{
+							rkt_podid = env_var.substr(COREOS_PODID_VAR.size());
+							container_info.m_type = CT_RKT_COREOS;
+							container_info.m_id = rkt_podid + ":" + rkt_appname;
+							container_info.m_name = rkt_appname;
+							valid_id = true;
+							break;
+						}
+					}
+					tinfo_it = tinfo_it->get_parent_thread(); // FIXME: check query_os_if_not_found
+				}
+			}
+		}
+		else
+		{
+			// String used to detect stage1-fly pods
+			static const string FLY_PREFIX = "/var/lib/rkt/pods/run/";
+			static const string FLY_PODID_SUFFIX = "/stage1/rootfs/opt/stage2/";
+			static const string FLY_APP_SUFFIX = "/rootfs";
+
+			// FIXME: add more defence if
+			auto prefix = tinfo->m_root.find(FLY_PREFIX);
+			if(prefix != string::npos)
+			{
+				auto podid_suffix = tinfo->m_root.find(FLY_PODID_SUFFIX, prefix+FLY_PREFIX.size());
+				rkt_podid = tinfo->m_root.substr(prefix + FLY_PREFIX.size(), podid_suffix - prefix - FLY_PREFIX.size());
+				auto appname_suffix = tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix+FLY_PODID_SUFFIX.size());
+				rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
+											   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
+				container_info.m_type = CT_RKT_FLY;
+				container_info.m_id = rkt_podid + ":" + rkt_appname;
+				container_info.m_name = rkt_appname;
+				valid_id = true;
+			}
+		}
+	}
 	if(valid_id)
 	{
-		*container_id = container_info.m_id;
+		tinfo->m_container_id = container_info.m_id;
 
 		unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_info.m_id);
 		if(it == m_containers.end())
@@ -229,6 +289,15 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 					break;
 				case CT_MESOS:
 					container_info.m_name = container_info.m_id;
+					break;
+				case CT_RKT_FLY:
+				case CT_RKT_COREOS:
+#ifndef _WIN32
+					if(query_os_for_missing_info)
+					{
+						parse_rkt(&container_info, rkt_podid, rkt_appname);
+					}
+#endif
 					break;
 				default:
 					ASSERT(false);
@@ -416,6 +485,34 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	}
 	
 	return true;
+}
+
+bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
+										const string &podid, const string &appname)
+{
+	bool ret = false;
+	char pod_manifest_path[SCAP_MAX_PATH_SIZE];
+	snprintf(pod_manifest_path, sizeof(pod_manifest_path), "%s/var/lib/rkt/pods/run/%s/pod", scap_get_host_root(), podid.c_str());
+	Json::Reader reader;
+	Json::Value jroot;
+	ifstream pod_manifest(pod_manifest_path);
+	if(reader.parse(pod_manifest, jroot))
+	{
+		for(const auto& app_entry : jroot["apps"])
+		{
+			if(app_entry["name"].asString() == appname)
+			{
+				container->m_image = app_entry["image"]["name"].asString();
+				for(const auto& label_entry : app_entry["image"]["labels"])
+				{
+					container->m_labels.emplace(label_entry["name"].asString(), label_entry["value"].asString());
+				}
+				ret = true;
+				break;
+			}
+		}
+	}
+	return ret;
 }
 #endif
 

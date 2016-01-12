@@ -312,7 +312,8 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	ASSERT(m_inspector);
 	if(m_inspector)
 	{
-		m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
+		//m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
+		m_inspector->m_container_manager.resolve_container(this, m_inspector->m_islive);
 	}
 	//
 	// Prepare for filtering
