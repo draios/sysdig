@@ -133,6 +133,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_inspector = inspector;
 	m_converter = new sinsp_filter_check_reference();
 	m_n_flushes = 0;
+	m_n_flushes_with_data = 0;
 	m_mouse_masked = false;
 	m_lastx = -1;
 	m_lasty = -1;
@@ -274,8 +275,6 @@ void curses_spectro::draw_axis()
 
 void curses_spectro::draw_menu(bool there_is_more)
 {
-//	ansi_clearline();
-
 	printf("F1");
 	ansi_setcolor(24);
 	printf("Help  ");
@@ -347,6 +346,8 @@ void curses_spectro::render(bool data_changed)
 	{
 		unordered_map<uint64_t, uint32_t> freqs;
 
+		m_n_flushes_with_data++;
+
 		//
 		// Create a map with the frequencies for every latency interval
 		//
@@ -391,7 +392,7 @@ void curses_spectro::render(bool data_changed)
 
 		m_history.push_back(m_t_row);
 
-		bool will_pause = !m_inspector->is_live() && m_n_flushes % (m_h - 3) == 0;
+		bool will_pause = !m_inspector->is_live() && m_n_flushes_with_data % (m_h - 3) == 0;
 		
 		ansi_reset_color();
 		ansi_moveto(m_h - 1, 0);

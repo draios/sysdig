@@ -1986,7 +1986,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	// Avoid parsing keys during file load
 	//
-	if((!m_inspector->is_live()) && !is_eof())
+	if((!m_inspector->is_live()) && !is_eof() && !m_spectro->m_scroll_paused)
 	{
 		if(ch != KEY_BACKSPACE &&
 			ch != 127 &&
