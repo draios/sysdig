@@ -203,11 +203,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE, KEY_F(6)));
 		m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL, KEY_F(7)));
 		m_menuitems.push_back(sinsp_menuitem_info("F8", "Actions", sinsp_menuitem_info::ALL, KEY_F(8)));
-<<<<<<< HEAD
-		m_menuitems.push_back(sinsp_menuitem_info("F12", "Spectro", sinsp_menuitem_info::ALL, KEY_F(8)));
-=======
 		m_menuitems.push_back(sinsp_menuitem_info("F9", "Sort", sinsp_menuitem_info::ALL, KEY_F(9)));
->>>>>>> dev
+		m_menuitems.push_back(sinsp_menuitem_info("F12", "Spectro", sinsp_menuitem_info::ALL, KEY_F(8)));
 		m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
 		m_menuitems.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
 		m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST, 'c'));
