@@ -206,6 +206,7 @@ public:
 	uint64_t m_pfminor; ///< number of minor page faults since start.
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
+	string m_root;
 
 	//
 	// State for multi-event processing

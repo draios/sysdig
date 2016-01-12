@@ -407,6 +407,20 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 #endif	
 }
 
+int32_t scap_proc_fill_root(struct scap_threadinfo* tinfo, const char* procdirname)
+{
+	char root_path[SCAP_MAX_PATH_SIZE];
+	snprintf(root_path, sizeof(root_path), "%sroot", procdirname);
+	if ( readlink(root_path, tinfo->root, sizeof(tinfo->root)) > 0)
+	{
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		return SCAP_FAILURE;
+	}
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -652,6 +666,16 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	if(scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
 	{
 		tinfo->vpid = tinfo->pid;
+	}
+
+	//
+	// set the current root of the process
+	//
+	if(SCAP_FAILURE == scap_proc_fill_root(tinfo, dir_name))
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill root for %s", dir_name);
+		free(tinfo);
+		return SCAP_FAILURE;
 	}
 
 	//

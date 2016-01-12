@@ -308,12 +308,12 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
 	set_cgroups(pi->cgroups, pi->cgroups_len);
+	m_root = pi->root;
 	ASSERT(m_inspector);
 	if(m_inspector)
 	{
 		m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
 	}
-
 	//
 	// Prepare for filtering
 	//
