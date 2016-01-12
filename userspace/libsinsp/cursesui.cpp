@@ -1986,7 +1986,6 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	// Avoid parsing keys during file load
 	//
-
 	if((!m_inspector->is_live()) && !is_eof())
 	{
 		if(ch != KEY_BACKSPACE &&
@@ -2693,6 +2692,21 @@ action_end:
 	//
 	render();
 #endif //  NOCURSESUI
+}
+
+bool sinsp_cursesui::is_spectro_paused(int input)
+{
+	if(m_spectro == NULL)
+	{
+		return false;
+	}
+
+	if(input == ' ')
+	{
+		m_spectro->m_scroll_paused = false;
+	}
+
+	return m_spectro->m_scroll_paused;
 }
 
 #endif // CSYSDIG
