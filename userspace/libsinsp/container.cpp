@@ -327,19 +327,24 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			static const string FLY_PODID_SUFFIX = "/stage1/rootfs/opt/stage2/";
 			static const string FLY_APP_SUFFIX = "/rootfs";
 
-			// FIXME: add more defence if
 			auto prefix = tinfo->m_root.find(FLY_PREFIX);
 			if(prefix != string::npos)
 			{
 				auto podid_suffix = tinfo->m_root.find(FLY_PODID_SUFFIX, prefix+FLY_PREFIX.size());
-				rkt_podid = tinfo->m_root.substr(prefix + FLY_PREFIX.size(), podid_suffix - prefix - FLY_PREFIX.size());
-				auto appname_suffix = tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix+FLY_PODID_SUFFIX.size());
-				rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
-											   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
-				container_info.m_type = CT_RKT;
-				container_info.m_id = rkt_podid + ":" + rkt_appname;
-				container_info.m_name = rkt_appname;
-				valid_id = true;
+				if(podid_suffix != string::npos)
+				{
+					rkt_podid = tinfo->m_root.substr(prefix + FLY_PREFIX.size(), podid_suffix - prefix - FLY_PREFIX.size());
+					auto appname_suffix = tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix+FLY_PODID_SUFFIX.size());
+					if(appname_suffix != string::npos)
+					{
+						rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
+														   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
+						container_info.m_type = CT_RKT;
+						container_info.m_id = rkt_podid + ":" + rkt_appname;
+						container_info.m_name = rkt_appname;
+						valid_id = true;
+					}
+				}
 			}
 		}
 	}

@@ -3602,8 +3602,17 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 	auto retval = *(int64_t *)parinfo->m_val;
 	if(retval == 0)
 	{
-		const char* parstr;
-		evt->m_tinfo->m_root = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		const char* resolved_path;
+		auto path = evt->get_param_as_str(1, &resolved_path);
+		if(resolved_path[0] == 0)
+		{
+			evt->m_tinfo->m_root = path;
+		}
+		else
+		{
+			evt->m_tinfo->m_root = resolved_path;
+		}
+		cerr << __FUNCTION__ << ":" << __LINE__ << "root=" << evt->m_tinfo->m_root << endl;
 		// Root change, let's detect if we are on a container
 		ASSERT(m_inspector);
 		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
