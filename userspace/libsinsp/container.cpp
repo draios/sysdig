@@ -591,26 +591,24 @@ bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
 										const string &podid, const string &appname)
 {
 	bool ret = false;
-	char pod_manifest_path[SCAP_MAX_PATH_SIZE];
-	snprintf(pod_manifest_path, sizeof(pod_manifest_path), "%s/var/lib/rkt/pods/run/%s/pod", scap_get_host_root(), podid.c_str());
+	char image_manifest_path[SCAP_MAX_PATH_SIZE];
+	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
 	Json::Reader reader;
 	Json::Value jroot;
-	ifstream pod_manifest(pod_manifest_path);
-	if(reader.parse(pod_manifest, jroot))
+	ifstream image_manifest(image_manifest_path);
+	if(reader.parse(image_manifest, jroot))
 	{
-		for(const auto& app_entry : jroot["apps"])
+		container->m_image = jroot["name"].asString();
+		for(const auto& label_entry : jroot["labels"])
 		{
-			if(app_entry["name"].asString() == appname)
-			{
-				container->m_image = app_entry["image"]["name"].asString();
-				for(const auto& label_entry : app_entry["image"]["labels"])
-				{
-					container->m_labels.emplace(label_entry["name"].asString(), label_entry["value"].asString());
-				}
-				ret = true;
-				break;
-			}
+			container->m_labels.emplace(label_entry["name"].asString(), label_entry["value"].asString());
 		}
+		auto version_label_it = container->m_labels.find("version");
+		if(version_label_it != container->m_labels.end())
+		{
+			container->m_image += ":" + version_label_it->second;
+		}
+		ret = true;
 	}
 	return ret;
 }

@@ -327,6 +327,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			parse_k8s_evt(evt);
 		}
 		break;
+	case PPME_SYSCALL_CHROOT_X:
+		parse_chroot_exit(evt);
+		break;
 	default:
 		break;
 	}
@@ -3591,6 +3594,20 @@ void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 	ASSERT(m_inspector);
 	ASSERT(m_inspector->m_k8s_client);
 	m_inspector->m_k8s_client->simulate_watch_event(json);
+}
+
+void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
+{
+	auto parinfo = evt->get_param(0);
+	auto retval = *(int64_t *)parinfo->m_val;
+	if(retval == 0)
+	{
+		const char* parstr;
+		evt->m_tinfo->m_root = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		// Root change, let's detect if we are on a container
+		ASSERT(m_inspector);
+		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
+	}
 }
 
 void sinsp_parser::free_event_buffer(uint8_t *ptr)
