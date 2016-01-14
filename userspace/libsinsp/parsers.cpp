@@ -3601,7 +3601,6 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 		{
 			evt->m_tinfo->m_root = resolved_path;
 		}
-		cerr << __FUNCTION__ << ":" << __LINE__ << "root=" << evt->m_tinfo->m_root << endl;
 		// Root change, let's detect if we are on a container
 		ASSERT(m_inspector);
 		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
