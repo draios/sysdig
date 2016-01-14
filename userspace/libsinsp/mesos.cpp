@@ -81,6 +81,26 @@ void mesos::refresh(bool marathon)
 	}
 }
 
+bool mesos::is_alive() const
+{
+	bool connected = true;
+
+	connected &= m_state_http.is_connected();
+	for(const auto& group : m_marathon_groups_http)
+	{
+		connected &= group.second->is_connected();
+	}
+
+	for(const auto& app : m_marathon_apps_http)
+	{
+		connected &= app.second->is_connected();
+	}
+
+	connected &= (m_collector.subscription_count() > 0);
+
+	return connected;
+}
+
 void mesos::watch()
 {
 	if(m_marathon_watch_http.size())
