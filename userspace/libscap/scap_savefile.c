@@ -840,6 +840,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.vpid = -1;
 	tinfo.cgroups_len = 0;
 	tinfo.filtered_out = 0;
+	tinfo.root[0] = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
