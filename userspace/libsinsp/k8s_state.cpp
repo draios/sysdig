@@ -14,7 +14,8 @@
 
 #ifdef K8S_DISABLE_THREAD
 
-const std::string k8s_state_t::m_prefix = "docker://";
+const std::string k8s_state_t::m_docker_prefix = "docker://";
+const std::string k8s_state_t::m_rkt_prefix = "rkt://";
 const unsigned    k8s_state_t::m_id_length = 12u;
 
 #endif // K8S_DISABLE_THREAD
