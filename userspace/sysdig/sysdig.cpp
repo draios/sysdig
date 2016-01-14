@@ -769,11 +769,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-<<<<<<< HEAD
-                                        "hi:jk:K:lLNn:Pp:qr:Ss:t:v"
-=======
-                                        "hi:jk:lLM:Nn:Pp:qr:Ss:t:v"
->>>>>>> dev
+                                        "hi:jk:K:lLM:Nn:Pp:qr:Ss:t:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
