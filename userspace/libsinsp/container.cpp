@@ -495,10 +495,12 @@ bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
 										const string &podid, const string &appname)
 {
 	bool ret = false;
-	char image_manifest_path[SCAP_MAX_PATH_SIZE];
-	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
 	Json::Reader reader;
 	Json::Value jroot;
+
+	unordered_map<string, uint32_t> image_ports;
+	char image_manifest_path[SCAP_MAX_PATH_SIZE];
+	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
 	ifstream image_manifest(image_manifest_path);
 	if(reader.parse(image_manifest, jroot))
 	{
@@ -512,7 +514,42 @@ bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
 		{
 			container->m_image += ":" + version_label_it->second;
 		}
+		for(const auto& image_port : jroot["app"]["ports"])
+		{
+			image_ports.emplace(image_port["name"].asString(), image_port["port"].asUInt());
+		}
 		ret = true;
+	}
+
+	char net_info_path[SCAP_MAX_PATH_SIZE];
+	snprintf(net_info_path, sizeof(net_info_path), "%s/var/lib/rkt/pods/run/%s/net-info.json", scap_get_host_root(), podid.c_str());
+	ifstream net_info(net_info_path);
+	if(reader.parse(net_info, jroot) && jroot.size() > 0)
+	{
+		auto first_net = jroot[0];
+		if(inet_pton(AF_INET, first_net["ip"].asCString(), &container->m_container_ip) == -1)
+		{
+			ASSERT(false);
+		}
+		container->m_container_ip = ntohl(container->m_container_ip);
+	}
+
+	char pod_manifest_path[SCAP_MAX_PATH_SIZE];
+	snprintf(pod_manifest_path, sizeof(pod_manifest_path), "%s/var/lib/rkt/pods/run/%s/pod", scap_get_host_root(), podid.c_str());
+	ifstream pod_manifest(pod_manifest_path);
+	if(reader.parse(pod_manifest, jroot) && jroot.size() > 0)
+	{
+		for(const auto& jport : jroot["ports"])
+		{
+			auto host_port = jport["hostPort"].asUInt();
+			if(host_port > 0)
+			{
+				sinsp_container_info::container_port_mapping port_mapping;
+				port_mapping.m_host_port = host_port;
+				port_mapping.m_container_port = image_ports.at(jport["name"].asString());
+				container->m_port_mappings.emplace_back(move(port_mapping));
+			}
+		}
 	}
 	return ret;
 }
