@@ -92,6 +92,9 @@ INTERACTIVE COMMANDS
 **F8**  
   Open the view's actions panel.  
 
+**F9, >**  
+  Open the column sort panel.  
+
 **F10, q**  
   Quit.  
 
@@ -100,6 +103,9 @@ INTERACTIVE COMMANDS
 
 **p**  
   Pause screen updates.  
+
+**`<shift> <1-9>`**  
+  sort column `<n>`  
 
 **F1, h, ?**  
   Show the help screen.  
@@ -151,6 +157,9 @@ COMMAND LINE OPTIONS
 
 **-k**, **--k8s-api**
   Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
+
+**-K** _filename_, **--k8s-api-cert=**_filename_
+  Use the provided certificate file name to authenticate with the K8S API server. Filename must be a full absolute or relative (to the current directory) path to the certificate file. The certificate can also be specified via the environment variable SYSDIG_K8S_API_CERT.
 
 **-l**, **--list**  
   List all the fields that can be used in views.

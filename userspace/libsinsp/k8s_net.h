@@ -24,7 +24,8 @@ class k8s_net
 {
 public:
 	k8s_net(k8s& kube, const std::string& uri = "http://localhost:80",
-		const std::string& api = "/api/v1/");
+		const std::string& api = "/api/v1/",
+		const std::string& cert = "");
 
 	~k8s_net();
 
@@ -58,6 +59,8 @@ private:
 	k8s&          m_k8s;
 	uri           m_uri;
 	std::string   m_creds;
+	std::string   m_api;
+	std::string   m_cert;
 	bool          m_stopped;
 	api_map_t     m_api_interfaces;
 	k8s_collector m_collector;

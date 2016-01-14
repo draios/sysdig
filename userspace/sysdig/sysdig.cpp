@@ -138,14 +138,22 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
-" -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
+" -k, --k8s-api <url>\n"
+"                    Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
 "                    The API server can also be specified via the environment variable\n"
 "                    SYSDIG_K8S_API.\n"
+" -K <file_name>, --k8s-api-cert=<file_name>\n"
+"                    Use the provided certificate file name to authenticate with the K8S API server.\n"
+"                    Filename must be a full absolute or relative (to the current directory) path\n"
+"                    to the certificate file.\n"
+"                    The certificate can also be specified via the environment variable\n"
+"                    SYSDIG_K8S_API_CERT.\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" -M <num_seconds>   Stop collecting after <num_seconds> reached.\n"
 " -N                 Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
@@ -476,6 +484,7 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 //
 captureinfo do_inspect(sinsp* inspector,
 	uint64_t cnt,
+	int duration_to_tot,
 	bool quiet,
 	bool json,
 	bool do_flush,
@@ -489,6 +498,7 @@ captureinfo do_inspect(sinsp* inspector,
 	sinsp_evt* ev;
 	string line;
 	double last_printed_progress_pct = 0;
+        int duration_start = 0;
 
 	if(json)
 	{
@@ -498,8 +508,18 @@ captureinfo do_inspect(sinsp* inspector,
 	//
 	// Loop through the events
 	//
+	duration_start = ((double)clock()) / CLOCKS_PER_SEC;
 	while(1)
 	{
+		if(duration_to_tot > 0)
+		{
+			int duration_tot = ((double)clock()) / CLOCKS_PER_SEC - duration_start;
+			if(duration_tot >= duration_to_tot)
+			{
+				handle_end_of_file(print_progress, formatter);
+				break;
+			}
+		}
 		if(retval.m_nevts == cnt || g_terminate)
 		{
 			//
@@ -665,6 +685,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
+	int duration_to_tot = 0;
 	captureinfo cinfo;
 	string output_format;
 	uint32_t snaplen = 0;
@@ -677,6 +698,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
 	string* k8s_api = 0;
+	string* k8s_api_cert = 0;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -706,6 +728,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
 		{"k8s-api", required_argument, 0, 'k'},
+		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"numevents", required_argument, 0, 'n' },
@@ -746,7 +769,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:lLNn:Pp:qr:Ss:t:v"
+                                        "hi:jk:K:lLM:Nn:Pp:qr:Ss:t:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -891,6 +914,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'k':
 				k8s_api = new string(optarg);
 				break;
+			case 'K':
+				k8s_api_cert = new string(optarg);
+				break;
 			case 'h':
 				usage();
 				delete inspector;
@@ -902,6 +928,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				list_events(inspector);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			case 'M':
+				duration_to_tot = atoi(optarg);
+				if(duration_to_tot <= 0)
+				{
+					throw sinsp_exception(string("invalid duration") + optarg);
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
 			case 'N':
 				inspector->set_hostname_and_port_resolution_mode(false);
 				break;
@@ -1309,25 +1344,43 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			if(k8s_api)
 			{
-				inspector->init_k8s_client(k8s_api);
+				if(!k8s_api_cert)
+				{
+					if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
+					{
+						k8s_api_cert = new string(k8s_cert_env);
+					}
+				}
+				inspector->init_k8s_client(k8s_api, k8s_api_cert);
 				k8s_api = 0;
+				k8s_api_cert = 0;
 			}
 			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
 			{
 				if(k8s_api_env != NULL)
 				{
+					if(!k8s_api_cert)
+					{
+						if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
+						{
+							k8s_api_cert = new string(k8s_cert_env);
+						}
+					}
 					k8s_api = new string(k8s_api_env);
-					inspector->init_k8s_client(k8s_api);
+					inspector->init_k8s_client(k8s_api, k8s_api_cert);
 				}
 				else
 				{
 					delete k8s_api;
+					delete k8s_api_cert;
 				}
 				k8s_api = 0;
+				k8s_api_cert = 0;
 			}
 
 			cinfo = do_inspect(inspector,
 				cnt,
+                                duration_to_tot,
 				quiet,
 				jflag,
 				unbuf_flag,

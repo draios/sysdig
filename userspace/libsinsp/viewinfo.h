@@ -143,7 +143,6 @@ public:
 	void apply_tag(string tag);
 
 	void run_action(sinsp_view_action_info* action);
-
 	string m_id;
 	string m_name;
 	string m_description;
@@ -160,13 +159,16 @@ public:
 	string m_drilldown_target;
 	bool m_is_root;
 	vector<sinsp_view_action_info> m_actions;
-
+	vector<char> m_col_sort_hotkeys;
+	uint32_t max_col_sort_hotkeys;
 private:
 	void set_sorting_col();
 	void move_key_to_front(uint32_t keyflag);
+	void set_col_sorting_hotkeys();
 
 	uint32_t m_n_sorting_cols;
 };
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // View manager

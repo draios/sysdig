@@ -24,7 +24,8 @@ public:
 		bool start_watch = false,
 		bool watch_in_thread = false,
 		bool is_captured = false,
-		const std::string& api = "/api/v1/");
+		const std::string& api = "/api/v1/",
+		const std::string& cert = "");
 
 	~k8s();
 
