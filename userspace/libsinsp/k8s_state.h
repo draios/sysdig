@@ -210,7 +210,7 @@ public:
 	{
 		if(m_is_captured)
 		{
-			m_capture_events.emplace_back(Json::FastWriter().write(item));
+			m_capture_events.emplace_back(Json::FastWriter().write(extract_capture_data(item)));
 		}
 	}
 	std::string dequeue_capture_event()
@@ -230,6 +230,8 @@ public:
 private:
 
 	void update_cache(const k8s_component::component_map::key_type& component);
+	static k8s_component::type component_from_json(const Json::Value& item);
+	static Json::Value extract_capture_data(const Json::Value& item);
 
 #ifdef K8S_DISABLE_THREAD
 

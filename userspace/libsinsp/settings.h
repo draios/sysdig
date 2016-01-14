@@ -24,7 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 //
 // Memory storage size for an entry in the event storage LIFO.
-// Events bigger than SP_STORAGE_EVT_BUF_SIZE won't be be stored in the LIFO.
+// Events bigger than SP_EVT_BUF_SIZE won't be be stored in the LIFO.
 //
 #define SP_EVT_BUF_SIZE 4096
 
