@@ -39,7 +39,6 @@ public:
 			m_container_port(0)
 		{
 		}
-
 		uint32_t m_host_ip;
 		uint16_t m_host_port;
 		uint16_t m_container_port;
