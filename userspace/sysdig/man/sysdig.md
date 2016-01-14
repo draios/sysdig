@@ -145,7 +145,7 @@ OPTIONS
   Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
 
 **-K** _filename_, **--k8s-api-cert=**_filename_
-  Use the provided certificate file name to authenticate with the K8S API server. Filename must be a full absolute or relative (to the current directory) path to the certificate file. The certificate can also be specified via the environment variable SYSDIG_K8S_API_CERT.\
+  Use the provided certificate file name to authenticate with the K8S API server. Filename must be a full absolute or relative (to the current directory) path to the certificate file. The certificate can also be specified via the environment variable SYSDIG_K8S_API_CERT.
 
 **-L**, **--list-events**
   List the events that the engine supports
