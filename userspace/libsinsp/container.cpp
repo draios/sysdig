@@ -164,7 +164,6 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	ASSERT(tinfo);
-	string* container_id = &tinfo->m_container_id;
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
@@ -316,7 +315,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 							break;
 						}
 					}
-					tinfo_it = tinfo_it->get_parent_thread(); // FIXME: check query_os_if_not_found
+					tinfo_it = tinfo_it->get_parent_thread();
 				}
 			}
 		}
