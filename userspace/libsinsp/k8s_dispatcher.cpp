@@ -518,7 +518,6 @@ void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 	}
 	else
 	{
-		// TODO: bad notification - discard or throw?
 		g_logger.log("Bad JSON message received.", sinsp_logger::SEV_ERROR);
 	}
 }

@@ -339,3 +339,207 @@ void k8s_state_t::update_cache(const k8s_component::component_map::key_type& com
 #endif // K8S_DISABLE_THREAD
 }
 
+k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
+{
+	const Json::Value& kind = item["kind"];
+	if(kind.isNull() || !kind.isString())
+	{
+		throw sinsp_exception("Component kind not found in JSON.");
+	}
+	std::string comp = kind.asString();
+	if(comp == "Node")
+	{
+		return k8s_component::K8S_NODES;
+	}
+	else if(comp == "Namespace")
+	{
+		return k8s_component::K8S_NAMESPACES;
+	}
+	else if(comp == "Pod")
+	{
+		return k8s_component::K8S_PODS;
+	}
+	else if(comp == "ReplicationController")
+	{
+		return k8s_component::K8S_REPLICATIONCONTROLLERS;
+	}
+	else if(comp == "Service")
+	{
+		return k8s_component::K8S_SERVICES;
+	}
+
+	throw sinsp_exception("Unknown component kind:" + comp);
+}
+
+Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
+{
+	k8s_component::type component = component_from_json(item);
+
+	Json::Value cap_item;
+
+#ifdef HAS_CAPTURE
+
+	Json::Value ver = item["apiVersion"];
+	if(!ver.isNull() && ver.isString())
+	{
+		cap_item["apiVersion"] = ver.asString();
+	}
+	else
+	{
+		throw sinsp_exception("K8S capture: API version not provided.");
+	}
+
+	Json::Value type = item["type"];
+	if(!type.isNull() && type.isString())
+	{
+		cap_item["type"] = type.asString();
+	}
+	else
+	{
+		throw sinsp_exception("K8S capture: event type not provided.");
+	}
+
+	Json::Value kind = item["kind"];
+	if(!kind.isNull() && kind.isString())
+	{
+		cap_item["kind"] = kind.asString();
+	}
+	else
+	{
+		throw sinsp_exception("K8S capture: component kind not provided.");
+	}
+	const Json::Value& object = item["object"];
+	if(object.isNull())
+	{
+		throw sinsp_exception("K8S capture: object not found.");
+	}
+
+	cap_item["object"] = Json::Value();
+	Json::Value& cap_object = cap_item["object"];
+	cap_object["metadata"] = Json::Value();
+	Json::Value& cap_metadata = cap_object["metadata"];
+
+	const Json::Value& metadata = object["metadata"];
+	if(metadata.isNull())
+	{
+		throw sinsp_exception("K8S capture: object metadata not found.");
+	}
+	else
+	{
+		Json::Value ns = metadata["namespace"];
+		if(!ns.isNull())
+		{
+			cap_metadata["namespace"] = ns.asString();
+		}
+		cap_metadata["name"] = metadata["name"].asString();
+		cap_metadata["uid"] = metadata["uid"].asString();
+
+		Json::Value labels = metadata["labels"];
+		if(!labels.isNull())
+		{
+			cap_metadata["labels"] = labels;
+		}
+	}
+
+	Json::Value spec = object["spec"];
+	if(spec.isNull())
+	{
+		throw sinsp_exception("K8S capture: object spec not found.");
+	}
+	else
+	{
+		Json::Value selector = spec["selector"];
+		if(!selector.isNull())
+		{
+			cap_object["spec"] = Json::Value();
+			Json::Value& cap_spec = cap_object["spec"];
+			cap_spec["selector"] = std::move(selector);
+		}
+	}
+
+	Json::Value status = object["status"];
+	if(status.isNull())
+	{
+		throw sinsp_exception("K8S capture: object status not found.");
+	}
+
+	switch(component)
+	{
+	case k8s_component::K8S_NAMESPACES:
+		break;
+
+	case k8s_component::K8S_NODES:
+		{
+			cap_object["status"] = Json::Value();
+			Json::Value& cap_status = cap_object["status"];
+			cap_object["status"] = Json::Value();
+			cap_status["addresses"] = status["addresses"];
+		}
+		break;
+
+	case k8s_component::K8S_PODS:
+		{
+			cap_object["spec"] = Json::Value();
+			Json::Value& cap_spec = cap_object["spec"];
+			const Json::Value& node_name = spec["nodeName"];
+			if(!node_name.isNull())
+			{
+				cap_spec["nodeName"] = node_name.asString();
+			}
+
+			cap_object["status"] = Json::Value();
+			Json::Value& cap_status = cap_object["status"];
+			const Json::Value& host_ip = status["hostIP"];
+			if(!host_ip.isNull())
+			{
+				cap_status["hostIP"] = host_ip.asString();
+			}
+			const Json::Value& pod_ip = status["podIP"];
+			if(!pod_ip.isNull())
+			{
+				cap_status["podIP"] = pod_ip.asString();
+			}
+
+			if(status.isMember("containerStatuses") && status["containerStatuses"].isArray())
+			{
+				for(const auto& c_status : status["containerStatuses"])
+				{
+					Json::Value new_cid;
+					new_cid["containerID"] = c_status["containerID"];
+					cap_status["containerStatuses"].append(new_cid);
+				}
+			}
+		}
+		break;
+
+	case k8s_component::K8S_SERVICES:
+		{
+			cap_object["spec"] = Json::Value();
+			Json::Value& cap_spec = cap_object["spec"];
+			cap_spec["clusterIP"] = spec["clusterIP"].asString();
+			cap_spec["ports"] = spec["ports"];
+		}
+		break;
+
+	case k8s_component::K8S_REPLICATIONCONTROLLERS:
+		break;
+
+	default: break;
+	}
+	std::ostringstream os;
+	std::string nspace;
+	if(cap_metadata.isMember("namespace"))
+	{
+		nspace = cap_metadata["namespace"].asString();
+	}
+	os << "Capture: [" << cap_item["type"].asString() << ',' << cap_item["kind"].asString() << ',' <<
+				cap_metadata["name"].asString() << ',' << cap_metadata["uid"].asString() << ',' << nspace << ']';
+	g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+	//g_logger.log(item.toStyledString(), sinsp_logger::SEV_DEBUG);
+	//g_logger.log(cap_item.toStyledString(), sinsp_logger::SEV_DEBUG);
+
+#endif // HAS_CAPTURE
+
+	return cap_item;
+}
+

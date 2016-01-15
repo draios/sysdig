@@ -23,7 +23,8 @@ k8s_http::k8s_http(k8s& k8s,
 	const std::string& host_and_port,
 	const std::string& protocol,
 	const std::string& credentials,
-	const std::string& api):
+	const std::string& api,
+	const std::string& cert):
 		m_curl(curl_easy_init()),
 		m_k8s(k8s),
 		m_protocol(protocol),
@@ -31,6 +32,7 @@ k8s_http::k8s_http(k8s& k8s,
 		m_api(api),
 		m_component(component),
 		m_credentials(credentials),
+		m_cert(cert),
 		m_watch_socket(0),
 		m_data_ready(false)
 {
@@ -40,10 +42,25 @@ k8s_http::k8s_http(k8s& k8s,
 	}
 
 	curl_version_info_data* data = curl_version_info(CURLVERSION_NOW);
-	if((protocol == "https") && !(data->features | CURL_VERSION_SSL))
+	if((protocol == "https"))
+	{
+		if(!(data->features | CURL_VERSION_SSL))
+		{
+			cleanup();
+			throw sinsp_exception("HTTPS NOT supported");
+		}
+	}
+	else if((protocol == "http"))
+	{
+		if(!m_cert.empty())
+		{
+			g_logger.log("Certificate (" + cert + ") provided with HTTP, ignored.", sinsp_logger::SEV_WARNING);
+		}
+	}
+	else
 	{
 		cleanup();
-		throw sinsp_exception("HTTPS NOT supported");
+		throw sinsp_exception("Protocol not supported:" + protocol);
 	}
 
 	std::ostringstream url;
@@ -90,13 +107,29 @@ size_t k8s_http::write_data(void *ptr, size_t size, size_t nmemb, void *cb)
 
 bool k8s_http::get_all_data(std::ostream& os)
 {
-	g_logger.log(std::string("Retrieving all data from ") + m_url, sinsp_logger::SEV_DEBUG);
+	CURLcode res = CURLE_OK;
+
+	g_logger.log(std::string("Retrieving all K8S data from ") + m_url, sinsp_logger::SEV_DEBUG);
 	curl_easy_setopt(m_curl, CURLOPT_URL, m_url.c_str());
 	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L);
 	
 	if(m_protocol == "https")
 	{
-		check_error(curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0));
+		if(m_cert.empty())
+		{
+			check_error(curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0));
+		}
+		else
+		{
+			g_logger.log(std::string("K8S HTTPS using certificate auth: ") + m_cert, sinsp_logger::SEV_DEBUG);
+			check_error(curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 1));
+			res = curl_easy_setopt(m_curl, CURLOPT_CAINFO, m_cert.c_str());
+			if(res != CURLE_OK)
+			{
+				os << curl_easy_strerror(res) << std::flush;
+				return false;
+			}
+		}
 	}
 
 	curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
@@ -104,11 +137,21 @@ bool k8s_http::get_all_data(std::ostream& os)
 	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &k8s_http::write_data);
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os);
 
-	CURLcode res = curl_easy_perform(m_curl);
-
+	res = curl_easy_perform(m_curl);
 	if(res != CURLE_OK)
 	{
 		os << curl_easy_strerror(res) << std::flush;
+	}
+	else
+	{
+		// HTTP errors are not returned by curl API
+		// error will be in the response stream
+		long http_code = 0;
+		curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code);
+		if(http_code >= 400)
+		{
+			return false;
+		}
 	}
 
 	return res == CURLE_OK;

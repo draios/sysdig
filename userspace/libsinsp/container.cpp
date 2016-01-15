@@ -78,9 +78,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-bool sinsp_container_manager::get_container(const string& id, sinsp_container_info* container_info)
+bool sinsp_container_manager::get_container(const string& container_id, sinsp_container_info* container_info) const
 {
-	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(id);
+	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_id);
 	if(it != m_containers.end())
 	{
 		*container_info = it->second;
@@ -90,8 +90,81 @@ bool sinsp_container_manager::get_container(const string& id, sinsp_container_in
 	return false;
 }
 
+sinsp_container_info* sinsp_container_manager::get_container(const string& container_id)
+{
+	unordered_map<string, sinsp_container_info>::iterator it = m_containers.find(container_id);
+	if(it != m_containers.end())
+	{
+		return &it->second;
+	}
+
+	return NULL;
+}
+
+bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container, const string& task_id, int64_t ptid)
+{
+	ASSERT(container);
+	const string& container_id = container->m_id;
+	if(task_id.empty() && -1 == ptid)
+	{
+		g_logger.log("Mesos container [" + container_id + "] detection attempted with insufficient information provided.", sinsp_logger::SEV_WARNING);
+		return false;
+	}
+
+	// there are applications that do not share their environment in /proc/[PID]/environ
+	// since we need MESOS_TASK_ID environment variable to discover Mesos containers,
+	// there is a workaround for such cases:
+	// - for docker containers, we discover it directly from container, through Remote API
+	//   (see sinsp_container_manager::parse_docker() for details)
+	// - for mesos native containers, parent process has the MESOS_TASK_ID env variable,
+	//   so we peek into the parent process environment to discover it
+
+	if(container)
+	{
+		if(container->m_mesos_task_id.empty())
+		{
+			if(!task_id.empty())
+			{
+				container->m_mesos_task_id = task_id;
+				g_logger.log("Mesos container: [" + container_id + "], Mesos task ID: [" + task_id + ']', sinsp_logger::SEV_INFO);
+				return true;
+			}
+			else if(-1 != ptid && container->m_type == CT_MESOS)
+			{
+				sinsp_threadinfo* tinfo = m_inspector->find_thread(ptid, true);
+				if(tinfo)
+				{
+					string mtid = tinfo->get_env("MESOS_TASK_ID");
+					if(!mtid.empty())
+					{
+						g_logger.log("Mesos native container: [" + container_id + "], Mesos task ID: " + mtid + ", PTID:[" + std::to_string(ptid) +']', sinsp_logger::SEV_INFO);
+						container->m_mesos_task_id = mtid;
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+string sinsp_container_manager::get_mesos_task_id(const string& container_id)
+{
+	string mesos_task_id;
+	const sinsp_container_info* container = get_container(container_id);
+	if(container)
+	{
+		mesos_task_id = container->m_mesos_task_id;
+	}
+
+	return mesos_task_id;
+}
+
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
+	ASSERT(tinfo);
+	string* container_id = &tinfo->m_container_id;
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
@@ -200,6 +273,12 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
 			valid_id = true;
+			string mesos_task_id = tinfo->get_env("MESOS_TASK_ID");
+			int64_t ptid = tinfo->m_ptid;
+			if(!mesos_task_id.empty() || (-1 != ptid))
+			{
+				set_mesos_task_id(&container_info, mesos_task_id, ptid);
+			}
 			continue;
 		}
 	}
@@ -432,21 +511,26 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		return false;
 	}
 
-	container->m_image = root["Config"]["Image"].asString();
+	const Json::Value& config_obj = root["Config"];
+
+	container->m_image = config_obj["Image"].asString();
 	container->m_name = root["Name"].asString();
+
 	if(!container->m_name.empty() && container->m_name[0] == '/')
 	{
 		container->m_name = container->m_name.substr(1);
 	}
 
-	string ip = root["NetworkSettings"]["IPAddress"].asString();
+	const Json::Value& net_obj = root["NetworkSettings"];
+
+	string ip = net_obj["IPAddress"].asString();
 	if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
 	{
 		ASSERT(false);
 	}
 	container->m_container_ip = ntohl(container->m_container_ip);
 
-	vector<string> ports = root["NetworkSettings"]["Ports"].getMemberNames();
+	vector<string> ports = net_obj["Ports"].getMemberNames();
 	for(vector<string>::const_iterator it = ports.begin(); it != ports.end(); ++it)
 	{
 		size_t tcp_pos = it->find("/tcp");
@@ -457,7 +541,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 
 		uint16_t container_port = atoi(it->c_str());
 
-		Json::Value& v = root["NetworkSettings"]["Ports"][*it];
+		const Json::Value& v = net_obj["Ports"][*it];
 		if(v.isArray())
 		{
 			for(uint32_t j = 0; j < v.size(); ++j)
@@ -481,13 +565,30 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		}
 	}
 
-	vector<string> labels = root["Config"]["Labels"].getMemberNames();
+	vector<string> labels = config_obj["Labels"].getMemberNames();
 	for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
 	{
-		string val = root["Config"]["Labels"][*it].asString();
+		string val = config_obj["Labels"][*it].asString();
 		container->m_labels[*it] = val;
 	}
-	
+
+	const Json::Value& env_vars = config_obj["Env"];
+	static const string mti = "MESOS_TASK_ID";
+	string mesos_task_id;
+	for(const auto& env_var : env_vars)
+	{
+		if(env_var.isString())
+		{
+			mesos_task_id = env_var.asString();
+			if((mesos_task_id.length() > (mti.length() + 1)) && (mesos_task_id.substr(0, mti.length()) == mti))
+			{
+				container->m_mesos_task_id = mesos_task_id.substr(mti.length() + 1);
+				g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_INFO);
+				break;
+			}
+		}
+	}
+
 	return true;
 }
 
