@@ -307,12 +307,10 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
+
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	ASSERT(m_inspector);
-	if(m_inspector)
-	{
-		m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
-	}
+	m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, this);
 
 	//
 	// Prepare for filtering
@@ -404,9 +402,44 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 	size_t offset = 0;
 	while(offset < len)
 	{
-		m_env.push_back(env + offset);
+		const char* left = env + offset;
+		// environment string may actually be shorter than indicated by len
+		// if the rest is empty, we bail out early
+		if(!strlen(left))
+		{
+			size_t sz = len - offset;
+			void* zero = calloc(sz, sizeof(char));
+			if(!memcmp(left, zero, sz))
+			{
+				free(zero);
+				return;
+			}
+			free(zero);
+		}
+		m_env.push_back(left);
+
 		offset += m_env.back().length() + 1;
 	}
+}
+
+string sinsp_threadinfo::get_env(const string& name) const
+{
+	for(const auto& env_var : m_env)
+	{
+		if((env_var.length() > name.length()) && (env_var.substr(0, name.length()) == name))
+		{
+			std::string::size_type pos = env_var.find('=');
+			if(pos != std::string::npos && env_var.size() > pos + 1)
+			{
+				string val = env_var.substr(pos + 1);
+				std::string::size_type first = val.find_first_not_of(' ');
+				std::string::size_type last = val.find_last_not_of(' ');
+				return val.substr(first, last - first + 1);
+			}
+		}
+	}
+
+	return "";
 }
 
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)

@@ -1235,7 +1235,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive, &tinfo.m_container_id);
+			m_inspector->m_container_manager.resolve_container_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive, &tinfo);
 			break;
 	}
 
@@ -1405,7 +1405,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
 		if(evt->m_tinfo->m_container_id.empty())
 		{
-			m_inspector->m_container_manager.resolve_container_from_cgroups(evt->m_tinfo->m_cgroups, m_inspector->m_islive, &evt->m_tinfo->m_container_id);
+			m_inspector->m_container_manager.resolve_container_from_cgroups(evt->m_tinfo->m_cgroups, m_inspector->m_islive, evt->m_tinfo);
 		}
 		break;
 	default:
@@ -1491,6 +1491,7 @@ void schedule_more_k8s_evts(sinsp* inspector, void* data)
 {
 #ifdef HAS_CAPTURE
 	ASSERT(data);
+	bool good_event = false;
 	k8s_metaevents_state* state = (k8s_metaevents_state*)data;
 
 	if(state->m_new_group == true)
@@ -1512,19 +1513,29 @@ void schedule_more_k8s_evts(sinsp* inspector, void* data)
 		return;
 	}
 	string payload = k8s_client->dequeue_capture_event();
-	state->m_piscapevt->len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
-	ASSERT(state->m_piscapevt->len <= SP_EVT_BUF_SIZE);
-	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
-	plen[0] = (uint16_t)payload.size() + 1;
-	uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
-	memcpy(edata, payload.c_str(), plen[0]);
+	std::size_t tot_len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
+
+	if(tot_len <= SP_EVT_BUF_SIZE)
+	{
+		state->m_piscapevt->len = tot_len;
+		uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
+		plen[0] = (uint16_t)payload.size() + 1;
+		uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
+		memcpy(edata, payload.c_str(), plen[0]);
+		good_event = true;
+	}
+	else
+	{
+		g_logger.log("K8S event larger than available buffer, will not be recorded. "
+					"This may result in an inaccurate K8S event log.", sinsp_logger::SEV_ERROR);
+	}
 
 	state->m_n_additional_k8s_events_to_add--;
 	if(state->m_n_additional_k8s_events_to_add == 0)
 	{
 		inspector->remove_meta_event_callback();
 	}
-	else
+	else if(good_event)
 	{
 		inspector->add_meta_event(&state->m_metaevt);
 	}

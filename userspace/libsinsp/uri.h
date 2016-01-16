@@ -33,8 +33,10 @@ public:
 	const std::string& get_query() const;
 	void set_query(const std::string& query);
 
-    int get_port() const;
+	int get_port() const;
 	void set_port(int port);
+
+	bool is_secure() const;
 
 	std::string to_string() const;
 
@@ -60,7 +62,7 @@ inline const std::string& uri::get_scheme() const
 
 inline void uri::set_scheme(const std::string&  scheme)
 {
-	m_scheme = scheme;	
+	m_scheme = scheme;
 }
 
 inline const std::string& uri::get_user() const
@@ -70,7 +72,7 @@ inline const std::string& uri::get_user() const
 
 inline void uri::set_user(const std::string&  user)
 {
-	m_user = user;	
+	m_user = user;
 }
 
 inline const std::string& uri::get_password() const
@@ -80,7 +82,7 @@ inline const std::string& uri::get_password() const
 
 inline void uri::set_password(const std::string&  password)
 {
-	m_password = password;	
+	m_password = password;
 }
 
 inline const std::string& uri::get_host() const
@@ -90,7 +92,7 @@ inline const std::string& uri::get_host() const
 
 inline void uri::set_host(const std::string&  host)
 {
-	m_host = host;	
+	m_host = host;
 }
 
 inline const std::string& uri::get_path() const
@@ -100,7 +102,7 @@ inline const std::string& uri::get_path() const
 
 inline void uri::set_path(const std::string&  path)
 {
-	m_path = path;	
+	m_path = path;
 }
 
 inline const std::string& uri::get_query() const
@@ -110,7 +112,7 @@ inline const std::string& uri::get_query() const
 
 inline void uri::set_query(const std::string&  query)
 {
-	m_query = query;	
+	m_query = query;
 }
 
 inline int uri::get_port() const
@@ -120,7 +122,7 @@ inline int uri::get_port() const
 
 inline void uri::set_port(int port)
 {
-	m_port = port;	
+	m_port = port;
 }
 
 inline std::string uri::extract_path(std::string& str)
@@ -146,4 +148,9 @@ inline std::string uri::extract_password(std::string &userpass)
 inline std::string uri::extract_auth(std::string& str)
 {
 	return head_chunk(str, "@"); 
+}
+
+inline bool uri::is_secure() const
+{
+	return "https" == m_scheme;
 }
