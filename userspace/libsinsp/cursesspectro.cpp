@@ -55,6 +55,10 @@ using namespace std;
 uint32_t g_colpalette[] = 
 {
 	22, 28, 64, 34, 2, 76, 46, 118, 154, 191, 227, 226, 11, 220, 209, 208, 202, 197, 9, 1
+//	17, 18, 21, 26, 27, 32, 33, 38, 39, 45, 51, 87, 159, 195, 231, 7
+//	238, 241, 243, 245, 246, 247, 39, 38, 33, 32, 27, 26, 21, 18, 17
+//	236, 237, 238, 239, 240, 241, 242, 243, 244,245,246,247,248,249,250,251,252,253,254, 255,
+//	236, 238, 240, 242, 243, 244,246,248,250,252,254,195,159,87,45, 39, 33, 27,21
 };
 uint32_t g_colpalette_size = sizeof(g_colpalette) / sizeof(g_colpalette[0]);
 
@@ -164,6 +168,14 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	{
 		parent->m_offline_replay = true;
 	}
+/*
+	for(uint32_t j = 0; j < 256; j++)
+	{
+		ansi_setcolor(j);
+		printf("%d ", (int)j);
+	}
+	exit(0);
+*/	
 }
 
 curses_spectro::~curses_spectro()
@@ -477,11 +489,11 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 						}
 
 						if(m_last_mevent.bstate & BUTTON1_RELEASED)
-						{				
+						{
 							curses_spectro_history_row* start_row = get_history_row_from_coordinate(m_selstart_y);
-							curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_last_mevent.y);
+							curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_prev_sel_y2 - 1);
 							uint64_t start_latency = latency_from_coordinate(m_selstart_x);
-							uint64_t end_latency = latency_from_coordinate(m_last_mevent.x + 1);
+							uint64_t end_latency = latency_from_coordinate(m_prev_sel_x2);
 
 							if(start_row == NULL || end_row == NULL)
 							{
@@ -501,6 +513,7 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 							m_selstart_y = -1;
 
 							ansi_reset_color();
+
 							return STA_DIG;
 						}
 						else
