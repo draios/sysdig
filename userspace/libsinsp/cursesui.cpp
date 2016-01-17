@@ -204,7 +204,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		m_menuitems.push_back(sinsp_menuitem_info("F7", "Legend", sinsp_menuitem_info::ALL, KEY_F(7)));
 		m_menuitems.push_back(sinsp_menuitem_info("F8", "Actions", sinsp_menuitem_info::ALL, KEY_F(8)));
 		m_menuitems.push_back(sinsp_menuitem_info("F9", "Sort", sinsp_menuitem_info::ALL, KEY_F(9)));
-		m_menuitems.push_back(sinsp_menuitem_info("F12", "Spectro", sinsp_menuitem_info::ALL, KEY_F(8)));
+		m_menuitems.push_back(sinsp_menuitem_info("F12", "Spectro", sinsp_menuitem_info::ALL, KEY_F(12)));
 		m_menuitems.push_back(sinsp_menuitem_info("CTRL+F", "Search", sinsp_menuitem_info::ALL, 6));
 		m_menuitems.push_back(sinsp_menuitem_info("p", "Pause", sinsp_menuitem_info::ALL, 'p'));
 		m_menuitems.push_back(sinsp_menuitem_info("c", "Clear", sinsp_menuitem_info::LIST, 'c'));
@@ -542,15 +542,26 @@ void sinsp_cursesui::render_header()
 	k += sizeof("For: ") - 1;
 
 	attrset(m_colors[sinsp_cursesui::PROCESS]);
+
 	if(m_sel_hierarchy.size() != 0)
 	{
 		vs = "";
 
 		for(j = 0; j < m_sel_hierarchy.size(); j++)
 		{
-			vs += m_sel_hierarchy.at(j)->m_field;
-			vs += "=";
-			vs += m_sel_hierarchy.at(j)->m_val;
+			uint32_t pv = m_sel_hierarchy.at(j)->m_prev_selected_view;
+
+			if(m_views.at(pv)->m_type == sinsp_view_info::T_SPECTRO)
+			{
+				//vs += m_sel_hierarchy.at(j)->m_prev_manual_filter.c_str();
+				vs += "spectrogram area";
+			}
+			else
+			{
+				vs += m_sel_hierarchy.at(j)->m_field;
+				vs += "=";
+				vs += m_sel_hierarchy.at(j)->m_val;
+			}
 
 			if(j < m_sel_hierarchy.size() - 1)
 			{
