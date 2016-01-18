@@ -434,12 +434,12 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			intrflush(stdscr, false);
 			keypad(stdscr, true);
 			curs_set(0);
-			if (has_colors())
+			if(has_colors())
 			{
 			  start_color();
 			}
 			use_default_colors();
-			mousemask(ALL_MOUSE_EVENTS, NULL);
+			mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
 			noecho();
 
 			timeout(0);
@@ -674,6 +674,18 @@ int main(int argc, char **argv)
 {
 	sysdig_init_res res;
 
+	//
+	// Enable fine-grained mouse activity capture
+	//
+	string term = getenv("TERM");
+	if(term == "xterm")
+	{
+		setenv("TERM", "xterm-1002", 1);
+	}
+
+	//
+	// Run csysdig
+	//
 	res = csysdig_init(argc, argv);
 
 #ifdef _WIN32

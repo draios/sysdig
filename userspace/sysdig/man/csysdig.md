@@ -136,6 +136,17 @@ INTERACTIVE COMMANDS
 **CTRL+G**  
   Go to line.  
 
+##Spectrogram Window##
+
+**F2**  
+  Show the view picker. This will let you switch to another view.  
+
+**p**  
+  Pause/Resume the visualization.  
+
+**Backspace**  
+  Navigate back to the previous view.  
+
 MOUSE USAGE
 -----------
 - Clicking on column headers lets you sort the table.

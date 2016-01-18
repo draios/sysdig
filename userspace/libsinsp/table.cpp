@@ -90,6 +90,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_refresh_interval_ns = refresh_interval_ns;
 	m_print_to_stdout = print_to_stdout;
 	m_next_flush_time_ns = 0;
+	m_prev_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
 	m_is_sorting_ascending = false;
@@ -537,7 +538,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 }
 
 void sinsp_table::flush(sinsp_evt* evt)
-{
+{	
 	if(!m_paused)
 	{
 		if(m_next_flush_time_ns != 0)
@@ -590,6 +591,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 
 	uint64_t ts = evt->get_ts();
 
+	m_prev_flush_time_ns = m_next_flush_time_ns;
 	m_next_flush_time_ns = ts - (ts % m_refresh_interval_ns) + m_refresh_interval_ns;
 
 	return;

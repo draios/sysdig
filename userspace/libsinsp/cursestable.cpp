@@ -64,14 +64,6 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 
 	m_converter = new sinsp_filter_check_reference();
 
-	for (int i = 0; i < 8; i++)
-	{
-		for (int j = 0; j < 8; j++)
-		{
-			init_pair((7-i)*8+j, i, (j==0?-1:j));
-		}
-	}
-
 	//
 	// Column sizes initialization
 	//
@@ -634,6 +626,10 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case '\r':
 		case KEY_ENTER:
 			return STA_DRILLDOWN;
+		case KEY_F(12):
+			return STA_SPECTRO;
+		case 288:
+			return STA_SPECTRO_FILE;
 		case KEY_BACKSPACE:
 		case 127:
 			return STA_DRILLUP;

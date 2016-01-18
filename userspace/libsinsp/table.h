@@ -32,6 +32,8 @@ typedef enum sysdig_table_action
 	STA_DRILLUP,
 	STA_SPY,
 	STA_DIG,
+	STA_SPECTRO,
+	STA_SPECTRO_FILE,
 	STA_DESTROY_CHILD,
 }sysdig_table_action;
 
@@ -281,6 +283,8 @@ public:
 	}
 
 	uint64_t m_next_flush_time_ns;
+	uint64_t m_prev_flush_time_ns;
+	uint64_t m_refresh_interval_ns;
 
 private:
 	inline void add_row(bool merging);
@@ -323,7 +327,6 @@ private:
 	uint32_t m_vals_array_sz;
 	uint32_t m_premerge_vals_array_sz;
 	uint32_t m_postmerge_vals_array_sz;
-	uint64_t m_refresh_interval_ns;
 	sinsp_filter_check_reference* m_printer;
 	vector<sinsp_sample_row> m_full_sample_data;
 	vector<sinsp_sample_row> m_filtered_sample_data;

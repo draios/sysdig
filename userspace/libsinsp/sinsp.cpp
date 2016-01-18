@@ -1097,6 +1097,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 uint64_t sinsp::get_num_events()
 {
+	ASSERT(m_h);
 	return scap_event_get_num(m_h);
 }
 

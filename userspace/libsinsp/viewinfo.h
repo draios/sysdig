@@ -112,6 +112,7 @@ public:
 		T_TABLE,
 		T_LIST,
 		T_TEXT,
+		T_SPECTRO,
 	};
 
 	sinsp_view_info();

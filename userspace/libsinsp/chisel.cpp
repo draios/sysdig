@@ -758,6 +758,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			{
 				vt = sinsp_view_info::T_LIST;
 			}
+			else if(tmpstr == "spectrogram")
+			{
+				vt = sinsp_view_info::T_SPECTRO;
+			}
 			else
 			{
 				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be either 'table' or 'list'");

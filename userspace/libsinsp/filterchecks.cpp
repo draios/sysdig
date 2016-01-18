@@ -29,6 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "protodecoder.h"
 
 extern sinsp_evttables g_infotables;
+int32_t g_csysdig_screen_w = -1;
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_fd implementation
@@ -2015,6 +2016,8 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency", "delta between an exit event and the correspondent enter event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.latency.s", "integer part of the event latency delta."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.latency.ns", "fractional part of the event latency delta."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.latency.quantized", "10-base log of the delta between an exit event and the correspondent enter event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.latency.human", "delta between an exit event and the correspondent enter event, as a human readable string (e.g. 10.3ms)."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime", "delta between this event and the previous event, in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.deltatime.s", "integer part of the delta between this event and the previous event."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.deltatime.ns", "fractional part of the delta between this event and the previous event."},
@@ -2069,6 +2072,15 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
 	m_u64val = 0;
+	m_converter = new sinsp_filter_check_reference();
+}
+
+sinsp_filter_check_event::~sinsp_filter_check_event()
+{
+	if(m_converter != NULL)
+	{
+		delete m_converter;
+	}
 }
 
 sinsp_filter_check* sinsp_filter_check_event::allocate_new()
@@ -2208,7 +2220,9 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	}
 	else if(string(val, 0, sizeof("evt.latency") - 1) == "evt.latency" ||
 		string(val, 0, sizeof("evt.latency.s") - 1) == "evt.latency.s" ||
-		string(val, 0, sizeof("evt.latency.ns") - 1) == "evt.latency.ns")
+		string(val, 0, sizeof("evt.latency.ns") - 1) == "evt.latency.ns" ||
+		string(val, 0, sizeof("evt.latency.quantized") - 1) == "evt.latency.quantized" ||
+		string(val, 0, sizeof("evt.latency.human") - 1) == "evt.latency.human")
 	{
 		//
 		// These fields need to store the previuos event type in the thread state
@@ -2677,10 +2691,39 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(evt->m_tinfo != NULL)
 			{
+				ppm_event_category ecat = evt->get_info_category();
+				if(ecat & EC_INTERNAL)
+				{
+					return NULL;
+				}
+
 				m_u64val = evt->m_tinfo->m_latency;
 			}
 
 			return (uint8_t*)&m_u64val;
+		}
+	case TYPE_LATENCY_HUMAN:
+		{
+			m_u64val = 0;
+
+			if(evt->m_tinfo != NULL)
+			{
+				ppm_event_category ecat = evt->get_info_category();
+				if(ecat & EC_INTERNAL)
+				{
+					return NULL;
+				}
+
+				m_converter->set_val(PT_RELTIME, 
+					(uint8_t*)&evt->m_tinfo->m_latency,
+					8,
+					0,
+					ppm_print_format::PF_DEC);
+
+				m_strstorage = m_converter->tostring_nice(NULL, 0, 1000000000);
+			}
+
+			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_LATENCY_S:
 	case TYPE_LATENCY_NS:
@@ -2689,6 +2732,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(evt->m_tinfo != NULL)
 			{
+				ppm_event_category ecat = evt->get_info_category();
+				if(ecat & EC_INTERNAL)
+				{
+					return NULL;
+				}
+
 				uint64_t lat = evt->m_tinfo->m_latency;
 
 				if(m_field_id == TYPE_LATENCY_S)
@@ -2703,6 +2752,34 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return (uint8_t*)&m_u64val;
 		}
+	case TYPE_LATENCY_QUANTIZED:
+	{
+		if(evt->m_tinfo != NULL)
+		{
+			ppm_event_category ecat = evt->get_info_category();
+			if(ecat & EC_INTERNAL)
+			{
+				return NULL;
+			}
+
+			uint64_t lat = evt->m_tinfo->m_latency;
+			if(lat != 0)
+			{
+				double llatency = log10((double)lat);
+
+				if(llatency > 11)
+				{
+					llatency = 11;
+				}
+
+				m_u64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
+
+				return (uint8_t*)&m_u64val;
+			}
+		}
+
+		return NULL;
+	}
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
 	case TYPE_DELTA_NS:
