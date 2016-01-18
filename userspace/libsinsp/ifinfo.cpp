@@ -38,7 +38,14 @@ void sinsp_ipv4_ifinfo::convert_to_string(char * dest, const uint32_t addr)
 		((addr & 0xFF000000) >> 24));
 }
 
-string sinsp_ipv4_ifinfo::to_string()
+string sinsp_ipv4_ifinfo::address() const
+{
+	char str_addr[16];
+	convert_to_string(str_addr, m_addr);
+	return string(str_addr);
+}
+
+string sinsp_ipv4_ifinfo::to_string() const
 {
 	char s[100];
 	char str_addr[16];

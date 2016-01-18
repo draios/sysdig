@@ -34,16 +34,15 @@ public:
 
 	sinsp_ipv4_ifinfo(uint32_t addr, uint32_t netmask, uint32_t bcast, const char* name);
 
-	string to_string();
+	string to_string() const;
+	string address() const;
 
 	uint32_t m_addr;
 	uint32_t m_netmask;
 	uint32_t m_bcast;
-
-
 	string m_name;
 private:
-	void convert_to_string(char * dest, const uint32_t addr);
+	static void convert_to_string(char * dest, const uint32_t addr);
 };
 
 //
