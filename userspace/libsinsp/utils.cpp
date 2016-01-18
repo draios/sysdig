@@ -43,7 +43,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "protodecoder.h"
 #include "json/json.h"
 #include "uri.h"
+#ifndef _WIN32
 #include "curl/curl.h"
+#endif
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -1248,10 +1250,10 @@ std::string get_json_string(const Json::Value& root, const std::string& name)
 	return ret;
 }
 
+#ifndef _WIN32
 ///////////////////////////////////////////////////////////////////////////////
 // Curl helpers
 ///////////////////////////////////////////////////////////////////////////////
-
 sinsp_curl::sinsp_curl(const std::string& uristr, const std::string& cert): m_curl(curl_easy_init()), m_uri(new uri(uristr)), m_cert(cert), m_timeout(10)
 {
 	if(!m_curl || !m_uri)
@@ -1357,3 +1359,4 @@ void sinsp_curl::check_error(unsigned ret)
 		throw sinsp_exception(os.str());
 	}
 }
+#endif // _WIN32

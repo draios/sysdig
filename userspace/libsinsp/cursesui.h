@@ -624,6 +624,7 @@ public:
 	uint64_t m_input_check_period_ns;
 	bool m_search_nomatch;
 	bool m_print_containers;
+	int32_t m_sidemenu_sorting_col;
 #ifndef NOCURSESUI
 	curses_table* m_viz;
 	curses_spectro* m_spectro;
@@ -631,7 +632,6 @@ public:
 	curses_table_sidemenu* m_action_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;
 	curses_table_sidemenu* m_view_sort_sidemenu;
-	int32_t m_sidemenu_sorting_col;
 	curses_mainhelp_page* m_mainhelp_page;
 	curses_textbox* m_spy_box;
 	sinsp_evt::param_fmt m_spybox_text_format;
