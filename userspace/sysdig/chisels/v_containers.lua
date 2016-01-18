@@ -96,10 +96,16 @@ view_info =
 			is_groupby_key = true
 		},
 		{
+			name = "ENGINE",
+			field = "container.type",
+			description = "Container type.",
+			colsize = 8
+		},
+		{
 			name = "IMAGE",
 			field = "container.image",
 			description = "Container image name.",
-			colsize = 25
+			colsize = 30
 		},
 		{
 			name = "ID",
