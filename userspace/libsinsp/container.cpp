@@ -201,7 +201,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				container_info.m_type = CT_DOCKER;
 				container_info.m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
 				valid_id = true;
-				continue;
+				break;
 			}
 		}
 
@@ -218,7 +218,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				container_info.m_type = CT_LIBVIRT_LXC;
 				container_info.m_id = cgroup.substr(pos2 + 1, pos - pos2 - 1);
 				valid_id = true;
-				continue;
+				break;
 			}
 		}
 
@@ -235,7 +235,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				container_info.m_type = CT_LIBVIRT_LXC;
 				container_info.m_id = cgroup.substr(pos + sizeof("-lxc\\x2"), pos2 - pos - sizeof("-lxc\\x2"));
 				valid_id = true;
-				continue;
+				break;
 			}
 		}
 
@@ -248,7 +248,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			container_info.m_type = CT_LIBVIRT_LXC;
 			container_info.m_id = cgroup.substr(pos + sizeof("/libvirt/lxc/") - 1);
 			valid_id = true;
-			continue;
+			break;
 		}
 
 		//
@@ -260,7 +260,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			container_info.m_type = CT_LXC;
 			container_info.m_id = cgroup.substr(pos + sizeof("/lxc/") - 1);
 			valid_id = true;
-			continue;
+			break;
 		}
 
 		//
@@ -278,7 +278,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			{
 				set_mesos_task_id(&container_info, mesos_task_id, ptid);
 			}
-			continue;
+			break;
 		}
 	}
 
