@@ -1347,7 +1347,11 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 	uint32_t srtcol;
 	sinsp_table_field rowkeybak;
 
+#ifdef NOCURSESUI
+	if(true)
+#else
 	if(m_viz)
+#endif
 	{
 #ifndef NOCURSESUI
 		sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
@@ -1363,6 +1367,7 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 
 		srtcol = m_datatable->get_sorting_col();
 	}
+#ifndef NOCURSESUI
 	else if(m_spectro)
 	{
 		m_is_filter_sysdig = true;
@@ -1378,6 +1383,7 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 		ASSERT(false);
 		return;
 	}
+#endif
 
 	ASSERT(m_selected_view < (int32_t)m_views.size());
 	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
@@ -2705,6 +2711,7 @@ action_end:
 #endif //  NOCURSESUI
 }
 
+#ifndef NOCURSESUI
 bool sinsp_cursesui::is_spectro_paused(int input)
 {
 	if(m_spectro == NULL)
@@ -2719,5 +2726,6 @@ bool sinsp_cursesui::is_spectro_paused(int input)
 
 	return m_spectro->m_scroll_paused;
 }
+#endif //  NOCURSESUI
 
 #endif // CSYSDIG

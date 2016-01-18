@@ -1,7 +1,7 @@
 //
 // mesos.h
 //
-
+#ifndef _WIN32
 #pragma once
 
 #include "json/json.h"
@@ -116,3 +116,5 @@ inline void mesos::clear(bool marathon)
 {
 	m_state.clear(marathon);
 }
+
+#endif // _WIN32
