@@ -959,6 +959,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		// Copy the command arguments from the parent
 		tinfo.m_args = ptinfo->m_args;
+
+		// Copy the root from the parent
+		tinfo.m_root = ptinfo->m_root;
 	}
 	else
 	{
@@ -989,6 +992,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_comm = ptinfo->m_comm;
 			tinfo.m_exe = ptinfo->m_exe;
 			tinfo.m_args = ptinfo->m_args;
+			tinfo.m_root = ptinfo->m_root;
 		}
 		else
 		{
