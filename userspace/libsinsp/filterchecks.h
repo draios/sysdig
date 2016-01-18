@@ -567,6 +567,7 @@ public:
 		TYPE_CONTAINER_ID = 0,
 		TYPE_CONTAINER_NAME,
 		TYPE_CONTAINER_IMAGE,
+		TYPE_CONTAINER_TYPE
 	};
 
 	sinsp_filter_check_container();

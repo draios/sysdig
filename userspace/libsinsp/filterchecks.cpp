@@ -3934,7 +3934,8 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "the container id."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "the container name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -4016,6 +4017,42 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = container_info.m_image;
 		}
 
+		return (uint8_t*)m_tstr.c_str();
+	case TYPE_CONTAINER_TYPE:
+		if(tinfo->m_container_id.empty())
+		{
+			m_tstr = "host";
+		}
+		else
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
+			switch(container_info.m_type)
+			{
+			case sinsp_container_type::CT_DOCKER:
+				m_tstr = "docker";
+				break;
+			case sinsp_container_type::CT_LXC:
+				m_tstr = "lxc";
+				break;
+			case sinsp_container_type::CT_LIBVIRT_LXC:
+				m_tstr = "libvirt-lxc";
+				break;
+			case sinsp_container_type::CT_MESOS:
+				m_tstr = "mesos";
+				break;
+			case sinsp_container_type::CT_RKT:
+				m_tstr = "rkt";
+				break;
+			default:
+				ASSERT(false);
+				break;
+			}
+		}
 		return (uint8_t*)m_tstr.c_str();
 	default:
 		ASSERT(false);
