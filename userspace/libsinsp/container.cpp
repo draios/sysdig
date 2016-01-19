@@ -280,6 +280,23 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			}
 			break;
 		}
+
+		//
+		// runc
+		//
+		pos = cgroup.find_last_of('/');
+		if( pos != string::npos )
+		{
+			char state_path[SCAP_MAX_PATH_SIZE];
+			snprintf(state_path, sizeof(state_path), "%s/run/opencontainer/containers/%s/state.json", scap_get_host_root(), cgroup.c_str()+pos+1);
+			if(access(state_path, F_OK) == 0)
+			{
+				container_info.m_type = CT_RUNC;
+				container_info.m_id = cgroup.substr(pos+1);
+				valid_id = true;
+				break;
+			}
+		}
 	}
 
 	string rkt_podid, rkt_appname;
@@ -356,33 +373,39 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		{
 			switch(container_info.m_type)
 			{
-				case CT_DOCKER:
+			case CT_DOCKER:
 #ifndef _WIN32
-					if(query_os_for_missing_info)
-					{
-						parse_docker(&container_info);
-					}
+				if(query_os_for_missing_info)
+				{
+					parse_docker(&container_info);
+				}
 #endif
-					break;
-				case CT_LXC:
-					container_info.m_name = container_info.m_id;
-					break;
-				case CT_LIBVIRT_LXC:
-					container_info.m_name = container_info.m_id;
-					break;
-				case CT_MESOS:
-					container_info.m_name = container_info.m_id;
-					break;
-				case CT_RKT:
+				break;
+			case CT_LXC:
+				container_info.m_name = container_info.m_id;
+				break;
+			case CT_LIBVIRT_LXC:
+				container_info.m_name = container_info.m_id;
+				break;
+			case CT_MESOS:
+				container_info.m_name = container_info.m_id;
+				break;
+			case CT_RKT:
 #ifndef _WIN32
-					if(query_os_for_missing_info)
-					{
-						parse_rkt(&container_info, rkt_podid, rkt_appname);
-					}
+				if(query_os_for_missing_info)
+				{
+					parse_rkt(&container_info, rkt_podid, rkt_appname);
+				}
 #endif
-					break;
-				default:
-					ASSERT(false);
+				break;
+			case CT_RUNC:
+				if(query_os_for_missing_info)
+				{
+					parse_runc(&container_info);
+				}
+				break;
+			default:
+				ASSERT(false);
 			}
 
 			m_containers.insert(std::make_pair(container_info.m_id, container_info));
@@ -649,6 +672,30 @@ bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
 				port_mapping.m_container_port = image_ports.at(jport["name"].asString());
 				container->m_port_mappings.emplace_back(move(port_mapping));
 			}
+		}
+	}
+	return ret;
+}
+
+bool sinsp_container_manager::parse_runc(sinsp_container_info *container)
+{
+	bool ret = false;
+	char state_path[SCAP_MAX_PATH_SIZE];
+	snprintf(state_path, sizeof(state_path), "%s/run/opencontainer/containers/%s/state.json", scap_get_host_root(), container->m_id.c_str());
+	ifstream state_file(state_path);
+	Json::Reader reader;
+	Json::Value jroot;
+	if(reader.parse(state_file, jroot))
+	{
+		auto jconfig = jroot["config"];
+		if(jconfig.isObject())
+		{
+			container->m_name = jconfig["hostname"].asString();
+			auto rootfs_path = jconfig["rootfs"].asString();
+			// Eliminate last component (usually rootfs)
+			auto last_slash = rootfs_path.find_last_of('/');
+			container->m_image = rootfs_path.substr(0, last_slash);
+			ret = true;
 		}
 	}
 	return ret;

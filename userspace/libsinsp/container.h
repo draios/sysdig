@@ -24,7 +24,8 @@ enum sinsp_container_type
 	CT_LXC = 1,
 	CT_LIBVIRT_LXC = 2,
 	CT_MESOS = 3,
-	CT_RKT = 4
+	CT_RKT = 4,
+	CT_RUNC = 5
 };
 
 class sinsp_container_info
@@ -78,6 +79,7 @@ private:
 	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);
 	bool parse_docker(sinsp_container_info* container);
 	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
+	bool parse_runc(sinsp_container_info* container);
 	sinsp_container_info* get_container(const string& id);
 
 	sinsp* m_inspector;
