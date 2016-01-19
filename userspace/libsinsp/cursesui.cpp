@@ -114,7 +114,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		}
 	}
 
-  m_view_sort_sidemenu = NULL;
+	m_view_sort_sidemenu = NULL;
 	m_selected_view_sort_sidemenu_entry = 0;
 
 	if(!m_raw_output)
@@ -296,7 +296,7 @@ void sinsp_cursesui::configure(sinsp_view_manager* views)
 	m_selected_view_sidemenu_entry = m_selected_view;
 	m_selected_action_sidemenu_entry = 0;
 	m_selected_view_sort_sidemenu_entry = 0;
-  m_sidemenu_sorting_col = -1;
+	m_sidemenu_sorting_col = -1;
 }
 
 void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
@@ -1045,17 +1045,17 @@ void sinsp_cursesui::populate_view_cols_sidemenu()
 	sinsp_view_info* vinfo = get_selected_view();
 
 	for(auto it : vinfo->m_columns)
-  {
-    if (it.m_name != "NA") 
-    {
-      if (m_sidemenu_sorting_col == k) 
-      {
-        viewlist.push_back(sidemenu_list_entry(it.m_name, k++));
-        continue;
-      }
-      viewlist.push_back(sidemenu_list_entry(it.m_name, k++));
-    }
-  }
+	{
+		if(it.m_name != "NA") 
+		{
+			if(m_sidemenu_sorting_col == k) 
+			{
+				viewlist.push_back(sidemenu_list_entry(it.m_name, k++));
+				continue;
+			}
+			viewlist.push_back(sidemenu_list_entry(it.m_name, k++));
+		}
+	}
 
 	if(viewlist.size() == 0)
 	{
@@ -1947,7 +1947,6 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	// Avoid parsing keys during file load
 	//
 
-	g_logger.format("sinsp_cursesui::handle_input: %c\n", ch);
 	if((!m_inspector->is_live()) && !is_eof())
 	{
 		if(ch != KEY_BACKSPACE &&
@@ -2008,7 +2007,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				delete m_viewinfo_page;
 				m_viewinfo_page = NULL;
 			}
-      return ta;
+			return ta;
 		}
 		else if(ta != STA_PARENT_HANDLE)
 		{
@@ -2063,28 +2062,29 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			}
 		}
 
-    if(m_view_sort_sidemenu != NULL)
+		if(m_view_sort_sidemenu != NULL)
 		{
-      sysdig_table_action ta = m_view_sort_sidemenu->handle_input(ch);
+			sysdig_table_action ta = m_view_sort_sidemenu->handle_input(ch);
 			if(ta == STA_SWITCH_VIEW || ta == STA_DESTROY_CHILD)
 			{
-        if (ta == STA_SWITCH_VIEW) {
-          sinsp_view_info* vinfo = get_selected_view();
-          g_logger.format("sorting %s using column %d", vinfo->m_name.c_str(), m_selected_view_sort_sidemenu_entry);
-          ASSERT(m_selected_view_sort_sidemenu_entry < vinfo->m_columns.size());
-          m_datatable->set_sorting_col(m_selected_view_sort_sidemenu_entry+1);
-          m_datatable->sort_sample();
-          m_viz->update_data(m_viz->m_data);
-        }
-        delete m_view_sort_sidemenu;
-        m_view_sort_sidemenu = NULL;
-        m_viz->set_x_start(0);
+				if(ta == STA_SWITCH_VIEW) 
+				{
+					sinsp_view_info* vinfo = get_selected_view();
+					ASSERT(m_selected_view_sort_sidemenu_entry < vinfo->m_columns.size());
+					m_datatable->set_sorting_col(m_selected_view_sort_sidemenu_entry+1);
+					m_datatable->sort_sample();
+					m_viz->update_data(m_viz->m_data);
+				}
+				delete m_view_sort_sidemenu;
+				m_view_sort_sidemenu = NULL;
+				m_viz->set_x_start(0);
 				m_viz->recreate_win(m_screenh - 3);
 				m_viz->render(true);
 				render();				
-        if (ta == STA_SWITCH_VIEW) {
-          return STA_NONE;
-        } 
+				if(ta == STA_SWITCH_VIEW) 
+				{
+					return STA_NONE;
+				}
 			}
 			else if(ta != STA_PARENT_HANDLE)
 			{
@@ -2245,25 +2245,26 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			render();
 			break;
 		case KEY_F(9):
-    case '>':
-      if(m_view_sidemenu != NULL)
+		case '>':		// sort columns
+			if(m_view_sidemenu != NULL)
 			{
 				break;
 			}
-      if(m_view_sort_sidemenu == NULL) {
-        m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
-        m_sidemenu_sorting_col = m_datatable->get_sorting_col() -1;
-        m_view_sort_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_COLUMNS,
-            this, m_sidemenu_sorting_col, VIEW_SIDEMENU_WIDTH);
+			if(m_view_sort_sidemenu == NULL) 
+			{
+				m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
+				m_sidemenu_sorting_col = m_datatable->get_sorting_col() -1;
+				m_view_sort_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_COLUMNS,
+				this, m_sidemenu_sorting_col, VIEW_SIDEMENU_WIDTH);
 
-        populate_view_cols_sidemenu();
-        m_view_sort_sidemenu->set_title("Select sort column");
+				populate_view_cols_sidemenu();
+				m_view_sort_sidemenu->set_title("Select sort column");
 
 				m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
 				m_viz->recreate_win(m_screenh - 3);
-        render();
+				render();
 				m_viewinfo_page = NULL;
-      }
+			}
 			else
 			{
 				m_viz->set_x_start(0);
@@ -2276,7 +2277,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				render();
 			}
 
-		  break;
+			break;
 		case '\\':
 		case KEY_F(4):
 			m_search_caller_interface = NULL;
@@ -2427,7 +2428,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				{
 					event = &m_view_sort_sidemenu->m_last_mevent;
 				}
-        else if(m_action_sidemenu != NULL)
+				else if(m_action_sidemenu != NULL)
 				{
 					event = &m_action_sidemenu->m_last_mevent;
 				}

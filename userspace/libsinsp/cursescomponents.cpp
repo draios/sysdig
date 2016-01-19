@@ -249,15 +249,15 @@ void curses_table_sidemenu::render()
 
 		// add the new line
 		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries.at(j).m_name.c_str(), m_w);
-    // put sorting order indicator at the right end of this row
-    if (m_parent->m_sidemenu_sorting_col == j) 
-    {
-      wmove(m_win, j - m_firstrow + 1, m_w - 4);
-      char sort_order = m_parent->m_datatable->is_sorting_ascending() ? '^' : 'V';
-      waddch(m_win, '(');
-      waddch(m_win, sort_order);
-      waddch(m_win, ')');
-    }
+		// put sorting order indicator at the right end of this row
+		if(m_parent->m_sidemenu_sorting_col == j) 
+		{
+			wmove(m_win, j - m_firstrow + 1, m_w - 4);
+			char sort_order = m_parent->m_datatable->is_sorting_ascending() ? '^' : 'V';
+			waddch(m_win, '(');
+			waddch(m_win, sort_order);
+			waddch(m_win, ')');
+		}
 
 		// white space at the right
 		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
@@ -296,7 +296,6 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 	int32_t prev_select;
 	int input;
 
-	g_logger.format("curses_table_sidemenu::handle_input: %c\n", ch);
 	switch(ch)
 	{
 		case KEY_F(1):
@@ -318,13 +317,13 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 				}
 
 				m_parent->m_selected_view_sidemenu_entry = m_selct;
-			} else if (m_type == ST_COLUMNS) {
-        m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
-      }  
-      else
-      {
-        m_parent->m_selected_action_sidemenu_entry = m_selct;
-      }
+			} else if(m_type == ST_COLUMNS) {
+				m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
+			}  
+			else
+			{
+				m_parent->m_selected_action_sidemenu_entry = m_selct;
+			}
 
 			return STA_SWITCH_VIEW;
 		case KEY_BACKSPACE:
@@ -344,11 +343,11 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 	
 				return STA_SWITCH_VIEW;
 			}
-      else if (m_type == ST_COLUMNS) 
-      {
+			else if(m_type == ST_COLUMNS) 
+			{
 				m_parent->m_selected_view_sort_sidemenu_entry = m_selct_ori;
 				return STA_DESTROY_CHILD;
-      }
+			}
 			else
 			{
 				m_parent->m_selected_action_sidemenu_entry = m_selct_ori;
@@ -556,10 +555,10 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							{
 								m_parent->m_selected_view_sidemenu_entry = m_selct;
 							} 
-              else if (m_type == ST_COLUMNS) 
-              {
+							else if(m_type == ST_COLUMNS) 
+							{
 								m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
-              }
+							}
 							else
 							{
 								m_parent->m_selected_action_sidemenu_entry = m_selct;
@@ -996,9 +995,6 @@ void curses_textbox::render()
 //
 sysdig_table_action curses_textbox::handle_input(int ch)
 {
-
-	g_logger.format("curses_textbox::handle_input: %c\n", ch);
-
 	if(m_sidemenu)
 	{
 		sysdig_table_action ta = m_sidemenu->handle_input(ch);
@@ -1292,7 +1288,6 @@ bool curses_textbox::on_search_next()
 	}
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 // curses_viewinfo_page implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -1319,7 +1314,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	config.m_scroll_on_append = false;
 	config.m_bounding_box = true;
 	config.m_do_wrap = true;
-  parent->m_selected_view_sort_sidemenu_entry = 0;
+	parent->m_selected_view_sort_sidemenu_entry = 0;
 	m_ctext->set_config(&config);
 
 	//
@@ -1475,7 +1470,6 @@ sysdig_table_action curses_viewinfo_page::handle_input(int ch)
 {
 	int32_t totlines;
 
-	g_logger.format("curses_viewinfo_page::handle_input: %c\n", ch);
 	m_ctext->get_buf_size(&totlines);
 
 	if(totlines < (int32_t)m_parent->m_screenh)
@@ -1820,7 +1814,6 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 {
 	int32_t totlines;
 
-	g_logger.format("curses_mainhelp_page::handle_input: %c\n", ch);
 	m_ctext->get_buf_size(&totlines);
 
 	if(totlines < (int32_t)m_parent->m_screenh)
