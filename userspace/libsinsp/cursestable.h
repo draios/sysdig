@@ -86,6 +86,7 @@ private:
 	sinsp_table::tabletype m_type;
 
 	friend class curses_table_sidemenu;
+  friend class sinsp_cursesui;        // for access to m_data in sinsp_cursesui::handle_input
 };
 
 #endif // NOCURSESUI

@@ -114,6 +114,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		}
 	}
 
+  m_view_sort_sidemenu = NULL;
+
 	if(!m_raw_output)
 	{
 		//
@@ -195,6 +197,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		//
 		m_menuitems.push_back(sinsp_menuitem_info("F1", "Help", sinsp_menuitem_info::ALL, KEY_F(1)));
 		m_menuitems.push_back(sinsp_menuitem_info("F2", "Views", sinsp_menuitem_info::ALL, KEY_F(2)));
+		m_menuitems.push_back(sinsp_menuitem_info("1", "Sort", sinsp_menuitem_info::ALL, KEY_F(3)));
 		m_menuitems.push_back(sinsp_menuitem_info("F4", "Filter", sinsp_menuitem_info::ALL, KEY_F(4)));
 		m_menuitems.push_back(sinsp_menuitem_info("F5", "Echo", sinsp_menuitem_info::TABLE, KEY_F(5)));
 		m_menuitems.push_back(sinsp_menuitem_info("F6", "Dig", sinsp_menuitem_info::TABLE, KEY_F(6)));
@@ -290,6 +293,7 @@ void sinsp_cursesui::configure(sinsp_view_manager* views)
 	m_selected_view = m_views.get_selected_view();
 	m_selected_view_sidemenu_entry = m_selected_view;
 	m_selected_action_sidemenu_entry = 0;
+	m_selected_view_sort_sidemenu_entry = -1;
 }
 
 void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
@@ -949,6 +953,11 @@ void sinsp_cursesui::render()
 		m_view_sidemenu->render();
 	}
 
+	if(m_view_sort_sidemenu)
+	{
+		m_view_sort_sidemenu->render();
+	}
+
 	if(m_action_sidemenu)
 	{
 		m_action_sidemenu->render();
@@ -1012,6 +1021,34 @@ void sinsp_cursesui::populate_view_sidemenu(string field, vector<sidemenu_list_e
 		m_view_sidemenu->set_entries(viewlist);
 	}
 }
+
+void sinsp_cursesui::populate_view_cols_sidemenu()
+{
+	uint32_t k = 0;
+
+	vector<sidemenu_list_entry> viewlist;
+	sinsp_view_info* vinfo = get_selected_view();
+
+	for(auto it : vinfo->m_columns)
+  {
+    if (it.m_name != "NA") {
+      viewlist.push_back(sidemenu_list_entry(it.m_name, k++));
+    }
+  }
+
+	if(viewlist.size() == 0)
+	{
+		viewlist.push_back(sidemenu_list_entry("<NO COLUMNS>", 0));
+	}
+
+	if(m_view_sort_sidemenu != NULL)
+	{
+		m_view_sort_sidemenu->m_selct = 0;
+		m_view_sort_sidemenu->set_entries(&viewlist);
+	}
+}
+
+
 
 void sinsp_cursesui::populate_action_sidemenu()
 {
@@ -1245,6 +1282,9 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 
 		delete m_action_sidemenu;
 		m_action_sidemenu = NULL;
+  
+		delete m_view_sort_sidemenu;
+		m_view_sort_sidemenu = NULL;
 
 		if(m_viz != NULL)
 		{
@@ -1857,6 +1897,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	// Avoid parsing keys during file load
 	//
+
+	g_logger.format("sinsp_cursesui::handle_input: %c\n", ch);
 	if((!m_inspector->is_live()) && !is_eof())
 	{
 		if(ch != KEY_BACKSPACE &&
@@ -1917,8 +1959,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				delete m_viewinfo_page;
 				m_viewinfo_page = NULL;
 			}
-
-			return ta;
+      return ta;
 		}
 		else if(ta != STA_PARENT_HANDLE)
 		{
@@ -1972,6 +2013,42 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				return STA_NONE;
 			}
 		}
+
+    if(m_view_sort_sidemenu != NULL)
+		{
+      sysdig_table_action ta = m_view_sort_sidemenu->handle_input(ch);
+			if(ta == STA_SWITCH_VIEW)
+			{
+        sinsp_view_info* vinfo = get_selected_view();
+
+				g_logger.format("sorting %s using column %d", vinfo->m_name.c_str(), m_selected_view_sort_sidemenu_entry);
+				ASSERT(m_selected_view_sort_sidemenu_entry < vinfo->m_columns.size());
+        m_datatable->set_sorting_col(m_selected_view_sort_sidemenu_entry+1);
+        m_datatable->sort_sample();
+        // m_viz->update_data(m_datatable->get_sample(get_time_delta()), true);
+        m_viz->update_data(m_viz->m_data);
+				m_viz->render(true);
+        return STA_NONE;
+			}
+			else if(ta == STA_DESTROY_CHILD)
+			{
+				m_viz->set_x_start(0);
+				delete m_view_sort_sidemenu;
+        m_view_sort_sidemenu = NULL;
+				m_viz->set_x_start(0);
+				m_viz->recreate_win(m_screenh - 3);
+				m_viz->render(true);
+				m_viz->render(true);
+				render();				
+			}
+			else if(ta != STA_PARENT_HANDLE)
+			{
+				return STA_NONE;
+			}
+		}
+
+
+
 	}
 
 	if(m_output_filtering || m_output_searching || m_search_caller_interface != NULL)
@@ -2122,8 +2199,37 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			curs_set(1);
 			render();
 			break;
-		//case KEY_F(3):
-		//	break;
+		case '1':
+      if(m_view_sidemenu != NULL)
+			{
+				break;
+			}
+      if(m_view_sort_sidemenu == NULL) {
+        m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
+        m_view_sort_sidemenu = new curses_table_sidemenu(curses_table_sidemenu::ST_COLUMNS,
+            this, m_selected_view_sort_sidemenu_entry, VIEW_SIDEMENU_WIDTH);
+
+        populate_view_cols_sidemenu();
+        m_view_sort_sidemenu->set_title("Select sort column");
+
+				m_viz->set_x_start(VIEW_SIDEMENU_WIDTH);
+				m_viz->recreate_win(m_screenh - 3);
+        render();
+				m_viewinfo_page = NULL;
+      }
+			else
+			{
+				m_viz->set_x_start(0);
+				delete m_view_sort_sidemenu;
+				m_view_sort_sidemenu = NULL;
+				m_viz->set_x_start(0);
+				m_viz->recreate_win(m_screenh - 3);
+				m_viz->render(true);
+				m_viz->render(true);
+				render();
+			}
+
+		  break;
 		case '\\':
 		case KEY_F(4):
 			m_search_caller_interface = NULL;
@@ -2270,7 +2376,11 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				{
 					event = &m_view_sidemenu->m_last_mevent;
 				}
-				else if(m_action_sidemenu != NULL)
+				else if(m_view_sort_sidemenu != NULL)
+				{
+					event = &m_view_sort_sidemenu->m_last_mevent;
+				}
+        else if(m_action_sidemenu != NULL)
 				{
 					event = &m_action_sidemenu->m_last_mevent;
 				}
