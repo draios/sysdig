@@ -429,6 +429,15 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifndef NOCURSESUI
 		if(!m_raw_output)
 		{
+			//
+			// Enable fine-grained mouse activity capture
+			//
+			string term = getenv("TERM");
+			if(term == "xterm")
+			{
+				setenv("TERM", "xterm-1002", 1);
+			}
+
 			(void) initscr();      // initialize the curses library
 			(void) nonl();         // tell curses not to do NL->CR/NL on output
 			intrflush(stdscr, false);
@@ -673,15 +682,6 @@ exit:
 int main(int argc, char **argv)
 {
 	sysdig_init_res res;
-
-	//
-	// Enable fine-grained mouse activity capture
-	//
-	string term = getenv("TERM");
-	if(term == "xterm")
-	{
-		setenv("TERM", "xterm-1002", 1);
-	}
 
 	//
 	// Run csysdig

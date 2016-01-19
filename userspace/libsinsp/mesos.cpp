@@ -1,6 +1,7 @@
 //
 // mesos.cpp
 //
+#ifndef _WIN32
 
 #include "mesos.h"
 #include "mesos_component.h"
@@ -415,3 +416,5 @@ void mesos::parse_apps(const std::string& json)
 {
 	m_state.parse_apps(json);
 }
+
+#endif // _WIN32
