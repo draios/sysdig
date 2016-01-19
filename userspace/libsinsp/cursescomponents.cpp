@@ -194,7 +194,6 @@ curses_table_sidemenu::curses_table_sidemenu(sidemenu_type type, sinsp_cursesui*
 	m_selct = selct;
 	m_selct_ori = m_selct;
 	m_type = type;
-  m_selct_final = m_selct;
 }
 
 curses_table_sidemenu::~curses_table_sidemenu()
@@ -236,10 +235,6 @@ void curses_table_sidemenu::render()
 		{
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
 		}
-    else if (j == m_selct_final) 
-    {
-			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::HELP_BOLD]);
-    }
 		else
 		{
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::PROCESS]);
@@ -316,7 +311,6 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 				m_parent->m_selected_view_sidemenu_entry = m_selct;
 			} else if (m_type == ST_COLUMNS) {
         m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
-        m_selct_final = m_selct;
       }  
       else
       {
@@ -344,6 +338,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
       else if (m_type == ST_COLUMNS) 
       {
 				m_parent->m_selected_view_sort_sidemenu_entry = m_selct_ori;
+				return STA_DESTROY_CHILD;
       }
 			else
 			{
@@ -551,7 +546,11 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							if(m_type == ST_VIEWS)
 							{
 								m_parent->m_selected_view_sidemenu_entry = m_selct;
-							}
+							} 
+              else if (m_type == ST_COLUMNS) 
+              {
+								m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
+              }
 							else
 							{
 								m_parent->m_selected_action_sidemenu_entry = m_selct;
@@ -1311,7 +1310,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	config.m_scroll_on_append = false;
 	config.m_bounding_box = true;
 	config.m_do_wrap = true;
-  parent->m_selected_view_sort_sidemenu_entry = -1;
+  parent->m_selected_view_sort_sidemenu_entry = 0;
 	m_ctext->set_config(&config);
 
 	//
@@ -1671,6 +1670,11 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf("F8");
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf(": open the view's actions panel\n");
+
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
+	m_ctext->printf("  <shift>1-9");
+	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
+	m_ctext->printf(": sort columns\n");
 
 	//
 	// Text windows keys

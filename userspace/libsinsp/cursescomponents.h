@@ -105,7 +105,6 @@ public:
 	void selection_goto(int32_t datasize, int32_t row);
 
 	int32_t m_selct;
-	int32_t m_selct_final;
 	int32_t m_selct_ori;
 	int32_t m_firstrow;
 	uint32_t m_w;
