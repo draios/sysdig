@@ -138,10 +138,17 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
-" -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
+" -k, --k8s-api <url>\n"
+"                    Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
 "                    The API server can also be specified via the environment variable\n"
 "                    SYSDIG_K8S_API.\n"
+" -K, --k8s-api-cert=<file_name>\n"
+"                    Use the provided certificate file name to authenticate with the K8S API server.\n"
+"                    Filename must be a full absolute or relative (to the current directory) path\n"
+"                    to the certificate file.\n"
+"                    The certificate can also be specified via the environment variable.\n"
+"                    SYSDIG_K8S_API_CERT.\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -691,6 +698,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
 	string* k8s_api = 0;
+	string* k8s_api_cert = 0;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -720,6 +728,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
 		{"k8s-api", required_argument, 0, 'k'},
+		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"numevents", required_argument, 0, 'n' },
@@ -760,7 +769,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:lLM:Nn:Pp:qr:Ss:t:v"
+                                        "hi:jk:K:lLMNn:Pp:qr:Ss:t:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -904,6 +913,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'k':
 				k8s_api = new string(optarg);
+				break;
+			case 'K':
+				k8s_api_cert = new string(optarg);
 				break;
 			case 'h':
 				usage();
@@ -1332,21 +1344,38 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			if(k8s_api)
 			{
-				inspector->init_k8s_client(k8s_api);
+				if(!k8s_api_cert)
+				{
+					if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
+					{
+						k8s_api_cert = new string(k8s_cert_env);
+					}
+				}
+				inspector->init_k8s_client(k8s_api, k8s_api_cert);
 				k8s_api = 0;
+				k8s_api_cert = 0;
 			}
 			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
 			{
 				if(k8s_api_env != NULL)
 				{
+					if(!k8s_api_cert)
+					{
+						if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
+						{
+							k8s_api_cert = new string(k8s_cert_env);
+						}
+					}
 					k8s_api = new string(k8s_api_env);
-					inspector->init_k8s_client(k8s_api);
+					inspector->init_k8s_client(k8s_api, k8s_api_cert);
 				}
 				else
 				{
 					delete k8s_api;
+					delete k8s_api_cert;
 				}
 				k8s_api = 0;
+				k8s_api_cert = 0;
 			}
 
 			cinfo = do_inspect(inspector,

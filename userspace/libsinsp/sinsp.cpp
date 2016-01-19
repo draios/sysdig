@@ -135,6 +135,7 @@ sinsp::sinsp() :
 
 	m_k8s_client = NULL;
 	m_k8s_api_server = NULL;
+	m_k8s_api_cert = NULL;
 
 	m_filter_proc_table_when_saving = false;
 }
@@ -179,6 +180,7 @@ sinsp::~sinsp()
 
 	delete m_k8s_client;
 	delete m_k8s_api_server;
+	delete m_k8s_api_cert;
 }
 
 void sinsp::add_protodecoders()
@@ -1520,10 +1522,11 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
-void sinsp::init_k8s_client(string* api_server)
+void sinsp::init_k8s_client(string* api_server, string* ssl_cert)
 {
 	ASSERT(api_server);
 	m_k8s_api_server = api_server;
+	m_k8s_api_cert = ssl_cert;
 
 	if(m_k8s_client == NULL)
 	{
@@ -1532,7 +1535,9 @@ void sinsp::init_k8s_client(string* api_server)
 		m_k8s_client = new k8s(*m_k8s_api_server,
 			is_live ? true : false, // watch
 			false, // don't run watch in thread
-			is_live ? true : false // capture
+			is_live ? true : false, // capture
+			"/api/v1/",
+			m_k8s_api_cert ? *m_k8s_api_cert : string("")
 		);
 	}
 }
@@ -1560,7 +1565,7 @@ void sinsp::update_kubernetes_state()
 			g_logger.format(sinsp_logger::SEV_WARNING, "Kubernetes connection not active anymore, retrying");
 			delete m_k8s_client;
 			m_k8s_client = NULL;
-			init_k8s_client(m_k8s_api_server);
+			init_k8s_client(m_k8s_api_server, m_k8s_api_cert);
 		}
 	}
 }

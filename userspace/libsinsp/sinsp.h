@@ -648,7 +648,7 @@ public:
 	*/
 	double get_read_progress();
 
-	void init_k8s_client(string* api_server);
+	void init_k8s_client(string* api_server, string* ssl_cert);
 	k8s* get_k8s_client() const { return m_k8s_client; }
 
 	//
@@ -789,6 +789,7 @@ private:
 	// Kubernetes stuff
 	//
 	string* m_k8s_api_server;
+	string* m_k8s_api_cert;
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
 
