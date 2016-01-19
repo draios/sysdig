@@ -181,7 +181,7 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 		{
 			os << " to group [" + to_group->get_id() << ']';
 		}
-		g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+		g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		marathon_group::ptr_t pg(new marathon_group(id));
 		marathon_group::ptr_t p_group = add_or_replace_group(pg, to_group);
 		Json::Value apps = group["apps"];
@@ -193,7 +193,19 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 				if(!app_id.isNull())
 				{
 					marathon_app::ptr_t p_app = get_app(app_id.asString());
-					p_group->add_or_replace_app(p_app);
+					if(!p_app)
+					{
+						p_app = add_app(app);
+					}
+					if(p_app)
+					{
+						p_group->add_or_replace_app(p_app);
+					}
+					else
+					{
+						g_logger.log("An error occured adding app [" + app_id.asString() +
+									"] to group [" + id + ']', sinsp_logger::SEV_ERROR);
+					}
 				}
 			}
 		}
@@ -228,7 +240,7 @@ void mesos_state_t::parse_apps(const std::string& json)
 	}
 }
 
-void mesos_state_t::add_app(const Json::Value& app)
+marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app)
 {
 	Json::Value app_id = app["id"];
 	if(!app_id.isNull())
@@ -249,6 +261,7 @@ void mesos_state_t::add_app(const Json::Value& app)
 				{
 					pt->set_app_id(id);
 					p_app->add_task(pt->get_uid());
+					return p_app;
 				}
 				else
 				{
@@ -257,5 +270,6 @@ void mesos_state_t::add_app(const Json::Value& app)
 			}
 		}
 	}
+	return 0;
 }
 

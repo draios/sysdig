@@ -111,7 +111,7 @@ public:
 private:
 	marathon_group::ptr_t add_group(const Json::Value& group, marathon_group::ptr_t to_group);
 	bool handle_groups(const Json::Value& groups, marathon_group::ptr_t p_groups);
-	void add_app(const Json::Value& app);
+	marathon_app::ptr_t add_app(const Json::Value& app);
 
 	mesos_frameworks m_frameworks;
 	mesos_slaves     m_slaves;

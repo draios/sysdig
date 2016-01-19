@@ -149,7 +149,8 @@ void mesos_framework::remove_task(const std::string& uid)
 		m_tasks.erase(it);
 		return;
 	}
-	throw sinsp_exception("Removal of non-existing task attempted: " + uid);
+	g_logger.log("Removal of non-existing task (possible deployment failure): " + uid,
+				sinsp_logger::SEV_WARNING);
 }
 
 const mesos_framework::task_map& mesos_framework::get_tasks() const
