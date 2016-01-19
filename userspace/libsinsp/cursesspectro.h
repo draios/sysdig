@@ -32,6 +32,24 @@ public:
 	char m_char;
 };
 
+class curses_spectro_history_row
+{
+public:
+	uint64_t m_ts;
+	vector<uint32_t> m_data;
+
+	void clear(uint64_t ts)
+	{
+		m_ts = ts;
+		m_data.clear();
+	}
+
+	void push_back(uint32_t val)
+	{
+		m_data.push_back(val);
+	}
+};
+
 class curses_spectro : 
 	public sinsp_chart
 {
@@ -76,7 +94,6 @@ public:
 	MEVENT m_last_mevent;
 	
 private:
-	void exit_curses();
 	void print_error(string wstr);
 	uint32_t mkcol(uint64_t n);
 	void draw_axis();
@@ -95,7 +112,9 @@ private:
 	vector<uint32_t> m_colpalette;
 	sinsp_filter_check_reference* m_converter;
 	uint64_t m_n_flushes;
-
+	vector<curses_spectro_history_row> m_history;
+	curses_spectro_history_row m_t_row;
+	bool m_mouse_masked;
 
 	friend class curses_spectro_sidemenu;
 };

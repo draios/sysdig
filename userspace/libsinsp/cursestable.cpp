@@ -626,6 +626,10 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case '\r':
 		case KEY_ENTER:
 			return STA_DRILLDOWN;
+		case KEY_F(12):
+			return STA_SPECTRO;
+		case 288:
+			return STA_SPECTRO_FILE;
 		case KEY_BACKSPACE:
 		case 127:
 			return STA_DRILLUP;
