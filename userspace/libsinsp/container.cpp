@@ -285,7 +285,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		// runc
 		//
 		pos = cgroup.find_last_of('/');
-		if( pos != string::npos )
+		if( pos != string::npos && pos < cgroup.size()-1) // sanity check, ensure / is not the last char
 		{
 			char state_path[SCAP_MAX_PATH_SIZE];
 			snprintf(state_path, sizeof(state_path), "%s/run/opencontainer/containers/%s/state.json", scap_get_host_root(), cgroup.c_str()+pos+1);
