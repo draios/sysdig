@@ -63,7 +63,6 @@ private:
 	void add_framework(const Json::Value& framework);
 	void add_tasks(mesos_framework& framework, const Json::Value& f_val);
 	void add_tasks_impl(mesos_framework& framework, const Json::Value& tasks);
-	static void add_labels(std::shared_ptr<mesos_task> task, const Json::Value& t_val);
 	void handle_slaves(const Json::Value& root);
 	void add_slave(const Json::Value& framework);
 
@@ -85,6 +84,7 @@ private:
 	mesos_state_t     m_state;
 	marathon_disp_map m_dispatch;
 	mesos_collector   m_collector;
+	bool              m_creation_logged;
 
 	static const mesos_component::component_map m_components;
 

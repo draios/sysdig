@@ -22,9 +22,15 @@ marathon_component::marathon_component(type t, const std::string& id) :
 	m_type(t),
 	m_id(id)
 {
+	component_map::const_iterator it = list.find(t);
+	if(it == list.end())
+	{
+		throw sinsp_exception("Invalid Marathon component type: " + std::to_string(t));
+	}
+
 	if(m_id.empty())
 	{
-		throw sinsp_exception("component name cannot be empty");
+		throw sinsp_exception("Marathon " + it->second + " ID cannot be empty");
 	}
 }
 
@@ -85,6 +91,59 @@ marathon_component::type marathon_component::get_type(const std::string& name)
 // app
 //
 
+void marathon_app_cache::add(const std::string& app, const std::string& task)
+{
+	map_t::iterator it = m_app_map.find(app);
+	if(it == m_app_map.end())
+	{
+		 it = insert({app, {task}});
+		 return;
+	}
+	it->second.insert(task);
+}
+
+bool marathon_app_cache::remove(const std::string& app, const std::string& task)
+{
+	map_t::iterator it = m_app_map.find(app);
+	if(it == m_app_map.end())
+	{
+		 return false;
+	}
+	it->second.erase(task);
+	if(!it->second.size())
+	{
+		m_app_map.erase(it);
+	}
+	return true;
+}
+
+bool marathon_app_cache::remove(const std::string& app)
+{
+	map_t::iterator it = m_app_map.find(app);
+	if(it == m_app_map.end()) { return false; }
+	m_app_map.erase(it);
+	return true;
+}
+
+const marathon_app_cache::map_t& marathon_app_cache::get() const
+{
+	return m_app_map;
+}
+
+void marathon_app_cache::clear()
+{
+	m_app_map.clear();
+}
+
+marathon_app_cache::map_t::iterator marathon_app_cache::insert(const map_t::value_type& val)
+{
+	std::pair<map_t::iterator, bool> ret = m_app_map.insert(val);
+	if (!ret.second) ret.first->second = val.second;
+	return ret.first;
+}
+
+marathon_app_cache marathon_app::m_cache;
+
 marathon_app::marathon_app(const std::string& id) :
 	marathon_component(marathon_component::MARATHON_APP, id)
 {
@@ -94,24 +153,44 @@ marathon_app::~marathon_app()
 {
 }
 
-void marathon_app::add_task(const std::string& ptask)
+void marathon_app::add_task(const std::string& task_id)
 {
 	for(auto& task : m_tasks)
 	{
-		if(task == ptask) { return; }
+		if(task == task_id) { return; }
 	}
-	m_tasks.push_back(ptask);
+	m_tasks.push_back(task_id);
+	m_cache.add(get_id(), task_id);
 }
 
-void marathon_app::remove_task(const std::string& ptask)
+bool marathon_app::remove_task(const std::string& task_id)
 {
-	for(auto& task : m_tasks)
+	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
 	{
-		if(task == ptask)
+		if(task_id == *it)
 		{
-			return;
+			m_tasks.erase(it);
+			m_cache.remove(get_id(), task_id);
+			return true;
 		}
 	}
+	return false;
+}
+
+std::string marathon_app::get_group_id() const
+{
+	return get_group_id(get_id());
+}
+
+std::string marathon_app::get_group_id(const std::string& app_id)
+{
+	std::string group_id;
+	std::string::size_type pos = app_id.rfind('/');
+	if(pos != std::string::npos && app_id.length() > pos)
+	{
+		group_id = app_id.substr(0, pos + 1);
+	}
+	return group_id;
 }
 
 //
@@ -142,6 +221,18 @@ marathon_group& marathon_group::operator=(const marathon_group&& other)
 {
 	marathon_component::operator =(std::move(other));
 	return *this;
+}
+
+marathon_group::app_ptr_t marathon_group::get_app(const std::string& id)
+{
+	for(const auto& app : m_apps)
+	{
+		if(app.second && app.second->get_id() == id)
+		{
+			return app.second;
+		}
+	}
+	return 0;
 }
 
 marathon_group::ptr_t marathon_group::get_group(const std::string& group_id)
@@ -211,6 +302,29 @@ bool marathon_group::remove_group(const std::string& id)
 	{
 		m_groups.erase(it);
 		return true;
+	}
+	return false;
+}
+
+bool marathon_group::remove_app(const std::string& id)
+{
+	auto it = m_apps.find(id);
+	if(it != m_apps.end())
+	{
+		m_apps.erase(id);
+		return true;
+	}
+	return false;
+}
+
+bool marathon_group::remove_task(const std::string& id)
+{
+	for(auto& app : m_apps)
+	{
+		if(app.second && app.second->remove_task(id))
+		{
+			return true;
+		}
 	}
 	return false;
 }
