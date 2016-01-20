@@ -106,14 +106,14 @@ public:
 
 	mesos_task& operator=(const mesos_task&& other);
 
-	void set_app_id(const std::string& app_id)
+	void set_marathon_app_id(const std::string& app_id)
 	{
-		m_app_id = app_id;
+		m_marathon_app_id = app_id;
 	}
 
-	const std::string& get_app_id() const
+	const std::string& get_marathon_app_id() const
 	{
-		return m_app_id;
+		return m_marathon_app_id;
 	}
 
 	void set_slave_id(const std::string& slave_id)
@@ -126,8 +126,11 @@ public:
 		return m_slave_id;
 	}
 
+	static ptr_t make_task(const Json::Value& task);
+	static void add_labels(ptr_t task, const Json::Value& t_val);
+
 private:
-	std::string m_app_id;
+	std::string m_marathon_app_id;
 	std::string m_slave_id;
 };
 

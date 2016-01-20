@@ -23,10 +23,10 @@ marathon_http::marathon_http(mesos& m, const uri& url, bool framework_info): mes
 {
 	if(framework_info)
 	{
-		g_logger.log("Creating Marathon HTTP object for [" + url.to_string() + ']', sinsp_logger::SEV_INFO);	
+		g_logger.log("Creating Marathon HTTP object for [" + url.to_string() + "] ...", sinsp_logger::SEV_DEBUG);
 		if(refresh_data())
 		{
-			g_logger.log("Found Marathon framework: " + m_name + " (" + m_id + "), version: " + m_version, sinsp_logger::SEV_INFO);
+			g_logger.log("Created Marathon HTTP object: " + m_name + " (" + m_id + "), version: " + m_version, sinsp_logger::SEV_DEBUG);
 		}
 		else
 		{
@@ -59,7 +59,7 @@ bool marathon_http::refresh_data()
 			m_id = get_json_string(root, "frameworkId");
 			m_name = get_json_string(root, "name");
 			m_version = get_json_string(root, "version");
-			g_logger.log("Found Marathon framework: " + m_name + " (" + m_id + "), version: " + m_version, sinsp_logger::SEV_INFO);
+			g_logger.log("Found Marathon framework: " + m_name + " (" + m_id + "), version: " + m_version, sinsp_logger::SEV_DEBUG);
 		}
 		else
 		{

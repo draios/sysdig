@@ -23,14 +23,20 @@ mesos_component::mesos_component(type t, const std::string& name, const std::str
 	m_type(t),
 	m_name(name), m_uid(uid)
 {
+	component_map::const_iterator it = list.find(t);
+	if(it == list.end())
+	{
+		throw sinsp_exception("Invalid Mesos component type: " + std::to_string(t));
+	}
+
 	if(m_name.empty())
 	{
-		throw sinsp_exception("component name cannot be empty");
+		throw sinsp_exception("Mesos " + it->second + " name cannot be empty");
 	}
 
 	if(m_uid.empty())
 	{
-		throw sinsp_exception("component uid cannot be empty");
+		throw sinsp_exception("Mesos " + it->second + " uid cannot be empty");
 	}
 }
 
@@ -173,13 +179,11 @@ mesos_task::mesos_task(const std::string& name, const std::string& uid) :
 }
 
 mesos_task::mesos_task(const mesos_task& other): mesos_component(other),
-	m_app_id(other.m_app_id),
 	m_slave_id(other.m_slave_id)
 {
 }
 
 mesos_task::mesos_task(mesos_task&& other): mesos_component(std::move(other)),
-	m_app_id(std::move(other.m_app_id)),
 	m_slave_id(std::move(other.m_slave_id))
 {
 }
@@ -194,6 +198,81 @@ mesos_task& mesos_task::operator=(const mesos_task&& other)
 {
 	mesos_component::operator =(std::move(other));
 	return *this;
+}
+
+mesos_task::ptr_t mesos_task::make_task(const Json::Value& task)
+{
+	std::string name, uid, sid;
+	Json::Value fid = task["id"];
+	if(!fid.isNull()) { uid = fid.asString(); }
+	else
+	{
+		fid = task["taskId"];
+		if(!fid.isNull()) { uid = fid.asString(); }
+	}
+	Json::Value fname = task["name"];
+	if(!fname.isNull()) { name = fname.asString(); }
+	else
+	{
+		std::string::size_type pos = uid.rfind('.');
+		if(pos != std::string::npos)
+		{
+			name = uid.substr(0, pos);
+		}
+	}
+
+	std::shared_ptr<mesos_task> t(new mesos_task(name, uid));
+
+	Json::Value fsid = task["slave_id"];
+	if(!fsid.isNull()) { sid = fsid.asString(); }
+	else
+	{
+		Json::Value fsid = task["slaveId"];
+		if(!fsid.isNull()) { sid = fsid.asString(); }
+	}
+
+	if(!sid.empty())
+	{
+		t->set_slave_id(sid);
+	}
+	add_labels(t, task);
+
+	return t;
+}
+
+void mesos_task::add_labels(mesos_task::ptr_t task, const Json::Value& t_val)
+{
+	std::ostringstream os;
+	if(task)
+	{
+		Json::Value labels = t_val["labels"];
+		if(!labels.isNull())
+		{
+			for(const auto& label : labels)
+			{
+				std::string key, val;
+				Json::Value lkey = label["key"];
+				Json::Value lval = label["value"];
+				if(!lkey.isNull())
+				{
+					key = lkey.asString();
+				}
+				if(!lval.isNull())
+				{
+					val = lval.asString();
+				}
+				os << "Adding Mesos task label: [" << key << ':' << val << ']';
+				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+				os.str("");
+				task->emplace_label(mesos_pair_t(key, val));
+			}
+		}
+	}
+	else
+	{
+		os << "Attempt to add Mesos task labels to null task.";
+		g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+	}
 }
 
 //
