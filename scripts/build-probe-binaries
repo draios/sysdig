@@ -118,7 +118,7 @@ function build_sysdigcloud {
 
 function coreos_build {
 	VERSION_URL=$1
-	VERSION_NUMBER=$(echo $VERSION_URL | grep -o '[0-9][0-9][0-9]\.[0-9]\.[0-9]')
+	VERSION_NUMBER=$(echo $VERSION_URL | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 	COREOS_DIR="coreos-"$VERSION_NUMBER
 
 	if [ ! -d $COREOS_DIR ]; then
