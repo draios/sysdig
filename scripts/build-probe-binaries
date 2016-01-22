@@ -116,7 +116,7 @@ function build_sysdigcloud {
 	cd $BASEDIR
 }
 
-function coreos_build {
+function coreos_build_old {
 	VERSION_URL=$1
 	VERSION_NUMBER=$(echo $VERSION_URL | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 	COREOS_DIR="coreos-"$VERSION_NUMBER
@@ -171,6 +171,42 @@ function coreos_build {
 
 	export KERNELDIR=$BASEDIR/$COREOS_DIR/$DIR_NAME
 	build_probe
+}
+
+function coreos_build_new {
+	VERSION_URL=$1
+	VERSION_NUMBER=$(echo $VERSION_URL | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+	COREOS_DIR="coreos-"$VERSION_NUMBER
+
+	if [ ! -d $COREOS_DIR ]; then
+		mkdir $COREOS_DIR
+	fi
+
+	cd $COREOS_DIR
+
+	if [ ! -f coreos_developer_container.bin ]; then
+		wget ${VERSION_URL}coreos_developer_container.bin.bz2
+		bunzip2 coreos_developer_container.bin.bz2
+	fi
+	sudo kpartx -asv coreos_developer_container.bin
+	LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
+	sudo mkdir /tmp/loop || true
+	sudo mount /dev/mapper/$LOOPDEV /tmp/loop
+	
+	cp /tmp/loop/usr/boot/config-* .
+	cp config-* config_orig
+	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
+	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
+	HASH=$HASH_ORIG
+
+	cd $BASEDIR
+	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
+	build_probe
+
+	cd $COREOS_DIR
+	# cleanup
+	sudo umount /tmp/loop
+	sudo kpartx -dv coreos_developer_container.bin
 }
 
 function boot2docker_build {
@@ -371,7 +407,13 @@ URLS="$($DIR/kernel-crawler.py CoreOS)"
 
 for URL in $URLS
 do
-	coreos_build $URL
+	FULL_VERSION=$(echo $URL|cut -d/ -f5)
+	MAJOR_VERSION=$(echo $FULL_VERSION|cut -d. -f1)
+	if [ $MAJOR_VERSION -gt 890 ]; then
+		coreos_build_new $URL
+	else
+		coreos_build_old $URL
+	fi
 done
 
 #
