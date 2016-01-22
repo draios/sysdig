@@ -67,7 +67,6 @@ private:
 	void add_slave(const Json::Value& framework);
 
 	void parse_groups(const std::string& json);
-
 	void parse_apps(const std::string& json);
 
 	void add_task_labels(std::string& json);

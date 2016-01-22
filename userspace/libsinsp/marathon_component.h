@@ -137,6 +137,10 @@ public:
 
 	bool remove(const std::string& app);
 
+	bool remove_task(const std::string& task);
+
+	task_list_t get_tasks();
+
 	const map_t& get() const;
 
 	void clear();
@@ -156,23 +160,22 @@ public:
 	marathon_app(const std::string& uid);
 	~marathon_app();
 
-	void add_task(const std::string& task);
+	void add_task(mesos_framework::task_ptr_t ptask, const std::unordered_set<std::string>& all_tasks);
 	bool remove_task(const std::string& task);
 	const task_list_t& get_tasks() const;
 
 	std::string get_group_id() const;
 	static std::string get_group_id(const std::string& app_id);
 
-	static const marathon_app_cache& get_cache()
-	{
-		return m_cache;
-	}
+	static const marathon_app_cache& get_cache();
 	void clear_cache();
 
 private:
 	task_list_t m_tasks;
 	static marathon_app_cache m_cache;
+	friend class mesos;
 };
+
 
 typedef marathon_group::app_map_t marathon_apps;
 typedef marathon_group::group_map_t marathon_groups;
@@ -219,6 +222,11 @@ inline void marathon_group::add_or_replace_app(std::shared_ptr<marathon_app> app
 //
 // app
 //
+
+inline const marathon_app_cache& marathon_app::get_cache()
+{
+	return m_cache;
+}
 
 inline const marathon_app::task_list_t& marathon_app::get_tasks() const
 {

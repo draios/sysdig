@@ -44,6 +44,7 @@ public:
 	// tasks
 	//
 
+	std::unordered_set<std::string> get_all_task_ids() const;
 	const mesos_framework::task_map& get_tasks(const std::string& framework_uid) const;
 
 	mesos_framework::task_map& get_tasks(const std::string& framework_uid);
@@ -71,7 +72,7 @@ public:
 	void emplace_slave(mesos_slave&& slave);
 
 	//
-	// apps
+	// Marathon apps
 	//
 
 	void parse_apps(const std::string& json);
@@ -84,8 +85,13 @@ public:
 
 	bool remove_app(const std::string& id);
 
+	void add_task_to_app(marathon_group::app_ptr_t app, const std::string& task_id)
+	{
+		app->add_task(get_task(task_id), get_all_task_ids());
+	}
+
 	//
-	// groups
+	// Marathon groups
 	//
 
 	bool parse_groups(const std::string& json);
@@ -111,13 +117,14 @@ public:
 private:
 	marathon_group::ptr_t add_group(const Json::Value& group, marathon_group::ptr_t to_group, const std::string& framework_id = "");
 	bool handle_groups(const Json::Value& groups, marathon_group::ptr_t p_groups, const std::string& framework_id = "");
-	marathon_app::ptr_t add_app(const Json::Value& app);
+	marathon_app::ptr_t add_app(const Json::Value& app, const std::string& framework_id = "");
 
 	mesos_frameworks m_frameworks;
 	mesos_slaves     m_slaves;
 	marathon_groups  m_groups;
 	bool             m_is_captured;
 
+	std::unordered_multimap<std::string, std::string> m_marathon_task_cache;
 	friend class marathon_dispatcher;
 };
 

@@ -100,6 +100,8 @@ public:
 
 	mesos_task(const mesos_task& other);
 
+	~mesos_task();
+
 	mesos_task(mesos_task&& other);
 
 	mesos_task& operator=(const mesos_task& other);

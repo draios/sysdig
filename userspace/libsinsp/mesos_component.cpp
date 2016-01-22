@@ -3,6 +3,7 @@
 //
 
 #include "mesos_component.h"
+#include "marathon_component.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include <sstream>
@@ -178,12 +179,18 @@ mesos_task::mesos_task(const std::string& name, const std::string& uid) :
 {
 }
 
+mesos_task::~mesos_task()
+{
+}
+
 mesos_task::mesos_task(const mesos_task& other): mesos_component(other),
+	m_marathon_app_id(other.m_marathon_app_id),
 	m_slave_id(other.m_slave_id)
 {
 }
 
 mesos_task::mesos_task(mesos_task&& other): mesos_component(std::move(other)),
+	m_marathon_app_id(std::move(other.m_marathon_app_id)),
 	m_slave_id(std::move(other.m_slave_id))
 {
 }
@@ -202,6 +209,7 @@ mesos_task& mesos_task::operator=(const mesos_task&& other)
 
 mesos_task::ptr_t mesos_task::make_task(const Json::Value& task)
 {
+	//g_logger.log(task.toStyledString(), sinsp_logger::SEV_DEBUG);
 	std::string name, uid, sid;
 	Json::Value fid = task["id"];
 	if(!fid.isNull()) { uid = fid.asString(); }
