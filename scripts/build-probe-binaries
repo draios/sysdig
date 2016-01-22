@@ -207,6 +207,8 @@ function coreos_build_new {
 	# cleanup
 	sudo umount /tmp/loop
 	sudo kpartx -dv coreos_developer_container.bin
+
+	cd $BASEDIR
 }
 
 function boot2docker_build {
