@@ -117,7 +117,7 @@ static void usage()
 "                    'hidden' so that they won't appear when reading the file.\n"
 "                    Be aware that using this flag might generate substantially\n"
 "                    bigger traces files.\n"
-" filter-proclist    apply the filter to the process table\n"
+" --filter-proclist  apply the filter to the process table\n"
 "                    a full dump of /proc is typically included in any trace file\n"
 "                    to make sure all the state required to decode events is in the\n"
 "                    file. This could cause the file to contain unwanted or sensitive\n"
