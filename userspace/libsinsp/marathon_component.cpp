@@ -125,6 +125,18 @@ bool marathon_app_cache::remove(const std::string& app)
 	return true;
 }
 
+bool marathon_app_cache::remove_task(const std::string& task_id)
+{
+	for(auto& app : m_app_map)
+	{
+		if(remove(app.first, task_id))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 const marathon_app_cache::map_t& marathon_app_cache::get() const
 {
 	return m_app_map;
@@ -142,6 +154,19 @@ marathon_app_cache::map_t::iterator marathon_app_cache::insert(const map_t::valu
 	return ret.first;
 }
 
+marathon_app_cache::task_list_t marathon_app_cache::get_tasks()
+{
+	task_list_t tasks;
+	for(const auto& app : m_app_map)
+	{
+		for(const auto& task : app.second)
+		{
+			tasks.insert(task);
+		}
+	}
+	return tasks;
+}
+
 marathon_app_cache marathon_app::m_cache;
 
 marathon_app::marathon_app(const std::string& id) :
@@ -153,14 +178,28 @@ marathon_app::~marathon_app()
 {
 }
 
-void marathon_app::add_task(const std::string& task_id)
+void marathon_app::add_task(mesos_framework::task_ptr_t ptask, const std::unordered_set<std::string>& all_tasks)
 {
-	for(auto& task : m_tasks)
+	if(ptask)
 	{
-		if(task == task_id) { return; }
+		const std::string& task_id = ptask->get_uid();
+		ptask->set_marathon_app_id(get_id());
+		for(auto& task : m_tasks)
+		{
+			if(task == task_id) { return; }
+		}
+		m_tasks.push_back(task_id);
+		m_cache.add(get_id(), task_id);
 	}
-	m_tasks.push_back(task_id);
-	m_cache.add(get_id(), task_id);
+	for(auto it = m_tasks.begin(); it != m_tasks.end();)
+	{
+		if(all_tasks.find(*it) == all_tasks.end())
+		{
+			m_cache.remove_task(*it);
+			it = m_tasks.erase(it++);
+		}
+		else { ++it; }
+	}
 }
 
 bool marathon_app::remove_task(const std::string& task_id)
@@ -311,7 +350,7 @@ bool marathon_group::remove_app(const std::string& id)
 	auto it = m_apps.find(id);
 	if(it != m_apps.end())
 	{
-		m_apps.erase(id);
+		m_apps.erase(it);
 		return true;
 	}
 	return false;

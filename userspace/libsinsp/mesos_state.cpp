@@ -32,6 +32,19 @@ mesos_framework::task_ptr_t mesos_state_t::get_task(const std::string& uid)
 	throw sinsp_exception("Task not found: " + uid);
 }
 
+std::unordered_set<std::string> mesos_state_t::get_all_task_ids() const
+{
+	std::unordered_set<std::string> tasks;
+	for(const auto& framework : m_frameworks)
+	{
+		for(const auto& task : framework.get_tasks())
+		{
+			tasks.insert(task.first);
+		}
+	}
+	return tasks;
+}
+
 const mesos_framework::task_map& mesos_state_t::get_tasks(const std::string& framework_uid) const
 {
 	for(const auto& framework : m_frameworks)
@@ -89,7 +102,7 @@ marathon_group::app_ptr_t mesos_state_t::add_or_replace_app(const std::string& a
 	if(!task_id.empty())
 	{
 		g_logger.log("Adding task [" + task_id + "] to app [" + app_id + ']', sinsp_logger::SEV_DEBUG);
-		app->add_task(task_id);
+		add_task_to_app(app, task_id);
 	}
 
 	marathon_group::ptr_t group = get_group(group_id);
@@ -231,7 +244,7 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 						marathon_app::ptr_t p_app = get_app(app_id.asString());
 						if(!p_app)
 						{
-							p_app = add_app(app);
+							p_app = add_app(app, framework_id);
 						}
 						if(p_app)
 						{
@@ -240,7 +253,7 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 							{
 								if(task.second->get_marathon_app_id() == app_id.asString())
 								{
-									p_app->add_task(task.first);
+									add_task_to_app(p_app, task.first);
 								}
 							}
 						}
@@ -283,7 +296,7 @@ void mesos_state_t::parse_apps(const std::string& json)
 	}
 }
 
-marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app)
+marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app, const std::string& /*framework_id*/)
 {
 	marathon_app::ptr_t p_app = 0;
 	Json::Value app_id = app["id"];
@@ -313,7 +326,7 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app)
 							if(pt)
 							{
 								pt->set_marathon_app_id(id);
-								p_app->add_task(tid);
+								add_task_to_app(p_app, tid);
 							}
 							else
 							{
@@ -331,10 +344,33 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app)
 						task_count = instances.asInt();
 						g_logger.log("App [" + id + "] should have " + std::to_string(task_count) + " tasks.", sinsp_logger::SEV_DEBUG);
 					}
-					//TODO: the proper way to get tasks is from the state;
-					//      however, since we don't have framework Id here,
-					//      that is currently not feasible
 					int found_tasks = 0;
+					// the reason why this does not work is because there is no Marathon app ID set for task;
+					// the reason why there is no Marathon app ID set is because when Mesos creates task, it does not
+					// set Marathon App ID because it does not know it;
+					// Mesos tasks and Marathon apps are properly updated by Marathon task event, but then everything
+					// is wiped out by Marathon group change event - marathon groups and apps have to be recreated, Mesos task IDs
+					// have to be assigned to Marathon apps, but the task-app relationship was lost by groups/apps recreation;
+					// the workaround is to keep Marathon app ID/Mesos task ID temporarily cached in a static map in Marathon app;
+					// this code is left here in case a proper way around this is found
+					/*
+					if(!framework_id.empty())
+					{
+						const mesos_framework::task_map& tasks = get_tasks(framework_id);
+						for(auto& task : tasks)
+						{
+							if(task.second->get_marathon_app_id() == id)
+							{
+								add_task_to_app(p_app, task.first);
+								++found_tasks;
+							}
+						}
+					}
+					else
+					{
+						g_logger.log("Framework ID empty. NOT added app [" + id + "] to Marathon group: [" + group_id + ']', sinsp_logger::SEV_ERROR);
+					}*/
+					//Note: this is a workaround, the proper way to get tasks would be from the state (ie. from Mesos, see comment above)
 					const marathon_app_cache& app_cache = marathon_app::get_cache();
 					g_logger.log("Found " + std::to_string(app_cache.get().size()) + " cached apps.", sinsp_logger::SEV_DEBUG);
 					for(const auto& app : app_cache.get())
@@ -343,18 +379,21 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app)
 						{
 							for(const auto& task_id : app.second)
 							{
-								p_app->add_task(task_id);
+								add_task_to_app(p_app, task_id);
 								++found_tasks;
 							}
 							break;
 						}
 					}
-					g_logger.log("App [" + id + "] has " + std::to_string(found_tasks) + " tasks.", sinsp_logger::SEV_DEBUG);
+					if(found_tasks != task_count)
+					{
+						g_logger.log("App [" + id + "] has " + std::to_string(found_tasks) + " tasks (expected "  + std::to_string(task_count) + ").", sinsp_logger::SEV_WARNING);
+					}
 				}
 			}
 			else
 			{
-				g_logger.log("NOT added app [" + id + "] to Marathon group: [" + group_id + ']', sinsp_logger::SEV_WARNING);
+				g_logger.log("NOT added app [" + id + "] to Marathon group: [" + group_id + ']', sinsp_logger::SEV_ERROR);
 			}
 		}
 		else
