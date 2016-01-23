@@ -55,7 +55,6 @@ public:
 	void watch();
 private:
 
-	void on_watch_data(const std::string& framework_id, mesos_event_data&& msg);
 	void parse_state(const std::string& json);
 	void determine_node_type(const Json::Value& root);
 	bool is_master() const;
@@ -70,19 +69,24 @@ private:
 	void parse_apps(const std::string& json);
 
 	void add_task_labels(std::string& json);
+
+#ifdef HAS_CAPTURE
+	void on_watch_data(const std::string& framework_id, mesos_event_data&& msg);
 	void get_groups(marathon_http::ptr_t http, std::string& json);
 
 	typedef std::unordered_map<int, marathon_http::ptr_t>       marathon_http_map;
 	typedef std::unordered_map<int, marathon_dispatcher::ptr_t> marathon_disp_map;
 
-	node_t            m_node_type;
 	mesos_http        m_state_http;
 	marathon_http_map m_marathon_groups_http;
 	marathon_http_map m_marathon_apps_http;
 	marathon_http_map m_marathon_watch_http;
-	mesos_state_t     m_state;
-	marathon_disp_map m_dispatch;
 	mesos_collector   m_collector;
+	marathon_disp_map m_dispatch;
+#endif // HAS_CAPTURE
+
+	node_t            m_node_type;
+	mesos_state_t     m_state;
 	bool              m_creation_logged;
 
 	static const mesos_component::component_map m_components;
@@ -106,10 +110,12 @@ inline bool mesos::is_master() const
 	return m_node_type == NODE_MASTER;
 }
 
+#ifdef HAS_CAPTURE
 inline bool mesos::has_marathon() const
 {
 	return m_marathon_watch_http.size() > 0;
 }
+#endif // HAS_CAPTURE
 
 inline void mesos::clear(bool marathon)
 {
