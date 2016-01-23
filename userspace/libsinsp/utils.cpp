@@ -1250,7 +1250,7 @@ std::string get_json_string(const Json::Value& root, const std::string& name)
 	return ret;
 }
 
-#ifndef _WIN32
+#if defined(__linux__)
 ///////////////////////////////////////////////////////////////////////////////
 // Curl helpers
 ///////////////////////////////////////////////////////////////////////////////
@@ -1359,4 +1359,4 @@ void sinsp_curl::check_error(unsigned ret)
 		throw sinsp_exception(os.str());
 	}
 }
-#endif // _WIN32
+#endif // __linux__

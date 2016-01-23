@@ -27,9 +27,13 @@ mesos::mesos(const std::string& state_uri,
 	const uri_list_t& marathon_uris,
 	const std::string& groups_api,
 	const std::string& apps_api,
-	const std::string& watch_api): m_state_http(*this, state_uri + state_api),
+	const std::string& watch_api)
+#ifdef HAS_CAPTURE
+		: m_state_http(*this, state_uri + state_api),
 		m_collector(false), m_creation_logged(false)
+#endif // HAS_CAPTURE
 {
+#ifdef HAS_CAPTURE
 	for(const auto& uri : marathon_uris)
 	{
 		int port = (uri.substr(0, 5) == "https") ? 443 : 80;
@@ -51,6 +55,7 @@ mesos::mesos(const std::string& state_uri,
 	}
 
 	refresh(marathon_uris.size());
+#endif // HAS_CAPTURE
 }
 
 mesos::~mesos()
@@ -59,6 +64,7 @@ mesos::~mesos()
 
 void mesos::refresh(bool marathon)
 {
+#ifdef HAS_CAPTURE
 	clear(marathon);
 
 	m_state_http.get_all_data(&mesos::parse_state);
@@ -80,12 +86,13 @@ void mesos::refresh(bool marathon)
 			m_collector.add(watch_http.second);
 		}
 	}
+#endif // HAS_CAPTURE
 }
 
 bool mesos::is_alive() const
 {
 	bool connected = true;
-
+#ifdef HAS_CAPTURE
 	connected &= m_state_http.is_connected();
 	for(const auto& group : m_marathon_groups_http)
 	{
@@ -98,12 +105,14 @@ bool mesos::is_alive() const
 	}
 
 	connected &= (m_collector.subscription_count() > 0);
+#endif // HAS_CAPTURE
 
 	return connected;
 }
 
 void mesos::watch()
 {
+#ifdef HAS_CAPTURE
 	if(m_marathon_watch_http.size())
 	{
 		if(!m_collector.subscription_count())
@@ -115,6 +124,7 @@ void mesos::watch()
 		}
 		m_collector.get_data();
 	}
+#endif // HAS_CAPTURE
 }
 
 void mesos::determine_node_type(const Json::Value& root)
@@ -143,6 +153,7 @@ void mesos::determine_node_type(const Json::Value& root)
 
 void mesos::add_task_labels(std::string& json)
 {
+#ifdef HAS_CAPTURE
 	Json::Value root;
 	Json::Reader reader;
 	try
@@ -174,8 +185,10 @@ void mesos::add_task_labels(std::string& json)
 	{
 		g_logger.log(std::string("Error while looking for taks labels:") + ex.what(), sinsp_logger::SEV_ERROR);
 	}
+#endif // HAS_CAPTURE
 }
 
+#ifdef HAS_CAPTURE
 void mesos::get_groups(marathon_http::ptr_t http, std::string& json)
 {
 	std::string group_ev_type = mesos_event_data::m_events[mesos_event_data::MESOS_GROUP_CHANGE_SUCCESS_EVENT];
@@ -242,6 +255,7 @@ void mesos::on_watch_data(const std::string& framework_id, mesos_event_data&& ms
 		}
 	}
 }
+#endif // HAS_CAPTURE
 
 void mesos::parse_state(const std::string& json)
 {

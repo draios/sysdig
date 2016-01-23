@@ -189,6 +189,8 @@ std::string get_json_string(const Json::Value& root, const std::string& name);
 // Curl helpers
 ///////////////////////////////////////////////////////////////////////////////
 
+#if defined(__linux__)
+
 class uri;
 
 class sinsp_curl
@@ -215,3 +217,5 @@ private:
 	string m_cert;
 	long m_timeout;
 };
+
+#endif // __linux__
