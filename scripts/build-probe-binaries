@@ -118,7 +118,7 @@ function build_sysdigcloud {
 
 function coreos_build_old {
 	VERSION_URL=$1
-	VERSION_NUMBER=$(echo $VERSION_URL | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+	VERSION_NUMBER=$2
 	COREOS_DIR="coreos-"$VERSION_NUMBER
 
 	if [ ! -d $COREOS_DIR ]; then
@@ -175,7 +175,7 @@ function coreos_build_old {
 
 function coreos_build_new {
 	VERSION_URL=$1
-	VERSION_NUMBER=$(echo $VERSION_URL | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+	VERSION_NUMBER=$2
 	COREOS_DIR="coreos-"$VERSION_NUMBER
 
 	if [ ! -d $COREOS_DIR ]; then
@@ -409,12 +409,11 @@ URLS="$($DIR/kernel-crawler.py CoreOS)"
 
 for URL in $URLS
 do
-	FULL_VERSION=$(echo $URL|cut -d/ -f5)
-	MAJOR_VERSION=$(echo $FULL_VERSION|cut -d. -f1)
-	if [ $MAJOR_VERSION -gt 890 ]; then
-		coreos_build_new $URL
+	eval $(curl -s ${URL}version.txt)
+	if [ $COREOS_BUILD -gt 890 ]; then
+		coreos_build_new $URL $COREOS_VERSION
 	else
-		coreos_build_old $URL
+		coreos_build_old $URL $COREOS_VERSION
 	fi
 done
 
