@@ -128,7 +128,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current')]/@href"
 		},
 
 		{
@@ -137,7 +137,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current')]/@href"
 		},
 
 		{
@@ -146,7 +146,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]|current')]/@href"
 		}
 	]
 }
@@ -157,7 +157,7 @@ repos = {
 # links will be found automagically without needing to write any single line of
 # code.
 #
-packages = {}
+urls = set()
 
 if len(sys.argv) < 2 or not sys.argv[1] in repos:
 	sys.stderr.write("Usage: " + sys.argv[0] + " <distro>\n")
@@ -184,13 +184,12 @@ for repo in repos[sys.argv[1]]:
 				rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
 				for rpm in rpms:
-					if not rpm in packages:
-						packages[rpm] = source + rpm
+					urls.add(source + rpm)
 			except:
 				continue
 
 #
 # Print URLs to stdout
 #
-for rpm, url in packages.iteritems():
+for url in urls:
 	print(url)
