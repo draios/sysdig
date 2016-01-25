@@ -639,6 +639,7 @@ public:
 	bool m_offline_replay;
 	uint64_t m_refresh_interval_ns;
 	sinsp* m_inspector;
+	bool m_is_mousedrag_available;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
@@ -698,7 +699,6 @@ private:
 	string m_search_header_text;
 	bool m_raw_output;
 	bool m_truncated_input;
-	bool m_is_mousedrag_available;
 };
 
 #endif // CSYSDIG
