@@ -39,14 +39,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #include <unistd.h>
 #include <getopt.h>
+#include <term.h>
 #endif
 
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
 
-static bool g_terminate = false;
+#define MOUSE_CAPABLE_TERM "xterm-1002"
 
+static bool g_terminate = false;
 static void usage();
 
 //
@@ -231,6 +233,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool m_raw_output = false;
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
+	bool xt1002_available = false;
 
 	static struct option long_options[] =
 	{
@@ -430,12 +433,16 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		if(!m_raw_output)
 		{
 			//
-			// Enable fine-grained mouse activity capture
+			// Check if xterm-1002 is available
 			//
-			string term = getenv("TERM");
-			if(term == "xterm")
+			xt1002_available =(tgetent(NULL, MOUSE_CAPABLE_TERM) != 0);
+
+			if(xt1002_available)
 			{
-				setenv("TERM", "xterm-1002", 1);
+				//
+				// Enable fine-grained mouse activity capture by setting xterm-1002
+				//
+				setenv("TERM", MOUSE_CAPABLE_TERM, 1);
 			}
 
 			(void) initscr();      // initialize the curses library
@@ -512,7 +519,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				(filter.size() != 0)? filter : "",
 				refresh_interval_ns,
 				print_containers,
-				m_raw_output);
+				m_raw_output,
+				xt1002_available);
 
 			ui.configure(&view_manager);
 			ui.start(false, false);
