@@ -65,7 +65,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 							   string cmdline_capture_filter, 
 							   uint64_t refresh_interval_ns,
 							   bool print_containers,
-							   bool raw_output)
+							   bool raw_output,
+							   bool is_mousedrag_available)
 {
 	m_inspector = inspector;
 	m_event_source_name = event_source_name;
@@ -105,6 +106,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_search_caller_interface = NULL;
 	m_viewinfo_page = NULL;
 	m_mainhelp_page = NULL;
+	m_is_mousedrag_available = is_mousedrag_available;
 
 	for (int i = 0; i < 8; i++)
 	{
@@ -2125,8 +2127,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 			{
 				if(ta == STA_SWITCH_VIEW) 
 				{
-					sinsp_view_info* vinfo = get_selected_view();
-					ASSERT(m_selected_view_sort_sidemenu_entry < vinfo->m_columns.size());
+					ASSERT(m_selected_view_sort_sidemenu_entry < get_selected_view()->m_columns.size());
 					m_datatable->set_sorting_col(m_selected_view_sort_sidemenu_entry+1);
 					m_datatable->sort_sample();
 					m_viz->update_data(m_viz->m_data);

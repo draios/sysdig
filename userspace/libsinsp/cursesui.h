@@ -344,7 +344,7 @@ public:
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
-		bool print_containers, bool raw_output);
+		bool print_containers, bool raw_output, bool is_mousedrag_available);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -698,6 +698,7 @@ private:
 	string m_search_header_text;
 	bool m_raw_output;
 	bool m_truncated_input;
+	bool m_is_mousedrag_available;
 };
 
 #endif // CSYSDIG
