@@ -2058,7 +2058,11 @@ int sysdig_init(void)
 
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0)
+	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
+#else	
 	g_ppm_devs = kmalloc_array(g_ppm_numdevs, sizeof(struct ppm_device), GFP_KERNEL);
+#endif
 	if (!g_ppm_devs) {
 		pr_err("can't allocate devices\n");
 		ret = -ENOMEM;
