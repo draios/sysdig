@@ -131,8 +131,10 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p);
 #ifdef CAPTURE_CONTEXT_SWITCHES
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
 TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, struct task_struct *next);
-#else
+#elif (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next);
+#else
+TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, struct task_struct *next);
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)) */
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
@@ -1759,8 +1761,10 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 #ifdef CAPTURE_CONTEXT_SWITCHES
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
 TRACEPOINT_PROBE(sched_switch_probe, struct rq *rq, struct task_struct *prev, struct task_struct *next)
-#else
+#elif (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 TRACEPOINT_PROBE(sched_switch_probe, struct task_struct *prev, struct task_struct *next)
+#else
+TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, struct task_struct *next)
 #endif
 {
 	struct event_data_t event_data;
@@ -2054,7 +2058,11 @@ int sysdig_init(void)
 
 	g_ppm_major = MAJOR(dev);
 	g_ppm_numdevs = num_cpus;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0)
+	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
+#else	
 	g_ppm_devs = kmalloc_array(g_ppm_numdevs, sizeof(struct ppm_device), GFP_KERNEL);
+#endif
 	if (!g_ppm_devs) {
 		pr_err("can't allocate devices\n");
 		ret = -ENOMEM;

@@ -344,7 +344,7 @@ public:
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
-		bool print_containers, bool raw_output);
+		bool print_containers, bool raw_output, bool is_mousedrag_available);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -639,6 +639,7 @@ public:
 	bool m_offline_replay;
 	uint64_t m_refresh_interval_ns;
 	sinsp* m_inspector;
+	bool m_is_mousedrag_available;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);

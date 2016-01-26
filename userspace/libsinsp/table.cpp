@@ -527,7 +527,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 
 		if(m_filter)
 		{
-			if(!m_filter->run(evt))
+			if(!m_filter->run(&tevt))
 			{
 				continue;
 			}

@@ -440,12 +440,18 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 		case KEY_BACKSPACE:
 		case 127:
 			return STA_DRILLUP;
-		case KEY_DOWN:
-			return STA_NONE;
-		case KEY_UP:
-			return STA_NONE;
 		case KEY_MOUSE:
 			{
+				if(!m_parent->m_is_mousedrag_available)
+				{
+					string msgstr = "Mouse input not supported in this terminal";
+					uint32_t xs = (msgstr.size() >= m_w)? 0 : (m_w / 2) - (msgstr.size() / 2);
+					ansi_moveto(m_h / 2, xs);
+					printf("%s\n", msgstr.c_str());
+
+					return STA_NONE;
+				}
+
 				if(!m_mouse_masked)
 				{
 					mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);

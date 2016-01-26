@@ -29,6 +29,7 @@ mesos::mesos(const std::string& state_uri,
 	const std::string& apps_api,
 	const std::string& watch_api): m_collector(false), m_creation_logged(false)
 {
+#ifdef HAS_CAPTURE
 	m_state_http = std::make_shared<mesos_http>(*this, state_uri + state_api);
 	rebuild_mesos_state(true);
 
@@ -77,6 +78,7 @@ mesos::mesos(const std::string& state_uri,
 	{
 		rebuild_marathon_state(true);
 	}
+#endif // HAS_CAPTURE
 }
 
 mesos::~mesos()
@@ -138,11 +140,13 @@ void mesos::rebuild_marathon_state(bool full)
 			collect_data(app_http.second, &mesos::parse_apps);
 		}
 	}
+
 	m_state.set_marathon_changed(false);
 }
 
 bool mesos::is_alive() const
 {
+#ifdef HAS_CAPTURE
 	if(!m_state_http->is_connected())
 	{
 		g_logger.log("Mesos state connection loss.", sinsp_logger::SEV_WARNING);
@@ -173,11 +177,13 @@ bool mesos::is_alive() const
 		return false;
 	}
 
+#endif // HAS_CAPTURE
 	return true;
 }
 
 void mesos::watch_marathon()
 {
+#ifdef HAS_CAPTURE
 	if(has_marathon())
 	{
 		if(m_marathon_watch_http.size())
@@ -196,10 +202,12 @@ void mesos::watch_marathon()
 	{
 		throw sinsp_exception("Attempt to watch non-existing Marathon framework.");
 	}
+#endif // HAS_CAPTURE
 }
 
 void mesos::add_task_labels(std::string& json)
 {
+#ifdef HAS_CAPTURE
 	Json::Value root;
 	Json::Reader reader;
 	try
@@ -231,8 +239,10 @@ void mesos::add_task_labels(std::string& json)
 	{
 		g_logger.log(std::string("Error while looking for taks labels:") + ex.what(), sinsp_logger::SEV_ERROR);
 	}
+#endif // HAS_CAPTURE
 }
 
+#ifdef HAS_CAPTURE
 void mesos::get_groups(marathon_http::ptr_t http, std::string& json)
 {
 	std::string group_ev_type = mesos_event_data::m_events[mesos_event_data::MESOS_GROUP_CHANGE_SUCCESS_EVENT];
@@ -283,6 +293,7 @@ void mesos::on_watch_data(const std::string& framework_id, mesos_event_data&& ms
 		}
 	}
 }
+#endif // HAS_CAPTURE
 
 void mesos::parse_state(const std::string& json)
 {

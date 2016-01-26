@@ -49,7 +49,6 @@ public:
 	void clear_marathon();
 
 private:
-
 	template <typename T>
 	void collect_data(T http, typename T::element_type::parse_func_t func)
 	{
@@ -72,7 +71,6 @@ private:
 	void rebuild_mesos_state(bool full = false);
 	void rebuild_marathon_state(bool full = false);
 
-	void on_watch_data(const std::string& framework_id, mesos_event_data&& msg);
 	void parse_state(const std::string& json);
 
 	void handle_frameworks(const Json::Value& root);
@@ -86,6 +84,9 @@ private:
 	void parse_apps(const std::string& json);
 
 	void add_task_labels(std::string& json);
+
+#ifdef HAS_CAPTURE
+	void on_watch_data(const std::string& framework_id, mesos_event_data&& msg);
 	void get_groups(marathon_http::ptr_t http, std::string& json);
 
 	typedef std::unordered_map<int, marathon_http::ptr_t>       marathon_http_map;
@@ -95,9 +96,11 @@ private:
 	marathon_http_map m_marathon_groups_http;
 	marathon_http_map m_marathon_apps_http;
 	marathon_http_map m_marathon_watch_http;
-	mesos_state_t     m_state;
-	marathon_disp_map m_dispatch;
 	mesos_collector   m_collector;
+	marathon_disp_map m_dispatch;
+#endif // HAS_CAPTURE
+
+	mesos_state_t     m_state;
 	bool              m_creation_logged;
 
 	static const mesos_component::component_map m_components;
@@ -111,10 +114,12 @@ inline const mesos_state_t& mesos::get_state() const
 	return m_state;
 }
 
+#ifdef HAS_CAPTURE
 inline bool mesos::has_marathon() const
 {
 	return m_marathon_groups_http.size() || m_marathon_apps_http.size() || m_marathon_watch_http.size();
 }
+#endif // HAS_CAPTURE
 
 inline void mesos::clear_mesos()
 {
