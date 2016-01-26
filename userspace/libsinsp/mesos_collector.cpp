@@ -34,7 +34,7 @@ void mesos_collector::clear()
 
 void mesos_collector::add(std::shared_ptr<mesos_http> handler)
 {
-	int sockfd = handler->get_watch_socket(5000L);
+	int sockfd = handler->get_socket(m_timeout_ms);
 
 	FD_SET(sockfd, &m_errfd);
 	FD_SET(sockfd, &m_infd);
@@ -46,6 +46,31 @@ void mesos_collector::add(std::shared_ptr<mesos_http> handler)
 	m_subscription_count = m_sockets.size();
 }
 
+bool mesos_collector::has(std::shared_ptr<mesos_http> handler)
+{
+	for(const auto& http : m_sockets)
+	{
+		if(http.second == handler)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool mesos_collector::remove(std::shared_ptr<mesos_http> handler)
+{
+	for(socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it)
+	{
+		if(it->second == handler)
+		{
+			remove(it);
+			return true;
+		}
+	}
+	return false;
+}
+
 void mesos_collector::remove(socket_map_t::iterator it)
 {
 	if(it != m_sockets.end())
@@ -53,7 +78,7 @@ void mesos_collector::remove(socket_map_t::iterator it)
 		m_sockets.erase(it);
 	}
 	m_nfds = 0;
-	for (auto& sock : m_sockets)
+	for(const auto& sock : m_sockets)
 	{
 		if(sock.first > m_nfds)
 		{
@@ -67,7 +92,7 @@ void mesos_collector::remove(socket_map_t::iterator it)
 void mesos_collector::remove_all()
 {
 	clear();
-	for (socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end();)
+	for(socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end();)
 	{
 		remove(it++);
 	}
@@ -90,7 +115,7 @@ void mesos_collector::get_data()
 		struct timeval tv;
 		int res;
 		m_stopped = false;
-		while (!m_stopped)
+		while(!m_stopped)
 		{
 			tv.tv_sec  = m_loop ? m_timeout_ms / 1000 : 0;
 			tv.tv_usec = m_loop ? (m_timeout_ms % 1000) * 1000 : 0;
@@ -106,7 +131,7 @@ void mesos_collector::get_data()
 					}
 					else // data or idle
 					{
-						for (auto& sock : m_sockets)
+						for(auto& sock : m_sockets)
 						{
 							if(FD_ISSET(sock.first, &m_infd))
 							{

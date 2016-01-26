@@ -45,19 +45,20 @@ void marathon_dispatcher::extract_data(const std::string& json)
 		switch(mesos_event_data::get_event_type(root))
 		{
 			case mesos_event_data::MESOS_API_POST_EVENT:
-				handle_api_post(root);
-				break;
+				//handle_api_post(root);
+				//break;
 			case mesos_event_data::MESOS_STATUS_UPDATE_EVENT:
-				handle_status_update(root);
-				break;
+				//handle_status_update(root);
+				//break;
 			case mesos_event_data::MESOS_APP_TERMINATED_EVENT:
-				handle_app_terminate(root);
-				break;
+				//handle_app_terminate(root);
+				//break;
 			case mesos_event_data::MESOS_GROUP_CHANGE_SUCCESS_EVENT:
-				handle_group_change(root);
-				break;
+				//handle_group_change(root);
+				//break;
 			case mesos_event_data::MESOS_DEPLOYMENT_SUCCESS_EVENT:
-				handle_deployment_success(root);
+				//handle_deployment_success(root);
+				m_state.set_marathon_changed(true);
 				break;
 			case mesos_event_data::MESOS_IGNORED_EVENT:
 				break;

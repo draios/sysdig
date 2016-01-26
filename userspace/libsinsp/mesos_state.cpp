@@ -13,7 +13,8 @@
 // state
 //
 
-mesos_state_t::mesos_state_t(bool is_captured) : m_is_captured(is_captured)
+mesos_state_t::mesos_state_t(bool is_captured) : m_is_captured(is_captured),
+	m_marathon_changed(true)
 {
 }
 
@@ -29,7 +30,8 @@ mesos_framework::task_ptr_t mesos_state_t::get_task(const std::string& uid)
 			}
 		}
 	}
-	throw sinsp_exception("Task not found: " + uid);
+	g_logger.log("Task not found: " + uid, sinsp_logger::SEV_WARNING);
+	return 0;
 }
 
 std::unordered_set<std::string> mesos_state_t::get_all_task_ids() const
@@ -330,7 +332,7 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app, const std::st
 							}
 							else
 							{
-								throw sinsp_exception("Marathon task not found in mesos state");
+								g_logger.log("Marathon task not found in mesos state: " + tid, sinsp_logger::SEV_WARNING);
 							}
 						}
 					}
