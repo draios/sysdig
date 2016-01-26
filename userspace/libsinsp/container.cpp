@@ -126,7 +126,7 @@ bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container,
 			if(!task_id.empty())
 			{
 				container->m_mesos_task_id = task_id;
-				g_logger.log("Mesos container: [" + container_id + "], Mesos task ID: [" + task_id + ']', sinsp_logger::SEV_INFO);
+				g_logger.log("Mesos container: [" + container_id + "], Mesos task ID: [" + task_id + ']', sinsp_logger::SEV_DEBUG);
 				return true;
 			}
 			else if(-1 != ptid && container->m_type == CT_MESOS)
@@ -137,7 +137,7 @@ bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container,
 					string mtid = tinfo->get_env("MESOS_TASK_ID");
 					if(!mtid.empty())
 					{
-						g_logger.log("Mesos native container: [" + container_id + "], Mesos task ID: " + mtid + ", PTID:[" + std::to_string(ptid) +']', sinsp_logger::SEV_INFO);
+						g_logger.log("Mesos native container: [" + container_id + "], Mesos task ID: " + mtid + ", PTID:[" + std::to_string(ptid) +']', sinsp_logger::SEV_DEBUG);
 						container->m_mesos_task_id = mtid;
 						return true;
 					}
