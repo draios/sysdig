@@ -22,7 +22,7 @@ view_info =
   description = "This will show queues (backlog) utilization per process. This is useful if you have no clue what's going to with your system with heavy workload on sockets. It would help you to troubleshoot current listen() backlog, maximum backlog, which is configured by application",
   tags = {"Default"},
   view_type = "table",
-  applies_to = {"", "proc.pid", "proc.name", "fd.sport"},
+  applies_to = {"", "proc.pid", "proc.name", "fd.sport", "fd.sproto"},
   filter = "evt.type=accept",
   is_root = false,
   use_defaults = true,
