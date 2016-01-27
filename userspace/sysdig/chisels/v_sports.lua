@@ -26,7 +26,7 @@ view_info =
 	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	filter = "fd.type=ipv4 and fd.name!=''",
 	use_defaults = true,
-	drilldown_target = "procs",
+	drilldown_target = "connections",
 	columns = 
 	{
 		{
