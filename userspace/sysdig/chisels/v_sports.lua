@@ -31,7 +31,7 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "fd.sproto",
+			field = "fd.sport",
 			is_key = true
 		},
 		{
