@@ -191,12 +191,18 @@ int mesos_http::get_socket(long timeout_ms)
 
 		check_error(curl_easy_setopt(m_select_curl, CURLOPT_URL, url.c_str()));
 		check_error(curl_easy_setopt(m_select_curl, CURLOPT_CONNECT_ONLY, 1L));
+
+// keepalive options as of curl 7.25, deb package uses 7.25, which breaks the build
+#ifdef HAS_ANALYZER
 		// enable TCP keep-alive for this transfer
 		check_error(curl_easy_setopt(m_select_curl, CURLOPT_TCP_KEEPALIVE, 1L));
 		// keep-alive idle time to 120 seconds
 		check_error(curl_easy_setopt(m_select_curl, CURLOPT_TCP_KEEPIDLE, 120L));
 		// interval time between keep-alive probes: 10 seconds
 		check_error(curl_easy_setopt(m_select_curl, CURLOPT_TCP_KEEPINTVL, 10L));
+#else
+#warning "Mesos will be compiled without keepalive support."
+#endif // HAS_ANALYZER
 
 		check_error(curl_easy_perform(m_select_curl));
 
