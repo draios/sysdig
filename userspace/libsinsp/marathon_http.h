@@ -16,41 +16,19 @@ class marathon_http : public mesos_http
 public:
 	typedef std::shared_ptr<marathon_http> ptr_t;
 
-	marathon_http(mesos& m, const uri& url, const std::string& request = ""/*, bool framework_info = false*/);
+	marathon_http(mesos& m, const uri& url);
 
 	~marathon_http();
 
 	bool refresh_data();
 
-	const std::string& get_id() const;
-	const std::string& get_name() const;
-	const std::string& get_version() const;
-
 	std::string get_groups(const std::string& group_id);
 
 private:
-	bool on_data();
-	void on_error(const std::string& err, bool disconnect);
+	//bool on_data();
+	//void on_error(const std::string& err, bool disconnect);
 
 	std::string   m_data;
-	std::string   m_id;
-	std::string   m_name;
-	std::string   m_version;
 };
-
-inline const std::string& marathon_http::get_id() const
-{
-	return m_id;
-}
-
-inline const std::string& marathon_http::get_name() const
-{
-	return m_name;
-}
-
-inline const std::string& marathon_http::get_version() const
-{
-	return m_version;
-}
 
 #endif // HAS_CAPTURE

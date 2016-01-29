@@ -125,32 +125,6 @@ private:
 // app
 //
 
-class marathon_app_cache
-{
-public:
-	typedef std::unordered_set<std::string> task_list_t;
-	typedef std::unordered_map<std::string, task_list_t> map_t;
-
-	void add(const std::string& app, const std::string& task);
-
-	bool remove(const std::string& app, const std::string& task);
-
-	bool remove(const std::string& app);
-
-	bool remove_task(const std::string& task);
-
-	task_list_t get_tasks();
-
-	const map_t& get() const;
-
-	void clear();
-
-private:
-	map_t::iterator insert(const map_t::value_type& val);
-
-	map_t m_app_map;
-};
-
 class marathon_app : public marathon_component
 {
 public:
@@ -160,19 +134,17 @@ public:
 	marathon_app(const std::string& uid);
 	~marathon_app();
 
-	void add_task(mesos_framework::task_ptr_t ptask, const std::unordered_set<std::string>& all_tasks);
+	void add_task(mesos_framework::task_ptr_t ptask);
 	bool remove_task(const std::string& task);
 	const task_list_t& get_tasks() const;
 
 	std::string get_group_id() const;
 	static std::string get_group_id(const std::string& app_id);
 
-	static const marathon_app_cache& get_cache();
 	void clear_cache();
 
 private:
 	task_list_t m_tasks;
-	static marathon_app_cache m_cache;
 	friend class mesos;
 };
 
@@ -223,17 +195,7 @@ inline void marathon_group::add_or_replace_app(std::shared_ptr<marathon_app> app
 // app
 //
 
-inline const marathon_app_cache& marathon_app::get_cache()
-{
-	return m_cache;
-}
-
 inline const marathon_app::task_list_t& marathon_app::get_tasks() const
 {
 	return m_tasks;
-}
-
-inline void marathon_app::clear_cache()
-{
-	m_cache.clear();
 }

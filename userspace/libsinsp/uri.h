@@ -158,5 +158,10 @@ inline bool uri::is_secure() const
 
 inline std::string uri::get_credentials() const
 {
-	return m_user + ':' + m_password;
+	std::string creds;
+	if(!m_user.empty())
+	{
+		creds.append(m_user).append(1, ':').append(m_password);
+	}
+	return creds;
 }

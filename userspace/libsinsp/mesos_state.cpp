@@ -76,6 +76,7 @@ marathon_app::ptr_t mesos_state_t::get_app(const std::string& app_id)
 	marathon_group::ptr_t group = get_app_group(app_id);
 	if(group)
 	{
+		g_logger.log("Found group for app [" + app_id + "]: " + group->get_id(), sinsp_logger::SEV_DEBUG);
 		return group->get_app(app_id);
 	}
 	return 0;
@@ -183,9 +184,7 @@ bool mesos_state_t::handle_groups(const Json::Value& root, marathon_group::ptr_t
 	{
 		for(const auto& group : groups)
 		{
-			to_group = add_group(group, to_group, framework_id);
-			ASSERT(to_group);
-			handle_groups(group, to_group, framework_id);
+			add_group(group, to_group, framework_id);
 		}
 	}
 	else
@@ -196,17 +195,18 @@ bool mesos_state_t::handle_groups(const Json::Value& root, marathon_group::ptr_t
 	return true;
 }
 
-bool mesos_state_t::parse_groups(const std::string& json)
+bool mesos_state_t::parse_groups(std::string&& json, const std::string& framework_id)
 {
 	Json::Value root;
 	Json::Reader reader;
-	if(reader.parse(json, root, false))
+	if(reader.parse(json, root, false) && !root["id"].isNull())
 	{
-		return handle_groups(root, add_group(root, 0));
+		add_group(root, 0, framework_id);
+		return true;
 	}
 	else
 	{
-		throw sinsp_exception("Invalid JSON (Marathon groups parsing failed).");
+		throw sinsp_exception("Marathon groups parsing failed (Invalid JSON).");
 	}
 }
 
@@ -225,32 +225,34 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 	{
 		std::string id = group_id.asString();
 		std::ostringstream os;
-		os << "Adding Marathon group [" + id + ']';
+		os << "Adding Marathon group [" << id << ']';
 		if(to_group)
 		{
-			os << " to group [" + to_group->get_id() << ']';
+			os << " to group [" << to_group->get_id() << ']';
 		}
-		g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+		g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+
 		marathon_group::ptr_t pg(new marathon_group(id));
-		marathon_group::ptr_t p_group = add_or_replace_group(pg, to_group);
-		if(!framework_id.empty())
+		add_or_replace_group(pg, to_group);
+
+		Json::Value apps = group["apps"];
+		if(!apps.isNull())
 		{
-			Json::Value apps = group["apps"];
-			if(!apps.isNull())
+			for(const auto& app : apps)
 			{
-				for(const auto& app : apps)
+				Json::Value app_id = app["id"];
+				if(!app_id.isNull())
 				{
-					Json::Value app_id = app["id"];
-					if(!app_id.isNull())
+					marathon_app::ptr_t p_app = get_app(app_id.asString());
+					if(!p_app)
 					{
-						marathon_app::ptr_t p_app = get_app(app_id.asString());
-						if(!p_app)
+						p_app = add_app(app, framework_id);
+					}
+					if(p_app)
+					{
+						pg->add_or_replace_app(p_app);
+						if(!framework_id.empty())
 						{
-							p_app = add_app(app, framework_id);
-						}
-						if(p_app)
-						{
-							p_group->add_or_replace_app(p_app);
 							for(const auto& task : get_tasks(framework_id))
 							{
 								if(task.second->get_marathon_app_id() == app_id.asString())
@@ -259,21 +261,27 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 								}
 							}
 						}
-						else
-						{
-							g_logger.log("An error occured adding app [" + app_id.asString() +
-										"] to group [" + id + ']', sinsp_logger::SEV_ERROR);
-						}
+					}
+					else
+					{
+						g_logger.log("An error occured adding app [" + app_id.asString() +
+									"] to group [" + id + ']', sinsp_logger::SEV_ERROR);
 					}
 				}
 			}
 		}
-		return p_group;
+
+		Json::Value groups = group["groups"];
+		if(!groups.isNull() && groups.isArray())
+		{
+			handle_groups(group, pg, framework_id);
+		}
+		return pg;
 	}
 	return 0;
 }
 
-void mesos_state_t::parse_apps(const std::string& json)
+void mesos_state_t::parse_apps(std::string&& json, const std::string& framework_id)
 {
 	Json::Value root;
 	Json::Reader reader;
@@ -284,7 +292,7 @@ void mesos_state_t::parse_apps(const std::string& json)
 		{
 			for(const auto& app : apps)
 			{
-				add_app(app);
+				add_app(app, framework_id);
 			}
 		}
 		else
@@ -294,6 +302,7 @@ void mesos_state_t::parse_apps(const std::string& json)
 	}
 	else
 	{
+		g_logger.log(json, sinsp_logger::SEV_DEBUG);
 		throw sinsp_exception("Invalid JSON (Marathon apps parsing failed).");
 	}
 }
@@ -323,7 +332,7 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app, const std::st
 						if(!task_id.isNull())
 						{
 							std::string tid = task_id.asString();
-							g_logger.log("Adding Mesos task ID to app: " + tid, sinsp_logger::SEV_DEBUG);
+							g_logger.log("Adding Mesos task ID to app [" + id + "]: " + tid, sinsp_logger::SEV_DEBUG);
 							mesos_framework::task_ptr_t pt = get_task(task_id.asString());
 							if(pt)
 							{
@@ -335,61 +344,6 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app, const std::st
 								g_logger.log("Marathon task not found in mesos state: " + tid, sinsp_logger::SEV_WARNING);
 							}
 						}
-					}
-				}
-				else // no tasks in JSON, get them from state
-				{
-					int task_count = 0;
-					Json::Value instances = app["instances"];
-					if(!instances.isNull() && instances.isInt())
-					{
-						task_count = instances.asInt();
-						g_logger.log("App [" + id + "] should have " + std::to_string(task_count) + " tasks.", sinsp_logger::SEV_DEBUG);
-					}
-					int found_tasks = 0;
-					// the reason why this does not work is because there is no Marathon app ID set for task;
-					// the reason why there is no Marathon app ID set is because when Mesos creates task, it does not
-					// set Marathon App ID because it does not know it;
-					// Mesos tasks and Marathon apps are properly updated by Marathon task event, but then everything
-					// is wiped out by Marathon group change event - marathon groups and apps have to be recreated, Mesos task IDs
-					// have to be assigned to Marathon apps, but the task-app relationship was lost by groups/apps recreation;
-					// the workaround is to keep Marathon app ID/Mesos task ID temporarily cached in a static map in Marathon app;
-					// this code is left here in case a proper way around this is found
-					/*
-					if(!framework_id.empty())
-					{
-						const mesos_framework::task_map& tasks = get_tasks(framework_id);
-						for(auto& task : tasks)
-						{
-							if(task.second->get_marathon_app_id() == id)
-							{
-								add_task_to_app(p_app, task.first);
-								++found_tasks;
-							}
-						}
-					}
-					else
-					{
-						g_logger.log("Framework ID empty. NOT added app [" + id + "] to Marathon group: [" + group_id + ']', sinsp_logger::SEV_ERROR);
-					}*/
-					//Note: this is a workaround, the proper way to get tasks would be from the state (ie. from Mesos, see comment above)
-					const marathon_app_cache& app_cache = marathon_app::get_cache();
-					g_logger.log("Found " + std::to_string(app_cache.get().size()) + " cached apps.", sinsp_logger::SEV_DEBUG);
-					for(const auto& app : app_cache.get())
-					{
-						if(app.first == id)
-						{
-							for(const auto& task_id : app.second)
-							{
-								add_task_to_app(p_app, task_id);
-								++found_tasks;
-							}
-							break;
-						}
-					}
-					if(found_tasks != task_count)
-					{
-						g_logger.log("App [" + id + "] has " + std::to_string(found_tasks) + " tasks (expected "  + std::to_string(task_count) + ").", sinsp_logger::SEV_WARNING);
 					}
 				}
 			}

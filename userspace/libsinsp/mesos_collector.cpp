@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 
-mesos_collector::mesos_collector(bool do_loop, long timeout_ms): m_subscription_count(0),
+mesos_collector::mesos_collector(bool do_loop, long timeout_ms):
 	m_nfds(0),
 	m_loop(do_loop),
 	m_timeout_ms(timeout_ms),
@@ -43,7 +43,6 @@ void mesos_collector::add(std::shared_ptr<mesos_http> handler)
 		m_nfds = sockfd;
 	}
 	m_sockets[sockfd] = handler;
-	m_subscription_count = m_sockets.size();
 }
 
 bool mesos_collector::has(std::shared_ptr<mesos_http> handler)
@@ -85,8 +84,6 @@ void mesos_collector::remove(socket_map_t::iterator it)
 			m_nfds = sock.first;
 		}
 	}
-
-	m_subscription_count = m_sockets.size();
 }
 
 void mesos_collector::remove_all()
@@ -100,12 +97,12 @@ void mesos_collector::remove_all()
 
 bool mesos_collector::is_active() const
 {
-	return m_sockets.size() > 0;
+	return subscription_count() > 0;
 }
 
 int mesos_collector::subscription_count() const
 {
-	return m_subscription_count;
+	return m_sockets.size();
 }
 
 void mesos_collector::get_data()
@@ -126,7 +123,7 @@ void mesos_collector::get_data()
 					if(res < 0) // error
 					{
 						std::string err = strerror(errno);
-						g_logger.log(err, sinsp_logger::SEV_CRITICAL);
+						g_logger.log(err, sinsp_logger::SEV_ERROR);
 						remove_all();
 					}
 					else // data or idle
@@ -137,7 +134,10 @@ void mesos_collector::get_data()
 							{
 								if(!sock.second->on_data())
 								{
-									remove(m_sockets.find(sock.first));
+									if(errno != EAGAIN)
+									{
+										remove(m_sockets.find(sock.first));
+									}
 								}
 							}
 							else
@@ -147,10 +147,13 @@ void mesos_collector::get_data()
 
 							if(FD_ISSET(sock.first, &m_errfd))
 							{
-								std::string err = strerror(errno);
-								g_logger.log(err, sinsp_logger::SEV_CRITICAL);
-								sock.second->on_error(err, true);
-								remove(m_sockets.find(sock.first));
+								if(errno != EAGAIN)
+								{
+									std::string err = strerror(errno);
+									g_logger.log(err, sinsp_logger::SEV_ERROR);
+									sock.second->on_error(err, true);
+									remove(m_sockets.find(sock.first));
+								}
 							}
 							else
 							{

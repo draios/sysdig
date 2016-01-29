@@ -89,7 +89,7 @@ public:
 	// Marathon apps
 	//
 
-	void parse_apps(const std::string& json);
+	void parse_apps(std::string&& json, const std::string& framework_id);
 
 	marathon_app::ptr_t get_app(const std::string& app_id);
 
@@ -106,7 +106,7 @@ public:
 			mesos_framework::task_ptr_t pt = get_task(task_id);
 			if(pt)
 			{
-				app->add_task(pt, get_all_task_ids());
+				app->add_task(pt);
 			}
 			else
 			{
@@ -123,7 +123,7 @@ public:
 	// Marathon groups
 	//
 
-	bool parse_groups(const std::string& json);
+	bool parse_groups(std::string&& json, const std::string& framework_id);
 
 	const marathon_groups& get_groups() const;
 
@@ -145,9 +145,9 @@ public:
 	void print_groups() const;
 
 private:
-	marathon_group::ptr_t add_group(const Json::Value& group, marathon_group::ptr_t to_group, const std::string& framework_id = "");
-	bool handle_groups(const Json::Value& groups, marathon_group::ptr_t p_groups, const std::string& framework_id = "");
-	marathon_app::ptr_t add_app(const Json::Value& app, const std::string& framework_id = "");
+	marathon_group::ptr_t add_group(const Json::Value& group, marathon_group::ptr_t to_group, const std::string& framework_id);
+	bool handle_groups(const Json::Value& groups, marathon_group::ptr_t p_groups, const std::string& framework_id);
+	marathon_app::ptr_t add_app(const Json::Value& app, const std::string& framework_id);
 
 	mesos_frameworks m_frameworks;
 	mesos_slaves     m_slaves;
