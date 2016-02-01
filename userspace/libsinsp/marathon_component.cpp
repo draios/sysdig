@@ -91,84 +91,6 @@ marathon_component::type marathon_component::get_type(const std::string& name)
 // app
 //
 
-void marathon_app_cache::add(const std::string& app, const std::string& task)
-{
-	map_t::iterator it = m_app_map.find(app);
-	if(it == m_app_map.end())
-	{
-		 it = insert({app, {task}});
-		 return;
-	}
-	it->second.insert(task);
-}
-
-bool marathon_app_cache::remove(const std::string& app, const std::string& task)
-{
-	map_t::iterator it = m_app_map.find(app);
-	if(it == m_app_map.end())
-	{
-		 return false;
-	}
-	it->second.erase(task);
-	if(!it->second.size())
-	{
-		m_app_map.erase(it);
-	}
-	return true;
-}
-
-bool marathon_app_cache::remove(const std::string& app)
-{
-	map_t::iterator it = m_app_map.find(app);
-	if(it == m_app_map.end()) { return false; }
-	m_app_map.erase(it);
-	return true;
-}
-
-bool marathon_app_cache::remove_task(const std::string& task_id)
-{
-	for(auto& app : m_app_map)
-	{
-		if(remove(app.first, task_id))
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-const marathon_app_cache::map_t& marathon_app_cache::get() const
-{
-	return m_app_map;
-}
-
-void marathon_app_cache::clear()
-{
-	m_app_map.clear();
-}
-
-marathon_app_cache::map_t::iterator marathon_app_cache::insert(const map_t::value_type& val)
-{
-	std::pair<map_t::iterator, bool> ret = m_app_map.insert(val);
-	if (!ret.second) ret.first->second = val.second;
-	return ret.first;
-}
-
-marathon_app_cache::task_list_t marathon_app_cache::get_tasks()
-{
-	task_list_t tasks;
-	for(const auto& app : m_app_map)
-	{
-		for(const auto& task : app.second)
-		{
-			tasks.insert(task);
-		}
-	}
-	return tasks;
-}
-
-marathon_app_cache marathon_app::m_cache;
-
 marathon_app::marathon_app(const std::string& id) :
 	marathon_component(marathon_component::MARATHON_APP, id)
 {
@@ -178,7 +100,7 @@ marathon_app::~marathon_app()
 {
 }
 
-void marathon_app::add_task(mesos_framework::task_ptr_t ptask, const std::unordered_set<std::string>& all_tasks)
+void marathon_app::add_task(mesos_framework::task_ptr_t ptask)
 {
 	if(ptask)
 	{
@@ -189,16 +111,10 @@ void marathon_app::add_task(mesos_framework::task_ptr_t ptask, const std::unorde
 			if(task == task_id) { return; }
 		}
 		m_tasks.push_back(task_id);
-		m_cache.add(get_id(), task_id);
 	}
-	for(auto it = m_tasks.begin(); it != m_tasks.end();)
+	else
 	{
-		if(all_tasks.find(*it) == all_tasks.end())
-		{
-			m_cache.remove_task(*it);
-			it = m_tasks.erase(it++);
-		}
-		else { ++it; }
+		g_logger.log("Attempt to add null task to app [" + get_id() + ']', sinsp_logger::SEV_WARNING);
 	}
 }
 
@@ -209,10 +125,10 @@ bool marathon_app::remove_task(const std::string& task_id)
 		if(task_id == *it)
 		{
 			m_tasks.erase(it);
-			m_cache.remove(get_id(), task_id);
 			return true;
 		}
 	}
+	g_logger.log("Task [" + task_id + "] not found in app [" + get_id() + ']', sinsp_logger::SEV_WARNING);
 	return false;
 }
 
@@ -227,7 +143,8 @@ std::string marathon_app::get_group_id(const std::string& app_id)
 	std::string::size_type pos = app_id.rfind('/');
 	if(pos != std::string::npos && app_id.length() > pos)
 	{
-		group_id = app_id.substr(0, pos + 1);
+		pos += (pos == 0) ? 1 : 0;
+		group_id = app_id.substr(0, pos);
 	}
 	return group_id;
 }

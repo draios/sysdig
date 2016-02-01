@@ -154,3 +154,13 @@ inline bool uri::is_secure() const
 {
 	return "https" == m_scheme;
 }
+
+inline std::string uri::get_credentials() const
+{
+	std::string creds;
+	if(!m_user.empty())
+	{
+		creds.append(m_user).append(1, ':').append(m_password);
+	}
+	return creds;
+}

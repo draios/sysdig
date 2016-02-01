@@ -18,24 +18,19 @@
 #include <stdexcept>
 #include <unistd.h>
 
-marathon_http::marathon_http(mesos& m, const uri& url, const std::string& request/*, bool framework_info*/): mesos_http(m, url)
+marathon_http::marathon_http(mesos& m, const uri& url): mesos_http(m, url)
 {
-	/*if(framework_info)
+	g_logger.log("Creating Marathon HTTP object for [" + url.to_string() + "] ...", sinsp_logger::SEV_DEBUG);
+	if(refresh_data())
 	{
-		g_logger.log("Creating Marathon HTTP object for [" + url.to_string() + "] ...", sinsp_logger::SEV_DEBUG);
-		if(refresh_data())
-		{
-			g_logger.log("Created Marathon HTTP object: " + m_name + " (" + m_id + "), version: " + m_version, sinsp_logger::SEV_DEBUG);
-		}
-		else
-		{
-			throw sinsp_exception("Could not obtain Mesos Marathon framework information.");
-		}
-	}*/
-	if(!request.empty())
-	{
-		set_request(request);
+		g_logger.log("Created Marathon HTTP connection (" + url.to_string() + ") for framework [" + get_framework_name() + "] (" + get_framework_id() + "), version: " + get_framework_version(), sinsp_logger::SEV_INFO);
 	}
+	else
+	{
+		throw sinsp_exception("Could not obtain Mesos Marathon framework information.");
+	}
+
+	g_logger.log("Marathon request [" + get_request() + ']', sinsp_logger::SEV_DEBUG);
 }
 
 marathon_http::~marathon_http()
@@ -59,10 +54,10 @@ bool marathon_http::refresh_data()
 		Json::Reader reader;
 		if(reader.parse(os.str(), root, false))
 		{
-			m_id = get_json_string(root, "frameworkId");
-			m_name = get_json_string(root, "name");
-			m_version = get_json_string(root, "version");
-			g_logger.log("Found Marathon framework: " + m_name + " (" + m_id + "), version: " + m_version, sinsp_logger::SEV_DEBUG);
+			set_framework_id(get_json_string(root, "frameworkId"));
+			set_framework_name(get_json_string(root, "name"));
+			set_framework_version(get_json_string(root, "version"));
+			g_logger.log("Found Marathon framework: " + get_framework_name() + " (" + get_framework_id() + "), version: " + get_framework_version(), sinsp_logger::SEV_DEBUG);
 		}
 		else
 		{
@@ -78,7 +73,7 @@ bool marathon_http::refresh_data()
 	
 	return true;
 }
-
+/*TODO: see comment in mesos.cpp constructor
 bool marathon_http::on_data()
 {
 	size_t iolen = 0;
@@ -120,7 +115,7 @@ bool marathon_http::on_data()
 			{
 				if(!mesos_event_data::is_ignored(mesos_event_data::get_event_type(msg)))
 				{
-					get_mesos().on_watch_data(m_id, mesos_event_data(msg));
+					get_mesos().on_watch_data(get_framework_id(), mesos_event_data(msg));
 				}
 			}
 			catch(std::exception& ex)
@@ -135,7 +130,7 @@ bool marathon_http::on_data()
 
 	return true;
 }
-
+*/
 std::string marathon_http::get_groups(const std::string& group_id)
 {
 	std::ostringstream os;
@@ -150,7 +145,7 @@ std::string marathon_http::get_groups(const std::string& group_id)
 	return os.str();
 }
 
-
+/*
 void marathon_http::on_error(const std::string& err, bool disconnect)
 {
 	g_logger.log("Socket error:" + err, sinsp_logger::SEV_ERROR);
@@ -159,5 +154,5 @@ void marathon_http::on_error(const std::string& err, bool disconnect)
 		cleanup();
 	}
 }
-
+*/
 #endif // HAS_CAPTURE
