@@ -34,6 +34,9 @@ public:
 
 	bool is_active() const;
 
+	bool has(std::shared_ptr<mesos_http> handler);
+	bool remove(std::shared_ptr<mesos_http> handler);
+
 private:
 	void clear();
 	void remove(socket_map_t::iterator it);

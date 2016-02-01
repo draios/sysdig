@@ -21,12 +21,6 @@
 class mesos
 {
 public:
-	enum node_t
-	{
-		NODE_MASTER,
-		NODE_SLAVE
-	};
-
 	static const std::string default_state_uri;
 	static const std::string default_state_api;
 	static const std::string default_marathon_uri;
@@ -45,19 +39,41 @@ public:
 
 	~mesos();
 
-	node_t get_node_type() const;
 	const mesos_state_t& get_state() const;
 	bool is_alive() const;
-	void refresh(bool marathon = false);
-	void clear(bool marathon = false);
+	void refresh();
+	void clear_mesos();
 
 	bool has_marathon() const;
-	void watch();
+	void watch_marathon();
+	void clear_marathon();
+
 private:
 
+	template <typename T>
+	void collect_data(T http, typename T::element_type::parse_func_t func)
+	{
+		if(m_collector.has(http))
+		{
+			if(!http->is_connected())
+			{
+				m_collector.remove(http);
+			}
+		}
+
+		if(!m_collector.has(http))
+		{
+			http->set_parse_func(func);
+			m_collector.add(m_state_http);
+		}
+		m_collector.get_data();
+	}
+
+	void rebuild_mesos_state(bool full = false);
+	void rebuild_marathon_state(bool full = false);
+
 	void parse_state(const std::string& json);
-	void determine_node_type(const Json::Value& root);
-	bool is_master() const;
+
 	void handle_frameworks(const Json::Value& root);
 	void add_framework(const Json::Value& framework);
 	void add_tasks(mesos_framework& framework, const Json::Value& f_val);
@@ -77,7 +93,7 @@ private:
 	typedef std::unordered_map<int, marathon_http::ptr_t>       marathon_http_map;
 	typedef std::unordered_map<int, marathon_dispatcher::ptr_t> marathon_disp_map;
 
-	mesos_http        m_state_http;
+	mesos_http::ptr_t m_state_http;
 	marathon_http_map m_marathon_groups_http;
 	marathon_http_map m_marathon_apps_http;
 	marathon_http_map m_marathon_watch_http;
@@ -95,31 +111,25 @@ private:
 	friend class marathon_http;
 };
 
-inline mesos::node_t mesos::get_node_type() const
-{
-	return m_node_type;
-}
-
 inline const mesos_state_t& mesos::get_state() const
 {
 	return m_state;
 }
 
-inline bool mesos::is_master() const
-{
-	return m_node_type == NODE_MASTER;
-}
-
-#ifdef HAS_CAPTURE
 inline bool mesos::has_marathon() const
 {
-	return m_marathon_watch_http.size() > 0;
+	return m_marathon_groups_http.size() || m_marathon_apps_http.size() || m_marathon_watch_http.size();
+}
+
+inline void mesos::clear_mesos()
+{
+	m_state.clear_mesos();
 }
 #endif // HAS_CAPTURE
 
-inline void mesos::clear(bool marathon)
+inline void mesos::clear_marathon()
 {
-	m_state.clear(marathon);
+	m_state.clear_marathon();
 }
 
 #endif // _WIN32

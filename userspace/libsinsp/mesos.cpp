@@ -27,50 +27,95 @@ mesos::mesos(const std::string& state_uri,
 	const uri_list_t& marathon_uris,
 	const std::string& groups_api,
 	const std::string& apps_api,
-	const std::string& watch_api)
-#ifdef HAS_CAPTURE
-		: m_state_http(*this, state_uri + state_api),
-		m_collector(false), m_creation_logged(false)
-#endif // HAS_CAPTURE
+	const std::string& watch_api): m_collector(false), m_creation_logged(false)
 {
-#ifdef HAS_CAPTURE
-	for(const auto& uri : marathon_uris)
+	m_state_http = std::make_shared<mesos_http>(*this, state_uri + state_api);
+	rebuild_mesos_state(true);
+
+	for(const auto& muri : marathon_uris)
 	{
-		int port = (uri.substr(0, 5) == "https") ? 443 : 80;
-		std::string::size_type pos = uri.rfind(':');
+		int port = (muri.substr(0, 5) == "https") ? 443 : 80;
+		std::string::size_type pos = muri.rfind(':');
 		if(pos != std::string::npos)
 		{
-			std::string::size_type ppos = uri.find('/', pos);
+			std::string::size_type ppos = muri.find('/', pos);
 			if(ppos == std::string::npos)
 			{
-				ppos = pos + (uri.length() - pos);
+				ppos = pos + (muri.length() - pos);
 			}
 			ASSERT(ppos - (pos + 1) > 0);
-			port = std::stoi(uri.substr(pos + 1, ppos - (pos + 1)));
+			port = std::stoi(muri.substr(pos + 1, ppos - (pos + 1)));
 		}
-		m_marathon_groups_http[port] = std::make_shared<marathon_http>(*this, uri + groups_api, true);
-		m_marathon_apps_http[port]   = std::make_shared<marathon_http>(*this, uri + apps_api, true);
-		m_marathon_watch_http[port]  = std::make_shared<marathon_http>(*this, uri + watch_api, true);
-		m_dispatch[port]             = std::make_shared<marathon_dispatcher>(m_state, m_marathon_watch_http[port]->get_id());
+		m_marathon_groups_http[port] = std::make_shared<marathon_http>(*this, muri + groups_api/*, true*/);
+		m_marathon_apps_http[port]   = std::make_shared<marathon_http>(*this, muri + apps_api/*, true*/);
+/*
+		uri url(muri + watch_api);
+		host_and_port = url.get_host();
+		port = url.get_port();
+		if(port)
+		{
+			host_and_port.append(1, ':').append(std::to_string(port));
+		}
+		request.str("");
+		request << "GET " << url.get_path() << " HTTP/1.1\r\nHost: " << host_and_port << "\r\nAccept: text/event-stream\r\n";
+		std::string creds = url.get_credentials();
+		if(!creds.empty())
+		{
+			std::istringstream is(creds);
+			std::ostringstream os;
+			base64::encoder().encode(is, os);
+			request << "Authorization: Basic " << os.str() << "\r\n";
+		}
+		request << "\r\n";
+		m_marathon_watch_http[port]  = std::make_shared<marathon_http>(*this, muri + watch_api, request.str(), true);
+		m_collector.add(m_marathon_watch_http[port]);
+		m_dispatch[port] = std::make_shared<marathon_dispatcher>(m_state, m_marathon_watch_http[port]->get_id());
+*/
 	}
 
-	refresh(marathon_uris.size());
-#endif // HAS_CAPTURE
+	if(has_marathon())
+	{
+		rebuild_marathon_state(true);
+	}
 }
 
 mesos::~mesos()
 {
 }
 
-void mesos::refresh(bool marathon)
+void mesos::refresh()
 {
-#ifdef HAS_CAPTURE
-	clear(marathon);
-
-	m_state_http.get_all_data(&mesos::parse_state);
-
-	if(marathon)
+	rebuild_mesos_state();
+	if(has_marathon())
 	{
+		//TODO: optimize - rebuild only if there was marathon change
+		//      it should be enough to just uncomment these two lines
+		//watch_marathon();
+		//if(m_state.get_marathon_changed())
+		{
+			rebuild_marathon_state(true);
+		}
+	}
+}
+
+void mesos::rebuild_mesos_state(bool full)
+{
+	if(full)
+	{
+		clear_mesos();
+		m_state_http->get_all_data(&mesos::parse_state);
+	}
+	else
+	{
+		collect_data(m_state_http, &mesos::parse_state);
+	}
+}
+
+void mesos::rebuild_marathon_state(bool full)
+{
+	if(full)
+	{
+		clear_marathon();
 		for(auto& group_http : m_marathon_groups_http)
 		{
 			group_http.second->get_all_data(&mesos::parse_groups);
@@ -80,74 +125,76 @@ void mesos::refresh(bool marathon)
 		{
 			app_http.second->get_all_data(&mesos::parse_apps);
 		}
-
-		for(auto watch_http : m_marathon_watch_http)
+	}
+	else
+	{
+		for(auto& group_http : m_marathon_groups_http)
 		{
-			m_collector.add(watch_http.second);
+			collect_data(group_http.second, &mesos::parse_groups);
+		}
+
+		for(auto& app_http : m_marathon_apps_http)
+		{
+			collect_data(app_http.second, &mesos::parse_apps);
 		}
 	}
-#endif // HAS_CAPTURE
+	m_state.set_marathon_changed(false);
 }
 
 bool mesos::is_alive() const
 {
-	bool connected = true;
-#ifdef HAS_CAPTURE
-	connected &= m_state_http.is_connected();
+	if(!m_state_http->is_connected())
+	{
+		g_logger.log("Mesos state connection loss.", sinsp_logger::SEV_WARNING);
+		return false;
+	}
+
 	for(const auto& group : m_marathon_groups_http)
 	{
-		connected &= group.second->is_connected();
+		if(!group.second->is_connected())
+		{
+			g_logger.log("Marathon groups connection loss.", sinsp_logger::SEV_WARNING);
+			return false;
+		}
 	}
 
 	for(const auto& app : m_marathon_apps_http)
 	{
-		connected &= app.second->is_connected();
+		if(!app.second->is_connected())
+		{
+			g_logger.log("Marathon apps connection loss.", sinsp_logger::SEV_WARNING);
+			return false;
+		}
 	}
 
-	connected &= (m_collector.subscription_count() > 0);
-#endif // HAS_CAPTURE
-
-	return connected;
-}
-
-void mesos::watch()
-{
-#ifdef HAS_CAPTURE
-	if(m_marathon_watch_http.size())
+	if(!m_collector.subscription_count())
 	{
-		if(!m_collector.subscription_count())
-		{
-			for(auto watch_http : m_marathon_watch_http)
-			{
-				m_collector.add(watch_http.second);
-			}
-		}
-		m_collector.get_data();
+		g_logger.log("Collector subscriptions connection loss.", sinsp_logger::SEV_WARNING);
+		return false;
 	}
-#endif // HAS_CAPTURE
+
+	return true;
 }
 
-void mesos::determine_node_type(const Json::Value& root)
+void mesos::watch_marathon()
 {
-	Json::Value flags = root["flags"];
-	if(!flags.isNull())
+	if(has_marathon())
 	{
-		Json::Value port = flags["port"];
-		if(!port.isNull())
+		if(m_marathon_watch_http.size())
 		{
-			if(port.asString() == "5050")
+			if(!m_collector.subscription_count())
 			{
-				m_node_type = NODE_MASTER;
+				for(auto watch_http : m_marathon_watch_http)
+				{
+					m_collector.add(watch_http.second);
+				}
 			}
-			else if(port.asString() == "5051")
-			{
-				m_node_type = NODE_SLAVE;
-			}
-			else
-			{
-				throw sinsp_exception("Can not determine node type");
-			}
+			m_collector.get_data();
 		}
+	}
+	else
+	{
+		throw sinsp_exception("Attempt to watch non-existing Marathon framework.");
 	}
 }
 
@@ -166,7 +213,7 @@ void mesos::add_task_labels(std::string& json)
 				{
 					if(!root["taskStatus"].isNull() && root["taskStatus"].isString() && root["taskStatus"].asString() == "TASK_RUNNING")
 					{
-						Json::Value labels = m_state_http.get_task_labels(root["taskId"].asString());
+						Json::Value labels = m_state_http->get_task_labels(root["taskId"].asString());
 						if(!labels.isNull() && labels.isArray())
 						{
 							root["labels"] = labels;
@@ -230,22 +277,6 @@ void mesos::get_groups(marathon_http::ptr_t http, std::string& json)
 
 void mesos::on_watch_data(const std::string& framework_id, mesos_event_data&& msg)
 {
-	// if this is marathon task status update, we need to get the labels
-	// from mesos because the update message does not contain them
-	// TODO (maybe): refactor to keep labels in apps and have tasks labels updated
-	// when tasks are asigned to apps
-	add_task_labels(msg.get_data());
-
-	// if this is group change, replace event data (which does not contain enough
-	// information to rebuild state) with Marathon state API JSON
-	for(auto& http : m_marathon_groups_http)
-	{
-		if(http.second->get_id() == framework_id)
-		{
-			get_groups(http.second, msg.get_data());
-		}
-	}
-
 	for(auto& dispatcher : m_dispatch)
 	{
 		if(framework_id == dispatcher.second->get_id())
@@ -263,7 +294,7 @@ void mesos::parse_state(const std::string& json)
 	Json::Reader reader;
 	if(reader.parse(json, root, false))
 	{
-		determine_node_type(root);
+		clear_mesos();
 		handle_frameworks(root);
 		handle_slaves(root);
 		if(!m_creation_logged)
@@ -390,27 +421,13 @@ void mesos::add_tasks_impl(mesos_framework& framework, const Json::Value& tasks)
 
 void mesos::add_tasks(mesos_framework& framework, const Json::Value& f_val)
 {
-	if(is_master())
-	{
-		Json::Value tasks = f_val["tasks"];
-		add_tasks_impl(framework, tasks);
-	}
-	else
-	{
-		Json::Value executors = f_val["executors"];
-		if(!executors.isNull())
-		{
-			for(const auto& executor : executors)
-			{
-				Json::Value tasks = executor["tasks"];
-				add_tasks_impl(framework, tasks);
-			}
-		}
-	}
+	Json::Value tasks = f_val["tasks"];
+	add_tasks_impl(framework, tasks);
 }
 
 void mesos::parse_groups(const std::string& json)
 {
+	clear_marathon();
 	m_state.parse_groups(json);
 }
 
