@@ -168,7 +168,6 @@ private:
 	marathon_disp_map m_dispatch;
 #endif // HAS_CAPTURE
 
-	node_t            m_node_type;
 	mesos_state_t     m_state;
 	bool              m_creation_logged;
 
@@ -188,16 +187,17 @@ inline const mesos_state_t& mesos::get_state() const
 	return m_state;
 }
 
+#ifdef HAS_CAPTURE
 inline bool mesos::has_marathon() const
 {
 	return m_marathon_groups_http.size() || m_marathon_apps_http.size();
 }
+#endif // HAS_CAPTURE
 
 inline void mesos::clear_mesos()
 {
 	m_state.clear_mesos();
 }
-#endif // HAS_CAPTURE
 
 inline void mesos::clear_marathon()
 {

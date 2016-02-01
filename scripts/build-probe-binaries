@@ -116,7 +116,7 @@ function build_sysdigcloud {
 	cd $BASEDIR
 }
 
-function coreos_build {
+function coreos_build_old {
 	VERSION_URL=$1
 	VERSION_NUMBER=$2
 	COREOS_DIR="coreos-"$VERSION_NUMBER

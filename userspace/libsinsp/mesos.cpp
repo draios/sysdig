@@ -29,6 +29,7 @@ mesos::mesos(const std::string& state_uri,
 	const std::string& apps_api,
 	const std::string& /*watch_api*/): m_collector(false), m_creation_logged(false)
 {
+#ifdef HAS_CAPTURE
 	m_state_http = std::make_shared<mesos_http>(*this, state_uri + state_api);
 	rebuild_mesos_state(true);
 
@@ -81,6 +82,7 @@ mesos::mesos(const std::string& state_uri,
 	{
 		rebuild_marathon_state(true);
 	}
+#endif // HAS_CAPTURE
 }
 
 mesos::~mesos()
@@ -187,6 +189,7 @@ void mesos::connect_mesos()
 
 bool mesos::is_alive() const
 {
+#ifdef HAS_CAPTURE
 	if(!m_state_http->is_connected())
 	{
 		g_logger.log("Mesos state connection loss.", sinsp_logger::SEV_WARNING);
@@ -216,6 +219,7 @@ bool mesos::is_alive() const
 
 void mesos::watch_marathon()
 {
+#ifdef HAS_CAPTURE
 	if(has_marathon())
 	{
 		if(m_marathon_watch_http.size())
@@ -234,6 +238,7 @@ void mesos::watch_marathon()
 	{
 		throw sinsp_exception("Attempt to watch non-existing Marathon framework.");
 	}
+#endif // HAS_CAPTURE
 }
 
 void mesos::add_task_labels(std::string& json)
