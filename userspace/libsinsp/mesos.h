@@ -48,6 +48,7 @@ public:
 	void watch_marathon();
 	void clear_marathon();
 
+#ifdef HAS_CAPTURE
 	void send_data_request(bool collect = true)
 	{
 		connect_mesos();
@@ -109,8 +110,10 @@ public:
 			}
 		 }
 	}
+#endif // HAS_CAPTURE
 
 private:
+#ifdef HAS_CAPTURE
 	void send_mesos_data_request();
 	void connect_mesos();
 	void send_marathon_data_request();
@@ -133,6 +136,7 @@ private:
 			m_collector.add(http);
 		}
 	}
+#endif // HAS_CAPTURE
 
 	void rebuild_mesos_state(bool full = false);
 	void rebuild_marathon_state(bool full = false);

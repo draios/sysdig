@@ -27,7 +27,12 @@ mesos::mesos(const std::string& state_uri,
 	const uri_list_t& marathon_uris,
 	const std::string& groups_api,
 	const std::string& apps_api,
-	const std::string& /*watch_api*/): m_collector(false), m_creation_logged(false)
+	const std::string& /*watch_api*/):
+#ifdef HAS_CAPTURE
+		m_collector(false),
+#endif // HAS_CAPTURE
+		m_creation_logged(false)
+
 {
 #ifdef HAS_CAPTURE
 	m_state_http = std::make_shared<mesos_http>(*this, state_uri + state_api);
@@ -105,6 +110,7 @@ void mesos::refresh()
 
 void mesos::rebuild_mesos_state(bool full)
 {
+#ifdef HAS_CAPTURE
 	if(full)
 	{
 		clear_mesos();
@@ -116,10 +122,12 @@ void mesos::rebuild_mesos_state(bool full)
 		send_mesos_data_request();
 		collect_data();
 	}
+#endif // HAS_CAPTURE
 }
 
 void mesos::rebuild_marathon_state(bool full)
 {
+#ifdef HAS_CAPTURE
 	if(has_marathon())
 	{
 		if(full)
@@ -145,8 +153,10 @@ void mesos::rebuild_marathon_state(bool full)
 
 		m_state.set_marathon_changed(false);
 	}
+#endif // HAS_CAPTURE
 }
 
+#ifdef HAS_CAPTURE
 void mesos::send_marathon_data_request()
 {
 	if(has_marathon())
@@ -186,6 +196,7 @@ void mesos::connect_mesos()
 {
 	connect(m_state_http, &mesos::set_state_json);
 }
+#endif // HAS_CAPTURE
 
 bool mesos::is_alive() const
 {
