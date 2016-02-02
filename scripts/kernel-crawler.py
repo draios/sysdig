@@ -166,13 +166,6 @@ repos = {
             "exclude_patterns": ["-rt", "dbg", "trunk", "all"]
         },
         {
-            "root": "http://mirrors.buyvm.net/debian-security/pool/updates/main/l/",
-            "discovery_pattern": "/html/body/div//tr/td/a[@href = 'linux/']/@href",
-            "subdirs": [""],
-            "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]\.[0-9]+.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all"]
-        },
-        {
             "root": "http://mirrors.kernel.org/debian/pool/main/l/",
             "discovery_pattern": "/html/body/pre/a[@href = 'linux-tools/']/@href",
             "subdirs": [""],
