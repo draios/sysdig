@@ -148,7 +148,31 @@ repos = {
 			],
 			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]|current')]/@href"
 		}
-	]
+	],
+
+	"Debian": [
+        {
+            "root": "https://mirrors.kernel.org/debian/pool/main/l/",
+            "discovery_pattern": "/html/body/pre/a[@href = 'linux/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all"]
+        },
+        {
+            "root": "http://security.debian.org/pool/updates/main/l/",
+            "discovery_pattern": "/html/body/table//tr/td/a[@href = 'linux/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]\.[0-9]+.*amd64.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all"]
+        },
+        {
+            "root": "http://mirrors.kernel.org/debian/pool/main/l/",
+            "discovery_pattern": "/html/body/pre/a[@href = 'linux-tools/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all"]
+        }
+    ]
 }
 
 #
@@ -184,7 +208,10 @@ for repo in repos[sys.argv[1]]:
 				rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
 				for rpm in rpms:
-					urls.add(source + rpm)
+					if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
+						continue
+					else:
+						urls.add(source + str(urllib2.unquote(rpm)))
 			except:
 				continue
 
