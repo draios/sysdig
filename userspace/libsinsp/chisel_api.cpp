@@ -1048,6 +1048,10 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		{
 			lua_pushstring(ls, "mesos");
 		}
+		else if(it->second.m_type == CT_RKT)
+		{
+			lua_pushstring(ls, "rkt");
+		}
 		else
 		{
 			ASSERT(false);
