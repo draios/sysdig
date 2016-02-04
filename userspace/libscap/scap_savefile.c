@@ -170,6 +170,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	uint16_t exelen;
 	uint16_t argslen;
 	uint16_t cwdlen;
+	uint16_t rootlen;
 
 	//
 	// First pass pass of the table to calculate the length
@@ -198,14 +199,15 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 				sizeof(int64_t) +  // vtid
 				sizeof(int64_t) +  // vpid
 				2 + tinfo->cgroups_len +
-				sizeof(uint32_t));
+				sizeof(uint32_t) +
+				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE));
 		}
 	}
 
 	//
 	// Create the block
 	//
-	bh.block_type = PL_BLOCK_TYPE_V4;
+	bh.block_type = PL_BLOCK_TYPE_V5;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
@@ -228,6 +230,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		exelen = (uint16_t)strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
 		argslen = tinfo->args_len;
 		cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
+		rootlen = (uint16_t)strnlen(tinfo->root, SCAP_MAX_PATH_SIZE);
 
 		if(gzwrite(f, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		        gzwrite(f, &(tinfo->pid), sizeof(uint64_t)) != sizeof(uint64_t) ||
@@ -254,7 +257,9 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		        gzwrite(f, &(tinfo->vtid), sizeof(int64_t)) != sizeof(int64_t) ||
 		        gzwrite(f, &(tinfo->vpid), sizeof(int64_t)) != sizeof(int64_t) ||
 		        gzwrite(f, &(tinfo->cgroups_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->cgroups, tinfo->cgroups_len) != tinfo->cgroups_len)
+		        gzwrite(f, tinfo->cgroups, tinfo->cgroups_len) != tinfo->cgroups_len ||
+		        gzwrite(f, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        gzwrite(f, tinfo->root, rootlen) != rootlen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 			return SCAP_FAILURE;
@@ -835,6 +840,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.vpid = -1;
 	tinfo.cgroups_len = 0;
 	tinfo.filtered_out = 0;
+	tinfo.root[0] = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
@@ -993,6 +999,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V3:
 		case PL_BLOCK_TYPE_V3_INT:
 		case PL_BLOCK_TYPE_V4:
+		case PL_BLOCK_TYPE_V5:
 			//
 			// vmsize_kb
 			//
@@ -1035,7 +1042,8 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 			if(block_type == PL_BLOCK_TYPE_V3 ||
 				block_type == PL_BLOCK_TYPE_V3_INT ||
-				block_type == PL_BLOCK_TYPE_V4)
+				block_type == PL_BLOCK_TYPE_V4 ||
+				block_type == PL_BLOCK_TYPE_V5)
 			{
 				//
 				// env
@@ -1061,7 +1069,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				totreadsize += readsize;
 			}
 
-			if(block_type == PL_BLOCK_TYPE_V4)
+			if(block_type == PL_BLOCK_TYPE_V4 || block_type == PL_BLOCK_TYPE_V5)
 			{
 				//
 				// vtid
@@ -1098,6 +1106,28 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				CHECK_READ_SIZE(readsize, stlen);
 
 				totreadsize += readsize;
+
+				if(block_type == PL_BLOCK_TYPE_V5)
+				{
+					readsize = gzread(f, &(stlen), sizeof(uint16_t));
+					CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+
+					if(stlen > SCAP_MAX_PATH_SIZE)
+					{
+						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid rootlen %d", stlen);
+						return SCAP_FAILURE;
+					}
+
+					totreadsize += readsize;
+
+					readsize = gzread(f, tinfo.root, stlen);
+					CHECK_READ_SIZE(readsize, stlen);
+
+					// the string is not null-terminated on file
+					tinfo.root[stlen] = 0;
+
+					totreadsize += readsize;
+				}
 			}
 			break;
 		default:
@@ -1866,6 +1896,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case PL_BLOCK_TYPE_V2:
 		case PL_BLOCK_TYPE_V3:
 		case PL_BLOCK_TYPE_V4:
+		case PL_BLOCK_TYPE_V5:
 		case PL_BLOCK_TYPE_V1_INT:
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3_INT:

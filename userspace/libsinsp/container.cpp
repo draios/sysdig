@@ -161,14 +161,13 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 	return mesos_task_id;
 }
 
-bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, sinsp_threadinfo* tinfo)
+bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	ASSERT(tinfo);
-	string* container_id = &tinfo->m_container_id;
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
-	for(vector<pair<string, string>>::const_iterator it = cgroups.begin(); it != cgroups.end(); ++it)
+	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
 		string cgroup = it->second;
 		size_t pos;
@@ -202,7 +201,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 				container_info.m_type = CT_DOCKER;
 				container_info.m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
 				valid_id = true;
-				continue;
+				break;
 			}
 		}
 
@@ -219,7 +218,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 				container_info.m_type = CT_LIBVIRT_LXC;
 				container_info.m_id = cgroup.substr(pos2 + 1, pos - pos2 - 1);
 				valid_id = true;
-				continue;
+				break;
 			}
 		}
 
@@ -236,7 +235,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 				container_info.m_type = CT_LIBVIRT_LXC;
 				container_info.m_id = cgroup.substr(pos + sizeof("-lxc\\x2"), pos2 - pos - sizeof("-lxc\\x2"));
 				valid_id = true;
-				continue;
+				break;
 			}
 		}
 
@@ -249,7 +248,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			container_info.m_type = CT_LIBVIRT_LXC;
 			container_info.m_id = cgroup.substr(pos + sizeof("/libvirt/lxc/") - 1);
 			valid_id = true;
-			continue;
+			break;
 		}
 
 		//
@@ -261,7 +260,7 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			container_info.m_type = CT_LXC;
 			container_info.m_id = cgroup.substr(pos + sizeof("/lxc/") - 1);
 			valid_id = true;
-			continue;
+			break;
 		}
 
 		//
@@ -279,13 +278,78 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 			{
 				set_mesos_task_id(&container_info, mesos_task_id, ptid);
 			}
-			continue;
+			break;
 		}
 	}
 
+	string rkt_podid, rkt_appname;
+	if(!valid_id)
+	{
+		// Try parsing from process root,
+		// Strings used to detect rkt stage1-cores pods
+		static const string COREOS_PREFIX = "/opt/stage2/";
+		static const string COREOS_APP_SUFFIX = "/rootfs";
+		static const string COREOS_PODID_VAR = "container_uuid=";
+
+		auto prefix = tinfo->m_root.find(COREOS_PREFIX);
+		if(prefix != string::npos)
+		{
+			auto suffix = tinfo->m_root.find(COREOS_APP_SUFFIX, prefix);
+			if(suffix != string::npos)
+			{
+				rkt_appname = tinfo->m_root.substr(prefix + COREOS_PREFIX.size(), suffix - prefix - COREOS_PREFIX.size());
+				// It is a rkt pod with stage1-coreos
+				sinsp_threadinfo* tinfo_it = tinfo;
+				while(!valid_id && tinfo_it != nullptr)
+				{
+					for(const auto& env_var : tinfo_it->m_env)
+					{
+						auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
+						if(container_uuid_pos == 0)
+						{
+							rkt_podid = env_var.substr(COREOS_PODID_VAR.size());
+							container_info.m_type = CT_RKT;
+							container_info.m_id = rkt_podid + ":" + rkt_appname;
+							container_info.m_name = rkt_appname;
+							valid_id = true;
+							break;
+						}
+					}
+					tinfo_it = tinfo_it->get_parent_thread();
+				}
+			}
+		}
+		else
+		{
+			// String used to detect stage1-fly pods
+			static const string FLY_PREFIX = "/var/lib/rkt/pods/run/";
+			static const string FLY_PODID_SUFFIX = "/stage1/rootfs/opt/stage2/";
+			static const string FLY_APP_SUFFIX = "/rootfs";
+
+			auto prefix = tinfo->m_root.find(FLY_PREFIX);
+			if(prefix != string::npos)
+			{
+				auto podid_suffix = tinfo->m_root.find(FLY_PODID_SUFFIX, prefix+FLY_PREFIX.size());
+				if(podid_suffix != string::npos)
+				{
+					rkt_podid = tinfo->m_root.substr(prefix + FLY_PREFIX.size(), podid_suffix - prefix - FLY_PREFIX.size());
+					auto appname_suffix = tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix+FLY_PODID_SUFFIX.size());
+					if(appname_suffix != string::npos)
+					{
+						rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
+														   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
+						container_info.m_type = CT_RKT;
+						container_info.m_id = rkt_podid + ":" + rkt_appname;
+						container_info.m_name = rkt_appname;
+						valid_id = true;
+					}
+				}
+			}
+		}
+	}
 	if(valid_id)
 	{
-		*container_id = container_info.m_id;
+		tinfo->m_container_id = container_info.m_id;
 
 		unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_info.m_id);
 		if(it == m_containers.end())
@@ -308,6 +372,14 @@ bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<s
 					break;
 				case CT_MESOS:
 					container_info.m_name = container_info.m_id;
+					break;
+				case CT_RKT:
+#ifndef _WIN32
+					if(query_os_for_missing_info)
+					{
+						parse_rkt(&container_info, rkt_podid, rkt_appname);
+					}
+#endif
 					break;
 				default:
 					ASSERT(false);
@@ -517,6 +589,69 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	}
 
 	return true;
+}
+
+bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
+										const string &podid, const string &appname)
+{
+	bool ret = false;
+	Json::Reader reader;
+	Json::Value jroot;
+
+	unordered_map<string, uint32_t> image_ports;
+	char image_manifest_path[SCAP_MAX_PATH_SIZE];
+	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
+	ifstream image_manifest(image_manifest_path);
+	if(reader.parse(image_manifest, jroot))
+	{
+		container->m_image = jroot["name"].asString();
+		for(const auto& label_entry : jroot["labels"])
+		{
+			container->m_labels.emplace(label_entry["name"].asString(), label_entry["value"].asString());
+		}
+		auto version_label_it = container->m_labels.find("version");
+		if(version_label_it != container->m_labels.end())
+		{
+			container->m_image += ":" + version_label_it->second;
+		}
+		for(const auto& image_port : jroot["app"]["ports"])
+		{
+			image_ports.emplace(image_port["name"].asString(), image_port["port"].asUInt());
+		}
+		ret = true;
+	}
+
+	char net_info_path[SCAP_MAX_PATH_SIZE];
+	snprintf(net_info_path, sizeof(net_info_path), "%s/var/lib/rkt/pods/run/%s/net-info.json", scap_get_host_root(), podid.c_str());
+	ifstream net_info(net_info_path);
+	if(reader.parse(net_info, jroot) && jroot.size() > 0)
+	{
+		auto first_net = jroot[0];
+		if(inet_pton(AF_INET, first_net["ip"].asCString(), &container->m_container_ip) == -1)
+		{
+			ASSERT(false);
+		}
+		container->m_container_ip = ntohl(container->m_container_ip);
+	}
+
+	char pod_manifest_path[SCAP_MAX_PATH_SIZE];
+	snprintf(pod_manifest_path, sizeof(pod_manifest_path), "%s/var/lib/rkt/pods/run/%s/pod", scap_get_host_root(), podid.c_str());
+	ifstream pod_manifest(pod_manifest_path);
+	if(reader.parse(pod_manifest, jroot) && jroot.size() > 0)
+	{
+		for(const auto& jport : jroot["ports"])
+		{
+			auto host_port = jport["hostPort"].asUInt();
+			if(host_port > 0)
+			{
+				sinsp_container_info::container_port_mapping port_mapping;
+				port_mapping.m_host_port = host_port;
+				port_mapping.m_container_port = image_ports.at(jport["name"].asString());
+				container->m_port_mappings.emplace_back(move(port_mapping));
+			}
+		}
+	}
+	return ret;
 }
 #endif
 
