@@ -280,4 +280,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_PPOLL_X */{"ppoll", EC_WAIT, EF_WAITS, 2, {{"res", PT_ERRNO, PF_DEC}, {"fds", PT_FDLIST, PF_DEC} } },
 	/* PPME_K8S_E */{"k8s", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_K8S_X */{"NA3", EC_SYSTEM, EF_UNUSED, 0},
+	/* PPME_SYSCALL_CHROOT_E */{"chroot", EC_PROCESS, EF_MODIFIES_STATE, 0},
+	/* PPME_SYSCALL_CHROOT_X */{"chroot", EC_PROCESS, EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA} }}
 };
