@@ -161,7 +161,7 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 	return mesos_task_id;
 }
 
-bool sinsp_container_manager::resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, sinsp_threadinfo* tinfo)
+bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	ASSERT(tinfo);
 	bool valid_id = false;
