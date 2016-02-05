@@ -23,7 +23,9 @@ enum sinsp_container_type
 	CT_DOCKER = 0,
 	CT_LXC = 1,
 	CT_LIBVIRT_LXC = 2,
-	CT_MESOS = 3
+	CT_MESOS = 3,
+	CT_RKT_COREOS = 4,
+	CT_RKT_FLY = 5
 };
 
 class sinsp_container_info
@@ -67,8 +69,8 @@ public:
 	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info);
-	bool get_container(const string& id, sinsp_container_info* container_info) const;
-	bool resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, sinsp_threadinfo* tinfo);
+	bool get_container(const string& id, sinsp_container_info* container_info);
+	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
 	bool set_mesos_task_id(sinsp_container_info* container, const string& task_id, int64_t ptid = -1);
@@ -78,6 +80,7 @@ private:
 	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);
 	bool parse_docker(sinsp_container_info* container);
 	sinsp_container_info* get_container(const string& id);
+	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
 
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;
