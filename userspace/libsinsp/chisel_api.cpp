@@ -79,6 +79,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 		case PT_INT64:
 		case PT_ERRNO:
 		case PT_PID:
+		case PT_FD:
 			lua_pushnumber(ls, (double)*(int64_t*)rawval);
 			return 1;
 		case PT_L4PROTO: // This can be resolved in the future
