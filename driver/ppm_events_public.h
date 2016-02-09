@@ -1072,6 +1072,7 @@ enum ppm_cmp_operator {
 	CO_CONTAINS = 7,
 	CO_IN = 8,
 	CO_EXISTS = 9,
+	CO_ICONTAINS = 10,
 };
 
 /*
