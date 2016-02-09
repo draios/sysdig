@@ -191,8 +191,8 @@ bool flt_compare_int64(ppm_cmp_operator op, int64_t operand1, int64_t operand2)
 	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
 		return false;
-	case CO_IN:
-		throw sinsp_exception("'in' not supported for numeric filters");
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for numeric filters");
 		return false;
 	default:
 		throw sinsp_exception("'unknown' not supported for numeric filters");
@@ -210,8 +210,8 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 		return (strcmp(operand1, operand2) != 0);
 	case CO_CONTAINS:
 		return (strstr(operand1, operand2) != NULL);
-	case CO_IN:
-		return (strstr(operand1, operand2) != NULL);
+        case CO_ICONTAINS:
+		return (strcasestr(operand1, operand2) != NULL);
 	case CO_LT:
 		return (strcmp(operand1, operand2) < 0);
 	case CO_LE:
@@ -1453,6 +1453,11 @@ ppm_cmp_operator sinsp_filter::next_comparison_operator()
 	{
 		m_scanpos += 8;
 		return CO_CONTAINS;
+	}
+	else if(compare_no_consume("icontains"))
+	{
+		m_scanpos += 9;
+		return CO_ICONTAINS;
 	}
 	else if(compare_no_consume("in"))
 	{
