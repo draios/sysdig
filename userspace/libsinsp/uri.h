@@ -39,7 +39,7 @@ public:
 	bool is_secure() const;
 	std::string get_credentials() const;
 
-	std::string to_string() const;
+	std::string to_string(bool show_creds = true) const;
 
 private:
 	std::string tail_chunk(std::string& subject, std::string delimiter, bool keep_delim = false);

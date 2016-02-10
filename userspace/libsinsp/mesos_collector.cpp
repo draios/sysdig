@@ -70,11 +70,11 @@ bool mesos_collector::remove(std::shared_ptr<mesos_http> handler)
 	return false;
 }
 
-void mesos_collector::remove(socket_map_t::iterator it)
+mesos_collector::socket_map_t::iterator& mesos_collector::remove(socket_map_t::iterator& it)
 {
 	if(it != m_sockets.end())
 	{
-		m_sockets.erase(it);
+		m_sockets.erase(it++);
 	}
 	m_nfds = 0;
 	for(const auto& sock : m_sockets)
@@ -84,6 +84,7 @@ void mesos_collector::remove(socket_map_t::iterator it)
 			m_nfds = sock.first;
 		}
 	}
+	return it;
 }
 
 void mesos_collector::remove_all()
@@ -91,13 +92,18 @@ void mesos_collector::remove_all()
 	clear();
 	for(socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end();)
 	{
-		remove(it++);
+		it = remove(it);
 	}
 }
 
 bool mesos_collector::is_active() const
 {
 	return subscription_count() > 0;
+}
+
+bool mesos_collector::is_healthy(int expected_count) const
+{
+	return subscription_count() >= expected_count;
 }
 
 int mesos_collector::subscription_count() const
@@ -119,11 +125,12 @@ void mesos_collector::get_data()
 			{
 				if(m_sockets.size())
 				{
+					g_logger.log("Mesos collector number of sockets: " + std::to_string(m_sockets.size()), sinsp_logger::SEV_DEBUG);
 					res = select(m_nfds + 1, &m_infd, NULL, &m_errfd, &tv);
 					if(res < 0) // error
 					{
 						std::string err = strerror(errno);
-						g_logger.log(err, sinsp_logger::SEV_ERROR);
+						g_logger.log("Mesos collector select error, removing all sockets (" + err + ')', sinsp_logger::SEV_ERROR);
 						remove_all();
 					}
 					else // data or idle
@@ -136,7 +143,9 @@ void mesos_collector::get_data()
 								{
 									if(errno != EAGAIN)
 									{
-										remove(m_sockets.find(sock.first));
+										g_logger.log("Mesos collector data handling error, removing socket for (" + sock.second->get_framework_id() + ')', sinsp_logger::SEV_ERROR);
+										socket_map_t::iterator it = m_sockets.find(sock.first);
+										remove(it);
 									}
 								}
 							}
@@ -152,7 +161,9 @@ void mesos_collector::get_data()
 									std::string err = strerror(errno);
 									g_logger.log(err, sinsp_logger::SEV_ERROR);
 									sock.second->on_error(err, true);
-									remove(m_sockets.find(sock.first));
+									g_logger.log("Mesos collector socket error, removing socket for (" + sock.second->get_framework_id() + ')', sinsp_logger::SEV_ERROR);
+									socket_map_t::iterator it = m_sockets.find(sock.first);
+									remove(it);
 								}
 							}
 							else

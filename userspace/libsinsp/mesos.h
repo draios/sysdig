@@ -28,7 +28,7 @@ public:
 	static const std::string default_apps_api;
 	static const std::string default_watch_api;
 
-	typedef std::vector<std::string> uri_list_t;
+	typedef mesos_http::marathon_uri_t/*std::vector<std::string>*/ uri_list_t;
 
 	mesos(const std::string& state_uri = default_state_uri,
 		const std::string& state_api = default_state_api,
@@ -49,92 +49,39 @@ public:
 	void clear_marathon();
 
 #ifdef HAS_CAPTURE
-	void send_data_request(bool collect = true)
-	{
-		connect_mesos();
-		send_mesos_data_request();
-		if(has_marathon())
-		{
-			connect_marathon();
-			send_marathon_data_request();
-		}
-		if(!m_mesos_state_json.empty()) { return; }
-		for(auto& group : m_marathon_groups_json)
-		{
-			if(!group.second.empty()) { return; }
-		}
-		for(auto& app : m_marathon_apps_json)
-		{
-			if(!app.second.empty()) { return; }
-		}
-		if(collect) { collect_data(); }
-	}
-
-	void collect_data()
-	{
-		 m_collector.get_data();
-		 if(!m_mesos_state_json.empty())
-		 {
-			if(!m_marathon_apps_json.empty() && !m_marathon_groups_json.empty())
-			{
-				for(auto& group : m_marathon_groups_json)
-				{
-					if(group.second.size())
-					{
-						json_map_type_t::iterator app_it = m_marathon_apps_json.find(group.first);
-						if(app_it != m_marathon_apps_json.end())
-						{
-							if(!app_it->second.empty())
-							{
-								if(!m_mesos_state_json.empty())
-								{
-									parse_state(std::move(m_mesos_state_json), "");
-									m_mesos_state_json.clear();
-								}
-								// +++ order is important - apps belong to groups and must be processed after
-								parse_groups(std::move(group.second), group.first);
-								parse_apps(std::move(app_it->second), app_it->first);
-								// ---
-								group.second.clear();
-								app_it->second.clear();
-							}
-						}
-						else
-						{
-							// must never happen
-							throw sinsp_exception("A discrepancy found between groups and apps "
-												  "(app json for framework [" + group.first + "] not found in json map).");
-						}
-					}
-				}
-			}
-		 }
-	}
+	void send_data_request(bool collect = true);
+	void collect_data();
 #endif // HAS_CAPTURE
 
 private:
 #ifdef HAS_CAPTURE
+	void init(const std::string& state_uri = "");
 	void send_mesos_data_request();
 	void connect_mesos();
+	void check_collector_status(int expected);
 	void send_marathon_data_request();
 	void connect_marathon();
 
 	template <typename T>
-	void connect(T http, typename T::element_type::callback_func_t func)
+	bool connect(T http, typename T::element_type::callback_func_t func, int expected_connections)
 	{
 		if(m_collector.has(http))
 		{
 			if(!http->is_connected())
 			{
+				//g_logger.log("Mesos removing connection for " + http->get_framework_name(), sinsp_logger::SEV_DEBUG);
 				m_collector.remove(http);
 			}
 		}
 
 		if(!m_collector.has(http))
 		{
+			//g_logger.log("Mesos adding connection for " + http->get_framework_name(), sinsp_logger::SEV_DEBUG);
 			http->set_parse_func(func);
 			m_collector.add(http);
 		}
+		check_collector_status(expected_connections);
+		return m_collector.has(http);
 	}
 #endif // HAS_CAPTURE
 
@@ -148,6 +95,7 @@ private:
 	void handle_slaves(const Json::Value& root);
 	void add_slave(const Json::Value& framework);
 
+	void check_frameworks(const std::string& json);
 	void set_state_json(std::string&& json, const std::string&);
 	void parse_state(std::string&& json, const std::string&);
 	void set_marathon_groups_json(std::string&& json, const std::string& framework_id);
@@ -160,15 +108,17 @@ private:
 #ifdef HAS_CAPTURE
 	void on_watch_data(const std::string& framework_id, mesos_event_data&& msg);
 	void get_groups(marathon_http::ptr_t http, std::string& json);
+	void remove_framework(const Json::Value& framework);
 
-	typedef std::unordered_map<int, marathon_http::ptr_t>       marathon_http_map;
-	typedef std::unordered_map<int, marathon_dispatcher::ptr_t> marathon_disp_map;
+	typedef std::unordered_map<std::string, marathon_http::ptr_t>       marathon_http_map;
+	typedef std::unordered_map<std::string, marathon_dispatcher::ptr_t> marathon_disp_map;
 
 	mesos_http::ptr_t m_state_http;
 	marathon_http_map m_marathon_groups_http;
 	marathon_http_map m_marathon_apps_http;
 	marathon_http_map m_marathon_watch_http;
 	mesos_collector   m_collector;
+	uri_list_t        m_marathon_uris;
 	marathon_disp_map m_dispatch;
 #endif // HAS_CAPTURE
 
@@ -179,6 +129,12 @@ private:
 	std::string m_mesos_state_json;
 	json_map_type_t m_marathon_groups_json;
 	json_map_type_t m_marathon_apps_json;
+	 time_t m_last_mesos_refresh = 0;
+	 time_t m_last_marathon_refresh = 0;
+
+	typedef std::unordered_set<std::string> framework_list_t;
+	framework_list_t m_inactive_frameworks;
+	framework_list_t m_activated_frameworks;
 
 	static const mesos_component::component_map m_components;
 
@@ -206,6 +162,16 @@ inline void mesos::clear_mesos()
 inline void mesos::clear_marathon()
 {
 	m_state.clear_marathon();
+}
+
+inline void mesos::parse_apps(std::string&& json, const std::string& framework_id)
+{
+	m_state.parse_apps(std::move(json), framework_id);
+}
+
+inline void mesos::parse_groups(std::string&& json, const std::string& framework_id)
+{
+	m_state.parse_groups(std::move(json), framework_id);
 }
 
 #endif // _WIN32
