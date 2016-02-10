@@ -153,30 +153,10 @@ std::string marathon_app::get_group_id(const std::string& app_id)
 // group
 //
 
-marathon_group::marathon_group(const std::string& id) :
-	marathon_component(marathon_component::MARATHON_GROUP, id)
+marathon_group::marathon_group(const std::string& id, const std::string& framework_id) :
+	marathon_component(marathon_component::MARATHON_GROUP, id),
+	m_framework_id(framework_id)
 {
-}
-
-marathon_group::marathon_group(const marathon_group& other): marathon_component(other),
-	std::enable_shared_from_this<marathon_group>()
-{
-}
-
-marathon_group::marathon_group(marathon_group&& other): marathon_component(std::move(other))
-{
-}
-
-marathon_group& marathon_group::operator=(const marathon_group& other)
-{
-	marathon_component::operator =(other);
-	return *this;
-}
-
-marathon_group& marathon_group::operator=(const marathon_group&& other)
-{
-	marathon_component::operator =(std::move(other));
-	return *this;
 }
 
 marathon_group::app_ptr_t marathon_group::get_app(const std::string& id)

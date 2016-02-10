@@ -27,54 +27,38 @@ public:
 	//
 	// frameworks
 	//
-
 	const mesos_frameworks& get_frameworks() const;
-
 	mesos_frameworks& get_frameworks();
-
 	const mesos_framework& get_framework(const std::string& framework_uid) const;
-
 	mesos_framework& get_framework(const std::string& framework_uid);
-
 	void push_framework(const mesos_framework& framework);
-
 	void emplace_framework(mesos_framework&& framework);
+	void remove_framework(const std::string& framework_uid);
+	void remove_framework(const Json::Value& framework);
 
 	//
 	// tasks
 	//
-
 	std::unordered_set<std::string> get_all_task_ids() const;
 	const mesos_framework::task_map& get_tasks(const std::string& framework_uid) const;
-
 	mesos_framework::task_map& get_tasks(const std::string& framework_uid);
-
 	mesos_framework::task_ptr_t get_task(const std::string& uid);
-
 	void add_or_replace_task(mesos_framework& framework, mesos_task::ptr_t task);
-
 	void remove_task(mesos_framework& framework, const std::string& uid);
 
 	//
 	// slaves
 	//
-
 	const mesos_slaves& get_slaves() const;
-
 	mesos_slaves& get_slaves();
-
 	const mesos_slave& get_slave(const std::string& slave_uid) const;
-
 	mesos_slave& get_slave(const std::string& slave_uid);
-
 	void push_slave(const mesos_slave& slave);
-
 	void emplace_slave(mesos_slave&& slave);
 
 	//
 	// Marathon
 	//
-
 	void set_marathon_changed(bool changed = true)
 	{
 		m_marathon_changed = changed;
@@ -88,61 +72,31 @@ public:
 	//
 	// Marathon apps
 	//
-
 	void parse_apps(std::string&& json, const std::string& framework_id);
-
 	marathon_app::ptr_t get_app(const std::string& app_id);
-
 	marathon_group::app_ptr_t add_or_replace_app(const std::string& id,
 												const std::string& group,
 												const std::string& task = "");
-
 	bool remove_app(const std::string& id);
-
-	void add_task_to_app(marathon_group::app_ptr_t app, const std::string& task_id)
-	{
-		if(app)
-		{
-			mesos_framework::task_ptr_t pt = get_task(task_id);
-			if(pt)
-			{
-				app->add_task(pt);
-			}
-			else
-			{
-				g_logger.log("Task [" + task_id + "] can not be obtained (null). Task not added to app [" + app->get_id() + ']', sinsp_logger::SEV_ERROR);
-			}
-		}
-		else
-		{
-			g_logger.log("Attempt to add task [" + task_id + "] to non-existing (null) app.", sinsp_logger::SEV_ERROR);
-		}
-	}
+	void add_task_to_app(marathon_group::app_ptr_t app, const std::string& task_id);
 
 	//
 	// Marathon groups
 	//
-
 	bool parse_groups(std::string&& json, const std::string& framework_id);
-
 	const marathon_groups& get_groups() const;
-
 	marathon_groups& get_groups();
-
 	marathon_group::ptr_t get_group(const std::string& group_id);
-
 	marathon_group::ptr_t add_or_replace_group(marathon_group::ptr_t group, marathon_group::ptr_t to_group = 0);
-
 	marathon_group::ptr_t get_app_group(const std::string& app_id);
+	void erase_groups(const std::string& framework_id);
+	void print_groups() const;
 
 	//
 	// state
 	//
-
 	void clear_mesos();
 	void clear_marathon();
-
-	void print_groups() const;
 
 private:
 	marathon_group::ptr_t add_group(const Json::Value& group, marathon_group::ptr_t to_group, const std::string& framework_id);
@@ -199,14 +153,54 @@ inline mesos_framework& mesos_state_t::get_framework(const std::string& framewor
 
 inline void mesos_state_t::push_framework(const mesos_framework& framework)
 {
+	for(mesos_frameworks::iterator it = m_frameworks.begin(); it != m_frameworks.end();)
+	{
+		if(it->get_uid() == framework.get_uid())
+		{
+			it = m_frameworks.erase(it);
+		}
+		else { ++it; }
+	}
 	m_frameworks.push_back(framework);
 }
 
 inline void mesos_state_t::emplace_framework(mesos_framework&& framework)
 {
+	for(mesos_frameworks::iterator it = m_frameworks.begin(); it != m_frameworks.end();)
+	{
+		if(it->get_uid() == framework.get_uid())
+		{
+			it = m_frameworks.erase(it);
+		}
+		else { ++it; }
+	}
 	m_frameworks.emplace_back(std::move(framework));
 }
 
+inline void mesos_state_t::remove_framework(const Json::Value& framework)
+{
+	const Json::Value& id = framework["id"];
+	if(!id.isNull() && id.isString())
+	{
+		remove_framework(id.asString());
+	}
+}
+
+inline void mesos_state_t::remove_framework(const std::string& framework_uid)
+{
+	for(mesos_frameworks::iterator it = m_frameworks.begin(); it != m_frameworks.end();)
+	{
+		if(it->get_uid() == framework_uid)
+		{
+			m_frameworks.erase(it);
+			return;
+		}
+	}
+}
+
+//
+// tasks
+//
 inline void mesos_state_t::add_or_replace_task(mesos_framework& framework, mesos_task::ptr_t task)
 {
 	framework.add_or_replace_task(task);
@@ -287,11 +281,27 @@ inline mesos_slave& mesos_state_t::get_slave(const std::string& slave_uid)
 
 inline void mesos_state_t::push_slave(const mesos_slave& slave)
 {
+	for(mesos_slaves::iterator it = m_slaves.begin(); it != m_slaves.end();)
+	{
+		if(it->get_uid() == slave.get_uid())
+		{
+			it = m_slaves.erase(it);
+		}
+		else { ++it; }
+	}
 	m_slaves.push_back(slave);
 }
 
 inline void mesos_state_t::emplace_slave(mesos_slave&& slave)
 {
+	for(mesos_slaves::iterator it = m_slaves.begin(); it != m_slaves.end();)
+	{
+		if(it->get_uid() == slave.get_uid())
+		{
+			it = m_slaves.erase(it);
+		}
+		else { ++it; }
+	}
 	m_slaves.emplace_back(std::move(slave));
 }
 

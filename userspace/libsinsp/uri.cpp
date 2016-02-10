@@ -63,13 +63,20 @@ int uri::extract_port(std::string& hostport)
 	return m_port;
 }
 
-std::string uri::to_string() const
+std::string uri::to_string(bool show_creds) const
 {
 	std::ostringstream ostr;
 	ostr << m_scheme << "://";
 	if(!m_user.empty())
 	{
-		ostr << m_user << ':' << m_password << '@';
+		if(show_creds)
+		{
+			ostr << m_user << ':' << m_password << '@';
+		}
+		else
+		{
+			ostr << "***:***@";
+		}
 	}
 	ostr << m_host;
 	if(m_port)

@@ -21,6 +21,7 @@ class mesos_http
 public:
 	typedef std::shared_ptr<mesos_http> ptr_t;
 	typedef void (mesos::*callback_func_t)(std::string&&, const std::string&);
+	typedef std::vector<std::string> marathon_uri_t;
 
 	mesos_http(mesos& m, const uri& url);
 
@@ -52,6 +53,8 @@ public:
 	const std::string& get_framework_version() const;
 	void set_framework_version(const std::string& id);
 
+	const marathon_uri_t& get_marathon_uris() const;
+
 protected:
 	CURL* get_sync_curl();
 	CURL* get_select_curl();
@@ -65,8 +68,13 @@ protected:
 	callback_func_t get_parse_func();
 	static std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
 	bool try_parse(const std::string& json);
+	static bool is_framework_active(const Json::Value& framework);
+	static std::string get_framework_url(const Json::Value& framework);
 
 private:
+	void discover_mesos_leader();
+	void discover_framework_uris(const Json::Value& frameworks);
+
 	void send_request();
 	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
@@ -85,10 +93,12 @@ private:
 	std::string             m_framework_version;
 	curl_version_info_data* m_curl_version;
 	std::string             m_request;
+	bool                    m_is_mesos_state;
+	marathon_uri_t          m_marathon_uris;
+	int                     m_master_discover_attempt = 0;
+	const int               m_max_discover_try = 10;
 
 	friend class mesos;
-
-	typedef std::vector<std::string::size_type> pos_vec_t;
 
 	void add_data_chunk(std::istringstream&& chunk_str);
 	void extract_data(const std::string& data);
@@ -192,6 +202,11 @@ inline const std::string& mesos_http::get_framework_version() const
 inline void mesos_http::set_framework_version(const std::string& version)
 {
 	m_framework_version = version;
+}
+
+inline const mesos_http::marathon_uri_t& mesos_http::get_marathon_uris() const
+{
+	return m_marathon_uris;
 }
 
 #endif // HAS_CAPTURE
