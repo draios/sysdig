@@ -26,52 +26,54 @@ mesos::mesos(const std::string& state_uri,
 	const uri_list_t& marathon_uris,
 	const std::string& groups_api,
 	const std::string& apps_api,
-	const std::string& /*watch_api*/):
+	bool discover_mesos_leader):
 #ifdef HAS_CAPTURE
 		m_collector(false),
+		m_mesos_uri(state_uri),
 		m_marathon_uris(marathon_uris),
 #endif // HAS_CAPTURE
-		m_creation_logged(false)
+		m_creation_logged(false),
+		m_discover_mesos_leader(discover_mesos_leader)
 {
-	init(state_uri);
+	g_logger.log(std::string("Creating Mesos object, failover autodiscovery set to ") +
+				 (m_discover_mesos_leader ? "true" : "false"),
+				 sinsp_logger::SEV_DEBUG);
+	init();
 }
 
-void mesos::init(const std::string& state_uri)
+void mesos::init()
 {
 #ifdef HAS_CAPTURE
-	std::string mesos_uri = state_uri;
 	m_collector.remove_all();
 	if(m_state_http)
 	{
-		if(mesos_uri.empty())
+		if(m_mesos_uri.empty() && m_discover_mesos_leader)
 		{
 			const uri& url = m_state_http->get_url();
 			std::string scheme = url.get_scheme();
 			std::string creds = url.get_credentials();
 			if(!creds.empty()) creds.append(1, '@');
-			mesos_uri = scheme + "://" + creds + url.get_host();
+			m_mesos_uri = scheme + "://" + creds + url.get_host();
 			int port = url.get_port();
 			if(!port)
 			{
 				if(scheme == "http") port = 80;
 				else if(scheme == "https") port = 443;
 			}
-			mesos_uri.append(1, ':').append(std::to_string(port));
+			m_mesos_uri.append(1, ':').append(std::to_string(port));
 		}
 		if(!m_state_http.unique())
 		{
 			throw sinsp_exception("Invalid access to Mesos initializer: mesos state http client for [" +
-								  mesos_uri + "] not unique.");
+								  m_mesos_uri + "] not unique.");
 		}
-		m_state_http.reset();
 	}
 
-	m_state_http = std::make_shared<mesos_http>(*this, mesos_uri + default_state_api);
+	m_state_http = std::make_shared<mesos_http>(*this, m_mesos_uri + default_state_api, m_discover_mesos_leader);
 	rebuild_mesos_state(true);
 
 	m_marathon_groups_http.clear();
 	m_marathon_apps_http.clear();
-
 	const uri_list_t& marathons = m_marathon_uris.size() ? m_marathon_uris : m_state_http->get_marathon_uris();
 	for(const auto& muri : marathons)
 	{
@@ -141,8 +143,6 @@ void mesos::rebuild_marathon_state(bool full)
 			send_marathon_data_request();
 			collect_data();
 		}
-
-		m_state.set_marathon_changed(false);
 	}
 #endif // HAS_CAPTURE
 }
@@ -228,118 +228,7 @@ bool mesos::is_alive() const
 	return true;
 }
 
-void mesos::watch_marathon()
-{
 #ifdef HAS_CAPTURE
-	if(has_marathon())
-	{
-		if(m_marathon_watch_http.size())
-		{
-			if(!m_collector.subscription_count())
-			{
-				for(auto watch_http : m_marathon_watch_http)
-				{
-					m_collector.add(watch_http.second);
-				}
-			}
-			m_collector.get_data();
-		}
-	}
-	else
-	{
-		throw sinsp_exception("Attempt to watch non-existing Marathon framework.");
-	}
-#endif // HAS_CAPTURE
-}
-
-void mesos::add_task_labels(std::string& json)
-{
-#ifdef HAS_CAPTURE
-	Json::Value root;
-	Json::Reader reader;
-	try
-	{
-		if(reader.parse(json, root, false))
-		{
-			if(mesos_event_data::get_event_type(root) == mesos_event_data::MESOS_STATUS_UPDATE_EVENT)
-			{
-				if(!root["taskId"].isNull())
-				{
-					if(!root["taskStatus"].isNull() && root["taskStatus"].isString() && root["taskStatus"].asString() == "TASK_RUNNING")
-					{
-						Json::Value labels = m_state_http->get_task_labels(root["taskId"].asString());
-						if(!labels.isNull() && labels.isArray())
-						{
-							root["labels"] = labels;
-							json = Json::FastWriter().write(root);
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			g_logger.log("Error parsing task update message.\nJSON:\n---\n" + json + "\n---", sinsp_logger::SEV_ERROR);
-		}
-	}
-	catch(std::exception& ex)
-	{
-		g_logger.log(std::string("Error while looking for taks labels:") + ex.what(), sinsp_logger::SEV_ERROR);
-	}
-#endif // HAS_CAPTURE
-}
-
-#ifdef HAS_CAPTURE
-void mesos::get_groups(marathon_http::ptr_t http, std::string& json)
-{
-	std::string group_ev_type = mesos_event_data::m_events[mesos_event_data::MESOS_GROUP_CHANGE_SUCCESS_EVENT];
-	Json::Value root;
-	Json::Reader reader;
-	try
-	{
-		if(reader.parse(json, root, false))
-		{
-			Json::Value event_type = root["eventType"];
-			if(!event_type.isNull() && event_type.isString() && event_type.asString() == group_ev_type)
-			{
-				Json::Value group_id = root["groupId"];
-				if(!group_id.isNull() && group_id.isString())
-				{
-					std::string gid = group_id.asString();
-					if(!gid.empty())
-					{
-						json = http->get_groups(gid);
-						if(reader.parse(json, root, false))
-						{
-							root["eventType"] = group_ev_type;
-							json = Json::FastWriter().write(root);
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			g_logger.log("Error parsing task update message.\nJSON:\n---\n" + json + "\n---", sinsp_logger::SEV_ERROR);
-		}
-	}
-	catch(std::exception& ex)
-	{
-		g_logger.log(std::string("Error while looking for taks labels:") + ex.what(), sinsp_logger::SEV_ERROR);
-	}
-}
-
-void mesos::on_watch_data(const std::string& framework_id, mesos_event_data&& msg)
-{
-	for(auto& dispatcher : m_dispatch)
-	{
-		if(framework_id == dispatcher.second->get_id())
-		{
-			dispatcher.second->enqueue(std::move(msg));
-			break;
-		}
-	}
-}
 
 void mesos::check_collector_status(int expected)
 {
@@ -514,8 +403,16 @@ void mesos::handle_frameworks(const Json::Value& root)
 						}
 					}
 					if(!do_init) { add_framework(framework); }
+					else break;
 				}
-				if(do_init) { init(); }
+				if(do_init)
+				{
+					rebuild_mesos_state(true);
+					if(has_marathon())
+					{
+						rebuild_marathon_state(true);
+					}
+				}
 			}
 			else
 			{

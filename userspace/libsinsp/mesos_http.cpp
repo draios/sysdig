@@ -19,7 +19,7 @@
 #include <sys/ioctl.h>
 #include <string.h>
 
-mesos_http::mesos_http(mesos& m, const uri& url):
+mesos_http::mesos_http(mesos& m, const uri& url, bool discover):
 	m_sync_curl(curl_easy_init()),
 	m_select_curl(curl_easy_init()),
 	m_mesos(m),
@@ -30,7 +30,8 @@ mesos_http::mesos_http(mesos& m, const uri& url):
 	m_callback_func(0),
 	m_curl_version(curl_version_info(CURLVERSION_NOW)),
 	m_request(make_request(url, m_curl_version)),
-	m_is_mesos_state(url.to_string().find(mesos::default_state_api) != std::string::npos)
+	m_is_mesos_state(url.to_string().find(mesos::default_state_api) != std::string::npos),
+	m_discover_lead_master(discover)
 {
 	if(!m_sync_curl || !m_select_curl)
 	{
@@ -71,6 +72,35 @@ void mesos_http::cleanup(CURL* curl)
 	m_connected = false;
 }
 
+Json::Value mesos_http::get_state_frameworks()
+{
+	Json::Value frameworks;
+	std::ostringstream os;
+	CURLcode res = get_data(m_url.to_string(), os);
+	if(res == CURLE_OK)
+	{
+		Json::Value root;
+		Json::Reader reader;
+		if(reader.parse(os.str(), root))
+		{
+			frameworks = root["frameworks"];
+			if(frameworks.isNull() || !frameworks.isArray())
+			{
+				throw sinsp_exception("Unexpected condition while detecting Mesos master: frameworks entry not found.");
+			}
+		}
+		else
+		{
+			throw sinsp_exception("Mesos master leader detection failed: Invalid JSON");
+		}
+	}
+	else
+	{
+		throw sinsp_exception("Mesos master leader detection failed: " + m_url.to_string(false));
+	}
+	return frameworks;
+}
+
 void mesos_http::discover_mesos_leader()
 {
 	if(m_is_mesos_state)
@@ -89,13 +119,18 @@ void mesos_http::discover_mesos_leader()
 				{
 					throw sinsp_exception("Unexpected condition while detecting Mesos master: frameworks entry not found.");
 				}
+				g_logger.log("Found " + std::to_string(frameworks.size()) + " Mesos frameworks", sinsp_logger::SEV_DEBUG);
 				if(frameworks.size()) // this is master leader
 				{
 					discover_framework_uris(frameworks);
 					g_logger.log("Found Mesos master leader [" + m_url.to_string(false) + ']', sinsp_logger::SEV_INFO);
 					return;
 				}
-				else // find where is the master
+				else  if(!m_discover_lead_master) // this is standby server and autodiscovery is disabled
+				{
+					throw sinsp_exception("Detected standby Mesos master: autodiscovery not enabled. Giving up (will retry).");
+				}
+				else // autodiscovery is enabled, find where is the master
 				{
 					Json::Value leader = root["leader"];
 					if(leader.isNull() || !leader.isString())

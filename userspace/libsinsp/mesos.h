@@ -10,8 +10,6 @@
 #include "mesos_http.h"
 #include "marathon_http.h"
 #include "mesos_state.h"
-#include "mesos_event_data.h"
-#include "marathon_dispatcher.h"
 #include "mesos_collector.h"
 #include "uri.h"
 #include <sstream>
@@ -35,7 +33,7 @@ public:
 		const uri_list_t& marathon_uris = uri_list_t(),
 		const std::string& groups_api = "",
 		const std::string& apps_api = "",
-		const std::string& watch_api = "");
+		bool discover_mesos_leader = false);
 
 	~mesos();
 
@@ -45,7 +43,6 @@ public:
 	void clear_mesos();
 
 	bool has_marathon() const;
-	void watch_marathon();
 	void clear_marathon();
 
 #ifdef HAS_CAPTURE
@@ -55,7 +52,7 @@ public:
 
 private:
 #ifdef HAS_CAPTURE
-	void init(const std::string& state_uri = "");
+	void init();
 	void send_mesos_data_request();
 	void connect_mesos();
 	void check_collector_status(int expected);
@@ -65,23 +62,24 @@ private:
 	template <typename T>
 	bool connect(T http, typename T::element_type::callback_func_t func, int expected_connections)
 	{
-		if(m_collector.has(http))
+		if(http)
 		{
-			if(!http->is_connected())
+			if(m_collector.has(http))
 			{
-				//g_logger.log("Mesos removing connection for " + http->get_framework_name(), sinsp_logger::SEV_DEBUG);
-				m_collector.remove(http);
+				if(!http->is_connected())
+				{
+					m_collector.remove(http);
+				}
 			}
+			if(!m_collector.has(http))
+			{
+				http->set_parse_func(func);
+				m_collector.add(http);
+			}
+			check_collector_status(expected_connections);
+			return m_collector.has(http);
 		}
-
-		if(!m_collector.has(http))
-		{
-			//g_logger.log("Mesos adding connection for " + http->get_framework_name(), sinsp_logger::SEV_DEBUG);
-			http->set_parse_func(func);
-			m_collector.add(http);
-		}
-		check_collector_status(expected_connections);
-		return m_collector.has(http);
+		return false;
 	}
 #endif // HAS_CAPTURE
 
@@ -103,34 +101,30 @@ private:
 	void set_marathon_apps_json(std::string&& json, const std::string& framework_id);
 	void parse_apps(std::string&& json, const std::string& framework_id);
 
-	void add_task_labels(std::string& json);
-
 #ifdef HAS_CAPTURE
-	void on_watch_data(const std::string& framework_id, mesos_event_data&& msg);
-	void get_groups(marathon_http::ptr_t http, std::string& json);
 	void remove_framework(const Json::Value& framework);
 
 	typedef std::unordered_map<std::string, marathon_http::ptr_t>       marathon_http_map;
-	typedef std::unordered_map<std::string, marathon_dispatcher::ptr_t> marathon_disp_map;
 
 	mesos_http::ptr_t m_state_http;
 	marathon_http_map m_marathon_groups_http;
 	marathon_http_map m_marathon_apps_http;
-	marathon_http_map m_marathon_watch_http;
 	mesos_collector   m_collector;
+	std::string       m_mesos_uri;
 	uri_list_t        m_marathon_uris;
-	marathon_disp_map m_dispatch;
 #endif // HAS_CAPTURE
 
 	mesos_state_t     m_state;
 	bool              m_creation_logged;
+	bool              m_discover_mesos_leader;
+	bool              m_discover_marathon;
 
 	typedef std::map<std::string, std::string> json_map_type_t;
 	std::string m_mesos_state_json;
 	json_map_type_t m_marathon_groups_json;
 	json_map_type_t m_marathon_apps_json;
-	 time_t m_last_mesos_refresh = 0;
-	 time_t m_last_marathon_refresh = 0;
+	time_t m_last_mesos_refresh = 0;
+	time_t m_last_marathon_refresh = 0;
 
 	typedef std::unordered_set<std::string> framework_list_t;
 	framework_list_t m_inactive_frameworks;

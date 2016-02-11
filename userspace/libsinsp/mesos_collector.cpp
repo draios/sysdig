@@ -90,10 +90,8 @@ mesos_collector::socket_map_t::iterator& mesos_collector::remove(socket_map_t::i
 void mesos_collector::remove_all()
 {
 	clear();
-	for(socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end();)
-	{
-		it = remove(it);
-	}
+	m_sockets.clear();
+	m_nfds = 0;
 }
 
 bool mesos_collector::is_active() const
@@ -141,6 +139,7 @@ void mesos_collector::get_data()
 							{
 								if(!sock.second->on_data())
 								{
+									if(!m_sockets.size()) { return; }
 									if(errno != EAGAIN)
 									{
 										g_logger.log("Mesos collector data handling error, removing socket for (" + sock.second->get_framework_id() + ')', sinsp_logger::SEV_ERROR);
@@ -148,6 +147,7 @@ void mesos_collector::get_data()
 										remove(it);
 									}
 								}
+								if(!m_sockets.size()) { return; }
 							}
 							else
 							{
