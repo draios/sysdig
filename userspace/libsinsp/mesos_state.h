@@ -59,15 +59,6 @@ public:
 	//
 	// Marathon
 	//
-	void set_marathon_changed(bool changed = true)
-	{
-		m_marathon_changed = changed;
-	}
-
-	bool get_marathon_changed() const
-	{
-		return m_marathon_changed;
-	}
 
 	//
 	// Marathon apps
@@ -97,6 +88,7 @@ public:
 	//
 	void clear_mesos();
 	void clear_marathon();
+	bool has_data() const;
 
 private:
 	marathon_group::ptr_t add_group(const Json::Value& group, marathon_group::ptr_t to_group, const std::string& framework_id);
@@ -107,10 +99,8 @@ private:
 	mesos_slaves     m_slaves;
 	marathon_groups  m_groups;
 	bool             m_is_captured;
-	bool             m_marathon_changed;
 
 	std::unordered_multimap<std::string, std::string> m_marathon_task_cache;
-	friend class marathon_dispatcher;
 };
 
 //
@@ -337,4 +327,9 @@ inline void mesos_state_t::clear_mesos()
 inline void mesos_state_t::clear_marathon()
 {
 	m_groups.clear();
+}
+
+inline bool mesos_state_t::has_data() const
+{
+	return m_frameworks.size() > 0 && m_slaves.size() > 0;
 }

@@ -23,7 +23,7 @@ public:
 	typedef void (mesos::*callback_func_t)(std::string&&, const std::string&);
 	typedef std::vector<std::string> marathon_uri_t;
 
-	mesos_http(mesos& m, const uri& url);
+	mesos_http(mesos& m, const uri& url, bool discover = false);
 
 	virtual ~mesos_http();
 
@@ -73,6 +73,7 @@ protected:
 
 private:
 	void discover_mesos_leader();
+	Json::Value get_state_frameworks();
 	void discover_framework_uris(const Json::Value& frameworks);
 
 	void send_request();
@@ -95,6 +96,7 @@ private:
 	std::string             m_request;
 	bool                    m_is_mesos_state;
 	marathon_uri_t          m_marathon_uris;
+	bool                    m_discover_lead_master;
 	int                     m_master_discover_attempt = 0;
 	const int               m_max_discover_try = 10;
 

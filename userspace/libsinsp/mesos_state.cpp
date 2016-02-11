@@ -13,8 +13,7 @@
 // state
 //
 
-mesos_state_t::mesos_state_t(bool is_captured) : m_is_captured(is_captured),
-	m_marathon_changed(true)
+mesos_state_t::mesos_state_t(bool is_captured) : m_is_captured(is_captured)
 {
 }
 
@@ -252,7 +251,7 @@ void mesos_state_t::print_groups() const
 
 marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, marathon_group::ptr_t to_group, const std::string& framework_id)
 {
-	Json::Value group_id = group["id"];
+	const Json::Value& group_id = group["id"];
 	if(!group_id.isNull())
 	{
 		std::string id = group_id.asString();
@@ -267,37 +266,41 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 		marathon_group::ptr_t pg(new marathon_group(id, framework_id));
 		add_or_replace_group(pg, to_group);
 
-		Json::Value apps = group["apps"];
+		const Json::Value& apps = group["apps"];
 		if(!apps.isNull())
 		{
 			for(const auto& app : apps)
 			{
-				Json::Value app_id = app["id"];
+				const Json::Value& app_id = app["id"];
 				if(!app_id.isNull())
 				{
-					marathon_app::ptr_t p_app = get_app(app_id.asString());
-					if(!p_app)
+					const Json::Value& instances = app["instances"];
+					if(!instances.isNull() && instances.isInt() && instances.asInt() > 0)
 					{
-						p_app = add_app(app, framework_id);
-					}
-					if(p_app)
-					{
-						pg->add_or_replace_app(p_app);
-						if(!framework_id.empty())
+						marathon_app::ptr_t p_app = get_app(app_id.asString());
+						if(!p_app)
 						{
-							for(const auto& task : get_tasks(framework_id))
+							p_app = add_app(app, framework_id);
+						}
+						if(p_app)
+						{
+							pg->add_or_replace_app(p_app);
+							if(!framework_id.empty())
 							{
-								if(task.second->get_marathon_app_id() == app_id.asString())
+								for(const auto& task : get_tasks(framework_id))
 								{
-									add_task_to_app(p_app, task.first);
+									if(task.second->get_marathon_app_id() == app_id.asString())
+									{
+										add_task_to_app(p_app, task.first);
+									}
 								}
 							}
 						}
-					}
-					else
-					{
-						g_logger.log("An error occured adding app [" + app_id.asString() +
-									"] to group [" + id + ']', sinsp_logger::SEV_ERROR);
+						else
+						{
+							g_logger.log("An error occured adding app [" + app_id.asString() +
+										"] to group [" + id + ']', sinsp_logger::SEV_ERROR);
+						}
 					}
 				}
 			}
