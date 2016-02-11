@@ -210,8 +210,12 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 		return (strcmp(operand1, operand2) != 0);
 	case CO_CONTAINS:
 		return (strstr(operand1, operand2) != NULL);
-        case CO_ICONTAINS:
+    case CO_ICONTAINS:
+#ifdef _WIN32
+		return (_strnicmp(operand1, operand2, strlen(operand1)) != NULL);
+#else
 		return (strcasestr(operand1, operand2) != NULL);
+#endif
 	case CO_LT:
 		return (strcmp(operand1, operand2) < 0);
 	case CO_LE:
