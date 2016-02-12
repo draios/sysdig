@@ -41,10 +41,10 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover):
 	ASSERT(m_curl_version);
 	if((m_url.get_scheme() == "https") && (m_curl_version && !(m_curl_version->features | CURL_VERSION_SSL)))
 	{
-		cleanup();
 		throw sinsp_exception("HTTPS NOT supported");
 	}
 
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_select_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 
@@ -58,16 +58,16 @@ mesos_http::~mesos_http()
 
 void mesos_http::cleanup()
 {
-	cleanup(m_sync_curl);
-	cleanup(m_select_curl);
+	cleanup(&m_sync_curl);
+	cleanup(&m_select_curl);
 }
 
-void mesos_http::cleanup(CURL* curl)
+void mesos_http::cleanup(CURL** curl)
 {
-	if(curl)
+	if(curl && *curl)
 	{
-		curl_easy_cleanup(curl);
-		curl = 0;
+		curl_easy_cleanup(*curl);
+		*curl = 0;
 	}
 	m_connected = false;
 }
@@ -114,7 +114,7 @@ void mesos_http::discover_mesos_leader()
 			Json::Reader reader;
 			if(reader.parse(os.str(), root))
 			{
-				Json::Value frameworks = root["frameworks"];
+				const Json::Value& frameworks = root["frameworks"];
 				if(frameworks.isNull() || !frameworks.isArray())
 				{
 					throw sinsp_exception("Unexpected condition while detecting Mesos master: frameworks entry not found.");
@@ -132,45 +132,49 @@ void mesos_http::discover_mesos_leader()
 				}
 				else // autodiscovery is enabled, find where is the master
 				{
-					Json::Value leader = root["leader"];
-					if(leader.isNull() || !leader.isString())
-					{
-						throw sinsp_exception("Unexpected condition while detecting Mesos master: leader entry not found.");
-					}
-					else
+					const Json::Value& leader = root["leader"];
+					if(!leader.isNull() && leader.isString())
 					{
 						std::string address = leader.asString();
 						std::string::size_type pos = address.find('@');
-						if(pos == std::string::npos || (pos + 1) == address.size())
+						if(pos != std::string::npos && (pos + 1) < address.size())
 						{
-							throw sinsp_exception("Unexpected leader entry format while detecting Mesos master (" + address + ").");
+							address = std::string("http://").append(address.substr(pos + 1)).append(mesos::default_state_api);
+							if(address != m_url.to_string())
+							{
+								g_logger.log("Detected Mesos master leader redirect: [" + address + ']', sinsp_logger::SEV_INFO);
+								m_url = address;
+								discover_mesos_leader();
+							}
+							else
+							{
+								throw sinsp_exception("Mesos master leader not discovered at [" + address + "] . "
+													  "Giving up temporarily ...");
+							}
 						}
 						else
 						{
-							address = std::string("http://").append(address.substr(pos + 1)).append(mesos::default_state_api);
-							++m_master_discover_attempt;
-							if(m_master_discover_attempt == m_max_discover_try && address != m_url.to_string())
-							{
-								g_logger.log("Detected Mesos master leader redirect: [" + address + ']', sinsp_logger::SEV_INFO);
-							}
-							else if(m_master_discover_attempt > m_max_discover_try)
-							{
-								throw sinsp_exception("Mesos master leader not discovered after " + std::to_string(m_master_discover_attempt - 1) + " attempts. Giving up temporarily ...");
-							}
-							m_url = address;
-							discover_mesos_leader();
+							throw sinsp_exception("Unexpected leader entry format while detecting Mesos master ("
+												  + address + ").");
 						}
+					}
+					else
+					{
+						throw sinsp_exception("Unexpected condition while detecting Mesos master: leader entry not found: ["
+											  + m_url.to_string(false) + ']');
 					}
 				}
 			}
 			else
 			{
-				throw sinsp_exception("Mesos master leader detection failed: Invalid JSON");
+				throw sinsp_exception("Mesos master leader detection failed: Invalid JSON ("
+									  + m_url.to_string(false) + ']');
 			}
 		}
 		else
 		{
-			throw sinsp_exception("Mesos master leader detection failed: " + m_url.to_string(false));
+			throw sinsp_exception("Mesos master leader detection failed: "
+								  + m_url.to_string(false));
 		}
 	}
 }
@@ -416,7 +420,6 @@ int mesos_http::get_socket(long timeout_ms)
 
 		if(!wait(0))
 		{
-			cleanup(m_select_curl);
 			throw sinsp_exception("Error obtaining socket: timeout.");
 		}
 
@@ -436,25 +439,21 @@ void mesos_http::send_request()
 {
 	if(m_request.empty())
 	{
-		cleanup();
 		throw sinsp_exception("Mesos send: request (empty).");
 	}
 
 	if(m_watch_socket < 0)
 	{
-		cleanup();
 		throw sinsp_exception("Mesos send: invalid socket.");
 	}
 
 	size_t iolen = send(m_watch_socket, m_request.c_str(), m_request.size(), 0);
 	if((iolen <= 0) || (m_request.size() != iolen))
 	{
-		cleanup(m_select_curl);
 		throw sinsp_exception("Mesos send: socket connection error.");
 	}
 	else if(!wait(1))
 	{
-		cleanup();
 		throw sinsp_exception("Mesos send: timeout.");
 	}
 	g_logger.log(m_request, sinsp_logger::SEV_DEBUG);
