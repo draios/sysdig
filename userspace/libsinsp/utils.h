@@ -196,7 +196,7 @@ class uri;
 class sinsp_curl
 {
 public:
-	sinsp_curl(const std::string& uristr, const std::string& cert = "");
+	sinsp_curl(const std::string& uristr, long timeout_ms, const std::string& cert = "");
 
 	~sinsp_curl();
 
@@ -204,8 +204,10 @@ public:
 	string get_data();
 
 	void set_timeout(long seconds);
-
 	long get_timeout() const;
+
+	void set_url(const std::string& url);
+	std::string get_url(bool show_creds = true) const;
 
 private:
 	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
@@ -215,7 +217,7 @@ private:
 	void* m_curl;
 	uri* m_uri;
 	string m_cert;
-	long m_timeout;
+	long m_timeout_ms;
 };
 
 #endif // __linux__

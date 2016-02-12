@@ -62,7 +62,7 @@ protected:
 	CURLcode get_data(const std::string& url, std::ostream& os);
 	void check_error(CURLcode res);
 	void cleanup();
-	void cleanup(CURL*);
+	void cleanup(CURL**);
 	int wait(int for_recv);
 
 	callback_func_t get_parse_func();
@@ -97,8 +97,6 @@ private:
 	bool                    m_is_mesos_state;
 	marathon_uri_t          m_marathon_uris;
 	bool                    m_discover_lead_master;
-	int                     m_master_discover_attempt = 0;
-	const int               m_max_discover_try = 10;
 
 	friend class mesos;
 
