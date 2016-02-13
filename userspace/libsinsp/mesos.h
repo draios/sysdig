@@ -1,7 +1,7 @@
 //
 // mesos.h
 //
-#ifndef _WIN32
+
 #pragma once
 
 #include "json/json.h"
@@ -170,5 +170,3 @@ inline void mesos::parse_groups(std::string&& json, const std::string& framework
 {
 	m_state.parse_groups(std::move(json), framework_id);
 }
-
-#endif // _WIN32
