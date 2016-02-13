@@ -76,6 +76,7 @@ if(NOT WIN32)
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
 		dl
+		ssh2
 		pthread)
 else()
 	target_link_libraries(sinsp
