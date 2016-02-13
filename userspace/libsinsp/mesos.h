@@ -26,7 +26,11 @@ public:
 	static const std::string default_apps_api;
 	static const std::string default_watch_api;
 
-	typedef mesos_http::marathon_uri_t/*std::vector<std::string>*/ uri_list_t;
+#ifdef HAS_CAPTURE
+	typedef mesos_http::marathon_uri_t uri_list_t;
+#else
+	typedef std::vector<std::string> uri_list_t;
+#endif // HAS_CAPTURE
 
 	mesos(const std::string& state_uri = default_state_uri,
 		const std::string& state_api = default_state_api,
@@ -51,8 +55,8 @@ public:
 #endif // HAS_CAPTURE
 
 private:
-#ifdef HAS_CAPTURE
 	void init();
+#ifdef HAS_CAPTURE
 	void send_mesos_data_request();
 	void connect_mesos();
 	void check_collector_status(int expected);
@@ -100,10 +104,9 @@ private:
 	void parse_groups(std::string&& json, const std::string& framework_id);
 	void set_marathon_apps_json(std::string&& json, const std::string& framework_id);
 	void parse_apps(std::string&& json, const std::string& framework_id);
-
-#ifdef HAS_CAPTURE
 	void remove_framework(const Json::Value& framework);
 
+#ifdef HAS_CAPTURE
 	typedef std::unordered_map<std::string, marathon_http::ptr_t>       marathon_http_map;
 
 	mesos_http::ptr_t m_state_http;
