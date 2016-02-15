@@ -1,5 +1,3 @@
-![](https://ga-beacon.appspot.com/UA-40398182-5/sysdig/README?pixel)
-
 sysdig
 ======
 
