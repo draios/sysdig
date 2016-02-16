@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "List the IDs of the login sessions. Optionally, the list can be filtered to include only the sessions that contain a specific command. The session IDs listed by this chisel can be used as filters for the spy_users chisel. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown.";
+description = "List the IDs of the login sessions. Optionally, the list can be filtered to include only the sessions that contain a specific command. The session IDs listed by this chisel can be used as filters for the spy_users chisel. This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown.";
 short_description = "List the login shell IDs";
 category = "Security";
 
