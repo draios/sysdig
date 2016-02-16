@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Print the data read and written for any FD. Combine this script with a filter to restrict what it shows. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents  [Write], and Red represents [Read] for all data except when the -pc or -pcontainer argument is used. If used the container.name and container.id will be represented as: Green [host], and Cyan [container]) Container information will contain '[]' around container.name and container.id.";
+description = "Print the data read and written for any FD. Combine this script with a filter to restrict what it shows. This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents  [Write], and Red represents [Read] for all data except when the -pc or -pcontainer argument is used. If used the container.name and container.id will be represented as: Green [host], and Cyan [container]) Container information will contain '[]' around container.name and container.id.";
 short_description = "Print the data read and written by processes.";
 category = "I/O";
 
