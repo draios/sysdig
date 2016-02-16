@@ -58,7 +58,7 @@ sysdig filters are specified at the end of the command line. The simplest filter
 > $ sysdig proc.name=cat
 
 The list of available fields can be obtained with 'sysdig -l'.
-Filter expressions can use one of these comparison operators: _=_, _!=_, _<_, _<=_, _>_, _>=_, _contains_, _in_ and _exists_. e.g.
+Filter expressions can use one of these comparison operators: _=_, _!=_, _<_, _<=_, _>_, _>=_, _contains_, _icontains_, _in_ and _exists_. e.g.
 > $ sysdig fd.name contains /etc
 > $ sysdig "evt.type in ( 'select', 'poll' )"
 > $ sysdig proc.name exists
