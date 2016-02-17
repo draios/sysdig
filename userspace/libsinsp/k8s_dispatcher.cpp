@@ -170,7 +170,6 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 
 	if(data.m_reason == COMPONENT_ADDED)
 	{
-		std::vector<std::string> addresses = k8s_component::extract_nodes_addresses(root["status"]);
 		if(m_state.has(m_state.get_nodes(), data.m_uid))
 		{
 			std::ostringstream os;
@@ -178,13 +177,18 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
 		k8s_node_t& node = m_state.get_component<k8s_nodes, k8s_node_t>(m_state.get_nodes(), data.m_name, data.m_uid);
-		if(addresses.size() > 0)
-		{
-			node.set_host_ips(std::move(addresses));
-		}
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
+			const Json::Value& status = object["status"];
+			if(!status.isNull())
+			{
+				k8s_node_t::host_ip_list addresses = k8s_node_t::extract_addresses(status);
+				if(addresses.size() > 0)
+				{
+					node.set_host_ips(std::move(addresses));
+				}
+			}
 			Json::Value metadata = object["metadata"];
 			if(!metadata.isNull())
 			{
@@ -198,7 +202,6 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		std::vector<std::string> addresses = k8s_component::extract_nodes_addresses(root["status"]);
 		if(!m_state.has(m_state.get_nodes(), data.m_uid))
 		{
 			std::ostringstream os;
@@ -207,14 +210,19 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 			return;
 		}
 		k8s_node_t& node = m_state.get_component<k8s_nodes, k8s_node_t>(m_state.get_nodes(), data.m_name, data.m_uid);
-		if(addresses.size() > 0)
-		{
-			node.add_host_ips(std::move(addresses));
-		}
 		Json::Value object = root["object"];
 		if(!object.isNull())
 		{
-			Json::Value metadata = object["metadata"];
+			const Json::Value& status = object["status"];
+			if(!status.isNull())
+			{
+				k8s_node_t::host_ip_list addresses = k8s_node_t::extract_addresses(status);
+				if(addresses.size() > 0)
+				{
+					node.set_host_ips(std::move(addresses));
+				}
+			}
+			const Json::Value& metadata = object["metadata"];
 			if(!metadata.isNull())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
@@ -251,10 +259,10 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
 		k8s_ns_t& ns = m_state.get_component<k8s_namespaces, k8s_ns_t>(m_state.get_namespaces(), data.m_name, data.m_uid);
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
-			Json::Value metadata = object["metadata"];
+			const Json::Value& metadata = object["metadata"];
 			if(!metadata.isNull())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
@@ -270,15 +278,15 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 		if(!m_state.has(m_state.get_namespaces(), data.m_uid))
 		{
 			std::ostringstream os;
-			os << "MODIFIED message received for non-existing node [" << data.m_uid << "], giving up.";
+			os << "MODIFIED message received for non-existing namespace [" << data.m_uid << "], giving up.";
 			g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 			return;
 		}
 		k8s_ns_t& ns = m_state.get_component<k8s_namespaces, k8s_ns_t>(m_state.get_namespaces(), data.m_name, data.m_uid);
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
-			Json::Value metadata = object["metadata"];
+			const Json::Value& metadata = object["metadata"];
 			if(!metadata.isNull())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
@@ -308,7 +316,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 
 	if(data.m_reason == COMPONENT_ADDED)
 	{
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
 			if(m_state.has(m_state.get_pods(), data.m_uid))
@@ -324,7 +332,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
 			if(!m_state.has(m_state.get_pods(), data.m_uid))
@@ -373,7 +381,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		}
 		k8s_rc_t& rc = m_state.get_component<k8s_controllers, k8s_rc_t>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
 			handle_labels(rc, object["metadata"], "labels");
@@ -390,7 +398,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 			return;
 		}
 		k8s_rc_t& rc = m_state.get_component<k8s_controllers, k8s_rc_t>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
 			handle_labels(rc, object["metadata"], "labels");
@@ -416,7 +424,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 
 	if(data.m_reason == COMPONENT_ADDED)
 	{
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
 			if(m_state.has(m_state.get_services(), data.m_uid))
@@ -432,7 +440,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		Json::Value object = root["object"];
+		const Json::Value& object = root["object"];
 		if(!object.isNull())
 		{
 			if(!m_state.has(m_state.get_services(), data.m_uid))

@@ -11,6 +11,7 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include <vector>
+#include <unordered_set>
 
 typedef std::pair<std::string, std::string> k8s_pair_t;
 typedef std::vector<k8s_pair_t>             k8s_pair_list;
@@ -142,8 +143,6 @@ public:
 
 	void emplace_selector(k8s_pair_t&& selector);
 
-	static std::vector<std::string> extract_nodes_addresses(const Json::Value& status);
-
 	// extracts labels or selectors
 	static k8s_pair_list extract_object(const Json::Value& object, const std::string& name);
 
@@ -196,7 +195,7 @@ public:
 class k8s_node_t : public k8s_component
 {
 public:
-	typedef std::vector<std::string> host_ip_list;
+	typedef std::unordered_set<std::string> host_ip_list;
 
 	k8s_node_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
@@ -206,9 +205,9 @@ public:
 
 	void add_host_ips(host_ip_list&& host_ips);
 
-	void push_host_ip(const std::string& host_ip);
-
 	void emplace_host_ip(std::string&& host_ip);
+
+	static host_ip_list extract_addresses(const Json::Value& status);
 
 private:
 	host_ip_list m_host_ips;
@@ -520,17 +519,12 @@ inline void k8s_node_t::set_host_ips(host_ip_list&& host_ips)
 
 inline void k8s_node_t::add_host_ips(host_ip_list&& host_ips)
 {
-	m_host_ips.insert(m_host_ips.end(), host_ips.begin(), host_ips.end());
-}
-
-inline void k8s_node_t::push_host_ip(const std::string& host_ip)
-{
-	m_host_ips.push_back(host_ip);
+	m_host_ips.insert(host_ips.begin(), host_ips.end());
 }
 
 inline void k8s_node_t::emplace_host_ip(std::string&& host_ip)
 {
-	m_host_ips.emplace_back(std::move(host_ip));
+	m_host_ips.emplace(std::move(host_ip));
 }
 
 

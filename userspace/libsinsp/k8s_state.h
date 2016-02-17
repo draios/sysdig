@@ -447,25 +447,40 @@ inline void k8s_state_t::emplace_service(k8s_service_t&& service)
 // general
 inline void k8s_state_t::set_last_pod_node_name(const std::string& name)
 {
-	m_pods.back().set_node_name(name);
+	if(m_pods.size())
+	{
+		m_pods.back().set_node_name(name);
+	}
 }
 
 inline void k8s_state_t::set_last_pod_host_ip(const std::string& host_ip)
 {
-	m_pods.back().set_host_ip(host_ip);
+	if(m_pods.size())
+	{
+		m_pods.back().set_host_ip(host_ip);
+	}
 }
 
 inline void k8s_state_t::set_last_pod_internal_ip(const std::string& internal_ip)
 {
-	m_pods.back().set_internal_ip(internal_ip);
+	if(m_pods.size())
+	{
+		m_pods.back().set_internal_ip(internal_ip);
+	}
 }
 
 inline void k8s_state_t::add_last_node_ip(std::string&& ip)
 {
-	m_nodes.back().emplace_host_ip(std::move(ip));
+	if(m_nodes.size())
+	{
+		m_nodes.back().emplace_host_ip(std::move(ip));
+	}
 }
 
 inline void k8s_state_t::add_last_pod_container_id(std::string&& container_id)
 {
-	m_pods.back().emplace_container_id(std::move(container_id));
+	if(m_pods.size())
+	{
+		m_pods.back().emplace_container_id(std::move(container_id));
+	}
 }
