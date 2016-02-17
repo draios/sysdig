@@ -1105,18 +1105,7 @@ void sinsp_chisel::load(string cmdstr)
 		}
 	}
 
-	//
-	// Bring the file into a string
-	//
-	string docstr((istreambuf_iterator<char>(is)),
-		istreambuf_iterator<char>());
-
 #ifdef HAS_LUA_CHISELS
-	//
-	// Rewind the stream
-	//
-	is.seekg(0);
-
 	//
 	// Load the file
 	//
