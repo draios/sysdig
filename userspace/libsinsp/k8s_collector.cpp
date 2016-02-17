@@ -69,12 +69,10 @@ void k8s_collector::remove(socket_map_t::iterator it)
 void k8s_collector::remove_all()
 {
 	K8S_LOCK_GUARD_MUTEX;
-
 	clear();
-	for (socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end();)
-	{
-		remove(it++);
-	}
+	m_sockets.clear();
+	m_nfds = 0;
+	m_subscription_count = 0;
 }
 
 bool k8s_collector::is_active() const
