@@ -376,7 +376,7 @@ function debian_build {
 		fi
 		return
 	else
-		KERNEL_RELEASE=$(echo ${DEB} | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+"| head -1)
+		KERNEL_RELEASE=$(echo ${DEB} | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+(-[0-9]+)?"| head -1)
 		KERNEL_MAJOR=$(echo ${KERNEL_RELEASE} | grep -E -o "[0-9]{1}\.[0-9]+")
 		PACKAGE=$(echo ${DEB} | grep -E -o "(common_[0-9]{1}\.[0-9]+.*amd64|amd64_[0-9]{1}\.[0-9]+.*amd64)" | sed -E 's/(common_|amd64_|_amd64)//g')
 
@@ -402,8 +402,9 @@ function debian_build {
 	NUM_DEB=$(ls linux-*.deb -1| grep -v kbuild | wc -l)
 
 	if [[ ${NUM_DEB} -eq 3 ]]; then
-
-		KBUILD_PACKAGE=$(ls -t ${BASEDIR}/common-dependencies/debian/kbuild | grep ${KERNEL_MAJOR}| head -1)
+		set +e
+			KBUILD_PACKAGE=$(ls -t ${BASEDIR}/common-dependencies/debian/kbuild | grep ${KERNEL_MAJOR}| head -1)
+		set -e
 		if [[ ! -z ${KBUILD_PACKAGE} ]]; then
 			cp ${BASEDIR}/common-dependencies/debian/kbuild/${KBUILD_PACKAGE} .
 			dpkg -x ${KBUILD_PACKAGE} ./
