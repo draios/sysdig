@@ -35,6 +35,8 @@ add_library(sinsp STATIC
 	k8s_event_data.cpp
 	k8s_http.cpp
 	k8s_net.cpp
+	lua_parser.cpp
+	lua_parser_api.cpp
 	marathon_component.cpp
 	marathon_http.cpp
 	memmem.cpp
