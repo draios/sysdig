@@ -1479,12 +1479,13 @@ ppm_cmp_operator sinsp_filter::next_comparison_operator()
 	}
 }
 
-void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
+void sinsp_filter::parse_check()
 {
 	uint32_t startpos = m_scanpos;
 	vector<char> operand1 = next_operand(true, false);
 	string str_operand1 = string((char *)&operand1[0]);
 	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(str_operand1, m_inspector, true);
+	boolop op = m_last_boolop;
 
 	if(chk == NULL)
 	{
@@ -1558,12 +1559,6 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 			newchk->m_cmpop = CO_EQ;
 			newchk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
-			//
-			// We pushed another expression before
-			// so 'parent_expr' still referers to
-			// the old one, this is the new nested
-			// level for the 'or' sequence
-			//
 			m_curexpr->add_check(newchk);
 
 			next();
@@ -1612,7 +1607,7 @@ void sinsp_filter::parse_check(sinsp_filter_expression* parent_expr, boolop op)
 			chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 		}
 
-		parent_expr->add_check(chk);
+		m_curexpr->add_check(chk);
 	}
 }
 
@@ -1736,7 +1731,7 @@ void sinsp_filter::compile(const string& fltstr)
 		default:
 			if(m_state == ST_NEED_EXPRESSION)
 			{
-				parse_check(m_curexpr, m_last_boolop);
+				parse_check();
 
 				m_state = ST_EXPRESSION_DONE;
 			}

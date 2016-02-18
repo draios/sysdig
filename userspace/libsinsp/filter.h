@@ -77,7 +77,7 @@ private:
 
 	vector<char> next_operand(bool expecting_first_operand, bool in_clause);
 	ppm_cmp_operator next_comparison_operator();
-	void parse_check(sinsp_filter_expression* parent_expr, boolop op);
+	void parse_check();
 	void push_expression(boolop op);
 	void pop_expression();
 
