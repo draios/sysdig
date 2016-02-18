@@ -185,6 +185,8 @@ void chiselinfo::init(string filterstr, string formatterstr)
 
 void chiselinfo::set_filter(string filterstr)
 {
+
+	sinsp_filter_compiler compiler(m_inspector, filterstr);
 	if(m_filter)
 	{
 		delete m_filter;
@@ -193,7 +195,7 @@ void chiselinfo::set_filter(string filterstr)
 
 	if(filterstr != "")
 	{
-		m_filter = new sinsp_filter(m_inspector, filterstr);
+		m_filter = compiler.compile();
 	}
 }
 

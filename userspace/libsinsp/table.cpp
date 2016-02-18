@@ -152,7 +152,8 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	//////////////////////////////////////////////////////////////////////////////////////
 	if(filter != "")
 	{
-		m_filter = new sinsp_filter(m_inspector, filter);
+		sinsp_filter_compiler compiler(m_inspector, filter);
+		m_filter = compiler.compile();
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////

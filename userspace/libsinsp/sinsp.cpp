@@ -1290,7 +1290,8 @@ void sinsp::set_filter(const string& filter)
 		throw sinsp_exception("filter can only be set once");
 	}
 
-	m_filter = new sinsp_filter(this, filter);
+	sinsp_filter_compiler compiler(this, filter);
+	m_filter = compiler.compile();
 	m_filterstring = filter;
 }
 

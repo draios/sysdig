@@ -379,7 +379,8 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 					{
 						try
 						{
-							sinsp_filter df(inspector, testflt);
+							sinsp_filter_compiler compiler(inspector, testflt);
+							compiler.compile();
 						}
 						catch(...)
 						{
@@ -1180,7 +1181,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			if(is_filter_display)
 			{
-				display_filter = new sinsp_filter(inspector, filter);
+				sinsp_filter_compiler compiler(inspector, filter);
+				display_filter = compiler.compile();
 			}
 #else
 			fprintf(stderr, "filtering not compiled.\n");

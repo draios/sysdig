@@ -1813,11 +1813,12 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			{
 				if(*str != "")
 				{
+					sinsp_filter_compiler compiler(m_inspector, *str);
 					sinsp_filter* f;
 
 					try
 					{
-						f = new sinsp_filter(m_inspector, *str);
+						f = compiler.compile();
 					}
 					catch(sinsp_exception e)
 					{

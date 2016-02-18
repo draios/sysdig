@@ -21,6 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_FILTERING
 
 class sinsp_filter_expression;
+class sinsp_filter_check;
 
 enum boolop
 {
@@ -38,7 +39,7 @@ enum boolop
  */
 
 /*!
-  \brief This is the class that compiles and runs sysdig-type filters.
+  \brief This is the class that runs sysdig-type filters.
 */
 class SINSP_PUBLIC sinsp_filter
 {
@@ -48,12 +49,8 @@ public:
 
 	  \param inspector Pointer to the inspector instance that will generate the
 	   events to be filtered.
-	  \param fltstr the filter string to compile.
-	  \param ttable_only for internal use only.
-
-	 \note Throws a sinsp_exception if the filter syntax is not valid.
 	*/
-	sinsp_filter(sinsp* inspector, const string& fltstr, bool ttable_only=false);
+	sinsp_filter(sinsp* inspector);
 
 	~sinsp_filter();
 
@@ -64,6 +61,45 @@ public:
 	  \return true if the event is accepted by the filter, false if it's rejected.
 	*/
 	bool run(sinsp_evt *evt);
+	void push_expression(boolop op);
+	void pop_expression();
+	void add_check(sinsp_filter_check* chk);
+
+private:
+
+	void parse_check(sinsp_filter_expression* parent_expr, boolop op);
+
+
+	sinsp* m_inspector;
+
+	sinsp_filter_expression* m_curexpr;
+	sinsp_filter_expression* m_filter;
+
+	friend class sinsp_evt_formatter;
+};
+
+
+/*!
+  \brief This is the class that compiles sysdig-type filters.
+*/
+class SINSP_PUBLIC sinsp_filter_compiler
+{
+public:
+	/*!
+	  \brief Constructs the compiler.
+
+	  \param inspector Pointer to the inspector instance that will generate the
+	   events to be filtered.
+	  \param fltstr the filter string to compile.
+	  \param ttable_only for internal use only.
+
+	 \note Throws a sinsp_exception if the filter syntax is not valid.
+	*/
+	sinsp_filter_compiler(sinsp* inspector/* xxx needed? */, const string& fltstr, bool ttable_only=false);
+
+	~sinsp_filter_compiler();
+
+	sinsp_filter* compile();
 
 private:
 	enum state
@@ -72,16 +108,14 @@ private:
 		ST_NEED_EXPRESSION,
 	};
 
+	sinsp_filter* compile_();
+
 	char next();
 	bool compare_no_consume(const string& str);
 
 	vector<char> next_operand(bool expecting_first_operand, bool in_clause);
 	ppm_cmp_operator next_comparison_operator();
 	void parse_check();
-	void push_expression(boolop op);
-	void pop_expression();
-
-	void compile(const string& fltstr);
 
 	static bool isblank(char c);
 	static bool is_special_char(char c);
@@ -94,11 +128,10 @@ private:
 	int32_t m_scanpos;
 	int32_t m_scansize;
 	state m_state;
-	sinsp_filter_expression* m_curexpr;
 	boolop m_last_boolop;
 	int32_t m_nest_level;
 
-	sinsp_filter_expression* m_filter;
+	sinsp_filter* m_filter;
 
 	friend class sinsp_evt_formatter;
 };
