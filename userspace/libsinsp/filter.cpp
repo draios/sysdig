@@ -1143,32 +1143,12 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter::sinsp_filter(sinsp* inspector, const string& fltstr, bool ttable_only)
+sinsp_filter::sinsp_filter(sinsp* inspector)
 {
 	m_inspector = inspector;
-	m_ttable_only = ttable_only;
-	m_scanpos = -1;
-	m_scansize = 0;
-	m_state = ST_NEED_EXPRESSION;
 	m_filter = new sinsp_filter_expression();
 	m_curexpr = m_filter;
-	m_last_boolop = BO_NONE;
-	m_nest_level = 0;
 
-	try
-	{
-		compile(fltstr);
-	}
-	catch(sinsp_exception& e)
-	{
-		delete m_filter;
-		throw e;
-	}
-	catch(...)
-	{
-		delete m_filter;
-		throw sinsp_exception("error parsing the filter string");
-	}
 }
 
 sinsp_filter::~sinsp_filter()
@@ -1179,7 +1159,57 @@ sinsp_filter::~sinsp_filter()
 	}
 }
 
-bool sinsp_filter::isblank(char c)
+void sinsp_filter::push_expression(boolop op)
+{
+	sinsp_filter_expression* newexpr = new sinsp_filter_expression();
+	newexpr->m_boolop = op;
+	newexpr->m_parent = m_curexpr;
+
+	m_curexpr->m_checks.push_back((sinsp_filter_check*)newexpr);
+	m_curexpr = newexpr;
+}
+
+void sinsp_filter::pop_expression()
+{
+	ASSERT(m_curexpr->m_parent != NULL);
+
+	m_curexpr = m_curexpr->m_parent;
+}
+
+bool sinsp_filter::run(sinsp_evt *evt)
+{
+	//	printf("m_filter: %p", (void*) m_filter);
+	//	ASSERT(m_filter != NULL);
+	return m_filter->compare(evt);
+}
+
+void sinsp_filter::add_check(sinsp_filter_check* chk)
+{
+	m_curexpr->add_check(chk);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_compiler implementation
+///////////////////////////////////////////////////////////////////////////////
+sinsp_filter_compiler::sinsp_filter_compiler(sinsp* inspector, const string& fltstr, bool ttable_only)
+{
+	m_inspector = inspector;
+	m_ttable_only = ttable_only;
+	m_scanpos = -1;
+	m_scansize = 0;
+	m_state = ST_NEED_EXPRESSION;
+	m_filter = new sinsp_filter(m_inspector);
+	m_last_boolop = BO_NONE;
+	m_nest_level = 0;
+	m_fltstr = fltstr;
+
+}
+
+sinsp_filter_compiler::~sinsp_filter_compiler()
+{
+}
+
+bool sinsp_filter_compiler::isblank(char c)
 {
 	if(c == ' ' || c == '\t' || c == '\n' || c == '\r')
 	{
@@ -1191,7 +1221,7 @@ bool sinsp_filter::isblank(char c)
 	}
 }
 
-bool sinsp_filter::is_special_char(char c)
+bool sinsp_filter_compiler::is_special_char(char c)
 {
 	if(c == '(' || c == ')' || c == '!' || c == '=' || c == '<' || c == '>')
 	{
@@ -1201,7 +1231,7 @@ bool sinsp_filter::is_special_char(char c)
 	return false;
 }
 
-bool sinsp_filter::is_bracket(char c)
+bool sinsp_filter_compiler::is_bracket(char c)
 {
 	if(c == '(' || c == ')')
 	{
@@ -1211,7 +1241,7 @@ bool sinsp_filter::is_bracket(char c)
 	return false;
 }
 
-char sinsp_filter::next()
+char sinsp_filter_compiler::next()
 {
 	while(true)
 	{
@@ -1229,7 +1259,7 @@ char sinsp_filter::next()
 	}
 }
 
-vector<char> sinsp_filter::next_operand(bool expecting_first_operand, bool in_clause)
+vector<char> sinsp_filter_compiler::next_operand(bool expecting_first_operand, bool in_clause)
 {
 	vector<char> res;
 	bool is_quoted = false;
@@ -1383,7 +1413,7 @@ vector<char> sinsp_filter::next_operand(bool expecting_first_operand, bool in_cl
 	return res;
 }
 
-bool sinsp_filter::compare_no_consume(const string& str)
+bool sinsp_filter_compiler::compare_no_consume(const string& str)
 {
 	//
 	// If the rest of the filter cannot contain the operand we may return
@@ -1406,7 +1436,7 @@ bool sinsp_filter::compare_no_consume(const string& str)
 	}
 }
 
-ppm_cmp_operator sinsp_filter::next_comparison_operator()
+ppm_cmp_operator sinsp_filter_compiler::next_comparison_operator()
 {
 	int32_t start;
 
@@ -1479,7 +1509,7 @@ ppm_cmp_operator sinsp_filter::next_comparison_operator()
 	}
 }
 
-void sinsp_filter::parse_check()
+void sinsp_filter_compiler::parse_check()
 {
 	uint32_t startpos = m_scanpos;
 	vector<char> operand1 = next_operand(true, false);
@@ -1517,7 +1547,9 @@ void sinsp_filter::parse_check()
 		// Separate the 'or's from the
 		// rest of the conditions
 		//
-		push_expression(op);
+		m_filter->push_expression(op);
+		m_last_boolop = BO_NONE;
+		m_nest_level++;
 
 		//
 		// Skip spaces
@@ -1559,7 +1591,7 @@ void sinsp_filter::parse_check()
 			newchk->m_cmpop = CO_EQ;
 			newchk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
-			m_curexpr->add_check(newchk);
+			m_filter->add_check(newchk);
 
 			next();
 
@@ -1585,7 +1617,8 @@ void sinsp_filter::parse_check()
 		//
 		// Come back to the rest of the filter
 		//
-		pop_expression();
+		m_filter->pop_expression();
+		m_nest_level--;
 	}
 	else
 	{
@@ -1607,33 +1640,30 @@ void sinsp_filter::parse_check()
 			chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 		}
 
-		m_curexpr->add_check(chk);
+		m_filter->add_check(chk);
 	}
 }
 
-void sinsp_filter::push_expression(boolop op)
+sinsp_filter* sinsp_filter_compiler::compile()
 {
-	sinsp_filter_expression* newexpr = new sinsp_filter_expression();
-	newexpr->m_boolop = op;
-	newexpr->m_parent = m_curexpr;
-	m_last_boolop = BO_NONE;
-
-	m_curexpr->m_checks.push_back((sinsp_filter_check*)newexpr);
-	m_curexpr = newexpr;
-	m_nest_level++;
+	try
+	{
+		return compile_();
+	}
+	catch(sinsp_exception& e)
+	{
+		delete m_filter;
+		throw e;
+	}
+	catch(...)
+	{
+		delete m_filter;
+		throw sinsp_exception("error parsing the filter string");
+	}
 }
 
-void sinsp_filter::pop_expression()
+sinsp_filter* sinsp_filter_compiler::compile_()
 {
-	ASSERT(m_curexpr->m_parent != NULL);
-
-	m_curexpr = m_curexpr->m_parent;
-	m_nest_level--;
-}
-
-void sinsp_filter::compile(const string& fltstr)
-{
-	m_fltstr = fltstr;
 	m_scansize = (uint32_t)m_fltstr.size();
 
 	while(true)
@@ -1659,7 +1689,7 @@ void sinsp_filter::compile(const string& fltstr)
 			//
 			// Good filter
 			//
-			return;
+			return m_filter;
 
 			break;
 		case '(':
@@ -1668,11 +1698,14 @@ void sinsp_filter::compile(const string& fltstr)
 				throw sinsp_exception("unexpected '(' after " + m_fltstr.substr(0, m_scanpos));
 			}
 
-			push_expression(m_last_boolop);
+			m_filter->push_expression(m_last_boolop);
+			m_last_boolop = BO_NONE;
+			m_nest_level++;
 
 			break;
 		case ')':
-			pop_expression();
+			m_filter->pop_expression();
+			m_nest_level--;
 			break;
 		case 'o':
 			if(next() == 'r')
@@ -1744,11 +1777,7 @@ void sinsp_filter::compile(const string& fltstr)
 	}
 
 	vector<string> components = sinsp_split(m_fltstr, ' ');
-}
-
-bool sinsp_filter::run(sinsp_evt *evt)
-{
-	return m_filter->compare(evt);
+	return m_filter;
 }
 
 #endif // HAS_FILTERING
