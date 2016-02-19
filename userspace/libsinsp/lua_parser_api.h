@@ -32,5 +32,11 @@ public:
 
 	// filter.bool_op(op)
 	static int bool_op(lua_State *ls);
+
+	// filter.nest()
+	static int nest(lua_State *ls);
+
+	// filter.unnest()
+	static int unnest(lua_State *ls);
 };
 

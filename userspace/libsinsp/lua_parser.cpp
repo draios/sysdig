@@ -18,6 +18,8 @@ const static struct luaL_reg ll_filter [] =
 {
 	{"rel_expr", &lua_parser_cbacks::rel_expr},
 	{"bool_op", &lua_parser_cbacks::bool_op},
+	{"nest", &lua_parser_cbacks::nest},
+	{"unnest", &lua_parser_cbacks::unnest},
 	{NULL,NULL}
 };
 
@@ -28,10 +30,17 @@ lua_parser::lua_parser(sinsp* inspector, string filename)
 	m_ls = NULL;
 	m_lua_has_load_rules = false;
 	m_last_boolop = BO_NONE;
+	m_have_rel_expr = false;
+	m_nest_level = 0;
 
 	m_filter = new sinsp_filter(m_inspector);
 
 	load(filename);
+
+	if (m_nest_level != 0)
+	{
+		throw sinsp_exception("Error in configured filter: unbalanced nesting");
+	}
 }
 
 lua_parser::~lua_parser()
