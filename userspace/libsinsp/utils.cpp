@@ -1242,7 +1242,7 @@ bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t
 std::string get_json_string(const Json::Value& root, const std::string& name)
 {
 	std::string ret;
-	Json::Value json_val = root[name];
+	const Json::Value& json_val = root[name];
 	if(!json_val.isNull() && json_val.isString())
 	{
 		ret = json_val.asString();
@@ -1254,8 +1254,10 @@ std::string get_json_string(const Json::Value& root, const std::string& name)
 ///////////////////////////////////////////////////////////////////////////////
 // Curl helpers
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_curl::sinsp_curl(const std::string& uristr, const std::string& cert): m_curl(curl_easy_init()), m_uri(new uri(uristr)), m_cert(cert), m_timeout(10)
+sinsp_curl::sinsp_curl(const std::string& uristr, long timeout_ms, const std::string& cert):
+	m_curl(curl_easy_init()), m_uri(new uri(uristr)), m_cert(cert), m_timeout_ms(timeout_ms)
 {
+	check_error(curl_easy_setopt(m_curl, CURLOPT_FORBID_REUSE, 1L));
 	if(!m_curl || !m_uri)
 	{
 		throw sinsp_exception("Cannot initialize CURL.");
@@ -1281,8 +1283,8 @@ string sinsp_curl::get_data()
 bool sinsp_curl::get_data(std::ostream& os)
 {
 	CURLcode res = CURLE_OK;
-	curl_easy_setopt(m_curl, CURLOPT_URL, m_uri->to_string().c_str());
-	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L);
+	check_error(curl_easy_setopt(m_curl, CURLOPT_URL, m_uri->to_string().c_str()));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L));
 
 	if(m_uri->is_secure())
 	{
@@ -1302,10 +1304,12 @@ bool sinsp_curl::get_data(std::ostream& os)
 		}
 	}
 
-	curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
-	curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate");
-	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &sinsp_curl::write_data);
-	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os);
+	check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECTTIMEOUT, static_cast<int>(m_timeout_ms / 1000)));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1)); //Prevent "longjmp causes uninitialized stack frame" bug
+	check_error(curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate"));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &sinsp_curl::write_data));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os));
 
 	res = curl_easy_perform(m_curl);
 	if(res != CURLE_OK)
@@ -1317,7 +1321,7 @@ bool sinsp_curl::get_data(std::ostream& os)
 		// HTTP errors are not returned by curl API
 		// error will be in the response stream
 		long http_code = 0;
-		curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code);
+		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code));
 		if(http_code >= 400)
 		{
 			return false;
@@ -1325,16 +1329,6 @@ bool sinsp_curl::get_data(std::ostream& os)
 	}
 
 	return res == CURLE_OK;
-}
-
-void sinsp_curl::set_timeout(long seconds)
-{
-	m_timeout = seconds;
-}
-
-long sinsp_curl::get_timeout() const
-{
-	return m_timeout;
 }
 
 size_t sinsp_curl::write_data(void *ptr, size_t size, size_t nmemb, void *cb)
@@ -1359,4 +1353,27 @@ void sinsp_curl::check_error(unsigned ret)
 		throw sinsp_exception(os.str());
 	}
 }
+
+void sinsp_curl::set_timeout(long milliseconds)
+{
+	m_timeout_ms = milliseconds;
+}
+
+long sinsp_curl::get_timeout() const
+{
+	return m_timeout_ms;
+}
+
+void sinsp_curl::set_url(const std::string& url)
+{
+	ASSERT(m_uri);
+	*m_uri = url;
+}
+
+std::string sinsp_curl::get_url(bool show_creds) const
+{
+	ASSERT(m_uri);
+	return m_uri->to_string(show_creds);
+}
+
 #endif // __linux__

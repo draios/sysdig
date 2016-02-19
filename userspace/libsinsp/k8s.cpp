@@ -269,7 +269,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 				std::string nspace;
 				if(!ns.isNull())
 				{
-					nspace = std::move(ns.asString());
+					nspace = ns.asString();
 				}
 				m_state.add_common_single_value(component, metadata["name"].asString(), metadata["uid"].asString(), nspace);
 
@@ -318,8 +318,8 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 							component_kind = "Node";
 							component_name = nds.back().get_name();
 							component_uid = nds.back().get_uid();
-							std::vector<std::string> addresses = k8s_component::extract_nodes_addresses(status);
-							for (auto&& address : addresses)
+							k8s_node_t::host_ip_list addresses = k8s_node_t::extract_addresses(status);
+							for(std::string address : addresses)
 							{
 								m_state.add_last_node_ip(std::move(address));
 							}

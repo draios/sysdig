@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Trace network I/O slower than a threshold, or all network I/O. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)"
+description = "Trace network I/O slower than a threshold, or all network I/O. This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)"
 short_description = "Trace slow network I/0"
 category = "Performance"
 

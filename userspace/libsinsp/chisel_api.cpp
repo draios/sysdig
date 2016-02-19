@@ -79,6 +79,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 		case PT_INT64:
 		case PT_ERRNO:
 		case PT_PID:
+		case PT_FD:
 			lua_pushnumber(ls, (double)*(int64_t*)rawval);
 			return 1;
 		case PT_L4PROTO: // This can be resolved in the future
@@ -626,6 +627,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	threadinfo_map_iterator_t it;
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	uint32_t j;
+	sinsp_filter_compiler* compiler = NULL;
 	sinsp_filter* filter = NULL;
 	sinsp_evt tevt;
 	scap_evt tscapevt;
@@ -653,7 +655,8 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 
 		try
 		{
-			filter = new sinsp_filter(ch->m_inspector, filterstr, true);
+			compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr, true);
+			filter = compiler->compile();
 		}
 		catch(sinsp_exception& e)
 		{
@@ -1047,6 +1050,10 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		else if(it->second.m_type == CT_MESOS)
 		{
 			lua_pushstring(ls, "mesos");
+		}
+		else if(it->second.m_type == CT_RKT)
+		{
+			lua_pushstring(ls, "rkt");
 		}
 		else
 		{

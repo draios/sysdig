@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 TOP_NUMBER = 30
 
 -- Chisel description
-description = "Show the top " .. TOP_NUMBER .. " system calls in terms of time spent in each call. You can use filters to restrict this to a specific process, thread or file. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
+description = "Show the top " .. TOP_NUMBER .. " system calls in terms of time spent in each call. You can use filters to restrict this to a specific process, thread or file. This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top system calls by time"
 category = "Performance"
 

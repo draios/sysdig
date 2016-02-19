@@ -218,37 +218,6 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 	}
 }
 
-std::vector<std::string> k8s_component::extract_nodes_addresses(const Json::Value& status)
-{
-	std::vector<std::string> address_list;
-	if(!status.isNull())
-	{
-		Json::Value addresses = status["addresses"];
-		if(!addresses.isNull() && addresses.isArray())
-		{
-			for (auto& address : addresses)
-			{
-				if(address.isObject())
-				{
-					Json::Value::Members addr_names_list = address.getMemberNames();
-					for (auto& entry : addr_names_list)
-					{
-						if(entry == "address")
-						{
-							Json::Value ip = address[entry];
-							if(!ip.isNull())
-							{
-								address_list.emplace_back(std::move(ip.asString()));
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return address_list;
-}
-
 void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_t& service, const k8s_pods& pods)
 {
 	if(!spec.isNull())
@@ -483,6 +452,37 @@ k8s_ns_t::k8s_ns_t(const std::string& name, const std::string& uid, const std::s
 k8s_node_t::k8s_node_t(const std::string& name, const std::string& uid, const std::string& ns) :
 	k8s_component(name, uid, ns)
 {
+}
+
+k8s_node_t::host_ip_list k8s_node_t::extract_addresses(const Json::Value& status)
+{
+	host_ip_list address_list;
+	if(!status.isNull())
+	{
+		Json::Value addresses = status["addresses"];
+		if(!addresses.isNull() && addresses.isArray())
+		{
+			for (auto& address : addresses)
+			{
+				if(address.isObject())
+				{
+					Json::Value::Members addr_names_list = address.getMemberNames();
+					for (auto& entry : addr_names_list)
+					{
+						if(entry == "address")
+						{
+							const Json::Value& ip = address[entry];
+							if(!ip.isNull())
+							{
+								address_list.emplace(ip.asString());
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return address_list;
 }
 
 

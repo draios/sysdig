@@ -26,7 +26,7 @@ public:
 
 	~k8s_http();
 
-	bool get_all_data(std::ostream& os);
+	bool get_all_data(std::ostream& os, long timeout_ms = 5000L);
 
 	int get_watch_socket(long timeout_ms);
 

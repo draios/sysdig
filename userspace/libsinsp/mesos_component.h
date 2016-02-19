@@ -128,6 +128,7 @@ public:
 		return m_slave_id;
 	}
 
+	static bool is_task_running(const Json::Value& task);
 	static ptr_t make_task(const Json::Value& task);
 	static void add_labels(ptr_t task, const Json::Value& t_val);
 
@@ -162,6 +163,8 @@ public:
 	const task_map& get_tasks() const;
 
 	task_map& get_tasks();
+
+	static bool is_framework_active(const Json::Value& framework);
 
 private:
 	task_map m_tasks;

@@ -105,13 +105,13 @@ size_t k8s_http::write_data(void *ptr, size_t size, size_t nmemb, void *cb)
 	return size * nmemb;
 }
 
-bool k8s_http::get_all_data(std::ostream& os)
+bool k8s_http::get_all_data(std::ostream& os, long timeout_ms)
 {
 	CURLcode res = CURLE_OK;
 
-	g_logger.log(std::string("Retrieving all K8S data from ") + m_url, sinsp_logger::SEV_DEBUG);
-	curl_easy_setopt(m_curl, CURLOPT_URL, m_url.c_str());
-	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L);
+	g_logger.log(std::string("Retrieving all K8S data from ") + uri(m_url).to_string(false), sinsp_logger::SEV_DEBUG);
+	check_error(curl_easy_setopt(m_curl, CURLOPT_URL, m_url.c_str()));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L));
 	
 	if(m_protocol == "https")
 	{
@@ -132,10 +132,11 @@ bool k8s_http::get_all_data(std::ostream& os)
 		}
 	}
 
-	curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
-	curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate");
-	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &k8s_http::write_data);
-	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os);
+	check_error(curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1)); //Prevent "longjmp causes uninitialized stack frame" bug
+	check_error(curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate"));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_TIMEOUT_MS, timeout_ms));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &k8s_http::write_data));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os));
 
 	res = curl_easy_perform(m_curl);
 	if(res != CURLE_OK)

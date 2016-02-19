@@ -77,15 +77,7 @@ public:
 	typedef std::unordered_map<std::string, std::shared_ptr<marathon_app>> app_map_t;
 	typedef std::map<std::string, std::shared_ptr<marathon_group>> group_map_t;
 
-	marathon_group(const std::string& id);
-
-	marathon_group(const marathon_group& other);
-
-	marathon_group(marathon_group&& other);
-
-	marathon_group& operator=(const marathon_group& other);
-
-	marathon_group& operator=(const marathon_group&& other);
+	marathon_group(const std::string& id, const std::string& framework_id);
 
 	app_ptr_t get_app(const std::string& id);
 
@@ -103,6 +95,9 @@ public:
 
 	void print() const;
 
+	const std::string& get_framework_id() const;
+	void set_framework_id(const std::string& id);
+
 private:
 
 	template <typename M, typename P>
@@ -119,6 +114,7 @@ private:
 
 	app_map_t   m_apps;
 	group_map_t m_groups;
+	std::string m_framework_id;
 };
 
 //
@@ -189,6 +185,16 @@ inline void marathon_group::add_or_replace_group(std::shared_ptr<marathon_group>
 inline void marathon_group::add_or_replace_app(std::shared_ptr<marathon_app> app)
 {
 	add_or_replace_component(m_apps, app);
+}
+
+inline const std::string& marathon_group::get_framework_id() const
+{
+	return m_framework_id;
+}
+
+inline void marathon_group::set_framework_id(const std::string& id)
+{
+	m_framework_id = id;
 }
 
 //
