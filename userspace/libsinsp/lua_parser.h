@@ -20,6 +20,7 @@ public:
 	bool m_lua_has_load_rules;
 	lua_State* m_ls;
 	string m_filename;
+	boolop m_last_boolop;
 
 	friend class lua_parser_cbacks;
 };

@@ -16,7 +16,8 @@ extern "C" {
 
 const static struct luaL_reg ll_filter [] =
 {
-	{"make_filter_check", &lua_parser_cbacks::make_filter_check},
+	{"rel_expr", &lua_parser_cbacks::rel_expr},
+	{"bool_op", &lua_parser_cbacks::bool_op},
 	{NULL,NULL}
 };
 
@@ -26,6 +27,7 @@ lua_parser::lua_parser(sinsp* inspector, string filename)
 
 	m_ls = NULL;
 	m_lua_has_load_rules = false;
+	m_last_boolop = BO_NONE;
 
 	m_filter = new sinsp_filter(m_inspector);
 
