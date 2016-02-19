@@ -150,7 +150,7 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_another(sinsp
 ///////////////////////////////////////////////////////////////////////////////
 // type-based comparison functions
 ///////////////////////////////////////////////////////////////////////////////
-bool flt_compare_uint64(ppm_cmp_operator op, uint64_t operand1, uint64_t operand2)
+bool flt_compare_uint64(cmpop op, uint64_t operand1, uint64_t operand2)
 {
 	switch(op)
 	{
@@ -172,7 +172,7 @@ bool flt_compare_uint64(ppm_cmp_operator op, uint64_t operand1, uint64_t operand
 	}
 }
 
-bool flt_compare_int64(ppm_cmp_operator op, int64_t operand1, int64_t operand2)
+bool flt_compare_int64(cmpop op, int64_t operand1, int64_t operand2)
 {
 	switch(op)
 	{
@@ -200,7 +200,7 @@ bool flt_compare_int64(ppm_cmp_operator op, int64_t operand1, int64_t operand2)
 	}
 }
 
-bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
+bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 {
 	switch(op)
 	{
@@ -231,7 +231,7 @@ bool flt_compare_string(ppm_cmp_operator op, char* operand1, char* operand2)
 	}
 }
 
-bool flt_compare_buffer(ppm_cmp_operator op, char* operand1, char* operand2, uint32_t op1_len, uint32_t op2_len)
+bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	switch(op)
 	{
@@ -256,7 +256,7 @@ bool flt_compare_buffer(ppm_cmp_operator op, char* operand1, char* operand2, uin
 	}
 }
 
-bool flt_compare_double(ppm_cmp_operator op, double operand1, double operand2)
+bool flt_compare_double(cmpop op, double operand1, double operand2)
 {
 	switch(op)
 	{
@@ -278,7 +278,7 @@ bool flt_compare_double(ppm_cmp_operator op, double operand1, double operand2)
 	}
 }
 
-bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
+bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	//
 	// sinsp_filter_check_*::compare
@@ -337,7 +337,7 @@ bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void*
 	}
 }
 
-bool flt_compare_avg(ppm_cmp_operator op, 
+bool flt_compare_avg(cmpop op, 
 					 ppm_param_type type, 
 					 void* operand1, 
 					 void* operand2, 
@@ -1436,7 +1436,7 @@ bool sinsp_filter_compiler::compare_no_consume(const string& str)
 	}
 }
 
-ppm_cmp_operator sinsp_filter_compiler::next_comparison_operator()
+cmpop sinsp_filter_compiler::next_comparison_operator()
 {
 	int32_t start;
 
@@ -1531,7 +1531,7 @@ void sinsp_filter_compiler::parse_check()
 		}
 	}
 
-	ppm_cmp_operator co = next_comparison_operator();
+	cmpop co = next_comparison_operator();
 
 	chk->m_boolop = op;
 	chk->m_cmpop = co;

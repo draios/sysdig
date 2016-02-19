@@ -1059,23 +1059,6 @@ enum ppm_event_flags {
 };
 
 /*
- * Operators to compare events
- */
-enum ppm_cmp_operator {
-	CO_NONE = 0,
-	CO_EQ = 1,
-	CO_NE = 2,
-	CO_LT = 3,
-	CO_LE = 4,
-	CO_GT = 5,
-	CO_GE = 6,
-	CO_CONTAINS = 7,
-	CO_IN = 8,
-	CO_EXISTS = 9,
-	CO_ICONTAINS = 10,
-};
-
-/*
  * types of event parameters
  */
 enum ppm_param_type {
