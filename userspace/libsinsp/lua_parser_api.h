@@ -27,7 +27,7 @@ extern "C" {
 class lua_parser_cbacks
 {
 public:
-	// filter.make_filter_check(field_name, value)
+	// filter.make_filter_check(field_name, cmpop, value)
 	static int make_filter_check(lua_State *ls);
 };
 
