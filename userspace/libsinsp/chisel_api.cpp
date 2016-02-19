@@ -627,6 +627,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	threadinfo_map_iterator_t it;
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	uint32_t j;
+	sinsp_filter_compiler* compiler = NULL;
 	sinsp_filter* filter = NULL;
 	sinsp_evt tevt;
 	scap_evt tscapevt;
@@ -654,7 +655,8 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 
 		try
 		{
-			filter = new sinsp_filter(ch->m_inspector, filterstr, true);
+			compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr, true);
+			filter = compiler->compile();
 		}
 		catch(sinsp_exception& e)
 		{

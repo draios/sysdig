@@ -332,6 +332,13 @@ public:
 	void set_filter(const string& filter);
 
 	/*!
+	  \brief Installs the given capture runtime filter object.
+
+	  \param filter the runtime filter object
+	*/
+	void set_filter(sinsp_filter* filter);
+
+	/*!
 	  \brief Return the filter set for this capture.
 
 	  \return the filter previously set with \ref set_filter(), or an empty 
