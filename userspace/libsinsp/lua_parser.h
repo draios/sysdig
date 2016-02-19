@@ -13,7 +13,7 @@ public:
 	lua_parser(sinsp* inspector, string filename);
 	~lua_parser();
 	void load(string cmdstr);
-	sinsp_filter_expression* m_filter;
+	sinsp_filter* m_filter;
 
  private:
 	sinsp* m_inspector;

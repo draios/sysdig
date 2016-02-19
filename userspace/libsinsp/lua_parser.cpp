@@ -27,7 +27,7 @@ lua_parser::lua_parser(sinsp* inspector, string filename)
 	m_ls = NULL;
 	m_lua_has_load_rules = false;
 
-	m_filter = new sinsp_filter_expression();
+	m_filter = new sinsp_filter(m_inspector);
 
 	load(filename);
 }
@@ -39,6 +39,7 @@ lua_parser::~lua_parser()
 		lua_close(m_ls);
 		m_ls = NULL;
 	}
+	delete m_filter;
 
 }
 
