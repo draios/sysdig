@@ -17,10 +17,14 @@ public:
 
  private:
 	sinsp* m_inspector;
-	bool m_lua_has_load_rules;
 	lua_State* m_ls;
+
+	bool m_lua_has_load_rules;
 	string m_filename;
+
 	boolop m_last_boolop;
+	bool m_have_rel_expr;
+	int32_t m_nest_level;
 
 	friend class lua_parser_cbacks;
 };

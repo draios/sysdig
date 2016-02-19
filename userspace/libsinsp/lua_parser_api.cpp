@@ -80,6 +80,46 @@ boolop string_to_boolop(const char* str)
 	}
 }
 
+int lua_parser_cbacks::nest(lua_State *ls)
+{
+	lua_getglobal(ls, "siparser");
+
+	lua_parser* parser = (lua_parser*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	if (parser->m_have_rel_expr && parser->m_last_boolop == BO_NONE)
+	{
+		string err = "filter.nest() called without a preceding call to filter.bool_op()";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception(err);
+	}
+
+	sinsp_filter* filter = parser->m_filter;
+
+	filter->push_expression(parser->m_last_boolop);
+	parser->m_nest_level++;
+
+	parser->m_last_boolop = BO_NONE;
+	parser->m_have_rel_expr = false;
+
+	return 0;
+}
+
+int lua_parser_cbacks::unnest(lua_State *ls)
+{
+	lua_getglobal(ls, "siparser");
+
+	lua_parser* parser = (lua_parser*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	sinsp_filter* filter = parser->m_filter;
+
+	filter->pop_expression();
+	parser->m_nest_level--;
+
+	return 0;
+}
+
 int lua_parser_cbacks::bool_op(lua_State *ls)
 {
 	lua_getglobal(ls, "siparser");
@@ -90,6 +130,19 @@ int lua_parser_cbacks::bool_op(lua_State *ls)
 	const char* opstr = luaL_checkstring(ls, 1);
 	boolop op = string_to_boolop(opstr);
 
+	if (!parser->m_have_rel_expr)
+	{
+		string err = "filter.bool_op() called without having called rel_expr() ";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception(err);
+	}
+
+	if (parser->m_last_boolop != BO_NONE)
+	{
+		string err = "filter.bool_op() called twice in a row";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception(err);
+	}
 	parser->m_last_boolop = op;
 	return 0;
 
@@ -102,6 +155,14 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 	lua_parser* parser = (lua_parser*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
+	if (parser->m_have_rel_expr && parser->m_last_boolop == BO_NONE)
+	{
+		string err = "filter.rel_expr() called twice in a row";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception(err);
+	}
+
+	parser->m_have_rel_expr = true;
 	sinsp* inspector = parser->m_inspector;
 	sinsp_filter* filter = parser->m_filter;
 
@@ -119,6 +180,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 	try
 	{
 		chk->m_boolop = parser->m_last_boolop;
+		parser->m_last_boolop = BO_NONE;
 
 		chk->parse_field_name(fld, true);
 
@@ -134,13 +196,11 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 	}
 	catch(sinsp_exception& e)
 	{
-		fprintf(stderr, "filter parsing error: %s\n\n", e.what());
+		fprintf(stderr, "Error in filter.rel_expr() %s\n\n", e.what());
 		throw e;
 	}
 
-	//	filter->push_expression(BO_NONE);
 	filter->add_check(chk);
-	//	filter->pop_expression();
 
 	return 0;
 }
