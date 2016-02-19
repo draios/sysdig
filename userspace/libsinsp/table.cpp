@@ -38,7 +38,7 @@ typedef struct table_row_cmp
 {
 	bool operator()(const sinsp_sample_row& src, const sinsp_sample_row& dst)
 	{
-		ppm_cmp_operator op;
+		cmpop op;
 
 		if(m_ascending)
 		{

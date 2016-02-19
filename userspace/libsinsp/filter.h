@@ -23,6 +23,23 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class sinsp_filter_expression;
 class sinsp_filter_check;
 
+/*
+ * Operators to compare events
+ */
+enum cmpop {
+	CO_NONE = 0,
+	CO_EQ = 1,
+	CO_NE = 2,
+	CO_LT = 3,
+	CO_LE = 4,
+	CO_GT = 5,
+	CO_GE = 6,
+	CO_CONTAINS = 7,
+	CO_IN = 8,
+	CO_EXISTS = 9,
+	CO_ICONTAINS = 10,
+};
+
 enum boolop
 {
 	BO_NONE = 0,
@@ -114,7 +131,7 @@ private:
 	bool compare_no_consume(const string& str);
 
 	vector<char> next_operand(bool expecting_first_operand, bool in_clause);
-	ppm_cmp_operator next_comparison_operator();
+	cmpop next_comparison_operator();
 	void parse_check();
 
 	static bool isblank(char c);
