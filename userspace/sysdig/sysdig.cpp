@@ -380,7 +380,8 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 						try
 						{
 							sinsp_filter_compiler compiler(inspector, testflt);
-							compiler.compile();
+							sinsp_filter* s = compiler.compile();
+							delete s;
 						}
 						catch(...)
 						{
