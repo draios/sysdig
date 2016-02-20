@@ -10,17 +10,16 @@ typedef struct lua_State lua_State;
 class lua_parser
 {
 public:
-	lua_parser(sinsp* inspector, string filename);
+	lua_parser(sinsp* inspector);
 	~lua_parser();
-	void load(string cmdstr);
-	sinsp_filter* m_filter;
+	sinsp_filter* get_filter();
+
+	lua_State* m_ls;
 
  private:
 	sinsp* m_inspector;
-	lua_State* m_ls;
 
-	bool m_lua_has_load_rules;
-	string m_filename;
+	sinsp_filter* m_filter;
 
 	boolop m_last_boolop;
 	bool m_have_rel_expr;
