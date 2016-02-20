@@ -112,6 +112,13 @@ int lua_parser_cbacks::unnest(lua_State *ls)
 	lua_parser* parser = (lua_parser*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
+	if (parser->m_nest_level < 1)
+	{
+		string err = "filter.unnest() called without being nested";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception(err);
+	}
+
 	sinsp_filter* filter = parser->m_filter;
 
 	filter->pop_expression();
