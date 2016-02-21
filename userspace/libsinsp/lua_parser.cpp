@@ -22,20 +22,16 @@ const static struct luaL_reg ll_filter [] =
 	{NULL,NULL}
 };
 
-lua_parser::lua_parser(sinsp* inspector)
+lua_parser::lua_parser(sinsp* inspector, lua_State *ls)
 {
 	m_inspector = inspector;
 
-	m_ls = NULL;
+	m_ls = ls;
 	m_have_rel_expr = false;
 	m_last_boolop = BO_NONE;
 	m_nest_level = 0;
 
 	m_filter = new sinsp_filter(m_inspector);
-
-	// Initialize Lua interpreter
-	m_ls = lua_open();
-	luaL_openlibs(m_ls);
 
 	// Register our c++ defined functions
 	luaL_openlib(m_ls, "filter", ll_filter, 0);
