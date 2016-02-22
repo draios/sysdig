@@ -1124,12 +1124,6 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 			case BO_AND:
 				res = res && chk->compare(evt);
 				break;
-			case BO_ORNOT:
-				res = res || !chk->compare(evt);
-				break;
-			case BO_ANDNOT:
-				res = res && !chk->compare(evt);
-				break;
 			default:
 				ASSERT(false);
 				break;

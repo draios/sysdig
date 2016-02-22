@@ -46,8 +46,6 @@ enum boolop
 	BO_NOT = 1,
 	BO_OR = 2,
 	BO_AND = 4,
-	BO_ORNOT = 3,
-	BO_ANDNOT = 5,
 };
 
 /** @defgroup filter Filtering events
