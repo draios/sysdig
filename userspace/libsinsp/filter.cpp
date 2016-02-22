@@ -1181,7 +1181,7 @@ void sinsp_filter::push_expression(boolop op)
 	newexpr->m_boolop = op;
 	newexpr->m_parent = m_curexpr;
 
-	m_curexpr->m_checks.push_back((sinsp_filter_check*)newexpr);
+	add_check((sinsp_filter_check*)newexpr);
 	m_curexpr = newexpr;
 }
 
