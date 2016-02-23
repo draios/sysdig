@@ -1119,10 +1119,18 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 			switch(chk->m_boolop)
 			{
 			case BO_OR:
-				res = res || chk->compare(evt);
+				if(res)
+				{
+					goto done;
+				}
+				res = chk->compare(evt);
 				break;
 			case BO_AND:
-				res = res && chk->compare(evt);
+				if(!res)
+				{
+					goto done;
+				}
+				res = chk->compare(evt);
 				break;
 			case BO_ORNOT:
 				res = res || !chk->compare(evt);
@@ -1136,7 +1144,7 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 			}
 		}
 	}
-
+ done:
 	return res;
 }
 
