@@ -198,6 +198,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 
 	try
 	{
+		int next_index = 3;
 		chk->m_boolop = parser->m_last_boolop;
 		parser->m_last_boolop = BO_NONE;
 
@@ -206,11 +207,16 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 		const char* cmpop = luaL_checkstring(ls, 2);
 		chk->m_cmpop = string_to_cmpop(cmpop);
 
+		next_index++;
 		// "exists" is the only unary comparison op
 		if(strcmp(cmpop, "exists"))
 		{
 			const char* value = luaL_checkstring(ls, 3);
 			chk->parse_filter_value(value, strlen(value));
+			next_index = 4;
+		}
+		if (lua_isnumber(ls, next_index)) {
+			chk->set_check_id((int) luaL_checkinteger(ls, next_index));
 		}
 	}
 	catch(sinsp_exception& e)
