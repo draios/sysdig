@@ -1132,12 +1132,6 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 				}
 				res = chk->compare(evt);
 				break;
-			case BO_ORNOT:
-				res = res || !chk->compare(evt);
-				break;
-			case BO_ANDNOT:
-				res = res && !chk->compare(evt);
-				break;
 			default:
 				ASSERT(false);
 				break;
@@ -1173,7 +1167,7 @@ void sinsp_filter::push_expression(boolop op)
 	newexpr->m_boolop = op;
 	newexpr->m_parent = m_curexpr;
 
-	m_curexpr->m_checks.push_back((sinsp_filter_check*)newexpr);
+	add_check((sinsp_filter_check*)newexpr);
 	m_curexpr = newexpr;
 }
 
