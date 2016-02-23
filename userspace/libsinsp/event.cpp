@@ -83,6 +83,16 @@ sinsp_evt::~sinsp_evt()
 {
 }
 
+void sinsp_evt::set_check_id(int32_t id)
+{
+	m_check_id = id;
+}
+
+int32_t sinsp_evt::get_check_id()
+{
+	return m_check_id;
+}
+
 uint64_t sinsp_evt::get_ts()
 {
 	return m_pevt->ts;
