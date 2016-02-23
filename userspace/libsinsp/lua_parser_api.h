@@ -27,7 +27,11 @@ extern "C" {
 class lua_parser_cbacks
 {
 public:
-	// filter.rel_expr(field_name, cmpop, value)
+	// filter.rel_expr(field_name, cmpop, value, index)
+	// field_name and cmpop are mandatory
+	// value is mandatory unless cmpop=="exists"
+	// index is an optional index (integer) that will be written
+	// into events matching this expression (internal use).
 	static int rel_expr(lua_State *ls);
 
 	// filter.bool_op(op)
