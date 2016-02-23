@@ -290,6 +290,16 @@ public:
 	*/
 	void get_category(OUT sinsp_evt::category* cat);
 
+	/*!
+	  \brief Set an opaque "check id", corresponding to the id of the last filtercheck that matched this event.
+	*/
+	void set_check_id(int32_t id);
+
+	/*!
+	  \brief Get the opaque "check id" (-1 if not set).
+	*/
+	int32_t get_check_id();
+
 #ifdef HAS_FILTERING
 	/*!
 	  \brief Return true if the event has been rejected by the filtering system.
@@ -359,6 +369,7 @@ VISIBILITY_PRIVATE
 	scap_evt* m_pevt;
 	uint16_t m_cpuid;
 	uint64_t m_evtnum;
+	int32_t m_check_id = -1;
 	bool m_params_loaded;
 	const struct ppm_event_info* m_info;
 	vector<sinsp_evt_param> m_params;

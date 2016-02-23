@@ -119,6 +119,12 @@ public:
 	//
 	virtual Json::Value tojson(sinsp_evt* evt);
 
+	//
+	// Configure numeric id to be set on events that match this filter
+	//
+	void set_check_id(int32_t id);
+	virtual int32_t get_check_id();
+
 	sinsp* m_inspector;
 	boolop m_boolop;
 	cmpop m_cmpop;
@@ -140,6 +146,7 @@ protected:
 
 private:
 	void set_inspector(sinsp* inspector);
+	int32_t m_check_id = -1;
 
 friend class sinsp_filter_check_list;
 };
@@ -204,6 +211,8 @@ public:
 		ASSERT(false);
 		return NULL;
 	}
+
+	int32_t get_check_id();
 
 	sinsp_filter_expression* m_parent;
 	vector<sinsp_filter_check*> m_checks;
