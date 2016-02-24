@@ -100,6 +100,10 @@ sinsp_threadinfo::~sinsp_threadinfo()
 	}
 
 	m_private_state.clear();
+	if(m_lastevent_data)
+	{
+		free(m_lastevent_data);
+	}
 }
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc()

@@ -75,6 +75,12 @@ sinsp_parser::~sinsp_parser()
 		delete m_protodecoders[j];
 	}
 
+	while(!m_tmp_events_buffer.empty())
+	{
+		auto ptr = m_tmp_events_buffer.top();
+		free(ptr);
+		m_tmp_events_buffer.pop();
+	}
 	m_protodecoders.clear();
 	delete[] m_k8s_metaevents_state.m_piscapevt;
 }
