@@ -139,16 +139,28 @@ int lua_parser_cbacks::bool_op(lua_State *ls)
 
 	if (!parser->m_have_rel_expr)
 	{
-		string err = "filter.bool_op() called without having called rel_expr() ";
-		fprintf(stderr, "%s\n", err.c_str());
-		throw sinsp_exception(err);
+		if (op == BO_NOT) {
+			op = (boolop)((uint32_t)parser->m_last_boolop | op);
+		}
+		else
+		{
+			string err = "filter.bool_op() called without having called rel_expr() ";
+			fprintf(stderr, "%s\n", err.c_str());
+			throw sinsp_exception(err);
+		}
 	}
 
 	if (parser->m_last_boolop != BO_NONE)
 	{
-		string err = "filter.bool_op() called twice in a row";
-		fprintf(stderr, "%s\n", err.c_str());
-		throw sinsp_exception(err);
+		if (op == BO_NOT) {
+			op = (boolop)((uint32_t)parser->m_last_boolop | op);
+		}
+		else
+		{
+			string err = "filter.bool_op() called twice in a row";
+			fprintf(stderr, "%s\n", err.c_str());
+			throw sinsp_exception(err);
+		}
 	}
 	parser->m_last_boolop = op;
 	return 0;

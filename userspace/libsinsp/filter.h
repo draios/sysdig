@@ -46,6 +46,8 @@ enum boolop
 	BO_NOT = 1,
 	BO_OR = 2,
 	BO_AND = 4,
+
+	// obtained by bitwise OR'ing with one of above ops
 	BO_ORNOT = 3,
 	BO_ANDNOT = 5,
 };
