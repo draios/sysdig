@@ -241,6 +241,8 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		return op1_len != op2_len || (memcmp(operand1, operand2, op1_len) != 0);
 	case CO_CONTAINS:
 		return (memmem(operand1, op1_len, operand2, op2_len) != NULL);
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for buffer filters");
 	case CO_LT:
 		throw sinsp_exception("'<' not supported for buffer filters");
 	case CO_LE:
