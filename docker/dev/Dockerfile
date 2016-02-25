@@ -21,7 +21,7 @@ RUN apt-get update \
 	ca-certificates \
 	gcc \
 	gcc-4.9 \
-	gcc-4.8
+	gcc-4.8 && rm -rf /var/lib/apt/lists/*
 
 # Terribly terrible hacks: since our base Debian image ships with GCC 5.0 which breaks older kernels,
 # revert the default to gcc-4.9. Also, since some customers use some very old distributions whose kernel
