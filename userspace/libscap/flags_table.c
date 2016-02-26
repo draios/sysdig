@@ -149,6 +149,48 @@ const struct ppm_name_value poll_flags[] = {
 	{0, 0},
 };
 
+/* http://lxr.free-electrons.com/source/include/uapi/linux/fs.h?v=4.2#L65 */
+const struct ppm_name_value mount_flags[] = {
+	{"RDONLY", PPM_MS_RDONLY},
+	{"NOSUID", PPM_MS_NOSUID},
+	{"NODEV", PPM_MS_NODEV},
+	{"NOEXEC", PPM_MS_NOEXEC},
+	{"SYNCHRONOUS", PPM_MS_SYNCHRONOUS},
+	{"REMOUNT", PPM_MS_REMOUNT},
+	{"MANDLOCK", PPM_MS_MANDLOCK},
+	{"DIRSYNC", PPM_MS_DIRSYNC},
+	{"NOATIME", PPM_MS_NOATIME},
+	{"NODIRATIME", PPM_MS_NODIRATIME},
+	{"BIND", PPM_MS_BIND},
+	{"MOVE", PPM_MS_MOVE},
+	{"REC", PPM_MS_REC},
+	{"SILENT", PPM_MS_SILENT},
+	{"POSIXACL", PPM_MS_POSIXACL},
+	{"UNBINDABLE", PPM_MS_UNBINDABLE},
+	{"PRIVATE", PPM_MS_PRIVATE},
+	{"SLAVE", PPM_MS_SLAVE},
+	{"SHARED", PPM_MS_SHARED},
+	{"RELATIME", PPM_MS_RELATIME},
+	{"KERNMOUNT", PPM_MS_KERNMOUNT},
+	{"I_VERSION", PPM_MS_I_VERSION},
+	{"STRICTATIME", PPM_MS_STRICTATIME},
+	{"LAZYTIME", PPM_MS_LAZYTIME},
+	{"NOSEC", PPM_MS_NOSEC},
+	{"BORN", PPM_MS_BORN},
+	{"ACTIVE", PPM_MS_ACTIVE},
+	{"NOUSER", PPM_MS_NOUSER},
+	{0, 0},
+};
+
+/* http://lxr.free-electrons.com/source/include/linux/fs.h?v=4.2#L1251 */
+const struct ppm_name_value umount_flags[] = {
+	{"FORCE", PPM_MNT_FORCE},
+	{"DETACH", PPM_MNT_DETACH},
+	{"EXPIRE", PPM_MNT_EXPIRE},
+	{"NOFOLLOW", PPM_UMOUNT_NOFOLLOW},
+	{0, 0},
+};
+
 const struct ppm_name_value lseek_whence[] = {
 	{"SEEK_END", PPM_SEEK_END},
 	{"SEEK_CUR", PPM_SEEK_CUR},
@@ -357,4 +399,18 @@ const struct ppm_name_value semctl_commands[] = {
         {"SETALL", PPM_SETALL},
         {"SETVAL", PPM_SETVAL},
 		{0, 0},
+};
+
+const struct ppm_name_value semget_flags[] = {
+	{"IPC_CREAT", PPM_IPC_CREAT},
+	{"IPC_EXCL", PPM_IPC_EXCL},
+	{0, 0},
+};
+
+const struct ppm_name_value access_flags[] = {
+	{"F_OK", PPM_F_OK},
+	{"R_OK", PPM_R_OK},
+	{"W_OK", PPM_W_OK},
+	{"X_OK", PPM_X_OK},
+	{0, 0},
 };
