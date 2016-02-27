@@ -1244,6 +1244,7 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 		return sizeof(double);
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
+    case PT_MSGLIST:
 	case PT_FDLIST:
 	case PT_FSPATH:
 	default:

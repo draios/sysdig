@@ -330,7 +330,8 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		return flt_compare_double(op, *(double*)operand1, *(double*)operand2);
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
-	case PT_FDLIST:
+	case PT_MSGLIST:
+    case PT_FDLIST:
 	case PT_FSPATH:
 	case PT_SIGSET:
 	default:

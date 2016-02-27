@@ -83,7 +83,8 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 	m_colsizes[PT_SOCKTUPLE] = 16;
 	m_colsizes[PT_FD] = 32;
 	m_colsizes[PT_PID] = 16;
-	m_colsizes[PT_FDLIST] = 16;
+	m_colsizes[PT_MSGLIST] = 32;
+    m_colsizes[PT_FDLIST] = 16;
 	m_colsizes[PT_FSPATH] = 32;
 	m_colsizes[PT_SYSCALLID] = 8;
 	m_colsizes[PT_SIGTYPE] = 8;

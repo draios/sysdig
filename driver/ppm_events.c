@@ -471,6 +471,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
+    case PT_MSGLIST:
 		if (likely(val != 0)) {
 			if (unlikely(val_len >= args->arg_data_size))
 				return PPM_FAILURE_BUFFER_FULL;
