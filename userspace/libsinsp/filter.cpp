@@ -1111,7 +1111,7 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 	uint32_t j;
 	uint32_t size = (uint32_t)m_checks.size();
 	bool res = true;
-	sinsp_filter_check* chk;
+	sinsp_filter_check* chk = NULL;
 
 	for(j = 0; j < size; j++)
 	{
