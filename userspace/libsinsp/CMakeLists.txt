@@ -54,6 +54,7 @@ add_library(sinsp STATIC
 	sinsp.cpp
 	stats.cpp
 	table.cpp
+	sinsp_curl.cpp
 	uri.cpp
 	utils.cpp
 	viewinfo.cpp)
@@ -78,7 +79,8 @@ if(NOT WIN32)
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
 		dl
-		pthread)
+		pthread
+		rt)
 else()
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}")

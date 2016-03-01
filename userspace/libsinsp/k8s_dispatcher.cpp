@@ -526,7 +526,7 @@ void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 	}
 	else
 	{
-		g_logger.log("Bad JSON message received.", sinsp_logger::SEV_ERROR);
+		g_logger.log("Bad JSON message received :[" + json + ']', sinsp_logger::SEV_ERROR);
 	}
 }
 

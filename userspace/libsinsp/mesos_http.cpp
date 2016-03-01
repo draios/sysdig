@@ -19,14 +19,14 @@
 #include <sys/ioctl.h>
 #include <string.h>
 
-mesos_http::mesos_http(mesos& m, const uri& url, bool discover):
+mesos_http::mesos_http(mesos& m, const uri& url, bool discover, int timeout_ms):
 	m_sync_curl(curl_easy_init()),
 	m_select_curl(curl_easy_init()),
 	m_mesos(m),
 	m_url(url),
 	m_connected(true),
 	m_watch_socket(-1),
-	m_timeout_ms(5000L),
+	m_timeout_ms(timeout_ms),
 	m_callback_func(0),
 	m_curl_version(curl_version_info(CURLVERSION_NOW)),
 	m_request(make_request(url, m_curl_version)),
@@ -45,7 +45,11 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover):
 	}
 
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
+
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
+	check_error(curl_easy_setopt(m_select_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_select_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 
 	discover_mesos_leader();
@@ -324,11 +328,6 @@ CURLcode mesos_http::get_data(const std::string& url, std::ostream& os)
 	g_logger.log(std::string("Retrieving data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
 	curl_easy_setopt(m_sync_curl, CURLOPT_URL, url.c_str());
 	curl_easy_setopt(m_sync_curl, CURLOPT_FOLLOWLOCATION, 1L);
-
-	if(m_url.get_scheme() == "https")
-	{
-		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYPEER , 0));
-	}
 
 	curl_easy_setopt(m_sync_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
 	curl_easy_setopt(m_sync_curl, CURLOPT_ACCEPT_ENCODING, "deflate");

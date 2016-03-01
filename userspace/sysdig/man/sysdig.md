@@ -144,8 +144,8 @@ OPTIONS
 **-k**, **--k8s-api**
   Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
 
-**-K** _filename_, **--k8s-api-cert=**_filename_
-  Use the provided certificate file name to authenticate with the K8S API server. Filename must be a full absolute or relative (to the current directory) path to the certificate file. The certificate can also be specified via the environment variable SYSDIG_K8S_API_CERT.
+**-K** _certfile:keyfile[#password][:cacertfile]_, **--k8s-api-cert=**_certfile:keyfile[#password][:cacertfile]_
+  Use the provided files names to authenticate user and (optionally) verify the K8S API server identity. Each entry must specify full (absolute, or relative to the current directory) path to the respective file. Private key password is optional (needed only if key is password protected). CA certificate is optional; specifying CA certificate only is deprecated. For all files, only PEM file format is supported. Note that the format of this command-line option prohibits use of files whose names contain ':' or '#' characters in the file name. Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.
 
 **-L**, **--list-events**
   List the events that the engine supports
