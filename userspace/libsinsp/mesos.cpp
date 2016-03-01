@@ -26,14 +26,16 @@ mesos::mesos(const std::string& state_uri,
 	const uri_list_t& marathon_uris,
 	const std::string& groups_api,
 	const std::string& apps_api,
-	bool discover_mesos_leader):
+	bool discover_mesos_leader,
+	int timeout_ms):
 #ifdef HAS_CAPTURE
 		m_collector(false),
 		m_mesos_uri(state_uri),
 		m_marathon_uris(marathon_uris),
 #endif // HAS_CAPTURE
 		m_creation_logged(false),
-		m_discover_mesos_leader(discover_mesos_leader)
+		m_discover_mesos_leader(discover_mesos_leader),
+		m_timeout_ms(timeout_ms)
 {
 	g_logger.log(std::string("Creating Mesos object, failover autodiscovery set to ") +
 				 (m_discover_mesos_leader ? "true" : "false"),
@@ -51,6 +53,11 @@ void mesos::init()
 		{
 			const uri& url = m_state_http->get_url();
 			std::string scheme = url.get_scheme();
+			if(scheme == "https")
+			{
+				//TODO
+				throw sinsp_exception("Mesos error: https not supported.");
+			}
 			std::string creds = url.get_credentials();
 			if(!creds.empty()) creds.append(1, '@');
 			m_mesos_uri = scheme + "://" + creds + url.get_host();
@@ -69,7 +76,7 @@ void mesos::init()
 		}
 	}
 
-	m_state_http = std::make_shared<mesos_http>(*this, m_mesos_uri + default_state_api, m_discover_mesos_leader);
+	m_state_http = std::make_shared<mesos_http>(*this, m_mesos_uri + default_state_api, m_discover_mesos_leader, m_timeout_ms);
 	rebuild_mesos_state(true);
 
 	m_marathon_groups_http.clear();
@@ -77,8 +84,8 @@ void mesos::init()
 	const uri_list_t& marathons = m_marathon_uris.size() ? m_marathon_uris : m_state_http->get_marathon_uris();
 	for(const auto& muri : marathons)
 	{
-		m_marathon_groups_http[muri] = std::make_shared<marathon_http>(*this, muri + default_groups_api);
-		m_marathon_apps_http[muri]   = std::make_shared<marathon_http>(*this, muri + default_apps_api);
+		m_marathon_groups_http[muri] = std::make_shared<marathon_http>(*this, muri + default_groups_api, m_timeout_ms);
+		m_marathon_apps_http[muri]   = std::make_shared<marathon_http>(*this, muri + default_apps_api, m_timeout_ms);
 	}
 
 	if(has_marathon())

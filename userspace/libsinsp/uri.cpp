@@ -1,7 +1,7 @@
 //
-// uri.h
+// uri.cpp
 //
-// URI utilities
+// URI utility
 //
 
 #include  "uri.h"

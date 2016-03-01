@@ -1,7 +1,7 @@
 //
 // uri.h
 //
-// URI utilities
+// URI utility
 //
 
 #pragma once

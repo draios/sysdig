@@ -23,7 +23,7 @@ public:
 	typedef void (mesos::*callback_func_t)(std::string&&, const std::string&);
 	typedef std::vector<std::string> marathon_uri_t;
 
-	mesos_http(mesos& m, const uri& url, bool discover = false);
+	mesos_http(mesos& m, const uri& url, bool discover = false, int timeout_ms = 5000L);
 
 	virtual ~mesos_http();
 

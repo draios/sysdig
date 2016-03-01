@@ -12,6 +12,7 @@
 #include "k8s_http.h"
 #include "k8s_collector.h"
 #include "uri.h"
+#include "sinsp_curl.h"
 #include <sstream>
 #include <utility>
 #ifndef K8S_DISABLE_THREAD
@@ -23,9 +24,11 @@ class k8s;
 class k8s_net
 {
 public:
+	typedef sinsp_curl::ssl::ptr_t ssl_ptr_t;
+
 	k8s_net(k8s& kube, const std::string& uri = "http://localhost:80",
 		const std::string& api = "/api/v1/",
-		const std::string& cert = "");
+		ssl_ptr_t ssl = 0);
 
 	~k8s_net();
 
@@ -60,7 +63,7 @@ private:
 	uri           m_uri;
 	std::string   m_creds;
 	std::string   m_api;
-	std::string   m_cert;
+	ssl_ptr_t     m_ssl;
 	bool          m_stopped;
 	api_map_t     m_api_interfaces;
 	k8s_collector m_collector;

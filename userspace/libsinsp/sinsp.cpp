@@ -1542,16 +1542,79 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert)
 
 	if(m_k8s_client == NULL)
 	{
+		std::shared_ptr<sinsp_curl::ssl> k8s_ssl;
+		if(ssl_cert)
+		{
+			std::string cert;
+			std::string key;
+			std::string key_pwd;
+			std::string ca_cert;
+
+			// -K <cert_file>:<key_file[#password]>[:<ca_cert_file>]
+			std::string::size_type pos = ssl_cert->find(':');
+			if(pos == std::string::npos) // deprecated, ca_cert only
+			{
+				ca_cert = *ssl_cert;
+				ssl_cert->clear();
+			}
+			else
+			{
+				while(ssl_cert->length())
+				{
+					if(cert.empty() && pos != std::string::npos)
+					{
+						cert = ssl_cert->substr(0, pos);
+						if(ssl_cert->length() > (pos + 1))
+						{
+							*ssl_cert = ssl_cert->substr(pos + 1);
+						}
+						else { break; }
+					}
+					else if(key.empty())
+					{
+						key = ssl_cert->substr(0, pos);
+						if(ssl_cert->length() > (pos + 1))
+						{
+							*ssl_cert = ssl_cert->substr(pos + 1);
+							std::string::size_type s_pos = key.find('#');
+							if(s_pos != std::string::npos && key.length() > (s_pos + 1))
+							{
+								key_pwd = key.substr(s_pos + 1);
+								key = key.substr(0, s_pos);
+							}
+							if(pos == std::string::npos) { break; }
+						}
+						else { break; }
+					}
+					else if(ca_cert.empty())
+					{
+						ca_cert = *ssl_cert;
+						ssl_cert->clear();
+					}
+					else { goto ssl_err; }
+					pos = ssl_cert->find(':', pos);
+				}
+				if(cert.empty() || key.empty()) { goto ssl_err; }
+			}
+			k8s_ssl = std::make_shared<sinsp_curl::ssl>(cert, key, key_pwd,
+						ca_cert, ca_cert.empty() ? false : true, "PEM");
+		}
+
 		g_logger.log("Fetching initial k8s state", sinsp_logger::SEV_INFO);
 		bool is_live = !m_k8s_api_server->empty();
 		m_k8s_client = new k8s(*m_k8s_api_server,
 			is_live ? true : false, // watch
 			false, // don't run watch in thread
 			is_live ? true : false, // capture
-			"/api/v1/",
-			m_k8s_api_cert ? *m_k8s_api_cert : string("")
+			"/api/v1",
+			k8s_ssl
 		);
 	}
+
+	return;
+
+ssl_err:
+	throw sinsp_exception("Invalid K8S SSL entry: " + *ssl_cert);
 }
 
 void sinsp::update_kubernetes_state()

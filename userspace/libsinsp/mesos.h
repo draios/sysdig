@@ -37,7 +37,8 @@ public:
 		const uri_list_t& marathon_uris = uri_list_t(),
 		const std::string& groups_api = "",
 		const std::string& apps_api = "",
-		bool discover_mesos_leader = false);
+		bool discover_mesos_leader = false,
+		int timeout_ms = 5000L);
 
 	~mesos();
 
@@ -120,7 +121,7 @@ private:
 	mesos_state_t     m_state;
 	bool              m_creation_logged;
 	bool              m_discover_mesos_leader;
-	bool              m_discover_marathon;
+	long              m_timeout_ms;
 
 	typedef std::map<std::string, std::string> json_map_type_t;
 	std::string m_mesos_state_json;
