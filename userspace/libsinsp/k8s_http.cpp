@@ -24,7 +24,8 @@ k8s_http::k8s_http(k8s& k8s,
 	const std::string& protocol,
 	const std::string& credentials,
 	const std::string& api,
-	ssl_ptr_t ssl):
+	ssl_ptr_t ssl,
+	bt_ptr_t bt):
 		m_curl(curl_easy_init()),
 		m_k8s(k8s),
 		m_protocol(protocol),
@@ -33,6 +34,7 @@ k8s_http::k8s_http(k8s& k8s,
 		m_component(component),
 		m_credentials(credentials),
 		m_ssl(ssl),
+		m_bt(bt),
 		m_watch_socket(0),
 		m_data_ready(false)
 {
@@ -47,7 +49,11 @@ k8s_http::k8s_http(k8s& k8s,
 		if(!(data->features | CURL_VERSION_SSL))
 		{
 			cleanup();
-			throw sinsp_exception("HTTPS NOT supported");
+			throw sinsp_exception("Curl HTTPS NOT supported");
+		}
+		if(!m_ssl)
+		{
+			throw sinsp_exception("K8S: HTTPS connection detected but SSL object is null.");
 		}
 		sinsp_curl::init_ssl(m_curl, m_ssl);
 	}
@@ -55,6 +61,11 @@ k8s_http::k8s_http(k8s& k8s,
 	{
 		cleanup();
 		throw sinsp_exception("Protocol not supported:" + protocol);
+	}
+
+	if(m_bt)
+	{
+		sinsp_curl::init_bt(m_curl, m_bt);
 	}
 
 	std::ostringstream url;
@@ -193,9 +204,9 @@ int k8s_http::get_watch_socket(long timeout_ms)
 			base64::encoder().encode(is, os);
 			request << "Authorization: Basic " << os.str() << "\r\n";
 		}
-		if(m_ssl && !m_ssl->bearer_token().empty())
+		if(m_bt && !m_bt->get_token().empty())
 		{
-			request << "Authorization: Bearer " << m_ssl->bearer_token() << "\r\n";
+			request << "Authorization: Bearer " << m_bt->get_token() << "\r\n";
 		}
 		request << "\r\n";
 		check_error(curl_easy_send(m_curl, request.str().c_str(), request.str().size(), &iolen));
