@@ -24,11 +24,13 @@ class k8s;
 class k8s_net
 {
 public:
-	typedef sinsp_curl::ssl::ptr_t ssl_ptr_t;
+	typedef sinsp_curl::ssl::ptr_t          ssl_ptr_t;
+	typedef sinsp_curl::bearer_token::ptr_t bt_ptr_t;
 
 	k8s_net(k8s& kube, const std::string& uri = "http://localhost:80",
 		const std::string& api = "/api/v1/",
-		ssl_ptr_t ssl = 0);
+		ssl_ptr_t ssl = 0,
+		bt_ptr_t bt = 0);
 
 	~k8s_net();
 
@@ -64,6 +66,7 @@ private:
 	std::string   m_creds;
 	std::string   m_api;
 	ssl_ptr_t     m_ssl;
+	bt_ptr_t      m_bt;
 	bool          m_stopped;
 	api_map_t     m_api_interfaces;
 	k8s_collector m_collector;

@@ -24,8 +24,7 @@ public:
 		typedef std::shared_ptr<ssl> ptr_t;
 
 		ssl(const std::string& cert, const std::string& key, const std::string& key_passphrase = "",
-			const std::string& ca_cert = "", bool verify_peer = false, const std::string& cert_type = "PEM",
-			const std::string& bearer_token = "");
+			const std::string& ca_cert = "", bool verify_peer = false, const std::string& cert_type = "PEM");
 		~ssl();
 
 		const std::string& cert_type() const;
@@ -34,11 +33,8 @@ public:
 		const std::string& key_passphrase() const;
 		const std::string& ca_cert() const;
 		bool verify_peer() const;
-		const std::string& bearer_token() const;
-		struct curl_slist* bt_auth_header();
 
 	private:
-		static std::string stringize_file(const std::string& disk_file);
 		static std::string memorize_file(const std::string& disk_file);
 		static void unmemorize_file(const std::string& mem_file);
 
@@ -48,26 +44,36 @@ public:
 		std::string m_key_passphrase;
 		std::string m_ca_cert;
 		bool        m_verify_peer = false;
+	};
+
+	class bearer_token
+	{
+	public:
+		typedef std::shared_ptr<bearer_token> ptr_t;
+
+		bearer_token(const std::string& bearer_token_file = "");
+		~bearer_token();
+
+		const std::string& get_token() const;
+		struct curl_slist* bt_auth_header();
+
+	private:
+		static std::string stringize_file(const std::string& disk_file);
+
 		std::string m_bearer_token;
 		struct curl_slist* m_bt_auth_header;
 	};
 
 	static const long DEFAULT_TIMEOUT_MS = 5000L;
 
-	sinsp_curl(const std::string& uristr, long timeout_ms = DEFAULT_TIMEOUT_MS);
 	sinsp_curl(const uri& url, long timeout_ms = DEFAULT_TIMEOUT_MS);
-	sinsp_curl(const std::string& uristr,
-		const std::string& cert, const std::string& key, const std::string& key_passphrase = "",
-		const std::string& ca_cert = "", bool verify_peer = false, const std::string& cert_type = "PEM",
-		const std::string& bearer_token = "",
-		long timeout_ms = DEFAULT_TIMEOUT_MS);
+	sinsp_curl(const uri& url, const std::string& bearer_token_file, long timeout_ms = DEFAULT_TIMEOUT_MS);
 	sinsp_curl(const uri& url,
 		const std::string& cert, const std::string& key, const std::string& key_passphrase = "",
 		const std::string& ca_cert = "", bool verify_peer = false, const std::string& cert_type = "PEM",
-		const std::string& bearer_token = "",
+		const std::string& bearer_token_file = "",
 		long timeout_ms = DEFAULT_TIMEOUT_MS);
-	sinsp_curl(const std::string& uristr, ssl::ptr_t p_ssl, long timeout_ms = DEFAULT_TIMEOUT_MS);
-	sinsp_curl(const uri& url, ssl::ptr_t p_ssl, long timeout_ms = DEFAULT_TIMEOUT_MS);
+	sinsp_curl(const uri& url, ssl::ptr_t p_ssl = 0, bearer_token::ptr_t p_bt = 0, long timeout_ms = DEFAULT_TIMEOUT_MS);
 	~sinsp_curl();
 
 	bool get_data(std::ostream& os);
@@ -82,6 +88,8 @@ public:
 	bool is_secure() const;
 	ssl::ptr_t get_ssl();
 	static void init_ssl(CURL* curl, ssl::ptr_t ssl_data);
+	bearer_token::ptr_t get_bt();
+	static void init_bt(CURL* curl, bearer_token::ptr_t bt);
 
 private:
 	struct data
@@ -93,22 +101,17 @@ private:
 	static int trace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp);
 
 	void init();
-	void init_ssl();
+	void init_debug();
 	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
 	static void check_error(unsigned ret);
 
-	CURL*      m_curl;
-	uri        m_uri;
-	long       m_timeout_ms;
-	ssl::ptr_t m_ssl;
+	CURL*               m_curl;
+	uri                 m_uri;
+	long                m_timeout_ms;
+	ssl::ptr_t          m_ssl;
+	bearer_token::ptr_t m_bt;
 };
-
-inline void sinsp_curl::init_ssl()
-{
-	init();
-	init_ssl(m_curl, m_ssl);
-}
 
 inline void sinsp_curl::set_timeout(long milliseconds)
 {
@@ -138,6 +141,26 @@ inline bool sinsp_curl::is_secure() const
 inline sinsp_curl::ssl::ptr_t sinsp_curl::get_ssl()
 {
 	return m_ssl;
+}
+
+
+//
+// sinsp_curl::bearer_token
+//
+
+inline sinsp_curl::bearer_token::ptr_t sinsp_curl::get_bt()
+{
+	return m_bt;
+}
+
+inline const std::string& sinsp_curl::bearer_token::get_token() const
+{
+	return m_bearer_token;
+}
+
+inline struct curl_slist* sinsp_curl::bearer_token::bt_auth_header()
+{
+	return m_bt_auth_header;
 }
 
 
@@ -173,16 +196,6 @@ inline const std::string& sinsp_curl::ssl::ca_cert() const
 inline bool sinsp_curl::ssl::verify_peer() const
 {
 	return m_verify_peer;
-}
-
-inline const std::string& sinsp_curl::ssl::bearer_token() const
-{
-	return m_bearer_token;
-}
-
-inline struct curl_slist* sinsp_curl::ssl::bt_auth_header()
-{
-	return m_bt_auth_header;
 }
 
 #endif // __linux__

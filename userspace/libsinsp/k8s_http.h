@@ -17,7 +17,8 @@ class k8s;
 class k8s_http
 {
 public:
-	typedef sinsp_curl::ssl::ptr_t ssl_ptr_t;
+	typedef sinsp_curl::ssl::ptr_t          ssl_ptr_t;
+	typedef sinsp_curl::bearer_token::ptr_t bt_ptr_t;
 
 	k8s_http(k8s& k8s,
 		const std::string& component,
@@ -25,7 +26,8 @@ public:
 		const std::string& protocol = "http",
 		const std::string& credentials = "",
 		const std::string& api = "/api/v1",
-		ssl_ptr_t ssl = 0);
+		ssl_ptr_t ssl = 0,
+		bt_ptr_t bt = 0);
 
 	~k8s_http();
 
@@ -55,6 +57,7 @@ private:
 	std::string   m_component;
 	std::string   m_credentials;
 	ssl_ptr_t     m_ssl;
+	bt_ptr_t      m_bt;
 	std::string   m_url;
 	curl_socket_t m_watch_socket;
 	bool          m_data_ready;
