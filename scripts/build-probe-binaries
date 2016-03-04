@@ -403,7 +403,7 @@ function debian_build {
 
 	if [[ ${NUM_DEB} -eq 3 ]]; then
 		set +e
-			KBUILD_PACKAGE=$(ls -t ${BASEDIR}/common-dependencies/debian/kbuild | grep ${KERNEL_MAJOR}| head -1)
+			KBUILD_PACKAGE=$(ls -t ${BASEDIR}/common-dependencies/debian/kbuild | grep  "kbuild\-${KERNEL_MAJOR}" | head -1)
 		set -e
 		if [[ ! -z ${KBUILD_PACKAGE} ]]; then
 			cp ${BASEDIR}/common-dependencies/debian/kbuild/${KBUILD_PACKAGE} .
