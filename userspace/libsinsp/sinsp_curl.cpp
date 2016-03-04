@@ -16,15 +16,16 @@
 
 sinsp_curl::data sinsp_curl::m_config;
 
-sinsp_curl::sinsp_curl(const uri& url, long timeout_ms):
-	m_curl(curl_easy_init()), m_uri(url), m_timeout_ms(timeout_ms)
+sinsp_curl::sinsp_curl(const uri& url, long timeout_ms, bool debug):
+	m_curl(curl_easy_init()), m_uri(url), m_timeout_ms(timeout_ms), m_debug(debug)
 
 {
 	init();
 }
 
-sinsp_curl::sinsp_curl(const uri& url, const std::string& bearer_token_file, long timeout_ms):
-	m_curl(curl_easy_init()), m_uri(url), m_timeout_ms(timeout_ms), m_bt(new bearer_token(bearer_token_file))
+sinsp_curl::sinsp_curl(const uri& url, const std::string& bearer_token_file, long timeout_ms, bool debug):
+	m_curl(curl_easy_init()), m_uri(url), m_timeout_ms(timeout_ms), m_bt(new bearer_token(bearer_token_file)),
+	m_debug(debug)
 {
 	init();
 }
@@ -33,18 +34,20 @@ sinsp_curl::sinsp_curl(const uri& url,
 	const std::string& cert, const std::string& key, const std::string& key_passphrase,
 	const std::string& ca_cert, bool verify_peer, const std::string& cert_type,
 	const std::string& bearer_token_file,
-	long timeout_ms):
+	long timeout_ms, bool debug):
 		m_curl(curl_easy_init()), m_uri(url), m_timeout_ms(timeout_ms),
 		m_ssl(new ssl(cert, key, key_passphrase, ca_cert, verify_peer, cert_type)),
-		m_bt(new bearer_token(bearer_token_file))
+		m_bt(new bearer_token(bearer_token_file)),
+		m_debug(debug)
 {
 	init();
 }
 
-sinsp_curl::sinsp_curl(const uri& url, ssl::ptr_t p_ssl, bearer_token::ptr_t p_bt, long timeout_ms):
+sinsp_curl::sinsp_curl(const uri& url, ssl::ptr_t p_ssl, bearer_token::ptr_t p_bt, long timeout_ms, bool debug):
 		m_curl(curl_easy_init()), m_uri(url), m_timeout_ms(timeout_ms),
 		m_ssl(p_ssl),
-		m_bt(p_bt)
+		m_bt(p_bt),
+		m_debug(debug)
 {
 	init();
 }
@@ -55,6 +58,8 @@ void sinsp_curl::init()
 	{
 		throw sinsp_exception("Cannot initialize CURL.");
 	}
+
+	check_error(curl_easy_setopt(m_curl, CURLOPT_FORBID_REUSE, 1L));
 
 	if(m_ssl)
 	{
@@ -71,13 +76,20 @@ void sinsp_curl::init()
 
 void sinsp_curl::init_debug()
 {
-	// TODO: debug
-	check_error(curl_easy_setopt(m_curl, CURLOPT_FORBID_REUSE, 1L));
-	curl_easy_setopt(m_curl, CURLOPT_DEBUGFUNCTION, &sinsp_curl::trace);
-	curl_easy_setopt(m_curl, CURLOPT_DEBUGDATA, &m_config);
-	m_config.trace_ascii = 1; // set to 1 for ascii printout
-	// the DEBUGFUNCTION has no effect without VERBOSE set to 1
-	curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 0L);
+	enable_debug(m_curl, m_debug);
+}
+
+void sinsp_curl::enable_debug(CURL* curl, bool enable)
+{
+	if(curl)
+	{
+		curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, &sinsp_curl::trace);
+		curl_easy_setopt(curl, CURLOPT_DEBUGDATA, &m_config);
+		long en = 0L;
+		if(enable) { en = 1L; }
+		m_config.trace_ascii = en;
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, en);
+	}
 }
 
 sinsp_curl::~sinsp_curl()
@@ -211,32 +223,37 @@ void sinsp_curl::check_error(unsigned ret)
 	}
 }
 
-void sinsp_curl::dump(const char *text, FILE *stream, unsigned char *ptr, size_t size, char nohex)
+void sinsp_curl::dump(const char *text, unsigned char *ptr, size_t size, char nohex)
 {
+	const std::size_t DBG_BUF_SIZE = 1024;
+	char stream[DBG_BUF_SIZE] = { 0 };
+	std::ostringstream os;
 	size_t i;
 	size_t c;
-	unsigned int width=0x10;
+	unsigned int width = 0x10;
 	if(nohex)
 	{
 		width = 0x40;
 	}
-	fprintf(stream, "%s, %10.10ld bytes (0x%8.8lx)\n", text, (long)size, (long)size);
-
+	snprintf(stream, DBG_BUF_SIZE, "%s, %10.10ld bytes (0x%8.8lx)\n", text, (long)size, (long)size);
+	os << stream;
 	for(i=0; i<size; i+= width)
 	{
-		fprintf(stream, "%4.4lx: ", (long)i);
+		snprintf(stream, DBG_BUF_SIZE, "%4.4lx: ", (long)i);
+		os << stream;
 		if(!nohex)
 		{
 		  for(c = 0; c < width; c++)
 		  {
 			if(i+c < size)
 			{
-				fprintf(stream, "%02x ", ptr[i+c]);
+				snprintf(stream, DBG_BUF_SIZE, "%02x ", ptr[i+c]);
 			}
 			else
 			{
-				fputs("   ", stream);
+				snprintf(stream, DBG_BUF_SIZE, "%s", "   ");
 			}
+			os << stream;
 		  }
 		}
 
@@ -247,16 +264,18 @@ void sinsp_curl::dump(const char *text, FILE *stream, unsigned char *ptr, size_t
 				i+=(c+2-width);
 				break;
 			}
-			fprintf(stream, "%c", (ptr[i+c]>=0x20) && (ptr[i+c]<0x80)?ptr[i+c]:'.');
+			snprintf(stream, DBG_BUF_SIZE, "%c", (ptr[i+c]>=0x20) && (ptr[i+c]<0x80)?ptr[i+c]:'.');
+			os << stream;
 			if(nohex && (i+c+2 < size) && ptr[i+c+1]==0x0D && ptr[i+c+2]==0x0A)
 			{
 				i+=(c+3-width);
 				break;
 			}
 		}
-		fputc('\n', stream);
+		snprintf(stream, DBG_BUF_SIZE, "%c", '\n');
+		os << stream;
 	}
-	fflush(stream);
+	g_logger.log("CURL: " + os .str(), sinsp_logger::SEV_DEBUG);
 }
 
 int sinsp_curl::trace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp)
@@ -289,7 +308,7 @@ int sinsp_curl::trace(CURL *handle, curl_infotype type, char *data, size_t size,
 			text = "<= Recv SSL data";
 			break;
 	}
-	dump(text, stderr, (unsigned char *)data, size, config->trace_ascii);
+	dump(text, (unsigned char *)data, size, config->trace_ascii);
 	return 0;
 }
 

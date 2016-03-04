@@ -66,14 +66,17 @@ public:
 
 	static const long DEFAULT_TIMEOUT_MS = 5000L;
 
-	sinsp_curl(const uri& url, long timeout_ms = DEFAULT_TIMEOUT_MS);
-	sinsp_curl(const uri& url, const std::string& bearer_token_file, long timeout_ms = DEFAULT_TIMEOUT_MS);
+	sinsp_curl(const uri& url, long timeout_ms = DEFAULT_TIMEOUT_MS, bool debug = false);
+	sinsp_curl(const uri& url, const std::string& bearer_token_file, long timeout_ms = DEFAULT_TIMEOUT_MS, bool debug = false);
 	sinsp_curl(const uri& url,
 		const std::string& cert, const std::string& key, const std::string& key_passphrase = "",
 		const std::string& ca_cert = "", bool verify_peer = false, const std::string& cert_type = "PEM",
 		const std::string& bearer_token_file = "",
-		long timeout_ms = DEFAULT_TIMEOUT_MS);
-	sinsp_curl(const uri& url, ssl::ptr_t p_ssl = 0, bearer_token::ptr_t p_bt = 0, long timeout_ms = DEFAULT_TIMEOUT_MS);
+		long timeout_ms = DEFAULT_TIMEOUT_MS,
+		bool debug = false);
+	sinsp_curl(const uri& url, ssl::ptr_t p_ssl = 0, bearer_token::ptr_t p_bt = 0,
+				long timeout_ms = DEFAULT_TIMEOUT_MS, bool debug = false);
+
 	~sinsp_curl();
 
 	bool get_data(std::ostream& os);
@@ -91,13 +94,15 @@ public:
 	bearer_token::ptr_t get_bt();
 	static void init_bt(CURL* curl, bearer_token::ptr_t bt);
 
+	static void enable_debug(CURL* curl, bool enable = true);
+
 private:
 	struct data
 	{
 		char trace_ascii; // 1 or 0
 	};
 	static data m_config;
-	static void dump(const char *text, FILE *stream, unsigned char *ptr, size_t size, char nohex);
+	static void dump(const char *text/*, FILE *stream*/, unsigned char *ptr, size_t size, char nohex);
 	static int trace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp);
 
 	void init();
@@ -111,6 +116,7 @@ private:
 	long                m_timeout_ms;
 	ssl::ptr_t          m_ssl;
 	bearer_token::ptr_t m_bt;
+	bool                m_debug;
 };
 
 inline void sinsp_curl::set_timeout(long milliseconds)
