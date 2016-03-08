@@ -25,7 +25,8 @@ k8s_http::k8s_http(k8s& k8s,
 	const std::string& credentials,
 	const std::string& api,
 	ssl_ptr_t ssl,
-	bt_ptr_t bt):
+	bt_ptr_t bt,
+	bool curl_debug):
 		m_curl(curl_easy_init()),
 		m_k8s(k8s),
 		m_protocol(protocol),
@@ -66,6 +67,11 @@ k8s_http::k8s_http(k8s& k8s,
 	if(m_bt)
 	{
 		sinsp_curl::init_bt(m_curl, m_bt);
+	}
+
+	if(curl_debug)
+	{
+		sinsp_curl::enable_debug(m_curl, true);
 	}
 
 	std::ostringstream url;

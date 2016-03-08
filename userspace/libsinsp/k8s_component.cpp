@@ -124,6 +124,28 @@ std::vector<std::string> k8s_component::extract_pod_container_ids(const Json::Va
 	return container_list;
 }
 
+size_t k8s_component::extract_pod_restart_count(const Json::Value& item)
+{
+	size_t restart_count = 0;
+	Json::Value status = item["status"];
+	if(!status.isNull())
+	{
+		Json::Value containers = status["containerStatuses"];
+		if(!containers.isNull())
+		{
+			for (auto& container : containers)
+			{
+				Json::Value rc = container["restartCount"];
+				if(!rc.isNull() && rc.isInt())
+				{
+					restart_count += rc.asInt();
+				}
+			}
+		}
+	}
+	return restart_count;
+}
+
 k8s_container::list k8s_component::extract_pod_containers(const Json::Value& item)
 {
 	k8s_container::list ext_containers;
@@ -491,7 +513,7 @@ k8s_node_t::host_ip_list k8s_node_t::extract_addresses(const Json::Value& status
 //
 
 k8s_pod_t::k8s_pod_t(const std::string& name, const std::string& uid, const std::string& ns) :
-	k8s_component(name, uid, ns)
+	k8s_component(name, uid, ns), m_restart_count(0)
 {
 }
 

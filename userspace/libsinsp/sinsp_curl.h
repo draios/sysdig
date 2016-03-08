@@ -102,11 +102,10 @@ private:
 		char trace_ascii; // 1 or 0
 	};
 	static data m_config;
-	static void dump(const char *text/*, FILE *stream*/, unsigned char *ptr, size_t size, char nohex);
+	static void dump(const char *text, unsigned char *ptr, size_t size, char nohex);
 	static int trace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp);
 
 	void init();
-	void init_debug();
 	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
 	static void check_error(unsigned ret);

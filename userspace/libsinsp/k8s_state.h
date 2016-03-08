@@ -206,23 +206,8 @@ public:
 #ifdef HAS_CAPTURE
 	typedef std::deque<std::string> event_list_t;
 	const event_list_t& get_capture_events() const { return m_capture_events; }
-	void enqueue_capture_event(const Json::Value& item)
-	{
-		if(m_is_captured)
-		{
-			m_capture_events.emplace_back(Json::FastWriter().write(extract_capture_data(item)));
-		}
-	}
-	std::string dequeue_capture_event()
-	{
-		if(!m_capture_events.size())
-		{
-			throw sinsp_exception("Invalid event dequeue request.");
-		}
-		std::string ev = std::move(m_capture_events.front());
-		m_capture_events.pop_front();
-		return ev;
-	}
+	void enqueue_capture_event(const Json::Value& item);
+	std::string dequeue_capture_event();
 #endif // HAS_CAPTURE
 
 #endif // K8S_DISABLE_THREAD
