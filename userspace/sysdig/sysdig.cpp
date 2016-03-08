@@ -149,7 +149,7 @@ static void usage()
 "                    Each entry must specify full (absolute, or relative to the current directory) path\n"
 "                    to the respective file.\n"
 "                    Private key password is optional (needed only if key is password protected).\n"
-"                    CA certificate is optionalFor all files, only PEM file format is supported. \n"
+"                    CA certificate is optional. For all files, only PEM file format is supported. \n"
 "                    Specifying CA certificate only is obsoleted - when single entry is provided \n"
 "                    for this option, it will be interpreted as the name of a file containing bearer token.\n"
 "                    Note that the format of this command-line option prohibits use of files whose names contain\n"
