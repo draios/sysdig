@@ -371,6 +371,7 @@ k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
 	throw sinsp_exception("Unknown component kind:" + comp);
 }
 
+#ifdef HAS_CAPTURE
 void k8s_state_t::enqueue_capture_event(const Json::Value& item)
 {
 	if(m_is_captured)
@@ -389,6 +390,7 @@ std::string k8s_state_t::dequeue_capture_event()
 	m_capture_events.pop_front();
 	return ev;
 }
+#endif // HAS_CAPTURE
 
 Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
 {
