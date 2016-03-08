@@ -49,15 +49,19 @@ const k8s_component::component_map k8s::m_components =
 #endif // K8S_DISABLE_THREAD
 
 k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, bool is_captured,
-	const std::string& api, ssl_ptr_t ssl, bt_ptr_t bt, bool curl_debug) :
+		const std::string& api,
+#ifdef HAS_CAPTURE
+		ssl_ptr_t ssl, bt_ptr_t bt,
+#endif // HAS_CAPTURE
+		bool curl_debug) :
 		m_watch(uri.empty() ? false : start_watch),
 		m_watch_in_thread(uri.empty() ? false : start_watch && watch_in_thread),
 		m_state(is_captured),
-	#ifndef K8S_DISABLE_THREAD
+#ifndef K8S_DISABLE_THREAD
 		m_dispatch(std::move(make_dispatch_map(m_state, m_mutex))),
-	#else
+#else
 		m_dispatch(std::move(make_dispatch_map(m_state)))
-	#endif
+#endif
 #ifdef HAS_CAPTURE
 		,m_net(uri.empty() ? 0 : new k8s_net(*this, uri, api, ssl, bt, curl_debug))
 #endif
