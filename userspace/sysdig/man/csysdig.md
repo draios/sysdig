@@ -169,8 +169,8 @@ COMMAND LINE OPTIONS
 **-k**, **--k8s-api**
   Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
 
-**-K** _certfile:keyfile[#password][:cacertfile]_, **--k8s-api-cert=**_certfile:keyfile[#password][:cacertfile]_
-  Use the provided files names to authenticate user and (optionally) verify the K8S API server identity. Each entry must specify full (absolute, or relative to the current directory) path to the respective file. Private key password is optional (needed only if key is password protected). CA certificate is optional; specifying CA certificate only is deprecated. For all files, only PEM file format is supported. Note that the format of this command-line option prohibits use of files whose names contain ':' or '#' characters in the file name. Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.
+**-K** _btfile | certfile:keyfile[#password][:cacertfile]_, **--k8s-api-cert=**_btfile | certfile:keyfile[#password][:cacertfile]_
+  Use the provided files names to authenticate user and (optionally) verify the K8S API server identity. Each entry must specify full (absolute, or relative to the current directory) path to the respective file. Private key password is optional (needed only if key is password protected). CA certificate is optional. For all files, only PEM file format is supported. Specifying CA certificate only is obsoleted - when single entry is provided for this option, it will be interpreted as the name of a file containing bearer token. Note that the format of this command-line option prohibits use of files whose names contain ':' or '#' characters in the file name. Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.
 
 **-l**, **--list**  
   List all the fields that can be used in views.
