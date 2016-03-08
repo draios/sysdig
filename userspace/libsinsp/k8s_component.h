@@ -148,6 +148,8 @@ public:
 
 	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
 
+	static size_t extract_pod_restart_count(const Json::Value& item);
+
 	static k8s_container::list extract_pod_containers(const Json::Value& item);
 
 	static void extract_pod_data(const Json::Value& item, k8s_pod_t& pod);
@@ -228,48 +230,35 @@ public:
 
 	// container IDs
 	const container_id_list& get_container_ids() const;
-
 	void set_container_ids(container_id_list&& container_ids);
-
 	void add_container_ids(container_id_list&& container_ids);
-
 	void push_container_id(const std::string& container_id);
-
 	void emplace_container_id(std::string&& container_id);
+
+	// restart count
+	size_t get_restart_count() const;
+	void set_restart_count(size_t rc);
 
 	// containers
 	const container_list& get_containers() const;
-
 	void set_containers(container_list&& containers);
-
 	void add_containers(container_list&& containers);
-
 	void push_container(const k8s_container& container);
-
 	void emplace_container(k8s_container&& container);
-
 	std::string* get_container_id(const std::string& container_id);
-
 	k8s_container* get_container(const std::string& container_name);
 
 	// node name, host IP and internal IP
 	const std::string& get_node_name() const;
-
 	void set_node_name(const std::string& name);
-
 	const std::string& get_host_ip() const;
-
 	void set_host_ip(const std::string& host_ip);
-
 	const std::string& get_internal_ip() const;
-
 	void set_internal_ip(const std::string& internal_ip);
 
 	// comparison
 	bool operator==(const k8s_pod_t& other) const;
-
 	bool operator!=(const k8s_pod_t& other) const;
-
 	bool has_container_id(const std::string& container_id);
 
 private:
@@ -278,6 +267,7 @@ private:
 	std::string       m_node_name;
 	std::string       m_host_ip;
 	std::string       m_internal_ip;
+	size_t            m_restart_count;
 };
 
 
@@ -557,6 +547,26 @@ inline void k8s_pod_t::push_container_id(const std::string& container_id)
 inline void k8s_pod_t::emplace_container_id(std::string&& container_id)
 {
 	m_container_ids.emplace_back(std::move(container_id));
+}
+
+// restart count
+
+inline size_t k8s_pod_t::get_restart_count() const
+{
+	return m_restart_count;
+}
+
+inline void k8s_pod_t::set_restart_count(size_t rc)
+{
+	if(rc >= m_restart_count)
+	{
+		m_restart_count = rc - m_restart_count;
+	}
+	else
+	{
+		g_logger.log("Invalid K8S pod restart count received (" + std::to_string(rc) + "), resetting to zero.", sinsp_logger::SEV_ERROR);
+		m_restart_count = 0;
+	}
 }
 
 // comparison

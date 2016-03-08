@@ -30,7 +30,8 @@ public:
 	k8s_net(k8s& kube, const std::string& uri = "http://localhost:80",
 		const std::string& api = "/api/v1/",
 		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0);
+		bt_ptr_t bt = 0,
+		bool curl_debug = false);
 
 	~k8s_net();
 
@@ -73,6 +74,7 @@ private:
 #ifndef K8S_DISABLE_THREAD
 	std::thread* m_thread;
 #endif
+	bool m_curl_debug;
 };
 
 inline bool k8s_net::is_secure()

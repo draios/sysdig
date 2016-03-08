@@ -30,7 +30,8 @@ public:
 		bool is_captured = false,
 		const std::string& api = "/api/v1/",
 		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0);
+		bt_ptr_t bt = 0,
+		bool curl_debug = false);
 
 	~k8s();
 

@@ -240,9 +240,13 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 			g_logger.log(std::string("NODE not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
 	}
-	else // COMPONENT_ERROR
+	else if(data.m_reason == COMPONENT_ERROR)
 	{
 		log_error(root, "NODE");
+	}
+	else
+	{
+		g_logger.log(std::string("Unsupported K8S NODE event reason: ") + std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
 	}
 }
 
@@ -304,9 +308,13 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 			g_logger.log(std::string("NAMESPACE not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
 	}
-	else // COMPONENT_ERROR
+	else if(data.m_reason == COMPONENT_ERROR)
 	{
 		log_error(root, "NAMESPACE");
+	}
+	else
+	{
+		g_logger.log(std::string("Unsupported K8S NAMESPACE event reason: ") + std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
 	}
 }
 
@@ -362,9 +370,13 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 			g_logger.log(std::string("POD not found: ") + data.m_name, sinsp_logger::SEV_WARNING);
 		}
 	}
-	else // COMPONENT_ERROR
+	else if(data.m_reason == COMPONENT_ERROR)
 	{
 		log_error(root, "POD");
+	}
+	else
+	{
+		g_logger.log(std::string("Unsupported K8S POD event reason: ") + std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
 	}
 }
 
@@ -412,9 +424,13 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 			g_logger.log(std::string("CONTROLLER not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
 	}
-	else // COMPONENT_ERROR
+	else if(data.m_reason == COMPONENT_ERROR)
 	{
 		log_error(root, "REPLICATION CONTROLLER");
+	}
+	else
+	{
+		g_logger.log(std::string("Unsupported K8S REPLICATION CONTROLLER event reason: ") + std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
 	}
 }
 
@@ -462,9 +478,13 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 			g_logger.log(std::string("SERVICE not found: ") + data.m_name, sinsp_logger::SEV_ERROR);
 		}
 	}
-	else // COMPONENT_ERROR
+	else if(data.m_reason == COMPONENT_ERROR)
 	{
 		log_error(root, "SERVICE");
+	}
+	else
+	{
+		g_logger.log(std::string("Unsupported K8S SERVICE event reason: ") + std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
 	}
 }
 

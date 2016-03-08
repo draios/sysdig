@@ -71,25 +71,7 @@ void sinsp_curl::init()
 		init_bt(m_curl, m_bt);
 	}
 
-	init_debug();
-}
-
-void sinsp_curl::init_debug()
-{
 	enable_debug(m_curl, m_debug);
-}
-
-void sinsp_curl::enable_debug(CURL* curl, bool enable)
-{
-	if(curl)
-	{
-		curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, &sinsp_curl::trace);
-		curl_easy_setopt(curl, CURLOPT_DEBUGDATA, &m_config);
-		long en = 0L;
-		if(enable) { en = 1L; }
-		m_config.trace_ascii = en;
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, en);
-	}
 }
 
 sinsp_curl::~sinsp_curl()
@@ -102,6 +84,19 @@ void sinsp_curl::init_bt(CURL* curl, bearer_token::ptr_t bt)
 	if(bt && bt->bt_auth_header())
 	{
 		check_error(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, bt->bt_auth_header()));
+	}
+}
+
+void sinsp_curl::enable_debug(CURL* curl, bool enable)
+{
+	if(curl)
+	{
+		curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, &sinsp_curl::trace);
+		curl_easy_setopt(curl, CURLOPT_DEBUGDATA, &m_config);
+		long en = 0L;
+		if(enable) { en = 1L; }
+		m_config.trace_ascii = en;
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, en);
 	}
 }
 
