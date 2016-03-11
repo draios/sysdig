@@ -942,9 +942,13 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 		}
 		else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 		{
-			if(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip == *(uint32_t*)&m_val_storage[0])
+			if(m_cmpop == CO_EQ || m_cmpop == CO_NE)
 			{
-				return true;
+				return flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, &m_val_storage[0]);
+			}
+			else
+			{
+				throw sinsp_exception("filter error: IP filter only supports '=' and '!=' operators");
 			}
 		}
 	}
