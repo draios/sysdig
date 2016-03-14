@@ -73,14 +73,14 @@ if(NOT WIN32)
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
 			"${OPENSSL_LIBRARY_SSL}"
-			"${OPENSSL_LIBRARY_CRYPTO}")
+			"${OPENSSL_LIBRARY_CRYPTO}"
+            rt)
 	endif()
 
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
 		dl
-		pthread
-		rt)
+		pthread)
 else()
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}")
