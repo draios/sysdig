@@ -1631,7 +1631,6 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert)
 
 	return;
 
-ssl_err:
 	throw sinsp_exception("Invalid K8S SSL entry: " + *ssl_cert);
 }
 

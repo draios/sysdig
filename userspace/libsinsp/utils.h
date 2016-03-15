@@ -163,10 +163,10 @@ void replace_in_place(string& str, string& substr_to_replace, string& new_substr
 class sinsp_numparser
 {
 public:
-	static uint32_t parseu8(const string& str);
-	static int32_t parsed8(const string& str);
-	static uint32_t parseu16(const string& str);
-	static int32_t parsed16(const string& str);
+	static uint8_t parseu8(const string& str);
+	static int8_t parsed8(const string& str);
+	static uint16_t parseu16(const string& str);
+	static int16_t parsed16(const string& str);
 	static uint32_t parseu32(const string& str);
 	static int32_t parsed32(const string& str);
 	static uint64_t parseu64(const string& str);

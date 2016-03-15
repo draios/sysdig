@@ -206,7 +206,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 			fi = m_tokens[j]->get_field_info();
 
-			if(fi && fi->m_name) 
+			if(fi) 
 			{
 				m_root[fi->m_name] = m_tokens[j]->tojson(evt);
 			} 
