@@ -1034,7 +1034,7 @@ void sinsp_cursesui::populate_view_sidemenu(string field, vector<sidemenu_list_e
 
 	viewlist->clear();
 
-	uint32_t bpos = field.find('[');
+	uint64_t bpos = field.find('[');
 	if(bpos != string::npos)
 	{
 		field = field.substr(0, bpos);

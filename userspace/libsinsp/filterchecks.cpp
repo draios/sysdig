@@ -2233,11 +2233,9 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		m_customfield = m_info.m_fields[m_field_id];
 		m_field = &m_customfield;
 
-		int32_t res = extract_arg("evt.rawarg", val, &m_arginfo);
+		res = extract_arg("evt.rawarg", val, &m_arginfo);
 
 		m_customfield.m_type = m_arginfo->type;
-
-		res = res;
 	}
 	else if(string(val, 0, sizeof("evt.around") - 1) == "evt.around")
 	{
@@ -2877,7 +2875,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 						m_strstorage += to_string(lat / 1000000000);
 						m_strstorage += ".";
-						snprintf(timebuffer, sizeof(timebuffer), "%09lu", lat % 1000000000);
+						snprintf(timebuffer, sizeof(timebuffer), "%09llu", lat % 1000000000);
 						m_strstorage += string(timebuffer);
 					}
 					else
@@ -3904,7 +3902,7 @@ inline bool sinsp_filter_check_event::compare_tracer(sinsp_evt *evt, sinsp_parti
 		break;
 	}
 
-	return NULL;
+	return false;
 }
 
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
