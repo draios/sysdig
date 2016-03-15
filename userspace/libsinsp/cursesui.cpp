@@ -96,6 +96,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_print_containers = print_containers;
 	m_raw_output = raw_output;
 	m_truncated_input = false;
+	m_view_depth = 0;
+
 #ifndef NOCURSESUI
 	m_viz = NULL;
 	m_spectro = NULL;
@@ -303,8 +305,6 @@ void sinsp_cursesui::configure(sinsp_view_manager* views)
 
 void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 {
-	bool is_spectro_dig = false;
-
 	//
 	// Input validation
 	//
@@ -334,6 +334,8 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
+	curses_textbox::sysdig_output_type dig_otype = curses_textbox::OT_NORMAL;
+
 	if(!m_raw_output)
 	{
 		if(m_viz != NULL)
@@ -346,7 +348,14 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		{
 			delete m_spectro;
 			m_spectro = NULL;
-			is_spectro_dig = true;
+			if(m_views.at(m_prev_selected_view)->m_drilldown_target == "dig_app")
+			{
+				dig_otype = curses_textbox::OT_LATENCY_APP;
+			}
+			else
+			{
+				dig_otype = curses_textbox::OT_LATENCY;
+			}
 		}
 
 		if(m_spy_box && !is_spy_switch)
@@ -409,7 +418,8 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		{
 			m_datatable->configure(&wi->m_columns, 
 				m_complete_filter,
-				wi->m_use_defaults);
+				wi->m_use_defaults,
+				m_view_depth);
 		}
 		catch(...)
 		{
@@ -431,7 +441,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		//
 		// Create the visualization component
 		//
-		m_spy_box = new curses_textbox(m_inspector, this, m_selected_view, is_spectro_dig);
+		m_spy_box = new curses_textbox(m_inspector, this, m_selected_view, dig_otype);
 		m_spy_box->reset();
 		m_chart = m_spy_box;
 		m_spy_box->set_filter(m_complete_filter);
@@ -450,7 +460,9 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		if(wi != NULL && wi->m_type == sinsp_view_info::T_SPECTRO)
 		{
 			ASSERT(ty == sinsp_table::TT_TABLE);
-			m_spectro = new curses_spectro(this, m_inspector);
+			m_spectro = new curses_spectro(this, 
+				m_inspector, 
+				m_views.at(m_selected_view)->m_id == "spectro_tracers");
 			m_viz = NULL;
 			m_chart = m_spectro;
 		}
@@ -1022,6 +1034,12 @@ void sinsp_cursesui::populate_view_sidemenu(string field, vector<sidemenu_list_e
 
 	viewlist->clear();
 
+	uint32_t bpos = field.find('[');
+	if(bpos != string::npos)
+	{
+		field = field.substr(0, bpos);
+	}
+
 	for(uint32_t j = 0; j < m_views.size(); ++j)
 	{
 		auto it = m_views.at(j);
@@ -1223,14 +1241,20 @@ void sinsp_cursesui::create_complete_filter()
 {
 	if(m_is_filter_sysdig)
 	{
-		m_complete_filter = "(" + m_complete_filter + 
-			") and (" +  
-			m_manual_filter + ")";
+		if(m_complete_filter != "")
+		{
+			m_complete_filter = "(" + m_complete_filter + 
+				") and (" +  
+				m_manual_filter + ")";
+		}
+		else
+		{
+			m_complete_filter = m_manual_filter;
+		}
 	}
 	else
 	{
 		m_complete_filter = m_cmdline_capture_filter;
-
 		m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
 
 		//
@@ -1240,7 +1264,7 @@ void sinsp_cursesui::create_complete_filter()
 		if(m_selected_view >= 0)
 		{
 			m_complete_filter = combine_filters(m_complete_filter, 
-				m_views.at(m_selected_view)->m_filter);
+				m_views.at(m_selected_view)->get_filter(m_view_depth));
 		}
 	}
 }
@@ -1373,7 +1397,6 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 	else if(m_spectro)
 	{
 		m_is_filter_sysdig = true;
-		// loris
 		m_manual_filter = m_spectro->m_selection_filter;
 		srtcol = 0;
 		rowkeybak.m_val = NULL;
@@ -1388,7 +1411,13 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 #endif
 
 	ASSERT(m_selected_view < (int32_t)m_views.size());
-	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
+
+	if(m_views.at(m_selected_view)->m_drilldown_increase_depth)
+	{
+		m_view_depth++;
+	}
+
+	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->get_filter(m_view_depth),
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
 		m_datatable->is_sorting_ascending());
@@ -1426,7 +1455,8 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 }
 
 // returns false if there is no suitable drill down view for this field
-bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_num, filtercheck_field_info* info)
+bool sinsp_cursesui::do_drilldown(string field, string val, 
+	uint32_t new_view_num, filtercheck_field_info* info)
 {
 	//
 	// unpause the thing if it's paused
@@ -1439,7 +1469,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	//
 	//	escape string parameters
 	//
-	if(info->m_type & PT_CHARBUF)
+	if(info != NULL && info->m_type & PT_CHARBUF)
 	{
 		string escape = "\"";
 		val = escape + val + escape;
@@ -1448,10 +1478,13 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	//
 	// Do the drilldown
 	//
-#ifndef NOCURSESUI
-	sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
-#else
 	sinsp_table_field* rowkey = NULL;
+
+#ifndef NOCURSESUI
+	if(m_viz != NULL)
+	{
+		rowkey = m_datatable->get_row_key(m_viz->m_selct);
+	}
 #endif
 	sinsp_table_field rowkeybak;
 	if(rowkey != NULL)
@@ -1464,7 +1497,25 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	uint32_t srtcol;
 	srtcol = m_datatable->get_sorting_col();
 
-	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->m_filter,
+	if(m_views.at(m_selected_view)->m_drilldown_increase_depth)
+	{
+		if(m_views.at(new_view_num)->m_id != "spectro_tracers")
+		{
+			m_view_depth++;
+		}
+	}
+
+	string vfilter;
+	if(m_views.at(m_selected_view)->m_propagate_filter)
+	{
+		vfilter = m_views.at(m_selected_view)->get_filter(m_view_depth);
+	}
+	else
+	{
+		vfilter = "";
+	}
+
+	m_sel_hierarchy.push_back(field, val, vfilter,
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig,
 		m_datatable->is_sorting_ascending());
@@ -1474,7 +1525,19 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	//
 	// Reset the filter
 	//
-	m_manual_filter = "";
+#ifndef NOCURSESUI
+	if(m_viz != NULL)
+	{
+		m_manual_filter = "";
+		m_is_filter_sysdig = false;
+	}
+	else
+	{
+		ASSERT(m_spectro != NULL);
+		m_is_filter_sysdig = true;
+		m_manual_filter = m_spectro->m_selection_filter;
+	}
+#endif
 
 	if(!m_inspector->is_live())
 	{
@@ -1498,7 +1561,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val, uint32_t new_view_nu
 	clear();
 	populate_view_sidemenu(field, &m_sidemenu_viewlist);
 	populate_action_sidemenu();
-//	m_selected_sidemenu_entry = 0;
+
 	if(m_viz)
 	{
 		m_viz->render(true);
@@ -1548,13 +1611,20 @@ bool sinsp_cursesui::spectro_selection(string field, string val,
 	uint32_t j = 0;
 	string spectro_name;
 
-	if(ta == STA_SPECTRO)
-	{
-		spectro_name = "spectro_all";
-	}
-	else
-	{
-		spectro_name = "spectro_file";		
+ 	if(m_views.at(m_selected_view)->m_spectro_type == "tracers")
+ 	{
+		spectro_name = "spectro_tracers";
+ 	}
+ 	else
+ 	{
+		if(ta == STA_SPECTRO)
+		{
+			spectro_name = "spectro_all";
+		}
+		else
+		{
+			spectro_name = "spectro_file";		
+		}
 	}
 
 	for(j = 0; j < m_views.size(); ++j)
@@ -1585,6 +1655,12 @@ bool sinsp_cursesui::drillup()
 		//
 		string field;
 		sinsp_ui_selection_info* sinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
+		bool is_spctro_app = false;
+
+		if(m_selected_view > 0 && m_views.at(m_selected_view)->m_id == "spectro_tracers")
+		{
+			is_spctro_app = true;
+		}
 
 		m_manual_filter = "";
 
@@ -1598,7 +1674,13 @@ bool sinsp_cursesui::drillup()
 
 		m_selected_view = sinfo->m_prev_selected_view;
 		m_selected_view_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
-		
+
+		if(m_views.at(m_selected_view)->m_drilldown_increase_depth &&
+			!is_spctro_app)
+		{
+			m_view_depth--;
+		}
+
 		if(m_views.at(m_selected_view)->m_type == sinsp_view_info::T_SPECTRO)
 		{
 			m_is_filter_sysdig = false;
@@ -1615,6 +1697,9 @@ bool sinsp_cursesui::drillup()
 
 		m_sel_hierarchy.pop_back();
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
+
+		m_complete_filter = m_cmdline_capture_filter;
+		m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
 
 		if(!m_inspector->is_live())
 		{
@@ -2006,7 +2091,8 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	// Avoid parsing keys during file load
 	//
-	if((!m_inspector->is_live()) && !is_eof() && (m_spectro != NULL && !m_spectro->m_scroll_paused))
+	if((!m_inspector->is_live()) && !is_eof() && 
+		(m_spectro != NULL && !m_spectro->m_scroll_paused))
 	{
 		if(ch != KEY_BACKSPACE &&
 			ch != 127 &&

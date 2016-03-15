@@ -27,6 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
+#include "tracers.h"
 
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
@@ -1048,7 +1049,7 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 
 bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 {
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	//
 	// Make sure this is an event that creates or consumes an fd
@@ -2066,7 +2067,15 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.file.out", "the length of the binary data buffer, but only for output file I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."}
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
+	// Tracer related fields. These can be used only as filter fields, not as display fields
+	{PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.tracer.id", "event ID."},
+	{PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.ntags", "Number of tags that this tracer has."},
+	{PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.nargs", "Number of arguments that this tracer has."},
+	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.tags", "comma-separated list of event tags."},
+	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.tag", "one of the tracer tags specified by offset. E.g. 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.tag[-1]' returns the last tag."},
+	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.args", "comma-separated list of event arguments."},
+	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.arg", "one of the tracer arguments specified by name or by offset. E.g. 'tracer.tag.mytag' or 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.arg[-1]' returns the last argument."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2077,10 +2086,24 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
 	m_u64val = 0;
 	m_converter = new sinsp_filter_check_reference();
+
+	m_storage_size = UESTORAGE_INITIAL_BUFSIZE;
+	m_storage = (char*)malloc(m_storage_size);
+	if(m_storage == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_filter_check_appevt::sinsp_filter_check_event");
+	}
+
+	m_cargname = NULL;
 }
 
 sinsp_filter_check_event::~sinsp_filter_check_event()
 {
+	if(m_storage != NULL)
+	{
+		free(m_storage);
+	}
+
 	if(m_converter != NULL)
 	{
 		delete m_converter;
@@ -2191,6 +2214,7 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_state)
 {
 	string val(str);
+	int32_t res = 0;
 
 	//
 	// A couple of fields are handled in a custom way
@@ -2201,7 +2225,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		m_field_id = TYPE_ARGSTR;
 		m_field = &m_info.m_fields[m_field_id];
 
-		return extract_arg("evt.arg", val, NULL);
+		res = extract_arg("evt.arg", val, NULL);
 	}
 	else if(string(val, 0, sizeof("evt.rawarg") - 1) == "evt.rawarg")
 	{
@@ -2213,14 +2237,14 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 
 		m_customfield.m_type = m_arginfo->type;
 
-		return res;
+		res = res;
 	}
 	else if(string(val, 0, sizeof("evt.around") - 1) == "evt.around")
 	{
 		m_field_id = TYPE_AROUND;
 		m_field = &m_info.m_fields[m_field_id];
 
-		return extract_arg("evt.around", val, NULL);
+		res = extract_arg("evt.around", val, NULL);
 	}
 	else if(string(val, 0, sizeof("evt.latency") - 1) == "evt.latency" ||
 		string(val, 0, sizeof("evt.latency.s") - 1) == "evt.latency.s" ||
@@ -2236,7 +2260,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint16_t));
 		}
 
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
 	}
 	else if(string(val, 0, sizeof("evt.abspath") - 1) == "evt.abspath")
 	{
@@ -2260,19 +2284,26 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 			throw sinsp_exception("wrong syntax for evt.abspath");
 		}
 
-		return (int32_t)val.size() + 1;
+		res = (int32_t)val.size() + 1;
 	}
 	else if(string(val, 0, sizeof("evt.type.is") - 1) == "evt.type.is")
 	{
 		m_field_id = TYPE_TYPE_IS;
 		m_field = &m_info.m_fields[m_field_id];
 
-		return extract_type("evt.type.is", val, NULL);
+		res = extract_type("evt.type.is", val, NULL);
 	}
 	else
 	{
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
 	}
+
+	if(m_field_id >= TYPE_TRACER_ID && m_field_id <= TYPE_TRACER_ARG)
+	{
+		m_inspector->request_tracer_state_tracking();
+	}
+
+	return res;
 }
 
 void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
@@ -2639,7 +2670,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 		}
 	}
 
-	if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+	if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 	{
 		pi = evt->get_param_value_raw("fd");
 
@@ -2757,33 +2788,33 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return (uint8_t*)&m_u64val;
 		}
 	case TYPE_LATENCY_QUANTIZED:
-	{
-		if(evt->m_tinfo != NULL)
 		{
-			ppm_event_category ecat = evt->get_info_category();
-			if(ecat & EC_INTERNAL)
+			if(evt->m_tinfo != NULL)
 			{
-				return NULL;
-			}
-
-			uint64_t lat = evt->m_tinfo->m_latency;
-			if(lat != 0)
-			{
-				double llatency = log10((double)lat);
-
-				if(llatency > 11)
+				ppm_event_category ecat = evt->get_info_category();
+				if(ecat & EC_INTERNAL)
 				{
-					llatency = 11;
+					return NULL;
 				}
 
-				m_u64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
+				uint64_t lat = evt->m_tinfo->m_latency;
+				if(lat != 0)
+				{
+					double llatency = log10((double)lat);
 
-				return (uint8_t*)&m_u64val;
+					if(llatency > 11)
+					{
+						llatency = 11;
+					}
+
+					m_u64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
+
+					return (uint8_t*)&m_u64val;
+				}
 			}
-		}
 
-		return NULL;
-	}
+			return NULL;
+		}
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
 	case TYPE_DELTA_NS:
@@ -3165,7 +3196,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return (uint8_t*)pi->m_val;
 			}
 
-			if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
 				pi = evt->get_param_value_raw("fd");
 
@@ -3214,7 +3245,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else
 			{
-				if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+				if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 				{
 					pi = evt->get_param_value_raw("fd");
 
@@ -3258,7 +3289,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_u32val = 1;
 				}
 			}
-			else if((evt->get_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
+			else if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
 				pi = evt->get_param_value_raw("fd");
 
@@ -3277,7 +3308,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		break;
 	case TYPE_ISIO:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & (EF_READS_FROM_FD | EF_WRITES_TO_FD))
 			{
 				m_u32val = 1;
@@ -3291,7 +3322,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_ISIO_READ:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_READS_FROM_FD)
 			{
 				m_u32val = 1;
@@ -3305,7 +3336,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_ISIO_WRITE:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				m_u32val = 1;
@@ -3319,7 +3350,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_IODIR:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				m_strstorage = "write";
@@ -3337,7 +3368,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_ISWAIT:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & (EF_WAITS))
 			{
 				m_u32val = 1;
@@ -3351,7 +3382,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u32val;
 	case TYPE_WAIT_LATENCY:
 		{
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			uint16_t etype = evt->m_pevt->type;
 
 			if(eflags & (EF_WAITS) && PPME_IS_EXIT(etype))
@@ -3376,7 +3407,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			m_u32val = 0;
 
-			ppm_event_flags eflags = evt->get_flags();
+			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
 				sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
@@ -3631,6 +3662,251 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	return NULL;
 }
 
+inline bool sinsp_filter_check_event::compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae)
+{
+	ASSERT(pae);
+
+	switch(m_field_id)
+	{
+	case TYPE_TRACER_ID:
+		if(flt_compare(m_cmpop, PT_UINT64, 
+			&pae->m_id,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_TRACER_NTAGS:
+		m_u32val = (uint32_t)pae->m_tags.size();
+
+		if(flt_compare(m_cmpop, PT_UINT32, 
+			&m_u32val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_TRACER_NARGS:
+		m_u32val = (uint32_t)pae->m_argvals.size();
+
+		if(flt_compare(m_cmpop, PT_UINT32, 
+			&m_u32val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_TRACER_TAGS:
+	{
+		vector<char*>::iterator it;
+		vector<uint32_t>::iterator sit;
+
+		uint32_t encoded_tags_len = pae->m_tags_len + pae->m_ntags + 1;
+
+		if(m_storage_size < encoded_tags_len)
+		{
+			m_storage = (char*)realloc(m_storage, encoded_tags_len);
+			m_storage_size = encoded_tags_len;
+		}
+
+		char* p = m_storage;
+
+		for(it = pae->m_tags.begin(), sit = pae->m_taglens.begin(); 
+		it != pae->m_tags.end(); ++it, ++sit)
+		{
+			memcpy(p, *it, (*sit));
+			p += (*sit);
+			*p++ = ',';
+		}
+
+		if(p != m_storage)
+		{
+			*--p = 0;
+		}
+		else
+		{
+			*p = 0;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF, 
+			m_storage,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_TRACER_TAG:
+	{
+		char* val = NULL;
+
+		if(m_argid >= 0)
+		{
+			if(m_argid < (int32_t)pae->m_ntags)
+			{
+				val = pae->m_tags[m_argid];
+			}
+		}
+		else
+		{
+			int32_t id = (int32_t)pae->m_ntags + m_argid;
+
+			if(id >= 0)
+			{
+				val = pae->m_tags[id];
+			}
+		}
+
+		if(val == NULL)
+		{
+			return false;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF, 
+			val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_TRACER_ARGS:
+	{
+		vector<char*>::iterator nameit;
+		vector<char*>::iterator valit;
+		vector<uint32_t>::iterator namesit;
+		vector<uint32_t>::iterator valsit;
+
+		uint32_t nargs = (uint32_t)pae->m_argnames.size();
+		uint32_t encoded_args_len = pae->m_argnames_len + pae->m_argvals_len +
+			nargs + nargs + 2;
+
+		if(m_storage_size < encoded_args_len)
+		{
+			m_storage = (char*)realloc(m_storage, encoded_args_len);
+			m_storage_size = encoded_args_len;
+		}
+
+		char* p = m_storage;
+
+		for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(), 
+			namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin(); 
+			nameit != pae->m_argnames.end(); 
+			++nameit, ++namesit, ++valit, ++valsit)
+		{
+			strcpy(p, *nameit);
+			p += (*namesit);
+			*p++ = ':';
+
+			memcpy(p, *valit, (*valsit));
+			p += (*valsit);
+			*p++ = ',';
+		}
+
+		if(p != m_storage)
+		{
+			*--p = 0;
+		}
+		else
+		{
+			*p = 0;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF, 
+			m_storage,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_TRACER_ARG:
+	{
+		char* val = NULL;
+
+		if(m_argid == TEXT_ARG_ID)
+		{
+			//
+			// Argument expressed as name, e.g. evtin.tracer.arg.name.
+			// Scan the argname list and find the match.
+			//
+			uint32_t j;
+
+			for(j = 0; j < pae->m_nargs; j++)
+			{
+				if(strcmp(m_cargname, pae->m_argnames[j]) == 0)
+				{
+					val = pae->m_argvals[j];
+					break;
+				}
+			}
+		}
+		else
+		{
+			//
+			// Argument expressed as id, e.g. evtin.tracer.arg[1].
+			// Pick the corresponding value.
+			//
+			if(m_argid >= 0)
+			{
+				if(m_argid < (int32_t)pae->m_nargs)
+				{
+					val = pae->m_argvals[m_argid];
+				}
+			}
+			else
+			{
+				int32_t id = (int32_t)pae->m_nargs + m_argid;
+
+				if(id >= 0)
+				{
+					val = pae->m_argvals[id];
+				}
+			}
+		}
+
+		if(val == NULL)
+		{
+			return false;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF, 
+			val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return NULL;
+}
+
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 {
 	bool res;
@@ -3672,11 +3948,67 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 
 		return res1 && res2;
 	}
+	else if(m_field_id >= TYPE_TRACER_ID && m_field_id <= TYPE_TRACER_ARG)
+	{
+		list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
+		list<sinsp_partial_tracer*>::iterator it;
+		uint16_t etype = evt->get_type();
+
+		sinsp_threadinfo* tinfo = evt->get_thread_info();
+		if(tinfo == NULL)
+		{
+			res = false;
+			goto fcec_end;
+		}
+
+		//
+		// Scan the list and see if there's a match
+		//
+		for(it = partial_tracers_list->begin(); it != partial_tracers_list->end(); ++it)
+		{
+			if(compare_tracer(evt, *it) == true)
+			{
+				res = true;
+				goto fcec_end;
+			}
+		}
+
+		//
+		// For PPME_TRACER_X events, it's possible that the pae is already returned to the pool.
+		// Get it from the parser.
+		//
+		if(etype == PPME_TRACER_X)
+		{
+			sinsp_tracerparser* eparser = tinfo->m_tracer_parser;
+
+			if(eparser == NULL)
+			{
+				ASSERT(false);
+				res = false;
+				goto fcec_end;
+			}
+
+			if(eparser->m_enter_pae == NULL)
+			{
+				res = false;
+				goto fcec_end;
+			}
+
+			if(compare_tracer(evt, eparser->m_enter_pae) == true)
+			{
+				res = true;
+				goto fcec_end;
+			}
+		}
+
+		res = false;
+	}
 	else
 	{
 		res = sinsp_filter_check::compare(evt);
 	}
 
+fcec_end:
 	m_is_compare = false;
 
 	return res;
@@ -3817,6 +4149,554 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return (uint8_t*)ginfo->name;
 		}
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_tracer implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
+{
+	{PT_INT64, EPF_NONE, PF_ID, "tracer.id", "tracer ID. This is a unique identifier that is used to match the enter and exit event for this tracer. It can also be used to match different tracers belonging to a transaction."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "tracer.ntags", "number of tags that this tracer has."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "tracer.nargs", "number of arguments that this tracer has."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "tracer.tags", "dot-separated list of event tags."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "tracer.tag", "one of the tracer tags specified by offset. E.g. 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.tag[-1]' returns the last tag."},
+	{ PT_CHARBUF, EPF_NONE, PF_NA, "tracer.args", "comma-separated list of event arguments." },
+	{ PT_CHARBUF, EPF_NONE, PF_NA, "tracer.arg", "one of the tracer arguments specified by name or by offset. E.g. 'tracer.tag.mytag' or 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.arg[-1]' returns the last argument." },
+	{ PT_CHARBUF, EPF_NONE, PF_NA, "tracer.enterargs", "comma-separated list of the tracer enter event arguments. For enter events, this is the same as evt.args. For exit events, this is the evt.args of the corresponding enter event." },
+	{ PT_CHARBUF, EPF_NONE, PF_NA, "tracer.enterarg", "one of the tracer enter arguments specified by name or by offset. For enter events, this is the same as evt.arg. For exit events, this is the evt.arg of the corresponding enter event." },
+	{PT_RELTIME, EPF_NONE, PF_DEC, "tracer.latency", "delta between an exit tracer event and the correspondent enter event."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "tracer.latency.quantized", "10-base log of the delta between an exit tracer event and the correspondent enter event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "tracer.latency.human", "delta between an exit tracer event and the correspondent enter event, as a human readable string (e.g. 10.3ms)."},
+	{PT_RELTIME, EPF_TABLE_ONLY, PF_DEC, "tracer.latency.fortag", "Latency of the tracer if the number of tags matches the field argument, otherwise 0. For example, tracer.latency.fortag[1] returns the latency of all the tracers with 1 tag, and zero for all the other ones."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "tracer.count", "1 for tracer exit events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "tracer.count.fortag", "1 if the tracer's number of tags matches the field argument, and zero for all the other ones."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "tracer.childcount.fortag", "1 if the tracer's number of tags is greater than the field argument, and zero for all the other ones."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "tracer.idtag", "id used by the tracer list csysdig view."},
+};
+
+sinsp_filter_check_tracer::sinsp_filter_check_tracer()
+{
+	m_info.m_name = "tracer";
+	m_info.m_fields = sinsp_filter_check_tracer_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_tracer_fields) / sizeof(sinsp_filter_check_tracer_fields[0]);
+	m_converter = new sinsp_filter_check_reference();
+
+	m_storage_size = UESTORAGE_INITIAL_BUFSIZE;
+	m_storage = (char*)malloc(m_storage_size);
+	if(m_storage == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_filter_check_tracer::sinsp_filter_check_tracer");
+	}
+
+	m_cargname = NULL;
+}
+
+sinsp_filter_check_tracer::~sinsp_filter_check_tracer()
+{
+	if(m_converter != NULL)
+	{
+		delete m_converter;
+	}
+}
+
+sinsp_filter_check* sinsp_filter_check_tracer::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_tracer();
+}
+
+int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+{
+	uint32_t parsed_len = 0;
+
+	//
+	// 'arg' and 'resarg' are handled in a custom way
+	//
+	if(val[fldname.size()] == '[')
+	{
+		if(parinfo != NULL)
+		{
+			throw sinsp_exception("tracer field must be expressed explicitly");
+		}
+
+		parsed_len = (uint32_t)val.find(']');
+		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+		m_argid = sinsp_numparser::parsed32(numstr);
+		parsed_len++;
+	}
+	else if(val[fldname.size()] == '.')
+	{
+		if(fldname == "tracer.tag")
+		{
+			throw sinsp_exception("invalid syntax for tracer.tag");
+		}
+		else if(fldname == "tracer.idtag")
+		{
+			throw sinsp_exception("invalid syntax for tracer.idtag");
+		}
+
+		m_argname = val.substr(fldname.size() + 1);
+		m_cargname = m_argname.c_str();
+		parsed_len = (uint32_t)(fldname.size() + m_argname.size() + 1);
+		m_argid = TEXT_ARG_ID;
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len; 
+}
+
+int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_state)
+{
+	int32_t res;
+	string val(str);
+
+	//
+	// A couple of fields are handled in a custom way
+	//
+	if(string(val, 0, sizeof("tracer.tag") - 1) == "tracer.tag" &&
+		string(val, 0, sizeof("tracer.tags") - 1) != "tracer.tags")
+	{
+		m_field_id = TYPE_TAG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("tracer.tag", val, NULL);
+	}
+	else if (string(val, 0, sizeof("tracer.arg") - 1) == "tracer.arg" &&
+		string(val, 0, sizeof("tracer.args") - 1) != "tracer.args")
+	{
+		m_field_id = TYPE_ARG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("tracer.arg", val, NULL);
+	}
+	else if (string(val, 0, sizeof("tracer.enterarg") - 1) == "tracer.enterarg" &&
+		string(val, 0, sizeof("tracer.enterargs") - 1) != "tracer.enterargs")
+	{
+		m_field_id = TYPE_ENTERARG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("tracer.enterarg", val, NULL);
+	}
+	else if(string(val, 0, sizeof("tracer.latency.fortag") - 1) == "tracer.latency.fortag")
+	{
+		m_field_id = TYPE_TAGLATENCY;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("tracer.latency.fortag", val, NULL);
+	}
+	else if(string(val, 0, sizeof("tracer.count.fortag") - 1) == "tracer.count.fortag")
+	{
+		m_field_id = TYPE_TAGCOUNT;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("tracer.count.fortag", val, NULL);
+	}
+	else if(string(val, 0, sizeof("tracer.childcount.fortag") - 1) == "tracer.childcount.fortag")
+	{
+		m_field_id = TYPE_TAGCHILDSCOUNT;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("tracer.childcount.fortag", val, NULL);
+	}
+	else if(string(val, 0, sizeof("tracer.idtag") - 1) == "tracer.idtag")
+	{
+		m_field_id = TYPE_IDTAG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("tracer.idtag", val, NULL);
+	}
+	else
+	{
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+	}
+
+	if(m_field_id == TYPE_LATENCY ||
+		m_field_id == TYPE_LATENCY_QUANTIZED ||
+		m_field_id == TYPE_LATENCY_HUMAN ||
+		m_field_id == TYPE_TAGLATENCY ||
+		m_field_id == TYPE_ARG ||
+		m_field_id == TYPE_ARGS ||
+		m_field_id == TYPE_ENTERARG ||
+		m_field_id == TYPE_ENTERARGS ||
+		m_field_id == TYPE_IDTAG
+		)
+	{
+		m_inspector->request_tracer_state_tracking();
+	}
+
+	return res;
+}
+
+int64_t* sinsp_filter_check_tracer::extract_latency(uint16_t etype, sinsp_tracerparser* eparser)
+{
+	if(etype == PPME_TRACER_X)
+	{
+		sinsp_partial_tracer* pae = eparser->m_enter_pae;
+		if(pae == NULL)
+		{
+			return NULL;
+		}
+
+		m_s64val = eparser->m_exit_pae.m_time - pae->m_time;
+		if(m_s64val < 0)
+		{
+			ASSERT(false);
+			m_s64val = 0;
+		}
+
+		return &m_s64val;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae)
+{
+	if(pae == NULL)
+	{
+		return NULL;
+	}
+
+	vector<char*>::iterator nameit;
+	vector<char*>::iterator valit;
+	vector<uint32_t>::iterator namesit;
+	vector<uint32_t>::iterator valsit;
+
+	uint32_t nargs = (uint32_t)pae->m_argnames.size();
+	uint32_t encoded_args_len = pae->m_argnames_len + pae->m_argvals_len +
+	nargs + nargs + 2;
+
+	if (m_storage_size < encoded_args_len)
+	{
+		m_storage = (char*)realloc(m_storage, encoded_args_len);
+		m_storage_size = encoded_args_len;
+	}
+
+	char* p = m_storage;
+
+	for (nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(),
+		namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin();
+		nameit != pae->m_argnames.end();
+		++nameit, ++namesit, ++valit, ++valsit)
+	{
+		strcpy(p, *nameit);
+		p += (*namesit);
+		*p++ = '=';
+
+		memcpy(p, *valit, (*valsit));
+		p += (*valsit);
+		*p++ = ',';
+	}
+
+	if (p != m_storage)
+	{
+		*--p = 0;
+	}
+	else
+	{
+		*p = 0;
+	}
+
+	return (uint8_t*)m_storage;
+}
+
+uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
+{
+	char* res = NULL;
+
+	if (pae == NULL)
+	{
+		return NULL;
+	}
+
+	if (m_argid == TEXT_ARG_ID)
+	{
+		//
+		// Argument expressed as name, e.g. tracer.arg.name.
+		// Scan the argname list and find the match.
+		//
+		uint32_t j;
+
+		for (j = 0; j < pae->m_nargs; j++)
+		{
+			if (strcmp(m_cargname, pae->m_argnames[j]) == 0)
+			{
+				res = pae->m_argvals[j];
+				break;
+			}
+		}
+	}
+	else
+	{
+		//
+		// Argument expressed as id, e.g. tracer.arg[1].
+		// Pick the corresponding value.
+		//
+		if (m_argid >= 0)
+		{
+			if (m_argid < (int32_t)pae->m_nargs)
+			{
+				res = pae->m_argvals[m_argid];
+			}
+		}
+		else
+		{
+			int32_t id = (int32_t)pae->m_nargs + m_argid;
+
+			if (id >= 0)
+			{
+				res = pae->m_argvals[id];
+			}
+		}
+	}
+
+	return (uint8_t*)res;
+}
+
+uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	sinsp_tracerparser* eparser;
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	uint16_t etype = evt->get_type();
+
+	if(etype != PPME_TRACER_E && etype != PPME_TRACER_X)
+	{
+		return NULL;
+	}
+
+	if(tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	eparser = tinfo->m_tracer_parser;
+
+	if(eparser == NULL)
+	{
+		return NULL;
+	}
+
+	switch(m_field_id)
+	{
+	case TYPE_ID:
+		return (uint8_t*)&eparser->m_id;
+	case TYPE_NTAGS:
+		m_u32val = (uint32_t)eparser->m_tags.size();
+		return (uint8_t*)&m_u32val;
+	case TYPE_NARGS:
+		{
+			sinsp_partial_tracer* pae = eparser->m_enter_pae;
+			if(pae == NULL)
+			{
+				return NULL;
+			}
+
+			m_u32val = (uint32_t)pae->m_argvals.size();
+			return (uint8_t*)&m_u32val;
+		}
+	case TYPE_TAGS:
+		{
+			vector<char*>::iterator it;
+			vector<uint32_t>::iterator sit;
+
+			uint32_t ntags = (uint32_t)eparser->m_tags.size();
+			uint32_t encoded_tags_len = eparser->m_tot_taglens + ntags + 1;
+
+			if(m_storage_size < encoded_tags_len)
+			{
+				m_storage = (char*)realloc(m_storage, encoded_tags_len);
+				m_storage_size = encoded_tags_len;
+			}
+
+			char* p = m_storage;
+
+			for(it = eparser->m_tags.begin(), sit = eparser->m_taglens.begin(); 
+				it != eparser->m_tags.end(); ++it, ++sit)
+			{
+				memcpy(p, *it, (*sit));
+				p += (*sit);
+				*p++ = '.';
+			}
+
+			if(p != m_storage)
+			{
+				*--p = 0;
+			}
+			else
+			{
+				*p = 0;
+			}
+
+			return (uint8_t*)m_storage;
+		}
+	case TYPE_TAG:
+		{
+			char* res = NULL;
+
+			if(m_argid >= 0)
+			{
+				if(m_argid < (int32_t)eparser->m_tags.size())
+				{
+					res = eparser->m_tags[m_argid];
+				}
+			}
+			else
+			{
+				int32_t id = (int32_t)eparser->m_tags.size() + m_argid;
+
+				if(id >= 0)
+				{
+					res = eparser->m_tags[id];
+				}
+			}
+
+			return (uint8_t*)res;
+		}
+	case TYPE_IDTAG:
+		{
+			m_strstorage = to_string(eparser->m_id);
+
+			if(m_argid >= 0)
+			{
+				if(m_argid < (int32_t)eparser->m_tags.size())
+				{
+					m_strstorage += eparser->m_tags[m_argid];
+				}
+			}
+			else
+			{
+				int32_t id = (int32_t)eparser->m_tags.size() + m_argid;
+
+				if(id >= 0)
+				{
+					m_strstorage += eparser->m_tags[id];
+				}
+			}
+
+			return (uint8_t*)m_strstorage.c_str();
+		}
+	case TYPE_ARGS:
+		if (PPME_IS_ENTER(etype))
+		{
+			return extract_args(eparser->m_enter_pae);
+		}
+		else
+		{
+			return extract_args(&eparser->m_exit_pae);
+		}
+	case TYPE_ARG:
+		if (PPME_IS_ENTER(etype))
+		{
+			return extract_arg(eparser->m_enter_pae);
+		}
+		else
+		{
+			return extract_arg(&eparser->m_exit_pae);
+		}
+	case TYPE_ENTERARGS:
+		return extract_args(eparser->m_enter_pae);
+	case TYPE_ENTERARG:
+		return extract_arg(eparser->m_enter_pae);
+	case TYPE_LATENCY:
+		return (uint8_t*)extract_latency(etype, eparser);
+	case TYPE_LATENCY_HUMAN:
+		{
+			if(extract_latency(etype, eparser) == NULL)
+			{
+				return NULL;
+			}
+			else
+			{
+				m_converter->set_val(PT_RELTIME, 
+					(uint8_t*)&m_s64val,
+					8,
+					0,
+					ppm_print_format::PF_DEC);
+
+				m_strstorage = m_converter->tostring_nice(NULL, 0, 1000000000);
+			}
+
+			return (uint8_t*)m_strstorage.c_str();
+		}
+	case TYPE_LATENCY_QUANTIZED:
+		{
+			if(extract_latency(etype, eparser) == NULL)
+			{				
+				return NULL;
+			}
+			else
+			{
+				uint64_t lat = m_s64val;
+				if(lat != 0)
+				{
+					double llatency = log10((double)lat);
+
+					if(llatency > 11)
+					{
+						llatency = 11;
+					}
+
+					m_s64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
+
+					return (uint8_t*)&m_s64val;
+				}
+			}
+
+			return NULL;
+		}
+	case TYPE_TAGLATENCY:
+		if((int32_t)eparser->m_tags.size() - 1 == m_argid)
+		{
+			return (uint8_t*)extract_latency(etype, eparser);
+		}
+		else
+		{
+			return NULL;
+		}
+	case TYPE_COUNT:
+		if(evt->get_type() == PPME_TRACER_X)
+		{
+			m_s64val = 1;
+		}
+		else
+		{
+			m_s64val = 0;
+		}
+
+		return (uint8_t*)&m_s64val;
+	case TYPE_TAGCOUNT:
+		if(PPME_IS_EXIT(evt->get_type()) && (int32_t)eparser->m_tags.size() - 1 == m_argid)
+		{
+			m_s64val = 1;
+		}
+		else
+		{
+			m_s64val = 0;
+		}
+
+		return (uint8_t*)&m_s64val;
+	case TYPE_TAGCHILDSCOUNT:
+		if(PPME_IS_EXIT(evt->get_type()) && (int32_t)eparser->m_tags.size() > m_argid + 1)
+		{
+			m_s64val = 1;
+		}
+		else
+		{
+			m_s64val = 0;
+		}
+
+		return (uint8_t*)&m_s64val;
 	default:
 		ASSERT(false);
 		break;

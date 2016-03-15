@@ -26,6 +26,39 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 
 ///////////////////////////////////////////////////////////////////////////////
+// sinsp_view_column_info implementation
+///////////////////////////////////////////////////////////////////////////////
+string sinsp_view_column_info::get_field(uint32_t depth)
+{
+	// Trim the string
+	replace_in_place(m_field, " ", "");
+	replace_in_place(m_field, "\t", "");
+
+	if(m_field.find("%depth-1") != string::npos)
+	{
+		string res = m_field;
+		replace_in_place(res, "%depth-1", to_string(depth - 1));
+		return res;
+	}
+	else if(m_field.find("%depth+1") != string::npos)
+	{
+		string res = m_field;
+		replace_in_place(res, "%depth+1", to_string(depth - 1));
+		return res;
+	}
+	else if(m_field.find("%depth") != string::npos)
+	{
+		string res = m_field;
+		replace_in_place(res, "%depth", to_string(depth));
+		return res;
+	}
+	else
+	{
+		return m_field;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // sinsp_view_info implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_view_info::sinsp_view_info()
@@ -45,7 +78,10 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	string drilldown_target,
 	bool use_defaults,
 	bool is_root,
-	vector<sinsp_view_action_info> actions)
+	vector<sinsp_view_action_info> actions,
+	bool drilldown_increase_depth,
+	string spectro_type,
+	bool propagate_filter)
 {
 	m_id = id;
 	m_name = name;
@@ -58,6 +94,9 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	m_drilldown_target = drilldown_target;
 	m_is_root = is_root;
 	m_applies_to = applies_to;
+	m_drilldown_increase_depth = drilldown_increase_depth;
+	m_spectro_type = spectro_type;
+	m_propagate_filter = propagate_filter;
 
 	m_use_defaults = use_defaults;
 	
@@ -212,6 +251,57 @@ void sinsp_view_info::move_key_to_front(uint32_t keyflag)
 			m_columns.insert(m_columns.begin(), ci);
 			return;
 		}
+	}
+}
+
+sinsp_view_column_info* sinsp_view_info::get_key()
+{
+	for(uint32_t j = 0; j < m_columns.size(); j++)
+	{
+		if((m_columns[j].m_flags & TEF_IS_GROUPBY_KEY) != 0)
+		{
+			return &m_columns[j];
+		}
+	}
+
+	for(uint32_t j = 0; j < m_columns.size(); j++)
+	{
+		if((m_columns[j].m_flags & TEF_IS_KEY) != 0)
+		{
+			return &m_columns[j];
+		}
+	}
+
+	// The *must* be a key
+	ASSERT(false);
+	return NULL;
+}
+
+string sinsp_view_info::get_filter(uint32_t depth)
+{
+	if(m_filter.find("%depth+1") != string::npos)
+	{
+		string res = m_filter;
+		replace_in_place(res, "%depth+1", to_string(depth + 1));
+		replace_in_place(res, "%depth + 1", to_string(depth + 1));
+		return res;
+	}
+	else if(m_filter.find("%depth-1") != string::npos)
+	{
+		string res = m_filter;
+		replace_in_place(res, "%depth-1", to_string(depth - 1));
+		replace_in_place(res, "%depth - 1", to_string(depth - 1));
+		return res;
+	}
+	else if(m_filter.find("%depth") != string::npos)
+	{
+		string res = m_filter;
+		replace_in_place(res, "%depth", to_string(depth));
+		return res;
+	}
+	else
+	{
+		return m_filter;
 	}
 }
 

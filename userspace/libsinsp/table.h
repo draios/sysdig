@@ -229,7 +229,7 @@ public:
 
 	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout);
 	~sinsp_table();
-	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults);
+	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	void filter_sample();
@@ -291,6 +291,7 @@ private:
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields_max(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
+	inline void add_fields_min(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr);
 	void process_proctable(sinsp_evt* evt);
 	inline uint32_t get_field_len(uint32_t id);
@@ -344,6 +345,7 @@ private:
 	string m_freetext_filter;
 	tabletype m_type;
 	bool m_print_to_stdout;
+	uint32_t m_view_depth;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

@@ -61,6 +61,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <queue>
 #include <vector>
 #include <set>
+#include <list>
 
 using namespace std;
 
@@ -74,6 +75,7 @@ using namespace std;
 #include "ifinfo.h"
 #include "container.h"
 #include "viewinfo.h"
+#include "utils.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -106,6 +108,7 @@ class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
 class k8s;
+class sinsp_partial_tracer;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -671,6 +674,15 @@ public:
 	}
 
 	//
+	// Used by filters to enable app event state tracking, which is disabled
+	// by default for performance reasons
+	//
+	void request_tracer_state_tracking()
+	{
+		m_track_tracers_state = true;
+	}
+
+	//
 	// Allocates private state in the thread info class.
 	// Returns the ID to use when retrieving the memory area.
 	// Will fail if called after the capture starts.
@@ -870,12 +882,19 @@ private:
 #endif
 
 	//
+	// App events 
+	//
+	bool m_track_tracers_state;
+	list<sinsp_partial_tracer*> m_partial_tracers_list;
+	simple_lifo_queue<sinsp_partial_tracer>* m_partial_tracers_pool;
+
+	//
 	// Protocol decoding state
 	//
 	vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	//
-	// Meta event management
+	// Containers meta event management
 	//
 	sinsp_evt m_meta_evt; // XXX this should go away 
 	char* m_meta_evt_buf; // XXX this should go away 
@@ -908,6 +927,8 @@ private:
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
+	friend class sinsp_tracerparser;
+	friend class sinsp_filter_check_event;
 	friend class sinsp_protodecoder;
 	friend class lua_cbacks;
 	friend class sinsp_filter_check_container;
@@ -915,7 +936,6 @@ private:
 	friend class sinsp_table;
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
-	friend class sinsp_filter_check_event;
 	friend class sinsp_filter_check_k8s;
 	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;

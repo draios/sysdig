@@ -1,5 +1,5 @@
 --[[
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2015 Draios inc.
  
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as

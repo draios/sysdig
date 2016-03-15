@@ -437,6 +437,13 @@ public:
 		TYPE_BUFLEN_NET = 57,
 		TYPE_BUFLEN_NET_IN = 58,
 		TYPE_BUFLEN_NET_OUT = 59,
+		TYPE_TRACER_ID = 60,
+		TYPE_TRACER_NTAGS = 61,
+		TYPE_TRACER_NARGS = 62,
+		TYPE_TRACER_TAGS = 63,
+		TYPE_TRACER_TAG = 64,
+		TYPE_TRACER_ARGS = 65,
+		TYPE_TRACER_ARG = 66,
 	};
 
 	sinsp_filter_check_event();
@@ -473,8 +480,12 @@ private:
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
+	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;
+	char* m_storage;
+	uint32_t m_storage_size;
+	const char* m_cargname;
 	sinsp_filter_check_reference* m_converter;
 };
 
@@ -518,6 +529,58 @@ public:
 
 	uint32_t m_gid;
 	string m_name;
+};
+
+//
+// Application events
+//
+#define TEXT_ARG_ID -1000000
+
+class sinsp_filter_check_tracer : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_ID = 0,
+		TYPE_NTAGS,
+		TYPE_NARGS,
+		TYPE_TAGS,
+		TYPE_TAG,
+		TYPE_ARGS,
+		TYPE_ARG,
+		TYPE_ENTERARGS,
+		TYPE_ENTERARG,
+		TYPE_LATENCY,
+		TYPE_LATENCY_QUANTIZED,
+		TYPE_LATENCY_HUMAN,
+		TYPE_TAGLATENCY,
+		TYPE_COUNT,
+		TYPE_TAGCOUNT,
+		TYPE_TAGCHILDSCOUNT,
+		TYPE_IDTAG,
+	};
+
+	sinsp_filter_check_tracer();
+	~sinsp_filter_check_tracer();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	inline int64_t* extract_latency(uint16_t etype, sinsp_tracerparser* eparser);
+	uint8_t* extract_args(sinsp_partial_tracer* pae);
+	uint8_t* extract_arg(sinsp_partial_tracer* pae);
+
+	int32_t m_argid;
+	string m_argname;
+	const char* m_cargname;
+	char* m_storage;
+	uint32_t m_storage_size;
+	int64_t m_s64val;
+	int32_t m_u32val;
+	sinsp_filter_check_reference* m_converter;
+	string m_strstorage;
 };
 
 //

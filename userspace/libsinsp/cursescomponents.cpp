@@ -581,7 +581,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, bool is_spectro_drilldown)
+curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, sysdig_output_type sotype)
 {
 	ASSERT(inspector != NULL);
 	ASSERT(parent != NULL);
@@ -615,7 +615,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	//
 	if(m_viz_type == VIEW_ID_DIG)
 	{
-		if(is_spectro_drilldown)
+		if(sotype == OT_LATENCY)
 		{
 			if(m_parent->m_print_containers)
 			{
@@ -626,6 +626,19 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector, 
 					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
+			}
+		}
+		else if(sotype == OT_LATENCY_APP)
+		{
+			if(m_parent->m_print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, 
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, 
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
 			}
 		}
 		else
@@ -746,7 +759,7 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	//
 	// Drop any non I/O event
 	//
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
 	{
@@ -1433,13 +1446,13 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	//
 	// If there's a filter, print it 
 	//
-	if(vinfo->m_filter != "")
+	if(vinfo->get_filter(m_parent->m_view_depth) != "")
 	{
 		wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 		m_ctext->printf("Filter\n");
 
 		wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-		m_ctext->printf("%s\n\n", vinfo->m_filter.c_str());
+		m_ctext->printf("%s\n\n", vinfo->get_filter(m_parent->m_view_depth).c_str());
 	}
 
 	//
