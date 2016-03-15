@@ -1261,8 +1261,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			// Launch the capture
 			//
-			bool open_success = true;
-
 			if(infiles.size() != 0)
 			{
 				initialize_chisels();
@@ -1285,6 +1283,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// No file to open, this is a live capture
 				//
 #if defined(HAS_CAPTURE)
+				bool open_success = true;
+				
 				if(print_progress)
 				{
 					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
