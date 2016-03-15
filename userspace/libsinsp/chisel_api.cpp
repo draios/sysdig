@@ -20,7 +20,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <fstream>
 #include <cctype>
 #include <locale>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -1251,6 +1253,54 @@ int lua_cbacks::log(lua_State *ls)
 	}
 
 	g_logger.log(message, sevcode);
+
+	return 0;
+}
+
+int lua_cbacks::udp_setpeername(lua_State *ls) 
+{
+	lua_getglobal(ls, "sichisel");
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+
+	string addr(lua_tostring(ls, 1));
+	string ports(lua_tostring(ls, 2));
+	uint16_t port = htons(sinsp_numparser::parseu16(ports));
+
+	ch->m_udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
+	if(ch->m_udp_socket < 0)
+	{
+		string err = "udp_setpeername error: unable to create the socket";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
+
+	memset(&ch->m_serveraddr, 0, sizeof(ch->m_serveraddr));
+	ch->m_serveraddr.sin_family = AF_INET;
+	ch->m_serveraddr.sin_port = port;
+	if(inet_pton(AF_INET, addr.c_str(), &ch->m_serveraddr.sin_addr) <= 0)
+	{
+		string err = "inet_pton error occured";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
+
+	return 0;
+}
+
+int lua_cbacks::udp_send(lua_State *ls) 
+{
+	lua_getglobal(ls, "sichisel");
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+
+	string message(lua_tostring(ls, 1));
+
+	if(sendto(ch->m_udp_socket, message.c_str(), message.size(), 0, 
+		(struct sockaddr *)&ch->m_serveraddr, sizeof(ch->m_serveraddr)) < 0)
+	{
+		string err = "udp_send error: cannot send the buffer: ";
+		fprintf(stderr, "%s\n", err.c_str());
+		throw sinsp_exception("chisel error");
+	}
 
 	return 0;
 }

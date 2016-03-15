@@ -118,6 +118,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 	struct event_data_t *event_datap);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
+static int ppe_open(struct inode *inode, struct file *filp);
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
 
@@ -147,6 +148,7 @@ static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
+bool g_ppe_events_enabled = false;
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -157,6 +159,7 @@ static const struct file_operations g_ppm_fops = {
 
 /* Events file operations */
 static const struct file_operations g_ppe_fops = {
+	.open = ppe_open,
 	.write = ppe_write,
 	.owner = THIS_MODULE,
 };
@@ -1101,6 +1104,15 @@ cleanup_mmap:
 	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
+}
+
+/*
+ * User events device operations
+ */
+static int ppe_open(struct inode *inode, struct file *filp)
+{
+	g_ppe_events_enabled = true;
+	return 0;
 }
 
 static ssize_t ppe_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)

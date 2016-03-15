@@ -40,6 +40,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
+#include "tracers.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer_thread.h"
@@ -51,11 +52,32 @@ bool should_drop(sinsp_evt *evt);
 extern sinsp_protodecoder_list g_decoderlist;
 extern sinsp_evttables g_infotables;
 
+#if 0
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
 	m_fd_listener(NULL)
 {
+	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
+	m_inspector->m_partial_tracers_pool = new simple_lifo_queue<sinsp_partial_tracer>(128);
+
+	sinsp_tracerparser p(inspector);
+	p.test();
+}
+#else
+sinsp_parser::sinsp_parser(sinsp *inspector) :
+	m_inspector(inspector),
+	m_tmp_evt(m_inspector),
+	m_fd_listener(NULL)
+{
+	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
+
+	//
+	// Note: allocated here instead of in the sinsp constructor because sinsp_partial_tracer
+	//       is not defined in sinsp.cpp
+	//
+	m_inspector->m_partial_tracers_pool = new simple_lifo_queue<sinsp_partial_tracer>(128);
+
 	m_k8s_metaevents_state.m_piscapevt = (scap_evt*)new char[SP_EVT_BUF_SIZE];
 	m_k8s_metaevents_state.m_piscapevt->type = PPME_K8S_E;
 
@@ -67,6 +89,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_k8s_metaevents_state.m_metaevt.m_pevt = m_k8s_metaevents_state.m_piscapevt;
 	m_k8s_metaevents_state.m_metaevt.m_fdinfo = NULL;
 }
+#endif
 
 sinsp_parser::~sinsp_parser()
 {
@@ -83,6 +106,11 @@ sinsp_parser::~sinsp_parser()
 	}
 	m_protodecoders.clear();
 	delete[] m_k8s_metaevents_state.m_piscapevt;
+
+	if(m_inspector->m_partial_tracers_pool != NULL)
+	{
+		delete m_inspector->m_partial_tracers_pool;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,7 +155,37 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 
 	if(m_inspector->m_filter)
 	{
-		ppm_event_flags eflags = evt->get_flags();
+		ppm_event_flags eflags = evt->get_info_flags();
+
+		if(etype == PPME_SYSCALL_WRITE_X)
+		{
+			//
+			// Check if this is a user event
+			//
+			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+
+			if(fdinfo == NULL)
+			{
+				fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+				evt->m_fdinfo = fdinfo;
+			}
+
+			if(fdinfo && fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
+			{
+				eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
+			}
+			else
+			{
+				if(!m_inspector->m_islive)
+				{
+					if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
+					{
+						evt->m_fdinfo = NULL;
+						eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
+					}
+				}
+			}
+		}
 
 		if(eflags & EF_MODIFIES_STATE)
 		{
@@ -141,7 +199,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 				{
 					if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E))
 					{
-						evt->m_tinfo->m_lastevent_type = PPM_SC_MAX;
+						evt->m_tinfo->m_lastevent_type = PPM_EVENT_MAX;
 					}
 				}
 
@@ -178,6 +236,20 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
 		store_event(evt);
+		break;
+	case PPME_SYSCALL_WRITE_E:
+		if(!m_inspector->m_dumper)
+		{
+			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+			if(evt->m_fdinfo)
+			{
+				if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
+				{
+					evt->m_filtered_out = true;
+					return;
+				}
+			}
+		}
 		break;
 	case PPME_SYSCALL_READ_X:
 	case PPME_SYSCALL_WRITE_X:
@@ -359,7 +431,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 #endif
 	//
-	// Offline captures can prodice events with the SCAP_DF_STATE_ONLY. They are
+	// Offline captures can produce events with the SCAP_DF_STATE_ONLY. They are
 	// supposed to go through the engine, but they must be filtered out before 
 	// reaching the user.
 	//
@@ -398,7 +470,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	evt->init();
 
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 	uint16_t etype = evt->get_type();
 
 	evt->m_fdinfo = NULL;
@@ -530,7 +602,11 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		else
 		{
 			tinfo->set_lastevent_data_validity(false);
-			return false;
+
+			if(tinfo->m_lastevent_type != PPME_TRACER_E)
+			{
+				return false;
+			}
 		}
 
 		//
@@ -1683,6 +1759,14 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi.add_filename(fullpath);
 
 		//
+		// If this is a user event fd, mark it with the proper flag
+		//
+		if(fdi.m_name == USER_EVT_DEVICE_NAME)
+		{
+			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FD;
+		}
+
+		//
 		// Add the fd to the table.
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
@@ -2599,18 +2683,115 @@ void sinsp_parser::swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo)
 	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 }
 
+void sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
+{
+	sinsp_threadinfo* tinfo = evt->m_tinfo;
+	ASSERT(tinfo);
+
+	//
+	// Extract the data buffer
+	//
+	sinsp_evt_param *parinfo = evt->get_param(1);
+	char* data = parinfo->m_val;
+	uint32_t datalen = parinfo->m_len;
+	sinsp_tracerparser* p = tinfo->m_tracer_parser;
+
+	if(p == NULL)
+	{
+		p = tinfo->m_tracer_parser = new sinsp_tracerparser(m_inspector);
+	}
+
+	p->m_tinfo = tinfo;
+
+	p->process_event_data(data, datalen, evt->get_ts());
+
+	if(p->m_res == sinsp_tracerparser::RES_TRUNCATED)
+	{
+		if(!m_inspector->m_dumper)
+		{
+			evt->m_filtered_out = true;
+		}
+		return;
+	}
+
+	p->m_args.first = &p->m_argnames;
+	p->m_args.second = &p->m_argvals;
+
+	//
+	// Populate the user event that we will send up the stack instead of the write
+	//
+	uint8_t* fakeevt_storage = (uint8_t*)m_fake_userevt;
+	m_fake_userevt->ts = evt->m_pevt->ts;
+	m_fake_userevt->tid = evt->m_pevt->tid;
+
+	if(p->m_res == sinsp_tracerparser::RES_OK)
+	{
+		if(p->m_type_str[0] == '>')
+		{
+			m_fake_userevt->type = PPME_TRACER_E;
+		}
+		else
+		{
+			m_fake_userevt->type = PPME_TRACER_X;
+		}
+
+		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+		lens[0] = 8;
+		lens[1] = 8;
+		lens[2] = 8;
+
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = p->m_id;
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
+	}
+	else
+	{
+		//
+		// Parsing error.
+		// We don't know the direction, so we use enter.
+		//
+		p->m_argnames.clear();
+		p->m_argvals.clear();
+
+		m_fake_userevt->type = PPME_TRACER_E;
+
+		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+		lens[0] = 8;
+		lens[1] = 8;
+		lens[2] = 8;
+
+		p->m_tags.clear();
+		m_tracer_error_string = "invalid tracer " + string(data, datalen) + ", len" + to_string(datalen);
+		p->m_tags.push_back((char*)m_tracer_error_string.c_str());
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = 0;
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
+	}
+
+	scap_evt* tevt = evt->m_pevt;
+	evt->m_pevt = m_fake_userevt;
+	evt->init();
+	evt->m_poriginal_evt = tevt;
+	evt->m_flags |= (uint32_t)sinsp_evt::SINSP_EF_IS_TRACER;
+
+	//
+	// Update some thread information
+	//
+	tinfo->m_lastevent_fd = -1;
+	tinfo->m_lastevent_type = PPME_TRACER_E;
+	tinfo->m_latency = 0;
+	tinfo->m_last_latency_entertime = 0;
+
+	return;
+}
+
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t tid = evt->get_tid();
 	sinsp_evt *enter_evt = &m_tmp_evt;
-	ppm_event_flags eflags = evt->get_flags();
-
-	if(!evt->m_fdinfo)
-	{
-		return;
-	}
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	//
 	// Extract the return value
@@ -2618,6 +2799,30 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	retval = *(int64_t *)parinfo->m_val;
+
+	if(evt->m_fdinfo == NULL)
+	{
+		if(!m_inspector->m_islive)
+		{
+			if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
+			{
+				parse_tracer(evt, retval);
+				return;
+			}
+		}
+
+		return;
+	}
+
+	//
+	// User events get into the engine as normal writes, but the FD has a flag to
+	// quickly recognize them.
+	//
+	if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
+	{
+		parse_tracer(evt, retval);
+		return;
+	}
 
 	//
 	// If the operation was successful, validate that the fd exists
@@ -3249,7 +3454,7 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 			{
 				if(evt->m_tinfo->get_main_thread()->m_fdlimit != -1)
 				{
-					ASSERT(curval == evt->m_tinfo->get_main_thread()->m_fdlimit);
+//					ASSERT(curval == evt->m_tinfo->get_main_thread()->m_fdlimit);
 				}
 			}
 #endif

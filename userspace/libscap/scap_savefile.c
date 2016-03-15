@@ -775,7 +775,7 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 				scap_write_padding(f, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
 				gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (7)");
 			return SCAP_FAILURE;
 		}
 	}

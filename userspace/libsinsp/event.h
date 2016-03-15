@@ -172,7 +172,7 @@ public:
 	/*!
 	  \brief Get the event's flags.
 	*/
-	inline ppm_event_flags get_flags()
+	inline ppm_event_flags get_info_flags()
 	{
 		return m_info->flags;
 	}
@@ -322,22 +322,24 @@ private:
 
 	inline void init()
 	{
-		m_params_loaded = false;
+		m_flags = EF_NONE;
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
-		m_iosize = 0;		
+		m_iosize = 0;
+		m_poriginal_evt = NULL;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
-		m_params_loaded = false;
+		m_flags = EF_NONE;
 		m_pevt = (scap_evt *)evdata;
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
 		m_iosize = 0;
 		m_cpuid = cpuid;
-		m_evtnum = 0;		
+		m_evtnum = 0;
+		m_poriginal_evt = NULL;
 	}
 	inline void load_params()
 	{
@@ -364,11 +366,19 @@ private:
 	uint32_t get_dump_flags();
 
 VISIBILITY_PRIVATE
+	enum flags
+	{
+		SINSP_EF_NONE = 0,
+		SINSP_EF_PARAMS_LOADED = 1,
+		SINSP_EF_IS_TRACER = (1 << 1),
+	};
 
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
+	scap_evt* m_poriginal_evt;	// This is used when the original event is replaced by a different one (e.g. in the case of user events)
 	uint16_t m_cpuid;
 	uint64_t m_evtnum;
+	uint32_t m_flags;
 	int32_t m_check_id = -1;
 	bool m_params_loaded;
 	const struct ppm_event_info* m_info;

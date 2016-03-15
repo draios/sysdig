@@ -91,6 +91,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_SNAPLEN 80
 
 //
+// Maximum user event buffer size
+//
+#define MAX_USER_EVT_BUFFER 65536
+
+//
+// Size the user event buffer is brought back once in a while 
+//
+#define MIN_USER_EVT_BUFFER 256
+ 
+//
 // Is csysdig functionality included?
 //
 #define CSYSDIG
@@ -98,6 +108,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef _WIN32
 #define NOCURSESUI
 #endif
+
+//
+// Name of the device used for tracer injection
+//
+#define USER_EVT_DEVICE_NAME "/dev/sysdig"
 
 //
 // FD class customized with the storage we need

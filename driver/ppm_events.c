@@ -58,6 +58,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define ppm_access_ok access_ok
 #endif
 
+extern bool g_ppe_events_enabled;
+
 static void memory_dump(char *p, size_t size)
 {
 	unsigned int j;
@@ -184,8 +186,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	int peer_address_len;
 	u16 sport, dport;
 
-/*
-	if (args->event_type == PPME_SYSCALL_WRITE_X) {
+	if (g_ppe_events_enabled && args->event_type == PPME_SYSCALL_WRITE_X) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 		struct fd f = fdget(args->fd);
 
@@ -211,7 +212,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 		}
 #endif
 	}
-*/
 
 	if (!args->consumer->do_dynamic_snaplen)
 		return res;

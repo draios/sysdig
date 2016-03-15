@@ -124,7 +124,7 @@ inline void ansi_clearscreen()
 ///////////////////////////////////////////////////////////////////////////////
 // curses_spectro implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
+curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector, bool is_tracer)
 {
 	m_tblwin = NULL;
 	m_data = NULL;
@@ -148,6 +148,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_prev_sel_y1 = -1;
 	m_prev_sel_y2 = -1;
 	m_scroll_paused = false;
+	m_is_tracer = is_tracer;
 
 	//
 	// Define the table size
@@ -506,11 +507,23 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 								break;
 							}
 
+							string lat_fld_name;
+
+
+							if(m_is_tracer)
+							{
+								lat_fld_name = "tracer.latency";
+							}
+							else
+							{
+								lat_fld_name = "evt.latency";
+							}
+
 							m_selection_filter = 
 								"(evt.rawtime>="  + to_string(start_row->m_ts - m_table->m_refresh_interval_ns) + 
 								" and evt.rawtime<=" + to_string(end_row->m_ts) + 
-								") and (evt.latency>=" + to_string(start_latency) + 
-								" and evt.latency<" + to_string(end_latency) + ")";
+								") and (" + lat_fld_name + ">=" + to_string(start_latency) + 
+								" and " + lat_fld_name + "<" + to_string(end_latency) + ")";
 
 							g_logger.format("spectrogram drill down");
 							g_logger.format("filter: %s", m_selection_filter.c_str());
@@ -520,7 +533,14 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 							ansi_reset_color();
 
-							return STA_DIG;
+							if(m_is_tracer)
+							{
+								return STA_DRILLDOWN;
+							}
+							else
+							{
+								return STA_DIG;
+							}
 						}
 						else
 						{

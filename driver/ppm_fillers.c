@@ -49,6 +49,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events.h"
 #include "ppm.h"
 
+extern bool g_ppe_events_enabled;
+
 /* This is described in syscall(2). Some syscalls take 64-bit arguments. On
  * arches that have 64-bit registers, these arguments are shipped in a register.
  * On 32-bit arches, however, these are split between two consecutive registers,
@@ -623,6 +625,7 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	 * res
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;

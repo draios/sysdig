@@ -20,7 +20,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <fstream>
 #include <cctype>
 #include <locale>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -114,6 +116,8 @@ const static struct luaL_reg ll_sysdig [] =
 	{"run_sysdig", &lua_cbacks::run_sysdig},
 	{"end_capture", &lua_cbacks::end_capture},
 	{"log", &lua_cbacks::log},
+	{"udp_setpeername", &lua_cbacks::udp_setpeername},
+	{"udp_send", &lua_cbacks::udp_send},
 #ifdef HAS_ANALYZER
 	{"push_metric", &lua_cbacks::push_metric},
 #endif
@@ -236,6 +240,7 @@ sinsp_chisel::sinsp_chisel(sinsp* inspector, string filename)
 	m_lua_cinfo = NULL;
 	m_lua_last_interval_sample_time = 0;
 	m_lua_last_interval_ts = 0;
+	m_udp_socket = 0;
 
 	load(filename);
 }
@@ -267,6 +272,16 @@ void sinsp_chisel::free_lua_chisel()
 	}
 
 	m_lua_script_info.reset();
+
+	if(m_udp_socket > 0)
+	{
+#ifdef _WIN32
+		closesocket(m_udp_socket);
+#else
+		close(m_udp_socket);
+#endif
+		m_udp_socket = 0;
+	}
 #endif
 }
 
@@ -678,7 +693,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	vector<string> tags;
 	vector<string> tips;
 	string drilldown_target;
+	string spectro_type;
+	bool drilldown_increase_depth = false;
 	bool is_root = false;
+	bool propagate_filter = true;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -773,6 +791,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		{
 			drilldown_target = lua_tostring(ls, -1);
 		}
+		else if(fldname == "spectro_type")
+		{
+			spectro_type = lua_tostring(ls, -1);
+		}
 		else if(fldname == "applies_to")
 		{
 			if(lua_istable(ls, -1))
@@ -847,6 +869,28 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
+		else if(fldname == "drilldown_increase_depth")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				drilldown_increase_depth = (lua_toboolean(ls, -1) != 0);
+			}
+			else
+			{
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be a boolean");
+			}
+		}
+		else if(fldname == "propagate_filter")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				propagate_filter = (lua_toboolean(ls, -1) != 0);
+			}
+			else
+			{
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be a boolean");
+			}
+		}
 
 		lua_pop(ls, 1);
 	}
@@ -863,7 +907,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		drilldown_target,
 		use_defaults,
 		is_root,
-		actions);
+		actions,
+		drilldown_increase_depth,
+		spectro_type,
+		propagate_filter);
 
 	return true;
 }
@@ -1091,19 +1138,16 @@ void sinsp_chisel::load(string cmdstr)
 	ifstream is;
 
 	//
-	// Try to open the file as is
+	// Try to open the file with lua extension
 	//
-	if(!openfile(m_filename, &is))
+	if(!openfile(m_filename + ".lua", &is))
 	{
 		//
-		// Try to add the .sc extension
+		// Try to open the file as is
 		//
-		if(!openfile(m_filename + ".sc", &is))
+		if(!openfile(m_filename, &is))
 		{
-			if(!openfile(m_filename + ".lua", &is))
-			{
-				throw sinsp_exception("can't open file " + m_filename);
-			}
+			throw sinsp_exception("can't open file " + m_filename);
 		}
 	}
 
@@ -1567,7 +1611,10 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 			if(m_lua_last_interval_ts != 0)
 			{
 				delta = ts - m_lua_last_interval_ts;
-				ASSERT(delta > 0);
+				if(delta == 0)
+				{
+					return;
+				}
 			}
 
 			lua_getglobal(m_ls, "on_interval");

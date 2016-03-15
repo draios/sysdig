@@ -116,6 +116,7 @@ private:
 	void parse_setuid_exit(sinsp_evt* evt);
 	void parse_setgid_exit(sinsp_evt* evt);
 	void parse_container_evt(sinsp_evt* evt);
+	inline void parse_tracer(sinsp_evt *evt, int64_t retval);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
 	void parse_k8s_evt(sinsp_evt *evt);
 	void parse_chroot_exit(sinsp_evt *evt);
@@ -143,7 +144,11 @@ private:
 	// Temporary storage to avoid memory allocation
 	//
 	sinsp_evt m_tmp_evt;
+	uint8_t m_fake_userevt_storage[4096];
+	scap_evt* m_fake_userevt;
+	string m_tracer_error_string;
 
+	// FD listener callback
 	sinsp_fd_listener* m_fd_listener;
 
 	//
