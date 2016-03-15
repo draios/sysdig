@@ -1630,8 +1630,8 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert)
 	}
 
 	return;
-
-	throw sinsp_exception("Invalid K8S SSL entry: " + *ssl_cert);
+ssl_err:
+	throw sinsp_exception(string("Invalid K8S SSL entry: ") + (ssl_cert ? *ssl_cert : string("NULL")));
 }
 
 void sinsp::update_kubernetes_state()
