@@ -37,7 +37,7 @@ Here are some basic tips to get you started with sysdig:
 
 1. If you run csysdig without arguments, it will display live system data, updating every 2 seconds. To analyze a trace file, use the -r command line flag.
 2. You can switch to a different view by using the _F2_ key.
-3. You can to drill down into a selection by clicking _enter_. You can navigate back by typing _backspace_.
+3. You can drill down into a selection by clicking _enter_. You can navigate back by typing _backspace_.
 4. You can observe input/output for the currently selected entity by typing _F5_
 5. You can see sysdig events for the currently selected entity by typing _F6_
 
@@ -45,17 +45,17 @@ DRILLING DOWN
 -------------
 You drill down by selecting an element in a view and then clicking _enter_. Once inside a selection, you can switch to a different view, and the new view will be applied in the context of the selection. For example, if you drill down into a process called foo and then switch to the _Connections_ view, the output will include only the connections made or received by _foo_. 
 
-You can drill down multiple times, by keeping clicking _enter_. For example, you can click on a container in the _Containers_ view to get the processes running inside it, and then click on one of the processes to see its threads.
+To drill down multiple times, keep clicking _enter_. For example, you can click on a container in the _Containers_ view to get the processes running inside it, and then click on one of the processes to see its threads.
 
 ACTIONS AND HOTKEYS
 -------------------
-Each view has a list of command lines that can be executed in the context of the current selction by pressing 'hotkeys'. For example, pressing 'k' in the Processes view kills the selected process, pressing 'b' in the Containers view opens a bash shell in the selected container. 
+Each view has a list of command lines that can be executed in the context of the current selection by pressing 'hotkeys'. For example, pressing 'k' in the Processes view kills the selected process, pressing 'b' in the Containers view opens a bash shell in the selected container. 
 
 Each view supports different actions. You can see which actions a view supports by pressing F8. You can customize the view's actions by editing the view's Lua file. 
 
 CONTAINERS SUPPORT
 ------------------
-Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include the columns with the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.
+Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include a column showing the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.
 
 INTERACTIVE COMMANDS  
 --------------------  

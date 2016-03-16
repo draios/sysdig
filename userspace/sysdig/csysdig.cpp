@@ -128,7 +128,7 @@ static void usage()
 "1. you can either see real time data, or analyze a trace file by using the -r\n"
 "   command line flag.\n"
 "2. you can switch to a different view by using the F2 key.\n"
-"3. You can to drill down into a selection by typing enter.\n"
+"3. You can drill down into a selection by typing enter.\n"
 "   You can navigate back by typing backspace.\n"
 "4. you can observe reads and writes (F5) or see sysdig events (F6) for any\n"
 "   selection.\n"
