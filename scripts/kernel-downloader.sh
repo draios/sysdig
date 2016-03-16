@@ -168,6 +168,13 @@ function standard_downloader {
 	cd ../.. # Back to $BASEDIR
 }
 
+# Debian downloader has a different logic (required by more compless structure):
+# while other distros can be considered "stateless", meaning that packages have
+# been aggregated all together and every "folder" is indipendent from each
+# other, all Debian links are provided together since kbuild packages are
+# required by many kernel versions and aggregation is not possible.
+# Thus, Debian downloader operates statefully and transactions between folder
+# have to be managed ad-hoc.
 function debian_downloader {
 	
 	mkcd Debian
@@ -176,10 +183,9 @@ function debian_downloader {
 	mkcd kbuild
 	local KBUILD_DIR=$(pwd)
 
-	local DEB=$(echo ${URL} | grep -o '[^/]*$')
-
 	# Download kbuild first since they're required later
 	for URL in "$@"; do
+		local DEB=$(basename $URL)
 		if [[ $DEB == *"kbuild"* ]]; then
 			if [ ! -f $DEB ]; then
 				wget $URL
@@ -187,10 +193,11 @@ function debian_downloader {
 		fi
 	done
 
-	cd .. # back to Debian
+	cd .. # back to $DEBIAN_DIR
 
 	# Now download and extract all non-kbuild ones
 	for URL in "$@"; do
+		local DEB=$(basename $URL)
 		if [[ $DEB != *"kbuild"* ]]; then
 
 			local KERNEL_RELEASE=$(echo $DEB | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+(-[0-9]+)?"| head -1)
@@ -231,29 +238,33 @@ function debian_downloader {
 						sed -i '0,/MAKEARGS.*$/s||MAKEARGS := -C '"${DEBIAN_DIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/${COMMON_FOLDER}"' O='"${DEBIAN_DIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}"'|' ${DEBIAN_DIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}/Makefile
 						sed -i 's/@://' ${DEBIAN_DIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}/Makefile
 						sed -i 's|$(cmd) %.*$|$(cmd) : all|' ${DEBIAN_DIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}/Makefile
+
+						# Now that all required files have been downloaded and
+						# unpacked "export" build variables
+						if [ ! -f $BUILDER_LOG_FILENAME ]; then
+							local HASH=$(md5sum boot/config-${KERNEL_RELEASE} | cut -d' ' -f1)
+							local HASH_ORIG=$HASH
+							local KERNELDIR="./usr/src/linux-headers-${KERNEL_RELEASE}"
+
+							echo KERNEL_RELEASE=$KERNEL_RELEASE >> $BUILDER_LOG_FILENAME
+							echo HASH=$HASH >> $BUILDER_LOG_FILENAME
+							echo HASH_ORIG=$HASH_ORIG >> $BUILDER_LOG_FILENAME
+							echo KERNELDIR=$KERNELDIR >> $BUILDER_LOG_FILENAME
+						fi
 					fi
 				fi
 			fi
+
+			cd ../.. # Back to $DEBIAN_DIR for next URL
 		fi
 	done
-
-	# Now "export" build variables
-	if [ ! -f $BUILDER_LOG_FILENAME ]; then
-		local HASH=$(md5sum boot/config-${KERNEL_RELEASE} | cut -d' ' -f1)
-		local HASH_ORIG=$HASH
-		local KERNELDIR="./usr/src/linux-headers-${KERNEL_RELEASE}"
-
-		echo KERNEL_RELEASE=$KERNEL_RELEASE >> $BUILDER_LOG_FILENAME
-		echo HASH=$HASH >> $BUILDER_LOG_FILENAME
-		echo HASH_ORIG=$HASH_ORIG >> $BUILDER_LOG_FILENAME
-		echo KERNELDIR=$KERNELDIR >> $BUILDER_LOG_FILENAME
-	fi
-
-	cd ../../.. # Back to $BASEDIR
+	
+	cd .. # Back to $BASEDIR
 }
 
 mkcd "$BASEDIR"
 
+#
 # The purpose of every downloader is to download all packages required by the
 # current distro in its folder, unpack them and create $BUILDER_LOG_FILENAME
 # file containing the following fields and the go back to $BASEDIR
@@ -262,6 +273,7 @@ mkcd "$BASEDIR"
 #   HASH           : MD5 hash of kernel configuration file
 #   HASH_ORIG      : required by older CoreOS distros, now equal to HASH
 #   KERNELDIR      : path to the build folder relative to the $BUILDER_LOG file
+#
 case $1 in
 	"Ubuntu" | "Fedora" | "CentOS" | "CoreOS" )
 		standard_downloader "$@"
