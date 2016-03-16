@@ -497,7 +497,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	ssize_t res;
 	while((res = read(sock, buf, sizeof(buf))) != 0)
 	{
-		if(res == -1)
+		if(res == -1 || json.size() > MAX_JSON_SIZE_B)
 		{
 			ASSERT(false);
 			close(sock);

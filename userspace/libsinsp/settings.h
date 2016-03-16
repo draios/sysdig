@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#pragma once
 //
 // This flag can be used to include unsupported or unrecognized sockets
 // in the fd tables. It's useful to debug close() leaks
@@ -123,3 +124,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 template<class T> class sinsp_fdinfo;
 typedef sinsp_fdinfo<int> sinsp_fdinfo_t;
 #endif // HAS_ANALYZER
+
+// Max JSON we can parse from docker API or others
+// Added because older docker versions have a bug that causes
+// very big JSONs returned by container inspect call
+static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
