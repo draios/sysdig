@@ -78,6 +78,6 @@ Sysdig Cloud
 ---
 Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Cloud] (https://sysdig.com/)!
 
-Sysdig is proudly supported by [Sysdig Inc] (https://sysdig.com/).  
+Open source sysdig is proudly supported by [Sysdig Inc] (https://sysdig.com/company/).  
 
 Interested in what we're doing? [Sysdig is hiring] (https://sysdig.com/jobs/).
