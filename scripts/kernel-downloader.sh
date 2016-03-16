@@ -4,7 +4,8 @@ set -euo pipefail
 
 # Where to download the kernel headers. A subfolder for each distro will be
 # created.
-BASEDIR="$(pwd)/kernels"
+declare -r BASEDIR="$(pwd)/kernels"
+declare -r BUILDER_LOG_FILENAME=".sysdig-builder-log"
 
 # A Python implementation of realpath from coreutils, which doesn't work
 # in Ubuntu 14.04.4 LTS because the function we want is available only
@@ -40,6 +41,7 @@ function standard_downloader {
 	mkcd $DISTRO
 	mkcd $VERSION
 
+	# Download and extract the files, if not present
 	for PKG_URL in "${@:3}"; do
 
 		local PKG_NAME=$(basename $PKG_URL)
@@ -112,56 +114,58 @@ function standard_downloader {
 					fi
 				;;
 			esac
-
-			# After everything has been downloaded and extracted, get the data
-			case $DISTRO in
-				"Ubuntu" )
-					local KERNEL_RELEASE=$(ls -1 linux-image-* | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+-[a-z]+")
-					local HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
-					local HASH_ORIG=$HASH
-					local KERNELDIR="./usr/src/linux-headers-${KERNEL_RELEASE}"
-				;;
-
-				"Fedora" | "CentOS" )
-					local KERNEL_RELEASE=$(echo $PKG_NAME | awk 'match($0, /[^kernel\-(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
-
-					if [ -f boot/config-$KERNEL_RELEASE ]; then
-						local HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
-					else
-						local HASH=$(md5sum lib/modules/${KERNEL_RELEASE}/config | cut -d' ' -f1)
-					fi
-
-					local HASH_ORIG=$HASH
-					local KERNELDIR="./usr/src/kernels/${KERNEL_RELEASE}"
-				;;
-
-				# Actually I could move this straight into the previous switch
-				# statement, but I like to keep things clean
-				"CoreOS" )
-					local BUILD=$(echo $VERSION | grep -E -o "^[0-9]+")
-
-					local KERNEL_RELEASE=$(ls config-* | sed s/config-//)
-					local HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
-					
-					if [ $BUILD -le 890 ]; then
-						local HASH=$(md5sum config | cut -d' ' -f1)
-						local KERNELDIR=$(ls -1d -- */ | head -n 1)
-					else
-						local HASH=$HASH_ORIG
-						local KERNELDIR="./lib/modules/${KERNEL_RELEASE}/build"
-					fi
-				;;
-			esac
-			
-			# TODO: remove debug
-			echo KERNEL_RELEASE=$KERNEL_RELEASE > /dev/tcp/localhost/12345
-			echo HASH=$HASH > /dev/tcp/localhost/12345
-			echo HASH_ORIG=$HASH_ORIG > /dev/tcp/localhost/12345
-			echo KERNELDIR=$KERNELDIR > /dev/tcp/localhost/12345
 		fi
 	done
 
-	cd ../..
+	# After everything has been downloaded and extracted, get the data for the
+	# builder
+	if [ ! -f $BUILDER_LOG_FILENAME ]; then
+		case $DISTRO in
+			"Ubuntu" )
+				local KERNEL_RELEASE=$(ls -1 linux-image-* | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+-[a-z]+")
+				local HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+				local HASH_ORIG=$HASH
+				local KERNELDIR="./usr/src/linux-headers-${KERNEL_RELEASE}"
+			;;
+
+			"Fedora" | "CentOS" )
+				local KERNEL_RELEASE=$(echo $PKG_NAME | awk 'match($0, /[^kernel\-(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+
+				if [ -f boot/config-$KERNEL_RELEASE ]; then
+					local HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+				else
+					local HASH=$(md5sum lib/modules/${KERNEL_RELEASE}/config | cut -d' ' -f1)
+				fi
+
+				local HASH_ORIG=$HASH
+				local KERNELDIR="./usr/src/kernels/${KERNEL_RELEASE}"
+			;;
+
+			# Actually I could move this straight into the previous switch
+			# statement, but I like to keep things clean
+			"CoreOS" )
+				local BUILD=$(echo $VERSION | grep -E -o "^[0-9]+")
+
+				local KERNEL_RELEASE=$(ls config-* | sed s/config-//)
+				local HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
+				
+				if [ $BUILD -le 890 ]; then
+					local HASH=$(md5sum config | cut -d' ' -f1)
+					local KERNELDIR=$(ls -1d -- */ | head -n 1)
+				else
+					local HASH=$HASH_ORIG
+					local KERNELDIR="./lib/modules/${KERNEL_RELEASE}/build"
+				fi
+			;;
+		esac
+		
+		echo KERNEL_RELEASE=$KERNEL_RELEASE >> $BUILDER_LOG_FILENAME
+		echo HASH=$HASH >> $BUILDER_LOG_FILENAME
+		echo HASH_ORIG=$HASH_ORIG >> $BUILDER_LOG_FILENAME
+		echo KERNELDIR=$KERNELDIR >> $BUILDER_LOG_FILENAME
+	fi
+
+	cd ../.. # Back to $BASEDIR
 }
 
 function debian_downloader {
@@ -169,12 +173,13 @@ function debian_downloader {
 	mkcd Debian
 	local DEBIAN_DIR=$(pwd)
 
-	# Download kbuild first since they're required later
 	mkcd kbuild
 	local KBUILD_DIR=$(pwd)
 
+	local DEB=$(echo ${URL} | grep -o '[^/]*$')
+
+	# Download kbuild first since they're required later
 	for URL in "$@"; do
-		local DEB=$(echo ${URL} | grep -o '[^/]*$')
 		if [[ $DEB == *"kbuild"* ]]; then
 			if [ ! -f $DEB ]; then
 				wget $URL
@@ -184,12 +189,8 @@ function debian_downloader {
 
 	cd .. # back to Debian
 
-	# Now all non-kbuild ones
-
+	# Now download and extract all non-kbuild ones
 	for URL in "$@"; do
-
-		local DEB=$(echo ${URL} | grep -o '[^/]*$')
-
 		if [[ $DEB != *"kbuild"* ]]; then
 
 			local KERNEL_RELEASE=$(echo $DEB | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+(-[0-9]+)?"| head -1)
@@ -231,27 +232,36 @@ function debian_downloader {
 						sed -i 's/@://' ${DEBIAN_DIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}/Makefile
 						sed -i 's|$(cmd) %.*$|$(cmd) : all|' ${DEBIAN_DIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}/Makefile
 					fi
-					
-					# Now "export" build variables
-					# TODO: remove debug
-					local HASH=$(md5sum boot/config-${KERNEL_RELEASE} | cut -d' ' -f1)
-					local HASH_ORIG=$HASH
-					local KERNELDIR="./usr/src/linux-headers-${KERNEL_RELEASE}"
-
-					echo KERNEL_RELEASE=$KERNEL_RELEASE > /dev/tcp/localhost/12345
-					echo HASH=$HASH > /dev/tcp/localhost/12345
-					echo HASH_ORIG=$HASH_ORIG > /dev/tcp/localhost/12345
-					echo KERNELDIR=$KERNELDIR > /dev/tcp/localhost/12345
 				fi
 			fi
-
-			cd ../.. # Back to Debian
 		fi
 	done
+
+	# Now "export" build variables
+	if [ ! -f $BUILDER_LOG_FILENAME ]; then
+		local HASH=$(md5sum boot/config-${KERNEL_RELEASE} | cut -d' ' -f1)
+		local HASH_ORIG=$HASH
+		local KERNELDIR="./usr/src/linux-headers-${KERNEL_RELEASE}"
+
+		echo KERNEL_RELEASE=$KERNEL_RELEASE >> $BUILDER_LOG_FILENAME
+		echo HASH=$HASH >> $BUILDER_LOG_FILENAME
+		echo HASH_ORIG=$HASH_ORIG >> $BUILDER_LOG_FILENAME
+		echo KERNELDIR=$KERNELDIR >> $BUILDER_LOG_FILENAME
+	fi
+
+	cd ../../.. # Back to $BASEDIR
 }
 
 mkcd "$BASEDIR"
 
+# The purpose of every downloader is to download all packages required by the
+# current distro in its folder, unpack them and create $BUILDER_LOG_FILENAME
+# file containing the following fields and the go back to $BASEDIR
+#   KERNEL_RELEASE : the name of the kernel release as it appears in the header
+#                    of probe kernel module
+#   HASH           : MD5 hash of kernel configuration file
+#   HASH_ORIG      : required by older CoreOS distros, now equal to HASH
+#   KERNELDIR      : path to the build folder relative to the $BUILDER_LOG file
 case $1 in
 	"Ubuntu" | "Fedora" | "CentOS" | "CoreOS" )
 		standard_downloader "$@"
@@ -261,52 +271,3 @@ case $1 in
 		debian_downloader "${@:2}"
 	;;
 esac
-
-# Debug given this
-#
-# KERNEL_RELEASE=4.4.1-coreos
-# HASH=201adc99c4daa5fa87d1025974e20274
-# HASH_ORIG=201adc99c4daa5fa87d1025974e20274
-# KERNELDIR=./lib/modules/4.4.1-coreos/build
-#
-# KERNEL_RELEASE=2.6.32-220.13.1.el6.x86_64
-# HASH=
-# HASH_ORIG=
-# KERNELDIR=./usr/src/kernels/2.6.32-220.13.1.el6.x86_64
-#
-# KERNEL_RELEASE=2.6.32-220.13.1.el6.x86_64
-# HASH=fee31cc735a089cd6eb9e89aa45e0af9
-# HASH_ORIG=fee31cc735a089cd6eb9e89aa45e0af9
-# KERNELDIR=./usr/src/kernels/2.6.32-220.13.1.el6.x86_64
-#
-# KERNEL_RELEASE=3.10.0-327.10.1.el7.x86_64
-# HASH=
-# HASH_ORIG=
-# KERNELDIR=./usr/src/kernels/3.10.0-327.10.1.el7.x86_64
-#
-# KERNEL_RELEASE=3.10.0-327.10.1.el7.x86_64
-# HASH=afb253320c8871ebf3333d6902f77882
-# HASH_ORIG=afb253320c8871ebf3333d6902f77882
-# KERNELDIR=./usr/src/kernels/3.10.0-327.10.1.el7.x86_64
-#
-# KERNEL_RELEASE=4.0.4-301.fc22.x86_64
-# HASH=6b84c2b1193ab15687772a23cd8c4a7b
-# HASH_ORIG=6b84c2b1193ab15687772a23cd8c4a7b
-# KERNELDIR=./usr/src/kernels/4.0.4-301.fc22.x86_64
-#
-# KERNEL_RELEASE=4.0.4-301.fc22.x86_64
-# HASH=6b84c2b1193ab15687772a23cd8c4a7b
-# HASH_ORIG=6b84c2b1193ab15687772a23cd8c4a7b
-# KERNELDIR=./usr/src/kernels/4.0.4-301.fc22.x86_64
-#
-# KERNEL_RELEASE=4.2.3-300.fc23.x86_64
-# HASH=
-# HASH_ORIG=
-# KERNELDIR=./usr/src/kernels/4.2.3-300.fc23.x86_64
-#
-# KERNEL_RELEASE=4.2.3-300.fc23.x86_64
-# HASH=87b038a5f56d81a5f8e46217a62b0c45
-# HASH_ORIG=87b038a5f56d81a5f8e46217a62b0c45
-# KERNELDIR=./usr/src/kernels/4.2.3-300.fc23.x86_64
-#
-# Stopped because dpkg not installed
