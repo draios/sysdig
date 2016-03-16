@@ -116,101 +116,6 @@ function build_sysdigcloud {
 	cd $BASEDIR
 }
 
-function coreos_build_old {
-	VERSION_URL=$1
-	VERSION_NUMBER=$2
-	COREOS_DIR="coreos-"$VERSION_NUMBER
-
-	if [ ! -d $COREOS_DIR ]; then
-		mkdir $COREOS_DIR
-	fi
-
-	cd $COREOS_DIR
-
-	if [ ! -f config_orig ]; then
-		wget ${VERSION_URL}coreos_developer_container.bin.bz2
-		bunzip2 coreos_developer_container.bin.bz2
-		sudo kpartx -asv coreos_developer_container.bin
-		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
-		sudo mkdir /tmp/loop || true
-		sudo mount /dev/mapper/$LOOPDEV /tmp/loop
-		cp /tmp/loop/usr/boot/config-* .
-		sudo umount /tmp/loop
-		sudo kpartx -dv coreos_developer_container.bin
-		rm -rf coreos_developer_container.bin
-		cp config-* config_orig
-	fi
-
-	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
-	VANILLA=$(echo $KERNEL_RELEASE | sed s/[-+].*// | sed s/\.0$//)
-	MAJOR=$(echo $KERNEL_RELEASE | head -c1)
-	EXTRAVERSION=$(echo $KERNEL_RELEASE | sed s/[^-+]*//)
-	TGZ_NAME=linux-${VANILLA}.tar.xz
-	DIR_NAME=linux-${VANILLA}
-	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/$TGZ_NAME
-
-	if [ ! -f $TGZ_NAME ]; then
-		wget $KERNEL_URL
-	fi
-
-	if [ ! -d $DIR_NAME ]; then
-		tar xf $TGZ_NAME
-		cd $DIR_NAME
-		make distclean
-		sed -i "s/^EXTRAVERSION.*/EXTRAVERSION = $EXTRAVERSION/" Makefile
-		cp ../config_orig .config
-		make modules_prepare
-		mv .config ../config
-		cd ..
-	fi
-
-	HASH=$(md5sum config | cut -d' ' -f1)
-	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
-
-	cd $BASEDIR
-
-	export KERNELDIR=$BASEDIR/$COREOS_DIR/$DIR_NAME
-	build_probe
-}
-
-function coreos_build_new {
-	VERSION_URL=$1
-	VERSION_NUMBER=$2
-	COREOS_DIR="coreos-"$VERSION_NUMBER
-
-	if [ ! -d $COREOS_DIR ]; then
-		mkdir $COREOS_DIR
-	fi
-
-	cd $COREOS_DIR
-
-	if [ ! -f coreos_developer_container.bin ]; then
-		wget ${VERSION_URL}coreos_developer_container.bin.bz2
-		bunzip2 coreos_developer_container.bin.bz2
-	fi
-	sudo kpartx -asv coreos_developer_container.bin
-	LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
-	sudo mkdir /tmp/loop || true
-	sudo mount /dev/mapper/$LOOPDEV /tmp/loop
-
-	cp /tmp/loop/usr/boot/config-* .
-	cp config-* config_orig
-	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
-	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
-	HASH=$HASH_ORIG
-
-	cd $BASEDIR
-	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
-	build_probe
-
-	cd $COREOS_DIR
-	# cleanup
-	sudo umount /tmp/loop
-	sudo kpartx -dv coreos_developer_container.bin
-
-	cd $BASEDIR
-}
-
 function boot2docker_build {
 	CONFIGURATION_NAME=$1
 	KERNEL_RELEASE=$2
@@ -270,230 +175,24 @@ function boot2docker_build {
 	build_probe
 }
 
-function ubuntu_build {
-
-	URL=$1
-	DEB=$(echo $URL | grep -o '[^/]*$')
-	KERNEL_RELEASE_FULL=$(echo $DEB | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+\.[0-9]+")		# ex. 3.13.0-24.47
-	KERNEL_RELEASE=$(echo $KERNEL_RELEASE_FULL | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+")	# ex. 3.13.0-24
-	KERNEL_UPDATE=$(echo $KERNEL_RELEASE_FULL | grep -E -o "[0-9]+$")							# ex. 47
-
-	if [ ! -d $KERNEL_RELEASE ]; then
-		mkdir $KERNEL_RELEASE
-	fi
-
-	cd $KERNEL_RELEASE
-
-	if [ ! -d $KERNEL_UPDATE ]; then
-		mkdir $KERNEL_UPDATE
-	fi
-
-	cd $KERNEL_UPDATE
-
-	if [ ! -f $DEB ]; then
-		echo Downloading $DEB [Ubuntu]
-		wget $URL
-		dpkg -x $DEB ./
-	fi
-
-	NUM_DEB=$(ls linux-*.deb -1 | wc -l)
-
-	if [ $NUM_DEB -eq 3 ]; then
-
-		local KERNEL_FOLDER=$KERNEL_RELEASE
-		KERNEL_RELEASE=$(ls -1 linux-image-* | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+-[a-z]+")
-
-		HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
-		HASH_ORIG=$HASH
-
-		cd $BASEDIR
-
-		export KERNELDIR=$BASEDIR/$KERNEL_FOLDER/$KERNEL_UPDATE/usr/src/linux-headers-$KERNEL_RELEASE
-		build_probe
-	fi
-
-	cd $BASEDIR
-}
-
-function rhel_build {
-
-	#
-	# The function just requires the rpm url
-	#
-
-	# Get all the parameters needed
-	URL=$1
-	RPM=$(echo $URL | grep -o '[^/]*$')
-	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
-
-	if [ ! -d $KERNEL_RELEASE ]; then
-		mkdir $KERNEL_RELEASE
-	fi
-
-	cd $KERNEL_RELEASE
-
-	if [ ! -f $RPM ]; then
-		echo Downloading $RPM [RHEL and CentOS]
-		wget $URL
-		rpm2cpio $RPM | cpio -idm
-	fi
-
-	NUM_RPM=$(ls kernel-*.rpm -1 | wc -l)
-
-	if [ $NUM_RPM -eq 2 ]; then
-
-		#echo Building $KERNEL_RELEASE
-
-		if [ -f boot/config-$KERNEL_RELEASE ]; then
-			HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
-		else
-			HASH=$(md5sum lib/modules/$KERNEL_RELEASE/config | cut -d' ' -f1)
-		fi
-
-		HASH_ORIG=$HASH
-
-		cd $BASEDIR
-
-		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
-		build_probe
-	fi
-
-	cd $BASEDIR
-}
-
-function debian_build {
-
-	URL=${1}
-	DEB=$(echo ${URL} | grep -o '[^/]*$')
-
-	if [[ ${DEB} == *"kbuild"* ]]; then
-		if [[ ! -d ${BASEDIR}/common-dependencies/debian/kbuild/ ]]; then
-			mkdir -p ${BASEDIR}/common-dependencies/debian/kbuild
-		fi
-		if [ ! -f ${BASEDIR}/common-dependencies/debian/kbuild/${DEB} ]; then
-			echo Downloading ${DEB} [Ubuntu]
-			wget -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
-		fi
-		return
-	else
-		KERNEL_RELEASE=$(echo ${DEB} | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+(-[0-9]+)?"| head -1)
-		KERNEL_MAJOR=$(echo ${KERNEL_RELEASE} | grep -E -o "[0-9]{1}\.[0-9]+")
-		PACKAGE=$(echo ${DEB} | grep -E -o "(common_[0-9]{1}\.[0-9]+.*amd64|amd64_[0-9]{1}\.[0-9]+.*amd64)" | sed -E 's/(common_|amd64_|_amd64)//g')
-
-		if [[ ! -d ${KERNEL_RELEASE} ]]; then
-			mkdir ${KERNEL_RELEASE}
-		fi
-
-		cd ${KERNEL_RELEASE}
-
-		if [ ! -d ${PACKAGE} ]; then
-			mkdir ${PACKAGE}
-		fi
-
-		cd ${PACKAGE}
-
-		if [ ! -f ${DEB} ]; then
-			echo Downloading ${DEB} [Ubuntu]
-			wget ${URL}
-			dpkg -x ${DEB} ./
-		fi
-	fi
-
-	NUM_DEB=$(ls linux-*.deb -1| grep -v kbuild | wc -l)
-
-	if [[ ${NUM_DEB} -eq 3 ]]; then
-		set +e
-			KBUILD_PACKAGE=$(ls -t ${BASEDIR}/common-dependencies/debian/kbuild | grep  "kbuild\-${KERNEL_MAJOR}" | head -1)
-		set -e
-		if [[ ! -z ${KBUILD_PACKAGE} ]]; then
-			cp ${BASEDIR}/common-dependencies/debian/kbuild/${KBUILD_PACKAGE} .
-			dpkg -x ${KBUILD_PACKAGE} ./
-
-			local KERNEL_FOLDER=${KERNEL_RELEASE}
-			KERNEL_RELEASE=$(ls boot/config-* | sed 's|boot/config-||')
-
-			HASH=$(md5sum boot/config-${KERNEL_RELEASE} | cut -d' ' -f1)
-			HASH_ORIG=${HASH}
-
-			export KERNELDIR=${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}
-
-			#fix symbolic links
-			unlink ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/lib/modules/${KERNEL_RELEASE}/build
-			ln -s ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE} ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/lib/modules/${KERNEL_RELEASE}/build
-
-			common_folder=$(ls ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/ | egrep '*common')
-			unlink ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/lib/modules/${KERNEL_RELEASE}/source
-			ln -s ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/${common_folder}  ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/lib/modules/${KERNEL_RELEASE}/source
-
-			#hack Makefile
-			sed -i '0,/MAKEARGS.*$/s||MAKEARGS := -C '"${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/${common_folder}"' O='"${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}"'|' ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}/Makefile
-			sed -i 's/@://' ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}/Makefile
-			sed -i 's|$(cmd) %.*$|$(cmd) : all|' ${BASEDIR}/${KERNEL_FOLDER}/${PACKAGE}/usr/src/linux-headers-${KERNEL_RELEASE}/Makefile
-
-			cd ${BASEDIR}
-
-			build_probe
-		fi
-	fi
-
-	cd ${BASEDIR}
-}
-
 #
-# Ubuntu build
+# `new approach` builder
 #
-
-echo Building Ubuntu
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Ubuntu)"
-
-for URL in $URLS
-do
-	ubuntu_build $URL
+LOGS=$(find . -name ".sysdig-builder-log")
+for LOG in $LOGS; do
+	LOG_HANDLE=$(readlink -f $(realpath $LOG --relative-to .))
+	eval $(cat $LOG_HANDLE)
+	KERNELDIR=$(realpath "$(dirname ${LOG_HANDLE})/${KERNELDIR}")
+	# TODO: normalize, call, test
+	echo "KERNEL_RELEASE=$KERNEL_RELEASE"
+	echo "HASH=$HASH"
+	echo "HASH_ORIG=$HASH_ORIG"
+	echo "KERNELDIR=$KERNELDIR"
+	echo
 done
 
-#
-# RHEL build
-#
-
-echo Building RHEL
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py CentOS)"
-
-for URL in $URLS
-do
-	rhel_build $URL
-done
-
-#
-# Fedora build
-#
-
-echo Building Fedora
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Fedora)"
-
-for URL in $URLS
-do
-	rhel_build $URL
-done
-
-#
-# CoreOS build
-#
-echo Building CoreOS
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py CoreOS)"
-
-for URL in $URLS
-do
-	eval $(curl -s ${URL}version.txt)
-	if [ $COREOS_BUILD -gt 890 ]; then
-		coreos_build_new $URL $COREOS_VERSION
-	else
-		coreos_build_old $URL $COREOS_VERSION
-	fi
-done
+# TODO remove debug
+exit
 
 #
 # boot2docker build
@@ -504,18 +203,6 @@ $DIR/boot2docker-kernel-crawler.py | \
 while read KERNEL_ARGS
 do
 	boot2docker_build $KERNEL_ARGS
-done
-
-#
-# Debian build
-#
-echo Building Debian
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Debian)"
-
-for URL in $URLS
-do
-	debian_build $URL
 done
 
 #

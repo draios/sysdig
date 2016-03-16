@@ -154,7 +154,7 @@ function standard_downloader {
 					local KERNELDIR=$(ls -1d -- */ | head -n 1)
 				else
 					local HASH=$HASH_ORIG
-					local KERNELDIR="./lib/modules/${KERNEL_RELEASE}/build"
+					local KERNELDIR="./${KERNEL_RELEASE}/build"
 				fi
 			;;
 		esac
