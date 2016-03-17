@@ -2068,14 +2068,6 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
-	// Tracer related fields. These can be used only as filter fields, not as display fields
-	{PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.tracer.id", "event ID."},
-	{PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.ntags", "Number of tags that this tracer has."},
-	{PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.nargs", "Number of arguments that this tracer has."},
-	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.tags", "comma-separated list of event tags."},
-	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.tag", "one of the tracer tags specified by offset. E.g. 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.tag[-1]' returns the last tag."},
-	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.args", "comma-separated list of event arguments."},
-	{PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.arg", "one of the tracer arguments specified by name or by offset. E.g. 'tracer.tag.mytag' or 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.arg[-1]' returns the last argument."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2265,15 +2257,15 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		m_field_id = TYPE_ABSPATH;
 		m_field = &m_info.m_fields[m_field_id];
 
-		if (val == "evt.abspath")
+		if(val == "evt.abspath")
 		{
 			m_argid = 0;
 		}
-		else if (val == "evt.abspath.src")
+		else if(val == "evt.abspath.src")
 		{
 			m_argid = 1;
 		}
-		else if (val == "evt.abspath.dst")
+		else if(val == "evt.abspath.dst")
 		{
 			m_argid = 2;
 		}
@@ -2294,11 +2286,6 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	else
 	{
 		res = sinsp_filter_check::parse_field_name(str, alloc_state);
-	}
-
-	if(m_field_id >= TYPE_TRACER_ID && m_field_id <= TYPE_TRACER_ARG)
-	{
-		m_inspector->request_tracer_state_tracking();
 	}
 
 	return res;
@@ -2470,49 +2457,49 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	uint16_t etype = evt->get_type();
 
 	const char *dirfdarg = NULL, *patharg = NULL;
-	if (etype == PPME_SYSCALL_RENAMEAT_X)
+	if(etype == PPME_SYSCALL_RENAMEAT_X)
 	{
-		if (m_argid == 1)
+		if(m_argid == 1)
 		{
 			dirfdarg = "olddirfd";
 			patharg = "oldpath";
 		}
-		else if (m_argid == 2)
+		else if(m_argid == 2)
 		{
 			dirfdarg = "newdirfd";
 			patharg = "newpath";
 		}
 	}
-	else if (etype == PPME_SYSCALL_SYMLINKAT_X)
+	else if(etype == PPME_SYSCALL_SYMLINKAT_X)
 	{
 		dirfdarg = "linkdirfd";
 		patharg = "linkpath";
 	}
-	else if (etype == PPME_SYSCALL_OPENAT_E)
+	else if(etype == PPME_SYSCALL_OPENAT_E)
 	{
 		dirfdarg = "dirfd";
 		patharg = "name";
 	}
-	else if (etype == PPME_SYSCALL_LINKAT_E)
+	else if(etype == PPME_SYSCALL_LINKAT_E)
 	{
-		if (m_argid == 1)
+		if(m_argid == 1)
 		{
 			dirfdarg = "olddir";
 			patharg = "oldpath";
 		}
-		else if (m_argid == 2)
+		else if(m_argid == 2)
 		{
 			dirfdarg = "newdir";
 			patharg = "newpath";
 		}
 	}
-	else if (etype == PPME_SYSCALL_UNLINKAT_E)
+	else if(etype == PPME_SYSCALL_UNLINKAT_E)
 	{
 		dirfdarg = "dirfd";
 		patharg = "name";
 	}
 
-	if (!dirfdarg || !patharg)
+	if(!dirfdarg || !patharg)
 	{
 		return 0;
 	}
@@ -2521,18 +2508,18 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	while (((dirfdargidx < 0) || (pathargidx < 0)) && (idx < (int) evt->get_num_params()))
 	{
 		const char *name = evt->get_param_name(idx);
-		if ((dirfdargidx < 0) && (strcmp(name, dirfdarg) == 0))
+		if((dirfdargidx < 0) && (strcmp(name, dirfdarg) == 0))
 		{
 			dirfdargidx = idx;
 		}
-		if ((pathargidx < 0) && (strcmp(name, patharg) == 0))
+		if((pathargidx < 0) && (strcmp(name, patharg) == 0))
 		{
 			pathargidx = idx;
 		}
 		idx++;
 	}
 
-	if ((dirfdargidx < 0) || (pathargidx < 0))
+	if((dirfdargidx < 0) || (pathargidx < 0))
 	{
 		return 0;
 	}
@@ -3660,251 +3647,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 	return NULL;
 }
 
-inline bool sinsp_filter_check_event::compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae)
-{
-	ASSERT(pae);
-
-	switch(m_field_id)
-	{
-	case TYPE_TRACER_ID:
-		if(flt_compare(m_cmpop, PT_UINT64, 
-			&pae->m_id,
-			&m_val_storage[0]) == true)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	case TYPE_TRACER_NTAGS:
-		m_u32val = (uint32_t)pae->m_tags.size();
-
-		if(flt_compare(m_cmpop, PT_UINT32, 
-			&m_u32val,
-			&m_val_storage[0]) == true)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	case TYPE_TRACER_NARGS:
-		m_u32val = (uint32_t)pae->m_argvals.size();
-
-		if(flt_compare(m_cmpop, PT_UINT32, 
-			&m_u32val,
-			&m_val_storage[0]) == true)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	case TYPE_TRACER_TAGS:
-	{
-		vector<char*>::iterator it;
-		vector<uint32_t>::iterator sit;
-
-		uint32_t encoded_tags_len = pae->m_tags_len + pae->m_ntags + 1;
-
-		if(m_storage_size < encoded_tags_len)
-		{
-			m_storage = (char*)realloc(m_storage, encoded_tags_len);
-			m_storage_size = encoded_tags_len;
-		}
-
-		char* p = m_storage;
-
-		for(it = pae->m_tags.begin(), sit = pae->m_taglens.begin(); 
-		it != pae->m_tags.end(); ++it, ++sit)
-		{
-			memcpy(p, *it, (*sit));
-			p += (*sit);
-			*p++ = ',';
-		}
-
-		if(p != m_storage)
-		{
-			*--p = 0;
-		}
-		else
-		{
-			*p = 0;
-		}
-
-		if(flt_compare(m_cmpop, PT_CHARBUF, 
-			m_storage,
-			&m_val_storage[0]) == true)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	case TYPE_TRACER_TAG:
-	{
-		char* val = NULL;
-
-		if(m_argid >= 0)
-		{
-			if(m_argid < (int32_t)pae->m_ntags)
-			{
-				val = pae->m_tags[m_argid];
-			}
-		}
-		else
-		{
-			int32_t id = (int32_t)pae->m_ntags + m_argid;
-
-			if(id >= 0)
-			{
-				val = pae->m_tags[id];
-			}
-		}
-
-		if(val == NULL)
-		{
-			return false;
-		}
-
-		if(flt_compare(m_cmpop, PT_CHARBUF, 
-			val,
-			&m_val_storage[0]) == true)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	case TYPE_TRACER_ARGS:
-	{
-		vector<char*>::iterator nameit;
-		vector<char*>::iterator valit;
-		vector<uint32_t>::iterator namesit;
-		vector<uint32_t>::iterator valsit;
-
-		uint32_t nargs = (uint32_t)pae->m_argnames.size();
-		uint32_t encoded_args_len = pae->m_argnames_len + pae->m_argvals_len +
-			nargs + nargs + 2;
-
-		if(m_storage_size < encoded_args_len)
-		{
-			m_storage = (char*)realloc(m_storage, encoded_args_len);
-			m_storage_size = encoded_args_len;
-		}
-
-		char* p = m_storage;
-
-		for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(), 
-			namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin(); 
-			nameit != pae->m_argnames.end(); 
-			++nameit, ++namesit, ++valit, ++valsit)
-		{
-			strcpy(p, *nameit);
-			p += (*namesit);
-			*p++ = ':';
-
-			memcpy(p, *valit, (*valsit));
-			p += (*valsit);
-			*p++ = ',';
-		}
-
-		if(p != m_storage)
-		{
-			*--p = 0;
-		}
-		else
-		{
-			*p = 0;
-		}
-
-		if(flt_compare(m_cmpop, PT_CHARBUF, 
-			m_storage,
-			&m_val_storage[0]) == true)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	case TYPE_TRACER_ARG:
-	{
-		char* val = NULL;
-
-		if(m_argid == TEXT_ARG_ID)
-		{
-			//
-			// Argument expressed as name, e.g. evtin.tracer.arg.name.
-			// Scan the argname list and find the match.
-			//
-			uint32_t j;
-
-			for(j = 0; j < pae->m_nargs; j++)
-			{
-				if(strcmp(m_cargname, pae->m_argnames[j]) == 0)
-				{
-					val = pae->m_argvals[j];
-					break;
-				}
-			}
-		}
-		else
-		{
-			//
-			// Argument expressed as id, e.g. evtin.tracer.arg[1].
-			// Pick the corresponding value.
-			//
-			if(m_argid >= 0)
-			{
-				if(m_argid < (int32_t)pae->m_nargs)
-				{
-					val = pae->m_argvals[m_argid];
-				}
-			}
-			else
-			{
-				int32_t id = (int32_t)pae->m_nargs + m_argid;
-
-				if(id >= 0)
-				{
-					val = pae->m_argvals[id];
-				}
-			}
-		}
-
-		if(val == NULL)
-		{
-			return false;
-		}
-
-		if(flt_compare(m_cmpop, PT_CHARBUF, 
-			val,
-			&m_val_storage[0]) == true)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	default:
-		ASSERT(false);
-		break;
-	}
-
-	return false;
-}
-
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 {
 	bool res;
@@ -3945,61 +3687,6 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 			&t2);
 
 		return res1 && res2;
-	}
-	else if(m_field_id >= TYPE_TRACER_ID && m_field_id <= TYPE_TRACER_ARG)
-	{
-		list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
-		list<sinsp_partial_tracer*>::iterator it;
-		uint16_t etype = evt->get_type();
-
-		sinsp_threadinfo* tinfo = evt->get_thread_info();
-		if(tinfo == NULL)
-		{
-			res = false;
-			goto fcec_end;
-		}
-
-		//
-		// Scan the list and see if there's a match
-		//
-		for(it = partial_tracers_list->begin(); it != partial_tracers_list->end(); ++it)
-		{
-			if(compare_tracer(evt, *it) == true)
-			{
-				res = true;
-				goto fcec_end;
-			}
-		}
-
-		//
-		// For PPME_TRACER_X events, it's possible that the pae is already returned to the pool.
-		// Get it from the parser.
-		//
-		if(etype == PPME_TRACER_X)
-		{
-			sinsp_tracerparser* eparser = tinfo->m_tracer_parser;
-
-			if(eparser == NULL)
-			{
-				ASSERT(false);
-				res = false;
-				goto fcec_end;
-			}
-
-			if(eparser->m_enter_pae == NULL)
-			{
-				res = false;
-				goto fcec_end;
-			}
-
-			if(compare_tracer(evt, eparser->m_enter_pae) == true)
-			{
-				res = true;
-				goto fcec_end;
-			}
-		}
-
-		res = false;
 	}
 	else
 	{
@@ -4268,7 +3955,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 
 		res = extract_arg("tracer.tag", val, NULL);
 	}
-	else if (string(val, 0, sizeof("tracer.arg") - 1) == "tracer.arg" &&
+	else if(string(val, 0, sizeof("tracer.arg") - 1) == "tracer.arg" &&
 		string(val, 0, sizeof("tracer.args") - 1) != "tracer.args")
 	{
 		m_field_id = TYPE_ARG;
@@ -4276,7 +3963,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 
 		res = extract_arg("tracer.arg", val, NULL);
 	}
-	else if (string(val, 0, sizeof("tracer.enterarg") - 1) == "tracer.enterarg" &&
+	else if(string(val, 0, sizeof("tracer.enterarg") - 1) == "tracer.enterarg" &&
 		string(val, 0, sizeof("tracer.enterargs") - 1) != "tracer.enterargs")
 	{
 		m_field_id = TYPE_ENTERARG;
@@ -4375,7 +4062,7 @@ uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae)
 	uint32_t encoded_args_len = pae->m_argnames_len + pae->m_argvals_len +
 	nargs + nargs + 2;
 
-	if (m_storage_size < encoded_args_len)
+	if(m_storage_size < encoded_args_len)
 	{
 		m_storage = (char*)realloc(m_storage, encoded_args_len);
 		m_storage_size = encoded_args_len;
@@ -4383,7 +4070,7 @@ uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae)
 
 	char* p = m_storage;
 
-	for (nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(),
+	for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(),
 		namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin();
 		nameit != pae->m_argnames.end();
 		++nameit, ++namesit, ++valit, ++valsit)
@@ -4397,7 +4084,7 @@ uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae)
 		*p++ = ',';
 	}
 
-	if (p != m_storage)
+	if(p != m_storage)
 	{
 		*--p = 0;
 	}
@@ -4413,12 +4100,12 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 {
 	char* res = NULL;
 
-	if (pae == NULL)
+	if(pae == NULL)
 	{
 		return NULL;
 	}
 
-	if (m_argid == TEXT_ARG_ID)
+	if(m_argid == TEXT_ARG_ID)
 	{
 		//
 		// Argument expressed as name, e.g. tracer.arg.name.
@@ -4426,9 +4113,9 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 		//
 		uint32_t j;
 
-		for (j = 0; j < pae->m_nargs; j++)
+		for(j = 0; j < pae->m_nargs; j++)
 		{
-			if (strcmp(m_cargname, pae->m_argnames[j]) == 0)
+			if(strcmp(m_cargname, pae->m_argnames[j]) == 0)
 			{
 				res = pae->m_argvals[j];
 				break;
@@ -4441,9 +4128,9 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 		// Argument expressed as id, e.g. tracer.arg[1].
 		// Pick the corresponding value.
 		//
-		if (m_argid >= 0)
+		if(m_argid >= 0)
 		{
-			if (m_argid < (int32_t)pae->m_nargs)
+			if(m_argid < (int32_t)pae->m_nargs)
 			{
 				res = pae->m_argvals[m_argid];
 			}
@@ -4452,7 +4139,7 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 		{
 			int32_t id = (int32_t)pae->m_nargs + m_argid;
 
-			if (id >= 0)
+			if(id >= 0)
 			{
 				res = pae->m_argvals[id];
 			}
@@ -4585,7 +4272,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_ARGS:
-		if (PPME_IS_ENTER(etype))
+		if(PPME_IS_ENTER(etype))
 		{
 			return extract_args(eparser->m_enter_pae);
 		}
@@ -4594,7 +4281,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return extract_args(&eparser->m_exit_pae);
 		}
 	case TYPE_ARG:
-		if (PPME_IS_ENTER(etype))
+		if(PPME_IS_ENTER(etype))
 		{
 			return extract_arg(eparser->m_enter_pae);
 		}
@@ -4701,6 +4388,378 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 
 	return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_tracer implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_evtin_tracer_fields[] =
+{
+	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.tracer.id", "event ID." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.ntags", "Number of tags that this tracer has." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.nargs", "Number of arguments that this tracer has." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.tags", "comma-separated list of event tags." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.tag", "one of the tracer tags specified by offset. E.g. 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.tag[-1]' returns the last tag." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.args", "comma-separated list of event arguments." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.arg", "one of the tracer arguments specified by name or by offset. E.g. 'tracer.tag.mytag' or 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.arg[-1]' returns the last argument." },
+};
+
+sinsp_filter_check_evtin_tracer::sinsp_filter_check_evtin_tracer()
+{
+	m_is_compare = false;
+	m_info.m_name = "evt";
+	m_info.m_fields = sinsp_filter_check_evtin_tracer_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_evtin_tracer_fields) / sizeof(sinsp_filter_check_evtin_tracer_fields[0]);
+	m_u64val = 0;
+	m_converter = new sinsp_filter_check_reference();
+
+	m_storage_size = UESTORAGE_INITIAL_BUFSIZE;
+	m_storage = (char*)malloc(m_storage_size);
+	if(m_storage == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_filter_check_appevt::sinsp_filter_check_evtin_tracer");
+	}
+
+	m_cargname = NULL;
+}
+
+sinsp_filter_check_evtin_tracer::~sinsp_filter_check_evtin_tracer()
+{
+	if(m_storage != NULL)
+	{
+		free(m_storage);
+	}
+
+	if(m_converter != NULL)
+	{
+		delete m_converter;
+	}
+}
+
+int32_t sinsp_filter_check_evtin_tracer::parse_field_name(const char* str, bool alloc_state)
+{
+	m_inspector->request_tracer_state_tracking();
+	return sinsp_filter_check::parse_field_name(str, alloc_state);
+}
+
+sinsp_filter_check* sinsp_filter_check_evtin_tracer::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_evtin_tracer();
+}
+
+uint8_t* sinsp_filter_check_evtin_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	return NULL;
+}
+
+inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae)
+{
+	ASSERT(pae);
+
+	switch (m_field_id)
+	{
+	case TYPE_TRACER_ID:
+		if(flt_compare(m_cmpop, PT_UINT64,
+			&pae->m_id,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_TRACER_NTAGS:
+		m_u32val = (uint32_t)pae->m_tags.size();
+
+		if(flt_compare(m_cmpop, PT_UINT32,
+			&m_u32val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_TRACER_NARGS:
+		m_u32val = (uint32_t)pae->m_argvals.size();
+
+		if(flt_compare(m_cmpop, PT_UINT32,
+			&m_u32val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	case TYPE_TRACER_TAGS:
+	{
+		vector<char*>::iterator it;
+		vector<uint32_t>::iterator sit;
+
+		uint32_t encoded_tags_len = pae->m_tags_len + pae->m_ntags + 1;
+
+		if(m_storage_size < encoded_tags_len)
+		{
+			m_storage = (char*)realloc(m_storage, encoded_tags_len);
+			m_storage_size = encoded_tags_len;
+		}
+
+		char* p = m_storage;
+
+		for(it = pae->m_tags.begin(), sit = pae->m_taglens.begin();
+		it != pae->m_tags.end(); ++it, ++sit)
+		{
+			memcpy(p, *it, (*sit));
+			p += (*sit);
+			*p++ = ',';
+		}
+
+		if(p != m_storage)
+		{
+			*--p = 0;
+		}
+		else
+		{
+			*p = 0;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF,
+			m_storage,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_TRACER_TAG:
+	{
+		char* val = NULL;
+
+		if(m_argid >= 0)
+		{
+			if(m_argid < (int32_t)pae->m_ntags)
+			{
+				val = pae->m_tags[m_argid];
+			}
+		}
+		else
+		{
+			int32_t id = (int32_t)pae->m_ntags + m_argid;
+
+			if(id >= 0)
+			{
+				val = pae->m_tags[id];
+			}
+		}
+
+		if(val == NULL)
+		{
+			return false;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF,
+			val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_TRACER_ARGS:
+	{
+		vector<char*>::iterator nameit;
+		vector<char*>::iterator valit;
+		vector<uint32_t>::iterator namesit;
+		vector<uint32_t>::iterator valsit;
+
+		uint32_t nargs = (uint32_t)pae->m_argnames.size();
+		uint32_t encoded_args_len = pae->m_argnames_len + pae->m_argvals_len +
+			nargs + nargs + 2;
+
+		if(m_storage_size < encoded_args_len)
+		{
+			m_storage = (char*)realloc(m_storage, encoded_args_len);
+			m_storage_size = encoded_args_len;
+		}
+
+		char* p = m_storage;
+
+		for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(),
+			namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin();
+			nameit != pae->m_argnames.end();
+			++nameit, ++namesit, ++valit, ++valsit)
+		{
+			strcpy(p, *nameit);
+			p += (*namesit);
+			*p++ = ':';
+
+			memcpy(p, *valit, (*valsit));
+			p += (*valsit);
+			*p++ = ',';
+		}
+
+		if(p != m_storage)
+		{
+			*--p = 0;
+		}
+		else
+		{
+			*p = 0;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF,
+			m_storage,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	case TYPE_TRACER_ARG:
+	{
+		char* val = NULL;
+
+		if(m_argid == TEXT_ARG_ID)
+		{
+			//
+			// Argument expressed as name, e.g. evtin.tracer.arg.name.
+			// Scan the argname list and find the match.
+			//
+			uint32_t j;
+
+			for(j = 0; j < pae->m_nargs; j++)
+			{
+				if(strcmp(m_cargname, pae->m_argnames[j]) == 0)
+				{
+					val = pae->m_argvals[j];
+					break;
+				}
+			}
+		}
+		else
+		{
+			//
+			// Argument expressed as id, e.g. evtin.tracer.arg[1].
+			// Pick the corresponding value.
+			//
+			if(m_argid >= 0)
+			{
+				if(m_argid < (int32_t)pae->m_nargs)
+				{
+					val = pae->m_argvals[m_argid];
+				}
+			}
+			else
+			{
+				int32_t id = (int32_t)pae->m_nargs + m_argid;
+
+				if(id >= 0)
+				{
+					val = pae->m_argvals[id];
+				}
+			}
+		}
+
+		if(val == NULL)
+		{
+			return false;
+		}
+
+		if(flt_compare(m_cmpop, PT_CHARBUF,
+			val,
+			&m_val_storage[0]) == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	default:
+		ASSERT(false);
+		break;
+	}
+
+	return false;
+}
+
+bool sinsp_filter_check_evtin_tracer::compare(sinsp_evt *evt)
+{
+	bool res;
+
+	m_is_compare = true;
+
+	list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
+	list<sinsp_partial_tracer*>::iterator it;
+	uint16_t etype = evt->get_type();
+
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	if(tinfo == NULL)
+	{
+		res = false;
+		goto fcec_end;
+	}
+
+	//
+	// Scan the list and see if there's a match
+	//
+	for(it = partial_tracers_list->begin(); it != partial_tracers_list->end(); ++it)
+	{
+		if(compare_tracer(evt, *it) == true)
+		{
+			res = true;
+			goto fcec_end;
+		}
+	}
+
+	//
+	// For PPME_TRACER_X events, it's possible that the pae is already returned to the pool.
+	// Get it from the parser.
+	//
+	if(etype == PPME_TRACER_X)
+	{
+		sinsp_tracerparser* eparser = tinfo->m_tracer_parser;
+
+		if(eparser == NULL)
+		{
+			ASSERT(false);
+			res = false;
+			goto fcec_end;
+		}
+
+		if(eparser->m_enter_pae == NULL)
+		{
+			res = false;
+			goto fcec_end;
+		}
+
+		if(compare_tracer(evt, eparser->m_enter_pae) == true)
+		{
+			res = true;
+			goto fcec_end;
+		}
+	}
+
+	res = false;
+
+fcec_end:
+	m_is_compare = false;
+
+	return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
