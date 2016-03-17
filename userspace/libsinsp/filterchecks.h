@@ -437,13 +437,6 @@ public:
 		TYPE_BUFLEN_NET = 57,
 		TYPE_BUFLEN_NET_IN = 58,
 		TYPE_BUFLEN_NET_OUT = 59,
-		TYPE_TRACER_ID = 60,
-		TYPE_TRACER_NTAGS = 61,
-		TYPE_TRACER_NARGS = 62,
-		TYPE_TRACER_TAGS = 63,
-		TYPE_TRACER_TAG = 64,
-		TYPE_TRACER_ARGS = 65,
-		TYPE_TRACER_ARG = 66,
 	};
 
 	sinsp_filter_check_event();
@@ -480,7 +473,6 @@ private:
 	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
-	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;
 	char* m_storage;
@@ -532,7 +524,7 @@ public:
 };
 
 //
-// Application events
+// Tracers
 //
 #define TEXT_ARG_ID -1000000
 
@@ -581,6 +573,56 @@ private:
 	int32_t m_u32val;
 	sinsp_filter_check_reference* m_converter;
 	string m_strstorage;
+};
+
+//
+// Events in tracers checks
+//
+class sinsp_filter_check_evtin_tracer : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_TRACER_ID,
+		TYPE_TRACER_NTAGS,
+		TYPE_TRACER_NARGS,
+		TYPE_TRACER_TAGS,
+		TYPE_TRACER_TAG,
+		TYPE_TRACER_ARGS,
+		TYPE_TRACER_ARG,
+	};
+
+	sinsp_filter_check_evtin_tracer();
+	~sinsp_filter_check_evtin_tracer();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	sinsp_filter_check* allocate_new();
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	bool compare(sinsp_evt *evt);
+
+	uint64_t m_u64val;
+	uint64_t m_tsdelta;
+	uint32_t m_u32val;
+	string m_strstorage;
+	string m_argname;
+	int32_t m_argid;
+	uint32_t m_evtid;
+	uint32_t m_evtid1;
+	const ppm_param_info* m_arginfo;
+
+	//
+	// Note: this copy of the field is used by some fields, like TYPE_ARGS and
+	// TYPE_RESARG, that need to do on the fly type customization
+	//
+	filtercheck_field_info m_customfield;
+
+private:
+	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
+
+	bool m_is_compare;
+	char* m_storage;
+	uint32_t m_storage_size;
+	const char* m_cargname;
+	sinsp_filter_check_reference* m_converter;
 };
 
 //

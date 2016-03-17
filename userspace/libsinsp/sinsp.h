@@ -937,6 +937,7 @@ private:
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_k8s;
+	friend class sinsp_filter_check_evtin_tracer;
 	
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
