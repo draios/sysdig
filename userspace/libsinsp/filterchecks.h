@@ -583,7 +583,7 @@ class sinsp_filter_check_evtin_tracer : public sinsp_filter_check
 public:
 	enum check_type
 	{
-		TYPE_TRACER_ID,
+		TYPE_TRACER_ID = 0,
 		TYPE_TRACER_NTAGS,
 		TYPE_TRACER_NARGS,
 		TYPE_TRACER_TAGS,
@@ -597,6 +597,13 @@ public:
 		TYPE_TRACER_T_TAG,
 		TYPE_TRACER_T_ARGS,
 		TYPE_TRACER_T_ARG,
+		TYPE_TRACER_P_ID,
+		TYPE_TRACER_P_NTAGS,
+		TYPE_TRACER_P_NARGS,
+		TYPE_TRACER_P_TAGS,
+		TYPE_TRACER_P_TAG,
+		TYPE_TRACER_P_ARGS,
+		TYPE_TRACER_P_ARG,
 	};
 
 	sinsp_filter_check_evtin_tracer();
