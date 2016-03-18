@@ -159,7 +159,7 @@ cycle_writer::conclusion cycle_writer::next_file()
 	}
 	
 
-	if(m_duration_seconds > 0) 
+	if(m_duration_seconds > 0)
 	{
 		// if the user has specified a format then use it
 		if(m_base_file_name.find("%") != string::npos)
@@ -171,14 +171,17 @@ cycle_writer::conclusion cycle_writer::next_file()
 
 			their_size = strftime(file_name, our_size, m_base_file_name.c_str(), our_time);
 
-			if(their_size == 0) { /* TODO: if fail but as string size has been increased to 4096 it's very unlikely we get here */ }
+			if(their_size == 0) {/* TODO: if fail but as string size has been increased to 4096 it's very unlikely we get here */ }
 
-			if(m_past_names[m_file_index] != "")
+			if(m_file_limit > 0)
 			{
-				remove(m_past_names[m_file_index].c_str());
-			}
+				if(m_past_names[m_file_index] != "")
+				{
+					remove(m_past_names[m_file_index].c_str());
+				}
 
-			m_past_names[m_file_index] = string(file_name);
+				m_past_names[m_file_index] = string(file_name);
+			}
 
 			m_last_file_name = file_name;
 		}
