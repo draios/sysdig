@@ -1064,6 +1064,9 @@ inline void sinsp_tracerparser::init_partial_tracer(sinsp_partial_tracer* pae)
 	vector<char*>::iterator it;
 	vector<uint32_t>::iterator sit;
 
+	ASSERT(m_tinfo != NULL);
+	pae->m_tid = m_tinfo->m_tid;
+
 	//
 	// Store the ID
 	//
