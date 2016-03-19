@@ -161,7 +161,7 @@ view_info =
 		{
 			hotkey = "f",
 			command = "lsof -p %proc.pid",
-			description = "one-time lsof for given process",
+			description = "one-time lsof",
 		},
 		{
 			hotkey = "[",
