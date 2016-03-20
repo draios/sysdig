@@ -149,6 +149,7 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector, bool is
 	m_prev_sel_y2 = -1;
 	m_scroll_paused = false;
 	m_is_tracer = is_tracer;
+	m_selecting = false;
 
 	//
 	// Define the table size
@@ -463,9 +464,6 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 				{
 					if(m_last_mevent.bstate & BUTTON1_CLICKED)
 					{
-						m_selstart_x = -1;
-						m_selstart_y = -1;
-
 						g_logger.format("mouse clicked");
 
 						if(m_last_mevent.y == (int)m_h - 2)
@@ -487,62 +485,72 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 								return STA_DRILLUP;
 							}
 						}
-					}
-					else
-					{ 
-						if(m_inspector->is_live())
+						else
 						{
-							break;
-						}
-
-						if(m_last_mevent.bstate & BUTTON1_RELEASED)
-						{
-							curses_spectro_history_row* start_row = get_history_row_from_coordinate(m_selstart_y);
-							curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_prev_sel_y2 - 1);
-							uint64_t start_latency = latency_from_coordinate(m_selstart_x);
-							uint64_t end_latency = latency_from_coordinate(m_prev_sel_x2);
-
-							if(start_row == NULL || end_row == NULL)
+							if(m_inspector->is_live())
 							{
 								break;
 							}
 
-							string lat_fld_name;
-
-
-							if(m_is_tracer)
+							if(!m_selecting)
 							{
-								lat_fld_name = "tracer.latency";
+								m_selecting = true;
+								m_selstart_x = -1;
+								m_selstart_y = -1;
 							}
 							else
 							{
-								lat_fld_name = "evt.latency";
-							}
+								m_selecting = false;
 
-							m_selection_filter = 
-								"(evt.rawtime>="  + to_string(start_row->m_ts - m_table->m_refresh_interval_ns) + 
-								" and evt.rawtime<=" + to_string(end_row->m_ts) + 
-								") and (" + lat_fld_name + ">=" + to_string(start_latency) + 
-								" and " + lat_fld_name + "<" + to_string(end_latency) + ")";
+								curses_spectro_history_row* start_row = get_history_row_from_coordinate(m_selstart_y);
+								curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_prev_sel_y2 - 1);
+								uint64_t start_latency = latency_from_coordinate(m_selstart_x);
+								uint64_t end_latency = latency_from_coordinate(m_prev_sel_x2);
 
-							g_logger.format("spectrogram drill down");
-							g_logger.format("filter: %s", m_selection_filter.c_str());
+								if(start_row == NULL || end_row == NULL)
+								{
+									break;
+								}
 
-							m_selstart_x = -1;
-							m_selstart_y = -1;
+								string lat_fld_name;
 
-							ansi_reset_color();
+								if(m_is_tracer)
+								{
+									lat_fld_name = "tracer.latency";
+								}
+								else
+								{
+									lat_fld_name = "evt.latency";
+								}
 
-							if(m_is_tracer)
-							{
-								return STA_DRILLDOWN;
-							}
-							else
-							{
-								return STA_DIG;
+								m_selection_filter = 
+									"(evt.rawtime>="  + to_string(start_row->m_ts - m_table->m_refresh_interval_ns) + 
+									" and evt.rawtime<=" + to_string(end_row->m_ts) + 
+									") and (" + lat_fld_name + ">=" + to_string(start_latency) + 
+									" and " + lat_fld_name + "<" + to_string(end_latency) + ")";
+
+								g_logger.format("spectrogram drill down");
+								g_logger.format("filter: %s", m_selection_filter.c_str());
+
+								m_selstart_x = -1;
+								m_selstart_y = -1;
+
+								ansi_reset_color();
+
+								if(m_is_tracer)
+								{
+									return STA_DRILLDOWN;
+								}
+								else
+								{
+									return STA_DIG;
+								}
 							}
 						}
-						else
+					}
+					else
+					{
+						if(m_selecting)
 						{
 							if((m_last_mevent.y > (int)m_h - 4) || ((int)m_last_mevent.y <= (int)m_h - 3 - (int)m_history.size()))
 							{

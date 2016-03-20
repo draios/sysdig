@@ -46,7 +46,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "cursestable.h"
 #include "cursesui.h"
 
-#define MOUSE_CAPABLE_TERM "xterm-1002"
+#define MOUSE_CAPABLE_TERM "xterm-1003"
 
 static bool g_terminate = false;
 static void usage();

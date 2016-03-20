@@ -128,6 +128,7 @@ private:
 	int32_t m_prev_sel_x1, m_prev_sel_x2;
 	int32_t m_prev_sel_y1, m_prev_sel_y2;
 	bool m_is_tracer;
+	bool m_selecting;
 
 	friend class curses_spectro_sidemenu;
 };
