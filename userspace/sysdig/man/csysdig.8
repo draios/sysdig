@@ -59,7 +59,7 @@ To analyze a trace file, use the \-r command line flag.
 .IP "2." 3
 You can switch to a different view by using the \f[I]F2\f[] key.
 .IP "3." 3
-You can to drill down into a selection by clicking \f[I]enter\f[].
+You can drill down into a selection by clicking \f[I]enter\f[].
 You can navigate back by typing \f[I]backspace\f[].
 .IP "4." 3
 You can observe input/output for the currently selected entity by typing
@@ -77,14 +77,14 @@ For example, if you drill down into a process called foo and then switch
 to the \f[I]Connections\f[] view, the output will include only the
 connections made or received by \f[I]foo\f[].
 .PP
-You can drill down multiple times, by keeping clicking \f[I]enter\f[].
+To drill down multiple times, by keep clicking \f[I]enter\f[].
 For example, you can click on a container in the \f[I]Containers\f[]
 view to get the processes running inside it, and then click on one of
 the processes to see its threads.
 .SS ACTIONS AND HOTKEYS
 .PP
 Each view has a list of command lines that can be executed in the
-context of the current selction by pressing \[aq]hotkeys\[aq].
+context of the current selection by pressing \[aq]hotkeys\[aq].
 For example, pressing \[aq]k\[aq] in the Processes view kills the
 selected process, pressing \[aq]b\[aq] in the Containers view opens a
 bash shell in the selected container.
@@ -97,7 +97,7 @@ file.
 .PP
 Starting csysdig with the \-pc command line switch will cause many of
 the views to include additional container information.
-For example, the \f[I]Processes\f[] will include the columns with the
+For example, the \f[I]Processes\f[] will include a column showing the
 container the process belongs to.
 Similarly, the \f[I]Connections\f[] view will show which container each
 connection belongs to.
