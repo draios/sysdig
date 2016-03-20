@@ -453,13 +453,13 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 					return STA_NONE;
 				}
-
+/*
 				if(!m_mouse_masked)
 				{
 					mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
 					m_mouse_masked = true;
 				}
-
+*/
 				if(getmouse(&m_last_mevent) == OK)
 				{
 					if(m_last_mevent.bstate & BUTTON1_CLICKED)

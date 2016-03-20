@@ -442,7 +442,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			//
 			// Check if xterm-1002 is available
 			//
-			xt1002_available =(tgetent(NULL, MOUSE_CAPABLE_TERM) != 0);
+			xt1002_available = (tgetent(NULL, MOUSE_CAPABLE_TERM) != 0);
 
 			if(xt1002_available)
 			{
