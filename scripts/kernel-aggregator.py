@@ -130,8 +130,6 @@ for distro, rule in rules.iteritems():
 	packages[distro] = versions
 
 
-# TODO: remove debug options
 for distro, versions in packages.iteritems():
 	for number, links in versions.iteritems():
-		#call([kernel_downloader, distro, number] + links)
-		print " ".join([kernel_downloader, distro, number] + links)
+		call([kernel_downloader, distro, number] + links)

@@ -36,7 +36,7 @@ function build_sysdig {
 
 	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
-		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
+		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
 
 		if [ ! -d sysdig ]; then
 			git clone git@github.com:draios/sysdig.git
@@ -175,24 +175,34 @@ function boot2docker_build {
 	build_probe
 }
 
+# A more efficient find (for the given scenario) that stops when builder log is
+# found without inspecting every kernel every time (12 mins with normal find to
+# ~ 10 secs with this)
+function find_builder_logs {
+	local root="$1"
+	local log_name="$2"
+	
+	if [ -f "${root}${log_name}" ]; then
+		echo "${root}${log_name}"
+	else
+		for sub in $( ls -1d ${root}*/ 2> /dev/null ); do
+			find_builder_logs $sub $log_name
+		done
+	fi
+	
+}
+
 #
 # `new approach` builder
 #
-LOGS=$(find . -name ".sysdig-builder-log")
+LOGS=$(find_builder_logs "./kernels/" ".sysdig-builder-log")
 for LOG in $LOGS; do
 	LOG_HANDLE=$(readlink -f $(realpath $LOG --relative-to .))
 	eval $(cat $LOG_HANDLE)
 	KERNELDIR=$(realpath "$(dirname ${LOG_HANDLE})/${KERNELDIR}")
-	# TODO: normalize, call, test
-	echo "KERNEL_RELEASE=$KERNEL_RELEASE"
-	echo "HASH=$HASH"
-	echo "HASH_ORIG=$HASH_ORIG"
-	echo "KERNELDIR=$KERNELDIR"
-	echo
+	export KERNELDIR
+	build_probe
 done
-
-# TODO remove debug
-exit
 
 #
 # boot2docker build

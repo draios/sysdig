@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+# USAGE:
+# ./kernel-downloader.sh DISTRO [VERSION] URL...
+
 # Where to download the kernel headers. A subfolder for each distro will be
 # created.
 declare -r BASEDIR="$(pwd)/kernels"
@@ -22,6 +25,21 @@ function mkcd {
 		mkdir "$1"
 	fi
 	cd "$1"
+}
+
+# This helps handling race conditions with $BUILDER_LOG_FILENAME as a lock.
+function create_log {
+	local KERNEL_RELEASE="$1"
+	local HASH="$2"
+	local HASH_ORIG="$3"
+	local KERNELDIR="$4"
+	
+	echo KERNEL_RELEASE=$KERNEL_RELEASE > "${BUILDER_LOG_FILENAME}.tmp"
+	echo HASH=$HASH >> "${BUILDER_LOG_FILENAME}.tmp"
+	echo HASH_ORIG=$HASH_ORIG >> "${BUILDER_LOG_FILENAME}.tmp"
+	echo KERNELDIR=$KERNELDIR >> "${BUILDER_LOG_FILENAME}.tmp"
+	
+	mv "${BUILDER_LOG_FILENAME}.tmp" "$BUILDER_LOG_FILENAME"
 }
 
 #
@@ -129,7 +147,7 @@ function standard_downloader {
 			;;
 
 			"Fedora" | "CentOS" )
-				local KERNEL_RELEASE=$(echo $PKG_NAME | awk 'match($0, /[^kernel\-(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+				local KERNEL_RELEASE=$(ls -1 *.rpm | head -n 1 | awk 'match($0, /[^kernel\-(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
 
 				if [ -f boot/config-$KERNEL_RELEASE ]; then
 					local HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
@@ -159,10 +177,7 @@ function standard_downloader {
 			;;
 		esac
 		
-		echo KERNEL_RELEASE=$KERNEL_RELEASE >> $BUILDER_LOG_FILENAME
-		echo HASH=$HASH >> $BUILDER_LOG_FILENAME
-		echo HASH_ORIG=$HASH_ORIG >> $BUILDER_LOG_FILENAME
-		echo KERNELDIR=$KERNELDIR >> $BUILDER_LOG_FILENAME
+		create_log $KERNEL_RELEASE $HASH $HASH_ORIG $KERNELDIR
 	fi
 
 	cd ../.. # Back to $BASEDIR
@@ -185,6 +200,10 @@ function debian_downloader {
 
 	# Download kbuild first since they're required later
 	for URL in "$@"; do
+		if [ -z "$URL" ]; then
+			continue
+		fi
+		
 		local DEB=$(basename $URL)
 		if [[ $DEB == *"kbuild"* ]]; then
 			if [ ! -f $DEB ]; then
@@ -197,6 +216,11 @@ function debian_downloader {
 
 	# Now download and extract all non-kbuild ones
 	for URL in "$@"; do
+		
+		if [ -z "$URL" ]; then
+			continue
+		fi
+		
 		local DEB=$(basename $URL)
 		if [[ $DEB != *"kbuild"* ]]; then
 
@@ -246,10 +270,7 @@ function debian_downloader {
 							local HASH_ORIG=$HASH
 							local KERNELDIR="./usr/src/linux-headers-${KERNEL_RELEASE}"
 
-							echo KERNEL_RELEASE=$KERNEL_RELEASE >> $BUILDER_LOG_FILENAME
-							echo HASH=$HASH >> $BUILDER_LOG_FILENAME
-							echo HASH_ORIG=$HASH_ORIG >> $BUILDER_LOG_FILENAME
-							echo KERNELDIR=$KERNELDIR >> $BUILDER_LOG_FILENAME
+							create_log $KERNEL_RELEASE $HASH $HASH_ORIG $KERNELDIR
 						fi
 					fi
 				fi
@@ -283,3 +304,4 @@ case $1 in
 		debian_downloader "${@:2}"
 	;;
 esac
+
