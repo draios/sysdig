@@ -63,7 +63,13 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.cproto", "for TCP/UDP FDs, the client protocol."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sproto", "for TCP/UDP FDs, server protocol."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.lproto", "for TCP/UDP FDs, the local protocol."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rproto", "for TCP/UDP FDs, the remote protocol."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rproto", "for TCP/UDP FDs, the remote protocol."},
+	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.net", "matches the IP network (client or server) of the fd."},
+	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.cnet", "client IP network."},
+	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.snet", "server IP network."},
+	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.lnet", "local IP network."},
+	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.rnet", "remote IP network."},
+
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -480,6 +486,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		m_tcstr[0] = m_fdinfo->get_typechar();
 		m_tcstr[1] = 0;
 		return m_tcstr;
+	case TYPE_CNET:
 	case TYPE_CLIENTIP:
 		{
 			if(m_fdinfo == NULL)
@@ -500,6 +507,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		break;
+	case TYPE_SNET:
 	case TYPE_SERVERIP:
 		{
 			if(m_fdinfo == NULL)
@@ -507,13 +515,12 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 
-			scap_fd_type evt_type = m_fdinfo->m_type;
-
 			if(m_fdinfo->is_role_none())
 			{
 				return NULL;
 			}
 
+			scap_fd_type evt_type = m_fdinfo->m_type;
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
 				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
@@ -525,6 +532,8 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		break;
+	case TYPE_LNET:
+	case TYPE_RNET:
 	case TYPE_LIP:
 	case TYPE_RIP:
 		{
@@ -957,6 +966,53 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 	return false;
 }
 
+bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
+{
+	if(!extract_fd(evt))
+	{
+		return false;
+	}
+
+	if(m_fdinfo != NULL)
+	{
+		scap_fd_type evt_type = m_fdinfo->m_type;
+
+		if(evt_type == SCAP_FD_IPV4_SOCK)
+		{
+			if(m_cmpop == CO_EQ)
+			{
+				if(flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)&m_val_storage[0]) ||
+				   flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)&m_val_storage[0]))
+				{
+					return true;
+				}
+			}
+			else if(m_cmpop == CO_NE)
+			{
+				if(!flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)&m_val_storage[0]) &&
+				   !flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)&m_val_storage[0]))
+				{
+					return true;
+				}
+			}
+			else
+			{
+				throw sinsp_exception("filter error: IP filter only supports '=' and '!=' operators");
+			}
+		}
+		else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
+		{
+
+			if(flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, (ipv4net*)&m_val_storage[0]))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 {
 	if(!extract_fd(evt))
@@ -1085,7 +1141,7 @@ bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 {
 	//
-	// A couple of fields are filter only and therefore get a special treatment
+	// Some fields are filter only and therefore get a special treatment
 	//
 	if(m_field_id == TYPE_IP)
 	{
@@ -1094,6 +1150,10 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	else if(m_field_id == TYPE_PORT || m_field_id == TYPE_PROTO)
 	{
 		return compare_port(evt);
+	}
+	else if(m_field_id == TYPE_NET)
+	{
+		return compare_net(evt);
 	}
 
 	//

@@ -1165,7 +1165,8 @@ enum ppm_param_type {
 	PT_SIGSET = 34, /* sigset_t. I only store the lower UINT32 of it */
 	PT_CHARBUFARRAY = 35,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
 	PT_CHARBUF_PAIR_ARRAY = 36,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
-	PT_MAX = 37 /* array size */
+	PT_IPV4NET = 37, /* An IPv4 network. */
+	PT_MAX = 38 /* array size */
 };
 
 enum ppm_print_format {
