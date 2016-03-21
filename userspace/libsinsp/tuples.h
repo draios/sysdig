@@ -39,6 +39,15 @@ typedef union _ipv4tuple
 }ipv4tuple;
 
 /*!
+	\brief An IPv4 network.
+*/
+typedef struct ipv4net
+{
+	uint32_t m_ip; ///< IP addr
+	uint32_t m_netmask; ///< Subnet mask
+}ipv4net;
+
+/*!
 	\brief An IPv6 tuple. 
 */
 typedef union _ipv6tuple

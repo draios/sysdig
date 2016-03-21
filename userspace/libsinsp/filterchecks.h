@@ -31,6 +31,7 @@ class sinsp_filter_check_reference;
 
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
+bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 
@@ -256,7 +257,12 @@ public:
 		TYPE_CLIENTPROTO = 23,
 		TYPE_SERVERPROTO = 24,
 		TYPE_LPROTO = 25,
-		TYPE_RPROTO = 26
+		TYPE_RPROTO = 26,
+		TYPE_NET = 27,
+		TYPE_CNET = 28,
+		TYPE_SNET = 29,
+		TYPE_LNET = 30,
+		TYPE_RNET = 31
 	};
 
 	enum fd_type
@@ -279,6 +285,7 @@ public:
 	sinsp_filter_check* allocate_new();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare_ip(sinsp_evt *evt);
+	bool compare_net(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
 

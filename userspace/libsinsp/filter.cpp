@@ -32,6 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_FILTERING
 #include "filter.h"
 #include "filterchecks.h"
+#include "arpa/inet.h"
 
 #ifndef _GNU_SOURCE
 //
@@ -282,6 +283,21 @@ bool flt_compare_double(cmpop op, double operand1, double operand2)
 	}
 }
 
+bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
+{
+	switch(op)
+	{
+	case CO_EQ:
+	{
+		return ((operand1 & operand2->m_netmask) == (operand2->m_ip & operand2->m_netmask));
+	}
+	case CO_NE:
+		return ((operand1 & operand2->m_netmask) != (operand2->m_ip && operand2->m_netmask));
+	default:
+		throw sinsp_exception("comparison operator not supported for ipv4 networks");
+	}
+}
+
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	//
@@ -320,6 +336,8 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_BOOL:
 	case PT_IPV4ADDR:
 		return flt_compare_uint64(op, (uint64_t)*(uint32_t*)operand1, (uint64_t)*(uint32_t*)operand2);
+	case PT_IPV4NET:
+		return flt_compare_ipv4net(op, (uint64_t)*(uint32_t*)operand1, (ipv4net*)operand2);
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
@@ -954,6 +972,44 @@ void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_par
 				throw sinsp_exception("unrecognized IP address " + string(str));
 			}
 			break;
+		case PT_IPV4NET:
+		{
+			stringstream ss(str);
+			string ip, mask;
+			ipv4net* net = (ipv4net*)&m_val_storage[0];
+
+			if (strchr(str, '/') == NULL)
+			{
+				throw sinsp_exception("unrecognized IP network " + string(str));
+			}
+
+			getline(ss, ip, '/');
+			getline(ss, mask);
+
+			if(inet_pton(AF_INET, ip.c_str(), &net->m_ip) != 1)
+			{
+				throw sinsp_exception("unrecognized IP address " + string(str));
+			}
+
+			uint32_t cidrlen = sinsp_numparser::parseu8(mask);
+
+			if (cidrlen > 32)
+			{
+				throw sinsp_exception("invalid netmask " + mask);
+			}
+
+			uint32_t j;
+			net->m_netmask = 0;
+
+			for(j = 0; j < cidrlen; j++)
+			{
+				net->m_netmask |= 1<<(31-j);
+			}
+
+			net->m_netmask = htonl(net->m_netmask);
+
+			break;
+		}
 		case PT_BYTEBUF:
 			if(len >= m_val_storage.size())
 			{
