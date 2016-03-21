@@ -32,7 +32,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_FILTERING
 #include "filter.h"
 #include "filterchecks.h"
+#ifndef _WIN32
 #include "arpa/inet.h"
+#endif
 
 #ifndef _GNU_SOURCE
 //
