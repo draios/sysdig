@@ -86,6 +86,11 @@ public:
 	virtual void parse_filter_value(const char* str, uint32_t len);
 
 	//
+	// Called after parsing for optional validation of the filter value
+	//
+	void validate_filter_value(const char* str, uint32_t len) {}
+
+	//
 	// Return the info about the field that this instance contains
 	//
 	virtual const filtercheck_field_info* get_field_info();
@@ -451,6 +456,7 @@ public:
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state);
 	void parse_filter_value(const char* str, uint32_t len);
+	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);

@@ -28,6 +28,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "protodecoder.h"
 #include "tracers.h"
+#include "value_parser.h"
 
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
@@ -2353,17 +2354,24 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 
 void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 {
+	if(m_field_id == sinsp_filter_check_event::TYPE_ARGRAW)
+	{
+		ASSERT(m_arginfo != NULL);
+		sinsp_filter_value_parser::string_to_rawval(str, len, &m_val_storage[0], m_val_storage.size(), m_arginfo->type);
+	}
+	else
+	{
+		sinsp_filter_check::parse_filter_value(str, len);
+	}
+}
+
+
+
+void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t len)
+{
 	string val(str);
 
-	if(m_field_id == TYPE_ARGRAW)
-	{
-		//
-		// 'rawarg' is handled in a custom way
-		//
-		ASSERT(m_arginfo != NULL);
-		return sinsp_filter_check::string_to_rawval(str, len, m_arginfo->type);
-	}
-	else if(m_field_id == TYPE_TYPE)
+	if(m_field_id == TYPE_TYPE)
 	{
 		sinsp_evttables* einfo = m_inspector->get_event_info_tables();
 		const struct ppm_event_info* etable = einfo->m_event_info;
@@ -2374,7 +2382,7 @@ void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 		{
 			if(stype == etable[j].name)
 			{
-				return sinsp_filter_check::parse_filter_value(str, len);
+				return;
 			}
 		}
 
@@ -2382,7 +2390,7 @@ void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 		{
 			if(stype == stable[j].name)
 			{
-				return sinsp_filter_check::parse_filter_value(str, len);
+				return;
 			}
 		}
 
@@ -2395,15 +2403,9 @@ void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 			throw sinsp_exception("evt.around supports only '=' comparison operator");
 		}
 
-		sinsp_filter_check::parse_filter_value(str, len);
-
 		m_tsdelta = sinsp_numparser::parseu64(str) * 1000000;
 
 		return;
-	}
-	else
-	{
-		return sinsp_filter_check::parse_filter_value(str, len);
 	}
 }
 
