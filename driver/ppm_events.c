@@ -23,6 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/cdev.h>
 #include <net/sock.h>
 #include <net/af_unix.h>
+#include <net/compat.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
@@ -224,7 +225,100 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 			err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
 
 			if (err == 0) {
-				err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+				if(args->event_type == PPME_SOCKET_SENDTO_X)
+				{
+					unsigned long val;
+					struct sockaddr __user * usrsockaddr;
+					/*
+					 * Get the address
+					 */
+					if (!args->is_socketcall)
+						syscall_get_arguments(current, args->regs, 4, 1, &val);
+					else
+						val = args->socketcall_args[4];
+
+					usrsockaddr = (struct sockaddr __user *)val;
+
+					if(usrsockaddr == NULL) {
+						/*
+						 * Suppose is a connected socket, fall back to fd
+						 */
+						err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+					} else {
+						/*
+						 * Get the address len
+						 */
+						if (!args->is_socketcall)
+							syscall_get_arguments(current, args->regs, 5, 1, &val);
+						else
+							val = args->socketcall_args[5];
+
+						if (val != 0) {
+							peer_address_len = val;
+							/*
+							 * Copy the address
+							 */
+							err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&peer_address);
+						} else {
+							/*
+							 * This case should be very rare, fallback again to sock
+							 */
+							err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+						}
+					}
+				} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
+					unsigned long val;
+					struct sockaddr __user * usrsockaddr;
+					int addrlen;
+#ifdef CONFIG_COMPAT
+					struct compat_msghdr compat_mh;
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+					struct user_msghdr mh;
+#else
+					struct msghdr mh;
+#endif
+
+					if (!args->is_socketcall)
+						syscall_get_arguments(current, args->regs, 1, 1, &val);
+					else
+						val = args->socketcall_args[1];
+
+#ifdef CONFIG_COMPAT
+					if (!args->compat) {
+#endif
+						if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh)))) {
+							usrsockaddr = NULL;
+							addrlen = 0;
+						} else {
+							usrsockaddr = (struct sockaddr __user *)mh.msg_name;
+							addrlen = mh.msg_namelen;
+						}
+#ifdef CONFIG_COMPAT
+					} else {
+						if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh)))) {
+							usrsockaddr = NULL;
+							addrlen = 0;
+						} else {
+							usrsockaddr = (struct sockaddr __user *)compat_ptr(compat_mh.msg_name);
+							addrlen = compat_mh.msg_namelen;
+						}
+					}
+#endif
+
+					if (usrsockaddr != NULL && addrlen != 0) {
+						peer_address_len = addrlen;
+						/*
+						 * Copy the address
+						 */
+						err = addr_to_kernel(usrsockaddr, peer_address_len, (struct sockaddr *)&peer_address);
+					} else
+						/*
+						 * Suppose it is a connected socket, fall back to fd
+						 */
+						err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+				} else
+					err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
 
 				if (err == 0) {
 					family = sock->sk->sk_family;
