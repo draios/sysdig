@@ -467,8 +467,7 @@ bool flt_compare_avg(cmpop op,
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter_check::sinsp_filter_check() :
-	m_val_storage(256)
+sinsp_filter_check::sinsp_filter_check()
 {
 	m_boolop = BO_NONE;
 	m_cmpop = CO_NONE;
@@ -479,6 +478,7 @@ sinsp_filter_check::sinsp_filter_check() :
 	m_val_storage_len = 0;
 	m_aggregation = A_NONE;
 	m_merge_aggregation = A_NONE;
+	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -835,14 +835,14 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			{
 				ASSERT(len < 1024 * 1024);
 
-				if(len >= m_val_storage.size())
+				if(len >= filter_value().size())
 				{
-					m_val_storage.resize(len + 1);
+					filter_value().resize(len + 1);
 				}
 
-				memcpy(&m_val_storage[0], rawval, len);
-				m_val_storage[len] = 0;
-				return (char*)&m_val_storage[0];
+				memcpy(filter_value_p(), rawval, len);
+				filter_value_p()[len] = 0;
+				return (char*)filter_value_p();
 			}
 		case PT_SOCKADDR:
 			ASSERT(false);
@@ -952,9 +952,15 @@ int32_t sinsp_filter_check::get_check_id()
 }
 
 
-void sinsp_filter_check::add_filter_value(const char* str, uint32_t len)
+void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint16_t i)
 {
-	parse_filter_value(str, len, &m_val_storage[0], m_val_storage.size());
+
+	if (i >= m_val_storages.size())
+	{
+		m_val_storages.push_back(vector<uint8_t>(256));
+	}
+
+	parse_filter_value(str, len, filter_value_p(i), filter_value(i).size());
 }
 
 
@@ -996,11 +1002,11 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 	// here if m_cmpop is 'in', we will iterate over all stored vals
 
 	return flt_compare(m_cmpop,
-		m_info.m_fields[m_field_id].m_type,
-		extracted_val,
-		&m_val_storage[0],
-		evt_val_len,
-		m_val_storage_len);
+			   m_info.m_fields[m_field_id].m_type,
+			   extracted_val,
+			   filter_value_p(),
+			   evt_val_len,
+			   m_val_storage_len);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -24,11 +24,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 class sinsp_filter_check_reference;
 
-#define VALIDATE_STR_VAL if(val.length() >= sizeof(m_val_storage)) \
-{ \
-	throw sinsp_exception("filter error: value too long: " + val); \
-}
-
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
@@ -83,7 +78,7 @@ public:
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
-	void add_filter_value(const char* str, uint32_t len);
+	void add_filter_value(const char* str, uint32_t len, uint16_t i = 0 );
 	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	//
@@ -144,7 +139,10 @@ protected:
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
-	vector<uint8_t> m_val_storage;
+	vector<vector<uint8_t>> m_val_storages;
+	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
+	vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
+
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
 	uint32_t m_field_id;
