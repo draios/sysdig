@@ -3753,7 +3753,6 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 		res = sinsp_filter_check::compare(evt);
 	}
 
-fcec_end:
 	m_is_compare = false;
 
 	return res;
