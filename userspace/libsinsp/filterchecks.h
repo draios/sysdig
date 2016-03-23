@@ -83,7 +83,8 @@ public:
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
-	virtual void parse_filter_value(const char* str, uint32_t len);
+	void add_filter_value(const char* str, uint32_t len);
+	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	//
 	// Called after parsing for optional validation of the filter value
@@ -199,11 +200,6 @@ public:
 	{
 		ASSERT(false);
 		return 0;
-	}
-
-	void parse_filter_value(const char* str, uint32_t len)
-	{
-		ASSERT(false);
 	}
 
 	const filtercheck_field_info* get_field_info()
@@ -455,7 +451,7 @@ public:
 	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
+	void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
@@ -669,7 +665,6 @@ public:
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 	// XXX this is overkill and wasted for most of the fields.
@@ -751,7 +746,6 @@ public:
 		m_print_format = print_format;
 	}
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 

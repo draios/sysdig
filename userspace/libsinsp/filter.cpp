@@ -951,22 +951,29 @@ int32_t sinsp_filter_check::get_check_id()
 	return m_check_id;
 }
 
-void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len)
+
+void sinsp_filter_check::add_filter_value(const char* str, uint32_t len)
+{
+	parse_filter_value(str, len, &m_val_storage[0], m_val_storage.size());
+}
+
+
+void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
 {
 	// byte buffer, no parsing needed
 	if (m_field->m_type == PT_BYTEBUF)
 	{
-		if(len >= m_val_storage.size())
+		if(len >= storage_len)
 		{
 			throw sinsp_exception("filter parameter too long:" + string(str));
 		}
-		memcpy(&m_val_storage[0], str, len);
+		memcpy(storage, str, len);
 		m_val_storage_len = len;
 		return;
 	}
 	else
 	{
-		sinsp_filter_value_parser::string_to_rawval(str, len, &m_val_storage[0], m_val_storage.size(), m_field->m_type);
+		sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, m_field->m_type);
 	}
 	validate_filter_value(str, len);
 }
@@ -978,19 +985,21 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
-	uint32_t len;
-	uint8_t* extracted_val = extract(evt, &len);
+	uint32_t evt_val_len;
+	uint8_t* extracted_val = extract(evt, &evt_val_len);
 
 	if(extracted_val == NULL)
 	{
 		return false;
 	}
 
+	// here if m_cmpop is 'in', we will iterate over all stored vals
+
 	return flt_compare(m_cmpop,
 		m_info.m_fields[m_field_id].m_type,
 		extracted_val,
 		&m_val_storage[0],
-		len,
+		evt_val_len,
 		m_val_storage_len);
 }
 
@@ -1560,7 +1569,7 @@ void sinsp_filter_compiler::parse_check()
 			sinsp_filter_check* newchk = g_filterlist.new_filter_check_from_another(chk);
 			newchk->m_boolop = op;
 			newchk->m_cmpop = CO_EQ;
-			newchk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
+			newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
 			m_filter->add_check(newchk);
 
@@ -1608,7 +1617,7 @@ void sinsp_filter_compiler::parse_check()
 		else
 		{
 			vector<char> operand2 = next_operand(false, false);
-			chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
+			chk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 		}
 
 		m_filter->add_check(chk);

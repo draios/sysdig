@@ -212,7 +212,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 		if(strcmp(cmpop, "exists"))
 		{
 			const char* value = luaL_checkstring(ls, 3);
-			chk->parse_filter_value(value, strlen(value));
+			chk->add_filter_value(value, strlen(value));
 			next_index = 4;
 		}
 		if (lua_isnumber(ls, next_index)) {

@@ -2352,7 +2352,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	return res;
 }
 
-void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
+void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
 {
 	if(m_field_id == sinsp_filter_check_event::TYPE_ARGRAW)
 	{
@@ -2361,7 +2361,7 @@ void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len)
 	}
 	else
 	{
-		sinsp_filter_check::parse_filter_value(str, len);
+		sinsp_filter_check::parse_filter_value(str, len, storage, storage_len);
 	}
 }
 
@@ -4934,11 +4934,6 @@ int32_t rawstring_check::parse_field_name(const char* str, bool alloc_state)
 	return -1;
 }
 
-void rawstring_check::parse_filter_value(const char* str, uint32_t len)
-{
-	ASSERT(false);
-}
-
 uint8_t* rawstring_check::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	*len = m_text_len;
@@ -5165,11 +5160,6 @@ int32_t sinsp_filter_check_reference::parse_field_name(const char* str, bool all
 {
 	ASSERT(false);
 	return -1;
-}
-
-void sinsp_filter_check_reference::parse_filter_value(const char* str, uint32_t len)
-{
-	ASSERT(false);
 }
 
 uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len)
