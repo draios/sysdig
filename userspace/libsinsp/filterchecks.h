@@ -134,6 +134,8 @@ public:
 	sinsp_field_aggregation m_merge_aggregation;
 
 protected:
+	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
+
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
@@ -141,7 +143,7 @@ protected:
 	char m_getpropertystr_storage[1024];
 	vector<vector<uint8_t>> m_val_storages;
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
-	vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
+	inline vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
 
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;

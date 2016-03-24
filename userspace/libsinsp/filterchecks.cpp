@@ -930,18 +930,18 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 
 		if(evt_type == SCAP_FD_IPV4_SOCK)
 		{
-			if(m_cmpop == CO_EQ)
+			if(m_cmpop == CO_EQ || m_cmpop == CO_IN)
 			{
-				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, filter_value_p()) ||
-					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, filter_value_p()))
+				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) ||
+					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip))
 				{
 					return true;
 				}
 			}
 			else if(m_cmpop == CO_NE)
 			{
-				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, filter_value_p()) &&
-					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, filter_value_p()))
+				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) &&
+					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip))
 				{
 					return true;
 				}
@@ -953,9 +953,9 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 		}
 		else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 		{
-			if(m_cmpop == CO_EQ || m_cmpop == CO_NE)
+			if(m_cmpop == CO_EQ || m_cmpop == CO_NE || m_cmpop == CO_IN)
 			{
-				return flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, filter_value_p());
+				return flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
 			}
 			else
 			{
@@ -1170,8 +1170,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 
 	return flt_compare(m_cmpop, 
 		m_info.m_fields[m_field_id].m_type, 
-		extracted_val, 
-		filter_value_p());
+		extracted_val);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1981,8 +1980,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 		{
 			res = flt_compare(m_cmpop,
 				PT_PID, 
-				&mt->m_pid, 
-				filter_value_p());
+				&mt->m_pid);
 
 			if(res == true)
 			{
@@ -2031,8 +2029,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 		{
 			res = flt_compare(m_cmpop,
 				PT_CHARBUF, 
-				(void*)mt->m_comm.c_str(), 
-				filter_value_p());
+				(void*)mt->m_comm.c_str());
 
 			if(res == true)
 			{
@@ -3729,8 +3726,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 
 		res = flt_compare(m_cmpop,
 			m_arginfo->type, 
-			extracted_val, 
-			filter_value_p());
+			extracted_val);
 	}
 	else if(m_field_id == TYPE_AROUND)
 	{
@@ -3738,12 +3734,12 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 		uint64_t t1 = ts - m_tsdelta;
 		uint64_t t2 = ts + m_tsdelta;
 
-		bool res1 = flt_compare(CO_GE,
+		bool res1 = ::flt_compare(CO_GE,
 			PT_UINT64,
 			&m_u64val,
 			&t1);
 
-		bool res2 = flt_compare(CO_LE,
+		bool res2 = ::flt_compare(CO_LE,
 			PT_UINT64,
 			&m_u64val,
 			&t2);
@@ -4599,8 +4595,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 	{
 	case TYPE_TRACER_ID:
 		if(flt_compare(m_cmpop, PT_UINT64,
-			&pae->m_id,
-			filter_value_p()) == true)
+			&pae->m_id) == true)
 		{
 			return true;
 		}
@@ -4612,8 +4607,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		m_u32val = (uint32_t)pae->m_tags.size();
 
 		if(flt_compare(m_cmpop, PT_UINT32,
-			&m_u32val,
-			filter_value_p()) == true)
+			&m_u32val) == true)
 		{
 			return true;
 		}
@@ -4625,8 +4619,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		m_u32val = (uint32_t)pae->m_argvals.size();
 
 		if(flt_compare(m_cmpop, PT_UINT32,
-			&m_u32val,
-			filter_value_p()) == true)
+			&m_u32val) == true)
 		{
 			return true;
 		}
@@ -4667,8 +4660,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		}
 
 		if(flt_compare(m_cmpop, PT_CHARBUF,
-			m_storage,
-			filter_value_p()) == true)
+			m_storage) == true)
 		{
 			return true;
 		}
@@ -4704,8 +4696,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		}
 
 		if(flt_compare(m_cmpop, PT_CHARBUF,
-			val,
-			filter_value_p()) == true)
+			val) == true)
 		{
 			return true;
 		}
@@ -4757,8 +4748,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		}
 
 		if(flt_compare(m_cmpop, PT_CHARBUF,
-			m_storage,
-			filter_value_p()) == true)
+			m_storage) == true)
 		{
 			return true;
 		}
@@ -4818,8 +4808,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		}
 
 		if(flt_compare(m_cmpop, PT_CHARBUF,
-			val,
-			filter_value_p()) == true)
+			val) == true)
 		{
 			return true;
 		}

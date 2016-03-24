@@ -989,9 +989,41 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 	return &m_info.m_fields[m_field_id];
 }
 
+bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len, uint32_t op2_len)
+{
+	if (op == CO_IN)
+	{
+		if (op1_len)
+		{
+			throw sinsp_exception("filter error: cannot use 'in' operator with param type "+ to_string(type));
+		}
+		for (uint16_t i=0; i < m_val_storages.size(); i++)
+		{
+			if (::flt_compare(CO_EQ,
+					  type,
+					  operand1,
+					  filter_value_p(i)))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	else
+	{
+		return (::flt_compare(op,
+				      type,
+				      operand1,
+				      filter_value_p(),
+				      op1_len,
+				      op2_len)
+			);
+	}
+}
+
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
-	uint32_t evt_val_len;
+	uint32_t evt_val_len=0;
 	uint8_t* extracted_val = extract(evt, &evt_val_len);
 
 	if(extracted_val == NULL)
@@ -999,12 +1031,9 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 		return false;
 	}
 
-	// here if m_cmpop is 'in', we will iterate over all stored vals
-
 	return flt_compare(m_cmpop,
 			   m_info.m_fields[m_field_id].m_type,
 			   extracted_val,
-			   filter_value_p(),
 			   evt_val_len,
 			   m_val_storage_len);
 }
