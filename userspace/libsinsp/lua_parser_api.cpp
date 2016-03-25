@@ -198,7 +198,9 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 
 	try
 	{
-		int next_index = 3;
+		int i;
+		int rule_index = 0;
+
 		chk->m_boolop = parser->m_last_boolop;
 		parser->m_last_boolop = BO_NONE;
 
@@ -207,16 +209,48 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 		const char* cmpop = luaL_checkstring(ls, 2);
 		chk->m_cmpop = string_to_cmpop(cmpop);
 
-		next_index++;
 		// "exists" is the only unary comparison op
 		if(strcmp(cmpop, "exists"))
 		{
-			const char* value = luaL_checkstring(ls, 3);
-			chk->parse_filter_value(value, strlen(value));
-			next_index = 4;
+			if (strcmp(cmpop, "in") == 0)
+			{
+				if (!lua_istable(ls, 3))
+				{
+					string err = "Got non-table as in-expression operand\n";
+					fprintf(stderr, "%s\n", err.c_str());
+					throw sinsp_exception("parser API error");
+				}
+				int n = luaL_getn(ls, 3);  /* get size of table */
+				for (i=1; i<=n; i++)
+				{
+					lua_rawgeti(ls, 3, i);
+					const char* value = luaL_checkstring(ls, 5);
+					chk->add_filter_value(value, strlen(value), i - 1);
+					lua_pop(ls, 1);
+				}
+			}
+			else
+			{
+				const char* value = luaL_checkstring(ls, 3);
+				chk->add_filter_value(value, strlen(value));
+			}
+
+			if (lua_isnumber(ls, 4))
+			{
+				rule_index = (int) luaL_checkinteger(ls, 4);
+			}
 		}
-		if (lua_isnumber(ls, next_index)) {
-			chk->set_check_id((int) luaL_checkinteger(ls, next_index));
+		else
+		{
+			if (lua_isnumber(ls, 3))
+			{
+				rule_index = (int) luaL_checkinteger(ls, 3);
+			}
+		}
+
+		if (rule_index)
+		{
+			chk->set_check_id(rule_index);
 		}
 	}
 	catch(sinsp_exception& e)
