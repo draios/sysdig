@@ -1745,7 +1745,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	{
 		//
 		// Populate the new fdi
-		//
+		//	
 		if(flags & PPM_O_DIRECTORY)
 		{
 			fdi.m_type = SCAP_FD_DIRECTORY;
