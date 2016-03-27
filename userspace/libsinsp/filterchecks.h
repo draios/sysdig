@@ -24,11 +24,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 class sinsp_filter_check_reference;
 
-#define VALIDATE_STR_VAL if(val.length() >= sizeof(m_val_storage)) \
-{ \
-	throw sinsp_exception("filter error: value too long: " + val); \
-}
-
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
@@ -83,7 +78,13 @@ public:
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
-	virtual void parse_filter_value(const char* str, uint32_t len);
+	void add_filter_value(const char* str, uint32_t len, uint16_t i = 0 );
+	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+
+	//
+	// Called after parsing for optional validation of the filter value
+	//
+	void validate_filter_value(const char* str, uint32_t len) {}
 
 	//
 	// Return the info about the field that this instance contains
@@ -133,12 +134,17 @@ public:
 	sinsp_field_aggregation m_merge_aggregation;
 
 protected:
+	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
+
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
-	vector<uint8_t> m_val_storage;
+	vector<vector<uint8_t>> m_val_storages;
+	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
+	inline vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
+
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
 	uint32_t m_field_id;
@@ -194,11 +200,6 @@ public:
 	{
 		ASSERT(false);
 		return 0;
-	}
-
-	void parse_filter_value(const char* str, uint32_t len)
-	{
-		ASSERT(false);
 	}
 
 	const filtercheck_field_info* get_field_info()
@@ -450,7 +451,8 @@ public:
 	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
+	void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
@@ -663,7 +665,6 @@ public:
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 	// XXX this is overkill and wasted for most of the fields.
@@ -745,7 +746,6 @@ public:
 		m_print_format = print_format;
 	}
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 

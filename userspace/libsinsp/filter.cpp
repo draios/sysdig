@@ -32,6 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_FILTERING
 #include "filter.h"
 #include "filterchecks.h"
+#include "value_parser.h"
 #ifndef _WIN32
 #include "arpa/inet.h"
 #endif
@@ -466,8 +467,7 @@ bool flt_compare_avg(cmpop op,
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter_check::sinsp_filter_check() :
-	m_val_storage(256)
+sinsp_filter_check::sinsp_filter_check()
 {
 	m_boolop = BO_NONE;
 	m_cmpop = CO_NONE;
@@ -478,6 +478,7 @@ sinsp_filter_check::sinsp_filter_check() :
 	m_val_storage_len = 0;
 	m_aggregation = A_NONE;
 	m_merge_aggregation = A_NONE;
+	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -834,14 +835,14 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			{
 				ASSERT(len < 1024 * 1024);
 
-				if(len >= m_val_storage.size())
+				if(len >= filter_value().size())
 				{
-					m_val_storage.resize(len + 1);
+					filter_value().resize(len + 1);
 				}
 
-				memcpy(&m_val_storage[0], rawval, len);
-				m_val_storage[len] = 0;
-				return (char*)&m_val_storage[0];
+				memcpy(filter_value_p(), rawval, len);
+				filter_value_p()[len] = 0;
+				return (char*)filter_value_p();
 			}
 		case PT_SOCKADDR:
 			ASSERT(false);
@@ -875,155 +876,6 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 		default:
 			ASSERT(false);
 			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
-	}
-}
-
-void sinsp_filter_check::string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype)
-{
-	switch(ptype)
-	{
-		case PT_INT8:
-			*(int8_t*)(&m_val_storage[0]) = sinsp_numparser::parsed8(str);
-			break;
-		case PT_INT16:
-			*(int16_t*)(&m_val_storage[0]) = sinsp_numparser::parsed16(str);
-			break;
-		case PT_INT32:
-			*(int32_t*)(&m_val_storage[0]) = sinsp_numparser::parsed32(str);
-			break;
-		case PT_INT64:
-		case PT_FD:
-		case PT_ERRNO:
-			*(int64_t*)(&m_val_storage[0]) = sinsp_numparser::parsed64(str);
-			break;
-		case PT_L4PROTO: // This can be resolved in the future
-		case PT_FLAGS8:
-		case PT_UINT8:
-			*(uint8_t*)(&m_val_storage[0]) = sinsp_numparser::parseu8(str);
-			break;
-		case PT_PORT:
-		{
-			string in(str);
-
-			if(in.empty())
-			{
-				*(uint16_t*)(&m_val_storage[0]) = 0;
-			}
-			else
-			{
-				// if the string is made only of numbers
-				if(strspn(in.c_str(), "0123456789") == in.size())
-				{
-					*(uint16_t*)(&m_val_storage[0]) = stoi(in);
-				}
-				else
-				{
-					*(uint16_t*)(&m_val_storage[0]) = ntohs(getservbyname(in.c_str(), NULL)->s_port);
-				}
-			}
-
-			break;
-		}
-		case PT_FLAGS16:
-		case PT_UINT16:
-			*(uint16_t*)(&m_val_storage[0]) = sinsp_numparser::parseu16(str);
-			break;
-		case PT_FLAGS32:
-		case PT_UINT32:
-			*(uint32_t*)(&m_val_storage[0]) = sinsp_numparser::parseu32(str);
-			break;
-		case PT_UINT64:
-			*(uint64_t*)(&m_val_storage[0]) = sinsp_numparser::parseu64(str);
-			break;
-		case PT_RELTIME:
-		case PT_ABSTIME:
-			*(uint64_t*)(&m_val_storage[0]) = sinsp_numparser::parseu64(str);
-			break;
-		case PT_CHARBUF:
-		case PT_SOCKADDR:
-		case PT_SOCKFAMILY:
-			{
-				len = (uint32_t)strlen(str);
-				if(len >= m_val_storage.size())
-				{
-					throw sinsp_exception("filter parameter too long:" + string(str));
-				}
-
-				memcpy((&m_val_storage[0]), str, len);
-				m_val_storage[len] = 0;
-			}
-			break;
-		case PT_BOOL:
-			if(string(str) == "true")
-			{
-				*(uint32_t*)(&m_val_storage[0]) = 1;
-			}
-			else if(string(str) == "false")
-			{
-				*(uint32_t*)(&m_val_storage[0]) = 0;
-			}
-			else
-			{
-				throw sinsp_exception("filter error: unrecognized boolean value " + string(str));
-			}
-
-			break;
-		case PT_IPV4ADDR:
-			if(inet_pton(AF_INET, str, (&m_val_storage[0])) != 1)
-			{
-				throw sinsp_exception("unrecognized IP address " + string(str));
-			}
-			break;
-		case PT_IPV4NET:
-		{
-			stringstream ss(str);
-			string ip, mask;
-			ipv4net* net = (ipv4net*)&m_val_storage[0];
-
-			if (strchr(str, '/') == NULL)
-			{
-				throw sinsp_exception("unrecognized IP network " + string(str));
-			}
-
-			getline(ss, ip, '/');
-			getline(ss, mask);
-
-			if(inet_pton(AF_INET, ip.c_str(), &net->m_ip) != 1)
-			{
-				throw sinsp_exception("unrecognized IP address " + string(str));
-			}
-
-			uint32_t cidrlen = sinsp_numparser::parseu8(mask);
-
-			if (cidrlen > 32)
-			{
-				throw sinsp_exception("invalid netmask " + mask);
-			}
-
-			uint32_t j;
-			net->m_netmask = 0;
-
-			for(j = 0; j < cidrlen; j++)
-			{
-				net->m_netmask |= 1<<(31-j);
-			}
-
-			net->m_netmask = htonl(net->m_netmask);
-
-			break;
-		}
-		case PT_BYTEBUF:
-			if(len >= m_val_storage.size())
-			{
-				throw sinsp_exception("filter parameter too long:" + string(str));
-			}
-
-			memcpy((&m_val_storage[0]), str, len);
-			m_val_storage_len = len;
-			break;
-		default:
-			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string((long long) m_field->m_type));
 	}
 }
 
@@ -1099,9 +951,37 @@ int32_t sinsp_filter_check::get_check_id()
 	return m_check_id;
 }
 
-void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len)
+
+void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint16_t i)
 {
-	string_to_rawval(str, len, m_field->m_type);
+
+	if (i >= m_val_storages.size())
+	{
+		m_val_storages.push_back(vector<uint8_t>(256));
+	}
+
+	parse_filter_value(str, len, filter_value_p(i), filter_value(i).size());
+}
+
+
+void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
+{
+	// byte buffer, no parsing needed
+	if (m_field->m_type == PT_BYTEBUF)
+	{
+		if(len >= storage_len)
+		{
+			throw sinsp_exception("filter parameter too long:" + string(str));
+		}
+		memcpy(storage, str, len);
+		m_val_storage_len = len;
+		return;
+	}
+	else
+	{
+		sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, m_field->m_type);
+	}
+	validate_filter_value(str, len);
 }
 
 const filtercheck_field_info* sinsp_filter_check::get_field_info()
@@ -1109,10 +989,42 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 	return &m_info.m_fields[m_field_id];
 }
 
+bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len, uint32_t op2_len)
+{
+	if (op == CO_IN)
+	{
+		if (op1_len)
+		{
+			throw sinsp_exception("filter error: cannot use 'in' operator with param type "+ to_string(type));
+		}
+		for (uint16_t i=0; i < m_val_storages.size(); i++)
+		{
+			if (::flt_compare(CO_EQ,
+					  type,
+					  operand1,
+					  filter_value_p(i)))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	else
+	{
+		return (::flt_compare(op,
+				      type,
+				      operand1,
+				      filter_value_p(),
+				      op1_len,
+				      op2_len)
+			);
+	}
+}
+
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
-	uint32_t len;
-	uint8_t* extracted_val = extract(evt, &len);
+	uint32_t evt_val_len=0;
+	uint8_t* extracted_val = extract(evt, &evt_val_len);
 
 	if(extracted_val == NULL)
 	{
@@ -1120,11 +1032,10 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 	}
 
 	return flt_compare(m_cmpop,
-		m_info.m_fields[m_field_id].m_type,
-		extracted_val,
-		&m_val_storage[0],
-		len,
-		m_val_storage_len);
+			   m_info.m_fields[m_field_id].m_type,
+			   extracted_val,
+			   evt_val_len,
+			   m_val_storage_len);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1693,7 +1604,7 @@ void sinsp_filter_compiler::parse_check()
 			sinsp_filter_check* newchk = g_filterlist.new_filter_check_from_another(chk);
 			newchk->m_boolop = op;
 			newchk->m_cmpop = CO_EQ;
-			newchk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
+			newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
 			m_filter->add_check(newchk);
 
@@ -1741,7 +1652,7 @@ void sinsp_filter_compiler::parse_check()
 		else
 		{
 			vector<char> operand2 = next_operand(false, false);
-			chk->parse_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
+			chk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 		}
 
 		m_filter->add_check(chk);
