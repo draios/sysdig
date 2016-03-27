@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel intercepts all reads and writes to all files. Instead of all files, you can limit interception to one file."
-short_description = "Echo any read/write made by any process to all files. Optionally, you can provide the name of one file to only intercept reads/writes to that file.";
+description = "This chisel intercepts all reads and writes to all files, pipes and unix sockets. Instead of all files, you can limit interception to one file, pipe or unix socket."
+short_description = "Echo any read/write made by any process to all files, pipes and unix sockets. Optionally, you can provide the name of one file, pipe or unix socket to only intercept reads/writes to that file, pipe or unix socket.";
 category = "I/O";
 
 -- Argument list
@@ -26,6 +26,12 @@ args =
 	{
 		name = "read_or_write",
 		description = "Specify 'R' to capture only read events; 'W' to capture only write events; 'RW' to capture read and write events. By default both read and write events are captured.",
+		argtype = "string",
+		optional = true
+	},
+	{
+		name = "type_of_file", 
+		description = "Specify 'F' to capture only file events; 'P' to capture only pipe events; 'U' to capture only unix socket events; 'FP' to capture file and pipe events; Similar with 'PF', 'FU', 'PU', etc. By default file, pipe and unix socket events are captured.",
 		argtype = "string",
 		optional = true
 	},
@@ -41,12 +47,16 @@ args =
 require "common"
 local spy_file_name = nil
 local read_or_write = nil
+local type_of_file = nil
 local verbose = false
 
 -- Argument notification callback
 function on_set_arg(name, val)
 	if name == "read_or_write" then
 		read_or_write = val
+		return true
+	elseif name == "type_of_file" then
+		type_of_file = val
 		return true
 	elseif name == "spy_on_file_name" then
 		spy_file_name = val
@@ -93,7 +103,23 @@ function on_init()
 		filter = string.format("%s%s", filter, "evt.is_io=true and ")
 	end
 
-	filter = string.format("%s%s", filter, "fd.type=file and evt.dir=< and evt.failed=false")
+	if type_of_file == "F" or type_of_file == "f" then
+		filter = string.format("%s%s", filter, "fd.type=file and ")
+	elseif type_of_file == "P" or type_of_file == "p" then
+		filter = string.format("%s%s", filter, "fd.type=pipe and ")
+	elseif type_of_file == "U" or type_of_file == "u" then
+		filter = string.format("%s%s", filter, "fd.type=unix and ")
+	elseif type_of_file == "FP" or type_of_file == "fP" or type_of_file == "Fp" or type_of_file == "fp" or type_of_file == "PF" or type_of_file == "pF" or type_of_file == "Pf" or type_of_file == "pf" then
+		filter = string.format("%s%s", filter, "(fd.type=file or fd.type=pipe) and ")
+	elseif type_of_file == "FU" or type_of_file == "fU" or type_of_file == "Fu" or type_of_file == "fu" or type_of_file == "UF" or type_of_file == "uF" or type_of_file == "Uf" or type_of_file == "uf" then
+		filter = string.format("%s%s", filter, "(fd.type=file or fd.type=unix) and ")
+	elseif type_of_file == "PU" or type_of_file == "pU" or type_of_file == "Pu" or type_of_file == "pu" or type_of_file == "UP" or type_of_file == "uP" or type_of_file == "Up" or type_of_file == "up" then
+		filter = string.format("%s%s", filter, "(fd.type=pipe or fd.type=unix) and ")
+	else
+		filter = string.format("%s%s", filter, "(fd.type=file or fd.type=pipe or fd.type=unix) and ")
+	end
+
+	filter = string.format("%s%s", filter, "evt.dir=< and evt.failed=false")
 
 	if verbose then
 		print("filter=" .. filter)
