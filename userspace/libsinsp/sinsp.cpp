@@ -662,7 +662,7 @@ void sinsp::import_thread_table()
 
 void sinsp::import_ifaddr_list()
 {
-	m_network_interfaces = new sinsp_network_interfaces;
+	m_network_interfaces = new sinsp_network_interfaces(this);
 	m_network_interfaces->import_interfaces(scap_get_ifaddr_list(m_h));
 }
 

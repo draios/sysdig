@@ -63,11 +63,16 @@ public:
 class SINSP_PUBLIC sinsp_network_interfaces
 {
 public:
+	sinsp_network_interfaces(sinsp* inspector)
+	{
+		m_inspector = inspector;
+	}
+
 	void import_interfaces(scap_addrlist* paddrlist);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void update_fd(sinsp_fdinfo_t *fd);
 	bool is_ipv4addr_in_subnet(uint32_t addr);
-	bool is_ipv4addr_in_local_machine(uint32_t addr);
+	bool is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo);
 	vector<sinsp_ipv4_ifinfo>* get_ipv4_list();
 	vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
 	inline void clear();
@@ -78,6 +83,7 @@ VISIBILITY_PRIVATE
 	void import_ipv6_ifaddr_list(uint32_t count, scap_ifinfo_ipv6* plist);
 	vector<sinsp_ipv4_ifinfo> m_ipv4_interfaces;
 	vector<sinsp_ipv6_ifinfo> m_ipv6_interfaces;
+	sinsp* m_inspector;
 };
 
 void sinsp_network_interfaces::clear()
