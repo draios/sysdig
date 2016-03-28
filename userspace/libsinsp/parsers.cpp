@@ -1783,7 +1783,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
 	{
-		m_fd_listener->on_file_create(evt, fullpath);
+		m_fd_listener->on_file_open(evt, fullpath, flags);
 	}
 }
 
