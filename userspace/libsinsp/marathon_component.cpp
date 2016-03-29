@@ -12,6 +12,8 @@
 // component
 //
 
+marathon_component::task_app_map_t marathon_component::m_task_app_cache;
+
 const marathon_component::component_map marathon_component::list =
 {
 	{ marathon_component::MARATHON_GROUP, "group" },
@@ -58,7 +60,7 @@ marathon_component& marathon_component::operator=(const marathon_component&& oth
 	return *this;
 }
 
-std::string marathon_component::get_name(type t)
+std::string marathon_component::get_type_name(type t)
 {
 	component_map::const_iterator it = list.find(t);
 	if(it != list.end())
@@ -87,6 +89,26 @@ marathon_component::type marathon_component::get_type(const std::string& name)
 	throw sinsp_exception(os.str().c_str());
 }
 
+void marathon_component::cache_task_app(const std::string& task_id, app_ptr_t app)
+{
+	m_task_app_cache[task_id] = app;
+}
+
+void marathon_component::uncache_task_app(const std::string& task_id)
+{
+	m_task_app_cache.erase(task_id);
+}
+
+marathon_component::app_ptr_t marathon_component::get_cached_app(const std::string& task_id)
+{
+	task_app_map_t::iterator it = m_task_app_cache.find(task_id);
+	if(it != m_task_app_cache.end())
+	{
+		return it->second;
+	}
+	return 0;
+}
+
 //
 // app
 //
@@ -111,6 +133,7 @@ void marathon_app::add_task(mesos_framework::task_ptr_t ptask)
 			if(task == task_id) { return; }
 		}
 		m_tasks.push_back(task_id);
+		cache_task_app(task_id, shared_from_this());
 	}
 	else
 	{
@@ -125,10 +148,23 @@ bool marathon_app::remove_task(const std::string& task_id)
 		if(task_id == *it)
 		{
 			m_tasks.erase(it);
+			uncache_task_app(task_id);
 			return true;
 		}
 	}
 	g_logger.log("Task [" + task_id + "] not found in app [" + get_id() + ']', sinsp_logger::SEV_WARNING);
+	return false;
+}
+
+bool marathon_app::has_task(const std::string& task_id)
+{
+	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
+	{
+		if(task_id == *it)
+		{
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -147,6 +183,31 @@ std::string marathon_app::get_group_id(const std::string& app_id)
 		group_id = app_id.substr(0, pos);
 	}
 	return group_id;
+}
+
+void marathon_app::set_labels(const Json::Value& labels)
+{
+	m_labels.clear();
+	Json::Value::Members members = labels.getMemberNames();
+	for(const auto& member : members)
+	{
+		if(labels[member].isConvertibleTo(Json::ValueType::stringValue))
+		{
+			m_labels.push_back({member, labels[member].asString()});
+		}
+	}
+}
+
+mesos_pair_t marathon_app::get_label(const std::string& key) const
+{
+	for(const auto& label : m_labels)
+	{
+		if(label.first == key)
+		{
+			return label;
+		}
+	}
+	return mesos_pair_t();
 }
 
 //
@@ -263,6 +324,31 @@ bool marathon_group::remove_task(const std::string& id)
 		}
 	}
 	return false;
+}
+
+marathon_group::app_ptr_t marathon_group::get_app(mesos_task::ptr_t task) const
+{
+	return get_cached_app(task->get_uid());
+}
+
+marathon_group::ptr_t marathon_group::get_group(mesos_task::ptr_t task)
+{
+	for(const auto& app : m_apps)
+	{
+		if(app.second && app.second->has_task(task->get_uid()))
+		{
+			return shared_from_this();
+		}
+	}
+	for(const auto& group : m_groups)
+	{
+		app_ptr_t app = group.second->get_app(task);
+		if(app)
+		{
+			return group.second;
+		}
+	}
+	return 0;
 }
 
 void marathon_group::print() const

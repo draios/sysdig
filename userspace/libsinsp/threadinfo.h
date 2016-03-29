@@ -75,6 +75,15 @@ public:
 	string get_cwd();
 
 	/*!
+	  \brief Return the values of all environment variables for the process
+	  containing this thread.
+	*/
+	const vector<string>& get_env() const
+	{
+		return m_env;
+	}
+
+	/*!
 	  \brief Return the value of the specified environment variable for the process
 	  containing this thread. Returns empty string if variable is not found.
 	*/

@@ -133,43 +133,62 @@ void mesos_collector::get_data()
 					}
 					else // data or idle
 					{
-						for(auto& sock : m_sockets)
+						for(socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end();)
 						{
-							if(FD_ISSET(sock.first, &m_infd))
+							if(FD_ISSET(it->first, &m_infd))
 							{
-								if(!sock.second->on_data())
+								if(it->second && !it->second->on_data())
 								{
-									if(!m_sockets.size()) { return; }
 									if(errno != EAGAIN)
 									{
-										g_logger.log("Mesos collector data handling error, removing socket for (" + sock.second->get_framework_id() + ')', sinsp_logger::SEV_ERROR);
-										socket_map_t::iterator it = m_sockets.find(sock.first);
+										std::string fid = it->second->get_framework_id();
+										if(!fid.empty())
+										{
+											g_logger.log("Mesos collector data handling error, removing Marathon socket for framework [" + fid + ']', sinsp_logger::SEV_ERROR);
+										}
+										else
+										{
+											g_logger.log("Mesos collector data handling error, removing Mesos state socket.", sinsp_logger::SEV_ERROR);
+										}
 										remove(it);
+										continue;
 									}
 								}
-								if(!m_sockets.size()) { return; }
 							}
 							else
 							{
-								FD_SET(sock.first, &m_infd);
+								FD_SET(it->first, &m_infd);
 							}
 
-							if(FD_ISSET(sock.first, &m_errfd))
+							if(FD_ISSET(it->first, &m_errfd))
 							{
 								if(errno != EAGAIN)
 								{
 									std::string err = strerror(errno);
 									g_logger.log(err, sinsp_logger::SEV_ERROR);
-									sock.second->on_error(err, true);
-									g_logger.log("Mesos collector socket error, removing socket for (" + sock.second->get_framework_id() + ')', sinsp_logger::SEV_ERROR);
-									socket_map_t::iterator it = m_sockets.find(sock.first);
+									std::string fid;
+									if(it->second)
+									{
+										it->second->on_error(err, true);
+										fid = it->second->get_framework_id();
+									}
+									if(!fid.empty())
+									{
+										g_logger.log("Mesos collector socket error, removing Marathon socket for framework [" + fid + ']', sinsp_logger::SEV_ERROR);
+									}
+									else
+									{
+										g_logger.log("Mesos collector socket error, removing Mesos state socket.", sinsp_logger::SEV_ERROR);
+									}
 									remove(it);
+									continue;
 								}
 							}
 							else
 							{
-								FD_SET(sock.first, &m_errfd);
+								FD_SET(it->first, &m_errfd);
 							}
+							++it;
 						}
 					}
 				}

@@ -71,7 +71,8 @@ public:
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
-	bool set_mesos_task_id(sinsp_container_info* container, const string& task_id, int64_t ptid = -1);
+	string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
+	bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
 	string get_mesos_task_id(const string& container_id);
 
 private:

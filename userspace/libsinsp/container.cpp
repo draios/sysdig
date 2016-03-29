@@ -101,59 +101,60 @@ sinsp_container_info* sinsp_container_manager::get_container(const string& conta
 	return NULL;
 }
 
-bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container, const string& task_id, int64_t ptid)
+string sinsp_container_manager::get_env_mesos_task_id(sinsp_threadinfo* tinfo)
+{
+	string mtid;
+	if(tinfo)
+	{
+		// Mesos task ID detection is not a straightforward task;
+		// this list may have to be extended.
+		mtid = tinfo->get_env("MESOS_TASK_ID"); // Marathon
+		if(!mtid.empty()) { return mtid; }
+		mtid = tinfo->get_env("mesos_task_id"); // Chronos
+		if(!mtid.empty()) { return mtid; }
+		mtid = tinfo->get_env("MESOS_EXECUTOR_ID"); // others
+		if(!mtid.empty()) { return mtid; }
+		sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
+		if(ptinfo && ptinfo->m_tid > 1)
+		{
+			mtid = get_env_mesos_task_id(ptinfo);
+		}
+	}
+	return mtid;
+}
+
+bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo)
 {
 	ASSERT(container);
-	const string& container_id = container->m_id;
-	if(task_id.empty() && -1 == ptid)
-	{
-		g_logger.log("Mesos container [" + container_id + "] detection attempted with insufficient information provided.", sinsp_logger::SEV_WARNING);
-		return false;
-	}
+	ASSERT(tinfo);
 
 	// there are applications that do not share their environment in /proc/[PID]/environ
 	// since we need MESOS_TASK_ID environment variable to discover Mesos containers,
 	// there is a workaround for such cases:
 	// - for docker containers, we discover it directly from container, through Remote API
 	//   (see sinsp_container_manager::parse_docker() for details)
-	// - for mesos native containers, parent process has the MESOS_TASK_ID env variable,
-	//   so we peek into the parent process environment to discover it
+	// - for mesos native containers, parent process has the MESOS_TASK_ID (or equivalent, see
+	//   get_env_mesos_task_id(sinsp_threadinfo*) implementation) environment variable, so we
+	//   peek into the parent process environment to discover it
 
-	if(container)
+	if(container && tinfo)
 	{
-		if(container->m_mesos_task_id.empty())
+		string& mtid = container->m_mesos_task_id;
+		if(mtid.empty())
 		{
-			if(!task_id.empty())
+			mtid = get_env_mesos_task_id(tinfo);
+			if(!mtid.empty())
 			{
-				container->m_mesos_task_id = task_id;
-				g_logger.log("Mesos container: [" + container_id + "], Mesos task ID: [" + task_id + ']', sinsp_logger::SEV_DEBUG);
+				g_logger.log("Mesos native container: [" + container->m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
 				return true;
 			}
-			else if(-1 != ptid && container->m_type == CT_MESOS)
+			else
 			{
-				sinsp_threadinfo* tinfo = m_inspector->find_thread(ptid, true);
-				if(tinfo)
-				{
-					string mtid = tinfo->get_env("MESOS_TASK_ID");
-					if(mtid.empty())
-					{
-						mtid = tinfo->get_env("mesos_task_id");
-					}
-					if(mtid.empty())
-					{
-						mtid = tinfo->get_env("MESOS_EXECUTOR_ID");
-					}
-					if(!mtid.empty())
-					{
-						g_logger.log("Mesos native container: [" + container_id + "], Mesos task ID: " + mtid + ", PTID:[" + std::to_string(ptid) +']', sinsp_logger::SEV_DEBUG);
-						container->m_mesos_task_id = mtid;
-						return true;
-					}
-				}
+				g_logger.log("Mesos task ID not found for Mesos container [" + container->m_id + "],"
+							 "thread [" + std::to_string(tinfo->m_tid) + ']', sinsp_logger::SEV_WARNING);
 			}
 		}
 	}
-
 	return false;
 }
 
@@ -165,7 +166,6 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 	{
 		mesos_task_id = container->m_mesos_task_id;
 	}
-
 	return mesos_task_id;
 }
 
@@ -280,20 +280,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
 			valid_id = true;
-			string mesos_task_id = tinfo->get_env("MESOS_TASK_ID");
-			if(mesos_task_id.empty())
-			{
-				mesos_task_id = tinfo->get_env("mesos_task_id");
-			}
-			if(mesos_task_id.empty())
-			{
-				mesos_task_id = tinfo->get_env("MESOS_EXECUTOR_ID");
-			}
-			int64_t ptid = tinfo->m_ptid;
-			if(!mesos_task_id.empty() || (-1 != ptid))
-			{
-				set_mesos_task_id(&container_info, mesos_task_id, ptid);
-			}
+			set_mesos_task_id(&container_info, tinfo);
 			break;
 		}
 	}
