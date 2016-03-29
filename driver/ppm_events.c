@@ -1285,7 +1285,14 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
+#ifndef __NR_socketcall
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
+#else
+			if(args->event_type >= PPME_SOCKET_SOCKET_E && args->event_type <= PPME_SOCKET_ACCEPT4_X)
+				val = args->socketcall_args[0];
+			else
+				syscall_get_arguments(current, args->regs, 0, 1, &val);
+#endif
 			args->fd = (int)val;
 
 			/*

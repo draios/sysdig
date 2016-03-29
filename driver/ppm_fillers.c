@@ -1729,7 +1729,11 @@ static int f_sys_send_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 	 */
+#ifndef __NR_socketcall
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
+#else
+	val = args->socketcall_args[0];
+#endif
 	args->fd = (int)val;
 
 	/*
