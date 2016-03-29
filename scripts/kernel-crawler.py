@@ -128,7 +128,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
 		},
 
 		{
@@ -137,7 +137,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
 		},
 
 		{
@@ -146,7 +146,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]|current')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
 		}
 	],
 
