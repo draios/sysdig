@@ -35,7 +35,7 @@ public:
 
 private:
 	void clear();
-	void remove(socket_map_t::iterator it);
+	void remove(socket_map_t::iterator& it);
 
 	socket_map_t     m_sockets;
 	std::atomic<int> m_subscription_count;

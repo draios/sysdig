@@ -240,6 +240,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool m_raw_output = false;
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
+	string* mesos_api = 0;
 	bool xt1002_available = false;
 
 	static struct option long_options[] =
@@ -250,6 +251,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"list", optional_argument, 0, 'l' },
+		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
 		{"print", required_argument, 0, 'p' },
 		{"readfile", required_argument, 0, 'r' },
@@ -276,7 +278,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:K:lNn:p:r:s:v:", long_options, &long_index)) != -1)
+			"d:Ehk:K:lm:Nn:p:r:s:v:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -318,6 +320,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'l':
 				list_flds = true;
 				break;
+			case 'm':
+				mesos_api = new string(optarg);
+				break;
 			case 'N':
 				inspector->set_hostname_and_port_resolution_mode(false);
 				break;
@@ -349,6 +354,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'r':
 				infiles.push_back(optarg);
 				k8s_api = new string();
+				mesos_api = new string();
 				break;
 			case 's':
 				snaplen = atoi(optarg);
@@ -641,6 +647,24 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 
 			//
+			// run mesos, if required
+			//
+			if(mesos_api)
+			{
+				inspector->init_mesos_client(mesos_api);
+			}
+			else if(char* mesos_api_env = getenv("SYSDIG_MESOS_API"))
+			{
+				if(mesos_api_env != NULL)
+				{
+					mesos_api = new string(mesos_api_env);
+					inspector->init_mesos_client(mesos_api);
+				}
+			}
+			delete mesos_api;
+			mesos_api = 0;
+
+			//
 			// Start the capture loop
 			//
 			cinfo = do_inspect(inspector,
@@ -656,14 +680,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	catch(sinsp_capture_interrupt_exception&)
 	{
 	}
-	catch(sinsp_exception& e)
+	catch(std::exception& e)
 	{
 		errorstr = e.what();
 		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
-		errorstr = "uncatched exception";
+		errorstr = "uncaught exception";
 		res.m_res = EXIT_FAILURE;
 	}
 

@@ -13,11 +13,12 @@
 // state
 //
 
-mesos_state_t::mesos_state_t(bool is_captured) : m_is_captured(is_captured)
+mesos_state_t::mesos_state_t(bool is_captured, bool verbose) :
+	m_is_captured(is_captured), m_verbose(verbose)
 {
 }
 
-mesos_framework::task_ptr_t mesos_state_t::get_task(const std::string& uid)
+mesos_framework::task_ptr_t mesos_state_t::get_task(const std::string& uid) const
 {
 	for(auto& framework : get_frameworks())
 	{
@@ -77,6 +78,32 @@ marathon_app::ptr_t mesos_state_t::get_app(const std::string& app_id)
 	{
 		g_logger.log("Found group for app [" + app_id + "]: " + group->get_id(), sinsp_logger::SEV_DEBUG);
 		return group->get_app(app_id);
+	}
+	return 0;
+}
+
+marathon_app::ptr_t mesos_state_t::get_app(mesos_task::ptr_t task) const
+{
+	for(const auto& group : m_groups)
+	{
+		marathon_app::ptr_t app = group.second->get_app(task);
+		if(app)
+		{
+			return app;
+		}
+	}
+	return 0;
+}
+
+marathon_group::ptr_t mesos_state_t::get_group(mesos_task::ptr_t task) const
+{
+	for(const auto& group : m_groups)
+	{
+		marathon_group::ptr_t grp = group.second->get_group(task);
+		if(grp)
+		{
+			return grp;
+		}
 	}
 	return 0;
 }
@@ -214,14 +241,73 @@ bool mesos_state_t::handle_groups(const Json::Value& root, marathon_group::ptr_t
 	return true;
 }
 
+void mesos_state_t::capture_groups(const Json::Value& root, const std::string& framework_id, Json::Value& capt, bool capture_fw)
+{
+	if(!m_is_captured) { return; }
+
+	capt["id"] = root["id"];
+	const Json::Value& apps = root["apps"];
+	if(!apps.isNull())
+	{
+		if(capture_fw)
+		{
+			capt["frameworkId"] = framework_id;
+		}
+		capt["apps"] = Json::arrayValue;
+		for(const auto& app : apps)
+		{
+			Json::Value& c_app = capt["apps"].append(Json::Value());
+			c_app["id"] = app["id"];
+
+			// labels
+			const Json::Value& labels = app["labels"];
+			if(!labels.isNull())
+			{
+				c_app["labels"] = Json::objectValue;
+				Json::Value::Members members = labels.getMemberNames();
+				for (auto& member : members)
+				{
+					c_app["labels"][member] = labels[member];
+				}
+			}
+		}
+	}
+
+	const Json::Value& groups = root["groups"];
+	if(!groups.isNull())
+	{
+		capt["groups"] = Json::arrayValue;
+		for(const auto& group : groups)
+		{
+			Json::Value& c_group = capt["groups"].append(Json::objectValue);
+			capture_groups(group, framework_id, c_group);
+		}
+	}
+}
+
+bool mesos_state_t::parse_groups(Json::Value&& root, const std::string& framework_id)
+{
+	add_group(root, 0, framework_id);
+	if(m_is_captured)
+	{
+		Json::Value capt;
+		capture_groups(root, framework_id, capt, true);
+		enqueue_capture_event(capture::MARATHON_GROUPS, Json::FastWriter().write(capt));
+	}
+	if(m_verbose)
+	{
+		std::cout << Json::FastWriter().write(root) << std::endl;
+	}
+	return true;
+}
+
 bool mesos_state_t::parse_groups(std::string&& json, const std::string& framework_id)
 {
 	Json::Value root;
 	Json::Reader reader;
 	if(reader.parse(json, root, false) && !root["id"].isNull())
 	{
-		add_group(root, 0, framework_id);
-		return true;
+		return parse_groups(std::move(root), framework_id);
 	}
 	else
 	{
@@ -316,24 +402,83 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 	return 0;
 }
 
+void mesos_state_t::capture_apps(const Json::Value& root, const std::string& framework_id)
+{
+	if(!m_is_captured) { return; }
+
+	Json::Value capt;
+	const Json::Value& apps = root["apps"];
+	if(!apps.isNull())
+	{
+		capt["frameworkId"] = framework_id;
+		capt["apps"] = Json::arrayValue;
+		for(const auto& app : apps)
+		{
+			Json::Value& c_app = capt["apps"].append(Json::Value());
+			c_app["id"] = app["id"];
+
+			// labels
+			const Json::Value& labels = app["labels"];
+			if(!labels.isNull())
+			{
+				c_app["labels"] = Json::objectValue;
+				Json::Value::Members members = labels.getMemberNames();
+				for (auto& member : members)
+				{
+					c_app["labels"][member] = labels[member];
+				}
+			}
+
+			// tasks
+			const Json::Value& tasks = app["tasks"];
+			if(!tasks.isNull())
+			{
+				c_app["tasks"] = Json::arrayValue;
+				for(const auto& task : tasks)
+				{
+					Json::Value& c_task = c_app["tasks"].append(Json::objectValue);
+					c_task["id"] = task["id"];
+					c_task["host"] = task["host"];
+					c_task["slaveId"] = task["slaveId"];
+					c_task["appId"] = task["appId"];
+				}
+			}
+		}
+	}
+	enqueue_capture_event(capture::MARATHON_APPS, Json::FastWriter().write(capt));
+}
+
+void mesos_state_t::parse_apps(Json::Value&& root, const std::string& framework_id)
+{
+	const Json::Value& apps = root["apps"];
+	if(!apps.isNull())
+	{
+		for(const auto& app : apps)
+		{
+			add_app(app, framework_id);
+		}
+		if(m_is_captured)
+		{
+			capture_apps(root, framework_id);
+		}
+		if(m_verbose)
+		{
+			std::cout << Json::FastWriter().write(root) << std::endl;
+		}
+	}
+	else
+	{
+		g_logger.log("No apps found.", sinsp_logger::SEV_WARNING);
+	}
+}
+
 void mesos_state_t::parse_apps(std::string&& json, const std::string& framework_id)
 {
 	Json::Value root;
 	Json::Reader reader;
 	if(reader.parse(json, root, false))
 	{
-		Json::Value apps = root["apps"];
-		if(!apps.isNull())
-		{
-			for(const auto& app : apps)
-			{
-				add_app(app, framework_id);
-			}
-		}
-		else
-		{
-			g_logger.log("No apps found.", sinsp_logger::SEV_WARNING);
-		}
+		parse_apps(std::move(root), framework_id);
 	}
 	else
 	{
@@ -345,7 +490,7 @@ void mesos_state_t::parse_apps(std::string&& json, const std::string& framework_
 marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app, const std::string& /*framework_id*/)
 {
 	marathon_app::ptr_t p_app = 0;
-	Json::Value app_id = app["id"];
+	const Json::Value& app_id = app["id"];
 	if(!app_id.isNull())
 	{
 		std::string id = app_id.asString();
@@ -356,8 +501,13 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app, const std::st
 			p_app = add_or_replace_app(id, group_id);
 			if(p_app)
 			{
+				const Json::Value& labels = app["labels"];
+				if(!labels.isNull())
+				{
+					p_app->set_labels(labels);
+				}
 				g_logger.log("Added app [" + id + "] to Marathon group: [" + group_id + ']', sinsp_logger::SEV_DEBUG);
-				Json::Value tasks = app["tasks"];
+				const Json::Value& tasks = app["tasks"];
 				if(tasks.size())
 				{
 					g_logger.log("App [" + id + "] has " + std::to_string(tasks.size()) + " tasks.", sinsp_logger::SEV_DEBUG);

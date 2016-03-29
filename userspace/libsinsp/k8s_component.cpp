@@ -565,6 +565,19 @@ std::vector<const k8s_pod_t*> k8s_rc_t::get_selected_pods(const std::vector<k8s_
 	return pod_vec;
 }
 
+int k8s_rc_t::get_replica(const Json::Value& item)
+{
+	if(!item.isNull())
+	{
+		const Json::Value& replicas = item["replicas"];
+		if(!replicas.isNull() && replicas.isConvertibleTo(Json::intValue))
+		{
+			return replicas.asInt();
+		}
+	}
+	g_logger.log("Can not determine number of replicas for K8s replication controller.", sinsp_logger::SEV_ERROR);
+	return UNKNOWN_REPLICAS;
+}
 
 //
 // service

@@ -2921,7 +2921,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 						m_strstorage += to_string(lat / 1000000000);
 						m_strstorage += ".";
-						snprintf(timebuffer, sizeof(timebuffer), "%09llu", lat % 1000000000);
+						snprintf(timebuffer, sizeof(timebuffer), "%09lu", lat % 1000000000);
 						m_strstorage += string(timebuffer);
 					}
 					else
@@ -4540,7 +4540,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		//
 		// If this is a *.t.* field, reject anything that doesn't come from the same thread
 		//
-		if(pae->m_tid != evt->get_thread_info()->m_tid)
+		if(static_cast<int64_t>(pae->m_tid) != evt->get_thread_info()->m_tid)
 		{
 			return false;
 		}
@@ -6108,6 +6108,303 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 			return (uint8_t*) m_tstr.c_str();
 		}
 
+		break;
+	}
+	default:
+		ASSERT(false);
+		return NULL;
+	}
+
+	return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_check_mesos implementation
+///////////////////////////////////////////////////////////////////////////////
+const filtercheck_field_info sinsp_filter_check_mesos_fields[] =
+{
+	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.name", "Mesos task name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.id", "Mesos task id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.label", "Mesos task label. E.g. 'mesos.task.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.labels", "Mesos task comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.framework.name", "Mesos framework name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.framework.id", "Mesos framework id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.app.name", "Marathon app name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.app.id", "Marathon app id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.app.label", "Marathon app label. E.g. 'marathon.app.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.app.labels", "Marathon app comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.group.name", "Marathon group name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.group.id", "Marathon group id."},
+};
+
+sinsp_filter_check_mesos::sinsp_filter_check_mesos()
+{
+	m_info.m_name = "mesos";
+	m_info.m_fields = sinsp_filter_check_mesos_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_mesos_fields) / sizeof(sinsp_filter_check_mesos_fields[0]);
+	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+}
+
+sinsp_filter_check* sinsp_filter_check_mesos::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_mesos();
+}
+
+int32_t sinsp_filter_check_mesos::parse_field_name(const char* str, bool alloc_state)
+{
+	string val(str);
+
+	if(string(val, 0, sizeof("mesos.task.label") - 1) == "mesos.task.label" &&
+		string(val, 0, sizeof("mesos.task.labels") - 1) != "mesos.task.labels")
+	{
+		m_field_id = TYPE_MESOS_TASK_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("mesos.task.label", val);
+	}
+	else if(string(val, 0, sizeof("marathon.app.label") - 1) == "marathon.app.label" &&
+		string(val, 0, sizeof("marathon.app.labels") - 1) != "marathon.app.labels")
+	{
+		m_field_id = TYPE_MARATHON_APP_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("marathon.app.label", val);
+	}
+	else
+	{
+		return sinsp_filter_check::parse_field_name(str, alloc_state);
+	}
+}
+
+int32_t sinsp_filter_check_mesos::extract_arg(const string& fldname, const string& val)
+{
+	int32_t parsed_len = 0;
+
+	if(val[fldname.size()] == '.')
+	{
+		size_t endpos;
+		for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
+		{
+			if(!isalnum(val[endpos])
+				&& val[endpos] != '/'
+				&& val[endpos] != '_'
+				&& val[endpos] != '-'
+				&& val[endpos] != '.')
+			{
+				break;
+			}
+		}
+
+		parsed_len = (uint32_t)endpos;
+		m_argname = val.substr(fldname.size() + 1, endpos - fldname.size() - 1);
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len;
+}
+
+mesos_task::ptr_t sinsp_filter_check_mesos::find_task_for_thread(const sinsp_threadinfo* tinfo)
+{
+	ASSERT(m_inspector && tinfo);
+	if(tinfo->m_container_id.empty())
+	{
+		return NULL;
+	}
+
+	sinsp_container_info container_info;
+	bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+	if(!found || container_info.m_mesos_task_id.empty())
+	{
+		return NULL;
+	}
+
+	const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
+	return mesos_state.get_task(container_info.m_mesos_task_id);
+}
+
+const mesos_framework* sinsp_filter_check_mesos::find_framework_by_task(mesos_task::ptr_t task)
+{
+	ASSERT(m_inspector && m_inspector->m_mesos_client);
+	const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
+	for(const auto& framework : mesos_state.get_frameworks())
+	{
+		if(framework.has_task(task->get_uid()))
+		{
+			return &framework;
+		}
+	}
+	return 0;
+}
+
+marathon_app::ptr_t sinsp_filter_check_mesos::find_app_by_task(mesos_task::ptr_t task)
+{
+	ASSERT(m_inspector && m_inspector->m_mesos_client);
+	return m_inspector->m_mesos_client->get_state().get_app(task);
+}
+
+marathon_group::ptr_t sinsp_filter_check_mesos::find_group_by_task(mesos_task::ptr_t task)
+{
+	ASSERT(m_inspector && m_inspector->m_mesos_client);
+	return m_inspector->m_mesos_client->get_state().get_group(task);
+}
+
+void sinsp_filter_check_mesos::concatenate_labels(const mesos_pair_list& labels, string* s)
+{
+	for(const mesos_pair_t& label_pair : labels)
+	{
+		if(!s->empty())
+		{
+			s->append(", ");
+		}
+
+		s->append(label_pair.first);
+		if(!label_pair.second.empty())
+		{
+			s->append(":" + label_pair.second);
+		}
+	}
+}
+
+bool sinsp_filter_check_mesos::find_label(const mesos_pair_list& labels, const string& key, string* value)
+{
+	for(const mesos_pair_t& label_pair : labels)
+	{
+		if(label_pair.first == key)
+		{
+			*value = label_pair.second;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
+{
+	if(!m_inspector || !m_inspector->m_mesos_client)
+	{
+		return NULL;
+	}
+
+	if(!evt)
+	{
+		ASSERT(false);
+		return NULL;
+	}
+
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	if(!tinfo)
+	{
+		return NULL;
+	}
+
+	mesos_task::ptr_t task = find_task_for_thread(tinfo);
+	if(!task)
+	{
+		return NULL;
+	}
+
+	m_tstr.clear();
+
+	switch(m_field_id)
+	{
+	case TYPE_MESOS_TASK_NAME:
+		m_tstr = task->get_name();
+		return (uint8_t*) m_tstr.c_str();
+	case TYPE_MESOS_TASK_ID:
+		m_tstr = task->get_uid();
+		return (uint8_t*) m_tstr.c_str();
+	case TYPE_MESOS_TASK_LABEL:
+		if(find_label(task->get_labels(), m_argname, &m_tstr))
+		{
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	case TYPE_MESOS_TASK_LABELS:
+		concatenate_labels(task->get_labels(), &m_tstr);
+		return (uint8_t*) m_tstr.c_str();
+	case TYPE_MESOS_FRAMEWORK_NAME:
+	{
+		const mesos_framework* fw = find_framework_by_task(task);
+		if(fw)
+		{
+			m_tstr = fw->get_name();
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	}
+	case TYPE_MESOS_FRAMEWORK_ID:
+	{
+		const mesos_framework* fw = find_framework_by_task(task);
+		if(fw)
+		{
+			m_tstr = fw->get_uid();
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	}
+	case TYPE_MARATHON_APP_NAME:
+	{
+		marathon_app::ptr_t app = find_app_by_task(task);
+		if(app != NULL)
+		{
+			m_tstr = app->get_name();
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	}
+	case TYPE_MARATHON_APP_ID:
+	{
+		marathon_app::ptr_t app = find_app_by_task(task);
+		if(app != NULL)
+		{
+			m_tstr = app->get_id();
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_MARATHON_APP_LABEL:
+	{
+		marathon_app::ptr_t app = find_app_by_task(task);
+		if(app && find_label(app->get_labels(), m_argname, &m_tstr))
+		{
+			return (uint8_t*) m_tstr.c_str();
+		}
+
+		break;
+	}
+	case TYPE_MARATHON_APP_LABELS:
+	{
+		marathon_app::ptr_t app = find_app_by_task(task);
+		if(app)
+		{
+			concatenate_labels(app->get_labels(), &m_tstr);
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	}
+	case TYPE_MARATHON_GROUP_NAME:
+	{
+		marathon_app::ptr_t app = find_app_by_task(task);
+		if(app)
+		{
+			m_tstr = app->get_group_id();
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	}
+	case TYPE_MARATHON_GROUP_ID:
+	{
+		marathon_app::ptr_t app = find_app_by_task(task);
+		if(app)
+		{
+			m_tstr = app->get_group_id();
+			return (uint8_t*) m_tstr.c_str();
+		}
 		break;
 	}
 	default:

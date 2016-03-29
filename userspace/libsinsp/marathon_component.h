@@ -20,6 +20,8 @@
 typedef std::pair<std::string, std::string> marathon_pair_t;
 typedef std::vector<marathon_pair_t>        marathon_pair_list;
 
+class marathon_app;
+
 // 
 // component
 //
@@ -51,18 +53,29 @@ public:
 
 	const std::string& get_id() const;
 
-	void set_id(const std::string& name);
+	void set_id(const std::string& id);
 
-	static std::string get_name(type t);
+	const std::string& get_name() const;
+
+	void set_name(const std::string& name);
+
+	static std::string get_type_name(type t);
 
 	static type get_type(const std::string& name);
+
+protected:
+	typedef std::shared_ptr<marathon_app> app_ptr_t;
+	typedef std::map<std::string, app_ptr_t> task_app_map_t;
+	static void cache_task_app(const std::string& task_id, app_ptr_t app);
+	static void uncache_task_app(const std::string& task_id);
+	static app_ptr_t get_cached_app(const std::string& task_id);
 
 private:
 	type        m_type;
 	std::string m_id;
-};
 
-class marathon_app;
+	static task_app_map_t m_task_app_cache;
+};
 
 //
 // group
@@ -75,6 +88,7 @@ public:
 	typedef std::shared_ptr<marathon_app> app_ptr_t;
 
 	typedef std::unordered_map<std::string, std::shared_ptr<marathon_app>> app_map_t;
+	typedef std::vector<std::shared_ptr<marathon_app>> app_list_t;
 	typedef std::map<std::string, std::shared_ptr<marathon_group>> group_map_t;
 
 	marathon_group(const std::string& id, const std::string& framework_id);
@@ -88,8 +102,10 @@ public:
 	void add_or_replace_group(std::shared_ptr<marathon_group>);
 
 	const app_map_t& get_apps() const;
+	app_ptr_t get_app(mesos_task::ptr_t task) const;
 	const group_map_t& get_groups() const;
 	ptr_t get_group(const std::string& group_id);
+	ptr_t get_group(mesos_task::ptr_t task);
 
 	bool remove(const std::string& id);
 
@@ -99,7 +115,6 @@ public:
 	void set_framework_id(const std::string& id);
 
 private:
-
 	template <typename M, typename P>
 	static void add_or_replace_component(M& component_map, P comp)
 	{
@@ -112,16 +127,16 @@ private:
 
 	ptr_t get_parent(const std::string& id);
 
-	app_map_t   m_apps;
-	group_map_t m_groups;
-	std::string m_framework_id;
+	app_map_t      m_apps;
+	group_map_t    m_groups;
+	std::string    m_framework_id;
 };
 
 //
 // app
 //
 
-class marathon_app : public marathon_component
+class marathon_app : public marathon_component, public std::enable_shared_from_this<marathon_app>
 {
 public:
 	typedef std::shared_ptr<marathon_app> ptr_t;
@@ -131,16 +146,20 @@ public:
 	~marathon_app();
 
 	void add_task(mesos_framework::task_ptr_t ptask);
-	bool remove_task(const std::string& task);
+	bool remove_task(const std::string& task_id);
 	const task_list_t& get_tasks() const;
+	bool has_task(const std::string& task_id);
 
 	std::string get_group_id() const;
 	static std::string get_group_id(const std::string& app_id);
 
-	void clear_cache();
+	void set_labels(const Json::Value& labels);
+	const mesos_pair_list& get_labels() const;
+	mesos_pair_t get_label(const std::string& key) const;
 
 private:
-	task_list_t m_tasks;
+	task_list_t     m_tasks;
+	mesos_pair_list m_labels;
 	friend class mesos;
 };
 
@@ -160,6 +179,16 @@ inline const std::string& marathon_component::get_id() const
 inline void marathon_component::set_id(const std::string& id)
 {
 	m_id = id;
+}
+
+inline const std::string& marathon_component::get_name() const
+{
+	return m_id;
+}
+
+inline void marathon_component::set_name(const std::string& name)
+{
+	m_id = name;
 }
 
 
@@ -205,3 +234,9 @@ inline const marathon_app::task_list_t& marathon_app::get_tasks() const
 {
 	return m_tasks;
 }
+
+inline const mesos_pair_list& marathon_app::get_labels() const
+{
+	return m_labels;
+}
+

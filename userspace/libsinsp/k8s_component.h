@@ -278,9 +278,22 @@ private:
 class k8s_rc_t : public k8s_component
 {
 public:
+	static const int UNKNOWN_REPLICAS = -1;
 	k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
 	std::vector<const k8s_pod_t*> get_selected_pods(const std::vector<k8s_pod_t>& pods) const;
+
+	void set_spec_replicas(int replicas);
+	int get_spec_replicas() const;
+	void set_stat_replicas(int replicas);
+	int get_stat_replicas() const;
+	void set_replicas(const Json::Value& item);
+
+private:
+	int get_replica(const Json::Value& item);
+
+	int m_spec_replicas = UNKNOWN_REPLICAS;
+	int m_stat_replicas = UNKNOWN_REPLICAS;
 };
 
 
@@ -643,6 +656,35 @@ inline void k8s_pod_t::set_internal_ip(const std::string& internal_ip)
 	m_internal_ip = internal_ip;
 }
 
+//
+// replication controller
+//
+
+inline void k8s_rc_t::set_spec_replicas(int replicas)
+{
+	m_spec_replicas = replicas;
+}
+
+inline int k8s_rc_t::get_spec_replicas() const
+{
+	return m_spec_replicas;
+}
+
+inline void k8s_rc_t::set_stat_replicas(int replicas)
+{
+	m_stat_replicas = replicas;
+}
+
+inline int k8s_rc_t::get_stat_replicas() const
+{
+	return m_stat_replicas;
+}
+
+inline void k8s_rc_t::set_replicas(const Json::Value& item)
+{
+	m_spec_replicas = get_replica(item["spec"]);
+	m_stat_replicas = get_replica(item["status"]);
+}
 
 //
 // service
