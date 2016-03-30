@@ -127,9 +127,9 @@ private:
 
 	ptr_t get_parent(const std::string& id);
 
-	app_map_t      m_apps;
-	group_map_t    m_groups;
-	std::string    m_framework_id;
+	app_map_t   m_apps;
+	group_map_t m_groups;
+	std::string m_framework_id;
 };
 
 //
