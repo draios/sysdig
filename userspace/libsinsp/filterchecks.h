@@ -154,7 +154,7 @@ protected:
 
 private:
 	void set_inspector(sinsp* inspector);
-	int32_t m_check_id = -1;
+	int32_t m_check_id = 0;
 
 friend class sinsp_filter_check_list;
 };
