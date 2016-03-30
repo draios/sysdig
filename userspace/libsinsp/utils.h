@@ -19,6 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <algorithm>
+#include <locale>
 
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;
