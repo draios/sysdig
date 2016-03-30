@@ -137,7 +137,7 @@ repos = {
 	"CoreOS" : [
 		{
 			"prefix" : "http://alpha.release.core-os.net/amd64-usr/",
-			"query" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current')]/@href",
+			"query" : "/html/body//a[regex:test(@href, '^[0-9]+|current')]/@href",
 			"next" : [
 				{
 					"prefix" : "",
@@ -149,7 +149,7 @@ repos = {
 
 		{
 			"prefix" : "http://beta.release.core-os.net/amd64-usr/",
-			"query" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current')]/@href",
+			"query" : "/html/body//a[regex:test(@href, '^[0-9]+|current')]/@href",
 			"next" : [
 				{
 					"prefix" : "",
@@ -161,7 +161,7 @@ repos = {
 
 		{
 			"prefix" : "http://stable.release.core-os.net/amd64-usr/",
-			"query" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]|current')]/@href",
+			"query" : "/html/body//a[regex:test(@href, '^[0-9]+|current')]/@href",
 			"next" : [
 				{
 					"prefix" : "",
