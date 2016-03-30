@@ -1706,6 +1706,7 @@ void sinsp::update_kubernetes_state()
 bool sinsp::get_mesos_data()
 {
 	bool ret = false;
+#ifdef HAS_CAPTURE
 	try
 	{
 		static time_t last_mesos_refresh = 0;
@@ -1732,6 +1733,7 @@ bool sinsp::get_mesos_data()
 		m_mesos_client = NULL;
 		init_mesos_client(0, m_verbose_json);
 	}
+#endif // HAS_CAPTURE
 	return ret;
 }
 

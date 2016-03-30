@@ -41,9 +41,11 @@ mesos::mesos(const std::string& state_uri,
 		m_timeout_ms(timeout_ms),
 		m_verbose(verbose)
 {
-	g_logger.log(std::string("Creating Mesos object for [" + m_mesos_uri + "], failover autodiscovery set to ") +
+#ifdef HAS_CAPTURE
+	g_logger.log(std::string("Creating Mesos object" for [" + m_mesos_uri + "], failover autodiscovery set to ") +
 				 (m_discover_mesos_leader ? "true" : "false"),
 				 sinsp_logger::SEV_DEBUG);
+#endif // HAS_CAPTURE
 	init();
 }
 
@@ -496,8 +498,10 @@ void mesos::handle_frameworks(const Json::Value& root)
 								m_activated_frameworks.erase(fid);
 								g_logger.log("Mesos framework deactivated: " + name + '[' + fid + ']', sinsp_logger::SEV_INFO);
 								remove_framework(framework);
+#ifdef HAS_CAPTURE
 								remove_framework_http(m_marathon_groups_http, fid);
 								remove_framework_http(m_marathon_apps_http, fid);
+#endif // HAS_CAPTURE
 							}
 						}
 						else // active framework detected
@@ -577,6 +581,7 @@ void mesos::remove_framework(const Json::Value& framework)
 	m_state.remove_framework(framework);
 }
 
+#ifdef HAS_CAPTURE
 void mesos::remove_framework_http(marathon_http_map& http_map, const std::string& framework_id)
 {
 	for(marathon_http_map::iterator it = http_map.begin(), end = http_map.end(); it != end; ++it)
@@ -590,6 +595,7 @@ void mesos::remove_framework_http(marathon_http_map& http_map, const std::string
 		}
 	}
 }
+#endif // HAS_CAPTURE
 
 void mesos::add_slave(const Json::Value& slave)
 {
@@ -706,6 +712,7 @@ void mesos::set_state_json(std::string&& json, const std::string&)
 void mesos::parse_state(Json::Value&& root, bool discover_uris)
 {
 	clear_mesos();
+#ifdef HAS_CAPTURE
 	if(discover_uris && !has_marathon())
 	{
 		m_state_http->discover_framework_uris(root["frameworks"]);
@@ -714,8 +721,10 @@ void mesos::parse_state(Json::Value&& root, bool discover_uris)
 			init_marathon();
 		}
 	}
+#endif // HAS_CAPTURE
 	handle_frameworks(root);
 	handle_slaves(root);
+#ifdef HAS_CAPTURE
 	if(m_state.is_captured())
 	{
 		Json::Value capt;
@@ -723,6 +732,7 @@ void mesos::parse_state(Json::Value&& root, bool discover_uris)
 		capture_slaves(root, capt);
 		m_state.enqueue_capture_event(mesos_state_t::capture::MESOS_STATE, Json::FastWriter().write(capt));
 	}
+#endif // HAS_CAPTURE
 	if(m_verbose)
 	{
 		std::cout << Json::FastWriter().write(root) << std::endl;
