@@ -1342,6 +1342,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	m_inspector->add_thread(tinfo);
 
 	//
+	// If there's a listener, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_clone(&tinfo);
+	}
+
+	//
 	// If we had to erase a previous entry for this tid and rebalance the table,
 	// make sure we reinitialize the tinfo pointer for this event, as the thread
 	// generating it might have gone away.
