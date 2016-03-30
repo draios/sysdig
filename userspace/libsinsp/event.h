@@ -229,7 +229,10 @@ public:
 
 	  \note For events that are not I/O related, get_fd_info() returns NULL. 
 	*/
-	sinsp_fdinfo_t* get_fd_info();
+	inline sinsp_fdinfo_t* get_fd_info()
+	{
+		return m_fdinfo;
+	}
 
 	/*!
 	  \brief Return the number of the FD associated with this event.

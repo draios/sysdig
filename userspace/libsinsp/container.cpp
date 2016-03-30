@@ -695,6 +695,11 @@ const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_
 void sinsp_container_manager::add_container(const sinsp_container_info& container_info)
 {
 	m_containers[container_info.m_id] = container_info;
+
+	if(m_inspector->m_parser->m_fd_listener)
+	{
+		m_inspector->m_parser->m_fd_listener->on_new_container(container_info);
+	}
 }
 
 void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)

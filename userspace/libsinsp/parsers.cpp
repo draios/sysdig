@@ -1534,6 +1534,15 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 #ifdef HAS_ANALYZER
 	evt->m_tinfo->m_ainfo->clear_role_flags();
 #endif
+
+	//
+	// If there's a listener, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_execve(evt);
+	}
+
 	return;
 }
 
@@ -1988,6 +1997,14 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	// Update the name of this socket
 	//
 	evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+
+	//
+	// If there's a listener callback, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_bind(evt);
+	}
 }
 
 void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
