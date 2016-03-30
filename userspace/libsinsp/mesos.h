@@ -97,6 +97,8 @@ private:
 
 	typedef std::unordered_map<std::string, marathon_http::ptr_t> marathon_http_map;
 
+	void remove_framework_http(marathon_http_map& http_map, const std::string& framework_id);
+
 	mesos_http::ptr_t m_state_http;
 	marathon_http_map m_marathon_groups_http;
 	marathon_http_map m_marathon_apps_http;
@@ -127,7 +129,6 @@ private:
 	void set_marathon_apps_json(std::string&& json, const std::string& framework_id);
 	void parse_apps(std::string&& json, const std::string& framework_id);
 	void remove_framework(const Json::Value& framework);
-	void remove_framework_http(marathon_http_map& http_map, const std::string& framework_id);
 
 	mesos_state_t m_state;
 	bool          m_creation_logged = false;
@@ -158,12 +159,16 @@ inline const mesos_state_t& mesos::get_state() const
 	return m_state;
 }
 
-#ifdef HAS_CAPTURE
-
 inline bool mesos::has_marathon() const
 {
+#ifdef HAS_CAPTURE
 	return m_marathon_groups_http.size() || m_marathon_apps_http.size();
+#else
+	return false;
+#endif
 }
+
+#ifdef HAS_CAPTURE
 
 inline const mesos_state_t::capture_list& mesos::get_capture_events() const
 {

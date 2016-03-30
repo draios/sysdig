@@ -176,9 +176,11 @@ private:
 	mesos_frameworks m_frameworks;
 	mesos_slaves     m_slaves;
 	marathon_groups  m_groups;
+	bool             m_verbose;
+#ifdef HAS_CAPTURE
 	bool             m_is_captured;
 	capture_list     m_capture;
-	bool             m_verbose;
+#endif // HAS_CAPTURE
 
 	std::unordered_multimap<std::string, std::string> m_marathon_task_cache;
 };

@@ -14,7 +14,10 @@
 //
 
 mesos_state_t::mesos_state_t(bool is_captured, bool verbose) :
-	m_is_captured(is_captured), m_verbose(verbose)
+	m_verbose(verbose)
+#ifdef HAS_CAPTURE
+	, m_is_captured(is_captured)
+#endif // HAS_CAPTURE
 {
 }
 
@@ -241,6 +244,7 @@ bool mesos_state_t::handle_groups(const Json::Value& root, marathon_group::ptr_t
 	return true;
 }
 
+#ifdef HAS_CAPTURE
 void mesos_state_t::capture_groups(const Json::Value& root, const std::string& framework_id, Json::Value& capt, bool capture_fw)
 {
 	if(!m_is_captured) { return; }
@@ -285,15 +289,64 @@ void mesos_state_t::capture_groups(const Json::Value& root, const std::string& f
 	}
 }
 
+void mesos_state_t::capture_apps(const Json::Value& root, const std::string& framework_id)
+{
+	if(!m_is_captured) { return; }
+
+	Json::Value capt;
+	const Json::Value& apps = root["apps"];
+	if(!apps.isNull())
+	{
+		capt["frameworkId"] = framework_id;
+		capt["apps"] = Json::arrayValue;
+		for(const auto& app : apps)
+		{
+			Json::Value& c_app = capt["apps"].append(Json::Value());
+			c_app["id"] = app["id"];
+
+			// labels
+			const Json::Value& labels = app["labels"];
+			if(!labels.isNull())
+			{
+				c_app["labels"] = Json::objectValue;
+				Json::Value::Members members = labels.getMemberNames();
+				for (auto& member : members)
+				{
+					c_app["labels"][member] = labels[member];
+				}
+			}
+
+			// tasks
+			const Json::Value& tasks = app["tasks"];
+			if(!tasks.isNull())
+			{
+				c_app["tasks"] = Json::arrayValue;
+				for(const auto& task : tasks)
+				{
+					Json::Value& c_task = c_app["tasks"].append(Json::objectValue);
+					c_task["id"] = task["id"];
+					c_task["host"] = task["host"];
+					c_task["slaveId"] = task["slaveId"];
+					c_task["appId"] = task["appId"];
+				}
+			}
+		}
+	}
+	enqueue_capture_event(capture::MARATHON_APPS, Json::FastWriter().write(capt));
+}
+#endif // HAS_CAPTURE
+
 bool mesos_state_t::parse_groups(Json::Value&& root, const std::string& framework_id)
 {
 	add_group(root, 0, framework_id);
+#ifdef HAS_CAPTURE
 	if(m_is_captured)
 	{
 		Json::Value capt;
 		capture_groups(root, framework_id, capt, true);
 		enqueue_capture_event(capture::MARATHON_GROUPS, Json::FastWriter().write(capt));
 	}
+#endif // HAS_CAPTURE
 	if(m_verbose)
 	{
 		std::cout << Json::FastWriter().write(root) << std::endl;
@@ -402,52 +455,6 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 	return 0;
 }
 
-void mesos_state_t::capture_apps(const Json::Value& root, const std::string& framework_id)
-{
-	if(!m_is_captured) { return; }
-
-	Json::Value capt;
-	const Json::Value& apps = root["apps"];
-	if(!apps.isNull())
-	{
-		capt["frameworkId"] = framework_id;
-		capt["apps"] = Json::arrayValue;
-		for(const auto& app : apps)
-		{
-			Json::Value& c_app = capt["apps"].append(Json::Value());
-			c_app["id"] = app["id"];
-
-			// labels
-			const Json::Value& labels = app["labels"];
-			if(!labels.isNull())
-			{
-				c_app["labels"] = Json::objectValue;
-				Json::Value::Members members = labels.getMemberNames();
-				for (auto& member : members)
-				{
-					c_app["labels"][member] = labels[member];
-				}
-			}
-
-			// tasks
-			const Json::Value& tasks = app["tasks"];
-			if(!tasks.isNull())
-			{
-				c_app["tasks"] = Json::arrayValue;
-				for(const auto& task : tasks)
-				{
-					Json::Value& c_task = c_app["tasks"].append(Json::objectValue);
-					c_task["id"] = task["id"];
-					c_task["host"] = task["host"];
-					c_task["slaveId"] = task["slaveId"];
-					c_task["appId"] = task["appId"];
-				}
-			}
-		}
-	}
-	enqueue_capture_event(capture::MARATHON_APPS, Json::FastWriter().write(capt));
-}
-
 void mesos_state_t::parse_apps(Json::Value&& root, const std::string& framework_id)
 {
 	const Json::Value& apps = root["apps"];
@@ -457,10 +464,12 @@ void mesos_state_t::parse_apps(Json::Value&& root, const std::string& framework_
 		{
 			add_app(app, framework_id);
 		}
+#ifdef HAS_CAPTURE
 		if(m_is_captured)
 		{
 			capture_apps(root, framework_id);
 		}
+#endif // HAS_CAPTURE
 		if(m_verbose)
 		{
 			std::cout << Json::FastWriter().write(root) << std::endl;
