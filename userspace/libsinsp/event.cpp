@@ -85,7 +85,9 @@ sinsp_evt::~sinsp_evt()
 
 void sinsp_evt::set_check_id(int32_t id)
 {
-	m_check_id = id;
+	if (id) {
+		m_check_id = id;
+	}
 }
 
 int32_t sinsp_evt::get_check_id()
