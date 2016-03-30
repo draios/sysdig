@@ -14,6 +14,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <algorithm>
 
 //
 // state
@@ -22,7 +23,80 @@
 class mesos_state_t
 {
 public:
-	mesos_state_t(bool is_captured = false);
+#ifdef HAS_CAPTURE
+	struct capture
+	{
+		enum type_t
+		{
+			MESOS_STATE = 0,
+			MARATHON_GROUPS = 1,
+			MARATHON_APPS = 2
+		};
+
+		capture(type_t type, std::string&& data):
+				m_type(type),
+				m_data(std::move(data))
+		{
+		}
+
+		std::string to_string()
+		{
+			m_data.erase(std::remove_if(m_data.begin(), m_data.end(), [](char c) { return c == '\r' || c == '\n'; }));
+			std::ostringstream os;
+			switch(m_type)
+			{
+				case MESOS_STATE:
+					os << "{\"mesos_state\":" << m_data << '}' << std::flush;
+					break;
+				case MARATHON_GROUPS:
+					os << "{\"marathon_groups\":" << m_data << '}' << std::flush;
+					break;
+				case MARATHON_APPS:
+					os << "{\"marathon_apps\":" << m_data << '}' << std::flush;
+					break;
+			}
+			return os.str();
+		}
+
+		type_t      m_type;
+		std::string m_data;
+	};
+	typedef std::deque<capture> capture_list;
+
+	const capture_list& get_capture_events() const
+	{
+		return m_capture;
+	}
+
+	std::string dequeue_capture_event()
+	{
+		std::string ret;
+		if(m_capture.size())
+		{
+			ret = m_capture.front().to_string();
+			m_capture.pop_front();
+		}
+		return ret;
+	}
+
+	void enqueue_capture_event(capture::type_t type, std::string&& data)
+	{
+		if(m_is_captured)
+		{
+			m_capture.emplace_back(capture(type, std::move(data)));
+		}
+	}
+
+	bool is_captured() const
+	{
+		return m_is_captured;
+	}
+
+	void capture_groups(const Json::Value& root, const std::string& framework_id, Json::Value& capt, bool capture_fw = false);
+	void capture_apps(const Json::Value& root, const std::string& framework_id);
+#endif // HAS_CAPTURE
+
+	mesos_state_t(bool is_captured = false, bool verbose = false);
 
 	//
 	// frameworks
@@ -42,7 +116,7 @@ public:
 	std::unordered_set<std::string> get_all_task_ids() const;
 	const mesos_framework::task_map& get_tasks(const std::string& framework_uid) const;
 	mesos_framework::task_map& get_tasks(const std::string& framework_uid);
-	mesos_framework::task_ptr_t get_task(const std::string& uid);
+	mesos_framework::task_ptr_t get_task(const std::string& uid) const;
 	void add_or_replace_task(mesos_framework& framework, mesos_task::ptr_t task);
 	void remove_task(mesos_framework& framework, const std::string& uid);
 
@@ -63,6 +137,7 @@ public:
 	//
 	// Marathon apps
 	//
+	void parse_apps(Json::Value&& root, const std::string& framework_id);
 	void parse_apps(std::string&& json, const std::string& framework_id);
 	marathon_app::ptr_t get_app(const std::string& app_id);
 	marathon_group::app_ptr_t add_or_replace_app(const std::string& id,
@@ -70,14 +145,17 @@ public:
 												const std::string& task = "");
 	bool remove_app(const std::string& id);
 	void add_task_to_app(marathon_group::app_ptr_t app, const std::string& task_id);
+	marathon_app::ptr_t get_app(mesos_task::ptr_t task) const;
 
 	//
 	// Marathon groups
 	//
+	bool parse_groups(Json::Value&& root, const std::string& framework_id);
 	bool parse_groups(std::string&& json, const std::string& framework_id);
 	const marathon_groups& get_groups() const;
 	marathon_groups& get_groups();
 	marathon_group::ptr_t get_group(const std::string& group_id);
+	marathon_group::ptr_t get_group(mesos_task::ptr_t task) const;
 	marathon_group::ptr_t add_or_replace_group(marathon_group::ptr_t group, marathon_group::ptr_t to_group = 0);
 	marathon_group::ptr_t get_app_group(const std::string& app_id);
 	void erase_groups(const std::string& framework_id);
@@ -98,7 +176,11 @@ private:
 	mesos_frameworks m_frameworks;
 	mesos_slaves     m_slaves;
 	marathon_groups  m_groups;
+	bool             m_verbose;
+#ifdef HAS_CAPTURE
 	bool             m_is_captured;
+	capture_list     m_capture;
+#endif // HAS_CAPTURE
 
 	std::unordered_multimap<std::string, std::string> m_marathon_task_cache;
 };
@@ -178,7 +260,7 @@ inline void mesos_state_t::remove_framework(const Json::Value& framework)
 
 inline void mesos_state_t::remove_framework(const std::string& framework_uid)
 {
-	for(mesos_frameworks::iterator it = m_frameworks.begin(); it != m_frameworks.end();)
+	for(mesos_frameworks::iterator it = m_frameworks.begin(); it != m_frameworks.end(); ++it)
 	{
 		if(it->get_uid() == framework_uid)
 		{

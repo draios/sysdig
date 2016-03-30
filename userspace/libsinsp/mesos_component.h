@@ -165,6 +165,7 @@ public:
 	task_map& get_tasks();
 
 	static bool is_framework_active(const Json::Value& framework);
+	static bool is_marathon(const std::string& name);
 
 private:
 	task_map m_tasks;
@@ -262,6 +263,11 @@ inline mesos_framework::task_ptr_t mesos_framework::get_task(const std::string& 
 		return it->second;
 	}
 	return 0;
+}
+
+inline bool mesos_framework::is_marathon(const std::string& name)
+{
+	return ci_find_substr(name, std::string("marathon")) != -1;
 }
 
 //

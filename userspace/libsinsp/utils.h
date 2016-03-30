@@ -18,6 +18,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <algorithm>
+#include <locale>
+
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;
 typedef union _ipv4tuple ipv4tuple;
@@ -244,3 +247,27 @@ private:
 	list<OBJ*> m_avail_list;
 	list<OBJ*> m_full_list;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// Case-insensitive string find.
+///////////////////////////////////////////////////////////////////////////////
+template<typename charT>
+struct ci_equal
+{
+	ci_equal( const std::locale& loc ) : m_loc(loc) {}
+	bool operator()(charT ch1, charT ch2)
+	{
+		return std::toupper(ch1, m_loc) == std::toupper(ch2, m_loc);
+	}
+private:
+	const std::locale& m_loc;
+};
+
+template<typename T>
+int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::locale())
+{
+	typename T::const_iterator it = std::search( str1.begin(), str1.end(),
+		str2.begin(), str2.end(), ci_equal<typename T::value_type>(loc) );
+	if(it != str1.end()) { return it - str1.begin(); }
+	return -1;
+}

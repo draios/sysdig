@@ -382,7 +382,7 @@ VISIBILITY_PRIVATE
 	uint16_t m_cpuid;
 	uint64_t m_evtnum;
 	uint32_t m_flags;
-	int32_t m_check_id = -1;
+	int32_t m_check_id = 0;
 	bool m_params_loaded;
 	const struct ppm_event_info* m_info;
 	vector<sinsp_evt_param> m_params;

@@ -398,6 +398,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 		{
 			handle_labels(rc, object["metadata"], "labels");
 			handle_selectors(rc, object["spec"], "selector");
+			rc.set_replicas(object);
 		}
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
@@ -415,6 +416,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 		{
 			handle_labels(rc, object["metadata"], "labels");
 			handle_selectors(rc, object["spec"], "selector");
+			rc.set_replicas(object);
 		}
 	}
 	else if(data.m_reason == COMPONENT_DELETED)

@@ -109,6 +109,7 @@ class cycle_writer;
 class sinsp_protodecoder;
 class k8s;
 class sinsp_partial_tracer;
+class mesos;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -610,15 +611,15 @@ public:
 	*/
 	inline bool is_debug_enabled()
 	{
-		return m_isdebug_enabled;		
+		return m_isdebug_enabled;
 	}
 
-        /*!
-          \brief Set a flag indicating if the command line requested to show container information.
+	/*!
+	  \brief Set a flag indicating if the command line requested to show container information.
 
-          \param set true if the command line arugment is set to show container information 
-        */
-        void set_print_container_data(bool print_container_data);
+	  \param set true if the command line arugment is set to show container information 
+	*/
+	void set_print_container_data(bool print_container_data);
 
 
 	/*!
@@ -658,8 +659,11 @@ public:
 	*/
 	double get_read_progress();
 
-	void init_k8s_client(string* api_server, string* ssl_cert);
+	void init_k8s_client(string* api_server, string* ssl_cert, bool verbose = false);
 	k8s* get_k8s_client() const { return m_k8s_client; }
+
+	void init_mesos_client(string* api_server, bool verbose = false);
+	mesos* get_mesos_client() const { return m_mesos_client; }
 
 	//
 	// Misc internal stuff
@@ -768,6 +772,8 @@ private:
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
 	void update_kubernetes_state();
+	void update_mesos_state();
+	bool get_mesos_data();
 
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
@@ -805,12 +811,26 @@ private:
 	sinsp_container_manager m_container_manager;
 
 	//
-	// Kubernetes stuff
+	// Kubernetes
 	//
 	string* m_k8s_api_server;
 	string* m_k8s_api_cert;
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
+
+	//
+	// Mesos/Marathon
+	//
+	string m_mesos_api_server;
+	vector<string> m_marathon_api_server;
+	mesos* m_mesos_client;
+	uint64_t m_mesos_last_watch_time_ns;
+
+	//
+	// True if sysdig is ran with -v.
+	// Used by mesos and k8s objects.
+	//
+	bool m_verbose_json = false;
 
 	//
 	// True if the command line argument is set to show container information
@@ -937,10 +957,11 @@ private:
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_k8s;
+	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin_tracer;
 	friend class sisnp_baseliner;
 	friend class sinsp_network_interfaces;
-	
+
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 
