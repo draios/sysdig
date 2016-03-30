@@ -1060,7 +1060,7 @@ sinsp_filter_expression::~sinsp_filter_expression()
 // Only filter checks get IDs
 int32_t sinsp_filter_expression::get_check_id()
 {
-	return -1;
+	return 0;
 }
 
 sinsp_filter_check* sinsp_filter_expression::allocate_new()
@@ -1096,6 +1096,9 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 			{
 			case BO_NONE:
 				res = chk->compare(evt);
+				if (res) {
+					evt->set_check_id(chk->get_check_id());
+				}
 				break;
 			case BO_NOT:
 				res = !chk->compare(evt);
@@ -1115,6 +1118,9 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 					goto done;
 				}
 				res = chk->compare(evt);
+				if (res) {
+					evt->set_check_id(chk->get_check_id());
+				}
 				break;
 			case BO_AND:
 				if(!res)
@@ -1122,6 +1128,9 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 					goto done;
 				}
 				res = chk->compare(evt);
+				if (res) {
+					evt->set_check_id(chk->get_check_id());
+				}
 				break;
 			case BO_ORNOT:
 				if(res)
@@ -1129,6 +1138,9 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 					goto done;
 				}
 				res = !chk->compare(evt);
+				if (res) {
+					evt->set_check_id(chk->get_check_id());
+				}
 				break;
 			case BO_ANDNOT:
 				if(!res)
@@ -1136,6 +1148,9 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 					goto done;
 				}
 				res = !chk->compare(evt);
+				if (res) {
+					evt->set_check_id(chk->get_check_id());
+				}
 				break;
 			default:
 				ASSERT(false);
@@ -1144,14 +1159,6 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 		}
 	}
  done:
-	if(res)
-	{
-		int32_t id = chk->get_check_id();
-		if(id >= 0)
-		{
-			evt->set_check_id(id);
-		}
-	}
 
 	return res;
 }
