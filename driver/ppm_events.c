@@ -1414,7 +1414,10 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
-			syscall_get_arguments(current, args->regs, 0, 1, &val);
+			if (!args->is_socketcall)
+				syscall_get_arguments(current, args->regs, 0, 1, &val);
+			else
+				val = args->socketcall_args[0];
 			args->fd = (int)val;
 
 			/*
