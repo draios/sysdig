@@ -45,8 +45,8 @@ function on_init()
 	statsd = lstatsd({host = "127.0.0.1"})
 
 	-- Request the fields that we need
-	ftags = chisel.request_field("tracer.tags")
-	flatency = chisel.request_field("tracer.latency")
+	ftags = chisel.request_field("span.tags")
+	flatency = chisel.request_field("span.duration")
 	
 	-- set the filter
 	chisel.set_filter("evt.type=tracer and evt.dir=<")
