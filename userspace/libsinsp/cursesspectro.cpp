@@ -516,7 +516,7 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 								if(m_is_tracer)
 								{
-									lat_fld_name = "tracer.latency";
+									lat_fld_name = "span.duration";
 								}
 								else
 								{
