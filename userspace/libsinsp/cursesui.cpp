@@ -1613,7 +1613,7 @@ bool sinsp_cursesui::spectro_selection(string field, string val,
 
  	if(m_views.at(m_selected_view)->m_spectro_type == "tracers")
  	{
-		spectro_name = "spectro_tracers";
+		spectro_name = "spectro_traces";
  	}
  	else
  	{
