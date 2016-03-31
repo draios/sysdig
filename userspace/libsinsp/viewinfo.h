@@ -64,6 +64,8 @@ public:
 		m_tags = tags;
 	}
 
+	string get_field(uint32_t depth);
+
 	string m_field;
 	string m_name;
 	string m_description;
@@ -128,9 +130,14 @@ public:
 		string drilldown_target,
 		bool use_defaults,
 		bool is_root,
-		vector<sinsp_view_action_info> actions);
+		vector<sinsp_view_action_info> actions,
+		bool drilldown_increase_depth,
+		string spectro_type,
+		bool propagate_filter);
 
 	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
+	sinsp_view_column_info* get_key();
+	string get_filter(uint32_t depth);
 	viewtype get_type()
 	{
 		return m_type;
@@ -150,7 +157,6 @@ public:
 	vector<string> m_tags;
 	vector<string> m_tips;
 	uint32_t m_sortingcol;
-	string m_filter;
 	vector<string> m_applies_to;
 	vector<sinsp_view_column_info> m_columns;
 	bool m_use_defaults;
@@ -162,12 +168,17 @@ public:
 	vector<sinsp_view_action_info> m_actions;
 	vector<char> m_col_sort_hotkeys;
 	uint32_t max_col_sort_hotkeys;
+	bool m_drilldown_increase_depth;
+	bool m_propagate_filter;
+	string m_spectro_type;
+
 private:
 	void set_sorting_col();
 	void move_key_to_front(uint32_t keyflag);
 	void set_col_sorting_hotkeys();
 
 	uint32_t m_n_sorting_cols;
+	string m_filter;
 };
 
 

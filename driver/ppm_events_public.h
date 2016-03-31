@@ -757,7 +757,11 @@ enum ppm_event_type {
 	PPME_SYSCALL_ACCESS_X = 265,
 	PPME_SYSCALL_CHROOT_E = 266,
 	PPME_SYSCALL_CHROOT_X = 267,
-	PPM_EVENT_MAX = 268
+	PPME_TRACER_E = 268,
+	PPME_TRACER_X = 269,
+	PPME_MESOS_E = 270,
+	PPME_MESOS_X = 271,
+	PPM_EVENT_MAX = 272
 };
 /*@}*/
 
@@ -1119,7 +1123,7 @@ enum ppm_event_flags {
 	EF_UNUSED = (1 << 6), /* This event is not used */
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
 	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
-	EF_OLD_VERSION = (1 << 9) /* This event is kept for backward compatibility */
+	EF_OLD_VERSION = (1 << 9), /* This event is kept for backward compatibility */
 };
 
 /*
@@ -1161,7 +1165,10 @@ enum ppm_param_type {
 	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_DOUBLE = 33, /* this is a double precision floating point number. */
 	PT_SIGSET = 34, /* sigset_t. I only store the lower UINT32 of it */
-	PT_MAX = 35 /* array size */
+	PT_CHARBUFARRAY = 35,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
+	PT_CHARBUF_PAIR_ARRAY = 36,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
+	PT_IPV4NET = 37, /* An IPv4 network. */
+	PT_MAX = 38 /* array size */
 };
 
 enum ppm_print_format {
@@ -1311,5 +1318,7 @@ struct ppm_proclist_info {
 	int64_t max_entries;
 	struct ppm_proc_info entries[0];
 };
+
+//#define PPM_USERVET_MAGIC 959222
 
 #endif /* EVENTS_PUBLIC_H_ */

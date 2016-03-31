@@ -429,8 +429,9 @@ typedef enum compression_mode
 typedef enum scap_dump_flags
 {
 	SCAP_DF_NONE = 0,
-	SCAP_DF_STATE_ONLY = 1	///< The event should be used for state update but it should 
-							///< not be shown to the user
+	SCAP_DF_STATE_ONLY = 1,		///< The event should be used for state update but it should 
+								///< not be shown to the user
+	SCAP_DF_TRACER = (1 << 1)	///< This event is a tracer 
 }scap_dump_flags;
 
 typedef struct scap_dumper scap_dumper_t;

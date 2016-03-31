@@ -124,7 +124,7 @@ inline void ansi_clearscreen()
 ///////////////////////////////////////////////////////////////////////////////
 // curses_spectro implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
+curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector, bool is_tracer)
 {
 	m_tblwin = NULL;
 	m_data = NULL;
@@ -148,6 +148,8 @@ curses_spectro::curses_spectro(sinsp_cursesui* parent, sinsp* inspector)
 	m_prev_sel_y1 = -1;
 	m_prev_sel_y2 = -1;
 	m_scroll_paused = false;
+	m_is_tracer = is_tracer;
+	m_selecting = false;
 
 	//
 	// Define the table size
@@ -451,20 +453,17 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 					return STA_NONE;
 				}
-
+/*
 				if(!m_mouse_masked)
 				{
 					mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
 					m_mouse_masked = true;
 				}
-
+*/
 				if(getmouse(&m_last_mevent) == OK)
 				{
 					if(m_last_mevent.bstate & BUTTON1_CLICKED)
 					{
-						m_selstart_x = -1;
-						m_selstart_y = -1;
-
 						g_logger.format("mouse clicked");
 
 						if(m_last_mevent.y == (int)m_h - 2)
@@ -486,43 +485,72 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 								return STA_DRILLUP;
 							}
 						}
-					}
-					else
-					{ 
-						if(m_inspector->is_live())
+						else
 						{
-							break;
-						}
-
-						if(m_last_mevent.bstate & BUTTON1_RELEASED)
-						{
-							curses_spectro_history_row* start_row = get_history_row_from_coordinate(m_selstart_y);
-							curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_prev_sel_y2 - 1);
-							uint64_t start_latency = latency_from_coordinate(m_selstart_x);
-							uint64_t end_latency = latency_from_coordinate(m_prev_sel_x2);
-
-							if(start_row == NULL || end_row == NULL)
+							if(m_inspector->is_live())
 							{
 								break;
 							}
 
-							m_selection_filter = 
-								"(evt.rawtime>="  + to_string(start_row->m_ts - m_table->m_refresh_interval_ns) + 
-								" and evt.rawtime<=" + to_string(end_row->m_ts) + 
-								") and (evt.latency>=" + to_string(start_latency) + 
-								" and evt.latency<" + to_string(end_latency) + ")";
+							if(!m_selecting)
+							{
+								m_selecting = true;
+								m_selstart_x = -1;
+								m_selstart_y = -1;
+							}
+							else
+							{
+								m_selecting = false;
 
-							g_logger.format("spectrogram drill down");
-							g_logger.format("filter: %s", m_selection_filter.c_str());
+								curses_spectro_history_row* start_row = get_history_row_from_coordinate(m_selstart_y);
+								curses_spectro_history_row* end_row = get_history_row_from_coordinate(m_prev_sel_y2 - 1);
+								uint64_t start_latency = latency_from_coordinate(m_selstart_x);
+								uint64_t end_latency = latency_from_coordinate(m_prev_sel_x2);
 
-							m_selstart_x = -1;
-							m_selstart_y = -1;
+								if(start_row == NULL || end_row == NULL)
+								{
+									break;
+								}
 
-							ansi_reset_color();
+								string lat_fld_name;
 
-							return STA_DIG;
+								if(m_is_tracer)
+								{
+									lat_fld_name = "tracer.latency";
+								}
+								else
+								{
+									lat_fld_name = "evt.latency";
+								}
+
+								m_selection_filter = 
+									"(evt.rawtime>="  + to_string(start_row->m_ts - m_table->m_refresh_interval_ns) + 
+									" and evt.rawtime<=" + to_string(end_row->m_ts) + 
+									") and (" + lat_fld_name + ">=" + to_string(start_latency) + 
+									" and " + lat_fld_name + "<" + to_string(end_latency) + ")";
+
+								g_logger.format("spectrogram drill down");
+								g_logger.format("filter: %s", m_selection_filter.c_str());
+
+								m_selstart_x = -1;
+								m_selstart_y = -1;
+
+								ansi_reset_color();
+
+								if(m_is_tracer)
+								{
+									return STA_DRILLDOWN;
+								}
+								else
+								{
+									return STA_DIG;
+								}
+							}
 						}
-						else
+					}
+					else
+					{
+						if(m_selecting)
 						{
 							if((m_last_mevent.y > (int)m_h - 4) || ((int)m_last_mevent.y <= (int)m_h - 3 - (int)m_history.size()))
 							{

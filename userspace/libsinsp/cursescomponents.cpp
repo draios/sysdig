@@ -581,7 +581,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, bool is_spectro_drilldown)
+curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, sysdig_output_type sotype)
 {
 	ASSERT(inspector != NULL);
 	ASSERT(parent != NULL);
@@ -615,7 +615,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	//
 	if(m_viz_type == VIEW_ID_DIG)
 	{
-		if(is_spectro_drilldown)
+		if(sotype == OT_LATENCY)
 		{
 			if(m_parent->m_print_containers)
 			{
@@ -626,6 +626,19 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector, 
 					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
+			}
+		}
+		else if(sotype == OT_LATENCY_APP)
+		{
+			if(m_parent->m_print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, 
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, 
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
 			}
 		}
 		else
@@ -746,7 +759,7 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	//
 	// Drop any non I/O event
 	//
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
 	{
@@ -1433,13 +1446,13 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	//
 	// If there's a filter, print it 
 	//
-	if(vinfo->m_filter != "")
+	if(vinfo->get_filter(m_parent->m_view_depth) != "")
 	{
 		wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
 		m_ctext->printf("Filter\n");
 
 		wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-		m_ctext->printf("%s\n\n", vinfo->m_filter.c_str());
+		m_ctext->printf("%s\n\n", vinfo->get_filter(m_parent->m_view_depth).c_str());
 	}
 
 	//
@@ -1583,7 +1596,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	m_ctext->printf(
 "1. you can either see real time data, or analyze a trace file by using the -r command line flag.\n"
 "2. you can switch to a different view by using the F2 key.\n"
-"3. You can to drill down into a selection by clicking enter. You can navigate back by typing backspace.\n"
+"3. You can drill down into a selection by clicking enter. You can navigate back by typing backspace.\n"
 "4. you can observe reads and writes (F5) or see sysdig events (F6) for any selection.\n\n"
 );
 
@@ -1594,7 +1607,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf(
 "You drill down by selecting an element in a view and then clicking enter. Once inside a selection, you can switch to a different view, and the new view will be applied in the context of the selection. For example, if you drill down into a process called foo and then switch to the Connections view, the output will include only the connections made or received by foo.\n\n"
-"You can drill down multiple times, by keeping clicking enter. For example, you can click on a container in the Containers view to get the processes running inside it, and then click on one of the processes to see its threads.\n\n"
+"To drill down multiple times, keep clicking enter. For example, you can click on a container in the Containers view to get the processes running inside it, and then click on one of the processes to see its threads.\n\n"
 );
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::HELP_BOLD]);
@@ -1603,7 +1616,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf(
-"Each view has a list of command lines that can be executed in the context of the current selction by pressing 'hotkeys'. For example, pressing 'k' in the Processes view kills the selected process, pressing 'b' in the Containers view opens a bash shell in the selected container.\n"
+"Each view has a list of command lines that can be executed in the context of the current selection by pressing 'hotkeys'. For example, pressing 'k' in the Processes view kills the selected process, pressing 'b' in the Containers view opens a bash shell in the selected container.\n"
 "Each view supports different actions. You can see which actions a view supports by pressing F8. You can customize the view's actions by editing the view's Lua file.\n\n"
 );
 
@@ -1613,7 +1626,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
 	m_ctext->printf(
-"Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include the columns with the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.\n\n"
+"Starting csysdig with the -pc command line switch will cause many of the views to include additional container information. For example, the _Processes_ will include a column showing the container the process belongs to. Similarly, the _Connections_ view will show which container each connection belongs to.\n\n"
 );
 
 	//

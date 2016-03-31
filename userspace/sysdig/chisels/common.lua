@@ -238,3 +238,32 @@ function parse_numeric_input(value, name)
 	end
 	return val
 end
+
+--[[
+Perform a deep copy of a table.
+]]--
+function copytable(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[copytable(orig_key)] = copytable(orig_value)
+        end
+        setmetatable(copy, copytable(getmetatable(orig)))
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
+--[[
+Add the content of a table at the end of another one.
+]]--
+function concattable(dst, src)
+    for i=1,#src do
+        dst[#dst + 1] = src[i]
+    end
+    
+    return dst
+end

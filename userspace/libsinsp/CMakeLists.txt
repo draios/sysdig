@@ -40,6 +40,7 @@ add_library(sinsp STATIC
 	marathon_component.cpp
 	marathon_http.cpp
 	memmem.cpp
+	tracers.cpp
 	mesos.cpp
 	mesos_collector.cpp
 	mesos_component.cpp
@@ -57,6 +58,7 @@ add_library(sinsp STATIC
 	sinsp_curl.cpp
 	uri.cpp
 	utils.cpp
+	value_parser.cpp
 	viewinfo.cpp)
 
 target_link_libraries(sinsp 
@@ -73,14 +75,14 @@ if(NOT WIN32)
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
 			"${OPENSSL_LIBRARY_SSL}"
-			"${OPENSSL_LIBRARY_CRYPTO}")
+			"${OPENSSL_LIBRARY_CRYPTO}"
+            rt)
 	endif()
 
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
 		dl
-		pthread
-		rt)
+		pthread)
 else()
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}")
