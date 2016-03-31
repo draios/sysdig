@@ -152,7 +152,10 @@ OPTIONS
   
 **-l**, **--list**
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
-    
+
+**-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
+  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Marathon url is optional and defaults to Mesos address, port 8080. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
+
 **-N**
   Don't convert port numbers to names.
 
