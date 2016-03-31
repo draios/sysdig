@@ -462,7 +462,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			ASSERT(ty == sinsp_table::TT_TABLE);
 			m_spectro = new curses_spectro(this, 
 				m_inspector, 
-				m_views.at(m_selected_view)->m_id == "spectro_tracers");
+				m_views.at(m_selected_view)->m_id == "spectro_traces");
 			m_viz = NULL;
 			m_chart = m_spectro;
 		}

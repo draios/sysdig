@@ -28,7 +28,7 @@ view_info =
 	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory"},
 	filter = "span.ntags=%depth+1",
 	use_defaults = false,
-	drilldown_target = "trace_list",
+	drilldown_target = "traces_list",
 	propagate_filter = false,
 	columns = 
 	{

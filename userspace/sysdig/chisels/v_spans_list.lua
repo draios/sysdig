@@ -17,12 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "traces_list",
-	name = "Traces List",
-	description = "Show the detailed list of traces. For each trace, the view reports information like its arguments and how long it took to complete.",
+	id = "spans_list",
+	name = "spans List",
+	description = "Show the detailed list of a tracer selection's child spans. For each span type, the view reports information like its arguments and how long it took to complete.",
 	tips = {
-		"Traces are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening inside them. You can learn about tracers at XXX.",
-		"Only the root trace spans (i.e. the spans with only one tag) are shown when this view is applied to the whole machine. Drilling down allows you to explore the child spans.",
+		"Only the spans spans that are direct childs of the selection (i.e. the spans with one more tag than the selection) are shown. Drilling down allows you to explore the further levels.",
 	},
 	tags = {"Default"},
 	view_type = "table",
@@ -41,13 +40,13 @@ view_info =
 		{
 			name = "ID",
 			field = "span.id",
-			description = "the unique numeric ID of the trace.",
+			description = "the unique numeric ID of the span.",
 			colsize = 10,
 		},
 		{
 			name = "TIME",
 			field = "span.duration.fortag[%depth]",
-			description = "the time this trace call took to complete",
+			description = "the time this span call took to complete",
 			colsize = 10,
 			aggregation = "AVG",
 			is_sorting = true,
@@ -55,14 +54,14 @@ view_info =
 		{
 			name = "TAG",
 			field = "span.tag[%depth]",
-			description = "trace tag.",
+			description = "span tag.",
 			colsize = 32,
 			aggregation = "SUM"
 		},
 		{
 			name = "ARGS",
 			field = "span.enterargs",
-			description = "trace enter arguments.",
+			description = "span enter arguments.",
 			colsize = 256,
 			aggregation = "SUM"
 		},
