@@ -16,35 +16,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 view_info = 
 {
-	id = "spectro_tracers",
-	name = "Tracers Spectrogram",
-	description = "Application tracers latency spectrogram.",
+	id = "spectro_traces",
+	name = "Trace Spectrogram",
+	description = "Traces duration spectrogram.",
 	tips = {
-		"This view offers a spectrogram-based representation of tracer return times.",
-		"When appled to a selection in a view like 'Tracers' or 'Tracers List', this view will show only the latency of the selected tag, not the one of the childs. When applite to the whole machine, this view will show the latency of the 'root' tags, i.e. the tags with just one element.",
-		"If you are in a tracer view like 'Tracers' or 'Tracers List', you can quickly show this spectrogram for a selection by clicking on F12.",
+		"This view offers a spectrogram-based representation of trace spans durations.",
+		"When appled to a selection in a view like 'Trace Summary' or 'Trace List', this view will only show the latency of the selected spans, while their parent and child spans won't be shown. When applied to the whole machine, this view will show the latency of the traces, i.e. the root spans that have just one tag.",
+		"If you are in a trace view like 'Trace Summary' or 'Trace List', you can quickly show this spectrogram for a selection by clicking on F12.",
 	},
 	view_type = "spectrogram",
-	applies_to = {"", "tracer.tag", "tracer.id", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory"},
-	filter = "tracer.ntags=%depth+1",
+	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory"},
+	filter = "span.ntags=%depth+1",
 	use_defaults = false,
-	drilldown_target = "tracer_ids",
+	drilldown_target = "trace_list",
 	propagate_filter = false,
 	columns = 
 	{
 		{
 			name = "NA",
-			field = "tracer.latency.quantized",
+			field = "span.latency.quantized",
 			is_key = true
 		},
 		{
 			name = "LATENCY",
-			description = "tracer latency. This determines the horizontal position of a dot in the chart.",
-			field = "tracer.latency.quantized",
+			description = "span latency. This determines the horizontal position of a dot in the chart.",
+			field = "span.latency.quantized",
 		},
 		{
 			name = "COUNT",
-			description = "number of times a tracer falls in a certain latency bucket. This determines the color of a dot in the chart.",
+			description = "number of times a span falls in a certain latency bucket. This determines the color of a dot in the chart.",
 			field = "evt.count",
 			aggregation = "SUM",
 		}

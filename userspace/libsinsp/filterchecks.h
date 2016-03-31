@@ -552,10 +552,10 @@ public:
 		TYPE_ARG,
 		TYPE_ENTERARGS,
 		TYPE_ENTERARG,
-		TYPE_LATENCY,
-		TYPE_LATENCY_QUANTIZED,
-		TYPE_LATENCY_HUMAN,
-		TYPE_TAGLATENCY,
+		TYPE_DURATION,
+		TYPE_DURATION_QUANTIZED,
+		TYPE_DURATION_HUMAN,
+		TYPE_TAGDURATION,
 		TYPE_COUNT,
 		TYPE_TAGCOUNT,
 		TYPE_TAGCHILDSCOUNT,
@@ -570,7 +570,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
-	inline int64_t* extract_latency(uint16_t etype, sinsp_tracerparser* eparser);
+	inline int64_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser);
 	uint8_t* extract_args(sinsp_partial_tracer* pae);
 	uint8_t* extract_arg(sinsp_partial_tracer* pae);
 
@@ -593,34 +593,34 @@ class sinsp_filter_check_evtin_tracer : public sinsp_filter_check
 public:
 	enum check_type
 	{
-		TYPE_TRACER_ID = 0,
-		TYPE_TRACER_NTAGS,
-		TYPE_TRACER_NARGS,
-		TYPE_TRACER_TAGS,
-		TYPE_TRACER_TAG,
-		TYPE_TRACER_ARGS,
-		TYPE_TRACER_ARG,
-		TYPE_TRACER_T_ID,
-		TYPE_TRACER_T_NTAGS,
-		TYPE_TRACER_T_NARGS,
-		TYPE_TRACER_T_TAGS,
-		TYPE_TRACER_T_TAG,
-		TYPE_TRACER_T_ARGS,
-		TYPE_TRACER_T_ARG,
-		TYPE_TRACER_P_ID,
-		TYPE_TRACER_P_NTAGS,
-		TYPE_TRACER_P_NARGS,
-		TYPE_TRACER_P_TAGS,
-		TYPE_TRACER_P_TAG,
-		TYPE_TRACER_P_ARGS,
-		TYPE_TRACER_P_ARG,
-		TYPE_TRACER_S_ID,
-		TYPE_TRACER_S_NTAGS,
-		TYPE_TRACER_S_NARGS,
-		TYPE_TRACER_S_TAGS,
-		TYPE_TRACER_S_TAG,
-		TYPE_TRACER_S_ARGS,
-		TYPE_TRACER_S_ARG,
+		TYPE_SPAN_ID = 0,
+		TYPE_SPAN_NTAGS,
+		TYPE_SPAN_NARGS,
+		TYPE_SPAN_TAGS,
+		TYPE_SPAN_TAG,
+		TYPE_SPAN_ARGS,
+		TYPE_SPAN_ARG,
+		TYPE_SPAN_T_ID,
+		TYPE_SPAN_T_NTAGS,
+		TYPE_SPAN_T_NARGS,
+		TYPE_SPAN_T_TAGS,
+		TYPE_SPAN_T_TAG,
+		TYPE_SPAN_T_ARGS,
+		TYPE_SPAN_T_ARG,
+		TYPE_SPAN_P_ID,
+		TYPE_SPAN_P_NTAGS,
+		TYPE_SPAN_P_NARGS,
+		TYPE_SPAN_P_TAGS,
+		TYPE_SPAN_P_TAG,
+		TYPE_SPAN_P_ARGS,
+		TYPE_SPAN_P_ARG,
+		TYPE_SPAN_S_ID,
+		TYPE_SPAN_S_NTAGS,
+		TYPE_SPAN_S_NARGS,
+		TYPE_SPAN_S_TAGS,
+		TYPE_SPAN_S_TAG,
+		TYPE_SPAN_S_ARGS,
+		TYPE_SPAN_S_ARG,
 	};
 
 	sinsp_filter_check_evtin_tracer();

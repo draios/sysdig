@@ -17,13 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "tracer_ids",
-	name = "Tracers List",
-	description = "Show the list of application tracer requests. For each request, the view reports information like its arguments and how long it took to complete.",
+	id = "trace_list",
+	name = "Trace List",
+	description = "Show the detailed list of traces. For each trace, the view reports information like its arguments and how long it took to complete.",
 	tips = {
-		"Tracers are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening in them. You can learn about tracers at XXX.",
-		"For makers with hierarchical tags (e.g. 'api.loginrequest.processing'), only one level in the hierarch is shown (e.g. 'api'). Drilling down allows you to explore the next level.",
-		"Since this view shows every single market call as a separate line, it can easily become crowded. The 'Tracers' view offer a more compact representation by collapsing requests with the same tag in a singlew line.",
+		"Traces are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening inside them. You can learn about tracers at XXX.",
+		"Only the root trace spans (i.e. the spans with only one tag) are shown when this view is applied to the whole machine. Drilling down allows you to explore the child spans.",
 	},
 	tags = {"Default"},
 	view_type = "table",

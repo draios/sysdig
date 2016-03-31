@@ -17,69 +17,69 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "tracers",
-	name = "Tracers",
-	description = "Show a summary of the application tracers executing on the system. For each tracer tag, the view reports information like how many times it's been called and how long it took to complete.",
+	id = "trace_summary",
+	name = "Trace Summary",
+	description = "Show a summary of the traces executing on the system. For each trace, the view reports information like how many times it's been called and how long it took to complete.",
 	tips = {
-		"Tracers are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening in them. You can learn about tracers at XXX.",
-		"For makers with hierarchical tags (e.g. 'api.loginrequest.processing'), only one level in the hierarch is shown (e.g. 'api'). Drilling down allows you to explore the next level.",
-		"This view collapses multiple calls to a tag into a single line. If you instead want to see each single call, use the 'Tracers List' view.",
+		"Traces are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening inside them. You can learn about tracers at XXX.",
+		"Only the root trace spans (i.e. the spans with only one tag) are shown when this view is applied to the whole machine. Drilling down allows you to explore the child spans.",
+		"This view collapses multiple spans with the same tag into a single entry. If you instead want to see each span as a separate entry, use the 'Trace List' view.",
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "tracer.tag", "tracer.id", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	use_defaults = true,
-	filter = "tracer.ntags>=%depth+1",
-	drilldown_target = "tracers",
+	filter = "span.ntags>=%depth+1",
+	drilldown_target = "trace_summary",
 	spectro_type = "tracers",
 	drilldown_increase_depth = true,
 	columns = 
 	{
 		{
 			name = "NA",
-			field = "tracer.tag[%depth]",
+			field = "span.tag[%depth]",
 			is_key = true
 		},
 		{
 			is_sorting = true,
 			name = "HITS",
-			field = "tracer.count.fortag[%depth]",
-			description = "number of times the tracer with the given tag has been hit.",
+			field = "span.count.fortag[%depth]",
+			description = "number of times the span with the given tag has been hit.",
 			colsize = 10,
 			aggregation = "SUM"
 		},
 		{
 			name = "AVG TIME",
-			field = "tracer.latency.fortag[%depth]",
-			description = "the average time this tracer took to complete.",
+			field = "span.duration.fortag[%depth]",
+			description = "the average time this span took to complete.",
 			colsize = 10,
 			aggregation = "AVG"
 		},
 		{
 			name = "MIN TIME",
-			field = "tracer.latency.fortag[%depth]",
-			description = "the minimum time this tracer took to complete.",
+			field = "span.duration.fortag[%depth]",
+			description = "the minimum time this span took to complete.",
 			colsize = 10,
 			aggregation = "MIN"
 		},
 		{
 			name = "MAX TIME",
-			field = "tracer.latency.fortag[%depth]",
-			description = "the maximum time this tracer took to complete.",
+			field = "span.duration.fortag[%depth]",
+			description = "the maximum time this span took to complete.",
 			colsize = 10,
 			aggregation = "MAX"
 		},
 		{
 			name = "CHD HITS",
-			field = "tracer.childcount.fortag[%depth]",
-			description = "number of times any child of the tracer with the given tag has been hit. This is useful to determine if the tracer is a leaf or if it has childs nested in it.",
+			field = "span.childcount.fortag[%depth]",
+			description = "number of times any child of the span with the given tag has been hit. This is useful to determine if the span is a leaf or if it has childs nested in it.",
 			colsize = 10,
 			aggregation = "SUM"
 		},
 		{
 			name = "TAG",
-			field = "tracer.tag[%depth]",
-			description = "tracer tag.",
+			field = "span.tag[%depth]",
+			description = "span tag.",
 			colsize = 256,
 			aggregation = "SUM"
 		},
