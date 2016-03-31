@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "trace_summary",
-	name = "Trace Summary",
+	id = "traces_summary",
+	name = "Traces Summary",
 	description = "Show a summary of the traces executing on the system. For each trace, the view reports information like how many times it's been called and how long it took to complete.",
 	tips = {
 		"Traces are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening inside them. You can learn about tracers at XXX.",
@@ -30,7 +30,7 @@ view_info =
 	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	use_defaults = true,
 	filter = "span.ntags>=%depth+1",
-	drilldown_target = "trace_summary",
+	drilldown_target = "traces_summary",
 	spectro_type = "tracers",
 	drilldown_increase_depth = true,
 	columns = 

@@ -22,7 +22,7 @@ view_info =
 	tips = {
 		"This view offers a spectrogram-based representation of trace spans durations.",
 		"When appled to a selection in a view like 'Trace Summary' or 'Trace List', this view will only show the latency of the selected spans, while their parent and child spans won't be shown. When applied to the whole machine, this view will show the latency of the traces, i.e. the root spans that have just one tag.",
-		"If you are in a trace view like 'Trace Summary' or 'Trace List', you can quickly show this spectrogram for a selection by clicking on F12.",
+		"If you are in a trace view like 'Traces Summary' or 'Traces List', you can quickly show this spectrogram for a selection by clicking on F12.",
 	},
 	view_type = "spectrogram",
 	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory"},
