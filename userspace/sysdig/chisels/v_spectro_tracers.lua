@@ -17,10 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 view_info = 
 {
 	id = "spectro_traces",
-	name = "Trace Spectrogram",
+	name = "Traces Spectrogram",
 	description = "Traces duration spectrogram.",
 	tips = {
-		"This view offers a spectrogram-based representation of trace spans durations.",
+		"This view offers a spectrogram-based representation of root trace spans durations.",
 		"When appled to a selection in a view like 'Trace Summary' or 'Trace List', this view will only show the latency of the selected spans, while their parent and child spans won't be shown. When applied to the whole machine, this view will show the latency of the traces, i.e. the root spans that have just one tag.",
 		"If you are in a trace view like 'Traces Summary' or 'Traces List', you can quickly show this spectrogram for a selection by clicking on F12.",
 	},
@@ -34,13 +34,13 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "span.latency.quantized",
+			field = "span.duration.quantized",
 			is_key = true
 		},
 		{
 			name = "LATENCY",
 			description = "span latency. This determines the horizontal position of a dot in the chart.",
-			field = "span.latency.quantized",
+			field = "span.duration.quantized",
 		},
 		{
 			name = "COUNT",

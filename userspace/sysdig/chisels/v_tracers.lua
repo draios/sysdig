@@ -44,35 +44,35 @@ view_info =
 			is_sorting = true,
 			name = "HITS",
 			field = "span.count.fortag[%depth]",
-			description = "number of times the span with the given tag has been hit.",
+			description = "number of times the trace with the given tag has been hit.",
 			colsize = 10,
 			aggregation = "SUM"
 		},
 		{
 			name = "AVG TIME",
 			field = "span.duration.fortag[%depth]",
-			description = "the average time this span took to complete.",
+			description = "the average time this trace took to complete.",
 			colsize = 10,
 			aggregation = "AVG"
 		},
 		{
 			name = "MIN TIME",
 			field = "span.duration.fortag[%depth]",
-			description = "the minimum time this span took to complete.",
+			description = "the minimum time this trace took to complete.",
 			colsize = 10,
 			aggregation = "MIN"
 		},
 		{
 			name = "MAX TIME",
 			field = "span.duration.fortag[%depth]",
-			description = "the maximum time this span took to complete.",
+			description = "the maximum time this trace took to complete.",
 			colsize = 10,
 			aggregation = "MAX"
 		},
 		{
 			name = "CHD HITS",
 			field = "span.childcount.fortag[%depth]",
-			description = "number of times any child of the span with the given tag has been hit. This is useful to determine if the span is a leaf or if it has childs nested in it.",
+			description = "number of times any child of the trace with the given tag has been hit. This is useful to determine if the span is a leaf or if it has childs nested in it.",
 			colsize = 10,
 			aggregation = "SUM"
 		},

@@ -26,43 +26,43 @@ view_info =
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "tracer.tag", "tracer.id", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	use_defaults = true,
-	filter = "tracer.ntags>=%depth+1",
-	drilldown_target = "tracers_list",
+	filter = "span.ntags>=%depth+1",
+	drilldown_target = "traces_list",
 	drilldown_increase_depth = true,
 	columns = 
 	{
 		{
 			name = "NA",
-			field = "tracer.idtag[%depth]",
+			field = "span.idtag[%depth]",
 			is_key = true
 		},
 		{
 			name = "ID",
-			field = "tracer.id",
-			description = "the unique numeric ID of the tracer.",
+			field = "span.id",
+			description = "the unique numeric ID of the trace.",
 			colsize = 10,
 		},
 		{
 			name = "TIME",
-			field = "tracer.latency.fortag[%depth]",
-			description = "the time this tracer call took to complete",
+			field = "span.duration.fortag[%depth]",
+			description = "the time this trace call took to complete",
 			colsize = 10,
 			aggregation = "AVG",
 			is_sorting = true,
 		},
 		{
 			name = "TAG",
-			field = "tracer.tag[%depth]",
-			description = "tracer tag.",
+			field = "span.tag[%depth]",
+			description = "trace tag.",
 			colsize = 32,
 			aggregation = "SUM"
 		},
 		{
 			name = "ARGS",
-			field = "tracer.enterargs",
-			description = "tracer enter arguments.",
+			field = "span.enterargs",
+			description = "trace enter arguments.",
 			colsize = 256,
 			aggregation = "SUM"
 		},

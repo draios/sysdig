@@ -4033,7 +4033,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 		m_field_id = TYPE_TAGDURATION;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("span.latency.fortag", val, NULL);
+		res = extract_arg("span.duration.fortag", val, NULL);
 	}
 	else if(string(val, 0, sizeof("span.count.fortag") - 1) == "span.count.fortag")
 	{
