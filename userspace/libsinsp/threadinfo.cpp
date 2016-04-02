@@ -106,6 +106,11 @@ sinsp_threadinfo::~sinsp_threadinfo()
 	{
 		free(m_lastevent_data);
 	}
+
+	if(m_tracer_parser)
+	{
+		delete m_tracer_parser;
+	}
 }
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc()

@@ -147,12 +147,12 @@ VISIBILITY_PRIVATE
 	inline parse_result parsenumber_colend(char* p, int64_t* res, uint32_t* delta);
 	inline void init_partial_tracer(sinsp_partial_tracer* pae);
 
+	string m_fullfragment_storage_str;
 	sinsp *m_inspector;
 	char* m_storage;
 	uint32_t m_storage_size;
 	uint32_t m_fragment_size;
 	sinsp_tracerparser::parse_result m_res;
-	string m_fullfragment_storage_str;
 
 	friend class sinsp_parser;
 };
