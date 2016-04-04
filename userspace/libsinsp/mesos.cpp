@@ -41,11 +41,11 @@ mesos::mesos(const std::string& state_uri,
 		m_timeout_ms(timeout_ms),
 		m_verbose(verbose)
 {
-#ifdef HAS_CAPTURE
-	g_logger.log(std::string("Creating Mesos object for [" + m_mesos_uri + "], failover autodiscovery set to ") +
-				 (m_discover_mesos_leader ? "true" : "false"),
+	g_logger.log(std::string("Creating Mesos object for [" +
+							 (m_mesos_uri.empty() ? std::string("capture replay") : m_mesos_uri)  +
+							 "], failover autodiscovery set to ") +
+							(m_discover_mesos_leader ? "true" : "false"),
 				 sinsp_logger::SEV_DEBUG);
-#endif // HAS_CAPTURE
 	init();
 }
 

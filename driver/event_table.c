@@ -293,5 +293,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_TRACER_E */{"tracer", EC_OTHER, EF_NONE, 3, {{"id", PT_INT64, PF_DEC}, {"tags", PT_CHARBUFARRAY, PF_NA}, {"args", PT_CHARBUF_PAIR_ARRAY, PF_NA} } },
 	/* PPME_TRACER_X */{ "tracer", EC_OTHER, EF_NONE, 3,{ { "id", PT_INT64, PF_DEC },{ "tags", PT_CHARBUFARRAY, PF_NA },{ "args", PT_CHARBUF_PAIR_ARRAY, PF_NA } } },
 	/* PPME_MESOS_E */{"mesos", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
-	/* PPME_MESOS_X */{"NA4", EC_SYSTEM, EF_UNUSED, 0}
+	/* PPME_MESOS_X */{"NA4", EC_SYSTEM, EF_UNUSED, 0},
+	/* PPME_CONTAINER_JSON_E */{"container", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
+	/* PPME_CONTAINER_JSON_X */{"container", EC_INTERNAL, EF_UNUSED, 0}
 };

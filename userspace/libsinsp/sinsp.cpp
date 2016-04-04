@@ -284,7 +284,7 @@ void sinsp::init()
 
 			if(res == SCAP_SUCCESS)
 			{
-				if(pevent->type != PPME_CONTAINER_E)
+				if((pevent->type != PPME_CONTAINER_E) && (pevent->type != PPME_CONTAINER_JSON_E))
 				{
 					break;
 				}
@@ -1722,7 +1722,7 @@ bool sinsp::get_mesos_data()
 		if(difftime(now, last_mesos_refresh) > 10)
 		{
 			g_logger.log("Requesting Mesos data ...", sinsp_logger::SEV_DEBUG);
-			m_mesos_client->send_data_request();
+			m_mesos_client->send_data_request(false);
 			last_mesos_refresh = now;
 		}
 	}

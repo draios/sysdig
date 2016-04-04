@@ -76,7 +76,8 @@ public:
 	string get_mesos_task_id(const string& container_id);
 
 private:
-	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);
+	string container_to_json(const sinsp_container_info& container_info);
+	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
 	bool parse_docker(sinsp_container_info* container);
 	string get_mesos_task_id(const Json::Value& env_vars, const string& mti);
 	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);

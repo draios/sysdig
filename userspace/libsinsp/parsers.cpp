@@ -407,7 +407,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_setgid_exit(evt);
 		break;
 	case PPME_CONTAINER_E:
-		parse_container_evt(evt);
+		parse_container_evt(evt); // deprecated, only here for backwards compatibility
+		break;
+	case PPME_CONTAINER_JSON_E:
+		parse_container_json_evt(evt);
 		break;
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
@@ -3808,6 +3811,59 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
 		evt->get_thread_info()->m_gid = new_egid;
+	}
+}
+
+void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo = evt->get_param(0);
+	ASSERT(parinfo);
+	ASSERT(parinfo->m_len > 0);
+	std::string json(parinfo->m_val, parinfo->m_len);
+	g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	ASSERT(m_inspector);
+	Json::Value root;
+	if(Json::Reader().parse(json, root))
+	{
+		sinsp_container_info container_info;
+		const Json::Value& container = root["container"];
+		const Json::Value& id = container["id"];
+		if(!id.isNull() && id.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_id = id.asString();
+		}
+		const Json::Value& type = container["type"];
+		if(!type.isNull() && type.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_type = static_cast<sinsp_container_type>(type.asUInt());
+		}
+		const Json::Value& name = container["name"];
+		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_name = name.asString();
+		}
+		const Json::Value& image = container["image"];
+		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_image = image.asString();
+		}
+		const Json::Value& mesos_task_id = container["mesos_task_id"];
+		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_mesos_task_id = mesos_task_id.asString();
+		}
+		m_inspector->m_container_manager.add_container(container_info);
+		/*
+		g_logger.log("Container\n-------\nID:" + container_info.m_id +
+					 "\nType: " + std::to_string(container_info.m_type) +
+					 "\nName: " + container_info.m_name +
+					 "\nImage: " + container_info.m_image +
+					 "\nMesos Task ID: " + container_info.m_mesos_task_id, sinsp_logger::SEV_DEBUG);
+		*/
+	}
+	else
+	{
+		g_logger.log("Invalid JSON encountered while parsing container info: " + json, sinsp_logger::SEV_ERROR);
 	}
 }
 
