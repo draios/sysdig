@@ -276,6 +276,8 @@ scap_t* scap_open_live_int(char *error,
 	//
 	scap_start_capture(handle);
 
+scap_enable_markers_capture(handle);
+
 	return handle;
 #endif // HAS_CAPTURE
 }
@@ -874,6 +876,43 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 		}		
 	}
 
+	return SCAP_SUCCESS;
+}
+#endif
+
+#if defined(HAS_CAPTURE)
+int32_t scap_enable_markers_capture(scap_t* handle)
+{
+	//	
+	// Not supported for files
+	//
+	if(handle->m_file)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_inode_of_dev_null not supported on offline captures");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	struct stat sbuf;
+	if(stat("/dev/null", &sbuf) == -1)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "can't stat /dev/null");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	printf("%ld\n", sbuf.st_ino);
+/*
+	if(handle->m_ndevs)
+	{
+		if(ioctl(handle->m_devs[0].m_fd, request, sampling_ratio))
+		{
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}		
+	}
+*/
 	return SCAP_SUCCESS;
 }
 #endif

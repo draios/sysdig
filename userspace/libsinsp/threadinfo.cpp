@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "protodecoder.h"
+#include "tracers.h"
 
 extern sinsp_evttables g_infotables;
 
