@@ -59,9 +59,36 @@ public:
 			return false;
 		}
 
+		if(m_tags_len != other->m_tags_len)
+		{
+			return false;
+		}
+
 		if(memcmp(m_tags_storage, 
 			other->m_tags_storage,
-			MIN(m_tags_len, other->m_tags_len)) == 0)
+			m_tags_len) == 0)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	inline bool compare(sinsp_partial_tracer* other, uint32_t len)
+	{
+		if(m_id != other->m_id)
+		{
+			return false;
+		}
+
+		if(len != other->m_tags_len - 1)
+		{
+			return false;
+		}
+
+		if(memcmp(m_tags_storage, 
+			other->m_tags_storage,
+			len) == 0)
 		{
 			return true;
 		}
@@ -116,6 +143,7 @@ public:
 	parse_result process_event_data(char *data, uint32_t datalen, uint64_t ts);
 	inline void parse(char* evtstr, uint32_t evtstrlen);
 	inline void parse_simple(char* evtstr, uint32_t evtstrlen);
+	sinsp_partial_tracer* find_parent_enter_pae();
 	void test();
 
 	char* m_type_str;

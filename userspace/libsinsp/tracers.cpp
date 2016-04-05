@@ -218,12 +218,12 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 
 				//
 				// This is a bit tricky and deserves some explanation:
-				// despite removing the pae and retunring it to the available pool,
+				// despite removing the pae and returning it to the available pool,
 				// we link to it so that the filters will use it. We do that as an
 				// optimization (it avoids making a copy or implementing logic for 
 				// delayed list removal), and we base it on the assumption that,
 				// since the processing is strictly sequential and single thread,
-				// nobody will modify the event until the event is fully processed.
+				// nobody will modify the pae until the event is fully processed.
 				//
 				m_enter_pae = *it;
 
@@ -237,6 +237,40 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 	}
 
 	return sinsp_tracerparser::RES_OK;
+}
+
+sinsp_partial_tracer* sinsp_tracerparser::find_parent_enter_pae()
+{
+	list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
+	list<sinsp_partial_tracer*>::iterator it;
+
+	char* tse = m_enter_pae->m_tags_storage + m_tot_taglens;
+	if(*tse == 0 && tse > m_enter_pae->m_tags_storage)
+	{
+		--tse;
+	}
+
+	uint32_t len = 0;
+	while(tse != m_enter_pae->m_tags_storage)
+	{
+		if(*tse == 0)
+		{
+			len = tse - m_enter_pae->m_tags_storage + 1; // 1 is for the traling zero
+			break;
+		}
+
+		--tse;
+	}
+
+	for(it = partial_tracers_list->begin(); it != partial_tracers_list->end(); ++it)
+	{
+		if(m_enter_pae->compare(*it, len) == true)
+		{
+			return *it;
+		}
+	}
+
+	return NULL;
 }
 
 inline void sinsp_tracerparser::parse(char* evtstr, uint32_t evtstrlen)
