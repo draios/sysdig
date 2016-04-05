@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 view_info = 
 {
 	id = "spans_list",
-	name = "spans List",
+	name = "Spans List",
 	description = "Show the detailed list of a tracer selection's child spans. For each span type, the view reports information like its arguments and how long it took to complete.",
 	tips = {
 		"Only the spans spans that are direct childs of the selection (i.e. the spans with one more tag than the selection) are shown. Drilling down allows you to explore the further levels.",
