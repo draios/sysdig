@@ -3921,6 +3921,7 @@ const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.count.fortag", "1 if the span's number of tags matches the field argument, and zero for all the other ones."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.childcount.fortag", "1 if the span's number of tags is greater than the field argument, and zero for all the other ones."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.idtag", "id used by the span list csysdig view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.time", "id used by the span list csysdig view."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.parenttime", "id used by the span list csysdig view."},
 };
 
@@ -3982,10 +3983,6 @@ int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT c
 		else if(fldname == "span.idtag")
 		{
 			throw sinsp_exception("invalid syntax for span.idtag");
-		}
-		else if(fldname == "span.parenttime")
-		{
-			throw sinsp_exception("invalid syntax for span.parenttime");
 		}
 
 		m_argname = val.substr(fldname.size() + 1);
@@ -4061,13 +4058,6 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 
 		res = extract_arg("span.idtag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("span.parenttime") - 1) == "span.parenttime")
-	{
-		m_field_id = TYPE_PARENTTIME;
-		m_field = &m_info.m_fields[m_field_id];
-
-		res = extract_arg("span.parenttime", val, NULL);
-	}
 	else
 	{
 		res = sinsp_filter_check::parse_field_name(str, alloc_state);
@@ -4082,6 +4072,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 		m_field_id == TYPE_ENTERARG ||
 		m_field_id == TYPE_ENTERARGS ||
 		m_field_id == TYPE_IDTAG ||
+		m_field_id == TYPE_TIME ||
 		m_field_id == TYPE_PARENTTIME
 		)
 	{
@@ -4341,20 +4332,6 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return (uint8_t*)m_strstorage.c_str();
 		}
-	case TYPE_PARENTTIME:
-		{
-			int pippo = m_argid;
-
-			sinsp_partial_tracer* pepae = eparser->find_parent_enter_pae();
-
-			if(pepae == NULL)
-			{
-				return NULL;
-			}
-
-			m_strstorage = to_string(pepae->m_time);
-			return (uint8_t*)m_strstorage.c_str();
-		}
 	case TYPE_ARGS:
 		if(PPME_IS_ENTER(etype))
 		{
@@ -4466,6 +4443,23 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		return (uint8_t*)&m_s64val;
+	case TYPE_TIME:
+		{
+			m_strstorage = to_string(eparser->m_enter_pae->m_time);
+			return (uint8_t*)m_strstorage.c_str();
+		}
+	case TYPE_PARENTTIME:
+		{
+			sinsp_partial_tracer* pepae = eparser->find_parent_enter_pae();
+
+			if(pepae == NULL)
+			{
+				return NULL;
+			}
+
+			m_strstorage = to_string(pepae->m_time);
+			return (uint8_t*)m_strstorage.c_str();
+		}
 	default:
 		ASSERT(false);
 		break;
