@@ -26,8 +26,8 @@ view_info =
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
-	use_defaults = true,
+	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	use_defaults = false,
 	filter = "span.ntags>=%depth+1",
 	drilldown_target = "spans_list",
 	drilldown_increase_depth = true,
@@ -35,7 +35,8 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "span.idtag[%depth]",
+			field = "span.time",
+			filterfield = "span.parenttime",
 			is_key = true
 		},
 		{

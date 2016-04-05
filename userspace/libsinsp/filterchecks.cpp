@@ -3921,6 +3921,8 @@ const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.count.fortag", "1 if the span's number of tags matches the field argument, and zero for all the other ones."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.childcount.fortag", "1 if the span's number of tags is greater than the field argument, and zero for all the other ones."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.idtag", "id used by the span list csysdig view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.time", "id used by the span list csysdig view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.parenttime", "id used by the span list csysdig view."},
 };
 
 sinsp_filter_check_tracer::sinsp_filter_check_tracer()
@@ -4069,7 +4071,9 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 		m_field_id == TYPE_ARGS ||
 		m_field_id == TYPE_ENTERARG ||
 		m_field_id == TYPE_ENTERARGS ||
-		m_field_id == TYPE_IDTAG
+		m_field_id == TYPE_IDTAG ||
+		m_field_id == TYPE_TIME ||
+		m_field_id == TYPE_PARENTTIME
 		)
 	{
 		m_inspector->request_tracer_state_tracking();
@@ -4439,6 +4443,23 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		return (uint8_t*)&m_s64val;
+	case TYPE_TIME:
+		{
+			m_strstorage = to_string(eparser->m_enter_pae->m_time);
+			return (uint8_t*)m_strstorage.c_str();
+		}
+	case TYPE_PARENTTIME:
+		{
+			sinsp_partial_tracer* pepae = eparser->find_parent_enter_pae();
+
+			if(pepae == NULL)
+			{
+				return NULL;
+			}
+
+			m_strstorage = to_string(pepae->m_time);
+			return (uint8_t*)m_strstorage.c_str();
+		}
 	default:
 		ASSERT(false);
 		break;

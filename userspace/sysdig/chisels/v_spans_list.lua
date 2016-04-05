@@ -18,23 +18,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 view_info = 
 {
 	id = "spans_list",
-	name = "spans List",
+	name = "Spans List",
 	description = "Show the detailed list of a tracer selection's child spans. For each span type, the view reports information like its arguments and how long it took to complete.",
 	tips = {
 		"Only the spans spans that are direct childs of the selection (i.e. the spans with one more tag than the selection) are shown. Drilling down allows you to explore the further levels.",
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "span.tag", "span.id", "span.time", "span.parenttime", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	use_defaults = true,
-	filter = "span.ntags>=%depth+1",
+	filter = "span.ntags=%depth+1",
 	drilldown_target = "spans_list",
 	drilldown_increase_depth = true,
 	columns = 
 	{
 		{
 			name = "NA",
-			field = "span.idtag[%depth]",
+			field = "span.time",
+			filterfield = "span.parenttime",
 			is_key = true
 		},
 		{

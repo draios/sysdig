@@ -52,7 +52,8 @@ public:
 		uint32_t flags,
 		sinsp_field_aggregation aggregation,
 		sinsp_field_aggregation groupby_aggregation,
-		vector<string> tags)
+		vector<string> tags,
+		string filterfield)
 	{
 		m_field = field;
 		m_name = name;
@@ -62,9 +63,11 @@ public:
 		m_groupby_aggregation = groupby_aggregation;
 		m_flags = flags;
 		m_tags = tags;
+		m_filterfield = filterfield;
 	}
 
 	string get_field(uint32_t depth);
+	string get_filter_field(uint32_t depth);
 
 	string m_field;
 	string m_name;
@@ -74,6 +77,7 @@ public:
 	sinsp_field_aggregation m_groupby_aggregation;
 	uint32_t m_flags;
 	vector<string> m_tags;
+	string m_filterfield;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
