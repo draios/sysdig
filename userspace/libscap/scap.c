@@ -901,18 +901,16 @@ int32_t scap_enable_markers_capture(scap_t* handle)
 		return SCAP_FAILURE;
 	}
 
-	printf("%ld\n", sbuf.st_ino);
-/*
 	if(handle->m_ndevs)
 	{
-		if(ioctl(handle->m_devs[0].m_fd, request, sampling_ratio))
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERFILE_INODE, sbuf.st_ino))
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}		
 	}
-*/
+
 	return SCAP_SUCCESS;
 }
 #endif

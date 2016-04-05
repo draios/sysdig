@@ -922,7 +922,7 @@ cleanup_ioctl_procinfo:
 #endif
 	case PPM_IOCTL_SET_TRACERFILE_INODE:
 	{
-		vpr_info("PPM_IOCTL_SET_TRACERFILE_INODE, consumer %p\n", consumer_id);
+		vpr_info("PPM_IOCTL_SET_TRACERFILE_INODE, consumer %p, val=%d\n", consumer_id, (int)arg);
 		g_tracerfile_inode = arg;
 		g_tracers_enabled = true;
 		ret = 0;
