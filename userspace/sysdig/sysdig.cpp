@@ -175,6 +175,7 @@ static void usage()
 "                    Specify the format to be used when printing the events.\n"
 "                    With -pc or -pcontainer will use a container-friendly format.\n"
 "                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
+"                    With -pm or -pmesos will use a kubernetes-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
@@ -240,6 +241,8 @@ static void usage()
 "%%evt.num %%evt.outputtime %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Using -pk or -pkubernetes, the default format will be changed to a kubernetes-friendly one:\n\n"
 "%%evt.num %%evt.outputtime %%evt.cpu %%k8s.pod.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
+"Using -pm or -pmesos, the default format will be changed to a mesos-friendly one:\n\n"
+"%%evt.num %%evt.outputtime %%evt.cpu %%mesos.task.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Examples:\n\n"
 " Capture all the events from the live system and print them to screen\n"
 "   $ sysdig\n\n"
@@ -1011,7 +1014,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else if(string(optarg) == "m" || string(optarg) == "mesos")
 				{
-					output_format = "*%evt.num %evt.outputtime %evt.cpu %mesos.task.id (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+					output_format = "*%evt.num %evt.outputtime %evt.cpu %mesos.task.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
 					// This enables chisels to determine if they should print container information
 					if(inspector != NULL)
