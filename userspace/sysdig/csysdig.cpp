@@ -398,7 +398,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		if(list_flds)
 		{
-			list_fields(false);
+			list_fields(false, false);
 
 			res.m_res = EXIT_SUCCESS;
 			goto exit;

@@ -159,6 +159,7 @@ static void usage()
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" --list-markdown    like -l, but produces markdown output\n"
 " -m <url[,marathon_url]>, --mesos-api=<url[,marathon_url]>\n"
 "                    Enable Mesos support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:5050\".\n"
@@ -693,6 +694,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool is_filter_display = false;
 	bool verbose = false;
 	bool list_flds = false;
+	bool list_flds_markdown = false;
 	bool print_progress = false;
 	bool compress = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
@@ -745,6 +747,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
+		{"list-markdown", no_argument, 0, 0 },
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
 		{"progress", required_argument, 0, 'P' },
@@ -1130,6 +1133,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			{
 				filter_proclist_flag = true;
 			}
+
+			if(string(long_options[long_index].name) == "list-markdown")
+			{
+				list_flds = true;
+				list_flds_markdown = true;
+			}
 		}
 
 		//
@@ -1173,11 +1182,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// -ll shows the fields verbosely, i.e. with more information
 				// like the type
 				//
-				list_fields(true);
+				list_fields(true, list_flds_markdown);
 			}
 			else
 			{
-				list_fields(false);
+				list_fields(false, list_flds_markdown);
 			}
 
 			res.m_res = EXIT_SUCCESS;
