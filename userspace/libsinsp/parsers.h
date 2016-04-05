@@ -127,7 +127,8 @@ private:
 	void parse_setresgid_exit(sinsp_evt* evt);
 	void parse_setuid_exit(sinsp_evt* evt);
 	void parse_setgid_exit(sinsp_evt* evt);
-	void parse_container_evt(sinsp_evt* evt);
+	void parse_container_evt(sinsp_evt* evt); // deprecated, only for backward-compatibility
+	void parse_container_json_evt(sinsp_evt *evt);
 	inline void parse_tracer(sinsp_evt *evt, int64_t retval);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
 	void parse_k8s_evt(sinsp_evt *evt);

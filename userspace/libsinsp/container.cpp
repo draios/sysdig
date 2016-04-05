@@ -389,7 +389,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			}
 
 			m_containers.insert(std::make_pair(container_info.m_id, container_info));
-			if(container_to_sinsp_event(container_info, &m_inspector->m_meta_evt, SP_EVT_BUF_SIZE))
+			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;
 			}
@@ -399,14 +399,26 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	return valid_id;
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len)
+string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)
 {
-	size_t totlen = sizeof(scap_evt) + 
-		4 * sizeof(uint16_t) +
-		container_info.m_id.length() + 1 +
-		sizeof(uint32_t) +
-		container_info.m_name.length() + 1 +
-		container_info.m_image.length() + 1;
+	Json::Value obj;
+	Json::Value& container = obj["container"];
+	container["id"] = container_info.m_id;
+	container["type"] = container_info.m_type;
+	container["name"] = container_info.m_name;
+	container["image"] = container_info.m_image;
+	if(!container_info.m_mesos_task_id.empty())
+	{
+		container["mesos_task_id"] = container_info.m_mesos_task_id;
+	}
+	return Json::FastWriter().write(obj);
+}
+
+bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt)
+{
+	// TODO: variable event length
+	size_t evt_len = SP_EVT_BUF_SIZE;
+	size_t totlen = sizeof(scap_evt) +  sizeof(uint16_t) + json.length() + 1;
 
 	if(totlen > evt_len)
 	{
@@ -422,26 +434,13 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 	scapevt->ts = m_inspector->m_lastevent_ts;
 	scapevt->tid = 0;
 	scapevt->len = (uint32_t)totlen;
-	scapevt->type = PPME_CONTAINER_E;
+	scapevt->type = PPME_CONTAINER_JSON_E;
 
 	uint16_t* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
-	char* valptr = (char*)lens + 4 * sizeof(uint16_t);
+	char* valptr = (char*)lens + sizeof(uint16_t);
 
-	lens[0] = (uint16_t)container_info.m_id.length() + 1;
-	memcpy(valptr, container_info.m_id.c_str(), lens[0]);
-	valptr += lens[0];
-
-	lens[1] = sizeof(uint32_t);
-	memcpy(valptr, &container_info.m_type, lens[1]);
-	valptr += lens[1];
-
-	lens[2] = (uint16_t)container_info.m_name.length() + 1;
-	memcpy(valptr, container_info.m_name.c_str(), lens[2]);
-	valptr += lens[2];
-
-	lens[3] = (uint16_t)container_info.m_image.length() + 1;
-	memcpy(valptr, container_info.m_image.c_str(), lens[3]);
-	valptr += lens[3];
+	*lens = (uint16_t)json.length() + 1;
+	memcpy(valptr, json.c_str(), *lens);
 
 	evt->init();
 	return true;
@@ -688,7 +687,7 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
 	for(unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.begin(); it != m_containers.end(); ++it)
 	{
-		if(container_to_sinsp_event(it->second, &m_inspector->m_meta_evt, SP_EVT_BUF_SIZE))
+		if(container_to_sinsp_event(container_to_json(it->second), &m_inspector->m_meta_evt))
 		{
 			int32_t res = scap_dump(m_inspector->m_h, dumper, m_inspector->m_meta_evt.m_pevt, m_inspector->m_meta_evt.m_cpuid, 0);
 			if(res != SCAP_SUCCESS)
