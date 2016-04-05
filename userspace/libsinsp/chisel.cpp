@@ -411,6 +411,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	string name;
 	string description;
 	string field;
+	string filterfield;
 	uint32_t colsize = 0xffffffff;
 	uint32_t flags = TEF_NONE;
 	sinsp_field_aggregation aggregation = A_NONE;
@@ -432,6 +433,10 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		else if(fldname == "field")
 		{
 			field = lua_tostring(ls, -1);
+		}
+		else if(fldname == "filterfield")
+		{
+			filterfield = lua_tostring(ls, -1);
 		}
 		else if(fldname == "colsize")
 		{
@@ -537,6 +542,11 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		lua_pop(ls, 1);
 	}
 
+	if(filterfield != "" && (flags & TEF_IS_KEY == 0) && (flags & TEF_IS_GROUPBY_KEY == 0))
+	{
+		throw sinsp_exception("wrong view column syntax: filterfield specified for a non key column");
+	}
+
 	cols->push_back(sinsp_view_column_info(field,
 		name,
 		description,
@@ -544,7 +554,8 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		(uint32_t)flags,
 		aggregation,
 		groupby_aggregation,
-		tags));
+		tags,
+		filterfield));
 }
 
 void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
