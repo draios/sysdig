@@ -37,10 +37,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
 
-void list_fields(bool verbose)
+void list_fields(bool verbose, bool markdown)
 {
 	uint32_t j, l, m;
 	int32_t k;
+
+	if(markdown)
+	{
+		printf("# Sysdig Filter Fileds List\n\n");
+	}
 
 	vector<const filter_check_info*> fc_plugins;
 	sinsp::get_filtercheck_fields_info(&fc_plugins);
@@ -54,57 +59,78 @@ void list_fields(bool verbose)
 			continue;
 		}
 
-		printf("\n----------------------\n");
-		printf("Field Class: %s\n\n", fci->m_name.c_str());
+		if(markdown)
+		{
+			printf("## Filter Class: %s\n\n", fci->m_name.c_str());
+		}
+		else
+		{
+			printf("\n----------------------\n");
+			printf("Field Class: %s\n\n", fci->m_name.c_str());
+		}
 
 		for(k = 0; k < fci->m_nfields; k++)
 		{
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
-			printf("%s", fld->m_name);
-			uint32_t namelen = (uint32_t)strlen(fld->m_name);
-
-			if(namelen >= DESCRIPTION_TEXT_START)
+			if(fld->m_flags & EPF_TABLE_ONLY)
 			{
-				printf("\n");
-				namelen = 0;
+				continue;
 			}
 
-			for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
+			if(markdown)
 			{
-				printf(" ");
+				printf("**Name**: %s  \n", fld->m_name);
+				printf("**Description**: %s  \n", fld->m_description);
+				printf("**Type**: %s  \n\n", param_type_to_string(fld->m_type));
 			}
-
-			string desc(fld->m_description);
-
-			if(fld->m_flags & EPF_FILTER_ONLY)
+			else
 			{
-				desc = "(FILTER ONLY) " + desc;
-			}
+				printf("%s", fld->m_name);
+				uint32_t namelen = (uint32_t)strlen(fld->m_name);
 
-			if(verbose)
-			{
-				desc += string(" Type:") + param_type_to_string(fld->m_type) + ".";
-			}
-
-			size_t desclen = desc.size();
-
-			for(l = 0; l < desclen; l++)
-			{
-				if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+				if(namelen >= DESCRIPTION_TEXT_START)
 				{
 					printf("\n");
-
-					for(m = 0; m < DESCRIPTION_TEXT_START; m++)
-					{
-						printf(" ");
-					}
+					namelen = 0;
 				}
 
-				printf("%c", desc[l]);
-			}
+				for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
+				{
+					printf(" ");
+				}
 
-			printf("\n");
+				string desc(fld->m_description);
+
+				if(fld->m_flags & EPF_FILTER_ONLY)
+				{
+					desc = "(FILTER ONLY) " + desc;
+				}
+
+				if(verbose)
+				{
+					desc += string(" Type:") + param_type_to_string(fld->m_type) + ".";
+				}
+
+				size_t desclen = desc.size();
+
+				for(l = 0; l < desclen; l++)
+				{
+					if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
+					{
+						printf("\n");
+
+						for(m = 0; m < DESCRIPTION_TEXT_START; m++)
+						{
+							printf(" ");
+						}
+					}
+
+					printf("%c", desc[l]);
+				}
+
+				printf("\n");
+			}
 		}
 	}
 }
@@ -214,6 +240,12 @@ const char* param_type_to_string(ppm_param_type pt)
 		break;
 	case PT_SIGSET:
 		return "SIGSET";
+		break;
+	case PT_IPV4NET:
+		return "IPV4NET";
+		break;
+	case PT_DOUBLE:
+		return "DOUBLE";
 		break;
 	default:
 		ASSERT(false);
