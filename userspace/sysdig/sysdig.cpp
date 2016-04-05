@@ -175,7 +175,7 @@ static void usage()
 "                    Specify the format to be used when printing the events.\n"
 "                    With -pc or -pcontainer will use a container-friendly format.\n"
 "                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
-"                    With -pm or -pmesos will use a kubernetes-friendly format.\n"
+"                    With -pm or -pmesos will use a mesos-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
