@@ -542,7 +542,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		lua_pop(ls, 1);
 	}
 
-	if(filterfield != "" && (flags & TEF_IS_KEY == 0) && (flags & TEF_IS_GROUPBY_KEY == 0))
+	if(filterfield != "" && ((flags & TEF_IS_KEY) == 0) && ((flags & TEF_IS_GROUPBY_KEY) == 0))
 	{
 		throw sinsp_exception("wrong view column syntax: filterfield specified for a non key column");
 	}
