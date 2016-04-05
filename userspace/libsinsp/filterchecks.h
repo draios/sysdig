@@ -560,6 +560,7 @@ public:
 		TYPE_TAGCOUNT,
 		TYPE_TAGCHILDSCOUNT,
 		TYPE_IDTAG,
+		TYPE_PARENTTIME,
 	};
 
 	sinsp_filter_check_tracer();
