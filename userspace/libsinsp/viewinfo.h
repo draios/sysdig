@@ -38,6 +38,7 @@ typedef enum sinsp_field_aggregation
 #define TEF_IS_KEY 1
 #define TEF_IS_SORT_COLUMN (1 << 1)
 #define TEF_IS_GROUPBY_KEY (1 << 2)
+#define TEF_FILTER_IN_CHILD_ONLY (1 << 3)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Column information
@@ -45,6 +46,10 @@ typedef enum sinsp_field_aggregation
 class sinsp_view_column_info
 {
 public:
+	sinsp_view_column_info()
+	{
+	}
+	
 	sinsp_view_column_info(string field,
 		string name,
 		string description,

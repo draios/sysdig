@@ -35,20 +35,27 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "span.time",
-			filterfield = "span.parenttime",
-			is_key = true
+			field = "span.rawtime",
+			filterfield = "span.rawparenttime",
+			is_key = true,
+			filter_in_child_only = true,
 		},
 		{
 			name = "ID",
 			field = "span.id",
-			description = "the unique numeric ID of the trace.",
+			description = "the unique numeric ID of the span.",
 			colsize = 10,
 		},
 		{
 			name = "TIME",
+			field = "span.time",
+			description = "the time of the span enter tracer.",
+			colsize = 19,
+		},
+		{
+			name = "DURATION",
 			field = "span.duration.fortag[%depth]",
-			description = "the time this trace call took to complete",
+			description = "the time this span call took to complete",
 			colsize = 10,
 			aggregation = "AVG",
 			is_sorting = true,

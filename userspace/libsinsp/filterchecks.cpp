@@ -34,6 +34,77 @@ extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
 
 ///////////////////////////////////////////////////////////////////////////////
+// Helper functions
+///////////////////////////////////////////////////////////////////////////////
+int32_t gmt2local(time_t t)
+{
+	int dt, dir;
+	struct tm *gmt, *loc;
+	struct tm sgmt;
+
+	if(t == 0)
+	{
+		t = time(NULL);
+	}
+
+	gmt = &sgmt;
+	*gmt = *gmtime(&t);
+	loc = localtime(&t);
+
+	dt = (loc->tm_hour - gmt->tm_hour) * 60 * 60 + (loc->tm_min - gmt->tm_min) * 60;
+
+	dir = loc->tm_year - gmt->tm_year;
+	if(dir == 0)
+	{
+		dir = loc->tm_yday - gmt->tm_yday;
+	}
+
+	dt += dir * 24 * 60 * 60;
+
+	return dt;
+}
+
+void ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
+{
+	struct tm *tm;
+	time_t Time;
+	uint64_t sec = ts / ONE_SECOND_IN_NS;
+	uint64_t nsec = ts % ONE_SECOND_IN_NS;
+	int32_t thiszone = gmt2local(0);
+	int32_t s = (sec + thiszone) % 86400;
+	int32_t bufsize = 0;
+	char buf[256];
+
+	if(date) 
+	{
+		Time = (sec + thiszone) - s;
+		tm = gmtime (&Time);
+		if(!tm)
+		{
+			bufsize = sprintf(buf, "<date error> ");
+		}
+		else
+		{
+			bufsize = sprintf(buf, "%04d-%02d-%02d ",
+				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
+		}
+	}
+
+	if(ns)
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
+				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
+	}
+	else
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d",
+				s / 3600, (s % 3600) / 60, s % 60);
+	}
+
+	*res = buf;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_fd implementation
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_fd_fields[] =
@@ -2418,74 +2489,6 @@ const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
 	}
 }
 
-int32_t sinsp_filter_check_event::gmt2local(time_t t)
-{
-	int dt, dir;
-	struct tm *gmt, *loc;
-	struct tm sgmt;
-
-	if(t == 0)
-	{
-		t = time(NULL);
-	}
-
-	gmt = &sgmt;
-	*gmt = *gmtime(&t);
-	loc = localtime(&t);
-
-	dt = (loc->tm_hour - gmt->tm_hour) * 60 * 60 + (loc->tm_min - gmt->tm_min) * 60;
-
-	dir = loc->tm_year - gmt->tm_year;
-	if(dir == 0)
-	{
-		dir = loc->tm_yday - gmt->tm_yday;
-	}
-
-	dt += dir * 24 * 60 * 60;
-
-	return dt;
-}
-
-void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
-{
-	struct tm *tm;
-	time_t Time;
-	uint64_t sec = ts / ONE_SECOND_IN_NS;
-	uint64_t nsec = ts % ONE_SECOND_IN_NS;
-	int32_t thiszone = gmt2local(0);
-	int32_t s = (sec + thiszone) % 86400;
-	int32_t bufsize = 0;
-	char buf[256];
-
-	if(date) 
-	{
-		Time = (sec + thiszone) - s;
-		tm = gmtime (&Time);
-		if(!tm)
-		{
-			bufsize = sprintf(buf, "<date error> ");
-		}
-		else
-		{
-			bufsize = sprintf(buf, "%04d-%02d-%02d ",
-				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
-		}
-	}
-
-	if(ns)
-	{
-		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
-				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
-	}
-	else
-	{
-		sprintf(buf + bufsize, "%02d:%02d:%02d",
-				s / 3600, (s % 3600) / 60, s % 60);
-	}
-
-	*res = buf;
-}
-
 uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 {
 	const sinsp_evt_param* pi = evt->get_param_value_raw(argname);
@@ -3905,6 +3908,7 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
 const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 {
 	{PT_INT64, EPF_NONE, PF_ID, "span.id", "tracer ID. This is a unique identifier that is used to match the enter and exit tracer events for this span. It can also be used to match different spans belonging to a trace."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.time", "time of the span enter tracer as a time string that includes the nanosecond part."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "span.ntags", "number of tags that this span has."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "span.nargs", "number of arguments that this span has."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "span.tags", "dot-separated list of the span's tags."},
@@ -3921,8 +3925,8 @@ const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.count.fortag", "1 if the span's number of tags matches the field argument, and zero for all the other ones."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.childcount.fortag", "1 if the span's number of tags is greater than the field argument, and zero for all the other ones."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.idtag", "id used by the span list csysdig view."},
-	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.time", "id used by the span list csysdig view."},
-	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.parenttime", "id used by the span list csysdig view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.rawtime", "id used by the span list csysdig view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.rawparenttime", "id used by the span list csysdig view."},
 };
 
 sinsp_filter_check_tracer::sinsp_filter_check_tracer()
@@ -4073,7 +4077,8 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 		m_field_id == TYPE_ENTERARGS ||
 		m_field_id == TYPE_IDTAG ||
 		m_field_id == TYPE_TIME ||
-		m_field_id == TYPE_PARENTTIME
+		m_field_id == TYPE_RAWTIME ||
+		m_field_id == TYPE_RAWPARENTTIME
 		)
 	{
 		m_inspector->request_tracer_state_tracking();
@@ -4237,6 +4242,11 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 	case TYPE_ID:
 		return (uint8_t*)&eparser->m_id;
+	case TYPE_TIME:
+		{
+			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+			return (uint8_t*)m_strstorage.c_str();
+		}
 	case TYPE_NTAGS:
 		m_u32val = (uint32_t)eparser->m_tags.size();
 		return (uint8_t*)&m_u32val;
@@ -4443,12 +4453,12 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		return (uint8_t*)&m_s64val;
-	case TYPE_TIME:
+	case TYPE_RAWTIME:
 		{
 			m_strstorage = to_string(eparser->m_enter_pae->m_time);
 			return (uint8_t*)m_strstorage.c_str();
 		}
-	case TYPE_PARENTTIME:
+	case TYPE_RAWPARENTTIME:
 		{
 			sinsp_partial_tracer* pepae = eparser->find_parent_enter_pae();
 
