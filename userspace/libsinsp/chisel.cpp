@@ -464,6 +464,21 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean value");
 			}
 		}
+		else if(fldname == "filter_in_child_only")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				bool ik = (lua_toboolean(ls, -1) != 0);
+				if(ik)
+				{
+					flags |= TEF_FILTER_IN_CHILD_ONLY;
+				}
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean value");
+			}
+		}
 		else if(fldname == "is_groupby_key")
 		{
 			if(lua_isboolean(ls, -1))
