@@ -46,6 +46,7 @@ using namespace std;
 #include "ctext.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
+#include "viewinfo.h"
 #include "cursesui.h"
 #include "utils.h"
 
