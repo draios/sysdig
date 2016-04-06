@@ -32,7 +32,7 @@ void k8s_state_t::update_pod(k8s_pod_t& pod, const Json::Value& item, bool reset
 	k8s_container::list containers = k8s_component::extract_pod_containers(item);
 
 	k8s_component::extract_pod_data(item, pod);
-
+	pod.set_restart_count(k8s_component::extract_pod_restart_count(item));
 	if(reset) // initially, we just set everything
 	{
 		pod.set_container_ids(std::move(container_ids));
@@ -371,6 +371,27 @@ k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
 	throw sinsp_exception("Unknown component kind:" + comp);
 }
 
+#ifdef HAS_CAPTURE
+void k8s_state_t::enqueue_capture_event(const Json::Value& item)
+{
+	if(m_is_captured)
+	{
+		m_capture_events.emplace_back(Json::FastWriter().write(extract_capture_data(item)));
+	}
+}
+
+std::string k8s_state_t::dequeue_capture_event()
+{
+	if(!m_capture_events.size())
+	{
+		throw sinsp_exception("Invalid event dequeue request.");
+	}
+	std::string ev = std::move(m_capture_events.front());
+	m_capture_events.pop_front();
+	return ev;
+}
+#endif // HAS_CAPTURE
+
 Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
 {
 	k8s_component::type component = component_from_json(item);
@@ -504,9 +525,10 @@ Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
 			{
 				for(const auto& c_status : status["containerStatuses"])
 				{
-					Json::Value new_cid;
-					new_cid["containerID"] = c_status["containerID"];
-					cap_status["containerStatuses"].append(new_cid);
+					Json::Value new_status;
+					new_status["containerID"] = c_status["containerID"];
+					new_status["restartCount"] = c_status["restartCount"];
+					cap_status["containerStatuses"].append(new_status);
 				}
 			}
 		}

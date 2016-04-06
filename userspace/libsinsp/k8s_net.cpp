@@ -16,15 +16,19 @@
 
 k8s_net::k8s_net(k8s& kube, const std::string& uri,
 	const std::string& api,
-	const std::string& cert) : m_k8s(kube),
+	ssl_ptr_t ssl,
+	bt_ptr_t bt,
+	bool curl_debug) : m_k8s(kube),
 		m_uri(uri + api),
 		m_api(api),
-		m_cert(cert),
+		m_ssl(ssl),
+		m_bt(bt),
 		m_stopped(true),
 		m_collector(kube.watch_in_thread())
 #ifndef K8S_DISABLE_THREAD
 		,m_thread(0)
 #endif
+		,m_curl_debug(curl_debug)
 {
 	try
 	{
@@ -150,7 +154,7 @@ void k8s_net::get_all_data(const k8s_component::component_map::value_type& compo
 		{
 			os << ':' << port;
 		}
-		m_api_interfaces[component.first] = new k8s_http(m_k8s, component.second, os.str(), protocol, m_creds, m_api, m_cert);
+		m_api_interfaces[component.first] = new k8s_http(m_k8s, component.second, os.str(), protocol, m_creds, m_api, m_ssl, m_bt, m_curl_debug);
 	}
 	
 	if(!m_api_interfaces[component.first]->get_all_data(out))

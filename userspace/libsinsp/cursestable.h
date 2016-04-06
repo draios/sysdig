@@ -69,6 +69,7 @@ private:
 	alignment get_field_alignment(ppm_param_type type);
 	void print_error(string wstr);
 	void print_wait();
+	void print_line_centered(string line, int32_t off = 0);
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;

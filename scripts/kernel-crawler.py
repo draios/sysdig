@@ -128,7 +128,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
 		},
 
 		{
@@ -137,7 +137,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
 		},
 
 		{
@@ -146,7 +146,7 @@ repos = {
 			"subdirs" : [
 				""
 			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]|current')]/@href"
+			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
 		}
 	],
 
@@ -156,21 +156,21 @@ repos = {
             "discovery_pattern": "/html/body/pre/a[@href = 'linux/']/@href",
             "subdirs": [""],
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all"]
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp"]
         },
         {
             "root": "http://security.debian.org/pool/updates/main/l/",
             "discovery_pattern": "/html/body/table//tr/td/a[@href = 'linux/']/@href",
             "subdirs": [""],
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]\.[0-9]+.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all"]
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp"]
         },
         {
             "root": "http://mirrors.kernel.org/debian/pool/main/l/",
             "discovery_pattern": "/html/body/pre/a[@href = 'linux-tools/']/@href",
             "subdirs": [""],
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all"]
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp"]
         }
     ]
 }

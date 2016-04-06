@@ -166,8 +166,26 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr)
 	return false;
 }
 
-bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr)
+bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo)
 {
+	if(!tinfo->m_container_id.empty())
+	{
+		sinsp_container_info container_info;
+		bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+
+		//
+		// Note: if we don't have container info, any pick we make is arbitrary.
+		// To al least achieve consistency across client and server, we just match the host interface addresses. 
+		//
+		if(found && container_info.m_container_ip != 0)
+		{
+			if(addr == container_info.m_container_ip)
+			{
+				return true;
+			}
+		}
+	}
+
 	vector<sinsp_ipv4_ifinfo>::iterator it;
 
 	// try to find an interface that has the given IP as address

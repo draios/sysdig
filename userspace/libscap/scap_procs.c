@@ -923,7 +923,6 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	//
 	if(handle->m_file)
 	{
-		ASSERT(false);
 		return false;
 	}
 

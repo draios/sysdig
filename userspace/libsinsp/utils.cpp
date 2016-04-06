@@ -1035,56 +1035,56 @@ void replace_in_place(string& str, string& substr_to_replace, string& new_substr
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation
 ///////////////////////////////////////////////////////////////////////////////
-uint32_t sinsp_numparser::parseu8(const string& str)
+uint8_t sinsp_numparser::parseu8(const string& str)
 {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu8 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (uint8_t)res;
 }
 
-int32_t sinsp_numparser::parsed8(const string& str)
+int8_t sinsp_numparser::parsed8(const string& str)
 {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId8 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (int8_t)res;
 }
 
-uint32_t sinsp_numparser::parseu16(const string& str)
+uint16_t sinsp_numparser::parseu16(const string& str)
 {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu16 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (uint16_t)res;
 }
 
-int32_t sinsp_numparser::parsed16(const string& str)
+int16_t sinsp_numparser::parsed16(const string& str)
 {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId16 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (int16_t)res;
 }
 
 uint32_t sinsp_numparser::parseu32(const string& str)
@@ -1242,7 +1242,7 @@ bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t
 std::string get_json_string(const Json::Value& root, const std::string& name)
 {
 	std::string ret;
-	Json::Value json_val = root[name];
+	const Json::Value& json_val = root[name];
 	if(!json_val.isNull() && json_val.isString())
 	{
 		ret = json_val.asString();
@@ -1250,113 +1250,3 @@ std::string get_json_string(const Json::Value& root, const std::string& name)
 	return ret;
 }
 
-#if defined(__linux__)
-///////////////////////////////////////////////////////////////////////////////
-// Curl helpers
-///////////////////////////////////////////////////////////////////////////////
-sinsp_curl::sinsp_curl(const std::string& uristr, const std::string& cert): m_curl(curl_easy_init()), m_uri(new uri(uristr)), m_cert(cert), m_timeout(10)
-{
-	if(!m_curl || !m_uri)
-	{
-		throw sinsp_exception("Cannot initialize CURL.");
-	}
-}
-
-sinsp_curl::~sinsp_curl()
-{
-	curl_easy_cleanup(m_curl);
-	delete m_uri;
-}
-
-string sinsp_curl::get_data()
-{
-	std::ostringstream os;
-	if(get_data(os))
-	{
-		return os.str();
-	}
-	return "";
-}
-
-bool sinsp_curl::get_data(std::ostream& os)
-{
-	CURLcode res = CURLE_OK;
-	curl_easy_setopt(m_curl, CURLOPT_URL, m_uri->to_string().c_str());
-	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L);
-
-	if(m_uri->is_secure())
-	{
-		if(m_cert.empty())
-		{
-			check_error(curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0));
-		}
-		else
-		{
-			check_error(curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 1));
-			res = curl_easy_setopt(m_curl, CURLOPT_CAINFO, m_cert.c_str());
-			if(res != CURLE_OK)
-			{
-				os << curl_easy_strerror(res) << std::flush;
-				return false;
-			}
-		}
-	}
-
-	curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
-	curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate");
-	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &sinsp_curl::write_data);
-	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os);
-
-	res = curl_easy_perform(m_curl);
-	if(res != CURLE_OK)
-	{
-		os << curl_easy_strerror(res) << std::flush;
-	}
-	else
-	{
-		// HTTP errors are not returned by curl API
-		// error will be in the response stream
-		long http_code = 0;
-		curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code);
-		if(http_code >= 400)
-		{
-			return false;
-		}
-	}
-
-	return res == CURLE_OK;
-}
-
-void sinsp_curl::set_timeout(long seconds)
-{
-	m_timeout = seconds;
-}
-
-long sinsp_curl::get_timeout() const
-{
-	return m_timeout;
-}
-
-size_t sinsp_curl::write_data(void *ptr, size_t size, size_t nmemb, void *cb)
-{
-	std::string data(reinterpret_cast<const char*>(ptr), static_cast<size_t>(size * nmemb));
-	*reinterpret_cast<std::ostream*>(cb) << data << std::flush;
-	return size * nmemb;
-}
-
-void sinsp_curl::check_error(unsigned ret)
-{
-	if(ret >= CURL_LAST)
-	{
-		throw sinsp_exception("Invalid CURL return value:" + std::to_string(ret));
-	}
-
-	CURLcode res = (CURLcode)ret;
-	if(CURLE_OK != res && CURLE_AGAIN != res)
-	{
-		std::ostringstream os;
-		os << "Error: " << curl_easy_strerror(res);
-		throw sinsp_exception(os.str());
-	}
-}
-#endif // __linux__

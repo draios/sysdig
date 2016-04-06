@@ -158,5 +158,22 @@ view_info =
 			command = "gdb -p %proc.pid --batch --quiet -ex \"thread apply all bt full\" -ex \"quit\"",
 			description = "print stack",
 		},
+		{
+			hotkey = "f",
+			command = "lsof -p %proc.pid",
+			description = "one-time lsof",
+		},
+		{
+			hotkey = "[",
+			command = "renice $(expr $(ps -h -p %proc.pid -o nice) + 1) -p %proc.pid",
+			description = "increment nice by 1",
+			wait_finish = false,
+		},
+		{
+			hotkey = "]",
+			command = "renice $(expr $(ps -h -p %proc.pid -o nice) - 1) -p %proc.pid",
+			description = "decrement nice by 1",
+			wait_finish = false,
+		},
 	},
 }

@@ -16,7 +16,7 @@ class marathon_http : public mesos_http
 public:
 	typedef std::shared_ptr<marathon_http> ptr_t;
 
-	marathon_http(mesos& m, const uri& url);
+	marathon_http(mesos& m, const uri& url, int timeout_ms = 5000L);
 
 	~marathon_http();
 
@@ -25,9 +25,6 @@ public:
 	std::string get_groups(const std::string& group_id);
 
 private:
-	//bool on_data();
-	//void on_error(const std::string& err, bool disconnect);
-
 	std::string   m_data;
 };
 

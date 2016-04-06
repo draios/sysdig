@@ -143,6 +143,16 @@ mesos_framework::~mesos_framework()
 {
 }
 
+bool mesos_framework::is_framework_active(const Json::Value& framework)
+{
+	const Json::Value& active = framework["active"];
+	if(!active.isNull() && active.isBool() && active.asBool())
+	{
+		return true;
+	}
+	return false;
+}
+
 void mesos_framework::add_or_replace_task(std::shared_ptr<mesos_task> task)
 {
 	m_tasks.insert({task->get_uid(), task});
@@ -205,6 +215,16 @@ mesos_task& mesos_task::operator=(const mesos_task&& other)
 {
 	mesos_component::operator =(std::move(other));
 	return *this;
+}
+
+bool mesos_task::is_task_running(const Json::Value& task)
+{
+	const Json::Value& task_state = task["state"];
+	if(!task_state.isNull() && task_state.isString())
+	{
+		return task_state.asString() == "TASK_RUNNING";
+	}
+	return false;
 }
 
 mesos_task::ptr_t mesos_task::make_task(const Json::Value& task)

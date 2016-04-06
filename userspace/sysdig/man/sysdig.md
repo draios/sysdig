@@ -144,15 +144,18 @@ OPTIONS
 **-k**, **--k8s-api**
   Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
 
-**-K** _filename_, **--k8s-api-cert=**_filename_
-  Use the provided certificate file name to authenticate with the K8S API server. Filename must be a full absolute or relative (to the current directory) path to the certificate file. The certificate can also be specified via the environment variable SYSDIG_K8S_API_CERT.
+**-K** _btfile | certfile:keyfile[#password][:cacertfile]_, **--k8s-api-cert=**_btfile | certfile:keyfile[#password][:cacertfile]_
+  Use the provided files names to authenticate user and (optionally) verify the K8S API server identity. Each entry must specify full (absolute, or relative to the current directory) path to the respective file. Private key password is optional (needed only if key is password protected). CA certificate is optional. For all files, only PEM file format is supported. Specifying CA certificate only is obsoleted - when single entry is provided for this option, it will be interpreted as the name of a file containing bearer token. Note that the format of this command-line option prohibits use of files whose names contain ':' or '#' characters in the file name. Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.
 
 **-L**, **--list-events**
   List the events that the engine supports
   
 **-l**, **--list**
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
-    
+
+**-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
+  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Marathon url is optional and defaults to Mesos address, port 8080. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
+
 **-N**
   Don't convert port numbers to names.
 
@@ -166,7 +169,7 @@ OPTIONS
   Print progress on stderr while processing trace files.
   
 **-p** _outputformat_, **--print**=_outputformat_  
-  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. With -pk or -pkubernetes will use a kubernetes-friendly format. Specifying **-pp** on the command line will cause sysdig to print the default command line format and exit.
+  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. With -pk or -pkubernetes will use a kubernetes-friendly format. With -pm or -pmesos will use a mesos-friendly format. Specifying **-pp** on the command line will cause sysdig to print the default command line format and exit.
   
 **-q**, **--quiet**  
   Don't print events on the screen. Useful when dumping to disk.
@@ -181,7 +184,7 @@ OPTIONS
   Capture the first _len_ bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
 
 **-t** _timetype_, **--timetype**=_timetype_  
-  Change the way event time is displayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the beginning of the capture, **d** for delta between event enter and exit, and **D** for delta from the previous event.
+  Change the way event time is displayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the first displayed event, **d** for delta between event enter and exit, and **D** for delta from the previous event.
      
 **--unbuffered**  
   Turn off output buffering. This causes every single line emitted by sysdig to be flushed, which generates higher CPU usage but is useful when piping sysdig's output into another process or into a script. 

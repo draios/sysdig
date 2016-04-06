@@ -67,6 +67,7 @@ class sinsp_ui_selection_info
 public:
 	sinsp_ui_selection_info(string field, 
 		string val,
+		sinsp_view_column_info* column_info,
 		string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
@@ -77,6 +78,7 @@ public:
 		bool prev_is_sorting_ascending)
 	{
 		m_field = field;
+		m_column_info = column_info;
 		m_val = val;
 		m_view_filter = view_filter;
 		m_prev_selected_view = prev_selected_view;
@@ -91,6 +93,7 @@ public:
 
 	string m_field;
 	string m_val;
+	sinsp_view_column_info* m_column_info;
 	string m_view_filter;
 	uint32_t m_prev_selected_view;
 	uint32_t m_prev_selected_sidemenu_entry;
@@ -106,6 +109,7 @@ class sinsp_ui_selection_hierarchy
 public:
 	void push_back(string field, 
 		string val,
+		sinsp_view_column_info* column_info,
 		string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
@@ -117,6 +121,7 @@ public:
 	{
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
 			val,
+			column_info,
 			view_filter,
 			prev_selected_view, 
 			prev_selected_sidemenu_entry,
@@ -161,21 +166,44 @@ public:
 				}
 				res += "(";
 				res += m_hierarchy[j].m_view_filter;
-				res += ") and ";
-			}
-
-			res += m_hierarchy[j].m_field;
-			res += "=";
-			res += m_hierarchy[j].m_val;
-
-			if(has_filter && hs > 1)
-			{
 				res += ")";
-			}
 
-			if(j < m_hierarchy.size() - 1)
-			{
+				if(m_hierarchy[j].m_field != "")
+				{
+					bool skip = false;
+
+					if(m_hierarchy[j].m_column_info != NULL &&
+					(m_hierarchy[j].m_column_info->m_flags & TEF_FILTER_IN_CHILD_ONLY))
+					{
+						if(j < hs - 1)
+						{
+							skip = true;
+						}
+					}	
+
+					if(!skip)
+					{
+						res += " and " + m_hierarchy[j].m_field;
+						res += "=";
+						res += m_hierarchy[j].m_val;
+					}
+				}
+
+				if(hs > 1)
+				{
+					res += ")";
+				}
+
 				res += " and ";
+			}
+		}
+
+		if(res.size() > 5)
+		{
+			string trailer = res.substr(res.size() - 5).c_str();
+			if(trailer == " and ")
+			{
+				res = res.substr(0, res.size() - 5);
 			}
 		}
 
@@ -368,7 +396,7 @@ public:
 	void turn_search_on(search_caller_interface* ifc, string header_text);
 	uint64_t get_time_delta();
 	void run_action(sinsp_view_action_info* action);
-	void spy_selection(string field, string val, bool is_dig);
+	void spy_selection(string field, string val, sinsp_view_column_info* column_info, bool is_dig);
 	sysdig_table_action handle_input(int ch);
 
 	//
@@ -464,10 +492,21 @@ public:
 					return false;
 				case STA_DRILLDOWN:
 					{
-						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						if(res.first != NULL)
+						if(m_viz != NULL)
 						{
-							drilldown(res.first->m_name, res.second.c_str(), res.first);
+							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+							if(res.first != NULL)
+							{
+								drilldown(get_selected_view()->get_key()->get_filter_field(m_view_depth),
+									res.second.c_str(), 
+									get_selected_view()->get_key(),
+									res.first);
+							}
+						}
+						else
+						{
+							ASSERT(m_spectro != NULL);
+							drilldown("", "", NULL, NULL);							
 						}
 					}
 					return false;
@@ -480,7 +519,10 @@ public:
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
 						if(res.first != NULL)
 						{
-							spectro_selection(res.first->m_name, res.second.c_str(), res.first, ta);
+							spectro_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+								res.second.c_str(),
+								get_selected_view()->get_key(),
+								res.first, ta);
 						}
 					}
 					return false;
@@ -489,7 +531,10 @@ public:
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
 						if(res.first != NULL)
 						{
-							spy_selection(res.first->m_name, res.second.c_str(), false);
+							spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+								res.second.c_str(),
+								get_selected_view()->get_key(),
+								false);
 						}
 					}
 					return false;
@@ -500,13 +545,16 @@ public:
 							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
 							if(res.first != NULL)
 							{
-								spy_selection(res.first->m_name, res.second.c_str(), true);
+								spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+									res.second.c_str(),
+									get_selected_view()->get_key(),
+									true);
 							}
 						}
 						else
 						{
 							ASSERT(m_spectro);
-							spy_selection("", "", true);
+							spy_selection("", "", NULL, true);
 						}
 					}
 					return false;
@@ -639,16 +687,17 @@ public:
 	bool m_offline_replay;
 	uint64_t m_refresh_interval_ns;
 	sinsp* m_inspector;
+	uint32_t m_view_depth;
 	bool m_is_mousedrag_available;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
-	bool spectro_selection(string field, string val, filtercheck_field_info* info, sysdig_table_action ta);
-	bool do_drilldown(string field, string val, uint32_t new_view_num, filtercheck_field_info* info);
+	bool spectro_selection(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info, sysdig_table_action ta);
+	bool do_drilldown(string field, string val, sinsp_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info);
 	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val, filtercheck_field_info* info);
+	bool drilldown(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void create_complete_filter();

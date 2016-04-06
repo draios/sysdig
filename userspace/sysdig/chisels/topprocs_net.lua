@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Sort the list of the processes that use the most network bandwidth. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
+description = "Sort the list of the processes that use the most network bandwidth. This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top processes by network I/O"
 category = "Net"
 

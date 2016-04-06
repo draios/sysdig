@@ -49,17 +49,21 @@ const k8s_component::component_map k8s::m_components =
 #endif // K8S_DISABLE_THREAD
 
 k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, bool is_captured,
-	const std::string& api, const std::string& cert) :
+		const std::string& api,
+#ifdef HAS_CAPTURE
+		ssl_ptr_t ssl, bt_ptr_t bt,
+#endif // HAS_CAPTURE
+		bool curl_debug) :
 		m_watch(uri.empty() ? false : start_watch),
 		m_watch_in_thread(uri.empty() ? false : start_watch && watch_in_thread),
 		m_state(is_captured),
-	#ifndef K8S_DISABLE_THREAD
+#ifndef K8S_DISABLE_THREAD
 		m_dispatch(std::move(make_dispatch_map(m_state, m_mutex))),
-	#else
+#else
 		m_dispatch(std::move(make_dispatch_map(m_state)))
-	#endif
+#endif
 #ifdef HAS_CAPTURE
-		,m_net(uri.empty() ? 0 : new k8s_net(*this, uri, api, cert))
+		,m_net(uri.empty() ? 0 : new k8s_net(*this, uri, api, ssl, bt, curl_debug))
 #endif
 {
 	if (!uri.empty())
@@ -269,7 +273,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 				std::string nspace;
 				if(!ns.isNull())
 				{
-					nspace = std::move(ns.asString());
+					nspace = ns.asString();
 				}
 				m_state.add_common_single_value(component, metadata["name"].asString(), metadata["uid"].asString(), nspace);
 
@@ -318,8 +322,8 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 							component_kind = "Node";
 							component_name = nds.back().get_name();
 							component_uid = nds.back().get_uid();
-							std::vector<std::string> addresses = k8s_component::extract_nodes_addresses(status);
-							for (auto&& address : addresses)
+							k8s_node_t::host_ip_list addresses = k8s_node_t::extract_addresses(status);
+							for(std::string address : addresses)
 							{
 								m_state.add_last_node_ip(std::move(address));
 							}

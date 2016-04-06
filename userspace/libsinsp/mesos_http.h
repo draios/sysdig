@@ -21,8 +21,9 @@ class mesos_http
 public:
 	typedef std::shared_ptr<mesos_http> ptr_t;
 	typedef void (mesos::*callback_func_t)(std::string&&, const std::string&);
+	typedef std::vector<std::string> marathon_uri_t;
 
-	mesos_http(mesos& m, const uri& url);
+	mesos_http(mesos& m, const uri& url, bool discover = false, int timeout_ms = 5000L);
 
 	virtual ~mesos_http();
 
@@ -52,6 +53,8 @@ public:
 	const std::string& get_framework_version() const;
 	void set_framework_version(const std::string& id);
 
+	const marathon_uri_t& get_marathon_uris() const;
+
 protected:
 	CURL* get_sync_curl();
 	CURL* get_select_curl();
@@ -59,14 +62,20 @@ protected:
 	CURLcode get_data(const std::string& url, std::ostream& os);
 	void check_error(CURLcode res);
 	void cleanup();
-	void cleanup(CURL*);
+	void cleanup(CURL**);
 	int wait(int for_recv);
 
 	callback_func_t get_parse_func();
 	static std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
-	bool try_parse(const std::string& json);
+	static bool try_parse(const std::string& json);
+	static bool is_framework_active(const Json::Value& framework);
+	static std::string get_framework_url(const Json::Value& framework);
 
 private:
+	void discover_mesos_leader();
+	Json::Value get_state_frameworks();
+	void discover_framework_uris(const Json::Value& frameworks);
+
 	void send_request();
 	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
@@ -85,37 +94,17 @@ private:
 	std::string             m_framework_version;
 	curl_version_info_data* m_curl_version;
 	std::string             m_request;
+	bool                    m_is_mesos_state;
+	marathon_uri_t          m_marathon_uris;
+	bool                    m_discover_lead_master;
+	std::string::size_type  m_content_length = std::string::npos;
 
 	friend class mesos;
 
-	typedef std::vector<std::string::size_type> pos_vec_t;
-
-	void add_data_chunk(std::istringstream&& chunk_str);
-	void extract_data(const std::string& data);
+	void extract_data(std::string& data);
 	void handle_data();
-
-	// probably belongs to utils
-	template<typename charT>
-	struct my_equal
-	{
-		my_equal( const std::locale& loc ) : m_loc(loc) {}
-		bool operator()(charT ch1, charT ch2)
-		{
-			return std::toupper(ch1, m_loc) == std::toupper(ch2, m_loc);
-		}
-	private:
-		const std::locale& m_loc;
-	};
-
-	// find substring (case insensitive)
-	template<typename T>
-	int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::locale())
-	{
-		typename T::const_iterator it = std::search( str1.begin(), str1.end(),
-			str2.begin(), str2.end(), my_equal<typename T::value_type>(loc) );
-		if(it != str1.end()) { return it - str1.begin(); }
-		return -1; // not found
-	}
+	bool detect_chunked_transfer(const std::string& data);
+	void handle_json(std::string::size_type end_pos, bool chunked);
 };
 
 inline bool mesos_http::is_connected() const
@@ -161,7 +150,14 @@ inline mesos_http::callback_func_t mesos_http::get_parse_func()
 inline bool mesos_http::try_parse(const std::string& json)
 {
 	Json::Value root;
-	return Json::Reader().parse(json, root, true);
+	try
+	{
+		return Json::Reader().parse(json, root, true);
+	}
+	catch(...)
+	{
+		return false;
+	}
 }
 
 inline const std::string& mesos_http::get_framework_id() const
@@ -192,6 +188,11 @@ inline const std::string& mesos_http::get_framework_version() const
 inline void mesos_http::set_framework_version(const std::string& version)
 {
 	m_framework_version = version;
+}
+
+inline const mesos_http::marathon_uri_t& mesos_http::get_marathon_uris() const
+{
+	return m_marathon_uris;
 }
 
 #endif // HAS_CAPTURE

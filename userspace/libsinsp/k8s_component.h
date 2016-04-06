@@ -11,6 +11,7 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include <vector>
+#include <unordered_set>
 
 typedef std::pair<std::string, std::string> k8s_pair_t;
 typedef std::vector<k8s_pair_t>             k8s_pair_list;
@@ -142,12 +143,12 @@ public:
 
 	void emplace_selector(k8s_pair_t&& selector);
 
-	static std::vector<std::string> extract_nodes_addresses(const Json::Value& status);
-
 	// extracts labels or selectors
 	static k8s_pair_list extract_object(const Json::Value& object, const std::string& name);
 
 	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
+
+	static size_t extract_pod_restart_count(const Json::Value& item);
 
 	static k8s_container::list extract_pod_containers(const Json::Value& item);
 
@@ -196,7 +197,7 @@ public:
 class k8s_node_t : public k8s_component
 {
 public:
-	typedef std::vector<std::string> host_ip_list;
+	typedef std::unordered_set<std::string> host_ip_list;
 
 	k8s_node_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
@@ -206,9 +207,9 @@ public:
 
 	void add_host_ips(host_ip_list&& host_ips);
 
-	void push_host_ip(const std::string& host_ip);
-
 	void emplace_host_ip(std::string&& host_ip);
+
+	static host_ip_list extract_addresses(const Json::Value& status);
 
 private:
 	host_ip_list m_host_ips;
@@ -229,48 +230,35 @@ public:
 
 	// container IDs
 	const container_id_list& get_container_ids() const;
-
 	void set_container_ids(container_id_list&& container_ids);
-
 	void add_container_ids(container_id_list&& container_ids);
-
 	void push_container_id(const std::string& container_id);
-
 	void emplace_container_id(std::string&& container_id);
+
+	// restart count
+	size_t get_restart_count() const;
+	void set_restart_count(size_t rc);
 
 	// containers
 	const container_list& get_containers() const;
-
 	void set_containers(container_list&& containers);
-
 	void add_containers(container_list&& containers);
-
 	void push_container(const k8s_container& container);
-
 	void emplace_container(k8s_container&& container);
-
 	std::string* get_container_id(const std::string& container_id);
-
 	k8s_container* get_container(const std::string& container_name);
 
 	// node name, host IP and internal IP
 	const std::string& get_node_name() const;
-
 	void set_node_name(const std::string& name);
-
 	const std::string& get_host_ip() const;
-
 	void set_host_ip(const std::string& host_ip);
-
 	const std::string& get_internal_ip() const;
-
 	void set_internal_ip(const std::string& internal_ip);
 
 	// comparison
 	bool operator==(const k8s_pod_t& other) const;
-
 	bool operator!=(const k8s_pod_t& other) const;
-
 	bool has_container_id(const std::string& container_id);
 
 private:
@@ -279,6 +267,7 @@ private:
 	std::string       m_node_name;
 	std::string       m_host_ip;
 	std::string       m_internal_ip;
+	size_t            m_restart_count;
 };
 
 
@@ -289,9 +278,22 @@ private:
 class k8s_rc_t : public k8s_component
 {
 public:
+	static const int UNKNOWN_REPLICAS = -1;
 	k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
 	std::vector<const k8s_pod_t*> get_selected_pods(const std::vector<k8s_pod_t>& pods) const;
+
+	void set_spec_replicas(int replicas);
+	int get_spec_replicas() const;
+	void set_stat_replicas(int replicas);
+	int get_stat_replicas() const;
+	void set_replicas(const Json::Value& item);
+
+private:
+	int get_replica(const Json::Value& item);
+
+	int m_spec_replicas = UNKNOWN_REPLICAS;
+	int m_stat_replicas = UNKNOWN_REPLICAS;
 };
 
 
@@ -520,17 +522,12 @@ inline void k8s_node_t::set_host_ips(host_ip_list&& host_ips)
 
 inline void k8s_node_t::add_host_ips(host_ip_list&& host_ips)
 {
-	m_host_ips.insert(m_host_ips.end(), host_ips.begin(), host_ips.end());
-}
-
-inline void k8s_node_t::push_host_ip(const std::string& host_ip)
-{
-	m_host_ips.push_back(host_ip);
+	m_host_ips.insert(host_ips.begin(), host_ips.end());
 }
 
 inline void k8s_node_t::emplace_host_ip(std::string&& host_ip)
 {
-	m_host_ips.emplace_back(std::move(host_ip));
+	m_host_ips.emplace(std::move(host_ip));
 }
 
 
@@ -563,6 +560,26 @@ inline void k8s_pod_t::push_container_id(const std::string& container_id)
 inline void k8s_pod_t::emplace_container_id(std::string&& container_id)
 {
 	m_container_ids.emplace_back(std::move(container_id));
+}
+
+// restart count
+
+inline size_t k8s_pod_t::get_restart_count() const
+{
+	return m_restart_count;
+}
+
+inline void k8s_pod_t::set_restart_count(size_t rc)
+{
+	if(rc >= m_restart_count)
+	{
+		m_restart_count = rc - m_restart_count;
+	}
+	else
+	{
+		g_logger.log("Invalid K8S pod restart count received (" + std::to_string(rc) + "), resetting to zero.", sinsp_logger::SEV_ERROR);
+		m_restart_count = 0;
+	}
 }
 
 // comparison
@@ -639,6 +656,35 @@ inline void k8s_pod_t::set_internal_ip(const std::string& internal_ip)
 	m_internal_ip = internal_ip;
 }
 
+//
+// replication controller
+//
+
+inline void k8s_rc_t::set_spec_replicas(int replicas)
+{
+	m_spec_replicas = replicas;
+}
+
+inline int k8s_rc_t::get_spec_replicas() const
+{
+	return m_spec_replicas;
+}
+
+inline void k8s_rc_t::set_stat_replicas(int replicas)
+{
+	m_stat_replicas = replicas;
+}
+
+inline int k8s_rc_t::get_stat_replicas() const
+{
+	return m_stat_replicas;
+}
+
+inline void k8s_rc_t::set_replicas(const Json::Value& item)
+{
+	m_spec_replicas = get_replica(item["spec"]);
+	m_stat_replicas = get_replica(item["status"]);
+}
 
 //
 // service

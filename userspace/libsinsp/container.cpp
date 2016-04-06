@@ -101,51 +101,60 @@ sinsp_container_info* sinsp_container_manager::get_container(const string& conta
 	return NULL;
 }
 
-bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container, const string& task_id, int64_t ptid)
+string sinsp_container_manager::get_env_mesos_task_id(sinsp_threadinfo* tinfo)
+{
+	string mtid;
+	if(tinfo)
+	{
+		// Mesos task ID detection is not a straightforward task;
+		// this list may have to be extended.
+		mtid = tinfo->get_env("MESOS_TASK_ID"); // Marathon
+		if(!mtid.empty()) { return mtid; }
+		mtid = tinfo->get_env("mesos_task_id"); // Chronos
+		if(!mtid.empty()) { return mtid; }
+		mtid = tinfo->get_env("MESOS_EXECUTOR_ID"); // others
+		if(!mtid.empty()) { return mtid; }
+		sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
+		if(ptinfo && ptinfo->m_tid > 1)
+		{
+			mtid = get_env_mesos_task_id(ptinfo);
+		}
+	}
+	return mtid;
+}
+
+bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo)
 {
 	ASSERT(container);
-	const string& container_id = container->m_id;
-	if(task_id.empty() && -1 == ptid)
-	{
-		g_logger.log("Mesos container [" + container_id + "] detection attempted with insufficient information provided.", sinsp_logger::SEV_WARNING);
-		return false;
-	}
+	ASSERT(tinfo);
 
 	// there are applications that do not share their environment in /proc/[PID]/environ
 	// since we need MESOS_TASK_ID environment variable to discover Mesos containers,
 	// there is a workaround for such cases:
 	// - for docker containers, we discover it directly from container, through Remote API
 	//   (see sinsp_container_manager::parse_docker() for details)
-	// - for mesos native containers, parent process has the MESOS_TASK_ID env variable,
-	//   so we peek into the parent process environment to discover it
+	// - for mesos native containers, parent process has the MESOS_TASK_ID (or equivalent, see
+	//   get_env_mesos_task_id(sinsp_threadinfo*) implementation) environment variable, so we
+	//   peek into the parent process environment to discover it
 
-	if(container)
+	if(container && tinfo)
 	{
-		if(container->m_mesos_task_id.empty())
+		string& mtid = container->m_mesos_task_id;
+		if(mtid.empty())
 		{
-			if(!task_id.empty())
+			mtid = get_env_mesos_task_id(tinfo);
+			if(!mtid.empty())
 			{
-				container->m_mesos_task_id = task_id;
-				g_logger.log("Mesos container: [" + container_id + "], Mesos task ID: [" + task_id + ']', sinsp_logger::SEV_DEBUG);
+				g_logger.log("Mesos native container: [" + container->m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
 				return true;
 			}
-			else if(-1 != ptid && container->m_type == CT_MESOS)
+			else
 			{
-				sinsp_threadinfo* tinfo = m_inspector->find_thread(ptid, true);
-				if(tinfo)
-				{
-					string mtid = tinfo->get_env("MESOS_TASK_ID");
-					if(!mtid.empty())
-					{
-						g_logger.log("Mesos native container: [" + container_id + "], Mesos task ID: " + mtid + ", PTID:[" + std::to_string(ptid) +']', sinsp_logger::SEV_DEBUG);
-						container->m_mesos_task_id = mtid;
-						return true;
-					}
-				}
+				g_logger.log("Mesos task ID not found for Mesos container [" + container->m_id + "],"
+							 "thread [" + std::to_string(tinfo->m_tid) + ']', sinsp_logger::SEV_WARNING);
 			}
 		}
 	}
-
 	return false;
 }
 
@@ -157,7 +166,6 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 	{
 		mesos_task_id = container->m_mesos_task_id;
 	}
-
 	return mesos_task_id;
 }
 
@@ -272,12 +280,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
 			valid_id = true;
-			string mesos_task_id = tinfo->get_env("MESOS_TASK_ID");
-			int64_t ptid = tinfo->m_ptid;
-			if(!mesos_task_id.empty() || (-1 != ptid))
-			{
-				set_mesos_task_id(&container_info, mesos_task_id, ptid);
-			}
+			set_mesos_task_id(&container_info, tinfo);
 			break;
 		}
 	}
@@ -386,7 +389,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			}
 
 			m_containers.insert(std::make_pair(container_info.m_id, container_info));
-			if(container_to_sinsp_event(container_info, &m_inspector->m_meta_evt, SP_EVT_BUF_SIZE))
+			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;
 			}
@@ -396,14 +399,26 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	return valid_id;
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len)
+string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)
 {
-	size_t totlen = sizeof(scap_evt) + 
-		4 * sizeof(uint16_t) +
-		container_info.m_id.length() + 1 +
-		sizeof(uint32_t) +
-		container_info.m_name.length() + 1 +
-		container_info.m_image.length() + 1;
+	Json::Value obj;
+	Json::Value& container = obj["container"];
+	container["id"] = container_info.m_id;
+	container["type"] = container_info.m_type;
+	container["name"] = container_info.m_name;
+	container["image"] = container_info.m_image;
+	if(!container_info.m_mesos_task_id.empty())
+	{
+		container["mesos_task_id"] = container_info.m_mesos_task_id;
+	}
+	return Json::FastWriter().write(obj);
+}
+
+bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt)
+{
+	// TODO: variable event length
+	size_t evt_len = SP_EVT_BUF_SIZE;
+	size_t totlen = sizeof(scap_evt) +  sizeof(uint16_t) + json.length() + 1;
 
 	if(totlen > evt_len)
 	{
@@ -419,26 +434,13 @@ bool sinsp_container_manager::container_to_sinsp_event(const sinsp_container_inf
 	scapevt->ts = m_inspector->m_lastevent_ts;
 	scapevt->tid = 0;
 	scapevt->len = (uint32_t)totlen;
-	scapevt->type = PPME_CONTAINER_E;
+	scapevt->type = PPME_CONTAINER_JSON_E;
 
 	uint16_t* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
-	char* valptr = (char*)lens + 4 * sizeof(uint16_t);
+	char* valptr = (char*)lens + sizeof(uint16_t);
 
-	lens[0] = (uint16_t)container_info.m_id.length() + 1;
-	memcpy(valptr, container_info.m_id.c_str(), lens[0]);
-	valptr += lens[0];
-
-	lens[1] = sizeof(uint32_t);
-	memcpy(valptr, &container_info.m_type, lens[1]);
-	valptr += lens[1];
-
-	lens[2] = (uint16_t)container_info.m_name.length() + 1;
-	memcpy(valptr, container_info.m_name.c_str(), lens[2]);
-	valptr += lens[2];
-
-	lens[3] = (uint16_t)container_info.m_image.length() + 1;
-	memcpy(valptr, container_info.m_image.c_str(), lens[3]);
-	valptr += lens[3];
+	*lens = (uint16_t)json.length() + 1;
+	memcpy(valptr, json.c_str(), *lens);
 
 	evt->init();
 	return true;
@@ -481,7 +483,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	ssize_t res;
 	while((res = read(sock, buf, sizeof(buf))) != 0)
 	{
-		if(res == -1)
+		if(res == -1 || json.size() > MAX_JSON_SIZE_B)
 		{
 			ASSERT(false);
 			close(sock);
@@ -572,7 +574,26 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	}
 
 	const Json::Value& env_vars = config_obj["Env"];
-	static const string mti = "MESOS_TASK_ID";
+	string mesos_task_id = get_mesos_task_id(env_vars, "MESOS_TASK_ID");
+	if(mesos_task_id.empty())
+	{
+		mesos_task_id = get_mesos_task_id(env_vars, "mesos_task_id");
+	}
+	if(mesos_task_id.empty())
+	{
+		mesos_task_id = get_mesos_task_id(env_vars, "MESOS_EXECUTOR_ID");
+	}
+	if(!mesos_task_id.empty())
+	{
+		container->m_mesos_task_id = mesos_task_id;
+		g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_DEBUG);
+	}
+
+	return true;
+}
+
+string sinsp_container_manager::get_mesos_task_id(const Json::Value& env_vars, const string& mti)
+{
 	string mesos_task_id;
 	for(const auto& env_var : env_vars)
 	{
@@ -581,14 +602,11 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 			mesos_task_id = env_var.asString();
 			if((mesos_task_id.length() > (mti.length() + 1)) && (mesos_task_id.substr(0, mti.length()) == mti))
 			{
-				container->m_mesos_task_id = mesos_task_id.substr(mti.length() + 1);
-				g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_INFO);
-				break;
+				return mesos_task_id.substr(mti.length() + 1);
 			}
 		}
 	}
-
-	return true;
+	return "";
 }
 
 bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
@@ -669,7 +687,7 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
 	for(unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.begin(); it != m_containers.end(); ++it)
 	{
-		if(container_to_sinsp_event(it->second, &m_inspector->m_meta_evt, SP_EVT_BUF_SIZE))
+		if(container_to_sinsp_event(container_to_json(it->second), &m_inspector->m_meta_evt))
 		{
 			int32_t res = scap_dump(m_inspector->m_h, dumper, m_inspector->m_meta_evt.m_pevt, m_inspector->m_meta_evt.m_cpuid, 0);
 			if(res != SCAP_SUCCESS)

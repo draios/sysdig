@@ -35,14 +35,15 @@ add_library(sinsp STATIC
 	k8s_event_data.cpp
 	k8s_http.cpp
 	k8s_net.cpp
+	lua_parser.cpp
+	lua_parser_api.cpp
 	marathon_component.cpp
-	marathon_dispatcher.cpp
 	marathon_http.cpp
 	memmem.cpp
+	tracers.cpp
 	mesos.cpp
 	mesos_collector.cpp
 	mesos_component.cpp
-	mesos_event_data.cpp
 	mesos_http.cpp
 	mesos_state.cpp
 	internal_metrics.cpp
@@ -54,8 +55,10 @@ add_library(sinsp STATIC
 	sinsp.cpp
 	stats.cpp
 	table.cpp
+	sinsp_curl.cpp
 	uri.cpp
 	utils.cpp
+	value_parser.cpp
 	viewinfo.cpp)
 
 target_link_libraries(sinsp 
@@ -72,7 +75,8 @@ if(NOT WIN32)
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
 			"${OPENSSL_LIBRARY_SSL}"
-			"${OPENSSL_LIBRARY_CRYPTO}")
+			"${OPENSSL_LIBRARY_CRYPTO}"
+            rt)
 	endif()
 
 	target_link_libraries(sinsp

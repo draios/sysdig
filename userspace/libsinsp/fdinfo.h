@@ -321,6 +321,7 @@ private:
 		FLAGS_CLOSE_CANCELED = (1 << 5),
 		// Pipe-specific flags
 		FLAGS_IS_SOCKET_PIPE = (1 << 6),
+		FLAGS_IS_TRACER_FD = (1 << 7),
 	};
 
 	void add_filename(const char* fullpath);
@@ -371,6 +372,7 @@ private:
 
 	fd_callbacks_info* m_callbaks;
 
+	friend class sinsp;
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;
 	friend class sinsp_analyzer;

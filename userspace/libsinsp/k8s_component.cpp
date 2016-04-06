@@ -124,6 +124,28 @@ std::vector<std::string> k8s_component::extract_pod_container_ids(const Json::Va
 	return container_list;
 }
 
+size_t k8s_component::extract_pod_restart_count(const Json::Value& item)
+{
+	size_t restart_count = 0;
+	Json::Value status = item["status"];
+	if(!status.isNull())
+	{
+		Json::Value containers = status["containerStatuses"];
+		if(!containers.isNull())
+		{
+			for (auto& container : containers)
+			{
+				Json::Value rc = container["restartCount"];
+				if(!rc.isNull() && rc.isInt())
+				{
+					restart_count += rc.asInt();
+				}
+			}
+		}
+	}
+	return restart_count;
+}
+
 k8s_container::list k8s_component::extract_pod_containers(const Json::Value& item)
 {
 	k8s_container::list ext_containers;
@@ -216,37 +238,6 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 			}
 		}
 	}
-}
-
-std::vector<std::string> k8s_component::extract_nodes_addresses(const Json::Value& status)
-{
-	std::vector<std::string> address_list;
-	if(!status.isNull())
-	{
-		Json::Value addresses = status["addresses"];
-		if(!addresses.isNull() && addresses.isArray())
-		{
-			for (auto& address : addresses)
-			{
-				if(address.isObject())
-				{
-					Json::Value::Members addr_names_list = address.getMemberNames();
-					for (auto& entry : addr_names_list)
-					{
-						if(entry == "address")
-						{
-							Json::Value ip = address[entry];
-							if(!ip.isNull())
-							{
-								address_list.emplace_back(std::move(ip.asString()));
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return address_list;
 }
 
 void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_t& service, const k8s_pods& pods)
@@ -485,13 +476,44 @@ k8s_node_t::k8s_node_t(const std::string& name, const std::string& uid, const st
 {
 }
 
+k8s_node_t::host_ip_list k8s_node_t::extract_addresses(const Json::Value& status)
+{
+	host_ip_list address_list;
+	if(!status.isNull())
+	{
+		Json::Value addresses = status["addresses"];
+		if(!addresses.isNull() && addresses.isArray())
+		{
+			for (auto& address : addresses)
+			{
+				if(address.isObject())
+				{
+					Json::Value::Members addr_names_list = address.getMemberNames();
+					for (auto& entry : addr_names_list)
+					{
+						if(entry == "address")
+						{
+							const Json::Value& ip = address[entry];
+							if(!ip.isNull())
+							{
+								address_list.emplace(ip.asString());
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return address_list;
+}
+
 
 //
 // pod 
 //
 
 k8s_pod_t::k8s_pod_t(const std::string& name, const std::string& uid, const std::string& ns) :
-	k8s_component(name, uid, ns)
+	k8s_component(name, uid, ns), m_restart_count(0)
 {
 }
 
@@ -543,6 +565,19 @@ std::vector<const k8s_pod_t*> k8s_rc_t::get_selected_pods(const std::vector<k8s_
 	return pod_vec;
 }
 
+int k8s_rc_t::get_replica(const Json::Value& item)
+{
+	if(!item.isNull())
+	{
+		const Json::Value& replicas = item["replicas"];
+		if(!replicas.isNull() && replicas.isConvertibleTo(Json::intValue))
+		{
+			return replicas.asInt();
+		}
+	}
+	g_logger.log("Can not determine number of replicas for K8s replication controller.", sinsp_logger::SEV_ERROR);
+	return UNKNOWN_REPLICAS;
+}
 
 //
 // service

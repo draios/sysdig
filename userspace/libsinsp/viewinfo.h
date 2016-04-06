@@ -38,6 +38,7 @@ typedef enum sinsp_field_aggregation
 #define TEF_IS_KEY 1
 #define TEF_IS_SORT_COLUMN (1 << 1)
 #define TEF_IS_GROUPBY_KEY (1 << 2)
+#define TEF_FILTER_IN_CHILD_ONLY (1 << 3)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Column information
@@ -45,6 +46,10 @@ typedef enum sinsp_field_aggregation
 class sinsp_view_column_info
 {
 public:
+	sinsp_view_column_info()
+	{
+	}
+	
 	sinsp_view_column_info(string field,
 		string name,
 		string description,
@@ -52,7 +57,8 @@ public:
 		uint32_t flags,
 		sinsp_field_aggregation aggregation,
 		sinsp_field_aggregation groupby_aggregation,
-		vector<string> tags)
+		vector<string> tags,
+		string filterfield)
 	{
 		m_field = field;
 		m_name = name;
@@ -62,7 +68,11 @@ public:
 		m_groupby_aggregation = groupby_aggregation;
 		m_flags = flags;
 		m_tags = tags;
+		m_filterfield = filterfield;
 	}
+
+	string get_field(uint32_t depth);
+	string get_filter_field(uint32_t depth);
 
 	string m_field;
 	string m_name;
@@ -72,6 +82,7 @@ public:
 	sinsp_field_aggregation m_groupby_aggregation;
 	uint32_t m_flags;
 	vector<string> m_tags;
+	string m_filterfield;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -128,9 +139,14 @@ public:
 		string drilldown_target,
 		bool use_defaults,
 		bool is_root,
-		vector<sinsp_view_action_info> actions);
+		vector<sinsp_view_action_info> actions,
+		bool drilldown_increase_depth,
+		string spectro_type,
+		bool propagate_filter);
 
 	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
+	sinsp_view_column_info* get_key();
+	string get_filter(uint32_t depth);
 	viewtype get_type()
 	{
 		return m_type;
@@ -150,7 +166,6 @@ public:
 	vector<string> m_tags;
 	vector<string> m_tips;
 	uint32_t m_sortingcol;
-	string m_filter;
 	vector<string> m_applies_to;
 	vector<sinsp_view_column_info> m_columns;
 	bool m_use_defaults;
@@ -162,12 +177,17 @@ public:
 	vector<sinsp_view_action_info> m_actions;
 	vector<char> m_col_sort_hotkeys;
 	uint32_t max_col_sort_hotkeys;
+	bool m_drilldown_increase_depth;
+	bool m_propagate_filter;
+	string m_spectro_type;
+
 private:
 	void set_sorting_col();
 	void move_key_to_front(uint32_t keyflag);
 	void set_col_sorting_hotkeys();
 
 	uint32_t m_n_sorting_cols;
+	string m_filter;
 };
 
 

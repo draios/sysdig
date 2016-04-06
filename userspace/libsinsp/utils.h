@@ -18,7 +18,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <algorithm>
+#include <locale>
+
 class sinsp_evttables;
+typedef union _sinsp_sockinfo sinsp_sockinfo;
+typedef union _ipv4tuple ipv4tuple;
+typedef union _ipv6tuple ipv6tuple;
+typedef struct ipv4serverinfo ipv4serverinfo;
+typedef struct ipv6serverinfo ipv6serverinfo;
+class filter_check_info;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Initializer class.
@@ -157,10 +166,10 @@ void replace_in_place(string& str, string& substr_to_replace, string& new_substr
 class sinsp_numparser
 {
 public:
-	static uint32_t parseu8(const string& str);
-	static int32_t parsed8(const string& str);
-	static uint32_t parseu16(const string& str);
-	static int32_t parsed16(const string& str);
+	static uint8_t parseu8(const string& str);
+	static int8_t parsed8(const string& str);
+	static uint16_t parseu16(const string& str);
+	static int16_t parsed16(const string& str);
 	static uint32_t parseu32(const string& str);
 	static int32_t parsed32(const string& str);
 	static uint64_t parseu64(const string& str);
@@ -186,36 +195,79 @@ namespace Json
 std::string get_json_string(const Json::Value& root, const std::string& name);
 
 ///////////////////////////////////////////////////////////////////////////////
-// Curl helpers
+// A simple class to manage pre-allocated objects in a LIFO
+// fashion and make sure all of them are deleted upon destruction.
 ///////////////////////////////////////////////////////////////////////////////
-
-#if defined(__linux__)
-
-class uri;
-
-class sinsp_curl
+template<typename OBJ>
+class simple_lifo_queue
 {
 public:
-	sinsp_curl(const std::string& uristr, const std::string& cert = "");
+	simple_lifo_queue(uint32_t size)
+	{
+		uint32_t j;
+		for(j = 0; j < size; j++)
+		{
+			OBJ* newentry = new OBJ;
+			m_full_list.push_back(newentry);
+			m_avail_list.push_back(newentry);
+		}
+	}
+	~simple_lifo_queue()
+	{
+		while(!m_avail_list.empty())
+		{
+			OBJ* head = m_avail_list.front();
+			delete head;
+			m_avail_list.pop_front();
+		}
+	}
+	void push(OBJ* newentry)
 
-	~sinsp_curl();
+	{
+		m_avail_list.push_front(newentry);
+	}
 
-	bool get_data(std::ostream& os);
-	string get_data();
+	OBJ* pop()
+	{
+		if(m_avail_list.empty())
+		{
+			return NULL;
+		}
+		OBJ* head = m_avail_list.front();
+		m_avail_list.pop_front();
+		return head;
+	}
 
-	void set_timeout(long seconds);
-
-	long get_timeout() const;
+	bool empty()
+	{
+		return m_avail_list.empty();
+	}
 
 private:
-	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
-
-	void check_error(unsigned ret);
-
-	void* m_curl;
-	uri* m_uri;
-	string m_cert;
-	long m_timeout;
+	list<OBJ*> m_avail_list;
+	list<OBJ*> m_full_list;
 };
 
-#endif // __linux__
+///////////////////////////////////////////////////////////////////////////////
+// Case-insensitive string find.
+///////////////////////////////////////////////////////////////////////////////
+template<typename charT>
+struct ci_equal
+{
+	ci_equal( const std::locale& loc ) : m_loc(loc) {}
+	bool operator()(charT ch1, charT ch2)
+	{
+		return std::toupper(ch1, m_loc) == std::toupper(ch2, m_loc);
+	}
+private:
+	const std::locale& m_loc;
+};
+
+template<typename T>
+int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::locale())
+{
+	typename T::const_iterator it = std::search( str1.begin(), str1.end(),
+		str2.begin(), str2.end(), ci_equal<typename T::value_type>(loc) );
+	if(it != str1.end()) { return it - str1.begin(); }
+	return -1;
+}

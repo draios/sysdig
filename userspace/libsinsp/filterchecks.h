@@ -19,18 +19,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 #include <json/json.h>
 #include "k8s.h"
+#include "mesos.h"
 
 #ifdef HAS_FILTERING
 
 class sinsp_filter_check_reference;
 
-#define VALIDATE_STR_VAL if(val.length() >= sizeof(m_val_storage)) \
-{ \
-	throw sinsp_exception("filter error: value too long: " + val); \
-}
-
-bool flt_compare(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
-bool flt_compare_avg(ppm_cmp_operator op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
+bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
+bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
+bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 
@@ -82,7 +79,13 @@ public:
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
-	virtual void parse_filter_value(const char* str, uint32_t len);
+	void add_filter_value(const char* str, uint32_t len, uint16_t i = 0 );
+	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+
+	//
+	// Called after parsing for optional validation of the filter value
+	//
+	void validate_filter_value(const char* str, uint32_t len) {}
 
 	//
 	// Return the info about the field that this instance contains
@@ -119,19 +122,30 @@ public:
 	//
 	virtual Json::Value tojson(sinsp_evt* evt);
 
+	//
+	// Configure numeric id to be set on events that match this filter
+	//
+	void set_check_id(int32_t id);
+	virtual int32_t get_check_id();
+
 	sinsp* m_inspector;
 	boolop m_boolop;
-	ppm_cmp_operator m_cmpop;
+	cmpop m_cmpop;
 	sinsp_field_aggregation m_aggregation;
 	sinsp_field_aggregation m_merge_aggregation;
 
 protected:
+	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
+
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
-	vector<uint8_t> m_val_storage;
+	vector<vector<uint8_t>> m_val_storages;
+	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
+	inline vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
+
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
 	uint32_t m_field_id;
@@ -140,6 +154,7 @@ protected:
 
 private:
 	void set_inspector(sinsp* inspector);
+	int32_t m_check_id = 0;
 
 friend class sinsp_filter_check_list;
 };
@@ -188,11 +203,6 @@ public:
 		return 0;
 	}
 
-	void parse_filter_value(const char* str, uint32_t len)
-	{
-		ASSERT(false);
-	}
-
 	const filtercheck_field_info* get_field_info()
 	{
 		ASSERT(false);
@@ -204,6 +214,8 @@ public:
 		ASSERT(false);
 		return NULL;
 	}
+
+	int32_t get_check_id();
 
 	sinsp_filter_expression* m_parent;
 	vector<sinsp_filter_check*> m_checks;
@@ -247,7 +259,12 @@ public:
 		TYPE_CLIENTPROTO = 23,
 		TYPE_SERVERPROTO = 24,
 		TYPE_LPROTO = 25,
-		TYPE_RPROTO = 26
+		TYPE_RPROTO = 26,
+		TYPE_NET = 27,
+		TYPE_CNET = 28,
+		TYPE_SNET = 29,
+		TYPE_LNET = 30,
+		TYPE_RNET = 31
 	};
 
 	enum fd_type
@@ -270,6 +287,7 @@ public:
 	sinsp_filter_check* allocate_new();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare_ip(sinsp_evt *evt);
+	bool compare_net(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
 
@@ -434,7 +452,8 @@ public:
 	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
+	void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
@@ -466,6 +485,9 @@ private:
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
 	bool m_is_compare;
+	char* m_storage;
+	uint32_t m_storage_size;
+	const char* m_cargname;
 	sinsp_filter_check_reference* m_converter;
 };
 
@@ -512,6 +534,131 @@ public:
 };
 
 //
+// Tracers
+//
+#define TEXT_ARG_ID -1000000
+
+class sinsp_filter_check_tracer : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_ID = 0,
+		TYPE_NTAGS,
+		TYPE_NARGS,
+		TYPE_TAGS,
+		TYPE_TAG,
+		TYPE_ARGS,
+		TYPE_ARG,
+		TYPE_ENTERARGS,
+		TYPE_ENTERARG,
+		TYPE_DURATION,
+		TYPE_DURATION_QUANTIZED,
+		TYPE_DURATION_HUMAN,
+		TYPE_TAGDURATION,
+		TYPE_COUNT,
+		TYPE_TAGCOUNT,
+		TYPE_TAGCHILDSCOUNT,
+		TYPE_IDTAG,
+		TYPE_TIME,
+		TYPE_PARENTTIME,
+	};
+
+	sinsp_filter_check_tracer();
+	~sinsp_filter_check_tracer();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
+	inline int64_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser);
+	uint8_t* extract_args(sinsp_partial_tracer* pae);
+	uint8_t* extract_arg(sinsp_partial_tracer* pae);
+
+	int32_t m_argid;
+	string m_argname;
+	const char* m_cargname;
+	char* m_storage;
+	uint32_t m_storage_size;
+	int64_t m_s64val;
+	int32_t m_u32val;
+	sinsp_filter_check_reference* m_converter;
+	string m_strstorage;
+};
+
+//
+// Events in tracers checks
+//
+class sinsp_filter_check_evtin_tracer : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_SPAN_ID = 0,
+		TYPE_SPAN_NTAGS,
+		TYPE_SPAN_NARGS,
+		TYPE_SPAN_TAGS,
+		TYPE_SPAN_TAG,
+		TYPE_SPAN_ARGS,
+		TYPE_SPAN_ARG,
+		TYPE_SPAN_T_ID,
+		TYPE_SPAN_T_NTAGS,
+		TYPE_SPAN_T_NARGS,
+		TYPE_SPAN_T_TAGS,
+		TYPE_SPAN_T_TAG,
+		TYPE_SPAN_T_ARGS,
+		TYPE_SPAN_T_ARG,
+		TYPE_SPAN_P_ID,
+		TYPE_SPAN_P_NTAGS,
+		TYPE_SPAN_P_NARGS,
+		TYPE_SPAN_P_TAGS,
+		TYPE_SPAN_P_TAG,
+		TYPE_SPAN_P_ARGS,
+		TYPE_SPAN_P_ARG,
+		TYPE_SPAN_S_ID,
+		TYPE_SPAN_S_NTAGS,
+		TYPE_SPAN_S_NARGS,
+		TYPE_SPAN_S_TAGS,
+		TYPE_SPAN_S_TAG,
+		TYPE_SPAN_S_ARGS,
+		TYPE_SPAN_S_ARG,
+	};
+
+	sinsp_filter_check_evtin_tracer();
+	~sinsp_filter_check_evtin_tracer();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	sinsp_filter_check* allocate_new();
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	bool compare(sinsp_evt *evt);
+
+	uint64_t m_u64val;
+	uint64_t m_tsdelta;
+	uint32_t m_u32val;
+	string m_strstorage;
+	string m_argname;
+	int32_t m_argid;
+	uint32_t m_evtid;
+	uint32_t m_evtid1;
+	const ppm_param_info* m_arginfo;
+
+	//
+	// Note: this copy of the field is used by some fields, like TYPE_ARGS and
+	// TYPE_RESARG, that need to do on the fly type customization
+	//
+	filtercheck_field_info m_customfield;
+
+private:
+	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
+
+	bool m_is_compare;
+	char* m_storage;
+	uint32_t m_storage_size;
+	const char* m_cargname;
+	sinsp_filter_check_reference* m_converter;
+};
+
+//
 // Fake filter check used by the event formatter to render format text
 //
 class rawstring_check : public sinsp_filter_check
@@ -521,7 +668,6 @@ public:
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 
 	// XXX this is overkill and wasted for most of the fields.
@@ -603,7 +749,6 @@ public:
 		m_print_format = print_format;
 	}
 	int32_t parse_field_name(const char* str, bool alloc_state);
-	void parse_filter_value(const char* str, uint32_t len);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
@@ -700,6 +845,44 @@ private:
 	vector<const k8s_service_t*> find_svc_by_pod(const k8s_pod_t* pod);
 	void concatenate_labels(const k8s_pair_list& labels, string* s);
 	bool find_label(const k8s_pair_list& labels, const string& key, string* value);
+
+	string m_argname;
+	string m_tstr;
+};
+
+class sinsp_filter_check_mesos : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_MESOS_TASK_NAME = 0,
+		TYPE_MESOS_TASK_ID,
+		TYPE_MESOS_TASK_LABEL,
+		TYPE_MESOS_TASK_LABELS,
+		TYPE_MESOS_FRAMEWORK_NAME,
+		TYPE_MESOS_FRAMEWORK_ID,
+		TYPE_MARATHON_APP_NAME,
+		TYPE_MARATHON_APP_ID,
+		TYPE_MARATHON_APP_LABEL,
+		TYPE_MARATHON_APP_LABELS,
+		TYPE_MARATHON_GROUP_NAME,
+		TYPE_MARATHON_GROUP_ID,
+	};
+
+	sinsp_filter_check_mesos();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+
+private:
+
+	int32_t extract_arg(const string& fldname, const string& val);
+	mesos_task::ptr_t find_task_for_thread(const sinsp_threadinfo* tinfo);
+	const mesos_framework* find_framework_by_task(mesos_task::ptr_t task);
+	marathon_app::ptr_t find_app_by_task(mesos_task::ptr_t task);
+	marathon_group::ptr_t find_group_by_task(mesos_task::ptr_t task);
+	void concatenate_labels(const mesos_pair_list& labels, string* s);
+	bool find_label(const mesos_pair_list& labels, const string& key, string* value);
 
 	string m_argname;
 	string m_tstr;

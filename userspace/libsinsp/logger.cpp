@@ -30,7 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_logger::sinsp_logger()
 {
-	m_file = NULL;
+	m_file = NULL;	
 	m_flags = OT_NONE;
 	m_sev = SEV_INFO;
 	m_callback = NULL;

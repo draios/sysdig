@@ -98,6 +98,7 @@ using namespace std;
 // The logger
 //
 extern sinsp_logger g_logger;
+#define lo g_logger.format
 
 //
 // Prototype of the callback invoked by the thread table when a thread is 

@@ -71,12 +71,15 @@ public:
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
-	bool set_mesos_task_id(sinsp_container_info* container, const string& task_id, int64_t ptid = -1);
+	string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
+	bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
 	string get_mesos_task_id(const string& container_id);
 
 private:
-	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);
+	string container_to_json(const sinsp_container_info& container_info);
+	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
 	bool parse_docker(sinsp_container_info* container);
+	string get_mesos_task_id(const Json::Value& env_vars, const string& mti);
 	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
 	sinsp_container_info* get_container(const string& id);
 
