@@ -44,7 +44,7 @@ void list_fields(bool verbose, bool markdown)
 
 	if(markdown)
 	{
-		printf("# Sysdig Filter Fileds List\n\n");
+		printf("# Sysdig Filter Fields List\n\n");
 	}
 
 	vector<const filter_check_info*> fc_plugins;
