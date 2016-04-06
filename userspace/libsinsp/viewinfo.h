@@ -46,6 +46,10 @@ typedef enum sinsp_field_aggregation
 class sinsp_view_column_info
 {
 public:
+	sinsp_view_column_info()
+	{
+	}
+	
 	sinsp_view_column_info(string field,
 		string name,
 		string description,

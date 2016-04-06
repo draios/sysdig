@@ -36,7 +36,8 @@ view_info =
 			name = "NA",
 			field = "span.time",
 			filterfield = "span.parenttime",
-			is_key = true
+			is_key = true,
+			filter_in_child_only = true,
 		},
 		{
 			name = "ID",
