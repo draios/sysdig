@@ -30,6 +30,8 @@ bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operan
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
+int32_t gmt2local(time_t t);
+void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 
 class operand_info
 {
@@ -479,8 +481,6 @@ private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
-	int32_t gmt2local(time_t t);
-	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
@@ -544,6 +544,7 @@ public:
 	enum check_type
 	{
 		TYPE_ID = 0,
+		TYPE_TIME,
 		TYPE_NTAGS,
 		TYPE_NARGS,
 		TYPE_TAGS,
@@ -560,8 +561,8 @@ public:
 		TYPE_TAGCOUNT,
 		TYPE_TAGCHILDSCOUNT,
 		TYPE_IDTAG,
-		TYPE_TIME,
-		TYPE_PARENTTIME,
+		TYPE_RAWTIME,
+		TYPE_RAWPARENTTIME,
 	};
 
 	sinsp_filter_check_tracer();
