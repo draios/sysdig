@@ -34,8 +34,8 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "span.time",
-			filterfield = "span.parenttime",
+			field = "span.rawtime",
+			filterfield = "span.rawparenttime",
 			is_key = true,
 			filter_in_child_only = true,
 		},
@@ -47,6 +47,12 @@ view_info =
 		},
 		{
 			name = "TIME",
+			field = "span.time",
+			description = "the time of the span enter tracer.",
+			colsize = 19,
+		},
+		{
+			name = "DURATION",
 			field = "span.duration.fortag[%depth]",
 			description = "the time this span call took to complete",
 			colsize = 10,
