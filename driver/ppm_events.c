@@ -60,6 +60,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 extern bool g_tracers_enabled;
+extern unsigned long g_tracerfile_inode;
 
 static void memory_dump(char *p, size_t size)
 {
@@ -191,8 +192,8 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 		struct fd f = fdget(args->fd);
 
-		if (f.file && f.file->f_op) {
-			if (THIS_MODULE == f.file->f_op->owner) {
+		if (f.file && f.file->f_inode) {
+			if (f.file->f_inode->i_ino == g_tracerfile_inode) {
 				res = RW_SNAPLEN_EVENT;
 				fdput(f);
 				return res;
@@ -202,8 +203,8 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 		}
 #else
 		struct file* file = fget(args->fd);
-		if (file && file->f_op) {
-			if (THIS_MODULE == file->f_op->owner) {
+		if (file && file->f_inode) {
+			if (file->f_inode->i_ino == g_tracerfile_inode) {
 				res = RW_SNAPLEN_EVENT;
 				fput(file);
 				return res;

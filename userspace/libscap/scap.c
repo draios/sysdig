@@ -276,8 +276,6 @@ scap_t* scap_open_live_int(char *error,
 	//
 	scap_start_capture(handle);
 
-scap_enable_markers_capture(handle);
-
 	return handle;
 #endif // HAS_CAPTURE
 }
@@ -881,7 +879,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 #endif
 
 #if defined(HAS_CAPTURE)
-int32_t scap_enable_markers_capture(scap_t* handle)
+int32_t scap_enable_tracers_capture(scap_t* handle)
 {
 	//	
 	// Not supported for files

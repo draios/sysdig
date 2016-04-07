@@ -702,6 +702,7 @@ public:
 	void add_meta_event_callback(meta_event_callback cback, void* data);
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
+	void enable_tracers_capture();
 
 	void refresh_ifaddr_list();
 

@@ -535,14 +535,6 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-{
-	struct fd f = fdget(retval);
-
-	if (f.file && f.file->f_inode) {
-		pr_info("*** %s %d\n", (char*)val, (int)f.file->f_inode->i_ino);
-		fdput(f);
-	}
-}
 	/*
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring

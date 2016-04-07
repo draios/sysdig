@@ -204,6 +204,17 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 	}
 }
 
+void sinsp::enable_tracers_capture()
+{
+	if(m_h != NULL)
+	{
+		if(scap_enable_tracers_capture(m_h) != SCAP_SUCCESS)
+		{
+			throw sinsp_exception("error enabling tracers capture");
+		}	
+	}
+}
+
 void sinsp::init()
 {
 	//
