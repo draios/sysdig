@@ -342,7 +342,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 						component_uid = p.back().get_uid();
 						component_ns = p.back().get_namespace();
 						k8s_pod_t& pod = p.back();
-						m_state.update_pod(pod, item, true);
+						m_state.update_pod(pod, item);
 					}
 				}
 				break;
