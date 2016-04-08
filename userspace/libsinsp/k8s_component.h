@@ -12,6 +12,9 @@
 #include "sinsp_int.h"
 #include <vector>
 #include <unordered_set>
+#ifdef _WIN32
+#undef max
+#endif
 
 typedef std::pair<std::string, std::string> k8s_pair_t;
 typedef std::vector<k8s_pair_t>             k8s_pair_list;
@@ -267,8 +270,8 @@ private:
 	std::string       m_node_name;
 	std::string       m_host_ip;
 	std::string       m_internal_ip;
-	size_t            m_restart_count_tot = std::numeric_limits<size_t>::max();
-	size_t            m_restart_count_diff = 0;
+	std::size_t       m_restart_count_tot = std::numeric_limits<std::size_t>::max();
+	std::size_t       m_restart_count_diff = 0;
 };
 
 
