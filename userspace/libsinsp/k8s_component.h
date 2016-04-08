@@ -237,7 +237,7 @@ public:
 
 	// restart count
 	size_t get_restart_count() const;
-	void set_restart_count(size_t rc);
+	void set_restart_count(int rc);
 
 	// containers
 	const container_list& get_containers() const;
@@ -267,7 +267,8 @@ private:
 	std::string       m_node_name;
 	std::string       m_host_ip;
 	std::string       m_internal_ip;
-	size_t            m_restart_count;
+	int               m_restart_count_tot = -1;
+	mutable int       m_restart_count_diff = 0;
 };
 
 
@@ -566,20 +567,39 @@ inline void k8s_pod_t::emplace_container_id(std::string&& container_id)
 
 inline size_t k8s_pod_t::get_restart_count() const
 {
-	return m_restart_count;
+	int restart_count_diff = m_restart_count_diff;
+	m_restart_count_diff = 0;
+	return restart_count_diff;
 }
 
-inline void k8s_pod_t::set_restart_count(size_t rc)
+inline void k8s_pod_t::set_restart_count(int rc)
 {
-	if(rc >= m_restart_count)
+	if(rc < 0)
 	{
-		m_restart_count = rc - m_restart_count;
+		g_logger.log("Unexpected K8S pod restart count received: " + std::to_string(rc),
+					sinsp_logger::SEV_WARNING);
+		return;
+	}
+
+	// only record current total on first call
+	if(m_restart_count_tot == -1)
+	{
+		m_restart_count_tot = rc;
+		return;
+	}
+
+	if(rc >= m_restart_count_tot)
+	{
+		m_restart_count_diff = rc - m_restart_count_tot;
 	}
 	else
 	{
-		g_logger.log("Invalid K8S pod restart count received (" + std::to_string(rc) + "), resetting to zero.", sinsp_logger::SEV_ERROR);
-		m_restart_count = 0;
+		g_logger.log("Unexpected K8S pod restart count received (" + std::to_string(rc) + 
+					", last recorded value " + std::to_string(m_restart_count_tot) + "), resetting diff to zero.",
+					sinsp_logger::SEV_WARNING);
+		m_restart_count_diff = 0;
 	}
+	m_restart_count_tot = rc;
 }
 
 // comparison

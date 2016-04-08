@@ -27,15 +27,15 @@ view_info =
 	view_type = "table",
 	applies_to = {"", "span.tag", "span.id", "span.time", "span.parenttime", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	use_defaults = true,
-	filter = "span.ntags=%depth+1",
+	filter = "span.ntags>=%depth+1",
 	drilldown_target = "spans_list",
 	drilldown_increase_depth = true,
 	columns = 
 	{
 		{
 			name = "NA",
-			field = "span.time",
-			filterfield = "span.parenttime",
+			field = "span.rawtime",
+			filterfield = "span.rawparenttime",
 			is_key = true,
 			filter_in_child_only = true,
 		},
@@ -47,6 +47,12 @@ view_info =
 		},
 		{
 			name = "TIME",
+			field = "span.time",
+			description = "the time of the span enter tracer.",
+			colsize = 19,
+		},
+		{
+			name = "DURATION",
 			field = "span.duration.fortag[%depth]",
 			description = "the time this span call took to complete",
 			colsize = 10,
