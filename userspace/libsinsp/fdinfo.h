@@ -319,8 +319,8 @@ private:
 		FLAGS_ROLE_SERVER = (1 << 3),
 		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
 		FLAGS_CLOSE_CANCELED = (1 << 5),
-		// Pipe-specific flags
 		FLAGS_IS_SOCKET_PIPE = (1 << 6),
+		FLAGS_IS_TRACER_FILE = (1 << 7),
 		FLAGS_IS_TRACER_FD = (1 << 7),
 	};
 

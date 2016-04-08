@@ -2869,7 +2869,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	}
 
 	//
-	// User events get into the engine as normal writes, but the FD has a flag to
+	// Tracers get into the engine as normal writes, but the FD has a flag to
 	// quickly recognize them.
 	//
 	if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
