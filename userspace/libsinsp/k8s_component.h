@@ -12,9 +12,6 @@
 #include "sinsp_int.h"
 #include <vector>
 #include <unordered_set>
-#ifdef _WIN32
-#undef max
-#endif
 
 typedef std::pair<std::string, std::string> k8s_pair_t;
 typedef std::vector<k8s_pair_t>             k8s_pair_list;
@@ -240,7 +237,7 @@ public:
 
 	// restart count
 	size_t get_restart_count() const;
-	void set_restart_count(size_t rc);
+	void set_restart_count(int rc);
 
 	// containers
 	const container_list& get_containers() const;
@@ -270,8 +267,8 @@ private:
 	std::string       m_node_name;
 	std::string       m_host_ip;
 	std::string       m_internal_ip;
-	std::size_t       m_restart_count_tot = std::numeric_limits<std::size_t>::max();
-	std::size_t       m_restart_count_diff = 0;
+	int               m_restart_count_tot = -1;
+	mutable int       m_restart_count_diff = 0;
 };
 
 
@@ -570,12 +567,22 @@ inline void k8s_pod_t::emplace_container_id(std::string&& container_id)
 
 inline size_t k8s_pod_t::get_restart_count() const
 {
-	return m_restart_count_diff;
+	int restart_count_diff = m_restart_count_diff;
+	m_restart_count_diff = 0;
+	return restart_count_diff;
 }
 
-inline void k8s_pod_t::set_restart_count(size_t rc)
+inline void k8s_pod_t::set_restart_count(int rc)
 {
-	if(m_restart_count_tot == std::numeric_limits<size_t>::max())
+	if(rc < 0)
+	{
+		g_logger.log("Unexpected K8S pod restart count received: " + std::to_string(rc),
+					sinsp_logger::SEV_WARNING);
+		return;
+	}
+
+	// only record current total on first call
+	if(m_restart_count_tot == -1)
 	{
 		m_restart_count_tot = rc;
 		return;
