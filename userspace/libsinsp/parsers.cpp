@@ -2855,8 +2855,6 @@ bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt,
 	int64_t retval,
 	ppm_event_flags eflags)
 {
-	sinsp_evt_param *parinfo;
-
 	//
 	// Tracers get into the engine as normal writes, but the FD has a flag to
 	// quickly recognize them.
@@ -2878,12 +2876,12 @@ bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt,
 				if(eflags & EF_WRITES_TO_FD)
 				{
 					//
-					// Extract the data buffer
+					// We have not determined if this FD is a tracer FD or not.
+					// We're going to try to parse it. 
+					// If the parsing succeeds, we mark it as a tracer FD. If it
+					// fails we mark it an NOT a tracer FD. Otherwise, we wait
+					// for the next buffer and we'll try again.
 					//
-					parinfo = evt->get_param(1);
-					uint32_t datalen = parinfo->m_len;
-					char* data = parinfo->m_val;
-
 					sinsp_tracerparser::parse_result pres = 
 						(sinsp_tracerparser::parse_result)parse_tracer(evt, retval);
 
