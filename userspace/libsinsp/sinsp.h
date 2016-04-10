@@ -804,6 +804,7 @@ private:
 	const scap_machine_info* m_machine_info;
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
+	bool m_is_tracers_capture_enabled;
 
 	sinsp_network_interfaces* m_network_interfaces;
 

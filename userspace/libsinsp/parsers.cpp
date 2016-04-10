@@ -2887,7 +2887,14 @@ bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt,
 
 					if(pres == sinsp_tracerparser::RES_OK)
 					{
+						//
+						// This FD has been recognized to be a tracer one.
+						// We do two things: mark it for future reference, and tell
+						// the driver to enable tracers capture (if we haven't done
+						// it yet).
+						//
 						orifdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FD;
+						m_inspector->enable_tracers_capture();
 						return true;
 					}
 					else if (pres == sinsp_tracerparser::RES_FAILED)
