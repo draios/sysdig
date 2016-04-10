@@ -26,57 +26,14 @@ k8s_state_t::k8s_state_t(bool is_captured) : m_is_captured(is_captured)
 
 // state/pods
 
-void k8s_state_t::update_pod(k8s_pod_t& pod, const Json::Value& item, bool reset)
+void k8s_state_t::update_pod(k8s_pod_t& pod, const Json::Value& item)
 {
 	k8s_pod_t::container_id_list container_ids = k8s_component::extract_pod_container_ids(item);
 	k8s_container::list containers = k8s_component::extract_pod_containers(item);
-
 	k8s_component::extract_pod_data(item, pod);
 	pod.set_restart_count(k8s_component::extract_pod_restart_count(item));
-	if(reset) // initially, we just set everything
-	{
-		pod.set_container_ids(std::move(container_ids));
-		pod.set_containers(std::move(containers));
-	}
-	else // update call
-	{
-		for(k8s_pod_t::container_id_list::iterator it = container_ids.begin(); it != container_ids.end();)
-		{
-			if(pod.has_container_id(*it))
-			{
-				// ignoring container ID notification for an existing ID
-				it = container_ids.erase(it);
-			}
-			else
-			{
-				++it;
-			}
-		}
-
-		if(container_ids.size()) // what's left are new container IDs
-		{
-			pod.add_container_ids(std::move(container_ids));
-		}
-
-		for(k8s_pod_t::container_list::iterator it = containers.begin(); it != containers.end();)
-		{
-			k8s_container* c = pod.get_container(it->get_name());
-			if(c && (*c != *it))
-			{
-				*c = *it;
-				it = containers.erase(it);
-			}
-			else
-			{
-				++it;
-			}
-		}
-
-		if(containers.size()) // what's left are new containers
-		{
-			pod.add_containers(std::move(containers));
-		}
-	}
+	pod.set_container_ids(std::move(container_ids));
+	pod.set_containers(std::move(containers));
 }
 
 bool k8s_state_t::has_pod(k8s_pod_t& pod)

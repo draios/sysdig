@@ -66,7 +66,7 @@ public:
 
 	void emplace_pod(k8s_pod_t&& pod);
 
-	void update_pod(k8s_pod_t& pod, const Json::Value& item, bool reset);
+	void update_pod(k8s_pod_t& pod, const Json::Value& item);
 
 	bool has_pod(k8s_pod_t& pod);
 

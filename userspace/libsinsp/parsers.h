@@ -81,13 +81,13 @@ private:
 	//
 	// Initializers
 	//
-	void init_metaevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size);
+	inline void init_metaevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size);
 
 	//
 	// Helpers
 	//
 	bool reset(sinsp_evt *evt);
-	void store_event(sinsp_evt* evt);
+	inline void store_event(sinsp_evt* evt);
 
 	//
 	// Parsers
@@ -104,7 +104,8 @@ private:
 	void parse_close_enter(sinsp_evt* evt);
 	void parse_close_exit(sinsp_evt* evt);
 	void parse_thread_exit(sinsp_evt* evt);
-	void parse_rw_exit(sinsp_evt* evt);
+	inline bool detect_and_process_tracer_write(sinsp_evt *evt, int64_t retval, ppm_event_flags eflags);
+	inline void parse_rw_exit(sinsp_evt* evt);
 	void parse_sendfile_exit(sinsp_evt* evt);
 	void parse_eventfd_exit(sinsp_evt* evt);
 	void parse_bind_exit(sinsp_evt* evt);
@@ -129,7 +130,7 @@ private:
 	void parse_setgid_exit(sinsp_evt* evt);
 	void parse_container_evt(sinsp_evt* evt); // deprecated, only for backward-compatibility
 	void parse_container_json_evt(sinsp_evt *evt);
-	inline void parse_tracer(sinsp_evt *evt, int64_t retval);
+	inline uint32_t parse_tracer(sinsp_evt *evt, int64_t retval);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
 	void parse_k8s_evt(sinsp_evt *evt);
 	void parse_chroot_exit(sinsp_evt *evt);

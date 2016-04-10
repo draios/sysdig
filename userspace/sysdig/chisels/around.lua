@@ -15,8 +15,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Given a filter on the command line, this chisel saves the events that are in a time range around filter matches, and that are on the SAME process/thread. The time rang can be adjusted with the dump_range_ms argument. For example, 'sysdig -c around evt.type=open and evt.failed=true' will save two seconds of activity around every failed open.";
-short_description = "Export to file the events around the where the given filter matches.";
+description = "Given a filter on the command line, this chisel saves the events that are in a time range around filter matches, and that are on the SAME process/thread. The time range can be adjusted with the dump_range_ms argument. For example, 'sysdig -c around evt.type=open and evt.failed=true' will save two seconds of activity around every failed open.";
+short_description = "Export to file the events around the time range where the given filter matches.";
 category = "Misc";
 		
 -- Argument list
