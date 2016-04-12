@@ -210,7 +210,7 @@ void sinsp::enable_tracers_capture()
 #if defined(HAS_CAPTURE)
 	if(!m_is_tracers_capture_enabled)
 	{
-		if(m_h != NULL)
+		if(is_live() && m_h != NULL)
 		{
 			if(scap_enable_tracers_capture(m_h) != SCAP_SUCCESS)
 			{
