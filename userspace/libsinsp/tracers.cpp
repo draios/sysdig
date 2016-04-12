@@ -505,7 +505,11 @@ inline void sinsp_tracerparser::parse(char* evtstr)
 
 inline void sinsp_tracerparser::delete_char(char* p)
 {
-	strcpy(p, p + 1);
+	while(*p != 0)
+	{
+		*p = *(p + 1);
+		p++;
+	}
 }
 
 inline void sinsp_tracerparser::parse_simple(char* evtstr)
