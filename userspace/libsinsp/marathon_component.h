@@ -94,6 +94,7 @@ public:
 	marathon_group(const std::string& id, const std::string& framework_id);
 
 	app_ptr_t get_app(const std::string& id);
+	app_ptr_t get_app(mesos_task::ptr_t task) const;
 
 	void add_or_replace_app(std::shared_ptr<marathon_app>);
 	bool remove_app(const std::string& id);
@@ -102,7 +103,6 @@ public:
 	void add_or_replace_group(std::shared_ptr<marathon_group>);
 
 	const app_map_t& get_apps() const;
-	app_ptr_t get_app(mesos_task::ptr_t task) const;
 	const group_map_t& get_groups() const;
 	ptr_t get_group(const std::string& group_id);
 	ptr_t get_group(mesos_task::ptr_t task);

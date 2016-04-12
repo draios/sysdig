@@ -20,7 +20,8 @@ class mesos_http
 {
 public:
 	typedef std::shared_ptr<mesos_http> ptr_t;
-	typedef void (mesos::*callback_func_t)(std::string&&, const std::string&);
+	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	typedef void (mesos::*callback_func_t)(json_ptr_t, const std::string&);
 	typedef std::vector<std::string> marathon_uri_t;
 
 	mesos_http(mesos& m, const uri& url, bool discover = false, int timeout_ms = 5000L);
@@ -67,7 +68,7 @@ protected:
 
 	callback_func_t get_parse_func();
 	static std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
-	static bool try_parse(const std::string& json);
+	static json_ptr_t try_parse(const std::string& json);
 	static bool is_framework_active(const Json::Value& framework);
 	static std::string get_framework_url(const Json::Value& framework);
 
@@ -147,17 +148,18 @@ inline mesos_http::callback_func_t mesos_http::get_parse_func()
 	return m_callback_func;
 }
 
-inline bool mesos_http::try_parse(const std::string& json)
+inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json)
 {
-	Json::Value root;
+	json_ptr_t root(new Json::Value());
 	try
 	{
-		return Json::Reader().parse(json, root, true);
+		if(Json::Reader().parse(json, *root))
+		{
+			return root;
+		}
 	}
-	catch(...)
-	{
-		return false;
-	}
+	catch(...) { }
+	return nullptr;
 }
 
 inline const std::string& mesos_http::get_framework_id() const

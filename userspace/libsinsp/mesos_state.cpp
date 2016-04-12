@@ -354,13 +354,11 @@ bool mesos_state_t::parse_groups(Json::Value&& root, const std::string& framewor
 	return true;
 }
 
-bool mesos_state_t::parse_groups(std::string&& json, const std::string& framework_id)
+bool mesos_state_t::parse_groups(json_ptr_t json, const std::string& framework_id)
 {
-	Json::Value root;
-	Json::Reader reader;
-	if(reader.parse(json, root, false) && !root["id"].isNull())
+	if(json && !json->isNull() && !(*json)["id"].isNull())
 	{
-		return parse_groups(std::move(root), framework_id);
+		return parse_groups(std::move(*json), framework_id);
 	}
 	else
 	{
@@ -481,17 +479,14 @@ void mesos_state_t::parse_apps(Json::Value&& root, const std::string& framework_
 	}
 }
 
-void mesos_state_t::parse_apps(std::string&& json, const std::string& framework_id)
+void mesos_state_t::parse_apps(json_ptr_t json, const std::string& framework_id)
 {
-	Json::Value root;
-	Json::Reader reader;
-	if(reader.parse(json, root, false))
+	if(json && !json->isNull())
 	{
-		parse_apps(std::move(root), framework_id);
+		parse_apps(std::move(*json), framework_id);
 	}
 	else
 	{
-		g_logger.log(json, sinsp_logger::SEV_DEBUG);
 		throw sinsp_exception("Invalid JSON (Marathon apps parsing failed).");
 	}
 }
