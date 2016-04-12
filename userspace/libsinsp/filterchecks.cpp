@@ -6240,46 +6240,55 @@ int32_t sinsp_filter_check_mesos::extract_arg(const string& fldname, const strin
 mesos_task::ptr_t sinsp_filter_check_mesos::find_task_for_thread(const sinsp_threadinfo* tinfo)
 {
 	ASSERT(m_inspector && tinfo);
-	if(tinfo->m_container_id.empty())
+	if(tinfo)
 	{
-		return NULL;
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+
+		if(m_inspector && m_inspector->m_mesos_client)
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found || container_info.m_mesos_task_id.empty())
+			{
+				return NULL;
+			}
+			const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
+			return mesos_state.get_task(container_info.m_mesos_task_id);
+		}
 	}
 
-	sinsp_container_info container_info;
-	bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-	if(!found || container_info.m_mesos_task_id.empty())
-	{
-		return NULL;
-	}
-
-	const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
-	return mesos_state.get_task(container_info.m_mesos_task_id);
+	return NULL;
 }
 
 const mesos_framework* sinsp_filter_check_mesos::find_framework_by_task(mesos_task::ptr_t task)
 {
-	ASSERT(m_inspector && m_inspector->m_mesos_client);
-	const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
-	for(const auto& framework : mesos_state.get_frameworks())
+	if(task && m_inspector && m_inspector->m_mesos_client)
 	{
-		if(framework.has_task(task->get_uid()))
-		{
-			return &framework;
-		}
+		const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
+		return mesos_state.get_framework_for_task(task->get_uid());
 	}
-	return 0;
+	return NULL;
 }
 
 marathon_app::ptr_t sinsp_filter_check_mesos::find_app_by_task(mesos_task::ptr_t task)
 {
-	ASSERT(m_inspector && m_inspector->m_mesos_client);
-	return m_inspector->m_mesos_client->get_state().get_app(task);
+	if(m_inspector && m_inspector->m_mesos_client)
+	{
+		return m_inspector->m_mesos_client->get_state().get_app(task);
+	}
+	return NULL;
 }
 
 marathon_group::ptr_t sinsp_filter_check_mesos::find_group_by_task(mesos_task::ptr_t task)
 {
-	ASSERT(m_inspector && m_inspector->m_mesos_client);
-	return m_inspector->m_mesos_client->get_state().get_group(task);
+	if(m_inspector && m_inspector->m_mesos_client)
+	{
+		return m_inspector->m_mesos_client->get_state().get_group(task);
+	}
+	return NULL;
 }
 
 void sinsp_filter_check_mesos::concatenate_labels(const mesos_pair_list& labels, string* s)

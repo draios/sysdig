@@ -341,7 +341,6 @@ bool mesos_http::get_all_data(callback_func_t parse)
 {
 	std::ostringstream os;
 	CURLcode res = get_data(m_url.to_string(), os);
-
 	if(res != CURLE_OK)
 	{
 		g_logger.log(curl_easy_strerror(res), sinsp_logger::SEV_ERROR);
@@ -349,10 +348,19 @@ bool mesos_http::get_all_data(callback_func_t parse)
 	}
 	else
 	{
-		(m_mesos.*parse)(os.str(), m_framework_id);
+		Json::Reader reader;
+		json_ptr_t root(new Json::Value());
+		if(reader.parse(os.str(), *root))
+		{
+			(m_mesos.*parse)(root, m_framework_id);
+		}
+		else
+		{
+			g_logger.log("Invalid JSON received from [" + m_url.to_string(false) + ']', sinsp_logger::SEV_WARNING);
+			g_logger.log("JSON: <" + os.str() + '>', sinsp_logger::SEV_DEBUG);
+		}
 		m_connected = true;
 	}
-
 	return res == CURLE_OK;
 }
 
@@ -493,19 +501,11 @@ void mesos_http::handle_json(std::string::size_type end_pos, bool chunked)
 			if(chunked && !purge_chunked_markers(m_data_buf))
 			{
 				g_logger.log("Invalid Mesos or Marathon JSON data detected (chunked transfer).", sinsp_logger::SEV_ERROR);
-				(m_mesos.*m_callback_func)(std::string(), m_framework_id);
-				m_data_buf.clear();
-				m_content_length = string::npos;
-				return;
-			}
-			if(try_parse(m_data_buf))
-			{
-				(m_mesos.*m_callback_func)(std::move(m_data_buf), m_framework_id);
+				(m_mesos.*m_callback_func)(nullptr, m_framework_id);
 			}
 			else
 			{
-				g_logger.log("Invalid Mesos or Marathon JSON data detected (non-chunked transfer).", sinsp_logger::SEV_ERROR);
-				(m_mesos.*m_callback_func)(std::string(), m_framework_id);
+				(m_mesos.*m_callback_func)(try_parse(m_data_buf), m_framework_id);
 			}
 			m_data_buf.clear();
 			m_content_length = string::npos;
@@ -528,9 +528,10 @@ bool mesos_http::detect_chunked_transfer(const std::string& data)
 				long len = strtol(cl.c_str(), NULL, 10);
 				if(len == 0L || len == LONG_MAX || len == LONG_MIN || errno == ERANGE)
 				{
-					m_content_length = string::npos;
-					(m_mesos.*m_callback_func)(std::string(), m_framework_id);
+					(m_mesos.*m_callback_func)(nullptr, m_framework_id);
 					m_data_buf.clear();
+					g_logger.log("Invalid HTTP content length from [: " + m_url.to_string(false) + ']' +
+							 std::to_string(len), sinsp_logger::SEV_ERROR);
 					return false;
 				}
 				else
