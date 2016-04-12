@@ -592,51 +592,52 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr)
 
 	if(*p != ':')
 	{
-		char* start = p;
+		bool dont_interpret_next_char = false;
 
 		while(true)
 		{
-			while(!(*p == '.' || *p == ':' || *p == 0))
+			char* start = p;
+
+			m_tags.push_back(p);
+
+			while(*p != 0)
 			{
-				if(*p == '\n')
+				if(dont_interpret_next_char)
+				{
+					dont_interpret_next_char = false;
+					++p;
+					continue;
+				}
+
+				if(*p == '\\')
+				{
+					ASSERT(dont_interpret_next_char == false);
+					dont_interpret_next_char = true;
+					delete_char(p);
+					continue;
+				}
+
+				if(*p == '.' || *p == ':')
+				{
+					break;
+				}
+
+				if(*p == '>' || *p == '<' || *p == '=' || *p == '\n')
 				{
 					m_res = sinsp_tracerparser::RES_FAILED;
 					return;
 				}
 
-				if(*p == '>' || *p == '<' || *p == '=')
-				{
-					if(*(p - 1) != '\\')
-					{
-						m_res = sinsp_tracerparser::RES_FAILED;
-						return;
-					}
-					else
-					{
-						delete_char(p - 1);
-						p--;
-					}
-				}
-
 				++p;
 			}
 
+			m_taglens.push_back((uint32_t)(p - start));
+			m_tot_taglens += (uint32_t)(p - start);
+
 			if(*p == ':')
 			{
-				if(*(p - 1) != '\\')
-				{
-					*p = 0;
-
-					m_taglens.push_back((uint32_t)(p - start));
-					m_tot_taglens += (uint32_t)(p - start);
-					m_tags.push_back(start);
-					start = p;
-					break;
-				}
-				else
-				{
-					delete_char(p - 1);
-				}
+				*p = 0;
+				break;
 			}
 			else if(*p == 0)
 			{
@@ -646,13 +647,7 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr)
 			else
 			{
 				*p = 0;
-
-				m_taglens.push_back((uint32_t)(p - start));
-				m_tot_taglens += (uint32_t)(p - start);
-				m_tags.push_back(start);
-
 				++p;
-				start = p;
 			}
 		}
 	}
@@ -670,6 +665,8 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr)
 
 	if(*p != ':')
 	{
+		bool dont_interpret_next_char = false;
+
 		while(true)
 		{
 			char* start = p;
@@ -681,37 +678,30 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr)
 
 			while(*p != 0)
 			{
-				if(*p == '=')
+				if(dont_interpret_next_char)
 				{
-					if(*(p - 1) == '\\')
-					{
-						delete_char(p - 1);
-						p--;
-					}
-					else
-					{
-						break;
-					}
+					dont_interpret_next_char = false;
+					++p;
+					continue;
 				}
 
-				if(*p == '\n')
+				if(*p == '\\')
+				{
+					ASSERT(dont_interpret_next_char == false);
+					dont_interpret_next_char = true;
+					delete_char(p);
+					continue;
+				}
+
+				if(*p == '=')
+				{
+					break;
+				}
+
+				if(*p == '>' || *p == '<' || *p == '\n')
 				{
 					m_res = sinsp_tracerparser::RES_FAILED;
 					return;
-				}
-
-				if(*p == '>' || *p == '<')
-				{
-					if(*(p - 1) != '\\')
-					{
-						m_res = sinsp_tracerparser::RES_FAILED;
-						return;
-					}
-					else
-					{
-						delete_char(p - 1);
-						p--;
-					}
 				}
 
 				++p;
@@ -748,19 +738,28 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr)
 			start = p;
 			m_argvals.push_back(p);
 
+			dont_interpret_next_char = false;
+
 			while(*p != 0)
 			{
+				if(dont_interpret_next_char)
+				{
+					dont_interpret_next_char = false;
+					++p;
+					continue;
+				}
+
+				if(*p == '\\')
+				{
+					ASSERT(dont_interpret_next_char == false);
+					dont_interpret_next_char = true;
+					delete_char(p);
+					continue;
+				}
+
 				if(*p == ',' || *p == ':' || *p == '=')
 				{
-					if(*(p - 1) == '\\')
-					{
-						delete_char(p - 1);
-						p--;
-					}
-					else
-					{
-						break;
-					}
+					break;
 				}
 
 				++p;
@@ -791,7 +790,6 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr)
 	//
 	// All done
 	//
-	int a = 0;
 	return;
 }
 
@@ -1269,7 +1267,7 @@ void sinsp_tracerparser::test()
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
 //	char doc[] = "[\">\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
-	char doc1[] = ">:t:u\\:\\>.aaa.u\\:\\=a.33.aa\\::a=b\\:\\=,c=d\\:\\=a:";
+	char doc1[] = ">:1111:u\\:\\=a.u\\:\\>.aaa.33.aa\\::a=b\\:\\=,c=d\\:\\=a:";
 
 	sinsp_threadinfo tinfo;
 	
