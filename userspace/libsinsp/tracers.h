@@ -141,7 +141,7 @@ public:
 	}
 	void set_storage_size(uint32_t newsize);
 	parse_result process_event_data(char *data, uint32_t datalen, uint64_t ts);
-	inline void parse(char* evtstr);
+	inline void parse_json(char* evtstr);
 	inline void parse_simple(char* evtstr);
 	sinsp_partial_tracer* find_parent_enter_pae();
 	void test();

@@ -52,7 +52,7 @@ bool should_drop(sinsp_evt *evt);
 extern sinsp_protodecoder_list g_decoderlist;
 extern sinsp_evttables g_infotables;
 
-#if 1
+#if 0
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),

@@ -96,7 +96,7 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 		}
 		else
 		{
-			parse(m_storage);
+			parse_json(m_storage);
 		}
 	}
 	else
@@ -273,7 +273,7 @@ sinsp_partial_tracer* sinsp_tracerparser::find_parent_enter_pae()
 	return NULL;
 }
 
-inline void sinsp_tracerparser::parse(char* evtstr)
+inline void sinsp_tracerparser::parse_json(char* evtstr)
 {
 	char* p = m_storage;
 	uint32_t delta;
@@ -315,11 +315,46 @@ inline void sinsp_tracerparser::parse(char* evtstr)
 	}
 	p += delta;
 
-	m_res = parsenumber(p, &m_id, &delta);
-	if(m_res > sinsp_tracerparser::RES_COMMA)
+	if(*p == '"')
 	{
-		return;
+		switch(*(++p))
+		{
+		case 't':
+			m_id = m_tinfo->m_tid;
+			delta = 2;
+			break;
+		case 'p':
+			m_id = m_tinfo->m_pid;
+			if(*(p + 1) == 'p')
+			{
+				m_id = m_tinfo->m_ptid;
+				p++;
+			}
+
+			delta = 2;
+			break;
+		case ':':
+			m_id = 0;
+			delta = 1;
+			break;
+		case 'g':
+			m_id = 0;
+			delta = 2;
+			break;
+		default:
+			m_res = sinsp_tracerparser::RES_FAILED;
+			break;
+		}
 	}
+	else
+	{
+		m_res = parsenumber(p, &m_id, &delta);
+		if(m_res > sinsp_tracerparser::RES_COMMA)
+		{
+			return;
+		}
+	}
+
 	p += delta;
 
 	if(m_res == sinsp_tracerparser::RES_COMMA)
@@ -1270,8 +1305,8 @@ void sinsp_tracerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-//	char doc[] = "[\">\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
-	char doc1[] = ">:1111:u\\:\\=a.u\\:\\>.aaa.33.aa\\::a=b\\:\\=,c=d\\:\\=a:";
+	char doc1[] = "[\">\",     12345, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
+//	char doc1[] = ">:1111:u\\:\\=a.u\\:\\>.aaa.33.aa\\::a=b\\:\\=,c=d\\:\\=a:";
 
 	sinsp_threadinfo tinfo;
 	
@@ -1286,7 +1321,7 @@ void sinsp_tracerparser::test()
 
 	for(uint64_t j = 0; j < 30000000; j++)
 	{
-		process_event_data(doc1, 65, 10);
+		process_event_data(doc1, sizeof(doc1) - 1, 10);
 
 		if(m_res != sinsp_tracerparser::RES_OK)
 		{
