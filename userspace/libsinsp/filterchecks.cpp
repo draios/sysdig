@@ -4082,6 +4082,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 		)
 	{
 		m_inspector->request_tracer_state_tracking();
+		needs_state_tracking = true;
 	}
 
 	return res;
@@ -4232,10 +4233,16 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 
 	eparser = tinfo->m_tracer_parser;
-
 	if(eparser == NULL)
 	{
 		return NULL;
+	}
+	else
+	{
+		if(needs_state_tracking && eparser->m_enter_pae == NULL)
+		{
+			return NULL;
+		}
 	}
 
 	switch(m_field_id)

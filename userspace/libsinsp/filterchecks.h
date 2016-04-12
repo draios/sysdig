@@ -131,6 +131,7 @@ public:
 	virtual int32_t get_check_id();
 
 	sinsp* m_inspector;
+	bool needs_state_tracking = false;
 	boolop m_boolop;
 	cmpop m_cmpop;
 	sinsp_field_aggregation m_aggregation;
