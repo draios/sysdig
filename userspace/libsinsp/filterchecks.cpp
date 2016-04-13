@@ -3931,6 +3931,7 @@ const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 
 sinsp_filter_check_tracer::sinsp_filter_check_tracer()
 {
+	m_storage = NULL;
 	m_info.m_name = "span";
 	m_info.m_fields = sinsp_filter_check_tracer_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_tracer_fields) / sizeof(sinsp_filter_check_tracer_fields[0]);
@@ -3951,6 +3952,11 @@ sinsp_filter_check_tracer::~sinsp_filter_check_tracer()
 	if(m_converter != NULL)
 	{
 		delete m_converter;
+	}
+
+	if(m_storage != NULL)
+	{
+		free(m_storage);
 	}
 }
 
