@@ -2,19 +2,19 @@
 #
 # Copyright (C) 2013-2014 Draios inc.
 #
-# This file is part of sysdig.
+# This file is part of _COMPONENT_.
 #
-# sysdig is free software; you can redistribute it and/or modify
+# _COMPONENT_ is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
 # published by the Free Software Foundation.
 #
-# sysdig is distributed in the hope that it will be useful,
+# _COMPONENT_ is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+# along with _COMPONENT_.  If not, see <http://www.gnu.org/licenses/>.
 #
 set -e
 
@@ -35,9 +35,9 @@ function install_rpm {
 		fi
 	fi
 
-	echo "* Installing Sysdig public key"
+	echo "* Installing _COMPONENT_ public key"
 	rpm --quiet --import https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public
-	echo "* Installing Sysdig repository"
+	echo "* Installing _COMPONENT_ repository"
 	curl -s -o /etc/yum.repos.d/draios.repo http://download.draios.com/_REPOSITORY_NAME_/rpm/draios.repo
 	echo "* Installing kernel headers"
 	KERNEL_VERSION=$(uname -r)
@@ -49,8 +49,8 @@ function install_rpm {
 	else
 		yum -q -y install kernel-devel-$KERNEL_VERSION || kernel_warning
 	fi
-	echo "* Installing Sysdig"
-	yum -q -y install sysdig
+	echo "* Installing _COMPONENT_"
+	yum -q -y install _COMPONENT_
 }
 
 function install_deb {
@@ -63,13 +63,13 @@ function install_deb {
 
 	echo "* Installing Sysdig public key"
 	curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
-	echo "* Installing Sysdig repository"
+	echo "* Installing _COMPONENT_ repository"
 	curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/_REPOSITORY_NAME_/deb/draios.list
 	apt-get -qq update < /dev/null
 	echo "* Installing kernel headers"
 	apt-get -qq -y install linux-headers-$(uname -r) < /dev/null || kernel_warning
-	echo "* Installing Sysdig"
-	apt-get -qq -y install sysdig < /dev/null
+	echo "* Installing _COMPONENT_"
+	apt-get -qq -y install _COMPONENT_ < /dev/null
 }
 
 function unsupported {
@@ -82,7 +82,7 @@ function unsupported {
 function kernel_warning {
 	echo "Unable to find kernel development files for the current kernel version" $(uname -r)
 	echo "This usually means that your system is not up-to-date or you installed a custom kernel version."
-	echo "The installation will continue but you'll need to install these yourself in order to use sysdig."
+	echo "The installation will continue but you'll need to install these yourself in order to use _COMPONENT_."
 	echo 'Please write to the mailing list at https://groups.google.com/forum/#!forum/sysdig'
 	echo "if you need further assistance."
 }
