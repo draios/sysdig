@@ -651,7 +651,7 @@ public:
 	filtercheck_field_info m_customfield;
 
 private:
-	int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val);
+	int32_t extract_arg(string fldname, string val);
 	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;
