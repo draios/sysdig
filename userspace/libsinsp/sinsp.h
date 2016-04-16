@@ -960,7 +960,7 @@ private:
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_k8s;
 	friend class sinsp_filter_check_mesos;
-	friend class sinsp_filter_check_evtin_tracer;
+	friend class sinsp_filter_check_evtin;
 	friend class sinsp_network_interfaces;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
