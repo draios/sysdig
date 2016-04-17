@@ -604,13 +604,6 @@ public:
 		TYPE_TAG,
 		TYPE_ARGS,
 		TYPE_ARG,
-		TYPE_T_ID,
-		TYPE_T_NTAGS,
-		TYPE_T_NARGS,
-		TYPE_T_TAGS,
-		TYPE_T_TAG,
-		TYPE_T_ARGS,
-		TYPE_T_ARG,
 		TYPE_P_ID,
 		TYPE_P_NTAGS,
 		TYPE_P_NARGS,
@@ -625,6 +618,13 @@ public:
 		TYPE_S_TAG,
 		TYPE_S_ARGS,
 		TYPE_S_ARG,
+		TYPE_M_ID,
+		TYPE_M_NTAGS,
+		TYPE_M_NARGS,
+		TYPE_M_TAGS,
+		TYPE_M_TAG,
+		TYPE_M_ARGS,
+		TYPE_M_ARG,
 	};
 
 	sinsp_filter_check_evtin();
