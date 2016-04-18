@@ -3907,14 +3907,14 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 {
-	{PT_INT64, EPF_NONE, PF_ID, "span.id", "tracer ID. This is a unique identifier that is used to match the enter and exit tracer events for this span. It can also be used to match different spans belonging to a trace."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "span.time", "time of the span enter tracer as a time string that includes the nanosecond part."},
+	{PT_INT64, EPF_NONE, PF_ID, "span.id", "ID of the span. This is a unique identifier that is used to match the enter and exit tracer events for this span. It can also be used to match different spans belonging to a trace."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.time", "time of the span's enter tracer as a human readable string that includes the nanosecond part."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "span.ntags", "number of tags that this span has."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "span.nargs", "number of arguments that this span has."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "span.tags", "dot-separated list of the span's tags."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.tags", "dot-separated list of all of the span's tags."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "span.tag", "one of the span's tags, specified by 0-based offset, e.g. 'span.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'span.tag[-1]' returns the last tag."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "span.args", "comma-separated list of event arguments." },
-	{PT_CHARBUF, EPF_NONE, PF_NA, "span.arg", "one of the span arguments, specified by name or by 0-based offset. E.g. 'span.tag.mytag' or 'span.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'span.arg[-1]' returns the last argument." },
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.args", "comma-separated list of the span's arguments." },
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.arg", "one of the span arguments, specified by name or by 0-based offset. E.g. 'span.arg.xxx' or 'span.arg[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'span.arg[-1]' returns the last argument." },
 	{PT_CHARBUF, EPF_NONE, PF_NA, "span.enterargs", "comma-separated list of the span's enter tracer event arguments. For enter tracers, this is the same as evt.args. For exit tracers, this is the evt.args of the corresponding enter tracer." },
 	{PT_CHARBUF, EPF_NONE, PF_NA, "span.enterarg", "one of the span's enter arguments, specified by name or by 0-based offset. For enter tracer events, this is the same as evt.arg. For exit tracer events, this is the evt.arg of the corresponding enter event." },
 	{PT_RELTIME, EPF_NONE, PF_DEC, "span.duration", "delta between this span's exit tracer event and the enter tracer event."},
