@@ -597,6 +597,8 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	{
 		container->m_cpu_shares = cpu_shares;
 	}
+	container->m_cpu_quota = host_config_obj["CpuQuota"].asInt64();
+	container->m_cpu_period = host_config_obj["CpuPeriod"].asInt64();
 	return true;
 }
 

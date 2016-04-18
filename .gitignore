@@ -6,6 +6,8 @@
 *.order
 *.mod
 *.mod.c
+*.o.d
+*.o.rc
 build/
 driver/Makefile
 driver/driver_config.h
