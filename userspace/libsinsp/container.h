@@ -49,7 +49,9 @@ public:
 		m_container_ip(0),
 		m_memory_limit(0),
 		m_swap_limit(0),
-		m_cpu_shares(1024)
+		m_cpu_shares(1024),
+		m_cpu_quota(0),
+		m_cpu_period(0)
 	{
 	}
 
@@ -64,6 +66,8 @@ public:
 	int64_t m_memory_limit;
 	int64_t m_swap_limit;
 	int64_t m_cpu_shares;
+	int64_t m_cpu_quota;
+	int64_t m_cpu_period;
 };
 
 class sinsp_container_manager
