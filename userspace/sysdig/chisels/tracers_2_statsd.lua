@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Converts sysdig span duration data into statsd metrics and pipes them to the given statsd server. See XXX for more information.";
+description = "Converts sysdig span duration data into statsd metrics and pipes them to the given statsd server. See https://github.com/draios/sysdig/wiki/Tracers for more information.";
 short_description = "Export spans duration as statds metrics.";
 category = "Tracers";
 
