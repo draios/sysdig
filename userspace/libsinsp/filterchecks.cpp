@@ -5011,6 +5011,12 @@ bool sinsp_filter_check_evtin::compare(sinsp_evt *evt)
 	{
 		if(compare_tracer(evt, *it) == true)
 		{
+			if(etype == PPME_TRACER_E && *it == tinfo->m_tracer_parser->m_enter_pae)
+			{
+				res = false;
+				goto fcec_end;
+			}
+
 			res = true;
 			goto fcec_end;
 		}
