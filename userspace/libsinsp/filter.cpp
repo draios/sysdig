@@ -1225,7 +1225,6 @@ sinsp_filter_compiler::sinsp_filter_compiler(sinsp* inspector, const string& flt
 	m_last_boolop = BO_NONE;
 	m_nest_level = 0;
 	m_fltstr = fltstr;
-
 }
 
 sinsp_filter_compiler::~sinsp_filter_compiler()
