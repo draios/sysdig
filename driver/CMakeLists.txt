@@ -27,7 +27,6 @@ if(BUILD_DRIVER)
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
 		COMMAND ${MAKE_COMMAND}
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
-		DEPENDS configure_driver
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 else()
@@ -35,7 +34,6 @@ else()
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
 		COMMAND ${MAKE_COMMAND}
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
-		DEPENDS configure_driver
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 endif()
