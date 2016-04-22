@@ -3,18 +3,13 @@ option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
 configure_file(dkms.conf.in dkms.conf)
 configure_file(Makefile.in Makefile.dkms)
-configure_file(driver_config.h.in driver_config.h)
+configure_file(driver_config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/driver_config.h")
 
 set(CLEAN_FILES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile"
 	"${CMAKE_CURRENT_SOURCE_DIR}/driver_config.h")
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CLEAN_FILES}")
-
-add_custom_target(configure_driver ALL
-	COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/driver_config.h driver_config.h
-	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-	VERBATIM)
 
 # make can be self-referenced as $(MAKE) only from Makefiles but this
 # triggers syntax errors with other generators such as Ninja
