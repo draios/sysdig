@@ -4,6 +4,7 @@ option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 configure_file(dkms.conf.in dkms.conf)
 configure_file(Makefile.in Makefile.dkms)
 configure_file(driver_config.h.in driver_config.h)
+configure_file(driver_config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/driver_config.h")
 
 set(CLEAN_FILES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile"
