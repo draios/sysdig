@@ -104,6 +104,7 @@ sinsp::sinsp() :
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
+	m_is_tracers_capture_enabled = false;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -202,6 +203,24 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 	{
 		scap_set_refresh_proc_table_when_saving(m_h, !filter);	
 	}
+}
+
+void sinsp::enable_tracers_capture()
+{
+#if defined(HAS_CAPTURE)
+	if(!m_is_tracers_capture_enabled)
+	{
+		if(is_live() && m_h != NULL)
+		{
+			if(scap_enable_tracers_capture(m_h) != SCAP_SUCCESS)
+			{
+				throw sinsp_exception("error enabling tracers capture");
+			}
+		}
+
+		m_is_tracers_capture_enabled = true;
+	}
+#endif
 }
 
 void sinsp::init()

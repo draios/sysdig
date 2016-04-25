@@ -15,28 +15,41 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Print the data read and written for any FD. Combine this script with a filter to restrict what it shows. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents  [Write], and Red represents [Read] for all data except when the -pc or -pcontainer argument is used. If used the container.name and container.id will be represented as: Green [host], and Cyan [container]) Container information will contain '[]' around container.name and container.id.";
-short_description = "Print the data read and written by processes.";
-category = "I/O";
+description = "Converts sysdig span duration data into statsd metrics and pipes them to the given statsd server. See https://github.com/draios/sysdig/wiki/Tracers for more information.";
+short_description = "Export spans duration as statds metrics.";
+category = "Tracers";
 
 args =
 {
 	{
-		name = "disable_color",
-		description = "Set to 'disable_colors' if you want to disable color output",
+		name = "server_addr",
+		description = "The address of the statsd server to send data to",
+		argtype = "string",
+		optional = true
+	},
+	{
+		name = "server_port",
+		description = "The UDP port to use",
 		argtype = "string",
 		optional = true
 	},
 }
 
-require "common"
-terminal = require "ansiterminal"
-terminal.enable_color(true)
 local lstatsd = require "statsd"
+local host = "127.0.0.1"
+local port = 8125
 
 -- Argument notification callback
 function on_set_arg(name, val)
-	return true
+	if name == "server_addr" then
+		host = val
+		return true
+	elseif name == "server_port" then
+		port = tonumber(val)
+		return true
+	end
+
+	return false
 end
 
 -- Initialization callback
@@ -63,8 +76,4 @@ function on_event()
 	end
 
 	return true
-end
-
--- Called by the engine at the end of the capture (Ctrl-C)
-function on_capture_end()
 end

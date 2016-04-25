@@ -141,8 +141,8 @@ public:
 	}
 	void set_storage_size(uint32_t newsize);
 	parse_result process_event_data(char *data, uint32_t datalen, uint64_t ts);
-	inline void parse(char* evtstr, uint32_t evtstrlen);
-	inline void parse_simple(char* evtstr, uint32_t evtstrlen);
+	inline void parse_json(char* evtstr);
+	inline void parse_simple(char* evtstr);
 	sinsp_partial_tracer* find_parent_enter_pae();
 	void test();
 
@@ -174,6 +174,7 @@ VISIBILITY_PRIVATE
 	inline parse_result parsenumber(char* p, int64_t* res, uint32_t* delta);
 	inline parse_result parsenumber_colend(char* p, int64_t* res, uint32_t* delta);
 	inline void init_partial_tracer(sinsp_partial_tracer* pae);
+	inline void delete_char(char* p);
 
 	string m_fullfragment_storage_str;
 	sinsp *m_inspector;
@@ -181,6 +182,8 @@ VISIBILITY_PRIVATE
 	uint32_t m_storage_size;
 	uint32_t m_fragment_size;
 	sinsp_tracerparser::parse_result m_res;
+	uint32_t m_storlen;
+
 
 	friend class sinsp_parser;
 };

@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
-view_info = 
+disabled_view_info =
 {
 	id = "spectro_traces",
 	name = "Traces Spectrogram",
@@ -28,7 +28,7 @@ view_info =
 	applies_to = {"", "span.tag", "span.id", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory"},
 	filter = "span.ntags=%depth+1",
 	use_defaults = false,
-	drilldown_target = "traces_list",
+	drilldown_target = "spans_list",
 	propagate_filter = false,
 	columns = 
 	{

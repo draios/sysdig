@@ -15,15 +15,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
-view_info = 
+disabled_view_info =
 {
 	id = "traces_summary",
 	name = "Traces Summary",
-	description = "Show a summary of the traces executing on the system. For each trace, the view reports information like how many times it's been called and how long it took to complete.",
+	description = "Show a summary of the traces executing in the system. For each trace tag, the view reports information like how many spans with that tag have executed and what's the average duration.",
 	tips = {
-		"Traces are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening inside them. You can learn about tracers at XXX.",
+		"Traces are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening inside them. You can learn about tracers at https://github.com/draios/sysdig/wiki/Tracers.",
 		"Only the root trace spans (i.e. the spans with only one tag) are shown when this view is applied to the whole machine. Drilling down allows you to explore the child spans.",
-		"This view collapses multiple spans with the same tag into a single entry. If you instead want to see each span as a separate entry, use the 'Trace List' view.",
+		"This view collapses multiple spans with the same tag into a single entry, offering a compact summary of trace activity. If you instead want to see each span as a separate entry, use the 'Trace List' view.",
 	},
 	tags = {"Default"},
 	view_type = "table",
