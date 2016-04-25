@@ -117,6 +117,14 @@ static void usage()
 "                    Capture the first <len> bytes of each I/O buffer.\n"
 "                    By default, the first 80 bytes are captured. Use this\n"
 "                    option with caution, it can generate huge trace files.\n"
+" -T, --force-tracers-capture\n"
+"                    Tell the driver to make sure full buffers are captured from\n"
+"                    /dev/null, to make sure that tracers are completely\n"
+"                    captured. Note that sysdig will enable extended /dev/null\n"
+"                    capture by itself after detecting that tracers are written\n"
+"                    there, but that could result in the truncation of some\n"
+"                    tracers at the beginning of the capture. This option allows\n"
+"                    preventing that.\n"
 " -v <view_id>, --view=<view_id>\n"
 "                    Run the view with the given ID when csysdig starts.\n"
 "                    View IDs can be found in the view documentation pages in\n"
@@ -242,6 +250,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
 	bool xt1002_available = false;
+	bool force_tracers_capture = false;
 
 	static struct option long_options[] =
 	{
@@ -258,6 +267,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"raw", no_argument, 0, 0 },
 		{"snaplen", required_argument, 0, 's' },
 		{"logfile", required_argument, 0, 0 },
+		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"view", required_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{0, 0, 0, 0}
@@ -278,7 +288,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:K:lm:Nn:p:r:s:v:", long_options, &long_index)) != -1)
+			"d:Ehk:K:lm:Nn:p:r:s:Tv:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -358,6 +368,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 's':
 				snaplen = atoi(optarg);
+				break;
+			case 'T':
+				force_tracers_capture = true;
 				break;
 			case 'v':
 				display_view = optarg;
@@ -605,6 +618,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			if(snaplen != 0)
 			{
 				inspector->set_snaplen(snaplen);
+			}
+
+			//
+			// If required, tell the driver to enable tracers capture
+			//
+			if(force_tracers_capture)
+			{
+				inspector->enable_tracers_capture();
 			}
 
 			//
