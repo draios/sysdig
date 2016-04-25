@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <time.h>
+#include <math.h>
 #ifndef _WIN32
 #include <algorithm>
 #endif
