@@ -196,6 +196,9 @@ COMMAND LINE OPTIONS
 **-s** _len_, **--snaplen**=_len_  
   Capture the first _len_ bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
 
+**-T**, **--force-tracers-capture**  
+  Tell the driver to make sure full buffers are captured from /dev/null, to make sure that tracers are completely captured. Note that sysdig will enable extended /dev/null capture by itself after detecting that tracers are written there, but that could result in the truncation of some tracers at the beginning of the capture. This option allows preventing that.
+
 **-v** _view_id_, **--views**=_view_id_  
   Run the view with the given ID when csysdig starts. View IDs can be found in the view documentation pages in csysdig. Combine this option with a command line filter for complete output customization.
 

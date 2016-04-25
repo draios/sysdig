@@ -161,7 +161,7 @@ view_info =
 		},
 		{
 			hotkey = "s",
-			command = "docker stats %container.id",
+			command = "docker stop %container.id",
 			description = "docker stop"
 		},
 		{

@@ -193,6 +193,14 @@ static void usage()
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, d for delta between event enter and exit, and\n"
 "                    D for delta from the previous event.\n"
+" -T, --force-tracers-capture\n"
+"                    Tell the driver to make sure full buffers are captured from\n"
+"                    /dev/null, to make sure that tracers are completely\n"
+"                    captured. Note that sysdig will enable extended /dev/null\n"
+"                    capture by itself after detecting that tracers are written\n"
+"                    there, but that could result in the truncation of some\n"
+"                    tracers at the beginning of the capture. This option allows\n"
+"                    preventing that.\n"
 " --unbuffered       Turn off output buffering. This causes every single line\n"
 "                    emitted by sysdig to be flushed, which generates higher CPU\n"
 "                    usage but is useful when piping sysdig's output into another\n"
@@ -718,6 +726,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
+	bool force_tracers_capture = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -760,6 +769,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"timetype", required_argument, 0, 't' },
+		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"unbuffered", no_argument, 0, 0 },
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
@@ -790,7 +800,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:Nn:Pp:qr:Ss:t:v"
+                                        "hi:jk:K:lLm:M:Nn:Pp:qr:Ss:t:Tv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -868,7 +878,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-
 			case 'D':
 				inspector->set_debug_mode(true);
 				inspector->set_log_stderr();
@@ -1068,6 +1077,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_FAILURE);
 					}
 				}
+				break;
+			case 'T':
+				force_tracers_capture = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -1357,9 +1369,20 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->set_get_procs_cpu_from_driver(true);
 			}
 
+			//
+			// If required, set the snaplen
+			//
 			if(snaplen != 0)
 			{
 				inspector->set_snaplen(snaplen);
+			}
+
+			//
+			// If required, tell the driver to enable tracers capture
+			//
+			if(force_tracers_capture)
+			{
+				inspector->enable_tracers_capture();
 			}
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC;
