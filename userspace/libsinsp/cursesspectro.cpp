@@ -20,6 +20,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <signal.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 #ifndef _WIN32
 #include <unistd.h>
 #include <algorithm>
