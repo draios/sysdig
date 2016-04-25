@@ -2103,7 +2103,7 @@ int sysdig_init(void)
 	 * Snaplen lookahead initialization
 	 */
 	if (dpi_lookahead_init() != PPM_SUCCESS) {
-		pr_err("initializing lookahead-based snaplen  %s\n", PROBE_EVENT_DEVICE_NAME);
+		pr_err("initializing lookahead-based snaplen failed\n");
 		ret = -EFAULT;
 		goto init_module_err;
 	}
