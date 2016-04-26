@@ -1262,13 +1262,6 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 16)
 #define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17)
 
-/*!
-  \brief System call description struct.
-*/
-struct ppm_syscall_desc {
-	enum ppm_event_category category; /**< System call category. */
-	char *name; /**< System call name, e.g. 'open'. */
-};
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
