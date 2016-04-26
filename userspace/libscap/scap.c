@@ -891,14 +891,6 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 		return SCAP_FAILURE;
 	}
 
-	struct stat sbuf;
-	if(stat("/dev/null", &sbuf) == -1)
-	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "can't stat /dev/null");
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_ndevs)
 	{
 		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
