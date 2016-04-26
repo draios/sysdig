@@ -660,6 +660,8 @@ captureinfo do_inspect(sinsp* inspector,
 				continue;
 			}
 
+			printf("Event category: %d\n", ev->get_category());
+
 			if(formatter->tostring(ev, &line))
 			{
 				//
