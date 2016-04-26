@@ -901,7 +901,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 
 	if(handle->m_ndevs)
 	{
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERFILE_INODE, sbuf.st_ino))
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 			ASSERT(false);
