@@ -18,6 +18,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "../common/sysdig_types.h"
 #include "../../driver/ppm_events_public.h"
+#include "scap.h"
 
 /*
  * SYSCALL INFO TABLE
