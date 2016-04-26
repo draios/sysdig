@@ -72,6 +72,8 @@ public:
 	vector<sinsp_protodecoder*> m_open_callbacks;
 	vector<sinsp_protodecoder*> m_connect_callbacks;
 
+	ppm_event_flags m_drop_event_flags;
+
 	//
 	// Initializers
 	//
