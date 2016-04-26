@@ -1126,6 +1126,7 @@ enum ppm_event_flags {
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
 	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
 	EF_OLD_VERSION = (1 << 9), /* This event is kept for backward compatibility */
+	EF_DROP_FALCO = (1 << 10) /* This event should not be passed up to Falco */
 };
 
 /*
