@@ -1493,6 +1493,11 @@ void sinsp::set_buffer_format(sinsp_evt::param_fmt format)
 	m_buffer_format = format;
 }
 
+void sinsp::set_drop_event_flags(ppm_event_flags flags)
+{
+	m_parser->m_drop_event_flags = flags;
+}
+
 sinsp_evt::param_fmt sinsp::get_buffer_format()
 {
 	return m_buffer_format;
