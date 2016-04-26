@@ -268,8 +268,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_access - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_ACCESS_E, PPME_SYSCALL_ACCESS_X},
 #endif
 #ifdef __NR_chroot
-	[__NR_chroot - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHROOT_E, PPME_SYSCALL_CHROOT_X}
+	[__NR_chroot - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHROOT_E, PPME_SYSCALL_CHROOT_X},
 #endif
+#ifdef __NR_gettimeofday
+       [__NR_gettimeofday - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SYSCALL_GETTIMEOFDAY_E, PPME_SYSCALL_GETTIMEOFDAY_X}
+#endif
+
 };
 
 /*
