@@ -273,6 +273,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_gettimeofday
        [__NR_gettimeofday - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SYSCALL_GETTIMEOFDAY_E, PPME_SYSCALL_GETTIMEOFDAY_X}
 #endif
+#ifdef __NR_epoll_ctl
+       [__NR_epoll_ctl - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SYSCALL_EPOLL_CTL_E, PPME_SYSCALL_EPOLL_CTL_X}
+#endif
 
 };
 

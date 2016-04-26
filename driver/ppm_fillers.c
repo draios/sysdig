@@ -377,7 +377,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_GETTIMEOFDAY_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETTIMEOFDAY_X] = {f_sys_single_x}
+	[PPME_SYSCALL_GETTIMEOFDAY_X] = {f_sys_single_x},
+	[PPME_SYSCALL_EPOLL_CTL_E] = {f_sys_empty},
+	[PPME_SYSCALL_EPOLL_CTL_X] = {f_sys_single_x}
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))

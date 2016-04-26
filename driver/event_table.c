@@ -297,5 +297,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_CONTAINER_JSON_E */{"container", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_CONTAINER_JSON_X */{"container", EC_INTERNAL, EF_UNUSED, 0},
 	/* PPME_SYSCALL_GETTIMEOFDAY_E */{"gettimeofday", EC_TIME, EF_NONE, 0},
-	/* PPME_SYSCALL_GETTIMEOFDAY_X */{"gettimeofday", EC_TIME, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} }}
+	/* PPME_SYSCALL_GETTIMEOFDAY_X */{"gettimeofday", EC_TIME, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} }},
+	/* PPME_SYSCALL_EPOLL_CTL_E */{"epoll_ctl", EC_OTHER, EF_NONE, 0},
+	/* PPME_SYSCALL_EPOLL_CTL_X */{"epoll_ctl", EC_OTHER, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} }}
 };
