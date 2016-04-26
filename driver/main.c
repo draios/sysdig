@@ -147,7 +147,6 @@ static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
 bool g_tracers_enabled = false;
-unsigned long g_tracerfile_inode = (unsigned long)-1LL;
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -920,10 +919,9 @@ cleanup_ioctl_procinfo:
 		goto cleanup_ioctl;
 	}
 #endif
-	case PPM_IOCTL_SET_TRACERFILE_INODE:
+	case PPM_IOCTL_SET_TRACERS_CAPTURE:
 	{
-		vpr_info("PPM_IOCTL_SET_TRACERFILE_INODE, consumer %p, val=%d\n", consumer_id, (int)arg);
-		g_tracerfile_inode = arg;
+		vpr_info("PPM_IOCTL_SET_TRACERS_CAPTURE, consumer %p\n", consumer_id);
 		g_tracers_enabled = true;
 		ret = 0;
 		goto cleanup_ioctl;
