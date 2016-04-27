@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "protodecoder.h"
+#include "tracers.h"
 
 extern sinsp_evttables g_infotables;
 
@@ -105,6 +106,11 @@ sinsp_threadinfo::~sinsp_threadinfo()
 	if(m_lastevent_data)
 	{
 		free(m_lastevent_data);
+	}
+
+	if(m_tracer_parser)
+	{
+		delete m_tracer_parser;
 	}
 }
 
@@ -258,7 +264,11 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 
 		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
 		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FD;
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
+		}
+		else
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
 		}
 
 		break;

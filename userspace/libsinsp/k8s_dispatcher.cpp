@@ -335,7 +335,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 			}
 			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
 			handle_labels(pod, object["metadata"], "labels");
-			m_state.update_pod(pod, object, false);
+			m_state.update_pod(pod, object);
 		}
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
@@ -352,7 +352,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 			}
 			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
 			handle_labels(pod, object["metadata"], "labels");
-			m_state.update_pod(pod, object, false);
+			m_state.update_pod(pod, object);
 		}
 	}
 	else if(data.m_reason == COMPONENT_DELETED)

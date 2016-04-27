@@ -513,7 +513,7 @@ k8s_node_t::host_ip_list k8s_node_t::extract_addresses(const Json::Value& status
 //
 
 k8s_pod_t::k8s_pod_t(const std::string& name, const std::string& uid, const std::string& ns) :
-	k8s_component(name, uid, ns), m_restart_count(0)
+	k8s_component(name, uid, ns)
 {
 }
 

@@ -159,6 +159,7 @@ static void usage()
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" --list-markdown    like -l, but produces markdown output\n"
 " -m <url[,marathon_url]>, --mesos-api=<url[,marathon_url]>\n"
 "                    Enable Mesos support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:5050\".\n"
@@ -174,6 +175,7 @@ static void usage()
 "                    Specify the format to be used when printing the events.\n"
 "                    With -pc or -pcontainer will use a container-friendly format.\n"
 "                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
+"                    With -pm or -pmesos will use a mesos-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
@@ -191,6 +193,14 @@ static void usage()
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, d for delta between event enter and exit, and\n"
 "                    D for delta from the previous event.\n"
+" -T, --force-tracers-capture\n"
+"                    Tell the driver to make sure full buffers are captured from\n"
+"                    /dev/null, to make sure that tracers are completely\n"
+"                    captured. Note that sysdig will enable extended /dev/null\n"
+"                    capture by itself after detecting that tracers are written\n"
+"                    there, but that could result in the truncation of some\n"
+"                    tracers at the beginning of the capture. This option allows\n"
+"                    preventing that.\n"
 " --unbuffered       Turn off output buffering. This causes every single line\n"
 "                    emitted by sysdig to be flushed, which generates higher CPU\n"
 "                    usage but is useful when piping sysdig's output into another\n"
@@ -239,6 +249,8 @@ static void usage()
 "%%evt.num %%evt.outputtime %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Using -pk or -pkubernetes, the default format will be changed to a kubernetes-friendly one:\n\n"
 "%%evt.num %%evt.outputtime %%evt.cpu %%k8s.pod.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
+"Using -pm or -pmesos, the default format will be changed to a mesos-friendly one:\n\n"
+"%%evt.num %%evt.outputtime %%evt.cpu %%mesos.task.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Examples:\n\n"
 " Capture all the events from the live system and print them to screen\n"
 "   $ sysdig\n\n"
@@ -693,6 +705,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool is_filter_display = false;
 	bool verbose = false;
 	bool list_flds = false;
+	bool list_flds_markdown = false;
 	bool print_progress = false;
 	bool compress = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
@@ -713,6 +726,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
+	bool force_tracers_capture = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -745,6 +759,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
+		{"list-markdown", no_argument, 0, 0 },
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
 		{"progress", required_argument, 0, 'P' },
@@ -754,6 +769,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"timetype", required_argument, 0, 't' },
+		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"unbuffered", no_argument, 0, 0 },
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
@@ -784,7 +800,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:Nn:Pp:qr:Ss:t:v"
+                                        "hi:jk:K:lLm:M:Nn:Pp:qr:Ss:t:Tv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -862,7 +878,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-
 			case 'D':
 				inspector->set_debug_mode(true);
 				inspector->set_log_stderr();
@@ -1008,7 +1023,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else if(string(optarg) == "m" || string(optarg) == "mesos")
 				{
-					output_format = "*%evt.num %evt.outputtime %evt.cpu %mesos.task.id (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+					output_format = "*%evt.num %evt.outputtime %evt.cpu %mesos.task.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
 					// This enables chisels to determine if they should print container information
 					if(inspector != NULL)
@@ -1062,6 +1077,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_FAILURE);
 					}
 				}
+				break;
+			case 'T':
+				force_tracers_capture = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -1130,6 +1148,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			{
 				filter_proclist_flag = true;
 			}
+
+			if(string(long_options[long_index].name) == "list-markdown")
+			{
+				list_flds = true;
+				list_flds_markdown = true;
+			}
 		}
 
 		//
@@ -1173,11 +1197,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// -ll shows the fields verbosely, i.e. with more information
 				// like the type
 				//
-				list_fields(true);
+				list_fields(true, list_flds_markdown);
 			}
 			else
 			{
-				list_fields(false);
+				list_fields(false, list_flds_markdown);
 			}
 
 			res.m_res = EXIT_SUCCESS;
@@ -1345,9 +1369,20 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->set_get_procs_cpu_from_driver(true);
 			}
 
+			//
+			// If required, set the snaplen
+			//
 			if(snaplen != 0)
 			{
 				inspector->set_snaplen(snaplen);
+			}
+
+			//
+			// If required, tell the driver to enable tracers capture
+			//
+			if(force_tracers_capture)
+			{
+				inspector->enable_tracers_capture();
 			}
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC;

@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <time.h>
+#include <math.h>
 #ifndef _WIN32
 #include <algorithm>
 #endif
@@ -32,6 +33,77 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
+
+///////////////////////////////////////////////////////////////////////////////
+// Helper functions
+///////////////////////////////////////////////////////////////////////////////
+int32_t gmt2local(time_t t)
+{
+	int dt, dir;
+	struct tm *gmt, *loc;
+	struct tm sgmt;
+
+	if(t == 0)
+	{
+		t = time(NULL);
+	}
+
+	gmt = &sgmt;
+	*gmt = *gmtime(&t);
+	loc = localtime(&t);
+
+	dt = (loc->tm_hour - gmt->tm_hour) * 60 * 60 + (loc->tm_min - gmt->tm_min) * 60;
+
+	dir = loc->tm_year - gmt->tm_year;
+	if(dir == 0)
+	{
+		dir = loc->tm_yday - gmt->tm_yday;
+	}
+
+	dt += dir * 24 * 60 * 60;
+
+	return dt;
+}
+
+void ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
+{
+	struct tm *tm;
+	time_t Time;
+	uint64_t sec = ts / ONE_SECOND_IN_NS;
+	uint64_t nsec = ts % ONE_SECOND_IN_NS;
+	int32_t thiszone = gmt2local(0);
+	int32_t s = (sec + thiszone) % 86400;
+	int32_t bufsize = 0;
+	char buf[256];
+
+	if(date) 
+	{
+		Time = (sec + thiszone) - s;
+		tm = gmtime (&Time);
+		if(!tm)
+		{
+			bufsize = sprintf(buf, "<date error> ");
+		}
+		else
+		{
+			bufsize = sprintf(buf, "%04d-%02d-%02d ",
+				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
+		}
+	}
+
+	if(ns)
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
+				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
+	}
+	else
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d",
+				s / 3600, (s % 3600) / 60, s % 60);
+	}
+
+	*res = buf;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_fd implementation
@@ -2418,74 +2490,6 @@ const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
 	}
 }
 
-int32_t sinsp_filter_check_event::gmt2local(time_t t)
-{
-	int dt, dir;
-	struct tm *gmt, *loc;
-	struct tm sgmt;
-
-	if(t == 0)
-	{
-		t = time(NULL);
-	}
-
-	gmt = &sgmt;
-	*gmt = *gmtime(&t);
-	loc = localtime(&t);
-
-	dt = (loc->tm_hour - gmt->tm_hour) * 60 * 60 + (loc->tm_min - gmt->tm_min) * 60;
-
-	dir = loc->tm_year - gmt->tm_year;
-	if(dir == 0)
-	{
-		dir = loc->tm_yday - gmt->tm_yday;
-	}
-
-	dt += dir * 24 * 60 * 60;
-
-	return dt;
-}
-
-void sinsp_filter_check_event::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
-{
-	struct tm *tm;
-	time_t Time;
-	uint64_t sec = ts / ONE_SECOND_IN_NS;
-	uint64_t nsec = ts % ONE_SECOND_IN_NS;
-	int32_t thiszone = gmt2local(0);
-	int32_t s = (sec + thiszone) % 86400;
-	int32_t bufsize = 0;
-	char buf[256];
-
-	if(date) 
-	{
-		Time = (sec + thiszone) - s;
-		tm = gmtime (&Time);
-		if(!tm)
-		{
-			bufsize = sprintf(buf, "<date error> ");
-		}
-		else
-		{
-			bufsize = sprintf(buf, "%04d-%02d-%02d ",
-				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
-		}
-	}
-
-	if(ns)
-	{
-		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
-				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
-	}
-	else
-	{
-		sprintf(buf + bufsize, "%02d:%02d:%02d",
-				s / 3600, (s % 3600) / 60, s % 60);
-	}
-
-	*res = buf;
-}
-
 uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 {
 	const sinsp_evt_param* pi = evt->get_param_value_raw(argname);
@@ -3904,28 +3908,32 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 {
-	{PT_INT64, EPF_NONE, PF_ID, "tracer.id", "tracer ID. This is a unique identifier that is used to match the enter and exit event for this tracer. It can also be used to match different tracers belonging to a transaction."},
-	{PT_UINT32, EPF_NONE, PF_DEC, "tracer.ntags", "number of tags that this tracer has."},
-	{PT_UINT32, EPF_NONE, PF_DEC, "tracer.nargs", "number of arguments that this tracer has."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "tracer.tags", "dot-separated list of event tags."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "tracer.tag", "one of the tracer tags specified by offset. E.g. 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.tag[-1]' returns the last tag."},
-	{ PT_CHARBUF, EPF_NONE, PF_NA, "tracer.args", "comma-separated list of event arguments." },
-	{ PT_CHARBUF, EPF_NONE, PF_NA, "tracer.arg", "one of the tracer arguments specified by name or by offset. E.g. 'tracer.tag.mytag' or 'tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'tracer.arg[-1]' returns the last argument." },
-	{ PT_CHARBUF, EPF_NONE, PF_NA, "tracer.enterargs", "comma-separated list of the tracer enter event arguments. For enter events, this is the same as evt.args. For exit events, this is the evt.args of the corresponding enter event." },
-	{ PT_CHARBUF, EPF_NONE, PF_NA, "tracer.enterarg", "one of the tracer enter arguments specified by name or by offset. For enter events, this is the same as evt.arg. For exit events, this is the evt.arg of the corresponding enter event." },
-	{PT_RELTIME, EPF_NONE, PF_DEC, "tracer.latency", "delta between an exit tracer event and the correspondent enter event."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "tracer.latency.quantized", "10-base log of the delta between an exit tracer event and the correspondent enter event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "tracer.latency.human", "delta between an exit tracer event and the correspondent enter event, as a human readable string (e.g. 10.3ms)."},
-	{PT_RELTIME, EPF_TABLE_ONLY, PF_DEC, "tracer.latency.fortag", "Latency of the tracer if the number of tags matches the field argument, otherwise 0. For example, tracer.latency.fortag[1] returns the latency of all the tracers with 1 tag, and zero for all the other ones."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "tracer.count", "1 for tracer exit events."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "tracer.count.fortag", "1 if the tracer's number of tags matches the field argument, and zero for all the other ones."},
-	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "tracer.childcount.fortag", "1 if the tracer's number of tags is greater than the field argument, and zero for all the other ones."},
-	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "tracer.idtag", "id used by the tracer list csysdig view."},
+	{PT_INT64, EPF_NONE, PF_ID, "span.id", "ID of the span. This is a unique identifier that is used to match the enter and exit tracer events for this span. It can also be used to match different spans belonging to a trace."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.time", "time of the span's enter tracer as a human readable string that includes the nanosecond part."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "span.ntags", "number of tags that this span has."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "span.nargs", "number of arguments that this span has."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.tags", "dot-separated list of all of the span's tags."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.tag", "one of the span's tags, specified by 0-based offset, e.g. 'span.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'span.tag[-1]' returns the last tag."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.args", "comma-separated list of the span's arguments." },
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.arg", "one of the span arguments, specified by name or by 0-based offset. E.g. 'span.arg.xxx' or 'span.arg[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'span.arg[-1]' returns the last argument." },
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.enterargs", "comma-separated list of the span's enter tracer event arguments. For enter tracers, this is the same as evt.args. For exit tracers, this is the evt.args of the corresponding enter tracer." },
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.enterarg", "one of the span's enter arguments, specified by name or by 0-based offset. For enter tracer events, this is the same as evt.arg. For exit tracer events, this is the evt.arg of the corresponding enter event." },
+	{PT_RELTIME, EPF_NONE, PF_DEC, "span.duration", "delta between this span's exit tracer event and the enter tracer event."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.duration.quantized", "10-base log of the delta between an exit tracer event and the correspondent enter event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "span.duration.human", "delta between this span's exit tracer event and the enter event, as a human readable string (e.g. 10.3ms)."},
+	{PT_RELTIME, EPF_TABLE_ONLY, PF_DEC, "span.duration.fortag", "duration of the span if the number of tags matches the field argument, otherwise 0. For example, span.duration.fortag[1] returns the duration of all the spans with 1 tag, and zero for all the other ones."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.count", "1 for span exit events."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.count.fortag", "1 if the span's number of tags matches the field argument, and zero for all the other ones."},
+	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.childcount.fortag", "1 if the span's number of tags is greater than the field argument, and zero for all the other ones."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.idtag", "id used by the span list csysdig view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.rawtime", "id used by the span list csysdig view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.rawparenttime", "id used by the span list csysdig view."},
 };
 
 sinsp_filter_check_tracer::sinsp_filter_check_tracer()
 {
-	m_info.m_name = "tracer";
+	m_storage = NULL;
+	m_info.m_name = "span";
 	m_info.m_fields = sinsp_filter_check_tracer_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_tracer_fields) / sizeof(sinsp_filter_check_tracer_fields[0]);
 	m_converter = new sinsp_filter_check_reference();
@@ -3945,6 +3953,11 @@ sinsp_filter_check_tracer::~sinsp_filter_check_tracer()
 	if(m_converter != NULL)
 	{
 		delete m_converter;
+	}
+
+	if(m_storage != NULL)
+	{
+		free(m_storage);
 	}
 }
 
@@ -3974,13 +3987,13 @@ int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT c
 	}
 	else if(val[fldname.size()] == '.')
 	{
-		if(fldname == "tracer.tag")
+		if(fldname == "span.tag")
 		{
-			throw sinsp_exception("invalid syntax for tracer.tag");
+			throw sinsp_exception("invalid syntax for span.tag");
 		}
-		else if(fldname == "tracer.idtag")
+		else if(fldname == "span.idtag")
 		{
-			throw sinsp_exception("invalid syntax for tracer.idtag");
+			throw sinsp_exception("invalid syntax for span.idtag");
 		}
 
 		m_argname = val.substr(fldname.size() + 1);
@@ -4004,81 +4017,85 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 	//
 	// A couple of fields are handled in a custom way
 	//
-	if(string(val, 0, sizeof("tracer.tag") - 1) == "tracer.tag" &&
-		string(val, 0, sizeof("tracer.tags") - 1) != "tracer.tags")
+	if(string(val, 0, sizeof("span.tag") - 1) == "span.tag" &&
+		string(val, 0, sizeof("span.tags") - 1) != "span.tags")
 	{
 		m_field_id = TYPE_TAG;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("tracer.tag", val, NULL);
+		res = extract_arg("span.tag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("tracer.arg") - 1) == "tracer.arg" &&
-		string(val, 0, sizeof("tracer.args") - 1) != "tracer.args")
+	else if(string(val, 0, sizeof("span.arg") - 1) == "span.arg" &&
+		string(val, 0, sizeof("span.args") - 1) != "span.args")
 	{
 		m_field_id = TYPE_ARG;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("tracer.arg", val, NULL);
+		res = extract_arg("span.arg", val, NULL);
 	}
-	else if(string(val, 0, sizeof("tracer.enterarg") - 1) == "tracer.enterarg" &&
-		string(val, 0, sizeof("tracer.enterargs") - 1) != "tracer.enterargs")
+	else if(string(val, 0, sizeof("span.enterarg") - 1) == "span.enterarg" &&
+		string(val, 0, sizeof("span.enterargs") - 1) != "span.enterargs")
 	{
 		m_field_id = TYPE_ENTERARG;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("tracer.enterarg", val, NULL);
+		res = extract_arg("span.enterarg", val, NULL);
 	}
-	else if(string(val, 0, sizeof("tracer.latency.fortag") - 1) == "tracer.latency.fortag")
+	else if(string(val, 0, sizeof("span.duration.fortag") - 1) == "span.duration.fortag")
 	{
-		m_field_id = TYPE_TAGLATENCY;
+		m_field_id = TYPE_TAGDURATION;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("tracer.latency.fortag", val, NULL);
+		res = extract_arg("span.duration.fortag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("tracer.count.fortag") - 1) == "tracer.count.fortag")
+	else if(string(val, 0, sizeof("span.count.fortag") - 1) == "span.count.fortag")
 	{
 		m_field_id = TYPE_TAGCOUNT;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("tracer.count.fortag", val, NULL);
+		res = extract_arg("span.count.fortag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("tracer.childcount.fortag") - 1) == "tracer.childcount.fortag")
+	else if(string(val, 0, sizeof("span.childcount.fortag") - 1) == "span.childcount.fortag")
 	{
 		m_field_id = TYPE_TAGCHILDSCOUNT;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("tracer.childcount.fortag", val, NULL);
+		res = extract_arg("span.childcount.fortag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("tracer.idtag") - 1) == "tracer.idtag")
+	else if(string(val, 0, sizeof("span.idtag") - 1) == "span.idtag")
 	{
 		m_field_id = TYPE_IDTAG;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg("tracer.idtag", val, NULL);
+		res = extract_arg("span.idtag", val, NULL);
 	}
 	else
 	{
 		res = sinsp_filter_check::parse_field_name(str, alloc_state);
 	}
 
-	if(m_field_id == TYPE_LATENCY ||
-		m_field_id == TYPE_LATENCY_QUANTIZED ||
-		m_field_id == TYPE_LATENCY_HUMAN ||
-		m_field_id == TYPE_TAGLATENCY ||
+	if(m_field_id == TYPE_DURATION ||
+		m_field_id == TYPE_DURATION_QUANTIZED ||
+		m_field_id == TYPE_DURATION_HUMAN ||
+		m_field_id == TYPE_TAGDURATION ||
 		m_field_id == TYPE_ARG ||
 		m_field_id == TYPE_ARGS ||
 		m_field_id == TYPE_ENTERARG ||
 		m_field_id == TYPE_ENTERARGS ||
-		m_field_id == TYPE_IDTAG
+		m_field_id == TYPE_IDTAG ||
+		m_field_id == TYPE_TIME ||
+		m_field_id == TYPE_RAWTIME ||
+		m_field_id == TYPE_RAWPARENTTIME
 		)
 	{
 		m_inspector->request_tracer_state_tracking();
+		m_needs_state_tracking = true;
 	}
 
 	return res;
 }
 
-int64_t* sinsp_filter_check_tracer::extract_latency(uint16_t etype, sinsp_tracerparser* eparser)
+int64_t* sinsp_filter_check_tracer::extract_duration(uint16_t etype, sinsp_tracerparser* eparser)
 {
 	if(etype == PPME_TRACER_X)
 	{
@@ -4165,7 +4182,7 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 	if(m_argid == TEXT_ARG_ID)
 	{
 		//
-		// Argument expressed as name, e.g. tracer.arg.name.
+		// Argument expressed as name, e.g. span.arg.name.
 		// Scan the argname list and find the match.
 		//
 		uint32_t j;
@@ -4182,7 +4199,7 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 	else
 	{
 		//
-		// Argument expressed as id, e.g. tracer.arg[1].
+		// Argument expressed as id, e.g. span.arg[1].
 		// Pick the corresponding value.
 		//
 		if(m_argid >= 0)
@@ -4223,16 +4240,27 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 	}
 
 	eparser = tinfo->m_tracer_parser;
-
 	if(eparser == NULL)
 	{
 		return NULL;
+	}
+	else
+	{
+		if(m_needs_state_tracking && eparser->m_enter_pae == NULL)
+		{
+			return NULL;
+		}
 	}
 
 	switch(m_field_id)
 	{
 	case TYPE_ID:
 		return (uint8_t*)&eparser->m_id;
+	case TYPE_TIME:
+		{
+			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+			return (uint8_t*)m_strstorage.c_str();
+		}
 	case TYPE_NTAGS:
 		m_u32val = (uint32_t)eparser->m_tags.size();
 		return (uint8_t*)&m_u32val;
@@ -4350,11 +4378,11 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return extract_args(eparser->m_enter_pae);
 	case TYPE_ENTERARG:
 		return extract_arg(eparser->m_enter_pae);
-	case TYPE_LATENCY:
-		return (uint8_t*)extract_latency(etype, eparser);
-	case TYPE_LATENCY_HUMAN:
+	case TYPE_DURATION:
+		return (uint8_t*)extract_duration(etype, eparser);
+	case TYPE_DURATION_HUMAN:
 		{
-			if(extract_latency(etype, eparser) == NULL)
+			if(extract_duration(etype, eparser) == NULL)
 			{
 				return NULL;
 			}
@@ -4371,9 +4399,9 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return (uint8_t*)m_strstorage.c_str();
 		}
-	case TYPE_LATENCY_QUANTIZED:
+	case TYPE_DURATION_QUANTIZED:
 		{
-			if(extract_latency(etype, eparser) == NULL)
+			if(extract_duration(etype, eparser) == NULL)
 			{				
 				return NULL;
 			}
@@ -4382,14 +4410,14 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 				uint64_t lat = m_s64val;
 				if(lat != 0)
 				{
-					double llatency = log10((double)lat);
+					double lduration = log10((double)lat);
 
-					if(llatency > 11)
+					if(lduration > 11)
 					{
-						llatency = 11;
+						lduration = 11;
 					}
 
-					m_s64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
+					m_s64val = (uint64_t)(lduration * g_csysdig_screen_w / 11) + 1;
 
 					return (uint8_t*)&m_s64val;
 				}
@@ -4397,10 +4425,10 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			return NULL;
 		}
-	case TYPE_TAGLATENCY:
+	case TYPE_TAGDURATION:
 		if((int32_t)eparser->m_tags.size() - 1 == m_argid)
 		{
-			return (uint8_t*)extract_latency(etype, eparser);
+			return (uint8_t*)extract_duration(etype, eparser);
 		}
 		else
 		{
@@ -4439,6 +4467,23 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		return (uint8_t*)&m_s64val;
+	case TYPE_RAWTIME:
+		{
+			m_strstorage = to_string(eparser->m_enter_pae->m_time);
+			return (uint8_t*)m_strstorage.c_str();
+		}
+	case TYPE_RAWPARENTTIME:
+		{
+			sinsp_partial_tracer* pepae = eparser->find_parent_enter_pae();
+
+			if(pepae == NULL)
+			{
+				return NULL;
+			}
+
+			m_strstorage = to_string(pepae->m_time);
+			return (uint8_t*)m_strstorage.c_str();
+		}
 	default:
 		ASSERT(false);
 		break;
@@ -4450,44 +4495,44 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_tracer implementation
 ///////////////////////////////////////////////////////////////////////////////
-const filtercheck_field_info sinsp_filter_check_evtin_tracer_fields[] =
+const filtercheck_field_info sinsp_filter_check_evtin_fields[] =
 {
-	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.tracer.id", "the ID of the tracer containing the event." },
-	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.ntags", "the number of tags of the tracer containing the event." },
-	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.nargs", "the number of arguments of the tracer containing the event." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.tags", "the comma-separated list of tags of the tracer containing the event." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.tag", "one of the tags of the tracer containing the event, specified by offset. E.g. 'evtin.tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'evtin.tracer.tag[-1]' returns the last tag." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.args", "the full list of arguments of the tracer containing the event." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.arg", "one of the arguments of the tracer containing the event, specified by name or by offset. E.g. 'evtin.tracer.tag.mytag' or 'evtin.tracer.tag[1]'. You can use a negative offset to pick elements from the end of the tag list. For example, 'evtin.tracer.arg[-1]' returns the last argument." },
-	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.tracer.t.id", "same as evtin.tracer.id, but accepts only the events generated by the thread that produced the matching tracer." },
-	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.t.ntags", "same as evtin.tracer.ntags, but accepts only the events generated by the thread that produced the matching tracer." },
-	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.t.nargs", "same as evtin.tracer.nargs, but accepts only the events generated by the thread that produced the matching tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.t.tags", "same as evtin.tracer.tags, but accepts only the events generated by the thread that produced the matching tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.t.tag", "same as evtin.tracer.tag, but accepts only the events generated by the thread that produced the matching tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.t.args", "same as evtin.tracer.args, but accepts only the events generated by the thread that produced the matching tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.t.arg", "same as evtin.tracer.arg, but accepts only the events generated by the thread that produced the matching tracer." },
-	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.tracer.p.id", "same as evtin.tracer.id, but accepts only the events generated by the process that produced the matching tracer." },
-	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.p.ntags", "same as evtin.tracer.ntags, but accepts only the events generated by the process that produced the matching tracer." },
-	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.p.nargs", "same as evtin.tracer.nargs, but accepts only the events generated by the process that produced the matching tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.p.tags", "same as evtin.tracer.tags, but accepts only the events generated by the process that produced the matching tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.p.tag", "same as evtin.tracer.tag, but accepts only the events generated by the process that produced the matching tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.p.args", "same as evtin.tracer.args, but accepts only the events generated by the process that produced the matching tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.p.arg", "same as evtin.tracer.arg, but accepts only the events generated by the process that produced the matching tracer." },
-	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.tracer.s.id", "same as evtin.tracer.id, but accepts only the events generated by the script that produced the matching tracer, i.e. by the processes whose parent PID is the one of the tracer." },
-	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.s.ntags", "same as evtin.tracer.id, but accepts only the events generated by the script that produced the matching tracer, i.e. by the processes whose parent PID is the one of the tracer." },
-	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.tracer.s.nargs", "same as evtin.tracer.id, but accepts only the events generated by the script that produced the matching tracer, i.e. by the processes whose parent PID is the one of the tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.s.tags", "same as evtin.tracer.id, but accepts only the events generated by the script that produced the matching tracer, i.e. by the processes whose parent PID is the one of the tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.s.tag", "same as evtin.tracer.id, but accepts only the events generated by the script that produced the matching tracer, i.e. by the processes whose parent PID is the one of the tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.s.args", "same as evtin.tracer.id, but accepts only the events generated by the script that produced the matching tracer, i.e. by the processes whose parent PID is the one of the tracer." },
-	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.tracer.s.arg", "same as evtin.tracer.id, but accepts only the events generated by the script that produced the matching tracer, i.e. by the processes whose parent PID is the one of the tracer." },
+	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.span.id", "accepts all the events that are between the enter and exit tracers of the spans with the given ID and are generated by the same thread that generated the tracers." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.span.ntags", "accepts all the events that are between the enter and exit tracers of the spans with the given number of tags and are generated by the same thread that generated the tracers." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.span.nargs", "accepts all the events that are between the enter and exit tracers of the spans with the given number of arguments and are generated by the same thread that generated the tracers." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.tags", "accepts all the events that are between the enter and exit tracers of the spans with the given tags and are generated by the same thread that generated the tracers." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.tag", "accepts all the events that are between the enter and exit tracers of the spans with the given tag and are generated by the same thread that generated the tracers. See the description of span.tag for information about the syntax accepted by this field." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.args", "accepts all the events that are between the enter and exit tracers of the spans with the given arguments and are generated by the same thread that generated the tracers." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.arg", "accepts all the events that are between the enter and exit tracers of the spans with the given argument and are generated by the same thread that generated the tracers. See the description of span.arg for information about the syntax accepted by this field." },
+	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.span.p.id", "same as evtin.span.id, but also accepts events generated by other threads in the same process that produced the span." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.span.p.ntags", "same as evtin.span.ntags, but also accepts events generated by other threads in the same process that produced the span." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.span.p.nargs", "same as evtin.span.nargs, but also accepts events generated by other threads in the same process that produced the span." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.p.tags", "same as evtin.span.tags, but also accepts events generated by other threads in the same process that produced the span." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.p.tag", "same as evtin.span.tag, but also accepts events generated by other threads in the same process that produced the span." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.p.args", "same as evtin.span.args, but also accepts events generated by other threads in the same process that produced the span." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.p.arg", "same as evtin.span.arg, but also accepts events generated by other threads in the same process that produced the span." },
+	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.span.s.id", "same as evtin.span.id, but also accepts events generated by the script that produced the span, i.e. by the processes whose parent PID is the same as the one of the process generating the span." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.span.s.ntags", "same as evtin.span.id, but also accepts events generated by the script that produced the span, i.e. by the processes whose parent PID is the same as the one of the process generating the span." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.span.s.nargs", "same as evtin.span.id, but also accepts events generated by the script that produced the span, i.e. by the processes whose parent PID is the same as the one of the process generating the span." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.s.tags", "same as evtin.span.id, but also accepts events generated by the script that produced the span, i.e. by the processes whose parent PID is the same as the one of the process generating the span." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.s.tag", "same as evtin.span.id, but also accepts events generated by the script that produced the span, i.e. by the processes whose parent PID is the same as the one of the process generating the span." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.s.args", "same as evtin.span.id, but also accepts events generated by the script that produced the span, i.e. by the processes whose parent PID is the same as the one of the process generating the span." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.s.arg", "same as evtin.span.id, but also accepts events generated by the script that produced the span, i.e. by the processes whose parent PID is the same as the one of the process generating the span." },
+	{ PT_INT64, EPF_FILTER_ONLY, PF_ID, "evtin.span.m.id", "same as evtin.span.id, but accepts all the events generated on the machine during the span, including other threads and other processes." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.span.m.ntags", "same as evtin.span.id, but accepts all the events generated on the machine during the span, including other threads and other processes." },
+	{ PT_UINT32, EPF_FILTER_ONLY, PF_DEC, "evtin.span.m.nargs", "same as evtin.span.id, but accepts all the events generated on the machine during the span, including other threads and other processes." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.m.tags", "same as evtin.span.id, but accepts all the events generated on the machine during the span, including other threads and other processes." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.m.tag", "same as evtin.span.id, but accepts all the events generated on the machine during the span, including other threads and other processes." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.m.args", "same as evtin.span.id, but accepts all the events generated on the machine during the span, including other threads and other processes." },
+	{ PT_CHARBUF, EPF_FILTER_ONLY, PF_NA, "evtin.span.m.arg", "same as evtin.span.id, but accepts all the events generated on the machine during the span, including other threads and other processes." },
 };
 
-sinsp_filter_check_evtin_tracer::sinsp_filter_check_evtin_tracer()
+sinsp_filter_check_evtin::sinsp_filter_check_evtin()
 {
 	m_is_compare = false;
-	m_info.m_name = "evt";
-	m_info.m_fields = sinsp_filter_check_evtin_tracer_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_evtin_tracer_fields) / sizeof(sinsp_filter_check_evtin_tracer_fields[0]);
+	m_info.m_name = "evtin";
+	m_info.m_fields = sinsp_filter_check_evtin_fields;
+	m_info.m_nfields = sizeof(sinsp_filter_check_evtin_fields) / sizeof(sinsp_filter_check_evtin_fields[0]);
 	m_u64val = 0;
 	m_converter = new sinsp_filter_check_reference();
 
@@ -4495,13 +4540,13 @@ sinsp_filter_check_evtin_tracer::sinsp_filter_check_evtin_tracer()
 	m_storage = (char*)malloc(m_storage_size);
 	if(m_storage == NULL)
 	{
-		throw sinsp_exception("memory allocation error in sinsp_filter_check_appevt::sinsp_filter_check_evtin_tracer");
+		throw sinsp_exception("memory allocation error in sinsp_filter_check_appevt::sinsp_filter_check_evtin");
 	}
 
 	m_cargname = NULL;
 }
 
-sinsp_filter_check_evtin_tracer::~sinsp_filter_check_evtin_tracer()
+sinsp_filter_check_evtin::~sinsp_filter_check_evtin()
 {
 	if(m_storage != NULL)
 	{
@@ -4514,40 +4559,155 @@ sinsp_filter_check_evtin_tracer::~sinsp_filter_check_evtin_tracer()
 	}
 }
 
-int32_t sinsp_filter_check_evtin_tracer::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 {
+	uint32_t parsed_len = 0;
+
+	//
+	// 'arg' and 'resarg' are handled in a custom way
+	//
+	if(val[fldname.size()] == '[')
+	{
+		parsed_len = (uint32_t)val.find(']');
+		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+
+		m_argid = sinsp_numparser::parsed32(numstr);
+
+		parsed_len++;
+	}
+	else if(val[fldname.size()] == '.')
+	{
+		const struct ppm_param_info* pi = 
+			sinsp_utils::find_longest_matching_evt_param(val.substr(fldname.size() + 1));
+
+		if(pi == NULL)
+		{
+			throw sinsp_exception("unknown event argument " + val.substr(fldname.size() + 1));
+		}
+
+		m_argname = pi->name;
+		parsed_len = (uint32_t)(fldname.size() + strlen(pi->name) + 1);
+		m_argid = -1;
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len; 
+}
+
+int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_state)
+{
+	int32_t res;
+	string val(str);
+
+	//
+	// All of the fields require state tracking
+	//
 	m_inspector->request_tracer_state_tracking();
-	return sinsp_filter_check::parse_field_name(str, alloc_state);
+
+	//
+	// A couple of fields are handled in a custom way
+	//
+	if(string(val, 0, sizeof("evtin.span.tag") - 1) == "evtin.span.tag" &&
+		string(val, 0, sizeof("evtin.span.tags") - 1) != "evtin.span.tags")
+	{
+		m_field_id = TYPE_TAG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("evtin.span.tag", val);
+	}
+	else if(string(val, 0, sizeof("evtin.span.arg") - 1) == "evtin.span.arg" &&
+		string(val, 0, sizeof("evtin.span.args") - 1) != "evtin.span.args")
+	{
+		m_field_id = TYPE_ARG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("evtin.span.arg", val);
+	}
+	else if(string(val, 0, sizeof("evtin.span.p.tag") - 1) == "evtin.span.p.tag" &&
+		string(val, 0, sizeof("evtin.span.p.tags") - 1) != "evtin.span.p.tags")
+	{
+		m_field_id = TYPE_P_TAG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("evtin.span.p.tag", val);
+	}
+	else if(string(val, 0, sizeof("evtin.span.p.arg") - 1) == "evtin.span.p.arg" &&
+		string(val, 0, sizeof("evtin.span.p.args") - 1) != "evtin.span.p.args")
+	{
+		m_field_id = TYPE_P_ARG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("evtin.span.p.arg", val);
+	}
+	else if(string(val, 0, sizeof("evtin.span.s.tag") - 1) == "evtin.span.s.tag" &&
+		string(val, 0, sizeof("evtin.span.s.tags") - 1) != "evtin.span.s.tags")
+	{
+		m_field_id = TYPE_S_TAG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("evtin.span.s.tag", val);
+	}
+	else if(string(val, 0, sizeof("evtin.span.s.arg") - 1) == "evtin.span.s.arg" &&
+		string(val, 0, sizeof("evtin.span.s.args") - 1) != "evtin.span.s.args")
+	{
+		m_field_id = TYPE_S_ARG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("evtin.span.s.arg", val);
+	}
+	else if(string(val, 0, sizeof("evtin.span.m.tag") - 1) == "evtin.span.m.tag" &&
+		string(val, 0, sizeof("evtin.span.m.tags") - 1) != "evtin.span.m.tags")
+	{
+		m_field_id = TYPE_M_TAG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("evtin.span.m.tag", val);
+	}
+	else if(string(val, 0, sizeof("evtin.span.m.arg") - 1) == "evtin.span.m.arg" &&
+		string(val, 0, sizeof("evtin.span.m.args") - 1) != "evtin.span.m.args")
+	{
+		m_field_id = TYPE_M_ARG;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg("evtin.span.m.arg", val);
+	}
+	else
+	{
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+	}
+
+	return res;
 }
 
-sinsp_filter_check* sinsp_filter_check_evtin_tracer::allocate_new()
+sinsp_filter_check* sinsp_filter_check_evtin::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_evtin_tracer();
+	return (sinsp_filter_check*) new sinsp_filter_check_evtin();
 }
 
-uint8_t* sinsp_filter_check_evtin_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	return NULL;
 }
 
-inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae)
+inline bool sinsp_filter_check_evtin::compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae)
 {
 	ASSERT(pae);
 	uint32_t field_id = m_field_id;
 
-	if(field_id >= TYPE_TRACER_T_ID && field_id <= TYPE_TRACER_T_ARG)
+	if(field_id >= TYPE_ID && field_id <= TYPE_ARG)
 	{
 		//
-		// If this is a *.t.* field, reject anything that doesn't come from the same thread
+		// If this is a thread-related field, reject anything that doesn't come from the same thread
 		//
 		if(static_cast<int64_t>(pae->m_tid) != evt->get_thread_info()->m_tid)
 		{
 			return false;
 		}
-
-		field_id -= TYPE_TRACER_T_ID;
 	}
-	else if(field_id >= TYPE_TRACER_P_ID && field_id <= TYPE_TRACER_P_ARG)
+	else if(field_id >= TYPE_P_ID && field_id <= TYPE_P_ARG)
 	{
 		//
 		// If this is a *.p.* field, reject anything that doesn't come from the same process
@@ -4566,9 +4726,9 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 			return false;
 		}
 
-		field_id -= TYPE_TRACER_P_ID;
+		field_id -= TYPE_P_ID;
 	}
-	else if(field_id >= TYPE_TRACER_S_ID && field_id <= TYPE_TRACER_S_ARG)
+	else if(field_id >= TYPE_S_ID && field_id <= TYPE_S_ARG)
 	{
 		//
 		// If this is a *.p.* field, reject anything that doesn't share the same parent
@@ -4587,12 +4747,16 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 			return false;
 		}
 
-		field_id -= TYPE_TRACER_S_ID;
+		field_id -= TYPE_S_ID;
+	}
+	else
+	{
+		field_id -= TYPE_M_ID;
 	}
 
 	switch(field_id)
 	{
-	case TYPE_TRACER_ID:
+	case TYPE_ID:
 		if(flt_compare(m_cmpop, PT_UINT64,
 			&pae->m_id) == true)
 		{
@@ -4602,7 +4766,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		{
 			return false;
 		}
-	case TYPE_TRACER_NTAGS:
+	case TYPE_NTAGS:
 		m_u32val = (uint32_t)pae->m_tags.size();
 
 		if(flt_compare(m_cmpop, PT_UINT32,
@@ -4614,7 +4778,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		{
 			return false;
 		}
-	case TYPE_TRACER_NARGS:
+	case TYPE_NARGS:
 		m_u32val = (uint32_t)pae->m_argvals.size();
 
 		if(flt_compare(m_cmpop, PT_UINT32,
@@ -4626,7 +4790,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		{
 			return false;
 		}
-	case TYPE_TRACER_TAGS:
+	case TYPE_TAGS:
 	{
 		vector<char*>::iterator it;
 		vector<uint32_t>::iterator sit;
@@ -4668,7 +4832,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 			return false;
 		}
 	}
-	case TYPE_TRACER_TAG:
+	case TYPE_TAG:
 	{
 		char* val = NULL;
 
@@ -4704,7 +4868,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 			return false;
 		}
 	}
-	case TYPE_TRACER_ARGS:
+	case TYPE_ARGS:
 	{
 		vector<char*>::iterator nameit;
 		vector<char*>::iterator valit;
@@ -4756,14 +4920,14 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 			return false;
 		}
 	}
-	case TYPE_TRACER_ARG:
+	case TYPE_ARG:
 	{
 		char* val = NULL;
 
 		if(m_argid == TEXT_ARG_ID)
 		{
 			//
-			// Argument expressed as name, e.g. evtin.tracer.arg.name.
+			// Argument expressed as name, e.g. evtin.span.arg.name.
 			// Scan the argname list and find the match.
 			//
 			uint32_t j;
@@ -4780,7 +4944,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 		else
 		{
 			//
-			// Argument expressed as id, e.g. evtin.tracer.arg[1].
+			// Argument expressed as id, e.g. evtin.span.arg[1].
 			// Pick the corresponding value.
 			//
 			if(m_argid >= 0)
@@ -4824,7 +4988,7 @@ inline bool sinsp_filter_check_evtin_tracer::compare_tracer(sinsp_evt *evt, sins
 	return false;
 }
 
-bool sinsp_filter_check_evtin_tracer::compare(sinsp_evt *evt)
+bool sinsp_filter_check_evtin::compare(sinsp_evt *evt)
 {
 	bool res;
 
@@ -4848,6 +5012,12 @@ bool sinsp_filter_check_evtin_tracer::compare(sinsp_evt *evt)
 	{
 		if(compare_tracer(evt, *it) == true)
 		{
+			if(etype == PPME_TRACER_E && *it == tinfo->m_tracer_parser->m_enter_pae)
+			{
+				res = false;
+				goto fcec_end;
+			}
+
 			res = true;
 			goto fcec_end;
 		}
@@ -6209,46 +6379,55 @@ int32_t sinsp_filter_check_mesos::extract_arg(const string& fldname, const strin
 mesos_task::ptr_t sinsp_filter_check_mesos::find_task_for_thread(const sinsp_threadinfo* tinfo)
 {
 	ASSERT(m_inspector && tinfo);
-	if(tinfo->m_container_id.empty())
+	if(tinfo)
 	{
-		return NULL;
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+
+		if(m_inspector && m_inspector->m_mesos_client)
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found || container_info.m_mesos_task_id.empty())
+			{
+				return NULL;
+			}
+			const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
+			return mesos_state.get_task(container_info.m_mesos_task_id);
+		}
 	}
 
-	sinsp_container_info container_info;
-	bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-	if(!found || container_info.m_mesos_task_id.empty())
-	{
-		return NULL;
-	}
-
-	const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
-	return mesos_state.get_task(container_info.m_mesos_task_id);
+	return NULL;
 }
 
 const mesos_framework* sinsp_filter_check_mesos::find_framework_by_task(mesos_task::ptr_t task)
 {
-	ASSERT(m_inspector && m_inspector->m_mesos_client);
-	const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
-	for(const auto& framework : mesos_state.get_frameworks())
+	if(task && m_inspector && m_inspector->m_mesos_client)
 	{
-		if(framework.has_task(task->get_uid()))
-		{
-			return &framework;
-		}
+		const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
+		return mesos_state.get_framework_for_task(task->get_uid());
 	}
-	return 0;
+	return NULL;
 }
 
 marathon_app::ptr_t sinsp_filter_check_mesos::find_app_by_task(mesos_task::ptr_t task)
 {
-	ASSERT(m_inspector && m_inspector->m_mesos_client);
-	return m_inspector->m_mesos_client->get_state().get_app(task);
+	if(m_inspector && m_inspector->m_mesos_client)
+	{
+		return m_inspector->m_mesos_client->get_state().get_app(task);
+	}
+	return NULL;
 }
 
 marathon_group::ptr_t sinsp_filter_check_mesos::find_group_by_task(mesos_task::ptr_t task)
 {
-	ASSERT(m_inspector && m_inspector->m_mesos_client);
-	return m_inspector->m_mesos_client->get_state().get_group(task);
+	if(m_inspector && m_inspector->m_mesos_client)
+	{
+		return m_inspector->m_mesos_client->get_state().get_group(task);
+	}
+	return NULL;
 }
 
 void sinsp_filter_check_mesos::concatenate_labels(const mesos_pair_list& labels, string* s)

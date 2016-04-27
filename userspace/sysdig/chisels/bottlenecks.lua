@@ -66,7 +66,7 @@ function on_event()
 			evt.field(fevtargs))
 		
 		last_lines[tid] = line
-	else
+	elseif latency ~= nil then
 		for j = 1, HOW_MANY do
 			if slow_calls[j] == nil or latency > slow_calls[j][1] then
 				prname = evt.field(fprname)

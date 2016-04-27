@@ -58,6 +58,21 @@ string sinsp_view_column_info::get_field(uint32_t depth)
 	}
 }
 
+string sinsp_view_column_info::get_filter_field(uint32_t depth)
+{
+	//
+	// If m_filterfield, return it as an override to m_field
+	//
+	if(m_filterfield != "")
+	{
+		return m_filterfield;
+	}
+	else
+	{
+		return get_field(depth);
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_view_info implementation
 ///////////////////////////////////////////////////////////////////////////////

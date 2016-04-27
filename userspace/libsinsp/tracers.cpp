@@ -53,18 +53,18 @@ void sinsp_tracerparser::set_storage_size(uint32_t newsize)
 sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *data, uint32_t datalen, uint64_t ts)
 {
 	ASSERT(data != NULL);
-	uint32_t storlen = m_fragment_size + datalen;
+	m_storlen = m_fragment_size + datalen;
 
 	//
 	// Make sure we have enough space in the buffer and copy the data into it
 	//
-	if(m_storage_size < storlen + 1)
+	if(m_storage_size < m_storlen + 1)
 	{
-		set_storage_size(storlen + 1);
+		set_storage_size(m_storlen + 1);
 	}
 
 	memcpy(m_storage + m_fragment_size, data, datalen);
-	m_storage[storlen] = 0;
+	m_storage[m_storlen] = 0;
 
 	if(m_fragment_size != 0)
 	{
@@ -74,7 +74,7 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 	//
 	// Do the parsing
 	//
-	if(storlen > 0)
+	if(m_storlen > 0)
 	{
 		//
 		// Reset the content
@@ -92,11 +92,11 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 
 		if(m_storage[0] == '>' || m_storage[0] == '<')
 		{
-			parse_simple(m_storage, storlen);
+			parse_simple(m_storage);
 		}
 		else
 		{
-			parse(m_storage, storlen);
+			parse_json(m_storage);
 		}
 	}
 	else
@@ -218,12 +218,12 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 
 				//
 				// This is a bit tricky and deserves some explanation:
-				// despite removing the pae and retunring it to the available pool,
+				// despite removing the pae and returning it to the available pool,
 				// we link to it so that the filters will use it. We do that as an
 				// optimization (it avoids making a copy or implementing logic for 
 				// delayed list removal), and we base it on the assumption that,
 				// since the processing is strictly sequential and single thread,
-				// nobody will modify the event until the event is fully processed.
+				// nobody will modify the pae until the event is fully processed.
 				//
 				m_enter_pae = *it;
 
@@ -239,7 +239,41 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 	return sinsp_tracerparser::RES_OK;
 }
 
-inline void sinsp_tracerparser::parse(char* evtstr, uint32_t evtstrlen)
+sinsp_partial_tracer* sinsp_tracerparser::find_parent_enter_pae()
+{
+	list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
+	list<sinsp_partial_tracer*>::iterator it;
+
+	char* tse = m_enter_pae->m_tags_storage + m_tot_taglens;
+	if(*tse == 0 && tse > m_enter_pae->m_tags_storage)
+	{
+		--tse;
+	}
+
+	uint32_t len = 0;
+	while(tse != m_enter_pae->m_tags_storage)
+	{
+		if(*tse == 0)
+		{
+			len = tse - m_enter_pae->m_tags_storage + 1; // 1 is for the traling zero
+			break;
+		}
+
+		--tse;
+	}
+
+	for(it = partial_tracers_list->begin(); it != partial_tracers_list->end(); ++it)
+	{
+		if(m_enter_pae->compare(*it, len) == true)
+		{
+			return *it;
+		}
+	}
+
+	return NULL;
+}
+
+inline void sinsp_tracerparser::parse_json(char* evtstr)
 {
 	char* p = m_storage;
 	uint32_t delta;
@@ -281,11 +315,46 @@ inline void sinsp_tracerparser::parse(char* evtstr, uint32_t evtstrlen)
 	}
 	p += delta;
 
-	m_res = parsenumber(p, &m_id, &delta);
-	if(m_res > sinsp_tracerparser::RES_COMMA)
+	if(*p == '"')
 	{
-		return;
+		switch(*(++p))
+		{
+		case 't':
+			m_id = m_tinfo->m_tid;
+			delta = 2;
+			break;
+		case 'p':
+			m_id = m_tinfo->m_pid;
+			if(*(p + 1) == 'p')
+			{
+				m_id = m_tinfo->m_ptid;
+				p++;
+			}
+
+			delta = 2;
+			break;
+		case ':':
+			m_id = 0;
+			delta = 1;
+			break;
+		case 'g':
+			m_id = 0;
+			delta = 2;
+			break;
+		default:
+			m_res = sinsp_tracerparser::RES_FAILED;
+			break;
+		}
 	}
+	else
+	{
+		m_res = parsenumber(p, &m_id, &delta);
+		if(m_res > sinsp_tracerparser::RES_COMMA)
+		{
+			return;
+		}
+	}
+
 	p += delta;
 
 	if(m_res == sinsp_tracerparser::RES_COMMA)
@@ -469,7 +538,16 @@ inline void sinsp_tracerparser::parse(char* evtstr, uint32_t evtstrlen)
 	return;
 }
 
-inline void sinsp_tracerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
+inline void sinsp_tracerparser::delete_char(char* p)
+{
+	while(*p != 0)
+	{
+		*p = *(p + 1);
+		p++;
+	}
+}
+
+inline void sinsp_tracerparser::parse_simple(char* evtstr)
 {
 	char* p = evtstr;
 	uint32_t delta;
@@ -553,15 +631,37 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 
 	if(*p != ':')
 	{
+		bool dont_interpret_next_char = false;
+
 		while(true)
 		{
 			char* start = p;
 
 			m_tags.push_back(p);
 
-			while(!(*p == '.' || *p == ':' || *p == 0))
+			while(*p != 0)
 			{
-				if(*p == '\n' || *p == '>' || *p == '<')
+				if(dont_interpret_next_char)
+				{
+					dont_interpret_next_char = false;
+					++p;
+					continue;
+				}
+
+				if(*p == '\\')
+				{
+					ASSERT(dont_interpret_next_char == false);
+					dont_interpret_next_char = true;
+					delete_char(p);
+					continue;
+				}
+
+				if(*p == '.' || *p == ':')
+				{
+					break;
+				}
+
+				if(*p == '>' || *p == '<' || *p == '=' || *p == '\n')
 				{
 					m_res = sinsp_tracerparser::RES_FAILED;
 					return;
@@ -604,6 +704,8 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 
 	if(*p != ':')
 	{
+		bool dont_interpret_next_char = false;
+
 		while(true)
 		{
 			char* start = p;
@@ -613,9 +715,29 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 			//
 			m_argnames.push_back(p);
 
-			while(!(*p == '=' || *p == 0))
+			while(*p != 0)
 			{
-				if(*p == '\n' || *p == '>' || *p == '<')
+				if(dont_interpret_next_char)
+				{
+					dont_interpret_next_char = false;
+					++p;
+					continue;
+				}
+
+				if(*p == '\\')
+				{
+					ASSERT(dont_interpret_next_char == false);
+					dont_interpret_next_char = true;
+					delete_char(p);
+					continue;
+				}
+
+				if(*p == '=')
+				{
+					break;
+				}
+
+				if(*p == '>' || *p == '<' || *p == '\n')
 				{
 					m_res = sinsp_tracerparser::RES_FAILED;
 					return;
@@ -655,8 +777,30 @@ inline void sinsp_tracerparser::parse_simple(char* evtstr, uint32_t evtstrlen)
 			start = p;
 			m_argvals.push_back(p);
 
-			while(!(*p == ',' || *p == ':' || *p == 0))
+			dont_interpret_next_char = false;
+
+			while(*p != 0)
 			{
+				if(dont_interpret_next_char)
+				{
+					dont_interpret_next_char = false;
+					++p;
+					continue;
+				}
+
+				if(*p == '\\')
+				{
+					ASSERT(dont_interpret_next_char == false);
+					dont_interpret_next_char = true;
+					delete_char(p);
+					continue;
+				}
+
+				if(*p == ',' || *p == ':' || *p == '=')
+				{
+					break;
+				}
+
 				++p;
 			}
 
@@ -1161,8 +1305,8 @@ void sinsp_tracerparser::test()
 {
 //	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
 //	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
-//	char doc[] = "[\">\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
-	char doc1[] = ">:t:us::\n";
+	char doc1[] = "[\">\",     12345, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
+//	char doc1[] = ">:1111:u\\:\\=a.u\\:\\>.aaa.33.aa\\::a=b\\:\\=,c=d\\:\\=a:";
 
 	sinsp_threadinfo tinfo;
 	
@@ -1177,7 +1321,7 @@ void sinsp_tracerparser::test()
 
 	for(uint64_t j = 0; j < 30000000; j++)
 	{
-		process_event_data(doc1, 65, 10);
+		process_event_data(doc1, sizeof(doc1) - 1, 10);
 
 		if(m_res != sinsp_tracerparser::RES_OK)
 		{

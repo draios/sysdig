@@ -104,6 +104,7 @@ sinsp::sinsp() :
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
+	m_is_tracers_capture_enabled = false;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -204,6 +205,24 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 	}
 }
 
+void sinsp::enable_tracers_capture()
+{
+#if defined(HAS_CAPTURE)
+	if(!m_is_tracers_capture_enabled)
+	{
+		if(is_live() && m_h != NULL)
+		{
+			if(scap_enable_tracers_capture(m_h) != SCAP_SUCCESS)
+			{
+				throw sinsp_exception("error enabling tracers capture");
+			}
+		}
+
+		m_is_tracers_capture_enabled = true;
+	}
+#endif
+}
+
 void sinsp::init()
 {
 	//
@@ -284,7 +303,7 @@ void sinsp::init()
 
 			if(res == SCAP_SUCCESS)
 			{
-				if(pevent->type != PPME_CONTAINER_E)
+				if((pevent->type != PPME_CONTAINER_E) && (pevent->type != PPME_CONTAINER_JSON_E))
 				{
 					break;
 				}
@@ -1722,7 +1741,7 @@ bool sinsp::get_mesos_data()
 		if(difftime(now, last_mesos_refresh) > 10)
 		{
 			g_logger.log("Requesting Mesos data ...", sinsp_logger::SEV_DEBUG);
-			m_mesos_client->send_data_request();
+			m_mesos_client->send_data_request(false);
 			last_mesos_refresh = now;
 		}
 	}

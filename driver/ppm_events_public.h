@@ -761,7 +761,9 @@ enum ppm_event_type {
 	PPME_TRACER_X = 269,
 	PPME_MESOS_E = 270,
 	PPME_MESOS_X = 271,
-	PPM_EVENT_MAX = 272
+	PPME_CONTAINER_JSON_E = 272,
+	PPME_CONTAINER_JSON_X = 273,
+	PPM_EVENT_MAX = 274
 };
 /*@}*/
 
@@ -1258,6 +1260,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_DISABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 14)
 #define PPM_IOCTL_ENABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 15)
 #define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 16)
+#define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17)
 
 /*!
   \brief System call description struct.
@@ -1318,7 +1321,5 @@ struct ppm_proclist_info {
 	int64_t max_entries;
 	struct ppm_proc_info entries[0];
 };
-
-//#define PPM_USERVET_MAGIC 959222
 
 #endif /* EVENTS_PUBLIC_H_ */

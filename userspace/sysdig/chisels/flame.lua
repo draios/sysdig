@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- Chisel description
 description = "Flame graph generator";
-short_description = "Sysdig tracer flame graph builder";
+short_description = "Sysdig trace flame graph builder";
 category = "Performance";
 
 -- Chisel argument list
@@ -29,7 +29,7 @@ json = require ("dkjson")
 
 local CAPTURE_LOGS = true
 
-local tracers = {}
+local spans = {}
 local fid
 local flatency
 local fcontname
@@ -54,13 +54,13 @@ end
 function on_init()
 	-- Request the fields needed for this chisel
 	for j = 0, MAX_DEPTH do
-		local fname = "tracer.tag[" .. j .. "]"
+		local fname = "span.tag[" .. j .. "]"
 		local minfo = chisel.request_field(fname)
-		tracers[j] = minfo
+		spans[j] = minfo
 	end
 	
-	fid = chisel.request_field("tracer.id")
-	flatency = chisel.request_field("tracer.latency")
+	fid = chisel.request_field("span.id")
+	flatency = chisel.request_field("span.latency")
 	fcontname = chisel.request_field("container.name")
 	fexe = chisel.request_field("proc.exeline")
 	fbuf = chisel.request_field("evt.buffer")
@@ -246,7 +246,7 @@ function on_event()
 	local tid = evt.field(ftid)
 
 	for j = 0, MAX_DEPTH do
-		hr[j + 1] = evt.field(tracers[j])
+		hr[j + 1] = evt.field(spans[j])
 	end
 
 	if dir == ">" then
@@ -447,7 +447,7 @@ function on_capture_end()
 		calculate_t_in_node(v)
 	end
 
-	-- normalize each root tracer tree
+	-- normalize each root span tree
 	for i,v in pairs(avg_tree) do
 		normalize(v, v.n)
 	end
