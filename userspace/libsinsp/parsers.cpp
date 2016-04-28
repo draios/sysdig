@@ -63,6 +63,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	sinsp_tracerparser p(inspector);
 	p.test();
+	m_drop_event_flags = 0;
 }
 #else
 sinsp_parser::sinsp_parser(sinsp *inspector) :
@@ -159,6 +160,28 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		}
 	}
 #endif
+
+		if (m_drop_event_flags)
+		{
+			enum ppm_event_flags flags;
+			uint16_t etype = evt->m_pevt->type;
+			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+			{
+				sinsp_evt_param *parinfo = evt->get_param(0);
+				uint16_t evid = *(uint16_t *)parinfo->m_val;
+				flags = g_infotables.m_syscall_info_table[evid].flags;
+			}
+			else
+			{
+				flags = evt->get_info_flags();
+			}
+
+			if (flags & m_drop_event_flags)
+			{
+				evt->m_filtered_out = true;
+				return;
+			}
+		}
 
 	//
 	// Filtering

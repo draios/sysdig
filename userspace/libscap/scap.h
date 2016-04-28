@@ -435,6 +435,16 @@ typedef enum scap_dump_flags
 }scap_dump_flags;
 
 typedef struct scap_dumper scap_dumper_t;
+
+/*!
+  \brief System call description struct.
+*/
+struct ppm_syscall_desc {
+	enum ppm_event_category category; /**< System call category. */
+	enum ppm_event_flags flags;
+	char *name; /**< System call name, e.g. 'open'. */
+};
+
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
