@@ -30,6 +30,8 @@ bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operan
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
+int32_t gmt2local(time_t t);
+void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 
 class operand_info
 {
@@ -129,6 +131,7 @@ public:
 	virtual int32_t get_check_id();
 
 	sinsp* m_inspector;
+	bool m_needs_state_tracking = false;
 	boolop m_boolop;
 	cmpop m_cmpop;
 	sinsp_field_aggregation m_aggregation;
@@ -479,8 +482,6 @@ private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	int32_t extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
-	int32_t gmt2local(time_t t);
-	void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
 	inline uint8_t* extract_buflen(sinsp_evt *evt);
 
@@ -544,6 +545,7 @@ public:
 	enum check_type
 	{
 		TYPE_ID = 0,
+		TYPE_TIME,
 		TYPE_NTAGS,
 		TYPE_NARGS,
 		TYPE_TAGS,
@@ -560,6 +562,8 @@ public:
 		TYPE_TAGCOUNT,
 		TYPE_TAGCHILDSCOUNT,
 		TYPE_IDTAG,
+		TYPE_RAWTIME,
+		TYPE_RAWPARENTTIME,
 	};
 
 	sinsp_filter_check_tracer();
@@ -588,43 +592,43 @@ private:
 //
 // Events in tracers checks
 //
-class sinsp_filter_check_evtin_tracer : public sinsp_filter_check
+class sinsp_filter_check_evtin : public sinsp_filter_check
 {
 public:
 	enum check_type
 	{
-		TYPE_SPAN_ID = 0,
-		TYPE_SPAN_NTAGS,
-		TYPE_SPAN_NARGS,
-		TYPE_SPAN_TAGS,
-		TYPE_SPAN_TAG,
-		TYPE_SPAN_ARGS,
-		TYPE_SPAN_ARG,
-		TYPE_SPAN_T_ID,
-		TYPE_SPAN_T_NTAGS,
-		TYPE_SPAN_T_NARGS,
-		TYPE_SPAN_T_TAGS,
-		TYPE_SPAN_T_TAG,
-		TYPE_SPAN_T_ARGS,
-		TYPE_SPAN_T_ARG,
-		TYPE_SPAN_P_ID,
-		TYPE_SPAN_P_NTAGS,
-		TYPE_SPAN_P_NARGS,
-		TYPE_SPAN_P_TAGS,
-		TYPE_SPAN_P_TAG,
-		TYPE_SPAN_P_ARGS,
-		TYPE_SPAN_P_ARG,
-		TYPE_SPAN_S_ID,
-		TYPE_SPAN_S_NTAGS,
-		TYPE_SPAN_S_NARGS,
-		TYPE_SPAN_S_TAGS,
-		TYPE_SPAN_S_TAG,
-		TYPE_SPAN_S_ARGS,
-		TYPE_SPAN_S_ARG,
+		TYPE_ID = 0,
+		TYPE_NTAGS,
+		TYPE_NARGS,
+		TYPE_TAGS,
+		TYPE_TAG,
+		TYPE_ARGS,
+		TYPE_ARG,
+		TYPE_P_ID,
+		TYPE_P_NTAGS,
+		TYPE_P_NARGS,
+		TYPE_P_TAGS,
+		TYPE_P_TAG,
+		TYPE_P_ARGS,
+		TYPE_P_ARG,
+		TYPE_S_ID,
+		TYPE_S_NTAGS,
+		TYPE_S_NARGS,
+		TYPE_S_TAGS,
+		TYPE_S_TAG,
+		TYPE_S_ARGS,
+		TYPE_S_ARG,
+		TYPE_M_ID,
+		TYPE_M_NTAGS,
+		TYPE_M_NARGS,
+		TYPE_M_TAGS,
+		TYPE_M_TAG,
+		TYPE_M_ARGS,
+		TYPE_M_ARG,
 	};
 
-	sinsp_filter_check_evtin_tracer();
-	~sinsp_filter_check_evtin_tracer();
+	sinsp_filter_check_evtin();
+	~sinsp_filter_check_evtin();
 	int32_t parse_field_name(const char* str, bool alloc_state);
 	sinsp_filter_check* allocate_new();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
@@ -647,6 +651,7 @@ public:
 	filtercheck_field_info m_customfield;
 
 private:
+	int32_t extract_arg(string fldname, string val);
 	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;

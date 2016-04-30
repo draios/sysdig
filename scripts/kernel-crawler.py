@@ -182,7 +182,7 @@ repos = {
 
 		{
 			"prefix" : "http://security.debian.org/pool/updates/main/l/linux/",
-			"query" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]\.[0-9]+.*amd64.deb$')]/@href",
+			"query" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
 			"exclude" : ["-rt", "dbg", "trunk", "all", "exp"],
 			"next" : None
 		},

@@ -17,17 +17,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 disabled_view_info =
 {
-	id = "traces_list",
-	name = "Traces List",
-	description = "Show the detailed list of the traces executing in the system. For each single executed trace, the view reports information like the timestamp, the duration and the arguments.",
+	id = "spans_list",
+	name = "Spans List",
+	description = "Show the detailed list of a tracer selection's child spans. For each span type, the view reports information like its arguments and how long it took to complete.",
 	tips = {
-		"Traces are sysdig's super easy way to delimit portions of your code so that sysdig can measure how long they take and tell you what's happening inside them. You can learn about tracers at https://github.com/draios/sysdig/wiki/Tracers.",
-		"Only the root trace spans (i.e. the spans with only one tag) are shown when this view is applied to the whole machine. Drilling down allows you to explore the child spans.",
+		"Only the spans spans that are direct childs of the selection (i.e. the spans with one more tag than the selection) are shown. Drilling down allows you to explore the further levels.",
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
-	use_defaults = false,
+	applies_to = {"", "span.tag", "span.id", "span.time", "span.parenttime", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	use_defaults = true,
 	filter = "span.ntags>=%depth+1",
 	drilldown_target = "spans_list",
 	drilldown_increase_depth = true,
@@ -63,14 +62,14 @@ disabled_view_info =
 		{
 			name = "TAG",
 			field = "span.tag[%depth]",
-			description = "trace tag.",
+			description = "span tag.",
 			colsize = 32,
 			aggregation = "SUM"
 		},
 		{
 			name = "ARGS",
 			field = "span.enterargs",
-			description = "trace enter arguments.",
+			description = "span enter arguments.",
 			colsize = 256,
 			aggregation = "SUM"
 		},

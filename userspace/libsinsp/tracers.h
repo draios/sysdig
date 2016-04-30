@@ -59,9 +59,36 @@ public:
 			return false;
 		}
 
+		if(m_tags_len != other->m_tags_len)
+		{
+			return false;
+		}
+
 		if(memcmp(m_tags_storage, 
 			other->m_tags_storage,
-			MIN(m_tags_len, other->m_tags_len)) == 0)
+			m_tags_len) == 0)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	inline bool compare(sinsp_partial_tracer* other, uint32_t len)
+	{
+		if(m_id != other->m_id)
+		{
+			return false;
+		}
+
+		if(len != other->m_tags_len - 1)
+		{
+			return false;
+		}
+
+		if(memcmp(m_tags_storage, 
+			other->m_tags_storage,
+			len) == 0)
 		{
 			return true;
 		}
@@ -114,8 +141,9 @@ public:
 	}
 	void set_storage_size(uint32_t newsize);
 	parse_result process_event_data(char *data, uint32_t datalen, uint64_t ts);
-	inline void parse(char* evtstr, uint32_t evtstrlen);
-	inline void parse_simple(char* evtstr, uint32_t evtstrlen);
+	inline void parse_json(char* evtstr);
+	inline void parse_simple(char* evtstr);
+	sinsp_partial_tracer* find_parent_enter_pae();
 	void test();
 
 	char* m_type_str;
@@ -146,13 +174,16 @@ VISIBILITY_PRIVATE
 	inline parse_result parsenumber(char* p, int64_t* res, uint32_t* delta);
 	inline parse_result parsenumber_colend(char* p, int64_t* res, uint32_t* delta);
 	inline void init_partial_tracer(sinsp_partial_tracer* pae);
+	inline void delete_char(char* p);
 
+	string m_fullfragment_storage_str;
 	sinsp *m_inspector;
 	char* m_storage;
 	uint32_t m_storage_size;
 	uint32_t m_fragment_size;
 	sinsp_tracerparser::parse_result m_res;
-	string m_fullfragment_storage_str;
+	uint32_t m_storlen;
+
 
 	friend class sinsp_parser;
 };

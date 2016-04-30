@@ -435,6 +435,16 @@ typedef enum scap_dump_flags
 }scap_dump_flags;
 
 typedef struct scap_dumper scap_dumper_t;
+
+/*!
+  \brief System call description struct.
+*/
+struct ppm_syscall_desc {
+	enum ppm_event_category category; /**< System call category. */
+	enum ppm_event_flags flags;
+	char *name; /**< System call name, e.g. 'open'. */
+};
+
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -859,6 +869,7 @@ void scap_refresh_iflist(scap_t* handle);
 void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
+int32_t scap_enable_tracers_capture(scap_t* handle);
 
 #ifdef __cplusplus
 }

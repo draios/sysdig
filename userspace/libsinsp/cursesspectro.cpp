@@ -20,6 +20,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <signal.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 #ifndef _WIN32
 #include <unistd.h>
 #include <algorithm>
@@ -516,7 +517,7 @@ sysdig_table_action curses_spectro::handle_input(int ch)
 
 								if(m_is_tracer)
 								{
-									lat_fld_name = "tracer.latency";
+									lat_fld_name = "span.duration";
 								}
 								else
 								{

@@ -113,7 +113,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // Name of the device used for tracer injection
 //
-#define USER_EVT_DEVICE_NAME "/dev/sysdig"
+#define USER_EVT_DEVICE_NAME "/dev/null"
 
 //
 // FD class customized with the storage we need

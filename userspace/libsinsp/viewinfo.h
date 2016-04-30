@@ -38,6 +38,7 @@ typedef enum sinsp_field_aggregation
 #define TEF_IS_KEY 1
 #define TEF_IS_SORT_COLUMN (1 << 1)
 #define TEF_IS_GROUPBY_KEY (1 << 2)
+#define TEF_FILTER_IN_CHILD_ONLY (1 << 3)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Column information
@@ -45,6 +46,10 @@ typedef enum sinsp_field_aggregation
 class sinsp_view_column_info
 {
 public:
+	sinsp_view_column_info()
+	{
+	}
+	
 	sinsp_view_column_info(string field,
 		string name,
 		string description,
@@ -52,7 +57,8 @@ public:
 		uint32_t flags,
 		sinsp_field_aggregation aggregation,
 		sinsp_field_aggregation groupby_aggregation,
-		vector<string> tags)
+		vector<string> tags,
+		string filterfield)
 	{
 		m_field = field;
 		m_name = name;
@@ -62,9 +68,11 @@ public:
 		m_groupby_aggregation = groupby_aggregation;
 		m_flags = flags;
 		m_tags = tags;
+		m_filterfield = filterfield;
 	}
 
 	string get_field(uint32_t depth);
+	string get_filter_field(uint32_t depth);
 
 	string m_field;
 	string m_name;
@@ -74,6 +82,7 @@ public:
 	sinsp_field_aggregation m_groupby_aggregation;
 	uint32_t m_flags;
 	vector<string> m_tags;
+	string m_filterfield;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

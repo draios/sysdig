@@ -42,10 +42,12 @@ mesos::mesos(const std::string& state_uri,
 		m_verbose(verbose)
 {
 #ifdef HAS_CAPTURE
-	g_logger.log(std::string("Creating Mesos object for [" + m_mesos_uri + "], failover autodiscovery set to ") +
-				 (m_discover_mesos_leader ? "true" : "false"),
+	g_logger.log(std::string("Creating Mesos object for [" +
+							 (m_mesos_uri.empty() ? std::string("capture replay") : m_mesos_uri)  +
+							 "], failover autodiscovery set to ") +
+							(m_discover_mesos_leader ? "true" : "false"),
 				 sinsp_logger::SEV_DEBUG);
-#endif // HAS_CAPTURE
+#endif
 	init();
 }
 
@@ -288,7 +290,7 @@ void mesos::check_collector_status(int expected)
 
 void mesos::send_data_request(bool collect)
 {
-	if(!m_mesos_state_json.empty()) { return; }
+	if(m_mesos_state_json && !m_mesos_state_json->isNull()) { return; }
 	connect_mesos();
 	send_mesos_data_request();
 	g_logger.log("Mesos request sent.", sinsp_logger::SEV_DEBUG);
@@ -297,12 +299,12 @@ void mesos::send_data_request(bool collect)
 	{
 		for(auto& group : m_marathon_groups_json)
 		{
-			if(!group.second.empty()) { return; }
+			if(group.second && !group.second->isNull()) { return; }
 			g_logger.log("Marathon groups request sent.", sinsp_logger::SEV_DEBUG);
 		}
 		for(auto& app : m_marathon_apps_json)
 		{
-			if(!app.second.empty()) { return; }
+			if(app.second && !app.second->isNull()) { return; }
 			g_logger.log("Marathon apps request sent.", sinsp_logger::SEV_DEBUG);
 		}
 		connect_marathon();
@@ -339,7 +341,7 @@ bool mesos::collect_data()
 	if(m_collector.subscription_count())
 	{
 		m_collector.get_data();
-		if(!m_mesos_state_json.empty())
+		if(m_mesos_state_json && !m_mesos_state_json->isNull())
 		{
 			g_logger.log("Mesos state data detected.", sinsp_logger::SEV_DEBUG);
 			if(has_marathon())
@@ -350,26 +352,23 @@ bool mesos::collect_data()
 					g_logger.log("Marathon data detected.", sinsp_logger::SEV_DEBUG);
 					for(auto& group : m_marathon_groups_json)
 					{
-						if(group.second.size())
+						if(!group.second->isNull())
 						{
 							json_map_type_t::iterator app_it = m_marathon_apps_json.find(group.first);
 							if(app_it != m_marathon_apps_json.end())
 							{
-								if(!app_it->second.empty())
+								if(app_it->second && !app_it->second->isNull())
 								{
-									if(!m_mesos_state_json.empty())
-									{
-										parse_state(std::move(m_mesos_state_json), std::string());
-										m_mesos_state_json.clear();
-										m_last_mesos_refresh = now;
-									}
+									parse_state(std::move(*m_mesos_state_json));
+									m_mesos_state_json.reset();
+									m_last_mesos_refresh = now;
 									g_logger.log("Collection detected " + std::to_string(m_inactive_frameworks.size()) + " inactive frameworks", sinsp_logger::SEV_DEBUG);
 									if(m_inactive_frameworks.find(group.first) == m_inactive_frameworks.end())
 									{
 										g_logger.log("Detected active Marathon framework " + group.first, sinsp_logger::SEV_DEBUG);
 										// +++ order is important - apps belong to groups and must be processed after
-										parse_groups(std::move(group.second), group.first);
-										parse_apps(std::move(app_it->second), app_it->first);
+										parse_groups(std::move(*group.second), group.first);
+										parse_apps(std::move(*app_it->second), app_it->first);
 										m_last_marathon_refresh = now;
 										// ---
 									}
@@ -379,8 +378,8 @@ bool mesos::collect_data()
 										m_state.erase_groups(group.first); // apps will go away with groups
 										m_inactive_frameworks.insert(group.first);
 									}
-									group.second.clear();
-									app_it->second.clear();
+									group.second.reset();
+									app_it->second.reset();
 									ret = true;
 								}
 							}
@@ -396,8 +395,8 @@ bool mesos::collect_data()
 			}
 			else
 			{
-				parse_state(std::move(m_mesos_state_json), std::string());
-				m_mesos_state_json.clear();
+				parse_state(std::move(*m_mesos_state_json));
+				m_mesos_state_json.reset();
 				m_marathon_groups_json.clear();
 				m_marathon_apps_json.clear();
 				if(m_state_http->get_marathon_uris().size())
@@ -556,8 +555,8 @@ void mesos::handle_slaves(const Json::Value& root)
 void mesos::add_framework(const Json::Value& framework)
 {
 	std::string name, uid;
-	Json::Value fname = framework["name"];
-	Json::Value fid = framework["id"];
+	const Json::Value& fname = framework["name"];
+	const Json::Value& fid = framework["id"];
 	if(!fname.isNull())
 	{
 		name = fname.asString();
@@ -600,8 +599,8 @@ void mesos::remove_framework_http(marathon_http_map& http_map, const std::string
 void mesos::add_slave(const Json::Value& slave)
 {
 	std::string name, uid;
-	Json::Value sname = slave["hostname"];
-	Json::Value sid = slave["id"];
+	const Json::Value& sname = slave["hostname"];
+	const Json::Value& sid = slave["id"];
 	if(!sname.isNull())
 	{
 		name = sname.asString();
@@ -662,50 +661,44 @@ void mesos::add_tasks(mesos_framework& framework, const Json::Value& f_val)
 	add_tasks_impl(framework, tasks);
 }
 
-void mesos::check_frameworks(const std::string& json)
+void mesos::check_frameworks(const json_ptr_t& json)
 {
-	if(has_marathon())
+	if(has_marathon() && json && !json->isNull())
 	{
-		Json::Value root;
-		Json::Reader reader;
-		if(reader.parse(json, root, false))
+		const Json::Value& frameworks = (*json)["frameworks"];
+		if(frameworks.isNull())
 		{
-			Json::Value frameworks = root["frameworks"];
-			if(frameworks.isNull())
+			throw sinsp_exception("No Mesos frameworks entry found.");
+		}
+		else
+		{
+			if(frameworks.isArray())
 			{
-				throw sinsp_exception("No Mesos frameworks entry found.");
+				if(!frameworks.size())
+				{
+					throw sinsp_exception("No Mesos frameworks found (possibly Mesos master HA migration).");
+				}
 			}
 			else
 			{
-				if(frameworks.isArray())
-				{
-					if(!frameworks.size())
-					{
-						throw sinsp_exception("No Mesos frameworks found (possibly Mesos master HA migration).");
-					}
-				}
-				else
-				{
-					throw sinsp_exception("Unexpected Mesos frameworks entry found (not an array).");
-				}
+				throw sinsp_exception("Unexpected Mesos frameworks entry found (not an array).");
 			}
 		}
 	}
 }
 
-void mesos::set_state_json(std::string&& json, const std::string&)
+void mesos::set_state_json(json_ptr_t json, const std::string&)
 {
-	if(!json.empty())
+	m_json_error = !json || (json && json->isNull());
+	m_mesos_state_json = json;
+	if(!m_json_error)
 	{
 		g_logger.log("Received state JSON", sinsp_logger::SEV_DEBUG);
-		//g_logger.log('<' + json + '>', sinsp_logger::SEV_DEBUG);
-		check_frameworks(json);
-		m_mesos_state_json = std::move(json);
+		check_frameworks(m_mesos_state_json);
 	}
 	else
 	{
-		g_logger.log("Received empty state JSON", sinsp_logger::SEV_WARNING);
-		m_json_error = true;
+		g_logger.log("Received invalid state JSON", sinsp_logger::SEV_WARNING);
 	}
 }
 
@@ -743,13 +736,11 @@ void mesos::parse_state(Json::Value&& root, bool discover_uris)
 	}
 }
 
-void mesos::parse_state(std::string&& json, const std::string&)
+void mesos::parse_state(json_ptr_t json, const std::string&)
 {
-	Json::Value root;
-	Json::Reader reader;
-	if(reader.parse(json, root, false))
+	if(json && !json->isNull())
 	{
-		parse_state(std::move(root));
+		parse_state(std::move(*json));
 	}
 	else
 	{
@@ -757,33 +748,31 @@ void mesos::parse_state(std::string&& json, const std::string&)
 	}
 }
 
-void mesos::set_marathon_groups_json(std::string&& json, const std::string& framework_id)
+void mesos::set_marathon_groups_json(json_ptr_t json, const std::string& framework_id)
 {
-	if(!json.empty())
+	m_json_error = !json || (json && json->isNull());
+	m_marathon_groups_json[framework_id] = json;
+	if(!m_json_error)
 	{
-		g_logger.log("Received groups JSON (" + std::to_string(json.size()) + " bytes) for framework [" + framework_id + ']', sinsp_logger::SEV_DEBUG);
-		//g_logger.log('<' + json + '>', sinsp_logger::SEV_DEBUG);
-		m_marathon_groups_json[framework_id] = std::move(json);
+		g_logger.log("Received groups JSON for Marathon framework [" + framework_id + ']', sinsp_logger::SEV_DEBUG);
 	}
 	else
 	{
-		g_logger.log("Received empty groups JSON", sinsp_logger::SEV_WARNING);
-		m_json_error = true;
+		g_logger.log("Received invalid Marathon groups JSON", sinsp_logger::SEV_WARNING);
 	}
 }
 
-void mesos::set_marathon_apps_json(std::string&& json, const std::string& framework_id)
+void mesos::set_marathon_apps_json(json_ptr_t json, const std::string& framework_id)
 {
-	if(!json.empty())
+	m_json_error = !json || (json && json->isNull());
+	m_marathon_apps_json[framework_id] = json;
+	if(!m_json_error)
 	{
-		g_logger.log("Received apps JSON (" + std::to_string(json.size()) + " bytes) for framework [" + framework_id + ']', sinsp_logger::SEV_DEBUG);
-		//g_logger.log('<' + json + '>', sinsp_logger::SEV_DEBUG);
-		m_marathon_apps_json[framework_id] = std::move(json);
+		g_logger.log("Received apps JSON for Marathon framework [" + framework_id + ']', sinsp_logger::SEV_DEBUG);
 	}
 	else
 	{
-		g_logger.log("Received empty apps JSON", sinsp_logger::SEV_WARNING);
-		m_json_error = true;
+		g_logger.log("Received invalid Marathon groups JSON", sinsp_logger::SEV_WARNING);
 	}
 }
 

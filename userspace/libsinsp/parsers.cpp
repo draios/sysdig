@@ -35,12 +35,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
+#include "tracers.h"
 #include "parsers.h"
 #include "sinsp_errno.h"
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
-#include "tracers.h"
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer_thread.h"
@@ -63,6 +63,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	sinsp_tracerparser p(inspector);
 	p.test();
+	m_drop_event_flags = 0;
 }
 #else
 sinsp_parser::sinsp_parser(sinsp *inspector) :
@@ -160,6 +161,28 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 #endif
 
+		if (m_drop_event_flags)
+		{
+			enum ppm_event_flags flags;
+			uint16_t etype = evt->m_pevt->type;
+			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+			{
+				sinsp_evt_param *parinfo = evt->get_param(0);
+				uint16_t evid = *(uint16_t *)parinfo->m_val;
+				flags = g_infotables.m_syscall_info_table[evid].flags;
+			}
+			else
+			{
+				flags = evt->get_info_flags();
+			}
+
+			if (flags & m_drop_event_flags)
+			{
+				evt->m_filtered_out = true;
+				return;
+			}
+		}
+
 	//
 	// Filtering
 	//
@@ -183,7 +206,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 				evt->m_fdinfo = fdinfo;
 			}
 
-			if(fdinfo && fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
+			if(fdinfo && (fdinfo->m_flags & (sinsp_fdinfo_t::FLAGS_IS_TRACER_FD | sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE)))
 			{
 				eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
 			}
@@ -407,7 +430,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_setgid_exit(evt);
 		break;
 	case PPME_CONTAINER_E:
-		parse_container_evt(evt);
+		parse_container_evt(evt); // deprecated, only here for backwards compatibility
+		break;
+	case PPME_CONTAINER_JSON_E:
+		parse_container_json_evt(evt);
 		break;
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
@@ -1814,7 +1840,11 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		//
 		if(fdi.m_name == USER_EVT_DEVICE_NAME)
 		{
-			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FD;
+			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
+		}
+		else
+		{
+			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
 		}
 
 		//
@@ -2734,7 +2764,7 @@ void sinsp_parser::swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo)
 	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 }
 
-void sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
+uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 {
 	sinsp_threadinfo* tinfo = evt->m_tinfo;
 	ASSERT(tinfo);
@@ -2762,7 +2792,8 @@ void sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 		{
 			evt->m_filtered_out = true;
 		}
-		return;
+
+		return p->m_res;
 	}
 
 	p->m_args.first = &p->m_argnames;
@@ -2797,6 +2828,13 @@ void sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 	}
 	else
 	{
+		uint32_t flags = evt->m_fdinfo->m_flags;
+
+		if(!(flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD))
+		{
+			return p->m_res;
+		}
+
 		//
 		// Parsing error.
 		// We don't know the direction, so we use enter.
@@ -2833,7 +2871,65 @@ void sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 	tinfo->m_latency = 0;
 	tinfo->m_last_latency_entertime = 0;
 
-	return;
+	return p->m_res;
+}
+
+bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt, 
+	int64_t retval,
+	ppm_event_flags eflags)
+{
+	//
+	// Tracers get into the engine as normal writes, but the FD has a flag to
+	// quickly recognize them.
+	//
+	uint32_t flags = evt->m_fdinfo->m_flags;
+
+	if(!(flags & sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD))
+	{
+		sinsp_fdinfo_t* orifdinfo = evt->m_fdinfo;
+		if(orifdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
+		{
+			parse_tracer(evt, retval);
+			return true;
+		}
+		else
+		{
+			if(orifdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE)
+			{
+				if(eflags & EF_WRITES_TO_FD)
+				{
+					//
+					// We have not determined if this FD is a tracer FD or not.
+					// We're going to try to parse it. 
+					// If the parsing succeeds, we mark it as a tracer FD. If it
+					// fails we mark it an NOT a tracer FD. Otherwise, we wait
+					// for the next buffer and we'll try again.
+					//
+					sinsp_tracerparser::parse_result pres = 
+						(sinsp_tracerparser::parse_result)parse_tracer(evt, retval);
+
+					if(pres == sinsp_tracerparser::RES_OK)
+					{
+						//
+						// This FD has been recognized to be a tracer one.
+						// We do two things: mark it for future reference, and tell
+						// the driver to enable tracers capture (if we haven't done
+						// it yet).
+						//
+						orifdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FD;
+						m_inspector->enable_tracers_capture();
+						return true;
+					}
+					else if (pres == sinsp_tracerparser::RES_FAILED)
+					{
+						orifdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
@@ -2866,12 +2962,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	}
 
 	//
-	// User events get into the engine as normal writes, but the FD has a flag to
-	// quickly recognize them.
+	// Check if this is a tracer write on /dev/null, treat it in a special way 
 	//
-	if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
+	if(detect_and_process_tracer_write(evt, retval, eflags))
 	{
-		parse_tracer(evt, retval);
 		return;
 	}
 
@@ -3808,6 +3902,59 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
 		evt->get_thread_info()->m_gid = new_egid;
+	}
+}
+
+void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo = evt->get_param(0);
+	ASSERT(parinfo);
+	ASSERT(parinfo->m_len > 0);
+	std::string json(parinfo->m_val, parinfo->m_len);
+	g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	ASSERT(m_inspector);
+	Json::Value root;
+	if(Json::Reader().parse(json, root))
+	{
+		sinsp_container_info container_info;
+		const Json::Value& container = root["container"];
+		const Json::Value& id = container["id"];
+		if(!id.isNull() && id.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_id = id.asString();
+		}
+		const Json::Value& type = container["type"];
+		if(!type.isNull() && type.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_type = static_cast<sinsp_container_type>(type.asUInt());
+		}
+		const Json::Value& name = container["name"];
+		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_name = name.asString();
+		}
+		const Json::Value& image = container["image"];
+		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_image = image.asString();
+		}
+		const Json::Value& mesos_task_id = container["mesos_task_id"];
+		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_mesos_task_id = mesos_task_id.asString();
+		}
+		m_inspector->m_container_manager.add_container(container_info);
+		/*
+		g_logger.log("Container\n-------\nID:" + container_info.m_id +
+					 "\nType: " + std::to_string(container_info.m_type) +
+					 "\nName: " + container_info.m_name +
+					 "\nImage: " + container_info.m_image +
+					 "\nMesos Task ID: " + container_info.m_mesos_task_id, sinsp_logger::SEV_DEBUG);
+		*/
+	}
+	else
+	{
+		g_logger.log("Invalid JSON encountered while parsing container info: " + json, sinsp_logger::SEV_ERROR);
 	}
 }
 

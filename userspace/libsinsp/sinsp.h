@@ -549,6 +549,11 @@ public:
 	sinsp_evt::param_fmt get_buffer_format();
 
 	/*!
+	  \brief Set event flags for which matching events should be dropped pre-filtering
+	*/
+	void set_drop_event_flags(ppm_event_flags flags);
+
+	/*!
 	  \brief Returns true if the current capture is live.
 	*/
 	inline bool is_live()
@@ -702,6 +707,7 @@ public:
 	void add_meta_event_callback(meta_event_callback cback, void* data);
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
+	void enable_tracers_capture();
 
 	void refresh_ifaddr_list();
 
@@ -803,6 +809,7 @@ private:
 	const scap_machine_info* m_machine_info;
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
+	bool m_is_tracers_capture_enabled;
 
 	sinsp_network_interfaces* m_network_interfaces;
 
@@ -958,7 +965,7 @@ private:
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_k8s;
 	friend class sinsp_filter_check_mesos;
-	friend class sinsp_filter_check_evtin_tracer;
+	friend class sinsp_filter_check_evtin;
 	friend class sinsp_network_interfaces;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;

@@ -152,7 +152,10 @@ OPTIONS
   
 **-l**, **--list**
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
-    
+
+**-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
+  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Marathon url is optional and defaults to Mesos address, port 8080. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
+
 **-N**
   Don't convert port numbers to names.
 
@@ -166,7 +169,7 @@ OPTIONS
   Print progress on stderr while processing trace files.
   
 **-p** _outputformat_, **--print**=_outputformat_  
-  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. With -pk or -pkubernetes will use a kubernetes-friendly format. Specifying **-pp** on the command line will cause sysdig to print the default command line format and exit.
+  Specify the format to be used when printing the events. With -pc or -pcontainer will use a container-friendly format. With -pk or -pkubernetes will use a kubernetes-friendly format. With -pm or -pmesos will use a mesos-friendly format. Specifying **-pp** on the command line will cause sysdig to print the default command line format and exit.
   
 **-q**, **--quiet**  
   Don't print events on the screen. Useful when dumping to disk.
@@ -182,7 +185,10 @@ OPTIONS
 
 **-t** _timetype_, **--timetype**=_timetype_  
   Change the way event time is displayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the first displayed event, **d** for delta between event enter and exit, and **D** for delta from the previous event.
-     
+
+**-T**, **--force-tracers-capture**  
+  Tell the driver to make sure full buffers are captured from /dev/null, to make sure that tracers are completely captured. Note that sysdig will enable extended /dev/null capture by itself after detecting that tracers are written there, but that could result in the truncation of some tracers at the beginning of the capture. This option allows preventing that.
+
 **--unbuffered**  
   Turn off output buffering. This causes every single line emitted by sysdig to be flushed, which generates higher CPU usage but is useful when piping sysdig's output into another process or into a script. 
   

@@ -462,7 +462,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			ASSERT(ty == sinsp_table::TT_TABLE);
 			m_spectro = new curses_spectro(this, 
 				m_inspector, 
-				m_views.at(m_selected_view)->m_id == "spectro_tracers");
+				m_views.at(m_selected_view)->m_id == "spectro_traces");
 			m_viz = NULL;
 			m_chart = m_spectro;
 		}
@@ -1368,7 +1368,9 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 #endif
 }
 
-void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
+void sinsp_cursesui::spy_selection(string field, string val, 
+	sinsp_view_column_info* column_info,
+	bool is_dig)
 {
 	uint32_t srtcol;
 	sinsp_table_field rowkeybak;
@@ -1417,7 +1419,8 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 		m_view_depth++;
 	}
 
-	m_sel_hierarchy.push_back(field, val, m_views.at(m_selected_view)->get_filter(m_view_depth),
+	m_sel_hierarchy.push_back(field, val, column_info, 
+		m_views.at(m_selected_view)->get_filter(m_view_depth),
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
 		m_datatable->is_sorting_ascending());
@@ -1456,6 +1459,7 @@ void sinsp_cursesui::spy_selection(string field, string val, bool is_dig)
 
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::do_drilldown(string field, string val, 
+	sinsp_view_column_info* column_info,
 	uint32_t new_view_num, filtercheck_field_info* info)
 {
 	//
@@ -1515,7 +1519,8 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 		vfilter = "";
 	}
 
-	m_sel_hierarchy.push_back(field, val, vfilter,
+	m_sel_hierarchy.push_back(field, val, 
+		column_info, vfilter,
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig,
 		m_datatable->is_sorting_ascending());
@@ -1577,7 +1582,9 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 }
 
 // returns false if there is no suitable drill down view for this field
-bool sinsp_cursesui::drilldown(string field, string val, filtercheck_field_info* info)
+bool sinsp_cursesui::drilldown(string field, string val, 
+	sinsp_view_column_info* column_info,
+	filtercheck_field_info* info)
 {
 	uint32_t j = 0;
 
@@ -1585,7 +1592,7 @@ bool sinsp_cursesui::drilldown(string field, string val, filtercheck_field_info*
 	{
 		if(m_views.at(j)->m_id == m_views.at(m_selected_view)->m_drilldown_target)
 		{
-			return do_drilldown(field, val, j, info);			
+			return do_drilldown(field, val, column_info, j, info);			
 		}
 	}
 
@@ -1597,7 +1604,7 @@ bool sinsp_cursesui::drilldown(string field, string val, filtercheck_field_info*
 		{
 			if(*atit == field)
 			{
-				return do_drilldown(field, val, j, info);
+				return do_drilldown(field, val, column_info, j, info);
 			}
 		}
 	}
@@ -1605,7 +1612,8 @@ bool sinsp_cursesui::drilldown(string field, string val, filtercheck_field_info*
 	return false;
 }
 
-bool sinsp_cursesui::spectro_selection(string field, string val, 
+bool sinsp_cursesui::spectro_selection(string field, string val,
+	sinsp_view_column_info* column_info,
 	filtercheck_field_info* info, sysdig_table_action ta)
 {
 	uint32_t j = 0;
@@ -1631,7 +1639,7 @@ bool sinsp_cursesui::spectro_selection(string field, string val,
 	{
 		if(m_views.at(j)->m_id == spectro_name)
 		{
-			return do_drilldown(field, val, j, info);			
+			return do_drilldown(field, val, column_info, j, info);			
 		}
 	}
 

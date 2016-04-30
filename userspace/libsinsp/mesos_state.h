@@ -23,6 +23,8 @@
 class mesos_state_t
 {
 public:
+	typedef std::shared_ptr<Json::Value> json_ptr_t;
+
 #ifdef HAS_CAPTURE
 	struct capture
 	{
@@ -109,6 +111,7 @@ public:
 	void emplace_framework(mesos_framework&& framework);
 	void remove_framework(const std::string& framework_uid);
 	void remove_framework(const Json::Value& framework);
+	const mesos_framework* get_framework_for_task(const std::string& task_id) const;
 
 	//
 	// tasks
@@ -138,7 +141,7 @@ public:
 	// Marathon apps
 	//
 	void parse_apps(Json::Value&& root, const std::string& framework_id);
-	void parse_apps(std::string&& json, const std::string& framework_id);
+	void parse_apps(json_ptr_t json, const std::string& framework_id);
 	marathon_app::ptr_t get_app(const std::string& app_id);
 	marathon_group::app_ptr_t add_or_replace_app(const std::string& id,
 												const std::string& group,
@@ -151,7 +154,7 @@ public:
 	// Marathon groups
 	//
 	bool parse_groups(Json::Value&& root, const std::string& framework_id);
-	bool parse_groups(std::string&& json, const std::string& framework_id);
+	bool parse_groups(json_ptr_t json, const std::string& framework_id);
 	const marathon_groups& get_groups() const;
 	marathon_groups& get_groups();
 	marathon_group::ptr_t get_group(const std::string& group_id);
@@ -182,7 +185,8 @@ private:
 	capture_list     m_capture;
 #endif // HAS_CAPTURE
 
-	std::unordered_multimap<std::string, std::string> m_marathon_task_cache;
+	typedef std::unordered_map<std::string, mesos_framework*> task_framework_map_t;
+	task_framework_map_t m_task_framework_cache;
 };
 
 //
@@ -258,12 +262,26 @@ inline void mesos_state_t::remove_framework(const Json::Value& framework)
 	}
 }
 
+inline const mesos_framework* mesos_state_t::get_framework_for_task(const std::string& task_id) const
+{
+	task_framework_map_t::const_iterator it = m_task_framework_cache.find(task_id);
+	if(it != m_task_framework_cache.end())
+	{
+		return it->second;
+	}
+	return 0;
+}
+
 inline void mesos_state_t::remove_framework(const std::string& framework_uid)
 {
 	for(mesos_frameworks::iterator it = m_frameworks.begin(); it != m_frameworks.end(); ++it)
 	{
 		if(it->get_uid() == framework_uid)
 		{
+			for(auto& task : it->get_tasks())
+			{
+				m_task_framework_cache.erase(task.first);
+			}
 			m_frameworks.erase(it);
 			return;
 		}
@@ -275,7 +293,11 @@ inline void mesos_state_t::remove_framework(const std::string& framework_uid)
 //
 inline void mesos_state_t::add_or_replace_task(mesos_framework& framework, mesos_task::ptr_t task)
 {
-	framework.add_or_replace_task(task);
+	if(task)
+	{
+		framework.add_or_replace_task(task);
+		m_task_framework_cache[task->get_uid()] = &framework;
+	}
 }
 
 inline void mesos_state_t::remove_task(mesos_framework& framework, const std::string& uid)
@@ -311,6 +333,7 @@ inline void mesos_state_t::remove_task(mesos_framework& framework, const std::st
 		g_logger.log("Task [" + uid + "] not found in framework [" + framework.get_uid() + ']', sinsp_logger::SEV_WARNING);
 	}
 	framework.remove_task(uid);
+	m_task_framework_cache.erase(uid);
 }
 
 //

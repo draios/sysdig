@@ -878,6 +878,33 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 }
 #endif
 
+#if defined(HAS_CAPTURE)
+int32_t scap_enable_tracers_capture(scap_t* handle)
+{
+	//	
+	// Not supported for files
+	//
+	if(handle->m_file)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_inode_of_dev_null not supported on offline captures");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	if(handle->m_ndevs)
+	{
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
+		{
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}		
+	}
+
+	return SCAP_SUCCESS;
+}
+#endif
+
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
 #if !defined(HAS_CAPTURE)
