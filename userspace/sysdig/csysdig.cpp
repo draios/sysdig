@@ -39,14 +39,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #include <unistd.h>
 #include <getopt.h>
+#include <term.h>
 #endif
 
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
 
-static bool g_terminate = false;
+#define MOUSE_CAPABLE_TERM "xterm-1003"
 
+static bool g_terminate = false;
 static void usage();
 
 //
@@ -78,10 +80,23 @@ static void usage()
 "                    increase sysdig's startup time. Moreover, they contain\n"
 "                    information that could be privacy sensitive.\n"
 " -h, --help         Print this page\n"
-" -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
+" -k <url>, --k8s-api=<url>\n"
+"                    Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
 "                    The API server can also be specified via the environment variable\n"
 "                    SYSDIG_K8S_API.\n"
+" -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>], --k8s-api-cert=<bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]\n"
+"                    Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
+"                    server identity.\n"
+"                    Each entry must specify full (absolute, or relative to the current directory) path\n"
+"                    to the respective file.\n"
+"                    Private key password is optional (needed only if key is password protected).\n"
+"                    CA certificate is optional. For all files, only PEM file format is supported. \n"
+"                    Specifying CA certificate only is obsoleted - when single entry is provided \n"
+"                    for this option, it will be interpreted as the name of a file containing bearer token.\n"
+"                    Note that the format of this command-line option prohibits use of files whose names contain\n"
+"                    ':' or '#' characters in the file name.\n"
+"                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
 " -l, --list         List all the fields that can be used in views.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
@@ -102,6 +117,14 @@ static void usage()
 "                    Capture the first <len> bytes of each I/O buffer.\n"
 "                    By default, the first 80 bytes are captured. Use this\n"
 "                    option with caution, it can generate huge trace files.\n"
+" -T, --force-tracers-capture\n"
+"                    Tell the driver to make sure full buffers are captured from\n"
+"                    /dev/null, to make sure that tracers are completely\n"
+"                    captured. Note that sysdig will enable extended /dev/null\n"
+"                    capture by itself after detecting that tracers are written\n"
+"                    there, but that could result in the truncation of some\n"
+"                    tracers at the beginning of the capture. This option allows\n"
+"                    preventing that.\n"
 " -v <view_id>, --view=<view_id>\n"
 "                    Run the view with the given ID when csysdig starts.\n"
 "                    View IDs can be found in the view documentation pages in\n"
@@ -113,7 +136,7 @@ static void usage()
 "1. you can either see real time data, or analyze a trace file by using the -r\n"
 "   command line flag.\n"
 "2. you can switch to a different view by using the F2 key.\n"
-"3. You can to drill down into a selection by typing enter.\n"
+"3. You can drill down into a selection by typing enter.\n"
 "   You can navigate back by typing backspace.\n"
 "4. you can observe reads and writes (F5) or see sysdig events (F6) for any\n"
 "   selection.\n"
@@ -224,6 +247,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool list_flds = false;
 	bool m_raw_output = false;
 	string* k8s_api = 0;
+	string* k8s_api_cert = 0;
+	string* mesos_api = 0;
+	bool xt1002_available = false;
+	bool force_tracers_capture = false;
 
 	static struct option long_options[] =
 	{
@@ -231,13 +258,16 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"exclude-users", no_argument, 0, 'E' },
 		{"help", no_argument, 0, 'h' },
 		{"k8s-api", required_argument, 0, 'k'},
+		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"list", optional_argument, 0, 'l' },
+		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
 		{"print", required_argument, 0, 'p' },
 		{"readfile", required_argument, 0, 'r' },
 		{"raw", no_argument, 0, 0 },
 		{"snaplen", required_argument, 0, 's' },
 		{"logfile", required_argument, 0, 0 },
+		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"view", required_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{0, 0, 0, 0}
@@ -258,7 +288,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:lNn:p:r:s:v:", long_options, &long_index)) != -1)
+			"d:Ehk:K:lm:Nn:p:r:s:Tv:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -294,8 +324,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'k':
 				k8s_api = new string(optarg);
 				break;
+			case 'K':
+				k8s_api_cert = new string(optarg);
+				break;
 			case 'l':
 				list_flds = true;
+				break;
+			case 'm':
+				mesos_api = new string(optarg);
 				break;
 			case 'N':
 				inspector->set_hostname_and_port_resolution_mode(false);
@@ -328,9 +364,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'r':
 				infiles.push_back(optarg);
 				k8s_api = new string();
+				mesos_api = new string();
 				break;
 			case 's':
 				snaplen = atoi(optarg);
+				break;
+			case 'T':
+				force_tracers_capture = true;
 				break;
 			case 'v':
 				display_view = optarg;
@@ -371,7 +411,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		if(list_flds)
 		{
-			list_fields(false);
+			list_fields(false, false);
 
 			res.m_res = EXIT_SUCCESS;
 			goto exit;
@@ -418,17 +458,30 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifndef NOCURSESUI
 		if(!m_raw_output)
 		{
+			//
+			// Check if xterm-1002 is available
+			//
+			xt1002_available = (tgetent(NULL, MOUSE_CAPABLE_TERM) != 0);
+
+			if(xt1002_available)
+			{
+				//
+				// Enable fine-grained mouse activity capture by setting xterm-1002
+				//
+				setenv("TERM", MOUSE_CAPABLE_TERM, 1);
+			}
+
 			(void) initscr();      // initialize the curses library
 			(void) nonl();         // tell curses not to do NL->CR/NL on output
 			intrflush(stdscr, false);
 			keypad(stdscr, true);
 			curs_set(0);
-			if (has_colors())
+			if(has_colors())
 			{
 			  start_color();
 			}
 			use_default_colors();
-			mousemask(ALL_MOUSE_EVENTS, NULL);
+			mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
 			noecho();
 
 			timeout(0);
@@ -492,7 +545,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				(filter.size() != 0)? filter : "",
 				refresh_interval_ns,
 				print_containers,
-				m_raw_output);
+				m_raw_output,
+				xt1002_available);
 
 			ui.configure(&view_manager);
 			ui.start(false, false);
@@ -500,8 +554,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			//
 			// Launch the capture
 			//
-			bool open_success = true;
-
 			if(infiles.size() != 0)
 			{
 				//
@@ -520,6 +572,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				// No file to open, this is a live capture
 				//
 #if defined(HAS_CAPTURE)
+				bool open_success = true;
+				
 				try
 				{
 					inspector->open("");
@@ -567,22 +621,69 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 
 			//
+			// If required, tell the driver to enable tracers capture
+			//
+			if(force_tracers_capture)
+			{
+				inspector->enable_tracers_capture();
+			}
+
+			//
 			// run k8s, if required
 			//
 			if(k8s_api)
 			{
-				inspector->init_k8s_client(k8s_api);
+				if(!k8s_api_cert)
+				{
+					if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
+					{
+						k8s_api_cert = new string(k8s_cert_env);
+					}
+				}
+				inspector->init_k8s_client(k8s_api, k8s_api_cert);
 				k8s_api = 0;
+				k8s_api_cert = 0;
 			}
 			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
 			{
 				if(k8s_api_env != NULL)
 				{
+					if(!k8s_api_cert)
+					{
+						if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
+						{
+							k8s_api_cert = new string(k8s_cert_env);
+						}
+					}
 					k8s_api = new string(k8s_api_env);
-					inspector->init_k8s_client(k8s_api);
-					k8s_api = 0;
+					inspector->init_k8s_client(k8s_api, k8s_api_cert);
+				}
+				else
+				{
+					delete k8s_api;
+					delete k8s_api_cert;
+				}
+				k8s_api = 0;
+				k8s_api_cert = 0;
+			}
+
+			//
+			// run mesos, if required
+			//
+			if(mesos_api)
+			{
+				inspector->init_mesos_client(mesos_api);
+			}
+			else if(char* mesos_api_env = getenv("SYSDIG_MESOS_API"))
+			{
+				if(mesos_api_env != NULL)
+				{
+					mesos_api = new string(mesos_api_env);
+					inspector->init_mesos_client(mesos_api);
 				}
 			}
+			delete mesos_api;
+			mesos_api = 0;
 
 			//
 			// Start the capture loop
@@ -600,14 +701,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	catch(sinsp_capture_interrupt_exception&)
 	{
 	}
-	catch(sinsp_exception& e)
+	catch(std::exception& e)
 	{
 		errorstr = e.what();
 		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
-		errorstr = "uncatched exception";
+		errorstr = "uncaught exception";
 		res.m_res = EXIT_FAILURE;
 	}
 
@@ -642,6 +743,9 @@ int main(int argc, char **argv)
 {
 	sysdig_init_res res;
 
+	//
+	// Run csysdig
+	//
 	res = csysdig_init(argc, argv);
 
 #ifdef _WIN32

@@ -40,6 +40,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define RW_SNAPLEN_EVENT 4096
 #define RW_MAX_SNAPLEN (256 * 1024 * 1024)
 #define DPI_LOOKAHED_SIZE 16
+#define PPM_NULL_RDEV MKDEV(1, 3)
+#define PPM_PORT_MYSQL 3306
+#define PPM_PORT_POSTGRES 5432
+#define PPM_PORT_STATSD 8125
 
 /*
  * Global enums
@@ -128,7 +132,3 @@ extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 extern const struct syscall_evt_pair g_syscall_ia32_table[];
 extern const enum ppm_syscall_code g_syscall_ia32_code_routing_table[];
 #endif
-
-#define PPM_PORT_MYSQL 3306
-#define PPM_PORT_POSTGRES 5432
-#define PPM_PORT_STATSD 8125

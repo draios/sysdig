@@ -372,6 +372,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UMOUNT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_ACCESS_E] = {f_sys_access_e},
 	[PPME_SYSCALL_ACCESS_X] = {f_sys_access_x},
+	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
+	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } }
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -517,6 +519,9 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 
+	/*
+	 * fd
+	 */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -621,6 +626,7 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 	 * res
 	 */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;

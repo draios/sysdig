@@ -195,6 +195,10 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 //
 // ASSERT implementation
 //
+
+#ifdef ASSERT
+#undef ASSERT
+#endif // ASSERT
 #ifdef _DEBUG
 #define ASSERT(X) assert(X)
 #else // _DEBUG

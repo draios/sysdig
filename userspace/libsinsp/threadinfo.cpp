@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "protodecoder.h"
+#include "tracers.h"
 
 #ifdef HAS_THREAD_FILTERING
 #include "scap_new.h"
@@ -48,6 +49,7 @@ sinsp_threadinfo::sinsp_threadinfo() :
 	m_fdtable(NULL)
 {
 	m_inspector = NULL;
+	m_tracer_parser = NULL;
 	init();
 }
 
@@ -55,6 +57,7 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp *inspector) :
 	m_fdtable(inspector)
 {
 	m_inspector = inspector;
+	m_tracer_parser = NULL;
 	init();
 }
 
@@ -115,6 +118,15 @@ sinsp_threadinfo::~sinsp_threadinfo()
 	}
 
 	m_private_state.clear();
+	if(m_lastevent_data)
+	{
+		free(m_lastevent_data);
+	}
+
+	if(m_tracer_parser)
+	{
+		delete m_tracer_parser;
+	}
 }
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc()
@@ -264,6 +276,16 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 		newfdi->m_name = fdi->info.fname;
+
+		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
+		}
+		else
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
+		}
+
 		break;
 	default:
 		ASSERT(false);
@@ -322,13 +344,11 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
-	set_cgroups(pi->cgroups, pi->cgroups_len);
-	ASSERT(m_inspector);
-	if(m_inspector)
-	{
-		m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
-	}
 
+	set_cgroups(pi->cgroups, pi->cgroups_len);
+	m_root = pi->root;
+	ASSERT(m_inspector);
+	m_inspector->m_container_manager.resolve_container(this, m_inspector->m_islive);
 	//
 	// Prepare for filtering
 	//
@@ -419,9 +439,44 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 	size_t offset = 0;
 	while(offset < len)
 	{
-		m_env.push_back(env + offset);
+		const char* left = env + offset;
+		// environment string may actually be shorter than indicated by len
+		// if the rest is empty, we bail out early
+		if(!strlen(left))
+		{
+			size_t sz = len - offset;
+			void* zero = calloc(sz, sizeof(char));
+			if(!memcmp(left, zero, sz))
+			{
+				free(zero);
+				return;
+			}
+			free(zero);
+		}
+		m_env.push_back(left);
+
 		offset += m_env.back().length() + 1;
 	}
+}
+
+string sinsp_threadinfo::get_env(const string& name) const
+{
+	for(const auto& env_var : m_env)
+	{
+		if((env_var.length() > name.length()) && (env_var.substr(0, name.length()) == name))
+		{
+			std::string::size_type pos = env_var.find('=');
+			if(pos != std::string::npos && env_var.size() > pos + 1)
+			{
+				string val = env_var.substr(pos + 1);
+				std::string::size_type first = val.find_first_not_of(' ');
+				std::string::size_type last = val.find_last_not_of(' ');
+				return val.substr(first, last - first + 1);
+			}
+		}
+	}
+
+	return "";
 }
 
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)

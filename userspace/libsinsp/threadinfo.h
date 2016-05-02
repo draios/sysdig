@@ -25,6 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
+class sinsp_tracerparser;
 
 typedef struct erase_fd_params
 {
@@ -72,6 +73,21 @@ public:
 	  \brief Return the working directory of the process containing this thread.
 	*/
 	string get_cwd();
+
+	/*!
+	  \brief Return the values of all environment variables for the process
+	  containing this thread.
+	*/
+	const vector<string>& get_env() const
+	{
+		return m_env;
+	}
+
+	/*!
+	  \brief Return the value of the specified environment variable for the process
+	  containing this thread. Returns empty string if variable is not found.
+	*/
+	string get_env(const string& name) const;
 
 	/*!
 	  \brief Return true if this is a process' main thread.
@@ -262,6 +278,7 @@ public:
 	uint64_t m_pfminor; ///< number of minor page faults since start.
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
+	string m_root;
 
 	//
 	// State for multi-event processing
@@ -271,6 +288,11 @@ public:
 	uint64_t m_prevevent_ts; ///< timestamp of the event before the last for this thread.
 	uint64_t m_lastaccess_ts; ///< The last time this thread was looked up. Used when cleaning up the table. 
 	uint64_t m_clone_ts; ///< When the clone that started this process happened.
+
+	//
+	// Parser for the user events. Public so that filter fields can access it
+	//
+	sinsp_tracerparser* m_tracer_parser;
 
 	thread_analyzer_info* m_ainfo;
 
@@ -372,6 +394,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_thread_manager;
 	friend class sinsp_transaction_table;
 	friend class thread_analyzer_info;
+	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
 };
 

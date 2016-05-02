@@ -80,7 +80,7 @@ You can switch to a different view by using the \f[I]F2\f[] key.
 .P
 .PD
 .IP "3." 3
-You can to drill down into a selection by clicking \f[I]enter\f[].
+You can drill down into a selection by clicking \f[I]enter\f[].
 You can navigate back by typing \f[I]backspace\f[].
 .PD 0
 .P
@@ -104,14 +104,14 @@ For example, if you drill down into a process called foo and then switch
 to the \f[I]Connections\f[] view, the output will include only the
 connections made or received by \f[I]foo\f[].
 .PP
-You can drill down multiple times, by keeping clicking \f[I]enter\f[].
+To drill down multiple times, keep clicking \f[I]enter\f[].
 For example, you can click on a container in the \f[I]Containers\f[]
 view to get the processes running inside it, and then click on one of
 the processes to see its threads.
 .SS ACTIONS AND HOTKEYS
 .PP
 Each view has a list of command lines that can be executed in the
-context of the current selction by pressing \[aq]hotkeys\[aq].
+context of the current selection by pressing \[aq]hotkeys\[aq].
 For example, pressing \[aq]k\[aq] in the Processes view kills the
 selected process, pressing \[aq]b\[aq] in the Containers view opens a
 bash shell in the selected container.
@@ -124,7 +124,7 @@ file.
 .PP
 Starting csysdig with the \-pc command line switch will cause many of
 the views to include additional container information.
-For example, the \f[I]Processes\f[] will include the columns with the
+For example, the \f[I]Processes\f[] will include a column showing the
 container the process belongs to.
 Similarly, the \f[I]Connections\f[] view will show which container each
 connection belongs to.
@@ -197,6 +197,12 @@ Show the help page for the currently displayed view.
 .PD
 Open the view\[aq]s actions panel.
 .PP
+\f[B]F9, >\f[]
+.PD 0
+.P
+.PD
+Open the column sort panel.
+.PP
 \f[B]F10, q\f[]
 .PD 0
 .P
@@ -216,6 +222,12 @@ content.
 .P
 .PD
 Pause screen updates.
+.PP
+\f[B]\f[C]<shift>\ <1\-9>\f[]\f[]
+.PD 0
+.P
+.PD
+sort column \f[C]<n>\f[]
 .PP
 \f[B]F1, h, ?\f[]
 .PD 0
@@ -276,6 +288,26 @@ Pause screen updates.
 .P
 .PD
 Go to line.
+.SS Spectrogram Window
+.PP
+\f[B]F2\f[]
+.PD 0
+.P
+.PD
+Show the view picker.
+This will let you switch to another view.
+.PP
+\f[B]p\f[]
+.PD 0
+.P
+.PD
+Pause/Resume the visualization.
+.PP
+\f[B]Backspace\f[]
+.PD 0
+.P
+.PD
+Navigate back to the previous view.
 .SS MOUSE USAGE
 .IP \[bu] 2
 Clicking on column headers lets you sort the table.
@@ -335,6 +367,29 @@ E.g.
 The API server can also be specified via the environment variable
 SYSDIG_K8S_API.
 .PP
+\f[B]\-K\f[] \f[I]btfile | certfile:keyfile[#password][:cacertfile]\f[],
+\f[B]\-\-k8s\-api\-cert=\f[]\f[I]btfile |
+certfile:keyfile[#password][:cacertfile]\f[]
+.PD 0
+.P
+.PD
+Use the provided files names to authenticate user and (optionally)
+verify the K8S API server identity.
+Each entry must specify full (absolute, or relative to the current
+directory) path to the respective file.
+Private key password is optional (needed only if key is password
+protected).
+CA certificate is optional.
+For all files, only PEM file format is supported.
+Specifying CA certificate only is obsoleted \- when single entry is
+provided for this option, it will be interpreted as the name of a file
+containing bearer token.
+Note that the format of this command\-line option prohibits use of files
+whose names contain \[aq]:\[aq] or \[aq]#\[aq] characters in the file
+name.
+Option can also be provided via the environment variable
+SYSDIG_K8S_API_CERT.
+.PP
 \f[B]\-l\f[], \f[B]\-\-list\f[]
 .PD 0
 .P
@@ -346,6 +401,18 @@ List all the fields that can be used in views.
 .P
 .PD
 Print program logs into the given file.
+.PP
+\f[B]\-m\f[] \f[I]url[,marathon\-url]\f[],
+\f[B]\-\-mesos\-api=\f[]\f[I]url[,marathon\-url]\f[]
+.PD 0
+.P
+.PD
+Enable Mesos support by connecting to the API server specified as
+argument (e.g.
+<http://admin:password@127.0.0.1:5050>).
+Marathon url is optional and defaults to Mesos address, port 8080.
+The API servers can also be specified via the environment variable
+SYSDIG_MESOS_API.
 .PP
 \f[B]\-N\f[]
 .PD 0
@@ -380,6 +447,17 @@ Read the events from \f[I]readfile\f[].
 Capture the first \f[I]len\f[] bytes of each I/O buffer.
 By default, the first 80 bytes are captured.
 Use this option with caution, it can generate huge trace files.
+.PP
+\f[B]\-T\f[], \f[B]\-\-force\-tracers\-capture\f[]
+.PD 0
+.P
+.PD
+Tell the driver to make sure full buffers are captured from /dev/null,
+to make sure that tracers are completely captured.
+Note that sysdig will enable extended /dev/null capture by itself after
+detecting that tracers are written there, but that could result in the
+truncation of some tracers at the beginning of the capture.
+This option allows preventing that.
 .PP
 \f[B]\-v\f[] \f[I]view\f[]id_, \f[B]\-\-views\f[]=\f[I]view\f[]id_
 .PD 0

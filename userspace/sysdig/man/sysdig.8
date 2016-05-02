@@ -120,7 +120,8 @@ The list of available fields can be obtained with \[aq]sysdig \-l\[aq].
 .PD
 Filter expressions can use one of these comparison operators:
 \f[I]=\f[], \f[I]!=\f[], \f[I]<\f[], \f[I]<=\f[], \f[I]>\f[],
-\f[I]>=\f[], \f[I]contains\f[], \f[I]in\f[] and \f[I]exists\f[].
+\f[I]>=\f[], \f[I]contains\f[], \f[I]icontains\f[], \f[I]in\f[] and
+\f[I]exists\f[].
 e.g.
 .RS
 .PP
@@ -352,6 +353,29 @@ E.g.
 The API server can also be specified via the environment variable
 SYSDIG_K8S_API.
 .PP
+\f[B]\-K\f[] \f[I]btfile | certfile:keyfile[#password][:cacertfile]\f[],
+\f[B]\-\-k8s\-api\-cert=\f[]\f[I]btfile |
+certfile:keyfile[#password][:cacertfile]\f[]
+.PD 0
+.P
+.PD
+Use the provided files names to authenticate user and (optionally)
+verify the K8S API server identity.
+Each entry must specify full (absolute, or relative to the current
+directory) path to the respective file.
+Private key password is optional (needed only if key is password
+protected).
+CA certificate is optional.
+For all files, only PEM file format is supported.
+Specifying CA certificate only is obsoleted \- when single entry is
+provided for this option, it will be interpreted as the name of a file
+containing bearer token.
+Note that the format of this command\-line option prohibits use of files
+whose names contain \[aq]:\[aq] or \[aq]#\[aq] characters in the file
+name.
+Option can also be provided via the environment variable
+SYSDIG_K8S_API_CERT.
+.PP
 \f[B]\-L\f[], \f[B]\-\-list\-events\f[]
 .PD 0
 .P
@@ -365,11 +389,29 @@ List the events that the engine supports
 List the fields that can be used for filtering and output formatting.
 Use \-lv to get additional information for each field.
 .PP
+\f[B]\-m\f[] \f[I]url[,marathon\-url]\f[],
+\f[B]\-\-mesos\-api=\f[]\f[I]url[,marathon\-url]\f[]
+.PD 0
+.P
+.PD
+Enable Mesos support by connecting to the API server specified as
+argument (e.g.
+<http://admin:password@127.0.0.1:5050>).
+Marathon url is optional and defaults to Mesos address, port 8080.
+The API servers can also be specified via the environment variable
+SYSDIG_MESOS_API.
+.PP
 \f[B]\-N\f[]
 .PD 0
 .P
 .PD
 Don\[aq]t convert port numbers to names.
+.PP
+\f[B]\-M\f[] \f[I]num\f[]seconds_
+.PD 0
+.P
+.PD
+Stop collecting after reaching
 .PP
 \f[B]\-n\f[] \f[I]num\f[], \f[B]\-\-numevents\f[]=\f[I]num\f[]
 .PD 0
@@ -391,6 +433,7 @@ Print progress on stderr while processing trace files.
 Specify the format to be used when printing the events.
 With \-pc or \-pcontainer will use a container\-friendly format.
 With \-pk or \-pkubernetes will use a kubernetes\-friendly format.
+With \-pm or \-pmesos will use a mesos\-friendly format.
 Specifying \f[B]\-pp\f[] on the command line will cause sysdig to print
 the default command line format and exit.
 .PP
@@ -429,8 +472,19 @@ Use this option with caution, it can generate huge trace files.
 Change the way event time is displayed.
 Accepted values are \f[B]h\f[] for human\-readable string, \f[B]a\f[]
 for absolute timestamp from epoch, \f[B]r\f[] for relative time from the
-beginning of the capture, \f[B]d\f[] for delta between event enter and
+first displayed event, \f[B]d\f[] for delta between event enter and
 exit, and \f[B]D\f[] for delta from the previous event.
+.PP
+\f[B]\-T\f[], \f[B]\-\-force\-tracers\-capture\f[]
+.PD 0
+.P
+.PD
+Tell the driver to make sure full buffers are captured from /dev/null,
+to make sure that tracers are completely captured.
+Note that sysdig will enable extended /dev/null capture by itself after
+detecting that tracers are written there, but that could result in the
+truncation of some tracers at the beginning of the capture.
+This option allows preventing that.
 .PP
 \f[B]\-\-unbuffered\f[]
 .PD 0

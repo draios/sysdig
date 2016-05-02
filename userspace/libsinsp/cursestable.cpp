@@ -64,14 +64,6 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 
 	m_converter = new sinsp_filter_check_reference();
 
-	for (int i = 0; i < 8; i++)
-	{
-		for (int j = 0; j < 8; j++)
-		{
-			init_pair((7-i)*8+j, i, (j==0?-1:j));
-		}
-	}
-
 	//
 	// Column sizes initialization
 	//
@@ -249,28 +241,80 @@ void curses_table::update_data(vector<sinsp_sample_row>* data, bool force_select
 	}
 }
 
-void curses_table::print_wait()
+void curses_table::print_line_centered(string line, int32_t off)
 {
-	string wstr;
+	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
 
-	if(m_inspector->is_live())
+	if(line.size() < m_parent->m_screenw)
 	{
-		wstr = "Collecting Data";
+		mvwprintw(m_tblwin, 
+			m_parent->m_screenh / 2 + off,
+			m_parent->m_screenw / 2 - line.size() / 2, 
+			line.c_str());
 	}
 	else
 	{
-		if(m_parent->is_eof())
+		uint32_t spos = 0;
+
+		for(uint32_t j = 0;; j++)
 		{
-			wstr = "No Data For This View";
+			string ss = line.substr(spos, spos + m_parent->m_screenw);
+lo("2, %d %s\n", spos, ss.c_str());
+
+			mvwprintw(m_tblwin, 
+				m_parent->m_screenh / 2 + off + j,
+				0,
+				ss.c_str());
+
+			spos += m_parent->m_screenw;
+			if(spos >= line.size())
+			{
+				break;
+			}
 		}
 	}
+}
 
-	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PROCESS]);
+void curses_table::print_wait()
+{
+	string wstr;
+	bool is_tracer_view = false;
 
-	mvwprintw(m_tblwin, 
-		m_parent->m_screenh / 2,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
+	sinsp_view_info* vinfo = m_parent->get_selected_view();
+	if(vinfo)
+	{
+		if(vinfo->m_id == "tracers" ||
+			vinfo->m_id == "tracer_ids")
+		{
+			is_tracer_view = true;
+		}
+	}
+	else
+	{
+		ASSERT(false);
+	}
+
+	if(is_tracer_view)
+	{
+		print_line_centered("No data for this view.");
+		print_line_centered("Note: in order to see any data here, you need to push tracers to sysdig from your app as described here: XXX.", 2);
+	}
+	else
+	{
+		if(m_inspector->is_live())
+		{
+			wstr = "Collecting Data";
+		}
+		else
+		{
+			if(m_parent->is_eof())
+			{
+				wstr = "No Data For This View";
+			}
+		}
+	
+		print_line_centered(wstr);
+	}
 }
 
 void curses_table::print_error(string wstr)
@@ -634,6 +678,10 @@ sysdig_table_action curses_table::handle_input(int ch)
 		case '\r':
 		case KEY_ENTER:
 			return STA_DRILLDOWN;
+		case KEY_F(12):
+			return STA_SPECTRO;
+		case 288:
+			return STA_SPECTRO_FILE;
 		case KEY_BACKSPACE:
 		case 127:
 			return STA_DRILLUP;
@@ -748,6 +796,22 @@ sysdig_table_action curses_table::handle_input(int ch)
 		}
 	}
 
+	for(uint32_t i = 0; i < vinfo->max_col_sort_hotkeys; i++)
+	{
+		if(vinfo->m_col_sort_hotkeys[i] == ch) 
+		{
+			if(i < vinfo->m_columns.size()) 
+			{
+				m_table->set_sorting_col(i + 1);
+				m_table->sort_sample();
+				update_data(m_data);
+				set_x_start(0);
+				recreate_win(m_parent->m_screenh - 3);
+				render(true);
+				break;
+			}
+		}
+	}
 	return STA_PARENT_HANDLE;
 }
 

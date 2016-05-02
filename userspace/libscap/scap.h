@@ -214,6 +214,7 @@ typedef struct scap_threadinfo
 	int64_t vpid;
 	char cgroups[SCAP_MAX_CGROUPS_SIZE];
 	uint16_t cgroups_len;
+	char root[SCAP_MAX_PATH_SIZE];
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	UT_hash_handle hh; ///< makes this structure hashable
@@ -428,11 +429,22 @@ typedef enum compression_mode
 typedef enum scap_dump_flags
 {
 	SCAP_DF_NONE = 0,
-	SCAP_DF_STATE_ONLY = 1	///< The event should be used for state update but it should 
-							///< not be shown to the user
+	SCAP_DF_STATE_ONLY = 1,		///< The event should be used for state update but it should 
+								///< not be shown to the user
+	SCAP_DF_TRACER = (1 << 1)	///< This event is a tracer 
 }scap_dump_flags;
 
 typedef struct scap_dumper scap_dumper_t;
+
+/*!
+  \brief System call description struct.
+*/
+struct ppm_syscall_desc {
+	enum ppm_event_category category; /**< System call category. */
+	enum ppm_event_flags flags;
+	char *name; /**< System call name, e.g. 'open'. */
+};
+
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -842,6 +854,7 @@ void scap_refresh_iflist(scap_t* handle);
 void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
+int32_t scap_enable_tracers_capture(scap_t* handle);
 
 #ifdef __cplusplus
 }

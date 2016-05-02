@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Show the top process defined by the highest CPU utilization. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
+description = "Show the top process defined by the highest CPU utilization. This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top processes by CPU usage"
 category = "CPU Usage"
 

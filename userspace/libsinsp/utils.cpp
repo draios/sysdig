@@ -41,6 +41,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "chisel.h"
 #include "protodecoder.h"
+#include "json/json.h"
+#include "uri.h"
+#ifndef _WIN32
+#include "curl/curl.h"
+#endif
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -1030,56 +1035,56 @@ void replace_in_place(string& str, string& substr_to_replace, string& new_substr
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation
 ///////////////////////////////////////////////////////////////////////////////
-uint32_t sinsp_numparser::parseu8(const string& str)
+uint8_t sinsp_numparser::parseu8(const string& str)
 {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu8 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (uint8_t)res;
 }
 
-int32_t sinsp_numparser::parsed8(const string& str)
+int8_t sinsp_numparser::parsed8(const string& str)
 {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId8 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (int8_t)res;
 }
 
-uint32_t sinsp_numparser::parseu16(const string& str)
+uint16_t sinsp_numparser::parseu16(const string& str)
 {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu16 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (uint16_t)res;
 }
 
-int32_t sinsp_numparser::parsed16(const string& str)
+int16_t sinsp_numparser::parsed16(const string& str)
 {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId16 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (int16_t)res;
 }
 
 uint32_t sinsp_numparser::parseu32(const string& str)
@@ -1229,3 +1234,19 @@ bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t
 
 	return true;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// JSON helpers
+///////////////////////////////////////////////////////////////////////////////
+
+std::string get_json_string(const Json::Value& root, const std::string& name)
+{
+	std::string ret;
+	const Json::Value& json_val = root[name];
+	if(!json_val.isNull() && json_val.isString())
+	{
+		ret = json_val.asString();
+	}
+	return ret;
+}
+

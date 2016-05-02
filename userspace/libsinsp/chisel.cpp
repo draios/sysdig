@@ -20,7 +20,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <fstream>
 #include <cctype>
 #include <locale>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -56,14 +58,14 @@ extern sinsp_evttables g_infotables;
 // For Lua debugging
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_LUA_CHISELS
-void lua_stackdump(lua_State *L) 
+void lua_stackdump(lua_State *L)
 {
 	int i;
 	int top = lua_gettop(L);
-	for (i = 1; i <= top; i++) 
+	for (i = 1; i <= top; i++)
 	{
 		int t = lua_type(L, i);
-		switch (t) 
+		switch (t)
 		{
 
 		case LUA_TSTRING:  // strings
@@ -94,7 +96,7 @@ void lua_stackdump(lua_State *L)
 // Lua callbacks
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_LUA_CHISELS
-const static struct luaL_reg ll_sysdig [] = 
+const static struct luaL_reg ll_sysdig [] =
 {
 	{"set_filter", &lua_cbacks::set_global_filter},
 	{"set_snaplen", &lua_cbacks::set_snaplen},
@@ -114,13 +116,15 @@ const static struct luaL_reg ll_sysdig [] =
 	{"run_sysdig", &lua_cbacks::run_sysdig},
 	{"end_capture", &lua_cbacks::end_capture},
 	{"log", &lua_cbacks::log},
+	{"udp_setpeername", &lua_cbacks::udp_setpeername},
+	{"udp_send", &lua_cbacks::udp_send},
 #ifdef HAS_ANALYZER
 	{"push_metric", &lua_cbacks::push_metric},
 #endif
 	{NULL,NULL}
 };
 
-const static struct luaL_reg ll_chisel [] = 
+const static struct luaL_reg ll_chisel [] =
 {
 	{"request_field", &lua_cbacks::request_field},
 	{"set_filter", &lua_cbacks::set_filter},
@@ -131,7 +135,7 @@ const static struct luaL_reg ll_chisel [] =
 	{NULL,NULL}
 };
 
-const static struct luaL_reg ll_evt [] = 
+const static struct luaL_reg ll_evt [] =
 {
 	{"field", &lua_cbacks::field},
 	{"get_num", &lua_cbacks::get_num},
@@ -185,6 +189,8 @@ void chiselinfo::init(string filterstr, string formatterstr)
 
 void chiselinfo::set_filter(string filterstr)
 {
+
+	sinsp_filter_compiler compiler(m_inspector, filterstr);
 	if(m_filter)
 	{
 		delete m_filter;
@@ -193,7 +199,7 @@ void chiselinfo::set_filter(string filterstr)
 
 	if(filterstr != "")
 	{
-		m_filter = new sinsp_filter(m_inspector, filterstr);
+		m_filter = compiler.compile();
 	}
 }
 
@@ -234,6 +240,7 @@ sinsp_chisel::sinsp_chisel(sinsp* inspector, string filename)
 	m_lua_cinfo = NULL;
 	m_lua_last_interval_sample_time = 0;
 	m_lua_last_interval_ts = 0;
+	m_udp_socket = 0;
 
 	load(filename);
 }
@@ -260,11 +267,21 @@ void sinsp_chisel::free_lua_chisel()
 
 	if(m_lua_cinfo != NULL)
 	{
-		delete m_lua_cinfo; 
+		delete m_lua_cinfo;
 		m_lua_cinfo = NULL;
 	}
 
 	m_lua_script_info.reset();
+
+	if(m_udp_socket > 0)
+	{
+#ifdef _WIN32
+		closesocket(m_udp_socket);
+#else
+		close(m_udp_socket);
+#endif
+		m_udp_socket = 0;
+	}
 #endif
 }
 
@@ -339,7 +356,7 @@ void parse_lua_chisel_args(lua_State *ls, OUT chisel_desc* cd)
 void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 {
 	lua_getglobal(ls, "package");
-	lua_getfield(ls, -1, "path"); 
+	lua_getfield(ls, -1, "path");
 
 	string cur_path = lua_tostring(ls, -1 );
 	cur_path += ';';
@@ -394,6 +411,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	string name;
 	string description;
 	string field;
+	string filterfield;
 	uint32_t colsize = 0xffffffff;
 	uint32_t flags = TEF_NONE;
 	sinsp_field_aggregation aggregation = A_NONE;
@@ -416,6 +434,10 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		{
 			field = lua_tostring(ls, -1);
 		}
+		else if(fldname == "filterfield")
+		{
+			filterfield = lua_tostring(ls, -1);
+		}
 		else if(fldname == "colsize")
 		{
 			if(lua_isnumber(ls, -1))
@@ -435,6 +457,21 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 				if(ik)
 				{
 					flags |= TEF_IS_KEY;
+				}
+			}
+			else
+			{
+				throw sinsp_exception(string(lua_tostring(ls, -2)) + " must be a boolean value");
+			}
+		}
+		else if(fldname == "filter_in_child_only")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				bool ik = (lua_toboolean(ls, -1) != 0);
+				if(ik)
+				{
+					flags |= TEF_FILTER_IN_CHILD_ONLY;
 				}
 			}
 			else
@@ -520,14 +557,20 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		lua_pop(ls, 1);
 	}
 
-	cols->push_back(sinsp_view_column_info(field, 
+	if(filterfield != "" && ((flags & TEF_IS_KEY) == 0) && ((flags & TEF_IS_GROUPBY_KEY) == 0))
+	{
+		throw sinsp_exception("wrong view column syntax: filterfield specified for a non key column");
+	}
+
+	cols->push_back(sinsp_view_column_info(field,
 		name,
 		description,
-		colsize, 
-		(uint32_t)flags, 
-		aggregation, 
+		colsize,
+		(uint32_t)flags,
+		aggregation,
 		groupby_aggregation,
-		tags));
+		tags,
+		filterfield));
 }
 
 void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
@@ -622,7 +665,7 @@ void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		throw sinsp_exception("action missing the 'command' value");
 	}
 
-	keys->push_back(sinsp_view_action_info(key, 
+	keys->push_back(sinsp_view_action_info(key,
 		command,
 		description,
 		ask_confirmation,
@@ -676,7 +719,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	vector<string> tags;
 	vector<string> tips;
 	string drilldown_target;
+	string spectro_type;
+	bool drilldown_increase_depth = false;
 	bool is_root = false;
+	bool propagate_filter = true;
 
 	while(lua_next(ls, -2) != 0)
 	{
@@ -716,7 +762,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				}
 			}
 			else
-			{				
+			{
 				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
@@ -742,7 +788,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				}
 			}
 			else
-			{				
+			{
 				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
@@ -758,6 +804,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 			{
 				vt = sinsp_view_info::T_LIST;
 			}
+			else if(tmpstr == "spectrogram")
+			{
+				vt = sinsp_view_info::T_SPECTRO;
+			}
 			else
 			{
 				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be either 'table' or 'list'");
@@ -766,6 +816,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		else if(fldname == "drilldown_target")
 		{
 			drilldown_target = lua_tostring(ls, -1);
+		}
+		else if(fldname == "spectro_type")
+		{
+			spectro_type = lua_tostring(ls, -1);
 		}
 		else if(fldname == "applies_to")
 		{
@@ -841,6 +895,28 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " is not a table");
 			}
 		}
+		else if(fldname == "drilldown_increase_depth")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				drilldown_increase_depth = (lua_toboolean(ls, -1) != 0);
+			}
+			else
+			{
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be a boolean");
+			}
+		}
+		else if(fldname == "propagate_filter")
+		{
+			if(lua_isboolean(ls, -1))
+			{
+				propagate_filter = (lua_toboolean(ls, -1) != 0);
+			}
+			else
+			{
+				throw sinsp_exception("error in view " + cd->m_name + ": " + string(lua_tostring(ls, -2)) + " must be a boolean");
+			}
+		}
 
 		lua_pop(ls, 1);
 	}
@@ -857,7 +933,10 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		drilldown_target,
 		use_defaults,
 		is_root,
-		actions);
+		actions,
+		drilldown_increase_depth,
+		spectro_type,
+		propagate_filter);
 
 	return true;
 }
@@ -1037,13 +1116,13 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				}
 			}
 			cd.m_name = fn.name;
-			
+
 #ifdef HAS_LUA_CHISELS
 			if(fn.ext == "lua")
 			{
 				add_to_vector = init_lua_chisel(cd, fpath);
 			}
-			
+
 			if(add_to_vector)
 			{
 				chisel_descs->push_back(cd);
@@ -1085,34 +1164,20 @@ void sinsp_chisel::load(string cmdstr)
 	ifstream is;
 
 	//
-	// Try to open the file as is
+	// Try to open the file with lua extension
 	//
-	if(!openfile(m_filename, &is))
+	if(!openfile(m_filename + ".lua", &is))
 	{
 		//
-		// Try to add the .sc extension
+		// Try to open the file as is
 		//
-		if(!openfile(m_filename + ".sc", &is))
+		if(!openfile(m_filename, &is))
 		{
-			if(!openfile(m_filename + ".lua", &is))
-			{
-				throw sinsp_exception("can't open file " + m_filename);
-			}
+			throw sinsp_exception("can't open file " + m_filename);
 		}
 	}
 
-	//
-	// Bring the file into a string
-	//
-	string docstr((istreambuf_iterator<char>(is)),
-		istreambuf_iterator<char>());
-
 #ifdef HAS_LUA_CHISELS
-	//
-	// Rewind the stream
-	//
-	is.seekg(0);
-
 	//
 	// Load the file
 	//
@@ -1123,7 +1188,7 @@ void sinsp_chisel::load(string cmdstr)
 	// Open the script
 	//
 	m_ls = lua_open();
- 
+
 	luaL_openlibs(m_ls);
 
 	//
@@ -1146,9 +1211,9 @@ void sinsp_chisel::load(string cmdstr)
 	//
 	// Load the script
 	//
-	if(luaL_loadstring(m_ls, scriptstr.c_str()) || lua_pcall(m_ls, 0, 0, 0)) 
+	if(luaL_loadstring(m_ls, scriptstr.c_str()) || lua_pcall(m_ls, 0, 0, 0))
 	{
-		throw sinsp_exception("Failed to load chisel " + 
+		throw sinsp_exception("Failed to load chisel " +
 			m_filename + ": " + lua_tostring(m_ls, -1));
 	}
 
@@ -1169,7 +1234,7 @@ void sinsp_chisel::load(string cmdstr)
 	lua_getglobal(m_ls, "args");
 	if(!lua_istable(m_ls, -1))
 	{
-		throw sinsp_exception("Failed to load chisel " + 
+		throw sinsp_exception("Failed to load chisel " +
 			m_filename + ": args table missing");
 	}
 
@@ -1273,11 +1338,11 @@ void sinsp_chisel::set_args(string args)
 				{
 					quote_correction = 1;
 					inquotes = false;
-				}			
+				}
 				else {
 					token_begin++;
 					inquotes = true;
-				}			
+				}
 			}
 		}
 
@@ -1295,7 +1360,7 @@ void sinsp_chisel::set_args(string args)
 	if(m_argvals.size() < n_required_args)
 	{
 		throw sinsp_exception("wrong number of parameters for chisel " + m_filename +
-			", " + to_string((long long int)n_required_args) + " required, " + 
+			", " + to_string((long long int)n_required_args) + " required, " +
 			to_string((long long int)m_argvals.size()) + " given");
 	}
 	else if(m_argvals.size() > n_optional_args + n_required_args)
@@ -1336,7 +1401,7 @@ void sinsp_chisel::set_args(vector<pair<string, string>> args)
 	if(args.size() < n_required_args)
 	{
 		throw sinsp_exception("wrong number of parameters for chisel " + m_filename +
-			", " + to_string((long long int)n_required_args) + " required, " + 
+			", " + to_string((long long int)n_required_args) + " required, " +
 			to_string((long long int)args.size()) + " given");
 	}
 	else if(args.size() > n_optional_args + n_required_args)
@@ -1359,18 +1424,18 @@ void sinsp_chisel::set_args(vector<pair<string, string>> args)
 			throw sinsp_exception("chisel " + m_filename + " misses a set_arg() function.");
 		}
 
-		lua_pushstring(m_ls, args[j].first.c_str()); 
+		lua_pushstring(m_ls, args[j].first.c_str());
 		lua_pushstring(m_ls, args[j].second.c_str());
 
 		//
 		// call get_info()
 		//
-		if(lua_pcall(m_ls, 2, 1, 0) != 0) 
+		if(lua_pcall(m_ls, 2, 1, 0) != 0)
 		{
 			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
 		}
 
-		if(!lua_isboolean(m_ls, -1)) 
+		if(!lua_isboolean(m_ls, -1))
 		{
 			throw sinsp_exception(m_filename + " chisel error: wrong set_arg() return value.");
 		}
@@ -1394,16 +1459,16 @@ void sinsp_chisel::on_init()
 	//
 	lua_getglobal(m_ls, "on_init");
 
-	if(!lua_isfunction(m_ls, -1)) 
+	if(!lua_isfunction(m_ls, -1))
 	{
 		//
-		// No on_init. 
+		// No on_init.
 		// That's ok. Just return.
 		//
 		return;
 	}
 
-	if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+	if(lua_pcall(m_ls, 0, 1, 0) != 0)
 	{
 		//
 		// Exception running init
@@ -1415,7 +1480,7 @@ void sinsp_chisel::on_init()
 
 	if(m_new_chisel_to_exec == "")
 	{
-		if(!lua_isboolean(m_ls, -1)) 
+		if(!lua_isboolean(m_ls, -1))
 		{
 			throw sinsp_exception(m_filename + " chisel error: wrong init() return value.");
 		}
@@ -1518,12 +1583,12 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 	if(m_lua_has_handle_evt)
 	{
 		lua_getglobal(m_ls, "on_event");
-			
-		if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+
+		if(lua_pcall(m_ls, 0, 1, 0) != 0)
 		{
 			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
 		}
-	
+
 		int oeres = lua_toboolean(m_ls, -1);
 		lua_pop(m_ls, 1);
 
@@ -1572,20 +1637,23 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 			if(m_lua_last_interval_ts != 0)
 			{
 				delta = ts - m_lua_last_interval_ts;
-				ASSERT(delta > 0);
+				if(delta == 0)
+				{
+					return;
+				}
 			}
 
 			lua_getglobal(m_ls, "on_interval");
-			
-			lua_pushnumber(m_ls, (double)(ts / 1000000000)); 
-			lua_pushnumber(m_ls, (double)(ts % 1000000000)); 
-			lua_pushnumber(m_ls, (double)delta); 
 
-			if(lua_pcall(m_ls, 3, 1, 0) != 0) 
+			lua_pushnumber(m_ls, (double)(ts / 1000000000));
+			lua_pushnumber(m_ls, (double)(ts % 1000000000));
+			lua_pushnumber(m_ls, (double)delta);
+
+			if(lua_pcall(m_ls, 3, 1, 0) != 0)
 			{
 				throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
 			}
-	
+
 			int oeres = lua_toboolean(m_ls, -1);
 			lua_pop(m_ls, 1);
 
@@ -1593,7 +1661,7 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 			{
 				throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
 			}
-	
+
 			m_lua_last_interval_sample_time = sample_time;
 			m_lua_last_interval_ts = ts;
 		}
@@ -1605,7 +1673,7 @@ void sinsp_chisel::do_end_of_sample()
 #ifdef HAS_LUA_CHISELS
 	lua_getglobal(m_ls, "on_end_of_sample");
 
-	if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+	if(lua_pcall(m_ls, 0, 1, 0) != 0)
 	{
 		throw sinsp_exception(m_filename + " chisel error: calling on_end_of_sample() failed:" + lua_tostring(m_ls, -1));
 	}
@@ -1624,15 +1692,15 @@ void sinsp_chisel::on_capture_start()
 {
 #ifdef HAS_LUA_CHISELS
 	lua_getglobal(m_ls, "on_capture_start");
-			
+
 	if(lua_isfunction(m_ls, -1))
 	{
-		if(lua_pcall(m_ls, 0, 1, 0) != 0) 
+		if(lua_pcall(m_ls, 0, 1, 0) != 0)
 		{
 			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
 		}
 
-		if(!lua_isboolean(m_ls, -1)) 
+		if(!lua_isboolean(m_ls, -1))
 		{
 			throw sinsp_exception(m_filename + " chisel error: wrong on_capture_start() return value. Boolean expected.");
 		}
@@ -1658,11 +1726,11 @@ void sinsp_chisel::on_capture_end()
 		uint64_t te = m_inspector->m_lastevent_ts;
 		int64_t delta = te - ts;
 
-		lua_pushnumber(m_ls, (double)(te / 1000000000)); 
-		lua_pushnumber(m_ls, (double)(te % 1000000000)); 
+		lua_pushnumber(m_ls, (double)(te / 1000000000));
+		lua_pushnumber(m_ls, (double)(te % 1000000000));
 		lua_pushnumber(m_ls, (double)delta);
 
-		if(lua_pcall(m_ls, 3, 0, 0) != 0) 
+		if(lua_pcall(m_ls, 3, 0, 0) != 0)
 		{
 			throw sinsp_exception(m_filename + " chisel error: " + lua_tostring(m_ls, -1));
 		}

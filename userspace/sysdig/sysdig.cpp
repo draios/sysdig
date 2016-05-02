@@ -117,7 +117,7 @@ static void usage()
 "                    'hidden' so that they won't appear when reading the file.\n"
 "                    Be aware that using this flag might generate substantially\n"
 "                    bigger traces files.\n"
-" filter-proclist    apply the filter to the process table\n"
+" --filter-proclist  apply the filter to the process table\n"
 "                    a full dump of /proc is typically included in any trace file\n"
 "                    to make sure all the state required to decode events is in the\n"
 "                    file. This could cause the file to contain unwanted or sensitive\n"
@@ -138,14 +138,35 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
-" -k, --k8s-api      Enable Kubernetes support by connecting to the API server\n"
+" -k <url>, --k8s-api=<url>\n"
+"                    Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
 "                    The API server can also be specified via the environment variable\n"
 "                    SYSDIG_K8S_API.\n"
+" -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>], --k8s-api-cert=<bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]\n"
+"                    Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
+"                    server identity.\n"
+"                    Each entry must specify full (absolute, or relative to the current directory) path\n"
+"                    to the respective file.\n"
+"                    Private key password is optional (needed only if key is password protected).\n"
+"                    CA certificate is optional. For all files, only PEM file format is supported. \n"
+"                    Specifying CA certificate only is obsoleted - when single entry is provided \n"
+"                    for this option, it will be interpreted as the name of a file containing bearer token.\n"
+"                    Note that the format of this command-line option prohibits use of files whose names contain\n"
+"                    ':' or '#' characters in the file name.\n"
+"                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" --list-markdown    like -l, but produces markdown output\n"
+" -m <url[,marathon_url]>, --mesos-api=<url[,marathon_url]>\n"
+"                    Enable Mesos support by connecting to the API server\n"
+"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:5050\".\n"
+"                    Marathon url is optional and defaults to Mesos address, port 8080.\n"
+"                    The API servers can also be specified via the environment variable\n"
+"                    SYSDIG_MESOS_API.\n"
+" -M <num_seconds>   Stop collecting after <num_seconds> reached.\n"
 " -N                 Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
@@ -154,6 +175,7 @@ static void usage()
 "                    Specify the format to be used when printing the events.\n"
 "                    With -pc or -pcontainer will use a container-friendly format.\n"
 "                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
+"                    With -pm or -pmesos will use a mesos-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
@@ -171,6 +193,14 @@ static void usage()
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, d for delta between event enter and exit, and\n"
 "                    D for delta from the previous event.\n"
+" -T, --force-tracers-capture\n"
+"                    Tell the driver to make sure full buffers are captured from\n"
+"                    /dev/null, to make sure that tracers are completely\n"
+"                    captured. Note that sysdig will enable extended /dev/null\n"
+"                    capture by itself after detecting that tracers are written\n"
+"                    there, but that could result in the truncation of some\n"
+"                    tracers at the beginning of the capture. This option allows\n"
+"                    preventing that.\n"
 " --unbuffered       Turn off output buffering. This causes every single line\n"
 "                    emitted by sysdig to be flushed, which generates higher CPU\n"
 "                    usage but is useful when piping sysdig's output into another\n"
@@ -219,6 +249,8 @@ static void usage()
 "%%evt.num %%evt.outputtime %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Using -pk or -pkubernetes, the default format will be changed to a kubernetes-friendly one:\n\n"
 "%%evt.num %%evt.outputtime %%evt.cpu %%k8s.pod.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
+"Using -pm or -pmesos, the default format will be changed to a mesos-friendly one:\n\n"
+"%%evt.num %%evt.outputtime %%evt.cpu %%mesos.task.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Examples:\n\n"
 " Capture all the events from the live system and print them to screen\n"
 "   $ sysdig\n\n"
@@ -371,7 +403,9 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 					{
 						try
 						{
-							sinsp_filter df(inspector, testflt);
+							sinsp_filter_compiler compiler(inspector, testflt);
+							sinsp_filter* s = compiler.compile();
+							delete s;
 						}
 						catch(...)
 						{
@@ -476,6 +510,7 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 //
 captureinfo do_inspect(sinsp* inspector,
 	uint64_t cnt,
+	int duration_to_tot,
 	bool quiet,
 	bool json,
 	bool do_flush,
@@ -489,6 +524,7 @@ captureinfo do_inspect(sinsp* inspector,
 	sinsp_evt* ev;
 	string line;
 	double last_printed_progress_pct = 0;
+	int duration_start = 0;
 
 	if(json)
 	{
@@ -498,8 +534,18 @@ captureinfo do_inspect(sinsp* inspector,
 	//
 	// Loop through the events
 	//
+	duration_start = ((double)clock()) / CLOCKS_PER_SEC;
 	while(1)
 	{
+		if(duration_to_tot > 0)
+		{
+			int duration_tot = ((double)clock()) / CLOCKS_PER_SEC - duration_start;
+			if(duration_tot >= duration_to_tot)
+			{
+				handle_end_of_file(print_progress, formatter);
+				break;
+			}
+		}
 		if(retval.m_nevts == cnt || g_terminate)
 		{
 			//
@@ -509,7 +555,6 @@ captureinfo do_inspect(sinsp* inspector,
 			handle_end_of_file(print_progress, formatter);
 			break;
 		}
-
 		res = inspector->next(&ev);
 
 		if(res == SCAP_TIMEOUT)
@@ -660,11 +705,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool is_filter_display = false;
 	bool verbose = false;
 	bool list_flds = false;
+	bool list_flds_markdown = false;
 	bool print_progress = false;
 	bool compress = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	sinsp_filter* display_filter = NULL;
 	double duration = 1;
+	int duration_to_tot = 0;
 	captureinfo cinfo;
 	string output_format;
 	uint32_t snaplen = 0;
@@ -677,6 +724,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cname;
 	vector<summary_table_entry>* summary_table = NULL;
 	string* k8s_api = 0;
+	string* k8s_api_cert = 0;
+	string* mesos_api = 0;
+	bool force_tracers_capture = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -706,8 +756,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
 		{"k8s-api", required_argument, 0, 'k'},
+		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
+		{"list-markdown", no_argument, 0, 0 },
+		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
 		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
@@ -716,6 +769,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"timetype", required_argument, 0, 't' },
+		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"unbuffered", no_argument, 0, 0 },
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
@@ -746,7 +800,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:lLNn:Pp:qr:Ss:t:v"
+                                        "hi:jk:K:lLm:M:Nn:Pp:qr:Ss:t:Tv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -824,7 +878,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-
 			case 'D':
 				inspector->set_debug_mode(true);
 				inspector->set_log_stderr();
@@ -891,6 +944,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'k':
 				k8s_api = new string(optarg);
 				break;
+			case 'K':
+				k8s_api_cert = new string(optarg);
+				break;
 			case 'h':
 				usage();
 				delete inspector;
@@ -902,6 +958,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				list_events(inspector);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			case 'm':
+				mesos_api = new string(optarg);
+				break;
+			case 'M':
+				duration_to_tot = atoi(optarg);
+				if(duration_to_tot <= 0)
+				{
+					throw sinsp_exception(string("invalid duration") + optarg);
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+				break;
 			case 'N':
 				inspector->set_hostname_and_port_resolution_mode(false);
 				break;
@@ -928,9 +996,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'p':
 				if(string(optarg) == "p")
 				{
-					//
 					// -pp shows the default output format, useful if the user wants to tweak it.
-					//
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
@@ -939,9 +1005,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
-					//
 					// This enables chisels to determine if they should print container information
-					//
 					if(inspector != NULL)
 					{
 						inspector->set_print_container_data(true);
@@ -951,9 +1015,17 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %k8s.pod.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
-					//
 					// This enables chisels to determine if they should print container information
-					//
+					if(inspector != NULL)
+					{
+						inspector->set_print_container_data(true);
+					}
+				}
+				else if(string(optarg) == "m" || string(optarg) == "mesos")
+				{
+					output_format = "*%evt.num %evt.outputtime %evt.cpu %mesos.task.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+
+					// This enables chisels to determine if they should print container information
 					if(inspector != NULL)
 					{
 						inspector->set_print_container_data(true);
@@ -971,6 +1043,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'r':
 				infiles.push_back(optarg);
 				k8s_api = new string();
+				mesos_api = new string();
 				break;
 			case 'S':
 				summary_table = new vector<summary_table_entry>;
@@ -1004,6 +1077,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_FAILURE);
 					}
 				}
+				break;
+			case 'T':
+				force_tracers_capture = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -1072,6 +1148,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			{
 				filter_proclist_flag = true;
 			}
+
+			if(string(long_options[long_index].name) == "list-markdown")
+			{
+				list_flds = true;
+				list_flds_markdown = true;
+			}
 		}
 
 		//
@@ -1115,11 +1197,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// -ll shows the fields verbosely, i.e. with more information
 				// like the type
 				//
-				list_fields(true);
+				list_fields(true, list_flds_markdown);
 			}
 			else
 			{
-				list_fields(false);
+				list_fields(false, list_flds_markdown);
 			}
 
 			res.m_res = EXIT_SUCCESS;
@@ -1145,7 +1227,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			if(is_filter_display)
 			{
-				display_filter = new sinsp_filter(inspector, filter);
+				sinsp_filter_compiler compiler(inspector, filter);
+				display_filter = compiler.compile();
 			}
 #else
 			fprintf(stderr, "filtering not compiled.\n");
@@ -1217,8 +1300,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			// Launch the capture
 			//
-			bool open_success = true;
-
 			if(infiles.size() != 0)
 			{
 				initialize_chisels();
@@ -1241,6 +1322,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// No file to open, this is a live capture
 				//
 #if defined(HAS_CAPTURE)
+				bool open_success = true;
+				
 				if(print_progress)
 				{
 					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
@@ -1267,7 +1350,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
 					{
-						fprintf(stderr, "Unable to load the driver\n");						
+						fprintf(stderr, "Unable to load the driver\n");
 					}
 
 					inspector->open("");
@@ -1286,9 +1369,20 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->set_get_procs_cpu_from_driver(true);
 			}
 
+			//
+			// If required, set the snaplen
+			//
 			if(snaplen != 0)
 			{
 				inspector->set_snaplen(snaplen);
+			}
+
+			//
+			// If required, tell the driver to enable tracers capture
+			//
+			if(force_tracers_capture)
+			{
+				inspector->enable_tracers_capture();
 			}
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC;
@@ -1309,25 +1403,61 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			if(k8s_api)
 			{
-				inspector->init_k8s_client(k8s_api);
+				if(!k8s_api_cert)
+				{
+					if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
+					{
+						k8s_api_cert = new string(k8s_cert_env);
+					}
+				}
+				inspector->init_k8s_client(k8s_api, k8s_api_cert, verbose);
 				k8s_api = 0;
+				k8s_api_cert = 0;
 			}
 			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
 			{
 				if(k8s_api_env != NULL)
 				{
+					if(!k8s_api_cert)
+					{
+						if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
+						{
+							k8s_api_cert = new string(k8s_cert_env);
+						}
+					}
 					k8s_api = new string(k8s_api_env);
-					inspector->init_k8s_client(k8s_api);
+					inspector->init_k8s_client(k8s_api, k8s_api_cert, verbose);
 				}
 				else
 				{
 					delete k8s_api;
+					delete k8s_api_cert;
 				}
 				k8s_api = 0;
+				k8s_api_cert = 0;
 			}
+
+			//
+			// run mesos, if required
+			//
+			if(mesos_api)
+			{
+				inspector->init_mesos_client(mesos_api, verbose);
+			}
+			else if(char* mesos_api_env = getenv("SYSDIG_MESOS_API"))
+			{
+				if(mesos_api_env != NULL)
+				{
+					mesos_api = new string(mesos_api_env);
+					inspector->init_mesos_client(mesos_api, verbose);
+				}
+			}
+			delete mesos_api;
+			mesos_api = 0;
 
 			cinfo = do_inspect(inspector,
 				cnt,
+				duration_to_tot,
 				quiet,
 				jflag,
 				unbuf_flag,

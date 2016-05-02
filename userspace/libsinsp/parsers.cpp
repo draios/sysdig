@@ -35,6 +35,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
+#include "tracers.h"
 #include "parsers.h"
 #include "sinsp_errno.h"
 #include "filter.h"
@@ -51,22 +52,37 @@ bool should_drop(sinsp_evt *evt);
 extern sinsp_protodecoder_list g_decoderlist;
 extern sinsp_evttables g_infotables;
 
+#if 0
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
 	m_fd_listener(NULL)
 {
-	m_k8s_metaevents_state.m_piscapevt = (scap_evt*)new char[SP_EVT_BUF_SIZE];
-	m_k8s_metaevents_state.m_piscapevt->type = PPME_K8S_E;
+	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
+	m_inspector->m_partial_tracers_pool = new simple_lifo_queue<sinsp_partial_tracer>(128);
 
-	m_k8s_metaevents_state.m_metaevt.m_inspector = m_inspector;
-	m_k8s_metaevents_state.m_metaevt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
-	m_k8s_metaevents_state.m_metaevt.m_pevt = NULL;
-	m_k8s_metaevents_state.m_metaevt.m_cpuid = 0;
-	m_k8s_metaevents_state.m_metaevt.m_evtnum = 0;
-	m_k8s_metaevents_state.m_metaevt.m_pevt = m_k8s_metaevents_state.m_piscapevt;
-	m_k8s_metaevents_state.m_metaevt.m_fdinfo = NULL;
+	sinsp_tracerparser p(inspector);
+	p.test();
+	m_drop_event_flags = 0;
 }
+#else
+sinsp_parser::sinsp_parser(sinsp *inspector) :
+	m_inspector(inspector),
+	m_tmp_evt(m_inspector),
+	m_fd_listener(NULL)
+{
+	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
+
+	//
+	// Note: allocated here instead of in the sinsp constructor because sinsp_partial_tracer
+	//       is not defined in sinsp.cpp
+	//
+	m_inspector->m_partial_tracers_pool = new simple_lifo_queue<sinsp_partial_tracer>(128);
+
+	init_metaevt(m_k8s_metaevents_state, PPME_K8S_E, SP_EVT_BUF_SIZE);
+	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
+}
+#endif
 
 sinsp_parser::~sinsp_parser()
 {
@@ -75,8 +91,40 @@ sinsp_parser::~sinsp_parser()
 		delete m_protodecoders[j];
 	}
 
+	while(!m_tmp_events_buffer.empty())
+	{
+		auto ptr = m_tmp_events_buffer.top();
+		free(ptr);
+		m_tmp_events_buffer.pop();
+	}
 	m_protodecoders.clear();
-	delete[] m_k8s_metaevents_state.m_piscapevt;
+
+	free(m_k8s_metaevents_state.m_piscapevt);
+	free(m_mesos_metaevents_state.m_piscapevt);
+
+	if(m_inspector->m_partial_tracers_pool != NULL)
+	{
+		delete m_inspector->m_partial_tracers_pool;
+	}
+}
+
+void sinsp_parser::init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size)
+{
+	evt_state.m_piscapevt = (scap_evt*) realloc(evt_state.m_piscapevt, buf_size);
+	evt_state.m_scap_buf_size = buf_size;
+	evt_state.m_piscapevt->type = evt_type;
+	evt_state.m_metaevt.m_pevt = evt_state.m_piscapevt;
+}
+
+void sinsp_parser::init_metaevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size)
+{
+	evt_state.m_piscapevt = 0;
+	init_scapevt(evt_state, evt_type, buf_size);
+	evt_state.m_metaevt.m_inspector = m_inspector;
+	evt_state.m_metaevt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	evt_state.m_metaevt.m_cpuid = 0;
+	evt_state.m_metaevt.m_evtnum = 0;
+	evt_state.m_metaevt.m_fdinfo = NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -113,6 +161,28 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 #endif
 
+		if (m_drop_event_flags)
+		{
+			enum ppm_event_flags flags;
+			uint16_t etype = evt->m_pevt->type;
+			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+			{
+				sinsp_evt_param *parinfo = evt->get_param(0);
+				uint16_t evid = *(uint16_t *)parinfo->m_val;
+				flags = g_infotables.m_syscall_info_table[evid].flags;
+			}
+			else
+			{
+				flags = evt->get_info_flags();
+			}
+
+			if (flags & m_drop_event_flags)
+			{
+				evt->m_filtered_out = true;
+				return;
+			}
+		}
+
 	//
 	// Filtering
 	//
@@ -121,7 +191,37 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 
 	if(m_inspector->m_filter)
 	{
-		ppm_event_flags eflags = evt->get_flags();
+		ppm_event_flags eflags = evt->get_info_flags();
+
+		if(etype == PPME_SYSCALL_WRITE_X)
+		{
+			//
+			// Check if this is a user event
+			//
+			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+
+			if(fdinfo == NULL)
+			{
+				fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+				evt->m_fdinfo = fdinfo;
+			}
+
+			if(fdinfo && (fdinfo->m_flags & (sinsp_fdinfo_t::FLAGS_IS_TRACER_FD | sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE)))
+			{
+				eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
+			}
+			else
+			{
+				if(!m_inspector->m_islive)
+				{
+					if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
+					{
+						evt->m_fdinfo = NULL;
+						eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
+					}
+				}
+			}
+		}
 
 		if(eflags & EF_MODIFIES_STATE)
 		{
@@ -135,7 +235,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 				{
 					if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E))
 					{
-						evt->m_tinfo->m_lastevent_type = PPM_SC_MAX;
+						evt->m_tinfo->m_lastevent_type = PPM_EVENT_MAX;
 					}
 				}
 
@@ -172,6 +272,20 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
 		store_event(evt);
+		break;
+	case PPME_SYSCALL_WRITE_E:
+		if(!m_inspector->m_dumper)
+		{
+			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+			if(evt->m_fdinfo)
+			{
+				if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
+				{
+					evt->m_filtered_out = true;
+					return;
+				}
+			}
+		}
 		break;
 	case PPME_SYSCALL_READ_X:
 	case PPME_SYSCALL_WRITE_X:
@@ -316,7 +430,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_setgid_exit(evt);
 		break;
 	case PPME_CONTAINER_E:
-		parse_container_evt(evt);
+		parse_container_evt(evt); // deprecated, only here for backwards compatibility
+		break;
+	case PPME_CONTAINER_JSON_E:
+		parse_container_json_evt(evt);
 		break;
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
@@ -326,6 +443,15 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		{
 			parse_k8s_evt(evt);
 		}
+		break;
+	case PPME_MESOS_E:
+		if(!m_inspector->is_live())
+		{
+			parse_mesos_evt(evt);
+		}
+		break;
+	case PPME_SYSCALL_CHROOT_X:
+		parse_chroot_exit(evt);
 		break;
 	default:
 		break;
@@ -350,7 +476,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 #endif
 	//
-	// Offline captures can prodice events with the SCAP_DF_STATE_ONLY. They are
+	// Offline captures can produce events with the SCAP_DF_STATE_ONLY. They are
 	// supposed to go through the engine, but they must be filtered out before 
 	// reaching the user.
 	//
@@ -389,7 +515,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	//
 	evt->init();
 
-	ppm_event_flags eflags = evt->get_flags();
+	ppm_event_flags eflags = evt->get_info_flags();
 	uint16_t etype = evt->get_type();
 
 	evt->m_fdinfo = NULL;
@@ -521,7 +647,11 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		else
 		{
 			tinfo->set_lastevent_data_validity(false);
-			return false;
+
+			if(tinfo->m_lastevent_type != PPME_TRACER_E)
+			{
+				return false;
+			}
 		}
 
 		//
@@ -621,7 +751,10 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 	// Copy the data
 	//
 	auto tinfo = evt->m_tinfo;
-	tinfo->m_lastevent_data = reserve_event_buffer();
+	if(tinfo->m_lastevent_data == NULL)
+	{
+		tinfo->m_lastevent_data = reserve_event_buffer();
+	}
 	memcpy(tinfo->m_lastevent_data, evt->m_pevt, elen);
 	tinfo->m_lastevent_cpuid = evt->get_cpuid();
 
@@ -956,6 +1089,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		// Copy the command arguments from the parent
 		tinfo.m_args = ptinfo->m_args;
+
+		// Copy the root from the parent
+		tinfo.m_root = ptinfo->m_root;
 	}
 	else
 	{
@@ -986,6 +1122,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_comm = ptinfo->m_comm;
 			tinfo.m_exe = ptinfo->m_exe;
 			tinfo.m_args = ptinfo->m_args;
+			tinfo.m_root = ptinfo->m_root;
 		}
 		else
 		{
@@ -1235,7 +1372,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container_from_cgroups(tinfo.m_cgroups, m_inspector->m_islive, &tinfo.m_container_id);
+			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->m_islive);
 			break;
 	}
 
@@ -1405,7 +1542,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
 		if(evt->m_tinfo->m_container_id.empty())
 		{
-			m_inspector->m_container_manager.resolve_container_from_cgroups(evt->m_tinfo->m_cgroups, m_inspector->m_islive, &evt->m_tinfo->m_container_id);
+			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->m_islive);
 		}
 		break;
 	default:
@@ -1487,11 +1624,13 @@ void sinsp_parser::parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, O
 	}
 }
 
-void schedule_more_k8s_evts(sinsp* inspector, void* data)
+template <typename T>
+void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type evt_type)
 {
 #ifdef HAS_CAPTURE
 	ASSERT(data);
-	k8s_metaevents_state* state = (k8s_metaevents_state*)data;
+	bool good_event = false;
+	metaevents_state* state = (metaevents_state*)data;
 
 	if(state->m_new_group == true)
 	{
@@ -1500,35 +1639,47 @@ void schedule_more_k8s_evts(sinsp* inspector, void* data)
 		return;
 	}
 
-	k8s* k8s_client = inspector->get_k8s_client();
-	ASSERT(k8s_client);
-	if(!k8s_client->get_capture_events().size())
+	ASSERT(client);
+	if(!client->get_capture_events().size())
 	{
-		g_logger.log("K8S event scheduled but no events available."
-					"All pending K8S event request are cancelled.", sinsp_logger::SEV_ERROR);
+		g_logger.log(std::string("An event scheduled but no events available."
+					"All pending event requests for "
+					"[") + typeid(T).name() + "] are cancelled.", sinsp_logger::SEV_ERROR);
 		state->m_new_group = false;
-		state->m_n_additional_k8s_events_to_add = 0;
+		state->m_n_additional_events_to_add = 0;
 		inspector->remove_meta_event_callback();
 		return;
 	}
-	string payload = k8s_client->dequeue_capture_event();
-	state->m_piscapevt->len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
-	ASSERT(state->m_piscapevt->len <= SP_EVT_BUF_SIZE);
+	string payload = client->dequeue_capture_event();
+	std::size_t tot_len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
+
+	if(tot_len > state->m_scap_buf_size)
+	{
+		sinsp_parser::init_scapevt(*state, evt_type, tot_len);
+	}
+
+	state->m_piscapevt->len = tot_len;
 	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
 	plen[0] = (uint16_t)payload.size() + 1;
 	uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
 	memcpy(edata, payload.c_str(), plen[0]);
+	good_event = true;
 
-	state->m_n_additional_k8s_events_to_add--;
-	if(state->m_n_additional_k8s_events_to_add == 0)
+	state->m_n_additional_events_to_add--;
+	if(state->m_n_additional_events_to_add == 0)
 	{
 		inspector->remove_meta_event_callback();
 	}
-	else
+	else if(good_event)
 	{
 		inspector->add_meta_event(&state->m_metaevt);
 	}
 #endif // HAS_CAPTURE
+}
+
+void schedule_more_k8s_evts(sinsp* inspector, void* data)
+{
+	schedule_more_evts(inspector, data, inspector->get_k8s_client(), PPME_K8S_E);
 }
 
 void sinsp_parser::schedule_k8s_events(sinsp_evt *evt)
@@ -1546,10 +1697,39 @@ void sinsp_parser::schedule_k8s_events(sinsp_evt *evt)
 			m_k8s_metaevents_state.m_piscapevt->tid = evt->get_tid();
 			m_k8s_metaevents_state.m_piscapevt->ts = m_inspector->m_lastevent_ts;
 			m_k8s_metaevents_state.m_new_group = true;
-			m_k8s_metaevents_state.m_n_additional_k8s_events_to_add = event_count;
+			m_k8s_metaevents_state.m_n_additional_events_to_add = event_count;
 			m_inspector->add_meta_event_callback(&schedule_more_k8s_evts, &m_k8s_metaevents_state);
 
 			schedule_more_k8s_evts(m_inspector, &m_k8s_metaevents_state);
+		}
+	}
+#endif // HAS_CAPTURE
+}
+
+void schedule_more_mesos_evts(sinsp* inspector, void* data)
+{
+	schedule_more_evts(inspector, data, inspector->get_mesos_client(), PPME_MESOS_E);
+}
+
+void sinsp_parser::schedule_mesos_events(sinsp_evt *evt)
+{
+#ifdef HAS_CAPTURE
+	//
+	// schedule mesos events, if any available
+	//
+	mesos* mesos_client = 0;
+	if(m_inspector && (mesos_client = m_inspector->m_mesos_client))
+	{
+		int event_count = mesos_client->get_capture_events().size();
+		if(event_count)
+		{
+			m_mesos_metaevents_state.m_piscapevt->tid = evt->get_tid();
+			m_mesos_metaevents_state.m_piscapevt->ts = m_inspector->m_lastevent_ts;
+			m_mesos_metaevents_state.m_new_group = true;
+			m_mesos_metaevents_state.m_n_additional_events_to_add = event_count;
+			m_inspector->add_meta_event_callback(&schedule_more_mesos_evts, &m_mesos_metaevents_state);
+
+			schedule_more_mesos_evts(m_inspector, &m_mesos_metaevents_state);
 		}
 	}
 #endif // HAS_CAPTURE
@@ -1654,6 +1834,18 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		fdi.m_openflags = flags;
 		fdi.add_filename(fullpath);
+
+		//
+		// If this is a user event fd, mark it with the proper flag
+		//
+		if(fdi.m_name == USER_EVT_DEVICE_NAME)
+		{
+			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
+		}
+		else
+		{
+			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
+		}
 
 		//
 		// Add the fd to the table.
@@ -2572,18 +2764,181 @@ void sinsp_parser::swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo)
 	fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 }
 
+uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
+{
+	sinsp_threadinfo* tinfo = evt->m_tinfo;
+	ASSERT(tinfo);
+
+	//
+	// Extract the data buffer
+	//
+	sinsp_evt_param *parinfo = evt->get_param(1);
+	char* data = parinfo->m_val;
+	uint32_t datalen = parinfo->m_len;
+	sinsp_tracerparser* p = tinfo->m_tracer_parser;
+
+	if(p == NULL)
+	{
+		p = tinfo->m_tracer_parser = new sinsp_tracerparser(m_inspector);
+	}
+
+	p->m_tinfo = tinfo;
+
+	p->process_event_data(data, datalen, evt->get_ts());
+
+	if(p->m_res == sinsp_tracerparser::RES_TRUNCATED)
+	{
+		if(!m_inspector->m_dumper)
+		{
+			evt->m_filtered_out = true;
+		}
+
+		return p->m_res;
+	}
+
+	p->m_args.first = &p->m_argnames;
+	p->m_args.second = &p->m_argvals;
+
+	//
+	// Populate the user event that we will send up the stack instead of the write
+	//
+	uint8_t* fakeevt_storage = (uint8_t*)m_fake_userevt;
+	m_fake_userevt->ts = evt->m_pevt->ts;
+	m_fake_userevt->tid = evt->m_pevt->tid;
+
+	if(p->m_res == sinsp_tracerparser::RES_OK)
+	{
+		if(p->m_type_str[0] == '>')
+		{
+			m_fake_userevt->type = PPME_TRACER_E;
+		}
+		else
+		{
+			m_fake_userevt->type = PPME_TRACER_X;
+		}
+
+		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+		lens[0] = 8;
+		lens[1] = 8;
+		lens[2] = 8;
+
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = p->m_id;
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
+	}
+	else
+	{
+		uint32_t flags = evt->m_fdinfo->m_flags;
+
+		if(!(flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD))
+		{
+			return p->m_res;
+		}
+
+		//
+		// Parsing error.
+		// We don't know the direction, so we use enter.
+		//
+		p->m_argnames.clear();
+		p->m_argvals.clear();
+
+		m_fake_userevt->type = PPME_TRACER_E;
+
+		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+		lens[0] = 8;
+		lens[1] = 8;
+		lens[2] = 8;
+
+		p->m_tags.clear();
+		m_tracer_error_string = "invalid tracer " + string(data, datalen) + ", len" + to_string(datalen);
+		p->m_tags.push_back((char*)m_tracer_error_string.c_str());
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = 0;
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
+		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
+	}
+
+	scap_evt* tevt = evt->m_pevt;
+	evt->m_pevt = m_fake_userevt;
+	evt->init();
+	evt->m_poriginal_evt = tevt;
+	evt->m_flags |= (uint32_t)sinsp_evt::SINSP_EF_IS_TRACER;
+
+	//
+	// Update some thread information
+	//
+	tinfo->m_lastevent_fd = -1;
+	tinfo->m_lastevent_type = PPME_TRACER_E;
+	tinfo->m_latency = 0;
+	tinfo->m_last_latency_entertime = 0;
+
+	return p->m_res;
+}
+
+bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt, 
+	int64_t retval,
+	ppm_event_flags eflags)
+{
+	//
+	// Tracers get into the engine as normal writes, but the FD has a flag to
+	// quickly recognize them.
+	//
+	uint32_t flags = evt->m_fdinfo->m_flags;
+
+	if(!(flags & sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD))
+	{
+		sinsp_fdinfo_t* orifdinfo = evt->m_fdinfo;
+		if(orifdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
+		{
+			parse_tracer(evt, retval);
+			return true;
+		}
+		else
+		{
+			if(orifdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE)
+			{
+				if(eflags & EF_WRITES_TO_FD)
+				{
+					//
+					// We have not determined if this FD is a tracer FD or not.
+					// We're going to try to parse it. 
+					// If the parsing succeeds, we mark it as a tracer FD. If it
+					// fails we mark it an NOT a tracer FD. Otherwise, we wait
+					// for the next buffer and we'll try again.
+					//
+					sinsp_tracerparser::parse_result pres = 
+						(sinsp_tracerparser::parse_result)parse_tracer(evt, retval);
+
+					if(pres == sinsp_tracerparser::RES_OK)
+					{
+						//
+						// This FD has been recognized to be a tracer one.
+						// We do two things: mark it for future reference, and tell
+						// the driver to enable tracers capture (if we haven't done
+						// it yet).
+						//
+						orifdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FD;
+						m_inspector->enable_tracers_capture();
+						return true;
+					}
+					else if (pres == sinsp_tracerparser::RES_FAILED)
+					{
+						orifdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t tid = evt->get_tid();
 	sinsp_evt *enter_evt = &m_tmp_evt;
-	ppm_event_flags eflags = evt->get_flags();
-
-	if(!evt->m_fdinfo)
-	{
-		return;
-	}
+	ppm_event_flags eflags = evt->get_info_flags();
 
 	//
 	// Extract the return value
@@ -2591,6 +2946,28 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	retval = *(int64_t *)parinfo->m_val;
+
+	if(evt->m_fdinfo == NULL)
+	{
+		if(!m_inspector->m_islive)
+		{
+			if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
+			{
+				parse_tracer(evt, retval);
+				return;
+			}
+		}
+
+		return;
+	}
+
+	//
+	// Check if this is a tracer write on /dev/null, treat it in a special way 
+	//
+	if(detect_and_process_tracer_write(evt, retval, eflags))
+	{
+		return;
+	}
 
 	//
 	// If the operation was successful, validate that the fd exists
@@ -3222,7 +3599,7 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 			{
 				if(evt->m_tinfo->get_main_thread()->m_fdlimit != -1)
 				{
-					ASSERT(curval == evt->m_tinfo->get_main_thread()->m_fdlimit);
+//					ASSERT(curval == evt->m_tinfo->get_main_thread()->m_fdlimit);
 				}
 			}
 #endif
@@ -3317,7 +3694,10 @@ void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
 		return;
 	}
 
-	evt->m_tinfo->m_lastevent_data = reserve_event_buffer();
+	if(evt->m_tinfo->m_lastevent_data == NULL)
+	{
+		evt->m_tinfo->m_lastevent_data = reserve_event_buffer();
+	}
 	*(uint64_t*)evt->m_tinfo->m_lastevent_data = evt->get_ts();
 }
 void sinsp_parser::parse_fcntl_enter(sinsp_evt *evt)
@@ -3525,6 +3905,59 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 	}
 }
 
+void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo = evt->get_param(0);
+	ASSERT(parinfo);
+	ASSERT(parinfo->m_len > 0);
+	std::string json(parinfo->m_val, parinfo->m_len);
+	g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	ASSERT(m_inspector);
+	Json::Value root;
+	if(Json::Reader().parse(json, root))
+	{
+		sinsp_container_info container_info;
+		const Json::Value& container = root["container"];
+		const Json::Value& id = container["id"];
+		if(!id.isNull() && id.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_id = id.asString();
+		}
+		const Json::Value& type = container["type"];
+		if(!type.isNull() && type.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_type = static_cast<sinsp_container_type>(type.asUInt());
+		}
+		const Json::Value& name = container["name"];
+		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_name = name.asString();
+		}
+		const Json::Value& image = container["image"];
+		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_image = image.asString();
+		}
+		const Json::Value& mesos_task_id = container["mesos_task_id"];
+		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_mesos_task_id = mesos_task_id.asString();
+		}
+		m_inspector->m_container_manager.add_container(container_info);
+		/*
+		g_logger.log("Container\n-------\nID:" + container_info.m_id +
+					 "\nType: " + std::to_string(container_info.m_type) +
+					 "\nName: " + container_info.m_name +
+					 "\nImage: " + container_info.m_image +
+					 "\nMesos Task ID: " + container_info.m_mesos_task_id, sinsp_logger::SEV_DEBUG);
+		*/
+	}
+	else
+	{
+		g_logger.log("Invalid JSON encountered while parsing container info: " + json, sinsp_logger::SEV_ERROR);
+	}
+}
+
 void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
@@ -3580,6 +4013,40 @@ void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 	ASSERT(m_inspector);
 	ASSERT(m_inspector->m_k8s_client);
 	m_inspector->m_k8s_client->simulate_watch_event(json);
+}
+
+void sinsp_parser::parse_mesos_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo = evt->get_param(0);
+	ASSERT(parinfo);
+	ASSERT(parinfo->m_len > 0);
+	std::string json(parinfo->m_val, parinfo->m_len);
+	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	ASSERT(m_inspector);
+	ASSERT(m_inspector->m_mesos_client);
+	m_inspector->m_mesos_client->simulate_event(json);
+}
+
+void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
+{
+	auto parinfo = evt->get_param(0);
+	auto retval = *(int64_t *)parinfo->m_val;
+	if(retval == 0)
+	{
+		const char* resolved_path;
+		auto path = evt->get_param_as_str(1, &resolved_path);
+		if(resolved_path[0] == 0)
+		{
+			evt->m_tinfo->m_root = path;
+		}
+		else
+		{
+			evt->m_tinfo->m_root = resolved_path;
+		}
+		// Root change, let's detect if we are on a container
+		ASSERT(m_inspector);
+		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
+	}
 }
 
 void sinsp_parser::free_event_buffer(uint8_t *ptr)

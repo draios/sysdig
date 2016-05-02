@@ -32,6 +32,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 string combine_filters(string flt1, string flt2);
 class ctext;
 class sinsp_chart;
+class curses_spectro;
 extern sinsp_logger g_logger;
 
 class sinsp_menuitem_info
@@ -66,6 +67,7 @@ class sinsp_ui_selection_info
 public:
 	sinsp_ui_selection_info(string field, 
 		string val,
+		sinsp_view_column_info* column_info,
 		string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
@@ -76,6 +78,7 @@ public:
 		bool prev_is_sorting_ascending)
 	{
 		m_field = field;
+		m_column_info = column_info;
 		m_val = val;
 		m_view_filter = view_filter;
 		m_prev_selected_view = prev_selected_view;
@@ -90,6 +93,7 @@ public:
 
 	string m_field;
 	string m_val;
+	sinsp_view_column_info* m_column_info;
 	string m_view_filter;
 	uint32_t m_prev_selected_view;
 	uint32_t m_prev_selected_sidemenu_entry;
@@ -105,6 +109,7 @@ class sinsp_ui_selection_hierarchy
 public:
 	void push_back(string field, 
 		string val,
+		sinsp_view_column_info* column_info,
 		string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
@@ -116,6 +121,7 @@ public:
 	{
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
 			val,
+			column_info,
 			view_filter,
 			prev_selected_view, 
 			prev_selected_sidemenu_entry,
@@ -130,7 +136,10 @@ public:
 	{
 		for(auto e : m_hierarchy)
 		{
-			delete [] e.m_rowkey.m_val;
+			if(e.m_rowkey.m_val != NULL)
+			{
+				delete [] e.m_rowkey.m_val;
+			}
 		}
 	}
 
@@ -157,21 +166,44 @@ public:
 				}
 				res += "(";
 				res += m_hierarchy[j].m_view_filter;
-				res += ") and ";
-			}
-
-			res += m_hierarchy[j].m_field;
-			res += "=";
-			res += m_hierarchy[j].m_val;
-
-			if(has_filter && hs > 1)
-			{
 				res += ")";
-			}
 
-			if(j < m_hierarchy.size() - 1)
-			{
+				if(m_hierarchy[j].m_field != "")
+				{
+					bool skip = false;
+
+					if(m_hierarchy[j].m_column_info != NULL &&
+					(m_hierarchy[j].m_column_info->m_flags & TEF_FILTER_IN_CHILD_ONLY))
+					{
+						if(j < hs - 1)
+						{
+							skip = true;
+						}
+					}	
+
+					if(!skip)
+					{
+						res += " and " + m_hierarchy[j].m_field;
+						res += "=";
+						res += m_hierarchy[j].m_val;
+					}
+				}
+
+				if(hs > 1)
+				{
+					res += ")";
+				}
+
 				res += " and ";
+			}
+		}
+
+		if(res.size() > 5)
+		{
+			string trailer = res.substr(res.size() - 5).c_str();
+			if(trailer == " and ")
+			{
+				res = res.substr(0, res.size() - 5);
 			}
 		}
 
@@ -298,15 +330,20 @@ public:
 		PROCESS_THREAD_BASENAME,
 		BAR_BORDER,
 		BAR_SHADOW,
-		GRAPH_1,
-		GRAPH_2,
-		GRAPH_3,
-		GRAPH_4,
-		GRAPH_5,
-		GRAPH_6,
-		GRAPH_7,
-		GRAPH_8,
-		GRAPH_9,
+		GRAPH_BLACK,
+		GRAPH_WHITE,
+		GRAPH_WHITE_D,
+		GRAPH_GREEN_L,
+		GRAPH_GREEN,
+		GRAPH_GREEN_D,
+		GRAPH_YELLOW_L,
+		GRAPH_YELLOW,
+		GRAPH_YELLOW_D,
+		GRAPH_RED_L,
+		GRAPH_RED,
+		GRAPH_RED_D,
+		GRAPH_MAGENTA_L,
+		GRAPH_MAGENTA,
 		MEMORY_USED,
 		MEMORY_BUFFERS,
 		MEMORY_BUFFERS_TEXT,
@@ -335,7 +372,7 @@ public:
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
-		bool print_containers, bool raw_output);
+		bool print_containers, bool raw_output, bool is_mousedrag_available);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -359,6 +396,8 @@ public:
 	void turn_search_on(search_caller_interface* ifc, string header_text);
 	uint64_t get_time_delta();
 	void run_action(sinsp_view_action_info* action);
+	void spy_selection(string field, string val, sinsp_view_column_info* column_info, bool is_dig);
+	sysdig_table_action handle_input(int ch);
 
 	//
 	// Return true if the application is supposed to exit
@@ -366,7 +405,6 @@ public:
 	inline bool process_event(sinsp_evt* evt, int32_t next_res)
 	{
 		uint64_t ts = evt->get_ts();
-
 		if(!m_inspector->is_live())
 		{
 			if(m_1st_evt_ts == 0)
@@ -390,7 +428,7 @@ public:
 			//
 			// If this is a file, print the progress once in a while
 			//
-			if(!m_inspector->is_live())
+			if(!m_inspector->is_live() && !m_offline_replay)
 			{
 				if(evtnum - m_last_progress_evt > 30000)
 				{
@@ -405,13 +443,29 @@ public:
 			while(true)
 			{
 				int input = getch();
+				bool sppaused = is_spectro_paused(input);
 
 				if(input == -1)
 				{
 					//
 					// All events consumed
 					//
-					break;
+					if(m_spectro)
+					{
+						if(sppaused)
+						{
+							usleep(100000);
+							continue;
+						}
+						else
+						{
+							break;
+						}
+					}
+					else
+					{
+						break;
+					}
 				}
 				else
 				{
@@ -438,31 +492,69 @@ public:
 					return false;
 				case STA_DRILLDOWN:
 					{
-						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						if(res.first != NULL)
+						if(m_viz != NULL)
 						{
-							drilldown(res.first->m_name, res.second.c_str(), res.first);
+							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+							if(res.first != NULL)
+							{
+								drilldown(get_selected_view()->get_key()->get_filter_field(m_view_depth),
+									res.second.c_str(), 
+									get_selected_view()->get_key(),
+									res.first);
+							}
+						}
+						else
+						{
+							ASSERT(m_spectro != NULL);
+							drilldown("", "", NULL, NULL);							
 						}
 					}
 					return false;
 				case STA_DRILLUP:
 					drillup();
 					return false;
+				case STA_SPECTRO:
+				case STA_SPECTRO_FILE:
+					{
+						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+						if(res.first != NULL)
+						{
+							spectro_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+								res.second.c_str(),
+								get_selected_view()->get_key(),
+								res.first, ta);
+						}
+					}
+					return false;
 				case STA_SPY:
 					{
 						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
 						if(res.first != NULL)
 						{
-							spy_selection(res.first->m_name, res.second.c_str(), false);
+							spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+								res.second.c_str(),
+								get_selected_view()->get_key(),
+								false);
 						}
 					}
 					return false;
 				case STA_DIG:
 					{
-						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						if(res.first != NULL)
+						if(m_viz)
 						{
-							spy_selection(res.first->m_name, res.second.c_str(), true);
+							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+							if(res.first != NULL)
+							{
+								spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+									res.second.c_str(),
+									get_selected_view()->get_key(),
+									true);
+							}
+						}
+						else
+						{
+							ASSERT(m_spectro);
+							spy_selection("", "", NULL, true);
 						}
 					}
 					return false;
@@ -520,7 +612,14 @@ public:
 			//
 			if(m_inspector->is_live() || m_offline_replay)
 			{
-				end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
+				if(next_res == SCAP_EOF)
+				{
+					end_of_sample = true;
+				}
+				else
+				{
+					end_of_sample = (evt == NULL || ts > m_datatable->m_next_flush_time_ns);
+				}
 			}
 			else
 			{
@@ -565,6 +664,7 @@ public:
 	int32_t m_prev_selected_view;
 	uint32_t m_selected_view_sidemenu_entry;
 	uint32_t m_selected_action_sidemenu_entry;
+	uint32_t m_selected_view_sort_sidemenu_entry;
 	sinsp_ui_selection_hierarchy m_sel_hierarchy;
 	uint32_t m_screenw;
 	uint32_t m_screenh;
@@ -572,24 +672,32 @@ public:
 	uint64_t m_input_check_period_ns;
 	bool m_search_nomatch;
 	bool m_print_containers;
+	int32_t m_sidemenu_sorting_col;
 #ifndef NOCURSESUI
 	curses_table* m_viz;
+	curses_spectro* m_spectro;
 	curses_table_sidemenu* m_view_sidemenu;
 	curses_table_sidemenu* m_action_sidemenu;
 	curses_viewinfo_page* m_viewinfo_page;
+	curses_table_sidemenu* m_view_sort_sidemenu;
 	curses_mainhelp_page* m_mainhelp_page;
 	curses_textbox* m_spy_box;
 	sinsp_evt::param_fmt m_spybox_text_format;
 #endif
+	bool m_offline_replay;
+	uint64_t m_refresh_interval_ns;
+	sinsp* m_inspector;
+	uint32_t m_view_depth;
+	bool m_is_mousedrag_available;
 
 private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
-	void spy_selection(string field, string val, bool is_dig);
-	bool do_drilldown(string field, string val, uint32_t new_view_num, filtercheck_field_info* info);
+	bool spectro_selection(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info, sysdig_table_action ta);
+	bool do_drilldown(string field, string val, sinsp_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info);
 	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val, filtercheck_field_info* info);
+	bool drilldown(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void create_complete_filter();
@@ -603,14 +711,14 @@ private:
 	void render_position_info();
 	void render_main_menu();
 	sysdig_table_action handle_textbox_input(int ch);
-	sysdig_table_action handle_input(int ch);
 	void populate_view_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
 	void populate_action_sidemenu();
+	void populate_view_cols_sidemenu();
 	void print_progress(double progress);
 	void show_selected_view_info();
+	bool is_spectro_paused(int input);
 #endif
 
-	sinsp* m_inspector;
 	vector<sinsp_menuitem_info> m_menuitems;
 	vector<sinsp_menuitem_info> m_menuitems_spybox;
 	string m_event_source_name;
@@ -624,7 +732,6 @@ private:
 	bool m_output_searching;
 	uint32_t m_cursor_pos;
 	bool m_is_filter_sysdig;
-	bool m_offline_replay;
 	uint64_t m_last_progress_evt;
 	vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	sinsp_chart* m_chart;
@@ -635,7 +742,6 @@ private:
 	uint64_t m_last_evt_ts;
 	uint64_t m_evt_ts_delta;
 	sinsp_filter_check_reference* m_timedelta_formatter;
-	uint64_t m_refresh_interval_ns;
 	sinsp_mouse_to_key_list m_mouse_to_key_list;
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;

@@ -26,7 +26,7 @@ view_info =
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "container.id", "fd.name", "fd.sport", "evt.type", "fd.directory", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "container.id", "fd.name", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
 	drilldown_target = "errors",
 	filter = "container.name != host",
 	use_defaults = true,
@@ -75,13 +75,19 @@ view_info =
 			groupby_aggregation = "SUM"
 		},
 		{
+			name = "ENGINE",
+			field = "container.type",
+			description = "Container type.",
+			colsize = 8
+		},
+		{
 			name = "ID",
 			field = "container.id",
 			description = "Container ID. The format of this column depends on the containerization technology. For example, Docker ID are 12 characters hexadecimal digit strings.",
 			colsize = 13
 		},
 		{
-			name = "Container",
+			name = "CONTAINER",
 			field = "container.name",
 			description = "Name of the container. What this field contains depends on the containerization technology. For example, for docker this is the content of the 'NAMES' column in 'docker ps'",
 			colsize = 0
