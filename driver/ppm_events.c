@@ -202,8 +202,16 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 		}
 #else
 		struct file* file = fget(args->fd);
+		/* Use cached f_inode only on kernel versions that have it
+		 * https://github.com/torvalds/linux/commit/dd37978c50bc8b354e5c4633f69387f16572fdac
+		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 		if (file && file->f_inode) {
 			if (file->f_inode->i_rdev == PPM_NULL_RDEV) {
+#else
+		if (file && file->f_path.dentry && file->f_path.dentry->d_inode) {
+			if (file->f_path.dentry->d_inode->i_rdev == PPM_NULL_RDEV) {
+#endif
 				res = RW_SNAPLEN_EVENT;
 				fput(file);
 				return res;
