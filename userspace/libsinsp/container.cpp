@@ -630,7 +630,6 @@ bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
 	Json::Reader reader;
 	Json::Value jroot;
 
-	unordered_map<string, uint32_t> image_ports;
 	char image_manifest_path[SCAP_MAX_PATH_SIZE];
 	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
 	ifstream image_manifest(image_manifest_path);
@@ -645,10 +644,6 @@ bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
 		if(version_label_it != container->m_labels.end())
 		{
 			container->m_image += ":" + version_label_it->second;
-		}
-		for(const auto& image_port : jroot["app"]["ports"])
-		{
-			image_ports.emplace(image_port["name"].asString(), image_port["port"].asUInt());
 		}
 		ret = true;
 	}
@@ -669,16 +664,29 @@ bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
 	char pod_manifest_path[SCAP_MAX_PATH_SIZE];
 	snprintf(pod_manifest_path, sizeof(pod_manifest_path), "%s/var/lib/rkt/pods/run/%s/pod", scap_get_host_root(), podid.c_str());
 	ifstream pod_manifest(pod_manifest_path);
+	unordered_map<string, uint32_t> image_ports;
 	if(reader.parse(pod_manifest, jroot) && jroot.size() > 0)
 	{
+		for(const auto& japp : jroot["apps"])
+		{
+			if (japp["name"].asString() == appname)
+			{
+				for(const auto& image_port : japp["app"]["ports"])
+				{
+					image_ports[image_port["name"].asString()] = image_port["port"].asUInt();
+				}
+				break;
+			}
+		}
 		for(const auto& jport : jroot["ports"])
 		{
 			auto host_port = jport["hostPort"].asUInt();
-			if(host_port > 0)
+			auto container_port_it = image_ports.find(jport["name"].asString());
+			if(host_port > 0 && container_port_it != image_ports.end())
 			{
 				sinsp_container_info::container_port_mapping port_mapping;
 				port_mapping.m_host_port = host_port;
-				port_mapping.m_container_port = image_ports.at(jport["name"].asString());
+				port_mapping.m_container_port = container_port_it->second;
 				container->m_port_mappings.emplace_back(move(port_mapping));
 			}
 		}
