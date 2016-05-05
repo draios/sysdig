@@ -63,7 +63,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	sinsp_tracerparser p(inspector);
 	p.test();
-	m_drop_event_flags = 0;
+	m_drop_event_flags = EF_NONE;
 }
 #else
 sinsp_parser::sinsp_parser(sinsp *inspector) :
@@ -81,6 +81,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	init_metaevt(m_k8s_metaevents_state, PPME_K8S_E, SP_EVT_BUF_SIZE);
 	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
+	m_drop_event_flags = EF_NONE;
 }
 #endif
 
