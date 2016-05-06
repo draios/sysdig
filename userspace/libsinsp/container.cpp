@@ -295,7 +295,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		static const string COREOS_PODID_VAR = "container_uuid=";
 
 		auto prefix = tinfo->m_root.find(COREOS_PREFIX);
-		if(prefix != string::npos)
+		if(prefix == 0)
 		{
 			auto suffix = tinfo->m_root.find(COREOS_APP_SUFFIX, prefix);
 			if(suffix != string::npos)
@@ -330,7 +330,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			static const string FLY_APP_SUFFIX = "/rootfs";
 
 			auto prefix = tinfo->m_root.find(FLY_PREFIX);
-			if(prefix != string::npos)
+			if(prefix == 0)
 			{
 				auto podid_suffix = tinfo->m_root.find(FLY_PODID_SUFFIX, prefix+FLY_PREFIX.size());
 				if(podid_suffix != string::npos)
