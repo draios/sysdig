@@ -18,8 +18,8 @@
 #include <stdexcept>
 #include <unistd.h>
 
-marathon_http::marathon_http(mesos& m, const uri& url, int timeout_ms):
-	mesos_http(m, url, false, timeout_ms)
+marathon_http::marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms):
+	mesos_http(m, url, false, discover_marathon, timeout_ms)
 {
 	g_logger.log("Creating Marathon HTTP object for [" + url.to_string(false) + "] ...", sinsp_logger::SEV_DEBUG);
 	if(refresh_data())

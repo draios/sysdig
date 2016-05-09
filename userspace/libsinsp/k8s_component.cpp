@@ -209,7 +209,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 		Json::Value node_name = spec["nodeName"];
 		if(!node_name.isNull())
 		{
-			std::string nn = std::move(node_name.asString());
+			std::string nn = node_name.asString();
 			if(!nn.empty())
 			{
 				pod.set_node_name(nn);
@@ -221,7 +221,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 			Json::Value host_ip = status["hostIP"];
 			if(!host_ip.isNull())
 			{
-				std::string hip = std::move(host_ip.asString());
+				std::string hip = host_ip.asString();
 				if(!hip.empty())
 				{
 					pod.set_host_ip(hip);
@@ -230,7 +230,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 			Json::Value pod_ip = status["podIP"];
 			if(!pod_ip.isNull())
 			{
-				std::string pip = std::move(pod_ip.asString());
+				std::string pip = pod_ip.asString();
 				if(!pip.empty())
 				{
 					pod.set_internal_ip(pip);
@@ -266,7 +266,7 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_t
 				Json::Value json_protocol = port["protocol"];
 				if(!json_protocol.isNull())
 				{
-					p.m_protocol = std::move(json_protocol.asString());
+					p.m_protocol = json_protocol.asString();
 				}
 
 				Json::Value json_target_port = port["targetPort"];
