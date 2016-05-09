@@ -123,7 +123,7 @@ private:
 
 	void check_frameworks(const json_ptr_t& json);
 	void set_state_json(json_ptr_t json, const std::string&);
-	void parse_state(Json::Value&& root, bool discover_uris = true);
+	void parse_state(Json::Value&& root);
 	void parse_state(json_ptr_t json, const std::string&);
 	void set_marathon_groups_json(json_ptr_t json, const std::string& framework_id);
 	void parse_groups(json_ptr_t json, const std::string& framework_id);
@@ -136,6 +136,7 @@ private:
 	mesos_state_t m_state;
 	bool          m_creation_logged = false;
 	bool          m_discover_mesos_leader;
+	bool          m_discover_marathon_uris;
 	long          m_timeout_ms;
 	bool          m_verbose = false;
 
