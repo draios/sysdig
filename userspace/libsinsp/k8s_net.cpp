@@ -81,7 +81,7 @@ void k8s_net::init()
 
 void k8s_net::watch()
 {
-	bool in_thread = m_k8s.watch_in_thread();
+		bool in_thread = m_k8s.watch_in_thread();
 #ifdef K8S_DISABLE_THREAD
 	if(in_thread)
 	{
@@ -105,7 +105,7 @@ void k8s_net::watch()
 		m_collector.get_data();
 	}
 }
-	
+
 void k8s_net::subscribe()
 {
 	for (auto& api : m_api_interfaces)
@@ -142,7 +142,7 @@ void k8s_net::stop_watching()
 	}
 }
 
-void k8s_net::get_all_data(const k8s_component::component_map::value_type& component, std::ostream& out)
+void k8s_net::add_api_interface(const k8s_component::type_map::value_type& component)
 {
 	if(m_api_interfaces[component.first] == 0)
 	{
@@ -156,7 +156,12 @@ void k8s_net::get_all_data(const k8s_component::component_map::value_type& compo
 		}
 		m_api_interfaces[component.first] = new k8s_http(m_k8s, component.second, os.str(), protocol, m_creds, m_api, m_ssl, m_bt, m_curl_debug);
 	}
-	
+}
+
+void k8s_net::get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out)
+{
+	add_api_interface(component);
+
 	if(!m_api_interfaces[component.first]->get_all_data(out))
 	{
 		std::string err;

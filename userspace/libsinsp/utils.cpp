@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 #include <algorithm> 
 #include <functional> 
+#include <strings.h>
 #include <errno.h>
 
 #include "sinsp.h"
@@ -64,19 +65,19 @@ const chiseldir_info g_chisel_dirs_array[] =
 #endif
 
 #ifndef _WIN32
-char* realpath_ex(const char *path, char *buff) 
+char* realpath_ex(const char *path, char *buff)
 {
-    char *home;
+	char *home;
 
-    if(*path=='~' && (home = getenv("HOME"))) 
-    {
-        char s[PATH_MAX];
-        return realpath(strcat(strcpy(s, home), path+1), buff);
-    } 
-    else 
-    {
-        return realpath(path, buff);
-    }
+	if(*path=='~' && (home = getenv("HOME")))
+	{
+		char s[PATH_MAX];
+		return realpath(strcat(strcpy(s, home), path+1), buff);
+		}
+	else
+	{
+		return realpath(path, buff);
+	}
 }
 #endif
 
@@ -112,7 +113,7 @@ sinsp_initializer::sinsp_initializer()
 	//
 	// Init the logger
 	//
-	g_logger.set_severity(sinsp_logger::SEV_DEBUG);
+	g_logger.set_severity(sinsp_logger::SEV_TRACE);
 
 #ifdef HAS_CHISELS
 	//
@@ -965,14 +966,14 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 //
 vector<string> sinsp_split(const string &s, char delim)
 {
-    vector<string> res;
-    istringstream f(s);
-    string ts;
+	vector<string> res;
+	istringstream f(s);
+	string ts;
 
-    while(getline(f, ts, delim)) 
+	while(getline(f, ts, delim))
 	{
-        res.push_back(ts);
-    }
+		res.push_back(ts);
+	}
 
 	return res;
 }
@@ -1003,33 +1004,30 @@ string& trim(string &s)
 	return ltrim(rtrim(s));
 }
 
-void replace_in_place(string &s, const string &search, const string &replace)
+string& replace_in_place(string& str, const string& search, const string& replacement)
 {
-	for(size_t pos = 0; ; pos += replace.length()) 
+	string::size_type ssz = search.length();
+	string::size_type rsz = replacement.length();
+	string::size_type pos = 0;
+	while((pos = str.find(search, pos)) != string::npos)
 	{
-		// Locate the substring to replace
-		pos = s.find(search, pos);
-		if(pos == string::npos ) break;
-		// Replace by erasing and inserting
-		s.erase(pos, search.length());
-		s.insert(pos, replace );
+		str.replace(pos, ssz, replacement);
+		pos += rsz;
+		ASSERT(pos <= str.length());
 	}
+	return str;
 }
 
-void replace_in_place(string& str, string& substr_to_replace, string& new_substr) 
+string replace(const string& str, const string& search, const string& replacement)
 {
-	size_t index = 0;
-	uint32_t nsize = (uint32_t)substr_to_replace.size();
+	string s(str);
+	replace_in_place(s, search, replacement);
+	return s;
+}
 
-	while (true) 
-	{
-		 index = str.find(substr_to_replace, index);
-		 if (index == string::npos) break;
-
-		 str.replace(index, nsize, new_substr);
-
-		 index += nsize;
-	}
+bool ci_compare::operator() (const std::string& a, const std::string& b) const
+{
+	return strcasecmp(a.c_str(), b.c_str()) < 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1239,14 +1237,13 @@ bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t
 // JSON helpers
 ///////////////////////////////////////////////////////////////////////////////
 
-std::string get_json_string(const Json::Value& root, const std::string& name)
+std::string get_json_string(const Json::Value& obj, const std::string& name)
 {
 	std::string ret;
-	const Json::Value& json_val = root[name];
-	if(!json_val.isNull() && json_val.isString())
+	const Json::Value& json_val = obj[name];
+	if(!json_val.isNull() && json_val.isConvertibleTo(Json::stringValue))
 	{
 		ret = json_val.asString();
 	}
 	return ret;
 }
-

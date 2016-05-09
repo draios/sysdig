@@ -13,67 +13,61 @@
 #include <algorithm>
 #include <iostream>
 
-const k8s_component::component_map k8s::m_components =
+const k8s_component::type_map k8s::m_components =
 {
 	{ k8s_component::K8S_NODES,                  "nodes"                  },
 	{ k8s_component::K8S_NAMESPACES,             "namespaces"             },
 	{ k8s_component::K8S_PODS,                   "pods"                   },
 	{ k8s_component::K8S_REPLICATIONCONTROLLERS, "replicationcontrollers" },
-	{ k8s_component::K8S_SERVICES,               "services"               }
+	{ k8s_component::K8S_SERVICES,               "services"               },
+	{ k8s_component::K8S_EVENTS,                 "events"                 }
 };
 
-#ifdef K8S_DISABLE_THREAD
-	k8s::dispatch_map k8s::make_dispatch_map(k8s_state_t& state)
+k8s::dispatch_map k8s::make_dispatch_map(k8s_state_t& state)
+{
+	if(m_event_filter)
 	{
 		return dispatch_map
 		{
-			{ k8s_component::K8S_NODES,                  new k8s_dispatcher(k8s_component::K8S_NODES,                  state)},
-			{ k8s_component::K8S_NAMESPACES,             new k8s_dispatcher(k8s_component::K8S_NAMESPACES,             state)},
-			{ k8s_component::K8S_PODS,                   new k8s_dispatcher(k8s_component::K8S_PODS,                   state)},
-			{ k8s_component::K8S_REPLICATIONCONTROLLERS, new k8s_dispatcher(k8s_component::K8S_REPLICATIONCONTROLLERS, state)},
-			{ k8s_component::K8S_SERVICES,               new k8s_dispatcher(k8s_component::K8S_SERVICES,               state)}
+			{ k8s_component::K8S_NODES,                  new k8s_dispatcher(k8s_component::K8S_NODES,                  state) },
+			{ k8s_component::K8S_NAMESPACES,             new k8s_dispatcher(k8s_component::K8S_NAMESPACES,             state) },
+			{ k8s_component::K8S_PODS,                   new k8s_dispatcher(k8s_component::K8S_PODS,                   state) },
+			{ k8s_component::K8S_REPLICATIONCONTROLLERS, new k8s_dispatcher(k8s_component::K8S_REPLICATIONCONTROLLERS, state) },
+			{ k8s_component::K8S_SERVICES,               new k8s_dispatcher(k8s_component::K8S_SERVICES,               state) },
+			{ k8s_component::K8S_EVENTS,                 new k8s_dispatcher(k8s_component::K8S_EVENTS,                 state, m_event_filter) }
 		};
 	}
-#else
-	k8s::dispatch_map k8s::make_dispatch_map(k8s_state_t& state, std::mutex& mut)
+	else
 	{
 		return dispatch_map
 		{
-			{ k8s_component::K8S_NODES,                  new k8s_dispatcher(k8s_component::K8S_NODES,                  state, mut)},
-			{ k8s_component::K8S_NAMESPACES,             new k8s_dispatcher(k8s_component::K8S_NAMESPACES,             state, mut)},
-			{ k8s_component::K8S_PODS,                   new k8s_dispatcher(k8s_component::K8S_PODS,                   state, mut)},
-			{ k8s_component::K8S_REPLICATIONCONTROLLERS, new k8s_dispatcher(k8s_component::K8S_REPLICATIONCONTROLLERS, state, mut)},
-			{ k8s_component::K8S_SERVICES,               new k8s_dispatcher(k8s_component::K8S_SERVICES,               state, mut)}
+			{ k8s_component::K8S_NODES,                  new k8s_dispatcher(k8s_component::K8S_NODES,                  state) },
+			{ k8s_component::K8S_NAMESPACES,             new k8s_dispatcher(k8s_component::K8S_NAMESPACES,             state) },
+			{ k8s_component::K8S_PODS,                   new k8s_dispatcher(k8s_component::K8S_PODS,                   state) },
+			{ k8s_component::K8S_REPLICATIONCONTROLLERS, new k8s_dispatcher(k8s_component::K8S_REPLICATIONCONTROLLERS, state) },
+			{ k8s_component::K8S_SERVICES,               new k8s_dispatcher(k8s_component::K8S_SERVICES,               state) }
 		};
 	}
-#endif // K8S_DISABLE_THREAD
+}
 
 k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, bool is_captured,
 		const std::string& api,
 #ifdef HAS_CAPTURE
 		ssl_ptr_t ssl, bt_ptr_t bt,
 #endif // HAS_CAPTURE
-		bool curl_debug) :
+		bool curl_debug,
+		filter_ptr_t event_filter) :
 		m_watch(uri.empty() ? false : start_watch),
-		m_watch_in_thread(uri.empty() ? false : start_watch && watch_in_thread),
 		m_state(is_captured),
-#ifndef K8S_DISABLE_THREAD
-		m_dispatch(std::move(make_dispatch_map(m_state, m_mutex))),
-#else
-		m_dispatch(std::move(make_dispatch_map(m_state)))
-#endif
+		m_event_filter(event_filter),
+		m_dispatch(std::move(make_dispatch_map(m_state))),
+		m_watch_in_thread(watch_in_thread)
 #ifdef HAS_CAPTURE
 		,m_net(uri.empty() ? 0 : new k8s_net(*this, uri, api, ssl, bt, curl_debug))
 #endif
 {
 	if (!uri.empty())
 	{
-#ifdef K8S_DISABLE_THREAD
-		if(watch_in_thread)
-		{
-			g_logger.log("Watching in thread requested but not available (only available in multi-thread build).", sinsp_logger::SEV_WARNING);
-		}
-#endif // K8S_DISABLE_THREAD
 		try
 		{
 			get_state(true);
@@ -126,7 +120,6 @@ void k8s::build_state()
 	for (auto& component : m_components)
 	{
 		{
-			K8S_LOCK_GUARD_MUTEX;
 			m_state.clear(component.first);
 		}
 		ASSERT(m_net);
@@ -158,20 +151,9 @@ void k8s::watch()
 {
 #ifdef HAS_CAPTURE
 	ASSERT(m_net);
-	if((m_watch && !m_net->is_watching()) || !m_watch_in_thread)
+	if(m_watch)
 	{
 		m_net->watch();
-	}
-#endif
-}
-
-void k8s::stop_watching()
-{
-#ifdef HAS_CAPTURE
-	ASSERT(m_net);
-	if(m_net->is_watching())
-	{
-		m_net->stop_watching();
 	}
 #endif
 }
@@ -197,6 +179,7 @@ void k8s::simulate_watch_event(const std::string& json)
 			else if(type == "Pod")                   { component_type = k8s_component::K8S_PODS;                   }
 			else if(type == "ReplicationController") { component_type = k8s_component::K8S_REPLICATIONCONTROLLERS; }
 			else if(type == "Service")               { component_type = k8s_component::K8S_SERVICES;               }
+			else if(type == "EventList")             { component_type = k8s_component::K8S_EVENTS;                 }
 			else
 			{
 				g_logger.log("Unrecognized component type: " + type, sinsp_logger::SEV_ERROR);
@@ -221,8 +204,6 @@ void k8s::simulate_watch_event(const std::string& json)
 
 std::size_t k8s::count(k8s_component::type component) const
 {
-	K8S_LOCK_GUARD_MUTEX;
-
 	switch (component)
 	{
 	case k8s_component::K8S_NODES:
@@ -239,6 +220,9 @@ std::size_t k8s::count(k8s_component::type component) const
 
 	case k8s_component::K8S_SERVICES:
 		return m_state.get_services().size();
+
+	case k8s_component::K8S_EVENTS:
+		return m_state.get_events().size();
 
 	case k8s_component::K8S_COMPONENT_COUNT:
 	default:
@@ -263,7 +247,6 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 
 	if(items.isArray())
 	{
-		K8S_LOCK_GUARD_MUTEX;
 		for (auto& item : items)
 		{
 			Json::Value metadata = item["metadata"];
@@ -374,12 +357,31 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 					break;
 				}
 
+			case k8s_component::K8S_EVENTS:
+				if(m_event_filter)
+				{
+					k8s_events& evts = m_state.get_events();
+					if(evts.size())
+					{
+						component_kind = "Event";
+						component_name = evts.back().get_name();
+						component_uid = evts.back().get_uid();
+						component_ns = evts.back().get_namespace();
+						k8s_event_t& evt = evts.back();
+						m_state.update_event(evt, item);
+					}
+					break;
+				}
+
 			default: break;
 			}
 			os.str("");
-			os << '[' << event_type << ',' << component_kind << ',' << 
-						component_name << ',' << component_uid << ',' << component_ns << ']';
-			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			if(!component_kind.empty())
+			{
+				os << '[' << event_type << ',' << component_kind << ',' <<
+							component_name << ',' << component_uid << ',' << component_ns << ']';
+				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			}
 #ifdef HAS_CAPTURE
 			ASSERT(!component_kind.empty());
 			item["apiVersion"] = api_version;
@@ -395,7 +397,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 	}
 }
 
-void k8s::parse_json(const std::string& json, const k8s_component::component_map::value_type& component)
+void k8s::parse_json(const std::string& json, const k8s_component::type_map::value_type& component)
 {
 	Json::Value root;
 	Json::Reader reader;
@@ -409,7 +411,6 @@ void k8s::parse_json(const std::string& json, const k8s_component::component_map
 			extract_data(items, component.first, api_ver);
 			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
 			{
-				K8S_LOCK_GUARD_MUTEX;
 				m_state.update_cache(component.first);
 			}
 		}

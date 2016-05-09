@@ -7,6 +7,7 @@
 #pragma once
 
 #include "k8s_common.h"
+#include "k8s.h"
 #include "k8s_component.h"
 #include "k8s_state.h"
 #include "k8s_event_data.h"
@@ -17,6 +18,8 @@
 class k8s_dispatcher
 {
 public:
+	typedef user_event_filter_t::ptr_t filter_ptr_t;
+
 	enum msg_reason
 	{
 		COMPONENT_ADDED,
@@ -40,13 +43,10 @@ public:
 	};
 
 	k8s_dispatcher() = delete;
-	
+
 	k8s_dispatcher(k8s_component::type t,
-		k8s_state_t& state
-#ifndef K8S_DISABLE_THREAD
-		,std::mutex& mut
-#endif
-	);
+		k8s_state_t& state,
+		filter_ptr_t event_filter = nullptr);
 
 	void enqueue(k8s_event_data&& data);
 
@@ -70,6 +70,7 @@ private:
 	void handle_pod(const Json::Value& root, const msg_data& data);
 	void handle_rc(const Json::Value& root, const msg_data& data);
 	void handle_service(const Json::Value& root, const msg_data& data);
+	void handle_event(const Json::Value& root, const msg_data& data);
 
 	// clears the content of labels and fills it with new values, if any
 	template <typename T>
@@ -112,9 +113,8 @@ private:
 	k8s_component::type m_type;
 	list                m_messages;
 	k8s_state_t&        m_state;
-#ifndef K8S_DISABLE_THREAD
-	std::mutex&         m_mutex;
-#endif
+	filter_ptr_t        m_event_filter;
+	std::string         m_machine_id;
 };
 
 

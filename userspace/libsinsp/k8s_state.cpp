@@ -12,13 +12,9 @@
 // state
 //
 
-#ifdef K8S_DISABLE_THREAD
-
 const std::string k8s_state_t::m_docker_prefix = "docker://";
 const std::string k8s_state_t::m_rkt_prefix = "rkt://";
 const unsigned    k8s_state_t::m_id_length = 12u;
-
-#endif // K8S_DISABLE_THREAD
 
 k8s_state_t::k8s_state_t(bool is_captured) : m_is_captured(is_captured)
 {
@@ -43,6 +39,20 @@ bool k8s_state_t::has_pod(k8s_pod_t& pod)
 		if(p == pod) { return true; }
 	}
 	return false;
+}
+
+// state/events
+
+void k8s_state_t::update_event(k8s_event_t& evt, const Json::Value& item)
+{
+	if(!item.isNull())
+	{
+		evt.update(item, *this);
+	}
+	else
+	{
+		g_logger.log("NULL K8s event received.", sinsp_logger::SEV_WARNING);
+	}
 }
 
 // state/general
@@ -74,6 +84,10 @@ void k8s_state_t::replace_items(k8s_component::type t, const std::string& name, 
 			return;
 		}
 		break;
+
+	case k8s_component::K8S_EVENTS:
+		break;
+
 	// only controllers and services can have selectors
 	case k8s_component::K8S_REPLICATIONCONTROLLERS:
 		if(name == "labels")
@@ -130,6 +144,9 @@ k8s_component& k8s_state_t::add_common_single_value(k8s_component::type componen
 		case k8s_component::K8S_SERVICES:
 			return get_component<k8s_services, k8s_service_t>(m_services, name, uid, ns);
 
+		case k8s_component::K8S_EVENTS:
+			return get_component<k8s_events, k8s_event_t>(m_events, name, uid, ns);
+
 		case k8s_component::K8S_COMPONENT_COUNT:
 		default:
 			break;
@@ -182,6 +199,9 @@ void k8s_state_t::clear(k8s_component::type type)
 		case k8s_component::K8S_SERVICES:
 			m_services.clear();
 			break;
+		case k8s_component::K8S_EVENTS:
+			m_events.clear();
+			break;
 		case k8s_component::K8S_COMPONENT_COUNT:
 		default:
 			break;
@@ -191,10 +211,8 @@ void k8s_state_t::clear(k8s_component::type type)
 
 // state/caching
 
-void k8s_state_t::update_cache(const k8s_component::component_map::key_type& component)
+void k8s_state_t::update_cache(const k8s_component::type_map::key_type& component)
 {
-#ifdef K8S_DISABLE_THREAD
-
 	switch (component)
 	{
 		case k8s_component::K8S_NAMESPACES:
@@ -292,8 +310,6 @@ void k8s_state_t::update_cache(const k8s_component::component_map::key_type& com
 
 		default: return;
 	}
-
-#endif // K8S_DISABLE_THREAD
 }
 
 k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
@@ -320,12 +336,51 @@ k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
 	{
 		return k8s_component::K8S_REPLICATIONCONTROLLERS;
 	}
-	else if(comp == "Service")
+	else if(comp == "Event")
 	{
-		return k8s_component::K8S_SERVICES;
+		return k8s_component::K8S_EVENTS;
 	}
 
 	throw sinsp_exception("Unknown component kind:" + comp);
+}
+
+const k8s_component* k8s_state_t::get_component(const std::string& uid, std::string* t) const
+{
+	component_map_t::const_iterator it = m_component_map.find(uid);
+	if(it != m_component_map.end())
+	{
+		switch(it->second)
+		{
+		case k8s_component::K8S_NODES:
+			if(t) { *t = "node"; }
+			return get_component<k8s_nodes, k8s_node_t>(m_nodes, uid);
+			break;
+		case k8s_component::K8S_NAMESPACES:
+			if(t) { *t = "namespace"; }
+			return get_component<k8s_namespaces, k8s_ns_t>(m_namespaces, uid);
+			break;
+		case k8s_component::K8S_PODS:
+			if(t) { *t = "pod"; }
+			return get_component<k8s_pods, k8s_pod_t>(m_pods, uid);
+			break;
+		case k8s_component::K8S_REPLICATIONCONTROLLERS:
+			if(t) { *t = "replicationController"; }
+			return get_component<k8s_controllers, k8s_rc_t>(m_controllers, uid);
+			break;
+		case k8s_component::K8S_SERVICES:
+			if(t) { *t = "service"; }
+			return get_component<k8s_services, k8s_service_t>(m_services, uid);
+			break;
+		case k8s_component::K8S_EVENTS:
+			if(t) { *t = "event"; }
+			return get_component<k8s_events, k8s_event_t>(m_events, uid);
+			break;
+		default:
+			if(t) { t->clear(); }
+			return nullptr;
+		}
+	}
+	return nullptr;
 }
 
 #ifdef HAS_CAPTURE
@@ -500,6 +555,9 @@ Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
 		break;
 
 	case k8s_component::K8S_REPLICATIONCONTROLLERS:
+		break;
+
+	case k8s_component::K8S_EVENTS:
 		break;
 
 	default: break;
