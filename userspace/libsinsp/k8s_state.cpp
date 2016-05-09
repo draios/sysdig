@@ -351,11 +351,10 @@ std::string k8s_state_t::dequeue_capture_event()
 
 Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
 {
-	k8s_component::type component = component_from_json(item);
-
 	Json::Value cap_item;
 
 #ifdef HAS_CAPTURE
+	k8s_component::type component = component_from_json(item);
 
 	Json::Value ver = item["apiVersion"];
 	if(!ver.isNull() && ver.isString())
