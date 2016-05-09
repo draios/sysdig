@@ -134,6 +134,8 @@ void mesos_component::add_labels(mesos_pair_list&& labels)
 // framework
 //
 
+const std::string mesos_framework::MARATHON_ROOT_NAME = "marathon";
+
 mesos_framework::mesos_framework(const std::string& name, const std::string& uid) :
 	mesos_component(mesos_component::MESOS_FRAMEWORK, name, uid)
 {

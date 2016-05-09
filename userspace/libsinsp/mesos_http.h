@@ -24,7 +24,7 @@ public:
 	typedef void (mesos::*callback_func_t)(json_ptr_t, const std::string&);
 	typedef std::vector<std::string> marathon_uri_t;
 
-	mesos_http(mesos& m, const uri& url, bool discover = false, int timeout_ms = 5000L);
+	mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master = false, bool discover_marathon = false, int timeout_ms = 5000L);
 
 	virtual ~mesos_http();
 
@@ -98,6 +98,7 @@ private:
 	bool                    m_is_mesos_state;
 	marathon_uri_t          m_marathon_uris;
 	bool                    m_discover_lead_master;
+	bool                    m_discover_marathon;
 	std::string::size_type  m_content_length = std::string::npos;
 
 	friend class mesos;

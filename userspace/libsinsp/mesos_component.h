@@ -144,6 +144,8 @@ private:
 class mesos_framework : public mesos_component
 {
 public:
+	static const std::string MARATHON_ROOT_NAME;
+
 	typedef std::shared_ptr<mesos_framework> ptr_t;
 	typedef mesos_task::ptr_t task_ptr_t;
 	typedef std::unordered_map<std::string, task_ptr_t> task_map;
@@ -165,7 +167,7 @@ public:
 	task_map& get_tasks();
 
 	static bool is_framework_active(const Json::Value& framework);
-	static bool is_marathon(const std::string& name);
+	static bool is_root_marathon(const std::string& name);
 
 private:
 	task_map m_tasks;
@@ -265,9 +267,9 @@ inline mesos_framework::task_ptr_t mesos_framework::get_task(const std::string& 
 	return 0;
 }
 
-inline bool mesos_framework::is_marathon(const std::string& name)
+inline bool mesos_framework::is_root_marathon(const std::string& name)
 {
-	return ci_find_substr(name, std::string("marathon")) != -1;
+	return name == MARATHON_ROOT_NAME;
 }
 
 //
