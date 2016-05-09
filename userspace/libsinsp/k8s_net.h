@@ -15,9 +15,6 @@
 #include "sinsp_curl.h"
 #include <sstream>
 #include <utility>
-#ifndef K8S_DISABLE_THREAD
-#include <thread>
-#endif
 
 class k8s;
 
@@ -35,13 +32,13 @@ public:
 
 	~k8s_net();
 
-	void get_all_data(const k8s_component::component_map::value_type& component, std::ostream& out);
+	void get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out);
+
+	void add_api_interface(const k8s_component::type_map::value_type& component);
 
 	void watch();
 
 	void stop_watching();
-
-	bool is_watching() const;
 
 	bool is_healthy() const;
 
@@ -74,21 +71,12 @@ private:
 #ifndef K8S_DISABLE_THREAD
 	std::thread* m_thread;
 #endif
-	bool m_curl_debug;
+	bool          m_curl_debug;
 };
 
 inline bool k8s_net::is_secure()
 {
 	return m_uri.get_scheme() == "https";
-}
-
-inline bool k8s_net::is_watching() const
-{
-#ifndef K8S_DISABLE_THREAD
-	return !m_stopped;
-#else
-	return true;
-#endif
 }
 
 inline bool k8s_net::is_healthy() const

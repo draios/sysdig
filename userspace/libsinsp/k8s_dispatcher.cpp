@@ -12,16 +12,9 @@
 #include <iostream>
 
 
-k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_t& state
-#ifndef K8S_DISABLE_THREAD
-	,std::mutex& mut
-#endif
-	) :
-	m_type(t),
-	m_state(state)
-#ifndef K8S_DISABLE_THREAD
-	,m_mutex(mut)
-#endif
+k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_t& state,
+							   filter_ptr_t event_filter):
+	m_type(t), m_state(state), m_event_filter(event_filter)
 {
 }
 
@@ -96,10 +89,10 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(Json::Value& root)
 		const std::string& et = evtype.asString();
 		if(!et.empty())
 		{
-			if(et[0] == 'A') { data.m_reason = COMPONENT_ADDED;    }
+			if(et[0] == 'A') { data.m_reason = COMPONENT_ADDED; }
 			else if(et[0] == 'M') { data.m_reason = COMPONENT_MODIFIED; }
-			else if(et[0] == 'D') { data.m_reason = COMPONENT_DELETED;  }
-			else if(et[0] == 'E') { data.m_reason = COMPONENT_ERROR;    }
+			else if(et[0] == 'D') { data.m_reason = COMPONENT_DELETED; }
+			else if(et[0] == 'E') { data.m_reason = COMPONENT_ERROR; }
 		}
 		else
 		{
@@ -166,8 +159,6 @@ void k8s_dispatcher::log_error(const Json::Value& root, const std::string& comp)
 
 void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 {
-	K8S_LOCK_GUARD_MUTEX;
-
 	if(data.m_reason == COMPONENT_ADDED)
 	{
 		if(m_state.has(m_state.get_nodes(), data.m_uid))
@@ -252,8 +243,6 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& data)
 {
-	K8S_LOCK_GUARD_MUTEX;
-
 	if(data.m_reason == COMPONENT_ADDED)
 	{
 		if(m_state.has(m_state.get_namespaces(), data.m_uid))
@@ -320,8 +309,6 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 
 void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 {
-	K8S_LOCK_GUARD_MUTEX;
-
 	if(data.m_reason == COMPONENT_ADDED)
 	{
 		const Json::Value& object = root["object"];
@@ -382,8 +369,6 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 {
-	K8S_LOCK_GUARD_MUTEX;
-
 	if(data.m_reason == COMPONENT_ADDED)
 	{
 		if(m_state.has(m_state.get_rcs(), data.m_uid))
@@ -438,8 +423,6 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 
 void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& data)
 {
-	K8S_LOCK_GUARD_MUTEX;
-
 	if(data.m_reason == COMPONENT_ADDED)
 	{
 		const Json::Value& object = root["object"];
@@ -490,6 +473,60 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 	}
 }
 
+void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
+{
+	if(m_event_filter)
+	{
+		const Json::Value& object = root["object"];
+		if(!object.isNull())
+		{
+			g_logger.log("K8s EVENT: object found.", sinsp_logger::SEV_DEBUG);
+			const Json::Value& involved_object = object["involvedObject"];
+			if(!involved_object.isNull())
+			{
+				const Json::Value& kind = involved_object["kind"];
+				const Json::Value& event_type = root["type"];
+				g_logger.log("K8s EVENT: involved object and event type found:" + kind.asString() + '/' + event_type.asString(), sinsp_logger::SEV_DEBUG);
+				if(!kind.isNull() && kind.isConvertibleTo(Json::stringValue) &&
+					!event_type.isNull() && event_type.isConvertibleTo(Json::stringValue))
+				{
+					if(m_event_filter->has(kind.asString(), event_type.asString()))
+					{
+						g_logger.log("K8s EVENT: adding event.", sinsp_logger::SEV_DEBUG);
+						k8s_event_t& evt = m_state.add_component<k8s_events, k8s_event_t>(m_state.get_events(),
+													data.m_name, data.m_uid, data.m_namespace);
+						m_state.update_event(evt, object);
+					}
+					else
+					{
+						g_logger.log("K8s EVENT: filter does not allow {\"" + kind.asString() + "\", \"{" + event_type.asString() + "\"} }", sinsp_logger::SEV_DEBUG);
+						g_logger.log(m_event_filter->to_string(), sinsp_logger::SEV_TRACE);
+					}
+				}
+				else
+				{
+					g_logger.log("K8s EVENT: event type or involvedObject kind not found.", sinsp_logger::SEV_ERROR);
+					g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_TRACE);
+				}
+			}
+			else
+			{
+				g_logger.log("K8s EVENT: involvedObject not found.", sinsp_logger::SEV_ERROR);
+				g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_TRACE);
+			}
+		}
+		else
+		{
+			g_logger.log("K8s EVENT: object not found.", sinsp_logger::SEV_ERROR);
+			g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_TRACE);
+		}
+	}
+	else
+	{
+		g_logger.log("K8s EVENT: filter NOT found.", sinsp_logger::SEV_DEBUG);
+	}
+}
+
 void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 {
 	Json::Value root;
@@ -524,6 +561,13 @@ void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 					os << "SERVICE,";
 					handle_service(root, data);
 					break;
+				case k8s_component::K8S_EVENTS:
+					os << "EVENT,";
+					if(m_event_filter)
+					{
+						handle_event(root, data);
+					}
+					break;
 				default:
 				{
 					std::ostringstream eos;
@@ -535,7 +579,6 @@ void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
 			{
-				K8S_LOCK_GUARD_MUTEX;
 				m_state.update_cache(m_type);
 #ifdef HAS_CAPTURE
 				if(enqueue)

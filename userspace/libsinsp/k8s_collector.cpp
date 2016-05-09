@@ -34,8 +34,6 @@ void k8s_collector::clear()
 
 void k8s_collector::add(k8s_http* handler)
 {
-	K8S_LOCK_GUARD_MUTEX;
-
 	int sockfd = handler->get_watch_socket(5000L);
 
 	FD_SET(sockfd, &m_errfd);
@@ -67,7 +65,6 @@ void k8s_collector::remove(socket_map_t::iterator& it)
 
 void k8s_collector::remove_all()
 {
-	K8S_LOCK_GUARD_MUTEX;
 	clear();
 	m_sockets.clear();
 	m_nfds = 0;
@@ -76,7 +73,6 @@ void k8s_collector::remove_all()
 
 bool k8s_collector::is_active() const
 {
-	K8S_LOCK_GUARD_MUTEX;
 	return m_sockets.size() > 0;
 }
 
@@ -97,8 +93,6 @@ void k8s_collector::get_data()
 			tv.tv_sec  = m_loop ? m_timeout_ms / 1000 : 0;
 			tv.tv_usec = m_loop ? (m_timeout_ms % 1000) * 1000 : 0;
 			{
-				K8S_LOCK_GUARD_MUTEX;
-
 				if(m_sockets.size())
 				{
 					res = select(m_nfds + 1, &m_infd, NULL, &m_errfd, &tv);
