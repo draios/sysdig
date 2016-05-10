@@ -195,7 +195,10 @@ public:
 
 	  \return The event timestamp, in nanoseconds from epoch
 	*/
-	uint64_t get_ts();
+	inline uint64_t get_ts()
+	{
+		return m_pevt->ts;
+	}
 
 	/*!
 	  \brief Return the event name string, e.g. 'open' or 'socket'.
