@@ -620,6 +620,8 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 
 void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 {
+#ifndef _WIN32
+
 	time_t     epoch_time_s = 0;
 	string     event_name;
 	string     description;
@@ -709,4 +711,5 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 											std::move(scope), std::move(tags)), severity);
 
 	// TODO: sysdig capture?
+#endif // _WIN32
 }

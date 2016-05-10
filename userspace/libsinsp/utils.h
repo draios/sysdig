@@ -291,5 +291,12 @@ int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::l
 
 struct ci_compare
 {
-	bool operator() (const std::string& a, const std::string& b) const;
+	bool operator() (const std::string& a, const std::string& b) const
+	{
+#ifndef _WIN32
+		return strcasecmp(a.c_str(), b.c_str()) < 0;
+#else
+		return lstrcmpiA(a.c_str(), b.c_str()) < 0;
+#endif // _WIN32
+	}
 };

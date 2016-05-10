@@ -2,6 +2,8 @@
 // docker.cpp
 //
 
+#if defined(__linux__)
+
 #include "docker.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -288,3 +290,5 @@ void docker::handle_event(Json::Value&& root)
 		}
 	}
 }
+
+#endif // __linux__

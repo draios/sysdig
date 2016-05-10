@@ -2,6 +2,8 @@
 // docker.h
 //
 
+#if defined(__linux__)
+
 #pragma once
 
 #include "json/json.h"
@@ -121,3 +123,4 @@ inline const std::string& docker::get_machine_id() const
 	return m_machine_id;
 }
 
+#endif // __linux__
