@@ -42,7 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #ifdef _WIN32
-#pragma warning(disable: 4251 4200 4221)
+#pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
 #ifdef _WIN32

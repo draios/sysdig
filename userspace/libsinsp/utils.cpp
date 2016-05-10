@@ -25,13 +25,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <sys/time.h>
 #include <netdb.h>
+#include <strings.h>
 #else
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
 #endif
 #include <algorithm> 
 #include <functional> 
-#include <strings.h>
 #include <errno.h>
 
 #include "sinsp.h"
@@ -1023,11 +1023,6 @@ string replace(const string& str, const string& search, const string& replacemen
 	string s(str);
 	replace_in_place(s, search, replacement);
 	return s;
-}
-
-bool ci_compare::operator() (const std::string& a, const std::string& b) const
-{
-	return strcasecmp(a.c_str(), b.c_str()) < 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

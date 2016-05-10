@@ -21,6 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <mutex>
 #include <algorithm>
+#include <set>
 
 //
 // user-configured event meta
@@ -31,9 +32,9 @@ public:
 	typedef std::set<std::string, ci_compare> type_list_t;
 
 	static const std::string PERMIT_ALL;
-	//static const std::string PERMIT_NONE;
 
 	user_event_meta_t() {};
+	~user_event_meta_t() {};
 
 	user_event_meta_t(const std::string& kind, const type_list_t& types);
 	user_event_meta_t(std::string&& kind, type_list_t&& types);
@@ -58,7 +59,11 @@ private:
 
 inline bool user_event_meta_t::operator < (const user_event_meta_t& other) const
 {
+#ifndef _WIN32
 	return strcasecmp(m_kind.c_str(), other.m_kind.c_str()) < 0;
+#else
+	return lstrcmpiA(m_kind.c_str(), other.m_kind.c_str()) < 0;
+#endif // _WIN32
 }
 
 inline const std::string& user_event_meta_t::kind() const
@@ -83,12 +88,20 @@ inline bool user_event_meta_t::any_type() const
 
 inline bool user_event_meta_t::is_kind(const std::string& kind) const
 {
+#ifndef _WIN32
 	return (strcasecmp(m_kind.c_str(), kind.c_str()) == 0) || any_kind();
+#else
+	return lstrcmpiA(m_kind.c_str(), kind.c_str()) < 0;
+#endif // _WIN32
 }
 
 inline bool user_event_meta_t::any_kind() const
 {
+#ifndef _WIN32
 	return strcasecmp(m_kind.c_str(), PERMIT_ALL.c_str()) == 0;
+#else
+	return lstrcmpiA(m_kind.c_str(), PERMIT_ALL.c_str()) < 0;
+#endif // _WIN32
 }
 
 
@@ -139,7 +152,11 @@ inline void user_event_filter_t::clear()
 
 inline bool user_event_filter_t::ci_compare_str(const std::string& a, const std::string& b)
 {
+#ifndef _WIN32
 	return strcasecmp(a.c_str(), b.c_str()) == 0;
+#else
+	return lstrcmpiA(a.c_str(), a.c_str()) < 0;
+#endif // _WIN32
 }
 
 inline bool user_event_filter_t::has(const std::string& evt_kind) const

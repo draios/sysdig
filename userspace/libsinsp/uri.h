@@ -6,6 +6,10 @@
 
 #pragma once
 
+#ifdef _WIN32
+#pragma warning(disable: 4190)
+#endif
+
 #include "uri_parser.h"
 #include <string>
 

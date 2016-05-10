@@ -2925,7 +2925,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 						m_strstorage += to_string(lat / 1000000000);
 						m_strstorage += ".";
-						snprintf(timebuffer, sizeof(timebuffer), "%09lu", lat % 1000000000);
+						snprintf(timebuffer, sizeof(timebuffer), "%09I64u", lat % 1000000000);
 						m_strstorage += string(timebuffer);
 					}
 					else

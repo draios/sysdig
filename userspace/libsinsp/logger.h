@@ -100,7 +100,7 @@ private:
 
 inline bool sinsp_logger::is_callback() const
 {
-	 return (m_flags & sinsp_logger::OT_CALLBACK);
+	 return (m_flags & sinsp_logger::OT_CALLBACK) != 0;
 }
 
 inline bool sinsp_logger::is_user_event(severity sev) const
