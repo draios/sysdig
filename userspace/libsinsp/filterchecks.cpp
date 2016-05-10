@@ -2921,11 +2921,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				{
 					if(evt->m_tinfo != NULL)
 					{
-						uint64_t lat = evt->m_tinfo->m_latency;
+						long long unsigned lat = evt->m_tinfo->m_latency;
 
 						m_strstorage += to_string(lat / 1000000000);
 						m_strstorage += ".";
-						snprintf(timebuffer, sizeof(timebuffer), "%09I64u", lat % 1000000000);
+						snprintf(timebuffer, sizeof(timebuffer), "%09llu", lat % 1000000000);
 						m_strstorage += string(timebuffer);
 					}
 					else
