@@ -1469,7 +1469,14 @@ sinsp_stats sinsp::get_stats()
 
 void sinsp::set_log_callback(sinsp_logger_callback cb)
 {
-	g_logger.add_callback_log(cb);
+	if(cb)
+	{
+		g_logger.add_callback_log(cb);
+	}
+	else
+	{
+		g_logger.remove_callback_log();
+	}
 }
 
 void sinsp::set_log_file(string filename)

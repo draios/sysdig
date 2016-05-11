@@ -3,8 +3,10 @@
 //
 
 #include "k8s_component.h"
+#include "k8s_state.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "user_event.h"
 #include <sstream>
 #include <iostream>
 
@@ -66,17 +68,18 @@ const k8s_container::port* k8s_container::get_port(const std::string& port_name)
 // component
 //
 
-const k8s_component::component_map k8s_component::list =
+const k8s_component::type_map k8s_component::list =
 {
 	{ k8s_component::K8S_NODES,                  "nodes"                  },
 	{ k8s_component::K8S_NAMESPACES,             "namespaces"             },
 	{ k8s_component::K8S_PODS,                   "pods"                   },
 	{ k8s_component::K8S_REPLICATIONCONTROLLERS, "replicationcontrollers" },
-	{ k8s_component::K8S_SERVICES,               "services"               }
+	{ k8s_component::K8S_SERVICES,               "services"               },
+	{ k8s_component::K8S_EVENTS,                 "events"                 }
 };
 
-k8s_component::k8s_component(const std::string& name, const std::string& uid, const std::string& ns) : 
-	m_name(name), m_uid(uid), m_ns(ns)
+k8s_component::k8s_component(type comp_type, const std::string& name, const std::string& uid, const std::string& ns) : 
+	m_type(comp_type), m_name(name), m_uid(uid), m_ns(ns)
 {
 }
 
@@ -209,7 +212,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 		Json::Value node_name = spec["nodeName"];
 		if(!node_name.isNull())
 		{
-			std::string nn = std::move(node_name.asString());
+			std::string nn = node_name.asString();
 			if(!nn.empty())
 			{
 				pod.set_node_name(nn);
@@ -221,7 +224,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 			Json::Value host_ip = status["hostIP"];
 			if(!host_ip.isNull())
 			{
-				std::string hip = std::move(host_ip.asString());
+				std::string hip = host_ip.asString();
 				if(!hip.empty())
 				{
 					pod.set_host_ip(hip);
@@ -230,7 +233,7 @@ void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 			Json::Value pod_ip = status["podIP"];
 			if(!pod_ip.isNull())
 			{
-				std::string pip = std::move(pod_ip.asString());
+				std::string pip = pod_ip.asString();
 				if(!pip.empty())
 				{
 					pod.set_internal_ip(pip);
@@ -266,7 +269,7 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_t
 				Json::Value json_protocol = port["protocol"];
 				if(!json_protocol.isNull())
 				{
-					p.m_protocol = std::move(json_protocol.asString());
+					p.m_protocol = json_protocol.asString();
 				}
 
 				Json::Value json_target_port = port["targetPort"];
@@ -347,6 +350,8 @@ std::string k8s_component::get_name(type t)
 		return "replicationcontrollers";
 	case K8S_SERVICES:
 		return "services";
+	case K8S_EVENTS:
+		return "events";
 	case K8S_COMPONENT_COUNT:
 	default:
 		break;
@@ -378,6 +383,10 @@ k8s_component::type k8s_component::get_type(const std::string& name)
 	else if(name == "services")
 	{
 		return K8S_SERVICES;
+	}
+	else if(name == "events")
+	{
+		return K8S_EVENTS;
 	}
 
 	std::ostringstream os;
@@ -462,7 +471,7 @@ bool k8s_component::selectors_in_labels(const k8s_pair_list& labels) const
 // namespace
 //
 k8s_ns_t::k8s_ns_t(const std::string& name, const std::string& uid, const std::string& ns) :
-	k8s_component(name, uid, ns)
+	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
 }
 
@@ -472,7 +481,7 @@ k8s_ns_t::k8s_ns_t(const std::string& name, const std::string& uid, const std::s
 //
 
 k8s_node_t::k8s_node_t(const std::string& name, const std::string& uid, const std::string& ns) :
-	k8s_component(name, uid, ns)
+	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
 }
 
@@ -513,7 +522,7 @@ k8s_node_t::host_ip_list k8s_node_t::extract_addresses(const Json::Value& status
 //
 
 k8s_pod_t::k8s_pod_t(const std::string& name, const std::string& uid, const std::string& ns) :
-	k8s_component(name, uid, ns)
+	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
 }
 
@@ -548,7 +557,7 @@ k8s_container* k8s_pod_t::get_container(const std::string& container_name)
 // replication controller
 //
 k8s_rc_t::k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns) : 
-	k8s_component(name, uid, ns)
+	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
 }
 
@@ -583,7 +592,7 @@ int k8s_rc_t::get_replica(const Json::Value& item)
 // service
 //
 k8s_service_t::k8s_service_t(const std::string& name, const std::string& uid, const std::string& ns) : 
-	k8s_component(name, uid, ns)
+	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
 }
 
@@ -600,3 +609,107 @@ std::vector<const k8s_pod_t*> k8s_service_t::get_selected_pods(const std::vector
 	return pod_vec;
 }
 
+//
+// event
+//
+
+k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const std::string& ns) :
+	k8s_component(COMPONENT_TYPE, name, uid, ns)
+{
+}
+
+void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
+{
+#ifndef _WIN32
+
+	time_t     epoch_time_s = 0;
+	string     event_name;
+	string     description;
+	severity_t severity = sinsp_logger::SEV_EVT_INFORMATION;
+	string     scope;
+	tag_map_t  tags;
+
+	const Json::Value& obj = item["involvedObject"];
+	//g_logger.log(Json::FastWriter().write(item), sinsp_logger::SEV_DEBUG);
+	if(!obj.isNull())
+	{
+		std::string sev = get_json_string(obj, "type");
+		// currently, only "Normal" and "Warning"
+		severity = sinsp_logger::SEV_EVT_INFORMATION;
+		if(sev == "Warning") { severity = sinsp_logger::SEV_EVT_WARNING; }
+		g_logger.log("K8s EVENT : component name:" + get_json_string(obj, "name") +
+					", uid=" + get_json_string(obj, "uid") +
+					", type=" + get_json_string(obj, "kind"), sinsp_logger::SEV_DEBUG);
+	}
+	else
+	{
+		g_logger.log("K8s event: cannot get involved object (null)", sinsp_logger::SEV_ERROR);
+	}
+
+	std::string ts = get_json_string(item , "lastTimestamp");
+	if(!ts.empty())
+	{
+		struct tm tm;
+		memset(&tm, 0, sizeof(struct tm));
+		strptime(ts.c_str(), "%Y-%m-%dT%H:%M:%SZ", &tm); //this is UTC time
+		epoch_time_s = 0;
+		tm.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
+		if((epoch_time_s = timegm(&tm)) == (time_t) -1)
+		{
+			g_logger.log("K8s event: cannot convert [" + ts + "] to epoch timestamp", sinsp_logger::SEV_ERROR);
+		}
+		g_logger.log("K8s EVENT update: time:" + std::to_string(epoch_time_s), sinsp_logger::SEV_DEBUG);
+	}
+	else
+	{
+		g_logger.log("K8s event: cannot convert time (null, empty or not string)", sinsp_logger::SEV_ERROR);
+	}
+	event_name = get_json_string(item , "reason");
+
+	description = get_json_string(item, "message");
+	g_logger.log("K8s EVENT message:" + description, sinsp_logger::SEV_DEBUG);
+
+	string component_uid = get_json_string(obj, "uid");
+	if(!component_uid.empty())
+	{
+		std::string t;
+		const k8s_component* comp = state.get_component(component_uid, &t);
+		if(comp && !t.empty())
+		{
+			std::string node_name = comp->get_node_name();
+			if(!node_name.empty())
+			{
+				if(scope.length()) { scope.append(" and "); }
+				scope.append("kubernetes.node.name=").append(node_name);
+			}
+			if(scope.length()) { scope.append(" and "); }
+			scope.append("kubernetes.").append(t).append(".name=").append(comp->get_name());
+			const std::string& ns = get_namespace();
+			if(!ns.empty())
+			{
+				scope.append(" and kubernetes.namespace.name=").append(ns);
+			}
+			/* no labels for now
+			for(const auto& label : comp->get_labels())
+			{
+				tags[label.first] = label.second;
+				g_logger.log("EVENT label: [" + label.first + ':' + label.second + ']', sinsp_logger::SEV_DEBUG);
+				scope.append(" and kubernetes.").append(t).append(".label.").append(label.first).append(1, '=').append(label.second);
+			}*/
+		}
+		else
+		{
+			g_logger.log("K8s event: cannot obtain component (not found)", sinsp_logger::SEV_ERROR);
+		}
+	}
+	else
+	{
+		g_logger.log("K8s event: cannot obtain tags (UID not retrieved)", sinsp_logger::SEV_ERROR);
+	}
+	tags["source"] = "kubernetes";
+	g_logger.log(sinsp_user_event::to_string(epoch_time_s, std::move(event_name), std::move(description),
+											std::move(scope), std::move(tags)), severity);
+
+	// TODO: sysdig capture?
+#endif // _WIN32
+}
