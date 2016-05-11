@@ -1126,6 +1126,7 @@ enum ppm_event_flags {
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
 	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
 	EF_OLD_VERSION = (1 << 9), /* This event is kept for backward compatibility */
+	EF_DROP_FALCO = (1 << 10) /* This event should not be passed up to Falco */
 };
 
 /*
@@ -1262,13 +1263,6 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 16)
 #define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17)
 
-/*!
-  \brief System call description struct.
-*/
-struct ppm_syscall_desc {
-	enum ppm_event_category category; /**< System call category. */
-	char *name; /**< System call name, e.g. 'open'. */
-};
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];

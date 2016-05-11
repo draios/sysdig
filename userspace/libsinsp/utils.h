@@ -20,6 +20,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <algorithm>
 #include <locale>
+#include <sstream>
 
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;
@@ -151,14 +152,30 @@ string port_to_string(uint16_t port, uint8_t l4proto, bool resolve);
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////
-vector<string> sinsp_split(const string &s, char delim);
+vector<string> sinsp_split(const string& s, char delim);
+
 template<typename It>
-string sinsp_join(It begin, It end, char delim);
-string& ltrim(string &s);
-string& rtrim(string &s);
-string& trim(string &s);
-void replace_in_place(string &s, const string &search, const string &replace);
-void replace_in_place(string& str, string& substr_to_replace, string& new_substr);
+string sinsp_join(It begin, It end, char delim)
+{
+	if(begin == end)
+	{
+		return "";
+	}
+	std::stringstream ss;
+	ss << *begin;
+	++begin;
+	for(auto it = begin; it != end; ++it)
+	{
+		ss << delim << *it;
+	}
+	return ss.str();
+}
+
+string& ltrim(string& s);
+string& rtrim(string& s);
+string& trim(string& s);
+string& replace_in_place(string& s, const string& search, const string& replacement);
+string replace(const string& str, const string& search, const string& replacement);
 
 ///////////////////////////////////////////////////////////////////////////////
 // number parser
@@ -192,7 +209,7 @@ namespace Json
 	class Value;
 }
 
-std::string get_json_string(const Json::Value& root, const std::string& name);
+std::string get_json_string(const Json::Value& obj, const std::string& name);
 
 ///////////////////////////////////////////////////////////////////////////////
 // A simple class to manage pre-allocated objects in a LIFO
@@ -254,7 +271,7 @@ private:
 template<typename charT>
 struct ci_equal
 {
-	ci_equal( const std::locale& loc ) : m_loc(loc) {}
+	ci_equal(const std::locale& loc) : m_loc(loc) {}
 	bool operator()(charT ch1, charT ch2)
 	{
 		return std::toupper(ch1, m_loc) == std::toupper(ch2, m_loc);
@@ -271,3 +288,15 @@ int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::l
 	if(it != str1.end()) { return it - str1.begin(); }
 	return -1;
 }
+
+struct ci_compare
+{
+	bool operator() (const std::string& a, const std::string& b) const
+	{
+#ifndef _WIN32
+		return strcasecmp(a.c_str(), b.c_str()) < 0;
+#else
+		return lstrcmpiA(a.c_str(), b.c_str()) < 0;
+#endif // _WIN32
+	}
+};

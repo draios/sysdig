@@ -205,7 +205,18 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\nConnection: Keep-Alive\r\n";
 		if(!m_credentials.empty())
 		{
-			std::istringstream is(m_credentials);
+			std::string::size_type pos = m_credentials.find(':');
+			if(pos == std::string::npos)
+			{
+				throw sinsp_exception("Invalid credentials (missing ':' separator)");
+			}
+			std::string username = uri::decode(m_credentials.substr(0, pos));
+			std::string password;
+			if(m_credentials.length() > pos)
+			{
+				password = uri::decode(m_credentials.substr(pos + 1));
+			}
+			std::istringstream is(username.append(1, ':').append(password));
 			std::ostringstream os;
 			base64::encoder().encode(is, os);
 			request << "Authorization: Basic " << os.str() << "\r\n";
@@ -223,7 +234,7 @@ int k8s_http::get_watch_socket(long timeout_ms)
 			throw sinsp_exception("Error: timeout.");
 		}
 
-		g_logger.log(std::string("Collecting data from ") + url, sinsp_logger::SEV_DEBUG);
+		g_logger.log(std::string("Collecting data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
 	}
 
 	return m_watch_socket;

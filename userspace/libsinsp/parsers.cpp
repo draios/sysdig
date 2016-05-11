@@ -63,6 +63,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	sinsp_tracerparser p(inspector);
 	p.test();
+	m_drop_event_flags = EF_NONE;
 }
 #else
 sinsp_parser::sinsp_parser(sinsp *inspector) :
@@ -80,6 +81,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	init_metaevt(m_k8s_metaevents_state, PPME_K8S_E, SP_EVT_BUF_SIZE);
 	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
+	m_drop_event_flags = EF_NONE;
 }
 #endif
 
@@ -159,6 +161,28 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		}
 	}
 #endif
+
+		if (m_drop_event_flags)
+		{
+			enum ppm_event_flags flags;
+			uint16_t etype = evt->m_pevt->type;
+			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+			{
+				sinsp_evt_param *parinfo = evt->get_param(0);
+				uint16_t evid = *(uint16_t *)parinfo->m_val;
+				flags = g_infotables.m_syscall_info_table[evid].flags;
+			}
+			else
+			{
+				flags = evt->get_info_flags();
+			}
+
+			if (flags & m_drop_event_flags)
+			{
+				evt->m_filtered_out = true;
+				return;
+			}
+		}
 
 	//
 	// Filtering
@@ -1346,6 +1370,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	switch(etype)
 	{
+		case PPME_SYSCALL_FORK_20_X:
+		case PPME_SYSCALL_VFORK_20_X:
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);

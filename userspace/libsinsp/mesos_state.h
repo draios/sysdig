@@ -137,6 +137,9 @@ public:
 	// Marathon
 	//
 
+	void set_marathon_uri(const std::string& uri);
+	const std::string& get_marathon_uri() const;
+
 	//
 	// Marathon apps
 	//
@@ -177,6 +180,7 @@ private:
 	marathon_app::ptr_t add_app(const Json::Value& app, const std::string& framework_id);
 
 	mesos_frameworks m_frameworks;
+	std::string      m_marathon_uri;
 	mesos_slaves     m_slaves;
 	marathon_groups  m_groups;
 	bool             m_verbose;
@@ -401,9 +405,22 @@ inline void mesos_state_t::emplace_slave(mesos_slave&& slave)
 }
 
 //
-// apps
+// Marathon
 //
 
+inline void mesos_state_t::set_marathon_uri(const std::string& uri)
+{
+	m_marathon_uri = uri;
+}
+
+inline const std::string& mesos_state_t::get_marathon_uri() const
+{
+	return m_marathon_uri;
+}
+
+//
+// apps
+//
 
 //
 // groups

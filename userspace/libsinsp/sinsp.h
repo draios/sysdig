@@ -42,7 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #ifdef _WIN32
-#pragma warning(disable: 4251 4200 4221)
+#pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
 #ifdef _WIN32
@@ -549,6 +549,11 @@ public:
 	sinsp_evt::param_fmt get_buffer_format();
 
 	/*!
+	  \brief Set event flags for which matching events should be dropped pre-filtering
+	*/
+	void set_drop_event_flags(ppm_event_flags flags);
+
+	/*!
 	  \brief Returns true if the current capture is live.
 	*/
 	inline bool is_live()
@@ -967,25 +972,5 @@ private:
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
-
-//
-// Macros for enable/disable k8s threading
-// Used to eliminate mutex locking when running single-threaded
-//
-
-#ifndef HAS_CAPTURE
-#ifndef K8S_DISABLE_THREAD
-#define K8S_DISABLE_THREAD
-#endif
-#endif
-
-#ifndef K8S_DISABLE_THREAD
-#include <mutex>
-#define K8S_DECLARE_MUTEX mutable std::mutex m_mutex
-#define K8S_LOCK_GUARD_MUTEX std::lock_guard<std::mutex> lock(m_mutex)
-#else
-#define K8S_DECLARE_MUTEX
-#define K8S_LOCK_GUARD_MUTEX
-#endif // K8S_DISABLE_THREAD
 
 /*@}*/

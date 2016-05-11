@@ -1439,7 +1439,14 @@ sinsp_stats sinsp::get_stats()
 
 void sinsp::set_log_callback(sinsp_logger_callback cb)
 {
-	g_logger.add_callback_log(cb);
+	if(cb)
+	{
+		g_logger.add_callback_log(cb);
+	}
+	else
+	{
+		g_logger.remove_callback_log();
+	}
 }
 
 void sinsp::set_log_file(string filename)
@@ -1491,6 +1498,11 @@ void sinsp::add_chisel_dir(string dirname, bool front_add)
 void sinsp::set_buffer_format(sinsp_evt::param_fmt format)
 {
 	m_buffer_format = format;
+}
+
+void sinsp::set_drop_event_flags(ppm_event_flags flags)
+{
+	m_parser->m_drop_event_flags = flags;
 }
 
 sinsp_evt::param_fmt sinsp::get_buffer_format()

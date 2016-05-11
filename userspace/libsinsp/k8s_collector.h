@@ -45,7 +45,6 @@ private:
 	bool             m_loop;
 	long             m_timeout_ms;
 	bool             m_stopped;
-	K8S_DECLARE_MUTEX;
 };
 
 inline void k8s_collector::stop()
