@@ -103,6 +103,13 @@ struct scap
 	void* m_filterstate;
 	bool m_thread_filtering;
 #endif
+#ifdef HAS_EARLY_FILTERING
+	//load manager fields
+	uint64_t m_evt_count;
+	uint64_t m_evt_drop;
+	uint64_t m_bytes;
+#endif
+
 };
 
 struct scap_ns_socket_list
