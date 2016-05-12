@@ -254,7 +254,11 @@ void docker::handle_event(Json::Value&& root)
 					}
 					else if(is_image_event(event_name))
 					{
-						if(!image.empty())
+						if(event_name == "untag" || event_name == "delete")
+						{
+							scope.append("container.id=").append(id.substr(0, 12));
+						}
+						else if(!image.empty())
 						{
 							scope.append("container.image=").append(image);
 						}
