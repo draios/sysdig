@@ -633,13 +633,14 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	//g_logger.log(Json::FastWriter().write(item), sinsp_logger::SEV_DEBUG);
 	if(!obj.isNull())
 	{
-		std::string sev = get_json_string(obj, "type");
+		std::string sev = get_json_string(item, "type");
 		// currently, only "Normal" and "Warning"
 		severity = sinsp_logger::SEV_EVT_INFORMATION;
 		if(sev == "Warning") { severity = sinsp_logger::SEV_EVT_WARNING; }
-		g_logger.log("K8s EVENT : component name:" + get_json_string(obj, "name") +
-					", uid=" + get_json_string(obj, "uid") +
-					", type=" + get_json_string(obj, "kind"), sinsp_logger::SEV_DEBUG);
+		g_logger.log("K8s EVENT : \ncomponent name = " + get_json_string(obj, "name") +
+					"\nuid = " + get_json_string(obj, "uid") +
+					"\ntype = " + get_json_string(obj, "kind") +
+					"\nseverity = " + get_json_string(item, "type") + " (" + std::to_string(severity) + ')', sinsp_logger::SEV_TRACE);
 	}
 	else
 	{
@@ -665,7 +666,10 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		g_logger.log("K8s event: cannot convert time (null, empty or not string)", sinsp_logger::SEV_ERROR);
 	}
 	event_name = get_json_string(item , "reason");
-
+	if(event_name == "SuccessfulCreate")
+	{
+		g_logger.log("SuccessfulCreate:\n" + Json::FastWriter().write(item), sinsp_logger::SEV_TRACE);
+	}
 	description = get_json_string(item, "message");
 	g_logger.log("K8s EVENT message:" + description, sinsp_logger::SEV_DEBUG);
 
@@ -699,7 +703,7 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		}
 		else
 		{
-			g_logger.log("K8s event: cannot obtain component (not found)", sinsp_logger::SEV_ERROR);
+			g_logger.log("K8s event: cannot obtain component (UID not found: [" + component_uid + "])", sinsp_logger::SEV_ERROR);
 		}
 	}
 	else

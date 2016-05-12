@@ -293,7 +293,7 @@ class k8s_rc_t : public k8s_component
 {
 public:
 	static const int UNKNOWN_REPLICAS = -1;
-	static const k8s_component::type COMPONENT_TYPE = K8S_NAMESPACES;
+	static const k8s_component::type COMPONENT_TYPE = K8S_REPLICATIONCONTROLLERS;
 
 	k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
