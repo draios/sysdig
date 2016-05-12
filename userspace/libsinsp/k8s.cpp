@@ -123,8 +123,8 @@ void k8s::build_state()
 		for (auto& component : m_components)
 		{
 			// events are transient and fetching all data for events would pull
-			// old events on agent restart, duplicating them in the UI;
-			// so, we only add watch interface here for events
+			// old events on agent restart, causing unecessary network and DB
+			// traffic; so, we only add watch interface here for events
 			if(component.first != k8s_component::K8S_EVENTS)
 			{
 				m_state.clear(component.first);
