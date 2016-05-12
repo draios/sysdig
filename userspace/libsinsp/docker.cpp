@@ -23,7 +23,14 @@ docker::docker(const std::string& url,
 		m_timeout_ms(timeout_ms),
 		m_is_captured(is_captured),
 		m_verbose(verbose),
-		m_event_filter(event_filter)
+		m_event_filter(event_filter),
+		m_container_events{"attach", "commit", "copy", "create",
+							"destroy", "die", "exec_create", "exec_start",
+							"export", "kill", "oom", "pause", "rename", "resize",
+							"restart", "start", "stop", "top", "unpause", "update"},
+		m_image_events{"delete", "import", "pull", "push", "tag", "untag"},
+		m_volume_events{"create", "mount", "unmount", "destroy"},
+		m_network_events{"create", "connect", "disconnect", "destroy"}
 {
 #ifdef HAS_CAPTURE
 	g_logger.log(std::string("Creating Docker object for " +
@@ -201,7 +208,6 @@ void docker::handle_event(Json::Value&& root)
 				{
 					id = id.substr(7);
 				}
-				if(id.length() >= 12) { id = id.substr(0, 12); }
 				severity = it->second;
 				g_logger.log("Docker EVENT: severity for " + status + '=' + std::to_string(severity - sinsp_logger::SEV_EVT_MIN), sinsp_logger::SEV_DEBUG);
 				uint64_t epoch_time_s = static_cast<uint64_t>(~0);
@@ -246,9 +252,24 @@ void docker::handle_event(Json::Value&& root)
 					{
 						scope.append("container.image=").append(image);
 					}
+					else if(is_image_event(event_name))
+					{
+						if(!image.empty())
+						{
+							scope.append("container.image=").append(image);
+						}
+						else if(!id.empty())
+						{
+							scope.append("container.image=").append(id);
+						}
+						else
+						{
+							g_logger.log("Cannot determine container image for Docker pull event (empty).", sinsp_logger::SEV_ERROR);
+						}
+					}
 					else
 					{
-						scope.append("container.id=").append(id);
+						scope.append("container.id=").append(id.substr(0, 12));
 					}
 				}
 				if(status.length())

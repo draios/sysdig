@@ -76,6 +76,23 @@ private:
 		return false;
 	}
 
+	bool is_container_event(const std::string& evt_name)
+	{
+		return m_container_events.find(evt_name) != m_container_events.end();
+	}
+	bool is_image_event(const std::string& evt_name)
+	{
+		return m_image_events.find(evt_name) != m_image_events.end();
+	}
+	bool is_volume_event(const std::string& evt_name)
+	{
+		return m_volume_events.find(evt_name) != m_volume_events.end();
+	}
+	bool is_network_event(const std::string& evt_name)
+	{
+		return m_network_events.find(evt_name) != m_network_events.end();
+	}
+
 	typedef socket_data_handler<docker> handler_t;
 	typedef handler_t::ptr_t            handler_ptr_t;
 	typedef socket_collector<handler_t> collector_t;
@@ -101,6 +118,12 @@ private:
 
 	event_list_t   m_events;
 	severity_map_t m_severity_map;
+
+	typedef std::set<std::string> entity_events_t;
+	const entity_events_t m_container_events;
+	const entity_events_t m_image_events;
+	const entity_events_t m_volume_events;
+	const entity_events_t m_network_events;
 };
 
 inline const std::string& docker::get_id() const
