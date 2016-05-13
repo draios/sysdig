@@ -774,8 +774,37 @@ void sinsp_utils::bt(void)
 #endif // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////////
-// gettimeofday() windows implementation
+// Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
+
+time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt)
+{
+#ifndef _WIN32
+	if(time_str.empty() || fmt.empty())
+	{
+		throw sinsp_exception("get_epoch_utc_seconds(): empty time or format string.");
+	}
+	struct tm tm_time = {0};
+	strptime(time_str.c_str(), fmt.c_str(), &tm_time);
+	tm_time.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
+	return timegm(&tm_time);
+#else
+	throw sinsp_exception("get_epoch_utc_seconds() not implemented on Windows");
+#endif // _WIN32
+}
+
+time_t get_epoch_utc_seconds_now()
+{
+#ifndef _WIN32
+	time_t rawtime;
+	time(&rawtime);
+	return timegm(gmtime(&rawtime));
+#else
+	throw sinsp_exception("get_now_seconds() not implemented on Windows");
+#endif // _WIN32
+}
+
+// gettimeofday() windows implementation
 #ifdef _WIN32
 
 #include <time.h>
