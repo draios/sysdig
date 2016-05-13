@@ -626,14 +626,6 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		//
 
 		//
-		// Replication Controller
-		//
-		{ "FailedCreate",      "Pod Create Failed"},
-		{ "SuccessfulCreate",  "Pod Created"      },
-		{ "FailedDelete",      "Pod Delete Failed"},
-		{ "SuccessfulDelete",  "Pod Deleted"      },
-
-		//
 		// Node
 		//
 
@@ -650,10 +642,11 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		{ "NodeNotReady",            "Node not Ready"             },
 		{ "NodeSchedulable",         "Node is Schedulable"        },
 		{ "NodeNotSchedulable",      "Node is not Schedulable"    },
+		{ "CIDRNotAvailable",        "CIDR not Available"         },
+		{ "CIDRAssignmentFailed",    "CIDR Assignment Failed"     },
 		{ "Starting",                "Starting Kubelet"           },
 		{ "KubeletSetupFailed",      "Kubelet Setup Failed"       },
 		{ "FailedMount",             "Volume Mount Failed"        },
-		{ "HostPortConflict",        "Host/Port Conflict"         },
 		{ "NodeSelectorMismatching", "Node Selector Mismatch"     },
 		{ "InsufficientFreeCPU",     "Insufficient Free CPU"      },
 		{ "InsufficientFreeMemory",  "Insufficient Free Memory"   },
@@ -662,18 +655,15 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		{ "NilShaper",               "Undefined Shaper"           },
 		{ "Rebooted",                "Node Rebooted"              },
 		{ "NodeHasSufficientDisk",   "Node Has Sufficient Disk"   },
-		{ "NodeOutOfDisk",           "Node Out of Disk"           },
+		{ "NodeOutOfDisk",           "Node Out of Disk Space"     },
+
+		// Image manager
+		{ "InvalidDiskCapacity", "Invalid Disk Capacity"  },
+		{ "FreeDiskSpaceFailed", "Free Disk Space Failed" },
 
 		//
 		// Pod
 		//
-
-		// Container
-		{ "Created", "Container Created"                },
-		{ "Started", "Container Started"                },
-		{ "Failed",  "Container Create or Start Failed" },
-		{ "Killing", "Killing Container"                },
-		//{ "BackOff", "Backoff Start Container"          }, - duplicate
 
 		// Image
 		{ "Pulling",           "Pulling Image"                          },
@@ -683,9 +673,15 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		{ "ErrImageNeverPull", "Image NeverPull Policy Error"           },
 		{ "BackOff",           "Back Off Container Start or Image Pull" },
 
-		// Image manager
-		{ "InvalidDiskCapacity", "Invalid Disk Capacity"  },
-		{ "FreeDiskSpaceFailed", "Free Disk Space Failed" },
+		//{ "OutOfDisk" ,"Out of Disk" }, duplicate
+
+		// Container
+		{ "Created", "Container Created"                },
+		{ "Started", "Container Started"                },
+		{ "Failed",  "Container Create or Start Failed" },
+		{ "Killing", "Killing Container"                },
+
+		//{ "BackOff", "Backoff Start Container" }, duplicate
 
 		// Probe
 		{ "Unhealthy", "Container Unhealthy" },
@@ -694,7 +690,16 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		{ "FailedSync", "Pod Sync Failed" },
 
 		// Config
-		{ "FailedValidation", "Failed Configuration Validation" }
+		{ "FailedValidation", "Failed Configuration Validation" },
+		{ "HostPortConflict", "Host/Port Conflict"              },
+
+		//
+		// Replication Controller
+		//
+		{ "SuccessfulCreate",  "Pod Created"      },
+		{ "FailedCreate",      "Pod Create Failed"},
+		{ "SuccessfulDelete",  "Pod Deleted"      },
+		{ "FailedDelete",      "Pod Delete Failed"}
 	}
 {
 }
@@ -711,7 +716,7 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	tag_map_t  tags;
 
 	const Json::Value& obj = item["involvedObject"];
-	//g_logger.log(Json::FastWriter().write(item), sinsp_logger::SEV_DEBUG);
+	//g_logger.log(Json::FastWriter().write(item), sinsp_logger::SEV_TRACE);
 	if(!obj.isNull())
 	{
 		std::string sev = get_json_string(item, "type");
@@ -731,12 +736,7 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	std::string ts = get_json_string(item , "lastTimestamp");
 	if(!ts.empty())
 	{
-		struct tm tm;
-		memset(&tm, 0, sizeof(struct tm));
-		strptime(ts.c_str(), "%Y-%m-%dT%H:%M:%SZ", &tm); //this is UTC time
-		epoch_time_s = 0;
-		tm.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
-		if((epoch_time_s = timegm(&tm)) == (time_t) -1)
+		if((epoch_time_s = get_epoch_utc_seconds(ts)) == (time_t) -1)
 		{
 			g_logger.log("K8s event: cannot convert [" + ts + "] to epoch timestamp", sinsp_logger::SEV_ERROR);
 		}
