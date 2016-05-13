@@ -614,7 +614,88 @@ std::vector<const k8s_pod_t*> k8s_service_t::get_selected_pods(const std::vector
 //
 
 k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const std::string& ns) :
-	k8s_component(COMPONENT_TYPE, name, uid, ns)
+	k8s_component(COMPONENT_TYPE, name, uid, ns),
+	m_name_translation
+	{
+		//
+		// Event translations, based on:
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/container/event.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/controller_utils.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/node/nodecontroller.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kubelet.go
+		//
+
+		//
+		// Replication Controller
+		//
+		{ "FailedCreate",      "Pod Create Failed"},
+		{ "SuccessfulCreate",  "Pod Created"      },
+		{ "FailedDelete",      "Pod Delete Failed"},
+		{ "SuccessfulDelete",  "Pod Deleted"      },
+
+		//
+		// Node
+		//
+
+		// Node Controller
+		{ "TerminatedAllPods",     "Terminated All Pods"},
+		{ "RegisteredNode",        "Node Registered"},
+		{ "RemovingNode",          "Removing Node"},
+		{ "DeletingNode",          "Deleting Node"},
+		{ "DeletingAllPods",       "Deleting All Pods"},
+		{ "TerminatingEvictedPod", "Terminating Evicted Pod" },
+
+		// Kubelet
+		{ "NodeReady",               "Node Ready"                 },
+		{ "NodeNotReady",            "Node not Ready"             },
+		{ "NodeSchedulable",         "Node is Schedulable"        },
+		{ "NodeNotSchedulable",      "Node is not Schedulable"    },
+		{ "Starting",                "Starting Kubelet"           },
+		{ "KubeletSetupFailed",      "Kubelet Setup Failed"       },
+		{ "FailedMount",             "Volume Mount Failed"        },
+		{ "HostPortConflict",        "Host/Port Conflict"         },
+		{ "NodeSelectorMismatching", "Node Selector Mismatch"     },
+		{ "InsufficientFreeCPU",     "Insufficient Free CPU"      },
+		{ "InsufficientFreeMemory",  "Insufficient Free Memory"   },
+		{ "OutOfDisk",               "Out of Disk"                },
+		{ "HostNetworkNotSupported", "Host Network not Supported" },
+		{ "NilShaper",               "Undefined Shaper"           },
+		{ "Rebooted",                "Node Rebooted"              },
+		{ "NodeHasSufficientDisk",   "Node Has Sufficient Disk"   },
+		{ "NodeOutOfDisk",           "Node Out of Disk"           },
+
+		//
+		// Pod
+		//
+
+		// Container
+		{ "Created", "Container Created"                },
+		{ "Started", "Container Started"                },
+		{ "Failed",  "Container Create or Start Failed" },
+		{ "Killing", "Killing Container"                },
+		//{ "BackOff", "Backoff Start Container"          }, - duplicate
+
+		// Image
+		{ "Pulling",           "Pulling Image"                          },
+		{ "Pulled",            "Image Pulled"                           },
+		{ "Failed",            "Image Pull Failed"                      },
+		{ "InspectFailed",     "Image Inspect Failed"                   },
+		{ "ErrImageNeverPull", "Image NeverPull Policy Error"           },
+		{ "BackOff",           "Back Off Container Start or Image Pull" },
+
+		// Image manager
+		{ "InvalidDiskCapacity", "Invalid Disk Capacity"  },
+		{ "FreeDiskSpaceFailed", "Free Disk Space Failed" },
+
+		// Probe
+		{ "Unhealthy", "Container Unhealthy" },
+
+		// Pod worker
+		{ "FailedSync", "Pod Sync Failed" },
+
+		// Config
+		{ "FailedValidation", "Failed Configuration Validation" }
+	}
 {
 }
 
@@ -666,9 +747,10 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		g_logger.log("K8s event: cannot convert time (null, empty or not string)", sinsp_logger::SEV_ERROR);
 	}
 	event_name = get_json_string(item , "reason");
-	if(event_name == "SuccessfulCreate")
+	const auto& translation = m_name_translation.find(event_name);
+	if(translation != m_name_translation.end())
 	{
-		g_logger.log("SuccessfulCreate:\n" + Json::FastWriter().write(item), sinsp_logger::SEV_TRACE);
+		event_name = translation->second;
 	}
 	description = get_json_string(item, "message");
 	g_logger.log("K8s EVENT message:" + description, sinsp_logger::SEV_DEBUG);

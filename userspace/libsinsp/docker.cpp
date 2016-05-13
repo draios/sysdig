@@ -297,6 +297,14 @@ void docker::handle_event(Json::Value&& root)
 				}
 				sinsp_user_event::tag_map_t tags;
 				tags["source"] = "docker";
+				if(event_name.length())
+				{
+					if(type.length())
+					{
+						type[0] = toupper(type[0]);
+						event_name = type.append(1, ' ').append(event_name);
+					}
+				}
 				std::string evt = sinsp_user_event::to_string(epoch_time_s, std::move(event_name),
 									std::move(status), std::move(scope), std::move(tags));
 				g_logger.log(std::move(evt), severity);
