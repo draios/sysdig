@@ -110,22 +110,38 @@ void k8s::cleanup()
 	}
 #ifdef HAS_CAPTURE
 	delete m_net;
+	m_net = 0;
 #endif
 }
 
 void k8s::build_state()
 {
 #ifdef HAS_CAPTURE
-	std::ostringstream os;
-	for (auto& component : m_components)
+	if(m_net)
 	{
+		std::ostringstream os;
+		for (auto& component : m_components)
 		{
-			m_state.clear(component.first);
+			// events are transient and fetching all data for events would pull
+			// old events on agent restart, causing unecessary network and DB
+			// traffic; so, we only add watch interface here for events
+			if(component.first != k8s_component::K8S_EVENTS)
+			{
+				m_state.clear(component.first);
+				ASSERT(m_net);
+				m_net->get_all_data(component, os);
+				parse_json(os.str(), component);
+				os.str("");
+			}
+			else
+			{
+				m_net->add_api_interface(component);
+			}
 		}
-		ASSERT(m_net);
-		m_net->get_all_data(component, os);
-		parse_json(os.str(), component);
-		os.str("");
+	}
+	else
+	{
+		throw sinsp_exception("K8s net object is null.");
 	}
 #endif
 }
