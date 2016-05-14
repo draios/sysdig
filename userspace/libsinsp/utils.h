@@ -114,8 +114,14 @@ struct g_invalidchar
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// Time functions for Windows
+// Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
+
+time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt = "%Y-%m-%dT%H:%M:%SZ");
+time_t get_epoch_utc_seconds_now();
+
+// Time functions for Windows
+
 #ifdef _WIN32
 struct timezone2 
 {

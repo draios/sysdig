@@ -293,7 +293,7 @@ class k8s_rc_t : public k8s_component
 {
 public:
 	static const int UNKNOWN_REPLICAS = -1;
-	static const k8s_component::type COMPONENT_TYPE = K8S_NAMESPACES;
+	static const k8s_component::type COMPONENT_TYPE = K8S_REPLICATIONCONTROLLERS;
 
 	k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
@@ -368,6 +368,9 @@ public:
 private:
 	typedef sinsp_user_event::tag_map_t tag_map_t;
 	typedef sinsp_logger::event_severity severity_t;
+	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
+
+	name_translation_map_t m_name_translation;
 };
 
 typedef std::vector<k8s_ns_t>      k8s_namespaces;

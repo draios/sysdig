@@ -614,7 +614,93 @@ std::vector<const k8s_pod_t*> k8s_service_t::get_selected_pods(const std::vector
 //
 
 k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const std::string& ns) :
-	k8s_component(COMPONENT_TYPE, name, uid, ns)
+	k8s_component(COMPONENT_TYPE, name, uid, ns),
+	m_name_translation
+	{
+		//
+		// Event translations, based on:
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/container/event.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/controller_utils.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/node/nodecontroller.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kubelet.go
+		//
+
+		//
+		// Node
+		//
+
+		// Node Controller
+		{ "TerminatedAllPods",     "Terminated All Pods"},
+		{ "RegisteredNode",        "Node Registered"},
+		{ "RemovingNode",          "Removing Node"},
+		{ "DeletingNode",          "Deleting Node"},
+		{ "DeletingAllPods",       "Deleting All Pods"},
+		{ "TerminatingEvictedPod", "Terminating Evicted Pod" },
+
+		// Kubelet
+		{ "NodeReady",               "Node Ready"                 },
+		{ "NodeNotReady",            "Node not Ready"             },
+		{ "NodeSchedulable",         "Node is Schedulable"        },
+		{ "NodeNotSchedulable",      "Node is not Schedulable"    },
+		{ "CIDRNotAvailable",        "CIDR not Available"         },
+		{ "CIDRAssignmentFailed",    "CIDR Assignment Failed"     },
+		{ "Starting",                "Starting Kubelet"           },
+		{ "KubeletSetupFailed",      "Kubelet Setup Failed"       },
+		{ "FailedMount",             "Volume Mount Failed"        },
+		{ "NodeSelectorMismatching", "Node Selector Mismatch"     },
+		{ "InsufficientFreeCPU",     "Insufficient Free CPU"      },
+		{ "InsufficientFreeMemory",  "Insufficient Free Memory"   },
+		{ "OutOfDisk",               "Out of Disk"                },
+		{ "HostNetworkNotSupported", "Host Network not Supported" },
+		{ "NilShaper",               "Undefined Shaper"           },
+		{ "Rebooted",                "Node Rebooted"              },
+		{ "NodeHasSufficientDisk",   "Node Has Sufficient Disk"   },
+		{ "NodeOutOfDisk",           "Node Out of Disk Space"     },
+
+		// Image manager
+		{ "InvalidDiskCapacity", "Invalid Disk Capacity"  },
+		{ "FreeDiskSpaceFailed", "Free Disk Space Failed" },
+
+		//
+		// Pod
+		//
+
+		// Image
+		{ "Pulling",           "Pulling Image"                          },
+		{ "Pulled",            "Image Pulled"                           },
+		{ "Failed",            "Image Pull Failed"                      },
+		{ "InspectFailed",     "Image Inspect Failed"                   },
+		{ "ErrImageNeverPull", "Image NeverPull Policy Error"           },
+		{ "BackOff",           "Back Off Container Start or Image Pull" },
+
+		//{ "OutOfDisk" ,"Out of Disk" }, duplicate
+
+		// Container
+		{ "Created", "Container Created"                },
+		{ "Started", "Container Started"                },
+		{ "Failed",  "Container Create or Start Failed" },
+		{ "Killing", "Killing Container"                },
+
+		//{ "BackOff", "Backoff Start Container" }, duplicate
+
+		// Probe
+		{ "Unhealthy", "Container Unhealthy" },
+
+		// Pod worker
+		{ "FailedSync", "Pod Sync Failed" },
+
+		// Config
+		{ "FailedValidation", "Failed Configuration Validation" },
+		{ "HostPortConflict", "Host/Port Conflict"              },
+
+		//
+		// Replication Controller
+		//
+		{ "SuccessfulCreate",  "Pod Created"      },
+		{ "FailedCreate",      "Pod Create Failed"},
+		{ "SuccessfulDelete",  "Pod Deleted"      },
+		{ "FailedDelete",      "Pod Delete Failed"}
+	}
 {
 }
 
@@ -630,16 +716,17 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	tag_map_t  tags;
 
 	const Json::Value& obj = item["involvedObject"];
-	//g_logger.log(Json::FastWriter().write(item), sinsp_logger::SEV_DEBUG);
+	//g_logger.log(Json::FastWriter().write(item), sinsp_logger::SEV_TRACE);
 	if(!obj.isNull())
 	{
-		std::string sev = get_json_string(obj, "type");
+		std::string sev = get_json_string(item, "type");
 		// currently, only "Normal" and "Warning"
 		severity = sinsp_logger::SEV_EVT_INFORMATION;
 		if(sev == "Warning") { severity = sinsp_logger::SEV_EVT_WARNING; }
-		g_logger.log("K8s EVENT : component name:" + get_json_string(obj, "name") +
-					", uid=" + get_json_string(obj, "uid") +
-					", type=" + get_json_string(obj, "kind"), sinsp_logger::SEV_DEBUG);
+		g_logger.log("K8s EVENT : \ncomponent name = " + get_json_string(obj, "name") +
+					"\nuid = " + get_json_string(obj, "uid") +
+					"\ntype = " + get_json_string(obj, "kind") +
+					"\nseverity = " + get_json_string(item, "type") + " (" + std::to_string(severity) + ')', sinsp_logger::SEV_TRACE);
 	}
 	else
 	{
@@ -649,12 +736,7 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	std::string ts = get_json_string(item , "lastTimestamp");
 	if(!ts.empty())
 	{
-		struct tm tm;
-		memset(&tm, 0, sizeof(struct tm));
-		strptime(ts.c_str(), "%Y-%m-%dT%H:%M:%SZ", &tm); //this is UTC time
-		epoch_time_s = 0;
-		tm.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
-		if((epoch_time_s = timegm(&tm)) == (time_t) -1)
+		if((epoch_time_s = get_epoch_utc_seconds(ts)) == (time_t) -1)
 		{
 			g_logger.log("K8s event: cannot convert [" + ts + "] to epoch timestamp", sinsp_logger::SEV_ERROR);
 		}
@@ -665,7 +747,11 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		g_logger.log("K8s event: cannot convert time (null, empty or not string)", sinsp_logger::SEV_ERROR);
 	}
 	event_name = get_json_string(item , "reason");
-
+	const auto& translation = m_name_translation.find(event_name);
+	if(translation != m_name_translation.end())
+	{
+		event_name = translation->second;
+	}
 	description = get_json_string(item, "message");
 	g_logger.log("K8s EVENT message:" + description, sinsp_logger::SEV_DEBUG);
 
@@ -699,7 +785,7 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		}
 		else
 		{
-			g_logger.log("K8s event: cannot obtain component (not found)", sinsp_logger::SEV_ERROR);
+			g_logger.log("K8s event: cannot obtain component (UID not found: [" + component_uid + "])", sinsp_logger::SEV_ERROR);
 		}
 	}
 	else
