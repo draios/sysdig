@@ -1,178 +1,199 @@
 #!/usr/bin/python
 
-# Author: Samuele Pilleri
-# Date: August 17th, 2015
-
 import sys
+import json
 import urllib2
 from lxml import html
 
 #
+# This script is used to crawl given repos hunting for packages. It doesn't
+# handle duplicates (this is done by the aggregator).
+# It produces a JSON containing an array of links for each distro.
+#
+
+#
 # This is the main configuration tree for easily analyze Linux repositories
 # hunting packages. When adding repos or so be sure to respect the same data
-# structure
+# structure.
+# Each distro is seen as a tree. There can be multiple roots because there can
+# be different sources for packages.
+# Each node can have the following fields:
+#  - `prefix` : this is a string that contains a fixed path to be added to the
+#               string before crawling for new results
+#  - `query`  : a mixed XPath and Regex query for matching HTML nodes and
+#               attributes
+#  - `next`   : an array of subnodes or None in case of leaf. It is optional.
+#  - `exclude`: an array of strings that must not be present in crawled string.
+#               It's useful for simplifying the query.
 #
 repos = {
 	"CentOS" : [
 		{
-			# This is the root path of the repository in which the script will
-			# look for distros (HTML page)
-			"root" : "http://mirrors.kernel.org/centos/",
-
-			# This is the XPath + Regex (optional) for analyzing the `root`
-			# page and discover possible distro versions. Use the regex if you
-			# want to limit the version release
-			"discovery_pattern" : "/html/body//pre/a[regex:test(@href, '^6|7.*$')]/@href",
-
-			# Once we have found every version available, we need to know were
-			# to go inside the tree to find packages we need (HTML pages)
-			"subdirs" : [
-				"os/x86_64/Packages/",
-				"updates/x86_64/Packages/"
-			],
-
-			# Finally, we need to inspect every page for packages we need.
-			# Again, this is a XPath + Regex query so use the regex if you want
-			# to limit the number of packages reported.
-			"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
+			"prefix" : "http://mirrors.kernel.org/centos/",
+			"query" : "/html/body//pre/a[regex:test(@href, '^(6|7){1}.*$')]/@href",
+			"next" : [
+				{
+					"prefix" : "os/x86_64/Packages/",
+					"query" : "/html/body//a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href",
+					"next" : None
+				},
+				{
+					"prefix" : "updates/x86_64/Packages/",
+					"query" : "/html/body//a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href",
+					"next" : None
+				}
+			]
 		},
 
 		{
-			"root" : "http://vault.centos.org/",
-			"discovery_pattern" : "//body//table/tr/td/a[regex:test(@href, '^6|7.*$')]/@href",
-			"subdirs" : [
-				"os/x86_64/Packages/",
-				"updates/x86_64/Packages/"
-			],
-			"page_pattern" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
+			"prefix" : "http://vault.centos.org/",
+			"query" : "//body//table/tr/td/a[regex:test(@href, '^(6|7){1}.*$')]/@href",
+			"next" : [
+				{
+					"prefix" : "os/x86_64/Packages/",
+					"query" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href",
+					"next" : None
+				},
+
+				{
+					"prefix" : "updates/x86_64/Packages/",
+					"query" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href",
+					"next" : None
+				}
+			]
 		},
 
 		{
-			"root" : "http://vault.centos.org/centos/",
-			"discovery_pattern" : "//body//table/tr/td/a[regex:test(@href, '^6|7.*$')]/@href",
-			"subdirs" : [
-				"os/x86_64/Packages/",
-				"updates/x86_64/Packages/"
-			],
-			"page_pattern" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
+			"prefix" : "http://vault.centos.org/centos/",
+			"query" : "//body//table/tr/td/a[regex:test(@href, '^6|7.*$')]/@href",
+			"next" : [
+				{
+					"prefix" : "os/x86_64/Packages/",
+					"query" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href",
+					"next" : None
+				},
+
+				{
+					"prefix" : "updates/x86_64/Packages/",
+					"query" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href",
+					"next" : None
+				}
+			]
 		}
 	],
 
 	"Ubuntu" : [
 		{
-			# Had to split the URL because, unlikely other repos for which the
-			# script was first created, Ubuntu puts everything into a single
-			# folder. The real URL is be:
-			# http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/
-			"root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
-			"discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
-			"subdirs" : [""],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
+			"prefix" : "http://mirrors.us.kernel.org/ubuntu/pool/main/l/linux/",
+			"query" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href",
+			"next" : None
 		},
 
 		{
-			"root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
-			"discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
-			"subdirs" : [""],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
+			"prefix" : "https://mirrors.kernel.org/ubuntu/pool/main/l/linux/",
+			"query" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href",
+			"next" : None
 		},
 
 		{
-			"root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
-			"discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
-			"subdirs" : [""],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
+			"prefix" : "http://security.ubuntu.com/ubuntu/pool/main/l/linux/",
+			"query" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href",
+			"next" : None
 		},
 
 		{
-			"root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
-			"discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
-			"subdirs" : [""],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
+			"prefix" : "http://security.ubuntu.com/ubuntu/pool/main/l/linux/",
+			"query" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href",
+			"next" : None
 		}
 	],
 
 	"Fedora" : [
 		{
-			"root" : "https://mirrors.kernel.org/fedora/releases/",
-			"discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
-			"subdirs" : [
-				"Everything/x86_64/os/Packages/k/"
-			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
+			"prefix" : "https://mirrors.kernel.org/fedora/releases/",
+			"query" : "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+			"next" : [
+				{
+					"prefix" : "Everything/x86_64/os/Packages/k/",
+					"query" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href",
+					"next" : None
+				}
+			]
 		},
 
 		{
-			"root" : "https://mirrors.kernel.org/fedora/updates/",
-			"discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
-			"subdirs" : [
-				"x86_64/k/"
-			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
-		},
-
-		# {
-		# 	"root" : "https://mirrors.kernel.org/fedora/development/",
-		# 	"discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
-		# 	"subdirs" : [
-		# 		"x86_64/os/Packages/k/"
-		# 	],
-		# 	"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
-		# }
+			"prefix" : "https://mirrors.kernel.org/fedora/updates/",
+			"query" : "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+			"next" : [
+				{
+					"prefix" : "x86_64/k/",
+					"query" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href",
+					"next" : None
+				}
+			]
+		}
 	],
 
 	"CoreOS" : [
 		{
-			"root" : "http://alpha.release.core-os.net/",
-			"discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
-			"subdirs" : [
-				""
-			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
+			"prefix" : "http://alpha.release.core-os.net/amd64-usr/",
+			"query" : "/html/body//a[regex:test(@href, '^[0-9]+|current')]/@href",
+			"next" : [
+				{
+					"prefix" : "",
+					"query" : "/html/body/a[regex:test(@href, '^coreos_developer_container\.bin\.bz2$')]/@href",
+					"next" : None
+				}
+			]
 		},
 
 		{
-			"root" : "http://beta.release.core-os.net/",
-			"discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
-			"subdirs" : [
-				""
-			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
+			"prefix" : "http://beta.release.core-os.net/amd64-usr/",
+			"query" : "/html/body//a[regex:test(@href, '^[0-9]+|current')]/@href",
+			"next" : [
+				{
+					"prefix" : "",
+					"query" : "/html/body/a[regex:test(@href, '^coreos_developer_container\.bin\.bz2$')]/@href",
+					"next" : None
+				}
+			]
 		},
 
 		{
-			"root" : "http://stable.release.core-os.net/",
-			"discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
-			"subdirs" : [
-				""
-			],
-			"page_pattern" : "/html/body//a[regex:test(@href, '^[4-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
+			"prefix" : "http://stable.release.core-os.net/amd64-usr/",
+			"query" : "/html/body//a[regex:test(@href, '^[0-9]+|current')]/@href",
+			"next" : [
+				{
+					"prefix" : "",
+					"query" : "/html/body/a[regex:test(@href, '^coreos_developer_container\.bin\.bz2$')]/@href",
+					"next" : None
+				}
+			]
 		}
 	],
 
-	"Debian": [
-        {
-            "root": "https://mirrors.kernel.org/debian/pool/main/l/",
-            "discovery_pattern": "/html/body/pre/a[@href = 'linux/']/@href",
-            "subdirs": [""],
-            "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp"]
-        },
-        {
-            "root": "http://security.debian.org/pool/updates/main/l/",
-            "discovery_pattern": "/html/body/table//tr/td/a[@href = 'linux/']/@href",
-            "subdirs": [""],
-            "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp"]
-        },
-        {
-            "root": "http://mirrors.kernel.org/debian/pool/main/l/",
-            "discovery_pattern": "/html/body/pre/a[@href = 'linux-tools/']/@href",
-            "subdirs": [""],
-            "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp"]
-        }
-    ]
+	"Debian" : [
+		{
+			"prefix" : "https://mirrors.kernel.org/debian/pool/main/l/linux/",
+			"query" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
+			"exclude" : ["-rt", "dbg", "trunk", "all", "exp"],
+			"next" : None
+		},
+
+		{
+			"prefix" : "http://security.debian.org/pool/updates/main/l/linux/",
+			"query" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
+			"exclude" : ["-rt", "dbg", "trunk", "all", "exp"],
+			"next" : None
+		},
+
+		{
+			"prefix" : "http://mirrors.kernel.org/debian/pool/main/l/linux-tools/",
+			"query" : "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
+			"exclude" : ["-rt", "dbg", "trunk", "all", "exp"],
+			"next" : None
+		}
+	]
 }
 
 #
@@ -181,42 +202,30 @@ repos = {
 # links will be found automagically without needing to write any single line of
 # code.
 #
-urls = set()
 
-if len(sys.argv) < 2 or not sys.argv[1] in repos:
-	sys.stderr.write("Usage: " + sys.argv[0] + " <distro>\n")
-	sys.exit(1)
+urls = {}
 
-#
-# Navigate the `repos` tree and look for packages we need that match the
-# patterns given. Save the result in `packages`.
-#
-for repo in repos[sys.argv[1]]:
-	
-	root = urllib2.urlopen(repo["root"]).read()
-	versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+def crawl(tree, given = ""):
+	ret = []
+	for node in tree:
+		try:
+			page = urllib2.urlopen(given + node["prefix"]).read()
+			results = html.fromstring(page).xpath(node["query"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
-	for version in versions:
-		for subdir in repo["subdirs"]:
-
-			# The try - except block is used because 404 errors and similar
-			# might happen (and actually happen because not all repos have
-			# packages we need)
-			try:
-				source = repo["root"] + version + subdir
-				page = urllib2.urlopen(source).read()
-				rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
-
-				for rpm in rpms:
-					if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
+			for result in results:
+				if "next" in node and not node["next"] == None:
+					ret += crawl(node["next"], given + node["prefix"] + result)
+				else:
+					if "exclude" in node and any(x in result for x in node["exclude"]):
 						continue
 					else:
-						urls.add(source + str(urllib2.unquote(rpm)))
-			except:
-				continue
+						ret.append(given + node["prefix"] + str(urllib2.unquote(result)))
 
-#
-# Print URLs to stdout
-#
-for url in urls:
-	print(url)
+		except:
+			continue
+	return ret
+
+for os, info in repos.iteritems():
+	urls[os] = crawl(info)
+
+print(json.dumps(urls))
