@@ -253,6 +253,26 @@ public:
 		m_last_enter_filtered_category = filtered;
 	}
 
+	__always_inline int32_t get_last_useless()
+	{
+		return m_last_useless_category;
+	}
+
+	__always_inline void set_last_useless(int32_t filtered)
+	{
+		m_last_useless_category = filtered;
+	}
+
+	__always_inline int32_t get_last_reserved()
+	{
+		return m_last_reserved_category;
+	}
+
+	__always_inline void set_last_reserved(int32_t filtered)
+	{
+		m_last_reserved_category = filtered;
+	}
+
 #endif
 	//
 	// Core state
@@ -379,6 +399,9 @@ VISIBILITY_PRIVATE
 	double m_old_mean_read;
 	double m_old_mean_write;
 	int16_t m_last_enter_filtered_category;
+
+	int16_t m_last_reserved_category;
+	int16_t m_last_useless_category;
 #endif
 
 	uint16_t m_lastevent_type;

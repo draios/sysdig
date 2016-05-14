@@ -105,8 +105,8 @@ struct scap
 #endif
 #ifdef HAS_EARLY_FILTERING
 	//load manager fields
-	uint64_t m_evt_count;
-	uint64_t m_evt_drop;
+	uint64_t m_byte_count;
+	uint64_t m_byte_drop;
 	uint64_t m_bytes;
 #endif
 
