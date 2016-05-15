@@ -325,14 +325,14 @@ public:
 #ifdef HAS_EARLY_FILTERING
 
 	bool m_system_file = false;
-	uint32_t m_count_in = 0;
-	uint32_t m_count_out = 0;
-	uint32_t m_drop_in = 0;
-	uint32_t m_drop_out = 0;
-	uint32_t m_old_count_in = 0;
-	uint32_t m_old_count_out = 0;
+	int32_t m_count_in = 0;
+	int32_t m_count_out = 0;
+	int32_t m_drop_in = 0;
+	int32_t m_drop_out = 0;
+	int32_t m_old_count_in = 0;
+	int32_t m_old_count_out = 0;
 
-	uint32_t m_transaction_count = 0;
+	int32_t m_transaction_count = 0;
 	bool m_transaction = false;
 	int8_t m_direction = 0;
 	int8_t m_starting_direction = 0;
