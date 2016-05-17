@@ -38,13 +38,13 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_TIME*/ { EC_TIME, (enum ppm_event_flags)(EF_NONE), "time" },
 	/*PPM_SC_MKNOD*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "mknod" },
 	/*PPM_SC_CHMOD*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "chmod" },
-	/*PPM_SC_STAT*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "stat" },
-	/*PPM_SC_LSEEK*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "lseek" },
+	/*PPM_SC_STAT*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "stat" },
+	/*PPM_SC_LSEEK*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "lseek" },
 	/*PPM_SC_GETPID*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "getpid" },
 	/*PPM_SC_MOUNT*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "mount" },
 	/*PPM_SC_PTRACE*/ { EC_OTHER, (enum ppm_event_flags)(EF_NONE), "ptrace" },
 	/*PPM_SC_ALARM*/ { EC_TIME, (enum ppm_event_flags)(EF_NONE), "alarm" },
-	/*PPM_SC_FSTAT*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "fstat" },
+	/*PPM_SC_FSTAT*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "fstat" },
 	/*PPM_SC_PAUSE*/ { EC_WAIT, (enum ppm_event_flags)(EF_NONE), "pause" },	/* WAIT UNTIL A SIGNAL ARRIVES */
 	/*PPM_SC_UTIME*/ { EC_TIME, (enum ppm_event_flags)(EF_NONE), "utime" },
 	/*PPM_SC_ACCESS*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "access" },	/* checks whether the calling process can access the file pathname */
@@ -74,20 +74,20 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_GETTIMEOFDAY*/ { EC_TIME, (enum ppm_event_flags)(EF_DROP_FALCO), "gettimeofday" },
 	/*PPM_SC_SETTIMEOFDAY*/ { EC_TIME, (enum ppm_event_flags)(EF_DROP_FALCO), "settimeofday" },
 	/*PPM_SC_SYMLINK*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "symlink" },
-	/*PPM_SC_LSTAT*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "lstat" },
+	/*PPM_SC_LSTAT*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "lstat" },
 	/*PPM_SC_READLINK*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "readlink" },
 	/*PPM_SC_USELIB*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "uselib" }, /* load shared library */
 	/*PPM_SC_SWAPON*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "swapon" }, /* start/stop swapping to file/device */
 	/*PPM_SC_REBOOT*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "reboot" },
-	/*PPM_SC_MMAP*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "mmap" },
-	/*PPM_SC_MUNMAP*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "munmap" },
+	/*PPM_SC_MMAP*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "mmap" },
+	/*PPM_SC_MUNMAP*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "munmap" },
 	/*PPM_SC_TRUNCATE*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "truncate" }, /* truncate a file to a specified length */
 	/*PPM_SC_FTRUNCATE*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "ftruncate" }, /* truncate a file to a specified length */
 	/*PPM_SC_FCHMOD*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "fchmod" },
 	/*PPM_SC_GETPRIORITY*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "getpriority" }, /* get/set program scheduling priority */
 	/*PPM_SC_SETPRIORITY*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "setpriority" }, /* get/set program scheduling priority */
-	/*PPM_SC_STATFS*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "statfs" }, /* returns information about a mounted file system */
-	/*PPM_SC_FSTATFS*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "fstatfs" }, /* returns information about a mounted file system */
+	/*PPM_SC_STATFS*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "statfs" }, /* returns information about a mounted file system */
+	/*PPM_SC_FSTATFS*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "fstatfs" }, /* returns information about a mounted file system */
 	/*PPM_SC_SYSLOG*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "syslog" }, /* read and/or clear kernel message ring buffer; set console_loglevel */
 	/*PPM_SC_SETITIMER*/ { EC_TIME, (enum ppm_event_flags)(EF_DROP_FALCO), "setitimer" },
 	/*PPM_SC_GETITIMER*/ { EC_TIME, (enum ppm_event_flags)(EF_DROP_FALCO), "getitimer" },
@@ -123,7 +123,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_SCHED_GETPARAM*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "sched_getparam" },
 	/*PPM_SC_SCHED_SETSCHEDULER*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "sched_setscheduler" },
 	/*PPM_SC_SCHED_GETSCHEDULER*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "sched_getscheduler" },
-	/*PPM_SC_SCHED_YIELD*/ { EC_SLEEP, (enum ppm_event_flags)(EF_NONE), "sched_yield" },
+	/*PPM_SC_SCHED_YIELD*/ { EC_SLEEP, (enum ppm_event_flags)(EF_DROP_FALCO), "sched_yield" },
 	/*PPM_SC_SCHED_GET_PRIORITY_MAX*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "sched_get_priority_max" },
 	/*PPM_SC_SCHED_GET_PRIORITY_MIN*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "sched_get_priority_min" },
 	/*PPM_SC_SCHED_RR_GET_INTERVAL*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "sched_rr_get_interval" },
@@ -178,7 +178,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_LREMOVEXATTR*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "lremovexattr" },
 	/*PPM_SC_FREMOVEXATTR*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "fremovexattr" },
 	/*PPM_SC_TKILL*/ { EC_SIGNAL, (enum ppm_event_flags)(EF_NONE), "tkill" }, /* send a signal to a thread */
-	/*PPM_SC_FUTEX*/ { EC_IPC, (enum ppm_event_flags)(EF_NONE), "futex" },
+	/*PPM_SC_FUTEX*/ { EC_IPC, (enum ppm_event_flags)(EF_DROP_FALCO), "futex" },
 	/*PPM_SC_SCHED_SETAFFINITY*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "sched_setaffinity" },
 	/*PPM_SC_SCHED_GETAFFINITY*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "sched_getaffinity" },
 	/*PPM_SC_SET_THREAD_AREA*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "set_thread_area" },
@@ -216,8 +216,8 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_ADD_KEY*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "add_key" }, /* add a key to the kernel's key management facility */
 	/*PPM_SC_REQUEST_KEY*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "request_key" },
 	/*PPM_SC_KEYCTL*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "keyctl" },
-	/*PPM_SC_IOPRIO_SET*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "ioprio_set" }, /* get/set I/O scheduling class and priority */
-	/*PPM_SC_IOPRIO_GET*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "ioprio_get" }, /* get/set I/O scheduling class and priority */
+	/*PPM_SC_IOPRIO_SET*/ { EC_PROCESS, (enum ppm_event_flags)(EF_DROP_FALCO), "ioprio_set" }, /* get/set I/O scheduling class and priority */
+	/*PPM_SC_IOPRIO_GET*/ { EC_PROCESS, (enum ppm_event_flags)(EF_DROP_FALCO), "ioprio_get" }, /* get/set I/O scheduling class and priority */
 	/*PPM_SC_INOTIFY_INIT*/ { EC_IPC, (enum ppm_event_flags)(EF_NONE), "inotify_init" }, /* initialize an inotify event queue instance. See http://en.wikipedia.org/wiki/Inotify. */
 	/*PPM_SC_INOTIFY_ADD_WATCH*/ { EC_IPC, (enum ppm_event_flags)(EF_NONE), "inotify_add_watch" },
 	/*PPM_SC_INOTIFY_RM_WATCH*/ { EC_IPC, (enum ppm_event_flags)(EF_NONE), "inotify_rm_watch" },
@@ -268,7 +268,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*  */
 	/* Non-multiplexed socket family */
 	/*  */
-	/*PPM_SC_SOCKET*/  { EC_NET, (enum ppm_event_flags)(EF_DROP_FALCO), "socket" },
+	/*PPM_SC_SOCKET*/  { EC_NET, (enum ppm_event_flags)(EF_NONE), "socket" },
 	/*PPM_SC_BIND*/	{ EC_NET, (enum ppm_event_flags)(EF_NONE), "bind" },
 	/*PPM_SC_CONNECT*/  { EC_NET, (enum ppm_event_flags)(EF_NONE), "connect" },
 	/*PPM_SC_LISTEN*/  { EC_NET, (enum ppm_event_flags)(EF_NONE), "listen" },
@@ -299,20 +299,20 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_SHMDT*/  { EC_IPC, (enum ppm_event_flags)(EF_NONE), "shmdt" },
 	/*PPM_SC_SHMGET*/  { EC_IPC, (enum ppm_event_flags)(EF_NONE), "shmget" },
 	/*PPM_SC_SHMCTL*/  { EC_IPC, (enum ppm_event_flags)(EF_NONE), "shmctl" },
-	/*PPM_SC_STATFS64*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "statfs64" },
-	/*PPM_SC_FSTATFS64*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "fstatfs64" },
-	/*PPM_SC_FSTATAT64*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "fstatat64" },
+	/*PPM_SC_STATFS64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "statfs64" },
+	/*PPM_SC_FSTATFS64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "fstatfs64" },
+	/*PPM_SC_FSTATAT64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "fstatat64" },
 	/*PPM_SC_SENDFILE64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "sendfile64" },
 	/*PPM_SC_UGETRLIMIT*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "ugetrlimit" },
 	/*PPM_SC_BDFLUSH*/ { EC_OTHER, (enum ppm_event_flags)(EF_NONE), "bdflush" },	/* deprecated */
 	/*PPM_SC_SIGPROCMASK*/ { EC_SIGNAL, (enum ppm_event_flags)(EF_NONE), "sigprocmask" }, /* examine and change blocked signals */
 	/*PPM_SC_IPC*/ { EC_IPC, (enum ppm_event_flags)(EF_NONE), "ipc" },
 	/*PPM_SC_SOCKETCALL*/ { EC_NET, (enum ppm_event_flags)(EF_NONE), "socketcall" },
-	/*PPM_SC_STAT64*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "stat64" },
-	/*PPM_SC_LSTAT64*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "lstat64" },
+	/*PPM_SC_STAT64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "stat64" },
+	/*PPM_SC_LSTAT64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "lstat64" },
 	/*PPM_SC_FSTAT64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "fstat64" },
 	/*PPM_SC_FCNTL64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "fcntl64" },
-	/*PPM_SC_MMAP2*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "mmap2" },
+	/*PPM_SC_MMAP2*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "mmap2" },
 	/*PPM_SC__NEWSELECT*/ { EC_WAIT, (enum ppm_event_flags)(EF_NONE), "newselect" },
 	/*PPM_SC_SGETMASK*/ { EC_SIGNAL, (enum ppm_event_flags)(EF_NONE), "sgetmask" }, /* manipulation of signal mask (obsolete) */
 	/*PPM_SC_SSETMASK*/ { EC_SIGNAL, (enum ppm_event_flags)(EF_NONE), "ssetmask" }, /* manipulation of signal mask (obsolete) */
@@ -322,7 +322,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_SIGNAL*/ { EC_SIGNAL, (enum ppm_event_flags)(EF_NONE), "signal" },
 	/*PPM_SC_NICE*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "nice" }, /* change process priority */
 	/*PPM_SC_STIME*/ { EC_TIME, (enum ppm_event_flags)(EF_NONE), "stime" },
-	/*PPM_SC__LLSEEK*/	{ EC_FILE, (enum ppm_event_flags)(EF_NONE), "llseek" },
+	/*PPM_SC__LLSEEK*/	{ EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "llseek" },
 	/*PPM_SC_WAITPID*/ { EC_WAIT, (enum ppm_event_flags)(EF_NONE), "waitpid" },
 	/*PPM_SC_PREAD64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "pread64" },
 	/*PPM_SC_PWRITE64*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "pwrite64" },
