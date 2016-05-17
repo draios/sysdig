@@ -487,7 +487,13 @@ URLS="$($DIR/kernel-crawler.py CoreOS)"
 
 for URL in $URLS
 do
-	eval $(curl -s ${URL}version.txt)
+	set +e
+		eval $(curl -s ${URL}version.txt)
+		if [ ${?} -ne 0 ]; then
+			echo "### Error fetching ${URL}version.txt ###"
+			continue
+		fi
+	set -e
 	if [ $COREOS_BUILD -gt 890 ]; then
 		coreos_build_new $URL $COREOS_VERSION
 	else

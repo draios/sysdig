@@ -270,7 +270,10 @@ void mesos_http::discover_framework_uris(const Json::Value& frameworks)
 					}
 					else
 					{
-						throw sinsp_exception(std::string("Can not obtain URL for framework ").append(name));
+						if(m_discover_marathon && mesos_framework::is_root_marathon(name))
+						{
+							g_logger.log("Can not obtain URL for Marathon framework.", sinsp_logger::SEV_ERROR);
+						}
 					}
 				}
 				else // framework exists, but is not active - remove it if we were watching it so far
