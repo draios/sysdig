@@ -54,11 +54,11 @@ docker::docker(const std::string& url,
 	m_severity_map["exec_start"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["export"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["kill"] = sinsp_logger::SEV_EVT_WARNING;
-	m_severity_map["oom"] = sinsp_logger::SEV_EVT_INFORMATION;
+	m_severity_map["oom"] = sinsp_logger::SEV_EVT_WARNING;
 	m_severity_map["pause"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["rename"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["resize"] = sinsp_logger::SEV_EVT_INFORMATION;
-	m_severity_map["restart"] = sinsp_logger::SEV_EVT_INFORMATION;
+	m_severity_map["restart"] = sinsp_logger::SEV_EVT_WARNING;
 	m_severity_map["start"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["stop"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["top"] = sinsp_logger::SEV_EVT_INFORMATION;
