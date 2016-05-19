@@ -2100,6 +2100,13 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	// Read the event
 	//
 	readlen = bh.block_total_length - sizeof(bh);
+	if (readlen > FILE_READ_BUF_SIZE) {
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than read buffer size %u",
+			 readlen,
+			 FILE_READ_BUF_SIZE);
+		return SCAP_FAILURE;
+	}
+
 	readsize = gzread(f, handle->m_file_evt_buf, readlen);
 	CHECK_READ_SIZE(readsize, readlen);
 
