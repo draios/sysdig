@@ -362,8 +362,8 @@ void docker::handle_event(Json::Value&& root)
 		}
 		else
 		{
-			g_logger.log("Docker EVENT: status not permitted by filter: " + type +':' + status, sinsp_logger::SEV_ERROR);
-			g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_DEBUG);
+			g_logger.log("Docker EVENT: status not permitted by filter: " + type +':' + status, sinsp_logger::SEV_DEBUG);
+			g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_TRACE);
 		}
 	}
 }
