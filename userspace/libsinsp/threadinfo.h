@@ -201,46 +201,19 @@ public:
 #ifdef HAS_EARLY_FILTERING
 	void reset_access_count();
 
-	__always_inline void increment_total_write_access()
+	__always_inline void add_read_write_event()
 	{
-		if(is_main_thread())
-		{
-			m_total_write_access++;
-		}
-		else
-		{
-			get_main_thread()->increment_total_write_access();
-		}
+		m_read_write_events++;
 	}
 
-	__always_inline void increment_total_read_access()
+	__always_inline void add_modify_state_event()
 	{
-		if(is_main_thread())
-		{
-			m_total_read_access++;
-		}
-		else
-		{
-			get_main_thread()->increment_total_read_access();
-		}
+		m_modify_state_events++;
 	}
 
-	__always_inline double get_old_mean_read()
+	__always_inline double get_modify_state_ratio()
 	{
-		if(is_main_thread())
-		{
-			return m_old_mean_read;
-		}
-		return get_main_thread()->get_old_mean_read();
-	}
-
-	__always_inline double get_old_mean_write()
-	{
-		if(is_main_thread())
-		{
-			return m_old_mean_write;
-		}
-		return get_main_thread()->get_old_mean_write();
+		return m_modify_state_ratio;
 	}
 
 	__always_inline int32_t get_last_filtered_enter()
@@ -392,14 +365,13 @@ VISIBILITY_PRIVATE
 
 #ifdef HAS_EARLY_FILTERING
 	//
-	// State for file filtering in scap (used only in main thread)
+	// State for file filtering in scap
 	//
-	uint32_t m_total_write_access;
-	uint32_t m_total_read_access;
-	double m_old_mean_read;
-	double m_old_mean_write;
-	int16_t m_last_enter_filtered_category;
+	uint32_t m_read_write_events;
+	uint32_t m_modify_state_events;
+	double m_modify_state_ratio;
 
+	int16_t m_last_enter_filtered_category;
 	int16_t m_last_reserved_category;
 	int16_t m_last_useless_category;
 #endif

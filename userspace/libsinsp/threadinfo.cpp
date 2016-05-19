@@ -92,11 +92,13 @@ void sinsp_threadinfo::init()
 	m_lastevent_data = NULL;
 
 #ifdef HAS_EARLY_FILTERING
-	m_total_write_access = 0;
-	m_total_read_access = 0;
-	m_old_mean_read = 0;
-	m_old_mean_write = 0;
+	m_read_write_events = 0;
+	m_modify_state_events = 0;
 	m_last_enter_filtered_category = -1;
+	m_last_useless_category = -1;
+	m_last_reserved_category = -1;
+
+	m_modify_state_ratio = 0;
 #endif
 
 }
@@ -783,22 +785,12 @@ void sinsp_threadinfo::reset_access_count()
 				//fd.m_follow = true;
 			}
 		}
-		//printf("%ld %u\n", m_tid, fd_net_count);
-		//if we have files on this thread, reset counters!
-		if(fd_file_count>0)
-		{
-			m_old_mean_read = m_total_read_access/fd_file_count;
-			m_old_mean_write = m_total_write_access/fd_file_count;
-			m_total_write_access = 0;
-			m_total_read_access = 0;
-		}
-		else
-		{
-			m_old_mean_read = 0;
-			m_old_mean_write = 0;
-			m_total_write_access = 0;
-			m_total_read_access = 0;
-		}
+
+		m_modify_state_ratio = (double)m_modify_state_events/(double)(m_read_write_events + m_modify_state_events);
+
+		//reset thread counters
+		m_read_write_events = 0;
+		m_modify_state_events = 0;
 
 
 	}
