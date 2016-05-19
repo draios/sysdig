@@ -9,6 +9,8 @@
 #include "sinsp_int.h"
 #include "user_event.h"
 
+const std::string docker::DOCKER_SOCKET_FILE = "/var/run/docker.sock";
+
 docker::docker(const std::string& url,
 	const std::string& path,
 	const std::string& http_version,
@@ -17,7 +19,7 @@ docker::docker(const std::string& url,
 	bool verbose,
 	event_filter_ptr_t event_filter): m_id("docker"),
 #ifdef HAS_CAPTURE
-		m_url(!url.empty() ? url : std::string(scap_get_host_root()) + "/var/run/docker.sock"),
+		m_url(!url.empty() ? url : std::string(scap_get_host_root()) + DOCKER_SOCKET_FILE),
 		m_collector(false),
 #endif // HAS_CAPTURE
 		m_timeout_ms(timeout_ms),

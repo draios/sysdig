@@ -17,6 +17,8 @@
 class docker
 {
 public:
+	static const std::string DOCKER_SOCKET_FILE;
+
 	typedef std::vector<std::string> uri_list_t;
 	typedef std::shared_ptr<Json::Value> json_ptr_t;
 	typedef std::set<std::string, ci_compare> event_filter_t;
