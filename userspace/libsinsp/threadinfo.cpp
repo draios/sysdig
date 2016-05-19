@@ -741,7 +741,7 @@ sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
 #ifdef HAS_EARLY_FILTERING
 void sinsp_threadinfo::reset_access_count()
 {
-	uint32_t fd_file_count = 0;
+	//uint32_t fd_file_count = 0;
 	//uint32_t fd_net_count = 0;
 	if(is_main_thread())
 	{
@@ -753,7 +753,7 @@ void sinsp_threadinfo::reset_access_count()
 			sinsp_fdinfo_t& fd = it->second;
 			if(fd.is_file())
 			{
-				fd_file_count++;
+				//fd_file_count++;
 
 				fd.m_old_count_in = fd.m_count_in + fd.m_drop_in;
 
@@ -786,14 +786,20 @@ void sinsp_threadinfo::reset_access_count()
 			}
 		}
 
-		m_modify_state_ratio = (double)m_modify_state_events/(double)(m_read_write_events + m_modify_state_events);
-
-		//reset thread counters
-		m_read_write_events = 0;
-		m_modify_state_events = 0;
-
-
 	}
+	if(m_modify_state_events> 0)
+	{
+		m_modify_state_ratio = (double)m_modify_state_events/(double)(m_read_write_events + m_modify_state_events);
+	}
+	else
+	{
+		m_modify_state_ratio = 0;
+	}
+
+	//printf("%lf %u %u \n", m_modify_state_ratio, m_modify_state_events, m_read_write_events);
+	//reset thread counters
+	m_read_write_events = 0;
+	m_modify_state_events = 0;
 
 }
 #endif
