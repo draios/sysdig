@@ -106,6 +106,8 @@ private:
 
 private:
 
+	const std::string& translate_name(const std::string& event_name);
+
 	long               m_timeout_ms;
 	bool               m_is_captured;
 	bool               m_verbose;
@@ -124,6 +126,9 @@ private:
 	const entity_events_t m_image_events;
 	const entity_events_t m_volume_events;
 	const entity_events_t m_network_events;
+
+	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
+	name_translation_map_t m_name_translation;
 };
 
 inline const std::string& docker::get_id() const
@@ -144,6 +149,16 @@ inline void docker::set_machine_id(const std::string& machine_id)
 inline const std::string& docker::get_machine_id() const
 {
 	return m_machine_id;
+}
+
+inline const std::string& docker::translate_name(const std::string& event_name)
+{
+	const auto& it = m_name_translation.find(event_name);
+	if(it != m_name_translation.end())
+	{
+		return it->second;
+	}
+	return event_name;
 }
 
 #endif // __linux__

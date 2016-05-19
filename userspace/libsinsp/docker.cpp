@@ -30,7 +30,51 @@ docker::docker(const std::string& url,
 							"restart", "start", "stop", "top", "unpause", "update"},
 		m_image_events{"delete", "import", "pull", "push", "tag", "untag"},
 		m_volume_events{"create", "mount", "unmount", "destroy"},
-		m_network_events{"create", "connect", "disconnect", "destroy"}
+		m_network_events{"create", "connect", "disconnect", "destroy"},
+		m_name_translation
+		{
+			// Container
+			{ "attach",      "Attached"      },
+			{ "commit",      "Committed"     },
+			{ "copy",        "Copied"        },
+			{ "create",      "Created"       },
+			{ "destroy",     "Destroyed"     },
+			{ "die",         "Died"          },
+			{ "exec_create", "Exec Created"  },
+			{ "exec_start",  "Exec Started"  },
+			{ "export",      "Exported"      },
+			{ "kill",        "Killed"        },
+			{ "oom",         "Out of Memory" },
+			{ "pause",       "Paused"        },
+			{ "rename",      "Renamed"       },
+			{ "resize",      "Resized"       },
+			{ "restart",     "Restarted"     },
+			{ "start",       "Started"       },
+			{ "stop",        "Stopped"       },
+			{ "top",         "Top"           },
+			{ "unpause",     "Unpaused"      },
+			{ "update",      "Updated"       },
+
+			// Image
+			{ "delete", "Deleted"  },
+			{ "import", "Imported" },
+			{ "pull",   "Pulled"   },
+			{ "push",   "Pushed"   },
+			{ "tag",    "Tagged"   },
+			{ "untag",  "Untagged" },
+
+			// Volume
+			// { "create",  "Created" }, duplicate
+			{ "mount",   "Mounted"   },
+			{ "unmount", "Unmounted" },
+			// { "destroy", "Destroyed" }, duplicate
+
+			// Network
+			// { "create",     "Created"      }, duplicate
+			{ "connect",    "Connected"    },
+			{ "disconnect", "Disconnected" }
+			// { "destroy"     "Destroyed"    } duplicate
+		}
 {
 #ifdef HAS_CAPTURE
 	g_logger.log(std::string("Creating Docker object for " +
@@ -302,7 +346,7 @@ void docker::handle_event(Json::Value&& root)
 					if(type.length())
 					{
 						type[0] = toupper(type[0]);
-						event_name = type.append(1, ' ').append(event_name);
+						event_name = type.append(1, ' ').append(translate_name(event_name));
 					}
 				}
 				std::string evt = sinsp_user_event::to_string(epoch_time_s, std::move(event_name),

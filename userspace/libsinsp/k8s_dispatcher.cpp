@@ -22,7 +22,7 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 {
 	assert(event_data.component() == m_type);
 
-	std::string&& data = event_data.data();
+	std::string data = event_data.data();
 
 	if(m_messages.size() == 0)
 	{
@@ -31,7 +31,7 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 
 	std::string* msg = &m_messages.back();
 	std::string::size_type pos = msg->find_first_of('\n');
-	
+
 	// previous msg full, this is a beginning of new message
 	if(pos != std::string::npos && pos == (msg->size() - 1))
 	{
@@ -42,14 +42,21 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 	while ((pos = data.find_first_of('\n')) != std::string::npos)
 	{
 		msg->append((data.substr(0, pos + 1)));
-		data = data.substr(pos + 1);
-		m_messages.push_back("");
-		msg = &m_messages.back();
+		if(data.length() > pos + 1)
+		{
+			data = data.substr(pos + 1);
+			m_messages.push_back("");
+			msg = &m_messages.back();
+		}
+		else
+		{
+			break;
+		}
 	};
 
 	if(data.size() > 0)
 	{
-		msg->append((data));
+		msg->append(data);
 	}
 
 	dispatch(); // candidate for separate thread
@@ -490,7 +497,7 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 				g_logger.log("K8s EVENT: lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts), sinsp_logger::SEV_TRACE);
 				if(((last_ts > 0) && (now_ts > 0)) && // we got good timestamps
 					!is_aggregate && // not an aggregated cached event
-					((now_ts - last_ts) < 5)) // event not older than 5 seconds
+					((now_ts - last_ts) < 10)) // event not older than 10 seconds
 				{
 					const Json::Value& kind = involved_object["kind"];
 					const Json::Value& event_reason = object["reason"];
@@ -498,7 +505,18 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 					if(!kind.isNull() && kind.isConvertibleTo(Json::stringValue) &&
 						!event_reason.isNull() && event_reason.isConvertibleTo(Json::stringValue))
 					{
-						if(m_event_filter->has(kind.asString(), event_reason.asString()))
+						bool is_allowed = m_event_filter->allows_all();
+						std::string type = kind.asString();
+						if(!is_allowed && !type.empty())
+						{
+							std::string reason = event_reason.asString();
+							is_allowed = m_event_filter->allows_all(type);
+							if(!is_allowed && !reason.empty())
+							{
+								is_allowed = m_event_filter->has(type, reason);
+							}
+						}
+						if(is_allowed)
 						{
 							g_logger.log("K8s EVENT: adding event.", sinsp_logger::SEV_TRACE);
 							k8s_event_t& evt = m_state.add_component<k8s_events, k8s_event_t>(m_state.get_events(),
@@ -507,7 +525,7 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 						}
 						else
 						{
-							g_logger.log("K8s EVENT: filter does not allow {\"" + kind.asString() + "\", \"{" + event_reason.asString() + "\"} }", sinsp_logger::SEV_TRACE);
+							g_logger.log("K8s EVENT: filter does not allow {\"" + type + "\", \"{" + event_reason.asString() + "\"} }", sinsp_logger::SEV_TRACE);
 							g_logger.log(m_event_filter->to_string(), sinsp_logger::SEV_TRACE);
 						}
 					}
