@@ -692,7 +692,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 			close(fd);
 		}
 #endif
-		
+
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s", fname);
 		return NULL;
 	}
@@ -804,7 +804,7 @@ static int32_t scap_read_machine_info(scap_t *handle, gzFile f, uint32_t block_l
 	//
 	// Read the section header block
 	//
-	if(gzread(f, &handle->m_machine_info, sizeof(handle->m_machine_info)) != 
+	if(gzread(f, &handle->m_machine_info, sizeof(handle->m_machine_info)) !=
 		sizeof(handle->m_machine_info))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading from file (1)");
@@ -1996,13 +1996,13 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 
 	if(!found_ul)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find user list block.");			
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find user list block.");
 		return SCAP_FAILURE;
 	}
 
 	if(!found_il)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find interface list block.");			
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find interface list block.");
 		return SCAP_FAILURE;
 	}
 
@@ -2049,7 +2049,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		}
 	}
 
-	if(bh.block_type != EV_BLOCK_TYPE && 
+	if(bh.block_type != EV_BLOCK_TYPE &&
 		bh.block_type != EV_BLOCK_TYPE_INT &&
 		bh.block_type != EVF_BLOCK_TYPE)
 	{
