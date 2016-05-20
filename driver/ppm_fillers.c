@@ -1238,7 +1238,7 @@ cgroups_error:
 		/*
 		 * execve-only parameters
 		 */
-		unsigned long env_len = 0;
+		long env_len = 0;
 
 		if (likely(retval >= 0)) {
 			/*
