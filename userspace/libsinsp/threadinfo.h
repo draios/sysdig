@@ -246,6 +246,16 @@ public:
 		m_last_reserved_category = filtered;
 	}
 
+	__always_inline bool is_schedswitch_taken()
+	{
+		return m_schedswitch_taken;
+	}
+
+	__always_inline void set_schedswitch_taken()
+	{
+		m_schedswitch_taken = true;
+	}
+
 #endif
 	//
 	// Core state
@@ -374,6 +384,8 @@ VISIBILITY_PRIVATE
 	int16_t m_last_enter_filtered_category;
 	int16_t m_last_reserved_category;
 	int16_t m_last_useless_category;
+
+	bool m_schedswitch_taken;
 #endif
 
 	uint16_t m_lastevent_type;

@@ -99,6 +99,8 @@ void sinsp_threadinfo::init()
 	m_last_reserved_category = -1;
 
 	m_modify_state_ratio = 0;
+
+	m_schedswitch_taken = false;
 #endif
 
 }
@@ -776,7 +778,7 @@ void sinsp_threadinfo::reset_access_count()
 				fd.m_count_out = 0;
 				fd.m_drop_in = 0;
 				fd.m_drop_out = 0;
-				//fd.m_transaction = false;
+				fd.m_transaction = false;
 				fd.m_transaction_count = 0;
 				fd.m_direction = 0;
 				fd.m_starting_direction = 0;
@@ -800,6 +802,8 @@ void sinsp_threadinfo::reset_access_count()
 	//reset thread counters
 	m_read_write_events = 0;
 	m_modify_state_events = 0;
+
+	m_schedswitch_taken = false;
 
 }
 #endif
