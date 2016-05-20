@@ -233,12 +233,31 @@ void docker::handle_event(Json::Value&& root)
 		}
 		g_logger.log("Docker EVENT: type=" + type + ", status=" + status, sinsp_logger::SEV_DEBUG);
 		bool is_allowed = m_event_filter->allows_all();
-		if(!is_allowed && !type.empty())
+		if(!is_allowed)
 		{
-			is_allowed = m_event_filter->allows_all(type);
-			if(!is_allowed && !status.empty())
+			if(!type.empty())
 			{
-				is_allowed = m_event_filter->has(type, status);
+				is_allowed = m_event_filter->allows_all(type);
+				if(!is_allowed && !status.empty())
+				{
+					is_allowed = m_event_filter->has(type, status);
+				}
+			}
+			else // older docker versions don't tell type, so there will be some overlap of duplicates
+			{
+				is_allowed = m_event_filter->has("container", status);
+				if(!is_allowed && !status.empty())
+				{
+					is_allowed = m_event_filter->has("image", status);
+				}
+				if(!is_allowed && !status.empty())
+				{
+					is_allowed = m_event_filter->has("volume", status);
+				}
+				if(!is_allowed && !status.empty())
+				{
+					is_allowed = m_event_filter->has("volume", status);
+				}
 			}
 		}
 		if(is_allowed)
@@ -344,6 +363,11 @@ void docker::handle_event(Json::Value&& root)
 					{
 						type[0] = toupper(type[0]);
 						event_name = type.append(1, ' ').append(translate_name(event_name));
+					}
+					else // older docker versions don't tell type
+					{
+						event_name[0] = toupper(event_name[0]);
+						event_name.insert(0, "Docker ");
 					}
 				}
 				std::string evt = sinsp_user_event::to_string(epoch_time_s, std::move(event_name),
