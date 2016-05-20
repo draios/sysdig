@@ -248,11 +248,11 @@ void docker::handle_event(Json::Value&& root)
 			if(it != m_severity_map.end())
 			{
 				severity_t severity;
-				std::string event_name = status;//get_json_string(root, "from");
+				std::string event_name = status;
 				std::string id = get_json_string(root, "id");
 				if(id.length() > 7 && id.substr(0, 7) == "sha256:") // untag and delete have "sha256:id" format
 				{
-					id = id.substr(7);
+					id.clear(); // ignore that (will be displayed in event description)
 				}
 				severity = it->second;
 				g_logger.log("Docker EVENT: severity for " + status + '=' + std::to_string(severity - sinsp_logger::SEV_EVT_MIN), sinsp_logger::SEV_DEBUG);
@@ -288,37 +288,28 @@ void docker::handle_event(Json::Value&& root)
 				{
 					scope.clear();
 				}
-				if(id.length())
+				if(is_image_event(event_name))
 				{
-					if(scope.length())
+					if(!id.empty())
 					{
-						scope.append(" and ");
+						if(scope.length()) { scope.append(" and "); }
+						scope.append("container.image=").append(id);
 					}
-					if(image == id)
+					else if(!image.empty())
 					{
+						if(scope.length()) { scope.append(" and "); }
 						scope.append("container.image=").append(image);
-					}
-					else if(is_image_event(event_name))
-					{
-						if(event_name == "untag" || event_name == "delete")
-						{
-							scope.append("container.id=").append(id.substr(0, 12));
-						}
-						else if(!image.empty())
-						{
-							scope.append("container.image=").append(image);
-						}
-						else if(!id.empty())
-						{
-							scope.append("container.image=").append(id);
-						}
-						else
-						{
-							g_logger.log("Cannot determine container image for Docker pull event (empty).", sinsp_logger::SEV_ERROR);
-						}
 					}
 					else
 					{
+						g_logger.log("Cannot determine container image for Docker event.", sinsp_logger::SEV_WARNING);
+					}
+				}
+				else if(is_container_event(event_name))
+				{
+					if(id.length() >= 12)
+					{
+						if(scope.length()) { scope.append(" and "); }
 						scope.append("container.id=").append(id.substr(0, 12));
 					}
 				}
@@ -333,6 +324,10 @@ void docker::handle_event(Json::Value&& root)
 						if(!image.empty())
 						{
 							status.append("; Image: ").append(image);
+						}
+						if(!id.empty() && id != image)
+						{
+							status.append("; ID: ").append(id);
 						}
 						const Json::Value& name = attrib["name"];
 						if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
