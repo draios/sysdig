@@ -22,7 +22,7 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 {
 	assert(event_data.component() == m_type);
 
-	std::string&& data = event_data.data();
+	std::string data = event_data.data();
 
 	if(m_messages.size() == 0)
 	{
@@ -31,7 +31,7 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 
 	std::string* msg = &m_messages.back();
 	std::string::size_type pos = msg->find_first_of('\n');
-	
+
 	// previous msg full, this is a beginning of new message
 	if(pos != std::string::npos && pos == (msg->size() - 1))
 	{
@@ -42,14 +42,21 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 	while ((pos = data.find_first_of('\n')) != std::string::npos)
 	{
 		msg->append((data.substr(0, pos + 1)));
-		data = data.substr(pos + 1);
-		m_messages.push_back("");
-		msg = &m_messages.back();
+		if(data.length() > pos + 1)
+		{
+			data = data.substr(pos + 1);
+			m_messages.push_back("");
+			msg = &m_messages.back();
+		}
+		else
+		{
+			break;
+		}
 	};
 
 	if(data.size() > 0)
 	{
-		msg->append((data));
+		msg->append(data);
 	}
 
 	dispatch(); // candidate for separate thread
@@ -165,7 +172,7 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 		{
 			std::ostringstream os;
 			os << "ADDED message received for existing node [" << data.m_uid << "], updating only.";
-			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 		}
 		k8s_node_t& node = m_state.get_component<k8s_nodes, k8s_node_t>(m_state.get_nodes(), data.m_name, data.m_uid);
 		const Json::Value& object = root["object"];
@@ -249,7 +256,7 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 		{
 			std::ostringstream os;
 			os << "ADDED message received for existing namespace [" << data.m_uid << "], updating only.";
-			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 		}
 		k8s_ns_t& ns = m_state.get_component<k8s_namespaces, k8s_ns_t>(m_state.get_namespaces(), data.m_name, data.m_uid);
 		const Json::Value& object = root["object"];
@@ -318,7 +325,7 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 			{
 				std::ostringstream os;
 				os << "ADDED message received for existing pod [" << data.m_uid << "], updating only.";
-				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 			}
 			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
 			handle_labels(pod, object["metadata"], "labels");
@@ -375,7 +382,7 @@ void k8s_dispatcher::handle_rc(const Json::Value& root, const msg_data& data)
 		{
 			std::ostringstream os;
 			os << "ADDED message received for existing replication controller [" << data.m_uid << "], updating only.";
-			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 		}
 		k8s_rc_t& rc = m_state.get_component<k8s_controllers, k8s_rc_t>(m_state.get_rcs(), data.m_name, data.m_uid, data.m_namespace);
 		const Json::Value& object = root["object"];
@@ -432,7 +439,7 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 			{
 				std::ostringstream os;
 				os << "ADDED message received for existing service [" << data.m_uid << "], updating only.";
-				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 			}
 			k8s_service_t& service = m_state.get_component<k8s_services, k8s_service_t>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
 			handle_labels(service, object["metadata"], "labels");
@@ -490,7 +497,7 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 				g_logger.log("K8s EVENT: lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts), sinsp_logger::SEV_TRACE);
 				if(((last_ts > 0) && (now_ts > 0)) && // we got good timestamps
 					!is_aggregate && // not an aggregated cached event
-					((now_ts - last_ts) < 5)) // event not older than 5 seconds
+					((now_ts - last_ts) < 10)) // event not older than 10 seconds
 				{
 					const Json::Value& kind = involved_object["kind"];
 					const Json::Value& event_reason = object["reason"];
@@ -498,7 +505,18 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 					if(!kind.isNull() && kind.isConvertibleTo(Json::stringValue) &&
 						!event_reason.isNull() && event_reason.isConvertibleTo(Json::stringValue))
 					{
-						if(m_event_filter->has(kind.asString(), event_reason.asString()))
+						bool is_allowed = m_event_filter->allows_all();
+						std::string type = kind.asString();
+						if(!is_allowed && !type.empty())
+						{
+							std::string reason = event_reason.asString();
+							is_allowed = m_event_filter->allows_all(type);
+							if(!is_allowed && !reason.empty())
+							{
+								is_allowed = m_event_filter->has(type, reason);
+							}
+						}
+						if(is_allowed)
 						{
 							g_logger.log("K8s EVENT: adding event.", sinsp_logger::SEV_TRACE);
 							k8s_event_t& evt = m_state.add_component<k8s_events, k8s_event_t>(m_state.get_events(),
@@ -507,7 +525,7 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 						}
 						else
 						{
-							g_logger.log("K8s EVENT: filter does not allow {\"" + kind.asString() + "\", \"{" + event_reason.asString() + "\"} }", sinsp_logger::SEV_TRACE);
+							g_logger.log("K8s EVENT: filter does not allow {\"" + type + "\", \"{" + event_reason.asString() + "\"} }", sinsp_logger::SEV_TRACE);
 							g_logger.log(m_event_filter->to_string(), sinsp_logger::SEV_TRACE);
 						}
 					}
@@ -591,7 +609,7 @@ void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 				}
 			}
 			os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
-			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
 			{
 				m_state.update_cache(m_type);

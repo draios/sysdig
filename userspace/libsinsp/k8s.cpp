@@ -133,7 +133,7 @@ void k8s::build_state()
 				parse_json(os.str(), component);
 				os.str("");
 			}
-			else
+			else if(m_event_filter)
 			{
 				m_net->add_api_interface(component);
 			}

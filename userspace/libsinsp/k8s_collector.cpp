@@ -46,6 +46,31 @@ void k8s_collector::add(k8s_http* handler)
 	m_subscription_count = m_sockets.size();
 }
 
+bool k8s_collector::has(const k8s_http* handler) const
+{
+	for(const auto& s : m_sockets)
+	{
+		if(s.second == handler)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void k8s_collector::remove(const k8s_http* handler)
+{
+	for(socket_map_t::iterator it = m_sockets.begin(), end = m_sockets.end();
+		it != end; ++it)
+	{
+		if(it->second == handler)
+		{
+			remove(it);
+			return;
+		}
+	}
+}
+
 void k8s_collector::remove(socket_map_t::iterator& it)
 {
 	if(it != m_sockets.end())

@@ -370,6 +370,9 @@ private:
 	typedef sinsp_logger::event_severity severity_t;
 	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
 
+	void make_scope(const Json::Value& obj, std::string& scope);
+	void make_scope_impl(const Json::Value& obj, std::string comp, std::string& scope, bool ns = true);
+
 	name_translation_map_t m_name_translation;
 };
 
