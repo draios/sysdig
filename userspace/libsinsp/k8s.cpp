@@ -176,7 +176,16 @@ void k8s::watch()
 
 void k8s::on_watch_data(k8s_event_data&& msg)
 {
-	m_dispatch[msg.component()]->enqueue(std::move(msg));
+	k8s_component::type comp = msg.component();
+	auto it = m_dispatch.find(comp);
+	if(it != m_dispatch.end() && it->second)
+	{
+		it->second->enqueue(std::move(msg));
+	}
+	else
+	{
+		g_logger.log("K8s: Cannot enqueue " + k8s_component::get_name(comp) + " message (dispatcher is null)", sinsp_logger::SEV_WARNING);
+	}
 }
 
 void k8s::simulate_watch_event(const std::string& json)
