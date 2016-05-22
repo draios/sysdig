@@ -41,7 +41,7 @@ void k8s_dispatcher::enqueue(k8s_event_data&& event_data)
 
 	while ((pos = data.find_first_of('\n')) != std::string::npos)
 	{
-		msg->append((data.substr(0, pos + 1)));
+		msg->append(data.substr(0, pos + 1));
 		if(data.length() > pos + 1)
 		{
 			data = data.substr(pos + 1);

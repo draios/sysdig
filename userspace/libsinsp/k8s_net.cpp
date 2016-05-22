@@ -49,6 +49,7 @@ k8s_net::~k8s_net()
 
 void k8s_net::cleanup()
 {
+	unsubscribe();
 	for (auto& component : m_api_interfaces)
 	{
 		delete component.second;
