@@ -24,11 +24,11 @@ k8s_net::k8s_net(k8s& kube, const std::string& uri,
 		m_ssl(ssl),
 		m_bt(bt),
 		m_stopped(true),
-		m_collector(kube.watch_in_thread())
+		m_collector(kube.watch_in_thread()),
 #ifndef K8S_DISABLE_THREAD
-		,m_thread(0)
+		m_thread(0),
 #endif
-		,m_curl_debug(curl_debug)
+		m_curl_debug(curl_debug)
 {
 	try
 	{
@@ -49,9 +49,10 @@ k8s_net::~k8s_net()
 
 void k8s_net::cleanup()
 {
-	for (auto& component : k8s_component::list)
+	unsubscribe();
+	for (auto& component : m_api_interfaces)
 	{
-		delete m_api_interfaces[component.first];
+		delete component.second;
 	}
 	m_api_interfaces.clear();
 }
@@ -71,11 +72,6 @@ void k8s_net::init()
 		{
 			throw sinsp_exception("Bad URI");
 		}
-	}
-
-	for (auto& component : k8s_component::list)
-	{
-		m_api_interfaces[component.first] = 0;
 	}
 }
 
@@ -110,7 +106,14 @@ void k8s_net::subscribe()
 {
 	for (auto& api : m_api_interfaces)
 	{
-		m_collector.add(api.second);
+		if(api.second)
+		{
+			m_collector.add(api.second);
+		}
+		else
+		{
+			g_logger.log("K8s: " + k8s_component::get_name(api.first) + " handler is null.", sinsp_logger::SEV_WARNING);
+		}
 	}
 }
 
@@ -144,31 +147,45 @@ void k8s_net::stop_watching()
 
 void k8s_net::add_api_interface(const k8s_component::type_map::value_type& component)
 {
-	if(m_api_interfaces[component.first] == 0)
+	api_map_t::iterator it = m_api_interfaces.find(component.first);
+	if(it != m_api_interfaces.end() && it->second)
 	{
-		std::string protocol = m_uri.get_scheme();
-		std::ostringstream os;
-		os << m_uri.get_host();
-		int port = m_uri.get_port();
-		if(port)
+		if(m_collector.has(it->second))
 		{
-			os << ':' << port;
+			m_collector.remove(it->second);
 		}
-		m_api_interfaces[component.first] = new k8s_http(m_k8s, component.second, os.str(), protocol, m_creds, m_api, m_ssl, m_bt, m_curl_debug);
+		delete it->second;
 	}
+	std::string protocol = m_uri.get_scheme();
+	std::ostringstream os;
+	os << m_uri.get_host();
+	int port = m_uri.get_port();
+	if(port)
+	{
+		os << ':' << port;
+	}
+	m_api_interfaces[component.first] = new k8s_http(m_k8s, component.second, os.str(), protocol, m_creds, m_api, m_ssl, m_bt, m_curl_debug);
 }
 
 void k8s_net::get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out)
 {
 	add_api_interface(component);
 
-	if(!m_api_interfaces[component.first]->get_all_data(out))
+	api_map_t::iterator it = m_api_interfaces.find(component.first);
+	if(it != m_api_interfaces.end() && it->second)
 	{
-		std::string err;
-		std::ostringstream* ostr = dynamic_cast<std::ostringstream*>(&out);
-		if(ostr) { err = ostr->str(); }
-		throw sinsp_exception(std::string("An error occurred while trying to retrieve data for k8s ")
-			.append(component.second).append(": ").append(err));
+		if(!m_api_interfaces[component.first]->get_all_data(out))
+		{
+			std::string err;
+			std::ostringstream* ostr = dynamic_cast<std::ostringstream*>(&out);
+			if(ostr) { err = ostr->str(); }
+			throw sinsp_exception(std::string("K8s: An error occurred while trying to retrieve data for ")
+								.append(k8s_component::get_name(component.first)).append(": ").append(err));
+		}
+	}
+	else
+	{
+		g_logger.log("K8s: " + k8s_component::get_name(component.first) + " handler is null.", sinsp_logger::SEV_WARNING);
 	}
 }
 

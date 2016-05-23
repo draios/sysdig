@@ -9,6 +9,8 @@
 #include "sinsp_int.h"
 #include "user_event.h"
 
+const std::string docker::DOCKER_SOCKET_FILE = "/var/run/docker.sock";
+
 docker::docker(const std::string& url,
 	const std::string& path,
 	const std::string& http_version,
@@ -17,7 +19,7 @@ docker::docker(const std::string& url,
 	bool verbose,
 	event_filter_ptr_t event_filter): m_id("docker"),
 #ifdef HAS_CAPTURE
-		m_url(!url.empty() ? url : std::string(scap_get_host_root()) + "/var/run/docker.sock"),
+		m_url(!url.empty() ? url : std::string(scap_get_host_root()) + DOCKER_SOCKET_FILE),
 		m_collector(false),
 #endif // HAS_CAPTURE
 		m_timeout_ms(timeout_ms),
@@ -30,7 +32,51 @@ docker::docker(const std::string& url,
 							"restart", "start", "stop", "top", "unpause", "update"},
 		m_image_events{"delete", "import", "pull", "push", "tag", "untag"},
 		m_volume_events{"create", "mount", "unmount", "destroy"},
-		m_network_events{"create", "connect", "disconnect", "destroy"}
+		m_network_events{"create", "connect", "disconnect", "destroy"},
+		m_name_translation
+		{
+			// Container
+			{ "attach",      "Attached"      },
+			{ "commit",      "Committed"     },
+			{ "copy",        "Copied"        },
+			{ "create",      "Created"       },
+			{ "destroy",     "Destroyed"     },
+			{ "die",         "Died"          },
+			{ "exec_create", "Exec Created"  },
+			{ "exec_start",  "Exec Started"  },
+			{ "export",      "Exported"      },
+			{ "kill",        "Killed"        },
+			{ "oom",         "Out of Memory" },
+			{ "pause",       "Paused"        },
+			{ "rename",      "Renamed"       },
+			{ "resize",      "Resized"       },
+			{ "restart",     "Restarted"     },
+			{ "start",       "Started"       },
+			{ "stop",        "Stopped"       },
+			{ "top",         "Top"           },
+			{ "unpause",     "Unpaused"      },
+			{ "update",      "Updated"       },
+
+			// Image
+			{ "delete", "Deleted"  },
+			{ "import", "Imported" },
+			{ "pull",   "Pulled"   },
+			{ "push",   "Pushed"   },
+			{ "tag",    "Tagged"   },
+			{ "untag",  "Untagged" },
+
+			// Volume
+			// { "create",  "Created" }, duplicate
+			{ "mount",   "Mounted"   },
+			{ "unmount", "Unmounted" },
+			// { "destroy", "Destroyed" }, duplicate
+
+			// Network
+			// { "create",     "Created"      }, duplicate
+			{ "connect",    "Connected"    },
+			{ "disconnect", "Disconnected" }
+			// { "destroy"     "Destroyed"    } duplicate
+		}
 {
 #ifdef HAS_CAPTURE
 	g_logger.log(std::string("Creating Docker object for " +
@@ -54,11 +100,11 @@ docker::docker(const std::string& url,
 	m_severity_map["exec_start"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["export"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["kill"] = sinsp_logger::SEV_EVT_WARNING;
-	m_severity_map["oom"] = sinsp_logger::SEV_EVT_INFORMATION;
+	m_severity_map["oom"] = sinsp_logger::SEV_EVT_WARNING;
 	m_severity_map["pause"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["rename"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["resize"] = sinsp_logger::SEV_EVT_INFORMATION;
-	m_severity_map["restart"] = sinsp_logger::SEV_EVT_INFORMATION;
+	m_severity_map["restart"] = sinsp_logger::SEV_EVT_WARNING;
 	m_severity_map["start"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["stop"] = sinsp_logger::SEV_EVT_INFORMATION;
 	m_severity_map["top"] = sinsp_logger::SEV_EVT_INFORMATION;
@@ -187,12 +233,31 @@ void docker::handle_event(Json::Value&& root)
 		}
 		g_logger.log("Docker EVENT: type=" + type + ", status=" + status, sinsp_logger::SEV_DEBUG);
 		bool is_allowed = m_event_filter->allows_all();
-		if(!is_allowed && !type.empty())
+		if(!is_allowed)
 		{
-			is_allowed = m_event_filter->allows_all(type);
-			if(!is_allowed && !status.empty())
+			if(!type.empty())
 			{
-				is_allowed = m_event_filter->has(type, status);
+				is_allowed = m_event_filter->allows_all(type);
+				if(!is_allowed && !status.empty())
+				{
+					is_allowed = m_event_filter->has(type, status);
+				}
+			}
+			else // older docker versions don't tell type, so there will be some overlap of duplicates
+			{
+				is_allowed = m_event_filter->has("container", status);
+				if(!is_allowed && !status.empty())
+				{
+					is_allowed = m_event_filter->has("image", status);
+				}
+				if(!is_allowed && !status.empty())
+				{
+					is_allowed = m_event_filter->has("volume", status);
+				}
+				if(!is_allowed && !status.empty())
+				{
+					is_allowed = m_event_filter->has("volume", status);
+				}
 			}
 		}
 		if(is_allowed)
@@ -202,11 +267,11 @@ void docker::handle_event(Json::Value&& root)
 			if(it != m_severity_map.end())
 			{
 				severity_t severity;
-				std::string event_name = status;//get_json_string(root, "from");
+				std::string event_name = status;
 				std::string id = get_json_string(root, "id");
 				if(id.length() > 7 && id.substr(0, 7) == "sha256:") // untag and delete have "sha256:id" format
 				{
-					id = id.substr(7);
+					id.clear(); // ignore that (will be displayed in event description)
 				}
 				severity = it->second;
 				g_logger.log("Docker EVENT: severity for " + status + '=' + std::to_string(severity - sinsp_logger::SEV_EVT_MIN), sinsp_logger::SEV_DEBUG);
@@ -242,37 +307,28 @@ void docker::handle_event(Json::Value&& root)
 				{
 					scope.clear();
 				}
-				if(id.length())
+				if(is_image_event(event_name))
 				{
-					if(scope.length())
+					if(!id.empty())
 					{
-						scope.append(" and ");
+						if(scope.length()) { scope.append(" and "); }
+						scope.append("container.image=").append(id);
 					}
-					if(image == id)
+					else if(!image.empty())
 					{
+						if(scope.length()) { scope.append(" and "); }
 						scope.append("container.image=").append(image);
-					}
-					else if(is_image_event(event_name))
-					{
-						if(event_name == "untag" || event_name == "delete")
-						{
-							scope.append("container.id=").append(id.substr(0, 12));
-						}
-						else if(!image.empty())
-						{
-							scope.append("container.image=").append(image);
-						}
-						else if(!id.empty())
-						{
-							scope.append("container.image=").append(id);
-						}
-						else
-						{
-							g_logger.log("Cannot determine container image for Docker pull event (empty).", sinsp_logger::SEV_ERROR);
-						}
 					}
 					else
 					{
+						g_logger.log("Cannot determine container image for Docker event.", sinsp_logger::SEV_WARNING);
+					}
+				}
+				else if(is_container_event(event_name))
+				{
+					if(id.length() >= 12)
+					{
+						if(scope.length()) { scope.append(" and "); }
 						scope.append("container.id=").append(id.substr(0, 12));
 					}
 				}
@@ -288,6 +344,10 @@ void docker::handle_event(Json::Value&& root)
 						{
 							status.append("; Image: ").append(image);
 						}
+						if(!id.empty() && id != image)
+						{
+							status.append("; ID: ").append(id);
+						}
 						const Json::Value& name = attrib["name"];
 						if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
 						{
@@ -302,7 +362,12 @@ void docker::handle_event(Json::Value&& root)
 					if(type.length())
 					{
 						type[0] = toupper(type[0]);
-						event_name = type.append(1, ' ').append(event_name);
+						event_name = type.append(1, ' ').append(translate_name(event_name));
+					}
+					else // older docker versions don't tell type
+					{
+						event_name[0] = toupper(event_name[0]);
+						event_name.insert(0, "Docker ");
 					}
 				}
 				std::string evt = sinsp_user_event::to_string(epoch_time_s, std::move(event_name),
@@ -318,8 +383,8 @@ void docker::handle_event(Json::Value&& root)
 		}
 		else
 		{
-			g_logger.log("Docker EVENT: status not permitted by filter: " + type +':' + status, sinsp_logger::SEV_ERROR);
-			g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_DEBUG);
+			g_logger.log("Docker EVENT: status not permitted by filter: " + type +':' + status, sinsp_logger::SEV_DEBUG);
+			g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_TRACE);
 		}
 	}
 }
