@@ -92,15 +92,17 @@ void sinsp_threadinfo::init()
 	m_lastevent_data = NULL;
 
 #ifdef HAS_EARLY_FILTERING
-	m_read_write_events = 0;
-	m_modify_state_events = 0;
 	m_last_enter_filtered_category = -1;
 	m_last_useless_category = -1;
 	m_last_reserved_category = -1;
+	m_schedswitch_taken = false;
 
 	m_modify_state_ratio = 0;
-
-	m_schedswitch_taken = false;
+	m_read_write_events = 0;
+	m_modify_state_events = 0;
+	m_byte_count = 0;
+	m_byte_drop = 0;
+	m_shedding_pct = 0;
 #endif
 
 }
@@ -802,6 +804,8 @@ void sinsp_threadinfo::reset_access_count()
 	//reset thread counters
 	m_read_write_events = 0;
 	m_modify_state_events = 0;
+//	m_byte_drop = 0;
+//	m_byte_count = 0;
 
 	m_schedswitch_taken = false;
 
@@ -1126,3 +1130,4 @@ void sinsp_thread_manager::update_statistics()
 	}
 #endif
 }
+

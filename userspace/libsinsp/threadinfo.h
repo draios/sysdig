@@ -201,6 +201,9 @@ public:
 #ifdef HAS_EARLY_FILTERING
 	void reset_access_count();
 
+	//
+	// Helpers for open and close vs read and write ratio
+	//
 	__always_inline void add_read_write_event()
 	{
 		m_read_write_events++;
@@ -216,6 +219,42 @@ public:
 		return m_modify_state_ratio;
 	}
 
+	//
+	// helpers for load manager thread fair policy
+	//
+	__always_inline uint64_t get_byte_throughput()
+	{
+		return m_byte_count + m_byte_drop;
+	}
+
+	__always_inline uint64_t get_byte_count()
+	{
+		return m_byte_count;
+	}
+
+	__always_inline uint64_t get_byte_drop()
+	{
+		return m_byte_drop;
+	}
+
+	__always_inline void add_byte_count(uint64_t byte)
+	{
+		m_byte_count += byte;
+	}
+
+	__always_inline void add_byte_drop(uint64_t byte)
+	{
+		m_byte_drop += byte;
+	}
+
+	__always_inline int32_t get_shedding_pct()
+	{
+		return m_shedding_pct;
+	}
+
+	//
+	// getters and setters for early filtering state
+	//
 	__always_inline int32_t get_last_filtered_enter()
 	{
 		return m_last_enter_filtered_category;
@@ -380,6 +419,11 @@ VISIBILITY_PRIVATE
 	uint32_t m_read_write_events;
 	uint32_t m_modify_state_events;
 	double m_modify_state_ratio;
+	uint64_t m_byte_count;
+	uint64_t m_byte_drop;
+
+	int32_t m_shedding_pct;
+
 
 	int16_t m_last_enter_filtered_category;
 	int16_t m_last_reserved_category;
@@ -403,6 +447,9 @@ VISIBILITY_PRIVATE
 	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
+#ifdef HAS_EARLY_FILTERING
+	friend class analyzer_load_manager;
+#endif
 };
 
 /*@}*/
