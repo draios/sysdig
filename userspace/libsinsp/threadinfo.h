@@ -235,6 +235,7 @@ public:
 	//
 	// helpers for load manager thread fair policy
 	//
+#ifdef HAS_FAIR_POLICY
 	__always_inline uint64_t get_byte_throughput()
 	{
 		return m_byte_count + m_byte_drop;
@@ -264,7 +265,7 @@ public:
 	{
 		return m_shedding_pct;
 	}
-
+#endif
 	//
 	// getters and setters for early filtering state
 	//
@@ -432,11 +433,12 @@ VISIBILITY_PRIVATE
 	uint32_t m_read_write_events;
 	uint32_t m_modify_state_events;
 	double m_modify_state_ratio;
+
+#ifdef HAS_FAIR_POLICY
 	uint64_t m_byte_count;
 	uint64_t m_byte_drop;
-
 	int32_t m_shedding_pct;
-
+#endif
 
 	int16_t m_last_enter_filtered_category;
 	int16_t m_last_reserved_category;

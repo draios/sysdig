@@ -100,9 +100,12 @@ void sinsp_threadinfo::init()
 	m_modify_state_ratio = 0;
 	m_read_write_events = 0;
 	m_modify_state_events = 0;
+
+#ifdef HAS_FAIR_POLICY
 	m_byte_count = 0;
 	m_byte_drop = 0;
 	m_shedding_pct = 0;
+#endif
 #endif
 
 }
@@ -752,7 +755,8 @@ void sinsp_threadinfo::reset_access_count()
 		//
 		// information about read, write and open,close are stored only for main threads
 		// compute modify state ratio only for main threads
-		// 
+		//
+#ifdef HAS_FAIR_POLICY
 		if(m_modify_state_events> 0)
 		{
 			m_modify_state_ratio = (double)m_modify_state_events/(double)(m_read_write_events + m_modify_state_events);
@@ -762,7 +766,7 @@ void sinsp_threadinfo::reset_access_count()
 			m_modify_state_ratio = 0;
 		}
 		//printf("%ld %lf %u %u \n", m_tid, m_modify_state_ratio, m_modify_state_events, m_read_write_events);
-
+#endif
 		// reset counters for read write and ropen close events
 		m_read_write_events = 0;
 		m_modify_state_events = 0;
