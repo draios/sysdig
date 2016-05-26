@@ -37,7 +37,7 @@ typedef struct erase_fd_params
 	uint64_t m_ts;
 }erase_fd_params;
 
-/** @defgroup state State management 
+/** @defgroup state State management
  *  @{
  */
 
@@ -47,7 +47,7 @@ typedef struct erase_fd_params
   manipulate threads and retrieve thread information.
 
   \note As a library user, you won't need to construct thread objects. Rather,
-   you get them by calling \ref sinsp_evt::get_thread_info or 
+   you get them by calling \ref sinsp_evt::get_thread_info or
    \ref sinsp::get_thread.
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
@@ -113,7 +113,7 @@ public:
 				//
 				// No, this is either a single thread process or the root thread of a
 				// multithread process.
-				// Note: we don't set m_main_thread because there are cases in which this is 
+				// Note: we don't set m_main_thread because there are cases in which this is
 				//       invoked for a threadinfo that is in the stack. Caching the this pointer
 				//       would cause future mess.
 				//
@@ -230,7 +230,7 @@ public:
 	int64_t m_lastevent_fd; ///< The FD os the last event used by this thread.
 	uint64_t m_lastevent_ts; ///< timestamp of the last event for this thread.
 	uint64_t m_prevevent_ts; ///< timestamp of the event before the last for this thread.
-	uint64_t m_lastaccess_ts; ///< The last time this thread was looked up. Used when cleaning up the table. 
+	uint64_t m_lastaccess_ts; ///< The last time this thread was looked up. Used when cleaning up the table.
 	uint64_t m_clone_ts; ///< When the clone that started this process happened.
 
 	//
@@ -295,7 +295,7 @@ VISIBILITY_PRIVATE
 		else
 		{
 			m_lastevent_cpuid = (uint16_t) - 1;
-		}		
+		}
 	}
 	void allocate_private_state();
 	void compute_program_hash();
