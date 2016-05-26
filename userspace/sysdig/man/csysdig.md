@@ -163,6 +163,9 @@ COMMAND LINE OPTIONS
 **-E**, **--exclude-users**  
   Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time.  
 
+**--force-term-compat**  
+  Try to configure simple terminal settings (xterm-1002) that work better with terminals like putty. Try to use this flag if you experience terminal issues like the mouse not working.
+
 **-h**, **--help**  
   Print this page
 
