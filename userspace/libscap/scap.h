@@ -24,7 +24,7 @@ extern "C" {
 
 /*!
 	\mainpage libscap documentation
-	
+
 	\section Introduction
 
 	libscap is the low-level sysdig component that exports the following functionality:
@@ -32,7 +32,7 @@ extern "C" {
 	- trace file management
 	- event retrieval
 	- extraction of system state from /proc
-	
+
 	This manual includes the following sections:
 	- \ref scap_defs
 	- \ref scap_functs
@@ -222,9 +222,9 @@ typedef struct scap_threadinfo
 
 typedef void (*proc_entry_callback)(void* context,
 									int64_t tid,
-									scap_threadinfo* tinfo, 
+									scap_threadinfo* tinfo,
 									scap_fdinfo* fdinfo,
-									scap_t* newhandle);  
+									scap_t* newhandle);
 
 /*!
   \brief Arguments for scap_open
@@ -258,7 +258,7 @@ typedef struct _scap_machine_info
 	uint32_t num_cpus;	///< Number of processors
 	uint64_t memory_size_bytes; ///< Physical memory size
 	uint64_t max_pid; ///< Highest PID number on this machine
-	char hostname[128]; ///< The machine hostname 
+	char hostname[128]; ///< The machine hostname
 	uint64_t reserved1; ///< reserved for fututre use
 	uint64_t reserved2; ///< reserved for fututre use
 	uint64_t reserved3; ///< reserved for fututre use
@@ -429,9 +429,9 @@ typedef enum compression_mode
 typedef enum scap_dump_flags
 {
 	SCAP_DF_NONE = 0,
-	SCAP_DF_STATE_ONLY = 1,		///< The event should be used for state update but it should 
+	SCAP_DF_STATE_ONLY = 1,		///< The event should be used for state update but it should
 								///< not be shown to the user
-	SCAP_DF_TRACER = (1 << 1)	///< This event is a tracer 
+	SCAP_DF_TRACER = (1 << 1)	///< This event is a tracer
 }scap_dump_flags;
 
 typedef struct scap_dumper scap_dumper_t;
@@ -467,7 +467,7 @@ struct ppm_syscall_desc {
 
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
-			
+
   \return The capture instance handle in case of success. NULL in case of failure.
 */
 scap_t* scap_open_live(char *error);
@@ -478,7 +478,7 @@ scap_t* scap_open_live(char *error);
   \param fname The name of the file to open.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
-			
+
   \return The capture instance handle in case of success. NULL in case of failure.
 */
 scap_t* scap_open_offline(const char* fname, char *error);
@@ -489,7 +489,7 @@ scap_t* scap_open_offline(const char* fname, char *error);
   \param args a \ref scap_open_args structure containing the open paraneters.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
-			
+
   \return The capture instance handle in case of success. NULL in case of failure.
 */
 scap_t* scap_open(scap_open_args args, char *error);
@@ -505,11 +505,11 @@ void scap_close(scap_t* handle);
   \brief Retrieve the OS platform for the given capture handle.
 
   \param handle Handle to the capture instance.
-			
+
   \return The type of operating system on which the capture was made.
 
-  \note For live handles, the return value indicates the current local OS. 
-    For offline handles, the return value indicates the OS where the data was 
+  \note For live handles, the return value indicates the current local OS.
+    For offline handles, the return value indicates the OS where the data was
 	originally captured.
 */
 scap_os_platform scap_get_os_platform(scap_t* handle);
@@ -526,11 +526,11 @@ char* scap_getlasterr(scap_t* handle);
   \param pevent User-provided event pointer that will be initialized with address of the event.
   \param pcpuid User-provided event pointer that will be initialized with the ID if the CPU
     where the event was captured.
-			
+
   \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain valid data.
    SCAP_TIMEOUT in case the read timeout expired and no event is available.
    SCAP_EOF when the end of an offline capture is reached.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error. 
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error.
 */
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 
@@ -538,8 +538,8 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
   \brief Get the length of an event
 
   \param e pointer to an event returned by \ref scap_next.
-			
-  \return The event length in bytes. 
+
+  \return The event length in bytes.
 */
 uint32_t scap_event_getlen(scap_evt* e);
 
@@ -547,8 +547,8 @@ uint32_t scap_event_getlen(scap_evt* e);
   \brief Get the timestamp of an event
 
   \param e pointer to an event returned by \ref scap_next.
-			
-  \return The event timestamp, in nanoseconds since epoch. 
+
+  \return The event timestamp, in nanoseconds since epoch.
 */
 uint64_t scap_event_get_ts(scap_evt* e);
 
@@ -557,17 +557,17 @@ uint64_t scap_event_get_ts(scap_evt* e);
   instance
 
   \param handle Handle to the capture instance.
-			
-  \return The total number of events. 
+
+  \return The total number of events.
 */
 uint64_t scap_event_get_num(scap_t* handle);
 
 /*!
-  \brief Return the meta-information describing the given event 
+  \brief Return the meta-information describing the given event
 
   \param e pointer to an event returned by \ref scap_next.
-			
-  \return The pointer to the the event table entry for the given event. 
+
+  \return The pointer to the the event table entry for the given event.
 */
 const struct ppm_event_info* scap_event_getinfo(scap_evt* e);
 
@@ -575,8 +575,8 @@ const struct ppm_event_info* scap_event_getinfo(scap_evt* e);
   \brief Return the dump flags for the last event received from this handle
 
   \param handle Handle to the capture instance.
-			
-  \return The flags if the capture is offline, 0 if the capture is live. 
+
+  \return The flags if the capture is offline, 0 if the capture is live.
 */
 uint32_t scap_event_get_dump_flags(scap_t* handle);
 
@@ -589,17 +589,17 @@ uint32_t scap_event_get_dump_flags(scap_t* handle);
 int64_t scap_get_readfile_offset(scap_t* handle);
 
 /*!
-  \brief Open a tracefile for writing 
+  \brief Open a tracefile for writing
 
   \param handle Handle to the capture instance.
   \param fname The name of the tracefile.
 
-  \return Dump handle that can be used to identify this specific dump instance. 
+  \return Dump handle that can be used to identify this specific dump instance.
 */
 scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress);
 
 /*!
-  \brief Close a tracefile. 
+  \brief Close a tracefile.
 
   \param d The dump handle, returned by \ref scap_dump_open
 */
@@ -609,12 +609,12 @@ void scap_dump_close(scap_dumper_t *d);
   \brief Return the current size of a tracefile.
 
   \param d The dump handle, returned by \ref scap_dump_open
-  \return The current size of the dump file pointed by d. 
+  \return The current size of the dump file pointed by d.
 */
 int64_t scap_dump_get_offset(scap_dumper_t *d);
 
 /*!
-  \brief Flush all pending output into the file. 
+  \brief Flush all pending output into the file.
 
   \param d The dump handle, returned by \ref scap_dump_open
 */
@@ -628,13 +628,13 @@ void scap_dump_flush(scap_dumper_t *d);
   \param bytes The number of bytes to write
 
   \return SCAP_SUCCESS if the call is succesful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
-   the cause of the error. 
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   the cause of the error.
 */
 int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t* bytes);
 
 /*!
-  \brief Write an event to a trace file 
+  \brief Write an event to a trace file
 
   \param handle Handle to the capture instance.
   \param d The dump handle, returned by \ref scap_dump_open
@@ -643,8 +643,8 @@ int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t* byte
   \param flags The event flags. 0 means no flags.
 
   \return SCAP_SUCCESS if the call is succesful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
-   the cause of the error. 
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   the cause of the error.
 */
 int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt* e, uint16_t cpuid, uint32_t flags);
 
@@ -652,12 +652,12 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt* e, uint16_t cpuid,
   \brief Get the process list for the given capture instance
 
   \param handle Handle to the capture instance.
-			
+
   \return Pointer to the process list.
 
-  for live captures, the process list is created when the capture starts by scanning the 
+  for live captures, the process list is created when the capture starts by scanning the
   proc file system. For offline captures, it is retrieved from the file.
-  The process list contains information about the processes that were already open when 
+  The process list contains information about the processes that were already open when
   the capture started. It can be traversed with uthash, using the following syntax:
 
   \code
@@ -677,15 +677,15 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt* e, uint16_t cpuid,
 scap_threadinfo* scap_get_proc_table(scap_t* handle);
 
 /*!
-  \brief Return the capture statistics for the given capture handle. 
+  \brief Return the capture statistics for the given capture handle.
 
   \param handle Handle to the capture instance.
   \param stats Pointer to a \ref scap_stats structure that will be filled with the
   statistics.
-			
+
   \return SCAP_SECCESS if the call is succesful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
-   the cause of the error. 
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   the cause of the error.
 */
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 
@@ -693,10 +693,10 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
   \brief This function can be used to temporarily interrupt event capture.
 
   \param handle Handle to the capture that will be stopped.
-			
+
   \return SCAP_SUCCESS if the call is succesful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
-   the cause of the error. 
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   the cause of the error.
 */
 int32_t scap_stop_capture(scap_t* handle);
 
@@ -706,8 +706,8 @@ int32_t scap_stop_capture(scap_t* handle);
   \param handle Handle to the capture that will be started.
 
   \return SCAP_SUCCESS if the call is succesful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain 
-   the cause of the error. 
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   the cause of the error.
 */
 int32_t scap_start_capture(scap_t* handle);
 
@@ -733,8 +733,8 @@ scap_addrlist* scap_get_ifaddr_list(scap_t* handle);
 scap_userlist* scap_get_user_list(scap_t* handle);
 
 /*!
-  \brief Retrieve the table with the description of every event type that 
-  the capture driver supports. 
+  \brief Retrieve the table with the description of every event type that
+  the capture driver supports.
 
   \return The pointer to a table of \ref scap_userlist entries, each of which describes
   one of the events that can come from the driver. The table contains PPM_EVENT_MAX entries,
@@ -745,8 +745,8 @@ scap_userlist* scap_get_user_list(scap_t* handle);
 const struct ppm_event_info* scap_get_event_info_table();
 
 /*!
-  \brief Retrieve the table with the description of system call that 
-  the capture driver supports. 
+  \brief Retrieve the table with the description of system call that
+  the capture driver supports.
 
   \return The pointer to a table of \ref ppm_syscall_desc entries, each of which describes
   one of the events that can come from the driver. The table contains SYSCALL_TABLE_SIZE entries,
@@ -767,7 +767,7 @@ const struct ppm_syscall_desc* scap_get_syscall_info_table();
 const scap_machine_info* scap_get_machine_info(scap_t* handle);
 
 /*!
-  \brief Set the capture snaplen, i.e. the maximum size an event parameter can 
+  \brief Set the capture snaplen, i.e. the maximum size an event parameter can
   reach before the driver starts truncating it.
 
   \param handle Handle to the capture instance.
@@ -775,7 +775,7 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle);
 
   \note This function can only be called for live captures.
   \note By default, the driver captures the first 80 bytes of the buffers coming from
-  events like read, write, send, recv, etc. 
+  events like read, write, send, recv, etc.
   If you're not interested in payloads, smaller values will save capture buffer space and
   make capture files smaller.
   Conversely, big values should be used with care because they can easily generate huge
@@ -806,7 +806,7 @@ int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id);
 
 /*!
   \brief Unset the event into the eventmask so that
-  sysdig-based apps can no longer receive the event. It is 
+  sysdig-based apps can no longer receive the event. It is
   the opposite of scap_set_eventmask
 
   \param handle Handle to the capture instance.

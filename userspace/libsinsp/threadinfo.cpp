@@ -90,7 +90,7 @@ sinsp_threadinfo::~sinsp_threadinfo()
 {
 	uint32_t j;
 
-	if((m_inspector != NULL) && 
+	if((m_inspector != NULL) &&
 		(m_inspector->m_thread_manager != NULL) &&
 		(m_inspector->m_thread_manager->m_listener != NULL))
 	{
@@ -190,7 +190,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
 		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
-			
+
 		//
 		// We keep note of all the host bound server ports.
 		// We'll need them later when patching connections direction.
@@ -199,7 +199,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 
 		break;
 	case SCAP_FD_IPV6_SOCK:
-		if(sinsp_utils::is_ipv4_mapped_ipv6((uint8_t*)&fdi->info.ipv6info.sip) && 
+		if(sinsp_utils::is_ipv4_mapped_ipv6((uint8_t*)&fdi->info.ipv6info.sip) &&
 			sinsp_utils::is_ipv4_mapped_ipv6((uint8_t*)&fdi->info.ipv6info.dip))
 		{
 			//
@@ -284,7 +284,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	ASSERT(m_inspector != NULL);
 	vector<sinsp_protodecoder*>::iterator it;
 
-	for(it = m_inspector->m_parser->m_open_callbacks.begin(); 
+	for(it = m_inspector->m_parser->m_open_callbacks.begin();
 		it != m_inspector->m_parser->m_open_callbacks.end(); ++it)
 	{
 		(*it)->on_fd_from_proc(newfdi);
@@ -558,7 +558,7 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 
 	sinsp_fdtable* fdt = get_fd_table();
 
-	for(it = fdt->m_table.begin(); 
+	for(it = fdt->m_table.begin();
 		it != fdt->m_table.end(); ++it)
 	{
 		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
@@ -612,11 +612,11 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 
 	if(tinfo)
 	{
-		sinsp_utils::concatenate_paths(tpath, 
-			SCAP_MAX_PATH_SIZE, 
-			(char*)tinfo->m_cwd.c_str(), 
-			(uint32_t)tinfo->m_cwd.size(), 
-			cwd, 
+		sinsp_utils::concatenate_paths(tpath,
+			SCAP_MAX_PATH_SIZE,
+			(char*)tinfo->m_cwd.c_str(),
+			(uint32_t)tinfo->m_cwd.size(),
+			cwd,
 			cwdlen);
 
 		tinfo->m_cwd = tpath;
@@ -641,7 +641,7 @@ void sinsp_threadinfo::allocate_private_state()
 		m_private_state.clear();
 
 		vector<uint32_t>* sizes = &m_inspector->m_thread_privatestate_manager.m_memory_sizes;
-	
+
 		for(j = 0; j < sizes->size(); j++)
 		{
 			void* newbuf = malloc(sizes->at(j));
@@ -738,7 +738,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			//
 			// No, this is either a single thread process or the root thread of a
 			// multithread process.
-			// Note: we don't set m_main_thread because there are cases in which this is 
+			// Note: we don't set m_main_thread because there are cases in which this is
 			//       invoked for a threadinfo that is in the stack. Caching the this pointer
 			//       would cause future mess.
 			//
@@ -945,7 +945,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
 		// of a main process or program that some childs refer to.
-		// We need to recalculate the child relationships, or the table will become 
+		// We need to recalculate the child relationships, or the table will become
 		// corrupted.
 		//
 		if(nchilds != 0)
