@@ -80,8 +80,8 @@ docker::docker(const std::string& url,
 {
 #ifdef HAS_CAPTURE
 	g_logger.log(std::string("Creating Docker object for " +
-							(m_url.empty() ? std::string("capture replay") : m_url),
-				 sinsp_logger::SEV_DEBUG));
+							(m_url.empty() ? std::string("capture replay") : m_url)),
+				 sinsp_logger::SEV_DEBUG);
 
 	m_event_http = std::make_shared<handler_t>(*this, "events", m_url, path, http_version, timeout_ms);
 	m_event_http->set_json_callback(&docker::set_event_json);

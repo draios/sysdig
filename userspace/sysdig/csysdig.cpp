@@ -47,6 +47,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "cursesui.h"
 
 #define MOUSE_CAPABLE_TERM "xterm-1003"
+#define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"
 
 static bool g_terminate = false;
 static void usage();
@@ -79,6 +80,10 @@ static void usage()
 "                    like user.name or group.name. However, creating them can\n"
 "                    increase sysdig's startup time. Moreover, they contain\n"
 "                    information that could be privacy sensitive.\n"
+" --force-term-compat\n"
+"                    Try to configure simple terminal settings (xterm-1002) that work\n"
+"                    better with terminals like putty. Try to use this flag if you experience\n"
+"                    terminal issues like the mouse not working.\n"
 " -h, --help         Print this page\n"
 " -k <url>, --k8s-api=<url>\n"
 "                    Enable Kubernetes support by connecting to the API server\n"
@@ -249,8 +254,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
-	bool xt1002_available = false;
+	bool terminal_with_mouse = false;
 	bool force_tracers_capture = false;
+	bool force_term_compat = false;
 
 	static struct option long_options[] =
 	{
@@ -268,6 +274,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"logfile", required_argument, 0, 0 },
 		{"force-tracers-capture", required_argument, 0, 'T'},
+		{"force-term-compat", no_argument, 0, 0},
 		{"view", required_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{0, 0, 0, 0}
@@ -397,6 +404,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						m_raw_output = true;
 					}
+					else if(optname == "force-term-compat")
+					{
+						force_term_compat = true;
+					}
 				}
 				break;
 			default:
@@ -459,16 +470,17 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		if(!m_raw_output)
 		{
 			//
-			// Check if xterm-1002 is available
+			// Check if terminal has mouse support
 			//
-			xt1002_available = (tgetent(NULL, MOUSE_CAPABLE_TERM) != 0);
+			const char* mct = force_term_compat? MOUSE_CAPABLE_TERM_COMPAT : MOUSE_CAPABLE_TERM;
+			terminal_with_mouse = (tgetent(NULL, mct) != 0);
 
-			if(xt1002_available)
+			if(terminal_with_mouse)
 			{
 				//
 				// Enable fine-grained mouse activity capture by setting xterm-1002
 				//
-				setenv("TERM", MOUSE_CAPABLE_TERM, 1);
+				setenv("TERM", mct, 1);
 			}
 
 			(void) initscr();      // initialize the curses library
@@ -546,7 +558,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				refresh_interval_ns,
 				print_containers,
 				m_raw_output,
-				xt1002_available);
+				terminal_with_mouse);
 
 			ui.configure(&view_manager);
 			ui.start(false, false);

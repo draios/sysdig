@@ -784,13 +784,14 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 				if(scope.length()) { scope.append(" and "); }
 				scope.append("kubernetes.node.name=").append(node_name);
 			}
-			if(scope.length()) { scope.append(" and "); }
-			scope.append("kubernetes.").append(t).append(".name=").append(comp->get_name());
-			const std::string& ns = get_namespace();
+			const std::string& ns = comp->get_namespace();
 			if(!ns.empty())
 			{
-				scope.append(" and kubernetes.namespace.name=").append(ns);
+				if(scope.length()) { scope.append(" and "); }
+				scope.append("kubernetes.namespace.name=").append(ns);
 			}
+			if(scope.length()) { scope.append(" and "); }
+			scope.append("kubernetes.").append(t).append(".name=").append(comp->get_name());
 			/* no labels for now
 			for(const auto& label : comp->get_labels())
 			{
