@@ -206,17 +206,30 @@ public:
 	//
 	__always_inline void add_read_write_event()
 	{
-		m_read_write_events++;
+		sinsp_threadinfo* main_tinfo = get_main_thread();
+		if(main_tinfo!=NULL)
+		{
+			main_tinfo->m_read_write_events++;
+		}
 	}
 
 	__always_inline void add_modify_state_event()
 	{
-		m_modify_state_events++;
+		sinsp_threadinfo* main_tinfo = get_main_thread();
+		if(main_tinfo!=NULL)
+		{
+			main_tinfo->m_modify_state_events++;
+		}
 	}
 
 	__always_inline double get_modify_state_ratio()
 	{
-		return m_modify_state_ratio;
+		sinsp_threadinfo* main_tinfo = get_main_thread();
+		if(main_tinfo!=NULL)
+		{
+			return m_modify_state_ratio;
+		}
+		return 0;
 	}
 
 	//

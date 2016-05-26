@@ -749,7 +749,23 @@ void sinsp_threadinfo::reset_access_count()
 	//uint32_t fd_net_count = 0;
 	if(is_main_thread())
 	{
+		//
+		// information about read, write and open,close are stored only for main threads
+		// compute modify state ratio only for main threads
+		// 
+		if(m_modify_state_events> 0)
+		{
+			m_modify_state_ratio = (double)m_modify_state_events/(double)(m_read_write_events + m_modify_state_events);
+		}
+		else
+		{
+			m_modify_state_ratio = 0;
+		}
+		//printf("%ld %lf %u %u \n", m_tid, m_modify_state_ratio, m_modify_state_events, m_read_write_events);
 
+		// reset counters for read write and ropen close events
+		m_read_write_events = 0;
+		m_modify_state_events = 0;
 		//reset counters and compute mean access on all the FDs of the main thread
 		//reset the FD counters
 		for(auto it = m_fdtable.m_table.begin(); it != m_fdtable.m_table.end(); ++it)
@@ -791,19 +807,9 @@ void sinsp_threadinfo::reset_access_count()
 		}
 
 	}
-	if(m_modify_state_events> 0)
-	{
-		m_modify_state_ratio = (double)m_modify_state_events/(double)(m_read_write_events + m_modify_state_events);
-	}
-	else
-	{
-		m_modify_state_ratio = 0;
-	}
 
-	//printf("%lf %u %u \n", m_modify_state_ratio, m_modify_state_events, m_read_write_events);
+
 	//reset thread counters
-	m_read_write_events = 0;
-	m_modify_state_events = 0;
 //	m_byte_drop = 0;
 //	m_byte_count = 0;
 
