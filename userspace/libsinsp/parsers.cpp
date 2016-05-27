@@ -1093,6 +1093,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		// Copy the root from the parent
 		tinfo.m_root = ptinfo->m_root;
+
+		// Copy the session id from the parent
+		tinfo.m_sid = ptinfo->m_sid;
 	}
 	else
 	{
@@ -1124,11 +1127,13 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_exe = ptinfo->m_exe;
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
+			tinfo.m_sid = ptinfo->m_sid;
 		}
 		else
 		{
 			//
-			// Parent not found in proc, use the event data
+			// Parent not found in proc, use the event data.
+			// (The session id will remain unset)
 			//
 			parinfo = evt->get_param(1);
 			tinfo.m_exe = (char*)parinfo->m_val;

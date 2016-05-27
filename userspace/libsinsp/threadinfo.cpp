@@ -58,6 +58,7 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp *inspector) :
 void sinsp_threadinfo::init()
 {
 	m_pid = (uint64_t) - 1LL;
+	m_sid = (uint64_t) - 1LL;
 	set_lastevent_data_validity(false);
 	m_lastevent_type = -1;
 	m_lastevent_ts = 0;
@@ -309,6 +310,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_tid = pi->tid;
 	m_pid = pi->pid;
 	m_ptid = pi->ptid;
+	m_sid = pi->sid;
 
 	m_comm = pi->comm;
 	m_exe = pi->exe;

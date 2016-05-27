@@ -1289,6 +1289,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmrss", "For the process main thread, this is the resident non-swapped memory for the process (as kb). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmsize.b", "For the process main thread, this is the total virtual memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."}
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1544,6 +1545,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u64val;
 	case TYPE_PID:
 		return (uint8_t*)&tinfo->m_pid;
+	case TYPE_SID:
+		return (uint8_t*)&tinfo->m_sid;
 	case TYPE_NAME:
 		m_tstr = tinfo->get_comm();
 		return (uint8_t*)m_tstr.c_str();

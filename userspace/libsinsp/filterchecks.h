@@ -354,6 +354,7 @@ public:
 		TYPE_THREAD_VMRSS = 36,
 		TYPE_THREAD_VMSIZE_B = 37,
 		TYPE_THREAD_VMRSS_B = 38,
+		TYPE_SID = 39,
 	};
 
 	sinsp_filter_check_thread();
