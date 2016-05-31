@@ -147,8 +147,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #if defined(HAS_CAPTURE)
 	if(is_live && !m_inspector->is_debug_enabled())
 	{
-		if(evt->get_tid() == m_inspector->m_sysdig_pid && 
-			etype != PPME_SCHEDSWITCH_1_E && 
+		if(evt->get_tid() == m_inspector->m_sysdig_pid &&
+			etype != PPME_SCHEDSWITCH_1_E &&
 			etype != PPME_SCHEDSWITCH_6_E &&
 			etype != PPME_DROP_E &&
 			etype != PPME_DROP_X &&
@@ -454,6 +454,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CHROOT_X:
 		parse_chroot_exit(evt);
 		break;
+	case PPME_SYSCALL_SETSID_X:
+		parse_setsid_exit(evt);
+		break;
 	default:
 		break;
 	}
@@ -478,7 +481,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #endif
 	//
 	// Offline captures can produce events with the SCAP_DF_STATE_ONLY. They are
-	// supposed to go through the engine, but they must be filtered out before 
+	// supposed to go through the engine, but they must be filtered out before
 	// reaching the user.
 	//
 	if(!is_live)
@@ -690,7 +693,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			{
 				m_fd_listener->on_error(evt);
 			}
-			
+
 			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED)
 			{
 				//
@@ -909,7 +912,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		return;
 	}
-	
+
 	//
 	// Get the vtid to check if the clone is within a container
 	//
@@ -1093,17 +1096,20 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		// Copy the root from the parent
 		tinfo.m_root = ptinfo->m_root;
+
+		// Copy the session id from the parent
+		tinfo.m_sid = ptinfo->m_sid;
 	}
 	else
 	{
 		//
-		// Parent is an invalid thread, which is strange since it's performing 
+		// Parent is an invalid thread, which is strange since it's performing
 		// a clone. We try to remove and look it up in proc.
 		//
 		m_inspector->remove_thread(tid, true);
 		tid_collision = true;
 
-		ptinfo = m_inspector->get_thread(tid, 
+		ptinfo = m_inspector->get_thread(tid,
 			true, true);
 
 		if(ptinfo == NULL)
@@ -1124,11 +1130,13 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_exe = ptinfo->m_exe;
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
+			tinfo.m_sid = ptinfo->m_sid;
 		}
 		else
 		{
 			//
-			// Parent not found in proc, use the event data
+			// Parent not found in proc, use the event data.
+			// (The session id will remain unset)
 			//
 			parinfo = evt->get_param(1);
 			tinfo.m_exe = (char*)parinfo->m_val;
@@ -1401,8 +1409,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		m_inspector->m_tid_collisions.push_back(tinfo.m_tid);
 #endif
 #ifdef _DEBUG
-		g_logger.format(sinsp_logger::SEV_INFO, 
-			"tid collision for %" PRIu64 "(%s)", 
+		g_logger.format(sinsp_logger::SEV_INFO,
+			"tid collision for %" PRIu64 "(%s)",
 			tinfo.m_tid, tinfo.m_comm.c_str());
 #endif
 	}
@@ -1832,7 +1840,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		}
 		else
 		{
-			fdi.m_type = SCAP_FD_FILE;		
+			fdi.m_type = SCAP_FD_FILE;
 		}
 
 		fdi.m_openflags = flags;
@@ -2877,7 +2885,7 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 	return p->m_res;
 }
 
-bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt, 
+bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt,
 	int64_t retval,
 	ppm_event_flags eflags)
 {
@@ -2903,12 +2911,12 @@ bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt,
 				{
 					//
 					// We have not determined if this FD is a tracer FD or not.
-					// We're going to try to parse it. 
+					// We're going to try to parse it.
 					// If the parsing succeeds, we mark it as a tracer FD. If it
 					// fails we mark it an NOT a tracer FD. Otherwise, we wait
 					// for the next buffer and we'll try again.
 					//
-					sinsp_tracerparser::parse_result pres = 
+					sinsp_tracerparser::parse_result pres =
 						(sinsp_tracerparser::parse_result)parse_tracer(evt, retval);
 
 					if(pres == sinsp_tracerparser::RES_OK)
@@ -2965,7 +2973,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	}
 
 	//
-	// Check if this is a tracer write on /dev/null, treat it in a special way 
+	// Check if this is a tracer write on /dev/null, treat it in a special way
 	//
 	if(detect_and_process_tracer_write(evt, retval, eflags))
 	{
@@ -3057,7 +3065,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			if(m_fd_listener)
 			{
-				m_fd_listener->on_read(evt, tid, evt->m_tinfo->m_lastevent_fd, evt->m_fdinfo, 
+				m_fd_listener->on_read(evt, tid, evt->m_tinfo->m_lastevent_fd, evt->m_fdinfo,
 					data, (uint32_t)retval, datalen);
 			}
 
@@ -4049,6 +4057,24 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 		// Root change, let's detect if we are on a container
 		ASSERT(m_inspector);
 		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
+	}
+}
+
+void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0)
+	{
+		evt->get_thread_info()->m_sid = retval;
 	}
 }
 

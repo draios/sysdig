@@ -354,6 +354,8 @@ public:
 		TYPE_THREAD_VMRSS = 36,
 		TYPE_THREAD_VMSIZE_B = 37,
 		TYPE_THREAD_VMRSS_B = 38,
+		TYPE_SID = 39,
+		TYPE_SNAME = 40,
 	};
 
 	sinsp_filter_check_thread();
@@ -741,7 +743,7 @@ public:
 
 	sinsp_filter_check_reference();
 	sinsp_filter_check* allocate_new();
-	inline void set_val(ppm_param_type type, uint8_t* val, 
+	inline void set_val(ppm_param_type type, uint8_t* val,
 		int32_t len, uint32_t cnt,
 		ppm_print_format print_format)
 	{
