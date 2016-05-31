@@ -1290,7 +1290,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmsize.b", "For the process main thread, this is the total virtual memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader"}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."}
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1563,7 +1563,25 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else
 			{
-				return NULL;
+				// This can occur when the session leader process has exited.
+				// Find the highest ancestor process that has the same session id and
+				// declare it to be the session leader.
+				sinsp_threadinfo* mt = tinfo->get_main_thread();
+				sinsp_threadinfo* pt = NULL;
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+
+				for(pt = mt->get_parent_thread();
+				    pt != NULL && pt->m_sid == mt->m_sid;
+				    mt = pt, pt = pt->get_parent_thread());
+
+				// At this point pt either doesn't exist or has a different session id.
+				// mt's comm is considered the session leader.
+				m_tstr = mt->get_comm();
+				return (uint8_t*)m_tstr.c_str();
 			}
 		}
 	case TYPE_NAME:
