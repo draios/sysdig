@@ -610,7 +610,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #ifdef for_each_process_thread
 		for_each_process_thread(p, t) {
 #else
+#ifdef for_each_process_all
+		for_each_process_all(p) {
+#else
 		for_each_process(p) {
+#endif
 			t = p;
 			do {
 				task_lock(p);
@@ -633,8 +637,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 #else
 				task_unlock(p);
+#ifdef while_each_thread_all
+			} while_each_thread_all(p, t);
+		}
+#else
 			} while_each_thread(p, t);
 		}
+#endif
 #endif
 
 		rcu_read_unlock();
