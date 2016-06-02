@@ -20,7 +20,7 @@ view_info =
 	name = "Spectrogram-File",
 	description = "File I/O latency spectrogram.",
 	view_type = "spectrogram",
-	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory"},
+	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory"},
 	filter = "evt.dir=< and fd.type=file",
 	use_defaults = false,
 	columns = 

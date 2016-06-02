@@ -22,7 +22,7 @@ view_info =
 	description = "List all the containers running on this machine, and the resources that each of them uses.",
 	tips = {"Select a container and click enter to drill down into it. At that point, you will be able to access several views that will show you the details of the selected container."},
 	view_type = "table",
-	applies_to = {"", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	filter = "container.name != host",
 	use_defaults = true,
 	drilldown_target = "procs",

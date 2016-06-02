@@ -22,7 +22,7 @@ view_info =
 	description = "Lists all the commands that are run interactively, i.e. that have a shell as the parent process. The result is the display of all the user activity, sorted by time.",
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	filter = "((evt.type=execve and evt.dir=<) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)) and evt.failed=false",
 	use_defaults = true,
 	columns = 
