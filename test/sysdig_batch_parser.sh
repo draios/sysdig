@@ -35,10 +35,20 @@ export SYSDIG_CHISEL_DIR
 rm -rf $DIRNAME || true
 mkdir -p $DIRNAME
 
+if [ ! -e $REFERENCEDIR ]; then
+    echo "Reference directory $REFERENCEDIR does not exist--skipping directory entirely"
+    exit 0
+fi
+
 for f in $TRACESDIR/*
 do
+    ref=$REFERENCEDIR/$(basename $f).output;
+    if [ ! -e $ref ]; then
+	echo "Corresponding reference file $ref does not exist--skipping"
+    else
 	echo "Processing $f"
 	TZ=UTC eval $SYSDIG -N -r $f $ARGS > $DIRNAME/$(basename $f).output
+    fi
 done
 
 echo Data saved in $DIRNAME
