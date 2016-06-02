@@ -216,6 +216,10 @@ namespace Json
 }
 
 std::string get_json_string(const Json::Value& obj, const std::string& name);
+inline std::string json_as_string(const Json::Value& json)
+{
+	return Json::FastWriter().write(json);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // A simple class to manage pre-allocated objects in a LIFO
@@ -297,12 +301,22 @@ int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::l
 
 struct ci_compare
 {
+	// less-than, for use in STL containers
 	bool operator() (const std::string& a, const std::string& b) const
 	{
 #ifndef _WIN32
 		return strcasecmp(a.c_str(), b.c_str()) < 0;
 #else
 		return lstrcmpiA(a.c_str(), b.c_str()) < 0;
+#endif // _WIN32
+	}
+
+	static bool is_equal(const std::string& a, const std::string& b)
+	{
+#ifndef _WIN32
+		return strcasecmp(a.c_str(), b.c_str()) == 0;
+#else
+		return lstrcmpiA(a.c_str(), b.c_str()) == 0;
 #endif // _WIN32
 	}
 };

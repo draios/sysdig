@@ -666,19 +666,19 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		//
 
 		// Image
-		{ "Pulling",           "Pulling Image"                          },
-		{ "Pulled",            "Image Pulled"                           },
-		{ "Failed",            "Image Pull Failed"                      },
-		{ "InspectFailed",     "Image Inspect Failed"                   },
-		{ "ErrImageNeverPull", "Image NeverPull Policy Error"           },
-		{ "BackOff",           "Back Off Container Start or Image Pull" },
+		{ "Pulling",           "Pulling Image"                                },
+		{ "Pulled",            "Image Pulled"                                 },
+		{ "Failed",            "Container Image Pull, Create or Start Failed" },
+		{ "InspectFailed",     "Image Inspect Failed"                         },
+		{ "ErrImageNeverPull", "Image NeverPull Policy Error"                 },
+		{ "BackOff",           "Back Off Container Start or Image Pull"       },
 
 		//{ "OutOfDisk" ,"Out of Disk" }, duplicate
 
 		// Container
 		{ "Created", "Container Created"                },
 		{ "Started", "Container Started"                },
-		{ "Failed",  "Container Create or Start Failed" },
+		//{ "Failed",  "Container Create or Start Failed" }, duplicate
 		{ "Killing", "Killing Container"                },
 
 		//{ "BackOff", "Backoff Start Container" }, duplicate
@@ -716,21 +716,30 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	tag_map_t  tags;
 
 	const Json::Value& obj = item["involvedObject"];
-	//g_logger.log(Json::FastWriter().write(item), sinsp_logger::SEV_TRACE);
+	if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+	{
+		g_logger.log("K8s EVENT: \n" + json_as_string(item), sinsp_logger::SEV_TRACE);
+	}
 	if(!obj.isNull())
 	{
 		std::string sev = get_json_string(item, "type");
 		// currently, only "Normal" and "Warning"
 		severity = sinsp_logger::SEV_EVT_INFORMATION;
 		if(sev == "Warning") { severity = sinsp_logger::SEV_EVT_WARNING; }
-		g_logger.log("K8s EVENT : \ncomponent name = " + get_json_string(obj, "name") +
-					"\nuid = " + get_json_string(obj, "uid") +
-					"\ntype = " + get_json_string(obj, "kind") +
-					"\nseverity = " + get_json_string(item, "type") + " (" + std::to_string(severity) + ')', sinsp_logger::SEV_TRACE);
+		if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+		{
+			g_logger.log("K8s EVENT:"
+						"\nnamespace = " + get_json_string(obj, "namespace") +
+						"\nname = " + get_json_string(obj, "name") +
+						"\nuid = " + get_json_string(obj, "uid") +
+						"\ntype = " + get_json_string(obj, "kind") +
+						"\nseverity = " + get_json_string(item, "type") + " (" + std::to_string(severity) + ')', sinsp_logger::SEV_TRACE);
+		}
 	}
 	else
 	{
 		g_logger.log("K8s event: cannot get involved object (null)", sinsp_logger::SEV_ERROR);
+		return;
 	}
 
 	std::string ts = get_json_string(item , "lastTimestamp");
@@ -755,6 +764,13 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	description = get_json_string(item, "message");
 	g_logger.log("K8s EVENT message:" + description, sinsp_logger::SEV_DEBUG);
 
+	// Although it's easier and more efficient to obtain the involved object data from
+	// the event itself, there is a downside - event may not carry the data in the
+	// same format as reported in metadata protobuf (generated from k8s state);
+	// an example is IP address vs. DNS name for node, there may be other cases.
+	// For that reason, we try to obtain info about involved object from state; if object is
+	// not found in state (due to undefined arrival order of event and metadata messages),
+	// we get scope data from the event itself.
 	string component_uid = get_json_string(obj, "uid");
 	if(!component_uid.empty())
 	{
@@ -768,13 +784,14 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 				if(scope.length()) { scope.append(" and "); }
 				scope.append("kubernetes.node.name=").append(node_name);
 			}
-			if(scope.length()) { scope.append(" and "); }
-			scope.append("kubernetes.").append(t).append(".name=").append(comp->get_name());
-			const std::string& ns = get_namespace();
+			const std::string& ns = comp->get_namespace();
 			if(!ns.empty())
 			{
-				scope.append(" and kubernetes.namespace.name=").append(ns);
+				if(scope.length()) { scope.append(" and "); }
+				scope.append("kubernetes.namespace.name=").append(ns);
 			}
+			if(scope.length()) { scope.append(" and "); }
+			scope.append("kubernetes.").append(t).append(".name=").append(comp->get_name());
 			/* no labels for now
 			for(const auto& label : comp->get_labels())
 			{
@@ -785,17 +802,69 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		}
 		else
 		{
-			g_logger.log("K8s event: cannot obtain component (UID not found: [" + component_uid + "])", sinsp_logger::SEV_ERROR);
+			g_logger.log("K8s event: cannot obtain component (UID not found: [" + component_uid +
+						 "]), trying to build scope directly from event ...", sinsp_logger::SEV_WARNING);
+			make_scope(obj, scope);
 		}
 	}
 	else
 	{
-		g_logger.log("K8s event: cannot obtain tags (UID not retrieved)", sinsp_logger::SEV_ERROR);
+		g_logger.log("K8s event: cannot obtain component UID, trying to build scope directly from event ...",
+					 sinsp_logger::SEV_WARNING);
+		make_scope(obj, scope);
 	}
+
 	tags["source"] = "kubernetes";
 	g_logger.log(sinsp_user_event::to_string(epoch_time_s, std::move(event_name), std::move(description),
 											std::move(scope), std::move(tags)), severity);
 
 	// TODO: sysdig capture?
 #endif // _WIN32
+}
+
+void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, std::string& scope, bool ns)
+{
+	if(ns)
+	{
+		std::string ns_name = get_json_string(obj, "namespace");
+		if(!ns_name.empty())
+		{
+			if(scope.length()) { scope.append(" and "); }
+			scope.append("kubernetes.namespace.name=").append(ns_name);
+		}
+	}
+	if(comp.length() && ci_compare::is_equal(get_json_string(obj, "kind"), comp))
+	{
+		std::string comp_name = get_json_string(obj, "name");
+		if(!comp_name.empty())
+		{
+			if(scope.length()) { scope.append(" and "); }
+			comp[0] = tolower(comp[0]);
+			scope.append("kubernetes.").append(comp).append(".name=").append(comp_name);
+		}
+		if(comp_name.empty())
+		{
+			g_logger.log("K8s " + comp + " event detected but " + comp + " name could not be determined. Scope will be empty.", sinsp_logger::SEV_WARNING);
+		}
+	}
+	else
+	{
+		g_logger.log("K8s event detected but component name was empty. Scope will be empty.", sinsp_logger::SEV_WARNING);
+	}
+}
+
+void k8s_event_t::make_scope(const Json::Value& obj, std::string& scope)
+{
+	if(ci_compare::is_equal(get_json_string(obj, "kind"), "Pod"))
+	{
+		make_scope_impl(obj, "Pod", scope);
+	}
+	else if(ci_compare::is_equal(get_json_string(obj, "kind"), "ReplicationController"))
+	{
+		make_scope_impl(obj, "ReplicationController", scope);
+	}
+	else if(ci_compare::is_equal(get_json_string(obj, "kind"), "Node"))
+	{
+		make_scope_impl(obj, "Node", scope, false);
+	}
 }
