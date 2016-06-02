@@ -454,6 +454,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CHROOT_X:
 		parse_chroot_exit(evt);
 		break;
+	case PPME_SYSCALL_SETSID_X:
+		parse_setsid_exit(evt);
+		break;
 	default:
 		break;
 	}
@@ -4054,6 +4057,24 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 		// Root change, let's detect if we are on a container
 		ASSERT(m_inspector);
 		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
+	}
+}
+
+void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0)
+	{
+		evt->get_thread_info()->m_sid = retval;
 	}
 }
 

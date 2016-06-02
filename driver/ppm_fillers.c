@@ -360,7 +360,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
 	[PPME_SYSCALL_PPOLL_X] = {f_sys_poll_x}, /* exit same for poll() and ppoll() */
 	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
-	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } }
+	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
+	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} }
 };
 
 /*
