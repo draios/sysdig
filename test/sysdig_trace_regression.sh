@@ -15,7 +15,7 @@ BRANCH=$3
 if [ ! -d "$TRACEDIR" ]; then
 	mkdir -p $TRACEDIR
 	cd $TRACEDIR
-	wget https://s3.amazonaws.com/download.draios.com/sysdig-tests/traces.zip
+	wget -O traces.zip https://s3.amazonaws.com/download.draios.com/sysdig-tests/traces-$BRANCH.zip || wget -O traces.zip https://s3.amazonaws.com/download.draios.com/sysdig-tests/traces.zip
 	unzip traces.zip
 	rm -rf traces.zip
 	cd -
@@ -102,6 +102,8 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-clsof" $TRACEDIR $RESULTDIR/l
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cps" $TRACEDIR $RESULTDIR/ps $BASELINEDIR/ps || ret=1
 # JSON
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-j -n 10000" $TRACEDIR $RESULTDIR/fd_fields_json $BASELINEDIR/fd_fields_json || ret=1
+# Sessions
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p '*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info sid=%proc.sid sname=%proc.sname'" $TRACEDIR $RESULTDIR/sessions $BASELINEDIR/sessions || ret=1
 
 rm -rf "${TMPBASE}"
 exit $ret

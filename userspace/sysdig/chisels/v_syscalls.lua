@@ -26,7 +26,7 @@ view_info =
 		"The AVG TIME column is useful to identify system operations that tend to be consistently slow and can be the cause of bottlenecks."},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.sproto", "fd.name", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.sproto", "fd.name", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	use_defaults = true,
 	filter = "syscall.type exists",
 	drilldown_target = "syscall_procs",
