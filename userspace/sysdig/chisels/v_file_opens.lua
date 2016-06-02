@@ -23,7 +23,7 @@ view_info =
 	tips = {"The RES column is very useful to identify failed opens. Successful opens will show 'SUCCESS' in this column, while failed opens will show an errno code. Do a 'man errno' to find the meaning of the most important codes. And remember that you can sort the opens based on this code, or filter for specific codes using the F4 key."},
 	tags = {"Default"},
 	view_type = "list",
-	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.sproto", "fd.name", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.sproto", "fd.name", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	filter = "evt.type=open and evt.dir=<",
 	columns = 
 	{
