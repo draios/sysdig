@@ -114,7 +114,14 @@ function on_event()
 
 	local color = terminal.green
 
-	lat = evt.field(latency) / 1000000
+	lat = evt.field(latency)
+
+	if lat == nil then
+		return
+	end
+
+	lat = lat / 1000000
+
 	if lat > min_ms then
 
 		if evt.field(fcontainername) ~= "host" then
