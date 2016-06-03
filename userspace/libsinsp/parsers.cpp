@@ -1402,7 +1402,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	if(m_fd_listener)
 	{
-		m_fd_listener->on_clone(&tinfo);
+		m_fd_listener->on_clone(evt, &tinfo);
 	}
 
 	//
