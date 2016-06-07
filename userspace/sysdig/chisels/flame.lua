@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Flame graph generator";
+disabled_description = "Flame graph generator";
 short_description = "Sysdig trace flame graph builder";
 category = "Performance";
 
