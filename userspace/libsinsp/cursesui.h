@@ -88,7 +88,15 @@ public:
 		m_prev_is_filter_sysdig = prev_is_filter_sysdig;
 		m_prev_is_sorting_ascending = prev_is_sorting_ascending;
 
-		m_rowkey = *rowkey;
+		if(rowkey != NULL)
+		{
+			m_rowkey = *rowkey;
+		}
+		else
+		{
+			m_rowkey.m_len = 0;	
+			m_rowkey.m_val = NULL;	
+		}
 	}
 
 	string m_field;
@@ -377,6 +385,7 @@ public:
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
 	sinsp_view_info* get_selected_view();
+	sinsp_view_info* get_prev_selected_view();
 	void pause();
 	bool is_searching()
 	{
