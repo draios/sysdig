@@ -195,6 +195,11 @@ curses_table_sidemenu::curses_table_sidemenu(sidemenu_type type, sinsp_cursesui*
 	m_selct = selct;
 	m_selct_ori = m_selct;
 	m_type = type;
+
+	if(m_selct > (int32_t)(m_h - 1))
+	{
+		m_firstrow = m_selct;
+	}
 }
 
 curses_table_sidemenu::~curses_table_sidemenu()
