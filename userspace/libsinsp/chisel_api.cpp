@@ -445,6 +445,14 @@ int lua_cbacks::set_output_format(lua_State *ls)
 	{
 		ch->m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
 	}
+	else if(string(fmt) == "base64")
+	{
+		ch->m_inspector->set_buffer_format(sinsp_evt::PF_BASE64);
+	}
+	else if(string(fmt) == "jsonbase64")
+	{
+		ch->m_inspector->set_buffer_format(sinsp_evt::PF_JSONBASE64);
+	}
 	else
 	{
 		string err = "invalid set_output_format value in chisel " + ch->m_filename;
