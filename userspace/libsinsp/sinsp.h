@@ -293,10 +293,10 @@ public:
 	  \brief Determine if this inspector is going to load user tables on
 	  startup.
 
-	  \param import_users if true, no user tables will be created for 
-	  this capture. This also means that no user or group info will be 
-	  written to the tracefile by the -w flag. The user/group tables are 
-	  necessary to use filter fields like user.name or group.name. However, 
+	  \param import_users if true, no user tables will be created for
+	  this capture. This also means that no user or group info will be
+	  written to the tracefile by the -w flag. The user/group tables are
+	  necessary to use filter fields like user.name or group.name. However,
 	  creating them can increase sysdig's startup time. Moreover, they contain
 	  information that could be privacy sensitive.
 
@@ -345,7 +345,7 @@ public:
 	/*!
 	  \brief Return the filter set for this capture.
 
-	  \return the filter previously set with \ref set_filter(), or an empty 
+	  \return the filter previously set with \ref set_filter(), or an empty
 	   string if no filter has been set yet.
 	*/
 	const string get_filter();
@@ -393,7 +393,7 @@ public:
 	   of failure.
 	*/
 	void autodump_start(const string& dump_filename, bool compress);
- 
+
  	/*!
 	  \brief Cycles the file pointer to a new capture file
 	*/
@@ -522,8 +522,8 @@ public:
 	/*!
 	  \brief Add a new directory containing chisels.
 
-	  \parame front_add if true, the chisel directory is added at the front of 
-	   the search list and therefore gets priority.  
+	  \parame front_add if true, the chisel directory is added at the front of
+	   the search list and therefore gets priority.
 
 	  \note This function is not reentrant.
 	*/
@@ -572,7 +572,7 @@ public:
 	/*!
 	  \brief Set the fatfile mode when writing events to file.
 
-	  \note fatfile mode involves saving "hidden" events in the trace file 
+	  \note fatfile mode involves saving "hidden" events in the trace file
 	   that make it possible to preserve full state even when filters that
 	   would drop state packets are used during the capture.
 	*/
@@ -583,7 +583,7 @@ public:
 
 	  \note Sysdig can use the system library functions getservbyport and so to
 	   resolve protocol names and domain names.
-	  
+
 	  \param enable If set to false it will enable this function and use plain
 	   numerical values.
 	*/
@@ -603,7 +603,7 @@ public:
 	}
 
 	/*!
-	  \brief Sets the max length of event argument strings. 
+	  \brief Sets the max length of event argument strings.
 
 	  \param len Max length after which an avent argument string is truncated.
 	   0 means no limit. Use this to reduce verbosity when printing event info
@@ -622,7 +622,7 @@ public:
 	/*!
 	  \brief Set a flag indicating if the command line requested to show container information.
 
-	  \param set true if the command line arugment is set to show container information 
+	  \param set true if the command line arugment is set to show container information
 	*/
 	void set_print_container_data(bool print_container_data);
 
@@ -675,7 +675,7 @@ public:
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
-	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
+	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
 		scap_fdinfo* fdinfo, scap_t* newhandle);
 	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
 	{
@@ -728,7 +728,7 @@ private:
 	void remove_thread(int64_t tid, bool force);
 	//
 	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but 
+	//       not as a consequence of an event for that thread arriving, but
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
@@ -909,7 +909,7 @@ private:
 #endif
 
 	//
-	// App events 
+	// App events
 	//
 	bool m_track_tracers_state;
 	list<sinsp_partial_tracer*> m_partial_tracers_list;
@@ -923,9 +923,9 @@ private:
 	//
 	// Containers meta event management
 	//
-	sinsp_evt m_meta_evt; // XXX this should go away 
-	char* m_meta_evt_buf; // XXX this should go away 
-	bool m_meta_evt_pending; // XXX this should go away 
+	sinsp_evt m_meta_evt; // XXX this should go away
+	char* m_meta_evt_buf; // XXX this should go away
+	bool m_meta_evt_pending; // XXX this should go away
 	sinsp_evt* m_metaevt;
 	sinsp_evt* m_skipped_evt;
 	meta_event_callback m_meta_event_callback;
