@@ -84,6 +84,7 @@ void sinsp_threadinfo::init()
 #endif
 	m_ainfo = NULL;
 	m_program_hash = 0;
+	m_program_hash_falco = 0;
 	m_lastevent_data = NULL;
 }
 
@@ -153,12 +154,14 @@ void sinsp_threadinfo::compute_program_hash()
 {
 	string phs = m_exe;
 
+	phs += m_container_id;
+
+	m_program_hash_falco = std::hash<std::string>()(phs);
+
 	for(auto arg = m_args.begin(); arg != m_args.end(); ++arg)
 	{
 		phs += *arg;
 	}
-
-	phs += m_container_id;
 
 	m_program_hash = std::hash<std::string>()(phs);
 }

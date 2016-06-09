@@ -225,6 +225,7 @@ public:
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	string m_root;
 	size_t m_program_hash;
+	size_t m_program_hash_falco;
 
 	//
 	// State for multi-event processing
