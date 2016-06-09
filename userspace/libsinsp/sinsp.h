@@ -349,6 +349,11 @@ public:
 	   string if no filter has been set yet.
 	*/
 	const string get_filter();
+
+	void add_evttype_filter(list<uint32_t> &evttypes,
+				sinsp_filter* filter);
+
+	bool run_filters_on_evt(sinsp_evt *evt);
 #endif
 
 	/*!
@@ -849,6 +854,20 @@ private:
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
 	string m_filterstring;
+
+	// Maps from event type to filter. There can be multiple
+	// filters per event type.
+	list<sinsp_filter *> *m_filter_by_evttype[PPM_EVENT_MAX];
+
+	// It's possible to add an event type filter with an empty
+	// list of event types, meaning it should run for all event
+	// types.
+	list<sinsp_filter *> m_catchall_evttype_filters;
+
+	// This holds all the filters in
+	// m_filter_by_evttype/m_catchall_evttype_filters, so they can
+	// be cleaned up.
+	list<sinsp_filter *> m_evttype_filters;
 #endif
 
 	//

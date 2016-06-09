@@ -549,6 +549,23 @@ void sinsp::close()
 		delete m_filter;
 		m_filter = NULL;
 	}
+
+	for(int i = 0; i < PPM_EVENT_MAX; i++)
+	{
+		if(m_filter_by_evttype[i])
+		{
+			delete m_filter_by_evttype[i];
+			m_filter_by_evttype[i] = NULL;
+		}
+	}
+
+	m_catchall_evttype_filters.clear();
+
+	for(auto filter : m_evttype_filters)
+	{
+		delete filter;
+	}
+	m_evttype_filters.clear();
 #endif
 }
 
@@ -1351,6 +1368,69 @@ const string sinsp::get_filter()
 	return m_filterstring;
 }
 
+void sinsp::add_evttype_filter(list<uint32_t> &evttypes,
+			       sinsp_filter *filter)
+{
+	m_evttype_filters.push_back(filter);
+
+	if(evttypes.size() == 0)
+	{
+		m_catchall_evttype_filters.push_back(filter);
+	}
+	else
+	{
+
+		for(auto evttype: evttypes)
+		{
+			list<sinsp_filter *> *filters = m_filter_by_evttype[evttype];
+			if(filters == NULL)
+			{
+				filters = new list<sinsp_filter*>();
+				m_filter_by_evttype[evttype] = filters;
+			}
+
+			filters->push_back(filter);
+		}
+	}
+}
+
+bool sinsp::run_filters_on_evt(sinsp_evt *evt)
+{
+	//
+	// First run the global filter, if there is one.
+	//
+	if(m_filter && m_filter->run(evt) == true)
+	{
+		return true;
+	}
+
+	//
+	// Then run any catchall event type filters (ones that did not
+	// explicitly specify any event type.
+	//
+	for(sinsp_filter *filt : m_catchall_evttype_filters)
+	{
+		if(filt->run(evt) == true)
+		{
+			return true;
+		}
+	}
+
+        list<sinsp_filter *> *filters = m_filter_by_evttype[evt->m_pevt->type];
+
+	if(filters)
+	{
+		for(sinsp_filter *filt : *filters)
+		{
+			if(filt->run(evt) == true)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 #endif
 
 const scap_machine_info* sinsp::get_machine_info()
