@@ -336,6 +336,10 @@ k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
 	{
 		return k8s_component::K8S_REPLICATIONCONTROLLERS;
 	}
+	else if(comp == "Service")
+	{
+		return k8s_component::K8S_SERVICES;
+	}
 	else if(comp == "Event")
 	{
 		return k8s_component::K8S_EVENTS;
