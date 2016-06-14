@@ -220,7 +220,7 @@ for repo in repos[sys.argv[1]]:
 			if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
 				continue
 			else:
-				urls.add(urllib2.unquote(base_mirror_url + rpm))
+				urls.add(urllib2.unquote(base_mirror_url+ '/' + rpm))
 	else:
 		root = urllib2.urlopen(repo["root"]).read()
 		versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
