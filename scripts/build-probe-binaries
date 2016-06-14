@@ -525,6 +525,18 @@ do
 done
 
 #
+# AmazonLinux build
+#
+echo Building AmazonLinux
+DIR=$(dirname $(readlink -f $0))
+URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+
+for URL in $URLS
+do
+	rhel_build $URL
+done
+
+#
 # Upload modules
 #
 aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
