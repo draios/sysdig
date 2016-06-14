@@ -5,6 +5,7 @@
 
 import sys
 import urllib2
+import zlib
 from lxml import html
 
 #
@@ -172,7 +173,17 @@ repos = {
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
             "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp"]
         }
-    ]
+    ],
+
+	"AmazonLinux": [
+		{
+            "root": "http://repo.us-east-1.amazonaws.com/latest/updates/mirror.list",
+            "discovery_pattern": "//location[regex:test(@href,'^Packages/kernel.*.rpm')]",
+            "subdirs": [""],
+            "page_pattern": "",
+            "exclude_patterns": ["doc","tools"]
+		}
+	]
 }
 
 #
@@ -192,28 +203,46 @@ if len(sys.argv) < 2 or not sys.argv[1] in repos:
 # patterns given. Save the result in `packages`.
 #
 for repo in repos[sys.argv[1]]:
-	
-	root = urllib2.urlopen(repo["root"]).read()
-	versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+	if sys.argv[1] == 'AmazonLinux':
+		#the aws repo fecth works only on AWS servers, so fail if we are not running on AWS
+		try:
+			istance_id = urllib2.urlopen('http://169.254.169.254/latest/meta-data/instance-id',timeout=4).read()
+		except Exception as e:
+			print("run on AWS check failed: %s" % (e.reason))
+			sys.exit(-1)
 
-	for version in versions:
-		for subdir in repo["subdirs"]:
+		base_mirror_url = urllib2.urlopen('http://repo.us-east-1.amazonaws.com/latest/updates/mirror.list').readline().replace('$basearch','x86_64').replace('\n','')
+		response = urllib2.urlopen(base_mirror_url + '/repodata/primary.xml.gz')
+		decompressed_data = zlib.decompress(response.read(), 16+zlib.MAX_WBITS)
 
-			# The try - except block is used because 404 errors and similar
-			# might happen (and actually happen because not all repos have
-			# packages we need)
-			try:
-				source = repo["root"] + version + subdir
-				page = urllib2.urlopen(source).read()
-				rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
-
-				for rpm in rpms:
-					if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
-						continue
-					else:
-						urls.add(source + str(urllib2.unquote(rpm)))
-			except:
+		package_relative_url = [ x.attrib.get('href') for x in html.fromstring(decompressed_data).xpath(repo["discovery_pattern"],namespaces = {"regex": "http://exslt.org/regular-expressions"})]
+		for rpm in package_relative_url:
+			if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
 				continue
+			else:
+				urls.add(urllib2.unquote(rpm))
+	else:
+		root = urllib2.urlopen(repo["root"]).read()
+		versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+
+		for version in versions:
+			for subdir in repo["subdirs"]:
+
+				# The try - except block is used because 404 errors and similar
+				# might happen (and actually happen because not all repos have
+				# packages we need)
+				try:
+					source = repo["root"] + version + subdir
+					page = urllib2.urlopen(source).read()
+					rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+
+					for rpm in rpms:
+						if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
+							continue
+						else:
+							urls.add(source + str(urllib2.unquote(rpm)))
+				except:
+					continue
 
 #
 # Print URLs to stdout
