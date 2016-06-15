@@ -451,6 +451,8 @@ public:
 		TYPE_BUFLEN_NET = 57,
 		TYPE_BUFLEN_NET_IN = 58,
 		TYPE_BUFLEN_NET_OUT = 59,
+		TYPE_ISOPEN_READ = 60,
+		TYPE_ISOPEN_WRITE = 61
 	};
 
 	sinsp_filter_check_event();
