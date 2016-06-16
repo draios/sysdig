@@ -841,7 +841,7 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		//
 		// Sanitize the info string
 		//
-		info_str.erase(remove_if(info_str.begin(), info_str.end(), g_invalidchar()), info_str.end());
+		sanitize_string(info_str);
 
 		//
 		// Print the whole thing
