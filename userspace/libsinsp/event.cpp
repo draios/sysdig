@@ -860,14 +860,14 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				         m_resolved_paramstr_storage.size(),
 				         "%s", errstr.c_str());
 			}
-		} 
+		}
 		ret = (Json::Value::Int64)val;
 	}
 	break;
 
 	case PT_FD:
 		{
-			// We use the string extractor to get 
+			// We use the string extractor to get
 			// the resolved path, but use our routine
 			// to get the actual value to return
 			ASSERT(payload_len == sizeof(int64_t));
@@ -1248,7 +1248,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_CHARBUF_PAIR_ARRAY:
 	{
 		ASSERT(param->m_len == sizeof(uint64_t));
-		pair<vector<char*>*, vector<char*>*>* pairs = 
+		pair<vector<char*>*, vector<char*>*>* pairs =
 			(pair<vector<char*>*, vector<char*>*>*)*(uint64_t *)param->m_val;
 		ASSERT(pairs->first->size() == pairs->second->size());
 
@@ -1268,8 +1268,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			char* dst = &m_paramstr_storage[0];
 			char* dstend = &m_paramstr_storage[0] + m_paramstr_storage.size() - 2;
 
-			for(it1 = itbeg1 = pairs->first->begin(), it2 = itbeg2 = pairs->second->begin(); 
-			it1 != pairs->first->end(); 
+			for(it1 = itbeg1 = pairs->first->begin(), it2 = itbeg2 = pairs->second->begin();
+			it1 != pairs->first->end();
 				++it1, ++it2)
 			{
 				char* src = *it1;
@@ -1612,7 +1612,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 
 			ASSERT(m_inspector != NULL);
-			if(m_inspector->m_max_evt_output_len != 0 && 
+			if(m_inspector->m_max_evt_output_len != 0 &&
 				blen > m_inspector->m_max_evt_output_len &&
 				fmt == PF_NORMAL)
 			{
@@ -2105,7 +2105,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_CHARBUF_PAIR_ARRAY:
 	{
 		ASSERT(param->m_len == sizeof(uint64_t));
-		pair<vector<char*>*, vector<char*>*>* pairs = 
+		pair<vector<char*>*, vector<char*>*>* pairs =
 			(pair<vector<char*>*, vector<char*>*>*)*(uint64_t *)param->m_val;
 
 		m_paramstr_storage[0] = 0;
@@ -2130,8 +2130,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			char* dst = &m_paramstr_storage[0];
 			char* dstend = &m_paramstr_storage[0] + m_paramstr_storage.size() - 2;
 
-			for(it1 = itbeg1 = pairs->first->begin(), it2 = itbeg2 = pairs->second->begin(); 
-			it1 != pairs->first->end(); 
+			for(it1 = itbeg1 = pairs->first->begin(), it2 = itbeg2 = pairs->second->begin();
+			it1 != pairs->first->end();
 				++it1, ++it2)
 			{
 				char* src = *it1;
@@ -2450,7 +2450,7 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 	{
 		dflags |= SCAP_DF_TRACER;
 	}
-	
+
 	return (scap_dump_flags)dflags;
 }
 #endif
