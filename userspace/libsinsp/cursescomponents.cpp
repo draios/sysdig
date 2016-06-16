@@ -66,21 +66,21 @@ void curses_scrollable_list::sanitize_selection(int32_t datasize)
 	{
 		m_firstrow = datasize - (int32_t)m_h + 1;
 	}
-	
+
 	if(m_firstrow < 0)
 	{
 		m_firstrow = 0;
-	}	
+	}
 
 	if(m_selct > datasize - 1)
 	{
 		m_selct = datasize - 1;
 	}
-	
+
 	if(m_selct < 0)
 	{
 		m_selct = 0;
-	}	
+	}
 
 	if(m_firstrow > m_selct)
 	{
@@ -119,7 +119,7 @@ void curses_scrollable_list::selection_down(int32_t datasize)
 
 	if(m_selct == datasize - 1)
 	{
-		m_lastrow_selected = true;		
+		m_lastrow_selected = true;
 	}
 }
 
@@ -142,7 +142,7 @@ void curses_scrollable_list::selection_pagedown(int32_t datasize)
 
 	if(m_selct == datasize - 1)
 	{
-		m_lastrow_selected = true;		
+		m_lastrow_selected = true;
 	}
 }
 
@@ -256,7 +256,7 @@ void curses_table_sidemenu::render()
 		// add the new line
 		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries.at(j).m_name.c_str(), m_w);
 		// put sorting order indicator at the right end of this row
-		if(m_parent->m_sidemenu_sorting_col == j) 
+		if(m_parent->m_sidemenu_sorting_col == j)
 		{
 			wmove(m_win, j - m_firstrow + 1, m_w - 4);
 			char sort_order = m_parent->m_datatable->is_sorting_ascending() ? '^' : 'V';
@@ -325,7 +325,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 				m_parent->m_selected_view_sidemenu_entry = m_selct;
 			} else if(m_type == ST_COLUMNS) {
 				m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
-			}  
+			}
 			else
 			{
 				m_parent->m_selected_action_sidemenu_entry = m_selct;
@@ -346,10 +346,10 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 				}
 
 				m_parent->m_selected_view_sidemenu_entry = m_selct_ori;
-	
+
 				return STA_SWITCH_VIEW;
 			}
-			else if(m_type == ST_COLUMNS) 
+			else if(m_type == ST_COLUMNS)
 			{
 				m_parent->m_selected_view_sort_sidemenu_entry = m_selct_ori;
 				return STA_DESTROY_CHILD;
@@ -535,7 +535,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							(uint32_t)m_last_mevent.y < TABLE_Y_START + m_h - 1)
 						{
 							//
-							// This is a double click one of the menu entries. 
+							// This is a double click one of the menu entries.
 							// Update the selection.
 							//
 							m_selct = m_firstrow + (m_last_mevent.y - TABLE_Y_START - 1);
@@ -544,7 +544,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 
 							//
 							// This delay is here just as a lazy way to give the user the
-							// feeling that the row has been clicked 
+							// feeling that the row has been clicked
 							//
 							usleep(200000);
 
@@ -560,8 +560,8 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							if(m_type == ST_VIEWS)
 							{
 								m_parent->m_selected_view_sidemenu_entry = m_selct;
-							} 
-							else if(m_type == ST_COLUMNS) 
+							}
+							else if(m_type == ST_COLUMNS)
 							{
 								m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
 							}
@@ -625,12 +625,12 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 		{
 			if(m_parent->m_print_containers)
 			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
+				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
 			}
 			else
 			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
+				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
 			}
 		}
@@ -638,12 +638,12 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 		{
 			if(m_parent->m_print_containers)
 			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
+				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
 			}
 			else
 			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
+				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
 			}
 		}
@@ -651,7 +651,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 		{
 			if(m_parent->m_print_containers)
 			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
+				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
 			}
 			else
@@ -687,7 +687,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	}
 
 	//
-	// Initialize the inspector to capture longer buffers and format them in a 
+	// Initialize the inspector to capture longer buffers and format them in a
 	// readable way
 	//
 	m_inspector->set_buffer_format(sinsp_evt::PF_NORMAL);
@@ -712,7 +712,7 @@ curses_textbox::~curses_textbox()
 	}
 
 	delwin(m_win);
-	
+
 	delete m_ctext;
 
 	if(m_searcher)
@@ -754,8 +754,8 @@ void curses_textbox::print_no_data()
 
 	string wstr = "No Data For This Selection";
 	mvprintw(m_parent->m_screenh / 2,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
+		m_parent->m_screenw / 2 - wstr.size() / 2,
+		wstr.c_str());
 
 	refresh();
 }
@@ -832,10 +832,10 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 			cnstr = "to ";
 		}
 
-		info_str += dirstr + to_string(len) + 
-			"B " + 
-			cnstr + 
-			fdname + 
+		info_str += dirstr + to_string(len) +
+			"B " +
+			cnstr +
+			fdname +
 			" (" + m_tinfo->m_comm.c_str() + ")";
 
 		//
@@ -847,11 +847,11 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		// Print the whole thing
 		//
 		m_ctext->printf("%s", info_str.c_str());
-		
+
 		if(m_parent->m_print_containers)
 		{
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
-			
+
 			m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
 
 			if(eflags & EF_READS_FROM_FD)
@@ -912,7 +912,7 @@ void curses_textbox::process_event_dig(sinsp_evt* evt, int32_t next_res)
 void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 {
 	//
-	// Check if this the end of the capture file, and if yes take note of that 
+	// Check if this the end of the capture file, and if yes take note of that
 	//
 	if(next_res == SCAP_EOF)
 	{
@@ -954,7 +954,7 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 	}
 	else
 	{
-		process_event_dig(evt, next_res);		
+		process_event_dig(evt, next_res);
 	}
 }
 
@@ -1015,8 +1015,8 @@ void curses_textbox::render()
 		string wstr = "   PAUSED   ";
 		attrset(m_parent->m_colors[sinsp_cursesui::LARGE_NUMBER]);
 		mvprintw(0,
-			m_parent->m_screenw / 2 - wstr.size() / 2, 
-			wstr.c_str());	
+			m_parent->m_screenw / 2 - wstr.size() / 2,
+			wstr.c_str());
 	}
 
 	//
@@ -1124,11 +1124,11 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			m_ctext->jump_to_last_line();
 			m_parent->render();
 			render();
-			return STA_NONE;	
+			return STA_NONE;
 		case KEY_F(2):
 			if(m_parent->m_screenw < 20)
 			{
-				return STA_NONE;				
+				return STA_NONE;
 			}
 
 			if(m_sidemenu == NULL)
@@ -1147,7 +1147,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			else
 			{
 				delete m_sidemenu;
-				m_sidemenu = NULL;				
+				m_sidemenu = NULL;
 
 				wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw);
 				mvwin(m_win, TABLE_Y_START + 1, 0);
@@ -1192,7 +1192,7 @@ void curses_textbox::reset()
 	if(m_sidemenu != NULL)
 	{
 		delete m_sidemenu;
-		m_sidemenu = NULL;				
+		m_sidemenu = NULL;
 
 		wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw);
 		mvwin(m_win, TABLE_Y_START + 1, 0);
@@ -1213,7 +1213,7 @@ void curses_textbox::reset()
 	// Disable pause
 	//
 	m_paused = false;
-	
+
 	//
 	// Clear the screen
 	//
@@ -1228,9 +1228,9 @@ void curses_textbox::reset()
 	n_prints = 0;
 }
 
-bool curses_textbox::get_position(OUT int32_t* pos, 
-	OUT int32_t* totlines, 
-	OUT float* percent, 
+bool curses_textbox::get_position(OUT int32_t* pos,
+	OUT int32_t* totlines,
+	OUT float* percent,
 	OUT bool* truncated)
 {
 	int32_t ox;
@@ -1277,7 +1277,7 @@ bool curses_textbox::on_search_key_pressed(string search_str)
 		}
 		catch(...)
 		{
-			return false;			
+			return false;
 		}
 
 		int32_t totlines;
@@ -1293,7 +1293,7 @@ bool curses_textbox::on_search_key_pressed(string search_str)
 	}
 	else
 	{
-		m_ctext->new_search(m_searcher, 
+		m_ctext->new_search(m_searcher,
 			search_str,
 			true);
 
@@ -1331,9 +1331,9 @@ bool curses_textbox::on_search_next()
 ///////////////////////////////////////////////////////////////////////////////
 curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	uint32_t viewnum,
-	uint32_t starty, 
-	uint32_t startx, 
-	uint32_t h, 
+	uint32_t starty,
+	uint32_t startx,
+	uint32_t h,
 	uint32_t w)
 {
 	m_parent = parent;
@@ -1407,7 +1407,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	}
 	else
 	{
-		j = 0;		
+		j = 0;
 	}
 
 	for(; j < vinfo->m_columns.size(); j++)
@@ -1448,9 +1448,9 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	{
 		handle_input(input);
 	}
-	
+
 	//
-	// If there's a filter, print it 
+	// If there's a filter, print it
 	//
 	if(vinfo->get_filter(m_parent->m_view_depth) != "")
 	{
@@ -1474,7 +1474,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 			wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 			m_ctext->printf("%c", vinfo->m_actions[j].m_hotkey);
 			wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-			m_ctext->printf(": %s (%s)\n", 
+			m_ctext->printf(": %s (%s)\n",
 				vinfo->m_actions[j].m_description.c_str(),
 				vinfo->m_actions[j].m_command.c_str());
 		}
@@ -1512,7 +1512,7 @@ sysdig_table_action curses_viewinfo_page::handle_input(int ch)
 
 	if(totlines < (int32_t)m_parent->m_screenh)
 	{
-		return STA_DESTROY_CHILD;			
+		return STA_DESTROY_CHILD;
 	}
 
 	switch(ch)
@@ -1558,7 +1558,7 @@ sysdig_table_action curses_viewinfo_page::handle_input(int ch)
 		break;
 	}
 
-	return STA_DESTROY_CHILD;	
+	return STA_DESTROY_CHILD;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1799,7 +1799,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf("Clicking on column headers lets you sort the table.\n" 
+	m_ctext->printf("Clicking on column headers lets you sort the table.\n"
 		"Double clicking on row entries performs a drill down.\n"
 		"Clicking on the filter string at the top of the screen lets you change the sysdig filter.\n"
 		"You can use the mouse on the entries in the menu at the bottom of the screen to perform their respective actions.\n");
@@ -1812,7 +1812,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf("csysdig is completely customizable. This means that you can modify any of the csysdig views, " 
+	m_ctext->printf("csysdig is completely customizable. This means that you can modify any of the csysdig views, "
 		"and even create your own views. Like sysdig chisels, csysdig views are Lua scripts. Full information can "
 		"be found at the following github wiki page: https://github.com/draios/sysdig/wiki/csysdig-View-Format-Reference.\n");
 
@@ -1861,13 +1861,13 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 
 	if(totlines < (int32_t)m_parent->m_screenh)
 	{
-		return STA_DESTROY_CHILD;			
+		return STA_DESTROY_CHILD;
 	}
 
 	switch(ch)
 	{
 		case KEY_RESIZE:
-			return STA_DESTROY_CHILD;	
+			return STA_DESTROY_CHILD;
 		case KEY_F(1):
 			return STA_NONE;
 		case 'q':
@@ -1906,7 +1906,7 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 		break;
 	}
 
-	return STA_DESTROY_CHILD;	
+	return STA_DESTROY_CHILD;
 }
 
 #endif // NOCURSESUI
