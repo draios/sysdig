@@ -20,8 +20,8 @@ set -e
 
 function install_rpm {
 	RPM_INSTALLER="yum"	
-	if [ $VERSION -ge 22 ]; then
-	         RPM_INSTALLER="dnf"
+	if hash dnf > /dev/null 2>&1; then
+		RPM_INSTALLER="dnf"
         fi
 	if ! hash curl > /dev/null 2>&1; then
 		echo "* Installing curl"
