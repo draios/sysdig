@@ -590,7 +590,7 @@ int sinsp_evt::render_fd_json(Json::Value *ret, int64_t fd, const char** resolve
 			//
 			string sanitized_str = fdinfo->m_name;
 
-			sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+			sanitize_string(sanitized_str);
 
 			(*ret)["typechar"] = typestr;
 			(*ret)["name"] = sanitized_str;
@@ -676,7 +676,7 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 			//
 			string sanitized_str = fdinfo->m_name;
 
-			sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+			sanitize_string(sanitized_str);
 
 			//
 			// Make sure the string will fit
@@ -897,7 +897,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			// Sanitize the file string.
 			//
             string sanitized_str = payload + 1;
-            sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+	    sanitize_string(sanitized_str);
 
 			ret = sanitized_str;
 		}
@@ -1069,7 +1069,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			// Sanitize the file string.
 			//
             string sanitized_str = payload + 17;
-            sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+	    sanitize_string(sanitized_str);
 
 			snprintf(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),
@@ -1653,7 +1653,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			// Sanitize the file string.
 			//
             string sanitized_str = payload + 1;
-            sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+	    sanitize_string(sanitized_str);
 
 			snprintf(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),
@@ -1780,7 +1780,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			// Sanitize the file string.
 			//
             string sanitized_str = payload + 17;
-            sanitized_str.erase(remove_if(sanitized_str.begin(), sanitized_str.end(), g_invalidchar()), sanitized_str.end());
+	    sanitize_string(sanitized_str);
 
 			snprintf(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),

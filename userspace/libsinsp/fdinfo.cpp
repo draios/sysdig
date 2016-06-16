@@ -124,7 +124,8 @@ template<> char* sinsp_fdinfo_t::get_typestring()
 template<> string sinsp_fdinfo_t::tostring_clean()
 {
 	string m_tstr = m_name;
-	m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+	sanitize_string(m_tstr);
+
 	return m_tstr;
 }
 
