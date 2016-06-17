@@ -1608,7 +1608,7 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 									m_marathon_api_server,
 									mesos::default_groups_api,
 									mesos::default_apps_api,
-									false, // no leader follow
+									m_marathon_api_server.empty(), // leader auto-follow if no uri
 									mesos::default_timeout_ms,
 									is_live,
 									m_verbose_json);
