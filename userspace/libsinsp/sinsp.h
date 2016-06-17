@@ -967,6 +967,7 @@ private:
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
 	friend class sinsp_network_interfaces;
+	friend class k8s_delegator;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

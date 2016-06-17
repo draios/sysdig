@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
 #endif
+#include <sys/ioctl.h>
 #include <algorithm> 
 #include <functional> 
 #include <errno.h>
@@ -1270,4 +1271,18 @@ std::string get_json_string(const Json::Value& obj, const std::string& name)
 		ret = json_val.asString();
 	}
 	return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// socket helpers
+///////////////////////////////////////////////////////////////////////////////
+
+bool set_socket_blocking(int sock, bool block)
+{
+	int arg = block ? 0 : 1;
+	if(ioctl(sock, FIONBIO, &arg) == -1)
+	{
+		return false;
+	}
+	return true;
 }

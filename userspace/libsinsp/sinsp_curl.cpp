@@ -202,20 +202,23 @@ size_t sinsp_curl::write_data(void *ptr, size_t size, size_t nmemb, void *cb)
 	return size * nmemb;
 }
 
-void sinsp_curl::check_error(unsigned ret)
+bool sinsp_curl::check_error(unsigned ret, bool exc)
 {
-	if(ret >= CURL_LAST)
+	if(ret >= CURL_LAST && exc)
 	{
 		throw sinsp_exception("Invalid CURL return value:" + std::to_string(ret));
 	}
+	else { return false; }
 
 	CURLcode res = (CURLcode)ret;
-	if(CURLE_OK != res && CURLE_AGAIN != res)
+	if(CURLE_OK != res && CURLE_AGAIN != res && exc)
 	{
 		std::ostringstream os;
 		os << "Error: " << curl_easy_strerror(res);
 		throw sinsp_exception(os.str());
 	}
+	else { return false; }
+	return true;
 }
 
 void sinsp_curl::dump(const char *text, unsigned char *ptr, size_t size, char nohex)
