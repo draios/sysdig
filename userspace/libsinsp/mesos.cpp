@@ -189,7 +189,9 @@ void mesos::rebuild_marathon_state(bool full)
 		}
 		if(m_state_http)
 		{
-			const mesos_http::marathon_uri_t& marathon_uris = m_state_http->get_marathon_uris();
+			const mesos_http::marathon_uri_t& marathon_uris = m_marathon_uris.empty() ?
+															  m_state_http->get_marathon_uris() :
+															  m_marathon_uris;
 			if(marathon_uris.size())
 			{
 				m_state.set_marathon_uri(marathon_uris[0]);
