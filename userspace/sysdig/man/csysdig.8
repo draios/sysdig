@@ -421,14 +421,14 @@ argument (e.g.
 <http://admin:password@127.0.0.1:5050>).
 Mesos url is required.
 Marathon url is optional, defaulting to auto\-follow \- if Marathon API
-server is not provided, sysdig will attempt to retrieve (and
+server is not provided, csysdig will attempt to retrieve (and
 subsequently follow, if it migrates) the location of Marathon API server
 from the Mesos master.
-Note that, with auto\-follow, sysdig will likely receive a cluster
-internal IP address for Marathon API server, so running sysdig with
+Note that, with auto\-follow, csysdig will likely receive a cluster
+internal IP address for Marathon API server, so running csysdig with
 Marathon auto\-follow from a node that is not part of Mesos cluster may
 not work.
-Additionally, running sydig with Mesos support on a node that has no
+Additionally, running csysdig with Mesos support on a node that has no
 containers managed by Mesos is of limited use because, although cluster
 metadata will be collected, there will be no Mesos/Marathon filtering
 capability.
