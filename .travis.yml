@@ -51,6 +51,15 @@ script:
     - make
     - sudo cp -r include/* /usr/local/include/
     - sudo cp src/libb64.a /usr/local/lib/
+    - cd ..
+    - wget http://download.draios.com/dependencies/jq-1.5.tar.gz
+    - tar -xzf jq-1.5.tar.gz
+    - cd jq-1.5
+    - ./configure --disable-maintainer-mode
+    - make LDFLAGS=-all-static
+    - sudo cp -r ./*.h /usr/local/include/
+    - sudo cp .libs/libjq.a /usr/local/lib/
+    - cd ..
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
     - sudo apt-get install libncurses5-dev libluajit-5.1-dev libcurl4-openssl-dev libssl-dev

@@ -63,9 +63,8 @@ public:
 class SINSP_PUBLIC sinsp_network_interfaces
 {
 public:
-	sinsp_network_interfaces(sinsp* inspector)
+	sinsp_network_interfaces(sinsp* inspector): m_inspector(inspector)
 	{
-		m_inspector = inspector;
 	}
 
 	void import_interfaces(scap_addrlist* paddrlist);

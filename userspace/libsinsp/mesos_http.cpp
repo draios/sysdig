@@ -36,13 +36,13 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master
 {
 	if(!m_sync_curl || !m_select_curl)
 	{
-		throw sinsp_exception("CURL initialization failed.");
+		throw sinsp_exception("Mesos http: CURL initialization failed.");
 	}
 
 	ASSERT(m_curl_version);
 	if((m_url.get_scheme() == "https") && (m_curl_version && !(m_curl_version->features | CURL_VERSION_SSL)))
 	{
-		throw sinsp_exception("HTTPS NOT supported");
+		throw sinsp_exception("Mesos: HTTPS NOT supported");
 	}
 
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
