@@ -66,6 +66,9 @@ k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, bool is
 		,m_net(uri.empty() ? 0 : new k8s_net(*this, uri, api, ssl, bt, curl_debug))
 #endif
 {
+	g_logger.log(std::string("Creating K8s object for [" +
+							 (uri.empty() ? std::string("capture replay") : uri) + ']'),
+							 sinsp_logger::SEV_DEBUG);
 	if (!uri.empty())
 	{
 		try
@@ -224,7 +227,7 @@ void k8s::simulate_watch_event(const std::string& json)
 	}
 
 	ASSERT(component_type < k8s_component::K8S_COMPONENT_COUNT);
-	m_dispatch[component_type]->extract_data(json, false);
+	m_dispatch[component_type]->extract_data(root, false);
 }
 
 std::size_t k8s::count(k8s_component::type component) const

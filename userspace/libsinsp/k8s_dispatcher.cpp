@@ -560,67 +560,72 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 	}
 }
 
+void k8s_dispatcher::extract_data(Json::Value& root, bool enqueue)
+{
+	std::ostringstream os;
+	msg_data data = get_msg_data(root);
+	if(data.is_valid())
+	{
+		std::ostringstream os;
+		os << '[' << to_reason_desc(data.m_reason) << ',';
+		switch (m_type)
+		{
+			case k8s_component::K8S_NODES:
+				os << "NODE,";
+				handle_node(root, data);
+				break;
+			case k8s_component::K8S_NAMESPACES:
+				os << "NAMESPACE,";
+				handle_namespace(root, data);
+				break;
+			case k8s_component::K8S_PODS:
+				os << "POD,";
+				handle_pod(root, data);
+				break;
+			case k8s_component::K8S_REPLICATIONCONTROLLERS:
+				os << "REPLICATION_CONTROLLER,";
+				handle_rc(root, data);
+				break;
+			case k8s_component::K8S_SERVICES:
+				os << "SERVICE,";
+				handle_service(root, data);
+				break;
+			case k8s_component::K8S_EVENTS:
+				os << "EVENT,";
+				if(m_event_filter)
+				{
+					handle_event(root, data);
+				}
+				break;
+			default:
+			{
+				std::ostringstream eos;
+				eos << "Unknown component: " << static_cast<int>(m_type);
+				throw sinsp_exception(os.str());
+			}
+		}
+		os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
+		g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+		//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
+		{
+			m_state.update_cache(m_type);
+#ifdef HAS_CAPTURE
+			if(enqueue)
+			{
+				m_state.enqueue_capture_event(root);
+			}
+#endif
+		}
+	}
+}
+
 void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 {
 	Json::Value root;
 	Json::Reader reader;
 	if(reader.parse(json, root, false))
 	{
-		std::ostringstream os;
-		msg_data data = get_msg_data(root);
-		if(data.is_valid())
-		{
-			std::ostringstream os;
-			os << '[' << to_reason_desc(data.m_reason) << ',';
-			switch (m_type)
-			{
-				case k8s_component::K8S_NODES:
-					os << "NODE,";
-					handle_node(root, data);
-					break;
-				case k8s_component::K8S_NAMESPACES:
-					os << "NAMESPACE,";
-					handle_namespace(root, data);
-					break;
-				case k8s_component::K8S_PODS:
-					os << "POD,";
-					handle_pod(root, data);
-					break;
-				case k8s_component::K8S_REPLICATIONCONTROLLERS:
-					os << "REPLICATION_CONTROLLER,";
-					handle_rc(root, data);
-					break;
-				case k8s_component::K8S_SERVICES:
-					os << "SERVICE,";
-					handle_service(root, data);
-					break;
-				case k8s_component::K8S_EVENTS:
-					os << "EVENT,";
-					if(m_event_filter)
-					{
-						handle_event(root, data);
-					}
-					break;
-				default:
-				{
-					std::ostringstream eos;
-					eos << "Unknown component: " << static_cast<int>(m_type);
-					throw sinsp_exception(os.str());
-				}
-			}
-			os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
-			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
-			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
-			{
-				m_state.update_cache(m_type);
-#ifdef HAS_CAPTURE
-				if(enqueue)
-				{
-					m_state.enqueue_capture_event(root);
-				}
-#endif
-			}
-		}
+		extract_data(root, enqueue);
 	}
 	else
 	{
