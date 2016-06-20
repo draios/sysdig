@@ -1,0 +1,2 @@
+#!/bin/bash
+brew update
