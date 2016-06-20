@@ -1,6 +1,7 @@
 language: c
 os:
     - linux
+    - osx
 env:
     - BUILD_TYPE=Debug
     - BUILD_TYPE=Release
