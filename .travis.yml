@@ -1,6 +1,6 @@
 language: c
 os:
-    - linux
+    #- linux
     - osx
 env:
     - BUILD_TYPE=Debug
