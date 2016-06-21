@@ -9,3 +9,4 @@ function install_if_not_present(){
 }
 install_if_not_present "cmake"
 install_if_not_present "luajit"
+install_if_not_present "coreutils"
