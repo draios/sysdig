@@ -1,12 +1,19 @@
 #!/bin/bash
 set -eu
 
-SCRIPT=$(readlink -f $0)
-BASEDIR=$(dirname $SCRIPT)
+unamestr=`uname`
+if [[ "$unamestr" == 'Linux' ]]; then
+    SCRIPT=$(readlink -f $0)
+    TMPBASE=${4:-$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)}
+elif [[ "$unamestr" == 'Darwin' ]]; then
+	SCRIPT=$(greadlink -f $0)
+	unset TMPDIR #make shure that mktemp on mac will generate the folder under /tmp
+    TMPBASE=${4:-$(mktemp -d -t sysdig)}
+fi
 
+BASEDIR=$(dirname $SCRIPT)
 SYSDIG=$1
 CHISELS=$2
-TMPBASE=${4:-$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)}
 TRACEDIR="${TMPBASE}/traces"
 RESULTDIR="${TMPBASE}/results"
 BASELINEDIR="${TMPBASE}/baseline"
