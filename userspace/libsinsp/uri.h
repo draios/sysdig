@@ -38,6 +38,7 @@ public:
 	std::string get_credentials() const;
 
 	std::string to_string(bool show_creds = true) const;
+	bool is_local() const;
 
 	// URI-encodes the given string by escaping reserved, ambiguous and non-ASCII
 	// characters. Returns the encoded string with uppercase hex letters (eg. %5B, not %5b).
@@ -111,4 +112,9 @@ inline std::string uri::get_credentials() const
 		creds.append(m_user).append(1, ':').append(m_password);
 	}
 	return creds;
+}
+
+inline bool uri::is_local() const
+{
+	return m_host == "localhost" || m_host == "127.0.0.1" || m_scheme == "file";
 }
