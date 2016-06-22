@@ -181,4 +181,5 @@ private:
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_protodecoder;
+	friend class sinsp_analyzer_parsers;
 };
