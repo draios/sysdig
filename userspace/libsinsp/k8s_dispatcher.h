@@ -51,6 +51,7 @@ public:
 	void enqueue(k8s_event_data&& data);
 
 	void extract_data(const std::string& json, bool enqueue = false);
+	void extract_data(Json::Value& root, bool enqueue = false);
 
 private:
 	const std::string& next_msg();

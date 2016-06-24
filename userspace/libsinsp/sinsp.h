@@ -969,6 +969,7 @@ private:
 	friend class sisnp_baseliner;
 
 	friend class sinsp_network_interfaces;
+	friend class k8s_delegator;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

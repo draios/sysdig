@@ -293,7 +293,7 @@ private:
 template<typename T>
 int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::locale())
 {
-	typename T::const_iterator it = std::search( str1.begin(), str1.end(),
+	typename T::const_iterator it = std::search(str1.begin(), str1.end(),
 		str2.begin(), str2.end(), ci_equal<typename T::value_type>(loc) );
 	if(it != str1.end()) { return it - str1.begin(); }
 	return -1;
@@ -320,3 +320,9 @@ struct ci_compare
 #endif // _WIN32
 	}
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// socket helpers
+///////////////////////////////////////////////////////////////////////////////
+
+bool set_socket_blocking(int sock, bool block);

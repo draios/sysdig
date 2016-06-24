@@ -32,10 +32,13 @@ public:
 	const std::string& get_query() const;
 	int get_port() const;
 
+	bool is(const std::string& proto);
+	bool is_file() const;
 	bool is_secure() const;
 	std::string get_credentials() const;
 
 	std::string to_string(bool show_creds = true) const;
+	bool is_local() const;
 
 	// URI-encodes the given string by escaping reserved, ambiguous and non-ASCII
 	// characters. Returns the encoded string with uppercase hex letters (eg. %5B, not %5b).
@@ -91,9 +94,14 @@ inline int uri::get_port() const
 	return m_port;
 }
 
+inline bool uri::is_file() const
+{
+	return m_scheme == "file";
+}
+
 inline bool uri::is_secure() const
 {
-	return "https" == m_scheme;
+	return m_scheme == "https";
 }
 
 inline std::string uri::get_credentials() const
@@ -104,4 +112,9 @@ inline std::string uri::get_credentials() const
 		creds.append(m_user).append(1, ':').append(m_password);
 	}
 	return creds;
+}
+
+inline bool uri::is_local() const
+{
+	return m_host == "localhost" || m_host == "127.0.0.1" || m_scheme == "file";
 }
