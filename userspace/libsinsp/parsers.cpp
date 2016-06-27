@@ -3949,6 +3949,18 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_image = image.asString();
 		}
+		const Json::Value& contip = container["ip"];
+		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
+		{
+			uint32_t ip;
+
+			if(inet_pton(AF_INET, contip.asString().c_str(), &ip) == -1)
+			{
+				throw sinsp_exception("Invalid 'ip' field while parsing container info: " + json);
+			}
+
+			container_info.m_container_ip = ip;
+		}
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
 		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
 		{
@@ -3965,7 +3977,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	}
 	else
 	{
-		g_logger.log("Invalid JSON encountered while parsing container info: " + json, sinsp_logger::SEV_ERROR);
+		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json);
 	}
 }
 
