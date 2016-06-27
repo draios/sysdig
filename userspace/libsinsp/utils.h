@@ -68,9 +68,9 @@ public:
 	// Concatenate two paths and puts the result in "target".
 	// If path2 is relative, the concatenation happens and the result is true.
 	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.
-	// Assumes that path1 is well formed. 
+	// Assumes that path1 is well formed.
 	//
-	static bool concatenate_paths(char* target, uint32_t targetlen, const char* path1, uint32_t len1, const char* path2, uint32_t len2); 
+	static bool concatenate_paths(char* target, uint32_t targetlen, const char* path1, uint32_t len1, const char* path2, uint32_t len2);
 
 	//
 	// Determines if an IPv6 address is IPv4-mapped
@@ -100,18 +100,43 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 // little STL thing to sanitize strings
 ///////////////////////////////////////////////////////////////////////////////
+
+inline bool is_invalid_char(char c)
+{
+	if(c < -1)
+	{
+		return true;
+	}
+
+	return !isprint((unsigned)c);
+}
+
 struct g_invalidchar
 {
-    bool operator()(char c) const 
+    bool operator()(char c) const
 	{
-		if(c < -1)
-		{
-			return true;
-		}
-
-		return !isprint((unsigned)c);
+		return is_invalid_char(c);
     }
 };
+
+inline void sanitize_string(string &str)
+{
+	uint32_t j=0, k=0;
+
+	while(k < str.length())
+	{
+		if(is_invalid_char(str[k]))
+		{
+			k++;
+		}
+		else
+		{
+			str[j++] = str[k++];
+		}
+	}
+
+	str.resize(j);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
@@ -123,7 +148,7 @@ time_t get_epoch_utc_seconds_now();
 // Time functions for Windows
 
 #ifdef _WIN32
-struct timezone2 
+struct timezone2
 {
 	int32_t  tz_minuteswest;
 	bool  tz_dsttime;
