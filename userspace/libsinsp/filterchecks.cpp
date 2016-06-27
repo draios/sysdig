@@ -247,7 +247,8 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 				namelen);
 
 			m_tstr = fullpath;
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
+
 			return true;
 		}
 	default:
@@ -292,7 +293,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 		if(extract_fdname_from_creator(evt, len) == true)
 		{
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -318,7 +319,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 		if(extract_fdname_from_creator(evt, len) == true)
 		{
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -351,7 +352,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 
 		if(extract_fdname_from_creator(evt, len) == true)
 		{
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -472,7 +473,8 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = m_fdinfo->m_name;
 		}
 
-		m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+		sanitize_string(m_tstr);
+
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_FDTYPE:
 		if(m_fdinfo == NULL)
@@ -495,7 +497,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = m_fdinfo->m_name;
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			if(m_fdinfo->is_file())
 			{
@@ -533,7 +535,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = m_fdinfo->m_name;
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
