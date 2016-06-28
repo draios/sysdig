@@ -708,12 +708,12 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 {
 #ifndef _WIN32
 
-	time_t     epoch_time_s = 0;
-	string     event_name;
-	string     description;
-	severity_t severity = sinsp_logger::SEV_EVT_INFORMATION;
-	string     scope;
-	tag_map_t  tags;
+	time_t      epoch_time_s = 0;
+	std::string event_name;
+	std::string description;
+	severity_t  severity = sinsp_logger::SEV_EVT_INFORMATION;
+	std::string scope;
+	tag_map_t   tags;
 
 	const Json::Value& obj = item["involvedObject"];
 	if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
@@ -771,7 +771,7 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	// For that reason, we try to obtain info about involved object from state; if object is
 	// not found in state (due to undefined arrival order of event and metadata messages),
 	// we get scope data from the event itself.
-	string component_uid = get_json_string(obj, "uid");
+	std::string component_uid = get_json_string(obj, "uid");
 	if(!component_uid.empty())
 	{
 		std::string t;
