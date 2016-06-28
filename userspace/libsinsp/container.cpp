@@ -409,7 +409,8 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["image"] = container_info.m_image;
 
 	char addrbuff[100];
-	inet_ntop(AF_INET, &container_info.m_container_ip, addrbuff, sizeof(addrbuff));
+	uint32_t iph = ntohl(container_info.m_container_ip);
+	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
 	if(!container_info.m_mesos_task_id.empty())

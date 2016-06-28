@@ -3984,7 +3984,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 				throw sinsp_exception("Invalid 'ip' field while parsing container info: " + json);
 			}
 
-			container_info.m_container_ip = ip;
+			container_info.m_container_ip = ntohl(ip);
 		}
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
 		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
