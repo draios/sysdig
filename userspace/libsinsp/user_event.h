@@ -21,7 +21,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <mutex>
 #include <algorithm>
+#include <string>
 #include <set>
+#include <unordered_map>
 
 //
 // user-configured event meta
@@ -188,18 +190,18 @@ public:
 
 	sinsp_user_event();
 
-	sinsp_user_event(uint64_t epoch_time_s, string&& name, string&& desc,
-		string&& scope, tag_map_t&& tags, uint32_t sev);
+	sinsp_user_event(uint64_t epoch_time_s, std::string&& name, std::string&& desc,
+		std::string&& scope, tag_map_t&& tags, uint32_t sev);
 
 	sinsp_user_event(sinsp_user_event&& other);
 
 	sinsp_user_event& operator=(sinsp_user_event&& other);
 
 	uint64_t epoch_time_s() const;
-	const string& name() const;
-	const string& description() const;
+	const std::string& name() const;
+	const std::string& description() const;
 	uint32_t severity() const;
-	const string& scope() const;
+	const std::string& scope() const;
 	const tag_map_t& tags() const;
 
 	static std::string to_string(uint64_t timestamp,
@@ -211,11 +213,11 @@ public:
 
 private:
 	uint64_t  m_epoch_time_s;
-	string    m_name;
-	string    m_description;
-	uint32_t  m_severity;
-	string    m_scope;
-	tag_map_t m_tags;
+	std::string m_name;
+	std::string m_description;
+	uint32_t    m_severity;
+	std::string m_scope;
+	tag_map_t   m_tags;
 };
 
 inline uint64_t sinsp_user_event::epoch_time_s() const
@@ -223,12 +225,12 @@ inline uint64_t sinsp_user_event::epoch_time_s() const
 	return m_epoch_time_s;
 }
 
-inline const string& sinsp_user_event::name() const
+inline const std::string& sinsp_user_event::name() const
 {
 	return m_name;
 }
 
-inline const string& sinsp_user_event::description() const
+inline const std::string& sinsp_user_event::description() const
 {
 	return m_description;
 }
@@ -238,7 +240,7 @@ inline uint32_t sinsp_user_event::severity() const
 	return m_severity;
 }
 
-inline const string& sinsp_user_event::scope() const
+inline const std::string& sinsp_user_event::scope() const
 {
 	return m_scope;
 }
