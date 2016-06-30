@@ -189,7 +189,7 @@ public:
 				{
 					iolen = send(m_watch_socket, m_request.c_str(), m_request.size(), 0);
 				}
-				if(iolen == req.size()) { break; }
+				if(iolen == static_cast<int>(req.size())) { break; }
 				else if(iolen == 0 || errno == ENOTCONN || errno == EPIPE)
 				{
 					goto connection_closed;
