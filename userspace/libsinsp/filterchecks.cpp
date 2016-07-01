@@ -2240,6 +2240,8 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_read", "'true' for open/openat events where the path was opened for reading"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_write", "'true' for open/openat events where the path was opened for writing"},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -3743,6 +3745,44 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 		}
 
+		break;
+	case TYPE_ISOPEN_READ:
+	case TYPE_ISOPEN_WRITE:
+		{
+			uint16_t etype = evt->get_type();
+
+			m_u32val = 0;
+
+			if(etype == PPME_SYSCALL_OPEN_X ||
+			   etype == PPME_SYSCALL_OPENAT_E)
+			{
+				sinsp_evt_param *parinfo;
+
+				// Just happens to be the case that
+				// flags is the 3rd argument for
+				// both events.
+				parinfo = evt->get_param(2);
+				ASSERT(parinfo->m_len == sizeof(uint32_t));
+				uint32_t flags = *(uint32_t *)parinfo->m_val;
+
+				// PPM open flags use 0x11 for
+				// PPM_O_RDWR, so there's no need to
+				// check that value explicitly.
+				if(m_field_id == TYPE_ISOPEN_READ &&
+				   flags & PPM_O_RDONLY)
+				{
+					m_u32val = 1;
+				}
+
+				if(m_field_id == TYPE_ISOPEN_WRITE &&
+				   flags & PPM_O_WRONLY)
+				{
+					m_u32val = 1;
+				}
+			}
+
+			return (uint8_t*)&m_u32val;
+		}
 		break;
 	default:
 		ASSERT(false);
