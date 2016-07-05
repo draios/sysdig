@@ -1039,7 +1039,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 					char dststr[INET6_ADDRSTRLEN];
 
 					if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
-						inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
+						inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr)))
 					{
 						Json::Value source;
 						Json::Value dest;
@@ -1753,7 +1753,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					char srcstr[INET6_ADDRSTRLEN];
 					char dststr[INET6_ADDRSTRLEN];
 					if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
-						inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
+						inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr)))
 					{
 						snprintf(&m_paramstr_storage[0],
 								 m_paramstr_storage.size(),
