@@ -1689,8 +1689,7 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 		m_k8s_client = new k8s(*m_k8s_api_server,
 			is_live ? true : false, // watch
 			false, // don't run watch in thread
-			is_live ? true : false, // capture
-			"/api/v1"
+			is_live ? true : false // capture
 #ifdef HAS_CAPTURE
 			,k8s_ssl
 			,k8s_bt

@@ -69,6 +69,15 @@ public:
 	void emplace_rc(k8s_rc_t&& rc);
 
 	//
+	// replica sets
+	//
+
+	const k8s_replicasets& get_rss() const;
+	k8s_replicasets& get_rss();
+	void push_rs(const k8s_rs_t& rs);
+	void emplace_rs(k8s_rs_t&& rs);
+
+	//
 	// services
 	//
 
@@ -76,6 +85,24 @@ public:
 	k8s_services& get_services();
 	void push_service(const k8s_service_t& service);
 	void emplace_service(k8s_service_t&& service);
+
+	//
+	// daemonsets
+	//
+
+	const k8s_daemonsets& get_daemonsets() const;
+	k8s_daemonsets& get_daemonsets();
+	void push_daemonset(const k8s_daemonset_t& daemonset);
+	void emplace_daemonset(k8s_daemonset_t&& daemonset);
+
+	//
+	// deployments
+	//
+
+	const k8s_deployments& get_deployments() const;
+	k8s_deployments& get_deployments();
+	void push_deployment(const k8s_deployment_t& deployment);
+	void emplace_deployment(k8s_deployment_t&& deployment);
 
 	//
 	// events
@@ -314,7 +341,10 @@ private:
 	k8s_nodes       m_nodes;
 	k8s_pods        m_pods;
 	k8s_controllers m_controllers;
+	k8s_replicasets m_replicasets;
 	k8s_services    m_services;
+	k8s_daemonsets  m_daemonsets;
+	k8s_deployments m_deployments;
 	k8s_events      m_events;
 	// map for uid/type cache for all components
 	// used by to quickly lookup any component by uid
@@ -414,6 +444,27 @@ inline void k8s_state_t::emplace_rc(k8s_rc_t&& rc)
 	m_controllers.emplace_back(std::move(rc));
 }
 
+// replica sets
+inline const k8s_replicasets& k8s_state_t::get_rss() const
+{
+	return m_replicasets;
+}
+
+inline k8s_replicasets& k8s_state_t::get_rss()
+{
+	return m_replicasets;
+}
+
+inline void k8s_state_t::push_rs(const k8s_rs_t& rs)
+{
+	m_replicasets.push_back(rs);
+}
+
+inline void k8s_state_t::emplace_rs(k8s_rs_t&& rs)
+{
+	m_replicasets.emplace_back(std::move(rs));
+}
+
 // services
 inline const k8s_services& k8s_state_t::get_services() const
 {
@@ -433,6 +484,48 @@ inline void k8s_state_t::push_service(const k8s_service_t& service)
 inline void k8s_state_t::emplace_service(k8s_service_t&& service)
 {
 	m_services.emplace_back(std::move(service));
+}
+
+// daemonsets
+inline const k8s_daemonsets& k8s_state_t::get_daemonsets() const
+{
+	return m_daemonsets;
+}
+
+inline k8s_daemonsets& k8s_state_t::get_daemonsets()
+{
+	return m_daemonsets;
+}
+
+inline void k8s_state_t::push_daemonset(const k8s_daemonset_t& daemonset)
+{
+	m_daemonsets.push_back(daemonset);
+}
+
+inline void k8s_state_t::emplace_daemonset(k8s_daemonset_t&& daemonset)
+{
+	m_daemonsets.emplace_back(std::move(daemonset));
+}
+
+// deployments
+inline const k8s_deployments& k8s_state_t::get_deployments() const
+{
+	return m_deployments;
+}
+
+inline k8s_deployments& k8s_state_t::get_deployments()
+{
+	return m_deployments;
+}
+
+inline void k8s_state_t::push_deployment(const k8s_deployment_t& deployment)
+{
+	m_deployments.push_back(deployment);
+}
+
+inline void k8s_state_t::emplace_deployment(k8s_deployment_t&& deployment)
+{
+	m_deployments.emplace_back(std::move(deployment));
 }
 
 // events

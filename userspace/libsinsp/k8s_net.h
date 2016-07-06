@@ -23,12 +23,13 @@ class k8s_net
 public:
 	typedef sinsp_curl::ssl::ptr_t          ssl_ptr_t;
 	typedef sinsp_curl::bearer_token::ptr_t bt_ptr_t;
+	typedef k8s_component::ext_list_ptr_t ext_list_ptr_t;
 
 	k8s_net(k8s& kube, const std::string& uri = "http://localhost:80",
-		const std::string& api = "/api/v1/",
-		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0,
-		bool curl_debug = false);
+		ssl_ptr_t ssl = nullptr,
+		bt_ptr_t bt = nullptr,
+		bool curl_debug = false,
+		ext_list_ptr_t extensions = nullptr);
 
 	~k8s_net();
 
@@ -59,19 +60,18 @@ private:
 
 	typedef std::map<k8s_component::type, k8s_http*> api_map_t;
 
-	k8s&          m_k8s;
-	uri           m_uri;
-	std::string   m_creds;
-	std::string   m_api;
-	ssl_ptr_t     m_ssl;
-	bt_ptr_t      m_bt;
-	bool          m_stopped;
-	api_map_t     m_api_interfaces;
-	k8s_collector m_collector;
+	k8s&           m_k8s;
+	uri            m_uri;
+	ssl_ptr_t      m_ssl;
+	bt_ptr_t       m_bt;
+	bool           m_stopped;
+	api_map_t      m_api_interfaces;
+	k8s_collector  m_collector;
+	bool           m_curl_debug;
+	ext_list_ptr_t m_extensions;
 #ifndef K8S_DISABLE_THREAD
-	std::thread* m_thread;
+	std::thread*   m_thread;
 #endif
-	bool          m_curl_debug;
 };
 
 inline bool k8s_net::is_secure()

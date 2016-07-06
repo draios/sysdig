@@ -74,7 +74,10 @@ const k8s_component::type_map k8s_component::list =
 	{ k8s_component::K8S_NAMESPACES,             "namespaces"             },
 	{ k8s_component::K8S_PODS,                   "pods"                   },
 	{ k8s_component::K8S_REPLICATIONCONTROLLERS, "replicationcontrollers" },
+	{ k8s_component::K8S_REPLICASETS,            "replicasets"            },
 	{ k8s_component::K8S_SERVICES,               "services"               },
+	{ k8s_component::K8S_DAEMONSETS,             "daemonsets"             },
+	{ k8s_component::K8S_DEPLOYMENTS,            "deployments"            },
 	{ k8s_component::K8S_EVENTS,                 "events"                 }
 };
 
@@ -95,7 +98,7 @@ k8s_pair_list k8s_component::extract_object(const Json::Value& object, const std
 			for (auto& member : members)
 			{
 				Json::Value val = entries[member];
-				if(!val.isNull())
+				if(!val.isNull() && val.isString())
 				{
 					entry_list.emplace_back(k8s_pair_t(member, val.asString()));
 				}
@@ -335,7 +338,6 @@ void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_t
 	}
 }
 
-
 std::string k8s_component::get_name(type t)
 {
 	switch (t)
@@ -348,8 +350,14 @@ std::string k8s_component::get_name(type t)
 		return "pods";
 	case K8S_REPLICATIONCONTROLLERS:
 		return "replicationcontrollers";
+	case K8S_REPLICASETS:
+		return "replicasets";
 	case K8S_SERVICES:
 		return "services";
+	case K8S_DAEMONSETS:
+		return "daemonsets";
+	case K8S_DEPLOYMENTS:
+		return "deployments";
 	case K8S_EVENTS:
 		return "events";
 	case K8S_COMPONENT_COUNT:
@@ -380,9 +388,21 @@ k8s_component::type k8s_component::get_type(const std::string& name)
 	{
 		return K8S_REPLICATIONCONTROLLERS;
 	}
+	else if(name == "replicasets")
+	{
+		return K8S_REPLICASETS;
+	}
 	else if(name == "services")
 	{
 		return K8S_SERVICES;
+	}
+	else if(name == "daemonsets")
+	{
+		return K8S_DAEMONSETS;
+	}
+	else if(name == "deployments")
+	{
+		return K8S_DEPLOYMENTS;
 	}
 	else if(name == "events")
 	{
@@ -390,8 +410,50 @@ k8s_component::type k8s_component::get_type(const std::string& name)
 	}
 
 	std::ostringstream os;
-	os << "Unknown component name " << name;
+	os << "K8s: Unknown component name " << name;
 	throw sinsp_exception(os.str().c_str());
+}
+
+std::string k8s_component::get_api(type t, ext_list_ptr_t extensions)
+{
+	switch (t)
+	{
+	case K8S_NAMESPACES:
+	case K8S_NODES:
+	case K8S_PODS:
+	case K8S_REPLICATIONCONTROLLERS:
+	case K8S_SERVICES:
+	case K8S_EVENTS:
+		return "/api/v1/";
+	case K8S_REPLICASETS:
+	case K8S_DAEMONSETS:
+	case K8S_DEPLOYMENTS:
+		if(extensions && extensions->find("v1beta1") != extensions->end())
+		{
+			return "/apis/extensions/v1beta1/";
+		}
+		else
+		{
+			return "";
+		}
+	case K8S_COMPONENT_COUNT:
+	default:
+		break;
+	}
+
+	std::ostringstream os;
+	os << "K8s: Unknown component type " << static_cast<int>(t);
+	throw sinsp_exception(os.str().c_str());
+}
+
+std::string k8s_component::get_api(const component_pair& p, ext_list_ptr_t extensions)
+{
+	return get_api(p.first, extensions);
+}
+
+std::string k8s_component::get_api(const std::string& name, ext_list_ptr_t extensions)
+{
+	return get_api(get_type(name), extensions);
 }
 
 k8s_pair_t* k8s_component::get_label(const k8s_pair_t& label)
@@ -553,11 +615,61 @@ k8s_container* k8s_pod_t::get_container(const std::string& container_name)
 	return 0;
 }
 
+
+//
+// replicas
+//
+
+k8s_replicas_t::k8s_replicas_t(int spec_replicas, int stat_replicas):
+	m_spec_replicas(spec_replicas),
+	m_stat_replicas(stat_replicas)
+{
+}
+
+int k8s_replicas_t::get_count(const Json::Value& item, const std::string& replica_name)
+{
+	if(!item.isNull())
+	{
+		const Json::Value& replicas = item[replica_name];
+		if(!replicas.isNull() && replicas.isConvertibleTo(Json::intValue))
+		{
+			return replicas.asInt();
+		}
+	}
+
+	std::string name;
+	const Json::Value& tpl = item["template"];
+	if(!tpl.isNull())
+	{
+		const Json::Value& md = tpl["metadata"];
+		if(!md.isNull())
+		{
+			const Json::Value& lbl = md["labels"];
+			if(!lbl.isNull())
+			{
+				const Json::Value& n = lbl["name"];
+				if(!n.isNull() && n.isString())
+				{
+					name = n.asString();
+				}
+			}
+		}
+	}
+
+	g_logger.log("K8s: Can not determine number of replicas" +
+				 (name.empty() ? std::string() : std::string(" for ").append(name)),
+				 sinsp_logger::SEV_ERROR);
+
+	return k8s_replicas_t::UNKNOWN_REPLICAS;
+}
+
+
 //
 // replication controller
 //
-k8s_rc_t::k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns) : 
-	k8s_component(COMPONENT_TYPE, name, uid, ns)
+
+k8s_rc_t::k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns, k8s_component::type type) : 
+	k8s_component(type, name, uid, ns)
 {
 }
 
@@ -574,23 +686,19 @@ std::vector<const k8s_pod_t*> k8s_rc_t::get_selected_pods(const std::vector<k8s_
 	return pod_vec;
 }
 
-int k8s_rc_t::get_replica(const Json::Value& item)
+//
+// replica set
+//
+k8s_rs_t::k8s_rs_t(const std::string& name, const std::string& uid, const std::string& ns) : 
+	k8s_rc_t(name, uid, ns, COMPONENT_TYPE)
 {
-	if(!item.isNull())
-	{
-		const Json::Value& replicas = item["replicas"];
-		if(!replicas.isNull() && replicas.isConvertibleTo(Json::intValue))
-		{
-			return replicas.asInt();
-		}
-	}
-	g_logger.log("Can not determine number of replicas for K8s replication controller.", sinsp_logger::SEV_ERROR);
-	return UNKNOWN_REPLICAS;
 }
+
 
 //
 // service
 //
+
 k8s_service_t::k8s_service_t(const std::string& name, const std::string& uid, const std::string& ns) : 
 	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
@@ -607,6 +715,26 @@ std::vector<const k8s_pod_t*> k8s_service_t::get_selected_pods(const std::vector
 		}
 	}
 	return pod_vec;
+}
+
+
+//
+// daemon set
+//
+
+k8s_daemonset_t::k8s_daemonset_t(const std::string& name, const std::string& uid, const std::string& ns) : 
+	k8s_component(COMPONENT_TYPE, name, uid, ns)
+{
+}
+
+
+//
+// deployment
+//
+
+k8s_deployment_t::k8s_deployment_t(const std::string& name, const std::string& uid, const std::string& ns) : 
+	k8s_component(COMPONENT_TYPE, name, uid, ns)
+{
 }
 
 //
