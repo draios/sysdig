@@ -310,7 +310,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 				const Json::Value& name = metadata["name"];
 				if(!name.isNull() && name.isString())
 				{
-					Json::Value uid = metadata["uid"];
+					const Json::Value& uid = metadata["uid"];
 					if(!uid.isNull() && uid.isString())
 					{
 						m_state.add_common_single_value(component, name.asString(), uid.asString(), nspace);
@@ -382,15 +382,18 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 
 			case k8s_component::K8S_PODS:
 				{
-					k8s_pods& p = m_state.get_pods();
-					if(p.size())
+					if(k8s_component::is_pod_active(item))
 					{
-						component_kind = "Pod";
-						component_name = p.back().get_name();
-						component_uid = p.back().get_uid();
-						component_ns = p.back().get_namespace();
-						k8s_pod_t& pod = p.back();
-						m_state.update_pod(pod, item);
+						k8s_pods& p = m_state.get_pods();
+						if(p.size())
+						{
+							component_kind = "Pod";
+							component_name = p.back().get_name();
+							component_uid = p.back().get_uid();
+							component_ns = p.back().get_namespace();
+							k8s_pod_t& pod = p.back();
+							m_state.update_pod(pod, item);
+						}
 					}
 				}
 				break;

@@ -153,8 +153,9 @@ public:
 
 	virtual std::string get_node_name() const;
 
-	// extracts labels or selectors
 	static k8s_pair_list extract_object(const Json::Value& object, const std::string& name);
+
+	static bool is_pod_active(const Json::Value& item);
 
 	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
 
