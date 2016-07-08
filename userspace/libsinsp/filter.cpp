@@ -173,8 +173,17 @@ bool flt_compare_uint64(cmpop op, uint64_t operand1, uint64_t operand2)
 		return (operand1 > operand2);
 	case CO_GE:
 		return (operand1 >= operand2);
-	default:
+	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
+		return false;
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for numeric filters");
+		return false;
+	case CO_STARTSWITH:
+		throw sinsp_exception("'startswith' not supported for numeric filters");
+		return false;
+	default:
+		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
 	}
 }
@@ -201,6 +210,9 @@ bool flt_compare_int64(cmpop op, int64_t operand1, int64_t operand2)
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for numeric filters");
 		return false;
+	case CO_STARTSWITH:
+		throw sinsp_exception("'startswith' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
@@ -223,6 +235,8 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 #else
 		return (strcasestr(operand1, operand2) != NULL);
 #endif
+	case CO_STARTSWITH:
+		return (strncmp(operand1, operand2, strlen(operand2)) == 0);
 	case CO_LT:
 		return (strcmp(operand1, operand2) < 0);
 	case CO_LE:
@@ -250,6 +264,8 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		return (memmem(operand1, op1_len, operand2, op2_len) != NULL);
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for buffer filters");
+	case CO_STARTSWITH:
+		return (memcmp(operand1, operand2, op2_len) == 0);
 	case CO_LT:
 		throw sinsp_exception("'<' not supported for buffer filters");
 	case CO_LE:
@@ -281,8 +297,17 @@ bool flt_compare_double(cmpop op, double operand1, double operand2)
 		return (operand1 > operand2);
 	case CO_GE:
 		return (operand1 >= operand2);
-	default:
+	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
+		return false;
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for numeric filters");
+		return false;
+	case CO_STARTSWITH:
+		throw sinsp_exception("'startswith' not supported for numeric filters");
+		return false;
+	default:
+		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
 	}
 }
@@ -297,6 +322,15 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 	}
 	case CO_NE:
 		return ((operand1 & operand2->m_netmask) != (operand2->m_ip && operand2->m_netmask));
+	case CO_CONTAINS:
+		throw sinsp_exception("'contains' not supported for numeric filters");
+		return false;
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for numeric filters");
+		return false;
+	case CO_STARTSWITH:
+		throw sinsp_exception("'startswith' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("comparison operator not supported for ipv4 networks");
 	}
@@ -1514,6 +1548,11 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 	{
 		m_scanpos += 9;
 		return CO_ICONTAINS;
+	}
+	else if(compare_no_consume("startswith"))
+	{
+		m_scanpos += 10;
+		return CO_STARTSWITH;
 	}
 	else if(compare_no_consume("in"))
 	{
