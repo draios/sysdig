@@ -110,7 +110,7 @@ private:
 
 	void handle_node(const Json::Value& root, const msg_data& data);
 	void handle_namespace(const Json::Value& root, const msg_data& data);
-	void handle_pod(const Json::Value& root, const msg_data& data);
+	bool handle_pod(const Json::Value& root, const msg_data& data);
 	void handle_service(const Json::Value& root, const msg_data& data);
 	void handle_deployment(const Json::Value& root, const msg_data& data);
 	void handle_daemonset(const Json::Value& root, const msg_data& data);

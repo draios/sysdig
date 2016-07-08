@@ -314,7 +314,7 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 	}
 }
 
-void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
+bool k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 {
 	if(data.m_reason == COMPONENT_ADDED)
 	{
@@ -327,9 +327,16 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 				os << "ADDED message received for existing pod [" << data.m_uid << "], updating only.";
 				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 			}
-			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
-			handle_labels(pod, object["metadata"], "labels");
-			m_state.update_pod(pod, object);
+			if(k8s_component::is_pod_active(object))
+			{
+				k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
+				handle_labels(pod, object["metadata"], "labels");
+				m_state.update_pod(pod, object);
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
@@ -342,11 +349,18 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 				std::ostringstream os;
 				os << "MODIFIED message received for non-existing pod [" << data.m_uid << "], giving up.";
 				g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
-				return;
+				return false;
 			}
-			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
-			handle_labels(pod, object["metadata"], "labels");
-			m_state.update_pod(pod, object);
+			if(k8s_component::is_pod_active(object))
+			{
+				k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
+				handle_labels(pod, object["metadata"], "labels");
+				m_state.update_pod(pod, object);
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 	else if(data.m_reason == COMPONENT_DELETED)
@@ -357,11 +371,13 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 			if(!m_state.delete_component(m_state.get_pods(), data.m_uid))
 			{
 				g_logger.log(std::string("Error deleting POD: ") + data.m_name, sinsp_logger::SEV_ERROR);
+				return false;
 			}
 		}
 		else
 		{
 			g_logger.log(std::string("POD not found: ") + data.m_name, sinsp_logger::SEV_WARNING);
+			return false;
 		}
 	}
 	else if(data.m_reason == COMPONENT_ERROR)
@@ -371,7 +387,9 @@ void k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 	else
 	{
 		g_logger.log(std::string("Unsupported K8S POD event reason: ") + std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
+		return false;
 	}
+	return true;
 }
 
 void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& data)
@@ -651,8 +669,8 @@ void k8s_dispatcher::extract_data(Json::Value& root, bool enqueue)
 				break;
 			case k8s_component::K8S_PODS:
 				os << "POD,";
-				handle_pod(root, data);
-				break;
+				if(handle_pod(root, data)) { break; }
+				else { return; }
 			case k8s_component::K8S_REPLICATIONCONTROLLERS:
 				os << "REPLICATION_CONTROLLER,";
 				handle_rc(root, data, m_state.get_rcs(), "replication controller");
