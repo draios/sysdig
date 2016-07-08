@@ -33,7 +33,6 @@ public:
 		bool start_watch = false,
 		bool watch_in_thread = false,
 		bool is_captured = false,
-		//const std::string& api = "/api/v1/",
 #ifdef HAS_CAPTURE
 		ssl_ptr_t ssl = 0,
 		bt_ptr_t bt = 0,

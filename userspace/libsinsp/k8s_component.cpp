@@ -431,6 +431,28 @@ k8s_component::type k8s_component::get_type(const std::string& name)
 	throw sinsp_exception(os.str().c_str());
 }
 
+std::string k8s_component::get_selector(type t)
+{
+	switch (t)
+	{
+	case K8S_PODS:
+		return "?fieldSelector=status.phase%3DRunning";
+	default:
+		break;
+	}
+	return "";
+}
+
+std::string k8s_component::get_selector(const component_pair& p)
+{
+	return get_selector(p.first);
+}
+
+std::string k8s_component::get_selector(const std::string& name)
+{
+	return get_selector(get_type(name));
+}
+
 std::string k8s_component::get_api(type t, ext_list_ptr_t extensions)
 {
 	switch (t)

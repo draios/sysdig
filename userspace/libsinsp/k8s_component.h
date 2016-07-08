@@ -176,10 +176,12 @@ public:
 	static type get_type(const std::string& name);
 
 	static std::string get_api(type t, ext_list_ptr_t extensions = nullptr);
-
 	static std::string get_api(const component_pair& p, ext_list_ptr_t extensions = nullptr);
-
 	static std::string get_api(const std::string& name, ext_list_ptr_t extensions = nullptr);
+
+	static std::string get_selector(type t);
+	static std::string get_selector(const component_pair& p);
+	static std::string get_selector(const std::string& name);
 
 	bool selector_in_labels(const k8s_pair_t& selector, const k8s_pair_list& labels) const;
 
