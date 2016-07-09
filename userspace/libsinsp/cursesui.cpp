@@ -1054,7 +1054,6 @@ void sinsp_cursesui::populate_view_sidemenu(string field, vector<sidemenu_list_e
 	uint32_t k = 0;
 
 	viewlist->clear();
-
 	uint64_t bpos = field.find('[');
 	if(bpos != string::npos)
 	{
@@ -1329,7 +1328,7 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 				psv->get_key(), psinfo->m_view_filter,
 				m_prev_selected_view, m_selected_view_sidemenu_entry, 
 				NULL, psv->m_sortingcol, m_manual_filter, m_is_filter_sysdig,
-				m_datatable->is_sorting_ascending());
+				m_datatable->is_sorting_ascending(), false);
 		}
 		else
 		{
@@ -1337,7 +1336,7 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 				psv->get_key(), "",
 				m_prev_selected_view, m_selected_view_sidemenu_entry, 
 				NULL, psv->m_sortingcol, m_manual_filter, m_is_filter_sysdig,
-				m_datatable->is_sorting_ascending());		
+				m_datatable->is_sorting_ascending(), false);
 		}
 	}
 #endif
@@ -1465,7 +1464,7 @@ void sinsp_cursesui::spy_selection(string field, string val,
 		m_views.at(m_selected_view)->get_filter(m_view_depth),
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
-		m_datatable->is_sorting_ascending());
+		m_datatable->is_sorting_ascending(), true);
 
 	if(is_dig)
 	{
@@ -1565,7 +1564,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 		column_info, vfilter,
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig,
-		m_datatable->is_sorting_ascending());
+		m_datatable->is_sorting_ascending(), true);
 
 	m_selected_view = new_view_num;
 
@@ -1704,6 +1703,8 @@ bool sinsp_cursesui::drillup()
 		// Do the drillup
 		//
 		string field;
+		sinsp_ui_selection_info* psinfo = NULL;
+
 		sinsp_ui_selection_info* sinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
 		bool is_spctro_app = false;
 
@@ -1716,7 +1717,7 @@ bool sinsp_cursesui::drillup()
 
 		if(m_sel_hierarchy.size() > 1)
 		{
-			sinsp_ui_selection_info* psinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 2);
+			psinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 2);
 			field = psinfo->m_field;
 		}
 
@@ -1728,7 +1729,10 @@ bool sinsp_cursesui::drillup()
 		if(m_views.at(m_selected_view)->m_drilldown_increase_depth &&
 			!is_spctro_app)
 		{
-			m_view_depth--;
+			if(sinfo != NULL && sinfo->m_is_drilldown)
+			{
+				m_view_depth--;
+			}
 		}
 
 		if(m_views.at(m_selected_view)->m_type == sinsp_view_info::T_SPECTRO)
