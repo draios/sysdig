@@ -17,6 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include <unordered_set>
 #include <json/json.h>
 #include "k8s.h"
 #include "mesos.h"
@@ -40,6 +41,43 @@ public:
 	ppm_param_type m_type;
 	string m_name;
 	string m_description;
+};
+
+// Used for CO_IN filterchecks using PT_CHARBUFs to allow for quick
+// multi-value comparisons. Should also work for any filtercheck with
+// a buffer and length. When compiling with gnu compilers, use the
+// built in but not standard _hash_impl::hash function, which uses
+// murmurhash2 and is quite fast. Otherwise, uses
+// http://www.cse.yorku.ca/~oz/hash.html.
+
+// Used by m_val_storages_members
+typedef pair<uint8_t *, uint32_t> filter_value_member_t;
+
+struct g_hash_membuf
+{
+	size_t operator()(filter_value_member_t val) const
+	{
+#ifdef __GNUC__
+		return std::_Hash_impl::hash(val.first, val.second);
+#else
+		size_t hash = 5381;
+		for(uint8_t *p = val.first; p-val.first < val.second; p++)
+		{
+			int c = *p;
+
+			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+		}
+		return hash;
+#endif
+	}
+};
+
+struct g_equal_to_membuf
+{
+	bool operator()(filter_value_member_t a, filter_value_member_t b) const
+	{
+		return (strcmp((const char *) a.first, (const char *) b.first) == 0);
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -148,6 +186,10 @@ protected:
 	vector<vector<uint8_t>> m_val_storages;
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
 	inline vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
+
+	unordered_set<filter_value_member_t,
+		g_hash_membuf,
+		g_equal_to_membuf> m_val_storages_members;
 
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
