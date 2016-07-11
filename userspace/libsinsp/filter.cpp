@@ -397,11 +397,11 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	}
 }
 
-bool flt_compare_avg(cmpop op, 
-					 ppm_param_type type, 
-					 void* operand1, 
-					 void* operand2, 
-					 uint32_t op1_len, 
+bool flt_compare_avg(cmpop op,
+					 ppm_param_type type,
+					 void* operand1,
+					 void* operand2,
+					 uint32_t op1_len,
 					 uint32_t op2_len,
 					 uint32_t cnt1,
 					 uint32_t cnt2)
