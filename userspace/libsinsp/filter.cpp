@@ -514,6 +514,8 @@ sinsp_filter_check::sinsp_filter_check()
 	m_aggregation = A_NONE;
 	m_merge_aggregation = A_NONE;
 	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
+	m_val_storages_min_size = numeric_limits<uint32_t>::max();
+	m_val_storages_max_size = numeric_limits<uint32_t>::min();
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -1001,6 +1003,16 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint16_
 	// add_filter_value more than once for a given index.
 	filter_value_member_t item(filter_value_p(i), len);
 	m_val_storages_members.insert(item);
+
+	if(len < m_val_storages_min_size)
+	{
+		m_val_storages_min_size = len;
+	}
+
+	if(len > m_val_storages_max_size)
+	{
+		m_val_storages_max_size = len;
+	}
 }
 
 
@@ -1033,9 +1045,10 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 {
 	if (op == CO_IN)
 	{
-		if (op1_len)
+		// For raw strings, the length may not be set. So we do a strlen to find it.
+		if(type == PT_CHARBUF && op1_len == 0)
 		{
-			throw sinsp_exception("filter error: cannot use 'in' operator with param type "+ to_string(type));
+			op1_len = strlen((char *) operand1);
 		}
 
 		filter_value_member_t item((uint8_t *) operand1, op1_len);

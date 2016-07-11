@@ -76,7 +76,8 @@ struct g_equal_to_membuf
 {
 	bool operator()(filter_value_member_t a, filter_value_member_t b) const
 	{
-		return (strcmp((const char *) a.first, (const char *) b.first) == 0);
+		return (a.second == b.second &&
+			memcmp(a.first, b.first, a.second) == 0);
 	}
 };
 
@@ -190,6 +191,9 @@ protected:
 	unordered_set<filter_value_member_t,
 		g_hash_membuf,
 		g_equal_to_membuf> m_val_storages_members;
+
+	uint32_t m_val_storages_min_size;
+	uint32_t m_val_storages_max_size;
 
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
