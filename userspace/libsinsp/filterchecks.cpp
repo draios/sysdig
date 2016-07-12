@@ -161,7 +161,7 @@ sinsp_filter_check* sinsp_filter_check_fd::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fd();
 }
 
-bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len)
+bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	const char* resolved_argstr;
 	uint16_t etype = evt->get_type();
@@ -247,7 +247,10 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 				namelen);
 
 			m_tstr = fullpath;
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			return true;
 		}
@@ -257,7 +260,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	}
 }
 
-uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	//
 	// Even is there's no fd, we still try to extract a name from exit events that create
@@ -268,7 +271,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 	case TYPE_FDNAME:
 	{
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
 			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
@@ -280,7 +283,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_CONTAINERNAME:
 	{
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
 			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
 			*len = m_tstr.size();
@@ -293,9 +296,12 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_DIRECTORY:
 	{
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -320,9 +326,12 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_CONTAINERDIRECTORY:
 	{
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -354,9 +363,12 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return NULL;
 		}
 
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -428,7 +440,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 }
 
-uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	ASSERT(evt);
 
@@ -451,7 +463,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_CONTAINERNAME:
 		if(m_fdinfo == NULL)
 		{
-			return extract_from_null_fd(evt, len);
+			return extract_from_null_fd(evt, len, sanitize_strings);
 		}
 
 		if(evt->get_type() == PPME_SOCKET_CONNECT_X)
@@ -464,7 +476,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(retval < 0)
 			{
-				return extract_from_null_fd(evt, len);
+				return extract_from_null_fd(evt, len, sanitize_strings);
 			}
 		}
 
@@ -478,8 +490,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = m_fdinfo->m_name;
 		}
 
-		sanitize_string(m_tstr);
-		*len = m_tstr.size();
+		if(sanitize_strings)
+		{
+			sanitize_string(m_tstr);
+			*len = m_tstr.size();
+		}
 
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_FDTYPE:
@@ -494,7 +509,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(m_fdinfo == NULL)
 			{
-				return extract_from_null_fd(evt, len);
+				return extract_from_null_fd(evt, len, sanitize_strings);
 			}
 
 			if(!(m_fdinfo->is_file() || m_fdinfo->is_directory()))
@@ -503,7 +518,10 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = m_fdinfo->m_name;
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			if(m_fdinfo->is_file())
 			{
@@ -533,7 +551,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(m_fdinfo == NULL)
 			{
-				return extract_from_null_fd(evt, len);
+				return extract_from_null_fd(evt, len, sanitize_strings);
 			}
 
 			if(!m_fdinfo->is_file())
@@ -542,7 +560,10 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = m_fdinfo->m_name;
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -563,7 +584,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_FDTYPECHAR:
 		if(m_fdinfo == NULL)
 		{
-			return extract_from_null_fd(evt, len);
+			return extract_from_null_fd(evt, len, sanitize_strings);
 		}
 
 		m_tcstr[0] = m_fdinfo->get_typechar();
@@ -1250,7 +1271,8 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	// Standard extract-based fields
 	//
 	uint32_t len;
-	uint8_t* extracted_val = extract(evt, &len);
+	bool sanitize_strings = false;
+	uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{
@@ -1545,7 +1567,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_thr
 	return NULL;
 }
 
-uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -2812,7 +2834,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
-uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	switch(m_field_id)
 	{
@@ -3845,7 +3867,8 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 	if(m_field_id == TYPE_ARGRAW)
 	{
 		uint32_t len;
-		uint8_t* extracted_val = extract(evt, &len);
+		bool sanitize_strings = false;
+		uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
 
 		if(extracted_val == NULL)
 		{
@@ -3910,7 +3933,7 @@ sinsp_filter_check* sinsp_filter_check_user::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_user();
 }
 
-uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	scap_userinfo* uinfo;
@@ -3982,7 +4005,7 @@ sinsp_filter_check* sinsp_filter_check_group::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_group();
 }
 
-uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -4349,7 +4372,7 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 	return (uint8_t*)res;
 }
 
-uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_tracerparser* eparser;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -4818,7 +4841,7 @@ sinsp_filter_check* sinsp_filter_check_evtin::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_evtin();
 }
 
-uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	return NULL;
 }
@@ -5223,7 +5246,7 @@ int32_t rawstring_check::parse_field_name(const char* str, bool alloc_state)
 	return -1;
 }
 
-uint8_t* rawstring_check::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* rawstring_check::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = m_text_len;
 	return (uint8_t*)m_text.c_str();
@@ -5265,7 +5288,7 @@ int32_t sinsp_filter_check_syslog::parse_field_name(const char* str, bool alloc_
 	return res;
 }
 
-uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	ASSERT(m_decoder != NULL);
 	if(!m_decoder->is_data_valid())
@@ -5316,7 +5339,7 @@ sinsp_filter_check* sinsp_filter_check_container::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_container();
 }
 
-uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	if(tinfo == NULL)
@@ -5456,7 +5479,7 @@ int32_t sinsp_filter_check_reference::parse_field_name(const char* str, bool all
 	return -1;
 }
 
-uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = m_len;
 	return m_val;
@@ -5783,7 +5806,7 @@ sinsp_filter_check* sinsp_filter_check_utils::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_utils();
 }
 
-uint8_t* sinsp_filter_check_utils::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_utils::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	switch(m_field_id)
 	{
@@ -5824,7 +5847,7 @@ sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fdlist();
 }
 
-uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	ASSERT(evt);
 	sinsp_evt_param *parinfo;
@@ -6199,7 +6222,7 @@ bool sinsp_filter_check_k8s::find_label(const k8s_pair_list& labels, const strin
 	return false;
 }
 
-uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	if(m_inspector->m_k8s_client == NULL)
 	{
@@ -6614,7 +6637,7 @@ bool sinsp_filter_check_mesos::find_label(const mesos_pair_list& labels, const s
 	return false;
 }
 
-uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	if(!m_inspector || !m_inspector->m_mesos_client)
 	{

@@ -1075,7 +1075,8 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
 	uint32_t evt_val_len=0;
-	uint8_t* extracted_val = extract(evt, &evt_val_len);
+	bool sanitize_strings = false;
+	uint8_t* extracted_val = extract(evt, &evt_val_len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{
