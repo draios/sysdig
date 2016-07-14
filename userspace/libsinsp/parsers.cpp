@@ -2146,6 +2146,8 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 
 			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)))
 			{
+				evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+				evt->m_fdinfo->m_type = SCAP_FD_IPV6_SOCK;
 				return;
 			}
 
