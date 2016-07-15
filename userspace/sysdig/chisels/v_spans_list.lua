@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
-disabled_view_info =
+view_info =
 {
 	id = "spans_list",
 	name = "Spans List",
@@ -25,7 +25,7 @@ disabled_view_info =
 	},
 	tags = {"Default"},
 	view_type = "table",
-	applies_to = {"", "span.tag", "span.id", "span.time", "span.parenttime", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id"},
+	applies_to = {"span.tag", "span.id", "span.time", "span.parenttime", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.directory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	use_defaults = true,
 	filter = "span.ntags>=%depth+1",
 	drilldown_target = "spans_list",

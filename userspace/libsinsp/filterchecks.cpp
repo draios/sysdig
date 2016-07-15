@@ -76,7 +76,7 @@ void ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
 	int32_t bufsize = 0;
 	char buf[256];
 
-	if(date) 
+	if(date)
 	{
 		Time = (sec + thiszone) - s;
 		tm = gmtime (&Time);
@@ -180,9 +180,9 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	case PPME_SOCKET_ACCEPT4_5_X:
 	case PPME_SYSCALL_CREAT_X:
 		{
-			const char* argstr = evt->get_param_as_str(1, &resolved_argstr, 
+			const char* argstr = evt->get_param_as_str(1, &resolved_argstr,
 				m_inspector->get_buffer_format());
-			
+
 			if(resolved_argstr[0] != 0)
 			{
 				m_tstr = resolved_argstr;
@@ -196,9 +196,9 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 		}
 	case PPME_SOCKET_CONNECT_X:
 		{
-			const char* argstr = evt->get_param_as_str(1, &resolved_argstr, 
+			const char* argstr = evt->get_param_as_str(1, &resolved_argstr,
 				m_inspector->get_buffer_format());
-			
+
 			if(resolved_argstr[0] != 0)
 			{
 				m_tstr = resolved_argstr;
@@ -240,14 +240,15 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 
 			char fullpath[SCAP_MAX_PATH_SIZE];
 
-			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, 
-				sdir.c_str(), 
-				(uint32_t)sdir.length(), 
-				name, 
+			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+				sdir.c_str(),
+				(uint32_t)sdir.length(),
+				name,
 				namelen);
-	
+
 			m_tstr = fullpath;
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
+
 			return true;
 		}
 	default:
@@ -292,7 +293,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 		if(extract_fdname_from_creator(evt, len) == true)
 		{
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -318,7 +319,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 		if(extract_fdname_from_creator(evt, len) == true)
 		{
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -348,10 +349,10 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		{
 			return NULL;
 		}
- 
+
 		if(extract_fdname_from_creator(evt, len) == true)
 		{
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -472,7 +473,8 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = m_fdinfo->m_name;
 		}
 
-		m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+		sanitize_string(m_tstr);
+
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_FDTYPE:
 		if(m_fdinfo == NULL)
@@ -495,7 +497,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = m_fdinfo->m_name;
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			if(m_fdinfo->is_file())
 			{
@@ -533,7 +535,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = m_fdinfo->m_name;
-			m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+			sanitize_string(m_tstr);
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -940,7 +942,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK)
 			{
-				m_tbool = 
+				m_tbool =
 					m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, m_tinfo);
 			}
 			else
@@ -1240,8 +1242,8 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 		return false;
 	}
 
-	return flt_compare(m_cmpop, 
-		m_info.m_fields[m_field_id].m_type, 
+	return flt_compare(m_cmpop,
+		m_info.m_fields[m_field_id].m_type,
 		extracted_val);
 }
 
@@ -1289,6 +1291,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmrss", "For the process main thread, this is the resident non-swapped memory for the process (as kb). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmsize.b", "For the process main thread, this is the total virtual memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."}
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1335,7 +1339,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 			size_t endpos;
 			for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
 			{
-				if(!isalpha(val[endpos]) 
+				if(!isalpha(val[endpos])
 					&& val[endpos] != '_')
 				{
 					break;
@@ -1348,10 +1352,10 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 		else
 		{
 			throw sinsp_exception("filter syntax error: " + val);
-		}		
+		}
 	}
 
-	return parsed_len; 
+	return parsed_len;
 }
 
 int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_state)
@@ -1444,7 +1448,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 	}
 }
 
-uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt) 
+uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt)
 {
 	uint64_t res = 0;
 
@@ -1529,7 +1533,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
-	if(tinfo == NULL && 
+	if(tinfo == NULL &&
 		m_field_id != TYPE_TID &&
 		m_field_id != TYPE_EXECTIME &&
 		m_field_id != TYPE_TOTEXECTIME)
@@ -1544,6 +1548,44 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		return (uint8_t*)&m_u64val;
 	case TYPE_PID:
 		return (uint8_t*)&tinfo->m_pid;
+	case TYPE_SID:
+		return (uint8_t*)&tinfo->m_sid;
+	case TYPE_SNAME:
+		{
+			//
+			// Relying on the convention that a session id is the process id of the session leader
+			//
+			sinsp_threadinfo* sinfo =
+				m_inspector->get_thread(tinfo->m_sid, false, true);
+
+			if(sinfo != NULL)
+			{
+				m_tstr = sinfo->get_comm();
+				return (uint8_t*)m_tstr.c_str();
+			}
+			else
+			{
+				// This can occur when the session leader process has exited.
+				// Find the highest ancestor process that has the same session id and
+				// declare it to be the session leader.
+				sinsp_threadinfo* mt = tinfo->get_main_thread();
+				sinsp_threadinfo* pt = NULL;
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+
+				for(pt = mt->get_parent_thread();
+				    pt != NULL && pt->m_sid == mt->m_sid;
+				    mt = pt, pt = pt->get_parent_thread());
+
+				// At this point pt either doesn't exist or has a different session id.
+				// mt's comm is considered the session leader.
+				m_tstr = mt->get_comm();
+				return (uint8_t*)m_tstr.c_str();
+			}
+		}
 	case TYPE_NAME:
 		m_tstr = tinfo->get_comm();
 		return (uint8_t*)m_tstr.c_str();
@@ -1699,7 +1741,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 	case TYPE_PNAME:
 		{
-			sinsp_threadinfo* ptinfo = 
+			sinsp_threadinfo* ptinfo =
 				m_inspector->get_thread(tinfo->m_ptid, false, true);
 
 			if(ptinfo != NULL)
@@ -1897,12 +1939,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				return NULL;
 			}
-			
+
 			for(j = 0; j < nargs; j++)
 			{
 				m_tstr += tinfo->m_cgroups[j].first;
 				m_tstr += "=";
-				m_tstr += tinfo->m_cgroups[j].second;				
+				m_tstr += tinfo->m_cgroups[j].second;
 				if(j < nargs - 1)
 				{
 					m_tstr += ' ';
@@ -1919,13 +1961,13 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				return NULL;
 			}
-			
+
 			for(uint32_t j = 0; j < nargs; j++)
 			{
 				if(tinfo->m_cgroups[j].first == m_argname)
 				{
 					m_tstr = tinfo->m_cgroups[j].second;
-					return (uint8_t*)m_tstr.c_str();					
+					return (uint8_t*)m_tstr.c_str();
 				}
 			}
 
@@ -2051,7 +2093,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 		if(j > 0)
 		{
 			res = flt_compare(m_cmpop,
-				PT_PID, 
+				PT_PID,
 				&mt->m_pid);
 
 			if(res == true)
@@ -2100,7 +2142,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 		if(j > 0)
 		{
 			res = flt_compare(m_cmpop,
-				PT_CHARBUF, 
+				PT_CHARBUF,
 				(void*)mt->m_comm.c_str());
 
 			if(res == true)
@@ -2198,6 +2240,8 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_read", "'true' for open/openat events where the path was opened for reading"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_write", "'true' for open/openat events where the path was opened for writing"},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2256,7 +2300,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 
 		if(m_field_id == TYPE_AROUND)
 		{
-			m_u64val = sinsp_numparser::parseu64(numstr);		
+			m_u64val = sinsp_numparser::parseu64(numstr);
 		}
 		else
 		{
@@ -2272,7 +2316,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 			throw sinsp_exception("wrong syntax for evt.around");
 		}
 
-		const struct ppm_param_info* pi = 
+		const struct ppm_param_info* pi =
 			sinsp_utils::find_longest_matching_evt_param(val.substr(fldname.size() + 1));
 
 		if(pi == NULL)
@@ -2294,7 +2338,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 		throw sinsp_exception("filter syntax error: " + val);
 	}
 
-	return parsed_len; 
+	return parsed_len;
 }
 
 int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo)
@@ -2309,7 +2353,7 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 		{
 			m_evtid1 = PPM_EVENT_MAX;
 			parsed_len = (uint32_t)(fldname.size() + itype.size() + 1);
-			return parsed_len; 
+			return parsed_len;
 		}
 
 		for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
@@ -2330,7 +2374,7 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 		throw sinsp_exception("filter syntax error: " + val);
 	}
 
-	return parsed_len; 
+	return parsed_len;
 }
 
 int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_state)
@@ -2654,7 +2698,7 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt)
 		parinfo = evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		retval = *(int64_t *)parinfo->m_val;
-						
+
 		if(retval >= 0)
 		{
 			return (uint8_t*)parinfo->m_val;
@@ -2797,7 +2841,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					return NULL;
 				}
 
-				m_converter->set_val(PT_RELTIME, 
+				m_converter->set_val(PT_RELTIME,
 					(uint8_t*)&evt->m_tinfo->m_latency,
 					8,
 					0,
@@ -2875,7 +2919,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			else
 			{
 				uint64_t tts = evt->get_ts();
-				
+
 				if(m_field_id == TYPE_DELTA)
 				{
 					m_tsdelta = tts - m_u64val;
@@ -3008,7 +3052,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			uint16_t etype = evt->m_pevt->type;
 			enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
 
-			if(etype == PPME_SCHEDSWITCH_6_E || 
+			if(etype == PPME_SCHEDSWITCH_6_E ||
 				(flags & EC_INTERNAL) || (flags & EF_SKIPPARSERESET))
 			{
 				return NULL;
@@ -3702,6 +3746,44 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 		}
 
 		break;
+	case TYPE_ISOPEN_READ:
+	case TYPE_ISOPEN_WRITE:
+		{
+			uint16_t etype = evt->get_type();
+
+			m_u32val = 0;
+
+			if(etype == PPME_SYSCALL_OPEN_X ||
+			   etype == PPME_SYSCALL_OPENAT_E)
+			{
+				sinsp_evt_param *parinfo;
+
+				// Just happens to be the case that
+				// flags is the 3rd argument for
+				// both events.
+				parinfo = evt->get_param(2);
+				ASSERT(parinfo->m_len == sizeof(uint32_t));
+				uint32_t flags = *(uint32_t *)parinfo->m_val;
+
+				// PPM open flags use 0x11 for
+				// PPM_O_RDWR, so there's no need to
+				// check that value explicitly.
+				if(m_field_id == TYPE_ISOPEN_READ &&
+				   flags & PPM_O_RDONLY)
+				{
+					m_u32val = 1;
+				}
+
+				if(m_field_id == TYPE_ISOPEN_WRITE &&
+				   flags & PPM_O_WRONLY)
+				{
+					m_u32val = 1;
+				}
+			}
+
+			return (uint8_t*)&m_u32val;
+		}
+		break;
 	default:
 		ASSERT(false);
 		return NULL;
@@ -3729,7 +3811,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 		ASSERT(m_arginfo != NULL);
 
 		res = flt_compare(m_cmpop,
-			m_arginfo->type, 
+			m_arginfo->type,
 			extracted_val);
 	}
 	else if(m_field_id == TYPE_AROUND)
@@ -3874,7 +3956,7 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
 			unordered_map<uint32_t, scap_groupinfo*>::iterator it;
 
 			ASSERT(m_inspector != NULL);
-			unordered_map<uint32_t, scap_groupinfo*>* grouplist = 
+			unordered_map<uint32_t, scap_groupinfo*>* grouplist =
 				(unordered_map<uint32_t, scap_groupinfo*>*)m_inspector->get_grouplist();
 			ASSERT(grouplist->size() != 0);
 
@@ -4006,7 +4088,7 @@ int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT c
 		throw sinsp_exception("filter syntax error: " + val);
 	}
 
-	return parsed_len; 
+	return parsed_len;
 }
 
 int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_state)
@@ -4291,7 +4373,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			char* p = m_storage;
 
-			for(it = eparser->m_tags.begin(), sit = eparser->m_taglens.begin(); 
+			for(it = eparser->m_tags.begin(), sit = eparser->m_taglens.begin();
 				it != eparser->m_tags.end(); ++it, ++sit)
 			{
 				memcpy(p, *it, (*sit));
@@ -4388,7 +4470,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 			else
 			{
-				m_converter->set_val(PT_RELTIME, 
+				m_converter->set_val(PT_RELTIME,
 					(uint8_t*)&m_s64val,
 					8,
 					0,
@@ -4402,7 +4484,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_DURATION_QUANTIZED:
 		{
 			if(extract_duration(etype, eparser) == NULL)
-			{				
+			{
 				return NULL;
 			}
 			else
@@ -4577,7 +4659,7 @@ int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 	}
 	else if(val[fldname.size()] == '.')
 	{
-		const struct ppm_param_info* pi = 
+		const struct ppm_param_info* pi =
 			sinsp_utils::find_longest_matching_evt_param(val.substr(fldname.size() + 1));
 
 		if(pi == NULL)
@@ -4594,7 +4676,7 @@ int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 		throw sinsp_exception("filter syntax error: " + val);
 	}
 
-	return parsed_len; 
+	return parsed_len;
 }
 
 int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_state)
@@ -5203,7 +5285,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		{
 			m_tstr = tinfo->m_container_id;
 		}
-		
+
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_CONTAINER_NAME:
 		if(tinfo->m_container_id.empty())
@@ -5384,8 +5466,8 @@ char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len, b
 
 	if(len > str_len)
 	{
-		memmove(m_getpropertystr_storage, 
-			m_getpropertystr_storage + len - str_len, 
+		memmove(m_getpropertystr_storage,
+			m_getpropertystr_storage + len - str_len,
 			str_len + 1); // include trailing \0
 	}
 
@@ -5443,7 +5525,7 @@ char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 	{
 		uint32_t padding_size = str_len - reslen;
 
-		memmove(m_getpropertystr_storage + padding_size, 
+		memmove(m_getpropertystr_storage + padding_size,
 			m_getpropertystr_storage,
 			str_len + 1);
 
@@ -5566,7 +5648,7 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 
 }
 
-char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt, 
+char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 												  uint32_t str_len,
 												  uint64_t time_delta)
 {
@@ -5608,7 +5690,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	else if(m_field->m_type == PT_DOUBLE)
 	{
 		double dval = (double)*(double*)rawval;
-			
+
 		if(m_cnt > 1)
 		{
 			dval /= m_cnt;
@@ -6253,7 +6335,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = ns->get_uid();
 			return (uint8_t*) m_tstr.c_str();
 		}
-	
+
 		break;
 	}
 	case TYPE_K8S_NS_LABEL:

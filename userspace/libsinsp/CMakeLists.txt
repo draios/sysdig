@@ -9,6 +9,8 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${B64_INCLUDE}")
 	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
+	include_directories("${JQ_INCLUDE}")
+	include_directories("${OPENSSL_INCLUDE_DIR}")
 endif()
 
 add_library(sinsp STATIC
@@ -29,6 +31,7 @@ add_library(sinsp STATIC
 	filter.cpp
 	filterchecks.cpp
 	ifinfo.cpp
+	json_query.cpp
 	k8s.cpp
 	k8s_collector.cpp
 	k8s_component.cpp
@@ -86,6 +89,7 @@ if(NOT WIN32)
 		endif()
 
 		target_link_libraries(sinsp
+			"${JQ_LIB}"
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
 			"${OPENSSL_LIBRARY_SSL}"

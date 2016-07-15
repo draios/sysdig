@@ -17,7 +17,7 @@ for release in release_nodes:
     version = version[:version.index(':')]
   # tracepoints only enabled >= 1.7.0
   if LooseVersion(version[1:]) >= LooseVersion('1.7'):
-    dockerFile = urllib2.urlopen('https://raw.githubusercontent.com/boot2docker/boot2docker/%s/Dockerfile'%version, version).read()
+    dockerFile = urllib2.urlopen('https://raw.githubusercontent.com/boot2docker/boot2docker/%s/Dockerfile' % (version)).read()
     for line in dockerFile.split('\n'):
       if re.search('ENV KERNEL_VERSION', line):
             kernel_version = line.split()[-1]

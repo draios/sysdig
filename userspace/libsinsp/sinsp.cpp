@@ -1638,7 +1638,7 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 									m_marathon_api_server,
 									mesos::default_groups_api,
 									mesos::default_apps_api,
-									false, // no leader follow
+									m_marathon_api_server.empty(), // leader auto-follow if no uri
 									mesos::default_timeout_ms,
 									is_live,
 									m_verbose_json);
@@ -1719,8 +1719,7 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 		m_k8s_client = new k8s(*m_k8s_api_server,
 			is_live ? true : false, // watch
 			false, // don't run watch in thread
-			is_live ? true : false, // capture
-			"/api/v1"
+			is_live ? true : false // capture
 #ifdef HAS_CAPTURE
 			,k8s_ssl
 			,k8s_bt

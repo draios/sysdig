@@ -46,6 +46,10 @@ cmpop string_to_cmpop(const char* str)
 	{
 		return CO_ICONTAINS;
 	}
+	else if(strcmp(str, "startswith") == 0)
+	{
+		return CO_STARTSWITH;
+	}
 	else if(strcmp(str, "in") == 0)
 	{
 		return CO_IN;

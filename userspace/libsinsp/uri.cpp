@@ -14,14 +14,27 @@ const std::string uri::AMBIGUOUS_CHARS = " \"%-.<>\\^_`{|}~";
 
 uri::uri(std::string str)
 {
+	trim(str);
+	// parser does not handle missing host properly
+	bool no_host = false;
+	if(ci_find_substr(str, std::string("file:///")) == 0)
+	{
+		str.insert(7, "localhost");
+		no_host = true;
+	}
 	parsed_uri p_uri = parse_uri(str.c_str());
 	if(p_uri.error)
 	{
-		str.insert(0, std::string("Invalid URI: [").append(1, ']'));
+		str = std::string("Invalid URI: [").append(str).append(1, ']');
 		throw sinsp_exception(str);
 	}
 	m_scheme = str.substr(p_uri.scheme_start, p_uri.scheme_end - p_uri.scheme_start);
-	m_host = str.substr(p_uri.host_start, p_uri.host_end - p_uri.host_start);
+	std::transform(m_scheme.begin(), m_scheme.end(), m_scheme.begin(), ::tolower);
+	if(!no_host)
+	{
+		m_host = str.substr(p_uri.host_start, p_uri.host_end - p_uri.host_start);
+		std::transform(m_host.begin(), m_host.end(), m_host.begin(), ::tolower);
+	}
 	m_port = p_uri.port;
 	if(m_port == 0)
 	{
@@ -48,6 +61,7 @@ int uri::get_well_known_port() const
 	if (!m_scheme.empty())
 	{
 		if(m_scheme == "http")        { return 80;   }
+		else if(m_scheme == "file")   { return 0;    }
 		else if(m_scheme == "https")  { return 443;  }
 		else if(m_scheme == "ftp")    { return 21;   }
 		else if(m_scheme == "ssh")    { return 22;   }
@@ -191,4 +205,9 @@ std::string uri::decode(const std::string& str, bool plus_as_space)
 		decoded_str += c;
 	}
 	return decoded_str;
+}
+
+bool uri::is(const std::string& proto)
+{
+	return ci_compare::is_equal(m_scheme, proto);
 }

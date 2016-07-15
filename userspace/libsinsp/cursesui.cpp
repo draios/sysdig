@@ -565,6 +565,11 @@ void sinsp_cursesui::render_header()
 		{
 			uint32_t pv = m_sel_hierarchy.at(j)->m_prev_selected_view;
 
+			if(m_sel_hierarchy.at(j)->m_field == "")
+			{
+				continue;
+			}
+
 			if(m_views.at(pv)->m_type == sinsp_view_info::T_SPECTRO)
 			{
 				//vs += m_sel_hierarchy.at(j)->m_prev_manual_filter.c_str();
@@ -581,6 +586,11 @@ void sinsp_cursesui::render_header()
 			{
 				vs += " and ";
 			}
+		}
+
+		if(vs == "")
+		{
+			vs = "whole machine";
 		}
 	}
 	else
@@ -1027,13 +1037,23 @@ sinsp_view_info* sinsp_cursesui::get_selected_view()
 	return m_views.at(m_selected_view);
 }
 
+sinsp_view_info* sinsp_cursesui::get_prev_selected_view()
+{
+	if(m_prev_selected_view < 0)
+	{
+		return NULL;
+	}
+
+	ASSERT(m_prev_selected_view < (int32_t)m_views.size());
+	return m_views.at(m_prev_selected_view);
+}
+
 #ifndef NOCURSESUI
 void sinsp_cursesui::populate_view_sidemenu(string field, vector<sidemenu_list_entry>* viewlist)
 {
 	uint32_t k = 0;
 
 	viewlist->clear();
-
 	uint64_t bpos = field.find('[');
 	if(bpos != string::npos)
 	{
@@ -1271,14 +1291,6 @@ void sinsp_cursesui::create_complete_filter()
 
 void sinsp_cursesui::switch_view(bool is_spy_switch)
 {
-	string field;
-
-	if(m_sel_hierarchy.size() > 0)
-	{
-		sinsp_ui_selection_info* psinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
-		field = psinfo->m_field;
-	}
-
 #ifndef NOCURSESUI
 	if(!m_raw_output)
 	{
@@ -1296,6 +1308,35 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 			{
 				m_spy_box->reset();
 			}
+		}
+	}
+#endif
+
+	//
+	// Put the current view in the hierarchy stack
+	//
+#if 1
+	sinsp_view_info* psv = get_prev_selected_view();
+
+	if(psv != NULL)
+	{
+		if(m_sel_hierarchy.size() > 0)
+		{
+			sinsp_ui_selection_info* psinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
+
+			m_sel_hierarchy.push_back(psinfo->m_field, psinfo->m_val,
+				psv->get_key(), psinfo->m_view_filter,
+				m_prev_selected_view, m_selected_view_sidemenu_entry, 
+				NULL, psv->m_sortingcol, m_manual_filter, m_is_filter_sysdig,
+				m_datatable->is_sorting_ascending(), false);
+		}
+		else
+		{
+			m_sel_hierarchy.push_back("", "",
+				psv->get_key(), "",
+				m_prev_selected_view, m_selected_view_sidemenu_entry, 
+				NULL, psv->m_sortingcol, m_manual_filter, m_is_filter_sysdig,
+				m_datatable->is_sorting_ascending(), false);
 		}
 	}
 #endif
@@ -1423,7 +1464,7 @@ void sinsp_cursesui::spy_selection(string field, string val,
 		m_views.at(m_selected_view)->get_filter(m_view_depth),
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
-		m_datatable->is_sorting_ascending());
+		m_datatable->is_sorting_ascending(), true);
 
 	if(is_dig)
 	{
@@ -1523,7 +1564,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 		column_info, vfilter,
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig,
-		m_datatable->is_sorting_ascending());
+		m_datatable->is_sorting_ascending(), true);
 
 	m_selected_view = new_view_num;
 
@@ -1662,6 +1703,8 @@ bool sinsp_cursesui::drillup()
 		// Do the drillup
 		//
 		string field;
+		sinsp_ui_selection_info* psinfo = NULL;
+
 		sinsp_ui_selection_info* sinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
 		bool is_spctro_app = false;
 
@@ -1674,7 +1717,7 @@ bool sinsp_cursesui::drillup()
 
 		if(m_sel_hierarchy.size() > 1)
 		{
-			sinsp_ui_selection_info* psinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 2);
+			psinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 2);
 			field = psinfo->m_field;
 		}
 
@@ -1686,7 +1729,10 @@ bool sinsp_cursesui::drillup()
 		if(m_views.at(m_selected_view)->m_drilldown_increase_depth &&
 			!is_spctro_app)
 		{
-			m_view_depth--;
+			if(sinfo != NULL && sinfo->m_is_drilldown)
+			{
+				m_view_depth--;
+			}
 		}
 
 		if(m_views.at(m_selected_view)->m_type == sinsp_view_info::T_SPECTRO)

@@ -95,6 +95,7 @@ public:
 	static void init_bt(CURL* curl, bearer_token::ptr_t bt);
 
 	static void enable_debug(CURL* curl, bool enable = true);
+	static bool check_error(unsigned ret, bool exc = true);
 
 private:
 	struct data
@@ -107,8 +108,6 @@ private:
 
 	void init();
 	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
-
-	static void check_error(unsigned ret);
 
 	CURL*               m_curl;
 	uri                 m_uri;

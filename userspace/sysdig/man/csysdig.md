@@ -163,6 +163,9 @@ COMMAND LINE OPTIONS
 **-E**, **--exclude-users**  
   Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the -w flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time.  
 
+**--force-term-compat**  
+  Try to configure simple terminal settings (xterm-1002) that work better with terminals like putty. Try to use this flag if you experience terminal issues like the mouse not working.
+
 **-h**, **--help**  
   Print this page
 
@@ -179,7 +182,7 @@ COMMAND LINE OPTIONS
   Print program logs into the given file.
 
 **-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
-  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Marathon url is optional and defaults to Mesos address, port 8080. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
+  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Mesos url is required. Marathon url is optional, defaulting to auto-follow - if Marathon API server is not provided, csysdig will attempt to retrieve (and subsequently follow, if it migrates) the location of Marathon API server from the Mesos master. Note that, with auto-follow, csysdig will likely receive a cluster internal IP address for Marathon API server, so running csysdig with Marathon auto-follow from a node that is not part of Mesos cluster may not work. Additionally, running csysdig with Mesos support on a node that has no containers managed by Mesos is of limited use because, although cluster metadata will be collected, there will be no Mesos/Marathon filtering capability. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
 
 **-N**
   Don't convert port numbers to names.

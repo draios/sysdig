@@ -26,6 +26,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/time.h>
 #include <netdb.h>
 #include <strings.h>
+#include <sys/ioctl.h>
 #else
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
@@ -1270,4 +1271,23 @@ std::string get_json_string(const Json::Value& obj, const std::string& name)
 		ret = json_val.asString();
 	}
 	return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// socket helpers
+///////////////////////////////////////////////////////////////////////////////
+
+bool set_socket_blocking(int sock, bool block)
+{
+#ifndef _WIN32
+	int arg = block ? 0 : 1;
+	if(ioctl(sock, FIONBIO, &arg) == -1)
+#else
+	u_long arg = block ? 0 : 1;
+	if(ioctlsocket(sock, FIONBIO, &arg) == -1)
+#endif // _WIN32
+	{
+		return false;
+	}
+	return true;
 }
