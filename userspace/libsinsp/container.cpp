@@ -521,6 +521,14 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	const Json::Value& config_obj = root["Config"];
 
 	container->m_image = config_obj["Image"].asString();
+
+	string imgstr = root["Image"].asString();
+	size_t cpos = imgstr.find(":");
+	if(cpos != string::npos)
+	{
+		container->m_imageid = imgstr.substr(cpos + 1);
+	}
+
 	container->m_name = root["Name"].asString();
 
 	if(!container->m_name.empty() && container->m_name[0] == '/')

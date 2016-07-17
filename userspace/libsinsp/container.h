@@ -59,6 +59,7 @@ public:
 	sinsp_container_type m_type;
 	string m_name;
 	string m_image;
+	string m_imageid;
 	uint32_t m_container_ip;
 	vector<container_port_mapping> m_port_mappings;
 	map<string, string> m_labels;
