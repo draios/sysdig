@@ -3976,6 +3976,11 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_image = image.asString();
 		}
+		const Json::Value& imageid = container["imageid"];
+		if(!imageid.isNull() && imageid.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imageid = imageid.asString();
+		}
 		const Json::Value& contip = container["ip"];
 		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
 		{

@@ -407,7 +407,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["type"] = container_info.m_type;
 	container["name"] = container_info.m_name;
 	container["image"] = container_info.m_image;
-
+	container["imageid"] = container_info.m_imageid;
 	char addrbuff[100];
 	uint32_t iph = ntohl(container_info.m_container_ip);
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
