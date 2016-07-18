@@ -190,7 +190,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 	bool do_filter_later = false;
 
-	if(m_inspector->m_filter)
+	if(m_inspector->m_filter || m_inspector->m_evttype_filters.size() > 0)
 	{
 		ppm_event_flags eflags = evt->get_info_flags();
 
@@ -230,7 +230,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		}
 		else
 		{
-			if(m_inspector->m_filter->run(evt) == false)
+			if(m_inspector->run_filters_on_evt(evt) == false)
 			{
 				if(evt->m_tinfo != NULL)
 				{
@@ -468,13 +468,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 	if(do_filter_later)
 	{
-		if(m_inspector->m_filter)
+		if(m_inspector->run_filters_on_evt(evt) == false)
 		{
-			if(m_inspector->m_filter->run(evt) == false)
-			{
-				evt->m_filtered_out = true;
-				return;
-			}
+			evt->m_filtered_out = true;
+			return;
 		}
 		evt->m_filtered_out = false;
 	}
