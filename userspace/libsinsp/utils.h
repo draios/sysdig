@@ -101,41 +101,28 @@ public:
 // little STL thing to sanitize strings
 ///////////////////////////////////////////////////////////////////////////////
 
-inline bool is_invalid_char(char c)
-{
-	if(c < -1)
-	{
-		return true;
-	}
-
-	return !isprint((unsigned)c);
-}
-
 struct g_invalidchar
 {
     bool operator()(char c) const
-	{
-		return is_invalid_char(c);
+    {
+	    if(c < -1)
+	    {
+		    return true;
+	    }
+
+	    return !isprint((unsigned)c);
     }
 };
 
 inline void sanitize_string(string &str)
 {
-	uint32_t j=0, k=0;
-
-	while(k < str.length())
-	{
-		if(is_invalid_char(str[k]))
-		{
-			k++;
-		}
-		else
-		{
-			str[j++] = str[k++];
-		}
-	}
-
-	str.resize(j);
+	// It turns out with -O3 (release flags) using erase and
+	// remove_if is slighly faster than the inline version that
+	// was here. It's not faster for -O2, and is actually much
+	// slower without optimization.
+	//
+	// Optimize for the release case, then.
+	str.erase(remove_if(str.begin(), str.end(), g_invalidchar()), str.end());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
