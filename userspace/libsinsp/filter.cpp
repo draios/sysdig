@@ -397,11 +397,11 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	}
 }
 
-bool flt_compare_avg(cmpop op, 
-					 ppm_param_type type, 
-					 void* operand1, 
-					 void* operand2, 
-					 uint32_t op1_len, 
+bool flt_compare_avg(cmpop op,
+					 ppm_param_type type,
+					 void* operand1,
+					 void* operand2,
+					 uint32_t op1_len,
 					 uint32_t op2_len,
 					 uint32_t cnt1,
 					 uint32_t cnt2)
@@ -514,6 +514,8 @@ sinsp_filter_check::sinsp_filter_check()
 	m_aggregation = A_NONE;
 	m_merge_aggregation = A_NONE;
 	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
+	m_val_storages_min_size = numeric_limits<uint32_t>::max();
+	m_val_storages_max_size = numeric_limits<uint32_t>::min();
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -996,6 +998,21 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint16_
 	}
 
 	parse_filter_value(str, len, filter_value_p(i), filter_value(i).size());
+
+	// XXX/mstemm this doesn't work if someone called
+	// add_filter_value more than once for a given index.
+	filter_value_member_t item(filter_value_p(i), len);
+	m_val_storages_members.insert(item);
+
+	if(len < m_val_storages_min_size)
+	{
+		m_val_storages_min_size = len;
+	}
+
+	if(len > m_val_storages_max_size)
+	{
+		m_val_storages_max_size = len;
+	}
 }
 
 
@@ -1028,19 +1045,18 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 {
 	if (op == CO_IN)
 	{
-		if (op1_len)
+		// For raw strings, the length may not be set. So we do a strlen to find it.
+		if(type == PT_CHARBUF && op1_len == 0)
 		{
-			throw sinsp_exception("filter error: cannot use 'in' operator with param type "+ to_string(type));
+			op1_len = strlen((char *) operand1);
 		}
-		for (uint16_t i=0; i < m_val_storages.size(); i++)
+
+		filter_value_member_t item((uint8_t *) operand1, op1_len);
+		if(op1_len >= m_val_storages_min_size &&
+		   op1_len <= m_val_storages_max_size &&
+		   m_val_storages_members.find(item) != m_val_storages_members.end())
 		{
-			if (::flt_compare(CO_EQ,
-					  type,
-					  operand1,
-					  filter_value_p(i)))
-			{
-				return true;
-			}
+			return true;
 		}
 		return false;
 	}
@@ -1599,19 +1615,8 @@ void sinsp_filter_compiler::parse_check()
 
 	chk->parse_field_name((char *)&operand1[0], true);
 
-	//
-	// In this case we need to create '(field=value1 or field=value2 ...)'
-	//
 	if(co == CO_IN)
 	{
-		//
-		// Separate the 'or's from the
-		// rest of the conditions
-		//
-		m_filter->push_expression(op);
-		m_last_boolop = BO_NONE;
-		m_nest_level++;
-
 		//
 		// Skip spaces
 		//
@@ -1630,56 +1635,109 @@ void sinsp_filter_compiler::parse_check()
 		//
 		m_scanpos++;
 
-		//
-		// The first boolean operand will be BO_NONE
-		// Then we will start putting BO_ORs
-		//
-		op = BO_NONE;
-
-		//
-		// Create the 'or' sequence
-		//
-		while(true)
+		if(chk->get_field_info()->m_type == PT_CHARBUF)
 		{
-			// 'in' clause aware
-			vector<char> operand2 = next_operand(false, true);
+			//
+			// For character buffers, we can check all
+			// values at once by putting them in a set and
+			// checking for set membership.
+			//
 
 			//
-			// Append every sinsp_filter_check creating the 'or' sequence
+			// Create the 'or' sequence
 			//
-			sinsp_filter_check* newchk = g_filterlist.new_filter_check_from_another(chk);
-			newchk->m_boolop = op;
-			newchk->m_cmpop = CO_EQ;
-			newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
-
-			m_filter->add_check(newchk);
-
-			next();
-
-			if(m_fltstr[m_scanpos] == ')')
+			uint64_t num_values = 0;
+			while(true)
 			{
-				break;
-			}
-			else if(m_fltstr[m_scanpos] == ',')
-			{
-				m_scanpos++;
-			}
-			else
-			{
-				throw sinsp_exception("expected either ')' or ',' after a value inside the 'in' clause");
-			}
+				// 'in' clause aware
+				vector<char> operand2 = next_operand(false, true);
 
-			//
-			// From now on we 'or' every newchk
-			//
-			op = BO_OR;
+				chk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1, num_values);
+				num_values++;
+				next();
+
+				if(m_fltstr[m_scanpos] == ')')
+				{
+					break;
+				}
+				else if(m_fltstr[m_scanpos] == ',')
+				{
+					m_scanpos++;
+				}
+				else
+				{
+					throw sinsp_exception("expected either ')' or ',' after a value inside the 'in' clause");
+				}
+			}
+			m_filter->add_check(chk);
 		}
+		else
+		{
+			//
+			// In this case we need to create '(field=value1 or field=value2 ...)'
+			//
 
-		//
-		// Come back to the rest of the filter
-		//
-		m_filter->pop_expression();
-		m_nest_level--;
+			//
+			// Separate the 'or's from the
+			// rest of the conditions
+			//
+			m_filter->push_expression(op);
+			m_last_boolop = BO_NONE;
+			m_nest_level++;
+
+			//
+			// The first boolean operand will be BO_NONE
+			// Then we will start putting BO_ORs
+			//
+			op = BO_NONE;
+
+			//
+			// Create the 'or' sequence
+			//
+			uint64_t num_values = 0;
+			while(true)
+			{
+				// 'in' clause aware
+				vector<char> operand2 = next_operand(false, true);
+
+				//
+				// Append every sinsp_filter_check creating the 'or' sequence
+				//
+				sinsp_filter_check* newchk = g_filterlist.new_filter_check_from_another(chk);
+				newchk->m_boolop = op;
+				newchk->m_cmpop = CO_EQ;
+				newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1, num_values);
+				num_values++;
+
+				m_filter->add_check(newchk);
+
+				next();
+
+				if(m_fltstr[m_scanpos] == ')')
+				{
+					break;
+				}
+				else if(m_fltstr[m_scanpos] == ',')
+				{
+					m_scanpos++;
+				}
+				else
+				{
+					throw sinsp_exception("expected either ')' or ',' after a value inside the 'in' clause");
+				}
+
+				//
+				// From now on we 'or' every newchk
+				//
+				op = BO_OR;
+			}
+
+			//
+			// Come back to the rest of the filter
+			//
+			m_filter->pop_expression();
+			m_nest_level--;
+		}
 	}
 	else
 	{
