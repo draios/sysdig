@@ -64,13 +64,10 @@ sinsp_filter* lua_parser::get_filter(bool reset_filter)
 }
 lua_parser::~lua_parser()
 {
-	if(m_ls)
-	{
-		lua_close(m_ls);
-		m_ls = NULL;
-	}
-	delete m_filter;
+	// The lua state is not considered owned by this object, so
+	// not freeing it.
 
+	delete m_filter;
 }
 
 
