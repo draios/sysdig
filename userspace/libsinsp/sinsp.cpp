@@ -143,6 +143,8 @@ sinsp::sinsp() :
 	m_mesos_last_watch_time_ns = 0;
 
 	m_filter_proc_table_when_saving = false;
+
+	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<sinsp_filter *> *));
 }
 
 sinsp::~sinsp()
