@@ -403,6 +403,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer;
 	friend class sinsp_filter_check_event;
 	friend class sinsp_filter_check_thread;
+	friend class sinsp_evttype_filter;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;
