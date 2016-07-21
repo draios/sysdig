@@ -190,7 +190,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 	bool do_filter_later = false;
 
-	if(m_inspector->m_filter || m_inspector->m_evttype_filters.size() > 0)
+	if(m_inspector->m_filter || m_inspector->m_evttype_filter)
 	{
 		ppm_event_flags eflags = evt->get_info_flags();
 
