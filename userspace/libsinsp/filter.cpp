@@ -1916,4 +1916,84 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 	return m_filter;
 }
 
+sinsp_evttype_filter::sinsp_evttype_filter()
+{
+	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<sinsp_filter *> *));
+}
+
+sinsp_evttype_filter::~sinsp_evttype_filter()
+{
+	for(int i = 0; i < PPM_EVENT_MAX; i++)
+	{
+		if(m_filter_by_evttype[i])
+		{
+			delete m_filter_by_evttype[i];
+			m_filter_by_evttype[i] = NULL;
+		}
+	}
+
+	m_catchall_evttype_filters.clear();
+
+	for(auto filter : m_evttype_filters)
+	{
+		delete filter;
+	}
+	m_evttype_filters.clear();
+}
+
+void sinsp_evttype_filter::add(list<uint32_t> &evttypes,
+			       sinsp_filter *filter)
+{
+	m_evttype_filters.push_back(filter);
+
+	if(evttypes.size() == 0)
+	{
+		m_catchall_evttype_filters.push_back(filter);
+	}
+	else
+	{
+
+		for(auto evttype: evttypes)
+		{
+			list<sinsp_filter *> *filters = m_filter_by_evttype[evttype];
+			if(filters == NULL)
+			{
+				filters = new list<sinsp_filter*>();
+				m_filter_by_evttype[evttype] = filters;
+			}
+
+			filters->push_back(filter);
+		}
+	}
+}
+
+bool sinsp_evttype_filter::run(sinsp_evt *evt)
+{
+	//
+	// First run any catchall event type filters (ones that did not
+	// explicitly specify any event type.
+	//
+	for(sinsp_filter *filt : m_catchall_evttype_filters)
+	{
+		if(filt->run(evt) == true)
+		{
+			return true;
+		}
+	}
+
+        list<sinsp_filter *> *filters = m_filter_by_evttype[evt->m_pevt->type];
+
+	if(filters)
+	{
+		for(sinsp_filter *filt : *filters)
+		{
+			if(filt->run(evt) == true)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 #endif // HAS_FILTERING

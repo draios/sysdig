@@ -77,6 +77,7 @@ sinsp::sinsp() :
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
+	m_evttype_filter = NULL;
 #endif
 
 	m_fds_to_remove = new vector<int64_t>;
@@ -143,8 +144,6 @@ sinsp::sinsp() :
 	m_mesos_last_watch_time_ns = 0;
 
 	m_filter_proc_table_when_saving = false;
-
-	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<sinsp_filter *> *));
 }
 
 sinsp::~sinsp()
@@ -552,22 +551,11 @@ void sinsp::close()
 		m_filter = NULL;
 	}
 
-	for(int i = 0; i < PPM_EVENT_MAX; i++)
+	if(m_evttype_filter != NULL)
 	{
-		if(m_filter_by_evttype[i])
-		{
-			delete m_filter_by_evttype[i];
-			m_filter_by_evttype[i] = NULL;
-		}
+		delete m_evttype_filter;
+		m_evttype_filter = NULL;
 	}
-
-	m_catchall_evttype_filters.clear();
-
-	for(auto filter : m_evttype_filters)
-	{
-		delete filter;
-	}
-	m_evttype_filters.clear();
 #endif
 }
 
@@ -1373,27 +1361,13 @@ const string sinsp::get_filter()
 void sinsp::add_evttype_filter(list<uint32_t> &evttypes,
 			       sinsp_filter *filter)
 {
-	m_evttype_filters.push_back(filter);
-
-	if(evttypes.size() == 0)
+	// Create the evttype filter if it doesn't exist.
+	if(m_evttype_filter == NULL)
 	{
-		m_catchall_evttype_filters.push_back(filter);
+		m_evttype_filter = new sinsp_evttype_filter();
 	}
-	else
-	{
 
-		for(auto evttype: evttypes)
-		{
-			list<sinsp_filter *> *filters = m_filter_by_evttype[evttype];
-			if(filters == NULL)
-			{
-				filters = new list<sinsp_filter*>();
-				m_filter_by_evttype[evttype] = filters;
-			}
-
-			filters->push_back(filter);
-		}
-	}
+	m_evttype_filter->add(evttypes, filter);
 }
 
 bool sinsp::run_filters_on_evt(sinsp_evt *evt)
@@ -1407,28 +1381,10 @@ bool sinsp::run_filters_on_evt(sinsp_evt *evt)
 	}
 
 	//
-	// Then run any catchall event type filters (ones that did not
-	// explicitly specify any event type.
-	//
-	for(sinsp_filter *filt : m_catchall_evttype_filters)
+	// Then run the evttype filter, if there is one.
+	if(m_evttype_filter && m_evttype_filter->run(evt) == true)
 	{
-		if(filt->run(evt) == true)
-		{
-			return true;
-		}
-	}
-
-        list<sinsp_filter *> *filters = m_filter_by_evttype[evt->m_pevt->type];
-
-	if(filters)
-	{
-		for(sinsp_filter *filt : *filters)
-		{
-			if(filt->run(evt) == true)
-			{
-				return true;
-			}
-		}
+		return true;
 	}
 
 	return false;

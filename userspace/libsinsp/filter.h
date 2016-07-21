@@ -156,6 +156,40 @@ private:
 	friend class sinsp_evt_formatter;
 };
 
+/*!
+  \brief This class represents a filter optimized using event
+  types. It actually consists of collections of sinsp_filter objects
+  grouped by event type.
+*/
+
+class SINSP_PUBLIC sinsp_evttype_filter
+{
+public:
+	sinsp_evttype_filter();
+	virtual ~sinsp_evttype_filter();
+
+	void add(list<uint32_t> &evttypes,
+		 sinsp_filter* filter);
+
+	bool run(sinsp_evt *evt);
+
+private:
+
+	// Maps from event type to filter. There can be multiple
+	// filters per event type.
+	list<sinsp_filter *> *m_filter_by_evttype[PPM_EVENT_MAX];
+
+	// It's possible to add an event type filter with an empty
+	// list of event types, meaning it should run for all event
+	// types.
+	list<sinsp_filter *> m_catchall_evttype_filters;
+
+	// This holds all the filters in
+	// m_filter_by_evttype/m_catchall_evttype_filters, so they can
+	// be cleaned up.
+	list<sinsp_filter *> m_evttype_filters;
+};
+
 /*@}*/
 
 #endif // HAS_FILTERING
