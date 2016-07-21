@@ -236,29 +236,29 @@ public:
 	// helpers for load manager thread fair policy
 	//
 #ifdef HAS_FAIR_POLICY
-	__always_inline uint64_t get_byte_throughput()
+	__always_inline uint64_t get_throughput()
 	{
-		return m_byte_count + m_byte_drop;
+		return m_evt_count + m_evt_drop;
 	}
 
-	__always_inline uint64_t get_byte_count()
+	__always_inline uint64_t get_evt_count()
 	{
-		return m_byte_count;
+		return m_evt_count;
 	}
 
-	__always_inline uint64_t get_byte_drop()
+	__always_inline uint64_t get_evt_drop()
 	{
-		return m_byte_drop;
+		return m_evt_drop;
 	}
 
-	__always_inline void add_byte_count(uint64_t byte)
+	__always_inline void add_evt_count()
 	{
-		m_byte_count += byte;
+		m_evt_count++;
 	}
 
-	__always_inline void add_byte_drop(uint64_t byte)
+	__always_inline void add_evt_drop()
 	{
-		m_byte_drop += byte;
+		m_evt_drop++;
 	}
 
 	__always_inline int32_t get_shedding_pct()
@@ -436,8 +436,8 @@ VISIBILITY_PRIVATE
 	double m_modify_state_ratio;
 
 #ifdef HAS_FAIR_POLICY
-	uint64_t m_byte_count;
-	uint64_t m_byte_drop;
+	uint64_t m_evt_count;
+	uint64_t m_evt_drop;
 	int32_t m_shedding_pct;
 #endif
 

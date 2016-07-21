@@ -103,8 +103,8 @@ void sinsp_threadinfo::init()
 	m_modify_state_events = 0;
 
 #ifdef HAS_FAIR_POLICY
-	m_byte_count = 0;
-	m_byte_drop = 0;
+	m_evt_count = 0;
+	m_evt_drop = 0;
 	m_shedding_pct = 0;
 #endif
 #endif
@@ -816,8 +816,8 @@ void sinsp_threadinfo::reset_access_count()
 
 
 	//reset thread counters
-//	m_byte_drop = 0;
-//	m_byte_count = 0;
+//	m_evt_drop = 0;
+//	m_evt_count = 0;
 
 	m_schedswitch_taken = false;
 
