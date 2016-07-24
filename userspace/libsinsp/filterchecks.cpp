@@ -161,7 +161,7 @@ sinsp_filter_check* sinsp_filter_check_fd::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fd();
 }
 
-bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len)
+bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	const char* resolved_argstr;
 	uint16_t etype = evt->get_type();
@@ -247,7 +247,10 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 				namelen);
 
 			m_tstr = fullpath;
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			return true;
 		}
@@ -257,7 +260,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	}
 }
 
-uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	//
 	// Even is there's no fd, we still try to extract a name from exit events that create
@@ -268,8 +271,9 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 	case TYPE_FDNAME:
 	{
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 		else
@@ -279,9 +283,10 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_CONTAINERNAME:
 	{
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
 			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 		else
@@ -291,9 +296,12 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_DIRECTORY:
 	{
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -308,6 +316,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 				m_tstr = "/";
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 		else
@@ -317,9 +326,12 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_CONTAINERDIRECTORY:
 	{
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -335,6 +347,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			}
 
 			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 		else
@@ -350,9 +363,12 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return NULL;
 		}
 
-		if(extract_fdname_from_creator(evt, len) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -363,6 +379,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 				}
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 		else
@@ -423,7 +440,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 }
 
-uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	ASSERT(evt);
 
@@ -446,7 +463,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_CONTAINERNAME:
 		if(m_fdinfo == NULL)
 		{
-			return extract_from_null_fd(evt, len);
+			return extract_from_null_fd(evt, len, sanitize_strings);
 		}
 
 		if(evt->get_type() == PPME_SOCKET_CONNECT_X)
@@ -459,7 +476,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(retval < 0)
 			{
-				return extract_from_null_fd(evt, len);
+				return extract_from_null_fd(evt, len, sanitize_strings);
 			}
 		}
 
@@ -473,8 +490,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = m_fdinfo->m_name;
 		}
 
-		sanitize_string(m_tstr);
-
+		if(sanitize_strings)
+		{
+			sanitize_string(m_tstr);
+		}
+		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_FDTYPE:
 		if(m_fdinfo == NULL)
@@ -488,7 +508,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(m_fdinfo == NULL)
 			{
-				return extract_from_null_fd(evt, len);
+				return extract_from_null_fd(evt, len, sanitize_strings);
 			}
 
 			if(!(m_fdinfo->is_file() || m_fdinfo->is_directory()))
@@ -497,7 +517,10 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = m_fdinfo->m_name;
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			if(m_fdinfo->is_file())
 			{
@@ -520,13 +543,14 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_FILENAME:
 		{
 			if(m_fdinfo == NULL)
 			{
-				return extract_from_null_fd(evt, len);
+				return extract_from_null_fd(evt, len, sanitize_strings);
 			}
 
 			if(!m_fdinfo->is_file())
@@ -535,7 +559,10 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = m_fdinfo->m_name;
-			sanitize_string(m_tstr);
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
 
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos)
@@ -550,12 +577,13 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				m_tstr = "/";
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_FDTYPECHAR:
 		if(m_fdinfo == NULL)
 		{
-			return extract_from_null_fd(evt, len);
+			return extract_from_null_fd(evt, len, sanitize_strings);
 		}
 
 		m_tcstr[0] = m_fdinfo->get_typechar();
@@ -700,6 +728,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 
+			*len = port.size();
 			return (uint8_t*)port.c_str();
 		}
 	case TYPE_SERVERPORT:
@@ -792,6 +821,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 
+			*len = port.size();
 			return (uint8_t*)port.c_str();
 		}
 	case TYPE_LPORT:
@@ -896,6 +926,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				ASSERT(false);
 			}
 
+			*len = port.size();
 			return (uint8_t*)port.c_str();
 		}
 
@@ -927,6 +958,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				break;
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_IS_SERVER:
@@ -960,14 +992,17 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 
-			if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK)
+			if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
+			   m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
 			{
 				m_tstr = "ip";
+				*len = m_tstr.size();
 				return (uint8_t*)m_tstr.c_str();
 			}
 			else if(m_fdinfo->m_type == SCAP_FD_UNIX_SOCK)
 			{
 				m_tstr = "unix";
+				*len = m_tstr.size();
 				return (uint8_t*)m_tstr.c_str();
 			}
 			else
@@ -981,6 +1016,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			ASSERT(m_tinfo != NULL);
 
 			m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 		break;
@@ -1234,8 +1270,9 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	//
 	// Standard extract-based fields
 	//
-	uint32_t len;
-	uint8_t* extracted_val = extract(evt, &len);
+	uint32_t len = 0;
+	bool sanitize_strings = false;
+	uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{
@@ -1243,8 +1280,9 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	}
 
 	return flt_compare(m_cmpop,
-		m_info.m_fields[m_field_id].m_type,
-		extracted_val);
+			   m_info.m_fields[m_field_id].m_type,
+			   extracted_val,
+			   len);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1529,7 +1567,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_thr
 	return NULL;
 }
 
-uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -1561,6 +1599,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			if(sinfo != NULL)
 			{
 				m_tstr = sinfo->get_comm();
+				*len = m_tstr.size();
 				return (uint8_t*)m_tstr.c_str();
 			}
 			else
@@ -1583,14 +1622,17 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				// At this point pt either doesn't exist or has a different session id.
 				// mt's comm is considered the session leader.
 				m_tstr = mt->get_comm();
+				*len = m_tstr.size();
 				return (uint8_t*)m_tstr.c_str();
 			}
 		}
 	case TYPE_NAME:
 		m_tstr = tinfo->get_comm();
+		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_EXE:
 		m_tstr = tinfo->get_exe();
+		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_ARGS:
 		{
@@ -1608,6 +1650,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_ENV:
@@ -1626,6 +1669,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_CMDLINE:
@@ -1644,6 +1688,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_EXELINE:
@@ -1662,10 +1707,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_CWD:
 		m_tstr = tinfo->get_cwd();
+		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_NTHREADS:
 		{
@@ -1747,6 +1794,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			if(ptinfo != NULL)
 			{
 				m_tstr = ptinfo->get_comm();
+				*len = m_tstr.size();
 				return (uint8_t*)m_tstr.c_str();
 			}
 			else
@@ -1816,6 +1864,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_tstr = mt->get_comm();
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_LOGINSHELLID:
@@ -1951,6 +2000,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
 	case TYPE_CGROUP:
@@ -1967,6 +2017,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len)
 				if(tinfo->m_cgroups[j].first == m_argname)
 				{
 					m_tstr = tinfo->m_cgroups[j].second;
+					*len = m_tstr.size();
 					return (uint8_t*)m_tstr.c_str();
 				}
 			}
@@ -2682,6 +2733,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 
 	m_strstorage = fullname;
 
+	*len = m_strstorage.size();
 	return (uint8_t*)m_strstorage.c_str();
 }
 
@@ -2782,18 +2834,21 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
-uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	switch(m_field_id)
 	{
 	case TYPE_TIME:
 		ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+		*len = m_strstorage.size();
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_TIME_S:
 		ts_to_string(evt->get_ts(), &m_strstorage, false, false);
+		*len = m_strstorage.size();
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_DATETIME:
 		ts_to_string(evt->get_ts(), &m_strstorage, true, true);
+		*len = m_strstorage.size();
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_RAWTS:
 		return (uint8_t*)&evt->m_pevt->ts;
@@ -2850,6 +2905,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				m_strstorage = m_converter->tostring_nice(NULL, 0, 1000000000);
 			}
 
+			*len = m_strstorage.size();
 			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_LATENCY_S:
@@ -2946,12 +3002,14 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			{
 				case 'h':
 					ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+					*len = m_strstorage.size();
 					return (uint8_t*)m_strstorage.c_str();
 
 				case 'a':
 					m_strstorage += to_string(evt->get_ts() / ONE_SECOND_IN_NS);
 					m_strstorage += ".";
 					m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
+					*len = m_strstorage.size();
 					return (uint8_t*) m_strstorage.c_str();
 
 				case 'r':
@@ -2959,6 +3017,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_strstorage += ".";
 					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS);
 					m_strstorage += string(timebuffer);
+					*len = m_strstorage.size();
 					return (uint8_t*) m_strstorage.c_str();
 
 				case 'd':
@@ -2977,6 +3036,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 						m_strstorage = "0.000000000";
 					}
 
+					*len = m_strstorage.size();
 					return (uint8_t*) m_strstorage.c_str();
 				}
 
@@ -2996,16 +3056,19 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
 
 					m_u64val = tts;
+					*len = m_strstorage.size();
 					return (uint8_t*) m_strstorage.c_str();
 			}
 		}
 	case TYPE_DIR:
 		if(PPME_IS_ENTER(evt->get_type()))
 		{
+			*len = 1;
 			return (uint8_t*)">";
 		}
 		else
 		{
+			*len = 1;
 			return (uint8_t*)"<";
 		}
 	case TYPE_TYPE:
@@ -3157,6 +3220,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 			break;
 		}
 
+		*len = m_strstorage.size();
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_NUMBER:
 		return (uint8_t*)&evt->m_evtnum;
@@ -3255,6 +3319,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
+			*len = m_strstorage.size();
 			return (uint8_t*)m_strstorage.c_str();
 		}
 		break;
@@ -3456,6 +3521,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len)
 				return NULL;
 			}
 
+			*len = m_strstorage.size();
 			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_ISWAIT:
@@ -3801,7 +3867,8 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 	if(m_field_id == TYPE_ARGRAW)
 	{
 		uint32_t len;
-		uint8_t* extracted_val = extract(evt, &len);
+		bool sanitize_strings = false;
+		uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
 
 		if(extracted_val == NULL)
 		{
@@ -3866,7 +3933,7 @@ sinsp_filter_check* sinsp_filter_check_user::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_user();
 }
 
-uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	scap_userinfo* uinfo;
@@ -3938,7 +4005,7 @@ sinsp_filter_check* sinsp_filter_check_group::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_group();
 }
 
-uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -4305,7 +4372,7 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 	return (uint8_t*)res;
 }
 
-uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_tracerparser* eparser;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -4341,6 +4408,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_TIME:
 		{
 			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+			*len = m_strstorage.size();
 			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_NTAGS:
@@ -4436,6 +4504,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 				}
 			}
 
+			*len = m_strstorage.size();
 			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_ARGS:
@@ -4479,6 +4548,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 				m_strstorage = m_converter->tostring_nice(NULL, 0, 1000000000);
 			}
 
+			*len = m_strstorage.size();
 			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_DURATION_QUANTIZED:
@@ -4552,6 +4622,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_RAWTIME:
 		{
 			m_strstorage = to_string(eparser->m_enter_pae->m_time);
+			*len = m_strstorage.size();
 			return (uint8_t*)m_strstorage.c_str();
 		}
 	case TYPE_RAWPARENTTIME:
@@ -4564,6 +4635,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len)
 			}
 
 			m_strstorage = to_string(pepae->m_time);
+			*len = m_strstorage.size();
 			return (uint8_t*)m_strstorage.c_str();
 		}
 	default:
@@ -4769,7 +4841,7 @@ sinsp_filter_check* sinsp_filter_check_evtin::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_evtin();
 }
 
-uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	return NULL;
 }
@@ -5174,7 +5246,7 @@ int32_t rawstring_check::parse_field_name(const char* str, bool alloc_state)
 	return -1;
 }
 
-uint8_t* rawstring_check::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* rawstring_check::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = m_text_len;
 	return (uint8_t*)m_text.c_str();
@@ -5216,7 +5288,7 @@ int32_t sinsp_filter_check_syslog::parse_field_name(const char* str, bool alloc_
 	return res;
 }
 
-uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	ASSERT(m_decoder != NULL);
 	if(!m_decoder->is_data_valid())
@@ -5235,6 +5307,7 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_SEVERITY_STR:
 		return (uint8_t*)m_decoder->get_severity_str();
 	case TYPE_MESSAGE:
+		*len = m_decoder->m_msg.size();
 		return (uint8_t*)m_decoder->m_msg.c_str();
 	default:
 		ASSERT(false);
@@ -5266,7 +5339,7 @@ sinsp_filter_check* sinsp_filter_check_container::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_container();
 }
 
-uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	if(tinfo == NULL)
@@ -5286,6 +5359,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = tinfo->m_container_id;
 		}
 
+		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_CONTAINER_NAME:
 		if(tinfo->m_container_id.empty())
@@ -5309,6 +5383,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = container_info.m_name;
 		}
 
+		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_CONTAINER_IMAGE:
 		if(tinfo->m_container_id.empty())
@@ -5332,6 +5407,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = container_info.m_image;
 		}
 
+		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_CONTAINER_TYPE:
 		if(tinfo->m_container_id.empty())
@@ -5368,6 +5444,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				break;
 			}
 		}
+		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	default:
 		ASSERT(false);
@@ -5402,7 +5479,7 @@ int32_t sinsp_filter_check_reference::parse_field_name(const char* str, bool all
 	return -1;
 }
 
-uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_reference::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = m_len;
 	return m_val;
@@ -5729,7 +5806,7 @@ sinsp_filter_check* sinsp_filter_check_utils::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_utils();
 }
 
-uint8_t* sinsp_filter_check_utils::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_utils::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	switch(m_field_id)
 	{
@@ -5770,7 +5847,7 @@ sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fdlist();
 }
 
-uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	ASSERT(evt);
 	sinsp_evt_param *parinfo;
@@ -5941,6 +6018,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_strval = m_strval.substr(0, m_strval.size() - 1);
 		}
 
+		*len = m_strval.size();
 		return (uint8_t*)m_strval.c_str();
 	}
 	else
@@ -6144,7 +6222,7 @@ bool sinsp_filter_check_k8s::find_label(const k8s_pair_list& labels, const strin
 	return false;
 }
 
-uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	if(m_inspector->m_k8s_client == NULL)
 	{
@@ -6176,14 +6254,17 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 	case TYPE_K8S_POD_NAME:
 		m_tstr = pod->get_name();
+		*len = m_tstr.size();
 		return (uint8_t*) m_tstr.c_str();
 	case TYPE_K8S_POD_ID:
 		m_tstr = pod->get_uid();
+		*len = m_tstr.size();
 		return (uint8_t*) m_tstr.c_str();
 	case TYPE_K8S_POD_LABEL:
 	{
 		if(find_label(pod->get_labels(), m_argname, &m_tstr))
 		{
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6192,6 +6273,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_K8S_POD_LABELS:
 	{
 		concatenate_labels(pod->get_labels(), &m_tstr);
+		*len = m_tstr.size();
 		return (uint8_t*) m_tstr.c_str();
 	}
 	case TYPE_K8S_RC_NAME:
@@ -6200,6 +6282,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(rc != NULL)
 		{
 			m_tstr = rc->get_name();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6211,6 +6294,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(rc != NULL)
 		{
 			m_tstr = rc->get_uid();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6223,6 +6307,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(find_label(rc->get_labels(), m_argname, &m_tstr))
 			{
+				*len = m_tstr.size();
 				return (uint8_t*) m_tstr.c_str();
 			}
 		}
@@ -6235,6 +6320,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(rc != NULL)
 		{
 			concatenate_labels(rc->get_labels(), &m_tstr);
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6255,6 +6341,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 				m_tstr.append(service->get_name());
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6275,6 +6362,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 				m_tstr.append(service->get_uid());
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6301,6 +6389,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 
 			if(!m_tstr.empty())
 			{
+				*len = m_tstr.size();
 				return (uint8_t*) m_tstr.c_str();
 			}
 		}
@@ -6317,6 +6406,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 				concatenate_labels(service->get_labels(), &m_tstr);
 			}
 
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6325,6 +6415,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 	case TYPE_K8S_NS_NAME:
 	{
 		m_tstr = pod->get_namespace();
+		*len = m_tstr.size();
 		return (uint8_t*) m_tstr.c_str();
 	}
 	case TYPE_K8S_NS_ID:
@@ -6333,6 +6424,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(ns != NULL)
 		{
 			m_tstr = ns->get_uid();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6345,6 +6437,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		{
 			if(find_label(ns->get_labels(), m_argname, &m_tstr))
 			{
+				*len = m_tstr.size();
 				return (uint8_t*) m_tstr.c_str();
 			}
 		}
@@ -6357,6 +6450,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(ns != NULL)
 		{
 			concatenate_labels(ns->get_labels(), &m_tstr);
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6543,7 +6637,7 @@ bool sinsp_filter_check_mesos::find_label(const mesos_pair_list& labels, const s
 	return false;
 }
 
-uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	if(!m_inspector || !m_inspector->m_mesos_client)
 	{
@@ -6574,18 +6668,22 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 	{
 	case TYPE_MESOS_TASK_NAME:
 		m_tstr = task->get_name();
+		*len = m_tstr.size();
 		return (uint8_t*) m_tstr.c_str();
 	case TYPE_MESOS_TASK_ID:
 		m_tstr = task->get_uid();
+		*len = m_tstr.size();
 		return (uint8_t*) m_tstr.c_str();
 	case TYPE_MESOS_TASK_LABEL:
 		if(find_label(task->get_labels(), m_argname, &m_tstr))
 		{
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 		break;
 	case TYPE_MESOS_TASK_LABELS:
 		concatenate_labels(task->get_labels(), &m_tstr);
+		*len = m_tstr.size();
 		return (uint8_t*) m_tstr.c_str();
 	case TYPE_MESOS_FRAMEWORK_NAME:
 	{
@@ -6593,6 +6691,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(fw)
 		{
 			m_tstr = fw->get_name();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 		break;
@@ -6603,6 +6702,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(fw)
 		{
 			m_tstr = fw->get_uid();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 		break;
@@ -6613,6 +6713,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(app != NULL)
 		{
 			m_tstr = app->get_name();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 		break;
@@ -6623,6 +6724,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(app != NULL)
 		{
 			m_tstr = app->get_id();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6633,6 +6735,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 		marathon_app::ptr_t app = find_app_by_task(task);
 		if(app && find_label(app->get_labels(), m_argname, &m_tstr))
 		{
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 
@@ -6644,6 +6747,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(app)
 		{
 			concatenate_labels(app->get_labels(), &m_tstr);
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 		break;
@@ -6654,6 +6758,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(app)
 		{
 			m_tstr = app->get_group_id();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 		break;
@@ -6664,6 +6769,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len)
 		if(app)
 		{
 			m_tstr = app->get_group_id();
+			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}
 		break;

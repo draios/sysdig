@@ -45,7 +45,7 @@ typedef struct filtercheck_field_info
 {
 	ppm_param_type m_type; ///< Field type.
 	filtercheck_field_flags m_flags;  ///< Field flags.
-	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as decimal or hex. 
+	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as decimal or hex.
 	char m_name[64];  ///< Field name.
 	char m_description[1024];  ///< Field description.
 }filtercheck_field_info;
@@ -78,7 +78,7 @@ private:
 	inline void init(char* valptr, uint16_t len)
 	{
 		m_val = valptr;
-		m_len = len;		
+		m_len = len;
 	}
 
 	friend class sinsp_evt;
@@ -86,9 +86,9 @@ private:
 
 /*!
   \brief Event class.
-  This class is returned by \ref sinsp::next() and encapsulates the state 
-  related to a captured event, and includes a bunch of members to manipulate 
-  events and their parameters, including parsing, formatting and extracting 
+  This class is returned by \ref sinsp::next() and encapsulates the state
+  related to a captured event, and includes a bunch of members to manipulate
+  events and their parameters, including parsing, formatting and extracting
   state like the event process or FD.
 */
 class SINSP_PUBLIC sinsp_evt
@@ -160,8 +160,8 @@ public:
 	}
 
 	/*!
-	  \brief Get the event type. 
-	  
+	  \brief Get the event type.
+
 	  \note For a list of event types, refer to \ref etypes.
 	*/
 	inline uint16_t get_type()
@@ -230,7 +230,7 @@ public:
 	/*!
 	  \brief Return the information about the FD on which this event operated.
 
-	  \note For events that are not I/O related, get_fd_info() returns NULL. 
+	  \note For events that are not I/O related, get_fd_info() returns NULL.
 	*/
 	inline sinsp_fdinfo_t* get_fd_info()
 	{
@@ -240,7 +240,7 @@ public:
 	/*!
 	  \brief Return the number of the FD associated with this event.
 
-	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM. 
+	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM.
 	*/
 	int64_t get_fd_num();
 
@@ -261,7 +261,7 @@ public:
 
 	  \param id The parameter number.
 
-	  \note Refer to the g_event_info structure in driver/event_table.c for 
+	  \note Refer to the g_event_info structure in driver/event_table.c for
 	   a list of event descriptions.
 	*/
 	const struct ppm_param_info* get_param_info(uint32_t id);
@@ -284,7 +284,7 @@ public:
 	  \brief Get a parameter as a C++ string.
 
 	  \param name The parameter name.
-	  \param resolved If true, the library will try to resolve the parameter 
+	  \param resolved If true, the library will try to resolve the parameter
 	   before returning it. For example, and FD number will be converted into
 	   the correspondent file, TCP tuple, etc.
 	*/
@@ -409,6 +409,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer;
 	friend class sinsp_filter_check_event;
 	friend class sinsp_filter_check_thread;
+	friend class sinsp_evttype_filter;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;
