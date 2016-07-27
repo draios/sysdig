@@ -266,6 +266,11 @@ void docker::handle_event(Json::Value&& root)
 		}
 		if(is_allowed)
 		{
+			std::string::size_type delim_pos = status.find(':');
+			if(delim_pos != std::string::npos)
+			{
+				status = status.substr(0, delim_pos);
+			}
 			g_logger.log("Docker EVENT: handling " + status + " of " + type, sinsp_logger::SEV_DEBUG);
 			severity_map_t::const_iterator it = m_severity_map.find(status);
 			if(it != m_severity_map.end())
