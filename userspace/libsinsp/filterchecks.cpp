@@ -2770,10 +2770,10 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 		return m_u32val;
 
 	default:
-		return Json::Value::nullRef;
+		return Json::nullValue;
 	}
 
-	return Json::Value::nullRef;
+	return Json::nullValue;
 }
 
 uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint32_t* len)
