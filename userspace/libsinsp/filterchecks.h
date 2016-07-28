@@ -145,7 +145,7 @@ public:
 	//
 	virtual Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
 	{
-		return Json::Value::nullRef;
+		return Json::nullValue;
 	}
 
 	//
