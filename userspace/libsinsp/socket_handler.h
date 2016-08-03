@@ -606,8 +606,8 @@ private:
 		if(pass)
 		{
 			std::memset(buf, 0, size);
-			std::size_t pass_len = strlen((char*)pass);
-			if(size < (pass_len + 1)) { return 0; }
+			int pass_len = static_cast<int>(strlen((char*)pass));
+			if(size < (pass_len) + 1) { return 0; }
 			strncpy(buf, (const char*)pass, pass_len);
 			return pass_len;
 		}

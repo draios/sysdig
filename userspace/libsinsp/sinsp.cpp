@@ -56,8 +56,8 @@ extern sinsp_evttables g_infotables;
 extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 
-void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
-							scap_fdinfo* fdinfo, scap_t* newhandle); 
+void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
+							scap_fdinfo* fdinfo, scap_t* newhandle);
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
@@ -88,6 +88,7 @@ sinsp::sinsp() :
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
+	m_evttype_filter = NULL;
 #endif
 
 	m_fds_to_remove = new vector<int64_t>;
@@ -212,7 +213,7 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 
 	if(m_h != NULL)
 	{
-		scap_set_refresh_proc_table_when_saving(m_h, !filter);	
+		scap_set_refresh_proc_table_when_saving(m_h, !filter);
 	}
 }
 
@@ -264,7 +265,7 @@ void sinsp::init()
 		delete m_cycle_writer;
 		m_cycle_writer = NULL;
 	}
-	
+
 	m_cycle_writer = new cycle_writer(this->is_live());
 
 	//
@@ -567,6 +568,12 @@ void sinsp::close()
 		delete m_filter;
 		m_filter = NULL;
 	}
+
+	if(m_evttype_filter != NULL)
+	{
+		delete m_evttype_filter;
+		m_evttype_filter = NULL;
+	}
 #endif
 }
 
@@ -614,9 +621,9 @@ void sinsp::autodump_stop()
 	}
 }
 
-void sinsp::on_new_entry_from_proc(void* context, 
-								   int64_t tid, 
-								   scap_threadinfo* tinfo, 
+void sinsp::on_new_entry_from_proc(void* context,
+								   int64_t tid,
+								   scap_threadinfo* tinfo,
 								   scap_fdinfo* fdinfo,
 								   scap_t* newhandle)
 {
@@ -673,9 +680,9 @@ void sinsp::on_new_entry_from_proc(void* context,
 	}
 }
 
-void on_new_entry_from_proc(void* context, 
-							int64_t tid, 
-							scap_threadinfo* tinfo, 
+void on_new_entry_from_proc(void* context,
+							int64_t tid,
+							scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo,
 							scap_t* newhandle)
 {
@@ -817,7 +824,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	int32_t res;
 
 	//
-	// Check if there are fake cpu events to  events 
+	// Check if there are fake cpu events to  events
 	//
 	if(m_metaevt != NULL)
 	{
@@ -917,7 +924,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
 				{
 					m_last_procrequest_tod = procrequest_tod;
-					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;	
+					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
 
 					m_meinfo.m_pli = scap_get_threadlist_from_driver(m_h);
 					if(m_meinfo.m_pli == NULL)
@@ -1056,7 +1063,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 		scap_dump_flags dflags;
-		
+
 		bool do_drop;
 		dflags = evt->get_dump_flags(&do_drop);
 		if(do_drop)
@@ -1138,7 +1145,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Update the last event time for this thread
 	//
-	if(evt->m_tinfo && 
+	if(evt->m_tinfo &&
 		evt->get_type() != PPME_SCHEDSWITCH_1_E &&
 		evt->get_type() != PPME_SCHEDSWITCH_6_E)
 	{
@@ -1234,7 +1241,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 
 		//
 		// Since this thread is created out of thin air, we need to
-		// properly set its reference count, by scanning the table 
+		// properly set its reference count, by scanning the table
 		//
 		threadinfo_map_t* pttable = &m_thread_manager->m_threadtable;
 		threadinfo_map_iterator_t it;
@@ -1381,6 +1388,37 @@ const string sinsp::get_filter()
 	return m_filterstring;
 }
 
+void sinsp::add_evttype_filter(list<uint32_t> &evttypes,
+			       sinsp_filter *filter)
+{
+	// Create the evttype filter if it doesn't exist.
+	if(m_evttype_filter == NULL)
+	{
+		m_evttype_filter = new sinsp_evttype_filter();
+	}
+
+	m_evttype_filter->add(evttypes, filter);
+}
+
+bool sinsp::run_filters_on_evt(sinsp_evt *evt)
+{
+	//
+	// First run the global filter, if there is one.
+	//
+	if(m_filter && m_filter->run(evt) == true)
+	{
+		return true;
+	}
+
+	//
+	// Then run the evttype filter, if there is one.
+	if(m_evttype_filter && m_evttype_filter->run(evt) == true)
+	{
+		return true;
+	}
+
+	return false;
+}
 #endif
 
 const scap_machine_info* sinsp::get_machine_info()
@@ -1838,17 +1876,17 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		//
 		if(m_inspector->m_inactive_thread_scan_time_ns > 30 * ONE_SECOND_IN_NS)
 		{
-			m_last_flush_time_ns = 
+			m_last_flush_time_ns =
 				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
 		}
 		else
 		{
-			m_last_flush_time_ns = 
-				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns);			
+			m_last_flush_time_ns =
+				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns);
 		}
 	}
 
-	if(m_inspector->m_lastevent_ts > 
+	if(m_inspector->m_lastevent_ts >
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
 		res = true;
@@ -1864,7 +1902,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		{
 			bool closed = (it->second.m_flags & PPM_CL_CLOSED) != 0;
 
-			if(closed || 
+			if(closed ||
 				((m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
 					!scap_is_thread_alive(m_inspector->m_h, it->second.m_pid, it->first, it->second.m_comm.c_str()))
 					)

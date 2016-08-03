@@ -27,11 +27,7 @@ lua_parser::lua_parser(sinsp* inspector, lua_State *ls)
 	m_inspector = inspector;
 
 	m_ls = ls;
-	m_have_rel_expr = false;
-	m_last_boolop = BO_NONE;
-	m_nest_level = 0;
-
-	m_filter = new sinsp_filter(m_inspector);
+	reset();
 
 	// Register our c++ defined functions
 	luaL_openlib(m_ls, "filter", ll_filter, 0);
@@ -41,23 +37,37 @@ lua_parser::lua_parser(sinsp* inspector, lua_State *ls)
 
 }
 
-sinsp_filter* lua_parser::get_filter()
+void lua_parser::reset()
+{
+	m_have_rel_expr = false;
+	m_last_boolop = BO_NONE;
+	m_nest_level = 0;
+
+	m_filter = new sinsp_filter(m_inspector);
+}
+
+sinsp_filter* lua_parser::get_filter(bool reset_filter)
 {
 	if (m_nest_level != 0)
 	{
 		throw sinsp_exception("Error in configured filter: unbalanced nesting");
 	}
-	return m_filter;
+
+	sinsp_filter *ret = m_filter;
+
+	if (reset_filter)
+	{
+		reset();
+	}
+
+	return ret;
 }
 lua_parser::~lua_parser()
 {
-	if(m_ls)
-	{
-		lua_close(m_ls);
-		m_ls = NULL;
-	}
-	delete m_filter;
+	// The lua state is not considered owned by this object, so
+	// not freeing it.
 
+	delete m_filter;
 }
 
 
