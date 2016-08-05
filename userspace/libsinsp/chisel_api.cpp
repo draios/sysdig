@@ -165,7 +165,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 	}
 }
 
-int lua_cbacks::get_num(lua_State *ls) 
+int lua_cbacks::get_num(lua_State *ls)
 {
 	lua_getglobal(ls, "sievt");
 	sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
@@ -182,7 +182,7 @@ int lua_cbacks::get_num(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_ts(lua_State *ls) 
+int lua_cbacks::get_ts(lua_State *ls)
 {
 	lua_getglobal(ls, "sievt");
 	sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
@@ -202,7 +202,7 @@ int lua_cbacks::get_ts(lua_State *ls)
 	return 2;
 }
 
-int lua_cbacks::get_type(lua_State *ls) 
+int lua_cbacks::get_type(lua_State *ls)
 {
 	lua_getglobal(ls, "sievt");
 	sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
@@ -236,7 +236,7 @@ int lua_cbacks::get_type(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_cpuid(lua_State *ls) 
+int lua_cbacks::get_cpuid(lua_State *ls)
 {
 	lua_getglobal(ls, "sievt");
 	sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
@@ -255,7 +255,7 @@ int lua_cbacks::get_cpuid(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::request_field(lua_State *ls) 
+int lua_cbacks::request_field(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -264,7 +264,7 @@ int lua_cbacks::request_field(lua_State *ls)
 
 	sinsp* inspector = ch->m_inspector;
 
-	const char* fld = lua_tostring(ls, 1); 
+	const char* fld = lua_tostring(ls, 1);
 
 	if(fld == NULL)
 	{
@@ -274,7 +274,7 @@ int lua_cbacks::request_field(lua_State *ls)
 	}
 
 	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(fld,
-		inspector, 
+		inspector,
 		false);
 
 	if(chk == NULL)
@@ -293,7 +293,7 @@ int lua_cbacks::request_field(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::field(lua_State *ls) 
+int lua_cbacks::field(lua_State *ls)
 {
 	lua_getglobal(ls, "sievt");
 	sinsp_evt* evt = (sinsp_evt*)lua_touserdata(ls, -1);
@@ -310,8 +310,8 @@ int lua_cbacks::field(lua_State *ls)
 	if(chk == NULL)
 	{
 		//
-		// This happens if the lua code is calling field() without invoking 
-		// sysdig.request_field() before. 
+		// This happens if the lua code is calling field() without invoking
+		// sysdig.request_field() before.
 		//
 		lua_pushnil(ls);
 		return 1;
@@ -331,14 +331,14 @@ int lua_cbacks::field(lua_State *ls)
 	}
 }
 
-int lua_cbacks::set_global_filter(lua_State *ls) 
+int lua_cbacks::set_global_filter(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
-	const char* filter = lua_tostring(ls, 1); 
+	const char* filter = lua_tostring(ls, 1);
 
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
@@ -357,14 +357,14 @@ int lua_cbacks::set_global_filter(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::set_filter(lua_State *ls) 
+int lua_cbacks::set_filter(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
-	const char* filter = lua_tostring(ls, 1); 
+	const char* filter = lua_tostring(ls, 1);
 
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
@@ -383,14 +383,14 @@ int lua_cbacks::set_filter(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::set_snaplen(lua_State *ls) 
+int lua_cbacks::set_snaplen(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
-	const uint32_t snaplen = (uint32_t)lua_tointeger(ls, 1); 
+	const uint32_t snaplen = (uint32_t)lua_tointeger(ls, 1);
 
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
@@ -400,7 +400,7 @@ int lua_cbacks::set_snaplen(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::set_output_format(lua_State *ls) 
+int lua_cbacks::set_output_format(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -419,7 +419,7 @@ int lua_cbacks::set_output_format(lua_State *ls)
 		return 0;
 	}
 
-	const char* fmt = lua_tostring(ls, 1); 
+	const char* fmt = lua_tostring(ls, 1);
 
 	if(string(fmt) == "normal")
 	{
@@ -463,14 +463,14 @@ int lua_cbacks::set_output_format(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::set_fatfile_dump_mode(lua_State *ls) 
+int lua_cbacks::set_fatfile_dump_mode(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
-	int mode = lua_toboolean(ls, 1); 
+	int mode = lua_toboolean(ls, 1);
 
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
@@ -480,7 +480,7 @@ int lua_cbacks::set_fatfile_dump_mode(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::make_ts(lua_State *ls) 
+int lua_cbacks::make_ts(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -495,14 +495,14 @@ int lua_cbacks::make_ts(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::run_sysdig(lua_State *ls) 
+int lua_cbacks::run_sysdig(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
-	const char* args = lua_tostring(ls, 1); 
+	const char* args = lua_tostring(ls, 1);
 
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
@@ -513,7 +513,7 @@ int lua_cbacks::run_sysdig(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::end_capture(lua_State *ls) 
+int lua_cbacks::end_capture(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -528,7 +528,7 @@ int lua_cbacks::end_capture(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::is_live(lua_State *ls) 
+int lua_cbacks::is_live(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -542,7 +542,7 @@ int lua_cbacks::is_live(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::is_tty(lua_State *ls) 
+int lua_cbacks::is_tty(lua_State *ls)
 {
 #ifdef _WIN32
 	int use_color = false;
@@ -554,7 +554,7 @@ int lua_cbacks::is_tty(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_terminal_info(lua_State *ls) 
+int lua_cbacks::get_terminal_info(lua_State *ls)
 {
 	int32_t width = -1;
 	int32_t height = -1;
@@ -579,7 +579,7 @@ int lua_cbacks::get_terminal_info(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_filter(lua_State *ls) 
+int lua_cbacks::get_filter(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -596,7 +596,7 @@ int lua_cbacks::get_filter(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_machine_info(lua_State *ls) 
+int lua_cbacks::get_machine_info(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -632,7 +632,7 @@ int lua_cbacks::get_machine_info(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_thread_table(lua_State *ls) 
+int lua_cbacks::get_thread_table(lua_State *ls)
 {
 	threadinfo_map_iterator_t it;
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
@@ -658,7 +658,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	//
 	// If the caller specified a filter, compile it
 	//
-	if(lua_isstring(ls, 1)) 
+	if(lua_isstring(ls, 1))
 	{
 		string filterstr = lua_tostring(ls, 1);
 		lua_pop(ls, 1);
@@ -1000,7 +1000,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_container_table(lua_State *ls) 
+int lua_cbacks::get_container_table(lua_State *ls)
 {
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	uint32_t j;
@@ -1081,7 +1081,7 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::is_print_container_data(lua_State *ls) 
+int lua_cbacks::is_print_container_data(lua_State *ls)
 {
         lua_getglobal(ls, "sichisel");
 
@@ -1096,7 +1096,7 @@ int lua_cbacks::is_print_container_data(lua_State *ls)
 }
 
 
-int lua_cbacks::get_output_format(lua_State *ls) 
+int lua_cbacks::get_output_format(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -1120,7 +1120,7 @@ int lua_cbacks::get_output_format(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_evtsource_name(lua_State *ls) 
+int lua_cbacks::get_evtsource_name(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -1142,14 +1142,14 @@ int lua_cbacks::get_evtsource_name(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::set_event_formatter(lua_State *ls) 
+int lua_cbacks::set_event_formatter(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 	lua_pop(ls, 1);
 
-	const char* formatter = lua_tostring(ls, 1); 
+	const char* formatter = lua_tostring(ls, 1);
 
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
@@ -1159,7 +1159,7 @@ int lua_cbacks::set_event_formatter(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::set_interval_ns(lua_State *ls) 
+int lua_cbacks::set_interval_ns(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -1176,7 +1176,7 @@ int lua_cbacks::set_interval_ns(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::set_interval_s(lua_State *ls) 
+int lua_cbacks::set_interval_s(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -1193,7 +1193,7 @@ int lua_cbacks::set_interval_s(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::exec(lua_State *ls) 
+int lua_cbacks::exec(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -1230,7 +1230,7 @@ int lua_cbacks::exec(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::log(lua_State *ls) 
+int lua_cbacks::log(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 
@@ -1265,7 +1265,7 @@ int lua_cbacks::log(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::udp_setpeername(lua_State *ls) 
+int lua_cbacks::udp_setpeername(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
@@ -1295,14 +1295,14 @@ int lua_cbacks::udp_setpeername(lua_State *ls)
 	return 0;
 }
 
-int lua_cbacks::udp_send(lua_State *ls) 
+int lua_cbacks::udp_send(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
 	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
 
 	string message(lua_tostring(ls, 1));
 
-	if(sendto(ch->m_udp_socket, message.c_str(), message.size(), 0, 
+	if(sendto(ch->m_udp_socket, message.c_str(), message.size(), 0,
 		(struct sockaddr *)&ch->m_serveraddr, sizeof(ch->m_serveraddr)) < 0)
 	{
 		string err = "udp_send error: cannot send the buffer: ";
@@ -1314,7 +1314,7 @@ int lua_cbacks::udp_send(lua_State *ls)
 }
 
 #ifdef HAS_ANALYZER
-int lua_cbacks::push_metric(lua_State *ls) 
+int lua_cbacks::push_metric(lua_State *ls)
 {
 	statsd_metric metric;
 	metric.m_type = statsd_metric::type_t::GAUGE;
@@ -1336,7 +1336,7 @@ int lua_cbacks::push_metric(lua_State *ls)
 	{
 		lua_pushnil(ls);
 
-		while(lua_next(ls, 3) != 0) 
+		while(lua_next(ls, 3) != 0)
 		{
 			string tag = lua_tostring(ls, -1);
 			metric.m_tags[tag] = "";

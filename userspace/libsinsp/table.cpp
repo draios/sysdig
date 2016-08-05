@@ -52,20 +52,20 @@ typedef struct table_row_cmp
 		if(src.m_values[m_colid].m_cnt > 1 ||
 			dst.m_values[m_colid].m_cnt > 1)
 		{
-			return flt_compare_avg(op, m_type, 
-				src.m_values[m_colid].m_val, 
-				dst.m_values[m_colid].m_val, 
-				src.m_values[m_colid].m_len, 
+			return flt_compare_avg(op, m_type,
+				src.m_values[m_colid].m_val,
+				dst.m_values[m_colid].m_val,
+				src.m_values[m_colid].m_len,
 				dst.m_values[m_colid].m_len,
-				src.m_values[m_colid].m_cnt, 
+				src.m_values[m_colid].m_cnt,
 				dst.m_values[m_colid].m_cnt);
 		}
 		else
 		{
-			return flt_compare(op, m_type, 
-				src.m_values[m_colid].m_val, 
-				dst.m_values[m_colid].m_val, 
-				src.m_values[m_colid].m_len, 
+			return flt_compare(op, m_type,
+				src.m_values[m_colid].m_val,
+				dst.m_values[m_colid].m_val,
+				src.m_values[m_colid].m_len,
 				dst.m_values[m_colid].m_len);
 		}
 	}
@@ -131,11 +131,11 @@ sinsp_table::~sinsp_table()
 	{
 		delete m_filter;
 	}
-	
+
 	delete m_printer;
 }
 
-void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const string& filter, 
+void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const string& filter,
 	bool use_defaults, uint32_t view_depth)
 {
 	m_use_defaults = use_defaults;
@@ -165,7 +165,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 
 	for(auto vit : *entries)
 	{
-		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(vit.get_field(m_view_depth), 
+		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(vit.get_field(m_view_depth),
 			m_inspector,
 			false);
 
@@ -207,7 +207,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	}
 	else
 	{
-		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname("util.cnt", 
+		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname("util.cnt",
 			m_inspector,
 			false);
 
@@ -250,7 +250,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	m_vals_array_sz = m_premerge_vals_array_sz;
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	// If a merge has been specified, configure it 
+	// If a merge has been specified, configure it
 	//////////////////////////////////////////////////////////////////////////////////////
 	uint32_t n_gby_keys = 0;
 
@@ -346,7 +346,7 @@ void sinsp_table::add_row(bool merging)
 {
 	uint32_t j;
 
-	sinsp_table_field key(m_fld_pointers[0].m_val, 
+	sinsp_table_field key(m_fld_pointers[0].m_val,
 		m_fld_pointers[0].m_len,
 		m_fld_pointers[0].m_cnt);
 
@@ -541,13 +541,13 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 }
 
 void sinsp_table::flush(sinsp_evt* evt)
-{	
+{
 	if(!m_paused)
 	{
 		if(m_next_flush_time_ns != 0)
 		{
 			//
-			// Time to emit the sample! 
+			// Time to emit the sample!
 			// Add the proctable as a sample at the end of the second
 			//
 			process_proctable(evt);
@@ -573,7 +573,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 			if(m_type == sinsp_table::TT_TABLE)
 			{
 				//
-				// Switch the data storage so that the current one is still usable by the 
+				// Switch the data storage so that the current one is still usable by the
 				// consumers of the table.
 				//
 				switch_buffers();
@@ -611,13 +611,13 @@ void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t t
 			sinsp_filter_check* extractor = m_extractors->at(j + 1);
 			uint64_t td = 0;
 
-			if(extractor->m_aggregation == A_TIME_AVG || 
+			if(extractor->m_aggregation == A_TIME_AVG ||
 				extractor->m_merge_aggregation == A_TIME_AVG)
 			{
 				td = time_delta;
 			}
 
-			m_printer->set_val(m_types->at(j + 1), 
+			m_printer->set_val(m_types->at(j + 1),
 				it->m_values[j].m_val,
 				it->m_values[j].m_len,
 				it->m_values[j].m_cnt,
@@ -658,12 +658,12 @@ void sinsp_table::filter_sample()
 				type == PT_PORT || type == PT_L4PROTO || type == PT_SOCKFAMILY || type == PT_IPV4ADDR ||
 				type == PT_UID || type == PT_GID)
 			{
-				m_printer->set_val(type, 
-					it.m_values[j].m_val, 
+				m_printer->set_val(type,
+					it.m_values[j].m_val,
 					it.m_values[j].m_len,
 					it.m_values[j].m_cnt,
 					legend->at(j + 1).m_print_format);
-					
+
 				string strval = m_printer->tostring_nice(NULL, 0, 0);
 
 				if(strval.find(m_freetext_filter) != string::npos)
@@ -885,7 +885,7 @@ void sinsp_table::create_sample()
 		sinsp_sample_row row;
 
 		//
-		// If merging is on, perform the merge and switch to the merged table 
+		// If merging is on, perform the merge and switch to the merged table
 		//
 		if(m_do_merging)
 		{
@@ -953,7 +953,7 @@ void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, si
 {
 	uint8_t* operand1 = dst->m_val;
 	uint8_t* operand2 = src->m_val;
-	
+
 	switch(type)
 	{
 	case PT_INT8:
@@ -997,7 +997,7 @@ void sinsp_table::add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field *
 	uint8_t* operand2 = src->m_val;
 	uint32_t cnt1 = dst->m_cnt;
 	uint32_t cnt2 = src->m_cnt;
-	
+
 	switch(type)
 	{
 	case PT_INT8:
@@ -1269,10 +1269,10 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 		return;
 	case A_AVG:
 		dst->m_cnt += src->m_cnt;
-		add_fields_sum(type, dst, src);		
+		add_fields_sum(type, dst, src);
 		return;
 	case A_MAX:
-		add_fields_max(type, dst, src);		
+		add_fields_max(type, dst, src);
 		return;
 	case A_MIN:
 		if(src->m_cnt != 0)
@@ -1428,7 +1428,7 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 		ASSERT(res.first != NULL);
 
 		m_printer->set_val(types->at(0),
-			m_sample_data->at(rownum).m_key.m_val, 
+			m_sample_data->at(rownum).m_key.m_val,
 			m_sample_data->at(rownum).m_key.m_len,
 			m_sample_data->at(rownum).m_key.m_cnt,
 			legend->at(0).m_print_format);
