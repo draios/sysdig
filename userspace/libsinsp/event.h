@@ -338,6 +338,7 @@ private:
 		m_fdinfo = NULL;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
+		m_extract_cache.clear();
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
@@ -350,6 +351,7 @@ private:
 		m_cpuid = cpuid;
 		m_evtnum = 0;
 		m_poriginal_evt = NULL;
+		m_extract_cache.clear();
 	}
 	inline void load_params()
 	{
