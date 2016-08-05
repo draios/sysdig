@@ -133,6 +133,12 @@ public:
 	//
 	virtual const filtercheck_field_info* get_field_info();
 
+
+	//
+	// Check for cached values and return if available. Otherwise call extract().
+	//
+	uint8_t* extract_using_cache(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
 	//
         // Extract the field from the event. In sanitize_strings is true, any
         // string values are sanitized to remove nonprintable characters.
@@ -198,6 +204,15 @@ protected:
 
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
+
+	//
+	// This value is used as a subclass identifier, and is set
+	// when allocate_new() is called. It, combined with
+	// m_field_id, uniquely identifies any item extracted from an
+	// event.
+	void set_filtercheck_id(uint32_t id);
+	uint32_t m_filtercheck_id;
+
 	uint32_t m_field_id;
 	uint32_t m_th_state_id;
 	uint32_t m_val_storage_len;

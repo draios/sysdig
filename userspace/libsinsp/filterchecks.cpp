@@ -1272,7 +1272,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	//
 	uint32_t len = 0;
 	bool sanitize_strings = false;
-	uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
+	uint8_t* extracted_val = extract_using_cache(evt, &len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{
@@ -2585,6 +2585,25 @@ const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
 	}
 }
 
+uint8_t* sinsp_filter_check::extract_using_cache(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+{
+	pair<uint8_t *,uint32_t> match;
+
+	if(evt->check_cache(m_filtercheck_id, m_field_id, &match))
+	{
+		*len = match.second;
+		return match.first;
+	}
+	else
+	{
+		uint8_t *val = extract(evt, len, sanitize_strings);
+		match.first = val;
+		match.second = *len;
+		evt->update_cache(m_filtercheck_id, m_field_id, val, *len);
+		return val;
+	}
+}
+
 uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 {
 	const sinsp_evt_param* pi = evt->get_param_value_raw(argname);
@@ -2782,7 +2801,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
 	case TYPE_DELTA_NS:
-		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
+		return (Json::Value::Int64)*(uint64_t*)extract_using_cache(evt, len);
 	case TYPE_COUNT:
 		m_u32val = 1;
 		return m_u32val;
@@ -3868,7 +3887,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 	{
 		uint32_t len;
 		bool sanitize_strings = false;
-		uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
+		uint8_t* extracted_val = extract_using_cache(evt, &len, sanitize_strings);
 
 		if(extracted_val == NULL)
 		{
@@ -5730,7 +5749,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 												  uint64_t time_delta)
 {
 	uint32_t len;
-	uint8_t* rawval = extract(evt, &len);
+	uint8_t* rawval = extract_using_cache(evt, &len);
 
 	if(rawval == NULL)
 	{

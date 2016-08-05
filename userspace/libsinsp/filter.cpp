@@ -127,6 +127,7 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(const
 			}
 
 			sinsp_filter_check* newchk = m_check_list[j]->allocate_new();
+			newchk->set_filtercheck_id(j);
 			newchk->set_inspector(inspector);
 			return newchk;
 		}
@@ -146,6 +147,7 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_another(sinsp
 {
 	sinsp_filter_check *newchk = chk->allocate_new();
 
+	newchk->m_filtercheck_id = chk->m_filtercheck_id;
 	newchk->m_inspector = chk->m_inspector;
 	newchk->m_field_id = chk->m_field_id;
 	newchk->m_field = &chk->m_info.m_fields[chk->m_field_id];
@@ -523,6 +525,11 @@ sinsp_filter_check::sinsp_filter_check()
 void sinsp_filter_check::set_inspector(sinsp* inspector)
 {
 	m_inspector = inspector;
+}
+
+void sinsp_filter_check::set_filtercheck_id(uint32_t id)
+{
+	m_filtercheck_id = id;
 }
 
 Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
@@ -921,7 +928,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 char* sinsp_filter_check::tostring(sinsp_evt* evt)
 {
 	uint32_t len;
-	uint8_t* rawval = extract(evt, &len);
+	uint8_t* rawval = extract_using_cache(evt, &len);
 
 	if(rawval == NULL)
 	{
@@ -938,7 +945,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 
 	if(jsonval == Json::nullValue)
 	{
-		uint8_t* rawval = extract(evt, &len);
+		uint8_t* rawval = extract_using_cache(evt, &len);
 		if(rawval == NULL)
 		{
 			return Json::nullValue;
@@ -1078,7 +1085,7 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
 	uint32_t evt_val_len=0;
 	bool sanitize_strings = false;
-	uint8_t* extracted_val = extract(evt, &evt_val_len, sanitize_strings);
+	uint8_t* extracted_val = extract_using_cache(evt, &evt_val_len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{

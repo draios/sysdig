@@ -318,7 +318,7 @@ int lua_cbacks::field(lua_State *ls)
 	}
 
 	uint32_t vlen;
-	uint8_t* rawval = chk->extract(evt, &vlen);
+	uint8_t* rawval = chk->extract_using_cache(evt, &vlen);
 
 	if(rawval != NULL)
 	{

@@ -451,7 +451,7 @@ void sinsp_table::process_event(sinsp_evt* evt)
 	for(j = 0; j < m_n_premerge_fields; j++)
 	{
 		uint32_t len;
-		uint8_t* val = m_premerge_extractors[j]->extract(evt, &len);
+		uint8_t* val = m_premerge_extractors[j]->extract_using_cache(evt, &len);
 
 		sinsp_table_field* pfld = &(m_premerge_fld_pointers[j]);
 
