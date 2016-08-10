@@ -168,26 +168,36 @@ public:
 	sinsp_evttype_filter();
 	virtual ~sinsp_evttype_filter();
 
-	void add(list<uint32_t> &evttypes,
+	void add(std::string &name,
+		 list<uint32_t> &evttypes,
 		 sinsp_filter* filter);
+
+	void enable(std::string &pattern, bool enabled);
 
 	bool run(sinsp_evt *evt);
 
 private:
 
+	struct filter_wrapper {
+		sinsp_filter *filter;
+		list<uint32_t> evttypes;
+		bool enabled;
+	};
+
 	// Maps from event type to filter. There can be multiple
 	// filters per event type.
-	list<sinsp_filter *> *m_filter_by_evttype[PPM_EVENT_MAX];
+	list<filter_wrapper *> *m_filter_by_evttype[PPM_EVENT_MAX];
 
 	// It's possible to add an event type filter with an empty
 	// list of event types, meaning it should run for all event
 	// types.
-	list<sinsp_filter *> m_catchall_evttype_filters;
+	list<filter_wrapper *> m_catchall_evttype_filters;
 
 	// This holds all the filters in
 	// m_filter_by_evttype/m_catchall_evttype_filters, so they can
 	// be cleaned up.
-	list<sinsp_filter *> m_evttype_filters;
+
+	map<std::string,filter_wrapper *> m_evttype_filters;
 };
 
 /*@}*/
