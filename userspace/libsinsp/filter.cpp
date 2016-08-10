@@ -26,6 +26,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // code at every new release, and I will have a cleaner and easier to understand code base.
 //
 
+#include <regex>
+
 #include "sinsp.h"
 #include "sinsp_int.h"
 
@@ -1934,35 +1936,55 @@ sinsp_evttype_filter::~sinsp_evttype_filter()
 
 	m_catchall_evttype_filters.clear();
 
-	for(auto filter : m_evttype_filters)
+	for(auto val : m_evttype_filters)
 	{
-		delete filter;
+		delete val.second->filter;
+		delete val.second;
 	}
 	m_evttype_filters.clear();
 }
 
-void sinsp_evttype_filter::add(list<uint32_t> &evttypes,
+void sinsp_evttype_filter::add(string &name,
+			       list<uint32_t> &evttypes,
 			       sinsp_filter *filter)
 {
-	m_evttype_filters.push_back(filter);
+	filter_wrapper *wrap = new filter_wrapper();
+	wrap->filter = filter;
+	wrap->evttypes = evttypes;
+	wrap->enabled = true;
+
+	m_evttype_filters.insert(pair<string,filter_wrapper *>(name, wrap));
 
 	if(evttypes.size() == 0)
 	{
-		m_catchall_evttype_filters.push_back(filter);
+		m_catchall_evttype_filters.push_back(wrap);
 	}
 	else
 	{
 
 		for(auto evttype: evttypes)
 		{
-			list<sinsp_filter *> *filters = m_filter_by_evttype[evttype];
+			list<filter_wrapper *> *filters = m_filter_by_evttype[evttype];
 			if(filters == NULL)
 			{
-				filters = new list<sinsp_filter*>();
+				filters = new list<filter_wrapper*>();
 				m_filter_by_evttype[evttype] = filters;
 			}
 
-			filters->push_back(filter);
+			filters->push_back(wrap);
+		}
+	}
+}
+
+void sinsp_evttype_filter::enable(string &pattern, bool enabled)
+{
+	regex re(pattern);
+
+	for(auto val : m_evttype_filters)
+	{
+		if (regex_match(val.first, re))
+		{
+			val.second->enabled = enabled;
 		}
 	}
 }
@@ -1973,21 +1995,21 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt)
 	// First run any catchall event type filters (ones that did not
 	// explicitly specify any event type.
 	//
-	for(sinsp_filter *filt : m_catchall_evttype_filters)
+	for(filter_wrapper *wrap : m_catchall_evttype_filters)
 	{
-		if(filt->run(evt) == true)
+		if(wrap->enabled && wrap->filter->run(evt) == true)
 		{
 			return true;
 		}
 	}
 
-        list<sinsp_filter *> *filters = m_filter_by_evttype[evt->m_pevt->type];
+        list<filter_wrapper *> *filters = m_filter_by_evttype[evt->m_pevt->type];
 
 	if(filters)
 	{
-		for(sinsp_filter *filt : *filters)
+		for(filter_wrapper *wrap : *filters)
 		{
-			if(filt->run(evt) == true)
+			if(wrap->enabled && wrap->filter->run(evt) == true)
 			{
 				return true;
 			}

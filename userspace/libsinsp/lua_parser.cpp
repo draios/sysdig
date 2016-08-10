@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "sinsp.h"
+#include "filter.h"
 #include "sinsp_int.h"
 
 #include "lua_parser.h"
