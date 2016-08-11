@@ -467,7 +467,7 @@ std::string k8s_component::get_api(type t, ext_list_ptr_t extensions)
 	case K8S_REPLICASETS:
 	case K8S_DAEMONSETS:
 	case K8S_DEPLOYMENTS:
-		if(extensions && extensions->find("v1beta1") != extensions->end())
+		if(extensions && extensions->size())
 		{
 			return "/apis/extensions/v1beta1/";
 		}
