@@ -464,7 +464,10 @@ VISIBILITY_PRIVATE
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
 #ifdef HAS_EARLY_FILTERING
-	friend class analyzer_load_manager;
+	//friend class analyzer_load_manager;
+#ifdef HAS_FAIR_POLICY
+	friend class fair_policy;
+#endif
 #endif
 };
 
