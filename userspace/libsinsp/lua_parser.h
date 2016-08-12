@@ -1,9 +1,6 @@
 #pragma once
 
-#include <string.h>
-
 #include "sinsp.h"
-#include "filterchecks.h"
 
 typedef struct lua_State lua_State;
 
