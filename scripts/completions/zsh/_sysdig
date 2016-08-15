@@ -214,16 +214,20 @@ _arguments                                                                      
     '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                                         \
     '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                                                    \
     '(-E --exclude-users)'{-E,--exclude-users}'[Don'\''t create the user/group tables when starting]'                                   \
-    '(-e --events)'{-e,--events}'[Rotate the capture file every <num> events]:Maximum event number:'                                    \
+    '-e[Rotate the capture file every <num> events]:Maximum event number:'                                                              \
     '(-F --fatfile)'{-F,--fatfile}'[Enable fatfile mode]'                                                                               \
+    '--filter-proclist[apply the filter to the process table]'                                                                          \
     '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'                          \
     '(-h --help)'{-h,--help}'[Print this help]'                                                                                         \
     '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                                                     \
     '(-k --k8s-api)'{-k,--k8s-api}'[Kubernetes API server]'                                                                             \
+    '(-K --k8s-api-cert)'{-K,--k8s-api-cert}'[Token  to authenticate user and (optionally) verify the K8S API server identity]:Kubernetes security token:'  \
     '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                                                  \
     '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                                                      \
     '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                                                      \
+    '(-m --mesos-api)'{-m,--mesos-api=}'[Enable Mesos support by connecting to the given API server]:marathon-url:'                     \
     '-N[Do not convert port numbers to names]'                                                                                          \
+    '-M[Stop collecting after collecting for the given period of time]:numseconds:'                                                     \
     '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                                         \
     '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                                           \
     '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format'          \
@@ -237,8 +241,10 @@ _arguments                                                                      
        r\:"relative time from capture start"                                                                                            \
        d\:"delta between enter/exit"                                                                                                    \
        D\:"delta from previous event"))'                                                                                                \
+    '(-T --force-tracers-capture)'{-T,--force-tracers-capture}'[Tell the driver to make sure full buffers are captured from /dev/null]' \
+    '--unbuffered[Disable buffering of output. Useful for realtime parsing of sysdig output]'                                           \
     '(-v --verbose)'{-v,--verbose}'[Verbose output]'                                                                                    \
-    '--unbuffered[Disable buffering of output]'                                                                                         \
+    '--version[Print sysdig version number]'                                                                                            \
     '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'                                     \
     '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files'                         \
     '(-x --print-hex)'{-x,--print-hex}'[Print data buffers in hex]'                                                                     \
