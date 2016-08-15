@@ -44,7 +44,7 @@ function _filter () {
     if [[ -z $1 ]]; then
         # full filter expansion
         local ops
-        ops=("=" "!=" "<" "<=" ">" ">=" "contains" "and" "or" "not" "(" ")")
+        ops=("=" "!=" "<" "<=" ">" ">=" "contains" "icontains" "in" "exists" "and" "or" "not" "(" ")")
 
         # Remove the FILTER-ONLY string, since we don't need to indicate that to
         # the user here
