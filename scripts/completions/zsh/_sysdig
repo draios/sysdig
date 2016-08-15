@@ -1,7 +1,9 @@
 #compdef sysdig
 
 # This completion code is based on the cmdline interface as it exists in sysdig
-# 0.1.101
+# 0.11.0
+
+
 
 # this must match fields_info.cpp
 local DESCRIPTION_TEXT_START=16
@@ -11,6 +13,8 @@ function _filter () {
     # I run 'sysdig -l' to get a list of available filter types to generate the
     # user choice
 
+    # Each element of the 'fields' array is name:description, as required by
+    # _describe
     local in_field=0 fields
     typeset -a fields
 
@@ -21,7 +25,7 @@ function _filter () {
                 in_field=1
                 fields[$#fields+1]="$match[1]:$match[2]"
             elif (($in_field)) && [[ $line =~ "^ {$DESCRIPTION_TEXT_START}(.*)" ]]; then
-                # field continuation
+                # Field continuation. I add to the description
                 fields[$#fields]+=$match[1]
             else
                 in_field=0
@@ -42,11 +46,16 @@ function _filter () {
     if [[ -z $1 ]]; then
         # full filter expansion
         local ops
-        ops=("=" "!=" "<" "<=" ">" ">=" "contains" "and" "or" "not" "(" ")")
+        ops=("=" "!=" "<" "<=" ">" ">=" "contains" "icontains" "in" "exists" "and" "or" "not" "(" ")")
 
         # Remove the FILTER-ONLY string, since we don't need to indicate that to
         # the user here
         fields=(${fields/"(FILTER ONLY) "/}) # 
+
+        # Generate completions. Note that I don't parse the syntax here, and the
+        # suggested completions may not always be valid. The completions will
+        # tell you what tokens exist, but the user has to know how to use them
+        # properly
         _describe -t fields 'Fields' fields
         _describe -t operators 'Operators' ops
     elif [[ $1 == "format" ]]; then
@@ -206,47 +215,53 @@ function _chiselarg () {
 local context state state_descr line
 typeset -A opt_args
 
-_arguments                                                                                                      \
-    '(-A --print-ascii)'{-A,--print-ascii}'[Only print the text portion of data buffers]'                       \
-    '(-b --print-base64)'{-b,--print-base64}'[Print data buffers in base64]'                                    \
-    '(-C --file-size)'{-C,--file-size=-}'[Chunk captures to files of given size]:Maximum chunk file size:'      \
-    '(-cl --list-chisels)'{-cl,--list-chisels}'[lists the available chisels]'                                   \
-    '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
-    '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \
-    '(-E --exclude-users)'{-E,--exclude-users}'[Don'\''t create the user/group tables when starting]'           \
-    '(-e --events)'{-e,--events}'[Rotate the capture file every <num> events]:Maximum event number:'            \
-    '(-F --fatfile)'{-F,--fatfile}'[Enable fatfile mode]'                                                       \
-    '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'  \
-    '(-h --help)'{-h,--help}'[Print this help]'                                                                 \
-    '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                             \
-    '(-k --k8s-api)'{-k,--k8s-api}'[Kubernetes API server]'                                                     \
-    '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                          \
-    '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                              \
-    '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                              \
-    '-N[Do not convert port numbers to names]'                                                                  \
-    '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
-    '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                   \
-    '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format' \
-    '(-q --quiet)'{-q,--quiet}'[Do not print events on the screen]'                                             \
-    '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
-    '(-S --summary)'{-S,--summary}'[Print the event summary when the capture ends]'                             \
-    '(-s --snaplen)'{-s,--snaplen=-}'[Capture the first <len> bytes of each I/O buffer]:Buffer length (bytes):' \
-    '(-t --timetype)'{-t,--timetype=-}'[Change the way event time is displayed]:Time-reporting type:((          \
-       h\:"human-readable string"                                                                               \
-       a\:"absolute timestamp from epoch"                                                                       \
-       r\:"relative time from capture start"                                                                    \
-       d\:"delta between enter/exit"                                                                            \
-       D\:"delta from previous event"))'                                                                        \
-    '(-v --verbose)'{-v,--verbose}'[Verbose output]'                                                            \
-    '--unbuffered[Disable buffering of output]'                                                                 \
-    '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
-    '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files' \
-    '(-x --print-hex)'{-x,--print-hex}'[Print data buffers in hex]'                                             \
-    '(-X --print-hex-ascii)'{-X,--print-hex-ascii}'[Print data buffers in hex and ASCII]'                       \
-    '(-z --compress)'{-z,--compress}'[Enables compression for stored tracefiles]'                               \
-    '-pp[Report the default printing format used if -p is omitted]'                                             \
-    '(-c --chisel)'{-c,--chisel}'[Run a given chisel]:Chisel:->chisel'                                          \
-    '(-i --chisel-info)'{-i,--chisel-info}'[Get a detailed chisel description]:Chisel:->chisel' \
+_arguments                                                                                                                              \
+    '(-A --print-ascii)'{-A,--print-ascii}'[Only print the text portion of data buffers]'                                               \
+    '(-b --print-base64)'{-b,--print-base64}'[Print data buffers in base64]'                                                            \
+    '(-C --file-size)'{-C,--file-size=-}'[Chunk captures to files of given size]:Maximum chunk file size:'                              \
+    '(-cl --list-chisels)'{-cl,--list-chisels}'[lists the available chisels]'                                                           \
+    '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                                         \
+    '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                                                    \
+    '(-E --exclude-users)'{-E,--exclude-users}'[Don'\''t create the user/group tables when starting]'                                   \
+    '-e[Rotate the capture file every <num> events]:Maximum event number:'                                                              \
+    '(-F --fatfile)'{-F,--fatfile}'[Enable fatfile mode]'                                                                               \
+    '--filter-proclist[apply the filter to the process table]'                                                                          \
+    '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'                          \
+    '(-h --help)'{-h,--help}'[Print this help]'                                                                                         \
+    '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                                                     \
+    '(-k --k8s-api)'{-k,--k8s-api}'[Kubernetes API server]'                                                                             \
+    '(-K --k8s-api-cert)'{-K,--k8s-api-cert}'[Token  to authenticate user and (optionally) verify the K8S API server identity]:Kubernetes security token:'  \
+    '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                                                  \
+    '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                                                      \
+    '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                                                      \
+    '(-m --mesos-api)'{-m,--mesos-api=}'[Enable Mesos support by connecting to the given API server]:marathon-url:'                     \
+    '-N[Do not convert port numbers to names]'                                                                                          \
+    '-M[Stop collecting after collecting for the given period of time]:numseconds:'                                                     \
+    '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                                         \
+    '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                                           \
+    '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format'          \
+    '(-q --quiet)'{-q,--quiet}'[Do not print events on the screen]'                                                                     \
+    '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                                        \
+    '(-S --summary)'{-S,--summary}'[Print the event summary when the capture ends]'                                                     \
+    '(-s --snaplen)'{-s,--snaplen=-}'[Capture the first <len> bytes of each I/O buffer]:Buffer length (bytes):'                         \
+    '(-t --timetype)'{-t,--timetype=-}'[Change the way event time is displayed]:Time-reporting type:((                                  \
+       h\:"human-readable string"                                                                                                       \
+       a\:"absolute timestamp from epoch"                                                                                               \
+       r\:"relative time from capture start"                                                                                            \
+       d\:"delta between enter/exit"                                                                                                    \
+       D\:"delta from previous event"))'                                                                                                \
+    '(-T --force-tracers-capture)'{-T,--force-tracers-capture}'[Tell the driver to make sure full buffers are captured from /dev/null]' \
+    '--unbuffered[Disable buffering of output. Useful for realtime parsing of sysdig output]'                                           \
+    '(-v --verbose)'{-v,--verbose}'[Verbose output]'                                                                                    \
+    '--version[Print sysdig version number]'                                                                                            \
+    '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'                                     \
+    '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files'                         \
+    '(-x --print-hex)'{-x,--print-hex}'[Print data buffers in hex]'                                                                     \
+    '(-X --print-hex-ascii)'{-X,--print-hex-ascii}'[Print data buffers in hex and ASCII]'                                               \
+    '(-z --compress)'{-z,--compress}'[Enables compression for stored tracefiles]'                                                       \
+    '-pp[Report the default printing format used if -p is omitted]'                                                                     \
+    '(-c --chisel)'{-c,--chisel}'[Run a given chisel]:Chisel:->chisel'                                                                  \
+    '(-i --chisel-info)'{-i,--chisel-info}'[Get a detailed chisel description]:Chisel:->chisel'                                         \
     '*:Filter or chisel argument:->filter_or_chiselarg' && return 0
 
 
