@@ -11,6 +11,8 @@ function _filter () {
     # I run 'sysdig -l' to get a list of available filter types to generate the
     # user choice
 
+    # Each element of the 'fields' array is name:description, as required by
+    # _describe
     local in_field=0 fields
     typeset -a fields
 
@@ -21,7 +23,7 @@ function _filter () {
                 in_field=1
                 fields[$#fields+1]="$match[1]:$match[2]"
             elif (($in_field)) && [[ $line =~ "^ {$DESCRIPTION_TEXT_START}(.*)" ]]; then
-                # field continuation
+                # Field continuation. I add to the description
                 fields[$#fields]+=$match[1]
             else
                 in_field=0
@@ -47,6 +49,11 @@ function _filter () {
         # Remove the FILTER-ONLY string, since we don't need to indicate that to
         # the user here
         fields=(${fields/"(FILTER ONLY) "/}) # 
+
+        # Generate completions. Note that I don't parse the syntax here, and the
+        # suggested completions may not always be valid. The completions will
+        # tell you what tokens exist, but the user has to know how to use them
+        # properly
         _describe -t fields 'Fields' fields
         _describe -t operators 'Operators' ops
     elif [[ $1 == "format" ]]; then
