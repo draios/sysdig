@@ -478,9 +478,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len)
 			m_tstr = m_fdinfo->m_name;
 		}
 
-		sanitize_string(m_tstr);
+		if(sanitize_strings)
+		{
+			sanitize_string(m_tstr);
+		}
 		*len = m_tstr.size();
-
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_FDTYPE:
 		if(m_fdinfo == NULL)
@@ -1249,8 +1251,9 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	//
 	// Standard extract-based fields
 	//
-	uint32_t len;
-	uint8_t* extracted_val = extract(evt, &len);
+	uint32_t len = 0;
+	bool sanitize_strings = false;
+	uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{
