@@ -706,7 +706,7 @@ void k8s_dispatcher::extract_data(Json::Value& root, bool enqueue)
 			}
 		}
 		os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
-		g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+		g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
 		{
 			m_state.update_cache(m_type);
