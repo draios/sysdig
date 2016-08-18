@@ -183,7 +183,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	u16 sport, dport;
 
 	if (g_tracers_enabled && args->event_type == PPME_SYSCALL_WRITE_X) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 		struct fd f = fdget(args->fd);
 
 		if (f.file && f.file->f_inode) {
@@ -195,26 +194,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 
 			fdput(f);
 		}
-#else
-		struct file* file = fget(args->fd);
-		/* Use cached f_inode only on kernel versions that have it
-		 * https://github.com/torvalds/linux/commit/dd37978c50bc8b354e5c4633f69387f16572fdac
-		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
-		if (file && file->f_inode) {
-			if (file->f_inode->i_rdev == PPM_NULL_RDEV) {
-#else
-		if (file && file->f_path.dentry && file->f_path.dentry->d_inode) {
-			if (file->f_path.dentry->d_inode->i_rdev == PPM_NULL_RDEV) {
-#endif
-				res = RW_SNAPLEN_EVENT;
-				fput(file);
-				return res;
-			}
-
-			fput(file);
-		}
-#endif
 	}
 
 	if (!args->consumer->do_dynamic_snaplen)
@@ -276,11 +255,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 #ifdef CONFIG_COMPAT
 					struct compat_msghdr compat_mh;
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 					struct user_msghdr mh;
-#else
-					struct msghdr mh;
-#endif
 
 					if (!args->is_socketcall)
 						syscall_get_arguments(current, args->regs, 1, 1, &val);
