@@ -811,9 +811,6 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	int pathlen;
 	int subsys_len;
 	char *path;
-	struct cgroup_subsys_state *css;
-
-	css = task_css(current, subsys_id);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
 	int res;
