@@ -72,7 +72,6 @@ if(ENABLE_DKMS)
 		ppm_fillers.c
 		ppm_ringbuffer.h
 		syscall_table.c
-		ppm_cputime.c
 		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
 		COMPONENT agent)
 endif()

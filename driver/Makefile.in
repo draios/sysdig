@@ -1,4 +1,4 @@
-@PROBE_NAME@-y += main.o dynamic_params_table.o flags_table.o ppm_events.o ppm_fillers.o event_table.o syscall_table.o ppm_cputime.o
+@PROBE_NAME@-y += main.o dynamic_params_table.o flags_table.o ppm_events.o ppm_fillers.o event_table.o syscall_table.o 
 obj-m += @PROBE_NAME@.o
 ccflags-y := @KBUILD_FLAGS@
 

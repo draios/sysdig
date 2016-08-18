@@ -98,7 +98,6 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 	struct event_data_t *event_datap);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
-void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
