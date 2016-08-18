@@ -170,7 +170,7 @@ int32_t dpi_lookahead_init(void)
 inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 lookahead_size)
 {
 	u32 res = args->consumer->snaplen;
-	int err, err2;
+	int err;
 	struct socket *sock;
 	sa_family_t family;
 	struct sockaddr_storage sock_address;
@@ -184,70 +184,86 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 
 	sock = sockfd_lookup(args->fd, &err);
 
-	if (sock)
-		sockfd_put(sock);
-	if (sock->sk) {
-		err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
-		err2 = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
-		if (err == 0 && err2 == 0) {
-			family = sock->sk->sk_family;
+	if (sock) {
 
-			if (family == AF_INET) {
-				sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
-				dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
-			} else if (family == AF_INET6) {
-				sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
-				dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
-			} else {
-				sport = 0;
-				dport = 0;
-			}
+		if (sock->sk) {
+			err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
 
-			if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
-				if (lookahead_size >= 5) {
-					if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3)
-						return 2000;
-					else if (buf[2] == 0 && buf[3] == 0)
-						return 2000;
-				}
-			} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
-				if (lookahead_size >= 2) {
-					if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
-						(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement commmand */
-						(buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
-						(buf[0] == 'E' && buf[1] == 0) /* error or execute command */
-					) {
-						return 2000;
+			if (err == 0) {
+				err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+
+				if (err == 0) {
+					family = sock->sk->sk_family;
+
+					if (family == AF_INET) {
+						sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
+						dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
+					} else if (family == AF_INET6) {
+						sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
+						dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
+					} else {
+						sport = 0;
+						dport = 0;
 					}
-				}
-			} else if ((lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
-						(lookahead_size >= 16 && (*(int32_t *)(buf+12) == 1 || /* matches header */
-							*(int32_t *)(buf+12) == 2001 ||
-							*(int32_t *)(buf+12) == 2002 ||
-							*(int32_t *)(buf+12) == 2003 ||
-							*(int32_t *)(buf+12) == 2004 ||
-							*(int32_t *)(buf+12) == 2005 ||
-							*(int32_t *)(buf+12) == 2006 ||
-							*(int32_t *)(buf+12) == 2007)
-						)
-					) {
-				return 2000;
-			} else if (dport == PPM_PORT_STATSD) {
-				return 2000;
-			} else if (lookahead_size >= 5) {
-				if (*(u32 *)buf == g_http_get_intval ||
-					*(u32 *)buf == g_http_post_intval ||
-					*(u32 *)buf == g_http_put_intval ||
-					*(u32 *)buf == g_http_delete_intval ||
-					*(u32 *)buf == g_http_trace_intval ||
-					*(u32 *)buf == g_http_connect_intval ||
-					*(u32 *)buf == g_http_options_intval ||
-					((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
-				) {
-					return 2000;
+
+					if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
+						if (lookahead_size >= 5) {
+							if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
+								sockfd_put(sock);
+								return 2000;
+							} else if (buf[2] == 0 && buf[3] == 0) {
+								sockfd_put(sock);
+								return 2000;
+							}
+						}
+					} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
+						if (lookahead_size >= 2) {
+							if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
+								(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement commmand */
+								(buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
+								(buf[0] == 'E' && buf[1] == 0) /* error or execute command */
+							) {
+								sockfd_put(sock);
+								return 2000;
+							}
+						}
+					} else if ((lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
+								(lookahead_size >= 16 && (*(int32_t *)(buf+12) == 1 || /* matches header */
+									*(int32_t *)(buf+12) == 2001 ||
+									*(int32_t *)(buf+12) == 2002 ||
+									*(int32_t *)(buf+12) == 2003 ||
+									*(int32_t *)(buf+12) == 2004 ||
+									*(int32_t *)(buf+12) == 2005 ||
+									*(int32_t *)(buf+12) == 2006 ||
+									*(int32_t *)(buf+12) == 2007)
+							   )
+							) {
+						sockfd_put(sock);
+						return 2000;
+					} else if (dport == PPM_PORT_STATSD) {
+						sockfd_put(sock);
+						return 2000;
+					} else {
+						if (lookahead_size >= 5) {
+							if (*(u32 *)buf == g_http_get_intval ||
+								*(u32 *)buf == g_http_post_intval ||
+								*(u32 *)buf == g_http_put_intval ||
+								*(u32 *)buf == g_http_delete_intval ||
+								*(u32 *)buf == g_http_trace_intval ||
+								*(u32 *)buf == g_http_connect_intval ||
+								*(u32 *)buf == g_http_options_intval ||
+								((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
+							) {
+								sockfd_put(sock);
+								return 2000;
+							}
+						}
+					}
 				}
 			}
 		}
+
+		sockfd_put(sock);
 	}
 
 	return res;
