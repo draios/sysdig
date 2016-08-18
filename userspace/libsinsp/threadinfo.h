@@ -227,7 +227,7 @@ public:
 		sinsp_threadinfo* main_tinfo = get_main_thread();
 		if(main_tinfo!=NULL)
 		{
-			return m_modify_state_ratio;
+			return main_tinfo->m_modify_state_ratio;
 		}
 		return 0;
 	}
@@ -264,6 +264,11 @@ public:
 	__always_inline int32_t get_shedding_pct()
 	{
 		return m_shedding_pct;
+	}
+
+	__always_inline int32_t get_shedding_fd_pct()
+	{
+		return m_shedding_fd_pct;
 	}
 #endif
 	//
@@ -429,7 +434,7 @@ VISIBILITY_PRIVATE
 
 #ifdef HAS_EARLY_FILTERING
 	//
-	// State for file filtering in scap
+	// State for filtering in scap
 	//
 	uint32_t m_read_write_events;
 	uint32_t m_modify_state_events;
@@ -439,6 +444,7 @@ VISIBILITY_PRIVATE
 	uint64_t m_evt_count;
 	uint64_t m_evt_drop;
 	int32_t m_shedding_pct;
+	int32_t m_shedding_fd_pct;
 #endif
 
 	int16_t m_last_enter_filtered_category;
