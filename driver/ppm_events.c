@@ -201,177 +201,177 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 
 	sock = sockfd_lookup(args->fd, &err);
 
-	if (sock) {
+	if (!sock)
+		goto exit;
+	if (!sock->sk)
+		goto sockfd_cleanup_exit;
 
-		if (sock->sk) {
-			err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
+	err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
 
-			if (err == 0) {
-				if(args->event_type == PPME_SOCKET_SENDTO_X)
-				{
-					unsigned long val;
-					struct sockaddr __user * usrsockaddr;
+	if (err == 0) {
+		if (args->event_type == PPME_SOCKET_SENDTO_X) {
+			unsigned long val;
+			struct sockaddr __user *usrsockaddr;
+			/*
+			 * Get the address
+			 */
+			if (!args->is_socketcall)
+				syscall_get_arguments(current, args->regs, 4, 1, &val);
+			else
+				val = args->socketcall_args[4];
+
+			usrsockaddr = (struct sockaddr __user *)val;
+
+			if (usrsockaddr == NULL) {
+				/*
+				 * Suppose is a connected socket, fall back to fd
+				 */
+				err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+			} else {
+				/*
+				 * Get the address len
+				 */
+				if (!args->is_socketcall)
+					syscall_get_arguments(current, args->regs, 5, 1, &val);
+				else
+					val = args->socketcall_args[5];
+
+				if (val != 0) {
+					peer_address_len = val;
 					/*
-					 * Get the address
+					 * Copy the address
 					 */
-					if (!args->is_socketcall)
-						syscall_get_arguments(current, args->regs, 4, 1, &val);
-					else
-						val = args->socketcall_args[4];
-
-					usrsockaddr = (struct sockaddr __user *)val;
-
-					if(usrsockaddr == NULL) {
-						/*
-						 * Suppose is a connected socket, fall back to fd
-						 */
-						err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
-					} else {
-						/*
-						 * Get the address len
-						 */
-						if (!args->is_socketcall)
-							syscall_get_arguments(current, args->regs, 5, 1, &val);
-						else
-							val = args->socketcall_args[5];
-
-						if (val != 0) {
-							peer_address_len = val;
-							/*
-							 * Copy the address
-							 */
-							err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&peer_address);
-						} else {
-							/*
-							 * This case should be very rare, fallback again to sock
-							 */
-							err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
-						}
-					}
-				} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
-					unsigned long val;
-					struct sockaddr __user * usrsockaddr;
-					int addrlen;
-#ifdef CONFIG_COMPAT
-					struct compat_msghdr compat_mh;
-#endif
-					struct user_msghdr mh;
-
-					if (!args->is_socketcall)
-						syscall_get_arguments(current, args->regs, 1, 1, &val);
-					else
-						val = args->socketcall_args[1];
-
-#ifdef CONFIG_COMPAT
-					if (!args->compat) {
-#endif
-						if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh)))) {
-							usrsockaddr = NULL;
-							addrlen = 0;
-						} else {
-							usrsockaddr = (struct sockaddr __user *)mh.msg_name;
-							addrlen = mh.msg_namelen;
-						}
-#ifdef CONFIG_COMPAT
-					} else {
-						if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh)))) {
-							usrsockaddr = NULL;
-							addrlen = 0;
-						} else {
-							usrsockaddr = (struct sockaddr __user *)compat_ptr(compat_mh.msg_name);
-							addrlen = compat_mh.msg_namelen;
-						}
-					}
-#endif
-
-					if (usrsockaddr != NULL && addrlen != 0) {
-						peer_address_len = addrlen;
-						/*
-						 * Copy the address
-						 */
-						err = addr_to_kernel(usrsockaddr, peer_address_len, (struct sockaddr *)&peer_address);
-					} else
-						/*
-						 * Suppose it is a connected socket, fall back to fd
-						 */
-						err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
-				} else
+					err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&peer_address);
+				} else {
+					/*
+					 * This case should be very rare, fallback again to sock
+					 */
 					err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+				}
+			}
+		} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
+			unsigned long val;
+			struct sockaddr __user *usrsockaddr;
+			int addrlen;
+#ifdef CONFIG_COMPAT
+			struct compat_msghdr compat_mh;
+#endif
+			struct user_msghdr mh;
 
-				if (err == 0) {
-					family = sock->sk->sk_family;
+			if (!args->is_socketcall)
+				syscall_get_arguments(current, args->regs, 1, 1, &val);
+			else
+				val = args->socketcall_args[1];
 
-					if (family == AF_INET) {
-						sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
-						dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
-					} else if (family == AF_INET6) {
-						sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
-						dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
-					} else {
-						sport = 0;
-						dport = 0;
+#ifdef CONFIG_COMPAT
+			if (!args->compat) {
+#endif
+				if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh)))) {
+					usrsockaddr = NULL;
+					addrlen = 0;
+				} else {
+					usrsockaddr = (struct sockaddr __user *)mh.msg_name;
+					addrlen = mh.msg_namelen;
+				}
+#ifdef CONFIG_COMPAT
+			} else {
+				if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh)))) {
+					usrsockaddr = NULL;
+					addrlen = 0;
+				} else {
+					usrsockaddr = (struct sockaddr __user *)compat_ptr(compat_mh.msg_name);
+					addrlen = compat_mh.msg_namelen;
+				}
+			}
+#endif
+
+			if (usrsockaddr != NULL && addrlen != 0) {
+				peer_address_len = addrlen;
+				/*
+				 * Copy the address
+				 */
+				err = addr_to_kernel(usrsockaddr, peer_address_len, (struct sockaddr *)&peer_address);
+			} else
+				/*
+				 * Suppose it is a connected socket, fall back to fd
+				 */
+				err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+		} else
+			err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+
+		if (err == 0) {
+			family = sock->sk->sk_family;
+
+			if (family == AF_INET) {
+				sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
+				dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
+			} else if (family == AF_INET6) {
+				sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
+				dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
+			} else {
+				sport = 0;
+				dport = 0;
+			}
+
+			if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
+				if (lookahead_size >= 5) {
+					if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
+						sockfd_put(sock);
+						return 2000;
+					} else if (buf[2] == 0 && buf[3] == 0) {
+						sockfd_put(sock);
+						return 2000;
 					}
-
-					if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
-						if (lookahead_size >= 5) {
-							if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
-								sockfd_put(sock);
-								return 2000;
-							} else if (buf[2] == 0 && buf[3] == 0) {
-								sockfd_put(sock);
-								return 2000;
-							}
-						}
-					} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
-						if (lookahead_size >= 2) {
-							if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
-								(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement commmand */
-								(buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
-								(buf[0] == 'E' && buf[1] == 0) /* error or execute command */
-							) {
-								sockfd_put(sock);
-								return 2000;
-							}
-						}
-					} else if ((lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
-								(lookahead_size >= 16 && (*(int32_t *)(buf+12) == 1 || /* matches header */
-									*(int32_t *)(buf+12) == 2001 ||
-									*(int32_t *)(buf+12) == 2002 ||
-									*(int32_t *)(buf+12) == 2003 ||
-									*(int32_t *)(buf+12) == 2004 ||
-									*(int32_t *)(buf+12) == 2005 ||
-									*(int32_t *)(buf+12) == 2006 ||
-									*(int32_t *)(buf+12) == 2007)
-							   )
-							) {
+				}
+			} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
+				if (lookahead_size >= 2) {
+					if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
+						(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement commmand */
+						(buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
+						(buf[0] == 'E' && buf[1] == 0) /* error or execute command */
+					) {
 						sockfd_put(sock);
 						return 2000;
-					} else if (dport == PPM_PORT_STATSD) {
+					}
+				}
+			} else if ((lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
+						(lookahead_size >= 16 && (*(int32_t *)(buf+12) == 1 || /* matches header */
+							*(int32_t *)(buf+12) == 2001 ||
+							*(int32_t *)(buf+12) == 2002 ||
+							*(int32_t *)(buf+12) == 2003 ||
+							*(int32_t *)(buf+12) == 2004 ||
+							*(int32_t *)(buf+12) == 2005 ||
+							*(int32_t *)(buf+12) == 2006 ||
+							*(int32_t *)(buf+12) == 2007)
+					   )
+					) {
+				sockfd_put(sock);
+				return 2000;
+			} else if (dport == PPM_PORT_STATSD) {
+				sockfd_put(sock);
+				return 2000;
+			} else {
+				if (lookahead_size >= 5) {
+					if (*(u32 *)buf == g_http_get_intval ||
+						*(u32 *)buf == g_http_post_intval ||
+						*(u32 *)buf == g_http_put_intval ||
+						*(u32 *)buf == g_http_delete_intval ||
+						*(u32 *)buf == g_http_trace_intval ||
+						*(u32 *)buf == g_http_connect_intval ||
+						*(u32 *)buf == g_http_options_intval ||
+						((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
+					) {
 						sockfd_put(sock);
 						return 2000;
-					} else {
-						if (lookahead_size >= 5) {
-							if (*(u32 *)buf == g_http_get_intval ||
-								*(u32 *)buf == g_http_post_intval ||
-								*(u32 *)buf == g_http_put_intval ||
-								*(u32 *)buf == g_http_delete_intval ||
-								*(u32 *)buf == g_http_trace_intval ||
-								*(u32 *)buf == g_http_connect_intval ||
-								*(u32 *)buf == g_http_options_intval ||
-								((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
-							) {
-								sockfd_put(sock);
-								return 2000;
-							}
-						}
 					}
 				}
 			}
 		}
-
-		sockfd_put(sock);
 	}
 
+sockfd_cleanup_exit:
+	sockfd_put(sock);
+exit:
 	return res;
 }
 
