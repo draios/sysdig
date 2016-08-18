@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "protodecoder.h"
+#include "tracers.h"
 
 extern sinsp_evttables g_infotables;
 
@@ -42,6 +43,7 @@ sinsp_threadinfo::sinsp_threadinfo() :
 	m_fdtable(NULL)
 {
 	m_inspector = NULL;
+	m_tracer_parser = NULL;
 	init();
 }
 
@@ -49,12 +51,14 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp *inspector) :
 	m_fdtable(inspector)
 {
 	m_inspector = inspector;
+	m_tracer_parser = NULL;
 	init();
 }
 
 void sinsp_threadinfo::init()
 {
 	m_pid = (uint64_t) - 1LL;
+	m_sid = (uint64_t) - 1LL;
 	set_lastevent_data_validity(false);
 	m_lastevent_type = -1;
 	m_lastevent_ts = 0;
@@ -87,7 +91,7 @@ sinsp_threadinfo::~sinsp_threadinfo()
 {
 	uint32_t j;
 
-	if((m_inspector != NULL) && 
+	if((m_inspector != NULL) &&
 		(m_inspector->m_thread_manager != NULL) &&
 		(m_inspector->m_thread_manager->m_listener != NULL))
 	{
@@ -100,6 +104,15 @@ sinsp_threadinfo::~sinsp_threadinfo()
 	}
 
 	m_private_state.clear();
+	if(m_lastevent_data)
+	{
+		free(m_lastevent_data);
+	}
+
+	if(m_tracer_parser)
+	{
+		delete m_tracer_parser;
+	}
 }
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc()
@@ -178,7 +191,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
 		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
-			
+
 		//
 		// We keep note of all the host bound server ports.
 		// We'll need them later when patching connections direction.
@@ -187,7 +200,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 
 		break;
 	case SCAP_FD_IPV6_SOCK:
-		if(sinsp_utils::is_ipv4_mapped_ipv6((uint8_t*)&fdi->info.ipv6info.sip) && 
+		if(sinsp_utils::is_ipv4_mapped_ipv6((uint8_t*)&fdi->info.ipv6info.sip) &&
 			sinsp_utils::is_ipv4_mapped_ipv6((uint8_t*)&fdi->info.ipv6info.dip))
 		{
 			//
@@ -249,6 +262,16 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 		newfdi->m_name = fdi->info.fname;
+
+		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
+		}
+		else
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
+		}
+
 		break;
 	default:
 		ASSERT(false);
@@ -262,7 +285,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	ASSERT(m_inspector != NULL);
 	vector<sinsp_protodecoder*>::iterator it;
 
-	for(it = m_inspector->m_parser->m_open_callbacks.begin(); 
+	for(it = m_inspector->m_parser->m_open_callbacks.begin();
 		it != m_inspector->m_parser->m_open_callbacks.end(); ++it)
 	{
 		(*it)->on_fd_from_proc(newfdi);
@@ -277,65 +300,6 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	}
 }
 
-bool sinsp_threadinfo::should_keep()
-{
-	sinsp_evt tevt;
-	scap_evt tscapevt;
-
-	//
-	// Initialize the fake events for filtering
-	//
-	tscapevt.ts = 0;
-	tscapevt.type = PPME_SYSCALL_READ_X;
-	tscapevt.len = 0;
-
-	tevt.m_inspector = m_inspector;
-	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
-	tevt.m_pevt = NULL;
-	tevt.m_cpuid = 0;
-	tevt.m_evtnum = 0;
-	tevt.m_pevt = &tscapevt;
-
-	//
-	// Check if there's at least an fd that matches the filter.
-	// If not, skip this thread
-	//
-	sinsp_fdtable* fdtable = get_fd_table();
-
-	bool match = false;
-
-	for(auto fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
-	{
-		tevt.m_tinfo = this;
-		tevt.m_fdinfo = &(fdit->second);
-		tscapevt.tid = m_tid;
-		int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
-		tevt.m_tinfo->m_lastevent_fd = fdit->first;
-
-		if(m_inspector->m_filter->run(&tevt))
-		{
-			match = true;
-			break;
-		}
-
-		tevt.m_tinfo->m_lastevent_fd = tlefd;
-	}
-
-	//
-	// If at least an FD matched, keep this thread, otherwise filter it out.
-	// Note: checking the FDs will also tell us if this thread matches 
-	//       thread-related filters
-	//
-	if(match)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 void sinsp_threadinfo::init(scap_threadinfo* pi)
 {
 	scap_fdinfo *fdi;
@@ -346,6 +310,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_tid = pi->tid;
 	m_pid = pi->pid;
 	m_ptid = pi->ptid;
+	m_sid = pi->sid;
 
 	m_comm = pi->comm;
 	m_exe = pi->exe;
@@ -366,13 +331,11 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
-	set_cgroups(pi->cgroups, pi->cgroups_len);
-	ASSERT(m_inspector);
-	if(m_inspector)
-	{
-		m_inspector->m_container_manager.resolve_container_from_cgroups(m_cgroups, m_inspector->m_islive, &m_container_id);
-	}
 
+	set_cgroups(pi->cgroups, pi->cgroups_len);
+	m_root = pi->root;
+	ASSERT(m_inspector);
+	m_inspector->m_container_manager.resolve_container(this, m_inspector->m_islive);
 	//
 	// Prepare for filtering
 	//
@@ -463,9 +426,44 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 	size_t offset = 0;
 	while(offset < len)
 	{
-		m_env.push_back(env + offset);
+		const char* left = env + offset;
+		// environment string may actually be shorter than indicated by len
+		// if the rest is empty, we bail out early
+		if(!strlen(left))
+		{
+			size_t sz = len - offset;
+			void* zero = calloc(sz, sizeof(char));
+			if(!memcmp(left, zero, sz))
+			{
+				free(zero);
+				return;
+			}
+			free(zero);
+		}
+		m_env.push_back(left);
+
 		offset += m_env.back().length() + 1;
 	}
+}
+
+string sinsp_threadinfo::get_env(const string& name) const
+{
+	for(const auto& env_var : m_env)
+	{
+		if((env_var.length() > name.length()) && (env_var.substr(0, name.length()) == name))
+		{
+			std::string::size_type pos = env_var.find('=');
+			if(pos != std::string::npos && env_var.size() > pos + 1)
+			{
+				string val = env_var.substr(pos + 1);
+				std::string::size_type first = val.find_first_not_of(' ');
+				std::string::size_type last = val.find_last_not_of(' ');
+				return val.substr(first, last - first + 1);
+			}
+		}
+	}
+
+	return "";
 }
 
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
@@ -562,7 +560,7 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 
 	sinsp_fdtable* fdt = get_fd_table();
 
-	for(it = fdt->m_table.begin(); 
+	for(it = fdt->m_table.begin();
 		it != fdt->m_table.end(); ++it)
 	{
 		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
@@ -616,11 +614,11 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 
 	if(tinfo)
 	{
-		sinsp_utils::concatenate_paths(tpath, 
-			SCAP_MAX_PATH_SIZE, 
-			(char*)tinfo->m_cwd.c_str(), 
-			(uint32_t)tinfo->m_cwd.size(), 
-			cwd, 
+		sinsp_utils::concatenate_paths(tpath,
+			SCAP_MAX_PATH_SIZE,
+			(char*)tinfo->m_cwd.c_str(),
+			(uint32_t)tinfo->m_cwd.size(),
+			cwd,
 			cwdlen);
 
 		tinfo->m_cwd = tpath;
@@ -645,7 +643,7 @@ void sinsp_threadinfo::allocate_private_state()
 		m_private_state.clear();
 
 		vector<uint32_t>* sizes = &m_inspector->m_thread_privatestate_manager.m_memory_sizes;
-	
+
 		for(j = 0; j < sizes->size(); j++)
 		{
 			void* newbuf = malloc(sizes->at(j));
@@ -742,7 +740,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			//
 			// No, this is either a single thread process or the root thread of a
 			// multithread process.
-			// Note: we don't set m_main_thread because there are cases in which this is 
+			// Note: we don't set m_main_thread because there are cases in which this is
 			//       invoked for a threadinfo that is in the stack. Caching the this pointer
 			//       would cause future mess.
 			//
@@ -949,7 +947,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
 		// of a main process or program that some childs refer to.
-		// We need to recalculate the child relationships, or the table will become 
+		// We need to recalculate the child relationships, or the table will become
 		// corrupted.
 		//
 		if(nchilds != 0)

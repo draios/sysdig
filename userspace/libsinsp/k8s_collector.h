@@ -22,7 +22,8 @@ public:
 	~k8s_collector();
 
 	void add(k8s_http* handler);
-
+	bool has(const k8s_http* handler) const;
+	void remove(const k8s_http* handler);
 	void remove_all();
 
 	int subscription_count() const;
@@ -35,7 +36,7 @@ public:
 
 private:
 	void clear();
-	void remove(socket_map_t::iterator it);
+	void remove(socket_map_t::iterator& it);
 
 	socket_map_t     m_sockets;
 	std::atomic<int> m_subscription_count;
@@ -45,7 +46,6 @@ private:
 	bool             m_loop;
 	long             m_timeout_ms;
 	bool             m_stopped;
-	K8S_DECLARE_MUTEX;
 };
 
 inline void k8s_collector::stop()

@@ -1,6 +1,14 @@
-#include <linux/atomic.h>
+#include <linux/version.h>
 
-#include <linux/cdev.h>
+// These function are taken from the linux kernel and are used only
+// on versions that don't export task_cputime_adjusted()
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
+#include <asm/atomic.h>
+#else
+#include <linux/atomic.h>
+#endif
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/kdev_t.h>
@@ -10,7 +18,6 @@
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
-#include <asm/syscall.h>
 #include <net/sock.h>
 
 #include <asm/unistd.h>
@@ -19,6 +26,14 @@
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
+
+#if (defined CONFIG_VIRT_CPU_ACCOUNTING_NATIVE) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30))
+void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st)
+{
+	*ut = p->utime;
+	*st = p->stime;
+}
+#else
 
 #ifndef cmpxchg_cputime
 #define cmpxchg_cputime(ptr, old, new) cmpxchg(ptr, old, new)
@@ -87,15 +102,49 @@ void task_cputime(struct task_struct *t, cputime_t *utime, cputime_t *stime)
 	if (stime)
 		*stime += sdelta;
 }
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
+static inline void task_cputime(struct task_struct *t,
+        cputime_t *utime, cputime_t *stime)
+{
+  if (utime)
+    *utime = t->utime;
+  if (stime)
+    *stime = t->stime;
+}
+#endif /* CONFIG_VIRT_CPU_ACCOUNTING_GEN */
+
+u64 nsecs_to_jiffies64(u64 n)
+{
+#if (NSEC_PER_SEC % HZ) == 0
+		/* Common case, HZ = 100, 128, 200, 250, 256, 500, 512, 1000 etc. */
+		return div_u64(n, NSEC_PER_SEC / HZ);
+#elif (HZ % 512) == 0
+		/* overflow after 292 years if HZ = 1024 */
+		return div_u64(n * HZ / 512, NSEC_PER_SEC / 512);
+#else
+		/*
+		 * Generic case - optimized for cases where HZ is a multiple of 3.
+		 * overflow after 64.99 years, exact for HZ = 60, 72, 90, 120 etc.
+		 */
+		return div_u64(n * 9, (9ull * NSEC_PER_SEC + HZ / 2) / HZ);
+#endif
+}
+
+unsigned long nsecs_to_jiffies(u64 n)
+{
+		return (unsigned long)nsecs_to_jiffies64(n);
+}
+
+#ifndef nsecs_to_cputime
+#ifdef msecs_to_cputime
+#define nsecs_to_cputime(__nsecs) \
+  msecs_to_cputime(div_u64((__nsecs), NSEC_PER_MSEC))
+#else
+#define  nsecs_to_cputime(__nsecs) nsecs_to_jiffies(__nsecs)
+#endif
 #endif
 
-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
-void task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st)
-{
-	*ut = p->utime;
-	*st = p->stime;
-}
-#else /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 /*
  * Perform (stime * rtime) / total, but avoid multiplication overflow by
  * loosing precision when the numbers are big.
@@ -157,34 +206,16 @@ static void cputime_advance(cputime_t *counter, cputime_t new)
 		cmpxchg_cputime(counter, old, new);
 }
 
-u64 nsecs_to_jiffies64(u64 n)
-{
-#if (NSEC_PER_SEC % HZ) == 0
-		/* Common case, HZ = 100, 128, 200, 250, 256, 500, 512, 1000 etc. */
-		return div_u64(n, NSEC_PER_SEC / HZ);
-#elif (HZ % 512) == 0
-		/* overflow after 292 years if HZ = 1024 */
-		return div_u64(n * HZ / 512, NSEC_PER_SEC / 512);
-#else
-		/*
-		 * Generic case - optimized for cases where HZ is a multiple of 3.
-		 * overflow after 64.99 years, exact for HZ = 60, 72, 90, 120 etc.
-		 */
-		return div_u64(n * 9, (9ull * NSEC_PER_SEC + HZ / 2) / HZ);
-#endif
-}
-
-unsigned long nsecs_to_jiffies(u64 n)
-{
-		return (unsigned long)nsecs_to_jiffies64(n);
-}
-
 /*
  * Adjust tick based cputime random precision against scheduler
  * runtime accounting.
  */
 static void cputime_adjust(struct task_cputime *curr,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0))
 			   struct prev_cputime *prev,
+#else
+			   struct cputime *prev,
+#endif
 			   cputime_t *ut, cputime_t *st)
 {
 	cputime_t rtime, stime, utime;
@@ -245,4 +276,48 @@ void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *
 	task_cputime(p, &cputime.utime, &cputime.stime);
 	cputime_adjust(&cputime, &p->prev_cputime, ut, st);
 }
-#endif /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE */
+
+#else /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) */
+
+static cputime_t scale_utime(cputime_t utime, cputime_t rtime, cputime_t total)
+{
+	u64 temp = (__force u64) rtime;
+
+	temp *= (__force u64) utime;
+
+	if (sizeof(cputime_t) == 4)
+		temp = div_u64(temp, (__force u32) total);
+	else
+		temp = div64_u64(temp, (__force u64) total);
+
+	return (__force cputime_t) temp;
+}
+
+// Taken from task_times(struct task_struct *p, cputime_t *ut, cputime_t *st)
+void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st)
+{
+	cputime_t rtime, utime = p->utime, total = utime + p->stime;
+
+	/*
+	 * Use CFS's precise accounting:
+	 */
+	rtime = nsecs_to_cputime(p->se.sum_exec_runtime);
+
+	if (total)
+		utime = scale_utime(utime, rtime, total);
+	else
+		utime = rtime;
+
+	/*
+	 * Compare with previous values, to keep monotonicity:
+	 */
+	p->prev_utime = max(p->prev_utime, utime);
+	p->prev_stime = max(p->prev_stime, rtime - p->prev_utime);
+
+	*ut = p->prev_utime;
+	*st = p->prev_stime;
+}
+
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)) */
+#endif /* (defined CONFIG_VIRT_CPU_ACCOUNTING_NATIVE) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)) */
+#endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0)) */

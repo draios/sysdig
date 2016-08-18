@@ -25,6 +25,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <sys/time.h>
 #include <netdb.h>
+#include <strings.h>
+#include <sys/ioctl.h>
 #else
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
@@ -41,6 +43,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "chisel.h"
 #include "protodecoder.h"
+#include "json/json.h"
+#include "uri.h"
+#ifndef _WIN32
+#include "curl/curl.h"
+#endif
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -59,19 +66,19 @@ const chiseldir_info g_chisel_dirs_array[] =
 #endif
 
 #ifndef _WIN32
-char* realpath_ex(const char *path, char *buff) 
+char* realpath_ex(const char *path, char *buff)
 {
-    char *home;
+	char *home;
 
-    if(*path=='~' && (home = getenv("HOME"))) 
-    {
-        char s[PATH_MAX];
-        return realpath(strcat(strcpy(s, home), path+1), buff);
-    } 
-    else 
-    {
-        return realpath(path, buff);
-    }
+	if(*path=='~' && (home = getenv("HOME")))
+	{
+		char s[PATH_MAX];
+		return realpath(strcat(strcpy(s, home), path+1), buff);
+		}
+	else
+	{
+		return realpath(path, buff);
+	}
 }
 #endif
 
@@ -107,7 +114,7 @@ sinsp_initializer::sinsp_initializer()
 	//
 	// Init the logger
 	//
-	g_logger.set_severity(sinsp_logger::SEV_DEBUG);
+	g_logger.set_severity(sinsp_logger::SEV_TRACE);
 
 #ifdef HAS_CHISELS
 	//
@@ -768,8 +775,37 @@ void sinsp_utils::bt(void)
 #endif // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////////
-// gettimeofday() windows implementation
+// Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
+
+time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt)
+{
+#ifndef _WIN32
+	if(time_str.empty() || fmt.empty())
+	{
+		throw sinsp_exception("get_epoch_utc_seconds(): empty time or format string.");
+	}
+	struct tm tm_time = {0};
+	strptime(time_str.c_str(), fmt.c_str(), &tm_time);
+	tm_time.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
+	return timegm(&tm_time);
+#else
+	throw sinsp_exception("get_epoch_utc_seconds() not implemented on Windows");
+#endif // _WIN32
+}
+
+time_t get_epoch_utc_seconds_now()
+{
+#ifndef _WIN32
+	time_t rawtime;
+	time(&rawtime);
+	return timegm(gmtime(&rawtime));
+#else
+	throw sinsp_exception("get_now_seconds() not implemented on Windows");
+#endif // _WIN32
+}
+
+// gettimeofday() windows implementation
 #ifdef _WIN32
 
 #include <time.h>
@@ -960,14 +996,14 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 //
 vector<string> sinsp_split(const string &s, char delim)
 {
-    vector<string> res;
-    istringstream f(s);
-    string ts;
+	vector<string> res;
+	istringstream f(s);
+	string ts;
 
-    while(getline(f, ts, delim)) 
+	while(getline(f, ts, delim))
 	{
-        res.push_back(ts);
-    }
+		res.push_back(ts);
+	}
 
 	return res;
 }
@@ -998,88 +1034,80 @@ string& trim(string &s)
 	return ltrim(rtrim(s));
 }
 
-void replace_in_place(string &s, const string &search, const string &replace)
+string& replace_in_place(string& str, const string& search, const string& replacement)
 {
-	for(size_t pos = 0; ; pos += replace.length()) 
+	string::size_type ssz = search.length();
+	string::size_type rsz = replacement.length();
+	string::size_type pos = 0;
+	while((pos = str.find(search, pos)) != string::npos)
 	{
-		// Locate the substring to replace
-		pos = s.find(search, pos);
-		if(pos == string::npos ) break;
-		// Replace by erasing and inserting
-		s.erase(pos, search.length());
-		s.insert(pos, replace );
+		str.replace(pos, ssz, replacement);
+		pos += rsz;
+		ASSERT(pos <= str.length());
 	}
+	return str;
 }
 
-void replace_in_place(string& str, string& substr_to_replace, string& new_substr) 
+string replace(const string& str, const string& search, const string& replacement)
 {
-	size_t index = 0;
-	uint32_t nsize = (uint32_t)substr_to_replace.size();
-
-	while (true) 
-	{
-		 index = str.find(substr_to_replace, index);
-		 if (index == string::npos) break;
-
-		 str.replace(index, nsize, new_substr);
-
-		 index += nsize;
-	}
+	string s(str);
+	replace_in_place(s, search, replacement);
+	return s;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation
 ///////////////////////////////////////////////////////////////////////////////
-uint32_t sinsp_numparser::parseu8(const string& str)
+uint8_t sinsp_numparser::parseu8(const string& str)
 {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu8 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (uint8_t)res;
 }
 
-int32_t sinsp_numparser::parsed8(const string& str)
+int8_t sinsp_numparser::parsed8(const string& str)
 {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId8 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (int8_t)res;
 }
 
-uint32_t sinsp_numparser::parseu16(const string& str)
+uint16_t sinsp_numparser::parseu16(const string& str)
 {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu16 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (uint16_t)res;
 }
 
-int32_t sinsp_numparser::parsed16(const string& str)
+int16_t sinsp_numparser::parsed16(const string& str)
 {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId16 "%c", &res, &temp) != 1)
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
 	{
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
-	return res;
+	return (int16_t)res;
 }
 
 uint32_t sinsp_numparser::parseu32(const string& str)
@@ -1227,5 +1255,39 @@ bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t
 		p++;
 	}
 
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// JSON helpers
+///////////////////////////////////////////////////////////////////////////////
+
+std::string get_json_string(const Json::Value& obj, const std::string& name)
+{
+	std::string ret;
+	const Json::Value& json_val = obj[name];
+	if(!json_val.isNull() && json_val.isConvertibleTo(Json::stringValue))
+	{
+		ret = json_val.asString();
+	}
+	return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// socket helpers
+///////////////////////////////////////////////////////////////////////////////
+
+bool set_socket_blocking(int sock, bool block)
+{
+#ifndef _WIN32
+	int arg = block ? 0 : 1;
+	if(ioctl(sock, FIONBIO, &arg) == -1)
+#else
+	u_long arg = block ? 0 : 1;
+	if(ioctlsocket(sock, FIONBIO, &arg) == -1)
+#endif // _WIN32
+	{
+		return false;
+	}
 	return true;
 }

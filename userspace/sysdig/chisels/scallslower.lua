@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Trace syscalls slower than a threshold milliseconds. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)";
+description = "Trace syscalls slower than a threshold milliseconds. This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)";
 short_description = "Trace slow syscalls";
 category = "Performance";
 
@@ -114,7 +114,14 @@ function on_event()
 
 	local color = terminal.green
 
-	lat = evt.field(latency) / 1000000
+	lat = evt.field(latency)
+
+	if lat == nil then
+		return
+	end
+
+	lat = lat / 1000000
+
 	if lat > min_ms then
 
 		if evt.field(fcontainername) ~= "host" then

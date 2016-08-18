@@ -10,7 +10,10 @@
 #include "json/json.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "logger.h"
+#include "user_event.h"
 #include <vector>
+#include <unordered_set>
 
 typedef std::pair<std::string, std::string> k8s_pair_t;
 typedef std::vector<k8s_pair_t>             k8s_pair_list;
@@ -21,7 +24,7 @@ class k8s_service_t;
 class k8s_container
 {
 public:
-	typedef std::vector<k8s_container> list;
+	typedef std::vector<k8s_container>  list;
 
 	class port
 	{
@@ -90,17 +93,23 @@ public:
 		K8S_NAMESPACES,
 		K8S_PODS,
 		K8S_REPLICATIONCONTROLLERS,
+		K8S_REPLICASETS,
 		K8S_SERVICES,
+		K8S_DAEMONSETS,
+		K8S_DEPLOYMENTS,
+		K8S_EVENTS,
 		K8S_COMPONENT_COUNT
 	};
 
+	typedef std::set<std::string>        ext_list_t;
+	typedef std::shared_ptr<ext_list_t>  ext_list_ptr_t;
 	typedef std::pair<type, std::string> component_pair;
-	typedef std::map<type, std::string> component_map;
-	static const component_map list;
+	typedef std::map<type, std::string>  type_map;
+	static const type_map list;
 
 	k8s_component() = delete;
 
-	k8s_component(const std::string& name, const std::string& uid, const std::string& ns = "");
+	k8s_component(type comp_type, const std::string& name, const std::string& uid, const std::string& ns = "");
 
 	const std::string& get_name() const;
 
@@ -142,12 +151,15 @@ public:
 
 	void emplace_selector(k8s_pair_t&& selector);
 
-	static std::vector<std::string> extract_nodes_addresses(const Json::Value& status);
+	virtual std::string get_node_name() const;
 
-	// extracts labels or selectors
 	static k8s_pair_list extract_object(const Json::Value& object, const std::string& name);
 
+	static bool is_pod_active(const Json::Value& item);
+
 	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
+
+	static size_t extract_pod_restart_count(const Json::Value& item);
 
 	static k8s_container::list extract_pod_containers(const Json::Value& item);
 
@@ -163,11 +175,20 @@ public:
 
 	static type get_type(const std::string& name);
 
+	static std::string get_api(type t, ext_list_ptr_t extensions = nullptr);
+	static std::string get_api(const component_pair& p, ext_list_ptr_t extensions = nullptr);
+	static std::string get_api(const std::string& name, ext_list_ptr_t extensions = nullptr);
+
+	static std::string get_selector(type t);
+	static std::string get_selector(const component_pair& p);
+	static std::string get_selector(const std::string& name);
+
 	bool selector_in_labels(const k8s_pair_t& selector, const k8s_pair_list& labels) const;
 
 	bool selectors_in_labels(const k8s_pair_list& labels) const;
 
 private:
+	type          m_type;
 	std::string   m_name;
 	std::string   m_uid;
 	std::string   m_ns;
@@ -185,6 +206,7 @@ private:
 class k8s_ns_t : public k8s_component
 {
 public:
+	static const k8s_component::type COMPONENT_TYPE = K8S_NAMESPACES;
 	k8s_ns_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 };
 
@@ -196,7 +218,9 @@ public:
 class k8s_node_t : public k8s_component
 {
 public:
-	typedef std::vector<std::string> host_ip_list;
+	typedef std::unordered_set<std::string> host_ip_list;
+
+	static const k8s_component::type COMPONENT_TYPE = K8S_NODES;
 
 	k8s_node_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
@@ -206,9 +230,11 @@ public:
 
 	void add_host_ips(host_ip_list&& host_ips);
 
-	void push_host_ip(const std::string& host_ip);
-
 	void emplace_host_ip(std::string&& host_ip);
+
+	virtual std::string get_node_name() const;
+
+	static host_ip_list extract_addresses(const Json::Value& status);
 
 private:
 	host_ip_list m_host_ips;
@@ -225,52 +251,41 @@ public:
 	typedef std::vector<std::string> container_id_list;
 	typedef k8s_container::list container_list;
 
+	static const k8s_component::type COMPONENT_TYPE = K8S_PODS;
+
 	k8s_pod_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
 	// container IDs
 	const container_id_list& get_container_ids() const;
-
 	void set_container_ids(container_id_list&& container_ids);
-
 	void add_container_ids(container_id_list&& container_ids);
-
 	void push_container_id(const std::string& container_id);
-
 	void emplace_container_id(std::string&& container_id);
+
+	// restart count
+	size_t get_restart_count() const;
+	void set_restart_count(int rc);
 
 	// containers
 	const container_list& get_containers() const;
-
 	void set_containers(container_list&& containers);
-
 	void add_containers(container_list&& containers);
-
 	void push_container(const k8s_container& container);
-
 	void emplace_container(k8s_container&& container);
-
 	std::string* get_container_id(const std::string& container_id);
-
 	k8s_container* get_container(const std::string& container_name);
 
 	// node name, host IP and internal IP
-	const std::string& get_node_name() const;
-
+	virtual std::string get_node_name() const;
 	void set_node_name(const std::string& name);
-
 	const std::string& get_host_ip() const;
-
 	void set_host_ip(const std::string& host_ip);
-
 	const std::string& get_internal_ip() const;
-
 	void set_internal_ip(const std::string& internal_ip);
 
 	// comparison
 	bool operator==(const k8s_pod_t& other) const;
-
 	bool operator!=(const k8s_pod_t& other) const;
-
 	bool has_container_id(const std::string& container_id);
 
 private:
@@ -279,6 +294,33 @@ private:
 	std::string       m_node_name;
 	std::string       m_host_ip;
 	std::string       m_internal_ip;
+	int               m_restart_count_tot = -1;
+	mutable int       m_restart_count_diff = 0;
+};
+
+
+//
+// replicas
+//
+
+class k8s_replicas_t
+{
+public:
+	static const int UNKNOWN_REPLICAS = -1;
+
+	k8s_replicas_t(int spec_replicas = UNKNOWN_REPLICAS, int stat_replicas = UNKNOWN_REPLICAS);
+
+	void set_spec_replicas(int replicas);
+	int get_spec_replicas() const;
+	void set_stat_replicas(int replicas);
+	int get_stat_replicas() const;
+
+	static int get_count(const Json::Value& item, const std::string& replica_name = "replicas");
+	static void set_replicas(k8s_replicas_t& replicas, const Json::Value& item);
+
+protected:
+	int m_spec_replicas = UNKNOWN_REPLICAS;
+	int m_stat_replicas = UNKNOWN_REPLICAS;
 };
 
 
@@ -289,9 +331,38 @@ private:
 class k8s_rc_t : public k8s_component
 {
 public:
-	k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns = "");
+	static const k8s_component::type COMPONENT_TYPE = K8S_REPLICATIONCONTROLLERS;
+
+	k8s_rc_t(const std::string& name,
+			 const std::string& uid,
+			 const std::string& ns = "",
+			 k8s_component::type type = K8S_REPLICATIONCONTROLLERS);
 
 	std::vector<const k8s_pod_t*> get_selected_pods(const std::vector<k8s_pod_t>& pods) const;
+
+	void set_spec_replicas(int replicas);
+	int get_spec_replicas() const;
+	void set_stat_replicas(int replicas);
+	int get_stat_replicas() const;
+	void set_replicas(const Json::Value& item);
+
+protected:
+	k8s_replicas_t m_replicas;
+};
+
+
+//
+// replica set
+//
+
+class k8s_rs_t : public k8s_rc_t
+{
+public:
+	static const k8s_component::type COMPONENT_TYPE = K8S_REPLICASETS;
+
+	k8s_rs_t(const std::string& name, const std::string& uid, const std::string& ns = "");
+
+private:
 };
 
 
@@ -312,6 +383,8 @@ public:
 
 	typedef std::vector<net_port> port_list;
 
+	static const k8s_component::type COMPONENT_TYPE = K8S_SERVICES;
+
 	k8s_service_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
 	const std::string& get_cluster_ip() const;
@@ -329,11 +402,86 @@ private:
 	port_list   m_ports;
 };
 
-typedef std::vector<k8s_ns_t>      k8s_namespaces;
-typedef std::vector<k8s_node_t>    k8s_nodes;
-typedef std::vector<k8s_pod_t>     k8s_pods;
-typedef std::vector<k8s_rc_t>      k8s_controllers;
-typedef std::vector<k8s_service_t> k8s_services;
+
+//
+// daemon set
+//
+
+class k8s_daemonset_t : public k8s_component
+{
+public:
+	static const k8s_component::type COMPONENT_TYPE = K8S_DAEMONSETS;
+
+	k8s_daemonset_t(const std::string& name, const std::string& uid, const std::string& ns = "");
+
+	void set_desired_scheduled(int replicas);
+	int get_desired_scheduled() const;
+	void set_current_scheduled(int replicas);
+	int get_current_scheduled() const;
+	void set_scheduled(const Json::Value& item);
+
+private:
+	k8s_replicas_t m_replicas;
+};
+
+
+//
+// deployment
+//
+
+class k8s_deployment_t : public k8s_component
+{
+public:
+	static const k8s_component::type COMPONENT_TYPE = K8S_DEPLOYMENTS;
+
+	k8s_deployment_t(const std::string& name, const std::string& uid, const std::string& ns = "");
+
+	void set_spec_replicas(int replicas);
+	int get_spec_replicas() const;
+	void set_stat_replicas(int replicas);
+	int get_stat_replicas() const;
+	void set_replicas(const Json::Value& item);
+
+private:
+	k8s_replicas_t m_replicas;
+};
+
+
+//
+// event
+//
+
+class k8s_state_t;
+
+class k8s_event_t : public k8s_component
+{
+public:
+	static const k8s_component::type COMPONENT_TYPE = K8S_EVENTS;
+
+	k8s_event_t(const std::string& name, const std::string& uid, const std::string& ns);
+
+	void update(const Json::Value& item, k8s_state_t& state);
+
+private:
+	typedef sinsp_user_event::tag_map_t tag_map_t;
+	typedef sinsp_logger::event_severity severity_t;
+	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
+
+	void make_scope(const Json::Value& obj, std::string& scope);
+	void make_scope_impl(const Json::Value& obj, std::string comp, std::string& scope, bool ns = true);
+
+	name_translation_map_t m_name_translation;
+};
+
+typedef std::vector<k8s_ns_t>         k8s_namespaces;
+typedef std::vector<k8s_node_t>       k8s_nodes;
+typedef std::vector<k8s_pod_t>        k8s_pods;
+typedef std::vector<k8s_rc_t>         k8s_controllers;
+typedef std::vector<k8s_rs_t>         k8s_replicasets;
+typedef std::vector<k8s_service_t>    k8s_services;
+typedef std::vector<k8s_daemonset_t>  k8s_daemonsets;
+typedef std::vector<k8s_deployment_t> k8s_deployments;
+typedef std::vector<k8s_event_t>      k8s_events;
 
 //
 // container
@@ -504,6 +652,11 @@ inline k8s_component::type k8s_component::get_type(const component_pair& p)
 	return p.first;
 }
 
+inline std::string k8s_component::get_node_name() const
+{
+	return "";
+}
+
 //
 // node
 //
@@ -520,19 +673,18 @@ inline void k8s_node_t::set_host_ips(host_ip_list&& host_ips)
 
 inline void k8s_node_t::add_host_ips(host_ip_list&& host_ips)
 {
-	m_host_ips.insert(m_host_ips.end(), host_ips.begin(), host_ips.end());
-}
-
-inline void k8s_node_t::push_host_ip(const std::string& host_ip)
-{
-	m_host_ips.push_back(host_ip);
+	m_host_ips.insert(host_ips.begin(), host_ips.end());
 }
 
 inline void k8s_node_t::emplace_host_ip(std::string&& host_ip)
 {
-	m_host_ips.emplace_back(std::move(host_ip));
+	m_host_ips.emplace(std::move(host_ip));
 }
 
+inline std::string k8s_node_t::get_node_name() const
+{
+	return get_name();
+}
 
 //
 // pod 
@@ -563,6 +715,45 @@ inline void k8s_pod_t::push_container_id(const std::string& container_id)
 inline void k8s_pod_t::emplace_container_id(std::string&& container_id)
 {
 	m_container_ids.emplace_back(std::move(container_id));
+}
+
+// restart count
+
+inline size_t k8s_pod_t::get_restart_count() const
+{
+	int restart_count_diff = m_restart_count_diff;
+	m_restart_count_diff = 0;
+	return restart_count_diff;
+}
+
+inline void k8s_pod_t::set_restart_count(int rc)
+{
+	if(rc < 0)
+	{
+		g_logger.log("Unexpected K8S pod restart count received: " + std::to_string(rc),
+					sinsp_logger::SEV_WARNING);
+		return;
+	}
+
+	// only record current total on first call
+	if(m_restart_count_tot == -1)
+	{
+		m_restart_count_tot = rc;
+		return;
+	}
+
+	if(rc >= m_restart_count_tot)
+	{
+		m_restart_count_diff = rc - m_restart_count_tot;
+	}
+	else
+	{
+		g_logger.log("Unexpected K8S pod restart count received (" + std::to_string(rc) + 
+					", last recorded value " + std::to_string(m_restart_count_tot) + "), resetting diff to zero.",
+					sinsp_logger::SEV_WARNING);
+		m_restart_count_diff = 0;
+	}
+	m_restart_count_tot = rc;
 }
 
 // comparison
@@ -609,7 +800,8 @@ inline void k8s_pod_t::emplace_container(k8s_container&& container)
 	m_containers.emplace_back(std::move(container));
 }
 
-inline const std::string& k8s_pod_t::get_node_name() const
+// getters/setters
+inline std::string k8s_pod_t::get_node_name() const
 {
 	return m_node_name;
 }
@@ -641,6 +833,60 @@ inline void k8s_pod_t::set_internal_ip(const std::string& internal_ip)
 
 
 //
+// replicas
+//
+
+inline void k8s_replicas_t::set_spec_replicas(int replicas)
+{
+	m_spec_replicas = replicas;
+}
+
+inline int k8s_replicas_t::get_spec_replicas() const
+{
+	return m_spec_replicas;
+}
+
+inline void k8s_replicas_t::set_stat_replicas(int replicas)
+{
+	m_stat_replicas = replicas;
+}
+
+inline int k8s_replicas_t::get_stat_replicas() const
+{
+	return m_stat_replicas;
+}
+
+
+//
+// replication controller
+//
+
+inline void k8s_rc_t::set_spec_replicas(int replicas)
+{
+	m_replicas.set_spec_replicas(replicas);
+}
+
+inline int k8s_rc_t::get_spec_replicas() const
+{
+	return m_replicas.get_spec_replicas();
+}
+
+inline void k8s_rc_t::set_stat_replicas(int replicas)
+{
+	m_replicas.set_stat_replicas(replicas);
+}
+
+inline int k8s_rc_t::get_stat_replicas() const
+{
+	return m_replicas.get_stat_replicas();
+}
+
+inline void k8s_rc_t::set_replicas(const Json::Value& item)
+{
+	k8s_replicas_t::set_replicas(m_replicas, item);
+}
+
+//
 // service
 //
 
@@ -662,4 +908,64 @@ inline const k8s_service_t::port_list& k8s_service_t::get_port_list() const
 inline void k8s_service_t::set_port_list(port_list&& ports)
 {
 	m_ports = std::move(ports);
+}
+
+//
+// deployment
+//
+
+inline void k8s_deployment_t::set_spec_replicas(int replicas)
+{
+	m_replicas.set_spec_replicas(replicas);
+}
+
+inline int k8s_deployment_t::get_spec_replicas() const
+{
+	return m_replicas.get_spec_replicas();
+}
+
+inline void k8s_deployment_t::set_stat_replicas(int replicas)
+{
+	m_replicas.set_stat_replicas(replicas);
+}
+
+inline int k8s_deployment_t::get_stat_replicas() const
+{
+	return m_replicas.get_stat_replicas();
+}
+
+inline void k8s_deployment_t::set_replicas(const Json::Value& item)
+{
+	k8s_replicas_t::set_replicas(m_replicas, item);
+}
+
+
+//
+// daemon set
+//
+
+inline void k8s_daemonset_t::set_desired_scheduled(int scheduled)
+{
+	m_replicas.set_spec_replicas(scheduled);
+}
+
+inline int k8s_daemonset_t::get_desired_scheduled() const
+{
+	return m_replicas.get_spec_replicas();
+}
+
+inline void k8s_daemonset_t::set_current_scheduled(int scheduled)
+{
+	m_replicas.set_stat_replicas(scheduled);
+}
+
+inline int k8s_daemonset_t::get_current_scheduled() const
+{
+	return m_replicas.get_stat_replicas();
+}
+
+inline void k8s_daemonset_t::set_scheduled(const Json::Value& item)
+{
+	m_replicas.set_spec_replicas(k8s_replicas_t::get_count(item["status"], "currentNumberScheduled"));
+	m_replicas.set_stat_replicas(k8s_replicas_t::get_count(item["status"], "desiredNumberScheduled"));
 }

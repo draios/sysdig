@@ -32,6 +32,8 @@ typedef enum sysdig_table_action
 	STA_DRILLUP,
 	STA_SPY,
 	STA_DIG,
+	STA_SPECTRO,
+	STA_SPECTRO_FILE,
 	STA_DESTROY_CHILD,
 }sysdig_table_action;
 
@@ -227,7 +229,7 @@ public:
 
 	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout);
 	~sinsp_table();
-	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults);
+	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	void filter_sample();
@@ -281,12 +283,15 @@ public:
 	}
 
 	uint64_t m_next_flush_time_ns;
+	uint64_t m_prev_flush_time_ns;
+	uint64_t m_refresh_interval_ns;
 
 private:
 	inline void add_row(bool merging);
 	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields_max(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
+	inline void add_fields_min(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
 	inline void add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr);
 	void process_proctable(sinsp_evt* evt);
 	inline uint32_t get_field_len(uint32_t id);
@@ -323,7 +328,6 @@ private:
 	uint32_t m_vals_array_sz;
 	uint32_t m_premerge_vals_array_sz;
 	uint32_t m_postmerge_vals_array_sz;
-	uint64_t m_refresh_interval_ns;
 	sinsp_filter_check_reference* m_printer;
 	vector<sinsp_sample_row> m_full_sample_data;
 	vector<sinsp_sample_row> m_filtered_sample_data;
@@ -341,6 +345,7 @@ private:
 	string m_freetext_filter;
 	tabletype m_type;
 	bool m_print_to_stdout;
+	uint32_t m_view_depth;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

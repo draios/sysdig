@@ -12,29 +12,34 @@
 #include "k8s_http.h"
 #include "k8s_collector.h"
 #include "uri.h"
+#include "sinsp_curl.h"
 #include <sstream>
 #include <utility>
-#ifndef K8S_DISABLE_THREAD
-#include <thread>
-#endif
 
 class k8s;
 
 class k8s_net
 {
 public:
+	typedef sinsp_curl::ssl::ptr_t          ssl_ptr_t;
+	typedef sinsp_curl::bearer_token::ptr_t bt_ptr_t;
+	typedef k8s_component::ext_list_ptr_t ext_list_ptr_t;
+
 	k8s_net(k8s& kube, const std::string& uri = "http://localhost:80",
-		const std::string& api = "/api/v1/");
+		ssl_ptr_t ssl = nullptr,
+		bt_ptr_t bt = nullptr,
+		bool curl_debug = false,
+		ext_list_ptr_t extensions = nullptr);
 
 	~k8s_net();
 
-	void get_all_data(const k8s_component::component_map::value_type& component, std::ostream& out);
+	void get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out);
+
+	void add_api_interface(const k8s_component::type_map::value_type& component);
 
 	void watch();
 
 	void stop_watching();
-
-	bool is_watching() const;
 
 	bool is_healthy() const;
 
@@ -55,29 +60,23 @@ private:
 
 	typedef std::map<k8s_component::type, k8s_http*> api_map_t;
 
-	k8s&          m_k8s;
-	uri           m_uri;
-	std::string   m_creds;
-	bool          m_stopped;
-	api_map_t     m_api_interfaces;
-	k8s_collector m_collector;
+	k8s&           m_k8s;
+	uri            m_uri;
+	ssl_ptr_t      m_ssl;
+	bt_ptr_t       m_bt;
+	bool           m_stopped;
+	api_map_t      m_api_interfaces;
+	k8s_collector  m_collector;
+	bool           m_curl_debug;
+	ext_list_ptr_t m_extensions;
 #ifndef K8S_DISABLE_THREAD
-	std::thread* m_thread;
+	std::thread*   m_thread;
 #endif
 };
 
 inline bool k8s_net::is_secure()
 {
 	return m_uri.get_scheme() == "https";
-}
-
-inline bool k8s_net::is_watching() const
-{
-#ifndef K8S_DISABLE_THREAD
-	return !m_stopped;
-#else
-	return true;
-#endif
 }
 
 inline bool k8s_net::is_healthy() const

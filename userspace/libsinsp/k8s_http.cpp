@@ -23,7 +23,10 @@ k8s_http::k8s_http(k8s& k8s,
 	const std::string& host_and_port,
 	const std::string& protocol,
 	const std::string& credentials,
-	const std::string& api):
+	const std::string& api,
+	ssl_ptr_t ssl,
+	bt_ptr_t bt,
+	bool curl_debug):
 		m_curl(curl_easy_init()),
 		m_k8s(k8s),
 		m_protocol(protocol),
@@ -31,6 +34,8 @@ k8s_http::k8s_http(k8s& k8s,
 		m_api(api),
 		m_component(component),
 		m_credentials(credentials),
+		m_ssl(ssl),
+		m_bt(bt),
 		m_watch_socket(0),
 		m_data_ready(false)
 {
@@ -40,10 +45,33 @@ k8s_http::k8s_http(k8s& k8s,
 	}
 
 	curl_version_info_data* data = curl_version_info(CURLVERSION_NOW);
-	if((protocol == "https") && !(data->features | CURL_VERSION_SSL))
+	if((protocol == "https"))
+	{
+		if(!(data->features | CURL_VERSION_SSL))
+		{
+			cleanup();
+			throw sinsp_exception("Curl HTTPS NOT supported");
+		}
+		if(!m_ssl)
+		{
+			throw sinsp_exception("K8S: HTTPS connection detected but SSL object is null.");
+		}
+		sinsp_curl::init_ssl(m_curl, m_ssl);
+	}
+	else if((protocol != "http"))
 	{
 		cleanup();
-		throw sinsp_exception("HTTPS NOT supported");
+		throw sinsp_exception("Protocol not supported:" + protocol);
+	}
+
+	if(m_bt)
+	{
+		sinsp_curl::init_bt(m_curl, m_bt);
+	}
+
+	if(curl_debug)
+	{
+		sinsp_curl::enable_debug(m_curl, true);
 	}
 
 	std::ostringstream url;
@@ -53,7 +81,7 @@ k8s_http::k8s_http(k8s& k8s,
 		url << m_credentials << '@';
 	}
 	url << m_host_and_port;
-	url << m_api << '/' << m_component << std::flush;
+	url << m_api << m_component << k8s_component::get_selector(m_component) << std::flush;
 	m_url = url.str();
 }
 
@@ -88,27 +116,35 @@ size_t k8s_http::write_data(void *ptr, size_t size, size_t nmemb, void *cb)
 	return size * nmemb;
 }
 
-bool k8s_http::get_all_data(std::ostream& os)
+bool k8s_http::get_all_data(std::ostream& os, long timeout_ms)
 {
-	g_logger.log(std::string("Retrieving all data from ") + m_url, sinsp_logger::SEV_DEBUG);
-	curl_easy_setopt(m_curl, CURLOPT_URL, m_url.c_str());
-	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L);
-	
-	if(m_protocol == "https")
-	{
-		check_error(curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER , 0));
-	}
+	CURLcode res = CURLE_OK;
 
-	curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
-	curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate");
-	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &k8s_http::write_data);
-	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os);
+	g_logger.log(std::string("Retrieving all K8S data from ") + uri(m_url).to_string(false), sinsp_logger::SEV_DEBUG);
+	check_error(curl_easy_setopt(m_curl, CURLOPT_URL, m_url.c_str()));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L));
 
-	CURLcode res = curl_easy_perform(m_curl);
+	check_error(curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1)); //Prevent "longjmp causes uninitialized stack frame" bug
+	check_error(curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate"));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_TIMEOUT_MS, timeout_ms));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &k8s_http::write_data));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os));
 
+	res = curl_easy_perform(m_curl);
 	if(res != CURLE_OK)
 	{
 		os << curl_easy_strerror(res) << std::flush;
+	}
+	else
+	{
+		// HTTP errors are not returned by curl API
+		// error will be in the response stream
+		long http_code = 0;
+		curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code);
+		if(http_code >= 400)
+		{
+			return false;
+		}
 	}
 
 	return res == CURLE_OK;
@@ -149,7 +185,7 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		long sockextr;
 		size_t iolen;
 		std::string url = m_url;
-		url.insert(m_url.find(m_api) + m_api.size(), "/watch");
+		url.insert(m_url.find(m_api) + m_api.size(), "watch/");
 
 		check_error(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()));
 		check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L));
@@ -166,13 +202,29 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		}
 
 		std::ostringstream request;
-		request << "GET /api/v1/watch/" << m_component << " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\nConnection: Keep-Alive\r\n";
+		request << "GET " << m_api << "watch/" << m_component << k8s_component::get_selector(m_component)
+				<< " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\nConnection: Keep-Alive\r\n";
 		if(!m_credentials.empty())
 		{
-			std::istringstream is(m_credentials);
+			std::string::size_type pos = m_credentials.find(':');
+			if(pos == std::string::npos)
+			{
+				throw sinsp_exception("Invalid credentials (missing ':' separator)");
+			}
+			std::string username = uri::decode(m_credentials.substr(0, pos));
+			std::string password;
+			if(m_credentials.length() > pos)
+			{
+				password = uri::decode(m_credentials.substr(pos + 1));
+			}
+			std::istringstream is(username.append(1, ':').append(password));
 			std::ostringstream os;
 			base64::encoder().encode(is, os);
 			request << "Authorization: Basic " << os.str() << "\r\n";
+		}
+		if(m_bt && !m_bt->get_token().empty())
+		{
+			request << "Authorization: Bearer " << m_bt->get_token() << "\r\n";
 		}
 		request << "\r\n";
 		check_error(curl_easy_send(m_curl, request.str().c_str(), request.str().size(), &iolen));
@@ -183,7 +235,7 @@ int k8s_http::get_watch_socket(long timeout_ms)
 			throw sinsp_exception("Error: timeout.");
 		}
 
-		g_logger.log(std::string("Collecting data from ") + url, sinsp_logger::SEV_DEBUG);
+		g_logger.log(std::string("Collecting data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
 	}
 
 	return m_watch_socket;

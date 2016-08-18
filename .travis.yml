@@ -6,7 +6,7 @@ before_install:
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - sudo apt-get update
 install:
-    - sudo apt-get install g++-4.8
+    - sudo apt-get --force-yes install g++-4.8
     - sudo apt-get install rpm linux-headers-$(uname -r)
     - sudo apt-get purge libncurses5-dev cmake libcurl4-openssl-dev zlib1g-dev
 before_script:
@@ -51,6 +51,16 @@ script:
     - make
     - sudo cp -r include/* /usr/local/include/
     - sudo cp src/libb64.a /usr/local/lib/
+    - cd ..
+    - wget http://download.draios.com/dependencies/jq-1.5.tar.gz
+    - tar -xzf jq-1.5.tar.gz
+    - cd jq-1.5
+    - ./configure --disable-maintainer-mode
+    - make LDFLAGS=-all-static
+    - sudo cp ./jq.h /usr/local/include/
+    - sudo cp ./jv.h /usr/local/include/
+    - sudo cp .libs/libjq.a /usr/local/lib/
+    - cd ..
     - popd
     - rm -rf userspace/libsinsp/third-party/jsoncpp
     - sudo apt-get install libncurses5-dev libluajit-5.1-dev libcurl4-openssl-dev libssl-dev

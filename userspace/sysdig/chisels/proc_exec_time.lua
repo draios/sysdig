@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "List the processes that have finished running, along with their execution time, and color every line based on the total process run time (Green|Blue below thresholds, Yellow at 3 sec, and Red at 10 sec). This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)";
+description = "List the processes that have finished running, along with their execution time, and color every line based on the total process run time (Green|Blue below thresholds, Yellow at 3 sec, and Red at 10 sec). This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown. (Blue represents a process running within a container, and Green represents a host process)";
 short_description = "Show process execution time";
 category = "Performance";
 

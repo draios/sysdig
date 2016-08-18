@@ -53,7 +53,7 @@ void sinsp_logger::set_log_output_type(sinsp_logger::output_type log_output_type
 	}
 	else if(log_output_type == sinsp_logger::OT_STDERR)
 	{
-		add_file_log("sisnsp.log");
+		add_file_log("sinsp.log");
 	}
 	else if(log_output_type == sinsp_logger::OT_NONE)
 	{
@@ -87,7 +87,7 @@ void sinsp_logger::add_file_log(string filename)
 	m_file = fopen(filename.c_str(), "w");
 	if(!m_file)
 	{
-		throw sinsp_exception("unable to open file " + filename + " for wrirting");
+		throw sinsp_exception("unable to open file " + filename + " for writing");
 	}
 
 	m_flags |= sinsp_logger::OT_FILE;
@@ -97,13 +97,18 @@ void sinsp_logger::add_callback_log(sinsp_logger_callback callback)
 {
 	ASSERT(m_callback == NULL);
 	m_callback = callback;
-
 	m_flags |= sinsp_logger::OT_CALLBACK;
+}
+
+void sinsp_logger::remove_callback_log()
+{
+	m_callback = 0;
+	m_flags &= ~sinsp_logger::OT_CALLBACK;
 }
 
 void sinsp_logger::set_severity(severity sev)
 {
-	if(m_sev > SEV_MAX)
+	if(m_sev < SEV_MIN || m_sev > SEV_MAX)
 	{
 		throw sinsp_exception("invalid log severity");
 	}
@@ -111,57 +116,71 @@ void sinsp_logger::set_severity(severity sev)
 	m_sev = sev;
 }
 
+sinsp_logger::severity sinsp_logger::get_severity() const
+{
+	return m_sev;
+}
+
+void sinsp_logger::log(string msg, event_severity sev)
+{
+	if(is_callback())
+	{
+		(*m_callback)(std::move(msg), (uint32_t)sev);
+	}
+}
+
 void sinsp_logger::log(string msg, severity sev)
 {
-	struct timeval ts;
-
-	if(sev < m_sev)
+	if((sev > m_sev) || is_user_event(sev))
 	{
 		return;
 	}
 
 	if((m_flags & sinsp_logger::OT_NOTS) == 0)
 	{
+		struct timeval ts;
 		gettimeofday(&ts, NULL);
 		time_t rawtime = (time_t)ts.tv_sec;
 		struct tm* time_info = gmtime(&rawtime);
-		snprintf(m_tbuf, sizeof(m_tbuf), "%.2d-%.2d %.2d:%.2d:%.2d.%.6d %s",
+		snprintf(m_tbuf, sizeof(m_tbuf), "%.2d-%.2d %.2d:%.2d:%.2d.%.6d ",
 			time_info->tm_mon + 1,
 			time_info->tm_mday,
 			time_info->tm_hour,
 			time_info->tm_min,
 			time_info->tm_sec,
-			(int)ts.tv_usec,
-			msg.c_str());
-	}
-	else
-	{
-		snprintf(m_tbuf, sizeof(m_tbuf), "%s", msg.c_str());
+			(int)ts.tv_usec);
+		msg.insert(0, m_tbuf, 22);
 	}
 
-	if(m_flags & sinsp_logger::OT_CALLBACK)
+	if(is_callback() && m_callback)
 	{
-		(*m_callback)(m_tbuf, (uint32_t)sev);
+		(*m_callback)(std::move(msg), (uint32_t)sev);
 	}
-	else if(m_flags & sinsp_logger::OT_FILE)
+	else if((m_flags & sinsp_logger::OT_FILE) && m_file)
 	{
-		fprintf(m_file, "%s\n", m_tbuf);
+		fprintf(m_file, "%s\n", msg.c_str());
 		fflush(m_file);
 	}
 	else if(m_flags & sinsp_logger::OT_STDOUT)
 	{
-		fprintf(stdout, "%s\n", m_tbuf);
+		fprintf(stdout, "%s\n", msg.c_str());
 		fflush(stdout);
 	}
 	else if(m_flags & sinsp_logger::OT_STDERR)
 	{
-		fprintf(stderr, "%s\n", m_tbuf);
+		fprintf(stderr, "%s\n", msg.c_str());
 		fflush(stderr);
 	}
 }
 
 char* sinsp_logger::format(severity sev, const char* fmt, ...)
 {
+	if(!is_callback() && is_user_event(sev))
+	{
+		m_tbuf[0] = '\0';
+		return m_tbuf;
+	}
+
 	va_list ap;
 
 	va_start(ap, fmt);

@@ -38,7 +38,7 @@ typedef struct table_row_cmp
 {
 	bool operator()(const sinsp_sample_row& src, const sinsp_sample_row& dst)
 	{
-		ppm_cmp_operator op;
+		cmpop op;
 
 		if(m_ascending)
 		{
@@ -90,6 +90,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_refresh_interval_ns = refresh_interval_ns;
 	m_print_to_stdout = print_to_stdout;
 	m_next_flush_time_ns = 0;
+	m_prev_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
 	m_buffer = &m_buffer1;
 	m_is_sorting_ascending = false;
@@ -134,9 +135,11 @@ sinsp_table::~sinsp_table()
 	delete m_printer;
 }
 
-void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults)
+void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const string& filter, 
+	bool use_defaults, uint32_t view_depth)
 {
 	m_use_defaults = use_defaults;
+	m_view_depth = view_depth;
 
 	//
 	// If this is a list table, increase the refresh time to improve realtimyiness
@@ -151,7 +154,8 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	//////////////////////////////////////////////////////////////////////////////////////
 	if(filter != "")
 	{
-		m_filter = new sinsp_filter(m_inspector, filter);
+		sinsp_filter_compiler compiler(m_inspector, filter);
+		m_filter = compiler.compile();
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -161,19 +165,19 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 
 	for(auto vit : *entries)
 	{
-		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(vit.m_field, 
+		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(vit.get_field(m_view_depth), 
 			m_inspector,
 			false);
 
 		if(chk == NULL)
 		{
-			throw sinsp_exception("invalid field name " + vit.m_field);
+			throw sinsp_exception("invalid field name " + vit.get_field(m_view_depth));
 		}
 
 		chk->m_aggregation = (sinsp_field_aggregation)vit.m_aggregation;
 		m_chks_to_free.push_back(chk);
 
-		chk->parse_field_name(vit.m_field.c_str(), true);
+		chk->parse_field_name(vit.get_field(m_view_depth).c_str(), true);
 
 		if((vit.m_flags & TEF_IS_KEY) != 0)
 		{
@@ -526,7 +530,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 
 		if(m_filter)
 		{
-			if(!m_filter->run(evt))
+			if(!m_filter->run(&tevt))
 			{
 				continue;
 			}
@@ -537,7 +541,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 }
 
 void sinsp_table::flush(sinsp_evt* evt)
-{
+{	
 	if(!m_paused)
 	{
 		if(m_next_flush_time_ns != 0)
@@ -590,6 +594,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 
 	uint64_t ts = evt->get_ts();
 
+	m_prev_flush_time_ns = m_next_flush_time_ns;
 	m_next_flush_time_ns = ts - (ts % m_refresh_interval_ns) + m_refresh_interval_ns;
 
 	return;
@@ -1159,6 +1164,88 @@ void sinsp_table::add_fields_max(ppm_param_type type, sinsp_table_field *dst, si
 	}
 }
 
+void sinsp_table::add_fields_min(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
+{
+	uint8_t* operand1 = dst->m_val;
+	uint8_t* operand2 = src->m_val;
+
+	switch(type)
+	{
+	case PT_INT8:
+		if(*(int8_t*)operand1 > *(int8_t*)operand2)
+		{
+			*(int8_t*)operand1 = *(int8_t*)operand2;
+		}
+		return;
+	case PT_INT16:
+		if(*(int16_t*)operand1 > *(int16_t*)operand2)
+		{
+			*(int16_t*)operand1 = *(int16_t*)operand2;
+		}
+		return;
+	case PT_INT32:
+		if(*(int32_t*)operand1 > *(int32_t*)operand2)
+		{
+			*(int32_t*)operand1 = *(int32_t*)operand2;
+		}
+		return;
+	case PT_INT64:
+		if(*(int64_t*)operand1 > *(int64_t*)operand2)
+		{
+			*(int64_t*)operand1 = *(int64_t*)operand2;
+		}
+		return;
+	case PT_UINT8:
+		if(*(uint8_t*)operand1 > *(uint8_t*)operand2)
+		{
+			*(uint8_t*)operand1 = *(uint8_t*)operand2;
+		}
+		return;
+	case PT_UINT16:
+		if(*(uint16_t*)operand1 > *(uint16_t*)operand2)
+		{
+			*(uint16_t*)operand1 = *(uint16_t*)operand2;
+		}
+		return;
+	case PT_UINT32:
+	case PT_BOOL:
+		if(*(uint32_t*)operand1 > *(uint32_t*)operand2)
+		{
+			*(uint32_t*)operand1 = *(uint32_t*)operand2;
+		}
+		return;
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+		if(*(uint64_t*)operand1 > *(uint64_t*)operand2)
+		{
+			*(uint64_t*)operand1 = *(uint64_t*)operand2;
+		}
+		return;
+	case PT_DOUBLE:
+		if(*(double*)operand1 > *(double*)operand2)
+		{
+			*(double*)operand1 = *(double*)operand2;
+		}
+		return;
+	case PT_CHARBUF:
+	case PT_BYTEBUF:
+		ASSERT(false); // Not supposed to use this
+		if(dst->m_len >= src->m_len)
+		{
+			memcpy(dst->m_val, src->m_val, src->m_len);
+		}
+		else
+		{
+			dst->m_val = m_buffer->copy(src->m_val, src->m_len);
+		}
+
+		dst->m_len = src->m_len;
+	default:
+		return;
+	}
+}
+
 void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr)
 {
 	ppm_param_type type = (*m_types)[dst_id];
@@ -1186,6 +1273,20 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 		return;
 	case A_MAX:
 		add_fields_max(type, dst, src);		
+		return;
+	case A_MIN:
+		if(src->m_cnt != 0)
+		{
+			if(dst->m_cnt == 0)
+			{
+				add_fields_sum(type, dst, src);
+				dst->m_cnt++;
+			}
+			else
+			{
+				add_fields_min(type, dst, src);
+			}
+		}
 		return;
 	default:
 		ASSERT(false);

@@ -1,78 +1,98 @@
 //
-// uri.h
+// uri.cpp
 //
-// URI utilities
+// URI utility
 //
 
-#include  "uri.h"
-#include  <sstream>
+#include "uri.h"
+#include "sinsp.h"
+#include <sstream>
+#include <iomanip>
 
-uri::uri(std::string str): m_port(0)
+const std::string uri::SPECIAL_CHARS = "!#$&'()*+,/:;=?@[]";
+const std::string uri::AMBIGUOUS_CHARS = " \"%-.<>\\^_`{|}~";
+
+uri::uri(std::string str)
 {
-	m_scheme = extract_protocol(str);
-	m_query = extract_query(str);
-	m_path = extract_path(str);
-	std::string auth = extract_auth(str);
-	m_password = extract_password(auth);
-	m_user = auth;
-	m_port = extract_port(str);
-	m_host = str;
+	trim(str);
+	// parser does not handle missing host properly
+	bool no_host = false;
+	if(ci_find_substr(str, std::string("file:///")) == 0)
+	{
+		str.insert(7, "localhost");
+		no_host = true;
+	}
+	parsed_uri p_uri = parse_uri(str.c_str());
+	if(p_uri.error)
+	{
+		str = std::string("Invalid URI: [").append(str).append(1, ']');
+		throw sinsp_exception(str);
+	}
+	m_scheme = str.substr(p_uri.scheme_start, p_uri.scheme_end - p_uri.scheme_start);
+	std::transform(m_scheme.begin(), m_scheme.end(), m_scheme.begin(), ::tolower);
+	if(!no_host)
+	{
+		m_host = str.substr(p_uri.host_start, p_uri.host_end - p_uri.host_start);
+		std::transform(m_host.begin(), m_host.end(), m_host.begin(), ::tolower);
+	}
+	m_port = p_uri.port;
+	if(m_port == 0)
+	{
+		m_has_port = false;
+		m_port = get_well_known_port();
+	}
+	m_path = str.substr(p_uri.path_start, p_uri.path_end - p_uri.path_start);
+	m_query = str.substr(p_uri.query_start, p_uri.query_end - p_uri.query_start);
+	if(p_uri.user_info_end != p_uri.user_info_start)
+	{
+		std::string auth = str.substr(p_uri.user_info_start, p_uri.user_info_end - p_uri.user_info_start);
+		std::string::size_type pos = auth.find(':');
+		if(pos == std::string::npos)
+		{
+			throw sinsp_exception("Invalid credentials format.");
+		}
+		m_user = auth.substr(0, pos);
+		m_password = auth.substr(pos + 1);
+	}
 }
 
-std::string uri::tail_chunk(std::string &subject, std::string delimiter, bool keep_delim)
+int uri::get_well_known_port() const
 {
-	auto delimiter_location = subject.find(delimiter);
-	auto delimiter_length = delimiter.length();
-	std::string output;
-
-	if(delimiter_location != std::string::npos)
+	if (!m_scheme.empty())
 	{
-		auto start = keep_delim ? delimiter_location : delimiter_location + delimiter_length;
-		auto end = subject.length() - start;
-		output = subject.substr(start, end);
-		subject = subject.substr(0, delimiter_location);
+		if(m_scheme == "http")        { return 80;   }
+		else if(m_scheme == "file")   { return 0;    }
+		else if(m_scheme == "https")  { return 443;  }
+		else if(m_scheme == "ftp")    { return 21;   }
+		else if(m_scheme == "ssh")    { return 22;   }
+		else if(m_scheme == "telnet") { return 23;   }
+		else if(m_scheme == "nntp")   { return 119;  }
+		else if(m_scheme == "ldap")   { return 389;  }
+		else if(m_scheme == "rtsp")   { return 554;  }
+		else if(m_scheme == "sip")    { return 5060; }
+		else if(m_scheme == "sips")   { return 5061; }
+		else if(m_scheme == "xmpp")   { return 5222; }
 	}
-	return output;
+	return 0;
 }
 
-std::string uri::head_chunk(std::string &subject, std::string delimiter) 
-{
-	auto delimiter_location = subject.find(delimiter);
-	auto delimiter_length = delimiter.length();
-	std::string output;
-	if(delimiter_location != std::string::npos)
-	{
-		output = subject.substr(0, delimiter_location);
-		subject = subject.substr(delimiter_location + delimiter_length, subject.length() - (delimiter_location + delimiter_length));
-	}
-	return output;
-}
-
-int uri::extract_port(std::string& hostport)
-{
-	int m_port;
-	std::string portstring = tail_chunk(hostport, ":");
-	try
-	{
-		m_port = atoi(portstring.c_str()); 
-	}
-	catch (std::exception e)
-	{
-		m_port = 0;
-	}
-	return m_port;
-}
-
-std::string uri::to_string() const
+std::string uri::to_string(bool show_creds) const
 {
 	std::ostringstream ostr;
 	ostr << m_scheme << "://";
 	if(!m_user.empty())
 	{
-		ostr << m_user << ':' << m_password << '@';
+		if(show_creds)
+		{
+			ostr << m_user << ':' << m_password << '@';
+		}
+		else
+		{
+			ostr << "***:***@";
+		}
 	}
 	ostr << m_host;
-	if(m_port)
+	if(m_port && m_has_port)
 	{
 		ostr << ':' << m_port;
 	}
@@ -82,4 +102,112 @@ std::string uri::to_string() const
 		ostr << '?' << m_query;
 	}
 	return ostr.str();
+}
+
+std::string uri::encode(const std::string& str, const std::string& reserved)
+{
+	std::string encoded_str;
+	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
+	{
+		char c = *it;
+		if((c >= 'a' && c <= 'z') ||
+			(c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9'))
+		{
+			encoded_str += c;
+		}
+		else if (c <= 0x20 || c >= 0x7F ||
+				 SPECIAL_CHARS.find(c) != std::string::npos ||
+				 AMBIGUOUS_CHARS.find(c) != std::string::npos ||
+				 reserved.find(c) != std::string::npos)
+		{
+			std::ostringstream ostr;
+			ostr << "%" << std::setfill('0') << std::setw(2) << std::uppercase << std::hex << ((unsigned) (unsigned char) c);
+			encoded_str.append(ostr.str());
+		}
+		else
+		{
+			encoded_str += c;
+		}
+	}
+	return encoded_str;
+}
+
+// URI-decodes the given string by replacing percent-encoded
+// characters with the actual character. Returns the decoded string.
+//
+// When plus_as_space is true, non-encoded plus signs in the query are decoded as spaces.
+// (http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1)
+std::string uri::decode(const std::string& str, bool plus_as_space)
+{
+	std::string decoded_str;
+	bool in_query = false;
+	std::string::const_iterator it  = str.begin();
+	std::string::const_iterator end = str.end();
+	while(it != end)
+	{
+		char c = *it++;
+		if(c == '?')
+		{
+			in_query = true;
+		}
+		// spaces may be encoded as plus signs in the query
+		if(in_query && plus_as_space && c == '+')
+		{
+			c = ' ';
+		}
+		else if(c == '%')
+		{
+			if (it == end)
+			{
+				throw sinsp_exception("URI encoding: no hex digit following percent sign in " + str);
+			}
+			char hi = *it++;
+			if (it == end)
+			{
+				throw sinsp_exception("URI encoding: two hex digits must follow percent sign in " + str);
+			}
+			char lo = *it++;
+			if (hi >= '0' && hi <= '9')
+			{
+				c = hi - '0';
+			}
+			else if (hi >= 'A' && hi <= 'F')
+			{
+				c = hi - 'A' + 10;
+			}
+			else if (hi >= 'a' && hi <= 'f')
+			{
+				c = hi - 'a' + 10;
+			}
+			else
+			{
+				throw sinsp_exception("URI encoding: not a hex digit found in " + str);
+			}
+			c *= 16;
+			if (lo >= '0' && lo <= '9')
+			{
+				c += lo - '0';
+			}
+			else if (lo >= 'A' && lo <= 'F')
+			{
+				c += lo - 'A' + 10;
+			}
+			else if (lo >= 'a' && lo <= 'f')
+			{
+				c += lo - 'a' + 10;
+			}
+			else
+			{
+				throw sinsp_exception("URI encoding: not a hex digit");
+			}
+		}
+		decoded_str += c;
+	}
+	return decoded_str;
+}
+
+bool uri::is(const std::string& proto)
+{
+	return ci_compare::is_equal(m_scheme, proto);
 }

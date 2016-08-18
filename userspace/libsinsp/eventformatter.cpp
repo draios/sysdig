@@ -198,7 +198,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 				continue;
 			}
 
-			if(json_value == Json::Value::nullRef && m_require_all_values)
+			if(json_value == Json::nullValue && m_require_all_values)
 			{
 				retval = false;
 				continue;
@@ -206,7 +206,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 			fi = m_tokens[j]->get_field_info();
 
-			if(fi && fi->m_name) 
+			if(fi) 
 			{
 				m_root[fi->m_name] = m_tokens[j]->tojson(evt);
 			} 

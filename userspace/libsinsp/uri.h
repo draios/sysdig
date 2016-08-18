@@ -1,56 +1,62 @@
 //
 // uri.h
 //
-// URI utilities
+// URI utility
 //
 
 #pragma once
 
+#ifdef _WIN32
+#pragma warning(disable: 4190)
+#endif
+
+#include "uri_parser.h"
 #include <string>
 
+// TODO: support fragments
 class uri
 {
 public:
+	static const std::string SPECIAL_CHARS;
+	static const std::string AMBIGUOUS_CHARS;
+
 	uri() = delete;
-	
+
 	uri(std::string str);
 
 	const std::string& get_scheme() const;
-	void set_scheme(const std::string&  scheme);
-
 	const std::string& get_user() const;
-	void set_user(const std::string& user);
-
 	const std::string& get_password() const;
-	void set_password(const std::string& password);
-
 	const std::string& get_host() const;
-	void set_host(const std::string& host);
-
 	const std::string& get_path() const;
-	void set_path (const std::string& path);
-
 	const std::string& get_query() const;
-	void set_query(const std::string& query);
+	int get_port() const;
 
-    int get_port() const;
-	void set_port(int port);
+	bool is(const std::string& proto);
+	bool is_file() const;
+	bool is_secure() const;
+	std::string get_credentials() const;
 
-	std::string to_string() const;
+	std::string to_string(bool show_creds = true) const;
+	bool is_local() const;
+
+	// URI-encodes the given string by escaping reserved, ambiguous and non-ASCII
+	// characters. Returns the encoded string with uppercase hex letters (eg. %5B, not %5b).
+	static std::string encode(const std::string& str, const std::string& reserved = "");
+
+	// URI-decodes the given string by replacing percent-encoded
+	// characters with the actual character. Returns the decoded string.
+	//
+	// When plus_as_space is true, non-encoded plus signs in the query are decoded as spaces.
+	// (http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1)
+	static std::string decode(const std::string& str, bool plus_as_space = false);
 
 private:
-	std::string tail_chunk(std::string& subject, std::string delimiter, bool keep_delim = false);
-	std::string head_chunk(std::string& subject, std::string delimiter);
+	int get_well_known_port() const;
 
-	int extract_port(std::string& hostport);
-	std::string extract_path(std::string& str);
-	std::string extract_protocol(std::string& str);
-	std::string extract_query(std::string& str);
-	std::string extract_password(std::string& userpass);
-	std::string extract_auth(std::string& str);
-	
 	std::string m_scheme, m_user, m_password, m_host, m_path, m_query;
-    int m_port;
+	int m_port;
+	bool m_has_port = true;
 };
 
 inline const std::string& uri::get_scheme() const
@@ -58,19 +64,9 @@ inline const std::string& uri::get_scheme() const
 	return m_scheme;
 }
 
-inline void uri::set_scheme(const std::string&  scheme)
-{
-	m_scheme = scheme;	
-}
-
 inline const std::string& uri::get_user() const
 {
 	return m_user;
-}
-
-inline void uri::set_user(const std::string&  user)
-{
-	m_user = user;	
 }
 
 inline const std::string& uri::get_password() const
@@ -78,19 +74,9 @@ inline const std::string& uri::get_password() const
 	return m_password;
 }
 
-inline void uri::set_password(const std::string&  password)
-{
-	m_password = password;	
-}
-
 inline const std::string& uri::get_host() const
 {
 	return m_host;
-}
-
-inline void uri::set_host(const std::string&  host)
-{
-	m_host = host;	
 }
 
 inline const std::string& uri::get_path() const
@@ -98,19 +84,9 @@ inline const std::string& uri::get_path() const
 	return m_path;
 }
 
-inline void uri::set_path(const std::string&  path)
-{
-	m_path = path;	
-}
-
 inline const std::string& uri::get_query() const
 {
 	return m_query;
-}
-
-inline void uri::set_query(const std::string&  query)
-{
-	m_query = query;	
 }
 
 inline int uri::get_port() const
@@ -118,32 +94,27 @@ inline int uri::get_port() const
 	return m_port;
 }
 
-inline void uri::set_port(int port)
+inline bool uri::is_file() const
 {
-	m_port = port;	
+	return m_scheme == "file";
 }
 
-inline std::string uri::extract_path(std::string& str)
+inline bool uri::is_secure() const
 {
-	return tail_chunk(str, "/", true);
+	return m_scheme == "https";
 }
 
-inline std::string uri::extract_protocol(std::string& str)
+inline std::string uri::get_credentials() const
 {
-	return head_chunk(str, "://");
+	std::string creds;
+	if(!m_user.empty())
+	{
+		creds.append(m_user).append(1, ':').append(m_password);
+	}
+	return creds;
 }
 
-inline std::string uri::extract_query(std::string& str)
+inline bool uri::is_local() const
 {
-	return tail_chunk(str, "?");
-}
-
-inline std::string uri::extract_password(std::string &userpass)
-{
-	return tail_chunk(userpass, ":");
-}
-
-inline std::string uri::extract_auth(std::string& str)
-{
-	return head_chunk(str, "@"); 
+	return m_host == "localhost" || m_host == "127.0.0.1" || m_scheme == "file";
 }

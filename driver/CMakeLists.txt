@@ -4,6 +4,7 @@ option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 configure_file(dkms.conf.in dkms.conf)
 configure_file(Makefile.in Makefile.dkms)
 configure_file(driver_config.h.in driver_config.h)
+configure_file(driver_config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/driver_config.h")
 
 set(CLEAN_FILES
 	"${CMAKE_CURRENT_SOURCE_DIR}/Makefile"
@@ -16,13 +17,21 @@ add_custom_target(configure_driver ALL
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 	VERBATIM)
 
+# make can be self-referenced as $(MAKE) only from Makefiles but this
+# triggers syntax errors with other generators such as Ninja
+if(${CMAKE_GENERATOR} STREQUAL "Unix Makefiles")
+	set(MAKE_COMMAND "$(MAKE)")
+else()
+	set(MAKE_COMMAND "make")
+endif()
+
 # This if/else is needed because you currently cannot manipulate dependencies
 # of built-in targets like "all" in CMake:
 # http://public.kitware.com/Bug/view.php?id=8438
 if(BUILD_DRIVER)
 	add_custom_target(driver ALL
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
-		COMMAND $(MAKE)
+		COMMAND ${MAKE_COMMAND}
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		DEPENDS configure_driver
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -30,7 +39,7 @@ if(BUILD_DRIVER)
 else()
 	add_custom_target(driver
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms Makefile
-		COMMAND $(MAKE)
+		COMMAND ${MAKE_COMMAND}
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		DEPENDS configure_driver
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -38,7 +47,7 @@ else()
 endif()
 
 add_custom_target(install_driver
-	COMMAND $(MAKE) install
+	COMMAND ${MAKE_COMMAND} install
 	DEPENDS driver
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 	VERBATIM)

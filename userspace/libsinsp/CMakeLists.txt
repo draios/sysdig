@@ -8,6 +8,8 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${B64_INCLUDE}")
 	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
+	include_directories("${JQ_INCLUDE}")
+	include_directories("${OPENSSL_INCLUDE_DIR}")
 endif()
 
 add_library(sinsp STATIC
@@ -18,14 +20,17 @@ add_library(sinsp STATIC
 	cyclewriter.cpp
 	cursescomponents.cpp
 	cursestable.cpp
+	cursesspectro.cpp
 	cursesui.cpp
 	event.cpp
 	eventformatter.cpp
+	docker.cpp
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
 	filterchecks.cpp
 	ifinfo.cpp
+	json_query.cpp
 	k8s.cpp
 	k8s_collector.cpp
 	k8s_component.cpp
@@ -34,7 +39,17 @@ add_library(sinsp STATIC
 	k8s_event_data.cpp
 	k8s_http.cpp
 	k8s_net.cpp
+	lua_parser.cpp
+	lua_parser_api.cpp
+	marathon_component.cpp
+	marathon_http.cpp
 	memmem.cpp
+	tracers.cpp
+	mesos.cpp
+	mesos_collector.cpp
+	mesos_component.cpp
+	mesos_http.cpp
+	mesos_state.cpp
 	internal_metrics.cpp
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
@@ -44,8 +59,12 @@ add_library(sinsp STATIC
 	sinsp.cpp
 	stats.cpp
 	table.cpp
+	sinsp_curl.cpp
+	uri_parser.c
 	uri.cpp
 	utils.cpp
+	user_event.cpp
+	value_parser.cpp
 	viewinfo.cpp)
 
 target_link_libraries(sinsp 
@@ -59,10 +78,12 @@ if(NOT WIN32)
 
 	if(NOT APPLE)
 		target_link_libraries(sinsp
+			"${JQ_LIB}"
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
 			"${OPENSSL_LIBRARY_SSL}"
-			"${OPENSSL_LIBRARY_CRYPTO}")
+			"${OPENSSL_LIBRARY_CRYPTO}"
+            rt)
 	endif()
 
 	target_link_libraries(sinsp

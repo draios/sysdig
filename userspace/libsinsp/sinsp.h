@@ -42,7 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #ifdef _WIN32
-#pragma warning(disable: 4251 4200 4221)
+#pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
 #ifdef _WIN32
@@ -61,6 +61,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <queue>
 #include <vector>
 #include <set>
+#include <list>
 
 using namespace std;
 
@@ -74,6 +75,7 @@ using namespace std;
 #include "ifinfo.h"
 #include "container.h"
 #include "viewinfo.h"
+#include "utils.h"
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -106,6 +108,8 @@ class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
 class k8s;
+class sinsp_partial_tracer;
+class mesos;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -289,10 +293,10 @@ public:
 	  \brief Determine if this inspector is going to load user tables on
 	  startup.
 
-	  \param import_users if true, no user tables will be created for 
-	  this capture. This also means that no user or group info will be 
-	  written to the tracefile by the -w flag. The user/group tables are 
-	  necessary to use filter fields like user.name or group.name. However, 
+	  \param import_users if true, no user tables will be created for
+	  this capture. This also means that no user or group info will be
+	  written to the tracefile by the -w flag. The user/group tables are
+	  necessary to use filter fields like user.name or group.name. However,
 	  creating them can increase sysdig's startup time. Moreover, they contain
 	  information that could be privacy sensitive.
 
@@ -332,12 +336,25 @@ public:
 	void set_filter(const string& filter);
 
 	/*!
+	  \brief Installs the given capture runtime filter object.
+
+	  \param filter the runtime filter object
+	*/
+	void set_filter(sinsp_filter* filter);
+
+	/*!
 	  \brief Return the filter set for this capture.
 
-	  \return the filter previously set with \ref set_filter(), or an empty 
+	  \return the filter previously set with \ref set_filter(), or an empty
 	   string if no filter has been set yet.
 	*/
 	const string get_filter();
+
+	void add_evttype_filter(std::string &name,
+				list<uint32_t> &evttypes,
+				sinsp_filter* filter);
+
+	bool run_filters_on_evt(sinsp_evt *evt);
 #endif
 
 	/*!
@@ -382,7 +399,7 @@ public:
 	   of failure.
 	*/
 	void autodump_start(const string& dump_filename, bool compress);
- 
+
  	/*!
 	  \brief Cycles the file pointer to a new capture file
 	*/
@@ -511,8 +528,8 @@ public:
 	/*!
 	  \brief Add a new directory containing chisels.
 
-	  \parame front_add if true, the chisel directory is added at the front of 
-	   the search list and therefore gets priority.  
+	  \parame front_add if true, the chisel directory is added at the front of
+	   the search list and therefore gets priority.
 
 	  \note This function is not reentrant.
 	*/
@@ -538,6 +555,11 @@ public:
 	sinsp_evt::param_fmt get_buffer_format();
 
 	/*!
+	  \brief Set event flags for which matching events should be dropped pre-filtering
+	*/
+	void set_drop_event_flags(ppm_event_flags flags);
+
+	/*!
 	  \brief Returns true if the current capture is live.
 	*/
 	inline bool is_live()
@@ -556,7 +578,7 @@ public:
 	/*!
 	  \brief Set the fatfile mode when writing events to file.
 
-	  \note fatfile mode involves saving "hidden" events in the trace file 
+	  \note fatfile mode involves saving "hidden" events in the trace file
 	   that make it possible to preserve full state even when filters that
 	   would drop state packets are used during the capture.
 	*/
@@ -567,7 +589,7 @@ public:
 
 	  \note Sysdig can use the system library functions getservbyport and so to
 	   resolve protocol names and domain names.
-	  
+
 	  \param enable If set to false it will enable this function and use plain
 	   numerical values.
 	*/
@@ -587,7 +609,7 @@ public:
 	}
 
 	/*!
-	  \brief Sets the max length of event argument strings. 
+	  \brief Sets the max length of event argument strings.
 
 	  \param len Max length after which an avent argument string is truncated.
 	   0 means no limit. Use this to reduce verbosity when printing event info
@@ -600,15 +622,15 @@ public:
 	*/
 	inline bool is_debug_enabled()
 	{
-		return m_isdebug_enabled;		
+		return m_isdebug_enabled;
 	}
 
-        /*!
-          \brief Set a flag indicating if the command line requested to show container information.
+	/*!
+	  \brief Set a flag indicating if the command line requested to show container information.
 
-          \param set true if the command line arugment is set to show container information 
-        */
-        void set_print_container_data(bool print_container_data);
+	  \param set true if the command line arugment is set to show container information
+	*/
+	void set_print_container_data(bool print_container_data);
 
 
 	/*!
@@ -648,19 +670,31 @@ public:
 	*/
 	double get_read_progress();
 
-	void init_k8s_client(string* api_server);
+	void init_k8s_client(string* api_server, string* ssl_cert, bool verbose = false);
 	k8s* get_k8s_client() const { return m_k8s_client; }
+
+	void init_mesos_client(string* api_server, bool verbose = false);
+	mesos* get_mesos_client() const { return m_mesos_client; }
 
 	//
 	// Misc internal stuff
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
-	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
+	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
 		scap_fdinfo* fdinfo, scap_t* newhandle);
 	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
 	{
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
+	}
+
+	//
+	// Used by filters to enable app event state tracking, which is disabled
+	// by default for performance reasons
+	//
+	void request_tracer_state_tracking()
+	{
+		m_track_tracers_state = true;
 	}
 
 	//
@@ -679,6 +713,7 @@ public:
 	void add_meta_event_callback(meta_event_callback cback, void* data);
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
+	void enable_tracers_capture();
 
 	void refresh_ifaddr_list();
 
@@ -699,15 +734,58 @@ private:
 	void remove_thread(int64_t tid, bool force);
 	//
 	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but for
+	//       not as a consequence of an event for that thread arriving, but
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
-	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only);
+	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only)
+	{
+		threadinfo_map_iterator_t it;
+
+		//
+		// Try looking up in our simple cache
+		//
+		if(m_thread_manager->m_last_tinfo && tid == m_thread_manager->m_last_tid)
+		{
+	#ifdef GATHER_INTERNAL_STATS
+			m_thread_manager->m_cached_lookups->increment();
+	#endif
+			m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+			return m_thread_manager->m_last_tinfo;
+		}
+
+		//
+		// Caching failed, do a real lookup
+		//
+		it = m_thread_manager->m_threadtable.find(tid);
+
+		if(it != m_thread_manager->m_threadtable.end())
+		{
+	#ifdef GATHER_INTERNAL_STATS
+			m_thread_manager->m_non_cached_lookups->increment();
+	#endif
+			if(!lookup_only)
+			{
+				m_thread_manager->m_last_tid = tid;
+				m_thread_manager->m_last_tinfo = &(it->second);
+				m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+			}
+			return &(it->second);
+		}
+		else
+		{
+	#ifdef GATHER_INTERNAL_STATS
+			m_thread_manager->m_failed_lookups->increment();
+	#endif
+			return NULL;
+		}
+	}
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
 	void update_kubernetes_state();
+	void update_mesos_state();
+	bool get_mesos_data();
 
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
@@ -737,6 +815,7 @@ private:
 	const scap_machine_info* m_machine_info;
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
+	bool m_is_tracers_capture_enabled;
 
 	sinsp_network_interfaces* m_network_interfaces;
 
@@ -745,11 +824,26 @@ private:
 	sinsp_container_manager m_container_manager;
 
 	//
-	// Kubernetes stuff
+	// Kubernetes
 	//
 	string* m_k8s_api_server;
+	string* m_k8s_api_cert;
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
+
+	//
+	// Mesos/Marathon
+	//
+	string m_mesos_api_server;
+	vector<string> m_marathon_api_server;
+	mesos* m_mesos_client;
+	uint64_t m_mesos_last_watch_time_ns;
+
+	//
+	// True if sysdig is ran with -v.
+	// Used by mesos and k8s objects.
+	//
+	bool m_verbose_json = false;
 
 	//
 	// True if the command line argument is set to show container information
@@ -760,7 +854,9 @@ private:
 #ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
+	sinsp_evttype_filter *m_evttype_filter;
 	string m_filterstring;
+
 #endif
 
 	//
@@ -821,16 +917,23 @@ private:
 #endif
 
 	//
+	// App events
+	//
+	bool m_track_tracers_state;
+	list<sinsp_partial_tracer*> m_partial_tracers_list;
+	simple_lifo_queue<sinsp_partial_tracer>* m_partial_tracers_pool;
+
+	//
 	// Protocol decoding state
 	//
 	vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	//
-	// Meta event management
+	// Containers meta event management
 	//
-	sinsp_evt m_meta_evt; // XXX this should go away 
-	char* m_meta_evt_buf; // XXX this should go away 
-	bool m_meta_evt_pending; // XXX this should go away 
+	sinsp_evt m_meta_evt; // XXX this should go away
+	char* m_meta_evt_buf; // XXX this should go away
+	bool m_meta_evt_pending; // XXX this should go away
 	sinsp_evt* m_metaevt;
 	sinsp_evt* m_skipped_evt;
 	meta_event_callback m_meta_event_callback;
@@ -859,6 +962,8 @@ private:
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
+	friend class sinsp_tracerparser;
+	friend class sinsp_filter_check_event;
 	friend class sinsp_protodecoder;
 	friend class lua_cbacks;
 	friend class sinsp_filter_check_container;
@@ -866,30 +971,13 @@ private:
 	friend class sinsp_table;
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
-	friend class sinsp_filter_check_event;
 	friend class sinsp_filter_check_k8s;
-	
+	friend class sinsp_filter_check_mesos;
+	friend class sinsp_filter_check_evtin;
+	friend class sinsp_network_interfaces;
+	friend class k8s_delegator;
+
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
-
-//
-// Macros for enable/disable k8s threading
-// Used to eliminate mutex locking when running single-threaded
-//
-
-#ifndef HAS_CAPTURE
-#ifndef K8S_DISABLE_THREAD
-#define K8S_DISABLE_THREAD
-#endif
-#endif
-
-#ifndef K8S_DISABLE_THREAD
-#include <mutex>
-#define K8S_DECLARE_MUTEX mutable std::mutex m_mutex
-#define K8S_LOCK_GUARD_MUTEX std::lock_guard<std::mutex> lock(m_mutex)
-#else
-#define K8S_DECLARE_MUTEX
-#define K8S_LOCK_GUARD_MUTEX
-#endif // K8S_DISABLE_THREAD
 
 /*@}*/

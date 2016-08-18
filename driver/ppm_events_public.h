@@ -755,7 +755,17 @@ enum ppm_event_type {
 	PPME_SYSCALL_SEMGET_X = 263,
 	PPME_SYSCALL_ACCESS_E = 264,
 	PPME_SYSCALL_ACCESS_X = 265,
-	PPM_EVENT_MAX = 266
+	PPME_SYSCALL_CHROOT_E = 266,
+	PPME_SYSCALL_CHROOT_X = 267,
+	PPME_TRACER_E = 268,
+	PPME_TRACER_X = 269,
+	PPME_MESOS_E = 270,
+	PPME_MESOS_X = 271,
+	PPME_CONTAINER_JSON_E = 272,
+	PPME_CONTAINER_JSON_X = 273,
+	PPME_SYSCALL_SETSID_E = 274,
+	PPME_SYSCALL_SETSID_X = 275,
+	PPM_EVENT_MAX = 276
 };
 /*@}*/
 
@@ -1117,23 +1127,8 @@ enum ppm_event_flags {
 	EF_UNUSED = (1 << 6), /* This event is not used */
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
 	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
-	EF_OLD_VERSION = (1 << 9) /* This event is kept for backward compatibility */
-};
-
-/*
- * Operators to compare events
- */
-enum ppm_cmp_operator {
-	CO_NONE = 0,
-	CO_EQ = 1,
-	CO_NE = 2,
-	CO_LT = 3,
-	CO_LE = 4,
-	CO_GT = 5,
-	CO_GE = 6,
-	CO_CONTAINS = 7,
-	CO_IN = 8,
-	CO_EXISTS = 9,
+	EF_OLD_VERSION = (1 << 9), /* This event is kept for backward compatibility */
+	EF_DROP_FALCO = (1 << 10) /* This event should not be passed up to Falco */
 };
 
 /*
@@ -1175,7 +1170,10 @@ enum ppm_param_type {
 	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_DOUBLE = 33, /* this is a double precision floating point number. */
 	PT_SIGSET = 34, /* sigset_t. I only store the lower UINT32 of it */
-	PT_MAX = 35 /* array size */
+	PT_CHARBUFARRAY = 35,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
+	PT_CHARBUF_PAIR_ARRAY = 36,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
+	PT_IPV4NET = 37, /* An IPv4 network. */
+	PT_MAX = 38 /* array size */
 };
 
 enum ppm_print_format {
@@ -1265,14 +1263,8 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_DISABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 14)
 #define PPM_IOCTL_ENABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 15)
 #define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 16)
+#define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17)
 
-/*!
-  \brief System call description struct.
-*/
-struct ppm_syscall_desc {
-	enum ppm_event_category category; /**< System call category. */
-	char *name; /**< System call name, e.g. 'open'. */
-};
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];

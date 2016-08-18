@@ -13,62 +13,97 @@
 #include <algorithm>
 #include <iostream>
 
-const k8s_component::component_map k8s::m_components =
+k8s_component::type_map k8s::m_components;
+
+k8s::dispatch_map k8s::make_dispatch_map(k8s_state_t& state, ext_list_ptr_t extensions)
 {
-	{ k8s_component::K8S_NODES,                  "nodes"                  },
-	{ k8s_component::K8S_NAMESPACES,             "namespaces"             },
-	{ k8s_component::K8S_PODS,                   "pods"                   },
-	{ k8s_component::K8S_REPLICATIONCONTROLLERS, "replicationcontrollers" },
-	{ k8s_component::K8S_SERVICES,               "services"               }
-};
+	dispatch_map dm;
+	dm.insert({ k8s_component::K8S_NODES,                  new k8s_dispatcher(k8s_component::K8S_NODES,                  state) });
+	dm.insert({ k8s_component::K8S_NAMESPACES,             new k8s_dispatcher(k8s_component::K8S_NAMESPACES,             state) });
+	dm.insert({ k8s_component::K8S_PODS,                   new k8s_dispatcher(k8s_component::K8S_PODS,                   state) });
+	dm.insert({ k8s_component::K8S_REPLICATIONCONTROLLERS, new k8s_dispatcher(k8s_component::K8S_REPLICATIONCONTROLLERS, state) });
+	dm.insert({ k8s_component::K8S_SERVICES,               new k8s_dispatcher(k8s_component::K8S_SERVICES,               state) });
 
-#ifdef K8S_DISABLE_THREAD
-	k8s::dispatch_map k8s::make_dispatch_map(k8s_state_t& state)
+	if(m_event_filter)
 	{
-		return dispatch_map
-		{
-			{ k8s_component::K8S_NODES,                  new k8s_dispatcher(k8s_component::K8S_NODES,                  state)},
-			{ k8s_component::K8S_NAMESPACES,             new k8s_dispatcher(k8s_component::K8S_NAMESPACES,             state)},
-			{ k8s_component::K8S_PODS,                   new k8s_dispatcher(k8s_component::K8S_PODS,                   state)},
-			{ k8s_component::K8S_REPLICATIONCONTROLLERS, new k8s_dispatcher(k8s_component::K8S_REPLICATIONCONTROLLERS, state)},
-			{ k8s_component::K8S_SERVICES,               new k8s_dispatcher(k8s_component::K8S_SERVICES,               state)}
-		};
+		dm.insert({ k8s_component::K8S_EVENTS, new k8s_dispatcher(k8s_component::K8S_EVENTS, state, m_event_filter) });
 	}
-#else
-	k8s::dispatch_map k8s::make_dispatch_map(k8s_state_t& state, std::mutex& mut)
-	{
-		return dispatch_map
-		{
-			{ k8s_component::K8S_NODES,                  new k8s_dispatcher(k8s_component::K8S_NODES,                  state, mut)},
-			{ k8s_component::K8S_NAMESPACES,             new k8s_dispatcher(k8s_component::K8S_NAMESPACES,             state, mut)},
-			{ k8s_component::K8S_PODS,                   new k8s_dispatcher(k8s_component::K8S_PODS,                   state, mut)},
-			{ k8s_component::K8S_REPLICATIONCONTROLLERS, new k8s_dispatcher(k8s_component::K8S_REPLICATIONCONTROLLERS, state, mut)},
-			{ k8s_component::K8S_SERVICES,               new k8s_dispatcher(k8s_component::K8S_SERVICES,               state, mut)}
-		};
-	}
-#endif // K8S_DISABLE_THREAD
 
-k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, bool is_captured, const std::string& api) :
-		m_watch(uri.empty() ? false : start_watch),
-		m_watch_in_thread(uri.empty() ? false : start_watch && watch_in_thread),
-		m_state(is_captured),
-	#ifndef K8S_DISABLE_THREAD
-		m_dispatch(std::move(make_dispatch_map(m_state, m_mutex))),
-	#else
-		m_dispatch(std::move(make_dispatch_map(m_state)))
-	#endif
+	if(extensions)
+	{
+		for(const auto& ext : *extensions)
+		{
+			if(ext == "daemonsets")
+			{
+				dm.insert({ k8s_component::K8S_DAEMONSETS,  new k8s_dispatcher(k8s_component::K8S_DAEMONSETS,  state) });
+			}
+			else if(ext == "deployments")
+			{
+				dm.insert({ k8s_component::K8S_DEPLOYMENTS, new k8s_dispatcher(k8s_component::K8S_DEPLOYMENTS, state) });
+			}
+			else if(ext == "replicasets")
+			{
+				dm.insert({ k8s_component::K8S_REPLICASETS, new k8s_dispatcher(k8s_component::K8S_REPLICASETS, state) });
+			}
+		}
+	}
+
+	return dm;
+}
+
+k8s::k8s(const std::string& uri, bool start_watch, bool watch_in_thread, bool is_captured,
+		//const std::string& api,
 #ifdef HAS_CAPTURE
-		,m_net(uri.empty() ? 0 : new k8s_net(*this, uri, api))
+		ssl_ptr_t ssl, bt_ptr_t bt,
+#endif // HAS_CAPTURE
+		bool curl_debug,
+		filter_ptr_t event_filter,
+		ext_list_ptr_t extensions) :
+		m_watch(uri.empty() ? false : start_watch),
+		m_state(is_captured),
+		m_event_filter(event_filter),
+		m_dispatch(make_dispatch_map(m_state, extensions)),
+		m_watch_in_thread(watch_in_thread)
+#ifdef HAS_CAPTURE
+		,m_net(uri.empty() ? 0 : new k8s_net(*this, uri, ssl, bt, curl_debug, extensions))
 #endif
 {
+	g_logger.log(std::string("Creating K8s object for [" +
+							 (uri.empty() ? std::string("capture replay") : uri) + ']'),
+							 sinsp_logger::SEV_DEBUG);
+	if(m_components.empty())
+	{
+		m_components.insert({ k8s_component::K8S_NODES,                  "nodes"                  });
+		m_components.insert({ k8s_component::K8S_NAMESPACES,             "namespaces"             });
+		m_components.insert({ k8s_component::K8S_PODS,                   "pods"                   });
+		m_components.insert({ k8s_component::K8S_REPLICATIONCONTROLLERS, "replicationcontrollers" });
+		m_components.insert({ k8s_component::K8S_SERVICES,               "services"               });
+		if(event_filter)
+		{
+			m_components.insert({ k8s_component::K8S_EVENTS, "events"});
+		}
+		if(extensions)
+		{
+			for(const auto& ext : *extensions)
+			{
+				if(ext == "daemonsets")
+				{
+					m_components.insert({ k8s_component::K8S_DAEMONSETS,  "daemonsets"  });
+				}
+				else if(ext == "deployments")
+				{
+					m_components.insert({ k8s_component::K8S_DEPLOYMENTS, "deployments" });
+				}
+				else if(ext == "replicasets")
+				{
+					m_components.insert({ k8s_component::K8S_REPLICASETS, "replicasets" });
+				}
+			}
+		}
+	}
+
 	if (!uri.empty())
 	{
-#ifdef K8S_DISABLE_THREAD
-		if(watch_in_thread)
-		{
-			g_logger.log("Watching in thread requested but not available (only available in multi-thread build).", sinsp_logger::SEV_WARNING);
-		}
-#endif // K8S_DISABLE_THREAD
 		try
 		{
 			get_state(true);
@@ -111,23 +146,38 @@ void k8s::cleanup()
 	}
 #ifdef HAS_CAPTURE
 	delete m_net;
+	m_net = 0;
 #endif
 }
 
 void k8s::build_state()
 {
 #ifdef HAS_CAPTURE
-	std::ostringstream os;
-	for (auto& component : m_components)
+	if(m_net)
 	{
+		std::ostringstream os;
+		for (auto& component : m_components)
 		{
-			K8S_LOCK_GUARD_MUTEX;
-			m_state.clear(component.first);
+			// events are transient and fetching all data for events would pull
+			// old events on agent restart, causing unecessary network and DB
+			// traffic; so, we only add watch interface here for events
+			if(component.first != k8s_component::K8S_EVENTS)
+			{
+				m_state.clear(component.first);
+				ASSERT(m_net);
+				m_net->get_all_data(component, os);
+				parse_json(os.str(), component);
+				os.str("");
+			}
+			else if(m_event_filter)
+			{
+				m_net->add_api_interface(component);
+			}
 		}
-		ASSERT(m_net);
-		m_net->get_all_data(component, os);
-		parse_json(os.str(), component);
-		os.str("");
+	}
+	else
+	{
+		throw sinsp_exception("K8s net object is null.");
 	}
 #endif
 }
@@ -153,27 +203,25 @@ void k8s::watch()
 {
 #ifdef HAS_CAPTURE
 	ASSERT(m_net);
-	if((m_watch && !m_net->is_watching()) || !m_watch_in_thread)
+	if(m_watch)
 	{
 		m_net->watch();
 	}
 #endif
 }
 
-void k8s::stop_watching()
-{
-#ifdef HAS_CAPTURE
-	ASSERT(m_net);
-	if(m_net->is_watching())
-	{
-		m_net->stop_watching();
-	}
-#endif
-}
-
 void k8s::on_watch_data(k8s_event_data&& msg)
 {
-	m_dispatch[msg.component()]->enqueue(std::move(msg));
+	k8s_component::type comp = msg.component();
+	auto it = m_dispatch.find(comp);
+	if(it != m_dispatch.end() && it->second)
+	{
+		it->second->enqueue(std::move(msg));
+	}
+	else
+	{
+		g_logger.log("K8s: Cannot enqueue " + k8s_component::get_name(comp) + " message (dispatcher is null)", sinsp_logger::SEV_WARNING);
+	}
 }
 
 void k8s::simulate_watch_event(const std::string& json)
@@ -191,10 +239,14 @@ void k8s::simulate_watch_event(const std::string& json)
 			else if(type == "Node")                  { component_type = k8s_component::K8S_NODES;                  }
 			else if(type == "Pod")                   { component_type = k8s_component::K8S_PODS;                   }
 			else if(type == "ReplicationController") { component_type = k8s_component::K8S_REPLICATIONCONTROLLERS; }
+			else if(type == "ReplicaSet")            { component_type = k8s_component::K8S_REPLICASETS;            }
 			else if(type == "Service")               { component_type = k8s_component::K8S_SERVICES;               }
+			else if(type == "DaemonSet")             { component_type = k8s_component::K8S_DAEMONSETS;             }
+			else if(type == "Deployment")            { component_type = k8s_component::K8S_DEPLOYMENTS;            }
+			else if(type == "EventList")             { component_type = k8s_component::K8S_EVENTS;                 }
 			else
 			{
-				g_logger.format(sinsp_logger::SEV_ERROR, "Unrecognized component type: %s", type.c_str());
+				g_logger.log("Unrecognized component type: " + type, sinsp_logger::SEV_ERROR);
 				return;
 			}
 		}
@@ -211,13 +263,11 @@ void k8s::simulate_watch_event(const std::string& json)
 	}
 
 	ASSERT(component_type < k8s_component::K8S_COMPONENT_COUNT);
-	m_dispatch[component_type]->extract_data(json, false);
+	m_dispatch[component_type]->extract_data(root, false);
 }
 
 std::size_t k8s::count(k8s_component::type component) const
 {
-	K8S_LOCK_GUARD_MUTEX;
-
 	switch (component)
 	{
 	case k8s_component::K8S_NODES:
@@ -232,8 +282,20 @@ std::size_t k8s::count(k8s_component::type component) const
 	case k8s_component::K8S_REPLICATIONCONTROLLERS:
 		return m_state.get_rcs().size();
 
+	case k8s_component::K8S_REPLICASETS:
+		return m_state.get_rss().size();
+
 	case k8s_component::K8S_SERVICES:
 		return m_state.get_services().size();
+
+	case k8s_component::K8S_DAEMONSETS:
+		return m_state.get_daemonsets().size();
+
+	case k8s_component::K8S_DEPLOYMENTS:
+		return m_state.get_deployments().size();
+
+	case k8s_component::K8S_EVENTS:
+		return m_state.get_events().size();
 
 	case k8s_component::K8S_COMPONENT_COUNT:
 	default:
@@ -256,25 +318,36 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 	const std::string event_type = "ADDED";
 	std::string component_kind, component_name, component_uid, component_ns;
 
-	// Note: the original JSON is slightly modified here prior to
-	// being passed to event queue; the reason is to match the
-	// watch message format; this provides "normalization" which allows
-	// unified processing of recorded k8s messages
 	if(items.isArray())
 	{
-		K8S_LOCK_GUARD_MUTEX;
 		for (auto& item : items)
 		{
-			Json::Value metadata = item["metadata"];
+			const Json::Value& metadata = item["metadata"];
 			if(!metadata.isNull())
 			{
-				Json::Value ns = metadata["namespace"];
+				const Json::Value& ns = metadata["namespace"];
 				std::string nspace;
-				if(!ns.isNull())
+				if(!ns.isNull() && ns.isString())
 				{
-					nspace = std::move(ns.asString());
+					nspace = ns.asString();
 				}
-				m_state.add_common_single_value(component, metadata["name"].asString(), metadata["uid"].asString(), nspace);
+				const Json::Value& name = metadata["name"];
+				if(!name.isNull() && name.isString())
+				{
+					const Json::Value& uid = metadata["uid"];
+					if(!uid.isNull() && uid.isString())
+					{
+						m_state.add_common_single_value(component, name.asString(), uid.asString(), nspace);
+					}
+					else
+					{
+						throw sinsp_exception("K8s extract_data(): uid is null or not a string.");
+					}
+				}
+				else
+				{
+					throw sinsp_exception("K8s extract_data(): name is null or not a string.");
+				}
 
 				std::vector<k8s_pair_t> entries = k8s_component::extract_object(metadata, "labels");
 				if(entries.size() > 0)
@@ -283,7 +356,7 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 				}
 			}
 
-			Json::Value spec = item["spec"];
+			const Json::Value& spec = item["spec"];
 			if(!spec.isNull())
 			{
 				std::vector<k8s_pair_t> entries = k8s_component::extract_object(spec, "selector");
@@ -321,8 +394,8 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 							component_kind = "Node";
 							component_name = nds.back().get_name();
 							component_uid = nds.back().get_uid();
-							std::vector<std::string> addresses = k8s_component::extract_nodes_addresses(status);
-							for (auto&& address : addresses)
+							k8s_node_t::host_ip_list addresses = k8s_node_t::extract_addresses(status);
+							for(std::string address : addresses)
 							{
 								m_state.add_last_node_ip(std::move(address));
 							}
@@ -333,15 +406,18 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 
 			case k8s_component::K8S_PODS:
 				{
-					k8s_pods& p = m_state.get_pods();
-					if(p.size())
+					if(k8s_component::is_pod_active(item))
 					{
-						component_kind = "Pod";
-						component_name = p.back().get_name();
-						component_uid = p.back().get_uid();
-						component_ns = p.back().get_namespace();
-						k8s_pod_t& pod = p.back();
-						m_state.update_pod(pod, item, true);
+						k8s_pods& p = m_state.get_pods();
+						if(p.size())
+						{
+							component_kind = "Pod";
+							component_name = p.back().get_name();
+							component_uid = p.back().get_uid();
+							component_ns = p.back().get_namespace();
+							k8s_pod_t& pod = p.back();
+							m_state.update_pod(pod, item);
+						}
 					}
 				}
 				break;
@@ -352,23 +428,92 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 					k8s_services& svcs = m_state.get_services();
 					if(svcs.size())
 					{
+						k8s_service_t& svc = svcs.back();
 						component_kind = "Service";
-						component_name = svcs.back().get_name();
-						component_uid = svcs.back().get_uid();
-						component_ns = svcs.back().get_namespace();
-						k8s_component::extract_services_data(spec, svcs.back(), m_state.get_pods());
+						component_name = svc.get_name();
+						component_uid = svc.get_uid();
+						component_ns = svc.get_namespace();
+						k8s_component::extract_services_data(spec, svc, m_state.get_pods());
 					}
 				}
 				break;
 
 			case k8s_component::K8S_REPLICATIONCONTROLLERS:
 				{
-					const k8s_controllers& rcs = m_state.get_rcs();
+					k8s_controllers& rcs = m_state.get_rcs();
 					if(rcs.size())
 					{
+						k8s_rc_t& rc = rcs.back();
 						component_kind = "ReplicationController";
-						component_name = rcs.back().get_name();
-						component_uid = rcs.back().get_uid();
+						component_name = rc.get_name();
+						component_uid = rc.get_uid();
+						k8s_dispatcher::handle_labels(rc, metadata, "labels");
+						k8s_dispatcher::handle_selectors(rc, spec);
+						rc.set_replicas(item);
+					}
+					break;
+				}
+
+			case k8s_component::K8S_REPLICASETS:
+				{
+					k8s_replicasets& rss = m_state.get_rss();
+					if(rss.size())
+					{
+						k8s_rs_t& rs = rss.back();
+						component_kind = "ReplicaSet";
+						component_name = rs.get_name();
+						component_uid = rs.get_uid();
+						k8s_dispatcher::handle_labels(rs, metadata, "labels");
+						k8s_dispatcher::handle_selectors(rs, spec);
+						rs.set_replicas(item);
+					}
+					break;
+				}
+
+			case k8s_component::K8S_DAEMONSETS:
+				{
+					k8s_daemonsets& daemonsets = m_state.get_daemonsets();
+					if(daemonsets.size())
+					{
+						k8s_daemonset_t& daemonset = daemonsets.back();
+						component_kind = "DaemonSet";
+						component_name = daemonset.get_name();
+						component_uid = daemonset.get_uid();
+						k8s_dispatcher::handle_labels(daemonset, metadata, "labels");
+						k8s_dispatcher::handle_selectors(daemonset, spec);
+						daemonset.set_scheduled(item);
+					}
+					break;
+				}
+
+			case k8s_component::K8S_DEPLOYMENTS:
+				{
+					k8s_deployments& deployments = m_state.get_deployments();
+					if(deployments.size())
+					{
+						k8s_deployment_t& deployment = deployments.back();
+						component_kind = "Deployment";
+						component_name = deployment.get_name();
+						component_uid = deployment.get_uid();
+						k8s_dispatcher::handle_labels(deployment, metadata, "labels");
+						k8s_dispatcher::handle_selectors(deployment, spec);
+						deployment.set_replicas(item);
+					}
+					break;
+				}
+
+			case k8s_component::K8S_EVENTS:
+				if(m_event_filter)
+				{
+					k8s_events& evts = m_state.get_events();
+					if(evts.size())
+					{
+						component_kind = "Event";
+						component_name = evts.back().get_name();
+						component_uid = evts.back().get_uid();
+						component_ns = evts.back().get_namespace();
+						k8s_event_t& evt = evts.back();
+						m_state.update_event(evt, item);
 					}
 					break;
 				}
@@ -376,9 +521,12 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 			default: break;
 			}
 			os.str("");
-			os << '[' << event_type << ',' << component_kind << ',' << 
-						component_name << ',' << component_uid << ',' << component_ns << ']';
-			g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			if(!component_kind.empty())
+			{
+				os << '[' << event_type << ',' << component_kind << ',' <<
+							component_name << ',' << component_uid << ',' << component_ns << ']';
+				g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+			}
 #ifdef HAS_CAPTURE
 			ASSERT(!component_kind.empty());
 			item["apiVersion"] = api_version;
@@ -394,23 +542,20 @@ void k8s::extract_data(Json::Value& items, k8s_component::type component, const 
 	}
 }
 
-void k8s::parse_json(const std::string& json, const k8s_component::component_map::value_type& component)
+void k8s::parse_json(const std::string& json, const k8s_component::type_map::value_type& component)
 {
 	Json::Value root;
 	Json::Reader reader;
 	if(reader.parse(json, root, false))
 	{
+		//g_logger.log(root.toStyledString(), sinsp_logger::SEV_TRACE);
 		Json::Value items = root["items"];
 		if(!items.isNull())
 		{
 			Json::Value api_version = root["apiVersion"];
 			std::string api_ver = api_version.isNull() ? std::string() : api_version.asString();
 			extract_data(items, component.first, api_ver);
-			//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
-			{
-				K8S_LOCK_GUARD_MUTEX;
-				m_state.update_cache(component.first);
-			}
+			m_state.update_cache(component.first);
 		}
 		else
 		{

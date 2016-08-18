@@ -202,6 +202,34 @@ else()
 endif()
 
 #
+# jq
+#
+if(NOT WIN32 AND NOT APPLE)
+	option(USE_BUNDLED_JQ "Enable building of the bundled jq" ${USE_BUNDLED_DEPS})
+	if(NOT USE_BUNDLED_JQ)
+		find_path(JQ_INCLUDE jq.h PATH_SUFFIXES jq)
+		find_library(JQ_LIB NAMES jq)
+		if(JQ_INCLUDE AND JQ_LIB)
+			message(STATUS "Found jq: include: ${JQ_INCLUDE}, lib: ${JQ_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system jq")
+		endif()
+	else()
+		set(JQ_SRC "${PROJECT_BINARY_DIR}/jq-prefix/src/jq")
+		message(STATUS "Using bundled jq in '${JQ_SRC}'")
+		set(JQ_INCLUDE "${JQ_SRC}")
+		set(JQ_LIB "${JQ_SRC}/.libs/libjq.a")
+		ExternalProject_Add(jq
+		URL "http://download.draios.com/dependencies/jq-1.5.tar.gz"
+		URL_MD5 "0933532b086bd8b6a41c1b162b1731f9"
+		CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking
+		BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
+		BUILD_IN_SOURCE 1
+		INSTALL_COMMAND "")
+	endif()
+endif()
+
+#
 # ncurses, keep it simple for the moment
 #
 if(NOT WIN32)
@@ -267,6 +295,7 @@ if(NOT WIN32 AND NOT APPLE)
 	else()
 		set(OPENSSL_BUNDLE_DIR "${PROJECT_BINARY_DIR}/openssl-prefix/src/openssl")
 		set(OPENSSL_INSTALL_DIR "${OPENSSL_BUNDLE_DIR}/target")
+		set(OPENSSL_INCLUDE_DIR "${PROJECT_BINARY_DIR}/openssl-prefix/src/openssl/include")
 		set(OPENSSL_LIBRARY_SSL "${OPENSSL_INSTALL_DIR}/lib/libssl.a")
 		set(OPENSSL_LIBRARY_CRYPTO "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a")
 
@@ -307,7 +336,7 @@ if(NOT WIN32 AND NOT APPLE)
 			DEPENDS openssl
 			URL "http://download.draios.com/dependencies/curl-7.45.0.tar.bz2"
 			URL_MD5 "62c1a352b28558f25ba6209214beadc8"
-			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2
+			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2 --without-libssh2
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			INSTALL_COMMAND "")

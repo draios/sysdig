@@ -25,6 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
+class sinsp_tracerparser;
 
 typedef struct erase_fd_params
 {
@@ -36,7 +37,7 @@ typedef struct erase_fd_params
 	uint64_t m_ts;
 }erase_fd_params;
 
-/** @defgroup state State management 
+/** @defgroup state State management
  *  @{
  */
 
@@ -46,7 +47,7 @@ typedef struct erase_fd_params
   manipulate threads and retrieve thread information.
 
   \note As a library user, you won't need to construct thread objects. Rather,
-   you get them by calling \ref sinsp_evt::get_thread_info or 
+   you get them by calling \ref sinsp_evt::get_thread_info or
    \ref sinsp::get_thread.
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
@@ -74,6 +75,21 @@ public:
 	string get_cwd();
 
 	/*!
+	  \brief Return the values of all environment variables for the process
+	  containing this thread.
+	*/
+	const vector<string>& get_env() const
+	{
+		return m_env;
+	}
+
+	/*!
+	  \brief Return the value of the specified environment variable for the process
+	  containing this thread. Returns empty string if variable is not found.
+	*/
+	string get_env(const string& name) const;
+
+	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
 	inline bool is_main_thread()
@@ -97,7 +113,7 @@ public:
 				//
 				// No, this is either a single thread process or the root thread of a
 				// multithread process.
-				// Note: we don't set m_main_thread because there are cases in which this is 
+				// Note: we don't set m_main_thread because there are cases in which this is
 				//       invoked for a threadinfo that is in the stack. Caching the this pointer
 				//       would cause future mess.
 				//
@@ -188,6 +204,7 @@ public:
 	int64_t m_tid;  ///< The id of this thread
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
+	int64_t m_sid; ///< The session id of the process containing this thread.
 	string m_comm; ///< Command name (e.g. "top")
 	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
@@ -206,6 +223,7 @@ public:
 	uint64_t m_pfminor; ///< number of minor page faults since start.
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
+	string m_root;
 
 	//
 	// State for multi-event processing
@@ -213,8 +231,13 @@ public:
 	int64_t m_lastevent_fd; ///< The FD os the last event used by this thread.
 	uint64_t m_lastevent_ts; ///< timestamp of the last event for this thread.
 	uint64_t m_prevevent_ts; ///< timestamp of the event before the last for this thread.
-	uint64_t m_lastaccess_ts; ///< The last time this thread was looked up. Used when cleaning up the table. 
+	uint64_t m_lastaccess_ts; ///< The last time this thread was looked up. Used when cleaning up the table.
 	uint64_t m_clone_ts; ///< When the clone that started this process happened.
+
+	//
+	// Parser for the user events. Public so that filter fields can access it
+	//
+	sinsp_tracerparser* m_tracer_parser;
 
 	thread_analyzer_info* m_ainfo;
 
@@ -233,7 +256,6 @@ public:
 
 VISIBILITY_PRIVATE
 	void init();
-	bool should_keep();
 	// return true if, based on the current inspector filter, this thread should be kept
 	void init(scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
@@ -274,7 +296,7 @@ VISIBILITY_PRIVATE
 		else
 		{
 			m_lastevent_cpuid = (uint16_t) - 1;
-		}		
+		}
 	}
 	void allocate_private_state();
 	void compute_program_hash();
@@ -307,6 +329,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_thread_manager;
 	friend class sinsp_transaction_table;
 	friend class thread_analyzer_info;
+	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
 };
 

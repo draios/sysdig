@@ -23,12 +23,14 @@ enum sinsp_container_type
 	CT_DOCKER = 0,
 	CT_LXC = 1,
 	CT_LIBVIRT_LXC = 2,
-	CT_MESOS = 3
+	CT_MESOS = 3,
+	CT_RKT = 4
 };
 
 class sinsp_container_info
 {
 public:
+
 	class container_port_mapping
 	{
 	public:
@@ -38,14 +40,18 @@ public:
 			m_container_port(0)
 		{
 		}
-
 		uint32_t m_host_ip;
 		uint16_t m_host_port;
 		uint16_t m_container_port;
 	};
 
 	sinsp_container_info():
-		m_container_ip(0)
+		m_container_ip(0),
+		m_memory_limit(0),
+		m_swap_limit(0),
+		m_cpu_shares(1024),
+		m_cpu_quota(0),
+		m_cpu_period(100000)
 	{
 	}
 
@@ -56,6 +62,12 @@ public:
 	uint32_t m_container_ip;
 	vector<container_port_mapping> m_port_mappings;
 	map<string, string> m_labels;
+	string m_mesos_task_id;
+	int64_t m_memory_limit;
+	int64_t m_swap_limit;
+	int64_t m_cpu_shares;
+	int64_t m_cpu_quota;
+	int64_t m_cpu_period;
 };
 
 class sinsp_container_manager
@@ -66,14 +78,21 @@ public:
 	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info);
-	bool get_container(const string& id, sinsp_container_info* container_info);
-	bool resolve_container_from_cgroups(const vector<pair<string, string>>& cgroups, bool query_os_for_missing_info, string* container_id);
+	bool get_container(const string& id, sinsp_container_info* container_info) const;
+	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
+	string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
+	bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
+	string get_mesos_task_id(const string& container_id);
 
 private:
-	bool container_to_sinsp_event(const sinsp_container_info& container_info, sinsp_evt* evt, size_t evt_len);
+	string container_to_json(const sinsp_container_info& container_info);
+	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
 	bool parse_docker(sinsp_container_info* container);
+	string get_mesos_task_id(const Json::Value& env_vars, const string& mti);
+	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
+	sinsp_container_info* get_container(const string& id);
 
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;

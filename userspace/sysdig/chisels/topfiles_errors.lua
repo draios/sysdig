@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "Shows the top files in terms of I/O errors. This chisel is compatable with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
+description = "Shows the top files in terms of I/O errors. This chisel is compatible with containers using the sysdig -pc or -pcontainer argument, otherwise no container information will be shown."
 short_description = "Top files by number of errors"
 category = "Errors"
 

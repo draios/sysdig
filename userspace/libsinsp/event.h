@@ -45,7 +45,7 @@ typedef struct filtercheck_field_info
 {
 	ppm_param_type m_type; ///< Field type.
 	filtercheck_field_flags m_flags;  ///< Field flags.
-	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as decimal or hex. 
+	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as decimal or hex.
 	char m_name[64];  ///< Field name.
 	char m_description[1024];  ///< Field description.
 }filtercheck_field_info;
@@ -78,7 +78,7 @@ private:
 	inline void init(char* valptr, uint16_t len)
 	{
 		m_val = valptr;
-		m_len = len;		
+		m_len = len;
 	}
 
 	friend class sinsp_evt;
@@ -86,9 +86,9 @@ private:
 
 /*!
   \brief Event class.
-  This class is returned by \ref sinsp::next() and encapsulates the state 
-  related to a captured event, and includes a bunch of members to manipulate 
-  events and their parameters, including parsing, formatting and extracting 
+  This class is returned by \ref sinsp::next() and encapsulates the state
+  related to a captured event, and includes a bunch of members to manipulate
+  events and their parameters, including parsing, formatting and extracting
   state like the event process or FD.
 */
 class SINSP_PUBLIC sinsp_evt
@@ -160,8 +160,8 @@ public:
 	}
 
 	/*!
-	  \brief Get the event type. 
-	  
+	  \brief Get the event type.
+
 	  \note For a list of event types, refer to \ref etypes.
 	*/
 	inline uint16_t get_type()
@@ -172,7 +172,7 @@ public:
 	/*!
 	  \brief Get the event's flags.
 	*/
-	inline ppm_event_flags get_flags()
+	inline ppm_event_flags get_info_flags()
 	{
 		return m_info->flags;
 	}
@@ -227,14 +227,14 @@ public:
 	/*!
 	  \brief Return the information about the FD on which this event operated.
 
-	  \note For events that are not I/O related, get_fd_info() returns NULL. 
+	  \note For events that are not I/O related, get_fd_info() returns NULL.
 	*/
 	sinsp_fdinfo_t* get_fd_info();
 
 	/*!
 	  \brief Return the number of the FD associated with this event.
 
-	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM. 
+	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM.
 	*/
 	int64_t get_fd_num();
 
@@ -255,7 +255,7 @@ public:
 
 	  \param id The parameter number.
 
-	  \note Refer to the g_event_info structure in driver/event_table.c for 
+	  \note Refer to the g_event_info structure in driver/event_table.c for
 	   a list of event descriptions.
 	*/
 	const struct ppm_param_info* get_param_info(uint32_t id);
@@ -278,7 +278,7 @@ public:
 	  \brief Get a parameter as a C++ string.
 
 	  \param name The parameter name.
-	  \param resolved If true, the library will try to resolve the parameter 
+	  \param resolved If true, the library will try to resolve the parameter
 	   before returning it. For example, and FD number will be converted into
 	   the correspondent file, TCP tuple, etc.
 	*/
@@ -289,6 +289,16 @@ public:
 	   which the event operates.
 	*/
 	void get_category(OUT sinsp_evt::category* cat);
+
+	/*!
+	  \brief Set an opaque "check id", corresponding to the id of the last filtercheck that matched this event.
+	*/
+	void set_check_id(int32_t id);
+
+	/*!
+	  \brief Get the opaque "check id" (-1 if not set).
+	*/
+	int32_t get_check_id();
 
 #ifdef HAS_FILTERING
 	/*!
@@ -312,22 +322,24 @@ private:
 
 	inline void init()
 	{
-		m_params_loaded = false;
+		m_flags = EF_NONE;
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
-		m_iosize = 0;		
+		m_iosize = 0;
+		m_poriginal_evt = NULL;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
-		m_params_loaded = false;
+		m_flags = EF_NONE;
 		m_pevt = (scap_evt *)evdata;
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
 		m_iosize = 0;
 		m_cpuid = cpuid;
-		m_evtnum = 0;		
+		m_evtnum = 0;
+		m_poriginal_evt = NULL;
 	}
 	inline void load_params()
 	{
@@ -354,11 +366,20 @@ private:
 	uint32_t get_dump_flags();
 
 VISIBILITY_PRIVATE
+	enum flags
+	{
+		SINSP_EF_NONE = 0,
+		SINSP_EF_PARAMS_LOADED = 1,
+		SINSP_EF_IS_TRACER = (1 << 1),
+	};
 
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
+	scap_evt* m_poriginal_evt;	// This is used when the original event is replaced by a different one (e.g. in the case of user events)
 	uint16_t m_cpuid;
 	uint64_t m_evtnum;
+	uint32_t m_flags;
+	int32_t m_check_id = 0;
 	bool m_params_loaded;
 	const struct ppm_event_info* m_info;
 	vector<sinsp_evt_param> m_params;
@@ -382,6 +403,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer;
 	friend class sinsp_filter_check_event;
 	friend class sinsp_filter_check_thread;
+	friend class sinsp_evttype_filter;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;
