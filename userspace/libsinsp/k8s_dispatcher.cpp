@@ -677,7 +677,7 @@ void k8s_dispatcher::extract_data(Json::Value& root, bool enqueue)
 				break;
 			case k8s_component::K8S_REPLICASETS:
 				os << "REPLICA_SET,";
-				handle_rc(root, data, m_state.get_rcs(), "replica set");
+				handle_rc(root, data, m_state.get_rss(), "replica set");
 				break;
 			case k8s_component::K8S_SERVICES:
 				os << "SERVICE,";
