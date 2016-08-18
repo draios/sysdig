@@ -676,32 +676,68 @@ int k8s_replicas_t::get_count(const Json::Value& item, const std::string& replic
 		}
 	}
 
-	std::string name;
-	const Json::Value& tpl = item["template"];
-	if(!tpl.isNull())
+	if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
 	{
-		const Json::Value& md = tpl["metadata"];
-		if(!md.isNull())
+		g_logger.log("K8s: Can not find " + replica_name + " in \n" + Json::FastWriter().write(item),
+					 sinsp_logger::SEV_DEBUG);
+
+		std::string name;
+		const Json::Value& tpl = item["template"];
+		if(!tpl.isNull())
 		{
-			const Json::Value& lbl = md["labels"];
-			if(!lbl.isNull())
+			const Json::Value& md = tpl["metadata"];
+			if(!md.isNull())
 			{
-				const Json::Value& n = lbl["name"];
-				if(!n.isNull() && n.isString())
+				const Json::Value& lbl = md["labels"];
+				if(!lbl.isNull())
 				{
-					name = n.asString();
+					const Json::Value& n = lbl["name"];
+					if(!n.isNull() && n.isString())
+					{
+						name = n.asString();
+					}
+					else
+					{
+						const Json::Value& n = lbl["app"];
+						if(!n.isNull() && n.isString())
+						{
+							name = n.asString();
+						}
+					}
 				}
 			}
 		}
-	}
 
-	g_logger.log("K8s: Can not determine number of replicas" +
-				 (name.empty() ? std::string() : std::string(" for ").append(name)),
-				 sinsp_logger::SEV_ERROR);
+		g_logger.log("K8s: Can not determine number of replicas" +
+					 (name.empty() ? std::string() : std::string(" for ").append(name)),
+					 sinsp_logger::SEV_DEBUG);
+	}
 
 	return k8s_replicas_t::UNKNOWN_REPLICAS;
 }
 
+void k8s_replicas_t::set_replicas(k8s_replicas_t& replicas, const Json::Value& item)
+{
+	int replica_count = k8s_replicas_t::get_count(item["spec"], "replicas");
+	if(replica_count != k8s_replicas_t::UNKNOWN_REPLICAS)
+	{
+		replicas.set_spec_replicas(replica_count);
+	}
+	replica_count = k8s_replicas_t::get_count(item["status"], "replicas");
+	if(replica_count != k8s_replicas_t::UNKNOWN_REPLICAS)
+	{
+		replicas.set_stat_replicas(replica_count);
+	}
+	else
+	{
+		int unavailable_replicas = k8s_replicas_t::get_count(item["status"], "unavailableReplicas");
+		int spec_replicas = replicas.get_spec_replicas();
+		if(spec_replicas != k8s_replicas_t::UNKNOWN_REPLICAS && unavailable_replicas < spec_replicas)
+		{
+			replicas.set_stat_replicas(spec_replicas - unavailable_replicas);
+		}
+	}
+}
 
 //
 // replication controller

@@ -202,7 +202,7 @@ int k8s_http::get_watch_socket(long timeout_ms)
 		}
 
 		std::ostringstream request;
-		request << "GET /api/v1/watch/" << m_component << k8s_component::get_selector(m_component)
+		request << "GET " << m_api << "watch/" << m_component << k8s_component::get_selector(m_component)
 				<< " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\nConnection: Keep-Alive\r\n";
 		if(!m_credentials.empty())
 		{
