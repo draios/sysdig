@@ -149,7 +149,7 @@ static struct tracepoint *tp_signal_deliver;
 #ifdef _DEBUG
 static bool verbose = 1;
 #else
-static bool verbose = 0;
+static bool verbose;
 #endif
 
 static unsigned int max_consumers = 5;
@@ -1870,6 +1870,7 @@ int sysdig_init(void)
 	int j;
 	int n_created_devices = 0;
 	struct device *device = NULL;
+
 	pr_info("driver loading, " PROBE_NAME " " PROBE_VERSION "\n");
 
 	ret = get_tracepoint_handles();

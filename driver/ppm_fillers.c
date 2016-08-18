@@ -371,7 +371,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
-	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} }
+	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } }
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -721,8 +721,10 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	int pathlen;
 	int subsys_len;
 	char *path;
+	struct cgroup_subsys_state *css;
 
-	struct cgroup_subsys_state *css = task_css(current, subsys_id);
+	css = task_css(current, subsys_id);
+
 	if (!css) {
 		ASSERT(false);
 		return 1;
