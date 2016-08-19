@@ -672,17 +672,11 @@ public:
 		return m_h;
 	}
 
-
-
 #ifdef HAS_THREAD_FILTERING
 	/*!
 	 \brief sets early filtering for scap
 	*/
-	inline void set_thread_filtering(bool thread_filtering)
-	{
-		m_thread_filtering = thread_filtering;
-	}
-
+	void set_thread_filtering(bool thread_filtering);
 #endif
 
 	/*!

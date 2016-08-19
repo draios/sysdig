@@ -436,7 +436,7 @@ void sinsp::open(uint32_t timeout_ms)
 #ifdef HAS_THREAD_FILTERING
 	scap_set_inspector(m_h, this, this->m_thread_manager->get_threads());
 
-	scap_set_thread_filtering(m_h, m_thread_filtering);
+	//scap_set_thread_filtering(m_h, m_thread_filtering);
 #endif
 
 }
@@ -1357,6 +1357,18 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 		}
 	}
 }
+
+#ifdef HAS_THREAD_FILTERING
+void sinsp::set_thread_filtering(bool thread_filtering)
+{
+	//if scap already opened set the userspace filtering
+	if(m_h!=NULL)
+	{
+		m_thread_filtering = thread_filtering;
+		scap_set_thread_filtering(m_h, m_thread_filtering);
+	}
+}
+#endif
 
 #ifdef HAS_FILTERING
 void sinsp::set_filter(sinsp_filter* filter)
