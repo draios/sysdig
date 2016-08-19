@@ -826,6 +826,9 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/controller_utils.go
 		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/node/nodecontroller.go
 		// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kubelet.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/daemon/controller.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/deployment/deployment_controller.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/deployment/util/deployment_util.go
 		//
 
 		//
@@ -902,7 +905,29 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		{ "SuccessfulCreate",  "Pod Created"      },
 		{ "FailedCreate",      "Pod Create Failed"},
 		{ "SuccessfulDelete",  "Pod Deleted"      },
-		{ "FailedDelete",      "Pod Delete Failed"}
+		{ "FailedDelete",      "Pod Delete Failed"},
+
+		//
+		// Replica Set
+		//
+		// { "SuccessfulCreate",  "Pod Created"      }, duplicate
+		// { "FailedCreate",      "Pod Create Failed"}, duplicate
+		// { "SuccessfulDelete",  "Pod Deleted"      }, duplicate
+		// { "FailedDelete",      "Pod Delete Failed"}  duplicate
+
+		//
+		// Deployment
+		//
+		{ "SelectingAll",                        "Selecting All Pods"       },
+		{ "ScalingReplicaSet",                   "Scaling Replica Set"      },
+		{ "DeploymentRollbackRevisionNotFound",  "No revision to roll back" },
+		{ "DeploymentRollbackTemplateUnchanged", "Skipping Rollback"        },
+		{ "DeploymentRollback",                  "Rollback Done"            }
+
+		//
+		// Daemon Set
+		//
+		// { "SelectingAll", "Selecting All Pods" } duplicate
 	}
 {
 }
