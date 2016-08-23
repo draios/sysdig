@@ -183,6 +183,10 @@ public:
 	static std::string get_selector(const component_pair& p);
 	static std::string get_selector(const std::string& name);
 
+	static bool is_critical(type t);
+	static bool is_critical(const component_pair& p);
+	static bool is_critical(const std::string& name);
+
 	bool selector_in_labels(const k8s_pair_t& selector, const k8s_pair_list& labels) const;
 
 	bool selectors_in_labels(const k8s_pair_list& labels) const;

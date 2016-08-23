@@ -453,6 +453,36 @@ std::string k8s_component::get_selector(const std::string& name)
 	return get_selector(get_type(name));
 }
 
+bool k8s_component::is_critical(type t)
+{
+	switch (t)
+	{
+		case K8S_NODES:
+		case K8S_NAMESPACES:
+		case K8S_PODS:
+		case K8S_REPLICATIONCONTROLLERS:
+		case K8S_SERVICES:
+			return true;
+		case K8S_EVENTS:
+		case K8S_REPLICASETS:
+		case K8S_DAEMONSETS:
+		case K8S_DEPLOYMENTS:
+		default:
+			break;
+	}
+	return false;
+}
+
+bool k8s_component::is_critical(const component_pair& p)
+{
+	return is_critical(p.first);
+}
+
+bool k8s_component::is_critical(const std::string& name)
+{
+	return is_critical(get_type(name));
+}
+
 std::string k8s_component::get_api(type t, ext_list_ptr_t extensions)
 {
 	switch (t)

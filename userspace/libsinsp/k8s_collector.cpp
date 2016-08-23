@@ -32,18 +32,23 @@ void k8s_collector::clear()
 	FD_ZERO(&m_infd);
 }
 
-void k8s_collector::add(k8s_http* handler)
+bool k8s_collector::add(k8s_http* handler)
 {
 	int sockfd = handler->get_watch_socket(5000L);
 
-	FD_SET(sockfd, &m_errfd);
-	FD_SET(sockfd, &m_infd);
-	if(sockfd > m_nfds)
+	if(sockfd)
 	{
-		m_nfds = sockfd;
+		FD_SET(sockfd, &m_errfd);
+		FD_SET(sockfd, &m_infd);
+		if(sockfd > m_nfds)
+		{
+			m_nfds = sockfd;
+		}
+		m_sockets[sockfd] = handler;
+		m_subscription_count = m_sockets.size();
+		return true;
 	}
-	m_sockets[sockfd] = handler;
-	m_subscription_count = m_sockets.size();
+	return false;
 }
 
 bool k8s_collector::has(const k8s_http* handler) const
