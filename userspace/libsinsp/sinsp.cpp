@@ -1358,7 +1358,8 @@ const string sinsp::get_filter()
 	return m_filterstring;
 }
 
-void sinsp::add_evttype_filter(list<uint32_t> &evttypes,
+void sinsp::add_evttype_filter(string &name,
+			       list<uint32_t> &evttypes,
 			       sinsp_filter *filter)
 {
 	// Create the evttype filter if it doesn't exist.
@@ -1367,7 +1368,7 @@ void sinsp::add_evttype_filter(list<uint32_t> &evttypes,
 		m_evttype_filter = new sinsp_evttype_filter();
 	}
 
-	m_evttype_filter->add(evttypes, filter);
+	m_evttype_filter->add(name, evttypes, filter);
 }
 
 bool sinsp::run_filters_on_evt(sinsp_evt *evt)

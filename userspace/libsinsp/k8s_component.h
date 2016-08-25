@@ -183,6 +183,10 @@ public:
 	static std::string get_selector(const component_pair& p);
 	static std::string get_selector(const std::string& name);
 
+	static bool is_critical(type t);
+	static bool is_critical(const component_pair& p);
+	static bool is_critical(const std::string& name);
+
 	bool selector_in_labels(const k8s_pair_t& selector, const k8s_pair_list& labels) const;
 
 	bool selectors_in_labels(const k8s_pair_list& labels) const;
@@ -316,6 +320,7 @@ public:
 	int get_stat_replicas() const;
 
 	static int get_count(const Json::Value& item, const std::string& replica_name = "replicas");
+	static void set_replicas(k8s_replicas_t& replicas, const Json::Value& item);
 
 protected:
 	int m_spec_replicas = UNKNOWN_REPLICAS;
@@ -882,8 +887,7 @@ inline int k8s_rc_t::get_stat_replicas() const
 
 inline void k8s_rc_t::set_replicas(const Json::Value& item)
 {
-	m_replicas.set_spec_replicas(k8s_replicas_t::get_count(item["spec"]));
-	m_replicas.set_stat_replicas(k8s_replicas_t::get_count(item["status"]));
+	k8s_replicas_t::set_replicas(m_replicas, item);
 }
 
 //
@@ -936,8 +940,7 @@ inline int k8s_deployment_t::get_stat_replicas() const
 
 inline void k8s_deployment_t::set_replicas(const Json::Value& item)
 {
-	m_replicas.set_spec_replicas(k8s_replicas_t::get_count(item["spec"]));
-	m_replicas.set_stat_replicas(k8s_replicas_t::get_count(item["status"]));
+	k8s_replicas_t::set_replicas(m_replicas, item);
 }
 
 

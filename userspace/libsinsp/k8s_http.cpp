@@ -180,64 +180,77 @@ int k8s_http::wait(curl_socket_t sockfd, int for_recv, long timeout_ms)
 
 int k8s_http::get_watch_socket(long timeout_ms)
 {
-	if(!m_watch_socket)
+	try
 	{
-		long sockextr;
-		size_t iolen;
-		std::string url = m_url;
-		url.insert(m_url.find(m_api) + m_api.size(), "watch/");
-
-		check_error(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()));
-		check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L));
-
-		check_error(curl_easy_perform(m_curl));
-
-		check_error(curl_easy_getinfo(m_curl, CURLINFO_LASTSOCKET, &sockextr));
-		m_watch_socket = sockextr;
-
-		if(!wait(m_watch_socket, 0, timeout_ms))
+		if(!m_watch_socket)
 		{
-			cleanup();
-			throw sinsp_exception("Error: timeout.");
-		}
+			long sockextr;
+			size_t iolen;
+			std::string url = m_url;
+			url.insert(m_url.find(m_api) + m_api.size(), "watch/");
 
-		std::ostringstream request;
-		request << "GET /api/v1/watch/" << m_component << k8s_component::get_selector(m_component)
-				<< " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\nConnection: Keep-Alive\r\n";
-		if(!m_credentials.empty())
-		{
-			std::string::size_type pos = m_credentials.find(':');
-			if(pos == std::string::npos)
+			check_error(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()));
+			check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECT_ONLY, 1L));
+
+			check_error(curl_easy_perform(m_curl));
+
+			check_error(curl_easy_getinfo(m_curl, CURLINFO_LASTSOCKET, &sockextr));
+			m_watch_socket = sockextr;
+
+			if(!wait(m_watch_socket, 0, timeout_ms))
 			{
-				throw sinsp_exception("Invalid credentials (missing ':' separator)");
+				cleanup();
+				throw sinsp_exception("Error: timeout.");
 			}
-			std::string username = uri::decode(m_credentials.substr(0, pos));
-			std::string password;
-			if(m_credentials.length() > pos)
-			{
-				password = uri::decode(m_credentials.substr(pos + 1));
-			}
-			std::istringstream is(username.append(1, ':').append(password));
-			std::ostringstream os;
-			base64::encoder().encode(is, os);
-			request << "Authorization: Basic " << os.str() << "\r\n";
-		}
-		if(m_bt && !m_bt->get_token().empty())
-		{
-			request << "Authorization: Bearer " << m_bt->get_token() << "\r\n";
-		}
-		request << "\r\n";
-		check_error(curl_easy_send(m_curl, request.str().c_str(), request.str().size(), &iolen));
-		ASSERT (request.str().size() == iolen);
-		if(!wait(m_watch_socket, 1, timeout_ms))
-		{
-			cleanup();
-			throw sinsp_exception("Error: timeout.");
-		}
 
-		g_logger.log(std::string("Collecting data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
+			std::ostringstream request;
+			request << "GET " << m_api << "watch/" << m_component << k8s_component::get_selector(m_component)
+					<< " HTTP/1.0\r\nHost: " << m_host_and_port << "\r\nConnection: Keep-Alive\r\n";
+			if(!m_credentials.empty())
+			{
+				std::string::size_type pos = m_credentials.find(':');
+				if(pos == std::string::npos)
+				{
+					throw sinsp_exception("Invalid credentials (missing ':' separator)");
+				}
+				std::string username = uri::decode(m_credentials.substr(0, pos));
+				std::string password;
+				if(m_credentials.length() > pos)
+				{
+					password = uri::decode(m_credentials.substr(pos + 1));
+				}
+				std::istringstream is(username.append(1, ':').append(password));
+				std::ostringstream os;
+				base64::encoder().encode(is, os);
+				request << "Authorization: Basic " << os.str() << "\r\n";
+			}
+			if(m_bt && !m_bt->get_token().empty())
+			{
+				request << "Authorization: Bearer " << m_bt->get_token() << "\r\n";
+			}
+			request << "\r\n";
+			check_error(curl_easy_send(m_curl, request.str().c_str(), request.str().size(), &iolen));
+			ASSERT (request.str().size() == iolen);
+			if(!wait(m_watch_socket, 1, timeout_ms))
+			{
+				cleanup();
+				throw sinsp_exception("Error: timeout.");
+			}
+
+			g_logger.log(std::string("Collecting data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
+		}
 	}
-
+	catch(std::exception& ex)
+	{
+		if(!k8s_component::is_critical(m_component))
+		{
+			g_logger.log(std::string("K8s error obtaining socket: ") + ex.what(), sinsp_logger::SEV_WARNING);
+		}
+		else
+		{
+			throw;
+		}
+	}
 	return m_watch_socket;
 }
 

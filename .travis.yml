@@ -57,7 +57,8 @@ script:
     - cd jq-1.5
     - ./configure --disable-maintainer-mode
     - make LDFLAGS=-all-static
-    - sudo cp -r ./*.h /usr/local/include/
+    - sudo cp ./jq.h /usr/local/include/
+    - sudo cp ./jv.h /usr/local/include/
     - sudo cp .libs/libjq.a /usr/local/lib/
     - cd ..
     - popd

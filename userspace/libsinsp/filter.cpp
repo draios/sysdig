@@ -26,6 +26,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // code at every new release, and I will have a cleaner and easier to understand code base.
 //
 
+#include <regex>
+
 #include "sinsp.h"
 #include "sinsp_int.h"
 
@@ -514,8 +516,8 @@ sinsp_filter_check::sinsp_filter_check()
 	m_aggregation = A_NONE;
 	m_merge_aggregation = A_NONE;
 	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
-	m_val_storages_min_size = numeric_limits<uint32_t>::max();
-	m_val_storages_max_size = numeric_limits<uint32_t>::min();
+	m_val_storages_min_size = (numeric_limits<uint32_t>::max)();
+	m_val_storages_max_size = (numeric_limits<uint32_t>::min)();
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -543,7 +545,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::nullRef;
+				return Json::nullValue;
 			}
 
 		case PT_INT16:
@@ -559,7 +561,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::nullRef;
+				return Json::nullValue;
 			}
 
 		case PT_INT32:
@@ -575,7 +577,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::nullRef;
+				return Json::nullValue;
 			}
 
 		case PT_INT64:
@@ -604,7 +606,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::nullRef;
+				return Json::nullValue;
 			}
 
 		case PT_PORT: // This can be resolved in the future
@@ -621,7 +623,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::nullRef;
+				return Json::nullValue;
 			}
 
 		case PT_UINT32:
@@ -637,7 +639,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::nullRef;
+				return Json::nullValue;
 			}
 
 		case PT_UINT64:
@@ -657,13 +659,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			else
 			{
 				ASSERT(false);
-				return Json::Value::nullRef;
+				return Json::nullValue;
 			}
 
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
 			ASSERT(false);
-			return Json::Value::nullRef;
+			return Json::nullValue;
 
 		case PT_BOOL:
 			return Json::Value((bool)(*(uint32_t*)rawval != 0));
@@ -934,12 +936,12 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 	uint32_t len;
 	Json::Value jsonval = extract_as_js(evt, &len);
 
-	if(jsonval == Json::Value::nullRef)
+	if(jsonval == Json::nullValue)
 	{
 		uint8_t* rawval = extract(evt, &len);
 		if(rawval == NULL)
 		{
-			return Json::Value::nullRef;
+			return Json::nullValue;
 		}
 		return rawval_to_json(rawval, m_field, len);
 	}
@@ -1935,35 +1937,55 @@ sinsp_evttype_filter::~sinsp_evttype_filter()
 
 	m_catchall_evttype_filters.clear();
 
-	for(auto filter : m_evttype_filters)
+	for(auto val : m_evttype_filters)
 	{
-		delete filter;
+		delete val.second->filter;
+		delete val.second;
 	}
 	m_evttype_filters.clear();
 }
 
-void sinsp_evttype_filter::add(list<uint32_t> &evttypes,
+void sinsp_evttype_filter::add(string &name,
+			       list<uint32_t> &evttypes,
 			       sinsp_filter *filter)
 {
-	m_evttype_filters.push_back(filter);
+	filter_wrapper *wrap = new filter_wrapper();
+	wrap->filter = filter;
+	wrap->evttypes = evttypes;
+	wrap->enabled = true;
+
+	m_evttype_filters.insert(pair<string,filter_wrapper *>(name, wrap));
 
 	if(evttypes.size() == 0)
 	{
-		m_catchall_evttype_filters.push_back(filter);
+		m_catchall_evttype_filters.push_back(wrap);
 	}
 	else
 	{
 
 		for(auto evttype: evttypes)
 		{
-			list<sinsp_filter *> *filters = m_filter_by_evttype[evttype];
+			list<filter_wrapper *> *filters = m_filter_by_evttype[evttype];
 			if(filters == NULL)
 			{
-				filters = new list<sinsp_filter*>();
+				filters = new list<filter_wrapper*>();
 				m_filter_by_evttype[evttype] = filters;
 			}
 
-			filters->push_back(filter);
+			filters->push_back(wrap);
+		}
+	}
+}
+
+void sinsp_evttype_filter::enable(string &pattern, bool enabled)
+{
+	regex re(pattern);
+
+	for(auto val : m_evttype_filters)
+	{
+		if (regex_match(val.first, re))
+		{
+			val.second->enabled = enabled;
 		}
 	}
 }
@@ -1974,21 +1996,21 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt)
 	// First run any catchall event type filters (ones that did not
 	// explicitly specify any event type.
 	//
-	for(sinsp_filter *filt : m_catchall_evttype_filters)
+	for(filter_wrapper *wrap : m_catchall_evttype_filters)
 	{
-		if(filt->run(evt) == true)
+		if(wrap->enabled && wrap->filter->run(evt) == true)
 		{
 			return true;
 		}
 	}
 
-        list<sinsp_filter *> *filters = m_filter_by_evttype[evt->m_pevt->type];
+        list<filter_wrapper *> *filters = m_filter_by_evttype[evt->m_pevt->type];
 
 	if(filters)
 	{
-		for(sinsp_filter *filt : *filters)
+		for(filter_wrapper *wrap : *filters)
 		{
-			if(filt->run(evt) == true)
+			if(wrap->enabled && wrap->filter->run(evt) == true)
 			{
 				return true;
 			}

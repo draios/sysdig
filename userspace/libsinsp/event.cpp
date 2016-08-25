@@ -876,7 +876,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_SOCKADDR:
 		if(payload_len == 0)
 		{
-			ret = Json::Value::nullRef;
+			ret = Json::nullValue;
 			break;
 		}
 		else if(payload[0] == AF_UNIX)
@@ -886,8 +886,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			//
 			// Sanitize the file string.
 			//
-            string sanitized_str = payload + 1;
-	    sanitize_string(sanitized_str);
+			string sanitized_str = payload + 1;
+			sanitize_string(sanitized_str);
 
 			ret = sanitized_str;
 		}
@@ -925,7 +925,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_SOCKTUPLE:
 		if(payload_len == 0)
 		{
-			ret = Json::Value::nullRef;
+			ret = Json::nullValue;
 			break;
 		}
 
