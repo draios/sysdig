@@ -516,8 +516,8 @@ sinsp_filter_check::sinsp_filter_check()
 	m_aggregation = A_NONE;
 	m_merge_aggregation = A_NONE;
 	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
-	m_val_storages_min_size = numeric_limits<uint32_t>::max();
-	m_val_storages_max_size = numeric_limits<uint32_t>::min();
+	m_val_storages_min_size = (numeric_limits<uint32_t>::max)();
+	m_val_storages_max_size = (numeric_limits<uint32_t>::min)();
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
