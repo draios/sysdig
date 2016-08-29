@@ -165,53 +165,68 @@ public:
 		for(j = 0; j < hs; j++)
 		{
 			bool has_filter = false;
+			uint32_t lastsize = res.size();
 
 			if(m_hierarchy[j].m_view_filter != "")
 			{
 				has_filter = true;
 			}
 
+			if(hs > 1)
+			{
+				res += "(";
+			}
+
 			if(has_filter)
 			{
-				if(hs > 1)
-				{
-					res += "(";
-				}
 				res += "(";
 				res += m_hierarchy[j].m_view_filter;
 				res += ")";
+			}
 
-				if(m_hierarchy[j].m_field != "")
+			if(m_hierarchy[j].m_field != "")
+			{
+				bool skip = false;
+
+				if(m_hierarchy[j].m_column_info != NULL &&
+				(m_hierarchy[j].m_column_info->m_flags & TEF_FILTER_IN_CHILD_ONLY))
 				{
-					bool skip = false;
-
-					if(m_hierarchy[j].m_column_info != NULL &&
-					(m_hierarchy[j].m_column_info->m_flags & TEF_FILTER_IN_CHILD_ONLY))
+					if(j < hs - 1)
 					{
-						if(j < hs - 1)
-						{
-							skip = true;
-						}
-					}	
-
-					if(!skip)
-					{
-						res += " and " + m_hierarchy[j].m_field;
-						res += "=";
-						res += m_hierarchy[j].m_val;
+						skip = true;
 					}
-				}
+				}	
 
+				if(!skip)
+				{
+					if(has_filter)
+					{
+						res += " and ";
+					}
+					res += m_hierarchy[j].m_field;
+					res += "=";
+					res += m_hierarchy[j].m_val;
+				}
+			}
+
+			if(res.size() != lastsize)
+			{
 				if(hs > 1)
 				{
 					res += ")";
 				}
 
 				res += " and ";
+
+				if(res.size() >= 7 && res.substr(res.size() - 7) == "() and ")
+				{
+					res = res.substr(0, res.size() - 7);
+				}
+
 			}
 		}
 
-		if(res.size() > 5)
+		if(res.size() >= 5)
 		{
 			string trailer = res.substr(res.size() - 5).c_str();
 			if(trailer == " and ")
