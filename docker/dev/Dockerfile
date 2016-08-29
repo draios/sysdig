@@ -31,6 +31,7 @@ RUN apt-get update \
 
 RUN rm -rf /usr/bin/gcc \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc \
+ && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-5 \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-4.8 \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-4.7 \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-4.6

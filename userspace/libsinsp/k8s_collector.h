@@ -21,7 +21,7 @@ public:
 
 	~k8s_collector();
 
-	void add(k8s_http* handler);
+	bool add(k8s_http* handler);
 	bool has(const k8s_http* handler) const;
 	void remove(const k8s_http* handler);
 	void remove_all();

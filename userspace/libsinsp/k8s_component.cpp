@@ -453,6 +453,36 @@ std::string k8s_component::get_selector(const std::string& name)
 	return get_selector(get_type(name));
 }
 
+bool k8s_component::is_critical(type t)
+{
+	switch (t)
+	{
+		case K8S_NODES:
+		case K8S_NAMESPACES:
+		case K8S_PODS:
+		case K8S_REPLICATIONCONTROLLERS:
+		case K8S_SERVICES:
+			return true;
+		case K8S_EVENTS:
+		case K8S_REPLICASETS:
+		case K8S_DAEMONSETS:
+		case K8S_DEPLOYMENTS:
+		default:
+			break;
+	}
+	return false;
+}
+
+bool k8s_component::is_critical(const component_pair& p)
+{
+	return is_critical(p.first);
+}
+
+bool k8s_component::is_critical(const std::string& name)
+{
+	return is_critical(get_type(name));
+}
+
 std::string k8s_component::get_api(type t, ext_list_ptr_t extensions)
 {
 	switch (t)
@@ -826,6 +856,9 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/controller_utils.go
 		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/node/nodecontroller.go
 		// https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kubelet.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/daemon/controller.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/deployment/deployment_controller.go
+		// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/deployment/util/deployment_util.go
 		//
 
 		//
@@ -902,7 +935,29 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 		{ "SuccessfulCreate",  "Pod Created"      },
 		{ "FailedCreate",      "Pod Create Failed"},
 		{ "SuccessfulDelete",  "Pod Deleted"      },
-		{ "FailedDelete",      "Pod Delete Failed"}
+		{ "FailedDelete",      "Pod Delete Failed"},
+
+		//
+		// Replica Set
+		//
+		// { "SuccessfulCreate",  "Pod Created"      }, duplicate
+		// { "FailedCreate",      "Pod Create Failed"}, duplicate
+		// { "SuccessfulDelete",  "Pod Deleted"      }, duplicate
+		// { "FailedDelete",      "Pod Delete Failed"}  duplicate
+
+		//
+		// Deployment
+		//
+		{ "SelectingAll",                        "Selecting All Pods"       },
+		{ "ScalingReplicaSet",                   "Scaling Replica Set"      },
+		{ "DeploymentRollbackRevisionNotFound",  "No revision to roll back" },
+		{ "DeploymentRollbackTemplateUnchanged", "Skipping Rollback"        },
+		{ "DeploymentRollback",                  "Rollback Done"            }
+
+		//
+		// Daemon Set
+		//
+		// { "SelectingAll", "Selecting All Pods" } duplicate
 	}
 {
 }

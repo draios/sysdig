@@ -77,15 +77,23 @@ void k8s_net::watch()
 
 void k8s_net::subscribe()
 {
-	for (auto& api : m_api_interfaces)
+	for(auto it = m_api_interfaces.cbegin(); it != m_api_interfaces.cend();)
 	{
-		if(api.second)
+		if(it->second)
 		{
-			m_collector.add(api.second);
+			if(m_collector.add(it->second))
+			{
+				++it;
+			}
+			else
+			{
+				m_api_interfaces.erase(it++);
+			}
 		}
 		else
 		{
-			g_logger.log("K8s: " + k8s_component::get_name(api.first) + " handler is null.", sinsp_logger::SEV_WARNING);
+			g_logger.log("K8s: " + k8s_component::get_name(it->first) + " handler is null.", sinsp_logger::SEV_WARNING);
+			m_api_interfaces.erase(it++);
 		}
 	}
 }
@@ -146,7 +154,7 @@ void k8s_net::add_api_interface(const k8s_component::type_map::value_type& compo
 					m_ssl, m_bt, m_curl_debug);
 }
 
-void k8s_net::get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out)
+bool k8s_net::get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out)
 {
 	add_api_interface(component);
 
@@ -160,15 +168,30 @@ void k8s_net::get_all_data(const k8s_component::type_map::value_type& component,
 				std::string err;
 				std::ostringstream* ostr = dynamic_cast<std::ostringstream*>(&out);
 				if(ostr) { err = ostr->str(); }
-				throw sinsp_exception(std::string("K8s: An error occurred while trying to retrieve data for ")
-									.append(k8s_component::get_name(component.first)).append(": ").append(err));
+				if(k8s_component::is_critical(component.first))
+				{
+					throw sinsp_exception(std::string("K8s: An error occurred while trying to retrieve data for ")
+										.append(k8s_component::get_name(component.first)).append(": ").append(err));
+				}
+				else
+				{
+					g_logger.log(std::string("K8s: An error occurred while trying to retrieve data for ")
+								 .append(k8s_component::get_name(component.first)).append(": ").append(err),
+								 sinsp_logger::SEV_WARNING);
+					m_collector.remove(m_api_interfaces[component.first]);
+					delete m_api_interfaces[component.first];
+					m_api_interfaces[component.first] = nullptr;
+					return false;
+				}
 			}
 		}
 		else
 		{
 			g_logger.log("K8s: " + k8s_component::get_name(component.first) + " handler is null.", sinsp_logger::SEV_WARNING);
+			return false;
 		}
 	}
+	return true;
 }
 
 #endif // HAS_CAPTURE

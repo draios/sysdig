@@ -33,7 +33,7 @@ public:
 
 	~k8s_net();
 
-	void get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out);
+	bool get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out);
 
 	void add_api_interface(const k8s_component::type_map::value_type& component);
 
