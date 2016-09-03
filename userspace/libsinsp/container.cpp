@@ -41,7 +41,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_inactive_container_scan_time_ns + 30 * ONE_SECOND_IN_NS;
 	}
 
-	if(m_inspector->m_lastevent_ts > 
+	if(m_inspector->m_lastevent_ts >
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
 		res = true;
@@ -187,7 +187,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		if(pos != string::npos)
 		{
 			if(cgroup.length() - pos - 1 == 64 &&
-				cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos) 
+				cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos)
 			{
 				container_info.m_type = CT_DOCKER;
 				container_info.m_id = cgroup.substr(pos + 1, 12);
@@ -552,7 +552,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		if(v.isArray())
 		{
 			for(uint32_t j = 0; j < v.size(); ++j)
-			{	
+			{
 				sinsp_container_info::container_port_mapping port_mapping;
 
 				ip = v[j]["HostIp"].asString();
