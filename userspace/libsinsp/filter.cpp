@@ -26,6 +26,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // code at every new release, and I will have a cleaner and easier to understand code base.
 //
 
+#ifdef _WIN32
+#define NOMINMAX
+#endif
+
 #include <regex>
 
 #include "sinsp.h"
