@@ -31,8 +31,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
 #endif
-#include <algorithm> 
-#include <functional> 
+#include <algorithm>
+#include <functional>
 #include <errno.h>
 
 #include "sinsp.h"
@@ -457,7 +457,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 			{
 				char srcstr[INET6_ADDRSTRLEN];
 				char dststr[INET6_ADDRSTRLEN];
-				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) && 
+				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
 					inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
 				{
 					snprintf(targetbuf,
@@ -493,7 +493,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 			{
 				char srcstr[INET6_ADDRSTRLEN];
 				char dststr[INET6_ADDRSTRLEN];
-				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) && 
+				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
 					inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
 				{
 					snprintf(targetbuf,
@@ -540,10 +540,10 @@ void rewind_to_parent_path(char* targetbase, char** tc, const char** pc, uint32_
 
 //
 // Args:
-//  - target: the string where we are supposed to start copying 
-//  - targetbase: the base of the path, i.e. the furthest we can go back when 
-//                following parent directories 
-//  - path: the path to copy 
+//  - target: the string where we are supposed to start copying
+//  - targetbase: the base of the path, i.e. the furthest we can go back when
+//                following parent directories
+//  - path: the path to copy
 //
 void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 {
@@ -663,11 +663,11 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 //
 // Return false if path2 is an absolute path
 //
-bool sinsp_utils::concatenate_paths(char* target, 
-									uint32_t targetlen, 
-									const char* path1, 
-									uint32_t len1, 
-									const char* path2, 
+bool sinsp_utils::concatenate_paths(char* target,
+									uint32_t targetlen,
+									const char* path1,
+									uint32_t len1,
+									const char* path2,
 									uint32_t len2)
 {
 	if(targetlen < (len1 + len2 + 1))
@@ -693,8 +693,8 @@ bool sinsp_utils::concatenate_paths(char* target,
 
 bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr)
 {
-	if(paddr[0] == 0 && paddr[1] == 0 && paddr[2] == 0 && paddr[3] == 0 && paddr[4] == 0 && 
-		paddr[5] == 0 && paddr[6] == 0 && paddr[7] == 0 && paddr[8] == 0 && paddr[9] == 0 && 
+	if(paddr[0] == 0 && paddr[1] == 0 && paddr[2] == 0 && paddr[3] == 0 && paddr[4] == 0 &&
+		paddr[5] == 0 && paddr[6] == 0 && paddr[7] == 0 && paddr[8] == 0 && paddr[9] == 0 &&
 		paddr[10] == 0xff && paddr[11] == 0xff)
 	{
 		return true;
@@ -720,7 +720,7 @@ const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(string
 			const char* an = pi->name;
 			uint32_t alen = (uint32_t)strlen(an);
 			string subs = string(name, 0, alen);
-			
+
 			if(subs == an)
 			{
 				if(alen > maxlen)
@@ -764,7 +764,7 @@ void sinsp_utils::bt(void)
 	bt_size = backtrace(bt, 1024);
 	bt_syms = backtrace_symbols(bt, bt_size);
 	g_logger.format("%s", start);
-	for (i = 1; i < bt_size; i++) 
+	for (i = 1; i < bt_size; i++)
 	{
 		g_logger.format("%s", bt_syms[i]);
 	}
@@ -809,7 +809,7 @@ time_t get_epoch_utc_seconds_now()
 #ifdef _WIN32
 
 #include <time.h>
-#include <windows.h> 
+#include <windows.h>
 
 const __int64 DELTA_EPOCH_IN_MICROSECS = 11644473600000000;
 
@@ -833,7 +833,7 @@ int gettimeofday(struct timeval *tv, struct timezone2 *tz)
 	// converting file time to unix epoch
 	//
 	tmpres /= 10;  // convert into microseconds
-	tmpres -= DELTA_EPOCH_IN_MICROSECS; 
+	tmpres -= DELTA_EPOCH_IN_MICROSECS;
 	tv->tv_sec = (__int32)(tmpres*0.000001);
 	tv->tv_usec =(tmpres%1000000);
 
@@ -915,13 +915,13 @@ string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 	// IP address is saved with host byte order, that's why we do shifts
 	snprintf(buf,
 		sizeof(buf),
-		"%d.%d.%d.%d:%s", 
+		"%d.%d.%d.%d:%s",
 		(addr->m_ip & 0xFF),
 		((addr->m_ip & 0xFF00) >> 8),
 		((addr->m_ip & 0xFF0000) >> 16),
 		((addr->m_ip & 0xFF000000) >> 24),
 		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
-	
+
 	return string(buf);
 }
 
@@ -942,7 +942,7 @@ string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 	string dest = ipv4serveraddr_to_string(&info, resolve);
 
 	snprintf(buf, sizeof(buf), "%s->%s", source.c_str(), dest.c_str());
-	
+
 	return string(buf);
 }
 
@@ -959,7 +959,7 @@ string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
 	snprintf(buf,200,"%s:%s",
 		address,
 		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
-	
+
 	return string(buf);
 }
 
@@ -978,13 +978,13 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 	{
 		return string();
 	}
-	
+
 	snprintf(buf,200,"%s:%s->%s:%s",
 		source_address,
 		port_to_string(tuple->m_fields.m_sport, tuple->m_fields.m_l4proto, resolve).c_str(),
 		destination_address,
 		port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
-	
+
 	return string(buf);
 }
 
@@ -1011,7 +1011,7 @@ vector<string> sinsp_split(const string &s, char delim)
 //
 // trim from start
 //
-string& ltrim(string &s) 
+string& ltrim(string &s)
 {
 	s.erase(s.begin(), find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
 	return s;
@@ -1020,7 +1020,7 @@ string& ltrim(string &s)
 //
 // trim from end
 //
-string& rtrim(string &s) 
+string& rtrim(string &s)
 {
 	s.erase(find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
 	return s;
@@ -1029,7 +1029,7 @@ string& rtrim(string &s)
 //
 // trim from both ends
 //
-string& trim(string &s) 
+string& trim(string &s)
 {
 	return ltrim(rtrim(s));
 }
