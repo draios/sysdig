@@ -27,9 +27,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <netdb.h>
 #include <strings.h>
 #include <sys/ioctl.h>
+#include <fnmatch.h>
 #else
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
+#include "Shlwapi.h"
+#pragma comment(lib,"shlwapi.lib")
 #endif
 #include <algorithm>
 #include <functional>
@@ -748,6 +751,15 @@ uint64_t sinsp_utils::get_current_time_ns()
     gettimeofday(&tv, NULL);
 
     return tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
+}
+
+bool sinsp_utils::glob_match(const char *pattern, const char *string)
+{
+#ifdef _WIN32
+	return PathMatchSpec(string, pattern) == TRUE;
+#else
+	return fnmatch(pattern, string, FNM_PATHNAME) == 0;
+#endif
 }
 
 #ifndef _WIN32
