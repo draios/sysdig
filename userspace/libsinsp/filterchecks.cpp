@@ -5323,7 +5323,8 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "the container id."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "the container name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "true for containers running as privileged, false otherwise"}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -5446,6 +5447,33 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
+	case TYPE_CONTAINER_PRIVILEGED:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
+
+			// Only return a true/false value for
+			// container types where we really know the
+			// privileged status.
+			if (container_info.m_type != sinsp_container_type::CT_DOCKER)
+			{
+				return NULL;
+			}
+
+			m_u32val = (container_info.m_privileged ? 1 : 0);
+		}
+
+		return (uint8_t*)&m_u32val;
+		break;
 	default:
 		ASSERT(false);
 		break;

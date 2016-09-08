@@ -767,7 +767,8 @@ public:
 		TYPE_CONTAINER_ID = 0,
 		TYPE_CONTAINER_NAME,
 		TYPE_CONTAINER_IMAGE,
-		TYPE_CONTAINER_TYPE
+		TYPE_CONTAINER_TYPE,
+		TYPE_CONTAINER_PRIVILEGED
 	};
 
 	sinsp_filter_check_container();
@@ -776,6 +777,7 @@ public:
 
 private:
 	string m_tstr;
+	uint32_t m_u32val;
 };
 
 //

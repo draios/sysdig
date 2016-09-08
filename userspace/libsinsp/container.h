@@ -60,6 +60,7 @@ public:
 	string m_name;
 	string m_image;
 	uint32_t m_container_ip;
+	bool m_privileged;
 	vector<container_port_mapping> m_port_mappings;
 	map<string, string> m_labels;
 	string m_mesos_task_id;
