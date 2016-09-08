@@ -25,6 +25,59 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "container.h"
+#include "utils.h"
+
+void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
+{
+	if(!mnt_obj.isNull() && mnt_obj.isArray())
+	{
+		for(uint32_t i=0; i<mnt_obj.size(); i++)
+		{
+			const Json::Value &mount = mnt_obj[i];
+			mounts.emplace_back(mount["Source"], mount["Destination"],
+					    mount["Mode"], mount["RW"],
+					    mount["Propagation"]);
+		}
+	}
+}
+
+sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(uint32_t idx)
+{
+	if (idx >= m_mounts.size())
+	{
+		return NULL;
+	}
+
+	return &(m_mounts[idx]);
+}
+
+sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(std::string &source)
+{
+	// note: linear search
+	for (auto &mntinfo :m_mounts)
+	{
+		if(sinsp_utils::glob_match(source.c_str(), mntinfo.m_source.c_str()))
+		{
+			return &mntinfo;
+		}
+	}
+
+	return NULL;
+}
+
+sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(std::string &dest)
+{
+	// note: linear search
+	for (auto &mntinfo :m_mounts)
+	{
+		if(sinsp_utils::glob_match(dest.c_str(), mntinfo.m_dest.c_str()))
+		{
+			return &mntinfo;
+		}
+	}
+
+	return NULL;
+}
 
 sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 	m_inspector(inspector),
@@ -409,6 +462,22 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["image"] = container_info.m_image;
 	container["privileged"] = container_info.m_privileged;
 
+	Json::Value mounts = Json::arrayValue;
+
+	for (auto &mntinfo : container_info.m_mounts)
+	{
+		Json::Value mount;
+
+		mount["Source"] = mntinfo.m_source;
+		mount["Destination"] = mntinfo.m_dest;
+		mount["Mode"] = mntinfo.m_mode;
+		mount["RW"] = mntinfo.m_rdwr;
+		mount["Propagation"] = mntinfo.m_propagation;
+
+		mounts.append(mount);
+	}
+
+	container["Mounts"] = mounts;
 
 	char addrbuff[100];
 	uint32_t iph = ntohl(container_info.m_container_ip);
@@ -616,6 +685,9 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	{
 		container->m_privileged = privileged.asBool();
 	}
+
+	sinsp_container_info::parse_json_mounts(root["Mounts"], container->m_mounts);
+
 	return true;
 }
 

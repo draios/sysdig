@@ -3953,6 +3953,8 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_privileged = privileged.asBool();
 		}
+
+		sinsp_container_info::parse_json_mounts(container["Mounts"], container_info.m_mounts);
 		const Json::Value& contip = container["ip"];
 		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
 		{
