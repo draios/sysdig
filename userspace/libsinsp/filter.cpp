@@ -26,10 +26,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // code at every new release, and I will have a cleaner and easier to understand code base.
 //
 
+#ifdef _WIN32
+#define NOMINMAX
+#endif
+
 #include <regex>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "utils.h"
 
 #ifdef HAS_FILTERING
 #include "filter.h"
@@ -184,6 +189,9 @@ bool flt_compare_uint64(cmpop op, uint64_t operand1, uint64_t operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
@@ -215,6 +223,9 @@ bool flt_compare_int64(cmpop op, int64_t operand1, int64_t operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
@@ -239,6 +250,8 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 #endif
 	case CO_STARTSWITH:
 		return (strncmp(operand1, operand2, strlen(operand2)) == 0);
+	case CO_GLOB:
+		return sinsp_utils::glob_match(operand2, operand1);
 	case CO_LT:
 		return (strcmp(operand1, operand2) < 0);
 	case CO_LE:
@@ -268,6 +281,8 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		throw sinsp_exception("'icontains' not supported for buffer filters");
 	case CO_STARTSWITH:
 		return (memcmp(operand1, operand2, op2_len) == 0);
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for buffer filters");
 	case CO_LT:
 		throw sinsp_exception("'<' not supported for buffer filters");
 	case CO_LE:
@@ -308,6 +323,9 @@ bool flt_compare_double(cmpop op, double operand1, double operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
@@ -332,6 +350,9 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 		return false;
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
+		return false;
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
 	default:
 		throw sinsp_exception("comparison operator not supported for ipv4 networks");
@@ -1572,6 +1593,11 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 	{
 		m_scanpos += 10;
 		return CO_STARTSWITH;
+	}
+	else if(compare_no_consume("glob"))
+	{
+		m_scanpos += 4;
+		return CO_GLOB;
 	}
 	else if(compare_no_consume("in"))
 	{
