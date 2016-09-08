@@ -758,7 +758,8 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string)
 #ifdef _WIN32
 	return PathMatchSpec(string, pattern) == TRUE;
 #else
-	return fnmatch(pattern, string, FNM_PATHNAME) == 0;
+	int flags = 0;
+	return fnmatch(pattern, string, flags) == 0;
 #endif
 }
 
