@@ -767,7 +767,15 @@ public:
 		TYPE_CONTAINER_ID = 0,
 		TYPE_CONTAINER_NAME,
 		TYPE_CONTAINER_IMAGE,
-		TYPE_CONTAINER_TYPE
+		TYPE_CONTAINER_TYPE,
+		TYPE_CONTAINER_PRIVILEGED,
+		TYPE_CONTAINER_MOUNTS,
+		TYPE_CONTAINER_MOUNT,
+		TYPE_CONTAINER_MOUNT_SOURCE,
+		TYPE_CONTAINER_MOUNT_DEST,
+		TYPE_CONTAINER_MOUNT_MODE,
+		TYPE_CONTAINER_MOUNT_RDWR,
+		TYPE_CONTAINER_MOUNT_PROPAGATION
 	};
 
 	sinsp_filter_check_container();
@@ -775,7 +783,13 @@ public:
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
+	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t extract_arg(const string& val, size_t basename);
+
 	string m_tstr;
+	uint32_t m_u32val;
+	int32_t m_argid;
+	string m_argstr;
 };
 
 //
