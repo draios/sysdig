@@ -5323,7 +5323,15 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "the container id."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "the container name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "true for containers running as privileged, false otherwise"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mounts", "A space-separated list of mount information. Each item in the list has the format <source>:<dest>:<mode>:<rdrw>:<propagation>"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount", "Information about a single mount, specified by number (e.g. container.mount[0]) or mount source (container.mount[/usr/local]). The pathname can be a glob (container.mount[/usr/local/*]), in which case the first matching mount will be returned. The information has the format <source>:<dest>:<mode>:<rdrw>:<propagation>. If there is no mount with the specified index or matching the provided source, returns the string \"none\" instead of a NULL value."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.source", "the mount source, specified by number (e.g. container.mount.dest[0]) or mount destination (container.mount.source[/usr/local]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.dest", "the mount destination, specified by number (e.g. container.mount.dest[0]) or mount source (container.mount.dest[/usr/local]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.mode", "the mount mode, specified by number (e.g. container.mount.mode[0]) or mount source (container.mount.mode[/usr/local]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.rdwr", "the mount rdwr value, specified by number (e.g. container.mount.rdwr[0]) or mount source (container.mount.rdwr[/usr/local]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.propagation", "the mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob."}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -5338,6 +5346,95 @@ sinsp_filter_check* sinsp_filter_check_container::allocate_new()
 {
 	return (sinsp_filter_check*) new sinsp_filter_check_container();
 }
+
+int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t basepos)
+{
+	size_t start = val.find_first_of('[', basepos);
+	if(start == string::npos)
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	size_t end = val.find_first_of(']', start);
+	if(end == string::npos)
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	string numstr = val.substr(start + 1, end-start-1);
+	try
+	{
+		m_argid = sinsp_numparser::parsed32(numstr);
+	} catch (sinsp_exception e)
+	{
+		if(strstr(e.what(), "is not a valid number") == NULL)
+		{
+			throw;
+		}
+
+		m_argid = -1;
+		m_argstr = numstr;
+	}
+
+	return end+1;
+}
+
+int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool alloc_state)
+{
+	string val(str);
+	int32_t res = 0;
+
+	size_t basepos = sizeof("container.mount");
+
+	// container.mount. fields allow for indexing by number or source/dest mount path.
+	if(val.find("container.mount.") == 0)
+	{
+		// Note--basepos includes the trailing null, which is
+		// equivalent to the trailing '.' here.
+		if(val.find("source", basepos) == basepos)
+		{
+			m_field_id = TYPE_CONTAINER_MOUNT_SOURCE;
+		}
+		else if(val.find("dest", basepos) == basepos)
+		{
+			m_field_id = TYPE_CONTAINER_MOUNT_DEST;
+		}
+		else if(val.find("mode", basepos) == basepos)
+		{
+			m_field_id = TYPE_CONTAINER_MOUNT_MODE;
+		}
+		else if(val.find("rdwr", basepos) == basepos)
+		{
+			m_field_id = TYPE_CONTAINER_MOUNT_RDWR;
+		}
+		else if(val.find("propagation", basepos) == basepos)
+		{
+			m_field_id = TYPE_CONTAINER_MOUNT_PROPAGATION;
+		}
+		else
+		{
+			throw sinsp_exception("filter syntax error: " + val);
+		}
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg(val, basepos);
+	}
+	else if (val.find("container.mount") == 0 &&
+		 val[basepos-1] != 's')
+	{
+		m_field_id = TYPE_CONTAINER_MOUNT;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg(val, basepos-1);
+	}
+	else
+	{
+		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+	}
+
+	return res;
+}
+
 
 uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
@@ -5446,6 +5543,174 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
+	case TYPE_CONTAINER_PRIVILEGED:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
+
+			// Only return a true/false value for
+			// container types where we really know the
+			// privileged status.
+			if (container_info.m_type != sinsp_container_type::CT_DOCKER)
+			{
+				return NULL;
+			}
+
+			m_u32val = (container_info.m_privileged ? 1 : 0);
+		}
+
+		return (uint8_t*)&m_u32val;
+		break;
+	case TYPE_CONTAINER_MOUNTS:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
+
+			m_tstr = "";
+			bool first = true;
+			for(auto &mntinfo : container_info.m_mounts)
+			{
+				if(first)
+				{
+					first = false;
+				}
+				else
+				{
+					m_tstr += ",";
+				}
+
+				m_tstr += mntinfo.to_string();
+			}
+
+			*len = m_tstr.size();
+			return (uint8_t*)m_tstr.c_str();
+		}
+
+		break;
+	case TYPE_CONTAINER_MOUNT:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
+
+			sinsp_container_info::container_mount_info *mntinfo;
+
+			if(m_argid != -1)
+			{
+				mntinfo = container_info.mount_by_idx(m_argid);
+			}
+			else
+			{
+				mntinfo = container_info.mount_by_source(m_argstr);
+			}
+
+			if(!mntinfo)
+			{
+				return NULL;
+			}
+			else
+			{
+				m_tstr = mntinfo->to_string();
+			}
+
+			*len = m_tstr.size();
+			return (uint8_t*)m_tstr.c_str();
+		}
+
+		break;
+	case TYPE_CONTAINER_MOUNT_SOURCE:
+	case TYPE_CONTAINER_MOUNT_DEST:
+	case TYPE_CONTAINER_MOUNT_MODE:
+	case TYPE_CONTAINER_MOUNT_RDWR:
+	case TYPE_CONTAINER_MOUNT_PROPAGATION:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
+
+			sinsp_container_info::container_mount_info *mntinfo;
+
+			if(m_argid != -1)
+			{
+				mntinfo = container_info.mount_by_idx(m_argid);
+			}
+			else
+			{
+				if (m_field_id == TYPE_CONTAINER_MOUNT_SOURCE)
+				{
+					mntinfo = container_info.mount_by_dest(m_argstr);
+				}
+				else
+				{
+					mntinfo = container_info.mount_by_source(m_argstr);
+				}
+			}
+
+			if(!mntinfo)
+			{
+				return NULL;
+			}
+
+			switch (m_field_id)
+			{
+			case TYPE_CONTAINER_MOUNT_SOURCE:
+				m_tstr = mntinfo->m_source;
+				break;
+			case TYPE_CONTAINER_MOUNT_DEST:
+				m_tstr = mntinfo->m_dest;
+				break;
+			case TYPE_CONTAINER_MOUNT_MODE:
+				m_tstr = mntinfo->m_mode;
+				break;
+			case TYPE_CONTAINER_MOUNT_RDWR:
+				m_tstr = (mntinfo->m_rdwr ? "true" : "false");
+				break;
+			case TYPE_CONTAINER_MOUNT_PROPAGATION:
+				m_tstr = mntinfo->m_propagation;
+				break;
+			}
+
+			*len = m_tstr.size();
+			return (uint8_t*)m_tstr.c_str();
+		}
+		break;
+
 	default:
 		ASSERT(false);
 		break;
