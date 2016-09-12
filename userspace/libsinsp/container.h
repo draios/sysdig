@@ -102,7 +102,8 @@ public:
 		m_swap_limit(0),
 		m_cpu_shares(1024),
 		m_cpu_quota(0),
-		m_cpu_period(100000)
+		m_cpu_period(100000),
+		m_privileged(false)
 	{
 	}
 
