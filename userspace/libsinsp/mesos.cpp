@@ -98,7 +98,7 @@ void mesos::init_marathon()
 			g_logger.log("Found " + std::to_string(marathons.size()) + " Marathon URIs", sinsp_logger::SEV_DEBUG);
 			for(const auto& muri : marathons)
 			{
-				g_logger.log("Creating Marathon http objects: " + muri, sinsp_logger::SEV_INFO);
+				g_logger.log("Creating Marathon http objects: " + uri(muri).to_string(false), sinsp_logger::SEV_DEBUG);
 				m_marathon_groups_http[muri] = std::make_shared<marathon_http>(*this, muri + default_groups_api, discover_marathon, m_timeout_ms);
 				m_marathon_apps_http[muri]   = std::make_shared<marathon_http>(*this, muri + default_apps_api, discover_marathon, m_timeout_ms);
 			}
