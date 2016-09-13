@@ -195,9 +195,12 @@ function coreos_build_new {
 
 	cp /tmp/loop/usr/boot/config-* .
 	cp config-* config_orig
+	cp config_orig config
+	# https://groups.google.com/forum/#!topic/coreos-dev/Z8Q7sIy6YwE
+	sed -i 's/CONFIG_INITRAMFS_SOURCE=""/CONFIG_INITRAMFS_SOURCE="bootengine.cpio"\nCONFIG_INITRAMFS_ROOT_UID=0\nCONFIG_INITRAMFS_ROOT_GID=0/' config
 	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
 	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
-	HASH=$HASH_ORIG
+	HASH=$(md5sum config | cut -d' ' -f1)
 
 	cd $BASEDIR
 	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
