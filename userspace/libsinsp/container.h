@@ -98,12 +98,12 @@ public:
 
 	sinsp_container_info():
 		m_container_ip(0),
+		m_privileged(false),
 		m_memory_limit(0),
 		m_swap_limit(0),
 		m_cpu_shares(1024),
 		m_cpu_quota(0),
-		m_cpu_period(100000),
-		m_privileged(false)
+		m_cpu_period(100000)
 	{
 	}
 
