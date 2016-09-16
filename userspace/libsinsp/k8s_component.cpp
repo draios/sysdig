@@ -86,6 +86,10 @@ k8s_component::k8s_component(type comp_type, const std::string& name, const std:
 {
 }
 
+k8s_component::~k8s_component()
+{
+}
+
 k8s_pair_list k8s_component::extract_object(const Json::Value& object, const std::string& name)
 {
 	k8s_pair_list entry_list;
@@ -108,251 +112,36 @@ k8s_pair_list k8s_component::extract_object(const Json::Value& object, const std
 	return entry_list;
 }
 
-bool k8s_component::is_pod_active(const Json::Value& item)
+std::string k8s_component::get_name_u(type t)
 {
-	const Json::Value& status = item["status"];
-	if(!status.isNull())
+	switch (t)
 	{
-		const Json::Value& phase = status["phase"];
-		if(!phase.isNull() && phase.isString())
-		{
-			if(phase.asString() == "Running")
-			{
-				return true;
-			}
-		}
+	case K8S_NAMESPACES:
+		return "NAMESPACE";
+	case K8S_NODES:
+		return "NODE";
+	case K8S_PODS:
+		return "POD";
+	case K8S_REPLICATIONCONTROLLERS:
+		return "REPLICATIONCONTROLLER";
+	case K8S_REPLICASETS:
+		return "REPLICASET";
+	case K8S_SERVICES:
+		return "SERVICE";
+	case K8S_DAEMONSETS:
+		return "DAEMONSET";
+	case K8S_DEPLOYMENTS:
+		return "DEPLOYMENT";
+	case K8S_EVENTS:
+		return "EVENT";
+	case K8S_COMPONENT_COUNT:
+	default:
+		break;
 	}
-	return false;
-}
 
-std::vector<std::string> k8s_component::extract_pod_container_ids(const Json::Value& item)
-{
-	std::vector<std::string> container_list;
-	const Json::Value& status = item["status"];
-	if(!status.isNull())
-	{
-		const Json::Value& containers = status["containerStatuses"];
-		if(!containers.isNull())
-		{
-			for (auto& container : containers)
-			{
-				const Json::Value& container_id = container["containerID"];
-				if(!container_id.isNull())
-				{
-					container_list.emplace_back(container_id.asString());
-				}
-			}
-		}
-	}
-	return container_list;
-}
-
-size_t k8s_component::extract_pod_restart_count(const Json::Value& item)
-{
-	size_t restart_count = 0;
-	const Json::Value& status = item["status"];
-	if(!status.isNull())
-	{
-		const Json::Value& containers = status["containerStatuses"];
-		if(!containers.isNull())
-		{
-			for (auto& container : containers)
-			{
-				const Json::Value& rc = container["restartCount"];
-				if(!rc.isNull() && rc.isInt())
-				{
-					restart_count += rc.asInt();
-				}
-			}
-		}
-	}
-	return restart_count;
-}
-
-k8s_container::list k8s_component::extract_pod_containers(const Json::Value& item)
-{
-	k8s_container::list ext_containers;
-	const Json::Value& spec = item["spec"];
-	if(!spec.isNull())
-	{
-		const Json::Value& containers = spec["containers"];
-		if(!containers.isNull())
-		{
-			for (auto& container : containers)
-			{
-				std::string cont_name;
-				const Json::Value& name = container["name"];
-				if(!name.isNull()) { cont_name = name.asString(); }
-				else { return ext_containers; }
-
-				k8s_container::port_list cont_ports;
-				const Json::Value& ports = container["ports"];
-				for(const auto& port : ports)
-				{
-					k8s_container::port cont_port;
-					const Json::Value& name = port["name"];
-					if(!name.isNull())
-					{
-						cont_port.set_name(name.asString());
-					}
-					const Json::Value& cport = port["containerPort"];
-					if(!cport.isNull())
-					{
-						cont_port.set_port(cport.asUInt());
-					}
-					else
-					{
-						g_logger.log("Port not found, setting value to 0", sinsp_logger::SEV_WARNING);
-						cont_port.set_port(0);
-					}
-					const Json::Value& protocol = port["protocol"];
-					if(!protocol.isNull())
-					{
-						cont_port.set_protocol(protocol.asString());
-					}
-					else
-					{
-						std::string port_name = name.isNull() ? "[NO NAME]" : name.asString();
-						g_logger.log("Protocol not found for port: " + port_name, sinsp_logger::SEV_WARNING);
-					}
-					cont_ports.push_back(cont_port);
-				}
-				ext_containers.emplace_back(k8s_container(cont_name, cont_ports));
-			}
-		}
-	}
-	return ext_containers;
-}
-
-void k8s_component::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
-{
-	const Json::Value& spec = item["spec"];
-	if(!spec.isNull())
-	{
-		const Json::Value& node_name = spec["nodeName"];
-		if(!node_name.isNull())
-		{
-			std::string nn = node_name.asString();
-			if(!nn.empty())
-			{
-				pod.set_node_name(nn);
-			}
-		}
-		const Json::Value& status = item["status"];
-		if(!status.isNull())
-		{
-			const Json::Value& host_ip = status["hostIP"];
-			if(!host_ip.isNull())
-			{
-				std::string hip = host_ip.asString();
-				if(!hip.empty())
-				{
-					pod.set_host_ip(hip);
-				}
-			}
-			const Json::Value& pod_ip = status["podIP"];
-			if(!pod_ip.isNull())
-			{
-				std::string pip = pod_ip.asString();
-				if(!pip.empty())
-				{
-					pod.set_internal_ip(pip);
-				}
-			}
-		}
-	}
-}
-
-void k8s_component::extract_services_data(const Json::Value& spec, k8s_service_t& service, const k8s_pods& pods)
-{
-	if(!spec.isNull())
-	{
-		const Json::Value& cluster_ip = spec["clusterIP"];
-		if(!cluster_ip.isNull())
-		{
-			service.set_cluster_ip(cluster_ip.asString());
-		}
-
-		k8s_service_t::port_list pl;
-		const Json::Value& ports = spec["ports"];
-		if(!ports.isNull() && ports.isArray())
-		{
-			for (auto& port : ports)
-			{
-				k8s_service_t::net_port p;
-				const Json::Value& json_port = port["port"];
-				if(!json_port.isNull())
-				{
-					p.m_port = json_port.asUInt();
-				}
-
-				const Json::Value& json_protocol = port["protocol"];
-				if(!json_protocol.isNull())
-				{
-					p.m_protocol = json_protocol.asString();
-				}
-
-				const Json::Value& json_target_port = port["targetPort"];
-				if(!json_target_port.isNull())
-				{
-					if(json_target_port.isIntegral())
-					{
-						p.m_target_port = json_target_port.asUInt();
-					}
-					else if(json_target_port.isString())
-					{
-						std::string port_name = std::move(json_target_port.asString());
-						std::vector<const k8s_pod_t*> pod_subset = service.get_selected_pods(pods);
-						p.m_target_port = 0;
-						for(const auto& pod : pod_subset)
-						{
-							const k8s_container::list& containers = pod->get_containers();
-							for(const auto& container : containers)
-							{
-								const k8s_container::port* container_port = container.get_port(port_name);
-								if(container_port)
-								{
-									p.m_target_port = container_port->get_port();
-									break;
-								}
-								else
-								{
-									g_logger.log("Error while trying to determine port for service [" + service.get_name() + "]: "
-												"no ports found for container [" + container.get_name() + "]", sinsp_logger::SEV_ERROR);
-									p.m_target_port = 0;
-								}
-							}
-						}
-					}
-					else
-					{
-						g_logger.log("Port of unknown or unsupported type.", sinsp_logger::SEV_ERROR);
-						p.m_target_port = 0;
-					}
-				}
-
-				const Json::Value& json_node_port = port["nodePort"];
-				if(!json_node_port.isNull())
-				{
-					p.m_node_port = json_node_port.asUInt();
-				}
-
-				if(p.m_port && p.m_target_port)
-				{
-					pl.push_back(p);
-				}
-				else
-				{
-					// log warning
-				}
-			}
-		}
-
-		if(pl.size())
-		{
-			service.set_port_list(std::move(pl));
-		}
-	}
+	std::ostringstream os;
+	os << "Unknown component type " << static_cast<int>(t);
+	throw sinsp_exception(os.str().c_str());
 }
 
 std::string k8s_component::get_name(type t)
@@ -785,12 +574,18 @@ std::vector<const k8s_pod_t*> k8s_rc_t::get_selected_pods(const std::vector<k8s_
 	std::vector<const k8s_pod_t*> pod_vec;
 	for(const auto& pod : pods)
 	{
-		if (selectors_in_labels(pod.get_labels()) && get_namespace() == pod.get_namespace())
+		if(selectors_in_labels(pod.get_labels()) && get_namespace() == pod.get_namespace())
 		{
 			pod_vec.push_back(&pod);
 		}
 	}
 	return pod_vec;
+}
+
+void k8s_rc_t::set_replicas(int spec, int stat)
+{
+	set_spec_replicas(spec);
+	set_stat_replicas(stat);
 }
 
 //

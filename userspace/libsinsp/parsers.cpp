@@ -4032,6 +4032,42 @@ uint8_t* sinsp_parser::reserve_event_buffer()
 	}
 }
 
+int sinsp_parser::get_k8s_version(const std::string& json)
+{
+	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)
+	{
+		g_logger.log(json, sinsp_logger::SEV_DEBUG);
+		Json::Value root;
+		if(Json::Reader().parse(json, root))
+		{
+			const Json::Value& items = root["items"]; // new
+			if(!items.isNull())
+			{
+				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
+							 sinsp_logger::SEV_DEBUG);
+				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_2;
+				return m_k8s_capture_version;
+			}
+
+			const Json::Value& object = root["object"]; // old
+			if(!object.isNull())
+			{
+				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
+							 sinsp_logger::SEV_DEBUG);
+				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_1;
+				return m_k8s_capture_version;
+			}
+			throw sinsp_exception("Unrecognized K8s capture format.");
+		}
+		else
+		{
+			throw sinsp_exception("Invalid K8s capture JSON encountered.");
+		}
+	}
+
+	return m_k8s_capture_version;
+}
+
 void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo = evt->get_param(0);
@@ -4040,8 +4076,22 @@ void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 	std::string json(parinfo->m_val, parinfo->m_len);
 	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
 	ASSERT(m_inspector);
-	ASSERT(m_inspector->m_k8s_client);
-	m_inspector->m_k8s_client->simulate_watch_event(json);
+	if(!m_inspector)
+	{
+		throw sinsp_exception("Inspector is null, K8s client can not be created.");
+	}
+	if(!m_inspector->m_k8s_client)
+	{
+		m_inspector->make_k8s_client();
+	}
+	if(m_inspector->m_k8s_client)
+	{
+		m_inspector->m_k8s_client->simulate_watch_event(std::move(json), get_k8s_version(json));
+	}
+	else
+	{
+		throw sinsp_exception("K8s client can not be created.");
+	}
 }
 
 void sinsp_parser::parse_mesos_evt(sinsp_evt *evt)

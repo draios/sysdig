@@ -52,7 +52,7 @@ private:
 	static const std::string DOCKER_SOCKET_FILE;
 	void connect();
 	void send_event_data_request();
-	void check_collector_status(int expected);
+	void check_collector_status();
 
 	void handle_event(Json::Value&& root);
 
@@ -73,7 +73,7 @@ private:
 				http->set_json_callback(func);
 				m_collector.add(http);
 			}
-			check_collector_status(expected_connections);
+			check_collector_status();
 			return m_collector.has(http);
 		}
 		return false;
