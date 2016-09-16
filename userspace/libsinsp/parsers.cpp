@@ -3948,6 +3948,11 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_image = image.asString();
 		}
+		const Json::Value& image_id = container["image_id"];
+		if(!image_id.isNull() && image_id.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_image_id = image_id.asString();
+		}
 		const Json::Value& privileged = container["privileged"];
 		if(!privileged.isNull() && privileged.isConvertibleTo(Json::booleanValue))
 		{

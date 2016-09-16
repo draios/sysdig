@@ -5322,7 +5322,8 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "the container id."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "the container name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image name (e.g. sysdig/sysdig:latest for docker, )."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.id", "the container image id (e.g. 6f7e2741b66b)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"},
 	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "true for containers running as privileged, false otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mounts", "A space-separated list of mount information. Each item in the list has the format <source>:<dest>:<mode>:<rdrw>:<propagation>"},
@@ -5502,6 +5503,30 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			}
 
 			m_tstr = container_info.m_image;
+		}
+
+		*len = m_tstr.size();
+		return (uint8_t*)m_tstr.c_str();
+	case TYPE_CONTAINER_IMAGE_ID:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(!found)
+			{
+				return NULL;
+			}
+
+			if(container_info.m_image_id.empty())
+			{
+				return NULL;
+			}
+
+			m_tstr = container_info.m_image_id;
 		}
 
 		*len = m_tstr.size();

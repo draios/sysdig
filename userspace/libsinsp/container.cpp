@@ -460,6 +460,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["type"] = container_info.m_type;
 	container["name"] = container_info.m_name;
 	container["image"] = container_info.m_image;
+	container["image_id"] = container_info.m_image_id;
 	container["privileged"] = container_info.m_privileged;
 
 	Json::Value mounts = Json::arrayValue;
@@ -592,6 +593,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	const Json::Value& config_obj = root["Config"];
 
 	container->m_image = config_obj["Image"].asString();
+	container->m_image_id = root["Image"].asString();
 	container->m_name = root["Name"].asString();
 
 	if(!container->m_name.empty() && container->m_name[0] == '/')
