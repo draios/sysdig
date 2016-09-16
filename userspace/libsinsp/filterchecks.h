@@ -898,6 +898,10 @@ public:
 		TYPE_K8S_NS_ID,
 		TYPE_K8S_NS_LABEL,
 		TYPE_K8S_NS_LABELS,
+		TYPE_K8S_RS_NAME,
+		TYPE_K8S_RS_ID,
+		TYPE_K8S_RS_LABEL,
+		TYPE_K8S_RS_LABELS,
 	};
 
 	sinsp_filter_check_k8s();
@@ -910,6 +914,7 @@ private:
 	const k8s_pod_t* find_pod_for_thread(const sinsp_threadinfo* tinfo);
 	const k8s_ns_t* find_ns_by_name(const string& ns_name);
 	const k8s_rc_t* find_rc_by_pod(const k8s_pod_t* pod);
+	const k8s_rs_t* find_rs_by_pod(const k8s_pod_t* pod);
 	vector<const k8s_service_t*> find_svc_by_pod(const k8s_pod_t* pod);
 	void concatenate_labels(const k8s_pair_list& labels, string* s);
 	bool find_label(const k8s_pair_list& labels, const string& key, string* value);

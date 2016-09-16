@@ -25,8 +25,13 @@ public:
 	typedef std::unordered_map<std::string, const k8s_pod_t*>          container_pod_map;
 	typedef std::unordered_multimap<std::string, const k8s_service_t*> pod_service_map;
 	typedef std::unordered_map<std::string, const k8s_rc_t*>           pod_rc_map;
+	typedef std::unordered_map<std::string, const k8s_rs_t*>           pod_rs_map;
 
-	k8s_state_t(bool is_captured = false);
+	static const int CAPTURE_VERSION_NONE = -1;
+	static const int CAPTURE_VERSION_1 = 1;
+	static const int CAPTURE_VERSION_2 = 2;
+
+	k8s_state_t(bool is_captured = false, int capture_version = CAPTURE_VERSION_2);
 
 	//
 	// namespaces
@@ -140,6 +145,11 @@ public:
 		return false;
 	}
 
+	bool has(const std::string& uid) const
+	{
+		return get_component(uid) != nullptr;
+	}
+
 	// Returns a pointer to existing component, if it exists.
 	// If component does not exist, it returns null pointer.
 	template <typename C, typename T>
@@ -235,8 +245,11 @@ public:
 	const container_pod_map& get_container_pod_map() const { return m_container_pods; }
 	const pod_service_map& get_pod_service_map() const { return m_pod_services; }
 	const pod_rc_map& get_pod_rc_map() const { return m_pod_rcs; }
+	const pod_rs_map& get_pod_rs_map() const { return m_pod_rss; }
 
 #ifdef HAS_CAPTURE
+	void set_capture_version(int version);
+	int get_capture_version() const;
 	typedef std::deque<std::string> event_list_t;
 	const event_list_t& get_capture_events() const { return m_capture_events; }
 	void enqueue_capture_event(const Json::Value& item);
@@ -280,25 +293,7 @@ private:
 		return false;
 	}
 
-	void cache_pod(container_pod_map& map, const std::string& id, const k8s_pod_t* pod)
-	{
-		ASSERT(pod);
-		ASSERT(!pod->get_name().empty());
-		std::string::size_type pos = id.find(m_docker_prefix);
-		if (pos == 0)
-		{
-			map[id.substr(m_docker_prefix.size(), m_id_length)] = pod;
-			return;
-		}
-		pos = id.find(m_rkt_prefix);
-		if( pos == 0)
-		{
-			map[id.substr(m_rkt_prefix.size())] = pod;
-			return;
-		}
-		throw sinsp_exception("Invalid container ID (expected '" + m_docker_prefix +
-							  "{ID}' or '" + m_rkt_prefix + "{ID}'): " + id);
-	}
+	void cache_pod(container_pod_map& map, const std::string& id, const k8s_pod_t* pod);
 
 	template<typename C>
 	void cache_component(C& map, const std::string& key, typename C::mapped_type component)
@@ -323,6 +318,7 @@ private:
 	container_pod_map& get_container_pod_map() { return m_container_pods; }
 	pod_service_map& get_pod_service_map() { return m_pod_services; }
 	pod_rc_map& get_pod_rc_map() { return m_pod_rcs; }
+	pod_rs_map& get_pod_rs_map() { return m_pod_rss; }
 
 	static const std::string m_docker_prefix; // "docker://"
 	static const std::string m_rkt_prefix; // "rkt://"
@@ -331,6 +327,7 @@ private:
 	container_pod_map        m_container_pods;
 	pod_service_map          m_pod_services;
 	pod_rc_map               m_pod_rcs;
+	pod_rs_map               m_pod_rss;
 #ifdef HAS_CAPTURE
 	event_list_t             m_capture_events;
 #endif // HAS_CAPTURE
@@ -350,8 +347,10 @@ private:
 	// used by to quickly lookup any component by uid
 	component_map_t m_component_map;
 	bool            m_is_captured;
+	int             m_capture_version = -1;
 
 	friend class k8s_dispatcher;
+	friend class k8s_handler;
 	friend class k8s;
 };
 
@@ -588,4 +587,21 @@ inline void k8s_state_t::add_last_pod_container_id(std::string&& container_id)
 	{
 		m_pods.back().emplace_container_id(std::move(container_id));
 	}
+}
+
+inline void k8s_state_t::set_capture_version(int version)
+{
+	if(version != CAPTURE_VERSION_NONE &&
+	   version != CAPTURE_VERSION_1 &&
+	   version != CAPTURE_VERSION_2)
+	{
+		throw sinsp_exception(std::string("K8s invalid capture version (") +
+							  std::to_string(version) + ')');
+	}
+	m_capture_version = version;
+}
+
+inline int k8s_state_t::get_capture_version() const
+{
+	return m_capture_version;
 }

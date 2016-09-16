@@ -32,13 +32,24 @@ add_library(sinsp STATIC
 	ifinfo.cpp
 	json_query.cpp
 	k8s.cpp
-	k8s_collector.cpp
+	k8s_api_error.cpp
+	k8s_api_handler.cpp
 	k8s_component.cpp
-	k8s_state.cpp
+	k8s_daemonset_handler.cpp
+	k8s_deployment_handler.cpp
 	k8s_dispatcher.cpp
 	k8s_event_data.cpp
-	k8s_http.cpp
+	k8s_event_handler.cpp
+	k8s_handler.cpp
+	k8s_namespace_handler.cpp
 	k8s_net.cpp
+	k8s_node_handler.cpp
+	k8s_pod_handler.cpp
+	k8s_pod_handler.cpp
+	k8s_replicationcontroller_handler.cpp
+	k8s_replicaset_handler.cpp
+	k8s_service_handler.cpp
+	k8s_state.cpp
 	lua_parser.cpp
 	lua_parser_api.cpp
 	marathon_component.cpp
@@ -59,6 +70,7 @@ add_library(sinsp STATIC
 	sinsp.cpp
 	stats.cpp
 	table.cpp
+	sinsp_auth.cpp
 	sinsp_curl.cpp
 	uri_parser.c
 	uri.cpp
@@ -83,7 +95,8 @@ if(NOT WIN32)
 			"${CURL_LIBRARIES}"
 			"${OPENSSL_LIBRARY_SSL}"
 			"${OPENSSL_LIBRARY_CRYPTO}"
-            rt)
+			rt
+			anl)
 	endif()
 
 	target_link_libraries(sinsp
