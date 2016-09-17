@@ -524,14 +524,14 @@ void mesos_http::handle_json(std::string::size_type end_pos, bool chunked)
 				(m_mesos.*m_callback_func)(try_parse(m_data_buf), m_framework_id);
 			}
 			m_data_buf.clear();
-			m_content_length = string::npos;
+			m_content_length = std::string::npos;
 		}
 	}
 }
 
 bool mesos_http::detect_chunked_transfer(const std::string& data)
 {
-	if(m_content_length == string::npos)
+	if(m_content_length == std::string::npos)
 	{
 		std::string::size_type cl_pos = data.find("Content-Length:");
 		if(cl_pos != std::string::npos)
@@ -552,7 +552,7 @@ bool mesos_http::detect_chunked_transfer(const std::string& data)
 				}
 				else
 				{
-					m_content_length = static_cast<string::size_type>(len);
+					m_content_length = static_cast<std::string::size_type>(len);
 				}
 			}
 		}
@@ -581,7 +581,7 @@ void mesos_http::extract_data(std::string& data)
 	{
 		m_data_buf.append(data);
 	}
-	bool chunked = (m_content_length == string::npos);
+	bool chunked = (m_content_length == std::string::npos);
 	if(chunked)
 	{
 		handle_json(m_data_buf.find("}\r\n0"), true);
@@ -609,7 +609,7 @@ bool mesos_http::on_data()
 		int loop_counter = 0;
 		do
 		{
-			size_t iolen = 0;
+			ssize_t iolen = 0;
 			int count = 0;
 			int ioret = 0;
 			ioret = ioctl(m_watch_socket, FIONREAD, &count);
@@ -622,7 +622,8 @@ bool mesos_http::on_data()
 				iolen = recv(m_watch_socket, &buf[0], count, 0);
 				if(iolen > 0)
 				{
-					data.append(&buf[0], iolen <= buf.size() ? iolen : buf.size());
+					ssize_t buf_size = static_cast<ssize_t>(buf.size());
+					data.append(&buf[0], iolen <= buf_size ? iolen : buf_size);
 				}
 				else if(iolen == 0) { goto connection_closed; }
 				else if(iolen < 0) { goto connection_error; }
