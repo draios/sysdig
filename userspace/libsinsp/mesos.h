@@ -35,11 +35,13 @@ public:
 	static const std::string default_watch_api;
 	static const int default_timeout_ms;
 
+	// constructor for testing only, not to be used in production
+	mesos(const std::string& mesos_state_json,
+		const std::string& marathon_groups_json,
+		const std::string& marathon_apps_json);
+
 	mesos(const std::string& state_uri,
-		const std::string& state_api = default_state_api,
 		const uri_list_t& marathon_uris = uri_list_t(),
-		const std::string& groups_api = "",
-		const std::string& apps_api = "",
 		bool discover_mesos_leader = false,
 		int timeout_ms = default_timeout_ms,
 		bool is_captured = false,
@@ -122,7 +124,7 @@ private:
 	void add_slave(const Json::Value& framework);
 
 	void check_frameworks(const json_ptr_t& json);
-	void set_state_json(json_ptr_t json, const std::string&);
+	void set_state_json(json_ptr_t json, const std::string& dummy = "");
 	void parse_state(Json::Value&& root);
 	void parse_state(json_ptr_t json, const std::string&);
 	void set_marathon_groups_json(json_ptr_t json, const std::string& framework_id);
@@ -147,6 +149,7 @@ private:
 	time_t          m_last_mesos_refresh = 0;
 	time_t          m_last_marathon_refresh = 0;
 	bool            m_json_error = false;
+	bool            m_testing = false;
 
 	typedef std::unordered_set<std::string> framework_list_t;
 	framework_list_t m_inactive_frameworks;
@@ -166,7 +169,14 @@ inline const mesos_state_t& mesos::get_state() const
 inline bool mesos::has_marathon() const
 {
 #ifdef HAS_CAPTURE
-	return m_marathon_groups_http.size() || m_marathon_apps_http.size();
+	if(m_testing)
+	{
+		return true;
+	}
+	else
+	{
+		return m_marathon_groups_http.size() || m_marathon_apps_http.size();
+	}
 #else
 	return false;
 #endif

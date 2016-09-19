@@ -29,11 +29,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "sinsp_auth.h"
 #include "filter.h"
 #include "filterchecks.h"
 #include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
+
+#include "k8s_api_handler.h"
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
@@ -981,10 +984,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		m_thread_manager->remove_inactive_threads();
 		m_container_manager.remove_inactive_containers();
 
-		if(m_k8s_client)
-		{
-			update_kubernetes_state();
-		}
+		update_k8s_state();
 
 		if(m_mesos_client)
 		{
@@ -1685,15 +1685,93 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 		}
 
 		bool is_live = !m_mesos_api_server.empty();
-		m_mesos_client = new mesos(m_mesos_api_server, mesos::default_state_api,
+		m_mesos_client = new mesos(m_mesos_api_server,
 									m_marathon_api_server,
-									mesos::default_groups_api,
-									mesos::default_apps_api,
 									m_marathon_api_server.empty(), // leader auto-follow if no uri
 									mesos::default_timeout_ms,
 									is_live,
 									m_verbose_json);
 	}
+}
+
+void sinsp::init_k8s_ssl(string* api_server, string* ssl_cert)
+{
+#ifdef HAS_CAPTURE
+	if(ssl_cert && (!m_k8s_ssl || ! m_k8s_bt))
+	{
+		std::string cert;
+		std::string key;
+		std::string key_pwd;
+		std::string ca_cert;
+
+		// -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]
+		std::string::size_type pos = ssl_cert->find(':');
+		if(pos == std::string::npos) // ca_cert-only is obsoleted, single entry is now bearer token
+		{
+			m_k8s_bt = std::make_shared<sinsp_bearer_token>(*ssl_cert);
+			ssl_cert->clear();
+		}
+		else
+		{
+			while(ssl_cert->length())
+			{
+				if(cert.empty() && pos != std::string::npos)
+				{
+					cert = ssl_cert->substr(0, pos);
+					if(ssl_cert->length() > (pos + 1))
+					{
+						*ssl_cert = ssl_cert->substr(pos + 1);
+					}
+					else { break; }
+				}
+				else if(key.empty())
+				{
+					key = ssl_cert->substr(0, pos);
+					if(ssl_cert->length() > (pos + 1))
+					{
+						*ssl_cert = ssl_cert->substr(pos + 1);
+						std::string::size_type s_pos = key.find('#');
+						if(s_pos != std::string::npos && key.length() > (s_pos + 1))
+						{
+							key_pwd = key.substr(s_pos + 1);
+							key = key.substr(0, s_pos);
+						}
+						if(pos == std::string::npos) { break; }
+					}
+					else { break; }
+				}
+				else if(ca_cert.empty())
+				{
+					ca_cert = *ssl_cert;
+					ssl_cert->clear();
+				}
+				else { goto ssl_err; }
+				pos = ssl_cert->find(':', pos);
+			}
+			if(cert.empty() || key.empty()) { goto ssl_err; }
+		}
+		m_k8s_ssl = std::make_shared<sinsp_ssl>(cert, key, key_pwd,
+					ca_cert, ca_cert.empty() ? false : true, "PEM");
+	}
+	return;
+
+ssl_err:
+	throw sinsp_exception(string("Invalid K8S SSL entry: ") + (ssl_cert ? *ssl_cert : string("NULL")));
+#endif // HAS_CAPTURE
+}
+
+void sinsp::make_k8s_client()
+{
+	bool is_live = m_k8s_api_server && !m_k8s_api_server->empty();
+	m_k8s_client = new k8s(m_k8s_api_server ? *m_k8s_api_server : std::string()
+		,is_live // capture
+#ifdef HAS_CAPTURE
+		,m_k8s_ssl
+		,m_k8s_bt
+#endif // HAS_CAPTURE
+		,nullptr
+		,m_ext_list_ptr
+	);
 }
 
 void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
@@ -1703,114 +1781,173 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 	m_k8s_api_server = api_server;
 	m_k8s_api_cert = ssl_cert;
 
-	if(m_k8s_client == NULL)
+	if(m_k8s_api_detected && m_k8s_ext_detect_done)
 	{
-#ifdef HAS_CAPTURE
-		std::shared_ptr<sinsp_curl::ssl> k8s_ssl;
-		std::shared_ptr<sinsp_curl::bearer_token> k8s_bt;
-
-		if(ssl_cert)
+		if(m_k8s_client)
 		{
-			std::string cert;
-			std::string key;
-			std::string key_pwd;
-			std::string ca_cert;
-
-			// -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]
-			std::string::size_type pos = ssl_cert->find(':');
-			if(pos == std::string::npos) // ca_cert-only is obsoleted, single entry is now bearer token
-			{
-				k8s_bt = std::make_shared<sinsp_curl::bearer_token>(*ssl_cert);
-				ssl_cert->clear();
-			}
-			else
-			{
-				while(ssl_cert->length())
-				{
-					if(cert.empty() && pos != std::string::npos)
-					{
-						cert = ssl_cert->substr(0, pos);
-						if(ssl_cert->length() > (pos + 1))
-						{
-							*ssl_cert = ssl_cert->substr(pos + 1);
-						}
-						else { break; }
-					}
-					else if(key.empty())
-					{
-						key = ssl_cert->substr(0, pos);
-						if(ssl_cert->length() > (pos + 1))
-						{
-							*ssl_cert = ssl_cert->substr(pos + 1);
-							std::string::size_type s_pos = key.find('#');
-							if(s_pos != std::string::npos && key.length() > (s_pos + 1))
-							{
-								key_pwd = key.substr(s_pos + 1);
-								key = key.substr(0, s_pos);
-							}
-							if(pos == std::string::npos) { break; }
-						}
-						else { break; }
-					}
-					else if(ca_cert.empty())
-					{
-						ca_cert = *ssl_cert;
-						ssl_cert->clear();
-					}
-					else { goto ssl_err; }
-					pos = ssl_cert->find(':', pos);
-				}
-				if(cert.empty() || key.empty()) { goto ssl_err; }
-			}
-			k8s_ssl = std::make_shared<sinsp_curl::ssl>(cert, key, key_pwd,
-						ca_cert, ca_cert.empty() ? false : true, "PEM");
+			delete m_k8s_client;
+			m_k8s_client = nullptr;
 		}
-#endif // HAS_CAPTURE
-		bool is_live = !m_k8s_api_server->empty();
-		m_k8s_client = new k8s(*m_k8s_api_server,
-			is_live ? true : false, // watch
-			false, // don't run watch in thread
-			is_live ? true : false // capture
-#ifdef HAS_CAPTURE
-			,k8s_ssl
-			,k8s_bt
-#endif // HAS_CAPTURE
-		);
+		init_k8s_ssl(api_server, ssl_cert);
+		make_k8s_client();
 	}
-
-	return;
-
-#ifdef HAS_CAPTURE
-ssl_err:
-	throw sinsp_exception(string("Invalid K8S SSL entry: ") + (ssl_cert ? *ssl_cert : string("NULL")));
-#endif // HAS_CAPTURE
 }
 
-void sinsp::update_kubernetes_state()
+void sinsp::collect_k8s()
 {
-	ASSERT(m_k8s_client);
 	if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
 	{
 		m_k8s_last_watch_time_ns = m_lastevent_ts;
 
-		if(m_parser && m_k8s_client->is_alive())
+		if(m_parser && m_k8s_client && m_k8s_client->is_alive())
 		{
 			uint64_t delta = sinsp_utils::get_current_time_ns();
-
 			m_k8s_client->watch();
 			m_parser->schedule_k8s_events(&m_meta_evt);
-
 			delta = sinsp_utils::get_current_time_ns() - delta;
-
 			g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
 		}
 		else
 		{
-			g_logger.format(sinsp_logger::SEV_WARNING, "Kubernetes connection not active anymore, retrying");
-			delete m_k8s_client;
-			m_k8s_client = NULL;
+			if(m_k8s_client)
+			{
+				g_logger.log("Kubernetes connection not active anymore, retrying", sinsp_logger::SEV_WARNING);
+				delete m_k8s_client;
+				m_k8s_client = nullptr;
+			}
 			init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
 		}
+	}
+}
+
+void sinsp::k8s_discover_ext()
+{
+	try
+	{
+		if(m_k8s_api_server && !m_k8s_api_server->empty() && !m_k8s_ext_detect_done)
+		{
+			g_logger.log("K8s API extensions handler: detecting extensions.", sinsp_logger::SEV_TRACE);
+			if(!m_k8s_ext_handler)
+			{
+				if(!m_k8s_collector)
+				{
+					m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
+				}
+				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert); }
+				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
+															"/apis/extensions/v1beta1", "[.resources[].name]",
+															"1.0", m_k8s_ssl, m_k8s_bt));
+				g_logger.log("K8s API extensions handler: collector created.", sinsp_logger::SEV_TRACE);
+			}
+			else
+			{
+				g_logger.log("K8s API extensions handler: collecting data.", sinsp_logger::SEV_TRACE);
+				m_k8s_ext_handler->collect_data();
+				if(m_k8s_ext_handler->ready())
+				{
+					g_logger.log("K8s API extensions handler: data received.", sinsp_logger::SEV_TRACE);
+					if(m_k8s_ext_handler->error())
+					{
+						g_logger.log("K8s API extensions handler: data error occurred while detecting API extensions.",
+									 sinsp_logger::SEV_WARNING);
+						m_ext_list_ptr.reset();
+					}
+					else
+					{
+						const k8s_api_handler::api_list_t& exts = m_k8s_ext_handler->extensions();
+						std::ostringstream ostr;
+						k8s_ext_list_t ext_list;
+						for(const auto& ext : exts)
+						{
+							ext_list.insert(ext);
+							ostr << std::endl << ext;
+						}
+						g_logger.log("K8s API extensions handler extensions found: " + ostr.str(),
+									 sinsp_logger::SEV_DEBUG);
+						m_ext_list_ptr.reset(new k8s_ext_list_t(ext_list));
+					}
+					m_k8s_ext_detect_done = true;
+					m_k8s_collector.reset();
+					m_k8s_ext_handler.reset();
+				}
+				else
+				{
+					g_logger.log("K8s API extensions handler: not ready.", sinsp_logger::SEV_TRACE);
+				}
+			}
+		}
+	}
+	catch(std::exception& ex)
+	{
+		g_logger.log(std::string("K8s API extensions handler error: ").append(ex.what()),
+					 sinsp_logger::SEV_ERROR);
+		m_k8s_ext_detect_done = false;
+		m_k8s_collector.reset();
+		m_k8s_ext_handler.reset();
+	}
+}
+
+void sinsp::update_k8s_state()
+{
+	try
+	{
+		if(m_k8s_api_server && !m_k8s_api_server->empty())
+		{
+			if(!m_k8s_api_detected)
+			{
+				if(!m_k8s_api_handler)
+				{
+					if(!m_k8s_collector)
+					{
+						m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
+					}
+					if(uri(*m_k8s_api_server).is_secure() && (!m_k8s_ssl || ! m_k8s_bt))
+					{
+						init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert);
+					}
+					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
+																"/api", ".versions", "1.0",
+																m_k8s_ssl, m_k8s_bt));
+				}
+				else
+				{
+					m_k8s_api_handler->collect_data();
+					if(m_k8s_api_handler->ready())
+					{
+						g_logger.log("K8s API handler data received.", sinsp_logger::SEV_DEBUG);
+						if(m_k8s_api_handler->error())
+						{
+							g_logger.log("K8s API handler data error occurred while detecting API versions.",
+										 sinsp_logger::SEV_ERROR);
+						}
+						else
+						{
+							m_k8s_api_detected = m_k8s_api_handler->has("v1");
+						}
+						m_k8s_collector.reset();
+						m_k8s_api_handler.reset();
+					}
+					else
+					{
+						g_logger.log("K8s API handler not ready yet.", sinsp_logger::SEV_DEBUG);
+					}
+				}
+			}
+			if(m_k8s_api_detected && !m_k8s_ext_detect_done)
+			{
+				k8s_discover_ext();
+			}
+			if(m_k8s_api_detected && m_k8s_ext_detect_done)
+			{
+				collect_k8s();
+			}
+		}
+	}
+	catch(std::exception& e)
+	{
+		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
+		delete m_k8s_client;
+		m_k8s_client = nullptr;
 	}
 }
 

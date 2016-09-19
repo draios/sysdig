@@ -523,13 +523,22 @@ public:
 					{
 						if(m_viz != NULL)
 						{
-							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-							if(res.first != NULL)
+							sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+
+							//
+							// Note: kinfo is null for list views, that currently don't support
+							//       drill down
+							//
+							if(kinfo != NULL)
 							{
-								drilldown(get_selected_view()->get_key()->get_filter_field(m_view_depth),
-									res.second.c_str(), 
-									get_selected_view()->get_key(),
-									res.first);
+								auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+								if(res.first != NULL)
+								{
+									drilldown(kinfo->get_filter_field(m_view_depth),
+										res.second.c_str(), 
+										kinfo,
+										res.first);
+								}
 							}
 						}
 						else
@@ -545,13 +554,22 @@ public:
 				case STA_SPECTRO:
 				case STA_SPECTRO_FILE:
 					{
-						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						if(res.first != NULL)
+						sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+
+						//
+						// Note: kinfo is null for list views, that currently don't support
+						//       drill down
+						//
+						if(kinfo != NULL)
 						{
-							spectro_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
-								res.second.c_str(),
-								get_selected_view()->get_key(),
-								res.first, ta);
+							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+							if(res.first != NULL)
+							{
+								spectro_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+									res.second.c_str(),
+									get_selected_view()->get_key(),
+									res.first, ta);
+							}
 						}
 					}
 					return false;
