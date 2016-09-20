@@ -64,7 +64,7 @@ public:
 		m_json_begin("\r\n{"),
 		m_json_end(m_http_version == HTTP_VERSION_10 ? "}\r\n" : "}\r\n0")
 	{
-		g_logger.log(std::string("Creating Socket handler object for (" + id + ") [" + url + ']'), sinsp_logger::SEV_DEBUG);
+		g_logger.log(std::string("Creating Socket handler object for (" + id + ") [" + uri(url).to_string(false) + ']'), sinsp_logger::SEV_DEBUG);
 	}
 
 	virtual ~socket_data_handler()
@@ -1098,7 +1098,7 @@ private:
 
 	bool is_resolved() const
 	{
-		return !m_address.empty() && m_sa && m_sa_len;
+		return (!m_address.empty() && m_sa && m_sa_len) || m_url.is_file();
 	}
 
 	bool try_resolve()
