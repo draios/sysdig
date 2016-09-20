@@ -1645,7 +1645,8 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 		bool is_live = !m_mesos_api_server.empty();
 		m_mesos_client = new mesos(m_mesos_api_server,
 									m_marathon_api_server,
-									m_marathon_api_server.empty(), // leader auto-follow if no uri
+									true, // mesos leader auto-follow
+									m_marathon_api_server.empty(), // marathon leader auto-follow if no uri
 									mesos::default_timeout_ms,
 									is_live,
 									m_verbose_json);

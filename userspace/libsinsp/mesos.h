@@ -43,6 +43,7 @@ public:
 	mesos(const std::string& state_uri,
 		const uri_list_t& marathon_uris = uri_list_t(),
 		bool discover_mesos_leader = false,
+		bool discover_marathon_leader = false,
 		int timeout_ms = default_timeout_ms,
 		bool is_captured = false,
 		bool verbose = false);
@@ -143,13 +144,15 @@ private:
 	bool          m_verbose = false;
 
 	typedef std::map<std::string, json_ptr_t> json_map_type_t;
-	json_ptr_t      m_mesos_state_json;
-	json_map_type_t m_marathon_groups_json;
-	json_map_type_t m_marathon_apps_json;
-	time_t          m_last_mesos_refresh = 0;
-	time_t          m_last_marathon_refresh = 0;
-	bool            m_json_error = false;
-	bool            m_testing = false;
+	json_ptr_t         m_mesos_state_json;
+	json_map_type_t    m_marathon_groups_json;
+	json_map_type_t    m_marathon_apps_json;
+	time_t             m_last_mesos_refresh = 0;
+	time_t             m_last_marathon_refresh = 0;
+	bool               m_json_error = false;
+	bool               m_testing = false;
+	uri::credentials_t m_mesos_credentials;
+	uri::credentials_t m_marathon_credentials;
 
 	typedef std::unordered_set<std::string> framework_list_t;
 	framework_list_t m_inactive_frameworks;

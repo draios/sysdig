@@ -17,6 +17,8 @@
 class uri
 {
 public:
+	typedef std::pair<std::string, std::string> credentials_t;
+
 	static const std::string SPECIAL_CHARS;
 	static const std::string AMBIGUOUS_CHARS;
 
@@ -36,6 +38,8 @@ public:
 	bool is_file() const;
 	bool is_secure() const;
 	std::string get_credentials() const;
+	credentials_t& get_credentials(credentials_t& creds) const;
+	void set_credentials(const credentials_t& cred);
 
 	std::string to_string(bool show_creds = true) const;
 	bool is_local() const;
@@ -104,6 +108,12 @@ inline bool uri::is_secure() const
 	return m_scheme == "https";
 }
 
+inline void uri::set_credentials(const credentials_t& cred)
+{
+	m_user = cred.first;
+	m_password = cred.second;
+}
+
 inline std::string uri::get_credentials() const
 {
 	std::string creds;
@@ -111,6 +121,13 @@ inline std::string uri::get_credentials() const
 	{
 		creds.append(m_user).append(1, ':').append(m_password);
 	}
+	return creds;
+}
+
+inline uri::credentials_t& uri::get_credentials(credentials_t& creds) const
+{
+	creds.first = m_user;
+	creds.second = m_password;
 	return creds;
 }
 
