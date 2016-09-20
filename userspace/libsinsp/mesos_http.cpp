@@ -142,23 +142,28 @@ void mesos_http::discover_mesos_leader()
 						std::string::size_type pos = address.find('@');
 						if(pos != std::string::npos && (pos + 1) < address.size())
 						{
-							address = std::string("http://").append(address.substr(pos + 1)).append(mesos::default_state_api);
-							if(address != m_url.to_string())
+							address = "http://";//.append(address.substr(pos + 1)).append(mesos::default_state_api);
+							if(!m_mesos.m_mesos_credentials.first.empty())
 							{
-								g_logger.log("Detected Mesos master leader redirect: [" + address + ']', sinsp_logger::SEV_INFO);
+								address.append(m_mesos.m_mesos_credentials.first).append(1, ':').append(m_mesos.m_mesos_credentials.second).append(1, '@');
+							}
+							address.append(address.substr(pos + 1)).append(mesos::default_state_api);
+							if(address != m_url.to_string(true))
+							{
+								g_logger.log("Detected Mesos master leader redirect: [" + uri(address).to_string(false) + ']', sinsp_logger::SEV_INFO);
 								m_url = address;
 								discover_mesos_leader();
 							}
 							else
 							{
-								throw sinsp_exception("Mesos master leader not discovered at [" + address + "] . "
+								throw sinsp_exception("Mesos master leader not discovered at [" + uri(address).to_string(false) + "] . "
 													  "Giving up temporarily ...");
 							}
 						}
 						else
 						{
 							throw sinsp_exception("Unexpected leader entry format while detecting Mesos master ("
-												  + address + ").");
+												  + uri(address).to_string(false) + ").");
 						}
 					}
 					else
@@ -184,17 +189,34 @@ void mesos_http::discover_mesos_leader()
 
 std::string mesos_http::get_framework_url(const Json::Value& framework)
 {
+	const Json::Value& fw_name = framework["name"];
+	bool is_marathon = false;
+	if(!fw_name.isNull() && fw_name.isConvertibleTo(Json::stringValue))
+	{
+		is_marathon = mesos_framework::is_root_marathon(fw_name.asString());
+	}
+	bool has_creds = !m_mesos.m_marathon_credentials.first.empty();
 	Json::Value fw_url = framework["webui_url"];
 	if(!fw_url.isNull() && fw_url.isString() && !fw_url.asString().empty())
 	{
-		return fw_url.asString();
+		uri url(fw_url.asString());
+		if(is_marathon && has_creds)
+		{
+			url.set_credentials(m_mesos.m_marathon_credentials);
+		}
+		return url.to_string(true);
 	}
 	else
 	{
 		fw_url = framework["hostname"];
 		if(!fw_url.isNull() && fw_url.isString() && !fw_url.asString().empty())
 		{
-			return std::string("http://").append(fw_url.asString()).append(":8080");
+			uri url(std::string("http://").append(fw_url.asString()).append(":8080"));
+			if(is_marathon && has_creds)
+			{
+				url.set_credentials(m_mesos.m_marathon_credentials);
+			}
+			return url.to_string(true);
 		}
 	}
 	return "";

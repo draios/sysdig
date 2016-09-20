@@ -70,7 +70,7 @@ protected:
 	static std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
 	static json_ptr_t try_parse(const std::string& json);
 	static bool is_framework_active(const Json::Value& framework);
-	static std::string get_framework_url(const Json::Value& framework);
+	std::string get_framework_url(const Json::Value& framework);
 
 private:
 	void discover_mesos_leader();

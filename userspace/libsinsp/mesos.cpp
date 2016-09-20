@@ -75,6 +75,7 @@ mesos::mesos(const std::string& mesos_state_json,
 mesos::mesos(const std::string& state_uri,
 	const uri_list_t& marathon_uris,
 	bool discover_mesos_leader,
+	bool discover_marathon_leader,
 	int timeout_ms,
 	bool is_captured,
 	bool verbose):
@@ -85,7 +86,7 @@ mesos::mesos(const std::string& state_uri,
 #endif // HAS_CAPTURE
 		m_state(is_captured, verbose),
 		m_discover_mesos_leader(discover_mesos_leader),
-		m_discover_marathon_uris(marathon_uris.empty()),
+		m_discover_marathon_uris(discover_marathon_leader || marathon_uris.empty()),
 		m_timeout_ms(timeout_ms),
 		m_verbose(verbose),
 		m_testing(false)
@@ -104,6 +105,13 @@ mesos::mesos(const std::string& state_uri,
 		m_marathon_uris.emplace_back(marathon_uri);
 		g_logger.log("Multiple root marathon URIs configured; only the first one (" + marathon_uri + ") will have effect;"
 					" others will be treated as generic frameworks (user Marathon frameworks will be discovered).", sinsp_logger::SEV_WARNING);
+	}
+	uri mesos_state_uri(state_uri);
+	mesos_state_uri.get_credentials(m_mesos_credentials);
+	if(m_marathon_uris.size())
+	{
+		uri marathon_uri(m_marathon_uris[0]);
+		marathon_uri.get_credentials(m_marathon_credentials);
 	}
 #endif
 	init();
