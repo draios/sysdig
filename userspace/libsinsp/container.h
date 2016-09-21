@@ -117,6 +117,7 @@ public:
 	sinsp_container_type m_type;
 	string m_name;
 	string m_image;
+	string m_image_id;
 	uint32_t m_container_ip;
 	bool m_privileged;
 	vector<container_mount_info> m_mounts;
