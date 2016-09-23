@@ -69,8 +69,8 @@ Use your real name; pseudonyms or anonymous contributions are not allowed.
 
 **Corporate contributions**: Employees of corporations, members of LLCs or LLPs, or others acting on behalf of a contributing entity, must review the [Corporate Contributor License Agreement](https://github.com/draios/sysdig/blob/dev/cla/sysdig_corp_contributor_agreement.txt), must be an authorized representative of the contributing entity, and indicate agreement to it on behalf of the contributing entity by adding the following lines to every GIT commit message: 
  
-sysdig-CLA-1.0-contributing-entity: Full Legal Name of Entity
-sysdig-CLA-1.0-signed-off-by: Joe Smith <joe.smith@email.com>
+sysdig-CLA-1.0-contributing-entity: Full Legal Name of Entity  
+sysdig-CLA-1.0-signed-off-by: Joe Smith <joe.smith@email.com>  
 
 Use a real name of a natural person who is an authorized representative of the contributing entity; pseudonyms or anonymous contributions are not allowed.
 
