@@ -56,6 +56,32 @@ uri::uri(std::string str)
 	}
 }
 
+void uri::check(std::string str)
+{
+	trim(str);
+	// parser does not handle missing host properly
+	if(ci_find_substr(str, std::string("file:///")) == 0)
+	{
+		str.insert(7, "localhost");
+	}
+	parsed_uri p_uri = parse_uri(str.c_str());
+	if(p_uri.error)
+	{
+		str = std::string("Invalid URI: [").append(str).append(1, ']');
+		throw sinsp_exception(str);
+	}
+
+	if(p_uri.user_info_end != p_uri.user_info_start)
+	{
+		std::string auth = str.substr(p_uri.user_info_start, p_uri.user_info_end - p_uri.user_info_start);
+		std::string::size_type pos = auth.find(':');
+		if(pos == std::string::npos)
+		{
+			throw sinsp_exception("Invalid credentials format.");
+		}
+	}
+}
+
 int uri::get_well_known_port() const
 {
 	if (!m_scheme.empty())

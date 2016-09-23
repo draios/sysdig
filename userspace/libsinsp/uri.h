@@ -55,6 +55,7 @@ public:
 	// When plus_as_space is true, non-encoded plus signs in the query are decoded as spaces.
 	// (http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1)
 	static std::string decode(const std::string& str, bool plus_as_space = false);
+	static void check(std::string str);
 
 private:
 	int get_well_known_port() const;
