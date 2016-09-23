@@ -76,6 +76,8 @@ mesos::mesos(const std::string& state_uri,
 	const uri_list_t& marathon_uris,
 	bool discover_mesos_leader,
 	bool discover_marathon_leader,
+	const credentials_t& mesos_credentials,
+	const credentials_t& marathon_credentials,
 	int timeout_ms,
 	bool is_captured,
 	bool verbose):
@@ -113,6 +115,19 @@ mesos::mesos(const std::string& state_uri,
 		uri marathon_uri(m_marathon_uris[0]);
 		marathon_uri.get_credentials(m_marathon_credentials);
 	}
+
+	// explicitly specified credentials trump the ones in URI
+	if(!mesos_credentials.first.empty())
+	{
+		m_mesos_credentials.first = mesos_credentials.first;
+		m_mesos_credentials.second = mesos_credentials.second;
+	}
+	if(!marathon_credentials.first.empty())
+	{
+		m_marathon_credentials.first = marathon_credentials.first;
+		m_marathon_credentials.second = marathon_credentials.second;
+	}
+
 #endif
 	init();
 }

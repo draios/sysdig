@@ -99,6 +99,7 @@ private:
 	marathon_uri_t          m_marathon_uris;
 	bool                    m_discover_lead_master;
 	bool                    m_discover_marathon;
+	//bool                    m_redirect = false;
 	std::string::size_type  m_content_length = std::string::npos;
 
 	friend class mesos;

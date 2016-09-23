@@ -26,6 +26,8 @@ public:
 	typedef std::vector<std::string> uri_list_t;
 #endif // HAS_CAPTURE
 	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	typedef uri::credentials_t credentials_t;
+	typedef std::shared_ptr<uri::credentials_t> uri_creds_ptr_t;
 
 	static const std::string default_state_uri;
 	static const std::string default_state_api;
@@ -44,6 +46,8 @@ public:
 		const uri_list_t& marathon_uris = uri_list_t(),
 		bool discover_mesos_leader = false,
 		bool discover_marathon_leader = false,
+		const credentials_t& mesos_credentials = credentials_t(),
+		const credentials_t& marathon_credentials = credentials_t(),
 		int timeout_ms = default_timeout_ms,
 		bool is_captured = false,
 		bool verbose = false);

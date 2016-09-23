@@ -31,6 +31,7 @@ public:
 	const std::string& get_password() const;
 	const std::string& get_host() const;
 	const std::string& get_path() const;
+	void set_path(const std::string& path);
 	const std::string& get_query() const;
 	int get_port() const;
 
