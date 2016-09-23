@@ -6,6 +6,15 @@
 
 #include "k8s_net.h"
 #include "k8s_component.h"
+#include "k8s_node_handler.h"
+#include "k8s_namespace_handler.h"
+#include "k8s_pod_handler.h"
+#include "k8s_replicationcontroller_handler.h"
+#include "k8s_replicaset_handler.h"
+#include "k8s_service_handler.h"
+#include "k8s_daemonset_handler.h"
+#include "k8s_deployment_handler.h"
+#include "k8s_event_handler.h"
 #include "k8s.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -14,106 +23,71 @@
 #include <memory>
 
 
-k8s_net::k8s_net(k8s& kube, const std::string& uri,
+k8s_net::k8s_net(k8s& kube, k8s_state_t& state, const std::string& uri,
 	ssl_ptr_t ssl,
 	bt_ptr_t bt,
-	bool curl_debug,
-	ext_list_ptr_t extensions) : m_k8s(kube),
+	ext_list_ptr_t extensions,
+	filter_ptr_t event_filter) : m_k8s(kube), m_state(state),
+		m_collector(std::make_shared<collector_t>()),
 		m_uri(uri),
 		m_ssl(ssl),
 		m_bt(bt),
 		m_stopped(true),
-		m_collector(kube.watch_in_thread()),
-		m_curl_debug(curl_debug),
-		m_extensions(extensions)
-#ifndef K8S_DISABLE_THREAD
-		,m_thread(0)
-#endif
+		m_extensions(extensions),
+		m_event_filter(event_filter)
 {
 }
 
 k8s_net::~k8s_net()
 {
-	end_thread();
 	cleanup();
 }
 
 void k8s_net::cleanup()
 {
-	unsubscribe();
-	for (auto& component : m_api_interfaces)
-	{
-		delete component.second;
-	}
-	m_api_interfaces.clear();
+	stop_watching();
+	m_handlers.clear();
 }
 
 void k8s_net::watch()
 {
-	bool in_thread = m_k8s.watch_in_thread();
-#ifdef K8S_DISABLE_THREAD
-	if(in_thread)
+	for(auto it = m_handlers.cbegin(); it != m_handlers.cend();)
 	{
-		g_logger.log("Thread run requested for non-thread binary.", sinsp_logger::SEV_WARNING);
-	}
-#else
-	if(m_stopped && in_thread)
-	{
-		subscribe();
-		m_stopped = false;
-		m_thread = new std::thread(&k8s_collector::get_data, &m_collector);
-	}
-	else
-#endif // K8S_DISABLE_THREAD
-	if(!in_thread)
-	{
-		if(!m_collector.subscription_count())
-		{
-			subscribe();
-		}
-		m_collector.get_data();
-	}
-}
-
-void k8s_net::subscribe()
-{
-	for(auto it = m_api_interfaces.cbegin(); it != m_api_interfaces.cend();)
-	{
+		k8s_component::type comp_type = it->first;
 		if(it->second)
 		{
-			if(m_collector.add(it->second))
+			if(it->second->connection_error())
 			{
-				++it;
+				if(k8s_component::is_critical(comp_type))
+				{
+					throw sinsp_exception("K8s: " + k8s_component::get_name(comp_type) + " connection error.");
+				}
+				else
+				{
+					g_logger.log("K8s: " + k8s_component::get_name(comp_type) + " connection error, removing component.",
+						 sinsp_logger::SEV_WARNING);
+					if(m_collector->has(it->second->handler()))
+					{
+						m_collector->remove(it->second->handler());
+					}
+					m_handlers.erase(it++);
+					g_logger.log("K8s: " + k8s_component::get_name(comp_type) + " removed from watched endpoints.",
+						 sinsp_logger::SEV_INFO);
+				}
 			}
 			else
 			{
-				m_api_interfaces.erase(it++);
+				it->second->collect_data();
+				++it;
 			}
 		}
 		else
 		{
-			g_logger.log("K8s: " + k8s_component::get_name(it->first) + " handler is null.", sinsp_logger::SEV_WARNING);
-			m_api_interfaces.erase(it++);
+			g_logger.log("K8s: " + k8s_component::get_name(comp_type) + " handler is null.",
+						 sinsp_logger::SEV_WARNING);
+			++it;
 		}
 	}
-}
-
-void k8s_net::unsubscribe()
-{
-	m_collector.stop();
-	m_collector.remove_all();
-}
-
-void k8s_net::end_thread()
-{
-#ifndef K8S_DISABLE_THREAD
-	if(m_thread)
-	{
-		m_thread->join();
-		delete m_thread;
-		m_thread = 0;
-	}
-#endif
 }
 
 void k8s_net::stop_watching()
@@ -121,77 +95,147 @@ void k8s_net::stop_watching()
 	if(!m_stopped)
 	{
 		m_stopped = true;
-		unsubscribe();
-		end_thread();
+		m_collector->remove_all();
 	}
 }
 
-void k8s_net::add_api_interface(const k8s_component::type_map::value_type& component)
+bool k8s_net::has_dependency(const k8s_component::type_map::value_type& component)
 {
-	api_map_t::iterator it = m_api_interfaces.find(component.first);
-	if(it != m_api_interfaces.end() && it->second)
+	switch(component.first)
 	{
-		if(m_collector.has(it->second))
-		{
-			m_collector.remove(it->second);
-		}
-		delete it->second;
-		it->second = 0;
-	}
-
-	std::string protocol = m_uri.get_scheme();
-	std::ostringstream os;
-	os << m_uri.get_host();
-	int port = m_uri.get_port();
-	if(port)
-	{
-		os << ':' << port;
-	}
-	std::string api = k8s_component::get_api(component.first, m_extensions);
-	m_api_interfaces[component.first] =
-		new k8s_http(m_k8s, component.second, os.str(), protocol,
-					m_uri.get_credentials(), api,
-					m_ssl, m_bt, m_curl_debug);
-}
-
-bool k8s_net::get_all_data(const k8s_component::type_map::value_type& component, std::ostream& out)
-{
-	add_api_interface(component);
-
-	api_map_t::iterator it = m_api_interfaces.find(component.first);
-	if(it != m_api_interfaces.end())
-	{
-		if(it->second)
-		{
-			if(!m_api_interfaces[component.first]->get_all_data(out))
+		case k8s_component::K8S_NODES:
+			return true;
+		case k8s_component::K8S_NAMESPACES:
 			{
-				std::string err;
-				std::ostringstream* ostr = dynamic_cast<std::ostringstream*>(&out);
-				if(ostr) { err = ostr->str(); }
-				if(k8s_component::is_critical(component.first))
+				auto it = m_handlers.find(k8s_component::K8S_NODES);
+				return it!= m_handlers.end() && it->second && it->second->is_state_built();
+			}
+		case k8s_component::K8S_PODS:
+			{
+				auto it = m_handlers.find(k8s_component::K8S_NAMESPACES);
+				return it!= m_handlers.end() && it->second && it->second->is_state_built();
+			}
+		case k8s_component::K8S_REPLICATIONCONTROLLERS:
+			{
+				auto it = m_handlers.find(k8s_component::K8S_PODS);
+				return it!= m_handlers.end() && it->second && it->second->is_state_built();
+			}
+		case k8s_component::K8S_SERVICES:
+			{
+				auto it = m_handlers.find(k8s_component::K8S_REPLICATIONCONTROLLERS);
+				return it!= m_handlers.end() && it->second && it->second->is_state_built();
+			}
+		case k8s_component::K8S_REPLICASETS:
+			{
+				auto it = m_handlers.find(k8s_component::K8S_SERVICES);
+				return it!= m_handlers.end() && it->second && it->second->is_state_built();
+			}
+		case k8s_component::K8S_DAEMONSETS:
+			{
+				auto it = m_handlers.find(k8s_component::K8S_REPLICASETS);
+				return it!= m_handlers.end() && it->second && it->second->is_state_built();
+			}
+		case k8s_component::K8S_DEPLOYMENTS:
+			{
+				auto it = m_handlers.find(k8s_component::K8S_DAEMONSETS);
+				return it!= m_handlers.end() && it->second && it->second->is_state_built();
+			}
+		case k8s_component::K8S_EVENTS:
+			{
+				auto it = m_handlers.find(k8s_component::K8S_SERVICES);
+				return it!= m_handlers.end() && it->second && it->second->is_state_built();
+			}
+		case k8s_component::K8S_COMPONENT_COUNT:
+		default:
+			throw sinsp_exception("k8s_net::add_handler: invalid type: " +
+								  component.second + " (" +
+								  std::to_string(component.first) + ')');
+	}
+	return false;
+}
+
+k8s_net::handler_ptr_t k8s_net::get_handler(k8s_state_t& state, const k8s_component::type component, bool connect,
+											collector_ptr_t collector, const std::string& urlstr,
+											ssl_ptr_t ssl, bt_ptr_t bt, filter_ptr_t event_filter)
+{
+	std::ostringstream os;
+	if(!urlstr.empty())
+	{
+		uri url(urlstr);
+		os << url.get_scheme() << "://" << url.get_host();
+		int port = url.get_port();
+		if(port) { os << ':' << port; }
+	}
+
+	switch(component)
+	{
+		case k8s_component::K8S_NODES:
+			return std::make_shared<k8s_node_handler>(state, collector, os.str(), "1.0", ssl, bt, connect);
+		case k8s_component::K8S_NAMESPACES:
+			return std::make_shared<k8s_namespace_handler>(state, collector, os.str(), "1.0", ssl, bt, connect);
+		case k8s_component::K8S_PODS:
+			return std::make_shared<k8s_pod_handler>(state, collector, os.str(), "1.0", ssl, bt, connect);
+		case k8s_component::K8S_REPLICATIONCONTROLLERS:
+			return std::make_shared<k8s_replicationcontroller_handler>(state, collector, os.str(), "1.0", ssl, bt, connect);
+		case k8s_component::K8S_REPLICASETS:
+			return std::make_shared<k8s_replicaset_handler>(state, collector, os.str(), "1.0", ssl, bt, connect);
+		case k8s_component::K8S_SERVICES:
+			return  std::make_shared<k8s_service_handler>(state, collector, os.str(), "1.0", ssl, bt, connect);
+		case k8s_component::K8S_DAEMONSETS:
+			return  std::make_shared<k8s_daemonset_handler>(state, collector, os.str(), "1.0", ssl, bt, connect);
+		case k8s_component::K8S_DEPLOYMENTS:
+			return  std::make_shared<k8s_deployment_handler>(state, collector, os.str(), "1.0", ssl, bt, connect);
+		case k8s_component::K8S_EVENTS:
+			return std::make_shared<k8s_event_handler>(state, collector, os.str(), "1.0", ssl, bt, connect, event_filter);
+		case k8s_component::K8S_COMPONENT_COUNT:
+		default:
+			return nullptr;
+	}
+
+	return nullptr;
+}
+
+void k8s_net::add_handler(const k8s_component::type_map::value_type& component)
+{
+	if(!has_handler(component))
+	{
+		// connections are asynchronous, so we make sure here that all components
+		// on which this component depends are connected and initially populated
+		if(has_dependency(component))
+		{
+			handler_ptr_t handler =
+				get_handler(m_state, component.first, true, m_collector, m_uri.to_string(), m_ssl, m_bt, m_event_filter);
+			if(handler)
+			{
+				m_handlers[component.first] = handler;
+			}
+			else
+			{
+				std::ostringstream os;
+				os << "K8s: invalid component type encountered while creating handler: " <<
+					component.second << " (" <<
+					std::to_string(component.first) << ')';
+				if(k8s_component::is_critical(component))
 				{
-					throw sinsp_exception(std::string("K8s: An error occurred while trying to retrieve data for ")
-										.append(k8s_component::get_name(component.first)).append(": ").append(err));
+					throw sinsp_exception(os.str());
 				}
 				else
 				{
-					g_logger.log(std::string("K8s: An error occurred while trying to retrieve data for ")
-								 .append(k8s_component::get_name(component.first)).append(": ").append(err),
-								 sinsp_logger::SEV_WARNING);
-					m_collector.remove(m_api_interfaces[component.first]);
-					delete m_api_interfaces[component.first];
-					m_api_interfaces[component.first] = nullptr;
-					return false;
+					g_logger.log(os.str());
 				}
 			}
+			g_logger.log("K8s: created " + k8s_component::get_name(component) + " handler.", sinsp_logger::SEV_INFO);
 		}
 		else
 		{
-			g_logger.log("K8s: " + k8s_component::get_name(component.first) + " handler is null.", sinsp_logger::SEV_WARNING);
-			return false;
+			g_logger.log("K8s: component " + k8s_component::get_name(component) + " does not have dependencies populated yet.",
+						 sinsp_logger::SEV_DEBUG);
 		}
 	}
-	return true;
+	else
+	{
+		g_logger.log("K8s: component " + k8s_component::get_name(component) + " already exists.",
+					 sinsp_logger::SEV_TRACE);
+	}
 }
-
 #endif // HAS_CAPTURE

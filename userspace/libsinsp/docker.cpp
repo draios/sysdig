@@ -18,9 +18,6 @@ docker::docker(std::string url,
 	bool is_captured,
 	bool verbose,
 	event_filter_ptr_t event_filter): m_id("docker"),
-#ifdef HAS_CAPTURE
-		m_collector(false),
-#endif // HAS_CAPTURE
 		m_timeout_ms(timeout_ms),
 		m_is_captured(is_captured),
 		m_verbose(verbose),
@@ -173,12 +170,12 @@ bool docker::is_alive() const
 
 #ifdef HAS_CAPTURE
 
-void docker::check_collector_status(int expected)
+void docker::check_collector_status()
 {
-	if(!m_collector.is_healthy(expected))
+	if(!m_collector.is_healthy(m_event_http))
 	{
-		throw sinsp_exception("Docker collector not healthy (has " + std::to_string(m_collector.subscription_count()) +
-							  " connections, expected " + std::to_string(expected) + "); giving up on data collection in this cycle ...");
+		throw sinsp_exception("Docker collector not healthy, "
+							  "giving up on data collection in this cycle ...");
 	}
 }
 
@@ -195,6 +192,10 @@ void docker::collect_data()
 {
 	if(m_collector.subscription_count())
 	{
+		if(!m_event_http->is_enabled())
+		{
+			m_event_http->enable();
+		}
 		m_collector.get_data();
 		if(m_events.size())
 		{
