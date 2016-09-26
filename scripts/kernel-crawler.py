@@ -172,6 +172,33 @@ repos = {
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
             "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned"]
         }
+    ],
+
+    "Alpine": [
+        {
+            "root": "http://dl-cdn.alpinelinux.org/alpine/",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^v[2-9]\.[0-9]*')]/@href",
+            "subdirs": ["main/x86_64/"],
+            "page_pattern": "/html/body/div/table/tbody/tr/td/a[regex:test(@href, '^linux-(grsec|grsec-dev|headers)-[3-9]\.[0-9]+\.[0-9]+.*apk$')]/@href",
+        },
+        {
+            "root": "http://nl.alpinelinux.org/alpine/",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^v[2-9]\.[0-9]*')]/@href",
+            "subdirs": ["main/x86_64/"],
+            "page_pattern": "/html/body/div/table/tbody/tr/td/a[regex:test(@href, '^linux-(grsec|grsec-dev|headers)-[3-9]\.[0-9]+\.[0-9]+.*apk$')]/@href",
+        },
+        {
+            "root": "http://mirrors.2f30.org/alpine/",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^v[2-9]\.[0-9]*')]/@href",
+            "subdirs": ["main/x86_64/"],
+            "page_pattern": "/html/body/pre/a[regex:test(@href, '^linux-(grsec|grsec-dev|headers)-[3-9]\.[0-9]+\.[0-9]+.*apk$')]/@href",
+        },
+        {
+            "root": "http://mirror.yandex.ru/mirrors/alpine/",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^v[2-9]\.[0-9]*')]/@href",
+            "subdirs": ["main/x86_64/"],
+            "page_pattern": "/html/body/pre/a[regex:test(@href, '^linux-(grsec|grsec-dev|headers)-[3-9]\.[0-9]+\.[0-9]+.*apk$')]/@href",
+        }
     ]
 }
 
