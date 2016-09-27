@@ -1024,7 +1024,7 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint16_
 
 	// XXX/mstemm this doesn't work if someone called
 	// add_filter_value more than once for a given index.
-	filter_value_member_t item(filter_value_p(i), len);
+	filter_value_t item(filter_value_p(i), len);
 	m_val_storages_members.insert(item);
 
 	if(len < m_val_storages_min_size)
@@ -1036,8 +1036,13 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint16_
 	{
 		m_val_storages_max_size = len;
 	}
-}
 
+	// If the operator is CO_PMATCH, also add the value to the paths set.
+	if (m_cmpop == CO_PMATCH)
+	{
+		m_val_storages_paths.add_search_path(item);
+	}
+}
 
 void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
 {
@@ -1066,7 +1071,7 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 
 bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len, uint32_t op2_len)
 {
-	if (op == CO_IN)
+	if (op == CO_IN || op == CO_PMATCH)
 	{
 		// For raw strings, the length may not be set. So we do a strlen to find it.
 		if(type == PT_CHARBUF && op1_len == 0)
@@ -1074,13 +1079,25 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 			op1_len = strlen((char *) operand1);
 		}
 
-		filter_value_member_t item((uint8_t *) operand1, op1_len);
-		if(op1_len >= m_val_storages_min_size &&
-		   op1_len <= m_val_storages_max_size &&
-		   m_val_storages_members.find(item) != m_val_storages_members.end())
+		filter_value_t item((uint8_t *) operand1, op1_len);
+
+		if (op == CO_IN)
 		{
-			return true;
+			if(op1_len >= m_val_storages_min_size &&
+			   op1_len <= m_val_storages_max_size &&
+			   m_val_storages_members.find(item) != m_val_storages_members.end())
+			{
+				return true;
+			}
 		}
+		else
+		{
+			if (m_val_storages_paths.match(item))
+			{
+				return true;
+			}
+		}
+
 		return false;
 	}
 	else
@@ -1355,7 +1372,7 @@ char sinsp_filter_compiler::next()
 	}
 }
 
-vector<char> sinsp_filter_compiler::next_operand(bool expecting_first_operand, bool in_clause)
+vector<char> sinsp_filter_compiler::next_operand(bool expecting_first_operand, bool in_or_pmatch_clause)
 {
 	vector<char> res;
 	bool is_quoted = false;
@@ -1406,7 +1423,7 @@ vector<char> sinsp_filter_compiler::next_operand(bool expecting_first_operand, b
 		}
 		else
 		{
-			is_end_of_word = (!is_quoted && (isblank(curchar) || is_bracket(curchar) || (in_clause && curchar == ','))) ||
+			is_end_of_word = (!is_quoted && (isblank(curchar) || is_bracket(curchar) || (in_or_pmatch_clause && curchar == ','))) ||
 				(is_quoted && escape_state != PES_SLASH && (curchar == '"' || curchar == '\''));
 		}
 
@@ -1423,7 +1440,7 @@ vector<char> sinsp_filter_compiler::next_operand(bool expecting_first_operand, b
 			//
 			ASSERT(m_scanpos >= start);
 
-			if(curchar == '(' || curchar == ')' || (in_clause && curchar == ','))
+			if(curchar == '(' || curchar == ')' || (in_or_pmatch_clause && curchar == ','))
 			{
 				m_scanpos--;
 			}
@@ -1604,6 +1621,11 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 		m_scanpos += 2;
 		return CO_IN;
 	}
+	else if(compare_no_consume("pmatch"))
+	{
+		m_scanpos += 6;
+		return CO_PMATCH;
+	}
 	else if(compare_no_consume("exists"))
 	{
 		m_scanpos += 6;
@@ -1644,7 +1666,7 @@ void sinsp_filter_compiler::parse_check()
 
 	chk->parse_field_name((char *)&operand1[0], true);
 
-	if(co == CO_IN)
+	if(co == CO_IN || co == CO_PMATCH)
 	{
 		//
 		// Skip spaces
@@ -1656,7 +1678,7 @@ void sinsp_filter_compiler::parse_check()
 
 		if(m_fltstr[m_scanpos] != '(')
 		{
-			throw sinsp_exception("expected '(' after 'in' operand");
+			throw sinsp_exception("expected '(' after 'in/pmatch' operand");
 		}
 
 		//
@@ -1695,10 +1717,15 @@ void sinsp_filter_compiler::parse_check()
 				}
 				else
 				{
-					throw sinsp_exception("expected either ')' or ',' after a value inside the 'in' clause");
+					throw sinsp_exception("expected either ')' or ',' after a value inside the 'in/pmatch' clause");
 				}
 			}
 			m_filter->add_check(chk);
+		}
+		else if (co == CO_PMATCH)
+		{
+			// the pmatch operator can only work on charbufs
+			throw sinsp_exception("pmatch requires all charbuf arguments");
 		}
 		else
 		{
