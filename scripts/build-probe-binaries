@@ -442,6 +442,64 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
+function docker4mac_build {
+	URL=${1}
+	ARCHIVE=$(echo ${URL} | grep -o '[^/]*$')
+	MAIN_FOLDER='docker4mac'
+	MD5_FILENAME='archive_md5'
+
+	if [ ! -d ${MAIN_FOLDER} ]; then
+		mkdir ${MAIN_FOLDER}
+	fi
+
+	cd ${MAIN_FOLDER}
+	CWD=$(pwd)
+	echo "Downloading latest open source components archive from ${URL}"
+	wget ${URL}
+	ARCHIVE_MD5=$(md5sum ${ARCHIVE} | cut -d' ' -f1)
+	SAVED_ARCHIVE_MD5='empty'
+	if [ -f ${MD5_FILENAME} ]; then
+		SAVED_ARCHIVE_MD5=$(cat ${MD5_FILENAME})
+	fi
+
+	if [[ "${ARCHIVE_MD5}" == "${SAVED_ARCHIVE_MD5}" ]]; then
+		echo "archive ${ARCHIVE} already built [docker4mac]"
+		rm -rf ${ARCHIVE}
+	else
+		#extract the archive in a temp folder
+		TMP_FOLDER=$(mktemp -d)
+		tar xzf ${ARCHIVE} -C ${TMP_FOLDER}
+
+		#get the linux version from the config file
+		KERNEL_RELEASE=$(zcat ${TMP_FOLDER}/kernel/config.gz | grep -E -o '[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}')
+		HASH=$(md5sum ${TMP_FOLDER}/kernel/config.gz | cut -d' ' -f1)
+		if [[ ! -d ${KERNEL_RELEASE} ]]; then
+			mkdir ${KERNEL_RELEASE}
+		fi
+		cd ${KERNEL_RELEASE}
+
+		#download and prepare kernel
+		wget https://www.kernel.org/pub/linux/kernel/v4.x/linux-${KERNEL_RELEASE}.tar.gz
+		tar xzf linux-${KERNEL_RELEASE}.tar.gz
+
+		export KERNELDIR=$(pwd)/linux-${KERNEL_RELEASE}
+		cd ${KERNELDIR}
+		zcat ${TMP_FOLDER}/kernel/config.gz > .config
+		make modules_prepare
+		make headers_install INSTALL_HDR_PATH=/usr
+		mv .config ../config
+
+		build_probe
+
+		#clean up
+		cd ${CWD}
+		rm -rf ${ARCHIVE} ${TMP_FOLDER} ${KERNEL_RELEASE}
+		cd ${BASEDIR}
+
+	fi
+	cd ${BASEDIR}
+}
+
 #
 # Ubuntu build
 #
@@ -526,6 +584,14 @@ for URL in $URLS
 do
 	debian_build $URL
 done
+
+#
+# Docker4Mac build
+#
+echo Building Docker4Mac
+URL="https://download.docker.com/opensource/License.tar.gz"
+
+docker4mac_build ${URL}
 
 #
 # Upload modules
