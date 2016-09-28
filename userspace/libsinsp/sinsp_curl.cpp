@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstring>
 
 sinsp_curl::data sinsp_curl::m_config;
 
@@ -151,22 +152,108 @@ void sinsp_curl::init_ssl(CURL* curl, ssl::ptr_t ssl_data)
 	}
 }
 
-string sinsp_curl::get_data()
+string sinsp_curl::get_data(bool do_log)
 {
 	std::ostringstream os;
 	if(get_data(os))
 	{
 		return os.str();
 	}
-	g_logger.log("CURL error: [" + os.str() + "] while connecting to " + m_uri.to_string(), sinsp_logger::SEV_ERROR);
+	if(do_log)
+	{
+		g_logger.log("CURL error while connecting to " + m_uri.to_string(false) + ", "
+					 "response: [" + os.str() + ']', sinsp_logger::SEV_ERROR);
+	}
 	return "";
+}
+
+size_t sinsp_curl::header_callback(char *buffer, size_t size, size_t nitems, void *userdata)
+{
+	size_t sz = nitems * size;
+	std::string buf(buffer, sz);
+	const std::string loc = "Location:";
+	const std::string nl = "\r\n";
+	std::string::size_type loc_pos = buf.find(loc);
+	std::string::size_type nl_pos = buf.find(nl);
+	if((loc_pos != std::string::npos) && (nl_pos != std::string::npos) &&
+	   (nl_pos - loc.length() > (loc + nl).length()))
+	{
+		std::string::size_type url_pos = buf.find("http://", loc_pos);
+		if(url_pos == std::string::npos)
+		{
+			url_pos = buf.find("//", loc_pos);
+			if(url_pos != std::string::npos) // still absolute
+			{
+				buf = buf.substr(url_pos, nl_pos-url_pos);
+				buf.insert(0, "http:");
+			}
+			else // relative
+			{
+				buf = buf.substr(loc.length(), nl_pos-loc.length());
+			}
+		}
+		else
+		{
+			buf = buf.substr(url_pos, nl_pos-url_pos);
+		}
+		trim(buf);
+		sz = buf.length();
+		if(sz < CURL_MAX_HTTP_HEADER)
+		{
+			g_logger.log("HTTP redirect Location: (" + buf + ')', sinsp_logger::SEV_TRACE);
+			std::strncpy((char*)userdata, buf.data(), sz);
+			((char*)userdata)[sz] = 0;
+		}
+	}
+	return nitems * size;
+}
+
+bool sinsp_curl::is_redirect(long http_code)
+{
+	return ((http_code >= 301 && http_code <= 303) ||
+			(http_code >= 307 && http_code <= 308));
+}
+
+bool sinsp_curl::handle_redirect(uri& url, std::string&& loc, std::ostream& os)
+{
+	if(!loc.empty())
+	{
+		g_logger.log("HTTP redirect  received from [" + url.to_string(false) + ']',
+					 sinsp_logger::SEV_INFO);
+		std::string::size_type url_pos = loc.find("//");
+		if(url_pos != std::string::npos)
+		{
+			uri::credentials_t creds;
+			url.get_credentials(creds);
+			url = trim(loc);
+			if(!creds.first.empty())
+			{
+				url.set_credentials(creds);
+			}
+		}
+		else // location relative, take just path
+		{
+			url.set_path(trim(loc));
+		}
+		g_logger.log("HTTP redirecting to [" + url.to_string(false) + "].",
+					 sinsp_logger::SEV_INFO);
+		return true;
+	}
+	else
+	{
+		g_logger.log("CURL redirect received from [" + url.to_string(false) + "], "
+					 "but location not found.", sinsp_logger::SEV_ERROR);
+		return false;
+	}
+	return false;
 }
 
 bool sinsp_curl::get_data(std::ostream& os)
 {
 	CURLcode res = CURLE_OK;
 	check_error(curl_easy_setopt(m_curl, CURLOPT_URL, m_uri.to_string().c_str()));
-	check_error(curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_HEADERDATA, m_redirect));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_HEADERFUNCTION, header_callback));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECTTIMEOUT, static_cast<int>(m_timeout_ms / 1000)));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1)); //Prevent "longjmp causes uninitialized stack frame" bug
@@ -189,6 +276,26 @@ bool sinsp_curl::get_data(std::ostream& os)
 		{
 			g_logger.log("CURL HTTP error: " + std::to_string(http_code), sinsp_logger::SEV_ERROR);
 			return false;
+		}
+		else if(is_redirect(http_code))
+		{
+			g_logger.log("HTTP redirect (" + std::to_string(http_code) + ')', sinsp_logger::SEV_DEBUG);
+			if(handle_redirect(m_uri, std::string(m_redirect), os))
+			{
+				std::ostringstream* pos = dynamic_cast<std::ostringstream*>(&os);
+				if(pos)
+				{
+					pos->str("");
+					return get_data(*pos);
+				}
+				else
+				{
+					g_logger.log("HTTP redirect received from [" + m_uri.to_string(false) + "] but "
+							 "output stream can not be obtained (dynamic cast failed).",
+							 sinsp_logger::SEV_ERROR);
+					return false;
+				}
+			}
 		}
 	}
 
