@@ -491,9 +491,9 @@ function docker4mac_build {
 		KERNEL_RELEASE=${KERNEL_RELEASE}-moby
 		cd ${KERNELDIR}
 		zcat ${TMP_FOLDER}/kernel/config.gz > .config
+		HASH=$(md5sum .config | cut -d' ' -f1)
 		make modules_prepare
 		make headers_install INSTALL_HDR_PATH=/usr
-		HASH=$(md5sum .config | cut -d' ' -f1)
 		mv .config ../config
 
 		cd ${BASEDIR}
