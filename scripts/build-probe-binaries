@@ -475,7 +475,6 @@ function docker4mac_build {
 
 		#get the linux version from the config file
 		KERNEL_RELEASE=$(zcat ${TMP_FOLDER}/kernel/config.gz | grep -E -o '[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}')
-		HASH_ORIG=$(md5sum ${TMP_FOLDER}/kernel/config.gz | cut -d' ' -f1)
 
 		if [[ ! -d ${KERNEL_RELEASE} ]]; then
 			mkdir ${KERNEL_RELEASE}
@@ -491,9 +490,10 @@ function docker4mac_build {
 		KERNEL_RELEASE=${KERNEL_RELEASE}-moby
 		cd ${KERNELDIR}
 		zcat ${TMP_FOLDER}/kernel/config.gz > .config
-		HASH=$(md5sum .config | cut -d' ' -f1)
+		HASH_ORIG=$(md5sum .config | cut -d' ' -f1)
 		make modules_prepare
 		make headers_install INSTALL_HDR_PATH=/usr
+		HASH=$(md5sum .config | cut -d' ' -f1)
 		mv .config ../config
 
 		cd ${BASEDIR}
