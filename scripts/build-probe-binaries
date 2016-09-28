@@ -466,13 +466,17 @@ function docker4mac_build {
 		echo "archive ${ARCHIVE} already built [docker4mac]"
 		rm -rf ${ARCHIVE}
 	else
+		#save the md5sum
+		md5sum ${ARCHIVE} | cut -d' ' -f1 > ${MD5_FILENAME}
+
 		#extract the archive in a temp folder
 		TMP_FOLDER=$(mktemp -d)
 		tar xzf ${ARCHIVE} -C ${TMP_FOLDER}
 
 		#get the linux version from the config file
 		KERNEL_RELEASE=$(zcat ${TMP_FOLDER}/kernel/config.gz | grep -E -o '[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}')
-		HASH=$(md5sum ${TMP_FOLDER}/kernel/config.gz | cut -d' ' -f1)
+		HASH_ORIG=$(md5sum ${TMP_FOLDER}/kernel/config.gz | cut -d' ' -f1)
+
 		if [[ ! -d ${KERNEL_RELEASE} ]]; then
 			mkdir ${KERNEL_RELEASE}
 		fi
@@ -483,18 +487,21 @@ function docker4mac_build {
 		tar xzf linux-${KERNEL_RELEASE}.tar.gz
 
 		export KERNELDIR=$(pwd)/linux-${KERNEL_RELEASE}
+		KERNEL_RELEASE_ORIG=${KERNEL_RELEASE}
+		KERNEL_RELEASE=${KERNEL_RELEASE}-moby
 		cd ${KERNELDIR}
 		zcat ${TMP_FOLDER}/kernel/config.gz > .config
 		make modules_prepare
 		make headers_install INSTALL_HDR_PATH=/usr
+		HASH=$(md5sum .config | cut -d' ' -f1)
 		mv .config ../config
+
+		cd ${BASEDIR}
 
 		build_probe
 
 		#clean up
-		cd ${CWD}
-		rm -rf ${ARCHIVE} ${TMP_FOLDER} ${KERNEL_RELEASE}
-		cd ${BASEDIR}
+		rm -rf ${CWD}/${ARCHIVE} ${TMP_FOLDER} ${CWD}/${KERNEL_RELEASE_ORIG}
 
 	fi
 	cd ${BASEDIR}
