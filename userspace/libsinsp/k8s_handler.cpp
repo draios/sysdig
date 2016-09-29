@@ -444,7 +444,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 										 " event for " + data.m_kind + ' ' + data.m_name + " [" +
 										 data.m_uid + ']', sinsp_logger::SEV_ERROR);
 						}
-					} // end for nodes
+					} // end for items
 				}
 			}
 		}

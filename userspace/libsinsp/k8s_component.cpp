@@ -922,4 +922,16 @@ void k8s_event_t::make_scope(const Json::Value& obj, std::string& scope)
 	{
 		make_scope_impl(obj, "Node", scope, false);
 	}
+	else if(ci_compare::is_equal(get_json_string(obj, "kind"), "ReplicaSet"))
+	{
+		make_scope_impl(obj, "ReplicaSet", scope);
+	}
+	else if(ci_compare::is_equal(get_json_string(obj, "kind"), "Deployment"))
+	{
+		make_scope_impl(obj, "Deployment", scope);
+	}
+	else if(ci_compare::is_equal(get_json_string(obj, "kind"), "DaemonSet"))
+	{
+		make_scope_impl(obj, "DaemonSet", scope);
+	}
 }
