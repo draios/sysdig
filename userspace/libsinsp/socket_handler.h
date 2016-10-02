@@ -476,7 +476,7 @@ public:
 	static json_ptr_t try_parse(json_query& jq, const std::string& json, const std::string& filter,
 								const std::string& id, const std::string& url)
 	{
-		std::string filtered_json;
+		std::string filtered_json(json);
 		if(!filter.empty())
 		{
 			if(jq.process(json, filter))
@@ -582,7 +582,12 @@ private:
 					}
 					else
 					{
-						g_logger.log("Socket handler (" + m_id + "): invoking callback.", sinsp_logger::SEV_TRACE);
+						g_logger.log("Socket handler (" + m_id + "): invoking callback(s).", sinsp_logger::SEV_TRACE);
+						if(m_json_filters.empty())
+						{
+							// if no filters provided and we got here, just try to do the whole JSON
+							add_json_filter(".");
+						}
 						for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
 						{
 							json_ptr_t pjson = try_parse(m_jq, json, *it, m_id, m_url.to_string(false));

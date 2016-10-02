@@ -38,7 +38,7 @@ public:
 	~sinsp_curl();
 
 	bool get_data(std::ostream& os);
-	std::string get_data();
+	std::string get_data(bool do_log = true);
 
 	void set_timeout(long seconds);
 	long get_timeout() const;
@@ -54,6 +54,10 @@ public:
 
 	static void enable_debug(CURL* curl, bool enable = true);
 	static bool check_error(unsigned ret, bool exc = true);
+	static size_t header_callback(char *buffer, size_t size, size_t nitems, void *userdata);
+	static bool is_redirect(long http_code);
+	static bool handle_redirect(uri& url, std::string&& loc, std::ostream& os);
+	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
 private:
 	struct data
@@ -65,7 +69,6 @@ private:
 	static int trace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp);
 
 	void init();
-	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
 	CURL*               m_curl;
 	uri                 m_uri;
@@ -73,6 +76,7 @@ private:
 	ssl::ptr_t          m_ssl;
 	bearer_token::ptr_t m_bt;
 	bool                m_debug;
+	char                m_redirect[CURL_MAX_HTTP_HEADER] = {0};
 };
 
 inline void sinsp_curl::set_timeout(long milliseconds)

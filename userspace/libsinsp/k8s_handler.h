@@ -52,6 +52,7 @@ public:
 	bool is_alive() const;
 	void set_event_json(json_ptr_t json, const std::string&);
 	const std::string& get_id() const;
+	const std::string& get_url() const;
 
 	void collect_data();
 	void set_machine_id(const std::string& machine_id);
@@ -170,6 +171,11 @@ inline k8s_handler::handler_ptr_t k8s_handler::handler()
 inline const std::string& k8s_handler::get_id() const
 {
 	return m_id;
+}
+
+inline const std::string& k8s_handler::get_url() const
+{
+	return m_url;
 }
 
 inline void k8s_handler::set_machine_id(const std::string& machine_id)

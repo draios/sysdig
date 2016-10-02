@@ -125,6 +125,7 @@ docker::docker(std::string url,
 	m_event_http = std::make_shared<handler_t>(*this, "docker", url, path, http_version, timeout_ms);
 	m_event_http->set_json_callback(&docker::set_event_json);
 	m_event_http->set_json_end("}\n");
+	m_event_http->add_json_filter(".");
 	m_collector.add(m_event_http);
 	send_data_request();
 #endif

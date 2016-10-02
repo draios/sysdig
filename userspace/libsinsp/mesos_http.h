@@ -78,7 +78,6 @@ private:
 	void discover_framework_uris(const Json::Value& frameworks);
 
 	void send_request();
-	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
 	CURL*                   m_sync_curl;
 	CURL*                   m_select_curl;
@@ -101,6 +100,7 @@ private:
 	bool                    m_discover_marathon;
 	//bool                    m_redirect = false;
 	std::string::size_type  m_content_length = std::string::npos;
+	char                    m_redirect[CURL_MAX_HTTP_HEADER] = {0};
 
 	friend class mesos;
 

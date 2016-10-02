@@ -137,7 +137,8 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 							g_logger.log("K8s EVENT: old event, ignoring: "
 										 ", lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts),
 										sinsp_logger::SEV_DEBUG);
-							return true;
+							m_event_ignored = true;
+							return false;
 						}
 					}
 					else
@@ -173,4 +174,73 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 		return false;
 	}
 	return true;
+}
+
+void k8s_event_handler::handle_json(Json::Value&& root)
+{
+	/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+	{
+		g_logger.log(json_as_string(root), sinsp_logger::SEV_TRACE);
+	}*/
+
+	if(!m_state)
+	{
+		throw sinsp_exception("k8s_handler (" + get_id() + "), state is null for " + get_url() + ").");
+	}
+	const Json::Value& type = root["type"];
+	if(!type.isNull())
+	{
+		if(type.isConvertibleTo(Json::stringValue))
+		{
+			const Json::Value& kind = root["kind"];
+			if(!kind.isNull())
+			{
+				if(kind.isConvertibleTo(Json::stringValue))
+				{
+					std::string t = type.asString();
+					std::string k = kind.asString();
+					for(const Json::Value& item : root["items"])
+					{
+						msg_data data = get_msg_data(t, k, item);
+						std::string reason_type = data.get_reason_desc();
+						if(data.m_reason != k8s_component::COMPONENT_ADDED &&
+							data.m_reason != k8s_component::COMPONENT_MODIFIED &&
+							data.m_reason != k8s_component::COMPONENT_DELETED &&
+							data.m_reason != k8s_component::COMPONENT_ERROR)
+						{
+							g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
+										 std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
+							continue;
+						}
+						/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+						{
+							g_logger.log("K8s handling event:\n" + json_as_string(item), sinsp_logger::SEV_TRACE);
+						}*/
+						if(handle_component(item, &data))
+						{
+							std::ostringstream os;
+							os << "K8s [" + reason_type + ", " << data.m_kind <<
+								", " << data.m_name << ", " << data.m_uid << "]";
+							g_logger.log(os.str(), sinsp_logger::SEV_INFO);
+						}
+						else if(!m_event_ignored)
+						{
+							g_logger.log("K8s: error occurred while handling " + reason_type +
+										 " event for " + data.m_kind + ' ' + data.m_name + " [" +
+										 data.m_uid + ']', sinsp_logger::SEV_ERROR);
+						}
+						m_event_ignored = false;
+					} // end for items
+				}
+			}
+		}
+		else
+		{
+			g_logger.log(std::string("K8S event type is not string."), sinsp_logger::SEV_ERROR);
+		}
+	}
+	else
+	{
+		g_logger.log(std::string("K8S event type is null."), sinsp_logger::SEV_ERROR);
+	}
 }

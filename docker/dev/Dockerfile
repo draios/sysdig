@@ -14,13 +14,15 @@ RUN cp /etc/skel/.bashrc /root && cp /etc/skel/.profile /root
 
 ADD http://download.draios.com/apt-draios-priority /etc/apt/preferences.d/
 
-RUN apt-get update \
+RUN echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources.list.d/jessie.list \
+ && apt-get update \
  && apt-get install -y --no-install-recommends \
 	bash-completion \
 	curl \
 	gnupg2 \
 	ca-certificates \
 	gcc \
+	gcc-5 \
 	gcc-4.9 \
 	libelf1 && rm -rf /var/lib/apt/lists/*
 
@@ -31,7 +33,6 @@ RUN apt-get update \
 
 RUN rm -rf /usr/bin/gcc \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc \
- && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-5 \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-4.8 \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-4.7 \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-4.6

@@ -105,7 +105,7 @@ int uri::get_well_known_port() const
 void uri::set_path(const std::string& path)
 {
 	uri u(*this);
-	u.set_path(path);
+	u.m_path = path;
 	parsed_uri p_uri = parse_uri(u.to_string().c_str());
 	if(p_uri.error)
 	{
