@@ -115,6 +115,7 @@ public:
 
 	const k8s_events& get_events() const;
 	k8s_events& get_events();
+	void clear_events();
 	void push_event(const k8s_event_t& evt);
 	void emplace_event(k8s_event_t&& evt);
 	void update_event(k8s_event_t& evt, const Json::Value& item);
@@ -536,6 +537,11 @@ inline const k8s_events& k8s_state_t::get_events() const
 inline k8s_events& k8s_state_t::get_events()
 {
 	return m_events;
+}
+
+inline void k8s_state_t::clear_events()
+{
+	m_events.clear();
 }
 
 inline void k8s_state_t::push_event(const k8s_event_t& evt)

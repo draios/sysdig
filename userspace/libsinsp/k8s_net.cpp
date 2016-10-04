@@ -207,6 +207,15 @@ void k8s_net::add_handler(const k8s_component::type_map::value_type& component)
 				get_handler(m_state, component.first, true, m_collector, m_uri.to_string(), m_ssl, m_bt, m_event_filter);
 			if(handler)
 			{
+				if(!m_machine_id.empty())
+				{
+					handler->set_machine_id(m_machine_id);
+				}
+				else
+				{
+					g_logger.log("K8s machine ID (MAC) is empty - scope will not be avialable for events.",
+								 sinsp_logger::SEV_WARNING);
+				}
 				m_handlers[component.first] = handler;
 			}
 			else
@@ -221,7 +230,7 @@ void k8s_net::add_handler(const k8s_component::type_map::value_type& component)
 				}
 				else
 				{
-					g_logger.log(os.str());
+					g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 				}
 			}
 			g_logger.log("K8s: created " + k8s_component::get_name(component) + " handler.", sinsp_logger::SEV_INFO);

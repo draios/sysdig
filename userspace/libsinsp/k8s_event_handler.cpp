@@ -79,7 +79,6 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 		{
 			if(data)
 			{
-				m_event_ignored = false;
 				if((data->m_reason == k8s_component::COMPONENT_ADDED) ||
 				   (data->m_reason == k8s_component::COMPONENT_MODIFIED))
 				{
@@ -116,10 +115,25 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 								}
 								if(is_allowed)
 								{
-									g_logger.log("K8s EVENT: adding event.", sinsp_logger::SEV_TRACE);
-									k8s_event_t& evt = m_state->add_component<k8s_events, k8s_event_t>(m_state->get_events(),
-																data->m_name, data->m_uid, data->m_namespace);
-									m_state->update_event(evt, json);
+									k8s_events& evts = m_state->get_events();
+									if(evts.size() < sinsp_user_event::max_events_per_cycle())
+									{
+										g_logger.log("K8s EVENT: adding event.", sinsp_logger::SEV_TRACE);
+										k8s_event_t& evt = m_state->add_component<k8s_events, k8s_event_t>(evts,
+																	data->m_name, data->m_uid, data->m_namespace);
+										m_state->update_event(evt, json);
+										m_event_limit_exceeded = false;
+									}
+									else if(!m_event_limit_exceeded) // only get in here once per cycle, to send event overflow warning
+									{
+										sinsp_user_event::emit_event_overflow("K8s", get_machine_id());
+										m_event_limit_exceeded = true;
+										return false;
+									}
+									else // event limit exceeded and overflow logged, nothing to do
+									{
+										return false;
+									}
 								}
 								else // event not allowed by filter, ignore
 								{
