@@ -60,6 +60,9 @@ public:
 	void stop_watching();
 	bool is_healthy() const;
 
+	void set_machine_id(const std::string& machine_id);
+	const std::string& get_machine_id() const;
+
 private:
 	void init();
 	bool is_secure();
@@ -78,6 +81,7 @@ private:
 	handler_map_t   m_handlers;
 	ext_list_ptr_t  m_extensions;
 	filter_ptr_t    m_event_filter;
+	std::string     m_machine_id;
 };
 
 inline bool k8s_net::is_secure()
@@ -105,6 +109,16 @@ inline k8s_net::handler_ptr_t k8s_net::get_handler(const k8s_component::type_map
 		return it->second;
 	}
 	return nullptr;
+}
+
+inline void k8s_net::set_machine_id(const std::string& machine_id)
+{
+	m_machine_id = machine_id;
+}
+
+inline const std::string& k8s_net::get_machine_id() const
+{
+	return m_machine_id;
 }
 
 #endif // HAS_CAPTURE

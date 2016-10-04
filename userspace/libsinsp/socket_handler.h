@@ -45,26 +45,26 @@ public:
 	static const std::string HTTP_VERSION_11;
 
 	socket_data_handler(T& obj,
-						const std::string& id,
-						const std::string& url,
-						const std::string& path = "",
-						const std::string& http_version = HTTP_VERSION_11,
-						int timeout_ms = 1000L,
-						ssl_ptr_t ssl = 0,
-						bt_ptr_t bt = 0):
-		m_obj(obj),
-		m_id(id),
-		m_url(url),
-		m_path(path.empty() ? m_url.get_path() : path),
-		m_ssl(ssl),
-		m_bt(bt),
-		m_timeout_ms(timeout_ms),
-		m_request(make_request(m_url, http_version)),
-		m_http_version(http_version),
-		m_json_begin("\r\n{"),
-		m_json_end(m_http_version == HTTP_VERSION_10 ? "}\r\n" : "}\r\n0")
+		const std::string& id,
+		const std::string& url,
+		const std::string& path = "",
+		const std::string& http_version = HTTP_VERSION_11,
+		int timeout_ms = 1000L,
+		ssl_ptr_t ssl = 0,
+		bt_ptr_t bt = 0): m_obj(obj),
+			m_id(id),
+			m_url(url),
+			m_path(path.empty() ? m_url.get_path() : path),
+			m_ssl(ssl),
+			m_bt(bt),
+			m_timeout_ms(timeout_ms),
+			m_request(make_request(m_url, http_version)),
+			m_http_version(http_version),
+			m_json_begin("\r\n{"),
+			m_json_end(m_http_version == HTTP_VERSION_10 ? "}\r\n" : "}\r\n0")
 	{
-		g_logger.log(std::string("Creating Socket handler object for (" + id + ") [" + uri(url).to_string(false) + ']'), sinsp_logger::SEV_DEBUG);
+		g_logger.log(std::string("Creating Socket handler object for (" + id + ") "
+					 "[" + uri(url).to_string(false) + ']'), sinsp_logger::SEV_DEBUG);
 	}
 
 	virtual ~socket_data_handler()
@@ -576,16 +576,17 @@ private:
 				{
 					if(chunked && !purge_chunked_markers(m_data_buf))
 					{
-						g_logger.log("Socket handler (" + m_id + "): Invalid JSON data detected (chunked transfer).",
-									 sinsp_logger::SEV_ERROR);
+						g_logger.log("Socket handler (" + m_id + "): Invalid JSON data detected "
+									 "(chunked transfer).", sinsp_logger::SEV_ERROR);
 						(m_obj.*m_json_callback)(nullptr, m_id);
 					}
 					else
 					{
-						g_logger.log("Socket handler (" + m_id + "): invoking callback(s).", sinsp_logger::SEV_TRACE);
+						g_logger.log("Socket handler (" + m_id + "): invoking callback(s).",
+									 sinsp_logger::SEV_TRACE);
 						if(m_json_filters.empty())
 						{
-							// if no filters provided and we got here, just try to do the whole JSON
+							// if no filters provided and we got here, just try to do the whole JSON as-is
 							add_json_filter(".");
 						}
 						for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
@@ -624,8 +625,9 @@ private:
 					{
 						(m_obj.*m_json_callback)(nullptr, m_id);
 						m_data_buf.clear();
-						g_logger.log("Socket handler (" + m_id + "): Invalid HTTP content length from [: " + m_url.to_string(false) + ']' +
-								 std::to_string(len), sinsp_logger::SEV_ERROR);
+						g_logger.log("Socket handler (" + m_id + "): Invalid HTTP content length from "
+									 "[: " + m_url.to_string(false) + ']' +
+									 std::to_string(len), sinsp_logger::SEV_ERROR);
 						return false;
 					}
 					else
@@ -792,7 +794,8 @@ private:
 			{
 				if(os.str().empty())
 				{
-					os << "Socket handler (" + m_id + ", socket=" + std::to_string(m_socket) + ") SSL errors:\n";
+					os << "Socket handler (" << m_id << ", "
+						"socket=" << std::to_string(m_socket) << ") SSL errors:\n";
 				}
 				os << ERR_error_string(err, errbuf) << std::endl;
 			}
@@ -810,12 +813,14 @@ private:
 			const SSL_METHOD* method = TLSv1_2_client_method();
 			if(!method)
 			{
-				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL method\n" + ssl_errors(), sinsp_logger::SEV_ERROR);
+				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL method\n" + ssl_errors(),
+							 sinsp_logger::SEV_ERROR);
 			}
 			m_ssl_context = SSL_CTX_new(method);
 			if(!m_ssl_context)
 			{
-				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL context\n" + ssl_errors(), sinsp_logger::SEV_ERROR);
+				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL context\n" + ssl_errors(),
+							 sinsp_logger::SEV_ERROR);
 				return;
 			}
 
@@ -833,7 +838,8 @@ private:
 					else if(ca_cert.empty())
 					{
 						throw sinsp_exception("Socket handler (" + m_id + "): "
-											  "Invalid SSL CA certificate configuration (Verify Peer enabled but no CA certificate specified).");
+											  "Invalid SSL CA certificate configuration "
+											  "(Verify Peer enabled but no CA certificate specified).");
 					}
 					SSL_CTX_set_verify(m_ssl_context, SSL_VERIFY_PEER, ssl_verify_callback);
 					g_logger.log("Socket handler (" + m_id + "): CA verify set to PEER", sinsp_logger::SEV_TRACE);
@@ -855,7 +861,8 @@ private:
 					}
 					else
 					{
-						g_logger.log("Socket handler (" + m_id + "): using SSL certificate from " + cert, sinsp_logger::SEV_TRACE);
+						g_logger.log("Socket handler (" + m_id + "): using SSL certificate from " + cert,
+									 sinsp_logger::SEV_TRACE);
 					}
 					const std::string& key = m_ssl->key();
 					if(!key.empty())
@@ -1124,7 +1131,8 @@ private:
 				int ret = 0;
 				if(!m_dns_reqs) // first call, call async resolver
 				{
-					g_logger.log("Socket handler (" + m_id + ") resolving " + m_url.get_host(), sinsp_logger::SEV_TRACE);
+					g_logger.log("Socket handler (" + m_id + ") resolving " + m_url.get_host(),
+								 sinsp_logger::SEV_TRACE);
 					m_dns_reqs = (struct gaicb**)calloc(1, sizeof(struct gaicb*));
 					m_dns_reqs[0] = (struct gaicb*)calloc(1, sizeof(struct gaicb));
 					m_dns_reqs[0]->ar_name = strdup(m_url.get_host().c_str());
@@ -1138,7 +1146,8 @@ private:
 				}
 				else // rest of the calls, try to get resolver result
 				{
-					g_logger.log("Socket handler (" + m_id + ") checking resolve for " + m_url.get_host(), sinsp_logger::SEV_TRACE);
+					g_logger.log("Socket handler (" + m_id + ") checking resolve for " + m_url.get_host(),
+								 sinsp_logger::SEV_TRACE);
 					ret = gai_error(m_dns_reqs[0]);
 					if(!ret)
 					{
@@ -1153,8 +1162,8 @@ private:
 									{
 										m_serv_addr.sin_addr.s_addr = saddr->sin_addr.s_addr;
 										m_address = inet_ntoa(saddr->sin_addr);
-										g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() + " resolved to " + m_address,
-															 sinsp_logger::SEV_TRACE);
+										g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
+													 " resolved to " + m_address, sinsp_logger::SEV_TRACE);
 										dns_cleanup();
 										break;
 									}
@@ -1162,14 +1171,15 @@ private:
 							}
 							if(!m_serv_addr.sin_addr.s_addr)
 							{
-								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() + " address not resolved yet.",
-											 sinsp_logger::SEV_TRACE);
+								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
+											 " address not resolved yet.", sinsp_logger::SEV_TRACE);
 								return false;
 							}
 						}
 						else
 						{
-							throw sinsp_exception("Socket handler (" + m_id + "): " + m_url.get_host() + ", resolver request is NULL.");
+							throw sinsp_exception("Socket handler (" + m_id + "): " + m_url.get_host() +
+												  ", resolver request is NULL.");
 						}
 					}
 					else
@@ -1178,15 +1188,17 @@ private:
 						{
 							case EAI_AGAIN:
 							case EAI_INPROGRESS:
-								g_logger.log("Socket handler (" + m_id + ") [" + m_url.get_host() + "]: " + gai_strerror(ret),
-											 sinsp_logger::SEV_DEBUG);
+								g_logger.log("Socket handler (" + m_id + ") [" + m_url.get_host() + "]: " +
+											 gai_strerror(ret), sinsp_logger::SEV_DEBUG);
 								break;
 							case EAI_SYSTEM:
-								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() + ", resolver error: " + gai_strerror(ret) +
+								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
+											 ", resolver error: " + gai_strerror(ret) +
 											 ", system error: " + strerror(errno), sinsp_logger::SEV_ERROR);
 								break;
 							default:
-								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() + ", resolver error: " + gai_strerror(ret),
+								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
+											 ", resolver error: " + gai_strerror(ret),
 											 sinsp_logger::SEV_ERROR);
 						}
 						return false;

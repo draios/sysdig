@@ -36,4 +36,5 @@ private:
 
 	filter_ptr_t m_event_filter;
 	bool         m_event_ignored = false;
+	bool         m_event_limit_exceeded = false;
 };

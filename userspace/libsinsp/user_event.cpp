@@ -298,3 +298,21 @@ std::string sinsp_user_event::to_string(uint64_t timestamp,
 	return ostr.str();
 }
 
+void sinsp_user_event::emit_event_overflow(const std::string& component,
+										   const std::string& machine_id,
+										   const std::string& source)
+{
+	std::string event_name = component;
+	event_name.append(" Event Limit Exceeded");
+	std::ostringstream description;
+	description << component << " event limit (" << max_events_per_cycle() <<
+				" per cycle) exceeded. Remaining events from this cycle were discarded.";
+	std::string scope;
+	if(machine_id.length())
+	{
+		scope.append("host.mac=").append(machine_id);
+	}
+	tag_map_t tags{{"source", source}};
+	g_logger.log(sinsp_user_event::to_string(get_epoch_utc_seconds_now(), std::move(event_name),
+				 description.str(), std::move(scope), std::move(tags)), sinsp_logger::SEV_EVT_WARNING);
+}
