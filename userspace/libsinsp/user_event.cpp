@@ -306,7 +306,7 @@ void sinsp_user_event::emit_event_overflow(const std::string& component,
 	event_name.append(" Event Limit Exceeded");
 	std::ostringstream description;
 	description << component << " event limit (" << max_events_per_cycle() <<
-				" per cycle) exceeded. Remaining events from this cycle were discarded.";
+				" per second) exceeded. Excess events were discarded.";
 	std::string scope;
 	if(machine_id.length())
 	{

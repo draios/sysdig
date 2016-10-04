@@ -229,7 +229,7 @@ void docker::set_event_json(json_ptr_t json, const std::string&)
 
 void docker::handle_event(Json::Value&& root)
 {
-	if(m_event_filter && (++m_event_counter < sinsp_user_event::max_events_per_cycle()))
+	if(m_event_filter && (m_event_counter < sinsp_user_event::max_events_per_cycle()))
 	{
 		std::string type = get_json_string(root, "Type");
 		std::string status = get_json_string(root, "Action");
@@ -237,7 +237,8 @@ void docker::handle_event(Json::Value&& root)
 		{
 			status = get_json_string(root, "status");
 		}
-		g_logger.log("Docker EVENT: type=" + type + ", status=" + status, sinsp_logger::SEV_DEBUG);
+		g_logger.log("Docker EVENT: type=" + type + ", status=" + status + ", "
+					 "queued events count=" + std::to_string(m_event_counter), sinsp_logger::SEV_DEBUG);
 		bool is_allowed = m_event_filter->allows_all();
 		if(!is_allowed)
 		{
@@ -268,6 +269,7 @@ void docker::handle_event(Json::Value&& root)
 		}
 		if(is_allowed)
 		{
+			++m_event_counter;
 			std::string::size_type delim_pos = status.find(':');
 			if(delim_pos != std::string::npos)
 			{

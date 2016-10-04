@@ -118,15 +118,19 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 									k8s_events& evts = m_state->get_events();
 									if(evts.size() < sinsp_user_event::max_events_per_cycle())
 									{
-										g_logger.log("K8s EVENT: adding event.", sinsp_logger::SEV_TRACE);
 										k8s_event_t& evt = m_state->add_component<k8s_events, k8s_event_t>(evts,
 																	data->m_name, data->m_uid, data->m_namespace);
 										m_state->update_event(evt, json);
 										m_event_limit_exceeded = false;
+										if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+										{
+											g_logger.log("K8s EVENT: added event [" + data->m_name + "]. "
+														 "Queued events count=" + std::to_string(evts.size()), sinsp_logger::SEV_DEBUG);
+										}
 									}
 									else if(!m_event_limit_exceeded) // only get in here once per cycle, to send event overflow warning
 									{
-										sinsp_user_event::emit_event_overflow("K8s", get_machine_id());
+										sinsp_user_event::emit_event_overflow("Kubernetes", get_machine_id());
 										m_event_limit_exceeded = true;
 										return false;
 									}
@@ -137,10 +141,10 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 								}
 								else // event not allowed by filter, ignore
 								{
-									g_logger.log("K8s EVENT: filter does not allow {\"" + type + "\", \"{" + event_reason.asString() + "\"} }",
-												 sinsp_logger::SEV_TRACE);
 									if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 									{
+										g_logger.log("K8s EVENT: filter does not allow {\"" + type + "\", \"{" + event_reason.asString() + "\"} }",
+												 sinsp_logger::SEV_TRACE);
 										g_logger.log(m_event_filter->to_string(), sinsp_logger::SEV_TRACE);
 									}
 									m_event_ignored = true;
