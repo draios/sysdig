@@ -89,14 +89,16 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 						bool is_aggregate = (get_json_string(json , "message").find("events with common reason combined") != std::string::npos);
 						time_t last_ts = get_epoch_utc_seconds(get_json_string(json , "lastTimestamp"));
 						time_t now_ts = get_epoch_utc_seconds_now();
-						g_logger.log("K8s EVENT: lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts), sinsp_logger::SEV_TRACE);
+						g_logger.log("K8s EVENT: lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts),
+									 sinsp_logger::SEV_TRACE);
 						if(((last_ts > 0) && (now_ts > 0)) && // we got good timestamps
 							!is_aggregate && // not an aggregated cached event
 							((now_ts - last_ts) < 10)) // event not older than 10 seconds
 						{
 							const Json::Value& kind = involved_object["kind"];
 							const Json::Value& event_reason = json["reason"];
-							g_logger.log("K8s EVENT: involved object and event reason found:" + kind.asString() + '/' + event_reason.asString(), sinsp_logger::SEV_TRACE);
+							g_logger.log("K8s EVENT: involved object and event reason found:" + kind.asString() + '/' + event_reason.asString(),
+										 sinsp_logger::SEV_TRACE);
 							if(!kind.isNull() && kind.isConvertibleTo(Json::stringValue) &&
 								!event_reason.isNull() && event_reason.isConvertibleTo(Json::stringValue))
 							{
@@ -113,26 +115,53 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 								}
 								if(is_allowed)
 								{
-									g_logger.log("K8s EVENT: adding event.", sinsp_logger::SEV_TRACE);
-									k8s_event_t& evt = m_state->add_component<k8s_events, k8s_event_t>(m_state->get_events(),
-																data->m_name, data->m_uid, data->m_namespace);
-									m_state->update_event(evt, json);
+									k8s_events& evts = m_state->get_events();
+									if(evts.size() < sinsp_user_event::max_events_per_cycle())
+									{
+										k8s_event_t& evt = m_state->add_component<k8s_events, k8s_event_t>(evts,
+																	data->m_name, data->m_uid, data->m_namespace);
+										m_state->update_event(evt, json);
+										m_event_limit_exceeded = false;
+										if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+										{
+											g_logger.log("K8s EVENT: added event [" + data->m_name + "]. "
+														 "Queued events count=" + std::to_string(evts.size()), sinsp_logger::SEV_DEBUG);
+										}
+									}
+									else if(!m_event_limit_exceeded) // only get in here once per cycle, to send event overflow warning
+									{
+										sinsp_user_event::emit_event_overflow("Kubernetes", get_machine_id());
+										m_event_limit_exceeded = true;
+										return false;
+									}
+									else // event limit exceeded and overflow logged, nothing to do
+									{
+										return false;
+									}
 								}
-								else
+								else // event not allowed by filter, ignore
 								{
-									g_logger.log("K8s EVENT: filter does not allow {\"" + type + "\", \"{" + event_reason.asString() + "\"} }", sinsp_logger::SEV_TRACE);
-									g_logger.log(m_event_filter->to_string(), sinsp_logger::SEV_TRACE);
+									if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+									{
+										g_logger.log("K8s EVENT: filter does not allow {\"" + type + "\", \"{" + event_reason.asString() + "\"} }",
+												 sinsp_logger::SEV_TRACE);
+										g_logger.log(m_event_filter->to_string(), sinsp_logger::SEV_TRACE);
+									}
+									m_event_ignored = true;
 									return false;
 								}
 							}
 							else
 							{
 								g_logger.log("K8s EVENT: event type or involvedObject kind not found.", sinsp_logger::SEV_ERROR);
-								g_logger.log(Json::FastWriter().write(json), sinsp_logger::SEV_TRACE);
+								if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+								{
+									g_logger.log(Json::FastWriter().write(json), sinsp_logger::SEV_TRACE);
+								}
 								return false;
 							}
 						}
-						else
+						else // old event, ignore
 						{
 							g_logger.log("K8s EVENT: old event, ignoring: "
 										 ", lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts),
@@ -148,10 +177,9 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 						return false;
 					}
 				}
-				else
+				else // not ADDED or MODIFIED event, ignore
 				{
-					g_logger.log(std::string("Unsupported K8S Event reason: ") +
-								 std::to_string(data->m_reason), sinsp_logger::SEV_ERROR);
+					m_event_ignored = true;
 					return false;
 				}
 			}

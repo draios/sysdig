@@ -45,6 +45,9 @@ public:
 	void check_components();
 
 	const k8s_state_t& get_state();
+	void clear_events();
+	void set_machine_id(const std::string& machine_id);
+	std::string get_machine_id() const;
 
 	void watch();
 	void stop_watching();
@@ -90,3 +93,30 @@ inline bool k8s::is_alive() const
 	return true;
 }
 
+inline void k8s::clear_events()
+{
+	m_state.clear_events();
+}
+
+inline std::string k8s::get_machine_id() const
+{
+	if(m_net)
+	{
+		return m_net->get_machine_id();
+	}
+	return "";
+}
+
+inline void k8s::set_machine_id(const std::string& machine_id)
+{
+	if(m_net)
+	{
+		m_net->set_machine_id(machine_id);
+	}
+	else
+	{
+		g_logger.log("K8s machine ID (MAC) setting attempted on null net object; "
+					 "scope will not be avialable for events.",
+					 sinsp_logger::SEV_WARNING);
+	}
+}
