@@ -441,27 +441,26 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 
 		case k8s_component::K8S_DEPLOYMENTS:
 		{
-			// TODO
-			/*const k8s_services& services = get_services();
+			const k8s_deployments& deployments = get_deployments();
 			const k8s_pods& pods = get_pods();
-			k8s_state_t::pod_service_map& pod_svc_map = get_pod_service_map();
-			pod_svc_map.clear();
-			for(const auto& service : services)
+			k8s_state_t::pod_deployment_map& pod_deployment_map = get_pod_deployment_map();
+			pod_deployment_map.clear();
+			for(const auto& deployment : deployments)
 			{
-				std::vector<const k8s_pod_t*> pod_subset = service.get_selected_pods(pods);
+				std::vector<const k8s_pod_t*> pod_subset = deployment.get_selected_pods(pods);
 				for(auto& pod : pod_subset)
 				{
 					const std::string& pod_uid = pod->get_uid();
-					if(!is_component_cached(pod_svc_map, pod_uid, &service))
+					if(!is_component_cached(pod_deployment_map, pod_uid, &deployment))
 					{
-						cache_component(pod_svc_map, pod_uid, &service);
+						cache_component(pod_deployment_map, pod_uid, &deployment);
 					}
 					else
 					{
-						g_logger.log("Attempt to cache already cached SERVICE: " + pod_uid, sinsp_logger::SEV_ERROR);
+						g_logger.log("Attempt to cache already cached Deployment: " + pod_uid, sinsp_logger::SEV_ERROR);
 					}
 				}
-			}*/
+			}
 		}
 		break;
 

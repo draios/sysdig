@@ -493,6 +493,8 @@ public:
 	void set_replicas(const Json::Value& item);
 	void set_replicas(int desired, int current);
 
+	std::vector<const k8s_pod_t*> get_selected_pods(const std::vector<k8s_pod_t>& pods) const;
+	
 private:
 	k8s_replicas_t m_replicas;
 };
