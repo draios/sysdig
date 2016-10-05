@@ -6383,7 +6383,7 @@ int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_sta
 	else if(string(val, 0, sizeof("k8s.deployment.label") - 1) == "k8s.deployment.label" &&
 		string(val, 0, sizeof("k8s.deployment.labels") - 1) != "k8s.deployment.labels")
 	{
-		m_field_id = TYPE_K8S_RS_LABEL;
+		m_field_id = TYPE_K8S_DEPLOYMENT_LABEL;
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("k8s.deployment.label", val);
