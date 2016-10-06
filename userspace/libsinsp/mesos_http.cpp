@@ -141,16 +141,16 @@ void mesos_http::discover_mesos_leader()
 					const Json::Value& leader = root["leader"];
 					if(!leader.isNull() && leader.isString())
 					{
-						std::string address = leader.asString();
-						std::string::size_type pos = address.find('@');
-						if(pos != std::string::npos && (pos + 1) < address.size())
+						std::string leader_address = leader.asString();
+						std::string::size_type pos = leader_address.find('@');
+						if(pos != std::string::npos && (pos + 1) < leader_address.size())
 						{
-							address = "http://";//.append(address.substr(pos + 1)).append(mesos::default_state_api);
+							std::string address = "http://";
 							if(!m_mesos.m_mesos_credentials.first.empty())
 							{
 								address.append(m_mesos.m_mesos_credentials.first).append(1, ':').append(m_mesos.m_mesos_credentials.second).append(1, '@');
 							}
-							address.append(address.substr(pos + 1)).append(mesos::default_state_api);
+							address.append(leader_address.substr(pos + 1)).append(mesos::default_state_api);
 							if(address != m_url.to_string(true))
 							{
 								g_logger.log("mesos_http: Detected Mesos master leader redirect: [" + uri(address).to_string(false) + ']', sinsp_logger::SEV_INFO);
@@ -165,8 +165,7 @@ void mesos_http::discover_mesos_leader()
 						}
 						else
 						{
-							throw sinsp_exception("mesos_http: Unexpected leader entry format while detecting Mesos master ["
-												  + uri(address).to_string(false) + "]: " + address);
+							throw sinsp_exception("mesos_http: Unexpected leader entry format while detecting Mesos master: " + leader_address);
 						}
 					}
 					else
