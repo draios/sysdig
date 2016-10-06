@@ -51,9 +51,11 @@ public:
 		const std::string& http_version = HTTP_VERSION_11,
 		int timeout_ms = 1000L,
 		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0): m_obj(obj),
+		bt_ptr_t bt = 0,
+		bool keep_alive = true): m_obj(obj),
 			m_id(id),
 			m_url(url),
+			m_keep_alive(keep_alive ? std::string("Connection: keep-alive\r\n") : std::string()),
 			m_path(path.empty() ? m_url.get_path() : path),
 			m_ssl(ssl),
 			m_bt(bt),
@@ -128,7 +130,7 @@ public:
 		{
 			request << '?' << query;
 		}
-		request << " HTTP/" << http_version << "\r\nConnection: Keep-Alive\r\nUser-Agent: sysdig\r\n";
+		request << " HTTP/" << http_version << "\r\n" << m_keep_alive << "User-Agent: sysdig\r\n";
 		if(!host_and_port.empty())
 		{
 			request << "Host: " << host_and_port << "\r\n";
@@ -1370,6 +1372,7 @@ private:
 	T&                       m_obj;
 	std::string              m_id;
 	uri                      m_url;
+	std::string              m_keep_alive;
 	std::string              m_path;
 	std::string              m_address;
 	bool                     m_connecting = false;

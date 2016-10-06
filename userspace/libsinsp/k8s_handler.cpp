@@ -69,9 +69,10 @@ void k8s_handler::make_http()
 {
 	if(m_connect)
 	{
+		bool keep_alive = (m_id.find("_state") == std::string::npos);
 		m_http = std::make_shared<handler_t>(*this, m_id,
 									 m_url, m_path, m_http_version,
-									 m_timeout_ms, m_ssl, m_bt);
+									 m_timeout_ms, m_ssl, m_bt, keep_alive);
 		m_http->set_json_callback(&k8s_handler::set_event_json);
 		m_http->set_json_end("}\n");
 		m_http->add_json_filter(m_filter);
@@ -188,6 +189,7 @@ void k8s_handler::process_events()
 			{
 				m_state->enqueue_capture_event(*evt);
 			}
+			if(!m_state_built) { m_state_built = true; }
 		}
 		else
 		{
@@ -201,10 +203,9 @@ void k8s_handler::process_events()
 
 void k8s_handler::check_state()
 {
-	if(m_collector && !m_state_built && m_watch)
+	if(m_collector && m_state_built && m_watch)
 	{
 		// done with initial state handling, switch to events
-		m_state_built = true;
 		m_collector->remove(m_http);
 		m_http.reset();
 		std::string::size_type pos = m_id.find("_state");
