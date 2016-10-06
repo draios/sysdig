@@ -513,7 +513,9 @@ public:
 
 	k8s_event_t(const std::string& name, const std::string& uid, const std::string& ns);
 
-	void update(const Json::Value& item, k8s_state_t& state);
+	bool update(const Json::Value& item, k8s_state_t& state);
+	void post_process(k8s_state_t& state);
+	bool has_pending_events() const;
 
 private:
 	typedef sinsp_user_event::tag_map_t tag_map_t;
@@ -523,7 +525,9 @@ private:
 	void make_scope(const Json::Value& obj, std::string& scope);
 	void make_scope_impl(const Json::Value& obj, std::string comp, std::string& scope, bool ns = true);
 
-	name_translation_map_t m_name_translation;
+	name_translation_map_t  m_name_translation;
+	std::map<std::string, Json::Value> m_postponed_events;
+	bool m_force_delete = false;
 };
 
 typedef std::vector<k8s_ns_t>         k8s_namespaces;
@@ -1033,4 +1037,13 @@ inline void k8s_daemonset_t::set_scheduled(int desired, int current)
 {
 	m_replicas.set_spec_replicas(desired);
 	m_replicas.set_stat_replicas(current);
+}
+
+//
+// event
+//
+
+inline bool k8s_event_t::has_pending_events() const
+{
+	return m_postponed_events.size() != 0;
 }

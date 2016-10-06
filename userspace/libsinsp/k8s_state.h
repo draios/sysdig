@@ -545,7 +545,18 @@ inline k8s_events& k8s_state_t::get_events()
 
 inline void k8s_state_t::clear_events()
 {
-	m_events.clear();
+	for(auto it = m_events.begin(); it != m_events.end();)
+	{
+		it->post_process((*this));
+		if(!it->has_pending_events())
+		{
+			it = m_events.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
 }
 
 inline void k8s_state_t::push_event(const k8s_event_t& evt)

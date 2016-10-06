@@ -772,11 +772,36 @@ k8s_event_t::k8s_event_t(const std::string& name, const std::string& uid, const 
 {
 }
 
-void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
+void k8s_event_t::post_process(k8s_state_t& state)
+{
+	for(auto it = m_postponed_events.cbegin(); it != m_postponed_events.end();)
+	{
+		g_logger.log("K8s event: " + std::to_string(m_postponed_events.size()) + " postponed events. "
+					 "post-processing event [" + it->first + "] ...", sinsp_logger::SEV_TRACE);
+		m_force_delete = false;
+		bool updated = update(it->second, state);
+		if(updated || m_force_delete)
+		{
+			g_logger.log("K8s event: event [" + it->first +
+						 "] post-processed.", sinsp_logger::SEV_TRACE);
+			m_postponed_events.erase(it++);
+		}
+		else
+		{
+			g_logger.log("K8s event: event [" + it->first + "] not post-processed. There's " +
+						 std::to_string(m_postponed_events.size()) +
+						 " postponed events pending.", sinsp_logger::SEV_TRACE);
+			++it;
+		}
+	}
+}
+
+bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 {
 #ifndef _WIN32
 
-	time_t      epoch_time_s = 0;
+	time_t      epoch_time_evt_s = 0;
+	time_t      epoch_time_now_s = get_epoch_utc_seconds_now();
 	std::string event_name;
 	std::string description;
 	severity_t  severity = sinsp_logger::SEV_EVT_INFORMATION;
@@ -807,17 +832,18 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	else
 	{
 		g_logger.log("K8s event: cannot get involved object (null)", sinsp_logger::SEV_ERROR);
-		return;
+		m_force_delete = true;
+		return false;
 	}
 
 	std::string ts = get_json_string(item , "lastTimestamp");
 	if(!ts.empty())
 	{
-		if((epoch_time_s = get_epoch_utc_seconds(ts)) == (time_t) -1)
+		if((epoch_time_evt_s = get_epoch_utc_seconds(ts)) == (time_t) -1)
 		{
 			g_logger.log("K8s event: cannot convert [" + ts + "] to epoch timestamp", sinsp_logger::SEV_ERROR);
 		}
-		g_logger.log("K8s EVENT update: time:" + std::to_string(epoch_time_s), sinsp_logger::SEV_DEBUG);
+		g_logger.log("K8s EVENT update: time:" + std::to_string(epoch_time_evt_s), sinsp_logger::SEV_DEBUG);
 	}
 	else
 	{
@@ -840,8 +866,11 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	// not found in state (due to undefined arrival order of event and metadata messages),
 	// we get scope data from the event itself.
 	std::string component_uid = get_json_string(obj, "uid");
+	g_logger.log("K8s event UID:" + component_uid, sinsp_logger::SEV_TRACE);
 	if(!component_uid.empty())
 	{
+		g_logger.log("K8s event: seconds since event occurred:" + std::to_string(epoch_time_now_s - epoch_time_evt_s),
+					 sinsp_logger::SEV_TRACE);
 		std::string t;
 		const k8s_component* comp = state.get_component(component_uid, &t);
 		if(comp && !t.empty())
@@ -868,10 +897,19 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 				scope.append(" and kubernetes.").append(t).append(".label.").append(label.first).append(1, '=').append(label.second);
 			}*/
 		}
-		else
+		else if(epoch_time_now_s < (epoch_time_evt_s + 120))
 		{
-			g_logger.log("K8s event: cannot obtain component (UID not found: [" + component_uid +
-						 "]), trying to build scope directly from event ...", sinsp_logger::SEV_WARNING);
+			if(m_postponed_events.find(component_uid) == m_postponed_events.end())
+			{
+				m_postponed_events[component_uid] = item;
+			}
+			m_force_delete = false;
+			return false; // return early, postponed events will be processed later
+		}
+		else // postponed events are handled directly after 120 seconds
+		{
+			g_logger.log("K8s event: cannot obtain component (component with UID [" + component_uid +
+						 "] not found), trying to build scope directly from event ...", sinsp_logger::SEV_WARNING);
 			make_scope(obj, scope);
 		}
 	}
@@ -883,8 +921,9 @@ void k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	}
 
 	tags["source"] = "kubernetes";
-	g_logger.log(sinsp_user_event::to_string(epoch_time_s, std::move(event_name), std::move(description),
+	g_logger.log(sinsp_user_event::to_string(epoch_time_evt_s, std::move(event_name), std::move(description),
 											std::move(scope), std::move(tags)), severity);
+	return true;
 
 	// TODO: sysdig capture?
 #endif // _WIN32
