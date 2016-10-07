@@ -421,16 +421,18 @@ void mesos::send_data_request(bool collect)
 
 bool mesos::collect_data()
 {
+	const int tout_s = 30;
+
 	//TODO: see if we can do better here - instead of timing out, depending on
 	//      mesos_collector socket drop detection when remote end closes connection
 	time_t now; time(&now);
-	if(m_last_mesos_refresh && difftime(now, m_last_mesos_refresh) > 30)
+	if(m_last_mesos_refresh && difftime(now, m_last_mesos_refresh) > tout_s)
 	{
 		throw sinsp_exception("Detected stalled Mesos connection (" +
 							  std::to_string(difftime(now, m_last_mesos_refresh)) + "s)."
 							  " Reconnect attempt in next cycle ...");
 	}
-	if(m_last_marathon_refresh && difftime(now, m_last_marathon_refresh) > 30)
+	if(m_last_marathon_refresh && difftime(now, m_last_marathon_refresh) > tout_s)
 	{
 		throw sinsp_exception("Detected stalled Marathon connection(" +
 							  std::to_string(difftime(now, m_last_marathon_refresh)) + "s)."
@@ -493,7 +495,7 @@ bool mesos::collect_data()
 								m_json_error = false;
 								ret = true;
 							}
-							else if((difftime(now, m_last_marathon_refresh) > 30) || m_json_error)
+							else if((difftime(now, m_last_marathon_refresh) > tout_s) || m_json_error)
 							{
 								g_logger.log("Detected null Marathon app (" + app_it->first + "), resetting current state.", sinsp_logger::SEV_WARNING);
 								m_mesos_state_json.reset();
@@ -509,7 +511,7 @@ bool mesos::collect_data()
 												  "(app json for framework [" + group.first + "] not found in json map).");
 						}
 					}
-					else
+					else if((difftime(now, m_last_marathon_refresh) > tout_s) || m_json_error)
 					{
 						g_logger.log("Detected null Marathon group (" + group.first + "), resetting current state.", sinsp_logger::SEV_WARNING);
 						m_mesos_state_json.reset();
