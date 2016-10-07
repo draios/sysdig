@@ -211,9 +211,9 @@ void k8s_net::add_handler(const k8s_component::type_map::value_type& component)
 				{
 					handler->set_machine_id(m_machine_id);
 				}
-				else
+				else if(handler->name() == "events")
 				{
-					g_logger.log("K8s machine ID (MAC) is empty - scope will not be avialable for events.",
+					g_logger.log("K8s machine ID (MAC) is empty - scope will not be available for " + handler->name(),
 								 sinsp_logger::SEV_WARNING);
 				}
 				m_handlers[component.first] = handler;
