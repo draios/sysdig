@@ -140,6 +140,7 @@ private:
 	// this flag indicates whether handler should continue to watch after receiving
 	// the initial state
 	bool m_watch;
+	bool m_watching = false; // indication of being in watch mode
 
 	// flag indicating whether to connect to K8s API server (no connection needed when
 	// replaying capture)
