@@ -112,7 +112,7 @@ bool k8s_handler::connect()
 		if(m_http->is_connecting())
 		{
 			g_logger.log(std::string("k8s_handler (" + m_id +
-									 "), connect() connecting to " + uri(m_url).to_string(false)), sinsp_logger::SEV_TRACE);
+									 "), connect() connecting to " + m_http->get_url().to_string(false)), sinsp_logger::SEV_TRACE);
 			return false;
 		}
 		if(m_http->is_connected())
@@ -126,7 +126,8 @@ bool k8s_handler::connect()
 	else if (!m_url.empty())
 	{
 		g_logger.log(std::string("k8s_handler (" + m_id +
-									 ") connect(), http is null, (re)creating ... "), sinsp_logger::SEV_WARNING);
+								 ") connect(), http is null, (re)creating ... "),
+								 sinsp_logger::SEV_WARNING);
 		make_http();
 	}
 	return false;
@@ -138,14 +139,16 @@ void k8s_handler::send_data_request()
 	{
 		if(m_http->is_connected())
 		{
-			g_logger.log("k8s_handler (" + m_id + ") sending request to " + uri(m_url).to_string(false),
+			g_logger.log("k8s_handler (" + m_id + ") sending request to " +
+						 m_http->get_url().to_string(false) + m_path,
 						 sinsp_logger::SEV_DEBUG);
 			m_http->send_request();
 			m_req_sent = true;
 		}
 		else if(m_http->is_connecting())
 		{
-			g_logger.log("k8s_handler (" + m_id + ") is connecting to " + uri(m_url).to_string(false),
+			g_logger.log("k8s_handler (" + m_id + ") is connecting to " +
+						 m_http->get_url().to_string(false),
 						 sinsp_logger::SEV_DEBUG);
 		}
 	}
@@ -159,7 +162,7 @@ bool k8s_handler::is_alive() const
 {
 	if(m_http && !m_http->is_connecting() && !m_http->is_connected())
 	{
-		g_logger.log("k8s_handler (" + m_id + ") state connection (" + uri(m_url).to_string(false) + ") loss.",
+		g_logger.log("k8s_handler (" + m_id + ") connection (" + m_http->get_url().to_string(false) + ") loss.",
 					 sinsp_logger::SEV_WARNING);
 		return false;
 	}
@@ -223,11 +226,11 @@ void k8s_handler::check_state()
 			}
 			else
 			{
-				throw sinsp_exception("k8s_handler (" + m_id + "), invalid URL path: " + uri(m_url).to_string(false));
+				throw sinsp_exception("k8s_handler (" + m_id + "), invalid URL path: " + m_path);
 			}
+			m_req_sent = false;
 		}
 		m_filter = m_event_filter;
-		m_req_sent = false;
 		make_http();
 	}
 }
@@ -392,7 +395,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 								os << "K8s " + reason_type << " message received by " << m_id + " "
 									  "[" << uri(m_url).to_string(false) << "] for existing " << data.m_kind <<
 									" [" << data.m_uid << "], updating only.";
-								g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+								g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 							}
 						}
 						else if(data.m_reason == k8s_component::COMPONENT_MODIFIED)
@@ -415,7 +418,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 								os << "K8s " + reason_type + " message received by " << m_id + " "
 									  "[" << uri(m_url).to_string(false) << "] for non-existing " << data.m_kind <<
 									  " [" << data.m_uid << "], giving up.";
-								g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+								g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
 								continue;
 							}
 						}
