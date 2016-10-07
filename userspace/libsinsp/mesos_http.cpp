@@ -485,7 +485,7 @@ int mesos_http::get_socket(long timeout_ms)
 			throw sinsp_exception("mesos_http: Error obtaining socket: timeout.");
 		}
 
-		g_logger.log(std::string("mesos_http: Connected:; collecting data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
+		g_logger.log(std::string("mesos_http: Connected; collecting data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
 	}
 
 	if(m_watch_socket <= 0)
