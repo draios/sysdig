@@ -290,6 +290,7 @@ void mesos::send_marathon_data_request()
 			if(group_http.second)
 			{
 				group_http.second->send_request();
+				g_logger.log("Marathon groups request sent.", sinsp_logger::SEV_DEBUG);
 			}
 			else
 			{
@@ -301,6 +302,7 @@ void mesos::send_marathon_data_request()
 			if(app_http.second)
 			{
 				app_http.second->send_request();
+				g_logger.log("Marathon apps request sent.", sinsp_logger::SEV_DEBUG);
 			}
 			else
 			{
@@ -405,12 +407,10 @@ void mesos::send_data_request(bool collect)
 		for(auto& group : m_marathon_groups_json)
 		{
 			if(group.second && !group.second->isNull()) { return; }
-			g_logger.log("Marathon groups request sent.", sinsp_logger::SEV_DEBUG);
 		}
 		for(auto& app : m_marathon_apps_json)
 		{
 			if(app.second && !app.second->isNull()) { return; }
-			g_logger.log("Marathon apps request sent.", sinsp_logger::SEV_DEBUG);
 		}
 		connect_marathon();
 		send_marathon_data_request();
@@ -468,7 +468,11 @@ bool mesos::collect_data()
 								parse_state(std::move(*m_mesos_state_json));
 								m_mesos_state_json.reset();
 								m_last_mesos_refresh = now;
-								g_logger.log("Collection detected " + std::to_string(m_inactive_frameworks.size()) + " inactive frameworks", sinsp_logger::SEV_DEBUG);
+								if(m_inactive_frameworks.size())
+								{
+									g_logger.log("Collection detected " + std::to_string(m_inactive_frameworks.size()) + " inactive frameworks",
+												 sinsp_logger::SEV_DEBUG);
+								}
 								if(m_inactive_frameworks.find(group.first) == m_inactive_frameworks.end())
 								{
 									g_logger.log("Detected active Marathon framework " + group.first, sinsp_logger::SEV_DEBUG);
@@ -489,7 +493,7 @@ bool mesos::collect_data()
 								m_json_error = false;
 								ret = true;
 							}
-							else
+							else if((difftime(now, m_last_marathon_refresh) > 30) || m_json_error)
 							{
 								g_logger.log("Detected null Marathon app (" + app_it->first + "), resetting current state.", sinsp_logger::SEV_WARNING);
 								m_mesos_state_json.reset();
