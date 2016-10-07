@@ -644,9 +644,13 @@ private:
 
 	void extract_data(std::string& data)
 	{
-		//g_logger.log(data,sinsp_logger::SEV_DEBUG);
-		g_logger.log(m_id + ' ' + m_url.to_string(false) + ":\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
-		if(data.empty()) { return; }
+		if(data.empty())
+		{
+			g_logger.log(m_id + ' ' + m_url.to_string(false) + m_path + ": no data received, giving up extraction ...",
+						 sinsp_logger::SEV_TRACE);
+			return;
+		}
+		g_logger.log(m_id + ' ' + m_url.to_string(false) + m_path + ":\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 		if(!detect_chunked_transfer(data))
 		{
 			g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ": "
@@ -1089,7 +1093,7 @@ private:
 		}
 
 		g_logger.log("Socket handler (" + m_id + "): Connected: socket=" + std::to_string(m_socket) +
-					 ", collecting data from " + m_url.to_string(false), sinsp_logger::SEV_DEBUG);
+					 ", collecting data from " + m_url.to_string(false) + m_path, sinsp_logger::SEV_DEBUG);
 
 		if(m_url.is_secure() && m_ssl && m_ssl->verify_peer())
 		{

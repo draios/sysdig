@@ -77,6 +77,7 @@ void k8s_handler::make_http()
 		m_http->set_json_end("}\n");
 		m_http->add_json_filter(m_filter);
 		m_http->add_json_filter(ERROR_FILTER);
+		m_req_sent = false;
 		connect();
 	}
 }
@@ -206,7 +207,7 @@ void k8s_handler::process_events()
 
 void k8s_handler::check_state()
 {
-	if(m_collector && m_state_built && m_watch)
+	if(m_collector && m_state_built && m_watch && !m_watching)
 	{
 		// done with initial state handling, switch to events
 		m_collector->remove(m_http);
@@ -228,10 +229,10 @@ void k8s_handler::check_state()
 			{
 				throw sinsp_exception("k8s_handler (" + m_id + "), invalid URL path: " + m_path);
 			}
-			m_req_sent = false;
 		}
 		m_filter = m_event_filter;
 		make_http();
+		m_watching = true;
 	}
 }
 
@@ -261,30 +262,35 @@ void k8s_handler::collect_data()
 			check_enabled();
 			if(!m_req_sent)
 			{
-				g_logger.log("k8s_handler (" + m_id + ") collect_data(), connected to " + uri(m_url).to_string(false) + ", requesting data ...",
-							 sinsp_logger::SEV_DEBUG);
+				g_logger.log("k8s_handler (" + m_id + ") collect_data(), connected to " + uri(m_url).to_string(false) + ", requesting data "
+							 "from " + m_path + "...",  sinsp_logger::SEV_DEBUG);
 				send_data_request();
 			}
 			if(m_collector->subscription_count())
 			{
-				g_logger.log("k8s_handler (" + m_id + ") collect_data(), connected to " + uri(m_url).to_string(false) + ", getting data ...",
-							 sinsp_logger::SEV_DEBUG);
+				g_logger.log("k8s_handler (" + m_id + ") collect_data(), connected to " + uri(m_url).to_string(false) + ", getting data "
+							 "from " + m_path + "...",  sinsp_logger::SEV_DEBUG);
 				m_collector->get_data();
-				g_logger.log("k8s_handler (" + m_id + ") collect_data(), " + std::to_string(m_events.size()) + " events from " + uri(m_url).to_string(false),
-							 sinsp_logger::SEV_DEBUG);
+				g_logger.log("k8s_handler (" + m_id + ") collect_data(), " + std::to_string(m_events.size()) +
+							 " events from " + uri(m_url).to_string(false) + m_path, sinsp_logger::SEV_DEBUG);
 				if(m_events.size())
 				{
-					g_logger.log("k8s_handler (" + m_id + ") collect_data(), data from " + uri(m_url).to_string(false) +
-								 "event count=" + std::to_string(m_events.size()),
+					g_logger.log("k8s_handler (" + m_id + ") collect_data(), data from " + uri(m_url).to_string(false) + m_path +
+								 ", event count=" + std::to_string(m_events.size()),
 								 sinsp_logger::SEV_DEBUG);
 					process_events();
 					check_state();
 				}
 				else
 				{
-					g_logger.log("k8s_handler (" + m_id + ") collect_data(), no data from " + uri(m_url).to_string(false),
+					g_logger.log("k8s_handler (" + m_id + ") collect_data(), no data from " + uri(m_url).to_string(false) + m_path,
 							 sinsp_logger::SEV_DEBUG);
 				}
+			}
+			else
+			{
+				g_logger.log("k8s_handler (" + m_id + ") collect_data(), no subscriptions to " + uri(m_url).to_string(false) + m_path,
+						 sinsp_logger::SEV_DEBUG);
 			}
 			return;
 		}
