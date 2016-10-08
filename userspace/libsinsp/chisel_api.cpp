@@ -114,7 +114,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 		case PT_BYTEBUF:
 			if(rawval[len] == 0)
 			{
-				lua_pushstring(ls, (char*)rawval);
+				lua_pushlstring(ls, (char*)rawval, len);
 				return 1;
 			}
 			else
@@ -128,7 +128,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 
 				memcpy(ch->m_lua_fld_storage, rawval, max_len);
 				ch->m_lua_fld_storage[max_len] = 0;
-				lua_pushstring(ls, (char*)ch->m_lua_fld_storage);
+				lua_pushlstring(ls, (char*)ch->m_lua_fld_storage, max_len);
 				return 1;
 			}
 		case PT_SOCKADDR:
