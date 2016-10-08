@@ -17,8 +17,8 @@ k8s_api_handler::k8s_api_handler(collector_ptr_t collector,
 	ssl_ptr_t ssl,
 	bt_ptr_t bt):
 		k8s_handler("k8s_api_handler", false, url, path,
-					filter, ".", collector, http_version,
-					1000L, ssl, bt, nullptr, false)
+					filter, ".", std::make_shared<k8s_dummy_handler>(),
+					collector, http_version, 1000L, ssl, bt, nullptr, false)
 {
 }
 

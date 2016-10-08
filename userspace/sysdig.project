@@ -190,8 +190,13 @@
     <File Name="libsinsp/k8s_event_handler.cpp"/>
     <File Name="libsinsp/k8s_daemonset_handler.cpp"/>
     <File Name="libsinsp/k8s_replicationcontroller_handler.cpp"/>
-    <File Name="k8s_node_handler.cpp"/>
-    <File Name="k8s_node_handler.h"/>
+    <File Name="libsinsp/prefix_search.cpp"/>
+    <File Name="libsinsp/prefix_search.h"/>
+    <File Name="libsinsp/k8s_api_handler.cpp"/>
+    <File Name="libsinsp/k8s_api_handler.h"/>
+    <File Name="libsinsp/k8s_api_error.h"/>
+    <File Name="libsinsp/k8s_api_error.cpp"/>
+    <File Name="libsinsp/filter_value.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="libscap">
     <VirtualDirectory Name="examples">
