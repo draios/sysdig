@@ -19,7 +19,7 @@ function on_init()
 	fcontainername = chisel.request_field("container.name")
 	
 	sysdig.set_snaplen(16384)
-	chisel.set_filter("evt.dir=< and evt.rawres>=0 and fd.type=file and (evt.is_open_write=true or evt.is_io_write=true or evt.type=close)")
+	chisel.set_filter("evt.dir=< and evt.rawres>=0 and fd.type=file and evt.type in (open, openat, write, close)")
 
 	return true
 end
@@ -31,7 +31,7 @@ function on_event()
 	local containername = evt.field(fcontainername)
 	local etype = evt.get_type()
 	
-	if etype == "open" then
+	if etype == "open" or etype == "openat" then
 		if string.starts(name, "/dev") or 
 				string.starts(name, "/sys") or
 				string.starts(name, "/tmp") or
@@ -44,14 +44,16 @@ function on_event()
 		files[name] = ""
 	elseif etype == "close" then
 		if files[name] then
-			file_name = containername .. string.gsub(name, "/", "_")
-
-			print("Scavenged file " .. name .. ", saving as " .. file_name)
-
-			fp = io.output(file_name)
 			f = files[name]
-			io.write(f)
-			io.close(fp)
+			if string.len(f) > 0 then
+				file_name = containername .. string.gsub(name, "/", "_")
+
+				print("Scavenged file " .. name .. ", saving as " .. file_name)
+
+				fp = io.output(file_name)
+				io.write(f)
+				io.close(fp)
+			end
 
 			files[name] = nil
 		end
@@ -66,7 +68,7 @@ function on_event()
 				files[name] = nil
 			end
 		end
-	elseif etype ~= "writev" and etype ~= "pwrite" then
+	else
 		print("Unknown event type " .. etype)
 	end
 	return true
