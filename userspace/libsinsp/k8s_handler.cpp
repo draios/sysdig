@@ -187,12 +187,11 @@ void k8s_handler::process_events()
 		{
 			g_logger.log("k8s_handler (" + m_id + ") data:\n" + json_as_string(*evt),
 				 sinsp_logger::SEV_TRACE);
-			handle_json(std::move(*evt));
-
 			if(m_is_captured)
 			{
 				m_state->enqueue_capture_event(*evt);
 			}
+			handle_json(std::move(*evt));
 			if(!m_state_built) { m_state_built = true; }
 		}
 		else
