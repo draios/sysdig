@@ -37,24 +37,16 @@ public:
 
 	~k8s_net();
 
-	static handler_ptr_t get_handler(k8s_state_t& state, const k8s_component::type component, bool connect = true,
+	static handler_ptr_t make_handler(k8s_state_t& state, const k8s_component::type component, bool connect = true,
+									 handler_ptr_t dep = std::make_shared<k8s_dummy_handler>(),
 									 collector_ptr_t collector = nullptr, const std::string& urlstr = "",
 									 ssl_ptr_t ssl = nullptr, bt_ptr_t bt = nullptr,
 									 filter_ptr_t event_filter = nullptr);
 	void add_handler(const k8s_component::type_map::value_type& component);
 	bool has_handler(const k8s_component::type_map::value_type& component);
-	handler_ptr_t get_handler(const k8s_component::type_map::value_type& component);
 	bool has_dependency(const k8s_component::type_map::value_type& component);
 
-	bool is_state_built(const k8s_component::type_map::value_type& component)
-	{
-		const auto& it = m_handlers.find(component.first);
-		if(it != m_handlers.end())
-		{
-			return it->second && it->second->is_state_built();
-		}
-		return false;
-	}
+	bool is_state_built(const k8s_component::type_map::value_type& component);
 
 	void watch();
 	void stop_watching();
@@ -63,13 +55,19 @@ public:
 	void set_machine_id(const std::string& machine_id);
 	const std::string& get_machine_id() const;
 
+	typedef k8s_handler::handler_t                       handler_t;
+	typedef std::map<k8s_component::type, handler_ptr_t> handler_map_t;
+
+	const handler_map_t& handlers() const;
+	static handler_ptr_t get_handler(const handler_map_t& handlers, k8s_component::type component);
+	static handler_ptr_t get_handler(const handler_map_t&  handlers, const k8s_component::type_map::value_type& component);
+	static handler_ptr_t get_dependency_handler(const handler_map_t&  handlers, const k8s_component::type_map::value_type& component);
+	static handler_ptr_t get_dependency_handler(const handler_map_t&  handlers, const k8s_component::type& component);
+
 private:
 	void init();
 	bool is_secure();
 	void cleanup();
-
-	typedef k8s_handler::handler_t                       handler_t;
-	typedef std::map<k8s_component::type, handler_ptr_t> handler_map_t;
 
 	k8s&            m_k8s;
 	k8s_state_t&    m_state;
@@ -101,14 +99,35 @@ inline bool k8s_net::has_handler(const k8s_component::type_map::value_type& comp
 	return (it != m_handlers.end()) && it->second;
 }
 
-inline k8s_net::handler_ptr_t k8s_net::get_handler(const k8s_component::type_map::value_type& component)
+inline k8s_net::handler_ptr_t k8s_net::get_handler(const handler_map_t&  handlers, k8s_component::type component)
 {
-	auto it = m_handlers.find(component.first);
-	if(it != m_handlers.end())
+	auto it = handlers.find(component);
+	if(it != handlers.end())
 	{
 		return it->second;
 	}
 	return nullptr;
+}
+
+inline k8s_net::handler_ptr_t k8s_net::get_handler(const handler_map_t&  handlers, const k8s_component::type_map::value_type& component)
+{
+	return get_handler(handlers, component.first);
+	/*auto it = handlers.find(component.first);
+	if(it != handlers.end())
+	{
+		return it->second;
+	}
+	return nullptr;*/
+}
+
+inline bool k8s_net::is_state_built(const k8s_component::type_map::value_type& component)
+{
+	const auto& it = m_handlers.find(component.first);
+	if(it != m_handlers.end())
+	{
+		return it->second && it->second->is_state_built();
+	}
+	return false;
 }
 
 inline void k8s_net::set_machine_id(const std::string& machine_id)
@@ -119,6 +138,11 @@ inline void k8s_net::set_machine_id(const std::string& machine_id)
 inline const std::string& k8s_net::get_machine_id() const
 {
 	return m_machine_id;
+}
+
+inline const k8s_net::handler_map_t& k8s_net::handlers() const
+{
+	return m_handlers;
 }
 
 #endif // HAS_CAPTURE
