@@ -93,7 +93,7 @@ function build_sysdigcloud {
 		git checkout agent/$PROBE_VERSION
 		make -C driver clean || true
 		rm -rf build || true
-		cd..
+		cd ..
 
 		cd falco
 		git checkout master
