@@ -150,7 +150,7 @@ private:
 	uint64_t m_lua_last_interval_sample_time;
 	uint64_t m_lua_last_interval_ts;
 	vector<sinsp_filter_check*> m_allocated_fltchecks;
-	char m_lua_fld_storage[1024];
+	char m_lua_fld_storage[16384];
 	chiselinfo* m_lua_cinfo;
 	string m_new_chisel_to_exec;
 	int m_udp_socket;

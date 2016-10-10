@@ -37,6 +37,7 @@ public:
 		const std::string& path,
 		const std::string& state_filter,
 		const std::string& event_filter,
+		ptr_t dependency_handler,
 		collector_ptr_t collector = nullptr,
 		const std::string& http_version = "1.0",
 		int timeout_ms = default_timeout_ms,
@@ -96,6 +97,7 @@ protected:
 	void log_not_found(const msg_data& data) const;
 
 	k8s_state_t* m_state = nullptr;
+	bool         m_state_built = false;
 
 	static std::string ERROR_FILTER;
 
@@ -133,7 +135,7 @@ private:
 	ssl_ptr_t       m_ssl;
 	bt_ptr_t        m_bt;
 	bool            m_req_sent = false;
-	bool            m_state_built = false;
+	bool            m_resp_recvd = false;
 
 	// some handlers only fetch state and die by design (eg. api or extensions handlers
 	// have no need to continuously watch for updates)
@@ -162,6 +164,10 @@ private:
 	//
 	// global capture flag is checked in the k8s state call
 	bool m_is_captured = false;
+
+	// k8s_handler on which this handler depends; the dependency handler must not be null and
+	// it must have its state fully built before this handler can begin building its own state
+	ptr_t m_dependency_handler;
 };
 
 inline k8s_handler::handler_ptr_t k8s_handler::handler()
@@ -212,3 +218,25 @@ inline k8s_handler::api_error_ptr k8s_handler::error() const
 {
 	return m_error;
 }
+
+// This dummy class serves only as a dependency stand-in for nodes,
+// which have no dependencies but the logic requires a pointer to
+// handler to determine whether dependency is ready; to avoid
+// special casing nodes handler all over the place, we have this dummy
+// liar which is always returning true for its state being built
+class k8s_dummy_handler : public k8s_handler
+{
+public:
+	k8s_dummy_handler(): k8s_handler("k8s_dummy_handler", false, "", "",
+									 "", "",  nullptr, nullptr, "", 0,
+									 nullptr, nullptr, nullptr, false, false)
+	{
+		m_state_built = true;
+	}
+
+private:
+	virtual bool handle_component(const Json::Value& json, const msg_data* data = 0)
+	{
+		return false;
+	};
+};
