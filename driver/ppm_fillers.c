@@ -3874,10 +3874,14 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_SET_THREAD_AREA:
 		return PPM_PTRACE_SET_THREAD_AREA;
 #endif
+#ifdef PTRACE_GET_THREAD_AREA
 	case PTRACE_GET_THREAD_AREA:
 		return PPM_PTRACE_GET_THREAD_AREA;
+#endif
+#ifdef PTRACE_OLDSETOPTIONS
 	case PTRACE_OLDSETOPTIONS:
 		return PPM_PTRACE_OLDSETOPTIONS;
+#endif
 #ifdef PTRACE_SETFPXREGS
 	case PTRACE_SETFPXREGS:
 		return PPM_PTRACE_SETFPXREGS;
