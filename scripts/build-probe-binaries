@@ -79,6 +79,10 @@ function build_sysdigcloud {
 			git clone git@github.com:draios/sysdig.git
 		fi
 
+		if [ ! -d falco ]; then
+			git clone git@github.com:draios/falco.git
+		fi
+
 		if [ ! -d agent ]; then
 			git clone git@github.com:draios/agent.git
 		fi
@@ -89,7 +93,15 @@ function build_sysdigcloud {
 		git checkout agent/$PROBE_VERSION
 		make -C driver clean || true
 		rm -rf build || true
+		cd..
+
+		cd falco
+		git checkout master
+		git pull
+		git checkout agent/$PROBE_VERSION
+		rm -fr build || true
 		cd ..
+		
 		cd agent
 		git checkout master
 		git pull
