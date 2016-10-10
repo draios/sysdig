@@ -120,6 +120,8 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
   #define SYSCALL_TABLE_ID0 __NR_SYSCALL_BASE
 #elif defined CONFIG_X86 || defined CONFIG_SUPERH
   #define SYSCALL_TABLE_ID0 0
+#elif defined CONFIG_PPC64
+  #define SYSCALL_TABLE_ID0 0
 #endif
 
 #define SYSCALL_TABLE_SIZE 512

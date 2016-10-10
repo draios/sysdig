@@ -6342,6 +6342,10 @@ const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rs.id", "Kubernetes replica set id."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rs.label", "Kubernetes replica set label. E.g. 'k8s.rs.label.foo'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rs.labels", "Kubernetes replica set comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.deployment.name", "Kubernetes deployment name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.deployment.id", "Kubernetes deployment id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.deployment.label", "Kubernetes deployment label. E.g. 'k8s.rs.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.deployment.labels", "Kubernetes deployment comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
 };
 
 sinsp_filter_check_k8s::sinsp_filter_check_k8s()
@@ -6400,6 +6404,14 @@ int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_sta
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("k8s.ns.label", val);
+	}
+	else if(string(val, 0, sizeof("k8s.deployment.label") - 1) == "k8s.deployment.label" &&
+		string(val, 0, sizeof("k8s.deployment.labels") - 1) != "k8s.deployment.labels")
+	{
+		m_field_id = TYPE_K8S_DEPLOYMENT_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("k8s.deployment.label", val);
 	}
 	else
 	{
@@ -6503,6 +6515,20 @@ vector<const k8s_service_t*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_p
 		services.push_back(it->second);
 	}
 	return services;
+}
+
+const k8s_deployment_t* sinsp_filter_check_k8s::find_deployment_by_pod(const k8s_pod_t* pod)
+{
+	const k8s_state_t& k8s_state = m_inspector->m_k8s_client->get_state();
+
+	const k8s_state_t::pod_deployment_map& pod_deployments = k8s_state.get_pod_deployment_map();
+	k8s_state_t::pod_deployment_map::const_iterator it = pod_deployments.find(pod->get_uid());
+	if(it != pod_deployments.end())
+	{
+		return it->second;
+	}
+
+	return NULL;
 }
 
 void sinsp_filter_check_k8s::concatenate_labels(const k8s_pair_list& labels, string* s)
@@ -6799,6 +6825,52 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(ns != NULL)
 		{
 			concatenate_labels(ns->get_labels(), &m_tstr);
+			*len = m_tstr.size();
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	}
+	case TYPE_K8S_DEPLOYMENT_NAME:
+	{
+		const k8s_deployment_t* deployment = find_deployment_by_pod(pod);
+		if(deployment != NULL)
+		{
+			m_tstr = deployment->get_name();
+			*len = m_tstr.size();
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	}
+	case TYPE_K8S_DEPLOYMENT_ID:
+	{
+		const k8s_deployment_t* deployment = find_deployment_by_pod(pod);
+		if(deployment != NULL)
+		{
+			m_tstr = deployment->get_uid();
+			*len = m_tstr.size();
+			return (uint8_t*) m_tstr.c_str();
+		}
+		break;
+	}
+	case TYPE_K8S_DEPLOYMENT_LABEL:
+	{
+		const k8s_deployment_t* deployment = find_deployment_by_pod(pod);
+		if(deployment != NULL)
+		{
+			if(find_label(deployment->get_labels(), m_argname, &m_tstr))
+			{
+				*len = m_tstr.size();
+				return (uint8_t*) m_tstr.c_str();
+			}
+		}
+		break;
+	}
+	case TYPE_K8S_DEPLOYMENT_LABELS:
+	{
+		const k8s_deployment_t* deployment = find_deployment_by_pod(pod);
+		if(deployment != NULL)
+		{
+			concatenate_labels(deployment->get_labels(), &m_tstr);
 			*len = m_tstr.size();
 			return (uint8_t*) m_tstr.c_str();
 		}

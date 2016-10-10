@@ -869,6 +869,10 @@ public:
 		TYPE_K8S_RS_ID,
 		TYPE_K8S_RS_LABEL,
 		TYPE_K8S_RS_LABELS,
+		TYPE_K8S_DEPLOYMENT_NAME,
+		TYPE_K8S_DEPLOYMENT_ID,
+		TYPE_K8S_DEPLOYMENT_LABEL,
+		TYPE_K8S_DEPLOYMENT_LABELS,
 	};
 
 	sinsp_filter_check_k8s();
@@ -883,6 +887,7 @@ private:
 	const k8s_rc_t* find_rc_by_pod(const k8s_pod_t* pod);
 	const k8s_rs_t* find_rs_by_pod(const k8s_pod_t* pod);
 	vector<const k8s_service_t*> find_svc_by_pod(const k8s_pod_t* pod);
+	const k8s_deployment_t* find_deployment_by_pod(const k8s_pod_t* pod);
 	void concatenate_labels(const k8s_pair_list& labels, string* s);
 	bool find_label(const k8s_pair_list& labels, const string& key, string* value);
 

@@ -52,6 +52,7 @@ std::string k8s_event_handler::STATE_FILTER =
 	"}";
 
 k8s_event_handler::k8s_event_handler(k8s_state_t& state,
+	ptr_t dependency_handler,
 	collector_ptr_t collector,
 	std::string url,
 	const std::string& http_version,
@@ -61,7 +62,7 @@ k8s_event_handler::k8s_event_handler(k8s_state_t& state,
 	filter_ptr_t event_filter):
 		k8s_handler("k8s_event_handler", true,
 					url, "/api/v1/events",
-					STATE_FILTER, EVENT_FILTER, collector,
+					STATE_FILTER, EVENT_FILTER, dependency_handler, collector,
 					http_version, 1000L, ssl, bt, &state, true, connect),
 		m_event_filter(event_filter)
 {
