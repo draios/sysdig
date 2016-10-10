@@ -514,6 +514,9 @@ public:
 		return nullptr;
 	}
 
+	// connection is non-blocking and a socket
+	// should not be polled until it is connected
+	// this flag indicates readiness to be polled
 	bool is_enabled() const
 	{
 		return m_enabled;

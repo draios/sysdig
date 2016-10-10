@@ -96,7 +96,7 @@ void k8s::check_components()
 		{
 			if(m_net->has_handler(*it))
 			{
-				k8s_net::handler_ptr_t handler = m_net->get_handler(*it);
+				k8s_net::handler_ptr_t handler = k8s_net::get_handler(m_net->handlers(), *it);
 				if(handler)
 				{
 					k8s_handler::api_error_ptr handler_error = handler->error();
@@ -229,7 +229,7 @@ void k8s::simulate_watch_event(const std::string& json, int version)
 		{
 			if(m_handler_map.find(component_type) == m_handler_map.end())
 			{
-				m_handler_map[component_type] = k8s_net::get_handler(m_state, component_type, false);
+				m_handler_map[component_type] = k8s_net::make_handler(m_state, component_type, false);
 			}
 			if(m_handler_map[component_type])
 			{

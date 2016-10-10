@@ -639,6 +639,19 @@ k8s_deployment_t::k8s_deployment_t(const std::string& name, const std::string& u
 {
 }
 
+std::vector<const k8s_pod_t*> k8s_deployment_t::get_selected_pods(const std::vector<k8s_pod_t>& pods) const
+{
+	std::vector<const k8s_pod_t*> pod_vec;
+	for(const auto& pod : pods)
+	{
+		if(selectors_in_labels(pod.get_labels()) && get_namespace() == pod.get_namespace())
+		{
+			pod_vec.push_back(&pod);
+		}
+	}
+	return pod_vec;
+}
+
 //
 // event
 //

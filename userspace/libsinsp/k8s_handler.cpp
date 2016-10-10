@@ -32,6 +32,7 @@ k8s_handler::k8s_handler(const std::string& id,
 	const std::string& path,
 	const std::string& state_filter,
 	const std::string& event_filter,
+	ptr_t dependency_handler,
 	collector_ptr_t collector,
 	const std::string& http_version,
 	int timeout_ms,
@@ -53,7 +54,8 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_bt(bt),
 		m_watch(watch),
 		m_connect(connect),
-		m_is_captured(is_captured)
+		m_is_captured(is_captured),
+		m_dependency_handler(dependency_handler)
 {
 	g_logger.log("Creating K8s " + name() + " (" + m_id + ") "
 				 "handler object for [" + uri(m_url).to_string(false) + m_path + ']',
@@ -78,6 +80,7 @@ void k8s_handler::make_http()
 		m_http->add_json_filter(m_filter);
 		m_http->add_json_filter(ERROR_FILTER);
 		m_req_sent = false;
+		m_resp_recvd = false;
 		connect();
 	}
 }
@@ -181,32 +184,35 @@ void k8s_handler::check_collector_status()
 
 void k8s_handler::process_events()
 {
-	for(auto evt : m_events)
+	if(m_dependency_handler->is_state_built())
 	{
-		if(evt && !evt->isNull())
+		for(auto evt : m_events)
 		{
-			g_logger.log("k8s_handler (" + m_id + ") data:\n" + json_as_string(*evt),
-				 sinsp_logger::SEV_TRACE);
-			if(m_is_captured)
+			if(evt && !evt->isNull())
 			{
-				m_state->enqueue_capture_event(*evt);
+				g_logger.log("k8s_handler (" + m_id + ") data:\n" + json_as_string(*evt),
+					 sinsp_logger::SEV_TRACE);
+				if(m_is_captured)
+				{
+					m_state->enqueue_capture_event(*evt);
+				}
+				handle_json(std::move(*evt));
+				if(!m_state_built) { m_state_built = true; }
 			}
-			handle_json(std::move(*evt));
-			if(!m_state_built) { m_state_built = true; }
+			else
+			{
+				g_logger.log("k8s_handler (" + m_id + ") error (" + uri(m_url).to_string(false) + ") " +
+							(!evt ? "data is null." : (evt->isNull() ? "JSON is null." : "Unknown")),
+							sinsp_logger::SEV_ERROR);
+			}
 		}
-		else
-		{
-			g_logger.log("k8s_handler (" + m_id + ") error (" + uri(m_url).to_string(false) + ") " +
-						(!evt ? "data is null." : (evt->isNull() ? "JSON is null." : "Unknown")),
-						sinsp_logger::SEV_ERROR);
-		}
+		m_events.clear();
 	}
-	m_events.clear();
 }
 
 void k8s_handler::check_state()
 {
-	if(m_collector && m_state_built && m_watch && !m_watching)
+	if(m_collector && m_resp_recvd && m_watch && !m_watching)
 	{
 		// done with initial state handling, switch to events
 		m_collector->remove(m_http);
@@ -509,6 +515,7 @@ void k8s_handler::set_event_json(json_ptr_t json, const std::string&)
 	if(json)
 	{
 		m_events.emplace_back(json);
+		if(!m_resp_recvd) { m_resp_recvd = true; }
 		g_logger.log("k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size()) +
 					 " events from " + uri(m_url).to_string(false), sinsp_logger::SEV_TRACE);
 	}
