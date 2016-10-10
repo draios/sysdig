@@ -80,6 +80,7 @@ void k8s_handler::make_http()
 		m_http->add_json_filter(m_filter);
 		m_http->add_json_filter(ERROR_FILTER);
 		m_req_sent = false;
+		m_resp_recvd = false;
 		connect();
 	}
 }
@@ -211,7 +212,7 @@ void k8s_handler::process_events()
 
 void k8s_handler::check_state()
 {
-	if(m_collector && m_state_built && m_watch && !m_watching)
+	if(m_collector && m_resp_recvd && m_watch && !m_watching)
 	{
 		// done with initial state handling, switch to events
 		m_collector->remove(m_http);
@@ -514,6 +515,7 @@ void k8s_handler::set_event_json(json_ptr_t json, const std::string&)
 	if(json)
 	{
 		m_events.emplace_back(json);
+		if(!m_resp_recvd) { m_resp_recvd = true; }
 		g_logger.log("k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size()) +
 					 " events from " + uri(m_url).to_string(false), sinsp_logger::SEV_TRACE);
 	}

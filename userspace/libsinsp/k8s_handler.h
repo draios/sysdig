@@ -135,6 +135,7 @@ private:
 	ssl_ptr_t       m_ssl;
 	bt_ptr_t        m_bt;
 	bool            m_req_sent = false;
+	bool            m_resp_recvd = false;
 
 	// some handlers only fetch state and die by design (eg. api or extensions handlers
 	// have no need to continuously watch for updates)
