@@ -3108,7 +3108,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			return (uint8_t*)&m_u32val;
 		}
 		break;
-
+		g_infotables
 	case TYPE_SYSCALL_TYPE:
 		{
 			uint8_t* evname;

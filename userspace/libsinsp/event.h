@@ -418,6 +418,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_container_manager;
 	friend class sinsp_table;
 	friend class sinsp_cursesui;
+	friend class sisnp_baseliner;
 };
 
 /*@}*/
