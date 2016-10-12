@@ -20,7 +20,7 @@ public:
 		m_timeout_ms(timeout_ms),
 		m_stopped(false)
 	{
-		clear();
+		clear_fds();
 	}
 
 	~socket_collector()
@@ -102,7 +102,7 @@ public:
 
 	void remove_all()
 	{
-		clear();
+		clear_fds();
 		m_sockets.clear();
 		m_nfds = 0;
 	}
@@ -160,24 +160,47 @@ public:
 		}
 	}
 
+	bool is_fd_valid(int sockfd)
+	{
+		struct timeval tv = {0};
+		fd_set infd, outfd, errfd;
+		FD_ZERO(&infd);
+		FD_ZERO(&outfd);
+		FD_ZERO(&errfd);
+		FD_SET(sockfd, &infd);
+		FD_SET(sockfd, &outfd);
+		FD_SET(sockfd, &errfd);
+		return 0 <= select(sockfd + 1, &infd, &outfd, &errfd, &tv);
+	}
+
 	void enable_sockets()
 	{
-		for(typename socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it)
+		clear_fds();
+		for(typename socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end();)
 		{
 			int sockfd = -1;
 			if(it->second)
 			{
 				if(it->second->is_enabled())
 				{
-					sockfd = it->first;
-					FD_SET(sockfd, &m_infd);
-					FD_SET(sockfd, &m_errfd);
-					if(sockfd > m_nfds)
+					if(!is_fd_valid(it->first))
 					{
-						m_nfds = sockfd;
+						remove(it);
+						continue;
+					}
+					else
+					{
+						sockfd = it->first;
+						FD_SET(sockfd, &m_infd);
+						FD_SET(sockfd, &m_errfd);
+						if(sockfd > m_nfds)
+						{
+							m_nfds = sockfd;
+						}
 					}
 				}
 			}
+			++it;
 		}
 	}
 
@@ -221,9 +244,9 @@ public:
 								std::string id = it->second->get_id();
 								if(FD_ISSET(it->first, &m_infd))
 								{
-									if(it->second && !it->second->on_data())
+									if(it->second && it->second->is_enabled() && !it->second->on_data())
 									{
-										if(errno != EAGAIN)
+										if((errno != EAGAIN) && (errno != EINPROGRESS))
 										{
 											g_logger.log("Socket collector data handling error " + std::to_string(errno) + ", (" +
 														 strerror(errno) + "), removing handler " +
@@ -237,7 +260,7 @@ public:
 
 								if(FD_ISSET(it->first, &m_errfd))
 								{
-									if(errno != EAGAIN)
+									if((errno != EAGAIN) && (errno != EINPROGRESS))
 									{
 										std::string err = strerror(errno);
 										g_logger.log(err, sinsp_logger::SEV_ERROR);
@@ -258,7 +281,7 @@ public:
 					}
 					else
 					{
-						g_logger.log("Socket collector is empty. Stopping.", sinsp_logger::SEV_ERROR);
+						g_logger.log("Socket collector is empty.", sinsp_logger::SEV_DEBUG);
 						m_stopped = true;
 						return;
 					}
@@ -286,11 +309,28 @@ public:
 
 	bool is_healthy(std::shared_ptr<T> handler) const
 	{
-		return get_socket(handler) != -1;
+		if(m_steady_state)
+		{
+			return get_socket(handler) != -1;
+		}
+		return true;
+	}
+
+	// flag indicating collector passed through the
+	// transitional state (if any), where sockets and
+	// handlers may come and go
+	void set_steady_state(bool state = true)
+	{
+		m_steady_state = true;
+	}
+
+	bool get_steady_state() const
+	{
+		return m_steady_state;
 	}
 
 private:
-	void clear()
+	void clear_fds()
 	{
 		FD_ZERO(&m_errfd);
 		FD_ZERO(&m_infd);
@@ -316,10 +356,11 @@ private:
 	socket_map_t     m_sockets;
 	fd_set           m_infd;
 	fd_set           m_errfd;
-	int              m_nfds;
-	bool             m_loop;
+	int              m_nfds = 0;
+	bool             m_loop = false;
 	long             m_timeout_ms;
-	bool             m_stopped;
+	bool             m_stopped = false;
+	bool             m_steady_state = false;
 };
 
 #endif // HAS_CAPTURE
