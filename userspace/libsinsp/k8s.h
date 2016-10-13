@@ -116,7 +116,7 @@ inline void k8s::set_machine_id(const std::string& machine_id)
 	else
 	{
 		g_logger.log("K8s machine ID (MAC) setting attempted on null net object; "
-					 "scope will not be available for events.",
+					 "scope may not be available for events.",
 					 sinsp_logger::SEV_WARNING);
 	}
 }

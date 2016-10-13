@@ -89,8 +89,21 @@ inline bool k8s_net::is_secure()
 
 inline bool k8s_net::is_healthy() const
 {
-	return m_collector->subscription_count() ==
-		static_cast<int>(m_handlers.size());
+	if(m_collector)
+	{
+		if (m_collector->get_steady_state())
+		{
+			return m_collector->subscription_count() == static_cast<int>(m_handlers.size());
+		}
+		else
+		{
+			return true;
+		}
+	}
+	else
+	{
+		return false;
+	}
 }
 
 inline bool k8s_net::has_handler(const k8s_component::type_map::value_type& component)
@@ -112,12 +125,6 @@ inline k8s_net::handler_ptr_t k8s_net::get_handler(const handler_map_t&  handler
 inline k8s_net::handler_ptr_t k8s_net::get_handler(const handler_map_t&  handlers, const k8s_component::type_map::value_type& component)
 {
 	return get_handler(handlers, component.first);
-	/*auto it = handlers.find(component.first);
-	if(it != handlers.end())
-	{
-		return it->second;
-	}
-	return nullptr;*/
 }
 
 inline bool k8s_net::is_state_built(const k8s_component::type_map::value_type& component)

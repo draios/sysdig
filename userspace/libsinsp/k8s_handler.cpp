@@ -175,38 +175,16 @@ bool k8s_handler::is_alive() const
 
 void k8s_handler::check_collector_status()
 {
-	if(m_collector && !m_collector->is_healthy(m_http))
+	if(m_collector)
 	{
-		throw sinsp_exception("k8s_handler (" + m_id + ") collector not healthy, "
-							  "giving up on data collection in this cycle ...");
-	}
-}
-
-void k8s_handler::process_events()
-{
-	if(m_dependency_handler->is_state_built())
-	{
-		for(auto evt : m_events)
+		if(!m_collector->has(m_http))
 		{
-			if(evt && !evt->isNull())
-			{
-				g_logger.log("k8s_handler (" + m_id + ") data:\n" + json_as_string(*evt),
-					 sinsp_logger::SEV_TRACE);
-				if(m_is_captured)
-				{
-					m_state->enqueue_capture_event(*evt);
-				}
-				handle_json(std::move(*evt));
-				if(!m_state_built) { m_state_built = true; }
-			}
-			else
-			{
-				g_logger.log("k8s_handler (" + m_id + ") error (" + uri(m_url).to_string(false) + ") " +
-							(!evt ? "data is null." : (evt->isNull() ? "JSON is null." : "Unknown")),
-							sinsp_logger::SEV_ERROR);
-			}
+			make_http();
 		}
-		m_events.clear();
+	}
+	else
+	{
+		throw sinsp_exception("k8s_handler (" + m_id + ") collector is null.");
 	}
 }
 
@@ -214,6 +192,9 @@ void k8s_handler::check_state()
 {
 	if(m_collector && m_resp_recvd && m_watch && !m_watching)
 	{
+		g_logger.log("k8s_handler (" + m_id + ") switching to watch connection for " +
+					 uri(m_url).to_string(false) + m_path,
+					 sinsp_logger::SEV_DEBUG);
 		// done with initial state handling, switch to events
 		m_collector->remove(m_http);
 		m_http.reset();
@@ -237,6 +218,7 @@ void k8s_handler::check_state()
 		}
 		m_filter = m_event_filter;
 		make_http();
+		m_collector->set_steady_state(true);
 		m_watching = true;
 	}
 }
@@ -508,21 +490,44 @@ k8s_handler::ip_addr_list_t k8s_handler::hostname_to_ip(const std::string& hostn
 	return ip_addrs;
 }
 
+void k8s_handler::process_events()
+{
+	if(m_dependency_handler->is_state_built())
+	{
+		for(auto evt : m_events)
+		{
+			if(evt && !evt->isNull())
+			{
+				g_logger.log("k8s_handler (" + m_id + ") data:\n" + json_as_string(*evt),
+					 sinsp_logger::SEV_TRACE);
+				if(m_is_captured)
+				{
+					m_state->enqueue_capture_event(*evt);
+				}
+				handle_json(std::move(*evt));
+			}
+			else
+			{
+				g_logger.log("k8s_handler (" + m_id + ") error (" + uri(m_url).to_string(false) + ") " +
+							(!evt ? "data is null." : (evt->isNull() ? "JSON is null." : "Unknown")),
+							sinsp_logger::SEV_ERROR);
+			}
+		}
+		m_events.clear();
+		if(!m_state_built) { m_state_built = true; }
+	}
+}
+
 void k8s_handler::set_event_json(json_ptr_t json, const std::string&)
 {
 	g_logger.log("k8s_handler adding event, (" + m_id + ") has " + std::to_string(m_events.size()) +
 				 " events from " + uri(m_url).to_string(false), sinsp_logger::SEV_TRACE);
-	if(json)
-	{
-		m_events.emplace_back(json);
-		if(!m_resp_recvd) { m_resp_recvd = true; }
-		g_logger.log("k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size()) +
-					 " events from " + uri(m_url).to_string(false), sinsp_logger::SEV_TRACE);
-	}
-	else
-	{
-		g_logger.log("K8s: delegator (" + m_id + ") received null JSON", sinsp_logger::SEV_ERROR);
-	}
+	// empty JSON is fine here; if there are no entities, state and first watch will pass nothing in here
+	// null is checked when processing
+	m_events.emplace_back(json);
+	g_logger.log("k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size()) +
+				 " events from " + uri(m_url).to_string(false), sinsp_logger::SEV_TRACE);
+	if(!m_resp_recvd) { m_resp_recvd = true; }
 }
 
 k8s_pair_list k8s_handler::extract_object(const Json::Value& object)

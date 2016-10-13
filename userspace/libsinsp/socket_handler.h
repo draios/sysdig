@@ -239,7 +239,7 @@ public:
 		{
 			std::string err = strerror(errno);
 			std::ostringstream os;
-			os << "Socket handler (" << m_id << ") connection [" << m_url.to_string(false) << "] error: " << err;
+			os << "Socket handler (" << m_id << ") send_request(), connection [" << m_url.to_string(false) << "] error: " << err;
 			if(m_url.is_secure())
 			{
 				std::string ssl_err = ssl_errors();
@@ -254,7 +254,7 @@ public:
 		connection_closed:
 		{
 			std::ostringstream os;
-			os << "Socket handler (" << m_id << ") connection [" << m_url.to_string(false) << "] closed.";
+			os << "Socket handler (" << m_id << ") send_request(), connection [" << m_url.to_string(false) << "] closed.";
 			if(m_url.is_secure())
 			{
 				std::string ssl_err = ssl_errors();
@@ -390,27 +390,37 @@ public:
 		return true;
 
 	connection_error:
+		if((errno == EAGAIN) || (errno == EINPROGRESS))
 		{
-			error_desc = "error";
+			return false;
 		}
+		error_desc = "error";
 
 	connection_closed:
+		if((errno == EAGAIN) || (errno == EINPROGRESS))
 		{
-			if(error_desc.empty())
-			{
-				error_desc = "closed";
-				m_connected = false;
-			}
+			return false;
+		}
+		if(error_desc.empty())
+		{
+			error_desc = "closed";
+			m_connected = false;
+		}
+		if(errno && errno != ENOENT) // ENOENT is ok, means socket was closed by handler owner
+		{
 			g_logger.log("Socket handler (" + m_id + ") connection [" + m_url.to_string(false) + "] " +
-						 error_desc + " (" + (errno ? strerror(errno) : "no error") + ")",
-						 sinsp_logger::SEV_ERROR);
-			if(m_url.is_secure())
+						 error_desc + " (" + strerror(errno)+ ')', sinsp_logger::SEV_ERROR);
+		}
+		else if (errno == ENOENT)
+		{
+			errno = 0;
+		}
+		if(m_url.is_secure())
+		{
+			std::string ssl_err = ssl_errors();
+			if(!ssl_err.empty())
 			{
-				std::string ssl_err = ssl_errors();
-				if(!ssl_err.empty())
-				{
-					g_logger.log(ssl_err, sinsp_logger::SEV_ERROR);
-				}
+				g_logger.log(ssl_err, sinsp_logger::SEV_ERROR);
 			}
 		}
 		cleanup();
@@ -1281,6 +1291,9 @@ private:
 			}
 			m_socket = -1;
 		}
+		m_enabled = false;
+		m_connected = false;
+		m_connecting = false;
 	}
 
 	bool dns_cleanup(struct gaicb** dns_reqs)
