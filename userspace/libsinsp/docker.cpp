@@ -323,6 +323,12 @@ void docker::handle_event(Json::Value&& root)
 				}
 				if(is_image_event(event_name))
 				{
+					bool id_was_empty = false;
+					if(id.empty())
+					{
+						id = get_json_string(root, "id");
+						id_was_empty = true;
+					}
 					if(!id.empty())
 					{
 						if(scope.length()) { scope.append(" and "); }
@@ -337,6 +343,7 @@ void docker::handle_event(Json::Value&& root)
 					{
 						g_logger.log("Cannot determine container image for Docker event.", sinsp_logger::SEV_WARNING);
 					}
+					if(id_was_empty) { id.clear(); }
 				}
 				else if(is_container_event(event_name))
 				{
