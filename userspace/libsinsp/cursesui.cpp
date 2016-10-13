@@ -778,7 +778,7 @@ void sinsp_cursesui::render_spy_main_menu()
 void sinsp_cursesui::render_filtersearch_main_menu()
 {
 	uint32_t k = 0;
-	string* str;
+	string* str = 0;
 
 	//
 	// Pick the right string based on what we're doing

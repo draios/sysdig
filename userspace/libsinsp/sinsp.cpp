@@ -1756,28 +1756,50 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 
 void sinsp::collect_k8s()
 {
+	std::string err;
 	if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
 	{
 		m_k8s_last_watch_time_ns = m_lastevent_ts;
 
-		if(m_parser && m_k8s_client && m_k8s_client->is_alive())
+		try
 		{
-			uint64_t delta = sinsp_utils::get_current_time_ns();
-			m_k8s_client->watch();
-			m_parser->schedule_k8s_events(&m_meta_evt);
-			delta = sinsp_utils::get_current_time_ns() - delta;
-			g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
-		}
-		else
-		{
-			if(m_k8s_client)
+			if(m_parser && m_k8s_client)
 			{
-				g_logger.log("Kubernetes connection not active anymore, retrying", sinsp_logger::SEV_WARNING);
-				delete m_k8s_client;
-				m_k8s_client = nullptr;
+				uint64_t delta = sinsp_utils::get_current_time_ns();
+				m_k8s_client->watch();
+				m_parser->schedule_k8s_events(&m_meta_evt);
+				delta = sinsp_utils::get_current_time_ns() - delta;
+				g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
 			}
-			init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
+			else
+			{
+				err = "Parser or K8s client null.";
+				goto rebuild;
+			}
 		}
+		catch(std::exception& ex)
+		{
+			err = ex.what();
+			goto rebuild;
+		}
+	}
+	return;
+
+rebuild:
+	if(m_k8s_client)
+	{
+		g_logger.log("Kubernetes error (" + err + "), resetting ...", sinsp_logger::SEV_ERROR);
+		delete m_k8s_client;
+		m_k8s_client = nullptr;
+	}
+	init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
+	if(m_k8s_client)
+	{
+		g_logger.log("Kubernetes succesfully reset, will retry to get data in next cycle.", sinsp_logger::SEV_INFO);
+	}
+	else
+	{
+		g_logger.log("Kubernetes reset failed, data will not be available.", sinsp_logger::SEV_ERROR);
 	}
 }
 
