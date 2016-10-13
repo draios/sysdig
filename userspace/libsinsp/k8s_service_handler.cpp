@@ -121,7 +121,7 @@ void k8s_service_handler::extract_services_data(const Json::Value& json, k8s_ser
 								{
 									g_logger.log("K8s: found port for service [" + service.get_name() + "], "
 												 "container [" + container.get_name() + ']',
-												 sinsp_logger::SEV_ERROR);
+												 sinsp_logger::SEV_DEBUG);
 									p.m_target_port = container_port->get_port();
 									break;
 								}

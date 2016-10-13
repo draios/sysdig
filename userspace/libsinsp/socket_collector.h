@@ -248,10 +248,13 @@ public:
 									{
 										if((errno != EAGAIN) && (errno != EINPROGRESS))
 										{
-											g_logger.log("Socket collector data handling error " + std::to_string(errno) + ", (" +
-														 strerror(errno) + "), removing handler " +
-														 (it->second ? it->second->get_id() : "Unknown"),
-														 sinsp_logger::SEV_ERROR);
+											if(errno) // socket_handler::on_data() returns false on clean close, not an error
+											{
+												g_logger.log("Socket collector data handling error " + std::to_string(errno) + ", (" +
+															 strerror(errno) + "), removing handler [" + id + "], " +
+															 (it->second ? it->second->get_id() : "Unknown"),
+															 sinsp_logger::SEV_ERROR);
+											}
 											remove(it);
 											continue;
 										}
@@ -262,14 +265,17 @@ public:
 								{
 									if((errno != EAGAIN) && (errno != EINPROGRESS))
 									{
-										std::string err = strerror(errno);
-										g_logger.log(err, sinsp_logger::SEV_ERROR);
-										std::string fid;
-										if(it->second)
+										if(errno)
 										{
-											it->second->on_error(err, true);
-											g_logger.log("Socket collector: socket error, removing handler [" + id + "], "
-														 "socket " + std::to_string(it->first), sinsp_logger::SEV_ERROR);
+											std::string err = strerror(errno);
+											g_logger.log(err, sinsp_logger::SEV_ERROR);
+											std::string fid;
+											if(it->second)
+											{
+												it->second->on_error(err, true);
+												g_logger.log("Socket collector: socket error, removing handler [" + id + "], "
+															 "socket " + std::to_string(it->first), sinsp_logger::SEV_ERROR);
+											}
 										}
 										remove(it);
 										continue;
