@@ -125,12 +125,6 @@ inline k8s_net::handler_ptr_t k8s_net::get_handler(const handler_map_t&  handler
 inline k8s_net::handler_ptr_t k8s_net::get_handler(const handler_map_t&  handlers, const k8s_component::type_map::value_type& component)
 {
 	return get_handler(handlers, component.first);
-	/*auto it = handlers.find(component.first);
-	if(it != handlers.end())
-	{
-		return it->second;
-	}
-	return nullptr;*/
 }
 
 inline bool k8s_net::is_state_built(const k8s_component::type_map::value_type& component)

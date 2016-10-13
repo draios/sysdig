@@ -177,11 +177,6 @@ void k8s_handler::check_collector_status()
 {
 	if(m_collector)
 	{
-		if(!m_collector->is_healthy(m_http))
-		{
-			throw sinsp_exception("k8s_handler (" + m_id + ") collector not healthy, "
-								  "giving up on data collection in this cycle ...");
-		}
 		if(!m_collector->has(m_http))
 		{
 			make_http();
