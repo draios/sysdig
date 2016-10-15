@@ -411,9 +411,11 @@ public:
 			g_logger.log("Socket handler (" + m_id + ") connection [" + m_url.to_string(false) + "] " +
 						 error_desc + " (" + strerror(errno)+ ')', sinsp_logger::SEV_ERROR);
 		}
-		else if (errno == ENOENT)
+		else if (/*!errno ||*/ errno == ENOENT)
 		{
 			errno = 0;
+			//cleanup();
+			//return true;
 		}
 		if(m_url.is_secure())
 		{
@@ -424,7 +426,6 @@ public:
 			}
 		}
 		cleanup();
-		m_socket = -1;
 		return false;
 	}
 
@@ -726,13 +727,31 @@ private:
 		return select(m_socket + 1, &infd, &outfd, &errfd, &tv);
 	}
 
+	int get_socket_error()
+	{
+		socklen_t optlen = sizeof(m_sock_err);
+		int ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, &m_sock_err, &optlen);
+		g_logger.log("Socket handler (" + m_id + ") getsockopt() ret=" +
+						 std::to_string(ret) + ", m_sock_err=" + std::to_string(m_sock_err) +
+						 " (" + strerror(m_sock_err) + ')',
+						 sinsp_logger::SEV_TRACE);
+		if(!ret) { return m_sock_err; }
+		throw sinsp_exception("Socket handler (" + m_id + ") an error occurred "
+					 "trying to obtain socket status while connecting to " +
+					 m_url.to_string(false) + ": " + strerror(ret));
+	}
+
 	bool send_ready()
 	{
 		struct timeval tv = {0};
 		fd_set outfd;
 		FD_ZERO(&outfd);
 		FD_SET(m_socket, &outfd);
-		return select(m_socket + 1, 0, &outfd, 0, &tv) == 1;
+		int sel_ret = select(m_socket + 1, 0, &outfd, 0, &tv);
+		if(sel_ret != 1) { return false; }
+		int sock_ret = get_socket_error();
+		if(!sock_ret) { return true; }
+		return false;
 	}
 
 	bool recv_ready()
@@ -989,6 +1008,30 @@ private:
 		}
 	}
 
+	bool check_connected()
+	{
+		if(!send_ready())
+		{
+			if(m_sock_err && m_sock_err != EINPROGRESS)
+			{
+				m_connection_error = true;
+				throw sinsp_exception("Socket handler (" + m_id + ") an error occurred "
+							 "while connecting to " + m_url.to_string(false) + ": " + strerror(m_sock_err));
+			}
+			else if(m_sock_err == EINPROGRESS)
+			{
+				m_connection_error = false;
+				m_connecting = true;
+				m_connected = true;
+			}
+			return false;
+		}
+		m_connection_error = false;
+		m_connecting = false;
+		m_connected = true;
+		return true;
+	}
+
 	bool try_connect()
 	{
 		if(m_connected) { return true; }
@@ -1012,118 +1055,122 @@ private:
 		}
 		else if(m_connecting)
 		{
-			if(!send_ready()) { return false; }
-		}
-		else
-		{
-			g_logger.log("Socket handler (" + m_id + ") connecting to " + m_address +
-						 " (socket=" + std::to_string(m_socket) + ')', sinsp_logger::SEV_DEBUG);
-			if(!m_sa || !m_sa_len)
+			if(!check_connected())
 			{
-				std::ostringstream os;
-				os << m_sa;
-				throw sinsp_exception("Socket handler (" + m_id + ") invalid state connecting to " +
-							 m_address + " (socket=" + std::to_string(m_socket) + "), "
-							 "sa=" + os.str() + ", sa_len=" + std::to_string(m_sa_len));
-			}
-			ret = connect(m_socket, m_sa, m_sa_len);
-			if(ret < 0 && errno != EINPROGRESS)
-			{
-				g_logger.log("Error during conection attempt to " + m_address +
-									  " (socket=" + std::to_string(m_socket) +
-									  ", error=" + std::to_string(errno) + "): " + strerror(errno),
-									  sinsp_logger::SEV_ERROR);
-				m_connection_error = true;
-			}
-			else if(errno == EINPROGRESS)
-			{
-				m_connecting = true;
 				return false;
 			}
 		}
-		if(m_url.is_secure())
+
+		if(!m_connected)
 		{
-			if(!m_ssl_init_complete)
 			{
-				init_ssl_socket();
-			}
-			if(m_ssl_connection)
-			{
-				ret = SSL_connect(m_ssl_connection);
-				if(ret == 1)
+				g_logger.log("Socket handler (" + m_id + ") connecting to " + m_url.to_string(false) +
+							 " (socket=" + std::to_string(m_socket) + ')', sinsp_logger::SEV_DEBUG);
+				if(!m_sa || !m_sa_len)
 				{
-					m_connecting = false;
-					m_connected = true;
-					g_logger.log("Socket handler (" + m_id + "): "
-								 "SSL connected to " + m_url.get_host(),
-								 sinsp_logger::SEV_INFO);
-					g_logger.log("Socket handler (" + m_id + "): "
-								 "SSL socket=" + std::to_string(m_socket) + ", "
-								 "local port=" + std::to_string(get_local_port()),
-								 sinsp_logger::SEV_DEBUG);
+					std::ostringstream os;
+					os << m_sa;
+					throw sinsp_exception("Socket handler (" + m_id + ") invalid state connecting to " +
+								 m_url.to_string(false) + " (socket=" + std::to_string(m_socket) + "), "
+								 "sa=" + os.str() + ", sa_len=" + std::to_string(m_sa_len));
+				}
+				ret = connect(m_socket, m_sa, m_sa_len);
+				if(ret < 0 && errno != EINPROGRESS)
+				{
+					throw sinsp_exception("Error during conection attempt to " + m_url.to_string(false) +
+										  " (socket=" + std::to_string(m_socket) +
+										  ", error=" + std::to_string(errno) + "): " + strerror(errno));
+				}
+				else if(errno == EINPROGRESS)
+				{
+					m_connecting = true;
+					return false;
+				}
+			}
+			if(m_url.is_secure())
+			{
+				if(!m_ssl_init_complete)
+				{
+					init_ssl_socket();
+				}
+				if(m_ssl_connection)
+				{
+					ret = SSL_connect(m_ssl_connection);
+					if(ret == 1)
+					{
+						m_connecting = false;
+						m_connected = true;
+						g_logger.log("Socket handler (" + m_id + "): "
+									 "SSL connected to " + m_url.get_host(),
+									 sinsp_logger::SEV_INFO);
+						g_logger.log("Socket handler (" + m_id + "): "
+									 "SSL socket=" + std::to_string(m_socket) + ", "
+									 "local port=" + std::to_string(get_local_port()),
+									 sinsp_logger::SEV_DEBUG);
+					}
+					else
+					{
+						int err = SSL_get_error(m_ssl_connection, ret);
+						switch(err)
+						{
+						case SSL_ERROR_NONE:             // 0
+							break;
+						case SSL_ERROR_SSL:              // 1
+							throw sinsp_exception(ssl_errors());
+						case SSL_ERROR_WANT_READ:        // 2
+						case SSL_ERROR_WANT_WRITE:       // 3
+							return false;
+						case SSL_ERROR_WANT_X509_LOOKUP: // 4
+							break;
+						case SSL_ERROR_SYSCALL:          // 5
+							throw sinsp_exception("Socket handler (" + m_id + "), error "  + std::to_string(err) +
+												  " (" + strerror(errno) + ") while connecting to " +
+												  m_url.get_host() + ':' + std::to_string(m_url.get_port()));
+						case SSL_ERROR_ZERO_RETURN:      // 6
+							cleanup();
+							throw sinsp_exception("Socket handler (" + m_id + "), "
+												  "error (connection closed) while connecting to " +
+												  m_url.get_host() + ':' + std::to_string(m_url.get_port()));
+						case SSL_ERROR_WANT_CONNECT:     // 7
+							throw sinsp_exception("Socket handler (" + m_id + "), "
+												  "error (the operation failed while attempting to connect "
+												  "the transport) while connecting to " +
+												  m_url.get_host() + ':' + std::to_string(m_url.get_port()));
+						case SSL_ERROR_WANT_ACCEPT:      // 8
+							throw sinsp_exception("Socket handler (" + m_id + "), "
+												  "error (the operation failed while attempting to accept a"
+												  " connection from the transport) while connecting to " +
+												  m_url.get_host() + ':' + std::to_string(m_url.get_port()));
+						}
+					}
 				}
 				else
 				{
-					int err = SSL_get_error(m_ssl_connection, ret);
-					switch(err)
+					throw sinsp_exception("Socket handler (" + m_id + "): " + m_url.to_string(false) +
+										" SSL connection is null (" + strerror(errno) + ')');
+				}
+			}
+
+			g_logger.log("Socket handler (" + m_id + "): Connected: socket=" + std::to_string(m_socket) +
+						 ", collecting data from " + m_url.to_string(false) + m_path, sinsp_logger::SEV_DEBUG);
+
+			if(m_url.is_secure() && m_ssl && m_ssl->verify_peer())
+			{
+				if(SSL_get_peer_certificate(m_ssl_connection))
+				{
+					long err = SSL_get_verify_result(m_ssl_connection);
+					if(err != X509_V_OK &&
+						err != X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT &&
+						err != X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN)
 					{
-					case SSL_ERROR_NONE:             // 0
-						break;
-					case SSL_ERROR_SSL:              // 1
-						throw sinsp_exception(ssl_errors());
-					case SSL_ERROR_WANT_READ:        // 2
-					case SSL_ERROR_WANT_WRITE:       // 3
-						return false;
-					case SSL_ERROR_WANT_X509_LOOKUP: // 4
-						break;
-					case SSL_ERROR_SYSCALL:          // 5
-						throw sinsp_exception("Socket handler (" + m_id + "), error "  + std::to_string(err) +
-											  " (" + strerror(errno) + ") while connecting to " +
-											  m_url.get_host() + ':' + std::to_string(m_url.get_port()));
-					case SSL_ERROR_ZERO_RETURN:      // 6
-						cleanup();
-						throw sinsp_exception("Socket handler (" + m_id + "), "
-											  "error (connection closed) while connecting to " +
-											  m_url.get_host() + ':' + std::to_string(m_url.get_port()));
-					case SSL_ERROR_WANT_CONNECT:     // 7
-						throw sinsp_exception("Socket handler (" + m_id + "), "
-											  "error (the operation failed while attempting to connect "
-											  "the transport) while connecting to " +
-											  m_url.get_host() + ':' + std::to_string(m_url.get_port()));
-					case SSL_ERROR_WANT_ACCEPT:      // 8
-						throw sinsp_exception("Socket handler (" + m_id + "), "
-											  "error (the operation failed while attempting to accept a"
-											  " connection from the transport) while connecting to " +
-											  m_url.get_host() + ':' + std::to_string(m_url.get_port()));
+						throw sinsp_exception("Socket handler (" + m_id + "): " + m_url.to_string(false) +
+											  " server certificate verification failed.");
 					}
 				}
 			}
-			else
-			{
-				throw sinsp_exception("Socket handler (" + m_id + "): " + m_address +
-									" SSL connection is null (" + strerror(errno) + ')');
-			}
+			m_connecting = false;
+			m_connected = true;
 		}
-
-		g_logger.log("Socket handler (" + m_id + "): Connected: socket=" + std::to_string(m_socket) +
-					 ", collecting data from " + m_url.to_string(false) + m_path, sinsp_logger::SEV_DEBUG);
-
-		if(m_url.is_secure() && m_ssl && m_ssl->verify_peer())
-		{
-			if(SSL_get_peer_certificate(m_ssl_connection))
-			{
-				long err = SSL_get_verify_result(m_ssl_connection);
-				if(err != X509_V_OK &&
-					err != X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT &&
-					err != X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN)
-				{
-					throw sinsp_exception("Socket handler (" + m_id + "): " + m_address +
-										  " server certificate verification failed.");
-				}
-			}
-		}
-		m_connecting = false;
-		m_connected = true;
 		return true;
 	}
 
@@ -1281,13 +1328,14 @@ private:
 	{
 		if(m_socket != -1)
 		{
-			g_logger.log("Socket handler (" + m_id + ") closing connection to " + m_url.to_string(false),
-					 sinsp_logger::SEV_DEBUG);
+			g_logger.log("Socket handler (" + m_id + ") closing connection to " +
+						 m_url.to_string(false) + m_path, sinsp_logger::SEV_DEBUG);
 			int ret = close(m_socket);
 			if(ret < 0)
 			{
-				g_logger.log("Socket handler (" + m_id + ") connection [" + m_url.to_string(false) + "] "
-							 "error closing socket: " + strerror(errno), sinsp_logger::SEV_ERROR);
+				g_logger.log("Socket handler (" + m_id + ") connection [" +
+							 m_url.to_string(false) + m_path + "] error closing socket: " +
+							 strerror(errno), sinsp_logger::SEV_ERROR);
 			}
 			m_socket = -1;
 		}
@@ -1400,6 +1448,7 @@ private:
 	bool                     m_connection_error = false;
 	bool                     m_enabled = false;
 	int                      m_socket = -1;
+	int                      m_sock_err = 0;
 	struct gaicb**           m_dns_reqs = nullptr;
 	static dns_list_t        m_pending_dns_reqs;
 	ssl_ptr_t                m_ssl;
