@@ -71,6 +71,8 @@ void k8s_handler::make_http()
 {
 	if(m_connect)
 	{
+		g_logger.log(std::string("K8s (" + m_id + ") creating handler for " +
+								 uri(m_url).to_string(false) + m_path), sinsp_logger::SEV_INFO);
 		bool keep_alive = (m_id.find("_state") == std::string::npos);
 		m_http = std::make_shared<handler_t>(*this, m_id,
 									 m_url, m_path, m_http_version,
@@ -109,28 +111,28 @@ bool k8s_handler::connect()
 		if(!m_collector->has(m_http))
 		{
 			g_logger.log(std::string("k8s_handler (" + m_id +
-									 ") connect() adding socket to collector"), sinsp_logger::SEV_TRACE);
+									 ") k8s_handler::connect() adding socket to collector"), sinsp_logger::SEV_TRACE);
 			m_collector->add(m_http);
 			return false;
 		}
 		if(m_http->is_connecting())
 		{
 			g_logger.log(std::string("k8s_handler (" + m_id +
-									 "), connect() connecting to " + m_http->get_url().to_string(false)), sinsp_logger::SEV_TRACE);
+									 "), k8s_handler::connect() connecting to " + m_http->get_url().to_string(false)), sinsp_logger::SEV_TRACE);
 			return false;
 		}
 		if(m_http->is_connected())
 		{
 			g_logger.log("k8s_handler (" + m_id +
-						") connect() socket is connected.", sinsp_logger::SEV_TRACE);
+						") k8s_handler::connect() socket is connected.", sinsp_logger::SEV_TRACE);
 			check_enabled();
 			return true;
 		}
 	}
-	else if (!m_url.empty())
+	else if (m_collector && !m_url.empty())
 	{
 		g_logger.log(std::string("k8s_handler (" + m_id +
-								 ") connect(), http is null, (re)creating ... "),
+								 ") k8s_handler::connect(), http is null, (re)creating ... "),
 								 sinsp_logger::SEV_WARNING);
 		make_http();
 	}
@@ -286,8 +288,6 @@ void k8s_handler::collect_data()
 			connect();
 		}
 		m_req_sent = false;
-		g_logger.log("k8s_handler (" + m_id + "), http interface not (yet?) connected to " + uri(m_url).to_string(false),
-					 sinsp_logger::SEV_TRACE);
 	}
 	else
 	{

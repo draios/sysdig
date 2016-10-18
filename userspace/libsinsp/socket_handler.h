@@ -43,6 +43,7 @@ public:
 
 	static const std::string HTTP_VERSION_10;
 	static const std::string HTTP_VERSION_11;
+	static const int CONNECTION_CLOSED = ~0;
 
 	socket_data_handler(T& obj,
 		const std::string& id,
@@ -67,6 +68,7 @@ public:
 	{
 		g_logger.log(std::string("Creating Socket handler object for (" + id + ") "
 					 "[" + uri(url).to_string(false) + ']'), sinsp_logger::SEV_DEBUG);
+		m_buf.resize(1024);
 	}
 
 	virtual ~socket_data_handler()
@@ -171,12 +173,13 @@ public:
 
 	void send_request()
 	{
+		g_logger.log("Socket handler (" + m_id + ") send:\n" + m_request, sinsp_logger::SEV_TRACE);
 		if(m_request.empty())
 		{
 			throw sinsp_exception("Socket handler (" + m_id + ") send: request (empty).");
 		}
 
-		if(m_socket < 0)
+		if(m_socket <= 0)
 		{
 			throw sinsp_exception("Socket handler (" + m_id + ") send: invalid socket.");
 		}
@@ -184,12 +187,18 @@ public:
 		int iolen = 0;
 		if(m_request.size())
 		{
+			g_logger.log("Socket handler (" + m_id + ") socket=" + std::to_string(m_socket) +
+						 ", m_ssl_connection=" + std::to_string((int64_t)m_ssl_connection), sinsp_logger::SEV_TRACE);
 			std::string req = m_request;
 			time_t then; time(&then);
 			while(req.size())
 			{
 				if(m_url.is_secure())
 				{
+					if(!m_ssl_connection)
+					{
+						throw sinsp_exception("Socket handler (" + m_id + ") send: SSL connection is null.");
+					}
 					iolen = SSL_write(m_ssl_connection, m_request.c_str(), m_request.size());
 				}
 				else
@@ -263,14 +272,15 @@ public:
 					os << std::endl << "SSL error: " << ssl_err;
 				}
 			}
+			m_connecting = false;
 			m_connected = false;
 			throw sinsp_exception(os.str());
 		}
 	}
 
-	bool on_data()
+	int on_data()
 	{
-		std::string error_desc;
+		bool is_error = false;
 
 		if(!m_json_callback)
 		{
@@ -278,42 +288,29 @@ public:
 		}
 
 		size_t iolen = 0;
-		std::vector<char> buf;
 		std::string data;
 
 		try
 		{
-			int loop_counter = 0;
 			do
 			{
 				size_t iolen = 0;
-				int count = 0;
-				int ioret = 0;
-				// TODO: suboptimal for SSL, there will always be much more data availability
-				//       indicated than the amount of available application data
-				ioret = ioctl(m_socket, FIONREAD, &count); 
-				g_logger.log(m_id + ' ' + m_url.to_string(false) + " loop_counter=" + std::to_string(loop_counter) +
-							 ", ioret=" + std::to_string(ioret) + ", count=" + std::to_string(count),
-							 sinsp_logger::SEV_TRACE);
-				if(ioret >= 0 && count > 0)
 				{
-					if(count > static_cast<int>(buf.size()))
-					{
-						buf.resize(count);
-					}
+					errno = 0;
 					if(m_url.is_secure())
 					{
-						iolen = SSL_read(m_ssl_connection, &buf[0], count);
+						iolen = SSL_read(m_ssl_connection, &m_buf[0], m_buf.size());
 					}
 					else
 					{
-						iolen = recv(m_socket, &buf[0], count, 0);
+						iolen = recv(m_socket, &m_buf[0], m_buf.size(), 0);
 					}
-					g_logger.log(m_id + ' ' + m_url.to_string(false) + " loop_counter=" + std::to_string(loop_counter) +
+					m_sock_err = errno;
+					g_logger.log(m_id + ' ' + m_url.to_string(false) + //" loop_counter=" + std::to_string(loop_counter) +
 								", iolen=" + std::to_string(iolen), sinsp_logger::SEV_TRACE);
 					if(iolen > 0)
 					{
-						data.append(&buf[0], iolen <= buf.size() ? iolen : buf.size());
+						data.append(&m_buf[0], iolen <= m_buf.size() ? iolen : m_buf.size());
 					}
 					else if(iolen == 0 || errno == ENOTCONN || errno == EPIPE)
 					{
@@ -367,13 +364,6 @@ public:
 						}
 					}
 				}
-				else
-				{
-					if(ioret < 0) { goto connection_error; }
-					else if(loop_counter == 0 && count == 0) { goto connection_closed; }
-					break;
-				}
-				++loop_counter;
 			} while(iolen && errno != EAGAIN);
 			if(data.size())
 			{
@@ -385,38 +375,14 @@ public:
 			g_logger.log(std::string("Socket handler (" + m_id + ") data receive error [" +
 						 m_url.to_string(false) + "]: ").append(ex.what()),
 						 sinsp_logger::SEV_ERROR);
-			return false;
+			return m_sock_err;
 		}
-		return true;
+		return 0;
 
 	connection_error:
-		if((errno == EAGAIN) || (errno == EINPROGRESS))
-		{
-			return false;
-		}
-		error_desc = "error";
+		is_error = true;
 
 	connection_closed:
-		if((errno == EAGAIN) || (errno == EINPROGRESS))
-		{
-			return false;
-		}
-		if(error_desc.empty())
-		{
-			error_desc = "closed";
-			m_connected = false;
-		}
-		if(errno && errno != ENOENT) // ENOENT is ok, means socket was closed by handler owner
-		{
-			g_logger.log("Socket handler (" + m_id + ") connection [" + m_url.to_string(false) + "] " +
-						 error_desc + " (" + strerror(errno)+ ')', sinsp_logger::SEV_ERROR);
-		}
-		else if (/*!errno ||*/ errno == ENOENT)
-		{
-			errno = 0;
-			//cleanup();
-			//return true;
-		}
 		if(m_url.is_secure())
 		{
 			std::string ssl_err = ssl_errors();
@@ -425,13 +391,16 @@ public:
 				g_logger.log(ssl_err, sinsp_logger::SEV_ERROR);
 			}
 		}
-		cleanup();
-		return false;
+		return is_error ? m_sock_err : CONNECTION_CLOSED;
+	}
+
+	static bool is_connection_closed(int val)
+	{
+		return val == CONNECTION_CLOSED;
 	}
 
 	void on_error(const std::string& /*err*/, bool /*disconnect*/)
 	{
-		m_connected = false;
 	}
 
 	void set_json_begin(const std::string& b)
@@ -541,6 +510,20 @@ public:
 	bool connection_error() const
 	{
 		return m_connection_error;
+	}
+
+	int get_socket_error()
+	{
+		socklen_t optlen = sizeof(m_sock_err);
+		int ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, &m_sock_err, &optlen);
+		g_logger.log("Socket handler (" + m_id + ") getsockopt() ret=" +
+						 std::to_string(ret) + ", m_sock_err=" + std::to_string(m_sock_err) +
+						 " (" + strerror(m_sock_err) + ')',
+						 sinsp_logger::SEV_TRACE);
+		if(!ret) { return m_sock_err; }
+		throw sinsp_exception("Socket handler (" + m_id + ") an error occurred "
+					 "trying to obtain socket status while connecting to " +
+					 m_url.to_string(false) + ": " + strerror(ret));
 	}
 
 private:
@@ -725,20 +708,6 @@ private:
 		}
 
 		return select(m_socket + 1, &infd, &outfd, &errfd, &tv);
-	}
-
-	int get_socket_error()
-	{
-		socklen_t optlen = sizeof(m_sock_err);
-		int ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, &m_sock_err, &optlen);
-		g_logger.log("Socket handler (" + m_id + ") getsockopt() ret=" +
-						 std::to_string(ret) + ", m_sock_err=" + std::to_string(m_sock_err) +
-						 " (" + strerror(m_sock_err) + ')',
-						 sinsp_logger::SEV_TRACE);
-		if(!ret) { return m_sock_err; }
-		throw sinsp_exception("Socket handler (" + m_id + ") an error occurred "
-					 "trying to obtain socket status while connecting to " +
-					 m_url.to_string(false) + ": " + strerror(ret));
 	}
 
 	bool send_ready()
@@ -1022,18 +991,17 @@ private:
 			{
 				m_connection_error = false;
 				m_connecting = true;
-				m_connected = true;
+				m_connected = false;
 			}
 			return false;
 		}
-		m_connection_error = false;
-		m_connecting = false;
-		m_connected = true;
 		return true;
 	}
 
 	bool try_connect()
 	{
+		g_logger.log("Socket handler (" + m_id + ") try_connect() entry, m_connecting=" + std::to_string(m_connecting) +
+						 ", m_connected=" + std::to_string(m_connected), sinsp_logger::SEV_TRACE);
 		if(m_connected) { return true; }
 		if(m_socket == -1)
 		{
@@ -1053,7 +1021,7 @@ private:
 		{
 			return false;
 		}
-		else if(m_connecting)
+		else
 		{
 			if(!check_connected())
 			{
@@ -1061,20 +1029,24 @@ private:
 			}
 		}
 
+		g_logger.log("Socket handler (" + m_id + ") try_connect() middle, m_connecting=" + std::to_string(m_connecting) +
+						 ", m_connected=" + std::to_string(m_connected), sinsp_logger::SEV_TRACE);
 		if(!m_connected)
 		{
+			g_logger.log("Socket handler (" + m_id + ") connecting to " + m_url.to_string(false) +
+						 " (socket=" + std::to_string(m_socket) + ')', sinsp_logger::SEV_DEBUG);
+			if(!m_sa || !m_sa_len)
 			{
-				g_logger.log("Socket handler (" + m_id + ") connecting to " + m_url.to_string(false) +
-							 " (socket=" + std::to_string(m_socket) + ')', sinsp_logger::SEV_DEBUG);
-				if(!m_sa || !m_sa_len)
-				{
-					std::ostringstream os;
-					os << m_sa;
-					throw sinsp_exception("Socket handler (" + m_id + ") invalid state connecting to " +
-								 m_url.to_string(false) + " (socket=" + std::to_string(m_socket) + "), "
-								 "sa=" + os.str() + ", sa_len=" + std::to_string(m_sa_len));
-				}
+				std::ostringstream os;
+				os << m_sa;
+				throw sinsp_exception("Socket handler (" + m_id + ") invalid state connecting to " +
+							 m_url.to_string(false) + " (socket=" + std::to_string(m_socket) + "), "
+							 "sa=" + os.str() + ", sa_len=" + std::to_string(m_sa_len));
+			}
+			if(!m_connect_called)
+			{
 				ret = connect(m_socket, m_sa, m_sa_len);
+				m_connect_called = true;
 				if(ret < 0 && errno != EINPROGRESS)
 				{
 					throw sinsp_exception("Error during conection attempt to " + m_url.to_string(false) +
@@ -1084,6 +1056,16 @@ private:
 				else if(errno == EINPROGRESS)
 				{
 					m_connecting = true;
+					m_connected = false;
+					return false;
+				}
+			}
+			else
+			{
+				if(get_socket_error() == EINPROGRESS)
+				{
+					m_connecting = true;
+					m_connected = false;
 					return false;
 				}
 			}
@@ -1168,6 +1150,7 @@ private:
 					}
 				}
 			}
+			m_connection_error = false;
 			m_connecting = false;
 			m_connected = true;
 		}
@@ -1215,6 +1198,8 @@ private:
 					g_logger.log("Socket handler (" + m_id + ") checking resolve for " + m_url.get_host(),
 								 sinsp_logger::SEV_TRACE);
 					ret = gai_error(m_dns_reqs[0]);
+					g_logger.log("Socket handler (" + m_id + ") gai_error=" + std::to_string(ret),
+								 sinsp_logger::SEV_TRACE);
 					if(!ret)
 					{
 						if(m_dns_reqs && m_dns_reqs[0] && m_dns_reqs[0]->ar_result)
@@ -1258,12 +1243,12 @@ private:
 											 gai_strerror(ret), sinsp_logger::SEV_DEBUG);
 								break;
 							case EAI_SYSTEM:
-								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
+								g_logger.log("Socket handler (" + m_id + ") [" + m_url.get_host() + "]: " +
 											 ", resolver error: " + gai_strerror(ret) +
 											 ", system error: " + strerror(errno), sinsp_logger::SEV_ERROR);
 								break;
 							default:
-								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
+								g_logger.log("Socket handler (" + m_id + ") [" + m_url.get_host() + "]: " +
 											 ", resolver error: " + gai_strerror(ret),
 											 sinsp_logger::SEV_ERROR);
 						}
@@ -1342,6 +1327,7 @@ private:
 		m_enabled = false;
 		m_connected = false;
 		m_connecting = false;
+		m_connect_called = true;
 	}
 
 	bool dns_cleanup(struct gaicb** dns_reqs)
@@ -1445,9 +1431,11 @@ private:
 	std::string              m_address;
 	bool                     m_connecting = false;
 	bool                     m_connected = false;
+	bool                     m_connect_called = false;
 	bool                     m_connection_error = false;
 	bool                     m_enabled = false;
 	int                      m_socket = -1;
+	std::vector<char>        m_buf;
 	int                      m_sock_err = 0;
 	struct gaicb**           m_dns_reqs = nullptr;
 	static dns_list_t        m_pending_dns_reqs;
