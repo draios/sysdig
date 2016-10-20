@@ -41,10 +41,10 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master
 	}
 
 	ASSERT(m_curl_version);
-	if((m_url.get_scheme() == "https") && (m_curl_version && !(m_curl_version->features | CURL_VERSION_SSL)))
+	/*if((m_url.get_scheme() == "https") && (m_curl_version && !(m_curl_version->features | CURL_VERSION_SSL)))
 	{
 		throw sinsp_exception("mesos_http: HTTPS NOT supported");
-	}
+	}*/
 
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
@@ -509,7 +509,9 @@ void mesos_http::send_request()
 		throw sinsp_exception("mesos_http: Mesos send invalid socket.");
 	}
 
-	size_t iolen = send(m_watch_socket, m_request.c_str(), m_request.size(), 0);
+	//size_t iolen = send(m_watch_socket, m_request.c_str(), m_request.size(), 0);
+	size_t iolen;
+	check_error(curl_easy_send(m_select_curl, m_request.c_str(), m_request.size(), &iolen));
 	if((iolen <= 0) || (m_request.size() != iolen))
 	{
 		throw sinsp_exception("mesos_http: Mesos send socket connection error.");
@@ -648,7 +650,7 @@ bool mesos_http::on_data()
 		int loop_counter = 0;
 		do
 		{
-			ssize_t iolen = 0;
+			size_t iolen = 0;
 			int count = 0;
 			int ioret = 0;
 			ioret = ioctl(m_watch_socket, FIONREAD, &count);
@@ -658,10 +660,10 @@ bool mesos_http::on_data()
 				{
 					buf.resize(count);
 				}
-				iolen = recv(m_watch_socket, &buf[0], count, 0);
+				check_error(curl_easy_recv(m_select_curl, &buf[0], count, &iolen));
 				if(iolen > 0)
 				{
-					ssize_t buf_size = static_cast<ssize_t>(buf.size());
+					size_t buf_size = static_cast<size_t>(buf.size());
 					data.append(&buf[0], iolen <= buf_size ? iolen : buf_size);
 				}
 				else if(iolen == 0) { goto connection_closed; }
