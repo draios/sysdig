@@ -1731,7 +1731,11 @@ void sinsp::make_k8s_client()
 		,m_k8s_bt
 #endif // HAS_CAPTURE
 		,nullptr
+#ifdef HAS_CAPTURE
 		,m_ext_list_ptr
+#else
+		,nullptr
+#endif // HAS_CAPTURE
 	);
 }
 
@@ -1742,7 +1746,10 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 	m_k8s_api_server = api_server;
 	m_k8s_api_cert = ssl_cert;
 
+	
+#ifdef HAS_CAPTURE
 	if(m_k8s_api_detected && m_k8s_ext_detect_done)
+#endif // HAS_CAPTURE
 	{
 		if(m_k8s_client)
 		{
@@ -1791,6 +1798,7 @@ void sinsp::collect_k8s()
 
 void sinsp::k8s_discover_ext()
 {
+#ifdef HAS_CAPTURE
 	try
 	{
 		if(m_k8s_api_server && !m_k8s_api_server->empty() && !m_k8s_ext_detect_done)
@@ -1855,10 +1863,12 @@ void sinsp::k8s_discover_ext()
 		m_k8s_ext_handler.reset();
 	}
 	g_logger.log("K8s API extensions handler: detection done.", sinsp_logger::SEV_TRACE);
+#endif // HAS_CAPTURE
 }
 
 void sinsp::update_k8s_state()
 {
+#ifdef HAS_CAPTURE
 	try
 	{
 		if(m_k8s_api_server && !m_k8s_api_server->empty())
@@ -1922,6 +1932,7 @@ void sinsp::update_k8s_state()
 		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
 		throw;
 	}
+#endif // HAS_CAPTURE
 }
 
 bool sinsp::get_mesos_data()

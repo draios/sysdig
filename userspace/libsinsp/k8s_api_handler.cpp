@@ -2,6 +2,8 @@
 // k8s_api_handler.cpp
 //
 
+#ifdef HAS_CAPTURE
+
 #include "k8s_api_handler.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -13,12 +15,17 @@ k8s_api_handler::k8s_api_handler(collector_ptr_t collector,
 	const std::string& url,
 	const std::string& path,
 	const std::string& filter,
-	const std::string& http_version,
-	ssl_ptr_t ssl,
-	bt_ptr_t bt):
-		k8s_handler("k8s_api_handler", false, url, path,
-					filter, ".", std::make_shared<k8s_dummy_handler>(),
-					collector, http_version, 1000L, ssl, bt, nullptr, false)
+	const std::string& http_version
+#ifdef HAS_CAPTURE
+	,ssl_ptr_t ssl,
+	,bt_ptr_t bt
+#endif // HAS_CAPTURE
+):
+		k8s_handler("k8s_api_handler", false,
+#ifdef HAS_CAPTURE
+					url, path, filter, ".", collector, http_version, 1000L, ssl, bt,
+#endif // HAS_CAPTURE
+					std::make_shared<k8s_dummy_handler>(), nullptr, false)
 {
 }
 
@@ -91,4 +98,6 @@ bool k8s_api_handler::has(const std::string& version) const
 	}
 	return false;
 }
+ 
+ #endif // HAS_CAPTURE
  

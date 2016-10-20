@@ -221,4 +221,49 @@ void k8s_net::add_handler(const k8s_component::type_map::value_type& component)
 					 sinsp_logger::SEV_TRACE);
 	}
 }
+#else // !HAS_CAPTURE
+
+#include "k8s_component.h"
+#include "k8s_node_handler.h"
+#include "k8s_namespace_handler.h"
+#include "k8s_pod_handler.h"
+#include "k8s_replicationcontroller_handler.h"
+#include "k8s_replicaset_handler.h"
+#include "k8s_service_handler.h"
+#include "k8s_daemonset_handler.h"
+#include "k8s_deployment_handler.h"
+#include "k8s_event_handler.h"
+
+namespace k8s_net
+{
+	k8s_handler::ptr_t make_handler(k8s_state_t& state, const k8s_component::type component, bool /*connect*/)
+	{
+		switch(component)
+		{
+			case k8s_component::K8S_NODES:
+				return std::make_shared<k8s_node_handler>(state);
+			case k8s_component::K8S_NAMESPACES:
+				return std::make_shared<k8s_namespace_handler>(state);
+			case k8s_component::K8S_PODS:
+				return std::make_shared<k8s_pod_handler>(state);
+			case k8s_component::K8S_REPLICATIONCONTROLLERS:
+				return std::make_shared<k8s_replicationcontroller_handler>(state);
+			case k8s_component::K8S_REPLICASETS:
+				return std::make_shared<k8s_replicaset_handler>(state);
+			case k8s_component::K8S_SERVICES:
+				return  std::make_shared<k8s_service_handler>(state);
+			case k8s_component::K8S_DAEMONSETS:
+				return  std::make_shared<k8s_daemonset_handler>(state);
+			case k8s_component::K8S_DEPLOYMENTS:
+				return  std::make_shared<k8s_deployment_handler>(state);
+			case k8s_component::K8S_EVENTS:
+				return std::make_shared<k8s_event_handler>(state);
+			case k8s_component::K8S_COMPONENT_COUNT:
+			default:
+				return nullptr;
+		}
+		return nullptr;
+	}
+}
+
 #endif // HAS_CAPTURE

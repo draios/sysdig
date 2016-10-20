@@ -152,4 +152,14 @@ inline const k8s_net::handler_map_t& k8s_net::handlers() const
 	return m_handlers;
 }
 
+#else // !HAS_CAPTURE
+
+#include "k8s_component.h"
+#include "k8s_handler.h"
+
+namespace k8s_net
+{
+	k8s_handler::ptr_t make_handler(k8s_state_t& state, const k8s_component::type component, bool /*connect*/);
+}
+
 #endif // HAS_CAPTURE

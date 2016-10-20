@@ -2,6 +2,8 @@
 // k8s_api_handler.h
 //
 
+#ifdef HAS_CAPTURE
+
 #pragma once
 
 #include "json/json.h"
@@ -51,3 +53,5 @@ inline const k8s_api_handler::api_list_t& k8s_api_handler::extensions() const
 {
 	return m_extensions;
 }
+
+#endif // HAS_CAPTURE

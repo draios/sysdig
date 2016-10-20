@@ -9,7 +9,8 @@
 // to match regular K8s API message format,
 // error is wrapped into a single-entry array
 std::string k8s_handler::ERROR_FILTER =
-	"{ type: \"ERROR\","
+	"{"
+	"  type: \"ERROR\","
 	"  apiVersion: .apiVersion,"
 	"  kind: .kind,"
 	"  items:"
@@ -28,21 +29,24 @@ std::string k8s_handler::ERROR_FILTER =
 
 k8s_handler::k8s_handler(const std::string& id,
 	bool is_captured,
+#ifdef HAS_CAPTURE
 	std::string url,
 	const std::string& path,
 	const std::string& state_filter,
 	const std::string& event_filter,
-	ptr_t dependency_handler,
 	collector_ptr_t collector,
 	const std::string& http_version,
 	int timeout_ms,
 	ssl_ptr_t ssl,
 	bt_ptr_t bt,
-	k8s_state_t* state,
 	bool watch,
-	bool connect): m_state(state),
-		m_collector(collector),
+	bool connect,
+	ptr_t dependency_handler,
+#endif // HAS_CAPTURE
+	k8s_state_t* state): m_state(state),
 		m_id(id + "_state"),
+#ifdef HAS_CAPTURE
+		m_collector(collector),
 		m_path(path),
 		m_state_filter(state_filter),
 		m_event_filter(event_filter),
@@ -54,13 +58,16 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_bt(bt),
 		m_watch(watch),
 		m_connect(connect),
-		m_is_captured(is_captured),
-		m_dependency_handler(dependency_handler)
+		m_dependency_handler(dependency_handler),
+#endif // HAS_CAPTURE
+		m_is_captured(is_captured)
 {
+#ifdef HAS_CAPTURE
 	g_logger.log("Creating K8s " + name() + " (" + m_id + ") "
 				 "handler object for [" + uri(m_url).to_string(false) + m_path + ']',
 				 sinsp_logger::SEV_DEBUG);
 	make_http();
+#endif // HAS_CAPTURE
 }
 
 k8s_handler::~k8s_handler()
@@ -69,6 +76,7 @@ k8s_handler::~k8s_handler()
 
 void k8s_handler::make_http()
 {
+#ifdef HAS_CAPTURE
 	if(m_connect)
 	{
 		g_logger.log(std::string("K8s (" + m_id + ") creating handler for " +
@@ -85,10 +93,12 @@ void k8s_handler::make_http()
 		m_resp_recvd = false;
 		connect();
 	}
+#endif // HAS_CAPTURE
 }
 
 void k8s_handler::check_enabled()
 {
+#ifdef HAS_CAPTURE
 	if(!m_http->is_enabled())
 	{
 		g_logger.log("k8s_handler (" + m_id +
@@ -102,10 +112,12 @@ void k8s_handler::check_enabled()
 					"checking collector status.", sinsp_logger::SEV_TRACE);
 		check_collector_status();
 	}
+#endif // HAS_CAPTURE
 }
 
 bool k8s_handler::connect()
 {
+#ifdef HAS_CAPTURE
 	if(m_collector && m_http)
 	{
 		if(!m_collector->has(m_http))
@@ -136,11 +148,13 @@ bool k8s_handler::connect()
 								 sinsp_logger::SEV_WARNING);
 		make_http();
 	}
+#endif // HAS_CAPTURE
 	return false;
 }
 
 void k8s_handler::send_data_request()
 {
+#ifdef HAS_CAPTURE
 	if(m_http && !m_req_sent)
 	{
 		if(m_http->is_connected())
@@ -162,21 +176,25 @@ void k8s_handler::send_data_request()
 	{
 		throw sinsp_exception("k8s_handler (" + m_id + ") HTTP client (" + uri(m_url).to_string(false) + ") is null.");
 	}
+#endif // HAS_CAPTURE
 }
 
 bool k8s_handler::is_alive() const
 {
+#ifdef HAS_CAPTURE
 	if(m_http && !m_http->is_connecting() && !m_http->is_connected())
 	{
 		g_logger.log("k8s_handler (" + m_id + ") connection (" + m_http->get_url().to_string(false) + ") loss.",
 					 sinsp_logger::SEV_WARNING);
 		return false;
 	}
+#endif // HAS_CAPTURE
 	return true;
 }
 
 void k8s_handler::check_collector_status()
 {
+#ifdef HAS_CAPTURE
 	if(m_collector)
 	{
 		if(!m_collector->has(m_http))
@@ -188,10 +206,12 @@ void k8s_handler::check_collector_status()
 	{
 		throw sinsp_exception("k8s_handler (" + m_id + ") collector is null.");
 	}
+#endif // HAS_CAPTURE
 }
 
 void k8s_handler::check_state()
 {
+#ifdef HAS_CAPTURE
 	if(m_collector && m_resp_recvd && m_watch && !m_watching)
 	{
 		g_logger.log("k8s_handler (" + m_id + ") switching to watch connection for " +
@@ -223,19 +243,23 @@ void k8s_handler::check_state()
 		m_collector->set_steady_state(true);
 		m_watching = true;
 	}
+#endif // HAS_CAPTURE
 }
 
 bool k8s_handler::connection_error() const
 {
+#ifdef HAS_CAPTURE
 	if(m_http)
 	{
 		return m_http->connection_error();
 	}
+#endif // HAS_CAPTURE
 	return false;
 }
 
 void k8s_handler::collect_data()
 {
+#ifdef HAS_CAPTURE
 	if(m_collector && m_http)
 	{
 		process_events(); // there may be leftovers from state connection closed by collector
@@ -294,6 +318,7 @@ void k8s_handler::collect_data()
 		g_logger.log("k8s_handler (" + m_id + "), http interface not (yet?) created for " + uri(m_url).to_string(false) + ").",
 					 sinsp_logger::SEV_TRACE);
 	}
+#endif // HAS_CAPTURE
 }
 
 k8s_handler::msg_data k8s_handler::get_msg_data(const std::string& type, const std::string& kind, const Json::Value& json)
@@ -341,7 +366,11 @@ void k8s_handler::handle_json(Json::Value&& root)
 
 	if(!m_state)
 	{
+#ifdef HAS_CAPTURE
 		throw sinsp_exception("k8s_handler (" + m_id + "), state is null for " + uri(m_url).to_string(false) + ").");
+#else
+		throw sinsp_exception("k8s_handler (" + m_id + "), state is null.");
+#endif // HAS_CAPTURE
 	}
 	const Json::Value& type = root["type"];
 	if(!type.isNull())
@@ -385,9 +414,11 @@ void k8s_handler::handle_json(Json::Value&& root)
 							if(m_state->has(data.m_uid))
 							{
 								std::ostringstream os;
-								os << "K8s " + reason_type << " message received by " << m_id + " "
-									  "[" << uri(m_url).to_string(false) << "] for existing " << data.m_kind <<
-									" [" << data.m_uid << "], updating only.";
+								os << "K8s " + reason_type << " message received by " << m_id <<
+#ifdef HAS_CAPTURE
+									  " [" << uri(m_url).to_string(false) << "]"
+#endif // HAS_CAPTURE
+									  "for existing " << data.m_kind << " [" << data.m_uid << "], updating only.";
 								g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 							}
 						}
@@ -396,9 +427,11 @@ void k8s_handler::handle_json(Json::Value&& root)
 							if(!m_state->has(data.m_uid))
 							{
 								std::ostringstream os;
-								os << "K8s " << reason_type << " message received by " << m_id + " "
-									  "[" << uri(m_url).to_string(false) << "] for non-existing " << data.m_kind <<
-									  " [" << data.m_uid << "], giving up.";
+								os << "K8s " << reason_type << " message received by " << m_id  <<
+#ifdef HAS_CAPTURE
+									  " [" << uri(m_url).to_string(false) << "]"
+#endif // HAS_CAPTURE
+									  " for non-existing " << data.m_kind << " [" << data.m_uid << "], giving up.";
 								g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
 								continue;
 							}
@@ -408,9 +441,11 @@ void k8s_handler::handle_json(Json::Value&& root)
 							if(!m_state->has(data.m_uid))
 							{
 								std::ostringstream os;
-								os << "K8s " + reason_type + " message received by " << m_id + " "
-									  "[" << uri(m_url).to_string(false) << "] for non-existing " << data.m_kind <<
-									  " [" << data.m_uid << "], giving up.";
+								os << "K8s " + reason_type + " message received by " << m_id <<
+#ifdef HAS_CAPTURE
+									  " [" << uri(m_url).to_string(false) << "]"
+#endif // HAS_CAPTURE
+									  " for non-existing " << data.m_kind << " [" << data.m_uid << "], giving up.";
 								g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
 								continue;
 							}
@@ -459,6 +494,8 @@ void k8s_handler::handle_json(Json::Value&& root)
 	}
 }
 
+#ifdef HAS_CAPTURE
+
 bool k8s_handler::is_ip_address(const std::string& addr)
 {
 	struct sockaddr_in serv_addr = {0};
@@ -490,9 +527,20 @@ k8s_handler::ip_addr_list_t k8s_handler::hostname_to_ip(const std::string& hostn
 	return ip_addrs;
 }
 
+#endif // HAS_CAPTURE
+
+bool k8s_handler::dependency_ready() const
+{
+#ifdef HAS_CAPTURE
+	return m_dependency_handler->is_state_built();
+#else
+	return true;
+#endif // HAS_CAPTURE
+}
+
 void k8s_handler::process_events()
 {
-	if(m_dependency_handler->is_state_built())
+	if(dependency_ready())
 	{
 		for(auto evt : m_events)
 		{
@@ -500,15 +548,20 @@ void k8s_handler::process_events()
 			{
 				g_logger.log("k8s_handler (" + m_id + ") data:\n" + json_as_string(*evt),
 					 sinsp_logger::SEV_TRACE);
+#ifdef HAS_CAPTURE
 				if(m_is_captured)
 				{
 					m_state->enqueue_capture_event(*evt);
 				}
+#endif // HAS_CAPTURE
 				handle_json(std::move(*evt));
 			}
 			else
 			{
-				g_logger.log("k8s_handler (" + m_id + ") error (" + uri(m_url).to_string(false) + ") " +
+				g_logger.log("k8s_handler (" + m_id + ") error " +
+#ifdef HAS_CAPTURE
+							 "(" + uri(m_url).to_string(false) + ") " +
+#endif // HAS_CAPTURE
 							(!evt ? "data is null." : (evt->isNull() ? "JSON is null." : "Unknown")),
 							sinsp_logger::SEV_ERROR);
 			}
@@ -520,14 +573,22 @@ void k8s_handler::process_events()
 
 void k8s_handler::set_event_json(json_ptr_t json, const std::string&)
 {
-	g_logger.log("k8s_handler adding event, (" + m_id + ") has " + std::to_string(m_events.size()) +
-				 " events from " + uri(m_url).to_string(false), sinsp_logger::SEV_TRACE);
+	g_logger.log("k8s_handler adding event, (" + m_id + ") has " + std::to_string(m_events.size())
+#ifdef HAS_CAPTURE
+				+ " events from " + uri(m_url).to_string(false)
+#endif // HAS_CAPTURE
+				, sinsp_logger::SEV_TRACE);
 	// empty JSON is fine here; if there are no entities, state and first watch will pass nothing in here
 	// null is checked when processing
 	m_events.emplace_back(json);
-	g_logger.log("k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size()) +
-				 " events from " + uri(m_url).to_string(false), sinsp_logger::SEV_TRACE);
+	g_logger.log("k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size())
+#ifdef HAS_CAPTURE
+				+ " events from " + uri(m_url).to_string(false)
+#endif // HAS_CAPTURE
+				, sinsp_logger::SEV_TRACE);
+#ifdef HAS_CAPTURE
 	if(!m_resp_recvd) { m_resp_recvd = true; }
+#endif // HAS_CAPTURE
 }
 
 k8s_pair_list k8s_handler::extract_object(const Json::Value& object)
@@ -551,6 +612,7 @@ k8s_pair_list k8s_handler::extract_object(const Json::Value& object)
 std::string k8s_handler::name() const
 {
 	std::string n;
+#ifdef HAS_CAPTURE
 	std::string::size_type slash_pos = m_path.rfind('/');
 	std::string::size_type qm_pos = m_path.rfind('?');
 	std::string::size_type length =
@@ -561,7 +623,7 @@ std::string k8s_handler::name() const
 	{
 		n = m_path.substr(slash_pos, length);
 	}
-
+#endif // HAS_CAPTURE
 	return n;
 }
 
@@ -575,6 +637,7 @@ void k8s_handler::handle_error(const msg_data& data, const Json::Value& root, bo
 
 void k8s_handler::log_error(const msg_data& data, const Json::Value& json)
 {
+#ifdef HAS_CAPTURE
 	std::string unk_err = "Unknown.";
 	std::ostringstream os;;
 	os << "K8S server reported " << name() << " error for [" + uri(m_url).to_string(false) + m_path + "]: ";
@@ -586,4 +649,5 @@ void k8s_handler::log_error(const msg_data& data, const Json::Value& json)
 	}
 	os << unk_err;
 	g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+#endif // HAS_CAPTURE
 }

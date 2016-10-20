@@ -14,14 +14,17 @@ class sinsp;
 class k8s_replicaset_handler : public k8s_handler
 {
 public:
-	k8s_replicaset_handler(k8s_state_t& state,
-		ptr_t dependency_handler,
-		collector_ptr_t collector = nullptr,
-		std::string url = "",
-		const std::string& http_version = "1.0",
-		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0,
-		bool connect = true);
+	k8s_replicaset_handler(k8s_state_t& state
+#ifdef HAS_CAPTURE
+		,ptr_t dependency_handler
+		,collector_ptr_t collector = nullptr
+		,std::string url = ""
+		,const std::string& http_version = "1.0"
+		,ssl_ptr_t ssl = 0
+		,bt_ptr_t bt = 0
+		,bool connect = true
+#endif // HAS_CAPTURE
+		);
 
 	~k8s_replicaset_handler();
 

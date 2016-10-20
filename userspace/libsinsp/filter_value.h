@@ -34,7 +34,7 @@ struct g_hash_membuf
 {
 	size_t operator()(filter_value_t val) const
 	{
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 		return std::_Hash_impl::hash(val.first, val.second);
 #else
 		size_t hash = 5381;
