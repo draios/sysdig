@@ -17,7 +17,7 @@ k8s_api_handler::k8s_api_handler(collector_ptr_t collector,
 	const std::string& filter,
 	const std::string& http_version
 #ifdef HAS_CAPTURE
-	,ssl_ptr_t ssl,
+	,ssl_ptr_t ssl
 	,bt_ptr_t bt
 #endif // HAS_CAPTURE
 ):
@@ -25,7 +25,7 @@ k8s_api_handler::k8s_api_handler(collector_ptr_t collector,
 #ifdef HAS_CAPTURE
 					url, path, filter, ".", collector, http_version, 1000L, ssl, bt,
 #endif // HAS_CAPTURE
-					std::make_shared<k8s_dummy_handler>(), nullptr, false)
+					false, true, std::make_shared<k8s_dummy_handler>(), nullptr)
 {
 }
 

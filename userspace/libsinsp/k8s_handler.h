@@ -47,7 +47,7 @@ public:
 		bt_ptr_t bt = nullptr,
 		bool watch = true,
 		bool connect = true,
-		ptr_t dependency_handler,
+		ptr_t dependency_handler = nullptr,
 #endif // HAS_CAPTURE
 		k8s_state_t* state = nullptr);
 
@@ -238,19 +238,19 @@ inline k8s_handler::api_error_ptr k8s_handler::error() const
 
 // This dummy class serves only as a dependency stand-in for handlers
 // which have no dependencies (eg. nodes handler, which is first populated
-// into the state and has no dependency; or special-prupose handlers,
+// into the state and has no dependency; or special-purpose handlers,
 // such as delegator, api handler etc), but the logic requires a non-null
 // pointer to handler to determine whether dependency is ready; to avoid
-// special casing eg. nodes handler all over the place, we have this dummy
-// liar which is always returning true for its state being built
+// special-casing eg. nodes handler all over the place, we use this dummy
+// liar, always returning true for its state being built, as the dependency
 class k8s_dummy_handler : public k8s_handler
 {
 public:
 	k8s_dummy_handler(): k8s_handler("k8s_dummy_handler", false,
 #ifdef HAS_CAPTURE
 									 "", "", "", "",  nullptr,
-									 nullptr, "", 0, nullptr,
-									 true, false, nullptr, 
+									 "", 0, nullptr, nullptr,
+									 false, false, nullptr,
 #endif // HAS_CAPTURE
 									 nullptr)
 	{
