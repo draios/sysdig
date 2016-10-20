@@ -997,6 +997,8 @@ private:
 	friend class sinsp_filter_check_k8s;
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
+	friend class sisnp_baseliner;
+
 	friend class sinsp_network_interfaces;
 	friend class k8s_delegator;
 
