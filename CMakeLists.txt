@@ -346,7 +346,6 @@ endif() # NOT WIN32 AND NOT APPLE
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
-add_subdirectory(userspace/falcobl)
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
 set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")
