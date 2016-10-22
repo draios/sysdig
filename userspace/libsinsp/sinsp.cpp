@@ -1729,6 +1729,7 @@ void sinsp::make_k8s_client()
 #ifdef HAS_CAPTURE
 		,m_k8s_ssl
 		,m_k8s_bt
+		,true // blocking
 #endif // HAS_CAPTURE
 		,nullptr
 #ifdef HAS_CAPTURE
@@ -1763,36 +1764,36 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 
 void sinsp::collect_k8s()
 {
-	if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+	if(m_parser)
 	{
-		m_k8s_last_watch_time_ns = m_lastevent_ts;
-
-			if(m_parser)
+		if(m_k8s_api_server)
+		{
+			if(!m_k8s_client)
 			{
-				if(m_k8s_api_server)
+				init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
+				if(m_k8s_client)
 				{
-					if(m_k8s_client)
-					{
-						uint64_t delta = sinsp_utils::get_current_time_ns();
-						m_k8s_client->watch();
-						m_parser->schedule_k8s_events(&m_meta_evt);
-						delta = sinsp_utils::get_current_time_ns() - delta;
-						g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
-					}
-					else
-					{
-						init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
-						if(m_k8s_client)
-						{
-							g_logger.log("K8s client created.", sinsp_logger::SEV_DEBUG);
-						}
-						else
-						{
-							g_logger.log("K8s client NOT created.", sinsp_logger::SEV_DEBUG);
-						}
-					}
+					g_logger.log("K8s client created.", sinsp_logger::SEV_DEBUG);
+				}
+				else
+				{
+					g_logger.log("K8s client NOT created.", sinsp_logger::SEV_DEBUG);
 				}
 			}
+			if(m_k8s_client)
+			{
+				if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+				{
+					m_k8s_last_watch_time_ns = m_lastevent_ts;
+					g_logger.log("K8s updating state ...", sinsp_logger::SEV_DEBUG);
+					uint64_t delta = sinsp_utils::get_current_time_ns();
+					m_k8s_client->watch();
+					m_parser->schedule_k8s_events(&m_meta_evt);
+					delta = sinsp_utils::get_current_time_ns() - delta;
+					g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
+				}
+			}
+		}
 	}
 }
 
@@ -1813,7 +1814,7 @@ void sinsp::k8s_discover_ext()
 				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert); }
 				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 															"/apis/extensions/v1beta1", "[.resources[].name]",
-															"1.0", m_k8s_ssl, m_k8s_bt));
+															"1.0", m_k8s_ssl, m_k8s_bt, true));
 				g_logger.log("K8s API extensions handler: collector created.", sinsp_logger::SEV_TRACE);
 			}
 			else
@@ -1871,6 +1872,7 @@ void sinsp::update_k8s_state()
 #ifdef HAS_CAPTURE
 	try
 	{
+		g_logger.log("K8s API state is being updated ...", sinsp_logger::SEV_DEBUG);
 		if(m_k8s_api_server && !m_k8s_api_server->empty())
 		{
 			if(!m_k8s_api_detected)
@@ -1887,7 +1889,7 @@ void sinsp::update_k8s_state()
 					}
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 																"/api", ".versions", "1.0",
-																m_k8s_ssl, m_k8s_bt));
+																m_k8s_ssl, m_k8s_bt, true));
 				}
 				else
 				{
@@ -1923,6 +1925,7 @@ void sinsp::update_k8s_state()
 			}
 			if(m_k8s_api_detected && m_k8s_ext_detect_done)
 			{
+				g_logger.log("K8s API state is being collected ...", sinsp_logger::SEV_DEBUG);
 				collect_k8s();
 			}
 		}

@@ -20,7 +20,8 @@ public:
 		const std::string& filter,
 		const std::string& http_version = "1.0",
 		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0);
+		bt_ptr_t bt = 0,
+		bool blocking_socket = false);
 
 	~k8s_api_handler();
 

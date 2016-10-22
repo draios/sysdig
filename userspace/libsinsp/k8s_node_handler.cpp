@@ -54,14 +54,15 @@ k8s_node_handler::k8s_node_handler(k8s_state_t& state
 	,ssl_ptr_t ssl
 	,bt_ptr_t bt
 	,bool connect
+	,bool blocking_socket
 #endif // HAS_CAPTURE
 	):
 		k8s_handler("k8s_node_handler", true,
 #ifdef HAS_CAPTURE
 					url, "/api/v1/nodes",
 					STATE_FILTER, EVENT_FILTER, collector,
-					http_version, 1000L, ssl, bt,
-					true, connect, dependency_handler, 
+					http_version, 1000L, ssl, bt, true,
+					connect, dependency_handler, blocking_socket,
 #endif // HAS_CAPTURE
 					&state)
 {

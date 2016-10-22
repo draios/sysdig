@@ -33,14 +33,15 @@ public:
 		ssl_ptr_t ssl = nullptr,
 		bt_ptr_t bt = nullptr,
 		ext_list_ptr_t extensions = nullptr,
-		filter_ptr_t event_filter = nullptr);
+		filter_ptr_t event_filter = nullptr,
+		bool blocking_sockets = false);
 
 	~k8s_net();
 
 	static handler_ptr_t make_handler(k8s_state_t& state, const k8s_component::type component, bool connect = true,
 									 handler_ptr_t dep = std::make_shared<k8s_dummy_handler>(),
 									 collector_ptr_t collector = nullptr, const std::string& urlstr = "",
-									 ssl_ptr_t ssl = nullptr, bt_ptr_t bt = nullptr,
+									 ssl_ptr_t ssl = nullptr, bt_ptr_t bt = nullptr, bool blocking = false,
 									 filter_ptr_t event_filter = nullptr);
 	void add_handler(const k8s_component::type_map::value_type& component);
 	bool has_handler(const k8s_component::type_map::value_type& component);
@@ -77,6 +78,7 @@ private:
 	bt_ptr_t        m_bt;
 	bool            m_stopped;
 	handler_map_t   m_handlers;
+	bool            m_blocking_sockets = false;
 	ext_list_ptr_t  m_extensions;
 	filter_ptr_t    m_event_filter;
 	std::string     m_machine_id;

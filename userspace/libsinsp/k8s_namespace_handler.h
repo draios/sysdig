@@ -22,6 +22,7 @@ public:
 		,ssl_ptr_t ssl = 0
 		,bt_ptr_t bt = 0
 		,bool connect = true
+		,bool blocking_socket = false
 #endif // HAS_CAPTURE
 		);
 

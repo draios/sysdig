@@ -34,6 +34,7 @@ public:
 #ifdef HAS_CAPTURE
 		ssl_ptr_t ssl = 0,
 		bt_ptr_t bt = 0,
+		bool block = false,
 #endif // HAS_CAPTURE
 		filter_ptr_t event_filter = nullptr,
 		ext_list_ptr_t extensions = nullptr);

@@ -42,6 +42,7 @@ k8s_handler::k8s_handler(const std::string& id,
 	bool watch,
 	bool connect,
 	ptr_t dependency_handler,
+	bool blocking_socket,
 #endif // HAS_CAPTURE
 	k8s_state_t* state): m_state(state),
 		m_id(id + "_state"),
@@ -59,6 +60,7 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_watch(watch),
 		m_connect(connect),
 		m_dependency_handler(dependency_handler),
+		m_blocking_socket(blocking_socket),
 #endif // HAS_CAPTURE
 		m_is_captured(is_captured)
 {
@@ -81,14 +83,15 @@ void k8s_handler::make_http()
 	{
 		g_logger.log(std::string("K8s (" + m_id + ") creating handler for " +
 								 uri(m_url).to_string(false) + m_path), sinsp_logger::SEV_INFO);
-		bool keep_alive = (m_id.find("_state") == std::string::npos);
-		m_http = std::make_shared<handler_t>(*this, m_id,
-									 m_url, m_path, m_http_version,
-									 m_timeout_ms, m_ssl, m_bt, keep_alive);
-		m_http->set_json_callback(&k8s_handler::set_event_json);
-		m_http->set_json_end("}\n");
-		m_http->add_json_filter(m_filter);
-		m_http->add_json_filter(ERROR_FILTER);
+		if(!m_http)
+		{
+			m_http = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
+												 m_timeout_ms, m_ssl, m_bt, true, m_blocking_socket);
+			m_http->set_json_callback(&k8s_handler::set_event_json);
+			m_http->set_json_end("}\n");
+			m_http->add_json_filter(m_filter);
+			m_http->add_json_filter(ERROR_FILTER);
+		}
 		m_req_sent = false;
 		m_resp_recvd = false;
 		connect();
@@ -179,6 +182,32 @@ void k8s_handler::send_data_request()
 #endif // HAS_CAPTURE
 }
 
+void k8s_handler::receive_response()
+{
+	if(m_http)
+	{
+		if(m_req_sent)
+		{
+			if(!m_watching)
+			{
+				m_http->get_all_data();
+			}
+			else
+			{
+				throw sinsp_exception("K8s k8s_handler::receive_response(): invalid call (in watch mode).");
+			}
+		}
+		else
+		{
+			throw sinsp_exception("K8s k8s_handler::receive_response(): invalid call (request not sent).");
+		}
+	}
+	else
+	{
+		throw sinsp_exception("K8s k8s_handler::receive_response(): handler is null.");
+	}
+}
+
 bool k8s_handler::is_alive() const
 {
 #ifdef HAS_CAPTURE
@@ -219,7 +248,7 @@ void k8s_handler::check_state()
 					 sinsp_logger::SEV_DEBUG);
 		// done with initial state handling, switch to events
 		m_collector->remove(m_http);
-		m_http.reset();
+		//m_http.reset();
 		std::string::size_type pos = m_id.find("_state");
 		if(pos != std::string::npos)
 		{
@@ -242,6 +271,8 @@ void k8s_handler::check_state()
 		make_http();
 		m_collector->set_steady_state(true);
 		m_watching = true;
+		m_http->set_socket_option(SOCK_NONBLOCK);
+		m_blocking_socket = false;
 	}
 #endif // HAS_CAPTURE
 }
@@ -276,8 +307,14 @@ void k8s_handler::collect_data()
 			if(!m_req_sent)
 			{
 				g_logger.log("k8s_handler (" + m_id + ") collect_data(), connected to " + uri(m_url).to_string(false) + ", requesting data "
-							 "from " + m_path + "...",  sinsp_logger::SEV_DEBUG);
+							 "from " + m_path + "... m_blocking_socket=" + std::to_string(m_blocking_socket) + ", m_watching=" + std::to_string(m_watching),
+							 sinsp_logger::SEV_DEBUG);
 				send_data_request();
+				if(m_blocking_socket && !m_watching)
+				{
+					receive_response();
+					return;
+				}
 			}
 			if(m_collector->subscription_count())
 			{

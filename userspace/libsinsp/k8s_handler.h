@@ -48,6 +48,7 @@ public:
 		bool watch = true,
 		bool connect = true,
 		ptr_t dependency_handler = nullptr,
+		bool blocking_socket = false,
 #endif // HAS_CAPTURE
 		k8s_state_t* state = nullptr);
 
@@ -117,6 +118,7 @@ private:
 	bool connect();
 	void make_http();
 	void send_data_request();
+	void receive_response();
 	void check_enabled();
 	void check_state();
 	void check_collector_status();
@@ -159,6 +161,7 @@ private:
 	// it must have its state fully built before this handler can begin building its own state
 	ptr_t m_dependency_handler;
 
+	bool m_blocking_socket = false;
 #endif // HAS_CAPTURE
 
 	event_list_t m_events;

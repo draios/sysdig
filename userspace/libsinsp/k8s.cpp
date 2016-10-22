@@ -17,7 +17,9 @@ k8s_component::type_map k8s::m_components;
 
 k8s::k8s(const std::string& uri, bool is_captured,
 #ifdef HAS_CAPTURE
-		ssl_ptr_t ssl, bt_ptr_t bt,
+		ssl_ptr_t ssl,
+		bt_ptr_t bt,
+		bool block,
 #endif // HAS_CAPTURE
 		filter_ptr_t event_filter,
 		ext_list_ptr_t extensions) :
@@ -25,7 +27,7 @@ k8s::k8s(const std::string& uri, bool is_captured,
 		m_event_filter(event_filter)
 #ifdef HAS_CAPTURE
 		,m_net(uri.empty() ?
-			   nullptr : new k8s_net(*this, m_state, uri, ssl, bt, extensions, event_filter))
+			   nullptr : new k8s_net(*this, m_state, uri, ssl, bt, extensions, event_filter, block))
 #endif
 {
 	g_logger.log(std::string("Creating K8s object for [" +
