@@ -947,6 +947,58 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	{
 		//
 		// clone() returns 0 in the child.
+		//
+
+		int64_t parenttid;
+
+		//
+		// Check if this is a process or a new thread
+		//
+		if(flags & PPM_CL_CLONE_THREAD)
+		{
+			//
+			// This is a thread, the parent tid is the pid
+			//
+			parinfo = evt->get_param(4);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			parenttid = *(int64_t *)parinfo->m_val;
+		}
+		else
+		{
+			//
+			// This is not a thread, the parent tid is ptid
+			//
+			parinfo = evt->get_param(5);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			parenttid = *(int64_t *)parinfo->m_val;
+		}
+
+		//
+		// If the threadinfo in the event exists, and we're in
+		// a container, the threadinfo in the event must be
+		// stale (e.g. from a prior process with the same
+		// tid), because only the child side of a clone
+		// creates the threadinfo for the child. Clear and
+		// remove the old threadinfo.
+		//
+		if(evt->m_tinfo && in_container)
+		{
+			// See if the parent thread is in a
+			// container. If it is, the parent thread
+			// did *not* create the thread for this child,
+			// and any existing thread state must be
+			// stale.
+
+			sinsp_threadinfo* ptinfo = m_inspector->get_thread(parenttid, false, true);
+
+
+			if(ptinfo && ptinfo->m_tid != ptinfo->m_vtid)
+			{
+				m_inspector->remove_thread(tid, true);
+				evt->m_tinfo = NULL;
+			}
+		}
+
 		// Validate that the child thread info has actually been created.
 		//
 		if(!evt->m_tinfo)
@@ -969,27 +1021,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 			childtid = tid;
 
-			//
-			// Check if this is a process or a new thread
-			//
-			if(flags & PPM_CL_CLONE_THREAD)
-			{
-				//
-				// This is a thread, the parent tid is the pid
-				//
-				parinfo = evt->get_param(4);
-				ASSERT(parinfo->m_len == sizeof(int64_t));
-				tid = *(int64_t *)parinfo->m_val;
-			}
-			else
-			{
-				//
-				// This is not a thread, the parent tid is ptid
-				//
-				parinfo = evt->get_param(5);
-				ASSERT(parinfo->m_len == sizeof(int64_t));
-				tid = *(int64_t *)parinfo->m_val;
-			}
+			tid = parenttid;
 
 			//
 			// Keep going and add the event with the standard code below
