@@ -64,7 +64,7 @@ public:
 			m_ssl(ssl),
 			m_bt(bt),
 			m_timeout_ms(timeout_ms),
-			m_request(make_request(m_url, http_version)),
+			m_request(make_request(url, http_version)),
 			m_http_version(http_version),
 			m_json_begin("\r\n{"),
 			m_json_end(m_http_version == HTTP_VERSION_10 ? "}\r\n" : "}\r\n0")
@@ -115,6 +115,12 @@ public:
 	const uri& get_url() const
 	{
 		return m_url;
+	}
+
+	void set_path(const std::string& path)
+	{
+		m_path = path;
+		m_request = make_request(m_url, m_http_version);
 	}
 
 	std::string make_request(uri url, const std::string& http_version)

@@ -92,6 +92,12 @@ void k8s_handler::make_http()
 			m_http->add_json_filter(m_filter);
 			m_http->add_json_filter(ERROR_FILTER);
 		}
+		else
+		{
+			g_logger.log(std::string("K8s (" + m_id + ") redirecting handler for " +
+								 uri(m_url).to_string(false) + " to " + m_path), sinsp_logger::SEV_INFO);
+			m_http->set_path(m_path);
+		}
 		m_req_sent = false;
 		m_resp_recvd = false;
 		connect();
