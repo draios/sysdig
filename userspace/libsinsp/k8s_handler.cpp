@@ -215,6 +215,7 @@ void k8s_handler::send_data_request()
 
 void k8s_handler::receive_response()
 {
+#ifdef HAS_CAPTURE
 	if(m_http)
 	{
 		if(m_req_sent)
@@ -237,6 +238,7 @@ void k8s_handler::receive_response()
 	{
 		throw sinsp_exception("K8s k8s_handler::receive_response(): handler is null.");
 	}
+#endif // HAS_CAPTURE
 }
 
 bool k8s_handler::is_alive() const
@@ -593,11 +595,11 @@ k8s_handler::ip_addr_list_t k8s_handler::hostname_to_ip(const std::string& hostn
 
 bool k8s_handler::dependency_ready() const
 {
+#ifdef HAS_CAPTURE
 	g_logger.log("k8s_handler (" + m_id + ") dependency "
 				 "(" + m_dependency_handler->get_id() + ") ready: " +
 				 std::to_string(m_dependency_handler->is_state_built()),
 				 sinsp_logger::SEV_TRACE);
-#ifdef HAS_CAPTURE
 	return m_dependency_handler->is_state_built();
 #else
 	return true;
