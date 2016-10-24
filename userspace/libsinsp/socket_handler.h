@@ -112,6 +112,11 @@ public:
 		return m_connecting;
 	}
 
+	void close_on_chunked_end(bool close = true)
+	{
+		m_close_on_chunked_end = close;
+	}
+
 	const uri& get_url() const
 	{
 		return m_url;
@@ -163,6 +168,11 @@ public:
 		request << "\r\n";
 
 		return request.str();
+	}
+
+	void set_id(const std::string& id)
+	{
+		m_id = id;
 	}
 
 	const std::string& get_id() const
@@ -304,6 +314,8 @@ public:
 
 	int get_all_data()
 	{
+		g_logger.log("Socket handler (" + m_id + ") Retrieving all data in blocking mode ...",
+					 sinsp_logger::SEV_TRACE);
 		ssize_t rec = 0;
 		std::vector<char> buf(1024, 0);
 		std::string data;
@@ -389,8 +401,8 @@ public:
 						iolen = recv(m_socket, &m_buf[0], m_buf.size(), 0);
 					}
 					m_sock_err = errno;
-					g_logger.log(m_id + ' ' + m_url.to_string(false) + //" loop_counter=" + std::to_string(loop_counter) +
-								", iolen=" + std::to_string(iolen), sinsp_logger::SEV_TRACE);
+					g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
+								 std::to_string(iolen), sinsp_logger::SEV_TRACE);
 					if(iolen > 0)
 					{
 						data.append(&m_buf[0], iolen <= m_buf.size() ? iolen : m_buf.size());
@@ -450,7 +462,25 @@ public:
 			} while(iolen && errno != EAGAIN);
 			if(data.size())
 			{
-				extract_data(data);
+				std::string::size_type pos = data.find("0\r\n\r\n");
+				if(pos != std::string::npos)
+				{
+					if(pos > 0)
+					{
+						data = data.substr(0, pos);
+						extract_data(data);
+					}
+					//TODO: this socket is not closed by server, only chunked data stops flowing;
+					//      we could keep it and  resend request instead of severing the connection
+					if(m_close_on_chunked_end)
+					{
+						return CONNECTION_CLOSED;
+					}
+				}
+				else
+				{
+					extract_data(data);
+				}
 			}
 		}
 		catch(sinsp_exception& ex)
@@ -506,9 +536,50 @@ public:
 		return m_json_end;
 	}
 
-	void add_json_filter(const std::string& filter)
+	bool has_json_filter(const std::string& filter)
 	{
-		m_json_filters.push_back(filter);
+		for(auto flt : m_json_filters)
+		{
+			if(flt == filter)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void add_json_filter(const std::string& filter, const std::string& before_filter = "")
+	{
+		if(filter.empty())
+		{
+			throw sinsp_exception(std::string("Socket handler (") + m_id + "), "
+							  "[" + m_url.to_string(false) + "] "
+							  "attempt to add empty filter");
+		}
+		remove_json_filter(filter);
+		if(before_filter.empty())
+		{
+			m_json_filters.push_back(filter);
+			return;
+		}
+		else
+		{
+			auto it = m_json_filters.begin();
+			for(; it != m_json_filters.end(); ++it)
+			{
+				if(*it == before_filter) { break; }
+			}
+			if(it != m_json_filters.end())
+			{
+				m_json_filters.insert(it, filter);
+			}
+			else
+			{
+				throw sinsp_exception(std::string("Socket handler (") + m_id + "), "
+							  "[" + m_url.to_string(false) + "] "
+							  "attempt to insert before non-existing filter");
+			}
+		}
 	}
 
 	void remove_json_filter(const std::string& filter)
@@ -525,7 +596,7 @@ public:
 
 	void replace_json_filter(const std::string& from, const std::string& to)
 	{
-		for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
+		for(auto it = m_json_filters.begin(); it != m_json_filters.end(); ++it)
 		{
 			if(*it == from)
 			{
@@ -536,6 +607,17 @@ public:
 		throw sinsp_exception(std::string("Socket handler (") + m_id + "), "
 							  "[" + m_url.to_string(false) + "] "
 							  "attempt to replace non-existing filter");
+	}
+
+	void print_filters(sinsp_logger::severity sev = sinsp_logger::SEV_DEBUG)
+	{
+		std::ostringstream filters;
+		filters << std::endl << "Filters:" << std::endl;
+		for(auto filter : m_json_filters)
+		{
+			filters << filter << std::endl;
+		}
+		g_logger.log("Socket handler (" + m_id + "), [" + m_url.to_string(false) + "]" + filters.str(), sev);
 	}
 
 	static json_ptr_t try_parse(json_query& jq, const std::string& json, const std::string& filter,
@@ -577,7 +659,7 @@ public:
 		return nullptr;
 	}
 
-	// connection is non-blocking and a socket
+	// when connection is non-blocking and a socket
 	// should not be polled until it is connected
 	// this flag indicates readiness to be polled
 	bool is_enabled() const
@@ -625,17 +707,40 @@ private:
 			data = data.substr(0, pos);
 		}
 
-		const std::string nl = "\r\n";
+		std::string nl = "\r\n\r\n";
 		std::string::size_type begin, end;
 		while((begin = data.find(nl)) != std::string::npos)
 		{
-			end = data.find(nl, begin + 2);
+			end = data.find(nl, begin + nl.size());
 			if(end != std::string::npos)
 			{
-				data.erase(begin, end + 2 - begin);
+				data.erase(begin, end + nl.size() - begin);
 			}
 			else { break; }
 		}
+		nl = "\r\n";
+		while((begin = data.find(nl)) != std::string::npos)
+		{
+			end = data.find(nl, begin + nl.size());
+			if(end != std::string::npos)
+			{
+				data.erase(begin, end + nl.size() - begin);
+			}
+			else { break; }
+		}
+	}
+
+	std::vector<std::string> separate_json(const std::string& json, char c)
+	{
+		std::vector<std::string> result;
+		const char *str = json.c_str();
+		do
+		{
+			const char *begin = str;
+			while(*str != c && *str) { str++; }
+			result.push_back(std::string(begin, str));
+		} while (0 != *str++);
+		return result;
 	}
 
 	void handle_json(std::string::size_type end_pos, bool chunked)
@@ -656,9 +761,19 @@ private:
 				}
 				if(json.size())
 				{
-					if(chunked)
+					if(chunked && m_data_buf.size())
 					{
 						purge_chunked_markers(m_data_buf);
+					}
+					purge_chunked_markers(json);
+					std::vector<std::string> jsons;
+					if(json.find('\n') != std::string::npos)
+					{
+						jsons = separate_json(json, '\n');
+					}
+					else
+					{
+						jsons.emplace_back(std::move(json));
 					}
 					g_logger.log("Socket handler (" + m_id + "): invoking callback(s).",
 								 sinsp_logger::SEV_TRACE);
@@ -667,13 +782,16 @@ private:
 						// if no filters provided and we got here, just do the whole JSON as-is
 						add_json_filter(".");
 					}
-					for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
+					for(auto js : jsons)
 					{
-						json_ptr_t pjson = try_parse(m_jq, json, *it, m_id, m_url.to_string(false));
-						if(pjson)
+						for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
 						{
-							(m_obj.*m_json_callback)(pjson, m_id);
-							return;
+							json_ptr_t pjson = try_parse(m_jq, js, *it, m_id, m_url.to_string(false));
+							if(pjson)
+							{
+								(m_obj.*m_json_callback)(pjson, m_id);
+								return;
+							}
 						}
 					}
 					g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ": "
@@ -686,8 +804,11 @@ private:
 						{
 							g_logger.log(*it, sinsp_logger::SEV_TRACE);
 						}
-						g_logger.log("Filters:", sinsp_logger::SEV_TRACE);
-						g_logger.log(json, sinsp_logger::SEV_TRACE);
+						g_logger.log("JSONs:", sinsp_logger::SEV_TRACE);
+						for(auto js : jsons)
+						{
+							g_logger.log(js, sinsp_logger::SEV_TRACE);
+						}
 					}
 				}
 			}
@@ -696,6 +817,13 @@ private:
 
 	bool detect_chunked_transfer(const std::string& data)
 	{
+		std::string::size_type te_pos = data.find("Transfer-Encoding: chunked");
+		if(te_pos != std::string::npos)
+		{
+			m_content_length = std::string::npos;
+			return true;
+		}
+
 		if(m_content_length == std::string::npos)
 		{
 			std::string::size_type cl_pos = data.find("Content-Length:");
@@ -1552,6 +1680,7 @@ private:
 	struct sockaddr*         m_sa = 0;
 	socklen_t                m_sa_len = 0;
 	std::string::size_type   m_content_length = std::string::npos;
+	bool                     m_close_on_chunked_end = false;
 };
 
 template <typename T>

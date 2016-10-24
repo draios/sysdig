@@ -257,7 +257,7 @@ public:
 											else
 											{
 												g_logger.log("Socket collector: connection close detected while handling data"
-															 ", removing handler [" + id + ']', sinsp_logger::SEV_ERROR);
+															 ", removing handler [" + id + ']', sinsp_logger::SEV_DEBUG);
 											}
 											remove(it);
 											continue;

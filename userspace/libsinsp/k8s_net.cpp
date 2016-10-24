@@ -114,15 +114,15 @@ k8s_net::handler_ptr_t k8s_net::get_dependency_handler(const handler_map_t& hand
 		case k8s_component::K8S_REPLICATIONCONTROLLERS:
 			return get_handler(handlers, k8s_component::K8S_PODS);
 		case k8s_component::K8S_SERVICES:
-			return get_handler(handlers, k8s_component::K8S_REPLICATIONCONTROLLERS);
+			return get_handler(handlers, k8s_component::K8S_PODS);
 		case k8s_component::K8S_REPLICASETS:
-			return get_handler(handlers, k8s_component::K8S_SERVICES);
+			return get_handler(handlers, k8s_component::K8S_PODS);
 		case k8s_component::K8S_DAEMONSETS:
-			return get_handler(handlers, k8s_component::K8S_REPLICASETS);
+			return get_handler(handlers, k8s_component::K8S_PODS);
 		case k8s_component::K8S_DEPLOYMENTS:
-			return get_handler(handlers, k8s_component::K8S_DAEMONSETS);
+			return get_handler(handlers, k8s_component::K8S_PODS);
 		case k8s_component::K8S_EVENTS:
-			return get_handler(handlers, k8s_component::K8S_SERVICES);
+			return std::make_shared<k8s_dummy_handler>();
 		case k8s_component::K8S_COMPONENT_COUNT:
 		default: break;
 	}

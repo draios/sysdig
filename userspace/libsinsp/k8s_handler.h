@@ -137,6 +137,7 @@ private:
 	std::string     m_event_filter;
 	std::string&    m_filter;
 	std::string     m_event_uri;
+	std::string     m_json_end;
 	long            m_timeout_ms;
 	std::string     m_url;
 	bool            m_req_sent = false;
