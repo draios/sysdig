@@ -13,6 +13,7 @@
 #include <string>
 #include <memory>
 #include <algorithm>
+#include "sinsp_curl.h"
 
 class mesos;
 
@@ -24,7 +25,11 @@ public:
 	typedef void (mesos::*callback_func_t)(json_ptr_t, const std::string&);
 	typedef std::vector<std::string> marathon_uri_t;
 
-	mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master = false, bool discover_marathon = false, int timeout_ms = 5000L);
+	mesos_http(mesos& m, const uri& url,
+				bool discover_mesos_lead_master = false,
+				bool discover_marathon = false,
+				int timeout_ms = 5000L,
+				const string& token = "");
 
 	virtual ~mesos_http();
 
@@ -67,7 +72,7 @@ protected:
 	int wait(int for_recv);
 
 	callback_func_t get_parse_func();
-	static std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
+	std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
 	static json_ptr_t try_parse(const std::string& json);
 	static bool is_framework_active(const Json::Value& framework);
 	std::string get_framework_url(const Json::Value& framework);
@@ -101,6 +106,8 @@ private:
 	//bool                    m_redirect = false;
 	std::string::size_type  m_content_length = std::string::npos;
 	char                    m_redirect[CURL_MAX_HTTP_HEADER] = {0};
+	string                  m_token;
+	sinsp_curl_http_headers m_sync_curl_headers;
 
 	friend class mesos;
 

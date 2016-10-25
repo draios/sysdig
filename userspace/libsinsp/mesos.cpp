@@ -20,6 +20,7 @@ const std::string mesos::default_marathon_uri = "http://localhost:8080";
 const std::string mesos::default_groups_api   = "/v2/groups";
 const std::string mesos::default_apps_api     = "/v2/apps?embed=apps.tasks";
 const std::string mesos::default_watch_api    = "/v2/events";
+const std::string mesos::default_version_api  = "/version";
 const int mesos::default_timeout_ms           = 5000;
 
 mesos::mesos(const std::string& mesos_state_json,
@@ -132,6 +133,48 @@ mesos::mesos(const std::string& state_uri,
 	init();
 }
 
+mesos::mesos(const std::string& state_uri,
+	const uri_list_t& marathon_uris,
+	bool discover_mesos_leader,
+	bool discover_marathon_leader,
+	const credentials_t& dcos_enterprise_credentials,
+	int timeout_ms,
+	bool is_captured,
+	bool verbose):
+#ifdef HAS_CAPTURE
+		m_collector(false),
+		m_mesos_uri(state_uri),
+		m_marathon_uris(marathon_uris),
+#endif // HAS_CAPTURE
+		m_state(is_captured, verbose),
+		m_discover_mesos_leader(discover_mesos_leader),
+		m_discover_marathon_uris(discover_marathon_leader || marathon_uris.empty()),
+		m_timeout_ms(timeout_ms),
+		m_verbose(verbose),
+		m_testing(false),
+		m_dcos_enterprise_credentials(dcos_enterprise_credentials)
+{
+#ifdef HAS_CAPTURE
+	g_logger.log(std::string("Creating Mesos object for [" +
+							 (m_mesos_uri.empty() ? std::string("capture replay") : m_mesos_uri)  +
+							 "], failover autodiscovery set to ") +
+							(m_discover_mesos_leader ? "true" : "false"),
+				 sinsp_logger::SEV_DEBUG);
+
+	if(m_marathon_uris.size() > 1)
+	{
+		std::string marathon_uri = m_marathon_uris[0];
+		m_marathon_uris.clear();
+		m_marathon_uris.emplace_back(marathon_uri);
+		g_logger.log("Multiple root marathon URIs configured; only the first one (" + marathon_uri + ") will have effect;"
+					" others will be treated as generic frameworks (user Marathon frameworks will be discovered).", sinsp_logger::SEV_WARNING);
+	}
+	
+	authenticate();
+#endif
+	init();
+}
+
 mesos::~mesos()
 {
 }
@@ -147,7 +190,7 @@ void mesos::init()
 			throw sinsp_exception("Invalid access to Mesos initializer: mesos state http client for [" +
 								 m_mesos_uri + "] not unique.");
 		}
-		m_state_http = std::make_shared<mesos_http>(*this, m_mesos_uri + default_state_api, m_discover_mesos_leader, m_marathon_uris.empty(), m_timeout_ms);
+		m_state_http = std::make_shared<mesos_http>(*this, m_mesos_uri + default_state_api, m_discover_mesos_leader, m_marathon_uris.empty(), m_timeout_ms, m_token);
 		rebuild_mesos_state(true);
 		init_marathon();
 	}
@@ -170,8 +213,8 @@ void mesos::init_marathon()
 			for(const auto& muri : marathons)
 			{
 				g_logger.log("Creating Marathon http objects: " + uri(muri).to_string(false), sinsp_logger::SEV_DEBUG);
-				m_marathon_groups_http[muri] = std::make_shared<marathon_http>(*this, muri + default_groups_api, discover_marathon, m_timeout_ms);
-				m_marathon_apps_http[muri]   = std::make_shared<marathon_http>(*this, muri + default_apps_api, discover_marathon, m_timeout_ms);
+				m_marathon_groups_http[muri] = std::make_shared<marathon_http>(*this, muri + default_groups_api, discover_marathon, m_timeout_ms, m_token);
+				m_marathon_apps_http[muri]   = std::make_shared<marathon_http>(*this, muri + default_apps_api, discover_marathon, m_timeout_ms, m_token);
 			}
 
 			if(has_marathon())
@@ -181,6 +224,26 @@ void mesos::init_marathon()
 		}
 	}
 #endif // HAS_CAPTURE
+}
+
+void mesos::authenticate()
+{
+	sinsp_curl auth_request(uri("https://localhost/acs/api/v1/auth/login"), "", "");
+	Json::FastWriter json_writer;
+	Json::Value auth_obj;
+	auth_obj["uid"] = m_dcos_enterprise_credentials.first;
+	auth_obj["password"] = m_dcos_enterprise_credentials.second;
+	auth_request.add_header("Content-Type: application/json");
+	auth_request.setopt(CURLOPT_POST, 1);
+	auth_request.set_body(json_writer.write(auth_obj));
+	//auth_request.enable_debug();
+	auto response = auth_request.get_data();
+
+	Json::Reader json_reader;
+	Json::Value response_obj;
+	json_reader.parse(response, response_obj, false);
+	m_token = response_obj["token"].asString();
+	g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
 }
 
 void mesos::refresh()

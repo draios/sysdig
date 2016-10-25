@@ -20,7 +20,10 @@
 #include <sys/ioctl.h>
 #include <cstring>
 
-mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master, bool discover_marathon, int timeout_ms):
+mesos_http::mesos_http(mesos& m, const uri& url,
+					bool discover_mesos_lead_master,
+					bool discover_marathon,
+					int timeout_ms, const string& token):
 	m_sync_curl(curl_easy_init()),
 	m_select_curl(curl_easy_init()),
 	m_mesos(m),
@@ -30,10 +33,10 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master
 	m_timeout_ms(timeout_ms),
 	m_callback_func(0),
 	m_curl_version(curl_version_info(CURLVERSION_NOW)),
-	m_request(make_request(url, m_curl_version)),
 	m_is_mesos_state(url.to_string().find(mesos::default_state_api) != std::string::npos),
 	m_discover_lead_master(discover_mesos_lead_master),
-	m_discover_marathon(discover_marathon)
+	m_discover_marathon(discover_marathon),
+	m_token(token)
 {
 	if(!m_sync_curl || !m_select_curl)
 	{
@@ -46,6 +49,19 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master
 		throw sinsp_exception("mesos_http: HTTPS NOT supported");
 	}*/
 
+	m_request = make_request(url, m_curl_version);
+	if(!m_token.empty())
+	{
+		m_sync_curl_headers.add(string("Authorization: token=") + m_token);
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_HTTPHEADER, m_sync_curl_headers.ptr()));
+	}
+	if(m_url.is_secure())
+	{
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYPEER, 0));
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYHOST, 0));
+		check_error(curl_easy_setopt(m_select_curl, CURLOPT_SSL_VERIFYPEER, 0));
+		check_error(curl_easy_setopt(m_select_curl, CURLOPT_SSL_VERIFYHOST, 0));
+	}
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
@@ -351,6 +367,10 @@ std::string mesos_http::make_request(uri url, curl_version_info_data* curl_versi
 		std::ostringstream os;
 		base64::encoder().encode(is, os);
 		request << "Authorization: Basic " << os.str() << "\r\n";
+	}
+	if(!m_token.empty())
+	{
+		request << "Authorization: token=" << m_token << "\r\n";
 	}
 	request << "\r\n";
 

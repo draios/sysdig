@@ -35,6 +35,7 @@ public:
 	static const std::string default_groups_api;
 	static const std::string default_apps_api;
 	static const std::string default_watch_api;
+	static const std::string default_version_api;
 	static const int default_timeout_ms;
 
 	// constructor for testing only, not to be used in production
@@ -48,6 +49,15 @@ public:
 		bool discover_marathon_leader = false,
 		const credentials_t& mesos_credentials = credentials_t(),
 		const credentials_t& marathon_credentials = credentials_t(),
+		int timeout_ms = default_timeout_ms,
+		bool is_captured = false,
+		bool verbose = false);
+
+	mesos(const std::string& state_uri,
+		const uri_list_t& marathon_uris = uri_list_t(),
+		bool discover_mesos_leader = false,
+		bool discover_marathon_leader = false,
+		const credentials_t& dcos_enterprise_credentials = credentials_t(),
 		int timeout_ms = default_timeout_ms,
 		bool is_captured = false,
 		bool verbose = false);
@@ -118,6 +128,7 @@ private:
 private:
 	void init();
 	void init_marathon();
+	void authenticate();
 	void rebuild_mesos_state(bool full = false);
 	void rebuild_marathon_state(bool full = false);
 
@@ -157,7 +168,10 @@ private:
 	bool               m_testing = false;
 	uri::credentials_t m_mesos_credentials;
 	uri::credentials_t m_marathon_credentials;
-
+	uri::credentials_t m_dcos_enterprise_credentials;
+	string             m_token;
+	bool               m_token_authentication;
+	
 	typedef std::unordered_set<std::string> framework_list_t;
 	framework_list_t m_inactive_frameworks;
 	framework_list_t m_activated_frameworks;
