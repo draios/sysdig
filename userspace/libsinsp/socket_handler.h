@@ -325,6 +325,7 @@ public:
 		std::vector<char> buf(1024, 0);
 		std::string data;
 		bool data_received = false;
+		int counter = 0;
 		do
 		{
 			int count = 0;
@@ -365,7 +366,14 @@ public:
 			}
 			else
 			{
-				if(data_received) { break; }
+				if(data_received && ++counter > 10)
+				{
+					break;
+				}
+				else
+				{
+					usleep(10);
+				}
 			}
 		} while(true);
 		if(data.size())
