@@ -74,7 +74,7 @@ k8s_handler::k8s_handler(const std::string& id,
 		g_logger.log(std::string("K8s (" + m_id + ") creating handler for " +
 							 uri(m_url).to_string(false) + m_path), sinsp_logger::SEV_INFO);
 		m_http = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
-											 m_timeout_ms, m_ssl, m_bt, true, m_blocking_socket);
+											 m_timeout_ms, m_ssl, m_bt, !m_blocking_socket, m_blocking_socket);
 		m_http->set_json_callback(&k8s_handler::set_event_json);
 		m_http->set_json_end(m_json_end);
 		m_http->add_json_filter(m_filter);
@@ -222,7 +222,14 @@ void k8s_handler::receive_response()
 		{
 			if(!m_watching)
 			{
-				m_http->get_all_data();
+				if(m_http->get_all_data())
+				{
+					m_data_received = true;
+				}
+				else
+				{
+					throw sinsp_exception("K8s k8s_handler::receive_response(): no data received.");
+				}
 			}
 			else
 			{
@@ -340,6 +347,7 @@ void k8s_handler::collect_data()
 				if(m_blocking_socket && !m_watching)
 				{
 					receive_response();
+					process_events();
 					return;
 				}
 			}

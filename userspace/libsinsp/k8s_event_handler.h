@@ -21,7 +21,7 @@ public:
 		,ptr_t dependency_handler
 		,collector_ptr_t collector = nullptr
 		,std::string url = ""
-		,const std::string& http_version = "1.0"
+		,const std::string& http_version = "1.1"
 		,ssl_ptr_t ssl = 0
 		,bt_ptr_t bt = 0
 		,bool connect = true

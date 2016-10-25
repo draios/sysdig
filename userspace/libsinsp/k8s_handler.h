@@ -41,7 +41,7 @@ public:
 		const std::string& state_filter,
 		const std::string& event_filter,
 		collector_ptr_t collector = nullptr,
-		const std::string& http_version = "1.0",
+		const std::string& http_version = "1.1",
 		int timeout_ms = default_timeout_ms,
 		ssl_ptr_t ssl = nullptr,
 		bt_ptr_t bt = nullptr,
@@ -56,6 +56,7 @@ public:
 
 	bool connection_error() const;
 	bool is_alive() const;
+	bool ready() const;
 	void set_event_json(json_ptr_t json, const std::string&);
 	const std::string& get_id() const;
 #ifdef HAS_CAPTURE
@@ -103,7 +104,7 @@ protected:
 
 	k8s_state_t* m_state = nullptr;
 	bool         m_state_built = false;
-
+	bool         m_data_received = false;
 	static std::string ERROR_FILTER;
 
 private:
@@ -214,6 +215,11 @@ inline void k8s_handler::set_machine_id(const std::string& machine_id)
 inline const std::string& k8s_handler::get_machine_id() const
 {
 	return m_machine_id;
+}
+
+inline bool k8s_handler::ready() const
+{
+	return m_data_received;
 }
 
 inline bool k8s_handler::is_state_built() const

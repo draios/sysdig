@@ -324,6 +324,7 @@ public:
 		ssize_t rec = 0;
 		std::vector<char> buf(1024, 0);
 		std::string data;
+		bool data_received = false;
 		do
 		{
 			int count = 0;
@@ -338,6 +339,7 @@ public:
 			}
 			if(ioret >= 0 && count > 0)
 			{
+				data_received = true;
 				buf.resize(count);
 				if(m_url.is_secure())
 				{
@@ -359,20 +361,16 @@ public:
 				{
 					throw sinsp_exception("Socket handler (" + m_id + "): " + strerror(errno));
 				}
+				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) + "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 			}
-			else { break; }
+			else
+			{
+				if(data_received) { break; }
+			}
 		} while(true);
 		if(data.size())
 		{
-			for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
-			{
-				json_ptr_t pjson = try_parse(m_jq, data, *it, m_id, m_url.to_string(false));
-				if(pjson)
-				{
-					(m_obj.*m_json_callback)(pjson, m_id);
-				}
-			}
-			std::cout << data << std::endl;
+			extract_data(data);
 			return data.size();
 		}
 		return 0;

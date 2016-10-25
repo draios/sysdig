@@ -1814,7 +1814,7 @@ void sinsp::k8s_discover_ext()
 				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert); }
 				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 															"/apis/extensions/v1beta1", "[.resources[].name]",
-															"1.0", m_k8s_ssl, m_k8s_bt, true));
+															"1.1", m_k8s_ssl, m_k8s_bt, true));
 				g_logger.log("K8s API extensions handler: collector created.", sinsp_logger::SEV_TRACE);
 			}
 			else
@@ -1872,7 +1872,6 @@ void sinsp::update_k8s_state()
 #ifdef HAS_CAPTURE
 	try
 	{
-		g_logger.log("K8s API state is being updated ...", sinsp_logger::SEV_DEBUG);
 		if(m_k8s_api_server && !m_k8s_api_server->empty())
 		{
 			if(!m_k8s_api_detected)
@@ -1888,7 +1887,7 @@ void sinsp::update_k8s_state()
 						init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert);
 					}
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
-																"/api", ".versions", "1.0",
+																"/api", ".versions", "1.1",
 																m_k8s_ssl, m_k8s_bt, true));
 				}
 				else
@@ -1925,7 +1924,6 @@ void sinsp::update_k8s_state()
 			}
 			if(m_k8s_api_detected && m_k8s_ext_detect_done)
 			{
-				g_logger.log("K8s API state is being collected ...", sinsp_logger::SEV_DEBUG);
 				collect_k8s();
 			}
 		}
