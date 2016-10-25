@@ -34,6 +34,7 @@ public:
 #ifdef HAS_CAPTURE
 		ssl_ptr_t ssl = 0,
 		bt_ptr_t bt = 0,
+		bool block = false,
 #endif // HAS_CAPTURE
 		filter_ptr_t event_filter = nullptr,
 		ext_list_ptr_t extensions = nullptr);
@@ -72,12 +73,14 @@ private:
 
 	k8s_state_t  m_state;
 	filter_ptr_t m_event_filter;
-#ifdef HAS_CAPTURE
+
 	typedef std::map<k8s_component::type, std::unique_ptr<k8s_dispatcher>> dispatch_map_t;
 	typedef std::map<k8s_component::type, std::shared_ptr<k8s_handler>> handler_map_t;
-	k8s_net*       m_net = nullptr;
 	dispatch_map_t m_dispatch_map;
 	handler_map_t  m_handler_map;
+
+#ifdef HAS_CAPTURE
+	k8s_net* m_net = nullptr;
 #endif
 
 	static k8s_component::type_map m_components;
@@ -100,15 +103,18 @@ inline void k8s::clear_events()
 
 inline std::string k8s::get_machine_id() const
 {
+#ifdef HAS_CAPTURE
 	if(m_net)
 	{
 		return m_net->get_machine_id();
 	}
+#endif // HAS_CAPTURE
 	return "";
 }
 
 inline void k8s::set_machine_id(const std::string& machine_id)
 {
+#ifdef HAS_CAPTURE
 	if(m_net)
 	{
 		m_net->set_machine_id(machine_id);
@@ -119,4 +125,5 @@ inline void k8s::set_machine_id(const std::string& machine_id)
 					 "scope may not be available for events.",
 					 sinsp_logger::SEV_WARNING);
 	}
+#endif // HAS_CAPTURE
 }

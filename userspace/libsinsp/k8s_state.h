@@ -250,9 +250,10 @@ public:
 	const pod_rs_map& get_pod_rs_map() const { return m_pod_rss; }
 	const pod_deployment_map& get_pod_deployment_map() const { return m_pod_deployments; }
 
-#ifdef HAS_CAPTURE
 	void set_capture_version(int version);
 	int get_capture_version() const;
+
+#ifdef HAS_CAPTURE
 	typedef std::deque<std::string> event_list_t;
 	const event_list_t& get_capture_events() const { return m_capture_events; }
 	void enqueue_capture_event(const Json::Value& item);

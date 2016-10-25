@@ -199,4 +199,27 @@ inline const mesos_http::marathon_uri_t& mesos_http::get_marathon_uris() const
 	return m_marathon_uris;
 }
 
+#else // !HAS_CAPTURE
+
+#include "json/json.h"
+
+class mesos_http
+{
+public:
+	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	static json_ptr_t try_parse(const std::string& json)
+	{
+		json_ptr_t root(new Json::Value());
+		try
+		{
+			if(Json::Reader().parse(json, *root))
+			{
+				return root;
+			}
+		}
+		catch(...) { }
+		return nullptr;
+	}
+};
+
 #endif // HAS_CAPTURE

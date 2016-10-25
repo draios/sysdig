@@ -15,6 +15,7 @@
 #include "sinsp_auth.h"
 #include "json_query.h"
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -53,15 +54,17 @@ public:
 		int timeout_ms = 1000L,
 		ssl_ptr_t ssl = 0,
 		bt_ptr_t bt = 0,
-		bool keep_alive = true): m_obj(obj),
+		bool keep_alive = true,
+		bool blocking = false): m_obj(obj),
 			m_id(id),
 			m_url(url),
 			m_keep_alive(keep_alive ? std::string("Connection: keep-alive\r\n") : std::string()),
 			m_path(path.empty() ? m_url.get_path() : path),
+			m_blocking(blocking),
 			m_ssl(ssl),
 			m_bt(bt),
 			m_timeout_ms(timeout_ms),
-			m_request(make_request(m_url, http_version)),
+			m_request(make_request(url, http_version)),
 			m_http_version(http_version),
 			m_json_begin("\r\n{"),
 			m_json_end(m_http_version == HTTP_VERSION_10 ? "}\r\n" : "}\r\n0")
@@ -109,9 +112,25 @@ public:
 		return m_connecting;
 	}
 
+	void close_on_chunked_end(bool close = true)
+	{
+		m_close_on_chunked_end = close;
+	}
+
 	const uri& get_url() const
 	{
 		return m_url;
+	}
+
+	void set_path(const std::string& path)
+	{
+		m_path = path;
+		m_request = make_request(m_url, m_http_version);
+	}
+
+	void set_docker(bool d = true)
+	{
+		m_is_docker = d;
 	}
 
 	std::string make_request(uri url, const std::string& http_version)
@@ -154,6 +173,11 @@ public:
 		request << "\r\n";
 
 		return request.str();
+	}
+
+	void set_id(const std::string& id)
+	{
+		m_id = id;
 	}
 
 	const std::string& get_id() const
@@ -278,6 +302,88 @@ public:
 		}
 	}
 
+	void set_socket_option(int opt)
+	{
+		int flags = fcntl(m_socket, F_GETFL, 0);
+		if(flags != -1)
+		{
+			fcntl(m_socket, F_SETFL, flags | opt);
+		}
+		else
+		{
+			throw sinsp_exception("Socket handler (" + m_id +
+								  ") error while setting socket option (" +
+								  std::to_string(opt) + "): " + strerror(errno));
+		}
+	}
+
+	int get_all_data()
+	{
+		g_logger.log("Socket handler (" + m_id + ") Retrieving all data in blocking mode ...",
+					 sinsp_logger::SEV_TRACE);
+		ssize_t rec = 0;
+		std::vector<char> buf(1024, 0);
+		std::string data;
+		bool data_received = false;
+		int counter = 0;
+		do
+		{
+			int count = 0;
+			int ioret = 0;
+			if(m_url.is_secure())
+			{
+				count = SSL_pending(m_ssl_connection);
+			}
+			else
+			{
+				ioret = ioctl(m_socket, FIONREAD, &count);
+			}
+			if(ioret >= 0 && count > 0)
+			{
+				data_received = true;
+				buf.resize(count);
+				if(m_url.is_secure())
+				{
+					rec = SSL_read(m_ssl_connection, &buf[0], buf.size());
+				}
+				else
+				{
+					rec = recv(m_socket, &buf[0], buf.size(), 0);
+				}
+				if(rec > 0)
+				{
+					data.append(buf.begin(), buf.begin() + rec);
+				}
+				else if(rec == 0)
+				{
+					throw sinsp_exception("Socket handler (" + m_id + "): Connection closed.");
+				}
+				else if(rec < 0)
+				{
+					throw sinsp_exception("Socket handler (" + m_id + "): " + strerror(errno));
+				}
+				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) + "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
+			}
+			else
+			{
+				if(data_received && ++counter > 10)
+				{
+					break;
+				}
+				else
+				{
+					usleep(10);
+				}
+			}
+		} while(true);
+		if(data.size())
+		{
+			extract_data(data);
+			return data.size();
+		}
+		return 0;
+	}
+
 	int on_data()
 	{
 		bool is_error = false;
@@ -306,8 +412,8 @@ public:
 						iolen = recv(m_socket, &m_buf[0], m_buf.size(), 0);
 					}
 					m_sock_err = errno;
-					g_logger.log(m_id + ' ' + m_url.to_string(false) + //" loop_counter=" + std::to_string(loop_counter) +
-								", iolen=" + std::to_string(iolen), sinsp_logger::SEV_TRACE);
+					g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
+								 std::to_string(iolen), sinsp_logger::SEV_TRACE);
 					if(iolen > 0)
 					{
 						data.append(&m_buf[0], iolen <= m_buf.size() ? iolen : m_buf.size());
@@ -367,7 +473,25 @@ public:
 			} while(iolen && errno != EAGAIN);
 			if(data.size())
 			{
-				extract_data(data);
+				std::string::size_type pos = data.find("0\r\n\r\n");
+				if(pos != std::string::npos)
+				{
+					if(pos > 0)
+					{
+						data = data.substr(0, pos);
+						extract_data(data);
+					}
+					//TODO: this socket is not closed by server, only chunked data stops flowing;
+					//      we could keep it and  resend request instead of severing the connection
+					if(m_close_on_chunked_end)
+					{
+						return CONNECTION_CLOSED;
+					}
+				}
+				else
+				{
+					extract_data(data);
+				}
 			}
 		}
 		catch(sinsp_exception& ex)
@@ -423,9 +547,50 @@ public:
 		return m_json_end;
 	}
 
-	void add_json_filter(const std::string& filter)
+	bool has_json_filter(const std::string& filter)
 	{
-		m_json_filters.push_back(filter);
+		for(auto flt : m_json_filters)
+		{
+			if(flt == filter)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void add_json_filter(const std::string& filter, const std::string& before_filter = "")
+	{
+		if(filter.empty())
+		{
+			throw sinsp_exception(std::string("Socket handler (") + m_id + "), "
+							  "[" + m_url.to_string(false) + "] "
+							  "attempt to add empty filter");
+		}
+		remove_json_filter(filter);
+		if(before_filter.empty())
+		{
+			m_json_filters.push_back(filter);
+			return;
+		}
+		else
+		{
+			auto it = m_json_filters.begin();
+			for(; it != m_json_filters.end(); ++it)
+			{
+				if(*it == before_filter) { break; }
+			}
+			if(it != m_json_filters.end())
+			{
+				m_json_filters.insert(it, filter);
+			}
+			else
+			{
+				throw sinsp_exception(std::string("Socket handler (") + m_id + "), "
+							  "[" + m_url.to_string(false) + "] "
+							  "attempt to insert before non-existing filter");
+			}
+		}
 	}
 
 	void remove_json_filter(const std::string& filter)
@@ -442,7 +607,7 @@ public:
 
 	void replace_json_filter(const std::string& from, const std::string& to)
 	{
-		for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
+		for(auto it = m_json_filters.begin(); it != m_json_filters.end(); ++it)
 		{
 			if(*it == from)
 			{
@@ -453,6 +618,17 @@ public:
 		throw sinsp_exception(std::string("Socket handler (") + m_id + "), "
 							  "[" + m_url.to_string(false) + "] "
 							  "attempt to replace non-existing filter");
+	}
+
+	void print_filters(sinsp_logger::severity sev = sinsp_logger::SEV_DEBUG)
+	{
+		std::ostringstream filters;
+		filters << std::endl << "Filters:" << std::endl;
+		for(auto filter : m_json_filters)
+		{
+			filters << filter << std::endl;
+		}
+		g_logger.log("Socket handler (" + m_id + "), [" + m_url.to_string(false) + "]" + filters.str(), sev);
 	}
 
 	static json_ptr_t try_parse(json_query& jq, const std::string& json, const std::string& filter,
@@ -494,7 +670,7 @@ public:
 		return nullptr;
 	}
 
-	// connection is non-blocking and a socket
+	// when connection is non-blocking and a socket
 	// should not be polled until it is connected
 	// this flag indicates readiness to be polled
 	bool is_enabled() const
@@ -530,29 +706,52 @@ private:
 
 	typedef std::vector<char> password_vec_t;
 
-	bool purge_chunked_markers(std::string& data)
+	void purge_chunked_markers(std::string& data)
 	{
 		std::string::size_type pos = data.find("}\r\n0");
+		if(pos == std::string::npos)
+		{
+			pos = data.find("}\r\n\r\n0");
+		}
 		if(pos != std::string::npos)
 		{
 			data = data.substr(0, pos);
 		}
 
-		const std::string nl = "\r\n";
+		std::string nl = "\r\n\r\n";
 		std::string::size_type begin, end;
 		while((begin = data.find(nl)) != std::string::npos)
 		{
-			end = data.find(nl, begin + 2);
+			end = data.find(nl, begin + nl.size());
 			if(end != std::string::npos)
 			{
-				data.erase(begin, end + 2 - begin);
+				data.erase(begin, end + nl.size() - begin);
 			}
-			else // newlines must come in pairs
-			{
-				return false;
-			}
+			else { break; }
 		}
-		return true;
+		nl = "\r\n";
+		while((begin = data.find(nl)) != std::string::npos)
+		{
+			end = data.find(nl, begin + nl.size());
+			if(end != std::string::npos)
+			{
+				data.erase(begin, end + nl.size() - begin);
+			}
+			else { break; }
+		}
+	}
+
+	std::vector<std::string> separate_json(const std::string& json, char c)
+	{
+		std::vector<std::string> result;
+		const char *str = json.c_str();
+		do
+		{
+			const char *begin = str;
+			while(*str != c && *str) { str++; }
+			result.push_back(std::string(begin, str));
+		} while (0 != *str++);
+		return result;
 	}
 
 	void handle_json(std::string::size_type end_pos, bool chunked)
@@ -573,24 +772,32 @@ private:
 				}
 				if(json.size())
 				{
-					if(chunked && !purge_chunked_markers(m_data_buf))
+					if(chunked && m_data_buf.size())
 					{
-						g_logger.log("Socket handler (" + m_id + "): Invalid JSON data detected "
-									 "(chunked transfer).", sinsp_logger::SEV_ERROR);
-						(m_obj.*m_json_callback)(nullptr, m_id);
+						purge_chunked_markers(m_data_buf);
+					}
+					purge_chunked_markers(json);
+					std::vector<std::string> jsons;
+					if(json.find('\n') != std::string::npos)
+					{
+						jsons = separate_json(json, '\n');
 					}
 					else
 					{
-						g_logger.log("Socket handler (" + m_id + "): invoking callback(s).",
-									 sinsp_logger::SEV_TRACE);
-						if(m_json_filters.empty())
-						{
-							// if no filters provided and we got here, just try to do the whole JSON as-is
-							add_json_filter(".");
-						}
+						jsons.emplace_back(std::move(json));
+					}
+					g_logger.log("Socket handler (" + m_id + "): invoking callback(s).",
+								 sinsp_logger::SEV_TRACE);
+					if(m_json_filters.empty())
+					{
+						// if no filters provided and we got here, just do the whole JSON as-is
+						add_json_filter(".");
+					}
+					for(auto js : jsons)
+					{
 						for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
 						{
-							json_ptr_t pjson = try_parse(m_jq, json, *it, m_id, m_url.to_string(false));
+							json_ptr_t pjson = try_parse(m_jq, js, *it, m_id, m_url.to_string(false));
 							if(pjson)
 							{
 								(m_obj.*m_json_callback)(pjson, m_id);
@@ -601,7 +808,19 @@ private:
 					g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ": "
 								 "An error occurred while handling JSON.",
 								 sinsp_logger::SEV_ERROR);
-					g_logger.log(json, sinsp_logger::SEV_TRACE);
+					if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+					{
+						g_logger.log("Filters:", sinsp_logger::SEV_TRACE);
+						for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
+						{
+							g_logger.log(*it, sinsp_logger::SEV_TRACE);
+						}
+						g_logger.log("JSONs:", sinsp_logger::SEV_TRACE);
+						for(auto js : jsons)
+						{
+							g_logger.log(js, sinsp_logger::SEV_TRACE);
+						}
+					}
 				}
 			}
 		}
@@ -609,6 +828,13 @@ private:
 
 	bool detect_chunked_transfer(const std::string& data)
 	{
+		std::string::size_type te_pos = data.find("Transfer-Encoding: chunked");
+		if(te_pos != std::string::npos)
+		{
+			m_content_length = std::string::npos;
+			return true;
+		}
+
 		if(m_content_length == std::string::npos)
 		{
 			std::string::size_type cl_pos = data.find("Content-Length:");
@@ -663,7 +889,7 @@ private:
 		{
 			m_data_buf = m_data_buf.substr(pos + 2);
 		}
-		else if(m_data_buf[0] == '{') // docker HTTP stream does this
+		else if(m_is_docker && (m_data_buf[0] == '{')) // docker HTTP stream does this
 		{
 			pos = 0;
 		}
@@ -959,15 +1185,20 @@ private:
 
 	void create_socket()
 	{
+		int sock_type = SOCK_STREAM;
+		if(!m_blocking)
+		{
+			sock_type |= SOCK_NONBLOCK;
+		}
 		if(m_socket < 0)
 		{
 			if(m_url.is_file())
 			{
-				m_socket = socket(PF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+				m_socket = socket(PF_UNIX, sock_type, 0);
 			}
 			else
 			{
-				m_socket = socket(PF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+				m_socket = socket(PF_INET, sock_type, 0);
 			}
 			if(m_socket < 0)
 			{
@@ -1435,6 +1666,7 @@ private:
 	bool                     m_connection_error = false;
 	bool                     m_enabled = false;
 	int                      m_socket = -1;
+	bool                     m_blocking = false;
 	std::vector<char>        m_buf;
 	int                      m_sock_err = 0;
 	struct gaicb**           m_dns_reqs = nullptr;
@@ -1459,6 +1691,8 @@ private:
 	struct sockaddr*         m_sa = 0;
 	socklen_t                m_sa_len = 0;
 	std::string::size_type   m_content_length = std::string::npos;
+	bool                     m_close_on_chunked_end = false;
+	bool                     m_is_docker = false;
 };
 
 template <typename T>

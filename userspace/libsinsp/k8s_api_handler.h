@@ -2,6 +2,8 @@
 // k8s_api_handler.h
 //
 
+#ifdef HAS_CAPTURE
+
 #pragma once
 
 #include "json/json.h"
@@ -16,13 +18,13 @@ public:
 		const std::string& url,
 		const std::string& path,
 		const std::string& filter,
-		const std::string& http_version = "1.0",
+		const std::string& http_version = "1.1",
 		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0);
+		bt_ptr_t bt = 0,
+		bool blocking_socket = false);
 
 	~k8s_api_handler();
 
-	bool ready() const;
 	bool error() const;
 	const api_list_t& extensions() const;
 	bool has(const std::string& version) const;
@@ -33,14 +35,8 @@ private:
 
 
 	api_list_t m_extensions;
-	bool       m_data_received = false;
 	bool       m_error = false;
 };
-
-inline bool k8s_api_handler::ready() const
-{
-	return m_data_received;
-}
 
 inline bool k8s_api_handler::error() const
 {
@@ -51,3 +47,5 @@ inline const k8s_api_handler::api_list_t& k8s_api_handler::extensions() const
 {
 	return m_extensions;
 }
+
+#endif // HAS_CAPTURE
