@@ -128,6 +128,11 @@ public:
 		m_request = make_request(m_url, m_http_version);
 	}
 
+	void set_docker(bool d = true)
+	{
+		m_is_docker = d;
+	}
+
 	std::string make_request(uri url, const std::string& http_version)
 	{
 		std::ostringstream request;
@@ -878,7 +883,7 @@ private:
 		{
 			m_data_buf = m_data_buf.substr(pos + 2);
 		}
-		else if(m_data_buf[0] == '{') // docker HTTP stream does this
+		else if(m_is_docker && (m_data_buf[0] == '{')) // docker HTTP stream does this
 		{
 			pos = 0;
 		}
@@ -1681,6 +1686,7 @@ private:
 	socklen_t                m_sa_len = 0;
 	std::string::size_type   m_content_length = std::string::npos;
 	bool                     m_close_on_chunked_end = false;
+	bool                     m_is_docker = false;
 };
 
 template <typename T>

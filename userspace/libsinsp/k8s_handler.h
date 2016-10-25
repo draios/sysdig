@@ -254,7 +254,7 @@ public:
 #ifdef HAS_CAPTURE
 									 "", "", "", "",  nullptr,
 									 "", 0, nullptr, nullptr,
-									 false, false, nullptr,
+									 false, false, nullptr, false,
 #endif // HAS_CAPTURE
 									 nullptr)
 	{
