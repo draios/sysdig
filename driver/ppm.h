@@ -123,9 +123,8 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 #elif defined CONFIG_PPC64
   #define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_S390
-  #define __NR_SYSCALL_BASE 0
-  #define SYSCALL_TABLE_ID0 __NR_SYSCALL_BASE
-  #define __NR_time (__NR_SYSCALL_BASE + 13)
+  #define SYSCALL_TABLE_ID0 0
+  #define __NR_time         13
 #endif
 
 #define SYSCALL_TABLE_SIZE 512
