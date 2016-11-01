@@ -67,7 +67,7 @@ mesos_http::mesos_http(mesos& m, const uri& url,
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 
 	check_error(curl_easy_setopt(m_select_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
-
+	check_error(curl_easy_setopt(m_select_curl, CURLOPT_TCP_KEEPALIVE, 1));
 	discover_mesos_leader();
 }
 
@@ -662,41 +662,22 @@ bool mesos_http::on_data()
 	}
 
 	size_t iolen = 0;
-	std::vector<char> buf;
+	char buf[1024];
 	std::string data;
-
+	CURLcode ret;
 	try
 	{
 		int loop_counter = 0;
 		do
 		{
-			size_t iolen = 0;
-			int count = 0;
-			int ioret = 0;
-			ioret = ioctl(m_watch_socket, FIONREAD, &count);
-			if(ioret >= 0 && count > 0)
+			check_error(ret = curl_easy_recv(m_select_curl, buf, sizeof(buf), &iolen));
+			if(iolen > 0)
 			{
-				if(count > static_cast<int>(buf.size()))
-				{
-					buf.resize(count);
-				}
-				check_error(curl_easy_recv(m_select_curl, &buf[0], count, &iolen));
-				if(iolen > 0)
-				{
-					size_t buf_size = static_cast<size_t>(buf.size());
-					data.append(&buf[0], iolen <= buf_size ? iolen : buf_size);
-				}
-				else if(iolen == 0) { goto connection_closed; }
-				else if(iolen < 0) { goto connection_error; }
+				data.append(buf, iolen);
 			}
-			else
-			{
-				if(ioret < 0) { goto connection_error; }
-				else if(loop_counter == 0 && count == 0) { goto connection_closed; }
-				break;
-			}
+			else if(ret != CURLE_AGAIN) { goto connection_closed; }
 			++loop_counter;
-		} while(iolen && errno != CURLE_AGAIN);
+		} while(iolen && ret != CURLE_AGAIN);
 		if(data.size())
 		{
 			extract_data(data);
