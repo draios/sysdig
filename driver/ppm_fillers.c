@@ -3890,22 +3890,14 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_GETFPXREGS:
 		return PPM_PTRACE_GETFPXREGS;
 #endif
-#ifdef PTRACE_SETFPREGS
 	case PTRACE_SETFPREGS:
 		return PPM_PTRACE_SETFPREGS;
-#endif
-#ifdef PTRACE_GETFPREGS
 	case PTRACE_GETFPREGS:
 		return PPM_PTRACE_GETFPREGS;
-#endif
-#ifdef PTRACE_SETREGS
 	case PTRACE_SETREGS:
 		return PPM_PTRACE_SETREGS;
-#endif
-#ifdef PTRACE_GETREGS
 	case PTRACE_GETREGS:
 		return PPM_PTRACE_GETREGS;
-#endif
 #ifdef PTRACE_SETSIGMASK
 	case PTRACE_SETSIGMASK:
 		return PPM_PTRACE_SETSIGMASK;
