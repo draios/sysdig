@@ -44,10 +44,6 @@ mesos_http::mesos_http(mesos& m, const uri& url,
 	}
 
 	ASSERT(m_curl_version);
-	/*if((m_url.get_scheme() == "https") && (m_curl_version && !(m_curl_version->features | CURL_VERSION_SSL)))
-	{
-		throw sinsp_exception("mesos_http: HTTPS NOT supported");
-	}*/
 
 	m_request = make_request(url, m_curl_version);
 	if(!m_token.empty())
