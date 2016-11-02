@@ -49,8 +49,8 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 				}
 				else
 				{
-					g_logger.log("K8s API handler error: could not extract versions from JSON.",
-						 sinsp_logger::SEV_ERROR);
+					g_logger.log("K8s API handler error: could not extract API versions or extensions from JSON.",
+								 sinsp_logger::SEV_ERROR);
 					m_error = true;
 					return false;
 				}
@@ -62,7 +62,7 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 		}
 		else
 		{
-			g_logger.log("K8s API handler error: could not extract version from JSON.",
+			g_logger.log("K8s API handler error: could not extract API versions or extensions from JSON.",
 						 sinsp_logger::SEV_ERROR);
 			m_error = true;
 			return false;
@@ -82,7 +82,8 @@ void k8s_api_handler::handle_json(Json::Value&& root)
 {
 	if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 	{
-		g_logger.log("K8S API handler: \n" + json_as_string(root), sinsp_logger::SEV_TRACE);
+		g_logger.log("K8S API handler [" + json_as_string(root) + "] reply:\n",
+					 sinsp_logger::SEV_TRACE);
 	}
 
 	handle_component(root);
