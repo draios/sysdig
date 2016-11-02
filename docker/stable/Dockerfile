@@ -24,7 +24,7 @@ RUN echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources
 	gcc \
 	gcc-5 \
 	gcc-4.9 \
-	libelf1 && rm -rf /var/lib/apt/lists/*
+	libelf1 less && rm -rf /var/lib/apt/lists/*
 
 # Terribly terrible hacks: since our base Debian image ships with GCC 5.0 which breaks older kernels,
 # revert the default to gcc-4.9. Also, since some customers use some very old distributions whose kernel

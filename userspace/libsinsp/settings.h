@@ -116,6 +116,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define USER_EVT_DEVICE_NAME "/dev/null"
 
 //
+// For internal use
+//
+#define FALCOBL_FULL_PROCESSING
+
+//
 // FD class customized with the storage we need
 //
 #ifdef HAS_ANALYZER

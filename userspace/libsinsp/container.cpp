@@ -460,6 +460,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["type"] = container_info.m_type;
 	container["name"] = container_info.m_name;
 	container["image"] = container_info.m_image;
+	container["imageid"] = container_info.m_imageid;
 	container["privileged"] = container_info.m_privileged;
 
 	Json::Value mounts = Json::arrayValue;
@@ -592,6 +593,14 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	const Json::Value& config_obj = root["Config"];
 
 	container->m_image = config_obj["Image"].asString();
+
+	string imgstr = root["Image"].asString();
+	size_t cpos = imgstr.find(":");
+	if(cpos != string::npos)
+	{
+		container->m_imageid = imgstr.substr(cpos + 1);
+	}
+
 	container->m_name = root["Name"].asString();
 
 	if(!container->m_name.empty() && container->m_name[0] == '/')
@@ -788,6 +797,11 @@ const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_
 void sinsp_container_manager::add_container(const sinsp_container_info& container_info)
 {
 	m_containers[container_info.m_id] = container_info;
+
+	if(m_inspector->m_parser->m_fd_listener)
+	{
+		m_inspector->m_parser->m_fd_listener->on_new_container(container_info);
+	}
 }
 
 void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)

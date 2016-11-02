@@ -324,13 +324,13 @@ if(NOT WIN32 AND NOT APPLE)
 		set(CURL_LIBRARIES "${CURL_BUNDLE_DIR}/lib/.libs/libcurl.a")
 
 		if(NOT USE_BUNDLED_OPENSSL)
-			set(CURL_SSL_OPTION "")
+			set(CURL_SSL_OPTION "--with-ssl")
 		else()
 			set(CURL_SSL_OPTION "--with-ssl=${OPENSSL_INSTALL_DIR}")
+                        message(STATUS "Using bundled curl in '${CURL_BUNDLE_DIR}'")
+                        message(STATUS "Using SSL for curl in '${CURL_SSL_OPTION}'")
 		endif()
 
-		message(STATUS "Using bundled curl in '${CURL_BUNDLE_DIR}'")
-		message(STATUS "Using SSL for curl in '${CURL_SSL_OPTION}'")
 
 		ExternalProject_Add(curl
 			DEPENDS openssl

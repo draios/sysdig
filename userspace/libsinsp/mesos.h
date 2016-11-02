@@ -63,10 +63,10 @@ public:
 	void clear_marathon();
 
 	void simulate_event(const std::string& json);
+	bool collect_data();
 
 #ifdef HAS_CAPTURE
 	void send_data_request(bool collect = true);
-	bool collect_data();
 
 	const mesos_state_t::capture_list& get_capture_events() const;
 	std::string dequeue_capture_event();

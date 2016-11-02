@@ -195,7 +195,10 @@ public:
 
 	  \return The event timestamp, in nanoseconds from epoch
 	*/
-	uint64_t get_ts();
+	inline uint64_t get_ts()
+	{
+		return m_pevt->ts;
+	}
 
 	/*!
 	  \brief Return the event name string, e.g. 'open' or 'socket'.
@@ -229,7 +232,10 @@ public:
 
 	  \note For events that are not I/O related, get_fd_info() returns NULL.
 	*/
-	sinsp_fdinfo_t* get_fd_info();
+	inline sinsp_fdinfo_t* get_fd_info()
+	{
+		return m_fdinfo;
+	}
 
 	/*!
 	  \brief Return the number of the FD associated with this event.
@@ -412,6 +418,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_container_manager;
 	friend class sinsp_table;
 	friend class sinsp_cursesui;
+	friend class sisnp_baseliner;
 };
 
 /*@}*/

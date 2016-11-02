@@ -94,11 +94,18 @@ if(NOT WIN32)
 			"${JQ_LIB}"
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
-			"${OPENSSL_LIBRARY_SSL}"
-			"${OPENSSL_LIBRARY_CRYPTO}"
 			rt
 			anl)
 	endif()
+
+        if(USE_BUNDLED_OPENSSL)
+		target_link_libraries(sinsp
+			"${OPENSSL_LIBRARY_SSL}"
+			"${OPENSSL_LIBRARY_CRYPTO}")
+        else()
+		target_link_libraries(sinsp
+                    "${OPENSSL_LIBRARIES}")
+        endif()
 
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"

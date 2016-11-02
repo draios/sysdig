@@ -1395,6 +1395,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	m_inspector->add_thread(tinfo);
 
 	//
+	// If there's a listener, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_clone(evt, &tinfo);
+	}
+
+	//
 	// If we had to erase a previous entry for this tid and rebalance the table,
 	// make sure we reinitialize the tinfo pointer for this event, as the thread
 	// generating it might have gone away.
@@ -1587,6 +1595,15 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 #ifdef HAS_ANALYZER
 	evt->m_tinfo->m_ainfo->clear_role_flags();
 #endif
+
+	//
+	// If there's a listener, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_execve(evt);
+	}
+
 	return;
 }
 
@@ -1830,7 +1847,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	{
 		//
 		// Populate the new fdi
-		//
+		//	
 		if(flags & PPM_O_DIRECTORY)
 		{
 			fdi.m_type = SCAP_FD_DIRECTORY;
@@ -1872,7 +1889,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
 	{
-		m_fd_listener->on_file_create(evt, fullpath);
+		m_fd_listener->on_file_open(evt, fullpath, flags);
 	}
 }
 
@@ -2077,6 +2094,14 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	// Update the name of this socket
 	//
 	evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+
+	//
+	// If there's a listener callback, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_bind(evt);
+	}
 }
 
 void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
@@ -3947,6 +3972,11 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
 		{
 			container_info.m_image = image.asString();
+		}
+		const Json::Value& imageid = container["imageid"];
+		if(!imageid.isNull() && imageid.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imageid = imageid.asString();
 		}
 		const Json::Value& privileged = container["privileged"];
 		if(!privileged.isNull() && privileged.isConvertibleTo(Json::booleanValue))

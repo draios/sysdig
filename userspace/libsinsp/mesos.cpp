@@ -419,8 +419,65 @@ void mesos::send_data_request(bool collect)
 	if(collect) { collect_data(); }
 }
 
+void mesos::capture_frameworks(const Json::Value& root, Json::Value& capture)
+{
+	const Json::Value& frameworks = root["frameworks"];
+	if(!frameworks.isNull())
+	{
+		if(frameworks.isArray())
+		{
+			if(frameworks.size())
+			{
+				capture["frameworks"] = Json::arrayValue;
+				for(const auto& framework : frameworks)
+				{
+					Json::Value c_framework;
+					c_framework["active"] = framework["active"];
+					c_framework["id"] = framework["id"];
+					c_framework["name"] = framework["name"];
+					c_framework["hostname"] = framework["hostname"];
+					c_framework["webui_url"] = framework["webui_url"];
+					c_framework["tasks"] = Json::arrayValue;
+					Json::Value& c_tasks = c_framework["tasks"];
+					for(const auto& task : framework["tasks"])
+					{
+						Json::Value& c_task = c_tasks.append(Json::Value());
+						c_task["id"] = task["id"];
+						c_task["name"] = task["name"];
+						c_task["framework_id"] = task["framework_id"];
+						c_task["executor_id"] = task["executor_id"];
+						c_task["slave_id"] = task["slave_id"];
+						c_task["state"] = task["state"];
+						//? TODO: statuses
+						c_task["labels"] = task["labels"];
+					}
+					capture["frameworks"].append(c_framework);
+				}
+			}
+		}
+	}
+}
+
+void mesos::capture_slaves(const Json::Value& root, Json::Value& capture)
+{
+	const Json::Value& slaves = root["slaves"];
+	if(!slaves.isNull())
+	{
+		capture["slaves"] = Json::arrayValue;
+		for(const auto& slave : slaves)
+		{
+			Json::Value c_slave;
+			c_slave["hostname"] = slave["hostname"];
+			c_slave["id"] = slave["id"];
+			capture["slaves"].append(c_slave);
+		}
+	}
+}
+#endif // HAS_CAPTURE
+
 bool mesos::collect_data()
 {
+#ifdef HAS_CAPTURE
 	const int tout_s = 30;
 
 	//TODO: see if we can do better here - instead of timing out, depending on
@@ -541,63 +598,10 @@ bool mesos::collect_data()
 	}
 
 	return ret;
-}
-
-void mesos::capture_frameworks(const Json::Value& root, Json::Value& capture)
-{
-	const Json::Value& frameworks = root["frameworks"];
-	if(!frameworks.isNull())
-	{
-		if(frameworks.isArray())
-		{
-			if(frameworks.size())
-			{
-				capture["frameworks"] = Json::arrayValue;
-				for(const auto& framework : frameworks)
-				{
-					Json::Value c_framework;
-					c_framework["active"] = framework["active"];
-					c_framework["id"] = framework["id"];
-					c_framework["name"] = framework["name"];
-					c_framework["hostname"] = framework["hostname"];
-					c_framework["webui_url"] = framework["webui_url"];
-					c_framework["tasks"] = Json::arrayValue;
-					Json::Value& c_tasks = c_framework["tasks"];
-					for(const auto& task : framework["tasks"])
-					{
-						Json::Value& c_task = c_tasks.append(Json::Value());
-						c_task["id"] = task["id"];
-						c_task["name"] = task["name"];
-						c_task["framework_id"] = task["framework_id"];
-						c_task["executor_id"] = task["executor_id"];
-						c_task["slave_id"] = task["slave_id"];
-						c_task["state"] = task["state"];
-						//? TODO: statuses
-						c_task["labels"] = task["labels"];
-					}
-					capture["frameworks"].append(c_framework);
-				}
-			}
-		}
-	}
-}
-
-void mesos::capture_slaves(const Json::Value& root, Json::Value& capture)
-{
-	const Json::Value& slaves = root["slaves"];
-	if(!slaves.isNull())
-	{
-		capture["slaves"] = Json::arrayValue;
-		for(const auto& slave : slaves)
-		{
-			Json::Value c_slave;
-			c_slave["hostname"] = slave["hostname"];
-			c_slave["id"] = slave["id"];
-			capture["slaves"].append(c_slave);
-		}
-	}
-}
+#else
+	return true;
 #endif // HAS_CAPTURE
+}
 
 void mesos::handle_frameworks(const Json::Value& root)
 {

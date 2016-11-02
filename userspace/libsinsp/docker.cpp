@@ -126,6 +126,7 @@ docker::docker(std::string url,
 	m_event_http->set_json_callback(&docker::set_event_json);
 	m_event_http->set_json_end("}\n");
 	m_event_http->add_json_filter(".");
+	m_event_http->set_docker(true);
 	m_collector.add(m_event_http);
 	m_collector.set_steady_state(true);
 	send_data_request();
