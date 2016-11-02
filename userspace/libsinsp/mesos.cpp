@@ -226,6 +226,37 @@ void mesos::init_marathon()
 #endif // HAS_CAPTURE
 }
 
+void mesos::refresh_token()
+{
+	authenticate();
+	m_state_http->set_token(m_token);
+	if(has_marathon())
+	{
+		for(auto& group_http : m_marathon_groups_http)
+		{
+			if(group_http.second)
+			{
+				group_http.second->set_token(m_token);
+			}
+			else
+			{
+				throw sinsp_exception("Marathon groups HTTP client is null.");
+			}
+		}
+		for(auto& app_http : m_marathon_apps_http)
+		{
+			if(app_http.second)
+			{
+				app_http.second->set_token(m_token);
+			}
+			else
+			{
+				throw sinsp_exception("Marathon apps HTTP client is null.");
+			}
+		}
+	}
+}
+
 void mesos::authenticate()
 {
 	sinsp_curl auth_request(uri("https://localhost/acs/api/v1/auth/login"), "", "");
@@ -241,9 +272,16 @@ void mesos::authenticate()
 
 	Json::Reader json_reader;
 	Json::Value response_obj;
-	json_reader.parse(response, response_obj, false);
-	m_token = response_obj["token"].asString();
-	g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
+	auto parse_ok = json_reader.parse(response, response_obj, false);
+	if(parse_ok && response_obj.isMember("token"))
+	{
+		m_token = response_obj["token"].asString();
+		g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
+	}
+	else
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING, "Cannot authenticate on Mesos master");
+	}
 }
 
 void mesos::refresh()

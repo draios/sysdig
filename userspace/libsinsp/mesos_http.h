@@ -60,6 +60,7 @@ public:
 	void set_framework_version(const std::string& id);
 
 	const marathon_uri_t& get_marathon_uris() const;
+	void set_token(const string& token);
 
 protected:
 	CURL* get_sync_curl();

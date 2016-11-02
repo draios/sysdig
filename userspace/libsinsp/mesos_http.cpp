@@ -92,6 +92,12 @@ void mesos_http::cleanup(CURL** curl)
 	m_connected = false;
 }
 
+void mesos_http::set_token(const string& token)
+{
+	m_token = token;
+	m_request = make_request(m_url, m_curl_version);
+}
+
 Json::Value mesos_http::get_state_frameworks()
 {
 	Json::Value frameworks;
