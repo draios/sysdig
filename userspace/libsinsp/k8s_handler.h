@@ -136,7 +136,7 @@ private:
 	std::string     m_path;
 	std::string     m_state_filter;
 	std::string     m_event_filter;
-	std::string&    m_filter;
+	std::string*    m_filter;
 	std::string     m_event_uri;
 	std::string     m_json_end;
 	long            m_timeout_ms;
@@ -184,6 +184,8 @@ private:
 	//
 	// global capture flag is checked in the k8s state call
 	bool m_is_captured = false;
+
+	bool m_connect_logged = false;
 };
 
 #ifdef HAS_CAPTURE
