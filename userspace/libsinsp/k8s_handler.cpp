@@ -638,8 +638,11 @@ void k8s_handler::process_events()
 		{
 			if(evt && !evt->isNull())
 			{
-				g_logger.log("k8s_handler (" + m_id + ") data:\n" + json_as_string(*evt),
-					 sinsp_logger::SEV_TRACE);
+				if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+				{
+					g_logger.log("k8s_handler (" + m_id + ") processing event data:\n" + json_as_string(*evt),
+								 sinsp_logger::SEV_TRACE);
+				}
 #ifdef HAS_CAPTURE
 				if(m_is_captured)
 				{
