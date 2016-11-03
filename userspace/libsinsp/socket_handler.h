@@ -128,11 +128,6 @@ public:
 		m_request = make_request(m_url, m_http_version);
 	}
 
-	void set_docker(bool d = true)
-	{
-		m_is_docker = d;
-	}
-
 	std::string make_request(uri url, const std::string& http_version)
 	{
 		std::ostringstream request;
@@ -195,9 +190,14 @@ public:
 		return m_ssl_connection;
 	}
 
+	bool wants_send() const
+	{
+		return m_wants_send;
+	}
+
 	void send_request()
 	{
-		g_logger.log("Socket handler (" + m_id + ") send:\n" + m_request, sinsp_logger::SEV_TRACE);
+		m_wants_send = false; // no matter what happens, this is a one-shot
 		if(m_request.empty())
 		{
 			throw sinsp_exception("Socket handler (" + m_id + ") send: request (empty).");
@@ -353,6 +353,7 @@ public:
 				if(rec > 0)
 				{
 					data.append(buf.begin(), buf.begin() + rec);
+					if(data.find(m_json_end) != std::string::npos) { break; }
 				}
 				else if(rec == 0)
 				{
@@ -372,7 +373,7 @@ public:
 				}
 				else
 				{
-					usleep(10);
+					usleep(100);
 				}
 			}
 		} while(true);
@@ -382,6 +383,51 @@ public:
 			return data.size();
 		}
 		return 0;
+	}
+
+	bool find_chunked(const std::string& data)
+	{
+		m_chunked_detected = (ci_find_substr(data, std::string("Transfer-Encoding: chunked")) != -1);
+		if(m_chunked_detected)
+		{
+			m_content_length = std::string::npos;
+		}
+		return m_chunked_detected;
+	}
+
+	bool is_chunked_end_char(char c)
+	{
+		return c == '0' || c == '\r' || c == '\n';
+	}
+
+	std::string::const_reverse_iterator check_chunked_end(const std::string& data)
+	{
+		if(m_chunked_end.size())
+		{
+			for(auto c : data)
+			{
+				if(!is_chunked_end_char(c))
+				{
+					m_chunked_end.clear();
+					return data.crbegin();
+				}
+			}
+		}
+
+		std::size_t pos = m_chunked_end.size() ? m_chunked_end.size() - 1 : 0;
+		auto it = data.crbegin();
+		for(; it != data.crend(); ++it)
+		{
+			if(!is_chunked_end_char(*it))
+			{
+				return it;
+			}
+			else
+			{
+				m_chunked_end.insert(pos, 1, *it);
+			}
+		}
+		return it;
 	}
 
 	int on_data()
@@ -473,25 +519,51 @@ public:
 			} while(iolen && errno != EAGAIN);
 			if(data.size())
 			{
-				std::string::size_type pos = data.find("0\r\n\r\n");
-				if(pos != std::string::npos)
+				if(!m_chunked_detected)
 				{
-					if(pos > 0)
+					find_chunked(data);
+				}
+				if(m_chunked_detected)
+				{
+					const std::string chunked_end = "0\r\n\r\n";
+					check_chunked_end(data);
+					size_t pos = m_chunked_end.find(chunked_end);
+					if(pos == 0)
 					{
-						data = data.substr(0, pos);
+						return 0;
+					}
+					else if(pos != std::string::npos)
+					{
+						pos = data.find(chunked_end);
+						if(pos != std::string::npos)
+						{
+							data = data.substr(0, pos);
+						}
 						extract_data(data);
+						m_chunked_end.clear();
+						m_chunked_detected = false;
+
+						// In HTTP 1.1 connnections with chunked transfer, this socket may not be closed by server,
+						// (K8s API server is an example of such behavior), in which case the chunked data will just
+						// stop flowing. We can keep the good socket and resend the request instead of severing the
+						// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
+						// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
+						// set the m_close_on_chunked_end flag to true (default).
+						if(m_close_on_chunked_end)
+						{
+							return CONNECTION_CLOSED;
+						}
+						else
+						{
+							g_logger.log("Socket handler (" + m_id + "), raising \"want send\" flag for [" + m_url.to_string(false) + ']',
+										 sinsp_logger::SEV_TRACE);
+							m_data_buf.clear();
+							m_wants_send = true;
+						}
 					}
-					//TODO: this socket is not closed by server, only chunked data stops flowing;
-					//      we could keep it and  resend request instead of severing the connection
-					if(m_close_on_chunked_end)
-					{
-						return CONNECTION_CLOSED;
-					}
+					else { extract_data(data); }
 				}
-				else
-				{
-					extract_data(data);
-				}
+				else { extract_data(data); }
 			}
 		}
 		catch(sinsp_exception& ex)
@@ -786,8 +858,8 @@ private:
 					{
 						jsons.emplace_back(std::move(json));
 					}
-					g_logger.log("Socket handler (" + m_id + "): invoking callback(s).",
-								 sinsp_logger::SEV_TRACE);
+					g_logger.log("Socket handler (" + m_id + "): invoking callback(s) for " +
+								 std::to_string(jsons.size()) + " events.", sinsp_logger::SEV_TRACE);
 					if(m_json_filters.empty())
 					{
 						// if no filters provided and we got here, just do the whole JSON as-is
@@ -828,17 +900,16 @@ private:
 
 	bool detect_chunked_transfer(const std::string& data)
 	{
-		std::string::size_type te_pos = data.find("Transfer-Encoding: chunked");
-		if(te_pos != std::string::npos)
+		if(ci_find_substr(data, std::string("Transfer-Encoding: chunked")) != -1)
 		{
 			m_content_length = std::string::npos;
 			return true;
 		}
 
-		if(m_content_length == std::string::npos)
+		if(is_chunked())
 		{
-			std::string::size_type cl_pos = data.find("Content-Length:");
-			if(cl_pos != std::string::npos)
+			int cl_pos = ci_find_substr(data, std::string("Content-Length:"));
+			if(cl_pos != -1/*std::string::npos*/)
 			{
 				std::string::size_type nl_pos = data.find("\r\n", cl_pos);
 				if(nl_pos != std::string::npos)
@@ -865,44 +936,47 @@ private:
 		return true;
 	}
 
+	bool is_chunked() const
+	{
+		return (m_content_length == std::string::npos);
+	}
+
 	void extract_data(std::string& data)
 	{
 		if(data.empty())
 		{
-			g_logger.log(m_id + ' ' + m_url.to_string(false) + m_path + ": no data received, giving up extraction ...",
-						 sinsp_logger::SEV_TRACE);
+			g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
+						 ": no data received, giving up extraction ...", sinsp_logger::SEV_TRACE);
 			return;
 		}
-		g_logger.log(m_id + ' ' + m_url.to_string(false) + m_path + ":\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
+		g_logger.log(m_id + ' ' + m_url.to_string(false) + m_path + "::extract_data()\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 		if(!detect_chunked_transfer(data))
 		{
-			g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ": "
-						 "An error occurred while detecting chunked transfer.",
-						 sinsp_logger::SEV_ERROR);
+			g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
+						 ": An error occurred while detecting chunked transfer.", sinsp_logger::SEV_ERROR);
 			return;
 		}
 
-		if(m_data_buf.empty()) { m_data_buf = data; }
-		else { m_data_buf.append(data); }
-		std::string::size_type pos = m_data_buf.find(m_json_begin);
-		if(pos != std::string::npos) // JSON begin
+		m_data_buf.append(data);
+		if(m_data_buf.size() && m_data_buf[0] != '{')
 		{
-			m_data_buf = m_data_buf.substr(pos + 2);
+			std::string::size_type pos = m_data_buf.find(m_json_begin);
+			if(pos != std::string::npos) // JSON begin
+			{
+				m_data_buf = m_data_buf.substr(pos + 2);
+				g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
+							 ": found JSON beginning", sinsp_logger::SEV_TRACE);
+			}
 		}
-		else if(m_is_docker && (m_data_buf[0] == '{')) // docker HTTP stream does this
-		{
-			pos = 0;
-		}
-		bool chunked = (m_content_length == std::string::npos);
-		if(chunked)
+		if(is_chunked())
 		{
 			std::string::size_type end = std::string::npos;
 			while(true)
 			{
 				end = m_data_buf.find(m_json_end);
 				if(end == std::string::npos) { break; }
-				g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ": "
-							 "found JSON end, handling JSON", sinsp_logger::SEV_TRACE);
+				g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
+							 ": found JSON end, handling JSON", sinsp_logger::SEV_TRACE);
 				handle_json(end, true);
 			}
 		}
@@ -1691,8 +1765,10 @@ private:
 	struct sockaddr*         m_sa = 0;
 	socklen_t                m_sa_len = 0;
 	std::string::size_type   m_content_length = std::string::npos;
-	bool                     m_close_on_chunked_end = false;
-	bool                     m_is_docker = false;
+	bool                     m_chunked_detected = false;
+	std::string              m_chunked_end;
+	bool                     m_close_on_chunked_end = true;
+	bool                     m_wants_send = false;
 };
 
 template <typename T>
