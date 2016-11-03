@@ -527,8 +527,18 @@ public:
 				{
 					const std::string chunked_end = "0\r\n\r\n";
 					check_chunked_end(data);
-					if(m_chunked_end.find(chunked_end) != std::string::npos)
+					size_t pos = m_chunked_end.find(chunked_end);
+					if(pos == 0)
 					{
+						return 0;
+					}
+					else if(pos != std::string::npos)
+					{
+						pos = data.find(chunked_end);
+						if(pos != std::string::npos)
+						{
+							data = data.substr(0, pos);
+						}
 						extract_data(data);
 						m_chunked_end.clear();
 						m_chunked_detected = false;
@@ -848,8 +858,8 @@ private:
 					{
 						jsons.emplace_back(std::move(json));
 					}
-					g_logger.log("Socket handler (" + m_id + "): invoking callback(s).",
-								 sinsp_logger::SEV_TRACE);
+					g_logger.log("Socket handler (" + m_id + "): invoking callback(s) for " +
+								 std::to_string(jsons.size()) + " events.", sinsp_logger::SEV_TRACE);
 					if(m_json_filters.empty())
 					{
 						// if no filters provided and we got here, just do the whole JSON as-is
@@ -939,7 +949,7 @@ private:
 						 ": no data received, giving up extraction ...", sinsp_logger::SEV_TRACE);
 			return;
 		}
-		g_logger.log(m_id + ' ' + m_url.to_string(false) + m_path + ":\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
+		g_logger.log(m_id + ' ' + m_url.to_string(false) + m_path + "::extract_data()\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 		if(!detect_chunked_transfer(data))
 		{
 			g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
@@ -948,12 +958,15 @@ private:
 		}
 
 		m_data_buf.append(data);
-		std::string::size_type pos = m_data_buf.find(m_json_begin);
-		if(pos != std::string::npos) // JSON begin
+		if(m_data_buf.size() && m_data_buf[0] != '{')
 		{
-			m_data_buf = m_data_buf.substr(pos + 2);
-			g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
-						 ": found JSON beginning", sinsp_logger::SEV_TRACE);
+			std::string::size_type pos = m_data_buf.find(m_json_begin);
+			if(pos != std::string::npos) // JSON begin
+			{
+				m_data_buf = m_data_buf.substr(pos + 2);
+				g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
+							 ": found JSON beginning", sinsp_logger::SEV_TRACE);
+			}
 		}
 		if(is_chunked())
 		{
