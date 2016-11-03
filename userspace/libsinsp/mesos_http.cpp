@@ -134,6 +134,16 @@ void mesos_http::discover_mesos_leader()
 		CURLcode res = get_data(m_url.to_string(), os);
 		if(res == CURLE_OK)
 		{
+			long http_response_code = 0;
+			check_error(curl_easy_getinfo(m_sync_curl, CURLINFO_RESPONSE_CODE, &http_response_code));
+			if(sinsp_curl::is_redirect(http_response_code))
+			{
+				uri newurl(m_redirect);
+				m_url.set_host(newurl.get_host());
+				g_logger.log("mesos_http: Detected Mesos master leader HTTP redirect: [" + m_url.to_string(false) + ']', sinsp_logger::SEV_INFO);
+				discover_mesos_leader();
+				return;
+			}
 			Json::Value root;
 			Json::Reader reader;
 			if(reader.parse(os.str(), root))
@@ -691,13 +701,6 @@ bool mesos_http::on_data()
 		return false;
 	}
 	return true;
-
-connection_error:
-{
-	std::string err = strerror(errno);
-	g_logger.log("mesos_http: Mesos or Marathon API connection [" + m_url.to_string() + "] error : " + err, sinsp_logger::SEV_ERROR);
-	return false;
-}
 
 connection_closed:
 	g_logger.log("mesos_http: Mesos or Marathon API connection [" + m_url.to_string() + "] closed.", sinsp_logger::SEV_ERROR);
