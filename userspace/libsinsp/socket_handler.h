@@ -446,7 +446,6 @@ public:
 		{
 			do
 			{
-				size_t iolen = 0;
 				{
 					errno = 0;
 					if(m_url.is_secure())
