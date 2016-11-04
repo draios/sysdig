@@ -270,17 +270,23 @@ void mesos::authenticate()
 	//auth_request.enable_debug();
 	auto response = auth_request.get_data();
 
-	Json::Reader json_reader;
-	Json::Value response_obj;
-	auto parse_ok = json_reader.parse(response, response_obj, false);
-	if(parse_ok && response_obj.isMember("token"))
+	if(auth_request.get_response_code() == 200)
 	{
-		m_token = response_obj["token"].asString();
-		g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
-	}
-	else
+		Json::Reader json_reader;
+		Json::Value response_obj;
+		auto parse_ok = json_reader.parse(response, response_obj, false);
+		if(parse_ok && response_obj.isMember("token"))
+		{
+			m_token = response_obj["token"].asString();
+			g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
+		}
+		else
+		{
+			throw sinsp_exception(string("Cannot authenticate on Mesos master, response=") + response);
+		}
+	} else
 	{
-		g_logger.format(sinsp_logger::SEV_WARNING, "Cannot authenticate on Mesos master");
+		throw sinsp_exception(string("Cannot authenticate on Mesos master, response_code=") + to_string(auth_request.get_response_code()));
 	}
 }
 

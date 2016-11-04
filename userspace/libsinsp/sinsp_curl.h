@@ -100,6 +100,11 @@ public:
 		return m_response_headers;
 	}
 	
+	const long get_response_code() const
+	{
+		return m_response_code;
+	}
+	
 private:
 	struct data
 	{
@@ -121,6 +126,7 @@ private:
 	stringstream        m_body;
 	sinsp_curl_http_headers m_headers;
 	vector<string>      m_response_headers;
+	long                m_response_code;
 };
 
 inline void sinsp_curl::set_timeout(long milliseconds)

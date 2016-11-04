@@ -92,6 +92,7 @@ void sinsp_curl::init()
 	}
 
 	enable_debug(m_curl, m_debug);
+	m_response_code = -1;
 }
 
 sinsp_curl::~sinsp_curl()
@@ -302,16 +303,15 @@ bool sinsp_curl::get_data(std::ostream& os)
 	{
 		// HTTP errors are not returned by curl API
 		// error will be in the response stream
-		long http_code = 0;
-		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code));
-		if(http_code >= 400)
+		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &m_response_code));
+		if(m_response_code >= 400)
 		{
-			g_logger.log("CURL HTTP error: " + std::to_string(http_code), sinsp_logger::SEV_ERROR);
+			g_logger.log("CURL HTTP error: " + std::to_string(m_response_code), sinsp_logger::SEV_ERROR);
 			return false;
 		}
-		else if(is_redirect(http_code))
+		else if(is_redirect(m_response_code))
 		{
-			g_logger.log("HTTP redirect (" + std::to_string(http_code) + ')', sinsp_logger::SEV_DEBUG);
+			g_logger.log("HTTP redirect (" + std::to_string(m_response_code) + ')', sinsp_logger::SEV_DEBUG);
 			if(handle_redirect(m_uri, std::string(m_redirect), os))
 			{
 				std::ostringstream* pos = dynamic_cast<std::ostringstream*>(&os);
