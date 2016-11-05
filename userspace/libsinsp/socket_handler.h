@@ -439,7 +439,7 @@ public:
 			throw sinsp_exception("Socket handler (" + m_id + "): cannot parse data (callback is null).");
 		}
 
-		size_t iolen = 0;
+		ssize_t iolen = 0;
 		std::string data;
 
 		try
@@ -450,7 +450,7 @@ public:
 					errno = 0;
 					if(m_url.is_secure())
 					{
-						iolen = SSL_read(m_ssl_connection, &m_buf[0], m_buf.size());
+						iolen = static_cast<ssize_t>(SSL_read(m_ssl_connection, &m_buf[0], m_buf.size()));
 					}
 					else
 					{
@@ -458,12 +458,13 @@ public:
 					}
 					m_sock_err = errno;
 					g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
-								 std::to_string(iolen), sinsp_logger::SEV_TRACE);
+								 std::to_string(iolen) + ", errno=" + std::to_string(m_sock_err) +
+								 " (" + strerror(m_sock_err) + ')', sinsp_logger::SEV_TRACE);
 					if(iolen > 0)
 					{
 						data.append(&m_buf[0], iolen <= m_buf.size() ? iolen : m_buf.size());
 					}
-					else if(iolen == 0 || errno == ENOTCONN || errno == EPIPE)
+					else if(iolen == 0 || m_sock_err == ENOTCONN || m_sock_err == EPIPE)
 					{
 						if(m_url.is_secure())
 						{
@@ -497,11 +498,11 @@ public:
 					}
 					else if(iolen < 0)
 					{
-						if(errno == ENOTCONN || errno == EPIPE)
+						if(m_sock_err == ENOTCONN || m_sock_err == EPIPE)
 						{
 							goto connection_closed;
 						}
-						else if(errno != EAGAIN && errno != EWOULDBLOCK)
+						else if(m_sock_err != EAGAIN && m_sock_err != EWOULDBLOCK)
 						{
 							goto connection_error;
 						}
@@ -554,8 +555,6 @@ public:
 						}
 						else
 						{
-							g_logger.log("Socket handler (" + m_id + "), raising \"want send\" flag for [" + m_url.to_string(false) + ']',
-										 sinsp_logger::SEV_TRACE);
 							m_data_buf.clear();
 							m_wants_send = true;
 						}
