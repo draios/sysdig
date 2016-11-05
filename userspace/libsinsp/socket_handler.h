@@ -461,7 +461,8 @@ public:
 							 " (" + strerror(m_sock_err) + ')', sinsp_logger::SEV_TRACE);
 				if(iolen > 0)
 				{
-					data.append(&m_buf[0], iolen <= m_buf.size() ? iolen : m_buf.size());
+					data.append(&m_buf[0], iolen <= static_cast<ssize_t>(m_buf.size()) ?
+											static_cast<size_t>(iolen) : m_buf.size());
 				}
 				else if(iolen == 0 || m_sock_err == ENOTCONN || m_sock_err == EPIPE)
 				{

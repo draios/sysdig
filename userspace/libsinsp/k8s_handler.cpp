@@ -72,7 +72,7 @@ k8s_handler::k8s_handler(const std::string& id,
 	if(m_connect)
 	{
 		g_logger.log(std::string("K8s (" + m_id + ") creating handler for " +
-							 uri(m_url).to_string(false) + m_path), sinsp_logger::SEV_INFO);
+							 uri(m_url).to_string(false) + m_path), sinsp_logger::SEV_DEBUG);
 		m_http = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
 											 m_timeout_ms, m_ssl, m_bt, !m_blocking_socket, m_blocking_socket);
 		m_http->set_json_callback(&k8s_handler::set_event_json);
