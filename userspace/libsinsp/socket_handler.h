@@ -446,73 +446,71 @@ public:
 		{
 			do
 			{
+				errno = 0;
+				if(m_url.is_secure())
 				{
-					errno = 0;
+					iolen = static_cast<ssize_t>(SSL_read(m_ssl_connection, &m_buf[0], m_buf.size()));
+				}
+				else
+				{
+					iolen = recv(m_socket, &m_buf[0], m_buf.size(), 0);
+				}
+				m_sock_err = errno;
+				g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
+							 std::to_string(iolen) + ", errno=" + std::to_string(m_sock_err) +
+							 " (" + strerror(m_sock_err) + ')', sinsp_logger::SEV_TRACE);
+				if(iolen > 0)
+				{
+					data.append(&m_buf[0], iolen <= m_buf.size() ? iolen : m_buf.size());
+				}
+				else if(iolen == 0 || m_sock_err == ENOTCONN || m_sock_err == EPIPE)
+				{
 					if(m_url.is_secure())
 					{
-						iolen = static_cast<ssize_t>(SSL_read(m_ssl_connection, &m_buf[0], m_buf.size()));
-					}
-					else
-					{
-						iolen = recv(m_socket, &m_buf[0], m_buf.size(), 0);
-					}
-					m_sock_err = errno;
-					g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
-								 std::to_string(iolen) + ", errno=" + std::to_string(m_sock_err) +
-								 " (" + strerror(m_sock_err) + ')', sinsp_logger::SEV_TRACE);
-					if(iolen > 0)
-					{
-						data.append(&m_buf[0], iolen <= m_buf.size() ? iolen : m_buf.size());
-					}
-					else if(iolen == 0 || m_sock_err == ENOTCONN || m_sock_err == EPIPE)
-					{
-						if(m_url.is_secure())
+						if(m_ssl_connection)
 						{
-							if(m_ssl_connection)
+							int sd = SSL_get_shutdown(m_ssl_connection);
+							if(sd == 0)
 							{
-								int sd = SSL_get_shutdown(m_ssl_connection);
-								if(sd == 0)
-								{
-									g_logger.log("Socket handler (" + m_id + "): SSL zero bytes received, "
-												 "but no shutdown state set for [" + m_url.to_string(false) + "]: ",
-												 sinsp_logger::SEV_WARNING);
-								}
-								if(sd & SSL_RECEIVED_SHUTDOWN)
-								{
-									g_logger.log("Socket handler(" + m_id + "): SSL shutdown from [" +
-												 m_url.to_string(false) + "]: ", sinsp_logger::SEV_TRACE);
-								}
-								if(sd & SSL_SENT_SHUTDOWN)
-								{
-									g_logger.log("Socket handler(" + m_id + "): SSL shutdown sent to [" +
-												 m_url.to_string(false) + "]: ", sinsp_logger::SEV_TRACE);
-								}
+								g_logger.log("Socket handler (" + m_id + "): SSL zero bytes received, "
+											 "but no shutdown state set for [" + m_url.to_string(false) + "]: ",
+											 sinsp_logger::SEV_WARNING);
 							}
-							else
+							if(sd & SSL_RECEIVED_SHUTDOWN)
 							{
-								g_logger.log("Socket handler(" + m_id + "): SSL connection is null",
-												 sinsp_logger::SEV_WARNING);
+								g_logger.log("Socket handler(" + m_id + "): SSL shutdown from [" +
+											 m_url.to_string(false) + "]: ", sinsp_logger::SEV_TRACE);
+							}
+							if(sd & SSL_SENT_SHUTDOWN)
+							{
+								g_logger.log("Socket handler(" + m_id + "): SSL shutdown sent to [" +
+											 m_url.to_string(false) + "]: ", sinsp_logger::SEV_TRACE);
 							}
 						}
+						else
+						{
+							g_logger.log("Socket handler(" + m_id + "): SSL connection is null",
+											 sinsp_logger::SEV_WARNING);
+						}
+					}
+					goto connection_closed;
+				}
+				else if(iolen < 0)
+				{
+					if(m_sock_err == ENOTCONN || m_sock_err == EPIPE)
+					{
 						goto connection_closed;
 					}
-					else if(iolen < 0)
+					else if(m_sock_err != EAGAIN && m_sock_err != EWOULDBLOCK)
 					{
-						if(m_sock_err == ENOTCONN || m_sock_err == EPIPE)
-						{
-							goto connection_closed;
-						}
-						else if(m_sock_err != EAGAIN && m_sock_err != EWOULDBLOCK)
+						goto connection_error;
+					}
+					if(m_url.is_secure())
+					{
+						int err = SSL_get_error(m_ssl_connection, iolen);
+						if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 						{
 							goto connection_error;
-						}
-						if(m_url.is_secure())
-						{
-							int err = SSL_get_error(m_ssl_connection, iolen);
-							if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
-							{
-								goto connection_error;
-							}
 						}
 					}
 				}
