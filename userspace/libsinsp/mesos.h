@@ -16,6 +16,9 @@
 #include <utility>
 #include <unordered_map>
 
+class sinsp_curl_multi;
+class sinsp_curl;
+
 class mesos
 {
 public:
@@ -43,7 +46,7 @@ public:
 		const std::string& marathon_groups_json,
 		const std::string& marathon_apps_json);
 
-	mesos(const std::string& state_uri,
+	mesos(shared_ptr<sinsp_curl_multi> curl_multi, const std::string& state_uri,
 		const uri_list_t& marathon_uris = uri_list_t(),
 		bool discover_mesos_leader = false,
 		bool discover_marathon_leader = false,
@@ -83,45 +86,15 @@ public:
 	std::string dequeue_capture_event();
 
 private:
-	void send_mesos_data_request();
-	void connect_mesos();
-	void check_collector_status(int expected);
-	void send_marathon_data_request();
-	void connect_marathon();
 
-	template <typename T>
-	bool connect(T http, typename T::element_type::callback_func_t func, int expected_connections)
-	{
-		if(http)
-		{
-			if(m_collector.has(http))
-			{
-				if(!http->is_connected())
-				{
-					m_collector.remove(http);
-				}
-			}
-			if(!m_collector.has(http))
-			{
-				http->set_parse_func(func);
-				m_collector.add(http);
-			}
-			check_collector_status(expected_connections);
-			return m_collector.has(http);
-		}
-		return false;
-	}
 	void capture_frameworks(const Json::Value& root, Json::Value& capture);
 	void capture_slaves(const Json::Value& root, Json::Value& capture);
 
 	typedef std::unordered_map<std::string, marathon_http::ptr_t> marathon_http_map;
 
 	void remove_framework_http(marathon_http_map& http_map, const std::string& framework_id);
-
-	mesos_http::ptr_t m_state_http;
-	marathon_http_map m_marathon_groups_http;
-	marathon_http_map m_marathon_apps_http;
-	mesos_collector   m_collector;
+	void discover_framework_uris(const Json::Value& frameworks);
+	std::string get_framework_url(const Json::Value& framework);
 	std::string       m_mesos_uri;
 	uri_list_t        m_marathon_uris;
 #endif // HAS_CAPTURE
@@ -129,7 +102,7 @@ private:
 private:
 	void init();
 	void init_marathon();
-	void authenticate();
+	void authenticate(function<void(bool)> on_complete);
 	void rebuild_mesos_state(bool full = false);
 	void rebuild_marathon_state(bool full = false);
 
@@ -172,15 +145,14 @@ private:
 	uri::credentials_t m_dcos_enterprise_credentials;
 	string             m_token;
 	bool               m_token_authentication;
-	
+
 	typedef std::unordered_set<std::string> framework_list_t;
 	framework_list_t m_inactive_frameworks;
 	framework_list_t m_activated_frameworks;
 
+	shared_ptr<sinsp_curl_multi> m_curl_multi;
 	static const mesos_component::component_map m_components;
-
 	friend class mesos_http;
-	friend class marathon_http;
 };
 
 inline const mesos_state_t& mesos::get_state() const
@@ -197,7 +169,7 @@ inline bool mesos::has_marathon() const
 	}
 	else
 	{
-		return m_marathon_groups_http.size() || m_marathon_apps_http.size();
+		return !m_marathon_uris.empty();
 	}
 #else
 	return false;

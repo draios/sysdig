@@ -78,7 +78,7 @@ add_library(sinsp STATIC
 	utils.cpp
 	user_event.cpp
 	value_parser.cpp
-	viewinfo.cpp)
+	viewinfo.cpp sinsp_curl_multi.cpp sinsp_curl_multi.h)
 
 target_link_libraries(sinsp 
 	scap

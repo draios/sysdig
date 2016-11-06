@@ -120,6 +120,7 @@ template <class T> class socket_collector;
 class k8s_handler;
 class k8s_api_handler;
 #endif // HAS_CAPTURE
+class sinsp_curl_multi;
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -978,6 +979,8 @@ private:
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
 #endif
+
+	shared_ptr<sinsp_curl_multi> m_curl_multi;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

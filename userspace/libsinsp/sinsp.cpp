@@ -37,6 +37,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "protodecoder.h"
 
 #include "k8s_api_handler.h"
+#include "sinsp_curl_multi.h"
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
@@ -380,6 +381,7 @@ void sinsp::init()
 		}
 	}
 #endif
+	m_curl_multi = make_shared<sinsp_curl_multi>();
 }
 
 void sinsp::set_import_users(bool import_users)
@@ -1135,6 +1137,14 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		evt->m_tinfo->m_lastevent_ts = m_lastevent_ts;
 	}
 
+	// Run any http tasks
+	static uint64_t last_curl_multi_run;
+	if(m_lastevent_ts - last_curl_multi_run > ONE_SECOND_IN_NS/10)
+	{
+		m_curl_multi->run();
+		last_curl_multi_run = m_lastevent_ts;
+	}
+
 	//
 	// Done
 	//
@@ -1643,7 +1653,7 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 		}
 
 		bool is_live = !m_mesos_api_server.empty();
-		m_mesos_client = new mesos(m_mesos_api_server,
+		m_mesos_client = new mesos(m_curl_multi, m_mesos_api_server,
 									m_marathon_api_server,
 									true, // mesos leader auto-follow
 									m_marathon_api_server.empty(), // marathon leader auto-follow if no uri
@@ -1947,15 +1957,15 @@ bool sinsp::get_mesos_data()
 		ASSERT(m_mesos_client->is_alive());
 
 		time_t now; time(&now);
-		if(last_mesos_refresh)
+		/*if(last_mesos_refresh)
 		{
 			g_logger.log("Collecting Mesos data ...", sinsp_logger::SEV_DEBUG);
 			ret = m_mesos_client->collect_data();
-		}
+		}*/
 		if(difftime(now, last_mesos_refresh) > 10)
 		{
 			g_logger.log("Requesting Mesos data ...", sinsp_logger::SEV_DEBUG);
-			m_mesos_client->send_data_request(false);
+			m_mesos_client->refresh();
 			last_mesos_refresh = now;
 		}
 	}

@@ -15,6 +15,9 @@
 #include "curl/curl.h"
 #include <string>
 #include <memory>
+#include <functional>
+
+class sinsp_curl_multi;
 
 class sinsp_curl_http_headers
 {
@@ -38,6 +41,8 @@ class sinsp_curl
 public:
 	typedef sinsp_ssl ssl;
 	typedef sinsp_bearer_token bearer_token;
+	using done_callback_t = std::function<void()>;
+	using on_data_callback_t = std::function<void()>;
 
 	static const long DEFAULT_TIMEOUT_MS = 5000L;
 
@@ -105,7 +110,21 @@ public:
 		return m_response_code;
 	}
 	
+	void set_done_callback(done_callback_t&& callback);
+	void set_on_data_callback(on_data_callback_t&& callback);
+	const string& buffer() const {
+		return m_buffer;
+	}
+	void reset()
+	{
+		m_buffer.clear();
+	}
+	
+	static size_t write_callback(void *ptr, size_t size, size_t nmemb, void *cb);
+
 private:
+	friend class sinsp_curl_multi;
+
 	struct data
 	{
 		char trace_ascii; // 1 or 0
@@ -127,6 +146,9 @@ private:
 	sinsp_curl_http_headers m_headers;
 	vector<string>      m_response_headers;
 	long                m_response_code;
+	done_callback_t     m_done_callback;
+	on_data_callback_t  m_on_data_callback;
+	string              m_buffer;
 };
 
 inline void sinsp_curl::set_timeout(long milliseconds)
@@ -162,6 +184,16 @@ inline sinsp_curl::ssl::ptr_t sinsp_curl::get_ssl()
 inline sinsp_curl::bearer_token::ptr_t sinsp_curl::get_bt()
 {
 	return m_bt;
+}
+
+inline void sinsp_curl::set_done_callback(done_callback_t&& callback)
+{
+	m_done_callback = callback;
+}
+
+inline void sinsp_curl::set_on_data_callback(on_data_callback_t&& callback)
+{
+	m_on_data_callback = callback;
 }
 
 #endif // __linux__

@@ -34,6 +34,13 @@ void sinsp_curl_http_headers::add(const string& header)
 	m_curl_header_list = curl_slist_append(m_curl_header_list, header.c_str());
 }
 
+size_t read_data(void* buffer, size_t size, size_t nmemb, void* instream)
+{
+	auto body = (stringstream*) instream;
+	body->read((char*) buffer, size*nmemb);
+	return body->gcount();
+}
+
 sinsp_curl::data sinsp_curl::m_config;
 
 sinsp_curl::sinsp_curl(const uri& url, long timeout_ms, bool debug):
@@ -79,7 +86,19 @@ void sinsp_curl::init()
 		throw sinsp_exception("Cannot initialize CURL.");
 	}
 
-	check_error(curl_easy_setopt(m_curl, CURLOPT_FORBID_REUSE, 1L));
+	//check_error(curl_easy_setopt(m_curl, CURLOPT_FORBID_REUSE, 1L));
+
+	check_error(curl_easy_setopt(m_curl, CURLOPT_URL, m_uri.to_string().c_str()));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_HEADERDATA, m_redirect));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_HEADERFUNCTION, header_callback));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECTTIMEOUT, static_cast<int>(m_timeout_ms / 1000)));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1)); //Prevent "longjmp causes uninitialized stack frame" bug
+	check_error(curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate"));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &sinsp_curl::write_callback));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, this));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_READFUNCTION, &read_data));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_READDATA, &m_body));
 
 	if(m_ssl)
 	{
@@ -269,13 +288,6 @@ bool sinsp_curl::handle_redirect(uri& url, std::string&& loc, std::ostream& os)
 	return false;
 }
 
-size_t read_data(void* buffer, size_t size, size_t nmemb, void* instream)
-{
-	auto body = (stringstream*) instream;
-	body->read((char*) buffer, size*nmemb);
-	return body->gcount();
-}
-
 bool sinsp_curl::get_data(std::ostream& os)
 {
 	CURLcode res = CURLE_OK;
@@ -454,6 +466,14 @@ void sinsp_curl::set_body(const string& data)
 	m_body.clear();
 	m_body << data;
 	add_header(string("Content-Length: ") + to_string(data.size()));
+}
+
+size_t sinsp_curl::write_callback(void *ptr, size_t size, size_t nmemb, void *cb)
+{
+	auto instance = (sinsp_curl*) cb;
+	instance->m_buffer.append((char*) ptr, size*nmemb);
+	//instance->m_on_data_callback();
+	return size*nmemb;
 }
 
 #endif // __linux__
