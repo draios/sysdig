@@ -1,11 +1,12 @@
 //
-// socket_collector.h
+// socket_handler.h
 //
 
 #pragma once
 
 #ifdef HAS_CAPTURE
 
+#include "http_parser.h"
 #include "uri.h"
 #include "json/json.h"
 #define BUFFERSIZE 512 // b64 needs this macro
@@ -65,13 +66,12 @@ public:
 			m_bt(bt),
 			m_timeout_ms(timeout_ms),
 			m_request(make_request(url, http_version)),
-			m_http_version(http_version),
-			m_json_begin("\r\n{"),
-			m_json_end(m_http_version == HTTP_VERSION_10 ? "}\r\n" : "}\r\n0")
+			m_http_version(http_version)
 	{
 		g_logger.log(std::string("Creating Socket handler object for (" + id + ") "
 					 "[" + uri(url).to_string(false) + ']'), sinsp_logger::SEV_DEBUG);
 		m_buf.resize(1024);
+		init_http_parser();
 	}
 
 	virtual ~socket_data_handler()
@@ -126,6 +126,11 @@ public:
 	{
 		m_path = path;
 		m_request = make_request(m_url, m_http_version);
+	}
+
+	void set_check_chunked(bool check = true)
+	{
+		m_check_chunked = check;
 	}
 
 	std::string make_request(uri url, const std::string& http_version)
@@ -353,7 +358,6 @@ public:
 				if(rec > 0)
 				{
 					data.append(buf.begin(), buf.begin() + rec);
-					if(data.find(m_json_end) != std::string::npos) { break; }
 				}
 				else if(rec == 0)
 				{
@@ -379,20 +383,11 @@ public:
 		} while(true);
 		if(data.size())
 		{
-			extract_data(data);
+			parse_http(data);
+			process_json();
 			return data.size();
 		}
 		return 0;
-	}
-
-	bool find_chunked(const std::string& data)
-	{
-		m_chunked_detected = (ci_find_substr(data, std::string("Transfer-Encoding: chunked")) != -1);
-		if(m_chunked_detected)
-		{
-			m_content_length = std::string::npos;
-		}
-		return m_chunked_detected;
 	}
 
 	bool is_chunked_end_char(char c)
@@ -400,8 +395,9 @@ public:
 		return c == '0' || c == '\r' || c == '\n';
 	}
 
-	std::string::const_reverse_iterator check_chunked_end(const std::string& data)
+	void check_chunked_end(const std::string& data)
 	{
+		if(!m_check_chunked) { return; }
 		if(m_chunked_end.size())
 		{
 			for(auto c : data)
@@ -409,25 +405,66 @@ public:
 				if(!is_chunked_end_char(c))
 				{
 					m_chunked_end.clear();
-					return data.crbegin();
+					break;
+				}
+				else
+				{
+					m_chunked_end.append(1, c);
 				}
 			}
 		}
 
-		std::size_t pos = m_chunked_end.size() ? m_chunked_end.size() - 1 : 0;
-		auto it = data.crbegin();
-		for(; it != data.crend(); ++it)
+		if(!m_chunked_end.size())
 		{
-			if(!is_chunked_end_char(*it))
+			auto it = data.crbegin();
+			for(; it != data.crend(); ++it)
 			{
-				return it;
-			}
-			else
-			{
-				m_chunked_end.insert(pos, 1, *it);
+				if(!is_chunked_end_char(*it)) { return; }
+				else { m_chunked_end.insert(0, 1, *it); }
 			}
 		}
-		return it;
+	}
+
+	void data_handling_error(const std::string& data, size_t nparsed)
+	{
+		std::ostringstream os;
+		os << "Socket handler (" << m_id + ") an error occurred during http parsing. "
+			"processed=" << nparsed << ", expected=" << data.size() << ", status_code=" <<
+			std::to_string(m_http_parser->status_code) << ", http_errno=" <<
+			std::to_string(m_http_parser->http_errno) << "data:" << std::endl << data;
+		throw sinsp_exception(os.str());
+	}
+
+	void parse_http(const std::string& data)
+	{
+		size_t nparsed = http_parser_execute(m_http_parser, &m_http_parser_settings, data.c_str(), data.length());
+		if(nparsed != data.size()) { data_handling_error(data, nparsed); }
+	}
+
+	void process_json()
+	{
+		if(m_json_filters.empty()) { add_json_filter("."); }
+		bool handled = false;
+		for(auto js = m_json.begin(); js != m_json.end();)
+		{
+			handled = false;
+			for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
+			{
+				json_ptr_t pjson = try_parse(m_jq, *js, *it, m_id, m_url.to_string(false));
+				if(pjson)
+				{
+					(m_obj.*m_json_callback)(pjson, m_id);
+					handled = true;
+					break;
+				}
+			}
+			if(!handled)
+			{
+				g_logger.log("Socket handler: (" + m_id + ") JSON not handled, "
+							 "discarding:\n" + *js, sinsp_logger::SEV_ERROR);
+			}
+			js = m_json.erase(js);
+		}
 	}
 
 	int on_data()
@@ -441,7 +478,6 @@ public:
 
 		ssize_t iolen = 0;
 		std::string data;
-
 		try
 		{
 			do
@@ -457,8 +493,9 @@ public:
 				}
 				m_sock_err = errno;
 				g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
-							 std::to_string(iolen) + ", errno=" + std::to_string(m_sock_err) +
-							 " (" + strerror(m_sock_err) + ')', sinsp_logger::SEV_TRACE);
+							 std::to_string(iolen) + ", data=" + std::to_string(data.size()) + " bytes, "
+							 "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
+							 sinsp_logger::SEV_TRACE);
 				if(iolen > 0)
 				{
 					data.append(&m_buf[0], iolen <= static_cast<ssize_t>(m_buf.size()) ?
@@ -515,52 +552,24 @@ public:
 						}
 					}
 				}
-			} while(iolen && errno != EAGAIN);
+			} while(iolen && m_sock_err != EAGAIN);
 			if(data.size())
 			{
-				if(!m_chunked_detected)
+				check_chunked_end(data);
+				parse_http(data);
+				if(m_chunked_end.find("0\r\n\r\n") != std::string::npos)
 				{
-					find_chunked(data);
+					m_data_buf.clear();
+					// In HTTP 1.1 connnections with chunked transfer, this socket may not be closed by server,
+					// (K8s API server is an example of such behavior), in which case the chunked data will just
+					// stop flowing. We can keep the good socket and resend the request instead of severing the
+					// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
+					// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
+					// set the m_close_on_chunked_end flag to true (default).
+					if(m_close_on_chunked_end) { return CONNECTION_CLOSED; }
+					else { m_wants_send = true; }
 				}
-				if(m_chunked_detected)
-				{
-					const std::string chunked_end = "0\r\n\r\n";
-					check_chunked_end(data);
-					size_t pos = m_chunked_end.find(chunked_end);
-					if(pos == 0)
-					{
-						return 0;
-					}
-					else if(pos != std::string::npos)
-					{
-						pos = data.find(chunked_end);
-						if(pos != std::string::npos)
-						{
-							data = data.substr(0, pos);
-						}
-						extract_data(data);
-						m_chunked_end.clear();
-						m_chunked_detected = false;
-
-						// In HTTP 1.1 connnections with chunked transfer, this socket may not be closed by server,
-						// (K8s API server is an example of such behavior), in which case the chunked data will just
-						// stop flowing. We can keep the good socket and resend the request instead of severing the
-						// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
-						// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
-						// set the m_close_on_chunked_end flag to true (default).
-						if(m_close_on_chunked_end)
-						{
-							return CONNECTION_CLOSED;
-						}
-						else
-						{
-							m_data_buf.clear();
-							m_wants_send = true;
-						}
-					}
-					else { extract_data(data); }
-				}
-				else { extract_data(data); }
+				else { process_json(); }
 			}
 		}
 		catch(sinsp_exception& ex)
@@ -594,26 +603,6 @@ public:
 
 	void on_error(const std::string& /*err*/, bool /*disconnect*/)
 	{
-	}
-
-	void set_json_begin(const std::string& b)
-	{
-		m_json_begin = b;
-	}
-
-	const std::string& get_json_begin() const
-	{
-		return m_json_begin;
-	}
-
-	void set_json_end(const std::string& e)
-	{
-		m_json_end = e;
-	}
-
-	const std::string& get_json_end() const
-	{
-		return m_json_end;
 	}
 
 	bool has_json_filter(const std::string& filter)
@@ -774,215 +763,6 @@ public:
 private:
 
 	typedef std::vector<char> password_vec_t;
-
-	void purge_chunked_markers(std::string& data)
-	{
-		std::string::size_type pos = data.find("}\r\n0");
-		if(pos == std::string::npos)
-		{
-			pos = data.find("}\r\n\r\n0");
-		}
-		if(pos != std::string::npos)
-		{
-			data = data.substr(0, pos);
-		}
-
-		std::string nl = "\r\n\r\n";
-		std::string::size_type begin, end;
-		while((begin = data.find(nl)) != std::string::npos)
-		{
-			end = data.find(nl, begin + nl.size());
-			if(end != std::string::npos)
-			{
-				data.erase(begin, end + nl.size() - begin);
-			}
-			else { break; }
-		}
-		nl = "\r\n";
-		while((begin = data.find(nl)) != std::string::npos)
-		{
-			end = data.find(nl, begin + nl.size());
-			if(end != std::string::npos)
-			{
-				data.erase(begin, end + nl.size() - begin);
-			}
-			else { break; }
-		}
-	}
-
-	std::vector<std::string> separate_json(const std::string& json, char c)
-	{
-		std::vector<std::string> result;
-		const char *str = json.c_str();
-		do
-		{
-			const char *begin = str;
-			while(*str != c && *str) { str++; }
-			result.push_back(std::string(begin, str));
-		} while (0 != *str++);
-		return result;
-	}
-
-	void handle_json(std::string::size_type end_pos, bool chunked)
-	{
-		if(end_pos != std::string::npos)
-		{
-			if(m_data_buf.length() >= end_pos + 1)
-			{
-				std::string json = m_data_buf.substr(0, end_pos + 1);
-				if(m_data_buf.length() > end_pos + 1)
-				{
-					m_data_buf = m_data_buf.substr(end_pos + 2);
-				}
-				else
-				{
-					m_data_buf.clear();
-					m_content_length = std::string::npos;
-				}
-				if(json.size())
-				{
-					if(chunked && m_data_buf.size())
-					{
-						purge_chunked_markers(m_data_buf);
-					}
-					purge_chunked_markers(json);
-					std::vector<std::string> jsons;
-					if(json.find('\n') != std::string::npos)
-					{
-						jsons = separate_json(json, '\n');
-					}
-					else
-					{
-						jsons.emplace_back(std::move(json));
-					}
-					g_logger.log("Socket handler (" + m_id + "): invoking callback(s) for " +
-								 std::to_string(jsons.size()) + " events.", sinsp_logger::SEV_TRACE);
-					if(m_json_filters.empty())
-					{
-						// if no filters provided and we got here, just do the whole JSON as-is
-						add_json_filter(".");
-					}
-					for(auto js : jsons)
-					{
-						for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
-						{
-							json_ptr_t pjson = try_parse(m_jq, js, *it, m_id, m_url.to_string(false));
-							if(pjson)
-							{
-								(m_obj.*m_json_callback)(pjson, m_id);
-								return;
-							}
-						}
-					}
-					g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ": "
-								 "An error occurred while handling JSON.",
-								 sinsp_logger::SEV_ERROR);
-					if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
-					{
-						g_logger.log("Filters:", sinsp_logger::SEV_TRACE);
-						for(auto it = m_json_filters.cbegin(); it != m_json_filters.cend(); ++it)
-						{
-							g_logger.log(*it, sinsp_logger::SEV_TRACE);
-						}
-						g_logger.log("JSONs:", sinsp_logger::SEV_TRACE);
-						for(auto js : jsons)
-						{
-							g_logger.log(js, sinsp_logger::SEV_TRACE);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	bool detect_chunked_transfer(const std::string& data)
-	{
-		if(ci_find_substr(data, std::string("Transfer-Encoding: chunked")) != -1)
-		{
-			m_content_length = std::string::npos;
-			return true;
-		}
-
-		if(is_chunked())
-		{
-			int cl_pos = ci_find_substr(data, std::string("Content-Length:"));
-			if(cl_pos != -1/*std::string::npos*/)
-			{
-				std::string::size_type nl_pos = data.find("\r\n", cl_pos);
-				if(nl_pos != std::string::npos)
-				{
-					cl_pos += std::string("Content-Length:").length();
-					std::string cl = data.substr(cl_pos, nl_pos - cl_pos);
-					long len = strtol(cl.c_str(), NULL, 10);
-					if(len == 0L || len == LONG_MAX || len == LONG_MIN || errno == ERANGE)
-					{
-						(m_obj.*m_json_callback)(nullptr, m_id);
-						m_data_buf.clear();
-						g_logger.log("Socket handler (" + m_id + "): Invalid HTTP content length from "
-									 "[: " + m_url.to_string(false) + ']' +
-									 std::to_string(len), sinsp_logger::SEV_ERROR);
-						return false;
-					}
-					else
-					{
-						m_content_length = static_cast<std::string::size_type>(len);
-					}
-				}
-			}
-		}
-		return true;
-	}
-
-	bool is_chunked() const
-	{
-		return (m_content_length == std::string::npos);
-	}
-
-	void extract_data(std::string& data)
-	{
-		if(data.empty())
-		{
-			g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
-						 ": no data received, giving up extraction ...", sinsp_logger::SEV_TRACE);
-			return;
-		}
-		g_logger.log(m_id + ' ' + m_url.to_string(false) + m_path + "::extract_data()\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
-		if(!detect_chunked_transfer(data))
-		{
-			g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
-						 ": An error occurred while detecting chunked transfer.", sinsp_logger::SEV_ERROR);
-			return;
-		}
-
-		m_data_buf.append(data);
-		if(m_data_buf.size() && m_data_buf[0] != '{')
-		{
-			std::string::size_type pos = m_data_buf.find(m_json_begin);
-			if(pos != std::string::npos) // JSON begin
-			{
-				m_data_buf = m_data_buf.substr(pos + 2);
-				g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
-							 ": found JSON beginning", sinsp_logger::SEV_TRACE);
-			}
-		}
-		if(is_chunked())
-		{
-			std::string::size_type end = std::string::npos;
-			while(true)
-			{
-				end = m_data_buf.find(m_json_end);
-				if(end == std::string::npos) { break; }
-				g_logger.log("Socket handler (" + m_id + ")::extract_data() " + m_url.to_string(false) + m_path +
-							 ": found JSON end, handling JSON", sinsp_logger::SEV_TRACE);
-				handle_json(end, true);
-			}
-		}
-		else if (m_data_buf.length() >= m_content_length)
-		{
-			handle_json(m_data_buf.length() - 1, false);
-		}
-		return;
-	}
 
 	int wait(bool for_recv, long tout = 1000L)
 	{
@@ -1718,9 +1498,59 @@ private:
 
 	void cleanup()
 	{
+		free(m_http_parser);
 		close_socket();
 		dns_cleanup();
 		ssl_cleanup();
+	}
+
+	struct http_parser_data
+	{
+		std::string*              m_data_buf = nullptr;
+		std::vector<std::string>* m_json = nullptr;
+	};
+
+	static int http_body_callback(http_parser* parser, const char* data, size_t len)
+	{
+		if(data && len)
+		{
+			if(parser && parser->data)
+			{
+				http_parser_data* parser_data = (http_parser_data*) parser->data;
+				if(parser_data->m_data_buf && parser_data->m_json)
+				{
+					parser_data->m_data_buf->append(data, len);
+					std::string::size_type pos = parser_data->m_data_buf->find('\n');
+					while(pos != std::string::npos)
+					{
+						parser_data->m_json->push_back(parser_data->m_data_buf->substr(0, pos));
+						parser_data->m_data_buf->erase(0, pos + 1);
+						pos = parser_data->m_data_buf->find('\n');
+					}
+				}
+				else { throw sinsp_exception("Socket handler: http or json buffer null."); }
+			}
+			else { throw sinsp_exception("Socket handler: parser or data null."); }
+		}
+		return 0;
+	}
+
+	void init_http_parser()
+	{
+		http_parser_settings_init(&m_http_parser_settings);
+		m_http_parser_settings.on_body = &socket_data_handler<T>::http_body_callback;
+		m_http_parser = (http_parser *)std::malloc(sizeof(http_parser));
+		if(m_http_parser)
+		{
+			m_http_parser_data.m_data_buf = &m_data_buf;
+			m_http_parser_data.m_json = &m_json;
+			http_parser_init(m_http_parser, HTTP_RESPONSE);
+			m_http_parser->data = &m_http_parser_data;
+		}
+		else
+		{
+			throw sinsp_exception("Socket handler: cannot create http parser.");
+		}
 	}
 
 	typedef std::deque<struct gaicb**> dns_list_t;
@@ -1749,9 +1579,8 @@ private:
 	std::string              m_data_buf;
 	std::string              m_request;
 	std::string              m_http_version;
-	std::string              m_json_begin;
-	std::string              m_json_end;
 	std::vector<std::string> m_json_filters;
+	std::vector<std::string> m_json;
 	json_query               m_jq;
 	bool                     m_ssl_init_complete = false;
 	SSL_CTX*                 m_ssl_context = nullptr;
@@ -1762,10 +1591,13 @@ private:
 	struct sockaddr*         m_sa = 0;
 	socklen_t                m_sa_len = 0;
 	std::string::size_type   m_content_length = std::string::npos;
-	bool                     m_chunked_detected = false;
 	std::string              m_chunked_end;
+	bool                     m_check_chunked = false;
 	bool                     m_close_on_chunked_end = true;
 	bool                     m_wants_send = false;
+	http_parser_settings     m_http_parser_settings;
+	http_parser*             m_http_parser = nullptr;
+	http_parser_data         m_http_parser_data;
 };
 
 template <typename T>

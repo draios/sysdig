@@ -5,6 +5,7 @@
 #pragma once
 
 #include "json/json.h"
+#include "sinsp_auth.h"
 #include "socket_collector.h"
 #include "k8s_state.h"
 #include "k8s_api_error.h"
@@ -138,7 +139,6 @@ private:
 	std::string     m_event_filter;
 	std::string*    m_filter;
 	std::string     m_event_uri;
-	std::string     m_json_end;
 	long            m_timeout_ms;
 	std::string     m_url;
 	bool            m_req_sent = false;
