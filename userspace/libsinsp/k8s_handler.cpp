@@ -52,7 +52,6 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_state_filter(state_filter),
 		m_event_filter(event_filter),
 		m_filter(&m_state_filter),
-		m_json_end("}\n"),
 		m_timeout_ms(timeout_ms),
 		m_url(url),
 		m_http_version(http_version),
@@ -76,10 +75,10 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_http = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
 											 m_timeout_ms, m_ssl, m_bt, !m_blocking_socket, m_blocking_socket);
 		m_http->set_json_callback(&k8s_handler::set_event_json);
-		m_http->set_json_end(m_json_end);
 		m_http->add_json_filter(*m_filter);
 		m_http->add_json_filter(ERROR_FILTER);
 		m_http->close_on_chunked_end(false);
+		m_http->set_check_chunked(false);
 		this->connect();
 	}
 #endif // HAS_CAPTURE
@@ -106,8 +105,6 @@ void k8s_handler::make_http()
 		{
 			m_collector->remove(m_http);
 		}
-		m_json_end = "}\n\r\n";
-		m_http->set_json_end(m_json_end);
 		m_http->remove_json_filter(m_state_filter);
 		m_filter = &m_event_filter;
 		if(!m_http->has_json_filter(ERROR_FILTER))
@@ -122,6 +119,7 @@ void k8s_handler::make_http()
 		m_watching = true;
 		m_blocking_socket = false;
 		m_http->close_on_chunked_end(false);
+		m_http->set_check_chunked(true);
 
 		m_req_sent = false;
 		m_resp_recvd = false;
