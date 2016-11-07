@@ -288,7 +288,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_link - SYSCALL_TABLE_ID0] = PPM_SC_LINK,
 	[__NR_unlink - SYSCALL_TABLE_ID0] = PPM_SC_UNLINK,
 	[__NR_chdir - SYSCALL_TABLE_ID0] = PPM_SC_CHDIR,
+#ifdef __NR_time
 	[__NR_time - SYSCALL_TABLE_ID0] = PPM_SC_TIME,
+#endif
 	[__NR_mknod - SYSCALL_TABLE_ID0] = PPM_SC_MKNOD,
 	[__NR_chmod - SYSCALL_TABLE_ID0] = PPM_SC_CHMOD,
 /* [__NR_lchown16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_LCHOWN16, */
@@ -385,9 +387,6 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_getdents - SYSCALL_TABLE_ID0] = PPM_SC_GETDENTS,
 #ifdef __NR_select
 	[__NR_select - SYSCALL_TABLE_ID0] = PPM_SC_SELECT,
-#endif
-#ifdef __NR_time
-	[__NR_time - SYSCALL_TABLE_ID0] = PPM_SC_TIME,
 #endif
 	[__NR_flock - SYSCALL_TABLE_ID0] = PPM_SC_FLOCK,
 	[__NR_msync - SYSCALL_TABLE_ID0] = PPM_SC_MSYNC,
