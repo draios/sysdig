@@ -104,6 +104,8 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cps" $TRACEDIR $RESULTDIR/ps 
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-j -n 10000" $TRACEDIR $RESULTDIR/fd_fields_json $BASELINEDIR/fd_fields_json || ret=1
 # Sessions
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p '*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info sid=%proc.sid sname=%proc.sname'" $TRACEDIR $RESULTDIR/sessions $BASELINEDIR/sessions || ret=1
+# Cwd
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-pc -p\"*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info %proc.cwd\"" $TRACEDIR $RESULTDIR/cwd $BASELINEDIR/cwd || ret=1
 
 rm -rf "${TMPBASE}"
 exit $ret
