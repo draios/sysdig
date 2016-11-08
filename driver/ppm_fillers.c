@@ -1006,7 +1006,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
-	char *spwd;
+	char *spwd = "";
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -1149,14 +1149,9 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * cwd
+	 * cwd, pushed empty to avoid breaking compatibility
+	 * with the older event format
 	 */
-	spwd = npm_getcwd(args->str_storage, STR_STORAGE_SIZE - 1);
-	if (spwd == NULL)
-		spwd = "";
-
-	args->str_storage[STR_STORAGE_SIZE - 1] = '\0';
-
 	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;

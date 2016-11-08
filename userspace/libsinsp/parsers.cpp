@@ -1189,15 +1189,15 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_pid = childtid;
 	}
 
-	//
-	// Copy the fd list
-	// XXX this is a gross oversimplification that will need to be fixed.
-	// What we do is: if the child is NOT a thread, we copy all the parent fds.
-	// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
-	// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
-	//
 	if(!(tinfo.m_flags & PPM_CL_CLONE_THREAD))
 	{
+		//
+		// Copy the fd list
+		// XXX this is a gross oversimplification that will need to be fixed.
+		// What we do is: if the child is NOT a thread, we copy all the parent fds.
+		// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
+		// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
+		//
 		tinfo.m_fdtable = *(ptinfo->get_fd_table());
 
 		//
@@ -1205,6 +1205,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// referring to an element in the parent's table.
 		//
 		tinfo.m_fdtable.reset_cache();
+
+		//
+		// Not a thread, copy cwd
+		//
+		tinfo.m_cwd = ptinfo->m_cwd;
 	}
 	//if((tinfo.m_flags & (PPM_CL_CLONE_FILES)))
 	//{
@@ -1244,10 +1249,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Get the command arguments
 	parinfo = evt->get_param(2);
 	tinfo.set_args(parinfo->m_val, parinfo->m_len);
-
-	// Copy the working directory
-	parinfo = evt->get_param(6);
-	tinfo.set_cwd(parinfo->m_val, parinfo->m_len);
 
 	// Copy the fdlimit
 	parinfo = evt->get_param(7);
@@ -1484,10 +1485,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(4);
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	evt->m_tinfo->m_pid = *(uint64_t *)parinfo->m_val;
-
-	// Get the working directory
-	parinfo = evt->get_param(6);
-	evt->m_tinfo->set_cwd(parinfo->m_val, parinfo->m_len);
 
 	// Get the fdlimit
 	parinfo = evt->get_param(7);
