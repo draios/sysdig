@@ -1007,6 +1007,9 @@ private:
 	friend class sinsp_network_interfaces;
 	friend class k8s_delegator;
 
+#ifdef HAS_ANALYZER
+	friend class thread_analyzer_info;
+#endif
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 
