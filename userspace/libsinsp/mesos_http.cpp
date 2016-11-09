@@ -173,7 +173,7 @@ void mesos_http::discover_mesos_leader()
 						std::string::size_type pos = leader_address.find('@');
 						if(pos != std::string::npos && (pos + 1) < leader_address.size())
 						{
-							std::string address = "http://";
+							std::string address = m_url.get_scheme() + "://";
 							if(!m_mesos.m_mesos_credentials.first.empty())
 							{
 								address.append(m_mesos.m_mesos_credentials.first).append(1, ':').append(m_mesos.m_mesos_credentials.second).append(1, '@');
@@ -548,7 +548,7 @@ void mesos_http::send_request()
 	{
 		throw sinsp_exception("mesos_http: Mesos send socket connection error.");
 	}
-	else if(!wait(1))
+	else if(!wait(0))
 	{
 		throw sinsp_exception("mesos_http: Mesos send timeout.");
 	}
