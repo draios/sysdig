@@ -679,7 +679,6 @@ bool mesos_http::on_data()
 	CURLcode ret;
 	try
 	{
-		int loop_counter = 0;
 		do
 		{
 			check_error(ret = curl_easy_recv(m_select_curl, buf, sizeof(buf), &iolen));
@@ -688,7 +687,6 @@ bool mesos_http::on_data()
 				data.append(buf, iolen);
 			}
 			else if(ret != CURLE_AGAIN) { goto connection_closed; }
-			++loop_counter;
 		} while(iolen && ret != CURLE_AGAIN);
 		if(data.size())
 		{
