@@ -204,7 +204,7 @@ bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container,
 			else
 			{
 				g_logger.log("Mesos task ID not found for Mesos container [" + container->m_id + "],"
-							 "thread [" + std::to_string(tinfo->m_tid) + ']', sinsp_logger::SEV_WARNING);
+							 "thread [" + std::to_string(tinfo->m_tid) + ']', sinsp_logger::SEV_DEBUG);
 			}
 		}
 	}

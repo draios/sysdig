@@ -35,6 +35,9 @@ public:
 	const std::string& get_query() const;
 	int get_port() const;
 
+	void set_scheme(std::string scheme);
+	void set_host(std::string host);
+
 	bool is(const std::string& proto);
 	bool is_file() const;
 	bool is_secure() const;
@@ -70,6 +73,11 @@ inline const std::string& uri::get_scheme() const
 	return m_scheme;
 }
 
+inline void uri::set_scheme(std::string scheme)
+{
+	m_scheme = move(scheme);
+}
+
 inline const std::string& uri::get_user() const
 {
 	return m_user;
@@ -83,6 +91,11 @@ inline const std::string& uri::get_password() const
 inline const std::string& uri::get_host() const
 {
 	return m_host;
+}
+
+inline void uri::set_host(std::string host)
+{
+	m_host = move(host);
 }
 
 inline const std::string& uri::get_path() const
