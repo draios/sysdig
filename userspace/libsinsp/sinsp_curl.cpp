@@ -15,6 +15,25 @@
 #include <unistd.h>
 #include <cstring>
 
+sinsp_curl_http_headers::sinsp_curl_http_headers():
+	m_curl_header_list(NULL)
+{
+
+}
+
+sinsp_curl_http_headers::~sinsp_curl_http_headers()
+{
+	if(m_curl_header_list)
+	{
+		curl_slist_free_all(m_curl_header_list);
+	}
+}
+
+void sinsp_curl_http_headers::add(const string& header)
+{
+	m_curl_header_list = curl_slist_append(m_curl_header_list, header.c_str());
+}
+
 sinsp_curl::data sinsp_curl::m_config;
 
 sinsp_curl::sinsp_curl(const uri& url, long timeout_ms, bool debug):
@@ -73,6 +92,7 @@ void sinsp_curl::init()
 	}
 
 	enable_debug(m_curl, m_debug);
+	m_response_code = -1;
 }
 
 sinsp_curl::~sinsp_curl()
@@ -171,6 +191,7 @@ size_t sinsp_curl::header_callback(char *buffer, size_t size, size_t nitems, voi
 {
 	size_t sz = nitems * size;
 	std::string buf(buffer, sz);
+	
 	const std::string loc = "Location:";
 	const std::string nl = "\r\n";
 	std::string::size_type loc_pos = buf.find(loc);
@@ -201,8 +222,8 @@ size_t sinsp_curl::header_callback(char *buffer, size_t size, size_t nitems, voi
 		if(sz < CURL_MAX_HTTP_HEADER)
 		{
 			g_logger.log("HTTP redirect Location: (" + buf + ')', sinsp_logger::SEV_TRACE);
-			std::strncpy((char*)userdata, buf.data(), sz);
-			((char*)userdata)[sz] = 0;
+			std::strncpy((char*) userdata, buf.data(), sz);
+			((char*) userdata)[sz] = 0;
 		}
 	}
 	return nitems * size;
@@ -248,6 +269,13 @@ bool sinsp_curl::handle_redirect(uri& url, std::string&& loc, std::ostream& os)
 	return false;
 }
 
+size_t read_data(void* buffer, size_t size, size_t nmemb, void* instream)
+{
+	auto body = (stringstream*) instream;
+	body->read((char*) buffer, size*nmemb);
+	return body->gcount();
+}
+
 bool sinsp_curl::get_data(std::ostream& os)
 {
 	CURLcode res = CURLE_OK;
@@ -260,7 +288,12 @@ bool sinsp_curl::get_data(std::ostream& os)
 	check_error(curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate"));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &sinsp_curl::write_data));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os));
-
+	check_error(curl_easy_setopt(m_curl, CURLOPT_READFUNCTION, &read_data));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_READDATA, &m_body));
+	if(m_headers.ptr() != NULL)
+	{
+		setopt(CURLOPT_HTTPHEADER, m_headers.ptr());
+	}
 	res = curl_easy_perform(m_curl);
 	if(res != CURLE_OK)
 	{
@@ -270,16 +303,15 @@ bool sinsp_curl::get_data(std::ostream& os)
 	{
 		// HTTP errors are not returned by curl API
 		// error will be in the response stream
-		long http_code = 0;
-		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code));
-		if(http_code >= 400)
+		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &m_response_code));
+		if(m_response_code >= 400)
 		{
-			g_logger.log("CURL HTTP error: " + std::to_string(http_code), sinsp_logger::SEV_ERROR);
+			g_logger.log("CURL HTTP error: " + std::to_string(m_response_code), sinsp_logger::SEV_ERROR);
 			return false;
 		}
-		else if(is_redirect(http_code))
+		else if(is_redirect(m_response_code))
 		{
-			g_logger.log("HTTP redirect (" + std::to_string(http_code) + ')', sinsp_logger::SEV_DEBUG);
+			g_logger.log("HTTP redirect (" + std::to_string(m_response_code) + ')', sinsp_logger::SEV_DEBUG);
 			if(handle_redirect(m_uri, std::string(m_redirect), os))
 			{
 				std::ostringstream* pos = dynamic_cast<std::ostringstream*>(&os);
@@ -415,6 +447,13 @@ int sinsp_curl::trace(CURL *handle, curl_infotype type, char *data, size_t size,
 	}
 	dump(text, (unsigned char *)data, size, config->trace_ascii);
 	return 0;
+}
+
+void sinsp_curl::set_body(const string& data)
+{
+	m_body.clear();
+	m_body << data;
+	add_header(string("Content-Length: ") + to_string(data.size()));
 }
 
 #endif // __linux__
