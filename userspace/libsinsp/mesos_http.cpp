@@ -63,7 +63,6 @@ mesos_http::mesos_http(mesos& m, const uri& url,
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 
 	check_error(curl_easy_setopt(m_select_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
-	check_error(curl_easy_setopt(m_select_curl, CURLOPT_TCP_KEEPALIVE, 1));
 	discover_mesos_leader();
 }
 
