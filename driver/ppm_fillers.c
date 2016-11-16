@@ -812,7 +812,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	int subsys_len;
 	char *path;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) || LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	int res;
 #endif
 
@@ -832,7 +832,17 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 		return 1;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	// According to https://github.com/torvalds/linux/commit/4c737b41de7f4eef2a593803bad1b918dd718b10
+	// cgroup_path now returns an int again
+	res = cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = buf;
+	}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 	path = cgroup_path(css->cgroup, buf, *available);
 	if (!path) {
 		ASSERT(false);
