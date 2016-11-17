@@ -18,6 +18,7 @@ REPOSITORY_NAME=$3
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 URL_TIMEOUT=300
+RETRY=10
 
 if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
@@ -141,7 +142,7 @@ function coreos_build_old {
 	cd $COREOS_DIR
 
 	if [ ! -f config_orig ]; then
-		wget --timeout=${URL_TIMEOUT} ${VERSION_URL}coreos_developer_container.bin.bz2
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 		sudo kpartx -asv coreos_developer_container.bin
 		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
@@ -163,7 +164,7 @@ function coreos_build_old {
 	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/$TGZ_NAME
 
 	if [ ! -f $TGZ_NAME ]; then
-		wget --timeout=${URL_TIMEOUT} $KERNEL_URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
 	fi
 
 	if [ ! -d $DIR_NAME ]; then
@@ -198,7 +199,7 @@ function coreos_build_new {
 	cd $COREOS_DIR
 
 	if [ ! -f coreos_developer_container.bin ]; then
-		wget --timeout=${URL_TIMEOUT} ${VERSION_URL}coreos_developer_container.bin.bz2
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 	fi
 	sudo kpartx -asv coreos_developer_container.bin
@@ -246,7 +247,7 @@ function boot2docker_build {
 
 	if [ ! -f $TGZ_NAME ]; then
 		echo Downloading $TGZ_NAME [Boot2Docker]
-		wget --timeout=${URL_TIMEOUT} $KERNEL_URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
 	fi
 
 	if [ ! -d $DIR_NAME ]; then
@@ -269,7 +270,7 @@ function boot2docker_build {
 		; do \
 	        patch -p1 < "$patch"; \
 		done
-		wget --timeout=${URL_TIMEOUT} -O .config $KERNEL_CONFIG
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -O .config $KERNEL_CONFIG
 		cp .config ../config-orig
 		make olddefconfig
 		make modules_prepare
@@ -308,7 +309,7 @@ function ubuntu_build {
 
 	if [ ! -f $DEB ]; then
 		echo Downloading $DEB [Ubuntu]
-		wget --timeout=${URL_TIMEOUT} $URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
 		dpkg -x $DEB ./
 	fi
 
@@ -350,7 +351,7 @@ function rhel_build {
 
 	if [ ! -f $RPM ]; then
 		echo Downloading $RPM [RHEL and CentOS]
-		wget --timeout=${URL_TIMEOUT} $URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
 		rpm2cpio $RPM | cpio -idm
 	fi
 
@@ -388,7 +389,7 @@ function debian_build {
 		fi
 		if [ ! -f ${BASEDIR}/common-dependencies/debian/kbuild/${DEB} ]; then
 			echo Downloading ${DEB} [Ubuntu]
-			wget --timeout=${URL_TIMEOUT} -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
+			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
 		fi
 		return
 	else
@@ -410,7 +411,7 @@ function debian_build {
 
 		if [ ! -f ${DEB} ]; then
 			echo Downloading ${DEB} [Ubuntu]
-			wget --timeout=${URL_TIMEOUT} ${URL}
+			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${URL}
 			dpkg -x ${DEB} ./
 		fi
 	fi
