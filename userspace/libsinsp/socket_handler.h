@@ -335,15 +335,7 @@ public:
 		do
 		{
 			int count = 0;
-			int ioret = 0;
-			if(m_url.is_secure())
-			{
-				count = SSL_pending(m_ssl_connection);
-			}
-			else
-			{
-				ioret = ioctl(m_socket, FIONREAD, &count);
-			}
+			int ioret = ioctl(m_socket, FIONREAD, &count);
 			if(ioret >= 0 && count > 0)
 			{
 				buf.resize(count);
@@ -382,7 +374,7 @@ public:
 									  "unable to retrieve data from " + m_url.to_string(false) + m_path +
 									  " (" + std::to_string(counter) + " attempts)");
 			}
-			else { usleep(100); }
+			else { usleep(10000); }
 		} while(!m_msg_completed);
 
 		return processed;
