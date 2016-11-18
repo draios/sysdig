@@ -329,8 +329,9 @@ public:
 		ssize_t rec = 0;
 		std::vector<char> buf(1024, 0);
 		std::string data;
-		bool data_received = false;
 		int counter = 0;
+		int processed = 0;
+		m_msg_completed = false;
 		do
 		{
 			int count = 0;
@@ -345,7 +346,6 @@ public:
 			}
 			if(ioret >= 0 && count > 0)
 			{
-				data_received = true;
 				buf.resize(count);
 				if(m_url.is_secure())
 				{
@@ -367,27 +367,25 @@ public:
 				{
 					throw sinsp_exception("Socket handler (" + m_id + "): " + strerror(errno));
 				}
-				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) + "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
+				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) +
+				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 			}
-			else
+			if(data.size())
 			{
-				if(data_received && ++counter > 10)
-				{
-					break;
-				}
-				else
-				{
-					usleep(100);
-				}
+				process(data);
+				processed += data.size();
+				data.clear();
 			}
-		} while(true);
-		if(data.size())
-		{
-			parse_http(data);
-			process_json();
-			return data.size();
-		}
-		return 0;
+			if(++counter > 10000)
+			{
+				throw sinsp_exception("Socket handler (" + m_id + "): "
+									  "unable to retrieve data from " + m_url.to_string(false) + m_path +
+									  " (" + std::to_string(counter) + " attempts)");
+			}
+			else { usleep(100); }
+		} while(!m_msg_completed);
+
+		return processed;
 	}
 
 	bool is_chunked_end_char(char c)
@@ -465,6 +463,29 @@ public:
 			}
 			js = m_json.erase(js);
 		}
+	}
+
+	int process(const std::string& data)
+	{
+		if(data.size())
+		{
+			check_chunked_end(data);
+			parse_http(data);
+			if(m_chunked_end.find("0\r\n\r\n") != std::string::npos)
+			{
+				m_data_buf.clear();
+				// In HTTP 1.1 connnections with chunked transfer, this socket may not be closed by server,
+				// (K8s API server is an example of such behavior), in which case the chunked data will just
+				// stop flowing. We can keep the good socket and resend the request instead of severing the
+				// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
+				// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
+				// set the m_close_on_chunked_end flag to true (default).
+				if(m_close_on_chunked_end) { return CONNECTION_CLOSED; }
+				else { m_wants_send = true; }
+			}
+			else { process_json(); }
+		}
+		return 0;
 	}
 
 	int on_data()
@@ -553,23 +574,9 @@ public:
 					}
 				}
 			} while(iolen && m_sock_err != EAGAIN);
-			if(data.size())
+			if(CONNECTION_CLOSED == process(data))
 			{
-				check_chunked_end(data);
-				parse_http(data);
-				if(m_chunked_end.find("0\r\n\r\n") != std::string::npos)
-				{
-					m_data_buf.clear();
-					// In HTTP 1.1 connnections with chunked transfer, this socket may not be closed by server,
-					// (K8s API server is an example of such behavior), in which case the chunked data will just
-					// stop flowing. We can keep the good socket and resend the request instead of severing the
-					// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
-					// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
-					// set the m_close_on_chunked_end flag to true (default).
-					if(m_close_on_chunked_end) { return CONNECTION_CLOSED; }
-					else { m_wants_send = true; }
-				}
-				else { process_json(); }
+				return CONNECTION_CLOSED;
 			}
 		}
 		catch(sinsp_exception& ex)
@@ -1508,6 +1515,7 @@ private:
 	{
 		std::string*              m_data_buf = nullptr;
 		std::vector<std::string>* m_json = nullptr;
+		bool* m_msg_completed = nullptr;
 	};
 
 	static int http_body_callback(http_parser* parser, const char* data, size_t len)
@@ -1535,15 +1543,32 @@ private:
 		return 0;
 	}
 
+	static int http_msg_completed_callback(http_parser* parser)
+	{
+		if(parser && parser->data)
+		{
+			http_parser_data* parser_data = (http_parser_data*) parser->data;
+			if(parser_data->m_msg_completed)
+			{
+				*(parser_data->m_msg_completed) = true;
+			}
+			else { throw sinsp_exception("Socket handler: parser msg complete null."); }
+		}
+		else { throw sinsp_exception("Socket handler: parser or data null."); }
+		return 0;
+	}
+
 	void init_http_parser()
 	{
 		http_parser_settings_init(&m_http_parser_settings);
-		m_http_parser_settings.on_body = &socket_data_handler<T>::http_body_callback;
+		m_http_parser_settings.on_body = http_body_callback;
+		m_http_parser_settings.on_message_complete = http_msg_completed_callback;
 		m_http_parser = (http_parser *)std::malloc(sizeof(http_parser));
 		if(m_http_parser)
 		{
 			m_http_parser_data.m_data_buf = &m_data_buf;
 			m_http_parser_data.m_json = &m_json;
+			m_http_parser_data.m_msg_completed = &m_msg_completed;
 			http_parser_init(m_http_parser, HTTP_RESPONSE);
 			m_http_parser->data = &m_http_parser_data;
 		}
@@ -1595,6 +1620,7 @@ private:
 	bool                     m_check_chunked = false;
 	bool                     m_close_on_chunked_end = true;
 	bool                     m_wants_send = false;
+	bool                     m_msg_completed = false;
 	http_parser_settings     m_http_parser_settings;
 	http_parser*             m_http_parser = nullptr;
 	http_parser_data         m_http_parser_data;
