@@ -177,7 +177,9 @@ mesos::mesos(const std::string& state_uri,
 
 mesos::~mesos()
 {
+#ifdef HAS_CAPTURE
 	curl_global_cleanup();
+#endif // HAS_CAPTURE
 }
 
 void mesos::init()
@@ -232,6 +234,7 @@ void mesos::init_marathon()
 
 void mesos::refresh_token()
 {
+#ifdef HAS_CAPTURE
 	authenticate();
 	m_state_http->set_token(m_token);
 	if(has_marathon())
@@ -259,10 +262,12 @@ void mesos::refresh_token()
 			}
 		}
 	}
+#endif // HAS_CAPTURE
 }
 
 void mesos::authenticate()
 {
+#ifdef HAS_CAPTURE
 	sinsp_curl auth_request(uri("https://localhost/acs/api/v1/auth/login"), "", "");
 	Json::FastWriter json_writer;
 	Json::Value auth_obj;
@@ -292,6 +297,7 @@ void mesos::authenticate()
 	{
 		throw sinsp_exception(string("Cannot authenticate on Mesos master, response_code=") + to_string(auth_request.get_response_code()));
 	}
+#endif // HAS_CAPTURE
 }
 
 void mesos::refresh()
