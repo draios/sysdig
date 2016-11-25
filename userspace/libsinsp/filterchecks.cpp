@@ -4963,7 +4963,7 @@ inline bool sinsp_filter_check_evtin::compare_tracer(sinsp_evt *evt, sinsp_parti
 		{
 			memcpy(p, *it, (*sit));
 			p += (*sit);
-			*p++ = ',';
+			*p++ = '.';
 		}
 
 		if(p != m_storage)
