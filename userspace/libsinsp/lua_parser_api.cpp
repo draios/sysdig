@@ -212,7 +212,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 		chk->m_boolop = parser->m_last_boolop;
 		parser->m_last_boolop = BO_NONE;
 
-		chk->parse_field_name(fld, true);
+		chk->parse_field_name(fld, true, true);
 
 		const char* cmpop = luaL_checkstring(ls, 2);
 		chk->m_cmpop = string_to_cmpop(cmpop);
