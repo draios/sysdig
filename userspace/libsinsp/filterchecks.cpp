@@ -1396,7 +1396,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	string val(str);
 
@@ -1461,7 +1461,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint64_t));
 		}
 
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 	else if(string(val, 0, sizeof("thread.cgroup") - 1) == "thread.cgroup" &&
 			string(val, 0, sizeof("thread.cgroups") - 1) != "thread.cgroups")
@@ -1478,11 +1478,11 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint64_t));
 		}
 
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 	else
 	{
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 }
 
@@ -2428,7 +2428,7 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	string val(str);
 	int32_t res = 0;
@@ -2475,7 +2475,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint16_t));
 		}
 
-		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 	else if(string(val, 0, sizeof("evt.abspath") - 1) == "evt.abspath")
 	{
@@ -2510,7 +2510,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	}
 	else
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 
 	return res;
@@ -4157,7 +4157,7 @@ int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT c
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	int32_t res;
 	string val(str);
@@ -4219,7 +4219,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 	}
 	else
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 
 	if(m_field_id == TYPE_DURATION ||
@@ -4750,7 +4750,7 @@ int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	int32_t res;
 	string val(str);
@@ -4829,7 +4829,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_s
 	}
 	else
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 
 	return res;
@@ -5239,7 +5239,7 @@ void rawstring_check::set_text(string text)
 	m_text = text;
 }
 
-int32_t rawstring_check::parse_field_name(const char* str, bool alloc_state)
+int32_t rawstring_check::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	ASSERT(false);
 	return -1;
@@ -5276,9 +5276,9 @@ sinsp_filter_check* sinsp_filter_check_syslog::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_syslog();
 }
 
-int32_t sinsp_filter_check_syslog::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_syslog::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
-	int32_t res = sinsp_filter_check::parse_field_name(str, alloc_state);
+	int32_t res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	if(res != -1)
 	{
 		m_decoder = (sinsp_decoder_syslog*)m_inspector->require_protodecoder("syslog");
@@ -5379,7 +5379,7 @@ int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t base
 	return end+1;
 }
 
-int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	string val(str);
 	int32_t res = 0;
@@ -5429,7 +5429,7 @@ int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool all
 	}
 	else
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state);
+		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 
 	return res;
@@ -5762,7 +5762,7 @@ sinsp_filter_check* sinsp_filter_check_reference::allocate_new()
 	return NULL;
 }
 
-int32_t sinsp_filter_check_reference::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_reference::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	ASSERT(false);
 	return -1;
@@ -6360,7 +6360,7 @@ sinsp_filter_check* sinsp_filter_check_k8s::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_k8s();
 }
 
-int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	string val(str);
 
@@ -6414,7 +6414,7 @@ int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_sta
 	}
 	else
 	{
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 }
 
@@ -6915,7 +6915,7 @@ sinsp_filter_check* sinsp_filter_check_mesos::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_mesos();
 }
 
-int32_t sinsp_filter_check_mesos::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check_mesos::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	string val(str);
 
@@ -6937,7 +6937,7 @@ int32_t sinsp_filter_check_mesos::parse_field_name(const char* str, bool alloc_s
 	}
 	else
 	{
-		return sinsp_filter_check::parse_field_name(str, alloc_state);
+		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 }
 
