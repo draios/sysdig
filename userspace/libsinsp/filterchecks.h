@@ -669,6 +669,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val);
+	inline uint8_t* extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;
