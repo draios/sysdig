@@ -197,7 +197,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		if(etype == PPME_SYSCALL_WRITE_X)
 		{
 			//
-			// Check if this is a user event
+			// Check if this is a tracer
 			//
 			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
