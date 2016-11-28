@@ -17,6 +17,8 @@ PROBE_VERSION=$2
 REPOSITORY_NAME=$3
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
+URL_TIMEOUT=300
+RETRY=10
 
 if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
@@ -79,6 +81,10 @@ function build_sysdigcloud {
 			git clone git@github.com:draios/sysdig.git
 		fi
 
+		if [ ! -d falco ]; then
+			git clone git@github.com:draios/falco.git
+		fi
+
 		if [ ! -d agent ]; then
 			git clone git@github.com:draios/agent.git
 		fi
@@ -90,6 +96,14 @@ function build_sysdigcloud {
 		make -C driver clean || true
 		rm -rf build || true
 		cd ..
+
+		cd falco
+		git checkout master
+		git pull
+		git checkout agent/$PROBE_VERSION
+		rm -fr build || true
+		cd ..
+		
 		cd agent
 		git checkout master
 		git pull
@@ -128,7 +142,7 @@ function coreos_build_old {
 	cd $COREOS_DIR
 
 	if [ ! -f config_orig ]; then
-		wget ${VERSION_URL}coreos_developer_container.bin.bz2
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 		sudo kpartx -asv coreos_developer_container.bin
 		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
@@ -150,7 +164,7 @@ function coreos_build_old {
 	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/$TGZ_NAME
 
 	if [ ! -f $TGZ_NAME ]; then
-		wget $KERNEL_URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
 	fi
 
 	if [ ! -d $DIR_NAME ]; then
@@ -185,7 +199,7 @@ function coreos_build_new {
 	cd $COREOS_DIR
 
 	if [ ! -f coreos_developer_container.bin ]; then
-		wget ${VERSION_URL}coreos_developer_container.bin.bz2
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 	fi
 	sudo kpartx -asv coreos_developer_container.bin
@@ -195,9 +209,12 @@ function coreos_build_new {
 
 	cp /tmp/loop/usr/boot/config-* .
 	cp config-* config_orig
+	cp config_orig config
+	# https://groups.google.com/forum/#!topic/coreos-dev/Z8Q7sIy6YwE
+	sed -i 's/CONFIG_INITRAMFS_SOURCE=""/CONFIG_INITRAMFS_SOURCE="bootengine.cpio"\nCONFIG_INITRAMFS_ROOT_UID=0\nCONFIG_INITRAMFS_ROOT_GID=0/' config
 	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
 	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
-	HASH=$HASH_ORIG
+	HASH=$(md5sum config | cut -d' ' -f1)
 
 	cd $BASEDIR
 	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
@@ -230,7 +247,7 @@ function boot2docker_build {
 
 	if [ ! -f $TGZ_NAME ]; then
 		echo Downloading $TGZ_NAME [Boot2Docker]
-		wget $KERNEL_URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
 	fi
 
 	if [ ! -d $DIR_NAME ]; then
@@ -253,7 +270,7 @@ function boot2docker_build {
 		; do \
 	        patch -p1 < "$patch"; \
 		done
-		wget -O .config $KERNEL_CONFIG
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -O .config $KERNEL_CONFIG
 		cp .config ../config-orig
 		make olddefconfig
 		make modules_prepare
@@ -292,7 +309,7 @@ function ubuntu_build {
 
 	if [ ! -f $DEB ]; then
 		echo Downloading $DEB [Ubuntu]
-		wget $URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
 		dpkg -x $DEB ./
 	fi
 
@@ -334,7 +351,7 @@ function rhel_build {
 
 	if [ ! -f $RPM ]; then
 		echo Downloading $RPM [RHEL and CentOS]
-		wget $URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
 		rpm2cpio $RPM | cpio -idm
 	fi
 
@@ -372,7 +389,7 @@ function debian_build {
 		fi
 		if [ ! -f ${BASEDIR}/common-dependencies/debian/kbuild/${DEB} ]; then
 			echo Downloading ${DEB} [Ubuntu]
-			wget -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
+			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
 		fi
 		return
 	else
@@ -394,7 +411,7 @@ function debian_build {
 
 		if [ ! -f ${DEB} ]; then
 			echo Downloading ${DEB} [Ubuntu]
-			wget ${URL}
+			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${URL}
 			dpkg -x ${DEB} ./
 		fi
 	fi

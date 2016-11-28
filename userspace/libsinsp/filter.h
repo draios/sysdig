@@ -38,7 +38,9 @@ enum cmpop {
 	CO_IN = 8,
 	CO_EXISTS = 9,
 	CO_ICONTAINS = 10,
-	CO_STARTSWITH = 11
+	CO_STARTSWITH = 11,
+	CO_GLOB = 12,
+	CO_PMATCH = 13
 };
 
 enum boolop

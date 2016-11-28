@@ -95,11 +95,6 @@ int32_t sinsp_evt::get_check_id()
 	return m_check_id;
 }
 
-uint64_t sinsp_evt::get_ts()
-{
-	return m_pevt->ts;
-}
-
 uint32_t sinsp_evt::get_dump_flags()
 {
 	return scap_event_get_dump_flags(m_inspector->m_h);
@@ -138,11 +133,6 @@ sinsp_threadinfo* sinsp_evt::get_thread_info(bool query_os_if_not_found)
 	}
 
 	return m_inspector->get_thread(m_pevt->tid, query_os_if_not_found, false);
-}
-
-sinsp_fdinfo_t* sinsp_evt::get_fd_info()
-{
-	return m_fdinfo;
 }
 
 int64_t sinsp_evt::get_fd_num()

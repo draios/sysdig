@@ -13,6 +13,26 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstring>
+
+sinsp_curl_http_headers::sinsp_curl_http_headers():
+	m_curl_header_list(NULL)
+{
+
+}
+
+sinsp_curl_http_headers::~sinsp_curl_http_headers()
+{
+	if(m_curl_header_list)
+	{
+		curl_slist_free_all(m_curl_header_list);
+	}
+}
+
+void sinsp_curl_http_headers::add(const string& header)
+{
+	m_curl_header_list = curl_slist_append(m_curl_header_list, header.c_str());
+}
 
 sinsp_curl::data sinsp_curl::m_config;
 
@@ -72,6 +92,7 @@ void sinsp_curl::init()
 	}
 
 	enable_debug(m_curl, m_debug);
+	m_response_code = -1;
 }
 
 sinsp_curl::~sinsp_curl()
@@ -151,29 +172,128 @@ void sinsp_curl::init_ssl(CURL* curl, ssl::ptr_t ssl_data)
 	}
 }
 
-string sinsp_curl::get_data()
+string sinsp_curl::get_data(bool do_log)
 {
 	std::ostringstream os;
 	if(get_data(os))
 	{
 		return os.str();
 	}
-	g_logger.log("CURL error: [" + os.str() + ']', sinsp_logger::SEV_ERROR);
+	if(do_log)
+	{
+		g_logger.log("CURL error while connecting to " + m_uri.to_string(false) + ", "
+					 "response: [" + os.str() + ']', sinsp_logger::SEV_ERROR);
+	}
 	return "";
+}
+
+size_t sinsp_curl::header_callback(char *buffer, size_t size, size_t nitems, void *userdata)
+{
+	size_t sz = nitems * size;
+	std::string buf(buffer, sz);
+	
+	const std::string loc = "Location:";
+	const std::string nl = "\r\n";
+	std::string::size_type loc_pos = buf.find(loc);
+	std::string::size_type nl_pos = buf.find(nl);
+	if((loc_pos != std::string::npos) && (nl_pos != std::string::npos) &&
+	   (nl_pos - loc.length() > (loc + nl).length()))
+	{
+		std::string::size_type url_pos = buf.find("http://", loc_pos);
+		if(url_pos == std::string::npos)
+		{
+			url_pos = buf.find("//", loc_pos);
+			if(url_pos != std::string::npos) // still absolute
+			{
+				buf = buf.substr(url_pos, nl_pos-url_pos);
+				buf.insert(0, "http:");
+			}
+			else // relative
+			{
+				buf = buf.substr(loc.length(), nl_pos-loc.length());
+			}
+		}
+		else
+		{
+			buf = buf.substr(url_pos, nl_pos-url_pos);
+		}
+		trim(buf);
+		sz = buf.length();
+		if(sz < CURL_MAX_HTTP_HEADER)
+		{
+			g_logger.log("HTTP redirect Location: (" + buf + ')', sinsp_logger::SEV_TRACE);
+			std::strncpy((char*) userdata, buf.data(), sz);
+			((char*) userdata)[sz] = 0;
+		}
+	}
+	return nitems * size;
+}
+
+bool sinsp_curl::is_redirect(long http_code)
+{
+	return ((http_code >= 301 && http_code <= 303) ||
+			(http_code >= 307 && http_code <= 308));
+}
+
+bool sinsp_curl::handle_redirect(uri& url, std::string&& loc, std::ostream& os)
+{
+	if(!loc.empty())
+	{
+		g_logger.log("HTTP redirect  received from [" + url.to_string(false) + ']',
+					 sinsp_logger::SEV_INFO);
+		std::string::size_type url_pos = loc.find("//");
+		if(url_pos != std::string::npos)
+		{
+			uri::credentials_t creds;
+			url.get_credentials(creds);
+			url = trim(loc);
+			if(!creds.first.empty())
+			{
+				url.set_credentials(creds);
+			}
+		}
+		else // location relative, take just path
+		{
+			url.set_path(trim(loc));
+		}
+		g_logger.log("HTTP redirecting to [" + url.to_string(false) + "].",
+					 sinsp_logger::SEV_INFO);
+		return true;
+	}
+	else
+	{
+		g_logger.log("CURL redirect received from [" + url.to_string(false) + "], "
+					 "but location not found.", sinsp_logger::SEV_ERROR);
+		return false;
+	}
+	return false;
+}
+
+size_t read_data(void* buffer, size_t size, size_t nmemb, void* instream)
+{
+	auto body = (stringstream*) instream;
+	body->read((char*) buffer, size*nmemb);
+	return body->gcount();
 }
 
 bool sinsp_curl::get_data(std::ostream& os)
 {
 	CURLcode res = CURLE_OK;
 	check_error(curl_easy_setopt(m_curl, CURLOPT_URL, m_uri.to_string().c_str()));
-	check_error(curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_HEADERDATA, m_redirect));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_HEADERFUNCTION, header_callback));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_CONNECTTIMEOUT, static_cast<int>(m_timeout_ms / 1000)));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1)); //Prevent "longjmp causes uninitialized stack frame" bug
 	check_error(curl_easy_setopt(m_curl, CURLOPT_ACCEPT_ENCODING, "deflate"));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &sinsp_curl::write_data));
 	check_error(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &os));
-
+	check_error(curl_easy_setopt(m_curl, CURLOPT_READFUNCTION, &read_data));
+	check_error(curl_easy_setopt(m_curl, CURLOPT_READDATA, &m_body));
+	if(m_headers.ptr() != NULL)
+	{
+		setopt(CURLOPT_HTTPHEADER, m_headers.ptr());
+	}
 	res = curl_easy_perform(m_curl);
 	if(res != CURLE_OK)
 	{
@@ -183,12 +303,31 @@ bool sinsp_curl::get_data(std::ostream& os)
 	{
 		// HTTP errors are not returned by curl API
 		// error will be in the response stream
-		long http_code = 0;
-		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code));
-		if(http_code >= 400)
+		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &m_response_code));
+		if(m_response_code >= 400)
 		{
-			g_logger.log("CURL HTTP error: " + std::to_string(http_code), sinsp_logger::SEV_ERROR);
+			g_logger.log("CURL HTTP error: " + std::to_string(m_response_code), sinsp_logger::SEV_ERROR);
 			return false;
+		}
+		else if(is_redirect(m_response_code))
+		{
+			g_logger.log("HTTP redirect (" + std::to_string(m_response_code) + ')', sinsp_logger::SEV_DEBUG);
+			if(handle_redirect(m_uri, std::string(m_redirect), os))
+			{
+				std::ostringstream* pos = dynamic_cast<std::ostringstream*>(&os);
+				if(pos)
+				{
+					pos->str("");
+					return get_data(*pos);
+				}
+				else
+				{
+					g_logger.log("HTTP redirect received from [" + m_uri.to_string(false) + "] but "
+							 "output stream can not be obtained (dynamic cast failed).",
+							 sinsp_logger::SEV_ERROR);
+					return false;
+				}
+			}
 		}
 	}
 
@@ -310,122 +449,11 @@ int sinsp_curl::trace(CURL *handle, curl_infotype type, char *data, size_t size,
 	return 0;
 }
 
-//
-// bearer_token
-//
-
-sinsp_curl::bearer_token::bearer_token(const std::string& bearer_token_file):
-	m_bearer_token(stringize_file(bearer_token_file)), m_bt_auth_header(0)
+void sinsp_curl::set_body(const string& data)
 {
-	std::size_t len = m_bearer_token.length(); // curl does not tolerate newlines in headers
-	while(len && (m_bearer_token[len-1] == '\r' || m_bearer_token[len-1] == '\n'))
-	{
-		m_bearer_token.erase(len-1);
-		len = m_bearer_token.length();
-	}
-	if(len)
-	{
-		std::string hdr = "Authorization: Bearer ";
-		hdr.append(m_bearer_token);
-		m_bt_auth_header = curl_slist_append(m_bt_auth_header, hdr.c_str());
-	}
-}
-
-sinsp_curl::bearer_token::~bearer_token()
-{
-	if(m_bt_auth_header)
-	{
-		curl_slist_free_all(m_bt_auth_header);
-	}
-}
-
-std::string sinsp_curl::bearer_token::stringize_file(const std::string& disk_file)
-{
-	std::string tmp, content;
-	std::ifstream ifs(disk_file);
-	while(std::getline(ifs, tmp))
-	{
-		content.append(tmp).append(1, '\n');
-	}
-	return content;
-}
-
-//
-// sinsp_curl::ssl
-//
-
-sinsp_curl::ssl::ssl(const std::string& cert, const std::string& key, const std::string& key_passphrase,
-	const std::string& ca_cert, bool verify_peer, const std::string& cert_type):
-		m_cert_type(cert_type), m_cert(cert), m_key(key), m_key_passphrase(key_passphrase),
-		m_ca_cert(ca_cert), m_verify_peer(verify_peer)
-{
-}
-
-sinsp_curl::ssl::~ssl()
-{
-}
-
-std::string sinsp_curl::ssl::memorize_file(const std::string& disk_file)
-{
-	std::string mem_file;
-	if(disk_file.empty())
-	{
-		return mem_file;
-	}
-	std::string::size_type pos = disk_file.rfind('/');
-	if(pos == std::string::npos)
-	{
-		mem_file.append(1, '/').append(disk_file);
-	}
-	else
-	{
-		mem_file.append(disk_file.substr(pos, disk_file.size() - pos));
-	}
-	mem_file.append(1, '~');
-	int fd = shm_open(mem_file.c_str(), O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
-	if(fd != -1)
-	{
-		char buf[FILENAME_MAX] = { 0 };
-		std::ifstream ifs(disk_file);
-		std::string fd_path = "/proc/self/fd/" + std::to_string(fd);
-		ssize_t sz = readlink(fd_path.c_str(), buf, sizeof(buf));
-		if(sz != -1 && sz <= static_cast<ssize_t>(sizeof(buf)))
-		{
-			mem_file.assign(buf, sz);
-			std::string str;
-			std::ofstream ofs(mem_file, std::ofstream::out);
-			while(std::getline(ifs, str))
-			{
-				ofs << str << '\n';
-			}
-		}
-		else
-		{
-			std::ostringstream os;
-			os << "Error occurred while trying to determine the real path of memory file [" << fd_path << "]: "
-				<< strerror(errno) << " (disk file [" << disk_file << "] will be used).";
-			g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
-			return disk_file;
-		}
-	}
-	else
-	{
-		std::ostringstream os;
-		os << "Memory file creation error: " << strerror(errno) << " (disk file [" << disk_file << "] will be used).";
-		g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
-		return disk_file;
-	}
-	return mem_file;
-}
-
-void sinsp_curl::ssl::unmemorize_file(const std::string& mem_file)
-{
-	if(shm_unlink(mem_file.c_str()) == 0)
-	{
-		std::ostringstream os;
-		os << "Memory file [" << mem_file << "] unlink error: " << strerror(errno);
-		g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
-	}
+	m_body.clear();
+	m_body << data;
+	add_header(string("Content-Length: ") + to_string(data.size()));
 }
 
 #endif // __linux__

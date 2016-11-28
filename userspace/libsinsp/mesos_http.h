@@ -13,6 +13,7 @@
 #include <string>
 #include <memory>
 #include <algorithm>
+#include "sinsp_curl.h"
 
 class mesos;
 
@@ -24,7 +25,11 @@ public:
 	typedef void (mesos::*callback_func_t)(json_ptr_t, const std::string&);
 	typedef std::vector<std::string> marathon_uri_t;
 
-	mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master = false, bool discover_marathon = false, int timeout_ms = 5000L);
+	mesos_http(mesos& m, const uri& url,
+				bool discover_mesos_lead_master = false,
+				bool discover_marathon = false,
+				int timeout_ms = 5000L,
+				const string& token = "");
 
 	virtual ~mesos_http();
 
@@ -55,6 +60,7 @@ public:
 	void set_framework_version(const std::string& id);
 
 	const marathon_uri_t& get_marathon_uris() const;
+	void set_token(const string& token);
 
 protected:
 	CURL* get_sync_curl();
@@ -67,10 +73,10 @@ protected:
 	int wait(int for_recv);
 
 	callback_func_t get_parse_func();
-	static std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
+	std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
 	static json_ptr_t try_parse(const std::string& json);
 	static bool is_framework_active(const Json::Value& framework);
-	static std::string get_framework_url(const Json::Value& framework);
+	std::string get_framework_url(const Json::Value& framework);
 
 private:
 	void discover_mesos_leader();
@@ -78,7 +84,6 @@ private:
 	void discover_framework_uris(const Json::Value& frameworks);
 
 	void send_request();
-	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
 	CURL*                   m_sync_curl;
 	CURL*                   m_select_curl;
@@ -99,7 +104,11 @@ private:
 	marathon_uri_t          m_marathon_uris;
 	bool                    m_discover_lead_master;
 	bool                    m_discover_marathon;
+	//bool                    m_redirect = false;
 	std::string::size_type  m_content_length = std::string::npos;
+	char                    m_redirect[CURL_MAX_HTTP_HEADER] = {0};
+	string                  m_token;
+	sinsp_curl_http_headers m_sync_curl_headers;
 
 	friend class mesos;
 
@@ -197,5 +206,28 @@ inline const mesos_http::marathon_uri_t& mesos_http::get_marathon_uris() const
 {
 	return m_marathon_uris;
 }
+
+#else // !HAS_CAPTURE
+
+#include "json/json.h"
+
+class mesos_http
+{
+public:
+	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	static json_ptr_t try_parse(const std::string& json)
+	{
+		json_ptr_t root(new Json::Value());
+		try
+		{
+			if(Json::Reader().parse(json, *root))
+			{
+				return root;
+			}
+		}
+		catch(...) { }
+		return nullptr;
+	}
+};
 
 #endif // HAS_CAPTURE

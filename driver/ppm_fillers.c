@@ -874,7 +874,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
-	char *spwd;
+	char *spwd = "";
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -1012,14 +1012,9 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * cwd
+	 * cwd, pushed empty to avoid breaking compatibility
+	 * with the older event format
 	 */
-	spwd = npm_getcwd(args->str_storage, STR_STORAGE_SIZE - 1);
-	if (spwd == NULL)
-		spwd = "";
-
-	args->str_storage[STR_STORAGE_SIZE - 1] = '\0';
-
 	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3699,10 +3694,14 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_SET_THREAD_AREA:
 		return PPM_PTRACE_SET_THREAD_AREA;
 #endif
+#ifdef PTRACE_GET_THREAD_AREA
 	case PTRACE_GET_THREAD_AREA:
 		return PPM_PTRACE_GET_THREAD_AREA;
+#endif
+#ifdef PTRACE_OLDSETOPTIONS
 	case PTRACE_OLDSETOPTIONS:
 		return PPM_PTRACE_OLDSETOPTIONS;
+#endif
 #ifdef PTRACE_SETFPXREGS
 	case PTRACE_SETFPXREGS:
 		return PPM_PTRACE_SETFPXREGS;
@@ -3711,14 +3710,22 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_GETFPXREGS:
 		return PPM_PTRACE_GETFPXREGS;
 #endif
+#ifdef PTRACE_SETFPREGS
 	case PTRACE_SETFPREGS:
 		return PPM_PTRACE_SETFPREGS;
+#endif
+#ifdef PTRACE_GETFPREGS
 	case PTRACE_GETFPREGS:
 		return PPM_PTRACE_GETFPREGS;
+#endif
+#ifdef PTRACE_SETREGS
 	case PTRACE_SETREGS:
 		return PPM_PTRACE_SETREGS;
+#endif
+#ifdef PTRACE_GETREGS
 	case PTRACE_GETREGS:
 		return PPM_PTRACE_GETREGS;
+#endif
 #ifdef PTRACE_SETSIGMASK
 	case PTRACE_SETSIGMASK:
 		return PPM_PTRACE_SETSIGMASK;

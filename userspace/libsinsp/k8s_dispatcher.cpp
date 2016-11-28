@@ -3,6 +3,7 @@
 //
 
 #include "k8s_dispatcher.h"
+#include "k8s_service_handler.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include <assert.h>
@@ -327,16 +328,9 @@ bool k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 				os << "ADDED message received for existing pod [" << data.m_uid << "], updating only.";
 				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 			}
-			if(k8s_component::is_pod_active(object))
-			{
-				k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
-				handle_labels(pod, object["metadata"], "labels");
-				m_state.update_pod(pod, object);
-			}
-			else
-			{
-				return false;
-			}
+			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
+			handle_labels(pod, object["metadata"], "labels");
+			m_state.update_pod(pod, object);
 		}
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
@@ -351,16 +345,9 @@ bool k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 				g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 				return false;
 			}
-			if(k8s_component::is_pod_active(object))
-			{
-				k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
-				handle_labels(pod, object["metadata"], "labels");
-				m_state.update_pod(pod, object);
-			}
-			else
-			{
-				return false;
-			}
+			k8s_pod_t& pod = m_state.get_component<k8s_pods, k8s_pod_t>(m_state.get_pods(), data.m_name, data.m_uid, data.m_namespace);
+			handle_labels(pod, object["metadata"], "labels");
+			m_state.update_pod(pod, object);
 		}
 	}
 	else if(data.m_reason == COMPONENT_DELETED)
@@ -407,7 +394,8 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 			}
 			k8s_service_t& service = m_state.get_component<k8s_services, k8s_service_t>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
 			handle_labels(service, object["metadata"], "labels");
-			k8s_component::extract_services_data(object, service, m_state.get_pods());
+			handle_selectors(service, object["spec"]);
+			k8s_service_handler::extract_services_data(object, service, m_state.get_pods());
 		}
 		else
 		{
@@ -428,7 +416,8 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 			}
 			k8s_service_t& service = m_state.get_component<k8s_services, k8s_service_t>(m_state.get_services(), data.m_name, data.m_uid, data.m_namespace);
 			handle_labels(service, object["metadata"], "labels");
-			k8s_component::extract_services_data(object, service, m_state.get_pods());
+			handle_selectors(service, object["spec"]);
+			k8s_service_handler::extract_services_data(object, service, m_state.get_pods());
 		}
 		else
 		{
@@ -626,7 +615,7 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 				}
 				else
 				{
-					g_logger.log("K8s EVENT: old event, ignoring: "/*firstTimestamp=" + std::to_string(first_ts) +*/
+					g_logger.log("K8s EVENT: old event, ignoring: "
 								 ", lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts),
 								sinsp_logger::SEV_DEBUG);
 				}
@@ -677,7 +666,7 @@ void k8s_dispatcher::extract_data(Json::Value& root, bool enqueue)
 				break;
 			case k8s_component::K8S_REPLICASETS:
 				os << "REPLICA_SET,";
-				handle_rc(root, data, m_state.get_rcs(), "replica set");
+				handle_rc(root, data, m_state.get_rss(), "replica set");
 				break;
 			case k8s_component::K8S_SERVICES:
 				os << "SERVICE,";
@@ -708,15 +697,13 @@ void k8s_dispatcher::extract_data(Json::Value& root, bool enqueue)
 		os << data.m_name << ',' << data.m_uid << ',' << data.m_namespace << ']';
 		g_logger.log(os.str(), sinsp_logger::SEV_INFO);
 		//g_logger.log(root.toStyledString(), sinsp_logger::SEV_DEBUG);
-		{
-			m_state.update_cache(m_type);
+		m_state.update_cache(m_type);
 #ifdef HAS_CAPTURE
-			if(enqueue)
-			{
-				m_state.enqueue_capture_event(root);
-			}
-#endif
+		if(enqueue)
+		{
+			m_state.enqueue_capture_event(root);
 		}
+#endif
 	}
 }
 

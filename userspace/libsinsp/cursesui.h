@@ -165,53 +165,68 @@ public:
 		for(j = 0; j < hs; j++)
 		{
 			bool has_filter = false;
+			uint32_t lastsize = res.size();
 
 			if(m_hierarchy[j].m_view_filter != "")
 			{
 				has_filter = true;
 			}
 
+			if(hs > 1)
+			{
+				res += "(";
+			}
+
 			if(has_filter)
 			{
-				if(hs > 1)
-				{
-					res += "(";
-				}
 				res += "(";
 				res += m_hierarchy[j].m_view_filter;
 				res += ")";
+			}
 
-				if(m_hierarchy[j].m_field != "")
+			if(m_hierarchy[j].m_field != "")
+			{
+				bool skip = false;
+
+				if(m_hierarchy[j].m_column_info != NULL &&
+				(m_hierarchy[j].m_column_info->m_flags & TEF_FILTER_IN_CHILD_ONLY))
 				{
-					bool skip = false;
-
-					if(m_hierarchy[j].m_column_info != NULL &&
-					(m_hierarchy[j].m_column_info->m_flags & TEF_FILTER_IN_CHILD_ONLY))
+					if(j < hs - 1)
 					{
-						if(j < hs - 1)
-						{
-							skip = true;
-						}
-					}	
-
-					if(!skip)
-					{
-						res += " and " + m_hierarchy[j].m_field;
-						res += "=";
-						res += m_hierarchy[j].m_val;
+						skip = true;
 					}
-				}
+				}	
 
+				if(!skip)
+				{
+					if(has_filter)
+					{
+						res += " and ";
+					}
+					res += m_hierarchy[j].m_field;
+					res += "=";
+					res += m_hierarchy[j].m_val;
+				}
+			}
+
+			if(res.size() != lastsize)
+			{
 				if(hs > 1)
 				{
 					res += ")";
 				}
 
 				res += " and ";
+
+				if(res.size() >= 7 && res.substr(res.size() - 7) == "() and ")
+				{
+					res = res.substr(0, res.size() - 7);
+				}
+
 			}
 		}
 
-		if(res.size() > 5)
+		if(res.size() >= 5)
 		{
 			string trailer = res.substr(res.size() - 5).c_str();
 			if(trailer == " and ")
@@ -508,13 +523,22 @@ public:
 					{
 						if(m_viz != NULL)
 						{
-							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-							if(res.first != NULL)
+							sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+
+							//
+							// Note: kinfo is null for list views, that currently don't support
+							//       drill down
+							//
+							if(kinfo != NULL)
 							{
-								drilldown(get_selected_view()->get_key()->get_filter_field(m_view_depth),
-									res.second.c_str(), 
-									get_selected_view()->get_key(),
-									res.first);
+								auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+								if(res.first != NULL)
+								{
+									drilldown(kinfo->get_filter_field(m_view_depth),
+										res.second.c_str(), 
+										kinfo,
+										res.first);
+								}
 							}
 						}
 						else
@@ -530,13 +554,22 @@ public:
 				case STA_SPECTRO:
 				case STA_SPECTRO_FILE:
 					{
-						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						if(res.first != NULL)
+						sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+
+						//
+						// Note: kinfo is null for list views, that currently don't support
+						//       drill down
+						//
+						if(kinfo != NULL)
 						{
-							spectro_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
-								res.second.c_str(),
-								get_selected_view()->get_key(),
-								res.first, ta);
+							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+							if(res.first != NULL)
+							{
+								spectro_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+									res.second.c_str(),
+									get_selected_view()->get_key(),
+									res.first, ta);
+							}
 						}
 					}
 					return false;

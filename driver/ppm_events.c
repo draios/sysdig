@@ -675,31 +675,6 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	return PPM_SUCCESS;
 }
 
-/*
- * Get the current working directory for the current process.
- * Returns the pointer to the string, which is NOT going to be at the beginning
- * of buf.
- * Buf must be at least 1 page in size.
- */
-char *npm_getcwd(char *buf, unsigned long bufsize)
-{
-	struct path pwd;
-	char *res;
-
-	ASSERT(bufsize >= PAGE_SIZE - 1);
-
-	get_fs_pwd(current->fs, &pwd);
-
-	res = d_path(&pwd, buf, bufsize);
-
-	if (IS_ERR(res))
-		res = NULL;
-
-	path_put(&pwd);
-
-	return res;
-}
-
 static inline u8 socket_family_to_scap(u8 family)
 {
 	if (family == AF_INET)

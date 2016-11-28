@@ -54,6 +54,10 @@ cmpop string_to_cmpop(const char* str)
 	{
 		return CO_IN;
 	}
+	else if(strcmp(str, "pmatch") == 0)
+	{
+		return CO_PMATCH;
+	}
 	else if(strcmp(str, "exists") == 0)
 	{
 		return CO_EXISTS;
@@ -208,7 +212,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 		chk->m_boolop = parser->m_last_boolop;
 		parser->m_last_boolop = BO_NONE;
 
-		chk->parse_field_name(fld, true);
+		chk->parse_field_name(fld, true, true);
 
 		const char* cmpop = luaL_checkstring(ls, 2);
 		chk->m_cmpop = string_to_cmpop(cmpop);
@@ -216,7 +220,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 		// "exists" is the only unary comparison op
 		if(strcmp(cmpop, "exists"))
 		{
-			if (strcmp(cmpop, "in") == 0)
+			if (strcmp(cmpop, "in") == 0 || strcmp(cmpop, "pmatch") == 0)
 			{
 				if (!lua_istable(ls, 3))
 				{

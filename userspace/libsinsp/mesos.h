@@ -26,6 +26,8 @@ public:
 	typedef std::vector<std::string> uri_list_t;
 #endif // HAS_CAPTURE
 	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	typedef uri::credentials_t credentials_t;
+	typedef std::shared_ptr<uri::credentials_t> uri_creds_ptr_t;
 
 	static const std::string default_state_uri;
 	static const std::string default_state_api;
@@ -33,14 +35,29 @@ public:
 	static const std::string default_groups_api;
 	static const std::string default_apps_api;
 	static const std::string default_watch_api;
+	static const std::string default_version_api;
 	static const int default_timeout_ms;
 
+	// constructor for testing only, not to be used in production
+	mesos(const std::string& mesos_state_json,
+		const std::string& marathon_groups_json,
+		const std::string& marathon_apps_json);
+
 	mesos(const std::string& state_uri,
-		const std::string& state_api = default_state_api,
 		const uri_list_t& marathon_uris = uri_list_t(),
-		const std::string& groups_api = "",
-		const std::string& apps_api = "",
 		bool discover_mesos_leader = false,
+		bool discover_marathon_leader = false,
+		const credentials_t& mesos_credentials = credentials_t(),
+		const credentials_t& marathon_credentials = credentials_t(),
+		int timeout_ms = default_timeout_ms,
+		bool is_captured = false,
+		bool verbose = false);
+
+	mesos(const std::string& state_uri,
+		const uri_list_t& marathon_uris = uri_list_t(),
+		bool discover_mesos_leader = false,
+		bool discover_marathon_leader = false,
+		const credentials_t& dcos_enterprise_credentials = credentials_t(),
 		int timeout_ms = default_timeout_ms,
 		bool is_captured = false,
 		bool verbose = false);
@@ -56,10 +73,11 @@ public:
 	void clear_marathon();
 
 	void simulate_event(const std::string& json);
-
+	bool collect_data();
+	void refresh_token();
+	
 #ifdef HAS_CAPTURE
 	void send_data_request(bool collect = true);
-	bool collect_data();
 
 	const mesos_state_t::capture_list& get_capture_events() const;
 	std::string dequeue_capture_event();
@@ -111,6 +129,7 @@ private:
 private:
 	void init();
 	void init_marathon();
+	void authenticate();
 	void rebuild_mesos_state(bool full = false);
 	void rebuild_marathon_state(bool full = false);
 
@@ -122,7 +141,7 @@ private:
 	void add_slave(const Json::Value& framework);
 
 	void check_frameworks(const json_ptr_t& json);
-	void set_state_json(json_ptr_t json, const std::string&);
+	void set_state_json(json_ptr_t json, const std::string& dummy = "");
 	void parse_state(Json::Value&& root);
 	void parse_state(json_ptr_t json, const std::string&);
 	void set_marathon_groups_json(json_ptr_t json, const std::string& framework_id);
@@ -141,13 +160,19 @@ private:
 	bool          m_verbose = false;
 
 	typedef std::map<std::string, json_ptr_t> json_map_type_t;
-	json_ptr_t      m_mesos_state_json;
-	json_map_type_t m_marathon_groups_json;
-	json_map_type_t m_marathon_apps_json;
-	time_t          m_last_mesos_refresh = 0;
-	time_t          m_last_marathon_refresh = 0;
-	bool            m_json_error = false;
-
+	json_ptr_t         m_mesos_state_json;
+	json_map_type_t    m_marathon_groups_json;
+	json_map_type_t    m_marathon_apps_json;
+	time_t             m_last_mesos_refresh = 0;
+	time_t             m_last_marathon_refresh = 0;
+	bool               m_json_error = false;
+	bool               m_testing = false;
+	uri::credentials_t m_mesos_credentials;
+	uri::credentials_t m_marathon_credentials;
+	uri::credentials_t m_dcos_enterprise_credentials;
+	string             m_token;
+	bool               m_token_authentication;
+	
 	typedef std::unordered_set<std::string> framework_list_t;
 	framework_list_t m_inactive_frameworks;
 	framework_list_t m_activated_frameworks;
@@ -166,7 +191,14 @@ inline const mesos_state_t& mesos::get_state() const
 inline bool mesos::has_marathon() const
 {
 #ifdef HAS_CAPTURE
-	return m_marathon_groups_http.size() || m_marathon_apps_http.size();
+	if(m_testing)
+	{
+		return true;
+	}
+	else
+	{
+		return m_marathon_groups_http.size() || m_marathon_apps_http.size();
+	}
 #else
 	return false;
 #endif

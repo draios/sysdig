@@ -529,7 +529,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli.max_entries);
 
 		memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * pli.max_entries;
-		proclist_info = kmalloc(memsize, GFP_KERNEL);
+		proclist_info = vmalloc(memsize);
 		if (!proclist_info) {
 			ret = -EINVAL;
 			goto cleanup_ioctl_nolock;
@@ -579,7 +579,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		ret = 0;
 cleanup_ioctl_procinfo:
-		kfree(proclist_info);
+		vfree((void*)proclist_info);
 		goto cleanup_ioctl_nolock;
 	}
 

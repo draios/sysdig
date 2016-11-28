@@ -211,8 +211,13 @@ public:
 								tag_map_t&& tags,
 								uint32_t sev = UNKNOWN_SEVERITY);
 
+	static void emit_event_overflow(const std::string& component,
+									const std::string& machine_id,
+									const std::string& source = "sysdig-agent");
+	static size_t max_events_per_cycle();
+
 private:
-	uint64_t  m_epoch_time_s;
+	uint64_t    m_epoch_time_s;
 	std::string m_name;
 	std::string m_description;
 	uint32_t    m_severity;
@@ -248,6 +253,11 @@ inline const std::string& sinsp_user_event::scope() const
 inline const sinsp_user_event::tag_map_t& sinsp_user_event::tags() const
 {
 	return m_tags;
+}
+
+inline size_t sinsp_user_event::max_events_per_cycle()
+{
+	return 300u; // TODO: move this value to config?
 }
 
 //

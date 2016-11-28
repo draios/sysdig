@@ -18,9 +18,6 @@ docker::docker(std::string url,
 	bool is_captured,
 	bool verbose,
 	event_filter_ptr_t event_filter): m_id("docker"),
-#ifdef HAS_CAPTURE
-		m_collector(false),
-#endif // HAS_CAPTURE
 		m_timeout_ms(timeout_ms),
 		m_is_captured(is_captured),
 		m_verbose(verbose),
@@ -127,8 +124,9 @@ docker::docker(std::string url,
 	}
 	m_event_http = std::make_shared<handler_t>(*this, "docker", url, path, http_version, timeout_ms);
 	m_event_http->set_json_callback(&docker::set_event_json);
-	m_event_http->set_json_end("}\n");
+	m_event_http->add_json_filter(".");
 	m_collector.add(m_event_http);
+	m_collector.set_steady_state(true);
 	send_data_request();
 #endif
 }
@@ -173,12 +171,12 @@ bool docker::is_alive() const
 
 #ifdef HAS_CAPTURE
 
-void docker::check_collector_status(int expected)
+void docker::check_collector_status()
 {
-	if(!m_collector.is_healthy(expected))
+	if(!m_collector.is_healthy(m_event_http))
 	{
-		throw sinsp_exception("Docker collector not healthy (has " + std::to_string(m_collector.subscription_count()) +
-							  " connections, expected " + std::to_string(expected) + "); giving up on data collection in this cycle ...");
+		throw sinsp_exception("Docker collector not healthy, "
+							  "giving up on data collection in this cycle ...");
 	}
 }
 
@@ -195,6 +193,10 @@ void docker::collect_data()
 {
 	if(m_collector.subscription_count())
 	{
+		if(!m_event_http->is_enabled())
+		{
+			m_event_http->enable();
+		}
 		m_collector.get_data();
 		if(m_events.size())
 		{
@@ -227,7 +229,7 @@ void docker::set_event_json(json_ptr_t json, const std::string&)
 
 void docker::handle_event(Json::Value&& root)
 {
-	if(m_event_filter)
+	if(m_event_filter && (m_event_counter < sinsp_user_event::max_events_per_cycle()))
 	{
 		std::string type = get_json_string(root, "Type");
 		std::string status = get_json_string(root, "Action");
@@ -235,7 +237,8 @@ void docker::handle_event(Json::Value&& root)
 		{
 			status = get_json_string(root, "status");
 		}
-		g_logger.log("Docker EVENT: type=" + type + ", status=" + status, sinsp_logger::SEV_DEBUG);
+		g_logger.log("Docker EVENT: type=" + type + ", status=" + status + ", "
+					 "queued events count=" + std::to_string(m_event_counter), sinsp_logger::SEV_DEBUG);
 		bool is_allowed = m_event_filter->allows_all();
 		if(!is_allowed)
 		{
@@ -245,6 +248,34 @@ void docker::handle_event(Json::Value&& root)
 				if(!is_allowed && !status.empty())
 				{
 					is_allowed = m_event_filter->has(type, status);
+				}
+				// status for exec_* events is different, eg.:
+				//   "container:exec_create: ls -l"
+				if(!is_allowed)
+				{
+					std::string exec_create = "exec_create";
+					std::string exec_start = "exec_start";
+					std::string::size_type pos = status.find(exec_create);
+					if(pos != std::string::npos)
+					{
+						status = exec_create;
+						g_logger.log("Docker EVENT: found exec_create status=" + status, sinsp_logger::SEV_TRACE);
+					}
+					else
+					{
+						pos = status.find(exec_start);
+						if(pos != std::string::npos)
+						{
+							status = exec_start;
+							g_logger.log("Docker EVENT: found exec_start status=" + status, sinsp_logger::SEV_TRACE);
+						}
+					}
+					if(pos != std::string::npos)
+					{
+						is_allowed = m_event_filter->has(type, status);
+						g_logger.log("Docker EVENT: status=" + status + (is_allowed ? " is " : " is not ") + "allowed",
+									 sinsp_logger::SEV_TRACE);
+					}
 				}
 			}
 			else // older docker versions don't tell type, so there will be some overlap of duplicates
@@ -266,6 +297,7 @@ void docker::handle_event(Json::Value&& root)
 		}
 		if(is_allowed)
 		{
+			++m_event_counter;
 			std::string::size_type delim_pos = status.find(':');
 			if(delim_pos != std::string::npos)
 			{
@@ -318,6 +350,12 @@ void docker::handle_event(Json::Value&& root)
 				}
 				if(is_image_event(event_name))
 				{
+					bool id_was_empty = false;
+					if(id.empty())
+					{
+						id = get_json_string(root, "id");
+						id_was_empty = true;
+					}
 					if(!id.empty())
 					{
 						if(scope.length()) { scope.append(" and "); }
@@ -332,6 +370,7 @@ void docker::handle_event(Json::Value&& root)
 					{
 						g_logger.log("Cannot determine container image for Docker event.", sinsp_logger::SEV_WARNING);
 					}
+					if(id_was_empty) { id.clear(); }
 				}
 				else if(is_container_event(event_name))
 				{
@@ -382,19 +421,34 @@ void docker::handle_event(Json::Value&& root)
 				std::string evt = sinsp_user_event::to_string(epoch_time_s, std::move(event_name),
 									std::move(status), std::move(scope), std::move(tags));
 				g_logger.log(std::move(evt), severity);
-				g_logger.log("Docker EVENT: scheduled for sending\n" + evt, sinsp_logger::SEV_TRACE);
+				if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+				{
+					g_logger.log("Docker EVENT: scheduled for sending\n" + evt, sinsp_logger::SEV_TRACE);
+				}
 			}
 			else
 			{
 				g_logger.log("Docker EVENT: status not supported: " + status, sinsp_logger::SEV_ERROR);
-				g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_DEBUG);
+				if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+				{
+					g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_DEBUG);
+				}
 			}
 		}
 		else
 		{
-			g_logger.log("Docker EVENT: status not permitted by filter: " + type +':' + status, sinsp_logger::SEV_DEBUG);
-			g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_TRACE);
+			if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+			{
+				g_logger.log("Docker EVENT: status not permitted by filter: " + type +':' + status, sinsp_logger::SEV_TRACE);
+				g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_TRACE);
+			}
 		}
+		m_event_limit_exceeded = false;
+	}
+	else if(!m_event_limit_exceeded) // only get in here once per cycle, to send event overflow warning
+	{
+		sinsp_user_event::emit_event_overflow("Docker", get_machine_id());
+		m_event_limit_exceeded = true;
 	}
 }
 

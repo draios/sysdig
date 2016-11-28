@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Project Name="sysdig" InternalType="">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+    <Plugin Name="CMakePlugin">
+      <![CDATA[[{
+  "name": "Debug",
+  "enabled": false,
+  "buildDirectory": "build",
+  "sourceDirectory": "$(ProjectPath)",
+  "generator": "",
+  "buildType": "",
+  "arguments": [],
+  "parentProject": ""
+ }, {
+  "name": "Release",
+  "enabled": false,
+  "buildDirectory": "build",
+  "sourceDirectory": "$(ProjectPath)",
+  "generator": "",
+  "buildType": "",
+  "arguments": [],
+  "parentProject": ""
+ }]]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="sysdig">
+    <VirtualDirectory Name="win32">
+      <File Name="sysdig/win32/getopt.c"/>
+      <File Name="sysdig/win32/getopt.h"/>
+    </VirtualDirectory>
+    <File Name="sysdig/csysdig.cpp"/>
+    <File Name="sysdig/sysdig.h"/>
+    <File Name="sysdig/sysdig.cpp"/>
+    <File Name="sysdig/fields_info.cpp"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="libsinsp">
+    <VirtualDirectory Name="third-party">
+      <VirtualDirectory Name="jsoncpp">
+        <VirtualDirectory Name="json">
+          <File Name="libsinsp/third-party/jsoncpp/json/json.h"/>
+          <File Name="libsinsp/third-party/jsoncpp/json/json-forwards.h"/>
+        </VirtualDirectory>
+        <File Name="libsinsp/third-party/jsoncpp/jsoncpp.cpp"/>
+      </VirtualDirectory>
+      <File Name="libsinsp/third-party/tinydir.h"/>
+    </VirtualDirectory>
+    <File Name="libsinsp/logger.h"/>
+    <File Name="libsinsp/stats.h"/>
+    <File Name="libsinsp/filterchecks.cpp"/>
+    <File Name="libsinsp/parsers.h"/>
+    <File Name="libsinsp/utils.h"/>
+    <File Name="libsinsp/event.h"/>
+    <File Name="libsinsp/container.h"/>
+    <File Name="libsinsp/filterchecks.h"/>
+    <File Name="libsinsp/cursescomponents.h"/>
+    <File Name="libsinsp/ifinfo.cpp"/>
+    <File Name="libsinsp/chisel_api.cpp"/>
+    <File Name="libsinsp/cursestable.h"/>
+    <File Name="libsinsp/ctext.cpp"/>
+    <File Name="libsinsp/internal_metrics.cpp"/>
+    <File Name="libsinsp/cyclewriter.cpp"/>
+    <File Name="libsinsp/stats.cpp"/>
+    <File Name="libsinsp/protodecoder.cpp"/>
+    <File Name="libsinsp/chisel_api.h"/>
+    <File Name="libsinsp/cursestable.cpp"/>
+    <File Name="libsinsp/filter.h"/>
+    <File Name="libsinsp/fdinfo.h"/>
+    <File Name="libsinsp/cursesui.cpp"/>
+    <File Name="libsinsp/table.cpp"/>
+    <File Name="libsinsp/utils.cpp"/>
+    <File Name="libsinsp/table.h"/>
+    <File Name="libsinsp/sinsp_test.cpp"/>
+    <File Name="libsinsp/procinfo_test.cpp"/>
+    <File Name="libsinsp/internal_metrics.h"/>
+    <File Name="libsinsp/dumper.h"/>
+    <File Name="libsinsp/event.cpp"/>
+    <File Name="libsinsp/tuples.h"/>
+    <File Name="libsinsp/protodecoder.h"/>
+    <File Name="libsinsp/sinsp_signal.h"/>
+    <File Name="libsinsp/sinsp_errno.h"/>
+    <File Name="libsinsp/container.cpp"/>
+    <File Name="libsinsp/sinsp.cpp"/>
+    <File Name="libsinsp/cursesui.h"/>
+    <File Name="libsinsp/cyclewriter.h"/>
+    <File Name="libsinsp/threadinfo.cpp"/>
+    <File Name="libsinsp/eventformatter.h"/>
+    <File Name="libsinsp/chisel.h"/>
+    <File Name="libsinsp/ifinfo.h"/>
+    <File Name="libsinsp/sinsp_int.h"/>
+    <File Name="libsinsp/viewinfo.cpp"/>
+    <File Name="libsinsp/cursescomponents.cpp"/>
+    <File Name="libsinsp/ctext.h"/>
+    <File Name="libsinsp/fdinfo.cpp"/>
+    <File Name="libsinsp/viewinfo.h"/>
+    <File Name="libsinsp/settings.h"/>
+    <File Name="libsinsp/logger.cpp"/>
+    <File Name="libsinsp/chisel.cpp"/>
+    <File Name="libsinsp/eventformatter.cpp"/>
+    <File Name="libsinsp/sinsp.h"/>
+    <File Name="libsinsp/threadinfo.h"/>
+    <File Name="libsinsp/filter.cpp"/>
+    <File Name="libsinsp/dumper.cpp"/>
+    <File Name="libsinsp/memmem.cpp"/>
+    <File Name="libsinsp/parsers.cpp"/>
+    <File Name="libsinsp/ifinfo_test.cpp"/>
+    <File Name="libsinsp/k8s_net.cpp"/>
+    <File Name="libsinsp/k8s.cpp"/>
+    <File Name="libsinsp/k8s_net.h"/>
+    <File Name="libsinsp/uri.cpp"/>
+    <File Name="libsinsp/k8s_event_data.cpp"/>
+    <File Name="libsinsp/k8s_common.h"/>
+    <File Name="libsinsp/k8s_http.cpp"/>
+    <File Name="libsinsp/uri.h"/>
+    <File Name="libsinsp/k8s.h"/>
+    <File Name="libsinsp/k8s_event_data.h"/>
+    <File Name="libsinsp/k8s_collector.h"/>
+    <File Name="libsinsp/k8s_component.cpp"/>
+    <File Name="libsinsp/k8s_dispatcher.cpp"/>
+    <File Name="libsinsp/k8s_dispatcher.h"/>
+    <File Name="libsinsp/k8s_collector.cpp"/>
+    <File Name="libsinsp/k8s_http.h"/>
+    <File Name="libsinsp/k8s_component.h"/>
+    <File Name="libsinsp/k8s_state.h"/>
+    <File Name="libsinsp/k8s_state.cpp"/>
+    <File Name="libsinsp/mesos_state.h"/>
+    <File Name="libsinsp/mesos.cpp"/>
+    <File Name="libsinsp/mesos_state.cpp"/>
+    <File Name="libsinsp/marathon_component.h"/>
+    <File Name="libsinsp/mesos_common.h"/>
+    <File Name="libsinsp/mesos_component.h"/>
+    <File Name="libsinsp/mesos_http.cpp"/>
+    <File Name="libsinsp/mesos_component.cpp"/>
+    <File Name="libsinsp/mesos_http.h"/>
+    <File Name="libsinsp/marathon_component.cpp"/>
+    <File Name="libsinsp/mesos.h"/>
+    <File Name="libsinsp/mesos_event_data.h"/>
+    <File Name="libsinsp/marathon_dispatcher.h"/>
+    <File Name="libsinsp/marathon_http.cpp"/>
+    <File Name="libsinsp/marathon_http.h"/>
+    <File Name="libsinsp/mesos_collector.cpp"/>
+    <File Name="libsinsp/marathon_dispatcher.cpp"/>
+    <File Name="libsinsp/mesos_collector.h"/>
+    <File Name="libsinsp/mesos_event_data.cpp"/>
+    <File Name="libsinsp/cursesspectro.cpp"/>
+    <File Name="libsinsp/sinsp_curl.cpp"/>
+    <File Name="libsinsp/sinsp_curl.h"/>
+    <File Name="libsinsp/cursesspectro.h"/>
+    <File Name="libsinsp/mesos_proto.h"/>
+    <File Name="libsinsp/mesos_proto.cpp"/>
+    <File Name="libsinsp/value_parser.cpp"/>
+    <File Name="libsinsp/lua_parser.cpp"/>
+    <File Name="libsinsp/lua_parser_api.cpp"/>
+    <File Name="libsinsp/tracers.cpp"/>
+    <File Name="libsinsp/lua_parser_api.h"/>
+    <File Name="libsinsp/tracers.h"/>
+    <File Name="libsinsp/value_parser.h"/>
+    <File Name="libsinsp/lua_parser.h"/>
+    <File Name="libsinsp/user_event.cpp"/>
+    <File Name="libsinsp/user_event.h"/>
+    <File Name="libsinsp/socket_collector.h"/>
+    <File Name="libsinsp/docker.h"/>
+    <File Name="libsinsp/docker.cpp"/>
+    <File Name="libsinsp/socket_handler.h"/>
+    <File Name="libsinsp/json_query.h"/>
+    <File Name="libsinsp/json_query.cpp"/>
+    <File Name="libsinsp/uri_parser.c"/>
+    <File Name="libsinsp/uri_parser.h"/>
+    <File Name="libsinsp/k8s_namespace_handler.h"/>
+    <File Name="libsinsp/k8s_service_handler.cpp"/>
+    <File Name="libsinsp/sinsp_auth.h"/>
+    <File Name="libsinsp/k8s_pod_handler.h"/>
+    <File Name="libsinsp/k8s_namespace_handler.cpp"/>
+    <File Name="libsinsp/k8s_handler.cpp"/>
+    <File Name="libsinsp/k8s_pod_handler.cpp"/>
+    <File Name="libsinsp/k8s_deployment_handler.h"/>
+    <File Name="libsinsp/k8s_replicationcontroller_handler.h"/>
+    <File Name="libsinsp/k8s_replicaset_handler.cpp"/>
+    <File Name="libsinsp/sinsp_auth.cpp"/>
+    <File Name="libsinsp/k8s_replicaset_handler.h"/>
+    <File Name="libsinsp/k8s_node_handler.h"/>
+    <File Name="libsinsp/k8s_handler.h"/>
+    <File Name="libsinsp/k8s_node_handler.cpp"/>
+    <File Name="libsinsp/k8s_daemonset_handler.h"/>
+    <File Name="libsinsp/k8s_service_handler.h"/>
+    <File Name="libsinsp/k8s_deployment_handler.cpp"/>
+    <File Name="libsinsp/k8s_event_handler.h"/>
+    <File Name="libsinsp/k8s_event_handler.cpp"/>
+    <File Name="libsinsp/k8s_daemonset_handler.cpp"/>
+    <File Name="libsinsp/k8s_replicationcontroller_handler.cpp"/>
+    <File Name="libsinsp/prefix_search.cpp"/>
+    <File Name="libsinsp/prefix_search.h"/>
+    <File Name="libsinsp/k8s_api_handler.cpp"/>
+    <File Name="libsinsp/k8s_api_handler.h"/>
+    <File Name="libsinsp/k8s_api_error.h"/>
+    <File Name="libsinsp/k8s_api_error.cpp"/>
+    <File Name="libsinsp/filter_value.h"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="libscap">
+    <VirtualDirectory Name="examples">
+      <VirtualDirectory Name="01-open">
+        <File Name="libscap/examples/01-open/test.c"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="02-validatebuffer">
+        <File Name="libscap/examples/02-validatebuffer/test.c"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+    <File Name="libscap/scap_fds.c"/>
+    <File Name="libscap/dynamic_params_table.c"/>
+    <File Name="libscap/event_table.c"/>
+    <File Name="libscap/scap_event.c"/>
+    <File Name="libscap/scap_savefile.c"/>
+    <File Name="libscap/scap_userlist.c"/>
+    <File Name="libscap/scap_iflist.c"/>
+    <File Name="libscap/scap.c"/>
+    <File Name="libscap/syscall_info_table.c"/>
+    <File Name="libscap/scap_procs.c"/>
+    <File Name="libscap/stdint_win.h"/>
+    <File Name="libscap/scap-int.h"/>
+    <File Name="libscap/settings.h"/>
+    <File Name="libscap/flags_table.c"/>
+    <File Name="libscap/scap.h"/>
+    <File Name="libscap/scap_savefile.h"/>
+    <File Name="libscap/uthash.h"/>
+  </VirtualDirectory>
+  <Description/>
+  <Dependencies/>
+  <VirtualDirectory Name="common">
+    <File Name="common/sysdig_types.h"/>
+  </VirtualDirectory>
+  <Settings Type="Dynamic Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="" IntermediateDirectory="./Debug" Command="/home/alex/sysdig/sysdig/build/debug/userspace/sysdig/sysdig" CommandArguments=" -q -D --k8s-api http://127.0.0.1:8080" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="yes">
+        <RebuildCommand>make -C ../build/debug all</RebuildCommand>
+        <CleanCommand>make -C ../build/debug clean</CleanCommand>
+        <BuildCommand>make -C ../build/debug install</BuildCommand>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory>$(WorkspacePath)</WorkingDirectory>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="-O2" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="yes">
+        <RebuildCommand>make -C ../build/release all</RebuildCommand>
+        <CleanCommand>make -C ../build/release clean</CleanCommand>
+        <BuildCommand>make -C ../build/release install</BuildCommand>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory>$(WorkspacePath)</WorkingDirectory>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+  <VirtualDirectory Name="userspace"/>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
+</CodeLite_Project>

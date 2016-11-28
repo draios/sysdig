@@ -197,7 +197,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		if(etype == PPME_SYSCALL_WRITE_X)
 		{
 			//
-			// Check if this is a user event
+			// Check if this is a tracer
 			//
 			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
@@ -947,6 +947,58 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	{
 		//
 		// clone() returns 0 in the child.
+		//
+
+		int64_t parenttid;
+
+		//
+		// Check if this is a process or a new thread
+		//
+		if(flags & PPM_CL_CLONE_THREAD)
+		{
+			//
+			// This is a thread, the parent tid is the pid
+			//
+			parinfo = evt->get_param(4);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			parenttid = *(int64_t *)parinfo->m_val;
+		}
+		else
+		{
+			//
+			// This is not a thread, the parent tid is ptid
+			//
+			parinfo = evt->get_param(5);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			parenttid = *(int64_t *)parinfo->m_val;
+		}
+
+		//
+		// If the threadinfo in the event exists, and we're in
+		// a container, the threadinfo in the event must be
+		// stale (e.g. from a prior process with the same
+		// tid), because only the child side of a clone
+		// creates the threadinfo for the child. Clear and
+		// remove the old threadinfo.
+		//
+		if(evt->m_tinfo && in_container)
+		{
+			// See if the parent thread is in a
+			// container. If it is, the parent thread
+			// did *not* create the thread for this child,
+			// and any existing thread state must be
+			// stale.
+
+			sinsp_threadinfo* ptinfo = m_inspector->get_thread(parenttid, false, true);
+
+
+			if(ptinfo && ptinfo->m_tid != ptinfo->m_vtid)
+			{
+				m_inspector->remove_thread(tid, true);
+				evt->m_tinfo = NULL;
+			}
+		}
+
 		// Validate that the child thread info has actually been created.
 		//
 		if(!evt->m_tinfo)
@@ -969,27 +1021,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 			childtid = tid;
 
-			//
-			// Check if this is a process or a new thread
-			//
-			if(flags & PPM_CL_CLONE_THREAD)
-			{
-				//
-				// This is a thread, the parent tid is the pid
-				//
-				parinfo = evt->get_param(4);
-				ASSERT(parinfo->m_len == sizeof(int64_t));
-				tid = *(int64_t *)parinfo->m_val;
-			}
-			else
-			{
-				//
-				// This is not a thread, the parent tid is ptid
-				//
-				parinfo = evt->get_param(5);
-				ASSERT(parinfo->m_len == sizeof(int64_t));
-				tid = *(int64_t *)parinfo->m_val;
-			}
+			tid = parenttid;
 
 			//
 			// Keep going and add the event with the standard code below
@@ -1189,15 +1221,15 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_pid = childtid;
 	}
 
-	//
-	// Copy the fd list
-	// XXX this is a gross oversimplification that will need to be fixed.
-	// What we do is: if the child is NOT a thread, we copy all the parent fds.
-	// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
-	// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
-	//
 	if(!(tinfo.m_flags & PPM_CL_CLONE_THREAD))
 	{
+		//
+		// Copy the fd list
+		// XXX this is a gross oversimplification that will need to be fixed.
+		// What we do is: if the child is NOT a thread, we copy all the parent fds.
+		// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
+		// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
+		//
 		tinfo.m_fdtable = *(ptinfo->get_fd_table());
 
 		//
@@ -1205,6 +1237,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// referring to an element in the parent's table.
 		//
 		tinfo.m_fdtable.reset_cache();
+
+		//
+		// Not a thread, copy cwd
+		//
+		tinfo.m_cwd = ptinfo->m_cwd;
 	}
 	//if((tinfo.m_flags & (PPM_CL_CLONE_FILES)))
 	//{
@@ -1244,10 +1281,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Get the command arguments
 	parinfo = evt->get_param(2);
 	tinfo.set_args(parinfo->m_val, parinfo->m_len);
-
-	// Copy the working directory
-	parinfo = evt->get_param(6);
-	tinfo.set_cwd(parinfo->m_val, parinfo->m_len);
 
 	// Copy the fdlimit
 	parinfo = evt->get_param(7);
@@ -1395,6 +1428,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	m_inspector->add_thread(tinfo);
 
 	//
+	// If there's a listener, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_clone(evt, &tinfo);
+	}
+
+	//
 	// If we had to erase a previous entry for this tid and rebalance the table,
 	// make sure we reinitialize the tinfo pointer for this event, as the thread
 	// generating it might have gone away.
@@ -1476,10 +1517,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(4);
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	evt->m_tinfo->m_pid = *(uint64_t *)parinfo->m_val;
-
-	// Get the working directory
-	parinfo = evt->get_param(6);
-	evt->m_tinfo->set_cwd(parinfo->m_val, parinfo->m_len);
 
 	// Get the fdlimit
 	parinfo = evt->get_param(7);
@@ -1587,6 +1624,15 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 #ifdef HAS_ANALYZER
 	evt->m_tinfo->m_ainfo->clear_role_flags();
 #endif
+
+	//
+	// If there's a listener, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_execve(evt);
+	}
+
 	return;
 }
 
@@ -1830,7 +1876,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	{
 		//
 		// Populate the new fdi
-		//
+		//	
 		if(flags & PPM_O_DIRECTORY)
 		{
 			fdi.m_type = SCAP_FD_DIRECTORY;
@@ -1872,7 +1918,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
 	{
-		m_fd_listener->on_file_create(evt, fullpath);
+		m_fd_listener->on_file_open(evt, fullpath, flags);
 	}
 }
 
@@ -2077,6 +2123,14 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	// Update the name of this socket
 	//
 	evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+
+	//
+	// If there's a listener callback, invoke it
+	//
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_bind(evt);
+	}
 }
 
 void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
@@ -3948,6 +4002,18 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_image = image.asString();
 		}
+		const Json::Value& imageid = container["imageid"];
+		if(!imageid.isNull() && imageid.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imageid = imageid.asString();
+		}
+		const Json::Value& privileged = container["privileged"];
+		if(!privileged.isNull() && privileged.isConvertibleTo(Json::booleanValue))
+		{
+			container_info.m_privileged = privileged.asBool();
+		}
+
+		sinsp_container_info::parse_json_mounts(container["Mounts"], container_info.m_mounts);
 		const Json::Value& contip = container["ip"];
 		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
 		{
@@ -4025,6 +4091,42 @@ uint8_t* sinsp_parser::reserve_event_buffer()
 	}
 }
 
+int sinsp_parser::get_k8s_version(const std::string& json)
+{
+	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)
+	{
+		g_logger.log(json, sinsp_logger::SEV_DEBUG);
+		Json::Value root;
+		if(Json::Reader().parse(json, root))
+		{
+			const Json::Value& items = root["items"]; // new
+			if(!items.isNull())
+			{
+				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
+							 sinsp_logger::SEV_DEBUG);
+				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_2;
+				return m_k8s_capture_version;
+			}
+
+			const Json::Value& object = root["object"]; // old
+			if(!object.isNull())
+			{
+				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
+							 sinsp_logger::SEV_DEBUG);
+				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_1;
+				return m_k8s_capture_version;
+			}
+			throw sinsp_exception("Unrecognized K8s capture format.");
+		}
+		else
+		{
+			throw sinsp_exception("Invalid K8s capture JSON encountered.");
+		}
+	}
+
+	return m_k8s_capture_version;
+}
+
 void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo = evt->get_param(0);
@@ -4033,8 +4135,22 @@ void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 	std::string json(parinfo->m_val, parinfo->m_len);
 	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
 	ASSERT(m_inspector);
-	ASSERT(m_inspector->m_k8s_client);
-	m_inspector->m_k8s_client->simulate_watch_event(json);
+	if(!m_inspector)
+	{
+		throw sinsp_exception("Inspector is null, K8s client can not be created.");
+	}
+	if(!m_inspector->m_k8s_client)
+	{
+		m_inspector->make_k8s_client();
+	}
+	if(m_inspector->m_k8s_client)
+	{
+		m_inspector->m_k8s_client->simulate_watch_event(std::move(json), get_k8s_version(json));
+	}
+	else
+	{
+		throw sinsp_exception("K8s client can not be created.");
+	}
 }
 
 void sinsp_parser::parse_mesos_evt(sinsp_evt *evt)

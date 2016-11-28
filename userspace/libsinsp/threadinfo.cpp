@@ -84,6 +84,7 @@ void sinsp_threadinfo::init()
 #endif
 	m_ainfo = NULL;
 	m_program_hash = 0;
+	m_program_hash_falco = 0;
 	m_lastevent_data = NULL;
 }
 
@@ -149,18 +150,53 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc()
 	}
 }
 
+#define STR_AS_NUM_JAVA 0x6176616a
+#define STR_AS_NUM_RUBY 0x79627572
+#define STR_AS_NUM_PERL 0x6c726570
+#define STR_AS_NUM_NODE 0x65646f6e
+
 void sinsp_threadinfo::compute_program_hash()
 {
 	string phs = m_exe;
 
+	phs += m_container_id;
+
+	//
+	// By default, the falco hash is just exe+container
+	//
+	m_program_hash_falco = std::hash<std::string>()(phs);
+
+	//
+	// The program hash includes the arguments as well
+	//
 	for(auto arg = m_args.begin(); arg != m_args.end(); ++arg)
 	{
 		phs += *arg;
 	}
 
-	phs += m_container_id;
-
 	m_program_hash = std::hash<std::string>()(phs);
+
+	//
+	// For some specific processes (essentially the scripting languages)
+	// we include the arguments in the falco hash as well
+	//
+	if(m_comm.size() == 4)
+	{
+		uint32_t ncomm = *(uint32_t*)m_comm.c_str();
+
+		if(ncomm == STR_AS_NUM_JAVA || ncomm == STR_AS_NUM_RUBY ||
+			ncomm == STR_AS_NUM_PERL || ncomm == STR_AS_NUM_NODE)
+		{
+			m_program_hash_falco = m_program_hash;
+		}
+	}
+	else if(m_comm.size() >= 6)
+	{
+		if(m_comm.substr(0, 6) == "python")
+		{
+			m_program_hash_falco = m_program_hash;
+		}
+	}
 }
 
 void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *res)
@@ -594,7 +630,12 @@ sinsp_threadinfo* sinsp_threadinfo::get_cwd_root()
 
 string sinsp_threadinfo::get_cwd()
 {
-	sinsp_threadinfo* tinfo = get_cwd_root();
+	// Ideally we should use get_cwd_root()
+	// but scap does not read CLONE_FS from /proc
+	// Also glibc and muslc use always 
+	// CLONE_THREAD|CLONE_FS so let's use
+	// get_main_thread() for now
+	sinsp_threadinfo* tinfo = get_main_thread();
 
 	if(tinfo)
 	{
@@ -610,7 +651,7 @@ string sinsp_threadinfo::get_cwd()
 void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 {
 	char tpath[SCAP_MAX_PATH_SIZE];
-	sinsp_threadinfo* tinfo = get_cwd_root();
+	sinsp_threadinfo* tinfo = get_main_thread();
 
 	if(tinfo)
 	{

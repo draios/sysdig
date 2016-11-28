@@ -93,11 +93,11 @@ public:
 		K8S_NAMESPACES,
 		K8S_PODS,
 		K8S_REPLICATIONCONTROLLERS,
-		K8S_REPLICASETS,
 		K8S_SERVICES,
+		K8S_EVENTS,
+		K8S_REPLICASETS,
 		K8S_DAEMONSETS,
 		K8S_DEPLOYMENTS,
-		K8S_EVENTS,
 		K8S_COMPONENT_COUNT
 	};
 
@@ -106,10 +106,48 @@ public:
 	typedef std::pair<type, std::string> component_pair;
 	typedef std::map<type, std::string>  type_map;
 	static const type_map list;
+	enum msg_reason
+	{
+		COMPONENT_ADDED,
+		COMPONENT_MODIFIED,
+		COMPONENT_DELETED,
+		COMPONENT_ERROR,
+		COMPONENT_UNKNOWN // only to mark bad event messages
+	};
+
+	struct msg_data
+	{
+		msg_reason  m_reason = COMPONENT_UNKNOWN;
+		std::string m_name;
+		std::string m_uid;
+		std::string m_namespace;
+		std::string m_kind;
+
+		bool is_valid() const
+		{
+			return m_reason != COMPONENT_UNKNOWN;
+		}
+
+		std::string get_reason_desc() const
+		{
+			switch(m_reason)
+			{
+				case COMPONENT_ADDED:    return "ADDED";
+				case COMPONENT_MODIFIED: return "MODIFIED";
+				case COMPONENT_DELETED:  return "DELETED";
+				case COMPONENT_ERROR:    return "ERROR";
+				case COMPONENT_UNKNOWN:
+				default:                 return "UNKNOWN";
+			}
+			return "UNKNOWN";
+		}
+	};
 
 	k8s_component() = delete;
 
 	k8s_component(type comp_type, const std::string& name, const std::string& uid, const std::string& ns = "");
+
+	virtual ~k8s_component();
 
 	const std::string& get_name() const;
 
@@ -153,23 +191,27 @@ public:
 
 	virtual std::string get_node_name() const;
 
+	template <typename C>
+	static void extract_string_array(const Json::Value& arr, C& list)
+	{
+		if(!arr.isNull() && arr.isArray())
+		{
+			for (auto& item : arr)
+			{
+				if(item.isConvertibleTo(Json::stringValue))
+				{
+					list.emplace(item.asString());
+				}
+			}
+		}
+	}
+
 	static k8s_pair_list extract_object(const Json::Value& object, const std::string& name);
-
-	static bool is_pod_active(const Json::Value& item);
-
-	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
-
-	static size_t extract_pod_restart_count(const Json::Value& item);
-
-	static k8s_container::list extract_pod_containers(const Json::Value& item);
-
-	static void extract_pod_data(const Json::Value& item, k8s_pod_t& pod);
-
-	static void extract_services_data(const Json::Value& spec, k8s_service_t& service, const std::vector<k8s_pod_t>& pods);
 
 	static const std::string& get_name(const component_pair& p);
 
 	static std::string get_name(type t);
+	static std::string get_name_u(type t);
 
 	static type get_type(const component_pair& p);
 
@@ -183,11 +225,16 @@ public:
 	static std::string get_selector(const component_pair& p);
 	static std::string get_selector(const std::string& name);
 
+	static bool is_critical(type t);
+	static bool is_critical(const component_pair& p);
+	static bool is_critical(const std::string& name);
+
 	bool selector_in_labels(const k8s_pair_t& selector, const k8s_pair_list& labels) const;
 
 	bool selectors_in_labels(const k8s_pair_list& labels) const;
 
 private:
+
 	type          m_type;
 	std::string   m_name;
 	std::string   m_uid;
@@ -196,6 +243,7 @@ private:
 	k8s_pair_list m_selectors;
 
 	friend class k8s_state_t;
+	friend class k8s_dispatcher;
 };
 
 
@@ -344,7 +392,8 @@ public:
 	int get_spec_replicas() const;
 	void set_stat_replicas(int replicas);
 	int get_stat_replicas() const;
-	void set_replicas(const Json::Value& item);
+	void set_replicas(const Json::Value& item, const std::string& replica_name = "replicas");
+	void set_replicas(int spec, int stat);
 
 protected:
 	k8s_replicas_t m_replicas;
@@ -419,6 +468,7 @@ public:
 	void set_current_scheduled(int replicas);
 	int get_current_scheduled() const;
 	void set_scheduled(const Json::Value& item);
+	void set_scheduled(int desired, int current);
 
 private:
 	k8s_replicas_t m_replicas;
@@ -441,7 +491,10 @@ public:
 	void set_stat_replicas(int replicas);
 	int get_stat_replicas() const;
 	void set_replicas(const Json::Value& item);
+	void set_replicas(int desired, int current);
 
+	std::vector<const k8s_pod_t*> get_selected_pods(const std::vector<k8s_pod_t>& pods) const;
+	
 private:
 	k8s_replicas_t m_replicas;
 };
@@ -460,7 +513,9 @@ public:
 
 	k8s_event_t(const std::string& name, const std::string& uid, const std::string& ns);
 
-	void update(const Json::Value& item, k8s_state_t& state);
+	bool update(const Json::Value& item, k8s_state_t& state);
+	void post_process(k8s_state_t& state);
+	bool has_pending_events() const;
 
 private:
 	typedef sinsp_user_event::tag_map_t tag_map_t;
@@ -470,7 +525,9 @@ private:
 	void make_scope(const Json::Value& obj, std::string& scope);
 	void make_scope_impl(const Json::Value& obj, std::string comp, std::string& scope, bool ns = true);
 
-	name_translation_map_t m_name_translation;
+	name_translation_map_t  m_name_translation;
+	std::map<std::string, Json::Value> m_postponed_events;
+	bool m_force_delete = false;
 };
 
 typedef std::vector<k8s_ns_t>         k8s_namespaces;
@@ -881,7 +938,7 @@ inline int k8s_rc_t::get_stat_replicas() const
 	return m_replicas.get_stat_replicas();
 }
 
-inline void k8s_rc_t::set_replicas(const Json::Value& item)
+inline void k8s_rc_t::set_replicas(const Json::Value& item, const std::string& replica_name)
 {
 	k8s_replicas_t::set_replicas(m_replicas, item);
 }
@@ -939,6 +996,12 @@ inline void k8s_deployment_t::set_replicas(const Json::Value& item)
 	k8s_replicas_t::set_replicas(m_replicas, item);
 }
 
+inline void k8s_deployment_t::set_replicas(int desired, int current)
+{
+	m_replicas.set_spec_replicas(desired);
+	m_replicas.set_stat_replicas(current);
+}
+
 
 //
 // daemon set
@@ -966,6 +1029,21 @@ inline int k8s_daemonset_t::get_current_scheduled() const
 
 inline void k8s_daemonset_t::set_scheduled(const Json::Value& item)
 {
-	m_replicas.set_spec_replicas(k8s_replicas_t::get_count(item["status"], "currentNumberScheduled"));
-	m_replicas.set_stat_replicas(k8s_replicas_t::get_count(item["status"], "desiredNumberScheduled"));
+	m_replicas.set_spec_replicas(k8s_replicas_t::get_count(item["status"], "desiredNumberScheduled"));
+	m_replicas.set_stat_replicas(k8s_replicas_t::get_count(item["status"], "currentNumberScheduled"));
+}
+
+inline void k8s_daemonset_t::set_scheduled(int desired, int current)
+{
+	m_replicas.set_spec_replicas(desired);
+	m_replicas.set_stat_replicas(current);
+}
+
+//
+// event
+//
+
+inline bool k8s_event_t::has_pending_events() const
+{
+	return m_postponed_events.size() != 0;
 }

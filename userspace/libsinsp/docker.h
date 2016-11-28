@@ -38,6 +38,7 @@ public:
 	void set_event_json(json_ptr_t json, const std::string&);
 	void simulate_event(const std::string& json);
 	const std::string& get_id() const;
+	void reset_event_counter();
 
 #ifdef HAS_CAPTURE
 	void send_data_request(bool collect = true);
@@ -52,7 +53,7 @@ private:
 	static const std::string DOCKER_SOCKET_FILE;
 	void connect();
 	void send_event_data_request();
-	void check_collector_status(int expected);
+	void check_collector_status();
 
 	void handle_event(Json::Value&& root);
 
@@ -73,7 +74,7 @@ private:
 				http->set_json_callback(func);
 				m_collector.add(http);
 			}
-			check_collector_status(expected_connections);
+			check_collector_status();
 			return m_collector.has(http);
 		}
 		return false;
@@ -115,6 +116,8 @@ private:
 	const entity_events_t  m_network_events;
 	severity_map_t         m_severity_map;
 	name_translation_map_t m_name_translation;
+	size_t                 m_event_counter = 0;
+	bool                   m_event_limit_exceeded = false;
 };
 
 inline const std::string& docker::get_id() const
@@ -165,6 +168,11 @@ inline bool docker::is_volume_event(const std::string& evt_name)
 inline bool docker::is_network_event(const std::string& evt_name)
 {
 	return m_network_events.find(evt_name) != m_network_events.end();
+}
+
+inline void docker::reset_event_counter()
+{
+	m_event_counter = 0;
 }
 
 #endif // __linux__

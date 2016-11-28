@@ -177,7 +177,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		chk->m_aggregation = (sinsp_field_aggregation)vit.m_aggregation;
 		m_chks_to_free.push_back(chk);
 
-		chk->parse_field_name(vit.get_field(m_view_depth).c_str(), true);
+		chk->parse_field_name(vit.get_field(m_view_depth).c_str(), true, false);
 
 		if((vit.m_flags & TEF_IS_KEY) != 0)
 		{
@@ -219,7 +219,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		chk->m_aggregation = A_NONE;
 		m_chks_to_free.push_back(chk);
 
-		chk->parse_field_name("util.cnt", true);
+		chk->parse_field_name("util.cnt", true, false);
 
 		if(m_is_key_present)
 		{

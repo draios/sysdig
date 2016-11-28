@@ -19,6 +19,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 #include <unordered_set>
 #include <json/json.h>
+#include "filter_value.h"
+#include "prefix_search.h"
 #include "k8s.h"
 #include "mesos.h"
 
@@ -41,44 +43,6 @@ public:
 	ppm_param_type m_type;
 	string m_name;
 	string m_description;
-};
-
-// Used for CO_IN filterchecks using PT_CHARBUFs to allow for quick
-// multi-value comparisons. Should also work for any filtercheck with
-// a buffer and length. When compiling with gnu compilers, use the
-// built in but not standard _hash_impl::hash function, which uses
-// murmurhash2 and is quite fast. Otherwise, uses
-// http://www.cse.yorku.ca/~oz/hash.html.
-
-// Used by m_val_storages_members
-typedef pair<uint8_t *, uint32_t> filter_value_member_t;
-
-struct g_hash_membuf
-{
-	size_t operator()(filter_value_member_t val) const
-	{
-#ifdef __GNUC__
-		return std::_Hash_impl::hash(val.first, val.second);
-#else
-		size_t hash = 5381;
-		for(uint8_t *p = val.first; p-val.first < val.second; p++)
-		{
-			int c = *p;
-
-			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-		}
-		return hash;
-#endif
-	}
-};
-
-struct g_equal_to_membuf
-{
-	bool operator()(filter_value_member_t a, filter_value_member_t b) const
-	{
-		return (a.second == b.second &&
-			memcmp(a.first, b.first, a.second) == 0);
-	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -114,7 +78,7 @@ public:
 	// Returns the length of the parsed field if successful, an exception in
 	// case of error.
 	//
-	virtual int32_t parse_field_name(const char* str, bool alloc_state);
+	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 
 	//
 	// If this check is used by a filter, extract the constant to compare it to
@@ -189,9 +153,11 @@ protected:
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
 	inline vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
 
-	unordered_set<filter_value_member_t,
+	unordered_set<filter_value_t,
 		g_hash_membuf,
 		g_equal_to_membuf> m_val_storages_members;
+
+	path_prefix_search m_val_storages_paths;
 
 	uint32_t m_val_storages_min_size;
 	uint32_t m_val_storages_max_size;
@@ -247,7 +213,7 @@ public:
 	// The following methods are part of the filter check interface but are irrelevant
 	// for this class, because they are used only for the leaves of the filtering tree.
 	//
-	int32_t parse_field_name(const char* str, bool alloc_state)
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 	{
 		ASSERT(false);
 		return 0;
@@ -407,7 +373,7 @@ public:
 
 	sinsp_filter_check_thread();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare(sinsp_evt *evt);
 
@@ -505,7 +471,7 @@ public:
 	sinsp_filter_check_event();
 	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
@@ -620,7 +586,7 @@ public:
 	sinsp_filter_check_tracer();
 	~sinsp_filter_check_tracer();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
@@ -680,7 +646,7 @@ public:
 
 	sinsp_filter_check_evtin();
 	~sinsp_filter_check_evtin();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	sinsp_filter_check* allocate_new();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare(sinsp_evt *evt);
@@ -703,6 +669,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val);
+	inline uint8_t* extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;
@@ -721,7 +688,7 @@ public:
 	rawstring_check(string text);
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	// XXX this is overkill and wasted for most of the fields.
@@ -751,7 +718,7 @@ public:
 
 	sinsp_filter_check_syslog();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	sinsp_decoder_syslog* m_decoder;
@@ -767,7 +734,16 @@ public:
 		TYPE_CONTAINER_ID = 0,
 		TYPE_CONTAINER_NAME,
 		TYPE_CONTAINER_IMAGE,
-		TYPE_CONTAINER_TYPE
+		TYPE_CONTAINER_IMAGE_ID,
+		TYPE_CONTAINER_TYPE,
+		TYPE_CONTAINER_PRIVILEGED,
+		TYPE_CONTAINER_MOUNTS,
+		TYPE_CONTAINER_MOUNT,
+		TYPE_CONTAINER_MOUNT_SOURCE,
+		TYPE_CONTAINER_MOUNT_DEST,
+		TYPE_CONTAINER_MOUNT_MODE,
+		TYPE_CONTAINER_MOUNT_RDWR,
+		TYPE_CONTAINER_MOUNT_PROPAGATION
 	};
 
 	sinsp_filter_check_container();
@@ -775,7 +751,13 @@ public:
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	int32_t extract_arg(const string& val, size_t basename);
+
 	string m_tstr;
+	uint32_t m_u32val;
+	int32_t m_argid;
+	string m_argstr;
 };
 
 //
@@ -802,7 +784,7 @@ public:
 		m_cnt = cnt;
 		m_print_format = print_format;
 	}
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
@@ -884,11 +866,19 @@ public:
 		TYPE_K8S_NS_ID,
 		TYPE_K8S_NS_LABEL,
 		TYPE_K8S_NS_LABELS,
+		TYPE_K8S_RS_NAME,
+		TYPE_K8S_RS_ID,
+		TYPE_K8S_RS_LABEL,
+		TYPE_K8S_RS_LABELS,
+		TYPE_K8S_DEPLOYMENT_NAME,
+		TYPE_K8S_DEPLOYMENT_ID,
+		TYPE_K8S_DEPLOYMENT_LABEL,
+		TYPE_K8S_DEPLOYMENT_LABELS,
 	};
 
 	sinsp_filter_check_k8s();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
@@ -896,7 +886,9 @@ private:
 	const k8s_pod_t* find_pod_for_thread(const sinsp_threadinfo* tinfo);
 	const k8s_ns_t* find_ns_by_name(const string& ns_name);
 	const k8s_rc_t* find_rc_by_pod(const k8s_pod_t* pod);
+	const k8s_rs_t* find_rs_by_pod(const k8s_pod_t* pod);
 	vector<const k8s_service_t*> find_svc_by_pod(const k8s_pod_t* pod);
+	const k8s_deployment_t* find_deployment_by_pod(const k8s_pod_t* pod);
 	void concatenate_labels(const k8s_pair_list& labels, string* s);
 	bool find_label(const k8s_pair_list& labels, const string& key, string* value);
 
@@ -925,7 +917,7 @@ public:
 
 	sinsp_filter_check_mesos();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:

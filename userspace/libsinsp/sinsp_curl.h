@@ -10,59 +10,34 @@
 
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "sinsp_auth.h"
 #include "uri.h"
 #include "curl/curl.h"
 #include <string>
 #include <memory>
 
+class sinsp_curl_http_headers
+{
+public:
+	sinsp_curl_http_headers();
+	~sinsp_curl_http_headers();
+
+	void add(const string& header);
+	
+	struct curl_slist* ptr()
+	{
+		return m_curl_header_list;
+	}
+
+private:
+	struct curl_slist* m_curl_header_list;
+};
+
 class sinsp_curl
 {
 public:
-	class ssl
-	{
-	public:
-		typedef std::shared_ptr<ssl> ptr_t;
-
-		ssl(const std::string& cert, const std::string& key, const std::string& key_passphrase = "",
-			const std::string& ca_cert = "", bool verify_peer = false, const std::string& cert_type = "PEM");
-		~ssl();
-
-		const std::string& cert_type() const;
-		const std::string& cert() const;
-		const std::string& key() const;
-		const std::string& key_passphrase() const;
-		const std::string& ca_cert() const;
-		bool verify_peer() const;
-
-	private:
-		static std::string memorize_file(const std::string& disk_file);
-		static void unmemorize_file(const std::string& mem_file);
-
-		std::string m_cert_type;
-		std::string m_cert;
-		std::string m_key;
-		std::string m_key_passphrase;
-		std::string m_ca_cert;
-		bool        m_verify_peer = false;
-	};
-
-	class bearer_token
-	{
-	public:
-		typedef std::shared_ptr<bearer_token> ptr_t;
-
-		bearer_token(const std::string& bearer_token_file = "");
-		~bearer_token();
-
-		const std::string& get_token() const;
-		struct curl_slist* bt_auth_header();
-
-	private:
-		static std::string stringize_file(const std::string& disk_file);
-
-		std::string m_bearer_token;
-		struct curl_slist* m_bt_auth_header;
-	};
+	typedef sinsp_ssl ssl;
+	typedef sinsp_bearer_token bearer_token;
 
 	static const long DEFAULT_TIMEOUT_MS = 5000L;
 
@@ -80,23 +55,56 @@ public:
 	~sinsp_curl();
 
 	bool get_data(std::ostream& os);
-	std::string get_data();
+	std::string get_data(bool do_log = true);
 
 	void set_timeout(long seconds);
 	long get_timeout() const;
 
 	void set_url(const std::string& url);
 	std::string get_url(bool show_creds = true) const;
-
+	void set_body(const string& data);
+	
 	bool is_secure() const;
 	ssl::ptr_t get_ssl();
+
+	template<typename Opt, typename Arg>
+	void setopt(Opt opt, Arg arg)
+	{
+		check_error(curl_easy_setopt(m_curl, opt, arg));
+	}
+
+	void enable_debug()
+	{
+		sinsp_curl::enable_debug(m_curl);
+	}
+
+	template<typename T>
+	void add_header(T body)
+	{
+		m_headers.add(forward<T>(body));
+	}
+
 	static void init_ssl(CURL* curl, ssl::ptr_t ssl_data);
 	bearer_token::ptr_t get_bt();
 	static void init_bt(CURL* curl, bearer_token::ptr_t bt);
 
 	static void enable_debug(CURL* curl, bool enable = true);
 	static bool check_error(unsigned ret, bool exc = true);
+	static size_t header_callback(char *buffer, size_t size, size_t nitems, void *userdata);
+	static bool is_redirect(long http_code);
+	static bool handle_redirect(uri& url, std::string&& loc, std::ostream& os);
+	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
+	const vector<string>& response_headers()
+	{
+		return m_response_headers;
+	}
+	
+	const long get_response_code() const
+	{
+		return m_response_code;
+	}
+	
 private:
 	struct data
 	{
@@ -107,7 +115,6 @@ private:
 	static int trace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp);
 
 	void init();
-	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
 	CURL*               m_curl;
 	uri                 m_uri;
@@ -115,6 +122,11 @@ private:
 	ssl::ptr_t          m_ssl;
 	bearer_token::ptr_t m_bt;
 	bool                m_debug;
+	char                m_redirect[CURL_MAX_HTTP_HEADER] = {0};
+	stringstream        m_body;
+	sinsp_curl_http_headers m_headers;
+	vector<string>      m_response_headers;
+	long                m_response_code;
 };
 
 inline void sinsp_curl::set_timeout(long milliseconds)
@@ -147,59 +159,9 @@ inline sinsp_curl::ssl::ptr_t sinsp_curl::get_ssl()
 	return m_ssl;
 }
 
-
-//
-// sinsp_curl::bearer_token
-//
-
 inline sinsp_curl::bearer_token::ptr_t sinsp_curl::get_bt()
 {
 	return m_bt;
-}
-
-inline const std::string& sinsp_curl::bearer_token::get_token() const
-{
-	return m_bearer_token;
-}
-
-inline struct curl_slist* sinsp_curl::bearer_token::bt_auth_header()
-{
-	return m_bt_auth_header;
-}
-
-
-//
-// sinsp_curl::ssl
-//
-
-inline const std::string& sinsp_curl::ssl::cert_type() const
-{
-	return m_cert_type;
-}
-
-inline const std::string& sinsp_curl::ssl::cert() const
-{
-	return m_cert;
-}
-
-inline const std::string& sinsp_curl::ssl::key() const
-{
-	return m_key;
-}
-
-inline const std::string& sinsp_curl::ssl::key_passphrase() const
-{
-	return m_key_passphrase;
-}
-
-inline const std::string& sinsp_curl::ssl::ca_cert() const
-{
-	return m_ca_cert;
-}
-
-inline bool sinsp_curl::ssl::verify_peer() const
-{
-	return m_verify_peer;
 }
 
 #endif // __linux__

@@ -12,7 +12,7 @@
 #include "k8s_state.h"
 #include "k8s_event_data.h"
 #include "k8s_net.h"
-#include "sinsp_curl.h"
+#include "sinsp_auth.h"
 #include <sstream>
 #include <utility>
 
@@ -22,22 +22,20 @@ class k8s
 {
 public:
 #ifdef HAS_CAPTURE
-	typedef sinsp_curl::ssl::ptr_t          ssl_ptr_t;
-	typedef sinsp_curl::bearer_token::ptr_t bt_ptr_t;
+	typedef sinsp_ssl::ptr_t          ssl_ptr_t;
+	typedef sinsp_bearer_token::ptr_t bt_ptr_t;
 #endif // HAS_CAPTURE
 
 	typedef k8s_component::ext_list_ptr_t ext_list_ptr_t;
 	typedef user_event_filter_t::ptr_t    filter_ptr_t;
 
 	k8s(const std::string& uri = "http://localhost:80",
-		bool start_watch = false,
-		bool watch_in_thread = false,
 		bool is_captured = false,
 #ifdef HAS_CAPTURE
 		ssl_ptr_t ssl = 0,
 		bt_ptr_t bt = 0,
+		bool block = false,
 #endif // HAS_CAPTURE
-		bool curl_debug = false,
 		filter_ptr_t event_filter = nullptr,
 		ext_list_ptr_t extensions = nullptr);
 
@@ -45,12 +43,14 @@ public:
 
 	std::size_t count(k8s_component::type component) const;
 
-	void on_watch_data(k8s_event_data&& msg);
+	void check_components();
 
-	const k8s_state_t& get_state(bool rebuild = false);
+	const k8s_state_t& get_state();
+	void clear_events();
+	void set_machine_id(const std::string& machine_id);
+	std::string get_machine_id() const;
 
 	void watch();
-	bool watch_in_thread() const;
 	void stop_watching();
 
 	bool is_alive() const;
@@ -61,31 +61,26 @@ public:
 	std::string dequeue_capture_event() { return m_state.dequeue_capture_event(); }
 #endif // HAS_CAPTURE
 
-	void simulate_watch_event(const std::string& json);
+	// version:
+	//   - 1 to support k8s events captured in old format (before refactoring)
+	//   - 2 to support k8s events captured in new format (after refactoring)
+	void simulate_watch_event(const std::string& json, int version = 2);
 
 private:
-	void extract_data(Json::Value& items, k8s_component::type component, const std::string& api_version);
-
-	void build_state();
-
-	void parse_json(const std::string& json, const k8s_component::type_map::value_type& component);
-
 	void stop_watch();
 
 	void cleanup();
 
-	// due to deleted default dispatcher constructor, g++ has trouble instantiating map with values,
-	// so we have to go with the forward declaration above and pointers here ...
-	typedef std::map<k8s_component::type, k8s_dispatcher*> dispatch_map;
-	dispatch_map make_dispatch_map(k8s_state_t& state, ext_list_ptr_t extensions);
-
-	bool         m_watch;
 	k8s_state_t  m_state;
 	filter_ptr_t m_event_filter;
-	dispatch_map m_dispatch;
-	bool         m_watch_in_thread;
+
+	typedef std::map<k8s_component::type, std::unique_ptr<k8s_dispatcher>> dispatch_map_t;
+	typedef std::map<k8s_component::type, std::shared_ptr<k8s_handler>> handler_map_t;
+	dispatch_map_t m_dispatch_map;
+	handler_map_t  m_handler_map;
+
 #ifdef HAS_CAPTURE
-	k8s_net*     m_net;
+	k8s_net* m_net = nullptr;
 #endif
 
 	static k8s_component::type_map m_components;
@@ -101,7 +96,34 @@ inline bool k8s::is_alive() const
 	return true;
 }
 
-inline bool k8s::watch_in_thread() const
+inline void k8s::clear_events()
 {
-	return m_watch_in_thread;
+	m_state.clear_events();
+}
+
+inline std::string k8s::get_machine_id() const
+{
+#ifdef HAS_CAPTURE
+	if(m_net)
+	{
+		return m_net->get_machine_id();
+	}
+#endif // HAS_CAPTURE
+	return "";
+}
+
+inline void k8s::set_machine_id(const std::string& machine_id)
+{
+#ifdef HAS_CAPTURE
+	if(m_net)
+	{
+		m_net->set_machine_id(machine_id);
+	}
+	else
+	{
+		g_logger.log("K8s machine ID (MAC) setting attempted on null net object; "
+					 "scope may not be available for events.",
+					 sinsp_logger::SEV_WARNING);
+	}
+#endif // HAS_CAPTURE
 }
