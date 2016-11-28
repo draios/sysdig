@@ -1,20 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
-
-This file is part of sysdig.
-
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
-
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2013-2016 Draios inc.
+ *
+ * This file is part of sysdig.
+ *
+ * sysdig is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * sysdig is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
@@ -53,8 +53,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #define ppm_access_ok access_ok
 #endif
-
-extern bool g_tracers_enabled;
 
 static void memory_dump(char *p, size_t size)
 {
@@ -350,20 +348,18 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 			} else if (dport == PPM_PORT_STATSD) {
 				sockfd_put(sock);
 				return 2000;
-			} else {
-				if (lookahead_size >= 5) {
-					if (*(u32 *)buf == g_http_get_intval ||
-						*(u32 *)buf == g_http_post_intval ||
-						*(u32 *)buf == g_http_put_intval ||
-						*(u32 *)buf == g_http_delete_intval ||
-						*(u32 *)buf == g_http_trace_intval ||
-						*(u32 *)buf == g_http_connect_intval ||
-						*(u32 *)buf == g_http_options_intval ||
-						((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
-					) {
-						sockfd_put(sock);
-						return 2000;
-					}
+			} else if (lookahead_size >= 5) {
+				if (*(u32 *)buf == g_http_get_intval ||
+					*(u32 *)buf == g_http_post_intval ||
+					*(u32 *)buf == g_http_put_intval ||
+					*(u32 *)buf == g_http_delete_intval ||
+					*(u32 *)buf == g_http_trace_intval ||
+					*(u32 *)buf == g_http_connect_intval ||
+					*(u32 *)buf == g_http_options_intval ||
+					((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
+				) {
+					sockfd_put(sock);
+					return 2000;
 				}
 			}
 		}
@@ -739,7 +735,7 @@ static inline u8 socket_family_to_scap(u8 family)
 	else if (family == AF_CAN)
 		return PPM_AF_CAN;
 #endif
-	 else if (family == AF_TIPC)
+	else if (family == AF_TIPC)
 		return PPM_AF_TIPC;
 	else if (family == AF_BLUETOOTH)
 		return PPM_AF_BLUETOOTH;
@@ -778,24 +774,6 @@ static inline u8 socket_family_to_scap(u8 family)
 		return PPM_AF_UNSPEC;
 	}
 }
-
-/*
-static struct socket *ppm_sockfd_lookup_light(int fd, int *err, int *fput_needed)
-{
-	struct file *file;
-	struct socket *sock;
-
-	*err = -EBADF;
-	file = fget_light(fd, fput_needed);
-	if (file) {
-		sock = sock_from_file(file, err);
-		if (sock)
-			return sock;
-		fput_light(file, *fput_needed);
-	}
-	return NULL;
-}
-*/
 
 /*
  * Convert a sockaddr into our address representation and copy it to

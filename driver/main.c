@@ -1,20 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
-
-This file is part of sysdig.
-
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
-
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2013-2016 Draios inc.
+ *
+ * This file is part of sysdig.
+ *
+ * sysdig is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * sysdig is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
@@ -48,7 +48,7 @@ MODULE_AUTHOR("sysdig inc");
 
 #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2, NULL)
 #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2, NULL)
-#define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
+#define TRACEPOINT_PROBE(probe, args...) void probe(void *__data, args)
 
 struct ppm_device {
 	dev_t dev;
@@ -119,7 +119,7 @@ static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
-bool g_tracers_enabled = false;
+bool g_tracers_enabled;
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -579,7 +579,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		ret = 0;
 cleanup_ioctl_procinfo:
-		vfree((void*)proclist_info);
+		vfree((void *) proclist_info);
 		goto cleanup_ioctl_nolock;
 	}
 
@@ -1506,7 +1506,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
 	 * kernel flag), we switch to the ia32 syscall table.
 	 */
-	if(in_ia32_syscall()) {
+	if (in_ia32_syscall()) {
 		cur_g_syscall_table = g_syscall_ia32_table;
 		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
 		socketcall_syscall = __NR_ia32_socketcall;
@@ -1568,7 +1568,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
 	 * which is a very old syscall, not used anymore by most applications
 	 */
-	if(in_ia32_syscall() && id != __NR_execve) {
+	if (in_ia32_syscall() && id != __NR_execve) {
 		cur_g_syscall_table = g_syscall_ia32_table;
 		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
 		socketcall_syscall = __NR_ia32_socketcall;

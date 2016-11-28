@@ -1,20 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
-
-This file is part of sysdig.
-
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
-
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2013-2016 Draios inc.
+ *
+ * This file is part of sysdig.
+ *
+ * sysdig is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * sysdig is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "ppm_events_public.h"
 #include "ppm.h"
@@ -174,7 +174,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_DROP_X */{"drop", EC_INTERNAL, EF_SKIPPARSERESET, 1, {{"ratio", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_FCNTL_E */{"fcntl", EC_IO_OTHER, EF_USES_FD | EF_MODIFIES_STATE | EF_DROP_FALCO, 2, {{"fd", PT_FD, PF_DEC}, {"cmd", PT_FLAGS8, PF_DEC, fcntl_commands} } },
 	/* PPME_SYSCALL_FCNTL_X */{"fcntl", EC_IO_OTHER, EF_USES_FD | EF_MODIFIES_STATE | EF_DROP_FALCO, 1, {{"res", PT_FD, PF_DEC} } },
-	/* PPME_SCHEDSWITCH_6_E */{"switch", EC_SCHEDULER, EF_DROP_FALCO , 6, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
+	/* PPME_SCHEDSWITCH_6_E */{"switch", EC_SCHEDULER, EF_DROP_FALCO, 6, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
 	/* PPME_SCHEDSWITCH_6_X */{"NA2", EC_SCHEDULER, EF_UNUSED, 0},
 	/* PPME_SYSCALL_EXECVE_13_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 0},
 	/* PPME_SYSCALL_EXECVE_13_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 13, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },

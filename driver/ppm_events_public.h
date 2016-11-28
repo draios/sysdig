@@ -1,20 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
-
-This file is part of sysdig.
-
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
-
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2013-2016 Draios inc.
+ *
+ * This file is part of sysdig.
+ *
+ * sysdig is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * sysdig is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef EVENTS_PUBLIC_H_
 #define EVENTS_PUBLIC_H_
@@ -131,8 +131,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_CL_NAME_CHANGED (1 << 17)	/* libsinsp-specific flag. Set when the thread name changes */
 										/* (for example because execve was called) */
 #define PPM_CL_CLOSED (1 << 18)			/* thread has been closed. */
-#define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for
-										   this thread. */
+#define PPM_CL_ACTIVE (1 << 19)
+										/* libsinsp-specific flag. Set in the first non-clone event for
+										 * this thread.
+										 */
 #define PPM_CL_CLONE_NEWUSER (1 << 20)
 
 /*
@@ -282,7 +284,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_FCNTL_F_SETPIPE_SZ 28
 #define PPM_FCNTL_F_GETPIPE_SZ 29
 
- /*
+/*
  * ptrace requests
  */
 #define PPM_PTRACE_UNKNOWN 0
@@ -1186,30 +1188,32 @@ enum ppm_print_format {
 };
 
 /*!
-  \brief Name-value pair, used to store flags information.
-*/
+ * \brief Name-value pair, used to store flags information.
+ */
 struct ppm_name_value {
 	const char *name;
 	uint32_t value;
 };
 
 /*!
-  \brief Event parameter information.
-*/
+ * \brief Event parameter information.
+ */
 struct ppm_param_info {
 	char name[PPM_MAX_NAME_LEN];  /**< Paramter name, e.g. 'size'. */
 	enum ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
-	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
-			       else if this is a dynamic parameter it points to an array of ppm_param_info */
+	const void *info;
+	/**< If this is a flags parameter, it points to an array of ppm_name_value,
+	 * else if this is a dynamic parameter it points to an array of ppm_param_info
+	 */
 	uint8_t ninfo; /**< Number of entry in the info array. */
 };
 
 /*!
-  \brief Event information.
-  This structure contains the full description of an event type (e.g. 'open') that
-   is supported by the sysdig infrastructure.
-*/
+ * \brief Event information.
+ * This structure contains the full description of an event type (e.g. 'open') that
+ *  is supported by the sysdig infrastructure.
+ */
 struct ppm_event_info {
 	char name[PPM_MAX_NAME_LEN]; /**< Name. */
 	enum ppm_event_category category; /**< Event category, e.g. 'file', 'net', etc. */
@@ -1304,8 +1308,8 @@ enum ppm_driver_event_id {
 };
 
 /*!
-  \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
-*/
+ * \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
+ */
 struct ppm_proc_info {
 	uint64_t pid;
 	uint64_t utime;

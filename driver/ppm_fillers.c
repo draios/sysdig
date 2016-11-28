@@ -1,20 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
-
-This file is part of sysdig.
-
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
-
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2013-2016 Draios inc.
+ *
+ * This file is part of sysdig.
+ *
+ * sysdig is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * sysdig is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
@@ -757,14 +757,16 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	return 0;
 }
 
-#define SUBSYS(_x)																						\
-if (append_cgroup(#_x, _x ## _cgrp_id, args->str_storage + STR_STORAGE_SIZE - available, &available))	\
-	goto cgroups_error;
+#define SUBSYS(_x) {																						\
+	if (append_cgroup(#_x, _x ## _cgrp_id, args->str_storage + STR_STORAGE_SIZE - available, &available))	\
+		goto cgroups_error;																					\
+}
 #endif
 
 /* Takes in a NULL-terminated array of pointers to strings in userspace, and
  * concatenates them to a single \0-separated string. Return the length of this
- * string, or <0 on error */
+ * string, or <0 on error
+ */
 static int accumulate_argv_or_env(const char __user * __user *argv,
 				  char *str_storage,
 				  int available)
@@ -793,7 +795,8 @@ static int accumulate_argv_or_env(const char __user * __user *argv,
 
 		/* ppm_strncpy_from_user includes the trailing \0 in its return
 		 * count. I want to pretend it was strncpy_from_user() so I
-		 * subtract off the 1 */
+		 * subtract off the 1
+		 */
 		n_bytes_copied--;
 
 		if (n_bytes_copied < 0)
@@ -844,7 +847,8 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 		/* ppm_strncpy_from_user includes the trailing \0 in its return
 		 * count. I want to pretend it was strncpy_from_user() so I
-		 * subtract off the 1 */
+		 * subtract off the 1
+		 */
 		n_bytes_copied--;
 
 		if (n_bytes_copied < 0) {
@@ -893,7 +897,8 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		     args->event_type != PPME_SYSCALL_EXECVE_16_X)) {
 
 		/* The call failed, but this syscall has no exe, args
-		 * anyway, so I report empty ones */
+		 * anyway, so I report empty ones
+		 */
 		*args->str_storage = 0;
 
 		/*
@@ -2709,7 +2714,7 @@ static int f_sys_ppoll_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	if (val != (unsigned long)NULL)
-		if (0 != ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
+		if (ppm_copy_from_user(&val, (void __user *)val, sizeof(val)) != 0)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -4911,8 +4916,8 @@ static int f_sys_semop_x(struct event_filler_arguments *args)
 
 	if (nsops && ptr) {
 		/* max length of sembuf array in g_event_info = 2 */
-		const unsigned max_nsops = 2;
-		unsigned       j;
+		const unsigned int max_nsops = 2;
+		unsigned int j;
 
 		for (j = 0; j < max_nsops; j++) {
 			struct sembuf sops = {0, 0, 0};
@@ -4938,7 +4943,7 @@ static int f_sys_semop_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u32 semget_flags_to_scap(unsigned flags)
+static inline u32 semget_flags_to_scap(unsigned int flags)
 {
 	u32 res = 0;
 
@@ -4983,7 +4988,7 @@ static int f_sys_semget_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u32 semctl_cmd_to_scap(unsigned cmd)
+static inline u32 semctl_cmd_to_scap(unsigned int cmd)
 {
 	switch (cmd) {
 	case IPC_STAT: return PPM_IPC_STAT;
@@ -5062,7 +5067,7 @@ static int f_sys_semctl_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u32 access_flags_to_scap(unsigned flags)
+static inline u32 access_flags_to_scap(unsigned int flags)
 {
 	u32 res = 0;
 
