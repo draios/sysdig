@@ -721,9 +721,8 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	int pathlen;
 	int subsys_len;
 	char *path;
-	struct cgroup_subsys_state *css;
-
-	css = task_css(current, subsys_id);
+	int res;
+	struct cgroup_subsys_state *css = task_css(current, subsys_id);
 
 	if (!css) {
 		ASSERT(false);
@@ -735,10 +734,12 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 		return 1;
 	}
 
-	path = cgroup_path(css->cgroup, buf, *available);
-	if (!path) {
+	res = cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
 		ASSERT(false);
 		path = "NA";
+	} else {
+		path = buf;
 	}
 
 	pathlen = strlen(path);
