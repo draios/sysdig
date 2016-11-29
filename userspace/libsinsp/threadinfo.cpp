@@ -535,6 +535,13 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 		{
 			subsys = "memory";
 		}
+		else if(subsys == "io")
+		{
+			// blkio has been renamed just `io`
+			// in kernel space:
+			// https://github.com/torvalds/linux/commit/c165b3e3c7bb68c2ed55a5ac2623f030d01d9567
+			subsys = "blkio";
+		}
 
 		m_cgroups.push_back(std::make_pair(subsys, cgroup));
 		offset += subsys_length + 1 + cgroup.length() + 1;

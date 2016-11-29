@@ -1570,7 +1570,11 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	 * kernel flag), we skip its events.
 	 * XXX Decide what to do about this.
 	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	if(in_ia32_syscall())
+#else
 	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
+#endif
 		return;
 #endif
 
@@ -1614,7 +1618,11 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 * kernel flag), we skip its events.
 	 * XXX Decide what to do about this.
 	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	if(in_ia32_syscall())
+#else
 	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
+#endif
 		return;
 #endif
 
