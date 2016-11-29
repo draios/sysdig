@@ -4967,12 +4967,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			}
 		}
 
-		if(val == NULL)
-		{
-			return false;
-		}
-
-		return (uint8_t*)&val;
+		return (uint8_t*) val;
 	}
 	case TYPE_ARGS:
 	{
@@ -5063,7 +5058,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			}
 		}
 
-		return (uint8_t*)&val;
+		return (uint8_t*) val;
 	}
 	default:
 		ASSERT(false);
@@ -5075,7 +5070,6 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 
 uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
-	sinsp_partial_tracer* pae = NULL;
 	list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
 	list<sinsp_partial_tracer*>::iterator it;
 	uint16_t etype = evt->get_type();
