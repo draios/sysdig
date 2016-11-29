@@ -1362,7 +1362,7 @@ static int f_sys_socketpair_x(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * If the call was succesful, copy the FDs
+	 * If the call was successful, copy the FDs
 	 */
 	if (likely(retval >= 0)) {
 		/*
