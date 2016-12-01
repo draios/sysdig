@@ -698,7 +698,11 @@ bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr)
 {
 	if(paddr[0] == 0 && paddr[1] == 0 && paddr[2] == 0 && paddr[3] == 0 && paddr[4] == 0 &&
 		paddr[5] == 0 && paddr[6] == 0 && paddr[7] == 0 && paddr[8] == 0 && paddr[9] == 0 &&
-		paddr[10] == 0xff && paddr[11] == 0xff)
+			(
+					( paddr[10] == 0xff && paddr[11] == 0xff) || // A real IPv4 address
+					(paddr[10] == 0 && paddr[11] == 0 && paddr[12] == 0 && paddr[13] == 0 && paddr[14] == 0 && paddr[15] == 0) // all zero address, assume IPv4 as well
+			)
+		)
 	{
 		return true;
 	}
