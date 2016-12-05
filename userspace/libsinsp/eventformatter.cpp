@@ -151,7 +151,9 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 
 	if(last_nontoken_str_start != j)
 	{
-		m_tokens.push_back(new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start)));
+		sinsp_filter_check * chk = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
+		m_tokens.push_back(chk);
+		m_chks_to_free.push_back(chk);
 		m_tokenlens.push_back(0);
 	}
 }
