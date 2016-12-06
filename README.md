@@ -41,6 +41,7 @@ Join the Community
 * Follow us on [Twitter] (https://twitter.com/sysdig) for the Chisel of the Week
 * This is our [blog] (https://sysdig.com/blog/). There are many like it, but this one is ours.
 * Join our IRC channel `#sysdig` on [Freenode](http://webchat.freenode.net/?channels=sysdig)
+* Join our Slack Channel #sysdig-open-source on [Slack](https://slack.sysdig.com/)
 
 License Terms
 ---
