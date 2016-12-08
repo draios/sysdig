@@ -34,6 +34,10 @@
 #include <cstring>
 #include <climits>
 
+#ifndef SOCK_NONBLOCK
+#define SOCK_NONBLOCK 0
+#endif
+
 template <typename T>
 class socket_data_handler
 {
