@@ -208,6 +208,10 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 		if (file && file->f_inode) {
 			if (file->f_inode->i_rdev == PPM_NULL_RDEV) {
+		// Use f_dentry for older kernel versions
+#elif LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,20)
+		if (file && file->f_dentry && file->f_dentry->d_inode) {
+			if (file->f_dentry->d_inode->i_rdev == PPM_NULL_RDEV) {
 #else
 		if (file && file->f_path.dentry && file->f_path.dentry->d_inode) {
 			if (file->f_path.dentry->d_inode->i_rdev == PPM_NULL_RDEV) {
