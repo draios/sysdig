@@ -1445,6 +1445,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		hdr->tid = current->pid;
 		hdr->type = event_type;
 
+
+		hdr->tgid = current->tgid;
+		memcpy(hdr->comm, current->comm, 16);
 		/*
 		 * Populate the parameters for the filler callback
 		 */

@@ -1235,6 +1235,9 @@ struct ppm_evt_hdr {
 	uint64_t tid; /* the tid of the thread that generated this event */
 	uint32_t len; /* the event len, including the header */
 	uint16_t type; /* the event type */
+
+	uint64_t tgid; /* the tgid of the thread that generated this event */
+	char comm[16]; /* the process name that generated this event */
 };
 #if defined __sun
 #pragma pack()
