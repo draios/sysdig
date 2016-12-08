@@ -46,7 +46,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "chisel.h"
 #include "protodecoder.h"
-#include "json/json.h"
 #include "uri.h"
 #ifndef _WIN32
 #include "curl/curl.h"
