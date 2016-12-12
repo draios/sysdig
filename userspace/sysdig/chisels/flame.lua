@@ -60,7 +60,7 @@ function on_init()
 	end
 	
 	fid = chisel.request_field("span.id")
-	flatency = chisel.request_field("span.latency")
+	flatency = chisel.request_field("span.duration")
 	fcontname = chisel.request_field("container.name")
 	fexe = chisel.request_field("proc.exeline")
 	fbuf = chisel.request_field("evt.buffer")
@@ -452,11 +452,13 @@ function on_capture_end()
 		normalize(v, v.n)
 	end
 
+	print "var FlameData = {"
+
 	-- emit the average transaction
 	local AvgData = {}
 	AvgData[""] = {ch=avg_tree, t=0, tt=0}
 	local str = json.encode(AvgData, { indent = true })
-	print("AvgData = " .. str .. ";")
+	print('"AvgData": ' .. str .. ",")
 
 	-- normalize the best transaction
 	for i,v in pairs(min_tree) do
@@ -467,7 +469,7 @@ function on_capture_end()
 	local tdata = {}
 	tdata[""] = {ch=min_tree, t=0, tt=0}
 	local str = json.encode(tdata, { indent = true })
-	print("MinData = " .. str .. ";")
+	print('"MinData": ' .. str .. ",")
 
 	-- normalize the worst transaction
 	for i,v in pairs(max_tree) do
@@ -478,5 +480,7 @@ function on_capture_end()
 	local tdata = {}
 	tdata[""] = {ch=max_tree, t=0, tt=0}
 	local str = json.encode(tdata, { indent = true })
-	print("MaxData = " .. str .. ";")
+	print('"MaxData": ' .. str .. ",")
+
+	print "};"
 end

@@ -242,18 +242,22 @@ public:
 							for(typename socket_map_t::iterator it = m_sockets.begin(); it != m_sockets.end();)
 							{
 								std::string id = it->second->get_id();
+								int err = 0;
 								if(FD_ISSET(it->first, &m_infd))
 								{
-									if(it->second && it->second->is_enabled() && !it->second->on_data())
+									if(it->second && it->second->is_enabled() && (err = it->second->on_data()))
 									{
-										if((errno != EAGAIN) && (errno != EINPROGRESS))
+										if((err != EAGAIN) && (err != EINPROGRESS))
 										{
-											if(errno) // socket_handler::on_data() returns false on clean close, not an error
+											if(err != it->second->CONNECTION_CLOSED)
 											{
-												g_logger.log("Socket collector data handling error " + std::to_string(errno) + ", (" +
-															 strerror(errno) + "), removing handler [" + id + "], " +
-															 (it->second ? it->second->get_id() : "Unknown"),
-															 sinsp_logger::SEV_ERROR);
+												g_logger.log("Socket collector: data handling error " + std::to_string(errno) + ", (" +
+															 strerror(errno) + "), removing handler [" + id + ']', sinsp_logger::SEV_ERROR);
+											}
+											else
+											{
+												g_logger.log("Socket collector: connection close detected while handling data"
+															 ", removing handler [" + id + ']', sinsp_logger::SEV_DEBUG);
 											}
 											remove(it);
 											continue;
@@ -263,23 +267,18 @@ public:
 
 								if(FD_ISSET(it->first, &m_errfd))
 								{
-									if((errno != EAGAIN) && (errno != EINPROGRESS))
+									if(it->second && (err = it->second->get_socket_error()))
 									{
-										if(errno)
-										{
-											std::string err = strerror(errno);
-											g_logger.log(err, sinsp_logger::SEV_ERROR);
-											std::string fid;
-											if(it->second)
-											{
-												it->second->on_error(err, true);
-												g_logger.log("Socket collector: socket error, removing handler [" + id + "], "
-															 "socket " + std::to_string(it->first), sinsp_logger::SEV_ERROR);
-											}
-										}
-										remove(it);
-										continue;
+										g_logger.log("Socket collector: socket error " + std::to_string(err) + ", (" +
+													  strerror(err) + "), removing handler [" + id + ']', sinsp_logger::SEV_ERROR);
 									}
+									else
+									{
+										g_logger.log("Socket collector: handler [" + id + "] unknown socket error, closing connection.",
+													 sinsp_logger::SEV_ERROR);
+									}
+									remove(it);
+									continue;
 								}
 								++it;
 							}

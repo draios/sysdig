@@ -48,8 +48,8 @@ public:
 	class container_mount_info
 	{
 	public:
-         	container_mount_info():
-         		m_source(""),
+		container_mount_info():
+			m_source(""),
 			m_dest(""),
 			m_mode(""),
 			m_rdwr(false),
@@ -129,6 +129,9 @@ public:
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
 	int64_t m_cpu_period;
+#ifdef HAS_ANALYZER
+	string m_sysdig_agent_conf;
+#endif
 };
 
 class sinsp_container_manager
@@ -151,7 +154,7 @@ private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
 	bool parse_docker(sinsp_container_info* container);
-	string get_mesos_task_id(const Json::Value& env_vars, const string& mti);
+	string get_docker_env(const Json::Value &env_vars, const string &mti);
 	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
 	sinsp_container_info* get_container(const string& id);
 

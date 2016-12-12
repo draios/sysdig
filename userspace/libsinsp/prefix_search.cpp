@@ -60,7 +60,22 @@ void path_prefix_search::split_path(const filter_value_t &path, filter_value_t &
 		start++;
 	}
 
-	void *pos = memmem(path.first+start, path.second, "/", 1);
+	uint8_t* pos = path.first + start;
+	uint32_t counter = 0;
+	while(counter < path.second)
+	{
+		if (*pos == 0x2F) // '/'
+		{
+			break;
+		}
+		++pos;
+		if(++counter >= path.second)
+		{
+			pos = NULL;
+			break;
+		}
+	}
+
 	if(pos == NULL || pos >= (path.first + length))
 	{
 		dirent.first = path.first + start;

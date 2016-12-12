@@ -1729,9 +1729,14 @@ void sinsp::make_k8s_client()
 #ifdef HAS_CAPTURE
 		,m_k8s_ssl
 		,m_k8s_bt
+		,true // blocking
 #endif // HAS_CAPTURE
 		,nullptr
+#ifdef HAS_CAPTURE
 		,m_ext_list_ptr
+#else
+		,nullptr
+#endif // HAS_CAPTURE
 	);
 }
 
@@ -1742,7 +1747,10 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 	m_k8s_api_server = api_server;
 	m_k8s_api_cert = ssl_cert;
 
+	
+#ifdef HAS_CAPTURE
 	if(m_k8s_api_detected && m_k8s_ext_detect_done)
+#endif // HAS_CAPTURE
 	{
 		if(m_k8s_client)
 		{
@@ -1756,33 +1764,42 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 
 void sinsp::collect_k8s()
 {
-	if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+	if(m_parser)
 	{
-		m_k8s_last_watch_time_ns = m_lastevent_ts;
-
-		if(m_parser && m_k8s_client && m_k8s_client->is_alive())
+		if(m_k8s_api_server)
 		{
-			uint64_t delta = sinsp_utils::get_current_time_ns();
-			m_k8s_client->watch();
-			m_parser->schedule_k8s_events(&m_meta_evt);
-			delta = sinsp_utils::get_current_time_ns() - delta;
-			g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
-		}
-		else
-		{
+			if(!m_k8s_client)
+			{
+				init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
+				if(m_k8s_client)
+				{
+					g_logger.log("K8s client created.", sinsp_logger::SEV_DEBUG);
+				}
+				else
+				{
+					g_logger.log("K8s client NOT created.", sinsp_logger::SEV_DEBUG);
+				}
+			}
 			if(m_k8s_client)
 			{
-				g_logger.log("Kubernetes connection not active anymore, retrying", sinsp_logger::SEV_WARNING);
-				delete m_k8s_client;
-				m_k8s_client = nullptr;
+				if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+				{
+					m_k8s_last_watch_time_ns = m_lastevent_ts;
+					g_logger.log("K8s updating state ...", sinsp_logger::SEV_DEBUG);
+					uint64_t delta = sinsp_utils::get_current_time_ns();
+					m_k8s_client->watch();
+					m_parser->schedule_k8s_events(&m_meta_evt);
+					delta = sinsp_utils::get_current_time_ns() - delta;
+					g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
+				}
 			}
-			init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
 		}
 	}
 }
 
 void sinsp::k8s_discover_ext()
 {
+#ifdef HAS_CAPTURE
 	try
 	{
 		if(m_k8s_api_server && !m_k8s_api_server->empty() && !m_k8s_ext_detect_done)
@@ -1797,7 +1814,7 @@ void sinsp::k8s_discover_ext()
 				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert); }
 				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 															"/apis/extensions/v1beta1", "[.resources[].name]",
-															"1.0", m_k8s_ssl, m_k8s_bt));
+															"1.1", m_k8s_ssl, m_k8s_bt, true));
 				g_logger.log("K8s API extensions handler: collector created.", sinsp_logger::SEV_TRACE);
 			}
 			else
@@ -1846,10 +1863,13 @@ void sinsp::k8s_discover_ext()
 		m_k8s_collector.reset();
 		m_k8s_ext_handler.reset();
 	}
+	g_logger.log("K8s API extensions handler: detection done.", sinsp_logger::SEV_TRACE);
+#endif // HAS_CAPTURE
 }
 
 void sinsp::update_k8s_state()
 {
+#ifdef HAS_CAPTURE
 	try
 	{
 		if(m_k8s_api_server && !m_k8s_api_server->empty())
@@ -1867,8 +1887,8 @@ void sinsp::update_k8s_state()
 						init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert);
 					}
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
-																"/api", ".versions", "1.0",
-																m_k8s_ssl, m_k8s_bt));
+																"/api", ".versions", "1.1",
+																m_k8s_ssl, m_k8s_bt, true));
 				}
 				else
 				{
@@ -1884,6 +1904,10 @@ void sinsp::update_k8s_state()
 						else
 						{
 							m_k8s_api_detected = m_k8s_api_handler->has("v1");
+							if(m_k8s_api_detected)
+							{
+								g_logger.log("K8s API server v1 detected.", sinsp_logger::SEV_DEBUG);
+							}
 						}
 						m_k8s_collector.reset();
 						m_k8s_api_handler.reset();
@@ -1907,9 +1931,9 @@ void sinsp::update_k8s_state()
 	catch(std::exception& e)
 	{
 		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
-		delete m_k8s_client;
-		m_k8s_client = nullptr;
+		throw;
 	}
+#endif // HAS_CAPTURE
 }
 
 bool sinsp::get_mesos_data()

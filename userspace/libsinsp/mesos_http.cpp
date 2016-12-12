@@ -20,7 +20,10 @@
 #include <sys/ioctl.h>
 #include <cstring>
 
-mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master, bool discover_marathon, int timeout_ms):
+mesos_http::mesos_http(mesos& m, const uri& url,
+					bool discover_mesos_lead_master,
+					bool discover_marathon,
+					int timeout_ms, const string& token):
 	m_sync_curl(curl_easy_init()),
 	m_select_curl(curl_easy_init()),
 	m_mesos(m),
@@ -30,10 +33,10 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master
 	m_timeout_ms(timeout_ms),
 	m_callback_func(0),
 	m_curl_version(curl_version_info(CURLVERSION_NOW)),
-	m_request(make_request(url, m_curl_version)),
 	m_is_mesos_state(url.to_string().find(mesos::default_state_api) != std::string::npos),
 	m_discover_lead_master(discover_mesos_lead_master),
-	m_discover_marathon(discover_marathon)
+	m_discover_marathon(discover_marathon),
+	m_token(token)
 {
 	if(!m_sync_curl || !m_select_curl)
 	{
@@ -41,17 +44,25 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master
 	}
 
 	ASSERT(m_curl_version);
-	if((m_url.get_scheme() == "https") && (m_curl_version && !(m_curl_version->features | CURL_VERSION_SSL)))
-	{
-		throw sinsp_exception("mesos_http: HTTPS NOT supported");
-	}
 
+	m_request = make_request(url, m_curl_version);
+	if(!m_token.empty())
+	{
+		m_sync_curl_headers.add(string("Authorization: token=") + m_token);
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_HTTPHEADER, m_sync_curl_headers.ptr()));
+	}
+	if(m_url.is_secure())
+	{
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYPEER, 0));
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYHOST, 0));
+		check_error(curl_easy_setopt(m_select_curl, CURLOPT_SSL_VERIFYPEER, 0));
+		check_error(curl_easy_setopt(m_select_curl, CURLOPT_SSL_VERIFYHOST, 0));
+	}
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 
 	check_error(curl_easy_setopt(m_select_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
-
 	discover_mesos_leader();
 }
 
@@ -74,6 +85,12 @@ void mesos_http::cleanup(CURL** curl)
 		*curl = 0;
 	}
 	m_connected = false;
+}
+
+void mesos_http::set_token(const string& token)
+{
+	m_token = token;
+	m_request = make_request(m_url, m_curl_version);
 }
 
 Json::Value mesos_http::get_state_frameworks()
@@ -116,6 +133,16 @@ void mesos_http::discover_mesos_leader()
 		CURLcode res = get_data(m_url.to_string(), os);
 		if(res == CURLE_OK)
 		{
+			long http_response_code = 0;
+			check_error(curl_easy_getinfo(m_sync_curl, CURLINFO_RESPONSE_CODE, &http_response_code));
+			if(sinsp_curl::is_redirect(http_response_code))
+			{
+				uri newurl(m_redirect);
+				m_url.set_host(newurl.get_host());
+				g_logger.log("mesos_http: Detected Mesos master leader HTTP redirect: [" + m_url.to_string(false) + ']', sinsp_logger::SEV_INFO);
+				discover_mesos_leader();
+				return;
+			}
 			Json::Value root;
 			Json::Reader reader;
 			if(reader.parse(os.str(), root))
@@ -145,7 +172,7 @@ void mesos_http::discover_mesos_leader()
 						std::string::size_type pos = leader_address.find('@');
 						if(pos != std::string::npos && (pos + 1) < leader_address.size())
 						{
-							std::string address = "http://";
+							std::string address = m_url.get_scheme() + "://";
 							if(!m_mesos.m_mesos_credentials.first.empty())
 							{
 								address.append(m_mesos.m_mesos_credentials.first).append(1, ':').append(m_mesos.m_mesos_credentials.second).append(1, '@');
@@ -352,6 +379,10 @@ std::string mesos_http::make_request(uri url, curl_version_info_data* curl_versi
 		base64::encoder().encode(is, os);
 		request << "Authorization: Basic " << os.str() << "\r\n";
 	}
+	if(!m_token.empty())
+	{
+		request << "Authorization: token=" << m_token << "\r\n";
+	}
 	request << "\r\n";
 
 	return request.str();
@@ -509,12 +540,14 @@ void mesos_http::send_request()
 		throw sinsp_exception("mesos_http: Mesos send invalid socket.");
 	}
 
-	size_t iolen = send(m_watch_socket, m_request.c_str(), m_request.size(), 0);
+	//size_t iolen = send(m_watch_socket, m_request.c_str(), m_request.size(), 0);
+	size_t iolen;
+	check_error(curl_easy_send(m_select_curl, m_request.c_str(), m_request.size(), &iolen));
 	if((iolen <= 0) || (m_request.size() != iolen))
 	{
 		throw sinsp_exception("mesos_http: Mesos send socket connection error.");
 	}
-	else if(!wait(1))
+	else if(!wait(0))
 	{
 		throw sinsp_exception("mesos_http: Mesos send timeout.");
 	}
@@ -640,41 +673,20 @@ bool mesos_http::on_data()
 	}
 
 	size_t iolen = 0;
-	std::vector<char> buf;
+	char buf[1024];
 	std::string data;
-
+	CURLcode ret;
 	try
 	{
-		int loop_counter = 0;
 		do
 		{
-			ssize_t iolen = 0;
-			int count = 0;
-			int ioret = 0;
-			ioret = ioctl(m_watch_socket, FIONREAD, &count);
-			if(ioret >= 0 && count > 0)
+			check_error(ret = curl_easy_recv(m_select_curl, buf, sizeof(buf), &iolen));
+			if(iolen > 0)
 			{
-				if(count > static_cast<int>(buf.size()))
-				{
-					buf.resize(count);
-				}
-				iolen = recv(m_watch_socket, &buf[0], count, 0);
-				if(iolen > 0)
-				{
-					ssize_t buf_size = static_cast<ssize_t>(buf.size());
-					data.append(&buf[0], iolen <= buf_size ? iolen : buf_size);
-				}
-				else if(iolen == 0) { goto connection_closed; }
-				else if(iolen < 0) { goto connection_error; }
+				data.append(buf, iolen);
 			}
-			else
-			{
-				if(ioret < 0) { goto connection_error; }
-				else if(loop_counter == 0 && count == 0) { goto connection_closed; }
-				break;
-			}
-			++loop_counter;
-		} while(iolen && errno != CURLE_AGAIN);
+			else if(ret != CURLE_AGAIN) { goto connection_closed; }
+		} while(iolen && ret != CURLE_AGAIN);
 		if(data.size())
 		{
 			extract_data(data);
@@ -686,13 +698,6 @@ bool mesos_http::on_data()
 		return false;
 	}
 	return true;
-
-connection_error:
-{
-	std::string err = strerror(errno);
-	g_logger.log("mesos_http: Mesos or Marathon API connection [" + m_url.to_string() + "] error : " + err, sinsp_logger::SEV_ERROR);
-	return false;
-}
 
 connection_closed:
 	g_logger.log("mesos_http: Mesos or Marathon API connection [" + m_url.to_string() + "] closed.", sinsp_logger::SEV_ERROR);

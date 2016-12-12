@@ -124,7 +124,6 @@ docker::docker(std::string url,
 	}
 	m_event_http = std::make_shared<handler_t>(*this, "docker", url, path, http_version, timeout_ms);
 	m_event_http->set_json_callback(&docker::set_event_json);
-	m_event_http->set_json_end("}\n");
 	m_event_http->add_json_filter(".");
 	m_collector.add(m_event_http);
 	m_collector.set_steady_state(true);
@@ -249,6 +248,34 @@ void docker::handle_event(Json::Value&& root)
 				if(!is_allowed && !status.empty())
 				{
 					is_allowed = m_event_filter->has(type, status);
+				}
+				// status for exec_* events is different, eg.:
+				//   "container:exec_create: ls -l"
+				if(!is_allowed)
+				{
+					std::string exec_create = "exec_create";
+					std::string exec_start = "exec_start";
+					std::string::size_type pos = status.find(exec_create);
+					if(pos != std::string::npos)
+					{
+						status = exec_create;
+						g_logger.log("Docker EVENT: found exec_create status=" + status, sinsp_logger::SEV_TRACE);
+					}
+					else
+					{
+						pos = status.find(exec_start);
+						if(pos != std::string::npos)
+						{
+							status = exec_start;
+							g_logger.log("Docker EVENT: found exec_start status=" + status, sinsp_logger::SEV_TRACE);
+						}
+					}
+					if(pos != std::string::npos)
+					{
+						is_allowed = m_event_filter->has(type, status);
+						g_logger.log("Docker EVENT: status=" + status + (is_allowed ? " is " : " is not ") + "allowed",
+									 sinsp_logger::SEV_TRACE);
+					}
 				}
 			}
 			else // older docker versions don't tell type, so there will be some overlap of duplicates

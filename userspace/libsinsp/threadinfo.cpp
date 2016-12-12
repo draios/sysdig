@@ -535,6 +535,13 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 		{
 			subsys = "memory";
 		}
+		else if(subsys == "io")
+		{
+			// blkio has been renamed just `io`
+			// in kernel space:
+			// https://github.com/torvalds/linux/commit/c165b3e3c7bb68c2ed55a5ac2623f030d01d9567
+			subsys = "blkio";
+		}
 
 		m_cgroups.push_back(std::make_pair(subsys, cgroup));
 		offset += subsys_length + 1 + cgroup.length() + 1;
@@ -630,7 +637,12 @@ sinsp_threadinfo* sinsp_threadinfo::get_cwd_root()
 
 string sinsp_threadinfo::get_cwd()
 {
-	sinsp_threadinfo* tinfo = get_cwd_root();
+	// Ideally we should use get_cwd_root()
+	// but scap does not read CLONE_FS from /proc
+	// Also glibc and muslc use always 
+	// CLONE_THREAD|CLONE_FS so let's use
+	// get_main_thread() for now
+	sinsp_threadinfo* tinfo = get_main_thread();
 
 	if(tinfo)
 	{
@@ -646,7 +658,7 @@ string sinsp_threadinfo::get_cwd()
 void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 {
 	char tpath[SCAP_MAX_PATH_SIZE];
-	sinsp_threadinfo* tinfo = get_cwd_root();
+	sinsp_threadinfo* tinfo = get_main_thread();
 
 	if(tinfo)
 	{
