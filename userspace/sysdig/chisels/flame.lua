@@ -44,6 +44,41 @@ local max_tree = {}
 local min_tree = {}
 local logs_tree = {}
 local next = next -- make next faster
+local PAGE_HEADER = [[<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Flame UI</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        
+<meta name="flame-ui/config/environment" content="%7B%22modulePrefix%22%3A%22flame-ui%22%2C%22environment%22%3A%22development%22%2C%22baseURL%22%3A%22/%22%2C%22locationType%22%3A%22hash%22%2C%22EmberENV%22%3A%7B%22FEATURES%22%3A%7B%7D%7D%2C%22APP%22%3A%7B%22name%22%3A%22flame-ui%22%2C%22version%22%3A%220.0.0+3fc5f790%22%7D%2C%22contentSecurityPolicy%22%3A%7B%22default-src%22%3A%22%27none%27%22%2C%22script-src%22%3A%22%27self%27%20%27unsafe-inline%27%22%2C%22style-src%22%3A%22%27self%27%20%27unsafe-inline%27%22%2C%22font-src%22%3A%22%27self%27%22%2C%22connect-src%22%3A%22%27self%27%22%2C%22img-src%22%3A%22%27self%27%22%2C%22media-src%22%3A%22%27self%27%22%7D%2C%22contentSecurityPolicyHeader%22%3A%22Content-Security-Policy-Report-Only%22%2C%22exportApplicationGlobal%22%3Atrue%7D" />
+
+        <link rel="stylesheet" href="https://cdn.rawgit.com/draios/flame-ui/master/build/assets/vendor.css">
+        <link rel="stylesheet" href="https://cdn.rawgit.com/draios/flame-ui/master/build/assets/flame-ui.css">
+
+        
+    </head>
+    <body>
+        
+
+        <script src="https://cdn.rawgit.com/draios/flame-ui/master/build/assets/vendor.js"></script>
+        <script src="https://cdn.rawgit.com/draios/flame-ui/master/build/assets/flame-ui.js"></script>
+
+        
+
+        <script>
+            window.transactions = {
+]]
+
+local PAGE_TRAILER = [[            };
+        </script>
+    </body>
+</html>
+
+]]
 
 -- Argument notification callback
 function on_set_arg(name, val)
@@ -452,13 +487,13 @@ function on_capture_end()
 		normalize(v, v.n)
 	end
 
-	print "var FlameData = {"
+	print(PAGE_HEADER)
 
 	-- emit the average transaction
 	local AvgData = {}
 	AvgData[""] = {ch=avg_tree, t=0, tt=0}
 	local str = json.encode(AvgData, { indent = true })
-	print('"AvgData": ' .. str .. ",")
+	print('"avg": ' .. str .. ",")
 
 	-- normalize the best transaction
 	for i,v in pairs(min_tree) do
@@ -469,7 +504,7 @@ function on_capture_end()
 	local tdata = {}
 	tdata[""] = {ch=min_tree, t=0, tt=0}
 	local str = json.encode(tdata, { indent = true })
-	print('"MinData": ' .. str .. ",")
+	print('"min": ' .. str .. ",")
 
 	-- normalize the worst transaction
 	for i,v in pairs(max_tree) do
@@ -480,7 +515,7 @@ function on_capture_end()
 	local tdata = {}
 	tdata[""] = {ch=max_tree, t=0, tt=0}
 	local str = json.encode(tdata, { indent = true })
-	print('"MaxData": ' .. str .. ",")
+	print('"max": ' .. str .. ",")
 
-	print "};"
+	print(PAGE_TRAILER)
 end
