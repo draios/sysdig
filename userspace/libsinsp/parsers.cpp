@@ -1417,6 +1417,23 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			break;
 	}
 
+///////////////////////////////////////////////////////////////////////////////
+// XXX Remove this
+///////////////////////////////////////////////////////////////////////////////
+if(tinfo.m_comm == "du" || tinfo.m_comm == "nice")
+{
+	lo(sinsp_logger::SEV_ERROR, "detected execution of %s", tinfo.m_comm.c_str());
+	lo(sinsp_logger::SEV_ERROR, "exe=%s", tinfo.m_exe.c_str());
+	for(auto a : tinfo.m_args)
+	{
+		lo(sinsp_logger::SEV_ERROR, "a=%s", a.c_str());
+	}
+	lo(sinsp_logger::SEV_ERROR, "container id=%s", tinfo.m_container_id.c_str());
+}
+///////////////////////////////////////////////////////////////////////////////
+// XXX Remove this
+///////////////////////////////////////////////////////////////////////////////
+
 	//
 	// Initilaize the thread clone time
 	//
