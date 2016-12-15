@@ -18,7 +18,7 @@ RUN rpm -Uvh http://mirrors.kernel.org/fedora-epel/7/x86_64/e/epel-release-7-8.n
 
 # We delete everything on /usr/src/kernels otherwise
 # it messes up docker-entrypoint.sh
-RUN yum -y install gcc dkms sysdig && \
+RUN yum -y --enablerepo=epel install gcc dkms sysdig && \
 	rpm --nodeps -e kernel-devel kernel-headers && \
 	rm -fr /usr/src/kernels && \
 	yum clean all
