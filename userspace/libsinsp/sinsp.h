@@ -979,7 +979,9 @@ private:
 	int64_t m_sysdig_pid;
 #endif
 
+#if defined(HAS_ANALYZER)
 	std::vector<int> m_percentiles;
+#endif
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
