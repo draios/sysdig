@@ -97,6 +97,7 @@ struct scap
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
 	bool refresh_proc_table_when_saving;
+	uint64_t m_unexpected_block_readsize;
 };
 
 struct scap_ns_socket_list

@@ -284,7 +284,8 @@ scap_t* scap_open_offline_int(const char* fname,
 							  char *error,
 							  proc_entry_callback proc_callback, 
 							  void* proc_callback_context,
-							  bool import_users)
+							  bool import_users,
+							  uint64_t start_offset)
 {
 	scap_t* handle = NULL;
 
@@ -335,6 +336,14 @@ scap_t* scap_open_offline_int(const char* fname,
 	}
 
 	//
+	// If this is a merged file, we might have to move the read offset to the next section
+	//
+	if(start_offset != 0)
+	{
+		scap_fseek(handle, start_offset);
+	}
+
+	//
 	// Validate the file and load the non-event blocks
 	//
 	if(scap_read_init(handle, handle->m_file) != SCAP_SUCCESS)
@@ -368,7 +377,7 @@ scap_t* scap_open_offline_int(const char* fname,
 
 scap_t* scap_open_offline(const char* fname, char *error)
 {
-	return scap_open_offline_int(fname, error, NULL, NULL, true);
+	return scap_open_offline_int(fname, error, NULL, NULL, true, 0);
 }
 
 scap_t* scap_open_live(char *error)
@@ -382,7 +391,8 @@ scap_t* scap_open(scap_open_args args, char *error)
 	{
 		return scap_open_offline_int(args.fname, error, 
 			args.proc_callback, args.proc_callback_context,
-			args.import_users);
+			args.import_users,
+			args.start_offset);
 	}
 	else
 	{
@@ -1263,4 +1273,9 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh)
 {
 	handle->refresh_proc_table_when_saving = refresh;
+}
+
+uint64_t scap_get_unexpected_block_readsize(scap_t* handle)
+{
+	return handle->m_unexpected_block_readsize;
 }

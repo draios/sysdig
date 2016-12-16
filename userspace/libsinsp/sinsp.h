@@ -834,6 +834,9 @@ private:
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
 	bool m_is_tracers_capture_enabled;
+	// This is used to support reading merged files, where the capture needs to
+	// restart in the middle of the file.
+	uint64_t m_file_start_offset;
 
 	sinsp_network_interfaces* m_network_interfaces;
 
