@@ -56,7 +56,8 @@ public:
 		ssl_ptr_t ssl = 0,
 		bt_ptr_t bt = 0,
 		bool keep_alive = true,
-		bool blocking = false): m_obj(obj),
+		bool blocking = false,
+		unsigned data_limit = 524288): m_obj(obj),
 			m_id(id),
 			m_url(url),
 			m_keep_alive(keep_alive ? std::string("Connection: keep-alive\r\n") : std::string()),
@@ -66,7 +67,8 @@ public:
 			m_bt(bt),
 			m_timeout_ms(timeout_ms),
 			m_request(make_request(url, http_version)),
-			m_http_version(http_version)
+			m_http_version(http_version),
+			m_data_limit(data_limit)
 	{
 		g_logger.log(std::string("Creating Socket handler object for (" + id + ") "
 					 "[" + uri(url).to_string(false) + ']'), sinsp_logger::SEV_DEBUG);
@@ -490,19 +492,25 @@ public:
 		}
 
 		ssize_t iolen = 0;
+		size_t len_to_read = m_buf.size();
 		std::string data;
 		try
 		{
 			do
 			{
+				if(data.size() >= m_data_limit) { break; }
+				else if((data.size() + m_buf.size()) > m_data_limit)
+				{
+					len_to_read = m_data_limit - data.size();
+				}
 				errno = 0;
 				if(m_url.is_secure())
 				{
-					iolen = static_cast<ssize_t>(SSL_read(m_ssl_connection, &m_buf[0], m_buf.size()));
+					iolen = static_cast<ssize_t>(SSL_read(m_ssl_connection, &m_buf[0], len_to_read));
 				}
 				else
 				{
-					iolen = recv(m_socket, &m_buf[0], m_buf.size(), 0);
+					iolen = recv(m_socket, &m_buf[0], len_to_read, 0);
 				}
 				m_sock_err = errno;
 				g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
@@ -565,7 +573,10 @@ public:
 						}
 					}
 				}
-			} while(iolen && m_sock_err != EAGAIN);
+			} while(iolen && (m_sock_err != EAGAIN) && (data.size() < m_data_limit));
+			g_logger.log("Socket handler (" + m_id + ") " +
+						 std::to_string(data.size()) + " bytes of data received",
+						 sinsp_logger::SEV_TRACE);
 			if(CONNECTION_CLOSED == process(data))
 			{
 				return CONNECTION_CLOSED;
@@ -1616,6 +1627,7 @@ private:
 	http_parser_settings     m_http_parser_settings;
 	http_parser*             m_http_parser = nullptr;
 	http_parser_data         m_http_parser_data;
+	unsigned                 m_data_limit = 524288; // bytes
 };
 
 template <typename T>
