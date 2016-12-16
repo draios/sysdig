@@ -2087,7 +2087,8 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		bh.block_type != EVF_BLOCK_TYPE)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
-		return SCAP_FAILURE;
+		handle->m_unexpected_block_readsize = readsize;
+		return SCAP_UNEXPECTED_BLOCK;
 	}
 
 	if(bh.block_total_length < sizeof(bh) + sizeof(struct ppm_evt_hdr) + 4)

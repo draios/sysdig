@@ -69,6 +69,7 @@ typedef struct ppm_evt_hdr scap_evt;
 #define SCAP_NOTFOUND 4
 #define SCAP_INPUT_TOO_SMALL 5
 #define SCAP_EOF 6
+#define SCAP_UNEXPECTED_BLOCK 7
 
 //
 // Last error string size for scap_open_live()
@@ -236,6 +237,7 @@ typedef struct scap_open_args
 	proc_entry_callback proc_callback; ///< Callback to be invoked for each thread/fd that is extracted from /proc, or NULL if no callback is needed.
 	void* proc_callback_context; ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.
 	bool import_users; ///< true if the user list should be created when opening the capture.
+	uint64_t start_offset; ///< Used to start reading a capture file from an arbitrary offset. This is leveraged when opening merged files.
 }scap_open_args;
 
 
@@ -871,6 +873,8 @@ void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);
+uint64_t scap_get_unexpected_block_readsize(scap_t* handle);
+void scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
 
 #ifdef __cplusplus
 }

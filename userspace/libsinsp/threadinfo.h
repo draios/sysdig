@@ -387,6 +387,8 @@ public:
 	void create_child_dependencies();
 	void recreate_child_dependencies();
 
+	void to_scap();
+
 	uint32_t get_thread_count()
 	{
 		return (uint32_t)m_threadtable.size();
