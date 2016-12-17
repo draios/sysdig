@@ -1078,3 +1078,58 @@ void sinsp_thread_manager::update_statistics()
 	}
 #endif
 }
+
+void sinsp_thread_manager::to_scap()
+{
+/*
+	scap_proc_free_table(m_inspector->m_h);
+
+	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
+	{
+		sinsp_threadinfo& tinfo = it->second;
+
+		//
+		// Allocate the scap thread info
+		//
+		scap_threadinfo* sctinfo = (scap_threadinfo*)malloc(sizeof(scap_threadinfo));
+		if(sctinfo == NULL)
+		{
+			throw sinsp_exception("memory allocation error in sinsp_thread_manager::to_scap");
+		}
+
+		//
+		// Fill in the data
+		//
+sctinfo->tid = tinfo.m_tid;
+sctinfo->pid = tinfo.m_pid;
+sctinfo->ptid = tinfo.m_ptid;
+sctinfo->sid = tinfo.m_sid;
+
+strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
+strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
+tinfo.set_args(sctinfo->args, sctinfo->args_len);
+tinfo.set_env(sctinfo->env, sctinfo->env_len);
+tinfo.set_cwd(sctinfo->cwd, (uint32_t)strlen(sctinfo->cwd));
+sctinfo->flags = tinfo.m_flags ;
+sctinfo->fdlimit = tinfo.m_fdlimit;
+sctinfo->uid = tinfo.m_uid;
+sctinfo->gid = tinfo.m_gid;
+sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
+sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
+sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
+sctinfo->pfmajor = tinfo.m_pfmajor;
+sctinfo->pfminor = tinfo.m_pfminor;
+sctinfo->vtid = tinfo.m_vtid;
+sctinfo->vpid = tinfo.m_vpid;
+
+tinfo.set_cgroups(sctinfo->cgroups, sctinfo->cgroups_len);
+sctinfo->root = tinfo.m_root;
+
+
+		//
+		// Add the created info to scap
+		//
+		scap_proc_add(m_inspector->m_h, it->second.m_tid, sctinfo);
+	}
+*/
+}
