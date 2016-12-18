@@ -1645,7 +1645,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
-if(evt->m_tinfo->m_comm == "du" || evt->m_tinfo->m_comm == "nice")
+//if(evt->m_tinfo->m_comm == "du" || evt->m_tinfo->m_comm == "nice")
 {
 	lo(sinsp_logger::SEV_ERROR, "@detected execution of %s", evt->m_tinfo->m_comm.c_str());
 	lo(sinsp_logger::SEV_ERROR, "@exe=%s", evt->m_tinfo->m_exe.c_str());
