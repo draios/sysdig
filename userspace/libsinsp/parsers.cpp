@@ -1420,7 +1420,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
-//if(tinfo.m_comm == "du" || tinfo.m_comm == "nice")
+if(tinfo.m_comm == "du" || tinfo.m_comm == "nice")
 {
 	lo(sinsp_logger::SEV_ERROR, "#detected execution of %s", tinfo.m_comm.c_str());
 	lo(sinsp_logger::SEV_ERROR, "#exe=%s", tinfo.m_exe.c_str());
@@ -1641,6 +1641,23 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 #ifdef HAS_ANALYZER
 	evt->m_tinfo->m_ainfo->clear_role_flags();
 #endif
+
+///////////////////////////////////////////////////////////////////////////////
+// XXX Remove this
+///////////////////////////////////////////////////////////////////////////////
+if(evt->m_tinfo->m_comm == "du" || evt->m_tinfo->m_comm == "nice")
+{
+	lo(sinsp_logger::SEV_ERROR, "@detected execution of %s", evt->m_tinfo->m_comm.c_str());
+	lo(sinsp_logger::SEV_ERROR, "@exe=%s", evt->m_tinfo->m_exe.c_str());
+	for(auto a : evt->m_tinfo->m_args)
+	{
+		lo(sinsp_logger::SEV_ERROR, "@a=%s", a.c_str());
+	}
+	lo(sinsp_logger::SEV_ERROR, "@container id=%s", evt->m_tinfo->m_container_id.c_str());
+}
+///////////////////////////////////////////////////////////////////////////////
+// XXX Remove this
+///////////////////////////////////////////////////////////////////////////////
 
 	//
 	// If there's a listener, invoke it
