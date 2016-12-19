@@ -293,6 +293,7 @@ void k8s_state_t::clear(k8s_component::type type)
 
 void k8s_state_t::update_cache(const k8s_component::type_map::key_type& component)
 {
+#ifndef HAS_ANALYZER
 	switch (component)
 	{
 		case k8s_component::K8S_NAMESPACES:
@@ -466,6 +467,7 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 
 		default: return;
 	}
+#endif // HAS_ANALYZER
 }
 
 k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
