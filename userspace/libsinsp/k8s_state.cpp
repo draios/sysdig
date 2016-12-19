@@ -417,19 +417,19 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 		case k8s_component::K8S_DAEMONSETS:
 		{
 			// TODO
-			/*const k8s_services& services = get_services();
+			/*const k8s_daemonsets& daemonsets = get_daemonsets();
 			const k8s_pods& pods = get_pods();
-			k8s_state_t::pod_service_map& pod_svc_map = get_pod_service_map();
+			k8s_state_t::pod_daemonset_map& pod_svc_map = get_pod_daemonset_map();
 			pod_svc_map.clear();
-			for(const auto& service : services)
+			for(const auto& daemonset : daemonsets)
 			{
-				std::vector<const k8s_pod_t*> pod_subset = service.get_selected_pods(pods);
+				std::vector<const k8s_pod_t*> pod_subset = daemonset.get_selected_pods(pods);
 				for(auto& pod : pod_subset)
 				{
 					const std::string& pod_uid = pod->get_uid();
-					if(!is_component_cached(pod_svc_map, pod_uid, &service))
+					if(!is_component_cached(pod_svc_map, pod_uid, &daemonset))
 					{
-						cache_component(pod_svc_map, pod_uid, &service);
+						cache_component(pod_svc_map, pod_uid, &daemonset);
 					}
 					else
 					{
