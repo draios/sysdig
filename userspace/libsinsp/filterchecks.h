@@ -84,7 +84,7 @@ public:
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
-	void add_filter_value(const char* str, uint32_t len, uint16_t i = 0 );
+	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 );
 	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	//
