@@ -43,8 +43,8 @@ k8s_handler::k8s_handler(const std::string& id,
 	bool connect,
 	ptr_t dependency_handler,
 	bool blocking_socket,
-	unsigned max_messages,
 #endif // HAS_CAPTURE
+	unsigned max_messages,
 	k8s_state_t* state): m_state(state),
 		m_id(id + "_state"),
 #ifdef HAS_CAPTURE
@@ -62,8 +62,8 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_connect(connect),
 		m_dependency_handler(dependency_handler),
 		m_blocking_socket(blocking_socket),
-		m_max_messages(max_messages),
 #endif // HAS_CAPTURE
+		m_max_messages(max_messages),
 		m_is_captured(is_captured)
 {
 #ifdef HAS_CAPTURE
