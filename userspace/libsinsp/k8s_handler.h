@@ -171,6 +171,7 @@ private:
 
 	// limits the number of messages handled in single cycle
 	unsigned m_max_messages = ~0;
+	bool m_state_processing_started = false;
 #endif // HAS_CAPTURE
 
 	event_list_t m_events;

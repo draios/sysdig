@@ -635,23 +635,24 @@ void k8s_handler::process_events()
 	if(dependency_ready())
 	{
 		unsigned counter = 0;
-		for(auto evt : m_events)
+		for(auto evt = m_events.begin(); evt != m_events.end();)
 		{
+			m_state_processing_started = true;
 			if(++counter >= get_max_messages()) { break; }
-			if(evt && !evt->isNull())
+			if(*evt && !(*evt)->isNull())
 			{
 				if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 				{
-					g_logger.log("k8s_handler (" + m_id + ") processing event data:\n" + json_as_string(*evt),
+					g_logger.log("k8s_handler (" + m_id + ") processing event data:\n" + json_as_string(*(*evt)),
 								 sinsp_logger::SEV_TRACE);
 				}
 #ifdef HAS_CAPTURE
 				if(m_is_captured)
 				{
-					m_state->enqueue_capture_event(*evt);
+					m_state->enqueue_capture_event(**evt);
 				}
 #endif // HAS_CAPTURE
-				handle_json(std::move(*evt));
+				handle_json(std::move(**evt));
 			}
 			else
 			{
@@ -659,12 +660,12 @@ void k8s_handler::process_events()
 #ifdef HAS_CAPTURE
 							 "(" + uri(m_url).to_string(false) + ") " +
 #endif // HAS_CAPTURE
-							(!evt ? "data is null." : (evt->isNull() ? "JSON is null." : "Unknown")),
+							(!(*evt) ? "data is null." : ((*evt)->isNull() ? "JSON is null." : "Unknown")),
 							sinsp_logger::SEV_ERROR);
 			}
+			evt = m_events.erase(evt);
 		}
-		if(!m_state_built && m_events.size()) { m_state_built = true; }
-		m_events.clear();
+		if(!m_state_built && m_state_processing_started && !m_events.size()) { m_state_built = true; }
 	}
 }
 
