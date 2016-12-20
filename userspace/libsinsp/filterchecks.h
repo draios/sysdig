@@ -845,6 +845,8 @@ private:
 	char m_addrbuff[100];
 };
 
+#ifndef HAS_ANALYZER
+
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
 public:
@@ -895,6 +897,8 @@ private:
 	string m_argname;
 	string m_tstr;
 };
+
+#endif // HAS_ANALYZER
 
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {

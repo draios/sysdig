@@ -50,6 +50,7 @@ public:
 		bool connect = true,
 		ptr_t dependency_handler = nullptr,
 		bool blocking_socket = false,
+		unsigned max_messages = ~0,
 #endif // HAS_CAPTURE
 		k8s_state_t* state = nullptr);
 
@@ -73,6 +74,9 @@ public:
 	std::string name() const;
 	api_error_ptr error() const;
 	virtual void handle_json(Json::Value&& root);
+
+	unsigned get_max_messages() const;
+	void set_max_messages(unsigned max_msgs);
 
 protected:
 	typedef std::unordered_set<std::string> ip_addr_list_t;
@@ -133,7 +137,7 @@ private:
 	std::string     m_machine_id;
 #ifdef HAS_CAPTURE
 	collector_ptr_t m_collector;
-	handler_ptr_t   m_http;
+	handler_ptr_t   m_handler;
 	std::string     m_path;
 	std::string     m_state_filter;
 	std::string     m_event_filter;
@@ -164,6 +168,10 @@ private:
 	ptr_t m_dependency_handler;
 
 	bool m_blocking_socket = false;
+
+	// limits the number of messages handled in single cycle
+	unsigned m_max_messages = ~0;
+	bool m_state_processing_started = false;
 #endif // HAS_CAPTURE
 
 	event_list_t m_events;
@@ -189,9 +197,19 @@ private:
 };
 
 #ifdef HAS_CAPTURE
+inline unsigned k8s_handler::get_max_messages() const
+{
+	return m_max_messages;
+}
+
+inline void k8s_handler::set_max_messages(unsigned max_msgs)
+{
+	m_max_messages = max_msgs;
+}
+
 inline k8s_handler::handler_ptr_t k8s_handler::handler()
 {
-	return m_http;
+	return m_handler;
 }
 #endif // HAS_CAPTURE
 
@@ -262,7 +280,7 @@ public:
 #ifdef HAS_CAPTURE
 									 "", "", "", "",  nullptr,
 									 "", 0, nullptr, nullptr,
-									 false, false, nullptr, false,
+									 false, false, nullptr, false, ~0,
 #endif // HAS_CAPTURE
 									 nullptr)
 	{

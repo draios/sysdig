@@ -232,6 +232,8 @@ public:
 	// any component by uid
 	const k8s_component* get_component(const std::string& uid, std::string* t = 0) const;
 
+#ifndef HAS_ANALYZER
+
 	// pod by container;
 	const k8s_pod_t* get_pod(const std::string& container) const
 	{
@@ -249,6 +251,8 @@ public:
 	const pod_rc_map& get_pod_rc_map() const { return m_pod_rcs; }
 	const pod_rs_map& get_pod_rs_map() const { return m_pod_rss; }
 	const pod_deployment_map& get_pod_deployment_map() const { return m_pod_deployments; }
+
+#endif // HAS_ANALYZER
 
 	void set_capture_version(int version);
 	int get_capture_version() const;
@@ -318,6 +322,8 @@ private:
 		}
 	}
 
+#ifndef HAS_ANALYZER
+
 	namespace_map& get_namespace_map() { return m_namespace_map; }
 	container_pod_map& get_container_pod_map() { return m_container_pods; }
 	pod_service_map& get_pod_service_map() { return m_pod_services; }
@@ -325,15 +331,23 @@ private:
 	pod_rs_map& get_pod_rs_map() { return m_pod_rss; }
 	pod_deployment_map& get_pod_deployment_map() { return m_pod_deployments; }
 
+#endif // HAS_ANALYZER
+
 	static const std::string m_docker_prefix; // "docker://"
 	static const std::string m_rkt_prefix; // "rkt://"
 	static const unsigned    m_id_length; // portion of the ID to be cached (=12)
+
+#ifndef HAS_ANALYZER
+
 	namespace_map            m_namespace_map;
 	container_pod_map        m_container_pods;
 	pod_service_map          m_pod_services;
 	pod_rc_map               m_pod_rcs;
 	pod_rs_map               m_pod_rss;
 	pod_deployment_map       m_pod_deployments;
+
+#endif // HAS_ANALYZER
+
 #ifdef HAS_CAPTURE
 	event_list_t             m_capture_events;
 #endif // HAS_CAPTURE
