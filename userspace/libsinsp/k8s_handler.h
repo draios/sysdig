@@ -50,8 +50,8 @@ public:
 		bool connect = true,
 		ptr_t dependency_handler = nullptr,
 		bool blocking_socket = false,
-		unsigned max_messages = ~0,
 #endif // HAS_CAPTURE
+		unsigned max_messages = ~0,
 		k8s_state_t* state = nullptr);
 
 	virtual ~k8s_handler();
@@ -169,10 +169,11 @@ private:
 
 	bool m_blocking_socket = false;
 
+#endif // HAS_CAPTURE
+
 	// limits the number of messages handled in single cycle
 	unsigned m_max_messages = ~0;
 	bool m_state_processing_started = false;
-#endif // HAS_CAPTURE
 
 	event_list_t m_events;
 
@@ -196,7 +197,6 @@ private:
 	bool m_connect_logged = false;
 };
 
-#ifdef HAS_CAPTURE
 inline unsigned k8s_handler::get_max_messages() const
 {
 	return m_max_messages;
@@ -207,6 +207,7 @@ inline void k8s_handler::set_max_messages(unsigned max_msgs)
 	m_max_messages = max_msgs;
 }
 
+#ifdef HAS_CAPTURE
 inline k8s_handler::handler_ptr_t k8s_handler::handler()
 {
 	return m_handler;
@@ -280,9 +281,9 @@ public:
 #ifdef HAS_CAPTURE
 									 "", "", "", "",  nullptr,
 									 "", 0, nullptr, nullptr,
-									 false, false, nullptr, false, ~0,
+									 false, false, nullptr, false,
 #endif // HAS_CAPTURE
-									 nullptr)
+									 ~0, nullptr)
 	{
 		m_state_built = true;
 	}
