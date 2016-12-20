@@ -673,7 +673,6 @@ bool mesos::collect_data()
 							{
 								g_logger.log("Detected null Marathon app (" + app_it->first + "), resetting current state.", sinsp_logger::SEV_WARNING);
 								m_mesos_state_json.reset();
-								json_map_type_t::iterator app_it = m_marathon_apps_json.find(group.first);
 								group.second.reset();
 								app_it->second.reset();
 								m_json_error = false;
