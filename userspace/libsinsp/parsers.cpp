@@ -1394,6 +1394,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	if(in_container)
 	{
+lo(sinsp_logger::SEV_ERROR, "#1");
 		tinfo.m_vtid = vtid;
 		tinfo.m_vpid = vpid;
 	}
@@ -1413,6 +1414,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
+lo(sinsp_logger::SEV_ERROR, "#cgroups=%s", string(parinfo->m_val, parinfo->m_len).c_str());
 			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->m_islive);
 			break;
 	}
@@ -1423,6 +1425,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 if(tinfo.m_comm == "du" || tinfo.m_comm == "nice")
 {
 	lo(sinsp_logger::SEV_ERROR, "#detected execution of %s", tinfo.m_comm.c_str());
+	lo(sinsp_logger::SEV_ERROR, "#tid=%" PRIu64, evt->m_tinfo->m_tid);
 	lo(sinsp_logger::SEV_ERROR, "#exe=%s", tinfo.m_exe.c_str());
 	for(auto a : tinfo.m_args)
 	{
@@ -1648,6 +1651,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 if(evt->m_tinfo->m_container_id != "" && (evt->m_tinfo->m_comm == "du" || evt->m_tinfo->m_comm == "nice"))
 {
 	lo(sinsp_logger::SEV_ERROR, "@detected execution of %s", evt->m_tinfo->m_comm.c_str());
+	lo(sinsp_logger::SEV_ERROR, "@tid=%" PRIu64, evt->m_tinfo->m_tid);
 	lo(sinsp_logger::SEV_ERROR, "@exe=%s", evt->m_tinfo->m_exe.c_str());
 	for(auto a : evt->m_tinfo->m_args)
 	{
