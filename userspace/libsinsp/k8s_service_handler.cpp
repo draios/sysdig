@@ -69,6 +69,7 @@ k8s_service_handler::k8s_service_handler(k8s_state_t& state
 					STATE_FILTER, EVENT_FILTER, collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
+					100, // max msgs,
 #endif // HAS_CAPTURE
 					&state)
 {

@@ -59,7 +59,7 @@ k8s_namespace_handler::k8s_namespace_handler(k8s_state_t& state
 					url, "/api/v1/namespaces",
 					STATE_FILTER, EVENT_FILTER, collector,
 					http_version, 1000L, ssl, bt, true,
-					connect, dependency_handler, blocking_socket,
+					connect, dependency_handler, blocking_socket, ~0,
 #endif // HAS_CAPTURE
 					&state)
 {
