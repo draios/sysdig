@@ -172,7 +172,7 @@ private:
 	uri::credentials_t m_dcos_enterprise_credentials;
 	string             m_token;
 	bool               m_token_authentication;
-	
+
 	typedef std::unordered_set<std::string> framework_list_t;
 	framework_list_t m_inactive_frameworks;
 	framework_list_t m_activated_frameworks;

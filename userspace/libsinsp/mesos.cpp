@@ -169,7 +169,7 @@ mesos::mesos(const std::string& state_uri,
 		g_logger.log("Multiple root marathon URIs configured; only the first one (" + marathon_uri + ") will have effect;"
 					" others will be treated as generic frameworks (user Marathon frameworks will be discovered).", sinsp_logger::SEV_WARNING);
 	}
-	
+
 	authenticate();
 #endif
 	init();
@@ -765,7 +765,7 @@ void mesos::handle_frameworks(const Json::Value& root)
 								g_logger.log("New or activated Mesos framework detected: " + name + " [" + uid.asString() + ']', sinsp_logger::SEV_INFO);
 								m_activated_frameworks.insert(uid.asString());
 #ifdef HAS_CAPTURE
-								if(mesos_framework::is_root_marathon(name) && 
+								if(mesos_framework::is_root_marathon(name) &&
 									find_if(m_marathon_groups_http.begin(), m_marathon_groups_http.end(), [uid](const decltype(m_marathon_groups_http)::value_type& item)
 									{
 										return item.second->get_framework_id() == uid.asString();
