@@ -61,9 +61,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 static int f_sys_generic(struct event_filler_arguments *args);	/* generic syscall event filler that includes the system call number */
-static int f_sys_empty(struct event_filler_arguments *args);		/* empty filler */
-static int f_sys_single(struct event_filler_arguments *args);		/* generic enter filler that copies a single argument syscall into a single parameter event */
-static int f_sys_single_x(struct event_filler_arguments *args);		/* generic exit filler that captures an integer */
 static int f_sys_open_x(struct event_filler_arguments *args);
 static int f_sys_read_x(struct event_filler_arguments *args);
 static int f_sys_write_x(struct event_filler_arguments *args);
@@ -151,19 +148,19 @@ static int f_sys_access_x(struct event_filler_arguments *args);
 const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_GENERIC_E] = {f_sys_generic},
 	[PPME_GENERIC_X] = {f_sys_generic},
-	[PPME_SYSCALL_OPEN_E] = {f_sys_empty},
+	[PPME_SYSCALL_OPEN_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_OPEN_X] = {f_sys_open_x},
-	[PPME_SYSCALL_CREAT_E] = {f_sys_empty},
+	[PPME_SYSCALL_CREAT_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_CREAT_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_CLOSE_E] = {f_sys_single},
-	[PPME_SYSCALL_CLOSE_X] = {f_sys_single_x},
+	[PPME_SYSCALL_CLOSE_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
+	[PPME_SYSCALL_CLOSE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_READ_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {2} } },
 	[PPME_SYSCALL_READ_X] = {f_sys_read_x},
 	[PPME_SYSCALL_WRITE_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {2} } },
 	[PPME_SYSCALL_WRITE_X] = {f_sys_write_x},
 	[PPME_PROCEXIT_1_E] = {f_sys_procexit_e},
 	[PPME_SOCKET_SOCKET_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
-	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
+	[PPME_SOCKET_SOCKET_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SOCKET_SOCKETPAIR_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKETPAIR_X] = {f_sys_socketpair_x},
 	[PPME_SOCKET_BIND_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0} } },
@@ -171,8 +168,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_CONNECT_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0} } },
 	[PPME_SOCKET_CONNECT_X] = {f_sys_connect_x},
 	[PPME_SOCKET_LISTEN_E] = {PPM_AUTOFILL, 2, APT_SOCK, {{0}, {1} } },
-	[PPME_SOCKET_LISTEN_X] = {f_sys_single_x},
-	[PPME_SOCKET_ACCEPT_5_E] = {f_sys_empty},
+	[PPME_SOCKET_LISTEN_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SOCKET_ACCEPT_5_E] = {PPM_AUTOFILL, 0},
 	[PPME_SOCKET_ACCEPT_5_X] = {f_sys_accept_x},
 	[PPME_SOCKET_ACCEPT4_5_E] = {f_sys_accept4_e},
 	[PPME_SOCKET_ACCEPT4_5_X] = {f_sys_accept_x},
@@ -189,59 +186,59 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_RECVMSG_E] = {f_sys_recvmsg_e},
 	[PPME_SOCKET_RECVMSG_X] = {f_sys_recvmsg_x},
 	[PPME_SOCKET_SHUTDOWN_E] = {f_sys_shutdown_e},
-	[PPME_SOCKET_SHUTDOWN_X] = {f_sys_single_x},
-	[PPME_SYSCALL_PIPE_E] = {f_sys_empty},
+	[PPME_SOCKET_SHUTDOWN_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_PIPE_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_PIPE_X] = {f_sys_pipe_x},
 	[PPME_SYSCALL_EVENTFD_E] = {f_sys_eventfd_e},
-	[PPME_SYSCALL_EVENTFD_X] = {f_sys_single_x},
+	[PPME_SYSCALL_EVENTFD_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_FUTEX_E] = {f_sys_futex_e},
-	[PPME_SYSCALL_FUTEX_X] = {f_sys_single_x},
-	[PPME_SYSCALL_STAT_E] = {f_sys_empty},
+	[PPME_SYSCALL_FUTEX_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_STAT_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_STAT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_LSTAT_E] = {f_sys_empty},
+	[PPME_SYSCALL_LSTAT_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_LSTAT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_FSTAT_E] = {f_sys_single},
-	[PPME_SYSCALL_FSTAT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_STAT64_E] = {f_sys_empty},
+	[PPME_SYSCALL_FSTAT_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
+	[PPME_SYSCALL_FSTAT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_STAT64_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_STAT64_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_LSTAT64_E] = {f_sys_empty},
+	[PPME_SYSCALL_LSTAT64_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_LSTAT64_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_FSTAT64_E] = {f_sys_single},
-	[PPME_SYSCALL_FSTAT64_X] = {f_sys_single_x},
+	[PPME_SYSCALL_FSTAT64_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
+	[PPME_SYSCALL_FSTAT64_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_EPOLLWAIT_E] = {PPM_AUTOFILL, 1, APT_REG, {{2} } },
-	[PPME_SYSCALL_EPOLLWAIT_X] = {f_sys_single_x},
+	[PPME_SYSCALL_EPOLLWAIT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_POLL_E] = {f_sys_poll_e},
 	[PPME_SYSCALL_POLL_X] = {f_sys_poll_x},
-	[PPME_SYSCALL_SELECT_E] = {f_sys_empty},
-	[PPME_SYSCALL_SELECT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_NEWSELECT_E] = {f_sys_empty},
-	[PPME_SYSCALL_NEWSELECT_X] = {f_sys_single_x},
+	[PPME_SYSCALL_SELECT_E] = {PPM_AUTOFILL, 0},
+	[PPME_SYSCALL_SELECT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_NEWSELECT_E] = {PPM_AUTOFILL, 0},
+	[PPME_SYSCALL_NEWSELECT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_LSEEK_E] = {f_sys_lseek_e},
-	[PPME_SYSCALL_LSEEK_X] = {f_sys_single_x},
+	[PPME_SYSCALL_LSEEK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_LLSEEK_E] = {f_sys_llseek_e},
-	[PPME_SYSCALL_LLSEEK_X] = {f_sys_single_x},
+	[PPME_SYSCALL_LLSEEK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_IOCTL_3_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_IOCTL_3_X] = {f_sys_single_x},
-	[PPME_SYSCALL_GETCWD_E] = {f_sys_empty},
+	[PPME_SYSCALL_IOCTL_3_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_GETCWD_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_GETCWD_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_CHDIR_E] = {f_sys_empty},
+	[PPME_SYSCALL_CHDIR_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_CHDIR_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_FCHDIR_E] = {f_sys_single},
-	[PPME_SYSCALL_FCHDIR_X] = {f_sys_single_x},
+	[PPME_SYSCALL_FCHDIR_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
+	[PPME_SYSCALL_FCHDIR_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_MKDIR_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_MKDIR_X] = {f_sys_single_x},
-	[PPME_SYSCALL_RMDIR_E] = {f_sys_single},
-	[PPME_SYSCALL_RMDIR_X] = {f_sys_single_x},
+	[PPME_SYSCALL_MKDIR_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_RMDIR_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
+	[PPME_SYSCALL_RMDIR_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_OPENAT_E] = {f_sys_openat_e},
-	[PPME_SYSCALL_OPENAT_X] = {f_sys_single_x},
+	[PPME_SYSCALL_OPENAT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_LINK_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_LINK_X] = {f_sys_single_x},
+	[PPME_SYSCALL_LINK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_LINKAT_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {1}, {2}, {3} } },
-	[PPME_SYSCALL_LINKAT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_UNLINK_E] = {f_sys_single},
-	[PPME_SYSCALL_UNLINK_X] = {f_sys_single_x},
+	[PPME_SYSCALL_LINKAT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_UNLINK_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
+	[PPME_SYSCALL_UNLINK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_UNLINKAT_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_UNLINKAT_X] = {f_sys_single_x},
+	[PPME_SYSCALL_UNLINKAT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 #ifdef _64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREAD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {2}, {3} } },
 #else
@@ -250,7 +247,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PREAD_X] = {f_sys_read_x},
 	[PPME_SYSCALL_PWRITE_E] = {f_sys_pwrite64_e},
 	[PPME_SYSCALL_PWRITE_X] = {f_sys_write_x},
-	[PPME_SYSCALL_READV_E] = {f_sys_single},
+	[PPME_SYSCALL_READV_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
 	[PPME_SYSCALL_READV_X] = {f_sys_readv_x},
 	[PPME_SYSCALL_WRITEV_E] = {f_sys_writev_e},
 	[PPME_SYSCALL_WRITEV_X] = {f_sys_writev_pwritev_x},
@@ -263,22 +260,22 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PWRITEV_E] = {f_sys_pwritev_e},
 	[PPME_SYSCALL_PWRITEV_X] = {f_sys_writev_pwritev_x},
 	[PPME_SYSCALL_DUP_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_DUP_X] = {f_sys_single_x},
+	[PPME_SYSCALL_DUP_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	/* Mask and Flags not implemented yet */
 	[PPME_SYSCALL_SIGNALFD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {AF_ID_USEDEFAULT, 0}, {AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_SIGNALFD_X] = {f_sys_single_x},
+	[PPME_SYSCALL_SIGNALFD_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_KILL_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_KILL_X] = {f_sys_single_x},
+	[PPME_SYSCALL_KILL_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_TKILL_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_TKILL_X] = {f_sys_single_x},
+	[PPME_SYSCALL_TKILL_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_TGKILL_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_TGKILL_X] = {f_sys_single_x},
+	[PPME_SYSCALL_TGKILL_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_NANOSLEEP_E] = {f_sys_nanosleep_e},
-	[PPME_SYSCALL_NANOSLEEP_X] = {f_sys_single_x},
+	[PPME_SYSCALL_NANOSLEEP_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_TIMERFD_CREATE_E] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_USEDEFAULT, 0}, {AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_TIMERFD_CREATE_X] = {f_sys_single_x},
+	[PPME_SYSCALL_TIMERFD_CREATE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_INOTIFY_INIT_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_INOTIFY_INIT_X] = {f_sys_single_x},
+	[PPME_SYSCALL_INOTIFY_INIT_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_GETRLIMIT_E] = {f_sys_getrlimit_setrlimit_e},
 	[PPME_SYSCALL_GETRLIMIT_X] = {f_sys_getrlimit_setrlrimit_x},
 	[PPME_SYSCALL_SETRLIMIT_E] = {f_sys_getrlimit_setrlimit_e},
@@ -291,10 +288,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_E] = {f_sched_drop},
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
-	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_16_E] = {f_sys_empty},
+	[PPME_SYSCALL_FCNTL_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_EXECVE_16_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_EXECVE_16_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_CLONE_20_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
@@ -308,17 +305,17 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SPLICE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_PTRACE_E] = {f_sys_ptrace_e},
 	[PPME_SYSCALL_PTRACE_X] = {f_sys_ptrace_x},
-	[PPME_SYSCALL_RENAME_E] = {f_sys_empty},
+	[PPME_SYSCALL_RENAME_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_RENAME_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
-	[PPME_SYSCALL_RENAMEAT_E] = {f_sys_empty},
+	[PPME_SYSCALL_RENAMEAT_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_RENAMEAT_X] = {f_sys_renameat_x},
-	[PPME_SYSCALL_SYMLINK_E] = {f_sys_empty},
+	[PPME_SYSCALL_SYMLINK_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_SYMLINK_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
-	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
+	[PPME_SYSCALL_SYMLINKAT_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
-	[PPME_SYSCALL_FORK_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_FORK_20_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_FORK_20_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_VFORK_20_E] = {f_sys_empty},
+	[PPME_SYSCALL_VFORK_20_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_VFORK_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
@@ -333,26 +330,26 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SETUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_SETGID_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_SETGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETUID_E] = {f_sys_empty},
+	[PPME_SYSCALL_GETUID_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_GETUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETEUID_E] = {f_sys_empty},
+	[PPME_SYSCALL_GETEUID_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_GETEUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETGID_E] = {f_sys_empty},
+	[PPME_SYSCALL_GETGID_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_GETGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETEGID_E] = {f_sys_empty},
+	[PPME_SYSCALL_GETEGID_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_GETEGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETRESUID_E] = {f_sys_empty},
+	[PPME_SYSCALL_GETRESUID_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_GETRESUID_X] = {f_sys_getresuid_and_gid_x},
-	[PPME_SYSCALL_GETRESGID_E] = {f_sys_empty},
+	[PPME_SYSCALL_GETRESGID_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_GETRESGID_X] = {f_sys_getresuid_and_gid_x},
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	[PPME_SIGNALDELIVER_E] = {f_sys_signaldeliver_e},
-	[PPME_SIGNALDELIVER_X] = {f_sys_empty},
+	[PPME_SIGNALDELIVER_X] = {PPM_AUTOFILL, 0},
 #endif
-	[PPME_SYSCALL_GETDENTS_E] = {f_sys_single},
-	[PPME_SYSCALL_GETDENTS_X] = {f_sys_single_x},
-	[PPME_SYSCALL_GETDENTS64_E] = {f_sys_single},
-	[PPME_SYSCALL_GETDENTS64_X] = {f_sys_single_x},
+	[PPME_SYSCALL_GETDENTS_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
+	[PPME_SYSCALL_GETDENTS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
+	[PPME_SYSCALL_GETDENTS64_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}}},
+	[PPME_SYSCALL_GETDENTS64_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_SETNS_E] = {f_sys_setns_e},
 	[PPME_SYSCALL_SETNS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_FLOCK_E] = {f_sys_flock_e},
@@ -361,7 +358,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SEMOP_E] = {f_sys_semop_e},
 	[PPME_SYSCALL_SEMOP_X] = {f_sys_semop_x},
 	[PPME_SYSCALL_SEMGET_E] = {f_sys_semget_e},
-	[PPME_SYSCALL_SEMGET_X] = {f_sys_single_x},
+	[PPME_SYSCALL_SEMGET_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}}},
 	[PPME_SYSCALL_SEMCTL_E] = {f_sys_semctl_e},
 	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
 	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
@@ -372,9 +369,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UMOUNT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_ACCESS_E] = {f_sys_access_e},
 	[PPME_SYSCALL_ACCESS_X] = {f_sys_access_x},
-	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
+	[PPME_SYSCALL_CHROOT_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
+	[PPME_SYSCALL_SETSID_E] = {PPM_AUTOFILL, 0},
 	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } }
 };
 
@@ -425,37 +422,6 @@ static int f_sys_generic(struct event_filler_arguments *args)
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
-
-	return add_sentinel(args);
-}
-
-static int f_sys_empty(struct event_filler_arguments *args)
-{
-	return add_sentinel(args);
-}
-
-static int f_sys_single(struct event_filler_arguments *args)
-{
-	int res;
-	unsigned long val;
-
-	syscall_get_arguments(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	return add_sentinel(args);
-}
-
-static int f_sys_single_x(struct event_filler_arguments *args)
-{
-	int res;
-	int64_t retval;
-
-	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
 	return add_sentinel(args);
 }
