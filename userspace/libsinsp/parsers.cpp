@@ -1422,7 +1422,7 @@ lo(sinsp_logger::SEV_ERROR, "#cgroups=%s", string(parinfo->m_val, parinfo->m_len
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
-if(tinfo.m_comm == "du" || tinfo.m_comm == "nice")
+//if(tinfo.m_comm == "du" || tinfo.m_comm == "nice")
 {
 	lo(sinsp_logger::SEV_ERROR, "#detected execution of %s", tinfo.m_comm.c_str());
 	lo(sinsp_logger::SEV_ERROR, "#tid=%" PRIu64, evt->m_tinfo->m_tid);
