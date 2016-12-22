@@ -1414,7 +1414,7 @@ lo(sinsp_logger::SEV_ERROR, "#1");
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-lo(sinsp_logger::SEV_ERROR, "#cgroups=%s", string(parinfo->m_val, parinfo->m_len).c_str());
+//lo(sinsp_logger::SEV_ERROR, "#cgroups=%s", string(parinfo->m_val, parinfo->m_len).c_str());
 			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->m_islive);
 			break;
 	}
