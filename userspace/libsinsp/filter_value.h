@@ -34,14 +34,13 @@ struct g_hash_membuf
 {
 	size_t operator()(filter_value_t val) const
 	{
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 		return std::_Hash_impl::hash(val.first, val.second);
 #else
 		size_t hash = 5381;
-		for(uint8_t *p = val.first; p-val.first < val.second; p++)
+		for(uint8_t *p = val.first; (uint32_t)(p-val.first) < val.second; p++)
 		{
 			int c = *p;
-
 			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 		}
 		return hash;

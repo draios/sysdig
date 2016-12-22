@@ -56,7 +56,7 @@ view_info =
 		},
 		{
 			tags = {"containers"},
-			name = "VTPID",
+			name = "VTID",
 			field = "thread.vtid",
 			description = "TID that the tread has inside the container.",
 			colsize = 8,

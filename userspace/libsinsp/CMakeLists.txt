@@ -29,6 +29,7 @@ add_library(sinsp STATIC
 	fdinfo.cpp
 	filter.cpp
 	filterchecks.cpp
+	http_parser.c
 	ifinfo.cpp
 	json_query.cpp
 	k8s.cpp
@@ -73,6 +74,7 @@ add_library(sinsp STATIC
 	table.cpp
 	sinsp_auth.cpp
 	sinsp_curl.cpp
+	stopwatch.cpp
 	uri_parser.c
 	uri.cpp
 	utils.cpp
@@ -94,11 +96,18 @@ if(NOT WIN32)
 			"${JQ_LIB}"
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
-			"${OPENSSL_LIBRARY_SSL}"
-			"${OPENSSL_LIBRARY_CRYPTO}"
 			rt
 			anl)
 	endif()
+
+        if(USE_BUNDLED_OPENSSL)
+		target_link_libraries(sinsp
+			"${OPENSSL_LIBRARY_SSL}"
+			"${OPENSSL_LIBRARY_CRYPTO}")
+        else()
+		target_link_libraries(sinsp
+                    "${OPENSSL_LIBRARIES}")
+        endif()
 
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"

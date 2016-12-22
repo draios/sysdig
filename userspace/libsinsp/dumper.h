@@ -52,7 +52,7 @@ public:
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(const string& filename, bool compress);
+	void open(const string& filename, bool compress, bool create_scap_table=false);
 
 	/*!
 	  \brief Return the current size of a tracefile.

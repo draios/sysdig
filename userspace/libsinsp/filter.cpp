@@ -78,7 +78,9 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_container());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
+#ifndef HAS_ANALYZER
 	add_filter_check(new sinsp_filter_check_k8s());
+#endif // HAS_ANALYZER
 	add_filter_check(new sinsp_filter_check_mesos());
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
@@ -119,7 +121,7 @@ sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(const
 	{
 		m_check_list[j]->m_inspector = inspector;
 
-		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str(), false);
+		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str(), false, true);
 
 		if(fldnamelen != -1)
 		{
@@ -970,10 +972,11 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 	return jsonval;
 }
 
-int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state)
+int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	int32_t j;
 	int32_t max_fldlen = -1;
+	uint32_t max_flags = 0;
 
 	ASSERT(m_info.m_fields != NULL);
 	ASSERT(m_info.m_nfields != -1);
@@ -994,7 +997,16 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state)
 				m_field_id = j;
 				m_field = &m_info.m_fields[j];
 				max_fldlen = fldlen;
+				max_flags = (m_info.m_fields[j]).m_flags;
 			}
+		}
+	}
+
+	if(!needed_for_filtering)
+	{
+		if(max_flags & EPF_FILTER_ONLY)
+		{
+			throw sinsp_exception(string(str) + " is filter only and cannot be used as a display field");
 		}
 	}
 
@@ -1012,7 +1024,7 @@ int32_t sinsp_filter_check::get_check_id()
 }
 
 
-void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint16_t i)
+void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_t i)
 {
 
 	if (i >= m_val_storages.size())
@@ -1664,7 +1676,7 @@ void sinsp_filter_compiler::parse_check()
 	chk->m_boolop = op;
 	chk->m_cmpop = co;
 
-	chk->parse_field_name((char *)&operand1[0], true);
+	chk->parse_field_name((char *)&operand1[0], true, true);
 
 	if(co == CO_IN || co == CO_PMATCH)
 	{
@@ -1697,7 +1709,7 @@ void sinsp_filter_compiler::parse_check()
 			//
 			// Create the 'or' sequence
 			//
-			uint64_t num_values = 0;
+			uint32_t num_values = 0;
 			while(true)
 			{
 				// 'in' clause aware
@@ -1750,7 +1762,7 @@ void sinsp_filter_compiler::parse_check()
 			//
 			// Create the 'or' sequence
 			//
-			uint64_t num_values = 0;
+			uint32_t num_values = 0;
 			while(true)
 			{
 				// 'in' clause aware

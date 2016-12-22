@@ -78,13 +78,13 @@ public:
 	// Returns the length of the parsed field if successful, an exception in
 	// case of error.
 	//
-	virtual int32_t parse_field_name(const char* str, bool alloc_state);
+	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 
 	//
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
-	void add_filter_value(const char* str, uint32_t len, uint16_t i = 0 );
+	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 );
 	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	//
@@ -213,7 +213,7 @@ public:
 	// The following methods are part of the filter check interface but are irrelevant
 	// for this class, because they are used only for the leaves of the filtering tree.
 	//
-	int32_t parse_field_name(const char* str, bool alloc_state)
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 	{
 		ASSERT(false);
 		return 0;
@@ -373,7 +373,7 @@ public:
 
 	sinsp_filter_check_thread();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare(sinsp_evt *evt);
 
@@ -471,7 +471,7 @@ public:
 	sinsp_filter_check_event();
 	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
@@ -586,7 +586,7 @@ public:
 	sinsp_filter_check_tracer();
 	~sinsp_filter_check_tracer();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
@@ -646,7 +646,7 @@ public:
 
 	sinsp_filter_check_evtin();
 	~sinsp_filter_check_evtin();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	sinsp_filter_check* allocate_new();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare(sinsp_evt *evt);
@@ -669,6 +669,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val);
+	inline uint8_t* extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;
@@ -687,7 +688,7 @@ public:
 	rawstring_check(string text);
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	// XXX this is overkill and wasted for most of the fields.
@@ -717,7 +718,7 @@ public:
 
 	sinsp_filter_check_syslog();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	sinsp_decoder_syslog* m_decoder;
@@ -750,7 +751,7 @@ public:
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	int32_t extract_arg(const string& val, size_t basename);
 
 	string m_tstr;
@@ -783,7 +784,7 @@ public:
 		m_cnt = cnt;
 		m_print_format = print_format;
 	}
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
@@ -844,6 +845,8 @@ private:
 	char m_addrbuff[100];
 };
 
+#ifndef HAS_ANALYZER
+
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
 public:
@@ -877,7 +880,7 @@ public:
 
 	sinsp_filter_check_k8s();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
@@ -894,6 +897,8 @@ private:
 	string m_argname;
 	string m_tstr;
 };
+
+#endif // HAS_ANALYZER
 
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {
@@ -916,7 +921,7 @@ public:
 
 	sinsp_filter_check_mesos();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:

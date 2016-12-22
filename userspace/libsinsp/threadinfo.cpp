@@ -535,6 +535,13 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 		{
 			subsys = "memory";
 		}
+		else if(subsys == "io")
+		{
+			// blkio has been renamed just `io`
+			// in kernel space:
+			// https://github.com/torvalds/linux/commit/c165b3e3c7bb68c2ed55a5ac2623f030d01d9567
+			subsys = "blkio";
+		}
 
 		m_cgroups.push_back(std::make_pair(subsys, cgroup));
 		offset += subsys_length + 1 + cgroup.length() + 1;
@@ -630,7 +637,12 @@ sinsp_threadinfo* sinsp_threadinfo::get_cwd_root()
 
 string sinsp_threadinfo::get_cwd()
 {
-	sinsp_threadinfo* tinfo = get_cwd_root();
+	// Ideally we should use get_cwd_root()
+	// but scap does not read CLONE_FS from /proc
+	// Also glibc and muslc use always 
+	// CLONE_THREAD|CLONE_FS so let's use
+	// get_main_thread() for now
+	sinsp_threadinfo* tinfo = get_main_thread();
 
 	if(tinfo)
 	{
@@ -646,7 +658,7 @@ string sinsp_threadinfo::get_cwd()
 void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 {
 	char tpath[SCAP_MAX_PATH_SIZE];
-	sinsp_threadinfo* tinfo = get_cwd_root();
+	sinsp_threadinfo* tinfo = get_main_thread();
 
 	if(tinfo)
 	{
@@ -1065,4 +1077,59 @@ void sinsp_thread_manager::update_statistics()
 		m_inspector->m_stats.m_n_fds += it->second.get_fd_table()->size();
 	}
 #endif
+}
+
+void sinsp_thread_manager::to_scap()
+{
+/*
+	scap_proc_free_table(m_inspector->m_h);
+
+	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
+	{
+		sinsp_threadinfo& tinfo = it->second;
+
+		//
+		// Allocate the scap thread info
+		//
+		scap_threadinfo* sctinfo = (scap_threadinfo*)malloc(sizeof(scap_threadinfo));
+		if(sctinfo == NULL)
+		{
+			throw sinsp_exception("memory allocation error in sinsp_thread_manager::to_scap");
+		}
+
+		//
+		// Fill in the data
+		//
+sctinfo->tid = tinfo.m_tid;
+sctinfo->pid = tinfo.m_pid;
+sctinfo->ptid = tinfo.m_ptid;
+sctinfo->sid = tinfo.m_sid;
+
+strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
+strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
+tinfo.set_args(sctinfo->args, sctinfo->args_len);
+tinfo.set_env(sctinfo->env, sctinfo->env_len);
+tinfo.set_cwd(sctinfo->cwd, (uint32_t)strlen(sctinfo->cwd));
+sctinfo->flags = tinfo.m_flags ;
+sctinfo->fdlimit = tinfo.m_fdlimit;
+sctinfo->uid = tinfo.m_uid;
+sctinfo->gid = tinfo.m_gid;
+sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
+sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
+sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
+sctinfo->pfmajor = tinfo.m_pfmajor;
+sctinfo->pfminor = tinfo.m_pfminor;
+sctinfo->vtid = tinfo.m_vtid;
+sctinfo->vpid = tinfo.m_vpid;
+
+tinfo.set_cgroups(sctinfo->cgroups, sctinfo->cgroups_len);
+sctinfo->root = tinfo.m_root;
+
+
+		//
+		// Add the created info to scap
+		//
+		scap_proc_add(m_inspector->m_h, it->second.m_tid, sctinfo);
+	}
+*/
 }

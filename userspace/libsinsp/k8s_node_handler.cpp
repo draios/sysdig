@@ -45,18 +45,26 @@ std::string k8s_node_handler::STATE_FILTER =
 	" ]"
 	"}";
 
-k8s_node_handler::k8s_node_handler(k8s_state_t& state,
-	ptr_t dependency_handler,
-	collector_ptr_t collector,
-	std::string url,
-	const std::string& http_version,
-	ssl_ptr_t ssl,
-	bt_ptr_t bt,
-	bool connect):
+k8s_node_handler::k8s_node_handler(k8s_state_t& state
+#ifdef HAS_CAPTURE
+	,ptr_t dependency_handler
+	,collector_ptr_t collector
+	,std::string url
+	,const std::string& http_version
+	,ssl_ptr_t ssl
+	,bt_ptr_t bt
+	,bool connect
+	,bool blocking_socket
+#endif // HAS_CAPTURE
+	):
 		k8s_handler("k8s_node_handler", true,
+#ifdef HAS_CAPTURE
 					url, "/api/v1/nodes",
-					STATE_FILTER, EVENT_FILTER, dependency_handler, collector,
-					http_version, 1000L, ssl, bt, &state, true, connect)
+					STATE_FILTER, EVENT_FILTER, collector,
+					http_version, 1000L, ssl, bt, true,
+					connect, dependency_handler, blocking_socket,
+#endif // HAS_CAPTURE
+					~0, &state)
 {
 }
 

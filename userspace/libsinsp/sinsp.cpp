@@ -109,6 +109,7 @@ sinsp::sinsp() :
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
 	m_is_tracers_capture_enabled = false;
+	m_file_start_offset = 0;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -509,6 +510,14 @@ void sinsp::open(string filename)
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
 	oargs.import_users = m_import_users;
+	if(m_file_start_offset != 0)
+	{
+		oargs.start_offset = m_file_start_offset;
+	}
+	else
+	{
+		oargs.start_offset = 0;
+	}
 
 	m_h = scap_open(oargs, error);
 
@@ -875,6 +884,14 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
 				}
 	#endif
+			}
+			else if(res == SCAP_UNEXPECTED_BLOCK)
+			{
+				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
+				m_file_start_offset = filepos;
+				close();
+				open(m_input_filename);
+				return SCAP_TIMEOUT;
 			}
 			else
 			{
@@ -1729,9 +1746,14 @@ void sinsp::make_k8s_client()
 #ifdef HAS_CAPTURE
 		,m_k8s_ssl
 		,m_k8s_bt
+		,true // blocking
 #endif // HAS_CAPTURE
 		,nullptr
+#ifdef HAS_CAPTURE
 		,m_ext_list_ptr
+#else
+		,nullptr
+#endif // HAS_CAPTURE
 	);
 }
 
@@ -1742,7 +1764,10 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 	m_k8s_api_server = api_server;
 	m_k8s_api_cert = ssl_cert;
 
+	
+#ifdef HAS_CAPTURE
 	if(m_k8s_api_detected && m_k8s_ext_detect_done)
+#endif // HAS_CAPTURE
 	{
 		if(m_k8s_client)
 		{
@@ -1756,41 +1781,42 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 
 void sinsp::collect_k8s()
 {
-	if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+	if(m_parser)
 	{
-		m_k8s_last_watch_time_ns = m_lastevent_ts;
-
-			if(m_parser)
+		if(m_k8s_api_server)
+		{
+			if(!m_k8s_client)
 			{
-				if(m_k8s_api_server)
+				init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
+				if(m_k8s_client)
 				{
-					if(m_k8s_client)
-					{
-						uint64_t delta = sinsp_utils::get_current_time_ns();
-						m_k8s_client->watch();
-						m_parser->schedule_k8s_events(&m_meta_evt);
-						delta = sinsp_utils::get_current_time_ns() - delta;
-						g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
-					}
-					else
-					{
-						init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
-						if(m_k8s_client)
-						{
-							g_logger.log("K8s client created.", sinsp_logger::SEV_DEBUG);
-						}
-						else
-						{
-							g_logger.log("K8s client NOT created.", sinsp_logger::SEV_DEBUG);
-						}
-					}
+					g_logger.log("K8s client created.", sinsp_logger::SEV_DEBUG);
+				}
+				else
+				{
+					g_logger.log("K8s client NOT created.", sinsp_logger::SEV_DEBUG);
 				}
 			}
+			if(m_k8s_client)
+			{
+				if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+				{
+					m_k8s_last_watch_time_ns = m_lastevent_ts;
+					g_logger.log("K8s updating state ...", sinsp_logger::SEV_DEBUG);
+					uint64_t delta = sinsp_utils::get_current_time_ns();
+					m_k8s_client->watch();
+					m_parser->schedule_k8s_events(&m_meta_evt);
+					delta = sinsp_utils::get_current_time_ns() - delta;
+					g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
+				}
+			}
+		}
 	}
 }
 
 void sinsp::k8s_discover_ext()
 {
+#ifdef HAS_CAPTURE
 	try
 	{
 		if(m_k8s_api_server && !m_k8s_api_server->empty() && !m_k8s_ext_detect_done)
@@ -1805,7 +1831,7 @@ void sinsp::k8s_discover_ext()
 				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert); }
 				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 															"/apis/extensions/v1beta1", "[.resources[].name]",
-															"1.0", m_k8s_ssl, m_k8s_bt));
+															"1.1", m_k8s_ssl, m_k8s_bt, true));
 				g_logger.log("K8s API extensions handler: collector created.", sinsp_logger::SEV_TRACE);
 			}
 			else
@@ -1855,10 +1881,12 @@ void sinsp::k8s_discover_ext()
 		m_k8s_ext_handler.reset();
 	}
 	g_logger.log("K8s API extensions handler: detection done.", sinsp_logger::SEV_TRACE);
+#endif // HAS_CAPTURE
 }
 
 void sinsp::update_k8s_state()
 {
+#ifdef HAS_CAPTURE
 	try
 	{
 		if(m_k8s_api_server && !m_k8s_api_server->empty())
@@ -1876,8 +1904,8 @@ void sinsp::update_k8s_state()
 						init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert);
 					}
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
-																"/api", ".versions", "1.0",
-																m_k8s_ssl, m_k8s_bt));
+																"/api", ".versions", "1.1",
+																m_k8s_ssl, m_k8s_bt, true));
 				}
 				else
 				{
@@ -1922,6 +1950,7 @@ void sinsp::update_k8s_state()
 		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
 		throw;
 	}
+#endif // HAS_CAPTURE
 }
 
 bool sinsp::get_mesos_data()

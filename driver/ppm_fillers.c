@@ -812,7 +812,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	int subsys_len;
 	char *path;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) || LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	int res;
 #endif
 
@@ -832,7 +832,17 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 		return 1;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	// According to https://github.com/torvalds/linux/commit/4c737b41de7f4eef2a593803bad1b918dd718b10
+	// cgroup_path now returns an int again
+	res = cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = buf;
+	}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 	path = cgroup_path(css->cgroup, buf, *available);
 	if (!path) {
 		ASSERT(false);
@@ -1006,7 +1016,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
-	char *spwd;
+	char *spwd = "";
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -1149,14 +1159,9 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * cwd
+	 * cwd, pushed empty to avoid breaking compatibility
+	 * with the older event format
 	 */
-	spwd = npm_getcwd(args->str_storage, STR_STORAGE_SIZE - 1);
-	if (spwd == NULL)
-		spwd = "";
-
-	args->str_storage[STR_STORAGE_SIZE - 1] = '\0';
-
 	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3890,14 +3895,22 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_GETFPXREGS:
 		return PPM_PTRACE_GETFPXREGS;
 #endif
+#ifdef PTRACE_SETFPREGS
 	case PTRACE_SETFPREGS:
 		return PPM_PTRACE_SETFPREGS;
+#endif
+#ifdef PTRACE_GETFPREGS
 	case PTRACE_GETFPREGS:
 		return PPM_PTRACE_GETFPREGS;
+#endif
+#ifdef PTRACE_SETREGS
 	case PTRACE_SETREGS:
 		return PPM_PTRACE_SETREGS;
+#endif
+#ifdef PTRACE_GETREGS
 	case PTRACE_GETREGS:
 		return PPM_PTRACE_GETREGS;
+#endif
 #ifdef PTRACE_SETSIGMASK
 	case PTRACE_SETSIGMASK:
 		return PPM_PTRACE_SETSIGMASK;

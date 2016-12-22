@@ -111,12 +111,15 @@ class sinsp_protodecoder;
 class k8s;
 class sinsp_partial_tracer;
 class mesos;
+
+#ifdef HAS_CAPTURE
 class sinsp_ssl;
 class sinsp_bearer_token;
 template <class T> class socket_data_handler;
 template <class T> class socket_collector;
 class k8s_handler;
 class k8s_api_handler;
+#endif // HAS_CAPTURE
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -831,6 +834,9 @@ private:
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
 	bool m_is_tracers_capture_enabled;
+	// This is used to support reading merged files, where the capture needs to
+	// restart in the middle of the file.
+	uint64_t m_file_start_offset;
 
 	sinsp_network_interfaces* m_network_interfaces;
 
@@ -843,16 +849,18 @@ private:
 	//
 	string* m_k8s_api_server;
 	string* m_k8s_api_cert;
+#ifdef HAS_CAPTURE
 	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
 	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
-	k8s* m_k8s_client;
-	uint64_t m_k8s_last_watch_time_ns;
 	unique_ptr<k8s_api_handler> m_k8s_api_handler;
 	shared_ptr<socket_collector<socket_data_handler<k8s_handler>>> m_k8s_collector;
 	bool m_k8s_api_detected = false;
 	unique_ptr<k8s_api_handler> m_k8s_ext_handler;
 	k8s_ext_list_ptr_t m_ext_list_ptr;
 	bool m_k8s_ext_detect_done = false;
+#endif // HAS_CAPTURE
+	k8s* m_k8s_client;
+	uint64_t m_k8s_last_watch_time_ns;
 
 	//
 	// Mesos/Marathon
@@ -1002,6 +1010,9 @@ private:
 	friend class sinsp_network_interfaces;
 	friend class k8s_delegator;
 
+#ifdef HAS_ANALYZER
+	friend class thread_analyzer_info;
+#endif
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 

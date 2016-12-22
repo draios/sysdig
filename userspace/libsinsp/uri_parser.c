@@ -154,7 +154,7 @@ do {                                                                 \
  *
  * This is designed to be shared by http_parser_execute() for URL validation,
  * hence it has a state transition + byte-for-byte interface. In addition, it
- * is meant to be embedded in http_parser_parse_url(), which does the dirty
+ * is meant to be embedded in http_parser_parse_uri(), which does the dirty
  * work of turning state transitions URL components for its API.
  *
  * This function should only be invoked with non-space characters. It is
@@ -392,18 +392,18 @@ http_parse_host_char(enum http_host_state s, const char ch) {
 }
 
 static int
-http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
-  assert(u->field_set & (1 << UF_HOST));
+http_parse_host(const char * buf, struct http_parser_uri *u, int found_at) {
+  assert(u->field_set & (1 << URI_FLD_HOST));
   enum http_host_state s;
 
   const char *p;
-  size_t buflen = u->field_data[UF_HOST].off + u->field_data[UF_HOST].len;
+  size_t buflen = u->field_data[URI_FLD_HOST].off + u->field_data[URI_FLD_HOST].len;
 
-  u->field_data[UF_HOST].len = 0;
+  u->field_data[URI_FLD_HOST].len = 0;
 
   s = found_at ? s_http_userinfo_start : s_http_host_start;
 
-  for (p = buf + u->field_data[UF_HOST].off; p < buf + buflen; p++) {
+  for (p = buf + u->field_data[URI_FLD_HOST].off; p < buf + buflen; p++) {
     enum http_host_state new_s = http_parse_host_char(s, *p);
 
     if (new_s == s_http_host_dead) {
@@ -413,39 +413,39 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
     switch(new_s) {
       case s_http_host:
         if (s != s_http_host) {
-          u->field_data[UF_HOST].off = p - buf;
+          u->field_data[URI_FLD_HOST].off = p - buf;
         }
-        u->field_data[UF_HOST].len++;
+        u->field_data[URI_FLD_HOST].len++;
         break;
 
       case s_http_host_v6:
         if (s != s_http_host_v6) {
-          u->field_data[UF_HOST].off = p - buf;
+          u->field_data[URI_FLD_HOST].off = p - buf;
         }
-        u->field_data[UF_HOST].len++;
+        u->field_data[URI_FLD_HOST].len++;
         break;
 
       case s_http_host_v6_zone_start:
       case s_http_host_v6_zone:
-        u->field_data[UF_HOST].len++;
+        u->field_data[URI_FLD_HOST].len++;
         break;
 
       case s_http_host_port:
         if (s != s_http_host_port) {
-          u->field_data[UF_PORT].off = p - buf;
-          u->field_data[UF_PORT].len = 0;
-          u->field_set |= (1 << UF_PORT);
+          u->field_data[URI_FLD_PORT].off = p - buf;
+          u->field_data[URI_FLD_PORT].len = 0;
+          u->field_set |= (1 << URI_FLD_PORT);
         }
-        u->field_data[UF_PORT].len++;
+        u->field_data[URI_FLD_PORT].len++;
         break;
 
       case s_http_userinfo:
         if (s != s_http_userinfo) {
-          u->field_data[UF_USERINFO].off = p - buf ;
-          u->field_data[UF_USERINFO].len = 0;
-          u->field_set |= (1 << UF_USERINFO);
+          u->field_data[URI_FLD_USERINFO].off = p - buf ;
+          u->field_data[URI_FLD_USERINFO].len = 0;
+          u->field_set |= (1 << URI_FLD_USERINFO);
         }
-        u->field_data[UF_USERINFO].len++;
+        u->field_data[URI_FLD_USERINFO].len++;
         break;
 
       default:
@@ -473,22 +473,22 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
 }
 
 void
-http_parser_url_init(struct http_parser_url *u) {
+http_parser_uri_init(struct http_parser_uri *u) {
   memset(u, 0, sizeof(*u));
 }
 
 int
-http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
-                      struct http_parser_url *u)
+http_parser_parse_uri(const char *buf, size_t buflen, int is_connect,
+                      struct http_parser_uri *u)
 {
   enum state s;
   const char *p;
-  enum http_parser_url_fields uf, old_uf;
+  enum http_parser_uri_fields uf, old_uf;
   int found_at = 0;
 
   u->port = u->field_set = 0;
   s = is_connect ? s_req_server_start : s_req_spaces_before_url;
-  old_uf = UF_MAX;
+  old_uf = URI_FLD_MAX;
 
   for (p = buf; p < buf + buflen; p++) {
     s = parse_url_char(s, *p);
@@ -507,7 +507,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
         continue;
 
       case s_req_schema:
-        uf = UF_SCHEMA;
+        uf = URI_FLD_SCHEMA;
         break;
 
       case s_req_server_with_at:
@@ -515,19 +515,19 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
       /* FALLTROUGH */
       case s_req_server:
-        uf = UF_HOST;
+        uf = URI_FLD_HOST;
         break;
 
       case s_req_path:
-        uf = UF_PATH;
+        uf = URI_FLD_PATH;
         break;
 
       case s_req_query_string:
-        uf = UF_QUERY;
+        uf = URI_FLD_QUERY;
         break;
 
       case s_req_fragment:
-        uf = UF_FRAGMENT;
+        uf = URI_FLD_FRAGMENT;
         break;
 
       default:
@@ -550,25 +550,25 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 
   /* host must be present if there is a schema */
   /* parsing http:///toto will fail */
-  if ((u->field_set & (1 << UF_SCHEMA)) &&
-      (u->field_set & (1 << UF_HOST)) == 0) {
+  if ((u->field_set & (1 << URI_FLD_SCHEMA)) &&
+      (u->field_set & (1 << URI_FLD_HOST)) == 0) {
     return 1;
   }
 
-  if (u->field_set & (1 << UF_HOST)) {
+  if (u->field_set & (1 << URI_FLD_HOST)) {
     if (http_parse_host(buf, u, found_at) != 0) {
       return 1;
     }
   }
 
   /* CONNECT requests can only contain "hostname:port" */
-  if (is_connect && u->field_set != ((1 << UF_HOST)|(1 << UF_PORT))) {
+  if (is_connect && u->field_set != ((1 << URI_FLD_HOST)|(1 << URI_FLD_PORT))) {
     return 1;
   }
 
-  if (u->field_set & (1 << UF_PORT)) {
+  if (u->field_set & (1 << URI_FLD_PORT)) {
     /* Don't bother with endp; we've already validated the string */
-    unsigned long v = strtoul(buf + u->field_data[UF_PORT].off, NULL, 10);
+    unsigned long v = strtoul(buf + u->field_data[URI_FLD_PORT].off, NULL, 10);
 
     /* Ports have a max value of 2^16 */
     if (v > 0xffff) {
@@ -582,10 +582,10 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
 }
 
 struct parsed_uri parse_uri(const char *uri_string) {
-    struct http_parser_url u;
-    http_parser_url_init(&u);
+    struct http_parser_uri u;
+    http_parser_uri_init(&u);
 
-    int rc = http_parser_parse_url(uri_string, strlen(uri_string), 0, &u);
+    int rc = http_parser_parse_uri(uri_string, strlen(uri_string), 0, &u);
 
     if (rc) {
         struct parsed_uri uri = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,};
