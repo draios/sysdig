@@ -71,6 +71,7 @@ k8s_daemonset_handler::k8s_daemonset_handler(k8s_state_t& state
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
 #endif // HAS_CAPTURE
+					100, // max msgs
 					&state)
 {
 }

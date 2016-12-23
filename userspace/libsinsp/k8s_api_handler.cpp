@@ -25,8 +25,9 @@ k8s_api_handler::k8s_api_handler(collector_ptr_t collector,
 		k8s_handler("k8s_api_handler", false,
 #ifdef HAS_CAPTURE
 					url, path, filter, ".", collector, http_version, 1000L, ssl, bt,
+					false, true, std::make_shared<k8s_dummy_handler>(), blocking_socket,
 #endif // HAS_CAPTURE
-					false, true, std::make_shared<k8s_dummy_handler>(), blocking_socket, nullptr)
+					 ~0, nullptr)
 {
 }
 

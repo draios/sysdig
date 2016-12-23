@@ -78,7 +78,9 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_container());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
+#ifndef HAS_ANALYZER
 	add_filter_check(new sinsp_filter_check_k8s());
+#endif // HAS_ANALYZER
 	add_filter_check(new sinsp_filter_check_mesos());
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
@@ -1022,7 +1024,7 @@ int32_t sinsp_filter_check::get_check_id()
 }
 
 
-void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint16_t i)
+void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_t i)
 {
 
 	if (i >= m_val_storages.size())
@@ -1707,7 +1709,7 @@ void sinsp_filter_compiler::parse_check()
 			//
 			// Create the 'or' sequence
 			//
-			uint64_t num_values = 0;
+			uint32_t num_values = 0;
 			while(true)
 			{
 				// 'in' clause aware
@@ -1760,7 +1762,7 @@ void sinsp_filter_compiler::parse_check()
 			//
 			// Create the 'or' sequence
 			//
-			uint64_t num_values = 0;
+			uint32_t num_values = 0;
 			while(true)
 			{
 				// 'in' clause aware

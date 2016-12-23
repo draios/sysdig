@@ -61,7 +61,7 @@ k8s_namespace_handler::k8s_namespace_handler(k8s_state_t& state
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
 #endif // HAS_CAPTURE
-					&state)
+					~0, &state)
 {
 }
 

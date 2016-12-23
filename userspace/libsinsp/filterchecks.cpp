@@ -6301,6 +6301,8 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	}
 }
 
+#ifndef HAS_ANALYZER
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_k8s implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -6867,6 +6869,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 
 	return NULL;
 }
+
+#endif // HAS_ANALYZER
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_mesos implementation
