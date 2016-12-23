@@ -988,6 +988,21 @@ int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo)
 	}
 }
 
+int32_t scap_fd_add(scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo)
+{
+	int32_t uth_status = SCAP_SUCCESS;
+
+	HASH_ADD_INT64(tinfo->fdlist, fd, fdinfo);
+	if(uth_status == SCAP_SUCCESS)
+	{
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		return SCAP_FAILURE;
+	}
+}
+
 //
 // Internal helper functions to output the process table to screen
 //

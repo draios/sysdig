@@ -42,12 +42,12 @@ void sinsp_dumper::open(const string& filename, bool compress, bool create_scap_
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
-	/*
+#ifdef TINFO_TO_SCAP
 	if(create_scap_table)
 	{
 		m_inspector->m_thread_manager->to_scap();
 	}
-	*/
+#endif
 
 	if(compress)
 	{

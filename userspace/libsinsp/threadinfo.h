@@ -303,6 +303,9 @@ VISIBILITY_PRIVATE
 	void allocate_private_state();
 	void compute_program_hash();
 	sinsp_threadinfo* lookup_thread();
+	void args_to_scap(scap_threadinfo* sctinfo);
+	void env_to_scap(scap_threadinfo* sctinfo);
+	void cgroups_to_scap(scap_threadinfo* sctinfo);
 
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations

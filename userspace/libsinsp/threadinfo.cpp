@@ -813,6 +813,63 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 }
 #endif
 
+#ifdef TINFO_TO_SCAP
+void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
+{
+	uint32_t alen = SCAP_MAX_ARGS_SIZE;
+	uint32_t tlen = 0;
+	char* dst = sctinfo->args;
+
+	for(auto a : m_args)
+	{
+		uint32_t len = a.size() + 1;
+
+		strncpy(dst + tlen, a.c_str(), alen);
+		tlen += len;
+		alen -= len;
+	}
+
+	sctinfo->args_len = tlen;
+}
+
+void sinsp_threadinfo::env_to_scap(scap_threadinfo* sctinfo)
+{
+	uint32_t alen = SCAP_MAX_ENV_SIZE;
+	uint32_t tlen = 0;
+	char* dst = sctinfo->env;
+
+	for(auto a : m_env)
+	{
+		uint32_t len = a.size() + 1;
+
+		strncpy(dst + tlen, a.c_str(), alen);
+		tlen += len;
+		alen -= len;
+	}
+
+	sctinfo->env_len = tlen;
+}
+
+void sinsp_threadinfo::cgroups_to_scap(scap_threadinfo* sctinfo)
+{
+	uint32_t alen = SCAP_MAX_CGROUPS_SIZE;
+	uint32_t tlen = 0;
+	char* dst = sctinfo->cgroups;
+
+	for(auto cg : m_cgroups)
+	{
+		string a = cg.first + "=" + cg.second;
+		uint32_t len = a.size() + 1;
+
+		strncpy(dst + tlen, a.c_str(), alen);
+		tlen += len;
+		alen -= len;
+	}
+
+	sctinfo->cgroups_len = tlen;
+}
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -1079,9 +1136,9 @@ void sinsp_thread_manager::update_statistics()
 #endif
 }
 
+#ifdef TINFO_TO_SCAP
 void sinsp_thread_manager::to_scap()
 {
-/*
 	scap_proc_free_table(m_inspector->m_h);
 
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
@@ -1098,38 +1155,61 @@ void sinsp_thread_manager::to_scap()
 		}
 
 		//
-		// Fill in the data
+		// Fill in the thread data
 		//
-sctinfo->tid = tinfo.m_tid;
-sctinfo->pid = tinfo.m_pid;
-sctinfo->ptid = tinfo.m_ptid;
-sctinfo->sid = tinfo.m_sid;
+		sctinfo->tid = tinfo.m_tid;
+		sctinfo->pid = tinfo.m_pid;
+		sctinfo->ptid = tinfo.m_ptid;
+		sctinfo->sid = tinfo.m_sid;
 
-strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
-strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
-tinfo.set_args(sctinfo->args, sctinfo->args_len);
-tinfo.set_env(sctinfo->env, sctinfo->env_len);
-tinfo.set_cwd(sctinfo->cwd, (uint32_t)strlen(sctinfo->cwd));
-sctinfo->flags = tinfo.m_flags ;
-sctinfo->fdlimit = tinfo.m_fdlimit;
-sctinfo->uid = tinfo.m_uid;
-sctinfo->gid = tinfo.m_gid;
-sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
-sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
-sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
-sctinfo->pfmajor = tinfo.m_pfmajor;
-sctinfo->pfminor = tinfo.m_pfminor;
-sctinfo->vtid = tinfo.m_vtid;
-sctinfo->vpid = tinfo.m_vpid;
+		strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
+		strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
+		tinfo.args_to_scap(sctinfo);
+		tinfo.env_to_scap(sctinfo);
+		strncpy(sctinfo->cwd, tinfo.m_cwd.c_str(), SCAP_MAX_PATH_SIZE);
+		sctinfo->flags = tinfo.m_flags ;
+		sctinfo->fdlimit = tinfo.m_fdlimit;
+		sctinfo->uid = tinfo.m_uid;
+		sctinfo->gid = tinfo.m_gid;
+		sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
+		sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
+		sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
+		sctinfo->pfmajor = tinfo.m_pfmajor;
+		sctinfo->pfminor = tinfo.m_pfminor;
+		sctinfo->vtid = tinfo.m_vtid;
+		sctinfo->vpid = tinfo.m_vpid;
 
-tinfo.set_cgroups(sctinfo->cgroups, sctinfo->cgroups_len);
-sctinfo->root = tinfo.m_root;
+		tinfo.cgroups_to_scap(sctinfo);
+		strncpy(sctinfo->root, tinfo.m_root.c_str(), SCAP_MAX_PATH_SIZE);
 
+		//
+		// Add the FDs
+		//
+		unordered_map<int64_t, sinsp_fdinfo_t>& fdtable = tinfo.get_fd_table()->m_table;
+		for(auto it = fdtable.begin(); it != fdtable.end(); ++it)
+		{
+			//
+			// Allocate the scap fd info
+			//
+			scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
+			if(scfdinfo == NULL)
+			{
+				throw sinsp_exception("thread memory allocation error in sinsp_thread_manager::to_scap");
+			}
+
+			if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+			{
+				throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap");
+			}
+		}
 
 		//
 		// Add the created info to scap
 		//
-		scap_proc_add(m_inspector->m_h, it->second.m_tid, sctinfo);
+		if(scap_proc_add(m_inspector->m_h, it->second.m_tid, sctinfo) != SCAP_SUCCESS)
+		{
+			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap");
+		}
 	}
-*/
 }
+#endif
