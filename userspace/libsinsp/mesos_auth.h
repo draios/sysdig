@@ -32,6 +32,7 @@ class mesos_auth
 {
 public:
 	mesos_auth(const uri::credentials_t& dcos_enterprise_credentials = uri::credentials_t(),
+		   string auth_hostname = "localhost",
 		   int token_refresh_interval = DCOS_ENTERPRISE_TOKEN_REFRESH_S);
 	virtual ~mesos_auth();
 
@@ -50,6 +51,7 @@ private:
 	void authenticate();
 
 	const uri::credentials_t m_dcos_enterprise_credentials;
+	uri m_auth_uri;
 	int m_token_refresh_interval;
 	time_t m_last_token_refresh_s;
 };
