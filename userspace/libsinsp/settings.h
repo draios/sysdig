@@ -135,7 +135,3 @@ typedef sinsp_fdinfo<int> sinsp_fdinfo_t;
 // very big JSONs returned by container inspect call
 static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
 
-//
-// For internal use
-//
-#undef TINFO_TO_SCAP
