@@ -170,7 +170,6 @@ mesos::mesos(const std::string& state_uri,
 					" others will be treated as generic frameworks (user Marathon frameworks will be discovered).", sinsp_logger::SEV_WARNING);
 	}
 
-	authenticate();
 #endif
 	init();
 }

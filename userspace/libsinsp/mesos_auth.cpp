@@ -20,11 +20,21 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // mesos_auth.cpp
 //
 
+#include <time.h>
+
 #include "mesos_auth.h"
 
-mesos_auth::mesos_auth(const uri::credentials_t& dcos_enterprise_credentials)
-	: m_dcos_enterprise_credentials(dcos_enterprise_credentials)
+mesos_auth::mesos_auth(const uri::credentials_t& dcos_enterprise_credentials,
+		       int token_refresh_interval)
+	: m_dcos_enterprise_credentials(dcos_enterprise_credentials),
+	  m_token_refresh_interval(token_refresh_interval),
+	  m_last_token_refresh_s(0)
+
 {
+	if(!m_dcos_enterprise_credentials.first.empty())
+	{
+		authenticate();
+	}
 }
 
 mesos_auth::~mesos_auth()
@@ -33,6 +43,7 @@ mesos_auth::~mesos_auth()
 
 string mesos_auth::get_token()
 {
+	refresh_token();
 	return m_token;
 }
 
@@ -68,13 +79,23 @@ void mesos_auth::authenticate()
 	{
 		throw sinsp_exception(string("Cannot authenticate on Mesos master, response_code=") + to_string(auth_request.get_response_code()));
 	}
+	time(&m_last_token_refresh_s);
 #endif // HAS_CAPTURE
 }
 
 void mesos_auth::refresh_token()
 {
 #ifdef HAS_CAPTURE
-	authenticate();
+	if(!m_dcos_enterprise_credentials.first.empty())
+	{
+		time_t now; time(&now);
+
+		if(difftime(now, m_last_token_refresh_s) > m_token_refresh_interval)
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG, "Regenerating Mesos Auth token");
+			authenticate();
+		}
+	}
 #endif // HAS_CAPTURE
 }
 
