@@ -77,6 +77,8 @@ public:
 	bool collect_data();
 	virtual void refresh_token();
 
+	const uri_list_t &marathon_uris();
+
 #ifdef HAS_CAPTURE
 	void send_data_request(bool collect = true);
 

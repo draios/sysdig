@@ -264,6 +264,11 @@ void mesos::refresh_token()
 #endif // HAS_CAPTURE
 }
 
+const mesos::uri_list_t &mesos::marathon_uris()
+{
+	return (m_discover_marathon_uris ? m_state_http->get_marathon_uris() : m_marathon_uris);
+}
+
 void mesos::refresh()
 {
 	rebuild_mesos_state();
