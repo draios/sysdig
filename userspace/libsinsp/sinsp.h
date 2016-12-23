@@ -839,7 +839,7 @@ private:
 	uint64_t m_file_start_offset;
 
 	sinsp_network_interfaces* m_network_interfaces;
-
+public:
 	sinsp_thread_manager* m_thread_manager;
 
 	sinsp_container_manager m_container_manager;

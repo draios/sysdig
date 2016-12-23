@@ -1369,6 +1369,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->set_get_procs_cpu_from_driver(true);
 			}
 
+#if 0
+			inspector->m_thread_manager->to_scap();
+#endif
 			//
 			// If required, set the snaplen
 			//
