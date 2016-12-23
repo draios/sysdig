@@ -42,14 +42,14 @@ view_info =
 			tags = {"containers"},
 			name = "Container",
 			field = "container.name",
-			description = "Name of the container. What this field contains depends on the containerization technology. For example, for docker this is the content of the 'NAMES' column in 'docker ps'",
+			description = "Name of the container. This field depends on the containerization technology. For docker this is the 'NAMES' column in 'docker ps'",
 			colsize = 20
 		},
 		{
 			name = "Command",
 			field = "proc.exeline",
 			aggregation = "MAX",
-			description = "Name and argyuments of the process that received the connection.",
+			description = "Name and arguments of the process that received the connection.",
 			colsize = 0
 		}		
 	}
