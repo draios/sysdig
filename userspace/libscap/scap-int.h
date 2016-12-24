@@ -100,6 +100,19 @@ struct scap
 	uint64_t m_unexpected_block_readsize;
 };
 
+typedef enum ppm_dumper_type
+{
+	DT_FILE = 0,
+	DT_MEM = 0,
+}ppm_dumper_type;
+
+struct scap_dumper
+{
+	gzFile m_f;
+	ppm_dumper_type m_type;
+	uint64_t m_off;
+};
+
 struct scap_ns_socket_list
 {
 	int64_t net_ns;
