@@ -1074,7 +1074,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 		if(m_write_cycling)
 		{
-			//res = scap_number_of_bytes_to_write(evt->m_pevt, evt->m_cpuid, &bytes_to_write);
 			switch(m_cycle_writer->consider(evt))
 			{
 				case cycle_writer::NEWFILE:
