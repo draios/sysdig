@@ -25,6 +25,16 @@ sinsp_dumper::sinsp_dumper(sinsp* inspector)
 {
 	m_inspector = inspector;
 	m_dumper = NULL;
+	m_target_memory_buffer = NULL;
+	m_target_memory_buffer_size = 0;
+}
+
+sinsp_dumper::sinsp_dumper(sinsp* inspector, uint8_t* target_memory_buffer, uint64_t target_memory_buffer_size)
+{
+	m_inspector = inspector;
+	m_dumper = NULL;
+	m_target_memory_buffer = target_memory_buffer;
+	m_target_memory_buffer_size = target_memory_buffer_size;
 }
 
 sinsp_dumper::~sinsp_dumper()
@@ -32,6 +42,11 @@ sinsp_dumper::~sinsp_dumper()
 	if(m_dumper != NULL)
 	{
 		scap_dump_close(m_dumper);
+	}
+
+	if(m_target_memory_buffer != NULL)
+	{
+		free(m_target_memory_buffer);
 	}
 }
 
@@ -47,13 +62,20 @@ void sinsp_dumper::open(const string& filename, bool compress, bool threads_from
 		m_inspector->m_thread_manager->to_scap();
 	}
 
-	if(compress)
+	if(m_target_memory_buffer)
 	{
-		m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_GZIP);
+		m_dumper = scap_memory_dump_open(m_inspector->m_h, m_target_memory_buffer, m_target_memory_buffer_size);
 	}
 	else
 	{
-		m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE);
+		if(compress)
+		{
+			m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_GZIP);
+		}
+		else
+		{
+			m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE);
+		}
 	}
 
 	if(m_dumper == NULL)

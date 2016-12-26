@@ -40,6 +40,15 @@ public:
 	*/
 	sinsp_dumper(sinsp* inspector);
 
+	/*!
+	  \brief Constructs a dumper that saves to memory instead of disk.
+	  Takes the address and the size of a preallocated memory buffer
+	  where the data will go.
+	*/
+	sinsp_dumper(sinsp* inspector, 
+		uint8_t* target_memory_buffer, 
+		uint64_t target_memory_buffer_size);
+
 	~sinsp_dumper();
 
 	/*!
@@ -56,7 +65,9 @@ public:
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(const string& filename, bool compress, bool threads_from_sinsp=false);
+	void open(const string& filename, 
+		bool compress, 
+		bool threads_from_sinsp=false);
 
 	/*!
 	  \brief Return the current size of a tracefile.
@@ -80,6 +91,8 @@ public:
 private:
 	sinsp* m_inspector;
 	scap_dumper_t* m_dumper;
+	uint8_t* m_target_memory_buffer;
+	uint64_t m_target_memory_buffer_size;
 };
 
 /*@}*/

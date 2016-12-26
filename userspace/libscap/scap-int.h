@@ -103,14 +103,17 @@ struct scap
 typedef enum ppm_dumper_type
 {
 	DT_FILE = 0,
-	DT_MEM = 0,
+	DT_MEM = 1,
 }ppm_dumper_type;
 
 struct scap_dumper
 {
 	gzFile m_f;
 	ppm_dumper_type m_type;
-	uint64_t m_off;
+	uint8_t* m_targetbuf;
+	uint8_t* m_targetbufcurpos;
+	uint8_t* m_targetbufend;
+	uint64_t m_targetbufsize;
 };
 
 struct scap_ns_socket_list
