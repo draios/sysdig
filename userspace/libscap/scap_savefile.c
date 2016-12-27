@@ -36,7 +36,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // Write data into a dump file
 //
-inline int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
+int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 {
 	if(d->m_type == DT_FILE)
 	{

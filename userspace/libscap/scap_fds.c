@@ -216,6 +216,8 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 	return res;
 }
 
+int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len);
+
 //
 // Write the given fd info to disk
 //
