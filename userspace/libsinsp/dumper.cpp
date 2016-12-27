@@ -108,7 +108,7 @@ uint64_t sinsp_dumper::written_bytes()
 {
 	if(m_dumper == NULL)
 	{
-		throw sinsp_exception("dumper not opened yet");
+		return 0;
 	}
 
 	int64_t written_bytes = scap_dump_get_offset(m_dumper);
