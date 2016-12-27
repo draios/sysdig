@@ -275,7 +275,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
-		if(!m_inspector->m_dumper)
+		if(!m_inspector->m_is_dumping)
 		{
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 			if(evt->m_fdinfo)
@@ -2898,7 +2898,7 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 
 	if(p->m_res == sinsp_tracerparser::RES_TRUNCATED)
 	{
-		if(!m_inspector->m_dumper)
+		if(!m_inspector->m_is_dumping)
 		{
 			evt->m_filtered_out = true;
 		}

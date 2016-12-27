@@ -61,6 +61,7 @@ sinsp::sinsp() :
 	m_h = NULL;
 	m_parser = NULL;
 	m_dumper = NULL;
+	m_is_dumping = false;
 	m_metaevt = NULL;
 	m_skipped_evt = NULL;
 	m_meinfo.m_piscapevt = NULL;
@@ -550,6 +551,8 @@ void sinsp::close()
 		m_dumper = NULL;
 	}
 
+	m_is_dumping = false;
+
 	if(NULL != m_network_interfaces)
 	{
 		delete m_network_interfaces;
@@ -587,6 +590,8 @@ void sinsp::autodump_start(const string& dump_filename, bool compress)
 		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_NONE);
 	}
 
+	m_is_dumping = true;
+
 	if(NULL == m_dumper)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
@@ -613,6 +618,8 @@ void sinsp::autodump_stop()
 		scap_dump_close(m_dumper);
 		m_dumper = NULL;
 	}
+
+	m_is_dumping = false;
 }
 
 void sinsp::on_new_entry_from_proc(void* context,

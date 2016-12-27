@@ -829,6 +829,7 @@ private:
 	sinsp_parser* m_parser;
 	// the statistics analysis engine
 	scap_dumper_t* m_dumper;
+	bool m_is_dumping;
 	bool m_filter_proc_table_when_saving;
 	const scap_machine_info* m_machine_info;
 	uint32_t m_num_cpus;
@@ -1006,6 +1007,7 @@ public:
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
 	friend class sisnp_baseliner;
+	friend class sinsp_memory_dumper;
 
 	friend class sinsp_network_interfaces;
 	friend class k8s_delegator;
