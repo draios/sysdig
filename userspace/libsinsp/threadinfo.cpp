@@ -890,14 +890,14 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 		dst->info.ipv4serverinfo.l4proto = src->m_sockinfo.m_ipv4serverinfo.m_l4proto;
 		break;
 	case SCAP_FD_IPV6_SOCK:
-		copy_ipv6_address(src->m_sockinfo.m_ipv6info.m_fields.m_sip, dst->info.ipv6info.sip);
-		copy_ipv6_address(src->m_sockinfo.m_ipv6info.m_fields.m_dip, dst->info.ipv6info.dip);
+		copy_ipv6_address(dst->info.ipv6info.sip, src->m_sockinfo.m_ipv6info.m_fields.m_sip);
+		copy_ipv6_address(dst->info.ipv6info.dip, src->m_sockinfo.m_ipv6info.m_fields.m_dip);
 		dst->info.ipv6info.sport = src->m_sockinfo.m_ipv6info.m_fields.m_sport;
 		dst->info.ipv6info.dport = src->m_sockinfo.m_ipv6info.m_fields.m_dport;
 		dst->info.ipv6info.l4proto = src->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		copy_ipv6_address(src->m_sockinfo.m_ipv6serverinfo.m_ip, dst->info.ipv6serverinfo.ip);
+		copy_ipv6_address(dst->info.ipv6serverinfo.ip, src->m_sockinfo.m_ipv6serverinfo.m_ip);
 		dst->info.ipv6serverinfo.port = src->m_sockinfo.m_ipv6serverinfo.m_port;
 		dst->info.ipv6serverinfo.l4proto = src->m_sockinfo.m_ipv6serverinfo.m_l4proto;
 		break;
