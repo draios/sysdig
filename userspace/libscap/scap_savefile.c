@@ -46,15 +46,31 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 	{
 		if(d->m_targetbufcurpos + len < d->m_targetbufend)
 		{
-			memcpy(d->m_targetbufcurpos, buf, len);
+			unsigned tlen = len;
+			//if(d->m_type == DT_MEM_COMPRESSED)
+			if(0)
+			{
+				compress2(d->m_targetbufcurpos, 
+					&len, buf, len, 9);
+			}
+			else
+			{
+				memcpy(d->m_targetbufcurpos, buf, len);
+			}
+
 			d->m_targetbufcurpos += len;
-			return len;
+			return tlen;
 		}
 		else
 		{
 			return -1;
 		}
 	}
+}
+
+void compr(uint8_t* dest, uint32_t* destLen, const uint8_t* source, uint32_t sourceLen, int level)
+{
+	int res = compress2(dest, destLen, source, sourceLen, level);
 }
 
 #ifndef _WIN32
