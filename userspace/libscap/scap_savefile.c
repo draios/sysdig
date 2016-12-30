@@ -64,7 +64,6 @@ int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t 
 
 	if(dl >= *destlen)
 	{
-		printf(">>> %d\n", (int)dl);
 		return SCAP_FAILURE;
 	}
 
@@ -76,7 +75,6 @@ int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t 
 	}
 	else
 	{
-		printf("### %d %d %d %d\n", (int)res, Z_BUF_ERROR, Z_MEM_ERROR, Z_DATA_ERROR);
 		return SCAP_FAILURE;
 	}
 }
