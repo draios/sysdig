@@ -46,20 +46,10 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 	{
 		if(d->m_targetbufcurpos + len < d->m_targetbufend)
 		{
-			unsigned tlen = len;
-			//if(d->m_type == DT_MEM_COMPRESSED)
-			if(0)
-			{
-				compress2(d->m_targetbufcurpos, 
-					&len, buf, len, 9);
-			}
-			else
-			{
-				memcpy(d->m_targetbufcurpos, buf, len);
-			}
+			memcpy(d->m_targetbufcurpos, buf, len);
 
 			d->m_targetbufcurpos += len;
-			return tlen;
+			return len;
 		}
 		else
 		{
@@ -68,9 +58,27 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 	}
 }
 
-void compr(uint8_t* dest, uint32_t* destLen, const uint8_t* source, uint32_t sourceLen, int level)
+int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level)
 {
-	int res = compress2(dest, destLen, source, sourceLen, level);
+	uLongf dl = compressBound(sourcelen);
+
+	if(dl >= *destlen)
+	{
+		printf(">>> %d\n", (int)dl);
+		return SCAP_FAILURE;
+	}
+
+	int res = compress2(dest, &dl, source, sourcelen, level);
+	if(res == Z_OK)
+	{
+		*destlen = (uint64_t)dl;
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		printf("### %d %d %d %d\n", (int)res, Z_BUF_ERROR, Z_MEM_ERROR, Z_DATA_ERROR);
+		return SCAP_FAILURE;
+	}
 }
 
 #ifndef _WIN32
