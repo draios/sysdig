@@ -1364,7 +1364,7 @@ lo(sinsp_logger::SEV_ERROR, "C7", tid);
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_uid = *(int32_t *)parinfo->m_val;
 
-	// Copy the uid
+	// Copy the gid
 	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
