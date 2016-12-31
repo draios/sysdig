@@ -79,6 +79,11 @@ int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t 
 	}
 }
 
+uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d)
+{
+	return d->m_targetbufcurpos;
+}
+
 #ifndef _WIN32
 static inline uint32_t scap_normalize_block_len(uint32_t blocklen)
 #else

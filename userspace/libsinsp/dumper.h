@@ -70,6 +70,11 @@ public:
 		bool threads_from_sinsp=false);
 
 	/*!
+	  \brief Closes the dump file.
+	*/
+	void close();
+
+	/*!
 	  \brief Return the current size of a tracefile.
 
 	  \return The current size of the dump file. 
@@ -87,6 +92,11 @@ public:
 	  \param evt Pointer to the event to dump.
 	*/
 	void dump(sinsp_evt* evt);
+
+	inline uint8_t* get_memory_dump_cur_buf()
+	{
+		return scap_get_memorydumper_curpos(m_dumper);
+	}
 
 private:
 	sinsp* m_inspector;

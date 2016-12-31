@@ -43,11 +43,6 @@ sinsp_dumper::~sinsp_dumper()
 	{
 		scap_dump_close(m_dumper);
 	}
-
-	if(m_target_memory_buffer != NULL)
-	{
-		free(m_target_memory_buffer);
-	}
 }
 
 void sinsp_dumper::open(const string& filename, bool compress, bool threads_from_sinsp)
@@ -84,6 +79,14 @@ void sinsp_dumper::open(const string& filename, bool compress, bool threads_from
 	}
 
 	m_inspector->m_container_manager.dump_containers(m_dumper);
+}
+
+void sinsp_dumper::close()
+{
+	if(m_dumper != NULL)
+	{
+		scap_dump_close(m_dumper);
+	}
 }
 
 void sinsp_dumper::dump(sinsp_evt* evt)
