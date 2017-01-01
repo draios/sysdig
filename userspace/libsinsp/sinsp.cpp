@@ -896,8 +896,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			{
 				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
 				m_file_start_offset = filepos;
+				uint64_t nevts = m_nevts;
 				close();
 				open(m_input_filename);
+				m_nevts = nevts;
 				return SCAP_TIMEOUT;
 			}
 			else
