@@ -904,7 +904,12 @@ private:
 			SSL_library_init();
 			SSL_load_error_strings();
 			OpenSSL_add_all_algorithms();
-			const SSL_METHOD* method = TLSv1_2_client_method();
+			const SSL_METHOD* method =
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+				TLSv1_2_client_method();
+#else
+				TLS_client_method();
+#endif
 			if(!method)
 			{
 				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL method\n" + ssl_errors(),
