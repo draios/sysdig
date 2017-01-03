@@ -32,6 +32,18 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 // WRITE FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+//
+// Write data into a dump file
+//
+int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
+{
+	if(d->m_type == DT_FILE)
+	{
+		return gzwrite(d->m_f, buf, len);
+	}
+}
+
 #ifndef _WIN32
 static inline uint32_t scap_normalize_block_len(uint32_t blocklen)
 #else
@@ -41,12 +53,12 @@ static uint32_t scap_normalize_block_len(uint32_t blocklen)
 	return ((blocklen + 3) >> 2) << 2;
 }
 
-static int32_t scap_write_padding(gzFile f, uint32_t blocklen)
+static int32_t scap_write_padding(scap_dumper_t *d, uint32_t blocklen)
 {
 	int32_t val = 0;
 	uint32_t bytestowrite = scap_normalize_block_len(blocklen) - blocklen;
 
-	if(gzwrite(f, &val, bytestowrite) == bytestowrite)
+	if(scap_dump_write(d, &val, bytestowrite) == bytestowrite)
 	{
 		return SCAP_SUCCESS;
 	}
@@ -56,7 +68,7 @@ static int32_t scap_write_padding(gzFile f, uint32_t blocklen)
 	}
 }
 
-static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, gzFile f)
+static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d)
 {
 	block_header bh;
 	uint32_t bt;
@@ -81,7 +93,7 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 	bh.block_type = FDL_BLOCK_TYPE;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
-	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
+	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd1)");
 		return SCAP_FAILURE;
@@ -90,7 +102,7 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 	//
 	// Write the tid
 	//
-	if(gzwrite(f, &tinfo->tid, sizeof(tinfo->tid)) != sizeof(tinfo->tid))
+	if(scap_dump_write(d, &tinfo->tid, sizeof(tinfo->tid)) != sizeof(tinfo->tid))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd2)");
 		return SCAP_FAILURE;
@@ -103,7 +115,7 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 	{
 		if(fdi->type != SCAP_FD_UNINITIALIZED)
 		{
-			if(scap_fd_write_to_disk(handle, fdi, f) != SCAP_SUCCESS)
+			if(scap_fd_write_to_disk(handle, fdi, d) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -113,7 +125,7 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 	//
 	// Add the padding
 	//
-	if(scap_write_padding(f, totlen) != SCAP_SUCCESS)
+	if(scap_write_padding(d, totlen) != SCAP_SUCCESS)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd3)");
 		return SCAP_FAILURE;
@@ -123,7 +135,7 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 	// Create the trailer
 	//
 	bt = bh.block_total_length;
-	if(gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd4)");
 		return SCAP_FAILURE;
@@ -135,7 +147,7 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 //
 // Write the fd list blocks
 //
-static int32_t scap_write_fdlist(scap_t *handle, gzFile f)
+static int32_t scap_write_fdlist(scap_t *handle, scap_dumper_t *d)
 {
 	struct scap_threadinfo *tinfo;
 	struct scap_threadinfo *ttinfo;
@@ -145,7 +157,7 @@ static int32_t scap_write_fdlist(scap_t *handle, gzFile f)
 	{
 		if(!tinfo->filtered_out)
 		{
-			res = scap_write_proc_fds(handle, tinfo, f);
+			res = scap_write_proc_fds(handle, tinfo, d);
 			if(res != SCAP_SUCCESS)
 			{
 				return res;
@@ -159,7 +171,7 @@ static int32_t scap_write_fdlist(scap_t *handle, gzFile f)
 //
 // Write the process list block
 //
-static int32_t scap_write_proclist(scap_t *handle, gzFile f)
+static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 {
 	block_header bh;
 	uint32_t bt;
@@ -211,7 +223,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	bh.block_type = PL_BLOCK_TYPE_V6;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
-	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
+	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (1)");
 		return SCAP_FAILURE;
@@ -233,35 +245,35 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 		cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
 		rootlen = (uint16_t)strnlen(tinfo->root, SCAP_MAX_PATH_SIZE);
 
-		if(gzwrite(f, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &(tinfo->pid), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &(tinfo->ptid), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &(tinfo->sid), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &commlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->comm, commlen) != commlen ||
-		        gzwrite(f, &exelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->exe, exelen) != exelen ||
-		        gzwrite(f, &argslen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->args, argslen) != argslen ||
-		        gzwrite(f, &cwdlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->cwd, cwdlen) != cwdlen ||
-		        gzwrite(f, &(tinfo->fdlimit), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &(tinfo->flags), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		        gzwrite(f, &(tinfo->uid), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		        gzwrite(f, &(tinfo->gid), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		        gzwrite(f, &(tinfo->vmsize_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		        gzwrite(f, &(tinfo->vmrss_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		        gzwrite(f, &(tinfo->vmswap_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		        gzwrite(f, &(tinfo->pfmajor), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &(tinfo->pfminor), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		        gzwrite(f, &(tinfo->env_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->env, tinfo->env_len) != tinfo->env_len ||
-		        gzwrite(f, &(tinfo->vtid), sizeof(int64_t)) != sizeof(int64_t) ||
-		        gzwrite(f, &(tinfo->vpid), sizeof(int64_t)) != sizeof(int64_t) ||
-		        gzwrite(f, &(tinfo->cgroups_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->cgroups, tinfo->cgroups_len) != tinfo->cgroups_len ||
-		        gzwrite(f, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		        gzwrite(f, tinfo->root, rootlen) != rootlen)
+		if(scap_dump_write(d, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        scap_dump_write(d, &(tinfo->pid), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        scap_dump_write(d, &(tinfo->ptid), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        scap_dump_write(d, &(tinfo->sid), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        scap_dump_write(d, &commlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        scap_dump_write(d, tinfo->comm, commlen) != commlen ||
+		        scap_dump_write(d, &exelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        scap_dump_write(d, tinfo->exe, exelen) != exelen ||
+		        scap_dump_write(d, &argslen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        scap_dump_write(d, tinfo->args, argslen) != argslen ||
+		        scap_dump_write(d, &cwdlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        scap_dump_write(d, tinfo->cwd, cwdlen) != cwdlen ||
+		        scap_dump_write(d, &(tinfo->fdlimit), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        scap_dump_write(d, &(tinfo->flags), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        scap_dump_write(d, &(tinfo->uid), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        scap_dump_write(d, &(tinfo->gid), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        scap_dump_write(d, &(tinfo->vmsize_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        scap_dump_write(d, &(tinfo->vmrss_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        scap_dump_write(d, &(tinfo->vmswap_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		        scap_dump_write(d, &(tinfo->pfmajor), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        scap_dump_write(d, &(tinfo->pfminor), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		        scap_dump_write(d, &(tinfo->env_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        scap_dump_write(d, tinfo->env, tinfo->env_len) != tinfo->env_len ||
+		        scap_dump_write(d, &(tinfo->vtid), sizeof(int64_t)) != sizeof(int64_t) ||
+		        scap_dump_write(d, &(tinfo->vpid), sizeof(int64_t)) != sizeof(int64_t) ||
+		        scap_dump_write(d, &(tinfo->cgroups_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        scap_dump_write(d, tinfo->cgroups, tinfo->cgroups_len) != tinfo->cgroups_len ||
+		        scap_dump_write(d, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		        scap_dump_write(d, tinfo->root, rootlen) != rootlen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 			return SCAP_FAILURE;
@@ -271,7 +283,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	//
 	// Blocks need to be 4-byte padded
 	//
-	if(scap_write_padding(f, totlen) != SCAP_SUCCESS)
+	if(scap_write_padding(d, totlen) != SCAP_SUCCESS)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (3)");
 		return SCAP_FAILURE;
@@ -281,7 +293,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 	// Create the trailer
 	//
 	bt = bh.block_total_length;
-	if(gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (4)");
 		return SCAP_FAILURE;
@@ -293,7 +305,7 @@ static int32_t scap_write_proclist(scap_t *handle, gzFile f)
 //
 // Write the machine info block
 //
-static int32_t scap_write_machine_info(scap_t *handle, gzFile f)
+static int32_t scap_write_machine_info(scap_t *handle, scap_dumper_t *d)
 {
 	block_header bh;
 	uint32_t bt;
@@ -306,9 +318,9 @@ static int32_t scap_write_machine_info(scap_t *handle, gzFile f)
 
 	bt = bh.block_total_length;
 
-	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh) ||
-	        gzwrite(f, &handle->m_machine_info, sizeof(handle->m_machine_info)) != sizeof(handle->m_machine_info) ||
-	        gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh) ||
+	        scap_dump_write(d, &handle->m_machine_info, sizeof(handle->m_machine_info)) != sizeof(handle->m_machine_info) ||
+	        scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (MI1)");
 		return SCAP_FAILURE;
@@ -320,7 +332,7 @@ static int32_t scap_write_machine_info(scap_t *handle, gzFile f)
 //
 // Write the interface list block
 //
-static int32_t scap_write_iflist(scap_t *handle, gzFile f)
+static int32_t scap_write_iflist(scap_t *handle, scap_dumper_t* d)
 {
 	block_header bh;
 	uint32_t bt;
@@ -344,7 +356,7 @@ static int32_t scap_write_iflist(scap_t *handle, gzFile f)
 	bh.block_type = IL_BLOCK_TYPE;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + handle->m_addrlist->totlen + 4);
 
-	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
+	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF1)");
 		return SCAP_FAILURE;
@@ -359,7 +371,7 @@ static int32_t scap_write_iflist(scap_t *handle, gzFile f)
 
 		entrylen = sizeof(scap_ifinfo_ipv4) + entry->ifnamelen - SCAP_MAX_PATH_SIZE;
 
-		if(gzwrite(f, entry, entrylen) != entrylen)
+		if(scap_dump_write(d, entry, entrylen) != entrylen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF2)");
 			return SCAP_FAILURE;
@@ -377,7 +389,7 @@ static int32_t scap_write_iflist(scap_t *handle, gzFile f)
 
 		entrylen = sizeof(scap_ifinfo_ipv6) + entry->ifnamelen - SCAP_MAX_PATH_SIZE;
 
-		if(gzwrite(f, entry, entrylen) != entrylen)
+		if(scap_dump_write(d, entry, entrylen) != entrylen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF2)");
 			return SCAP_FAILURE;
@@ -389,7 +401,7 @@ static int32_t scap_write_iflist(scap_t *handle, gzFile f)
 	//
 	// Blocks need to be 4-byte padded
 	//
-	if(scap_write_padding(f, totlen) != SCAP_SUCCESS)
+	if(scap_write_padding(d, totlen) != SCAP_SUCCESS)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF3)");
 		return SCAP_FAILURE;
@@ -399,7 +411,7 @@ static int32_t scap_write_iflist(scap_t *handle, gzFile f)
 	// Create the trailer
 	//
 	bt = bh.block_total_length;
-	if(gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF4)");
 		return SCAP_FAILURE;
@@ -411,7 +423,7 @@ static int32_t scap_write_iflist(scap_t *handle, gzFile f)
 //
 // Write the user list block
 //
-static int32_t scap_write_userlist(scap_t *handle, gzFile f)
+static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 {
 	block_header bh;
 	uint32_t bt;
@@ -462,7 +474,7 @@ static int32_t scap_write_userlist(scap_t *handle, gzFile f)
 	bh.block_type = UL_BLOCK_TYPE;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
-	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh))
+	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF1)");
 		return SCAP_FAILURE;
@@ -480,15 +492,15 @@ static int32_t scap_write_userlist(scap_t *handle, gzFile f)
 		homedirlen = (uint16_t)strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
 		shelllen = (uint16_t)strnlen(info->shell, SCAP_MAX_PATH_SIZE);
 
-		if(gzwrite(f, &(type), sizeof(type)) != sizeof(type) ||
-			gzwrite(f, &(info->uid), sizeof(info->uid)) != sizeof(info->uid) ||
-		    gzwrite(f, &(info->gid), sizeof(info->gid)) != sizeof(info->gid) ||
-		    gzwrite(f, &namelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    gzwrite(f, info->name, namelen) != namelen ||
-		    gzwrite(f, &homedirlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    gzwrite(f, info->homedir, homedirlen) != homedirlen ||
-		    gzwrite(f, &shelllen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    gzwrite(f, info->shell, shelllen) != shelllen)
+		if(scap_dump_write(d, &(type), sizeof(type)) != sizeof(type) ||
+			scap_dump_write(d, &(info->uid), sizeof(info->uid)) != sizeof(info->uid) ||
+		    scap_dump_write(d, &(info->gid), sizeof(info->gid)) != sizeof(info->gid) ||
+		    scap_dump_write(d, &namelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		    scap_dump_write(d, info->name, namelen) != namelen ||
+		    scap_dump_write(d, &homedirlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		    scap_dump_write(d, info->homedir, homedirlen) != homedirlen ||
+		    scap_dump_write(d, &shelllen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		    scap_dump_write(d, info->shell, shelllen) != shelllen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U1)");
 			return SCAP_FAILURE;
@@ -505,10 +517,10 @@ static int32_t scap_write_userlist(scap_t *handle, gzFile f)
 
 		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
 
-		if(gzwrite(f, &(type), sizeof(type)) != sizeof(type) ||
-			gzwrite(f, &(info->gid), sizeof(info->gid)) != sizeof(info->gid) ||
-		    gzwrite(f, &namelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    gzwrite(f, info->name, namelen) != namelen)
+		if(scap_dump_write(d, &(type), sizeof(type)) != sizeof(type) ||
+			scap_dump_write(d, &(info->gid), sizeof(info->gid)) != sizeof(info->gid) ||
+		    scap_dump_write(d, &namelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+		    scap_dump_write(d, info->name, namelen) != namelen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U2)");
 			return SCAP_FAILURE;
@@ -518,7 +530,7 @@ static int32_t scap_write_userlist(scap_t *handle, gzFile f)
 	//
 	// Blocks need to be 4-byte padded
 	//
-	if(scap_write_padding(f, totlen) != SCAP_SUCCESS)
+	if(scap_write_padding(d, totlen) != SCAP_SUCCESS)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF3)");
 		return SCAP_FAILURE;
@@ -528,7 +540,7 @@ static int32_t scap_write_userlist(scap_t *handle, gzFile f)
 	// Create the trailer
 	//
 	bt = bh.block_total_length;
-	if(gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF4)");
 		return SCAP_FAILURE;
@@ -540,7 +552,7 @@ static int32_t scap_write_userlist(scap_t *handle, gzFile f)
 //
 // Create the dump file headers and add the tables
 //
-static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fname)
+int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 {
 	block_header bh;
 	section_header_block sh;
@@ -559,12 +571,12 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 
 	bt = bh.block_total_length;
 
-	if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh) ||
-	        gzwrite(f, &sh, sizeof(sh)) != sizeof(sh) ||
-	        gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh) ||
+	        scap_dump_write(d, &sh, sizeof(sh)) != sizeof(sh) ||
+	        scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file %s  (5)", fname);
-		return NULL;
+		return SCAP_FAILURE;
 	}
 
 	//
@@ -584,7 +596,7 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 		if(scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
 		{
 			handle->m_proc_callback = tcb;
-			return NULL;
+			return SCAP_FAILURE;
 		}
 
 		handle->m_proc_callback = tcb;
@@ -594,41 +606,41 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 	//
 	// Write the machine info
 	//
-	if(scap_write_machine_info(handle, f) != SCAP_SUCCESS)
+	if(scap_write_machine_info(handle, d) != SCAP_SUCCESS)
 	{
-		return NULL;
+		return SCAP_FAILURE;
 	}
 
 	//
 	// Write the interface list
 	//
-	if(scap_write_iflist(handle, f) != SCAP_SUCCESS)
+	if(scap_write_iflist(handle, d) != SCAP_SUCCESS)
 	{
-		return NULL;
+		return SCAP_FAILURE;
 	}
 
 	//
 	// Write the user list
 	//
-	if(scap_write_userlist(handle, f) != SCAP_SUCCESS)
+	if(scap_write_userlist(handle, d) != SCAP_SUCCESS)
 	{
-		return NULL;
+		return SCAP_FAILURE;
 	}
 
 	//
 	// Write the process list
 	//
-	if(scap_write_proclist(handle, f) != SCAP_SUCCESS)
+	if(scap_write_proclist(handle, d) != SCAP_SUCCESS)
 	{
-		return NULL;
+		return SCAP_FAILURE;
 	}
 
 	//
 	// Write the fd lists
 	//
-	if(scap_write_fdlist(handle, f) != SCAP_SUCCESS)
+	if(scap_write_fdlist(handle, d) != SCAP_SUCCESS)
 	{
-		return NULL;
+		return SCAP_FAILURE;
 	}
 
 	//
@@ -642,7 +654,7 @@ static scap_dumper_t *scap_setup_dump(scap_t *handle, gzFile f, const char *fnam
 	//
 	// Done, return the file
 	//
-	return (scap_dumper_t *)f;
+	return SCAP_SUCCESS;
 }
 
 //
@@ -699,7 +711,17 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 		return NULL;
 	}
 
-	return scap_setup_dump(handle, f, fname);
+	scap_dumper_t* res = (scap_dumper_t*)malloc(sizeof(scap_dumper_t));
+	res->m_f = f;
+	res->m_type = DT_FILE;
+	res->m_off = 0;
+
+	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
+	{
+		res = NULL;
+	}
+
+	return res;
 }
 
 //
@@ -707,7 +729,12 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 //
 void scap_dump_close(scap_dumper_t *d)
 {
-	gzclose((gzFile)d);
+	if(d->m_type == DT_FILE)
+	{
+		gzclose(d->m_f);
+	}
+
+	free(d);
 }
 
 //
@@ -715,12 +742,22 @@ void scap_dump_close(scap_dumper_t *d)
 //
 int64_t scap_dump_get_offset(scap_dumper_t *d)
 {
-	return gzoffset((gzFile)d);
+	if(d->m_type == DT_FILE)
+	{
+		return gzoffset(d->m_f);
+	}
+	else
+	{
+		return d->m_off;
+	}
 }
 
 void scap_dump_flush(scap_dumper_t *d)
 {
-	gzflush((gzFile)d, Z_FULL_FLUSH);
+	if(d->m_type == DT_FILE)
+	{
+		gzflush(d->m_f, Z_FULL_FLUSH);
+	}
 }
 
 //
@@ -740,7 +777,6 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 {
 	block_header bh;
 	uint32_t bt;
-	gzFile f = (gzFile)d;
 
 	if(flags == 0)
 	{
@@ -751,11 +787,11 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 		bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + e->len + 4);
 		bt = bh.block_total_length;
 
-		if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh) ||
-				gzwrite(f, &cpuid, sizeof(cpuid)) != sizeof(cpuid) ||
-				gzwrite(f, e, e->len) != e->len ||
-				scap_write_padding(f, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
-				gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+		if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh) ||
+				scap_dump_write(d, &cpuid, sizeof(cpuid)) != sizeof(cpuid) ||
+				scap_dump_write(d, e, e->len) != e->len ||
+				scap_write_padding(d, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
+				scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
 			return SCAP_FAILURE;
@@ -770,12 +806,12 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 		bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + sizeof(flags) + e->len + 4);
 		bt = bh.block_total_length;
 
-		if(gzwrite(f, &bh, sizeof(bh)) != sizeof(bh) ||
-				gzwrite(f, &cpuid, sizeof(cpuid)) != sizeof(cpuid) ||
-				gzwrite(f, &flags, sizeof(flags)) != sizeof(flags) ||
-				gzwrite(f, e, e->len) != e->len ||
-				scap_write_padding(f, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
-				gzwrite(f, &bt, sizeof(bt)) != sizeof(bt))
+		if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh) ||
+				scap_dump_write(d, &cpuid, sizeof(cpuid)) != sizeof(cpuid) ||
+				scap_dump_write(d, &flags, sizeof(flags)) != sizeof(flags) ||
+				scap_dump_write(d, e, e->len) != e->len ||
+				scap_write_padding(d, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
+				scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (7)");
 			return SCAP_FAILURE;
