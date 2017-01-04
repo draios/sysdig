@@ -141,6 +141,7 @@ mesos::mesos(const std::string& state_uri,
 	int timeout_ms,
 	bool is_captured,
 	bool verbose):
+	mesos_auth(dcos_enterprise_credentials),
 #ifdef HAS_CAPTURE
 		m_collector(false),
 		m_mesos_uri(state_uri),
@@ -151,8 +152,7 @@ mesos::mesos(const std::string& state_uri,
 		m_discover_marathon_uris(discover_marathon_leader || marathon_uris.empty()),
 		m_timeout_ms(timeout_ms),
 		m_verbose(verbose),
-		m_testing(false),
-		m_dcos_enterprise_credentials(dcos_enterprise_credentials)
+		m_testing(false)
 {
 #ifdef HAS_CAPTURE
 	g_logger.log(std::string("Creating Mesos object for [" +
@@ -169,8 +169,7 @@ mesos::mesos(const std::string& state_uri,
 		g_logger.log("Multiple root marathon URIs configured; only the first one (" + marathon_uri + ") will have effect;"
 					" others will be treated as generic frameworks (user Marathon frameworks will be discovered).", sinsp_logger::SEV_WARNING);
 	}
-	
-	authenticate();
+
 #endif
 	init();
 }
@@ -235,7 +234,7 @@ void mesos::init_marathon()
 void mesos::refresh_token()
 {
 #ifdef HAS_CAPTURE
-	authenticate();
+	mesos_auth::refresh_token();
 	m_state_http->set_token(m_token);
 	if(has_marathon())
 	{
@@ -265,39 +264,9 @@ void mesos::refresh_token()
 #endif // HAS_CAPTURE
 }
 
-void mesos::authenticate()
+const mesos::uri_list_t &mesos::marathon_uris()
 {
-#ifdef HAS_CAPTURE
-	sinsp_curl auth_request(uri("https://localhost/acs/api/v1/auth/login"), "", "");
-	Json::FastWriter json_writer;
-	Json::Value auth_obj;
-	auth_obj["uid"] = m_dcos_enterprise_credentials.first;
-	auth_obj["password"] = m_dcos_enterprise_credentials.second;
-	auth_request.add_header("Content-Type: application/json");
-	auth_request.setopt(CURLOPT_POST, 1);
-	auth_request.set_body(json_writer.write(auth_obj));
-	//auth_request.enable_debug();
-	auto response = auth_request.get_data();
-
-	if(auth_request.get_response_code() == 200)
-	{
-		Json::Reader json_reader;
-		Json::Value response_obj;
-		auto parse_ok = json_reader.parse(response, response_obj, false);
-		if(parse_ok && response_obj.isMember("token"))
-		{
-			m_token = response_obj["token"].asString();
-			g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
-		}
-		else
-		{
-			throw sinsp_exception(string("Cannot authenticate on Mesos master, response=") + response);
-		}
-	} else
-	{
-		throw sinsp_exception(string("Cannot authenticate on Mesos master, response_code=") + to_string(auth_request.get_response_code()));
-	}
-#endif // HAS_CAPTURE
+	return (m_discover_marathon_uris ? m_state_http->get_marathon_uris() : m_marathon_uris);
 }
 
 void mesos::refresh()
@@ -765,7 +734,7 @@ void mesos::handle_frameworks(const Json::Value& root)
 								g_logger.log("New or activated Mesos framework detected: " + name + " [" + uid.asString() + ']', sinsp_logger::SEV_INFO);
 								m_activated_frameworks.insert(uid.asString());
 #ifdef HAS_CAPTURE
-								if(mesos_framework::is_root_marathon(name) && 
+								if(mesos_framework::is_root_marathon(name) &&
 									find_if(m_marathon_groups_http.begin(), m_marathon_groups_http.end(), [uid](const decltype(m_marathon_groups_http)::value_type& item)
 									{
 										return item.second->get_framework_id() == uid.asString();
