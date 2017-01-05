@@ -1737,8 +1737,10 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	}
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 1)
 int __access_remote_vm(struct task_struct *t, struct mm_struct *mm, unsigned long addr,
 		       void *buf, int len, int write);
+#endif
 
 TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
