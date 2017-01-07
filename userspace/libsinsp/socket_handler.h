@@ -166,7 +166,8 @@ public:
 			std::istringstream is(creds);
 			std::ostringstream os;
 			base64::encoder().encode(is, os);
-			request << "Authorization: Basic " << os.str() << "\r\n";
+			std::string bauth = os.str();
+			request << "Authorization: Basic " << trim(bauth) << "\r\n";
 		}
 		if(m_bt && !m_bt->get_token().empty())
 		{
