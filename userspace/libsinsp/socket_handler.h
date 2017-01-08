@@ -331,7 +331,6 @@ public:
 					 sinsp_logger::SEV_TRACE);
 		ssize_t rec = 0;
 		std::vector<char> buf(1024, 0);
-		std::string data;
 		int counter = 0;
 		int processed = 0;
 		m_msg_completed = false;
@@ -352,7 +351,8 @@ public:
 				}
 				if(rec > 0)
 				{
-					data.append(buf.begin(), buf.begin() + rec);
+					process(&buf[0], rec);
+					processed += rec;
 				}
 				else if(rec == 0)
 				{
@@ -364,12 +364,6 @@ public:
 				}
 				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) +
 				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
-			}
-			if(data.size())
-			{
-				process(data);
-				processed += data.size();
-				data.clear();
 			}
 			if(++counter > 10000)
 			{
@@ -388,37 +382,7 @@ public:
 		return c == '0' || c == '\r' || c == '\n';
 	}
 
-	void check_chunked_end(const std::string& data)
-	{
-		if(!m_check_chunked) { return; }
-		if(m_chunked_end.size())
-		{
-			for(auto c : data)
-			{
-				if(!is_chunked_end_char(c))
-				{
-					m_chunked_end.clear();
-					break;
-				}
-				else
-				{
-					m_chunked_end.append(1, c);
-				}
-			}
-		}
-
-		if(!m_chunked_end.size())
-		{
-			auto it = data.crbegin();
-			for(; it != data.crend(); ++it)
-			{
-				if(!is_chunked_end_char(*it)) { return; }
-				else { m_chunked_end.insert(0, 1, *it); }
-			}
-		}
-	}
-
-	void data_handling_error(const std::string& data, size_t nparsed)
+	void data_handling_error(std::string&& data, size_t nparsed)
 	{
 		std::ostringstream os;
 		os << "Socket handler (" << m_id + ") an error occurred during http parsing. "
@@ -428,10 +392,10 @@ public:
 		throw sinsp_exception(os.str());
 	}
 
-	void parse_http(const std::string& data)
+	void parse_http(char* data, size_t len)
 	{
-		size_t nparsed = http_parser_execute(m_http_parser, &m_http_parser_settings, data.c_str(), data.length());
-		if(nparsed != data.size()) { data_handling_error(data, nparsed); }
+		size_t nparsed = http_parser_execute(m_http_parser, &m_http_parser_settings, data, len);
+		if(nparsed != len) { data_handling_error(std::string(data, len), nparsed); }
 	}
 
 	void process_json()
@@ -460,15 +424,20 @@ public:
 		}
 	}
 
-	int process(const std::string& data)
+	int process(char* data, size_t len)
 	{
-		if(data.size())
+		if(len)
 		{
-			check_chunked_end(data);
-			parse_http(data);
-			if(m_chunked_end.find("0\r\n\r\n") != std::string::npos)
+			parse_http(data, len);
+			if(m_json.size()) { process_json(); }
+			if(m_msg_completed/*m_chunked_end.find("0\r\n\r\n") != std::string::npos*/)
 			{
-				m_data_buf.clear();
+				if(m_data_buf.size()) // should never happen
+				{
+					g_logger.log("Socket handler (" + m_id + ") response ended with unprocessed data, "
+								 "clearing and sending new request ... ", sinsp_logger::SEV_WARNING);
+					m_data_buf.clear();
+				}
 				// In HTTP 1.1 connnections with chunked transfer, this socket may not be closed by server,
 				// (K8s API server is an example of such behavior), in which case the chunked data will just
 				// stop flowing. We can keep the good socket and resend the request instead of severing the
@@ -476,9 +445,9 @@ public:
 				// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
 				// set the m_close_on_chunked_end flag to true (default).
 				if(m_close_on_chunked_end) { return CONNECTION_CLOSED; }
-				else { m_wants_send = true; }
+				m_wants_send = true;
+				m_msg_completed = false;
 			}
-			else { process_json(); }
 		}
 		return 0;
 	}
@@ -493,16 +462,15 @@ public:
 		}
 
 		ssize_t iolen = 0;
-		size_t len_to_read = m_buf.size();
-		std::string data;
+		size_t len_read = 0, len_to_read = m_buf.size();
 		try
 		{
 			do
 			{
-				if(data.size() >= m_data_limit) { break; }
-				else if((data.size() + m_buf.size()) > m_data_limit)
+				if(len_read >= m_data_limit) { break; }
+				else if((len_read + m_buf.size()) > m_data_limit)
 				{
-					len_to_read = m_data_limit - data.size();
+					len_to_read = m_data_limit - len_read;
 				}
 				errno = 0;
 				if(m_url.is_secure())
@@ -513,15 +481,19 @@ public:
 				{
 					iolen = recv(m_socket, &m_buf[0], len_to_read, 0);
 				}
+				if(iolen > 0) { len_read += iolen; }
 				m_sock_err = errno;
-				g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
-							 std::to_string(iolen) + ", data=" + std::to_string(data.size()) + " bytes, "
+				g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ", iolen=" +
+							 std::to_string(iolen) + ", data=" + std::to_string(len_read) + " bytes, "
 							 "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
 							 sinsp_logger::SEV_TRACE);
 				if(iolen > 0)
 				{
-					data.append(&m_buf[0], iolen <= static_cast<ssize_t>(m_buf.size()) ?
-											static_cast<size_t>(iolen) : m_buf.size());
+					size_t len = (iolen <= static_cast<ssize_t>(m_buf.size())) ? static_cast<size_t>(iolen) : m_buf.size();
+					if(CONNECTION_CLOSED == process(&m_buf[0], len))
+					{
+						return CONNECTION_CLOSED;
+					}
 				}
 				else if(iolen == 0 || m_sock_err == ENOTCONN || m_sock_err == EPIPE)
 				{
@@ -574,14 +546,10 @@ public:
 						}
 					}
 				}
-			} while(iolen && (m_sock_err != EAGAIN) && (data.size() < m_data_limit));
+			} while(iolen && (m_sock_err != EAGAIN) && (len_read < m_data_limit));
 			g_logger.log("Socket handler (" + m_id + ") " +
-						 std::to_string(data.size()) + " bytes of data received",
+						 std::to_string(len_read) + " bytes of data received",
 						 sinsp_logger::SEV_TRACE);
-			if(CONNECTION_CLOSED == process(data))
-			{
-				return CONNECTION_CLOSED;
-			}
 		}
 		catch(sinsp_exception& ex)
 		{
@@ -706,14 +674,14 @@ public:
 		std::string filtered_json(json);
 		if(!filter.empty())
 		{
+			// failure to parse is ok, it will fail over to the next filter
+			// and log error if all filters fail
 			if(jq.process(json, filter))
 			{
 				filtered_json = jq.result();
 			}
 			else
 			{
-				g_logger.log("Socket handler (" + id + "), [" + url + "] parsing error; " +
-							 json + ", jq filter: <" + filter + '>', sinsp_logger::SEV_ERROR);
 				return nullptr;
 			}
 		}
