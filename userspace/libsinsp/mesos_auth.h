@@ -32,7 +32,7 @@ class mesos_auth
 {
 public:
 	mesos_auth(const uri::credentials_t& dcos_enterprise_credentials = uri::credentials_t(),
-		   string auth_hostname = "localhost",
+		   std::string auth_hostname = "localhost",
 		   int token_refresh_interval = DCOS_ENTERPRISE_TOKEN_REFRESH_S);
 	virtual ~mesos_auth();
 
@@ -42,10 +42,10 @@ public:
 	// after the token has been returned, so it's best to call
 	// get_token periodically, which will internally refresh the
 	// token if necessary.
-	string get_token();
+	std::string get_token();
 
 protected:
-	string             m_token;
+	std::string             m_token;
 
 private:
 	void authenticate();
