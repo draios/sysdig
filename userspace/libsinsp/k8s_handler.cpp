@@ -34,6 +34,7 @@ k8s_handler::k8s_handler(const std::string& id,
 	const std::string& path,
 	const std::string& state_filter,
 	const std::string& event_filter,
+	const std::string& null_filter,
 	collector_ptr_t collector,
 	const std::string& http_version,
 	int timeout_ms,
@@ -52,6 +53,7 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_path(path),
 		m_state_filter(state_filter),
 		m_event_filter(event_filter),
+		m_null_filter(null_filter),
 		m_filter(&m_state_filter),
 		m_timeout_ms(timeout_ms),
 		m_url(url),
@@ -78,6 +80,10 @@ k8s_handler::k8s_handler(const std::string& id,
 											 m_timeout_ms, m_ssl, m_bt, !m_blocking_socket, m_blocking_socket);
 		m_handler->set_json_callback(&k8s_handler::set_event_json);
 		m_handler->add_json_filter(*m_filter);
+		if(!m_null_filter.empty())
+		{
+			m_handler->add_json_filter(m_null_filter);
+		}
 		m_handler->add_json_filter(ERROR_FILTER);
 		m_handler->close_on_chunked_end(false);
 		m_handler->set_check_chunked(false);
@@ -417,6 +423,7 @@ k8s_handler::msg_data k8s_handler::get_msg_data(const std::string& type, const s
 		if(type[0] == 'A') { data.m_reason = k8s_component::COMPONENT_ADDED; }
 		else if(type[0] == 'M') { data.m_reason = k8s_component::COMPONENT_MODIFIED; }
 		else if(type[0] == 'D') { data.m_reason = k8s_component::COMPONENT_DELETED; }
+		else if(type[0] == 'N') { data.m_reason = k8s_component::COMPONENT_NONEXISTENT; }
 		else if(type[0] == 'E') { data.m_reason = k8s_component::COMPONENT_ERROR; }
 	}
 	else
@@ -545,8 +552,11 @@ void k8s_handler::handle_json(Json::Value&& root)
 						}
 						else
 						{
-							g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
-										 std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
+							if(data.m_reason != k8s_component::COMPONENT_NONEXISTENT)
+							{
+								g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
+											 std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
+							}
 							continue;
 						}
 						/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)

@@ -66,7 +66,7 @@ k8s_event_handler::k8s_event_handler(k8s_state_t& state
 		k8s_handler("k8s_event_handler", true,
 #ifdef HAS_CAPTURE
 					url, "/api/v1/events",
-					STATE_FILTER, EVENT_FILTER, collector,
+					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
 #endif // HAS_CAPTURE
@@ -242,6 +242,7 @@ void k8s_event_handler::handle_json(Json::Value&& root)
 						if(data.m_reason != k8s_component::COMPONENT_ADDED &&
 							data.m_reason != k8s_component::COMPONENT_MODIFIED &&
 							data.m_reason != k8s_component::COMPONENT_DELETED &&
+							data.m_reason != k8s_component::COMPONENT_NONEXISTENT &&
 							data.m_reason != k8s_component::COMPONENT_ERROR)
 						{
 							g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
