@@ -77,9 +77,9 @@ public:
 	bool collect_data();
 	virtual void refresh_token();
 
+#ifdef HAS_CAPTURE
 	const uri_list_t &marathon_uris();
 
-#ifdef HAS_CAPTURE
 	void send_data_request(bool collect = true);
 
 	const mesos_state_t::capture_list& get_capture_events() const;
