@@ -57,6 +57,7 @@ add_library(sinsp STATIC
 	marathon_http.cpp
 	memmem.cpp
 	tracers.cpp
+	mesos_auth.cpp
 	mesos.cpp
 	mesos_collector.cpp
 	mesos_component.cpp
