@@ -869,7 +869,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	int64_t vpid = -1;
 	uint16_t etype = evt->get_type();
 
-lo(sinsp_logger::SEV_ERROR, "C1", tid);
+//lo(sinsp_logger::SEV_ERROR, "C1", tid);
 
 	//
 	// Validate the return value and get the child tid
@@ -909,7 +909,7 @@ lo(sinsp_logger::SEV_ERROR, "C1", tid);
 		//
 		// clone() failed. Do nothing and keep going.
 		//
-lo(sinsp_logger::SEV_ERROR, "C2", tid);
+//lo(sinsp_logger::SEV_ERROR, "C2", tid);
 		return;
 	}
 
@@ -1044,7 +1044,7 @@ lo(sinsp_logger::SEV_ERROR, "C2", tid);
 				evt->m_tinfo->m_vpid = vpid;
 			}
 
-lo(sinsp_logger::SEV_ERROR, "C3", tid);
+//lo(sinsp_logger::SEV_ERROR, "C3", tid);
 			return;
 		}
 	}
@@ -1057,7 +1057,7 @@ lo(sinsp_logger::SEV_ERROR, "C3", tid);
 		//
 		if(in_container)
 		{
-lo(sinsp_logger::SEV_ERROR, "C4", tid);
+//lo(sinsp_logger::SEV_ERROR, "C4", tid);
 			return;
 		}
 	}
@@ -1073,7 +1073,7 @@ lo(sinsp_logger::SEV_ERROR, "C4", tid);
 		// We simply return and ignore the event, which means this thread won't be added to the table.
 		//
 		ASSERT(false);
-lo(sinsp_logger::SEV_ERROR, "C5", tid);
+//lo(sinsp_logger::SEV_ERROR, "C5", tid);
 		return;
 	}
 
@@ -1096,7 +1096,7 @@ lo(sinsp_logger::SEV_ERROR, "C5", tid);
 		//
 		if(child->m_flags & PPM_CL_CLONE_INVERTED)
 		{
-lo(sinsp_logger::SEV_ERROR, "C6", tid);
+//lo(sinsp_logger::SEV_ERROR, "C6", tid);
 			return;
 		}
 		else
@@ -1154,7 +1154,7 @@ lo(sinsp_logger::SEV_ERROR, "C6", tid);
 			// This can happen if the thread table has reached max capacity
 			//
 			ASSERT(false);
-lo(sinsp_logger::SEV_ERROR, "C7", tid);
+//lo(sinsp_logger::SEV_ERROR, "C7", tid);
 			return;
 		}
 
@@ -1402,7 +1402,7 @@ lo(sinsp_logger::SEV_ERROR, "C7", tid);
 	//
 	if(in_container)
 	{
-lo(sinsp_logger::SEV_ERROR, "#1");
+//lo(sinsp_logger::SEV_ERROR, "#1");
 		tinfo.m_vtid = vtid;
 		tinfo.m_vpid = vpid;
 	}
@@ -1430,6 +1430,7 @@ lo(sinsp_logger::SEV_ERROR, "#1");
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
+/*
 //if(tinfo.m_comm == "du" || tinfo.m_comm == "nice")
 {
 	lo(sinsp_logger::SEV_ERROR, "#detected execution of %s", tinfo.m_comm.c_str());
@@ -1441,6 +1442,7 @@ lo(sinsp_logger::SEV_ERROR, "#1");
 	}
 	lo(sinsp_logger::SEV_ERROR, "#container id=%s", tinfo.m_container_id.c_str());
 }
+*/
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////

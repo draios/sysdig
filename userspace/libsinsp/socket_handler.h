@@ -166,7 +166,8 @@ public:
 			std::istringstream is(creds);
 			std::ostringstream os;
 			base64::encoder().encode(is, os);
-			request << "Authorization: Basic " << os.str() << "\r\n";
+			std::string bauth = os.str();
+			request << "Authorization: Basic " << trim(bauth) << "\r\n";
 		}
 		if(m_bt && !m_bt->get_token().empty())
 		{
@@ -904,7 +905,12 @@ private:
 			SSL_library_init();
 			SSL_load_error_strings();
 			OpenSSL_add_all_algorithms();
-			const SSL_METHOD* method = TLSv1_2_client_method();
+			const SSL_METHOD* method =
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+				TLSv1_2_client_method();
+#else
+				TLS_client_method();
+#endif
 			if(!method)
 			{
 				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL method\n" + ssl_errors(),
