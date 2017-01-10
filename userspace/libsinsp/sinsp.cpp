@@ -111,6 +111,7 @@ sinsp::sinsp() :
 	m_get_procs_cpu_from_driver = false;
 	m_is_tracers_capture_enabled = false;
 	m_file_start_offset = 0;
+	m_flush_memory_dump = false;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;

@@ -838,6 +838,7 @@ private:
 	// This is used to support reading merged files, where the capture needs to
 	// restart in the middle of the file.
 	uint64_t m_file_start_offset;
+	bool m_flush_memory_dump;
 
 	sinsp_network_interfaces* m_network_interfaces;
 public:
