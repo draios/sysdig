@@ -1658,16 +1658,22 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
-if(evt->m_tinfo->m_container_id != "" && (evt->m_tinfo->m_comm == "du" || evt->m_tinfo->m_comm == "nice"))
+if(evt->m_tinfo->m_container_id != "")
 {
-	lo(sinsp_logger::SEV_ERROR, "@detected execution of %s", evt->m_tinfo->m_comm.c_str());
-	lo(sinsp_logger::SEV_ERROR, "@tid=%" PRIu64, evt->m_tinfo->m_tid);
-	lo(sinsp_logger::SEV_ERROR, "@exe=%s", evt->m_tinfo->m_exe.c_str());
-	for(auto a : evt->m_tinfo->m_args)
+	sinsp_container_info container_info;
+	bool found = m_inspector->m_container_manager.get_container(evt->m_tinfo->m_container_id, &container_info);
+	if(found && container_info.m_name.find("assandra") != string::npos)
 	{
-		lo(sinsp_logger::SEV_ERROR, "@a=%s", a.c_str());
+		m_inspector->m_flush_memory_dump = true;
+		lo(sinsp_logger::SEV_ERROR, "@detected execution of %s", evt->m_tinfo->m_comm.c_str());
+		lo(sinsp_logger::SEV_ERROR, "@tid=%" PRIu64, evt->m_tinfo->m_tid);
+		lo(sinsp_logger::SEV_ERROR, "@exe=%s", evt->m_tinfo->m_exe.c_str());
+		for(auto a : evt->m_tinfo->m_args)
+		{
+			lo(sinsp_logger::SEV_ERROR, "@a=%s", a.c_str());
+		}
+		lo(sinsp_logger::SEV_ERROR, "@container id=%s", evt->m_tinfo->m_container_id.c_str());
 	}
-	lo(sinsp_logger::SEV_ERROR, "@container id=%s", evt->m_tinfo->m_container_id.c_str());
 }
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this

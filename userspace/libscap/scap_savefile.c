@@ -18,8 +18,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef _WIN32
 #include <unistd.h>
-#else
-#include <sys/time.h>
 #endif
 
 #include <stdio.h>
