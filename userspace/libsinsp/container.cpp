@@ -332,8 +332,12 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		{
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
-			valid_id = true;
-			set_mesos_task_id(&container_info, tinfo);
+			// Consider a mesos container valid only if we find the mesos_task_id
+			// this will exclude from the container itself the mesos-executor
+			// but makes sure that we have task_id parsed properly. Otherwise what happens
+			// is that we'll create a mesos container struct without a mesos_task_id
+			// and for all other processes we'll use it
+			valid_id = set_mesos_task_id(&container_info, tinfo);
 			break;
 		}
 	}
