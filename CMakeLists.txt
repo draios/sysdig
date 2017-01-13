@@ -302,8 +302,8 @@ if(NOT WIN32 AND NOT APPLE)
 		message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
 
 		ExternalProject_Add(openssl
-			URL "http://download.draios.com/dependencies/openssl-1.0.2d.tar.gz"
-			URL_MD5 "38dd619b2e77cbac69b99f52a053d25a"
+			URL "http://download.draios.com/dependencies/openssl-1.1.0c.tar.gz"
+			URL_MD5 "601e8191f72b18192a937ecf1a800f3f"
 			CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
@@ -334,8 +334,8 @@ if(NOT WIN32 AND NOT APPLE)
 
 		ExternalProject_Add(curl
 			DEPENDS openssl
-			URL "http://download.draios.com/dependencies/curl-7.45.0.tar.bz2"
-			URL_MD5 "62c1a352b28558f25ba6209214beadc8"
+			URL "http://download.draios.com/dependencies/curl-7.52.1.tar.bz2"
+			URL_MD5 "dd014df06ff1d12e173de86873f9f77a"
 			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2 --without-libssh2
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
