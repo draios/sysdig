@@ -1,8 +1,5 @@
 #!/usr/bin/python
 
-# Author: Samuele Pilleri
-# Date: August 17th, 2015
-
 import sys
 import urllib2
 from lxml import html
@@ -17,7 +14,7 @@ repos = {
         {
             # yum.oracle.com has a bad cert, so use http instead of https
             "root": "http://yum.oracle.com/",
-            "discovery_pattern": "/html/body//h3/a[regex:test(@href, 'oracle-linux-[0-9]+\.html')]/@href",
+            "discovery_pattern": "/html/body//h3/a[regex:test(@href, 'oracle-linux-[6-7]+\.html')]/@href",
             "sub_discovery_pattern": "/html/body//h3[regex:test(., '^UEK Release [0-9]+:')]/a[regex:test(@href, 'x86_64/index.html')]/@href",
             "page_pattern": "/html/body//a[regex:test(@href, '^getPackage/kernel-uek-(devel-)?[0-9].*\.rpm$')]/@href",
         }
@@ -26,7 +23,7 @@ repos = {
     "Oracle-RHCK": [
         {
             "root": "http://yum.oracle.com/",
-            "discovery_pattern": "/html/body//h3/a[regex:test(@href, 'oracle-linux-[0-9]+\.html')]/@href",
+            "discovery_pattern": "/html/body//h3/a[regex:test(@href, 'oracle-linux-[6-7]+\.html')]/@href",
             "sub_discovery_pattern": "/html/body//h3[regex:test(., '^Latest:')]/a[regex:test(@href, 'x86_64/index.html')]/@href",
             "page_pattern": "/html/body//a[regex:test(@href, '^getPackage/kernel-(devel-)?[0-9].*\.rpm$')]/@href",
         }
