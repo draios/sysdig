@@ -1574,7 +1574,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		//
 		parinfo = evt->get_param(14);
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
-		if(evt->m_tinfo->m_container_id.empty())
+
+		//
+		// If the thread info has no container ID, or if the clone happened a long 
+		// time ago, recreate the container information.
+		//
+		if(evt->m_tinfo->m_container_id.empty() ||
+			(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS))
 		{
 			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->m_islive);
 		}
