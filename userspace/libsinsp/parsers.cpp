@@ -869,8 +869,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	int64_t vpid = -1;
 	uint16_t etype = evt->get_type();
 
-//lo(sinsp_logger::SEV_ERROR, "C1", tid);
-
 	//
 	// Before embarking in parsing the event, check if there's already
 	// an entry in the thread table for this process. If there is one, make sure
@@ -924,7 +922,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// clone() failed. Do nothing and keep going.
 		//
-//lo(sinsp_logger::SEV_ERROR, "C2", tid);
 		return;
 	}
 
@@ -1033,7 +1030,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 				evt->m_tinfo->m_vpid = vpid;
 			}
 
-//lo(sinsp_logger::SEV_ERROR, "C3", tid);
 			return;
 		}
 	}
@@ -1046,7 +1042,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		if(in_container)
 		{
-//lo(sinsp_logger::SEV_ERROR, "C4", tid);
 			return;
 		}
 	}
@@ -1062,7 +1057,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// We simply return and ignore the event, which means this thread won't be added to the table.
 		//
 		ASSERT(false);
-//lo(sinsp_logger::SEV_ERROR, "C5", tid);
 		return;
 	}
 
@@ -1085,7 +1079,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		if(child->m_flags & PPM_CL_CLONE_INVERTED)
 		{
-//lo(sinsp_logger::SEV_ERROR, "C6", tid);
 			return;
 		}
 		else
@@ -1143,7 +1136,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// This can happen if the thread table has reached max capacity
 			//
 			ASSERT(false);
-//lo(sinsp_logger::SEV_ERROR, "C7", tid);
 			return;
 		}
 
@@ -1391,7 +1383,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	if(in_container)
 	{
-//lo(sinsp_logger::SEV_ERROR, "#1");
 		tinfo.m_vtid = vtid;
 		tinfo.m_vpid = vpid;
 	}
@@ -1411,7 +1402,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-//lo(sinsp_logger::SEV_ERROR, "#cgroups=%s", string(parinfo->m_val, parinfo->m_len).c_str());
 			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->m_islive);
 			break;
 	}
@@ -1653,6 +1643,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
+/*
 if(evt->m_tinfo->m_container_id != "")
 {
 	sinsp_container_info container_info;
@@ -1670,6 +1661,7 @@ if(evt->m_tinfo->m_container_id != "")
 		lo(sinsp_logger::SEV_ERROR, "@container id=%s", evt->m_tinfo->m_container_id.c_str());
 	}
 }
+*/
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
