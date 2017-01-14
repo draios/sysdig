@@ -345,6 +345,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	string rkt_podid, rkt_appname;
 	if(!valid_id)
 	{
+		tinfo->m_container_id = "";
+
 		// Try parsing from process root,
 		// Strings used to detect rkt stage1-cores pods
 		static const string COREOS_PREFIX = "/opt/stage2/";
@@ -407,7 +409,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			}
 		}
 	}
-	if(valid_id)
+	else
 	{
 		tinfo->m_container_id = container_info.m_id;
 
