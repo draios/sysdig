@@ -31,7 +31,6 @@ extern sinsp_filter_check_list g_filterlist;
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
 {
 	m_inspector = inspector;
-	m_first = true;
 	set_format(fmt);
 }
 
@@ -161,16 +160,6 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 bool sinsp_evt_formatter::on_capture_end(OUT string* res)
 {
 	res->clear();
-	if(!m_first &&
-		(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
-		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
-		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
-		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
-		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64))
-	{
-		(*res) = ']';
-	}
-
 	return res->size() > 0;
 }
 
@@ -256,19 +245,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
 	{
-		if(m_first)
-		{
-			// Give it the opening stanza of a JSON array
-			(*res) = '[';
-			m_first = false;
-		}
-		else
-		{
-			// Otherwise say this is another object in an
-			// existing JSON array
-			(*res) = ",\n";
-		}
-
+		(*res) = "\n";
 		(*res) += m_writer.write( m_root );
 		(*res) = res->substr(0, res->size() - 1);
 	}
