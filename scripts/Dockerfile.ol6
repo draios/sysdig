@@ -8,6 +8,7 @@ RUN yum -y install \
     make \
     cmake \
     libdtrace-ctf \
+    elfutils-devel \
     python-lxml && yum clean all
 
 WORKDIR /build
