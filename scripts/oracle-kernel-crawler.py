@@ -15,21 +15,20 @@ repos = {
             # yum.oracle.com has a bad cert, so use http instead of https
             "root": "http://yum.oracle.com/",
             "discovery_pattern": "/html/body//h3/a[regex:test(@href, 'oracle-linux-6\.html')]/@href",
-            "sub_discovery_pattern": "/html/body//h3[regex:test(., '^UEK Release [0-9]+:')]/a[regex:test(@href, 'x86_64/index.html')]/@href",
+            "sub_discovery_pattern": "/html/body//h3[regex:test(., '^UEK Release [3-9]:')]/a[regex:test(@href, 'x86_64/index.html')]/@href",
             "page_pattern": "/html/body//a[regex:test(@href, '^getPackage/kernel-uek-(devel-)?[0-9].*\.rpm$')]/@href",
         }
     ],
 
     "OL7-UEK": [
         {
-            # yum.oracle.com has a bad cert, so use http instead of https
             "root": "http://yum.oracle.com/",
             "discovery_pattern": "/html/body//h3/a[regex:test(@href, 'oracle-linux-7\.html')]/@href",
-            "sub_discovery_pattern": "/html/body//h3[regex:test(., '^UEK Release [0-9]+:')]/a[regex:test(@href, 'x86_64/index.html')]/@href",
+            "sub_discovery_pattern": "/html/body//h3[regex:test(., '^UEK Release [3-9]:')]/a[regex:test(@href, 'x86_64/index.html')]/@href",
             "page_pattern": "/html/body//a[regex:test(@href, '^getPackage/kernel-uek-(devel-)?[0-9].*\.rpm$')]/@href",
         }
     ],
-    
+
     "Oracle-RHCK": [
         {
             "root": "http://yum.oracle.com/",
