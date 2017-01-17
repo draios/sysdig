@@ -870,21 +870,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	uint16_t etype = evt->get_type();
 
 	//
-	// Before embarking in parsing the event, check if there's already
-	// an entry in the thread table for this process. If there is one, make sure
-	// it was created recently. Otherwise, assume it's an old thread for which
-	// we lost the exit event and remove it from the table.
-	//
-	if(evt->m_tinfo && evt->m_tinfo->m_clone_ts != 0)
-	{
-		if(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS)
-		{
-			m_inspector->remove_thread(tid, true);
-			evt->m_tinfo = NULL;
-		}
-	}
-
-	//
 	// Validate the return value and get the child tid
 	//
 	parinfo = evt->get_param(0);
@@ -963,9 +948,23 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// clone() returns 0 in the child.
 		//
-
 		int64_t parenttid;
 
+		//
+		// Before embarking in parsing the event, check if there's already
+		// an entry in the thread table for this process. If there is one, make sure
+		// it was created recently. Otherwise, assume it's an old thread for which
+		// we lost the exit event and remove it from the table.
+		//
+		if(evt->m_tinfo && evt->m_tinfo->m_clone_ts != 0)
+		{
+			if(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS)
+			{
+				m_inspector->remove_thread(tid, true);
+				evt->m_tinfo = NULL;
+			}
+		}
+	
 		//
 		// Check if this is a process or a new thread
 		//
