@@ -113,7 +113,7 @@ function build_sysdigcloud {
 		git checkout master
 		# The UEK builder container doesn't have git credentials
 		# It relies on the non-UEK builds doing the pull earlier
-		if [ "UEK" != $KERNEL_TYPE ]; then
+		if [[ ! $KERNEL_TYPE =~ "UEK" ]]; then
 			git pull
 		fi
 		git checkout $PROBE_VERSION
@@ -479,6 +479,7 @@ if [ -z $KERNEL_TYPE ]; then
 	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 ../sysdig/scripts
 	docker images --quiet --filter=dangling=true | xargs --no-run-if-empty docker rmi
 	docker run -it --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+
 	#
 	# Oracle Linux 7 UEK build
 	#
