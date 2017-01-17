@@ -467,18 +467,24 @@ function debian_build {
 
 if [ -z $KERNEL_TYPE ]; then
 	#
-	# Oracle UEK build
-	#
-
-	#
-	# The UEK build needs to happen in a UEK environment, so we launch
+	# The UEK builds needs to happen in a UEK environment, so we launch
 	# a container running OL and do the builds there. This container
 	# doesn't have git credentials, so it relies on previous builds
 	# to do the sysdig/falco/agent git clone/pulls.
 	#
-	docker build -t oracle-builder:latest -f ../sysdig/scripts/Dockerfile.builder ../sysdig/scripts
+
+	#
+	# Oracle Linux 6 UEK build
+	#
+	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 ../sysdig/scripts
 	docker images --quiet --filter=dangling=true | xargs --no-run-if-empty docker rmi
-	docker run -it --rm --name uek-builder -v $BASEDIR:/build/probe oracle-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME UEK
+	docker run -it --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+	#
+	# Oracle Linux 7 UEK build
+	#
+	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 ../sysdig/scripts
+	docker images --quiet --filter=dangling=true | xargs --no-run-if-empty docker rmi
+	docker run -it --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
 
 	# XXX debugging, oracle uek needs to go after the other distros eventually
 	exit
@@ -587,11 +593,21 @@ URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
 
 echo "Success."
 
-elif [ "UEK" = $KERNEL_TYPE ]; then
-	# This should only run in the oracle-builder container context
-	echo Building Oracle UEK
+elif [ "OL6-UEK" = $KERNEL_TYPE ]; then
+	# This should only run in the ol6-builder container context
+	echo Building Oracle Linux 6 UEK
 	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/oracle-kernel-crawler.py Oracle-UEK)"
+	URLS="$($DIR/oracle-kernel-crawler.py OL6-UEK)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+elif [ "OL7-UEK" = $KERNEL_TYPE ]; then
+	# This should only run in the ol7-builder container context
+	echo Building Oracle Linux 7 UEK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py OL7-UEK)"
 
 	for URL in $URLS
 	do
