@@ -51,7 +51,11 @@ function build_sysdig {
 
 		cd sysdig
 		git checkout master
-		git pull
+		# The UEK builder container doesn't have git credentials
+		# It relies on the non-UEK builds doing the pull earlier
+		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+			git pull
+		fi
 		git checkout $PROBE_VERSION
 		make -C driver clean || true
 		rm -rf build || true
@@ -96,7 +100,11 @@ function build_sysdigcloud {
 
 		cd sysdig
 		git checkout master
-		git pull
+		# The UEK builder container doesn't have git credentials
+		# It relies on the non-UEK builds doing the pull earlier
+		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+			git pull
+		fi
 		git checkout agent/$PROBE_VERSION
 		make -C driver clean || true
 		rm -rf build || true
@@ -104,15 +112,15 @@ function build_sysdigcloud {
 
 		cd falco
 		git checkout master
-		git pull
+		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+			git pull
+		fi
 		git checkout agent/$PROBE_VERSION
 		rm -fr build || true
 		cd ..
 		
 		cd agent
 		git checkout master
-		# The UEK builder container doesn't have git credentials
-		# It relies on the non-UEK builds doing the pull earlier
 		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
 			git pull
 		fi
