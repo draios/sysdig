@@ -298,6 +298,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_CONTAINER_JSON_X */{"container", EC_INTERNAL, EF_UNUSED, 0},
 	/* PPME_SYSCALL_SETSID_E */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_SETSID_X */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
-	/* PPME_NOTIFICATION_E */{"notification", EC_OTHER, EF_NONE, 3, {{"id", PT_CHARBUF, PF_DEC}, {"desc", PT_CHARBUF, PF_NA}, } },
+	/* PPME_NOTIFICATION_E */{"notification", EC_OTHER, EF_SKIPPARSERESET, 2, {{"id", PT_CHARBUF, PF_DEC}, {"desc", PT_CHARBUF, PF_NA}, } },
 	/* PPME_NOTIFICATION_X */{"NA4", EC_SYSTEM, EF_UNUSED, 0}
 };
