@@ -808,6 +808,8 @@ private:
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
 
+	void restart_capture_at_filepos(uint64_t filepos);
+
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;

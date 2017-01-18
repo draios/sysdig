@@ -812,6 +812,29 @@ void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 	}
 }
 
+void sinsp::restart_capture_at_filepos(uint64_t filepos)
+{
+	//
+	// Backup a couple of settings
+	//
+	uint64_t evtnum = m_nevts;
+	string filterstring = m_filterstring;
+
+	//
+	// Close and reopen the capture
+	//
+	m_file_start_offset = filepos;
+	close();
+	open(m_input_filename);
+
+	//
+	// Set again the backuped settings
+	//
+	m_evt.m_evtnum = evtnum;
+	m_nevts = evtnum;
+	set_filter(filterstring);
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
@@ -888,10 +911,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			else if(res == SCAP_UNEXPECTED_BLOCK)
 			{
 				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
-				m_file_start_offset = filepos;
-				close();
-				open(m_input_filename);
+				restart_capture_at_filepos(filepos);
 				return SCAP_TIMEOUT;
+
 			}
 			else
 			{
