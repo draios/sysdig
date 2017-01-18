@@ -50,12 +50,9 @@ public:
 	static std::string get_socket_file();
 
 private:
-	static const std::string DOCKER_SOCKET_FILE;
 	void connect();
 	void send_event_data_request();
 	void check_collector_status();
-
-	void handle_event(Json::Value&& root);
 
 	template <typename T>
 	bool connect(T http, typename T::element_type::json_callback_func_t func, int expected_connections)
@@ -89,7 +86,6 @@ private:
 	typedef handler_t::ptr_t            handler_ptr_t;
 	typedef socket_collector<handler_t> collector_t;
 
-	std::string   m_id;
 	handler_ptr_t m_event_http;
 	collector_t   m_collector;
 	std::string   m_event_uri;
@@ -97,13 +93,16 @@ private:
 
 private:
 
+	static const std::string DOCKER_SOCKET_FILE;
 	typedef std::vector<json_ptr_t> event_list_t;
 	typedef sinsp_logger::event_severity severity_t;
 	typedef std::unordered_map<std::string, severity_t> severity_map_t;
 	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
 	typedef std::set<std::string> entity_events_t;
 	const std::string& translate_name(const std::string& event_name);
+	void handle_event(Json::Value&& root);
 
+	std::string   m_id;
 	long                   m_timeout_ms;
 	bool                   m_is_captured;
 	bool                   m_verbose;
@@ -120,6 +119,7 @@ private:
 	bool                   m_event_limit_exceeded = false;
 };
 
+#ifdef HAS_CAPTURE
 inline const std::string& docker::get_id() const
 {
 	return m_id;
@@ -139,6 +139,7 @@ inline const std::string& docker::get_machine_id() const
 {
 	return m_machine_id;
 }
+#endif // HAS_CAPTURE
 
 inline const std::string& docker::translate_name(const std::string& event_name)
 {
@@ -150,6 +151,7 @@ inline const std::string& docker::translate_name(const std::string& event_name)
 	return event_name;
 }
 
+#ifdef HAS_CAPTURE
 inline bool docker::is_container_event(const std::string& evt_name)
 {
 	return m_container_events.find(evt_name) != m_container_events.end();
@@ -169,6 +171,7 @@ inline bool docker::is_network_event(const std::string& evt_name)
 {
 	return m_network_events.find(evt_name) != m_network_events.end();
 }
+#endif // HAS_CAPTURE
 
 inline void docker::reset_event_counter()
 {
