@@ -113,7 +113,7 @@ function build_sysdigcloud {
 		git checkout master
 		# The UEK builder container doesn't have git credentials
 		# It relies on the non-UEK builds doing the pull earlier
-		if [[ ! $KERNEL_TYPE =~ "UEK" ]]; then
+		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
 			git pull
 		fi
 		git checkout $PROBE_VERSION
@@ -465,7 +465,7 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
-if [ -z $KERNEL_TYPE ]; then
+if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Ubuntu build
 	#
@@ -573,16 +573,20 @@ if [ -z $KERNEL_TYPE ]; then
 	#
 	# Oracle Linux 6 UEK build
 	#
+	echo "Creating Oracle Linux 6 UEK builder"
+	docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
 	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 ../sysdig/scripts
-	docker images --quiet --filter=dangling=true | xargs --no-run-if-empty docker rmi
-	docker run -it --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
 
 	#
 	# Oracle Linux 7 UEK build
 	#
+	echo "Creating Oracle Linux 7 UEK builder"
+	docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
 	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 ../sysdig/scripts
-	docker images --quiet --filter=dangling=true | xargs --no-run-if-empty docker rmi
-	docker run -it --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
 
 	#
 	# Upload modules
@@ -591,7 +595,7 @@ if [ -z $KERNEL_TYPE ]; then
 
 	echo "Success."
 
-elif [ "OL6-UEK" = $KERNEL_TYPE ]; then
+elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
 	# This should only run in the ol6-builder container context
 	echo Building Oracle Linux 6 UEK
 	DIR=$(dirname $(readlink -f $0))
@@ -601,7 +605,7 @@ elif [ "OL6-UEK" = $KERNEL_TYPE ]; then
 	do
 		rhel_build $URL
 	done
-elif [ "OL7-UEK" = $KERNEL_TYPE ]; then
+elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
 	# This should only run in the ol7-builder container context
 	echo Building Oracle Linux 7 UEK
 	DIR=$(dirname $(readlink -f $0))
