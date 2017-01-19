@@ -1480,6 +1480,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		return;
 	}
 
+m_inspector->m_flush_memory_dump = true;
+
 	//
 	// We get here when execve returns. The thread has already been added by a previous fork or clone,
 	// and we just update the entry with the new information.
@@ -1642,7 +1644,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
-/*
 if(evt->m_tinfo->m_container_id != "")
 {
 	sinsp_container_info container_info;
@@ -1660,7 +1661,6 @@ if(evt->m_tinfo->m_container_id != "")
 		lo(sinsp_logger::SEV_ERROR, "@container id=%s", evt->m_tinfo->m_container_id.c_str());
 	}
 }
-*/
 ///////////////////////////////////////////////////////////////////////////////
 // XXX Remove this
 ///////////////////////////////////////////////////////////////////////////////
