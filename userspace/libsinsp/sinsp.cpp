@@ -840,7 +840,10 @@ void sinsp::restart_capture_at_filepos(uint64_t filepos)
 	//
 	m_evt.m_evtnum = evtnum;
 	m_nevts = evtnum;
-	set_filter(filterstring);
+	if(filterstring != "")
+	{
+		set_filter(filterstring);
+	}
 }
 
 int32_t sinsp::next(OUT sinsp_evt **puevt)
