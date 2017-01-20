@@ -1480,6 +1480,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		return;
 	}
 
+lo("***E");
 m_inspector->m_flush_memory_dump = true;
 
 	//
@@ -1648,7 +1649,7 @@ if(evt->m_tinfo->m_container_id != "")
 {
 	sinsp_container_info container_info;
 	bool found = m_inspector->m_container_manager.get_container(evt->m_tinfo->m_container_id, &container_info);
-	if(found && container_info.m_name.find("assandra") != string::npos)
+	if(found && container_info.m_image.find("assandra") != string::npos)
 	{
 		m_inspector->m_flush_memory_dump = true;
 		lo(sinsp_logger::SEV_ERROR, "@detected execution of %s", evt->m_tinfo->m_comm.c_str());
