@@ -37,6 +37,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
 #endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
+#include <linux/mount.h>
+#endif
 #include <asm/mman.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include "ppm_syscall.h"
@@ -292,8 +295,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_16_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_16_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -375,7 +376,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
-	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } }
+	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_EXECVE_17_E] = {f_sys_empty},
+	[PPME_SYSCALL_EXECVE_17_X] = {f_proc_startupdate}
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -1007,6 +1010,104 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 #endif
 
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
+static const char* get_exepath(char* buf, uint64_t buflen)
+{
+	char *pathname = NULL;
+	struct vm_area_struct * vma;
+	int result = -ENOENT;
+	struct mm_struct * mm = NULL;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
+	struct dentry *dentry;
+	struct vfsmount *mnt;
+#else
+	struct path path;
+#endif
+
+	mm = current->mm;
+	if (!current->mm)
+		return pathname;
+
+	down_read(&mm->mmap_sem);
+
+	vma = mm->mmap;
+	while (vma) {
+		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file)
+			break;
+		vma = vma->vm_next;
+	}
+
+	if (vma) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
+		mnt = mntget(vma->vm_file->f_vfsmnt);
+		dentry = dget(vma->vm_file->f_dentry);
+#else
+		path = vma->vm_file->f_path;
+		path_get(&vma->vm_file_f_path);
+#endif
+		result = 0;
+	}
+
+	up_read(&mm->mmap_sem);
+	mmput(mm);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
+	pathname = d_path(dentry, mnt, buf, buflen);
+	dput(dentry);
+	mntput(dentry);
+#else
+	pathname = d_path(&path, buf, buflen);
+	path_put(path);
+#endif
+	PTR_ERR(pathname);
+	if (IS_ERR(pathname))
+		return NULL;
+	return pathname;
+}
+
+#else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
+/*
+ * unexported, so copy it here, ugly
+ */
+struct file *get_mm_exe_file(struct mm_struct *mm)
+{
+	struct file *exe_file;
+
+	/* We need mmap_sem to protect against races with removal of exe_file */
+	down_read(&mm->mmap_sem);
+	exe_file = mm->exe_file;
+	if (exe_file)
+		get_file(exe_file);
+	up_read(&mm->mmap_sem);
+	return exe_file;
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0) */
+
+static const char* get_exepath(char* buf, uint64_t buflen)
+{
+	struct file *exe_file;
+	char *path = NULL;
+
+	if (!current->mm)
+		return path;
+
+	/* for kernels < 4.1.0, we define this function above
+	 * for later kernels, this function is already exported */
+	exe_file = get_mm_exe_file(current->mm);
+	if (!exe_file)
+		return path;
+
+	path = d_path(&exe_file->f_path, buf, buflen);
+
+	fput(exe_file);
+	return path;
+}
+
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26) */
+
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -1307,11 +1408,12 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_16_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_17_X) {
 		/*
 		 * execve-only parameters
 		 */
 		long env_len = 0;
+		const char *exepath = "";
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1353,6 +1455,19 @@ cgroups_error:
 		res = val_to_ring(args, (int64_t)(long)args->str_storage, env_len, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+		/*
+		 * exepath
+		 */
+		if (retval >= 0) {
+		    exepath = get_exepath(args->str_storage, STR_STORAGE_SIZE - 1);
+		    if (exepath == NULL)
+			exepath = "";
+		}
+		res = val_to_ring(args, (uint64_t)(long)exepath, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
 	}
 
 	return add_sentinel(args);
