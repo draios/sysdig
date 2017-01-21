@@ -12,7 +12,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU General Public L nameicense
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
@@ -37,34 +37,16 @@ struct event_scope
 
 	// utility function to escape scope entries and wrap them in single quotes;
 	// this function is used internally but is left public for testing purposes
-	static string&& escape(std::string&& scope)
-	{
-		trim(scope);
-		string_list_t::const_iterator res_it = RESERVED_STRINGS.cbegin();
-		string_list_t::const_iterator res_end = RESERVED_STRINGS.cend();
-		string_list_t::const_iterator rep_it = REPLACEMENT_STRINGS.cbegin();
-		string_list_t::const_iterator rep_end = REPLACEMENT_STRINGS.cend();
-		for(; res_it != res_end && rep_it != rep_end; ++res_it, ++rep_it)
-		{
-			replace_in_place(scope, *res_it, *rep_it);
-		}
-		scope.append(1, 0x27); // terminating single quote
-		return std::move(scope);
-	}
+	static string&& escape(std::string&& scope);
 
 	// utility function to check that scope entry is valid;
 	// valid entries can not contain '=' character or " and " string
-	static bool check(const std::string& scope)
-	{
-		for(const auto& rs : RESERVED_STRINGS)
-		{
-			if(scope.find(rs) != std::string::npos)
-			{
-				return false;
-			}
-		}
-		return true;
-	}
+	static bool check(const std::string& scope);
+
+	// utility function to check that scope entry is valid and
+	// assemble it; returns true if succesful, false otherwise;
+	// valid entries can not contain '=' character or " and " string
+	static bool assemble(std::string& scope, const std::string& name, const std::string& value);
 };
 
 

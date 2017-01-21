@@ -878,38 +878,17 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 			const std::string& node_name = comp->get_node_name();
 			if(!node_name.empty())
 			{
-				if(event_scope::check(node_name))
-				{
-					if(scope.length()) { scope.append(" and "); }
-					scope.append("kubernetes.node.name=").append(node_name);
-				}
-				else
-				{
-					g_logger.log("K8s invalid scope entry for kubernetes.node.name: [" + node_name + ']', sinsp_logger::SEV_WARNING);
-				}
+				event_scope::assemble(scope, "kubernetes.node.name", node_name);
 			}
 			const std::string& ns = comp->get_namespace();
 			if(!ns.empty())
 			{
-				if(event_scope::check(ns))
-				{
-					if(scope.length()) { scope.append(" and "); }
-					scope.append("kubernetes.namespace.name=").append(ns);
-				}
-				else
-				{
-					g_logger.log("K8s invalid scope entry for kubernetes.namespace.name: [" + ns + ']', sinsp_logger::SEV_WARNING);
-				}
+				event_scope::assemble(scope, "kubernetes.namespace.name", ns);
 			}
 			const std::string& comp_name = comp->get_name();
-			if(event_scope::check(comp_name))
+			if(comp_name.empty())
 			{
-				if(scope.length()) { scope.append(" and "); }
-				scope.append("kubernetes.").append(t).append(".name=").append(comp_name);
-			}
-			else
-			{
-				g_logger.log("K8s invalid scope entry for kubernetes." + t + ".name: [" + comp_name + ']', sinsp_logger::SEV_WARNING);
+				event_scope::assemble(scope, std::string("kubernetes.").append(t).append(".name"), comp_name);
 			}
 			/* no labels for now
 			for(const auto& label : comp->get_labels())
@@ -966,15 +945,7 @@ void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, std:
 		const std::string& ns_name = get_json_string(obj, "namespace");
 		if(!ns_name.empty())
 		{
-			if(event_scope::check(ns_name))
-			{
-				if(scope.length()) { scope.append(" and "); }
-				scope.append("kubernetes.namespace.name=").append(ns_name);
-			}
-			else
-			{
-				g_logger.log("K8s invalid scope entry for kubernetes.namespace.name: [" + ns_name + ']', sinsp_logger::SEV_WARNING);
-			}
+			event_scope::assemble(scope, "kubernetes.namespace.name", ns_name);
 		}
 	}
 	if(comp.length() && ci_compare::is_equal(get_json_string(obj, "kind"), comp))
@@ -982,16 +953,8 @@ void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, std:
 		const std::string& comp_name = get_json_string(obj, "name");
 		if(!comp_name.empty())
 		{
-			if(event_scope::check(comp_name))
-			{
-				if(scope.length()) { scope.append(" and "); }
-				comp[0] = tolower(comp[0]);
-				scope.append("kubernetes.").append(comp).append(".name=").append(comp_name);
-			}
-			else
-			{
-				g_logger.log("K8s invalid scope entry for kubernetes." + comp_name + ".name: [" + comp_name + ']', sinsp_logger::SEV_WARNING);
-			}
+			comp[0] = tolower(comp[0]);
+			event_scope::assemble(scope, std::string("kubernetes.").append(comp).append(".name"), comp_name);
 		}
 		if(comp_name.empty())
 		{

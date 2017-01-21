@@ -343,14 +343,7 @@ void docker::handle_event(Json::Value&& root)
 				std::string scope;
 				if(m_machine_id.length())
 				{
-					if(event_scope::check(m_machine_id))
-					{
-						scope.append("host.mac=").append(m_machine_id);
-					}
-					else
-					{
-						g_logger.log("Docker invalid scope entry for host.mac: [" + m_machine_id + ']', sinsp_logger::SEV_WARNING);
-					}
+					event_scope::assemble(scope, "host.mac", m_machine_id);
 				}
 				else
 				{
@@ -366,27 +359,11 @@ void docker::handle_event(Json::Value&& root)
 					}
 					if(!id.empty())
 					{
-						if(event_scope::check(id))
-						{
-							if(scope.length()) { scope.append(" and "); }
-							scope.append("container.image=").append(id);
-						}
-						else
-						{
-							g_logger.log("Docker invalid scope entry for container.image: [" + image + ']', sinsp_logger::SEV_WARNING);
-						}
+						event_scope::assemble(scope, "container.image", id);
 					}
 					else if(!image.empty())
 					{
-						if(event_scope::check(image))
-						{
-							if(scope.length()) { scope.append(" and "); }
-							scope.append("container.image=").append(image);
-						}
-						else
-						{
-							g_logger.log("Docker invalid scope entry for container.image: [" + image + ']', sinsp_logger::SEV_WARNING);
-						}
+						event_scope::assemble(scope, "container.image", image);
 					}
 					else
 					{
@@ -398,16 +375,7 @@ void docker::handle_event(Json::Value&& root)
 				{
 					if(id.length() >= 12)
 					{
-						std::string id12 = id.substr(0, 12);
-						if(event_scope::check(id12))
-						{
-							if(scope.length()) { scope.append(" and "); }
-							scope.append("container.id=").append(id12);
-						}
-						else
-						{
-							g_logger.log("Docker invalid scope entry for container.id: [" + id12 + ']', sinsp_logger::SEV_WARNING);
-						}
+						event_scope::assemble(scope, "container.id", id.substr(0, 12));
 					}
 				}
 				if(status.length())

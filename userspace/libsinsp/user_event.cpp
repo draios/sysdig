@@ -25,6 +25,52 @@ const event_scope::string_list_t event_scope::RESERVED_STRINGS =
 const event_scope::string_list_t event_scope::REPLACEMENT_STRINGS =
 	{"\\'", "='", "' and "}; // !do not change order!
 
+string&& event_scope::escape(std::string&& scope)
+{
+	trim(scope);
+	string_list_t::const_iterator res_it = RESERVED_STRINGS.cbegin();
+	string_list_t::const_iterator res_end = RESERVED_STRINGS.cend();
+	string_list_t::const_iterator rep_it = REPLACEMENT_STRINGS.cbegin();
+	string_list_t::const_iterator rep_end = REPLACEMENT_STRINGS.cend();
+	for(; res_it != res_end && rep_it != rep_end; ++res_it, ++rep_it)
+	{
+		replace_in_place(scope, *res_it, *rep_it);
+	}
+	scope.append(1, 0x27); // terminating single quote
+	return std::move(scope);
+}
+
+// utility function to check that scope entry is valid;
+// valid entries can not contain '=' character or " and " string
+bool event_scope::check(const std::string& scope)
+{
+	string_list_t::const_iterator rs = RESERVED_STRINGS.cbegin();
+	++rs;
+	for(; rs != RESERVED_STRINGS.end(); ++rs)
+	{
+		if(scope.find(*rs) != std::string::npos)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool event_scope::assemble(std::string& scope, const std::string& name, const std::string& value)
+{
+	if(check(name) && check(value))
+	{
+		if(scope.length()) { scope.append(" and "); }
+		scope.append(name).append(1, '=').append(value);
+		return true;
+	}
+	else
+	{
+		g_logger.log("Invalid scope entry for " + name + ": [" + value + ']', sinsp_logger::SEV_WARNING);
+	}
+	return false;
+}
+
 const std::string user_event_meta_t::PERMIT_ALL = "all";
 
 user_event_meta_t::user_event_meta_t(const std::string& kind, const type_list_t& types):
