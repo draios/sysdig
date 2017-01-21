@@ -26,6 +26,49 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unordered_map>
 
 //
+// scope utilities
+//
+struct event_scope
+{
+	typedef std::vector<std::string> string_list_t;
+
+	static const string_list_t RESERVED_STRINGS;
+	static const string_list_t REPLACEMENT_STRINGS;
+
+	// utility function to escape scope entries and wrap them in single quotes;
+	// this function is used internally but is left public for testing purposes
+	static string&& escape(std::string&& scope)
+	{
+		trim(scope);
+		string_list_t::const_iterator res_it = RESERVED_STRINGS.cbegin();
+		string_list_t::const_iterator res_end = RESERVED_STRINGS.cend();
+		string_list_t::const_iterator rep_it = REPLACEMENT_STRINGS.cbegin();
+		string_list_t::const_iterator rep_end = REPLACEMENT_STRINGS.cend();
+		for(; res_it != res_end && rep_it != rep_end; ++res_it, ++rep_it)
+		{
+			replace_in_place(scope, *res_it, *rep_it);
+		}
+		scope.append(1, 0x27); // terminating single quote
+		return std::move(scope);
+	}
+
+	// utility function to check that scope entry is valid;
+	// valid entries can not contain '=' character or " and " string
+	static bool check(const std::string& scope)
+	{
+		for(const auto& rs : RESERVED_STRINGS)
+		{
+			if(scope.find(rs) != std::string::npos)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+};
+
+
+//
 // user-configured event meta
 //
 class user_event_meta_t

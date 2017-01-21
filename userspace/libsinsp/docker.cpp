@@ -340,10 +340,17 @@ void docker::handle_event(Json::Value&& root)
 				{
 					image = img.asString();
 				}
-				std::string scope("host.mac=");
+				std::string scope;
 				if(m_machine_id.length())
 				{
-					scope.append(m_machine_id);
+					if(event_scope::check(m_machine_id))
+					{
+						scope.append("host.mac=").append(m_machine_id);
+					}
+					else
+					{
+						g_logger.log("Docker invalid scope entry for host.mac: [" + m_machine_id + ']', sinsp_logger::SEV_WARNING);
+					}
 				}
 				else
 				{
@@ -359,13 +366,27 @@ void docker::handle_event(Json::Value&& root)
 					}
 					if(!id.empty())
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.image=").append(id);
+						if(event_scope::check(id))
+						{
+							if(scope.length()) { scope.append(" and "); }
+							scope.append("container.image=").append(id);
+						}
+						else
+						{
+							g_logger.log("Docker invalid scope entry for container.image: [" + image + ']', sinsp_logger::SEV_WARNING);
+						}
 					}
 					else if(!image.empty())
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.image=").append(image);
+						if(event_scope::check(image))
+						{
+							if(scope.length()) { scope.append(" and "); }
+							scope.append("container.image=").append(image);
+						}
+						else
+						{
+							g_logger.log("Docker invalid scope entry for container.image: [" + image + ']', sinsp_logger::SEV_WARNING);
+						}
 					}
 					else
 					{
@@ -377,8 +398,16 @@ void docker::handle_event(Json::Value&& root)
 				{
 					if(id.length() >= 12)
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.id=").append(id.substr(0, 12));
+						std::string id12 = id.substr(0, 12);
+						if(event_scope::check(id12))
+						{
+							if(scope.length()) { scope.append(" and "); }
+							scope.append("container.id=").append(id12);
+						}
+						else
+						{
+							g_logger.log("Docker invalid scope entry for container.id: [" + id12 + ']', sinsp_logger::SEV_WARNING);
+						}
 					}
 				}
 				if(status.length())

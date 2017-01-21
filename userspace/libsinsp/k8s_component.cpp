@@ -875,26 +875,55 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 		const k8s_component* comp = state.get_component(component_uid, &t);
 		if(comp && !t.empty())
 		{
-			std::string node_name = comp->get_node_name();
+			const std::string& node_name = comp->get_node_name();
 			if(!node_name.empty())
 			{
-				if(scope.length()) { scope.append(" and "); }
-				scope.append("kubernetes.node.name=").append(node_name);
+				if(event_scope::check(node_name))
+				{
+					if(scope.length()) { scope.append(" and "); }
+					scope.append("kubernetes.node.name=").append(node_name);
+				}
+				else
+				{
+					g_logger.log("K8s invalid scope entry for kubernetes.node.name: [" + node_name + ']', sinsp_logger::SEV_WARNING);
+				}
 			}
 			const std::string& ns = comp->get_namespace();
 			if(!ns.empty())
 			{
-				if(scope.length()) { scope.append(" and "); }
-				scope.append("kubernetes.namespace.name=").append(ns);
+				if(event_scope::check(ns))
+				{
+					if(scope.length()) { scope.append(" and "); }
+					scope.append("kubernetes.namespace.name=").append(ns);
+				}
+				else
+				{
+					g_logger.log("K8s invalid scope entry for kubernetes.namespace.name: [" + ns + ']', sinsp_logger::SEV_WARNING);
+				}
 			}
-			if(scope.length()) { scope.append(" and "); }
-			scope.append("kubernetes.").append(t).append(".name=").append(comp->get_name());
+			const std::string& comp_name = comp->get_name();
+			if(event_scope::check(comp_name))
+			{
+				if(scope.length()) { scope.append(" and "); }
+				scope.append("kubernetes.").append(t).append(".name=").append(comp_name);
+			}
+			else
+			{
+				g_logger.log("K8s invalid scope entry for kubernetes." + t + ".name: [" + comp_name + ']', sinsp_logger::SEV_WARNING);
+			}
 			/* no labels for now
 			for(const auto& label : comp->get_labels())
 			{
 				tags[label.first] = label.second;
-				g_logger.log("EVENT label: [" + label.first + ':' + label.second + ']', sinsp_logger::SEV_DEBUG);
-				scope.append(" and kubernetes.").append(t).append(".label.").append(label.first).append(1, '=').append(label.second);
+				//g_logger.log("EVENT label: [" + label.first + ':' + label.second + ']', sinsp_logger::SEV_DEBUG);
+				if(event_scope::check(label.second))
+				{
+					scope.append(" and kubernetes.").append(t).append(".label.").append(label.first).append(1, '=').append(label.second);
+				}
+				else
+				{
+					g_logger.log("K8s invalid scope entry: [" + label.second + ']', sinsp_logger::SEV_WARNING);
+				}
 			}*/
 		}
 		else if(epoch_time_now_s < (epoch_time_evt_s + 120))
@@ -934,21 +963,35 @@ void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, std:
 {
 	if(ns)
 	{
-		std::string ns_name = get_json_string(obj, "namespace");
+		const std::string& ns_name = get_json_string(obj, "namespace");
 		if(!ns_name.empty())
 		{
-			if(scope.length()) { scope.append(" and "); }
-			scope.append("kubernetes.namespace.name=").append(ns_name);
+			if(event_scope::check(ns_name))
+			{
+				if(scope.length()) { scope.append(" and "); }
+				scope.append("kubernetes.namespace.name=").append(ns_name);
+			}
+			else
+			{
+				g_logger.log("K8s invalid scope entry for kubernetes.namespace.name: [" + ns_name + ']', sinsp_logger::SEV_WARNING);
+			}
 		}
 	}
 	if(comp.length() && ci_compare::is_equal(get_json_string(obj, "kind"), comp))
 	{
-		std::string comp_name = get_json_string(obj, "name");
+		const std::string& comp_name = get_json_string(obj, "name");
 		if(!comp_name.empty())
 		{
-			if(scope.length()) { scope.append(" and "); }
-			comp[0] = tolower(comp[0]);
-			scope.append("kubernetes.").append(comp).append(".name=").append(comp_name);
+			if(event_scope::check(comp_name))
+			{
+				if(scope.length()) { scope.append(" and "); }
+				comp[0] = tolower(comp[0]);
+				scope.append("kubernetes.").append(comp).append(".name=").append(comp_name);
+			}
+			else
+			{
+				g_logger.log("K8s invalid scope entry for kubernetes." + comp_name + ".name: [" + comp_name + ']', sinsp_logger::SEV_WARNING);
+			}
 		}
 		if(comp_name.empty())
 		{

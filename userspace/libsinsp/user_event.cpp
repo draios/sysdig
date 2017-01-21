@@ -20,6 +20,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "user_event.h"
 
+const event_scope::string_list_t event_scope::RESERVED_STRINGS =
+	{"'"/*!must be first!*/, "=", " and "};
+const event_scope::string_list_t event_scope::REPLACEMENT_STRINGS =
+	{"\\'", "='", "' and "}; // !do not change order!
+
 const std::string user_event_meta_t::PERMIT_ALL = "all";
 
 user_event_meta_t::user_event_meta_t(const std::string& kind, const type_list_t& types):
