@@ -1480,9 +1480,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		return;
 	}
 
-lo("***E");
-m_inspector->m_flush_memory_dump = true;
-
 	//
 	// We get here when execve returns. The thread has already been added by a previous fork or clone,
 	// and we just update the entry with the new information.
