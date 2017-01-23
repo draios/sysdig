@@ -14,7 +14,7 @@ ADD http://download.draios.com/${SYSDIG_REPOSITORY}/rpm/draios.repo /etc/yum.rep
 
 RUN rpm --import https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public
 
-RUN rpm -Uvh http://mirrors.kernel.org/fedora-epel/7/x86_64/e/epel-release-7-8.noarch.rpm
+RUN rpm -Uvh http://mirrors.kernel.org/fedora-epel/7/x86_64/e/epel-release-7-9.noarch.rpm
 
 # We delete everything on /usr/src/kernels otherwise
 # it messes up docker-entrypoint.sh
