@@ -1001,6 +1001,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 #endif // HAS_CAPTURE
 }
 
+#ifndef _WIN32
 int scap_proc_scan_proc_table(scap_t *handle)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -1022,6 +1023,11 @@ void scap_refresh_proc_table(scap_t* handle)
 	}
 	scap_proc_scan_proc_table(handle);
 }
+#else
+void scap_refresh_proc_table(scap_t* handle)
+{
+}
+#endif // _WIN32
 
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
 {
