@@ -367,7 +367,6 @@ static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 {
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
@@ -392,7 +391,6 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 {
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
