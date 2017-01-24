@@ -76,6 +76,7 @@ typedef struct scap_device
 //
 struct scap
 {
+	scap_mode_t m_mode;
 	scap_device* m_devs;
 	uint32_t m_ndevs;
 #ifdef USE_ZLIB
@@ -97,6 +98,7 @@ struct scap
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
 	bool refresh_proc_table_when_saving;
+	uint32_t m_fd_lookup_limit;
 	uint64_t m_unexpected_block_readsize;
 };
 

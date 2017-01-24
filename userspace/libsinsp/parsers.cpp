@@ -134,7 +134,7 @@ void sinsp_parser::init_metaevt(metaevents_state& evt_state, uint16_t evt_type, 
 void sinsp_parser::process_event(sinsp_evt *evt)
 {
 	uint16_t etype = evt->m_pevt->type;
-	bool is_live = m_inspector->m_islive;
+	bool is_live = m_inspector->is_live();
 
 	//
 	// Cleanup the event-related state
@@ -213,7 +213,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			}
 			else
 			{
-				if(!m_inspector->m_islive)
+				if(!m_inspector->is_live())
 				{
 					if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
 					{
@@ -1401,7 +1401,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->m_islive);
+			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->is_live());
 			break;
 	}
 
@@ -1601,7 +1601,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		if(evt->m_tinfo->m_container_id.empty() ||
 			(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS))
 		{
-			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->m_islive);
+			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
 		}
 		break;
 	default:
@@ -3051,7 +3051,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 	if(evt->m_fdinfo == NULL)
 	{
-		if(!m_inspector->m_islive)
+		if(!m_inspector->is_live())
 		{
 			if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
 			{
