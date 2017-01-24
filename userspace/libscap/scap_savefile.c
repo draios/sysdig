@@ -42,7 +42,6 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 	{
 		return gzwrite(d->m_f, buf, len);
 	}
-	return 0;
 }
 
 #ifndef _WIN32
@@ -881,7 +880,6 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.filtered_out = 0;
 	tinfo.root[0] = 0;
 	tinfo.sid = -1;
-	tinfo.clone_ts = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
