@@ -836,6 +836,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #endif
 }
 
+#ifndef _WIN32
 static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	static scap_evt evt;
@@ -852,6 +853,7 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 	*pevent = &evt;
 	return SCAP_SUCCESS;
 }
+#endif // _WIN32
 
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
@@ -865,9 +867,11 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 	case SCAP_MODE_LIVE:
 		res = scap_next_live(handle, pevent, pcpuid);
 		break;
+#ifndef _WIN32
 	case SCAP_MODE_NODRIVER:
 		res = scap_next_nodriver(handle, pevent, pcpuid);
 		break;
+#endif
 	default:
 		res = SCAP_FAILURE;
 	}
