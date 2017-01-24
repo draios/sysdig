@@ -691,12 +691,12 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 
 	// These values should be read already from /status file, leave these
 	// fallback functions for older kernels < 4.1
-	if(tinfo->vtid == -1 && scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
+	if(tinfo->vtid == 0 && scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
 	{
 		tinfo->vtid = tinfo->tid;
 	}
 
-	if(tinfo->vpid == -1 && scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
+	if(tinfo->vpid == 0 && scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
 	{
 		tinfo->vpid = tinfo->pid;
 	}
