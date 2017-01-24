@@ -42,6 +42,7 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 	{
 		return gzwrite(d->m_f, buf, len);
 	}
+	return 0;
 }
 
 #ifndef _WIN32
