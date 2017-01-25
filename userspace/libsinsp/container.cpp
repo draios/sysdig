@@ -332,8 +332,12 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		{
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
-			valid_id = true;
-			set_mesos_task_id(&container_info, tinfo);
+			// Consider a mesos container valid only if we find the mesos_task_id
+			// this will exclude from the container itself the mesos-executor
+			// but makes sure that we have task_id parsed properly. Otherwise what happens
+			// is that we'll create a mesos container struct without a mesos_task_id
+			// and for all other processes we'll use it
+			valid_id = set_mesos_task_id(&container_info, tinfo);
 			break;
 		}
 	}
@@ -341,6 +345,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	string rkt_podid, rkt_appname;
 	if(!valid_id)
 	{
+		tinfo->m_container_id = "";
+
 		// Try parsing from process root,
 		// Strings used to detect rkt stage1-cores pods
 		static const string COREOS_PREFIX = "/opt/stage2/";
@@ -403,7 +409,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			}
 		}
 	}
-	if(valid_id)
+	else
 	{
 		tinfo->m_container_id = container_info.m_id;
 

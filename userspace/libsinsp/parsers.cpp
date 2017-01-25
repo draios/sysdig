@@ -134,7 +134,7 @@ void sinsp_parser::init_metaevt(metaevents_state& evt_state, uint16_t evt_type, 
 void sinsp_parser::process_event(sinsp_evt *evt)
 {
 	uint16_t etype = evt->m_pevt->type;
-	bool is_live = m_inspector->m_islive;
+	bool is_live = m_inspector->is_live();
 
 	//
 	// Cleanup the event-related state
@@ -213,7 +213,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			}
 			else
 			{
-				if(!m_inspector->m_islive)
+				if(!m_inspector->is_live())
 				{
 					if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
 					{
@@ -948,9 +948,23 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// clone() returns 0 in the child.
 		//
-
 		int64_t parenttid;
 
+		//
+		// Before embarking in parsing the event, check if there's already
+		// an entry in the thread table for this process. If there is one, make sure
+		// it was created recently. Otherwise, assume it's an old thread for which
+		// we lost the exit event and remove it from the table.
+		//
+		if(evt->m_tinfo && evt->m_tinfo->m_clone_ts != 0)
+		{
+			if(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS)
+			{
+				m_inspector->remove_thread(tid, true);
+				evt->m_tinfo = NULL;
+			}
+		}
+	
 		//
 		// Check if this is a process or a new thread
 		//
@@ -971,32 +985,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(5);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			parenttid = *(int64_t *)parinfo->m_val;
-		}
-
-		//
-		// If the threadinfo in the event exists, and we're in
-		// a container, the threadinfo in the event must be
-		// stale (e.g. from a prior process with the same
-		// tid), because only the child side of a clone
-		// creates the threadinfo for the child. Clear and
-		// remove the old threadinfo.
-		//
-		if(evt->m_tinfo && in_container)
-		{
-			// See if the parent thread is in a
-			// container. If it is, the parent thread
-			// did *not* create the thread for this child,
-			// and any existing thread state must be
-			// stale.
-
-			sinsp_threadinfo* ptinfo = m_inspector->get_thread(parenttid, false, true);
-
-
-			if(ptinfo && ptinfo->m_tid != ptinfo->m_vtid)
-			{
-				m_inspector->remove_thread(tid, true);
-				evt->m_tinfo = NULL;
-			}
 		}
 
 		// Validate that the child thread info has actually been created.
@@ -1413,7 +1401,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->m_islive);
+			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->is_live());
 			break;
 	}
 
@@ -1585,9 +1573,15 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		//
 		parinfo = evt->get_param(14);
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
-		if(evt->m_tinfo->m_container_id.empty())
+
+		//
+		// If the thread info has no container ID, or if the clone happened a long 
+		// time ago, recreate the container information.
+		//
+		if(evt->m_tinfo->m_container_id.empty() ||
+			(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS))
 		{
-			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->m_islive);
+			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
 		}
 		break;
 	default:
@@ -3013,7 +3007,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 	if(evt->m_fdinfo == NULL)
 	{
-		if(!m_inspector->m_islive)
+		if(!m_inspector->is_live())
 		{
 			if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
 			{

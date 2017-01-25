@@ -1302,6 +1302,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads that the process generating the event currently has. This excludes the main process thread."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.ppid", "the pid of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "the name (excluding the path) of the parent of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pcmdline", "the full command line (proc.name + proc.args) of the parent of the process generating the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.apid", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process. proc.apid without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.apid=1234."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "the name (excluding the path) of one of the process ancestors. E.g. proc.aname[1] returns the parent name, proc.aname[2] returns the grandparent name, and so on. proc.aname[0] is the name of the current process. proc.aname without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.aname=bash."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.loginshellid", "the pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
@@ -1567,6 +1568,23 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_thr
 	return NULL;
 }
 
+static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
+{
+	cmdline = tinfo->get_comm() + " ";
+
+	uint32_t j;
+	uint32_t nargs = (uint32_t)tinfo->m_args.size();
+
+	for(j = 0; j < nargs; j++)
+	{
+		cmdline += tinfo->m_args[j];
+		if(j < nargs -1)
+		{
+			cmdline += ' ';
+		}
+	}
+}
+
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -1674,20 +1692,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CMDLINE:
 		{
-			m_tstr = tinfo->get_comm() + " ";
-
-			uint32_t j;
-			uint32_t nargs = (uint32_t)tinfo->m_args.size();
-
-			for(j = 0; j < nargs; j++)
-			{
-				m_tstr += tinfo->m_args[j];
-				if(j < nargs -1)
-				{
-					m_tstr += ' ';
-				}
-			}
-
+			populate_cmdline(m_tstr, tinfo);
 			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
@@ -1794,6 +1799,22 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			if(ptinfo != NULL)
 			{
 				m_tstr = ptinfo->get_comm();
+				*len = m_tstr.size();
+				return (uint8_t*)m_tstr.c_str();
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+	case TYPE_PCMDLINE:
+		{
+			sinsp_threadinfo* ptinfo =
+				m_inspector->get_thread(tinfo->m_ptid, false, true);
+
+			if(ptinfo != NULL)
+			{
+				populate_cmdline(m_tstr, ptinfo);
 				*len = m_tstr.size();
 				return (uint8_t*)m_tstr.c_str();
 			}

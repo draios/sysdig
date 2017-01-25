@@ -24,6 +24,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mesos_auth.h"
 
+using namespace std;
+
 mesos_auth::mesos_auth(const uri::credentials_t& dcos_enterprise_credentials,
 		       string auth_hostname,
 		       int token_refresh_interval)
@@ -52,36 +54,47 @@ string mesos_auth::get_token()
 void mesos_auth::authenticate()
 {
 #ifdef HAS_CAPTURE
-	sinsp_curl auth_request(m_auth_uri, "", "");
-	Json::FastWriter json_writer;
-	Json::Value auth_obj;
-	auth_obj["uid"] = m_dcos_enterprise_credentials.first;
-	auth_obj["password"] = m_dcos_enterprise_credentials.second;
-	auth_request.add_header("Content-Type: application/json");
-	auth_request.setopt(CURLOPT_POST, 1);
-	auth_request.set_body(json_writer.write(auth_obj));
-	//auth_request.enable_debug();
-	auto response = auth_request.get_data();
 
-	if(auth_request.get_response_code() == 200)
+	try
 	{
-		Json::Reader json_reader;
-		Json::Value response_obj;
-		auto parse_ok = json_reader.parse(response, response_obj, false);
-		if(parse_ok && response_obj.isMember("token"))
+		sinsp_curl auth_request(m_auth_uri, "", "");
+		Json::FastWriter json_writer;
+		Json::Value auth_obj;
+		auth_obj["uid"] = m_dcos_enterprise_credentials.first;
+		auth_obj["password"] = m_dcos_enterprise_credentials.second;
+		auth_request.add_header("Content-Type: application/json");
+		auth_request.setopt(CURLOPT_POST, 1);
+		auth_request.set_body(json_writer.write(auth_obj));
+		//auth_request.enable_debug();
+		auto response = auth_request.get_data();
+
+		if(auth_request.get_response_code() == 200)
 		{
-			m_token = response_obj["token"].asString();
-			g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
-		}
-		else
+			Json::Reader json_reader;
+			Json::Value response_obj;
+			auto parse_ok = json_reader.parse(response, response_obj, false);
+			if(parse_ok && response_obj.isMember("token"))
+			{
+				m_token = response_obj["token"].asString();
+				g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
+			}
+			else
+			{
+				throw sinsp_exception(string("Cannot authenticate on Mesos master, response=") + response);
+			}
+		} else
 		{
-			throw sinsp_exception(string("Cannot authenticate on Mesos master, response=") + response);
+			throw sinsp_exception(string("Cannot authenticate on Mesos master, response_code=") + to_string(auth_request.get_response_code()));
 		}
-	} else
-	{
-		throw sinsp_exception(string("Cannot authenticate on Mesos master, response_code=") + to_string(auth_request.get_response_code()));
+		time(&m_last_token_refresh_s);
 	}
-	time(&m_last_token_refresh_s);
+	catch(std::exception& e)
+	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"Could not fetch authentication token via %s: %s",
+				m_auth_uri.to_string().c_str(),
+				e.what());
+	}
 #endif // HAS_CAPTURE
 }
 

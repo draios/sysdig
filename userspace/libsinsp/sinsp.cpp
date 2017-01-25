@@ -259,7 +259,7 @@ void sinsp::init()
 		m_cycle_writer = NULL;
 	}
 
-	m_cycle_writer = new cycle_writer(this->is_live());
+	m_cycle_writer = new cycle_writer(is_live());
 
 	//
 	// Basic inits
@@ -292,7 +292,7 @@ void sinsp::init()
 	// importing the thread table, so that thread table filtering will work with
 	// container filters
 	//
-	if(m_islive == false)
+	if(is_capture())
 	{
 		uint64_t off = scap_ftell(m_h);
 		scap_evt* pevent;
@@ -335,7 +335,7 @@ void sinsp::init()
 		}
 	}
 
-	if(m_islive == false || m_filter_proc_table_when_saving == true)
+	if(is_capture() || m_filter_proc_table_when_saving == true)
 	{
 		import_thread_table();
 	}
@@ -373,7 +373,7 @@ void sinsp::init()
 	}
 
 #if defined(HAS_CAPTURE)
-	if(m_islive)
+	if(m_mode == SCAP_MODE_LIVE)
 	{
 		if(scap_getpid_global(m_h, &m_sysdig_pid) != SCAP_SUCCESS)
 		{
@@ -394,7 +394,44 @@ void sinsp::open(uint32_t timeout_ms)
 
 	g_logger.log("starting live capture");
 
-	m_islive = true;
+	//
+	// Reset the thread manager
+	//
+	m_thread_manager->clear();
+
+	//
+	// Start the capture
+	//
+	m_mode = SCAP_MODE_LIVE;
+	scap_open_args oargs;
+	oargs.mode = SCAP_MODE_LIVE;
+	oargs.fname = NULL;
+	oargs.proc_callback = NULL;
+	oargs.proc_callback_context = NULL;
+	if(!m_filter_proc_table_when_saving)
+	{
+		oargs.proc_callback = ::on_new_entry_from_proc;
+		oargs.proc_callback_context = this;
+	}
+	oargs.import_users = m_import_users;
+
+	m_h = scap_open(oargs, error);
+
+	if(m_h == NULL)
+	{
+		throw sinsp_exception(error);
+	}
+
+	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
+
+	init();
+}
+
+void sinsp::open_nodriver()
+{
+	char error[SCAP_LASTERR_SIZE];
+
+	g_logger.log("starting nodriver sinsp");
 
 	//
 	// Reset the thread manager
@@ -404,7 +441,9 @@ void sinsp::open(uint32_t timeout_ms)
 	//
 	// Start the capture
 	//
+	m_mode = SCAP_MODE_NODRIVER;
 	scap_open_args oargs;
+	oargs.mode = SCAP_MODE_NODRIVER;
 	oargs.fname = NULL;
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
@@ -485,8 +524,6 @@ void sinsp::open(string filename)
 {
 	char error[SCAP_LASTERR_SIZE] = {0};
 
-	m_islive = false;
-
 	if(filename == "")
 	{
 		open();
@@ -505,7 +542,9 @@ void sinsp::open(string filename)
 	//
 	// Start the capture
 	//
+	m_mode = SCAP_MODE_CAPTURE;
 	scap_open_args oargs;
+	oargs.mode = SCAP_MODE_CAPTURE;
 	oargs.fname = filename.c_str();
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
@@ -625,8 +664,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 	//
 	// Retrieve machine information if we don't have it yet
-	//
-	if(m_machine_info == NULL)
+	//proc
 	{
 		m_machine_info = scap_get_machine_info(newhandle);
 		if(m_machine_info != NULL)
@@ -647,8 +685,18 @@ void sinsp::on_new_entry_from_proc(void* context,
 	{
 		sinsp_threadinfo newti(this);
 		newti.init(tinfo);
-
-		m_thread_manager->add_thread(newti, true);
+		if(is_nodriver())
+		{
+			auto sinsp_tinfo = find_thread(tid, true);
+			if(sinsp_tinfo == nullptr || newti.m_clone_ts > sinsp_tinfo->m_clone_ts)
+			{
+				m_thread_manager->add_thread(newti, true);
+			}
+		}
+		else
+		{
+			m_thread_manager->add_thread(newti, true);
+		}
 	}
 	else
 	{
@@ -741,7 +789,7 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 void sinsp::refresh_ifaddr_list()
 {
 #ifdef HAS_CAPTURE
-	if(m_islive)
+	if(!is_capture())
 	{
 		ASSERT(m_network_interfaces);
 		scap_refresh_iflist(m_h);
@@ -812,10 +860,34 @@ void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 	}
 }
 
+void sinsp::restart_capture_at_filepos(uint64_t filepos)
+{
+	//
+	// Backup a couple of settings
+	//
+	uint64_t evtnum = m_nevts;
+	string filterstring = m_filterstring;
+
+	//
+	// Close and reopen the capture
+	//
+	m_file_start_offset = filepos;
+	close();
+	open(m_input_filename);
+
+	//
+	// Set again the backuped settings
+	//
+	m_evt.m_evtnum = evtnum;
+	m_nevts = evtnum;
+	set_filter(filterstring);
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
+
 
 	//
 	// Check if there are fake cpu events to  events
@@ -888,10 +960,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			else if(res == SCAP_UNEXPECTED_BLOCK)
 			{
 				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
-				m_file_start_offset = filepos;
-				close();
-				open(m_input_filename);
+				restart_capture_at_filepos(filepos);
 				return SCAP_TIMEOUT;
+
 			}
 			else
 			{
@@ -912,7 +983,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
-	if(m_get_procs_cpu_from_driver && m_islive)
+	if(m_get_procs_cpu_from_driver && is_live())
 	{
 		if(ts > m_next_flush_time_ns)
 		{
@@ -978,7 +1049,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Run the periodic connection and thread table cleanup
 	//
-	if(m_islive)
+	if(!is_capture())
 	{
 		m_thread_manager->remove_inactive_threads();
 		m_container_manager.remove_inactive_containers();
@@ -1289,16 +1360,9 @@ void sinsp::set_snaplen(uint32_t snaplen)
 		return;
 	}
 
-	if(scap_set_snaplen(m_h, snaplen) != SCAP_SUCCESS)
+	if(is_live() && scap_set_snaplen(m_h, snaplen) != SCAP_SUCCESS)
 	{
-		//
-		// We know that setting the snaplen on a file doesn't do anything and
-		// we're ok with it.
-		//
-		if(m_islive)
-		{
-			throw sinsp_exception(scap_getlasterr(m_h));
-		}
+		throw sinsp_exception(scap_getlasterr(m_h));
 	}
 }
 
@@ -1320,7 +1384,7 @@ void sinsp::start_capture()
 
 void sinsp::stop_dropping_mode()
 {
-	if(m_islive)
+	if(m_mode == SCAP_MODE_LIVE)
 	{
 		g_logger.format(sinsp_logger::SEV_INFO, "stopping drop mode");
 
@@ -1333,7 +1397,7 @@ void sinsp::stop_dropping_mode()
 
 void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 {
-	if(m_islive)
+	if(m_mode == SCAP_MODE_LIVE)
 	{
 		g_logger.format(sinsp_logger::SEV_INFO, "setting drop mode to %" PRIu32, sampling_ratio);
 
