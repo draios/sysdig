@@ -109,7 +109,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 			lua_pushnumber(ls, *(double*)rawval);
 			return 1;
 		case PT_CHARBUF:
-			lua_pushstring(ls, (char*)rawval);
+			lua_pushlstring(ls, (char*)rawval, len);
 			return 1;
 		case PT_BYTEBUF:
 			if(rawval[len] == 0)
