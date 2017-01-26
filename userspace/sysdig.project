@@ -197,6 +197,12 @@
     <File Name="libsinsp/k8s_api_error.h"/>
     <File Name="libsinsp/k8s_api_error.cpp"/>
     <File Name="libsinsp/filter_value.h"/>
+    <File Name="libsinsp/mesos_auth.h"/>
+    <File Name="libsinsp/stopwatch.h"/>
+    <File Name="libsinsp/http_parser.h"/>
+    <File Name="libsinsp/stopwatch.cpp"/>
+    <File Name="libsinsp/mesos_auth.cpp"/>
+    <File Name="libsinsp/http_parser.c"/>
   </VirtualDirectory>
   <VirtualDirectory Name="libscap">
     <VirtualDirectory Name="examples">
