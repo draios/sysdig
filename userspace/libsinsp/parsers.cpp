@@ -3553,6 +3553,18 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 		// Add the new fd to the table.
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, evt->m_fdinfo);
+
+		//
+		// Heuristic to determine if a thread is part of a shell pipe
+		//
+		if(retval == 1)
+		{
+			evt->m_tinfo->m_flags |= PPM_CL_PIPE_DST;
+		}
+		if(retval == 2)
+		{
+			evt->m_tinfo->m_flags |= PPM_CL_PIPE_SRC;
+		}
 	}
 }
 

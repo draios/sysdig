@@ -134,6 +134,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for
 										   this thread. */
 #define PPM_CL_CLONE_NEWUSER (1 << 20)
+#define PPM_CL_PIPE_SRC (1 << 21)			/* libsinsp-specific flag. Set if this thread has been 
+										       detected to be the source in a shell pipe. */
+#define PPM_CL_PIPE_DST (1 << 22)			/* libsinsp-specific flag. Set if this thread has been 
+										       detected to be the destination in a shell pipe. */
 
 /*
  * Futex Operations
