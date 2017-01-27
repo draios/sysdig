@@ -1616,10 +1616,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	//  scap_fd_free_table(handle, tinfo);
 
 	//
-	// Clear the flags for this thread, making sure to propagate the inverted flag
+	// Clear the flags for this thread, making sure to propagate the inverted 
+	// and shell pipe flags
 	//
+
+	auto spf = evt->m_tinfo->m_flags & (PPM_CL_PIPE_SRC | PPM_CL_PIPE_DST);
 	bool inverted = ((evt->m_tinfo->m_flags & PPM_CL_CLONE_INVERTED) != 0);
+
 	evt->m_tinfo->m_flags = PPM_CL_ACTIVE;
+
+	evt->m_tinfo->m_flags |= spf;
 	if(inverted)
 	{
 		evt->m_tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
