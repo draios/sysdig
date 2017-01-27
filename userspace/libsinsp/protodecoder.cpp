@@ -299,6 +299,12 @@ const char* sinsp_decoder_syslog::get_facility_str()
 
 void sinsp_decoder_syslog::decode_message(char *data, uint32_t len, char* pristr, uint32_t pristrlen)
 {
+	if(len < pristrlen + 2 || pristrlen == 0)
+	{
+		m_priority = -1;
+		return;
+	}
+
 	bool res = sinsp_numparser::tryparsed32_fast(pristr, pristrlen, &m_priority);
 
 	if(!res)
