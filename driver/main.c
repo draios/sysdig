@@ -178,10 +178,12 @@ static struct tracepoint *tp_signal_deliver;
 #ifdef _DEBUG
 static bool verbose = 1;
 #else
-static bool verbose = 0;
+static bool verbose = 1;
 #endif
 
 static unsigned int max_consumers = 5;
+
+static enum cpuhp_state hp_state = 0;
 
 #define vpr_info(fmt, ...)					\
 do {								\
@@ -1955,36 +1957,13 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 }
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
-/*
- * This gets called every time a CPU is added or removed
- */
-static int cpu_callback(struct notifier_block *self, unsigned long action,
-			void *hcpu)
+static void do_cpu_callback(long cpu, long sd_action)
 {
-	long cpu = (long)hcpu;
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_consumer_t *consumer;
 	bool event_recorded = false;
 	struct timespec ts;
 	struct event_data_t event_data;
-	long sd_action = 0;
-
-	switch (action) {
-	case CPU_UP_PREPARE:
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	case CPU_UP_PREPARE_FROZEN:
-#endif
-		sd_action = 1;
-		break;
-	case CPU_DOWN_PREPARE:
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	case CPU_DOWN_PREPARE_FROZEN:
-#endif
-		sd_action = 2;
-		break;
-	default:
-		break;
-	}
 
 	/*
 	 * Based on the action, spit an event in the first available ring
@@ -2010,6 +1989,50 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 
 		rcu_read_unlock();
 	}
+}
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+static int dyncpu_up(unsigned int cpu)
+{
+	pr_info("dyncpu_up on cpu %d\n", cpu);
+	do_cpu_callback(cpu, 1);
+	return 0;
+}
+
+static int dyncpu_down(unsigned int cpu)
+{
+	pr_info("dyncpu_down on cpu %d\n", cpu);
+	do_cpu_callback(cpu, 2);
+	return 0;
+}
+#else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)) */
+/*
+ * This gets called every time a CPU is added or removed
+ */
+static int cpu_callback(struct notifier_block *self, unsigned long action,
+			void *hcpu)
+{
+	long cpu = (long)hcpu;
+	long sd_action = 0;
+
+	switch (action) {
+	case CPU_UP_PREPARE:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	case CPU_UP_PREPARE_FROZEN:
+#endif
+		sd_action = 1;
+		break;
+	case CPU_DOWN_PREPARE:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	case CPU_DOWN_PREPARE_FROZEN:
+#endif
+		sd_action = 2;
+		break;
+	default:
+		break;
+	}
+
+	do_cpu_callback(cpu, sd_action);
 
 	return NOTIFY_DONE;
 }
@@ -2018,6 +2041,7 @@ static struct notifier_block cpu_notifier = {
 	.notifier_call = &cpu_callback,
 	.next = NULL,
 };
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0) */
 
 int sysdig_init(void)
 {
@@ -2026,6 +2050,7 @@ int sysdig_init(void)
 	unsigned int num_cpus;
 	int ret;
 	int acrret = 0;
+	int hp_ret;
 	int j;
 	int n_created_devices = 0;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -2129,7 +2154,20 @@ int sysdig_init(void)
 	 * Set up our callback in case we get a hotplug even while we are
 	 * initializing the cpu structures
 	 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+	hp_ret = cpuhp_setup_state(CPUHP_AP_ONLINE_DYN,
+					   "sysdig/probe:online",
+					   dyncpu_up,
+					   dyncpu_down);
+	if (hp_ret <= 0) {
+		pr_err("error registering cpu hotplug callback\n");
+		ret = hp_ret;
+		goto init_module_err;
+	}
+	hp_state = hp_ret;
+#else
 	register_cpu_notifier(&cpu_notifier);
+#endif
 
 	/*
 	 * All ok. Final initalizations.
@@ -2139,6 +2177,11 @@ int sysdig_init(void)
 	return 0;
 
 init_module_err:
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+	if (hp_state > 0)
+		cpuhp_remove_state(hp_state);
+#endif
+
 	for (j = 0; j < n_created_devices; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
@@ -2178,7 +2221,12 @@ void sysdig_exit(void)
 	tracepoint_synchronize_unregister();
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+	if (hp_state > 0)
+		cpuhp_remove_state(hp_state);
+#else
 	unregister_cpu_notifier(&cpu_notifier);
+#endif
 }
 
 module_init(sysdig_init);
