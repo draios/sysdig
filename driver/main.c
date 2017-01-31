@@ -118,6 +118,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 	struct event_data_t *event_datap);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
+static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
@@ -183,7 +184,9 @@ static bool verbose = 1;
 
 static unsigned int max_consumers = 5;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 static enum cpuhp_state hp_state = 0;
+#endif
 
 #define vpr_info(fmt, ...)					\
 do {								\
@@ -248,9 +251,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 
 		for_each_possible_cpu(cpu) {
 			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
-
-			if (ring->cpu_online)
-				free_ring_buffer(ring);
+			free_ring_buffer(ring);
 		}
 
 		free_percpu(consumer->ring_buffers);
@@ -335,7 +336,6 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		for_each_possible_cpu(cpu) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
-			ring->cpu_online = false;
 			ring->str_storage = NULL;
 			ring->buffer = NULL;
 			ring->info = NULL;
@@ -351,8 +351,6 @@ static int ppm_open(struct inode *inode, struct file *filp)
 				ret = -ENOMEM;
 				goto err_init_ring_buffer;
 			}
-
-			ring->cpu_online = true;
 		}
 
 		list_add_rcu(&consumer->node, &g_consumer_list);
@@ -367,7 +365,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 * Check if the CPU pointed by this device is online. If it isn't stop here and
 	 * return ENODEV.
 	 */
-	if (ring->cpu_online == false) {
+	if (ring->buffer == NULL) {
 		ret = -ENODEV;
 		goto cleanup_open;
 	}
@@ -396,16 +394,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->need_to_insert_drop_e = 0;
 	consumer->need_to_insert_drop_x = 0;
 	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
-	ring->info->head = 0;
-	ring->info->tail = 0;
-	ring->nevents = 0;
-	ring->info->n_evts = 0;
-	ring->info->n_drops_buffer = 0;
-	ring->info->n_drops_pf = 0;
-	ring->info->n_preemptions = 0;
-	ring->info->n_context_switches = 0;
-	ring->capture_enabled = false;
-	getnstimeofday(&ring->last_print_time);
+	reset_ring_buffer(ring);
 	ring->open = true;
 
 	if (!g_tracepoint_registered) {
@@ -1813,7 +1802,7 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->str_storage = (char *)__get_free_page(GFP_USER);
 	if (!ring->str_storage) {
 		pr_err("Error allocating the string storage\n");
-		goto err_str_storage;
+		goto init_ring_err;
 	}
 
 	/*
@@ -1824,7 +1813,7 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
 	if (ring->buffer == NULL) {
 		pr_err("Error allocating ring memory\n");
-		goto err_buffer;
+		goto init_ring_err;
 	}
 
 	for (j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
@@ -1836,12 +1825,44 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->info = vmalloc(sizeof(struct ppm_ring_buffer_info));
 	if (ring->info == NULL) {
 		pr_err("Error allocating ring memory\n");
-		goto err_ring_info;
+		goto init_ring_err;
 	}
 
 	/*
 	 * Initialize the buffer info structure
 	 */
+	reset_ring_buffer(ring);
+	atomic_set(&ring->preempt_count, 0);
+
+	pr_info("CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
+
+	return 1;
+
+init_ring_err:
+	free_ring_buffer(ring);
+	return 0;
+}
+
+static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
+{
+	if (ring->info) {
+		vfree(ring->info);
+		ring->info = NULL;
+	}
+
+	if (ring->buffer) {
+		vfree((void *)ring->buffer);
+		ring->buffer = NULL;
+	}
+
+	if (ring->str_storage) {
+		free_page((unsigned long)ring->str_storage);
+		ring->str_storage = NULL;
+	}
+}
+
+static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
+{
 	ring->open = false;
 	ring->capture_enabled = false;
 	ring->info->head = 0;
@@ -1852,33 +1873,7 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;
-	atomic_set(&ring->preempt_count, 0);
 	getnstimeofday(&ring->last_print_time);
-
-	pr_info("CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
-
-	return 1;
-
-err_ring_info:
-	vfree((void *)ring->buffer);
-	ring->buffer = NULL;
-err_buffer:
-	free_page((unsigned long)ring->str_storage);
-	ring->str_storage = NULL;
-err_str_storage:
-	return 0;
-}
-
-static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
-{
-	if (ring->info)
-		vfree(ring->info);
-
-	if (ring->buffer)
-		vfree((void *)ring->buffer);
-
-	if (ring->str_storage)
-		free_page((unsigned long)ring->str_storage);
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
@@ -1973,16 +1968,24 @@ static void do_cpu_callback(long cpu, long sd_action)
 
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
-			ring->capture_enabled = false;
-
-			getnstimeofday(&ts);
-
-			event_data.category = PPMC_CONTEXT_SWITCH;
-			event_data.event_info.context_data.sched_prev = (void *)cpu;
-			event_data.event_info.context_data.sched_next = (void *)sd_action;
+			if (sd_action == 1) {
+				// XXX we have the consumer list, is it safe
+				// to access consumers and rings? Need mutex?
+				if (ring->buffer == NULL)
+					init_ring_buffer(ring);
+				ring->capture_enabled = true;
+			} else if (sd_action == 2)
+				ring->capture_enabled = false;
 
 			if (!event_recorded) {
+				getnstimeofday(&ts);
+
+				event_data.category = PPMC_CONTEXT_SWITCH;
+				event_data.event_info.context_data.sched_prev = (void *)cpu;
+				event_data.event_info.context_data.sched_next = (void *)sd_action;
+
 				record_event_consumer(consumer, PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &ts, &event_data);
+				vpr_info("rercording PPME_CPU_HOTPLUG_E event");
 				event_recorded = true;
 			}
 		}
