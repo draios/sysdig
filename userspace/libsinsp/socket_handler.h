@@ -14,6 +14,7 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_auth.h"
+#include "http_reason.h"
 #include "json_query.h"
 #include <unistd.h>
 #include <fcntl.h>
@@ -1587,14 +1588,9 @@ private:
 		}
 	}
 
-	static std::string get_http_reason(int http_response)
+	static std::string get_http_reason(int status)
 	{
-		auto it = m_http_reason_map.find(http_response);
-		if(it != m_http_reason_map.end())
-		{
-			return it->second;
-		}
-		return "Unknown";
+		return http_reason::get(status);
 	}
 
 	typedef std::deque<struct gaicb**> dns_list_t;
@@ -1645,8 +1641,6 @@ private:
 	http_parser*             m_http_parser = nullptr;
 	http_parser_data         m_http_parser_data;
 	unsigned                 m_data_limit = 524288; // bytes
-
-	static std::map<int, std::string> m_http_reason_map;
 };
 
 template <typename T>
@@ -1655,68 +1649,5 @@ template <typename T>
 const std::string socket_data_handler<T>::HTTP_VERSION_11 = "1.1";
 template <typename T>
 typename socket_data_handler<T>::dns_list_t socket_data_handler<T>::m_pending_dns_reqs;
-template <typename T>
-std::map<int, std::string> socket_data_handler<T>::m_http_reason_map =
-	  { { 100, "Continue" },
-		{ 101, "Switching Protocols" },
-		{ 102, "Processing" },
-		{ 200, "OK" },
-		{ 201, "Created" },
-		{ 202, "Accepted" },
-		{ 203, "Non-Authoritative Information" },
-		{ 204, "No Content" },
-		{ 205, "Reset Content" },
-		{ 206, "Partial Content" },
-		{ 207, "Multi Status" },
-		{ 208, "Already Reported" },
-		{ 226, "IM Used" },
-		{ 300, "Multiple Choices" },
-		{ 301, "Moved Permanently" },
-		{ 302, "Found" },
-		{ 303, "See Other" },
-		{ 304, "Not Modified" },
-		{ 305, "Use Proxy" },
-		{ 307, "Temporary Redirect" },
-		{ 308, "Permanent Redirect" },
-		{ 400, "Bad Request" },
-		{ 401, "Unauthorized" },
-		{ 402, "Payment Required" },
-		{ 403, "Forbidden" },
-		{ 404, "Not Found" },
-		{ 405, "Method Not Allowed" },
-		{ 406, "Not Acceptable" },
-		{ 407, "Proxy Authentication Required" },
-		{ 408, "Request Time-out" },
-		{ 409, "Conflict" },
-		{ 410, "Gone" },
-		{ 411, "Length Required" },
-		{ 412, "Precondition Failed" },
-		{ 413, "Request Entity Too Large" },
-		{ 414, "Request-URI Too Long" },
-		{ 415, "Unsupported Media Type" },
-		{ 416, "Requested Range Not Satisfiable" },
-		{ 417, "Expectation Failed" },
-		{ 418, "I'm a Teapot" },
-		{ 420, "Enchance Your Calm" },
-		{ 421, "Misdirected Request" },
-		{ 422, "Unprocessable Entity" },
-		{ 423, "Locked" },
-		{ 424, "Failed Dependency" },
-		{ 426, "Upgrade Required" },
-		{ 428, "Precondition Required" },
-		{ 429, "Too Many Requests" },
-		{ 431, "Request Header Fields Too Large" },
-		{ 451, "Unavailable For Legal Reasons" },
-		{ 500, "Internal Server Error" },
-		{ 501, "Not Implemented" },
-		{ 502, "Bad Gateway" },
-		{ 503, "Service Unavailable" },
-		{ 504, "Gateway Time-Out" },
-		{ 505, "HTTP Version Not Supported" },
-		{ 506, "Variant Also Negotiates" },
-		{ 507, "Insufficient Storage" },
-		{ 508, "Loop Detected" },
-		{ 510, "Not Extended" },
-		{ 511, "Network Authentication Required" } };
 
 #endif // HAS_CAPTURE

@@ -30,6 +30,7 @@ add_library(sinsp STATIC
 	filter.cpp
 	filterchecks.cpp
 	http_parser.c
+	http_reason.cpp
 	ifinfo.cpp
 	json_query.cpp
 	k8s.cpp
