@@ -805,7 +805,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	std::string event_name;
 	std::string description;
 	severity_t  severity = sinsp_logger::SEV_EVT_INFORMATION;
-	std::string scope;
+	event_scope scope;
 	tag_map_t   tags;
 
 	const Json::Value& obj = item["involvedObject"];
@@ -878,17 +878,17 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 			const std::string& node_name = comp->get_node_name();
 			if(!node_name.empty())
 			{
-				event_scope::assemble(scope, "kubernetes.node.name", node_name);
+				scope.add("kubernetes.node.name", node_name);
 			}
 			const std::string& ns = comp->get_namespace();
 			if(!ns.empty())
 			{
-				event_scope::assemble(scope, "kubernetes.namespace.name", ns);
+				scope.add("kubernetes.namespace.name", ns);
 			}
 			const std::string& comp_name = comp->get_name();
 			if(comp_name.empty())
 			{
-				event_scope::assemble(scope, std::string("kubernetes.").append(t).append(".name"), comp_name);
+				scope.add(std::string("kubernetes.").append(t).append(".name"), comp_name);
 			}
 			/* no labels for now
 			for(const auto& label : comp->get_labels())
@@ -930,7 +930,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 
 	tags["source"] = "kubernetes";
 	g_logger.log(sinsp_user_event::to_string(epoch_time_evt_s, std::move(event_name), std::move(description),
-											std::move(scope), std::move(tags)), severity);
+											 std::move(scope), std::move(tags)), severity);
 
 	// TODO: sysdig capture?
 #endif // _WIN32
@@ -938,14 +938,14 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	return true;
 }
 
-void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, std::string& scope, bool ns)
+void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, event_scope& scope, bool ns)
 {
 	if(ns)
 	{
 		const std::string& ns_name = get_json_string(obj, "namespace");
 		if(!ns_name.empty())
 		{
-			event_scope::assemble(scope, "kubernetes.namespace.name", ns_name);
+			scope.add("kubernetes.namespace.name", ns_name);
 		}
 	}
 	if(comp.length() && ci_compare::is_equal(get_json_string(obj, "kind"), comp))
@@ -954,7 +954,7 @@ void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, std:
 		if(!comp_name.empty())
 		{
 			comp[0] = tolower(comp[0]);
-			event_scope::assemble(scope, std::string("kubernetes.").append(comp).append(".name"), comp_name);
+			scope.add(std::string("kubernetes.").append(comp).append(".name"), comp_name);
 		}
 		if(comp_name.empty())
 		{
@@ -967,7 +967,7 @@ void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, std:
 	}
 }
 
-void k8s_event_t::make_scope(const Json::Value& obj, std::string& scope)
+void k8s_event_t::make_scope(const Json::Value& obj, event_scope& scope)
 {
 	if(ci_compare::is_equal(get_json_string(obj, "kind"), "Pod"))
 	{

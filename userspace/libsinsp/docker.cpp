@@ -340,14 +340,10 @@ void docker::handle_event(Json::Value&& root)
 				{
 					image = img.asString();
 				}
-				std::string scope;
+				event_scope scope;
 				if(m_machine_id.length())
 				{
-					event_scope::assemble(scope, "host.mac", m_machine_id);
-				}
-				else
-				{
-					scope.clear();
+					scope.add("host.mac", m_machine_id);
 				}
 				if(is_image_event(event_name))
 				{
@@ -359,11 +355,11 @@ void docker::handle_event(Json::Value&& root)
 					}
 					if(!id.empty())
 					{
-						event_scope::assemble(scope, "container.image", id);
+						scope.add("container.image", id);
 					}
 					else if(!image.empty())
 					{
-						event_scope::assemble(scope, "container.image", image);
+						scope.add("container.image", image);
 					}
 					else
 					{
@@ -375,7 +371,7 @@ void docker::handle_event(Json::Value&& root)
 				{
 					if(id.length() >= 12)
 					{
-						event_scope::assemble(scope, "container.id", id.substr(0, 12));
+						scope.add("container.id", id.substr(0, 12));
 					}
 				}
 				if(status.length())

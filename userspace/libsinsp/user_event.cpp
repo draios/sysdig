@@ -20,30 +20,81 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "user_event.h"
 
-const event_scope::string_list_t event_scope::RESERVED_STRINGS =
-	{"'"/*!must be first!*/, "=", " and "};
-const event_scope::string_list_t event_scope::REPLACEMENT_STRINGS =
-	{"\\'", "='", "' and "}; // !do not change order!
+//
+// event_scope
+//
 
-string&& event_scope::escape(std::string&& scope)
+const std::string event_scope::SCOPE_OP_AND = "and";
+
+// these string lists contain reserved strings; some of the reserved
+// strings are escaped and mandatory to be first in RESERVED_STRINGS
+// and have their escaped counterparts in the REPLACEMENT_STRINGS,
+// in the same order as they appear in RESERVED_STRINGS
+const event_scope::string_list_t event_scope::RESERVED_STRINGS =
+	{"'"/*!must be first!*/, "=", " and ", " "};
+const event_scope::string_list_t event_scope::REPLACEMENT_STRINGS =
+	{"\\'"/*!must be first!*/};
+
+event_scope::event_scope(const std::string& key, const std::string& value)
 {
-	trim(scope);
-	string_list_t::const_iterator res_it = RESERVED_STRINGS.cbegin();
-	string_list_t::const_iterator res_end = RESERVED_STRINGS.cend();
-	string_list_t::const_iterator rep_it = REPLACEMENT_STRINGS.cbegin();
-	string_list_t::const_iterator rep_end = REPLACEMENT_STRINGS.cend();
-	for(; res_it != res_end && rep_it != rep_end; ++res_it, ++rep_it)
+	add(key, value, "");
+}
+
+bool event_scope::add(const std::string& key, const std::string& value, const std::string& op)
+{
+	if(check(key))
 	{
-		replace_in_place(scope, *res_it, *rep_it);
+		std::string k(key);
+		std::string o(!m_scope.empty() ? op : "");
+		std::string v(value);
+		replace(v);
+		if(!v.empty())
+		{
+			if(!o.empty())
+			{
+				m_scope.append(1, ' ').append(trim(o)).append(1, ' ');
+			}
+			m_scope.append(trim(k)).append("='").append(trim(v)).append(1, 0x27);
+			return true;
+		}
 	}
-	scope.append(1, 0x27); // terminating single quote
-	return std::move(scope);
+	else
+	{
+		g_logger.log("Scope key has invalid value: [" + key + "], not added to scope.", sinsp_logger::SEV_WARNING);
+	}
+	return false;
+}
+
+string& event_scope::replace(std::string& value)
+{
+	ASSERT(RESERVED_STRINGS.size() >= REPLACEMENT_STRINGS.size());
+
+	if(check(value))
+	{
+		trim(value);
+		string_list_t::const_iterator res_it = RESERVED_STRINGS.cbegin();
+		string_list_t::const_iterator res_end = RESERVED_STRINGS.cend();
+		string_list_t::const_iterator rep_it = REPLACEMENT_STRINGS.cbegin();
+		string_list_t::const_iterator rep_end = REPLACEMENT_STRINGS.cend();
+		for(; res_it != res_end && rep_it != rep_end; ++res_it)
+		{
+			replace_in_place(value, *res_it, *rep_it);
+			if(++rep_it == rep_end) { break; }
+		}
+	}
+	else
+	{
+		g_logger.log("Cannot replace invalid value: [" + value + "], string will be cleared.", sinsp_logger::SEV_WARNING);
+		value.clear();
+	}
+	return value;
 }
 
 // utility function to check that scope entry is valid;
 // valid entries can not contain '=' character or " and " string
 bool event_scope::check(const std::string& scope)
 {
+	if(scope.empty()) { return true; }
 	string_list_t::const_iterator rs = RESERVED_STRINGS.cbegin();
 	++rs;
 	for(; rs != RESERVED_STRINGS.end(); ++rs)
@@ -56,21 +107,10 @@ bool event_scope::check(const std::string& scope)
 	return true;
 }
 
-bool event_scope::assemble(std::string& scope, const std::string& name, const std::string& value)
-{
-	if(check(name) && check(value))
-	{
-		if(scope.length()) { scope.append(" and "); }
-		scope.append(name).append(1, '=').append(value);
-		return true;
-	}
-	else
-	{
-		g_logger.log("Invalid scope entry for " + name + ": [" + value + ']', sinsp_logger::SEV_WARNING);
-	}
-	return false;
-}
 
+//
+// user_event_meta_t
+//
 const std::string user_event_meta_t::PERMIT_ALL = "all";
 
 user_event_meta_t::user_event_meta_t(const std::string& kind, const type_list_t& types):
@@ -317,18 +357,19 @@ sinsp_user_event& sinsp_user_event::operator=(sinsp_user_event&& other)
 std::string sinsp_user_event::to_string(uint64_t timestamp,
 										std::string&& name,
 										std::string&& description,
-										std::string&& scope,
+										event_scope&& scope,
 										tag_map_t&& tags,
 										uint32_t sev)
 {
 	const std::string from("\"");
 	const std::string to("\\\"");
 
+	std::string s(scope.get());
 	std::ostringstream ostr;
 	ostr << "timestamp: " << timestamp << '\n' <<
 			"name: \"" << replace_in_place(name, from, to) << "\"\n"
 			"description: \"" << replace_in_place(description, from, to) << "\"\n"
-			"scope: \"" << replace_in_place(scope, from, to) << "\"\n";
+			"scope: \"" << replace_in_place(s, from, to) << "\"\n";
 
 	if(sev != UNKNOWN_SEVERITY)
 	{

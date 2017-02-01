@@ -28,26 +28,46 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // scope utilities
 //
-struct event_scope
+class event_scope
 {
+public:
 	typedef std::vector<std::string> string_list_t;
 
+	static const std::string SCOPE_OP_AND;
 	static const string_list_t RESERVED_STRINGS;
 	static const string_list_t REPLACEMENT_STRINGS;
 
-	// utility function to escape scope entries and wrap them in single quotes;
-	// this function is used internally but is left public for testing purposes
-	static string&& escape(std::string&& scope);
+	event_scope(const std::string& key = "", const std::string& value = "");
+
+	bool add(const std::string& key, const std::string& value, const std::string& op = SCOPE_OP_AND);
+
+	std::string get();
+
+	void clear();
 
 	// utility function to check that scope entry is valid;
-	// valid entries can not contain '=' character or " and " string
+	// valid entries can not contain characters from RESERVED_STRINGS
+	// which are not present in REPLACEMENT_STRINGS
 	static bool check(const std::string& scope);
 
-	// utility function to check that scope entry is valid and
-	// assemble it; returns true if succesful, false otherwise;
-	// valid entries can not contain '=' character or " and " string
-	static bool assemble(std::string& scope, const std::string& name, const std::string& value);
+private:
+
+	// utility function to replace RESERVED_STRINGS with their
+	// counterparts in REPLACEMENT_STRINGS
+	static string& replace(std::string& scope);
+
+	std::string m_scope;
 };
+
+inline std::string event_scope::get()
+{
+	return m_scope;
+}
+
+inline void event_scope::clear()
+{
+	m_scope.clear();
+}
 
 
 //
@@ -232,7 +252,7 @@ public:
 	static std::string to_string(uint64_t timestamp,
 								std::string&& name,
 								std::string&& description,
-								std::string&& scope,
+								event_scope&& scope,
 								tag_map_t&& tags,
 								uint32_t sev = UNKNOWN_SEVERITY);
 
