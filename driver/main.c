@@ -1863,6 +1863,10 @@ static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
 
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
 {
+	/*
+	 * ring->preempt_count is not reset to 0 on purpose, to prevent a race condition
+	 * see ppm_open
+	 */
 	ring->open = false;
 	ring->capture_enabled = false;
 	ring->info->head = 0;
@@ -1952,61 +1956,67 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 }
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
-static void do_cpu_callback(long cpu, long sd_action)
+static int do_cpu_callback(unsigned long cpu, long sd_action)
 {
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_consumer_t *consumer;
-	bool event_recorded = false;
-	struct timespec ts;
 	struct event_data_t event_data;
+	int ret = 0;
 
-	/*
-	 * Based on the action, spit an event in the first available ring
-	 */
 	if (sd_action != 0) {
+		/*
+		 * We need to hold g_consumer_mutex in case we need to init ring
+		 * buffers. Since the loop is computationally cheap, lock the
+		 * whole loop for simplicity and avoiding in-loop lock/unlock cycles
+		 */
+		mutex_lock(&g_consumer_mutex);
 		rcu_read_lock();
 
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 			if (sd_action == 1) {
-				// XXX we have the consumer list, is it safe
-				// to access consumers and rings? Need mutex?
-				if (ring->buffer == NULL)
-					init_ring_buffer(ring);
+				if (ring->buffer == NULL) {
+					if (!init_ring_buffer(ring)) {
+						/*
+						 * We may have already allocated one or more ring
+						 * buffers for previous consumers in the loop, but it's
+						 * okay to leave them allocated. The undo-up callback
+						 * will disable capture on them
+						 */
+						pr_err("can't initialize the ring buffer for CPU %lu\n", cpu);
+						ret = -ENOMEM;
+						break;
+					}
+				}
 				ring->capture_enabled = true;
 			} else if (sd_action == 2)
 				ring->capture_enabled = false;
-
-			if (!event_recorded) {
-				getnstimeofday(&ts);
-
-				event_data.category = PPMC_CONTEXT_SWITCH;
-				event_data.event_info.context_data.sched_prev = (void *)cpu;
-				event_data.event_info.context_data.sched_next = (void *)sd_action;
-
-				record_event_consumer(consumer, PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &ts, &event_data);
-				vpr_info("rercording PPME_CPU_HOTPLUG_E event");
-				event_recorded = true;
-			}
 		}
 
 		rcu_read_unlock();
+		mutex_unlock(&g_consumer_mutex);
+
+		if (ret == 0) {
+			event_data.category = PPMC_CONTEXT_SWITCH;
+			event_data.event_info.context_data.sched_prev = (void *)cpu;
+			event_data.event_info.context_data.sched_next = (void *)sd_action;
+			record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data);
+		}
 	}
+	return ret;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
-static int dyncpu_up(unsigned int cpu)
+static int sysdig_cpu_online(unsigned int cpu)
 {
-	pr_info("dyncpu_up on cpu %d\n", cpu);
-	do_cpu_callback(cpu, 1);
-	return 0;
+	pr_info("sysdig_cpu_online on cpu %d\n", cpu);
+	return do_cpu_callback(cpu, 1);
 }
 
-static int dyncpu_down(unsigned int cpu)
+static int sysdig_cpu_offline(unsigned int cpu)
 {
-	pr_info("dyncpu_down on cpu %d\n", cpu);
-	do_cpu_callback(cpu, 2);
-	return 0;
+	pr_info("sysdig_cpu_offline on cpu %d\n", cpu);
+	return do_cpu_callback(cpu, 2);
 }
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)) */
 /*
@@ -2015,7 +2025,7 @@ static int dyncpu_down(unsigned int cpu)
 static int cpu_callback(struct notifier_block *self, unsigned long action,
 			void *hcpu)
 {
-	long cpu = (long)hcpu;
+	unsigned long cpu = (unsigned long)hcpu;
 	long sd_action = 0;
 
 	switch (action) {
@@ -2035,9 +2045,10 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 		break;
 	}
 
-	do_cpu_callback(cpu, sd_action);
-
-	return NOTIFY_DONE;
+	if (do_cpu_callback(cpu, sd_action) < 0)
+		return NOTIFY_BAD;
+	else
+		return NOTIFY_OK;
 }
 
 static struct notifier_block cpu_notifier = {
@@ -2158,10 +2169,10 @@ int sysdig_init(void)
 	 * initializing the cpu structures
 	 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
-	hp_ret = cpuhp_setup_state(CPUHP_AP_ONLINE_DYN,
+	hp_ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
 					   "sysdig/probe:online",
-					   dyncpu_up,
-					   dyncpu_down);
+					   sysdig_cpu_online,
+					   sysdig_cpu_offline);
 	if (hp_ret <= 0) {
 		pr_err("error registering cpu hotplug callback\n");
 		ret = hp_ret;
@@ -2180,11 +2191,6 @@ int sysdig_init(void)
 	return 0;
 
 init_module_err:
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
-	if (hp_state > 0)
-		cpuhp_remove_state(hp_state);
-#endif
-
 	for (j = 0; j < n_created_devices; ++j) {
 		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
@@ -2226,7 +2232,7 @@ void sysdig_exit(void)
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 	if (hp_state > 0)
-		cpuhp_remove_state(hp_state);
+		cpuhp_remove_state_nocalls(hp_state);
 #else
 	unregister_cpu_notifier(&cpu_notifier);
 #endif
