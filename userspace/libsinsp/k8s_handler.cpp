@@ -79,14 +79,25 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_handler = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
 											 m_timeout_ms, m_ssl, m_bt, !m_blocking_socket, m_blocking_socket);
 		m_handler->set_json_callback(&k8s_handler::set_event_json);
+
+		// filter order is important; there are four kinds of filters:
+		// 1.a state filter (filters init state JSONs)
+		// 1.b event filter (filters watch JSONs)
+		// 2. null filter  (filters init state JSONs when there are no K8s entities)
+		// 3. error filter (filters errors)
+		// and they must come in the following order:
+		// 1.a OR 1.b, then 2. (for state only), then 3. (always)
+		// mixing the order will produce erroneous results because
+		// event and error filters will successfully parse regular messages
+		// and prevent proper processing
 		m_handler->add_json_filter(*m_filter);
 		if(!m_null_filter.empty())
 		{
 			m_handler->add_json_filter(m_null_filter);
 		}
 		m_handler->add_json_filter(ERROR_FILTER);
+
 		m_handler->close_on_chunked_end(false);
-		m_handler->set_check_chunked(false);
 		this->connect();
 	}
 #endif // HAS_CAPTURE
@@ -103,8 +114,8 @@ void k8s_handler::make_http()
 	{
 		if(!m_handler)
 		{
-			g_logger.log(std::string("K8s (" + m_id + ") creating handler for " +
-								 uri(m_url).to_string(false) + m_path), sinsp_logger::SEV_INFO);
+			g_logger.log("K8s (" + m_id + ") creating handler for " +
+						 uri(m_url).to_string(false) + m_path, sinsp_logger::SEV_INFO);
 			m_handler = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
 												 m_timeout_ms, m_ssl, m_bt, true, m_blocking_socket);
 			m_handler->set_json_callback(&k8s_handler::set_event_json);
@@ -113,21 +124,31 @@ void k8s_handler::make_http()
 		{
 			m_collector->remove(m_handler);
 		}
+
+		// adjust filters for event handler
+		// (see comment in ctor for explanation)
+		// - null filter is only needed for init state
+		m_handler->remove_json_filter(m_null_filter);
+		// - state filter will be replaced with the event filter below
 		m_handler->remove_json_filter(m_state_filter);
 		m_filter = &m_event_filter;
+		// - error filter should be there, but just in case let's double-check
 		if(!m_handler->has_json_filter(ERROR_FILTER))
 		{
+			g_logger.log("K8s (" + m_id + ") error filter was not present in state handler, adding it for events.",
+						 sinsp_logger::SEV_WARNING);
 			m_handler->add_json_filter(ERROR_FILTER);
 		}
-		// good event filter must always be before error event filter
+		// - good event filter must always be before error event filter
 		m_handler->add_json_filter(*m_filter, ERROR_FILTER);
+		// end filter adjustment
+
 		m_handler->set_path(m_path);
 		m_handler->set_id(m_id);
 		m_collector->set_steady_state(true);
 		m_watching = true;
 		m_blocking_socket = false;
 		m_handler->close_on_chunked_end(false);
-		m_handler->set_check_chunked(true);
 
 		m_req_sent = false;
 		m_resp_recvd = false;

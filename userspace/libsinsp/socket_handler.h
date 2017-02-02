@@ -132,11 +132,6 @@ public:
 		m_request = make_request(m_url, m_http_version);
 	}
 
-	void set_check_chunked(bool check = true)
-	{
-		m_check_chunked = check;
-	}
-
 	std::string make_request(uri url, const std::string& http_version)
 	{
 		std::ostringstream request;
@@ -507,6 +502,13 @@ public:
 							 std::to_string(iolen) + ", data=" + std::to_string(len_read) + " bytes, "
 							 "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
 							 sinsp_logger::SEV_TRACE);
+				/* uncomment to see raw HTTP stream data in trace logs
+					if((iolen > 0) && g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+					{
+						g_logger.log("Socket handler (" + m_id + "), data --->" + std::string(&m_buf[0], iolen) + "<--- data",
+									 sinsp_logger::SEV_TRACE);
+					}
+				*/
 				if(iolen > 0)
 				{
 					size_t len = (iolen <= static_cast<ssize_t>(m_buf.size())) ? static_cast<size_t>(iolen) : m_buf.size();
@@ -637,16 +639,13 @@ public:
 			{
 				if(*it == before_filter) { break; }
 			}
-			if(it != m_json_filters.end())
+			if(it == m_json_filters.end())
 			{
-				m_json_filters.insert(it, filter);
+				g_logger.log("Socket handler (" + m_id + "), [" + m_url.to_string(false) + "] "
+							 "attempt to insert filter before a non-existing filter. "
+							 "Filter will be added to the end of filter list.", sinsp_logger::SEV_WARNING);
 			}
-			else
-			{
-				throw sinsp_exception(std::string("Socket handler (") + m_id + "), "
-							  "[" + m_url.to_string(false) + "] "
-							  "attempt to insert before non-existing filter");
-			}
+			m_json_filters.insert(it, filter);
 		}
 	}
 
@@ -1630,9 +1629,6 @@ private:
 	struct sockaddr_in       m_serv_addr = {0};
 	struct sockaddr*         m_sa = 0;
 	socklen_t                m_sa_len = 0;
-	std::string::size_type   m_content_length = std::string::npos;
-	std::string              m_chunked_end;
-	bool                     m_check_chunked = false;
 	bool                     m_close_on_chunked_end = true;
 	bool                     m_wants_send = false;
 	int                      m_http_response = -1;
