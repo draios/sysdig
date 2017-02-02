@@ -19,6 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "user_event.h"
+#include <regex>
 
 //
 // event_scope
@@ -31,9 +32,9 @@ const std::string event_scope::SCOPE_OP_AND = "and";
 // and have their escaped counterparts in the REPLACEMENT_STRINGS,
 // in the same order as they appear in RESERVED_STRINGS
 const event_scope::string_list_t event_scope::RESERVED_STRINGS =
-	{"'"/*!must be first!*/, "=", " and ", " "};
+	{"'"};
 const event_scope::string_list_t event_scope::REPLACEMENT_STRINGS =
-	{"\\'"/*!must be first!*/};
+	{"\\'"};
 
 event_scope::event_scope(const std::string& key, const std::string& value)
 {
@@ -60,51 +61,36 @@ bool event_scope::add(const std::string& key, const std::string& value, const st
 	}
 	else
 	{
-		g_logger.log("Scope key has invalid value: [" + key + "], not added to scope.", sinsp_logger::SEV_WARNING);
+		g_logger.log("Scope key is invalid: [" + key + "], entry will not be added to scope.",
+					 sinsp_logger::SEV_WARNING);
 	}
 	return false;
 }
 
 string& event_scope::replace(std::string& value)
 {
-	ASSERT(RESERVED_STRINGS.size() >= REPLACEMENT_STRINGS.size());
+	ASSERT(RESERVED_STRINGS.size() == REPLACEMENT_STRINGS.size());
 
-	if(check(value))
+	string_list_t::const_iterator res_it = RESERVED_STRINGS.cbegin();
+	string_list_t::const_iterator res_end = RESERVED_STRINGS.cend();
+	string_list_t::const_iterator rep_it = REPLACEMENT_STRINGS.cbegin();
+	string_list_t::const_iterator rep_end = REPLACEMENT_STRINGS.cend();
+	for(; res_it != res_end && rep_it != rep_end; ++res_it, ++rep_it)
 	{
-		trim(value);
-		string_list_t::const_iterator res_it = RESERVED_STRINGS.cbegin();
-		string_list_t::const_iterator res_end = RESERVED_STRINGS.cend();
-		string_list_t::const_iterator rep_it = REPLACEMENT_STRINGS.cbegin();
-		string_list_t::const_iterator rep_end = REPLACEMENT_STRINGS.cend();
-		for(; res_it != res_end && rep_it != rep_end; ++res_it)
-		{
-			replace_in_place(value, *res_it, *rep_it);
-			if(++rep_it == rep_end) { break; }
-		}
+		replace_in_place(value, *res_it, *rep_it);
 	}
-	else
-	{
-		g_logger.log("Cannot replace invalid value: [" + value + "], string will be cleared.", sinsp_logger::SEV_WARNING);
-		value.clear();
-	}
+
 	return value;
 }
 
-// utility function to check that scope entry is valid;
-// valid entries can not contain '=' character or " and " string
 bool event_scope::check(const std::string& scope)
 {
-	if(scope.empty()) { return true; }
-	string_list_t::const_iterator rs = RESERVED_STRINGS.cbegin();
-	++rs;
-	for(; rs != RESERVED_STRINGS.end(); ++rs)
+	static const std::regex r("^[a-zA-Z0-9-_/\\.]*$");
+	if(std::regex_match(scope, r))
 	{
-		if(scope.find(*rs) != std::string::npos)
-		{
-			return false;
-		}
+		return true;
 	}
-	return true;
+	return false;
 }
 
 
