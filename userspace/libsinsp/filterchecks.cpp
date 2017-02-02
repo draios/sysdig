@@ -4427,7 +4427,10 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae, OUT u
 		}
 	}
 
-	*len = strlen(res);
+	if (res)
+	{
+		*len = strlen(res);
+	}
 	return (uint8_t*)res;
 }
 
@@ -4541,7 +4544,10 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			*len = strlen(res);
+			if(res)
+			{
+				*len = strlen(res);
+			}
 			return (uint8_t*)res;
 		}
 	case TYPE_IDTAG:
@@ -5030,7 +5036,10 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			}
 		}
 
-		*len = strlen(val);
+		if(val)
+		{
+			*len = strlen(val);
+		}
 		return (uint8_t*) val;
 	}
 	case TYPE_ARGS:
@@ -5123,7 +5132,10 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			}
 		}
 
-		*len = strlen(val);
+		if(val)
+		{
+			*len = strlen(val);
+		}
 		return (uint8_t*) val;
 	}
 	default:
