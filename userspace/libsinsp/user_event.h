@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <set>
 #include <unordered_map>
+#include <regex.h>
 
 //
 // scope utilities
@@ -55,6 +56,8 @@ private:
 	// utility function to replace RESERVED_STRINGS with their
 	// counterparts in REPLACEMENT_STRINGS
 	static string& replace(std::string& scope);
+
+	static void regex_error(const std::string& call, size_t ret, regex_t* preg, const std::string& str);
 
 	std::string m_scope;
 };

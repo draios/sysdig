@@ -19,7 +19,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "user_event.h"
-#include <regex>
 
 //
 // event_scope
@@ -83,13 +82,50 @@ string& event_scope::replace(std::string& value)
 	return value;
 }
 
+void event_scope::regex_error(const std::string& call, size_t ret, regex_t* preg, const std::string& str)
+{
+	if(!preg) { return; }
+	char errbuf[256] = {0};
+	if(regerror(ret, preg, errbuf, 256))
+	{
+		g_logger.log(call + "() error: " + errbuf, sinsp_logger::SEV_WARNING);
+	}
+	else
+	{
+		g_logger.log("Can't obtain " + call + "() [" + str + "] error.", sinsp_logger::SEV_WARNING);
+	}
+}
+
 bool event_scope::check(const std::string& scope)
 {
-	static const std::regex r("^[a-zA-Z0-9-_/\\.]*$");
-	if(std::regex_match(scope, r))
+	if(scope.empty()) { return false; }
+	std::string exp("[a-zA-Z0-9_/\\.]*(-[a-zA-Z0-9_/\\.]*)*");
+	regex_t reg = {0};
+	size_t ret = regcomp(&reg, exp.c_str(), REG_EXTENDED);
+	if(0 == ret)
 	{
-		return true;
+		regmatch_t rm = {0};
+		ret = regexec(&reg, scope.c_str(), 1, &rm, 0);
+		if(0 == ret)
+		{
+			if((rm.rm_eo - rm.rm_so) != static_cast<regoff_t>(scope.length()))
+			{
+				regfree(&reg);
+				return false;
+			}
+			regfree(&reg);
+			return true;
+		}
+		else
+		{
+			regex_error("regexec", ret, &reg, scope);
+		}
 	}
+	else
+	{
+		regex_error("regcomp", ret, &reg, exp);
+	}
+	regfree(&reg);
 	return false;
 }
 
