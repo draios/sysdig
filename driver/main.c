@@ -2064,7 +2064,9 @@ int sysdig_init(void)
 	unsigned int num_cpus;
 	int ret;
 	int acrret = 0;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 	int hp_ret;
+#endif
 	int j;
 	int n_created_devices = 0;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
