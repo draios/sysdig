@@ -99,7 +99,8 @@ void event_scope::regex_error(const std::string& call, size_t ret, regex_t* preg
 bool event_scope::check(const std::string& scope)
 {
 	if(scope.empty()) { return false; }
-	std::string exp("[a-zA-Z0-9_/\\.]*(-[a-zA-Z0-9_/\\.]*)*");
+	bool result = false;
+	std::string exp("[a-zA-Z0-9_/\\.-]*");
 	regex_t reg = {0};
 	size_t ret = regcomp(&reg, exp.c_str(), REG_EXTENDED);
 	if(0 == ret)
@@ -108,25 +109,16 @@ bool event_scope::check(const std::string& scope)
 		ret = regexec(&reg, scope.c_str(), 1, &rm, 0);
 		if(0 == ret)
 		{
-			if((rm.rm_eo - rm.rm_so) != static_cast<regoff_t>(scope.length()))
+			if((rm.rm_eo - rm.rm_so) == static_cast<regoff_t>(scope.length()))
 			{
-				regfree(&reg);
-				return false;
+				result = true;
 			}
-			regfree(&reg);
-			return true;
 		}
-		else
-		{
-			regex_error("regexec", ret, &reg, scope);
-		}
+		else { regex_error("regexec", ret, &reg, scope); }
 	}
-	else
-	{
-		regex_error("regcomp", ret, &reg, exp);
-	}
+	else { regex_error("regcomp", ret, &reg, exp); }
 	regfree(&reg);
-	return false;
+	return result;
 }
 
 
