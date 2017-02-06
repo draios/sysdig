@@ -729,7 +729,10 @@ public:
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
 	void enable_tracers_capture();
-
+	uint64_t get_bytes_read()
+	{
+		return scap_ftell(m_h);
+	}
 	void refresh_ifaddr_list();
 
 VISIBILITY_PRIVATE

@@ -86,6 +86,7 @@ void sinsp_dumper::close()
 	if(m_dumper != NULL)
 	{
 		scap_dump_close(m_dumper);
+		m_dumper = NULL;
 	}
 }
 
