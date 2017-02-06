@@ -593,8 +593,8 @@ public:
 private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	inline int64_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser);
-	uint8_t* extract_args(sinsp_partial_tracer* pae);
-	uint8_t* extract_arg(sinsp_partial_tracer* pae);
+	uint8_t* extract_args(sinsp_partial_tracer* pae, OUT uint32_t *len);
+	uint8_t* extract_arg(sinsp_partial_tracer* pae, OUT uint32_t *len);
 
 	int32_t m_argid;
 	string m_argname;
@@ -670,7 +670,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val);
-	inline uint8_t* extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
+	inline uint8_t* extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae, OUT uint32_t* len);
 	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;

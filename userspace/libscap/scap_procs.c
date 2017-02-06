@@ -858,12 +858,14 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		//
 		// See if this process includes tasks that need to be added
 		//
-		// TODO: not sure if we can improve this
-		snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-		if(handle->m_mode != SCAP_MODE_NODRIVER && scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error, scan_sockets) == SCAP_FAILURE)
+		if(parenttid == -1 && handle->m_mode != SCAP_MODE_NODRIVER)
 		{
-			res = SCAP_FAILURE;
-			break;
+			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
+			if(scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error, scan_sockets) == SCAP_FAILURE)
+			{
+				res = SCAP_FAILURE;
+				break;
+			}
 		}
 
 		if(tid_to_scan != -1 && *procinfo)
