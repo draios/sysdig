@@ -179,7 +179,7 @@ static struct tracepoint *tp_signal_deliver;
 #ifdef _DEBUG
 static bool verbose = 1;
 #else
-static bool verbose = 1;
+static bool verbose = 0;
 #endif
 
 static unsigned int max_consumers = 5;
@@ -2007,13 +2007,13 @@ static int do_cpu_callback(unsigned long cpu, long sd_action)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 static int sysdig_cpu_online(unsigned int cpu)
 {
-	pr_info("sysdig_cpu_online on cpu %d\n", cpu);
+	vpr_info("sysdig_cpu_online on cpu %d\n", cpu);
 	return do_cpu_callback(cpu, 1);
 }
 
 static int sysdig_cpu_offline(unsigned int cpu)
 {
-	pr_info("sysdig_cpu_offline on cpu %d\n", cpu);
+	vpr_info("sysdig_cpu_offline on cpu %d\n", cpu);
 	return do_cpu_callback(cpu, 2);
 }
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)) */
