@@ -336,11 +336,20 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		for_each_possible_cpu(cpu) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
+			ring->cpu_online = false;
 			ring->str_storage = NULL;
 			ring->buffer = NULL;
 			ring->info = NULL;
 		}
 
+		/*
+		 * If a cpu is offline when the consumer is first created, we
+		 * will never get events for that cpu even if it later comes
+		 * online via hotplug. We could allocate these rings on-demand
+		 * later in this function if needed for hotplug, but that
+		 * requires the consumer to know to call open again, and sysdig
+		 * doesn't support that.
+		 */
 		for_each_online_cpu(cpu) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
@@ -351,6 +360,8 @@ static int ppm_open(struct inode *inode, struct file *filp)
 				ret = -ENOMEM;
 				goto err_init_ring_buffer;
 			}
+
+			ring->cpu_online = true;
 		}
 
 		list_add_rcu(&consumer->node, &g_consumer_list);
@@ -363,9 +374,11 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	/*
 	 * Check if the CPU pointed by this device is online. If it isn't stop here and
-	 * return ENODEV.
+	 * return ENODEV. The cpu could be online while buffer is NULL if there's a cpu
+	 * online hotplug callback between the first open on this consumer and the open
+	 * for this particular device.
 	 */
-	if (ring->buffer == NULL) {
+	if (ring->cpu_online == false || ring->buffer == NULL) {
 		ret = -ENODEV;
 		goto cleanup_open;
 	}
@@ -1961,49 +1974,34 @@ static int do_cpu_callback(unsigned long cpu, long sd_action)
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_consumer_t *consumer;
 	struct event_data_t event_data;
-	int ret = 0;
 
 	if (sd_action != 0) {
-		/*
-		 * We need to hold g_consumer_mutex in case we need to init ring
-		 * buffers. Since the loop is computationally cheap, lock the
-		 * whole loop for simplicity and avoiding in-loop lock/unlock cycles
-		 */
-		mutex_lock(&g_consumer_mutex);
 		rcu_read_lock();
 
 		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 			if (sd_action == 1) {
-				if (ring->buffer == NULL) {
-					if (!init_ring_buffer(ring)) {
-						/*
-						 * We may have already allocated one or more ring
-						 * buffers for previous consumers in the loop, but it's
-						 * okay to leave them allocated. The undo-up callback
-						 * will disable capture on them
-						 */
-						pr_err("can't initialize the ring buffer for CPU %lu\n", cpu);
-						ret = -ENOMEM;
-						break;
-					}
-				}
-				ring->capture_enabled = true;
-			} else if (sd_action == 2)
-				ring->capture_enabled = false;
+				/*
+				 * If the cpu was offline when the consumer was created,
+				 * this won't do anything because we never created a ring
+				 * buffer. We can't safely create one here because we're
+				 * in atomic context, and the consumer needs to call open
+				 * on this device anyways, so do it in ppm_open.
+				 */
+				ring->cpu_online = true;
+			} else if (sd_action == 2) {
+				ring->cpu_online = false;
+			}
 		}
 
 		rcu_read_unlock();
-		mutex_unlock(&g_consumer_mutex);
 
-		if (ret == 0) {
-			event_data.category = PPMC_CONTEXT_SWITCH;
-			event_data.event_info.context_data.sched_prev = (void *)cpu;
-			event_data.event_info.context_data.sched_next = (void *)sd_action;
-			record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data);
-		}
+		event_data.category = PPMC_CONTEXT_SWITCH;
+		event_data.event_info.context_data.sched_prev = (void *)cpu;
+		event_data.event_info.context_data.sched_next = (void *)sd_action;
+		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data);
 	}
-	return ret;
+	return 0;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
