@@ -340,14 +340,10 @@ void docker::handle_event(Json::Value&& root)
 				{
 					image = img.asString();
 				}
-				std::string scope("host.mac=");
+				event_scope scope;
 				if(m_machine_id.length())
 				{
-					scope.append(m_machine_id);
-				}
-				else
-				{
-					scope.clear();
+					scope.add("host.mac", m_machine_id);
 				}
 				if(is_image_event(event_name))
 				{
@@ -359,13 +355,11 @@ void docker::handle_event(Json::Value&& root)
 					}
 					if(!id.empty())
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.image=").append(id);
+						scope.add("container.image", id);
 					}
 					else if(!image.empty())
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.image=").append(image);
+						scope.add("container.image", image);
 					}
 					else
 					{
@@ -377,8 +371,7 @@ void docker::handle_event(Json::Value&& root)
 				{
 					if(id.length() >= 12)
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.id=").append(id.substr(0, 12));
+						scope.add("container.id", id.substr(0, 12));
 					}
 				}
 				if(status.length())
