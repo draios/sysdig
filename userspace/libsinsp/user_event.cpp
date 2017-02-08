@@ -35,6 +35,9 @@ const event_scope::string_list_t event_scope::RESERVED_STRINGS =
 const event_scope::string_list_t event_scope::REPLACEMENT_STRINGS =
 	{"\\'"};
 
+// scope key name format regex
+const std::string event_scope::KEY_FORMAT = "[a-zA-Z0-9_/\\.-]*";
+
 event_scope::event_scope(const std::string& key, const std::string& value)
 {
 	add(key, value, "");
@@ -42,7 +45,7 @@ event_scope::event_scope(const std::string& key, const std::string& value)
 
 bool event_scope::add(const std::string& key, const std::string& value, const std::string& op)
 {
-	if(check(key))
+	if(check_key_format(key))
 	{
 		std::string k(key);
 		std::string o(!m_scope.empty() ? op : "");
@@ -96,25 +99,25 @@ void event_scope::regex_error(const std::string& call, size_t ret, regex_t* preg
 	}
 }
 
-bool event_scope::check(const std::string& scope)
+bool event_scope::check_key_format(const std::string& key)
 {
-	if(scope.empty()) { return false; }
+	if(key.empty()) { return false; }
 	bool result = false;
-	std::string exp("[a-zA-Z0-9_/\\.-]*");
+	std::string exp(KEY_FORMAT);
 	regex_t reg = {0};
 	size_t ret = regcomp(&reg, exp.c_str(), REG_EXTENDED);
 	if(0 == ret)
 	{
 		regmatch_t rm = {0};
-		ret = regexec(&reg, scope.c_str(), 1, &rm, 0);
+		ret = regexec(&reg, key.c_str(), 1, &rm, 0);
 		if(0 == ret)
 		{
-			if((rm.rm_eo - rm.rm_so) == static_cast<regoff_t>(scope.length()))
+			if((rm.rm_eo - rm.rm_so) == static_cast<regoff_t>(key.length()))
 			{
 				result = true;
 			}
 		}
-		else { regex_error("regexec", ret, &reg, scope); }
+		else { regex_error("regexec", ret, &reg, key); }
 	}
 	else { regex_error("regcomp", ret, &reg, exp); }
 	regfree(&reg);
@@ -378,12 +381,11 @@ std::string sinsp_user_event::to_string(uint64_t timestamp,
 	const std::string from("\"");
 	const std::string to("\\\"");
 
-	std::string s(scope.get());
 	std::ostringstream ostr;
 	ostr << "timestamp: " << timestamp << '\n' <<
 			"name: \"" << replace_in_place(name, from, to) << "\"\n"
 			"description: \"" << replace_in_place(description, from, to) << "\"\n"
-			"scope: \"" << replace_in_place(s, from, to) << "\"\n";
+			"scope: \"" << replace_in_place(scope.get_ref(), from, to) << "\"\n";
 
 	if(sev != UNKNOWN_SEVERITY)
 	{

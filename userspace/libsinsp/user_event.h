@@ -12,7 +12,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public L nameicense
+You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
@@ -37,19 +37,20 @@ public:
 	static const std::string SCOPE_OP_AND;
 	static const string_list_t RESERVED_STRINGS;
 	static const string_list_t REPLACEMENT_STRINGS;
+	static const std::string KEY_FORMAT;
 
 	event_scope(const std::string& key = "", const std::string& value = "");
 
 	bool add(const std::string& key, const std::string& value, const std::string& op = SCOPE_OP_AND);
 
-	std::string get();
+	const std::string& get() const;
+	std::string& get_ref();
 
 	void clear();
 
-	// utility function to check that scope entry is valid;
-	// valid entries can not contain characters from RESERVED_STRINGS
-	// which are not present in REPLACEMENT_STRINGS
-	static bool check(const std::string& scope);
+	// utility function to check that a scope entry key is valid;
+	// valid entries match KEY_FORMAT regular expression
+	static bool check_key_format(const std::string& key);
 
 private:
 
@@ -62,7 +63,12 @@ private:
 	std::string m_scope;
 };
 
-inline std::string event_scope::get()
+inline const std::string& event_scope::get() const
+{
+	return m_scope;
+}
+
+inline std::string& event_scope::get_ref()
 {
 	return m_scope;
 }
