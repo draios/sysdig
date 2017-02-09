@@ -1642,7 +1642,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	evt->m_tinfo->compute_program_hash();
 
 #ifdef HAS_ANALYZER
-	evt->m_tinfo->m_ainfo->clear_role_flags();
+	if(evt->m_tinfo->m_ainfo != NULL)
+	{
+		evt->m_tinfo->m_ainfo->clear_role_flags();
+	}
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
