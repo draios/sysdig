@@ -4,9 +4,9 @@
 
 #if defined(__linux__)
 
-#include "docker.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "docker.h"
 #include "user_event.h"
 
 const std::string docker::DOCKER_SOCKET_FILE = "/var/run/docker.sock";
@@ -227,6 +227,7 @@ void docker::set_event_json(json_ptr_t json, const std::string&)
 	}
 }
 
+#ifdef HAS_CAPTURE
 void docker::handle_event(Json::Value&& root)
 {
 	if(m_event_filter && (m_event_counter < sinsp_user_event::max_events_per_cycle()))
@@ -339,14 +340,10 @@ void docker::handle_event(Json::Value&& root)
 				{
 					image = img.asString();
 				}
-				std::string scope("host.mac=");
+				event_scope scope;
 				if(m_machine_id.length())
 				{
-					scope.append(m_machine_id);
-				}
-				else
-				{
-					scope.clear();
+					scope.add("host.mac", m_machine_id);
 				}
 				if(is_image_event(event_name))
 				{
@@ -358,13 +355,11 @@ void docker::handle_event(Json::Value&& root)
 					}
 					if(!id.empty())
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.image=").append(id);
+						scope.add("container.image", id);
 					}
 					else if(!image.empty())
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.image=").append(image);
+						scope.add("container.image", image);
 					}
 					else
 					{
@@ -376,8 +371,7 @@ void docker::handle_event(Json::Value&& root)
 				{
 					if(id.length() >= 12)
 					{
-						if(scope.length()) { scope.append(" and "); }
-						scope.append("container.id=").append(id.substr(0, 12));
+						scope.add("container.id", id.substr(0, 12));
 					}
 				}
 				if(status.length())
@@ -470,5 +464,6 @@ std::string docker::get_socket_file()
 	sock_file.append(DOCKER_SOCKET_FILE);
 	return sock_file;
 }
+#endif // HAS_CAPTURE
 
 #endif // __linux__

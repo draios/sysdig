@@ -10,7 +10,7 @@ directory of sysdig in order to follow the conventions.
 
 Also, note that the conventions in this file apply **strictly to the userspace** part 
 of sysdig. For the kernel code, you should refer to 
-https://www.kernel.org/doc/Documentation/CodingStyle 
+https://www.kernel.org/doc/html/latest/process/coding-style.html
 and always run checkpatch.pl from the kernel tree before submitting pull requests.
 
 Thanks for your attention and time.

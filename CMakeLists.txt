@@ -129,6 +129,7 @@ else()
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${LUAJIT_LIB}
 			INSTALL_COMMAND "")
 	else()
 		set(LUAJIT_LIB "${LUAJIT_SRC}/lua51.lib")
@@ -137,6 +138,7 @@ else()
 			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND msvcbuild.bat
+			BUILD_BYPRODUCTS ${LUAJIT_LIB}
 			BINARY_DIR "${LUAJIT_SRC}"
 			INSTALL_COMMAND "")
 	endif()
@@ -188,6 +190,7 @@ else()
 			CONFIGURE_COMMAND "./configure"
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${ZLIB_LIB}
 			INSTALL_COMMAND "")
 	else()
 		set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
@@ -197,6 +200,7 @@ else()
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND nmake -f win32/Makefile.msc
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${ZLIB_LIB}
 			INSTALL_COMMAND "")
 	endif()
 endif()
@@ -225,6 +229,7 @@ if(NOT WIN32 AND NOT APPLE)
 		CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking
 		BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
 		BUILD_IN_SOURCE 1
+		BUILD_BYPRODUCTS ${JQ_LIB}
 		PATCH_COMMAND wget -O jq-1.5-fix-tokenadd.patch https://github.com/stedolan/jq/commit/8eb1367ca44e772963e704a700ef72ae2e12babd.patch && patch -i jq-1.5-fix-tokenadd.patch
 		INSTALL_COMMAND "")
 	endif()
@@ -253,6 +258,7 @@ if(NOT WIN32)
 			CONFIGURE_COMMAND ./configure --without-cxx --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests --with-terminfo-dirs=/etc/terminfo:/lib/terminfo:/usr/share/terminfo
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${CURSES_LIBRARIES}
 			INSTALL_COMMAND "")
 	endif()
 endif()
@@ -282,6 +288,7 @@ if(NOT WIN32 AND NOT APPLE)
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${B64_LIB}
 			INSTALL_COMMAND "")
 	endif()
 
@@ -308,6 +315,7 @@ if(NOT WIN32 AND NOT APPLE)
 			CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${OPENSSL_LIBRARY_SSL} ${OPENSSL_LIBRARY_CRYPTO}
 			INSTALL_COMMAND ${CMD_MAKE} install)
 	endif()
 
@@ -340,6 +348,7 @@ if(NOT WIN32 AND NOT APPLE)
 			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2 --without-libssh2
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${CURL_LIBRARIES}
 			INSTALL_COMMAND "")
 	endif()
 endif() # NOT WIN32 AND NOT APPLE

@@ -253,6 +253,8 @@ public:
 	*/
 	void open(string filename);
 
+	void open_nodriver();
+
 	/*!
 	  \brief Ends a capture and release all resources.
 	*/
@@ -573,11 +575,27 @@ public:
 	void set_drop_event_flags(ppm_event_flags flags);
 
 	/*!
-	  \brief Returns true if the current capture is live.
+	  \brief Returns true if the current capture is offline
+	*/
+	inline bool is_capture()
+	{
+		return m_mode == SCAP_MODE_CAPTURE;
+	}
+
+	/*!
+	  \brief Returns true if the current capture is live
 	*/
 	inline bool is_live()
 	{
-		return m_islive;
+		return m_mode == SCAP_MODE_LIVE;
+	}
+
+	/*!
+	  \brief Returns true if the current capture is live
+	*/
+	inline bool is_nodriver()
+	{
+		return m_mode == SCAP_MODE_NODRIVER;
 	}
 
 	/*!
@@ -734,7 +752,9 @@ public:
 		return scap_ftell(m_h);
 	}
 	void refresh_ifaddr_list();
-
+	void refresh_proc_list() {
+		scap_refresh_proc_table(m_h);
+	}
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -816,7 +836,8 @@ private:
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;
-	bool m_islive;
+
+	scap_mode_t m_mode;
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;

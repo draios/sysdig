@@ -388,6 +388,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		}
 	}
 	case TYPE_FDTYPECHAR:
+		*len = 1;
 		switch(PPME_MAKE_ENTER(evt->get_type()))
 		{
 		case PPME_SYSCALL_OPEN_E:
@@ -501,8 +502,16 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		{
 			return NULL;
 		}
+		else
+		{
+			uint8_t *typestr = (uint8_t*)m_fdinfo->get_typestring();
+			if(typestr)
+			{
+				*len = strlen((char *) typestr);
+			}
+			return typestr;
+		}
 
-		return (uint8_t*)m_fdinfo->get_typestring();
 	case TYPE_DIRECTORY:
 	case TYPE_CONTAINERDIRECTORY:
 		{
@@ -1302,6 +1311,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads that the process generating the event currently has. This excludes the main process thread."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.ppid", "the pid of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "the name (excluding the path) of the parent of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pcmdline", "the full command line (proc.name + proc.args) of the parent of the process generating the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.apid", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process. proc.apid without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.apid=1234."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "the name (excluding the path) of one of the process ancestors. E.g. proc.aname[1] returns the parent name, proc.aname[2] returns the grandparent name, and so on. proc.aname[0] is the name of the current process. proc.aname without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.aname=bash."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.loginshellid", "the pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
@@ -1567,6 +1577,23 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_thr
 	return NULL;
 }
 
+static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
+{
+	cmdline = tinfo->get_comm() + " ";
+
+	uint32_t j;
+	uint32_t nargs = (uint32_t)tinfo->m_args.size();
+
+	for(j = 0; j < nargs; j++)
+	{
+		cmdline += tinfo->m_args[j];
+		if(j < nargs -1)
+		{
+			cmdline += ' ';
+		}
+	}
+}
+
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -1674,20 +1701,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CMDLINE:
 		{
-			m_tstr = tinfo->get_comm() + " ";
-
-			uint32_t j;
-			uint32_t nargs = (uint32_t)tinfo->m_args.size();
-
-			for(j = 0; j < nargs; j++)
-			{
-				m_tstr += tinfo->m_args[j];
-				if(j < nargs -1)
-				{
-					m_tstr += ' ';
-				}
-			}
-
+			populate_cmdline(m_tstr, tinfo);
 			*len = m_tstr.size();
 			return (uint8_t*)m_tstr.c_str();
 		}
@@ -1794,6 +1808,22 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			if(ptinfo != NULL)
 			{
 				m_tstr = ptinfo->get_comm();
+				*len = m_tstr.size();
+				return (uint8_t*)m_tstr.c_str();
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+	case TYPE_PCMDLINE:
+		{
+			sinsp_threadinfo* ptinfo =
+				m_inspector->get_thread(tinfo->m_ptid, false, true);
+
+			if(ptinfo != NULL)
+			{
+				populate_cmdline(m_tstr, ptinfo);
 				*len = m_tstr.size();
 				return (uint8_t*)m_tstr.c_str();
 			}
@@ -3089,6 +3119,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				evname = (uint8_t*)evt->get_name();
 			}
 
+			*len = strlen((char *) evname);
 			return evname;
 		}
 		break;
@@ -3133,6 +3164,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				evname = (uint8_t*)evt->get_name();
 			}
 
+			*len = strlen((char *) evname);
 			return evname;
 		}
 		break;
@@ -3251,10 +3283,14 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(resolved_argstr != NULL && resolved_argstr[0] != 0)
 			{
+				*len = strlen(resolved_argstr);
 				return (uint8_t*)resolved_argstr;
 			}
 			else
-			{
+			{	if(argstr != NULL)
+				{
+					*len = strlen(argstr);
+				}
 				return (uint8_t*)argstr;
 			}
 		}
@@ -3272,6 +3308,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				{
 					if((*it)->get_info_line(&il))
 					{
+						*len = strlen(il);
 						return (uint8_t*)il;
 					}
 				}
@@ -3288,6 +3325,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				//
 				// Don't print the arguments for generic events: they have only internal use
 				//
+				*len = 1;
 				return (uint8_t*)"";
 			}
 
@@ -3391,10 +3429,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 					if(resolved_argstr != NULL && resolved_argstr[0] != 0)
 					{
+						*len = strlen(resolved_argstr);
 						return (uint8_t*)resolved_argstr;
 					}
 					else if(argstr != NULL)
 					{
+						*len = strlen(argstr);
 						return (uint8_t*)argstr;
 					}
 				}
@@ -3419,10 +3459,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 						if(resolved_argstr != NULL && resolved_argstr[0] != 0)
 						{
+							*len = strlen(resolved_argstr);
 							return (uint8_t*)resolved_argstr;
 						}
 						else if(argstr != NULL)
 						{
+							*len = strlen(argstr);
 							return (uint8_t*)argstr;
 						}
 					}
@@ -3969,10 +4011,22 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	case TYPE_UID:
 		return (uint8_t*)&tinfo->m_uid;
 	case TYPE_NAME:
+		if(uinfo->name != NULL)
+		{
+			*len = strlen(uinfo->name);
+		}
 		return (uint8_t*)uinfo->name;
 	case TYPE_HOMEDIR:
+		if(uinfo->homedir != NULL)
+		{
+			*len = strlen(uinfo->homedir);
+		}
 		return (uint8_t*)uinfo->homedir;
 	case TYPE_SHELL:
+		if(uinfo->shell != NULL)
+		{
+			*len = strlen(uinfo->shell);
+		}
 		return (uint8_t*) uinfo->shell;
 	default:
 		ASSERT(false);
@@ -4041,6 +4095,10 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			scap_groupinfo* ginfo = it->second;
 			ASSERT(ginfo != NULL);
 
+			if(ginfo->name)
+			{
+				*len = strlen(ginfo->name);
+			}
 			return (uint8_t*)ginfo->name;
 		}
 	default:
@@ -4268,7 +4326,7 @@ int64_t* sinsp_filter_check_tracer::extract_duration(uint16_t etype, sinsp_trace
 	}
 }
 
-uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae)
+uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae, OUT uint32_t* len)
 {
 	if(pae == NULL)
 	{
@@ -4315,10 +4373,11 @@ uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae)
 		*p = 0;
 	}
 
+	*len = strlen(m_storage);
 	return (uint8_t*)m_storage;
 }
 
-uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
+uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae, OUT uint32_t* len)
 {
 	char* res = NULL;
 
@@ -4368,6 +4427,10 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae)
 		}
 	}
 
+	if (res)
+	{
+		*len = strlen(res);
+	}
 	return (uint8_t*)res;
 }
 
@@ -4457,6 +4520,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				*p = 0;
 			}
 
+			*len = strlen(m_storage);
 			return (uint8_t*)m_storage;
 		}
 	case TYPE_TAG:
@@ -4480,6 +4544,10 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
+			if(res)
+			{
+				*len = strlen(res);
+			}
 			return (uint8_t*)res;
 		}
 	case TYPE_IDTAG:
@@ -4509,25 +4577,25 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_ARGS:
 		if(PPME_IS_ENTER(etype))
 		{
-			return extract_args(eparser->m_enter_pae);
+			return extract_args(eparser->m_enter_pae, len);
 		}
 		else
 		{
-			return extract_args(&eparser->m_exit_pae);
+			return extract_args(&eparser->m_exit_pae, len);
 		}
 	case TYPE_ARG:
 		if(PPME_IS_ENTER(etype))
 		{
-			return extract_arg(eparser->m_enter_pae);
+			return extract_arg(eparser->m_enter_pae, len);
 		}
 		else
 		{
-			return extract_arg(&eparser->m_exit_pae);
+			return extract_arg(&eparser->m_exit_pae, len);
 		}
 	case TYPE_ENTERARGS:
-		return extract_args(eparser->m_enter_pae);
+		return extract_args(eparser->m_enter_pae, len);
 	case TYPE_ENTERARG:
-		return extract_arg(eparser->m_enter_pae);
+		return extract_arg(eparser->m_enter_pae, len);
 	case TYPE_DURATION:
 		return (uint8_t*)extract_duration(etype, eparser);
 	case TYPE_DURATION_HUMAN:
@@ -4840,7 +4908,7 @@ sinsp_filter_check* sinsp_filter_check_evtin::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_evtin();
 }
 
-inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae)
+inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae, OUT uint32_t* len)
 {
 	ASSERT(pae);
 	uint32_t field_id = m_field_id;
@@ -4944,6 +5012,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			*p = 0;
 		}
 
+		*len = strlen(m_storage);
 		return (uint8_t*)m_storage;
 	}
 	case TYPE_TAG:
@@ -4967,6 +5036,10 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			}
 		}
 
+		if(val)
+		{
+			*len = strlen(val);
+		}
 		return (uint8_t*) val;
 	}
 	case TYPE_ARGS:
@@ -5011,6 +5084,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			*p = 0;
 		}
 
+		*len = strlen(m_storage);
 		return (uint8_t*)m_storage;
 	}
 	case TYPE_ARG:
@@ -5058,6 +5132,10 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			}
 		}
 
+		if(val)
+		{
+			*len = strlen(val);
+		}
 		return (uint8_t*) val;
 	}
 	default:
@@ -5096,7 +5174,7 @@ uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	//
 	for(it = partial_tracers_list->begin(); it != partial_tracers_list->end(); ++it)
 	{
-		uint8_t* res = extract_tracer(evt, *it);
+		uint8_t* res = extract_tracer(evt, *it, len);
 		if(res != NULL)
 		{
 			return res;
@@ -5108,7 +5186,8 @@ uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 inline bool sinsp_filter_check_evtin::compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae)
 {
-	uint8_t* res = extract_tracer(evt, pae);
+	uint32_t len;
+	uint8_t* res = extract_tracer(evt, pae, &len);
 
 	if(res == NULL)
 	{
@@ -5274,6 +5353,7 @@ int32_t sinsp_filter_check_syslog::parse_field_name(const char* str, bool alloc_
 
 uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	const char *str;
 	ASSERT(m_decoder != NULL);
 	if(!m_decoder->is_data_valid())
 	{
@@ -5285,11 +5365,21 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_FACILITY:
 		return (uint8_t*)&m_decoder->m_facility;
 	case TYPE_FACILITY_STR:
-		return (uint8_t*)m_decoder->get_facility_str();
+		str = m_decoder->get_facility_str();
+		if(str)
+		{
+			*len = strlen(str);
+		}
+		return (uint8_t*)str;
 	case TYPE_SEVERITY:
 		return (uint8_t*)&m_decoder->m_severity;
 	case TYPE_SEVERITY_STR:
-		return (uint8_t*)m_decoder->get_severity_str();
+		str = m_decoder->get_severity_str();
+		if(str)
+		{
+			*len = strlen(str);
+		}
+		return (uint8_t*)str;
 	case TYPE_MESSAGE:
 		*len = m_decoder->m_msg.size();
 		return (uint8_t*)m_decoder->m_msg.c_str();
