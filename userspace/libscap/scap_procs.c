@@ -367,7 +367,6 @@ static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 {
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
@@ -392,7 +391,6 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 {
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
@@ -691,12 +689,12 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 
 	// These values should be read already from /status file, leave these
 	// fallback functions for older kernels < 4.1
-	if(tinfo->vtid == -1 && scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
+	if(tinfo->vtid == 0 && scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
 	{
 		tinfo->vtid = tinfo->tid;
 	}
 
-	if(tinfo->vpid == -1 && scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
+	if(tinfo->vpid == 0 && scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
 	{
 		tinfo->vpid = tinfo->pid;
 	}
@@ -860,12 +858,14 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		//
 		// See if this process includes tasks that need to be added
 		//
-		// TODO: not sure if we can improve this
-		snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-		if(handle->m_mode != SCAP_MODE_NODRIVER && scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error, scan_sockets) == SCAP_FAILURE)
+		if(parenttid == -1 && handle->m_mode != SCAP_MODE_NODRIVER)
 		{
-			res = SCAP_FAILURE;
-			break;
+			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
+			if(scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error, scan_sockets) == SCAP_FAILURE)
+			{
+				res = SCAP_FAILURE;
+				break;
+			}
 		}
 
 		if(tid_to_scan != -1 && *procinfo)
@@ -1003,6 +1003,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 #endif // HAS_CAPTURE
 }
 
+#ifndef _WIN32
 int scap_proc_scan_proc_table(scap_t *handle)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -1024,6 +1025,11 @@ void scap_refresh_proc_table(scap_t* handle)
 	}
 	scap_proc_scan_proc_table(handle);
 }
+#else
+void scap_refresh_proc_table(scap_t* handle)
+{
+}
+#endif // _WIN32
 
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
 {
