@@ -18,6 +18,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <set>
+
 #ifdef HAS_FILTERING
 
 class sinsp_filter_expression;
@@ -171,29 +173,59 @@ public:
 	virtual ~sinsp_evttype_filter();
 
 	void add(std::string &name,
-		 list<uint32_t> &evttypes,
+		 std::set<uint32_t> &evttypes,
+		 std::set<string> &tags,
 		 sinsp_filter* filter);
 
-	void enable(std::string &pattern, bool enabled);
+	// rulesets are arbitrary numbers and should be managed by the caller.
+        // Note that rulesets are used to index into a std::vector so
+        // specifying unnecessarily large rulesets will result in
+        // unnecessarily large vectors.
 
-	bool run(sinsp_evt *evt);
+	// Find those rules matching the provided pattern and set
+	// their enabled status to enabled.
+	void enable(const std::string &pattern, bool enabled, uint16_t ruleset = 0);
+
+	// Find those rules that have a tag in the set of tags and set
+	// their enabled status to enabled. Note that the enabled
+	// status is on the rules, and not the tags--if a rule R has
+	// tags (a, b), and you call eanble_tags([a], true) and then
+	// enable_tags([b], false), R will be disabled despite the
+	// fact it has tag a and was enabled by the first call to
+	// enable_tags.
+	void enable_tags(const std::set<string> &tags, bool enabled, uint16_t ruleset = 0);
+
+	// Match all filters against the provided event.
+	bool run(sinsp_evt *evt, uint16_t ruleset = 0);
 
 private:
 
-	struct filter_wrapper {
+	class filter_wrapper {
+	public:
+		filter_wrapper();
+		virtual ~filter_wrapper();
+
 		sinsp_filter *filter;
-		list<uint32_t> evttypes;
-		bool enabled;
+		std::set<uint32_t> evttypes;
+
+		// Indexes from ruleset to enabled/disabled. Unlike
+		// m_filter_by_evttype, this is managed as a vector as we're
+		// expecting ruleset ids that are small and grouped in the range
+		// 0..k, as compared to all possible event types.
+		std::vector<bool> enabled;
 	};
 
 	// Maps from event type to filter. There can be multiple
 	// filters per event type.
-	list<filter_wrapper *> *m_filter_by_evttype[PPM_EVENT_MAX];
+	std::list<filter_wrapper *> *m_filter_by_evttype[PPM_EVENT_MAX];
 
 	// It's possible to add an event type filter with an empty
 	// list of event types, meaning it should run for all event
 	// types.
-	list<filter_wrapper *> m_catchall_evttype_filters;
+	std::list<filter_wrapper *> m_catchall_evttype_filters;
+
+	// Maps from tag to list of filters having that tag.
+	std::map<std::string, std::list<filter_wrapper *>> m_filter_by_tag;
 
 	// This holds all the filters in
 	// m_filter_by_evttype/m_catchall_evttype_filters, so they can

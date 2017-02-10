@@ -366,7 +366,8 @@ public:
 	const string get_filter();
 
 	void add_evttype_filter(std::string &name,
-				list<uint32_t> &evttypes,
+				std::set<uint32_t> &evttypes,
+				std::set<std::string> &tags,
 				sinsp_filter* filter);
 
 	bool run_filters_on_evt(sinsp_evt *evt);
