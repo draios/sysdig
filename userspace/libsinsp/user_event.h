@@ -24,8 +24,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <set>
 #include <unordered_map>
+// c++ std regex is buggy on g++ 4.8
+// so we use POSIX regex on non-windows
+#ifndef _WIN32
 #include <regex.h>
-
+#else
+#include <regex>
+#endif
 //
 // scope utilities
 //
@@ -57,9 +62,9 @@ private:
 	// utility function to replace RESERVED_STRINGS with their
 	// counterparts in REPLACEMENT_STRINGS
 	static string& replace(std::string& scope);
-
+#ifndef _WIN32
 	static void regex_error(const std::string& call, size_t ret, regex_t* preg, const std::string& str);
-
+#endif
 	std::string m_scope;
 };
 
