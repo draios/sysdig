@@ -36,7 +36,11 @@ const event_scope::string_list_t event_scope::REPLACEMENT_STRINGS =
 	{"\\'"};
 
 // scope key name format regex
+#ifndef _WIN32
 const std::string event_scope::KEY_FORMAT = "[a-zA-Z0-9_/\\.-]*";
+#else
+const std::string event_scope::KEY_FORMAT = "^[a-zA-Z0-9_/\\.-]*$";
+#endif // _WIN32
 
 event_scope::event_scope(const std::string& key, const std::string& value)
 {
@@ -85,6 +89,7 @@ string& event_scope::replace(std::string& value)
 	return value;
 }
 
+#ifndef _WIN32
 void event_scope::regex_error(const std::string& call, size_t ret, regex_t* preg, const std::string& str)
 {
 	if(!preg) { return; }
@@ -101,6 +106,7 @@ void event_scope::regex_error(const std::string& call, size_t ret, regex_t* preg
 
 bool event_scope::check_key_format(const std::string& key)
 {
+
 	if(key.empty()) { return false; }
 	bool result = false;
 	std::string exp(KEY_FORMAT);
@@ -124,6 +130,16 @@ bool event_scope::check_key_format(const std::string& key)
 	return result;
 }
 
+#else
+
+bool event_scope::check_key_format(const std::string& key)
+{
+	static const std::regex r(KEY_FORMAT);
+	if (std::regex_match(key, r)) { return true; }
+	return false;
+}
+
+#endif // _WIN32
 
 //
 // user_event_meta_t

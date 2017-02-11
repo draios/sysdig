@@ -2002,7 +2002,7 @@ sinsp_evttype_filter::~sinsp_evttype_filter()
 
 	m_catchall_evttype_filters.clear();
 
-	for(auto val : m_evttype_filters)
+	for(const auto &val : m_evttype_filters)
 	{
 		delete val.second->filter;
 		delete val.second;
@@ -2010,14 +2010,23 @@ sinsp_evttype_filter::~sinsp_evttype_filter()
 	m_evttype_filters.clear();
 }
 
+sinsp_evttype_filter::filter_wrapper::filter_wrapper()
+	: enabled{true}
+{
+}
+
+sinsp_evttype_filter::filter_wrapper::~filter_wrapper()
+{
+}
+
 void sinsp_evttype_filter::add(string &name,
-			       list<uint32_t> &evttypes,
+			       set<uint32_t> &evttypes,
+			       set<string> &tags,
 			       sinsp_filter *filter)
 {
 	filter_wrapper *wrap = new filter_wrapper();
 	wrap->filter = filter;
 	wrap->evttypes = evttypes;
-	wrap->enabled = true;
 
 	m_evttype_filters.insert(pair<string,filter_wrapper *>(name, wrap));
 
@@ -2028,7 +2037,7 @@ void sinsp_evttype_filter::add(string &name,
 	else
 	{
 
-		for(auto evttype: evttypes)
+		for(const auto &evttype: evttypes)
 		{
 			list<filter_wrapper *> *filters = m_filter_by_evttype[evttype];
 			if(filters == NULL)
@@ -2040,22 +2049,55 @@ void sinsp_evttype_filter::add(string &name,
 			filters->push_back(wrap);
 		}
 	}
+
+	for(const auto &tag: tags)
+	{
+		auto it = m_filter_by_tag.lower_bound(tag);
+
+		if(it == m_filter_by_tag.end() ||
+		   it->first != tag)
+		{
+			it = m_filter_by_tag.emplace_hint(it,
+							  std::make_pair(tag, std::list<filter_wrapper*>()));
+		}
+
+		it->second.push_back(wrap);
+	}
 }
 
-void sinsp_evttype_filter::enable(string &pattern, bool enabled)
+void sinsp_evttype_filter::enable(const string &pattern, bool enabled, uint16_t ruleset)
 {
 	regex re(pattern);
 
-	for(auto val : m_evttype_filters)
+	for(const auto &val : m_evttype_filters)
 	{
 		if (regex_match(val.first, re))
 		{
-			val.second->enabled = enabled;
+			if(val.second->enabled.size() < (size_t) (ruleset + 1))
+			{
+				val.second->enabled.resize(ruleset + 1);
+			}
+			val.second->enabled[ruleset] = enabled;
 		}
 	}
 }
 
-bool sinsp_evttype_filter::run(sinsp_evt *evt)
+void sinsp_evttype_filter::enable_tags(const set<string> &tags, bool enabled, uint16_t ruleset)
+{
+	for(const auto &tag : tags)
+	{
+		for(const auto &wrap : m_filter_by_tag[tag])
+		{
+			if(wrap->enabled.size() < (size_t) (ruleset + 1))
+			{
+				wrap->enabled.resize(ruleset + 1);
+			}
+			wrap->enabled[ruleset] = enabled;
+		}
+	}
+}
+
+bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 {
 	//
 	// First run any catchall event type filters (ones that did not
@@ -2063,7 +2105,9 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt)
 	//
 	for(filter_wrapper *wrap : m_catchall_evttype_filters)
 	{
-		if(wrap->enabled && wrap->filter->run(evt) == true)
+		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
+		   wrap->enabled[ruleset] &&
+		   wrap->filter->run(evt))
 		{
 			return true;
 		}
@@ -2075,7 +2119,9 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt)
 	{
 		for(filter_wrapper *wrap : *filters)
 		{
-			if(wrap->enabled && wrap->filter->run(evt) == true)
+			if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
+			   wrap->enabled[ruleset] &&
+			   wrap->filter->run(evt))
 			{
 				return true;
 			}
