@@ -368,7 +368,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
 	m_clone_ts = pi->clone_ts;
-	
+
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
 	ASSERT(m_inspector);
@@ -640,7 +640,7 @@ string sinsp_threadinfo::get_cwd()
 {
 	// Ideally we should use get_cwd_root()
 	// but scap does not read CLONE_FS from /proc
-	// Also glibc and muslc use always 
+	// Also glibc and muslc use always
 	// CLONE_THREAD|CLONE_FS so let's use
 	// get_main_thread() for now
 	sinsp_threadinfo* tinfo = get_main_thread();
