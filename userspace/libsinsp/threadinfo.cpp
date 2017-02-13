@@ -86,6 +86,7 @@ void sinsp_threadinfo::init()
 	m_program_hash = 0;
 	m_program_hash_falco = 0;
 	m_lastevent_data = NULL;
+	m_parent_loop_detected = false;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -765,6 +766,49 @@ uint64_t sinsp_threadinfo::get_fd_opencount()
 uint64_t sinsp_threadinfo::get_fd_limit()
 {
 	return get_main_thread()->m_fdlimit;
+}
+
+void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
+{
+	// Use two pointers starting at this, traversing the parent
+	// state, at different rates. If they ever equal each other
+	// before slow is NULL there's a loop.
+
+	sinsp_threadinfo *slow=this->get_parent_thread(), *fast=slow;
+
+	// Move fast to its parent
+	fast = (fast ? fast->get_parent_thread() : fast);
+
+	while(slow)
+	{
+		if(!visitor(slow))
+		{
+			break;
+		}
+
+		// Advance slow one step and advance fast two steps
+		slow = slow->get_parent_thread();
+
+		// advance fast 2 steps, checking to see if we meet
+		// slow after each step.
+		for (uint32_t i = 0; i < 2; i++) {
+			fast = (fast ? fast->get_parent_thread() : fast);
+
+			// If not at the end but fast == slow, there's a loop
+			// in the thread state.
+			if(slow && (slow == fast))
+			{
+				// Note we only log a loop once for a given main thread, to avoid flooding logs.
+				if(!m_parent_loop_detected)
+				{
+					g_logger.log(string("Loop in parent thread state detected for pid ") +
+						     std::to_string(m_pid), sinsp_logger::SEV_WARNING);
+					m_parent_loop_detected = true;
+				}
+				return;
+			}
+		}
+	}
 }
 
 sinsp_threadinfo* sinsp_threadinfo::lookup_thread()

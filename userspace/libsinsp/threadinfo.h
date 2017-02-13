@@ -199,6 +199,14 @@ public:
 	uint64_t get_fd_limit();
 
 	//
+	// Walk up the parent process heirarchy, calling the provided
+	// function for each node. If the function returns false, the
+	// traversal stops.
+	//
+	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
+	void traverse_parent_state(visitor_func_t &visitor);
+
+	//
 	// Core state
 	//
 	int64_t m_tid;  ///< The id of this thread
@@ -325,6 +333,7 @@ VISIBILITY_PRIVATE
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
+	bool m_parent_loop_detected;
 
 	friend class sinsp;
 	friend class sinsp_parser;
