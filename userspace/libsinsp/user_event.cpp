@@ -44,7 +44,10 @@ const std::string event_scope::KEY_FORMAT = "^[a-zA-Z0-9_/\\.-]*$";
 
 event_scope::event_scope(const std::string& key, const std::string& value)
 {
-	add(key, value, "");
+	if(!key.empty() && !value.empty())
+	{
+		add(key, value, "");
+	}
 }
 
 bool event_scope::add(const std::string& key, const std::string& value, const std::string& op)
