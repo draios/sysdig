@@ -31,6 +31,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #include <regex>
 #endif
+
+#include "sinsp_int.h"
+
 //
 // scope utilities
 //
