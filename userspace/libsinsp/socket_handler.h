@@ -374,12 +374,7 @@ public:
 		return processed;
 	}
 
-	bool is_chunked_end_char(char c)
-	{
-		return c == '0' || c == '\r' || c == '\n';
-	}
-
-	void data_handling_error(std::string&& data, size_t nparsed)
+	void data_handling_error(const std::string& data, size_t nparsed)
 	{
 		std::ostringstream os;
 		os << "Socket handler (" << m_id + ") an error occurred during http parsing. "
@@ -427,14 +422,20 @@ public:
 		{
 			parse_http(data, len);
 			unsigned parser_errno = HTTP_PARSER_ERRNO(m_http_parser);
-			if((parser_errno != HPE_OK) /*&& ((size_t) parser_errno) < ARRAY_SIZE(http_strerror_tab)*/)
+			if(parser_errno != HPE_OK)
 			{
-				g_logger.log("Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno)
-				// useful but dangerous unless we figure out the way to check the array size
-				// currently, http_strerror_tab is not exported and the only out-of-bounds shield
-				// is an assert inside http_errno_description()
-				// + " (" + http_errno_description((http_errno) parser_errno) + ')'
-				, sinsp_logger::SEV_ERROR);
+				if(parser_errno <= HPE_UNKNOWN)
+				{
+					g_logger.log("Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno) + " ([" +
+								http_errno_name((http_errno) parser_errno) + "]: " +
+								http_errno_description((http_errno) parser_errno) + ')',
+								sinsp_logger::SEV_ERROR);
+				}
+				else
+				{
+					g_logger.log("Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno) + ')',
+								 sinsp_logger::SEV_ERROR);
+				}
 				return CONNECTION_CLOSED;
 			}
 			if(m_json.size()) { process_json(); }
@@ -451,9 +452,10 @@ public:
 				{
 					g_logger.log("Socket handler (" + m_id + ") response ended with unprocessed data, "
 								 "clearing and sending new request ... ", sinsp_logger::SEV_WARNING);
+					ASSERT(!m_data_buf.size());
 					m_data_buf.clear();
 				}
-				// In HTTP 1.1 connnections with chunked transfer, this socket may not be closed by server,
+				// In HTTP 1.1 connnections with chunked transfer, this socket may never be closed by server,
 				// (K8s API server is an example of such behavior), in which case the chunked data will just
 				// stop flowing. We can keep the good socket and resend the request instead of severing the
 				// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
@@ -1502,6 +1504,7 @@ private:
 	void cleanup()
 	{
 		free(m_http_parser);
+		m_http_parser = nullptr;
 		close_socket();
 		dns_cleanup();
 		ssl_cleanup();
@@ -1509,7 +1512,7 @@ private:
 
 	struct http_parser_data
 	{
-		std::string*              m_data_buf = nullptr;
+		std::string* m_data_buf = nullptr;
 		std::vector<std::string>* m_json = nullptr;
 		int* m_http_response = nullptr;
 		bool* m_msg_completed = nullptr;
@@ -1571,7 +1574,10 @@ private:
 		http_parser_settings_init(&m_http_parser_settings);
 		m_http_parser_settings.on_body = http_body_callback;
 		m_http_parser_settings.on_message_complete = http_msg_completed_callback;
-		m_http_parser = (http_parser *)std::malloc(sizeof(http_parser));
+		if(!m_http_parser)
+		{
+			m_http_parser = (http_parser *)std::malloc(sizeof(http_parser));
+		}
 		if(m_http_parser)
 		{
 			m_http_parser_data.m_data_buf = &m_data_buf;

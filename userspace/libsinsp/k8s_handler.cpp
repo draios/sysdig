@@ -573,7 +573,12 @@ void k8s_handler::handle_json(Json::Value&& root)
 						}
 						else
 						{
-							if(data.m_reason != k8s_component::COMPONENT_NONEXISTENT)
+							if(data.m_reason == k8s_component::COMPONENT_NONEXISTENT)
+							{
+								g_logger.log(std::string("Non-existent K8S component (" + name() + "), reason: ") +
+											 std::to_string(data.m_reason), sinsp_logger::SEV_DEBUG);
+							}
+							else
 							{
 								g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
 											 std::to_string(data.m_reason), sinsp_logger::SEV_ERROR);
