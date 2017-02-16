@@ -24,6 +24,79 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <set>
 #include <unordered_map>
+// c++ std regex is buggy on g++ 4.8
+// so we use POSIX regex on non-windows
+#ifndef _WIN32
+#include <regex.h>
+#else
+#include <regex>
+#endif
+
+#include "sinsp_int.h"
+
+//
+// scope utilities
+//
+class event_scope
+{
+public:
+	typedef std::vector<std::string> string_list_t;
+
+	static const std::string SCOPE_OP_AND;
+	static const string_list_t RESERVED_STRINGS;
+	static const string_list_t REPLACEMENT_STRINGS;
+	static const std::string KEY_FORMAT;
+
+	event_scope(const std::string& key = "", const std::string& value = "");
+
+	bool add(const std::string& key, const std::string& value, const std::string& op = SCOPE_OP_AND);
+
+	const std::string& get() const;
+	std::string& get_ref();
+
+	void clear();
+
+	// utility function to check that a scope entry key is valid;
+	// valid entries match KEY_FORMAT regular expression
+	static bool check_key_format(const std::string& key);
+
+private:
+
+	// utility function to replace RESERVED_STRINGS with their
+	// counterparts in REPLACEMENT_STRINGS
+	static string& replace(std::string& scope);
+#ifndef _WIN32
+	static void regex_error(const std::string& call, size_t ret, regex_t* preg, const std::string& str);
+#endif
+	std::string m_scope;
+};
+
+inline const std::string& event_scope::get() const
+{
+	if(m_scope.empty())
+	{
+		g_logger.log("Scope is empty--at least one key/value pair should be present",
+			     sinsp_logger::SEV_WARNING);
+	}
+	return m_scope;
+}
+
+inline std::string& event_scope::get_ref()
+{
+	if(m_scope.empty())
+	{
+		g_logger.log("Scope is empty--at least one key/value pair should be present",
+			     sinsp_logger::SEV_WARNING);
+	}
+
+	return m_scope;
+}
+
+inline void event_scope::clear()
+{
+	m_scope.clear();
+}
+
 
 //
 // user-configured event meta
@@ -207,7 +280,7 @@ public:
 	static std::string to_string(uint64_t timestamp,
 								std::string&& name,
 								std::string&& description,
-								std::string&& scope,
+								event_scope&& scope,
 								tag_map_t&& tags,
 								uint32_t sev = UNKNOWN_SEVERITY);
 
