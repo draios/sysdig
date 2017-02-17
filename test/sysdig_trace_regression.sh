@@ -112,5 +112,5 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-j -n 10000" $TRACEDIR $RESULT
 # Sessions
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p '*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info sid=%proc.sid sname=%proc.sname'" $TRACEDIR $RESULTDIR/sessions $BASELINEDIR/sessions || ret=1
 
-#rm -rf "${TMPBASE}"
+rm -rf "${TMPBASE}"
 exit $ret
