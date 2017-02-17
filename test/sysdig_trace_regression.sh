@@ -88,7 +88,7 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cspy_port 80" $TRACEDIR $RESU
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopconns" $TRACEDIR $RESULTDIR/topconns $BASELINEDIR/topconns || ret=1
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-pc -ctopconns" $TRACEDIR $RESULTDIR/topconns_container $BASELINEDIR/topconns_container || ret=1
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopcontainers_net" $TRACEDIR $RESULTDIR/topcontainers_net $BASELINEDIR/topcontainers_net || ret=1
-$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopports_server" $TRACEDIR $RESULTDIR/topports_server $BASELINEDIR/topports_server || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-pc -ctopports_server" $TRACEDIR $RESULTDIR/topports_server $BASELINEDIR/topports_server || ret=1
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-ctopprocs_net" $TRACEDIR $RESULTDIR/topprocs_net $BASELINEDIR/topprocs_net || ret=1
 # Category: Performance
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cbottlenecks" $TRACEDIR $RESULTDIR/bottlenecks $BASELINEDIR/bottlenecks || ret=1
@@ -112,5 +112,5 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-j -n 10000" $TRACEDIR $RESULT
 # Sessions
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p '*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info sid=%proc.sid sname=%proc.sname'" $TRACEDIR $RESULTDIR/sessions $BASELINEDIR/sessions || ret=1
 
-rm -rf "${TMPBASE}"
+#rm -rf "${TMPBASE}"
 exit $ret
