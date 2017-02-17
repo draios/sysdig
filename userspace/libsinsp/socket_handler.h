@@ -1578,19 +1578,12 @@ private:
 		{
 			m_http_parser = (http_parser *)std::malloc(sizeof(http_parser));
 		}
-		if(m_http_parser)
-		{
-			m_http_parser_data.m_data_buf = &m_data_buf;
-			m_http_parser_data.m_json = &m_json;
-			m_http_parser_data.m_http_response = &m_http_response;
-			m_http_parser_data.m_msg_completed = &m_msg_completed;
-			http_parser_init(m_http_parser, HTTP_RESPONSE);
-			m_http_parser->data = &m_http_parser_data;
-		}
-		else
-		{
-			throw sinsp_exception("Socket handler: cannot create http parser.");
-		}
+		m_http_parser_data.m_data_buf = &m_data_buf;
+		m_http_parser_data.m_json = &m_json;
+		m_http_parser_data.m_http_response = &m_http_response;
+		m_http_parser_data.m_msg_completed = &m_msg_completed;
+		http_parser_init(m_http_parser, HTTP_RESPONSE);
+		m_http_parser->data = &m_http_parser_data;
 	}
 
 	static std::string get_http_reason(int status)
