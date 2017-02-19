@@ -31,6 +31,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #else
 #include <regex>
 #endif
+
+#include "sinsp_int.h"
+
 //
 // scope utilities
 //
@@ -70,11 +73,22 @@ private:
 
 inline const std::string& event_scope::get() const
 {
+	if(m_scope.empty())
+	{
+		g_logger.log("Scope is empty--at least one key/value pair should be present",
+			     sinsp_logger::SEV_WARNING);
+	}
 	return m_scope;
 }
 
 inline std::string& event_scope::get_ref()
 {
+	if(m_scope.empty())
+	{
+		g_logger.log("Scope is empty--at least one key/value pair should be present",
+			     sinsp_logger::SEV_WARNING);
+	}
+
 	return m_scope;
 }
 
