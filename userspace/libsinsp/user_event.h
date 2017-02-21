@@ -21,7 +21,82 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <mutex>
 #include <algorithm>
+#include <string>
 #include <set>
+#include <unordered_map>
+// c++ std regex is buggy on g++ 4.8
+// so we use POSIX regex on non-windows
+#ifndef _WIN32
+#include <regex.h>
+#else
+#include <regex>
+#endif
+
+#include "sinsp_int.h"
+
+//
+// scope utilities
+//
+class event_scope
+{
+public:
+	typedef std::vector<std::string> string_list_t;
+
+	static const std::string SCOPE_OP_AND;
+	static const string_list_t RESERVED_STRINGS;
+	static const string_list_t REPLACEMENT_STRINGS;
+	static const std::string KEY_FORMAT;
+
+	event_scope(const std::string& key = "", const std::string& value = "");
+
+	bool add(const std::string& key, const std::string& value, const std::string& op = SCOPE_OP_AND);
+
+	const std::string& get() const;
+	std::string& get_ref();
+
+	void clear();
+
+	// utility function to check that a scope entry key is valid;
+	// valid entries match KEY_FORMAT regular expression
+	static bool check_key_format(const std::string& key);
+
+private:
+
+	// utility function to replace RESERVED_STRINGS with their
+	// counterparts in REPLACEMENT_STRINGS
+	static string& replace(std::string& scope);
+#ifndef _WIN32
+	static void regex_error(const std::string& call, size_t ret, regex_t* preg, const std::string& str);
+#endif
+	std::string m_scope;
+};
+
+inline const std::string& event_scope::get() const
+{
+	if(m_scope.empty())
+	{
+		g_logger.log("Scope is empty--at least one key/value pair should be present",
+			     sinsp_logger::SEV_WARNING);
+	}
+	return m_scope;
+}
+
+inline std::string& event_scope::get_ref()
+{
+	if(m_scope.empty())
+	{
+		g_logger.log("Scope is empty--at least one key/value pair should be present",
+			     sinsp_logger::SEV_WARNING);
+	}
+
+	return m_scope;
+}
+
+inline void event_scope::clear()
+{
+	m_scope.clear();
+}
+
 
 //
 // user-configured event meta
@@ -188,34 +263,39 @@ public:
 
 	sinsp_user_event();
 
-	sinsp_user_event(uint64_t epoch_time_s, string&& name, string&& desc,
-		string&& scope, tag_map_t&& tags, uint32_t sev);
+	sinsp_user_event(uint64_t epoch_time_s, std::string&& name, std::string&& desc,
+		std::string&& scope, tag_map_t&& tags, uint32_t sev);
 
 	sinsp_user_event(sinsp_user_event&& other);
 
 	sinsp_user_event& operator=(sinsp_user_event&& other);
 
 	uint64_t epoch_time_s() const;
-	const string& name() const;
-	const string& description() const;
+	const std::string& name() const;
+	const std::string& description() const;
 	uint32_t severity() const;
-	const string& scope() const;
+	const std::string& scope() const;
 	const tag_map_t& tags() const;
 
 	static std::string to_string(uint64_t timestamp,
 								std::string&& name,
 								std::string&& description,
-								std::string&& scope,
+								event_scope&& scope,
 								tag_map_t&& tags,
 								uint32_t sev = UNKNOWN_SEVERITY);
 
+	static void emit_event_overflow(const std::string& component,
+									const std::string& machine_id,
+									const std::string& source = "sysdig-agent");
+	static size_t max_events_per_cycle();
+
 private:
-	uint64_t  m_epoch_time_s;
-	string    m_name;
-	string    m_description;
-	uint32_t  m_severity;
-	string    m_scope;
-	tag_map_t m_tags;
+	uint64_t    m_epoch_time_s;
+	std::string m_name;
+	std::string m_description;
+	uint32_t    m_severity;
+	std::string m_scope;
+	tag_map_t   m_tags;
 };
 
 inline uint64_t sinsp_user_event::epoch_time_s() const
@@ -223,12 +303,12 @@ inline uint64_t sinsp_user_event::epoch_time_s() const
 	return m_epoch_time_s;
 }
 
-inline const string& sinsp_user_event::name() const
+inline const std::string& sinsp_user_event::name() const
 {
 	return m_name;
 }
 
-inline const string& sinsp_user_event::description() const
+inline const std::string& sinsp_user_event::description() const
 {
 	return m_description;
 }
@@ -238,7 +318,7 @@ inline uint32_t sinsp_user_event::severity() const
 	return m_severity;
 }
 
-inline const string& sinsp_user_event::scope() const
+inline const std::string& sinsp_user_event::scope() const
 {
 	return m_scope;
 }
@@ -246,6 +326,11 @@ inline const string& sinsp_user_event::scope() const
 inline const sinsp_user_event::tag_map_t& sinsp_user_event::tags() const
 {
 	return m_tags;
+}
+
+inline size_t sinsp_user_event::max_events_per_cycle()
+{
+	return 300u; // TODO: move this value to config?
 }
 
 //

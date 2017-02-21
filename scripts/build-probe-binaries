@@ -15,8 +15,15 @@ set -euo pipefail
 PROBE_NAME=$1
 PROBE_VERSION=$2
 REPOSITORY_NAME=$3
+KERNEL_TYPE=
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
+URL_TIMEOUT=300
+RETRY=10
+
+if [ $# -eq 4 ]; then
+	KERNEL_TYPE=$4
+fi
 
 if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
@@ -44,7 +51,11 @@ function build_sysdig {
 
 		cd sysdig
 		git checkout master
-		git pull
+		# The UEK builder container doesn't have git credentials
+		# It relies on the non-UEK builds doing the pull earlier
+		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+			git pull
+		fi
 		git checkout $PROBE_VERSION
 		make -C driver clean || true
 		rm -rf build || true
@@ -79,20 +90,40 @@ function build_sysdigcloud {
 			git clone git@github.com:draios/sysdig.git
 		fi
 
+		if [ ! -d falco ]; then
+			git clone git@github.com:draios/falco.git
+		fi
+
 		if [ ! -d agent ]; then
 			git clone git@github.com:draios/agent.git
 		fi
 
 		cd sysdig
 		git checkout master
-		git pull
+		# The UEK builder container doesn't have git credentials
+		# It relies on the non-UEK builds doing the pull earlier
+		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+			git pull
+		fi
 		git checkout agent/$PROBE_VERSION
 		make -C driver clean || true
 		rm -rf build || true
 		cd ..
+
+		cd falco
+		git checkout master
+		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+			git pull
+		fi
+		git checkout agent/$PROBE_VERSION
+		rm -fr build || true
+		cd ..
+		
 		cd agent
 		git checkout master
-		git pull
+		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+			git pull
+		fi
 		git checkout $PROBE_VERSION
 		rm -rf build || true
 		mkdir build
@@ -128,7 +159,7 @@ function coreos_build_old {
 	cd $COREOS_DIR
 
 	if [ ! -f config_orig ]; then
-		wget ${VERSION_URL}coreos_developer_container.bin.bz2
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 		sudo kpartx -asv coreos_developer_container.bin
 		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
@@ -150,7 +181,7 @@ function coreos_build_old {
 	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/$TGZ_NAME
 
 	if [ ! -f $TGZ_NAME ]; then
-		wget $KERNEL_URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
 	fi
 
 	if [ ! -d $DIR_NAME ]; then
@@ -185,7 +216,7 @@ function coreos_build_new {
 	cd $COREOS_DIR
 
 	if [ ! -f coreos_developer_container.bin ]; then
-		wget ${VERSION_URL}coreos_developer_container.bin.bz2
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 	fi
 	sudo kpartx -asv coreos_developer_container.bin
@@ -195,9 +226,12 @@ function coreos_build_new {
 
 	cp /tmp/loop/usr/boot/config-* .
 	cp config-* config_orig
+	cp config_orig config
+	# https://groups.google.com/forum/#!topic/coreos-dev/Z8Q7sIy6YwE
+	sed -i 's/CONFIG_INITRAMFS_SOURCE=""/CONFIG_INITRAMFS_SOURCE="bootengine.cpio"\nCONFIG_INITRAMFS_ROOT_UID=0\nCONFIG_INITRAMFS_ROOT_GID=0/' config
 	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
 	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
-	HASH=$HASH_ORIG
+	HASH=$(md5sum config | cut -d' ' -f1)
 
 	cd $BASEDIR
 	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
@@ -230,7 +264,7 @@ function boot2docker_build {
 
 	if [ ! -f $TGZ_NAME ]; then
 		echo Downloading $TGZ_NAME [Boot2Docker]
-		wget $KERNEL_URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
 	fi
 
 	if [ ! -d $DIR_NAME ]; then
@@ -253,7 +287,7 @@ function boot2docker_build {
 		; do \
 	        patch -p1 < "$patch"; \
 		done
-		wget -O .config $KERNEL_CONFIG
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -O .config $KERNEL_CONFIG
 		cp .config ../config-orig
 		make olddefconfig
 		make modules_prepare
@@ -292,7 +326,7 @@ function ubuntu_build {
 
 	if [ ! -f $DEB ]; then
 		echo Downloading $DEB [Ubuntu]
-		wget $URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
 		dpkg -x $DEB ./
 	fi
 
@@ -324,7 +358,7 @@ function rhel_build {
 	# Get all the parameters needed
 	URL=$1
 	RPM=$(echo $URL | grep -o '[^/]*$')
-	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
 
 	if [ ! -d $KERNEL_RELEASE ]; then
 		mkdir $KERNEL_RELEASE
@@ -334,7 +368,7 @@ function rhel_build {
 
 	if [ ! -f $RPM ]; then
 		echo Downloading $RPM [RHEL and CentOS]
-		wget $URL
+		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
 		rpm2cpio $RPM | cpio -idm
 	fi
 
@@ -372,7 +406,7 @@ function debian_build {
 		fi
 		if [ ! -f ${BASEDIR}/common-dependencies/debian/kbuild/${DEB} ]; then
 			echo Downloading ${DEB} [Ubuntu]
-			wget -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
+			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
 		fi
 		return
 	else
@@ -394,7 +428,7 @@ function debian_build {
 
 		if [ ! -f ${DEB} ]; then
 			echo Downloading ${DEB} [Ubuntu]
-			wget ${URL}
+			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${URL}
 			dpkg -x ${DEB} ./
 		fi
 	fi
@@ -439,94 +473,156 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
-#
-# Ubuntu build
-#
+if [ -z "$KERNEL_TYPE" ]; then
+	#
+	# Ubuntu build
+	#
 
-echo Building Ubuntu
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Ubuntu)"
+	echo Building Ubuntu
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Ubuntu)"
 
-for URL in $URLS
-do
-	ubuntu_build $URL
-done
+	for URL in $URLS
+	do
+		ubuntu_build $URL
+	done
 
-#
-# RHEL build
-#
+	#
+	# RHEL build
+	#
 
-echo Building RHEL
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py CentOS)"
+	echo Building RHEL
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py CentOS)"
 
-for URL in $URLS
-do
-	rhel_build $URL
-done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
-#
-# Fedora build
-#
+	#
+	# Fedora build
+	#
 
-echo Building Fedora
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Fedora)"
+	echo Building Fedora
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Fedora)"
 
-for URL in $URLS
-do
-	rhel_build $URL
-done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
-#
-# CoreOS build
-#
-echo Building CoreOS
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py CoreOS)"
+	#
+	# CoreOS build
+	#
+	echo Building CoreOS
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py CoreOS)"
 
-for URL in $URLS
-do
-	set +e
+	for URL in $URLS
+	do
+		set +e
 		eval $(curl -s ${URL}version.txt)
 		if [ ${?} -ne 0 ]; then
 			echo "### Error fetching ${URL}version.txt ###"
 			continue
 		fi
-	set -e
-	if [ $COREOS_BUILD -gt 890 ]; then
-		coreos_build_new $URL $COREOS_VERSION
-	else
-		coreos_build_old $URL $COREOS_VERSION
-	fi
-done
+		set -e
+		if [ $COREOS_BUILD -gt 890 ]; then
+			coreos_build_new $URL $COREOS_VERSION
+		else
+			coreos_build_old $URL $COREOS_VERSION
+		fi
+	done
 
-#
-# boot2docker build
-#
-echo Building boot2docker
-DIR=$(dirname $(readlink -f $0))
-$DIR/boot2docker-kernel-crawler.py | \
-while read KERNEL_ARGS
-do
-	boot2docker_build $KERNEL_ARGS
-done
+	#
+	# boot2docker build
+	#
+	echo Building boot2docker
+	DIR=$(dirname $(readlink -f $0))
+	$DIR/boot2docker-kernel-crawler.py | \
+		while read KERNEL_ARGS
+		do
+			boot2docker_build $KERNEL_ARGS
+		done
 
-#
-# Debian build
-#
-echo Building Debian
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Debian)"
+	#
+	# Debian build
+	#
+	echo Building Debian
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Debian)"
 
-for URL in $URLS
-do
-	debian_build $URL
-done
+	for URL in $URLS
+	do
+		debian_build $URL
+	done
 
-#
-# Upload modules
-#
-aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
+	#
+	# Oracle RHCK build
+	#
+	echo Building Oracle RHCK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
 
-echo "Success."
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+
+	#
+	# The UEK builds needs to happen in a UEK environment, so we launch
+	# a container running OL and do the builds there. This container
+	# doesn't have git credentials, so it relies on previous builds
+	# to do the sysdig/falco/agent git clone/pulls.
+	#
+
+	#
+	# Oracle Linux 6 UEK build
+	#
+	echo "Creating Oracle Linux 6 UEK builder"
+	docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
+	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 ../sysdig/scripts
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+
+	#
+	# Oracle Linux 7 UEK build
+	#
+	echo "Creating Oracle Linux 7 UEK builder"
+	docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
+	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 ../sysdig/scripts
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
+
+	#
+	# Upload modules
+	#
+	aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
+
+	echo "Success."
+
+elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
+	# This should only run in the ol6-builder container context
+	echo Building Oracle Linux 6 UEK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py OL6-UEK)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
+	# This should only run in the ol7-builder container context
+	echo Building Oracle Linux 7 UEK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py OL7-UEK)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+else
+	exit 1
+fi

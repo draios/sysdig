@@ -24,42 +24,8 @@
 // jq is not C++-friendly
 extern "C"
 {
-	#include "compile.h"
 	#include "jv.h"
 	#include "jq.h"
-	//+++ jq C++ compile fixes
-	#ifndef NDEBUG
-	#	define NDEBUG
-	#	include "jv_alloc.h"
-	#	undef NDEBUG
-	#else
-	#	include "jv_alloc.h"
-	#endif // NDEBUG
-	#ifndef HAVE_MKSTEMP
-	#	include <stdlib.h>
-	#	include <fcntl.h>
-		inline int mkstemp(char *tpl)
-		{
-			size_t len = strlen(tpl);
-			int tries=5;
-			int fd;
-			// mktemp() truncates template when it fails
-			char *s = (char*)alloca(len + 1);
-			assert(s != NULL);
-			strcpy(s, tpl);
-			do
-			{
-				// Restore template
-				strcpy(tpl, s);
-				(void) mktemp(tpl);
-				fd = open(tpl, O_CREAT | O_EXCL | O_RDWR, 0600);
-			} while (fd == -1 && tries-- > 0);
-			return fd;
-		}
-	#	define HAVE_MKSTEMP
-	#endif // HAVE_MKSTEMP
-	//--- jq C++ compile fix
-	#include "util.h"
 }
 
 #include <string>

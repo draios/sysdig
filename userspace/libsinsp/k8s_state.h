@@ -25,8 +25,14 @@ public:
 	typedef std::unordered_map<std::string, const k8s_pod_t*>          container_pod_map;
 	typedef std::unordered_multimap<std::string, const k8s_service_t*> pod_service_map;
 	typedef std::unordered_map<std::string, const k8s_rc_t*>           pod_rc_map;
+	typedef std::unordered_map<std::string, const k8s_rs_t*>           pod_rs_map;
+	typedef std::unordered_multimap<std::string, const k8s_deployment_t*> pod_deployment_map;
 
-	k8s_state_t(bool is_captured = false);
+	static const int CAPTURE_VERSION_NONE = -1;
+	static const int CAPTURE_VERSION_1 = 1;
+	static const int CAPTURE_VERSION_2 = 2;
+
+	k8s_state_t(bool is_captured = false, int capture_version = CAPTURE_VERSION_2);
 
 	//
 	// namespaces
@@ -69,6 +75,15 @@ public:
 	void emplace_rc(k8s_rc_t&& rc);
 
 	//
+	// replica sets
+	//
+
+	const k8s_replicasets& get_rss() const;
+	k8s_replicasets& get_rss();
+	void push_rs(const k8s_rs_t& rs);
+	void emplace_rs(k8s_rs_t&& rs);
+
+	//
 	// services
 	//
 
@@ -78,11 +93,30 @@ public:
 	void emplace_service(k8s_service_t&& service);
 
 	//
+	// daemonsets
+	//
+
+	const k8s_daemonsets& get_daemonsets() const;
+	k8s_daemonsets& get_daemonsets();
+	void push_daemonset(const k8s_daemonset_t& daemonset);
+	void emplace_daemonset(k8s_daemonset_t&& daemonset);
+
+	//
+	// deployments
+	//
+
+	const k8s_deployments& get_deployments() const;
+	k8s_deployments& get_deployments();
+	void push_deployment(const k8s_deployment_t& deployment);
+	void emplace_deployment(k8s_deployment_t&& deployment);
+
+	//
 	// events
 	//
 
 	const k8s_events& get_events() const;
 	k8s_events& get_events();
+	void clear_events();
 	void push_event(const k8s_event_t& evt);
 	void emplace_event(k8s_event_t&& evt);
 	void update_event(k8s_event_t& evt, const Json::Value& item);
@@ -111,6 +145,11 @@ public:
 			}
 		}
 		return false;
+	}
+
+	bool has(const std::string& uid) const
+	{
+		return get_component(uid) != nullptr;
 	}
 
 	// Returns a pointer to existing component, if it exists.
@@ -193,6 +232,8 @@ public:
 	// any component by uid
 	const k8s_component* get_component(const std::string& uid, std::string* t = 0) const;
 
+#ifndef HAS_ANALYZER
+
 	// pod by container;
 	const k8s_pod_t* get_pod(const std::string& container) const
 	{
@@ -208,6 +249,13 @@ public:
 	const container_pod_map& get_container_pod_map() const { return m_container_pods; }
 	const pod_service_map& get_pod_service_map() const { return m_pod_services; }
 	const pod_rc_map& get_pod_rc_map() const { return m_pod_rcs; }
+	const pod_rs_map& get_pod_rs_map() const { return m_pod_rss; }
+	const pod_deployment_map& get_pod_deployment_map() const { return m_pod_deployments; }
+
+#endif // HAS_ANALYZER
+
+	void set_capture_version(int version);
+	int get_capture_version() const;
 
 #ifdef HAS_CAPTURE
 	typedef std::deque<std::string> event_list_t;
@@ -253,25 +301,7 @@ private:
 		return false;
 	}
 
-	void cache_pod(container_pod_map& map, const std::string& id, const k8s_pod_t* pod)
-	{
-		ASSERT(pod);
-		ASSERT(!pod->get_name().empty());
-		std::string::size_type pos = id.find(m_docker_prefix);
-		if (pos == 0)
-		{
-			map[id.substr(m_docker_prefix.size(), m_id_length)] = pod;
-			return;
-		}
-		pos = id.find(m_rkt_prefix);
-		if( pos == 0)
-		{
-			map[id.substr(m_rkt_prefix.size())] = pod;
-			return;
-		}
-		throw sinsp_exception("Invalid container ID (expected '" + m_docker_prefix +
-							  "{ID}' or '" + m_rkt_prefix + "{ID}'): " + id);
-	}
+	void cache_pod(container_pod_map& map, const std::string& id, const k8s_pod_t* pod);
 
 	template<typename C>
 	void cache_component(C& map, const std::string& key, typename C::mapped_type component)
@@ -292,18 +322,32 @@ private:
 		}
 	}
 
+#ifndef HAS_ANALYZER
+
 	namespace_map& get_namespace_map() { return m_namespace_map; }
 	container_pod_map& get_container_pod_map() { return m_container_pods; }
 	pod_service_map& get_pod_service_map() { return m_pod_services; }
 	pod_rc_map& get_pod_rc_map() { return m_pod_rcs; }
+	pod_rs_map& get_pod_rs_map() { return m_pod_rss; }
+	pod_deployment_map& get_pod_deployment_map() { return m_pod_deployments; }
+
+#endif // HAS_ANALYZER
 
 	static const std::string m_docker_prefix; // "docker://"
 	static const std::string m_rkt_prefix; // "rkt://"
 	static const unsigned    m_id_length; // portion of the ID to be cached (=12)
+
+#ifndef HAS_ANALYZER
+
 	namespace_map            m_namespace_map;
 	container_pod_map        m_container_pods;
 	pod_service_map          m_pod_services;
 	pod_rc_map               m_pod_rcs;
+	pod_rs_map               m_pod_rss;
+	pod_deployment_map       m_pod_deployments;
+
+#endif // HAS_ANALYZER
+
 #ifdef HAS_CAPTURE
 	event_list_t             m_capture_events;
 #endif // HAS_CAPTURE
@@ -314,14 +358,19 @@ private:
 	k8s_nodes       m_nodes;
 	k8s_pods        m_pods;
 	k8s_controllers m_controllers;
+	k8s_replicasets m_replicasets;
 	k8s_services    m_services;
+	k8s_daemonsets  m_daemonsets;
+	k8s_deployments m_deployments;
 	k8s_events      m_events;
 	// map for uid/type cache for all components
 	// used by to quickly lookup any component by uid
 	component_map_t m_component_map;
 	bool            m_is_captured;
+	int             m_capture_version = -1;
 
 	friend class k8s_dispatcher;
+	friend class k8s_handler;
 	friend class k8s;
 };
 
@@ -414,6 +463,27 @@ inline void k8s_state_t::emplace_rc(k8s_rc_t&& rc)
 	m_controllers.emplace_back(std::move(rc));
 }
 
+// replica sets
+inline const k8s_replicasets& k8s_state_t::get_rss() const
+{
+	return m_replicasets;
+}
+
+inline k8s_replicasets& k8s_state_t::get_rss()
+{
+	return m_replicasets;
+}
+
+inline void k8s_state_t::push_rs(const k8s_rs_t& rs)
+{
+	m_replicasets.push_back(rs);
+}
+
+inline void k8s_state_t::emplace_rs(k8s_rs_t&& rs)
+{
+	m_replicasets.emplace_back(std::move(rs));
+}
+
 // services
 inline const k8s_services& k8s_state_t::get_services() const
 {
@@ -435,6 +505,48 @@ inline void k8s_state_t::emplace_service(k8s_service_t&& service)
 	m_services.emplace_back(std::move(service));
 }
 
+// daemonsets
+inline const k8s_daemonsets& k8s_state_t::get_daemonsets() const
+{
+	return m_daemonsets;
+}
+
+inline k8s_daemonsets& k8s_state_t::get_daemonsets()
+{
+	return m_daemonsets;
+}
+
+inline void k8s_state_t::push_daemonset(const k8s_daemonset_t& daemonset)
+{
+	m_daemonsets.push_back(daemonset);
+}
+
+inline void k8s_state_t::emplace_daemonset(k8s_daemonset_t&& daemonset)
+{
+	m_daemonsets.emplace_back(std::move(daemonset));
+}
+
+// deployments
+inline const k8s_deployments& k8s_state_t::get_deployments() const
+{
+	return m_deployments;
+}
+
+inline k8s_deployments& k8s_state_t::get_deployments()
+{
+	return m_deployments;
+}
+
+inline void k8s_state_t::push_deployment(const k8s_deployment_t& deployment)
+{
+	m_deployments.push_back(deployment);
+}
+
+inline void k8s_state_t::emplace_deployment(k8s_deployment_t&& deployment)
+{
+	m_deployments.emplace_back(std::move(deployment));
+}
+
 // events
 inline const k8s_events& k8s_state_t::get_events() const
 {
@@ -444,6 +556,22 @@ inline const k8s_events& k8s_state_t::get_events() const
 inline k8s_events& k8s_state_t::get_events()
 {
 	return m_events;
+}
+
+inline void k8s_state_t::clear_events()
+{
+	for(auto it = m_events.begin(); it != m_events.end();)
+	{
+		it->post_process((*this));
+		if(!it->has_pending_events())
+		{
+			it = m_events.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
 }
 
 inline void k8s_state_t::push_event(const k8s_event_t& evt)
@@ -495,4 +623,21 @@ inline void k8s_state_t::add_last_pod_container_id(std::string&& container_id)
 	{
 		m_pods.back().emplace_container_id(std::move(container_id));
 	}
+}
+
+inline void k8s_state_t::set_capture_version(int version)
+{
+	if(version != CAPTURE_VERSION_NONE &&
+	   version != CAPTURE_VERSION_1 &&
+	   version != CAPTURE_VERSION_2)
+	{
+		throw sinsp_exception(std::string("K8s invalid capture version (") +
+							  std::to_string(version) + ')');
+	}
+	m_capture_version = version;
+}
+
+inline int k8s_state_t::get_capture_version() const
+{
+	return m_capture_version;
 }

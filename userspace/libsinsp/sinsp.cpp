@@ -29,11 +29,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "sinsp_auth.h"
 #include "filter.h"
 #include "filterchecks.h"
 #include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
+
+#include "k8s_api_handler.h"
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
@@ -45,8 +48,8 @@ extern sinsp_evttables g_infotables;
 extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 
-void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
-							scap_fdinfo* fdinfo, scap_t* newhandle); 
+void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
+							scap_fdinfo* fdinfo, scap_t* newhandle);
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
@@ -77,6 +80,7 @@ sinsp::sinsp() :
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
+	m_evttype_filter = NULL;
 #endif
 
 	m_fds_to_remove = new vector<int64_t>;
@@ -105,6 +109,7 @@ sinsp::sinsp() :
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
 	m_is_tracers_capture_enabled = false;
+	m_file_start_offset = 0;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -201,7 +206,7 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 
 	if(m_h != NULL)
 	{
-		scap_set_refresh_proc_table_when_saving(m_h, !filter);	
+		scap_set_refresh_proc_table_when_saving(m_h, !filter);
 	}
 }
 
@@ -253,8 +258,8 @@ void sinsp::init()
 		delete m_cycle_writer;
 		m_cycle_writer = NULL;
 	}
-	
-	m_cycle_writer = new cycle_writer(this->is_live());
+
+	m_cycle_writer = new cycle_writer(is_live());
 
 	//
 	// Basic inits
@@ -287,7 +292,7 @@ void sinsp::init()
 	// importing the thread table, so that thread table filtering will work with
 	// container filters
 	//
-	if(m_islive == false)
+	if(is_capture())
 	{
 		uint64_t off = scap_ftell(m_h);
 		scap_evt* pevent;
@@ -330,7 +335,7 @@ void sinsp::init()
 		}
 	}
 
-	if(m_islive == false || m_filter_proc_table_when_saving == true)
+	if(is_capture() || m_filter_proc_table_when_saving == true)
 	{
 		import_thread_table();
 	}
@@ -368,7 +373,7 @@ void sinsp::init()
 	}
 
 #if defined(HAS_CAPTURE)
-	if(m_islive)
+	if(m_mode == SCAP_MODE_LIVE)
 	{
 		if(scap_getpid_global(m_h, &m_sysdig_pid) != SCAP_SUCCESS)
 		{
@@ -389,7 +394,44 @@ void sinsp::open(uint32_t timeout_ms)
 
 	g_logger.log("starting live capture");
 
-	m_islive = true;
+	//
+	// Reset the thread manager
+	//
+	m_thread_manager->clear();
+
+	//
+	// Start the capture
+	//
+	m_mode = SCAP_MODE_LIVE;
+	scap_open_args oargs;
+	oargs.mode = SCAP_MODE_LIVE;
+	oargs.fname = NULL;
+	oargs.proc_callback = NULL;
+	oargs.proc_callback_context = NULL;
+	if(!m_filter_proc_table_when_saving)
+	{
+		oargs.proc_callback = ::on_new_entry_from_proc;
+		oargs.proc_callback_context = this;
+	}
+	oargs.import_users = m_import_users;
+
+	m_h = scap_open(oargs, error);
+
+	if(m_h == NULL)
+	{
+		throw sinsp_exception(error);
+	}
+
+	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
+
+	init();
+}
+
+void sinsp::open_nodriver()
+{
+	char error[SCAP_LASTERR_SIZE];
+
+	g_logger.log("starting nodriver sinsp");
 
 	//
 	// Reset the thread manager
@@ -399,7 +441,9 @@ void sinsp::open(uint32_t timeout_ms)
 	//
 	// Start the capture
 	//
+	m_mode = SCAP_MODE_NODRIVER;
 	scap_open_args oargs;
+	oargs.mode = SCAP_MODE_NODRIVER;
 	oargs.fname = NULL;
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
@@ -480,8 +524,6 @@ void sinsp::open(string filename)
 {
 	char error[SCAP_LASTERR_SIZE] = {0};
 
-	m_islive = false;
-
 	if(filename == "")
 	{
 		open();
@@ -500,11 +542,21 @@ void sinsp::open(string filename)
 	//
 	// Start the capture
 	//
+	m_mode = SCAP_MODE_CAPTURE;
 	scap_open_args oargs;
+	oargs.mode = SCAP_MODE_CAPTURE;
 	oargs.fname = filename.c_str();
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
 	oargs.import_users = m_import_users;
+	if(m_file_start_offset != 0)
+	{
+		oargs.start_offset = m_file_start_offset;
+	}
+	else
+	{
+		oargs.start_offset = 0;
+	}
 
 	m_h = scap_open(oargs, error);
 
@@ -548,6 +600,12 @@ void sinsp::close()
 	{
 		delete m_filter;
 		m_filter = NULL;
+	}
+
+	if(m_evttype_filter != NULL)
+	{
+		delete m_evttype_filter;
+		m_evttype_filter = NULL;
 	}
 #endif
 }
@@ -596,9 +654,9 @@ void sinsp::autodump_stop()
 	}
 }
 
-void sinsp::on_new_entry_from_proc(void* context, 
-								   int64_t tid, 
-								   scap_threadinfo* tinfo, 
+void sinsp::on_new_entry_from_proc(void* context,
+								   int64_t tid,
+								   scap_threadinfo* tinfo,
 								   scap_fdinfo* fdinfo,
 								   scap_t* newhandle)
 {
@@ -606,8 +664,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 	//
 	// Retrieve machine information if we don't have it yet
-	//
-	if(m_machine_info == NULL)
+	//proc
 	{
 		m_machine_info = scap_get_machine_info(newhandle);
 		if(m_machine_info != NULL)
@@ -628,8 +685,18 @@ void sinsp::on_new_entry_from_proc(void* context,
 	{
 		sinsp_threadinfo newti(this);
 		newti.init(tinfo);
-
-		m_thread_manager->add_thread(newti, true);
+		if(is_nodriver())
+		{
+			auto sinsp_tinfo = find_thread(tid, true);
+			if(sinsp_tinfo == nullptr || newti.m_clone_ts > sinsp_tinfo->m_clone_ts)
+			{
+				m_thread_manager->add_thread(newti, true);
+			}
+		}
+		else
+		{
+			m_thread_manager->add_thread(newti, true);
+		}
 	}
 	else
 	{
@@ -655,9 +722,9 @@ void sinsp::on_new_entry_from_proc(void* context,
 	}
 }
 
-void on_new_entry_from_proc(void* context, 
-							int64_t tid, 
-							scap_threadinfo* tinfo, 
+void on_new_entry_from_proc(void* context,
+							int64_t tid,
+							scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo,
 							scap_t* newhandle)
 {
@@ -722,7 +789,7 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 void sinsp::refresh_ifaddr_list()
 {
 #ifdef HAS_CAPTURE
-	if(m_islive)
+	if(!is_capture())
 	{
 		ASSERT(m_network_interfaces);
 		scap_refresh_iflist(m_h);
@@ -793,13 +860,37 @@ void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 	}
 }
 
+void sinsp::restart_capture_at_filepos(uint64_t filepos)
+{
+	//
+	// Backup a couple of settings
+	//
+	uint64_t evtnum = m_nevts;
+	string filterstring = m_filterstring;
+
+	//
+	// Close and reopen the capture
+	//
+	m_file_start_offset = filepos;
+	close();
+	open(m_input_filename);
+
+	//
+	// Set again the backuped settings
+	//
+	m_evt.m_evtnum = evtnum;
+	m_nevts = evtnum;
+	set_filter(filterstring);
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
 
+
 	//
-	// Check if there are fake cpu events to  events 
+	// Check if there are fake cpu events to  events
 	//
 	if(m_metaevt != NULL)
 	{
@@ -866,6 +957,13 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				}
 	#endif
 			}
+			else if(res == SCAP_UNEXPECTED_BLOCK)
+			{
+				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
+				restart_capture_at_filepos(filepos);
+				return SCAP_TIMEOUT;
+
+			}
 			else
 			{
 				m_lasterr = scap_getlasterr(m_h);
@@ -885,7 +983,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
-	if(m_get_procs_cpu_from_driver && m_islive)
+	if(m_get_procs_cpu_from_driver && is_live())
 	{
 		if(ts > m_next_flush_time_ns)
 		{
@@ -899,7 +997,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
 				{
 					m_last_procrequest_tod = procrequest_tod;
-					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;	
+					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
 
 					m_meinfo.m_pli = scap_get_threadlist_from_driver(m_h);
 					if(m_meinfo.m_pli == NULL)
@@ -951,15 +1049,12 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Run the periodic connection and thread table cleanup
 	//
-	if(m_islive)
+	if(!is_capture())
 	{
 		m_thread_manager->remove_inactive_threads();
 		m_container_manager.remove_inactive_containers();
 
-		if(m_k8s_client)
-		{
-			update_kubernetes_state();
-		}
+		update_k8s_state();
 
 		if(m_mesos_client)
 		{
@@ -1038,7 +1133,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 		scap_dump_flags dflags;
-		
+
 		bool do_drop;
 		dflags = evt->get_dump_flags(&do_drop);
 		if(do_drop)
@@ -1050,7 +1145,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 		if(m_write_cycling)
 		{
-			//res = scap_number_of_bytes_to_write(evt->m_pevt, evt->m_cpuid, &bytes_to_write);
 			switch(m_cycle_writer->consider(evt))
 			{
 				case cycle_writer::NEWFILE:
@@ -1120,7 +1214,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Update the last event time for this thread
 	//
-	if(evt->m_tinfo && 
+	if(evt->m_tinfo &&
 		evt->get_type() != PPME_SCHEDSWITCH_1_E &&
 		evt->get_type() != PPME_SCHEDSWITCH_6_E)
 	{
@@ -1216,7 +1310,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 
 		//
 		// Since this thread is created out of thin air, we need to
-		// properly set its reference count, by scanning the table 
+		// properly set its reference count, by scanning the table
 		//
 		threadinfo_map_t* pttable = &m_thread_manager->m_threadtable;
 		threadinfo_map_iterator_t it;
@@ -1266,16 +1360,9 @@ void sinsp::set_snaplen(uint32_t snaplen)
 		return;
 	}
 
-	if(scap_set_snaplen(m_h, snaplen) != SCAP_SUCCESS)
+	if(is_live() && scap_set_snaplen(m_h, snaplen) != SCAP_SUCCESS)
 	{
-		//
-		// We know that setting the snaplen on a file doesn't do anything and
-		// we're ok with it.
-		//
-		if(m_islive)
-		{
-			throw sinsp_exception(scap_getlasterr(m_h));
-		}
+		throw sinsp_exception(scap_getlasterr(m_h));
 	}
 }
 
@@ -1297,7 +1384,7 @@ void sinsp::start_capture()
 
 void sinsp::stop_dropping_mode()
 {
-	if(m_islive)
+	if(m_mode == SCAP_MODE_LIVE)
 	{
 		g_logger.format(sinsp_logger::SEV_INFO, "stopping drop mode");
 
@@ -1310,7 +1397,7 @@ void sinsp::stop_dropping_mode()
 
 void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 {
-	if(m_islive)
+	if(m_mode == SCAP_MODE_LIVE)
 	{
 		g_logger.format(sinsp_logger::SEV_INFO, "setting drop mode to %" PRIu32, sampling_ratio);
 
@@ -1351,6 +1438,39 @@ const string sinsp::get_filter()
 	return m_filterstring;
 }
 
+void sinsp::add_evttype_filter(string &name,
+			       set<uint32_t> &evttypes,
+			       set<string> &tags,
+			       sinsp_filter *filter)
+{
+	// Create the evttype filter if it doesn't exist.
+	if(m_evttype_filter == NULL)
+	{
+		m_evttype_filter = new sinsp_evttype_filter();
+	}
+
+	m_evttype_filter->add(name, evttypes, tags, filter);
+}
+
+bool sinsp::run_filters_on_evt(sinsp_evt *evt)
+{
+	//
+	// First run the global filter, if there is one.
+	//
+	if(m_filter && m_filter->run(evt) == true)
+	{
+		return true;
+	}
+
+	//
+	// Then run the evttype filter, if there is one.
+	if(m_evttype_filter && m_evttype_filter->run(evt) == true)
+	{
+		return true;
+	}
+
+	return false;
+}
 #endif
 
 const scap_machine_info* sinsp::get_machine_info()
@@ -1604,15 +1724,101 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 		}
 
 		bool is_live = !m_mesos_api_server.empty();
-		m_mesos_client = new mesos(m_mesos_api_server, mesos::default_state_api,
+		m_mesos_client = new mesos(m_mesos_api_server,
 									m_marathon_api_server,
-									mesos::default_groups_api,
-									mesos::default_apps_api,
-									m_marathon_api_server.empty(), // leader auto-follow if no uri
+									true, // mesos leader auto-follow
+									m_marathon_api_server.empty(), // marathon leader auto-follow if no uri
+									mesos::credentials_t(), // mesos creds, the only way to provide creds in sysdig is embedded in URI
+									mesos::credentials_t(), // marathon creds
 									mesos::default_timeout_ms,
 									is_live,
 									m_verbose_json);
 	}
+}
+
+void sinsp::init_k8s_ssl(string* api_server, string* ssl_cert)
+{
+#ifdef HAS_CAPTURE
+	if(ssl_cert && (!m_k8s_ssl || ! m_k8s_bt))
+	{
+		std::string cert;
+		std::string key;
+		std::string key_pwd;
+		std::string ca_cert;
+
+		// -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]
+		std::string::size_type pos = ssl_cert->find(':');
+		if(pos == std::string::npos) // ca_cert-only is obsoleted, single entry is now bearer token
+		{
+			m_k8s_bt = std::make_shared<sinsp_bearer_token>(*ssl_cert);
+			ssl_cert->clear();
+		}
+		else
+		{
+			while(ssl_cert->length())
+			{
+				if(cert.empty() && pos != std::string::npos)
+				{
+					cert = ssl_cert->substr(0, pos);
+					if(ssl_cert->length() > (pos + 1))
+					{
+						*ssl_cert = ssl_cert->substr(pos + 1);
+					}
+					else { break; }
+				}
+				else if(key.empty())
+				{
+					key = ssl_cert->substr(0, pos);
+					if(ssl_cert->length() > (pos + 1))
+					{
+						*ssl_cert = ssl_cert->substr(pos + 1);
+						std::string::size_type s_pos = key.find('#');
+						if(s_pos != std::string::npos && key.length() > (s_pos + 1))
+						{
+							key_pwd = key.substr(s_pos + 1);
+							key = key.substr(0, s_pos);
+						}
+						if(pos == std::string::npos) { break; }
+					}
+					else { break; }
+				}
+				else if(ca_cert.empty())
+				{
+					ca_cert = *ssl_cert;
+					ssl_cert->clear();
+				}
+				else { goto ssl_err; }
+				pos = ssl_cert->find(':', pos);
+			}
+			if(cert.empty() || key.empty()) { goto ssl_err; }
+		}
+		m_k8s_ssl = std::make_shared<sinsp_ssl>(cert, key, key_pwd,
+					ca_cert, ca_cert.empty() ? false : true, "PEM");
+	}
+	return;
+
+ssl_err:
+	throw sinsp_exception(string("Invalid K8S SSL entry: ") + (ssl_cert ? *ssl_cert : string("NULL")));
+#endif // HAS_CAPTURE
+}
+
+void sinsp::make_k8s_client()
+{
+	bool is_live = m_k8s_api_server && !m_k8s_api_server->empty();
+	m_k8s_client = new k8s(m_k8s_api_server ? *m_k8s_api_server : std::string()
+		,is_live // capture
+#ifdef HAS_CAPTURE
+		,m_k8s_ssl
+		,m_k8s_bt
+		,true // blocking
+#endif // HAS_CAPTURE
+		,nullptr
+#ifdef HAS_CAPTURE
+		,m_ext_list_ptr
+#else
+		,nullptr
+#endif // HAS_CAPTURE
+	);
 }
 
 void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
@@ -1622,116 +1828,193 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 	m_k8s_api_server = api_server;
 	m_k8s_api_cert = ssl_cert;
 
-	if(m_k8s_client == NULL)
-	{
+
 #ifdef HAS_CAPTURE
-		std::shared_ptr<sinsp_curl::ssl> k8s_ssl;
-		std::shared_ptr<sinsp_curl::bearer_token> k8s_bt;
-
-		if(ssl_cert)
+	if(m_k8s_api_detected && m_k8s_ext_detect_done)
+#endif // HAS_CAPTURE
+	{
+		if(m_k8s_client)
 		{
-			std::string cert;
-			std::string key;
-			std::string key_pwd;
-			std::string ca_cert;
+			delete m_k8s_client;
+			m_k8s_client = nullptr;
+		}
+		init_k8s_ssl(api_server, ssl_cert);
+		make_k8s_client();
+	}
+}
 
-			// -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]
-			std::string::size_type pos = ssl_cert->find(':');
-			if(pos == std::string::npos) // ca_cert-only is obsoleted, single entry is now bearer token
+void sinsp::collect_k8s()
+{
+	if(m_parser)
+	{
+		if(m_k8s_api_server)
+		{
+			if(!m_k8s_client)
 			{
-				k8s_bt = std::make_shared<sinsp_curl::bearer_token>(*ssl_cert);
-				ssl_cert->clear();
+				init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
+				if(m_k8s_client)
+				{
+					g_logger.log("K8s client created.", sinsp_logger::SEV_DEBUG);
+				}
+				else
+				{
+					g_logger.log("K8s client NOT created.", sinsp_logger::SEV_DEBUG);
+				}
+			}
+			if(m_k8s_client)
+			{
+				if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+				{
+					m_k8s_last_watch_time_ns = m_lastevent_ts;
+					g_logger.log("K8s updating state ...", sinsp_logger::SEV_DEBUG);
+					uint64_t delta = sinsp_utils::get_current_time_ns();
+					m_k8s_client->watch();
+					m_parser->schedule_k8s_events(&m_meta_evt);
+					delta = sinsp_utils::get_current_time_ns() - delta;
+					g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
+				}
+			}
+		}
+	}
+}
+
+void sinsp::k8s_discover_ext()
+{
+#ifdef HAS_CAPTURE
+	try
+	{
+		if(m_k8s_api_server && !m_k8s_api_server->empty() && !m_k8s_ext_detect_done)
+		{
+			g_logger.log("K8s API extensions handler: detecting extensions.", sinsp_logger::SEV_TRACE);
+			if(!m_k8s_ext_handler)
+			{
+				if(!m_k8s_collector)
+				{
+					m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
+				}
+				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert); }
+				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
+															"/apis/extensions/v1beta1", "[.resources[].name]",
+															"1.1", m_k8s_ssl, m_k8s_bt, true));
+				g_logger.log("K8s API extensions handler: collector created.", sinsp_logger::SEV_TRACE);
 			}
 			else
 			{
-				while(ssl_cert->length())
+				g_logger.log("K8s API extensions handler: collecting data.", sinsp_logger::SEV_TRACE);
+				m_k8s_ext_handler->collect_data();
+				if(m_k8s_ext_handler->ready())
 				{
-					if(cert.empty() && pos != std::string::npos)
+					g_logger.log("K8s API extensions handler: data received.", sinsp_logger::SEV_TRACE);
+					if(m_k8s_ext_handler->error())
 					{
-						cert = ssl_cert->substr(0, pos);
-						if(ssl_cert->length() > (pos + 1))
+						g_logger.log("K8s API extensions handler: data error occurred while detecting API extensions.",
+									 sinsp_logger::SEV_WARNING);
+						m_ext_list_ptr.reset();
+					}
+					else
+					{
+						const k8s_api_handler::api_list_t& exts = m_k8s_ext_handler->extensions();
+						std::ostringstream ostr;
+						k8s_ext_list_t ext_list;
+						for(const auto& ext : exts)
 						{
-							*ssl_cert = ssl_cert->substr(pos + 1);
+							ext_list.insert(ext);
+							ostr << std::endl << ext;
 						}
-						else { break; }
+						g_logger.log("K8s API extensions handler extensions found: " + ostr.str(),
+									 sinsp_logger::SEV_DEBUG);
+						m_ext_list_ptr.reset(new k8s_ext_list_t(ext_list));
 					}
-					else if(key.empty())
-					{
-						key = ssl_cert->substr(0, pos);
-						if(ssl_cert->length() > (pos + 1))
-						{
-							*ssl_cert = ssl_cert->substr(pos + 1);
-							std::string::size_type s_pos = key.find('#');
-							if(s_pos != std::string::npos && key.length() > (s_pos + 1))
-							{
-								key_pwd = key.substr(s_pos + 1);
-								key = key.substr(0, s_pos);
-							}
-							if(pos == std::string::npos) { break; }
-						}
-						else { break; }
-					}
-					else if(ca_cert.empty())
-					{
-						ca_cert = *ssl_cert;
-						ssl_cert->clear();
-					}
-					else { goto ssl_err; }
-					pos = ssl_cert->find(':', pos);
+					m_k8s_ext_detect_done = true;
+					m_k8s_collector.reset();
+					m_k8s_ext_handler.reset();
 				}
-				if(cert.empty() || key.empty()) { goto ssl_err; }
+				else
+				{
+					g_logger.log("K8s API extensions handler: not ready.", sinsp_logger::SEV_TRACE);
+				}
 			}
-			k8s_ssl = std::make_shared<sinsp_curl::ssl>(cert, key, key_pwd,
-						ca_cert, ca_cert.empty() ? false : true, "PEM");
 		}
-#endif // HAS_CAPTURE
-		bool is_live = !m_k8s_api_server->empty();
-		m_k8s_client = new k8s(*m_k8s_api_server,
-			is_live ? true : false, // watch
-			false, // don't run watch in thread
-			is_live ? true : false, // capture
-			"/api/v1"
-#ifdef HAS_CAPTURE
-			,k8s_ssl
-			,k8s_bt
-#endif // HAS_CAPTURE
-		);
 	}
-
-	return;
-
-#ifdef HAS_CAPTURE
-ssl_err:
-	throw sinsp_exception(string("Invalid K8S SSL entry: ") + (ssl_cert ? *ssl_cert : string("NULL")));
+	catch(std::exception& ex)
+	{
+		g_logger.log(std::string("K8s API extensions handler error: ").append(ex.what()),
+					 sinsp_logger::SEV_ERROR);
+		m_k8s_ext_detect_done = false;
+		m_k8s_collector.reset();
+		m_k8s_ext_handler.reset();
+	}
+	g_logger.log("K8s API extensions handler: detection done.", sinsp_logger::SEV_TRACE);
 #endif // HAS_CAPTURE
 }
 
-void sinsp::update_kubernetes_state()
+void sinsp::update_k8s_state()
 {
-	ASSERT(m_k8s_client);
-	if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+#ifdef HAS_CAPTURE
+	try
 	{
-		m_k8s_last_watch_time_ns = m_lastevent_ts;
-
-		if(m_parser && m_k8s_client->is_alive())
+		if(m_k8s_api_server && !m_k8s_api_server->empty())
 		{
-			uint64_t delta = sinsp_utils::get_current_time_ns();
-
-			m_k8s_client->watch();
-			m_parser->schedule_k8s_events(&m_meta_evt);
-
-			delta = sinsp_utils::get_current_time_ns() - delta;
-
-			g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
-		}
-		else
-		{
-			g_logger.format(sinsp_logger::SEV_WARNING, "Kubernetes connection not active anymore, retrying");
-			delete m_k8s_client;
-			m_k8s_client = NULL;
-			init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
+			if(!m_k8s_api_detected)
+			{
+				if(!m_k8s_api_handler)
+				{
+					if(!m_k8s_collector)
+					{
+						m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
+					}
+					if(uri(*m_k8s_api_server).is_secure() && (!m_k8s_ssl || ! m_k8s_bt))
+					{
+						init_k8s_ssl(m_k8s_api_server, m_k8s_api_cert);
+					}
+					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
+																"/api", ".versions", "1.1",
+																m_k8s_ssl, m_k8s_bt, true));
+				}
+				else
+				{
+					m_k8s_api_handler->collect_data();
+					if(m_k8s_api_handler->ready())
+					{
+						g_logger.log("K8s API handler data received.", sinsp_logger::SEV_DEBUG);
+						if(m_k8s_api_handler->error())
+						{
+							g_logger.log("K8s API handler data error occurred while detecting API versions.",
+										 sinsp_logger::SEV_ERROR);
+						}
+						else
+						{
+							m_k8s_api_detected = m_k8s_api_handler->has("v1");
+							if(m_k8s_api_detected)
+							{
+								g_logger.log("K8s API server v1 detected.", sinsp_logger::SEV_DEBUG);
+							}
+						}
+						m_k8s_collector.reset();
+						m_k8s_api_handler.reset();
+					}
+					else
+					{
+						g_logger.log("K8s API handler not ready yet.", sinsp_logger::SEV_DEBUG);
+					}
+				}
+			}
+			if(m_k8s_api_detected && !m_k8s_ext_detect_done)
+			{
+				k8s_discover_ext();
+			}
+			if(m_k8s_api_detected && m_k8s_ext_detect_done)
+			{
+				collect_k8s();
+			}
 		}
 	}
+	catch(std::exception& e)
+	{
+		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
+		throw;
+	}
+#endif // HAS_CAPTURE
 }
 
 bool sinsp::get_mesos_data()
@@ -1809,17 +2092,17 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		//
 		if(m_inspector->m_inactive_thread_scan_time_ns > 30 * ONE_SECOND_IN_NS)
 		{
-			m_last_flush_time_ns = 
+			m_last_flush_time_ns =
 				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
 		}
 		else
 		{
-			m_last_flush_time_ns = 
-				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns);			
+			m_last_flush_time_ns =
+				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns);
 		}
 	}
 
-	if(m_inspector->m_lastevent_ts > 
+	if(m_inspector->m_lastevent_ts >
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
 		res = true;
@@ -1835,7 +2118,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		{
 			bool closed = (it->second.m_flags & PPM_CL_CLOSED) != 0;
 
-			if(closed || 
+			if(closed ||
 				((m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
 					!scap_is_thread_alive(m_inspector->m_h, it->second.m_pid, it->first, it->second.m_comm.c_str()))
 					)

@@ -35,11 +35,16 @@ sinsp_dumper::~sinsp_dumper()
 	}
 }
 
-void sinsp_dumper::open(const string& filename, bool compress)
+void sinsp_dumper::open(const string& filename, bool compress, bool threads_from_sinsp)
 {
 	if(m_inspector->m_h == NULL)
 	{
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
+	}
+
+	if(threads_from_sinsp)
+	{
+		m_inspector->m_thread_manager->to_scap();
 	}
 
 	if(compress)

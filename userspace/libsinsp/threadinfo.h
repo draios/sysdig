@@ -224,6 +224,8 @@ public:
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	string m_root;
+	size_t m_program_hash;
+	size_t m_program_hash_falco;
 
 	//
 	// State for multi-event processing
@@ -301,6 +303,10 @@ VISIBILITY_PRIVATE
 	void allocate_private_state();
 	void compute_program_hash();
 	sinsp_threadinfo* lookup_thread();
+	void args_to_scap(scap_threadinfo* sctinfo);
+	void env_to_scap(scap_threadinfo* sctinfo);
+	void cgroups_to_scap(scap_threadinfo* sctinfo);
+	void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src);
 
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations
@@ -319,7 +325,6 @@ VISIBILITY_PRIVATE
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
-	size_t m_program_hash;
 
 	friend class sinsp;
 	friend class sinsp_parser;
@@ -331,6 +336,7 @@ VISIBILITY_PRIVATE
 	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
+	friend class sisnp_baseliner;
 };
 
 /*@}*/
@@ -385,6 +391,8 @@ public:
 	void create_child_dependencies();
 	void recreate_child_dependencies();
 
+	void to_scap();
+
 	uint32_t get_thread_count()
 	{
 		return (uint32_t)m_threadtable.size();
@@ -424,4 +432,5 @@ private:
 	friend class sinsp_analyzer;
 	friend class sinsp;
 	friend class sinsp_threadinfo;
+	friend class sisnp_baseliner;
 };

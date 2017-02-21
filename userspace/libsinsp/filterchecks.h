@@ -17,7 +17,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
+#include <unordered_set>
 #include <json/json.h>
+#include "filter_value.h"
+#include "prefix_search.h"
 #include "k8s.h"
 #include "mesos.h"
 
@@ -75,13 +78,13 @@ public:
 	// Returns the length of the parsed field if successful, an exception in
 	// case of error.
 	//
-	virtual int32_t parse_field_name(const char* str, bool alloc_state);
+	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 
 	//
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
-	void add_filter_value(const char* str, uint32_t len, uint16_t i = 0 );
+	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 );
 	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	//
@@ -95,9 +98,10 @@ public:
 	virtual const filtercheck_field_info* get_field_info();
 
 	//
-	// Extract the field from the event
+        // Extract the field from the event. In sanitize_strings is true, any
+        // string values are sanitized to remove nonprintable characters.
 	//
-	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len) = 0;
+	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true) = 0;
 
 	//
 	// Extract the field as json from the event (by default, fall
@@ -105,7 +109,7 @@ public:
 	//
 	virtual Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
 	{
-		return Json::Value::nullRef;
+		return Json::nullValue;
 	}
 
 	//
@@ -148,6 +152,15 @@ protected:
 	vector<vector<uint8_t>> m_val_storages;
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
 	inline vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
+
+	unordered_set<filter_value_t,
+		g_hash_membuf,
+		g_equal_to_membuf> m_val_storages_members;
+
+	path_prefix_search m_val_storages_paths;
+
+	uint32_t m_val_storages_min_size;
+	uint32_t m_val_storages_max_size;
 
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
@@ -200,7 +213,7 @@ public:
 	// The following methods are part of the filter check interface but are irrelevant
 	// for this class, because they are used only for the leaves of the filtering tree.
 	//
-	int32_t parse_field_name(const char* str, bool alloc_state)
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 	{
 		ASSERT(false);
 		return 0;
@@ -212,7 +225,7 @@ public:
 		return NULL;
 	}
 
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len)
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true)
 	{
 		ASSERT(false);
 		return NULL;
@@ -288,7 +301,7 @@ public:
 
 	sinsp_filter_check_fd();
 	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_net(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
@@ -302,8 +315,8 @@ public:
 	uint32_t m_tbool;
 
 private:
-	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len);
-	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings);
+	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings);
 	bool extract_fd(sinsp_evt *evt);
 };
 
@@ -327,41 +340,42 @@ public:
 		TYPE_NCHILDS = 9,
 		TYPE_PPID = 10,
 		TYPE_PNAME = 11,
-		TYPE_APID = 12,
-		TYPE_ANAME = 13,
-		TYPE_LOGINSHELLID = 14,
-		TYPE_DURATION = 15,
-		TYPE_FDOPENCOUNT = 16,
-		TYPE_FDLIMIT = 17,
-		TYPE_FDUSAGE = 18,
-		TYPE_VMSIZE = 19,
-		TYPE_VMRSS = 20,
-		TYPE_VMSWAP = 21,
-		TYPE_PFMAJOR = 22,
-		TYPE_PFMINOR = 23,
-		TYPE_TID = 24,
-		TYPE_ISMAINTHREAD = 25,
-		TYPE_EXECTIME = 26,
-		TYPE_TOTEXECTIME = 27,
-		TYPE_CGROUPS = 28,
-		TYPE_CGROUP = 29,
-		TYPE_VTID = 30,
-		TYPE_VPID = 31,
-		TYPE_THREAD_CPU = 32,
-		TYPE_THREAD_CPU_USER = 33,
-		TYPE_THREAD_CPU_SYSTEM = 34,
-		TYPE_THREAD_VMSIZE = 35,
-		TYPE_THREAD_VMRSS = 36,
-		TYPE_THREAD_VMSIZE_B = 37,
-		TYPE_THREAD_VMRSS_B = 38,
-		TYPE_SID = 39,
-		TYPE_SNAME = 40,
+		TYPE_PCMDLINE = 12,
+		TYPE_APID = 13,
+		TYPE_ANAME = 14,
+		TYPE_LOGINSHELLID = 15,
+		TYPE_DURATION = 16,
+		TYPE_FDOPENCOUNT = 17,
+		TYPE_FDLIMIT = 18,
+		TYPE_FDUSAGE = 19,
+		TYPE_VMSIZE = 20,
+		TYPE_VMRSS = 21,
+		TYPE_VMSWAP = 22,
+		TYPE_PFMAJOR = 23,
+		TYPE_PFMINOR = 24,
+		TYPE_TID = 25,
+		TYPE_ISMAINTHREAD = 26,
+		TYPE_EXECTIME = 27,
+		TYPE_TOTEXECTIME = 28,
+		TYPE_CGROUPS = 29,
+		TYPE_CGROUP = 30,
+		TYPE_VTID = 31,
+		TYPE_VPID = 32,
+		TYPE_THREAD_CPU = 33,
+		TYPE_THREAD_CPU_USER = 34,
+		TYPE_THREAD_CPU_SYSTEM = 35,
+		TYPE_THREAD_VMSIZE = 36,
+		TYPE_THREAD_VMRSS = 37,
+		TYPE_THREAD_VMSIZE_B = 38,
+		TYPE_THREAD_VMRSS_B = 39,
+		TYPE_SID = 40,
+		TYPE_SNAME = 41,
 	};
 
 	sinsp_filter_check_thread();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare(sinsp_evt *evt);
 
 private:
@@ -451,16 +465,18 @@ public:
 		TYPE_BUFLEN_NET = 57,
 		TYPE_BUFLEN_NET_IN = 58,
 		TYPE_BUFLEN_NET_OUT = 59,
+		TYPE_ISOPEN_READ = 60,
+		TYPE_ISOPEN_WRITE = 61
 	};
 
 	sinsp_filter_check_event();
 	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 
@@ -510,7 +526,7 @@ public:
 
 	sinsp_filter_check_user();
 	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	uint32_t m_uid;
 	string m_strval;
@@ -530,7 +546,7 @@ public:
 
 	sinsp_filter_check_group();
 	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	uint32_t m_gid;
 	string m_name;
@@ -571,14 +587,14 @@ public:
 	sinsp_filter_check_tracer();
 	~sinsp_filter_check_tracer();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	inline int64_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser);
-	uint8_t* extract_args(sinsp_partial_tracer* pae);
-	uint8_t* extract_arg(sinsp_partial_tracer* pae);
+	uint8_t* extract_args(sinsp_partial_tracer* pae, OUT uint32_t *len);
+	uint8_t* extract_arg(sinsp_partial_tracer* pae, OUT uint32_t *len);
 
 	int32_t m_argid;
 	string m_argname;
@@ -631,9 +647,9 @@ public:
 
 	sinsp_filter_check_evtin();
 	~sinsp_filter_check_evtin();
-	int32_t parse_field_name(const char* str, bool alloc_state);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare(sinsp_evt *evt);
 
 	uint64_t m_u64val;
@@ -654,6 +670,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val);
+	inline uint8_t* extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae, OUT uint32_t* len);
 	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
 
 	bool m_is_compare;
@@ -672,8 +689,8 @@ public:
 	rawstring_check(string text);
 	sinsp_filter_check* allocate_new();
 	void set_text(string text);
-	int32_t parse_field_name(const char* str, bool alloc_state);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	// XXX this is overkill and wasted for most of the fields.
 	// It could be optimized by dynamically allocating the right amount
@@ -702,8 +719,8 @@ public:
 
 	sinsp_filter_check_syslog();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	sinsp_decoder_syslog* m_decoder;
 	uint32_t m_gid;
@@ -718,15 +735,30 @@ public:
 		TYPE_CONTAINER_ID = 0,
 		TYPE_CONTAINER_NAME,
 		TYPE_CONTAINER_IMAGE,
-		TYPE_CONTAINER_TYPE
+		TYPE_CONTAINER_IMAGE_ID,
+		TYPE_CONTAINER_TYPE,
+		TYPE_CONTAINER_PRIVILEGED,
+		TYPE_CONTAINER_MOUNTS,
+		TYPE_CONTAINER_MOUNT,
+		TYPE_CONTAINER_MOUNT_SOURCE,
+		TYPE_CONTAINER_MOUNT_DEST,
+		TYPE_CONTAINER_MOUNT_MODE,
+		TYPE_CONTAINER_MOUNT_RDWR,
+		TYPE_CONTAINER_MOUNT_PROPAGATION
 	};
 
 	sinsp_filter_check_container();
 	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	int32_t extract_arg(const string& val, size_t basename);
+
 	string m_tstr;
+	uint32_t m_u32val;
+	int32_t m_argid;
+	string m_argstr;
 };
 
 //
@@ -753,8 +785,8 @@ public:
 		m_cnt = cnt;
 		m_print_format = print_format;
 	}
-	int32_t parse_field_name(const char* str, bool alloc_state);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
 private:
@@ -783,7 +815,7 @@ public:
 
 	sinsp_filter_check_utils();
 	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
 	uint64_t m_cnt;
@@ -807,12 +839,14 @@ public:
 
 	sinsp_filter_check_fdlist();
 	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
 	string m_strval;
 	char m_addrbuff[100];
 };
+
+#ifndef HAS_ANALYZER
 
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
@@ -835,25 +869,37 @@ public:
 		TYPE_K8S_NS_ID,
 		TYPE_K8S_NS_LABEL,
 		TYPE_K8S_NS_LABELS,
+		TYPE_K8S_RS_NAME,
+		TYPE_K8S_RS_ID,
+		TYPE_K8S_RS_LABEL,
+		TYPE_K8S_RS_LABELS,
+		TYPE_K8S_DEPLOYMENT_NAME,
+		TYPE_K8S_DEPLOYMENT_ID,
+		TYPE_K8S_DEPLOYMENT_LABEL,
+		TYPE_K8S_DEPLOYMENT_LABELS,
 	};
 
 	sinsp_filter_check_k8s();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
 	int32_t extract_arg(const string& fldname, const string& val);
 	const k8s_pod_t* find_pod_for_thread(const sinsp_threadinfo* tinfo);
 	const k8s_ns_t* find_ns_by_name(const string& ns_name);
 	const k8s_rc_t* find_rc_by_pod(const k8s_pod_t* pod);
+	const k8s_rs_t* find_rs_by_pod(const k8s_pod_t* pod);
 	vector<const k8s_service_t*> find_svc_by_pod(const k8s_pod_t* pod);
+	const k8s_deployment_t* find_deployment_by_pod(const k8s_pod_t* pod);
 	void concatenate_labels(const k8s_pair_list& labels, string* s);
 	bool find_label(const k8s_pair_list& labels, const string& key, string* value);
 
 	string m_argname;
 	string m_tstr;
 };
+
+#endif // HAS_ANALYZER
 
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {
@@ -876,8 +922,8 @@ public:
 
 	sinsp_filter_check_mesos();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 private:
 

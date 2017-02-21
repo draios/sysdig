@@ -18,9 +18,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <string>
+#include <vector>
+#include <list>
+#include <cctype>
 #include <algorithm>
 #include <locale>
 #include <sstream>
+
+#include <scap.h>
+#include "json/json.h"
 
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;
@@ -68,9 +75,9 @@ public:
 	// Concatenate two paths and puts the result in "target".
 	// If path2 is relative, the concatenation happens and the result is true.
 	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.
-	// Assumes that path1 is well formed. 
+	// Assumes that path1 is well formed.
 	//
-	static bool concatenate_paths(char* target, uint32_t targetlen, const char* path1, uint32_t len1, const char* path2, uint32_t len2); 
+	static bool concatenate_paths(char* target, uint32_t targetlen, const char* path1, uint32_t len1, const char* path2, uint32_t len2);
 
 	//
 	// Determines if an IPv6 address is IPv4-mapped
@@ -80,14 +87,16 @@ public:
 	//
 	// Given a string, scan the event list and find the longest argument that the input string contains
 	//
-	static const struct ppm_param_info* find_longest_matching_evt_param(string name);
+	static const struct ppm_param_info* find_longest_matching_evt_param(std::string name);
 
 	//
 	// Get the list of filtercheck fields
 	//
-	static void get_filtercheck_fields_info(vector<const filter_check_info*>* list);
+	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>* list);
 
 	static uint64_t get_current_time_ns();
+
+	static bool glob_match(const char *pattern, const char *string);
 
 #ifndef _WIN32
 	//
@@ -100,18 +109,30 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 // little STL thing to sanitize strings
 ///////////////////////////////////////////////////////////////////////////////
+
 struct g_invalidchar
 {
-    bool operator()(char c) const 
-	{
-		if(c < -1)
-		{
-			return true;
-		}
+    bool operator()(char c) const
+    {
+	    if(c < -1)
+	    {
+		    return true;
+	    }
 
-		return !isprint((unsigned)c);
+	    return !isprint((unsigned)c);
     }
 };
+
+inline void sanitize_string(std::string &str)
+{
+	// It turns out with -O3 (release flags) using erase and
+	// remove_if is slighly faster than the inline version that
+	// was here. It's not faster for -O2, and is actually much
+	// slower without optimization.
+	//
+	// Optimize for the release case, then.
+	str.erase(remove_if(str.begin(), str.end(), g_invalidchar()), str.end());
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
@@ -123,7 +144,7 @@ time_t get_epoch_utc_seconds_now();
 // Time functions for Windows
 
 #ifdef _WIN32
-struct timezone2 
+struct timezone2
 {
 	int32_t  tz_minuteswest;
 	bool  tz_dsttime;
@@ -135,7 +156,7 @@ SINSP_PUBLIC int gettimeofday(struct timeval *tv, struct timezone2 *tz);
 ///////////////////////////////////////////////////////////////////////////////
 // gethostname wrapper
 ///////////////////////////////////////////////////////////////////////////////
-string sinsp_gethostname();
+std::string sinsp_gethostname();
 
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
@@ -143,25 +164,25 @@ string sinsp_gethostname();
 
 // each of these functions uses values in network byte order
 
-string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve);
-string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve);
-string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve);
-string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve);
+std::string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve);
+std::string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve);
+std::string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve);
+std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve);
 
 // `l4proto` should be of type scap_l4_proto, but since it's an enum sometimes
 // is used as int and we would have to cast
 // `port` must be saved with network byte order
 // `l4proto` could be neither TCP nor UDP, in this case any protocol will be
 //           matched
-string port_to_string(uint16_t port, uint8_t l4proto, bool resolve);
+std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve);
 
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////
-vector<string> sinsp_split(const string& s, char delim);
+std::vector<std::string> sinsp_split(const std::string& s, char delim);
 
 template<typename It>
-string sinsp_join(It begin, It end, char delim)
+std::string sinsp_join(It begin, It end, char delim)
 {
 	if(begin == end)
 	{
@@ -177,11 +198,11 @@ string sinsp_join(It begin, It end, char delim)
 	return ss.str();
 }
 
-string& ltrim(string& s);
-string& rtrim(string& s);
-string& trim(string& s);
-string& replace_in_place(string& s, const string& search, const string& replacement);
-string replace(const string& str, const string& search, const string& replacement);
+std::string& ltrim(std::string& s);
+std::string& rtrim(std::string& s);
+std::string& trim(std::string& s);
+std::string& replace_in_place(std::string& s, const std::string& search, const std::string& replacement);
+std::string replace(const std::string& str, const std::string& search, const std::string& replacement);
 
 ///////////////////////////////////////////////////////////////////////////////
 // number parser
@@ -189,19 +210,19 @@ string replace(const string& str, const string& search, const string& replacemen
 class sinsp_numparser
 {
 public:
-	static uint8_t parseu8(const string& str);
-	static int8_t parsed8(const string& str);
-	static uint16_t parseu16(const string& str);
-	static int16_t parsed16(const string& str);
-	static uint32_t parseu32(const string& str);
-	static int32_t parsed32(const string& str);
-	static uint64_t parseu64(const string& str);
-	static int64_t parsed64(const string& str);
+	static uint8_t parseu8(const std::string& str);
+	static int8_t parsed8(const std::string& str);
+	static uint16_t parseu16(const std::string& str);
+	static int16_t parsed16(const std::string& str);
+	static uint32_t parseu32(const std::string& str);
+	static int32_t parsed32(const std::string& str);
+	static uint64_t parseu64(const std::string& str);
+	static int64_t parsed64(const std::string& str);
 
-	static bool tryparseu32(const string& str, uint32_t* res);
-	static bool tryparsed32(const string& str, int32_t* res);
-	static bool tryparseu64(const string& str, uint64_t* res);
-	static bool tryparsed64(const string& str, int64_t* res);
+	static bool tryparseu32(const std::string& str, uint32_t* res);
+	static bool tryparsed32(const std::string& str, int32_t* res);
+	static bool tryparseu64(const std::string& str, uint64_t* res);
+	static bool tryparsed64(const std::string& str, int64_t* res);
 
 	static bool tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res);
 	static bool tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res);
@@ -271,8 +292,8 @@ public:
 	}
 
 private:
-	list<OBJ*> m_avail_list;
-	list<OBJ*> m_full_list;
+	std::list<OBJ*> m_avail_list;
+	std::list<OBJ*> m_full_list;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

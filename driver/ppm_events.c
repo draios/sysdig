@@ -705,61 +705,6 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	return PPM_SUCCESS;
 }
 
-/*
- * Get the current working directory for the current process.
- * Returns the pointer to the string, which is NOT going to be at the beginning
- * of buf.
- * Buf must be at least 1 page in size.
- */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-char *npm_getcwd(char *buf, unsigned long bufsize)
-{
-	struct path pwd;
-	char *res;
-
-	ASSERT(bufsize >= PAGE_SIZE - 1);
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36) || defined CONFIG_VE
-	get_fs_pwd(current->fs, &pwd);
-#else
-	read_lock(&current->fs->lock);
-	pwd = current->fs->pwd;
-	path_get(&pwd);
-	read_unlock(&current->fs->lock);
-#endif
-
-	res = d_path(&pwd, buf, bufsize);
-
-	if (IS_ERR(res))
-		res = NULL;
-
-	path_put(&pwd);
-
-	return res;
-}
-#else /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
-char *npm_getcwd(char *buf, unsigned long bufsize)
-{
-	struct dentry *dentry;
-	struct vfsmount *mnt;
-	char *res;
-
-	ASSERT(bufsize >= PAGE_SIZE - 1);
-
-	read_lock(&current->fs->lock);
-	mnt = mntget(current->fs->pwdmnt);
-	dentry = dget(current->fs->pwd);
-	read_unlock(&current->fs->lock);
-
-	res = d_path(dentry, mnt, buf, bufsize);
-
-	if (IS_ERR(res))
-		res = NULL;
-
-	return res;
-}
-#endif
-
 static inline u8 socket_family_to_scap(u8 family)
 {
 	if (family == AF_INET)

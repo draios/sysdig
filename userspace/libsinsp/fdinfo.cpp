@@ -124,7 +124,8 @@ template<> char* sinsp_fdinfo_t::get_typestring()
 template<> string sinsp_fdinfo_t::tostring_clean()
 {
 	string m_tstr = m_name;
-	m_tstr.erase(remove_if(m_tstr.begin(), m_tstr.end(), g_invalidchar()), m_tstr.end());
+	sanitize_string(m_tstr);
+
 	return m_tstr;
 }
 
@@ -134,7 +135,7 @@ template<> void sinsp_fdinfo_t::add_filename(const char* fullpath)
 }
 
 template<> bool sinsp_fdinfo_t::set_net_role_by_guessing(sinsp* inspector,
-										  sinsp_threadinfo* ptinfo, 
+										  sinsp_threadinfo* ptinfo,
 										  sinsp_fdinfo_t* pfdinfo,
 										  bool incoming)
 {
@@ -326,13 +327,13 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		{
 			//
 			// Sometimes an FD-creating syscall can be called on an FD that is being closed (i.e
-			// the close enter has arrived but the close exit has not arrived yet). 
+			// the close enter has arrived but the close exit has not arrived yet).
 			// If this is the case, mark the new entry so that the successive close exit won't
 			// destroy it.
 			//
 			fdinfo->m_flags &= ~sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS;
 			fdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED;
-			
+
 			m_table[CANCELED_FD_NUMBER] = it->second;
 		}
 		else
@@ -364,7 +365,7 @@ void sinsp_fdtable::erase(int64_t fd)
 
 	if(fd == m_last_accessed_fd)
 	{
-		m_last_accessed_fd = -1;		
+		m_last_accessed_fd = -1;
 	}
 
 	if(fdit == m_table.end())

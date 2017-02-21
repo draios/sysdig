@@ -10,6 +10,7 @@
 #include "curl/curlbuild.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "sinsp_curl.h"
 #include "mesos.h"
 #define BUFFERSIZE 512 // b64 needs this macro
 #include "b64/encode.h"
@@ -17,9 +18,12 @@
 #include <stdexcept>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <string.h>
+#include <cstring>
 
-mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master, bool discover_marathon, int timeout_ms):
+mesos_http::mesos_http(mesos& m, const uri& url,
+					bool discover_mesos_lead_master,
+					bool discover_marathon,
+					int timeout_ms, const string& token):
 	m_sync_curl(curl_easy_init()),
 	m_select_curl(curl_easy_init()),
 	m_mesos(m),
@@ -29,28 +33,36 @@ mesos_http::mesos_http(mesos& m, const uri& url, bool discover_mesos_lead_master
 	m_timeout_ms(timeout_ms),
 	m_callback_func(0),
 	m_curl_version(curl_version_info(CURLVERSION_NOW)),
-	m_request(make_request(url, m_curl_version)),
 	m_is_mesos_state(url.to_string().find(mesos::default_state_api) != std::string::npos),
 	m_discover_lead_master(discover_mesos_lead_master),
-	m_discover_marathon(discover_marathon)
+	m_discover_marathon(discover_marathon),
+	m_token(token)
 {
 	if(!m_sync_curl || !m_select_curl)
 	{
-		throw sinsp_exception("Mesos http: CURL initialization failed.");
+		throw sinsp_exception("mesos_http: CURL initialization failed.");
 	}
 
 	ASSERT(m_curl_version);
-	if((m_url.get_scheme() == "https") && (m_curl_version && !(m_curl_version->features | CURL_VERSION_SSL)))
-	{
-		throw sinsp_exception("Mesos: HTTPS NOT supported");
-	}
 
+	m_request = make_request(url, m_curl_version);
+	if(!m_token.empty())
+	{
+		m_sync_curl_headers.add(string("Authorization: token=") + m_token);
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_HTTPHEADER, m_sync_curl_headers.ptr()));
+	}
+	if(m_url.is_secure())
+	{
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYPEER, 0));
+		check_error(curl_easy_setopt(m_sync_curl, CURLOPT_SSL_VERIFYHOST, 0));
+		check_error(curl_easy_setopt(m_select_curl, CURLOPT_SSL_VERIFYPEER, 0));
+		check_error(curl_easy_setopt(m_select_curl, CURLOPT_SSL_VERIFYHOST, 0));
+	}
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_FORBID_REUSE, 1L));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
 	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
 
 	check_error(curl_easy_setopt(m_select_curl, CURLOPT_CONNECTTIMEOUT_MS, m_timeout_ms));
-
 	discover_mesos_leader();
 }
 
@@ -75,6 +87,12 @@ void mesos_http::cleanup(CURL** curl)
 	m_connected = false;
 }
 
+void mesos_http::set_token(const string& token)
+{
+	m_token = token;
+	m_request = make_request(m_url, m_curl_version);
+}
+
 Json::Value mesos_http::get_state_frameworks()
 {
 	Json::Value frameworks;
@@ -89,17 +107,19 @@ Json::Value mesos_http::get_state_frameworks()
 			frameworks = root["frameworks"];
 			if(frameworks.isNull() || !frameworks.isArray())
 			{
-				throw sinsp_exception("Unexpected condition while detecting Mesos master: frameworks entry not found.");
+				throw sinsp_exception("mesos_http: Unexpected condition while detecting Mesos master: frameworks entry not found.");
 			}
 		}
 		else
 		{
-			throw sinsp_exception("Mesos master leader detection failed: Invalid JSON");
+			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+			throw sinsp_exception("mesos_http: Mesos master leader detection failed in get_state_frameworks(): Invalid JSON.");
 		}
 	}
 	else
 	{
-		throw sinsp_exception("Mesos master leader detection failed: " + m_url.to_string(false));
+		throw sinsp_exception(std::string("mesos_http: Mesos master leader [") + m_url.to_string(false) +
+							  "] detection failed: " + curl_easy_strerror(res));
 	}
 	return frameworks;
 }
@@ -108,11 +128,21 @@ void mesos_http::discover_mesos_leader()
 {
 	if(m_is_mesos_state)
 	{
-		g_logger.log("Inspecting Mesos leader [" + m_url.to_string(false) + ']', sinsp_logger::SEV_DEBUG);
+		g_logger.log("mesos_http: Inspecting Mesos leader [" + m_url.to_string(false) + ']', sinsp_logger::SEV_DEBUG);
 		std::ostringstream os;
 		CURLcode res = get_data(m_url.to_string(), os);
 		if(res == CURLE_OK)
 		{
+			long http_response_code = 0;
+			check_error(curl_easy_getinfo(m_sync_curl, CURLINFO_RESPONSE_CODE, &http_response_code));
+			if(sinsp_curl::is_redirect(http_response_code))
+			{
+				uri newurl(m_redirect);
+				m_url.set_host(newurl.get_host());
+				g_logger.log("mesos_http: Detected Mesos master leader HTTP redirect: [" + m_url.to_string(false) + ']', sinsp_logger::SEV_INFO);
+				discover_mesos_leader();
+				return;
+			}
 			Json::Value root;
 			Json::Reader reader;
 			if(reader.parse(os.str(), root))
@@ -120,81 +150,103 @@ void mesos_http::discover_mesos_leader()
 				const Json::Value& frameworks = root["frameworks"];
 				if(frameworks.isNull() || !frameworks.isArray())
 				{
-					throw sinsp_exception("Unexpected condition while detecting Mesos master: frameworks entry not found.");
+					throw sinsp_exception("mesos_http: Unexpected condition while detecting Mesos master: frameworks entry not found.");
 				}
 				g_logger.log("Found " + std::to_string(frameworks.size()) + " Mesos frameworks", sinsp_logger::SEV_DEBUG);
 				if(frameworks.size()) // this is master leader
 				{
 					discover_framework_uris(frameworks);
-					g_logger.log("Found Mesos master leader [" + m_url.to_string(false) + ']', sinsp_logger::SEV_INFO);
+					g_logger.log("mesos_http: Found Mesos master leader [" + m_url.to_string(false) + ']', sinsp_logger::SEV_INFO);
 					return;
 				}
 				else  if(!m_discover_lead_master) // this is standby server and autodiscovery is disabled
 				{
-					throw sinsp_exception("Detected standby Mesos master: autodiscovery not enabled. Giving up (will retry).");
+					throw sinsp_exception("mesos_http: Detected standby Mesos master: autodiscovery not enabled. Giving up (will retry).");
 				}
 				else // autodiscovery is enabled, find where is the master
 				{
 					const Json::Value& leader = root["leader"];
 					if(!leader.isNull() && leader.isString())
 					{
-						std::string address = leader.asString();
-						std::string::size_type pos = address.find('@');
-						if(pos != std::string::npos && (pos + 1) < address.size())
+						std::string leader_address = leader.asString();
+						std::string::size_type pos = leader_address.find('@');
+						if(pos != std::string::npos && (pos + 1) < leader_address.size())
 						{
-							address = std::string("http://").append(address.substr(pos + 1)).append(mesos::default_state_api);
-							if(address != m_url.to_string())
+							std::string address = m_url.get_scheme() + "://";
+							if(!m_mesos.m_mesos_credentials.first.empty())
 							{
-								g_logger.log("Detected Mesos master leader redirect: [" + address + ']', sinsp_logger::SEV_INFO);
+								address.append(m_mesos.m_mesos_credentials.first).append(1, ':').append(m_mesos.m_mesos_credentials.second).append(1, '@');
+							}
+							address.append(leader_address.substr(pos + 1)).append(mesos::default_state_api);
+							if(address != m_url.to_string(true))
+							{
+								g_logger.log("mesos_http: Detected Mesos master leader redirect: [" + uri(address).to_string(false) + ']', sinsp_logger::SEV_INFO);
 								m_url = address;
 								discover_mesos_leader();
 							}
 							else
 							{
-								throw sinsp_exception("Mesos master leader not discovered at [" + address + "] . "
+								throw sinsp_exception("mesos_http: Mesos master leader not discovered at [" + uri(address).to_string(false) + "] . "
 													  "Giving up temporarily ...");
 							}
 						}
 						else
 						{
-							throw sinsp_exception("Unexpected leader entry format while detecting Mesos master ("
-												  + address + ").");
+							throw sinsp_exception("mesos_http: Unexpected leader entry format while detecting Mesos master: " + leader_address);
 						}
 					}
 					else
 					{
-						throw sinsp_exception("Unexpected condition while detecting Mesos master: leader entry not found: ["
-											  + m_url.to_string(false) + ']');
+						g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+						throw sinsp_exception("mesos_http: Unexpected condition while detecting Mesos master leader [" + m_url.to_string(false) +
+											  "]: leader entry not found.");
 					}
 				}
 			}
 			else
 			{
-				throw sinsp_exception("Mesos master leader detection failed: Invalid JSON ("
-									  + m_url.to_string(false) + ']');
+				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
+				throw sinsp_exception("mesos_http: Mesos master leader [" + m_url.to_string(false) + "] detection failed: Invalid JSON.");
 			}
 		}
 		else
 		{
-			throw sinsp_exception("Mesos master leader detection failed: "
-								  + m_url.to_string(false));
+			throw sinsp_exception("mesos_http: Mesos master leader [" + m_url.to_string(false) + "] detection failed: "
+								  + curl_easy_strerror(res));
 		}
 	}
 }
 
 std::string mesos_http::get_framework_url(const Json::Value& framework)
 {
+	const Json::Value& fw_name = framework["name"];
+	bool is_marathon = false;
+	if(!fw_name.isNull() && fw_name.isConvertibleTo(Json::stringValue))
+	{
+		is_marathon = mesos_framework::is_root_marathon(fw_name.asString());
+	}
+	bool has_creds = !m_mesos.m_marathon_credentials.first.empty();
 	Json::Value fw_url = framework["webui_url"];
 	if(!fw_url.isNull() && fw_url.isString() && !fw_url.asString().empty())
 	{
-		return fw_url.asString();
+		uri url(fw_url.asString());
+		if(is_marathon && has_creds)
+		{
+			url.set_credentials(m_mesos.m_marathon_credentials);
+		}
+		return url.to_string(true);
 	}
 	else
 	{
 		fw_url = framework["hostname"];
 		if(!fw_url.isNull() && fw_url.isString() && !fw_url.asString().empty())
 		{
-			return std::string("http://").append(fw_url.asString()).append(":8080");
+			uri url(std::string("http://").append(fw_url.asString()).append(":8080"));
+			if(is_marathon && has_creds)
+			{
+				url.set_credentials(m_mesos.m_marathon_credentials);
+			}
+			return url.to_string(true);
 		}
 	}
 	return "";
@@ -215,7 +267,7 @@ void mesos_http::discover_framework_uris(const Json::Value& frameworks)
 	m_marathon_uris.clear();
 	if(frameworks.isNull())
 	{
-		throw sinsp_exception("Unexpected condition while inspecting Marathon framework: frameworks entry not found.");
+		throw sinsp_exception("mesos_http: Unexpected condition while inspecting Marathon framework: frameworks entry not found.");
 	}
 	if(frameworks.isArray())
 	{
@@ -225,7 +277,7 @@ void mesos_http::discover_framework_uris(const Json::Value& frameworks)
 			const Json::Value& id = framework["id"];
 			if(id.isNull() || !id.isString())
 			{
-				throw sinsp_exception("Unexpected condition while detecting Marathon framework: ID entry not found.");
+				throw sinsp_exception("mesos_http: Unexpected condition while detecting Marathon framework: ID entry not found.");
 			}
 			else
 			{
@@ -246,7 +298,7 @@ void mesos_http::discover_framework_uris(const Json::Value& frameworks)
 						{
 							if(mesos_framework::is_root_marathon(name))
 							{
-								g_logger.log(std::string("Found Marathon framework ").append(name).append(" (").append(id.asString()).append(") at [").append(framework_url).append(1, ']'),
+								g_logger.log(std::string("mesos_http: Found Marathon framework ").append(name).append(" (").append(id.asString()).append(") at [").append(framework_url).append(1, ']'),
 											 sinsp_logger::SEV_INFO);
 								if(!m_marathon_uris.size())
 								{
@@ -254,31 +306,31 @@ void mesos_http::discover_framework_uris(const Json::Value& frameworks)
 								}
 								else
 								{
-									g_logger.log("Multiple marathon URIs discovered; only the first one (" + m_marathon_uris[0] + ") will have effect;"
+									g_logger.log("mesos_http: Multiple marathon URIs discovered; only the first one (" + m_marathon_uris[0] + ") will have effect;"
 										" others will be treated as generic frameworks.", sinsp_logger::SEV_WARNING);
 								}
 							}
 							else
 							{
-								g_logger.log(std::string("Skipping non-Marathon framework URL detection ").append(name).append(" (").append(id.asString()).append(1, ')'), sinsp_logger::SEV_DEBUG);
+								g_logger.log(std::string("mesos_http: Skipping non-Marathon framework URL detection ").append(name).append(" (").append(id.asString()).append(1, ')'), sinsp_logger::SEV_DEBUG);
 							}
 						}
 						else
 						{
-							g_logger.log(std::string("Marathon detection not enabled."), sinsp_logger::SEV_DEBUG);
+							g_logger.log(std::string("mesos_http: Marathon detection not enabled."), sinsp_logger::SEV_DEBUG);
 						}
 					}
 					else
 					{
 						if(m_discover_marathon && mesos_framework::is_root_marathon(name))
 						{
-							g_logger.log("Can not obtain URL for Marathon framework.", sinsp_logger::SEV_ERROR);
+							g_logger.log("mesos_http: Can not obtain URL for Marathon framework.", sinsp_logger::SEV_ERROR);
 						}
 					}
 				}
 				else // framework exists, but is not active - remove it if we were watching it so far
 				{
-						g_logger.log(std::string("Mesos framework ").append(name).append(" (").append(id.asString()).append(") deactivated."), sinsp_logger::SEV_INFO);
+						g_logger.log(std::string("mesos_http: Mesos framework ").append(name).append(" (").append(id.asString()).append(") deactivated."), sinsp_logger::SEV_INFO);
 						std::string framework_url = get_framework_url(framework);
 						for(marathon_uri_t::iterator it = m_marathon_uris.begin(); it != m_marathon_uris.end();)
 						{
@@ -294,7 +346,7 @@ void mesos_http::discover_framework_uris(const Json::Value& frameworks)
 	}
 	else
 	{
-		throw sinsp_exception("Mesos master leader detection failed: " + m_url.to_string(false));
+		throw sinsp_exception("mesos_http: Mesos master leader detection failed: " + m_url.to_string(false));
 	}
 }
 
@@ -327,29 +379,29 @@ std::string mesos_http::make_request(uri url, curl_version_info_data* curl_versi
 		base64::encoder().encode(is, os);
 		request << "Authorization: Basic " << os.str() << "\r\n";
 	}
+	if(!m_token.empty())
+	{
+		request << "Authorization: token=" << m_token << "\r\n";
+	}
 	request << "\r\n";
 
 	return request.str();
 }
 
-size_t mesos_http::write_data(void *ptr, size_t size, size_t nmemb, void *cb)
-{
-	std::string data(reinterpret_cast<const char*>(ptr), static_cast<size_t>(size * nmemb));
-	*reinterpret_cast<std::ostream*>(cb) << data << std::flush;
-	return size * nmemb;
-}
-
 CURLcode mesos_http::get_data(const std::string& url, std::ostream& os)
 {
-	g_logger.log(std::string("Retrieving data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
-	curl_easy_setopt(m_sync_curl, CURLOPT_URL, url.c_str());
-	curl_easy_setopt(m_sync_curl, CURLOPT_FOLLOWLOCATION, 1L);
+	g_logger.log(std::string("mesos_http: Retrieving data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_URL, url.c_str()));
 
-	curl_easy_setopt(m_sync_curl, CURLOPT_NOSIGNAL, 1); //Prevent "longjmp causes uninitialized stack frame" bug
-	curl_easy_setopt(m_sync_curl, CURLOPT_ACCEPT_ENCODING, "deflate");
-	curl_easy_setopt(m_sync_curl, CURLOPT_WRITEFUNCTION, &mesos_http::write_data);
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_HEADERDATA, m_redirect));
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_HEADERFUNCTION, sinsp_curl::header_callback));
 
-	curl_easy_setopt(m_sync_curl, CURLOPT_WRITEDATA, &os);
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_NOSIGNAL, 1)); //Prevent "longjmp causes uninitialized stack frame" bug
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_ACCEPT_ENCODING, "deflate"));
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_TIMEOUT_MS, m_timeout_ms));
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_WRITEFUNCTION, sinsp_curl::write_data));
+
+	check_error(curl_easy_setopt(m_sync_curl, CURLOPT_WRITEDATA, &os));
 	return curl_easy_perform(m_sync_curl);
 }
 
@@ -364,6 +416,24 @@ bool mesos_http::get_all_data(callback_func_t parse)
 	}
 	else
 	{
+		// HTTP errors are not returned by curl API
+		// error will be in the response stream
+		long http_code = 0;
+		curl_easy_getinfo(m_sync_curl, CURLINFO_RESPONSE_CODE, &http_code);
+		if(http_code >= 400)
+		{
+			m_connected = false;
+			return false;
+		}
+		else if(sinsp_curl::is_redirect(http_code))
+		{
+			g_logger.log("mesos_http: HTTP redirect (" + std::to_string(http_code) + ')', sinsp_logger::SEV_DEBUG);
+			if(sinsp_curl::handle_redirect(m_url, std::string(m_redirect), os))
+			{
+				os.str("");
+				return get_all_data(parse);
+			}
+		}
 		Json::Reader reader;
 		json_ptr_t root(new Json::Value());
 		if(reader.parse(os.str(), *root))
@@ -372,7 +442,7 @@ bool mesos_http::get_all_data(callback_func_t parse)
 		}
 		else
 		{
-			g_logger.log("Invalid JSON received from [" + m_url.to_string(false) + ']', sinsp_logger::SEV_WARNING);
+			g_logger.log("mesos_http: Mesos or Marathon Invalid JSON received from [" + m_url.to_string(false) + ']', sinsp_logger::SEV_WARNING);
 			g_logger.log("JSON: <" + os.str() + '>', sinsp_logger::SEV_DEBUG);
 		}
 		m_connected = true;
@@ -411,7 +481,7 @@ int mesos_http::get_socket(long timeout_ms)
 {
 	if(m_request.empty())
 	{
-		throw sinsp_exception("Cannot create watch socket (request empty).");
+		throw sinsp_exception("mesos_http: Cannot create watch socket (request empty).");
 	}
 
 	if(timeout_ms != -1)
@@ -443,15 +513,15 @@ int mesos_http::get_socket(long timeout_ms)
 
 		if(!wait(0))
 		{
-			throw sinsp_exception("Error obtaining socket: timeout.");
+			throw sinsp_exception("mesos_http: Error obtaining socket: timeout.");
 		}
 
-		g_logger.log(std::string("Connected: collecting data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
+		g_logger.log(std::string("mesos_http: Connected; collecting data from ") + uri(url).to_string(false), sinsp_logger::SEV_DEBUG);
 	}
 
 	if(m_watch_socket <= 0)
 	{
-		throw sinsp_exception("Error obtaining socket: " + std::to_string(m_watch_socket));
+		throw sinsp_exception("mesos_http: Error obtaining socket: " + std::to_string(m_watch_socket));
 	}
 
 	m_connected = true;
@@ -462,22 +532,24 @@ void mesos_http::send_request()
 {
 	if(m_request.empty())
 	{
-		throw sinsp_exception("Mesos send: request (empty).");
+		throw sinsp_exception("mesos_http: Mesos send request (empty).");
 	}
 
 	if(m_watch_socket < 0)
 	{
-		throw sinsp_exception("Mesos send: invalid socket.");
+		throw sinsp_exception("mesos_http: Mesos send invalid socket.");
 	}
 
-	size_t iolen = send(m_watch_socket, m_request.c_str(), m_request.size(), 0);
+	//size_t iolen = send(m_watch_socket, m_request.c_str(), m_request.size(), 0);
+	size_t iolen;
+	check_error(curl_easy_send(m_select_curl, m_request.c_str(), m_request.size(), &iolen));
 	if((iolen <= 0) || (m_request.size() != iolen))
 	{
-		throw sinsp_exception("Mesos send: socket connection error.");
+		throw sinsp_exception("mesos_http: Mesos send socket connection error.");
 	}
-	else if(!wait(1))
+	else if(!wait(0))
 	{
-		throw sinsp_exception("Mesos send: timeout.");
+		throw sinsp_exception("mesos_http: Mesos send timeout.");
 	}
 	g_logger.log(m_request, sinsp_logger::SEV_DEBUG);
 }
@@ -516,7 +588,7 @@ void mesos_http::handle_json(std::string::size_type end_pos, bool chunked)
 			m_data_buf = m_data_buf.substr(0, end_pos + 1);
 			if(chunked && !purge_chunked_markers(m_data_buf))
 			{
-				g_logger.log("Invalid Mesos or Marathon JSON data detected (chunked transfer).", sinsp_logger::SEV_ERROR);
+				g_logger.log("mesos_http: Invalid Mesos or Marathon JSON data detected (chunked transfer).", sinsp_logger::SEV_ERROR);
 				(m_mesos.*m_callback_func)(nullptr, m_framework_id);
 			}
 			else
@@ -524,14 +596,14 @@ void mesos_http::handle_json(std::string::size_type end_pos, bool chunked)
 				(m_mesos.*m_callback_func)(try_parse(m_data_buf), m_framework_id);
 			}
 			m_data_buf.clear();
-			m_content_length = string::npos;
+			m_content_length = std::string::npos;
 		}
 	}
 }
 
 bool mesos_http::detect_chunked_transfer(const std::string& data)
 {
-	if(m_content_length == string::npos)
+	if(m_content_length == std::string::npos)
 	{
 		std::string::size_type cl_pos = data.find("Content-Length:");
 		if(cl_pos != std::string::npos)
@@ -552,7 +624,7 @@ bool mesos_http::detect_chunked_transfer(const std::string& data)
 				}
 				else
 				{
-					m_content_length = static_cast<string::size_type>(len);
+					m_content_length = static_cast<std::string::size_type>(len);
 				}
 			}
 		}
@@ -564,7 +636,7 @@ void mesos_http::extract_data(std::string& data)
 {
 	if(!detect_chunked_transfer(data))
 	{
-		g_logger.log("An error occurred while detecting chunked transfer.", sinsp_logger::SEV_ERROR);
+		g_logger.log("mesos_http: An error occurred while detecting chunked transfer.", sinsp_logger::SEV_ERROR);
 		return;
 	}
 
@@ -581,7 +653,7 @@ void mesos_http::extract_data(std::string& data)
 	{
 		m_data_buf.append(data);
 	}
-	bool chunked = (m_content_length == string::npos);
+	bool chunked = (m_content_length == std::string::npos);
 	if(chunked)
 	{
 		handle_json(m_data_buf.find("}\r\n0"), true);
@@ -597,44 +669,24 @@ bool mesos_http::on_data()
 {
 	if(!m_callback_func)
 	{
-		throw sinsp_exception("Cannot parse data (parse function null).");
+		throw sinsp_exception("mesos_http: Cannot parse data (parse function null).");
 	}
 
 	size_t iolen = 0;
-	std::vector<char> buf;
+	char buf[1024];
 	std::string data;
-
+	CURLcode ret;
 	try
 	{
-		int loop_counter = 0;
 		do
 		{
-			size_t iolen = 0;
-			int count = 0;
-			int ioret = 0;
-			ioret = ioctl(m_watch_socket, FIONREAD, &count);
-			if(ioret >= 0 && count > 0)
+			check_error(ret = curl_easy_recv(m_select_curl, buf, sizeof(buf), &iolen));
+			if(iolen > 0)
 			{
-				if(count > static_cast<int>(buf.size()))
-				{
-					buf.resize(count);
-				}
-				iolen = recv(m_watch_socket, &buf[0], count, 0);
-				if(iolen > 0)
-				{
-					data.append(&buf[0], iolen <= buf.size() ? iolen : buf.size());
-				}
-				else if(iolen == 0) { goto connection_closed; }
-				else if(iolen < 0) { goto connection_error; }
+				data.append(buf, iolen);
 			}
-			else
-			{
-				if(ioret < 0) { goto connection_error; }
-				else if(loop_counter == 0 && count == 0) { goto connection_closed; }
-				break;
-			}
-			++loop_counter;
-		} while(iolen && errno != CURLE_AGAIN);
+			else if(ret != CURLE_AGAIN) { goto connection_closed; }
+		} while(iolen && ret != CURLE_AGAIN);
 		if(data.size())
 		{
 			extract_data(data);
@@ -642,20 +694,13 @@ bool mesos_http::on_data()
 	}
 	catch(sinsp_exception& ex)
 	{
-		g_logger.log(std::string("Data receive error [" + m_url.to_string() + "]: ").append(ex.what()), sinsp_logger::SEV_ERROR);
+		g_logger.log(std::string("mesos_http: Data receive error [" + m_url.to_string() + "]: ").append(ex.what()), sinsp_logger::SEV_ERROR);
 		return false;
 	}
 	return true;
 
-connection_error:
-{
-	std::string err = strerror(errno);
-	g_logger.log("Mesos or Marathon API connection [" + m_url.to_string() + "] error : " + err, sinsp_logger::SEV_ERROR);
-	return false;
-}
-
 connection_closed:
-	g_logger.log("Mesos or Marathon API connection [" + m_url.to_string() + "] closed.", sinsp_logger::SEV_ERROR);
+	g_logger.log("mesos_http: Mesos or Marathon API connection [" + m_url.to_string() + "] closed.", sinsp_logger::SEV_ERROR);
 	m_connected = false;
 	return false;
 }
@@ -759,12 +804,12 @@ Json::Value mesos_http::get_task_labels(const std::string& task_id)
 		}
 		else
 		{
-			g_logger.log("Error parsing tasks.\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
+			g_logger.log("mesos_http: Error parsing tasks.\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
 		}
 	}
 	catch(std::exception& ex)
 	{
-		g_logger.log(std::string("Error parsing tasks:") + ex.what(), sinsp_logger::SEV_ERROR);
+		g_logger.log(std::string("mesos_http: Error parsing tasks:") + ex.what(), sinsp_logger::SEV_ERROR);
 	}
 
 	return labels;

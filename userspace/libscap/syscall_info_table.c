@@ -107,7 +107,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_FCHDIR*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "fchdir" },
 	/*PPM_SC_SYSFS*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "sysfs" }, /* get file system type information */
 	/*PPM_SC_PERSONALITY*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "personality" }, /* set the process execution domain */
-	/*PPM_SC_GETDENTS*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "getdents" }, /* get directory entries */
+	/*PPM_SC_GETDENTS*/ { EC_FILE, (enum ppm_event_flags)(EF_DROP_FALCO), "getdents" }, /* get directory entries */
 	/*PPM_SC_SELECT*/ { EC_WAIT, (enum ppm_event_flags)(EF_DROP_FALCO), "select" },
 	/*PPM_SC_FLOCK*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "flock" }, /* apply or remove an advisory lock on an open file */
 	/*PPM_SC_MSYNC*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "msync" }, /* synchronize a file with a memory map */
@@ -264,7 +264,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_CLOCK_ADJTIME*/ { EC_OTHER, (enum ppm_event_flags)(EF_NONE), "clock_adjtime" },
 	/*PPM_SC_SYNCFS*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "syncfs" },
 	/*PPM_SC_SETNS*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "setns" }, /* reassociate thread with a namespace */
-	/*PPM_SC_GETDENTS64*/  { EC_IPC, (enum ppm_event_flags)(EF_NONE), "getdents64" },
+	/*PPM_SC_GETDENTS64*/  { EC_IPC, (enum ppm_event_flags)(EF_DROP_FALCO), "getdents64" },
 	/*  */
 	/* Non-multiplexed socket family */
 	/*  */

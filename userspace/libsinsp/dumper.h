@@ -49,10 +49,14 @@ public:
 
 	  \param compress true to save the tracefile in a compressed format.
 
+	  \param threads_from_sinsp If, true the thread and FD tables in the file
+	   will be created from the current sinsp's tables instead of reusing the scap
+	   ones.
+
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(const string& filename, bool compress);
+	void open(const string& filename, bool compress, bool threads_from_sinsp=false);
 
 	/*!
 	  \brief Return the current size of a tracefile.

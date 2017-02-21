@@ -375,7 +375,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
-	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} }
+	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } }
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -812,7 +812,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	int subsys_len;
 	char *path;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) || LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	int res;
 #endif
 
@@ -821,6 +821,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 #else
 	struct cgroup_subsys_state *css = task_subsys_state(current, subsys_id);
 #endif
+
 	if (!css) {
 		ASSERT(false);
 		return 1;
@@ -831,7 +832,17 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 		return 1;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	// According to https://github.com/torvalds/linux/commit/4c737b41de7f4eef2a593803bad1b918dd718b10
+	// cgroup_path now returns an int again
+	res = cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = buf;
+	}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 	path = cgroup_path(css->cgroup, buf, *available);
 	if (!path) {
 		ASSERT(false);
@@ -1005,7 +1016,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
-	char *spwd;
+	char *spwd = "";
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -1148,14 +1159,9 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * cwd
+	 * cwd, pushed empty to avoid breaking compatibility
+	 * with the older event format
 	 */
-	spwd = npm_getcwd(args->str_storage, STR_STORAGE_SIZE - 1);
-	if (spwd == NULL)
-		spwd = "";
-
-	args->str_storage[STR_STORAGE_SIZE - 1] = '\0';
-
 	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3873,10 +3879,14 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_SET_THREAD_AREA:
 		return PPM_PTRACE_SET_THREAD_AREA;
 #endif
+#ifdef PTRACE_GET_THREAD_AREA
 	case PTRACE_GET_THREAD_AREA:
 		return PPM_PTRACE_GET_THREAD_AREA;
+#endif
+#ifdef PTRACE_OLDSETOPTIONS
 	case PTRACE_OLDSETOPTIONS:
 		return PPM_PTRACE_OLDSETOPTIONS;
+#endif
 #ifdef PTRACE_SETFPXREGS
 	case PTRACE_SETFPXREGS:
 		return PPM_PTRACE_SETFPXREGS;
@@ -3885,14 +3895,22 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_GETFPXREGS:
 		return PPM_PTRACE_GETFPXREGS;
 #endif
+#ifdef PTRACE_SETFPREGS
 	case PTRACE_SETFPREGS:
 		return PPM_PTRACE_SETFPREGS;
+#endif
+#ifdef PTRACE_GETFPREGS
 	case PTRACE_GETFPREGS:
 		return PPM_PTRACE_GETFPREGS;
+#endif
+#ifdef PTRACE_SETREGS
 	case PTRACE_SETREGS:
 		return PPM_PTRACE_SETREGS;
+#endif
+#ifdef PTRACE_GETREGS
 	case PTRACE_GETREGS:
 		return PPM_PTRACE_GETREGS;
+#endif
 #ifdef PTRACE_SETSIGMASK
 	case PTRACE_SETSIGMASK:
 		return PPM_PTRACE_SETSIGMASK;
