@@ -27,7 +27,7 @@ k8s::k8s(const std::string& uri, bool is_captured,
 		m_event_filter(event_filter)
 #ifdef HAS_CAPTURE
 		,m_net(uri.empty() ?
-			   nullptr : new k8s_net(*this, m_state, uri, ssl, bt, extensions, event_filter, block))
+			   nullptr : new k8s_net(*this, m_state, uri, ssl, bt, event_filter, block))
 #endif
 {
 	g_logger.log(std::string("Creating K8s object for [" +

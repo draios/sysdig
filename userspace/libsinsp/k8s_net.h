@@ -32,7 +32,6 @@ public:
 	k8s_net(k8s& kube, k8s_state_t& state, const std::string& uri = "http://localhost:80",
 		ssl_ptr_t ssl = nullptr,
 		bt_ptr_t bt = nullptr,
-		ext_list_ptr_t extensions = nullptr,
 		filter_ptr_t event_filter = nullptr,
 		bool blocking_sockets = false);
 
@@ -70,7 +69,6 @@ private:
 	bool is_secure();
 	void cleanup();
 
-	k8s&            m_k8s;
 	k8s_state_t&    m_state;
 	collector_ptr_t m_collector;
 	uri             m_uri;
@@ -79,7 +77,6 @@ private:
 	bool            m_stopped;
 	handler_map_t   m_handlers;
 	bool            m_blocking_sockets = false;
-	ext_list_ptr_t  m_extensions;
 	filter_ptr_t    m_event_filter;
 	std::string     m_machine_id;
 };

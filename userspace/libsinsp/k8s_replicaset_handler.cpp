@@ -51,6 +51,14 @@ std::string k8s_replicaset_handler::STATE_FILTER =
 	" ]"
 	"}";
 
+std::string k8s_replicaset_handler::NULL_FILTER =
+	"{"
+	" type: \"NONEXISTENT\","
+	" apiVersion: .apiVersion,"
+	" kind: \"ReplicaSet\", "
+	" items: [ null ]"
+	"}";
+
 k8s_replicaset_handler::k8s_replicaset_handler(k8s_state_t& state
 #ifdef HAS_CAPTURE
 	,ptr_t dependency_handler
@@ -66,7 +74,7 @@ k8s_replicaset_handler::k8s_replicaset_handler(k8s_state_t& state
 		k8s_handler("k8s_replicaset_handler", true,
 #ifdef HAS_CAPTURE
 					url, "/apis/extensions/v1beta1/replicasets",
-					STATE_FILTER, EVENT_FILTER, collector,
+					STATE_FILTER, EVENT_FILTER, NULL_FILTER, collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
 #endif // HAS_CAPTURE
