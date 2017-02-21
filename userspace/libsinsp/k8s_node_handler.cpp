@@ -60,7 +60,7 @@ k8s_node_handler::k8s_node_handler(k8s_state_t& state
 		k8s_handler("k8s_node_handler", true,
 #ifdef HAS_CAPTURE
 					url, "/api/v1/nodes",
-					STATE_FILTER, EVENT_FILTER, collector,
+					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
 #endif // HAS_CAPTURE

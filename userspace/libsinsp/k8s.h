@@ -76,6 +76,7 @@ private:
 
 	typedef std::map<k8s_component::type, std::unique_ptr<k8s_dispatcher>> dispatch_map_t;
 	typedef std::map<k8s_component::type, std::shared_ptr<k8s_handler>> handler_map_t;
+	// dispatch map is deprecated and serves only for backward compatibility with captures with old sysdig
 	dispatch_map_t m_dispatch_map;
 	handler_map_t  m_handler_map;
 
@@ -83,6 +84,7 @@ private:
 	k8s_net* m_net = nullptr;
 #endif
 
+	// a utility member containing pairs of enumerated values and component names
 	static k8s_component::type_map m_components;
 	friend class k8s_test;
 };
