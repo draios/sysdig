@@ -235,7 +235,7 @@ public:
 		{
 			return m_sockinfo.m_ipv4info.m_fields.m_dport;
 		}
-		else if(m_type == SCAP_FD_IPV4_SOCK)
+		else if(m_type == SCAP_FD_IPV6_SOCK)
 		{
 			return m_sockinfo.m_ipv6info.m_fields.m_dport;
 		}
