@@ -114,5 +114,10 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p '*%evt.num %evt.outputtime 
 # Cwd
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-pc -p\"*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info %proc.cwd\"" $TRACEDIR $RESULTDIR/cwd $BASELINEDIR/cwd || ret=1
 
+# Testing filters/outputs that can traverse parent thread state
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p\"*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info LS=%proc.loginshellid\"" $TRACEDIR $RESULTDIR/loginshell-parent-loop $BASELINEDIR/loginshell-parent-loop || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "proc.apid=10 or proc.apid=26890" $TRACEDIR $RESULTDIR/apid-parent-loop $BASELINEDIR/apid-parent-loop || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "proc.aname=foo or proc.aname=sh" $TRACEDIR $RESULTDIR/aname-parent-loop $BASELINEDIR/aname-parent-loop || ret=1
+
 rm -rf "${TMPBASE}"
 exit $ret
