@@ -998,16 +998,27 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "dropping mode not supported on this scap mode");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s: dropping not supported in replay mode", __FUNCTION__);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(handle->m_ndevs)
 	{
+		ASSERT((request == PPM_IOCTL_ENABLE_DROPPING_MODE &&
+			   ((sampling_ratio == 1)  ||
+				(sampling_ratio == 2)  ||
+				(sampling_ratio == 4)  ||
+				(sampling_ratio == 8)  ||
+				(sampling_ratio == 16) ||
+				(sampling_ratio == 32) ||
+				(sampling_ratio == 64) ||
+				(sampling_ratio == 128))) || (request == PPM_IOCTL_DISABLE_DROPPING_MODE));
+
 		if(ioctl(handle->m_devs[0].m_fd, request, sampling_ratio))
 		{
-			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s, request %d for sampling ratio %u: %s",
+					 __FUNCTION__, request, sampling_ratio, strerror(errno));
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}		
