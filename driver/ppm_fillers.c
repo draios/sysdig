@@ -228,10 +228,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHDIR_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_FCHDIR_E] = {f_sys_single},
 	[PPME_SYSCALL_FCHDIR_X] = {f_sys_single_x},
-	[PPME_SYSCALL_MKDIR_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_MKDIR_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_RMDIR_E] = {f_sys_empty},
-	[PPME_SYSCALL_RMDIR_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_MKDIR_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {AF_ID_USEDEFAULT, 0} } },
+	[PPME_SYSCALL_MKDIR_X] = {f_sys_single_x},
+	[PPME_SYSCALL_RMDIR_E] = {f_sys_single},
+	[PPME_SYSCALL_RMDIR_X] = {f_sys_single_x},
 	[PPME_SYSCALL_OPENAT_E] = {f_sys_openat_e},
 	[PPME_SYSCALL_OPENAT_X] = {f_sys_single_x},
 	[PPME_SYSCALL_LINK_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
@@ -375,7 +375,11 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
-	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } }
+	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_MKDIR_2_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
+	[PPME_SYSCALL_MKDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_RMDIR_2_E] = {f_sys_empty},
+	[PPME_SYSCALL_RMDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } }
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))

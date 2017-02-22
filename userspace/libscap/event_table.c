@@ -120,10 +120,10 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_CHDIR_X */{"chdir", EC_FILE, EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_CHARBUF, PF_NA} } },
 	/* PPME_SYSCALL_FCHDIR_E */{"fchdir", EC_FILE, EF_USES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_NA} } },
 	/* PPME_SYSCALL_FCHDIR_X */{"fchdir", EC_FILE, EF_USES_FD | EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SYSCALL_MKDIR_E */{"mkdir", EC_FILE, EF_NONE, 1, { {"mode", PT_UINT32, PF_HEX} } },
-	/* PPME_SYSCALL_MKDIR_X */{"mkdir", EC_FILE, EF_NONE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA} } },
-	/* PPME_SYSCALL_RMDIR_E */{"rmdir", EC_FILE, EF_NONE, 0},
-	/* PPME_SYSCALL_RMDIR_X */{"rmdir", EC_FILE, EF_NONE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_MKDIR_E */{"mkdir", EC_FILE, EF_NONE, 2, {{"path", PT_FSPATH, PF_NA}, {"mode", PT_UINT32, PF_HEX} } },
+	/* PPME_SYSCALL_MKDIR_X */{"mkdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_RMDIR_E */{"rmdir", EC_FILE, EF_NONE, 1, {{"path", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_RMDIR_X */{"rmdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_OPENAT_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_HEX} } },
 	/* PPME_SYSCALL_OPENAT_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SYSCALL_LINK_E */{"link", EC_FILE, EF_NONE, 2, {{"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
@@ -297,5 +297,9 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_CONTAINER_JSON_E */{"container", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_CONTAINER_JSON_X */{"container", EC_INTERNAL, EF_UNUSED, 0},
 	/* PPME_SYSCALL_SETSID_E */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 0},
-	/* PPME_SYSCALL_SETSID_X */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } }
+	/* PPME_SYSCALL_SETSID_X */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
+	/* PPME_SYSCALL_MKDIR_2_E */{"mkdir", EC_FILE, EF_NONE, 1, {{"mode", PT_UINT32, PF_HEX} } },
+	/* PPME_SYSCALL_MKDIR_2_X */{"mkdir", EC_FILE, EF_NONE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_RMDIR_2_E */{"rmdir", EC_FILE, EF_NONE, 0},
+	/* PPME_SYSCALL_RMDIR_2_X */{"rmdir", EC_FILE, EF_NONE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA} } }
 };
