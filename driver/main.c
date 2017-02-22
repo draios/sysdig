@@ -602,7 +602,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 		if (!ring) {
 			ASSERT(false);
-			return -ENODEV;
+			ret = -ENODEV;
+			goto cleanup_ioctl;
 		}
 
 		ring->capture_enabled = false;
@@ -622,7 +623,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 		if (!ring) {
 			ASSERT(false);
-			return -ENODEV;
+			ret = -ENODEV;
+			goto cleanup_ioctl;
 		}
 
 		ring->capture_enabled = true;
@@ -675,7 +677,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			new_sampling_ratio != 64 &&
 			new_sampling_ratio != 128) {
 			pr_err("invalid sampling ratio %u\n", new_sampling_ratio);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		consumer->sampling_interval = 1000000000 / new_sampling_ratio;
@@ -695,7 +698,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		if (new_snaplen > RW_MAX_SNAPLEN) {
 			pr_err("invalid snaplen %u\n", new_snaplen);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		consumer->snaplen = new_snaplen;
@@ -726,7 +730,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		if (syscall_to_set > PPM_EVENT_MAX) {
 			pr_err("invalid syscall %u\n", syscall_to_set);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		set_bit(syscall_to_set, g_events_mask);
@@ -742,7 +747,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		if (syscall_to_unset > NR_syscalls) {
 			pr_err("invalid syscall %u\n", syscall_to_unset);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		clear_bit(syscall_to_unset, g_events_mask);
@@ -994,7 +1000,8 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 		if (!ring) {
 			ASSERT(false);
-			return -ENODEV;
+			ret = -ENODEV;
+			goto cleanup_mmap;
 		}
 
 		if (length <= PAGE_SIZE) {
