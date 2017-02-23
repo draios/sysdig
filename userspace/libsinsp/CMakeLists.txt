@@ -92,6 +92,12 @@ if(NOT WIN32)
 	if(USE_BUNDLED_LUAJIT)
 		add_dependencies(sinsp luajit)
 	endif()
+	if(USE_BUNDLED_OPENSSL)
+		add_dependencies(sinsp openssl)
+	endif()
+	if(USE_BUNDLED_CURL)
+		add_dependencies(sinsp curl)
+	endif()
 
 	if(NOT APPLE)
 		target_link_libraries(sinsp
