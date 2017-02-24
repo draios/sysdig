@@ -18,6 +18,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include "sinsp_int.h"
+
 #include <memory>
 #include <mutex>
 #include <algorithm>
