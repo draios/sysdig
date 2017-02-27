@@ -80,4 +80,25 @@ private:
 	Json::FastWriter m_writer;
 };
 
+/*!
+  \brief Caching version of sinsp_evt_formatter
+  This class is a wrapper around sinsp_evt_formatter, maintaining a
+  cache of previously seen formatters. It avoids the overhead of
+  recreating sinsp_evt_formatter objects for each event.
+*/
+class SINSP_PUBLIC sinsp_evt_formatter_cache
+{
+public:
+	sinsp_evt_formatter_cache(sinsp *inspector);
+	virtual ~sinsp_evt_formatter_cache();
+
+	// Fills in res with the event formatted according to
+	// format. Creates a new sinsp_evt_formatter object if
+	// necessary.
+	bool tostring(sinsp_evt *evt, std::string &format, OUT std::string *res);
+
+private:
+	std::map<std::string,std::shared_ptr<sinsp_evt_formatter>> m_formatter_cache;
+	sinsp *m_inspector;
+};
 /*@}*/
