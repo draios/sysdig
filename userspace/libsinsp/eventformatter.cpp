@@ -270,3 +270,26 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 	return false;
 }
 #endif // HAS_FILTERING
+
+sinsp_evt_formatter_cache::sinsp_evt_formatter_cache(sinsp *inspector)
+	: m_inspector(inspector)
+{
+}
+
+sinsp_evt_formatter_cache::~sinsp_evt_formatter_cache()
+{
+}
+
+bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
+{
+	auto it = m_formatter_cache.lower_bound(format);
+
+	if(it == m_formatter_cache.end() ||
+	   it->first != format)
+	{
+		it = m_formatter_cache.emplace_hint(it,
+						    std::make_pair(format, make_shared<sinsp_evt_formatter>(m_inspector, format)));
+	}
+
+	return it->second->tostring(evt, res);
+}
