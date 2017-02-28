@@ -39,6 +39,7 @@ template<> void sinsp_fdinfo_t::reset()
 {
 	m_type = SCAP_FD_UNINITIALIZED;
 	m_flags = FLAGS_NONE;
+	delete(m_callbaks);
 	m_callbaks = NULL;
 	m_usrstate = NULL;
 }
