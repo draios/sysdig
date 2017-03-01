@@ -26,16 +26,14 @@
 k8s_net::k8s_net(k8s& kube, k8s_state_t& state, const std::string& uri,
 	ssl_ptr_t ssl,
 	bt_ptr_t bt,
-	ext_list_ptr_t extensions,
 	filter_ptr_t event_filter,
-	bool blocking_sockets) : m_k8s(kube), m_state(state),
+	bool blocking_sockets) : m_state(state),
 		m_collector(std::make_shared<collector_t>()),
 		m_uri(uri),
 		m_ssl(ssl),
 		m_bt(bt),
 		m_stopped(true),
 		m_blocking_sockets(blocking_sockets),
-		m_extensions(extensions),
 		m_event_filter(event_filter)
 {
 }

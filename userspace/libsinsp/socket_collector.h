@@ -358,14 +358,14 @@ private:
 		return it;
 	}
 
-	socket_map_t     m_sockets;
-	fd_set           m_infd;
-	fd_set           m_errfd;
-	int              m_nfds = 0;
-	bool             m_loop = false;
-	long             m_timeout_ms;
-	bool             m_stopped = false;
-	bool             m_steady_state = false;
+	socket_map_t m_sockets;
+	fd_set       m_infd;
+	fd_set       m_errfd;
+	int          m_nfds = 0;
+	bool         m_loop = false;
+	long         m_timeout_ms;
+	bool         m_stopped = false;
+	bool         m_steady_state = false;
 };
 
 #endif // HAS_CAPTURE

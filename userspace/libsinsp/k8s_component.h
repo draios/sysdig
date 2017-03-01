@@ -112,6 +112,7 @@ public:
 		COMPONENT_MODIFIED,
 		COMPONENT_DELETED,
 		COMPONENT_ERROR,
+		COMPONENT_NONEXISTENT,
 		COMPONENT_UNKNOWN // only to mark bad event messages
 	};
 
@@ -132,12 +133,13 @@ public:
 		{
 			switch(m_reason)
 			{
-				case COMPONENT_ADDED:    return "ADDED";
-				case COMPONENT_MODIFIED: return "MODIFIED";
-				case COMPONENT_DELETED:  return "DELETED";
-				case COMPONENT_ERROR:    return "ERROR";
+				case COMPONENT_ADDED:       return "ADDED";
+				case COMPONENT_MODIFIED:    return "MODIFIED";
+				case COMPONENT_DELETED:     return "DELETED";
+				case COMPONENT_ERROR:       return "ERROR";
+				case COMPONENT_NONEXISTENT: return "NONEXISTENT";
 				case COMPONENT_UNKNOWN:
-				default:                 return "UNKNOWN";
+				default:                    return "UNKNOWN";
 			}
 			return "UNKNOWN";
 		}

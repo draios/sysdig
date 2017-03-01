@@ -1635,18 +1635,26 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				// Find the highest ancestor process that has the same session id and
 				// declare it to be the session leader.
 				sinsp_threadinfo* mt = tinfo->get_main_thread();
-				sinsp_threadinfo* pt = NULL;
 
 				if(mt == NULL)
 				{
 					return NULL;
 				}
 
-				for(pt = mt->get_parent_thread();
-				    pt != NULL && pt->m_sid == mt->m_sid;
-				    mt = pt, pt = pt->get_parent_thread());
+				int64_t sid = mt->m_sid;
+				sinsp_threadinfo::visitor_func_t visitor = [sid, &mt] (sinsp_threadinfo *pt)
+				{
+					if(pt->m_sid != sid)
+					{
+						return false;
+					}
+					mt = pt;
+					return true;
+				};
 
-				// At this point pt either doesn't exist or has a different session id.
+				mt->traverse_parent_state(visitor);
+
+				// mt has been updated to the highest process that has the same session id.
 				// mt's comm is considered the session leader.
 				m_tstr = mt->get_comm();
 				*len = m_tstr.size();
@@ -1916,15 +1924,23 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			for(; mt != NULL; mt = mt->get_parent_thread())
+			sinsp_threadinfo::visitor_func_t check_thread_for_shell = [&res] (sinsp_threadinfo *pt)
 			{
-				size_t len = mt->m_comm.size();
+				size_t len = pt->m_comm.size();
 
-				if(len >= 2 && mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
+				if(len >= 2 && pt->m_comm[len - 2] == 's' && pt->m_comm[len - 1] == 'h')
 				{
-					res = &mt->m_pid;
+					res = &pt->m_pid;
 				}
-			}
+
+				return true;
+			};
+
+			// First call the visitor on the main thread.
+			check_thread_for_shell(mt);
+
+			// Then check all its parents to see if they are shells
+			mt->traverse_parent_state(check_thread_for_shell);
 
 			return (uint8_t*)res;
 		}
@@ -2140,9 +2156,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 {
-	bool res;
-	uint32_t j;
-
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
 	if(tinfo == NULL)
@@ -2169,29 +2182,33 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 	//
 	// No id specified, search in all of the ancestors
 	//
-	for(j = 0; mt != NULL; mt = mt->get_parent_thread(), j++)
+	bool found = false;
+	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
 	{
-		if(j > 0)
+		bool res;
+
+		res = flt_compare(m_cmpop,
+				  PT_PID,
+				  &pt->m_pid);
+
+		if(res == true)
 		{
-			res = flt_compare(m_cmpop,
-				PT_PID,
-				&mt->m_pid);
+			found = true;
 
-			if(res == true)
-			{
-				return true;
-			}
+			// Can stop traversing parent state
+			return false;
 		}
-	}
 
-	return false;
+		return true;
+	};
+
+	mt->traverse_parent_state(visitor);
+
+	return found;
 }
 
 bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 {
-	bool res;
-	uint32_t j;
-
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
 	if(tinfo == NULL)
@@ -2218,22 +2235,29 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 	//
 	// No id specified, search in all of the ancestors
 	//
-	for(j = 0; mt != NULL; mt = mt->get_parent_thread(), j++)
+	bool found = false;
+	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
 	{
-		if(j > 0)
+		bool res;
+
+		res = flt_compare(m_cmpop,
+				  PT_CHARBUF,
+				  (void*)pt->m_comm.c_str());
+
+		if(res == true)
 		{
-			res = flt_compare(m_cmpop,
-				PT_CHARBUF,
-				(void*)mt->m_comm.c_str());
+			found = true;
 
-			if(res == true)
-			{
-				return true;
-			}
+			// Can stop traversing parent state
+			return false;
 		}
-	}
 
-	return false;
+		return true;
+	};
+
+	mt->traverse_parent_state(visitor);
+
+	return found;
 }
 
 bool sinsp_filter_check_thread::compare(sinsp_evt *evt)

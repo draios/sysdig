@@ -33,7 +33,7 @@ private:
 inline void sinsp_stopwatch::sinsp_stopwatch::reset()
 {
 	m_start = std::chrono::high_resolution_clock::time_point::min();
-	m_start = std::chrono::high_resolution_clock::time_point::max();
+	m_stop = m_start;
 }
 
 inline void sinsp_stopwatch::sinsp_stopwatch::start()
