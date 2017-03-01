@@ -50,7 +50,7 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_id(id + "_state"),
 #ifdef HAS_CAPTURE
 		m_collector(collector),
-		m_path(path),
+		m_path(path + ((path.find('?') == std::string::npos) ? "?pretty=false" : "&pretty=false")),
 		m_state_filter(state_filter),
 		m_event_filter(event_filter),
 		m_null_filter(null_filter),
@@ -88,7 +88,7 @@ k8s_handler::k8s_handler(const std::string& id,
 		// and they must come in the following order:
 		// 1.a OR 1.b, then 2. (for state only), then 3. (always)
 		// mixing the order will produce erroneous results because
-		// event and error filters will successfully parse regular messages
+		// null and error filters will successfully parse regular messages
 		// and prevent proper processing
 		m_handler->add_json_filter(*m_filter);
 		if(!m_null_filter.empty())
