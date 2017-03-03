@@ -1444,7 +1444,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					 m_paramstr_storage.size(),
 					 "%" PRId64, *(int64_t *)payload);
 
-
 			sinsp_threadinfo* atinfo = m_inspector->get_thread(*(int64_t *)payload, false, true);
 			if(atinfo != NULL)
 			{

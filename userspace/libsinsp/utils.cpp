@@ -1307,3 +1307,24 @@ bool set_socket_blocking(int sock, bool block)
 	}
 	return true;
 }
+
+
+///////////////////////////////////////////////////////////////////////////////
+// debugging helpers
+///////////////////////////////////////////////////////////////////////////////
+
+void print_stack_trace()
+{
+	void *array[100];
+	size_t size;
+	char **strings;
+	size = backtrace(array, 100);
+
+	strings = backtrace_symbols(array, size);
+	std::string errstr;
+	for (size_t j = 0; j < size; j++)
+	{
+		errstr.append(strings[j]).append(1, '\n');
+	}
+	g_logger.log(errstr, sinsp_logger::SEV_DEBUG);
+}

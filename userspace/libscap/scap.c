@@ -269,7 +269,9 @@ scap_t* scap_open_live_int(char *error,
 	if((res = scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, error, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
+		char err[SCAP_LASTERR_SIZE] = {0};
+		strncpy(err, error, strlen(error));
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list (%s). Make sure you have root credentials.", err);
 		return NULL;
 	}
 
@@ -475,7 +477,9 @@ scap_t* scap_open_nodriver_int(char *error,
 	if(scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, error, true) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
+		char err[SCAP_LASTERR_SIZE] = {0};
+		strncpy(err, error, strlen(err));
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list (%s). Make sure you have root credentials.", err);
 		return NULL;
 	}
 
