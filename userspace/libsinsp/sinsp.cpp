@@ -654,8 +654,7 @@ void sinsp::autodump_stop()
 	}
 }
 
-void sinsp::on_new_entry_from_proc(void* context,
-								   int64_t tid,
+void sinsp::on_new_entry_from_proc(int64_t tid,
 								   scap_threadinfo* tinfo,
 								   scap_fdinfo* fdinfo,
 								   scap_t* newhandle)
@@ -729,7 +728,7 @@ void on_new_entry_from_proc(void* context,
 							scap_t* newhandle)
 {
 	sinsp* _this = (sinsp*)context;
-	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo, newhandle);
+	_this->on_new_entry_from_proc(tid, tinfo, fdinfo, newhandle);
 }
 
 void sinsp::import_thread_table()
