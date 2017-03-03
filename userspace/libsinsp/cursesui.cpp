@@ -66,6 +66,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 							   uint64_t refresh_interval_ns,
 							   bool print_containers,
 							   bool raw_output,
+							   uint32_t batch_count,
 							   bool is_mousedrag_available)
 {
 	m_inspector = inspector;
@@ -97,6 +98,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_raw_output = raw_output;
 	m_truncated_input = false;
 	m_view_depth = 0;
+	m_batch_count = batch_count;
 
 #ifndef NOCURSESUI
 	m_viz = NULL;
@@ -386,12 +388,12 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		if(wi->m_type == sinsp_view_info::T_TABLE)
 		{
 			ty = sinsp_table::TT_TABLE;
-			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
+			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output, m_batch_count);
 		}
 		else if(wi->m_type == sinsp_view_info::T_LIST)
 		{
 			ty = sinsp_table::TT_LIST;
-			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
+			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output, m_batch_count);
 		}
 		else if(wi->m_type == sinsp_view_info::T_SPECTRO)
 		{
@@ -402,11 +404,11 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			//
 			if(m_refresh_interval_ns == 2000000000)
 			{
-				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns / 4, m_raw_output);
+				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns / 4, m_raw_output, m_batch_count);
 			}
 			else
 			{
-				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
+				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output, m_batch_count);
 			}
 		}
 		else

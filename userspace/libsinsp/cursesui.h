@@ -400,7 +400,8 @@ public:
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
-		bool print_containers, bool raw_output, bool is_mousedrag_available);
+		bool print_containers, bool raw_output, uint32_t batch_count,
+		bool is_mousedrag_available);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -720,6 +721,7 @@ public:
 	bool m_search_nomatch;
 	bool m_print_containers;
 	int32_t m_sidemenu_sorting_col;
+	uint32_t m_batch_count;
 #ifndef NOCURSESUI
 	curses_table* m_viz;
 	curses_spectro* m_spectro;

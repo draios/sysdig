@@ -69,6 +69,8 @@ static void usage()
 "csysdig version " SYSDIG_VERSION "\n"
 "Usage: csysdig [options] [filter]\n\n"
 "Options:\n"
+" -c <iteration>, --count=<iteration>\n"
+"                    Iterate over containers in a batched mode\n"
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
@@ -241,6 +243,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	vector<string> infiles;
 	int op;
 	uint64_t cnt = -1;
+	uint32_t batch_count = -1;
 	uint32_t snaplen = 0;
 	int long_index = 0;
 	int32_t n_filterargs = 0;
@@ -260,6 +263,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 	static struct option long_options[] =
 	{
+		{"count", optional_argument, 0, 'c' },
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"help", no_argument, 0, 'h' },
@@ -295,7 +299,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:K:lm:Nn:p:r:s:Tv:", long_options, &long_index)) != -1)
+			"c:d:Ehk:K:lm:Nn:p:r:s:Tv:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -304,6 +308,24 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				// Command line error 
 				//
 				throw sinsp_exception("command line error");
+				break;
+			case 'c':
+				try
+				{
+					batch_count = sinsp_numparser::parseu64(optarg);
+				}
+				catch(...)
+				{
+					throw sinsp_exception("can't parse the -c argument, make sure it's a number");
+				}
+
+				if(batch_count < 1)
+				{
+					throw sinsp_exception(string("invalid count ") + optarg);
+                                        res.m_res = EXIT_FAILURE;
+                                        goto exit;
+				}
+
 				break;
 			case 'd':
 				try
@@ -558,6 +580,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				refresh_interval_ns,
 				print_containers,
 				m_raw_output,
+				batch_count,
 				terminal_with_mouse);
 
 			ui.configure(&view_manager);

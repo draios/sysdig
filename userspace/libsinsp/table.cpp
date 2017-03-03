@@ -75,7 +75,7 @@ typedef struct table_row_cmp
 	bool m_ascending;
 }table_row_cmp;
 
-sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout)
+sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout, uint32_t batch_count)
 {
 	m_inspector = inspector;
 	m_type = type;
@@ -106,6 +106,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_zero_double = 0;
 	m_paused = false;
 	m_sample_data = NULL;
+	m_batch_count = batch_count;
 }
 
 sinsp_table::~sinsp_table()
@@ -631,6 +632,15 @@ void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t t
 	}
 
 	printf("----------------------\n");
+
+	if(!m_batch_count)
+	{
+		exit(0);
+	}
+	else if(m_batch_count > 0)
+	{
+		m_batch_count -= 1;
+	}
 }
 
 void sinsp_table::filter_sample()

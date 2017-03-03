@@ -227,7 +227,7 @@ public:
 		TT_LIST,
 	};
 
-	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout);
+	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout, uint32_t batch_count);
 	~sinsp_table();
 	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
@@ -285,6 +285,7 @@ public:
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_prev_flush_time_ns;
 	uint64_t m_refresh_interval_ns;
+	uint32_t m_batch_count;
 
 private:
 	inline void add_row(bool merging);
