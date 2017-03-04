@@ -71,7 +71,7 @@ k8s_pod_handler::k8s_pod_handler(k8s_state_t& state
 	):
 		k8s_handler("k8s_pod_handler", true,
 #ifdef HAS_CAPTURE
-					url, "/api/v1/pods?fieldSelector=status.phase%3DRunning",
+					url, "/api/v1/pods?" + POD_STATE_FILTER,
 					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,

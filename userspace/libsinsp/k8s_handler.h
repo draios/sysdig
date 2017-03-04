@@ -16,6 +16,8 @@ class sinsp;
 class k8s_handler
 {
 public:
+	static const std::string POD_STATE_FILTER;
+
 	typedef k8s_component::msg_reason msg_reason;
 	typedef k8s_component::msg_data msg_data;
 
