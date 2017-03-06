@@ -74,8 +74,6 @@ private:
 	bool m_require_all_values;
 	vector<sinsp_filter_check*> m_chks_to_free;
 
-	// Is this the first to_string call?
-	bool m_first;
 	Json::Value m_root;
 	Json::FastWriter m_writer;
 };

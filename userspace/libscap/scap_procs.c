@@ -839,8 +839,8 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 			res = scap_proc_add_from_proc(handle, tid, parenttid, tid_to_scan, procdirname, &sockets_by_ns, procinfo, error);
 			if(res != SCAP_SUCCESS)
 			{
-				char err[SCAP_LASTERR_SIZE] = {0};
-				strncpy(err, error, strlen(error));
+				char err[SCAP_LASTERR_SIZE + 1] = {0};
+				strncpy(err, error, SCAP_LASTERR_SIZE);
 				snprintf(error, SCAP_LASTERR_SIZE, "cannot add procs tid = %"PRIu64", parenttid = %"PRIi32", dirname = %s (%s)", tid, parenttid, procdirname, err);
 				break;
 			}
