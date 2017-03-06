@@ -41,6 +41,21 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //#define NDEBUG
 #include <assert.h>
 
+char* scap_getlasterr(scap_t* handle)
+{
+	return handle->m_lasterr;
+}
+
+#if !defined(HAS_CAPTURE)
+scap_t* scap_open_live_int(char *error,
+						   proc_entry_callback proc_callback,
+						   void* proc_callback_context,
+						   bool import_users)
+{
+	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return NULL;
+}
+#else
 static uint32_t get_max_consumers()
 {
 	uint32_t max;
@@ -52,7 +67,7 @@ static uint32_t get_max_consumers()
 		{
 			return 0;
 		}
-		
+
 		fclose(pfile);
 		return max;
 	}
@@ -60,20 +75,11 @@ static uint32_t get_max_consumers()
 	return 0;
 }
 
-char* scap_getlasterr(scap_t* handle)
-{
-	return handle->m_lasterr;
-}
-
-scap_t* scap_open_live_int(char *error, 
+scap_t* scap_open_live_int(char *error,
 						   proc_entry_callback proc_callback,
 						   void* proc_callback_context,
 						   bool import_users)
 {
-#if !defined(HAS_CAPTURE)
-	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
-	return NULL;
-#else
 	uint32_t j;
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
@@ -279,8 +285,8 @@ scap_t* scap_open_live_int(char *error,
 	scap_start_capture(handle);
 
 	return handle;
-#endif // HAS_CAPTURE
 }
+#endif // HAS_CAPTURE
 
 scap_t* scap_open_offline_int(const char* fname, 
 							  char *error,

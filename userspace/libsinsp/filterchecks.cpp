@@ -4035,22 +4035,13 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	case TYPE_UID:
 		return (uint8_t*)&tinfo->m_uid;
 	case TYPE_NAME:
-		if(uinfo->name != NULL)
-		{
-			*len = strlen(uinfo->name);
-		}
+		*len = strlen(uinfo->name);
 		return (uint8_t*)uinfo->name;
 	case TYPE_HOMEDIR:
-		if(uinfo->homedir != NULL)
-		{
-			*len = strlen(uinfo->homedir);
-		}
+		*len = strlen(uinfo->homedir);
 		return (uint8_t*)uinfo->homedir;
 	case TYPE_SHELL:
-		if(uinfo->shell != NULL)
-		{
-			*len = strlen(uinfo->shell);
-		}
+		*len = strlen(uinfo->shell);
 		return (uint8_t*) uinfo->shell;
 	default:
 		ASSERT(false);
@@ -4119,10 +4110,7 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			scap_groupinfo* ginfo = it->second;
 			ASSERT(ginfo != NULL);
 
-			if(ginfo->name)
-			{
-				*len = strlen(ginfo->name);
-			}
+			*len = strlen(ginfo->name);
 			return (uint8_t*)ginfo->name;
 		}
 	default:
