@@ -782,7 +782,6 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 	res->m_type = DT_MEM;
 	res->m_targetbuf = targetbuf;
 	res->m_targetbufcurpos = targetbuf;
-	res->m_targetbufsize = targetbufsize;
 	res->m_targetbufend = targetbuf + targetbufsize;
 
 	if(scap_setup_dump(handle, res, "") != SCAP_SUCCESS)
