@@ -27,6 +27,8 @@ std::string k8s_handler::ERROR_FILTER =
 	"  ]"
 	"}";
 
+const std::string k8s_handler::POD_STATE_FILTER = "fieldSelector=status.phase%3DRunning";
+
 k8s_handler::k8s_handler(const std::string& id,
 	bool is_captured,
 #ifdef HAS_CAPTURE
@@ -50,7 +52,7 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_id(id + "_state"),
 #ifdef HAS_CAPTURE
 		m_collector(collector),
-		m_path(path),
+		m_path(path + ((path.find('?') == std::string::npos) ? "?pretty=false" : "&pretty=false")),
 		m_state_filter(state_filter),
 		m_event_filter(event_filter),
 		m_null_filter(null_filter),
@@ -88,7 +90,7 @@ k8s_handler::k8s_handler(const std::string& id,
 		// and they must come in the following order:
 		// 1.a OR 1.b, then 2. (for state only), then 3. (always)
 		// mixing the order will produce erroneous results because
-		// event and error filters will successfully parse regular messages
+		// null and error filters will successfully parse regular messages
 		// and prevent proper processing
 		m_handler->add_json_filter(*m_filter);
 		if(!m_null_filter.empty())
@@ -335,7 +337,26 @@ void k8s_handler::check_state()
 				}
 				else
 				{
-					throw sinsp_exception("k8s_handler (" + m_id + "), invalid URL path: " + m_path);
+					throw sinsp_exception("k8s_handler (" + m_id + "), invalid URL path "
+										  "encountered while rewriting for watch: " + m_path);
+				}
+			}
+			// get rid of pod state filter, not needed for watch
+			std::string to_remove(POD_STATE_FILTER);
+			to_remove.append(1, '&');
+			pos = m_path.find(to_remove);
+			if(pos != std::string::npos)
+			{
+				m_path.erase(pos, to_remove.length());
+			}
+			else // currently never, but to shield against bugs in future
+			{
+				to_remove = "?";
+				to_remove.append(POD_STATE_FILTER);
+				pos = m_path.find(to_remove);
+				if(pos != std::string::npos)
+				{
+					m_path.erase(pos, to_remove.length());
 				}
 			}
 			m_handler->set_socket_option(SOCK_NONBLOCK);
@@ -554,7 +575,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 						}
 						else if(data.m_reason == k8s_component::COMPONENT_DELETED)
 						{
-							if(!m_state->has(data.m_uid))
+							if(!m_state->has(data.m_uid) && (g_logger.get_severity() >= sinsp_logger::SEV_DEBUG))
 							{
 								std::ostringstream os;
 								os << "K8s " + reason_type + " message received by " << m_id <<
@@ -562,7 +583,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 									  " [" << uri(m_url).to_string(false) << "]"
 #endif // HAS_CAPTURE
 									  " for non-existing " << data.m_kind << " [" << data.m_uid << "], giving up.";
-								g_logger.log(os.str(), sinsp_logger::SEV_WARNING);
+								g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 								continue;
 							}
 						}
