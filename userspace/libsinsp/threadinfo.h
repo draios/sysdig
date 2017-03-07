@@ -22,6 +22,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define VISIBILITY_PRIVATE private:
 #endif
 
+#include <functional>
+
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
