@@ -29,7 +29,6 @@ public:
 
 	~k8s_pod_handler();
 
-	static bool is_pod_active(const Json::Value& item);
 	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
 	static k8s_container::list extract_pod_containers(const Json::Value& item);
 	static void extract_pod_data(const Json::Value& item, k8s_pod_t& pod);
