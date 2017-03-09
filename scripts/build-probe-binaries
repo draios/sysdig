@@ -235,7 +235,14 @@ function coreos_build_new {
 
 	cd $BASEDIR
 	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
+
+	# If build fails the script should exit immediately
+	# but in this case it's important to umount the loop device
+	# and release resources. So keep running and fail afterwards.
+	set +e
 	build_probe
+	BUILD_RET=$?
+	set -e
 
 	cd $COREOS_DIR
 	# cleanup
@@ -243,6 +250,8 @@ function coreos_build_new {
 	sudo kpartx -dv coreos_developer_container.bin
 
 	cd $BASEDIR
+
+	return $BUILD_RET
 }
 
 function boot2docker_build {
