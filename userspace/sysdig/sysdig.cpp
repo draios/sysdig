@@ -510,7 +510,7 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 //
 captureinfo do_inspect(sinsp* inspector,
 	uint64_t cnt,
-	int duration_to_tot,
+	uint64_t duration_to_tot_ns,
 	bool quiet,
 	bool json,
 	bool do_flush,
@@ -524,7 +524,7 @@ captureinfo do_inspect(sinsp* inspector,
 	sinsp_evt* ev;
 	string line;
 	double last_printed_progress_pct = 0;
-	int duration_start = 0;
+	uint64_t duration_start = 0;
 
 	if(json)
 	{
@@ -534,18 +534,8 @@ captureinfo do_inspect(sinsp* inspector,
 	//
 	// Loop through the events
 	//
-	duration_start = ((double)clock()) / CLOCKS_PER_SEC;
 	while(1)
 	{
-		if(duration_to_tot > 0)
-		{
-			int duration_tot = ((double)clock()) / CLOCKS_PER_SEC - duration_start;
-			if(duration_tot >= duration_to_tot)
-			{
-				handle_end_of_file(print_progress, formatter);
-				break;
-			}
-		}
 		if(retval.m_nevts == cnt || g_terminate)
 		{
 			//
@@ -586,6 +576,17 @@ captureinfo do_inspect(sinsp* inspector,
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
 
+		if (duration_start == 0)
+		{
+			duration_start = ev->get_ts();
+		} else if(duration_to_tot_ns > 0)
+		{
+			if(ev->get_ts() - duration_start >= duration_to_tot_ns)
+			{
+				handle_end_of_file(print_progress, formatter);
+				break;
+			}
+		}
 		retval.m_nevts++;
 
 		if(print_progress)
@@ -1457,7 +1458,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			cinfo = do_inspect(inspector,
 				cnt,
-				duration_to_tot,
+				uint64_t(duration_to_tot*ONE_SECOND_IN_NS),
 				quiet,
 				jflag,
 				unbuf_flag,
