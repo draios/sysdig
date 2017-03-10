@@ -235,6 +235,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
+	// Start with cgroup based detection
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
 		string cgroup = it->second;
@@ -349,11 +350,11 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		}
 	}
 
+	// If anything has been found, try proc root based detection
+	// right now used for rkt
 	string rkt_podid, rkt_appname;
 	if(!valid_id)
 	{
-		tinfo->m_container_id = "";
-
 		// Try parsing from process root,
 		// Strings used to detect rkt stage1-cores pods
 		static const string COREOS_PREFIX = "/opt/stage2/";
@@ -422,6 +423,10 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				}
 			}
 		}
+	}
+
+	if(!valid_id) {
+		tinfo->m_container_id = "";
 	}
 	else
 	{
