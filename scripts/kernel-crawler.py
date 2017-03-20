@@ -126,14 +126,14 @@ repos = {
     ],
 
     "CoreOS" : [
-        #{
-        #    "root" : "http://alpha.release.core-os.net/",
-        #    "discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
-        #    "subdirs" : [
-        #        ""
-        #    ],
-        #    "page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
-        #},
+        {
+            "root" : "http://alpha.release.core-os.net/",
+            "discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
+            "subdirs" : [
+                ""
+            ],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
+        },
 
         {
             "root" : "http://beta.release.core-os.net/",
