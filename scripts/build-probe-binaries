@@ -29,106 +29,65 @@ if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
 fi
 
+if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
+        PROBE_REPO_NAME="agent"
+else
+        PROBE_REPO_NAME=$(echo $PROBE_NAME | cut -f1 -d-)
+fi
+
+function update_code_for {
+        repo=$1
+	if [ ! -d $repo ]; then
+                git clone git@github.com:draios/$repo.git
+	fi
+
+	cd $repo
+	git checkout master
+	# The UEK builder container doesn't have git credentials
+	# It relies on the non-UEK builds doing the pull earlier
+	if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+	        git pull
+	fi
+
+	if [ $PROBE_REPO_NAME = $repo ]; then
+	        git checkout $PROBE_VERSION
+	else
+	        git checkout $PROBE_REPO_NAME/$PROBE_VERSION
+	fi
+
+	# Remove everything other than the files actually belonging to
+	# the repo.
+	git clean -d -f -x
+
+	# Reset the state of the files belonging to the repo to the
+	# state associated with the tag.
+	git reset --hard
+
+	cd ..
+}
+
 function build_probe {
-	if [ "$PROBE_NAME" = "sysdig-probe" ]; then
-		build_sysdig
-	elif [ "$PROBE_NAME" = "sysdigcloud-probe" ]; then
-		build_sysdigcloud
-	else
-		exit 1
-	fi
-}
-
-function build_sysdig {
 
 	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
 		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
-		if [ ! -d sysdig ]; then
-			git clone git@github.com:draios/sysdig.git
+		update_code_for sysdig
+
+		if [ $PROBE_NAME != "sysdig-probe" ]; then
+		        update_code_for falco
 		fi
 
-		cd sysdig
-		git checkout master
-		# The UEK builder container doesn't have git credentials
-		# It relies on the non-UEK builds doing the pull earlier
-		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
-			git pull
+		if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
+		        update_code_for agent
 		fi
-		git checkout $PROBE_VERSION
-		make -C driver clean || true
-		rm -rf build || true
+
+		cd $PROBE_REPO_NAME
 		mkdir build
 		cd build
-		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$PROBE_VERSION ..
-		make driver
-		strip -g driver/$PROBE_NAME.ko
+		version_name=-D$(echo $PROBE_REPO_NAME | tr [a-z] [A-Z])_VERSION
 
-		KO_VERSION=$(/sbin/modinfo driver/$PROBE_NAME.ko | grep vermagic | tr -s " " | cut -d " " -f 2)
-		if [ "$KO_VERSION" != "$KERNEL_RELEASE" ]; then
-			echo "Corrupted probe, KO_VERSION " $KO_VERSION ", KERNEL_RELEASE " $KERNEL_RELEASE
-			exit 1
-		fi
-
-		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
-		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
-	else
-		echo Skipping $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko \(already built\)
-	fi
-
-	cd $BASEDIR
-}
-
-function build_sysdigcloud {
-
-	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
-
-		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
-
-		if [ ! -d sysdig ]; then
-			git clone git@github.com:draios/sysdig.git
-		fi
-
-		if [ ! -d falco ]; then
-			git clone git@github.com:draios/falco.git
-		fi
-
-		if [ ! -d agent ]; then
-			git clone git@github.com:draios/agent.git
-		fi
-
-		cd sysdig
-		git checkout master
-		# The UEK builder container doesn't have git credentials
-		# It relies on the non-UEK builds doing the pull earlier
-		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
-			git pull
-		fi
-		git checkout agent/$PROBE_VERSION
-		make -C driver clean || true
-		rm -rf build || true
-		cd ..
-
-		cd falco
-		git checkout master
-		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
-			git pull
-		fi
-		git checkout agent/$PROBE_VERSION
-		rm -fr build || true
-		cd ..
-		
-		cd agent
-		git checkout master
-		if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
-			git pull
-		fi
-		git checkout $PROBE_VERSION
-		rm -rf build || true
-		mkdir build
-		cd build
-		cmake -DCMAKE_BUILD_TYPE=Release -DAGENT_VERSION=$PROBE_VERSION ..
+		cmake -DCMAKE_BUILD_TYPE=Release $version_name=$PROBE_VERSION ..
 		make driver
 		strip -g driver/$PROBE_NAME.ko
 
