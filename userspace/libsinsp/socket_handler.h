@@ -58,7 +58,8 @@ public:
 		bt_ptr_t bt = 0,
 		bool keep_alive = true,
 		bool blocking = false,
-		unsigned data_limit = 524288): m_obj(obj),
+		unsigned data_limit = 524288,
+		bool fetching_state = true): m_obj(obj),
 			m_id(id),
 			m_url(url),
 			m_keep_alive(keep_alive ? std::string("Connection: keep-alive\r\n") : std::string()),
@@ -69,7 +70,8 @@ public:
 			m_timeout_ms(timeout_ms),
 			m_request(make_request(url, http_version)),
 			m_http_version(http_version),
-			m_data_limit(data_limit)
+			m_data_limit(data_limit),
+			m_fetching_state(fetching_state)
 
 	{
 		g_logger.log(std::string("Creating Socket handler object for (" + id + ") "
@@ -348,7 +350,7 @@ public:
 				}
 				if(rec > 0)
 				{
-					process(&buf[0], rec);
+					process(&buf[0], rec, false);
 					processed += rec;
 				}
 				else if(rec == 0)
@@ -362,7 +364,7 @@ public:
 				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) +
 				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 			}
-			if(++counter > 10000)
+			if(++counter > 100)
 			{
 				throw sinsp_exception("Socket handler (" + m_id + "): "
 									  "unable to retrieve data from " + m_url.to_string(false) + m_path +
@@ -370,7 +372,7 @@ public:
 			}
 			else { usleep(10000); }
 		} while(!m_msg_completed);
-
+		init_http_parser();
 		return processed;
 	}
 
@@ -416,7 +418,7 @@ public:
 		}
 	}
 
-	int process(char* data, size_t len)
+	int process(char* data, size_t len, bool reinit = true)
 	{
 		if(len)
 		{
@@ -463,7 +465,7 @@ public:
 				// set the m_close_on_chunked_end flag to true (default).
 				if(m_close_on_chunked_end) { return CONNECTION_CLOSED; }
 				m_wants_send = true;
-				init_http_parser();
+				if(reinit) { init_http_parser(); }
 			}
 		}
 		return 0;
@@ -1516,6 +1518,7 @@ private:
 		std::vector<std::string>* m_json = nullptr;
 		int* m_http_response = nullptr;
 		bool* m_msg_completed = nullptr;
+		bool* m_fetching_state = nullptr;
 	};
 
 	static int http_body_callback(http_parser* parser, const char* data, size_t len)
@@ -1530,12 +1533,30 @@ private:
 					if(parser_data->m_data_buf && parser_data->m_json)
 					{
 						parser_data->m_data_buf->append(data, len);
-						std::string::size_type pos = parser_data->m_data_buf->find('\n');
-						while(pos != std::string::npos)
+						// only try to parse this JSON if we are certain it is not pretty-printed
+						// since this logic relies on JSONs in the stream being delimited by newlines
+						// (and having no newlines themselves), pretty-printed JSONs can not be
+						// handled here, but must be handled in the http_msg_completed_callback()
+						if(parser_data->m_fetching_state)
 						{
-							parser_data->m_json->push_back(parser_data->m_data_buf->substr(0, pos));
-							parser_data->m_data_buf->erase(0, pos + 1);
-							pos = parser_data->m_data_buf->find('\n');
+							if(!*(parser_data->m_fetching_state))
+							{
+								std::string::size_type pos = parser_data->m_data_buf->find('\n');
+								while(pos != std::string::npos)
+								{
+									parser_data->m_json->push_back(parser_data->m_data_buf->substr(0, pos));
+									parser_data->m_data_buf->erase(0, pos + 1);
+									pos = parser_data->m_data_buf->find('\n');
+								}
+							}
+							else
+							{
+								if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+								{
+									g_logger.log("Socket handler (http_body_callback) data received, will be parsed on response end:" +
+												 *parser_data->m_data_buf, sinsp_logger::SEV_TRACE);
+								}
+							}
 						}
 					}
 					else { throw sinsp_exception("Socket handler (http_body_callback): http or json buffer is null."); }
@@ -1552,6 +1573,30 @@ private:
 		if(parser && parser->data)
 		{
 			http_parser_data* parser_data = (http_parser_data*) parser->data;
+			if(parser_data->m_fetching_state)
+			{
+				if(*(parser_data->m_fetching_state))
+				{
+					std::string* buf = parser_data->m_data_buf;
+					if(buf)
+					{
+						std::string::size_type pos = buf->rfind('\n');
+						if(pos != std::string::npos)
+						{
+							buf->erase(std::remove_if(buf->begin(), buf->end(), [](char c){return c == '\n' || c == '\r';}), buf->end());
+							parser_data->m_json->emplace_back(std::move(*buf));
+							buf->clear();
+						}
+						else
+						{
+							g_logger.log("Initial state fetch completed, but no newline found!", sinsp_logger::SEV_ERROR);
+						}
+						*(parser_data->m_fetching_state) = false;
+					}
+					else { throw sinsp_exception("Socket handler (http_msg_completed_callback): parser data m_data_buf is null."); }
+				}
+			}
+			else { throw sinsp_exception("Socket handler (http_msg_completed_callback): parser data m_data_buf is null."); }
 			if(parser_data->m_msg_completed)
 			{
 				*(parser_data->m_msg_completed) = true;
@@ -1582,6 +1627,7 @@ private:
 		m_http_parser_data.m_json = &m_json;
 		m_http_parser_data.m_http_response = &m_http_response;
 		m_http_parser_data.m_msg_completed = &m_msg_completed;
+		m_http_parser_data.m_fetching_state = &m_fetching_state;
 		http_parser_init(m_http_parser, HTTP_RESPONSE);
 		m_http_parser->data = &m_http_parser_data;
 	}
@@ -1636,6 +1682,17 @@ private:
 	http_parser*             m_http_parser = nullptr;
 	http_parser_data         m_http_parser_data;
 	unsigned                 m_data_limit = 524288; // bytes
+
+	// older versions of kubernetes send pretty-printed JSON by default;
+	// that creates a problem with JSON-newline-delimit-based detection logic,
+	// which relies on JSON itself having no newlines; while there is a way to
+	// prevent this for entities (eg. nodes, pods) URIs by specifying '?pretty=false',
+	// some cluster-level URIs (eg. /api) do not honor this parameter;
+	//
+	// this flag is true by default and it remains true until the first state http
+	// request for this handler is completed, at which point all newlines are purged
+	// from the string and the purged buffer is posted for further processing
+	bool                     m_fetching_state = true;
 };
 
 template <typename T>
