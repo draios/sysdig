@@ -275,7 +275,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
-		if(!m_inspector->m_dumper)
+		if(!m_inspector->m_is_dumping)
 		{
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 			if(evt->m_fdinfo)
@@ -1344,7 +1344,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_uid = *(int32_t *)parinfo->m_val;
 
-	// Copy the uid
+	// Copy the gid
 	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
@@ -1596,10 +1596,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	//  scap_fd_free_table(handle, tinfo);
 
 	//
-	// Clear the flags for this thread, making sure to propagate the inverted flag
+	// Clear the flags for this thread, making sure to propagate the inverted 
+	// and shell pipe flags
 	//
+
+	auto spf = evt->m_tinfo->m_flags & (PPM_CL_PIPE_SRC | PPM_CL_PIPE_DST);
 	bool inverted = ((evt->m_tinfo->m_flags & PPM_CL_CLONE_INVERTED) != 0);
+
 	evt->m_tinfo->m_flags = PPM_CL_ACTIVE;
+
+	evt->m_tinfo->m_flags |= spf;
 	if(inverted)
 	{
 		evt->m_tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
@@ -1616,7 +1622,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	evt->m_tinfo->compute_program_hash();
 
 #ifdef HAS_ANALYZER
-	evt->m_tinfo->m_ainfo->clear_role_flags();
+	if(evt->m_tinfo->m_ainfo != NULL)
+	{
+		evt->m_tinfo->m_ainfo->clear_role_flags();
+	}
 #endif
 
 	//
@@ -2846,7 +2855,7 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 
 	if(p->m_res == sinsp_tracerparser::RES_TRUNCATED)
 	{
-		if(!m_inspector->m_dumper)
+		if(!m_inspector->m_is_dumping)
 		{
 			evt->m_filtered_out = true;
 		}
@@ -3481,6 +3490,18 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 	//
 	if(retval >= 0)
 	{
+		//
+		// Heuristic to determine if a thread is part of a shell pipe
+		//
+		if(retval == 0)
+		{
+			evt->m_tinfo->m_flags |= PPM_CL_PIPE_DST;
+		}
+		if(retval == 1)
+		{
+			evt->m_tinfo->m_flags |= PPM_CL_PIPE_SRC;
+		}
+
 		if(evt->m_fdinfo == NULL)
 		{
 			return;
