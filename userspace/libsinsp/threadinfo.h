@@ -236,6 +236,7 @@ public:
 	string m_root;
 	size_t m_program_hash;
 	size_t m_program_hash_falco;
+	int32_t m_tty;
 
 	//
 	// State for multi-event processing

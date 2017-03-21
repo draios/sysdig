@@ -65,6 +65,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	uint32_t vmswap_kb;
 	uint64_t pfmajor;
 	uint64_t pfminor;
+	int32_t tty;
 	char line[512];
 	char tmpc;
 	char* s;
@@ -78,6 +79,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = 0;
 	tinfo->pfminor = 0;
 	tinfo->filtered_out = 0;
+	tinfo->tty = 0;
 
 	snprintf(filename, sizeof(filename), "%sstatus", procdirname);
 
@@ -230,12 +232,12 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	//
 	// Extract the line content
 	//
-	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
+	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRId32 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
 		&tmpc,
 		&tmp,
 		&sid,
 		&tmp,
-		&tmp,
+		&tty,
 		&tmp,
 		&tmp,
 		&pfminor,
@@ -250,6 +252,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = pfmajor;
 	tinfo->pfminor = pfminor;
 	tinfo->sid = (uint64_t) sid;
+	tinfo->tty = tty;
 
 	fclose(f);
 	return SCAP_SUCCESS;
