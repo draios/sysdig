@@ -1151,6 +1151,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
 			tinfo.m_sid = ptinfo->m_sid;
+			tinfo.m_tty = ptinfo->m_tty;
 		}
 		else
 		{
