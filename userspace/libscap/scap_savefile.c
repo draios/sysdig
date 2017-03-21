@@ -42,7 +42,46 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 	{
 		return gzwrite(d->m_f, buf, len);
 	}
-	return 0;
+	else
+	{
+		if(d->m_targetbufcurpos + len < d->m_targetbufend)
+		{
+			memcpy(d->m_targetbufcurpos, buf, len);
+
+			d->m_targetbufcurpos += len;
+			return len;
+		}
+		else
+		{
+			return -1;
+		}
+	}
+}
+
+int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level)
+{
+	uLongf dl = compressBound(sourcelen);
+
+	if(dl >= *destlen)
+	{
+		return SCAP_FAILURE;
+	}
+
+	int res = compress2(dest, &dl, source, sourcelen, level);
+	if(res == Z_OK)
+	{
+		*destlen = (uint64_t)dl;
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		return SCAP_FAILURE;
+	}
+}
+
+uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d)
+{
+	return d->m_targetbufcurpos;
 }
 
 #ifndef _WIN32
@@ -715,10 +754,39 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 	scap_dumper_t* res = (scap_dumper_t*)malloc(sizeof(scap_dumper_t));
 	res->m_f = f;
 	res->m_type = DT_FILE;
-	res->m_off = 0;
+	res->m_targetbuf = NULL;
+	res->m_targetbufcurpos = NULL;
+	res->m_targetbufend = NULL;
 
 	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
 	{
+		res = NULL;
+	}
+
+	return res;
+}
+
+//
+// Open a memory "savefile"
+//
+scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize)
+{
+	scap_dumper_t* res = (scap_dumper_t*)malloc(sizeof(scap_dumper_t));
+	if(res == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_dump_memory_open memory allocation failure (1)");
+		return NULL;
+	}
+
+	res->m_f = NULL;
+	res->m_type = DT_MEM;
+	res->m_targetbuf = targetbuf;
+	res->m_targetbufcurpos = targetbuf;
+	res->m_targetbufend = targetbuf + targetbufsize;
+
+	if(scap_setup_dump(handle, res, "") != SCAP_SUCCESS)
+	{
+		free(res);
 		res = NULL;
 	}
 
@@ -749,7 +817,7 @@ int64_t scap_dump_get_offset(scap_dumper_t *d)
 	}
 	else
 	{
-		return d->m_off;
+		return (int64_t)d->m_targetbufcurpos - (int64_t)d->m_targetbuf;
 	}
 }
 

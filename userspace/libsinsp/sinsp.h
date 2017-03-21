@@ -748,7 +748,10 @@ public:
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
 	void enable_tracers_capture();
-
+	uint64_t get_bytes_read()
+	{
+		return scap_ftell(m_h);
+	}
 	void refresh_ifaddr_list();
 	void refresh_proc_list() {
 		scap_refresh_proc_table(m_h);
@@ -853,6 +856,7 @@ private:
 	sinsp_parser* m_parser;
 	// the statistics analysis engine
 	scap_dumper_t* m_dumper;
+	bool m_is_dumping;
 	bool m_filter_proc_table_when_saving;
 	const scap_machine_info* m_machine_info;
 	uint32_t m_num_cpus;
@@ -861,6 +865,7 @@ private:
 	// This is used to support reading merged files, where the capture needs to
 	// restart in the middle of the file.
 	uint64_t m_file_start_offset;
+	bool m_flush_memory_dump;
 
 	sinsp_network_interfaces* m_network_interfaces;
 public:
@@ -1030,6 +1035,7 @@ public:
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
 	friend class sisnp_baseliner;
+	friend class sinsp_memory_dumper;
 
 	friend class sinsp_network_interfaces;
 	friend class k8s_delegator;
