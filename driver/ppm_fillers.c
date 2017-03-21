@@ -35,6 +35,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/module.h>
 #include <linux/quota.h>
 #include <linux/tty.h>
+#include <linux/uaccess.h>
 #ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
 #endif
