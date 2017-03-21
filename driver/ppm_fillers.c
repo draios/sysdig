@@ -1018,7 +1018,7 @@ static int ppm_get_tty(void)
 	 * multiple kernel versions to get it right, so simply do protected
 	 * memory accesses, and in the worst case we get some garbage,
 	 * which is not the end of the world. In the vast majority of accesses,
-	 * we'll be just fine.'
+	 * we'll be just fine.
 	 */
 	struct signal_struct *sig;
 	struct tty_struct *tty;
