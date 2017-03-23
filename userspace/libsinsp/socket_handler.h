@@ -53,12 +53,12 @@ public:
 		const std::string& url,
 		const std::string& path = "",
 		const std::string& http_version = HTTP_VERSION_11,
-		int timeout_ms = 1000L,
-		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0,
+		int timeout_ms = 1000,
+		ssl_ptr_t ssl = nullptr,
+		bt_ptr_t bt = nullptr,
 		bool keep_alive = true,
 		bool blocking = false,
-		unsigned data_limit = 524288,
+		unsigned data_limit = 524288u,
 		bool fetching_state = true): m_obj(obj),
 			m_id(id),
 			m_url(url),
@@ -1549,14 +1549,14 @@ private:
 									pos = parser_data->m_data_buf->find('\n');
 								}
 							}
-							else
+							/*else
 							{
 								if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 								{
 									g_logger.log("Socket handler (http_body_callback) data received, will be parsed on response end:" +
 												 *parser_data->m_data_buf, sinsp_logger::SEV_TRACE);
 								}
-							}
+							}*/
 						}
 					}
 					else { throw sinsp_exception("Socket handler (http_body_callback): http or json buffer is null."); }
