@@ -122,7 +122,8 @@ docker::docker(std::string url,
 	{
 		url = std::string("file://").append(scap_get_host_root()).append(DOCKER_SOCKET_FILE);
 	}
-	m_event_http = std::make_shared<handler_t>(*this, "docker", url, path, http_version, timeout_ms);
+	m_event_http = std::make_shared<handler_t>(*this, "docker", url, path, http_version,
+					timeout_ms, nullptr, nullptr, true, false, 524288u, false);
 	m_event_http->set_json_callback(&docker::set_event_json);
 	m_event_http->add_json_filter(".");
 	m_collector.add(m_event_http);
