@@ -5,6 +5,7 @@ RUN yum -y install \
     git \
     gcc \
     gcc-c++ \
+    autoconf \
     make \
     cmake \
     libdtrace-ctf \

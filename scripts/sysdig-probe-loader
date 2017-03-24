@@ -46,8 +46,12 @@ elif [ "$SCRIPT_NAME" = "sysdigcloud-probe-loader" ]; then
 	SYSDIG_VERSION=$(/opt/draios/bin/dragent --version)
 	PROBE_NAME="sysdigcloud-probe"
 	PACKAGE_NAME="draios-agent"
+elif [ "$SCRIPT_NAME" = "falco-probe-loader" ]; then
+	SYSDIG_VERSION=$(falco --version | cut -d' ' -f3)
+	PROBE_NAME="falco-probe"
+	PACKAGE_NAME="falco"
 else
-	echo "This script must be called as sysdig-probe-loader or sysdigcloud-probe-loader"
+	echo "This script must be called as sysdig-probe-loader, sysdigcloud-probe-loader, or falco-probe-loader"
 	exit 1
 fi
 
