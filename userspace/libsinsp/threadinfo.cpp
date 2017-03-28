@@ -87,6 +87,7 @@ void sinsp_threadinfo::init()
 	m_program_hash_falco = 0;
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
+	m_tty = 0;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -375,6 +376,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
 	m_clone_ts = pi->clone_ts;
+	m_tty = pi->tty;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
