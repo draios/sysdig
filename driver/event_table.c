@@ -303,5 +303,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_RMDIR_2_E */{"rmdir", EC_FILE, EF_NONE, 0},
 	/* PPME_SYSCALL_RMDIR_2_X */{"rmdir", EC_FILE, EF_NONE, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA} } },
 	/* PPME_NOTIFICATION_E */{"notification", EC_OTHER, EF_SKIPPARSERESET, 2, {{"id", PT_CHARBUF, PF_DEC}, {"desc", PT_CHARBUF, PF_NA}, } },
-	/* PPME_NOTIFICATION_X */{"NA4", EC_SYSTEM, EF_UNUSED, 0}
+	/* PPME_NOTIFICATION_X */{"NA4", EC_SYSTEM, EF_UNUSED, 0},
+	/* PPME_SYSCALL_EXECVE_17_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 0},
+	/* PPME_SYSCALL_EXECVE_17_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 17, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC} } }
 };

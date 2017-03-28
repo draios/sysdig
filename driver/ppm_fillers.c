@@ -34,6 +34,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
+#include <linux/tty.h>
+#include <linux/uaccess.h>
 #ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
 #endif
@@ -292,8 +294,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_16_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_17_E] = {f_sys_empty},
+	[PPME_SYSCALL_EXECVE_17_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -1011,6 +1013,52 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 #endif
 
+static int ppm_get_tty(void)
+{
+	/* Locking of the signal structures seems too complicated across
+	 * multiple kernel versions to get it right, so simply do protected
+	 * memory accesses, and in the worst case we get some garbage,
+	 * which is not the end of the world. In the vast majority of accesses,
+	 * we'll be just fine.
+	 */
+	struct signal_struct *sig;
+	struct tty_struct *tty;
+	struct tty_driver *driver;
+	int major;
+	int minor_start;
+	int index;
+	int tty_nr = 0;
+
+	sig = current->signal;
+	if (!sig)
+		return 0;
+
+	if (unlikely(probe_kernel_read(&tty, &sig->tty, sizeof(tty))))
+		return 0;
+
+	if (!tty)
+		return 0;
+
+	if (unlikely(probe_kernel_read(&index, &tty->index, sizeof(index))))
+		return 0;
+
+	if (unlikely(probe_kernel_read(&driver, &tty->driver, sizeof(driver))))
+		return 0;
+
+	if (!driver)
+		return 0;
+
+	if (unlikely(probe_kernel_read(&major, &driver->major, sizeof(major))))
+		return 0;
+
+	if (unlikely(probe_kernel_read(&minor_start, &driver->minor_start, sizeof(minor_start))))
+		return 0;
+
+	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
+
+	return tty_nr;
+}
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -1035,7 +1083,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_16_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_17_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -1311,11 +1359,12 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_16_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_17_X) {
 		/*
 		 * execve-only parameters
 		 */
 		long env_len = 0;
+		int tty_nr = 0;
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1355,6 +1404,14 @@ cgroups_error:
 		 * environ
 		 */
 		res = val_to_ring(args, (int64_t)(long)args->str_storage, env_len, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * tty
+		 */
+		tty_nr = ppm_get_tty();
+		res = val_to_ring(args, tty_nr, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
