@@ -109,7 +109,7 @@ scap_t* scap_open_live_int(char *error,
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
-	max_devs = sysconf(_SC_NPROCESSORS_CONF);	
+	max_devs = sysconf(_SC_NPROCESSORS_CONF);
 
 	//
 	// Allocate the device descriptors.
@@ -170,7 +170,7 @@ scap_t* scap_open_live_int(char *error,
 	}
 	else
 	{
-		handle->m_userlist = NULL;		
+		handle->m_userlist = NULL;
 	}
 
 	handle->m_fake_kernel_proc.tid = -1;
@@ -288,9 +288,9 @@ scap_t* scap_open_live_int(char *error,
 }
 #endif // HAS_CAPTURE
 
-scap_t* scap_open_offline_int(const char* fname, 
+scap_t* scap_open_offline_int(const char* fname,
 							  char *error,
-							  proc_entry_callback proc_callback, 
+							  proc_entry_callback proc_callback,
 							  void* proc_callback_context,
 							  bool import_users,
 							  uint64_t start_offset)
@@ -745,7 +745,7 @@ int32_t refill_read_buffers(scap_t* handle, bool wait)
 
 	//
 	// Note: we might return a spurious timeout here in case the previous loop extracted valid data to parse.
-	//       It's ok, since this is rare and the caller will just call us again after receiving a 
+	//       It's ok, since this is rare and the caller will just call us again after receiving a
 	//       SCAP_TIMEOUT.
 	//
 	return SCAP_TIMEOUT;
@@ -849,7 +849,7 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 	evt.len = 0;
 	evt.tid = -1;
 	evt.type = PPME_SYSDIGEVENT_X;
-	
+
 	usleep(100000);
 
 	struct timeval tv;
@@ -912,7 +912,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
 		stats->n_evts += handle->m_devs[j].m_bufinfo->n_evts;
-		stats->n_drops += handle->m_devs[j].m_bufinfo->n_drops_buffer + 
+		stats->n_drops += handle->m_devs[j].m_bufinfo->n_drops_buffer +
 			handle->m_devs[j].m_bufinfo->n_drops_pf;
 		stats->n_preemptions += handle->m_devs[j].m_bufinfo->n_preemptions;
 	}
@@ -999,7 +999,7 @@ int32_t scap_start_capture(scap_t* handle)
 #if defined(HAS_CAPTURE)
 static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t sampling_ratio)
 {
-	//	
+	//
 	// Not supported for files
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
@@ -1027,7 +1027,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 					 __FUNCTION__, request, sampling_ratio, strerror(errno));
 			ASSERT(false);
 			return SCAP_FAILURE;
-		}		
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -1037,7 +1037,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 #if defined(HAS_CAPTURE)
 int32_t scap_enable_tracers_capture(scap_t* handle)
 {
-	//	
+	//
 	// Not supported for files
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
@@ -1054,7 +1054,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 			ASSERT(false);
 			return SCAP_FAILURE;
-		}		
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -1347,7 +1347,7 @@ bool alloc_proclist_info(scap_t* handle, uint32_t n_entries)
 		return false;
 	}
 
-	memsize = sizeof(struct ppm_proclist_info) + 
+	memsize = sizeof(struct ppm_proclist_info) +
 	sizeof(struct ppm_proc_info) * n_entries;
 
 	if(handle->m_driver_procinfo != NULL)

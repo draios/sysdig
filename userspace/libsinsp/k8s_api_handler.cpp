@@ -101,6 +101,6 @@ bool k8s_api_handler::has(const std::string& version) const
 	}
 	return false;
 }
- 
+
  #endif // HAS_CAPTURE
- 
+

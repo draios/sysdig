@@ -81,7 +81,7 @@ const k8s_component::type_map k8s_component::list =
 	{ k8s_component::K8S_EVENTS,                 "events"                 }
 };
 
-k8s_component::k8s_component(type comp_type, const std::string& name, const std::string& uid, const std::string& ns) : 
+k8s_component::k8s_component(type comp_type, const std::string& name, const std::string& uid, const std::string& ns) :
 	m_type(comp_type), m_name(name), m_uid(uid), m_ns(ns)
 {
 }
@@ -440,7 +440,7 @@ k8s_node_t::host_ip_list k8s_node_t::extract_addresses(const Json::Value& status
 
 
 //
-// pod 
+// pod
 //
 
 k8s_pod_t::k8s_pod_t(const std::string& name, const std::string& uid, const std::string& ns) :
@@ -564,7 +564,7 @@ void k8s_replicas_t::set_replicas(k8s_replicas_t& replicas, const Json::Value& i
 // replication controller
 //
 
-k8s_rc_t::k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns, k8s_component::type type) : 
+k8s_rc_t::k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns, k8s_component::type type) :
 	k8s_component(type, name, uid, ns)
 {
 }
@@ -591,7 +591,7 @@ void k8s_rc_t::set_replicas(int spec, int stat)
 //
 // replica set
 //
-k8s_rs_t::k8s_rs_t(const std::string& name, const std::string& uid, const std::string& ns) : 
+k8s_rs_t::k8s_rs_t(const std::string& name, const std::string& uid, const std::string& ns) :
 	k8s_rc_t(name, uid, ns, COMPONENT_TYPE)
 {
 }
@@ -601,7 +601,7 @@ k8s_rs_t::k8s_rs_t(const std::string& name, const std::string& uid, const std::s
 // service
 //
 
-k8s_service_t::k8s_service_t(const std::string& name, const std::string& uid, const std::string& ns) : 
+k8s_service_t::k8s_service_t(const std::string& name, const std::string& uid, const std::string& ns) :
 	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
 }
@@ -624,7 +624,7 @@ std::vector<const k8s_pod_t*> k8s_service_t::get_selected_pods(const std::vector
 // daemon set
 //
 
-k8s_daemonset_t::k8s_daemonset_t(const std::string& name, const std::string& uid, const std::string& ns) : 
+k8s_daemonset_t::k8s_daemonset_t(const std::string& name, const std::string& uid, const std::string& ns) :
 	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
 }
@@ -634,7 +634,7 @@ k8s_daemonset_t::k8s_daemonset_t(const std::string& name, const std::string& uid
 // deployment
 //
 
-k8s_deployment_t::k8s_deployment_t(const std::string& name, const std::string& uid, const std::string& ns) : 
+k8s_deployment_t::k8s_deployment_t(const std::string& name, const std::string& uid, const std::string& ns) :
 	k8s_component(COMPONENT_TYPE, name, uid, ns)
 {
 }

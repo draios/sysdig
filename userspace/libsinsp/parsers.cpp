@@ -965,7 +965,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 				evt->m_tinfo = NULL;
 			}
 		}
-	
+
 		//
 		// Check if this is a process or a new thread
 		//
@@ -1582,7 +1582,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
 
 		//
-		// If the thread info has no container ID, or if the clone happened a long 
+		// If the thread info has no container ID, or if the clone happened a long
 		// time ago, recreate the container information.
 		//
 		if(evt->m_tinfo->m_container_id.empty() ||
@@ -1622,7 +1622,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	//  scap_fd_free_table(handle, tinfo);
 
 	//
-	// Clear the flags for this thread, making sure to propagate the inverted 
+	// Clear the flags for this thread, making sure to propagate the inverted
 	// and shell pipe flags
 	//
 
@@ -1905,7 +1905,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	{
 		//
 		// Populate the new fdi
-		//	
+		//
 		if(flags & PPM_O_DIRECTORY)
 		{
 			fdi.m_type = SCAP_FD_DIRECTORY;

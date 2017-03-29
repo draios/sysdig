@@ -21,7 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class sinsp;
 class sinsp_evt;
 
-/** @defgroup dump Dumping events to disk 
+/** @defgroup dump Dumping events to disk
  * Classes to perform miscellneous functionality
  *  @{
  */
@@ -45,8 +45,8 @@ public:
 	  Takes the address and the size of a preallocated memory buffer
 	  where the data will go.
 	*/
-	sinsp_dumper(sinsp* inspector, 
-		uint8_t* target_memory_buffer, 
+	sinsp_dumper(sinsp* inspector,
+		uint8_t* target_memory_buffer,
 		uint64_t target_memory_buffer_size);
 
 	~sinsp_dumper();
@@ -65,8 +65,8 @@ public:
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(const string& filename, 
-		bool compress, 
+	void open(const string& filename,
+		bool compress,
 		bool threads_from_sinsp=false);
 
 	/*!
@@ -77,7 +77,7 @@ public:
 	/*!
 	  \brief Return the current size of a tracefile.
 
-	  \return The current size of the dump file. 
+	  \return The current size of the dump file.
 	*/
 	uint64_t written_bytes();
 
