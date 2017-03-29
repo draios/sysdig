@@ -192,7 +192,7 @@ size_t sinsp_curl::header_callback(char *buffer, size_t size, size_t nitems, voi
 {
 	size_t sz = nitems * size;
 	std::string buf(buffer, sz);
-	
+
 	const std::string loc = "Location:";
 	const std::string nl = "\r\n";
 	std::string::size_type loc_pos = buf.find(loc);

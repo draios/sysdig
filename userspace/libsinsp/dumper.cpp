@@ -99,7 +99,7 @@ void sinsp_dumper::dump(sinsp_evt* evt)
 
 	scap_evt* pdevt = (evt->m_poriginal_evt)? evt->m_poriginal_evt : evt->m_pevt;
 
-	int32_t res = scap_dump(m_inspector->m_h, 
+	int32_t res = scap_dump(m_inspector->m_h,
 		m_dumper, pdevt, evt->m_cpuid, 0);
 
 	if(res != SCAP_SUCCESS)
@@ -118,7 +118,7 @@ uint64_t sinsp_dumper::written_bytes()
 	int64_t written_bytes = scap_dump_get_offset(m_dumper);
 	if(written_bytes == -1)
 	{
-		throw sinsp_exception("error getting offset");		
+		throw sinsp_exception("error getting offset");
 	}
 
 	return written_bytes;
