@@ -134,6 +134,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_CL_ACTIVE (1 << 19)			/* libsinsp-specific flag. Set in the first non-clone event for
 										   this thread. */
 #define PPM_CL_CLONE_NEWUSER (1 << 20)
+#define PPM_CL_PIPE_SRC (1 << 21)			/* libsinsp-specific flag. Set if this thread has been 
+										       detected to be the source in a shell pipe. */
+#define PPM_CL_PIPE_DST (1 << 22)			/* libsinsp-specific flag. Set if this thread has been 
+										       detected to be the destination in a shell pipe. */
 
 /*
  * Futex Operations
@@ -587,6 +591,7 @@ enum ppm_event_type {
 	PPME_SYSCALL_CHDIR_X = 95,
 	PPME_SYSCALL_FCHDIR_E = 96,
 	PPME_SYSCALL_FCHDIR_X = 97,
+	/* mkdir/rmdir events are not emitted anymore */
 	PPME_SYSCALL_MKDIR_E = 98,
 	PPME_SYSCALL_MKDIR_X = 99,
 	PPME_SYSCALL_RMDIR_E = 100,
@@ -765,7 +770,15 @@ enum ppm_event_type {
 	PPME_CONTAINER_JSON_X = 273,
 	PPME_SYSCALL_SETSID_E = 274,
 	PPME_SYSCALL_SETSID_X = 275,
-	PPM_EVENT_MAX = 276
+	PPME_SYSCALL_MKDIR_2_E = 276,
+	PPME_SYSCALL_MKDIR_2_X = 277,
+	PPME_SYSCALL_RMDIR_2_E = 278,
+	PPME_SYSCALL_RMDIR_2_X = 279,
+	PPME_NOTIFICATION_E = 280,
+	PPME_NOTIFICATION_X = 281,
+	PPME_SYSCALL_EXECVE_17_E = 282,
+	PPME_SYSCALL_EXECVE_17_X = 283,
+	PPM_EVENT_MAX = 284
 };
 /*@}*/
 

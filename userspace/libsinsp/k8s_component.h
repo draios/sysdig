@@ -112,6 +112,7 @@ public:
 		COMPONENT_MODIFIED,
 		COMPONENT_DELETED,
 		COMPONENT_ERROR,
+		COMPONENT_NONEXISTENT,
 		COMPONENT_UNKNOWN // only to mark bad event messages
 	};
 
@@ -132,12 +133,13 @@ public:
 		{
 			switch(m_reason)
 			{
-				case COMPONENT_ADDED:    return "ADDED";
-				case COMPONENT_MODIFIED: return "MODIFIED";
-				case COMPONENT_DELETED:  return "DELETED";
-				case COMPONENT_ERROR:    return "ERROR";
+				case COMPONENT_ADDED:       return "ADDED";
+				case COMPONENT_MODIFIED:    return "MODIFIED";
+				case COMPONENT_DELETED:     return "DELETED";
+				case COMPONENT_ERROR:       return "ERROR";
+				case COMPONENT_NONEXISTENT: return "NONEXISTENT";
 				case COMPONENT_UNKNOWN:
-				default:                 return "UNKNOWN";
+				default:                    return "UNKNOWN";
 			}
 			return "UNKNOWN";
 		}
@@ -505,6 +507,7 @@ private:
 //
 
 class k8s_state_t;
+class event_scope;
 
 class k8s_event_t : public k8s_component
 {
@@ -522,8 +525,8 @@ private:
 	typedef sinsp_logger::event_severity severity_t;
 	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
 
-	void make_scope(const Json::Value& obj, std::string& scope);
-	void make_scope_impl(const Json::Value& obj, std::string comp, std::string& scope, bool ns = true);
+	void make_scope(const Json::Value& obj, event_scope& scope);
+	void make_scope_impl(const Json::Value& obj, std::string comp, event_scope& scope, bool ns = true);
 
 	name_translation_map_t  m_name_translation;
 	std::map<std::string, Json::Value> m_postponed_events;

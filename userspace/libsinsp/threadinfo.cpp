@@ -86,6 +86,8 @@ void sinsp_threadinfo::init()
 	m_program_hash = 0;
 	m_program_hash_falco = 0;
 	m_lastevent_data = NULL;
+	m_parent_loop_detected = false;
+	m_tty = 0;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -219,7 +221,10 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_sockinfo.m_ipv4info.m_fields.m_sport = fdi->info.ipv4info.sport;
 		newfdi->m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv4info.dport;
 		newfdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv4info.l4proto;
-		m_inspector->m_network_interfaces->update_fd(newfdi);
+		if(m_inspector->m_network_interfaces)
+		{
+			m_inspector->m_network_interfaces->update_fd(newfdi);
+		}
 		newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
@@ -249,7 +254,10 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 			newfdi->m_sockinfo.m_ipv4info.m_fields.m_sport = fdi->info.ipv6info.sport;
 			newfdi->m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv6info.dport;
 			newfdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
-			m_inspector->m_network_interfaces->update_fd(newfdi);
+			if(m_inspector->m_network_interfaces)
+			{
+				m_inspector->m_network_interfaces->update_fd(newfdi);
+			}
 			newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
 		}
 		else
@@ -367,11 +375,13 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
+	m_clone_ts = pi->clone_ts;
+	m_tty = pi->tty;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
 	ASSERT(m_inspector);
-	m_inspector->m_container_manager.resolve_container(this, m_inspector->m_islive);
+	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_capture());
 	//
 	// Prepare for filtering
 	//
@@ -639,7 +649,7 @@ string sinsp_threadinfo::get_cwd()
 {
 	// Ideally we should use get_cwd_root()
 	// but scap does not read CLONE_FS from /proc
-	// Also glibc and muslc use always 
+	// Also glibc and muslc use always
 	// CLONE_THREAD|CLONE_FS so let's use
 	// get_main_thread() for now
 	sinsp_threadinfo* tinfo = get_main_thread();
@@ -671,7 +681,9 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 
 		tinfo->m_cwd = tpath;
 
-		if(tinfo->m_cwd[tinfo->m_cwd.size() - 1] != '/')
+		uint32_t size = tinfo->m_cwd.size();
+
+		if(size == 0 || (tinfo->m_cwd[size - 1] != '/'))
 		{
 			tinfo->m_cwd += '/';
 		}
@@ -766,6 +778,49 @@ uint64_t sinsp_threadinfo::get_fd_limit()
 	return get_main_thread()->m_fdlimit;
 }
 
+void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
+{
+	// Use two pointers starting at this, traversing the parent
+	// state, at different rates. If they ever equal each other
+	// before slow is NULL there's a loop.
+
+	sinsp_threadinfo *slow=this->get_parent_thread(), *fast=slow;
+
+	// Move fast to its parent
+	fast = (fast ? fast->get_parent_thread() : fast);
+
+	while(slow)
+	{
+		if(!visitor(slow))
+		{
+			break;
+		}
+
+		// Advance slow one step and advance fast two steps
+		slow = slow->get_parent_thread();
+
+		// advance fast 2 steps, checking to see if we meet
+		// slow after each step.
+		for (uint32_t i = 0; i < 2; i++) {
+			fast = (fast ? fast->get_parent_thread() : fast);
+
+			// If not at the end but fast == slow, there's a loop
+			// in the thread state.
+			if(slow && (slow == fast))
+			{
+				// Note we only log a loop once for a given main thread, to avoid flooding logs.
+				if(!m_parent_loop_detected)
+				{
+					g_logger.log(string("Loop in parent thread state detected for pid ") +
+						     std::to_string(m_pid), sinsp_logger::SEV_WARNING);
+					m_parent_loop_detected = true;
+				}
+				return;
+			}
+		}
+	}
+}
+
 sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
 {
 	return m_inspector->get_thread(m_pid, true, true);
@@ -812,6 +867,114 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 	return m_main_thread;
 }
 #endif
+
+void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
+{
+	uint32_t alen = SCAP_MAX_ARGS_SIZE;
+	uint32_t tlen = 0;
+	char* dst = sctinfo->args;
+
+	for(auto a : m_args)
+	{
+		uint32_t len = a.size() + 1;
+
+		strncpy(dst + tlen, a.c_str(), alen);
+		tlen += len;
+		alen -= len;
+	}
+
+	sctinfo->args_len = tlen;
+}
+
+void sinsp_threadinfo::env_to_scap(scap_threadinfo* sctinfo)
+{
+	uint32_t alen = SCAP_MAX_ENV_SIZE;
+	uint32_t tlen = 0;
+	char* dst = sctinfo->env;
+
+	for(auto a : m_env)
+	{
+		uint32_t len = a.size() + 1;
+
+		strncpy(dst + tlen, a.c_str(), alen);
+		tlen += len;
+		alen -= len;
+	}
+
+	sctinfo->env_len = tlen;
+}
+
+void sinsp_threadinfo::cgroups_to_scap(scap_threadinfo* sctinfo)
+{
+	uint32_t alen = SCAP_MAX_CGROUPS_SIZE;
+	uint32_t tlen = 0;
+	char* dst = sctinfo->cgroups;
+
+	for(auto cg : m_cgroups)
+	{
+		string a = cg.first + "=" + cg.second;
+		uint32_t len = a.size() + 1;
+
+		strncpy(dst + tlen, a.c_str(), alen);
+		tlen += len;
+		alen -= len;
+	}
+
+	sctinfo->cgroups_len = tlen;
+}
+
+void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
+{
+	dst->type = src->m_type;
+	dst->ino = src->m_ino;
+
+	switch(dst->type)
+	{
+	case SCAP_FD_IPV4_SOCK:
+		dst->info.ipv4info.sip = src->m_sockinfo.m_ipv4info.m_fields.m_sip;
+		dst->info.ipv4info.dip = src->m_sockinfo.m_ipv4info.m_fields.m_dip;
+		dst->info.ipv4info.sport = src->m_sockinfo.m_ipv4info.m_fields.m_sport;
+		dst->info.ipv4info.dport = src->m_sockinfo.m_ipv4info.m_fields.m_dport;
+		dst->info.ipv4info.l4proto = src->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
+		break;
+	case SCAP_FD_IPV4_SERVSOCK:
+		dst->info.ipv4serverinfo.ip = src->m_sockinfo.m_ipv4serverinfo.m_ip;
+		dst->info.ipv4serverinfo.port = src->m_sockinfo.m_ipv4serverinfo.m_port;
+		dst->info.ipv4serverinfo.l4proto = src->m_sockinfo.m_ipv4serverinfo.m_l4proto;
+		break;
+	case SCAP_FD_IPV6_SOCK:
+		copy_ipv6_address(dst->info.ipv6info.sip, src->m_sockinfo.m_ipv6info.m_fields.m_sip);
+		copy_ipv6_address(dst->info.ipv6info.dip, src->m_sockinfo.m_ipv6info.m_fields.m_dip);
+		dst->info.ipv6info.sport = src->m_sockinfo.m_ipv6info.m_fields.m_sport;
+		dst->info.ipv6info.dport = src->m_sockinfo.m_ipv6info.m_fields.m_dport;
+		dst->info.ipv6info.l4proto = src->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+		break;
+	case SCAP_FD_IPV6_SERVSOCK:
+		copy_ipv6_address(dst->info.ipv6serverinfo.ip, src->m_sockinfo.m_ipv6serverinfo.m_ip);
+		dst->info.ipv6serverinfo.port = src->m_sockinfo.m_ipv6serverinfo.m_port;
+		dst->info.ipv6serverinfo.l4proto = src->m_sockinfo.m_ipv6serverinfo.m_l4proto;
+		break;
+	case SCAP_FD_UNIX_SOCK:
+		dst->info.unix_socket_info.source = src->m_sockinfo.m_unixinfo.m_fields.m_source;
+		dst->info.unix_socket_info.destination = src->m_sockinfo.m_unixinfo.m_fields.m_dest;
+		strncpy(dst->info.unix_socket_info.fname, src->m_name.c_str(), SCAP_MAX_PATH_SIZE);
+		break;
+	case SCAP_FD_FIFO:
+	case SCAP_FD_FILE:
+	case SCAP_FD_DIRECTORY:
+	case SCAP_FD_UNSUPPORTED:
+	case SCAP_FD_SIGNALFD:
+	case SCAP_FD_EVENTPOLL:
+	case SCAP_FD_EVENT:
+	case SCAP_FD_INOTIFY:
+	case SCAP_FD_TIMERFD:
+		strncpy(dst->info.fname, src->m_name.c_str(), SCAP_MAX_PATH_SIZE);
+		break;
+	default:
+		ASSERT(false);
+		break;
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
@@ -1081,7 +1244,6 @@ void sinsp_thread_manager::update_statistics()
 
 void sinsp_thread_manager::to_scap()
 {
-/*
 	scap_proc_free_table(m_inspector->m_h);
 
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
@@ -1098,38 +1260,71 @@ void sinsp_thread_manager::to_scap()
 		}
 
 		//
-		// Fill in the data
+		// Fill in the thread data
 		//
-sctinfo->tid = tinfo.m_tid;
-sctinfo->pid = tinfo.m_pid;
-sctinfo->ptid = tinfo.m_ptid;
-sctinfo->sid = tinfo.m_sid;
+		sctinfo->tid = tinfo.m_tid;
+		sctinfo->pid = tinfo.m_pid;
+		sctinfo->ptid = tinfo.m_ptid;
+		sctinfo->sid = tinfo.m_sid;
 
-strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
-strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
-tinfo.set_args(sctinfo->args, sctinfo->args_len);
-tinfo.set_env(sctinfo->env, sctinfo->env_len);
-tinfo.set_cwd(sctinfo->cwd, (uint32_t)strlen(sctinfo->cwd));
-sctinfo->flags = tinfo.m_flags ;
-sctinfo->fdlimit = tinfo.m_fdlimit;
-sctinfo->uid = tinfo.m_uid;
-sctinfo->gid = tinfo.m_gid;
-sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
-sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
-sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
-sctinfo->pfmajor = tinfo.m_pfmajor;
-sctinfo->pfminor = tinfo.m_pfminor;
-sctinfo->vtid = tinfo.m_vtid;
-sctinfo->vpid = tinfo.m_vpid;
+		strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
+		strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
+		tinfo.args_to_scap(sctinfo);
+		tinfo.env_to_scap(sctinfo);
+		string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
+		strncpy(sctinfo->cwd, tcwd.c_str(), SCAP_MAX_PATH_SIZE);
+		sctinfo->flags = tinfo.m_flags ;
+		sctinfo->fdlimit = tinfo.m_fdlimit;
+		sctinfo->uid = tinfo.m_uid;
+		sctinfo->gid = tinfo.m_gid;
+		sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
+		sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
+		sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
+		sctinfo->pfmajor = tinfo.m_pfmajor;
+		sctinfo->pfminor = tinfo.m_pfminor;
+		sctinfo->vtid = tinfo.m_vtid;
+		sctinfo->vpid = tinfo.m_vpid;
+		sctinfo->fdlist = NULL;
+		tinfo.cgroups_to_scap(sctinfo);
+		strncpy(sctinfo->root, tinfo.m_root.c_str(), SCAP_MAX_PATH_SIZE);
+		sctinfo->filtered_out = false;
 
-tinfo.set_cgroups(sctinfo->cgroups, sctinfo->cgroups_len);
-sctinfo->root = tinfo.m_root;
+		//
+		// Add the FDs
+		//
+		unordered_map<int64_t, sinsp_fdinfo_t>& fdtable = tinfo.get_fd_table()->m_table;
+		for(auto it = fdtable.begin(); it != fdtable.end(); ++it)
+		{
+			//
+			// Allocate the scap fd info
+			//
+			scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
+			if(scfdinfo == NULL)
+			{
+				throw sinsp_exception("thread memory allocation error in sinsp_thread_manager::to_scap");
+			}
 
+			//
+			// Populate the fd info
+			//
+			scfdinfo->fd = it->first;
+			tinfo.fd_to_scap(scfdinfo, &it->second);
+
+			//
+			// Add the new fd to the scap table
+			//
+			if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+			{
+				throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap");
+			}
+		}
 
 		//
 		// Add the created info to scap
 		//
-		scap_proc_add(m_inspector->m_h, it->second.m_tid, sctinfo);
+		if(scap_proc_add(m_inspector->m_h, it->second.m_tid, sctinfo) != SCAP_SUCCESS)
+		{
+			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap");
+		}
 	}
-*/
 }

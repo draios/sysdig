@@ -22,6 +22,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define VISIBILITY_PRIVATE private:
 #endif
 
+#include <functional>
+
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
@@ -199,6 +201,14 @@ public:
 	uint64_t get_fd_limit();
 
 	//
+	// Walk up the parent process heirarchy, calling the provided
+	// function for each node. If the function returns false, the
+	// traversal stops.
+	//
+	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
+	void traverse_parent_state(visitor_func_t &visitor);
+
+	//
 	// Core state
 	//
 	int64_t m_tid;  ///< The id of this thread
@@ -226,6 +236,7 @@ public:
 	string m_root;
 	size_t m_program_hash;
 	size_t m_program_hash_falco;
+	int32_t m_tty;
 
 	//
 	// State for multi-event processing
@@ -303,6 +314,10 @@ VISIBILITY_PRIVATE
 	void allocate_private_state();
 	void compute_program_hash();
 	sinsp_threadinfo* lookup_thread();
+	void args_to_scap(scap_threadinfo* sctinfo);
+	void env_to_scap(scap_threadinfo* sctinfo);
+	void cgroups_to_scap(scap_threadinfo* sctinfo);
+	void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src);
 
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations
@@ -321,6 +336,7 @@ VISIBILITY_PRIVATE
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
+	bool m_parent_loop_detected;
 
 	friend class sinsp;
 	friend class sinsp_parser;

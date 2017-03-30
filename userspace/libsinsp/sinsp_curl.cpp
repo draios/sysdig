@@ -7,6 +7,7 @@
 #if defined(__linux__)
 
 #include "sinsp_curl.h"
+#include "http_reason.h"
 #include <fstream>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -191,7 +192,7 @@ size_t sinsp_curl::header_callback(char *buffer, size_t size, size_t nitems, voi
 {
 	size_t sz = nitems * size;
 	std::string buf(buffer, sz);
-	
+
 	const std::string loc = "Location:";
 	const std::string nl = "\r\n";
 	std::string::size_type loc_pos = buf.find(loc);
@@ -306,7 +307,8 @@ bool sinsp_curl::get_data(std::ostream& os)
 		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &m_response_code));
 		if(m_response_code >= 400)
 		{
-			g_logger.log("CURL HTTP error: " + std::to_string(m_response_code), sinsp_logger::SEV_ERROR);
+			g_logger.log("CURL HTTP error while accesing [" + m_uri.to_string(false) + "]: " +
+						 std::to_string(m_response_code) + " (" + http_reason::get(m_response_code) + ')', sinsp_logger::SEV_ERROR);
 			return false;
 		}
 		else if(is_redirect(m_response_code))

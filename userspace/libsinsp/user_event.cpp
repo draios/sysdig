@@ -20,6 +20,133 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "user_event.h"
 
+//
+// event_scope
+//
+
+const std::string event_scope::SCOPE_OP_AND = "and";
+
+// these string lists contain reserved strings; some of the reserved
+// strings are escaped and mandatory to be first in RESERVED_STRINGS
+// and have their escaped counterparts in the REPLACEMENT_STRINGS,
+// in the same order as they appear in RESERVED_STRINGS
+const event_scope::string_list_t event_scope::RESERVED_STRINGS =
+	{"'"};
+const event_scope::string_list_t event_scope::REPLACEMENT_STRINGS =
+	{"\\'"};
+
+// scope key name format regex
+#ifndef _WIN32
+const std::string event_scope::KEY_FORMAT = "[a-zA-Z0-9_/\\.-]*";
+#else
+const std::string event_scope::KEY_FORMAT = "^[a-zA-Z0-9_/\\.-]*$";
+#endif // _WIN32
+
+event_scope::event_scope(const std::string& key, const std::string& value)
+{
+	if(!key.empty() && !value.empty())
+	{
+		add(key, value, "");
+	}
+}
+
+bool event_scope::add(const std::string& key, const std::string& value, const std::string& op)
+{
+	if(check_key_format(key))
+	{
+		std::string k(key);
+		std::string o(!m_scope.empty() ? op : "");
+		std::string v(value);
+		replace(v);
+		if(!v.empty())
+		{
+			if(!o.empty())
+			{
+				m_scope.append(1, ' ').append(trim(o)).append(1, ' ');
+			}
+			m_scope.append(trim(k)).append("='").append(trim(v)).append(1, 0x27);
+			return true;
+		}
+	}
+	else
+	{
+		g_logger.log("Scope key is invalid: [" + key + "], entry will not be added to scope.",
+					 sinsp_logger::SEV_WARNING);
+	}
+	return false;
+}
+
+string& event_scope::replace(std::string& value)
+{
+	ASSERT(RESERVED_STRINGS.size() == REPLACEMENT_STRINGS.size());
+
+	string_list_t::const_iterator res_it = RESERVED_STRINGS.cbegin();
+	string_list_t::const_iterator res_end = RESERVED_STRINGS.cend();
+	string_list_t::const_iterator rep_it = REPLACEMENT_STRINGS.cbegin();
+	string_list_t::const_iterator rep_end = REPLACEMENT_STRINGS.cend();
+	for(; res_it != res_end && rep_it != rep_end; ++res_it, ++rep_it)
+	{
+		replace_in_place(value, *res_it, *rep_it);
+	}
+
+	return value;
+}
+
+#ifndef _WIN32
+void event_scope::regex_error(const std::string& call, size_t ret, regex_t* preg, const std::string& str)
+{
+	if(!preg) { return; }
+	char errbuf[256] = {0};
+	if(regerror(ret, preg, errbuf, 256))
+	{
+		g_logger.log(call + "() error: " + errbuf, sinsp_logger::SEV_WARNING);
+	}
+	else
+	{
+		g_logger.log("Can't obtain " + call + "() [" + str + "] error.", sinsp_logger::SEV_WARNING);
+	}
+}
+
+bool event_scope::check_key_format(const std::string& key)
+{
+
+	if(key.empty()) { return false; }
+	bool result = false;
+	std::string exp(KEY_FORMAT);
+	regex_t reg = {0};
+	size_t ret = regcomp(&reg, exp.c_str(), REG_EXTENDED);
+	if(0 == ret)
+	{
+		regmatch_t rm = {0};
+		ret = regexec(&reg, key.c_str(), 1, &rm, 0);
+		if(0 == ret)
+		{
+			if((rm.rm_eo - rm.rm_so) == static_cast<regoff_t>(key.length()))
+			{
+				result = true;
+			}
+		}
+		else { regex_error("regexec", ret, &reg, key); }
+	}
+	else { regex_error("regcomp", ret, &reg, exp); }
+	regfree(&reg);
+	return result;
+}
+
+#else
+
+bool event_scope::check_key_format(const std::string& key)
+{
+	static const std::regex r(KEY_FORMAT);
+	if (std::regex_match(key, r)) { return true; }
+	return false;
+}
+
+#endif // _WIN32
+
+//
+// user_event_meta_t
+//
 const std::string user_event_meta_t::PERMIT_ALL = "all";
 
 user_event_meta_t::user_event_meta_t(const std::string& kind, const type_list_t& types):
@@ -266,7 +393,7 @@ sinsp_user_event& sinsp_user_event::operator=(sinsp_user_event&& other)
 std::string sinsp_user_event::to_string(uint64_t timestamp,
 										std::string&& name,
 										std::string&& description,
-										std::string&& scope,
+										event_scope&& scope,
 										tag_map_t&& tags,
 										uint32_t sev)
 {
@@ -277,7 +404,7 @@ std::string sinsp_user_event::to_string(uint64_t timestamp,
 	ostr << "timestamp: " << timestamp << '\n' <<
 			"name: \"" << replace_in_place(name, from, to) << "\"\n"
 			"description: \"" << replace_in_place(description, from, to) << "\"\n"
-			"scope: \"" << replace_in_place(scope, from, to) << "\"\n";
+			"scope: \"" << replace_in_place(scope.get_ref(), from, to) << "\"\n";
 
 	if(sev != UNKNOWN_SEVERITY)
 	{

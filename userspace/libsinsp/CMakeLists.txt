@@ -30,6 +30,7 @@ add_library(sinsp STATIC
 	filter.cpp
 	filterchecks.cpp
 	http_parser.c
+	http_reason.cpp
 	ifinfo.cpp
 	json_query.cpp
 	k8s.cpp
@@ -57,6 +58,7 @@ add_library(sinsp STATIC
 	marathon_http.cpp
 	memmem.cpp
 	tracers.cpp
+	mesos_auth.cpp
 	mesos.cpp
 	mesos_collector.cpp
 	mesos_component.cpp
@@ -89,6 +91,12 @@ target_link_libraries(sinsp
 if(NOT WIN32)
 	if(USE_BUNDLED_LUAJIT)
 		add_dependencies(sinsp luajit)
+	endif()
+	if(USE_BUNDLED_OPENSSL)
+		add_dependencies(sinsp openssl)
+	endif()
+	if(USE_BUNDLED_CURL)
+		add_dependencies(sinsp curl)
 	endif()
 
 	if(NOT APPLE)

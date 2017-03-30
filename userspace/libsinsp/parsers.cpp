@@ -134,7 +134,7 @@ void sinsp_parser::init_metaevt(metaevents_state& evt_state, uint16_t evt_type, 
 void sinsp_parser::process_event(sinsp_evt *evt)
 {
 	uint16_t etype = evt->m_pevt->type;
-	bool is_live = m_inspector->m_islive;
+	bool is_live = m_inspector->is_live();
 
 	//
 	// Cleanup the event-related state
@@ -213,7 +213,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			}
 			else
 			{
-				if(!m_inspector->m_islive)
+				if(!m_inspector->is_live())
 				{
 					if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
 					{
@@ -275,7 +275,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
-		if(!m_inspector->m_dumper)
+		if(!m_inspector->m_is_dumping)
 		{
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 			if(evt->m_fdinfo)
@@ -335,6 +335,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -948,8 +949,22 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// clone() returns 0 in the child.
 		//
-
 		int64_t parenttid;
+
+		//
+		// Before embarking in parsing the event, check if there's already
+		// an entry in the thread table for this process. If there is one, make sure
+		// it was created recently. Otherwise, assume it's an old thread for which
+		// we lost the exit event and remove it from the table.
+		//
+		if(evt->m_tinfo && evt->m_tinfo->m_clone_ts != 0)
+		{
+			if(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS)
+			{
+				m_inspector->remove_thread(tid, true);
+				evt->m_tinfo = NULL;
+			}
+		}
 
 		//
 		// Check if this is a process or a new thread
@@ -971,32 +986,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(5);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			parenttid = *(int64_t *)parinfo->m_val;
-		}
-
-		//
-		// If the threadinfo in the event exists, and we're in
-		// a container, the threadinfo in the event must be
-		// stale (e.g. from a prior process with the same
-		// tid), because only the child side of a clone
-		// creates the threadinfo for the child. Clear and
-		// remove the old threadinfo.
-		//
-		if(evt->m_tinfo && in_container)
-		{
-			// See if the parent thread is in a
-			// container. If it is, the parent thread
-			// did *not* create the thread for this child,
-			// and any existing thread state must be
-			// stale.
-
-			sinsp_threadinfo* ptinfo = m_inspector->get_thread(parenttid, false, true);
-
-
-			if(ptinfo && ptinfo->m_tid != ptinfo->m_vtid)
-			{
-				m_inspector->remove_thread(tid, true);
-				evt->m_tinfo = NULL;
-			}
 		}
 
 		// Validate that the child thread info has actually been created.
@@ -1128,6 +1117,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		// Copy the session id from the parent
 		tinfo.m_sid = ptinfo->m_sid;
+
+		tinfo.m_tty = ptinfo->m_tty;
 	}
 	else
 	{
@@ -1160,6 +1151,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
 			tinfo.m_sid = ptinfo->m_sid;
+			tinfo.m_tty = ptinfo->m_tty;
 		}
 		else
 		{
@@ -1356,7 +1348,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo.m_uid = *(int32_t *)parinfo->m_val;
 
-	// Copy the uid
+	// Copy the gid
 	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
@@ -1413,7 +1405,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->m_islive);
+			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->is_live());
 			break;
 	}
 
@@ -1501,6 +1493,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1531,6 +1524,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_14_X:
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1576,6 +1570,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
 		break;
 	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1585,14 +1580,39 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		//
 		parinfo = evt->get_param(14);
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
-		if(evt->m_tinfo->m_container_id.empty())
+
+		//
+		// If the thread info has no container ID, or if the clone happened a long
+		// time ago, recreate the container information.
+		//
+		if(evt->m_tinfo->m_container_id.empty() ||
+			(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS))
 		{
-			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->m_islive);
+			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
 		}
 		break;
 	default:
 		ASSERT(false);
 	}
+
+	switch(etype)
+	{
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
+		break;
+	case PPME_SYSCALL_EXECVE_17_X:
+		// Get the tty
+		parinfo = evt->get_param(16);
+		ASSERT(parinfo->m_len == sizeof(int32_t));
+		evt->m_tinfo->m_tty = *(int32_t *) parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
+	}
+
 
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
@@ -1602,10 +1622,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	//  scap_fd_free_table(handle, tinfo);
 
 	//
-	// Clear the flags for this thread, making sure to propagate the inverted flag
+	// Clear the flags for this thread, making sure to propagate the inverted
+	// and shell pipe flags
 	//
+
+	auto spf = evt->m_tinfo->m_flags & (PPM_CL_PIPE_SRC | PPM_CL_PIPE_DST);
 	bool inverted = ((evt->m_tinfo->m_flags & PPM_CL_CLONE_INVERTED) != 0);
+
 	evt->m_tinfo->m_flags = PPM_CL_ACTIVE;
+
+	evt->m_tinfo->m_flags |= spf;
 	if(inverted)
 	{
 		evt->m_tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
@@ -1622,7 +1648,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	evt->m_tinfo->compute_program_hash();
 
 #ifdef HAS_ANALYZER
-	evt->m_tinfo->m_ainfo->clear_role_flags();
+	if(evt->m_tinfo->m_ainfo != NULL)
+	{
+		evt->m_tinfo->m_ainfo->clear_role_flags();
+	}
 #endif
 
 	//
@@ -1876,7 +1905,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	{
 		//
 		// Populate the new fdi
-		//	
+		//
 		if(flags & PPM_O_DIRECTORY)
 		{
 			fdi.m_type = SCAP_FD_DIRECTORY;
@@ -2852,7 +2881,7 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 
 	if(p->m_res == sinsp_tracerparser::RES_TRUNCATED)
 	{
-		if(!m_inspector->m_dumper)
+		if(!m_inspector->m_is_dumping)
 		{
 			evt->m_filtered_out = true;
 		}
@@ -3013,7 +3042,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 	if(evt->m_fdinfo == NULL)
 	{
-		if(!m_inspector->m_islive)
+		if(!m_inspector->is_live())
 		{
 			if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
 			{
@@ -3487,6 +3516,18 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 	//
 	if(retval >= 0)
 	{
+		//
+		// Heuristic to determine if a thread is part of a shell pipe
+		//
+		if(retval == 0)
+		{
+			evt->m_tinfo->m_flags |= PPM_CL_PIPE_DST;
+		}
+		if(retval == 1)
+		{
+			evt->m_tinfo->m_flags |= PPM_CL_PIPE_SRC;
+		}
+
 		if(evt->m_fdinfo == NULL)
 		{
 			return;

@@ -72,7 +72,7 @@ k8s_pod_handler::k8s_pod_handler(k8s_state_t& state
 		k8s_handler("k8s_pod_handler", true,
 #ifdef HAS_CAPTURE
 					url, "/api/v1/pods?fieldSelector=status.phase%3DRunning",
-					STATE_FILTER, EVENT_FILTER, collector,
+					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
 #endif // HAS_CAPTURE
@@ -201,71 +201,49 @@ size_t k8s_pod_handler::extract_pod_restart_count(const Json::Value& item)
 	return restart_count;
 }
 
-bool k8s_pod_handler::is_pod_active(const Json::Value& item)
-{
-	const Json::Value& phase = item["phase"];
-	if(!phase.isNull() && phase.isString())
-	{
-		if(phase.asString() == "Running")
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 bool k8s_pod_handler::handle_component(const Json::Value& json, const msg_data* data)
 {
-	if(is_pod_active(json))
+	if(data)
 	{
-		if(data)
+		if(m_state)
 		{
-			if(m_state)
+			if((data->m_reason == k8s_component::COMPONENT_ADDED) ||
+			   (data->m_reason == k8s_component::COMPONENT_MODIFIED))
 			{
-				if((data->m_reason == k8s_component::COMPONENT_ADDED) ||
-				   (data->m_reason == k8s_component::COMPONENT_MODIFIED))
+				k8s_pod_t& pod =
+					m_state->get_component<k8s_pods, k8s_pod_t>(m_state->get_pods(),
+																  data->m_name, data->m_uid, data->m_namespace);
+				k8s_pair_list entries = k8s_component::extract_object(json, "labels");
+				if(entries.size() > 0)
 				{
-					k8s_pod_t& pod =
-						m_state->get_component<k8s_pods, k8s_pod_t>(m_state->get_pods(),
-																	  data->m_name, data->m_uid, data->m_namespace);
-					k8s_pair_list entries = k8s_component::extract_object(json, "labels");
-					if(entries.size() > 0)
-					{
-						pod.set_labels(std::move(entries));
-					}
-					k8s_pod_t::container_id_list container_ids = extract_pod_container_ids(json);
-					k8s_container::list containers = extract_pod_containers(json);
-					extract_pod_data(json, pod);
-					pod.set_restart_count(extract_pod_restart_count(json));
-					pod.set_container_ids(std::move(container_ids));
-					pod.set_containers(std::move(containers));
+					pod.set_labels(std::move(entries));
 				}
-				else if(data->m_reason == k8s_component::COMPONENT_DELETED)
-				{
-					if(!m_state->delete_component(m_state->get_pods(), data->m_uid))
-					{
-						log_not_found(*data);
-						return false;
-					}
-				}
+				k8s_pod_t::container_id_list container_ids = extract_pod_container_ids(json);
+				k8s_container::list containers = extract_pod_containers(json);
+				extract_pod_data(json, pod);
+				pod.set_restart_count(extract_pod_restart_count(json));
+				pod.set_container_ids(std::move(container_ids));
+				pod.set_containers(std::move(containers));
 			}
-			else if(data->m_reason != k8s_component::COMPONENT_ERROR)
+			else if(data->m_reason == k8s_component::COMPONENT_DELETED)
 			{
-				g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
-							 std::to_string(data->m_reason), sinsp_logger::SEV_ERROR);
-				return false;
+				if(!m_state->delete_component(m_state->get_pods(), data->m_uid))
+				{
+					log_not_found(*data);
+					return false;
+				}
 			}
 		}
-		else
+		else if(data->m_reason != k8s_component::COMPONENT_ERROR)
 		{
-			throw sinsp_exception("K8s node handler: data is null.");
+			g_logger.log(std::string("Unsupported K8S " + name() + " event reason: ") +
+						 std::to_string(data->m_reason), sinsp_logger::SEV_ERROR);
+			return false;
 		}
 	}
 	else
 	{
-		g_logger.log("Received handling request for non-running pod: " + (data ? data->m_name : std::string()),
-				 sinsp_logger::SEV_WARNING);
-		return false;
+		throw sinsp_exception("K8s node handler: data is null.");
 	}
 	return true;
 }

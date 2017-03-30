@@ -15,103 +15,79 @@ set -euo pipefail
 PROBE_NAME=$1
 PROBE_VERSION=$2
 REPOSITORY_NAME=$3
+KERNEL_TYPE=
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 URL_TIMEOUT=300
 RETRY=10
 
+if [ $# -eq 4 ]; then
+	KERNEL_TYPE=$4
+fi
+
 if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
 fi
 
+if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
+        PROBE_REPO_NAME="agent"
+else
+        PROBE_REPO_NAME=$(echo $PROBE_NAME | cut -f1 -d-)
+fi
+
+function update_code_for {
+        repo=$1
+	if [ ! -d $repo ]; then
+                git clone git@github.com:draios/$repo.git
+	fi
+
+	cd $repo
+	git checkout master
+	# The UEK builder container doesn't have git credentials
+	# It relies on the non-UEK builds doing the pull earlier
+	if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+	        git pull
+	fi
+
+	if [ $PROBE_REPO_NAME = $repo ]; then
+	        git checkout $PROBE_VERSION
+	else
+	        git checkout $PROBE_REPO_NAME/$PROBE_VERSION
+	fi
+
+	# Remove everything other than the files actually belonging to
+	# the repo.
+	git clean -d -f -x
+
+	# Reset the state of the files belonging to the repo to the
+	# state associated with the tag.
+	git reset --hard
+
+	cd ..
+}
+
 function build_probe {
-	if [ "$PROBE_NAME" = "sysdig-probe" ]; then
-		build_sysdig
-	elif [ "$PROBE_NAME" = "sysdigcloud-probe" ]; then
-		build_sysdigcloud
-	else
-		exit 1
-	fi
-}
-
-function build_sysdig {
 
 	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
 		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
-		if [ ! -d sysdig ]; then
-			git clone git@github.com:draios/sysdig.git
+		update_code_for sysdig
+
+		if [ $PROBE_NAME != "sysdig-probe" ]; then
+		        update_code_for falco
 		fi
 
-		cd sysdig
-		git checkout master
-		git pull
-		git checkout $PROBE_VERSION
-		make -C driver clean || true
-		rm -rf build || true
+		if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
+		        update_code_for agent
+		fi
+
+		cd $PROBE_REPO_NAME
 		mkdir build
 		cd build
-		cmake -DCMAKE_BUILD_TYPE=Release -DSYSDIG_VERSION=$PROBE_VERSION ..
-		make driver
-		strip -g driver/$PROBE_NAME.ko
+		version_name=-D$(echo $PROBE_REPO_NAME | tr [a-z] [A-Z])_VERSION
 
-		KO_VERSION=$(/sbin/modinfo driver/$PROBE_NAME.ko | grep vermagic | tr -s " " | cut -d " " -f 2)
-		if [ "$KO_VERSION" != "$KERNEL_RELEASE" ]; then
-			echo "Corrupted probe, KO_VERSION " $KO_VERSION ", KERNEL_RELEASE " $KERNEL_RELEASE
-			exit 1
-		fi
-
-		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
-		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko
-	else
-		echo Skipping $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko \(already built\)
-	fi
-
-	cd $BASEDIR
-}
-
-function build_sysdigcloud {
-
-	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
-
-		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
-
-		if [ ! -d sysdig ]; then
-			git clone git@github.com:draios/sysdig.git
-		fi
-
-		if [ ! -d falco ]; then
-			git clone git@github.com:draios/falco.git
-		fi
-
-		if [ ! -d agent ]; then
-			git clone git@github.com:draios/agent.git
-		fi
-
-		cd sysdig
-		git checkout master
-		git pull
-		git checkout agent/$PROBE_VERSION
-		make -C driver clean || true
-		rm -rf build || true
-		cd ..
-
-		cd falco
-		git checkout master
-		git pull
-		git checkout agent/$PROBE_VERSION
-		rm -fr build || true
-		cd ..
-		
-		cd agent
-		git checkout master
-		git pull
-		git checkout $PROBE_VERSION
-		rm -rf build || true
-		mkdir build
-		cd build
-		cmake -DCMAKE_BUILD_TYPE=Release -DAGENT_VERSION=$PROBE_VERSION ..
+		cmake -DCMAKE_BUILD_TYPE=Release $version_name=$PROBE_VERSION ..
 		make driver
 		strip -g driver/$PROBE_NAME.ko
 
@@ -218,7 +194,14 @@ function coreos_build_new {
 
 	cd $BASEDIR
 	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
+
+	# If build fails the script should exit immediately
+	# but in this case it's important to umount the loop device
+	# and release resources. So keep running and fail afterwards.
+	set +e
 	build_probe
+	BUILD_RET=$?
+	set -e
 
 	cd $COREOS_DIR
 	# cleanup
@@ -226,6 +209,8 @@ function coreos_build_new {
 	sudo kpartx -dv coreos_developer_container.bin
 
 	cd $BASEDIR
+
+	return $BUILD_RET
 }
 
 function boot2docker_build {
@@ -341,7 +326,7 @@ function rhel_build {
 	# Get all the parameters needed
 	URL=$1
 	RPM=$(echo $URL | grep -o '[^/]*$')
-	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
 
 	if [ ! -d $KERNEL_RELEASE ]; then
 		mkdir $KERNEL_RELEASE
@@ -456,94 +441,156 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
-#
-# Ubuntu build
-#
+if [ -z "$KERNEL_TYPE" ]; then
+	#
+	# Ubuntu build
+	#
 
-echo Building Ubuntu
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Ubuntu)"
+	echo Building Ubuntu
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Ubuntu)"
 
-for URL in $URLS
-do
-	ubuntu_build $URL
-done
+	for URL in $URLS
+	do
+		ubuntu_build $URL
+	done
 
-#
-# RHEL build
-#
+	#
+	# RHEL build
+	#
 
-echo Building RHEL
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py CentOS)"
+	echo Building RHEL
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py CentOS)"
 
-for URL in $URLS
-do
-	rhel_build $URL
-done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
-#
-# Fedora build
-#
+	#
+	# Fedora build
+	#
 
-echo Building Fedora
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Fedora)"
+	echo Building Fedora
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Fedora)"
 
-for URL in $URLS
-do
-	rhel_build $URL
-done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
-#
-# CoreOS build
-#
-echo Building CoreOS
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py CoreOS)"
+	#
+	# CoreOS build
+	#
+	echo Building CoreOS
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py CoreOS)"
 
-for URL in $URLS
-do
-	set +e
+	for URL in $URLS
+	do
+		set +e
 		eval $(curl -s ${URL}version.txt)
 		if [ ${?} -ne 0 ]; then
 			echo "### Error fetching ${URL}version.txt ###"
 			continue
 		fi
-	set -e
-	if [ $COREOS_BUILD -gt 890 ]; then
-		coreos_build_new $URL $COREOS_VERSION
-	else
-		coreos_build_old $URL $COREOS_VERSION
-	fi
-done
+		set -e
+		if [ $COREOS_BUILD -gt 890 ]; then
+			coreos_build_new $URL $COREOS_VERSION
+		else
+			coreos_build_old $URL $COREOS_VERSION
+		fi
+	done
 
-#
-# boot2docker build
-#
-echo Building boot2docker
-DIR=$(dirname $(readlink -f $0))
-$DIR/boot2docker-kernel-crawler.py | \
-while read KERNEL_ARGS
-do
-	boot2docker_build $KERNEL_ARGS
-done
+	#
+	# boot2docker build
+	#
+	echo Building boot2docker
+	DIR=$(dirname $(readlink -f $0))
+	$DIR/boot2docker-kernel-crawler.py | \
+		while read KERNEL_ARGS
+		do
+			boot2docker_build $KERNEL_ARGS
+		done
 
-#
-# Debian build
-#
-echo Building Debian
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py Debian)"
+	#
+	# Debian build
+	#
+	echo Building Debian
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Debian)"
 
-for URL in $URLS
-do
-	debian_build $URL
-done
+	for URL in $URLS
+	do
+		debian_build $URL
+	done
 
-#
-# Upload modules
-#
-aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
+	#
+	# Oracle RHCK build
+	#
+	echo Building Oracle RHCK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
 
-echo "Success."
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+
+	#
+	# The UEK builds needs to happen in a UEK environment, so we launch
+	# a container running OL and do the builds there. This container
+	# doesn't have git credentials, so it relies on previous builds
+	# to do the sysdig/falco/agent git clone/pulls.
+	#
+
+	#
+	# Oracle Linux 6 UEK build
+	#
+	echo "Creating Oracle Linux 6 UEK builder"
+	docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
+	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 ../sysdig/scripts
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+
+	#
+	# Oracle Linux 7 UEK build
+	#
+	echo "Creating Oracle Linux 7 UEK builder"
+	docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
+	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 ../sysdig/scripts
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
+
+	#
+	# Upload modules
+	#
+	aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
+
+	echo "Success."
+
+elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
+	# This should only run in the ol6-builder container context
+	echo Building Oracle Linux 6 UEK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py OL6-UEK)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
+	# This should only run in the ol7-builder container context
+	echo Building Oracle Linux 7 UEK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py OL7-UEK)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+else
+	exit 1
+fi

@@ -14,6 +14,7 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_auth.h"
+#include "http_reason.h"
 #include "json_query.h"
 #include <unistd.h>
 #include <fcntl.h>
@@ -52,12 +53,13 @@ public:
 		const std::string& url,
 		const std::string& path = "",
 		const std::string& http_version = HTTP_VERSION_11,
-		int timeout_ms = 1000L,
-		ssl_ptr_t ssl = 0,
-		bt_ptr_t bt = 0,
+		int timeout_ms = 1000,
+		ssl_ptr_t ssl = nullptr,
+		bt_ptr_t bt = nullptr,
 		bool keep_alive = true,
 		bool blocking = false,
-		unsigned data_limit = 524288): m_obj(obj),
+		unsigned data_limit = 524288u,
+		bool fetching_state = true): m_obj(obj),
 			m_id(id),
 			m_url(url),
 			m_keep_alive(keep_alive ? std::string("Connection: keep-alive\r\n") : std::string()),
@@ -68,7 +70,9 @@ public:
 			m_timeout_ms(timeout_ms),
 			m_request(make_request(url, http_version)),
 			m_http_version(http_version),
-			m_data_limit(data_limit)
+			m_data_limit(data_limit),
+			m_fetching_state(fetching_state)
+
 	{
 		g_logger.log(std::string("Creating Socket handler object for (" + id + ") "
 					 "[" + uri(url).to_string(false) + ']'), sinsp_logger::SEV_DEBUG);
@@ -130,11 +134,6 @@ public:
 		m_request = make_request(m_url, m_http_version);
 	}
 
-	void set_check_chunked(bool check = true)
-	{
-		m_check_chunked = check;
-	}
-
 	std::string make_request(uri url, const std::string& http_version)
 	{
 		std::ostringstream request;
@@ -166,7 +165,8 @@ public:
 			std::istringstream is(creds);
 			std::ostringstream os;
 			base64::encoder().encode(is, os);
-			request << "Authorization: Basic " << os.str() << "\r\n";
+			std::string bauth = os.str();
+			request << "Authorization: Basic " << trim(bauth) << "\r\n";
 		}
 		if(m_bt && !m_bt->get_token().empty())
 		{
@@ -330,10 +330,9 @@ public:
 					 sinsp_logger::SEV_TRACE);
 		ssize_t rec = 0;
 		std::vector<char> buf(1024, 0);
-		std::string data;
 		int counter = 0;
 		int processed = 0;
-		m_msg_completed = false;
+		init_http_parser();
 		do
 		{
 			int count = 0;
@@ -351,7 +350,8 @@ public:
 				}
 				if(rec > 0)
 				{
-					data.append(buf.begin(), buf.begin() + rec);
+					process(&buf[0], rec, false);
+					processed += rec;
 				}
 				else if(rec == 0)
 				{
@@ -364,13 +364,7 @@ public:
 				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) +
 				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 			}
-			if(data.size())
-			{
-				process(data);
-				processed += data.size();
-				data.clear();
-			}
-			if(++counter > 10000)
+			if(++counter > 100)
 			{
 				throw sinsp_exception("Socket handler (" + m_id + "): "
 									  "unable to retrieve data from " + m_url.to_string(false) + m_path +
@@ -378,43 +372,8 @@ public:
 			}
 			else { usleep(10000); }
 		} while(!m_msg_completed);
-
+		init_http_parser();
 		return processed;
-	}
-
-	bool is_chunked_end_char(char c)
-	{
-		return c == '0' || c == '\r' || c == '\n';
-	}
-
-	void check_chunked_end(const std::string& data)
-	{
-		if(!m_check_chunked) { return; }
-		if(m_chunked_end.size())
-		{
-			for(auto c : data)
-			{
-				if(!is_chunked_end_char(c))
-				{
-					m_chunked_end.clear();
-					break;
-				}
-				else
-				{
-					m_chunked_end.append(1, c);
-				}
-			}
-		}
-
-		if(!m_chunked_end.size())
-		{
-			auto it = data.crbegin();
-			for(; it != data.crend(); ++it)
-			{
-				if(!is_chunked_end_char(*it)) { return; }
-				else { m_chunked_end.insert(0, 1, *it); }
-			}
-		}
 	}
 
 	void data_handling_error(const std::string& data, size_t nparsed)
@@ -427,10 +386,10 @@ public:
 		throw sinsp_exception(os.str());
 	}
 
-	void parse_http(const std::string& data)
+	void parse_http(char* data, size_t len)
 	{
-		size_t nparsed = http_parser_execute(m_http_parser, &m_http_parser_settings, data.c_str(), data.length());
-		if(nparsed != data.size()) { data_handling_error(data, nparsed); }
+		size_t nparsed = http_parser_execute(m_http_parser, &m_http_parser_settings, data, len);
+		if(nparsed != len) { data_handling_error(std::string(data, len), nparsed); }
 	}
 
 	void process_json()
@@ -459,25 +418,55 @@ public:
 		}
 	}
 
-	int process(const std::string& data)
+	int process(char* data, size_t len, bool reinit = true)
 	{
-		if(data.size())
+		if(len)
 		{
-			check_chunked_end(data);
-			parse_http(data);
-			if(m_chunked_end.find("0\r\n\r\n") != std::string::npos)
+			parse_http(data, len);
+			unsigned parser_errno = HTTP_PARSER_ERRNO(m_http_parser);
+			if(parser_errno != HPE_OK)
 			{
-				m_data_buf.clear();
-				// In HTTP 1.1 connnections with chunked transfer, this socket may not be closed by server,
+				if(parser_errno <= HPE_UNKNOWN)
+				{
+					g_logger.log("Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno) + " ([" +
+								http_errno_name((http_errno) parser_errno) + "]: " +
+								http_errno_description((http_errno) parser_errno) + ')',
+								sinsp_logger::SEV_ERROR);
+				}
+				else
+				{
+					g_logger.log("Socket handler (" + m_id + ") http parser error " + std::to_string(parser_errno) + ')',
+								 sinsp_logger::SEV_ERROR);
+				}
+				return CONNECTION_CLOSED;
+			}
+			if(m_json.size()) { process_json(); }
+			if(m_http_response >= 400)
+			{
+				g_logger.log("Socket handler (" + m_id + ") response " + std::to_string(m_http_response) +
+							" (" + get_http_reason(m_http_response) + ") received, disconnecting ... ",
+							sinsp_logger::SEV_ERROR);
+				return CONNECTION_CLOSED;
+			}
+			if(m_msg_completed)
+			{
+				if(m_data_buf.size()) // should never happen
+				{
+					g_logger.log("Socket handler (" + m_id + ") response ended with unprocessed data, "
+								 "clearing and sending new request ... ", sinsp_logger::SEV_WARNING);
+					ASSERT(!m_data_buf.size());
+					m_data_buf.clear();
+				}
+				// In HTTP 1.1 connnections with chunked transfer, this socket may never be closed by server,
 				// (K8s API server is an example of such behavior), in which case the chunked data will just
 				// stop flowing. We can keep the good socket and resend the request instead of severing the
 				// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
 				// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
 				// set the m_close_on_chunked_end flag to true (default).
 				if(m_close_on_chunked_end) { return CONNECTION_CLOSED; }
-				else { m_wants_send = true; }
+				m_wants_send = true;
+				if(reinit) { init_http_parser(); }
 			}
-			else { process_json(); }
 		}
 		return 0;
 	}
@@ -492,16 +481,15 @@ public:
 		}
 
 		ssize_t iolen = 0;
-		size_t len_to_read = m_buf.size();
-		std::string data;
+		size_t len_read = 0, len_to_read = m_buf.size();
 		try
 		{
 			do
 			{
-				if(data.size() >= m_data_limit) { break; }
-				else if((data.size() + m_buf.size()) > m_data_limit)
+				if(len_read >= m_data_limit) { break; }
+				else if((len_read + m_buf.size()) > m_data_limit)
 				{
-					len_to_read = m_data_limit - data.size();
+					len_to_read = m_data_limit - len_read;
 				}
 				errno = 0;
 				if(m_url.is_secure())
@@ -512,15 +500,26 @@ public:
 				{
 					iolen = recv(m_socket, &m_buf[0], len_to_read, 0);
 				}
+				if(iolen > 0) { len_read += iolen; }
 				m_sock_err = errno;
-				g_logger.log(m_id + ' ' + m_url.to_string(false) + ", iolen=" +
-							 std::to_string(iolen) + ", data=" + std::to_string(data.size()) + " bytes, "
+				g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ", iolen=" +
+							 std::to_string(iolen) + ", data=" + std::to_string(len_read) + " bytes, "
 							 "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
 							 sinsp_logger::SEV_TRACE);
+				/* uncomment to see raw HTTP stream data in trace logs
+					if((iolen > 0) && g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+					{
+						g_logger.log("Socket handler (" + m_id + "), data --->" + std::string(&m_buf[0], iolen) + "<--- data",
+									 sinsp_logger::SEV_TRACE);
+					}
+				*/
 				if(iolen > 0)
 				{
-					data.append(&m_buf[0], iolen <= static_cast<ssize_t>(m_buf.size()) ?
-											static_cast<size_t>(iolen) : m_buf.size());
+					size_t len = (iolen <= static_cast<ssize_t>(m_buf.size())) ? static_cast<size_t>(iolen) : m_buf.size();
+					if(CONNECTION_CLOSED == process(&m_buf[0], len))
+					{
+						return CONNECTION_CLOSED;
+					}
 				}
 				else if(iolen == 0 || m_sock_err == ENOTCONN || m_sock_err == EPIPE)
 				{
@@ -573,14 +572,10 @@ public:
 						}
 					}
 				}
-			} while(iolen && (m_sock_err != EAGAIN) && (data.size() < m_data_limit));
+			} while(iolen && (m_sock_err != EAGAIN) && (len_read < m_data_limit));
 			g_logger.log("Socket handler (" + m_id + ") " +
-						 std::to_string(data.size()) + " bytes of data received",
+						 std::to_string(len_read) + " bytes of data received",
 						 sinsp_logger::SEV_TRACE);
-			if(CONNECTION_CLOSED == process(data))
-			{
-				return CONNECTION_CLOSED;
-			}
 		}
 		catch(sinsp_exception& ex)
 		{
@@ -648,16 +643,13 @@ public:
 			{
 				if(*it == before_filter) { break; }
 			}
-			if(it != m_json_filters.end())
+			if(it == m_json_filters.end())
 			{
-				m_json_filters.insert(it, filter);
+				g_logger.log("Socket handler (" + m_id + "), [" + m_url.to_string(false) + "] "
+							 "attempt to insert filter before a non-existing filter. "
+							 "Filter will be added to the end of filter list.", sinsp_logger::SEV_WARNING);
 			}
-			else
-			{
-				throw sinsp_exception(std::string("Socket handler (") + m_id + "), "
-							  "[" + m_url.to_string(false) + "] "
-							  "attempt to insert before non-existing filter");
-			}
+			m_json_filters.insert(it, filter);
 		}
 	}
 
@@ -705,14 +697,14 @@ public:
 		std::string filtered_json(json);
 		if(!filter.empty())
 		{
+			// failure to parse is ok, it will fail over to the next filter
+			// and log error if all filters fail
 			if(jq.process(json, filter))
 			{
 				filtered_json = jq.result();
 			}
 			else
 			{
-				g_logger.log("Socket handler (" + id + "), [" + url + "] parsing error; " +
-							 json + ", jq filter: <" + filter + '>', sinsp_logger::SEV_ERROR);
 				return nullptr;
 			}
 		}
@@ -904,7 +896,12 @@ private:
 			SSL_library_init();
 			SSL_load_error_strings();
 			OpenSSL_add_all_algorithms();
-			const SSL_METHOD* method = TLSv1_2_client_method();
+			const SSL_METHOD* method =
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+				TLSv1_2_client_method();
+#else
+				TLS_client_method();
+#endif
 			if(!method)
 			{
 				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL method\n" + ssl_errors(),
@@ -1509,6 +1506,7 @@ private:
 	void cleanup()
 	{
 		free(m_http_parser);
+		m_http_parser = nullptr;
 		close_socket();
 		dns_cleanup();
 		ssl_cleanup();
@@ -1516,33 +1514,57 @@ private:
 
 	struct http_parser_data
 	{
-		std::string*              m_data_buf = nullptr;
+		std::string* m_data_buf = nullptr;
 		std::vector<std::string>* m_json = nullptr;
+		int* m_http_response = nullptr;
 		bool* m_msg_completed = nullptr;
+		bool* m_fetching_state = nullptr;
 	};
 
 	static int http_body_callback(http_parser* parser, const char* data, size_t len)
 	{
-		if(data && len)
+		if(parser)
 		{
-			if(parser && parser->data)
+			if(parser->data)
 			{
-				http_parser_data* parser_data = (http_parser_data*) parser->data;
-				if(parser_data->m_data_buf && parser_data->m_json)
+				if(data && len)
 				{
-					parser_data->m_data_buf->append(data, len);
-					std::string::size_type pos = parser_data->m_data_buf->find('\n');
-					while(pos != std::string::npos)
+					http_parser_data* parser_data = (http_parser_data*) parser->data;
+					if(parser_data->m_data_buf && parser_data->m_json)
 					{
-						parser_data->m_json->push_back(parser_data->m_data_buf->substr(0, pos));
-						parser_data->m_data_buf->erase(0, pos + 1);
-						pos = parser_data->m_data_buf->find('\n');
+						parser_data->m_data_buf->append(data, len);
+						// only try to parse this JSON if we are certain it is not pretty-printed
+						// since this logic relies on JSONs in the stream being delimited by newlines
+						// (and having no newlines themselves), pretty-printed JSONs can not be
+						// handled here, but must be handled in the http_msg_completed_callback()
+						if(parser_data->m_fetching_state)
+						{
+							if(!*(parser_data->m_fetching_state))
+							{
+								std::string::size_type pos = parser_data->m_data_buf->find('\n');
+								while(pos != std::string::npos)
+								{
+									parser_data->m_json->push_back(parser_data->m_data_buf->substr(0, pos));
+									parser_data->m_data_buf->erase(0, pos + 1);
+									pos = parser_data->m_data_buf->find('\n');
+								}
+							}
+							/*else
+							{
+								if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+								{
+									g_logger.log("Socket handler (http_body_callback) data received, will be parsed on response end:" +
+												 *parser_data->m_data_buf, sinsp_logger::SEV_TRACE);
+								}
+							}*/
+						}
 					}
+					else { throw sinsp_exception("Socket handler (http_body_callback): http or json buffer is null."); }
 				}
-				else { throw sinsp_exception("Socket handler: http or json buffer null."); }
 			}
-			else { throw sinsp_exception("Socket handler: parser or data null."); }
+			else { throw sinsp_exception("Socket handler (http_body_callback) parser data is null."); }
 		}
+		else { throw sinsp_exception("Socket handler (http_body_callback): parser is null."); }
 		return 0;
 	}
 
@@ -1551,34 +1573,68 @@ private:
 		if(parser && parser->data)
 		{
 			http_parser_data* parser_data = (http_parser_data*) parser->data;
+			if(parser_data->m_fetching_state)
+			{
+				if(*(parser_data->m_fetching_state))
+				{
+					std::string* buf = parser_data->m_data_buf;
+					if(buf)
+					{
+						std::string::size_type pos = buf->rfind('\n');
+						if(pos != std::string::npos)
+						{
+							buf->erase(std::remove_if(buf->begin(), buf->end(), [](char c){return c == '\n' || c == '\r';}), buf->end());
+							parser_data->m_json->emplace_back(std::move(*buf));
+							buf->clear();
+						}
+						else
+						{
+							g_logger.log("Initial state fetch completed, but no newline found!", sinsp_logger::SEV_ERROR);
+						}
+						*(parser_data->m_fetching_state) = false;
+					}
+					else { throw sinsp_exception("Socket handler (http_msg_completed_callback): parser data m_data_buf is null."); }
+				}
+			}
+			else { throw sinsp_exception("Socket handler (http_msg_completed_callback): parser data m_data_buf is null."); }
 			if(parser_data->m_msg_completed)
 			{
 				*(parser_data->m_msg_completed) = true;
 			}
-			else { throw sinsp_exception("Socket handler: parser msg complete null."); }
+			else { throw sinsp_exception("Socket handler (http_msg_completed_callback): parser data m_msg_completed is null."); }
+			if(parser_data->m_http_response)
+			{
+				*(parser_data->m_http_response) = parser->status_code;
+			}
+			else { throw sinsp_exception("Socket handler (http_msg_completed_callback): parser data m_http_response is null."); }
 		}
-		else { throw sinsp_exception("Socket handler: parser or data null."); }
+		else { throw sinsp_exception("Socket handler (http_msg_completed_callback): parser or data null."); }
 		return 0;
 	}
 
 	void init_http_parser()
 	{
+		m_msg_completed = false;
+		m_http_response = -1;
 		http_parser_settings_init(&m_http_parser_settings);
 		m_http_parser_settings.on_body = http_body_callback;
 		m_http_parser_settings.on_message_complete = http_msg_completed_callback;
-		m_http_parser = (http_parser *)std::malloc(sizeof(http_parser));
-		if(m_http_parser)
+		if(!m_http_parser)
 		{
-			m_http_parser_data.m_data_buf = &m_data_buf;
-			m_http_parser_data.m_json = &m_json;
-			m_http_parser_data.m_msg_completed = &m_msg_completed;
-			http_parser_init(m_http_parser, HTTP_RESPONSE);
-			m_http_parser->data = &m_http_parser_data;
+			m_http_parser = (http_parser *)std::malloc(sizeof(http_parser));
 		}
-		else
-		{
-			throw sinsp_exception("Socket handler: cannot create http parser.");
-		}
+		m_http_parser_data.m_data_buf = &m_data_buf;
+		m_http_parser_data.m_json = &m_json;
+		m_http_parser_data.m_http_response = &m_http_response;
+		m_http_parser_data.m_msg_completed = &m_msg_completed;
+		m_http_parser_data.m_fetching_state = &m_fetching_state;
+		http_parser_init(m_http_parser, HTTP_RESPONSE);
+		m_http_parser->data = &m_http_parser_data;
+	}
+
+	static std::string get_http_reason(int status)
+	{
+		return http_reason::get(status);
 	}
 
 	typedef std::deque<struct gaicb**> dns_list_t;
@@ -1618,16 +1674,25 @@ private:
 	struct sockaddr_in       m_serv_addr = {0};
 	struct sockaddr*         m_sa = 0;
 	socklen_t                m_sa_len = 0;
-	std::string::size_type   m_content_length = std::string::npos;
-	std::string              m_chunked_end;
-	bool                     m_check_chunked = false;
 	bool                     m_close_on_chunked_end = true;
 	bool                     m_wants_send = false;
+	int                      m_http_response = -1;
 	bool                     m_msg_completed = false;
 	http_parser_settings     m_http_parser_settings;
 	http_parser*             m_http_parser = nullptr;
 	http_parser_data         m_http_parser_data;
 	unsigned                 m_data_limit = 524288; // bytes
+
+	// older versions of kubernetes send pretty-printed JSON by default;
+	// that creates a problem with JSON-newline-delimit-based detection logic,
+	// which relies on JSON itself having no newlines; while there is a way to
+	// prevent this for entities (eg. nodes, pods) URIs by specifying '?pretty=false',
+	// some cluster-level URIs (eg. /api) do not honor this parameter;
+	//
+	// this flag is true by default and it remains true until the first state http
+	// request for this handler is completed, at which point all newlines are purged
+	// from the string and the purged buffer is posted for further processing
+	bool                     m_fetching_state = true;
 };
 
 template <typename T>

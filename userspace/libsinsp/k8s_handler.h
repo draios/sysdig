@@ -41,6 +41,7 @@ public:
 		const std::string& path,
 		const std::string& state_filter,
 		const std::string& event_filter,
+		const std::string& null_filter,
 		collector_ptr_t collector = nullptr,
 		const std::string& http_version = "1.1",
 		int timeout_ms = default_timeout_ms,
@@ -141,8 +142,8 @@ private:
 	std::string     m_path;
 	std::string     m_state_filter;
 	std::string     m_event_filter;
+	std::string     m_null_filter;
 	std::string*    m_filter;
-	std::string     m_event_uri;
 	long            m_timeout_ms;
 	std::string     m_url;
 	bool            m_req_sent = false;
@@ -279,7 +280,7 @@ class k8s_dummy_handler : public k8s_handler
 public:
 	k8s_dummy_handler(): k8s_handler("k8s_dummy_handler", false,
 #ifdef HAS_CAPTURE
-									 "", "", "", "",  nullptr,
+									 "", "", "", "",  "", nullptr,
 									 "", 0, nullptr, nullptr,
 									 false, false, nullptr, false,
 #endif // HAS_CAPTURE

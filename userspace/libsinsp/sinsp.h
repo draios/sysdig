@@ -253,6 +253,8 @@ public:
 	*/
 	void open(string filename);
 
+	void open_nodriver();
+
 	/*!
 	  \brief Ends a capture and release all resources.
 	*/
@@ -364,7 +366,8 @@ public:
 	const string get_filter();
 
 	void add_evttype_filter(std::string &name,
-				list<uint32_t> &evttypes,
+				std::set<uint32_t> &evttypes,
+				std::set<std::string> &tags,
 				sinsp_filter* filter);
 
 	bool run_filters_on_evt(sinsp_evt *evt);
@@ -573,11 +576,27 @@ public:
 	void set_drop_event_flags(ppm_event_flags flags);
 
 	/*!
-	  \brief Returns true if the current capture is live.
+	  \brief Returns true if the current capture is offline
+	*/
+	inline bool is_capture()
+	{
+		return m_mode == SCAP_MODE_CAPTURE;
+	}
+
+	/*!
+	  \brief Returns true if the current capture is live
 	*/
 	inline bool is_live()
 	{
-		return m_islive;
+		return m_mode == SCAP_MODE_LIVE;
+	}
+
+	/*!
+	  \brief Returns true if the current capture is live
+	*/
+	inline bool is_nodriver()
+	{
+		return m_mode == SCAP_MODE_NODRIVER;
 	}
 
 	/*!
@@ -729,9 +748,14 @@ public:
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
 	void enable_tracers_capture();
-
+	uint64_t get_bytes_read()
+	{
+		return scap_ftell(m_h);
+	}
 	void refresh_ifaddr_list();
-
+	void refresh_proc_list() {
+		scap_refresh_proc_table(m_h);
+	}
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -808,10 +832,13 @@ private:
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
 
+	void restart_capture_at_filepos(uint64_t filepos);
+
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;
-	bool m_islive;
+
+	scap_mode_t m_mode;
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
@@ -829,6 +856,7 @@ private:
 	sinsp_parser* m_parser;
 	// the statistics analysis engine
 	scap_dumper_t* m_dumper;
+	bool m_is_dumping;
 	bool m_filter_proc_table_when_saving;
 	const scap_machine_info* m_machine_info;
 	uint32_t m_num_cpus;
@@ -837,9 +865,10 @@ private:
 	// This is used to support reading merged files, where the capture needs to
 	// restart in the middle of the file.
 	uint64_t m_file_start_offset;
+	bool m_flush_memory_dump;
 
 	sinsp_network_interfaces* m_network_interfaces;
-
+public:
 	sinsp_thread_manager* m_thread_manager;
 
 	sinsp_container_manager m_container_manager;
@@ -1006,6 +1035,7 @@ private:
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
 	friend class sisnp_baseliner;
+	friend class sinsp_memory_dumper;
 
 	friend class sinsp_network_interfaces;
 	friend class k8s_delegator;

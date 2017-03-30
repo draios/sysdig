@@ -25,6 +25,16 @@ sinsp_dumper::sinsp_dumper(sinsp* inspector)
 {
 	m_inspector = inspector;
 	m_dumper = NULL;
+	m_target_memory_buffer = NULL;
+	m_target_memory_buffer_size = 0;
+}
+
+sinsp_dumper::sinsp_dumper(sinsp* inspector, uint8_t* target_memory_buffer, uint64_t target_memory_buffer_size)
+{
+	m_inspector = inspector;
+	m_dumper = NULL;
+	m_target_memory_buffer = target_memory_buffer;
+	m_target_memory_buffer_size = target_memory_buffer_size;
 }
 
 sinsp_dumper::~sinsp_dumper()
@@ -35,27 +45,32 @@ sinsp_dumper::~sinsp_dumper()
 	}
 }
 
-void sinsp_dumper::open(const string& filename, bool compress, bool create_scap_table)
+void sinsp_dumper::open(const string& filename, bool compress, bool threads_from_sinsp)
 {
 	if(m_inspector->m_h == NULL)
 	{
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
-	/*
-	if(create_scap_table)
+	if(threads_from_sinsp)
 	{
 		m_inspector->m_thread_manager->to_scap();
 	}
-	*/
 
-	if(compress)
+	if(m_target_memory_buffer)
 	{
-		m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_GZIP);
+		m_dumper = scap_memory_dump_open(m_inspector->m_h, m_target_memory_buffer, m_target_memory_buffer_size);
 	}
 	else
 	{
-		m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE);
+		if(compress)
+		{
+			m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_GZIP);
+		}
+		else
+		{
+			m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE);
+		}
 	}
 
 	if(m_dumper == NULL)
@@ -64,6 +79,15 @@ void sinsp_dumper::open(const string& filename, bool compress, bool create_scap_
 	}
 
 	m_inspector->m_container_manager.dump_containers(m_dumper);
+}
+
+void sinsp_dumper::close()
+{
+	if(m_dumper != NULL)
+	{
+		scap_dump_close(m_dumper);
+		m_dumper = NULL;
+	}
 }
 
 void sinsp_dumper::dump(sinsp_evt* evt)
@@ -75,7 +99,7 @@ void sinsp_dumper::dump(sinsp_evt* evt)
 
 	scap_evt* pdevt = (evt->m_poriginal_evt)? evt->m_poriginal_evt : evt->m_pevt;
 
-	int32_t res = scap_dump(m_inspector->m_h, 
+	int32_t res = scap_dump(m_inspector->m_h,
 		m_dumper, pdevt, evt->m_cpuid, 0);
 
 	if(res != SCAP_SUCCESS)
@@ -88,13 +112,13 @@ uint64_t sinsp_dumper::written_bytes()
 {
 	if(m_dumper == NULL)
 	{
-		throw sinsp_exception("dumper not opened yet");
+		return 0;
 	}
 
 	int64_t written_bytes = scap_dump_get_offset(m_dumper);
 	if(written_bytes == -1)
 	{
-		throw sinsp_exception("error getting offset");		
+		throw sinsp_exception("error getting offset");
 	}
 
 	return written_bytes;

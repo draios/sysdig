@@ -27,6 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <fcntl.h>
 #include <poll.h>
 #include <errno.h>
+#include <sys/time.h>
 #endif // _WIN32
 
 #include "scap.h"
@@ -40,6 +41,21 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //#define NDEBUG
 #include <assert.h>
 
+char* scap_getlasterr(scap_t* handle)
+{
+	return handle->m_lasterr;
+}
+
+#if !defined(HAS_CAPTURE)
+scap_t* scap_open_live_int(char *error,
+						   proc_entry_callback proc_callback,
+						   void* proc_callback_context,
+						   bool import_users)
+{
+	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return NULL;
+}
+#else
 static uint32_t get_max_consumers()
 {
 	uint32_t max;
@@ -51,7 +67,7 @@ static uint32_t get_max_consumers()
 		{
 			return 0;
 		}
-		
+
 		fclose(pfile);
 		return max;
 	}
@@ -59,20 +75,11 @@ static uint32_t get_max_consumers()
 	return 0;
 }
 
-char* scap_getlasterr(scap_t* handle)
-{
-	return handle->m_lasterr;
-}
-
-scap_t* scap_open_live_int(char *error, 
+scap_t* scap_open_live_int(char *error,
 						   proc_entry_callback proc_callback,
 						   void* proc_callback_context,
 						   bool import_users)
 {
-#if !defined(HAS_CAPTURE)
-	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
-	return NULL;
-#else
 	uint32_t j;
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
@@ -96,12 +103,13 @@ scap_t* scap_open_live_int(char *error,
 	// Preliminary initializations
 	//
 	memset(handle, 0, sizeof(scap_t));
+	handle->m_mode = SCAP_MODE_LIVE;
 
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
-	max_devs = sysconf(_SC_NPROCESSORS_CONF);	
+	max_devs = sysconf(_SC_NPROCESSORS_CONF);
 
 	//
 	// Allocate the device descriptors.
@@ -137,7 +145,7 @@ scap_t* scap_open_live_int(char *error,
 	handle->m_machine_info.reserved3 = 0;
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
-
+	handle->m_fd_lookup_limit = 0;
 	//
 	// Create the interface list
 	//
@@ -162,7 +170,7 @@ scap_t* scap_open_live_int(char *error,
 	}
 	else
 	{
-		handle->m_userlist = NULL;		
+		handle->m_userlist = NULL;
 	}
 
 	handle->m_fake_kernel_proc.tid = -1;
@@ -277,12 +285,12 @@ scap_t* scap_open_live_int(char *error,
 	scap_start_capture(handle);
 
 	return handle;
-#endif // HAS_CAPTURE
 }
+#endif // HAS_CAPTURE
 
-scap_t* scap_open_offline_int(const char* fname, 
+scap_t* scap_open_offline_int(const char* fname,
 							  char *error,
-							  proc_entry_callback proc_callback, 
+							  proc_entry_callback proc_callback,
 							  void* proc_callback_context,
 							  bool import_users,
 							  uint64_t start_offset)
@@ -302,6 +310,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	//
 	// Preliminary initializations
 	//
+	handle->m_mode = SCAP_MODE_CAPTURE;
 	handle->m_proc_callback = proc_callback;
 	handle->m_proc_callback_context = proc_callback_context;
 	handle->m_devs = NULL;
@@ -315,6 +324,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	handle->m_last_evt_dump_flags = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->refresh_proc_table_when_saving = true;
+	handle->m_fd_lookup_limit = 0;
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -385,20 +395,118 @@ scap_t* scap_open_live(char *error)
 	return scap_open_live_int(error, NULL, NULL, true);
 }
 
-scap_t* scap_open(scap_open_args args, char *error)
+scap_t* scap_open_nodriver_int(char *error,
+						   proc_entry_callback proc_callback,
+						   void* proc_callback_context,
+						   bool import_users)
 {
-	if(args.fname != NULL)
+#if !defined(HAS_CAPTURE)
+	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return NULL;
+#else
+	char filename[SCAP_MAX_PATH_SIZE];
+	scap_t* handle = NULL;
+
+	//
+	// Allocate the handle
+	//
+	handle = (scap_t*)malloc(sizeof(scap_t));
+	if(!handle)
 	{
-		return scap_open_offline_int(args.fname, error, 
-			args.proc_callback, args.proc_callback_context,
-			args.import_users,
-			args.start_offset);
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
+		return NULL;
+	}
+
+	//
+	// Preliminary initializations
+	//
+	memset(handle, 0, sizeof(scap_t));
+	handle->m_mode = SCAP_MODE_NODRIVER;
+
+	//
+	// Extract machine information
+	//
+	handle->m_proc_callback = proc_callback;
+	handle->m_proc_callback_context = proc_callback_context;
+	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
+	handle->m_machine_info.reserved1 = 0;
+	handle->m_machine_info.reserved2 = 0;
+	handle->m_machine_info.reserved3 = 0;
+	handle->m_machine_info.reserved4 = 0;
+	handle->m_driver_procinfo = NULL;
+	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
+
+	//
+	// Create the interface list
+	//
+	if(scap_create_iflist(handle) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
+		return NULL;
+	}
+
+	//
+	// Create the user list
+	//
+	if(import_users)
+	{
+		if(scap_create_userlist(handle) != SCAP_SUCCESS)
+		{
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
+			return NULL;
+		}
 	}
 	else
 	{
-		return scap_open_live_int(error, args.proc_callback, 
-			args.proc_callback_context,
-			args.import_users);
+		handle->m_userlist = NULL;
+	}
+
+	handle->m_fake_kernel_proc.tid = -1;
+	handle->m_fake_kernel_proc.pid = -1;
+	handle->m_fake_kernel_proc.flags = 0;
+	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
+	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
+	handle->m_fake_kernel_proc.args[0] = 0;
+	handle->refresh_proc_table_when_saving = true;
+
+	//
+	// Create the process list
+	//
+	error[0] = '\0';
+	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+	if(scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, error, true) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
+		return NULL;
+	}
+
+	return handle;
+#endif // HAS_CAPTURE
+}
+
+scap_t* scap_open(scap_open_args args, char *error)
+{
+	switch(args.mode)
+	{
+	case SCAP_MODE_CAPTURE:
+		return scap_open_offline_int(args.fname, error,
+									 args.proc_callback, args.proc_callback_context,
+									 args.import_users, args.start_offset);
+	case SCAP_MODE_LIVE:
+		return scap_open_live_int(error, args.proc_callback,
+								  args.proc_callback_context,
+								  args.import_users);
+	case SCAP_MODE_NODRIVER:
+		return scap_open_nodriver_int(error, args.proc_callback,
+									  args.proc_callback_context,
+									  args.import_users);
+	default:
+		return NULL;
 	}
 }
 
@@ -408,7 +516,7 @@ void scap_close(scap_t* handle)
 	{
 		gzclose(handle->m_file);
 	}
-	else
+	else if(handle->m_mode == SCAP_MODE_LIVE)
 	{
 #if defined(HAS_CAPTURE)
 		uint32_t j;
@@ -637,7 +745,7 @@ int32_t refill_read_buffers(scap_t* handle, bool wait)
 
 	//
 	// Note: we might return a spurious timeout here in case the previous loop extracted valid data to parse.
-	//       It's ok, since this is rare and the caller will just call us again after receiving a 
+	//       It's ok, since this is rare and the caller will just call us again after receiving a
 	//       SCAP_TIMEOUT.
 	//
 	return SCAP_TIMEOUT;
@@ -734,17 +842,44 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #endif
 }
 
+#ifndef _WIN32
+static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	static scap_evt evt;
+	evt.len = 0;
+	evt.tid = -1;
+	evt.type = PPME_SYSDIGEVENT_X;
+
+	usleep(100000);
+
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+	evt.ts = tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
+	*pevent = &evt;
+	return SCAP_SUCCESS;
+}
+#endif // _WIN32
+
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	int32_t res;
 
-	if(handle->m_file)
+	switch(handle->m_mode)
 	{
+	case SCAP_MODE_CAPTURE:
 		res = scap_next_offline(handle, pevent, pcpuid);
-	}
-	else
-	{
+		break;
+	case SCAP_MODE_LIVE:
 		res = scap_next_live(handle, pevent, pcpuid);
+		break;
+#ifndef _WIN32
+	case SCAP_MODE_NODRIVER:
+		res = scap_next_nodriver(handle, pevent, pcpuid);
+		break;
+#endif
+	default:
+		res = SCAP_FAILURE;
 	}
 
 	if(res == SCAP_SUCCESS)
@@ -777,7 +912,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
 		stats->n_evts += handle->m_devs[j].m_bufinfo->n_evts;
-		stats->n_drops += handle->m_devs[j].m_bufinfo->n_drops_buffer + 
+		stats->n_drops += handle->m_devs[j].m_bufinfo->n_drops_buffer +
 			handle->m_devs[j].m_bufinfo->n_drops_pf;
 		stats->n_preemptions += handle->m_devs[j].m_bufinfo->n_preemptions;
 	}
@@ -799,9 +934,9 @@ int32_t scap_stop_capture(scap_t* handle)
 	//
 	// Not supported for files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot stop offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot stop not live captures");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -837,9 +972,9 @@ int32_t scap_start_capture(scap_t* handle)
 	//
 	// Not supported for files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot start offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot start capture on this scap mode");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -864,24 +999,35 @@ int32_t scap_start_capture(scap_t* handle)
 #if defined(HAS_CAPTURE)
 static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t sampling_ratio)
 {
-	//	
+	//
 	// Not supported for files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "dropping mode not supported on offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s: dropping not supported in replay mode", __FUNCTION__);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
 	if(handle->m_ndevs)
 	{
+		ASSERT((request == PPM_IOCTL_ENABLE_DROPPING_MODE &&
+			   ((sampling_ratio == 1)  ||
+				(sampling_ratio == 2)  ||
+				(sampling_ratio == 4)  ||
+				(sampling_ratio == 8)  ||
+				(sampling_ratio == 16) ||
+				(sampling_ratio == 32) ||
+				(sampling_ratio == 64) ||
+				(sampling_ratio == 128))) || (request == PPM_IOCTL_DISABLE_DROPPING_MODE));
+
 		if(ioctl(handle->m_devs[0].m_fd, request, sampling_ratio))
 		{
-			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s, request %d for sampling ratio %u: %s",
+					 __FUNCTION__, request, sampling_ratio, strerror(errno));
 			ASSERT(false);
 			return SCAP_FAILURE;
-		}		
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -891,12 +1037,12 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 #if defined(HAS_CAPTURE)
 int32_t scap_enable_tracers_capture(scap_t* handle)
 {
-	//	
+	//
 	// Not supported for files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_inode_of_dev_null not supported on offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_inode_of_dev_null not supported on this scap mode");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -908,7 +1054,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 			ASSERT(false);
 			return SCAP_FAILURE;
-		}		
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -974,9 +1120,9 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 	//
 	// Not supported on files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
@@ -1018,9 +1164,9 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 
 int64_t scap_get_readfile_offset(scap_t* handle)
 {
-	if(handle->m_file == NULL)
+	if(handle->m_mode != SCAP_MODE_CAPTURE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_readfile_offset only works on trace files");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_readfile_offset only works on captures");
 		return -1;
 	}
 
@@ -1032,9 +1178,9 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	//
 	// Not supported on files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "manipulating eventmasks not supported on offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "manipulating eventmasks not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
@@ -1125,9 +1271,9 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 	//
 	// Not supported on files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
@@ -1155,9 +1301,9 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 	//
 	// Not supported on files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
@@ -1201,7 +1347,7 @@ bool alloc_proclist_info(scap_t* handle, uint32_t n_entries)
 		return false;
 	}
 
-	memsize = sizeof(struct ppm_proclist_info) + 
+	memsize = sizeof(struct ppm_proclist_info) +
 	sizeof(struct ppm_proc_info) * n_entries;
 
 	if(handle->m_driver_procinfo != NULL)
@@ -1227,9 +1373,9 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 	//
 	// Not supported on files
 	//
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_threadlist_from_driver not supported on offline captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_threadlist_from_driver not supported on this scap mode");
 		return NULL;
 	}
 

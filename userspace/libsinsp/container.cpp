@@ -157,22 +157,29 @@ sinsp_container_info* sinsp_container_manager::get_container(const string& conta
 string sinsp_container_manager::get_env_mesos_task_id(sinsp_threadinfo* tinfo)
 {
 	string mtid;
-	if(tinfo)
+
+	sinsp_threadinfo::visitor_func_t visitor = [&mtid] (sinsp_threadinfo *ptinfo)
 	{
 		// Mesos task ID detection is not a straightforward task;
 		// this list may have to be extended.
-		mtid = tinfo->get_env("MESOS_TASK_ID"); // Marathon
-		if(!mtid.empty()) { return mtid; }
-		mtid = tinfo->get_env("mesos_task_id"); // Chronos
-		if(!mtid.empty()) { return mtid; }
-		mtid = tinfo->get_env("MESOS_EXECUTOR_ID"); // others
-		if(!mtid.empty()) { return mtid; }
-		sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
-		if(ptinfo && ptinfo->m_tid > 1)
-		{
-			mtid = get_env_mesos_task_id(ptinfo);
-		}
+		mtid = ptinfo->get_env("MESOS_TASK_ID"); // Marathon
+		if(!mtid.empty()) { return false; }
+		mtid = ptinfo->get_env("mesos_task_id"); // Chronos
+		if(!mtid.empty()) { return false; }
+		mtid = ptinfo->get_env("MESOS_EXECUTOR_ID"); // others
+		if(!mtid.empty()) { return false; }
+
+		return true;
+	};
+
+	// Try the current thread first. visitor returns true if mtid
+	// was not filled in. In this case we should traverse the
+	// parents.
+	if(tinfo && visitor(tinfo))
+	{
+		tinfo->traverse_parent_state(visitor);
 	}
+
 	return mtid;
 }
 
@@ -228,6 +235,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
+	// Start with cgroup based detection
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
 		string cgroup = it->second;
@@ -332,12 +340,18 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		{
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
-			valid_id = true;
-			set_mesos_task_id(&container_info, tinfo);
+			// Consider a mesos container valid only if we find the mesos_task_id
+			// this will exclude from the container itself the mesos-executor
+			// but makes sure that we have task_id parsed properly. Otherwise what happens
+			// is that we'll create a mesos container struct without a mesos_task_id
+			// and for all other processes we'll use it
+			valid_id = set_mesos_task_id(&container_info, tinfo);
 			break;
 		}
 	}
 
+	// If anything has been found, try proc root based detection
+	// right now used for rkt
 	string rkt_podid, rkt_appname;
 	if(!valid_id)
 	{
@@ -355,10 +369,10 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			{
 				rkt_appname = tinfo->m_root.substr(prefix + COREOS_PREFIX.size(), suffix - prefix - COREOS_PREFIX.size());
 				// It is a rkt pod with stage1-coreos
-				sinsp_threadinfo* tinfo_it = tinfo;
-				while(!valid_id && tinfo_it != nullptr)
+
+				sinsp_threadinfo::visitor_func_t visitor = [&rkt_podid, &container_info, &rkt_appname, &valid_id] (sinsp_threadinfo *ptinfo)
 				{
-					for(const auto& env_var : tinfo_it->m_env)
+					for(const auto& env_var : ptinfo->m_env)
 					{
 						auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
 						if(container_uuid_pos == 0)
@@ -368,10 +382,17 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 							container_info.m_id = rkt_podid + ":" + rkt_appname;
 							container_info.m_name = rkt_appname;
 							valid_id = true;
-							break;
+							return false;
 						}
 					}
-					tinfo_it = tinfo_it->get_parent_thread();
+					return true;
+				};
+
+				// Try the current thread first. visitor returns true if no coreos pid
+				// info was found. In this case we traverse the parents.
+				if (visitor(tinfo))
+				{
+					tinfo->traverse_parent_state(visitor);
 				}
 			}
 		}
@@ -403,7 +424,11 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			}
 		}
 	}
-	if(valid_id)
+
+	if(!valid_id) {
+		tinfo->m_container_id = "";
+	}
+	else
 	{
 		tinfo->m_container_id = container_info.m_id;
 
