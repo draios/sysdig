@@ -1582,14 +1582,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
 
 		//
-		// If the thread info has no container ID, or if the clone happened a long
-		// time ago, recreate the container information.
+		// Resync container status after an execve, we need to do it
+		// because at container startup docker spawn a process with vpid=1
+		// outside of container cgroup and correct cgroups are
+		// assigned just before doing execve:
+		// 
+		// 1. docker-runc calls fork() and created process with vpid=1
+		// 2. docker-runc changes cgroup hierarchy of it
+		// 3. vpid=1 execve to the real process the user wants to run inside the container
 		//
-		if(evt->m_tinfo->m_container_id.empty() ||
-			(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS))
-		{
-			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
-		}
+		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
 		break;
 	default:
 		ASSERT(false);
