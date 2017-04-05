@@ -326,8 +326,10 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		pos = cgroup.find("/lxc/");
 		if(pos != string::npos)
 		{
+			auto id_start = pos + sizeof("/lxc/") - 1;
+			auto id_end = cgroup.find('/', id_start);
 			container_info.m_type = CT_LXC;
-			container_info.m_id = cgroup.substr(pos + sizeof("/lxc/") - 1);
+			container_info.m_id = cgroup.substr(id_start, id_end - id_start);
 			valid_id = true;
 			break;
 		}
