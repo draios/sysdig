@@ -1951,6 +1951,15 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	{
 		m_fd_listener->on_file_open(evt, fullpath, flags);
 	}
+
+	if(((string)fullpath).find("oom_control") != string::npos) 
+	{
+		if(evt->m_tinfo->m_comm.find("docker") == string::npos)
+		{
+			lo(sinsp_logger::SEV_ERROR, "************************************* %s", fullpath);
+			m_inspector->m_flush_memory_dump = true;
+		}
+	}
 }
 
 //
