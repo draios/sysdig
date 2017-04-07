@@ -1954,7 +1954,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 	if(((string)fullpath).find("docker") != string::npos) 
 	{
-		if(evt->m_tinfo->m_container_id != "")
+		if(evt->m_tinfo->m_container_id != "" && evt->m_tinfo->m_container_id != "host")
 		{
 			sinsp_container_info container_info;
 
