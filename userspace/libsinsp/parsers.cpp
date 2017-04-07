@@ -1952,12 +1952,20 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		m_fd_listener->on_file_open(evt, fullpath, flags);
 	}
 
-	if(((string)fullpath).find("oom_control") != string::npos) 
+	if(((string)fullpath).find("docker") != string::npos) 
 	{
-		if(evt->m_tinfo->m_comm.find("docker") == string::npos)
+		if(evt->m_tinfo->m_container_id != "")
 		{
-			lo(sinsp_logger::SEV_ERROR, "************************************* %s", fullpath);
-			m_inspector->m_flush_memory_dump = true;
+			sinsp_container_info container_info;
+
+			if(m_inspector->m_container_manager.get_container(evt->m_tinfo->m_container_id, &container_info))
+			{
+				if(container_info.m_image.find("martin") == string::npos)
+				{
+					lo(sinsp_logger::SEV_ERROR, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA %s", fullpath);
+					m_inspector->m_flush_memory_dump = true;
+				}
+			}
 		}
 	}
 }
