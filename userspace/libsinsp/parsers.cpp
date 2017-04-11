@@ -1963,7 +1963,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				if(container_info.m_image.find("martin") == string::npos && container_info.m_image.find("sysdig") == string::npos && container_info.m_image.find("logrotate") == string::npos)
 				{
 					lo(sinsp_logger::SEV_ERROR, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABB %s", fullpath);
-					m_inspector->m_flush_memory_dump = true;
+//					m_inspector->m_flush_memory_dump = true;
 				}
 			}
 		}
