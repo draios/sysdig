@@ -121,7 +121,8 @@ static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo
 	//
 	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
 	{
-		if(fdi->type != SCAP_FD_UNINITIALIZED)
+		if(fdi->type != SCAP_FD_UNINITIALIZED &&
+		   fdi->type != SCAP_FD_UNKNOWN)
 		{
 			totlen += scap_fd_info_len(fdi);
 		}

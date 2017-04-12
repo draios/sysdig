@@ -311,7 +311,12 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 			return SCAP_FAILURE;
 		}
 		break;
+	case SCAP_FD_UNKNOWN:
+		// Ignore UNKNOWN fds without failing
+		ASSERT(false);
+		break;
 	default:
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Unknown fdi type %d", fdi->type);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -448,6 +453,9 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 	case SCAP_FD_TIMERFD:
 	case SCAP_FD_NETLINK:
 		res = scap_fd_read_fname_from_disk(handle, fdi->info.fname,nbytes,f);
+		break;
+	case SCAP_FD_UNKNOWN:
+		ASSERT(false);
 		break;
 	default:
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file, wrong fd type %u", (uint32_t)fdi->type);
