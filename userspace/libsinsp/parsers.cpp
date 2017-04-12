@@ -2008,10 +2008,13 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_ICMP;
 		}
 	}
+	else if (domain == PPM_AF_NETLINK)
+	{
+		fdi.m_type = SCAP_FD_NETLINK;
+	}
 	else
 	{
-		if(domain != 16 &&  // AF_NETLINK, used by processes to talk to the kernel
-		        domain != 10 && // IPv6
+		if(     domain != 10 && // IPv6
 		        domain != 17)   // AF_PACKET, used for packet capture
 		{
 			//
