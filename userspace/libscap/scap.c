@@ -523,24 +523,24 @@ void scap_close(scap_t* handle)
 
 		ASSERT(handle->m_file == NULL);
 
-		//
-		// Destroy all the device descriptors
-		//
-		for(j = 0; j < handle->m_ndevs; j++)
-		{
-			if(handle->m_devs[j].m_buffer != MAP_FAILED)
-			{
-				munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
-				munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
-				close(handle->m_devs[j].m_fd);
-			}
-		}
-
-		//
-		// Free the memory
-		//
 		if(handle->m_devs != NULL)
 		{
+			//
+			// Destroy all the device descriptors
+			//
+			for(j = 0; j < handle->m_ndevs; j++)
+			{
+				if(handle->m_devs[j].m_buffer != MAP_FAILED)
+				{
+				    munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
+				    munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
+				    close(handle->m_devs[j].m_fd);
+				}
+			}
+
+			//
+			// Free the memory
+			//
 			free(handle->m_devs);
 		}
 #endif // HAS_CAPTURE
