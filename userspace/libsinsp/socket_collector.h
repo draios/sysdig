@@ -60,7 +60,8 @@ public:
 			handler->enable();
 			return;
 		}
-		g_logger.log("Socket collector: attempt to enable non-existing handler: " + handler->get_id());
+		g_logger.log("Socket collector: attempt to enable non-existing handler.",
+			     sinsp_logger::SEV_ERROR);
 	}
 
 	int get_socket(std::shared_ptr<T> handler) const
