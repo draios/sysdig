@@ -972,7 +972,7 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 		strncpy(dst->info.fname, src->m_name.c_str(), SCAP_MAX_PATH_SIZE);
 		break;
 	default:
-		ASSERT(false);
+//		ASSERT(false);
 		break;
 	}
 }

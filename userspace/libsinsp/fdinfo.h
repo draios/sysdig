@@ -323,6 +323,9 @@ private:
 		FLAGS_IS_TRACER_FILE = (1 << 7),
 		FLAGS_IS_TRACER_FD = (1 << 8),
 		FLAGS_IS_NOT_TRACER_FD = (1 << 9),
+		FLAGS_IN_BASELINE_R = (1 << 10),
+		FLAGS_IN_BASELINE_RW = (1 << 11),
+		FLAGS_IN_BASELINE_OTHER = (1 << 12),
 	};
 
 	void add_filename(const char* fullpath);
@@ -367,6 +370,43 @@ private:
 		return !is_role_client() && !is_role_server();
 	}
 
+	inline void set_inpipeline_r()
+	{
+		m_flags |= FLAGS_IN_BASELINE_R;
+	}
+
+	inline void set_inpipeline_rw()
+	{
+		m_flags |= FLAGS_IN_BASELINE_RW;
+	}
+
+	inline void set_inpipeline_other()
+	{
+		m_flags |= FLAGS_IN_BASELINE_OTHER;
+	}
+
+	inline void reset_inpipeline()
+	{
+		m_flags &= ~FLAGS_IN_BASELINE_R;
+		m_flags &= ~FLAGS_IN_BASELINE_RW;
+		m_flags &= ~FLAGS_IN_BASELINE_OTHER;
+	}
+
+	inline bool is_inpipeline_r()
+	{
+		return (m_flags & FLAGS_IN_BASELINE_R) == FLAGS_IN_BASELINE_R; 
+	}
+
+	inline bool is_inpipeline_rw()
+	{
+		return (m_flags & FLAGS_IN_BASELINE_RW) == FLAGS_IN_BASELINE_RW; 
+	}
+
+	inline bool is_inpipeline_other()
+	{
+		return (m_flags & FLAGS_IN_BASELINE_OTHER) == FLAGS_IN_BASELINE_OTHER; 
+	}
+
 	T* m_usrstate;
 	uint32_t m_flags;
 	uint64_t m_ino;
@@ -384,6 +424,7 @@ private:
 	friend class sinsp_filter_check_event;
 	friend class lua_cbacks;
 	friend class sinsp_proto_detector;
+	friend class sisnp_baseliner;
 };
 
 /*@}*/
