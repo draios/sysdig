@@ -60,7 +60,7 @@ Starting csysdig with the -pc command line switch will cause many of the views t
 INTERACTIVE COMMANDS  
 --------------------  
 
-##Views Window##
+## Views Window ##
 
 **Arrows, PgUP, PgDn, Home, End**  
   Change the selection and scroll view content, both vertically and horizontally.  
@@ -110,7 +110,7 @@ INTERACTIVE COMMANDS
 **F1, h, ?**  
   Show the help screen.  
 
-##Echo and sysdig Windows##
+## Echo and sysdig Windows ##
 
 **Arrows, PgUP, PgDn, Home, End**  
   Scroll the page content.  
@@ -136,7 +136,7 @@ INTERACTIVE COMMANDS
 **CTRL+G**  
   Go to line.  
 
-##Spectrogram Window##
+## Spectrogram Window ##
 
 **F2**  
   Show the view picker. This will let you switch to another view.  
