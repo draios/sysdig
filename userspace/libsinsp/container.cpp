@@ -242,7 +242,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		string cgroup = it->second;
 		size_t pos;
 
-		//g_logger.log("sinsp_container_manager::resolve_container(): cgroup=" + cgroup + ", first=" + it->first, sinsp_logger::SEV_INFO);
 
 		//
 		// Non-systemd Docker
@@ -273,7 +272,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				container_info.m_type = CT_DOCKER;
 				container_info.m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
 				valid_id = true;
-				g_logger.log("sinsp_container_manager::resolve_container(): docker: m_id=" + container_info.m_id + ", m_name=" + container_info.m_name, sinsp_logger::SEV_INFO);
 				break;
 			}
 		}
@@ -358,38 +356,24 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		//
 		// systemd rkt
 		//
-		
 		pos = cgroup.find("machine-rkt\\x2d");
 		if(pos != string::npos)
 		{
-		        string::size_type service_pos = cgroup.find("/", pos + 1);
+			string::size_type service_pos = cgroup.find("/", pos + 1);
 			if (service_pos == string::npos)
-			    continue;
+				continue;
+
 			string::size_type appname_pos = cgroup.find("/", service_pos + 1);
 			string::size_type appname_pos2 = cgroup.find(".", appname_pos + 1);
 			rkt_appname = cgroup.substr(appname_pos + 1, appname_pos2 - appname_pos - 1);
-
-		        //size_t pos2 = cgroup.find(".scope");
 			rkt_podid = cgroup.substr(pos + sizeof("machine-rkt\\x2d") - 1, 48);
-
-			string::size_type dash_pos = 0;
-			while (dash_pos != string::npos)
-			{
-				dash_pos = rkt_podid.find('\\', dash_pos);
-				if (dash_pos != string::npos)
-					rkt_podid.replace(dash_pos, 4, "-");
-			}
-			
-			//string rkt_appname = "rabbit";
+			replace_in_place(rkt_podid, "\\x2d", "-");
 			container_info.m_type = CT_RKT;
 			container_info.m_id = rkt_podid + ":" + rkt_appname;
 			container_info.m_name = rkt_appname;
 			valid_id = true;
-			g_logger.log("sinsp_container_manager::resolve_container(): rkt_podid=" + rkt_podid + ", rkt_appname=" + rkt_appname, sinsp_logger::SEV_INFO);
 			break;
 		}
-		
-		
 	}
 
 	
@@ -397,7 +381,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	// right now used for rkt
 	if(!valid_id)
 	{
-	        // g_logger.log("sinsp_container_manager::resolve_container(): detecting rkt...", sinsp_logger::SEV_INFO);
 		// Try parsing from process root,
 		// Strings used to detect rkt stage1-cores pods
 		static const string COREOS_PREFIX = "/opt/stage2/";
@@ -407,7 +390,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		auto prefix = tinfo->m_root.find(COREOS_PREFIX);
 		if(prefix == 0)
 		{
-		        // g_logger.log("sinsp_container_manager::resolve_container(): coreos...", sinsp_logger::SEV_INFO);
 			auto suffix = tinfo->m_root.find(COREOS_APP_SUFFIX, prefix);
 			if(suffix != string::npos)
 			{
@@ -442,24 +424,19 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		}
 		else
 		{
-		        // g_logger.log("sinsp_container_manager::resolve_container(): fly pods...", sinsp_logger::SEV_INFO);
 			// String used to detect stage1-fly pods
 			static const string FLY_PREFIX = "/var/lib/rkt/pods/run/";
 			static const string FLY_PODID_SUFFIX = "/stage1/rootfs/opt/stage2/";
 			static const string FLY_APP_SUFFIX = "/rootfs";
 
-		        // g_logger.log("sinsp_container_manager::resolve_container(): tinfo->m_root=" + tinfo->m_root, sinsp_logger::SEV_INFO);
 			auto prefix = tinfo->m_root.find(FLY_PREFIX);
-		        // g_logger.log("sinsp_container_manager::resolve_container(): prefix=" + prefix, sinsp_logger::SEV_INFO);
 			if(prefix == 0)
 			{
 				auto podid_suffix = tinfo->m_root.find(FLY_PODID_SUFFIX, prefix+FLY_PREFIX.size());
-				// g_logger.log("sinsp_container_manager::resolve_container(): podid_suffix=" + podid_suffix, sinsp_logger::SEV_INFO);
 				if(podid_suffix != string::npos)
 				{
 					rkt_podid = tinfo->m_root.substr(prefix + FLY_PREFIX.size(), podid_suffix - prefix - FLY_PREFIX.size());
 					auto appname_suffix = tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix+FLY_PODID_SUFFIX.size());
-					// g_logger.log("sinsp_container_manager::resolve_container(): appname_suffix=" + appname_suffix, sinsp_logger::SEV_INFO);
 					if(appname_suffix != string::npos)
 					{
 						rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
@@ -468,7 +445,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 						container_info.m_id = rkt_podid + ":" + rkt_appname;
 						container_info.m_name = rkt_appname;
 						valid_id = true;
-						// g_logger.log("sinsp_container_manager::resolve_container(): rkt_appname=" + rkt_appname, sinsp_logger::SEV_INFO);
 					}
 				}
 			}
@@ -797,7 +773,6 @@ string sinsp_container_manager::get_docker_env(const Json::Value &env_vars, cons
 
 bool sinsp_container_manager::parse_rkt(sinsp_container_info *container, const string &podid, const string &appname)
 {
-        g_logger.log("sinsp_container_manager::parse_rkt(): podid=" + podid + ", appname=" + appname, sinsp_logger::SEV_INFO);
 	bool ret = false;
 	Json::Reader reader;
 	Json::Value jroot;
