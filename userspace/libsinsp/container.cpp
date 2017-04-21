@@ -242,7 +242,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		string cgroup = it->second;
 		size_t pos;
 
-
 		//
 		// Non-systemd Docker
 		//
@@ -376,7 +375,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		}
 	}
 
-	
 	// If anything has been found, try proc root based detection
 	// right now used for rkt
 	if(!valid_id)
