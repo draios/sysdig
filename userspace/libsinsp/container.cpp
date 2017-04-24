@@ -364,6 +364,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 			string::size_type appname_pos = cgroup.find("/", service_pos + 1);
 			string::size_type appname_pos2 = cgroup.find(".", appname_pos + 1);
+			if (appname_pos == string::npos || appname_pos2 == string::npos)
+				continue;
 			rkt_appname = cgroup.substr(appname_pos + 1, appname_pos2 - appname_pos - 1);
 			if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
 				continue;
