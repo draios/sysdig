@@ -365,6 +365,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			string::size_type appname_pos = cgroup.find("/", service_pos + 1);
 			string::size_type appname_pos2 = cgroup.find(".", appname_pos + 1);
 			rkt_appname = cgroup.substr(appname_pos + 1, appname_pos2 - appname_pos - 1);
+			if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
+				continue;
 			rkt_podid = cgroup.substr(pos + sizeof("machine-rkt\\x2d") - 1, 48);
 			replace_in_place(rkt_podid, "\\x2d", "-");
 			container_info.m_type = CT_RKT;
