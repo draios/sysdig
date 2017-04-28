@@ -1029,8 +1029,8 @@ static int ppm_get_tty(void)
 	int index;
 	int tty_nr = 0;
 
-	// probe_kernel_read() only added in kernel 3.0
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
+	// probe_kernel_read() only added in kernel 2.6.26
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
 	sig = current->signal;
 	if (!sig)
 		return 0;
