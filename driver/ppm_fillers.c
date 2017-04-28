@@ -1029,6 +1029,8 @@ static int ppm_get_tty(void)
 	int index;
 	int tty_nr = 0;
 
+	// probe_kernel_read() only added in kernel 3.0
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
 	sig = current->signal;
 	if (!sig)
 		return 0;
@@ -1055,6 +1057,7 @@ static int ppm_get_tty(void)
 		return 0;
 
 	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
+#endif
 
 	return tty_nr;
 }
