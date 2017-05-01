@@ -1016,6 +1016,24 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 #endif
 
+// probe_kernel_read() only added in kernel 2.6.26
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
+long probe_kernel_read(void *dst, const void *src, size_t size)
+{
+	long ret;
+	mm_segment_t old_fs = get_fs();
+
+	set_fs(KERNEL_DS);
+	pagefault_disable();
+	ret = __copy_from_user_inatomic(dst,
+									(__force const void __user *)src, size);
+	pagefault_enable();
+	set_fs(old_fs);
+
+	return ret ? -EFAULT : 0;
+}
+#endif
+
 static int ppm_get_tty(void)
 {
 	/* Locking of the signal structures seems too complicated across
@@ -1032,6 +1050,11 @@ static int ppm_get_tty(void)
 	int index;
 	int tty_nr = 0;
 
+<<<<<<< HEAD
+	// probe_kernel_read() only added in kernel 2.6.26
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
+=======
+>>>>>>> 40c72bef4d25f4ecc73ca7023bacf602cf6662cf
 	sig = current->signal;
 	if (!sig)
 		return 0;
@@ -1058,6 +1081,10 @@ static int ppm_get_tty(void)
 		return 0;
 
 	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
+<<<<<<< HEAD
+#endif
+=======
+>>>>>>> 40c72bef4d25f4ecc73ca7023bacf602cf6662cf
 
 	return tty_nr;
 }
