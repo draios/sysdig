@@ -307,7 +307,7 @@ bool sinsp_curl::get_data(std::ostream& os)
 		check_error(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &m_response_code));
 		if(m_response_code >= 400)
 		{
-			g_logger.log("CURL HTTP error while accesing [" + m_uri.to_string(false) + "]: " +
+			g_logger.log("CURL HTTP error while accessing [" + m_uri.to_string(false) + "]: " +
 						 std::to_string(m_response_code) + " (" + http_reason::get(m_response_code) + ')', sinsp_logger::SEV_ERROR);
 			return false;
 		}
