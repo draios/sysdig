@@ -1287,7 +1287,7 @@ int lua_cbacks::udp_setpeername(lua_State *ls)
 	ch->m_serveraddr.sin_port = port;
 	if(inet_pton(AF_INET, addr.c_str(), &ch->m_serveraddr.sin_addr) <= 0)
 	{
-		string err = "inet_pton error occured";
+		string err = "inet_pton error occurred";
 		fprintf(stderr, "%s\n", err.c_str());
 		throw sinsp_exception("chisel error");
 	}
