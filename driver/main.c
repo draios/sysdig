@@ -38,7 +38,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/kdev_t.h>
 #include <linux/delay.h>
 #include <linux/proc_fs.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 #include <linux/sched.h>
+#else
+#include <linux/sched/signal.h>
+#include <linux/sched/cputime.h>
+#endif
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
@@ -119,7 +124,9 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
+#endif
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
@@ -624,7 +631,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				task_lock(p);
 #endif
 				if (nentries < pli.max_entries) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 					cputime_t utime, stime;
+#else
+					u64 utime, stime;
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 					task_cputime_adjusted(t, &utime, &stime);
@@ -632,8 +643,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 					ppm_task_cputime_adjusted(t, &utime, &stime);
 #endif
 					proclist_info->entries[nentries].pid = t->pid;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 					proclist_info->entries[nentries].utime = cputime_to_clock_t(utime);
 					proclist_info->entries[nentries].stime = cputime_to_clock_t(stime);
+#else
+					proclist_info->entries[nentries].utime = utime;
+					proclist_info->entries[nentries].stime = stime;
+#endif
 				}
 
 				nentries++;
