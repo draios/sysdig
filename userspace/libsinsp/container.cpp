@@ -235,6 +235,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
+	string rkt_podid, rkt_appname;
 	// Start with cgroup based detection
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -350,11 +351,36 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			valid_id = set_mesos_task_id(&container_info, tinfo);
 			break;
 		}
+
+		//
+		// systemd rkt
+		//
+		pos = cgroup.find("machine-rkt\\x2d");
+		if(pos != string::npos)
+		{
+			string::size_type service_pos = cgroup.find("/", pos + 1);
+			if (service_pos == string::npos)
+				continue;
+
+			string::size_type appname_pos = cgroup.find("/", service_pos + 1);
+			string::size_type appname_pos2 = cgroup.find(".", appname_pos + 1);
+			if (appname_pos == string::npos || appname_pos2 == string::npos)
+				continue;
+			rkt_appname = cgroup.substr(appname_pos + 1, appname_pos2 - appname_pos - 1);
+			if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
+				continue;
+			rkt_podid = cgroup.substr(pos + sizeof("machine-rkt\\x2d") - 1, 48);
+			replace_in_place(rkt_podid, "\\x2d", "-");
+			container_info.m_type = CT_RKT;
+			container_info.m_id = rkt_podid + ":" + rkt_appname;
+			container_info.m_name = rkt_appname;
+			valid_id = true;
+			break;
+		}
 	}
 
 	// If anything has been found, try proc root based detection
 	// right now used for rkt
-	string rkt_podid, rkt_appname;
 	if(!valid_id)
 	{
 		// Try parsing from process root,
@@ -747,8 +773,7 @@ string sinsp_container_manager::get_docker_env(const Json::Value &env_vars, cons
 	return "";
 }
 
-bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
-										const string &podid, const string &appname)
+bool sinsp_container_manager::parse_rkt(sinsp_container_info *container, const string &podid, const string &appname)
 {
 	bool ret = false;
 	Json::Reader reader;

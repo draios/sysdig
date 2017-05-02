@@ -435,7 +435,7 @@ marathon_group::ptr_t mesos_state_t::add_group(const Json::Value& group, maratho
 						}
 						else
 						{
-							g_logger.log("An error occured adding app [" + app_id.asString() +
+							g_logger.log("An error occurred adding app [" + app_id.asString() +
 										"] to group [" + id + ']', sinsp_logger::SEV_ERROR);
 						}
 					}

@@ -34,6 +34,10 @@
 #include <cstring>
 #include <climits>
 
+#ifndef SOCK_NONBLOCK
+#define SOCK_NONBLOCK 0
+#endif
+
 template <typename T>
 class socket_data_handler
 {
@@ -904,13 +908,13 @@ private:
 #endif
 			if(!method)
 			{
-				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL method\n" + ssl_errors(),
+				g_logger.log("Socket handler (" + m_id + "): Can't initialize SSL method\n" + ssl_errors(),
 							 sinsp_logger::SEV_ERROR);
 			}
 			m_ssl_context = SSL_CTX_new(method);
 			if(!m_ssl_context)
 			{
-				g_logger.log("Socket handler (" + m_id + "): Can't initalize SSL context\n" + ssl_errors(),
+				g_logger.log("Socket handler (" + m_id + "): Can't initialize SSL context\n" + ssl_errors(),
 							 sinsp_logger::SEV_ERROR);
 				return;
 			}
@@ -1138,7 +1142,7 @@ private:
 				m_connect_called = true;
 				if(ret < 0 && errno != EINPROGRESS)
 				{
-					throw sinsp_exception("Error during conection attempt to " + m_url.to_string(false) +
+					throw sinsp_exception("Error during connection attempt to " + m_url.to_string(false) +
 										  " (socket=" + std::to_string(m_socket) +
 										  ", error=" + std::to_string(errno) + "): " + strerror(errno));
 				}
@@ -1472,7 +1476,7 @@ private:
 			{
 				it = m_pending_dns_reqs.erase(it);
 				g_logger.log("Socket handler: postponed canceling of DNS request succeeded, number of pending "
-							 "cancelation requests: " + std::to_string(m_pending_dns_reqs.size()),
+							 "cancellation requests: " + std::to_string(m_pending_dns_reqs.size()),
 							 sinsp_logger::SEV_TRACE);
 			}
 			else { ++it; }
@@ -1481,7 +1485,7 @@ private:
 		std::size_t pending_reqs = m_pending_dns_reqs.size();
 		if(pending_reqs)
 		{
-			g_logger.log("Socket handler: number of pending DNS cancelation requests is " + std::to_string(pending_reqs),
+			g_logger.log("Socket handler: number of pending DNS cancellation requests is " + std::to_string(pending_reqs),
 						 (pending_reqs > 10) ? sinsp_logger::SEV_WARNING : sinsp_logger::SEV_TRACE);
 		}
 
