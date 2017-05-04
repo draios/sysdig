@@ -647,8 +647,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 					proclist_info->entries[nentries].utime = cputime_to_clock_t(utime);
 					proclist_info->entries[nentries].stime = cputime_to_clock_t(stime);
 #else
-					proclist_info->entries[nentries].utime = utime;
-					proclist_info->entries[nentries].stime = stime;
+					proclist_info->entries[nentries].utime = nsec_to_clock_t(utime);
+					proclist_info->entries[nentries].stime = nsec_to_clock_t(stime);
 #endif
 				}
 
