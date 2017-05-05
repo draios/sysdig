@@ -3438,7 +3438,6 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-extern void task_times(struct task_struct *p, cputime_t *ut, cputime_t *st);
 void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times);
 
 static int f_sched_switch_e(struct event_filler_arguments *args)
