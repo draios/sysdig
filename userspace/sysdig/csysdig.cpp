@@ -297,7 +297,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:K:lm:n:p:rR:s:Tv:", long_options, &long_index)) != -1)
+			"d:Ehk:K:lm:n:p:Rr:s:Tv:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
