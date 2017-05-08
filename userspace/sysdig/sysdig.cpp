@@ -766,7 +766,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
-                {"resolve-ports", no_argument, 0, 'R'},
+		{"resolve-ports", no_argument, 0, 'R'},
 		{"readfile", required_argument, 0, 'r' },
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
