@@ -114,6 +114,7 @@ static void usage()
 "                    views.\n"
 "                    This will cause several of the views to contain additional\n"
 "                    container-related columns.\n"
+" -R                 Resolve port numbers to names.\n"
 " -r <readfile>, --read=<readfile>\n"
 "                    Read the events from <readfile>.\n"
 " --raw              Print raw output on a regular terminal instead of enabling\n"
@@ -269,6 +270,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
 		{"print", required_argument, 0, 'p' },
+		{"resolve-ports", no_argument, 0, 'R'},
 		{"readfile", required_argument, 0, 'r' },
 		{"raw", no_argument, 0, 0 },
 		{"snaplen", required_argument, 0, 's' },
@@ -295,7 +297,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:K:lm:Nn:p:r:s:Tv:", long_options, &long_index)) != -1)
+			"d:Ehk:K:lm:n:p:rR:s:Tv:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -340,9 +342,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'm':
 				mesos_api = new string(optarg);
 				break;
-			case 'N':
-				inspector->set_hostname_and_port_resolution_mode(false);
-				break;
 			case 'n':
 				try
 				{
@@ -367,6 +366,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					print_containers = true;
 				}
 
+				break;
+			case 'R':
+				inspector->set_hostname_and_port_resolution_mode(true);
 				break;
 			case 'r':
 				infiles.push_back(optarg);
