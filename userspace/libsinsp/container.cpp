@@ -363,18 +363,18 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 			if (tokens.size() == 5)
 			{
-                                g_logger.log("sinsp_container_manager::resolve_container(): tokens[1]=" + tokens[1], sinsp_logger::SEV_INFO);
+				g_logger.log("sinsp_container_manager::resolve_container(): tokens[1]=" + tokens[1], sinsp_logger::SEV_INFO);
 				if (tokens[2].substr(0, 11) == "machine-rkt")
 				{
-                                        string::size_type dot_pos = tokens[2].find('.');
-                                        string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 2, dot_pos - sizeof("machine-rkt") - 2);
+					string::size_type dot_pos = tokens[2].find('.');
+					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 2, dot_pos - sizeof("machine-rkt") - 2);
 					g_logger.log("sinsp_container_manager::resolve_container(): rkt_podid=" + rkt_podid, sinsp_logger::SEV_INFO);
-                                        replace_in_place(rkt_podid, "\\x2d", "-");
-                                        dot_pos = tokens[4].find('.');
-                                        string rkt_appname = tokens[4].substr(0, dot_pos);
+					replace_in_place(rkt_podid, "\\x2d", "-");
+					dot_pos = tokens[4].find('.');
+					string rkt_appname = tokens[4].substr(0, dot_pos);
 					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
 						continue;
-                                        
+
 					container_info.m_type = CT_RKT;
 					container_info.m_id = rkt_podid + ":" + rkt_appname;
 					container_info.m_name = rkt_appname;
@@ -382,17 +382,23 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					valid_id = true;
 					break;
 				}
-			}
-                        else if (tokens.size() == 3)
-                        {
-                                if (tokens[2].substr(0, 3) == "k8s")
-                                {
+				else if (tokens[2].substr(0, 4) == "k8s_")
+				{
 					string::size_type dot_pos = tokens[2].find('.');
-                                        string rkt_podid = tokens[2].substr(sizeof("k8s") + 1, dot_pos - sizeof("k8s") - 1);
-					g_logger.log("sinsp_container_manager::resolve_container(): rkt_podid=" + rkt_podid, sinsp_logger::SEV_INFO);
-                                        // TODO: find `rkt_appname`
+					string rkt_podid = tokens[2].substr(sizeof("k8s_"), dot_pos - sizeof("k8s_"));
+					dot_pos = tokens[4].find('.');
+					string rkt_appname = tokens[4].substr(0, dot_pos);
+					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
+						continue;
+
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
+					g_logger.log("sinsp_container_manager::resolve_container(): rkt_podid=" + rkt_podid + ", rkt_appname=" + rkt_appname, sinsp_logger::SEV_INFO);
+					valid_id = true;
+					break;
                                 }
-                        }
+			}
 		}
 	}
 
