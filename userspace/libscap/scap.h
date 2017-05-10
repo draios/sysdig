@@ -122,7 +122,8 @@ typedef enum scap_fd_type
 	SCAP_FD_SIGNALFD = 11,
 	SCAP_FD_EVENTPOLL = 12,
 	SCAP_FD_INOTIFY = 13,
-	SCAP_FD_TIMERFD = 14
+	SCAP_FD_TIMERFD = 14,
+	SCAP_FD_NETLINK = 15
 }scap_fd_type;
 
 /*!
