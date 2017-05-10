@@ -52,11 +52,6 @@ void sinsp_dumper::open(const string& filename, bool compress, bool threads_from
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
-	if(threads_from_sinsp)
-	{
-		m_inspector->m_thread_manager->to_scap();
-	}
-
 	if(m_target_memory_buffer)
 	{
 		m_dumper = scap_memory_dump_open(m_inspector->m_h, m_target_memory_buffer, m_target_memory_buffer_size);
@@ -76,6 +71,11 @@ void sinsp_dumper::open(const string& filename, bool compress, bool threads_from
 	if(m_dumper == NULL)
 	{
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+	}
+
+	if(threads_from_sinsp)
+	{
+		m_inspector->m_thread_manager->dump_threads_to_file(m_dumper);
 	}
 
 	m_inspector->m_container_manager.dump_containers(m_dumper);

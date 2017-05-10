@@ -183,9 +183,6 @@ COMMAND LINE OPTIONS
 
 **-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
   Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Mesos url is required. Marathon url is optional, defaulting to auto-follow - if Marathon API server is not provided, csysdig will attempt to retrieve (and subsequently follow, if it migrates) the location of Marathon API server from the Mesos master. Note that, with auto-follow, csysdig will likely receive a cluster internal IP address for Marathon API server, so running csysdig with Marathon auto-follow from a node that is not part of Mesos cluster may not work. Additionally, running csysdig with Mesos support on a node that has no containers managed by Mesos is of limited use because, although cluster metadata will be collected, there will be no Mesos/Marathon filtering capability. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
-
-**-N**
-  Don't convert port numbers to names.
   
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events
@@ -193,6 +190,9 @@ COMMAND LINE OPTIONS
 **-pc**, **-pcontainers**_  
   Instruct csysdig to use a container-friendly format in its views. This will cause several of the views to contain additional container-related columns.
 
+**-R**, **--resolve-ports**
+  Resolve port numbers to names.
+  
 **-r** _readfile_, **--read**=_readfile_  
   Read the events from _readfile_.
   

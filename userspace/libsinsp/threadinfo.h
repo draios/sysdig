@@ -405,7 +405,7 @@ public:
 	void create_child_dependencies();
 	void recreate_child_dependencies();
 
-	void to_scap();
+	void dump_threads_to_file(scap_dumper_t* dumper);
 
 	uint32_t get_thread_count()
 	{

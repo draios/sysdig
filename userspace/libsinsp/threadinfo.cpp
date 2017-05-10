@@ -1243,10 +1243,8 @@ void sinsp_thread_manager::update_statistics()
 #endif
 }
 
-void sinsp_thread_manager::to_scap()
+void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 {
-	scap_proc_free_table(m_inspector->m_h);
-
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		sinsp_threadinfo& tinfo = it->second;
@@ -1290,40 +1288,43 @@ void sinsp_thread_manager::to_scap()
 		strncpy(sctinfo->root, tinfo.m_root.c_str(), SCAP_MAX_PATH_SIZE);
 		sctinfo->filtered_out = false;
 
-		//
-		// Add the FDs
-		//
-		unordered_map<int64_t, sinsp_fdinfo_t>& fdtable = tinfo.get_fd_table()->m_table;
-		for(auto it = fdtable.begin(); it != fdtable.end(); ++it)
+		if(tinfo.is_main_thread())
 		{
 			//
-			// Allocate the scap fd info
+			// Add the FDs
 			//
-			scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
-			if(scfdinfo == NULL)
+			unordered_map<int64_t, sinsp_fdinfo_t>& fdtable = tinfo.get_fd_table()->m_table;
+			for(auto it = fdtable.begin(); it != fdtable.end(); ++it)
 			{
-				throw sinsp_exception("thread memory allocation error in sinsp_thread_manager::to_scap");
-			}
+				//
+				// Allocate the scap fd info
+				//
+				scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
+				if(scfdinfo == NULL)
+				{
+					throw sinsp_exception("thread memory allocation error in sinsp_thread_manager::to_scap");
+				}
 
-			//
-			// Populate the fd info
-			//
-			scfdinfo->fd = it->first;
-			tinfo.fd_to_scap(scfdinfo, &it->second);
+				//
+				// Populate the fd info
+				//
+				scfdinfo->fd = it->first;
+				tinfo.fd_to_scap(scfdinfo, &it->second);
 
-			//
-			// Add the new fd to the scap table
-			//
-			if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
-			{
-				throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap");
+				//
+				// Add the new fd to the scap table
+				//
+				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+				{
+					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap");
+				}
 			}
 		}
 
 		//
-		// Add the created info to scap
+		// Dump the thread to disk
 		//
-		if(scap_proc_add(m_inspector->m_h, it->second.m_tid, sctinfo) != SCAP_SUCCESS)
+		if(scap_write_proc_fds(m_inspector->m_h, sctinfo, dumper) != SCAP_SUCCESS)
 		{
 			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap");
 		}
