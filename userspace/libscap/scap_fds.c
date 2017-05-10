@@ -150,6 +150,9 @@ int32_t scap_fd_info_to_string(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
  	case SCAP_FD_UNSUPPORTED:
  		snprintf(str, stlen, "<UNSUPPORTED>");
  		break;
+ 	case SCAP_FD_NETLINK:
+ 		snprintf(str, stlen, "<NETLINK>");
+ 		break;
 	default:
 		ASSERT(false);
 		return SCAP_FAILURE;
@@ -206,6 +209,7 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 	case SCAP_FD_EVENTPOLL:
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
+	case SCAP_FD_NETLINK:
 		res += (uint32_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE) + 2;    // 2 is the length field before the string
 		break;
 	default:
@@ -298,6 +302,7 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 	case SCAP_FD_EVENTPOLL:
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
+	case SCAP_FD_NETLINK:
 		stlen = (uint16_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE);
 		if(scap_dump_write(d, &stlen,  sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        (stlen > 0 && scap_dump_write(d, fdi->info.fname, stlen) != stlen))
@@ -306,7 +311,12 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 			return SCAP_FAILURE;
 		}
 		break;
+	case SCAP_FD_UNKNOWN:
+		// Ignore UNKNOWN fds without failing
+		ASSERT(false);
+		break;
 	default:
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Unknown fdi type %d", fdi->type);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -441,7 +451,11 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 	case SCAP_FD_EVENTPOLL:
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
+	case SCAP_FD_NETLINK:
 		res = scap_fd_read_fname_from_disk(handle, fdi->info.fname,nbytes,f);
+		break;
+	case SCAP_FD_UNKNOWN:
+		ASSERT(false);
 		break;
 	default:
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file, wrong fd type %u", (uint32_t)fdi->type);
@@ -832,6 +846,143 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		if(uth_status != SCAP_SUCCESS)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unix socket allocatiallocation error");
+			return SCAP_FAILURE;
+		}
+	}
+	fclose(f);
+	return uth_status;
+}
+
+//sk       Eth Pid    Groups   Rmem     Wmem     Dump     Locks     Drops     Inode
+//ffff88011abfb000 0   0      00000000 0        0        0 2        0        13
+
+int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* filename, scap_fdinfo **sockets)
+{
+	FILE *f;
+	char line[1024];
+	int first_line = false;
+	char *delimiters = " \t";
+	char *token;
+	int32_t uth_status = SCAP_SUCCESS;
+
+	f = fopen(filename, "r");
+	if(NULL == f)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+	while(NULL != fgets(line, sizeof(line), f))
+	{
+		// skip the first line ... contains field names
+		if(!first_line)
+		{
+			first_line = true;
+			continue;
+		}
+		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+		memset(fdinfo, 0, sizeof(scap_fdinfo));
+		fdinfo->type = SCAP_FD_UNIX_SOCK;
+
+
+		//
+		// parse the fields
+		//
+		// 1. Num
+		token = strtok(line, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 2. Eth
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 3. Pid
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 4. Groups
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 5. Rmem
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 6. Wmem
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 7. Dump
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 8. Locks
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 9. Drops
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		// 10. Inode
+		token = strtok(NULL, delimiters);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			free(fdinfo);
+			continue;
+		}
+
+		sscanf(token, "%"PRIu64, &(fdinfo->ino));
+
+		HASH_ADD_INT64((*sockets), ino, fdinfo);
+		if(uth_status != SCAP_SUCCESS)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "netlink socket allocation error");
 			return SCAP_FAILURE;
 		}
 	}
@@ -1274,6 +1425,13 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 
 	snprintf(filename, sizeof(filename), "%sunix", netroot);
 	if(scap_fd_read_unix_sockets_from_proc_fs(handle, filename, &sockets->sockets) == SCAP_FAILURE)
+	{
+		scap_fd_free_table(handle, &sockets->sockets);
+		return SCAP_FAILURE;
+	}
+
+	snprintf(filename, sizeof(filename), "%snetlink", netroot);
+	if(scap_fd_read_netlink_sockets_from_proc_fs(handle, filename, &sockets->sockets) == SCAP_FAILURE)
 	{
 		scap_fd_free_table(handle, &sockets->sockets);
 		return SCAP_FAILURE;
