@@ -1244,11 +1244,25 @@ void sinsp_thread_manager::update_statistics()
 #endif
 }
 
+void sinsp_thread_manager::free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free)
+{
+	for(uint32_t j = 0; j < fdinfos_to_free->size(); j++)
+	{
+		free(fdinfos_to_free->at(j));
+	}
+
+	fdinfos_to_free->clear();
+}
+
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 {
+	vector<scap_fdinfo*>* fdinfos_to_free = new vector<scap_fdinfo*>();
+
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		sinsp_threadinfo& tinfo = it->second;
+
+		fdinfos_to_free->clear();
 
 		//
 		// Allocate the scap thread info
@@ -1303,8 +1317,12 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
 				if(scfdinfo == NULL)
 				{
+					free_dump_fdinfos(fdinfos_to_free);
+					delete fdinfos_to_free;
 					throw sinsp_exception("thread memory allocation error in sinsp_thread_manager::to_scap");
 				}
+
+				fdinfos_to_free->push_back(scfdinfo);
 
 				//
 				// Populate the fd info
@@ -1317,6 +1335,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{
+					free_dump_fdinfos(fdinfos_to_free);
+					delete fdinfos_to_free;
 					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap");
 				}
 			}
@@ -1327,7 +1347,15 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		//
 		if(scap_write_proc_fds(m_inspector->m_h, sctinfo, dumper) != SCAP_SUCCESS)
 		{
+			free_dump_fdinfos(fdinfos_to_free);
+			delete fdinfos_to_free;
 			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap");
 		}
+
+		free_dump_fdinfos(fdinfos_to_free);
+		free(sctinfo);
 	}
+
+	free_dump_fdinfos(fdinfos_to_free);
+	delete fdinfos_to_free;
 }
