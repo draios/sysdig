@@ -49,6 +49,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tracepoint.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
+#include <linux/fdtable.h>
 #include <net/sock.h>
 #include <asm/asm-offsets.h>	/* For NR_syscalls */
 #include <asm/unistd.h>
@@ -118,9 +119,19 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum syscall_flags drop_flags,
 	struct timespec *ts,
 	struct event_data_t *event_datap);
+static int record_event_consumer_ret(struct ppm_consumer_t *consumer,
+				     enum ppm_event_type event_type,
+				     enum syscall_flags drop_flags,
+				     struct timespec *ts,
+				     struct event_data_t *event_datap,
+				     long ret);
 static void record_event_all_consumers(enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
 	struct event_data_t *event_datap);
+static void record_event_all_consumers_ret(enum ppm_event_type event_type,
+					   enum syscall_flags drop_flags,
+					   struct event_data_t *event_datap,
+					   long ret);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
@@ -186,7 +197,7 @@ static struct tracepoint *tp_signal_deliver;
 #ifdef _DEBUG
 static bool verbose = 1;
 #else
-static bool verbose = 0;
+static bool verbose = 1;
 #endif
 
 static unsigned int max_consumers = 5;
@@ -1275,10 +1286,42 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespe
 	}
 }
 
-static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_type event_type, enum syscall_flags drop_flags, struct timespec *ts)
+static inline int drop_event(struct ppm_consumer_t *consumer,
+			     enum ppm_event_type event_type,
+			     enum syscall_flags drop_flags,
+			     struct timespec *ts,
+			     long ret)
 {
+	int close_fd = -1;
+	struct files_struct *files = current->files;
+	struct fdtable *fdt;
+
 	if (drop_flags & UF_NEVER_DROP) {
 		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
+
+		// It's annoying but valid for a program to make a large number of
+		// close() calls on nonexistent fds. That can cause driver cpu usage
+		// to spike dramatically, so drop close events if the fd is not valid.
+		if (event_type == PPME_SYSCALL_CLOSE_X ) {
+		    //&& consumer->dropping_mode ) {
+
+			//if (ret != 0) {
+			//	vpr_info("close exit with ret: %ld\n", ret);
+			//}
+
+			if (ret < 0) {
+				return 1;
+			}
+		}
+
+		if (event_type == PPME_SYSCALL_CLOSE_E) {
+			close_fd = 1025;
+			//fdt = files_fdtable(files);
+			//if (fd_is_open(close_fd, fdt)) {
+			//	return 1;
+			//}
+		}
+
 		return 0;
 	}
 
@@ -1306,9 +1349,10 @@ static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_typ
 	return 0;
 }
 
-static void record_event_all_consumers(enum ppm_event_type event_type,
-	enum syscall_flags drop_flags,
-	struct event_data_t *event_datap)
+static void record_event_all_consumers_ret(enum ppm_event_type event_type,
+					   enum syscall_flags drop_flags,
+					   struct event_data_t *event_datap,
+					   long ret)
 {
 	struct ppm_consumer_t *consumer;
 	struct timespec ts;
@@ -1317,19 +1361,38 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-		record_event_consumer(consumer, event_type, drop_flags, &ts, event_datap);
+		record_event_consumer_ret(consumer, event_type, drop_flags,
+					  &ts, event_datap, ret);
 	}
 	rcu_read_unlock();
 }
 
-/*
- * Returns 0 if the event is dropped
- */
+static void record_event_all_consumers(enum ppm_event_type event_type,
+	enum syscall_flags drop_flags,
+	struct event_data_t *event_datap)
+{
+	record_event_all_consumers_ret(event_type, drop_flags, event_datap, 0);
+}
+
 static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
 	struct timespec *ts,
 	struct event_data_t *event_datap)
+{
+	return record_event_consumer_ret(consumer, event_type, drop_flags,
+					 ts, event_datap, 0);
+}
+
+/*
+ * Returns 0 if the event is dropped
+ */
+static int record_event_consumer_ret(struct ppm_consumer_t *consumer,
+				     enum ppm_event_type event_type,
+				     enum syscall_flags drop_flags,
+				     struct timespec *ts,
+				     struct event_data_t *event_datap,
+				     long ret)
 {
 	int res = 0;
 	size_t event_size = 0;
@@ -1355,7 +1418,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		else if (consumer->need_to_insert_drop_x == 1)
 			record_drop_x(consumer, ts);
 
-		if (drop_event(consumer, event_type, drop_flags, ts))
+		if (drop_event(consumer, event_type, drop_flags, ts, ret))
 			return res;
 	}
 
@@ -1758,7 +1821,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		event_data.compat = compat;
 
 		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data);
+			record_event_all_consumers_ret(type, drop_flags, &event_data, ret);
 		else
 			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data);
 	}
