@@ -95,6 +95,7 @@ sinsp::sinsp() :
 	m_max_n_proc_socket_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
+	m_input_fd = 0;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_hostname_and_port_resolution_enabled = false;
@@ -327,9 +328,10 @@ void sinsp::init()
 		}
 
 		//
-		// Rewind and consume the exact number of events
+		// Rewind, reset the event count, and consume the exact number of events
 		//
 		scap_fseek(m_h, off);
+		scap_event_reset_count(m_h);
 		for(uint32_t j = 0; j < ncnt; j++)
 		{
 			sinsp_evt* tevt;
@@ -522,19 +524,9 @@ std::string sinsp::get_error_desc(const std::string& msg)
 	return errstr;
 }
 
-void sinsp::open(string filename)
+void sinsp::open_int()
 {
 	char error[SCAP_LASTERR_SIZE] = {0};
-
-	if(filename == "")
-	{
-		open();
-		return;
-	}
-
-	m_input_filename = filename;
-
-	g_logger.log("starting offline capture");
 
 	//
 	// Reset the thread manager
@@ -547,7 +539,15 @@ void sinsp::open(string filename)
 	m_mode = SCAP_MODE_CAPTURE;
 	scap_open_args oargs;
 	oargs.mode = SCAP_MODE_CAPTURE;
-	oargs.fname = filename.c_str();
+	if(m_input_fd != 0)
+	{
+		oargs.fd = m_input_fd;
+	}
+	else
+	{
+		oargs.fd = 0;
+		oargs.fname = m_input_filename.c_str();
+	}
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
 	oargs.import_users = m_import_users;
@@ -567,14 +567,46 @@ void sinsp::open(string filename)
 		throw sinsp_exception(error);
 	}
 
-	m_filesize = get_file_size(filename, error);
-
-	if(m_filesize < 0)
+	if(m_input_fd != 0)
 	{
-		throw sinsp_exception(error);
+		// We can't get a reliable filesize
+		m_filesize = 0;
+	}
+	else
+	{
+		m_filesize = get_file_size(m_input_filename, error);
+
+		if(m_filesize < 0)
+		{
+			throw sinsp_exception(error);
+		}
 	}
 
 	init();
+}
+
+void sinsp::open(string filename)
+{
+	if(filename == "")
+	{
+		open();
+		return;
+	}
+
+	m_input_filename = filename;
+
+	g_logger.log("starting offline capture");
+
+	open_int();
+}
+
+void sinsp::fdopen(int fd)
+{
+	m_input_fd = fd;
+
+	g_logger.log("starting offline capture");
+
+	open_int();
 }
 
 void sinsp::close()
@@ -881,7 +913,7 @@ void sinsp::restart_capture_at_filepos(uint64_t filepos)
 	//
 	m_file_start_offset = filepos;
 	close();
-	open(m_input_filename);
+	open_int();
 
 	//
 	// Set again the backuped settings
@@ -1694,6 +1726,13 @@ bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int durat
 
 double sinsp::get_read_progress()
 {
+	if(m_input_fd != 0)
+	{
+		// We can't get a reliable file size, so we can't get
+		// any reliable progress
+		return 0;
+	}
+
 	if(m_filesize == -1)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));

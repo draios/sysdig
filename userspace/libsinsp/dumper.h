@@ -69,10 +69,25 @@ public:
 		bool compress,
 		bool threads_from_sinsp=false);
 
+	void fdopen(int fd,
+		    bool compress,
+		    bool threads_from_sinsp=false);
+
 	/*!
 	  \brief Closes the dump file.
 	*/
 	void close();
+
+	/*!
+	  \brief Return whether or not the underling scap file has been
+	         opened.
+	*/
+	bool is_open();
+
+	/*!
+	  \brief Return the number of events dumped so far.
+	*/
+	bool written_events();
 
 	/*!
 	  \brief Return the current size of a tracefile.
@@ -103,6 +118,7 @@ private:
 	scap_dumper_t* m_dumper;
 	uint8_t* m_target_memory_buffer;
 	uint64_t m_target_memory_buffer_size;
+	uint64_t m_nevts;
 };
 
 /*@}*/
