@@ -1299,6 +1299,7 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 	if (drop_flags & UF_NEVER_DROP) {
 		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
 
+/*
 		// It's annoying but valid for a program to make a large number of
 		// close() calls on nonexistent fds. That can cause driver cpu usage
 		// to spike dramatically, so drop close events if the fd is not valid.
@@ -1321,6 +1322,7 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			//	return 1;
 			//}
 		}
+*/
 
 		return 0;
 	}
@@ -1356,6 +1358,11 @@ static void record_event_all_consumers_ret(enum ppm_event_type event_type,
 {
 	struct ppm_consumer_t *consumer;
 	struct timespec ts;
+
+	if (event_type == PPME_SYSCALL_CLOSE_X && ret < 0) {
+		//&& consumer->dropping_mode ) {
+		return 1;
+	}
 
 	getnstimeofday(&ts);
 
