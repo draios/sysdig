@@ -195,7 +195,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		m_colors[CPU_IRQ] = ColorPair(COLOR_YELLOW,COLOR_BLACK);
 		m_colors[CPU_SOFTIRQ] = ColorPair(COLOR_MAGENTA,COLOR_BLACK);
 		m_colors[SPY_READ] = ColorPair(COLOR_RED,COLOR_BLACK);
-		m_colors[SPY_WRITE] = ColorPair(COLOR_BLUE,COLOR_BLACK);
+		m_colors[SPY_WRITE] = ColorPair(COLOR_CYAN,COLOR_BLACK);
 
 		//
 		// Populate the main menu entries
