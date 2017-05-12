@@ -879,9 +879,22 @@ void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
 	{
 		uint32_t len = a.size() + 1;
 
-		strncpy(dst + tlen, a.c_str(), alen);
-		tlen += len;
-		alen -= len;
+		char* res = strncpy(dst + tlen, a.c_str(), alen);
+
+		if(len >= alen) 
+		{
+			//
+			// We saturated the args buffer. Null terminate it and return
+			//
+			sctinfo->args[SCAP_MAX_ARGS_SIZE - 1] = 0;
+			sctinfo->args_len = SCAP_MAX_ARGS_SIZE;
+			return;
+		}
+		else
+		{
+			tlen += len;
+			alen -= len;
+		}
 	}
 
 	sctinfo->args_len = tlen;
