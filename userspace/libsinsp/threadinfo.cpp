@@ -879,7 +879,7 @@ void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
 	{
 		uint32_t len = a.size() + 1;
 
-		char* res = strncpy(dst + tlen, a.c_str(), alen);
+		strncpy(dst + tlen, a.c_str(), alen);
 
 		if(len >= alen) 
 		{
@@ -911,8 +911,21 @@ void sinsp_threadinfo::env_to_scap(scap_threadinfo* sctinfo)
 		uint32_t len = a.size() + 1;
 
 		strncpy(dst + tlen, a.c_str(), alen);
-		tlen += len;
-		alen -= len;
+
+		if(len >= alen) 
+		{
+			//
+			// We saturated the args buffer. Null terminate it and return
+			//
+			sctinfo->env[SCAP_MAX_ENV_SIZE - 1] = 0;
+			sctinfo->env_len = SCAP_MAX_ENV_SIZE;
+			return;
+		}
+		else
+		{
+			tlen += len;
+			alen -= len;
+		}
 	}
 
 	sctinfo->env_len = tlen;
@@ -930,8 +943,21 @@ void sinsp_threadinfo::cgroups_to_scap(scap_threadinfo* sctinfo)
 		uint32_t len = a.size() + 1;
 
 		strncpy(dst + tlen, a.c_str(), alen);
-		tlen += len;
-		alen -= len;
+
+		if(len >= alen) 
+		{
+			//
+			// We saturated the args buffer. Null terminate it and return
+			//
+			sctinfo->cgroups[SCAP_MAX_CGROUPS_SIZE - 1] = 0;
+			sctinfo->cgroups_len = SCAP_MAX_CGROUPS_SIZE;
+			return;
+		}
+		else
+		{
+			tlen += len;
+			alen -= len;
+		}
 	}
 
 	sctinfo->cgroups_len = tlen;
