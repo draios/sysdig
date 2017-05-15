@@ -242,7 +242,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	{
 		string cgroup = it->second;
 		size_t pos;
-		g_logger.log("sinsp_container_manager::resolve_container(): in the loop: cgroup=" + cgroup, sinsp_logger::SEV_INFO);
 
 		//
 		// Non-systemd Docker
@@ -357,22 +356,17 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		//
 		// systemd rkt
 		//
-		//pos = cgroup.find("machine-rkt\\x2d");
-		//if(pos != string::npos)
 		{
-			g_logger.log("sinsp_container_manager::resolve_container(): cgroup=" + cgroup, sinsp_logger::SEV_INFO);
 			vector<string> tokens = sinsp_split(cgroup, '/');
 
 			if (tokens.size() == 5)
 			{
-				g_logger.log("sinsp_container_manager::resolve_container(): tokens[1]=" + tokens[1], sinsp_logger::SEV_INFO);
 				if (tokens[2].substr(0, 11) == "machine-rkt")
 				{
 					string::size_type dot_pos = tokens[2].find('.');
 					if (dot_pos == string::npos)
 						continue;
 					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 2, dot_pos - sizeof("machine-rkt") - 2);
-					g_logger.log("sinsp_container_manager::resolve_container(): rkt_podid=" + rkt_podid, sinsp_logger::SEV_INFO);
 					replace_in_place(rkt_podid, "\\x2d", "-");
 					dot_pos = tokens[4].find('.');
 					if (dot_pos == string::npos)
@@ -384,7 +378,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					container_info.m_type = CT_RKT;
 					container_info.m_id = rkt_podid + ":" + rkt_appname;
 					container_info.m_name = rkt_appname;
-					g_logger.log("sinsp_container_manager::resolve_container(): rkt_podid=" + rkt_podid + ", rkt_appname=" + rkt_appname, sinsp_logger::SEV_INFO);
 					valid_id = true;
 					break;
 				}
@@ -404,7 +397,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					container_info.m_type = CT_RKT;
 					container_info.m_id = rkt_podid + ":" + rkt_appname;
 					container_info.m_name = rkt_appname;
-					g_logger.log("sinsp_container_manager::resolve_container(): rkt_podid=" + rkt_podid + ", rkt_appname=" + rkt_appname, sinsp_logger::SEV_INFO);
 					valid_id = true;
 					break;
                                 }
