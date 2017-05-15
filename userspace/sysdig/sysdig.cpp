@@ -167,7 +167,6 @@ static void usage()
 "                    The API servers can also be specified via the environment variable\n"
 "                    SYSDIG_MESOS_API.\n"
 " -M <num_seconds>   Stop collecting after <num_seconds> reached.\n"
-" -N                 Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " -P, --progress     Print progress on stderr while processing trace files\n"
@@ -179,6 +178,7 @@ static void usage()
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
+" -R                 Resolve port numbers to names.\n"
 " -r <readfile>, --read=<readfile>\n"
 "                    Read the events from <readfile>.\n"
 " -S, --summary      print the event summary (i.e. the list of the top events)\n"
@@ -766,6 +766,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
+		{"resolve-ports", no_argument, 0, 'R'},
 		{"readfile", required_argument, 0, 'r' },
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
@@ -787,7 +788,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	try
 	{
 		inspector = new sinsp();
-
+		inspector->set_hostname_and_port_resolution_mode(false);
 
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
@@ -801,7 +802,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:Nn:Pp:qr:Ss:t:Tv"
+                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:Tv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -971,9 +972,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-			case 'N':
-				inspector->set_hostname_and_port_resolution_mode(false);
-				break;
 			case 'n':
 				try
 				{
@@ -1040,6 +1038,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'q':
 				quiet = true;
+				break;
+			case 'R':
+				inspector->set_hostname_and_port_resolution_mode(true);
 				break;
 			case 'r':
 				infiles.push_back(optarg);

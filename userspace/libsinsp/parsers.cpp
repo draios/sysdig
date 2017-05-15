@@ -1582,14 +1582,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
 
 		//
-		// If the thread info has no container ID, or if the clone happened a long
-		// time ago, recreate the container information.
+		// Resync container status after an execve, we need to do it
+		// because at container startup docker spawn a process with vpid=1
+		// outside of container cgroup and correct cgroups are
+		// assigned just before doing execve:
 		//
-		if(evt->m_tinfo->m_container_id.empty() ||
-			(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS))
-		{
-			m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
-		}
+		// 1. docker-runc calls fork() and created process with vpid=1
+		// 2. docker-runc changes cgroup hierarchy of it
+		// 3. vpid=1 execve to the real process the user wants to run inside the container
+		//
+		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
 		break;
 	default:
 		ASSERT(false);
@@ -2006,10 +2008,13 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_ICMP;
 		}
 	}
+	else if (domain == PPM_AF_NETLINK)
+	{
+		fdi.m_type = SCAP_FD_NETLINK;
+	}
 	else
 	{
-		if(domain != 16 &&  // AF_NETLINK, used by processes to talk to the kernel
-		        domain != 10 && // IPv6
+		if(     domain != 10 && // IPv6
 		        domain != 17)   // AF_PACKET, used for packet capture
 		{
 			//
@@ -2017,6 +2022,17 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 			//
 			ASSERT(false);
 		}
+	}
+
+	if(fdi.m_type == SCAP_FD_UNKNOWN)
+	{
+		g_logger.log("Unknown fd fd=" + to_string(fd) +
+			     " domain=" + to_string(domain) +
+			     " type=" + to_string(type) +
+			     " protocol=" + to_string(protocol) +
+			     " pid=" + to_string(evt->m_tinfo->m_pid) +
+			     " comm=" + evt->m_tinfo->m_comm,
+			     sinsp_logger::SEV_DEBUG);
 	}
 
 #ifndef INCLUDE_UNKNOWN_SOCKET_FDS
