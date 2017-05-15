@@ -231,6 +231,7 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
+
 	ASSERT(tinfo);
 	bool valid_id = false;
 	sinsp_container_info container_info;
@@ -241,6 +242,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	{
 		string cgroup = it->second;
 		size_t pos;
+		g_logger.log("sinsp_container_manager::resolve_container(): in the loop: cgroup=" + cgroup, sinsp_logger::SEV_INFO);
 
 		//
 		// Non-systemd Docker
@@ -355,8 +357,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		//
 		// systemd rkt
 		//
-		pos = cgroup.find("machine-rkt\\x2d");
-		if(pos != string::npos)
+		//pos = cgroup.find("machine-rkt\\x2d");
+		//if(pos != string::npos)
 		{
 			g_logger.log("sinsp_container_manager::resolve_container(): cgroup=" + cgroup, sinsp_logger::SEV_INFO);
 			vector<string> tokens = sinsp_split(cgroup, '/');
@@ -367,10 +369,14 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				if (tokens[2].substr(0, 11) == "machine-rkt")
 				{
 					string::size_type dot_pos = tokens[2].find('.');
+					if (dot_pos == string::npos)
+						continue;
 					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 2, dot_pos - sizeof("machine-rkt") - 2);
 					g_logger.log("sinsp_container_manager::resolve_container(): rkt_podid=" + rkt_podid, sinsp_logger::SEV_INFO);
 					replace_in_place(rkt_podid, "\\x2d", "-");
 					dot_pos = tokens[4].find('.');
+					if (dot_pos == string::npos)
+						continue;
 					string rkt_appname = tokens[4].substr(0, dot_pos);
 					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
 						continue;
@@ -385,8 +391,12 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				else if (tokens[2].substr(0, 4) == "k8s_")
 				{
 					string::size_type dot_pos = tokens[2].find('.');
-					string rkt_podid = tokens[2].substr(sizeof("k8s_"), dot_pos - sizeof("k8s_"));
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_podid = tokens[2].substr(sizeof("k8s_") - 1, dot_pos - sizeof("k8s_") + 1);
 					dot_pos = tokens[4].find('.');
+					if (dot_pos == string::npos)
+						continue;
 					string rkt_appname = tokens[4].substr(0, dot_pos);
 					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
 						continue;
