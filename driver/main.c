@@ -1292,38 +1292,8 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			     struct timespec *ts,
 			     long ret)
 {
-	int close_fd = -1;
-	struct files_struct *files = current->files;
-	struct fdtable *fdt;
-
 	if (drop_flags & UF_NEVER_DROP) {
 		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
-
-/*
-		// It's annoying but valid for a program to make a large number of
-		// close() calls on nonexistent fds. That can cause driver cpu usage
-		// to spike dramatically, so drop close events if the fd is not valid.
-		if (event_type == PPME_SYSCALL_CLOSE_X ) {
-		    //&& consumer->dropping_mode ) {
-
-			//if (ret != 0) {
-			//	vpr_info("close exit with ret: %ld\n", ret);
-			//}
-
-			if (ret < 0) {
-				return 1;
-			}
-		}
-
-		if (event_type == PPME_SYSCALL_CLOSE_E) {
-			close_fd = 1025;
-			//fdt = files_fdtable(files);
-			//if (fd_is_open(close_fd, fdt)) {
-			//	return 1;
-			//}
-		}
-*/
-
 		return 0;
 	}
 
@@ -1359,9 +1329,40 @@ static void record_event_all_consumers_ret(enum ppm_event_type event_type,
 	struct ppm_consumer_t *consumer;
 	struct timespec ts;
 
+	// CLOSE_E stuff
+	struct pt_regs *regs = NULL;
+	unsigned long close_fd = -1;
+	struct files_struct *files;
+	struct fdtable *fdt;
+	bool close_return = false;
+
+	// It's annoying but valid for a program to make a large number of
+	// close() calls on nonexistent fds. That can cause driver cpu usage
+	// to spike dramatically, so drop close events if the fd is not valid.
+
 	if (event_type == PPME_SYSCALL_CLOSE_X && ret < 0) {
 		//&& consumer->dropping_mode ) {
-		return 1;
+		return;
+	} else if (event_type == PPME_SYSCALL_CLOSE_E) {
+		// XXX make this work for all kernel versions
+		regs = event_datap->event_info.syscall_data.regs;
+		syscall_get_arguments(current, regs, 0, 1, &close_fd);
+		//vpr_info("close_enter for fd %ld\n", close_fd);
+
+		files = current->files;
+		spin_lock(&files->file_lock);
+		fdt = files_fdtable(files);
+		if (close_fd >= fdt->max_fds || !fd_is_open(close_fd, fdt)) {
+			close_return = true;
+		}
+		spin_unlock(&files->file_lock);
+
+		// XXX debugging to test spin_lock perf
+		//if (close_fd > 400000) { close_return = true; }
+
+		if (close_return) {
+			return;
+		}
 	}
 
 	getnstimeofday(&ts);
