@@ -899,7 +899,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	sinsp_evt* evt;
 	int32_t res;
 
-
 	//
 	// Check if there are fake cpu events to  events
 	//
