@@ -215,7 +215,6 @@ static int32_t scap_write_fdlist(scap_t *handle, scap_dumper_t *d)
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen)
 {
 	block_header bh;
-	uint32_t bt;
 
 	//
 	// Create the block header
@@ -270,9 +269,6 @@ int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t t
 //
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo)
 {
-	block_header bh;
-	uint32_t bt;
-	uint32_t totlen = 0;
 	uint16_t commlen;
 	uint16_t exelen;
 	uint16_t argslen;
@@ -330,8 +326,6 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 //
 static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 {
-	block_header bh;
-	uint32_t bt;
 	uint32_t totlen = 0;
 	struct scap_threadinfo *tinfo;
 	struct scap_threadinfo *ttinfo;

@@ -1951,6 +1951,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	{
 		m_fd_listener->on_file_open(evt, fullpath, flags);
 	}
+
+if(string(fullpath).find("detedete") != string::npos)
+{
+	printf("************************************\n");
+	m_inspector->m_flush_memory_dump = true;
+}
 }
 
 //
