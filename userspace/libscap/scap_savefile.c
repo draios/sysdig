@@ -108,7 +108,7 @@ static int32_t scap_write_padding(scap_dumper_t *d, uint32_t blocklen)
 	}
 }
 
-static int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d)
+int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d)
 {
 	block_header bh;
 	uint32_t bt;
