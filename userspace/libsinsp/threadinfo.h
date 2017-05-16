@@ -424,6 +424,7 @@ private:
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
 	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
+	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
