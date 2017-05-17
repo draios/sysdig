@@ -122,10 +122,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 static void record_event_all_consumers(enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
 	struct event_data_t *event_datap);
-static void record_event_all_consumers_ret(enum ppm_event_type event_type,
-					   enum syscall_flags drop_flags,
-					   struct event_data_t *event_datap,
-					   long ret);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
@@ -191,7 +187,7 @@ static struct tracepoint *tp_signal_deliver;
 #ifdef _DEBUG
 static bool verbose = 1;
 #else
-static bool verbose = 1;
+static bool verbose = 0;
 #endif
 
 static unsigned int max_consumers = 5;
@@ -1280,8 +1276,42 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespe
 	}
 }
 
-static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_type event_type, enum syscall_flags drop_flags, struct timespec *ts)
+static inline int drop_event(struct ppm_consumer_t *consumer,
+			     enum ppm_event_type event_type,
+			     enum syscall_flags drop_flags,
+			     struct timespec *ts,
+			     struct pt_regs *regs)
 {
+	unsigned long close_fd = -1;
+	struct files_struct *files;
+	struct fdtable *fdt;
+	bool close_return = false;
+
+	// It's annoying but valid for a program to make a large number of
+	// close() calls on nonexistent fds. That can cause driver cpu usage
+	// to spike dramatically, so drop close events if the fd is not valid.
+	if (consumer->dropping_mode) {
+		if (event_type == PPME_SYSCALL_CLOSE_X) {
+			if (syscall_get_return_value(current, regs) < 0) {
+				close_return = true;
+			}
+		} else if (event_type == PPME_SYSCALL_CLOSE_E) {
+			syscall_get_arguments(current, regs, 0, 1, &close_fd);
+
+			files = current->files;
+			spin_lock(&files->file_lock);
+			fdt = files_fdtable(files);
+			if (close_fd >= fdt->max_fds || !fd_is_open(close_fd, fdt)) {
+				close_return = true;
+			}
+			spin_unlock(&files->file_lock);
+		}
+
+		if (close_return) {
+			return 1;
+		}
+	}
+
 	if (drop_flags & UF_NEVER_DROP) {
 		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
 		return 0;
@@ -1311,44 +1341,12 @@ static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_typ
 	return 0;
 }
 
-static void record_event_all_consumers_ret(enum ppm_event_type event_type,
-					   enum syscall_flags drop_flags,
-					   struct event_data_t *event_datap,
-					   long ret)
+static void record_event_all_consumers(enum ppm_event_type event_type,
+	enum syscall_flags drop_flags,
+	struct event_data_t *event_datap)
 {
 	struct ppm_consumer_t *consumer;
 	struct timespec ts;
-
-	// CLOSE_E
-	struct pt_regs *regs = NULL;
-	unsigned long close_fd = -1;
-	struct files_struct *files;
-	struct fdtable *fdt;
-	bool close_return = false;
-
-	// It's annoying but valid for a program to make a large number of
-	// close() calls on nonexistent fds. That can cause driver cpu usage
-	// to spike dramatically, so drop close events if the fd is not valid.
-
-	if (event_type == PPME_SYSCALL_CLOSE_X && ret < 0) {
-		//&& consumer->dropping_mode ) {
-		return;
-	} else if (event_type == PPME_SYSCALL_CLOSE_E) {
-		regs = event_datap->event_info.syscall_data.regs;
-		syscall_get_arguments(current, regs, 0, 1, &close_fd);
-
-		files = current->files;
-		spin_lock(&files->file_lock);
-		fdt = files_fdtable(files);
-		if (close_fd >= fdt->max_fds || !fd_is_open(close_fd, fdt)) {
-			close_return = true;
-		}
-		spin_unlock(&files->file_lock);
-
-		if (close_return) {
-			return;
-		}
-	}
 
 	getnstimeofday(&ts);
 
@@ -1357,13 +1355,6 @@ static void record_event_all_consumers_ret(enum ppm_event_type event_type,
 		record_event_consumer(consumer, event_type, drop_flags, &ts, event_datap);
 	}
 	rcu_read_unlock();
-}
-
-static void record_event_all_consumers(enum ppm_event_type event_type,
-	enum syscall_flags drop_flags,
-	struct event_data_t *event_datap)
-{
-	record_event_all_consumers_ret(event_type, drop_flags, event_datap, 0);
 }
 
 /*
@@ -1399,7 +1390,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		else if (consumer->need_to_insert_drop_x == 1)
 			record_drop_x(consumer, ts);
 
-		if (drop_event(consumer, event_type, drop_flags, ts))
+		if (drop_event(consumer, event_type, drop_flags, ts,
+			       event_datap->event_info.syscall_data.regs))
 			return res;
 	}
 
@@ -1802,7 +1794,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		event_data.compat = compat;
 
 		if (used)
-			record_event_all_consumers_ret(type, drop_flags, &event_data, ret);
+			record_event_all_consumers(type, drop_flags, &event_data);
 		else
 			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data);
 	}
