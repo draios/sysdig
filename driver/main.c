@@ -119,12 +119,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum syscall_flags drop_flags,
 	struct timespec *ts,
 	struct event_data_t *event_datap);
-static int record_event_consumer_ret(struct ppm_consumer_t *consumer,
-				     enum ppm_event_type event_type,
-				     enum syscall_flags drop_flags,
-				     struct timespec *ts,
-				     struct event_data_t *event_datap,
-				     long ret);
 static void record_event_all_consumers(enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
 	struct event_data_t *event_datap);
@@ -1286,11 +1280,7 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespe
 	}
 }
 
-static inline int drop_event(struct ppm_consumer_t *consumer,
-			     enum ppm_event_type event_type,
-			     enum syscall_flags drop_flags,
-			     struct timespec *ts,
-			     long ret)
+static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_type event_type, enum syscall_flags drop_flags, struct timespec *ts)
 {
 	if (drop_flags & UF_NEVER_DROP) {
 		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
@@ -1329,7 +1319,7 @@ static void record_event_all_consumers_ret(enum ppm_event_type event_type,
 	struct ppm_consumer_t *consumer;
 	struct timespec ts;
 
-	// CLOSE_E stuff
+	// CLOSE_E
 	struct pt_regs *regs = NULL;
 	unsigned long close_fd = -1;
 	struct files_struct *files;
@@ -1344,10 +1334,8 @@ static void record_event_all_consumers_ret(enum ppm_event_type event_type,
 		//&& consumer->dropping_mode ) {
 		return;
 	} else if (event_type == PPME_SYSCALL_CLOSE_E) {
-		// XXX make this work for all kernel versions
 		regs = event_datap->event_info.syscall_data.regs;
 		syscall_get_arguments(current, regs, 0, 1, &close_fd);
-		//vpr_info("close_enter for fd %ld\n", close_fd);
 
 		files = current->files;
 		spin_lock(&files->file_lock);
@@ -1356,9 +1344,6 @@ static void record_event_all_consumers_ret(enum ppm_event_type event_type,
 			close_return = true;
 		}
 		spin_unlock(&files->file_lock);
-
-		// XXX debugging to test spin_lock perf
-		//if (close_fd > 400000) { close_return = true; }
 
 		if (close_return) {
 			return;
@@ -1369,8 +1354,7 @@ static void record_event_all_consumers_ret(enum ppm_event_type event_type,
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-		record_event_consumer_ret(consumer, event_type, drop_flags,
-					  &ts, event_datap, ret);
+		record_event_consumer(consumer, event_type, drop_flags, &ts, event_datap);
 	}
 	rcu_read_unlock();
 }
@@ -1382,25 +1366,14 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 	record_event_all_consumers_ret(event_type, drop_flags, event_datap, 0);
 }
 
+/*
+ * Returns 0 if the event is dropped
+ */
 static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
 	struct timespec *ts,
 	struct event_data_t *event_datap)
-{
-	return record_event_consumer_ret(consumer, event_type, drop_flags,
-					 ts, event_datap, 0);
-}
-
-/*
- * Returns 0 if the event is dropped
- */
-static int record_event_consumer_ret(struct ppm_consumer_t *consumer,
-				     enum ppm_event_type event_type,
-				     enum syscall_flags drop_flags,
-				     struct timespec *ts,
-				     struct event_data_t *event_datap,
-				     long ret)
 {
 	int res = 0;
 	size_t event_size = 0;
@@ -1426,7 +1399,7 @@ static int record_event_consumer_ret(struct ppm_consumer_t *consumer,
 		else if (consumer->need_to_insert_drop_x == 1)
 			record_drop_x(consumer, ts);
 
-		if (drop_event(consumer, event_type, drop_flags, ts, ret))
+		if (drop_event(consumer, event_type, drop_flags, ts))
 			return res;
 	}
 
