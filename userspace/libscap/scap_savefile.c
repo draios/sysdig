@@ -745,7 +745,7 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 }
 
 // fname is only used for log messages in scap_setup_dump
-static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const char *fname)
+static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const char *fname, bool skip_proc_scan)
 {
 	scap_dumper_t* res = (scap_dumper_t*)malloc(sizeof(scap_dumper_t));
 	res->m_f = gzfile;
@@ -754,9 +754,20 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	res->m_targetbufcurpos = NULL;
 	res->m_targetbufend = NULL;
 
+	bool tmp_refresh_proc_table_when_saving = handle->refresh_proc_table_when_saving;
+	if(skip_proc_scan)
+	{
+		handle->refresh_proc_table_when_saving = false;
+	}
+
 	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
 	{
 		res = NULL;
+	}
+
+	if(skip_proc_scan)
+	{
+		handle->refresh_proc_table_when_saving = tmp_refresh_proc_table_when_saving;
 	}
 
 	return res;
@@ -816,12 +827,12 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 		return NULL;
 	}
 
-	return scap_dump_open_gzfile(handle, f, fname);
+	return scap_dump_open_gzfile(handle, f, fname, false);
 }
 
 //
 // Open a savefile for writing, using the provided fd
-scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress)
+scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress, bool skip_proc_scan)
 {
 	gzFile f = NULL;
 	const char* mode;
@@ -848,7 +859,7 @@ scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compre
 		return NULL;
 	}
 
-	return scap_dump_open_gzfile(handle, f, "");
+	return scap_dump_open_gzfile(handle, f, "", skip_proc_scan);
 }
 
 //

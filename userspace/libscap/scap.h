@@ -634,12 +634,12 @@ scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mod
 /*!
   \brief Open a tracefile for writing, using the provided fd.
 
-n  \param handle Handle to the capture instance.
-  \param fname The name of the tracefile.
+  \param handle Handle to the capture instance.
+  \param fd A file descriptor to which the dumper will write
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
-scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress);
+scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress, bool skip_proc_scan);
 
 /*!
   \brief Close a tracefile.

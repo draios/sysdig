@@ -91,23 +91,23 @@ void sinsp_dumper::fdopen(int fd, bool compress, bool threads_from_sinsp)
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
-	if(threads_from_sinsp)
-	{
-		m_inspector->m_thread_manager->to_scap();
-	}
-
 	if(compress)
 	{
-		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_GZIP);
+		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_GZIP, true);
 	}
 	else
 	{
-		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_NONE);
+		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_NONE, true);
 	}
 
 	if(m_dumper == NULL)
 	{
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+	}
+
+	if(threads_from_sinsp)
+	{
+		m_inspector->m_thread_manager->dump_threads_to_file(m_dumper);
 	}
 
 	m_inspector->m_container_manager.dump_containers(m_dumper);
