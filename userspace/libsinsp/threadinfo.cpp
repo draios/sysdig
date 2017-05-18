@@ -872,8 +872,19 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 
 inline void scpy(char* dst, const char* src, uint32_t maxlen)
 {
-	while(maxlen > 0)
+	if(maxlen == 0)
 	{
+		return;
+	}
+
+	while(true)
+	{
+		if(maxlen == 1)
+		{
+			*dst = 0;
+			return;
+		}
+
 		if(*src == 0)
 		{
 			*dst = 0;
@@ -885,7 +896,6 @@ inline void scpy(char* dst, const char* src, uint32_t maxlen)
 	}
 }
 
-
 void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
 {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
@@ -896,7 +906,7 @@ void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
 	{
 		uint32_t len = it->size() + 1;
 
-		strncpy(dst + tlen, it->c_str(), alen);
+		scpy(dst + tlen, it->c_str(), alen);
 
 		if(len >= alen) 
 		{
@@ -927,7 +937,7 @@ void sinsp_threadinfo::env_to_scap(scap_threadinfo* sctinfo)
 	{
 		uint32_t len = it->size() + 1;
 
-		strncpy(dst + tlen, it->c_str(), alen);
+		scpy(dst + tlen, it->c_str(), alen);
 
 		if(len >= alen) 
 		{
@@ -959,7 +969,7 @@ void sinsp_threadinfo::cgroups_to_scap(scap_threadinfo* sctinfo)
 		string a = it->first + "=" + it->second;
 		uint32_t len = a.size() + 1;
 
-		strncpy(dst + tlen, a.c_str(), alen);
+		scpy(dst + tlen, a.c_str(), alen);
 
 		if(len >= alen) 
 		{
