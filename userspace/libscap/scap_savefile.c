@@ -916,6 +916,18 @@ int64_t scap_dump_get_offset(scap_dumper_t *d)
 	}
 }
 
+int64_t scap_dump_ftell(scap_dumper_t *d)
+{
+	if(d->m_type == DT_FILE)
+	{
+		return gztell(d->m_f);
+	}
+	else
+	{
+		return (int64_t)d->m_targetbufcurpos - (int64_t)d->m_targetbuf;
+	}
+}
+
 void scap_dump_flush(scap_dumper_t *d)
 {
 	if(d->m_type == DT_FILE)

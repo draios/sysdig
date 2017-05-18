@@ -657,6 +657,15 @@ void scap_dump_close(scap_dumper_t *d);
 int64_t scap_dump_get_offset(scap_dumper_t *d);
 
 /*!
+  \brief Return the position for the next write to a tracefile.
+         This uses gztell, while scap_dump_get_offset uses gzoffset.
+
+  \param d The dump handle, returned by \ref scap_dump_open
+  \return The next write position.
+*/
+int64_t scap_dump_ftell(scap_dumper_t *d);
+
+/*!
   \brief Flush all pending output into the file.
 
   \param d The dump handle, returned by \ref scap_dump_open

@@ -170,6 +170,22 @@ uint64_t sinsp_dumper::written_bytes()
 	return written_bytes;
 }
 
+uint64_t sinsp_dumper::next_write_position()
+{
+	if(m_dumper == NULL)
+	{
+		return 0;
+	}
+
+	int64_t position = scap_dump_ftell(m_dumper);
+	if(position == -1)
+	{
+		throw sinsp_exception("error getting offset");
+	}
+
+	return position;
+}
+
 void sinsp_dumper::flush()
 {
 	if(m_dumper == NULL)

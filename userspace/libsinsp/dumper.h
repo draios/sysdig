@@ -97,6 +97,15 @@ public:
 	uint64_t written_bytes();
 
 	/*!
+	  \brief Return the starting position for the next write into
+          	  the file. (Under the covers, this uses gztell while
+        	  written_bytes uses gzoffset, which represent different values).
+
+	  \return The starting position for the next write.
+	*/
+	uint64_t next_write_position();
+
+	/*!
 	  \brief Flush all pending output into the file.
 	*/
 	void flush();

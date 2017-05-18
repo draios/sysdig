@@ -17,6 +17,7 @@ EXPORTS
 		scap_dump_close
 		scap_dump_get_offset
 		scap_dump_flush
+		scap_dump_ftell
 		scap_dump
 		scap_event_reset_count
 		scap_event_get_num
