@@ -28,6 +28,7 @@ class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
 class sinsp_tracerparser;
+class blprogram;
 
 typedef struct erase_fd_params
 {
@@ -337,6 +338,7 @@ VISIBILITY_PRIVATE
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
 	bool m_parent_loop_detected;
+	blprogram* m_blprogram;
 
 	friend class sinsp;
 	friend class sinsp_parser;

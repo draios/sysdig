@@ -88,6 +88,7 @@ void sinsp_threadinfo::init()
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
+	m_blprogram = NULL;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
