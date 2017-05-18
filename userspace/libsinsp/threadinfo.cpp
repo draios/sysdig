@@ -870,17 +870,33 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 }
 #endif
 
+inline void scpy(char* dst, const char* src, uint32_t maxlen)
+{
+	while(maxlen > 0)
+	{
+		if(*src == 0)
+		{
+			*dst = 0;
+			return;
+		}
+
+		*(dst++) = *(src++);
+		maxlen--;
+	}
+}
+
+
 void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
 {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
 	uint32_t tlen = 0;
 	char* dst = sctinfo->args;
 
-	for(auto a : m_args)
+	for(auto it = m_args.begin(); it != m_args.end(); ++it)
 	{
-		uint32_t len = a.size() + 1;
+		uint32_t len = it->size() + 1;
 
-		strncpy(dst + tlen, a.c_str(), alen);
+		strncpy(dst + tlen, it->c_str(), alen);
 
 		if(len >= alen) 
 		{
@@ -907,11 +923,11 @@ void sinsp_threadinfo::env_to_scap(scap_threadinfo* sctinfo)
 	uint32_t tlen = 0;
 	char* dst = sctinfo->env;
 
-	for(auto a : m_env)
+	for(auto it = m_env.begin(); it != m_env.end(); ++it)
 	{
-		uint32_t len = a.size() + 1;
+		uint32_t len = it->size() + 1;
 
-		strncpy(dst + tlen, a.c_str(), alen);
+		strncpy(dst + tlen, it->c_str(), alen);
 
 		if(len >= alen) 
 		{
@@ -938,9 +954,9 @@ void sinsp_threadinfo::cgroups_to_scap(scap_threadinfo* sctinfo)
 	uint32_t tlen = 0;
 	char* dst = sctinfo->cgroups;
 
-	for(auto cg : m_cgroups)
+	for(auto it = m_cgroups.begin(); it != m_cgroups.end(); ++it)
 	{
-		string a = cg.first + "=" + cg.second;
+		string a = it->first + "=" + it->second;
 		uint32_t len = a.size() + 1;
 
 		strncpy(dst + tlen, a.c_str(), alen);
@@ -1332,10 +1348,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 	scap_threadinfo sctinfo;
 
 	//
-	// Allocate the scap thread info
-	//
-
-	//
 	// First pass of the table to calculate the length
 	//
 	uint32_t totlen = 0;
@@ -1347,6 +1359,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		tinfo.args_to_scap(&sctinfo);
 		tinfo.env_to_scap(&sctinfo);
 		tinfo.cgroups_to_scap(&sctinfo);
+
 		string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
 
 		uint32_t il = (uint32_t)
