@@ -744,6 +744,35 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 	return SCAP_SUCCESS;
 }
 
+// fname is only used for log messages in scap_setup_dump
+static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const char *fname, bool skip_proc_scan)
+{
+	scap_dumper_t* res = (scap_dumper_t*)malloc(sizeof(scap_dumper_t));
+	res->m_f = gzfile;
+	res->m_type = DT_FILE;
+	res->m_targetbuf = NULL;
+	res->m_targetbufcurpos = NULL;
+	res->m_targetbufend = NULL;
+
+	bool tmp_refresh_proc_table_when_saving = handle->refresh_proc_table_when_saving;
+	if(skip_proc_scan)
+	{
+		handle->refresh_proc_table_when_saving = false;
+	}
+
+	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
+	{
+		res = NULL;
+	}
+
+	if(skip_proc_scan)
+	{
+		handle->refresh_proc_table_when_saving = tmp_refresh_proc_table_when_saving;
+	}
+
+	return res;
+}
+
 //
 // Open a "savefile" for writing.
 //
@@ -798,19 +827,39 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 		return NULL;
 	}
 
-	scap_dumper_t* res = (scap_dumper_t*)malloc(sizeof(scap_dumper_t));
-	res->m_f = f;
-	res->m_type = DT_FILE;
-	res->m_targetbuf = NULL;
-	res->m_targetbufcurpos = NULL;
-	res->m_targetbufend = NULL;
+	return scap_dump_open_gzfile(handle, f, fname, false);
+}
 
-	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
+//
+// Open a savefile for writing, using the provided fd
+scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress, bool skip_proc_scan)
+{
+	gzFile f = NULL;
+	const char* mode;
+
+	switch(compress)
 	{
-		res = NULL;
+	case SCAP_COMPRESSION_GZIP:
+		mode = "wb";
+		break;
+	case SCAP_COMPRESSION_NONE:
+		mode = "wbT";
+		break;
+	default:
+		ASSERT(false);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid compression mode");
+		return NULL;
 	}
 
-	return res;
+	f = gzdopen(fd, mode);
+
+	if(f == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open fd %d", fd);
+		return NULL;
+	}
+
+	return scap_dump_open_gzfile(handle, f, "", skip_proc_scan);
 }
 
 //
@@ -871,6 +920,18 @@ int64_t scap_dump_get_offset(scap_dumper_t *d)
 	if(d->m_type == DT_FILE)
 	{
 		return gzoffset(d->m_f);
+	}
+	else
+	{
+		return (int64_t)d->m_targetbufcurpos - (int64_t)d->m_targetbuf;
+	}
+}
+
+int64_t scap_dump_ftell(scap_dumper_t *d)
+{
+	if(d->m_type == DT_FILE)
+	{
+		return gztell(d->m_f);
 	}
 	else
 	{
@@ -1008,7 +1069,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.sid = -1;
 	tinfo.clone_ts = 0;
 	tinfo.tty = 0;
-	
+
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
 		//
@@ -1370,6 +1431,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	if(totreadsize > block_length)
 	{
 		ASSERT(false);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_proclist read more %lu than a block %u", totreadsize, block_length);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
@@ -1905,6 +1967,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 	if(totreadsize > block_length)
 	{
 		ASSERT(false);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_userlist read more %lu than a block %u", totreadsize, block_length);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
@@ -2006,6 +2069,7 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 	if(totreadsize > block_length)
 	{
 		ASSERT(false);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_fdlist read more %lu than a block %u", totreadsize, block_length);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
