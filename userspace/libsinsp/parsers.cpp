@@ -272,6 +272,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETRESGID_E:
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
+	case PPME_SYSCALL_EXECVE_18_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
@@ -336,6 +337,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -1109,6 +1111,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Copy the full executable name from the parent
 		tinfo.m_exe = ptinfo->m_exe;
 
+		// Copy the full executable path from the parent
+		tinfo.m_exepath = ptinfo->m_exepath;
+
 		// Copy the command arguments from the parent
 		tinfo.m_args = ptinfo->m_args;
 
@@ -1148,6 +1153,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 			tinfo.m_comm = ptinfo->m_comm;
 			tinfo.m_exe = ptinfo->m_exe;
+			tinfo.m_exepath = ptinfo->m_exepath;
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
 			tinfo.m_sid = ptinfo->m_sid;
@@ -1191,6 +1197,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 			ptinfo->m_comm = tinfo.m_comm;
 			ptinfo->m_exe = tinfo.m_exe;
+			ptinfo->m_exepath = tinfo.m_exepath;
 			ptinfo->set_args(parinfo->m_val, parinfo->m_len);
 		}
 	}
@@ -1453,6 +1460,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	sinsp_evt_param *parinfo;
 	int64_t retval;
 	uint16_t etype = evt->get_type();
+	sinsp_evt *enter_evt = &m_tmp_evt;
 
 	// Validate the return value
 	parinfo = evt->get_param(0);
@@ -1494,6 +1502,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1537,6 +1546,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1583,6 +1593,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1618,6 +1629,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_16_X:
 		break;
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1627,7 +1639,38 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 
-
+	switch(etype)
+	{
+		case PPME_SYSCALL_EXECVE_8_X:
+		case PPME_SYSCALL_EXECVE_13_X:
+		case PPME_SYSCALL_EXECVE_14_X:
+		case PPME_SYSCALL_EXECVE_15_X:
+		case PPME_SYSCALL_EXECVE_16_X:
+		case PPME_SYSCALL_EXECVE_17_X:
+			break;
+		case PPME_SYSCALL_EXECVE_18_X:
+			// Get exepath
+			if (retrieve_enter_event(enter_evt, evt))
+			{
+				char fullpath[SCAP_MAX_PATH_SIZE];
+				parinfo = enter_evt->get_param(0);
+				if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
+				{
+					evt->m_tinfo->m_exepath = "<NA>";
+				}
+				else
+				{
+					sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+												   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
+												   parinfo->m_val, (uint32_t)parinfo->m_len);
+					evt->m_tinfo->m_exepath = fullpath;
+				}
+			}
+			break;
+		default:
+			ASSERT(false);
+	}
+	
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -2276,7 +2319,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 		// causes a connect with the wrong socket type to fail.
 		// Assert in debug mode and just keep going in release mode.
 		//
-		ASSERT(evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK);
+		ASSERT(evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || evt->m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK);
 
 #ifndef HAS_ANALYZER
 		//

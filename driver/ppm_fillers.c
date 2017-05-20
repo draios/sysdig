@@ -68,6 +68,7 @@ static int f_sys_single_x(struct event_filler_arguments *args);		/* generic exit
 static int f_sys_open_x(struct event_filler_arguments *args);
 static int f_sys_read_x(struct event_filler_arguments *args);
 static int f_sys_write_x(struct event_filler_arguments *args);
+static int f_sys_execve_e(struct event_filler_arguments *args);
 static int f_proc_startupdate(struct event_filler_arguments *args);
 static int f_sys_socketpair_x(struct event_filler_arguments *args);
 static int f_sys_connect_x(struct event_filler_arguments *args);
@@ -290,8 +291,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_17_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_17_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_18_E] = {f_sys_execve_e},
+	[PPME_SYSCALL_EXECVE_18_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -1118,7 +1119,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_17_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_18_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -1393,7 +1394,7 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_17_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_18_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1445,6 +1446,25 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
+
+	return add_sentinel(args);
+}
+
+static int f_sys_execve_e(struct event_filler_arguments *args)
+{
+	int res;
+	unsigned long val;
+
+	/*
+	 * filename
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
+		res = val_to_ring(args, (unsigned long)"<NA>", 0, false, 0);
+
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	return add_sentinel(args);
 }
