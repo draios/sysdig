@@ -547,6 +547,11 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	}
 
 	//
+	// Gathers the exepath
+	//
+	snprintf(tinfo->exepath, target_res, "%s", filename);
+
+	//
 	// Gather the command name
 	//
 	snprintf(filename, sizeof(filename), "%sstatus", dir_name);

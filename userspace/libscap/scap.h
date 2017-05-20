@@ -198,6 +198,7 @@ typedef struct scap_threadinfo
 	uint64_t sid; ///< The session id of the process containing this thread.
 	char comm[SCAP_MAX_PATH_SIZE]; ///< Command name (e.g. "top")
 	char exe[SCAP_MAX_PATH_SIZE]; ///< argv[0] (e.g. "sshd: user@pts/4")
+	char exepath[SCAP_MAX_PATH_SIZE]; ///< full executable path
 	char args[SCAP_MAX_ARGS_SIZE]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
 	char env[SCAP_MAX_ENV_SIZE]; ///< Environment

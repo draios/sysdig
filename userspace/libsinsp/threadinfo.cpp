@@ -358,6 +358,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 
 	m_comm = pi->comm;
 	m_exe = pi->exe;
+	m_exepath = pi->exepath;
 	set_args(pi->args, pi->args_len);
 	set_env(pi->env, pi->env_len);
 	set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
@@ -1269,6 +1270,7 @@ void sinsp_thread_manager::to_scap()
 
 		strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
 		strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
+		strncpy(sctinfo->exepath, tinfo.m_exepath.c_str(), SCAP_MAX_PATH_SIZE);
 		tinfo.args_to_scap(sctinfo);
 		tinfo.env_to_scap(sctinfo);
 		string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
