@@ -329,6 +329,16 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 			return SCAP_FAILURE;
 		}
 
+		// Hack to detect empty fields, because strtok does not support it
+		// strsep() should be used to fix this but it's not available
+		// on CentOS 6 (has been added from Glibc 2.19)
+		if(subsys_list-token-strlen(token) > 1)
+		{
+			// skip cgroups like this:
+			// 0::/init.scope
+			continue;
+		}
+
 		// transient cgroup
 		if(strncmp(subsys_list, "name=", sizeof("name=") - 1) == 0)
 		{

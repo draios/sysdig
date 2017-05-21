@@ -2376,6 +2376,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 					case SCAP_FD_UNSUPPORTED:
 					case SCAP_FD_EVENTPOLL:
 					case SCAP_FD_TIMERFD:
+					case SCAP_FD_NETLINK:
 						cat->m_subcategory = SC_OTHER;
 						break;
 					case SCAP_FD_UNKNOWN:

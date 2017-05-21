@@ -288,7 +288,7 @@ scap_t* scap_open_live_int(char *error,
 }
 #endif // HAS_CAPTURE
 
-scap_t* scap_open_offline_int(const char* fname,
+scap_t* scap_open_offline_int(gzFile gzfile,
 							  char *error,
 							  proc_entry_callback proc_callback,
 							  void* proc_callback_context,
@@ -334,16 +334,7 @@ scap_t* scap_open_offline_int(const char* fname,
 		return NULL;
 	}
 
-	//
-	// Open the file
-	//
-	handle->m_file = gzopen(fname, "rb");
-	if(handle->m_file == NULL)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", fname);
-		scap_close(handle);
-		return NULL;
-	}
+	handle->m_file = gzfile;
 
 	//
 	// If this is a merged file, we might have to move the read offset to the next section
@@ -358,7 +349,7 @@ scap_t* scap_open_offline_int(const char* fname,
 	//
 	if(scap_read_init(handle, handle->m_file) != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", scap_getlasterr(handle));
+		snprintf(error, SCAP_LASTERR_SIZE, "Could not initialize reader: %s", scap_getlasterr(handle));
 		scap_close(handle);
 		return NULL;
 	}
@@ -387,7 +378,26 @@ scap_t* scap_open_offline_int(const char* fname,
 
 scap_t* scap_open_offline(const char* fname, char *error)
 {
-	return scap_open_offline_int(fname, error, NULL, NULL, true, 0);
+	gzFile gzfile = gzopen(fname, "rb");
+	if(gzfile == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", fname);
+		return NULL;
+	}
+
+	return scap_open_offline_int(gzfile, error, NULL, NULL, true, 0);
+}
+
+scap_t* scap_open_offline_fd(int fd, char *error)
+{
+	gzFile gzfile = gzdopen(fd, "rb");
+	if(gzfile == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't open fd %d", fd);
+		return NULL;
+	}
+
+	return scap_open_offline_int(gzfile, error, NULL, NULL, true, 0);
 }
 
 scap_t* scap_open_live(char *error)
@@ -494,9 +504,35 @@ scap_t* scap_open(scap_open_args args, char *error)
 	switch(args.mode)
 	{
 	case SCAP_MODE_CAPTURE:
-		return scap_open_offline_int(args.fname, error,
+	{
+		gzFile gzfile;
+
+		if(args.fd != 0)
+		{
+			gzfile = gzdopen(args.fd, "rb");
+		}
+		else
+		{
+			gzfile = gzopen(args.fname, "rb");
+		}
+
+		if(gzfile == NULL)
+		{
+			if(args.fd != 0)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "can't open fd %d", args.fd);
+			}
+			else
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", args.fname);
+			}
+			return NULL;
+		}
+
+		return scap_open_offline_int(gzfile, error,
 									 args.proc_callback, args.proc_callback_context,
 									 args.import_users, args.start_offset);
+	}
 	case SCAP_MODE_LIVE:
 		return scap_open_live_int(error, args.proc_callback,
 								  args.proc_callback_context,
