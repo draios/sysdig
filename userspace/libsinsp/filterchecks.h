@@ -370,6 +370,7 @@ public:
 		TYPE_THREAD_VMRSS_B = 39,
 		TYPE_SID = 40,
 		TYPE_SNAME = 41,
+		TYPE_TTY = 42,
 	};
 
 	sinsp_filter_check_thread();
