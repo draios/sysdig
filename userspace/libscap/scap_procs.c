@@ -310,9 +310,10 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		char* token;
 		char* subsys_list;
 		char* cgroup;
+		char* scratch;
 
 		// id
-		token = strtok(line, ":");
+		token = strtok_r(line, ":", &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -321,7 +322,7 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		}
 
 		// subsys
-		subsys_list = strtok(NULL, ":");
+		subsys_list = strtok_r(NULL, ":", &scratch);
 		if(subsys_list == NULL)
 		{
 			ASSERT(false);
@@ -346,7 +347,7 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		}
 
 		// cgroup
-		cgroup = strtok(NULL, ":");
+		cgroup = strtok_r(NULL, ":", &scratch);
 		if(cgroup == NULL)
 		{
 			ASSERT(false);
@@ -357,7 +358,7 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		// remove the \n
 		cgroup[strlen(cgroup) - 1] = 0;
 
-		while((token = strtok(subsys_list, ",")) != NULL)
+		while((token = strtok_r(subsys_list, ",", &scratch)) != NULL)
 		{
 			subsys_list = NULL;
 			if(strlen(cgroup) + 1 + strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len)

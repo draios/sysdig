@@ -750,6 +750,8 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 	}
 	while(NULL != fgets(line, sizeof(line), f))
 	{
+		char *scratch;
+
 		// skip the first line ... contains field names
 		if(!first_line)
 		{
@@ -764,7 +766,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		// parse the fields
 		//
 		// 1. Num
-		token = strtok(line, delimiters);
+		token = strtok_r(line, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -776,7 +778,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		fdinfo->info.unix_socket_info.destination = 0;
 
 		// 2. RefCount
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -785,7 +787,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		}
 
 		// 3. Protocol
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -794,7 +796,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		}
 
 		// 4. Flags
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -803,7 +805,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		}
 
 		// 5. Type
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -812,7 +814,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		}
 
 		// 6. St
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -821,7 +823,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		}
 		
 		// 7. Inode
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -832,7 +834,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		sscanf(token, "%"PRIu64, &(fdinfo->ino));
 
 		// 8. Path
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(NULL != token)
 		{
 			strncpy(fdinfo->info.unix_socket_info.fname, token, SCAP_MAX_PATH_SIZE);
@@ -873,6 +875,8 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 	}
 	while(NULL != fgets(line, sizeof(line), f))
 	{
+		char *scratch;
+
 		// skip the first line ... contains field names
 		if(!first_line)
 		{
@@ -888,7 +892,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		// parse the fields
 		//
 		// 1. Num
-		token = strtok(line, delimiters);
+		token = strtok_r(line, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -897,7 +901,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 2. Eth
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -906,7 +910,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 3. Pid
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -915,7 +919,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 4. Groups
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -924,7 +928,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 5. Rmem
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -933,7 +937,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 6. Wmem
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -942,7 +946,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 7. Dump
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -951,7 +955,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 8. Locks
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -960,7 +964,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 9. Drops
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -969,7 +973,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		}
 
 		// 10. Inode
-		token = strtok(NULL, delimiters);
+		token = strtok_r(NULL, delimiters, &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
