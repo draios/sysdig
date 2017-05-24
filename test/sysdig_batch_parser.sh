@@ -54,7 +54,7 @@ do
 	echo "Corresponding reference file $ref does not exist--skipping"
     else
 	echo "Processing $f"
-	TZ=UTC eval ${TIMEOUT_BIN} 60 $SYSDIG -N -r $f $ARGS > $DIRNAME/$(basename $f).output
+	TZ=UTC eval ${TIMEOUT_BIN} 60 $SYSDIG -r $f $ARGS > $DIRNAME/$(basename $f).output
     fi
 done
 
