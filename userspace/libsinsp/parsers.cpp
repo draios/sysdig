@@ -201,7 +201,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			//
 			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
-			if(fdinfo == NULL)
+			if(fdinfo == NULL && evt->m_tinfo != nullptr)
 			{
 				fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 				evt->m_fdinfo = fdinfo;
@@ -275,7 +275,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
-		if(!m_inspector->m_is_dumping)
+		if(!m_inspector->m_is_dumping && evt->m_tinfo != nullptr)
 		{
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 			if(evt->m_fdinfo)
@@ -3519,6 +3519,11 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
 	int64_t retval;
+
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
 
 	//
 	// Extract the return value
