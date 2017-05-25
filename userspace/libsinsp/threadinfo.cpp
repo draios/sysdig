@@ -364,8 +364,8 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	if(is_main_thread())
 	{
 		set_env(pi->env, pi->env_len);
+		set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
 	}
-	set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
 	m_flags |= pi->flags;
 	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
 	m_fdtable.clear();
