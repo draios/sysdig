@@ -2611,6 +2611,12 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt)
 		return;
 	}
 
+	if(evt->m_tinfo == nullptr)
+	{
+		// There is nothing we can do here if tinfo is missing
+		return;
+	}
+
 	parinfo = evt->get_param(1);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	fd1 = *(int64_t *)parinfo->m_val;
