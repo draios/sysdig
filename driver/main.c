@@ -1301,8 +1301,15 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			files = current->files;
 			spin_lock(&files->file_lock);
 			fdt = files_fdtable(files);
-			if (close_fd >= fdt->max_fds || !fd_is_open(close_fd, fdt)) {
-				close_return = true;
+			if (close_fd >= fdt->max_fds) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
+				if (!FD_ISSET(close_fd, fdt->open_fds))
+#else
+				if (!fd_is_open(close_fd, fdt))
+#endif
+				{
+					close_return = true;
+				}
 			}
 			spin_unlock(&files->file_lock);
 		}
