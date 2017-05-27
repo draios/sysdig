@@ -500,6 +500,14 @@ int64_t sinsp::get_file_size(const std::string& fname, char *error)
 	return -1;
 }
 
+void sinsp::set_simpledriver_mode()
+{
+	if(scap_enable_simpledriver_mode(m_h) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));		
+	}
+}
+
 std::string sinsp::get_error_desc(const std::string& msg)
 {
 #ifdef _WIN32

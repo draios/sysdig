@@ -933,6 +933,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
+int32_t scap_enable_simpledriver_mode(scap_t* handle);
 
 #ifdef __cplusplus
 }
