@@ -5,6 +5,9 @@ os:
 env:
     - BUILD_TYPE=Debug
     - BUILD_TYPE=Release
+sudo: required
+services:
+    - docker
 before_install:
     - .travis-scripts/${TRAVIS_OS_NAME}/before_install.sh
 install:
