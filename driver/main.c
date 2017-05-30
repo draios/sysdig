@@ -1287,36 +1287,38 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 	struct fdtable *fdt;
 	bool close_return = false;
 
-	// It's annoying but valid for a program to make a large number of
-	// close() calls on nonexistent fds. That can cause driver cpu usage
-	// to spike dramatically, so drop close events if the fd is not valid.
+	/*
+	 * It's annoying but valid for a program to make a large number of
+	 * close() calls on nonexistent fds. That can cause driver cpu usage
+	 * to spike dramatically, so drop close events if the fd is not valid.
+	 *
+	 * The invalid fd events don't matter to userspace in dropping mode,
+	 * so we do this before the UF_NEVER_DROP check
+	 */
 	if (consumer->dropping_mode) {
 		if (event_type == PPME_SYSCALL_CLOSE_X) {
-			if (syscall_get_return_value(current, regs) < 0) {
+			if (syscall_get_return_value(current, regs) < 0)
 				close_return = true;
-			}
 		} else if (event_type == PPME_SYSCALL_CLOSE_E) {
 			syscall_get_arguments(current, regs, 0, 1, &close_fd);
 
 			files = current->files;
 			spin_lock(&files->file_lock);
 			fdt = files_fdtable(files);
-			if (close_fd >= fdt->max_fds) {
+			if (close_fd >= fdt->max_fds ||
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
-				if (!FD_ISSET(close_fd, fdt->open_fds))
+			    !FD_ISSET(close_fd, fdt->open_fds)
 #else
-				if (!fd_is_open(close_fd, fdt))
+			    !fd_is_open(close_fd, fdt)
 #endif
-				{
-					close_return = true;
-				}
+				) {
+				close_return = true;
 			}
 			spin_unlock(&files->file_lock);
 		}
 
-		if (close_return) {
+		if (close_return)
 			return 1;
-		}
 	}
 
 	if (drop_flags & UF_NEVER_DROP) {
