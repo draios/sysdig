@@ -560,7 +560,17 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	//
 	// Gathers the exepath
 	//
-	snprintf(tinfo->exepath, target_res, "%s", filename);
+	snprintf(tinfo->exepath, sizeof(tinfo->exepath), "%s", target_name);
+
+	// null-terminate exepath (readlink() does not append a null byte)
+	if (target_res < sizeof(tinfo->exepath))
+	{
+		tinfo->exepath[target_res] = 0;
+	}
+	else
+	{
+		tinfo->exepath[sizeof(tinfo) - 1] = 0;
+	}
 
 	//
 	// Gather the command name
