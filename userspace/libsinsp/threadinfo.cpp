@@ -456,6 +456,11 @@ string sinsp_threadinfo::get_exe()
 	return m_exe;
 }
 
+string sinsp_threadinfo::get_exepath()
+{
+	return m_exepath;
+}
+
 void sinsp_threadinfo::set_args(const char* args, size_t len)
 {
 	m_args.clear();

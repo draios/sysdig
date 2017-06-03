@@ -68,9 +68,14 @@ public:
 	string get_comm();
 
 	/*!
-	  \brief Return the full name of the process containing this thread, e.g. "/bin/top".
+	  \brief Return the name of the process containing this thread from argv[0], e.g. "/bin/top".
 	*/
 	string get_exe();
+
+	/*!
+	  \brief Return the full executable path of the process containing this thread, e.g. "/bin/top".
+	*/
+	string get_exepath();
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.

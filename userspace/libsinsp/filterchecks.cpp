@@ -1341,7 +1341,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
-	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."}
+	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."}
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1670,6 +1671,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_EXE:
 		m_tstr = tinfo->get_exe();
+		*len = m_tstr.size();
+		return (uint8_t*)m_tstr.c_str();
+	case TYPE_EXEPATH:
+		m_tstr = tinfo->get_exepath();
 		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_ARGS:
