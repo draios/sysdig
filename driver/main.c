@@ -575,6 +575,11 @@ static int ppm_release(struct inode *inode, struct file *filp)
 			tracepoint_synchronize_unregister();
 #endif
 			g_tracepoint_registered = false;
+
+			/*
+			 * While we're here, disable simple mode if it's active
+			 */
+			g_simple_mode_enabled = false;
 		} else {
 			ASSERT(false);
 		}
