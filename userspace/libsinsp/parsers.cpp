@@ -1465,23 +1465,16 @@ void sinsp_parser::parse_execve_enter(sinsp_evt *evt)
 
 	switch(etype)
 	{
-		case PPME_SYSCALL_EXECVE_8_E:
-		case PPME_SYSCALL_EXECVE_13_E:
-		case PPME_SYSCALL_EXECVE_14_E:
-		case PPME_SYSCALL_EXECVE_15_E:
-		case PPME_SYSCALL_EXECVE_16_E:
-		case PPME_SYSCALL_EXECVE_17_E:
-			break;
-		case PPME_SYSCALL_EXECVE_18_E:
-			// Get the filename
-			parinfo = evt->get_param(0);
-			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-										   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
-										   parinfo->m_val, (uint32_t)parinfo->m_len);
-			evt->m_tinfo->m_exepath = fullpath;
-			break;
-		default:
-			ASSERT(false);
+	case PPME_SYSCALL_EXECVE_18_E:
+		// Get the filename
+		parinfo = evt->get_param(0);
+		sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+									   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
+									   parinfo->m_val, (uint32_t)parinfo->m_len);
+		evt->m_tinfo->m_exepath = fullpath;
+		break;
+	default:
+		ASSERT(false);
 	}
 }
 
