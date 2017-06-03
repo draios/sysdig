@@ -271,6 +271,7 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 {
 	uint16_t commlen;
 	uint16_t exelen;
+	uint16_t exepathlen;
 	uint16_t argslen;
 	uint16_t cwdlen;
 	uint16_t rootlen;
@@ -280,6 +281,7 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 	//
 	commlen = (uint16_t)strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
 	exelen = (uint16_t)strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
+	exepathlen = (uint16_t)strnlen(tinfo->exepath, SCAP_MAX_PATH_SIZE);
 	argslen = tinfo->args_len;
 	cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
 	rootlen = (uint16_t)strnlen(tinfo->root, SCAP_MAX_PATH_SIZE);
@@ -292,6 +294,8 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 		    scap_dump_write(d, tinfo->comm, commlen) != commlen ||
 		    scap_dump_write(d, &exelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, tinfo->exe, exelen) != exelen ||
+			scap_dump_write(d, &exepathlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+			scap_dump_write(d, tinfo->exepath, exepathlen) != exepathlen ||
 		    scap_dump_write(d, &argslen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, tinfo->args, argslen) != argslen ||
 		    scap_dump_write(d, &cwdlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
@@ -344,6 +348,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				sizeof(uint64_t) +	// sid
 				2 + strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE) +
 				2 + strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE) +
+				2 + strnlen(tinfo->exepath, SCAP_MAX_PATH_SIZE) +
 				2 + tinfo->args_len +
 				2 + strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE) +
 				sizeof(uint64_t) +	// fdlimit
@@ -1161,6 +1166,28 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		// the string is not null-terminated on file
 		tinfo.exe[stlen] = 0;
+
+		totreadsize += readsize;
+
+		//
+		// exepath
+		//
+		readsize = gzread(f, &(stlen), sizeof(uint16_t));
+		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+
+		if(stlen > SCAP_MAX_PATH_SIZE)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid exepathlen %d", stlen);
+			return SCAP_FAILURE;
+		}
+
+		totreadsize += readsize;
+
+		readsize = gzread(f, tinfo.exepath, stlen);
+		CHECK_READ_SIZE(readsize, stlen);
+
+		// the string is not null-terminated on file
+		tinfo.exepath[stlen] = 0;
 
 		totreadsize += readsize;
 
