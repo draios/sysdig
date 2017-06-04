@@ -312,9 +312,9 @@ VISIBILITY_PRIVATE
 	void allocate_private_state();
 	void compute_program_hash();
 	sinsp_threadinfo* lookup_thread();
-	void args_to_scap(scap_threadinfo* sctinfo);
-	void env_to_scap(scap_threadinfo* sctinfo);
-	void cgroups_to_scap(scap_threadinfo* sctinfo);
+	inline void args_to_scap(scap_threadinfo* sctinfo);
+	inline void env_to_scap(scap_threadinfo* sctinfo);
+	inline void cgroups_to_scap(scap_threadinfo* sctinfo);
 	void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src);
 
 	//  void push_fdop(sinsp_fdop* op);
@@ -422,6 +422,8 @@ private:
 	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
+	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
+	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
