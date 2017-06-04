@@ -497,9 +497,31 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 	}
 }
 
-string sinsp_threadinfo::get_env(const string& name) const
+const vector<string>& sinsp_threadinfo::get_env()
 {
-	for(const auto& env_var : m_env)
+	if(is_main_thread())
+	{
+		return m_env;
+	}
+	else
+	{
+		auto mtinfo = get_main_thread();
+		if(mtinfo != nullptr)
+		{
+			return mtinfo->get_env();
+		}
+		else
+		{
+			// it should never happen but provide a safe fallback just in case
+			ASSERT(false);
+			return m_env;
+		}
+	}
+}
+
+string sinsp_threadinfo::get_env(const string& name)
+{
+	for(const auto& env_var : get_env())
 	{
 		if((env_var.length() > name.length()) && (env_var.substr(0, name.length()) == name))
 		{

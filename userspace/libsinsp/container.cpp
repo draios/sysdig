@@ -425,7 +425,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 				sinsp_threadinfo::visitor_func_t visitor = [&rkt_podid, &container_info, &rkt_appname, &valid_id] (sinsp_threadinfo *ptinfo)
 				{
-					for(const auto& env_var : ptinfo->m_env)
+					for(const auto& env_var : ptinfo->get_env())
 					{
 						auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
 						if(container_uuid_pos == 0)

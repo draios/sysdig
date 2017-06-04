@@ -3602,7 +3602,7 @@ void sinsp_parser::parse_signalfd_exit(sinsp_evt *evt)
 	{
 		return;
 	}
-	
+
 	//
 	// Check if the syscall was successful
 	//
