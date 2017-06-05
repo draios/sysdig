@@ -256,7 +256,7 @@ public:
 	/*!
 	  \brief Start an event capture from a file descriptor.
 
-	  \param filename the trace file name.
+	  \param fd the file descriptor
 
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
