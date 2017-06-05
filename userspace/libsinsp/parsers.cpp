@@ -1832,6 +1832,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	string sdir;
 
 	ASSERT(evt->m_tinfo);
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
 
 	//
 	// Load the enter event so we can access its arguments
@@ -2072,6 +2076,11 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 		//
 		// socket() failed. Nothing to add to the table.
 		//
+		return;
+	}
+
+	if(evt->m_tinfo == nullptr)
+	{
 		return;
 	}
 
@@ -2510,7 +2519,7 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt)
 	//
 	if(retval >= 0)
 	{
-		if(evt->m_fdinfo == NULL)
+		if(evt->m_fdinfo == NULL || evt->m_tinfo == nullptr)
 		{
 			return;
 		}
@@ -3412,7 +3421,7 @@ void sinsp_parser::parse_fchdir_exit(sinsp_evt *evt)
 		//
 		// Find the fd name
 		//
-		if(evt->m_fdinfo == NULL)
+		if(evt->m_fdinfo == NULL || evt->m_tinfo == nullptr)
 		{
 			return;
 		}
@@ -3700,6 +3709,11 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 	uint8_t resource;
 	int64_t curval;
 
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+	
 	//
 	// Extract the return value
 	//
