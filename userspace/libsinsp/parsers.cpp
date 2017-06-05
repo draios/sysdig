@@ -3667,6 +3667,11 @@ void sinsp_parser::parse_inotify_init_exit(sinsp_evt *evt)
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
 	//
 	// Check if the syscall was successful
 	//
@@ -4242,7 +4247,7 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 {
 	auto parinfo = evt->get_param(0);
 	auto retval = *(int64_t *)parinfo->m_val;
-	if(retval == 0)
+	if(retval == 0 && evt->m_tinfo != nullptr)
 	{
 		const char* resolved_path;
 		auto path = evt->get_param_as_str(1, &resolved_path);
