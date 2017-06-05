@@ -1282,7 +1282,8 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			     struct timespec *ts,
 			     struct pt_regs *regs)
 {
-	unsigned long close_fd = -1;
+	unsigned long close_arg = 0;
+	int close_fd = -1;
 	struct files_struct *files;
 	struct fdtable *fdt;
 	bool close_return = false;
@@ -1300,7 +1301,8 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			if (syscall_get_return_value(current, regs) < 0)
 				close_return = true;
 		} else if (event_type == PPME_SYSCALL_CLOSE_E) {
-			syscall_get_arguments(current, regs, 0, 1, &close_fd);
+			syscall_get_arguments(current, regs, 0, 1, &close_arg);
+			close_fd = (int)close_arg;
 
 			files = current->files;
 			spin_lock(&files->file_lock);
