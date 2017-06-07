@@ -519,7 +519,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					ASSERT(false);
 			}
 
-			m_containers.insert(std::make_pair(container_info.m_id, container_info));
+			add_container(container_info);
 			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;
