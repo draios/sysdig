@@ -399,7 +399,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					container_info.m_name = rkt_appname;
 					valid_id = true;
 					break;
-                                }
+				}
 			}
 		}
 	}
