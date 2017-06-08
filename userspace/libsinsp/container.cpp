@@ -366,7 +366,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					string::size_type dot_pos = tokens[2].find('.');
 					if (dot_pos == string::npos)
 						continue;
-					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 2, dot_pos - sizeof("machine-rkt") - 2);
+					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 3, dot_pos - sizeof("machine-rkt") - 3);
 					replace_in_place(rkt_podid, "\\x2d", "-");
 					dot_pos = tokens[4].find('.');
 					if (dot_pos == string::npos)
@@ -399,7 +399,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					container_info.m_name = rkt_appname;
 					valid_id = true;
 					break;
-                                }
+				}
 			}
 		}
 	}
