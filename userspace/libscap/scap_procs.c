@@ -469,7 +469,7 @@ int32_t scap_proc_fill_root(struct scap_threadinfo* tinfo, const char* procdirna
 static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
 {
 	char dir_name[256];
-	char target_name[256];
+	char target_name[SCAP_MAX_PATH_SIZE];
 	int target_res;
 	char filename[252];
 	char line[SCAP_MAX_ENV_SIZE];
@@ -516,6 +516,13 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		{
 			fclose(f);
 		}
+
+		target_name[0] = 0;
+	}
+	else
+	{
+		// null-terminate target_name (readlink() does not append a null byte)
+		target_name[target_res] = 0;
 	}
 
 	//
@@ -561,16 +568,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	// Gathers the exepath
 	//
 	snprintf(tinfo->exepath, sizeof(tinfo->exepath), "%s", target_name);
-
-	// null-terminate exepath (readlink() does not append a null byte)
-	if (target_res < sizeof(tinfo->exepath))
-	{
-		tinfo->exepath[target_res] = 0;
-	}
-	else
-	{
-		tinfo->exepath[sizeof(tinfo) - 1] = 0;
-	}
 
 	//
 	// Gather the command name
