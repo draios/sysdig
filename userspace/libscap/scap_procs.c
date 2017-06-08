@@ -489,7 +489,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	// Gather the executable full name
 	//
 	target_res = readlink(filename, target_name, sizeof(target_name) - 1);			// Getting the target of the exe, i.e. to which binary it points to
-	target_name[target_res] = 0;													// null-terminate target_name (readlink() does not append a null byte)
 
 	if(target_res <= 0)
 	{
