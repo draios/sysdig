@@ -247,6 +247,12 @@ const char* param_type_to_string(ppm_param_type pt)
 	case PT_DOUBLE:
 		return "DOUBLE";
 		break;
+	case PT_CHARBUFARRAY:
+		return "CHARBUFARRAY";
+		break;
+	case PT_CHARBUF_PAIR_ARRAY:
+		return "CHARBUF_PAIR_ARRAY";
+		break;
 	default:
 		ASSERT(false);
 		return "<NA>";
