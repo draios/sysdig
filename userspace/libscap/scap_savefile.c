@@ -1074,6 +1074,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.sid = -1;
 	tinfo.clone_ts = 0;
 	tinfo.tty = 0;
+	tinfo.exepath[0] = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
@@ -1204,7 +1205,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			tinfo.exepath[stlen] = 0;
 
 			totreadsize += readsize;
-				
+
 			break;
 		default:
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
