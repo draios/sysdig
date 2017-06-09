@@ -347,7 +347,7 @@ VISIBILITY_PRIVATE
 	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 };
 
 /*@}*/
@@ -445,5 +445,5 @@ private:
 	friend class sinsp_analyzer;
 	friend class sinsp;
 	friend class sinsp_threadinfo;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 };
