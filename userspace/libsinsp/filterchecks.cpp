@@ -1308,7 +1308,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exeline", "full process command line, with exe as first argument, i.e. proc.exe + proc.args."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "the current working directory of the event."},
 	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nthreads", "the number of threads that the process generating the event currently has, including the main process thread."},
-	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "the number of child threads that the process generating the event currently has. This excludes the main process thread."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchildthreads", "the number of child threads that the process generating the event currently has. This excludes the main process thread."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.ppid", "the pid of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "the name (excluding the path) of the parent of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pcmdline", "the full command line (proc.name + proc.args) of the parent of the process generating the event."},
@@ -1741,11 +1741,13 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_NTHREADS:
+	case TYPE_NCHILDTHREADS:
 		{
 			sinsp_threadinfo* ptinfo = tinfo->get_main_thread();
 			if(ptinfo)
 			{
-				m_u64val = ptinfo->m_nchilds + 1;
+				uint64_t count_main = m_field_id == TYPE_NTHREADS ? 1 : 0;
+				m_u64val = ptinfo->m_nchildthreads + count_main;
 				return (uint8_t*)&m_u64val;
 			}
 			else
@@ -1754,8 +1756,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				return NULL;
 			}
 		}
-	case TYPE_NCHILDS:
-		return (uint8_t*)&tinfo->m_nchilds;
 	case TYPE_ISMAINTHREAD:
 		m_tbool = (uint32_t)tinfo->is_main_thread();
 		return (uint8_t*)&m_tbool;

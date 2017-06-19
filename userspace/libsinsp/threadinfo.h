@@ -223,7 +223,7 @@ public:
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid; ///< user id
 	uint32_t m_gid; ///< group id
-	uint64_t m_nchilds; ///< When this is 0 the process can be deleted
+	uint64_t m_nchildthreads; ///< Used in the main thread of a process to count the number of child threads. When this is 0 the process can be deleted
 	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
 	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
 	uint32_t m_vmswap_kb; ///< swapped memory (as kb).

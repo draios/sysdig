@@ -760,7 +760,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 		lua_pushnumber(ls, (uint32_t)it->second.m_gid);
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "nchilds");
-		lua_pushnumber(ls, (uint32_t)it->second.m_nchilds);
+		lua_pushnumber(ls, (uint32_t)it->second.m_nchildthreads);
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "vmsize_kb");
 		lua_pushnumber(ls, (uint32_t)it->second.m_vmsize_kb);
