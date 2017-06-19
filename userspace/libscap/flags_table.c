@@ -414,3 +414,10 @@ const struct ppm_name_value access_flags[] = {
 	{"X_OK", PPM_X_OK},
 	{0, 0},
 };
+
+const struct ppm_name_value prctl_options[] = {
+	{"PR_SET_CHILD_SUBREAPER", PPM_PRCTL_SET_CHILD_SUBREAPER},
+	{"PR_GET_CHILD_SUBREAPER", PPM_PRCTL_GET_CHILD_SUBREAPER},
+	{"PR_UNKNOWN", PPM_PRCTL_UNKNOWN},
+	{ },
+};

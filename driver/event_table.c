@@ -308,4 +308,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EXECVE_17_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 17, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC} } },
 	/* PPME_SYSCALL_UNSHARE_E */ {"unshare", EC_PROCESS, EF_NONE, 1, {{"flags", PT_FLAGS32, PF_HEX, clone_flags} } },
 	/* PPME_SYSCALL_UNSHARE_X */ {"unshare", EC_PROCESS, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_PRCTL_E */ {"prctl", EC_PROCESS, EF_MODIFIES_STATE, 0},
+	/* PPME_SYSCALL_PRCTL_E */ {"prctl", EC_PROCESS, EF_MODIFIES_STATE, 6, {{"res", PT_ERRNO, PF_DEC}, {"option", PT_FLAGS16, PF_DEC, prctl_options}, {"arg2", PT_UINT64, PF_DEC}, {"arg3", PT_UINT64, PF_DEC}, {"arg4", PT_UINT64, PF_DEC}, {"arg5", PT_UINT64, PF_DEC}}},
 };

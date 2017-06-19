@@ -451,6 +451,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_R_OK            (1 << 2)
 
 /*
+ * prctl options
+ */
+#define PPM_PRCTL_UNKNOWN 0
+#define PPM_PRCTL_SET_CHILD_SUBREAPER 1
+#define PPM_PRCTL_GET_CHILD_SUBREAPER 2
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -780,7 +787,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_17_X = 283,
 	PPME_SYSCALL_UNSHARE_E = 284,
 	PPME_SYSCALL_UNSHARE_X = 285,
-	PPM_EVENT_MAX = 286
+	PPME_SYSCALL_PRCTL_E = 286,
+	PPME_SYSCALL_PRCTL_X = 287,
+	PPM_EVENT_MAX = 288
 };
 /*@}*/
 
@@ -1305,6 +1314,7 @@ extern const struct ppm_name_value semop_flags[];
 extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
+extern const struct ppm_name_value prctl_options[];
 
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
