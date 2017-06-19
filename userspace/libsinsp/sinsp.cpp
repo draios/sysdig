@@ -1365,6 +1365,14 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 			}
 		}
 
+		for(it = pttable->begin(); it != pttable->end(); ++it)
+		{
+			if(it->second.m_ptid == tid)
+			{
+				newti.m_children.insert(it->second.m_tid);
+			}
+		}
+
 		//
 		// Done. Add the new thread to the list.
 		//

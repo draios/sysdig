@@ -1342,7 +1342,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
 	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."},
-	{PT_BOOL, EPF_NONE, PF_NA, "thread.is_child_subreaper", "true if the thread generating the event has been set as a child subreaper."}
+	{PT_BOOL, EPF_NONE, PF_NA, "thread.is_child_subreaper", "true if the thread generating the event has been set as a child subreaper."},
+	{PT_INT32, EPF_NONE, PF_DEC, "proc.nchildren", "the current number of children of the process generating the event."}
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1760,6 +1761,20 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_IS_CHILD_SUBREAPER:
 		m_tbool = tinfo->m_is_child_subreaper;
 		return (uint8_t*)&m_tbool;
+	case TYPE_NCHILDREN:
+		{
+			sinsp_threadinfo* ptinfo = tinfo->get_main_thread();
+			if(ptinfo)
+			{
+				m_u64val = ptinfo->m_children.size();
+				return (uint8_t*)&m_u64val;
+			}
+			else
+			{
+				ASSERT(false);
+				return NULL;
+			}
+		}
 	case TYPE_ISMAINTHREAD:
 		m_tbool = (uint32_t)tinfo->is_main_thread();
 		return (uint8_t*)&m_tbool;

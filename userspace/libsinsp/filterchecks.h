@@ -372,6 +372,7 @@ public:
 		TYPE_SNAME = 41,
 		TYPE_TTY = 42,
 		TYPE_IS_CHILD_SUBREAPER = 43,
+		TYPE_NCHILDREN = 44,
 	};
 
 	sinsp_filter_check_thread();

@@ -1125,6 +1125,60 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
+void sinsp_thread_manager::decrement_mainthread_childcount(sinsp_threadinfo* threadinfo)
+{
+	if(threadinfo->m_flags & PPM_CL_CLONE_THREAD)
+	{
+		ASSERT(threadinfo->m_pid != threadinfo->m_tid);
+		sinsp_threadinfo* main_thread = m_inspector->get_thread(threadinfo->m_pid, false, true);
+		if(main_thread)
+		{
+			if(main_thread->m_nchildthreads > 0)
+			{
+				--main_thread->m_nchildthreads;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
+		else
+		{
+			ASSERT(false);
+		}
+	}
+}
+
+void sinsp_thread_manager::add_children(sinsp_threadinfo* threadinfo)
+{
+	if(!threadinfo->is_main_thread())
+	{
+		return;
+	}
+
+	sinsp_threadinfo* parent = m_inspector->get_thread(threadinfo->m_ptid, false, false);
+	if(parent)
+	{
+		ASSERT(threadinfo->m_tid != parent->m_tid);
+		parent->m_children.insert(threadinfo->m_tid);
+	}
+}
+
+void sinsp_thread_manager::remove_children(sinsp_threadinfo* threadinfo)
+{
+	if(!threadinfo->is_main_thread())
+	{
+		return;
+	}
+
+	sinsp_threadinfo* parent = m_inspector->get_thread(threadinfo->m_ptid, false, false);
+	if(parent)
+	{
+		ASSERT(threadinfo->m_tid != parent->m_tid);
+		parent->m_children.erase(threadinfo->m_tid);
+	}
+}
+
 void sinsp_thread_manager::add_init_thread(sinsp_threadinfo* threadinfo)
 {
 	//
@@ -1157,6 +1211,7 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	if(!from_scap_proctable)
 	{
 		increment_mainthread_childcount(&threadinfo);
+		add_children(&threadinfo);
 	}
 
 	threadinfo.compute_program_hash();
@@ -1180,7 +1235,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 
 void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool force)
 {
-	uint64_t nchilds;
+	uint64_t nchildthreads;
 
 	if(it == m_threadtable.end())
 	{
@@ -1195,32 +1250,15 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 #endif
 		return;
 	}
-	else if((nchilds = it->second.m_nchildthreads) == 0 || force)
+	else if((nchildthreads = it->second.m_nchildthreads) == 0 || force)
 	{
 		//
 		// Decrement the refcount of the main thread/program because
 		// this reference is gone
 		//
-		if(it->second.m_flags & PPM_CL_CLONE_THREAD)
-		{
-			ASSERT(it->second.m_pid != it->second.m_tid);
-			sinsp_threadinfo* main_thread = m_inspector->get_thread(it->second.m_pid, false, true);
-			if(main_thread)
-			{
-				if(main_thread->m_nchildthreads > 0)
-				{
-					--main_thread->m_nchildthreads;
-				}
-				else
-				{
-					ASSERT(false);
-				}
-			}
-			else
-			{
-				ASSERT(false);
-			}
-		}
+		decrement_mainthread_childcount(&it->second);
+
+		remove_children(&it->second);
 
 		//
 		// If this is the main thread of a process, erase all the FDs that the process owns
@@ -1277,11 +1315,11 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
-		// of a main process or program that some childs refer to.
+		// of a main process or program that some children refer to.
 		// We need to recalculate the child relationships, or the table will become
 		// corrupted.
 		//
-		if(nchilds != 0)
+		if(nchildthreads != 0)
 		{
 			recreate_child_dependencies();
 		}
@@ -1329,6 +1367,7 @@ void sinsp_thread_manager::reset_child_dependencies()
 	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		it->second.m_nchildthreads = 0;
+		it->second.m_children.clear();
 		clear_thread_pointers(it);
 	}
 }
@@ -1340,6 +1379,7 @@ void sinsp_thread_manager::create_child_dependencies()
 	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		increment_mainthread_childcount(&it->second);
+		add_children(&it->second);
 	}
 }
 

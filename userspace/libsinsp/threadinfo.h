@@ -224,6 +224,7 @@ public:
 	uint32_t m_uid; ///< user id
 	uint32_t m_gid; ///< group id
 	uint64_t m_nchildthreads; ///< Used in the main thread of a process to count the number of child threads. When this is 0 the process can be deleted
+	set<int64_t> m_children; ///< children of this process
 	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
 	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
 	uint32_t m_vmswap_kb; ///< swapped memory (as kb).
@@ -423,6 +424,9 @@ public:
 private:
 	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
+	void decrement_mainthread_childcount(sinsp_threadinfo* threadinfo);
+	void add_children(sinsp_threadinfo* threadinfo);
+	void remove_children(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
 	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
