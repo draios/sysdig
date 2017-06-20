@@ -371,6 +371,7 @@ public:
 		TYPE_SID = 40,
 		TYPE_SNAME = 41,
 		TYPE_TTY = 42,
+		TYPE_IS_CHILD_SUBREAPER = 43,
 	};
 
 	sinsp_filter_check_thread();

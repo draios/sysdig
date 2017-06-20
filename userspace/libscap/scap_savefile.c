@@ -219,7 +219,7 @@ int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t to
 	//
 	// Create the block header
 	//
-	bh.block_type = PL_BLOCK_TYPE_V6;
+	bh.block_type = PL_BLOCK_TYPE_V7;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
@@ -239,7 +239,7 @@ int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t t
 	block_header bh;
 	uint32_t bt;
 
-	bh.block_type = PL_BLOCK_TYPE_V6;
+	bh.block_type = PL_BLOCK_TYPE_V7;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	//
@@ -311,6 +311,7 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 		    scap_dump_write(d, &(tinfo->vpid), sizeof(int64_t)) != sizeof(int64_t) ||
 		    scap_dump_write(d, &(tinfo->cgroups_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, tinfo->cgroups, tinfo->cgroups_len) != tinfo->cgroups_len ||
+		    scap_dump_write(d, &tinfo->is_child_subreaper, sizeof(uint8_t)) != sizeof(uint8_t) ||
 		    scap_dump_write(d, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, tinfo->root, rootlen) != rootlen)
 	{
@@ -347,18 +348,19 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				2 + tinfo->args_len +
 				2 + strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE) +
 				sizeof(uint64_t) +	// fdlimit
+				sizeof(uint32_t) +	// flags
 				sizeof(uint32_t) +	// uid
 				sizeof(uint32_t) +	// gid
-				sizeof(uint32_t) +  // vmsize_kb
-				sizeof(uint32_t) +  // vmrss_kb
-				sizeof(uint32_t) +  // vmswap_kb
-				sizeof(uint64_t) +  // pfmajor
-				sizeof(uint64_t) +  // pfminor
+				sizeof(uint32_t) +	// vmsize_kb
+				sizeof(uint32_t) +	// vmrss_kb
+				sizeof(uint32_t) +	// vmswap_kb
+				sizeof(uint64_t) +	// pfmajor
+				sizeof(uint64_t) +	// pfminor
 				2 + tinfo->env_len +
-				sizeof(int64_t) +  // vtid
-				sizeof(int64_t) +  // vpid
+				sizeof(int64_t) +	// vtid
+				sizeof(int64_t) +	// vpid
 				2 + tinfo->cgroups_len +
-				sizeof(uint32_t) +
+				sizeof(uint8_t) +	// is_child_subreaper
 				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE));
 
 			totlen += il;
@@ -1069,6 +1071,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.sid = -1;
 	tinfo.clone_ts = 0;
 	tinfo.tty = 0;
+	tinfo.is_child_subreaper = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
@@ -1108,6 +1111,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V5:
 			break;
 		case PL_BLOCK_TYPE_V6:
+		case PL_BLOCK_TYPE_V7:
 			readsize = gzread(f, &(tinfo.sid), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
@@ -1253,6 +1257,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V4:
 		case PL_BLOCK_TYPE_V5:
 		case PL_BLOCK_TYPE_V6:
+		case PL_BLOCK_TYPE_V7:
 			//
 			// vmsize_kb
 			//
@@ -1297,7 +1302,8 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				block_type == PL_BLOCK_TYPE_V3_INT ||
 				block_type == PL_BLOCK_TYPE_V4 ||
 				block_type == PL_BLOCK_TYPE_V5 ||
-				block_type == PL_BLOCK_TYPE_V6)
+				block_type == PL_BLOCK_TYPE_V6 ||
+				block_type == PL_BLOCK_TYPE_V7)
 			{
 				//
 				// env
@@ -1325,7 +1331,8 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 			if(block_type == PL_BLOCK_TYPE_V4 ||
 			   block_type == PL_BLOCK_TYPE_V5 ||
-			   block_type == PL_BLOCK_TYPE_V6)
+			   block_type == PL_BLOCK_TYPE_V6 ||
+			   block_type == PL_BLOCK_TYPE_V7)
 			{
 				//
 				// vtid
@@ -1363,8 +1370,17 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 				totreadsize += readsize;
 
+				if(block_type == PL_BLOCK_TYPE_V7)
+				{
+					readsize = gzread(f, &(tinfo.is_child_subreaper), sizeof(uint8_t));
+					CHECK_READ_SIZE(readsize, sizeof(uint8_t));
+
+					totreadsize += readsize;
+				}
+
 				if(block_type == PL_BLOCK_TYPE_V5 ||
-				   block_type == PL_BLOCK_TYPE_V6)
+				   block_type == PL_BLOCK_TYPE_V6 ||
+				   block_type == PL_BLOCK_TYPE_V7)
 				{
 					readsize = gzread(f, &(stlen), sizeof(uint16_t));
 					CHECK_READ_SIZE(readsize, sizeof(uint16_t));
@@ -2158,6 +2174,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case PL_BLOCK_TYPE_V4:
 		case PL_BLOCK_TYPE_V5:
 		case PL_BLOCK_TYPE_V6:
+		case PL_BLOCK_TYPE_V7:
 		case PL_BLOCK_TYPE_V1_INT:
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3_INT:

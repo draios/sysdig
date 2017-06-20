@@ -955,6 +955,32 @@ cleanup_ioctl_procinfo:
 		goto cleanup_ioctl;
 	}
 #endif
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	case PPM_IOCTL_GET_IS_CHILD_SUBREAPER:
+	{
+		struct pid *pid;
+		struct task_struct *task;
+
+		rcu_read_lock();
+		pid = find_pid_ns(arg, &init_pid_ns);
+		if (!pid) {
+			rcu_read_unlock();
+			ret = -EINVAL;
+			goto cleanup_ioctl;
+		}
+
+		task = pid_task(pid, PIDTYPE_PID);
+		if (!task) {
+			rcu_read_unlock();
+			ret = -EINVAL;
+			goto cleanup_ioctl;
+		}
+
+		ret = task->signal->is_child_subreaper;
+		rcu_read_unlock();
+		goto cleanup_ioctl;
+	}
+#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 	case PPM_IOCTL_SET_TRACERS_CAPTURE:
 	{
 		vpr_info("PPM_IOCTL_SET_TRACERS_CAPTURE, consumer %p\n", consumer_id);

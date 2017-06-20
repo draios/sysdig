@@ -425,6 +425,30 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 #endif
 }
 
+static int32_t scap_get_is_child_subreaper(scap_t* handle, int64_t tid, uint8_t *is_child_subreaper)
+{
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*is_child_subreaper = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_IS_CHILD_SUBREAPER, tid);
+
+	if(*is_child_subreaper == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 {
 	if(handle->m_mode != SCAP_MODE_LIVE)
@@ -711,6 +735,11 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	if(tinfo->vpid == 0 && scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
 	{
 		tinfo->vpid = tinfo->pid;
+	}
+
+	if(scap_get_is_child_subreaper(handle, tinfo->tid, &tinfo->is_child_subreaper) == SCAP_FAILURE)
+	{
+		tinfo->is_child_subreaper = 0;
 	}
 
 	//

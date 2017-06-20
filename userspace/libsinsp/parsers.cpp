@@ -458,6 +458,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETSID_X:
 		parse_setsid_exit(evt);
 		break;
+	case PPME_SYSCALL_PRCTL_X:
+		parse_prctl_exit(evt);
+		break;
 	default:
 		break;
 	}
@@ -4294,6 +4297,53 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 	if(retval >= 0)
 	{
 		evt->get_thread_info()->m_sid = retval;
+	}
+}
+
+void sinsp_parser::parse_prctl_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	uint64_t arg2;
+	int64_t retval;
+	uint16_t pr_option;
+
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	//
+	// Extract the prctl option
+	//
+	parinfo = evt->get_param(1);
+	pr_option = *(uint16_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(uint16_t));
+
+	switch(pr_option)
+	{
+	case PPM_PRCTL_SET_CHILD_SUBREAPER:
+		//
+		// Extract arg2
+		//
+		parinfo = evt->get_param(2);
+		arg2 = *(uint64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+
+		if(retval == 0)
+		{
+			evt->m_tinfo->m_is_child_subreaper = arg2 != 0;
+		}
+		break;
+	default:
+	case PPM_PRCTL_UNKNOWN:
+		break;
 	}
 }
 

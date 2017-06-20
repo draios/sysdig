@@ -235,6 +235,7 @@ public:
 	size_t m_program_hash;
 	size_t m_program_hash_falco;
 	int32_t m_tty;
+	bool m_is_child_subreaper;
 
 	//
 	// State for multi-event processing

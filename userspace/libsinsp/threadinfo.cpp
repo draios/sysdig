@@ -88,6 +88,7 @@ void sinsp_threadinfo::init()
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
+	m_is_child_subreaper = false;
 	m_blprogram = NULL;
 }
 
@@ -382,6 +383,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vpid = pi->vpid;
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
+	m_is_child_subreaper = pi->is_child_subreaper != 0;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
