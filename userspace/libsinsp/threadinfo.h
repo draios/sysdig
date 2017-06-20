@@ -427,9 +427,12 @@ private:
 	void decrement_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	void add_children(sinsp_threadinfo* threadinfo);
 	void remove_children(sinsp_threadinfo* threadinfo);
+	void reparent_children(sinsp_threadinfo* father);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
 	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
+	sinsp_threadinfo* find_child_reaper(sinsp_threadinfo* father);
+	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo* father, sinsp_threadinfo* child_reaper);
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;

@@ -1190,6 +1190,93 @@ void sinsp_thread_manager::add_init_thread(sinsp_threadinfo* threadinfo)
 	}
 }
 
+sinsp_threadinfo* sinsp_thread_manager::find_child_reaper(sinsp_threadinfo* father)
+{
+	//
+	// Find the reaper of the pid namespace `father` belongs to.
+	// This is an approximation that uses the container_id of the thread.
+	//
+	// FIXME: if father is the reaper of its pid_namespace, the entire pid_namespace should be killed
+	//
+	int64_t reaper_tid = father->m_container_id.empty() ? 1 : m_init_threadtable[father->m_container_id];
+	sinsp_threadinfo *reaper = m_inspector->get_thread(reaper_tid);
+	return !reaper || reaper->m_pid == father->m_pid ? nullptr : reaper;
+}
+
+sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* father, sinsp_threadinfo* child_reaper)
+{
+	sinsp_threadinfo *reaper = child_reaper;
+
+	//
+	// Do not touch the parent info if the exiting process has other threads,
+	// because one of them will become the new reaper of the children.
+	//
+	if(!father->is_main_thread() || father->m_nchildthreads > 0)
+	{
+		return nullptr;
+	}
+
+	//
+	// Traverse the parents looking for a process which has
+	// called PR_SET_CHILD_SUBREAPER, paying attention to not cross
+	// the namespace boundaries.
+	//
+	sinsp_threadinfo::visitor_func_t visitor = [&father, &reaper] (sinsp_threadinfo* ptinfo)
+	{
+		//
+		// NOTE: kernels < 4.11 have a bug that allows to exit the container
+		//       while looking for the new reaper. We assume to deal with the
+		//       "right" behaviour.
+		//
+		if(father->m_container_id == ptinfo->m_container_id)
+		{
+			if(ptinfo->m_is_child_subreaper)
+			{
+				reaper = ptinfo;
+				return false;
+			}
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	};
+
+	if(visitor(father))
+	{
+		father->traverse_parent_state(visitor);
+	}
+	return reaper;
+}
+
+void sinsp_thread_manager::reparent_children(sinsp_threadinfo* father)
+{
+	//
+	// Find the reaper like the `forget_original_parent` function in the kernel.
+	//
+	sinsp_threadinfo* reaper = find_child_reaper(father);
+	if(father->m_children.empty())
+	{
+		return;
+	}
+
+	reaper = find_new_reaper(father, reaper);
+	if(reaper == nullptr)
+	{
+		return;
+	}
+
+	for(int64_t child : father->m_children)
+	{
+		auto child_tinfo = m_threadtable.find(child);
+		if(child_tinfo != m_threadtable.end() && child_tinfo->second.m_ptid == father->m_pid)
+		{
+			child_tinfo->second.m_ptid = reaper->m_pid;
+		}
+	}
+}
+
 void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
@@ -1298,6 +1385,11 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 #ifdef GATHER_INTERNAL_STATS
 		m_removed_threads->increment();
 #endif
+
+		//
+		// Re-parent children
+		//
+		reparent_children(&it->second);
 
 		//
 		// If this is the PID 1 of a container, remove it from m_init_threadtable too
