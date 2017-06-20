@@ -336,6 +336,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -1494,6 +1495,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1525,6 +1527,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_15_X:
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1571,6 +1574,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1606,6 +1610,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_16_X:
 		break;
 	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1614,7 +1619,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	default:
 		ASSERT(false);
 	}
-
 
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
