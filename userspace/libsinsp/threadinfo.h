@@ -395,6 +395,7 @@ public:
 	void set_listener(sinsp_threadtable_listener* listener);
 	void add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
+	void add_init_thread(sinsp_threadinfo* threadinfo);
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
@@ -428,6 +429,7 @@ private:
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
+	unordered_map<string, int64_t> m_init_threadtable;
 	int64_t m_last_tid;
 	sinsp_threadinfo* m_last_tinfo;
 	uint64_t m_last_flush_time_ns;

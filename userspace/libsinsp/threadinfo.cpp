@@ -1125,6 +1125,17 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
+void sinsp_thread_manager::add_init_thread(sinsp_threadinfo* threadinfo)
+{
+	//
+	// If this is the PID 1 of a coontainer, keep track of it
+	//
+	if(threadinfo->m_vtid == 1 && !threadinfo->m_container_id.empty())
+	{
+		m_init_threadtable[threadinfo->m_container_id] = threadinfo->m_tid;
+	}
+}
+
 void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
@@ -1151,6 +1162,8 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	threadinfo.compute_program_hash();
 
 	sinsp_threadinfo& newentry = (m_threadtable[threadinfo.m_tid] = threadinfo);
+
+	add_init_thread(&newentry);
 
 	newentry.allocate_private_state();
 
@@ -1247,6 +1260,18 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 #ifdef GATHER_INTERNAL_STATS
 		m_removed_threads->increment();
 #endif
+
+		//
+		// If this is the PID 1 of a container, remove it from m_init_threadtable too
+		//
+		auto init_thread_it = m_init_threadtable.find(it->second.m_container_id);
+		if(init_thread_it != m_init_threadtable.end())
+		{
+			if(init_thread_it->second == it->second.m_tid)
+			{
+				m_init_threadtable.erase(init_thread_it);
+			}
+		}
 
 		m_threadtable.erase(it);
 

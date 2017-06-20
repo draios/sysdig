@@ -527,6 +527,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		}
 	}
 
+	m_inspector->m_thread_manager->add_init_thread(tinfo);
+
 	return valid_id;
 }
 
