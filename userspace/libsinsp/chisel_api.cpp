@@ -832,12 +832,12 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 		//
 		lua_pushstring(ls, "env");
 
-		vector<string>* env = &(it->second.m_env);
+		const auto& env = it->second.get_env();
 		lua_newtable(ls);
-		for(j = 0; j < env->size(); j++)
+		for(j = 0; j < env.size(); j++)
 		{
 			lua_pushinteger(ls, j + 1);
-			lua_pushstring(ls, env->at(j).c_str());
+			lua_pushstring(ls, env.at(j).c_str());
 			lua_settable(ls, -3);
 		}
 		lua_settable(ls,-3);
@@ -1287,7 +1287,7 @@ int lua_cbacks::udp_setpeername(lua_State *ls)
 	ch->m_serveraddr.sin_port = port;
 	if(inet_pton(AF_INET, addr.c_str(), &ch->m_serveraddr.sin_addr) <= 0)
 	{
-		string err = "inet_pton error occured";
+		string err = "inet_pton error occurred";
 		fprintf(stderr, "%s\n", err.c_str());
 		throw sinsp_exception("chisel error");
 	}

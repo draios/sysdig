@@ -253,6 +253,16 @@ public:
 	*/
 	void open(string filename);
 
+	/*!
+	  \brief Start an event capture from a file descriptor.
+
+	  \param fd the file descriptor
+
+	  @throws a sinsp_exception containing the error string is thrown in case
+	   of failure.
+	*/
+	void fdopen(int fd);
+
 	void open_nodriver();
 
 	/*!
@@ -763,6 +773,7 @@ VISIBILITY_PRIVATE
 private:
 #endif
 
+	void open_int();
 	void init();
 	void import_thread_table();
 	void import_ifaddr_list();
@@ -834,11 +845,20 @@ private:
 
 	void restart_capture_at_filepos(uint64_t filepos);
 
+	void fseek(uint64_t filepos)
+	{
+		scap_fseek(m_h, filepos);
+	}
+
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;
 
 	scap_mode_t m_mode;
+
+        // If non-zero, reading from this fd and m_input_filename contains "fd
+        // <m_input_fd>". Otherwise, reading from m_input_filename.
+	int m_input_fd;
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
@@ -1034,7 +1054,7 @@ public:
 	friend class sinsp_filter_check_k8s;
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
 
 	friend class sinsp_network_interfaces;

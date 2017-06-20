@@ -156,9 +156,6 @@ OPTIONS
 **-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
   Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Mesos url is required. Marathon url is optional, defaulting to auto-follow - if Marathon API server is not provided, sysdig will attempt to retrieve (and subsequently follow, if it migrates) the location of Marathon API server from the Mesos master. Note that, with auto-follow, sysdig will likely receive a cluster internal IP address for Marathon API server, so running sysdig with Marathon auto-follow from a node that is not part of Mesos cluster may not work. Additionally, running sysdig with Mesos support on a node that has no containers managed by Mesos is of limited use because, although cluster metadata will be collected, there will be no Mesos/Marathon filtering capability. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
 
-**-N**
-  Don't convert port numbers to names.
-
 **-M** _num_seconds_
   Stop collecting after reaching <num_seconds>
 
@@ -176,7 +173,10 @@ OPTIONS
   
 **-r** _readfile_, **--read**=_readfile_  
   Read the events from _readfile_.
-  
+
+**-R**, **--resolve-ports**
+  Resolve port numbers to names.
+
 **-S**, **--summary**  
   print the event summary (i.e. the list of the top events) when the capture ends.
   
@@ -202,7 +202,7 @@ OPTIONS
   Write the captured events to _writefile_.
 
 **-W** _num_  
-  Turn on file rotation for continuous capture, and limit the number of files created to the specified number. Once the cap is reached, older files will be overwriten (ring buffer). Use in conjunction with the **-C** / **-G** / **-e** options to limit the size of each file based on number of megabytes, seconds, and/or events (respectively).
+  Turn on file rotation for continuous capture, and limit the number of files created to the specified number. Once the cap is reached, older files will be overwritten (ring buffer). Use in conjunction with the **-C** / **-G** / **-e** options to limit the size of each file based on number of megabytes, seconds, and/or events (respectively).
 
 **-x**, **--print-hex**  
   Print data buffers in hex.

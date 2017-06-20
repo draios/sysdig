@@ -133,6 +133,7 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
 
 static int f_sys_setns_e(struct event_filler_arguments *args);
+static int f_sys_unshare_e(struct event_filler_arguments *args);
 static int f_sys_flock_e(struct event_filler_arguments *args);
 static int f_cpu_hotplug_e(struct event_filler_arguments *args);
 static int f_sys_semop_e(struct event_filler_arguments *args);
@@ -368,7 +369,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MKDIR_2_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
 	[PPME_SYSCALL_MKDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_RMDIR_2_E] = {f_sys_empty},
-	[PPME_SYSCALL_RMDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } }
+	[PPME_SYSCALL_RMDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_UNSHARE_E] = {f_sys_unshare_e},
+	[PPME_SYSCALL_UNSHARE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 };
 
 /*
@@ -948,6 +951,23 @@ static int accumulate_argv_or_env(const char __user* __user* argv,
 
 	return len;
 }
+
+// probe_kernel_read() only added in kernel 2.6.26
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
+long probe_kernel_read(void *dst, const void *src, size_t size)
+{
+	long ret;
+	mm_segment_t old_fs = get_fs();
+
+	set_fs(KERNEL_DS);
+	pagefault_disable();
+	ret = __copy_from_user_inatomic(dst, (__force const void __user *)src, size);
+	pagefault_enable();
+	set_fs(old_fs);
+
+	return ret ? -EFAULT : 0;
+}
+#endif
 
 static int ppm_get_tty(void)
 {
@@ -3426,7 +3446,6 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-extern void task_times(struct task_struct *p, cputime_t *ut, cputime_t *st);
 void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times);
 
 static int f_sched_switch_e(struct event_filler_arguments *args)
@@ -4695,6 +4714,24 @@ static int f_sys_setns_e(struct event_filler_arguments *args)
 	 * get type, parse as clone flags as it's a subset of it
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	flags = clone_flags_to_scap(val);
+	res = val_to_ring(args, flags, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_unshare_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	u32 flags;
+
+	/*
+	 * get type, parse as clone flags as it's a subset of it
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	flags = clone_flags_to_scap(val);
 	res = val_to_ring(args, flags, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
