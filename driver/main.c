@@ -38,12 +38,18 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/kdev_t.h>
 #include <linux/delay.h>
 #include <linux/proc_fs.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 #include <linux/sched.h>
+#else
+#include <linux/sched/signal.h>
+#include <linux/sched/cputime.h>
+#endif
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
+#include <linux/fdtable.h>
 #include <net/sock.h>
 #include <asm/asm-offsets.h>	/* For NR_syscalls */
 #include <asm/unistd.h>
@@ -119,7 +125,9 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
+#endif
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
@@ -624,7 +632,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				task_lock(p);
 #endif
 				if (nentries < pli.max_entries) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 					cputime_t utime, stime;
+#else
+					u64 utime, stime;
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 					task_cputime_adjusted(t, &utime, &stime);
@@ -632,8 +644,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 					ppm_task_cputime_adjusted(t, &utime, &stime);
 #endif
 					proclist_info->entries[nentries].pid = t->pid;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 					proclist_info->entries[nentries].utime = cputime_to_clock_t(utime);
 					proclist_info->entries[nentries].stime = cputime_to_clock_t(stime);
+#else
+					proclist_info->entries[nentries].utime = nsec_to_clock_t(utime);
+					proclist_info->entries[nentries].stime = nsec_to_clock_t(stime);
+#endif
 				}
 
 				nentries++;
@@ -1259,8 +1276,53 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespe
 	}
 }
 
-static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_type event_type, enum syscall_flags drop_flags, struct timespec *ts)
+static inline int drop_event(struct ppm_consumer_t *consumer,
+			     enum ppm_event_type event_type,
+			     enum syscall_flags drop_flags,
+			     struct timespec *ts,
+			     struct pt_regs *regs)
 {
+	unsigned long close_arg = 0;
+	int close_fd = -1;
+	struct files_struct *files;
+	struct fdtable *fdt;
+	bool close_return = false;
+
+	/*
+	 * It's annoying but valid for a program to make a large number of
+	 * close() calls on nonexistent fds. That can cause driver cpu usage
+	 * to spike dramatically, so drop close events if the fd is not valid.
+	 *
+	 * The invalid fd events don't matter to userspace in dropping mode,
+	 * so we do this before the UF_NEVER_DROP check
+	 */
+	if (consumer->dropping_mode) {
+		if (event_type == PPME_SYSCALL_CLOSE_X) {
+			if (syscall_get_return_value(current, regs) < 0)
+				close_return = true;
+		} else if (event_type == PPME_SYSCALL_CLOSE_E) {
+			syscall_get_arguments(current, regs, 0, 1, &close_arg);
+			close_fd = (int)close_arg;
+
+			files = current->files;
+			spin_lock(&files->file_lock);
+			fdt = files_fdtable(files);
+			if (close_fd < 0 || close_fd >= fdt->max_fds ||
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
+			    !FD_ISSET(close_fd, fdt->open_fds)
+#else
+			    !fd_is_open(close_fd, fdt)
+#endif
+				) {
+				close_return = true;
+			}
+			spin_unlock(&files->file_lock);
+		}
+
+		if (close_return)
+			return 1;
+	}
+
 	if (drop_flags & UF_NEVER_DROP) {
 		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
 		return 0;
@@ -1339,7 +1401,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		else if (consumer->need_to_insert_drop_x == 1)
 			record_drop_x(consumer, ts);
 
-		if (drop_event(consumer, event_type, drop_flags, ts))
+		if (drop_event(consumer, event_type, drop_flags, ts,
+			       event_datap->event_info.syscall_data.regs))
 			return res;
 	}
 

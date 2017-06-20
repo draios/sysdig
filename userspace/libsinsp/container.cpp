@@ -231,10 +231,12 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
+
 	ASSERT(tinfo);
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
+	string rkt_podid, rkt_appname;
 	// Start with cgroup based detection
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -326,8 +328,10 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		pos = cgroup.find("/lxc/");
 		if(pos != string::npos)
 		{
+			auto id_start = pos + sizeof("/lxc/") - 1;
+			auto id_end = cgroup.find('/', id_start);
 			container_info.m_type = CT_LXC;
-			container_info.m_id = cgroup.substr(pos + sizeof("/lxc/") - 1);
+			container_info.m_id = cgroup.substr(id_start, id_end - id_start);
 			valid_id = true;
 			break;
 		}
@@ -348,11 +352,60 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			valid_id = set_mesos_task_id(&container_info, tinfo);
 			break;
 		}
+
+		//
+		// systemd rkt
+		//
+		{
+			vector<string> tokens = sinsp_split(cgroup, '/');
+
+			if (tokens.size() == 5)
+			{
+				if (tokens[2].substr(0, 11) == "machine-rkt")
+				{
+					string::size_type dot_pos = tokens[2].find('.');
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 3, dot_pos - sizeof("machine-rkt") - 3);
+					replace_in_place(rkt_podid, "\\x2d", "-");
+					dot_pos = tokens[4].find('.');
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_appname = tokens[4].substr(0, dot_pos);
+					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
+						continue;
+
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
+					valid_id = true;
+					break;
+				}
+				else if (tokens[2].substr(0, 4) == "k8s_")
+				{
+					string::size_type dot_pos = tokens[2].find('.');
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_podid = tokens[2].substr(sizeof("k8s_") - 1, dot_pos - sizeof("k8s_") + 1);
+					dot_pos = tokens[4].find('.');
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_appname = tokens[4].substr(0, dot_pos);
+					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
+						continue;
+
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
+					valid_id = true;
+					break;
+				}
+			}
+		}
 	}
 
 	// If anything has been found, try proc root based detection
 	// right now used for rkt
-	string rkt_podid, rkt_appname;
 	if(!valid_id)
 	{
 		// Try parsing from process root,
@@ -372,7 +425,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 				sinsp_threadinfo::visitor_func_t visitor = [&rkt_podid, &container_info, &rkt_appname, &valid_id] (sinsp_threadinfo *ptinfo)
 				{
-					for(const auto& env_var : ptinfo->m_env)
+					for(const auto& env_var : ptinfo->get_env())
 					{
 						auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
 						if(container_uuid_pos == 0)
@@ -466,7 +519,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					ASSERT(false);
 			}
 
-			m_containers.insert(std::make_pair(container_info.m_id, container_info));
+			add_container(container_info);
 			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;
@@ -745,8 +798,7 @@ string sinsp_container_manager::get_docker_env(const Json::Value &env_vars, cons
 	return "";
 }
 
-bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
-										const string &podid, const string &appname)
+bool sinsp_container_manager::parse_rkt(sinsp_container_info *container, const string &podid, const string &appname)
 {
 	bool ret = false;
 	Json::Reader reader;

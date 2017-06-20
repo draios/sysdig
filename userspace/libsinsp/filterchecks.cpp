@@ -112,7 +112,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 {
 	{PT_INT64, EPF_NONE, PF_ID, "fd.num", "the unique number identifying the file descriptor."},
 	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.type", "type of FD. Can be 'file', 'directory', 'ipv4', 'ipv6', 'unix', 'pipe', 'event', 'signalfd', 'eventpoll', 'inotify' or 'signalfd'."},
-	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.typechar", "type of FD as a single character. Can be 'f' for file, 4 for IPv4 socket, 6 for IPv6 socket, 'u' for unix socket, p for pipe, 'e' for eventfd, 's' for signalfd, 'l' for eventpoll, 'i' for inotify, 'o' for uknown."},
+	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.typechar", "type of FD as a single character. Can be 'f' for file, 4 for IPv4 socket, 6 for IPv6 socket, 'u' for unix socket, p for pipe, 'e' for eventfd, 's' for signalfd, 'l' for eventpoll, 'i' for inotify, 'o' for unknown."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.name", "FD full name. If the fd is a file, this field contains the full path. If the FD is a socket, this field contain the connection tuple."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.directory", "If the fd is a file, the directory that contains it."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.filename", "If the fd is a file, the filename without the path."},
@@ -1340,7 +1340,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmsize.b", "For the process main thread, this is the total virtual memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
+	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."}
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1661,6 +1662,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				return (uint8_t*)m_tstr.c_str();
 			}
 		}
+	case TYPE_TTY:
+		return (uint8_t*)&tinfo->m_tty;
 	case TYPE_NAME:
 		m_tstr = tinfo->get_comm();
 		*len = m_tstr.size();
@@ -1693,11 +1696,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_tstr.clear();
 
 			uint32_t j;
-			uint32_t nargs = (uint32_t)tinfo->m_env.size();
+			const auto& env = tinfo->get_env();
+			uint32_t nargs = (uint32_t)env.size();
 
 			for(j = 0; j < nargs; j++)
 			{
-				m_tstr += tinfo->m_env[j];
+				m_tstr += env[j];
 				if(j < nargs -1)
 				{
 					m_tstr += ' ';

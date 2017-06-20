@@ -36,6 +36,8 @@ _sysdig_complete()
   --progress                                    \
   -q                                            \
   --quiet                                       \
+  -R                                            \
+  --resolve-ports                               \
   -S                                            \
   --summary                                     \
   -v                                            \

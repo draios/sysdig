@@ -28,6 +28,7 @@ class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
 class sinsp_tracerparser;
+class blprogram;
 
 typedef struct erase_fd_params
 {
@@ -80,21 +81,18 @@ public:
 	  \brief Return the values of all environment variables for the process
 	  containing this thread.
 	*/
-	const vector<string>& get_env() const
-	{
-		return m_env;
-	}
+	const vector<string>& get_env();
 
 	/*!
 	  \brief Return the value of the specified environment variable for the process
 	  containing this thread. Returns empty string if variable is not found.
 	*/
-	string get_env(const string& name) const;
+	string get_env(const string& name);
 
 	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
-	inline bool is_main_thread()
+	inline bool is_main_thread() const
 	{
 		return m_tid == m_pid;
 	}
@@ -314,9 +312,9 @@ VISIBILITY_PRIVATE
 	void allocate_private_state();
 	void compute_program_hash();
 	sinsp_threadinfo* lookup_thread();
-	void args_to_scap(scap_threadinfo* sctinfo);
-	void env_to_scap(scap_threadinfo* sctinfo);
-	void cgroups_to_scap(scap_threadinfo* sctinfo);
+	inline void args_to_scap(scap_threadinfo* sctinfo);
+	inline void env_to_scap(scap_threadinfo* sctinfo);
+	inline void cgroups_to_scap(scap_threadinfo* sctinfo);
 	void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src);
 
 	//  void push_fdop(sinsp_fdop* op);
@@ -337,6 +335,7 @@ VISIBILITY_PRIVATE
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
 	bool m_parent_loop_detected;
+	blprogram* m_blprogram;
 
 	friend class sinsp;
 	friend class sinsp_parser;
@@ -348,7 +347,7 @@ VISIBILITY_PRIVATE
 	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 };
 
 /*@}*/
@@ -403,7 +402,7 @@ public:
 	void create_child_dependencies();
 	void recreate_child_dependencies();
 
-	void to_scap();
+	void dump_threads_to_file(scap_dumper_t* dumper);
 
 	uint32_t get_thread_count()
 	{
@@ -423,6 +422,8 @@ private:
 	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
+	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
+	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
@@ -444,5 +445,5 @@ private:
 	friend class sinsp_analyzer;
 	friend class sinsp;
 	friend class sinsp_threadinfo;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 };

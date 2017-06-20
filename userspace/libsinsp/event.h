@@ -418,7 +418,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_container_manager;
 	friend class sinsp_table;
 	friend class sinsp_cursesui;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_memory_dumper_job;
 };
