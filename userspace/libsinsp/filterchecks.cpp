@@ -6106,8 +6106,8 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 }
 
 char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
-												  uint32_t str_len,
-												  uint64_t time_delta)
+	uint32_t str_len,
+	uint64_t time_delta)
 {
 	uint32_t len;
 	uint8_t* rawval = extract(evt, &len);
@@ -6161,6 +6161,51 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	else
 	{
 		return rawval_to_string(rawval, m_field, len);
+	}
+}
+
+Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
+	uint32_t str_len,
+	uint64_t time_delta)
+{
+	uint32_t len;
+	uint8_t* rawval = extract(evt, &len);
+
+	if(rawval == NULL)
+	{
+		return NULL;
+	}
+
+	if(time_delta != 0)
+	{
+		m_cnt = (double)time_delta / ONE_SECOND_IN_NS;
+	}
+
+	if(m_field->m_type == PT_RELTIME)
+	{
+		double val = (double)*(uint64_t*)rawval;
+
+		if(m_cnt > 1)
+		{
+			val /= m_cnt;
+		}
+
+		return format_time((int64_t)val, str_len);
+	}
+	else if(m_field->m_type == PT_DOUBLE)
+	{
+		double dval = (double)*(double*)rawval;
+
+		if(m_cnt > 1)
+		{
+			dval /= m_cnt;
+		}
+
+		return dval;
+	}
+	else
+	{
+		return rawval_to_json(rawval, m_field, len);
 	}
 }
 

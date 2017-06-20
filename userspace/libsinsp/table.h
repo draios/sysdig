@@ -227,7 +227,15 @@ public:
 		TT_LIST,
 	};
 
-	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout);
+	enum output_type 
+	{
+		OT_CURSES,
+		OT_RAW,
+		OT_JSON,
+	};
+
+	sinsp_table(sinsp* inspector, tabletype type, 
+		uint64_t refresh_interval_ns, sinsp_table::output_type output_type);
 	~sinsp_table();
 	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
@@ -298,7 +306,8 @@ private:
 	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();
 	void switch_buffers();
-	void stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
+	void print_raw(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
+	void print_json(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
 
 	sinsp* m_inspector;
 	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher>* m_table;
@@ -344,7 +353,7 @@ private:
 	bool m_paused;
 	string m_freetext_filter;
 	tabletype m_type;
-	bool m_print_to_stdout;
+	output_type m_output_type;
 	uint32_t m_view_depth;
 
 	friend class curses_table;	

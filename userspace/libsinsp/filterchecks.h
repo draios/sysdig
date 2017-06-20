@@ -98,8 +98,8 @@ public:
 	virtual const filtercheck_field_info* get_field_info();
 
 	//
-        // Extract the field from the event. In sanitize_strings is true, any
-        // string values are sanitized to remove nonprintable characters.
+	// Extract the field from the event. In sanitize_strings is true, any
+	// string values are sanitized to remove nonprintable characters.
 	//
 	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true) = 0;
 
@@ -789,6 +789,7 @@ public:
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
+	Json::Value tojson(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
 private:
 	inline char* format_bytes(double val, uint32_t str_len, bool is_int);

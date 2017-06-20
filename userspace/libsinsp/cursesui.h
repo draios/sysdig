@@ -400,7 +400,7 @@ public:
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
-		bool print_containers, bool raw_output, bool is_mousedrag_available);
+		bool print_containers, sinsp_table::output_type output_type, bool is_mousedrag_available);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -631,7 +631,7 @@ public:
 #ifndef NOCURSESUI
 			usleep(10000);
 #endif
-			if(m_raw_output)
+			if(m_output_type == sinsp_table::OT_RAW || m_output_type == sinsp_table::OT_JSON)
 			{
 				return true;
 			}
@@ -793,7 +793,7 @@ private:
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;
 	string m_search_header_text;
-	bool m_raw_output;
+	sinsp_table::output_type m_output_type;
 	bool m_truncated_input;
 };
 

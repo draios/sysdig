@@ -65,7 +65,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 							   string cmdline_capture_filter, 
 							   uint64_t refresh_interval_ns,
 							   bool print_containers,
-							   bool raw_output,
+							   sinsp_table::output_type output_type,
 							   bool is_mousedrag_available)
 {
 	m_inspector = inspector;
@@ -94,7 +94,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_timedelta_formatter = new sinsp_filter_check_reference();
 	m_refresh_interval_ns = refresh_interval_ns;
 	m_print_containers = print_containers;
-	m_raw_output = raw_output;
+	m_output_type = output_type;
 	m_truncated_input = false;
 	m_view_depth = 0;
 
@@ -386,12 +386,12 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		if(wi->m_type == sinsp_view_info::T_TABLE)
 		{
 			ty = sinsp_table::TT_TABLE;
-			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
+			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_output_type);
 		}
 		else if(wi->m_type == sinsp_view_info::T_LIST)
 		{
 			ty = sinsp_table::TT_LIST;
-			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
+			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_output_type);
 		}
 		else if(wi->m_type == sinsp_view_info::T_SPECTRO)
 		{
@@ -402,11 +402,11 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			//
 			if(m_refresh_interval_ns == 2000000000)
 			{
-				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns / 4, m_raw_output);
+				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns / 4, m_output_type);
 			}
 			else
 			{
-				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_raw_output);
+				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_output_type);
 			}
 		}
 		else

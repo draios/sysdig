@@ -251,7 +251,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool print_containers = false;
 	uint64_t refresh_interval_ns = 2000000000;
 	bool list_flds = false;
-	bool m_raw_output = false;
+#ifndef _WIN32
+	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
+#else
+	sinsp_table::output_type output_type = sinsp_table::OT_JSON;
+#endif
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
@@ -266,6 +270,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"help", no_argument, 0, 'h' },
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
+		{"json", no_argument, 0, 'j' },
 		{"list", optional_argument, 0, 'l' },
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
@@ -297,7 +302,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:K:lm:n:p:Rr:s:Tv:", long_options, &long_index)) != -1)
+			"d:Ehk:K:jlm:n:p:Rr:s:Tv:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -335,6 +340,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'K':
 				k8s_api_cert = new string(optarg);
+				break;
+			case 'j':
+				output_type = sinsp_table::OT_JSON;
 				break;
 			case 'l':
 				list_flds = true;
@@ -404,7 +412,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 					else if(optname == "raw")
 					{
-						m_raw_output = true;
+						output_type = sinsp_table::OT_RAW;
 					}
 					else if(optname == "force-term-compat")
 					{
@@ -559,7 +567,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				(filter.size() != 0)? filter : "",
 				refresh_interval_ns,
 				print_containers,
-				m_raw_output,
+				output_type,
 				terminal_with_mouse);
 
 			ui.configure(&view_manager);
