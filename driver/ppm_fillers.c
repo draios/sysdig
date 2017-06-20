@@ -620,7 +620,6 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 
 	/*
 	 * Mode
-	 *  
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
@@ -3124,12 +3123,9 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 
 	/*
 	 * Mode
-	 * XXX: at this time, mode decoding is not supported. We nonetheless return a value (zero)
-	 * so the format of the event is ready for when we'll export the mode in the future.
-	 *
-	 * syscall_get_arguments(current, args->regs, 3, 1, &val);
 	 */
-	res = val_to_ring(args, 0, 0, false, 0);
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
