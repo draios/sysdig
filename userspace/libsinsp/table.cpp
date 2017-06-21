@@ -645,7 +645,7 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 		return;
 	}
 
-	printf("{\n");
+	printf("[\n");
 
 	for(auto it = sample_data->begin(); it != sample_data->end(); ++it)
 	{
@@ -686,7 +686,7 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 		j++;
 	}
 
-	printf("}\n");
+	printf("]\n");
 }
 
 void sinsp_table::filter_sample()
