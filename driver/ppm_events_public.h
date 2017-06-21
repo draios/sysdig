@@ -1303,7 +1303,6 @@ struct ppm_evt_hdr {
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
-extern const struct ppm_name_value file_modes[];
 extern const struct ppm_name_value flock_flags[];
 extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];
