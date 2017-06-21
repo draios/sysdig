@@ -509,7 +509,12 @@ public:
 				// Handle the event
 				//
 				sysdig_table_action ta = handle_input(input);
-				execute_table_action(ta);
+
+				bool res;
+				if(execute_table_action(ta, &res) == true)
+				{
+					return res;
+				}
 			}
 
 			if(ninputs == 0)
@@ -647,7 +652,7 @@ private:
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void create_complete_filter();
-	void execute_table_action(sysdig_table_action ta);
+	bool execute_table_action(sysdig_table_action ta, bool* res);
 
 #ifndef NOCURSESUI
 	void render_header();

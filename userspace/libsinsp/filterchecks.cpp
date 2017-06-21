@@ -6173,7 +6173,7 @@ Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 
 	if(rawval == NULL)
 	{
-		return NULL;
+		return "";
 	}
 
 	if(time_delta != 0)

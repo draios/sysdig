@@ -478,7 +478,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Initialize ncurses
 		//
 #ifndef NOCURSESUI
-		if(!m_raw_output)
+		if(output_type == sinsp_table::OT_CURSES)
 		{
 			//
 			// Check if terminal has mouse support
@@ -745,7 +745,7 @@ exit:
 	// Restore the original screen
 	//
 #ifndef NOCURSESUI
-	if(!m_raw_output)
+	if(output_type == sinsp_table::OT_CURSES)
 	{
 		endwin();
 	}

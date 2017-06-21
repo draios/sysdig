@@ -122,7 +122,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_view_sort_sidemenu = NULL;
 	m_selected_view_sort_sidemenu_entry = 0;
 
-	if(!m_raw_output)
+	if(output_type == sinsp_table::OT_CURSES)
 	{
 		//
 		// Colors initialization
@@ -239,7 +239,7 @@ sinsp_cursesui::~sinsp_cursesui()
 	}
 
 #ifndef NOCURSESUI
-	if(!m_raw_output)
+	if(m_output_type == sinsp_table::OT_CURSES)
 	{
 		if(m_viz != NULL)
 		{
@@ -337,7 +337,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 #ifndef NOCURSESUI
 	curses_textbox::sysdig_output_type dig_otype = curses_textbox::OT_NORMAL;
 
-	if(!m_raw_output)
+	if(m_output_type == sinsp_table::OT_CURSES)
 	{
 		if(m_viz != NULL)
 		{
@@ -434,7 +434,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 #ifndef NOCURSESUI
 	else
 	{
-		if(m_raw_output)
+		if(m_output_type != sinsp_table::OT_CURSES)
 		{
 			return;
 		}
@@ -448,7 +448,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		m_spy_box->set_filter(m_complete_filter);
 	}
 
-	if(m_raw_output)
+	if(m_output_type != sinsp_table::OT_CURSES)
 	{
 		return;
 	}
@@ -1183,7 +1183,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 		m_datatable->get_sample(get_time_delta());
 
 #ifndef NOCURSESUI
-	if(!m_raw_output)
+	if(m_output_type == sinsp_table::OT_CURSES)
 	{
 		//
 		// If the help page has been shown, don't update the screen
@@ -1230,7 +1230,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	{
 #ifndef NOCURSESUI
 /*
-		if(!m_raw_output)
+		if(m_output_type == sinsp_table::OT_CURSES)
 		{
 			if(m_offline_replay)
 			{
@@ -1287,7 +1287,7 @@ void sinsp_cursesui::create_complete_filter()
 void sinsp_cursesui::switch_view(bool is_spy_switch)
 {
 #ifndef NOCURSESUI
-	if(!m_raw_output)
+	if(m_output_type == sinsp_table::OT_CURSES)
 	{
 		//
 		// Clear the screen to make sure all the crap is removed
@@ -1379,7 +1379,7 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
-	if(!m_raw_output)
+	if(m_output_type == sinsp_table::OT_CURSES)
 	{
 		delete m_view_sidemenu;
 		m_view_sidemenu = NULL;
@@ -2865,7 +2865,11 @@ bool sinsp_cursesui::is_spectro_paused(int input)
 }
 #endif //  NOCURSESUI
 
-void sinsp_cursesui::execute_table_action(sysdig_table_action ta)
+//
+// Returns true if the caller should return immediatly after calling us. 
+// In that case, res is filled with the result.
+//
+bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, bool* res)
 {
 	//
 	// Some events require that we perform additional actions
@@ -2873,13 +2877,16 @@ void sinsp_cursesui::execute_table_action(sysdig_table_action ta)
 	switch(ta)
 	{
 	case STA_QUIT:
+		*res = true;
 		return true;
 	case STA_SWITCH_VIEW:
 		switch_view(false);
-		return false;
+		*res = false;
+		return true;
 	case STA_SWITCH_SPY:
 		switch_view(true);
-		return false;
+		*res = false;
+		return true;
 	case STA_DRILLDOWN:
 		{
 			if(m_viz != NULL)
@@ -2908,10 +2915,14 @@ void sinsp_cursesui::execute_table_action(sysdig_table_action ta)
 				drilldown("", "", NULL, NULL);							
 			}
 		}
-		return false;
+
+		*res = false;
+		return true;
 	case STA_DRILLUP:
 		drillup();
-		return false;
+		
+		*res = false;
+		return true;
 	case STA_SPECTRO:
 	case STA_SPECTRO_FILE:
 		{
@@ -2933,7 +2944,9 @@ void sinsp_cursesui::execute_table_action(sysdig_table_action ta)
 				}
 			}
 		}
-		return false;
+		
+		*res = false;
+		return true;
 	case STA_SPY:
 		{
 			auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
@@ -2945,7 +2958,9 @@ void sinsp_cursesui::execute_table_action(sysdig_table_action ta)
 					false);
 			}
 		}
-		return false;
+		
+		*res = false;
+		return true;
 	case STA_DIG:
 		{
 			if(m_viz)
@@ -2965,13 +2980,17 @@ void sinsp_cursesui::execute_table_action(sysdig_table_action ta)
 				spy_selection("", "", NULL, true);
 			}
 		}
-		return false;
+		
+		*res = false;
+		return true;
 	case STA_NONE:
 		break;
 	default:
 		ASSERT(false);
 		break;
 	}
+
+	return false;
 }
 
 #endif // CSYSDIG
