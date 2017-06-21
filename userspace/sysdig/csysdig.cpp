@@ -271,6 +271,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"json", no_argument, 0, 'j' },
+		{"interactive", optional_argument, 0, 0 },
 		{"list", optional_argument, 0, 'l' },
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },

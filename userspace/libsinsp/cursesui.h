@@ -419,6 +419,10 @@ public:
 	{
 		m_truncated_input = truncated;
 	}
+	void set_interactive(bool interactive)
+	{
+		m_interactive = interactive;
+	}
 #ifndef NOCURSESUI
 	void render();
 #endif
@@ -795,6 +799,7 @@ private:
 	string m_search_header_text;
 	sinsp_table::output_type m_output_type;
 	bool m_truncated_input;
+	bool m_interactive;
 };
 
 #endif // CSYSDIG
