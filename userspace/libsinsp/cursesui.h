@@ -511,7 +511,7 @@ public:
 				sysdig_table_action ta = handle_input(input);
 
 				bool res;
-				if(execute_table_action(ta, &res) == true)
+				if(execute_table_action(ta, 0, &res) == true)
 				{
 					return res;
 				}
@@ -652,7 +652,7 @@ private:
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void create_complete_filter();
-	bool execute_table_action(sysdig_table_action ta, bool* res);
+	bool execute_table_action(sysdig_table_action ta, uint32_t rownumber, bool* res);
 
 #ifndef NOCURSESUI
 	void render_header();

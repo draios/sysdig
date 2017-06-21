@@ -2869,7 +2869,7 @@ bool sinsp_cursesui::is_spectro_paused(int input)
 // Returns true if the caller should return immediatly after calling us. 
 // In that case, res is filled with the result.
 //
-bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, bool* res)
+bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownumber, bool* res)
 {
 	//
 	// Some events require that we perform additional actions
@@ -2889,12 +2889,13 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, bool* res)
 		return true;
 	case STA_DRILLDOWN:
 		{
+#ifndef NOCURSESUI
 			if(m_viz != NULL)
 			{
 				sinsp_view_column_info* kinfo = get_selected_view()->get_key();
 
 				//
-				// Note: kinfo is null for list views, that currently don't support
+				// Note: kinfo is null for list views, which currently don't support
 				//       drill down
 				//
 				if(kinfo != NULL)
@@ -2910,9 +2911,24 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, bool* res)
 				}
 			}
 			else
+#endif
 			{
-				ASSERT(m_spectro != NULL);
-				drilldown("", "", NULL, NULL);							
+				if(m_output_type == sinsp_table::OT_CURSES)
+				{
+					drilldown("", "", NULL, NULL);							
+				}
+				else
+				{
+					sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+					auto res = m_datatable->get_row_key_name_and_val(rownumber);
+					if(res.first != NULL)
+					{
+						drilldown(kinfo->get_filter_field(m_view_depth),
+							res.second.c_str(), 
+							kinfo,
+							res.first);
+					}
+				}
 			}
 		}
 
@@ -2923,6 +2939,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, bool* res)
 		
 		*res = false;
 		return true;
+#ifndef NOCURSESUI
 	case STA_SPECTRO:
 	case STA_SPECTRO_FILE:
 		{
@@ -2947,9 +2964,21 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, bool* res)
 		
 		*res = false;
 		return true;
+#endif
 	case STA_SPY:
 		{
-			auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+			pair<filtercheck_field_info*, string> res;
+#ifndef NOCURSESUI
+			if(m_output_type == sinsp_table::OT_CURSES)
+			{
+				res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
+			}
+			else
+#endif
+			{
+				res = m_datatable->get_row_key_name_and_val(rownumber);
+			}
+
 			if(res.first != NULL)
 			{
 				spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
@@ -2963,6 +2992,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, bool* res)
 		return true;
 	case STA_DIG:
 		{
+#ifndef NOCURSESUI
 			if(m_viz)
 			{
 				auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
@@ -2975,9 +3005,23 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, bool* res)
 				}
 			}
 			else
+#endif
 			{
-				ASSERT(m_spectro);
-				spy_selection("", "", NULL, true);
+				if(m_output_type == sinsp_table::OT_CURSES)
+				{
+					spy_selection("", "", NULL, true);
+				}
+				else
+				{
+					auto res = m_datatable->get_row_key_name_and_val(rownumber);
+					if(res.first != NULL)
+					{
+						spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+							res.second.c_str(),
+							get_selected_view()->get_key(),
+							true);
+					}
+				}
 			}
 		}
 		
