@@ -95,7 +95,6 @@ private:
 	// Parsers
 	//
 	void parse_clone_exit(sinsp_evt* evt);
-	void parse_execve_enter(sinsp_evt *evt);
 	void parse_execve_exit(sinsp_evt* evt);
 	void proc_schedule_removal(sinsp_evt* evt);
 	void parse_open_openat_creat_exit(sinsp_evt* evt);
