@@ -261,7 +261,7 @@ int main()
 			       totbytes,
 			       totevents - oldtotevents,
 			       totevents,
-			       stats.n_drops_pf
+			       stats.n_drops_pf,
 			       stats.n_drops_buffer);
 
 			oldtotbytes = totbytes;
