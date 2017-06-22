@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
@@ -2679,6 +2680,72 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 }
 
 #endif // NOCURSESUI
+
+int32_t sinsp_cursesui::get_viewnum_by_name(string name)
+{
+	for(uint32_t j = 0; j < m_views.size(); ++j)
+	{
+		if(m_views.at(j)->m_id == name)
+		{
+			return j;
+		}
+	}
+
+	return -1;
+}
+
+void sinsp_cursesui::handle_stdin_input()
+{
+	string input;
+
+	//
+	// Get the user json input
+	//
+	std::getline(std::cin, input);
+
+	//
+	// Parse the input
+	//
+	Json::Value root;
+	Json::Reader reader;
+	bool pres = reader.parse(input,
+		root,
+		false);
+
+	if(!pres)
+	{
+		fprintf(stderr, "unable to parse the json input: %s",
+			reader.getFormatedErrorMessages().c_str());
+		return;
+	}
+
+	string astr = root["action"].asString();
+	Json::Value args = root["args"];
+
+	sysdig_table_action ta;
+
+	if(astr == "switch")
+	{
+		ta = STA_SWITCH_VIEW;
+
+		string vname = args["view"].asString();
+
+		m_selected_view = get_viewnum_by_name(vname);
+		if(m_selected_view == -1)
+		{
+			fprintf(stderr, "unknown view: %s", vname.c_str());
+			return;
+		}
+	}
+	else
+	{
+		fprintf(stderr, "invalid action: %s", astr.c_str());
+		return;
+	}
+
+	bool res;
+	execute_table_action(ta, 0, &res);
+}
 
 uint64_t sinsp_cursesui::get_time_delta()
 {

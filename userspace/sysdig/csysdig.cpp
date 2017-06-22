@@ -251,6 +251,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool print_containers = false;
 	uint64_t refresh_interval_ns = 2000000000;
 	bool list_flds = false;
+	bool is_interactive = false;
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
 #else
@@ -406,6 +407,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 						printf("sysdig version %s\n", SYSDIG_VERSION);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
+					}
+					else if(optname == "interactive")
+					{
+						is_interactive = true;
 					}
 					else if(optname == "logfile")
 					{
@@ -573,6 +578,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 			ui.configure(&view_manager);
 			ui.start(false, false);
+			if(is_interactive)
+			{
+				ui.set_interactive(true);
+			}
 
 			//
 			// Launch the capture

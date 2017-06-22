@@ -431,6 +431,7 @@ public:
 	void run_action(sinsp_view_action_info* action);
 	void spy_selection(string field, string val, sinsp_view_column_info* column_info, bool is_dig);
 	sysdig_table_action handle_input(int ch);
+	void handle_stdin_input();
 
 	//
 	// Return true if the application is supposed to exit
@@ -537,7 +538,15 @@ public:
 #endif
 			if(m_output_type == sinsp_table::OT_RAW || m_output_type == sinsp_table::OT_JSON)
 			{
-				return true;
+				if(m_interactive)
+				{
+					handle_stdin_input();
+					return false;
+				}
+				else
+				{
+					return true;
+				}
 			}
 			else
 			{
@@ -583,7 +592,7 @@ public:
 				}
 				else
 				{
-					end_of_sample = false;				
+					end_of_sample = false;
 				}
 			}
 
@@ -653,6 +662,7 @@ private:
 	bool drillup();
 	void create_complete_filter();
 	bool execute_table_action(sysdig_table_action ta, uint32_t rownumber, bool* res);
+	int32_t sinsp_cursesui::get_viewnum_by_name(string name);
 
 #ifndef NOCURSESUI
 	void render_header();
