@@ -27,7 +27,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 void sinsp_stats::clear()
 {
 	m_n_seen_evts = 0;
-	m_n_drops = 0;
+	m_n_drops_pf = 0;
+	m_n_drops_buffer = 0;
 	m_n_preemptions = 0;
 	m_n_noncached_fd_lookups = 0;
 	m_n_cached_fd_lookups = 0;
@@ -48,7 +49,8 @@ void sinsp_stats::emit(FILE* f)
 	m_output_target = f;
 
 	fprintf(f, "evts seen by driver: %" PRIu64 "\n", m_n_seen_evts);
-	fprintf(f, "drops: %" PRIu64 "\n", m_n_drops);
+	fprintf(f, "drops (page faults): %" PRIu64 "\n", m_n_drops_pf);
+	fprintf(f, "drops (buffer): %" PRIu64 "\n", m_n_drops_buffer);
 	fprintf(f, "preemptions: %" PRIu64 "\n", m_n_preemptions);
 	fprintf(f, "fd lookups: %" PRIu64 "(%" PRIu64 " cached %" PRIu64 " noncached)\n", 
 		m_n_noncached_fd_lookups + m_n_cached_fd_lookups,

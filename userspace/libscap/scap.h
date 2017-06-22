@@ -82,7 +82,8 @@ typedef struct ppm_evt_hdr scap_evt;
 typedef struct scap_stats
 {
 	uint64_t n_evts; ///< Total number of events that were received by the driver.
-	uint64_t n_drops; ///< Number of dropped events.
+	uint64_t n_drops_pf; ///< Number of dropped events due to page faults
+	uint64_t n_drops_buffer; ///< Number of dropped events due to the buffer being full
 	uint64_t n_preemptions; ///< Number of preemptions.
 }scap_stats;
 

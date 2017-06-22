@@ -39,7 +39,8 @@ public:
 	void process(internal_metrics::counter& metric);
 
 	uint64_t m_n_seen_evts;
-	uint64_t m_n_drops;
+	uint64_t m_n_drops_pf;
+	uint64_t m_n_drops_buffer;
 	uint64_t m_n_preemptions;
 	uint64_t m_n_noncached_fd_lookups;
 	uint64_t m_n_cached_fd_lookups;

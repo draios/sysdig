@@ -1572,13 +1572,15 @@ sinsp_stats sinsp::get_stats()
 		scap_get_stats(m_h, &stats);
 
 		m_stats.m_n_seen_evts = stats.n_evts;
-		m_stats.m_n_drops = stats.n_drops;
+		m_stats.m_n_drops_pf = stats.n_drops_pf;
+		m_stats.m_n_drops_buffer = stats.n_drops_buffer;
 		m_stats.m_n_preemptions = stats.n_preemptions;
 	}
 	else
 	{
 		m_stats.m_n_seen_evts = 0;
-		m_stats.m_n_drops = 0;
+		m_stats.m_n_drops_pf = 0;
+		m_stats.m_n_drops_buffer = 0;
 		m_stats.m_n_preemptions = 0;
 	}
 
