@@ -256,7 +256,7 @@ int main()
 				return -1;				
 			}
 
-			printf("bps:%" PRIu64 " totbytes:%" PRIu64 " - evts/s:%" PRIu64 " totevs:%" PRIu64 " drops (page faults):%" PRIu64 " drops (buffer) :%" PRIu64 "\n",,
+			printf("bps:%" PRIu64 " totbytes:%" PRIu64 " - evts/s:%" PRIu64 " totevs:%" PRIu64 " drops (page faults):%" PRIu64 " drops (buffer) :%" PRIu64 "\n",
 			       totbytes - oldtotbytes,
 			       totbytes,
 			       totevents - oldtotevents,
