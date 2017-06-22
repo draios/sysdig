@@ -414,3 +414,9 @@ const struct ppm_name_value access_flags[] = {
 	{"X_OK", PPM_X_OK},
 	{0, 0},
 };
+
+const struct ppm_name_value accept4_flags[] = {
+	{"SOCK_NONBLOCK", PPM_SOCK_NONBLOCK},
+	{"SOCK_CLOEXEC", PPM_SOCK_CLOEXEC},
+	{0, 0},
+};
