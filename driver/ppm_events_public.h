@@ -285,6 +285,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_FCNTL_F_NOTIFY 27
 #define PPM_FCNTL_F_SETPIPE_SZ 28
 #define PPM_FCNTL_F_GETPIPE_SZ 29
+#define PPM_FCNTL_F_OFD_GETLK 30
+#define PPM_FCNTL_F_OFD_SETLK 31
+#define PPM_FCNTL_F_OFD_SETLKW 32
 
  /*
  * ptrace requests

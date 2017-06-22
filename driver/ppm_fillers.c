@@ -3906,6 +3906,18 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	case F_GETPIPE_SZ:
 		return PPM_FCNTL_F_GETPIPE_SZ;
 #endif
+#ifdef F_OFD_GETLK
+	case F_OFD_GETLK:
+		return PPM_FCNTL_F_OFD_GETLK;
+#endif
+#ifdef F_OFD_SETLK
+	case F_OFD_SETLK:
+		return PPM_FCNTL_F_OFD_SETLK;
+#endif
+#ifdef F_OFD_SETLKW
+	case F_OFD_SETLKW:
+		return PPM_FCNTL_F_OFD_SETLKW;
+#endif
 	default:
 		ASSERT(false);
 		return PPM_FCNTL_UNKNOWN;

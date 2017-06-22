@@ -253,6 +253,9 @@ const struct ppm_name_value fcntl_commands[] = {
 	{"F_SETFD", PPM_FCNTL_F_SETFD},
 	{"F_GETFD", PPM_FCNTL_F_GETFD},
 	{"F_DUPFD", PPM_FCNTL_F_DUPFD},
+	{"F_OFD_GETLK", PPM_FCNTL_F_OFD_GETLK},
+	{"F_OFD_SETLK", PPM_FCNTL_F_OFD_SETLK},
+	{"F_OFD_SETLKW", PPM_FCNTL_F_OFD_SETLKW},
 	{"UNKNOWN", PPM_FCNTL_UNKNOWN},
 	{0, 0},
 };
