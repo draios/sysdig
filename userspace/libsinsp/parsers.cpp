@@ -865,6 +865,32 @@ void sinsp_parser::register_event_callback(sinsp_pd_callback_type etype, sinsp_p
 	return;
 }
 
+void sinsp_parser::copy_non_thread_info(sinsp_threadinfo* child, sinsp_threadinfo* ptinfo)
+{
+	if(!(child->m_flags & PPM_CL_CLONE_THREAD))
+	{
+		//
+		// Copy the fd list
+		// XXX this is a gross oversimplification that will need to be fixed.
+		// What we do is: if the child is NOT a thread, we copy all the parent fds.
+		// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
+		// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
+		//
+		child->m_fdtable = *(ptinfo->get_fd_table());
+
+		//
+		// It's important to reset the cache of the child thread, to prevent it from
+		// referring to an element in the parent's table.
+		//
+		child->m_fdtable.reset_cache();
+
+		//
+		// Not a thread, copy cwd
+		//
+		child->m_cwd = ptinfo->m_cwd;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // PARSERS
 ///////////////////////////////////////////////////////////////////////////////
@@ -872,11 +898,13 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param* parinfo;
 	int64_t tid = evt->get_tid();
+	int64_t real_parent_tid = tid;
 	int64_t childtid;
 	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent
 	bool tid_collision = false;
 	bool valid_parent = true;
 	bool in_container = false;
+	bool has_called_clone = false;
 	int64_t vtid = tid;
 	int64_t vpid = -1;
 	uint16_t etype = evt->get_type();
@@ -966,7 +994,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// clone() returns 0 in the child.
 		//
-		int64_t parenttid;
+		has_called_clone = false;
 
 		//
 		// Before embarking in parsing the event, check if there's already
@@ -984,27 +1012,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		}
 
 		//
-		// Check if this is a process or a new thread
-		//
-		if(flags & PPM_CL_CLONE_THREAD)
-		{
-			//
-			// This is a thread, the parent tid is the pid
-			//
-			parinfo = evt->get_param(4);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			parenttid = *(int64_t *)parinfo->m_val;
-		}
-		else
-		{
-			//
-			// This is not a thread, the parent tid is ptid
-			//
-			parinfo = evt->get_param(5);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			parenttid = *(int64_t *)parinfo->m_val;
-		}
-
 		// Validate that the child thread info has actually been created.
 		//
 		if(!evt->m_tinfo)
@@ -1020,7 +1027,34 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// XXX: inverted_clone flag should be useless for containers
 			// since just the child's clone is allowed to create a thread
 			//
+			int64_t parenttid;
+			int64_t ptid;
+
 			is_inverted_clone = true;
+
+			parinfo = evt->get_param(5);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			ptid = *(int64_t *)parinfo->m_val;
+
+			//
+			// Check if this is a process or a new thread
+			//
+			if(flags & PPM_CL_CLONE_THREAD)
+			{
+				//
+				// This is a thread, the parent tid is the pid
+				//
+				parinfo = evt->get_param(4);
+				ASSERT(parinfo->m_len == sizeof(int64_t));
+				parenttid = *(int64_t *)parinfo->m_val;
+			}
+			else
+			{
+				//
+				// This is not a thread, the parent tid is ptid
+				//
+				parenttid = ptid;
+			}
 
 			//
 			// The tid to add is the one that generated this event
@@ -1028,9 +1062,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			childtid = tid;
 
 			tid = parenttid;
+			real_parent_tid = ptid;
 
 			//
 			// Keep going and add the event with the standard code below
+			// NOTE: when CLONE_PARENT is used, parenttid is the real_parent tid
+			// and not the tid of the task that called clone(). Most of the info are
+			// taken from the event, coming from the kernel, the others will be
+			// updated when the clone returns in the parent.
 			//
 		}
 		else
@@ -1052,6 +1091,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	}
 	else
 	{
+		has_called_clone = true;
+
 		//
 		// We are in the father. If the father is running in a container,
 		// don't create the child process but wait until we see child, because
@@ -1083,6 +1124,17 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	}
 
 	//
+	// If the child thread is being created from the calling thread, we have to check
+	// the CLONE_PARENT/CLONE_THREAD flag to find the real parent tid. When they are
+	// used, the new task real parent is the parent of the task that called clone()
+	//
+	if(has_called_clone && valid_parent &&
+			((flags & PPM_CL_CLONE_PARENT) || (flags & PPM_CL_CLONE_THREAD)))
+	{
+		real_parent_tid = ptinfo->m_ptid;
+	}
+
+	//
 	// See if the child is already there
 	//
 	sinsp_threadinfo* child = m_inspector->get_thread(childtid, false, true);
@@ -1096,6 +1148,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		if(child->m_flags & PPM_CL_CLONE_INVERTED)
 		{
+			if(child->m_flags & PPM_CL_CLONE_PARENT)
+			{
+				// If CLONE_PARENT is set and this is an inverted clone, we
+				// couldn't correctly set some info, so we do it now.
+				child->m_root = ptinfo->m_root;
+				child->m_sid = ptinfo->m_sid;
+				copy_non_thread_info(child, ptinfo);
+			}
 			return;
 		}
 		else
@@ -1116,7 +1176,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Set the tid and parent tid
 	//
 	tinfo.m_tid = childtid;
-	tinfo.m_ptid = tid;
+	tinfo.m_ptid = real_parent_tid;
 
 	if(valid_parent)
 	{
@@ -1238,28 +1298,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_pid = childtid;
 	}
 
-	if(!(tinfo.m_flags & PPM_CL_CLONE_THREAD))
-	{
-		//
-		// Copy the fd list
-		// XXX this is a gross oversimplification that will need to be fixed.
-		// What we do is: if the child is NOT a thread, we copy all the parent fds.
-		// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
-		// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
-		//
-		tinfo.m_fdtable = *(ptinfo->get_fd_table());
+	copy_non_thread_info(&tinfo, ptinfo);
 
-		//
-		// It's important to reset the cache of the child thread, to prevent it from
-		// referring to an element in the parent's table.
-		//
-		tinfo.m_fdtable.reset_cache();
-
-		//
-		// Not a thread, copy cwd
-		//
-		tinfo.m_cwd = ptinfo->m_cwd;
-	}
 	//if((tinfo.m_flags & (PPM_CL_CLONE_FILES)))
 	//{
 	//    tinfo.m_fdtable = ptinfo.m_fdtable;

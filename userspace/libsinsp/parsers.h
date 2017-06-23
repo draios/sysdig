@@ -21,6 +21,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include "threadinfo.h"
+
 class sinsp_fd_listener;
 
 class metaevents_state
@@ -90,6 +92,7 @@ private:
 	//
 	bool reset(sinsp_evt *evt);
 	inline void store_event(sinsp_evt* evt);
+	void copy_non_thread_info(sinsp_threadinfo* child, sinsp_threadinfo* ptinfo);
 
 	//
 	// Parsers
