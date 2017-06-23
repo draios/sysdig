@@ -411,6 +411,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					else if(optname == "interactive")
 					{
 						is_interactive = true;
+						output_type = sinsp_table::OT_JSON;
 					}
 					else if(optname == "logfile")
 					{
