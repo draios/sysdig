@@ -662,7 +662,7 @@ private:
 	bool drillup();
 	void create_complete_filter();
 	bool execute_table_action(sysdig_table_action ta, uint32_t rownumber, bool* res);
-	int32_t sinsp_cursesui::get_viewnum_by_name(string name);
+	int32_t get_viewnum_by_name(string name);
 
 #ifndef NOCURSESUI
 	void render_header();
