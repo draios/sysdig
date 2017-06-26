@@ -572,8 +572,10 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		}
 
 		line[SCAP_MAX_PATH_SIZE - 1] = 0;
-		sscanf(line, "Name:%[^\n]", tinfo->comm);
-		const char* non_space = tinfo->comm;
+		// auxiliary string to protect against undefined behaviour of `strncpy`
+		char comm_copy[SCAP_MAX_PATH_SIZE - 1];
+		sscanf(line, "Name:%[^\n]", comm_copy);
+		const char* non_space = comm_copy;
 		while (isspace(*non_space))
 			non_space++;
 		strncpy(tinfo->comm, non_space, SCAP_MAX_PATH_SIZE - 1);
