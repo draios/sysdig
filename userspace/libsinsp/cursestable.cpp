@@ -259,7 +259,7 @@ void curses_table::print_line_centered(string line, int32_t off)
 		for(uint32_t j = 0;; j++)
 		{
 			string ss = line.substr(spos, spos + m_parent->m_screenw);
-lo("2, %d %s\n", spos, ss.c_str());
+glogf("2, %d %s\n", spos, ss.c_str());
 
 			mvwprintw(m_tblwin, 
 				m_parent->m_screenh / 2 + off + j,
