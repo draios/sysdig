@@ -30,29 +30,29 @@ if [ ! -d $BASEDIR/output ]; then
 fi
 
 if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
-        PROBE_REPO_NAME="agent"
+	PROBE_REPO_NAME="agent"
 else
-        PROBE_REPO_NAME=$(echo $PROBE_NAME | cut -f1 -d-)
+	PROBE_REPO_NAME=$(echo $PROBE_NAME | cut -f1 -d-)
 fi
 
 function update_code_for {
-        repo=$1
+	repo=$1
 	if [ ! -d $repo ]; then
-                git clone git@github.com:draios/$repo.git
+		git clone git@github.com:draios/$repo.git
 	fi
 
 	cd $repo
 	git checkout master
 	# The UEK builder container doesn't have git credentials
 	# It relies on the non-UEK builds doing the pull earlier
-	if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
-	        git pull
+	if [[ ! "$KERNEL_TYPE" =~ "LinuxKit" ]]; then
+		git pull
 	fi
 
 	if [ $PROBE_REPO_NAME = $repo ]; then
-	        git checkout $PROBE_VERSION
+		git checkout $PROBE_VERSION
 	else
-	        git checkout $PROBE_REPO_NAME/$PROBE_VERSION
+		git checkout $PROBE_REPO_NAME/$PROBE_VERSION
 	fi
 
 	# Remove everything other than the files actually belonging to
@@ -75,11 +75,11 @@ function build_probe {
 		update_code_for sysdig
 
 		if [ $PROBE_NAME != "sysdig-probe" ]; then
-		        update_code_for falco
+			update_code_for falco
 		fi
 
 		if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
-		        update_code_for agent
+			update_code_for agent
 		fi
 
 		cd $PROBE_REPO_NAME
@@ -441,6 +441,35 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
+linuxkit_build() {
+	IMAGE=$1
+	EXTRACT_DIR=$(echo $IMAGE | cut -d":" -f2)
+	KERNEL_RELEASE=$(echo $EXTRACT_DIR | cut -d"-" -f1)-linuxkit
+	cd $BASEDIR
+	if [[ ! -d ${EXTRACT_DIR} ]]; then
+		mkdir ${EXTRACT_DIR}
+		cd ${EXTRACT_DIR}
+		docker pull $IMAGE
+		docker rm -fv tmplinuxkit || true
+		docker create --name tmplinuxkit $IMAGE sh
+		docker cp tmplinuxkit:/kernel-dev.tar .
+		tar xf kernel-dev.tar
+		cp usr/src/linux-headers-*/.config config
+	else
+		cd ${EXTRACT_DIR}
+	fi
+	HASH=$(md5sum config | cut -d' ' -f1)
+	HASH_ORIG=${HASH}
+	export KERNELDIR=$(echo $PWD/usr/src/linux-headers-*)
+	if [[ ! -d ${KERNELDIR}/scripts ]]; then
+		echo "$EXTRACT_DIR has an old version of headers, skipping"
+		return
+	fi
+	cd $BASEDIR
+	build_probe
+	cd $BASEDIR
+}
+
 if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Ubuntu build
@@ -570,6 +599,17 @@ if [ -z "$KERNEL_TYPE" ]; then
 	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
 
 	#
+	# LinuxKit build
+	#
+	echo "Creating LinuxKit builder"
+	docker ps -q -f 'name=linuxkit-build' | xargs --no-run-if-empty docker rm
+	docker build -t linuxkit-builder:latest -f ../sysdig/scripts/Dockerfile.linuxkit ../sysdig/scripts
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	# /lib/modules is used by `modinfo` to read `modules.deps` file, it looks it works just by bind mount it
+	# docker.sock is needed to spawn new containers inside `linuxkit_build`
+	docker run -i --rm --name linuxkit-build -v $BASEDIR:/build/probe -v /var/run/docker.sock:/var/run/docker.sock -v /lib/modules:/lib/modules:ro linuxkit-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME LinuxKit
+	
+	#
 	# Upload modules
 	#
 	aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
@@ -595,6 +635,16 @@ elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
 	for URL in $URLS
 	do
 		rhel_build $URL
+	done
+elif [ "LinuxKit" = "$KERNEL_TYPE" ]; then
+	# This should only run in the linuxkit-builder container context
+	echo Building Linuxkit
+	DIR=$(dirname $(readlink -f $0))
+	IMAGES="$($DIR/linuxkit-crawler.py)"
+
+	for IMAGE in $IMAGES
+	do
+		linuxkit_build $IMAGE
 	done
 else
 	exit 1

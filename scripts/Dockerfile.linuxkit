@@ -1,0 +1,13 @@
+FROM alpine:latest
+RUN apk add --update --no-cache make gcc python bash ca-certificates docker git cmake g++
+
+WORKDIR /build
+
+# Use the same directory structure as the jenkins worker
+RUN mkdir -p sysdig/scripts
+ADD linuxkit-crawler.py sysdig/scripts/
+ADD build-probe-binaries sysdig/scripts/
+
+WORKDIR probe
+
+ENTRYPOINT [ "../sysdig/scripts/build-probe-binaries" ]
