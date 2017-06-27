@@ -1196,9 +1196,20 @@ sinsp_threadinfo* sinsp_thread_manager::find_child_reaper(sinsp_threadinfo* fath
 	// Find the reaper of the pid namespace `father` belongs to.
 	// This is an approximation that uses the container_id of the thread.
 	//
-	// FIXME: if father is the reaper of its pid_namespace, the entire pid_namespace should be killed
-	//
-	int64_t reaper_tid = father->m_container_id.empty() ? 1 : m_init_threadtable[father->m_container_id];
+	int64_t reaper_tid = 1;
+	if(father->m_container_id.empty())
+	{
+		reaper_tid = 1;
+	}
+	else
+	{
+		auto init_thread = m_init_threadtable.find(father->m_container_id);
+		if(init_thread != m_init_threadtable.end())
+		{
+			reaper_tid = init_thread->second;
+		}
+	}
+
 	sinsp_threadinfo *reaper = m_inspector->get_thread(reaper_tid);
 	return !reaper || reaper->m_pid == father->m_pid ? nullptr : reaper;
 }
