@@ -2694,7 +2694,7 @@ int32_t sinsp_cursesui::get_viewnum_by_name(string name)
 	return -1;
 }
 
-void sinsp_cursesui::handle_stdin_input()
+bool sinsp_cursesui::handle_stdin_input()
 {
 	string input;
 
@@ -2716,13 +2716,14 @@ void sinsp_cursesui::handle_stdin_input()
 	{
 		fprintf(stderr, "unable to parse the json input: %s",
 			reader.getFormatedErrorMessages().c_str());
-		return;
+		return false;
 	}
 
 	string astr = root["action"].asString();
 	Json::Value args = root["args"];
 
 	sysdig_table_action ta;
+	uint32_t rownum;
 
 	if(astr == "switch")
 	{
@@ -2734,17 +2735,32 @@ void sinsp_cursesui::handle_stdin_input()
 		if(m_selected_view == -1)
 		{
 			fprintf(stderr, "unknown view: %s", vname.c_str());
-			return;
+			return false;
 		}
+	}
+	else if(astr == "drilldown")
+	{
+		ta = STA_DRILLDOWN;
+
+		rownum = args["rownum"].asInt();
+	}
+	else if(astr == "drillup")
+	{
+		ta = STA_DRILLUP;
+	}
+	else if(astr == "quit")
+	{
+		return true;
 	}
 	else
 	{
 		fprintf(stderr, "invalid action: %s", astr.c_str());
-		return;
+		return false;
 	}
 
 	bool res;
-	execute_table_action(ta, 0, &res);
+	execute_table_action(ta, rownum, &res);
+	return false;
 }
 
 uint64_t sinsp_cursesui::get_time_delta()
