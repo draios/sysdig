@@ -1802,23 +1802,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 		}
 	case TYPE_PPID:
-		if(tinfo->is_main_thread())
-		{
-			return (uint8_t*)&tinfo->m_ptid;
-		}
-		else
-		{
-			sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-			if(mt != NULL)
-			{
-				return (uint8_t*)&mt->m_ptid;
-			}
-			else
-			{
-				return NULL;
-			}
-		}
+		return (uint8_t*)&tinfo->m_ptid;
 	case TYPE_PNAME:
 		{
 			sinsp_threadinfo* ptinfo =
@@ -5052,7 +5036,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 	else if(field_id >= TYPE_S_ID && field_id <= TYPE_S_ARG)
 	{
 		//
-		// If this is a *.p.* field, reject anything that doesn't share the same parent
+		// If this is a *.s.* field, reject anything that doesn't share the same parent
 		//
 		sinsp_threadinfo* tinfo = m_inspector->get_thread(pae->m_tid);
 
