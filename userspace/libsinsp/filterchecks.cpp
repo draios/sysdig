@@ -5042,7 +5042,8 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 
 		if(tinfo)
 		{
-			if(tinfo->m_pid != evt->get_thread_info()->m_ptid)
+			sinsp_threadinfo* parent = m_inspector->get_thread(evt->get_thread_info()->m_ptid);
+			if(tinfo->m_pid != parent->m_pid)
 			{
 				return NULL;
 			}
