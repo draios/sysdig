@@ -1,12 +1,19 @@
 #!/bin/bash
-set -eu
+set -exu
 
-SCRIPT=$(readlink -f $0)
+unamestr=`uname`
+if [[ "$unamestr" == 'Linux' ]]; then
+    SCRIPT=$(readlink -f $0)
+    TMPBASE=${4:-$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)}
+elif [[ "$unamestr" == 'Darwin' ]]; then
+	SCRIPT=$(greadlink -f $0)
+	unset TMPDIR #make shure that mktemp on mac will generate the folder under /tmp
+    TMPBASE=${4:-$(mktemp -d -t sysdig)}
+fi
+
 BASEDIR=$(dirname $SCRIPT)
-
 SYSDIG=$1
 CHISELS=$2
-TMPBASE=${4:-$(mktemp -d --tmpdir sysdig.XXXXXXXXXX)}
 TRACEDIR="${TMPBASE}/traces"
 RESULTDIR="${TMPBASE}/results"
 BASELINEDIR="${TMPBASE}/baseline"
@@ -104,6 +111,13 @@ $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-cps" $TRACEDIR $RESULTDIR/ps 
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-j -n 10000" $TRACEDIR $RESULTDIR/fd_fields_json $BASELINEDIR/fd_fields_json || ret=1
 # Sessions
 $BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p '*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info sid=%proc.sid sname=%proc.sname'" $TRACEDIR $RESULTDIR/sessions $BASELINEDIR/sessions || ret=1
+# Cwd
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-pc -p\"*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info %proc.cwd\"" $TRACEDIR $RESULTDIR/cwd $BASELINEDIR/cwd || ret=1
+
+# Testing filters/outputs that can traverse parent thread state
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "-p\"*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info LS=%proc.loginshellid\"" $TRACEDIR $RESULTDIR/loginshell-parent-loop $BASELINEDIR/loginshell-parent-loop || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "proc.apid=10 or proc.apid=26890" $TRACEDIR $RESULTDIR/apid-parent-loop $BASELINEDIR/apid-parent-loop || ret=1
+$BASEDIR/sysdig_batch_parser.sh $SYSDIG $CHISELS "proc.aname=foo or proc.aname=sh" $TRACEDIR $RESULTDIR/aname-parent-loop $BASELINEDIR/aname-parent-loop || ret=1
 
 rm -rf "${TMPBASE}"
 exit $ret

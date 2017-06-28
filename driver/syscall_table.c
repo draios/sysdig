@@ -52,7 +52,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_brk - SYSCALL_TABLE_ID0] =                        {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_BRK_4_E, PPME_SYSCALL_BRK_4_X},
 	[__NR_read - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_READ_E, PPME_SYSCALL_READ_X},
 	[__NR_write - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_WRITE_E, PPME_SYSCALL_WRITE_X},
-	[__NR_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EXECVE_16_E, PPME_SYSCALL_EXECVE_16_X},
+	[__NR_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EXECVE_17_E, PPME_SYSCALL_EXECVE_17_X},
 	[__NR_clone - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CLONE_20_E, PPME_SYSCALL_CLONE_20_X},
 	[__NR_fork - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FORK_20_E, PPME_SYSCALL_FORK_20_X},
 	[__NR_vfork - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_VFORK_20_E, PPME_SYSCALL_VFORK_20_X},
@@ -74,8 +74,8 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_getcwd - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_GETCWD_E, PPME_SYSCALL_GETCWD_X},
 	[__NR_chdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
 	[__NR_fchdir - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},
-	[__NR_mkdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MKDIR_E, PPME_SYSCALL_MKDIR_X},
-	[__NR_rmdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_RMDIR_E, PPME_SYSCALL_RMDIR_X},
+	[__NR_mkdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MKDIR_2_E, PPME_SYSCALL_MKDIR_2_X},
+	[__NR_rmdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_RMDIR_2_E, PPME_SYSCALL_RMDIR_2_X},
 	[__NR_openat - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X},
 	[__NR_link - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_LINK_E, PPME_SYSCALL_LINK_X},
 	[__NR_linkat - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_LINKAT_E, PPME_SYSCALL_LINKAT_X},
@@ -99,7 +99,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_timerfd_create - SYSCALL_TABLE_ID0] =             {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_TIMERFD_CREATE_E, PPME_SYSCALL_TIMERFD_CREATE_X},
 	[__NR_inotify_init - SYSCALL_TABLE_ID0] =               {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT_E, PPME_SYSCALL_INOTIFY_INIT_X},
 	[__NR_inotify_init1 - SYSCALL_TABLE_ID0] =              {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT_E, PPME_SYSCALL_INOTIFY_INIT_X},
+#ifdef __NR_getrlimit
 	[__NR_getrlimit - SYSCALL_TABLE_ID0] =                  {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_GETRLIMIT_E, PPME_SYSCALL_GETRLIMIT_X},
+#endif
 	[__NR_setrlimit - SYSCALL_TABLE_ID0] =                  {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SETRLIMIT_E, PPME_SYSCALL_SETRLIMIT_X},
 #ifdef __NR_prlimit64
 	[__NR_prlimit64 - SYSCALL_TABLE_ID0] =                  {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PRLIMIT_E, PPME_SYSCALL_PRLIMIT_X},
@@ -121,11 +123,15 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_syslog - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_chmod - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 	[__NR_lchown - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
+#ifdef __NR_utime
 	[__NR_utime - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
+#endif
 	[__NR_mount - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MOUNT_E, PPME_SYSCALL_MOUNT_X},
 	[__NR_umount2 - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X},
 	[__NR_ptrace - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_PTRACE_E, PPME_SYSCALL_PTRACE_X},
+#ifdef __NR_alarm
 	[__NR_alarm - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
+#endif
 	[__NR_pause - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 
 #ifndef __NR_socketcall
@@ -164,7 +170,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR__llseek
 	[__NR__llseek - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_LLSEEK_E, PPME_SYSCALL_LLSEEK_X},
 #endif
+#ifdef __NR_mmap
 	[__NR_mmap - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MMAP_E, PPME_SYSCALL_MMAP_X},
+#endif
 #ifdef __NR_mmap2
 	[__NR_mmap2 - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MMAP2_E, PPME_SYSCALL_MMAP2_X},
 #endif
@@ -253,6 +261,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setns
 	[__NR_setns - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SETNS_E, PPME_SYSCALL_SETNS_X},
 #endif
+#ifdef __NR_unshare
+	[__NR_unshare - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_UNSHARE_E, PPME_SYSCALL_UNSHARE_X},
+#endif
 	[__NR_flock - SYSCALL_TABLE_ID0] =			{UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FLOCK_E, PPME_SYSCALL_FLOCK_X},
 #ifdef __NR_semop
 	[__NR_semop - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SEMOP_E, PPME_SYSCALL_SEMOP_X},
@@ -288,7 +299,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_link - SYSCALL_TABLE_ID0] = PPM_SC_LINK,
 	[__NR_unlink - SYSCALL_TABLE_ID0] = PPM_SC_UNLINK,
 	[__NR_chdir - SYSCALL_TABLE_ID0] = PPM_SC_CHDIR,
+#ifdef __NR_time
 	[__NR_time - SYSCALL_TABLE_ID0] = PPM_SC_TIME,
+#endif
 	[__NR_mknod - SYSCALL_TABLE_ID0] = PPM_SC_MKNOD,
 	[__NR_chmod - SYSCALL_TABLE_ID0] = PPM_SC_CHMOD,
 /* [__NR_lchown16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_LCHOWN16, */
@@ -300,10 +313,14 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 /* [__NR_setuid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_SETUID16, */
 /* [__NR_getuid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_GETUID16, */
 	[__NR_ptrace - SYSCALL_TABLE_ID0] = PPM_SC_PTRACE,
+#ifdef __NR_alarm
 	[__NR_alarm - SYSCALL_TABLE_ID0] = PPM_SC_ALARM,
+#endif
 	[__NR_fstat - SYSCALL_TABLE_ID0] = PPM_SC_FSTAT,
 	[__NR_pause - SYSCALL_TABLE_ID0] = PPM_SC_PAUSE,
+#ifdef __NR_utime
 	[__NR_utime - SYSCALL_TABLE_ID0] = PPM_SC_UTIME,
+#endif
 	[__NR_access - SYSCALL_TABLE_ID0] = PPM_SC_ACCESS,
 	[__NR_sync - SYSCALL_TABLE_ID0] = PPM_SC_SYNC,
 	[__NR_kill - SYSCALL_TABLE_ID0] = PPM_SC_KILL,
@@ -346,7 +363,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_reboot - SYSCALL_TABLE_ID0] = PPM_SC_REBOOT,
 /* [__NR_old_readdir - SYSCALL_TABLE_ID0] = PPM_SC_NR_OLD_READDIR, */
 /* [__NR_old_mmap - SYSCALL_TABLE_ID0] = PPM_SC_NR_OLD_MMAP, */
+#ifdef __NR_mmap
 	[__NR_mmap - SYSCALL_TABLE_ID0] = PPM_SC_MMAP,
+#endif
 	[__NR_munmap - SYSCALL_TABLE_ID0] = PPM_SC_MUNMAP,
 	[__NR_truncate - SYSCALL_TABLE_ID0] = PPM_SC_TRUNCATE,
 	[__NR_ftruncate - SYSCALL_TABLE_ID0] = PPM_SC_FTRUNCATE,
@@ -427,7 +446,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_capget - SYSCALL_TABLE_ID0] = PPM_SC_CAPGET,
 	[__NR_capset - SYSCALL_TABLE_ID0] = PPM_SC_CAPSET,
 	[__NR_sendfile - SYSCALL_TABLE_ID0] = PPM_SC_SENDFILE,
+#ifdef __NR_getrlimit
 	[__NR_getrlimit - SYSCALL_TABLE_ID0] = PPM_SC_GETRLIMIT,
+#endif
 /* [__NR_mmap_pgoff - SYSCALL_TABLE_ID0] = PPM_SC_NR_MMAP_PGOFF, */
 	[__NR_lchown - SYSCALL_TABLE_ID0] = PPM_SC_LCHOWN,
 	[__NR_getuid - SYSCALL_TABLE_ID0] = PPM_SC_GETUID,
@@ -820,7 +841,7 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_brk - SYSCALL_TABLE_ID0] =                        {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_BRK_4_E, PPME_SYSCALL_BRK_4_X},
 	[__NR_ia32_read - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_READ_E, PPME_SYSCALL_READ_X},
 	[__NR_ia32_write - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_WRITE_E, PPME_SYSCALL_WRITE_X},
-	[__NR_ia32_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EXECVE_16_E, PPME_SYSCALL_EXECVE_16_X},
+	[__NR_ia32_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EXECVE_17_E, PPME_SYSCALL_EXECVE_17_X},
 	[__NR_ia32_clone - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CLONE_20_E, PPME_SYSCALL_CLONE_20_X},
 	[__NR_ia32_fork - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FORK_20_E, PPME_SYSCALL_FORK_20_X},
 	[__NR_ia32_vfork - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_VFORK_20_E, PPME_SYSCALL_VFORK_20_X},
@@ -842,8 +863,8 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_getcwd - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_GETCWD_E, PPME_SYSCALL_GETCWD_X},
 	[__NR_ia32_chdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
 	[__NR_ia32_fchdir - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},
-	[__NR_ia32_mkdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MKDIR_E, PPME_SYSCALL_MKDIR_X},
-	[__NR_ia32_rmdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_RMDIR_E, PPME_SYSCALL_RMDIR_X},
+	[__NR_ia32_mkdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MKDIR_2_E, PPME_SYSCALL_MKDIR_2_X},
+	[__NR_ia32_rmdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_RMDIR_2_E, PPME_SYSCALL_RMDIR_2_X},
 	[__NR_ia32_openat - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X},
 	[__NR_ia32_link - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_LINK_E, PPME_SYSCALL_LINK_X},
 	[__NR_ia32_linkat - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_LINKAT_E, PPME_SYSCALL_LINKAT_X},

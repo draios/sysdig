@@ -17,6 +17,8 @@
 class uri
 {
 public:
+	typedef std::pair<std::string, std::string> credentials_t;
+
 	static const std::string SPECIAL_CHARS;
 	static const std::string AMBIGUOUS_CHARS;
 
@@ -29,13 +31,22 @@ public:
 	const std::string& get_password() const;
 	const std::string& get_host() const;
 	const std::string& get_path() const;
+	void set_path(const std::string& path);
 	const std::string& get_query() const;
 	int get_port() const;
 
+	void set_scheme(std::string scheme);
+	void set_host(std::string host);
+
+	bool is(const std::string& proto);
+	bool is_file() const;
 	bool is_secure() const;
 	std::string get_credentials() const;
+	credentials_t& get_credentials(credentials_t& creds) const;
+	void set_credentials(const credentials_t& cred);
 
 	std::string to_string(bool show_creds = true) const;
+	bool is_local() const;
 
 	// URI-encodes the given string by escaping reserved, ambiguous and non-ASCII
 	// characters. Returns the encoded string with uppercase hex letters (eg. %5B, not %5b).
@@ -47,6 +58,7 @@ public:
 	// When plus_as_space is true, non-encoded plus signs in the query are decoded as spaces.
 	// (http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1)
 	static std::string decode(const std::string& str, bool plus_as_space = false);
+	static void check(std::string str);
 
 private:
 	int get_well_known_port() const;
@@ -59,6 +71,11 @@ private:
 inline const std::string& uri::get_scheme() const
 {
 	return m_scheme;
+}
+
+inline void uri::set_scheme(std::string scheme)
+{
+	m_scheme = move(scheme);
 }
 
 inline const std::string& uri::get_user() const
@@ -76,6 +93,11 @@ inline const std::string& uri::get_host() const
 	return m_host;
 }
 
+inline void uri::set_host(std::string host)
+{
+	m_host = move(host);
+}
+
 inline const std::string& uri::get_path() const
 {
 	return m_path;
@@ -91,9 +113,20 @@ inline int uri::get_port() const
 	return m_port;
 }
 
+inline bool uri::is_file() const
+{
+	return m_scheme == "file";
+}
+
 inline bool uri::is_secure() const
 {
-	return "https" == m_scheme;
+	return m_scheme == "https";
+}
+
+inline void uri::set_credentials(const credentials_t& cred)
+{
+	m_user = cred.first;
+	m_password = cred.second;
 }
 
 inline std::string uri::get_credentials() const
@@ -104,4 +137,16 @@ inline std::string uri::get_credentials() const
 		creds.append(m_user).append(1, ':').append(m_password);
 	}
 	return creds;
+}
+
+inline uri::credentials_t& uri::get_credentials(credentials_t& creds) const
+{
+	creds.first = m_user;
+	creds.second = m_password;
+	return creds;
+}
+
+inline bool uri::is_local() const
+{
+	return m_host == "localhost" || m_host == "127.0.0.1" || m_scheme == "file";
 }

@@ -25,6 +25,59 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "container.h"
+#include "utils.h"
+
+void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
+{
+	if(!mnt_obj.isNull() && mnt_obj.isArray())
+	{
+		for(uint32_t i=0; i<mnt_obj.size(); i++)
+		{
+			const Json::Value &mount = mnt_obj[i];
+			mounts.emplace_back(mount["Source"], mount["Destination"],
+					    mount["Mode"], mount["RW"],
+					    mount["Propagation"]);
+		}
+	}
+}
+
+sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(uint32_t idx)
+{
+	if (idx >= m_mounts.size())
+	{
+		return NULL;
+	}
+
+	return &(m_mounts[idx]);
+}
+
+sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(std::string &source)
+{
+	// note: linear search
+	for (auto &mntinfo :m_mounts)
+	{
+		if(sinsp_utils::glob_match(source.c_str(), mntinfo.m_source.c_str()))
+		{
+			return &mntinfo;
+		}
+	}
+
+	return NULL;
+}
+
+sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(std::string &dest)
+{
+	// note: linear search
+	for (auto &mntinfo :m_mounts)
+	{
+		if(sinsp_utils::glob_match(dest.c_str(), mntinfo.m_dest.c_str()))
+		{
+			return &mntinfo;
+		}
+	}
+
+	return NULL;
+}
 
 sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 	m_inspector(inspector),
@@ -41,7 +94,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_inactive_container_scan_time_ns + 30 * ONE_SECOND_IN_NS;
 	}
 
-	if(m_inspector->m_lastevent_ts > 
+	if(m_inspector->m_lastevent_ts >
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
 		res = true;
@@ -104,22 +157,29 @@ sinsp_container_info* sinsp_container_manager::get_container(const string& conta
 string sinsp_container_manager::get_env_mesos_task_id(sinsp_threadinfo* tinfo)
 {
 	string mtid;
-	if(tinfo)
+
+	sinsp_threadinfo::visitor_func_t visitor = [&mtid] (sinsp_threadinfo *ptinfo)
 	{
 		// Mesos task ID detection is not a straightforward task;
 		// this list may have to be extended.
-		mtid = tinfo->get_env("MESOS_TASK_ID"); // Marathon
-		if(!mtid.empty()) { return mtid; }
-		mtid = tinfo->get_env("mesos_task_id"); // Chronos
-		if(!mtid.empty()) { return mtid; }
-		mtid = tinfo->get_env("MESOS_EXECUTOR_ID"); // others
-		if(!mtid.empty()) { return mtid; }
-		sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
-		if(ptinfo && ptinfo->m_tid > 1)
-		{
-			mtid = get_env_mesos_task_id(ptinfo);
-		}
+		mtid = ptinfo->get_env("MESOS_TASK_ID"); // Marathon
+		if(!mtid.empty()) { return false; }
+		mtid = ptinfo->get_env("mesos_task_id"); // Chronos
+		if(!mtid.empty()) { return false; }
+		mtid = ptinfo->get_env("MESOS_EXECUTOR_ID"); // others
+		if(!mtid.empty()) { return false; }
+
+		return true;
+	};
+
+	// Try the current thread first. visitor returns true if mtid
+	// was not filled in. In this case we should traverse the
+	// parents.
+	if(tinfo && visitor(tinfo))
+	{
+		tinfo->traverse_parent_state(visitor);
 	}
+
 	return mtid;
 }
 
@@ -151,7 +211,7 @@ bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container,
 			else
 			{
 				g_logger.log("Mesos task ID not found for Mesos container [" + container->m_id + "],"
-							 "thread [" + std::to_string(tinfo->m_tid) + ']', sinsp_logger::SEV_WARNING);
+							 "thread [" + std::to_string(tinfo->m_tid) + ']', sinsp_logger::SEV_DEBUG);
 			}
 		}
 	}
@@ -171,10 +231,13 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
+
 	ASSERT(tinfo);
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
+	string rkt_podid, rkt_appname;
+	// Start with cgroup based detection
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
 		string cgroup = it->second;
@@ -187,7 +250,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		if(pos != string::npos)
 		{
 			if(cgroup.length() - pos - 1 == 64 &&
-				cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos) 
+				cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos)
 			{
 				container_info.m_type = CT_DOCKER;
 				container_info.m_id = cgroup.substr(pos + 1, 12);
@@ -265,8 +328,10 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		pos = cgroup.find("/lxc/");
 		if(pos != string::npos)
 		{
+			auto id_start = pos + sizeof("/lxc/") - 1;
+			auto id_end = cgroup.find('/', id_start);
 			container_info.m_type = CT_LXC;
-			container_info.m_id = cgroup.substr(pos + sizeof("/lxc/") - 1);
+			container_info.m_id = cgroup.substr(id_start, id_end - id_start);
 			valid_id = true;
 			break;
 		}
@@ -279,13 +344,68 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		{
 			container_info.m_type = CT_MESOS;
 			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
-			valid_id = true;
-			set_mesos_task_id(&container_info, tinfo);
+			// Consider a mesos container valid only if we find the mesos_task_id
+			// this will exclude from the container itself the mesos-executor
+			// but makes sure that we have task_id parsed properly. Otherwise what happens
+			// is that we'll create a mesos container struct without a mesos_task_id
+			// and for all other processes we'll use it
+			valid_id = set_mesos_task_id(&container_info, tinfo);
 			break;
+		}
+
+		//
+		// systemd rkt
+		//
+		{
+			vector<string> tokens = sinsp_split(cgroup, '/');
+
+			if (tokens.size() == 5)
+			{
+				if (tokens[2].substr(0, 11) == "machine-rkt")
+				{
+					string::size_type dot_pos = tokens[2].find('.');
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 3, dot_pos - sizeof("machine-rkt") - 3);
+					replace_in_place(rkt_podid, "\\x2d", "-");
+					dot_pos = tokens[4].find('.');
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_appname = tokens[4].substr(0, dot_pos);
+					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
+						continue;
+
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
+					valid_id = true;
+					break;
+				}
+				else if (tokens[2].substr(0, 4) == "k8s_")
+				{
+					string::size_type dot_pos = tokens[2].find('.');
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_podid = tokens[2].substr(sizeof("k8s_") - 1, dot_pos - sizeof("k8s_") + 1);
+					dot_pos = tokens[4].find('.');
+					if (dot_pos == string::npos)
+						continue;
+					string rkt_appname = tokens[4].substr(0, dot_pos);
+					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
+						continue;
+
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
+					valid_id = true;
+					break;
+				}
+			}
 		}
 	}
 
-	string rkt_podid, rkt_appname;
+	// If anything has been found, try proc root based detection
+	// right now used for rkt
 	if(!valid_id)
 	{
 		// Try parsing from process root,
@@ -302,10 +422,10 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			{
 				rkt_appname = tinfo->m_root.substr(prefix + COREOS_PREFIX.size(), suffix - prefix - COREOS_PREFIX.size());
 				// It is a rkt pod with stage1-coreos
-				sinsp_threadinfo* tinfo_it = tinfo;
-				while(!valid_id && tinfo_it != nullptr)
+
+				sinsp_threadinfo::visitor_func_t visitor = [&rkt_podid, &container_info, &rkt_appname, &valid_id] (sinsp_threadinfo *ptinfo)
 				{
-					for(const auto& env_var : tinfo_it->m_env)
+					for(const auto& env_var : ptinfo->get_env())
 					{
 						auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
 						if(container_uuid_pos == 0)
@@ -315,10 +435,17 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 							container_info.m_id = rkt_podid + ":" + rkt_appname;
 							container_info.m_name = rkt_appname;
 							valid_id = true;
-							break;
+							return false;
 						}
 					}
-					tinfo_it = tinfo_it->get_parent_thread();
+					return true;
+				};
+
+				// Try the current thread first. visitor returns true if no coreos pid
+				// info was found. In this case we traverse the parents.
+				if (visitor(tinfo))
+				{
+					tinfo->traverse_parent_state(visitor);
 				}
 			}
 		}
@@ -350,7 +477,11 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			}
 		}
 	}
-	if(valid_id)
+
+	if(!valid_id) {
+		tinfo->m_container_id = "";
+	}
+	else
 	{
 		tinfo->m_container_id = container_info.m_id;
 
@@ -388,7 +519,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					ASSERT(false);
 			}
 
-			m_containers.insert(std::make_pair(container_info.m_id, container_info));
+			add_container(container_info);
 			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;
@@ -407,6 +538,31 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["type"] = container_info.m_type;
 	container["name"] = container_info.m_name;
 	container["image"] = container_info.m_image;
+	container["imageid"] = container_info.m_imageid;
+	container["privileged"] = container_info.m_privileged;
+
+	Json::Value mounts = Json::arrayValue;
+
+	for (auto &mntinfo : container_info.m_mounts)
+	{
+		Json::Value mount;
+
+		mount["Source"] = mntinfo.m_source;
+		mount["Destination"] = mntinfo.m_dest;
+		mount["Mode"] = mntinfo.m_mode;
+		mount["RW"] = mntinfo.m_rdwr;
+		mount["Propagation"] = mntinfo.m_propagation;
+
+		mounts.append(mount);
+	}
+
+	container["Mounts"] = mounts;
+
+	char addrbuff[100];
+	uint32_t iph = ntohl(container_info.m_container_ip);
+	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
+	container["ip"] = addrbuff;
+
 	if(!container_info.m_mesos_task_id.empty())
 	{
 		container["mesos_task_id"] = container_info.m_mesos_task_id;
@@ -515,6 +671,14 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	const Json::Value& config_obj = root["Config"];
 
 	container->m_image = config_obj["Image"].asString();
+
+	string imgstr = root["Image"].asString();
+	size_t cpos = imgstr.find(":");
+	if(cpos != string::npos)
+	{
+		container->m_imageid = imgstr.substr(cpos + 1);
+	}
+
 	container->m_name = root["Name"].asString();
 
 	if(!container->m_name.empty() && container->m_name[0] == '/')
@@ -546,7 +710,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		if(v.isArray())
 		{
 			for(uint32_t j = 0; j < v.size(); ++j)
-			{	
+			{
 				sinsp_container_info::container_port_mapping port_mapping;
 
 				ip = v[j]["HostIp"].asString();
@@ -574,14 +738,14 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	}
 
 	const Json::Value& env_vars = config_obj["Env"];
-	string mesos_task_id = get_mesos_task_id(env_vars, "MESOS_TASK_ID");
+	string mesos_task_id = get_docker_env(env_vars, "MESOS_TASK_ID");
 	if(mesos_task_id.empty())
 	{
-		mesos_task_id = get_mesos_task_id(env_vars, "mesos_task_id");
+		mesos_task_id = get_docker_env(env_vars, "mesos_task_id");
 	}
 	if(mesos_task_id.empty())
 	{
-		mesos_task_id = get_mesos_task_id(env_vars, "MESOS_EXECUTOR_ID");
+		mesos_task_id = get_docker_env(env_vars, "MESOS_EXECUTOR_ID");
 	}
 	if(!mesos_task_id.empty())
 	{
@@ -603,28 +767,38 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	{
 		container->m_cpu_period = cpu_period;
 	}
+	const Json::Value &privileged = host_config_obj["Privileged"];
+	if(!privileged.isNull() && privileged.isBool())
+	{
+		container->m_privileged = privileged.asBool();
+	}
+
+	sinsp_container_info::parse_json_mounts(root["Mounts"], container->m_mounts);
+
+#ifdef HAS_ANALYZER
+	container->m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
+#endif
 	return true;
 }
 
-string sinsp_container_manager::get_mesos_task_id(const Json::Value& env_vars, const string& mti)
+string sinsp_container_manager::get_docker_env(const Json::Value &env_vars, const string &mti)
 {
-	string mesos_task_id;
+	string ret;
 	for(const auto& env_var : env_vars)
 	{
 		if(env_var.isString())
 		{
-			mesos_task_id = env_var.asString();
-			if((mesos_task_id.length() > (mti.length() + 1)) && (mesos_task_id.substr(0, mti.length()) == mti))
+			ret = env_var.asString();
+			if((ret.length() > (mti.length() + 1)) && (ret.substr(0, mti.length()) == mti))
 			{
-				return mesos_task_id.substr(mti.length() + 1);
+				return ret.substr(mti.length() + 1);
 			}
 		}
 	}
 	return "";
 }
 
-bool sinsp_container_manager::parse_rkt(sinsp_container_info *container,
-										const string &podid, const string &appname)
+bool sinsp_container_manager::parse_rkt(sinsp_container_info *container, const string &podid, const string &appname)
 {
 	bool ret = false;
 	Json::Reader reader;
@@ -703,6 +877,11 @@ const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_
 void sinsp_container_manager::add_container(const sinsp_container_info& container_info)
 {
 	m_containers[container_info.m_id] = container_info;
+
+	if(m_inspector->m_parser->m_fd_listener)
+	{
+		m_inspector->m_parser->m_fd_listener->on_new_container(container_info);
+	}
 }
 
 void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)

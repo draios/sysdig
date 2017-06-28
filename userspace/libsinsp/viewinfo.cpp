@@ -288,7 +288,6 @@ sinsp_view_column_info* sinsp_view_info::get_key()
 	}
 
 	// The *must* be a key
-	ASSERT(false);
 	return NULL;
 }
 

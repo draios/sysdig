@@ -167,7 +167,6 @@ static void usage()
 "                    The API servers can also be specified via the environment variable\n"
 "                    SYSDIG_MESOS_API.\n"
 " -M <num_seconds>   Stop collecting after <num_seconds> reached.\n"
-" -N                 Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " -P, --progress     Print progress on stderr while processing trace files\n"
@@ -179,6 +178,7 @@ static void usage()
 "                    See the examples section below for more info.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
+" -R                 Resolve port numbers to names.\n"
 " -r <readfile>, --read=<readfile>\n"
 "                    Read the events from <readfile>.\n"
 " -S, --summary      print the event summary (i.e. the list of the top events)\n"
@@ -510,7 +510,7 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 //
 captureinfo do_inspect(sinsp* inspector,
 	uint64_t cnt,
-	int duration_to_tot,
+	uint64_t duration_to_tot_ns,
 	bool quiet,
 	bool json,
 	bool do_flush,
@@ -524,7 +524,7 @@ captureinfo do_inspect(sinsp* inspector,
 	sinsp_evt* ev;
 	string line;
 	double last_printed_progress_pct = 0;
-	int duration_start = 0;
+	uint64_t duration_start = 0;
 
 	if(json)
 	{
@@ -534,18 +534,8 @@ captureinfo do_inspect(sinsp* inspector,
 	//
 	// Loop through the events
 	//
-	duration_start = ((double)clock()) / CLOCKS_PER_SEC;
 	while(1)
 	{
-		if(duration_to_tot > 0)
-		{
-			int duration_tot = ((double)clock()) / CLOCKS_PER_SEC - duration_start;
-			if(duration_tot >= duration_to_tot)
-			{
-				handle_end_of_file(print_progress, formatter);
-				break;
-			}
-		}
 		if(retval.m_nevts == cnt || g_terminate)
 		{
 			//
@@ -586,6 +576,17 @@ captureinfo do_inspect(sinsp* inspector,
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
 
+		if (duration_start == 0)
+		{
+			duration_start = ev->get_ts();
+		} else if(duration_to_tot_ns > 0)
+		{
+			if(ev->get_ts() - duration_start >= duration_to_tot_ns)
+			{
+				handle_end_of_file(print_progress, formatter);
+				break;
+			}
+		}
 		retval.m_nevts++;
 
 		if(print_progress)
@@ -765,6 +766,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
+		{"resolve-ports", no_argument, 0, 'R'},
 		{"readfile", required_argument, 0, 'r' },
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
@@ -786,7 +788,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	try
 	{
 		inspector = new sinsp();
-
+		inspector->set_hostname_and_port_resolution_mode(false);
 
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
@@ -800,7 +802,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:Nn:Pp:qr:Ss:t:Tv"
+                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:Tv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -970,9 +972,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
-			case 'N':
-				inspector->set_hostname_and_port_resolution_mode(false);
-				break;
 			case 'n':
 				try
 				{
@@ -1039,6 +1038,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'q':
 				quiet = true;
+				break;
+			case 'R':
+				inspector->set_hostname_and_port_resolution_mode(true);
 				break;
 			case 'r':
 				infiles.push_back(optarg);
@@ -1457,7 +1459,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			cinfo = do_inspect(inspector,
 				cnt,
-				duration_to_tot,
+				uint64_t(duration_to_tot*ONE_SECOND_IN_NS),
 				quiet,
 				jflag,
 				unbuf_flag,

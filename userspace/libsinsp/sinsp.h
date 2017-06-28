@@ -62,6 +62,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <set>
 #include <list>
+#include <memory>
 
 using namespace std;
 
@@ -110,6 +111,15 @@ class sinsp_protodecoder;
 class k8s;
 class sinsp_partial_tracer;
 class mesos;
+
+#ifdef HAS_CAPTURE
+class sinsp_ssl;
+class sinsp_bearer_token;
+template <class T> class socket_data_handler;
+template <class T> class socket_collector;
+class k8s_handler;
+class k8s_api_handler;
+#endif // HAS_CAPTURE
 
 vector<string> sinsp_split(const string &s, char delim);
 
@@ -216,6 +226,9 @@ public:
 class SINSP_PUBLIC sinsp
 {
 public:
+	typedef std::set<std::string> k8s_ext_list_t;
+	typedef std::shared_ptr<k8s_ext_list_t> k8s_ext_list_ptr_t;
+
 	sinsp();
 	~sinsp();
 
@@ -239,6 +252,18 @@ public:
 	   of failure.
 	*/
 	void open(string filename);
+
+	/*!
+	  \brief Start an event capture from a file descriptor.
+
+	  \param fd the file descriptor
+
+	  @throws a sinsp_exception containing the error string is thrown in case
+	   of failure.
+	*/
+	void fdopen(int fd);
+
+	void open_nodriver();
 
 	/*!
 	  \brief Ends a capture and release all resources.
@@ -293,10 +318,10 @@ public:
 	  \brief Determine if this inspector is going to load user tables on
 	  startup.
 
-	  \param import_users if true, no user tables will be created for 
-	  this capture. This also means that no user or group info will be 
-	  written to the tracefile by the -w flag. The user/group tables are 
-	  necessary to use filter fields like user.name or group.name. However, 
+	  \param import_users if true, no user tables will be created for
+	  this capture. This also means that no user or group info will be
+	  written to the tracefile by the -w flag. The user/group tables are
+	  necessary to use filter fields like user.name or group.name. However,
 	  creating them can increase sysdig's startup time. Moreover, they contain
 	  information that could be privacy sensitive.
 
@@ -345,10 +370,17 @@ public:
 	/*!
 	  \brief Return the filter set for this capture.
 
-	  \return the filter previously set with \ref set_filter(), or an empty 
+	  \return the filter previously set with \ref set_filter(), or an empty
 	   string if no filter has been set yet.
 	*/
 	const string get_filter();
+
+	void add_evttype_filter(std::string &name,
+				std::set<uint32_t> &evttypes,
+				std::set<std::string> &tags,
+				sinsp_filter* filter);
+
+	bool run_filters_on_evt(sinsp_evt *evt);
 #endif
 
 	/*!
@@ -393,7 +425,7 @@ public:
 	   of failure.
 	*/
 	void autodump_start(const string& dump_filename, bool compress);
- 
+
  	/*!
 	  \brief Cycles the file pointer to a new capture file
 	*/
@@ -522,8 +554,8 @@ public:
 	/*!
 	  \brief Add a new directory containing chisels.
 
-	  \parame front_add if true, the chisel directory is added at the front of 
-	   the search list and therefore gets priority.  
+	  \parame front_add if true, the chisel directory is added at the front of
+	   the search list and therefore gets priority.
 
 	  \note This function is not reentrant.
 	*/
@@ -554,11 +586,27 @@ public:
 	void set_drop_event_flags(ppm_event_flags flags);
 
 	/*!
-	  \brief Returns true if the current capture is live.
+	  \brief Returns true if the current capture is offline
+	*/
+	inline bool is_capture()
+	{
+		return m_mode == SCAP_MODE_CAPTURE;
+	}
+
+	/*!
+	  \brief Returns true if the current capture is live
 	*/
 	inline bool is_live()
 	{
-		return m_islive;
+		return m_mode == SCAP_MODE_LIVE;
+	}
+
+	/*!
+	  \brief Returns true if the current capture is live
+	*/
+	inline bool is_nodriver()
+	{
+		return m_mode == SCAP_MODE_NODRIVER;
 	}
 
 	/*!
@@ -572,7 +620,7 @@ public:
 	/*!
 	  \brief Set the fatfile mode when writing events to file.
 
-	  \note fatfile mode involves saving "hidden" events in the trace file 
+	  \note fatfile mode involves saving "hidden" events in the trace file
 	   that make it possible to preserve full state even when filters that
 	   would drop state packets are used during the capture.
 	*/
@@ -583,7 +631,7 @@ public:
 
 	  \note Sysdig can use the system library functions getservbyport and so to
 	   resolve protocol names and domain names.
-	  
+
 	  \param enable If set to false it will enable this function and use plain
 	   numerical values.
 	*/
@@ -603,7 +651,7 @@ public:
 	}
 
 	/*!
-	  \brief Sets the max length of event argument strings. 
+	  \brief Sets the max length of event argument strings.
 
 	  \param len Max length after which an avent argument string is truncated.
 	   0 means no limit. Use this to reduce verbosity when printing event info
@@ -622,7 +670,7 @@ public:
 	/*!
 	  \brief Set a flag indicating if the command line requested to show container information.
 
-	  \param set true if the command line arugment is set to show container information 
+	  \param set true if the command line arugment is set to show container information
 	*/
 	void set_print_container_data(bool print_container_data);
 
@@ -664,7 +712,9 @@ public:
 	*/
 	double get_read_progress();
 
+	void init_k8s_ssl(string* api_server, string* ssl_cert);
 	void init_k8s_client(string* api_server, string* ssl_cert, bool verbose = false);
+	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
 
 	void init_mesos_client(string* api_server, bool verbose = false);
@@ -675,7 +725,7 @@ public:
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
-	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, 
+	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
 		scap_fdinfo* fdinfo, scap_t* newhandle);
 	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
 	{
@@ -708,9 +758,14 @@ public:
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
 	void enable_tracers_capture();
-
+	uint64_t get_bytes_read()
+	{
+		return scap_ftell(m_h);
+	}
 	void refresh_ifaddr_list();
-
+	void refresh_proc_list() {
+		scap_refresh_proc_table(m_h);
+	}
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -718,6 +773,7 @@ VISIBILITY_PRIVATE
 private:
 #endif
 
+	void open_int();
 	void init();
 	void import_thread_table();
 	void import_ifaddr_list();
@@ -728,7 +784,7 @@ private:
 	void remove_thread(int64_t tid, bool force);
 	//
 	// Note: lookup_only should be used when the query for the thread is made
-	//       not as a consequence of an event for that thread arriving, but 
+	//       not as a consequence of an event for that thread arriving, but
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
@@ -777,17 +833,32 @@ private:
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
-	void update_kubernetes_state();
+
+	void k8s_discover_ext();
+	void collect_k8s();
+	void update_k8s_state();
 	void update_mesos_state();
 	bool get_mesos_data();
 
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
 
+	void restart_capture_at_filepos(uint64_t filepos);
+
+	void fseek(uint64_t filepos)
+	{
+		scap_fseek(m_h, filepos);
+	}
+
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;
-	bool m_islive;
+
+	scap_mode_t m_mode;
+
+        // If non-zero, reading from this fd and m_input_filename contains "fd
+        // <m_input_fd>". Otherwise, reading from m_input_filename.
+	int m_input_fd;
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
@@ -805,14 +876,19 @@ private:
 	sinsp_parser* m_parser;
 	// the statistics analysis engine
 	scap_dumper_t* m_dumper;
+	bool m_is_dumping;
 	bool m_filter_proc_table_when_saving;
 	const scap_machine_info* m_machine_info;
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
 	bool m_is_tracers_capture_enabled;
+	// This is used to support reading merged files, where the capture needs to
+	// restart in the middle of the file.
+	uint64_t m_file_start_offset;
+	bool m_flush_memory_dump;
 
 	sinsp_network_interfaces* m_network_interfaces;
-
+public:
 	sinsp_thread_manager* m_thread_manager;
 
 	sinsp_container_manager m_container_manager;
@@ -822,6 +898,16 @@ private:
 	//
 	string* m_k8s_api_server;
 	string* m_k8s_api_cert;
+#ifdef HAS_CAPTURE
+	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
+	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
+	unique_ptr<k8s_api_handler> m_k8s_api_handler;
+	shared_ptr<socket_collector<socket_data_handler<k8s_handler>>> m_k8s_collector;
+	bool m_k8s_api_detected = false;
+	unique_ptr<k8s_api_handler> m_k8s_ext_handler;
+	k8s_ext_list_ptr_t m_ext_list_ptr;
+	bool m_k8s_ext_detect_done = false;
+#endif // HAS_CAPTURE
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
 
@@ -848,7 +934,9 @@ private:
 #ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
+	sinsp_evttype_filter *m_evttype_filter;
 	string m_filterstring;
+
 #endif
 
 	//
@@ -909,7 +997,7 @@ private:
 #endif
 
 	//
-	// App events 
+	// App events
 	//
 	bool m_track_tracers_state;
 	list<sinsp_partial_tracer*> m_partial_tracers_list;
@@ -923,9 +1011,9 @@ private:
 	//
 	// Containers meta event management
 	//
-	sinsp_evt m_meta_evt; // XXX this should go away 
-	char* m_meta_evt_buf; // XXX this should go away 
-	bool m_meta_evt_pending; // XXX this should go away 
+	sinsp_evt m_meta_evt; // XXX this should go away
+	char* m_meta_evt_buf; // XXX this should go away
+	bool m_meta_evt_pending; // XXX this should go away
 	sinsp_evt* m_metaevt;
 	sinsp_evt* m_skipped_evt;
 	meta_event_callback m_meta_event_callback;
@@ -966,8 +1054,15 @@ private:
 	friend class sinsp_filter_check_k8s;
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
-	friend class sinsp_network_interfaces;
+	friend class sinsp_baseliner;
+	friend class sinsp_memory_dumper;
 
+	friend class sinsp_network_interfaces;
+	friend class k8s_delegator;
+
+#ifdef HAS_ANALYZER
+	friend class thread_analyzer_info;
+#endif
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 

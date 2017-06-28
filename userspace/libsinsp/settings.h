@@ -116,6 +116,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define USER_EVT_DEVICE_NAME "/dev/null"
 
 //
+// The time after which a clone should be considered stale
+//
+#define CLONE_STALE_TIME_NS 2000000000
+
+//
+// For internal use
+//
+#define FALCOBL_FULL_PROCESSING
+
+//
 // FD class customized with the storage we need
 //
 #ifdef HAS_ANALYZER
@@ -129,3 +139,4 @@ typedef sinsp_fdinfo<int> sinsp_fdinfo_t;
 // Added because older docker versions have a bug that causes
 // very big JSONs returned by container inspect call
 static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
+

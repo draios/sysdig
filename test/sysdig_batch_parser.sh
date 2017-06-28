@@ -32,6 +32,13 @@ REFERENCEDIR=$6
 
 export SYSDIG_CHISEL_DIR
 
+unamestr=`uname`
+if [[ "$unamestr" == 'Linux' ]]; then
+	TIMEOUT_BIN="timeout"
+elif [[ "$unamestr" == 'Darwin' ]]; then
+	TIMEOUT_BIN="gtimeout"
+fi
+
 rm -rf $DIRNAME || true
 mkdir -p $DIRNAME
 
@@ -47,7 +54,7 @@ do
 	echo "Corresponding reference file $ref does not exist--skipping"
     else
 	echo "Processing $f"
-	TZ=UTC eval $SYSDIG -N -r $f $ARGS > $DIRNAME/$(basename $f).output
+	TZ=UTC eval ${TIMEOUT_BIN} 60 $SYSDIG -r $f $ARGS > $DIRNAME/$(basename $f).output
     fi
 done
 

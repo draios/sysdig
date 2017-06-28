@@ -24,7 +24,7 @@ class k8s_service_t;
 class k8s_container
 {
 public:
-	typedef std::vector<k8s_container> list;
+	typedef std::vector<k8s_container>  list;
 
 	class port
 	{
@@ -95,16 +95,61 @@ public:
 		K8S_REPLICATIONCONTROLLERS,
 		K8S_SERVICES,
 		K8S_EVENTS,
+		K8S_REPLICASETS,
+		K8S_DAEMONSETS,
+		K8S_DEPLOYMENTS,
 		K8S_COMPONENT_COUNT
 	};
 
+	typedef std::set<std::string>        ext_list_t;
+	typedef std::shared_ptr<ext_list_t>  ext_list_ptr_t;
 	typedef std::pair<type, std::string> component_pair;
-	typedef std::map<type, std::string> type_map;
+	typedef std::map<type, std::string>  type_map;
 	static const type_map list;
+	enum msg_reason
+	{
+		COMPONENT_ADDED,
+		COMPONENT_MODIFIED,
+		COMPONENT_DELETED,
+		COMPONENT_ERROR,
+		COMPONENT_NONEXISTENT,
+		COMPONENT_UNKNOWN // only to mark bad event messages
+	};
+
+	struct msg_data
+	{
+		msg_reason  m_reason = COMPONENT_UNKNOWN;
+		std::string m_name;
+		std::string m_uid;
+		std::string m_namespace;
+		std::string m_kind;
+
+		bool is_valid() const
+		{
+			return m_reason != COMPONENT_UNKNOWN;
+		}
+
+		std::string get_reason_desc() const
+		{
+			switch(m_reason)
+			{
+				case COMPONENT_ADDED:       return "ADDED";
+				case COMPONENT_MODIFIED:    return "MODIFIED";
+				case COMPONENT_DELETED:     return "DELETED";
+				case COMPONENT_ERROR:       return "ERROR";
+				case COMPONENT_NONEXISTENT: return "NONEXISTENT";
+				case COMPONENT_UNKNOWN:
+				default:                    return "UNKNOWN";
+			}
+			return "UNKNOWN";
+		}
+	};
 
 	k8s_component() = delete;
 
 	k8s_component(type comp_type, const std::string& name, const std::string& uid, const std::string& ns = "");
+
+	virtual ~k8s_component();
 
 	const std::string& get_name() const;
 
@@ -148,32 +193,50 @@ public:
 
 	virtual std::string get_node_name() const;
 
-	// extracts labels or selectors
+	template <typename C>
+	static void extract_string_array(const Json::Value& arr, C& list)
+	{
+		if(!arr.isNull() && arr.isArray())
+		{
+			for (auto& item : arr)
+			{
+				if(item.isConvertibleTo(Json::stringValue))
+				{
+					list.emplace(item.asString());
+				}
+			}
+		}
+	}
+
 	static k8s_pair_list extract_object(const Json::Value& object, const std::string& name);
-
-	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
-
-	static size_t extract_pod_restart_count(const Json::Value& item);
-
-	static k8s_container::list extract_pod_containers(const Json::Value& item);
-
-	static void extract_pod_data(const Json::Value& item, k8s_pod_t& pod);
-
-	static void extract_services_data(const Json::Value& spec, k8s_service_t& service, const std::vector<k8s_pod_t>& pods);
 
 	static const std::string& get_name(const component_pair& p);
 
 	static std::string get_name(type t);
+	static std::string get_name_u(type t);
 
 	static type get_type(const component_pair& p);
 
 	static type get_type(const std::string& name);
+
+	static std::string get_api(type t, ext_list_ptr_t extensions = nullptr);
+	static std::string get_api(const component_pair& p, ext_list_ptr_t extensions = nullptr);
+	static std::string get_api(const std::string& name, ext_list_ptr_t extensions = nullptr);
+
+	static std::string get_selector(type t);
+	static std::string get_selector(const component_pair& p);
+	static std::string get_selector(const std::string& name);
+
+	static bool is_critical(type t);
+	static bool is_critical(const component_pair& p);
+	static bool is_critical(const std::string& name);
 
 	bool selector_in_labels(const k8s_pair_t& selector, const k8s_pair_list& labels) const;
 
 	bool selectors_in_labels(const k8s_pair_list& labels) const;
 
 private:
+
 	type          m_type;
 	std::string   m_name;
 	std::string   m_uid;
@@ -182,6 +245,7 @@ private:
 	k8s_pair_list m_selectors;
 
 	friend class k8s_state_t;
+	friend class k8s_dispatcher;
 };
 
 
@@ -286,16 +350,43 @@ private:
 
 
 //
+// replicas
+//
+
+class k8s_replicas_t
+{
+public:
+	static const int UNKNOWN_REPLICAS = -1;
+
+	k8s_replicas_t(int spec_replicas = UNKNOWN_REPLICAS, int stat_replicas = UNKNOWN_REPLICAS);
+
+	void set_spec_replicas(int replicas);
+	int get_spec_replicas() const;
+	void set_stat_replicas(int replicas);
+	int get_stat_replicas() const;
+
+	static int get_count(const Json::Value& item, const std::string& replica_name = "replicas");
+	static void set_replicas(k8s_replicas_t& replicas, const Json::Value& item);
+
+protected:
+	int m_spec_replicas = UNKNOWN_REPLICAS;
+	int m_stat_replicas = UNKNOWN_REPLICAS;
+};
+
+
+//
 // replication controller
 //
 
 class k8s_rc_t : public k8s_component
 {
 public:
-	static const int UNKNOWN_REPLICAS = -1;
 	static const k8s_component::type COMPONENT_TYPE = K8S_REPLICATIONCONTROLLERS;
 
-	k8s_rc_t(const std::string& name, const std::string& uid, const std::string& ns = "");
+	k8s_rc_t(const std::string& name,
+			 const std::string& uid,
+			 const std::string& ns = "",
+			 k8s_component::type type = K8S_REPLICATIONCONTROLLERS);
 
 	std::vector<const k8s_pod_t*> get_selected_pods(const std::vector<k8s_pod_t>& pods) const;
 
@@ -303,13 +394,26 @@ public:
 	int get_spec_replicas() const;
 	void set_stat_replicas(int replicas);
 	int get_stat_replicas() const;
-	void set_replicas(const Json::Value& item);
+	void set_replicas(const Json::Value& item, const std::string& replica_name = "replicas");
+	void set_replicas(int spec, int stat);
+
+protected:
+	k8s_replicas_t m_replicas;
+};
+
+
+//
+// replica set
+//
+
+class k8s_rs_t : public k8s_rc_t
+{
+public:
+	static const k8s_component::type COMPONENT_TYPE = K8S_REPLICASETS;
+
+	k8s_rs_t(const std::string& name, const std::string& uid, const std::string& ns = "");
 
 private:
-	int get_replica(const Json::Value& item);
-
-	int m_spec_replicas = UNKNOWN_REPLICAS;
-	int m_stat_replicas = UNKNOWN_REPLICAS;
 };
 
 
@@ -351,10 +455,59 @@ private:
 
 
 //
+// daemon set
+//
+
+class k8s_daemonset_t : public k8s_component
+{
+public:
+	static const k8s_component::type COMPONENT_TYPE = K8S_DAEMONSETS;
+
+	k8s_daemonset_t(const std::string& name, const std::string& uid, const std::string& ns = "");
+
+	void set_desired_scheduled(int replicas);
+	int get_desired_scheduled() const;
+	void set_current_scheduled(int replicas);
+	int get_current_scheduled() const;
+	void set_scheduled(const Json::Value& item);
+	void set_scheduled(int desired, int current);
+
+private:
+	k8s_replicas_t m_replicas;
+};
+
+
+//
+// deployment
+//
+
+class k8s_deployment_t : public k8s_component
+{
+public:
+	static const k8s_component::type COMPONENT_TYPE = K8S_DEPLOYMENTS;
+
+	k8s_deployment_t(const std::string& name, const std::string& uid, const std::string& ns = "");
+
+	void set_spec_replicas(int replicas);
+	int get_spec_replicas() const;
+	void set_stat_replicas(int replicas);
+	int get_stat_replicas() const;
+	void set_replicas(const Json::Value& item);
+	void set_replicas(int desired, int current);
+
+	std::vector<const k8s_pod_t*> get_selected_pods(const std::vector<k8s_pod_t>& pods) const;
+	
+private:
+	k8s_replicas_t m_replicas;
+};
+
+
+//
 // event
 //
 
 class k8s_state_t;
+class event_scope;
 
 class k8s_event_t : public k8s_component
 {
@@ -363,25 +516,32 @@ public:
 
 	k8s_event_t(const std::string& name, const std::string& uid, const std::string& ns);
 
-	void update(const Json::Value& item, k8s_state_t& state);
+	bool update(const Json::Value& item, k8s_state_t& state);
+	void post_process(k8s_state_t& state);
+	bool has_pending_events() const;
 
 private:
 	typedef sinsp_user_event::tag_map_t tag_map_t;
 	typedef sinsp_logger::event_severity severity_t;
 	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
 
-	void make_scope(const Json::Value& obj, std::string& scope);
-	void make_scope_impl(const Json::Value& obj, std::string comp, std::string& scope, bool ns = true);
+	void make_scope(const Json::Value& obj, event_scope& scope);
+	void make_scope_impl(const Json::Value& obj, std::string comp, event_scope& scope, bool ns = true);
 
-	name_translation_map_t m_name_translation;
+	name_translation_map_t  m_name_translation;
+	std::map<std::string, Json::Value> m_postponed_events;
+	bool m_force_delete = false;
 };
 
-typedef std::vector<k8s_ns_t>      k8s_namespaces;
-typedef std::vector<k8s_node_t>    k8s_nodes;
-typedef std::vector<k8s_pod_t>     k8s_pods;
-typedef std::vector<k8s_rc_t>      k8s_controllers;
-typedef std::vector<k8s_service_t> k8s_services;
-typedef std::vector<k8s_event_t>   k8s_events;
+typedef std::vector<k8s_ns_t>         k8s_namespaces;
+typedef std::vector<k8s_node_t>       k8s_nodes;
+typedef std::vector<k8s_pod_t>        k8s_pods;
+typedef std::vector<k8s_rc_t>         k8s_controllers;
+typedef std::vector<k8s_rs_t>         k8s_replicasets;
+typedef std::vector<k8s_service_t>    k8s_services;
+typedef std::vector<k8s_daemonset_t>  k8s_daemonsets;
+typedef std::vector<k8s_deployment_t> k8s_deployments;
+typedef std::vector<k8s_event_t>      k8s_events;
 
 //
 // container
@@ -731,34 +891,59 @@ inline void k8s_pod_t::set_internal_ip(const std::string& internal_ip)
 	m_internal_ip = internal_ip;
 }
 
+
+//
+// replicas
+//
+
+inline void k8s_replicas_t::set_spec_replicas(int replicas)
+{
+	m_spec_replicas = replicas;
+}
+
+inline int k8s_replicas_t::get_spec_replicas() const
+{
+	return m_spec_replicas;
+}
+
+inline void k8s_replicas_t::set_stat_replicas(int replicas)
+{
+	m_stat_replicas = replicas;
+}
+
+inline int k8s_replicas_t::get_stat_replicas() const
+{
+	return m_stat_replicas;
+}
+
+
 //
 // replication controller
 //
 
 inline void k8s_rc_t::set_spec_replicas(int replicas)
 {
-	m_spec_replicas = replicas;
+	m_replicas.set_spec_replicas(replicas);
 }
 
 inline int k8s_rc_t::get_spec_replicas() const
 {
-	return m_spec_replicas;
+	return m_replicas.get_spec_replicas();
 }
 
 inline void k8s_rc_t::set_stat_replicas(int replicas)
 {
-	m_stat_replicas = replicas;
+	m_replicas.set_stat_replicas(replicas);
 }
 
 inline int k8s_rc_t::get_stat_replicas() const
 {
-	return m_stat_replicas;
+	return m_replicas.get_stat_replicas();
 }
 
-inline void k8s_rc_t::set_replicas(const Json::Value& item)
+inline void k8s_rc_t::set_replicas(const Json::Value& item, const std::string& replica_name)
 {
-	m_spec_replicas = get_replica(item["spec"]);
-	m_stat_replicas = get_replica(item["status"]);
+	k8s_replicas_t::set_replicas(m_replicas, item);
 }
 
 //
@@ -783,4 +968,85 @@ inline const k8s_service_t::port_list& k8s_service_t::get_port_list() const
 inline void k8s_service_t::set_port_list(port_list&& ports)
 {
 	m_ports = std::move(ports);
+}
+
+//
+// deployment
+//
+
+inline void k8s_deployment_t::set_spec_replicas(int replicas)
+{
+	m_replicas.set_spec_replicas(replicas);
+}
+
+inline int k8s_deployment_t::get_spec_replicas() const
+{
+	return m_replicas.get_spec_replicas();
+}
+
+inline void k8s_deployment_t::set_stat_replicas(int replicas)
+{
+	m_replicas.set_stat_replicas(replicas);
+}
+
+inline int k8s_deployment_t::get_stat_replicas() const
+{
+	return m_replicas.get_stat_replicas();
+}
+
+inline void k8s_deployment_t::set_replicas(const Json::Value& item)
+{
+	k8s_replicas_t::set_replicas(m_replicas, item);
+}
+
+inline void k8s_deployment_t::set_replicas(int desired, int current)
+{
+	m_replicas.set_spec_replicas(desired);
+	m_replicas.set_stat_replicas(current);
+}
+
+
+//
+// daemon set
+//
+
+inline void k8s_daemonset_t::set_desired_scheduled(int scheduled)
+{
+	m_replicas.set_spec_replicas(scheduled);
+}
+
+inline int k8s_daemonset_t::get_desired_scheduled() const
+{
+	return m_replicas.get_spec_replicas();
+}
+
+inline void k8s_daemonset_t::set_current_scheduled(int scheduled)
+{
+	m_replicas.set_stat_replicas(scheduled);
+}
+
+inline int k8s_daemonset_t::get_current_scheduled() const
+{
+	return m_replicas.get_stat_replicas();
+}
+
+inline void k8s_daemonset_t::set_scheduled(const Json::Value& item)
+{
+	m_replicas.set_spec_replicas(k8s_replicas_t::get_count(item["status"], "desiredNumberScheduled"));
+	m_replicas.set_stat_replicas(k8s_replicas_t::get_count(item["status"], "currentNumberScheduled"));
+}
+
+inline void k8s_daemonset_t::set_scheduled(int desired, int current)
+{
+	m_replicas.set_spec_replicas(desired);
+	m_replicas.set_stat_replicas(current);
+}
+
+//
+// event
+//
+
+inline bool k8s_event_t::has_pending_events() const
+{
+	return m_postponed_events.size() != 0;
 }

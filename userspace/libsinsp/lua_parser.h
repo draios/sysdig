@@ -1,9 +1,6 @@
 #pragma once
 
-#include <string.h>
-
 #include "sinsp.h"
-#include "filterchecks.h"
 
 typedef struct lua_State lua_State;
 
@@ -12,9 +9,11 @@ class lua_parser
 public:
 	lua_parser(sinsp* inspector, lua_State *ls);
 	~lua_parser();
-	sinsp_filter* get_filter();
+	sinsp_filter* get_filter(bool reset_filter = false);
 
  private:
+
+	void reset();
 	sinsp* m_inspector;
 
 	sinsp_filter* m_filter;

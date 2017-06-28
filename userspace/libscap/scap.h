@@ -69,6 +69,7 @@ typedef struct ppm_evt_hdr scap_evt;
 #define SCAP_NOTFOUND 4
 #define SCAP_INPUT_TOO_SMALL 5
 #define SCAP_EOF 6
+#define SCAP_UNEXPECTED_BLOCK 7
 
 //
 // Last error string size for scap_open_live()
@@ -121,7 +122,8 @@ typedef enum scap_fd_type
 	SCAP_FD_SIGNALFD = 11,
 	SCAP_FD_EVENTPOLL = 12,
 	SCAP_FD_INOTIFY = 13,
-	SCAP_FD_TIMERFD = 14
+	SCAP_FD_TIMERFD = 14,
+	SCAP_FD_NETLINK = 15
 }scap_fd_type;
 
 /*!
@@ -218,6 +220,9 @@ typedef struct scap_threadinfo
 	char root[SCAP_MAX_PATH_SIZE];
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
+	uint64_t clone_ts;
+	int32_t tty;
+
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
 
@@ -230,12 +235,21 @@ typedef void (*proc_entry_callback)(void* context,
 /*!
   \brief Arguments for scap_open
 */
+typedef enum {
+	SCAP_MODE_CAPTURE,
+	SCAP_MODE_LIVE,
+	SCAP_MODE_NODRIVER
+} scap_mode_t;
+
 typedef struct scap_open_args
 {
+	scap_mode_t mode;
+	int fd; // If non-zero, will be used instead of fname.
 	const char* fname; ///< The name of the file to open. NULL for live captures.
 	proc_entry_callback proc_callback; ///< Callback to be invoked for each thread/fd that is extracted from /proc, or NULL if no callback is needed.
 	void* proc_callback_context; ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.
 	bool import_users; ///< true if the user list should be created when opening the capture.
+	uint64_t start_offset; ///< Used to start reading a capture file from an arbitrary offset. This is leveraged when opening merged files.
 }scap_open_args;
 
 
@@ -485,6 +499,17 @@ scap_t* scap_open_live(char *error);
 scap_t* scap_open_offline(const char* fname, char *error);
 
 /*!
+  \brief Start an event capture from an already opened file descriptor.
+
+  \param fd The fd to use.
+  \param error Pointer to a buffer that will contain the error string in case the
+    function fails. The buffer must have size SCAP_LASTERR_SIZE.
+
+  \return The capture instance handle in case of success. NULL in case of failure.
+*/
+scap_t* scap_open_offline_fd(int fd, char *error);
+
+/*!
   \brief Advanced function to start a capture.
 
   \param args a \ref scap_open_args structure containing the open paraneters.
@@ -564,6 +589,13 @@ uint64_t scap_event_get_ts(scap_evt* e);
 uint64_t scap_event_get_num(scap_t* handle);
 
 /*!
+  \brief Reset the event count to 0.
+
+  \param handle Handle to the capture instance.
+*/
+void scap_event_reset_count(scap_t* handle);
+
+/*!
   \brief Return the meta-information describing the given event
 
   \param e pointer to an event returned by \ref scap_next.
@@ -600,6 +632,16 @@ int64_t scap_get_readfile_offset(scap_t* handle);
 scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress);
 
 /*!
+  \brief Open a tracefile for writing, using the provided fd.
+
+  \param handle Handle to the capture instance.
+  \param fd A file descriptor to which the dumper will write
+
+  \return Dump handle that can be used to identify this specific dump instance.
+*/
+scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress, bool skip_proc_scan);
+
+/*!
   \brief Close a tracefile.
 
   \param d The dump handle, returned by \ref scap_dump_open
@@ -613,6 +655,15 @@ void scap_dump_close(scap_dumper_t *d);
   \return The current size of the dump file pointed by d.
 */
 int64_t scap_dump_get_offset(scap_dumper_t *d);
+
+/*!
+  \brief Return the position for the next write to a tracefile.
+         This uses gztell, while scap_dump_get_offset uses gzoffset.
+
+  \param d The dump handle, returned by \ref scap_dump_open
+  \return The next write position.
+*/
+int64_t scap_dump_ftell(scap_dumper_t *d);
 
 /*!
   \brief Flush all pending output into the file.
@@ -867,10 +918,21 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 void scap_proc_free_table(scap_t* handle);
 void scap_refresh_iflist(scap_t* handle);
+void scap_refresh_proc_table(scap_t* handle);
 void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);
+uint64_t scap_get_unexpected_block_readsize(scap_t* handle);
+int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
+int32_t scap_fd_add(scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
+scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize);
+int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level);
+uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d);
+int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d);
+int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
+int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
+int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
 
 #ifdef __cplusplus
 }

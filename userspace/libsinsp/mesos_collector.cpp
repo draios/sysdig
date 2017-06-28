@@ -194,7 +194,7 @@ void mesos_collector::get_data()
 				}
 				else
 				{
-					g_logger.log("Collector is empty. Stopping.", sinsp_logger::SEV_ERROR);
+					g_logger.log("Mesos collector is empty. Stopping.", sinsp_logger::SEV_ERROR);
 					m_stopped = true;
 					return;
 				}
@@ -207,7 +207,7 @@ void mesos_collector::get_data()
 	}
 	catch(std::exception& ex)
 	{
-		g_logger.log(std::string("Collector error: ") + ex.what(), sinsp_logger::SEV_ERROR);
+		g_logger.log(std::string("Mesos collector error: ") + ex.what(), sinsp_logger::SEV_ERROR);
 		remove_all();
 		m_stopped = true;
 	}
