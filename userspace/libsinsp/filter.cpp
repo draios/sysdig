@@ -694,6 +694,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			return Json::Value((bool)(*(uint32_t*)rawval != 0));
 
 		case PT_CHARBUF:
+		case PT_FSPATH:
 		case PT_BYTEBUF:
 		case PT_IPV4ADDR:
 			return rawval_to_string(rawval, finfo, len);
@@ -887,6 +888,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(uint64_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_CHARBUF:
+		case PT_FSPATH:
 			return (char*)rawval;
 		case PT_BYTEBUF:
 			if(rawval[len] == 0)

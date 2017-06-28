@@ -31,11 +31,11 @@ typedef class sinsp_threadinfo sinsp_threadinfo;
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum filtercheck_field_flags
 {
-	EPF_NONE = 0,
-	EPF_FILTER_ONLY, ///< this field can only be used as a filter.
-	EPF_PRINT_ONLY, ///< this field can only be printed.
-	EPF_REQUIRES_ARGUMENT, ///< this field includes an argument, under the form 'property.argument'.
-	EPF_TABLE_ONLY, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
+	EPF_NONE              = 0,
+	EPF_FILTER_ONLY       = 1 << 0, ///< this field can only be used as a filter.
+	EPF_PRINT_ONLY        = 1 << 1, ///< this field can only be printed.
+	EPF_REQUIRES_ARGUMENT = 1 << 2, ///< this field includes an argument, under the form 'property.argument'.
+	EPF_TABLE_ONLY        = 1 << 3, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
 }filtercheck_field_flags;
 
 /*!
