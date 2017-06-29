@@ -578,10 +578,34 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				terminal_with_mouse);
 
 			ui.configure(&view_manager);
+
+			printf("ready\n");
 			ui.start(false, false);
 			if(is_interactive)
 			{
+				//
+				// In interactive mode, make sure stderr is flushed at every printf
+				//
+				setbuf(stderr, NULL);
+
+				//
+				// Set the UI in interactive mode and start listening to user
+				// input.
+				//
 				ui.set_interactive(true);
+				while(true)
+				{
+					bool res;
+					if(ui.handle_stdin_input(&res) == true)
+					{
+						goto exit;
+					}
+
+					if(res == true)
+					{
+						break;
+					}
+				}
 			}
 
 			//

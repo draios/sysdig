@@ -1483,9 +1483,9 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 		types = &m_premerge_types;
 	}
 
-	if(rownum >= m_sample_data->size())
+	if(m_sample_data == NULL || rownum >= m_sample_data->size())
 	{
-		ASSERT(m_sample_data->size() == 0);
+		ASSERT(m_sample_data == NULL || m_sample_data->size() == 0);
 		res.first = NULL;
 		res.second = "";
 	}

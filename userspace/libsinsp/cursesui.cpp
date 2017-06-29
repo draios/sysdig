@@ -2694,14 +2694,28 @@ int32_t sinsp_cursesui::get_viewnum_by_name(string name)
 	return -1;
 }
 
-bool sinsp_cursesui::handle_stdin_input()
+//
+// Note:
+//  - The return value determines if the application should quit.
+//  - res is set to false in case of error
+//
+bool sinsp_cursesui::handle_stdin_input(bool* res)
 {
 	string input;
+
+	*res = true;
 
 	//
 	// Get the user json input
 	//
-	std::getline(std::cin, input);
+	while(true)
+	{
+		std::getline(std::cin, input);
+		if(input != "")
+		{
+			break;
+		}
+	}
 
 	//
 	// Parse the input
@@ -2716,6 +2730,7 @@ bool sinsp_cursesui::handle_stdin_input()
 	{
 		fprintf(stderr, "unable to parse the json input: %s",
 			reader.getFormatedErrorMessages().c_str());
+		*res = false;
 		return false;
 	}
 
@@ -2725,7 +2740,7 @@ bool sinsp_cursesui::handle_stdin_input()
 	sysdig_table_action ta;
 	uint32_t rownum;
 
-	if(astr == "switch")
+	if(astr == "apply")
 	{
 		ta = STA_SWITCH_VIEW;
 
@@ -2735,6 +2750,7 @@ bool sinsp_cursesui::handle_stdin_input()
 		if(m_selected_view == -1)
 		{
 			fprintf(stderr, "unknown view: %s", vname.c_str());
+			*res = false;
 			return false;
 		}
 	}
@@ -2755,11 +2771,12 @@ bool sinsp_cursesui::handle_stdin_input()
 	else
 	{
 		fprintf(stderr, "invalid action: %s", astr.c_str());
+		*res = false;
 		return false;
 	}
 
-	bool res;
-	execute_table_action(ta, rownum, &res);
+	bool tres;
+	execute_table_action(ta, rownum, &tres);
 	return false;
 }
 

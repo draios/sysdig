@@ -431,7 +431,7 @@ public:
 	void run_action(sinsp_view_action_info* action);
 	void spy_selection(string field, string val, sinsp_view_column_info* column_info, bool is_dig);
 	sysdig_table_action handle_input(int ch);
-	bool handle_stdin_input();
+	bool handle_stdin_input(bool* res);
 
 	//
 	// Return true if the application is supposed to exit
@@ -540,7 +540,8 @@ public:
 			{
 				if(m_interactive)
 				{
-					return handle_stdin_input();
+					bool sres;
+					return handle_stdin_input(&sres);
 				}
 				else
 				{
