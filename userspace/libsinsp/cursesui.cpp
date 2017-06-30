@@ -373,7 +373,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	//
 	// Update the filter based on what's selected
 	//
-	create_complete_filter();
+	create_complete_filter(false);
 
 	//
 	// If we need a new datatable, allocate it and set it up
@@ -1172,6 +1172,36 @@ string combine_filters(string flt1, string flt2)
 	return res;
 }
 
+Json::Value sinsp_cursesui::generate_json_info_section()
+{
+	Json::Value jinfo;
+	Json::Value jlegend;
+
+	sinsp_view_info* wi = NULL;
+
+	if(m_selected_view >= 0)
+	{
+		wi = m_views.at(m_selected_view);
+		vector<int32_t> colsizes;
+		vector<string> colnames;
+
+		ASSERT(wi != NULL);
+
+		wi->get_col_names_and_sizes(&colnames, &colsizes);
+
+		for(uint32_t j = 1; j < colnames.size(); j++)
+		{
+			Json::Value jcinfo;
+
+			jcinfo["name"] = colnames[j];
+			jlegend.append(jcinfo);
+		}
+	}
+
+	jinfo["legend"] = jlegend;
+	return jinfo;
+}
+
 void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 {
 	m_datatable->flush(evt);
@@ -1180,8 +1210,34 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	// It's time to refresh the data for this chart.
 	// First of all, create the data for the chart
 	//
-	vector<sinsp_sample_row>* sample = 
-		m_datatable->get_sample(get_time_delta());
+	if(m_output_type == sinsp_table::OT_JSON && (m_inspector->is_live() || (m_eof > 0)))
+	{
+		printf("{\n");
+
+		vector<sinsp_sample_row>* sample = 
+			m_datatable->get_sample(get_time_delta());
+
+		Json::Value root;
+		root["info"] = generate_json_info_section();
+
+		bool res;
+		execute_table_action(STA_DRILLDOWN_TEMPLATE, 0, &res);
+		create_complete_filter(true);
+
+		root["info"]["filterTemplate"] = m_complete_filter;
+
+		Json::FastWriter writer;
+		string jstr = writer.write(root);
+		printf("%s", jstr.substr(0, jstr.size() - 1).c_str());
+
+		printf("\n}\n");
+		printf("%c", EOF);
+	}
+	else
+	{
+		vector<sinsp_sample_row>* sample = 
+			m_datatable->get_sample(get_time_delta());
+	}
 
 #ifndef NOCURSESUI
 	if(m_output_type == sinsp_table::OT_CURSES)
@@ -1259,7 +1315,7 @@ void sinsp_cursesui::restart_capture(bool is_spy_switch)
 	m_inspector->open(m_event_source_name);
 }
 
-void sinsp_cursesui::create_complete_filter()
+void sinsp_cursesui::create_complete_filter(bool templated)
 {
 	if(m_is_filter_sysdig)
 	{
@@ -1271,7 +1327,7 @@ void sinsp_cursesui::create_complete_filter()
 	else
 	{
 		m_complete_filter = m_cmdline_capture_filter;
-		m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
+		m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter(templated));
 
 		//
 		// Note: m_selected_view is smaller than 0 when there's no view, because we're doing
@@ -1497,7 +1553,8 @@ void sinsp_cursesui::spy_selection(string field, string val,
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::do_drilldown(string field, string val, 
 	sinsp_view_column_info* column_info,
-	uint32_t new_view_num, filtercheck_field_info* info)
+	uint32_t new_view_num, filtercheck_field_info* info,
+	bool dont_restart)
 {
 	//
 	// unpause the thing if it's paused
@@ -1581,39 +1638,42 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 	}
 #endif
 
-	if(!m_inspector->is_live())
+	if(!dont_restart)
 	{
-		m_eof = 0;
-		m_last_progress_evt = 0;
-		restart_capture(false);
-	}
-	else
-	{
-		try
+		if(!m_inspector->is_live())
 		{
-			start(true, false);
-		}
-		catch(...)
-		{
+			m_eof = 0;
+			m_last_progress_evt = 0;
 			restart_capture(false);
 		}
-	}
+		else
+		{
+			try
+			{
+				start(true, false);
+			}
+			catch(...)
+			{
+				restart_capture(false);
+			}
+		}
 
 #ifndef NOCURSESUI
-	clear();
-	populate_view_sidemenu(field, &m_sidemenu_viewlist);
-	populate_action_sidemenu();
+		clear();
+		populate_view_sidemenu(field, &m_sidemenu_viewlist);
+		populate_action_sidemenu();
 
-	if(m_viz)
-	{
-		m_viz->render(true);
-	}
-	else if(m_spectro)
-	{
-		m_spectro->render(true);
-	}
-	render();
+		if(m_viz)
+		{
+			m_viz->render(true);
+		}
+		else if(m_spectro)
+		{
+			m_spectro->render(true);
+		}
+		render();
 #endif
+	}
 
 	return true;
 }
@@ -1621,7 +1681,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::drilldown(string field, string val, 
 	sinsp_view_column_info* column_info,
-	filtercheck_field_info* info)
+	filtercheck_field_info* info, bool dont_restart)
 {
 	uint32_t j = 0;
 
@@ -1629,7 +1689,7 @@ bool sinsp_cursesui::drilldown(string field, string val,
 	{
 		if(m_views.at(j)->m_id == m_views.at(m_selected_view)->m_drilldown_target)
 		{
-			return do_drilldown(field, val, column_info, j, info);			
+			return do_drilldown(field, val, column_info, j, info, dont_restart);			
 		}
 	}
 
@@ -1641,7 +1701,7 @@ bool sinsp_cursesui::drilldown(string field, string val,
 		{
 			if(*atit == field)
 			{
-				return do_drilldown(field, val, column_info, j, info);
+				return do_drilldown(field, val, column_info, j, info, dont_restart);
 			}
 		}
 	}
@@ -1668,7 +1728,7 @@ bool sinsp_cursesui::spectro_selection(string field, string val,
 		}
 		else
 		{
-			spectro_name = "spectro_file";		
+			spectro_name = "spectro_file";
 		}
 	}
 
@@ -1676,7 +1736,7 @@ bool sinsp_cursesui::spectro_selection(string field, string val,
 	{
 		if(m_views.at(j)->m_id == spectro_name)
 		{
-			return do_drilldown(field, val, column_info, j, info);			
+			return do_drilldown(field, val, column_info, j, info, false);
 		}
 	}
 
@@ -1749,7 +1809,7 @@ bool sinsp_cursesui::drillup()
 		//m_views[m_selected_view].m_filter = m_sel_hierarchy.tofilter();
 
 		m_complete_filter = m_cmdline_capture_filter;
-		m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter());
+		m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter(false));
 
 		if(!m_inspector->is_live())
 		{
@@ -3015,20 +3075,37 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 			{
 				if(m_output_type == sinsp_table::OT_CURSES)
 				{
-					drilldown("", "", NULL, NULL);							
+					drilldown("", "", NULL, NULL, false);
 				}
 				else
 				{
 					sinsp_view_column_info* kinfo = get_selected_view()->get_key();
-					auto res = m_datatable->get_row_key_name_and_val(rownumber);
+					auto res = m_datatable->get_row_key_name_and_val(rownumber, false);
 					if(res.first != NULL)
 					{
 						drilldown(kinfo->get_filter_field(m_view_depth),
 							res.second.c_str(), 
 							kinfo,
-							res.first);
+							res.first, 
+							false);
 					}
 				}
+			}
+		}
+
+		*res = false;
+		return true;
+	case STA_DRILLDOWN_TEMPLATE:
+		{
+			sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+			auto res = m_datatable->get_row_key_name_and_val(0, true);
+			if(res.first != NULL)
+			{
+				drilldown(kinfo->get_filter_field(m_view_depth),
+					res.second.c_str(), 
+					kinfo,
+					res.first,
+					true);
 			}
 		}
 
@@ -3076,7 +3153,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 			else
 #endif
 			{
-				res = m_datatable->get_row_key_name_and_val(rownumber);
+				res = m_datatable->get_row_key_name_and_val(rownumber, false);
 			}
 
 			if(res.first != NULL)
@@ -3113,7 +3190,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 				}
 				else
 				{
-					auto res = m_datatable->get_row_key_name_and_val(rownumber);
+					auto res = m_datatable->get_row_key_name_and_val(rownumber, false);
 					if(res.first != NULL)
 					{
 						spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 

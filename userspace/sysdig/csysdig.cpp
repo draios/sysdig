@@ -579,10 +579,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 			ui.configure(&view_manager);
 
-			printf("ready\n");
 			ui.start(false, false);
 			if(is_interactive)
 			{
+				printf("ready\n");
+
 				//
 				// In interactive mode, make sure stderr is flushed at every printf
 				//
@@ -593,6 +594,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				// input.
 				//
 				ui.set_interactive(true);
+/*
 				while(true)
 				{
 					bool res;
@@ -606,6 +608,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 						break;
 					}
 				}
+*/
 			}
 
 			//

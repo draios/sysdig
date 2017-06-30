@@ -29,6 +29,7 @@ typedef enum sysdig_table_action
 	STA_SWITCH_VIEW,
 	STA_SWITCH_SPY,
 	STA_DRILLDOWN,
+	STA_DRILLDOWN_TEMPLATE,
 	STA_DRILLUP,
 	STA_SPY,
 	STA_DIG,
@@ -260,7 +261,7 @@ public:
 	}
 	void set_sorting_col(uint32_t col);
 	uint32_t get_sorting_col();
-	pair<filtercheck_field_info*, string> get_row_key_name_and_val(uint32_t rownum);
+	pair<filtercheck_field_info*, string> get_row_key_name_and_val(uint32_t rownum, bool force);
 	sinsp_table_field* get_row_key(uint32_t rownum);
 	int32_t get_row_from_key(sinsp_table_field* key);
 	void set_paused(bool paused);

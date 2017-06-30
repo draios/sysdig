@@ -635,21 +635,23 @@ void sinsp_table::print_raw(vector<sinsp_sample_row>* sample_data, uint64_t time
 
 void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t time_delta)
 {
-	Json::FastWriter m_writer;
+	Json::FastWriter writer;
 	vector<filtercheck_field_info>* legend = get_legend();
 	string res;
 	uint32_t j = 0;
+	uint32_t k = 0;
 
 	if(sample_data->size() == 0)
 	{
 		return;
 	}
 
-	printf("[\n");
+	printf("\"data\": [\n");
 
-	for(auto it = sample_data->begin(); it != sample_data->end(); ++it)
+	for(auto it = sample_data->begin(); it != sample_data->end(); ++it, ++k)
 	{
-		Json::Value m_root;
+		Json::Value root;
+		Json::Value jd;
 
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
@@ -668,14 +670,20 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 				it->m_values[j].m_cnt,
 				legend->at(j + 1).m_print_format);
 
-			m_root.append(m_printer->tojson(NULL, 10, td));
-
-//			char* prstr = m_printer->tostring_json(NULL, 10, td);
-//			printf("%s ", prstr);
-			//printf("%s ", m_printer->tostring(NULL));
+			jd.append(m_printer->tojson(NULL, 10, td));
 		}
 
-		res = m_writer.write(m_root);
+
+		auto key = get_row_key_name_and_val(k, false);
+		if(key.first != NULL)
+		{
+			int a = 0;
+		}
+
+		root["k"] = key.second;
+		root["d"] = jd;
+
+		res = writer.write(root);
 		printf("%s", res.substr(0, res.size() - 1).c_str());
 		if(j < sample_data->size() - 1)
 		{
@@ -686,8 +694,7 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 		j++;
 	}
 
-	printf("]\n");
-	printf("%c", EOF);
+	printf("],\n");
 }
 
 void sinsp_table::filter_sample()
@@ -1466,7 +1473,7 @@ void sinsp_table::switch_buffers()
 	}
 }
 
-pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint32_t rownum)
+pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint32_t rownum, bool force)
 {
 	pair<filtercheck_field_info*, string> res;
 	vector<sinsp_filter_check*>* extractors;
@@ -1486,7 +1493,15 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 	if(m_sample_data == NULL || rownum >= m_sample_data->size())
 	{
 		ASSERT(m_sample_data == NULL || m_sample_data->size() == 0);
-		res.first = NULL;
+		if(force)
+		{
+			res.first = (filtercheck_field_info*)((*extractors)[0])->get_field_info();
+			ASSERT(res.first != NULL);
+		}
+		else
+		{
+			res.first = NULL;
+		}
 		res.second = "";
 	}
 	else

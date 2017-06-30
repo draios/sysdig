@@ -156,7 +156,7 @@ public:
 		}
 	}
 
-	string tofilter()
+	string tofilter(bool templated)
 	{
 		string res;
 		uint32_t j;
@@ -205,7 +205,15 @@ public:
 					}
 					res += m_hierarchy[j].m_field;
 					res += "=";
-					res += m_hierarchy[j].m_val;
+
+					if(templated && (j == hs - 1)) 
+					{
+						res += "{0}";
+					}
+					else
+					{
+						res += m_hierarchy[j].m_val;
+					}
 				}
 			}
 
@@ -651,16 +659,17 @@ public:
 	bool m_is_mousedrag_available;
 
 private:
+	Json::Value generate_json_info_section();
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
 	bool spectro_selection(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info, sysdig_table_action ta);
-	bool do_drilldown(string field, string val, sinsp_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info);
+	bool do_drilldown(string field, string val, sinsp_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info, bool dont_restart);
 	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info);
+	bool drilldown(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info, bool dont_restart);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
-	void create_complete_filter();
+	void create_complete_filter(bool templated);
 	bool execute_table_action(sysdig_table_action ta, uint32_t rownumber, bool* res);
 	int32_t get_viewnum_by_name(string name);
 
