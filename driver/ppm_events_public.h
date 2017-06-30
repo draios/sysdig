@@ -1213,12 +1213,12 @@ enum ppm_param_type {
 
 enum ppm_print_format {
 	PF_NA = 0,
-	PF_OCT = 1,	/* octal */
-	PF_DEC = 2,	/* decimal */
-	PF_HEX = 3,	/* hexadecimal */
-	PF_10_PADDED_DEC = 4, /* decimal padded to 10 digits, useful to print the fractional part of a ns timestamp */
-	PF_ID = 5,
-	PF_DIR = 6,
+	PF_DEC = 1,	/* decimal */
+	PF_HEX = 2,	/* hexadecimal */
+	PF_10_PADDED_DEC = 3, /* decimal padded to 10 digits, useful to print the fractional part of a ns timestamp */
+	PF_ID = 4,
+	PF_DIR = 5,
+	PF_OCT = 6,	/* octal */
 };
 
 /*!
