@@ -611,8 +611,7 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if ((flags & O_CREAT) || (flags & O_TMPFILE))
-	{
+	if ((flags & O_CREAT) || (flags & O_TMPFILE)) {
 		/*
 		 * Mode
 		 * Note that we convert them into the ppm portable representation before pushing them to the ring
@@ -621,7 +620,6 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
 
 	} else {
-
 		res = val_to_ring(args, 0, 0, false, 0);
 	}
 	if (unlikely(res != PPM_SUCCESS))
@@ -3122,8 +3120,7 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if ((flags & O_CREAT) || (flags & O_TMPFILE))
-	{
+	if ((flags & O_CREAT) || (flags & O_TMPFILE)) {
 		/*
 		 * Mode
 		 * Note that we convert them into the ppm portable representation before pushing them to the ring
@@ -3132,7 +3129,6 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
 
 	} else {
-
 		res = val_to_ring(args, 0, 0, false, 0);
 	}
 	if (unlikely(res != PPM_SUCCESS))
