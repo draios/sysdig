@@ -3124,7 +3124,7 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 		 * Mode
 		 * Note that we convert them into the ppm portable representation before pushing them to the ring
 		 */
-		syscall_get_arguments(current, args->regs, 2, 1, &val);
+		syscall_get_arguments(current, args->regs, 3, 1, &val);
 		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
 	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
