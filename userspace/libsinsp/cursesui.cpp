@@ -1234,7 +1234,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 		printf("%s", jstr.substr(0, jstr.size() - 1).c_str());
 
 		printf("\n}\n");
-		printf("%c", EOF);
+		//printf("%c", EOF);
 	}
 	else
 	{
