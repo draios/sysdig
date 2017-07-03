@@ -102,17 +102,17 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
  */
 #define PPM_S_NONE  0
 #define PPM_S_IXOTH (1 << 0)
-#define PPM_S_IWOTH (2 << 0)
-#define PPM_S_IROTH (4 << 0)
-#define PPM_S_IXGRP (1 << 4)
-#define PPM_S_IWGRP (2 << 4)
-#define PPM_S_IRGRP (4 << 4)
-#define PPM_S_IXUSR (1 << 8)
-#define PPM_S_IWUSR (2 << 8)
-#define PPM_S_IRUSR (4 << 8)
-#define PPM_S_ISVTX (1 << 12)
-#define PPM_S_ISGID (2 << 12)
-#define PPM_S_ISUID (4 << 12)
+#define PPM_S_IWOTH (1 << 1)
+#define PPM_S_IROTH (1 << 2)
+#define PPM_S_IXGRP (1 << 3)
+#define PPM_S_IWGRP (1 << 4)
+#define PPM_S_IRGRP (1 << 5)
+#define PPM_S_IXUSR (1 << 6)
+#define PPM_S_IWUSR (1 << 7)
+#define PPM_S_IRUSR (1 << 8)
+#define PPM_S_ISVTX (1 << 9)
+#define PPM_S_ISGID (1 << 10)
+#define PPM_S_ISUID (1 << 11)
 
 /*
  * flock() flags
@@ -1214,10 +1214,11 @@ enum ppm_param_type {
 enum ppm_print_format {
 	PF_NA = 0,
 	PF_DEC = 1,	/* decimal */
-	PF_HEX = 2,	/* hexadecima */
+	PF_HEX = 2,	/* hexadecimal */
 	PF_10_PADDED_DEC = 3, /* decimal padded to 10 digits, useful to print the fractional part of a ns timestamp */
 	PF_ID = 4,
 	PF_DIR = 5,
+	PF_OCT = 6,	/* octal */
 };
 
 /*!

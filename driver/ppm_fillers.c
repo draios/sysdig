@@ -574,7 +574,7 @@ static inline u32 open_modes_to_scap(unsigned long modes)
 
 static int f_sys_open_x(struct event_filler_arguments *args)
 {
-	unsigned long val;
+	unsigned long val, flags;
 	int res;
 	int64_t retval;
 
@@ -598,16 +598,21 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, open_flags_to_scap(val), 0, false, 0);
+	syscall_get_arguments(current, args->regs, 1, 1, &flags);
+	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*
-	 * Mode
-	 */
-	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
+	if ((flags & O_CREAT) || (flags & O_TMPFILE)) {
+		/*
+		 * Mode
+		 * Note that we convert them into the ppm portable representation before pushing them to the ring
+		 */
+		syscall_get_arguments(current, args->regs, 2, 1, &val);
+		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
+	} else {
+		res = val_to_ring(args, 0, 0, false, 0);
+	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2876,7 +2881,7 @@ static int f_sys_poll_x(struct event_filler_arguments *args)
 
 static int f_sys_openat_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
+	unsigned long val, flags;
 	int res;
 
 	/*
@@ -2903,16 +2908,21 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	res = val_to_ring(args, open_flags_to_scap(val), 0, false, 0);
+	syscall_get_arguments(current, args->regs, 2, 1, &flags);
+	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*
-	 * Mode
-	 */
-	syscall_get_arguments(current, args->regs, 3, 1, &val);
-	res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
+	if ((flags & O_CREAT) || (flags & O_TMPFILE)) {
+		/*
+		 * Mode
+		 * Note that we convert them into the ppm portable representation before pushing them to the ring
+		 */
+		syscall_get_arguments(current, args->regs, 3, 1, &val);
+		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
+	} else {
+		res = val_to_ring(args, 0, 0, false, 0);
+	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
