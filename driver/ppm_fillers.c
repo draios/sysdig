@@ -572,6 +572,33 @@ static inline u32 open_modes_to_scap(unsigned long modes)
 	return res;
 }
 
+static inline int open_mode_to_ring(struct event_filler_arguments *args,
+				    unsigned long flags,
+				    unsigned int i)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
+	unsigned long flags_mask = O_CREAT | O_TMPFILE;
+#else
+	unsigned long flags_mask = O_CREAT;
+#endif
+	int res;
+
+	if (flags & flags_mask) {
+		unsigned long val;
+
+		/*
+		 * Mode
+		 * Note that we convert them into the ppm portable
+		 * representation before pushing them to the ring
+		 */
+		syscall_get_arguments(current, args->regs, i, 1, &val);
+		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
+	} else {
+		res = val_to_ring(args, 0, 0, false, 0);
+	}
+	return res;
+}
+
 static int f_sys_open_x(struct event_filler_arguments *args)
 {
 	unsigned long val, flags;
@@ -603,16 +630,10 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if ((flags & O_CREAT) || (flags & O_TMPFILE)) {
-		/*
-		 * Mode
-		 * Note that we convert them into the ppm portable representation before pushing them to the ring
-		 */
-		syscall_get_arguments(current, args->regs, 2, 1, &val);
-		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
-	} else {
-		res = val_to_ring(args, 0, 0, false, 0);
-	}
+	/*
+	 *  mode
+	 */
+	res = open_mode_to_ring(args, flags, 2);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2913,16 +2934,10 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if ((flags & O_CREAT) || (flags & O_TMPFILE)) {
-		/*
-		 * Mode
-		 * Note that we convert them into the ppm portable representation before pushing them to the ring
-		 */
-		syscall_get_arguments(current, args->regs, 3, 1, &val);
-		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
-	} else {
-		res = val_to_ring(args, 0, 0, false, 0);
-	}
+	/*
+	 *  mode
+	 */
+	res = open_mode_to_ring(args, flags, 3);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
