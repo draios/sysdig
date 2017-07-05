@@ -408,7 +408,8 @@ public:
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
-		bool print_containers, sinsp_table::output_type output_type, bool is_mousedrag_available);
+		bool print_containers, sinsp_table::output_type output_type, bool is_mousedrag_available,
+		int32_t json_first_row, int32_t json_last_row, int32_t sorting_col);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -720,6 +721,9 @@ private:
 	sinsp_table::output_type m_output_type;
 	bool m_truncated_input;
 	bool m_interactive;
+	int32_t m_json_first_row;
+	int32_t m_json_last_row;
+	int32_t m_sorting_col;
 };
 
 #endif // CSYSDIG

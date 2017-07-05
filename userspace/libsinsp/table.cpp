@@ -75,7 +75,8 @@ typedef struct table_row_cmp
 	bool m_ascending;
 }table_row_cmp;
 
-sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, sinsp_table::output_type output_type)
+sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, 
+	sinsp_table::output_type output_type, uint32_t json_first_row, uint32_t json_last_row)
 {
 	m_inspector = inspector;
 	m_type = type;
@@ -106,6 +107,8 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_zero_double = 0;
 	m_paused = false;
 	m_sample_data = NULL;
+	m_json_first_row = json_first_row;
+	m_json_last_row = json_last_row;
 }
 
 sinsp_table::~sinsp_table()
@@ -646,13 +649,24 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 		return;
 	}
 
+	if(m_json_first_row >= sample_data->size())
+	{
+		return;
+	}
+
+	if(m_json_last_row == 0 || m_json_last_row >= sample_data->size() - 1)
+	{
+		m_json_last_row = sample_data->size() - 1;
+	}
+
 	printf("\"data\": [\n");
 
-	for(auto it = sample_data->begin(); it != sample_data->end(); ++it, ++k)
+	for(k = m_json_first_row; k <= m_json_last_row; k++)
 	{
 		Json::Value root;
 		Json::Value jd;
-
+		auto row = sample_data->at(k);
+		
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
 			sinsp_filter_check* extractor = m_extractors->at(j + 1);
@@ -665,9 +679,9 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 			}
 
 			m_printer->set_val(m_types->at(j + 1), 
-				it->m_values[j].m_val,
-				it->m_values[j].m_len,
-				it->m_values[j].m_cnt,
+				row.m_values[j].m_val,
+				row.m_values[j].m_len,
+				row.m_values[j].m_cnt,
 				legend->at(j + 1).m_print_format);
 
 			jd.append(m_printer->tojson(NULL, 10, td));
@@ -685,6 +699,12 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 
 		res = writer.write(root);
 		printf("%s", res.substr(0, res.size() - 1).c_str());
+
+//		if(k >= CSYSDIG_MAX_JSON_ROWS)
+//		{
+//			break;
+//		}
+
 		if(j < sample_data->size() - 1)
 		{
 			printf(",");

@@ -236,7 +236,8 @@ public:
 	};
 
 	sinsp_table(sinsp* inspector, tabletype type, 
-		uint64_t refresh_interval_ns, sinsp_table::output_type output_type);
+		uint64_t refresh_interval_ns, sinsp_table::output_type output_type,
+		uint32_t json_first_row, uint32_t json_last_row);
 	~sinsp_table();
 	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
@@ -356,6 +357,8 @@ private:
 	tabletype m_type;
 	output_type m_output_type;
 	uint32_t m_view_depth;
+	uint32_t m_json_first_row;
+	uint32_t m_json_last_row;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

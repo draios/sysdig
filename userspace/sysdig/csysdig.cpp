@@ -252,6 +252,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	uint64_t refresh_interval_ns = 2000000000;
 	bool list_flds = false;
 	bool is_interactive = false;
+	int32_t json_first_row = 0;
+	int32_t json_last_row = 0;
+	int32_t sorting_col = -1;
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
 #else
@@ -268,6 +271,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	{
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
+		{"from", required_argument, 0, 0 },
 		{"help", no_argument, 0, 'h' },
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
@@ -284,6 +288,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"logfile", required_argument, 0, 0 },
 		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"force-term-compat", no_argument, 0, 0},
+		{"sortingcol", required_argument, 0, 0 },
+		{"to", required_argument, 0, 0 },
 		{"view", required_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
 		{0, 0, 0, 0}
@@ -425,6 +431,18 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						force_term_compat = true;
 					}
+					else if(optname == "from")
+					{
+						json_first_row = sinsp_numparser::parsed32(optarg);
+					}
+					else if(optname == "to")
+					{
+						json_last_row = sinsp_numparser::parsed32(optarg);
+					}
+					else if(optname == "sortingcol")
+					{
+						sorting_col = sinsp_numparser::parsed32(optarg);
+					}
 				}
 				break;
 			default:
@@ -476,6 +494,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		if(signal(SIGTERM, signal_callback) == SIG_ERR)
 		{
 			fprintf(stderr, "An error occurred while setting SIGTERM signal handler.\n");
+			res.m_res = EXIT_FAILURE;
+			goto exit;
+		}
+
+		if(json_last_row < json_first_row)
+		{
+			fprintf(stderr, "'to' argument cannot be smaller than the 'from' one.\n");
 			res.m_res = EXIT_FAILURE;
 			goto exit;
 		}
@@ -575,7 +600,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				refresh_interval_ns,
 				print_containers,
 				output_type,
-				terminal_with_mouse);
+				terminal_with_mouse,
+				json_first_row, 
+				json_last_row,
+				sorting_col);
 
 			ui.configure(&view_manager);
 

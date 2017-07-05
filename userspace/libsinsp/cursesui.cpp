@@ -61,13 +61,15 @@ int do_sleep(DWORD usec)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_cursesui implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_cursesui::sinsp_cursesui(sinsp* inspector, 
-							   string event_source_name, 
-							   string cmdline_capture_filter, 
-							   uint64_t refresh_interval_ns,
-							   bool print_containers,
-							   sinsp_table::output_type output_type,
-							   bool is_mousedrag_available)
+sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
+	string event_source_name,
+	string cmdline_capture_filter,
+	uint64_t refresh_interval_ns,
+	bool print_containers,
+	sinsp_table::output_type output_type,
+	bool is_mousedrag_available,
+	int32_t json_first_row, int32_t json_last_row,
+	int32_t sorting_col)
 {
 	m_inspector = inspector;
 	m_event_source_name = event_source_name;
@@ -99,6 +101,9 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_truncated_input = false;
 	m_view_depth = 0;
 	m_interactive = false;
+	m_json_first_row = json_first_row;
+	m_json_last_row = json_last_row;
+	m_sorting_col = sorting_col;
 
 #ifndef NOCURSESUI
 	m_viz = NULL;
@@ -388,12 +393,14 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		if(wi->m_type == sinsp_view_info::T_TABLE)
 		{
 			ty = sinsp_table::TT_TABLE;
-			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_output_type);
+			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, 
+				m_output_type, m_json_first_row, m_json_last_row);
 		}
 		else if(wi->m_type == sinsp_view_info::T_LIST)
 		{
 			ty = sinsp_table::TT_LIST;
-			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_output_type);
+			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, 
+				m_output_type, m_json_first_row, m_json_last_row);
 		}
 		else if(wi->m_type == sinsp_view_info::T_SPECTRO)
 		{
@@ -404,11 +411,13 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			//
 			if(m_refresh_interval_ns == 2000000000)
 			{
-				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns / 4, m_output_type);
+				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns / 4, 
+					m_output_type, m_json_first_row, m_json_last_row);
 			}
 			else
 			{
-				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, m_output_type);
+				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, 
+					m_output_type, m_json_first_row, m_json_last_row);
 			}
 		}
 		else
@@ -430,7 +439,14 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			throw;
 		}
 
-		m_datatable->set_sorting_col(wi->m_sortingcol);
+		if(m_sorting_col != -1 && m_sorting_col < wi->m_columns.size())
+		{
+			m_datatable->set_sorting_col(m_sorting_col);
+		}
+		else
+		{
+			m_datatable->set_sorting_col(wi->m_sortingcol);
+		}
 	}
 #ifndef NOCURSESUI
 	else
@@ -1189,6 +1205,8 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 		vector<string> colnames;
 
 		ASSERT(wi != NULL);
+
+		jinfo["sortingCol"] = wi->m_sortingcol;
 
 		wi->get_col_names_and_sizes(&colnames, &colsizes);
 
