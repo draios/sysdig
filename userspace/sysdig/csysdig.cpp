@@ -105,8 +105,6 @@ static void usage()
 " -l, --list         List all the fields that can be used in views.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
-" -N\n"
-"                    Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " -pc, -pcontainer\n"
@@ -173,6 +171,30 @@ static void add_chisel_dirs(sinsp* inspector)
 			inspector->add_chisel_dir(user_cdirs[j], true);
 		}
 	}
+}
+
+static void print_views(sinsp_view_manager* view_manager)
+{
+	Json::FastWriter writer;
+	Json::Value root;
+
+	vector<sinsp_view_info>* vlist = view_manager->get_views();
+
+	for(auto it = vlist->begin(); it != vlist->end(); ++it)
+	{
+		Json::Value jv;
+		sinsp_view_info& vinfo = *it;
+
+		jv["id"] = vinfo.m_id;
+		jv["name"] = vinfo.m_name;
+		jv["description"] = vinfo.m_description;
+		jv["isRoot"] = vinfo.m_is_root;
+		jv["drilldownTarget"] = vinfo.m_drilldown_target;
+		root.append(jv);
+	}
+
+	string ouput = writer.write(root);
+	printf("%s", ouput.substr(0, ouput.size() - 1).c_str());
 }
 #endif
 
@@ -255,6 +277,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	int32_t json_first_row = 0;
 	int32_t json_last_row = 0;
 	int32_t sorting_col = -1;
+	bool list_views = false;
+
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
 #else
@@ -278,6 +302,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"json", no_argument, 0, 'j' },
 		{"interactive", optional_argument, 0, 0 },
 		{"list", optional_argument, 0, 'l' },
+		{"list-views", no_argument, 0, 0},
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
 		{"print", required_argument, 0, 'p' },
@@ -443,6 +468,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						sorting_col = sinsp_numparser::parsed32(optarg);
 					}
+					else if(optname == "list-views")
+					{
+						list_views = true;
+					}
 				}
 				break;
 			default:
@@ -585,6 +614,12 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Set the initial disply view
 		//
 		view_manager.set_selected_view(display_view);
+
+		if(list_views)
+		{
+			print_views(&view_manager);
+			goto exit;
+		}
 
 		//
 		// Go through the input sources and apply the processing to all of them
