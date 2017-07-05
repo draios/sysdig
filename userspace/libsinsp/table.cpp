@@ -700,10 +700,10 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 		res = writer.write(root);
 		printf("%s", res.substr(0, res.size() - 1).c_str());
 
-//		if(k >= CSYSDIG_MAX_JSON_ROWS)
-//		{
-//			break;
-//		}
+		if(k >= m_json_last_row)
+		{
+			break;
+		}
 
 		if(j < sample_data->size() - 1)
 		{
