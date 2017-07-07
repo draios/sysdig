@@ -28,7 +28,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define VIEW_ID_SPY -1
 #define VIEW_ID_DIG -2
 #define VIEW_ID_INFO -3
-
+#define FILTER_TEMPLATE_MAGIC "@#$f1CA^&;"
 string combine_filters(string flt1, string flt2);
 class ctext;
 class sinsp_chart;
@@ -208,7 +208,7 @@ public:
 
 					if(templated && (j == hs - 1)) 
 					{
-						res += "{0}";
+						res += string("\"") + FILTER_TEMPLATE_MAGIC + "\"";
 					}
 					else
 					{
