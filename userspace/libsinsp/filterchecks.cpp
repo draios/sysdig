@@ -5456,7 +5456,7 @@ int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t base
 	try
 	{
 		m_argid = sinsp_numparser::parsed32(numstr);
-	} catch (sinsp_exception e)
+	} catch (sinsp_exception &e)
 	{
 		if(strstr(e.what(), "is not a valid number") == NULL)
 		{
