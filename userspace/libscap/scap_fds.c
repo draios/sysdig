@@ -23,6 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "scap-int.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include "uthash.h"
 #ifdef _WIN32
 #include <Ws2tcpip.h>
@@ -611,7 +612,133 @@ int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo,
 	return scap_add_fd_to_proc_table(handle, tinfo, fdi);
 }
 
-int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
+static inline uint32_t open_flags_to_scap(unsigned long flags)
+{
+	uint32_t res = 0;
+
+	switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
+	case O_WRONLY:
+		res |= PPM_O_WRONLY;
+		break;
+	case O_RDWR:
+		res |= PPM_O_RDWR;
+		break;
+	default:
+		res |= PPM_O_RDONLY;
+		break;
+	}
+
+	if (flags & O_CREAT)
+		res |= PPM_O_CREAT;
+
+	if (flags & O_APPEND)
+		res |= PPM_O_APPEND;
+
+#ifdef O_DSYNC
+	if (flags & O_DSYNC)
+		res |= PPM_O_DSYNC;
+#endif
+
+	if (flags & O_EXCL)
+		res |= PPM_O_EXCL;
+
+	if (flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+
+	if (flags & O_SYNC)
+		res |= PPM_O_SYNC;
+
+	if (flags & O_TRUNC)
+		res |= PPM_O_TRUNC;
+
+#ifdef O_DIRECT
+	if (flags & O_DIRECT)
+		res |= PPM_O_DIRECT;
+#endif
+
+	if (flags & O_DIRECTORY)
+		res |= PPM_O_DIRECTORY;
+
+#ifdef O_LARGEFILE
+	if (flags & O_LARGEFILE)
+		res |= PPM_O_LARGEFILE;
+#endif
+
+#ifdef O_CLOEXEC
+	if (flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+
+	return res;
+}
+
+void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
+{
+	int is_first_line = true;
+	const char *delimiters = " \t";
+	char fd_dir_name[NAME_SIZE];
+	char line[NAME_SIZE];
+	FILE *finfo;
+
+	snprintf(fd_dir_name, NAME_SIZE, "%sfdinfo/%ld", procdir, fdi->fd);
+	finfo = fopen(fd_dir_name, "r");
+	if(finfo == NULL)
+	{
+		return;
+	}
+
+	while(fgets(line, sizeof(line), finfo) != NULL)
+	{
+		// We are just interested in the flags.
+		//
+		// The format of the file is:
+		// pos:    XXXX
+		// flags:  YYYYYYYY
+		// mnt_id: ZZZ
+
+		char *scratch;
+		char *token;
+
+		if(is_first_line)
+		{
+			is_first_line = false;
+			continue;
+		}
+
+		token = strtok_r(line, delimiters, &scratch);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
+
+		token = strtok_r(NULL, delimiters, &scratch);
+		if(token == NULL)
+		{
+			ASSERT(false);
+			continue;
+		}
+
+		uint32_t open_flags;
+		unsigned long flags = strtoul(token, NULL, 8);
+
+		if(errno == ERANGE)
+		{
+			open_flags = PPM_O_NONE;
+		}
+		else
+		{
+			open_flags = open_flags_to_scap(flags);
+		}
+
+		fdi->info.regularinfo.open_flags = open_flags;
+		break;
+	}
+
+	fclose(finfo);
+}
+
+int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, const char *procdir, char *error)
 {
 	char link_name[NAME_SIZE];
 	ssize_t r;
@@ -655,7 +782,13 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 			// printf("unsupported %s -> %s\n",fname,link_name);
 		}
 		fdi->info.fname[0] = '\0';
-	} else {
+	}
+	else if(fdi->type == SCAP_FD_FILE_V2)
+	{
+		scap_fd_flags_file(handle, fdi, procdir);
+	}
+	else
+	{
 		strncpy(fdi->info.fname, link_name, SCAP_MAX_PATH_SIZE);
 	}
 
@@ -1598,13 +1731,13 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 		case S_IFBLK:
 		case S_IFCHR:
 		case S_IFLNK:
-			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_FILE);
+			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_FILE_V2);
 			if(SCAP_FAILURE == res)
 			{
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, error);
+			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
 			break;
 		case S_IFDIR:
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_DIRECTORY);
@@ -1613,7 +1746,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, error);
+			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
 			break;
 		case S_IFSOCK:
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNKNOWN);
@@ -1638,7 +1771,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, error);
+			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
 			break;
 		}
 
