@@ -146,6 +146,7 @@ int32_t scap_fd_info_to_string(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
 	case SCAP_FD_UNIX_SOCK:
 		snprintf(str, stlen, "%"PRIi64" %"PRIu64" %"PRIX64"-> %"PRIX64" %s", fdi->fd,fdi->ino, fdi->info.unix_socket_info.source,fdi->info.unix_socket_info.destination, fdi->info.unix_socket_info.fname);
 		break;
+	case SCAP_FD_FILE_V2:
 	case SCAP_FD_FILE:
 	case SCAP_FD_DIRECTORY:
 		break;
@@ -201,6 +202,9 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 			sizeof(uint64_t) + // unix source 
 			sizeof(uint64_t) +  // unix destination
 			(uint32_t)strnlen(fdi->info.unix_socket_info.fname, SCAP_MAX_PATH_SIZE) + 2;
+		break;
+	case SCAP_FD_FILE_V2:
+		res += sizeof(uint32_t);
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -292,6 +296,13 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 		        (stlen > 0 && scap_dump_write(d, fdi->info.unix_socket_info.fname, stlen) != stlen))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi5)");
+			return SCAP_FAILURE;
+		}
+		break;
+	case SCAP_FD_FILE_V2:
+		if(scap_dump_write(d, &(fdi->info.regularinfo.open_flags), sizeof(uint32_t)) != sizeof(uint32_t))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
 			return SCAP_FAILURE;
 		}
 		break;
@@ -443,6 +454,15 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 
 		(*nbytes) += (sizeof(uint64_t) + sizeof(uint64_t));
 		res = scap_fd_read_fname_from_disk(handle, fdi->info.unix_socket_info.fname, nbytes, f);
+		break;
+	case SCAP_FD_FILE_V2:
+		if(gzread(f, &(fdi->info.regularinfo.open_flags), sizeof(uint32_t)) != sizeof(uint32_t))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi1)");
+			return SCAP_FAILURE;
+		}
+
+		(*nbytes) += sizeof(uint32_t);
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -1724,7 +1744,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			if(SCAP_FAILURE == res)
 			{
 				break;
-            }
+			}
 			res = scap_fd_handle_pipe(handle, f_name, tinfo, fdi, error);
 			break;
 		case S_IFREG:
