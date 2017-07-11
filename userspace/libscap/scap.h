@@ -187,6 +187,7 @@ typedef struct scap_fdinfo
 		struct
 		{
 			uint32_t open_flags; ///< Flags associated with the file
+			char fname[SCAP_MAX_PATH_SIZE]; ///< Name associated to this file
 		} regularinfo; ///< Information specific to regular files
 		char fname[SCAP_MAX_PATH_SIZE];  ///< The name for file system FDs
 	}info;

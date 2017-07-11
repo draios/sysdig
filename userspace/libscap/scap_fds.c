@@ -204,7 +204,8 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 			(uint32_t)strnlen(fdi->info.unix_socket_info.fname, SCAP_MAX_PATH_SIZE) + 2;
 		break;
 	case SCAP_FD_FILE_V2:
-		res += sizeof(uint32_t);
+		res += sizeof(uint32_t) + // open_flags
+			(uint32_t)strnlen(fdi->info.regularinfo.fname, SCAP_MAX_PATH_SIZE) + 2;
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -301,6 +302,13 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 		break;
 	case SCAP_FD_FILE_V2:
 		if(scap_dump_write(d, &(fdi->info.regularinfo.open_flags), sizeof(uint32_t)) != sizeof(uint32_t))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
+			return SCAP_FAILURE;
+		}
+		stlen = (uint16_t)strnlen(fdi->info.regularinfo.fname, SCAP_MAX_PATH_SIZE);
+		if(scap_dump_write(d, &stlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+			(stlen > 0 && scap_dump_write(d, fdi->info.regularinfo.fname, stlen) != stlen))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
 			return SCAP_FAILURE;
@@ -463,6 +471,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		}
 
 		(*nbytes) += sizeof(uint32_t);
+		res = scap_fd_read_fname_from_disk(handle, fdi->info.regularinfo.fname, nbytes, f);
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
