@@ -815,6 +815,7 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 	else if(fdi->type == SCAP_FD_FILE_V2)
 	{
 		scap_fd_flags_file(handle, fdi, procdir);
+		strncpy(fdi->info.regularinfo.fname, link_name, SCAP_MAX_PATH_SIZE);
 	}
 	else
 	{
