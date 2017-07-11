@@ -53,6 +53,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #define SOCKET_SCAN_BUFFER_SIZE 1024 * 1024
+#define NAME_SIZE 1024
 
 int32_t scap_fd_print_ipv6_socket_info(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
 {
@@ -583,12 +584,12 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 
 int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
-	char link_name[1024];
+	char link_name[NAME_SIZE];
 	ssize_t r;
 	uint64_t ino;
 	struct stat sb;
 
-	r = readlink(fname, link_name, 1024);
+	r = readlink(fname, link_name, NAME_SIZE);
 	if (r <= 0)
 	{
 		return SCAP_FAILURE;
@@ -612,10 +613,10 @@ int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo,
 
 int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
-	char link_name[1024];
+	char link_name[NAME_SIZE];
 	ssize_t r;
 
-	r = readlink(fname, link_name, 1024);
+	r = readlink(fname, link_name, NAME_SIZE);
 	if (r <= 0)
 	{
 		return SCAP_SUCCESS;
@@ -651,7 +652,7 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 		if(SCAP_FD_UNSUPPORTED == fdi->type)
 		{
 			// still not able to classify
-//			printf("unsupported %s -> %s\n",fname,link_name);
+			// printf("unsupported %s -> %s\n",fname,link_name);
 		}
 		fdi->info.fname[0] = '\0';
 	} else {
@@ -663,7 +664,7 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 
 int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, struct scap_ns_socket_list **sockets_by_ns, char *error)
 {
-	char link_name[1024];
+	char link_name[NAME_SIZE];
 	ssize_t r;
 	scap_fdinfo *tfdi;
 	uint64_t ino;
@@ -698,7 +699,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 		}
 	}
 
-	r = readlink(fname, link_name, 1024);
+	r = readlink(fname, link_name, NAME_SIZE);
 	if(r <= 0)
 	{
 		return SCAP_SUCCESS;
@@ -736,7 +737,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filename, scap_fdinfo **sockets)
 {
 	FILE *f;
-	char line[1024];
+	char line[NAME_SIZE];
 	int first_line = false;
 	char *delimiters = " \t";
 	char *token;
@@ -861,7 +862,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* filename, scap_fdinfo **sockets)
 {
 	FILE *f;
-	char line[1024];
+	char line[NAME_SIZE];
 	int first_line = false;
 	char *delimiters = " \t";
 	char *token;
@@ -1529,9 +1530,9 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
 	int32_t res = SCAP_SUCCESS;
-	char fd_dir_name[1024];
-	char f_name[1024];
-	char link_name[1024];
+	char fd_dir_name[NAME_SIZE];
+	char f_name[NAME_SIZE];
+	char link_name[NAME_SIZE];
 	struct stat sb;
 	uint64_t fd;
 	scap_fdinfo *fdi = NULL;
@@ -1539,7 +1540,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	ssize_t r;
 	uint16_t fd_added = 0;
 
-	snprintf(fd_dir_name, 1024, "%sfd", procdir);
+	snprintf(fd_dir_name, NAME_SIZE, "%sfd", procdir);
 	dir_p = opendir(fd_dir_name);
 	if(dir_p == NULL)
 	{
@@ -1569,7 +1570,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 		(handle->m_fd_lookup_limit == 0 || fd_added < handle->m_fd_lookup_limit))
 	{
 		fdi = NULL;
-		snprintf(f_name, 1024, "%s/%s", fd_dir_name, dir_entry_p->d_name);
+		snprintf(f_name, NAME_SIZE, "%s/%s", fd_dir_name, dir_entry_p->d_name);
 
 		if(-1 == stat(f_name, &sb) || 1 != sscanf(dir_entry_p->d_name, "%"PRIu64, &fd))
 		{
