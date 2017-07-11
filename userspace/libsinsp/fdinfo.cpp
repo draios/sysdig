@@ -53,6 +53,7 @@ template<> char sinsp_fdinfo_t::get_typechar()
 {
 	switch(m_type)
 	{
+	case SCAP_FD_FILE_V2:
 	case SCAP_FD_FILE:
 		return CHAR_FD_FILE;
 	case SCAP_FD_IPV4_SOCK:
@@ -95,6 +96,7 @@ template<> char* sinsp_fdinfo_t::get_typestring()
 {
 	switch(m_type)
 	{
+	case SCAP_FD_FILE_V2:
 	case SCAP_FD_FILE:
 		return (char*)"file";
 	case SCAP_FD_DIRECTORY:

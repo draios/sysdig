@@ -1918,7 +1918,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		}
 		else
 		{
-			fdi.m_type = SCAP_FD_FILE;
+			fdi.m_type = SCAP_FD_FILE_V2;
 		}
 
 		fdi.m_openflags = flags;
