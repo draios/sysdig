@@ -1481,7 +1481,7 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 	}
 
 	readsize = gzread(f, readbuf, block_length);
-	CHECK_READ_SIZE(readsize, block_length);
+	CHECK_READ_SIZE_WITH_FREE(readbuf, readsize, block_length);
 
 	//
 	// First pass, count the number of addresses

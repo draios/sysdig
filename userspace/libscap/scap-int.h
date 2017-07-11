@@ -225,6 +225,17 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		return SCAP_FAILURE;\
 	}
 
+#define CHECK_READ_SIZE_WITH_FREE(alloc_buffer, read_size, expected_size) if(read_size != expected_size) \
+	{\
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
+			(int)expected_size,\
+			(int)read_size,\
+			__FILE__,\
+			__LINE__);\
+		free(alloc_buffer);\
+		return SCAP_FAILURE;\
+	}
+
 //
 // Useful stuff
 //
