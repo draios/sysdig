@@ -82,8 +82,8 @@ int32_t scap_create_userlist(scap_t* handle)
 	if(handle->m_userlist->groups == NULL)
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
-		free(handle->m_userlist);
 		free(handle->m_userlist->users);
+		free(handle->m_userlist);
 		return SCAP_FAILURE;		
 	}
 
