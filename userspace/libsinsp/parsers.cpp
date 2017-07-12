@@ -201,7 +201,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			//
 			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
-			if(fdinfo == NULL)
+			if(fdinfo == NULL && evt->m_tinfo != nullptr)
 			{
 				fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 				evt->m_fdinfo = fdinfo;
@@ -275,7 +275,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
-		if(!m_inspector->m_is_dumping)
+		if(!m_inspector->m_is_dumping && evt->m_tinfo != nullptr)
 		{
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 			if(evt->m_fdinfo)
@@ -1832,6 +1832,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	string sdir;
 
 	ASSERT(evt->m_tinfo);
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
 
 	//
 	// Load the enter event so we can access its arguments
@@ -2072,6 +2076,11 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 		//
 		// socket() failed. Nothing to add to the table.
 		//
+		return;
+	}
+
+	if(evt->m_tinfo == nullptr)
+	{
 		return;
 	}
 
@@ -2510,7 +2519,7 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt)
 	//
 	if(retval >= 0)
 	{
-		if(evt->m_fdinfo == NULL)
+		if(evt->m_fdinfo == NULL || evt->m_tinfo == nullptr)
 		{
 			return;
 		}
@@ -2608,6 +2617,12 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt)
 		//
 		// socketpair() failed. Nothing to add to the table.
 		//
+		return;
+	}
+
+	if(evt->m_tinfo == nullptr)
+	{
+		// There is nothing we can do here if tinfo is missing
 		return;
 	}
 
@@ -3406,7 +3421,7 @@ void sinsp_parser::parse_fchdir_exit(sinsp_evt *evt)
 		//
 		// Find the fd name
 		//
-		if(evt->m_fdinfo == NULL)
+		if(evt->m_fdinfo == NULL || evt->m_tinfo == nullptr)
 		{
 			return;
 		}
@@ -3520,6 +3535,11 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 	sinsp_evt_param *parinfo;
 	int64_t retval;
 
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
 	//
 	// Extract the return value
 	//
@@ -3587,6 +3607,11 @@ void sinsp_parser::parse_signalfd_exit(sinsp_evt *evt)
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
 	//
 	// Check if the syscall was successful
 	//
@@ -3651,6 +3676,11 @@ void sinsp_parser::parse_inotify_init_exit(sinsp_evt *evt)
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
 	//
 	// Check if the syscall was successful
 	//
@@ -3679,6 +3709,11 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 	uint8_t resource;
 	int64_t curval;
 
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+	
 	//
 	// Extract the return value
 	//
@@ -4226,7 +4261,7 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 {
 	auto parinfo = evt->get_param(0);
 	auto retval = *(int64_t *)parinfo->m_val;
-	if(retval == 0)
+	if(retval == 0 && evt->m_tinfo != nullptr)
 	{
 		const char* resolved_path;
 		auto path = evt->get_param_as_str(1, &resolved_path);

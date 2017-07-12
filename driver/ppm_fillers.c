@@ -524,9 +524,92 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+
+static inline u32 open_modes_to_scap(unsigned long modes)
+{
+	u32 res = 0;
+
+	if (modes & S_IRUSR)
+		res |= PPM_S_IRUSR;
+
+	if (modes & S_IWUSR)
+		res |= PPM_S_IWUSR;
+
+	if (modes & S_IXUSR)
+		res |= PPM_S_IXUSR;
+
+	/*
+	* PPM_S_IRWXU == S_IRUSR | S_IWUSR | S_IXUSR 
+	*/
+
+	if (modes & S_IRGRP)
+		res |= PPM_S_IRGRP;
+
+	if (modes & S_IWGRP)
+		res |= PPM_S_IWGRP;
+
+	if (modes & S_IXGRP)
+		res |= PPM_S_IXGRP;
+
+	/*
+	* PPM_S_IRWXG == S_IRGRP | S_IWGRP | S_IXGRP 
+	*/
+
+	if (modes & S_IROTH)
+		res |= PPM_S_IROTH;
+
+	if (modes & S_IWOTH)
+		res |= PPM_S_IWOTH;
+
+	if (modes & S_IXOTH)
+		res |= PPM_S_IXOTH;
+	
+	/*
+	* PPM_S_IRWXO == S_IROTH | S_IWOTH | S_IXOTH
+	*/
+	
+	if (modes & S_ISUID)
+		res |= PPM_S_ISUID;
+
+	if (modes & S_ISGID)
+		res |= PPM_S_ISGID;
+
+	if (modes & S_ISVTX)
+		res |= PPM_S_ISVTX;
+
+	return res;
+}
+
+static inline int open_mode_to_ring(struct event_filler_arguments *args,
+				    unsigned long flags,
+				    unsigned int i)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
+	unsigned long flags_mask = O_CREAT | O_TMPFILE;
+#else
+	unsigned long flags_mask = O_CREAT;
+#endif
+	int res;
+
+	if (flags & flags_mask) {
+		unsigned long val;
+
+		/*
+		 * Mode
+		 * Note that we convert them into the ppm portable
+		 * representation before pushing them to the ring
+		 */
+		syscall_get_arguments(current, args->regs, i, 1, &val);
+		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
+	} else {
+		res = val_to_ring(args, 0, 0, false, 0);
+	}
+	return res;
+}
+
 static int f_sys_open_x(struct event_filler_arguments *args)
 {
-	unsigned long val;
+	unsigned long val, flags;
 	int res;
 	int64_t retval;
 
@@ -550,19 +633,15 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, open_flags_to_scap(val), 0, false, 0);
+	syscall_get_arguments(current, args->regs, 1, 1, &flags);
+	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	/*
-	 * Mode
-	 * XXX: at this time, mode decoding is not supported. We nonetheless return a value (zero)
-	 * so the format of the event is ready for when we'll export the mode in the future.
-	 *
-	 * syscall_get_arguments(current, args->regs, 2, 1, &val);
+	 *  mode
 	 */
-	res = val_to_ring(args, 0, 0, false, 0);
+	res = open_mode_to_ring(args, flags, 2);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3029,7 +3108,7 @@ static int f_sys_mount_e(struct event_filler_arguments *args)
 
 static int f_sys_openat_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
+	unsigned long val, flags;
 	int res;
 
 	/*
@@ -3056,19 +3135,15 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	res = val_to_ring(args, open_flags_to_scap(val), 0, false, 0);
+	syscall_get_arguments(current, args->regs, 2, 1, &flags);
+	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	/*
-	 * Mode
-	 * XXX: at this time, mode decoding is not supported. We nonetheless return a value (zero)
-	 * so the format of the event is ready for when we'll export the mode in the future.
-	 *
-	 * syscall_get_arguments(current, args->regs, 3, 1, &val);
+	 *  mode
 	 */
-	res = val_to_ring(args, 0, 0, false, 0);
+	res = open_mode_to_ring(args, flags, 3);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3905,6 +3980,18 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 #ifdef F_GETPIPE_SZ
 	case F_GETPIPE_SZ:
 		return PPM_FCNTL_F_GETPIPE_SZ;
+#endif
+#ifdef F_OFD_GETLK
+	case F_OFD_GETLK:
+		return PPM_FCNTL_F_OFD_GETLK;
+#endif
+#ifdef F_OFD_SETLK
+	case F_OFD_SETLK:
+		return PPM_FCNTL_F_OFD_SETLK;
+#endif
+#ifdef F_OFD_SETLKW
+	case F_OFD_SETLKW:
+		return PPM_FCNTL_F_OFD_SETLKW;
 #endif
 	default:
 		ASSERT(false);

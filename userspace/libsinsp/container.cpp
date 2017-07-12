@@ -366,7 +366,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					string::size_type dot_pos = tokens[2].find('.');
 					if (dot_pos == string::npos)
 						continue;
-					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 2, dot_pos - sizeof("machine-rkt") - 2);
+					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 3, dot_pos - sizeof("machine-rkt") - 3);
 					replace_in_place(rkt_podid, "\\x2d", "-");
 					dot_pos = tokens[4].find('.');
 					if (dot_pos == string::npos)
@@ -399,7 +399,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					container_info.m_name = rkt_appname;
 					valid_id = true;
 					break;
-                                }
+				}
 			}
 		}
 	}
@@ -425,7 +425,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 				sinsp_threadinfo::visitor_func_t visitor = [&rkt_podid, &container_info, &rkt_appname, &valid_id] (sinsp_threadinfo *ptinfo)
 				{
-					for(const auto& env_var : ptinfo->m_env)
+					for(const auto& env_var : ptinfo->get_env())
 					{
 						auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
 						if(container_uuid_pos == 0)
@@ -519,7 +519,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					ASSERT(false);
 			}
 
-			m_containers.insert(std::make_pair(container_info.m_id, container_info));
+			add_container(container_info);
 			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;

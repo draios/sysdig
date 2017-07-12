@@ -81,21 +81,18 @@ public:
 	  \brief Return the values of all environment variables for the process
 	  containing this thread.
 	*/
-	const vector<string>& get_env() const
-	{
-		return m_env;
-	}
+	const vector<string>& get_env();
 
 	/*!
 	  \brief Return the value of the specified environment variable for the process
 	  containing this thread. Returns empty string if variable is not found.
 	*/
-	string get_env(const string& name) const;
+	string get_env(const string& name);
 
 	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
-	inline bool is_main_thread()
+	inline bool is_main_thread() const
 	{
 		return m_tid == m_pid;
 	}
@@ -350,7 +347,7 @@ VISIBILITY_PRIVATE
 	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 };
 
 /*@}*/
@@ -448,5 +445,5 @@ private:
 	friend class sinsp_analyzer;
 	friend class sinsp;
 	friend class sinsp_threadinfo;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 };

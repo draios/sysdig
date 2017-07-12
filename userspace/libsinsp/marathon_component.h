@@ -109,7 +109,7 @@ public:
 
 	bool remove(const std::string& id);
 
-	void print() const;
+	void print(int indent = 0) const;
 
 	const std::string& get_framework_id() const;
 	void set_framework_id(const std::string& id);

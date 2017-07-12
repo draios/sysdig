@@ -256,7 +256,7 @@ public:
 	/*!
 	  \brief Start an event capture from a file descriptor.
 
-	  \param filename the trace file name.
+	  \param fd the file descriptor
 
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
@@ -1056,7 +1056,7 @@ public:
 	friend class sinsp_filter_check_k8s;
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
 
 	friend class sinsp_network_interfaces;

@@ -31,11 +31,11 @@ typedef class sinsp_threadinfo sinsp_threadinfo;
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum filtercheck_field_flags
 {
-	EPF_NONE = 0,
-	EPF_FILTER_ONLY, ///< this field can only be used as a filter.
-	EPF_PRINT_ONLY, ///< this field can only be printed.
-	EPF_REQUIRES_ARGUMENT, ///< this field includes an argument, under the form 'property.argument'.
-	EPF_TABLE_ONLY, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
+	EPF_NONE              = 0,
+	EPF_FILTER_ONLY       = 1 << 0, ///< this field can only be used as a filter.
+	EPF_PRINT_ONLY        = 1 << 1, ///< this field can only be printed.
+	EPF_REQUIRES_ARGUMENT = 1 << 2, ///< this field includes an argument, under the form 'property.argument'.
+	EPF_TABLE_ONLY        = 1 << 3, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
 }filtercheck_field_flags;
 
 /*!
@@ -45,7 +45,7 @@ typedef struct filtercheck_field_info
 {
 	ppm_param_type m_type; ///< Field type.
 	filtercheck_field_flags m_flags;  ///< Field flags.
-	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as decimal or hex.
+	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as octal, decimal or hex.
 	char m_name[64];  ///< Field name.
 	char m_description[1024];  ///< Field description.
 }filtercheck_field_info;
@@ -418,7 +418,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_container_manager;
 	friend class sinsp_table;
 	friend class sinsp_cursesui;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_memory_dumper_job;
 };

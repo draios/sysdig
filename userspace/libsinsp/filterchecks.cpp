@@ -1696,11 +1696,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_tstr.clear();
 
 			uint32_t j;
-			uint32_t nargs = (uint32_t)tinfo->m_env.size();
+			const auto& env = tinfo->get_env();
+			uint32_t nargs = (uint32_t)env.size();
 
 			for(j = 0; j < nargs; j++)
 			{
-				m_tstr += tinfo->m_env[j];
+				m_tstr += env[j];
 				if(j < nargs -1)
 				{
 					m_tstr += ' ';
