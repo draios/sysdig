@@ -54,7 +54,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #define SOCKET_SCAN_BUFFER_SIZE 1024 * 1024
-#define NAME_SIZE 1024
 
 int32_t scap_fd_print_ipv6_socket_info(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
 {
@@ -614,12 +613,12 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 
 int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
-	char link_name[NAME_SIZE];
+	char link_name[SCAP_MAX_PATH_SIZE];
 	ssize_t r;
 	uint64_t ino;
 	struct stat sb;
 
-	r = readlink(fname, link_name, NAME_SIZE);
+	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE);
 	if (r <= 0)
 	{
 		return SCAP_FAILURE;
@@ -705,11 +704,11 @@ void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
 {
 	int is_first_line = true;
 	const char *delimiters = " \t";
-	char fd_dir_name[NAME_SIZE];
-	char line[NAME_SIZE];
+	char fd_dir_name[SCAP_MAX_PATH_SIZE];
+	char line[SCAP_MAX_PATH_SIZE];
 	FILE *finfo;
 
-	snprintf(fd_dir_name, NAME_SIZE, "%sfdinfo/%ld", procdir, fdi->fd);
+	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfdinfo/%ld", procdir, fdi->fd);
 	finfo = fopen(fd_dir_name, "r");
 	if(finfo == NULL)
 	{
@@ -769,10 +768,10 @@ void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
 
 int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, const char *procdir, char *error)
 {
-	char link_name[NAME_SIZE];
+	char link_name[SCAP_MAX_PATH_SIZE];
 	ssize_t r;
 
-	r = readlink(fname, link_name, NAME_SIZE);
+	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE);
 	if (r <= 0)
 	{
 		return SCAP_SUCCESS;
@@ -827,7 +826,7 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 
 int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, struct scap_ns_socket_list **sockets_by_ns, char *error)
 {
-	char link_name[NAME_SIZE];
+	char link_name[SCAP_MAX_PATH_SIZE];
 	ssize_t r;
 	scap_fdinfo *tfdi;
 	uint64_t ino;
@@ -862,7 +861,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 		}
 	}
 
-	r = readlink(fname, link_name, NAME_SIZE);
+	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE);
 	if(r <= 0)
 	{
 		return SCAP_SUCCESS;
@@ -900,7 +899,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filename, scap_fdinfo **sockets)
 {
 	FILE *f;
-	char line[NAME_SIZE];
+	char line[SCAP_MAX_PATH_SIZE];
 	int first_line = false;
 	char *delimiters = " \t";
 	char *token;
@@ -1025,7 +1024,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* filename, scap_fdinfo **sockets)
 {
 	FILE *f;
-	char line[NAME_SIZE];
+	char line[SCAP_MAX_PATH_SIZE];
 	int first_line = false;
 	char *delimiters = " \t";
 	char *token;
@@ -1693,9 +1692,9 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
 	int32_t res = SCAP_SUCCESS;
-	char fd_dir_name[NAME_SIZE];
-	char f_name[NAME_SIZE];
-	char link_name[NAME_SIZE];
+	char fd_dir_name[SCAP_MAX_PATH_SIZE];
+	char f_name[SCAP_MAX_PATH_SIZE];
+	char link_name[SCAP_MAX_PATH_SIZE];
 	struct stat sb;
 	uint64_t fd;
 	scap_fdinfo *fdi = NULL;
@@ -1703,7 +1702,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	ssize_t r;
 	uint16_t fd_added = 0;
 
-	snprintf(fd_dir_name, NAME_SIZE, "%sfd", procdir);
+	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfd", procdir);
 	dir_p = opendir(fd_dir_name);
 	if(dir_p == NULL)
 	{
@@ -1733,7 +1732,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 		(handle->m_fd_lookup_limit == 0 || fd_added < handle->m_fd_lookup_limit))
 	{
 		fdi = NULL;
-		snprintf(f_name, NAME_SIZE, "%s/%s", fd_dir_name, dir_entry_p->d_name);
+		snprintf(f_name, SCAP_MAX_PATH_SIZE, "%s/%s", fd_dir_name, dir_entry_p->d_name);
 
 		if(-1 == stat(f_name, &sb) || 1 != sscanf(dir_entry_p->d_name, "%"PRIu64, &fd))
 		{
