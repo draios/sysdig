@@ -371,8 +371,8 @@ public:
 			if(++counter > 100)
 			{
 				throw sinsp_exception("Socket handler (" + m_id + "): "
-									  "unable to retrieve data from " + m_url.to_string(false) + m_path +
-									  " (" + std::to_string(counter) + " attempts)");
+						      "unable to retrieve data from " + m_url.to_string(false) + m_path +
+						      " (" + std::to_string(counter) + " attempts, read " + std::to_string(processed) + " bytes)");
 			}
 			else { usleep(10000); }
 		} while(!m_msg_completed);
