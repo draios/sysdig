@@ -123,7 +123,8 @@ typedef enum scap_fd_type
 	SCAP_FD_EVENTPOLL = 12,
 	SCAP_FD_INOTIFY = 13,
 	SCAP_FD_TIMERFD = 14,
-	SCAP_FD_NETLINK = 15
+	SCAP_FD_NETLINK = 15,
+	SCAP_FD_FILE_V2 = 16
 }scap_fd_type;
 
 /*!
@@ -183,6 +184,11 @@ typedef struct scap_fdinfo
 		  	uint64_t destination; ///< Destination socket endpoint
 			char fname[SCAP_MAX_PATH_SIZE]; ///< Name associated to this unix socket
 		} unix_socket_info; ///< Information specific to unix sockets
+		struct
+		{
+			uint32_t open_flags; ///< Flags associated with the file
+			char fname[SCAP_MAX_PATH_SIZE]; ///< Name associated to this file
+		} regularinfo; ///< Information specific to regular files
 		char fname[SCAP_MAX_PATH_SIZE];  ///< The name for file system FDs
 	}info;
 	UT_hash_handle hh; ///< makes this structure hashable

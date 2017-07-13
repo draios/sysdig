@@ -297,6 +297,10 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 			newfdi->set_role_server();
 		}
 		break;
+	case SCAP_FD_FILE_V2:
+		newfdi->m_openflags = fdi->info.regularinfo.open_flags;
+		newfdi->m_name = fdi->info.regularinfo.fname;
+		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
 	case SCAP_FD_DIRECTORY:
@@ -1050,6 +1054,10 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 		dst->info.unix_socket_info.source = src->m_sockinfo.m_unixinfo.m_fields.m_source;
 		dst->info.unix_socket_info.destination = src->m_sockinfo.m_unixinfo.m_fields.m_dest;
 		strncpy(dst->info.unix_socket_info.fname, src->m_name.c_str(), SCAP_MAX_PATH_SIZE);
+		break;
+	case SCAP_FD_FILE_V2:
+		dst->info.regularinfo.open_flags = src->m_openflags;
+		strncpy(dst->info.regularinfo.fname, src->m_name.c_str(), SCAP_MAX_PATH_SIZE);
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
