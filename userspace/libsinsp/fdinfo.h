@@ -219,7 +219,7 @@ public:
 	*/
 	bool is_file()
 	{
-		return m_type == SCAP_FD_FILE;
+		return m_type == SCAP_FD_FILE || m_type == SCAP_FD_FILE_V2;
 	}
 
 	/*!
