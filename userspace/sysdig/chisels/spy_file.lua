@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 -- Chisel description
-description = "This chisel intercepts all reads and writes to all files, pipes and unix sockets. Instead of all files, you can limit interception to one file, pipe or unix socket."
-short_description = "Echo any read/write made by any process to all files, pipes and unix sockets. Optionally, you can provide the name of one file, pipe or unix socket to only intercept reads/writes to that file, pipe or unix socket.";
+description = "This chisel intercepts all reads and writes to files of any of the given types: files, pipes or unix sockets. You can capture all or limit to files, pipes or unix socket."
+short_description = "Echo any read/write made by any process to files, pipes or unix sockets. Optionally, you can provide the name of a file, pipe or unix socket to only intercept reads/writes to that file, pipe or unix socket.";
 category = "I/O";
 
 -- Argument list
@@ -31,7 +31,7 @@ args =
 	},
 	{
 		name = "type_of_file", 
-		description = "Specify 'F' to capture only file events; 'P' to capture only pipe events; 'U' to capture only unix socket events; 'FP' to capture file and pipe events; Similar with 'PF', 'FU', 'PU', etc. By default file, pipe and unix socket events are captured.",
+		description = "Specify 'F' to capture only file events; 'P' to capture only pipe events; 'U' to capture only unix socket events; 'FP' to capture file and pipe events; Similar with 'PF', 'FU', 'PU', etc. By default only file events are captured.",
 		argtype = "string",
 		optional = true
 	},
@@ -47,7 +47,7 @@ args =
 require "common"
 local spy_file_name = nil
 local read_or_write = nil
-local type_of_file = nil
+local type_of_file = "f"
 local verbose = false
 
 -- Argument notification callback
