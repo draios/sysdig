@@ -53,10 +53,10 @@ local verbose = false
 -- Argument notification callback
 function on_set_arg(name, val)
 	if name == "read_or_write" then
-		read_or_write = val
+		read_or_write = val:lower()
 		return true
 	elseif name == "type_of_file" then
-		type_of_file = val
+		type_of_file = val:lower()
 		return true
 	elseif name == "spy_on_file_name" then
 		spy_file_name = val
@@ -95,25 +95,25 @@ function on_init()
 		filter = "(not fd.name contains /dev/pt and not fd.name contains /dev/tty) and "
 	end
 
-	if read_or_write == "R" or read_or_write == "r" then
+	if read_or_write == "r" then
 		filter = string.format("%s%s", filter, "evt.is_io_read=true and ")
-	elseif read_or_write == "W" or read_or_write == "w" then
+	elseif read_or_write == "w" then
 		filter = string.format("%s%s", filter, "evt.is_io_write=true and ")
 	else
 		filter = string.format("%s%s", filter, "evt.is_io=true and ")
 	end
 
-	if type_of_file == "F" or type_of_file == "f" then
+	if type_of_file == "f" then
 		filter = string.format("%s%s", filter, "fd.type=file and ")
-	elseif type_of_file == "P" or type_of_file == "p" then
+	elseif type_of_file == "p" then
 		filter = string.format("%s%s", filter, "fd.type=pipe and ")
-	elseif type_of_file == "U" or type_of_file == "u" then
+	elseif type_of_file == "u" then
 		filter = string.format("%s%s", filter, "fd.type=unix and ")
-	elseif type_of_file == "FP" or type_of_file == "fP" or type_of_file == "Fp" or type_of_file == "fp" or type_of_file == "PF" or type_of_file == "pF" or type_of_file == "Pf" or type_of_file == "pf" then
+	elseif type_of_file == "fp" or type_of_file == "pf" then
 		filter = string.format("%s%s", filter, "(fd.type=file or fd.type=pipe) and ")
-	elseif type_of_file == "FU" or type_of_file == "fU" or type_of_file == "Fu" or type_of_file == "fu" or type_of_file == "UF" or type_of_file == "uF" or type_of_file == "Uf" or type_of_file == "uf" then
+	elseif type_of_file == "fu" or type_of_file == "uf" then
 		filter = string.format("%s%s", filter, "(fd.type=file or fd.type=unix) and ")
-	elseif type_of_file == "PU" or type_of_file == "pU" or type_of_file == "Pu" or type_of_file == "pu" or type_of_file == "UP" or type_of_file == "uP" or type_of_file == "Up" or type_of_file == "up" then
+	elseif type_of_file == "pu" or type_of_file == "up" then
 		filter = string.format("%s%s", filter, "(fd.type=pipe or fd.type=unix) and ")
 	else
 		filter = string.format("%s%s", filter, "(fd.type=file or fd.type=pipe or fd.type=unix) and ")
