@@ -89,7 +89,12 @@ function on_init()
 
 	-- set the filter
 	if spy_file_name ~= nil and spy_file_name ~= "" then
-		filter = string.format("(fd.name=%s) and ", spy_file_name)
+		if type_of_file ~= nil and type_of_file:match("u") ~= nil then
+			-- use contains when filtering against unix sockets names
+			filter = string.format("(fd.name contains %s) and ", spy_file_name)
+		else
+			filter = string.format("(fd.name=%s) and ", spy_file_name)
+		end
 	else
 		-- watching terminals risks looping in a live capture
 		filter = "(not fd.name contains /dev/pt and not fd.name contains /dev/tty) and "
