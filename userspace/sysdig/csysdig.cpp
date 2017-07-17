@@ -657,21 +657,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				// input.
 				//
 				ui.set_interactive(true);
-/*
-				while(true)
-				{
-					bool res;
-					if(ui.handle_stdin_input(&res) == true)
-					{
-						goto exit;
-					}
-
-					if(res == true)
-					{
-						break;
-					}
-				}
-*/
 			}
 
 			//
@@ -811,9 +796,18 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			//
 			// Start the capture loop
 			//
+printf("[\n");
+
+//for(int j = 0; j < 5; j++)
+//{
+//	printf("[progress: 33],\n");
+//	Sleep(1000);
+//}
 			cinfo = do_inspect(inspector,
 				cnt,
 				&ui);
+printf("]\n");
+//printf("%c", EOF);
 
 			//
 			// Done. Close the capture.
