@@ -49,7 +49,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tracepoint.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26))
+#include <linux/file.h>
+#else
 #include <linux/fdtable.h>
+#endif
 #include <net/sock.h>
 #include <asm/asm-offsets.h>	/* For NR_syscalls */
 #include <asm/unistd.h>
