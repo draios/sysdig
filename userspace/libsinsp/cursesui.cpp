@@ -2820,7 +2820,7 @@ bool sinsp_cursesui::handle_stdin_input(bool* res)
 	Json::Value args = root["args"];
 
 	sysdig_table_action ta;
-	uint32_t rownum;
+	uint32_t rownum = 0;
 
 	if(astr == "apply")
 	{
