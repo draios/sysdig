@@ -1644,10 +1644,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			{
 				char fullpath[SCAP_MAX_PATH_SIZE];
 				parinfo = enter_evt->get_param(0);
-				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-											   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
-											   parinfo->m_val, (uint32_t)parinfo->m_len);
-				evt->m_tinfo->m_exepath = fullpath;
+				if (strncmp(parinfo->m_val, "(NULL)", 7) == 0)
+				{
+					evt->m_tinfo->m_exepath = "<NA>";
+				}
+				else
+				{
+					sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+												   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
+												   parinfo->m_val, (uint32_t)parinfo->m_len);
+					evt->m_tinfo->m_exepath = fullpath;
+				}
 			}
 			break;
 		default:
