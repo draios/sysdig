@@ -461,44 +461,50 @@ public:
 		//
 		// Process the user input
 		//
-#ifndef NOCURSESUI
-		if((ts - m_last_input_check_ts > m_input_check_period_ns) || m_eof)
+		if(m_output_type != sinsp_table::OT_JSON)
 		{
-			uint32_t ninputs = 0;
-
-			uint64_t evtnum = evt->get_num();
-
-			//
-			// If this is a file, print the progress once in a while
-			//
-			if(!m_inspector->is_live() && !m_offline_replay)
+#ifndef NOCURSESUI
+			if((ts - m_last_input_check_ts > m_input_check_period_ns) || m_eof)
 			{
-				if(evtnum - m_last_progress_evt > 30000)
-				{
-					print_progress(m_inspector->get_read_progress());
-					m_last_progress_evt = evtnum;
-				}
-			}
+				uint32_t ninputs = 0;
+				uint64_t evtnum = evt->get_num();
 
-			//
-			// If we have more than one event in the queue, consume all of them
-			//
-			while(true)
-			{
-				int input = getch();
-				bool sppaused = is_spectro_paused(input);
-
-				if(input == -1)
+				//
+				// If this is a file, print the progress once in a while
+				//
+				if(!m_inspector->is_live() && !m_offline_replay)
 				{
-					//
-					// All events consumed
-					//
-					if(m_spectro)
+					if(evtnum - m_last_progress_evt > 30000)
 					{
-						if(sppaused)
+						print_progress(m_inspector->get_read_progress());
+						m_last_progress_evt = evtnum;
+					}
+				}
+
+				//
+				// If we have more than one event in the queue, consume all of them
+				//
+				while(true)
+				{
+					int input = getch();
+					bool sppaused = is_spectro_paused(input);
+
+					if(input == -1)
+					{
+						//
+						// All events consumed
+						//
+						if(m_spectro)
 						{
-							usleep(100000);
-							continue;
+							if(sppaused)
+							{
+								usleep(100000);
+								continue;
+							}
+							else
+							{
+								break;
+							}
 						}
 						else
 						{
@@ -507,32 +513,44 @@ public:
 					}
 					else
 					{
-						break;
+						ninputs++;
+					}
+
+					//
+					// Handle the event
+					//
+					sysdig_table_action ta = handle_input(input);
+
+					bool res;
+					if(execute_table_action(ta, 0, &res) == true)
+					{
+						return res;
 					}
 				}
-				else
-				{
-					ninputs++;
-				}
 
-				//
-				// Handle the event
-				//
-				sysdig_table_action ta = handle_input(input);
-
-				bool res;
-				if(execute_table_action(ta, 0, &res) == true)
+				if(ninputs == 0)
 				{
-					return res;
+					m_last_input_check_ts = ts;
 				}
 			}
-
-			if(ninputs == 0)
+#endif
+		}
+		else
+		{
+			//
+			// If this is a file, print the progress once in a while
+			//
+			if(!m_inspector->is_live() && !m_offline_replay)
 			{
-				m_last_input_check_ts = ts;
+				uint64_t evtnum = evt->get_num();
+				if(evtnum - m_last_progress_evt > 300000)
+				{
+				 	printf("{\"progress\": %.2lf},\n", m_inspector->get_read_progress());
+					fflush(stdout);
+					m_last_progress_evt = evtnum;
+				}
 			}
 		}
-#endif
 
 		//
 		// We were reading from a file and we reached its end. 

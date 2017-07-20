@@ -796,19 +796,15 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			//
 			// Start the capture loop
 			//
-printf("{\"slices\": [\n");
+			printf("{\"slices\": [\n");
+		 	printf("{\"progress\": 0},\n");
 
-// for(int j = 0; j < 2; j++)
-// {
-// 	printf("{\"progress\": 33},\n");
-// 	fflush(stdout);
-// 	sleep(1);
-// }
 			cinfo = do_inspect(inspector,
 				cnt,
 				&ui);
-printf("]}\n");
-//printf("%c", EOF);
+
+			printf("]}\n");
+			//printf("%c", EOF);
 
 			//
 			// Done. Close the capture.
