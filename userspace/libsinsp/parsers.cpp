@@ -1644,7 +1644,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			{
 				char fullpath[SCAP_MAX_PATH_SIZE];
 				parinfo = enter_evt->get_param(0);
-				if (strncmp(parinfo->m_val, "(NULL)", 7) == 0)
+				if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
 				{
 					evt->m_tinfo->m_exepath = "<NA>";
 				}

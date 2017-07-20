@@ -1451,7 +1451,7 @@ static int f_sys_execve_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
-		res = val_to_ring(args, 0, 0, false, 0);
+		res = val_to_ring(args, (unsigned long)"<NA>", 0, false, 0);
 
 	if (unlikely(res != PPM_SUCCESS))
 		return res;

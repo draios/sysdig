@@ -1549,13 +1549,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		if(tinfo)
 		{
-			if (strncmp(payload, "(NULL)", 7) == 0)
-			{
-				snprintf(&m_resolved_paramstr_storage[0],
-						 m_resolved_paramstr_storage.size(),
-						 "<NA>");
-			}
-			else
+			if (strncmp(payload, "<NA>", 4) != 0)
 			{
 				string cwd = tinfo->get_cwd();
 
