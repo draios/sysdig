@@ -1386,6 +1386,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(uint64_t) +	// sid
 			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
+			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +
 			2 + sctinfo.args_len +
 			2 + MIN(tcwd.size(), SCAP_MAX_PATH_SIZE) +
 			sizeof(uint64_t) +	// fdlimit
