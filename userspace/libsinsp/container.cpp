@@ -361,7 +361,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		// 2. /machine.slice/machine-rkt\x2dc508ad4c\x2d7fa4\x2d4513\x2d9d53\x2d007628003805.scope/system.slice/redis.service
 		static const string COREOS_PODID_VAR = "container_uuid=";
 		static const string SYSTEMD_UUID_ARG = "--uuid=";
-		if(cgroup.find(".service") == cgroup.size() - sizeof(".service") + 1)
+		static const string SERVICE_SUFFIX = ".service";
+		if(cgroup.rfind(SERVICE_SUFFIX) == cgroup.size() - SERVICE_SUFFIX.size())
 		{
 			// check if there is a parent with pod uuid var
 			sinsp_threadinfo::visitor_func_t visitor = [&rkt_podid](sinsp_threadinfo* ptinfo)
@@ -390,7 +391,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			if(!rkt_podid.empty())
 			{
 				auto last_slash = cgroup.find_last_of("/");
-				rkt_appname = cgroup.substr(last_slash + 1, cgroup.size() - last_slash - sizeof(".service"));
+				rkt_appname = cgroup.substr(last_slash + 1, cgroup.size() - last_slash - SERVICE_SUFFIX.size() - 1);
 				
 				char image_manifest_path[SCAP_MAX_PATH_SIZE];
 				snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), rkt_podid.c_str(), rkt_appname.c_str());
