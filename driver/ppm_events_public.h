@@ -471,6 +471,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_R_OK            (1 << 2)
 
 /*
+ * Unlinkat flags
+ */
+#define PPM_AT_REMOVEDIR    (1 << 0)
+
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -1328,7 +1334,7 @@ extern const struct ppm_name_value semop_flags[];
 extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
-
+extern const struct ppm_name_value unlinkat_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 
