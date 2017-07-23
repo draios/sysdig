@@ -38,18 +38,41 @@ public:
 };
 
 #ifdef CSYSDIG
-#ifndef NOCURSESUI
-#define TABLE_WIDTH 10000
-#define TABLE_Y_START 2
-
-#include <curses.h>
-
 class sinsp_filter_check_reference;
 class curses_table;
 class sinsp_cursesui;
 class ctext;
 typedef struct ctext_search_struct ctext_search;
 class sinsp_evt_formatter;
+
+class spy_text_renderer
+{
+public:
+	enum sysdig_output_type
+	{
+		OT_NORMAL,
+		OT_LATENCY,
+		OT_LATENCY_APP,
+	};
+	
+	spy_text_renderer(sinsp* inspector, 
+		sinsp_cursesui* parent, 
+		int32_t viz_type, 
+		sysdig_output_type sotype, 
+		bool print_containers);
+	~spy_text_renderer();
+	const char* process_event_spy(sinsp_evt* evt);
+
+	sinsp_evt_formatter* m_formatter;
+	sinsp* m_inspector;
+	int32_t m_viz_type;
+};
+
+#ifndef NOCURSESUI
+#define TABLE_WIDTH 10000
+#define TABLE_Y_START 2
+
+#include <curses.h>
 
 class sinsp_chart
 {
@@ -159,14 +182,7 @@ class curses_textbox :
 public sinsp_chart, public search_caller_interface
 {
 public:
-	enum sysdig_output_type
-	{
-		OT_NORMAL,
-		OT_LATENCY,
-		OT_LATENCY_APP,
-	};
-
-	curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, sysdig_output_type sotype);
+	curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype);
 	~curses_textbox();
 	void render();
 	void set_filter(string filter);
@@ -199,13 +215,14 @@ private:
 	bool m_paused;
 	curses_table_sidemenu* m_sidemenu;
 	vector<sidemenu_list_entry> m_entries;
-	int32_t m_viz_type;
-	sinsp_evt_formatter* m_formatter;
+//	int32_t m_viz_type;
+//	sinsp_evt_formatter* m_formatter;
 	string m_last_search_string;
 	ctext_search* m_searcher;
 	bool m_has_searched;
 	bool m_search_type_is_goto;
 	uint64_t m_last_progress_update_ts;
+	spy_text_renderer* m_text_renderer;
 };
 
 class curses_mainhelp_page
@@ -237,7 +254,6 @@ private:
 	sinsp_cursesui* m_parent;
 	ctext* m_ctext;
 };
-
 
 #endif // NOCURSESUI
 #endif // CSYSDIG

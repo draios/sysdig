@@ -793,18 +793,24 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			delete mesos_api;
 			mesos_api = 0;
 
+			if(output_type == sinsp_table::OT_JSON)
+			{
+				printf("{\"slices\": [\n");
+			 	printf("{\"progress\": 0},\n");
+			}
+
 			//
 			// Start the capture loop
 			//
-			printf("{\"slices\": [\n");
-		 	printf("{\"progress\": 0},\n");
-
 			cinfo = do_inspect(inspector,
 				cnt,
 				&ui);
 
-			printf("]}\n");
-			//printf("%c", EOF);
+			if(output_type == sinsp_table::OT_JSON)
+			{
+				printf("]}\n");
+				//printf("%c", EOF);
+			}
 
 			//
 			// Done. Close the capture.

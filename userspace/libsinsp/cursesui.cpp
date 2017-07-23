@@ -57,7 +57,7 @@ int do_sleep(DWORD usec)
 	return 0;
 }
 #endif
-
+	
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_cursesui implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -341,7 +341,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
-	curses_textbox::sysdig_output_type dig_otype = curses_textbox::OT_NORMAL;
+	spy_text_renderer::sysdig_output_type dig_otype = spy_text_renderer::OT_NORMAL;
 
 	if(m_output_type == sinsp_table::OT_CURSES)
 	{
@@ -357,11 +357,11 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			m_spectro = NULL;
 			if(m_views.at(m_prev_selected_view)->m_drilldown_target == "dig_app")
 			{
-				dig_otype = curses_textbox::OT_LATENCY_APP;
+				dig_otype = spy_text_renderer::OT_LATENCY_APP;
 			}
 			else
 			{
-				dig_otype = curses_textbox::OT_LATENCY;
+				dig_otype = spy_text_renderer::OT_LATENCY;
 			}
 		}
 
@@ -439,7 +439,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			throw;
 		}
 
-		if(m_sorting_col != -1 && m_sorting_col < wi->m_columns.size())
+		if(m_sorting_col != -1 && m_sorting_col < (int32_t)wi->m_columns.size())
 		{
 			m_datatable->set_sorting_col(m_sorting_col);
 		}
