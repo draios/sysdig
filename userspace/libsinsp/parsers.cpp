@@ -272,6 +272,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETRESGID_E:
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
+	case PPME_SYSCALL_EXECVE_18_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
@@ -329,9 +330,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_VFORK_17_X:
 	case PPME_SYSCALL_VFORK_20_X:
 		parse_clone_exit(evt);
-		break;
-	case PPME_SYSCALL_EXECVE_18_E:
-		store_event(evt);
 		break;
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
