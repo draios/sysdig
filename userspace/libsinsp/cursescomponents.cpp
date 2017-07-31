@@ -853,69 +853,71 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	int64_t len;
 	const char* argstr = m_text_renderer->process_event_spy(evt, &len);
 
-	if(argstr != NULL)
+	if(argstr == NULL)
 	{
-		// Note: this can't be NULL because it's been validated by 
-		//       m_text_renderer->process_event_spy
-		sinsp_threadinfo* m_tinfo =	evt->get_thread_info();
+		return;
+	}
 
-		//
-		// Create the info string
-		//
-		string info_str = "------ ";
-		string dirstr;
-		string cnstr;
+	// Note: this can't be NULL because it's been validated by 
+	//       m_text_renderer->process_event_spy
+	sinsp_threadinfo* m_tinfo =	evt->get_thread_info();
 
-		ppm_event_flags eflags = evt->get_info_flags();
+	//
+	// Create the info string
+	//
+	string info_str = "------ ";
+	string dirstr;
+	string cnstr;
+
+	ppm_event_flags eflags = evt->get_info_flags();
+	if(eflags & EF_READS_FROM_FD)
+	{
+		dirstr = "Read ";
+		cnstr = "from ";
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
+	}
+	else if(eflags & EF_WRITES_TO_FD)
+	{
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
+		dirstr = "Write ";
+		cnstr = "to ";
+	}
+
+	info_str += dirstr + to_string(len) +
+		"B " +
+		cnstr +
+		evt->get_fd_info()->m_name +
+		" (" + m_tinfo->m_comm.c_str() + ")";
+
+	//
+	// Sanitize the info string
+	//
+	sanitize_string(info_str);
+
+	//
+	// Print the whole thing
+	//
+	m_ctext->printf("%s", info_str.c_str());
+
+	if(m_parent->m_print_containers)
+	{
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
+
+		m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
+
 		if(eflags & EF_READS_FROM_FD)
 		{
-			dirstr = "Read ";
-			cnstr = "from ";
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
 		}
 		else if(eflags & EF_WRITES_TO_FD)
 		{
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
-			dirstr = "Write ";
-			cnstr = "to ";
 		}
-
-		info_str += dirstr + to_string(len) +
-			"B " +
-			cnstr +
-			evt->get_fd_info()->m_name +
-			" (" + m_tinfo->m_comm.c_str() + ")";
-
-		//
-		// Sanitize the info string
-		//
-		sanitize_string(info_str);
-
-		//
-		// Print the whole thing
-		//
-		m_ctext->printf("%s", info_str.c_str());
-
-		if(m_parent->m_print_containers)
-		{
-			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
-
-			m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
-
-			if(eflags & EF_READS_FROM_FD)
-			{
-				wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
-			}
-			else if(eflags & EF_WRITES_TO_FD)
-			{
-				wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
-			}
-		}
-
-		m_ctext->printf("\n");
-		m_ctext->printf("\n");
-		m_ctext->printf("%s", argstr);
 	}
+
+	m_ctext->printf("\n");
+	m_ctext->printf("\n");
+	m_ctext->printf("%s", argstr);
 
 	m_ctext->printf("\n");
 	m_ctext->printf("\n");
