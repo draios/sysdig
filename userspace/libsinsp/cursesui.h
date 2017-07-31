@@ -25,9 +25,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
 #define VIEW_SIDEMENU_WIDTH 20
 #define ACTION_SIDEMENU_WIDTH 30
-#define VIEW_ID_SPY -1
-#define VIEW_ID_DIG -2
-#define VIEW_ID_INFO -3
 #define FILTER_TEMPLATE_MAGIC "@#$f1CA^&;"
 string combine_filters(string flt1, string flt2);
 class ctext;
@@ -329,6 +326,30 @@ public:
 	vector<sinsp_mouse_to_key_list_entry> m_list;
 };
 
+class json_spy_renderer
+{
+public:
+	json_spy_renderer(sinsp* inspector, 
+		sinsp_cursesui* parent,
+		int32_t viz_type, 
+		spy_text_renderer::sysdig_output_type sotype, 
+		bool print_containers);
+
+	~json_spy_renderer();
+
+	void process_event(sinsp_evt* evt, int32_t next_res);
+
+	string get_data();
+
+private:
+	void process_event_spy(sinsp_evt* evt, int32_t next_res);
+	void process_event_dig(sinsp_evt* evt, int32_t next_res);
+
+	spy_text_renderer* m_json_spy_renderer;
+	sinsp* m_inspector;
+	Json::Value m_root;
+};
+
 class sinsp_cursesui
 {
 public:
@@ -538,6 +559,7 @@ public:
 		else
 		{
 			//
+			// JSON output.
 			// If this is a file, print the progress once in a while
 			//
 			if(!m_inspector->is_live() && !m_offline_replay)
@@ -591,6 +613,40 @@ public:
 		}
 		else
 #endif
+		if(m_json_spy_renderer)
+		{
+			m_json_spy_renderer->process_event(evt, next_res);
+			
+			uint64_t evtnum = evt->get_num();
+			if((evtnum - m_last_progress_evt > 2000) || (next_res == SCAP_EOF))
+			{
+				string jdata = m_json_spy_renderer->get_data();
+				double rprogress = m_inspector->get_read_progress();
+
+				printf("{\"progress\": %.2lf,", rprogress);
+				printf("\"data\": %s", jdata.c_str());
+				printf("}");
+				if(rprogress != 100 && next_res != SCAP_EOF)
+				{
+					printf(",");
+				}
+
+				fflush(stdout);
+
+				m_last_progress_evt = evtnum;
+			}
+
+			//
+			// Check if this the end of the capture file, and if yes take note of that 
+			//
+			if(next_res == SCAP_EOF)
+			{
+				ASSERT(!m_inspector->is_live());
+				m_eof++;
+				return true;
+			}
+		}
+		else
 		{
 			bool end_of_sample;
 
@@ -742,6 +798,7 @@ private:
 	int32_t m_json_first_row;
 	int32_t m_json_last_row;
 	int32_t m_sorting_col;
+	json_spy_renderer* m_json_spy_renderer;
 };
 
 #endif // CSYSDIG

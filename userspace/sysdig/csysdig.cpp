@@ -642,7 +642,15 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 			ui.configure(&view_manager);
 
-			ui.start(false, false);
+			if(display_view == "dig" || display_view == "echo")
+			{
+				ui.start(false, true);
+			}
+			else
+			{
+				ui.start(false, false);
+			}
+
 			if(is_interactive)
 			{
 				printf("ready\n");
@@ -796,7 +804,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			if(output_type == sinsp_table::OT_JSON)
 			{
 				printf("{\"slices\": [\n");
-			 	printf("{\"progress\": 0},\n");
+				if(display_view != "dig" && display_view != "echo")
+				{
+					printf("{\"progress\": 0},\n");
+				}
 			}
 
 			//

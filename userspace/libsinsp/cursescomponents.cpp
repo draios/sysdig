@@ -39,9 +39,7 @@ using namespace std;
 #include "filterchecks.h"
 
 #ifdef CSYSDIG
-#include <curses.h>
 #include "table.h"
-#include "ctext.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "viewinfo.h"
@@ -52,7 +50,7 @@ using namespace std;
 // spy_text_renderer implementation
 ///////////////////////////////////////////////////////////////////////////////
 spy_text_renderer::spy_text_renderer(sinsp* inspector, 
-	sinsp_cursesui* parent, 
+	sinsp_cursesui* parent,
 	int32_t viz_type, 
 	sysdig_output_type sotype, 
 	bool print_containers)
@@ -172,8 +170,9 @@ const char* spy_text_renderer::process_event_spy(sinsp_evt* evt)
 	return argstr;
 }
 
-
 #ifndef NOCURSESUI
+#include <curses.h>
+#include "ctext.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // curses_scrollable_list implementation
@@ -711,7 +710,6 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
-// xxxxxxxxxxxxxxxx
 ///////////////////////////////////////////////////////////////////////////////
 curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype)
 {

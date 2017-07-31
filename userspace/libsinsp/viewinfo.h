@@ -18,6 +18,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once	
 
+#define VIEW_ID_SPY -1
+#define VIEW_ID_DIG -2
+#define VIEW_ID_INFO -3
+
 //
 // Aggregation type for table fields
 //

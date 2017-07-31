@@ -57,7 +57,75 @@ int do_sleep(DWORD usec)
 	return 0;
 }
 #endif
-	
+
+///////////////////////////////////////////////////////////////////////////////
+// json_spy_renderer implementation
+///////////////////////////////////////////////////////////////////////////////
+json_spy_renderer::json_spy_renderer(sinsp* inspector, 
+	sinsp_cursesui* parent,
+	int32_t viz_type, 
+	spy_text_renderer::sysdig_output_type sotype, 
+	bool print_containers)
+{
+	m_inspector = inspector;
+	m_json_spy_renderer = new spy_text_renderer(inspector, 
+		parent,
+		viz_type, 
+		sotype, 
+		print_containers);
+}
+
+json_spy_renderer::~json_spy_renderer()
+{
+	delete m_json_spy_renderer;
+}
+
+void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
+{
+	const char* argstr = m_json_spy_renderer->process_event_spy(evt);
+
+	if(argstr != NULL)
+	{
+		m_root.append(argstr);
+	}
+}
+
+void json_spy_renderer::process_event_dig(sinsp_evt* evt, int32_t next_res)
+{
+	if(!m_inspector->is_debug_enabled() && evt->get_category() & EC_INTERNAL)
+	{
+		return;
+	}
+
+	string line;
+
+	m_json_spy_renderer->m_formatter->tostring(evt, &line);
+	m_root.append(line);
+}
+
+void json_spy_renderer::process_event(sinsp_evt* evt, int32_t next_res)
+{
+	if(m_json_spy_renderer->m_viz_type == VIEW_ID_SPY)
+	{
+		process_event_spy(evt, next_res);
+	}
+	else
+	{
+		process_event_dig(evt, next_res);
+	}
+}
+
+string json_spy_renderer::get_data()
+{
+	Json::FastWriter writer;
+
+	string res = writer.write(m_root);
+
+	m_root.clear();
+
+	return res;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_cursesui implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -104,6 +172,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_json_first_row = json_first_row;
 	m_json_last_row = json_last_row;
 	m_sorting_col = sorting_col;
+	m_json_spy_renderer = NULL;
 
 #ifndef NOCURSESUI
 	m_viz = NULL;
@@ -244,6 +313,11 @@ sinsp_cursesui::~sinsp_cursesui()
 		delete m_datatable;
 	}
 
+	if(m_json_spy_renderer != NULL)
+	{
+		delete m_json_spy_renderer;
+	}
+
 #ifndef NOCURSESUI
 	if(m_output_type == sinsp_table::OT_CURSES)
 	{
@@ -338,6 +412,12 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	{
 		delete m_datatable;
 		m_datatable = NULL;
+	}
+
+	if(m_json_spy_renderer != NULL)
+	{
+		delete m_json_spy_renderer;
+		m_json_spy_renderer = NULL;
 	}
 
 #ifndef NOCURSESUI
@@ -448,23 +528,31 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			m_datatable->set_sorting_col(wi->m_sortingcol);
 		}
 	}
-#ifndef NOCURSESUI
 	else
 	{
-		if(m_output_type != sinsp_table::OT_CURSES)
-		{
-			return;
-		}
-
 		//
 		// Create the visualization component
 		//
-		m_spy_box = new curses_textbox(m_inspector, this, m_selected_view, dig_otype);
-		m_spy_box->reset();
-		m_chart = m_spy_box;
-		m_spy_box->set_filter(m_complete_filter);
+		if(m_output_type == sinsp_table::OT_JSON)
+		{
+			m_json_spy_renderer= new json_spy_renderer(m_inspector,
+				this,
+				m_selected_view,
+				spy_text_renderer::OT_NORMAL,
+				m_print_containers);
+		}
+#ifndef NOCURSESUI
+		else
+		{
+			m_spy_box = new curses_textbox(m_inspector, this, m_selected_view, dig_otype);
+			m_spy_box->reset();
+			m_chart = m_spy_box;
+			m_spy_box->set_filter(m_complete_filter);
+		}
+#endif
 	}
 
+#ifndef NOCURSESUI
 	if(m_output_type != sinsp_table::OT_CURSES)
 	{
 		return;
