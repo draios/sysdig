@@ -2360,6 +2360,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 				switch(m_fdinfo->m_type)
 				{
 					case SCAP_FD_FILE:
+					case SCAP_FD_FILE_V2:
 					case SCAP_FD_DIRECTORY:
 						cat->m_subcategory = SC_FILE;
 						break;

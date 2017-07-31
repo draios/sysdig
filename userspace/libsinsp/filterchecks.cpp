@@ -3662,6 +3662,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(fdinfo != NULL)
 			{
 				if(fdinfo->m_type == SCAP_FD_FILE ||
+					fdinfo->m_type == SCAP_FD_FILE_V2 ||
 					fdinfo->m_type == SCAP_FD_DIRECTORY)
 				{
 					return extract_error_count(evt, len);
@@ -3730,6 +3731,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(fdinfo != NULL)
 			{
 				if(!(fdinfo->m_type == SCAP_FD_FILE ||
+					fdinfo->m_type == SCAP_FD_FILE_V2 ||
 					fdinfo->m_type == SCAP_FD_DIRECTORY ||
 					fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
 					fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
@@ -3818,7 +3820,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE:
 		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -3828,7 +3830,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE_IN:
 		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -3838,7 +3840,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE_OUT:
 		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -5456,7 +5458,7 @@ int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t base
 	try
 	{
 		m_argid = sinsp_numparser::parsed32(numstr);
-	} catch (sinsp_exception e)
+	} catch (sinsp_exception &e)
 	{
 		if(strstr(e.what(), "is not a valid number") == NULL)
 		{

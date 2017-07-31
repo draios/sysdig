@@ -368,11 +368,15 @@ public:
 				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) +
 				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 			}
-			if(++counter > 100)
+
+                        // To prevent reads from entirely stalling (like in gigantic k8s
+                        // environments), give up after reading 30mb.
+			++counter;
+			if(processed > 30 * 1024 * 1024)
 			{
 				throw sinsp_exception("Socket handler (" + m_id + "): "
-									  "unable to retrieve data from " + m_url.to_string(false) + m_path +
-									  " (" + std::to_string(counter) + " attempts)");
+						      "read more than 30MB of data from " + m_url.to_string(false) + m_path +
+						      " (" + std::to_string(processed) + " bytes, " + std::to_string(counter) + " reads). Giving up");
 			}
 			else { usleep(10000); }
 		} while(!m_msg_completed);
