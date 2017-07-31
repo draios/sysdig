@@ -82,7 +82,8 @@ json_spy_renderer::~json_spy_renderer()
 
 void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 {
-	const char* argstr = m_json_spy_renderer->process_event_spy(evt);
+	int64_t len;
+	const char* argstr = m_json_spy_renderer->process_event_spy(evt, &len);
 
 	if(argstr != NULL)
 	{

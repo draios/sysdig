@@ -117,7 +117,7 @@ spy_text_renderer::~spy_text_renderer()
 	}
 }
 
-const char* spy_text_renderer::process_event_spy(sinsp_evt* evt)
+const char* spy_text_renderer::process_event_spy(sinsp_evt* evt, int64_t* len)
 {
 	//
 	// Drop any non I/O event
@@ -134,8 +134,8 @@ const char* spy_text_renderer::process_event_spy(sinsp_evt* evt)
 	//
 	sinsp_evt_param* parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
-	int64_t len = *(int64_t*)parinfo->m_val;
-	if(len <= 0)
+	*len = *(int64_t*)parinfo->m_val;
+	if(*len <= 0)
 	{
 		return NULL;
 	}
@@ -850,10 +850,15 @@ void curses_textbox::print_no_data()
 
 void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 {
-	const char* argstr = m_text_renderer->process_event_spy(evt);
+	int64_t len;
+	const char* argstr = m_text_renderer->process_event_spy(evt, &len);
 
 	if(argstr != NULL)
 	{
+		// Note: this can't be NULL because it's been validated by 
+		//       m_text_renderer->process_event_spy
+		sinsp_threadinfo* m_tinfo =	evt->get_thread_info();
+
 		//
 		// Create the info string
 		//
@@ -861,6 +866,7 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		string dirstr;
 		string cnstr;
 
+		ppm_event_flags eflags = evt->get_info_flags();
 		if(eflags & EF_READS_FROM_FD)
 		{
 			dirstr = "Read ";
@@ -877,7 +883,7 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		info_str += dirstr + to_string(len) +
 			"B " +
 			cnstr +
-			fdname +
+			evt->get_fd_info()->m_name +
 			" (" + m_tinfo->m_comm.c_str() + ")";
 
 		//

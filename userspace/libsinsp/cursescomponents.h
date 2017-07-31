@@ -61,7 +61,7 @@ public:
 		sysdig_output_type sotype, 
 		bool print_containers);
 	~spy_text_renderer();
-	const char* process_event_spy(sinsp_evt* evt);
+	const char* process_event_spy(sinsp_evt* evt, int64_t* len);
 
 	sinsp_evt_formatter* m_formatter;
 	sinsp* m_inspector;
