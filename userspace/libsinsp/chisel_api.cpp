@@ -1314,6 +1314,23 @@ int lua_cbacks::udp_send(lua_State *ls)
 	return 0;
 }
 
+int lua_cbacks::get_read_progress(lua_State *ls)
+{
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	ASSERT(ch);
+	ASSERT(ch->m_inspector);
+
+	double pr = ch->m_inspector->get_read_progress();
+
+	lua_pushnumber(ls, pr);
+
+	return 1;
+}
+
 #ifdef HAS_ANALYZER
 int lua_cbacks::push_metric(lua_State *ls)
 {

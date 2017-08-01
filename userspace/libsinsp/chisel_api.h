@@ -56,6 +56,7 @@ public:
 	static int log(lua_State *ls);
 	static int udp_setpeername(lua_State *ls);
 	static int udp_send(lua_State *ls);
+	static int get_read_progress(lua_State *ls);
 #ifdef HAS_ANALYZER
 	static int push_metric(lua_State *ls);
 #endif
