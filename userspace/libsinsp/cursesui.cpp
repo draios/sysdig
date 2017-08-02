@@ -1329,11 +1329,14 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 
 		Json::Value root = generate_json_info_section();
 
-		bool res;
-		execute_table_action(STA_DRILLDOWN_TEMPLATE, 0, &res);
-		create_complete_filter(true);
+		if(m_views.at(m_selected_view)->m_type == sinsp_view_info::T_TABLE)
+		{
+			bool res;
+			execute_table_action(STA_DRILLDOWN_TEMPLATE, 0, &res);
+			create_complete_filter(true);
 
-		root["filterTemplate"] = m_complete_filter;
+			root["filterTemplate"] = m_complete_filter;
+		}
 
 		Json::FastWriter writer;
 		string jstr = writer.write(root);
@@ -1344,7 +1347,10 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	}
 	else
 	{
-		sample = m_datatable->get_sample(get_time_delta());
+		if(m_output_type != sinsp_table::OT_JSON)
+		{
+			sample = m_datatable->get_sample(get_time_delta());
+		}
 	}
 
 #ifndef NOCURSESUI
