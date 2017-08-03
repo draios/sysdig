@@ -113,6 +113,7 @@ function on_init()
 	fdir = chisel.request_field("evt.dir")
 	frawres = chisel.request_field("evt.rawres")
 	ffdname = chisel.request_field("fd.name")
+	ffdtype = chisel.request_field("fd.type")
 	fflags = chisel.request_field("evt.arg.flags")
 	fcontainername = chisel.request_field("container.name")
 	fcontainerid = chisel.request_field("container.id")
@@ -142,9 +143,13 @@ function on_event()
 	local dir = evt.field(fdir)
 	local rawres = evt.field(frawres)
 	local fdname = evt.field(ffdname)
+	local fdtype = evt.field(ffdtype)
 
+--print(json.encode(filedata, { indent = true }))
 	if dir ~= nil and dir == '<' then
 		if rawres ~= nil and rawres >= 0 then
+			print(fdtype)
+			
 			if etype == 'execve' then
 				ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
 			elseif etype == 'open' or etype == 'openat' then
@@ -179,8 +184,6 @@ end
 function extract_thread_table()
 	local data = {}
 	local cnt = 0
-	local filedata = {}
-	local filecnt = 0
 
 	local ttable = sysdig.get_thread_table()
 
@@ -189,26 +192,12 @@ function extract_thread_table()
 			data[v.pid] = 1
 			cnt = cnt + 1
 		end
-
-		for fdk, fdv in pairs(v.fdtable) do
-			if fdv.type == 'file' then
-				if filedata[fdv.name] == nil then
-					filedata[fdv.name] = 1
-					filecnt = filecnt + 1
-				end
-			end
-		end
 	end
 
---print(json.encode(filedata, { indent = true }))
-print("$$$ " .. filecnt)
 	resstr = json.encode(data, { indent = true })
 
 	ssummary.procCount.tot = cnt
 	ssummary.procCount.table = data
-
-	ssummary.fileCount.tot = filecnt
-	ssummary.fileCount.table = filedata
 end
 
 function on_interval(ts_s, ts_ns, delta)	
