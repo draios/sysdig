@@ -1,5 +1,5 @@
 --[[
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2017 Draios inc.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -36,26 +36,42 @@ end
 -------------------------------------------------------------------------------
 -- Summary handling helpers
 -------------------------------------------------------------------------------
-function create_category()
+function create_category_basic()
 	return {tot=0, max=0, timeLine={}}
 end
 
+function create_category_table()
+	return {tot=0, max=0, timeLine={}, table={}}
+end
+
 function reset_summary(s)
-	s.SpawnedProcs = create_category()
-	s.FileOpensAll = create_category()
-	s.FileOpensWrite = create_category()
-	s.SysFileOpensAll = create_category()
-	s.SysFileOpensWrite = create_category()
+	s.SpawnedProcs = create_category_basic()
+	s.FileOpensAll = create_category_basic()
+	s.FileOpensWrite = create_category_basic()
+	s.SysFileOpensAll = create_category_basic()
+	s.SysFileOpensWrite = create_category_basic()
+	s.procCount = create_category_table()
+	s.fileCount = create_category_table()
+	s.connectionCount = create_category_table()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
+	local time = sysdig.make_ts(ts_s, ts_ns)
+
 	for k, v in pairs(src) do
 		dst[k].tot = dst[k].tot + v.tot
 		if v.tot > dst[k].max then
 			dst[k].max = v.tot 
 		end
 		local tl = dst[k].timeLine
-		tl[#tl+1] = {t = sysdig.make_ts(ts_s, ts_ns), v=v.tot}
+		tl[#tl+1] = {t = time, v=v.tot}
+
+		if v.table ~= nil then
+			local dt = dst[k].table
+			for tk, tv in pairs(v.table) do
+				dt[tk] = 1
+			end
+		end
 	end
 end
 
@@ -160,7 +176,44 @@ end
 -------------------------------------------------------------------------------
 -- Periodic timeout callback
 -------------------------------------------------------------------------------
+function extract_thread_table()
+	local data = {}
+	local cnt = 0
+	local filedata = {}
+	local filecnt = 0
+
+	local ttable = sysdig.get_thread_table()
+
+	for k, v in pairs(ttable) do
+		if v.tid == v.pid then
+			data[v.pid] = 1
+			cnt = cnt + 1
+		end
+
+		for fdk, fdv in pairs(v.fdtable) do
+			if fdv.type == 'file' then
+				if filedata[fdv.name] == nil then
+					filedata[fdv.name] = 1
+					filecnt = filecnt + 1
+				end
+			end
+		end
+	end
+
+--print(json.encode(filedata, { indent = true }))
+print("$$$ " .. filecnt)
+	resstr = json.encode(data, { indent = true })
+
+	ssummary.procCount.tot = cnt
+	ssummary.procCount.table = data
+
+	ssummary.fileCount.tot = filecnt
+	ssummary.fileCount.table = filedata
+end
+
 function on_interval(ts_s, ts_ns, delta)	
+	data, cnt = extract_thread_table()
+
 	add_summaries(ts_s, ts_ns, gsummary, ssummary)
 	reset_summary(ssummary)
 
@@ -168,6 +221,7 @@ function on_interval(ts_s, ts_ns, delta)
 		print('{"progress": ' .. sysdig.get_read_progress() .. ' },')
 		io.flush(stdout)
 	end
+
 	nintervals = nintervals + 1
 
 	return true
@@ -176,36 +230,72 @@ end
 -------------------------------------------------------------------------------
 -- End of capture output generation
 -------------------------------------------------------------------------------
+function update_table_counts()
+	for k, v in pairs(gsummary) do
+		if v.table ~= nil then
+			local cnt = 0
+			for tk, tv in pairs(v.table) do
+				cnt = cnt + 1
+			end
+
+			v.tot = cnt
+			v.table = nil
+		end
+	end
+end
+
 function build_output()
+	update_table_counts()
+
 	local res = {}
+
+	res[#res+1] = {
+		name = 'Running Processes',
+		desc = 'Total number processes that are running',
+		targetView = 'procs',
+		data = gsummary.procCount
+	}
+
+	res[#res+1] = {
+		name = 'Open Files',
+		desc = 'Total number of files that have been opened or accessed during the capture',
+		targetView = 'procs',
+		data = gsummary.fileCount
+	}
 
 	res[#res+1] = {
 		name = 'Spawned Processes',
 		desc = 'Number of new programs that have been executed during the observed interval',
+		targetView = 'spy_users',
 		data = gsummary.SpawnedProcs
 	}
 
 	res[#res+1] = {
 		name = 'Files Opened',
 		desc = 'XXX',
+		targetView = 'directories',
 		data = gsummary.FileOpensAll
 	}
 
 	res[#res+1] = {
 		name = 'Files Opened for Writing',
 		desc = 'XXX',
+		targetView = 'directories',
+		targetViewFilter = 'fd.name contains /etc',
 		data = gsummary.FileOpensWrite
 	}
 
 	res[#res+1] = {
 		name = 'System Files Opened',
 		desc = 'XXX',
+		targetView = 'directories',
 		data = gsummary.SysFileOpensAll
 	}
 
 	res[#res+1] = {
 		name = 'System Files Opened for Writing',
 		desc = 'XXX',
+		targetView = 'directories',
 		data = gsummary.SysFileOpensWrite
 	}
 
