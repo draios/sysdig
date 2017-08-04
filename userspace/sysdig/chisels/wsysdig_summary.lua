@@ -46,13 +46,16 @@ end
 
 function reset_summary(s)
 	s.SpawnedProcs = create_category_basic()
-	s.FileOpensAll = create_category_basic()
-	s.FileOpensWrite = create_category_basic()
-	s.SysFileOpensAll = create_category_basic()
-	s.SysFileOpensWrite = create_category_basic()
 	s.procCount = create_category_table()
+	s.containerCount = create_category_table()
 	s.fileCount = create_category_table()
+	s.fileBytes = create_category_basic()
+	s.fileBytesR = create_category_basic()
+	s.fileBytesW = create_category_basic()
+	s.fileCountW = create_category_table()
+	s.sysFileCountW = create_category_table()
 	s.connectionCount = create_category_table()
+	s.notifications = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -76,7 +79,7 @@ function add_summaries(ts_s, ts_ns, dst, src)
 end
 
 -------------------------------------------------------------------------------
--- Helpers to dig into event data
+-- Helpers to dig into the data coming from sysdig
 -------------------------------------------------------------------------------
 function string.starts(big_str, small_str)
    return string.sub(big_str, 1, string.len(small_str)) == small_str
@@ -99,6 +102,44 @@ function is_system_dir(filename)
 	return false
 end
 
+function generate_io_stats(fdname, cnt_cat)
+	if cnt_cat.table[fdname] == nil then
+		cnt_cat.table[fdname] = 1
+		cnt_cat.tot = cnt_cat.tot + 1
+	end
+end
+
+function parse_thread_table()
+	local data = {}
+	local cnt = 0
+
+	local ttable = sysdig.get_thread_table()
+
+	for k, v in pairs(ttable) do
+		if v.tid == v.pid then
+			data[v.pid] = 1
+			cnt = cnt + 1
+		end
+	end
+
+	ssummary.procCount.tot = cnt
+	ssummary.procCount.table = data
+end
+
+function parse_container_table()
+	local data = {}
+	local cnt = 0
+
+	local ctable = sysdig.get_container_table()
+
+	for k, v in pairs(ctable) do
+		data[v.id] = 1
+		cnt = cnt + 1
+	end
+
+	ssummary.containerCount.tot = cnt
+	ssummary.containerCount.table = data
+end
 -------------------------------------------------------------------------------
 -- Initialization callbacks
 -------------------------------------------------------------------------------
@@ -114,16 +155,17 @@ function on_init()
 	frawres = chisel.request_field("evt.rawres")
 	ffdname = chisel.request_field("fd.name")
 	ffdtype = chisel.request_field("fd.type")
-	fflags = chisel.request_field("evt.arg.flags")
-	fcontainername = chisel.request_field("container.name")
-	fcontainerid = chisel.request_field("container.id")
+	fiswrite = chisel.request_field("evt.is_io_write")
+	fbuflen = chisel.request_field("evt.buflen")
+--	fcontainername = chisel.request_field("container.name")
+--	fcontainerid = chisel.request_field("container.id")
 
 	print('{"slices": [')
 	return true
 end
 
 function on_capture_start()
---[[
+----[[
 	local dirname = sysdig.get_evtsource_name() .. '_wd_index'
 	local f = io.open(dirname .. '/summary.json', "r")
 	if f ~= nil then
@@ -131,7 +173,7 @@ function on_capture_start()
 		file_cache_exists = true
 		sysdig.end_capture()
 	end
-]]--
+--]]--
 	return true
 end
 
@@ -144,35 +186,41 @@ function on_event()
 	local rawres = evt.field(frawres)
 	local fdname = evt.field(ffdname)
 	local fdtype = evt.field(ffdtype)
+	local iswrite = evt.field(fiswrite)
 
---print(json.encode(filedata, { indent = true }))
 	if dir ~= nil and dir == '<' then
 		if rawres ~= nil and rawres >= 0 then
-			print(fdtype)
-			
-			if etype == 'execve' then
-				ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
-			elseif etype == 'open' or etype == 'openat' then
-				local flags = evt.field(fflags)
-				if flags == nil then
-					return
+			if fdtype == 'file' then
+				local buflen = evt.field(fbuflen)
+				if buflen == nil then
+					buflen = 0
 				end
+				
+				generate_io_stats(fdname, ssummary.fileCount)
+				if iswrite then
+					generate_io_stats(fdname, ssummary.fileCountW)
+					ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
+					ssummary.fileBytesW.tot = ssummary.fileBytesW.tot + buflen
 
-				ssummary.FileOpensAll.tot = ssummary.FileOpensAll.tot + 1
-
-				if string.find(flags, 'O_RDWR') or string.find(flags, 'O_WRONLY') then
-					ssummary.FileOpensWrite.tot = ssummary.FileOpensWrite.tot + 1
-				end
-
-				if is_system_dir(fdname) then
-					ssummary.SysFileOpensAll.tot = ssummary.SysFileOpensAll.tot + 1
-
-					if string.find(flags, 'O_RDWR') or string.find(flags, 'O_WRONLY') then
-						ssummary.SysFileOpensWrite.tot = ssummary.SysFileOpensWrite.tot + 1
+					if is_system_dir(fdname) then
+						generate_io_stats(fdname, ssummary.sysFileCountW)
 					end
+				else
+					ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
+					ssummary.fileBytesR.tot = ssummary.fileBytesR.tot + buflen
 				end
+			elseif fdtype == 'ipv4' or fdtype == 'ipv6' then
+				local buflen = evt.field(fbuflen)
+
+				generate_io_stats(fdname, ssummary.connectionCount)
+			elseif etype == 'execve' then
+				ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
 			end
 		end
+	end
+
+	if etype == 'notification' then
+		ssummary.notifications.tot = ssummary.notifications.tot + 1
 	end
 
 	return true
@@ -181,27 +229,9 @@ end
 -------------------------------------------------------------------------------
 -- Periodic timeout callback
 -------------------------------------------------------------------------------
-function extract_thread_table()
-	local data = {}
-	local cnt = 0
-
-	local ttable = sysdig.get_thread_table()
-
-	for k, v in pairs(ttable) do
-		if v.tid == v.pid then
-			data[v.pid] = 1
-			cnt = cnt + 1
-		end
-	end
-
-	resstr = json.encode(data, { indent = true })
-
-	ssummary.procCount.tot = cnt
-	ssummary.procCount.table = data
-end
-
 function on_interval(ts_s, ts_ns, delta)	
-	data, cnt = extract_thread_table()
+	parse_thread_table()
+	parse_container_table()
 
 	add_summaries(ts_s, ts_ns, gsummary, ssummary)
 	reset_summary(ssummary)
@@ -239,17 +269,75 @@ function build_output()
 	local res = {}
 
 	res[#res+1] = {
+		name = 'Sysdig Secure Notifications',
+		desc = 'Sysdig Secure notifications. Sysdig secure inserts a "notification" event in the capture stream each time a policy triggers. This metric counts the notifications. Chart it over time to compare the other metrics with the point in time where policies were triggered.',
+		targetView = 'notifications',
+		data = gsummary.notifications
+	}
+
+	res[#res+1] = {
 		name = 'Running Processes',
-		desc = 'Total number processes that are running',
+		desc = 'Total number of processes that were running during the capture',
 		targetView = 'procs',
 		data = gsummary.procCount
 	}
 
 	res[#res+1] = {
-		name = 'Open Files',
-		desc = 'Total number of files that have been opened or accessed during the capture',
-		targetView = 'procs',
+		name = 'Running Containers',
+		desc = 'Total number of containers that were running during the capture',
+		targetView = 'containers',
+		data = gsummary.containerCount
+	}
+
+	res[#res+1] = {
+		name = 'File Bytes In+Out',
+		desc = 'Amount of bytes read from or written to the file system',
+		targetView = 'files',
+		data = gsummary.fileBytes
+	}
+
+	res[#res+1] = {
+		name = 'File Bytes In',
+		desc = 'Amount of bytes read from the file system',
+		targetView = 'files',
+		data = gsummary.fileBytesR
+	}
+
+	res[#res+1] = {
+		name = 'File Bytes Out',
+		desc = 'Amount of bytes written to the file system',
+		targetView = 'files',
+		data = gsummary.fileBytesW
+	}
+
+	res[#res+1] = {
+		name = 'Active Files',
+		desc = 'Number of files that have been accessed during the capture',
+		targetView = 'files',
 		data = gsummary.fileCount
+	}
+
+	res[#res+1] = {
+		name = 'Modified Files',
+		desc = 'Number of files that have been accessed during the capture',
+		targetView = 'files',
+		targetViewFilter = 'evt.is_io_write=true',
+		data = gsummary.fileCountW
+	}
+
+	res[#res+1] = {
+		name = 'Modified System Files',
+		desc = 'Number of files that have been accessed during the capture',
+		targetView = 'files',
+		targetViewFilter = 'evt.is_io_write=true',
+		data = gsummary.sysFileCountW
+	}
+
+	res[#res+1] = {
+		name = 'Network Connections',
+		desc = 'Number of network connections that have been accessed during the capture',
+		targetView = 'connections',
+		data = gsummary.connectionCount
 	}
 
 	res[#res+1] = {
@@ -257,35 +345,6 @@ function build_output()
 		desc = 'Number of new programs that have been executed during the observed interval',
 		targetView = 'spy_users',
 		data = gsummary.SpawnedProcs
-	}
-
-	res[#res+1] = {
-		name = 'Files Opened',
-		desc = 'XXX',
-		targetView = 'directories',
-		data = gsummary.FileOpensAll
-	}
-
-	res[#res+1] = {
-		name = 'Files Opened for Writing',
-		desc = 'XXX',
-		targetView = 'directories',
-		targetViewFilter = 'fd.name contains /etc',
-		data = gsummary.FileOpensWrite
-	}
-
-	res[#res+1] = {
-		name = 'System Files Opened',
-		desc = 'XXX',
-		targetView = 'directories',
-		data = gsummary.SysFileOpensAll
-	}
-
-	res[#res+1] = {
-		name = 'System Files Opened for Writing',
-		desc = 'XXX',
-		targetView = 'directories',
-		data = gsummary.SysFileOpensWrite
 	}
 
 	resstr = json.encode(res, { indent = true })
@@ -297,8 +356,8 @@ function on_capture_end(ts_s, ts_ns, delta)
 	local sstr = ''
 	local dirname = sysdig.get_evtsource_name() .. '_wd_index'
 
---	if file_cache_exists then
-if false then
+	if file_cache_exists then
+--if false then
 		local f = io.open(dirname .. '/summary.json', "r")
 		if f == nil then
 			print('{"progress": 100, "error": "can\'t read the trace file index" }')
