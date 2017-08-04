@@ -190,6 +190,11 @@ static void print_views(sinsp_view_manager* view_manager)
 		jv["description"] = vinfo.m_description;
 		jv["isRoot"] = vinfo.m_is_root;
 		jv["drilldownTarget"] = vinfo.m_drilldown_target;
+		for(auto it = vinfo.m_tags.begin(); it != vinfo.m_tags.end(); ++it)
+		{
+			jv["tags"].append(*it);
+		}
+
 		root.append(jv);
 	}
 

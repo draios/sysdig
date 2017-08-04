@@ -24,7 +24,7 @@ view_info =
 		"This view can be applied not only to the whole machine, but also to single processes, containers, threads and so on. Use it after a drill down for more fine grained investigation.",
 		"Drill down on an error by clicking enter to see which processes are generating it."
 	},
-	tags = {"Default"},
+	tags = {"Default", "wsysdig"},
 	view_type = "table",
 	applies_to = {"", "container.id", "proc.pid", "proc.name", "thread.tid", "fd.sport", "fd.sproto", "fd.directory", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	filter = "evt.res != SUCCESS",

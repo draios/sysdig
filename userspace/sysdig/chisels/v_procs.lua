@@ -21,7 +21,7 @@ view_info =
 	name = "Processes",
 	description = "This is the typical top/htop process list, showing usage of resources like CPU, memory, disk and network on a by process basis.",
 	tips = {"This is a perfect view to start a drill down session. Click enter or double click on a process to dive into it and explore its behavior."},
-	tags = {"Default"},
+	tags = {"Default", "wsysdig"},
 	view_type = "table",
 	filter = "evt.type!=switch",
 	applies_to = {"", "container.id", "fd.name", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "fd.type", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
