@@ -55,6 +55,9 @@ function reset_summary(s)
 	s.fileCountW = create_category_table()
 	s.sysFileCountW = create_category_table()
 	s.connectionCount = create_category_table()
+	s.netBytes = create_category_basic()
+	s.netBytesR = create_category_basic()
+	s.netBytesW = create_category_basic()
 	s.notifications = create_category_basic()
 end
 
@@ -156,6 +159,7 @@ function on_init()
 	ffdname = chisel.request_field("fd.name")
 	ffdtype = chisel.request_field("fd.type")
 	fiswrite = chisel.request_field("evt.is_io_write")
+	fisread = chisel.request_field("evt.is_io_read")
 	fbuflen = chisel.request_field("evt.buflen")
 --	fcontainername = chisel.request_field("container.name")
 --	fcontainerid = chisel.request_field("container.id")
@@ -186,10 +190,12 @@ function on_event()
 	local rawres = evt.field(frawres)
 	local fdname = evt.field(ffdname)
 	local fdtype = evt.field(ffdtype)
-	local iswrite = evt.field(fiswrite)
 
 	if dir ~= nil and dir == '<' then
 		if rawres ~= nil and rawres >= 0 then
+			local iswrite = evt.field(fiswrite)
+			local isread = evt.field(fisread)
+
 			if fdtype == 'file' then
 				local buflen = evt.field(fbuflen)
 				if buflen == nil then
@@ -197,6 +203,7 @@ function on_event()
 				end
 				
 				generate_io_stats(fdname, ssummary.fileCount)
+
 				if iswrite then
 					generate_io_stats(fdname, ssummary.fileCountW)
 					ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
@@ -205,14 +212,25 @@ function on_event()
 					if is_system_dir(fdname) then
 						generate_io_stats(fdname, ssummary.sysFileCountW)
 					end
-				else
+				elseif isread then
 					ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
 					ssummary.fileBytesR.tot = ssummary.fileBytesR.tot + buflen
 				end
 			elseif fdtype == 'ipv4' or fdtype == 'ipv6' then
 				local buflen = evt.field(fbuflen)
+				if buflen == nil then
+					buflen = 0
+				end
 
 				generate_io_stats(fdname, ssummary.connectionCount)
+
+				if iswrite then
+					ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
+					ssummary.netBytesW.tot = ssummary.netBytesW.tot + buflen
+				elseif isread then
+					ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
+					ssummary.netBytesR.tot = ssummary.netBytesR.tot + buflen
+				end
 			elseif etype == 'execve' then
 				ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
 			end
@@ -293,6 +311,7 @@ function build_output()
 		name = 'File Bytes In+Out',
 		desc = 'Amount of bytes read from or written to the file system',
 		targetView = 'files',
+		targetViewSortingCol = 2,
 		data = gsummary.fileBytes
 	}
 
@@ -300,6 +319,7 @@ function build_output()
 		name = 'File Bytes In',
 		desc = 'Amount of bytes read from the file system',
 		targetView = 'files',
+		targetViewSortingCol = 0,
 		data = gsummary.fileBytesR
 	}
 
@@ -307,11 +327,12 @@ function build_output()
 		name = 'File Bytes Out',
 		desc = 'Amount of bytes written to the file system',
 		targetView = 'files',
+		targetViewSortingCol = 1,
 		data = gsummary.fileBytesW
 	}
 
 	res[#res+1] = {
-		name = 'Active Files',
+		name = 'Accessed Files',
 		desc = 'Number of files that have been accessed during the capture',
 		targetView = 'files',
 		data = gsummary.fileCount
@@ -338,6 +359,30 @@ function build_output()
 		desc = 'Number of network connections that have been accessed during the capture',
 		targetView = 'connections',
 		data = gsummary.connectionCount
+	}
+
+	res[#res+1] = {
+		name = 'Net Bytes In+Out',
+		desc = 'Amount of bytes read from or written to the network',
+		targetView = 'sports',
+		targetViewSortingCol = 4,
+		data = gsummary.netBytes
+	}
+
+	res[#res+1] = {
+		name = 'Net Bytes In',
+		desc = 'Amount of bytes read from the network',
+		targetView = 'sports',
+		targetViewSortingCol = 2,
+		data = gsummary.netBytesR
+	}
+
+	res[#res+1] = {
+		name = 'Net Bytes Out',
+		desc = 'Amount of bytes written to the network',
+		targetView = 'sports',
+		targetViewSortingCol = 3,
+		data = gsummary.netBytesW
 	}
 
 	res[#res+1] = {
