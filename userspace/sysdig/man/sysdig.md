@@ -162,6 +162,9 @@ OPTIONS
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events
 
+**--page-faults**
+  Capture user/kernel major/minor page faults
+
 **-P**, **--progress**  
   Print progress on stderr while processing trace files.
   

@@ -187,6 +187,9 @@ COMMAND LINE OPTIONS
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events
 
+**--page-faults**
+  Capture user/kernel major/minor page faults
+
 **-pc**, **-pcontainers**_  
   Instruct csysdig to use a container-friendly format in its views. This will cause several of the views to contain additional container-related columns.
 

@@ -231,6 +231,19 @@ void sinsp::enable_tracers_capture()
 #endif
 }
 
+void sinsp::enable_page_faults()
+{
+#if defined(HAS_CAPTURE)
+	if(is_live() && m_h != NULL)
+	{
+		if(scap_enable_page_faults(m_h) != SCAP_SUCCESS)
+		{
+			throw sinsp_exception("error enabling page_faults");
+		}
+	}
+#endif
+}
+
 void sinsp::init()
 {
 	//
