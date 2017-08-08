@@ -395,7 +395,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				
 				char image_manifest_path[SCAP_MAX_PATH_SIZE];
 				snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), rkt_podid.c_str(), rkt_appname.c_str());
-/*
+
 				// First lookup if the container exists in our table, otherwise only if we are live check if it has
 				// an entry in /var/lib/rkt. In capture mode only the former will be used.
 				// In live mode former will be used only if we already hit that container
@@ -409,7 +409,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					valid_id = true;
 					break;
 				}
-*/
 			}
 		}
 	}

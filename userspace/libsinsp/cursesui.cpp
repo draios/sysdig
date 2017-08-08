@@ -69,6 +69,7 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 {
 	m_inspector = inspector;
 	m_filter = NULL;
+	m_root = Json::Value(Json::arrayValue);
 
 	m_json_spy_renderer = new spy_text_renderer(inspector, 
 		parent,
