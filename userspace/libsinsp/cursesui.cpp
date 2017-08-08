@@ -104,7 +104,25 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 	if(argstr != NULL)
 	{
-		m_root.append(argstr);
+		Json::Value line;
+
+		ppm_event_flags eflags = evt->get_info_flags();
+		if(eflags & EF_READS_FROM_FD)
+		{
+			line["d"] = "<";
+		}
+		else if(eflags & EF_WRITES_TO_FD)
+		{
+			line["d"] = ">";
+		}
+
+		line["v"] = argstr;
+		line["l"] = to_string(len);
+		string fdname = evt->get_fd_info()->m_name;
+		sanitize_string(fdname);
+		line["f"] = fdname;
+
+		m_root.append(line);
 	}
 }
 
