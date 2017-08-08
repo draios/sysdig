@@ -337,6 +337,7 @@ public:
 
 	~json_spy_renderer();
 
+	void set_filter(string filter);
 	void process_event(sinsp_evt* evt, int32_t next_res);
 
 	string get_data();
@@ -348,6 +349,7 @@ private:
 	spy_text_renderer* m_json_spy_renderer;
 	sinsp* m_inspector;
 	Json::Value m_root;
+	sinsp_filter* m_filter;
 };
 
 class sinsp_cursesui

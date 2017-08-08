@@ -68,6 +68,8 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 	bool print_containers)
 {
 	m_inspector = inspector;
+	m_filter = NULL;
+
 	m_json_spy_renderer = new spy_text_renderer(inspector, 
 		parent,
 		viz_type, 
@@ -78,6 +80,17 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 json_spy_renderer::~json_spy_renderer()
 {
 	delete m_json_spy_renderer;
+
+	if(m_filter != NULL)
+	{
+		delete m_filter;
+	}
+}
+
+void json_spy_renderer::set_filter(string filter)
+{
+	sinsp_filter_compiler compiler(m_inspector, filter);
+	m_filter = compiler.compile();
 }
 
 void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
@@ -106,6 +119,20 @@ void json_spy_renderer::process_event_dig(sinsp_evt* evt, int32_t next_res)
 
 void json_spy_renderer::process_event(sinsp_evt* evt, int32_t next_res)
 {
+	//
+	// Filter the event
+	//
+	if(m_filter)
+	{
+		if(!m_filter->run(evt))
+		{
+			return;
+		}
+	}
+
+	//
+	// Render the output
+	//
 	if(m_json_spy_renderer->m_viz_type == VIEW_ID_SPY)
 	{
 		process_event_spy(evt, next_res);
@@ -541,6 +568,8 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 				m_selected_view,
 				spy_text_renderer::OT_NORMAL,
 				m_print_containers);
+
+			m_json_spy_renderer->set_filter(m_complete_filter);
 		}
 #ifndef NOCURSESUI
 		else
