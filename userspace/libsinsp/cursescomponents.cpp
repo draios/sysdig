@@ -106,6 +106,7 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 	else
 	{
 		m_formatter = NULL;
+		m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
 	}
 }
 
