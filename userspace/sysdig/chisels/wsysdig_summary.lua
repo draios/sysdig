@@ -355,7 +355,7 @@ function build_output()
 	}
 
 	res[#res+1] = {
-		name = 'Network Connections',
+		name = 'Active Network Connections',
 		desc = 'Number of network connections that have been accessed during the capture',
 		targetView = 'connections',
 		data = gsummary.connectionCount
@@ -386,7 +386,7 @@ function build_output()
 	}
 
 	res[#res+1] = {
-		name = 'Spawned Processes',
+		name = 'Executed Commands',
 		desc = 'Number of new programs that have been executed during the observed interval',
 		targetView = 'spy_users',
 		data = gsummary.SpawnedProcs
