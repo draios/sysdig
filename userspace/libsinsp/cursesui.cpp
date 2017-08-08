@@ -90,8 +90,11 @@ json_spy_renderer::~json_spy_renderer()
 
 void json_spy_renderer::set_filter(string filter)
 {
-	sinsp_filter_compiler compiler(m_inspector, filter);
-	m_filter = compiler.compile();
+	if(filter != "")
+	{
+		sinsp_filter_compiler compiler(m_inspector, filter);
+		m_filter = compiler.compile();
+	}
 }
 
 void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
