@@ -184,6 +184,7 @@ public:
 	bool m_drilldown_increase_depth;
 	bool m_propagate_filter;
 	string m_spectro_type;
+	string m_filter;
 
 private:
 	void set_sorting_col();
@@ -191,7 +192,6 @@ private:
 	void set_col_sorting_hotkeys();
 
 	uint32_t m_n_sorting_cols;
-	string m_filter;
 };
 
 
