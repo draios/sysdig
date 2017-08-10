@@ -116,7 +116,7 @@ function parse_thread_table()
 	local data = {}
 	local cnt = 0
 
-	local ttable = sysdig.get_thread_table()
+	local ttable = sysdig.get_thread_table(false)
 
 	for k, v in pairs(ttable) do
 		if v.tid == v.pid then
@@ -169,7 +169,7 @@ function on_init()
 end
 
 function on_capture_start()
-----[[
+--[[
 	local dirname = sysdig.get_evtsource_name() .. '_wd_index'
 	local f = io.open(dirname .. '/summary.json', "r")
 	if f ~= nil then
@@ -177,7 +177,7 @@ function on_capture_start()
 		file_cache_exists = true
 		sysdig.end_capture()
 	end
---]]--
+]]--
 	return true
 end
 
@@ -185,6 +185,7 @@ end
 -- Event callback
 -------------------------------------------------------------------------------
 function on_event()
+--if true then return end
 	local etype = evt.field(fetype)
 	local dir = evt.field(fdir)
 	local rawres = evt.field(frawres)
@@ -401,8 +402,8 @@ function on_capture_end(ts_s, ts_ns, delta)
 	local sstr = ''
 	local dirname = sysdig.get_evtsource_name() .. '_wd_index'
 
-	if file_cache_exists then
---if false then
+--	if file_cache_exists then
+if false then
 		local f = io.open(dirname .. '/summary.json', "r")
 		if f == nil then
 			print('{"progress": 100, "error": "can\'t read the trace file index" }')
