@@ -772,6 +772,7 @@ private:
 	string m_event_source_name;
 	string m_cmdline_capture_filter;
 	string m_complete_filter;
+	string m_complete_filter_noview;
 	string m_manual_filter;
 	string m_manual_search_text;
 	bool m_paused;

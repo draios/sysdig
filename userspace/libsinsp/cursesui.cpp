@@ -1386,7 +1386,8 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 			execute_table_action(STA_DRILLDOWN_TEMPLATE, 0, &res);
 			create_complete_filter(true);
 
-			root["filterTemplate"] = m_complete_filter;
+			root["filterTemplateF"] = m_complete_filter;
+			root["filterTemplate"] = m_complete_filter_noview;
 		}
 
 		Json::FastWriter writer;
@@ -1488,11 +1489,15 @@ void sinsp_cursesui::create_complete_filter(bool templated)
 		{
 			m_complete_filter = m_manual_filter;
 		}
+
+		m_complete_filter_noview = m_complete_filter;
 	}
 	else
 	{
 		m_complete_filter = m_cmdline_capture_filter;
 		m_complete_filter = combine_filters(m_complete_filter, m_sel_hierarchy.tofilter(templated));
+
+		m_complete_filter_noview = m_complete_filter;
 
 		//
 		// Note: m_selected_view is smaller than 0 when there's no view, because we're doing
