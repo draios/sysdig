@@ -23,7 +23,7 @@ view_info =
 	tags = {"default", "wsysdig"},
 	view_type = "list",
 	applies_to = {""},
-	filter = "(evt.type=bind and evt.dir=< and fd.type=ipv4) or (evt.type=close and evt.dir=> and fd.is_server=true and fd.type=ipv4)",
+	filter = "(evt.type=bind and evt.dir=< and fd.type=ipv4) or (evt.type=close and evt.dir=> and fd.typechar=2 and fd.type=ipv4)",
 	use_defaults = true,
 	columns = 
 	{

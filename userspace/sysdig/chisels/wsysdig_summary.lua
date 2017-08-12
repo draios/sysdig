@@ -44,10 +44,6 @@ function create_category_table()
 	return {tot=0, max=0, timeLine={}, table={}}
 end
 
-function create_category_global()
-	return {tot=0, max=0, timeLine={}, table={}, global=true}
-end
-
 function reset_summary(s)
 	s.SpawnedProcs = create_category_basic()
 	s.procCount = create_category_table()
@@ -66,6 +62,8 @@ function reset_summary(s)
 	if s.listeningPortCount == nil then
 		s.listeningPortCount = create_category_table()
 	end
+	s.newConnectionsO = create_category_basic()
+	s.newConnectionsI = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -197,6 +195,7 @@ function on_init()
 	fbuflen = chisel.request_field("evt.buflen")
 	fsport = chisel.request_field("fd.sport")
 	flport = chisel.request_field("fd.lport")
+	ftypechar = chisel.request_field("fd.typechar")
 --	fcontainername = chisel.request_field("container.name")
 --	fcontainerid = chisel.request_field("container.id")
 
@@ -278,6 +277,16 @@ function on_event()
 				elseif etype == 'bind' then
 					local sport = evt.field(fsport)
 					generate_io_stats(sport, ssummary.listeningPortCount)
+				elseif etype == 'connect' then
+					local sport = evt.field(fsport)
+					if sport ~= nil then
+						ssummary.newConnectionsO.tot = ssummary.newConnectionsO.tot + 1
+					end
+				elseif etype == 'accept' then
+					local sport = evt.field(fsport)
+					if sport ~= nil then
+						ssummary.newConnectionsI.tot = ssummary.newConnectionsI.tot + 1
+					end
 				end
 			end
 		else	
@@ -285,9 +294,12 @@ function on_event()
 			if etype == 'close' then
 				local sport = evt.field(fsport)
 				if sport ~= nil then
-					if ssummary.listeningPortCount.table[sport] ~= nil then
-						ssummary.listeningPortCount.table[sport] = nil
-						ssummary.listeningPortCount.tot = ssummary.listeningPortCount.tot - 1
+					local typechar = evt.field(ftypechar)
+					if typechar == '2' then
+						if ssummary.listeningPortCount.table[sport] ~= nil then
+							ssummary.listeningPortCount.table[sport] = nil
+							ssummary.listeningPortCount.tot = ssummary.listeningPortCount.tot - 1
+						end
 					end
 				end
 			end
@@ -463,6 +475,22 @@ function build_output()
 		desc = 'Number of new programs that have been executed during the observed interval',
 		targetView = 'port_bindings',
 		data = gsummary.listeningPortCount
+	}
+
+	res[#res+1] = {
+		name = 'New Outbound Connections',
+		desc = 'New client network connections',
+		targetView = 'incoming_connections',
+		targetViewSortingCol = 2,
+		data = gsummary.newConnectionsO
+	}
+
+	res[#res+1] = {
+		name = 'New Inbound Connections',
+		desc = 'New client network connections',
+		targetView = 'incoming_connections',
+		targetViewSortingCol = 2,
+		data = gsummary.newConnectionsI
 	}
 
 	resstr = json.encode(res, { indent = true })
