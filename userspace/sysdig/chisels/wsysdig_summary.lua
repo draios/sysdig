@@ -44,6 +44,10 @@ function create_category_table()
 	return {tot=0, max=0, timeLine={}, table={}}
 end
 
+function create_category_global()
+	return {tot=0, max=0, timeLine={}, table={}, global=true}
+end
+
 function reset_summary(s)
 	s.SpawnedProcs = create_category_basic()
 	s.procCount = create_category_table()
@@ -59,6 +63,9 @@ function reset_summary(s)
 	s.netBytesR = create_category_basic()
 	s.netBytesW = create_category_basic()
 	s.notifications = create_category_basic()
+	if s.listeningPortCount == nil then
+		s.listeningPortCount = create_category_table()
+	end
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -106,13 +113,40 @@ function is_system_dir(filename)
 end
 
 function generate_io_stats(fdname, cnt_cat)
+	if fdname == nil then
+		return
+	end
+
 	if cnt_cat.table[fdname] == nil then
 		cnt_cat.table[fdname] = 1
 		cnt_cat.tot = cnt_cat.tot + 1
 	end
 end
 
-function parse_thread_table()
+function parse_thread_table_startup()
+	local data = {}
+	local cnt = 0
+
+	local ttable = sysdig.get_thread_table()
+
+	for k, v in pairs(ttable) do
+		for kf, vf in pairs(v.fdtable) do
+			if vf.is_server then
+					data[vf.sport] = 1
+			end
+		end
+
+	end
+
+	ssummary.listeningPortCount.tot = 0
+	for k, v in pairs(data) do
+		ssummary.listeningPortCount.tot = ssummary.listeningPortCount.tot + 1
+	end
+--print(ssummary.listeningPortCount.tot)
+	ssummary.listeningPortCount.table = data
+end
+
+function parse_thread_table_interval()
 	local data = {}
 	local cnt = 0
 
@@ -161,6 +195,8 @@ function on_init()
 	fiswrite = chisel.request_field("evt.is_io_write")
 	fisread = chisel.request_field("evt.is_io_read")
 	fbuflen = chisel.request_field("evt.buflen")
+	fsport = chisel.request_field("fd.sport")
+	flport = chisel.request_field("fd.lport")
 --	fcontainername = chisel.request_field("container.name")
 --	fcontainerid = chisel.request_field("container.id")
 
@@ -178,6 +214,8 @@ function on_capture_start()
 		sysdig.end_capture()
 	end
 ]]--
+
+	parse_thread_table_startup()
 	return true
 end
 
@@ -186,54 +224,72 @@ end
 -------------------------------------------------------------------------------
 function on_event()
 --if true then return end
-	local etype = evt.field(fetype)
 	local dir = evt.field(fdir)
-	local rawres = evt.field(frawres)
-	local fdname = evt.field(ffdname)
-	local fdtype = evt.field(ffdtype)
 
-	if dir ~= nil and dir == '<' then
-		if rawres ~= nil and rawres >= 0 then
-			local iswrite = evt.field(fiswrite)
-			local isread = evt.field(fisread)
+	if dir ~= nil then
+		if dir == '<' then
+			local rawres = evt.field(frawres)
+			if rawres ~= nil and rawres >= 0 then
+				local etype = evt.field(fetype)
+				local fdname = evt.field(ffdname)
+				local fdtype = evt.field(ffdtype)
+				local iswrite = evt.field(fiswrite)
+				local isread = evt.field(fisread)
 
-			if fdtype == 'file' then
-				local buflen = evt.field(fbuflen)
-				if buflen == nil then
-					buflen = 0
-				end
-				
-				generate_io_stats(fdname, ssummary.fileCount)
+				if iswrite or isread then
+					if fdtype == 'file' then
+						local buflen = evt.field(fbuflen)
+						if buflen == nil then
+							buflen = 0
+						end
+						
+						generate_io_stats(fdname, ssummary.fileCount)
 
-				if iswrite then
-					generate_io_stats(fdname, ssummary.fileCountW)
-					ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
-					ssummary.fileBytesW.tot = ssummary.fileBytesW.tot + buflen
+						if iswrite then
+							generate_io_stats(fdname, ssummary.fileCountW)
+							ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
+							ssummary.fileBytesW.tot = ssummary.fileBytesW.tot + buflen
 
-					if is_system_dir(fdname) then
-						generate_io_stats(fdname, ssummary.sysFileCountW)
+							if is_system_dir(fdname) then
+								generate_io_stats(fdname, ssummary.sysFileCountW)
+							end
+						elseif isread then
+							ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
+							ssummary.fileBytesR.tot = ssummary.fileBytesR.tot + buflen
+						end
+					elseif fdtype == 'ipv4' or fdtype == 'ipv6' then
+						local buflen = evt.field(fbuflen)
+						if buflen == nil then
+							buflen = 0
+						end
+
+						generate_io_stats(fdname, ssummary.connectionCount)
+
+						if iswrite then
+							ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
+							ssummary.netBytesW.tot = ssummary.netBytesW.tot + buflen
+						elseif isread then
+							ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
+							ssummary.netBytesR.tot = ssummary.netBytesR.tot + buflen
+						end
 					end
-				elseif isread then
-					ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
-					ssummary.fileBytesR.tot = ssummary.fileBytesR.tot + buflen
+				elseif etype == 'execve' then
+					ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
+				elseif etype == 'bind' then
+					local sport = evt.field(fsport)
+					generate_io_stats(sport, ssummary.listeningPortCount)
 				end
-			elseif fdtype == 'ipv4' or fdtype == 'ipv6' then
-				local buflen = evt.field(fbuflen)
-				if buflen == nil then
-					buflen = 0
+			end
+		else	
+			local etype = evt.field(fetype)
+			if etype == 'close' then
+				local sport = evt.field(fsport)
+				if sport ~= nil then
+					if ssummary.listeningPortCount.table[sport] ~= nil then
+						ssummary.listeningPortCount.table[sport] = nil
+						ssummary.listeningPortCount.tot = ssummary.listeningPortCount.tot - 1
+					end
 				end
-
-				generate_io_stats(fdname, ssummary.connectionCount)
-
-				if iswrite then
-					ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
-					ssummary.netBytesW.tot = ssummary.netBytesW.tot + buflen
-				elseif isread then
-					ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
-					ssummary.netBytesR.tot = ssummary.netBytesR.tot + buflen
-				end
-			elseif etype == 'execve' then
-				ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
 			end
 		end
 	end
@@ -249,9 +305,10 @@ end
 -- Periodic timeout callback
 -------------------------------------------------------------------------------
 function on_interval(ts_s, ts_ns, delta)	
-	parse_thread_table()
+	parse_thread_table_interval()
 	parse_container_table()
 
+--print(json.encode(ssummary.listeningPortCount, { indent = true }))
 	add_summaries(ts_s, ts_ns, gsummary, ssummary)
 	reset_summary(ssummary)
 
@@ -268,17 +325,21 @@ end
 -------------------------------------------------------------------------------
 -- End of capture output generation
 -------------------------------------------------------------------------------
+function update_table_count(cat)
+	if cat.table ~= nil then
+		local cnt = 0
+		for tk, tv in pairs(cat.table) do
+			cnt = cnt + 1
+		end
+
+		cat.tot = cnt
+		cat.table = nil
+	end
+end
+
 function update_table_counts()
 	for k, v in pairs(gsummary) do
-		if v.table ~= nil then
-			local cnt = 0
-			for tk, tv in pairs(v.table) do
-				cnt = cnt + 1
-			end
-
-			v.tot = cnt
-			v.table = nil
-		end
+		update_table_count(v)
 	end
 end
 
@@ -336,6 +397,7 @@ function build_output()
 		name = 'Accessed Files',
 		desc = 'Number of files that have been accessed during the capture',
 		targetView = 'files',
+		targetViewSortingCol = 2,
 		data = gsummary.fileCount
 	}
 
@@ -343,6 +405,7 @@ function build_output()
 		name = 'Modified Files',
 		desc = 'Number of files that have been accessed during the capture',
 		targetView = 'files',
+		targetViewSortingCol = 1,
 		targetViewFilter = 'evt.is_io_write=true',
 		data = gsummary.fileCountW
 	}
@@ -350,6 +413,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Modified System Files',
 		desc = 'Number of files that have been accessed during the capture',
+		targetViewSortingCol = 1,
 		targetView = 'files',
 		targetViewFilter = 'evt.is_io_write=true',
 		data = gsummary.sysFileCountW
@@ -359,6 +423,7 @@ function build_output()
 		name = 'Active Network Connections',
 		desc = 'Number of network connections that have been accessed during the capture',
 		targetView = 'connections',
+		targetViewSortingCol = 8,
 		data = gsummary.connectionCount
 	}
 
@@ -391,6 +456,14 @@ function build_output()
 		desc = 'Number of new programs that have been executed during the observed interval',
 		targetView = 'spy_users',
 		data = gsummary.SpawnedProcs
+	}
+
+	res[#res+1] = {
+		name = 'Listening Ports',
+		desc = 'Number of new programs that have been executed during the observed interval',
+		targetView = 'sports',
+		targetViewSortingCol = 4,
+		data = gsummary.listeningPortCount
 	}
 
 	resstr = json.encode(res, { indent = true })
