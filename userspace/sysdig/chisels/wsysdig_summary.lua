@@ -461,8 +461,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Listening Ports',
 		desc = 'Number of new programs that have been executed during the observed interval',
-		targetView = 'sports',
-		targetViewSortingCol = 4,
+		targetView = 'port_bindings',
 		data = gsummary.listeningPortCount
 	}
 
