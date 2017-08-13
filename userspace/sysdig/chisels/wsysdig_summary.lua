@@ -64,6 +64,8 @@ function reset_summary(s)
 	end
 	s.newConnectionsO = create_category_basic()
 	s.newConnectionsI = create_category_basic()
+	s.newListeningPorts = create_category_basic()
+	s.fileDeletionsCount = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -229,7 +231,7 @@ function on_event()
 		if dir == '<' then
 			local rawres = evt.field(frawres)
 			local etype = evt.field(fetype)
-			
+
 			if rawres ~= nil and rawres >= 0 then
 				local fdname = evt.field(ffdname)
 				local fdtype = evt.field(ffdtype)
@@ -277,7 +279,10 @@ function on_event()
 					ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
 				elseif etype == 'bind' then
 					local sport = evt.field(fsport)
-					generate_io_stats(sport, ssummary.listeningPortCount)
+					if sport ~= nil then
+						generate_io_stats(sport, ssummary.listeningPortCount)
+						ssummary.newListeningPorts.tot = ssummary.newListeningPorts.tot + 1
+					end
 				elseif etype == 'connect' then
 					local sport = evt.field(fsport)
 					if sport ~= nil then
@@ -288,6 +293,8 @@ function on_event()
 					if sport ~= nil then
 						ssummary.newConnectionsI.tot = ssummary.newConnectionsI.tot + 1
 					end
+				elseif etype == 'unlink' or etype == 'unlinkat' then
+					ssummary.fileDeletionsCount.tot = ssummary.fileDeletionsCount.tot + 1
 				end
 			elseif etype == 'connect' then
 				local sport = evt.field(fsport)
@@ -483,9 +490,16 @@ function build_output()
 
 	res[#res+1] = {
 		name = 'Listening Ports',
-		desc = 'Number of new programs that have been executed during the observed interval',
+		desc = 'Number of open ports on this system',
 		targetView = 'port_bindings',
 		data = gsummary.listeningPortCount
+	}
+
+	res[#res+1] = {
+		name = 'New Listening Ports',
+		desc = 'Number of open ports that have been added during the observation interval',
+		targetView = 'port_bindings',
+		data = gsummary.newListeningPorts
 	}
 
 	res[#res+1] = {
@@ -504,6 +518,16 @@ function build_output()
 		targetViewTitle = 'Connect events',
 		targetViewFilter = 'evt.type=accept and evt.dir=< and fd.sport exists',
 		data = gsummary.newConnectionsI
+	}
+
+	res[#res+1] = {
+		name = 'Deleted Files',
+		desc = 'Number of files that were deleted',
+		targetView = 'dig',
+		targetViewTitle = 'File deletions',
+		targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
+		data = gsummary.fileDeletionsCount
+
 	}
 
 	resstr = json.encode(res, { indent = true })
