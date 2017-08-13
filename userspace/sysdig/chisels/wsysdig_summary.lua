@@ -66,6 +66,9 @@ function reset_summary(s)
 	s.newConnectionsI = create_category_basic()
 	s.newListeningPorts = create_category_basic()
 	s.fileDeletionsCount = create_category_basic()
+	s.newSymLinksCount = create_category_basic()
+	s.forkCount = create_category_basic()
+	s.openErrorCount = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -295,6 +298,12 @@ function on_event()
 					end
 				elseif etype == 'unlink' or etype == 'unlinkat' then
 					ssummary.fileDeletionsCount.tot = ssummary.fileDeletionsCount.tot + 1
+				elseif etype == 'symlink' or etype == 'symlinkat' then
+					ssummary.newSymLinksCount.tot = ssummary.newSymLinksCount.tot + 1
+				elseif etype == 'clone' or etype == 'fork' then
+					if rawres > 0 then
+						ssummary.forkCount.tot = ssummary.forkCount.tot + 1
+					end
 				end
 			elseif etype == 'connect' then
 				local sport = evt.field(fsport)
@@ -306,6 +315,8 @@ function on_event()
 				if sport ~= nil then
 					ssummary.newConnectionsI.tot = ssummary.newConnectionsI.tot + 1
 				end
+			elseif etype == 'open' then
+				ssummary.openErrorCount.tot = ssummary.openErrorCount.tot + 1
 			end
 		else	
 			local etype = evt.field(fetype)
@@ -381,6 +392,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Sysdig Secure Notifications',
 		desc = 'Sysdig Secure notifications. Sysdig secure inserts a "notification" event in the capture stream each time a policy triggers. This metric counts the notifications. Chart it over time to compare the other metrics with the point in time where policies were triggered.',
+		category = 'General',
 		targetView = 'notifications',
 		data = gsummary.notifications
 	}
@@ -388,6 +400,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Running Processes',
 		desc = 'Total number of processes that were running during the capture',
+		category = 'General',
 		targetView = 'procs',
 		data = gsummary.procCount
 	}
@@ -395,6 +408,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Running Containers',
 		desc = 'Total number of containers that were running during the capture',
+		category = 'General',
 		targetView = 'containers',
 		data = gsummary.containerCount
 	}
@@ -402,6 +416,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'File Bytes In+Out',
 		desc = 'Amount of bytes read from or written to the file system',
+		category = 'File',
 		targetView = 'files',
 		targetViewSortingCol = 2,
 		data = gsummary.fileBytes
@@ -410,6 +425,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'File Bytes In',
 		desc = 'Amount of bytes read from the file system',
+		category = 'File',
 		targetView = 'files',
 		targetViewSortingCol = 0,
 		data = gsummary.fileBytesR
@@ -418,6 +434,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'File Bytes Out',
 		desc = 'Amount of bytes written to the file system',
+		category = 'File',
 		targetView = 'files',
 		targetViewSortingCol = 1,
 		data = gsummary.fileBytesW
@@ -426,6 +443,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Accessed Files',
 		desc = 'Number of files that have been accessed during the capture',
+		category = 'File',
 		targetView = 'files',
 		targetViewSortingCol = 2,
 		data = gsummary.fileCount
@@ -434,6 +452,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Modified Files',
 		desc = 'Number of files that have been accessed during the capture',
+		category = 'File',
 		targetView = 'files',
 		targetViewSortingCol = 1,
 		targetViewFilter = 'evt.is_io_write=true',
@@ -443,6 +462,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Modified System Files',
 		desc = 'Number of files that have been accessed during the capture',
+		category = 'Security',
 		targetViewSortingCol = 1,
 		targetView = 'files',
 		targetViewFilter = 'evt.is_io_write=true',
@@ -452,6 +472,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Active Network Connections',
 		desc = 'Number of network connections that have been accessed during the capture',
+		category = 'Network',
 		targetView = 'connections',
 		targetViewSortingCol = 8,
 		data = gsummary.connectionCount
@@ -460,6 +481,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Net Bytes In+Out',
 		desc = 'Amount of bytes read from or written to the network',
+		category = 'Network',
 		targetView = 'sports',
 		targetViewSortingCol = 4,
 		data = gsummary.netBytes
@@ -468,6 +490,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Net Bytes In',
 		desc = 'Amount of bytes read from the network',
+		category = 'Network',
 		targetView = 'sports',
 		targetViewSortingCol = 2,
 		data = gsummary.netBytesR
@@ -476,6 +499,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Net Bytes Out',
 		desc = 'Amount of bytes written to the network',
+		category = 'Network',
 		targetView = 'sports',
 		targetViewSortingCol = 3,
 		data = gsummary.netBytesW
@@ -484,6 +508,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Executed Commands',
 		desc = 'Number of new programs that have been executed during the observed interval',
+		category = 'Security',
 		targetView = 'spy_users',
 		data = gsummary.SpawnedProcs
 	}
@@ -491,6 +516,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Listening Ports',
 		desc = 'Number of open ports on this system',
+		category = 'Network',
 		targetView = 'port_bindings',
 		data = gsummary.listeningPortCount
 	}
@@ -498,6 +524,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'New Listening Ports',
 		desc = 'Number of open ports that have been added during the observation interval',
+		category = 'Network',
 		targetView = 'port_bindings',
 		data = gsummary.newListeningPorts
 	}
@@ -505,6 +532,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'New Outbound Connections',
 		desc = 'New client network connections',
+		category = 'Network',
 		targetView = 'dig',
 		targetViewTitle = 'Connect events',
 		targetViewFilter = 'evt.type=connect and evt.dir=< and fd.sport exists',
@@ -514,6 +542,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'New Inbound Connections',
 		desc = 'New server network connections',
+		category = 'Network',
 		targetView = 'dig',
 		targetViewTitle = 'Connect events',
 		targetViewFilter = 'evt.type=accept and evt.dir=< and fd.sport exists',
@@ -523,11 +552,41 @@ function build_output()
 	res[#res+1] = {
 		name = 'Deleted Files',
 		desc = 'Number of files that were deleted',
+		category = 'File',
 		targetView = 'dig',
 		targetViewTitle = 'File deletions',
 		targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
 		data = gsummary.fileDeletionsCount
+	}
 
+	res[#res+1] = {
+		name = 'New Symlinks',
+		desc = 'Number of new symbolic links that were created',
+		category = 'Security',
+		targetView = 'dig',
+		targetViewTitle = 'Symlink creations',
+		targetViewFilter = '(evt.type=symlink or evt.type=symlinkat) and evt.dir=< and evt.failed = false',
+		data = gsummary.newSymLinksCount
+	}
+
+	res[#res+1] = {
+		name = 'Fork Count',
+		desc = 'Count of processes and threads that have been created',
+		category = 'Performance',
+		targetView = 'dig',
+		targetViewTitle = 'Clone executions',
+		targetViewFilter = 'evt.type=clone and evt.rawres=0',
+		data = gsummary.forkCount
+	}
+
+	res[#res+1] = {
+		name = 'File Open Errors',
+		desc = 'Count of failed file opens',
+		category = 'Performance',
+		targetView = 'dig',
+		targetViewTitle = 'Failed open() calls',
+		targetViewFilter = 'evt.type=open and evt.rawres<0',
+		data = gsummary.openErrorCount
 	}
 
 	resstr = json.encode(res, { indent = true })
