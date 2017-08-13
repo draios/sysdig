@@ -228,8 +228,9 @@ function on_event()
 	if dir ~= nil then
 		if dir == '<' then
 			local rawres = evt.field(frawres)
+			local etype = evt.field(fetype)
+			
 			if rawres ~= nil and rawres >= 0 then
-				local etype = evt.field(fetype)
 				local fdname = evt.field(ffdname)
 				local fdtype = evt.field(ffdtype)
 				local iswrite = evt.field(fiswrite)
@@ -287,6 +288,16 @@ function on_event()
 					if sport ~= nil then
 						ssummary.newConnectionsI.tot = ssummary.newConnectionsI.tot + 1
 					end
+				end
+			elseif etype == 'connect' then
+				local sport = evt.field(fsport)
+				if sport ~= nil then
+					ssummary.newConnectionsO.tot = ssummary.newConnectionsO.tot + 1
+				end
+			elseif etype == 'accept' then
+				local sport = evt.field(fsport)
+				if sport ~= nil then
+					ssummary.newConnectionsI.tot = ssummary.newConnectionsI.tot + 1
 				end
 			end
 		else	
@@ -480,16 +491,18 @@ function build_output()
 	res[#res+1] = {
 		name = 'New Outbound Connections',
 		desc = 'New client network connections',
-		targetView = 'incoming_connections',
-		targetViewSortingCol = 2,
+		targetView = 'dig',
+		targetViewTitle = 'Connect events',
+		targetViewFilter = 'evt.type=connect and evt.dir=< and fd.sport exists',
 		data = gsummary.newConnectionsO
 	}
 
 	res[#res+1] = {
 		name = 'New Inbound Connections',
-		desc = 'New client network connections',
-		targetView = 'incoming_connections',
-		targetViewSortingCol = 2,
+		desc = 'New server network connections',
+		targetView = 'dig',
+		targetViewTitle = 'Connect events',
+		targetViewFilter = 'evt.type=accept and evt.dir=< and fd.sport exists',
 		data = gsummary.newConnectionsI
 	}
 
