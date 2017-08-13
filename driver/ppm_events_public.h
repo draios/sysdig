@@ -155,6 +155,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 										       detected to be the source in a shell pipe. */
 #define PPM_CL_PIPE_DST (1 << 22)			/* libsinsp-specific flag. Set if this thread has been 
 										       detected to be the destination in a shell pipe. */
+#define PPM_CL_CLONE_CHILD_CLEARTID (1 << 23)
+#define PPM_CL_CLONE_CHILD_SETTID (1 << 24)
+#define PPM_CL_SIGCHLD (1 << 25)
+#define PPM_CL_CLONE_SETTLS (1 << 26)
+#define PPM_CL_CLONE_STOPPED (1 << 27)
+#define PPM_CL_CLONE_VFORK (1 << 28)
+#define PPM_CL_CLONE_NEWCGROUP (1 << 29)
 
 /*
  * Futex Operations

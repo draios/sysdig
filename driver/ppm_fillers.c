@@ -808,6 +808,31 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 		res |= PPM_CL_CLONE_NEWUSER;
 #endif
 
+	if (flags & CLONE_CHILD_CLEARTID)
+		res |= PPM_CL_CLONE_CHILD_CLEARTID;
+
+	if (flags & CLONE_CHILD_SETTID)
+		res |= PPM_CL_CLONE_CHILD_SETTID;
+
+	if (flags & SIGCHLD)
+		res |= PPM_CL_SIGCHLD;
+
+	if (flags & CLONE_SETTLS)
+		res |= PPM_CL_CLONE_SETTLS;
+
+#ifdef CLONE_STOPPED
+	if (flags & CLONE_STOPPED)
+		res |= PPM_CL_CLONE_STOPPED;
+#endif
+
+	if (flags & CLONE_VFORK)
+		res |= PPM_CL_CLONE_VFORK;
+
+#ifdef CLONE_NEWCGROUP
+	if (flags & CLONE_NEWCGROUP)
+		res |= 	PPM_CL_CLONE_NEWCGROUP;
+#endif
+
 	return res;
 }
 
