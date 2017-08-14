@@ -69,6 +69,7 @@ function reset_summary(s)
 	s.newSymLinksCount = create_category_basic()
 	s.forkCount = create_category_basic()
 	s.openErrorCount = create_category_basic()
+	s.connectErrorCount = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -309,6 +310,13 @@ function on_event()
 				local sport = evt.field(fsport)
 				if sport ~= nil then
 					ssummary.newConnectionsO.tot = ssummary.newConnectionsO.tot + 1
+				end
+
+				if rawres ~= -115 then
+					local fdtype = evt.field(ffdtype)
+					if fdtype == 'ipv4' or fdtype == 'ipv6' then
+						ssummary.connectErrorCount.tot = ssummary.connectErrorCount.tot + 1
+					end
 				end
 			elseif etype == 'accept' then
 				local sport = evt.field(fsport)
@@ -587,6 +595,16 @@ function build_output()
 		targetViewTitle = 'Failed open() calls',
 		targetViewFilter = 'evt.type=open and evt.rawres<0',
 		data = gsummary.openErrorCount
+	}
+
+	res[#res+1] = {
+		name = 'Failed Connection Attempts',
+		desc = 'Count of failed network connect calls',
+		category = 'Performance',
+		targetView = 'dig',
+		targetViewTitle = 'Failed connect() calls',
+		targetViewFilter = 'evt.type=connect and (fd.type=ipv4 or fd.type=ipv6) and evt.rawres<0 and evt.res!=EINPROGRESS',
+		data = gsummary.connectErrorCount
 	}
 
 	resstr = json.encode(res, { indent = true })
