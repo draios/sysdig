@@ -122,6 +122,24 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		sanitize_string(fdname);
 		line["f"] = fdname;
 
+		sinsp_threadinfo* tinfo = evt->get_thread_info();
+		ASSERT(tinfo);
+
+		line["p"] = tinfo->m_comm;
+
+		if(!tinfo->m_container_id.empty())
+		{
+			sinsp_container_info container_info;
+			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
+			if(found)
+			{
+				if(!container_info.m_name.empty())
+				{
+					line["c"] = container_info.m_name;
+				}
+			}
+		}
+
 		m_root.append(line);
 	}
 }
