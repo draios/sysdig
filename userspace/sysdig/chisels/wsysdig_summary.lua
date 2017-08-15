@@ -371,12 +371,10 @@ function on_event()
 				if signal == 'SIGSEGV' then
 					ssummary.segfaultCount.tot = ssummary.segfaultCount.tot + 1
 				end
+			elseif etype == 'notification' then
+				ssummary.notifications.tot = ssummary.notifications.tot + 1
 			end
 		end
-	end
-
-	if etype == 'notification' then
-		ssummary.notifications.tot = ssummary.notifications.tot + 1
 	end
 
 	return true
