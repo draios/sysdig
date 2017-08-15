@@ -83,6 +83,9 @@ function reset_summary(s)
 	s.appLogCount = create_category_basic()
 	s.appLogCountW = create_category_basic()
 	s.appLogCountE = create_category_basic()
+	s.sysLogCount = create_category_basic()
+	s.sysLogCountW = create_category_basic()
+	s.sysLogCountE = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -228,6 +231,7 @@ function on_init()
 	fexe = chisel.request_field("evt.arg.exe")
 	fsignal = chisel.request_field("evt.arg.sig")
 	flatency = chisel.request_field("evt.latency")
+	fsyslogsev = chisel.request_field("syslog.severity")
 
 	print('{"slices": [')
 	return true
@@ -285,7 +289,16 @@ function on_event()
 							end
 
 							-- log metrics support
-							if is_log_file(fdname) then
+
+							local syslogsev = evt.field(fsyslogsev)
+							if syslogsev ~= nil then
+								ssummary.sysLogCount.tot = ssummary.sysLogCount.tot + 1
+								if syslogsev == 4 then
+									ssummary.sysLogCountW.tot = ssummary.sysLogCountW.tot + 1
+								elseif syslogsev < 4 then
+									ssummary.sysLogCountE.tot = ssummary.sysLogCountE.tot + 1
+								end
+							elseif is_log_file(fdname) then
 								local buf = evt.field(fbuffer)
 								local msgs = split(buf, "\n")
 
@@ -295,9 +308,9 @@ function on_event()
 
 										local ls = string.lower(msg)
 										
-										if ls.find(ls, "warn") ~= nil then
+										if string.find(ls, "warn") ~= nil then
 											ssummary.appLogCountW.tot = ssummary.appLogCountW.tot + 1
-										elseif ls.find(msg, "err") or ls.find(msg, "critic") or ls.find(msg, "emergency") or ls.find(msg, "alert") then
+										elseif string.find(msg, "err") or string.find(msg, "critic") or string.find(msg, "emergency") or string.find(msg, "alert") then
 											ssummary.appLogCountE.tot = ssummary.appLogCountE.tot + 1
 										end
 									end
@@ -319,8 +332,7 @@ function on_event()
 							if latency > 1000000 then
 								ssummary.over1msFileIoCount.tot = ssummary.over1msFileIoCount.tot + 1
 							end
-						end
-						
+						end	
 					elseif fdtype == 'ipv4' or fdtype == 'ipv6' then
 						local buflen = evt.field(fbuflen)
 						if buflen == nil then
@@ -335,6 +347,19 @@ function on_event()
 						elseif isread then
 							ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
 							ssummary.netBytesR.tot = ssummary.netBytesR.tot + buflen
+						end
+					elseif fdtype == 'unix' then
+						if iswrite then
+							-- apps can write to syslog using unix pipes
+							local syslogsev = evt.field(fsyslogsev)
+							if syslogsev ~= nil then
+								ssummary.sysLogCount.tot = ssummary.sysLogCount.tot + 1
+								if syslogsev == 4 then
+									ssummary.sysLogCountW.tot = ssummary.sysLogCountW.tot + 1
+								elseif syslogsev < 4 then
+									ssummary.sysLogCountE.tot = ssummary.sysLogCountE.tot + 1
+								end
+							end
 						end
 					end
 				elseif etype == 'execve' then
@@ -750,26 +775,57 @@ function build_output()
 		targetView = 'echo',
 		targetViewTitle = 'Application Log Messages',
 		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
-		targetViewSortingCol = 1,
 		data = gsummary.appLogCount
 	}
 
 	res[#res+1] = {
 		name = 'Application Log Warning Messages',
-		desc = 'Number of wrtites to application log files containing the word "warning"',
+		desc = 'Number of writes to application log files containing the word "warning"',
 		category = 'logs',
-		targetView = 'slow_io',
-		targetViewSortingCol = 1,
+		targetView = 'echo',
+		targetViewTitle = 'Warning Application Log Messages',
+		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and evt.buffer contains arning',
 		data = gsummary.appLogCountW
 	}
 
 	res[#res+1] = {
 		name = 'Application Log Error Messages',
-		desc = 'Number of wrtites to application log files containing the word "error"',
+		desc = 'Number of writes to application log files containing the word "error"',
 		category = 'logs',
-		targetView = 'slow_io',
-		targetViewSortingCol = 1,
+		targetView = 'echo',
+		targetViewTitle = 'Error Application Log Messages',
+		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains rror or evt.buffer contains ritic or evt.buffer ergency rror or evt.buffer contains lert)',
 		data = gsummary.appLogCountE
+	}
+
+	res[#res+1] = {
+		name = 'Syslog Messages',
+		desc = 'Number of entries written to syslog',
+		category = 'logs',
+		targetView = 'spy_syslog',
+		targetViewTitle = 'Syslog Messages',
+--		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
+		data = gsummary.sysLogCount
+	}
+
+	res[#res+1] = {
+		name = 'Syslog Warning Messages',
+		desc = 'Number of entries with severity WARNING written to syslog',
+		category = 'logs',
+		targetView = 'spy_syslog',
+		targetViewTitle = 'Syslog Messages',
+		targetViewFilter = 'syslog.severity=4',
+		data = gsummary.sysLogCountW
+	}
+
+	res[#res+1] = {
+		name = 'Syslog Error Messages',
+		desc = 'Number of entries with severity ERROR or lower written to syslog',
+		category = 'logs',
+		targetView = 'spy_syslog',
+		targetViewTitle = 'Syslog Messages',
+		targetViewFilter = 'syslog.severity<4',
+		data = gsummary.sysLogCountE
 	}
 
 	resstr = json.encode(res, { indent = true })
