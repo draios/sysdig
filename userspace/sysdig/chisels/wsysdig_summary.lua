@@ -70,6 +70,10 @@ function reset_summary(s)
 	s.forkCount = create_category_basic()
 	s.openErrorCount = create_category_basic()
 	s.connectErrorCount = create_category_basic()
+	s.sudoInvocations = create_category_basic()
+	s.setnsInvocations = create_category_basic()
+	s.signalCount = create_category_basic()
+	s.segfaultCount = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -138,8 +142,7 @@ function parse_thread_table_startup()
 			if vf.is_server then
 					data[vf.sport] = 1
 			end
-		end
-
+		end			
 	end
 
 	ssummary.listeningPortCount.tot = 0
@@ -153,7 +156,6 @@ end
 function parse_thread_table_interval()
 	local data = {}
 	local cnt = 0
-
 	local ttable = sysdig.get_thread_table(false)
 
 	for k, v in pairs(ttable) do
@@ -202,8 +204,8 @@ function on_init()
 	fsport = chisel.request_field("fd.sport")
 	flport = chisel.request_field("fd.lport")
 	ftypechar = chisel.request_field("fd.typechar")
---	fcontainername = chisel.request_field("container.name")
---	fcontainerid = chisel.request_field("container.id")
+	fexe = chisel.request_field("evt.arg.exe")
+	fsignal = chisel.request_field("evt.arg.sig")
 
 	print('{"slices": [')
 	return true
@@ -281,6 +283,11 @@ function on_event()
 					end
 				elseif etype == 'execve' then
 					ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
+
+					local exe = evt.field(fexe)
+					if exe == 'sudo' then
+						ssummary.sudoInvocations.tot = ssummary.sudoInvocations.tot + 1
+					end
 				elseif etype == 'bind' then
 					local sport = evt.field(fsport)
 					if sport ~= nil then
@@ -305,6 +312,8 @@ function on_event()
 					if rawres > 0 then
 						ssummary.forkCount.tot = ssummary.forkCount.tot + 1
 					end
+				elseif etype == 'setns' then
+					ssummary.setnsInvocations.tot = ssummary.setnsInvocations.tot + 1
 				end
 			elseif etype == 'connect' then
 				local sport = evt.field(fsport)
@@ -338,6 +347,12 @@ function on_event()
 							ssummary.listeningPortCount.tot = ssummary.listeningPortCount.tot - 1
 						end
 					end
+				end
+			elseif etype == 'signaldeliver' then
+				ssummary.signalCount.tot = 33
+				local signal = evt.field(fsignal)
+				if signal == 'SIGSEGV' then
+					ssummary.segfaultCount.tot = ssummary.segfaultCount.tot + 1
 				end
 			end
 		end
@@ -605,6 +620,46 @@ function build_output()
 		targetViewTitle = 'Failed connect() calls',
 		targetViewFilter = 'evt.type=connect and (fd.type=ipv4 or fd.type=ipv6) and evt.rawres<0 and evt.res!=EINPROGRESS',
 		data = gsummary.connectErrorCount
+	}
+
+	res[#res+1] = {
+		name = 'Sudo Invocations',
+		desc = 'Number of times the sudo program has been called',
+		category = 'security',
+		targetView = 'dig',
+		targetViewTitle = 'Sudo executions',
+		targetViewFilter = 'evt.type=execve and evt.arg.exe=sudo',
+		data = gsummary.sudoInvocations
+	}
+
+	res[#res+1] = {
+		name = 'Setns Invocations',
+		desc = 'Number of times the setns system call has been called. Setns is typically used to "enter" in another container',
+		category = 'security',
+		targetView = 'dig',
+		targetViewTitle = 'Setns executions',
+		targetViewFilter = 'evt.type=setns',
+		data = gsummary.setnsInvocations
+	}
+
+	res[#res+1] = {
+		name = 'Received Signals',
+		desc = 'Number of unix signals that have been received by the processes on the system',
+		category = 'performance',
+		targetView = 'dig',
+		targetViewTitle = 'Received signals',
+		targetViewFilter = 'evt.type=signaldeliver',
+		data = gsummary.signalCount
+	}
+
+	res[#res+1] = {
+		name = 'Segmentation Faults',
+		desc = 'Number of process segfaults',
+		category = 'performance',
+		targetView = 'dig',
+		targetViewTitle = 'List of segfault events',
+		targetViewFilter = 'evt.type=signaldeliver and evt.arg.sig=SIGSEV',
+		data = gsummary.segfaultCount
 	}
 
 	resstr = json.encode(res, { indent = true })
