@@ -20,6 +20,9 @@ short_description = "wsysdig summary generator"
 category = "NA"
 hidden = true
 
+-- Imports and globals
+require "common"
+
 -- Chisel argument list
 args = {}
 
@@ -77,6 +80,9 @@ function reset_summary(s)
 	s.over1msFileIoCount = create_category_basic()
 	s.over10msFileIoCount = create_category_basic()
 	s.over100msFileIoCount = create_category_basic()
+	s.appLogCount = create_category_basic()
+	s.appLogCountW = create_category_basic()
+	s.appLogCountE = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -115,6 +121,18 @@ function is_system_dir(filename)
 		string.starts(filename, '/usr/sbin/') or
 		string.starts(filename, '/usr/share/') or
 		string.starts(filename, '/usr/lib')
+	then
+		return true
+	end
+
+	return false
+end
+
+function is_log_file(filename)
+	if(string.find(filename, '.log') or
+		string.find(filename, '_log') or
+		string.find(filename, '/var/log')) and
+		not (string.find(filename, '.gz') or string.find(filename, '.tgz'))
 	then
 		return true
 	end
@@ -202,6 +220,7 @@ function on_init()
 	ffdtype = chisel.request_field("fd.type")
 	fiswrite = chisel.request_field("evt.is_io_write")
 	fisread = chisel.request_field("evt.is_io_read")
+	fbuffer = chisel.request_field("evt.buffer")
 	fbuflen = chisel.request_field("evt.buflen")
 	fsport = chisel.request_field("fd.sport")
 	flport = chisel.request_field("fd.lport")
@@ -263,6 +282,26 @@ function on_event()
 
 							if is_system_dir(fdname) then
 								generate_io_stats(fdname, ssummary.sysFileCountW)
+							end
+
+							-- log metrics support
+							if is_log_file(fdname) then
+								local buf = evt.field(fbuffer)
+								local msgs = split(buf, "\n")
+
+								for i, msg in ipairs(msgs) do
+									if #msg ~= 0 then
+										ssummary.appLogCount.tot = ssummary.appLogCount.tot + 1
+
+										local ls = string.lower(msg)
+										
+										if ls.find(ls, "warn") ~= nil then
+											ssummary.appLogCountW.tot = ssummary.appLogCountW.tot + 1
+										elseif ls.find(msg, "err") or ls.find(msg, "critic") or ls.find(msg, "emergency") or ls.find(msg, "alert") then
+											ssummary.appLogCountE.tot = ssummary.appLogCountE.tot + 1
+										end
+									end
+								end
 							end
 						elseif isread then
 							ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
@@ -702,6 +741,35 @@ function build_output()
 		targetView = 'slow_io',
 		targetViewSortingCol = 1,
 		data = gsummary.over100msFileIoCount
+	}
+
+	res[#res+1] = {
+		name = 'Application Log Messages',
+		desc = 'Number of wrtites to application log files',
+		category = 'logs',
+		targetView = 'echo',
+		targetViewTitle = 'Application Log Messages',
+		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
+		targetViewSortingCol = 1,
+		data = gsummary.appLogCount
+	}
+
+	res[#res+1] = {
+		name = 'Application Log Warning Messages',
+		desc = 'Number of wrtites to application log files containing the word "warning"',
+		category = 'logs',
+		targetView = 'slow_io',
+		targetViewSortingCol = 1,
+		data = gsummary.appLogCountW
+	}
+
+	res[#res+1] = {
+		name = 'Application Log Error Messages',
+		desc = 'Number of wrtites to application log files containing the word "error"',
+		category = 'logs',
+		targetView = 'slow_io',
+		targetViewSortingCol = 1,
+		data = gsummary.appLogCountE
 	}
 
 	resstr = json.encode(res, { indent = true })
