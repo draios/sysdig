@@ -74,11 +74,13 @@ function reset_summary(s)
 	s.setnsInvocations = create_category_basic()
 	s.signalCount = create_category_basic()
 	s.segfaultCount = create_category_basic()
+	s.over1msFileIoCount = create_category_basic()
+	s.over10msFileIoCount = create_category_basic()
+	s.over100msFileIoCount = create_category_basic()
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
 	local time = sysdig.make_ts(ts_s, ts_ns)
-
 	for k, v in pairs(src) do
 		dst[k].tot = dst[k].tot + v.tot
 		if v.tot > dst[k].max then
@@ -206,6 +208,7 @@ function on_init()
 	ftypechar = chisel.request_field("fd.typechar")
 	fexe = chisel.request_field("evt.arg.exe")
 	fsignal = chisel.request_field("evt.arg.sig")
+	flatency = chisel.request_field("evt.latency")
 
 	print('{"slices": [')
 	return true
@@ -265,6 +268,20 @@ function on_event()
 							ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
 							ssummary.fileBytesR.tot = ssummary.fileBytesR.tot + buflen
 						end
+
+						local latency = evt.field(flatency)
+						if latency ~= nil and not string.starts(fdname, '/dev/') then
+							if latency > 100000000 then
+								ssummary.over100msFileIoCount.tot = ssummary.over100msFileIoCount.tot + 1
+							end
+							if latency > 10000000 then
+								ssummary.over10msFileIoCount.tot = ssummary.over10msFileIoCount.tot + 1
+							end
+							if latency > 1000000 then
+								ssummary.over1msFileIoCount.tot = ssummary.over1msFileIoCount.tot + 1
+							end
+						end
+						
 					elseif fdtype == 'ipv4' or fdtype == 'ipv6' then
 						local buflen = evt.field(fbuflen)
 						if buflen == nil then
@@ -349,7 +366,7 @@ function on_event()
 					end
 				end
 			elseif etype == 'signaldeliver' then
-				ssummary.signalCount.tot = 33
+				ssummary.signalCount.tot = ssummary.signalCount.tot + 1
 				local signal = evt.field(fsignal)
 				if signal == 'SIGSEGV' then
 					ssummary.segfaultCount.tot = ssummary.segfaultCount.tot + 1
@@ -660,6 +677,33 @@ function build_output()
 		targetViewTitle = 'List of segfault events',
 		targetViewFilter = 'evt.type=signaldeliver and evt.arg.sig=SIGSEV',
 		data = gsummary.segfaultCount
+	}
+
+	res[#res+1] = {
+		name = 'Slow File I/O calls (1ms+)',
+		desc = 'Number of file read or write calls that took more than 1ms to return',
+		category = 'performance',
+		targetView = 'slow_io',
+		targetViewSortingCol = 1,
+		data = gsummary.over1msFileIoCount
+	}
+
+	res[#res+1] = {
+		name = 'Slow File I/O calls (10ms+)',
+		desc = 'Number of file read or write calls that took more than 10ms to return',
+		category = 'performance',
+		targetView = 'slow_io',
+		targetViewSortingCol = 1,
+		data = gsummary.over10msFileIoCount
+	}
+
+	res[#res+1] = {
+		name = 'Slow File I/O calls (100ms+)',
+		desc = 'Number of file read or write calls that took more than 100ms to return',
+		category = 'performance',
+		targetView = 'slow_io',
+		targetViewSortingCol = 1,
+		data = gsummary.over100msFileIoCount
 	}
 
 	resstr = json.encode(res, { indent = true })
