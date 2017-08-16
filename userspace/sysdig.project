@@ -752,7 +752,6 @@
             </VirtualDirectory>
             <VirtualDirectory Name="include">
               <VirtualDirectory Name="curl">
-                <File Name="../build/release/curl-prefix/src/curl/include/curl/curlbuild.h"/>
                 <File Name="../build/release/curl-prefix/src/curl/include/curl/easy.h"/>
                 <File Name="../build/release/curl-prefix/src/curl/include/curl/stdcheaders.h"/>
                 <File Name="../build/release/curl-prefix/src/curl/include/curl/curlrules.h"/>
