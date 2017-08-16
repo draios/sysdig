@@ -26,6 +26,8 @@ require "common"
 -- Chisel argument list
 args = {}
 
+local g_disable_index = false	-- change this if you are working on this script and 
+							  	-- don't want to be bothered by indexing
 local json = require ("dkjson")
 local gsummary = {} -- The global summary
 local ssummary = {} -- Last sample's summary
@@ -238,15 +240,15 @@ function on_init()
 end
 
 function on_capture_start()
---[[
-	local dirname = sysdig.get_evtsource_name() .. '_wd_index'
-	local f = io.open(dirname .. '/summary.json', "r")
-	if f ~= nil then
-		f:close()
-		file_cache_exists = true
-		sysdig.end_capture()
+	if not g_disable_index then
+		local dirname = sysdig.get_evtsource_name() .. '_wd_index'
+		local f = io.open(dirname .. '/summary.json', "r")
+		if f ~= nil then
+			f:close()
+			file_cache_exists = true
+			sysdig.end_capture()
+		end
 	end
-]]--
 
 	parse_thread_table_startup()
 	return true
@@ -256,7 +258,6 @@ end
 -- Event callback
 -------------------------------------------------------------------------------
 function on_event()
---if true then return end
 	local dir = evt.field(fdir)
 
 	if dir ~= nil then
@@ -837,8 +838,7 @@ function on_capture_end(ts_s, ts_ns, delta)
 	local sstr = ''
 	local dirname = sysdig.get_evtsource_name() .. '_wd_index'
 
---	if file_cache_exists then
-if false then
+	if file_cache_exists and not g_disable_index then
 		local f = io.open(dirname .. '/summary.json', "r")
 		if f == nil then
 			print('{"progress": 100, "error": "can\'t read the trace file index" }')
