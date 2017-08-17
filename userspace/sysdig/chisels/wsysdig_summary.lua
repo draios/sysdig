@@ -26,7 +26,7 @@ require "common"
 -- Chisel argument list
 args = {}
 
-local g_disable_index = false	-- change this if you are working on this script and 
+local g_disable_index = true	-- change this if you are working on this script and 
 							  	-- don't want to be bothered by indexing
 local json = require ("dkjson")
 local gsummary = {} -- The global summary
@@ -92,6 +92,7 @@ end
 
 function add_summaries(ts_s, ts_ns, dst, src)
 	local time = sysdig.make_ts(ts_s, ts_ns)
+
 	for k, v in pairs(src) do
 		dst[k].tot = dst[k].tot + v.tot
 		if v.tot > dst[k].max then
@@ -103,7 +104,7 @@ function add_summaries(ts_s, ts_ns, dst, src)
 		if v.table ~= nil then
 			local dt = dst[k].table
 			for tk, tv in pairs(v.table) do
-				dt[tk] = 1
+				dt[tk] = tv
 			end
 		end
 	end
@@ -201,7 +202,7 @@ function parse_container_table()
 	local ctable = sysdig.get_container_table()
 
 	for k, v in pairs(ctable) do
-		data[v.id] = 1
+		data[v.id] = v.name
 		cnt = cnt + 1
 	end
 
@@ -488,9 +489,11 @@ function update_table_counts()
 end
 
 function build_output()
-	update_table_counts()
-
+	local ctable = copytable(gsummary.containerCount.table)
 	local res = {}
+	local jtable = {info={containers=ctable}, metrics=res}
+
+	update_table_counts()
 
 	res[#res+1] = {
 		name = 'Sysdig Secure Notifications',
@@ -770,7 +773,7 @@ function build_output()
 	}
 
 	res[#res+1] = {
-		name = 'Application Log Messages',
+		name = 'App Log Messages',
 		desc = 'Number of wrtites to application log files',
 		category = 'logs',
 		targetView = 'echo',
@@ -780,7 +783,7 @@ function build_output()
 	}
 
 	res[#res+1] = {
-		name = 'Application Log Warning Messages',
+		name = 'App Log Warning Messages',
 		desc = 'Number of writes to application log files containing the word "warning"',
 		category = 'logs',
 		targetView = 'echo',
@@ -790,7 +793,7 @@ function build_output()
 	}
 
 	res[#res+1] = {
-		name = 'Application Log Error Messages',
+		name = 'App Log Error Messages',
 		desc = 'Number of writes to application log files containing the word "error"',
 		category = 'logs',
 		targetView = 'echo',
@@ -829,7 +832,7 @@ function build_output()
 		data = gsummary.sysLogCountE
 	}
 
-	resstr = json.encode(res, { indent = true })
+	resstr = json.encode(jtable, { indent = true })
 	return resstr
 end
 
