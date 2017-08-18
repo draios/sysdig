@@ -161,7 +161,7 @@ function parse_thread_table_startup()
 	local data = {}
 	local cnt = 0
 
-	local ttable = sysdig.get_thread_table()
+	local ttable = sysdig.get_thread_table(sysdig.get_filter())
 
 	for k, v in pairs(ttable) do
 		for kf, vf in pairs(v.fdtable) do
@@ -182,7 +182,7 @@ end
 function parse_thread_table_interval()
 	local data = {}
 	local cnt = 0
-	local ttable = sysdig.get_thread_table(false)
+	local ttable = sysdig.get_thread_table_nofds(sysdig.get_filter())
 
 	for k, v in pairs(ttable) do
 		if v.tid == v.pid then
@@ -856,8 +856,8 @@ function on_capture_end(ts_s, ts_ns, delta)
 		sstr = build_output()
 
 		os.execute('rm -fr ' .. dirname .. " 2> /dev/null")
-		os.execute('mkdir ' .. dirname .. " 2> /dev/null")
 		os.execute('rmdir ' .. dirname .. " 2> nul")
+		os.execute('mkdir ' .. dirname .. " 2> /dev/null")
 		os.execute('md ' .. dirname .. " 2> nul")
 
 		local f = io.open(dirname .. '/summary.json', "w")

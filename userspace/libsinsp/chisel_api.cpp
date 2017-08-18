@@ -664,28 +664,31 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds)
 		string filterstr = lua_tostring(ls, 1);
 		lua_pop(ls, 1);
 
-		try
+		if(filterstr != "")
 		{
-			compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr, true);
-			filter = compiler->compile();
-		}
-		catch(sinsp_exception& e)
-		{
-			string err = "invalid filter argument for get_thread_table in chisel " + ch->m_filename + ": " + e.what();
-			fprintf(stderr, "%s\n", err.c_str());
-			throw sinsp_exception("chisel error");
-		}
+			try
+			{
+				compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr, true);
+				filter = compiler->compile();
+			}
+			catch(sinsp_exception& e)
+			{
+				string err = "invalid filter argument for get_thread_table in chisel " + ch->m_filename + ": " + e.what();
+				fprintf(stderr, "%s\n", err.c_str());
+				throw sinsp_exception("chisel error");
+			}
 
-		tscapevt.ts = 0;
-		tscapevt.type = PPME_SYSCALL_READ_X;
-		tscapevt.len = 0;
+			tscapevt.ts = 0;
+			tscapevt.type = PPME_SYSCALL_READ_X;
+			tscapevt.len = 0;
 
-		tevt.m_inspector = ch->m_inspector;
-		tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
-		tevt.m_pevt = NULL;
-		tevt.m_cpuid = 0;
-		tevt.m_evtnum = 0;
-		tevt.m_pevt = &tscapevt;
+			tevt.m_inspector = ch->m_inspector;
+			tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
+			tevt.m_pevt = NULL;
+			tevt.m_cpuid = 0;
+			tevt.m_evtnum = 0;
+			tevt.m_pevt = &tscapevt;
+		}
 	}
 
 	threadinfo_map_t* threadtable  = ch->m_inspector->m_thread_manager->get_threads();
@@ -1014,7 +1017,7 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 
 int lua_cbacks::get_thread_table_nofds(lua_State *ls)
 {
-	return get_thread_table_int(ls, true);
+	return get_thread_table_int(ls, false);
 }
 
 int lua_cbacks::get_container_table(lua_State *ls)
