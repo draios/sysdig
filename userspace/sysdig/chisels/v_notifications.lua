@@ -40,6 +40,12 @@ view_info =
 			colsize = 24,
 		},
 		{
+			tags = {"containers"},
+			name = "Container",
+			field = "container.name",
+			colsize = 20
+		},
+		{
 			name = "DESCRIPTION",
 			field = "evt.arg.desc",
 			description = "The description of the policy that generated this notification.",
