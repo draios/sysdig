@@ -1555,15 +1555,6 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 	lua_setglobal(m_ls, "sievt");
 
 	//
-	// If this is the first event, put the event pointer on the stack.
-	// We assume that the event pointer will never change.
-	//
-	if(m_lua_is_first_evt)
-	{
-		first_event_inits(evt);
-	}
-
-	//
 	// If there is a timeout callback, see if it's time to call it
 	//
 	do_timeout(evt);
@@ -1624,6 +1615,15 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 {
 	if(m_lua_is_first_evt)
 	{
+		//
+		// If this is the first event, put the event pointer on the stack.
+		// We assume that the event pointer will never change.
+		//
+		if(m_lua_is_first_evt)
+		{
+			first_event_inits(evt);
+		}
+
 		return;
 	}
 

@@ -857,6 +857,8 @@ function on_capture_end(ts_s, ts_ns, delta)
 
 		os.execute('rm -fr ' .. dirname .. " 2> /dev/null")
 		os.execute('mkdir ' .. dirname .. " 2> /dev/null")
+		os.execute('rmdir ' .. dirname .. " 2> nul")
+		os.execute('md ' .. dirname .. " 2> nul")
 
 		local f = io.open(dirname .. '/summary.json', "w")
 		if f == nil then
