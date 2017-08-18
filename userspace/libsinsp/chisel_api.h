@@ -45,6 +45,7 @@ public:
 	static int get_filter(lua_State *ls);
 	static int get_machine_info(lua_State *ls);
 	static int get_thread_table(lua_State *ls);
+	static int get_thread_table_nofds(lua_State *ls);
 	static int get_container_table(lua_State *ls);
 	static int is_print_container_data(lua_State *ls);
 	static int get_output_format(lua_State *ls);
@@ -60,6 +61,8 @@ public:
 #ifdef HAS_ANALYZER
 	static int push_metric(lua_State *ls);
 #endif
+private:
+	static int get_thread_table_int(lua_State *ls, bool include_fds);
 };
 
 #endif // HAS_CHISELS

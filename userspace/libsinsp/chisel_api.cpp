@@ -633,7 +633,7 @@ int lua_cbacks::get_machine_info(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_thread_table(lua_State *ls)
+int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds)
 {
 	threadinfo_map_iterator_t it;
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
@@ -643,7 +643,6 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	sinsp_evt tevt;
 	scap_evt tscapevt;
 	char ipbuf[128];
-	bool include_fds = true;
 
 	//
 	// Get the chisel state
@@ -687,10 +686,6 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 		tevt.m_cpuid = 0;
 		tevt.m_evtnum = 0;
 		tevt.m_pevt = &tscapevt;
-	}
-	else if(lua_isboolean(ls, 1))
-	{
-		include_fds = false;
 	}
 
 	threadinfo_map_t* threadtable  = ch->m_inspector->m_thread_manager->get_threads();
@@ -1010,6 +1005,16 @@ int lua_cbacks::get_thread_table(lua_State *ls)
 	}
 
 	return 1;
+}
+
+int lua_cbacks::get_thread_table(lua_State *ls)
+{
+	return get_thread_table_int(ls, true);
+}
+
+int lua_cbacks::get_thread_table_nofds(lua_State *ls)
+{
+	return get_thread_table_int(ls, true);
 }
 
 int lua_cbacks::get_container_table(lua_State *ls)

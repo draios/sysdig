@@ -108,6 +108,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{"get_filter", &lua_cbacks::get_filter},
 	{"get_machine_info", &lua_cbacks::get_machine_info},
 	{"get_thread_table", &lua_cbacks::get_thread_table},
+	{"get_thread_table_nofds", &lua_cbacks::get_thread_table_nofds},
 	{"get_container_table", &lua_cbacks::get_container_table},
 	{"is_print_container_data", &lua_cbacks::is_print_container_data},
 	{"get_output_format", &lua_cbacks::get_output_format},

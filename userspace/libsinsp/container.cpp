@@ -399,6 +399,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				// First lookup if the container exists in our table, otherwise only if we are live check if it has
 				// an entry in /var/lib/rkt. In capture mode only the former will be used.
 				// In live mode former will be used only if we already hit that container
+/*
 				if( m_containers.find(rkt_podid + ":" + rkt_appname) != m_containers.end() ||
 					(query_os_for_missing_info && access(image_manifest_path, F_OK) == 0)
 					)
@@ -409,6 +410,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					valid_id = true;
 					break;
 				}
+*/
 			}
 		}
 	}
