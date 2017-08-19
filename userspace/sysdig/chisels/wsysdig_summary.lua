@@ -551,6 +551,7 @@ function build_output()
 		desc = 'Number of files that have been accessed during the capture',
 		category = 'File',
 		targetView = 'files',
+		targetViewFilter = 'evt.is_io_write=true',
 		targetViewSortingCol = 2,
 		data = gsummary.fileCount
 	}
