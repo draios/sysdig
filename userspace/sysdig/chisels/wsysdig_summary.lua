@@ -513,13 +513,15 @@ function build_output()
 		}
 	end
 
-	res[#res+1] = {
-		name = 'Running Processes',
-		desc = 'Total number of processes that were running during the capture',
-		category = 'general',
-		targetView = 'procs',
-		data = gsummary.procCount
-	}
+	if should_include(gsummary.procCount) then
+		res[#res+1] = {
+			name = 'Running Processes',
+			desc = 'Total number of processes that were running during the capture',
+			category = 'general',
+			targetView = 'procs',
+			data = gsummary.procCount
+		}
+	end
 
 	if(sysdig.get_filter() == '' and should_include(gsummary.containerCount)) then
 		res[#res+1] = {
@@ -531,20 +533,22 @@ function build_output()
 		}
 	end
 
-	res[#res+1] = {
-		name = 'File Bytes In+Out',
-		desc = 'Amount of bytes read from or written to the file system',
-		category = 'File',
-		targetView = 'files',
-		targetViewSortingCol = 2,
-		data = gsummary.fileBytes
-	}
+	if should_include(gsummary.fileBytes) then
+		res[#res+1] = {
+			name = 'File Bytes In+Out',
+			desc = 'Amount of bytes read from or written to the file system',
+			category = 'file',
+			targetView = 'files',
+			targetViewSortingCol = 2,
+			data = gsummary.fileBytes
+		}
+	end
 
 	if should_include(gsummary.fileBytesR) then
 		res[#res+1] = {
 			name = 'File Bytes In',
 			desc = 'Amount of bytes read from the file system',
-			category = 'File',
+			category = 'file',
 			targetView = 'files',
 			targetViewSortingCol = 0,
 			data = gsummary.fileBytesR
@@ -555,7 +559,7 @@ function build_output()
 		res[#res+1] = {
 			name = 'File Bytes Out',
 			desc = 'Amount of bytes written to the file system',
-			category = 'File',
+			category = 'file',
 			targetView = 'files',
 			targetViewSortingCol = 1,
 			data = gsummary.fileBytesW
@@ -566,7 +570,7 @@ function build_output()
 		res[#res+1] = {
 			name = 'Accessed Files',
 			desc = 'Number of files that have been accessed during the capture',
-			category = 'File',
+			category = 'file',
 			targetView = 'files',
 			targetViewFilter = 'evt.is_io_write=true',
 			targetViewSortingCol = 2,
@@ -574,25 +578,15 @@ function build_output()
 		}
 	end
 
-	res[#res+1] = {
-		name = 'Modified Files',
-		desc = 'Number of files that have been accessed during the capture',
-		category = 'File',
-		targetView = 'files',
-		targetViewSortingCol = 1,
-		targetViewFilter = 'evt.is_io_write=true',
-		data = gsummary.fileCountW
-	}
-
-	if should_include(gsummary.sysFileCountW) then
+	if should_include(gsummary.fileCountW) then
 		res[#res+1] = {
-			name = 'Modified System Files',
+			name = 'Modified Files',
 			desc = 'Number of files that have been accessed during the capture',
-			category = 'security',
-			targetViewSortingCol = 1,
+			category = 'file',
 			targetView = 'files',
+			targetViewSortingCol = 1,
 			targetViewFilter = 'evt.is_io_write=true',
-			data = gsummary.sysFileCountW
+			data = gsummary.fileCountW
 		}
 	end
 
@@ -608,40 +602,36 @@ function build_output()
 		}
 	end
 
-	res[#res+1] = {
-		name = 'Net Bytes In+Out',
-		desc = 'Amount of bytes read from or written to the network',
-		category = 'network',
-		targetView = 'sports',
-		targetViewSortingCol = 4,
-		data = gsummary.netBytes
-	}
-
-	res[#res+1] = {
-		name = 'Net Bytes In',
-		desc = 'Amount of bytes read from the network',
-		category = 'network',
-		targetView = 'sports',
-		targetViewSortingCol = 2,
-		data = gsummary.netBytesR
-	}
-
-	res[#res+1] = {
-		name = 'Net Bytes Out',
-		desc = 'Amount of bytes written to the network',
-		category = 'network',
-		targetView = 'sports',
-		targetViewSortingCol = 3,
-		data = gsummary.netBytesW
-	}
-
-	if should_include(gsummary.SpawnedProcs) then
+	if should_include(gsummary.netBytes) then
 		res[#res+1] = {
-			name = 'Executed Commands',
-			desc = 'Number of new programs that have been executed during the observed interval',
-			category = 'security',
-			targetView = 'spy_users',
-			data = gsummary.SpawnedProcs
+			name = 'Net Bytes In+Out',
+			desc = 'Amount of bytes read from or written to the network',
+			category = 'network',
+			targetView = 'sports',
+			targetViewSortingCol = 4,
+			data = gsummary.netBytes
+		}
+	end
+
+	if should_include(gsummary.netBytesR) then
+		res[#res+1] = {
+			name = 'Net Bytes In',
+			desc = 'Amount of bytes read from the network',
+			category = 'network',
+			targetView = 'sports',
+			targetViewSortingCol = 2,
+			data = gsummary.netBytesR
+		}
+	end
+
+	if should_include(gsummary.netBytesW) then
+		res[#res+1] = {
+			name = 'Net Bytes Out',
+			desc = 'Amount of bytes written to the network',
+			category = 'network',
+			targetView = 'sports',
+			targetViewSortingCol = 3,
+			data = gsummary.netBytesW
 		}
 	end
 
@@ -689,15 +679,13 @@ function build_output()
 		}
 	end
 
-	if should_include(gsummary.fileDeletionsCount) then
+	if should_include(gsummary.SpawnedProcs) then
 		res[#res+1] = {
-			name = 'Deleted Files',
-			desc = 'Number of files that were deleted',
-			category = 'File',
-			targetView = 'dig',
-			targetViewTitle = 'File deletions',
-			targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
-			data = gsummary.fileDeletionsCount
+			name = 'Executed Commands',
+			desc = 'Number of new programs that have been executed during the observed interval',
+			category = 'security',
+			targetView = 'spy_users',
+			data = gsummary.SpawnedProcs
 		}
 	end
 
@@ -713,39 +701,27 @@ function build_output()
 		}
 	end
 
-	if should_include(gsummary.forkCount) then
+	if should_include(gsummary.sysFileCountW) then
 		res[#res+1] = {
-			name = 'Fork Count',
-			desc = 'Count of processes and threads that have been created',
-			category = 'Performance',
-			targetView = 'dig',
-			targetViewTitle = 'Clone executions',
-			targetViewFilter = 'evt.type=clone and evt.rawres=0',
-			data = gsummary.forkCount
+			name = 'Modified System Files',
+			desc = 'Number of files that have been accessed during the capture',
+			category = 'security',
+			targetViewSortingCol = 1,
+			targetView = 'files',
+			targetViewFilter = 'evt.is_io_write=true',
+			data = gsummary.sysFileCountW
 		}
 	end
 
-	if should_include(gsummary.openErrorCount) then
+	if should_include(gsummary.fileDeletionsCount) then
 		res[#res+1] = {
-			name = 'File Open Errors',
-			desc = 'Count of failed file opens',
-			category = 'Performance',
+			name = 'Deleted Files',
+			desc = 'Number of files that were deleted',
+			category = 'security',
 			targetView = 'dig',
-			targetViewTitle = 'Failed open() calls',
-			targetViewFilter = 'evt.type=open and evt.rawres<0',
-			data = gsummary.openErrorCount
-		}
-	end
-
-	if should_include(gsummary.connectErrorCount) then
-		res[#res+1] = {
-			name = 'Failed Connection Attempts',
-			desc = 'Count of failed network connect calls',
-			category = 'Performance',
-			targetView = 'dig',
-			targetViewTitle = 'Failed connect() calls',
-			targetViewFilter = 'evt.type=connect and (fd.type=ipv4 or fd.type=ipv6) and evt.rawres<0 and evt.res!=EINPROGRESS',
-			data = gsummary.connectErrorCount
+			targetViewTitle = 'File deletions',
+			targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
+			data = gsummary.fileDeletionsCount
 		}
 	end
 
@@ -770,6 +746,42 @@ function build_output()
 			targetViewTitle = 'Setns executions',
 			targetViewFilter = 'evt.type=setns',
 			data = gsummary.setnsInvocations
+		}
+	end
+
+	if should_include(gsummary.forkCount) then
+		res[#res+1] = {
+			name = 'Fork Count',
+			desc = 'Count of processes and threads that have been created',
+			category = 'performance',
+			targetView = 'dig',
+			targetViewTitle = 'Clone executions',
+			targetViewFilter = 'evt.type=clone and evt.rawres=0',
+			data = gsummary.forkCount
+		}
+	end
+
+	if should_include(gsummary.openErrorCount) then
+		res[#res+1] = {
+			name = 'File Open Errors',
+			desc = 'Count of failed file opens',
+			category = 'performance',
+			targetView = 'dig',
+			targetViewTitle = 'Failed open() calls',
+			targetViewFilter = 'evt.type=open and evt.rawres<0',
+			data = gsummary.openErrorCount
+		}
+	end
+
+	if should_include(gsummary.connectErrorCount) then
+		res[#res+1] = {
+			name = 'Failed Connection Attempts',
+			desc = 'Count of failed network connect calls',
+			category = 'performance',
+			targetView = 'dig',
+			targetViewTitle = 'Failed connect() calls',
+			targetViewFilter = 'evt.type=connect and (fd.type=ipv4 or fd.type=ipv6) and evt.rawres<0 and evt.res!=EINPROGRESS',
+			data = gsummary.connectErrorCount
 		}
 	end
 
