@@ -222,7 +222,7 @@ function on_init()
 	fetype = chisel.request_field("evt.type")
 	fdir = chisel.request_field("evt.dir")
 	frawres = chisel.request_field("evt.rawres")
-	ffdname = chisel.request_field("fd.name")
+	ffdname = chisel.request_field("fd.containername")
 	ffdtype = chisel.request_field("fd.type")
 	fiswrite = chisel.request_field("evt.is_io_write")
 	fisread = chisel.request_field("evt.is_io_read")
@@ -453,7 +453,7 @@ function on_interval(ts_s, ts_ns, delta)
 	parse_thread_table_interval()
 	parse_container_table()
 
---print(json.encode(ssummary.listeningPortCount, { indent = true }))
+--print(json.encode(ssummary.connectionCount, { indent = true }))
 	add_summaries(ts_s, ts_ns, gsummary, ssummary)
 	reset_summary(ssummary)
 
@@ -580,6 +580,7 @@ function build_output()
 		desc = 'Number of network connections that have been accessed during the capture',
 		category = 'Network',
 		targetView = 'connections',
+		targetViewFilter = 'evt.is_io=true',
 		targetViewSortingCol = 8,
 		data = gsummary.connectionCount
 	}
