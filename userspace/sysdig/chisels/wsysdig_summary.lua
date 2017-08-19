@@ -488,6 +488,14 @@ function update_table_counts()
 	end
 end
 
+function should_include(category)
+	if category.tot ~= 0 then
+		return true
+	else
+		return false
+	end
+end
+
 function build_output()
 	local ctable = copytable(gsummary.containerCount.table)
 	local res = {}
@@ -495,29 +503,33 @@ function build_output()
 
 	update_table_counts()
 
-	res[#res+1] = {
-		name = 'Sysdig Secure Notifications',
-		desc = 'Sysdig Secure notifications. Sysdig secure inserts a "notification" event in the capture stream each time a policy triggers. This metric counts the notifications. Chart it over time to compare the other metrics with the point in time where policies were triggered.',
-		category = 'General',
-		targetView = 'notifications',
-		data = gsummary.notifications
-	}
+	if should_include(gsummary.notifications) then
+		res[#res+1] = {
+			name = 'Sysdig Secure Notifications',
+			desc = 'Sysdig Secure notifications. Sysdig secure inserts a "notification" event in the capture stream each time a policy triggers. This metric counts the notifications. Chart it over time to compare the other metrics with the point in time where policies were triggered.',
+			category = 'general',
+			targetView = 'notifications',
+			data = gsummary.notifications
+		}
+	end
 
 	res[#res+1] = {
 		name = 'Running Processes',
 		desc = 'Total number of processes that were running during the capture',
-		category = 'General',
+		category = 'general',
 		targetView = 'procs',
 		data = gsummary.procCount
 	}
 
-	res[#res+1] = {
-		name = 'Running Containers',
-		desc = 'Total number of containers that were running during the capture',
-		category = 'General',
-		targetView = 'containers',
-		data = gsummary.containerCount
-	}
+	if(sysdig.get_filter() == '' and should_include(gsummary.containerCount)) then
+		res[#res+1] = {
+			name = 'Running Containers',
+			desc = 'Total number of containers that were running during the capture',
+			category = 'general',
+			targetView = 'containers',
+			data = gsummary.containerCount
+		}
+	end
 
 	res[#res+1] = {
 		name = 'File Bytes In+Out',
@@ -528,33 +540,39 @@ function build_output()
 		data = gsummary.fileBytes
 	}
 
-	res[#res+1] = {
-		name = 'File Bytes In',
-		desc = 'Amount of bytes read from the file system',
-		category = 'File',
-		targetView = 'files',
-		targetViewSortingCol = 0,
-		data = gsummary.fileBytesR
-	}
+	if should_include(gsummary.fileBytesR) then
+		res[#res+1] = {
+			name = 'File Bytes In',
+			desc = 'Amount of bytes read from the file system',
+			category = 'File',
+			targetView = 'files',
+			targetViewSortingCol = 0,
+			data = gsummary.fileBytesR
+		}
+	end
 
-	res[#res+1] = {
-		name = 'File Bytes Out',
-		desc = 'Amount of bytes written to the file system',
-		category = 'File',
-		targetView = 'files',
-		targetViewSortingCol = 1,
-		data = gsummary.fileBytesW
-	}
+	if should_include(gsummary.fileBytesW) then
+		res[#res+1] = {
+			name = 'File Bytes Out',
+			desc = 'Amount of bytes written to the file system',
+			category = 'File',
+			targetView = 'files',
+			targetViewSortingCol = 1,
+			data = gsummary.fileBytesW
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Accessed Files',
-		desc = 'Number of files that have been accessed during the capture',
-		category = 'File',
-		targetView = 'files',
-		targetViewFilter = 'evt.is_io_write=true',
-		targetViewSortingCol = 2,
-		data = gsummary.fileCount
-	}
+	if should_include(gsummary.fileCount) then
+		res[#res+1] = {
+			name = 'Accessed Files',
+			desc = 'Number of files that have been accessed during the capture',
+			category = 'File',
+			targetView = 'files',
+			targetViewFilter = 'evt.is_io_write=true',
+			targetViewSortingCol = 2,
+			data = gsummary.fileCount
+		}
+	end
 
 	res[#res+1] = {
 		name = 'Modified Files',
@@ -566,30 +584,34 @@ function build_output()
 		data = gsummary.fileCountW
 	}
 
-	res[#res+1] = {
-		name = 'Modified System Files',
-		desc = 'Number of files that have been accessed during the capture',
-		category = 'Security',
-		targetViewSortingCol = 1,
-		targetView = 'files',
-		targetViewFilter = 'evt.is_io_write=true',
-		data = gsummary.sysFileCountW
-	}
+	if should_include(gsummary.sysFileCountW) then
+		res[#res+1] = {
+			name = 'Modified System Files',
+			desc = 'Number of files that have been accessed during the capture',
+			category = 'security',
+			targetViewSortingCol = 1,
+			targetView = 'files',
+			targetViewFilter = 'evt.is_io_write=true',
+			data = gsummary.sysFileCountW
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Active Network Connections',
-		desc = 'Number of network connections that have been accessed during the capture',
-		category = 'Network',
-		targetView = 'connections',
-		targetViewFilter = 'evt.is_io=true',
-		targetViewSortingCol = 8,
-		data = gsummary.connectionCount
-	}
+	if should_include(gsummary.connectionCount) then
+		res[#res+1] = {
+			name = 'Active Network Connections',
+			desc = 'Number of network connections that have been accessed during the capture',
+			category = 'network',
+			targetView = 'connections',
+			targetViewFilter = 'evt.is_io=true',
+			targetViewSortingCol = 8,
+			data = gsummary.connectionCount
+		}
+	end
 
 	res[#res+1] = {
 		name = 'Net Bytes In+Out',
 		desc = 'Amount of bytes read from or written to the network',
-		category = 'Network',
+		category = 'network',
 		targetView = 'sports',
 		targetViewSortingCol = 4,
 		data = gsummary.netBytes
@@ -598,7 +620,7 @@ function build_output()
 	res[#res+1] = {
 		name = 'Net Bytes In',
 		desc = 'Amount of bytes read from the network',
-		category = 'Network',
+		category = 'network',
 		targetView = 'sports',
 		targetViewSortingCol = 2,
 		data = gsummary.netBytesR
@@ -607,232 +629,278 @@ function build_output()
 	res[#res+1] = {
 		name = 'Net Bytes Out',
 		desc = 'Amount of bytes written to the network',
-		category = 'Network',
+		category = 'network',
 		targetView = 'sports',
 		targetViewSortingCol = 3,
 		data = gsummary.netBytesW
 	}
 
-	res[#res+1] = {
-		name = 'Executed Commands',
-		desc = 'Number of new programs that have been executed during the observed interval',
-		category = 'Security',
-		targetView = 'spy_users',
-		data = gsummary.SpawnedProcs
-	}
+	if should_include(gsummary.SpawnedProcs) then
+		res[#res+1] = {
+			name = 'Executed Commands',
+			desc = 'Number of new programs that have been executed during the observed interval',
+			category = 'security',
+			targetView = 'spy_users',
+			data = gsummary.SpawnedProcs
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Listening Ports',
-		desc = 'Number of open ports on this system',
-		category = 'Network',
-		targetView = 'port_bindings',
-		data = gsummary.listeningPortCount
-	}
+	if should_include(gsummary.listeningPortCount) then
+		res[#res+1] = {
+			name = 'Listening Ports',
+			desc = 'Number of open ports on this system',
+			category = 'network',
+			targetView = 'port_bindings',
+			data = gsummary.listeningPortCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'New Listening Ports',
-		desc = 'Number of open ports that have been added during the observation interval',
-		category = 'Network',
-		targetView = 'port_bindings',
-		data = gsummary.newListeningPorts
-	}
+	if should_include(gsummary.newListeningPorts) then
+		res[#res+1] = {
+			name = 'New Listening Ports',
+			desc = 'Number of open ports that have been added during the observation interval',
+			category = 'network',
+			targetView = 'port_bindings',
+			data = gsummary.newListeningPorts
+		}
+	end
 
-	res[#res+1] = {
-		name = 'New Outbound Connections',
-		desc = 'New client network connections',
-		category = 'Network',
-		targetView = 'dig',
-		targetViewTitle = 'Connect events',
-		targetViewFilter = 'evt.type=connect and evt.dir=< and fd.sport exists',
-		data = gsummary.newConnectionsO
-	}
+	if should_include(gsummary.newConnectionsO) then
+		res[#res+1] = {
+			name = 'New Outbound Connections',
+			desc = 'New client network connections',
+			category = 'network',
+			targetView = 'dig',
+			targetViewTitle = 'Connect events',
+			targetViewFilter = 'evt.type=connect and evt.dir=< and fd.sport exists',
+			data = gsummary.newConnectionsO
+		}
+	end
 
-	res[#res+1] = {
-		name = 'New Inbound Connections',
-		desc = 'New server network connections',
-		category = 'Network',
-		targetView = 'dig',
-		targetViewTitle = 'Connect events',
-		targetViewFilter = 'evt.type=accept and evt.dir=< and fd.sport exists',
-		data = gsummary.newConnectionsI
-	}
+	if should_include(gsummary.newConnectionsI) then
+		res[#res+1] = {
+			name = 'New Inbound Connections',
+			desc = 'New server network connections',
+			category = 'network',
+			targetView = 'dig',
+			targetViewTitle = 'Connect events',
+			targetViewFilter = 'evt.type=accept and evt.dir=< and fd.sport exists',
+			data = gsummary.newConnectionsI
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Deleted Files',
-		desc = 'Number of files that were deleted',
-		category = 'File',
-		targetView = 'dig',
-		targetViewTitle = 'File deletions',
-		targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
-		data = gsummary.fileDeletionsCount
-	}
+	if should_include(gsummary.fileDeletionsCount) then
+		res[#res+1] = {
+			name = 'Deleted Files',
+			desc = 'Number of files that were deleted',
+			category = 'File',
+			targetView = 'dig',
+			targetViewTitle = 'File deletions',
+			targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
+			data = gsummary.fileDeletionsCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'New Symlinks',
-		desc = 'Number of new symbolic links that were created',
-		category = 'Security',
-		targetView = 'dig',
-		targetViewTitle = 'Symlink creations',
-		targetViewFilter = '(evt.type=symlink or evt.type=symlinkat) and evt.dir=< and evt.failed = false',
-		data = gsummary.newSymLinksCount
-	}
+	if should_include(gsummary.newSymLinksCount) then
+		res[#res+1] = {
+			name = 'New Symlinks',
+			desc = 'Number of new symbolic links that were created',
+			category = 'security',
+			targetView = 'dig',
+			targetViewTitle = 'Symlink creations',
+			targetViewFilter = '(evt.type=symlink or evt.type=symlinkat) and evt.dir=< and evt.failed = false',
+			data = gsummary.newSymLinksCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Fork Count',
-		desc = 'Count of processes and threads that have been created',
-		category = 'Performance',
-		targetView = 'dig',
-		targetViewTitle = 'Clone executions',
-		targetViewFilter = 'evt.type=clone and evt.rawres=0',
-		data = gsummary.forkCount
-	}
+	if should_include(gsummary.forkCount) then
+		res[#res+1] = {
+			name = 'Fork Count',
+			desc = 'Count of processes and threads that have been created',
+			category = 'Performance',
+			targetView = 'dig',
+			targetViewTitle = 'Clone executions',
+			targetViewFilter = 'evt.type=clone and evt.rawres=0',
+			data = gsummary.forkCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'File Open Errors',
-		desc = 'Count of failed file opens',
-		category = 'Performance',
-		targetView = 'dig',
-		targetViewTitle = 'Failed open() calls',
-		targetViewFilter = 'evt.type=open and evt.rawres<0',
-		data = gsummary.openErrorCount
-	}
+	if should_include(gsummary.openErrorCount) then
+		res[#res+1] = {
+			name = 'File Open Errors',
+			desc = 'Count of failed file opens',
+			category = 'Performance',
+			targetView = 'dig',
+			targetViewTitle = 'Failed open() calls',
+			targetViewFilter = 'evt.type=open and evt.rawres<0',
+			data = gsummary.openErrorCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Failed Connection Attempts',
-		desc = 'Count of failed network connect calls',
-		category = 'Performance',
-		targetView = 'dig',
-		targetViewTitle = 'Failed connect() calls',
-		targetViewFilter = 'evt.type=connect and (fd.type=ipv4 or fd.type=ipv6) and evt.rawres<0 and evt.res!=EINPROGRESS',
-		data = gsummary.connectErrorCount
-	}
+	if should_include(gsummary.connectErrorCount) then
+		res[#res+1] = {
+			name = 'Failed Connection Attempts',
+			desc = 'Count of failed network connect calls',
+			category = 'Performance',
+			targetView = 'dig',
+			targetViewTitle = 'Failed connect() calls',
+			targetViewFilter = 'evt.type=connect and (fd.type=ipv4 or fd.type=ipv6) and evt.rawres<0 and evt.res!=EINPROGRESS',
+			data = gsummary.connectErrorCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Sudo Invocations',
-		desc = 'Number of times the sudo program has been called',
-		category = 'security',
-		targetView = 'dig',
-		targetViewTitle = 'Sudo executions',
-		targetViewFilter = 'evt.type=execve and evt.arg.exe=sudo',
-		data = gsummary.sudoInvocations
-	}
+	if should_include(gsummary.sudoInvocations) then
+		res[#res+1] = {
+			name = 'Sudo Invocations',
+			desc = 'Number of times the sudo program has been called',
+			category = 'security',
+			targetView = 'dig',
+			targetViewTitle = 'Sudo executions',
+			targetViewFilter = 'evt.type=execve and evt.arg.exe=sudo',
+			data = gsummary.sudoInvocations
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Setns Invocations',
-		desc = 'Number of times the setns system call has been called. Setns is typically used to "enter" in another container',
-		category = 'security',
-		targetView = 'dig',
-		targetViewTitle = 'Setns executions',
-		targetViewFilter = 'evt.type=setns',
-		data = gsummary.setnsInvocations
-	}
+	if should_include(gsummary.setnsInvocations) then
+		res[#res+1] = {
+			name = 'Setns Invocations',
+			desc = 'Number of times the setns system call has been called. Setns is typically used to "enter" in another container',
+			category = 'security',
+			targetView = 'dig',
+			targetViewTitle = 'Setns executions',
+			targetViewFilter = 'evt.type=setns',
+			data = gsummary.setnsInvocations
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Received Signals',
-		desc = 'Number of unix signals that have been received by the processes on the system',
-		category = 'performance',
-		targetView = 'dig',
-		targetViewTitle = 'Received signals',
-		targetViewFilter = 'evt.type=signaldeliver',
-		data = gsummary.signalCount
-	}
+	if should_include(gsummary.signalCount) then
+		res[#res+1] = {
+			name = 'Received Signals',
+			desc = 'Number of unix signals that have been received by the processes on the system',
+			category = 'performance',
+			targetView = 'dig',
+			targetViewTitle = 'Received signals',
+			targetViewFilter = 'evt.type=signaldeliver',
+			data = gsummary.signalCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Segmentation Faults',
-		desc = 'Number of process segfaults',
-		category = 'performance',
-		targetView = 'dig',
-		targetViewTitle = 'List of segfault events',
-		targetViewFilter = 'evt.type=signaldeliver and evt.arg.sig=SIGSEV',
-		data = gsummary.segfaultCount
-	}
+	if should_include(gsummary.segfaultCount) then
+		res[#res+1] = {
+			name = 'Segmentation Faults',
+			desc = 'Number of process segfaults',
+			category = 'performance',
+			targetView = 'dig',
+			targetViewTitle = 'List of segfault events',
+			targetViewFilter = 'evt.type=signaldeliver and evt.arg.sig=SIGSEV',
+			data = gsummary.segfaultCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Slow File I/O calls (1ms+)',
-		desc = 'Number of file read or write calls that took more than 1ms to return',
-		category = 'performance',
-		targetView = 'slow_io',
-		targetViewSortingCol = 1,
-		data = gsummary.over1msFileIoCount
-	}
+	if should_include(gsummary.over1msFileIoCount) then
+		res[#res+1] = {
+			name = 'Slow File I/O calls (1ms+)',
+			desc = 'Number of file read or write calls that took more than 1ms to return',
+			category = 'performance',
+			targetView = 'slow_io',
+			targetViewSortingCol = 1,
+			data = gsummary.over1msFileIoCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Slow File I/O calls (10ms+)',
-		desc = 'Number of file read or write calls that took more than 10ms to return',
-		category = 'performance',
-		targetView = 'slow_io',
-		targetViewSortingCol = 1,
-		data = gsummary.over10msFileIoCount
-	}
+	if should_include(gsummary.over10msFileIoCount) then
+		res[#res+1] = {
+			name = 'Slow File I/O calls (10ms+)',
+			desc = 'Number of file read or write calls that took more than 10ms to return',
+			category = 'performance',
+			targetView = 'slow_io',
+			targetViewSortingCol = 1,
+			data = gsummary.over10msFileIoCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Slow File I/O calls (100ms+)',
-		desc = 'Number of file read or write calls that took more than 100ms to return',
-		category = 'performance',
-		targetView = 'slow_io',
-		targetViewSortingCol = 1,
-		data = gsummary.over100msFileIoCount
-	}
+	if should_include(gsummary.over100msFileIoCount) then
+		res[#res+1] = {
+			name = 'Slow File I/O calls (100ms+)',
+			desc = 'Number of file read or write calls that took more than 100ms to return',
+			category = 'performance',
+			targetView = 'slow_io',
+			targetViewSortingCol = 1,
+			data = gsummary.over100msFileIoCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'App Log Messages',
-		desc = 'Number of wrtites to application log files',
-		category = 'logs',
-		targetView = 'echo',
-		targetViewTitle = 'Application Log Messages',
-		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
-		data = gsummary.appLogCount
-	}
+	if should_include(gsummary.appLogCount) then
+		res[#res+1] = {
+			name = 'App Log Messages',
+			desc = 'Number of wrtites to application log files',
+			category = 'logs',
+			targetView = 'echo',
+			targetViewTitle = 'Application Log Messages',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
+			data = gsummary.appLogCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'App Log Warning Messages',
-		desc = 'Number of writes to application log files containing the word "warning"',
-		category = 'logs',
-		targetView = 'echo',
-		targetViewTitle = 'Warning Application Log Messages',
-		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and evt.buffer contains arning',
-		data = gsummary.appLogCountW
-	}
+	if should_include(gsummary.appLogCountW) then
+		res[#res+1] = {
+			name = 'App Log Warning Messages',
+			desc = 'Number of writes to application log files containing the word "warning"',
+			category = 'logs',
+			targetView = 'echo',
+			targetViewTitle = 'Warning Application Log Messages',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and evt.buffer contains arning',
+			data = gsummary.appLogCountW
+		}
+	end
 
-	res[#res+1] = {
-		name = 'App Log Error Messages',
-		desc = 'Number of writes to application log files containing the word "error"',
-		category = 'logs',
-		targetView = 'echo',
-		targetViewTitle = 'Error Application Log Messages',
-		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains rror or evt.buffer contains ritic or evt.buffer ergency rror or evt.buffer contains lert)',
-		data = gsummary.appLogCountE
-	}
+	if should_include(gsummary.appLogCountE) then
+		res[#res+1] = {
+			name = 'App Log Error Messages',
+			desc = 'Number of writes to application log files containing the word "error"',
+			category = 'logs',
+			targetView = 'echo',
+			targetViewTitle = 'Error Application Log Messages',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains rror or evt.buffer contains ritic or evt.buffer ergency rror or evt.buffer contains lert)',
+			data = gsummary.appLogCountE
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Syslog Messages',
-		desc = 'Number of entries written to syslog',
-		category = 'logs',
-		targetView = 'spy_syslog',
-		targetViewTitle = 'Syslog Messages',
---		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
-		data = gsummary.sysLogCount
-	}
+	if should_include(gsummary.sysLogCount) then
+		res[#res+1] = {
+			name = 'Syslog Messages',
+			desc = 'Number of entries written to syslog',
+			category = 'logs',
+			targetView = 'spy_syslog',
+			targetViewTitle = 'Syslog Messages',
+	--		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
+			data = gsummary.sysLogCount
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Syslog Warning Messages',
-		desc = 'Number of entries with severity WARNING written to syslog',
-		category = 'logs',
-		targetView = 'spy_syslog',
-		targetViewTitle = 'Syslog Messages',
-		targetViewFilter = 'syslog.severity=4',
-		data = gsummary.sysLogCountW
-	}
+	if should_include(gsummary.sysLogCountW) then
+		res[#res+1] = {
+			name = 'Syslog Warning Messages',
+			desc = 'Number of entries with severity WARNING written to syslog',
+			category = 'logs',
+			targetView = 'spy_syslog',
+			targetViewTitle = 'Syslog Messages',
+			targetViewFilter = 'syslog.severity=4',
+			data = gsummary.sysLogCountW
+		}
+	end
 
-	res[#res+1] = {
-		name = 'Syslog Error Messages',
-		desc = 'Number of entries with severity ERROR or lower written to syslog',
-		category = 'logs',
-		targetView = 'spy_syslog',
-		targetViewTitle = 'Syslog Messages',
-		targetViewFilter = 'syslog.severity<4',
-		data = gsummary.sysLogCountE
-	}
+	if should_include(gsummary.sysLogCountE) then
+		res[#res+1] = {
+			name = 'Syslog Error Messages',
+			desc = 'Number of entries with severity ERROR or lower written to syslog',
+			category = 'logs',
+			targetView = 'spy_syslog',
+			targetViewTitle = 'Syslog Messages',
+			targetViewFilter = 'syslog.severity<4',
+			data = gsummary.sysLogCountE
+		}
+	end
 
 	resstr = json.encode(jtable, { indent = true })
 	return resstr
