@@ -295,6 +295,7 @@ public:
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_prev_flush_time_ns;
 	uint64_t m_refresh_interval_ns;
+	vector<ppm_param_type>* m_types;
 
 private:
 	inline void add_row(bool merging);
@@ -320,7 +321,6 @@ private:
 	vector<sinsp_filter_check*> m_postmerge_extractors;
 	vector<sinsp_filter_check*>* m_extractors;
 	vector<sinsp_filter_check*> m_chks_to_free;
-	vector<ppm_param_type>* m_types;
 	vector<ppm_param_type> m_premerge_types;
 	vector<ppm_param_type> m_postmerge_types;
 	bool m_is_key_present;

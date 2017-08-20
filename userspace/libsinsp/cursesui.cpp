@@ -1373,6 +1373,8 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 			Json::Value jcinfo;
 
 			jcinfo["name"] = colnames[j];
+			jcinfo["type"] = param_type_to_string(m_datatable->m_types->at(j));
+
 			jlegend.append(jcinfo);
 		}
 	}
