@@ -814,9 +814,6 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 	if (flags & CLONE_CHILD_SETTID)
 		res |= PPM_CL_CLONE_CHILD_SETTID;
 
-	if (flags & SIGCHLD)
-		res |= PPM_CL_SIGCHLD;
-
 	if (flags & CLONE_SETTLS)
 		res |= PPM_CL_CLONE_SETTLS;
 
