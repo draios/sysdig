@@ -941,20 +941,22 @@ function on_capture_end(ts_s, ts_ns, delta)
 		add_summaries(ts_s, ts_ns, gsummary, ssummary)
 		sstr = build_output()
 
-		os.execute('rm -fr ' .. dirname .. " 2> /dev/null")
-		os.execute('rmdir ' .. dirname .. " 2> nul")
-		os.execute('mkdir ' .. dirname .. " 2> /dev/null")
-		os.execute('md ' .. dirname .. " 2> nul")
+		if not g_disable_index then
+			os.execute('rm -fr ' .. dirname .. " 2> /dev/null")
+			os.execute('rmdir ' .. dirname .. " 2> nul")
+			os.execute('mkdir ' .. dirname .. " 2> /dev/null")
+			os.execute('md ' .. dirname .. " 2> nul")
 
-		local f = io.open(dirname .. '/summary.json', "w")
-		if f == nil then
-			print('{"progress": 100, "error": "can\'t create the trace file index" }')
-			print(']}')
-			return false
+			local f = io.open(dirname .. '/summary.json', "w")
+			if f == nil then
+				print('{"progress": 100, "error": "can\'t create the trace file index" }')
+				print(']}')
+				return false
+			end
+
+			f:write(sstr)
+			f:close()
 		end
-
-		f:write(sstr)
-		f:close()
 	end
 
 	print('{"progress": 100, "data": '.. sstr ..'}')
