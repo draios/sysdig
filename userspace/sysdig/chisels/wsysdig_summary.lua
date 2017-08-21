@@ -41,53 +41,53 @@ end
 -------------------------------------------------------------------------------
 -- Summary handling helpers
 -------------------------------------------------------------------------------
-function create_category_basic()
-	return {tot=0, max=0, timeLine={}}
+function create_category_basic(excludable, noteworthy)
+	return {tot=0, max=0, timeLine={}, excludable=excludable, noteworthy=noteworthy}
 end
 
-function create_category_table()
-	return {tot=0, max=0, timeLine={}, table={}}
+function create_category_table(excludable, noteworthy)
+	return {tot=0, max=0, timeLine={}, table={}, excludable=excludable, noteworthy=noteworthy}
 end
 
 function reset_summary(s)
-	s.SpawnedProcs = create_category_basic()
-	s.procCount = create_category_table()
-	s.containerCount = create_category_table()
-	s.fileCount = create_category_table()
-	s.fileBytes = create_category_basic()
-	s.fileBytesR = create_category_basic()
-	s.fileBytesW = create_category_basic()
-	s.fileCountW = create_category_table()
-	s.sysFileCountW = create_category_table()
-	s.connectionCount = create_category_table()
-	s.netBytes = create_category_basic()
-	s.netBytesR = create_category_basic()
-	s.netBytesW = create_category_basic()
-	s.notifications = create_category_basic()
+	s.SpawnedProcs = create_category_basic(true, false)
+	s.procCount = create_category_table(false, false)
+	s.containerCount = create_category_table(false, false)
+	s.fileCount = create_category_table(true, false)
+	s.fileBytes = create_category_basic(false, false)
+	s.fileBytesR = create_category_basic(false, false)
+	s.fileBytesW = create_category_basic(false, false)
+	s.fileCountW = create_category_table(true, false)
+	s.sysFileCountW = create_category_table(true, true)
+	s.connectionCount = create_category_table(true, false)
+	s.netBytes = create_category_basic(false, false)
+	s.netBytesR = create_category_basic(false, false)
+	s.netBytesW = create_category_basic(false, false)
+	s.notifications = create_category_basic(true, true)
 	if s.listeningPortCount == nil then
-		s.listeningPortCount = create_category_table()
+		s.listeningPortCount = create_category_table(true, false)
 	end
-	s.newConnectionsO = create_category_basic()
-	s.newConnectionsI = create_category_basic()
-	s.newListeningPorts = create_category_basic()
-	s.fileDeletionsCount = create_category_basic()
-	s.newSymLinksCount = create_category_basic()
-	s.forkCount = create_category_basic()
-	s.openErrorCount = create_category_basic()
-	s.connectErrorCount = create_category_basic()
-	s.sudoInvocations = create_category_basic()
-	s.setnsInvocations = create_category_basic()
-	s.signalCount = create_category_basic()
-	s.segfaultCount = create_category_basic()
-	s.over1msFileIoCount = create_category_basic()
-	s.over10msFileIoCount = create_category_basic()
-	s.over100msFileIoCount = create_category_basic()
-	s.appLogCount = create_category_basic()
-	s.appLogCountW = create_category_basic()
-	s.appLogCountE = create_category_basic()
-	s.sysLogCount = create_category_basic()
-	s.sysLogCountW = create_category_basic()
-	s.sysLogCountE = create_category_basic()
+	s.newConnectionsO = create_category_basic(true, false)
+	s.newConnectionsI = create_category_basic(true, false)
+	s.newListeningPorts = create_category_basic(true, true)
+	s.fileDeletionsCount = create_category_basic(true, true)
+	s.newSymLinksCount = create_category_basic(true, true)
+	s.forkCount = create_category_basic(true, false)
+	s.openErrorCount = create_category_basic(true, false)
+	s.connectErrorCount = create_category_basic(true, true)
+	s.sudoInvocations = create_category_basic(true, true)
+	s.setnsInvocations = create_category_basic(true, true)
+	s.signalCount = create_category_basic(true, false)
+	s.segfaultCount = create_category_basic(true, true)
+	s.over1msFileIoCount = create_category_basic(true, false)
+	s.over10msFileIoCount = create_category_basic(true, false)
+	s.over100msFileIoCount = create_category_basic(true, false)
+	s.appLogCount = create_category_basic(false, false)
+	s.appLogCountW = create_category_basic(false, false)
+	s.appLogCountE = create_category_basic(false, true)
+	s.sysLogCount = create_category_basic(false, false)
+	s.sysLogCountW = create_category_basic(false, false)
+	s.sysLogCountE = create_category_basic(false, true)
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -489,10 +489,14 @@ function update_table_counts()
 end
 
 function should_include(category)
-	if category.tot ~= 0 then
-		return true
+	if category.excludable then
+		if category.tot ~= 0 then
+			return true
+		else
+			return false
+		end
 	else
-		return false
+		return true
 	end
 end
 
