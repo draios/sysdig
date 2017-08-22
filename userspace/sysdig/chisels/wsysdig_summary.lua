@@ -222,7 +222,8 @@ function on_init()
 	fetype = chisel.request_field("evt.type")
 	fdir = chisel.request_field("evt.dir")
 	frawres = chisel.request_field("evt.rawres")
-	ffdname = chisel.request_field("fd.containername")
+	ffdcontname = chisel.request_field("fd.containername")
+	ffdname = chisel.request_field("fd.name")
 	ffdtype = chisel.request_field("fd.type")
 	fiswrite = chisel.request_field("evt.is_io_write")
 	fisread = chisel.request_field("evt.is_io_read")
@@ -267,6 +268,7 @@ function on_event()
 			local etype = evt.field(fetype)
 
 			if rawres ~= nil and rawres >= 0 then
+				local fdcontname = evt.field(ffdcontname)
 				local fdname = evt.field(ffdname)
 				local fdtype = evt.field(ffdtype)
 				local iswrite = evt.field(fiswrite)
@@ -279,10 +281,10 @@ function on_event()
 							buflen = 0
 						end
 						
-						generate_io_stats(fdname, ssummary.fileCount)
+						generate_io_stats(fdcontname, ssummary.fileCount)
 
 						if iswrite then
-							generate_io_stats(fdname, ssummary.fileCountW)
+							generate_io_stats(fdcontname, ssummary.fileCountW)
 							ssummary.fileBytes.tot = ssummary.fileBytes.tot + buflen
 							ssummary.fileBytesW.tot = ssummary.fileBytesW.tot + buflen
 
@@ -341,7 +343,7 @@ function on_event()
 							buflen = 0
 						end
 
-						generate_io_stats(fdname, ssummary.connectionCount)
+						generate_io_stats(fdcontname, ssummary.connectionCount)
 
 						if iswrite then
 							ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
