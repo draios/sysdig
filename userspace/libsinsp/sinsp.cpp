@@ -1952,7 +1952,7 @@ void sinsp::collect_k8s()
 					g_logger.log("K8s updating state ...", sinsp_logger::SEV_DEBUG);
 					uint64_t delta = sinsp_utils::get_current_time_ns();
 					m_k8s_client->watch();
-					m_parser->schedule_k8s_events(&m_meta_evt);
+					m_parser->schedule_k8s_events();
 					delta = sinsp_utils::get_current_time_ns() - delta;
 					g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
 				}
@@ -2145,7 +2145,7 @@ void sinsp::update_mesos_state()
 			uint64_t delta = sinsp_utils::get_current_time_ns();
 			if(m_parser && get_mesos_data())
 			{
-				m_parser->schedule_mesos_events(&m_meta_evt);
+				m_parser->schedule_mesos_events();
 				delta = sinsp_utils::get_current_time_ns() - delta;
 				g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Mesos state took %" PRIu64 " ms", delta / 1000000LL);
 			}
