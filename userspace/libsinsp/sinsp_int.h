@@ -137,4 +137,5 @@ public:
 	virtual void on_clone(sinsp_evt* evt, sinsp_threadinfo* newtinfo) = 0;
 	virtual void on_bind(sinsp_evt* evt) = 0;
 	virtual void on_new_container(const sinsp_container_info& container_info) = 0;
+	virtual void on_remove_container(const sinsp_container_info& container_info) = 0;
 };

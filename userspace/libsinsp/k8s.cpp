@@ -22,7 +22,8 @@ k8s::k8s(const std::string& uri, bool is_captured,
 		bool block,
 #endif // HAS_CAPTURE
 		filter_ptr_t event_filter,
-		ext_list_ptr_t extensions) :
+		ext_list_ptr_t extensions,
+		bool events_only) :
 		m_state(is_captured),
 		m_event_filter(event_filter)
 #ifdef HAS_CAPTURE
@@ -35,6 +36,11 @@ k8s::k8s(const std::string& uri, bool is_captured,
 							 sinsp_logger::SEV_DEBUG);
 	if(m_components.empty())
 	{
+		if(events_only)
+		{
+			m_components.insert({ k8s_component::K8S_EVENTS, "events"});
+			return;
+		}
 		m_components.insert({ k8s_component::K8S_NODES,                  "nodes"                  });
 		m_components.insert({ k8s_component::K8S_NAMESPACES,             "namespaces"             });
 		m_components.insert({ k8s_component::K8S_PODS,                   "pods"                   });
