@@ -630,18 +630,6 @@ function build_output()
 		}
 	end
 
-	if should_include(gsummary.connectionCount) then
-		res[#res+1] = {
-			name = 'Active Network Connections',
-			desc = 'Number of network connections that have been accessed during the capture',
-			category = 'network',
-			targetView = 'connections',
-			targetViewFilter = 'evt.is_io=true',
-			targetViewSortingCol = 8,
-			data = gsummary.connectionCount
-		}
-	end
-
 	if should_include(gsummary.netBytes) then
 		res[#res+1] = {
 			name = 'Net Bytes In+Out',
@@ -675,6 +663,18 @@ function build_output()
 		}
 	end
 
+	if should_include(gsummary.connectionCount) then
+		res[#res+1] = {
+			name = 'Active Network Connections',
+			desc = 'Number of network connections that have been accessed during the capture',
+			category = 'network',
+			targetView = 'connections',
+			targetViewFilter = 'evt.is_io=true',
+			targetViewSortingCol = 8,
+			data = gsummary.connectionCount
+		}
+	end
+	
 	if should_include(gsummary.listeningPortCount) then
 		res[#res+1] = {
 			name = 'Listening Ports',
