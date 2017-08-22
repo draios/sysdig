@@ -24,20 +24,36 @@ hidden = true
 require "common"
 
 -- Chisel argument list
-args = {}
+args =
+{
+	{
+		name = "file_duration",
+		description = "The number of events in the file. If this argument is not specified, the chisel will just scan the file, compute the number of events and then relaunch itself with the number as argument.",
+		argtype = "int",
+		optional = true
+	}
+}
 
-local g_disable_index = true	-- change this if you are working on this script and 
+local disable_index = true	-- change this if you are working on this script and 
 							  	-- don't want to be bothered by indexing
+local n_samples = 350
 local json = require ("dkjson")
 local gsummary = {} -- The global summary
 local ssummary = {} -- Last sample's summary
 local nintervals = 0
 local file_cache_exists = false
+local arg_file_duration = nil
+local evtcnt = 0
 
+-- Argument notification callback
 function on_set_arg(name, val)
+	if name == "file_duration" then
+		arg_file_duration = val
+		return true
+	end
+
 	return false
 end
-
 -------------------------------------------------------------------------------
 -- Summary handling helpers
 -------------------------------------------------------------------------------
@@ -212,8 +228,17 @@ end
 -------------------------------------------------------------------------------
 -- Initialization callbacks
 -------------------------------------------------------------------------------
-function on_init()	
-    chisel.set_interval_ns(100000000)
+function on_init()
+	if arg_file_duration == nil then
+		freltime = chisel.request_field("evt.reltime")
+		return true
+	end
+
+    chisel.set_interval_ns(arg_file_duration / n_samples)
+	percent_update_sample_period = math.floor(n_samples / 100 * 3)
+	if percent_update_sample_period < 2 then
+		percent_update_sample_period = 1
+	end
 
     reset_summary(gsummary)
     reset_summary(ssummary)
@@ -242,7 +267,11 @@ function on_init()
 end
 
 function on_capture_start()
-	if not g_disable_index then
+	if arg_file_duration == nil then
+		return true
+	end
+
+	if not disable_index then
 		local dirname = sysdig.get_evtsource_name() .. '_wd_index'
 		local f = io.open(dirname .. '/summary.json', "r")
 		if f ~= nil then
@@ -260,6 +289,11 @@ end
 -- Event callback
 -------------------------------------------------------------------------------
 function on_event()
+	if arg_file_duration == nil then
+		evtcnt = evtcnt + 1
+		return true
+	end
+
 	local dir = evt.field(fdir)
 
 	if dir ~= nil then
@@ -459,7 +493,7 @@ function on_interval(ts_s, ts_ns, delta)
 	add_summaries(ts_s, ts_ns, gsummary, ssummary)
 	reset_summary(ssummary)
 
-	if nintervals % 20 == 0 then
+	if nintervals % percent_update_sample_period == 0 then
 		print('{"progress": ' .. sysdig.get_read_progress() .. ' },')
 		io.flush(stdout)
 	end
@@ -926,10 +960,16 @@ end
 
 -- Callback called by the engine at the end of the capture
 function on_capture_end(ts_s, ts_ns, delta)
+	if arg_file_duration == nil then
+		local reltime = evt.field(freltime)
+		sysdig.run_sysdig('-r ' .. sysdig.get_evtsource_name() .. ' -c wsysdig_summary ' .. reltime)
+		return true
+	end
+
 	local sstr = ''
 	local dirname = sysdig.get_evtsource_name() .. '_wd_index'
 
-	if file_cache_exists and not g_disable_index then
+	if file_cache_exists and not disable_index then
 		local f = io.open(dirname .. '/summary.json', "r")
 		if f == nil then
 			print('{"progress": 100, "error": "can\'t read the trace file index" }')
@@ -943,7 +983,7 @@ function on_capture_end(ts_s, ts_ns, delta)
 		add_summaries(ts_s, ts_ns, gsummary, ssummary)
 		sstr = build_output()
 
-		if not g_disable_index then
+		if not disable_index then
 			os.execute('rm -fr ' .. dirname .. " 2> /dev/null")
 			os.execute('rmdir ' .. dirname .. " 2> nul")
 			os.execute('mkdir ' .. dirname .. " 2> /dev/null")
