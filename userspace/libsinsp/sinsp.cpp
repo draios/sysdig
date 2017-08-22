@@ -63,7 +63,6 @@ sinsp::sinsp() :
 	m_dumper = NULL;
 	m_is_dumping = false;
 	m_metaevt = NULL;
-	m_skipped_evt = NULL;
 	m_meinfo.m_piscapevt = NULL;
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
@@ -849,12 +848,6 @@ void sinsp::add_meta_event(sinsp_evt *metaevt)
 	m_metaevt = metaevt;
 }
 
-void sinsp::add_meta_event_and_repeat(sinsp_evt *metaevt)
-{
-	m_metaevt = metaevt;
-	m_skipped_evt = &m_evt;
-}
-
 void sinsp::add_meta_event_callback(meta_event_callback cback, void* data)
 {
 	m_meta_event_callback = cback;
@@ -941,16 +934,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		res = SCAP_SUCCESS;
 		evt = m_metaevt;
-
-		if(m_skipped_evt)
-		{
-			m_metaevt = m_skipped_evt;
-			m_skipped_evt = NULL;
-		}
-		else
-		{
-			m_metaevt = NULL;
-		}
+		m_metaevt = NULL;
 
 		if(m_meta_event_callback != NULL)
 		{
