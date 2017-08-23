@@ -34,8 +34,7 @@ args =
 	}
 }
 
-local disable_index = true	-- change this if you are working on this script and 
-							  	-- don't want to be bothered by indexing
+local disable_index = false	-- change this if you are working on this script and don't want to be bothered by indexing
 local n_samples = 350
 local json = require ("dkjson")
 local gsummary = {} -- The global summary
@@ -44,6 +43,8 @@ local nintervals = 0
 local file_cache_exists = false
 local arg_file_duration = nil
 local evtcnt = 0
+local index_format_version = 1	-- Increase this if the content or the format of the output changes.
+								-- An increase in this number will cause existing indexes to be discharged.
 
 -- Argument notification callback
 function on_set_arg(name, val)
@@ -273,11 +274,15 @@ function on_capture_start()
 
 	if not disable_index then
 		local dirname = sysdig.get_evtsource_name() .. '_wd_index'
-		local f = io.open(dirname .. '/summary.json', "r")
+		local f = io.open(dirname .. '/VERSION', "r")
 		if f ~= nil then
+			local version = tonumber(f:read "*all")
 			f:close()
-			file_cache_exists = true
-			sysdig.end_capture()
+
+			if version == index_format_version then
+				file_cache_exists = true
+				sysdig.end_capture()
+			end
 		end
 	end
 
@@ -539,7 +544,7 @@ end
 function build_output()
 	local ctable = copytable(gsummary.containerCount.table)
 	local res = {}
-	local jtable = {info={containers=ctable}, metrics=res}
+	local jtable = {info={IndexFormatVersion=index_format_version, containers=ctable}, metrics=res}
 
 	update_table_counts()
 
@@ -674,7 +679,7 @@ function build_output()
 			data = gsummary.connectionCount
 		}
 	end
-	
+
 	if should_include(gsummary.listeningPortCount) then
 		res[#res+1] = {
 			name = 'Listening Ports',
@@ -989,6 +994,7 @@ function on_capture_end(ts_s, ts_ns, delta)
 			os.execute('mkdir ' .. dirname .. " 2> /dev/null")
 			os.execute('md ' .. dirname .. " 2> nul")
 
+			-- Save the data
 			local f = io.open(dirname .. '/summary.json', "w")
 			if f == nil then
 				print('{"progress": 100, "error": "can\'t create the trace file index" }')
@@ -998,6 +1004,17 @@ function on_capture_end(ts_s, ts_ns, delta)
 
 			f:write(sstr)
 			f:close()
+
+			-- Save the index version
+			local fv = io.open(dirname .. '/VERSION', "w")
+			if fv == nil then
+				print('{"progress": 100, "error": "can\'t create the trace file index" }')
+				print(']}')
+				return false
+			end
+
+			fv:write(index_format_version)
+			fv:close()
 		end
 	end
 
