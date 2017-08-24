@@ -3662,6 +3662,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(fdinfo != NULL)
 			{
 				if(fdinfo->m_type == SCAP_FD_FILE ||
+					fdinfo->m_type == SCAP_FD_FILE_V2 ||
 					fdinfo->m_type == SCAP_FD_DIRECTORY)
 				{
 					return extract_error_count(evt, len);
@@ -3730,6 +3731,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(fdinfo != NULL)
 			{
 				if(!(fdinfo->m_type == SCAP_FD_FILE ||
+					fdinfo->m_type == SCAP_FD_FILE_V2 ||
 					fdinfo->m_type == SCAP_FD_DIRECTORY ||
 					fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
 					fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
@@ -3818,7 +3820,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE:
 		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -3828,7 +3830,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE_IN:
 		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -3838,7 +3840,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE_OUT:
 		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -5418,8 +5420,8 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "true for containers running as privileged, false otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mounts", "A space-separated list of mount information. Each item in the list has the format <source>:<dest>:<mode>:<rdrw>:<propagation>"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount", "Information about a single mount, specified by number (e.g. container.mount[0]) or mount source (container.mount[/usr/local]). The pathname can be a glob (container.mount[/usr/local/*]), in which case the first matching mount will be returned. The information has the format <source>:<dest>:<mode>:<rdrw>:<propagation>. If there is no mount with the specified index or matching the provided source, returns the string \"none\" instead of a NULL value."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.source", "the mount source, specified by number (e.g. container.mount.dest[0]) or mount destination (container.mount.source[/usr/local]). The pathname can be a glob."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.dest", "the mount destination, specified by number (e.g. container.mount.dest[0]) or mount source (container.mount.dest[/usr/local]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.source", "the mount source, specified by number (e.g. container.mount.source[0]) or mount destination (container.mount.source[/host/lib/modules]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.dest", "the mount destination, specified by number (e.g. container.mount.dest[0]) or mount source (container.mount.dest[/lib/modules]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.mode", "the mount mode, specified by number (e.g. container.mount.mode[0]) or mount source (container.mount.mode[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.rdwr", "the mount rdwr value, specified by number (e.g. container.mount.rdwr[0]) or mount source (container.mount.rdwr[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.propagation", "the mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob."}
@@ -5456,7 +5458,7 @@ int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t base
 	try
 	{
 		m_argid = sinsp_numparser::parsed32(numstr);
-	} catch (sinsp_exception e)
+	} catch (sinsp_exception &e)
 	{
 		if(strstr(e.what(), "is not a valid number") == NULL)
 		{

@@ -1511,6 +1511,18 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	evt->m_tinfo->m_pid = *(uint64_t *)parinfo->m_val;
 
+	//
+	// In case this thread is a fake entry,
+	// try to at least patch the parent, since
+	// we have it from the execve event
+	//
+	if(evt->m_tinfo->m_ptid == -1)
+	{
+		parinfo = evt->get_param(5);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;	
+	}
+
 	// Get the fdlimit
 	parinfo = evt->get_param(7);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
@@ -1918,7 +1930,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		}
 		else
 		{
-			fdi.m_type = SCAP_FD_FILE;
+			fdi.m_type = SCAP_FD_FILE_V2;
 		}
 
 		fdi.m_openflags = flags;

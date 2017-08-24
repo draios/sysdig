@@ -86,13 +86,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_O_WRONLY	(1 << 1)	/* Open for writing only */
 #define PPM_O_RDWR	(PPM_O_RDONLY | PPM_O_WRONLY)	/* Open for reading and writing */
 #define PPM_O_CREAT	(1 << 2)	/* Create a new file if it doesn't exist. */
-#define PPM_O_APPEND (1 << 3)	/* If set, the file offset shall be set to the end of the file prior to each write. */
+#define PPM_O_APPEND	(1 << 3)	/* If set, the file offset shall be set to the end of the file prior to each write. */
 #define PPM_O_DSYNC	(1 << 4)
 #define PPM_O_EXCL	(1 << 5)
 #define PPM_O_NONBLOCK	(1 << 6)
 #define PPM_O_SYNC	(1 << 7)
 #define PPM_O_TRUNC	(1 << 8)
-#define PPM_O_DIRECT (1 << 9)
+#define PPM_O_DIRECT	(1 << 9)
 #define PPM_O_DIRECTORY (1 << 10)
 #define PPM_O_LARGEFILE (1 << 11)
 #define PPM_O_CLOEXEC	(1 << 12)

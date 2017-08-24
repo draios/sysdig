@@ -435,7 +435,7 @@ void sinsp::open_nodriver()
 {
 	char error[SCAP_LASTERR_SIZE];
 
-	g_logger.log("starting nodriver sinsp");
+	g_logger.log("starting optimized sinsp");
 
 	//
 	// Reset the thread manager
