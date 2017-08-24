@@ -35,7 +35,7 @@ args =
 }
 
 local disable_index = false	-- change this if you are working on this script and don't want to be bothered by indexing
-local n_samples = 350
+local n_samples = 400
 local json = require ("dkjson")
 local gsummary = {} -- The global summary
 local ssummary = {} -- Last sample's summary
