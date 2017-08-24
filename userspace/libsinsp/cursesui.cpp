@@ -1366,6 +1366,11 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 
 		jinfo["sortingCol"] = wi->m_sortingcol;
 
+		for(auto av : wi->m_applies_to)
+		{
+			jinfo["appliesTo"].append(av);
+		}
+
 		wi->get_col_names_and_sizes(&colnames, &colsizes);
 
 		for(uint32_t j = 1; j < colnames.size(); j++)
