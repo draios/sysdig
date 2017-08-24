@@ -1370,10 +1370,11 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 
 		for(uint32_t j = 1; j < colnames.size(); j++)
 		{
+			ASSERT(colnames.size() == m_datatable->m_types->size() - 1);
 			Json::Value jcinfo;
 
 			jcinfo["name"] = colnames[j];
-			jcinfo["type"] = param_type_to_string(m_datatable->m_types->at(j));
+			jcinfo["type"] = param_type_to_string(m_datatable->m_types->at(j + 1));
 
 			jlegend.append(jcinfo);
 		}
