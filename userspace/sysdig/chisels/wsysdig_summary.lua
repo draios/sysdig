@@ -34,7 +34,7 @@ args =
 	}
 }
 
-local disable_index = false	-- change this if you are working on this script and don't want to be bothered by indexing
+local disable_index = true	-- change this if you are working on this script and don't want to be bothered by indexing
 local n_samples = 400
 local json = require ("dkjson")
 local gsummary = {} -- The global summary
@@ -70,6 +70,7 @@ function reset_summary(s)
 	s.SpawnedProcs = create_category_basic(true, true)
 	s.procCount = create_category_table(false, false)
 	s.containerCount = create_category_table(false, false)
+	s.syscallCount = create_category_basic(false, false)
 	s.fileCount = create_category_table(true, false)
 	s.fileBytes = create_category_basic(false, false)
 	s.fileBytesR = create_category_basic(false, false)
@@ -298,6 +299,8 @@ function on_event()
 		evtcnt = evtcnt + 1
 		return true
 	end
+
+	ssummary.syscallCount.tot = ssummary.syscallCount.tot + 1
 
 	local dir = evt.field(fdir)
 
@@ -573,8 +576,18 @@ function build_output()
 			name = 'Running Containers',
 			desc = 'Total number of containers that were running during the capture',
 			category = 'general',
-			targetView = 'containers',
+			targetView = 'syscalls',
 			data = gsummary.containerCount
+		}
+	end
+
+	if(sysdig.get_filter() == '' and should_include(gsummary.syscallCount)) then
+		res[#res+1] = {
+			name = 'System Calls',
+			desc = 'Number of system calls performed by any process/container in the system',
+			category = 'general',
+			targetView = 'syscalls',
+			data = gsummary.syscallCount
 		}
 	end
 
